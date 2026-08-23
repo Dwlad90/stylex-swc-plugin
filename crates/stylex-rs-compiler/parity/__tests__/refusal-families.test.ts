@@ -149,21 +149,6 @@ describe('what a family claims', () => {
     ).toBe('lone surrogate in a name');
   });
 
-  test('the same undecodable name where the reference compiler accepted it', () => {
-    // The reason is the absence of a representation, which does not depend on
-    // what the reference compiler did with the name — so the family reads the
-    // acceptance verdict too, the way `reference TypeError` reads both.
-    expect(
-      nameOf(
-        subject(
-          'acceptance-divergent',
-          refused('String value contains invalid UTF-8 encoding.'),
-          ACCEPTED
-        )
-      )
-    ).toBe('lone surrogate in a name');
-  });
-
   test('a style key spelled like a name every object inherits', () => {
     // The shape the inherited method produces: one declaration here, and one per
     // character of what the method returned there.
@@ -256,6 +241,23 @@ describe('what a family leaves as news', () => {
     // row nobody has read.
     expect(
       nameOf(subject('structurally-divergent', ACCEPTED, ACCEPTED, 'toString'))
+    ).toBeUndefined();
+  });
+
+  test('the same undecodable name under a verdict the family does not read', () => {
+    // The reason would survive the reference compiler accepting the name -- the
+    // absence of a representation does not depend on what the other side did
+    // with it -- but no row reads that verdict, so the family does not claim it.
+    // A family claiming a verdict nothing reaches would pin the first such row
+    // silently, which is the failure the mechanism exists to prevent.
+    expect(
+      nameOf(
+        subject(
+          'acceptance-divergent',
+          refused('String value contains invalid UTF-8 encoding.'),
+          ACCEPTED
+        )
+      )
     ).toBeUndefined();
   });
 

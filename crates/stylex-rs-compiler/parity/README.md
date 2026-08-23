@@ -1,13 +1,13 @@
 # CSS value parity harness
 
-Runs a corpus of CSS declarations through `@stylexswc/rs-compiler` and through
-a pinned `@stylexjs/babel-plugin`, and reports — per declaration — whether the
-two produce the same class name, the same rule text, and the same style-object
+Runs a corpus of CSS declarations through `@stylexswc/rs-compiler` and through a
+pinned `@stylexjs/babel-plugin`, and reports — per declaration — whether the two
+produce the same class name, the same rule text, and the same style-object
 shape.
 
-A StyleX class name is a hash of the canonical declaration text, so that text
-is a compatibility contract. Any setup that mixes the two compilers (SSR built
-by one and client bundles by the other, cached HTML, an incremental migration,
+A StyleX class name is a hash of the canonical declaration text, so that text is
+a compatibility contract. Any setup that mixes the two compilers (SSR built by
+one and client bundles by the other, cached HTML, an incremental migration,
 snapshot tests written against either) breaks silently when they disagree: the
 markup names a class the stylesheet does not define, and nothing errors.
 
@@ -27,6 +27,7 @@ declarations behind without anyone noticing.
 | ---------------------- | -------------------------------------- | ----- |
 | `parity`               | `checks` matrix, every pull request    | ~2.5s |
 | `parity:positions`     | the same step                          | ~8s   |
+| `fuzz:pseudo-order`    | the same step                          | ~2s   |
 | `fuzz:shorthand`       | `parity-sweep`, the nightly schedule   | ~97s  |
 | `parity:harvest:check` | ahead of this package's `vitest` suite | <1s   |
 
@@ -40,12 +41,18 @@ replays the build from it, so the marginal cost of the step is the ~10s the two
 harnesses take. The staleness check is the one that _is_ cheap enough to sit in
 front of a test script, and it does, because it needs neither.
 
+`fuzz:pseudo-order` is generated rather than curated and still runs per pull
+request, unlike the shorthand sweep, because of what it guards: a condition-key
+ordering divergence costs a class name, which is the failure this whole harness
+exists for, and it costs ~2s. The shorthand sweep guards where a value is cut,
+which shows up in a rule rather than in a hash.
+
 **Why the sweep is nightly.** The generated harness crosses an alphabet with
 itself — ~154k subjects, two compiler runs each — which is roughly forty times
 the curated one. That buys nothing per commit: a value-splitter defect shows up
-when a value pass or the alphabet changes, and a sweep once a night reports it as
-surely as one per pull request would. It is listed in the `pr-validation` gate so
-a failing sweep fails rather than sitting green beside it.
+when a value pass or the alphabet changes, and a sweep once a night reports it
+as surely as one per pull request would. It is listed in the `pr-validation`
+gate so a failing sweep fails rather than sitting green beside it.
 
 **What a failing run says.** Each harness prints the versions it resolved before
 anything else, because the reference plugin is held by the lockfile rather than
@@ -96,8 +103,8 @@ information for a person to read, not a failure.
 
 Both compilers receive the same module text and the same option object,
 constructed once in `lib/compare.ts`. Option drift would surface as a
-normalization divergence and send the reader chasing the wrong thing, so
-options are never spelled out per subject.
+normalization divergence and send the reader chasing the wrong thing, so options
+are never spelled out per subject.
 
 `--style-resolution` is the one option a run is expected to vary, because what
 differs between the three is which longhands a shorthand becomes and what order
@@ -112,15 +119,15 @@ three is refused rather than defaulted.
 All three have been run over the whole corpus. `application-order` was the one
 that had never been: it reported seven rows where both compilers emitted the
 same CSS and the same set of style-object keys in a different order, from five
-shorthands that spread another shorthand's expansion into the middle of their own
-list and appended it instead. That is fixed, and the position of every one of
-those spreads is now pinned in `application_order.rs` — the corpus found it, but
-a unit test is where it belongs, since nothing runs the corpus under a
+shorthands that spread another shorthand's expansion into the middle of their
+own list and appended it instead. That is fixed, and the position of every one
+of those spreads is now pinned in `application_order.rs` — the corpus found it,
+but a unit test is where it belongs, since nothing runs the corpus under a
 non-default resolution.
 
-Right-to-left rule text is compared but never printed. An RTL-only difference
-is a value difference all the same, and without comparing it a verdict would
-call such a pair identical; the left-to-right spelling shows what changed more
+Right-to-left rule text is compared but never printed. An RTL-only difference is
+a value difference all the same, and without comparing it a verdict would call
+such a pair identical; the left-to-right spelling shows what changed more
 plainly, so that is what the report displays.
 
 The **style-object shape** is the other half of an answer the rule text cannot
@@ -151,12 +158,12 @@ comparison but the decoration each compiler wraps its complaint in:
 /abs/path/to/value.js: Invalid pseudo or at-rule.
 ```
 
-Neither wrapper can be hard-coded away — this compiler's carries the
-evaluator's key path, which is the authored object's own keys, and upstream's
-carries an absolute file path — so `lib/refusal.ts` derives it, from the marker
-this compiler brands every diagnostic with and from the filename the harness
-itself handed both compilers. It strips only what says _where_: the marker and
-the breadcrumbs, the `-->` location line, the repaired rule text a CSS refusal
+Neither wrapper can be hard-coded away — this compiler's carries the evaluator's
+key path, which is the authored object's own keys, and upstream's carries an
+absolute file path — so `lib/refusal.ts` derives it, from the marker this
+compiler brands every diagnostic with and from the filename the harness itself
+handed both compilers. It strips only what says _where_: the marker and the
+breadcrumbs, the `-->` location line, the repaired rule text a CSS refusal
 carries, and upstream's code frame. What survives is the complaint, newlines
 included — several diagnostics are two lines in both compilers, and the second
 carries the advice.
@@ -175,41 +182,42 @@ comparing against an older report.
 ### Comparing where a refusal points
 
 Stripping the text that says _where_ is what makes two messages comparable, and
-it leaves the position unmeasured — so a diagnostic naming a line that is correct
-as written reads as agreement here. A refused build hands an author two things,
-and that is the second one.
+it leaves the position unmeasured — so a diagnostic naming a line that is
+correct as written reads as agreement here. A refused build hands an author two
+things, and that is the second one.
 
 `pnpm parity:positions` compares it, over `corpus/positions.json`: one subject
-per branch of the reference-resolution chain, plus five CSS refusals, each refused
-by both compilers with the same sentence so that the position is all that is left
-to disagree about. Verdicts are `identical`, `divergent`, `no-position` — one side
-stopped without saying where — `neither-position` — neither did — and
-`not-refused`. An entry may pin a known divergence with `expected`, and the run
-exits non-zero when an entry's verdict is not what it expects, in either
-direction.
+per branch of the reference-resolution chain, plus five CSS refusals, each
+refused by both compilers with the same sentence so that the position is all
+that is left to disagree about. Verdicts are `identical`, `divergent`,
+`no-position` — one side stopped without saying where — `neither-position` —
+neither did — and `not-refused`. An entry may pin a known divergence with
+`expected`, and the run exits non-zero when an entry's verdict is not what it
+expects, in either direction.
 
-The CSS subjects are what `neither-position` was added for, and they are the whole
-of that verdict's population. **No CSS refusal in either compiler says where it
-happened.** This one throws the sentence with the repaired rule text appended and
-writes no frame to stderr, unlike every evaluator refusal beside it; the reference
-compiler prefixes the filename and attaches no `@babel/code-frame` excerpt. That
-is agreement about a hole rather than a disagreement about a line, which is why it
-is not folded into `no-position` — a `no-position` row is one to act on, and five
-permanent ones in front of the reader is how a report stops being read. All five
-carry `expected`, so the day either compiler starts framing a value refusal is a
-changed verdict rather than silence.
+The CSS subjects are what `neither-position` was added for, and they are the
+whole of that verdict's population. **No CSS refusal in either compiler says
+where it happened.** This one throws the sentence with the repaired rule text
+appended and writes no frame to stderr, unlike every evaluator refusal beside
+it; the reference compiler prefixes the filename and attaches no
+`@babel/code-frame` excerpt. That is agreement about a hole rather than a
+disagreement about a line, which is why it is not folded into `no-position` — a
+`no-position` row is one to act on, and five permanent ones in front of the
+reader is how a report stops being read. All five carry `expected`, so the day
+either compiler starts framing a value refusal is a changed verdict rather than
+silence.
 
 Three of the five value guards are deliberately not asked here: the
 declaration-terminating token, the unclosed comment and the nesting budget are
 refusals the reference compiler does not make at all — it emits the value — so
 there is no second position to compare and the subject could only ever read
 `not-refused`. Those three are pinned by refusal family in the value harness
-instead. What is asked is the two the reference compiler does refuse, the two-fault
-value where the two compilers reach the same sentence from _different_ passes
-because the guard order here was changed to buy that agreement, and one condition
-key, which arrives at the refusal from the style walk rather than from a value
-pass. The last is the one that makes the finding general: the silence is a property
-of every CSS refusal, not of the value passes.
+instead. What is asked is the two the reference compiler does refuse, the
+two-fault value where the two compilers reach the same sentence from _different_
+passes because the guard order here was changed to buy that agreement, and one
+condition key, which arrives at the refusal from the style walk rather than from
+a value pass. The last is the one that makes the finding general: the silence is
+a property of every CSS refusal, not of the value passes.
 
 ```sh
 pnpm run --filter=@stylexswc/rs-compiler build     # the harness reads dist/
@@ -219,8 +227,8 @@ pnpm run --filter=@stylexswc/rs-compiler parity:positions
 Each subject runs in a **child process**, because the two positions arrive in
 different channels: upstream throws its `@babel/code-frame` excerpt inside the
 message, while this compiler writes a code frame to stderr and throws the
-sentence alone. Node cannot redirect its own file descriptor 2 and a native write
-goes straight to it, so capturing that frame means being the parent of the
+sentence alone. Node cannot redirect its own file descriptor 2 and a native
+write goes straight to it, so capturing that frame means being the parent of the
 process that wrote it. `lib/position.ts` parses both, and every shape either
 compiler produces is pinned in `__tests__/position.test.ts` — a parser that
 silently misreads a frame would turn the whole set green.
@@ -229,13 +237,53 @@ The subject is written to `parity/__fixture__/positions.js` while the run lasts,
 because this compiler locates a refusal in the file it names rather than in the
 string it was handed. That path is git-ignored.
 
+## Ordering, over random pairs: `pnpm fuzz:pseudo-order`
+
+A condition key's sorted path is hashed into the class name, so the order two
+keys sort in is a compatibility contract in the same way a value's spelling is.
+The curated corpus pins the shapes someone thought of. This asks the same
+question over pairs nobody chose, and it is what the collation dependency in
+`crates/stylex-css/src/utils/pre_rule.rs` is held to.
+
+It checks two things, and they are not the same check:
+
+- **Against the reference compiler.** Both compilers are handed the same two keys
+  nested, and the class names and rule text have to match. That is the contract,
+  and it is the only oracle covering the whole path from key to hash rather than
+  the comparator alone.
+- **Against the ordering algorithm.** The order this compiler chose, read out of
+  the emitted selector, has to match `Intl.Collator` at the **root** locale. This
+  is what tells a failure in the first check apart: a comparator that moved,
+  against a reference whose own answer moved under it.
+
+Keys are attribute selectors, and not for convenience. Every pseudo-class and
+pseudo-element name CSS defines is ASCII, so an attribute selector is the only
+way a non-ASCII key reaches the comparator at all — `collation_cost` in
+`pre_rule.rs` argues that at length. It also keeps a generated key clear of the
+selector syntax a random character would otherwise spell, which would make the
+subject about parsing rather than about order.
+
+The run also prints how many of its pairs the **build machine's default locale**
+and root collation order differently. That is not a defect count: upstream calls
+`localeCompare` bare, so its answer follows the machine, and a Swedish or Danish
+one sorts `ö` after `z`. It is the remainder `pre_rule.rs` names, reported as a
+number so nobody has to remember to re-derive it.
+
+```sh
+pnpm run --filter=@stylexswc/rs-compiler fuzz:pseudo-order
+pnpm run --filter=@stylexswc/rs-compiler fuzz:pseudo-order -- --pairs 20000
+```
+
+The seed is fixed and printed, so a failing pair is reproducible from the report
+rather than from the clock.
+
 ## The corpus
 
-Four checked-in JSON files under `corpus/`, loaded in this order, with
-duplicate subjects collapsed onto the first entry seen. `positions.json` is a
-fifth, read only by `parity:positions` — its subjects ask where a refusal points
-rather than what either compiler emitted, so running them through the value
-comparison would report nine refusals nobody wrote them to measure:
+Four checked-in JSON files under `corpus/`, loaded in this order, with duplicate
+subjects collapsed onto the first entry seen. `positions.json` is a fifth, read
+only by `parity:positions` — its subjects ask where a refusal points rather than
+what either compiler emitted, so running them through the value comparison would
+report nine refusals nobody wrote them to measure:
 
 - **`reported.json`** — the six divergences reported in issue #1256, one entry
   per illustrating value. Hand-written.
@@ -247,18 +295,18 @@ comparison would report nine refusals nobody wrote them to measure:
 - **`harvested.json`** — the CSS declarations the Rust test suites carry, as
   far as the scan below recognizes them. **Generated — do not edit.**
 
-Adding a case means editing one of the three hand-written files. Entries take
-an optional `note`, which the report prints next to a mismatch, and an optional
+Adding a case means editing one of the three hand-written files. Entries take an
+optional `note`, which the report prints next to a mismatch, and an optional
 `expected` naming the verdict the entry is known to read.
 
 An `expected` verdict is how a divergence someone has already looked at is told
 apart from a new one. While it holds, the report marks the entry `(expected)`
 and `--only-mismatches` leaves it out. When it stops holding — in either
-direction — the entry is listed under **Verdicts that changed**, counted, and the
-run exits non-zero, so a divergence that quietly goes away is as loud as a new
-one: an entry recording a divergence that no longer happens has stopped measuring
-what it was written for. `note` says _why_; `expected` is what the harness
-checks.
+direction — the entry is listed under **Verdicts that changed**, counted, and
+the run exits non-zero, so a divergence that quietly goes away is as loud as a
+new one: an entry recording a divergence that no longer happens has stopped
+measuring what it was written for. `note` says _why_; `expected` is what the
+harness checks.
 
 ### Refusal families
 
@@ -293,10 +341,10 @@ why no count is written here — a number in this file went stale twice before:
 A family reads a verdict, or a set of them where the reason survives this
 compiler's own behaviour changing around it: a reference crash is a reference
 crash whether this side accepted the value or refused it for a fault of its own,
-and those read different verdicts. The declaration order is also precedence — the
-first family to claim a row keeps it — and no pair overlaps as the table stands.
-It is still stated because a family added below an existing one inherits that
-precedence silently, so where the next one goes is a decision rather than a
+and those read different verdicts. The declaration order is also precedence —
+the first family to claim a row keeps it — and no pair overlaps as the table
+stands. It is still stated because a family added below an existing one inherits
+that precedence silently, so where the next one goes is a decision rather than a
 detail.
 
 The list shrinks as well as grows. A family that named which of two true
@@ -336,10 +384,10 @@ _not_ be claimed, is pinned in `__tests__/refusal-families.test.ts`.
 ### Module subjects
 
 A declaration entry is `{ id, property, value, origin }` and is wrapped in the
-smallest module that carries it. A module entry is `{ id, label, source,
-origin }` and is handed to both compilers verbatim. Which one an entry is comes
-from whether it carries a `source`, so nothing has to be written down twice and
-the generated `harvested.json` stays free of a field whose value never varies.
+smallest module that carries it. A module entry is `{ id, label, source, origin
+}` and is handed to both compilers verbatim. Which one an entry is comes from
+whether it carries a `source`, so nothing has to be written down twice and the
+generated `harvested.json` stays free of a field whose value never varies.
 
 Most questions about this compiler are declaration questions, because a class
 name is a hash of declaration text. A few are not: whether an expression the
@@ -361,18 +409,16 @@ What a module subject **cannot** ask is anything about its own filename. Every
 subject is handed the same one, deliberately — `haste` resolution and class
 hashing both read it, so varying it per entry would vary the output for reasons
 unrelated to the subject — and that filename is not a `*.stylex.js` one. A
-`defineVars` call hashes the file that declares it, so such a subject refuses for
-the filename in both compilers before the value under test is ever read: the
-entry reports `both reject` and measures nothing. Ask that one where the filename
-is a parameter, which is the Rust suites.
+`defineVars` call hashes the file that declares it, so such a subject refuses
+for the filename in both compilers before the value under test is ever read: the
+entry reports `both reject` and measures nothing. Ask that one where the
+filename is a parameter, which is the Rust suites.
 
 Most entries in that set carry an `expected` verdict, each with the `note` that
-says why: some where upstream aborts and this compiler does not, some where
-both reject, one where upstream
-folds an indexed read this compiler refuses,
-one where upstream reads a condition key as a property name and emits a key
-named after a pseudo-class (a defect this compiler is not going to
-reproduce), and the
+says why: some where upstream aborts and this compiler does not, some where both
+reject, one where upstream folds an indexed read this compiler refuses, one
+where upstream reads a condition key as a property name and emits a key named
+after a pseudo-class (a defect this compiler is not going to reproduce), and the
 shadowing shapes from
 [#1266](https://github.com/Dwlad90/stylex-swc-plugin/issues/1266), which record
 `identical` so a regression in binding-aware import resolution reports as a
@@ -380,13 +426,14 @@ changed verdict rather than as silence. The count is deliberately not written
 here -- it went stale twice.
 
 Not every entry in the set is a question about the evaluator. Several ask how a
-condition tree is ordered, which a module is the smallest way to ask: a condition
-tree is a style value, not a declaration, and the sorted key path feeds the class
-hash. Those rows are where the harness's last two class-name divergences were
-recorded and then closed — three nested pseudo-classes ordered differently, found
-by a guard written for something else, and a key carrying an accented letter,
-which took a collation dependency. Both now read `identical`, which is what makes
-a regression in either a changed verdict rather than silence.
+condition tree is ordered, which a module is the smallest way to ask: a
+condition tree is a style value, not a declaration, and the sorted key path
+feeds the class hash. Those rows are where the harness's last two class-name
+divergences were recorded and then closed — three nested pseudo-classes ordered
+differently, found by a guard written for something else, and a key carrying an
+accented letter, which took a collation dependency. Both now read `identical`,
+which is what makes a regression in either a changed verdict rather than
+silence.
 
 Other entries carry a `note` without an expectation, saying why a subject that
 reads `identical` still earns one -- the shorthand rejection table having once
@@ -457,11 +504,11 @@ this package's runs `parity:harvest:check` before `vitest`, the way
 
 The first link went unguarded long enough for the corpus to fall 41 declarations
 behind the suites, including every float-precision value the effort's own tests
-were written to pin — which is the one place a stale corpus costs the most, since
-the corpus was then not measuring parity on the values someone had just gone to
-the trouble of pinning. The check needs no `dist/` and no compiler run: it scans
-Rust sources, so it is cheap enough to sit in front of a test script and there is
-no reason for it to be somewhere a contributor has to remember.
+were written to pin — which is the one place a stale corpus costs the most,
+since the corpus was then not measuring parity on the values someone had just
+gone to the trouble of pinning. The check needs no `dist/` and no compiler run:
+it scans Rust sources, so it is cheap enough to sit in front of a test script
+and there is no reason for it to be somewhere a contributor has to remember.
 
 The scan is a heuristic over Rust sources, so the corpus contains some values
 that are not valid CSS — degenerate inputs to the whitespace-repair unit tests,
@@ -506,12 +553,12 @@ pnpm fuzz:shorthand --json parity/results/<name>.json    # full report
 ```
 
 A row it reports is not yet a defect: the alphabet deliberately includes values
-that are not valid CSS. What the report separates is pinned rows from
-unexpected ones, and the unexpected count is the number to read — as it stands
-every divergent row belongs to a family, so that count is zero and any other
-value is news. `--show` prints the unexpected rows; `--json` carries both, the
-pinned ones grouped by family as the evidence that the count above them is what
-it says.
+that are not valid CSS. What the report separates is pinned rows from unexpected
+ones, and the unexpected count is the number to read — as it stands every
+divergent row belongs to a family, so that count is zero and any other value is
+news. `--show` prints the unexpected rows; `--json` carries both, the pinned
+ones grouped by family as the evidence that the count above them is what it
+says.
 
 Adding a token class is judged on whether it can produce a **part shape** no
 existing class produces, never on the rows it adds: a class crossed with the

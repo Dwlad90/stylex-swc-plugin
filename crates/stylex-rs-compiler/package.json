@@ -33,6 +33,7 @@
     "format:rs:check": "cargo fmt -- --check",
     "format:toml": "taplo format",
     "format:toml:check": "taplo format --check",
+    "fuzz:pseudo-order": "node --import tsx/esm parity/fuzz-pseudo-order.ts",
     "fuzz:shorthand": "node --import tsx/esm parity/fuzz-shorthand-split.ts",
     "parity": "node --import tsx/esm parity/parity-values.ts",
     "parity:harvest": "node --import tsx/esm parity/harvest-corpus.ts",

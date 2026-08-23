@@ -1728,7 +1728,7 @@
     },
     {
       "id": "modules-1267-fractional-rem-breakpoint-chain",
-      "label": "four `@media` breakpoints at fractional `rem`, whose upper bounds are derived",
+      "label": "a `@media` breakpoint chain at fractional `rem`, whose upper bounds are derived",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: {\n    minHeight: {\n      default: '100px',\n      '@media (min-width: 25rem)': '200px',\n      '@media (min-width: 28.81rem)': '300px',\n      '@media (min-width: 32.88rem)': '400px',\n    },\n  },\n});\n",
       "origin": "issue #1267, the reported reproduction verbatim",
       "expected": "identical",
@@ -1765,6 +1765,22 @@
       "origin": "the reported shape of the collation divergence, three keys rather than two",
       "expected": "identical",
       "note": "The shape the divergence was reported as, and the one a pseudo-name row cannot ask: an accented key has to land *between* two others for the ordering to be visible rather than merely reversed. Every pseudo name CSS defines is ASCII, so an attribute selector is also the only way a non-ASCII key reaches the comparator at all -- through the attribute name here, and through a quoted attribute value in general, which is what makes the reachable set unbounded."
+    },
+    {
+      "id": "modules-1266-an-unresolvable-binding-spread-into-a-style-object",
+      "label": "an unresolvable binding spread into the style object",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (p) => ({ ...missingThing, color: p }),\n});\n",
+      "origin": "issue #1266, the spread shape that is not the reported one",
+      "expected": "both-reject",
+      "note": "Here because the reported spread is a shadowed dynamic parameter, and the complaint a spread earns was changed for the position rather than for that binding. This asks whether the change was right for a spread whose value fails to resolve for an entirely different reason, and the answer read from a run is that it was: upstream writes the same sentence for this shape too. Without this row the rule would rest on one subject."
+    },
+    {
+      "id": "modules-1266-a-hoisted-function-spread-into-a-style-object",
+      "label": "a hoisted function declaration spread into the style object",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nfunction fnDecl() {}\n\nexport const styles = stylex.create({\n  dyn: (p) => ({ ...fnDecl, color: p }),\n});\n",
+      "origin": "issue #1266, a spread whose binding resolves to something with no keys to enumerate",
+      "expected": "both-reject",
+      "note": "The third spread shape, and the one where the binding resolves fine: a function declaration is a value, it just has no keys a style object can take. Read from a run, both compilers name the call rather than the binding -- so the complaint a spread earns is about the position on both sides, whatever the spread resolved to. The computed-key subject beside these still names the binding, which is what keeps this a rule about spreads rather than about refusals generally."
     }
   ]
 }

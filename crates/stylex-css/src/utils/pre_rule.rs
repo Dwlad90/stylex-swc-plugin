@@ -146,9 +146,20 @@ pub(super) const fn build_ascii_primary_rank() -> [u8; 128] {
 ///
 /// Built once. `Collator::try_new` reads compiled CLDR data rather than a file,
 /// so it cannot fail for want of a locale — but it returns a `Result`, and a
-/// refusal here would mean the compiled data the crate carries is not there,
-/// which is a broken build rather than an author's mistake. Hence the panic: it
-/// is an invariant this code established, not a diagnostic.
+/// refusal here would mean the compiled data the crate carries is not there.
+///
+/// That is why the arm aborts rather than reporting. `RUST.md` says to handle
+/// every case with a `match` and never to reach for `.unwrap()`, and the
+/// distinction it is protecting is the one
+/// `crates/stylex-transform/docs/adr/0002-a-refusal-and-a-broken-invariant-are-separate-constructs.md`
+/// draws: a value the author wrote that cannot be folded is a refusal an author
+/// can act on, and a compiled-in table that is not compiled in is an invariant
+/// this code established being false. Continuing past the second would mean
+/// hashing class names off an ordering nobody chose, silently. `unreachable!`
+/// rather than `panic!` because the branch is unreachable for a reason a reader
+/// can check — the data is a build-time dependency of this crate, not a runtime
+/// one — and `Shorthands::infallible` in this crate spells the same situation the
+/// same way.
 ///
 /// `CollatorPreferences::default()` is the **root** locale, deliberately and not
 /// the host's. Upstream calls `localeCompare` bare, so *its* answer follows the
@@ -290,10 +301,13 @@ fn primary_weight(byte: u8) -> u16 {
 /// pick without reading the build machine's environment — but it means the
 /// divergence is closed for most build machines rather than all of them.
 ///
-/// That remainder is not left to memory. It is named here, and the property test
-/// beside the comparator checks it against the reference over random pairs — so
-/// the day the reference's own answer moves under it, the check says so rather
-/// than a reader having to remember that it might.
+/// That remainder is not left to memory, and not left to prose either.
+/// `crates/stylex-rs-compiler/parity/fuzz-pseudo-order.ts` counts, per run, how
+/// many of its random key pairs the build machine's default locale and root
+/// collation order differently, and prints that count beside its disagreement
+/// count. On a machine tailoring none of the characters in play it is zero; on a
+/// Swedish one it is not, and the run says so. So the remainder is a number in a
+/// report rather than a sentence someone has to remember to re-derive.
 pub(super) mod collation_cost {}
 
 /// Order a run of pseudo keys the way the reference implementation's

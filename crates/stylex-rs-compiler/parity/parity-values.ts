@@ -80,7 +80,10 @@ const { values: cliOptions } = parseArgs({
     filter: { type: 'string' },
     json: { type: 'string' },
     'font-size-px-to-rem': { type: 'boolean', default: false },
-    'style-resolution': { type: 'string', default: DEFAULT_STYLE_RESOLUTION },
+    // No `default` here: `styleResolutionFrom` below applies it. Spelling it in
+    // both places leaves the validator with an arm nothing reaches, and a third
+    // copy at the print site.
+    'style-resolution': { type: 'string' },
     help: { type: 'boolean', short: 'h', default: false },
   },
 });
@@ -116,12 +119,14 @@ const VERDICT_LABELS: Record<Verdict, string> = {
 };
 
 /**
- * The resolution a run was asked for, refused rather than defaulted when it is
- * not one of the three.
+ * The resolution a run was asked for: the default when the flag is absent, and a
+ * refusal when it names something that is not one of the three.
  *
  * A misspelled name silently falling back would report a run under the default
  * while the reader believed it was under something else — and the whole point of
- * the flag is that a report says which resolution produced it.
+ * the flag is that a report says which resolution produced it. This is also the
+ * one place the default is applied, so a reader has one line to read rather than
+ * a `parseArgs` entry and a fallback to reconcile.
  */
 function styleResolutionFrom(named: string | undefined): (typeof STYLE_RESOLUTIONS)[number] {
   if (named === undefined) return DEFAULT_STYLE_RESOLUTION;
@@ -180,7 +185,9 @@ async function run(): Promise<void> {
   console.log(
     `${chalk.bold('Subjects')}\n` +
       `${subjectBlock(comparer.versions, [
-        ['style resolution', comparer.options.styleResolution ?? DEFAULT_STYLE_RESOLUTION],
+        // Read off the option object both compilers were handed rather than off
+        // the flag, so the line cannot come to disagree with what ran.
+        ['style resolution', String(comparer.options.styleResolution)],
         ['options', JSON.stringify(comparer.options)],
       ])}\n`
   );

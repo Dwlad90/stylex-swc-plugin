@@ -188,10 +188,12 @@ export const REFUSAL_FAMILIES: readonly RefusalFamily[] = [
       'a condition key. That is not an ordering that could be swapped to buy the same sentence; ' +
       'it is the absence of a representation. Substituting a replacement character would be ' +
       'worse than refusing, since it writes a name the source does not describe.',
-    // Both verdicts, for the reason `reference TypeError` above gives: the
-    // absence of a representation is the same fact whether the reference
-    // compiler refused the name for a fault of its own or accepted it.
-    verdicts: ['both-reject-divergent', 'acceptance-divergent'],
+    // One verdict, unlike `reference TypeError` above. The reason would survive
+    // the reference compiler accepting a name this one cannot decode — but no row
+    // reads that today, and a family claiming a verdict nothing reaches would
+    // pin the first such row silently instead of reporting it. Widen this when a
+    // row arrives, which is the direction that gets read.
+    verdicts: ['both-reject-divergent'],
     claims: entry => refusedWith(entry, REFUSALS.invalidUtf8),
   },
   {

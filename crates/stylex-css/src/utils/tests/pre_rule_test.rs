@@ -508,21 +508,27 @@ fn ascii_and_root_collation_agree_on_every_printable_pair() {
   }
 }
 
-/// The same property over random pairs rather than over the alphabet, extended
-/// past ASCII into the range an authored condition key can plausibly carry.
+/// The same property over random multi-character keys rather than over the
+/// alphabet.
 ///
 /// The single-character sweep above is exhaustive but shallow, and the fixed
-/// pairs beside it are the shapes someone thought of. This is the third kind of
-/// coverage: multi-character keys drawn from printable ASCII, Latin-1 Supplement,
-/// Latin Extended-A and the combining diacritics, which is the range
-/// `collation_cost` argues an attribute selector reaches -- and past which a
-/// quoted attribute value can still go, which is why the range is a floor rather
-/// than a claim.
+/// pairs beside it are the shapes someone thought of.
+///
+/// **What this cannot check, and where that is checked instead.** Only an
+/// all-ASCII pair is assertable here: any other pair takes the collator on both
+/// sides of the branch, so comparing them would be the collator against itself.
+/// The alphabet still reaches past ASCII, because a key drawn from it is
+/// *rejected* by the fast path rather than filtered before generation -- which is
+/// what exercises the boundary this test exists for. Whether the collator's own
+/// answer is the reference compiler's is a different question and needs the
+/// reference compiler to ask it: `parity/fuzz-pseudo-order.ts` does, over random
+/// pairs drawn from this same range, against both the reference plugin's class
+/// names and `Intl.Collator` at the root locale.
 ///
 /// Deterministic rather than seeded from the clock: a property check that fails
 /// on one run in ten and cannot be reproduced is worse than one that never runs.
 #[test]
-fn the_two_paths_agree_over_random_keys_past_ascii() {
+fn the_two_paths_agree_over_random_ascii_keys_drawn_from_a_wider_alphabet() {
   use crate::utils::pre_rule::collating_pseudo_comparator;
 
   let alphabet: Vec<char> = (0x20u32..=0x7e)
@@ -554,9 +560,10 @@ fn the_two_paths_agree_over_random_keys_past_ascii() {
     let left = key(1 + round % 6, &alphabet);
     let right = key(1 + (round / 6) % 6, &alphabet);
 
-    // Only the pairs the fast path claims: an all-ASCII pair is the only one
-    // where the two paths can disagree, since every other pair already goes
-    // through the collator.
+    // Only the pairs the fast path claims. Every other pair already goes through
+    // the collator on both sides, so asserting it would compare the collator
+    // with itself -- and the generation is deliberately not narrowed to match,
+    // because a pair rejected here is a pair that crossed the boundary.
     if !left.is_ascii() || !right.is_ascii() {
       continue;
     }

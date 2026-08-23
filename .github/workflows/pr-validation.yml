@@ -194,10 +194,14 @@ jobs:
           # cost to put in front of every commit, and this job already has both.
           # It fails on exactly two things, and both get quieter the longer
           # nobody looks: an expectation that stopped holding, and a refusal
-          # family no row reached. Measured at ~2.5s and ~8s on an Apple Silicon
-          # laptop, so it adds nothing worth weighing against the matrix around
-          # it. The generated sweep next door is forty times the first of those
-          # and runs on the nightly schedule instead -- see `parity-sweep`.
+          # family no row reached. The ordering check beside it is the third
+          # harness, and it is here rather than in the nightly sweep because it
+          # is the one that guards a class name: a condition-key ordering
+          # divergence is what the collation dependency was taken on to close.
+          # Measured at ~2.5s, ~8s and ~2s on an Apple Silicon laptop, so the
+          # step adds nothing worth weighing against the matrix around it. The
+          # generated shorthand sweep is forty times the first of those and runs
+          # on the nightly schedule instead -- see `parity-sweep`.
           - id: parity
             name: CSS value parity
             # The build restores from the `build-public-packages` cache; both
@@ -207,6 +211,7 @@ jobs:
               pnpm run build --filter=@stylexswc/rs-compiler
               pnpm run --filter=@stylexswc/rs-compiler parity
               pnpm run --filter=@stylexswc/rs-compiler parity:positions
+              pnpm run --filter=@stylexswc/rs-compiler fuzz:pseudo-order
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
@@ -730,7 +735,10 @@ jobs:
         run: |
           echo "$NEEDS_JSON" | jq .
 
-          for job in basic-checks checks build-public-packages playwright-image visual-tests benchmark parity-sweep; do
+          jobs="basic-checks checks build-public-packages playwright-image"
+          jobs="$jobs visual-tests benchmark parity-sweep"
+
+          for job in $jobs; do
             result=$(echo "$NEEDS_JSON" | jq -r --arg job "$job" '.[$job].result')
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               echo "::error::Validation job '$job' finished with status '$result'."

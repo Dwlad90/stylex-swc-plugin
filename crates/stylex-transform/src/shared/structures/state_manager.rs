@@ -24,6 +24,7 @@ use swc_core::{
   },
 };
 
+use crate::shared::utils::js::check_declaration::{DeclarationType, declares_ident};
 use crate::shared::{
   structures::types::InjectableStylesMap,
   utils::{
@@ -496,13 +497,7 @@ pub struct StateManager {
   /// the declaration initializer an unsound stand-in at the use site and both
   /// refuse with the same text, so the split buys a step-for-step mapping to
   /// the reference implementation rather than a difference in outcome.
-  ///
-  /// Behind an `Rc` for the reason the memoized module is. All four sets are
-  /// filled once by the `Discover` pre-scan and read-only afterwards, and
-  /// `StateManager` derives `Clone` -- which a dynamic style's callback performs
-  /// once per invocation. `declared_bindings` alone holds every binding the
-  /// module declares, so copying the four of them made a callback's cost scale
-  /// with the size of the file it happens to sit in.
+  /// Shared rather than copied -- see [`Self::binding_reassignments`].
   pub(crate) binding_mutations: Rc<FxHashSet<Id>>,
   /// Bindings whose referenced value is written to further down a member chain
   /// than the reference implementation's `isMutated` looks: `obj.a.b = 1`
@@ -514,13 +509,7 @@ pub struct StateManager {
   /// deeper one refuses only where refusing protects something — a declarator
   /// whose initializer would otherwise be inlined at the use site, stale — since
   /// upstream folds these and this compiler deliberately does not.
-  ///
-  /// Behind an `Rc` for the reason the memoized module is. All four sets are
-  /// filled once by the `Discover` pre-scan and read-only afterwards, and
-  /// `StateManager` derives `Clone` -- which a dynamic style's callback performs
-  /// once per invocation. `declared_bindings` alone holds every binding the
-  /// module declares, so copying the four of them made a callback's cost scale
-  /// with the size of the file it happens to sit in.
+  /// Shared rather than copied -- see [`Self::binding_reassignments`].
   pub(crate) binding_deep_mutations: Rc<FxHashSet<Id>>,
   /// Every **declared binding** in the module, keyed by full `Id` — the crate
   /// glossary defines the term and why the `Id` is what makes it scope-aware.
@@ -528,13 +517,7 @@ pub struct StateManager {
   ///
   /// Populated by the `Discover` pre-scan ([`ModuleBindingsCollector`]) in
   /// either of its modes, in the same walk that fills the two write sets above.
-  ///
-  /// Behind an `Rc` for the reason the memoized module is. All four sets are
-  /// filled once by the `Discover` pre-scan and read-only afterwards, and
-  /// `StateManager` derives `Clone` -- which a dynamic style's callback performs
-  /// once per invocation. `declared_bindings` alone holds every binding the
-  /// module declares, so copying the four of them made a callback's cost scale
-  /// with the size of the file it happens to sit in.
+  /// Shared rather than copied -- see [`Self::binding_reassignments`].
   pub(crate) declared_bindings: Rc<FxHashSet<Id>>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   /// Spans of the calls that initialise a top-level declarator bound to a
@@ -742,13 +725,31 @@ impl StateManager {
     self.cache.frame_declaration(cache_key, name);
   }
 
-  /// The binding a refusal on the expression behind `cache_key` is about, if one
-  /// was recorded.
+  /// Which kind of declaration binds `ident`, if either does.
+  ///
+  /// Asked of the state because the state owns both lists, and answered as a
+  /// `Copy` verdict because the caller's next move is a refusal that borrows
+  /// `self` mutably -- holding a `&[Ident]` across that is what used to be paid
+  /// for by cloning both lists on the path every dynamic style's parameter
+  /// takes.
+  pub(crate) fn declared_as(&self, ident: &Ident) -> Option<DeclarationType> {
+    if declares_ident(self.class_name_declarations(), ident) {
+      return Some(DeclarationType::Class);
+    }
+
+    if declares_ident(self.function_name_declarations(), ident) {
+      return Some(DeclarationType::Function);
+    }
+
+    None
+  }
+
   /// Appends a declarator and records where it went.
   ///
-  /// The one way to grow [`Self::declarations`], so the index beside it cannot
-  /// fall behind: a caller that pushed directly would leave the binding it added
-  /// invisible to every lookup.
+  /// Every caller that grows [`Self::declarations`] goes through here, so the
+  /// index beside it cannot fall behind: pushing to the field directly leaves
+  /// the binding it added invisible to [`Self::declaration_of`], which is what
+  /// the three test builders that did so discovered.
   pub(crate) fn push_declaration(&mut self, declarator: VarDeclarator) {
     if let Pat::Ident(binding) = &declarator.name {
       self
@@ -767,6 +768,8 @@ impl StateManager {
     self.declarations.get(position)
   }
 
+  /// The binding a refusal on the expression behind `cache_key` is about, if one
+  /// was recorded.
   pub(crate) fn framed_declaration(&self, cache_key: u128) -> Option<&Atom> {
     self.cache.framed_declaration(cache_key)
   }

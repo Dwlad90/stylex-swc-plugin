@@ -72,17 +72,24 @@ fn read_env() -> Option<String> {
 
 /// The precedence, with the environment passed in rather than read.
 ///
-/// Split out so the rule is testable without a process-global write: setting an
-/// environment variable from a test leaks into every other test in the binary,
-/// and a rule this small does not need to be verified through a side channel to
-/// be verified at all.
+/// Split out so the *rule* is testable without a process-global write: setting
+/// an environment variable from a test leaks into every other test in the
+/// binary, and precedence does not need a side channel to be verified. Which
+/// variable seeds the cache is a separate question, and the one test that does
+/// write the environment asks only that -- see `read_env`.
 fn resolve_from(configured: Option<usize>, from_env: Option<&str>) -> usize {
-  match configured {
-    Some(depth) if depth > 0 => depth.min(MAX_EVALUATION_DEPTH_LIMIT),
+  let resolved = match configured {
+    Some(depth) if depth > 0 => depth,
     _ => from_env
       .and_then(parse_depth)
       .unwrap_or(DEFAULT_MAX_EVALUATION_DEPTH),
-  }
+  };
+
+  // Clamped on the way out rather than in the `configured` arm alone, so the
+  // environment cannot ask for what an option cannot. `STYLEX_MAX_EVALUATION_DEPTH`
+  // parses any `usize`, and a number the fold exhausts memory before reaching is
+  // not a ceiling whichever side of the boundary it arrived from.
+  resolved.min(MAX_EVALUATION_DEPTH_LIMIT)
 }
 
 /// One environment value, read as a ceiling or not at all.
@@ -204,6 +211,12 @@ mod tests {
   fn a_ceiling_past_the_limit_is_clamped_rather_than_honoured() {
     assert_eq!(
       resolve_from(Some(usize::MAX), None),
+      MAX_EVALUATION_DEPTH_LIMIT
+    );
+    // The environment reaches the same clamp. It parses any `usize`, so without
+    // this the escape hatch could ask for what the option cannot.
+    assert_eq!(
+      resolve_from(None, Some("99999999999")),
       MAX_EVALUATION_DEPTH_LIMIT
     );
     assert_eq!(

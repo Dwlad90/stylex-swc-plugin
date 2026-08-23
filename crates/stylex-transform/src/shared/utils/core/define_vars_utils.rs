@@ -202,41 +202,51 @@ pub(crate) fn any_level_needs_a_default(value: &Expr) -> bool {
     .any(|key_value| any_level_needs_a_default(&key_value.value))
 }
 
-/// Whether `obj` is a CSS type — the `syntax` and `value` pair.
+/// Which of the three keys that decide these two questions `obj` carries.
 ///
-/// Kept beside [`object_needs_a_default`], which asks the same question with a
-/// third key added, so the two cannot drift into disagreeing about what a CSS
-/// type looks like.
-fn is_css_type_object(obj: &ObjectLit) -> bool {
-  let mut carries_syntax = false;
-  let mut carries_value = false;
+/// One walk answering both, so the two cannot drift into disagreeing about what
+/// a CSS type looks like.
+struct DefaultBearingKeys {
+  syntax: bool,
+  value: bool,
+  default: bool,
+}
 
-  for key_value in get_key_values_from_object(obj).iter() {
-    match convert_key_value_to_str(key_value).as_str() {
-      "syntax" => carries_syntax = true,
-      "value" => carries_value = true,
-      _ => {},
+impl DefaultBearingKeys {
+  fn of(obj: &ObjectLit) -> Self {
+    let mut found = Self {
+      syntax: false,
+      value: false,
+      default: false,
+    };
+
+    for key_value in get_key_values_from_object(obj).iter() {
+      match convert_key_value_to_str(key_value).as_str() {
+        "syntax" => found.syntax = true,
+        "value" => found.value = true,
+        "default" => found.default = true,
+        _ => {},
+      }
     }
+
+    found
   }
 
-  carries_syntax && carries_value
+  /// A CSS type is the `syntax` and `value` pair.
+  fn is_css_type(&self) -> bool {
+    self.syntax && self.value
+  }
+}
+
+/// Whether `obj` is a CSS type — the `syntax` and `value` pair.
+fn is_css_type_object(obj: &ObjectLit) -> bool {
+  DefaultBearingKeys::of(obj).is_css_type()
 }
 
 pub(crate) fn object_needs_a_default(obj: &ObjectLit) -> bool {
-  let mut carries_syntax = false;
-  let mut carries_value = false;
-  let mut carries_default = false;
+  let found = DefaultBearingKeys::of(obj);
 
-  for key_value in get_key_values_from_object(obj).iter() {
-    match convert_key_value_to_str(key_value).as_str() {
-      "syntax" => carries_syntax = true,
-      "value" => carries_value = true,
-      "default" => carries_default = true,
-      _ => {},
-    }
-  }
-
-  !(carries_default || (carries_syntax && carries_value))
+  !(found.default || found.is_css_type())
 }
 
 fn get_nitial_value_of_css_type(values: &IndexMap<String, ValueWithDefault>) -> String {

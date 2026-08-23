@@ -86,8 +86,21 @@ fn declared_by(declaration: &Decl, name: &Atom) -> Option<Span> {
       .map(|declarator| declarator.span),
     Decl::Fn(function) => (&function.ident.sym == name).then_some(function.function.span),
     Decl::Class(class) => (&class.ident.sym == name).then_some(class.class.span),
-    // A type, an interface, an enum or a `using` declaration. None of the first
-    // three binds a value; a `using` binding is left to the walk below, which
+    // An enum and a value namespace *do* bind values -- `strip` lowers each into
+    // a `var` plus an IIFE -- so a style that reads one has a declaration worth
+    // framing, and it is the one the author wrote rather than the one `strip`
+    // synthesized. A `declare`d form emits nothing, so it binds nothing.
+    Decl::TsEnum(enumeration) => {
+      (!enumeration.declare && &enumeration.id.sym == name).then_some(enumeration.span)
+    },
+    Decl::TsModule(module) => match &module.id {
+      TsModuleName::Ident(id) if !module.declare && module.namespace && &id.sym == name => {
+        Some(module.span)
+      },
+      _ => None,
+    },
+    // A type alias, an interface or a `using` declaration. Neither of the first
+    // two binds a value; a `using` binding is left to the walk below, which
     // reaches it as a binding identifier.
     _ => None,
   }

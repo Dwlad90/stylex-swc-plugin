@@ -51,8 +51,8 @@ use crate::shared::{
       extract_tpl_cooked_value,
     },
     common::{
-      assign_props, get_import_by_ident, get_var_decl_by_ident, get_var_decl_from, order_own_keys,
-      remove_duplicates,
+      assign_props, get_import_by_ident, get_var_decl_from, get_var_decl_parts_by_ident,
+      order_own_keys, remove_duplicates,
     },
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
   },
@@ -96,7 +96,7 @@ use stylex_utils::{
   swc::get_expr_node_kind,
 };
 
-use super::check_declaration::{DeclarationType, check_ident_declaration, declares_ident};
+use super::check_declaration::check_ident_declaration;
 
 /// Resolves an `EnvEntry` to an `EvaluateResultValue`.
 ///

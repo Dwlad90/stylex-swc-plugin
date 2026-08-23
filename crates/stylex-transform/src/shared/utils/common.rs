@@ -5,7 +5,7 @@ use stylex_types::traits::StyleOptions;
 use stylex_utils::{number::to_js_string, string::remove_quotes};
 use swc_core::atoms::Atom;
 use swc_core::{
-  common::{EqIgnoreSpan, FileName},
+  common::{EqIgnoreSpan, FileName, Span},
   ecma::ast::{
     Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Module, ModuleDecl, ModuleItem,
     ObjectPatProp, Pat, Prop, PropName, PropOrSpread, Stmt, VarDeclarator,
@@ -68,6 +68,30 @@ pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&st
     },
     _ => None,
   }
+}
+
+/// The two parts of a declarator the reference chain actually reads.
+///
+/// Step 5 asks only for the span, which is `Copy`, and step 8 for the
+/// initializer. Answering either by cloning the whole declarator also copies its
+/// name pattern and type annotation, and does so on the path a real module takes
+/// -- the state hit -- where a borrow is available and only the initializer has
+/// to be owned.
+///
+/// Falls through to [`get_var_decl_by_ident`] for the synthesized declarators
+/// the function map builds, rather than repeating its arms: that path has to
+/// construct one anyway, so there is nothing to save there.
+pub(crate) fn get_var_decl_parts_by_ident(
+  ident: &Ident,
+  traversal_state: &mut StateManager,
+  functions: &FunctionMap,
+) -> Option<(Span, Option<Box<Expr>>)> {
+  if let Some(declarator) = get_var_decl_from(traversal_state, ident) {
+    return Some((declarator.span, declarator.init.clone()));
+  }
+
+  get_var_decl_by_ident(ident, traversal_state, functions)
+    .map(|declarator| (declarator.span, declarator.init))
 }
 
 pub fn get_var_decl_by_ident<'a>(

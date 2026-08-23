@@ -62,8 +62,9 @@ _Avoid_: constant, env var, config value
 **Evaluation ceiling**:
 `maxEvaluationDepth` — how many levels the evaluator descends into a nested
 expression before refusing it, resolved from the configured option, then the
-`STYLEX_MAX_EVALUATION_DEPTH` environment variable, then the built-in default of 32. Precedence in that order so a stray value in a CI environment cannot change
-what a project that configured the option compiles to; zero and anything
+`STYLEX_MAX_EVALUATION_DEPTH` environment variable, then the built-in default
+of 32. Precedence in that order so a stray value in a CI environment cannot
+change what a project that configured the option compiles to; zero and anything
 non-numeric are read as unset rather than honoured, because a ceiling of zero
 refuses the folds the compiler runs to do its own work. Counted in evaluation
 steps, not in levels of source nesting — the [evaluation

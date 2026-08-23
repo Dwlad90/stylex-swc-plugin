@@ -208,6 +208,36 @@ fn a_class_expression_is_framed_at_its_declarator() {
   );
 }
 
+/// A whole program on one line, which is what a bundler hands a downstream
+/// transform and the shape where every declaration shares a line number. The
+/// span has to be the declarator's own columns, not the line's.
+#[test]
+fn a_single_line_module_frames_the_declarator_it_is_about() {
+  let source = "const a='blue';const c='red';const b='green';\n";
+
+  assert_eq!(declaration_text(source, "c"), "c='red'");
+  assert_eq!(declaration_text(source, "a"), "a='blue'");
+  assert_eq!(declaration_text(source, "b"), "b='green'");
+}
+
+/// A value-emitting TypeScript declaration, which `strip` lowers into something
+/// the walk did not see written. An `enum` becomes a `var` plus an IIFE, and a
+/// value `namespace` the same, so the name is still declared -- by a node the
+/// author did not spell. This is the case the `is_dummy` fallback in
+/// `get_span_from_source_code_impl` exists for, and nothing exercised it: the
+/// type-only case next door covers a name that declares *no* value.
+#[test]
+fn a_name_a_value_emitting_typescript_declaration_binds_is_found() {
+  assert_eq!(
+    declaration_text("enum c { A }\nconst d = c;\n", "c"),
+    "enum c { A }"
+  );
+  assert_eq!(
+    declaration_text("namespace c { export const A = 1; }\nconst d = c;\n", "c"),
+    "namespace c { export const A = 1; }"
+  );
+}
+
 // ── what declares nothing ───────────────────────────────────────────────────
 
 #[test]

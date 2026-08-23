@@ -304,14 +304,14 @@ pub(super) fn resolve_reference(
   // refusal it had before — measured on 0.19.0, `function paint() {}` beside
   // `paint.a.b = 1` is `Unsupported expression: FunctionDeclaration` on both
   // sides, where refusing it for the write here would have diverged.
-  let declarator = get_var_decl_by_ident(ident, traversal_state, &state.functions);
+  let declarator = get_var_decl_parts_by_ident(ident, traversal_state, &state.functions);
 
   // ── 5. a reference above its own declaration is early (664-666) ───────────
   //
   // Asked of the declarator already looked up, so the answer costs a
   // comparison rather than a second scan of the declaration list.
-  if let Some(declarator) = declarator.as_ref()
-    && reads_before_its_declaration(ident, declarator.span)
+  if let Some((declarator_span, _)) = declarator.as_ref()
+    && reads_before_its_declaration(ident, *declarator_span)
   {
     return deopt_at_declaration(
       path,
@@ -431,24 +431,17 @@ pub(super) fn resolve_reference(
 
   // ── 8. the declarator's initializer, else the class / function refusals ───
   //      (685-690)
-  if let Some(init) = declarator.and_then(|mut declarator| declarator.init.take()) {
+  if let Some(init) = declarator.and_then(|(_, init)| init) {
     return evaluate_cached(&init, state, traversal_state, fns);
   }
 
-  // Resolved to a `Copy` verdict before the refusal writes to the state, so the
-  // lists are read where they live. Holding a `&[Ident]` open across
-  // `deopt_at_declaration`'s `&mut StateManager` is what the two clones here
-  // used to pay for, and the comment that justified them called this the refusal
-  // path as though it were rare. It is not: the parameters of a dynamic style
-  // are not registered when its body is folded, so every parameter reference in
-  // every dynamic style arrives here and copied both lists to ask one question
-  // the step above had already asked of the same two.
-  let declared_as = declares_ident(traversal_state.class_name_declarations(), ident)
-    .then_some(DeclarationType::Class)
-    .or_else(|| {
-      declares_ident(traversal_state.function_name_declarations(), ident)
-        .then_some(DeclarationType::Function)
-    });
+  // Asked of the state, which owns both lists, and answered as a `Copy` verdict
+  // before the refusal below borrows it mutably. Cloning the two lists to hold
+  // them open across that write is what this replaces -- and the comment which
+  // justified those clones called this the refusal path as though it were rare.
+  // It is not: a dynamic style's parameters are not registered when its body is
+  // folded, so every parameter reference in every dynamic style arrives here.
+  let declared_as = traversal_state.declared_as(ident);
 
   check_ident_declaration(ident, declared_as, state, traversal_state, normalized_path)
 }

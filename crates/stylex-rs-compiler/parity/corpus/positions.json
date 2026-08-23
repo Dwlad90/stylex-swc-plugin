@@ -80,6 +80,13 @@
       "label": "a destructured binding whose value is mutated in place",
       "source": "import * as stylex from '@stylexjs/stylex';\nconst { theme } = { theme: { color: 'red' } };\ntheme.color = 'blue';\nexport const styles = stylex.create({ x: { color: theme.color } });\n",
       "origin": "evaluate-path.js:661 — deopt(binding.path, NON_CONSTANT)"
+    },
+    {
+      "id": "positions-astral-plane-before-the-declaration",
+      "label": "an astral-plane character before the framed declaration",
+      "source": "import * as stylex from '@stylexjs/stylex';\nconst pad = '🎨'; let c = 'red';\nc = 'blue';\nexport const styles = stylex.create({ x: { color: c } });\n",
+      "origin": "evaluate-path.js:657 — deopt(binding.path, NON_CONSTANT)",
+      "note": "Measured rather than assumed, and the answer is that they agree. Babel's loc.column counts UTF-16 code units, and a code frame column could have counted Unicode scalar values instead -- one astral character before the framed declaration is exactly where the two would part company, and they do not. Kept so the agreement is a fixture rather than a memory. The character sits in a string because it is not a valid identifier and both compilers refuse it as one."
     }
   ]
 }

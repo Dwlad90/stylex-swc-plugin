@@ -43,8 +43,8 @@ printed by a `Display` impl at all.
 _Avoid_: single precision, f32 value
 
 **Echoed value**:
-Text this crate passes through from the source rather than reprinting from a
-value it computed — what `value_parser::parse_css` does for the shorthand
+Text emitted with the bytes the author wrote, rather than reprinted from a
+value this crate computed — what `value_parser::parse_css` does for the shorthand
 expansion path. The official compiler echoes here too, so the target is the
 author's own bytes: `1E2px` stays `1E2px`, and adopting the number formatter
 would _cause_ a divergence rather than close one. This is the one numeric path

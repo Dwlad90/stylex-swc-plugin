@@ -72,10 +72,22 @@ mod precision_past_six_decimals_survives {
     );
   }
 
-  /// Seventeen significant digits is the most a double carries, and none of it
-  /// is lost between the parse and the print.
+  /// Seventeen significant digits a double *can* hold survive the parse and
+  /// the print untouched.
   #[test]
   fn a_curve_at_full_double_precision_round_trips() {
+    assert_eq!(
+      printed!("cubic-bezier(0.12345678901234566, 0.9876543210987654, 0.5, 0.5)"),
+      "cubic-bezier(0.12345678901234566, 0.9876543210987654, 0.5, 0.5)"
+    );
+  }
+
+  /// Seventeen digits a double *cannot* hold do not round-trip, and the name
+  /// says so: the authored text names a number between two doubles, so what
+  /// prints is the nearer one, spelled shortest. JavaScript agrees on both
+  /// the choice and the spelling.
+  #[test]
+  fn a_curve_past_what_a_double_holds_prints_the_double_it_became() {
     assert_eq!(
       printed!("cubic-bezier(0.12345678901234567, 0.98765432109876543, 0.5, 0.5)"),
       "cubic-bezier(0.12345678901234566, 0.9876543210987654, 0.5, 0.5)"

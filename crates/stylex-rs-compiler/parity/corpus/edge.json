@@ -729,6 +729,27 @@
       "value": "\u0001",
       "origin": "hand-written: a C0 control is blank to the scanner, not a word",
       "note": "Dropped locally; upstream throws, as it does for \"\" and \" \"."
+    },
+    {
+      "id": "edge-rule-breaking-token-before-an-unclosed-function",
+      "property": "color",
+      "value": "red;calc(1px",
+      "origin": "hand-written: two faults, and which guard speaks first",
+      "note": "Both compilers refuse; the value is both rule-breaking and unclosed, and each names the fault its own guard reached first. Curated here because the generated corpus reaches this shape in bulk and nothing in the curated set did."
+    },
+    {
+      "id": "edge-rule-breaking-token-before-an-unclosed-string",
+      "property": "color",
+      "value": "red;\"a",
+      "origin": "hand-written: two faults, and which guard speaks first",
+      "note": "The same disagreement carried by an unclosed string rather than an unclosed function, so the family is not pinned by one guard's wording alone."
+    },
+    {
+      "id": "edge-rule-breaking-token-inside-a-function",
+      "property": "width",
+      "value": "calc(1px;)",
+      "origin": "hand-written: a declaration-terminating token inside a function body",
+      "note": "Refused here for the `;`; the reference compiler emits `calc(1px;)` into the stylesheet. Inside a function rather than between two declarations, which is the shape the guard is easiest to believe unnecessary in."
     }
   ]
 }

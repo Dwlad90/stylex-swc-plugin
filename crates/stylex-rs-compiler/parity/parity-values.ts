@@ -11,9 +11,11 @@
  *
  * It lives outside the Rust test suite so `cargo test` never needs a Node
  * toolchain, and it is not wired into CI. Reading a verdict is still a person's
- * job — a divergence is information, not a failure — with one exception: an
- * entry whose recorded `expected` verdict no longer holds exits non-zero, so a
- * pinned divergence cannot change unnoticed by whoever runs this.
+ * job — a divergence is information, not a failure — with two exceptions, both
+ * of which are an expectation that has stopped measuring anything: an entry
+ * whose recorded `expected` verdict no longer holds, and a refusal family no
+ * row in the corpus reaches. Either exits non-zero, so a pinned divergence
+ * cannot change unnoticed by whoever runs this.
  *
  * Usage:
  *   pnpm parity                              # full corpus, human report
@@ -33,6 +35,9 @@ import chalk from 'chalk';
 
 import { createComparer, styleObjectsAgree } from './lib/compare.js';
 import { loadCorpus } from './lib/corpus.js';
+import { REFUSAL_FAMILIES } from './lib/refusal-families.js';
+import { AGREED, conclude, fails } from './lib/report.js';
+import type { Stance } from './lib/report.js';
 import { subjectLabel, subjectText } from './lib/subject.js';
 import type { Report, ReportEntry, Verdict } from './lib/types.js';
 
@@ -77,50 +82,6 @@ const VERDICT_LABELS: Record<Verdict, string> = {
   'both-reject-divergent': chalk.cyan('both reject (diverged)'),
   'acceptance-divergent': chalk.yellow('acceptance divergent'),
 };
-
-/**
- * The verdicts where the two compilers agreed, whatever they agreed about.
- *
- * One set rather than two spellings of the same list: `--only-mismatches`
- * filters on it and the per-entry printer skips its side-by-side detail on it,
- * and a verdict added to one place but not the other is either hidden from the
- * filter or printed as two empty lines.
- *
- * `identical-empty` belongs here. Both compilers accepted and emitted nothing,
- * which is agreement — that it measures nothing is a fact about the corpus
- * rather than about parity, and the summary reports it on its own line where a
- * count is the useful form. Listing it as a mismatch would overload the word
- * for the one verdict that is not a disagreement.
- *
- * `both-reject-divergent` does not. Two refusals worded differently are the
- * only thing that separates it from `both-reject`, and that difference is the
- * whole of what an author whose build stopped is handed — so it is a mismatch
- * to chase, and its two sentences are what the entry prints.
- */
-const AGREED: ReadonlySet<Verdict> = new Set<Verdict>([
-  'identical',
-  'identical-empty',
-  'both-reject',
-]);
-
-function isMismatch(verdict: Verdict): boolean {
-  return !AGREED.has(verdict);
-}
-
-/**
- * How an entry's verdict stands against the one it recorded as expected.
- *
- * `expected` where it still holds, `changed` where it does not, and `unset` for
- * the overwhelming majority carrying no expectation at all. A changed verdict
- * is the loud case in both directions: a divergence that has gone away is a
- * corpus row that has stopped measuring what it was written for, exactly as a
- * new one is a regression.
- */
-function expectation(entry: ReportEntry): 'expected' | 'changed' | 'unset' {
-  if (entry.expected === undefined) return 'unset';
-
-  return entry.verdict === entry.expected ? 'expected' : 'changed';
-}
 
 function describe(entry: ReportEntry, side: 'rust' | 'babel'): string {
   const outcome = entry[side];
@@ -169,45 +130,38 @@ async function run(): Promise<void> {
 
   const entries = corpus.map(entry => comparer.compare(entry));
 
-  const summary = {
-    total: entries.length,
-    expected: 0,
-    changed: 0,
-    identical: 0,
-    'identical-empty': 0,
-    divergent: 0,
-    'structurally-divergent': 0,
-    'both-reject': 0,
-    'both-reject-divergent': 0,
-    'acceptance-divergent': 0,
-  } satisfies Report['summary'];
-  for (const entry of entries) {
-    summary[entry.verdict]++;
-    const stance = expectation(entry);
-    if (stance !== 'unset') summary[stance]++;
-  }
+  // Every conclusion the run reaches, decided in `lib/report.ts` and only
+  // printed here. The unreached-family check is asked of a whole corpus only: a
+  // `--set` or `--filter` reaches a handful of families by construction, and
+  // reporting the rest as unreached there would train a reader to ignore the
+  // line.
+  const whole =
+    !(cliOptions.set !== undefined && cliOptions.set.length > 0) && cliOptions.filter === undefined;
+  const verdicts = conclude(entries, { whole });
+  const { summary, byFamily, changed, unreached } = verdicts;
+  const stanceOfEntry = (entry: ReportEntry): Stance => verdicts.stances.get(entry)!;
 
-  const changed = entries.filter(entry => expectation(entry) === 'changed');
-
-  // A mismatch an entry recorded as expected is not one to chase, so
-  // `--only-mismatches` leaves it out — a changed verdict is shown whatever it
-  // reads, because that is the entry someone has to look at.
+  // A mismatch that is already accounted for — by the entry's own expectation
+  // or by a refusal family — is not one to chase, so `--only-mismatches` leaves
+  // it out. A changed verdict is shown whatever it reads, because that is the
+  // entry someone has to look at.
   const shown = cliOptions['only-mismatches']
-    ? entries.filter(
-        entry =>
-          expectation(entry) === 'changed' ||
-          (isMismatch(entry.verdict) && expectation(entry) === 'unset')
-      )
+    ? entries.filter(entry => {
+        const kind = stanceOfEntry(entry).kind;
+        return kind === 'changed' || kind === 'unexpected';
+      })
     : entries;
 
   for (const entry of shown) {
-    const stance = expectation(entry);
+    const stance = stanceOfEntry(entry);
     const stanceLabel =
-      stance === 'expected'
+      stance.kind === 'expected'
         ? chalk.gray(' (expected)')
-        : stance === 'changed'
-          ? chalk.red(` (expected ${entry.expected})`)
-          : '';
+        : stance.kind === 'pinned'
+          ? chalk.gray(` (pinned: ${stance.family.name})`)
+          : stance.kind === 'changed'
+            ? chalk.red(` (expected ${entry.expected})`)
+            : '';
     console.log(
       `${VERDICT_LABELS[entry.verdict]}${stanceLabel}  ${chalk.bold(subjectLabel(entry))}  ${chalk.gray(`[${entry.set}] ${entry.origin}`)}`
     );
@@ -227,8 +181,38 @@ async function run(): Promise<void> {
       `  both reject            ${summary['both-reject']}\n` +
       `  both reject (diverged) ${summary['both-reject-divergent']}   ${chalk.gray('(both refused, for reasons worded differently)')}\n` +
       `  expected               ${summary.expected}   ${chalk.gray('(divergences already looked at)')}\n` +
-      `  changed                ${summary.changed}   ${chalk.gray('(no longer the recorded verdict)')}`
+      `  pinned                 ${summary.pinned}   ${chalk.gray('(a refusal family accounts for them)')}\n` +
+      `  changed                ${summary.changed}   ${chalk.gray('(no longer the recorded verdict)')}\n` +
+      `  ${chalk.bold('unexpected')}             ${summary.unexpected}   ${chalk.gray('(neither agreement nor accounted for — the number to act on)')}`
   );
+
+  if (byFamily.size > 0) {
+    console.log(
+      `\n${chalk.bold('Pinned refusal families')}  ${chalk.gray('— divergences this compiler produces on purpose')}`
+    );
+    // Iterated over the canonical list rather than over the map, so the order
+    // is the one `lib/refusal-families.ts` declares and not the order the
+    // corpus happens to reach them in.
+    for (const family of REFUSAL_FAMILIES) {
+      const claimed = byFamily.get(family);
+      if (claimed === undefined) continue;
+      const rows = claimed.length === 1 ? '1 row' : `${claimed.length} rows`;
+      console.log(`  ${chalk.bold(family.name)}  ${chalk.gray(rows)}`);
+      console.log(chalk.gray(`    ${family.reason}`));
+    }
+  }
+
+  if (unreached.length > 0) {
+    console.log(
+      `\n${chalk.red.bold('Refusal families no row reached')}  ${chalk.gray('— each measures nothing as it stands')}`
+    );
+    for (const family of unreached) console.log(`  ${family.name}`);
+    console.log(
+      chalk.gray(
+        '\nEither the refusal is gone — which is worth reading — or the corpus stopped reaching it.'
+      )
+    );
+  }
 
   if (changed.length > 0) {
     console.log(
@@ -265,11 +249,11 @@ async function run(): Promise<void> {
     console.log(chalk.green(`\nReport written to ${path.relative(workspaceRoot, outputPath)}`));
   }
 
-  // Set after the report is written rather than by returning early: a changed
-  // verdict is exactly when someone wants the machine-readable output, and an
-  // exit code that skipped writing it would hide the evidence for the failure it
-  // is reporting.
-  if (changed.length > 0) process.exitCode = 1;
+  // Set after the report is written rather than by returning early: a failing
+  // run is exactly when someone wants the machine-readable output, and an exit
+  // code that skipped writing it would hide the evidence for what it reports.
+  // What counts as failing is `fails`, in `lib/report.ts`.
+  if (fails(verdicts)) process.exitCode = 1;
 }
 
 run().catch((error: unknown) => {

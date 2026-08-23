@@ -173,7 +173,57 @@ direction — the entry is listed under **Verdicts that changed**, counted, and 
 run exits non-zero, so a divergence that quietly goes away is as loud as a new
 one: an entry recording a divergence that no longer happens has stopped measuring
 what it was written for. `note` says _why_; `expected` is what the harness
-checks, and the only thing it fails on.
+checks.
+
+### Refusal families
+
+Half the permanent divergences cannot carry an `expected` verdict. They live in
+`harvested.json`, which is regenerated wholesale from the Rust sources, so a
+value written there is lost on the next harvest — and the generated corpus next
+door has no entries at all to write on. They are pinned by **family** instead:
+`lib/refusal-families.ts` holds one entry per reason this compiler diverges on
+purpose, each with the verdict a member reads and the test for whether a row is
+one.
+
+Both harnesses read that list, so neither can come to disagree with the other
+about which refusal is deliberate. A row a family accounts for is labelled
+`(pinned: <name>)` and left out of `--only-mismatches`; a row no family claims
+is **unexpected**, and that is the number a reader acts on. The report prints
+each family's reason under the summary, stated as what agreement would cost.
+
+Between them they account for every divergent row in both corpora. The table is
+pinned against the code by `__tests__/refusal-families.test.ts`, which is also
+why no count is written here — a number in this file went stale twice before:
+
+| Family                            | Why agreement is not wanted                                              |
+| --------------------------------- | ------------------------------------------------------------------------ |
+| declaration-terminating token     | Emitting a `;`, `{` or `}` closes the declaration being generated.       |
+| reference TypeError               | The reference compiler crashes; agreement means reproducing the crash.   |
+| unclosed comment                  | Emitting `/*` comments out every rule injected after it.                 |
+| first refusal to fire             | Both refuse; only which of several true complaints is reported differs.  |
+| unprefixed custom property        | The `--` prefix is a StyleX rule, so there is no CSS behaviour to match. |
+| nesting past the recursion budget | Agreement means recursing until the stack aborts the process.            |
+| style key off `Object.prototype`  | The reference compiler reaches an inherited method, not a CSS property.  |
+
+A family reads a verdict, or a set of them where the reason survives this
+compiler's own behaviour changing around it: a reference crash is a reference
+crash whether this side accepted the value or refused it for a fault of its own,
+and those read different verdicts. The declaration order is also precedence, and
+that pair is where it matters — a crash sits above `first refusal to fire`,
+because a crash is not a guard that spoke first.
+
+A family is pinned by reason and never by count, so a corpus that grows does not
+churn expectations. What is checked instead is that every family still claims
+something: a family no row reaches is listed under **Refusal families no row
+reached** and exits non-zero, for the same reason a changed `expected` does —
+either the refusal is gone, which is worth reading, or the corpus stopped
+reaching it. Those two are the only things `pnpm parity` fails on.
+
+Family membership is decided from the complaint this compiler wrote, matched as
+a prefix, so rewording a diagnostic un-pins the rows it accounted for and they
+come back as unexpected. That is the intended direction — the wording is what a
+refused build hands the author. Every family, and every near miss that must
+_not_ be claimed, is pinned in `__tests__/refusal-families.test.ts`.
 
 ### Module subjects
 
@@ -320,31 +370,32 @@ number from it.
   classes it crossed. The class list, the joiner list and the property list are
   printed above the counts precisely so that a reader compares the two rather
   than quoting the count alone.
-- **It has no expectations.** There is no `expected` verdict to change, so it
-  cannot fail. It prints what the two compilers did and the reading is entirely
-  a person's.
+- **It has no expectations of its own.** There is no corpus file to write an
+  `expected` verdict on, so a permanent divergence is pinned by the same
+  **refusal families** the curated report uses — by family and never by row,
+  since hundreds of generated values reach each refusal and growing the alphabet
+  would otherwise churn a fixture nobody can read.
 
 ```sh
 pnpm fuzz:shorthand                                     # summary
-pnpm fuzz:shorthand --show 40                            # print divergent rows
+pnpm fuzz:shorthand --show 40                            # print unexpected rows
 pnpm fuzz:shorthand --property padding                   # one property
 pnpm fuzz:shorthand --json parity/results/<name>.json    # full report
 ```
 
 A row it reports is not yet a defect: the alphabet deliberately includes values
-that are not valid CSS, and the same buckets that are counted apart in the
-curated report are counted apart here for the same reason. Two groups are
-deliberate refusals rather than bugs, and between them they account for every
-`acceptance divergent` row the harness currently prints:
+that are not valid CSS. What the report separates is pinned rows from
+unexpected ones, and the unexpected count is the number to read — as it stands
+every divergent row belongs to a family, so that count is zero and any other
+value is news. `--show` prints the unexpected rows; `--json` carries both, the
+pinned ones grouped by family as the evidence that the count above them is what
+it says.
 
-- **A value carrying a `;`** — the largest group by far. This compiler refuses
-  one and the reference compiler does not, because the value reaches the
-  stylesheet as the author's own bytes and a `;` would terminate the declaration
-  the compiler is generating.
-- **A value nested past 64 levels** — refused for the recursion budget, which is
-  a stack the reference implementation does not have to answer for.
-
-Neither has anything to do with where a value is cut.
+Adding a token class is judged on whether it can produce a **part shape** no
+existing class produces, never on the rows it adds: a class crossed with the
+rest of the alphabet costs roughly 900 subjects per property. The candidates
+audited and dismissed are recorded in the `FRAGMENTS` documentation, because the
+argument is the useful half of an audit.
 
 ## Checking a future upstream release
 

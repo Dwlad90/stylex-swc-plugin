@@ -235,6 +235,17 @@ export interface Report {
     expected: number;
     /** Entries whose verdict is no longer the one they recorded. */
     changed: number;
+    /**
+     * Entries a refusal family accounts for — a divergence this compiler makes
+     * on purpose, pinned by reason rather than by row. See
+     * `lib/refusal-families.ts`.
+     */
+    pinned: number;
+    /**
+     * Entries that are neither agreement, nor a recorded expectation, nor a
+     * pinned family. This is the number a reader acts on.
+     */
+    unexpected: number;
   };
   entries: ReportEntry[];
 }

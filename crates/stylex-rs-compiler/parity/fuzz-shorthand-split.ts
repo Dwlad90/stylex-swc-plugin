@@ -16,9 +16,22 @@
  * It is not wired into CI, for the same reason the value harness is not: a
  * divergence is information, and reading it is a person's job.
  *
+ * Most of the divergent rows are not that information. They are the deliberate
+ * refusals `lib/refusal-families.ts` names, reached in bulk because an alphabet
+ * crossed with itself produces hundreds of spellings of each one — and a report
+ * that printed them undistinguished would put a five-figure number in front of a
+ * reader who then has to be told none of it matters. So a row a family accounts
+ * for is *pinned*, and the count a reader acts on is the one no family claimed.
+ *
+ * Pinning is by family and never by row: there is no corpus file to write an
+ * expectation on, and hundreds of generated values reach each refusal, so an
+ * expectation per row would churn on every alphabet addition. Growing the
+ * alphabet therefore costs nothing here unless it reaches a refusal genuinely
+ * new — which is what the unexpected count is for.
+ *
  * Usage:
  *   pnpm fuzz:shorthand                        # full cross product, summary
- *   pnpm fuzz:shorthand --show 40              # print more divergent rows
+ *   pnpm fuzz:shorthand --show 40              # print more unexpected rows
  *   pnpm fuzz:shorthand --json out.json        # machine-readable report
  *   pnpm fuzz:shorthand --property padding     # one property; repeatable
  */
@@ -32,6 +45,7 @@ import chalk from 'chalk';
 
 import { createComparer } from './lib/compare.js';
 import { entry } from './lib/declaration.js';
+import { REFUSAL_FAMILIES, familyOf, groupByFamily } from './lib/refusal-families.js';
 import type { CompilerOutcome, LoadedCorpusEntry, ReportEntry } from './lib/types.js';
 
 /**
@@ -57,6 +71,31 @@ const packageDir = path.resolve(parityDir, '..');
  * second spelling of an already-covered class buys a longer run and no new
  * information -- except where the spelling *is* the class, which is why the
  * separators and the spacings are enumerated one by one.
+ *
+ * The test for adding one is whether it can produce a *part shape* no class
+ * already here produces -- not whether it looks unusual, and not the count it
+ * adds. A class crossed with the rest of the alphabet costs roughly 900
+ * subjects per property, so a class that lands on a shape already covered buys
+ * a longer run and nothing else.
+ *
+ * Four candidates were audited and dismissed, and they are recorded because the
+ * argument is the useful part of an audit:
+ *
+ * - *An importance annotation somewhere other than the end.* Already generated:
+ *   the pairs are ordered and `!important` is a class, so `!important 1px` puts
+ *   the annotation ahead of a part. A value of three parts would let it sit in
+ *   the middle, and that is the same part shape -- a part that is exactly the
+ *   annotation, with a part after it -- which is what the fold reads.
+ * - *A brace as a fragment.* A new part shape, and an unobservable one: a part
+ *   that is a `{` or `}` is refused here before any expansion is emitted, so the
+ *   row only ever reports the refusal the curated corpus already pins. Its
+ *   sibling stayed -- see the semicolon below, which is not refused.
+ * - *A unicode range next to a signed number.* Already generated, as `U+0-7F`
+ *   joined to `-1px` by the `+` joiner, which is exactly the spelling where the
+ *   sign is ambiguous.
+ * - *An empty part for a reason other than an unterminated comment.* Audited and
+ *   there is one: a *terminated* comment with nothing in it. It is a different
+ *   code path from the unterminated one, so it was added rather than dismissed.
  */
 const FRAGMENTS: readonly AlphabetEntry[] = [
   { label: 'dimension', text: '1px' },
@@ -91,12 +130,27 @@ const FRAGMENTS: readonly AlphabetEntry[] = [
   // treats an empty one differently from a comment with text in it. A fold bug
   // that only this class reaches went unfound while the alphabet lacked it.
   { label: 'comment, unterminated', text: '/*' },
+  // The other way to reach an empty part, and a different code path to it: this
+  // comment is closed, so nothing about the rest of the value is swallowed and
+  // the empty part has content on both sides of it. The class above can only
+  // ever contribute the *last* part.
+  { label: 'comment, empty', text: '/**/' },
   { label: 'importance annotation', text: '!important' },
   { label: 'bang alone', text: '!' },
   { label: 'unicode range', text: 'U+0-7F' },
   { label: 'non-ascii identifier', text: 'wörld' },
   { label: 'bracket block', text: '[a]' },
   { label: 'stray close paren', text: ')' },
+  // A separator standing as a part of its own rather than between two, which is
+  // a shape no joiner can reach: as a joiner a `;` ends the part before it, and
+  // here it *is* the part. Neither compiler refuses it -- a `;` alone as a
+  // longhand's whole value does not escape the declaration it is in -- so
+  // unlike a brace the split stays observable.
+  { label: 'separator as a part', text: ';' },
+  // More parts than any side-wise expansion reads. Every other class is one
+  // part, so a pair is at most two and nothing in the alphabet could reach the
+  // fifth side an expansion has to discard, or the sixth a fold has to carry.
+  { label: 'five space-separated parts', text: '1px 2px 3px 4px 5px' },
 ];
 
 /**
@@ -158,7 +212,7 @@ if (cliOptions.help) {
 ${chalk.bold('StyleX shorthand-split fuzz')}
 
 Options:
-      --show <n>          divergent rows to print (default 25)
+      --show <n>          unexpected rows to print (default 25)
       --json <path>       write the full report as JSON
       --property <name>   restrict to one property; repeatable
   -h, --help              this message
@@ -239,6 +293,18 @@ const results: ReportEntry[] = entries.map(subject => comparer.compare(subject))
 const agreed = new Set(['identical', 'identical-empty', 'both-reject']);
 const diverged = results.filter(result => !agreed.has(result.verdict));
 
+/**
+ * The divergent rows, split into the ones a refusal family accounts for and the
+ * ones nothing does.
+ *
+ * A row is asked about its family rather than about its verdict, so a row whose
+ * verdict a family also produces is still news when the refusal underneath it is
+ * a different one: the two are separated by *why* the compilers disagreed, not
+ * by what the disagreement was called.
+ */
+const pinned = groupByFamily(diverged);
+const unexpected = diverged.filter(result => familyOf(result) === undefined);
+
 const byVerdict = new Map<string, number>();
 for (const result of results) {
   byVerdict.set(result.verdict, (byVerdict.get(result.verdict) ?? 0) + 1);
@@ -258,12 +324,27 @@ for (const [verdict, count] of [...byVerdict].toSorted((a, b) => b[1] - a[1])) {
   console.log(`  ${verdict.padEnd(24)} ${count}`);
 }
 console.log(`  ${'total'.padEnd(24)} ${results.length}`);
-console.log(`  ${chalk.bold('divergent (any kind)'.padEnd(24))} ${diverged.length}`);
+console.log(`  ${'divergent (any kind)'.padEnd(24)} ${diverged.length}`);
+console.log(`  ${'  of those, pinned'.padEnd(24)} ${diverged.length - unexpected.length}`);
+console.log(`  ${chalk.bold('  unexpected'.padEnd(24))} ${unexpected.length}`);
+
+if (pinned.size > 0) {
+  console.log(chalk.bold('\nPinned refusal families'));
+  // Walked in the order `lib/refusal-families.ts` declares rather than the
+  // order the cross product reaches them in, so two runs over different
+  // alphabets print the same list in the same order.
+  for (const family of REFUSAL_FAMILIES) {
+    const claimed = pinned.get(family);
+    if (claimed === undefined) continue;
+    console.log(`  ${family.name.padEnd(34)} ${claimed.length}`);
+  }
+  console.log(chalk.dim('  reasons: parity/lib/refusal-families.ts'));
+}
 
 const show = Number.parseInt(cliOptions.show ?? '25', 10);
-if (diverged.length > 0 && show > 0) {
-  console.log(chalk.bold(`\nFirst ${Math.min(show, diverged.length)} divergences`));
-  for (const result of diverged.slice(0, show)) {
+if (unexpected.length > 0 && show > 0) {
+  console.log(chalk.bold(`\nFirst ${Math.min(show, unexpected.length)} unexpected divergences`));
+  for (const result of unexpected.slice(0, show)) {
     const label =
       result.kind === 'declaration'
         ? `${result.property}: ${JSON.stringify(result.value)}`
@@ -286,9 +367,17 @@ if (cliOptions.json != null) {
         summary: {
           total: results.length,
           divergent: diverged.length,
+          unexpected: unexpected.length,
           byVerdict: Object.fromEntries(byVerdict),
+          byFamily: Object.fromEntries(
+            [...pinned].map(([family, claimed]) => [family.name, claimed.length])
+          ),
         },
-        divergences: diverged,
+        // Both, and named apart: the unexpected rows are what a reader opens the
+        // file for, and the pinned ones are the evidence that the count above
+        // them is what it says.
+        unexpected,
+        pinned: Object.fromEntries([...pinned].map(([family, claimed]) => [family.name, claimed])),
       },
       null,
       2

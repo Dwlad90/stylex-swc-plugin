@@ -54,6 +54,16 @@ export interface CreateComparerOptions {
   packageDir: string;
   /** Passed identically to both compilers. */
   enableFontSizePxToRem: boolean;
+  /**
+   * Which style resolution both compilers run under. Omitted leaves each
+   * compiler on its own default, which is what the value corpus is read at.
+   *
+   * A harness passes it when the code it is aiming at only runs under one
+   * resolution: shorthand value splitting is reached only by
+   * `legacy-expand-shorthands`, and a harness that left this alone would
+   * compare two compilers that both never called it and report agreement.
+   */
+  styleResolution?: StyleXOptions['styleResolution'];
 }
 
 export async function createComparer(options: CreateComparerOptions): Promise<Comparer> {
@@ -65,6 +75,7 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
   const stylexOptions: StyleXOptions = {
     ...baseStyleXOptions(packageDir),
     enableFontSizePxToRem: options.enableFontSizePxToRem,
+    ...(options.styleResolution != null ? { styleResolution: options.styleResolution } : {}),
   };
 
   // A fixed filename: `haste` resolution and class hashing both read it, so

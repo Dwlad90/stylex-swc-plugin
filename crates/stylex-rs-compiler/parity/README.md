@@ -299,6 +299,45 @@ divergence. They land in the `structurally divergent`, `acceptance divergent`,
 `both reject` and `both reject (diverged)` buckets, which is why those are
 counted apart from `divergent`.
 
+## The generated corpus: `pnpm fuzz:shorthand`
+
+The corpus above is curated — every entry came from a test file or from someone
+writing it down. `fuzz-shorthand-split.ts` asks the same question over a
+generated one, and it exists because one defect class is not reachable by
+curation: a shorthand value is cut into parts, and where the cut falls depends
+on which separator, which spacing and which token shape happen to sit next to
+each other. Hand-picked probes twice reported a small remainder that a generated
+alphabet then multiplied.
+
+It differs from `pnpm parity` in three ways worth knowing before reading a
+number from it.
+
+- **It pins the style resolution.** Value splitting runs only under
+  `legacy-expand-shorthands`; under the other two a `padding` reaches the
+  stylesheet whole. A run left on the default compares two compilers that both
+  never called the code, and reports agreement.
+- **It reports its alphabet, not a score.** What a run can claim is the token
+  classes it crossed. The class list, the joiner list and the property list are
+  printed above the counts precisely so that a reader compares the two rather
+  than quoting the count alone.
+- **It has no expectations.** There is no `expected` verdict to change, so it
+  cannot fail. It prints what the two compilers did and the reading is entirely
+  a person's.
+
+```sh
+pnpm fuzz:shorthand                                     # summary
+pnpm fuzz:shorthand --show 40                            # print divergent rows
+pnpm fuzz:shorthand --property padding                   # one property
+pnpm fuzz:shorthand --json parity/results/<name>.json    # full report
+```
+
+A row it reports is not yet a defect: the alphabet deliberately includes values
+that are not valid CSS, and the same buckets that are counted apart in the
+curated report are counted apart here for the same reason. A value carrying a
+`;` is the largest such group — this compiler refuses one and the reference
+compiler does not, which is a deliberate refusal documented with the guard that
+raises it, not a splitting bug.
+
 ## Checking a future upstream release
 
 1. Bump `@stylexjs/babel-plugin` in this package's `devDependencies` and

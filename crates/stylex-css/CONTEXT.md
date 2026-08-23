@@ -21,6 +21,15 @@ four longhands, or an alias into its canonical
 name. Which expansion runs depends entirely on the order strategy in force.
 _Avoid_: longhand split, desugaring, flattening
 
+**Value part**:
+One piece of a shorthand's value, as the expansion consuming it sees them —
+`10px` and `20px` in `margin: '10px 20px'`. Where one part ends is decided on
+the [value scanner](../postcss-value-parser/CONTEXT.md)'s node kinds rather than
+on characters, because `/` and `:` end a part at the top level and are ordinary
+characters inside a function. A part is echoed with the author's own characters;
+nothing on this path re-spells one.
+_Avoid_: token, side, segment, value fragment
+
 **Alias**:
 An authored property name that is not a CSS property but stands for one —
 resolved during expansion, before shorthands.

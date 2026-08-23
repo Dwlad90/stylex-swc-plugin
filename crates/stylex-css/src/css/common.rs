@@ -514,6 +514,18 @@ impl ValueStructure {
 /// value in the project's own corpus nests eight.
 pub(crate) const MAX_VALUE_NESTING_DEPTH: usize = 64;
 
+/// Whether `css_property_value` nests deeper than the compiler's budget.
+///
+/// Asked by the two places that would otherwise abort on the same value, so
+/// that both read one answer: normalization, which turns a `true` here into the
+/// diagnostic authors see, and the shorthand splitter, which runs *earlier* and
+/// so cannot leave the question to normalization. Reading the depth twice from
+/// the same scan is what keeps the splitter from bailing out on a value
+/// normalization would have accepted, or from handing on one it will not.
+pub(crate) fn nests_too_deeply(css_property_value: &str) -> bool {
+  scan_value_structure(css_property_value).max_nesting_depth > MAX_VALUE_NESTING_DEPTH
+}
+
 fn scan_value_structure(css_property_value: &str) -> ValueStructure {
   let value = css_property_value.as_bytes();
   let mut structure = ValueStructure::default();

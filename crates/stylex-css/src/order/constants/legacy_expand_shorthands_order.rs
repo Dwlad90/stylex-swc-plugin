@@ -1,20 +1,45 @@
-use crate::values::{common::split_value_required, parser::parse_css};
+use crate::values::{common::split_value_required, parser::split_value_parts};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
 use stylex_structures::{order_pair::OrderPair, raw_value::TRawValue};
 use stylex_utils::string::json_stringify;
 
-/// Helper function to check if a string is a valid list-style-type value
-/// Matches: [a-z-]+ or quoted strings like "..." or '...'
-fn is_list_style_type(s: &str) -> bool {
-  // Check for quoted strings with matching double quotes (minimum length 2).
-  // Single-quote check is omitted: `parse_css` normalises all CSS string
-  // tokens to double quotes before this function is called.
-  if s.len() >= 2 && s.starts_with('"') && s.ends_with('"') {
-    return true;
-  }
+/// Whether `part` is spellable as a `list-style-type`.
+///
+/// Upstream asks this with `/^([a-z-]+|".*?"|'.*?')$/`, and the three
+/// alternatives are reproduced one by one rather than collapsed. Both quote
+/// characters are accepted because a part arrives with the character the author
+/// typed: the splitter echoes a string rather than re-quoting it, so a
+/// single-quoted family name is single-quoted here.
+fn is_list_style_type(part: &str) -> bool {
+  is_quoted_with(part, '"') || is_quoted_with(part, '\'') || is_lowercase_ident(part)
+}
 
-  // Check if it matches [a-z-]+ pattern (lowercase letters and hyphens only)
-  !s.is_empty() && s.chars().all(|c| c.is_ascii_lowercase() || c == '-')
+/// One alternative of that pattern: `quote`, any run of `.`, then `quote`.
+///
+/// `.` in a JavaScript regular expression matches anything *except* a line
+/// terminator, so a quoted part with a newline inside it fails upstream's test
+/// and has to fail this one. The four characters JavaScript counts as line
+/// terminators are spelled out here; `char::is_control` would also exclude a
+/// tab, which upstream accepts.
+fn is_quoted_with(part: &str, quote: char) -> bool {
+  let Some(inner) = part
+    .strip_prefix(quote)
+    .and_then(|rest| rest.strip_suffix(quote))
+  else {
+    return false;
+  };
+
+  // A lone quote character satisfies both `strip` calls on the same byte, which
+  // would read `"` as an empty quoted string.
+  part.len() >= 2 && !inner.contains(['\n', '\r', '\u{2028}', '\u{2029}'])
+}
+
+/// The `[a-z-]+` alternative.
+fn is_lowercase_ident(part: &str) -> bool {
+  !part.is_empty()
+    && part
+      .chars()
+      .all(|character| character.is_ascii_lowercase() || character == '-')
 }
 
 /// The text upstream emits when a `listStyle` value cannot be disambiguated.
@@ -346,7 +371,7 @@ impl Shorthands {
       ]);
     };
 
-    let parts: Vec<String> = parse_css(raw_value_str.as_ref());
+    let parts: Vec<String> = split_value_parts(raw_value_str.as_ref());
 
     // Global values that must be the only value
     let list_style_global_values = ["inherit", "initial", "revert", "unset"];

@@ -18,7 +18,7 @@ _inject2({
     priority: 3000
 });
 _inject2({
-    ltr: '.listStyleType-xtfvvjg{list-style-type:"=="}',
+    ltr: ".listStyleType-x1tpmu87{list-style-type:'=='}",
     priority: 3000
 });
 export const styles = {
@@ -47,7 +47,7 @@ export const styles = {
         $$css: true
     },
     custom2: {
-        "listStyleType-kH6xsr": "listStyleType-xtfvvjg",
+        "listStyleType-kH6xsr": "listStyleType-x1tpmu87",
         "listStylePosition-kpqbRz": null,
         "listStyleImage-khnUzm": null,
         $$css: true

@@ -1,4 +1,4 @@
-use crate::values::parser::parse_css;
+use crate::values::parser::split_value_parts;
 use stylex_structures::raw_value::TRawValue;
 
 pub fn split_value_required(
@@ -31,7 +31,7 @@ pub fn split_value(
   }
 
   let value = value.map(TRawValue::as_css_text).unwrap_or_default();
-  let nodes = parse_css(value.as_ref());
+  let nodes = split_value_parts(value.as_ref());
 
   let top = nodes
     .first()

@@ -158,6 +158,27 @@ fn a_destructured_name_is_framed_at_the_declarator_that_binds_it() {
   assert_eq!(declaration_text(defaulted, "c"), "{ c = 'red' } = theme");
 }
 
+/// The two `Pat` arms the case above does not reach. An object pattern's rest
+/// and default are `ObjectPatProp::Rest` and `ObjectPatProp::Assign`, which are
+/// different enum arms from `Pat::Rest` and `Pat::Assign` -- those are only
+/// reachable through an *array* pattern, or through a renamed key whose value is
+/// itself a default. Return `false` from either and the case above still passes,
+/// while these bindings fall through to the binding-identifier walk and get
+/// framed at the bare name instead of at the declarator.
+#[test]
+fn an_array_rest_and_a_defaulted_element_are_framed_at_their_declarator() {
+  let array_rest = "const [first, ...c] = pair;\n";
+  let array_default = "const [c = 'red'] = pair;\n";
+  let renamed_default = "const { token: c = 'red' } = theme;\n";
+
+  assert_eq!(declaration_text(array_rest, "c"), "[first, ...c] = pair");
+  assert_eq!(declaration_text(array_default, "c"), "[c = 'red'] = pair");
+  assert_eq!(
+    declaration_text(renamed_default, "c"),
+    "{ token: c = 'red' } = theme"
+  );
+}
+
 #[test]
 fn a_parameter_is_framed_at_the_parameter() {
   assert_eq!(declaration_text("const f = (c) => c;\n", "c"), "c");
@@ -199,8 +220,12 @@ fn an_object_key_is_not_a_declaration() {
   declares_nothing("const theme = { c: 'red' };\n", "c");
 }
 
+/// Not a test of the `Pat::Expr` arm, despite appearances: `[holder.c] = pair;`
+/// parses as an assignment *expression*, so no declarator is walked at all.
+/// `Pat::Expr` and `Pat::Invalid` are unreachable from a parsed declarator, and
+/// the arm exists to say so rather than to be exercised.
 #[test]
-fn a_member_assignment_target_is_not_a_declaration() {
+fn a_name_spelled_only_as_an_assignment_target_declares_nothing() {
   declares_nothing("[holder.c] = pair;\n", "c");
 }
 
@@ -474,6 +499,7 @@ fn every_module_level_shape_wins_over_an_inner_namesake() {
     ("export function c() {}\n", "function c() {}"),
     ("class c {}\n", "class c {}"),
     ("export default function c() {}\n", "function c() {}"),
+    ("export default class c {}\n", "class c {}"),
     ("import { c } from './vars.stylex.js';\n", "c"),
     ("import c from './vars.stylex.js';\n", "c"),
     ("import * as c from './vars.stylex.js';\n", "* as c"),

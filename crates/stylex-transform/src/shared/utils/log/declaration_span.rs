@@ -290,7 +290,10 @@ fn binds_name(pattern: &Pat, name: &Atom) -> bool {
     Pat::Rest(rest) => binds_name(&rest.arg, name),
     Pat::Assign(assign) => binds_name(&assign.left, name),
     // An assignment target rather than a binding (`[o.x] = pair`), and the
-    // parser's error node. Neither declares a name.
+    // parser's error node. Neither declares a name -- and neither is reachable
+    // from a parsed declarator either, which is why no test exercises these two
+    // arms: `[o.x] = pair` is an assignment expression, so nothing walks a
+    // pattern for it at all.
     Pat::Expr(_) | Pat::Invalid(_) => false,
   }
 }

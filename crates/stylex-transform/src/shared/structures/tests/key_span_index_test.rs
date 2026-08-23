@@ -8,14 +8,16 @@ mod key_span_index {
     common::{BytePos, DUMMY_SP, FileName, SourceMap, Span, SyntaxContext, sync::Lrc},
     ecma::{
       ast::{
-        CallExpr, Callee, EsVersion, Expr, ExprStmt, Ident, IdentName, KeyValueProp, Lit, Module,
-        ModuleItem, Number, ObjectLit, Prop, PropName, PropOrSpread, Stmt,
+        CallExpr, Callee, Decl, EsVersion, Expr, ExprStmt, Ident, IdentName, KeyValueProp, Lit,
+        Module, ModuleItem, Number, ObjectLit, Prop, PropName, PropOrSpread, Stmt,
       },
       parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer},
     },
   };
 
-  use crate::shared::structures::key_span_index::{CandidateRank, KeySpanIndex, NamespaceKeyQuery};
+  use crate::shared::structures::key_span_index::{
+    CallLookup, CandidateRank, KeySpanIndex, NamespaceKeyQuery,
+  };
 
   fn parse(source: &str) -> Module {
     let source_map: Lrc<SourceMap> = Default::default();
@@ -94,6 +96,23 @@ mod key_span_index {
     let offset = span.lo.0 as usize - 1;
 
     source[..offset].matches('\n').count() + 1
+  }
+
+  /// Every `stylex.create(...)` call in `module`, in source order, so a case can
+  /// name one by position.
+  fn create_calls(module: &Module) -> Vec<CallExpr> {
+    module
+      .body
+      .iter()
+      .filter_map(|item| match item {
+        ModuleItem::Stmt(Stmt::Decl(Decl::Var(variable))) => variable.decls.first(),
+        _ => None,
+      })
+      .filter_map(|declarator| match declarator.init.as_deref() {
+        Some(Expr::Call(call)) => Some(call.clone()),
+        _ => None,
+      })
+      .collect()
   }
 
   fn resolved_line(source: &str, key: &str, siblings: &[&str], value_keys: &[&str]) -> usize {
@@ -317,6 +336,78 @@ const styles = stylex.create({
     assert_eq!(
       resolved_line(source, "root", &["root"], &["color"]),
       line_of(source, "root: { color: 'red' }")
+    );
+  }
+
+  /// Every other multi-candidate case here presents its candidates in improving
+  /// order, so a loop that simply kept the last one it looked at would pass all
+  /// of them. This is the half that says the incumbent is kept.
+  #[test]
+  fn a_later_candidate_that_ranks_lower_does_not_displace_the_best() {
+    let source = "\
+const first = stylex.create({
+  root: { display: 'flex', flexGrow: 1 },
+});
+const second = stylex.create({
+  root: { color: 'red' },
+});
+";
+
+    assert_eq!(
+      resolved_line(source, "root", &["root"], &["display", "flexGrow"]),
+      line_of(source, "root: { display")
+    );
+  }
+
+  /// And that a strict improvement *clears* an earlier tie rather than merely
+  /// outranking it, which is `resolve`'s `ambiguous = false` on the improvement
+  /// arm. Without it the two equal candidates below would refuse the lookup and
+  /// the better third one would never be reached.
+  #[test]
+  fn a_strict_improvement_clears_an_earlier_tie() {
+    let source = "\
+const first = stylex.create({ root: { color: 'red' } });
+const second = stylex.create({ root: { color: 'red' } });
+const third = stylex.create({
+  root: { display: 'flex', flexGrow: 1 },
+});
+";
+
+    assert_eq!(
+      resolved_line(source, "root", &["root"], &["display", "flexGrow"]),
+      line_of(source, "root: { display")
+    );
+  }
+
+  /// The call half of a span cache key. `cached_span` returns on the key alone --
+  /// no structural confirm -- so two calls that share one entry are two styles
+  /// where the second is annotated with the first's `file:line`.
+  ///
+  /// Two calls spelled identically are separated here by *position*, and by more
+  /// than one part of the digest: the call and object spans are hashed
+  /// explicitly, and `callee` is hashed through `stable_hash_wide`, which keeps
+  /// spans. So removing either alone still passes -- what this pins is the
+  /// property, not any one term. The property is what the cache depends on.
+  #[test]
+  fn the_call_digest_separates_two_calls_and_is_stable_for_one() {
+    let module = parse(
+      "\
+const first = stylex.create({ root: { color: 'red' } });
+const second = stylex.create({ root: { color: 'red' } });
+",
+    );
+
+    let calls = create_calls(&module);
+
+    assert_ne!(
+      CallLookup::new(&calls[0]).digest(),
+      CallLookup::new(&calls[1]).digest(),
+      "two calls written at different positions must key apart"
+    );
+    assert_eq!(
+      CallLookup::new(&calls[0]).digest(),
+      CallLookup::new(&calls[0]).digest(),
+      "one call must digest the same however often it is asked"
     );
   }
 

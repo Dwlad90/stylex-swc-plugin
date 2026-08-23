@@ -116,19 +116,25 @@ function sanityCheck(
         // Which fixture and which subject is the whole of the answer here: the
         // base is an older build, so what it cannot compile is a question about
         // the manifest rather than about the change under measurement.
-        throw new Error(
-          `Sanity check failed: subject "${label}" could not compile fixture "${fixture.name}"`,
-          { cause: error }
-        );
+        throw new Error(refusal(label, fixture, 'could not compile'), { cause: error });
       }
       if (!Number.isFinite(rules) || rules <= 0) {
-        throw new Error(
-          `Sanity check failed: subject "${label}" produced ${String(rules)} StyleX rules ` +
-            `for fixture "${fixture.name}"`
-        );
+        throw new Error(refusal(label, fixture, `produced ${String(rules)} StyleX rules for`));
       }
     }
   }
+}
+
+/**
+ * What a failed sanity check says, in the one shape both of its answers share.
+ *
+ * `predicate` carries the difference and its own preposition -- a subject that
+ * threw "could not compile", one that emitted nothing "produced 0 StyleX rules
+ * for" -- so the subject and the fixture a reader needs are named the same way
+ * and in the same order either way.
+ */
+function refusal(label: string, fixture: FixtureDescriptor, predicate: string): string {
+  return `Sanity check failed: subject "${label}" ${predicate} fixture "${fixture.name}"`;
 }
 
 async function runSingleRound(

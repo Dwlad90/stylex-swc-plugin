@@ -1279,3 +1279,104 @@ fn single_media_query_moves_after_the_default() {
     ]
   );
 }
+
+// ---------------------------------------------------------------------------
+// Computed bounds at double precision — https://github.com/Dwlad90/stylex-swc-plugin/issues/1267
+// ---------------------------------------------------------------------------
+
+/// Run the transform over `styles` and return the keys of the single property
+/// it contains, in order.
+fn transformed_keys(styles: Value) -> Vec<String> {
+  let props = match styles {
+    Value::Object(obj) => obj
+      .into_iter()
+      .map(|(k, v)| create_key_value_prop(&k, v))
+      .collect::<Vec<_>>(),
+    _ => vec![],
+  };
+
+  let result = last_media_query_wins_transform(&props);
+  let json = key_value_prop_to_json(&result);
+
+  match json {
+    Value::Object(obj) => match obj.into_iter().next() {
+      Some((_, Value::Object(inner))) => inner.into_iter().map(|(k, _)| k).collect(),
+      other => panic!("expected one property holding an object, got {other:?}"),
+    },
+    other => panic!("expected an object, got {other:?}"),
+  }
+}
+
+#[cfg(test)]
+mod computed_bounds_carry_the_authored_digits {
+  use super::*;
+
+  /// The reproduction from issue #1267. Each derived upper bound is
+  /// `next - 0.01` in double precision, which is what
+  /// `@stylexjs/babel-plugin@0.19.0` emits for the same input — a rounder
+  /// string such as `28.8rem` is the bug, not the baseline.
+  #[test]
+  fn fractional_rem_breakpoints_derive_the_bounds_babel_derives() {
+    assert_eq!(
+      transformed_keys(json!({
+        "minHeight": {
+          "default": "100px",
+          "@media (min-width: 25rem)": "200px",
+          "@media (min-width: 28.81rem)": "300px",
+          "@media (min-width: 32.88rem)": "400px"
+        }
+      })),
+      vec![
+        "default",
+        "@media (min-width: 25rem) and (max-width: 28.799999999999997rem)",
+        "@media (min-width: 28.81rem) and (max-width: 32.870000000000005rem)",
+        "@media (min-width: 32.88rem)",
+      ]
+    );
+  }
+
+  /// Every bound in a chain of five fractional breakpoints, so that a passing
+  /// assertion cannot be explained by the values that happen to survive single
+  /// precision. Two of these five print short and three print long.
+  #[test]
+  fn every_bound_in_a_long_fractional_chain_matches() {
+    assert_eq!(
+      transformed_keys(json!({
+        "width": {
+          "default": "1px",
+          "@media (min-width: 1.1rem)": "2px",
+          "@media (min-width: 2.2rem)": "3px",
+          "@media (min-width: 3.3rem)": "4px",
+          "@media (min-width: 4.4rem)": "5px"
+        }
+      })),
+      vec![
+        "default",
+        "@media (min-width: 1.1rem) and (max-width: 2.1900000000000004rem)",
+        "@media (min-width: 2.2rem) and (max-width: 3.29rem)",
+        "@media (min-width: 3.3rem) and (max-width: 4.390000000000001rem)",
+        "@media (min-width: 4.4rem)",
+      ]
+    );
+  }
+
+  /// Round breakpoints print identically at either width. Pinned so that the
+  /// widening is shown to move only the values that were wrong.
+  #[test]
+  fn round_breakpoints_are_undisturbed() {
+    assert_eq!(
+      transformed_keys(json!({
+        "width": {
+          "default": "1px",
+          "@media (min-width: 1024px)": "2px",
+          "@media (min-width: 1440px)": "3px"
+        }
+      })),
+      vec![
+        "default",
+        "@media (min-width: 1024px) and (max-width: 1439.99px)",
+        "@media (min-width: 1440px)",
+      ]
+    );
+  }
+}

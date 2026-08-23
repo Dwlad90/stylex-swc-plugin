@@ -17,7 +17,7 @@ fn map_css_token_function_variant_produces_function_token() {
   // we exercise it by calling map_css_token directly.
   use cssparser::CowRcStr;
   let token = CssToken::Function(CowRcStr::from("rgb"));
-  let result = super::map_css_token(&token);
+  let result = super::map_css_token(&token, "");
   assert_eq!(result, SimpleToken::Function("rgb".to_string()));
 }
 
@@ -27,7 +27,7 @@ fn map_css_token_delim_open_paren_produces_left_paren() {
   // at the token level (it emits ParenthesisBlock instead), so we call
   // map_css_token directly.
   let token = CssToken::Delim('(');
-  let result = super::map_css_token(&token);
+  let result = super::map_css_token(&token, "");
   assert_eq!(result, SimpleToken::LeftParen);
 }
 
@@ -36,7 +36,7 @@ fn map_css_token_delim_close_paren_produces_right_paren() {
   // CssToken::Delim(')') arm — cssparser emits CloseParenthesis
   // instead; we call map_css_token directly.
   let token = CssToken::Delim(')');
-  let result = super::map_css_token(&token);
+  let result = super::map_css_token(&token, "");
   assert_eq!(result, SimpleToken::RightParen);
 }
 

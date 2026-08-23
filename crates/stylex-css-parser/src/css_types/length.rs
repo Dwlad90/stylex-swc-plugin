@@ -24,13 +24,13 @@ pub const UNITS_BASED_ON_ABSOLUTE_UNITS: &[&str] = &["px", "cm", "mm", "in", "pt
 /// CSS Length value with unit
 #[derive(Debug, Clone, PartialEq)]
 pub struct Length {
-  pub value: f32,
+  pub value: f64,
   pub unit: String,
 }
 
 impl Length {
   /// Create a new Length value
-  pub fn new(value: f32, unit: impl Into<String>) -> Self {
+  pub fn new(value: f64, unit: impl Into<String>) -> Self {
     Self {
       value,
       unit: unit.into(),
@@ -57,9 +57,9 @@ impl Length {
   /// Returns `Some` when the token is a `Dimension`, `None` otherwise. The
   /// `None` arm is unreachable through the public parser (which guarantees a
   /// `Dimension` token), but the named function makes it coverable from tests.
-  pub(crate) fn extract_length_token(token: SimpleToken) -> Option<(f32, String)> {
+  pub(crate) fn extract_length_token(token: SimpleToken) -> Option<(f64, String)> {
     if let SimpleToken::Dimension { value, unit } = token {
-      Some((value as f32, unit))
+      Some((value, unit))
     } else {
       None
     }
@@ -71,7 +71,7 @@ impl Length {
   /// the preceding `map` only returns `None` for non-`Dimension` tokens, which
   /// the combinator excludes). The named function makes the `else` branch
   /// coverable from tests.
-  pub(crate) fn is_valid_length_opt(opt: &Option<(f32, String)>) -> bool {
+  pub(crate) fn is_valid_length_opt(opt: &Option<(f64, String)>) -> bool {
     if let Some((_, unit)) = opt {
       Self::is_valid_unit(unit)
     } else {

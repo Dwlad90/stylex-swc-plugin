@@ -2594,3 +2594,85 @@ fn a_non_numeric_rule_keeps_a_numerically_dead_branch_alive() {
      and (orientation: portrait) and (not (max-width: 300px)))"
   );
 }
+
+// ---------------------------------------------------------------------------
+// Nudges and emitted bounds at double precision
+// ---------------------------------------------------------------------------
+
+/// A strict range query rewrites to a `min-`/`max-` pair by nudging each end by
+/// 0.01, and the nudge is computed at the same width as the value it moves.
+/// `400.5 + 0.01` is `400.51` and `900.25 - 0.01` is `900.24`; both matched
+/// `@stylexjs/babel-plugin@0.19.0` for the same input.
+#[test]
+fn a_strict_range_nudges_in_double_precision() {
+  let parsed = MediaQuery::parser()
+    .parse_to_end("@media (400.5px < width < 900.25px)")
+    .unwrap();
+
+  assert_eq!(
+    parsed.to_string(),
+    "@media (min-width: 400.51px) and (max-width: 900.24px)"
+  );
+}
+
+/// The single-ended form takes a different parser branch from the double
+/// inequality above, so it carries its own assertion.
+#[test]
+fn a_single_ended_strict_range_nudges_in_double_precision() {
+  let above = MediaQuery::parser()
+    .parse_to_end("@media (width > 400.5px)")
+    .unwrap();
+  let below = MediaQuery::parser()
+    .parse_to_end("@media (width < 900.25px)")
+    .unwrap();
+
+  assert_eq!(above.to_string(), "@media (min-width: 400.51px)");
+  assert_eq!(below.to_string(), "@media (max-width: 900.24px)");
+}
+
+/// The reversed spelling reaches the nudge through yet another branch.
+#[test]
+fn a_reversed_strict_inequality_nudges_in_double_precision() {
+  let parsed = MediaQuery::parser()
+    .parse_to_end("@media (400.5px < width)")
+    .unwrap();
+
+  assert_eq!(parsed.to_string(), "@media (min-width: 400.51px)");
+}
+
+/// An authored value with more decimals than a single-precision float can hold
+/// is emitted as authored rather than as the nearest `f32` to it.
+#[test]
+fn an_authored_bound_is_emitted_with_the_digits_it_was_written_with() {
+  let parsed = MediaQuery::parser()
+    .parse_to_end("@media (min-width: 1.2345678901234567rem)")
+    .unwrap();
+
+  assert_eq!(
+    parsed.to_string(),
+    "@media (min-width: 1.2345678901234567rem)"
+  );
+}
+
+/// The nudge that makes a negated bound exclusive still survives at a width
+/// where `f32` could not represent it, now because the value itself is a
+/// double rather than because the comparison temporarily widened one.
+#[test]
+fn a_negated_bound_past_the_f32_nudge_limit_is_still_a_contradiction() {
+  let parsed = MediaQuery::parser()
+    .parse_to_end("@media (min-width: 10000000px) and (not (min-width: 10000000px))")
+    .unwrap();
+
+  assert_eq!(parsed.to_string(), "@media not all");
+}
+
+/// A merged bound derived from two authored fractional constraints, so that
+/// the intersection — not only the nudge — is shown to keep its digits.
+#[test]
+fn an_intersected_bound_keeps_the_digits_of_the_constraint_that_won() {
+  let parsed = MediaQuery::parser()
+    .parse_to_end("@media (min-width: 28.81rem) and (min-width: 25.55rem)")
+    .unwrap();
+
+  assert_eq!(parsed.to_string(), "@media (min-width: 28.81rem)");
+}

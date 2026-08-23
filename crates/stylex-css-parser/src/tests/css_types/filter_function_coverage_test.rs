@@ -59,7 +59,7 @@ fn blur_parse_tokens_whitespace_before_length() {
     SimpleToken::RightParen,
   ]);
   let result = (BlurFilterFunction::parse().run)(&mut tl).unwrap();
-  assert_eq!(result.radius.value, 5.0_f32);
+  assert_eq!(result.radius.value, 5.0_f64);
 }
 
 #[test]
@@ -76,7 +76,7 @@ fn blur_parse_tokens_whitespace_after_length() {
     SimpleToken::RightParen,
   ]);
   let result = (BlurFilterFunction::parse().run)(&mut tl).unwrap();
-  assert_eq!(result.radius.value, 3.0_f32);
+  assert_eq!(result.radius.value, 3.0_f64);
 }
 
 #[test]
@@ -146,7 +146,7 @@ fn blur_parse_public_happy_path() {
   let result = BlurFilterFunction::parse()
     .parse_to_end("blur(5px)")
     .unwrap();
-  assert_eq!(result.radius.value, 5.0_f32);
+  assert_eq!(result.radius.value, 5.0_f64);
   assert_eq!(format!("{}", result), "blur(5px)");
 }
 

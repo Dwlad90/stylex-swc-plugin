@@ -29,7 +29,7 @@ impl fmt::Write for FailAfter {
 
 // ── LengthPercentage helpers ─────────────────────────────────────────────────
 
-fn px(v: f32) -> crate::css_types::length_percentage::LengthPercentage {
+fn px(v: f64) -> crate::css_types::length_percentage::LengthPercentage {
   use crate::css_types::length::Length;
   use crate::css_types::length_percentage::LengthPercentage;
   LengthPercentage::Length(Length::new(v, "px".to_string()))

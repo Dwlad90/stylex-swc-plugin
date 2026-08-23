@@ -64,20 +64,90 @@ impl SimpleToken {
   }
 }
 
+/// The number a numeric token was written with, at the width JavaScript reads
+/// it at.
+///
+/// `cssparser` stores a token's number as an `f32`, so `1.2rem` arrives here as
+/// `1.2000000476837158` once widened -- and the derived bounds the media query
+/// merge computes from it are wrong in their third decimal. The authored digits
+/// are still in the source, so they are re-read from it: Rust's `f64` parse is
+/// correctly rounded, which is the same number JavaScript's is.
+///
+/// `text` starts at the token but runs to the end of the input, so the number is
+/// taken as a prefix. `None` means no number is there to read, and the caller
+/// falls back to widening `cssparser`'s own value.
+fn leading_f64(text: &str) -> Option<f64> {
+  let bytes = text.as_bytes();
+  let mut end = 0;
+  let mut digits = false;
+
+  if matches!(bytes.first(), Some(b'+' | b'-')) {
+    end = 1;
+  }
+
+  while matches!(bytes.get(end), Some(b'0'..=b'9')) {
+    end += 1;
+    digits = true;
+  }
+
+  if bytes.get(end) == Some(&b'.') {
+    let mut after = end + 1;
+    while matches!(bytes.get(after), Some(b'0'..=b'9')) {
+      after += 1;
+      digits = true;
+    }
+    // A trailing `.` with no digits after it is not part of the number.
+    if after > end + 1 {
+      end = after;
+    }
+  }
+
+  if !digits {
+    return None;
+  }
+
+  // An exponent only counts when it is complete: `1e` is the number `1`
+  // followed by the identifier `e`.
+  if matches!(bytes.get(end), Some(b'e' | b'E')) {
+    let mut after = end + 1;
+    if matches!(bytes.get(after), Some(b'+' | b'-')) {
+      after += 1;
+    }
+    let exponent_start = after;
+    while matches!(bytes.get(after), Some(b'0'..=b'9')) {
+      after += 1;
+    }
+    if after > exponent_start {
+      end = after;
+    }
+  }
+
+  text[..end].parse::<f64>().ok()
+}
+
 // `map_css_token` is total: every `CssToken` maps to a `SimpleToken` (the
 // wildcard arm falls back to `SimpleToken::Unknown`), so it returns the token
 // directly rather than an `Option`.
-fn map_css_token(token: &CssToken) -> SimpleToken {
+//
+// `text` is the input from the token's first byte onward, which is where the
+// numeric variants recover the digits `cssparser`'s `f32` dropped.
+fn map_css_token(token: &CssToken, text: &str) -> SimpleToken {
   use SimpleToken as T;
   match token {
     CssToken::Ident(v) => T::Ident(v.as_ref().to_string()),
     CssToken::AtKeyword(v) => T::AtKeyword(v.as_ref().to_string()),
     CssToken::IDHash(v) | CssToken::Hash(v) => T::Hash(v.as_ref().to_string()),
     CssToken::QuotedString(v) => T::String(v.as_ref().to_string()),
-    CssToken::Number { value, .. } => T::Number(*value as f64),
-    CssToken::Percentage { unit_value, .. } => T::Percentage(*unit_value as f64),
+    CssToken::Number { value, .. } => T::Number(leading_f64(text).unwrap_or(*value as f64)),
+    // `unit_value` is the fraction, not the authored percent: `50%` is `0.5`.
+    // Re-reading keeps that shape so every caller's arithmetic is unchanged.
+    CssToken::Percentage { unit_value, .. } => T::Percentage(
+      leading_f64(text)
+        .map(|percent| percent / 100.0)
+        .unwrap_or(*unit_value as f64),
+    ),
     CssToken::Dimension { value, unit, .. } => T::Dimension {
-      value: *value as f64,
+      value: leading_f64(text).unwrap_or(*value as f64),
       unit: unit.as_ref().to_string(),
     },
     CssToken::Function(v) => T::Function(v.as_ref().to_string()),
@@ -135,7 +205,11 @@ fn handle_nested_block_result(result: Result<(), cssparser::ParseError<'_, ()>>)
 
 /// Recursively tokenize nested content, handling ParenthesisBlock and other
 /// nested structures
-fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
+fn tokenize_nested_content(input: &str, parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
+  // Read before the token is consumed: `SourcePosition` indexes the original
+  // input, and the whitespace-including variant leaves it on the token's first
+  // byte.
+  let mut start = parser.position().byte_index();
   while let Ok(inner_token) = parser.next_including_whitespace_and_comments() {
     match &inner_token {
       // Handle nested ParenthesisBlock recursively
@@ -145,7 +219,7 @@ fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
 
         // Parse the nested parenthesis content recursively
         parse_nested_or_panic(parser, |nested_parser| {
-          tokenize_nested_content(nested_parser, tokens);
+          tokenize_nested_content(input, nested_parser, tokens);
           Ok(())
         });
 
@@ -159,7 +233,7 @@ fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
 
         // Parse the function content recursively
         parse_nested_or_panic(parser, |nested_parser| {
-          tokenize_nested_content(nested_parser, tokens);
+          tokenize_nested_content(input, nested_parser, tokens);
           Ok(())
         });
 
@@ -168,9 +242,10 @@ fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
       },
       // Handle all other tokens normally
       _ => {
-        tokens.push(map_css_token(inner_token));
+        tokens.push(map_css_token(inner_token, &input[start..]));
       },
     }
+    start = parser.position().byte_index();
   }
 }
 
@@ -179,6 +254,7 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
   let mut parser = Parser::new(&mut input_buf);
 
   let mut tokens = Vec::new();
+  let mut start = parser.position().byte_index();
   while let Ok(t) = parser.next_including_whitespace_and_comments() {
     match &t {
       // ENHANCED: Handle Function tokens by expanding their content
@@ -189,7 +265,7 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
         // Parse the function content to get individual argument tokens
         parse_nested_or_panic(&mut parser, |nested_parser| {
           // Recursively tokenize everything inside the function parentheses
-          tokenize_nested_content(nested_parser, &mut tokens);
+          tokenize_nested_content(input, nested_parser, &mut tokens);
           Ok(())
         });
 
@@ -205,7 +281,7 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
         parse_nested_or_panic(&mut parser, |nested_parser| {
           // Recursively tokenize everything inside the parentheses, handling nested
           // structures
-          tokenize_nested_content(nested_parser, &mut tokens);
+          tokenize_nested_content(input, nested_parser, &mut tokens);
           Ok(())
         });
 
@@ -214,9 +290,10 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
       },
       // Handle all other tokens normally
       _ => {
-        tokens.push(map_css_token(t));
+        tokens.push(map_css_token(t, &input[start..]));
       },
     }
+    start = parser.position().byte_index();
   }
   tokens
 }
@@ -339,3 +416,7 @@ mod token_types_test;
 #[cfg(test)]
 #[path = "tests/token_types_coverage_test.rs"]
 mod token_types_coverage_test;
+
+#[cfg(test)]
+#[path = "tests/token_types_precision_test.rs"]
+mod token_types_precision_test;

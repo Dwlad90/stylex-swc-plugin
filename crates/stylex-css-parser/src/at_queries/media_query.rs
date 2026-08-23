@@ -51,7 +51,7 @@ impl Display for WordRule {
 /// Media rule values that can appear in media queries
 #[derive(Debug, Clone, PartialEq)]
 pub enum MediaRuleValue {
-  Number(f32),
+  Number(f64),
   Length(Length),
   String(String),
   Fraction(Fraction),
@@ -564,7 +564,7 @@ const EPSILON: f64 = 0.01;
 /// satisfiable `width == 1e7px`. Emission narrows to `f32` again, so this only
 /// affects which comparisons the merge sees, never the printed value.
 fn constraint_interval(bound: Bound, length: &Length, negated: bool) -> (f64, f64) {
-  let value = f64::from(length.value);
+  let value = length.value;
 
   // A negated `min-` bound is a `max-` bound just below it, and vice versa.
   match (bound, negated) {
@@ -786,14 +786,14 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
     if lower.is_finite() {
       result.push(MediaQueryRule::Pair(MediaRulePair::new(
         format!("min-{dim}"),
-        MediaRuleValue::Length(Length::new(lower as f32, state.unit.clone())),
+        MediaRuleValue::Length(Length::new(lower, state.unit.clone())),
       )));
     }
 
     if upper.is_finite() {
       result.push(MediaQueryRule::Pair(MediaRulePair::new(
         format!("max-{dim}"),
-        MediaRuleValue::Length(Length::new(upper as f32, state.unit.clone())),
+        MediaRuleValue::Length(Length::new(upper, state.unit.clone())),
       )));
     }
   }
@@ -825,7 +825,7 @@ fn extract_ident_as_word_rule(token: SimpleToken) -> String {
 /// Convert a Dimension token to a MediaRuleValue::Length.
 fn dimension_to_media_rule_value(token: SimpleToken) -> MediaRuleValue {
   if let SimpleToken::Dimension { value, unit } = token {
-    MediaRuleValue::Length(Length::new(value as f32, unit))
+    MediaRuleValue::Length(Length::new(value, unit))
   } else {
     // This branch is unreachable: `tokens::dimension()` only yields Dimension tokens.
     MediaRuleValue::Number(0.0)
@@ -845,7 +845,7 @@ fn ident_to_media_rule_value(token: SimpleToken) -> MediaRuleValue {
 /// Convert a Number token to a MediaRuleValue::Number.
 fn number_to_media_rule_value(token: SimpleToken) -> MediaRuleValue {
   if let SimpleToken::Number(value) = token {
-    MediaRuleValue::Number(value as f32)
+    MediaRuleValue::Number(value)
   } else {
     // This branch is unreachable: `tokens::number()` only yields Number tokens.
     MediaRuleValue::Number(0.0)
@@ -855,7 +855,7 @@ fn number_to_media_rule_value(token: SimpleToken) -> MediaRuleValue {
 /// Adjust a `MediaRuleValue::Length` in a reversed inequality by epsilon.
 /// The else branch (non-Length) is a defensive arm unreachable via the reversed
 /// inequality parser, which always produces `MediaRuleValue::Length`.
-fn adjust_reversed_inequality_dimension(value: &mut MediaRuleValue, op: char, epsilon: f32) {
+fn adjust_reversed_inequality_dimension(value: &mut MediaRuleValue, op: char, epsilon: f64) {
   if let MediaRuleValue::Length(length) = value {
     if op == '>' {
       length.value -= epsilon;
@@ -908,7 +908,7 @@ fn select_double_inequality_values(
 /// Apply an additive epsilon to a `MediaRuleValue::Length`'s value.
 /// The else branch (non-Length) is a defensive arm unreachable via the
 /// double-inequality parser, which always produces `MediaRuleValue::Length`.
-fn apply_epsilon_to_min_value(value: &mut MediaRuleValue, epsilon: f32) {
+fn apply_epsilon_to_min_value(value: &mut MediaRuleValue, epsilon: f64) {
   if let MediaRuleValue::Length(length) = value {
     length.value += epsilon;
   }
@@ -918,7 +918,7 @@ fn apply_epsilon_to_min_value(value: &mut MediaRuleValue, epsilon: f32) {
 /// Apply a subtractive epsilon to a `MediaRuleValue::Length`'s value.
 /// The else branch (non-Length) is a defensive arm unreachable via the
 /// double-inequality parser, which always produces `MediaRuleValue::Length`.
-fn apply_epsilon_to_max_value(value: &mut MediaRuleValue, epsilon: f32) {
+fn apply_epsilon_to_max_value(value: &mut MediaRuleValue, epsilon: f64) {
   if let MediaRuleValue::Length(length) = value {
     length.value -= epsilon;
   }
@@ -1258,7 +1258,7 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
             message: "Expected dimension value".to_string(),
           })?;
       let mut dimension = if let SimpleToken::Dimension { value, unit } = dim_token {
-        Length::new(value as f32, unit)
+        Length::new(value, unit)
       } else {
         return Err(CssParseError::ParseError {
           message: format!("Expected dimension, got {:?}", dim_token),
@@ -1286,7 +1286,7 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       if !has_equals {
-        const EPSILON: f32 = 0.01;
+        const EPSILON: f64 = 0.01;
         if op == '>' {
           // (width > 400px) -> min-width: 400.01px
           dimension.value += EPSILON;
@@ -1346,7 +1346,7 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
             message: "Expected dimension value".to_string(),
           })?;
       let dimension = if let SimpleToken::Dimension { value, unit } = dim_token {
-        MediaRuleValue::Length(Length::new(value as f32, unit))
+        MediaRuleValue::Length(Length::new(value, unit))
       } else {
         return Err(CssParseError::ParseError {
           message: format!("Expected dimension, got {:?}", dim_token),
@@ -1444,7 +1444,7 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
 
       let mut adjusted_dimension = dimension;
       if !has_equals {
-        const EPSILON: f32 = 0.01;
+        const EPSILON: f64 = 0.01;
         adjust_reversed_inequality_dimension(&mut adjusted_dimension, op, EPSILON);
       }
 
@@ -1498,7 +1498,7 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
             message: "Expected lower bound dimension".to_string(),
           })?;
       let lower_dimension = if let SimpleToken::Dimension { value, unit } = lower_dim_token {
-        MediaRuleValue::Length(Length::new(value as f32, unit))
+        MediaRuleValue::Length(Length::new(value, unit))
       } else {
         return Err(CssParseError::ParseError {
           message: format!("Expected dimension, got {:?}", lower_dim_token),
@@ -1630,7 +1630,7 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
             message: "Expected upper bound dimension".to_string(),
           })?;
       let upper_dimension = if let SimpleToken::Dimension { value, unit } = upper_dim_token {
-        MediaRuleValue::Length(Length::new(value as f32, unit))
+        MediaRuleValue::Length(Length::new(value, unit))
       } else {
         return Err(CssParseError::ParseError {
           message: format!("Expected dimension, got {:?}", upper_dim_token),
@@ -1663,7 +1663,7 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       let max_key = format!("max-{}", key);
 
       // Adjust values with epsilon only for strict inequalities
-      const EPSILON: f32 = 0.01;
+      const EPSILON: f64 = 0.01;
 
       // Determine which dimension is min vs max based on the operators
       // For (A op1 width op2 B), we need to map to min/max constraints

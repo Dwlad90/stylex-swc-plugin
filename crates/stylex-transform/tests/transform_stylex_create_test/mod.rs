@@ -11,6 +11,7 @@ mod globals_as_style_values;
 mod legacy_deprecated;
 mod logical_operators;
 mod media_query_canonicalization;
+mod media_query_computed_bounds;
 mod nested_pseudo_ordering;
 mod non_ascii_hash_parity;
 mod object_own_keys;

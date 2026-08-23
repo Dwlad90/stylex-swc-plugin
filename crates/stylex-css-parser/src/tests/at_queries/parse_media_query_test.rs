@@ -39,7 +39,7 @@ mod rule_assertions {
   }
 
   /// A `pair` whose value is a length, such as `(min-width: 576px)`.
-  pub(super) fn assert_length_pair(rule: &MediaQueryRule, key: &str, value: f32, unit: &str) {
+  pub(super) fn assert_length_pair(rule: &MediaQueryRule, key: &str, value: f64, unit: &str) {
     match rule {
       MediaQueryRule::Pair(pair) => {
         assert_eq!(pair.r#type, "pair");

@@ -162,7 +162,11 @@ impl PartialEq for FunctionConfigType {
       (Self::Regular(a), Self::Regular(b)) => a == b,
       (Self::Map(a), Self::Map(b)) => a == b,
       (Self::IndexMap(a), Self::IndexMap(b)) => a == b,
-      (Self::EnvObject(_), Self::EnvObject(_)) => false,
+      // One pointer compare, and an exact answer rather than a conservative
+      // one. The payload was a bare map when this arm was written, where
+      // answering meant a deep compare per probe; it is shared from the options
+      // now, so two `EnvObject`s are the same object or they are not.
+      (Self::EnvObject(a), Self::EnvObject(b)) => Rc::ptr_eq(a, b),
       _ => false,
     }
   }

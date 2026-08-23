@@ -45,6 +45,18 @@ pub fn sort_pseudos(pseudos: &[String]) -> Vec<String> {
     return pseudos.to_owned();
   }
 
+  // With no element in the list the partition below produces exactly one
+  // `Sortable` run covering every key, so this is the same answer for three
+  // fewer allocations -- and it is the shape almost every key path has:
+  // `[':hover']`, `[':hover', ':focus']`, `['[data-x]', ':hover']`.
+  if !pseudos.iter().any(|pseudo| is_pseudo_element(pseudo)) {
+    let mut sorted = pseudos.to_owned();
+
+    sorted.sort_unstable_by(|a, b| pseudo_comparator(a, b));
+
+    return sorted;
+  }
+
   let mut runs: Vec<PseudoRun> = Vec::new();
 
   for pseudo in pseudos {

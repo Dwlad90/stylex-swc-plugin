@@ -1,5 +1,6 @@
 use super::*;
 use crate::shared::structures::types::{ClassPathsMap, DynamicFns};
+use std::borrow::Cow;
 use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_ast::ast::factories::create_arrow_expression_with_params;
 use stylex_css::utils::pseudo::is_pseudo_selector;
@@ -33,22 +34,6 @@ fn class_names_for_prop(
   let mut is_static = true;
   let mut expr_list = Vec::with_capacity(class_list.len());
 
-  // Pre-calculate class strings with spaces to avoid repeated allocations
-  let class_strings: Vec<String> = class_list
-    .iter()
-    .enumerate()
-    .map(|(index, cls)| {
-      if index == class_list.len() - 1 {
-        cls.clone()
-      } else {
-        let mut spaced = String::with_capacity(cls.len() + 1);
-        spaced.push_str(cls);
-        spaced.push(' ');
-        spaced
-      }
-    })
-    .collect();
-
   for (index, cls) in class_list.iter().enumerate() {
     let expr = dynamic_styles
       .iter()
@@ -63,30 +48,34 @@ fn class_names_for_prop(
       expr
     };
 
-    let cls_with_space = &class_strings[index];
+    // The separator is appended where it is needed rather than into a vector
+    // built up front: the last class needs none, and its entry there was a
+    // clone `create_string_expr` then copied again into an `Atom`.
+    let cls_with_space: Cow<'_, str> = if index + 1 == class_list.len() {
+      Cow::Borrowed(cls.as_str())
+    } else {
+      Cow::Owned(format!("{cls} "))
+    };
 
     if let Some(expr) = expr.filter(|e| !is_safe_to_skip_null_check(e)) {
       is_static = false;
       expr_list.push(create_cond_expr(
         create_bin_expr(BinaryOp::NotEq, expr.clone(), create_null_expr()),
-        create_string_expr(cls_with_space),
+        create_string_expr(&cls_with_space),
         expr,
       ));
     } else {
-      expr_list.push(create_string_expr(cls_with_space));
+      expr_list.push(create_string_expr(&cls_with_space));
     }
   }
 
-  let joined = if expr_list.is_empty() {
-    create_string_expr("")
-  } else {
-    expr_list
-      .into_iter()
-      .reduce(|acc, curr| create_bin_expr(BinaryOp::Add, acc, curr))
-      .unwrap_or_else(|| {
-        stylex_panic!("Expected at least one expression to reduce in class name concatenation.")
-      })
-  };
+  // `reduce` already answers `None` for exactly the empty case the outer `if`
+  // was testing, so the two branches asked one question twice and the panic arm
+  // between them was unreachable.
+  let joined = expr_list
+    .into_iter()
+    .reduce(|acc, curr| create_bin_expr(BinaryOp::Add, acc, curr))
+    .unwrap_or_else(|| create_string_expr(""));
 
   PropClassNames { joined, is_static }
 }

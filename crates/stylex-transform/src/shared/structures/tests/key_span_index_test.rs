@@ -55,6 +55,9 @@ mod key_span_index {
     distance_from_target: Option<u32>,
   ) -> CandidateRank {
     CandidateRank {
+      // Held constant across these comparisons: the callee field outranks every
+      // other, so a case varying it would be testing only that.
+      callee_match: true,
       namespace_value_overlap,
       sibling_overlap,
       distance_from_target: Reverse(distance_from_target),
@@ -78,6 +81,10 @@ mod key_span_index {
       sibling_keys: std::rc::Rc::new(keys(siblings)),
       namespace_value_keys: keys(value_keys),
       target_offset,
+      // Spelled-out queries name no callee, so every candidate ties on that
+      // field and the cases here stay about the signals they vary. The
+      // callee-aware path is `a_call_to_another_function_does_not_answer_...`.
+      callee: None,
     }
   }
 
@@ -481,6 +488,53 @@ const b = stylex.create({ root: { color: 'red' } });
       "the target names the second call's object, so the second call's `root` is \
        the nearer candidate -- measured within the file, which is the only frame \
        the query's offset is expressed in"
+    );
+  }
+
+  /// An object handed to some other function is not a worse answer than the
+  /// right one, it is not an answer at all.
+  ///
+  /// The index walks every call with an object first argument, because narrowing
+  /// it to StyleX would mean teaching it the module's import bindings. So an
+  /// application module full of `useMemo` and `createSlice` puts candidates here
+  /// that can never be right, and one of them spelling a style namespace is only
+  /// a matter of time.
+  ///
+  /// Where that bites is a call with no position of its own -- one an earlier
+  /// transform synthesized, which is the case this index's value-matching
+  /// fallback exists for. Every distance is then unmeasured, every candidate
+  /// ties, and a tie is refused: the lookup falls back to the whole-module value
+  /// walk this index replaced. Ranking the callee first separates them without a
+  /// position.
+  #[test]
+  fn a_call_to_another_function_does_not_answer_for_a_create_call() {
+    let source = "\
+const cfg = createSlice({ root: { color: 'red' } });
+const styles = stylex.create({ root: { color: 'red' } });
+";
+    let module = parse(source);
+    let calls = create_calls(&module);
+
+    let create_call = match calls.last() {
+      Some(call) => call,
+      None => panic!("the fixture no longer holds a call"),
+    };
+
+    let mut lookup = query("root", &["root"], &["color"], None);
+
+    lookup.callee = Some(&create_call.callee);
+
+    let span = KeySpanIndex::build(&module).resolve(&lookup);
+
+    assert!(
+      !span.is_dummy(),
+      "the two candidates tie on every signal a positionless call offers, so a \
+       ranking that ignores the callee refuses instead of answering"
+    );
+    assert_eq!(
+      line_at(source, span),
+      line_of(source, "const styles"),
+      "the `stylex.create` candidate is the one the query is about"
     );
   }
 

@@ -288,9 +288,12 @@ async function report(): Promise<void> {
   const filter = cliOptions.filter;
   const entries = loadEntries().filter(entry => filter === undefined || entry.id.includes(filter));
 
+  // An empty selection is a broken filter or a broken corpus, not a pass. The
+  // value harness already treats it that way; this one returned cleanly, so a
+  // mistyped `--filter` reported position parity over nothing and exited 0.
   if (entries.length === 0) {
-    console.log(chalk.yellow('No subjects matched.'));
-    return;
+    console.error(chalk.red('No position subjects match the given filter.'));
+    process.exit(1);
   }
 
   const results: PositionReportEntry[] = [];

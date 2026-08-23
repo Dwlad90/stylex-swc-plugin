@@ -44,8 +44,10 @@ pub(crate) fn convert_style_to_class_name(
     dashify(key)
   };
 
-  let unsorted_pseudos = &mut pseudos.to_vec();
-  let sorted_pseudos = sort_pseudos(unsorted_pseudos);
+  // `sort_pseudos` takes a slice and copies what it needs; copying into a
+  // binding it never mutates first was a second copy of the list, per property
+  // per namespace per call.
+  let sorted_pseudos = sort_pseudos(pseudos);
 
   let mut combined_at_rules = Vec::with_capacity(at_rules.len() + const_rules.len());
 

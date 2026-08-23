@@ -3,9 +3,9 @@ use std::{cell::OnceCell, cmp::Reverse, rc::Rc};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
-  common::{BytePos, DUMMY_SP, Span, Spanned},
+  common::{BytePos, DUMMY_SP, EqIgnoreSpan, Span, Spanned},
   ecma::{
-    ast::{CallExpr, Expr, Module, ObjectLit},
+    ast::{CallExpr, Callee, Expr, Module, ObjectLit},
     visit::{Visit, VisitWith, noop_visit_type},
   },
 };
@@ -54,6 +54,16 @@ struct IndexedCandidate {
   /// Where the candidate's call is written, as an offset into its own file, for
   /// the distance tie-break.
   candidate_offset: u32,
+  /// The callee the candidate's object was written as an argument to, shared
+  /// between that object's candidates.
+  ///
+  /// This index walks *every* call with an object first argument, because
+  /// narrowing it to StyleX would mean teaching it the module's import
+  /// bindings. Walking them is cheap; letting them compete is not. A
+  /// `useMemo({ root: ... })` beside a `stylex.create({ root: ... })` ties on
+  /// both overlap fields, and a tie refuses the lookup -- sending it back to the
+  /// whole-module value walk this index exists to replace.
+  callee: Rc<Callee>,
 }
 
 impl KeySpanIndex {
@@ -136,6 +146,7 @@ impl KeySpanIndex {
 
     let candidate_lo = object_lo(object).unwrap_or(call.span.lo);
     let candidate_offset = candidate_lo.0.saturating_sub(self.base.0);
+    let callee = Rc::new(call.callee.clone());
     let mut in_this_object: FxHashMap<Atom, IndexedCandidate> = FxHashMap::default();
 
     for prop in &object.props {
@@ -149,6 +160,7 @@ impl KeySpanIndex {
             namespace_value_keys: object_lit_keys(&key_value.value).collect(),
             sibling_keys: Rc::clone(&sibling_keys),
             candidate_offset,
+            callee: Rc::clone(&callee),
           },
         );
       }
@@ -194,6 +206,10 @@ impl Visit for KeySpanIndex {
 /// position of its own cannot be placed, so it cannot be placed badly either.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct CandidateRank {
+  /// Whether the candidate was written as an argument to the call being placed.
+  /// First, because an object handed to some *other* function is not a worse
+  /// answer than the right one -- it is not an answer at all.
+  pub(crate) callee_match: bool,
   pub(crate) namespace_value_overlap: usize,
   pub(crate) sibling_overlap: usize,
   pub(crate) distance_from_target: Reverse<Option<u32>>,
@@ -202,6 +218,9 @@ pub(crate) struct CandidateRank {
 impl IndexedCandidate {
   fn rank(&self, query: &NamespaceKeyQuery) -> CandidateRank {
     CandidateRank {
+      callee_match: query
+        .callee
+        .is_some_and(|callee| self.callee.as_ref().eq_ignore_span(callee)),
       namespace_value_overlap: overlap(&self.namespace_value_keys, &query.namespace_value_keys),
       sibling_overlap: overlap(&self.sibling_keys, &query.sibling_keys),
       // Both sides are offsets into their own file, never raw `BytePos`. This
@@ -246,6 +265,9 @@ pub(crate) struct NamespaceKeyQuery<'a> {
   /// Where the call's object argument starts, as an offset into its own file,
   /// for the proximity tie-break.
   pub(crate) target_offset: Option<u32>,
+  /// The callee of the call being placed, so an object argument to a different
+  /// function cannot answer for it.
+  pub(crate) callee: Option<&'a Callee>,
 }
 
 /// Everything a key-span lookup needs that belongs to the *call* rather than to
@@ -331,6 +353,7 @@ impl<'a> CallLookup<'a> {
         .map(|object| namespace_value_keys(object, namespace_key))
         .unwrap_or_default(),
       target_offset: self.target_offset,
+      callee: Some(&self.call_expr.callee),
     }
   }
 }

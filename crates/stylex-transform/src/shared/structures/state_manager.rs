@@ -12,7 +12,7 @@ use stylex_path_resolver::{
 };
 use swc_core::{
   atoms::Atom,
-  common::{DUMMY_SP, EqIgnoreSpan, FileName, SourceFile, Span, SyntaxContext},
+  common::{BytePos, DUMMY_SP, EqIgnoreSpan, FileName, SourceFile, Span, SyntaxContext},
   ecma::{
     ast::{
       CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl, ImportDefaultSpecifier,
@@ -224,6 +224,13 @@ impl ImportState {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ModuleSourceState {
   seen_module_source_code: Option<Rc<SeenModuleSource>>,
+  /// Where the module being transformed starts, in the compiler's own source
+  /// map.
+  ///
+  /// Recorded because a key-span lookup compares a compiled call's position
+  /// against candidates indexed from a module re-parsed into a *different* map.
+  /// Only offsets into the file compare; this is the base they are taken from.
+  input_module_base: BytePos,
 }
 
 impl ModuleSourceState {
@@ -994,6 +1001,17 @@ impl StateManager {
   /// The memoized module's key span index, built on first use
   pub(crate) fn key_span_index(&self) -> Option<&KeySpanIndex> {
     self.module_source.key_span_index()
+  }
+
+  /// Where the module being transformed starts, for turning a compiled call's
+  /// position into a file offset. See [`ModuleSourceState::input_module_base`].
+  pub(crate) fn input_module_base(&self) -> BytePos {
+    self.module_source.input_module_base
+  }
+
+  /// Records that base, once, as the module walk begins.
+  pub(crate) fn set_input_module_base(&mut self, base: BytePos) {
+    self.module_source.input_module_base = base;
   }
 
   /// Sets the source code module (marks as not yet normalized)

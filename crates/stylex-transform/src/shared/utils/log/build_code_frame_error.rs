@@ -111,14 +111,16 @@ impl CodeFrame {
   }
 
   /// Registers `source` for `file_name` unless the shared source map already
-  /// holds it, and reports whether the file is available afterwards.
+  /// holds it. Returns `Err` only when producing the source itself failed.
   ///
   /// The closure is only called on a miss, so a caller whose source is expensive
   /// to produce -- a clone of the module's text, or a read of the file -- pays
   /// for it once per module rather than once per lookup.
   ///
-  /// The guard is a linear scan of the source map's file list, which grows by one
-  /// entry per module a process transforms. That is the trade this makes: a
+  /// The guard is a linear scan of the source map's file list. That list grows by
+  /// one entry per distinct *content* a process registers, which for a file that
+  /// is not being edited is one -- see `memoize_module`, which is the
+  /// registration this guard has to agree with. That is the trade this makes: a
   /// string compare per registered module, against the copy of the module's text
   /// it replaces. A long-lived process transforming five thousand modules pays
   /// fifty thousand name comparisons where it used to accumulate fifty thousand
@@ -414,24 +416,23 @@ fn get_key_span_from_source_code_impl(
   Ok((code_frame, span))
 }
 
-/// The same, for a namespace-key lookup. 128 bits for the same reason as
+/// The per-namespace half of a key-span cache key, mixed with the call digest
+/// from [`CallLookup::digest`]. 128 bits for the same reason as
 /// [`compute_cache_key`].
 ///
 /// Hashed as one tuple rather than field by field, so the wide hasher is built
 /// once and the pieces cannot drift out of the key by being added to the
 /// function and forgotten in the digest.
-/// The per-namespace half, mixed with the digest above.
-///
 fn compute_key_span_cache_key(siblings_digest: u128, query: &NamespaceKeyQuery) -> u128 {
   let mut sorted_value_keys: Vec<&Atom> = query.namespace_value_keys.iter().collect();
   sorted_value_keys.sort();
 
   stable_hash_wide(&(
-    "stylex-key-span:v4",
+    "stylex-key-span:v5",
     siblings_digest,
     query.namespace_key,
     sorted_value_keys,
-    query.target_lo.map(|lo| lo.0),
+    query.target_offset,
   ))
 }
 
@@ -552,9 +553,19 @@ fn memoize_module(
     let source_code = get_source_code(wrapped_expression, state, file_name, code_frame)
       .ok_or_else(|| anyhow::anyhow!("Failed to read source file: {}", state.get_filename()))?;
 
-    let source_file = code_frame
-      .source_map
-      .new_source_file(Arc::new(file_name.clone()), source_code.clone());
+    // Through the same reuse `register_source_once` applies, rather than around
+    // it. `new_source_file` never deduplicates -- it appends -- and this map is
+    // a process-global `OnceLock` that is never cleared, so registering here on
+    // every compile is how a watch-mode process accumulated one full copy of
+    // each module per save. Comparing the content is the load-bearing part: an
+    // edited file still gets a fresh registration, and only an unchanged one is
+    // reused.
+    let source_file = match code_frame.source_map.get_source_file(file_name) {
+      Some(existing) if existing.src.as_str() == source_code => existing,
+      _ => code_frame
+        .source_map
+        .new_source_file(Arc::new(file_name.clone()), source_code.clone()),
+    };
 
     let program = parse_and_normalize_program(
       &source_file,

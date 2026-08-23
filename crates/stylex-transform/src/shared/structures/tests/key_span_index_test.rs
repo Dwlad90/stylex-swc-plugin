@@ -20,8 +20,15 @@ mod key_span_index {
   };
 
   fn parse(source: &str) -> Module {
-    let source_map: Lrc<SourceMap> = Default::default();
-    let source_file = source_map.new_source_file(FileName::Anon.into(), source.to_owned());
+    parse_into(&Default::default(), FileName::Anon, source)
+  }
+
+  /// Parses into a source map the caller owns, so a case can put more than one
+  /// file in it. Every other case here gets a fresh map, whose first byte is
+  /// `BytePos(1)` -- which is the one arrangement where an offset into the file
+  /// and a `BytePos` are interchangeable.
+  fn parse_into(source_map: &Lrc<SourceMap>, name: FileName, source: &str) -> Module {
+    let source_file = source_map.new_source_file(name.into(), source.to_owned());
     let lexer = Lexer::new(
       Syntax::Typescript(TsSyntax {
         tsx: true,
@@ -64,13 +71,13 @@ mod key_span_index {
     key: &'a str,
     siblings: &[&str],
     value_keys: &[&str],
-    target_lo: Option<BytePos>,
+    target_offset: Option<u32>,
   ) -> NamespaceKeyQuery<'a> {
     NamespaceKeyQuery {
       namespace_key: key,
       sibling_keys: std::rc::Rc::new(keys(siblings)),
       namespace_value_keys: keys(value_keys),
-      target_lo,
+      target_offset,
     }
   }
 
@@ -199,8 +206,13 @@ const second = stylex.create({
     // The two calls are indistinguishable by keys alone -- above, without a
     // target position, this same fixture refuses. Pointing the target at one
     // call's object argument is what tells them apart.
-    let second_object_lo = match source.rfind("({") {
-      Some(offset) => BytePos(offset as u32 + 2 + 1),
+    // An offset into the file, not a `BytePos`: the query side and the index
+    // side are positioned in different source maps in production, so only
+    // offsets compare. This fixture's module starts at the first byte, so the
+    // two happen to coincide here -- `a_second_file_in_one_source_map_...`
+    // is the case where they do not.
+    let second_object_offset = match source.rfind("({") {
+      Some(offset) => offset as u32 + 2,
       None => panic!("the fixture no longer holds a call"),
     };
 
@@ -208,7 +220,7 @@ const second = stylex.create({
       "root",
       &["root"],
       &["color"],
-      Some(second_object_lo),
+      Some(second_object_offset),
     ));
 
     assert_eq!(
@@ -310,8 +322,7 @@ const second = stylex.create({
       ],
     };
 
-    let span =
-      KeySpanIndex::build(&module).resolve(&query("root", &["root"], &[], Some(BytePos(190))));
+    let span = KeySpanIndex::build(&module).resolve(&query("root", &["root"], &[], Some(190)));
 
     assert_eq!(
       span, near_key,
@@ -400,14 +411,76 @@ const second = stylex.create({ root: { color: 'red' } });
     let calls = create_calls(&module);
 
     assert_ne!(
-      CallLookup::new(&calls[0]).digest(),
-      CallLookup::new(&calls[1]).digest(),
+      CallLookup::new(&calls[0], module.span.lo).digest(),
+      CallLookup::new(&calls[1], module.span.lo).digest(),
       "two calls written at different positions must key apart"
     );
     assert_eq!(
-      CallLookup::new(&calls[0]).digest(),
-      CallLookup::new(&calls[0]).digest(),
+      CallLookup::new(&calls[0], module.span.lo).digest(),
+      CallLookup::new(&calls[0], module.span.lo).digest(),
       "one call must digest the same however often it is asked"
+    );
+  }
+
+  /// The arrangement production actually runs in, which every other case here
+  /// misses by parsing into a source map of its own.
+  ///
+  /// A `SourceMap` gives each file a start position after the previous file's
+  /// end, so from the second file onward a `BytePos` is nowhere near an offset
+  /// into that file. The index is built from a module re-parsed into the code
+  /// frame's shared, process-global map, while the query is read off the
+  /// compiled call in the compiler's per-transform one -- where the same file is
+  /// usually the first, and so starts near zero.
+  ///
+  /// Comparing the two as raw positions adds a constant to every candidate's
+  /// distance, which does not cancel: `argmin |base + c - t|` over a large
+  /// `base` is just `argmin c`, so the tie-break silently became "the earliest
+  /// candidate in the file" and the second call below resolved to the first
+  /// call's `root`.
+  #[test]
+  fn a_module_that_does_not_start_the_source_map_is_still_measured_from_itself() {
+    let source_map: Lrc<SourceMap> = Default::default();
+
+    // Registered only to push the module under test off the start of the map,
+    // which is what a process that has already compiled one file has done.
+    let earlier = "const filler = 1;\n".repeat(8);
+    let _ = parse_into(
+      &source_map,
+      FileName::Custom("earlier.ts".to_owned()),
+      &earlier,
+    );
+
+    let source = "\
+const a = stylex.create({ root: { color: 'red' } });
+const b = stylex.create({ root: { color: 'red' } });
+";
+    let module = parse_into(
+      &source_map,
+      FileName::Custom("under-test.ts".to_owned()),
+      source,
+    );
+
+    // The two candidates are indistinguishable by keys, so the proximity
+    // tie-break is the only thing that can separate them -- which is the point.
+    let second_object_offset = match source.rfind("({") {
+      Some(offset) => offset as u32 + 2,
+      None => panic!("the fixture no longer holds two calls"),
+    };
+
+    let span = KeySpanIndex::build(&module).resolve(&query(
+      "root",
+      &["root"],
+      &["color"],
+      Some(second_object_offset),
+    ));
+
+    assert!(!span.is_dummy(), "the lookup resolved no position");
+    assert_eq!(
+      source_map.lookup_char_pos(span.lo).line,
+      2,
+      "the target names the second call's object, so the second call's `root` is \
+       the nearer candidate -- measured within the file, which is the only frame \
+       the query's offset is expressed in"
     );
   }
 

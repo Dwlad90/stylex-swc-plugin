@@ -215,7 +215,11 @@ fn key_span_for(
   namespace_key: &str,
   state: &mut StateManager,
 ) -> Result<(CodeFrame, Span), anyhow::Error> {
-  get_key_span_from_source_code(&CallLookup::new(call_expr), namespace_key, state)
+  get_key_span_from_source_code(
+    &CallLookup::new(call_expr, state.input_module_base()),
+    namespace_key,
+    state,
+  )
 }
 
 /// When an earlier loader rewrites style values (e.g. compile-time macros),

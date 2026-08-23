@@ -700,6 +700,10 @@ where
 
   pub(crate) fn visit_mut_module_impl(&mut self, module: &mut Module) {
     if cfg!(debug_assertions) || !self.state.options.use_real_file_for_source {
+      // Recorded alongside the memo, because a key-span lookup compares this
+      // module's positions against candidates indexed from a re-parse into the
+      // code frame's own source map. Only offsets into the file compare.
+      self.state.set_input_module_base(module.span.lo);
       self.state.set_seen_module_source_code(module, None);
     }
 

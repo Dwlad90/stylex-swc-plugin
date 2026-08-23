@@ -78,7 +78,7 @@ pub(crate) fn add_source_map_data(
   // built on the first namespace that actually needs one and not at all for a
   // call whose namespaces all resolve through the input source map or the span
   // cache.
-  let lookup = CallLookup::new(call_expr);
+  let lookup = CallLookup::new(call_expr, state.input_module_base());
 
   for (key, value) in obj {
     let mut inner_map = IndexMap::new();

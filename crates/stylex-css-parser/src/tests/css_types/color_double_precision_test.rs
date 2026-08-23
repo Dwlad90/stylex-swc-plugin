@@ -599,13 +599,14 @@ mod modern_space_boundaries_and_refusals {
     assert!(!printed.contains("inf"), "{printed}");
   }
 
-  /// A negative zero keeps the sign Rust gives it, where JavaScript drops it.
-  /// Pinned so the follow-up that adopts the shared formatter has something
-  /// to move.
+  /// A negative zero: JavaScript drops the sign, and the hue already does,
+  /// because it prints through the angle type -- which has adopted the shared
+  /// formatter. The channels still carry theirs until the colour paths adopt
+  /// it too.
   #[test]
-  fn a_negative_zero_channel_keeps_the_sign_rust_gives_it() {
+  fn a_negative_zero_hue_drops_its_sign_before_the_channels_do() {
     assert_eq!(printed!("oklab(-0 -0 -0)"), "oklab(-0 -0 -0)");
-    assert_eq!(printed!("oklch(-0 -0 -0)"), "oklch(-0 -0 -0deg)");
+    assert_eq!(printed!("oklch(-0 -0 -0)"), "oklch(-0 -0 0deg)");
   }
 
   /// An alpha outside 0..=1 is carried through on these paths rather than

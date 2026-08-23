@@ -2,6 +2,8 @@
 CSS filter function parser.
 */
 
+use stylex_utils::number::to_js_string;
+
 use crate::{
   CssParseError,
   css_types::{Angle, Length, common_types::number_or_percentage_parser},
@@ -646,21 +648,21 @@ impl Display for BlurFilterFunction {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for BrightnessFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "brightness({})", self.percentage)
+    write!(f, "brightness({})", to_js_string(self.percentage))
   }
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for ContrastFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "contrast({})", self.amount)
+    write!(f, "contrast({})", to_js_string(self.amount))
   }
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for GrayscaleFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "grayscale({})", self.amount)
+    write!(f, "grayscale({})", to_js_string(self.amount))
   }
 }
 
@@ -674,28 +676,28 @@ impl Display for HueRotateFilterFunction {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for InvertFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "invert({})", self.amount)
+    write!(f, "invert({})", to_js_string(self.amount))
   }
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for OpacityFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "opacity({})", self.amount)
+    write!(f, "opacity({})", to_js_string(self.amount))
   }
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for SaturateFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "saturate({})", self.amount)
+    write!(f, "saturate({})", to_js_string(self.amount))
   }
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for SepiaFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "sepia({})", self.amount)
+    write!(f, "sepia({})", to_js_string(self.amount))
   }
 }
 

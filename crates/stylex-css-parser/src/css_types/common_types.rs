@@ -6,6 +6,7 @@ providing essential shared utilities for CSS processing.
 */
 
 use stylex_macros::stylex_unreachable;
+use stylex_utils::number::to_js_string;
 
 use crate::{
   token_parser::{TokenParser, tokens},
@@ -186,7 +187,7 @@ impl Percentage {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Percentage {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}%", self.value)
+    write!(f, "{}%", to_js_string(self.value))
   }
 }
 
@@ -218,7 +219,7 @@ impl Number {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Number {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.value)
+    write!(f, "{}", to_js_string(self.value))
   }
 }
 

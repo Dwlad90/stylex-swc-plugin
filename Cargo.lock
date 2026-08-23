@@ -2649,6 +2649,7 @@ dependencies = [
  "rustc-hash",
  "serde_json",
  "stylex_macros",
+ "stylex_utils",
  "swc_core",
  "thiserror 2.0.19",
 ]

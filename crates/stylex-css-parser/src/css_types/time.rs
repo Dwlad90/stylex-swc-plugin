@@ -4,6 +4,8 @@ CSS Time type parsing.
 Handles time values with 's' (seconds) and 'ms' (milliseconds) units.
 */
 
+use stylex_utils::number::to_js_string;
+
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};
 
@@ -79,9 +81,9 @@ impl Time {
 impl Display for Time {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     if self.unit == "ms" {
-      write!(f, "{}s", self.value / 1000.0)
+      write!(f, "{}s", to_js_string(self.value / 1000.0))
     } else {
-      write!(f, "{}{}", self.value, self.unit)
+      write!(f, "{}{}", to_js_string(self.value), self.unit)
     }
   }
 }

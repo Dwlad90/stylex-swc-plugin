@@ -4,6 +4,8 @@ Media query parsing and representation.
 Core functionality for parsing and representing CSS media queries.
 */
 
+use stylex_utils::number::to_js_string;
+
 use crate::{
   CssParseError,
   css_types::{Length, calc::Calc},
@@ -61,7 +63,7 @@ pub enum MediaRuleValue {
 impl Display for MediaRuleValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      MediaRuleValue::Number(n) => write!(f, "{}", n),
+      MediaRuleValue::Number(n) => write!(f, "{}", to_js_string(*n)),
       MediaRuleValue::Length(l) => write!(f, "{}", l),
       MediaRuleValue::String(s) => write!(f, "{}", s),
       MediaRuleValue::Fraction(frac) => write!(f, "{}", frac),
@@ -369,7 +371,7 @@ impl MediaQuery {
           format!("({}: {})", pair.key, s)
         },
         MediaRuleValue::Number(n) => {
-          format!("({}: {})", pair.key, n)
+          format!("({}: {})", pair.key, to_js_string(*n))
         },
       },
       MediaQueryRule::Not(not_rule) => match not_rule.rule.as_ref() {

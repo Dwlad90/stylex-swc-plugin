@@ -4,6 +4,8 @@ CSS Frequency type parsing.
 Handles frequency values with 'Hz' (hertz) and 'KHz' (kilohertz) units.
 */
 
+use stylex_utils::number::to_js_string;
+
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};
 
@@ -82,9 +84,9 @@ impl Frequency {
 impl Display for Frequency {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     if self.unit == "Hz" {
-      write!(f, "{}KHz", self.value / 1000.0)
+      write!(f, "{}KHz", to_js_string(self.value / 1000.0))
     } else {
-      write!(f, "{}{}", self.value, self.unit)
+      write!(f, "{}{}", to_js_string(self.value), self.unit)
     }
   }
 }

@@ -5,6 +5,7 @@ Handles angle values with 'deg' (degrees), 'grad' (gradians), 'rad' (radians), a
 */
 
 use stylex_macros::stylex_unreachable;
+use stylex_utils::number::to_js_string;
 
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};
@@ -103,7 +104,7 @@ impl Angle {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Angle {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}{}", self.value, self.unit)
+    write!(f, "{}{}", to_js_string(self.value), self.unit)
   }
 }
 

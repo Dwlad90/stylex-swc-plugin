@@ -88,3 +88,7 @@ mod double_precision_test;
 #[cfg(test)]
 #[path = "../tests/css_types/color_double_precision_test.rs"]
 mod color_double_precision_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/js_number_spelling_test.rs"]
+mod js_number_spelling_test;

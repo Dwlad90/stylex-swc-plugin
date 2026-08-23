@@ -4,6 +4,8 @@ CSS Length type parsing.
 Handles all CSS length units including font-relative, viewport-relative,
 */
 
+use stylex_utils::number::to_js_string;
+
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};
 
@@ -125,7 +127,7 @@ impl Length {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Length {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}{}", self.value, self.unit)
+    write!(f, "{}{}", to_js_string(self.value), self.unit)
   }
 }
 

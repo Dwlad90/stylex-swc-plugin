@@ -5,6 +5,7 @@ Implements complete calc() expression parsing with operator precedence.
 */
 
 use stylex_macros::stylex_unreachable;
+use stylex_utils::number::to_js_string;
 
 use crate::{
   CssParseError,
@@ -33,7 +34,7 @@ impl CalcDimension {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for CalcDimension {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}{}", self.value, self.unit)
+    write!(f, "{}{}", to_js_string(self.value), self.unit)
   }
 }
 
@@ -489,7 +490,7 @@ impl CalcValue {
 impl Display for CalcValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      CalcValue::Number(n) => write!(f, "{}", n),
+      CalcValue::Number(n) => write!(f, "{}", to_js_string(*n)),
       CalcValue::Dimension(d) => write!(f, "{}", d),
       CalcValue::Percentage(p) => write!(f, "{}", p),
       CalcValue::Constant(c) => write!(f, "{}", c),
@@ -577,7 +578,7 @@ impl Display for Calc {
 #[cfg_attr(coverage_nightly, coverage(off))]
 pub fn calc_value_to_string(value: &CalcValue) -> String {
   match value {
-    CalcValue::Number(n) => n.to_string(),
+    CalcValue::Number(n) => to_js_string(*n),
     CalcValue::Dimension(d) => d.to_string(),
     CalcValue::Percentage(p) => p.to_string(),
     CalcValue::Constant(c) => c.to_string(),

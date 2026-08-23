@@ -5,6 +5,7 @@ Handles flex grid fraction values (e.g., 1fr, 2.5fr).
 */
 
 use stylex_macros::stylex_unreachable;
+use stylex_utils::number::to_js_string;
 
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};
@@ -71,7 +72,7 @@ impl Flex {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Flex {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}fr", self.fraction)
+    write!(f, "{}fr", to_js_string(self.fraction))
   }
 }
 

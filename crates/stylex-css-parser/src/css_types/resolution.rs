@@ -5,6 +5,7 @@ Handles resolution values with 'dpi' (dots per inch), 'dpcm' (dots per cm), and 
 */
 
 use stylex_macros::stylex_unreachable;
+use stylex_utils::number::to_js_string;
 
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};
@@ -84,7 +85,7 @@ impl Resolution {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Resolution {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}{}", self.value, self.unit)
+    write!(f, "{}{}", to_js_string(self.value), self.unit)
   }
 }
 

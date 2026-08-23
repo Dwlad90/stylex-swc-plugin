@@ -77,3 +77,25 @@ stylex_test!(
     });
   "#
 );
+
+// A breakpoint past the exponential threshold. The transform re-serializes the
+// bound it derived rather than echoing the authored text, so this is the one
+// end-to-end seam where the number's *spelling* is the compiler's own choice:
+// the official compiler writes `1e+21px`, and Rust's default formatting wrote
+// twenty-two digits. Confirmed against `@stylexjs/babel-plugin@0.19.0`, which
+// emits `(min-width: 1e+21px) and (max-width: 2e+21px)` for this source.
+stylex_test!(
+  breakpoints_past_the_exponential_threshold_spell_the_bound_as_javascript_does,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: {
+        minHeight: {
+          default: '0px',
+          '@media (min-width: 1e21px)': '10px',
+          '@media (min-width: 2e21px)': '20px',
+        },
+      },
+    });
+  "#
+);

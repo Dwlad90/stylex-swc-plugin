@@ -248,47 +248,38 @@ mod calc_keeps_the_digits_of_what_it_wraps {
 mod boundaries_and_refusals {
   use super::*;
 
-  /// The extremes of the double range are representable now, where single
-  /// precision saturated to infinity above ~3.4e38 and flushed to zero below
-  /// ~1.2e-38. Rust's own formatting does not switch to exponential form, so
-  /// these are still spelled as long decimals -- that is the remaining gap,
-  /// and it is closed by adopting the shared JavaScript-number formatter
-  /// rather than by the widening.
+  /// The extremes of the double range are representable, and now spelled the
+  /// way JavaScript spells them. The widening made the values right; the
+  /// shared formatter makes the spelling right, because Rust's own formatting
+  /// never switches to exponential form and so wrote the largest double as
+  /// three hundred and nine digits and the smallest subnormal as three
+  /// hundred and twenty-four.
   #[test]
-  fn values_at_the_edge_of_the_double_range_are_finite() {
-    let largest = printed!(Length, "1.7976931348623157e308px");
-    assert!(largest.ends_with("px"));
-    assert!(!largest.contains("inf"), "{largest}");
-
-    // The smallest subnormal survives as a non-zero value, where single
-    // precision flushed it to zero outright. Rust spells it as a 300-odd
-    // digit decimal; JavaScript spells it `5e-324`. The value is right here
-    // and the spelling is not, which is the gap the shared formatter closes.
-    let smallest = printed!(Length, "5e-324px");
-    assert!(smallest.len() > 300, "{}", smallest.len());
-    assert!(
-      smallest
-        .trim_end_matches("px")
-        .trim_start_matches("0.")
-        .contains('5')
+  fn values_at_the_edge_of_the_double_range_are_spelled_as_javascript_spells_them() {
+    assert_eq!(
+      printed!(Length, "1.7976931348623157e308px"),
+      "1.7976931348623157e+308px"
     );
+    assert_eq!(printed!(Length, "5e-324px"), "5e-324px");
   }
 
-  /// A magnitude past the double range is infinite in JavaScript too, so this
-  /// pins that nothing invents a finite number for it.
+  /// A magnitude past the double range is infinite in JavaScript too, and
+  /// JavaScript names it `Infinity` where Rust's formatting writes `inf`.
   #[test]
   fn a_magnitude_past_the_double_range_is_infinite() {
-    assert_eq!(printed!(Length, "1e400px"), "infpx");
+    assert_eq!(printed!(Length, "1e400px"), "Infinitypx");
+    assert_eq!(printed!(Length, "-1e400px"), "-Infinitypx");
   }
 
-  /// Zero, negative zero, and a zero-valued unit. Rust prints a negative zero
-  /// with its sign where JavaScript drops it; pinned so the follow-up that
-  /// adopts the shared formatter has something to move.
+  /// Zero, negative zero, and a zero-valued unit. JavaScript drops the sign a
+  /// negative zero carries, so `-0px` and `0px` print alike -- which is also
+  /// what the official compiler emits for `-0px`.
   #[test]
-  fn zero_is_printed_with_the_sign_rust_gives_it() {
+  fn a_negative_zero_loses_its_sign_the_way_javascript_drops_it() {
     assert_eq!(printed!(Length, "0px"), "0px");
-    assert_eq!(printed!(Length, "-0px"), "-0px");
+    assert_eq!(printed!(Length, "-0px"), "0px");
     assert_eq!(printed!(Number, "0"), "0");
+    assert_eq!(printed!(Number, "-0"), "0");
   }
 
   /// A bare `0` is a length without a unit, and nothing else is.

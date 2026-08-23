@@ -5,6 +5,7 @@ Handles alpha values for colors - numbers (0.0-1.0) and percentages (0%-100%).
 */
 
 use stylex_macros::stylex_unreachable;
+use stylex_utils::number::to_js_string;
 
 use crate::{
   CssParseError,
@@ -72,7 +73,7 @@ impl AlphaValue {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for AlphaValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.value)
+    write!(f, "{}", to_js_string(self.value))
   }
 }
 

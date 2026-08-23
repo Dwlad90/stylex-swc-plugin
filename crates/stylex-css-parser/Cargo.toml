@@ -27,6 +27,7 @@ swc_core = { workspace = true, features = [
 thiserror.workspace = true
 
 stylex_macros = { path = "../stylex-macros" }
+stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
 criterion.workspace = true

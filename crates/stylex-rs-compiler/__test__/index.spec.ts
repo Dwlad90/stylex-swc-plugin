@@ -379,6 +379,26 @@ test('maxEvaluationDepth: a lowered ceiling refuses what the default folds', () 
   );
 });
 
+// A ceiling the boundary cannot represent is not a ceiling. `napi_get_value_uint32`
+// applies `ToUint32` rather than refusing, so a negative number used to arrive as
+// ~4.29 billion and remove the guard it was configuring; anything past the 32-bit
+// range wrapped instead. Both now read as unset, which is observable as the
+// default's refusal still happening.
+test('maxEvaluationDepth: a negative ceiling falls back to the default', () => {
+  expect(() => compileAtDepth(deepFixture(100), -1)).toThrow(
+    /At most 32 levels of nested evaluation are supported/
+  );
+});
+
+// The other half of the same defect: `ToUint32` wrapped a number past the 32-bit
+// range down to something small, so `2 ** 32` used to read as `0` and fall back
+// to the default. It is now a legitimate -- if absurd -- depth, clamped to the
+// compiler's own limit, so what it must not do is refuse a tower the default
+// refuses only because the ceiling wrapped underneath it.
+test('maxEvaluationDepth: a ceiling past the 32-bit range is clamped, not wrapped', () => {
+  expect(compileAtDepth(deepFixture(100), 2 ** 32).code).toContain('$$css');
+});
+
 // The default the compiler owns, observed through the boundary rather than read
 // from the Rust constant: 29 levels fold and 30 do not.
 test("maxEvaluationDepth: the default ceiling is the compiler's own", () => {

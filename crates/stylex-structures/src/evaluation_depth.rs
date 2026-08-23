@@ -20,6 +20,14 @@ use std::sync::OnceLock;
 /// costs nothing because it is unwrapped before the fold is asked.
 pub const DEFAULT_MAX_EVALUATION_DEPTH: usize = 32;
 
+/// The highest ceiling a caller can ask for.
+///
+/// The ceiling exists to turn a stack overflow into a diagnostic, so a number
+/// large enough that the fold exhausts memory before it reaches the number is
+/// not a ceiling. `stacker` grows the fold in 16 MiB segments, so a million
+/// levels is already far past any input a diagnostic could still describe.
+pub const MAX_EVALUATION_DEPTH_LIMIT: usize = 1 << 20;
+
 /// Environment variable that overrides [`DEFAULT_MAX_EVALUATION_DEPTH`].
 ///
 /// It overrides the default only -- a project that configures
@@ -47,9 +55,19 @@ pub const MAX_EVALUATION_DEPTH_ENV: &str = "STYLEX_MAX_EVALUATION_DEPTH";
 pub fn resolve_max_evaluation_depth(configured: Option<usize>) -> usize {
   static FROM_ENV: OnceLock<Option<String>> = OnceLock::new();
 
-  let from_env = FROM_ENV.get_or_init(|| env::var(MAX_EVALUATION_DEPTH_ENV).ok());
+  let from_env = FROM_ENV.get_or_init(read_env);
 
   resolve_from(configured, from_env.as_deref())
+}
+
+/// One read of the documented variable.
+///
+/// Split out from the cache so a test can prove *which* variable seeds it
+/// without depending on when the cache was first filled: a test that went
+/// through the public resolver would answer differently depending on test
+/// order, because the cache is filled once per process.
+fn read_env() -> Option<String> {
+  env::var(MAX_EVALUATION_DEPTH_ENV).ok()
 }
 
 /// The precedence, with the environment passed in rather than read.
@@ -60,7 +78,7 @@ pub fn resolve_max_evaluation_depth(configured: Option<usize>) -> usize {
 /// be verified at all.
 fn resolve_from(configured: Option<usize>, from_env: Option<&str>) -> usize {
   match configured {
-    Some(depth) if depth > 0 => depth,
+    Some(depth) if depth > 0 => depth.min(MAX_EVALUATION_DEPTH_LIMIT),
     _ => from_env
       .and_then(parse_depth)
       .unwrap_or(DEFAULT_MAX_EVALUATION_DEPTH),
@@ -178,15 +196,68 @@ mod tests {
     assert_eq!(MAX_EVALUATION_DEPTH_ENV, "STYLEX_MAX_EVALUATION_DEPTH");
   }
 
-  // The public entry point reads the real environment, which this process does
-  // not set, so it agrees with the same question asked without one. Present so
-  // the `env::var` line is executed rather than only reasoned about, and that the
-  // value it caches is the one a fresh read returns.
+  // A ceiling the fold cannot reach before exhausting memory is not a ceiling.
+  // The clamp is what keeps a number that crossed the boundary as `ToUint32`
+  // garbage -- or one a caller simply asked too much of -- from removing the
+  // guard it was configuring.
   #[test]
-  fn the_public_resolver_reads_the_process_environment() {
+  fn a_ceiling_past_the_limit_is_clamped_rather_than_honoured() {
+    assert_eq!(
+      resolve_from(Some(usize::MAX), None),
+      MAX_EVALUATION_DEPTH_LIMIT
+    );
+    assert_eq!(
+      resolve_from(Some(MAX_EVALUATION_DEPTH_LIMIT + 1), None),
+      MAX_EVALUATION_DEPTH_LIMIT
+    );
+    assert_eq!(
+      resolve_from(Some(MAX_EVALUATION_DEPTH_LIMIT), None),
+      MAX_EVALUATION_DEPTH_LIMIT
+    );
+  }
+
+  // A configured ceiling below the limit is still taken as given: the clamp is a
+  // ceiling on the ceiling, not a floor on it.
+  #[test]
+  fn a_ceiling_below_the_limit_is_untouched_by_the_clamp() {
+    assert_eq!(resolve_from(Some(1), None), 1);
+    assert_eq!(
+      resolve_from(Some(MAX_EVALUATION_DEPTH_LIMIT - 1), None),
+      MAX_EVALUATION_DEPTH_LIMIT - 1
+    );
+  }
+
+  // `cargo nextest run` gives each test its own process, which is what makes the
+  // write below safe; it is the only environment write in the crate, and it is
+  // undone before the test returns. Written against `read_env` rather than the
+  // public resolver because the cache is filled once per process, so a test that
+  // went through it would answer differently depending on test order.
+  //
+  // Without this the variable's *name* was never exercised: the assertion it
+  // replaces read `env::var(MAX_EVALUATION_DEPTH_ENV)` on both sides, so it held
+  // for any spelling, including one nothing sets.
+  #[test]
+  fn the_cached_read_takes_the_documented_variable() {
+    // SAFETY: this test owns its process under nextest, and nothing else in this
+    // binary reads the environment.
+    unsafe { env::set_var(MAX_EVALUATION_DEPTH_ENV, "  256 ") };
+
+    assert_eq!(read_env().as_deref(), Some("  256 "));
+    assert_eq!(resolve_from(None, read_env().as_deref()), 256);
+
+    // SAFETY: as above.
+    unsafe { env::remove_var(MAX_EVALUATION_DEPTH_ENV) };
+
+    assert_eq!(read_env(), None);
+  }
+
+  // The public entry point agrees with the rule asked directly, so the cached
+  // read is wired to the same precedence every other case here pins.
+  #[test]
+  fn the_public_resolver_answers_the_default_with_nothing_configured() {
     assert_eq!(
       resolve_max_evaluation_depth(None),
-      resolve_from(None, env::var(MAX_EVALUATION_DEPTH_ENV).ok().as_deref())
+      resolve_from(None, read_env().as_deref())
     );
   }
 }

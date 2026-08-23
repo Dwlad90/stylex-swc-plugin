@@ -1,6 +1,13 @@
 [store]
 dir = "target/nextest"
 
+# The evaluator's ceiling is read from the environment when a project does not
+# configure one, and the depth-budget suite pins the built-in default. An
+# ambient value on a developer box or a CI runner would move every expectation
+# in it, so the variable is pinned for the run rather than inherited.
+[env]
+STYLEX_MAX_EVALUATION_DEPTH = { value = "32", force = true }
+
 [profile.default]
 # Use all available cores for maximum parallelism
 test-threads = "num-cpus"

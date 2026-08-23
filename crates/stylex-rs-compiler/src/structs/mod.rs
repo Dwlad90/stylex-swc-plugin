@@ -72,8 +72,11 @@ pub struct StyleXOptions {
   /// source nesting -- a member read costs two, a parenthesis costs none -- so
   /// raise it by measuring rather than by counting brackets. Absent means the
   /// `STYLEX_MAX_EVALUATION_DEPTH` environment variable decides, and failing
-  /// that the built-in default.
-  pub max_evaluation_depth: Option<u32>,
+  /// that the built-in default. Read as a signed integer because
+  /// `napi_get_value_uint32` applies `ToUint32` rather than refusing an
+  /// out-of-range number, so `-1` used to arrive as a ceiling near `u32::MAX`.
+  #[napi(ts_type = "number")]
+  pub max_evaluation_depth: Option<i64>,
   /// Compile-time constants and functions accessible via `stylex.env`.
   #[napi(ts_type = "Record<string, any>")]
   pub env: Option<JsObject>,
@@ -182,7 +185,13 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       unstable_module_resolution,
       sx_prop_name,
       property_validation_mode,
-      max_evaluation_depth: val.max_evaluation_depth.map(|depth| depth as usize),
+      // A negative or out-of-range `maxEvaluationDepth` is not a usable depth,
+      // and a ceiling near `u32::MAX` is no ceiling at all -- the fold exhausts
+      // memory long before it reaches one. Refusing it here falls back to the
+      // environment and then to the default, exactly as an absent value does.
+      max_evaluation_depth: val
+        .max_evaluation_depth
+        .and_then(|depth| usize::try_from(depth).ok()),
       env: None, // Parsed separately via parse_env_object since it needs napi::Env
       debug_file_path: None, // Parsed separately via parse_debug_file_path since it needs napi::Env
     })

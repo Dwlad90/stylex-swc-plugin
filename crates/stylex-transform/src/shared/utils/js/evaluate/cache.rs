@@ -63,7 +63,11 @@ pub(crate) fn evaluate_cached(
   // number comes from, and why the default is sized for hand-written styles
   // rather than for the deepest foldable input, is
   // `stylex_structures::evaluation_depth`.
-  let ceiling = traversal_state.options.max_evaluation_depth;
+  // `.max(1)` because the option is a bare `usize` a struct-update literal can
+  // set to zero, and a ceiling of zero refuses every expression -- including the
+  // folds the compiler runs to do its own work. Every path that parses a
+  // configured value already refuses zero; this guards the one that does not.
+  let ceiling = traversal_state.options.max_evaluation_depth.max(1);
 
   if traversal_state.evaluation_depth == 0 {
     // A new top-level fold. Whatever the previous one refused, its unwind is

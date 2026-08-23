@@ -106,7 +106,21 @@ function sanityCheck(
 ): void {
   for (const fixture of fixtures) {
     for (const subject of subjects) {
-      const rules = subject.run(fixture, fixtureStylexOptions(fixture, stylexOptions));
+      let rules: number;
+      try {
+        rules = subject.run(fixture, fixtureStylexOptions(fixture, stylexOptions));
+      } catch (error) {
+        // A compiler error carries no fixture name, and the CI log for a paired
+        // run showed only a stack ending inside the base subject's `transform`.
+        // Which fixture and which subject is the whole of the answer here: the
+        // base is an older build, so what it cannot compile is a question about
+        // the manifest rather than about the change under measurement.
+        throw new Error(
+          `Sanity check failed: subject "${subject.descriptor.label}" could not ` +
+            `compile fixture "${fixture.name}"`,
+          { cause: error }
+        );
+      }
       if (!Number.isFinite(rules) || rules <= 0) {
         throw new Error(
           `Sanity check failed: subject "${subject.descriptor.label}" produced ${String(

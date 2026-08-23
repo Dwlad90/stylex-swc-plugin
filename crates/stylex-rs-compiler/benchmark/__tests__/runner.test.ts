@@ -13,7 +13,7 @@ import { describe, expect, test } from 'vitest';
 
 import { parseRawStats } from '../lib/raw-stats.js';
 import { runRounds } from '../lib/runner.js';
-import { createSubject } from '../lib/subjects.js';
+import { createSubject, type SubjectRun } from '../lib/subjects.js';
 import {
   RAW_STATS_SCHEMA_VERSION,
   type FixtureDescriptor,
@@ -60,6 +60,33 @@ async function run(subjects: ReturnType<typeof subject>[], rounds = 1, seed = 1)
   });
 }
 
+/**
+ * The error a paired run rejects with when its `base` subject refuses the
+ * fixture and its `candidate` subject is healthy.
+ *
+ * Returns the `Error` rather than asserting on it, so a caller states the whole
+ * message with `toBe`: `rejects.toThrow` matches a substring, and these
+ * messages *are* the diagnosis, so a stray suffix must not pass. A run that
+ * resolves, or rejects with something that is not an `Error`, fails here rather
+ * than turning into a cast at the call site.
+ *
+ * The healthy second subject is what makes this a paired run, and it is what
+ * pins *which* subject gets named: a refusal reported against the last subject
+ * in the list rather than the one that threw passes every single-subject test
+ * and is caught here. Naming the wrong revision is the one way this message can
+ * mislead while still looking like a diagnosis.
+ */
+async function refused(subjectRun: SubjectRun): Promise<Error> {
+  const failure = await run([
+    createSubject({ label: 'base', version: '1.0.0', resolvedFrom: '/base' }, subjectRun),
+    subject('candidate'),
+  ]).catch((error: unknown) => error);
+
+  if (!(failure instanceof Error)) throw new Error('the run was expected to reject with an Error');
+
+  return failure;
+}
+
 describe('runRounds paired roles', () => {
   test('a two-subject run records roles even without bootstrap statistics', async () => {
     const { fixtures } = await run([subject('base'), subject('candidate')]);
@@ -95,26 +122,34 @@ describe('runRounds paired roles', () => {
     expect(fixtures[0]?.paired).toBeUndefined();
   });
 
-  // The failure this covers cost a CI diagnosis: a paired run's base subject is
-  // an older build, and when it refused a fixture the log carried only the
-  // compiler's message and a stack. Naming the fixture and the subject is what
-  // turns that into a manifest question.
+  // Which subject refused which fixture is the whole of a paired run's
+  // diagnosis, and the run reports it in no other way, so both messages are
+  // pinned exactly rather than by substring.
   test('names the fixture and the subject when a subject cannot compile it', async () => {
-    const refuses = createSubject(
-      { label: 'base', version: '1.0.0', resolvedFrom: '/base' },
-      () => {
-        throw new Error('[StyleX] Style value must evaluate to a static expression.');
-      }
-    );
+    const failure = await refused(() => {
+      throw new Error('[StyleX] Style value must evaluate to a static expression.');
+    });
 
-    const failure = await run([refuses, subject('candidate')]).catch((error: unknown) => error);
-
-    expect(failure).toBeInstanceOf(Error);
-    expect((failure as Error).message).toBe(
+    expect(failure.message).toBe(
       'Sanity check failed: subject "base" could not compile fixture "card"'
     );
-    // The compiler's own message is what says *why*, so it must survive.
-    expect(((failure as Error).cause as Error).message).toMatch(/static expression/);
+    // The compiler's own message is what says *why*, so it must survive as the
+    // cause. Narrowed, never asserted: `cause` is `unknown`.
+    const cause = failure.cause;
+    if (!(cause instanceof Error)) throw new Error('the refusal lost its cause');
+
+    expect(cause.message).toMatch(/static expression/);
+  });
+
+  // `guidelines/PERFORMANCE.md` makes a zero-rule fixture a gate rather than a
+  // curiosity: a subject that emits nothing is fast, and a fixture that stopped
+  // producing rules would otherwise report as an improvement.
+  test('refuses a subject that produces no rules, naming both', async () => {
+    const failure = await refused(() => 0);
+
+    expect(failure.message).toBe(
+      'Sanity check failed: subject "base" produced 0 StyleX rules for fixture "card"'
+    );
   });
 
   test('roles-only output survives a raw-stats round trip', async () => {

@@ -96,7 +96,7 @@ use stylex_utils::{
   swc::get_expr_node_kind,
 };
 
-use super::check_declaration::{DeclarationType, check_ident_declaration};
+use super::check_declaration::{DeclarationType, check_ident_declaration, declares_ident};
 
 /// Resolves an `EnvEntry` to an `EvaluateResultValue`.
 ///

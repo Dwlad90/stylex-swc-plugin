@@ -532,7 +532,18 @@ pub(in super::super) fn evaluate(
           // and a spelling only one of them recognised would answer a different
           // value from the others: `stylex["when"]` has to resolve the entry
           // `stylex.when` does, not the object the fold stands for.
-          let name = property.as_ref().and_then(|prop| prop.as_string_key());
+          // The identifier spelling is the overwhelming majority of these reads
+          // -- every `stylex.create`, `stylex.props`, `stylex.keyframes` -- and
+          // it already holds an interned `Atom`, so it is taken without a round
+          // trip through `String` and back. Every other spelling still goes
+          // through the one reading `as_string_key` decides, which is what makes
+          // the two agree.
+          let name: Option<Atom> = match property.as_ref() {
+            Some(EvaluateResultValue::Expr(Expr::Ident(ident))) => Some(ident.sym.clone()),
+            other => other
+              .and_then(|prop| prop.as_string_key())
+              .map(|key| Atom::from(key.as_str())),
+          };
 
           // The entry the map carries, in the map's own form. `stylex.when` as
           // a callee is read through this, so a hit must not be materialized
@@ -543,7 +554,7 @@ pub(in super::super) fn evaluate(
           // member step. The two have to agree: `stylex.env` and a bare `env`
           // from a named import are one object in the language.
           if let Some(name) = &name
-            && let Some(entry) = fc_map.get(&Atom::from(name.as_str()))
+            && let Some(entry) = fc_map.get(name)
           {
             match entry {
               FunctionConfigType::Regular(config) => {

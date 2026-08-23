@@ -255,10 +255,21 @@ fn get_span_from_source_code_impl(
   // A refusal about a binding is reported against that binding's declaration --
   // see `frame_declaration_of` -- and the two answers for one expression are
   // different positions, so they are cached under different keys.
-  let framed_declaration = framed_declaration_of(target_expression, state);
-  let cache_key = match framed_declaration.as_ref() {
-    Some(name) => compute_declaration_cache_key(compute_cache_key(target_expression), name),
-    None => compute_cache_key(target_expression),
+  //
+  // Hashed once rather than once per branch. The expression's key is the input
+  // to both the framed-declaration lookup and to whichever cache key comes out
+  // of it, and hashing it twice is a whole-subtree walk -- paid on every
+  // annotation in the module as soon as one refusal has been recorded, which a
+  // non-fatal deopt does routinely. A build that recorded none never hashes here
+  // at all, which is what `has_framed_declarations` was for.
+  let expression_key = state
+    .has_framed_declarations()
+    .then(|| compute_cache_key(target_expression));
+  let framed_declaration = expression_key.and_then(|key| state.framed_declaration(key).cloned());
+  let cache_key = match (expression_key, framed_declaration.as_ref()) {
+    (Some(key), Some(name)) => compute_declaration_cache_key(key, name),
+    (Some(key), None) => key,
+    (None, _) => compute_cache_key(target_expression),
   };
 
   let file_name = FileName::Custom(state.get_filename().to_owned());
@@ -320,9 +331,15 @@ pub(crate) fn frame_declaration_of(name: &Atom, fault_expression: &Expr, state: 
 
 /// The binding a refusal on `fault_expression` was recorded against, if one was.
 ///
-/// The read side of [`frame_declaration_of`], and the only one: hashing the
-/// expression is what the two have to agree on, so neither spells the key. A
-/// build that refused nothing answers without hashing at all.
+/// The read side of [`frame_declaration_of`]: hashing the expression is what the
+/// two have to agree on, so neither spells the key. A build that refused nothing
+/// answers without hashing at all.
+///
+/// Only the tests reach it now. `get_span_from_source_code_impl` inlines the same
+/// two steps, because it needs the expression's key for the cache key as well
+/// and hashing a whole subtree twice to answer one question was the cost
+/// `has_framed_declarations` had been added to avoid.
+#[cfg(test)]
 pub(crate) fn framed_declaration_of(fault_expression: &Expr, state: &StateManager) -> Option<Atom> {
   if !state.has_framed_declarations() {
     return None;

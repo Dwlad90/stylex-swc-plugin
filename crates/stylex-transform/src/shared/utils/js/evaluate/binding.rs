@@ -412,24 +412,22 @@ pub(super) fn resolve_reference(
     return evaluate_cached(&init, state, traversal_state, fns);
   }
 
-  // Cloned out of the state, because the refusal below writes to it: a
-  // declaration-kind refusal records the binding whose declaration its frame
-  // names, and the borrow checker cannot hold the declaration lists open across
-  // that write. Two `Vec<Ident>` of the module's `class` and `function` names,
-  // paid for only on the refusal path.
-  let class_names = traversal_state.class_name_declarations().to_vec();
-  let function_names = traversal_state.function_name_declarations().to_vec();
+  // Resolved to a `Copy` verdict before the refusal writes to the state, so the
+  // lists are read where they live. Holding a `&[Ident]` open across
+  // `deopt_at_declaration`'s `&mut StateManager` is what the two clones here
+  // used to pay for, and the comment that justified them called this the refusal
+  // path as though it were rare. It is not: the parameters of a dynamic style
+  // are not registered when its body is folded, so every parameter reference in
+  // every dynamic style arrives here and copied both lists to ask one question
+  // the step above had already asked of the same two.
+  let declared_as = declares_ident(traversal_state.class_name_declarations(), ident)
+    .then_some(DeclarationType::Class)
+    .or_else(|| {
+      declares_ident(traversal_state.function_name_declarations(), ident)
+        .then_some(DeclarationType::Function)
+    });
 
-  check_ident_declaration(
-    ident,
-    &[
-      (DeclarationType::Class, class_names.as_slice()),
-      (DeclarationType::Function, function_names.as_slice()),
-    ],
-    state,
-    traversal_state,
-    normalized_path,
-  )
+  check_ident_declaration(ident, declared_as, state, traversal_state, normalized_path)
 }
 
 #[cfg(test)]

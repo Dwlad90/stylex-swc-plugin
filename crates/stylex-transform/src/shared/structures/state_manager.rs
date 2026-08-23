@@ -526,6 +526,16 @@ pub struct StateManager {
   /// shallowly, and property order would decide the emitted CSS. Cleared when a
   /// new top-level fold begins, so the conservatism lasts exactly as long as the
   /// unwind that earned it.
+  ///
+  /// It has to last that long, and a narrower rule was tried and reverted. The
+  /// obvious improvement is a counter each frame reads before recursing and
+  /// compares after, so only the *ancestors* of a refusal stay quiet and a
+  /// sibling evaluated later may memoize normally. That breaks, because
+  /// `EvaluationState::confident` is sticky for the whole fold: once the depth
+  /// refusal clears it, every later frame is unconfident whatever its own
+  /// subtree did, and would record `resolved: false` against subtrees that fold
+  /// perfectly well on their own. The flag is not being conservative about the
+  /// unwind, it is compensating for a flag that never comes back.
   pub(crate) depth_refused: bool,
   pub(crate) cache: CacheState,
   /// Maps a JSX spread expression to the JSX attributes that replace it.

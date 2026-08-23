@@ -11,6 +11,7 @@ use stylex_constants::constants::evaluation_errors::{UNDEFINED_CONST, unsupporte
 
 use super::evaluate::{deopt, deopt_at_declaration};
 
+#[derive(Clone, Copy)]
 pub(crate) enum DeclarationType {
   Class,
   Function,
@@ -28,27 +29,38 @@ pub(crate) enum DeclarationType {
 /// declaration and carries a caret over the whole of it. `UNDEFINED_CONST` is
 /// upstream's one refusal on the reference itself (`:687`), because by then
 /// there is no declaration to name: the reference resolved to itself.
+///
+/// Takes the kind already resolved rather than the lists to search. The refusal
+/// writes to the state, and a `&[Ident]` borrowed out of it cannot be held open
+/// across that write -- so passing the lists meant cloning both of them, on a
+/// path the comment there called rare and which is in fact how every dynamic
+/// style's parameter is detected. A `DeclarationType` borrows nothing.
 pub(crate) fn check_ident_declaration(
   ident: &Ident,
-  declarations_map: &[(DeclarationType, &[Ident])],
+  declared_as: Option<DeclarationType>,
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   path: &Expr,
 ) -> Option<EvaluateResultValue> {
-  for (decl_type, declarations) in declarations_map {
-    if declarations.iter().any(|item| item.eq_ignore_span(ident)) {
-      return deopt_at_declaration(
-        path,
-        &ident.sym,
-        state,
-        traversal_state,
-        &match decl_type {
-          DeclarationType::Class => unsupported_expression("ClassDeclaration"),
-          DeclarationType::Function => unsupported_expression("FunctionDeclaration"),
-        },
-      );
-    }
+  match declared_as {
+    Some(decl_type) => deopt_at_declaration(
+      path,
+      &ident.sym,
+      state,
+      traversal_state,
+      &match decl_type {
+        DeclarationType::Class => unsupported_expression("ClassDeclaration"),
+        DeclarationType::Function => unsupported_expression("FunctionDeclaration"),
+      },
+    ),
+    None => deopt(path, state, UNDEFINED_CONST),
   }
+}
 
-  deopt(path, state, UNDEFINED_CONST)
+/// Whether `declarations` holds the binding `ident` names -- the same `Id`
+/// comparison every other step of the reference chain makes.
+pub(crate) fn declares_ident(declarations: &[Ident], ident: &Ident) -> bool {
+  declarations
+    .iter()
+    .any(|declared| declared.eq_ignore_span(ident))
 }

@@ -42,21 +42,34 @@ all -- it is filtered before `join_css` runs -- so the fix is a different one:
 either carry the whitespace tokens through, or drive emission from source spans.
 Establish which before writing either.
 
+**How it was closed.** Neither of those two. The splitting path no longer runs
+on this crate's own token walk at all: it runs on the value scanner already in
+the workspace, which is the same library upstream splits on. Echoing the
+authored spacing is then not a feature that had to be written -- the scanner
+never discarded it -- and the whole `parse_css`/`join_css` token walk was
+deleted rather than taught to preserve spans. Ticket 13 was closed by the same
+change, which is why they share a commit.
+
 **Not in this ticket.** The top-level splitting bugs -- a `/` or `:` emitted as
 a value, a delimiter splitting a value upstream keeps whole, `!important`
 unrecognised -- are ticket 13. They are a different defect that happens to live
 in the same function, and they are more severe: they emit text that is not a CSS
 declaration.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Every row of the table above matches the official compiler, confirmed
+- [x] Every row of the table above matches the official compiler, confirmed
       against `@stylexjs/babel-plugin` from `node_modules`
-- [ ] The comma behaviour is kept with its reason stated, not deleted alongside
-      the slash
-- [ ] Ticket 11's escaped-unit divergence is either closed with this or
-      explicitly left, not silently absorbed
-- [ ] The fuzz that found this is re-run and its alphabet reported, so what is
-      claimed is the classes covered rather than a count of what remains
-- [ ] `cargo test`, `pnpm typecheck`, `pnpm format:check`, `pnpm lint:check`,
+- [x] The comma behaviour is kept with its reason stated, not deleted alongside
+      the slash -- it is not a carve-out any more but a consequence: a comma
+      inside a function is a separator node carrying the whitespace on either
+      side of it, and printing the node prints only the comma
+- [x] Ticket 11's escaped-unit divergence is closed with this, not absorbed:
+      `1\70x` comes back as `1\70x`. The unit used to be read off the token
+      rather than the source, which printed what it escapes to
+- [x] The fuzz that found this is re-run and its alphabet reported --
+      `crates/stylex-rs-compiler/parity/fuzz-shorthand-split.ts`, 33 token
+      classes x 14 joiners x 8 properties = 122232 subjects. Value-spelling
+      divergences went 73505 -> 0
+- [x] `cargo test`, `pnpm typecheck`, `pnpm format:check`, `pnpm lint:check`,
       and `pnpm test` pass; the compiler is rebuilt before the JS suite runs

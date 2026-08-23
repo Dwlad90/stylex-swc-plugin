@@ -44,15 +44,26 @@ a character test cannot distinguish.
 quote style is not normalised (`content: "'a'"` and `fontFamily: "'a'"` both
 match), and a top-level `+`/`-` is not mis-split (`calc(2px-1px)` matches).
 
-**Status:** ready-for-agent
+**What the alphabet found that this ticket did not list.** Two more of the same
+root cause, both worse than the rows above. A hex colour was read as an
+identifier and re-serialised with its leading digit escaped, so `#007bff` was
+emitted as `#\30 07bff` -- not the colour the author wrote and not a colour at
+all. And an unquoted `url()` did not diverge from upstream, it *aborted the
+compiler*: the token walk raised on it deliberately, and upstream compiles it.
 
-- [ ] Every row of the table above matches the official compiler, confirmed
+**Status:** done
+
+- [x] Every row of the table above matches the official compiler, confirmed
       against `@stylexjs/babel-plugin` from `node_modules`
-- [ ] No expansion emits a declaration whose value is a bare delimiter
-- [ ] `!important` survives on the part it qualifies
-- [ ] An escaped identifier keeps its escape, matching upstream
-- [ ] A separator is distinguished from a value by kind rather than by
+- [x] No expansion emits a declaration whose value is a bare delimiter -- a
+      separator is not a part at all now
+- [x] `!important` survives on the part it qualifies, on every part rather than
+      on whichever longhand was next in line
+- [x] An escaped identifier keeps its escape, matching upstream
+- [x] A separator is distinguished from a value by kind rather than by
       character, so `/` inside a function is unaffected
-- [ ] The fuzz is re-run and its alphabet reported
-- [ ] `cargo test`, `pnpm typecheck`, `pnpm format:check`, `pnpm lint:check`,
+- [x] The fuzz is re-run and its alphabet reported -- see ticket 12's closing
+      note for the alphabet and the numbers; the harness is
+      `crates/stylex-rs-compiler/parity/fuzz-shorthand-split.ts`
+- [x] `cargo test`, `pnpm typecheck`, `pnpm format:check`, `pnpm lint:check`,
       and `pnpm test` pass; the compiler is rebuilt before the JS suite runs

@@ -2,12 +2,12 @@ import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import * as stylex from '@stylexjs/stylex';
 _inject2({
-    ltr: ".x1th3k6m:Ä:ä{color:red}",
+    ltr: ".xgvn8d:ä:Ä{color:red}",
     priority: 3080
 });
 export const styles = {
     w: {
-        kMwMTN: "x1th3k6m",
+        kMwMTN: "xgvn8d",
         $$css: true
     }
 };

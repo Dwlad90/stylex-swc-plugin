@@ -364,22 +364,258 @@ fn a_sort_over_the_whole_ordering_is_the_ordering() {
 }
 
 #[test]
-fn nothing_outside_printable_ascii_is_weighed() {
-  // The documented divergence, asserted as it stands rather than as it should
-  // be. Root collation gives `ä` the primary weight of `a` and weighs an emoji
-  // below every letter; here every byte the table does not name sorts above
-  // every one it does, which is one rule producing all of these.
-  precedes(":z", ":ä");
-  precedes(":hover", ":\u{1F389}");
-  // And its two cases are two unrelated keys rather than a tie: `Ä` is `0xC3
-  // 0x84` and `ä` is `0xC3 0xA4`, so the byte decides where the case would.
-  precedes(":Ä", ":ä");
-  // A control character is in the same class, and it is the reason an unnamed
-  // byte keeps its own weight rather than sharing one: two of them must not
-  // compare `Equal`, which `sort_unstable_by` would be free to resolve either
-  // way.
-  precedes(":\u{0001}", ":\u{0002}");
-  precedes(":hover", ":\u{007f}");
+fn a_non_ascii_letter_sorts_beside_its_base_letter() {
+  // What the byte-ranked table could not do, and the reason the collator is
+  // here: root collation gives `ä` the primary weight of `a`, so it sorts
+  // between `:a` and `:b` rather than above every ASCII character.
+  precedes(":a", ":ä");
+  precedes(":ä", ":b");
+  precedes(":ä", ":z");
+  // An accent is a *secondary* difference, read after every primary weight and
+  // before case -- which is why a per-character rank could never express it.
+  precedes(":a", ":ä");
+  precedes(":ae", ":äe");
+}
+
+#[test]
+fn a_non_ascii_letter_ties_on_the_letter_and_parts_on_the_case() {
+  // Case folding is no longer ASCII-only: `Ä` and `ä` tie through both the
+  // primary and the secondary pass and separate on the tertiary one, lowercase
+  // first -- the same rule `:a` before `:A` follows.
+  precedes(":ä", ":Ä");
+}
+
+#[test]
+fn a_symbol_outside_ascii_sorts_below_every_letter() {
+  // The third face of the same divergence, and not an encoding question: root
+  // collation weighs a symbol below every letter whatever its code point, so an
+  // emoji leads rather than trails.
+  precedes(":\u{1F389}", ":hover");
+  precedes(":\u{1F389}", ":a");
+}
+
+#[test]
+fn a_lone_combining_mark_sorts_below_every_letter() {
+  // A combining acute with no base character. Weighed as the mark it is rather
+  // than as an unnamed byte, which puts it below every letter.
+  precedes(":\u{0301}", ":hover");
+}
+
+#[test]
+fn a_completely_ignorable_character_carries_no_weight() {
+  // `U+00AD` SOFT HYPHEN is completely ignorable in root collation -- it
+  // contributes nothing at any level. So a key carrying one compares as though
+  // it were not there, which no per-code-point rank can express: a dense table
+  // must give it some weight, and any weight shifts every position after it.
+  assert_eq!(
+    pseudo_comparator(":ho\u{00ad}ver", ":hover"),
+    Ordering::Equal
+  );
+}
+
+#[test]
+fn a_character_can_weigh_as_several() {
+  // An expansion: `æ` carries the primary weights of `a` then `e`, so it sits
+  // between `:ad` and `:af` -- one character against two, which is the other
+  // thing a per-code-point rank cannot do.
+  precedes(":ad", ":æ");
+  precedes(":æ", ":af");
+}
+
+#[test]
+fn a_control_character_carries_no_weight_and_the_sort_keeps_the_authored_order() {
+  // Root collation weighs a control character not at all, so two keys differing
+  // only in one compare `Equal` -- and `Equal` on two *distinct* keys is what
+  // makes the sort's stability load-bearing rather than incidental. Upstream's
+  // `.sort()` is stable and keeps the authored order; `sort_pseudos` is stable
+  // for the same reason, so both hand back the order they were given.
+  assert_eq!(pseudo_comparator(":\u{0001}", ":\u{0002}"), Ordering::Equal);
+  assert_eq!(
+    sort_pseudos(&keys(&[":\u{0002}", ":\u{0001}"])),
+    keys(&[":\u{0002}", ":\u{0001}"])
+  );
+  assert_eq!(
+    sort_pseudos(&keys(&[":\u{0001}", ":\u{0002}"])),
+    keys(&[":\u{0001}", ":\u{0002}"])
+  );
+}
+
+#[test]
+fn a_control_character_does_not_take_the_ascii_fast_path() {
+  // The precondition the fast path rests on, asserted as the cycle it would
+  // otherwise produce. The table ranks an unnamed byte above every named one and
+  // root collation gives a control character no weight, so a control character
+  // admitted to the table would give `:ä` < `:z` < `:\u{0002}` < `:ä`. Checked
+  // as the triple rather than as a call to the guard, because the cycle is what
+  // matters and a guard can be right for the wrong reason.
+  precedes(":ä", ":z");
+  precedes(":\u{0002}", ":ä");
+  precedes(":\u{0002}", ":z");
+}
+
+/// The ASCII fast path and root collation are one answer, over every pair.
+///
+/// [`pseudo_comparator`] branches: a pair of ASCII keys goes through
+/// [`ASCII_PRIMARY_ORDER`] and anything else through the collator. A comparator
+/// that answered differently on either side of that branch would not be a total
+/// order at all -- `:z` against `:A` decided by the table while both are decided
+/// against `:ä` by the collator is exactly the shape that produces a cycle. So
+/// the two are checked against each other on all 4 465 unordered pairs of the 95
+/// printable ASCII characters, plus the multi-character shapes the table settles
+/// with rules of its own: length before case, and case at the first difference.
+#[test]
+fn ascii_and_root_collation_agree_on_every_printable_pair() {
+  use crate::utils::pre_rule::collating_pseudo_comparator;
+
+  let printable: Vec<String> = (0x20u8..=0x7e)
+    .map(|byte| (byte as char).to_string())
+    .collect();
+  let mut compared = 0usize;
+
+  for left in &printable {
+    for right in &printable {
+      assert_eq!(
+        pseudo_comparator(left, right),
+        collating_pseudo_comparator(left, right),
+        "single characters {left:?} against {right:?}"
+      );
+      compared += 1;
+    }
+  }
+
+  assert_eq!(compared, 95 * 95);
+
+  // The rules the table applies past the first character, which a single-
+  // character sweep cannot reach: a shorter key wins before case is read, and
+  // only the *first* case difference counts.
+  for pair in [
+    (":a", ":aB"),
+    (":a", ":A"),
+    (":aB", ":Ab"),
+    (":hover", ":HOVER"),
+    (":active", ":HOVER"),
+    (":a-b", ":a_b"),
+    (":{", ":z"),
+    ("[data-x]", ":hover"),
+  ] {
+    assert_eq!(
+      pseudo_comparator(pair.0, pair.1),
+      collating_pseudo_comparator(pair.0, pair.1),
+      "{:?} against {:?}",
+      pair.0,
+      pair.1
+    );
+  }
+}
+
+/// The same property over random pairs rather than over the alphabet, extended
+/// past ASCII into the range an authored condition key can plausibly carry.
+///
+/// The single-character sweep above is exhaustive but shallow, and the fixed
+/// pairs beside it are the shapes someone thought of. This is the third kind of
+/// coverage: multi-character keys drawn from printable ASCII, Latin-1 Supplement,
+/// Latin Extended-A and the combining diacritics, which is the range
+/// `collation_cost` argues an attribute selector reaches -- and past which a
+/// quoted attribute value can still go, which is why the range is a floor rather
+/// than a claim.
+///
+/// Deterministic rather than seeded from the clock: a property check that fails
+/// on one run in ten and cannot be reproduced is worse than one that never runs.
+#[test]
+fn the_two_paths_agree_over_random_keys_past_ascii() {
+  use crate::utils::pre_rule::collating_pseudo_comparator;
+
+  let alphabet: Vec<char> = (0x20u32..=0x7e)
+    .chain(0xa0..=0x17f)
+    .chain(0x300..=0x36f)
+    .filter_map(char::from_u32)
+    .collect();
+
+  // A 64-bit xorshift, so the sequence is the same on every machine and in every
+  // run -- the shape a failure has to be reproducible from.
+  let mut state = 0x2545_F491_4F6C_DD1Du64;
+  let mut next = move || {
+    state ^= state << 13;
+    state ^= state >> 7;
+    state ^= state << 17;
+    state
+  };
+
+  let mut key = |length: usize, alphabet: &[char]| -> String {
+    let mut built = String::from(":");
+    for _ in 0..length {
+      let index = (next() % alphabet.len() as u64) as usize;
+      built.push(alphabet[index]);
+    }
+    built
+  };
+
+  for round in 0..20_000 {
+    let left = key(1 + round % 6, &alphabet);
+    let right = key(1 + (round / 6) % 6, &alphabet);
+
+    // Only the pairs the fast path claims: an all-ASCII pair is the only one
+    // where the two paths can disagree, since every other pair already goes
+    // through the collator.
+    if !left.is_ascii() || !right.is_ascii() {
+      continue;
+    }
+
+    assert_eq!(
+      pseudo_comparator(&left, &right),
+      collating_pseudo_comparator(&left, &right),
+      "round {round}: {left:?} against {right:?}"
+    );
+  }
+}
+
+/// A sort is a sort: whatever the comparator answers, it has to be transitive.
+///
+/// The branch is what makes this worth asserting rather than assuming. A run
+/// mixing ASCII and non-ASCII keys has some pairs decided by the table and some
+/// by the collator, and `sort_unstable_by` is entitled to any output at all if
+/// the two disagree. Checked by sorting a mixed run and then verifying every
+/// adjacent pair -- which is what a broken comparator fails.
+#[test]
+fn a_mixed_run_sorts_into_an_order_the_comparator_agrees_with() {
+  let mut mixed = keys(&[
+    ":z",
+    ":A",
+    ":ä",
+    ":Ä",
+    ":a",
+    ":hover",
+    ":\u{1F389}",
+    ":\u{0301}",
+    ":æ",
+    ":b",
+    "[data-état]",
+    "[data-e]",
+    "[data-f]",
+    ":{",
+    ":0",
+  ]);
+  mixed.sort_unstable_by(|a, b| pseudo_comparator(a, b));
+
+  for window in mixed.windows(2) {
+    let (left, right) = (&window[0], &window[1]);
+    assert_ne!(
+      pseudo_comparator(left, right),
+      Ordering::Greater,
+      "sorted run is out of order at {left:?} before {right:?}"
+    );
+  }
+
+  // And the reported shape, in the middle of that run: an accented attribute
+  // selector between its two neighbours rather than after both of them.
+  let position = |needle: &str| {
+    mixed
+      .iter()
+      .position(|key| key == needle)
+      .unwrap_or_else(|| panic!("{needle} is not in the sorted run"))
+  };
+  assert!(position("[data-e]") < position("[data-état]"));
+  assert!(position("[data-état]") < position("[data-f]"));
 }
 
 #[test]
@@ -466,12 +702,12 @@ fn a_malformed_key_sorts_where_its_characters_put_it() {
 }
 
 #[test]
-fn a_key_of_nothing_but_combining_marks_sorts_above_ascii() {
-  // A combining acute with no base character. It is not ASCII, so it is not
-  // weighed -- the same rule as every other non-ASCII key, applied to one that
-  // is not a letter at all. Divergent: upstream weighs a lone mark below every
-  // letter and spells this `:\u{0301}:hover`, `xcdw69q`.
-  precedes(":hover", ":\u{0301}");
+fn a_key_of_nothing_but_combining_marks_sorts_below_every_letter() {
+  // A combining acute with no base character, weighed as the mark it is. Pinned
+  // here as well as above because this is the degenerate-input section: the key
+  // is not a letter at all, and it still lands where the reference compiler puts
+  // it.
+  precedes(":\u{0301}", ":hover");
 }
 
 #[test]
@@ -479,8 +715,8 @@ fn a_lone_surrogate_cannot_reach_the_comparator() {
   // A `String` cannot hold one, so the shape a JavaScript condition key could
   // carry and this comparator could not is unreachable by construction rather
   // than by a check. Stated as the replacement character, which is what a
-  // decoder hands over instead -- and which upstream also sorts last, so this
-  // is one non-ASCII key the two agree on.
+  // decoder hands over instead -- and which root collation also sorts after
+  // every letter, so this is one non-ASCII key nothing had to change for.
   precedes(":hover", ":\u{FFFD}");
 }
 

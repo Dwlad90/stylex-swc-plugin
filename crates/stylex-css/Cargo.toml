@@ -13,6 +13,7 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
+icu_collator.workspace = true
 log.workspace = true
 postcss_value_parser = { path = "../postcss-value-parser" }
 stylex_constants = { path = "../stylex-constants" }

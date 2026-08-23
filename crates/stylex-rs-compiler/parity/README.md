@@ -379,11 +379,14 @@ shadowing shapes from
 changed verdict rather than as silence. The count is deliberately not written
 here -- it went stale twice.
 
-Not every entry in the set is a question about the evaluator. A row records that
-the two compilers order three nested pseudo-classes differently and therefore
-hash different class names, which a module is the smallest way to ask: a
-condition tree is a style value, not a declaration. It was found by a guard
-written for something else, which is the usual way a row like that arrives.
+Not every entry in the set is a question about the evaluator. Several ask how a
+condition tree is ordered, which a module is the smallest way to ask: a condition
+tree is a style value, not a declaration, and the sorted key path feeds the class
+hash. Those rows are where the harness's last two class-name divergences were
+recorded and then closed — three nested pseudo-classes ordered differently, found
+by a guard written for something else, and a key carrying an accented letter,
+which took a collation dependency. Both now read `identical`, which is what makes
+a regression in either a changed verdict rather than silence.
 
 Other entries carry a `note` without an expectation, saying why a subject that
 reads `identical` still earns one -- the shorthand rejection table having once

@@ -29,14 +29,19 @@
 //! The comparator is the *second* thing this file measures, and it is a separate
 //! mechanism from the run grouping above: it is visible at two keys, where no
 //! grouping question exists at all. Upstream compares with `localeCompare`;
-//! `pseudo_comparator` reproduces that ordering over printable ASCII, from a
-//! weight table read out of `localeCompare` itself rather than from byte order.
-//! Every printable-ASCII case below agrees with 0.19.0 -- letters weighed
-//! without their case, symbols below digits below letters whatever their bytes,
-//! and the symbols not in byte order among themselves. What is *not* weighed is
-//! everything else: a control character, `DEL`, and every non-ASCII character
-//! rank above all of it, and the cases at the end are recorded as they stand and
-//! named as divergent. That is issue 32 of this effort.
+//! `pseudo_comparator` reproduces that ordering over printable ASCII from a
+//! weight table read out of `localeCompare` itself rather than from byte order,
+//! and hands every other key to root collation. Every case below agrees with
+//! 0.19.0 -- letters weighed without their case, symbols below digits below
+//! letters whatever their bytes, the symbols not in byte order among themselves,
+//! an accented letter beside its base letter, and a character root collation
+//! does not weigh carrying no weight here either.
+//!
+//! The last group used to be the exception. A control character, `DEL` and every
+//! non-ASCII character ranked above all of printable ASCII, which cost a class
+//! name -- the last divergence in the parity harness that did. Those cases are
+//! still here, still measured against 0.19.0, and now agree; what they pin is
+//! the behaviour rather than the gap.
 //!
 //! Every class name quoted below as upstream's was read out of
 //! `@stylexjs/babel-plugin` 0.19.0 under the parity harness's options, not
@@ -312,9 +317,11 @@ stylex_test!(
   "#
 );
 
-// A non-ASCII pseudo name. `ü` is above every ASCII letter, so it sorts last --
-// and the sort is over the key's bytes, which for a name whose ASCII prefix
-// already decides the comparison is the same answer either compiler reaches.
+// A non-ASCII pseudo name that lands last for a reason that has nothing to do
+// with being non-ASCII: root collation weighs `ü` as `u`, so `:ünïcödé` weighs as
+// `unicode` and sorts after `:active` and `:hover` on the letters alone. The
+// snapshot did not move when the byte ranking was replaced by collation, which is
+// what makes this the control case for the three below it.
 stylex_test!(
   a_non_ascii_pseudo_name_sorts_last,
   r#"
@@ -741,7 +748,7 @@ stylex_test!(
 // -- the same rule as the non-ASCII keys below, and the reason an unnamed byte
 // keeps a weight of its own rather than sharing one.
 stylex_test!(
-  a_control_character_pseudo_name_is_not_weighed,
+  a_control_character_pseudo_name_carries_no_weight,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -750,15 +757,13 @@ stylex_test!(
   "#
 );
 
-// The half the comparator does not cover, recorded as it stands rather than
-// routed around. Root collation gives `ä` the primary weight of `a`, so
-// upstream orders `:ä` ahead of `:z` and names `x1enrlzn`; every byte at or
-// above `0x80` sorts above every ASCII character here, so this puts `:z` first
-// and names `x143q076`. Closing it needs decomposition and a weight table
-// rather than a comparator -- issue 32 records the trade. This case reports as
-// a changed verdict the day that is paid for.
+// The reported shape of the divergence that is now closed. Root collation gives
+// `ä` the primary weight of `a`, so `:ä` leads `:z` and the pair names
+// `x1enrlzn`. It used to name `x143q076`, because every byte at or above `0x80`
+// ranked above every ASCII character; `pre_rule.rs` records what closing that
+// cost and what it left.
 stylex_test!(
-  an_accented_pseudo_name_sorts_above_ascii_rather_than_beside_its_base_letter,
+  an_accented_pseudo_name_sorts_beside_its_base_letter,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -767,13 +772,12 @@ stylex_test!(
   "#
 );
 
-// Case folding is ASCII-only, so a non-ASCII letter's two cases are two
-// distinct keys with nothing to tie them: `:Ä` and `:ä` sort by their bytes and
-// name `x1th3k6m`, where upstream ties them on the letter, separates them on
-// the case, puts the lowercase one first and names `xgvn8d`. Divergent for the
-// same reason as the case above and pinned beside it.
+// Case folding is no longer ASCII-only. `:ä` and `:Ä` tie on the letter through
+// both the primary and the secondary pass, separate on the tertiary one with the
+// lowercase first, and name `xgvn8d` -- the same rule `:a` before `:A` follows.
+// They used to sort by their bytes and name `x1th3k6m`.
 stylex_test!(
-  a_non_ascii_letter_in_each_case_is_not_folded,
+  a_non_ascii_letter_in_each_case_ties_on_the_letter,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -782,14 +786,13 @@ stylex_test!(
   "#
 );
 
-// An emoji, which is the third face of the same divergence and not an encoding
-// question at all. Root collation weighs a symbol *below* every letter, so
-// upstream spells this `:\u{1F389}:hover`, `x1jqz5xw`; every byte at or above
-// `0x80` sorts above every ASCII character here, so it lands last --
-// `:hover:\u{1F389}`, `x17d4qyr`. Divergent, measured, and kept beside the
-// accented names so the rule reads as one: what is not ASCII is not weighed.
+// An emoji, which was the third face of the same divergence and never an
+// encoding question. Root collation weighs a symbol *below* every letter, so
+// this spells `:\u{1F389}:hover` and names `x1jqz5xw`. It used to land last --
+// `:hover:\u{1F389}`, `x17d4qyr` -- and it is kept beside the accented names so
+// the rule reads as one: what root collation weighs, this weighs.
 stylex_test!(
-  a_supplementary_character_pseudo_name_sorts_below_ascii_upstream,
+  a_supplementary_character_pseudo_name_sorts_below_every_letter,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({

@@ -1,4 +1,6 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, sync::LazyLock};
+
+use icu_collator::{Collator, CollatorBorrowed, CollatorPreferences, options::CollatorOptions};
 
 use crate::utils::pseudo::is_pseudo_element;
 
@@ -38,8 +40,13 @@ enum PseudoRun {
 /// it covers, what it does not, and why it is not the same comparator
 /// [`sort_at_rules`] uses are all in that function's own documentation.
 ///
-/// Nothing here has to be a *stable* sort: a repeated condition key is refused
-/// before a key path reaches this function, so no run can hold two equal keys.
+/// The sort **is** stable, and has to be. Root collation answers `Equal` for two
+/// keys that differ only in characters it does not weigh -- a control character,
+/// or `U+00AD` SOFT HYPHEN, which is completely ignorable -- so a run can hold
+/// two distinct keys the comparator calls equal even though a repeated key is
+/// refused before a key path reaches here. Upstream's `.sort()` is stable and
+/// keeps the authored order for such a pair; `sort_unstable_by` would be free to
+/// pick either, which is a class name that depends on a sort's internals.
 pub fn sort_pseudos(pseudos: &[String]) -> Vec<String> {
   if pseudos.len() < 2 {
     return pseudos.to_owned();
@@ -52,7 +59,7 @@ pub fn sort_pseudos(pseudos: &[String]) -> Vec<String> {
   if !pseudos.iter().any(|pseudo| is_pseudo_element(pseudo)) {
     let mut sorted = pseudos.to_owned();
 
-    sorted.sort_unstable_by(|a, b| pseudo_comparator(a, b));
+    sorted.sort_by(|a, b| pseudo_comparator(a, b));
 
     return sorted;
   }
@@ -75,7 +82,7 @@ pub fn sort_pseudos(pseudos: &[String]) -> Vec<String> {
     match run {
       PseudoRun::Element(pseudo) => sorted.push(pseudo),
       PseudoRun::Sortable(mut run) => {
-        run.sort_unstable_by(|a, b| pseudo_comparator(a, b));
+        run.sort_by(|a, b| pseudo_comparator(a, b));
         sorted.extend(run);
       },
     }
@@ -135,23 +142,62 @@ pub(super) const fn build_ascii_primary_rank() -> [u8; 128] {
   table
 }
 
-/// One byte's primary weight, widened so that the bytes the order does not name
-/// still rank above every one it does -- and still rank apart from each other.
+/// Root collation, for the keys [`ASCII_PRIMARY_ORDER`] does not name.
 ///
-/// Collapsing them onto a single weight would make two distinct keys compare
-/// `Equal`, which `sort_unstable_by` is entitled to resolve either way. Adding
-/// the byte keeps the answer total: a non-ASCII character sorts by its UTF-8
-/// bytes, which for UTF-8 is code-point order, and that is exactly the
-/// behaviour the non-ASCII cases pin.
+/// Built once. `Collator::try_new` reads compiled CLDR data rather than a file,
+/// so it cannot fail for want of a locale — but it returns a `Result`, and a
+/// refusal here would mean the compiled data the crate carries is not there,
+/// which is a broken build rather than an author's mistake. Hence the panic: it
+/// is an invariant this code established, not a diagnostic.
 ///
-/// It is also a **known divergence**, and the consequence is worth stating
-/// plainly: root collation places an accented letter beside its base letter,
-/// where this places every non-ASCII byte above all of printable ASCII. So a
-/// key path nesting `[data-état]` beside `[data-f]` sorts one way here and the
-/// other way in Babel — and since the sorted path feeds the class-name hash,
-/// the two compilers emit *different class names* for the same source. That is
-/// a mixed-toolchain hazard rather than an ordering curiosity, and it is what
-/// decides whether taking on a real collation dependency is ever worth it.
+/// `CollatorPreferences::default()` is the **root** locale, deliberately and not
+/// the host's. Upstream calls `localeCompare` bare, so *its* answer follows the
+/// build machine's default locale — and a Swedish or Danish machine sorts `ö`
+/// after `z` where every other locale measured sorts it beside `o`. A compiler
+/// whose class names depended on the environment would be worse than one that
+/// diverges from a Swedish machine, so this picks the answer every non-tailoring
+/// locale gives. `collation_cost` states that remainder as what it is.
+static PSEUDO_COLLATOR: LazyLock<CollatorBorrowed<'static>> = LazyLock::new(|| {
+  match Collator::try_new(CollatorPreferences::default(), CollatorOptions::default()) {
+    Ok(collator) => collator,
+    Err(error) => unreachable!("compiled root collation data is missing: {error}"),
+  }
+});
+
+/// Whether every byte of `key` is one [`ASCII_PRIMARY_ORDER`] names.
+///
+/// The fast path's precondition, spelled as a function rather than inline
+/// because it is the thing that keeps the comparator transitive and a reader has
+/// to be able to find it from the test that asserts it.
+fn is_printable_ascii(key: &str) -> bool {
+  key
+    .bytes()
+    .all(|byte| byte.is_ascii_graphic() || byte == b' ')
+}
+
+/// Root collation alone, without the ASCII fast path in front of it.
+///
+/// Exists so the property tests can ask the two paths the same question: a
+/// comparator that branches has to answer the same on both sides of the branch
+/// or it is not a total order, and that cannot be checked through a function
+/// that takes the branch for you.
+pub(super) fn collating_pseudo_comparator(a: &str, b: &str) -> Ordering {
+  PSEUDO_COLLATOR.compare(a, b)
+}
+
+/// One byte's primary weight.
+///
+/// Only ever asked about a byte [`ASCII_PRIMARY_ORDER`] names, because
+/// [`pseudo_comparator`] hands every other key to the collator before reaching
+/// here — so the [`UNRANKED`] arm is a fallback rather than a behaviour, and
+/// nothing is pinned on where an unnamed byte lands.
+///
+/// It was a behaviour once, and it was the whole of the divergence this file
+/// carried: a non-ASCII character sorted by its UTF-8 bytes, above every ASCII
+/// character, where root collation places an accented letter beside its base
+/// letter. The sorted key path feeds the class-name hash, so the two compilers
+/// named different classes for the same source. The widening is kept so the arm
+/// stays total rather than collapsing two distinct bytes onto one weight.
 #[inline]
 fn primary_weight(byte: u8) -> u16 {
   match ASCII_PRIMARY_RANK.get(byte as usize) {
@@ -271,29 +317,56 @@ pub(super) mod collation_cost {}
 ///
 /// **The table is measured, and so is the whole comparator.** The order was read
 /// out of `localeCompare` by sorting the printable ASCII characters with it, and
-/// this comparator was then checked against it on 200 000 random ASCII pairs and
-/// on every pair drawn from a list of realistic condition keys -- zero
-/// disagreements. `pre_rule_test.rs` pins the pairs that decide it and
-/// `stylex-transform`'s `nested_pseudo_ordering` suite pins the class names
-/// they hash to.
+/// the table is now checked against root collation itself: every one of the 9 025
+/// printable-ASCII pairs, the multi-character shapes the table settles with rules
+/// of its own, and 20 000 random keys drawn from printable ASCII, Latin-1
+/// Supplement, Latin Extended-A and the combining diacritics. `pre_rule_test.rs`
+/// holds those and the pairs that decide the ordering; `stylex-transform`'s
+/// `nested_pseudo_ordering` suite pins the class names they hash to.
 ///
-/// **What it does not cover: anything that is not printable ASCII.** A control
-/// character, `DEL`, and every byte of a non-ASCII character rank above all of
-/// the above, where root collation weighs an accented letter beside its base
-/// letter, a symbol below every letter, and a control character not at all. So
-/// `[data-état]` nested beside `[data-f]` sorts one way here and the other way
-/// upstream, and since the sorted path feeds the class-name hash the two
-/// compilers name different classes for the same source. That is the one
-/// remaining divergence in the whole parity harness that costs a class name.
+/// **Everything else goes to root collation.** A control character, `DEL`, and
+/// every non-ASCII character are handed to [`collating_pseudo_comparator`],
+/// which is `icu_collator` at the root locale -- so an accented letter weighs
+/// beside its base letter, a symbol weighs below every letter, and a character
+/// root collation does not weigh at all carries no weight here either. That was
+/// the last divergence in the parity harness costing a class name, and
+/// [`collation_cost`] holds the numbers the choice was made on.
 ///
-/// **The two ways of closing it, costed against this repository.** See
-/// [`collation_cost`] below. The short of it: a real collation crate costs six
-/// new crates and 1.17 MiB of binary and is exact; a generated weight table
-/// costs under 3 KiB and is wrong, because the thing it would have to reproduce
-/// is not a per-character rank. The dependency is the decision. Until it lands
-/// the divergence is left named and measured, in both test suites and in the
-/// parity corpus.
+/// **The two paths must be one answer, and the boundary is `0x20..=0x7e`.** They
+/// agree over every printable-ASCII pair, which is asserted rather than assumed.
+/// The boundary is not `is_ascii()`: the table ranks a byte it does not name
+/// above every byte it does, and root collation gives a control character no
+/// weight, so a control character on the fast path yields `:ä` < `:z` <
+/// `:\u{0002}` < `:ä`. A cycle, and a sort over a cycle may return anything.
+///
+/// **What stays uncovered.** Upstream calls `localeCompare` bare, so its answer
+/// follows the build machine's default locale rather than root. Every locale
+/// measured agrees with root on the accented letters an author is likely to
+/// write, except Swedish and Danish, which sort `ö` after `z`. So this closes the
+/// divergence for a build machine whose locale does not tailor the characters in
+/// play, which is the only answer a compiler can give without reading its
+/// environment. [`collation_cost`] says so at length.
 pub(crate) fn pseudo_comparator(a: &str, b: &str) -> Ordering {
+  // Root collation answers the whole of this ordering, printable ASCII included
+  // -- `ascii_and_root_collation_agree_on_every_printable_pair` says so over
+  // every one of the 9 025 pairs. The table below is kept as the fast path
+  // because it is the path almost every key path takes: every pseudo name CSS
+  // defines is ASCII, so anything else arrives only through an attribute
+  // selector.
+  //
+  // **Printable** ASCII, and the word is load-bearing. The table ranks a byte it
+  // does not name above every byte it does, and root collation gives a control
+  // character no weight at all -- so admitting one to the fast path makes the
+  // comparator intransitive rather than merely inconsistent. `:ä` beats `:z`
+  // through the collator, `:z` beats `:\u{0002}` through the table, and
+  // `:\u{0002}` beats `:ä` through the collator again: a cycle, and
+  // `sort_unstable_by` on a cycle may produce anything at all. Everything
+  // outside `0x20..=0x7e` therefore goes to the collator, which is the only
+  // comparison that has an opinion about all of it.
+  if !is_printable_ascii(a) || !is_printable_ascii(b) {
+    return collating_pseudo_comparator(a, b);
+  }
+
   let (left, right) = (a.as_bytes(), b.as_bytes());
   let mut case_tiebreak = Ordering::Equal;
 

@@ -1018,7 +1018,7 @@
       "label": "two pseudo-class names differing only in letter case",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  w: { color: { ':HOVER': { ':active': 'red' } } },\n});\n",
       "origin": "the edge cases written for the run-grouping fix, issue 19 of this effort",
-      "note": "Both sides name `.xyhlusd:active:HOVER`. The run was grouped identically on both sides all along; what differed was the *comparator*. Upstream compares with `localeCompare`, which reads a letter's case as a tiebreak rather than as its identity; this compiler compared bytes, where every uppercase letter sorts below every lowercase one. `pseudo_comparator` is now the ASCII half of the root collation ordering -- letters weighed case-insensitively, case read only on a tie and lowercase first -- which settles every case pair an author can write. Two keys was enough, so this was never the run-grouping divergence `modules-three-nested-pseudo-classes-sort-as-one-run` recorded; it was found by that fix's edge cases. What is still divergent is anything outside ASCII, recorded as `modules-an-accented-pseudo-name-sorts-above-ascii`. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/32-the-pseudo-comparator-is-not-locale-aware.md`.",
+      "note": "Both sides name `.xyhlusd:active:HOVER`. The run was grouped identically on both sides all along; what differed was the *comparator*. Upstream compares with `localeCompare`, which reads a letter's case as a tiebreak rather than as its identity; this compiler compared bytes, where every uppercase letter sorts below every lowercase one. `pseudo_comparator` is now the ASCII half of the root collation ordering -- letters weighed case-insensitively, case read only on a tie and lowercase first -- which settles every case pair an author can write. Two keys was enough, so this was never the run-grouping divergence `modules-three-nested-pseudo-classes-sort-as-one-run` recorded; it was found by that fix's edge cases. Anything outside printable ASCII was divergent for the same reason until root collation took it over; `modules-an-accented-pseudo-name-sorts-above-ascii` records that half. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/32-the-pseudo-comparator-is-not-locale-aware.md`.",
       "expected": "identical"
     },
     {
@@ -1026,8 +1026,8 @@
       "label": "two pseudo-class names where one carries an accented letter",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  w: { color: { ':\u00e4': { ':z': 'red' } } },\n});\n",
       "origin": "the residual half of the comparator, issue 32 of this effort",
-      "note": "The leaf selector is `:z:\u00e4` here and `:\u00e4:z` upstream -- `x143q076` against `x1enrlzn`. What `pseudo_comparator` covers is the whole of root collation over *printable ASCII*, from a weight table read out of `localeCompare` itself: letters weighed without their case, symbols below digits below letters whatever their bytes, and the symbols not in byte order among themselves. What it does not cover is every character that table does not name -- a control character, `DEL`, and every byte of a non-ASCII character, all of which sort above every character it does name. Upstream gives `\u00e4` the primary weight of `a`, weighs an emoji and a lone combining mark below every letter, does not weigh a control character at all, and separates a non-ASCII letter's two cases on the case rather than on the byte -- one rule producing five disagreements, each pinned in `nested_pseudo_ordering`. Closing it needs decomposition and a weight table, which is a collation dependency rather than a comparator swap, to serve an author who writes an accented pseudo name and nests a second key beside it. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/32-the-pseudo-comparator-is-not-locale-aware.md`.",
-      "expected": "divergent"
+      "note": "The leaf selector is `:ä:z` on both sides now, hashing `x1enrlzn`. It used to read `:z:ä` here and `x143q076`: `pseudo_comparator` covered the whole of root collation over *printable ASCII* and ranked every character outside it above the entire table, so an accented letter sorted above every ASCII one where root collation places it beside its base letter. That was the last divergence in this harness costing a class name. Anything not printable ASCII now goes to `icu_collator` at the root locale, and the five shapes the one rule produced -- the accented letter, a non-ASCII letter's two cases, an emoji, a lone combining mark, a control character -- all agree, each pinned in `nested_pseudo_ordering`. `pre_rule.rs` holds the numbers the choice was costed on and names what it leaves: upstream calls `localeCompare` bare, so a Swedish or Danish build machine sorts `ö` after `z` where this always sorts as root.",
+      "expected": "identical"
     },
     {
       "id": "modules-1266-shadowed-param-beside-an-unrelated-static-prop",
@@ -1757,6 +1757,14 @@
       "origin": "issue #1267, a derived bound reached below a non-media condition",
       "expected": "identical",
       "note": "A `@supports` condition carries no length to normalize, which is the point: it is the wrapper the media chain is derived *inside*, so this asks whether the transform still runs one level down. It does, and inexactly -- the derived bound reads `2.1900000000000004rem`, so the row measures the digits as well as the reach."
+    },
+    {
+      "id": "modules-an-accented-attribute-selector-sorts-between-its-neighbours",
+      "label": "an accented attribute selector nested between two ASCII neighbours",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  w: { color: { '[data-e]': { '[data-état]': { '[data-f]': 'red' } } } },\n});\n",
+      "origin": "the reported shape of the collation divergence, three keys rather than two",
+      "expected": "identical",
+      "note": "The shape the divergence was reported as, and the one a pseudo-name row cannot ask: an accented key has to land *between* two others for the ordering to be visible rather than merely reversed. Every pseudo name CSS defines is ASCII, so an attribute selector is also the only way a non-ASCII key reaches the comparator at all -- through the attribute name here, and through a quoted attribute value in general, which is what makes the reachable set unbounded."
     }
   ]
 }

@@ -147,21 +147,44 @@ name however the author nested them.
 _Avoid_: pseudo group, sort group, pseudo pair
 
 **Primary weight**:
-What a character contributes to the order a pseudo run sorts in, before case is
-looked at. `pseudo_comparator` reads it from `ASCII_PRIMARY_ORDER`, a table of
-printable ASCII taken from the ordering `localeCompare` itself produces:
-whitespace, then symbols, then digits, then letters, with a letter's two cases
-sharing one weight. It is not byte order — `{` weighs below `z` although its
-byte is above, and `_` weighs below `-`. A character the table does not name —
-a control character, `DEL`, any byte of a non-ASCII character — has no primary
-weight and sorts above every character that has one.
+What a character contributes to the order a pseudo run sorts in, before an
+accent or a case is looked at. `pseudo_comparator` reads it from
+`ASCII_PRIMARY_ORDER`, a table of printable ASCII taken from the ordering
+`localeCompare` itself produces: whitespace, then symbols, then digits, then
+letters, with a letter's two cases sharing one weight. It is not byte order —
+`{` weighs below `z` although its byte is above, and `_` weighs below `-`.
 _Avoid_: collation weight, sort key, rank, primary key
 
+**ASCII fast path**:
+The half of `pseudo_comparator` that reads `ASCII_PRIMARY_ORDER`, taken only
+when every byte of both keys is printable ASCII. Every pseudo name CSS defines
+is ASCII, so it is the path almost every key path takes. Anything else — a
+control character, `DEL`, any non-ASCII character — goes to root collation
+instead. The boundary is printable ASCII and not `is_ascii()`: the table ranks a
+byte it does not name above every byte it does, and root collation weighs a
+control character not at all, so admitting one to the table produces a cycle
+rather than merely a different order.
+_Avoid_: the ASCII branch, the table path, the fast comparator
+
+**Root collation**:
+The ordering `icu_collator` produces at the root locale, which is what
+`pseudo_comparator` hands every key the ASCII fast path does not claim. It
+places an accented letter beside its base letter, weighs a symbol below every
+letter whatever its code point, gives a completely ignorable character no weight
+at all, and lets one character weigh as several. Root and not the host's locale:
+the reference implementation calls `localeCompare` bare, so its answer follows
+the build machine's, and a Swedish or Danish machine sorts `ö` after `z` where
+every other locale measured sorts it beside `o`.
+_Avoid_: ICU collation, locale-aware ordering, Unicode order
+
 **Case tiebreak**:
-The comparison `pseudo_comparator` falls back to when two keys tie on every
+The comparison the ASCII fast path falls back to when two keys tie on every
 primary weight and on length: the first position where they differ, with the
 lowercase spelling first. Root collation calls this a _tertiary_ difference;
-the name here says what it does rather than which level it is.
+the name here says what it does rather than which level it is. It has no accent
+pass in front of it, which is why it is only ever asked about ASCII — an accent
+is a _secondary_ difference, read before case, and reproducing that is what root
+collation is there for.
 _Avoid_: tertiary weight, case fold, secondary comparison
 
 **At-rule comparator**:

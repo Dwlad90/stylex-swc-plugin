@@ -22,6 +22,7 @@
 
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import { availableParallelism } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -53,14 +54,25 @@ const packageDir = path.resolve(parityDir, '..');
 const corpusPath = path.join(parityDir, 'corpus/positions.json');
 
 /**
- * The fixture path both compilers are handed.
+ * The fixture path both compilers are handed for one subject.
  *
  * Inside the package, and paired with `haste` resolution, for the reason the
  * value harness gives: neither compiler then needs a real `node_modules` layout
  * beside the fixture, and this compiler's path resolver needs a file that sits
  * under a package it can name.
+ *
+ * Per subject, where the value harness pins one path for every entry. The reason
+ * that harness gives for pinning -- `haste` resolution and the class-name hash
+ * both read the filename, so varying it would vary the output for reasons
+ * unrelated to the subject -- does not reach this one: what is compared here is
+ * a line and a column, read out of each compiler's own message by
+ * `rustPosition` and `babelPosition`, and neither looks at the path. Naming the
+ * file after the subject is what lets the children overlap; while they shared
+ * one path, every one of them was overwriting the file the last was compiling.
  */
-const FIXTURE = path.join(packageDir, 'parity/__fixture__/positions.js');
+function fixtureFor(id: string): string {
+  return path.join(packageDir, 'parity/__fixture__', `positions-${id}.js`);
+}
 
 /**
  * Handed identically to both compilers: the shared base every harness compiles
@@ -201,15 +213,17 @@ async function runSubject(id: string): Promise<void> {
   const entry = loadEntries().find(candidate => candidate.id === id);
   if (entry === undefined) throw new Error(`No such subject: ${id}`);
 
-  fs.mkdirSync(path.dirname(FIXTURE), { recursive: true });
-  fs.writeFileSync(FIXTURE, entry.source);
+  const fixture = fixtureFor(id);
+
+  fs.mkdirSync(path.dirname(fixture), { recursive: true });
+  fs.writeFileSync(fixture, entry.source);
 
   const outcome: SubjectOutcome = {};
 
   const { transform } = await loadRustCompiler(packageDir);
 
   try {
-    transform(FIXTURE, entry.source, STYLEX_OPTIONS);
+    transform(fixture, entry.source, STYLEX_OPTIONS);
   } catch (error: unknown) {
     outcome.rustMessage = messageOf(error);
   }
@@ -218,7 +232,7 @@ async function runSubject(id: string): Promise<void> {
 
   try {
     babel.transformSync(entry.source, {
-      filename: FIXTURE,
+      filename: fixture,
       babelrc: false,
       configFile: false,
       parserOpts: { sourceType: 'module', plugins: ['jsx'] },
@@ -238,6 +252,28 @@ async function runSubject(id: string): Promise<void> {
 interface ChildResult {
   outcome: SubjectOutcome;
   stderr: string;
+}
+
+/**
+ * Every subject, at most `availableParallelism()` children at a time.
+ *
+ * Results come back in the order the ids were given, not the order the children
+ * finished, so the report does not reorder itself run to run.
+ */
+async function runInChildren(ids: readonly string[]): Promise<ChildResult[]> {
+  const results: ChildResult[] = Array.from({ length: ids.length });
+  const limit = Math.min(ids.length, availableParallelism());
+  let next = 0;
+
+  const worker = async (): Promise<void> => {
+    for (let index = next++; index < ids.length; index = next++) {
+      results[index] = await runInChild(ids[index]!);
+    }
+  };
+
+  await Promise.all(Array.from({ length: limit }, worker));
+
+  return results;
 }
 
 function runInChild(id: string): Promise<ChildResult> {
@@ -310,10 +346,24 @@ async function report(): Promise<void> {
     `${chalk.bold('Subjects')}\n${subjectBlock(resolveVersions(packageDir, distEntry, pluginEntry))}\n`
   );
 
+  // A bounded number of children in flight rather than one at a time.
+  //
+  // One child per subject is not optional -- this compiler writes its code frame
+  // straight to fd 2 and a process cannot redirect its own -- but nothing
+  // required them to be serial once each writes its own fixture. Serial, the run
+  // was 18 process spawns end to end, each paying for the `tsx` loader, the NAPI
+  // addon and `@babel/core` again, which was the whole of its wall clock.
+  //
+  // Bounded rather than unbounded for the same reason: each child loads both
+  // compilers, so the useful limit is cores rather than subjects.
+  const children = await runInChildren(entries.map(entry => entry.id));
+
   const results: PositionReportEntry[] = [];
 
-  for (const entry of entries) {
-    const { outcome, stderr } = await runInChild(entry.id);
+  for (const [index, entry] of entries.entries()) {
+    // Read back in corpus order, whatever order they finished in, so the report
+    // a person compares against a previous one is stable.
+    const { outcome, stderr } = children[index]!;
     const rust = rustPosition(stderr);
     const upstream =
       outcome.babelMessage === undefined ? undefined : babelPosition(outcome.babelMessage);

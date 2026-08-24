@@ -26,7 +26,7 @@ declarations behind without anyone noticing.
 | Harness                | Runs                                   | Cost  |
 | ---------------------- | -------------------------------------- | ----- |
 | `parity`               | `checks` matrix, every pull request    | ~2.5s |
-| `parity:positions`     | the same step                          | ~8s   |
+| `parity:positions`     | the same step                          | ~2s   |
 | `fuzz:pseudo-order`    | the same step                          | ~2s   |
 | `fuzz:shorthand`       | `parity-sweep`, the nightly schedule   | ~97s  |
 | `parity:harvest:check` | ahead of this package's `vitest` suite | <1s   |
@@ -238,9 +238,17 @@ process that wrote it. `lib/position.ts` parses both, and every shape either
 compiler produces is pinned in `__tests__/position.test.ts` — a parser that
 silently misreads a frame would turn the whole set green.
 
-The subject is written to `parity/__fixture__/positions.js` while the run lasts,
-because this compiler locates a refusal in the file it names rather than in the
-string it was handed. That path is git-ignored.
+Each subject is written to `parity/__fixture__/positions-<id>.js` while the run
+lasts, because this compiler locates a refusal in the file it names rather than in
+the string it was handed. Those paths are git-ignored.
+
+A path per subject, and that is what lets the children overlap: while they shared
+one fixture, each was overwriting the file the last was compiling, so the run had
+to be serial and its wall clock was 18 process spawns end to end — each paying
+for the `tsx` loader, the addon and `@babel/core` again. The value harness pins a
+single filename for the opposite reason, and the reason does not reach here: it
+hashes class names, which read the path, while this compares a line and a column
+that neither `rustPosition` nor `babelPosition` takes from it.
 
 ## Ordering, over random pairs: `pnpm fuzz:pseudo-order`
 

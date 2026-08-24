@@ -146,13 +146,35 @@ function outcomeOf(filename: string, run: () => CompilerRun): CompilerOutcome {
     declarations.push(declarationOf(ltr));
   }
 
+  let parsedStyleObjects: string[] | undefined;
+
   return {
     status: 'ok',
     classNames,
     rules: ruleTexts,
     rtlRules: rtlRuleTexts,
     declarations,
-    styleObjects: styleObjectsOf(emitted),
+    /**
+     * Parsed on the first read rather than on the way out, and kept.
+     *
+     * This is the most expensive thing in the file -- a full `babel.parseSync`
+     * plus a traversal of the emitted module -- and `styleObjectsAgree` returns
+     * `false` outright whenever either side refused, without reading it. So on
+     * every row where one compiler accepted and the other did not, the
+     * accepting side was parsed for an answer nothing consulted: 187 of the
+     * 1085 curated subjects, and 2631 of 19203 per property in the generated
+     * sweep.
+     *
+     * A getter rather than a changed field type, so nothing that builds an
+     * outcome by hand -- the unit tests do, with a literal array -- has to know
+     * this is lazy. Memoized because the report reads it again when the shapes
+     * are what differ.
+     */
+    get styleObjects(): string[] {
+      parsedStyleObjects ??= styleObjectsOf(emitted);
+
+      return parsedStyleObjects;
+    },
   };
 }
 

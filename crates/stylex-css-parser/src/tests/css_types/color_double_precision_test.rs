@@ -610,7 +610,35 @@ mod modern_space_boundaries_and_refusals {
     // `Lch`'s hue is a number or an angle, and this one is a number, so it
     // prints without a unit -- unlike `Oklch`'s, which is always an angle.
     assert_eq!(printed!("lch(-0 -0 -0)"), "lch(0 0 0)");
-    assert_eq!(printed!("oklab(-0 -0 -0 / -0)"), "oklab(0 0 0 / 0)");
+  }
+
+  /// A zero alpha prints no tail at all, so there is no sign left to drop.
+  ///
+  /// The reference implementation guards the tail with `this.alpha ?`, a
+  /// truthiness test rather than a presence test, so a zero alpha is spelled
+  /// exactly like an absent one. Both spellings of zero are pinned, because
+  /// `-0.0 == 0.0` is what makes one arm cover the other.
+  #[test]
+  fn a_zero_alpha_prints_no_tail() {
+    assert_eq!(printed!("oklab(-0 -0 -0 / -0)"), "oklab(0 0 0)");
+    assert_eq!(printed!("oklab(0.5 0.1 0.1 / 0)"), "oklab(0.5 0.1 0.1)");
+    assert_eq!(
+      printed!("oklch(0.7 0.1 200deg / 0)"),
+      "oklch(0.7 0.1 200deg)"
+    );
+    assert_eq!(printed!("lch(50 20 30 / 0)"), "lch(50 20 30)");
+  }
+
+  /// The contrast to [`a_zero_alpha_prints_no_tail`]: every other alpha keeps
+  /// its tail, `1` included, which JavaScript reads as truthy.
+  #[test]
+  fn a_nonzero_alpha_keeps_its_tail() {
+    assert_eq!(printed!("oklab(0.5 0.1 0.1 / 1)"), "oklab(0.5 0.1 0.1 / 1)");
+    assert_eq!(
+      printed!("oklch(0.7 0.1 200deg / 0.25)"),
+      "oklch(0.7 0.1 200deg / 0.25)"
+    );
+    assert_eq!(printed!("lch(50 20 30 / 0.5)"), "lch(50 20 30 / 0.5)");
   }
 
   /// An alpha outside 0..=1 is carried through on these paths rather than

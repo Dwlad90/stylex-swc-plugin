@@ -19,6 +19,22 @@ use crate::{
 
 use std::fmt::{self, Display};
 
+/// The alpha a modern colour space prints, or `None` where it prints no tail.
+///
+/// The reference implementation spells the tail
+/// `${this.alpha ? ` / ${this.alpha}` : ''}` -- a JavaScript *truthiness* test
+/// rather than a presence test, so an alpha of zero prints nothing at all and
+/// `lch(50 20 30 / 0)` is spelled `lch(50 20 30)`. A `NaN` alpha is falsy there
+/// for the same reason and so prints nothing here either.
+///
+/// The rule lives here rather than at each of the three call sites because
+/// getting it wrong is not a cosmetic slip: the printed spelling feeds the
+/// class-name hash, so an alpha tail this compiler prints and the reference
+/// compiler does not is an observable divergence.
+fn printed_alpha(alpha: Option<f64>) -> Option<f64> {
+  alpha.filter(|value| *value != 0.0 && !value.is_nan())
+}
+
 /// Extracts the numeric value from a Number token. Returns 0.0 for non-Number
 /// tokens (defensive fallback — guarded by tokens::number() in callers).
 fn extract_number_from_token(token: SimpleToken) -> f64 {
@@ -1970,7 +1986,7 @@ impl Lch {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Lch {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self.alpha {
+    match printed_alpha(self.alpha) {
       Some(alpha) => write!(
         f,
         "lch({} {} {} / {})",
@@ -2105,7 +2121,7 @@ impl Oklch {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Oklch {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self.alpha {
+    match printed_alpha(self.alpha) {
       Some(alpha) => write!(
         f,
         "oklch({} {} {} / {})",
@@ -2220,7 +2236,7 @@ impl Oklab {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Oklab {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self.alpha {
+    match printed_alpha(self.alpha) {
       Some(alpha) => write!(
         f,
         "oklab({} {} {} / {})",

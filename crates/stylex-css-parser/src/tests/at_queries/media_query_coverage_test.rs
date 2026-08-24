@@ -840,8 +840,8 @@ fn pair_with_fraction_no_spaces_succeeds() {
       assert_eq!(pair.key, "aspect-ratio");
       match &pair.value {
         MediaRuleValue::Fraction(f) => {
-          assert_eq!(f.numerator, 16);
-          assert_eq!(f.denominator, 9);
+          assert_eq!(f.numerator, 16.0);
+          assert_eq!(f.denominator, 9.0);
         },
         other => panic!("Expected Fraction, got {:?}", other),
       }
@@ -916,8 +916,8 @@ fn merge_intervals_min_and_max_width_no_conflict() {
 #[test]
 fn fraction_display() {
   let f = Fraction {
-    numerator: 16,
-    denominator: 9,
+    numerator: 16.0,
+    denominator: 9.0,
   };
   assert_eq!(format!("{}", f), "16 / 9");
 }
@@ -934,8 +934,8 @@ fn media_rule_value_display_all_variants() {
   let _ = format!("{}", s);
 
   let frac = MediaRuleValue::Fraction(Fraction {
-    numerator: 4,
-    denominator: 3,
+    numerator: 4.0,
+    denominator: 3.0,
   });
   let _ = format!("{}", frac);
 }
@@ -1185,8 +1185,8 @@ fn pair_display_fraction() {
   let pair = MediaRulePair::new(
     "aspect-ratio",
     MediaRuleValue::Fraction(Fraction {
-      numerator: 16,
-      denominator: 9,
+      numerator: 16.0,
+      denominator: 9.0,
     }),
   );
   assert_eq!(format!("{}", pair), "(aspect-ratio: 16 / 9)");
@@ -1425,8 +1425,8 @@ fn format_queries_pair_all_value_types() {
   let frac_pair = MediaRulePair::new(
     "aspect-ratio",
     MediaRuleValue::Fraction(Fraction {
-      numerator: 16,
-      denominator: 9,
+      numerator: 16.0,
+      denominator: 9.0,
     }),
   );
   let mq = MediaQuery::new(MediaQueryRule::Pair(frac_pair));

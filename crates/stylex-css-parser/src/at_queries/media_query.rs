@@ -15,17 +15,37 @@ use crate::{
 use std::fmt::{self, Display};
 
 /// Fraction type for media query values like (aspect-ratio: 16/9)
+///
+/// Held as doubles, not integers. A media fraction is a *ratio* rather than a
+/// count: CSS admits `(aspect-ratio: 16.5/9)`, and the reference compiler's
+/// `mediaRuleValueParser` keeps both halves as `number`. An `i32` truncated the
+/// numerator -- `16.5/9` printed as `16 / 9` -- and saturated anything past
+/// `i32::MAX`, so `1e30/1` printed as `2147483647 / 1`.
+///
+/// Reachable, and that is the point: every `@media` key nested one level down is
+/// re-parsed and reprinted through [`super::media_query_transform`], including
+/// the case where there is nothing to negate and the query comes back
+/// unchanged. So the truncation was not confined to a parser nobody calls; it
+/// reached the stylesheet.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Fraction {
-  pub numerator: i32,
-  pub denominator: i32,
+  pub numerator: f64,
+  pub denominator: f64,
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Fraction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    // Format with spaces for consistent output
-    write!(f, "{} / {}", self.numerator, self.denominator)
+    // Format with spaces for consistent output, and through `to_js_string` for
+    // the same reason every other number in this crate goes through it: a
+    // fraction's halves are authored numbers and must be spelled the way
+    // JavaScript spells them.
+    write!(
+      f,
+      "{} / {}",
+      to_js_string(self.numerator),
+      to_js_string(self.denominator)
+    )
   }
 }
 
@@ -1048,7 +1068,7 @@ fn media_rule_value_parser() -> TokenParser<MediaRuleValue> {
       |tokens| {
         // Parse first number
         let first_num = if let Ok(Some(SimpleToken::Number(value))) = tokens.consume_next_token() {
-          value as i32
+          value
         } else {
           return Err(CssParseError::ParseError {
             message: "Expected first number in fraction".to_string(),
@@ -1080,7 +1100,7 @@ fn media_rule_value_parser() -> TokenParser<MediaRuleValue> {
 
         // Parse second number
         let second_num = if let Ok(Some(SimpleToken::Number(value))) = tokens.consume_next_token() {
-          value as i32
+          value
         } else {
           return Err(CssParseError::ParseError {
             message: "Expected second number in fraction".to_string(),

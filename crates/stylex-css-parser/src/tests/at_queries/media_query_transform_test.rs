@@ -1360,6 +1360,40 @@ mod computed_bounds_carry_the_authored_digits {
     );
   }
 
+  /// A fractional aspect-ratio survives the round trip.
+  ///
+  /// This is the test that says the fraction is reachable at all. The transform
+  /// reprints every `@media` key it is handed, including one it had nothing to
+  /// negate -- `combine_media_query_with_negations` returns the query unchanged
+  /// and the printer still runs -- so a fraction held at the wrong width did not
+  /// stay inside the parser. `16.5/9` reprinted as `16 / 9`, and a ratio of
+  /// sixteen to nine is a different shape of screen from one of eleven to six.
+  ///
+  /// The second key is here for the saturating half of the same bug: past
+  /// `i32::MAX` every numerator collapsed onto `2147483647`.
+  ///
+  /// The negation on the first key is the transform doing its own job -- the
+  /// later query wins, so the earlier one is narrowed by its negation. It is
+  /// incidental here, and left in rather than filtered out so the assertion
+  /// reads against what the transform actually emits.
+  #[test]
+  fn a_fractional_aspect_ratio_reprints_at_the_width_it_was_written() {
+    assert_eq!(
+      transformed_keys(json!({
+        "width": {
+          "default": "1px",
+          "@media (aspect-ratio: 16.5/9)": "2px",
+          "@media (aspect-ratio: 3000000000/1)": "3px"
+        }
+      })),
+      vec![
+        "default",
+        "@media (aspect-ratio: 16.5 / 9) and (not (aspect-ratio: 3000000000 / 1))",
+        "@media (aspect-ratio: 3000000000 / 1)",
+      ]
+    );
+  }
+
   /// Round breakpoints print identically at either width. Pinned so that the
   /// widening is shown to move only the values that were wrong.
   #[test]

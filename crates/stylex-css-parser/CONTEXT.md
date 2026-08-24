@@ -37,9 +37,15 @@ rules or reintroduces the divergence. See
 [the shared formatter](../stylex-utils/CONTEXT.md).
 
 Two things are outside the rule rather than exceptions to it. A count is an
-integer — `Fraction`'s parts, a `steps()` count — and JavaScript spells an
-integer the way Rust does. And the **echoed value** below is not
+integer — a `steps()` count, which a round-trip check guards — and JavaScript
+spells an integer the way Rust does. And the **echoed value** below is not
 printed by a `Display` impl at all.
+
+`Fraction`'s parts used to be listed here as counts, and they are not. A media
+fraction is a **ratio**: CSS admits `(aspect-ratio: 16.5/9)` and the official
+compiler holds both halves as `number`, so an `i32` truncated the numerator and
+saturated past `i32::MAX`. Nothing about a ratio makes it whole, and the carve-out
+read as permission not to look.
 _Avoid_: single precision, f32 value
 
 **Echoed value**:

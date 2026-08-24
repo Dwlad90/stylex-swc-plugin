@@ -779,8 +779,8 @@ mod style_value_parser_at_queries {
             assert_eq!(pair.key, "aspect-ratio");
             match &pair.value {
               crate::at_queries::media_query::MediaRuleValue::Fraction(fraction) => {
-                assert_eq!(fraction.numerator, 16);
-                assert_eq!(fraction.denominator, 9);
+                assert_eq!(fraction.numerator, 16.0);
+                assert_eq!(fraction.denominator, 9.0);
               },
               _ => stylex_panic!("Expected Fraction value"),
             }
@@ -802,8 +802,8 @@ mod style_value_parser_at_queries {
             assert_eq!(pair.key, "device-aspect-ratio");
             match &pair.value {
               crate::at_queries::media_query::MediaRuleValue::Fraction(fraction) => {
-                assert_eq!(fraction.numerator, 16);
-                assert_eq!(fraction.denominator, 9);
+                assert_eq!(fraction.numerator, 16.0);
+                assert_eq!(fraction.denominator, 9.0);
               },
               _ => stylex_panic!("Expected Fraction value"),
             }
@@ -1517,8 +1517,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "device-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(fraction) => {
-                    assert_eq!(fraction.numerator, 16);
-                    assert_eq!(fraction.denominator, 9);
+                    assert_eq!(fraction.numerator, 16.0);
+                    assert_eq!(fraction.denominator, 9.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -1551,8 +1551,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "min-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(fraction) => {
-                    assert_eq!(fraction.numerator, 3);
-                    assert_eq!(fraction.denominator, 2);
+                    assert_eq!(fraction.numerator, 3.0);
+                    assert_eq!(fraction.denominator, 2.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -1566,8 +1566,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "max-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(fraction) => {
-                    assert_eq!(fraction.numerator, 16);
-                    assert_eq!(fraction.denominator, 9);
+                    assert_eq!(fraction.numerator, 16.0);
+                    assert_eq!(fraction.denominator, 9.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -2023,8 +2023,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "device-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(frac) => {
-                    assert_eq!(frac.numerator, 16);
-                    assert_eq!(frac.denominator, 9);
+                    assert_eq!(frac.numerator, 16.0);
+                    assert_eq!(frac.denominator, 9.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -2057,8 +2057,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "min-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(frac) => {
-                    assert_eq!(frac.numerator, 3);
-                    assert_eq!(frac.denominator, 2);
+                    assert_eq!(frac.numerator, 3.0);
+                    assert_eq!(frac.denominator, 2.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -2072,8 +2072,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "max-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(frac) => {
-                    assert_eq!(frac.numerator, 16);
-                    assert_eq!(frac.denominator, 9);
+                    assert_eq!(frac.numerator, 16.0);
+                    assert_eq!(frac.denominator, 9.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -3629,8 +3629,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "min-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(frac) => {
-                    assert_eq!(frac.numerator, 3);
-                    assert_eq!(frac.denominator, 2);
+                    assert_eq!(frac.numerator, 3.0);
+                    assert_eq!(frac.denominator, 2.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -3644,8 +3644,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "max-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(frac) => {
-                    assert_eq!(frac.numerator, 16);
-                    assert_eq!(frac.denominator, 9);
+                    assert_eq!(frac.numerator, 16.0);
+                    assert_eq!(frac.denominator, 9.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }

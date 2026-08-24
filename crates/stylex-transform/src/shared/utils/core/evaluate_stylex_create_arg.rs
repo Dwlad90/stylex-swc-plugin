@@ -63,6 +63,26 @@ fn key_value_props_of(object: &ObjectLit) -> Vec<KeyValueProp> {
 
 /// Prepends a key name to an existing error reason to provide context
 /// about which property path triggered the evaluation failure.
+///
+/// **A deliberate divergence, kept on purpose.** The reference compiler prefixes
+/// nothing: a nullish refusal is `unknown error` there where it is
+/// `a > flexGrow > unknown error` here, and its object-property deopt is
+/// `deopt(prop, state, state.deoptReason ?? 'unknown error')` with no key path
+/// anywhere in it. Both were measured by running the two compilers on the same
+/// source, not inferred.
+///
+/// It is kept because the divergence costs nothing and pays for itself. This
+/// text is a build-failure message: no class name is hashed from it, no CSS
+/// differs, and no output a consumer can observe moves. What it buys is the one
+/// thing `unknown error` withholds -- which of a namespace's properties the
+/// build stopped on. Most of the diagnostics that carry a path are this
+/// compiler's own additions anyway (`Expression is too deeply nested` has no
+/// counterpart upstream, which raises no error for it at all), so for those
+/// there is nothing to be faithful to.
+///
+/// Removing it was tried and reverted. If it is proposed again, the question to
+/// answer first is what an author gains from the shorter sentence, because the
+/// last two attempts could not name anything.
 fn prepend_key_to_reason(key: &str, reason: Option<String>) -> Option<String> {
   reason.map(|r| format!("{} > {}", key, r))
 }

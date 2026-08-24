@@ -252,6 +252,12 @@ pub(in super::super) fn evaluate(
                   .unwrap_or(eval_value.reason.as_deref().unwrap_or("unknown error"))
                   .to_string();
 
+                // The key path is this compiler's own, and deliberately so --
+                // the reference compiler's counterpart here is
+                // `deopt(prop, state, state.deoptReason ?? 'unknown error')`,
+                // with no key in it. See `prepend_key_to_reason` in
+                // `utils::core::evaluate_stylex_create_arg` for why the
+                // divergence is kept rather than closed.
                 let deopt_reason = if let Some(ref k) = key {
                   format!("{} > {}", k, base_reason)
                 } else {

@@ -478,6 +478,13 @@ struct ValueStructure {
   /// semicolons are common enough in hand-written style objects that rejecting
   /// them would fail programs the reference compiler accepts, over a character
   /// that cannot do any harm.
+  ///
+  /// Nor does an *escaped* one, for the same reason a quoted one does not:
+  /// `\;`, `\{` and `\}` are part of the identifier they sit in, so they close
+  /// nothing and splice nothing. The reference compiler emits `A\;B` for
+  /// `fontFamily`, and refusing it here failed a program that compiles there —
+  /// over the one reading of those bytes the guard's own sentence excludes,
+  /// since an escape is neither a string nor a comment.
   has_rule_breaking_token: bool,
   /// The deepest the value nests functions, counted outside strings and
   /// comments. Parsing and normalizing recurse once per level, so this is what
@@ -582,10 +589,10 @@ fn scan_value_structure(css_property_value: &str) -> ValueStructure {
       None if byte == b')' => {
         paren_depth = paren_depth.saturating_sub(1);
       },
-      None if matches!(byte, b'{' | b'}') => {
+      None if matches!(byte, b'{' | b'}') && !is_escaped(value, index) => {
         structure.has_rule_breaking_token = true;
       },
-      None if byte == b';' => {
+      None if byte == b';' && !is_escaped(value, index) => {
         open_semicolon = true;
       },
       _ => {},

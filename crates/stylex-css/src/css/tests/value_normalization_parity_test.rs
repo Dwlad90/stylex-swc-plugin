@@ -606,10 +606,8 @@ fn hands_over_the_complaint_the_reference_compiler_also_writes() {
 /// A value whose *only* fault is the token still reads the token complaint,
 /// which is the half of the reorder that must not have been traded away.
 ///
-/// The last row is the one worth reading twice. A backslash in front of the
-/// semicolon is an escape to the reference compiler, which emits
-/// `font-family:A\;B`, and is not one to the scan here — so the token guard
-/// speaks, and speaking later has not quieted it.
+/// Every `;`, `{` and `}` below is bare. An escaped one is not a fault at all
+/// and is accepted — `an_escaped_terminator_is_not_a_terminator` holds those.
 ///
 /// The rule text the message quotes is asserted too: it is built from the raw
 /// value before anything parses it, and moving where the guard fires must not
@@ -638,11 +636,46 @@ fn still_refuses_a_value_whose_only_fault_is_the_token() {
     LINT_UNCLOSED_FUNCTION,
   );
   refuses_with("--x", "red;a", token, LINT_UNCLOSED_FUNCTION);
-  refuses_with("fontFamily", r"A\;B", token, LINT_UNCLOSED_FUNCTION);
 
   assert!(
     refusal_of("width", "calc(1px);height:2px").contains("* { width: calc(1px);height:2px }"),
     "expected the rejection to quote the generated rule unchanged"
+  );
+}
+
+/// An escaped terminator is not a terminator, and is not refused.
+///
+/// The guard exists because emitting a value verbatim must not close the rule
+/// being generated and splice arbitrary CSS after it. A backslash in front of
+/// the character is the one reading of those bytes where that cannot happen:
+/// `\;`, `\{` and `\}` are part of the identifier they sit in, so the browser
+/// reads them as text and the rule stays open exactly as long as it should.
+/// The guard's own sentence says "outside of a string or comment", and an
+/// escape is neither — the exclusion was simply missing from the scan, where
+/// the quote arms beside it already had it.
+///
+/// Measured against the reference compiler rather than reasoned about: it emits
+/// `font-family:A\;B`, `font-family:a\{b`, `font-family:a\}b` and
+/// `color:red\;blue` for these four, each on its own class. Refusing them here
+/// failed four programs that compile there.
+///
+/// This is *not* a claim that the guard is too strict in general. The reference
+/// compiler emits a **bare** `;` too — `font-family:A;B` really does come back
+/// from it, spliced rule and all — and this compiler still refuses that, which
+/// `still_refuses_a_value_whose_only_fault_is_the_token` holds. The divergence
+/// closed here is only over the characters that cannot break anything.
+#[test]
+fn an_escaped_terminator_is_not_a_terminator() {
+  // Raw strings: the backslash is the whole of what these cases are about, and
+  // a `"A\\;B"` would leave a reader counting them.
+  check(
+    &[
+      unchanged("fontFamily", r"A\;B"),
+      unchanged("fontFamily", r"a\{b"),
+      unchanged("fontFamily", r"a\}b"),
+      unchanged("color", r"red\;blue"),
+    ],
+    &default_options(),
   );
 }
 

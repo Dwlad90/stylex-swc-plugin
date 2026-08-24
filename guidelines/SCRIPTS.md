@@ -126,9 +126,14 @@ Which harness runs where, and why:
   `parity` -- and a value-splitter defect shows up when a value pass or the
   alphabet changes, which a nightly sweep catches as surely as a per-commit one.
 - `parity:harvest:check` needs neither `dist/` nor either compiler, since it
-  only scans Rust sources, so it runs ahead of this package's `vitest` suite --
-  a corpus that has fallen behind the Rust tests fails rather than waiting to be
-  noticed.
+  only scans Rust sources, so it runs ahead of this package's `vitest` suite as
+  its `pretest` -- a corpus that has fallen behind the Rust tests fails rather
+  than waiting to be noticed. It is a `pretest` rather than the first half of
+  `test` so that `test` means "run this package's tests": the check harvests
+  from Rust suites across the whole workspace, so it can fail for a declaration
+  added in another crate, and that reads better as a gate in front of the suite
+  than as part of it. The gate is unchanged -- a stale corpus still exits
+  non-zero and `vitest` still does not run.
 
 - `parity`: runs a corpus of CSS declarations through this compiler and through
   a pinned `@stylexjs/babel-plugin`, and reports which ones disagree on class
@@ -139,7 +144,7 @@ Which harness runs where, and why:
   `property-specificity`).
 - `parity:harvest`: regenerates `parity/corpus/harvested.json` from the Rust
   test suites. `--check` fails instead of writing when it is out of date, and
-  runs as the first half of this package's `test` script. Regenerating also
+  runs as this package's `pretest`. Regenerating also
   invalidates `crates/postcss-value-parser/src/tests/cases.rs`, whose row order
   is the corpus order -- run that package's `generate:value-parser-cases` next.
 - `parity:positions`: the same comparison for the position corpus -- where in a

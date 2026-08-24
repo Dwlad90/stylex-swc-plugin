@@ -757,8 +757,17 @@ fn aliases_get_empty_returns_none() {
 
 /// The axes, as the text each would be spelled with.
 fn intrinsic_size(value: &str) -> (String, String) {
-  let func = Shorthands::get("containIntrinsicSize").unwrap();
-  let result = func(Some(value.into())).unwrap();
+  // Handled rather than unwrapped, per `guidelines/stack/RUST.md`: every
+  // expectation in this section reads through here, so a failure that names
+  // which half gave way is read once instead of bisected.
+  let func = match Shorthands::get("containIntrinsicSize") {
+    Some(func) => func,
+    None => panic!("containIntrinsicSize has no expansion"),
+  };
+  let result = match func(Some(value.into())) {
+    Ok(result) => result,
+    Err(error) => panic!("containIntrinsicSize refused {value:?}: {error}"),
+  };
 
   assert_eq!(result.len(), 2);
   assert_eq!(result[0].0, "containIntrinsicWidth");

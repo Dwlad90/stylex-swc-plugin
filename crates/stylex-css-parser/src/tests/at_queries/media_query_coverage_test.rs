@@ -1,5 +1,20 @@
 use super::*;
 
+/// The query `input` parses to, or a panic naming the input and the error.
+///
+/// `guidelines/stack/RUST.md` asks for every case to be handled rather than
+/// unwrapped, and the reason holds in a test as much as in the compiler: a
+/// failure that names the query it could not parse is the difference between
+/// reading one line and bisecting a suite. Every parse in this file goes through
+/// it, so the `assert!(result.is_ok())` that used to precede each `unwrap` is
+/// gone -- it asserted what the panic already says, less clearly.
+fn parsed(input: &str) -> MediaQuery {
+  match MediaQuery::parser().parse_to_end(input) {
+    Ok(query) => query,
+    Err(error) => panic!("failed to parse {input:?}: {error:?}"),
+  }
+}
+
 // ---------------------------------------------------------------------------
 // normalize() edge cases
 // ---------------------------------------------------------------------------
@@ -128,9 +143,7 @@ fn parser_error_media_without_whitespace() {
 #[test]
 fn parser_no_at_prefix_parses_just_query() {
   // No @media prefix → parse just the query part (backwards compat)
-  let result = MediaQuery::parser().parse_to_end("screen");
-  assert!(result.is_ok());
-  assert_eq!(result.unwrap().to_string(), "@media screen");
+  assert_eq!(parsed("screen").to_string(), "@media screen");
 }
 
 // ---------------------------------------------------------------------------
@@ -257,9 +270,7 @@ fn format_queries_or_with_and_nested_is_top_level_uses_comma() {
 fn format_queries_keyword_without_prefix_not_at_top_level_gets_parens() {
   // MediaKeyword("screen", not=false, only=false) at non-top-level gets parenthesized
   // This is exercised when screen appears inside AND: "screen and ..."
-  let result = MediaQuery::parser()
-    .parse_to_end("@media screen and (min-width: 400px)")
-    .unwrap();
+  let result = parsed("@media screen and (min-width: 400px)");
   // The screen keyword should be parenthesized in the output
   assert!(result.to_string().contains("(screen)"));
 }
@@ -370,9 +381,7 @@ fn forward_inequality_wrong_closing_token_errors() {
 #[test]
 fn forward_inequality_strict_less_than_succeeds() {
   // (width < 400px) → max-width: 399.99px
-  let result = MediaQuery::parser().parse_to_end("@media (width < 400px)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (width < 400px)");
   match &q.queries {
     MediaQueryRule::Pair(pair) => {
       assert_eq!(pair.key, "max-width");
@@ -390,9 +399,7 @@ fn forward_inequality_strict_less_than_succeeds() {
 #[test]
 fn forward_inequality_strict_greater_than_succeeds() {
   // (width > 400px) → min-width: 400.01px
-  let result = MediaQuery::parser().parse_to_end("@media (width > 400px)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (width > 400px)");
   match &q.queries {
     MediaQueryRule::Pair(pair) => {
       assert_eq!(pair.key, "min-width");
@@ -410,9 +417,7 @@ fn forward_inequality_strict_greater_than_succeeds() {
 #[test]
 fn forward_inequality_greater_equal_succeeds() {
   // (width >= 500px) → min-width: 500px
-  let result = MediaQuery::parser().parse_to_end("@media (width >= 500px)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (width >= 500px)");
   match &q.queries {
     MediaQueryRule::Pair(pair) => {
       assert_eq!(pair.key, "min-width");
@@ -424,9 +429,7 @@ fn forward_inequality_greater_equal_succeeds() {
 #[test]
 fn forward_inequality_height_less_equal_succeeds() {
   // (height <= 768px) → max-height: 768px
-  let result = MediaQuery::parser().parse_to_end("@media (height <= 768px)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (height <= 768px)");
   match &q.queries {
     MediaQueryRule::Pair(pair) => {
       assert_eq!(pair.key, "max-height");
@@ -442,9 +445,7 @@ fn forward_inequality_height_less_equal_succeeds() {
 #[test]
 fn reversed_inequality_succeeds() {
   // (1250px >= width) → max-width: 1250px
-  let result = MediaQuery::parser().parse_to_end("@media (1250px >= width)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (1250px >= width)");
   match &q.queries {
     MediaQueryRule::Pair(pair) => {
       assert_eq!(pair.key, "max-width");
@@ -456,9 +457,7 @@ fn reversed_inequality_succeeds() {
 #[test]
 fn reversed_inequality_strict_greater_than_succeeds() {
   // (1250px > width) → max-width: 1249.99px
-  let result = MediaQuery::parser().parse_to_end("@media (1250px > width)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (1250px > width)");
   match &q.queries {
     MediaQueryRule::Pair(pair) => {
       assert_eq!(pair.key, "max-width");
@@ -476,9 +475,7 @@ fn reversed_inequality_strict_greater_than_succeeds() {
 #[test]
 fn reversed_inequality_strict_less_than_succeeds() {
   // (500px < width) → min-width: 500.01px
-  let result = MediaQuery::parser().parse_to_end("@media (500px < width)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (500px < width)");
   match &q.queries {
     MediaQueryRule::Pair(pair) => {
       assert_eq!(pair.key, "min-width");
@@ -496,9 +493,7 @@ fn reversed_inequality_strict_less_than_succeeds() {
 #[test]
 fn reversed_inequality_less_equal_succeeds() {
   // (500px <= width) → min-width: 500px
-  let result = MediaQuery::parser().parse_to_end("@media (500px <= width)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (500px <= width)");
   match &q.queries {
     MediaQueryRule::Pair(pair) => {
       assert_eq!(pair.key, "min-width");
@@ -531,9 +526,7 @@ fn reversed_inequality_not_a_dimension_errors() {
 #[test]
 fn reversed_inequality_height_succeeds() {
   // (600px >= height) → max-height: 600px
-  let result = MediaQuery::parser().parse_to_end("@media (600px >= height)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (600px >= height)");
   match &q.queries {
     MediaQueryRule::Pair(pair) => {
       assert_eq!(pair.key, "max-height");
@@ -549,9 +542,7 @@ fn reversed_inequality_height_succeeds() {
 #[test]
 fn double_inequality_forward_inclusive_succeeds() {
   // (400px <= width <= 700px) → And([min-width: 400px, max-width: 700px])
-  let result = MediaQuery::parser().parse_to_end("@media (400px <= width <= 700px)");
-  assert!(result.is_ok(), "Failed: {:?}", result);
-  let q = result.unwrap();
+  let q = parsed("@media (400px <= width <= 700px)");
   match &q.queries {
     MediaQueryRule::And(a) => {
       assert_eq!(a.rules.len(), 2);
@@ -584,10 +575,8 @@ fn double_inequality_strict_greater_both_succeeds() {
 #[test]
 fn double_inequality_mixed_strict_op1_inclusive_op2_succeeds() {
   // (400px < width <= 700px) → mixed strict first
-  let result = MediaQuery::parser().parse_to_end("@media (400px < width <= 700px)");
-  assert!(result.is_ok(), "Failed: {:?}", result);
   assert_eq!(
-    result.unwrap().to_string(),
+    parsed("@media (400px < width <= 700px)").to_string(),
     "@media (min-width: 400.01px) and (max-width: 700px)"
   );
 }
@@ -646,9 +635,7 @@ fn double_inequality_no_closing_paren_characterization() {
 #[test]
 fn double_inequality_height_succeeds() {
   // (400px <= height <= 700px)
-  let result = MediaQuery::parser().parse_to_end("@media (400px <= height <= 700px)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (400px <= height <= 700px)");
   match &q.queries {
     MediaQueryRule::And(a) => {
       let has_min_height = a
@@ -726,9 +713,7 @@ fn parenthesized_not_no_closing_paren_characterization() {
 #[test]
 fn or_combinator_with_comma_succeeds() {
   // @media screen, print → OR rule
-  let result = MediaQuery::parser().parse_to_end("@media screen, print");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media screen, print");
   match &q.queries {
     MediaQueryRule::Or(or_rules) => {
       assert_eq!(or_rules.rules.len(), 2);
@@ -740,9 +725,7 @@ fn or_combinator_with_comma_succeeds() {
 #[test]
 fn or_combinator_with_or_keyword_succeeds() {
   // @media (min-width: 300px) or (min-width: 500px) → OR rule
-  let result = MediaQuery::parser().parse_to_end("@media (min-width: 300px) or (min-width: 500px)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (min-width: 300px) or (min-width: 500px)");
   match &q.queries {
     MediaQueryRule::Or(or_rules) => {
       assert_eq!(or_rules.rules.len(), 2);
@@ -754,9 +737,7 @@ fn or_combinator_with_or_keyword_succeeds() {
 #[test]
 fn or_combinator_three_rules_with_commas() {
   // @media screen, print, all → three-way OR
-  let result = MediaQuery::parser().parse_to_end("@media screen, print, all");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media screen, print, all");
   match &q.queries {
     MediaQueryRule::Or(or_rules) => {
       assert_eq!(or_rules.rules.len(), 3);
@@ -835,9 +816,7 @@ fn parenthesized_expression_with_not_inside_succeeds() {
 #[test]
 fn pair_with_number_value_succeeds() {
   // (min-color: 8) → number value
-  let result = MediaQuery::parser().parse_to_end("@media (min-color: 8)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (min-color: 8)");
   match &q.queries {
     MediaQueryRule::Pair(pair) => {
       assert_eq!(pair.key, "min-color");
@@ -855,9 +834,7 @@ fn pair_with_number_value_succeeds() {
 #[test]
 fn pair_with_fraction_no_spaces_succeeds() {
   // (aspect-ratio: 16/9) → Fraction value
-  let result = MediaQuery::parser().parse_to_end("@media (aspect-ratio: 16/9)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (aspect-ratio: 16/9)");
   match &q.queries {
     MediaQueryRule::Pair(pair) => {
       assert_eq!(pair.key, "aspect-ratio");
@@ -1318,9 +1295,7 @@ fn not_only_combined_in_keyword_parser_errors() {
 #[test]
 fn only_modifier_alone_parses_successfully() {
   // "only screen" → MediaKeyword with only=true, not=false
-  let result = MediaQuery::parser().parse_to_end("@media only screen");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media only screen");
   match &q.queries {
     MediaQueryRule::MediaKeyword(kw) => {
       assert!(kw.only);
@@ -1334,9 +1309,7 @@ fn only_modifier_alone_parses_successfully() {
 #[test]
 fn double_not_in_parenthesized_expression_cancels() {
   // @media not (not (min-width: 300px)) → double not → just (min-width: 300px)
-  let result = MediaQuery::parser().parse_to_end("@media not (not (min-width: 300px))");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media not (not (min-width: 300px))");
   // Double NOT should cancel out
   match &q.queries {
     MediaQueryRule::Pair(pair) => {
@@ -1422,9 +1395,7 @@ fn complex_or_in_and_query() {
 fn word_rules_all_variants() {
   for word in &["color", "monochrome", "grid", "color-index"] {
     let input = format!("@media ({})", word);
-    let result = MediaQuery::parser().parse_to_end(&input);
-    assert!(result.is_ok(), "Failed for word rule: {}", word);
-    match &result.unwrap().queries {
+    match &parsed(&input).queries {
       MediaQueryRule::WordRule(wr) => {
         assert_eq!(&wr.key_value, word);
       },
@@ -1443,9 +1414,7 @@ fn fraction_with_non_slash_delimiter_fails() {
 
 #[test]
 fn media_query_clone_and_eq() {
-  let q1 = MediaQuery::parser()
-    .parse_to_end("@media (min-width: 300px)")
-    .unwrap();
+  let q1 = parsed("@media (min-width: 300px)");
   let q2 = q1.clone();
   assert_eq!(q1, q2);
 }
@@ -1880,9 +1849,7 @@ fn merge_intervals_max_height_only() {
 
 #[test]
 fn or_combinator_three_rules_with_or_keyword() {
-  let result = MediaQuery::parser().parse_to_end("@media (color) or (grid) or (monochrome)");
-  assert!(result.is_ok());
-  let q = result.unwrap();
+  let q = parsed("@media (color) or (grid) or (monochrome)");
   match &q.queries {
     MediaQueryRule::Or(or_rules) => {
       assert_eq!(or_rules.rules.len(), 3);
@@ -2446,9 +2413,11 @@ fn parenthesized_expression_not_branch_leading_not_fails() {
 fn parenthesized_expression_not_branch_whitespace_before_close_paren() {
   // '(not screen )' — whitespace before ')' exercises loop body
   // Direct call bypasses parenthesized_not_parser (which also handles this case)
-  let result = parenthesized_expression_parser().parse_to_end("(not screen )");
-  assert!(result.is_ok());
-  match result.unwrap() {
+  let rule = match parenthesized_expression_parser().parse_to_end("(not screen )") {
+    Ok(rule) => rule,
+    Err(error) => panic!("failed to parse (not screen ): {error:?}"),
+  };
+  match rule {
     MediaQueryRule::Not(n) => match n.rule.as_ref() {
       MediaQueryRule::MediaKeyword(kw) => assert_eq!(kw.key, "screen"),
       other => panic!("Expected MediaKeyword, got {:?}", other),
@@ -2460,9 +2429,11 @@ fn parenthesized_expression_not_branch_whitespace_before_close_paren() {
 #[test]
 fn parenthesized_expression_not_branch_with_close_paren() {
   // '(not screen)' — direct call exercises success path
-  let result = parenthesized_expression_parser().parse_to_end("(not screen)");
-  assert!(result.is_ok());
-  match result.unwrap() {
+  let rule = match parenthesized_expression_parser().parse_to_end("(not screen)") {
+    Ok(rule) => rule,
+    Err(error) => panic!("failed to parse (not screen): {error:?}"),
+  };
+  match rule {
     MediaQueryRule::Not(n) => match n.rule.as_ref() {
       MediaQueryRule::MediaKeyword(kw) => assert_eq!(kw.key, "screen"),
       other => panic!("Expected MediaKeyword, got {:?}", other),
@@ -2526,9 +2497,7 @@ fn parenthesized_expression_main_branch_missing_close_paren() {
 /// it for the length of a comparison.
 #[test]
 fn negated_bound_at_a_width_f32_cannot_nudge_is_still_a_contradiction() {
-  let parsed = MediaQuery::parser()
-    .parse_to_end("@media (min-width: 10000000px) and (not (min-width: 10000000px))")
-    .unwrap();
+  let parsed = parsed("@media (min-width: 10000000px) and (not (min-width: 10000000px))");
 
   assert_eq!(parsed.to_string(), "@media not all");
 }
@@ -2537,9 +2506,8 @@ fn negated_bound_at_a_width_f32_cannot_nudge_is_still_a_contradiction() {
 /// widening moves no bound that was already correct.
 #[test]
 fn nudged_bounds_keep_their_authored_precision() {
-  let parsed = MediaQuery::parser()
-    .parse_to_end("@media (min-width: 100px) and (not ((min-width: 200px) and (max-width: 300px)))")
-    .unwrap();
+  let parsed =
+    parsed("@media (min-width: 100px) and (not ((min-width: 200px) and (max-width: 300px)))");
 
   assert_eq!(
     parsed.to_string(),
@@ -2568,10 +2536,10 @@ fn a_ladder_of_negated_disjoint_ranges_collapses_to_its_own_range() {
     ));
   }
 
-  let parsed = MediaQuery::parser().parse_to_end(&query).unwrap();
+  let query = parsed(&query);
 
   assert_eq!(
-    parsed.to_string(),
+    query.to_string(),
     "@media (min-width: 100px) and (max-width: 200px)"
   );
 }
@@ -2582,15 +2550,13 @@ fn a_ladder_of_negated_disjoint_ranges_collapses_to_its_own_range() {
 /// instead, so that branch survives and must not be pruned away.
 #[test]
 fn a_non_numeric_rule_keeps_a_numerically_dead_branch_alive() {
-  let parsed = MediaQuery::parser()
-    .parse_to_end(
-      "@media (min-width: 100px) and (max-width: 200px) and (orientation: portrait) \
-       and (not ((min-width: 50px) and (max-width: 300px)))",
-    )
-    .unwrap();
+  let query = parsed(
+    "@media (min-width: 100px) and (max-width: 200px) and (orientation: portrait) \
+     and (not ((min-width: 50px) and (max-width: 300px)))",
+  );
 
   assert_eq!(
-    parsed.to_string(),
+    query.to_string(),
     "@media ((min-width: 100px) and (max-width: 200px) and (orientation: portrait) \
      and (not (min-width: 50px))) or ((min-width: 100px) and (max-width: 200px) \
      and (orientation: portrait) and (not (max-width: 300px)))"
@@ -2607,9 +2573,7 @@ fn a_non_numeric_rule_keeps_a_numerically_dead_branch_alive() {
 /// `@stylexjs/babel-plugin@0.19.0` for the same input.
 #[test]
 fn a_strict_range_nudges_in_double_precision() {
-  let parsed = MediaQuery::parser()
-    .parse_to_end("@media (400.5px < width < 900.25px)")
-    .unwrap();
+  let parsed = parsed("@media (400.5px < width < 900.25px)");
 
   assert_eq!(
     parsed.to_string(),
@@ -2621,12 +2585,8 @@ fn a_strict_range_nudges_in_double_precision() {
 /// inequality above, so it carries its own assertion.
 #[test]
 fn a_single_ended_strict_range_nudges_in_double_precision() {
-  let above = MediaQuery::parser()
-    .parse_to_end("@media (width > 400.5px)")
-    .unwrap();
-  let below = MediaQuery::parser()
-    .parse_to_end("@media (width < 900.25px)")
-    .unwrap();
+  let above = parsed("@media (width > 400.5px)");
+  let below = parsed("@media (width < 900.25px)");
 
   assert_eq!(above.to_string(), "@media (min-width: 400.51px)");
   assert_eq!(below.to_string(), "@media (max-width: 900.24px)");
@@ -2635,9 +2595,7 @@ fn a_single_ended_strict_range_nudges_in_double_precision() {
 /// The reversed spelling reaches the nudge through yet another branch.
 #[test]
 fn a_reversed_strict_inequality_nudges_in_double_precision() {
-  let parsed = MediaQuery::parser()
-    .parse_to_end("@media (400.5px < width)")
-    .unwrap();
+  let parsed = parsed("@media (400.5px < width)");
 
   assert_eq!(parsed.to_string(), "@media (min-width: 400.51px)");
 }
@@ -2646,9 +2604,7 @@ fn a_reversed_strict_inequality_nudges_in_double_precision() {
 /// is emitted as authored rather than as the nearest `f32` to it.
 #[test]
 fn an_authored_bound_is_emitted_with_the_digits_it_was_written_with() {
-  let parsed = MediaQuery::parser()
-    .parse_to_end("@media (min-width: 1.2345678901234567rem)")
-    .unwrap();
+  let parsed = parsed("@media (min-width: 1.2345678901234567rem)");
 
   assert_eq!(
     parsed.to_string(),
@@ -2660,9 +2616,7 @@ fn an_authored_bound_is_emitted_with_the_digits_it_was_written_with() {
 /// the intersection — not only the nudge — is shown to keep its digits.
 #[test]
 fn an_intersected_bound_keeps_the_digits_of_the_constraint_that_won() {
-  let parsed = MediaQuery::parser()
-    .parse_to_end("@media (min-width: 28.81rem) and (min-width: 25.55rem)")
-    .unwrap();
+  let parsed = parsed("@media (min-width: 28.81rem) and (min-width: 25.55rem)");
 
   assert_eq!(parsed.to_string(), "@media (min-width: 28.81rem)");
 }

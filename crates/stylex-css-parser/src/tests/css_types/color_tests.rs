@@ -67,13 +67,13 @@ fn test_hex_color_display() {
 
 #[test]
 fn test_rgb_color_display() {
-  let color = Rgb::new(255, 0, 0);
+  let color = Rgb::new(255.0, 0.0, 0.0);
   assert_eq!(color.to_string(), "rgb(255,0,0)");
 }
 
 #[test]
 fn test_rgba_color_display() {
-  let color = Rgba::new(255, 0, 0, 0.5);
+  let color = Rgba::new(255.0, 0.0, 0.0, 0.5);
   assert_eq!(color.to_string(), "rgba(255,0,0,0.5)");
 }
 
@@ -97,7 +97,7 @@ fn test_color_enum_display() {
   let hash = Color::Hash(HashColor::new("FF0000".to_string()));
   assert_eq!(hash.to_string(), "#FF0000");
 
-  let rgb = Color::Rgb(Rgb::new(255, 0, 0));
+  let rgb = Color::Rgb(Rgb::new(255.0, 0.0, 0.0));
   assert_eq!(rgb.to_string(), "rgb(255,0,0)");
 }
 

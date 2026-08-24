@@ -71,11 +71,10 @@ fn extract_number_from_token(token: SimpleToken) -> f64 {
 }
 
 /// Parses numbers in range 0-255 for RGB color channels
-fn rgb_number_parser() -> TokenParser<u8> {
+fn rgb_number_parser() -> TokenParser<f64> {
   tokens::number()
     .map(extract_number_from_token, Some("extract_number"))
     .where_fn(|v| *v >= 0.0 && *v <= 255.0, Some("0..255"))
-    .map(|v| v as u8, Some("to_u8"))
 }
 
 /// Reads the `/ <alpha-value>` tail the modern colour spaces share, rewinding
@@ -134,7 +133,7 @@ pub struct AdvancedColorParsers;
 impl AdvancedColorParsers {
   /// Implements: TokenParser.sequence(fn, r, comma, g, comma, b,
   /// closeParen).map(([_fn, r, _c, g, _c2, b, _cp]) => ...)
-  pub fn rgb_comma_full() -> TokenParser<(u8, u8, u8)> {
+  pub fn rgb_comma_full() -> TokenParser<(f64, f64, f64)> {
     function_parser("rgb")
       .flat_map(|_| rgb_number_parser(), Some("r"))
       .flat_map(
@@ -161,7 +160,7 @@ impl AdvancedColorParsers {
       )
   }
 
-  pub fn rgb_space_full() -> TokenParser<(u8, u8, u8)> {
+  pub fn rgb_space_full() -> TokenParser<(f64, f64, f64)> {
     function_parser("rgb")
       .flat_map(
         |_| {
@@ -180,7 +179,7 @@ impl AdvancedColorParsers {
 
   /// [_fn, r, _comma, g, _comma2, b, _comma3, a, _closeParen] => new Rgba(r, g,
   /// b, a)
-  pub fn rgba_comma_full() -> TokenParser<(u8, u8, u8, f64)> {
+  pub fn rgba_comma_full() -> TokenParser<(f64, f64, f64, f64)> {
     function_parser("rgba")
       .flat_map(|_| rgb_number_parser(), Some("r"))
       .flat_map(
@@ -219,7 +218,7 @@ impl AdvancedColorParsers {
   /// Uses rgb() function with space-separated values and slash for alpha: rgb(r
   /// g b / a) [_fn, _preSpace, r, _space, g, _space2, b, _slash, a,
   /// _postSpace, _closeParen] => new Rgba(r, g, b, a)
-  pub fn rgba_space_slash_full() -> TokenParser<(u8, u8, u8, f64)> {
+  pub fn rgba_space_slash_full() -> TokenParser<(f64, f64, f64, f64)> {
     function_parser("rgb") // Note: rgb function, not rgba!
       .flat_map(
         |_| {
@@ -768,13 +767,13 @@ impl Display for HashColor {
 /// RGB color: rgb(255, 0, 0)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rgb {
-  pub r: u8,
-  pub g: u8,
-  pub b: u8,
+  pub r: f64,
+  pub g: f64,
+  pub b: f64,
 }
 
 impl Rgb {
-  pub fn new(r: u8, g: u8, b: u8) -> Self {
+  pub fn new(r: f64, g: f64, b: f64) -> Self {
     Self { r, g, b }
   }
 
@@ -931,7 +930,7 @@ impl Rgb {
   }
 
   /// Helper: Parse RGB number token (0-255)
-  fn parse_rgb_number_token(tokens: &mut TokenList) -> Result<u8, CssParseError> {
+  fn parse_rgb_number_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
     let token = tokens
       .consume_next_token_infallible()
       .ok_or(CssParseError::ParseError {
@@ -940,7 +939,7 @@ impl Rgb {
 
     if let SimpleToken::Number(value) = token {
       if (0.0..=255.0).contains(&value) {
-        Ok(value as u8)
+        Ok(value)
       } else {
         Err(CssParseError::ParseError {
           message: format!("RGB number must be 0-255, got {}", value),
@@ -984,21 +983,27 @@ impl Rgb {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Rgb {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "rgb({},{},{})", self.r, self.g, self.b)
+    write!(
+      f,
+      "rgb({},{},{})",
+      to_js_string(self.r),
+      to_js_string(self.g),
+      to_js_string(self.b)
+    )
   }
 }
 
 /// RGBA color: rgba(255, 0, 0, 0.5)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rgba {
-  pub r: u8,
-  pub g: u8,
-  pub b: u8,
+  pub r: f64,
+  pub g: f64,
+  pub b: f64,
   pub a: f64,
 }
 
 impl Rgba {
-  pub fn new(r: u8, g: u8, b: u8, a: f64) -> Self {
+  pub fn new(r: f64, g: f64, b: f64, a: f64) -> Self {
     Self { r, g, b, a }
   }
 
@@ -1188,7 +1193,7 @@ impl Rgba {
   }
 
   /// Helper: Parse RGBA number token (0-255) - same as RGB
-  fn parse_rgba_number_token(tokens: &mut TokenList) -> Result<u8, CssParseError> {
+  fn parse_rgba_number_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
     let token = tokens
       .consume_next_token_infallible()
       .ok_or(CssParseError::ParseError {
@@ -1197,7 +1202,7 @@ impl Rgba {
 
     if let SimpleToken::Number(value) = token {
       if (0.0..=255.0).contains(&value) {
-        Ok(value as u8)
+        Ok(value)
       } else {
         Err(CssParseError::ParseError {
           message: format!("RGBA number must be 0-255, got {}", value),
@@ -1244,9 +1249,9 @@ impl Display for Rgba {
     write!(
       f,
       "rgba({},{},{},{})",
-      self.r,
-      self.g,
-      self.b,
+      to_js_string(self.r),
+      to_js_string(self.g),
+      to_js_string(self.b),
       to_js_string(self.a)
     )
   }

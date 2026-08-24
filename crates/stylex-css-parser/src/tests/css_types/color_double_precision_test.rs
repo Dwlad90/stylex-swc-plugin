@@ -94,7 +94,7 @@ mod an_rgba_alpha_keeps_its_digits {
   #[test]
   fn an_alpha_computed_by_the_caller_keeps_the_error_javascript_keeps() {
     assert_eq!(
-      Rgba::new(255, 0, 0, 0.1 + 0.2).to_string(),
+      Rgba::new(255.0, 0.0, 0.0, 0.1 + 0.2).to_string(),
       "rgba(255,0,0,0.30000000000000004)"
     );
   }
@@ -885,5 +885,38 @@ mod a_channel_is_spelled_the_way_javascript_spells_it {
     // Truncated at the closing paren rather than before a channel: tolerated,
     // as ticket 05 pinned, and the exponential spelling rides along.
     assert_eq!(printed!("oklab(1e21 1e21 1e21"), "oklab(1e+21 1e+21 1e+21)");
+  }
+}
+
+/// A fractional `rgb()` channel keeps its fraction.
+///
+/// The channels were held as `u8`, so `rgb(2.5, 0, 0)` truncated to
+/// `rgb(2,0,0)`. The reference compiler bounds them with `rgbNumberParser`
+/// (`value >= 0 && value <= 255`) but stores a `number`, so the fraction
+/// survives to the printed colour there and now here. The bound is unchanged:
+/// it is the width that was wrong, not the range.
+///
+/// Values confirmed against the reference compiler's own interpolation.
+#[test]
+fn a_fractional_rgb_channel_is_not_truncated() {
+  for (input, expected) in [
+    ("rgb(2.5, 0, 0)", "rgb(2.5,0,0)"),
+    ("rgb(0.5, 127.5, 254.5)", "rgb(0.5,127.5,254.5)"),
+    ("rgba(2.5, 0, 0, 0.5)", "rgba(2.5,0,0,0.5)"),
+    // An integral channel is still spelled as an integer.
+    ("rgb(255, 0, 0)", "rgb(255,0,0)"),
+  ] {
+    assert_eq!(printed!(input), expected, "for {input:?}");
+  }
+}
+
+/// The `0..=255` bound the reference compiler puts on a channel still holds.
+#[test]
+fn an_out_of_range_rgb_channel_is_still_refused() {
+  for input in ["rgb(256, 0, 0)", "rgb(-1, 0, 0)", "rgb(255.5, 0, 0)"] {
+    assert!(
+      Color::parse().parse_to_end(input).is_err(),
+      "accepted {input:?}"
+    );
   }
 }

@@ -8,7 +8,7 @@ fn advanced_rgb_comma_full_parses_valid() {
   let result = AdvancedColorParsers::rgb_comma_full()
     .parse_to_end("rgb(255,0,128)")
     .unwrap();
-  assert_eq!(result, (255, 0, 128));
+  assert_eq!(result, (255.0, 0.0, 128.0));
 }
 
 #[test]
@@ -37,7 +37,7 @@ fn advanced_rgb_space_full_parses_valid() {
   let result = AdvancedColorParsers::rgb_space_full()
     .parse_to_end("rgb(10 20 30)")
     .unwrap();
-  assert_eq!(result, (10, 20, 30));
+  assert_eq!(result, (10.0, 20.0, 30.0));
 }
 
 #[test]
@@ -66,7 +66,7 @@ fn advanced_rgba_comma_full_parses_valid() {
   let result = AdvancedColorParsers::rgba_comma_full()
     .parse_to_end("rgba(255,0,128,0.5)")
     .unwrap();
-  assert_eq!(result, (255, 0, 128, 0.5));
+  assert_eq!(result, (255.0, 0.0, 128.0, 0.5));
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn advanced_rgba_space_slash_full_parses_valid() {
   let result = AdvancedColorParsers::rgba_space_slash_full()
     .parse_to_end("rgb(255 0 128 / 0.5)")
     .unwrap();
-  assert_eq!(result, (255, 0, 128, 0.5));
+  assert_eq!(result, (255.0, 0.0, 128.0, 0.5));
 }
 
 #[test]
@@ -1091,19 +1091,19 @@ fn hash_color_7_digit_is_invalid_and_rejected() {
 #[test]
 fn rgb_comma_parser_parses_zero_values() {
   let c = Color::parse().parse_to_end("rgb(0, 0, 0)").unwrap();
-  assert!(matches!(c, Color::Rgb(ref r) if r.r == 0 && r.g == 0 && r.b == 0));
+  assert!(matches!(c, Color::Rgb(ref r) if r.r == 0.0 && r.g == 0.0 && r.b == 0.0));
 }
 
 #[test]
 fn rgb_comma_parser_parses_max_values() {
   let c = Color::parse().parse_to_end("rgb(255, 255, 255)").unwrap();
-  assert!(matches!(c, Color::Rgb(ref r) if r.r == 255 && r.g == 255 && r.b == 255));
+  assert!(matches!(c, Color::Rgb(ref r) if r.r == 255.0 && r.g == 255.0 && r.b == 255.0));
 }
 
 #[test]
 fn rgb_space_parser_parses_valid() {
   let c = Color::parse().parse_to_end("rgb(100 150 200)").unwrap();
-  assert!(matches!(c, Color::Rgb(ref r) if r.r == 100 && r.g == 150 && r.b == 200));
+  assert!(matches!(c, Color::Rgb(ref r) if r.r == 100.0 && r.g == 150.0 && r.b == 200.0));
 }
 
 // ── Rgba additional valid forms ───────────────────────────────────────────────
@@ -1207,8 +1207,8 @@ fn color_enum_display_all_variants_not_empty() {
   let variants: Vec<Color> = vec![
     Color::Named(NamedColor::new("red")),
     Color::Hash(HashColor::new("FF0000")),
-    Color::Rgb(Rgb::new(255, 0, 0)),
-    Color::Rgba(Rgba::new(255, 0, 0, 0.5)),
+    Color::Rgb(Rgb::new(255.0, 0.0, 0.0)),
+    Color::Rgba(Rgba::new(255.0, 0.0, 0.0, 0.5)),
     Color::Hsl(Hsl::from_primitives(120.0, 100.0, 50.0)),
     Color::Hsla(Hsla::from_primitives(120.0, 100.0, 50.0, 0.8)),
     Color::Lch(Lch::new_with_number(50.0, 100.0, 180.0, None)),
@@ -1245,7 +1245,7 @@ fn hsla_display_format() {
 
 #[test]
 fn rgb_display_format() {
-  let rgb = Rgb::new(0, 128, 255);
+  let rgb = Rgb::new(0.0, 128.0, 255.0);
   assert_eq!(format!("{}", rgb), "rgb(0,128,255)");
 }
 
@@ -1253,7 +1253,7 @@ fn rgb_display_format() {
 
 #[test]
 fn rgba_display_format() {
-  let rgba = Rgba::new(0, 128, 255, 0.75);
+  let rgba = Rgba::new(0.0, 128.0, 255.0, 0.75);
   assert_eq!(format!("{}", rgba), "rgba(0,128,255,0.75)");
 }
 
@@ -1660,7 +1660,7 @@ fn rgba_comma_parser_with_leading_whitespace() {
     .parse_to_end("rgba( 255, 0, 0, 0.5)")
     .unwrap();
   if let Color::Rgba(rgba) = c {
-    assert_eq!(rgba.r, 255);
+    assert_eq!(rgba.r, 255.0);
     assert_eq!(rgba.a, 0.5);
   } else {
     panic!("Expected Rgba");
@@ -1674,7 +1674,7 @@ fn rgba_comma_parser_with_trailing_whitespace_before_close() {
     .parse_to_end("rgba(255, 0, 0, 0.5 )")
     .unwrap();
   if let Color::Rgba(rgba) = c {
-    assert_eq!(rgba.r, 255);
+    assert_eq!(rgba.r, 255.0);
     assert_eq!(rgba.a, 0.5);
   } else {
     panic!("Expected Rgba");
@@ -2357,9 +2357,9 @@ fn hsla_comma_parser_whitespace_before_comma() {
 fn rgb_comma_parser_whitespace_before_comma() {
   let c = Color::parse().parse_to_end("rgb(255 , 0 , 128)").unwrap();
   if let Color::Rgb(rgb) = c {
-    assert_eq!(rgb.r, 255);
-    assert_eq!(rgb.g, 0);
-    assert_eq!(rgb.b, 128);
+    assert_eq!(rgb.r, 255.0);
+    assert_eq!(rgb.g, 0.0);
+    assert_eq!(rgb.b, 128.0);
   } else {
     panic!("Expected Rgb");
   }
@@ -2371,7 +2371,7 @@ fn rgba_comma_parser_whitespace_before_comma() {
     .parse_to_end("rgba(255 , 0 , 128 , 0.5)")
     .unwrap();
   if let Color::Rgba(rgba) = c {
-    assert_eq!(rgba.r, 255);
+    assert_eq!(rgba.r, 255.0);
     assert!((rgba.a - 0.5).abs() < 0.001);
   } else {
     panic!("Expected Rgba");
@@ -2393,7 +2393,7 @@ fn rgba_space_slash_parser_no_whitespace_before_slash() {
   // No whitespace before '/' exercises the "else path" of the if-let
   let c = Color::parse().parse_to_end("rgba(255 0 0/0.5)").unwrap();
   if let Color::Rgba(rgba) = c {
-    assert_eq!(rgba.r, 255);
+    assert_eq!(rgba.r, 255.0);
     assert!((rgba.a - 0.5).abs() < 0.001);
   } else {
     panic!("Expected Rgba");
@@ -2405,7 +2405,7 @@ fn rgba_space_slash_parser_no_whitespace_after_slash() {
   // No whitespace after '/' exercises the "else path" of if-let
   let c = Color::parse().parse_to_end("rgba(255 0 0 /0.5)").unwrap();
   if let Color::Rgba(rgba) = c {
-    assert_eq!(rgba.r, 255);
+    assert_eq!(rgba.r, 255.0);
     assert!((rgba.a - 0.5).abs() < 0.001);
   } else {
     panic!("Expected Rgba");

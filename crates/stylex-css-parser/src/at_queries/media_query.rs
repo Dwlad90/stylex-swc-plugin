@@ -747,8 +747,10 @@ fn distribution_is_hopeless(rules: &[MediaQueryRule]) -> bool {
 /// One correction worth leaving here, because it is easy to assume otherwise:
 /// the reference implementation's own recovery is not reachable by a deep
 /// breakpoint ladder. Its recursion depth grows with ladder length while its
-/// branch count doubles per rung, so the heap gives out first -- fatally, where
-/// no `catch` can see it -- rather than the call stack.
+/// branch count doubles per rung, so what gives out is the string-length limit
+/// or the heap -- whichever binds first -- and not the call stack. Neither
+/// reaches its recovery: the heap aborts where no `catch` runs, and the string
+/// limit is raised outside the one that would have caught it.
 fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
   merge_intervals_for_and(rules)
 }

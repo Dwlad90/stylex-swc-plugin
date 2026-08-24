@@ -171,22 +171,26 @@ pub fn write_js_number(out: &mut impl fmt::Write, value: f64) -> fmt::Result {
   Ok(())
 }
 
-/// Writes `values` into `out`, separated by `separator`, each spelled as JS
+/// Writes `values` into `out` as a comma-separated list, each spelled as JS
 /// spells it.
 ///
-/// One writer because three `Display` impls needed the same comma-separated list
-/// of numbers and each spelled it differently -- `matrix()` as six positional
-/// format arguments, `matrix3d()` and `linear()` each as a `Vec<String>` and a
-/// `join`. The list is what they have in common, and the two `join` forms were
-/// also the two that allocated once per number and once more for the result.
+/// One writer because three `Display` impls needed the same list and each spelled
+/// it differently -- `matrix()` as six positional format arguments, `matrix3d()`
+/// and `linear()` each as a `Vec<String>` and a `join`. The list is what they
+/// have in common, and the two `join` forms were also the two that allocated once
+/// per number and once more for the result.
+///
+/// The separator is `", "` and not a parameter. Every caller is a CSS function's
+/// argument list, which is the only shape this is for, and a parameter with one
+/// value across every call site is a choice a reader has to check rather than a
+/// choice anything makes. Give it one when a second separator turns up.
 pub fn write_js_number_list(
   out: &mut impl fmt::Write,
   values: impl IntoIterator<Item = f64>,
-  separator: &str,
 ) -> fmt::Result {
   for (index, value) in values.into_iter().enumerate() {
     if index > 0 {
-      out.write_str(separator)?;
+      out.write_str(", ")?;
     }
 
     write_js_number(out, value)?;
@@ -203,12 +207,16 @@ pub fn write_js_number_list(
 pub fn to_js_string(value: f64) -> String {
   let mut result = String::with_capacity(24);
 
-  // `fmt::Write for String` returns `Ok` unconditionally -- it has nothing that
-  // can fail -- so the result is discarded rather than handled. There is no
-  // state here to report.
-  let _ = write_js_number(&mut result, value);
-
-  result
+  match write_js_number(&mut result, value) {
+    Ok(()) => result,
+    // `fmt::Write for String` returns `Ok` unconditionally -- pushing onto a
+    // `String` has no failure mode -- so this arm describes no state. Written as
+    // a `match` rather than discarded with `let _ =` because `RUST.md` asks for
+    // every case to be handled, and returning the buffer is the honest answer:
+    // there is nothing to report and nothing to panic about, which is why it is
+    // not `unreachable!` either.
+    Err(_) => result,
+  }
 }
 
 /// Decomposes a finite, strictly positive `f64` into ECMA-262's `s` (the

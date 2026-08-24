@@ -538,7 +538,7 @@ impl Display for EasingFunction {
 impl Display for LinearEasingFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.write_str("linear(")?;
-    write_js_number_list(f, self.points.iter().copied(), ", ")?;
+    write_js_number_list(f, self.points.iter().copied())?;
     f.write_char(')')
   }
 }

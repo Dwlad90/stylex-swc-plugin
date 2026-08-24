@@ -695,7 +695,13 @@ impl HashColor {
   fn expanded_short_digit(&self, index: usize) -> Option<u8> {
     let digit = self.value.chars().nth(index)?;
 
-    u8::from_str_radix(&format!("{digit}{digit}"), 16).ok()
+    // `d * 17` rather than parsing `"dd"`: doubling a hex digit is multiplying by
+    // `0x11`, so `f` is `0xff` and `a` is `0xaa`, and the parse allocated a
+    // two-character `String` per channel to reach the same answer. `u8` cannot
+    // overflow here -- the largest digit is 15, and `15 * 17` is 255.
+    let doubled = digit.to_digit(16)? * 17;
+
+    u8::try_from(doubled).ok()
   }
 
   /// The two-byte hex pair starting at `start`, or `None` where the value has no

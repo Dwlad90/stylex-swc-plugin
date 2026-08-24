@@ -1095,19 +1095,14 @@ impl TransformFunction {
 impl Display for TransformFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      TransformFunction::Matrix(m) => write!(
-        f,
-        "matrix({}, {}, {}, {}, {}, {})",
-        to_js_string(m.a),
-        to_js_string(m.b),
-        to_js_string(m.c),
-        to_js_string(m.d),
-        to_js_string(m.tx),
-        to_js_string(m.ty)
-      ),
+      TransformFunction::Matrix(m) => {
+        f.write_str("matrix(")?;
+        write_js_number_list(f, [m.a, m.b, m.c, m.d, m.tx, m.ty])?;
+        f.write_char(')')
+      },
       TransformFunction::Matrix3d(m) => {
         f.write_str("matrix3d(")?;
-        write_js_number_list(f, m.args.iter().copied(), ", ")?;
+        write_js_number_list(f, m.args.iter().copied())?;
         f.write_char(')')
       },
       TransformFunction::Perspective(p) => write!(f, "perspective({})", p.length),

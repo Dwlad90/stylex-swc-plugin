@@ -13,7 +13,7 @@
 //! only way to see it was to ask what the author actually read.
 //!
 //! The reference compiler reports `Unsupported object method.` here
-//! (`utils/evaluate-path.js:759-761`, 0.19.0). A getter is a different node and
+//! (`utils/evaluate-path.js:757`, 0.19.0). A getter is a different node and
 //! always reached that message correctly, which is why it is pinned beside the
 //! method: the bug was reachable through one of two neighbouring shapes.
 

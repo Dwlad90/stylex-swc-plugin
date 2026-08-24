@@ -1,5 +1,10 @@
 //! Cutting a shorthand value into the parts its expansion hands out.
 //!
+//! Ports `splitValue` from the reference compiler's
+//! `shared/utils/split-css-value.js`. The one deliberate divergence is recorded
+//! under "What holds of every part" below: an empty part is a part here, where
+//! upstream throws.
+//!
 //! A shorthand assigns one authored value to several longhands, so something
 //! has to decide where one part ends and the next begins. That decision is a
 //! compatibility contract rather than a detail: each part becomes the value of

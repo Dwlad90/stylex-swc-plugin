@@ -8,8 +8,10 @@ use stylex_utils::string::json_stringify;
 
 /// Whether `part` is spellable as a `list-style-type`.
 ///
-/// Upstream asks this with `/^([a-z-]+|".*?"|'.*?')$/`, and the three
-/// alternatives are reproduced one by one rather than collapsed. Both quote
+/// Upstream asks this with `listStyleTypeRegex` in
+/// `shared/preprocess-rules/legacy-expand-shorthands.js`, which is
+/// `/^([a-z-]+|".*?"|'.*?')$/`, and the three alternatives are reproduced one by
+/// one rather than collapsed. Both quote
 /// characters are accepted because a part arrives with the character the author
 /// typed: the splitter echoes a string rather than re-quoting it, so a
 /// single-quoted family name is single-quoted here.
@@ -230,9 +232,18 @@ impl Shorthands {
       // Joined whatever the part says, the empty part included, which is the
       // rule `crate::values::parser` states for every consumer of a part list:
       // an empty part is present. Upstream's guard here asks whether the part is
-      // *absent*, which no part of a split value is -- and skipping an empty one
-      // instead loses the axis: an unterminated comment contributes an empty
-      // part, so `auto /*` sized only the width where upstream sizes both.
+      // *absent*, which no part of a split value is here -- and skipping an
+      // empty one instead loses the axis: an unterminated comment contributes an
+      // empty part, so `auto /*` sized only the width where upstream sizes both.
+      //
+      // Absent is reachable upstream and not here for a reason worth naming, so
+      // that nobody restores the guard by reading `splitValue` alone: upstream's
+      // returns `$ReadOnlyArray<number | string | null>`, and the `null` comes
+      // from its two early arms -- `str == null` returning `[str]`, and the
+      // `Array.isArray(str)` passthrough it keeps only for Flow. `TRawValue`
+      // (`stylex_structures::raw_value`) has no array variant and a null value
+      // never reaches this far, so neither arm has a counterpart here and the
+      // guard has nothing left to guard.
       if follows_auto {
         let combined = format!("auto {}", part.as_css_text());
 

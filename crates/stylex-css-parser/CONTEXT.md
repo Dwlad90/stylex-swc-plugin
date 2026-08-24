@@ -55,6 +55,19 @@ longer echoes through this crate — see
 [value part](../stylex-css/CONTEXT.md).
 _Avoid_: passthrough, verbatim, raw
 
+**Precision suite**:
+A test file named for what it pins rather than for an upstream test file —
+`double_precision_test.rs`, `color_double_precision_test.rs`,
+`js_number_spelling_test.rs`, `easing_function_precision_test.rs`,
+`transform_function_precision_test.rs`, `token_types_precision_test.rs`. A third
+category beside the two older ones: a `<subject>_test.rs` mirrors an upstream
+test file case for case, and a `<subject>_coverage_test.rs` reaches the branches
+that mirroring leaves untouched. A precision suite mirrors nothing, because the
+divergence it pins cannot exist upstream — a JavaScript `number` is already a
+double, so upstream has no reason to test that one is. Reach for this name only
+where that is true; a case with an upstream counterpart belongs in the mirror.
+_Avoid_: f64 test, widening test, precision coverage
+
 **Property parser**:
 A parser for one whole property's grammar — `Transform`, `BoxShadow`,
 `BorderRadiusShorthand`. Composed from CSS types.

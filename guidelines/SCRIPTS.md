@@ -111,11 +111,24 @@ repeatable `--category` (`transform|perf|rollup`) and `--fixture` substring.
 ## Parity harness
 
 Also in `crates/stylex-rs-compiler`; run `build` first (it reads `dist/`).
-Not a test and not wired into CI -- except `parity:harvest:check`, which scans
-Rust sources rather than running either compiler, needs no `dist/`, and runs
-ahead of this package's `vitest` suite so a corpus that has fallen behind the
-Rust tests fails rather than waiting to be noticed. Full docs:
+Not a test, but wired into CI. Full docs:
 `crates/stylex-rs-compiler/parity/README.md`.
+
+Which harness runs where, and why:
+
+- `parity`, `parity:positions` and `fuzz:pseudo-order` run per pull request, in
+  the `checks` matrix's `parity` leg, after a `build`. They are the oracle every
+  expectation in the CSS-value corpus was derived from, and each is seconds
+  long. `fuzz:pseudo-order` is there rather than nightly because it is the one
+  that guards a class name.
+- `fuzz:shorthand` runs on the nightly schedule only, in the `parity-sweep`
+  job. It crosses an alphabet with itself -- around forty times the cost of
+  `parity` -- and a value-splitter defect shows up when a value pass or the
+  alphabet changes, which a nightly sweep catches as surely as a per-commit one.
+- `parity:harvest:check` needs neither `dist/` nor either compiler, since it
+  only scans Rust sources, so it runs ahead of this package's `vitest` suite --
+  a corpus that has fallen behind the Rust tests fails rather than waiting to be
+  noticed.
 
 - `parity`: runs a corpus of CSS declarations through this compiler and through
   a pinned `@stylexjs/babel-plugin`, and reports which ones disagree on class
@@ -127,6 +140,17 @@ Rust tests fails rather than waiting to be noticed. Full docs:
   runs as the first half of this package's `test` script. Regenerating also
   invalidates `crates/postcss-value-parser/src/tests/cases.rs`, whose row order
   is the corpus order -- run that package's `generate:value-parser-cases` next.
+- `parity:positions`: the same comparison for the position corpus -- where in a
+  file a declaration sits, rather than what it holds.
+- `fuzz:pseudo-order`: crosses an alphabet of pseudo-class keys and checks the
+  order this compiler sorts them in against the reference compiler's, both by
+  class name and by reading the order off the emitted selector. Flags:
+  `--pairs <n>` (1000), `--show <n>` (20).
+- `fuzz:shorthand`: generates shorthand values from an alphabet of token classes
+  and joiners and compares how each splits. Every divergence it reports must
+  belong to a refusal family in `parity/lib/refusal-families.ts`; a divergence
+  no family accounts for fails the run. Flags: `--show <n>`, `--json <path>`,
+  repeatable `--property <name>`.
 
 ## Coverage
 

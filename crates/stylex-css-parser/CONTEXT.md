@@ -116,6 +116,21 @@ hashes, so the wrapper is contract rather than noise. This is the media-query
 counterpart of value [normalization](../stylex-css/CONTEXT.md) in `stylex-css`.
 _Avoid_: minification, formatting, cleanup, pruning
 
+**Media query grammar**:
+What the rule parser accepts, which is the CSS Media Queries Level 4 condition
+grammar rather than whatever parses. One condition takes `and`s or `or`s and
+never both, a bare `not` is the whole condition rather than an operand in one,
+and a comma binds more loosely than an `or` — so `(a) and (b), (c) or (d)` is
+two disjuncts and not three, which matters because the
+[last-media-query-wins transform](#last-media-query-wins-transform) distributes
+its negations over the top-level `Or`. One spelling is accepted here and refused
+by the official compiler, on purpose: parentheses nested around a single
+condition, which the language defines and its `oneOf` chain has no alternative
+for. Refusing valid CSS to match a stricter reference buys nothing — an author
+cannot get a divergent class name from a query the other compiler will not
+compile. Every other combinator shape agrees.
+_Avoid_: media syntax, query validation, condition parser
+
 **Range merge boundary**:
 `merge_and_simplify_ranges` — the single place media query canonicalization
 crosses to merge an `and` list's ranges, named after the wrapper it mirrors in

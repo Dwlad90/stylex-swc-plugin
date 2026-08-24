@@ -138,12 +138,18 @@ parenthesis written as an escape or sitting inside a string, where upstream's
 own counter would not — but upstream never runs that counter on this path, so
 what is matched is what its parser actually accepts.
 
-**Three grammar differences remain open.** This compiler accepts a parenthesized
-single condition, nested parentheses around one, and an unparenthesized mix of
-`and` and `or`; upstream refuses all three and fails the build. They predate
-this work, closing them means changing the grammar, and the acceptance question
-deserves deciding on its own terms. One caution for whoever takes it: upstream's
-parser backtracks exponentially in parenthesis nesting depth — eight levels take
-it 1.18 s, twelve take 20.5 s, sixteen do not finish in thirty seconds, where
-this compiler answers two hundred levels in 2 ms. Matching its answers must not
-mean matching that.
+**One grammar difference is kept on purpose.** Parentheses nested around a
+single condition — `@media ((min-width: 1px))` — are accepted here and refused
+upstream. `( <media-condition> )` is what the language defines and a condition
+may itself be one, so this is valid CSS and upstream's `oneOf` chain simply has
+no alternative for it. Refusing valid input to match buys nothing: nobody gets a
+divergent class name from a query the other compiler will not compile at all,
+and the same reasoning that makes this ADR match upstream's worse output does
+not reach a case where upstream produces no output.
+
+Every other combinator shape was matched — see the glossary's
+[media query grammar](../../CONTEXT.md) entry. One caution if this is ever
+revisited: upstream's parser backtracks exponentially in parenthesis nesting
+depth — eight levels take it 1.18 s, twelve take 20.5 s, sixteen do not finish
+in thirty seconds, where this compiler answers two thousand levels in 10 ms.
+Matching its answers must not mean matching that.

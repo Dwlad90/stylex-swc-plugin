@@ -197,6 +197,59 @@ fn hash_color_r_g_b_for_8_digit_hex() {
   assert_eq!(c.a(), f64::from(0x78_u8) / 255.0);
 }
 
+// ── HashColor: a value whose bytes are not its characters ───────────────────
+
+// `is_valid_hex` measures `len()`, which counts bytes, and the accessors read
+// `chars()` and two-byte slices. `HashColor::new` is `pub`, so the guard is not
+// on the path -- and every one of these was an abort rather than a fallback.
+//
+// An abort and not a panic, which is why they are worth pinning: this crate runs
+// inside a NAPI addon, and the `catch_unwind` there turns a panic into a thrown
+// JS error but cannot see a slice panic in a way the author ever reads. The
+// process goes down with no diagnostic.
+
+/// Byte length 3, two characters. `chars().nth(2)` has nothing to return.
+#[test]
+fn hash_color_short_value_of_three_bytes_but_two_characters() {
+  let c = HashColor::new("éx");
+
+  assert_eq!(c.value.len(), 3, "the guard's own measure is bytes");
+  assert_eq!(c.r(), 0);
+  assert_eq!(c.g(), 0);
+  assert_eq!(c.b(), 0);
+  assert_eq!(c.a(), 1.0);
+}
+
+/// Byte length 6, with `é` straddling the first two pairs.
+///
+/// Only the pairs that actually straddle fall back. `aébcd` is
+/// `a`, `é` at bytes 1..3, then `b`, `c`, `d` -- so `r` (0..2) and `g` (2..4)
+/// both land mid-character and yield the fallback, while `b` (4..6) is a clean
+/// `cd` and reads as one. Asserted that way round rather than all-zero: the fix
+/// is a fallback for the unreadable pair, not a refusal of the whole value.
+#[test]
+fn hash_color_six_byte_value_split_through_a_character() {
+  let c = HashColor::new("aébcd");
+
+  assert_eq!(c.value.len(), 6);
+  assert_eq!(c.r(), 0);
+  assert_eq!(c.g(), 0);
+  assert_eq!(c.b(), 0xcd);
+}
+
+/// Byte length 8, and the *alpha* slice is the one that lands mid-character --
+/// the three colour channels read clean hex before it.
+#[test]
+fn hash_color_eight_byte_value_split_through_the_alpha_pair() {
+  let c = HashColor::new("abcdefé");
+
+  assert_eq!(c.value.len(), 8);
+  assert_eq!(c.r(), 0xab);
+  assert_eq!(c.g(), 0xcd);
+  assert_eq!(c.b(), 0xef);
+  assert_eq!(c.a(), 1.0, "an unreadable alpha pair falls back to opaque");
+}
+
 // ── Rgb parser error branches ─────────────────────────────────────────────────
 
 #[test]

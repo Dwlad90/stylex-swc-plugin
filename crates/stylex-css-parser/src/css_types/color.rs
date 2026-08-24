@@ -685,20 +685,41 @@ impl HashColor {
     valid_lengths.contains(&value.len()) && value.chars().all(|c| c.is_ascii_hexdigit())
   }
 
+  /// The `index`th hex digit of a 3-digit value, doubled: `#abc` reads `aa`,
+  /// `bb`, `cc`. `None` where there is no such digit.
+  ///
+  /// The parser's `is_valid_hex` guard excludes that case, but [`HashColor::new`]
+  /// is `pub` and the guard measures `len()`, which counts **bytes** where
+  /// `chars()` counts characters -- so a multi-byte value of byte length 3 has
+  /// fewer than three digits. `HashColor::new("éx")` was a panic in [`Self::b`].
+  fn expanded_short_digit(&self, index: usize) -> Option<u8> {
+    let digit = self.value.chars().nth(index)?;
+
+    u8::from_str_radix(&format!("{digit}{digit}"), 16).ok()
+  }
+
+  /// The two-byte hex pair starting at `start`, or `None` where the value has no
+  /// such pair.
+  ///
+  /// `get` rather than `[start..start + 2]` for the reason `from_offset` gives
+  /// about its own slice: the indexing form panics on a boundary that is not a
+  /// character boundary, and this crate runs inside a NAPI addon, where a slice
+  /// panic aborts the process with no diagnostic at all rather than surfacing as
+  /// a thrown error. `HashColor::new("aébcd")` is byte length 6 and splits `é`.
+  fn hex_pair(&self, start: usize) -> Option<u8> {
+    let pair = self.value.get(start..start + 2)?;
+
+    u8::from_str_radix(pair, 16).ok()
+  }
+
   /// Get red component (0-255)
   /// IMPORTANT: Implements CORRECT CSS behavior for 3-digit hex expansion
   pub fn r(&self) -> u8 {
     match self.value.len() {
-      3 => {
-        // 3-digit hex: #RGB -> expand to #RRGGBB
-        let r_char = self.value.chars().next().unwrap();
-        let expanded = format!("{}{}", r_char, r_char);
-        u8::from_str_radix(&expanded, 16).unwrap_or(0)
-      },
-      6 | 8 => {
-        // 6-digit or 8-digit hex
-        u8::from_str_radix(&self.value[0..2], 16).unwrap_or(0)
-      },
+      // 3-digit hex: #RGB -> expand to #RRGGBB
+      3 => self.expanded_short_digit(0).unwrap_or(0),
+      // 6-digit or 8-digit hex
+      6 | 8 => self.hex_pair(0).unwrap_or(0),
       _ => 0,
     }
   }
@@ -707,12 +728,8 @@ impl HashColor {
   /// IMPORTANT: Implements CORRECT CSS behavior for 3-digit hex expansion
   pub fn g(&self) -> u8 {
     match self.value.len() {
-      3 => {
-        let g_char = self.value.chars().nth(1).unwrap();
-        let expanded = format!("{}{}", g_char, g_char);
-        u8::from_str_radix(&expanded, 16).unwrap_or(0)
-      },
-      6 | 8 => u8::from_str_radix(&self.value[2..4], 16).unwrap_or(0),
+      3 => self.expanded_short_digit(1).unwrap_or(0),
+      6 | 8 => self.hex_pair(2).unwrap_or(0),
       _ => 0,
     }
   }
@@ -721,23 +738,17 @@ impl HashColor {
   /// IMPORTANT: Implements CORRECT CSS behavior for 3-digit hex expansion
   pub fn b(&self) -> u8 {
     match self.value.len() {
-      3 => {
-        let b_char = self.value.chars().nth(2).unwrap();
-        let expanded = format!("{}{}", b_char, b_char);
-        u8::from_str_radix(&expanded, 16).unwrap_or(0)
-      },
-      6 | 8 => u8::from_str_radix(&self.value[4..6], 16).unwrap_or(0),
+      3 => self.expanded_short_digit(2).unwrap_or(0),
+      6 | 8 => self.hex_pair(4).unwrap_or(0),
       _ => 0,
     }
   }
 
   /// Get alpha component (0.0-1.0)
   pub fn a(&self) -> f64 {
-    if self.value.len() == 8 {
-      let alpha_hex = &self.value[6..8];
-      f64::from(u8::from_str_radix(alpha_hex, 16).unwrap_or(255)) / 255.0
-    } else {
-      1.0
+    match self.value.len() {
+      8 => f64::from(self.hex_pair(6).unwrap_or(255)) / 255.0,
+      _ => 1.0,
     }
   }
 

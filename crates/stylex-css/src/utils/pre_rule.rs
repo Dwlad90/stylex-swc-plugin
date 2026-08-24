@@ -167,7 +167,7 @@ pub(super) const fn build_ascii_primary_rank() -> [u8; 128] {
 /// after `z` where every other locale measured sorts it beside `o`. A compiler
 /// whose class names depended on the environment would be worse than one that
 /// diverges from a Swedish machine, so this picks the answer every non-tailoring
-/// locale gives. `docs/adr/0001-root-collation-orders-a-non-ascii-condition-key.md`
+/// locale gives. `docs/adr/0001-root-collation-orders-a-non-ascii-key.md`
 /// states that remainder as what it is.
 static PSEUDO_COLLATOR: LazyLock<CollatorBorrowed<'static>> = LazyLock::new(|| {
   match Collator::try_new(CollatorPreferences::default(), CollatorOptions::default()) {
@@ -252,7 +252,7 @@ fn primary_weight(byte: u8) -> u16 {
 /// beside its base letter, a symbol weighs below every letter, and a character
 /// root collation does not weigh at all carries no weight here either. That was
 /// the last divergence in the parity harness costing a class name, and
-/// `docs/adr/0001-root-collation-orders-a-non-ascii-condition-key.md` holds the
+/// `docs/adr/0001-root-collation-orders-a-non-ascii-key.md` holds the
 /// numbers the choice was made on.
 ///
 /// **The two paths must be one answer, and the boundary is `0x20..=0x7e`.** They
@@ -268,7 +268,7 @@ fn primary_weight(byte: u8) -> u16 {
 /// write, except Swedish and Danish, which sort `ö` after `z`. So this closes the
 /// divergence for a build machine whose locale does not tailor the characters in
 /// play, which is the only answer a compiler can give without reading its
-/// environment. `docs/adr/0001-root-collation-orders-a-non-ascii-condition-key.md`
+/// environment. `docs/adr/0001-root-collation-orders-a-non-ascii-key.md`
 /// says so at length.
 pub(crate) fn pseudo_comparator(a: &str, b: &str) -> Ordering {
   // Root collation answers the whole of this ordering, printable ASCII included

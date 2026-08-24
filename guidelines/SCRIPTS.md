@@ -145,7 +145,9 @@ Which harness runs where, and why:
 - `fuzz:pseudo-order`: crosses an alphabet of pseudo-class keys and checks the
   order this compiler sorts them in against the reference compiler's, both by
   class name and by reading the order off the emitted selector. Flags:
-  `--pairs <n>` (1000), `--show <n>` (20).
+  `--pairs <n>` (1000), `--seed <hex>` (`0x2545f4914f6cdd1d`), `--show <n>`
+  (20). The run prints its seed and the Node ICU version, so a disagreement one
+  machine reports can be re-run on another.
 - `fuzz:shorthand`: generates shorthand values from an alphabet of token classes
   and joiners and compares how each splits. Every divergence it reports must
   belong to a refusal family in `parity/lib/refusal-families.ts`; a divergence

@@ -258,10 +258,9 @@ It checks two things, and they are not the same check:
 
 Keys are attribute selectors, and not for convenience. Every pseudo-class and
 pseudo-element name CSS defines is ASCII, so an attribute selector is the only
-way a non-ASCII key reaches the comparator at all —
-`crates/stylex-css/docs/adr/0001-root-collation-orders-a-non-ascii-condition-key.md`
-argues that at length. It also keeps a generated key clear of the
-selector syntax a random character would otherwise spell, which would make the
+way a non-ASCII key reaches the comparator at all — [the collation ADR][adr]
+argues that at length. It also keeps a generated key clear of the selector
+syntax a random character would otherwise spell, which would make the
 subject about parsing rather than about order.
 
 The run also prints how many of its pairs the **build machine's default locale**
@@ -614,3 +613,5 @@ the transform path, not the normalization seam, and the two disagree — `conten
 "\2014 A"` survives the transform unchanged but has its escape resolved at the
 seam. Pick a property that reaches normalization (`fontFamily` covers the same
 string shapes) when sourcing an expectation for a normalization test.
+
+[adr]: ../../stylex-css/docs/adr/0001-root-collation-orders-a-non-ascii-key.md

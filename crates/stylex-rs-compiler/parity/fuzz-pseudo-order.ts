@@ -29,7 +29,7 @@
  * Keys are attribute selectors, and that is not for convenience. Every
  * pseudo-class and pseudo-element name CSS defines is ASCII, so an attribute
  * selector is the only way a non-ASCII key reaches the comparator at all —
- * `crates/stylex-css/docs/adr/0001-root-collation-orders-a-non-ascii-condition-key.md`
+ * `crates/stylex-css/docs/adr/0001-root-collation-orders-a-non-ascii-key.md`
  * argues that at length. It also keeps the
  * generated key clear of the selector syntax a random character would otherwise
  * spell, which would make the subject about parsing rather than about order.
@@ -57,6 +57,7 @@ const { values: cliOptions } = parseArgs({
   args: process.argv.slice(2).filter(argument => argument !== '--'),
   options: {
     pairs: { type: 'string', default: '1000' },
+    seed: { type: 'string' },
     show: { type: 'string', default: '20' },
     help: { type: 'boolean', short: 'h', default: false },
   },
@@ -68,6 +69,8 @@ ${chalk.bold('Condition-key ordering parity over random pairs')}
 
 Options:
       --pairs <n>   how many key pairs to generate (default 1000)
+      --seed <hex>  the generator's seed, so a reported failure can be re-run
+                    (default 0x2545f4914f6cdd1d)
       --show <n>    how many disagreeing pairs to print (default 20)
   -h, --help        show this help
 `);
@@ -166,7 +169,23 @@ async function run(): Promise<void> {
   }
 
   const comparer = await createComparer({ packageDir, enableFontSizePxToRem: false });
-  const seed = 0x2545_f491_4f6c_dd1dn;
+  // The printed seed was decorative while it could not be given back: a failing
+  // pair could be read but not re-run, and the same 1000 pairs were the only
+  // ones ever measured. A bad value is refused rather than defaulted, so a typo
+  // cannot quietly send the run back to the same alphabet corner.
+  let seed = 0x2545_f491_4f6c_dd1dn;
+  if (cliOptions.seed != null) {
+    try {
+      seed = BigInt(cliOptions.seed);
+    } catch {
+      console.error(chalk.red(`--seed ${cliOptions.seed} is not a number.`));
+      process.exit(1);
+    }
+    if (seed <= 0n) {
+      console.error(chalk.red('--seed must be positive; a zero state never advances.'));
+      process.exit(1);
+    }
+  }
   const next = randoms(seed);
 
   console.log(
@@ -175,6 +194,9 @@ async function run(): Promise<void> {
       ['seed', `0x${seed.toString(16)}`],
       ['alphabet', `${ALPHABET.length} characters, ASCII through U+036F`],
       ['reference ordering', `Intl.Collator('und'), root`],
+      // The ADR leaves the CLDR data version uncosted. Printed so a run that
+      // disagrees with another machine's says which data each measured with.
+      ['icu', process.versions.icu ?? 'not reported'],
     ])}\n`
   );
 

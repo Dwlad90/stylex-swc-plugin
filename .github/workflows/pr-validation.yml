@@ -271,6 +271,12 @@ jobs:
     name: Shorthand split sweep
     if: github.event_name == 'schedule' && github.ref_name == 'develop'
     runs-on: ubuntu-24.04-arm
+    # The only job here that bounds itself, because it is the only one whose
+    # work is a cross product rather than a fixed list: widen the alphabet and
+    # the subject count grows with its square. Measured at ~97s, so 20 minutes
+    # is roughly twelve times headroom and still an order of magnitude below
+    # the 360-minute default a runaway would otherwise sit on overnight.
+    timeout-minutes: 20
     needs:
       - build-public-packages
     steps:

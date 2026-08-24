@@ -283,7 +283,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ env.CHECKOUT_REF }}
+          # Spelled out rather than taken from `CHECKOUT_REF`, which the jobs
+          # around it use because they also serve pull requests. This one runs
+          # on the nightly schedule alone, where that variable resolves to this
+          # very ref -- so the indirection buys nothing and costs something: a
+          # cache-writing job whose checkout ref is an expression reads as a
+          # cache-poisoning sink to CodeQL, and a literal closes the path.
+          ref: 'refs/heads/develop'
           fetch-depth: 0
           fetch-tags: false
 

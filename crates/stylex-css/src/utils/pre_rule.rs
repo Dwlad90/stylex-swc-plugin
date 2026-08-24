@@ -167,7 +167,8 @@ pub(super) const fn build_ascii_primary_rank() -> [u8; 128] {
 /// after `z` where every other locale measured sorts it beside `o`. A compiler
 /// whose class names depended on the environment would be worse than one that
 /// diverges from a Swedish machine, so this picks the answer every non-tailoring
-/// locale gives. `collation_cost` states that remainder as what it is.
+/// locale gives. `docs/adr/0001-root-collation-orders-a-non-ascii-condition-key.md`
+/// states that remainder as what it is.
 static PSEUDO_COLLATOR: LazyLock<CollatorBorrowed<'static>> = LazyLock::new(|| {
   match Collator::try_new(CollatorPreferences::default(), CollatorOptions::default()) {
     Ok(collator) => collator,
@@ -217,99 +218,6 @@ fn primary_weight(byte: u8) -> u16 {
   }
 }
 
-/// What closing the non-ASCII half of [`pseudo_comparator`] costs, either way.
-///
-/// Carried as a module rather than as prose above the comparator so that
-/// [`pseudo_comparator`] can link to it and `cargo doc` renders it beside the
-/// function it decides. It holds nothing: the decision is the content.
-///
-/// Every number below was taken from a build on this repository rather than
-/// estimated, because the choice turns on the size of one of them.
-///
-/// **Which characters a condition key can carry, argued rather than asserted.**
-/// [`sort_pseudos`] is handed pseudo-classes, pseudo-elements and attribute
-/// selectors. Every pseudo-class and pseudo-element name CSS defines is ASCII,
-/// so nothing non-ASCII can arrive that way. It arrives only through an
-/// attribute selector, in two positions: the attribute *name*, which for a
-/// `data-*` attribute is an XML Name and admits letters from every script; and a
-/// quoted attribute *value*, which is arbitrary text. The second is what settles
-/// the question — the set is not bounded in principle, so any generated range
-/// leaves a remainder, and the remainder is unbounded. Latin-1 Supplement plus
-/// Latin Extended-A would serve a Western-European author; Greek, Cyrillic, CJK
-/// and emoji are each one quoted attribute value away.
-///
-/// **Option A — `icu_collator`.** Exact: it places `[data-état]` between
-/// `[data-e]` and `[data-f]`, and wiring it in as a probe turned the parity
-/// corpus's one `divergent` row into `identical`, read from a run.
-///
-/// - *Dependency surface*: 33 crates in its tree, of which **26 are already in
-///   this workspace's lockfile** — SWC reaches the ICU4X normalizer, properties,
-///   provider, collections and the zerovec/yoke family through `idna_adapter`.
-///   Six are new: `icu_collator`, `icu_collator_data`, `icu_locale_fallback`,
-///   `icu_locale_fallback_data`, `utf16_iter`, `write16`.
-/// - *Compile time*: **2.74s of CPU** across those six, 2.04s of it
-///   `icu_collator` itself, from `cargo build --timings`. On top of that, once:
-///   adding it moves twelve already-present crates forward inside their semver
-///   ranges and hands `icu_normalizer` two features it did not have, which
-///   invalidates `idna`, `url` and the SWC stack for one rebuild.
-/// - *Binary size*: **+1 222 800 bytes on the `.node` addon**, 9 777 328 to
-///   11 000 128 — 12.5%. The same delta to within 16 bytes on a standalone
-///   binary, so it is the CLDR tables rather than shared code.
-///
-/// **Option B — a generated weight table.** The table is not the problem: a
-/// dense per-code-point rank derived from `Intl.Collator` the way
-/// [`ASCII_PRIMARY_ORDER`] was derived is 256 bytes for Latin-1 Supplement, 384
-/// for Latin Extended-A, 880 with combining diacritics and 2 560 with Greek and
-/// Cyrillic. Three orders of magnitude below the ICU data.
-///
-/// The problem is that it does not work. Comparing that table's comparator
-/// against `localeCompare` over 200 000 random pairs drawn from each range:
-/// printable ASCII, which is what ships today, disagrees on **0**; Latin-1
-/// Supplement on **0.50%**; Latin Extended-A on **0.29%**; add combining
-/// diacritics and it is **9.95%**. Three structural reasons, each observed
-/// rather than reasoned about:
-///
-/// 1. *Secondary weights.* `é` and `e` share a primary weight, and root
-///    collation settles the tie on an accent pass that sits between the primary
-///    pass and case. This comparator has no such pass — primary, then length,
-///    then case — so every pair whose primary weights tie on an accented letter
-///    sorts wrong. Eight of the first ten disagreements.
-/// 2. *Completely ignorable characters.* `U+00AD` SOFT HYPHEN carries no weight
-///    at all in root collation. A dense rank must give it one, which shifts
-///    every position after it.
-/// 3. *Expansions.* `æ` weighs as two primary weights, `a` then `e` — measured:
-///    `localeCompare('æ', 'az')` is negative. One character cannot carry two
-///    ranks in a per-code-point table.
-///
-/// So the generated table has no defensible edge. Reaching the ordering needs
-/// decomposition, a secondary pass, ignorable handling and expansions — which is
-/// the collation algorithm, and it then has to be fed a weight table anyway.
-///
-/// **Decision: take the dependency.** 1.17 MiB and six crates, four of them from
-/// a family the workspace already carries, against a divergence that costs a
-/// class name and has no cheaper closing.
-///
-/// **What stays uncovered, and how a reader will know.** Root collation is what
-/// upstream reaches when `localeCompare` is called with no locale *on a machine
-/// whose default locale does not tailor the characters involved*. It does not
-/// call it with `'und'`: it calls it bare, so the runtime's default locale
-/// decides. Measured — `en-US`, `de-DE` and `tr-TR` all agree with root on `ö`,
-/// `ä`, `å`, `ø`, `ü` and `é`, while `sv-SE` and `da-DK` sort `ö` **after** `z`.
-/// So upstream on a Swedish-locale build machine names a different class than
-/// upstream on an American one, from the same source. This compiler will always
-/// sort as root, which is the majority answer and the only one a compiler can
-/// pick without reading the build machine's environment — but it means the
-/// divergence is closed for most build machines rather than all of them.
-///
-/// That remainder is not left to memory, and not left to prose either.
-/// `crates/stylex-rs-compiler/parity/fuzz-pseudo-order.ts` counts, per run, how
-/// many of its random key pairs the build machine's default locale and root
-/// collation order differently, and prints that count beside its disagreement
-/// count. On a machine tailoring none of the characters in play it is zero; on a
-/// Swedish one it is not, and the run says so. So the remainder is a number in a
-/// report rather than a sentence someone has to remember to re-derive.
-pub(super) mod collation_cost {}
-
 /// Order a run of pseudo keys the way the reference implementation's
 /// `localeCompare` orders them, over every ASCII input.
 ///
@@ -344,7 +252,8 @@ pub(super) mod collation_cost {}
 /// beside its base letter, a symbol weighs below every letter, and a character
 /// root collation does not weigh at all carries no weight here either. That was
 /// the last divergence in the parity harness costing a class name, and
-/// [`collation_cost`] holds the numbers the choice was made on.
+/// `docs/adr/0001-root-collation-orders-a-non-ascii-condition-key.md` holds the
+/// numbers the choice was made on.
 ///
 /// **The two paths must be one answer, and the boundary is `0x20..=0x7e`.** They
 /// agree over every printable-ASCII pair, which is asserted rather than assumed.
@@ -359,7 +268,8 @@ pub(super) mod collation_cost {}
 /// write, except Swedish and Danish, which sort `ö` after `z`. So this closes the
 /// divergence for a build machine whose locale does not tailor the characters in
 /// play, which is the only answer a compiler can give without reading its
-/// environment. [`collation_cost`] says so at length.
+/// environment. `docs/adr/0001-root-collation-orders-a-non-ascii-condition-key.md`
+/// says so at length.
 pub(crate) fn pseudo_comparator(a: &str, b: &str) -> Ordering {
   // Root collation answers the whole of this ordering, printable ASCII included
   // -- `ascii_and_root_collation_agree_on_every_printable_pair` says so over

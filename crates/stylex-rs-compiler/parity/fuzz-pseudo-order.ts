@@ -29,7 +29,8 @@
  * Keys are attribute selectors, and that is not for convenience. Every
  * pseudo-class and pseudo-element name CSS defines is ASCII, so an attribute
  * selector is the only way a non-ASCII key reaches the comparator at all —
- * `collation_cost` in `pre_rule.rs` argues that at length. It also keeps the
+ * `crates/stylex-css/docs/adr/0001-root-collation-orders-a-non-ascii-condition-key.md`
+ * argues that at length. It also keeps the
  * generated key clear of the selector syntax a random character would otherwise
  * spell, which would make the subject about parsing rather than about order.
  *
@@ -77,7 +78,7 @@ Options:
  * The characters a generated key is built from: printable ASCII, Latin-1
  * Supplement, Latin Extended-A, and the combining diacritics.
  *
- * The range `collation_cost` settled on, and the reason it is a floor rather
+ * The range that ADR settled on, and the reason it is a floor rather
  * than a claim: a quoted attribute value can carry anything at all, so no
  * generated range bounds what an author can write. What this range does bound is
  * the part where a wrong answer is *likely* — the accented letters a Western

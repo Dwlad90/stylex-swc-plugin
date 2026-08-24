@@ -96,7 +96,7 @@ export const styles = {
         kZCmMZ: "xb5i42u",
         $$css: true
     },
-    pastTheDoubleRange: {
+    atTheDoubleLimit: {
         keoZOQ: "xeeso0f",
         k71WvV: "xb5gnfi",
         k1K539: "x1hkw1q7",

@@ -171,7 +171,8 @@ pub(in super::super) fn evaluate(
           // `confident`, so `deopt` will not overwrite it -- the read is here to
           // keep the call shaped like the reference compiler's, which reports
           // `state.deoptReason ?? 'unknown error'` for exactly this refusal
-          // (`utils/evaluate-path.js:762`, 0.19.0).
+          // (`utils/evaluate-path.js:762`, 0.19.0 -- the spread branch, two lines
+          // below the method branch's `errMsgs.OBJECT_METHOD` at `:757`).
           let reason = state
             .deopt_reason
             .as_deref()
@@ -196,7 +197,7 @@ pub(in super::super) fn evaluate(
       PropOrSpread::Prop(prop) => {
         if prop.is_method() {
           // `OBJECT_METHOD`, which is what the reference compiler reports here
-          // (`utils/evaluate-path.js:759-761`, 0.19.0). This arm and the spread
+          // (`utils/evaluate-path.js:757`, 0.19.0). This arm and the spread
           // arm above held each other's reason, and `deopt` only writes while
           // `confident` is still true -- so the reason read from the state
           // arrived here as `None` every time and the author was handed the bare
@@ -281,8 +282,16 @@ pub(in super::super) fn evaluate(
 
                 // The key path is this compiler's own, and deliberately so --
                 // the reference compiler's counterpart here is
-                // `deopt(prop, state, state.deoptReason ?? 'unknown error')`,
-                // with no key in it. See `prepend_key_to_reason` in
+                // `deopt(value.deopt, state, value.reason ?? 'unknown error')`
+                // (`utils/evaluate-path.js:804-806`, 0.19.0), with no key in it.
+                //
+                // Cited precisely because the expression this used to name --
+                // `deopt(prop, state, state.deoptReason ?? 'unknown error')` --
+                // occurs once in that file, at `:762`, and it is the *spread*
+                // branch rather than this one. The substantive claim was right
+                // and the line was not, which on a file whose standard is
+                // "measured by running both compilers" is worth a line number
+                // that lands. See `prepend_key_to_reason` in
                 // `utils::core::evaluate_stylex_create_arg` for why the
                 // divergence is kept rather than closed.
                 let deopt_reason = if let Some(ref k) = key {

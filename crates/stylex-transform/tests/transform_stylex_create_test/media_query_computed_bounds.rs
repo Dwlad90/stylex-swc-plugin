@@ -56,8 +56,8 @@ stylex_test!(
   "#
 );
 
-// Five breakpoints, none of them on a round number, so that every derived
-// bound in the chain is asserted rather than only the ones that happen to
+// A default and four breakpoints, none of them on a round number, so that every
+// derived bound in the chain is asserted rather than only the ones that happen to
 // survive single precision. Adding a fractional breakpoint must not silently
 // move the output of its neighbours.
 stylex_test!(

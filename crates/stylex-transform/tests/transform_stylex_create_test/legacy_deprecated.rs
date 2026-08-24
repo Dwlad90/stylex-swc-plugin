@@ -233,7 +233,7 @@ stylex_test!(
     export const styles = stylex.create({
       spellings: { margin: '1E2px 1.50px' },
       negativeZero: { padding: '-0px 1e21px' },
-      pastTheDoubleRange: { margin: '1.7976931348623157e308px' },
+      atTheDoubleLimit: { margin: '1.7976931348623157e308px' },
       authoredSigns: { padding: '+1px +2% 0.5px 000.5px' },
       fullPrecision: { margin: '1.2345678901234567px 7%' },
     });

@@ -173,14 +173,7 @@ pub fn evaluate_stylex_create_arg(
                 let key_result = evaluate_obj_key(key_value_prop, traversal_state, functions);
 
                 if !key_result.confident {
-                  return Box::new(EvaluateResult {
-                    confident: false,
-                    deopt: key_result.deopt,
-                    reason: key_result.reason,
-                    value: None,
-                    inline_styles: None,
-                    fns: None,
-                  });
+                  return Box::new(EvaluateResult::refused(key_result.deopt, key_result.reason));
                 }
 
                 let key = match key_result.value.as_ref() {
@@ -221,6 +214,11 @@ pub fn evaluate_stylex_create_arg(
                                 },
                                 None => eval_result.reason,
                               };
+                            // Not `EvaluateResult::refused`, and the difference
+                            // is the point: this refusal carries the value the
+                            // evaluation did reach, which the constructor
+                            // deliberately forces to `None`. Every other refusal
+                            // in this file goes through it.
                             return Box::new(EvaluateResult {
                               confident: false,
                               deopt: eval_result.deopt,
@@ -267,16 +265,12 @@ pub fn evaluate_stylex_create_arg(
                         }
                       },
                       _ => {
-                        return Box::new(EvaluateResult {
-                          confident: false,
-                          deopt: None,
-                          reason: Some(
+                        return Box::new(EvaluateResult::refused(
+                          None,
+                          Some(
                             "Block statement is not allowed in Dynamic Style functions".to_string(),
                           ),
-                          value: None,
-                          inline_styles: None,
-                          fns: None,
-                        });
+                        ));
                       },
                     }
                   },
@@ -353,33 +347,41 @@ fn evaluate_partial_object_recursively(
       PropOrSpread::Spread(spread) => {
         let result = evaluate(&spread.expr, traversal_state, functions);
         if !result.confident {
-          // The reason is dropped, and only here. A spread asks the evaluator
-          // to enumerate the value's keys rather than to fold it to a value, so
-          // there is no inline-style fall-through to deopt into and the build
-          // stops -- which means the complaint is the whole of what the author
-          // is handed. The useful one names the position: a `create()` argument
-          // that is not static, which is what the reference compiler says.
-          // Naming the binding instead answers a question nobody asked, since
-          // there is nothing an author can do with a resolvable binding in a
-          // position that admits no dynamic value at all.
+          // The reason is dropped here, and this compiler's choice rather than
+          // the reference compiler's placement. Worth separating the two,
+          // because the comment here used to run them together.
           //
-          // Dropping it rather than writing a sentence here is what keeps the
-          // call named correctly: the caller supplies `non_static_value` for
-          // whichever call it is, and this function cannot know that. Every
-          // other refusal in the reference chain still reports the reason it
-          // recorded, and the deopt path is kept either way, so the code frame
-          // still points where it did.
-          return Box::new(EvaluateResult {
-            confident: false,
-            deopt: result.deopt,
-            reason: None,
-            value: None,
-            inline_styles: None,
-            fns: None,
-          });
+          // Upstream does not drop it at the spread: `:142-144` returns the
+          // result whole, reason and all. The drop happens one frame up, at
+          // `:107-109`, where `evaluatePartialObjectRecursively`'s caller
+          // destructures `{ confident, value, deopt }` and leaves `reason`
+          // behind -- for *every* refusal out of this function, not for spreads
+          // in particular. Matching that shape would therefore mean dropping the
+          // reason for the computed-key refusal too, and losing the
+          // `Referenced constant is not defined` that
+          // `a_shadowing_param_as_a_computed_key` pins. The divergence is kept
+          // deliberately, which the two sites named in the `docs(transform)`
+          // commit that introduced it both say.
+          //
+          // Dropped *at this arm* because a spread asks the evaluator to
+          // enumerate the value's keys rather than to fold it to a value: there
+          // is no inline-style fall-through to deopt into, the build stops, and
+          // the complaint is the whole of what the author is handed. The useful
+          // one names the position -- a `create()` argument that is not static,
+          // which is what the reference compiler says -- and naming the binding
+          // instead answers a question nobody asked, since there is nothing an
+          // author can do with a resolvable binding in a position that admits no
+          // dynamic value at all. The caller supplies `non_static_value` for
+          // whichever call it is, and this function cannot know that.
+          //
+          // `prepend_key_to_reason` is `reason.map(..)`, so it is a no-op on
+          // `None` and the arrow and nested-object branches forward the erased
+          // reason unchanged. The deopt path is kept either way, so the code
+          // frame still points where it did.
+          return Box::new(EvaluateResult::refused(result.deopt, None));
         }
         // `Object.assign(obj, result.value)` upstream
-        // (`visitors/parse-stylex-create-arg.js:140-147`, 0.19.0): a spread whose
+        // (`visitors/parse-stylex-create-arg.js:146`, 0.19.0): a spread whose
         // operand folded contributes that value's own enumerable properties, and
         // the fold carries on.
         //
@@ -412,14 +414,7 @@ fn evaluate_partial_object_recursively(
             let key_result = evaluate_obj_key(key_value, traversal_state, functions);
 
             if !key_result.confident {
-              return Box::new(EvaluateResult {
-                confident: false,
-                deopt: key_result.deopt,
-                reason: key_result.reason,
-                value: None,
-                inline_styles: None,
-                fns: None,
-              });
+              return Box::new(EvaluateResult::refused(key_result.deopt, key_result.reason));
             }
 
             let key = match key_result.value.as_ref().and_then(|v| v.as_expr()) {
@@ -457,14 +452,7 @@ fn evaluate_partial_object_recursively(
                 );
 
                 if !result.confident {
-                  return Box::new(EvaluateResult {
-                    confident: false,
-                    deopt: result.deopt,
-                    reason: result.reason,
-                    value: None,
-                    inline_styles: None,
-                    fns: None,
-                  });
+                  return Box::new(EvaluateResult::refused(result.deopt, result.reason));
                 }
 
                 let new_prop = create_key_value_prop(
@@ -577,14 +565,7 @@ fn evaluate_partial_object_recursively(
             }
           },
           Prop::Method(_) => {
-            return Box::new(EvaluateResult {
-              confident: false,
-              deopt: None,
-              reason: None,
-              value: None,
-              inline_styles: None,
-              fns: None,
-            });
+            return Box::new(EvaluateResult::refused(None, None));
           },
           _ => {},
         }

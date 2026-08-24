@@ -390,4 +390,43 @@ mod ident_key_integration {
       panic!("Expected Object value");
     }
   }
+
+  /// Two numeric keys are two properties, even though neither has a name the
+  /// renderer can spell.
+  ///
+  /// The rewritten keys live in a map now, so a name that comes back empty
+  /// needs a key of its own — sharing one would silently merge the pair, which
+  /// is what a list never did and what a JavaScript object does not do either.
+  #[test]
+  fn two_unrenderable_keys_stay_two_properties() {
+    let inner_obj = ObjectLit {
+      span: DUMMY_SP,
+      props: vec![
+        PropOrSpread::Prop(Box::new(Prop::KeyValue(str_kv("default", "1 / 2")))),
+        PropOrSpread::Prop(Box::new(Prop::KeyValue(num_kv(0.0, "zero")))),
+        PropOrSpread::Prop(Box::new(Prop::KeyValue(num_kv(1.0, "one")))),
+        // A media key, so the rewrite runs at all rather than returning early.
+        PropOrSpread::Prop(Box::new(Prop::KeyValue(str_kv(
+          "@media (min-width: 100px)",
+          "1 / 3",
+        )))),
+      ],
+    };
+
+    let outer_prop = KeyValueProp {
+      key: PropName::Str(Str {
+        span: DUMMY_SP,
+        value: Wtf8Atom::from("gridColumn"),
+        raw: None,
+      }),
+      value: Box::new(Expr::Object(inner_obj)),
+    };
+
+    let result = last_media_query_wins_transform(&[outer_prop]);
+
+    match &*result[0].value {
+      Expr::Object(inner) => assert_eq!(inner.props.len(), 4),
+      other => panic!("Expected Object value, got {other:?}"),
+    }
+  }
 }

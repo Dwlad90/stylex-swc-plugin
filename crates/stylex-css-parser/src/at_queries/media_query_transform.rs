@@ -102,6 +102,21 @@ fn dfs_process_queries_with_depth(obj: &[KeyValueProp], depth: u32) -> Vec<KeyVa
   }
 }
 
+/// What identifies a property inside one object level.
+///
+/// The rewritten keys are held in a map, so this has to tell two properties
+/// apart as reliably as a JavaScript object's own key does. A name the renderer
+/// cannot spell -- numeric, bigint, computed -- comes back empty, and letting
+/// every one of those share the empty string would merge properties that are
+/// genuinely distinct. They get a key built from their position instead, with a
+/// NUL byte in front so nothing an author could write can reach it.
+fn map_key(key_value: &KeyValueProp, index: usize) -> String {
+  match key_value_to_str(key_value) {
+    name if !name.is_empty() => name,
+    _ => format!("\0{index}"),
+  }
+}
+
 /// Rewrite the `@media` keys of one object level so that a later query wins.
 ///
 /// The keys live in an insertion-ordered map rather than a list, because the
@@ -132,8 +147,8 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
   }
 
   let mut entries: IndexMap<String, KeyValueProp> = IndexMap::with_capacity(result.len());
-  for kv in result {
-    entries.insert(key_value_to_str(&kv), kv);
+  for (index, kv) in result.into_iter().enumerate() {
+    entries.insert(map_key(&kv, index), kv);
   }
 
   let media_keys: Vec<String> = entries

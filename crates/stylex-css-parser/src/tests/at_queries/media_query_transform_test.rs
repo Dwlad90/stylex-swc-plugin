@@ -1692,6 +1692,15 @@ mod malformed_queries {
     assert!(refuses("@media (min-width: var(--breakpoint))"));
   }
 
+  /// A key that is `@media` and nothing else, and one with a space the author
+  /// did not mean to leave. Both are refused: the prefix check treats them as
+  /// media keys, and neither parses to a query.
+  #[test]
+  fn a_key_that_is_only_the_at_rule_is_refused() {
+    assert!(refuses("@media "));
+    assert!(refuses("@media (min-width: 100px) "));
+  }
+
   /// Nesting is walked once per level rather than searched, so depth costs
   /// linear time and no stack. The reference implementation's parser backtracks
   /// here instead — twelve levels take it twenty seconds and sixteen do not
@@ -1705,5 +1714,206 @@ mod malformed_queries {
     );
 
     assert!(!refuses(&deep));
+  }
+}
+
+/// Queries that look wrong and are not.
+///
+/// Every expectation is a row of the same comparison the refusals above came
+/// from: the input compiled through `@stylexjs/babel-plugin` 0.19.0 and through
+/// this compiler, with the emitted `@media` preludes read back. All fifteen
+/// agreed, and the point of pinning them here is that they go on agreeing.
+#[cfg(test)]
+mod unusual_but_valid_queries {
+  use super::*;
+
+  /// A vendor-prefixed feature is not one the range merge reads, so it blocks
+  /// the interval merge and the negation prints beside it rather than folding
+  /// into a bound.
+  #[test]
+  fn a_vendor_prefixed_feature_blocks_the_merge_rather_than_the_query() {
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (-webkit-min-device-pixel-ratio: 2)": "red",
+          "@media (max-width: 50px)": "blue"
+        }
+      })),
+      vec![
+        "default",
+        "@media (-webkit-min-device-pixel-ratio: 2) and (not (max-width: 50px))",
+        "@media (max-width: 50px)",
+      ]
+    );
+
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (-moz-device-pixel-ratio: 2)": "red",
+          "@media (max-width: 50px)": "blue"
+        }
+      })),
+      vec![
+        "default",
+        "@media (-moz-device-pixel-ratio: 2) and (not (max-width: 50px))",
+        "@media (max-width: 50px)",
+      ]
+    );
+  }
+
+  /// The same prefix beside a width the merge *can* read. The widths are still
+  /// left alone, because one unreadable rule in the list stops the whole merge
+  /// rather than only its own dimension.
+  #[test]
+  fn a_prefixed_feature_beside_a_width_stops_the_width_merging_too() {
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (-webkit-min-device-pixel-ratio: 2) and (min-width: 200px)": "red",
+          "@media (min-width: 100px)": "blue"
+        }
+      })),
+      vec![
+        "default",
+        "@media (-webkit-min-device-pixel-ratio: 2) and (min-width: 200px) and (not (min-width: 100px))",
+        "@media (min-width: 100px)",
+      ]
+    );
+  }
+
+  /// Characters outside the basic multilingual plane, letters carrying
+  /// combining accents, and a CSS escape that resolves to a character the
+  /// tokenizer would otherwise treat as syntax. Each survives the round trip
+  /// through the parser and the printer as the author wrote it.
+  #[test]
+  fn unicode_and_escapes_reach_the_stylesheet_unharmed() {
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (\u{1F600}: 1)": "red",
+          "@media (max-width: 50px)": "blue"
+        }
+      }))[1],
+      "@media (\u{1F600}: 1) and (not (max-width: 50px))"
+    );
+
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (mín-width: 100px)": "red",
+          "@media (max-width: 50px)": "blue"
+        }
+      }))[1],
+      "@media (mín-width: 100px) and (not (max-width: 50px))"
+    );
+
+    // `\@foo` is an escaped at-sign, which prints as the bare character.
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (min-width: 100px) and (\\@foo: 1)": "red",
+          "@media (max-width: 50px)": "blue"
+        }
+      }))[1],
+      "@media (min-width: 100px) and (@foo: 1) and (not (max-width: 50px))"
+    );
+  }
+
+  /// A comma-separated query is a disjunction, so each disjunct takes the
+  /// negation separately — and one of the two collapses here while the other
+  /// merges into a bound.
+  #[test]
+  fn each_disjunct_of_a_comma_query_is_negated_on_its_own() {
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (min-width: 200px), (max-width: 100px)": "red",
+          "@media (min-width: 100px)": "blue"
+        }
+      })),
+      vec![
+        "default",
+        "@media not all, (max-width: 99.99px)",
+        "@media (min-width: 100px)",
+      ]
+    );
+  }
+
+  /// A media type in the list is parenthesized on the way out and, like any
+  /// rule the merge cannot read, keeps the widths beside it from merging.
+  #[test]
+  fn a_media_type_is_parenthesized_and_blocks_the_merge() {
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media screen and (min-width: 200px)": "red",
+          "@media (min-width: 100px)": "blue"
+        }
+      }))[1],
+      "@media (screen) and (min-width: 200px) and (not (min-width: 100px))"
+    );
+  }
+
+  /// Lengths at the ends of what a double can hold. The larger one is finite
+  /// and survives as an exponent; the smaller is far enough below the nudged
+  /// bound beside it that the intersection keeps the nudge.
+  #[test]
+  fn lengths_at_the_edge_of_double_precision_merge_like_any_other() {
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (min-width: 1e308px)": "red",
+          "@media (max-width: 50px)": "blue"
+        }
+      }))[1],
+      "@media (min-width: 1e+308px)"
+    );
+
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (min-width: 0.0000000001px)": "red",
+          "@media (max-width: 50px)": "blue"
+        }
+      }))[1],
+      "@media (min-width: 50.01px)"
+    );
+  }
+
+  /// A conditional value map holding only `default` has no media key to
+  /// rewrite, so the transform hands it back untouched rather than treating the
+  /// absence as an empty rewrite.
+  #[test]
+  fn a_map_with_no_media_key_is_untouched() {
+    assert_eq!(
+      transformed_keys(json!({ "color": { "default": "black" } })),
+      vec!["default"]
+    );
+  }
+
+  /// A map with no `default` is still rewritten. The first key collapses to a
+  /// contradiction, which is the ordinary outcome rather than a consequence of
+  /// the missing default.
+  #[test]
+  fn a_map_with_no_default_is_rewritten_the_same_way() {
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "@media (min-width: 200px)": "red",
+          "@media (min-width: 100px)": "blue"
+        }
+      })),
+      vec!["@media not all", "@media (min-width: 100px)"]
+    );
   }
 }

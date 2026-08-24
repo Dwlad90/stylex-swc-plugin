@@ -869,4 +869,29 @@ mod the_optional_alpha_rewind {
       Err(error) => panic!("expected the alpha form to parse: {error:?}"),
     }
   }
+  /// The reference compiler's own `lch(50% 100 270deg)` case, ported -- but as
+  /// characterization rather than parity, because this type is an
+  /// [unreachable port](../../CONTEXT.md).
+  ///
+  /// Two different answers, and neither is a defect in the other:
+  ///
+  /// - `Lch` stores the authored percent as a number and prints it back without
+  ///   the sign, so the round trip is `lch(50 100 270deg)`. That is what this
+  ///   test pins, and it is this crate's behaviour.
+  /// - The plugin emits `lch(50% 100 270deg)`, the percent echoed. It never runs
+  ///   this code: a colour is normalized as text and is not rebuilt from parsed
+  ///   channels.
+  ///
+  /// So the case is worth having for the parser's own consistency, and worth
+  /// labelling so nobody reads it as a statement about what the compiler emits.
+  /// Anyone putting these types on an emission path has to close that gap first.
+  ///
+  /// Source: `style-value-parser/src/css-types/__tests__/color-test.js`.
+  #[test]
+  fn the_reference_compilers_own_percentage_lightness_case() {
+    match Color::parse().parse_to_end("lch(50% 100 270deg)") {
+      Ok(color) => assert_eq!(color.to_string(), "lch(50 100 270deg)"),
+      Err(error) => panic!("expected a percentage lightness to parse: {error:?}"),
+    }
+  }
 }

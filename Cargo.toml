@@ -67,7 +67,19 @@ glob = { version = "0.3.3" }
 # this workspace; the other 26 in its tree already arrive through SWC's
 # `idna_adapter`. `crates/stylex-css/src/utils/pre_rule.rs` costs the choice
 # against the alternative it was measured against.
-icu_collator = { version = "2.3.1" }
+# `unstable` is an empty marker feature -- it pulls no extra crates -- and it
+# gates `CollatorBorrowed::new_root`, the only constructor for root collation
+# that cannot fail. `Collator::try_new` returns a `Result` whose `Err` means the
+# compiled CLDR data this crate carries is absent, which is a build-time
+# dependency rather than a runtime state: unreachable, untestable, and therefore
+# an uncoverable region in a workspace that excludes nothing from coverage.
+# `new_root` has no such arm. See `crates/stylex-css/src/utils/pre_rule.rs`.
+#
+# The cost is an API the crate reserves the right to change in a minor release.
+# `Cargo.lock` is committed, so that can only surface on a deliberate
+# `cargo update`, and the failure is a compile error naming this line rather than
+# anything silent.
+icu_collator = { version = "2.3.1", features = ["unstable"] }
 indexmap = { version = "2.14.0", features = ["serde"] }
 insta = { version = "1.47.2" }
 lazy_static = "1.5.0"

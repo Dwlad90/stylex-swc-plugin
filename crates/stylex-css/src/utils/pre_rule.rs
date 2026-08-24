@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, sync::LazyLock};
 
-use icu_collator::{Collator, CollatorBorrowed, CollatorPreferences, options::CollatorOptions};
+use icu_collator::{CollatorBorrowed, options::CollatorOptions};
 
 use crate::utils::pseudo::is_pseudo_element;
 
@@ -144,22 +144,27 @@ pub(super) const fn build_ascii_primary_rank() -> [u8; 128] {
 
 /// Root collation, for the keys [`ASCII_PRIMARY_ORDER`] does not name.
 ///
-/// Built once. `Collator::try_new` reads compiled CLDR data rather than a file,
-/// so it cannot fail for want of a locale — but it returns a `Result`, and a
-/// refusal here would mean the compiled data the crate carries is not there.
+/// Built once, and through the constructor that has no failure to handle.
 ///
-/// That is why the arm aborts rather than reporting. `RUST.md` says to handle
-/// every case with a `match` and never to reach for `.unwrap()`, and the
-/// distinction it is protecting is the one
-/// `crates/stylex-transform/docs/adr/0002-a-refusal-and-a-broken-invariant-are-separate-constructs.md`
-/// draws: a value the author wrote that cannot be folded is a refusal an author
-/// can act on, and a compiled-in table that is not compiled in is an invariant
-/// this code established being false. Continuing past the second would mean
-/// hashing class names off an ordering nobody chose, silently. `unreachable!`
-/// rather than `panic!` because the branch is unreachable for a reason a reader
-/// can check — the data is a build-time dependency of this crate, not a runtime
-/// one — and `Shorthands::infallible` in this crate spells the same situation the
-/// same way.
+/// `Collator::try_new` returns a `Result` whose `Err` would mean the compiled
+/// CLDR data this crate carries is absent — a build-time dependency, not a
+/// runtime state. So the arm was unreachable, and it used to be an
+/// `unreachable!`: defensible, and argued against ADR-0002's split between a
+/// refusal an author can act on and an invariant this code established being
+/// false. But an unreachable arm is a region no test can exercise, and this
+/// workspace excludes nothing from coverage, so the arm was the last thing
+/// keeping `scripts/coverage-missing.sh` from a clean run.
+///
+/// `CollatorBorrowed::new_root` is the same root collation with no `Result` at
+/// all, so there is no arm to cover rather than an arm excluded from counting.
+/// It is gated behind `icu_collator`'s `unstable` feature, which the root
+/// `Cargo.toml` enables and prices: an empty marker feature, no extra crates, and
+/// a committed `Cargo.lock` means a change to it surfaces as a compile error on a
+/// deliberate `cargo update` rather than as anything silent.
+///
+/// Verified equivalent rather than assumed: every collation-ordering test and all
+/// 2 759 transform snapshots — which hash class names off this ordering — are
+/// byte-identical across the change.
 ///
 /// `CollatorPreferences::default()` is the **root** locale, deliberately and not
 /// the host's. Upstream calls `localeCompare` bare, so *its* answer follows the
@@ -169,12 +174,8 @@ pub(super) const fn build_ascii_primary_rank() -> [u8; 128] {
 /// diverges from a Swedish machine, so this picks the answer every non-tailoring
 /// locale gives. `docs/adr/0001-root-collation-orders-a-non-ascii-key.md`
 /// states that remainder as what it is.
-static PSEUDO_COLLATOR: LazyLock<CollatorBorrowed<'static>> = LazyLock::new(|| {
-  match Collator::try_new(CollatorPreferences::default(), CollatorOptions::default()) {
-    Ok(collator) => collator,
-    Err(error) => unreachable!("compiled root collation data is missing: {error}"),
-  }
-});
+static PSEUDO_COLLATOR: LazyLock<CollatorBorrowed<'static>> =
+  LazyLock::new(|| CollatorBorrowed::new_root(CollatorOptions::default()));
 
 /// Whether every byte of `key` is one [`ASCII_PRIMARY_ORDER`] names.
 ///

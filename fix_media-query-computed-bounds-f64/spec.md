@@ -36,8 +36,10 @@ and print through `stylex_utils::number::to_js_string`, the existing ECMA-262
 `Number::toString` port that the rest of the workspace already uses.
 
 Then `28.81 - 0.01` is `28.799999999999997` here exactly as it is upstream, the
-class name is `xu5ieg8`, and the same is true of every other value the parser
-computes or prints rather than merely echoes.
+class name is whatever the reference compiler hashes that text to, and the same
+is true of every other value the parser computes or prints rather than merely
+echoes. (The issue's `xu5ieg8` was not reproducible against
+`@stylexjs/babel-plugin@0.19.0` -- see the Testing Decisions note.)
 
 ## Root cause
 
@@ -117,8 +119,11 @@ Three independent losses, all on the path from a parsed token to emitted text:
     `CONTEXT.md` to name the double-precision rule, so that I do not have to
     infer it from the surrounding code.
 20. As the reporter of #1267, I want the exact input from the issue in the test
-    suite with the class names Babel produces, so that a regression is caught
-    here rather than in my stylesheet.
+    suite with the class names Babel produces -- `x11md1zd`, `x10ok0k0`,
+    `xj7mlad`, `xrqj1vq`, read from a run against
+    `@stylexjs/babel-plugin@0.19.0` rather than from the issue text, whose
+    `xu5ieg8` and `x1t400y5` that version does not reproduce -- so that a
+    regression is caught here rather than in my stylesheet.
 
 ## Implementation Decisions
 
@@ -216,9 +221,17 @@ floating point.
 - `crates/stylex-transform/tests/` — the end-to-end `stylex.create` seam. This
   is the highest available seam and the one the issue is filed against: source
   in, CSS and class names out. The #1267 input goes here verbatim, pinning all
-  four rules including `xu5ieg8` and `x1t400y5`. Class names are pinned
-  deliberately: the hash is what the reporter cares about, and a text-only
-  assertion would pass through a change that altered hashing.
+  four rules with the class names the reference compiler produces. Class names
+  are pinned deliberately: the hash is what the reporter cares about, and a
+  text-only assertion would pass through a change that altered hashing.
+
+  The issue quotes `xu5ieg8` and `x1t400y5`. Running its exact input through
+  `@stylexjs/babel-plugin@0.19.0` produces `x10ok0k0` and `xj7mlad` instead, so
+  those are what the snapshot pins, with `x11md1zd` and `xrqj1vq` for the outer
+  two rules. The media query *text* matches the issue verbatim --
+  `28.799999999999997rem` and `32.870000000000005rem` -- which is the part the
+  fix is about; the two hashes in the issue were evidently taken against a
+  different plugin version. Ticket 01 records the run.
 - `crates/stylex-css-parser/src/tests/at_queries/media_query_transform_test.rs`
   and its siblings — the existing unit seam, extended for the types the
   transform seam cannot reach cheaply, and for the JavaScript spelling edges
@@ -237,6 +250,26 @@ expectation is attributable. Existing media query expectations use round
 breakpoints (`1024px → 1023.99px`, `65em → 64.99em`), which print identically at
 both widths, so churn is expected to be near zero; anything that does move is
 listed with its Babel-confirmed value in the final report.
+
+## Follow-on work this spec did not anticipate
+
+Tickets `11` through `28` were filed after this spec was written, as the parity
+harness was pointed at areas the widening had made reachable. Two of them go
+beyond anything above and are recorded here so the spec is not read as their
+boundary:
+
+- **The echo path.** Tickets `11`, `12`, `18` and `19` establish that an
+  authored value is echoed rather than reprinted, which the widening exposed:
+  once a field held a double, re-spelling `1.50px` or `1E2px` from it was a
+  divergence the `f32` rounding had been masking. This retires
+  `stylex-css-parser`'s `value_parser.rs` -- a Rust-only `cssparser` token
+  echoer with no upstream counterpart -- and re-expresses the shorthand split
+  over `postcss-value-parser`'s node kinds, which is the substrate upstream's
+  own `splitValue` uses. The deletion is sanctioned by those tickets, not by the
+  Out of Scope list below, which never contemplated it.
+- **Condition-key ordering.** Tickets `26` and `27` close a class-name
+  divergence in how a non-ASCII condition key sorts, which is neither numeric
+  nor in this crate. It is here because the same parity harness found it.
 
 ## Out of Scope
 

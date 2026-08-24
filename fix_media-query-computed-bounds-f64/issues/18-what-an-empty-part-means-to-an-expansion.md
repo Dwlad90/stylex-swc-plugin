@@ -27,14 +27,42 @@ reasons neither states.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The rule is stated once, where a reader consuming parts will find it
-- [ ] Every consumer of a part list is checked against the rule, and any that
+- [x] The rule is stated once, where a reader consuming parts will find it
+- [x] Every consumer of a part list is checked against the rule, and any that
       disagreed either changes or records why it differs
-- [ ] `padding: '1px /*'` has an asserted, explained outcome, whether or not
+- [x] `padding: '1px /*'` has an asserted, explained outcome, whether or not
       that outcome is today's
-- [ ] The absence of a reference answer is recorded, so the next reader does not
+- [x] The absence of a reference answer is recorded, so the next reader does not
       re-derive it from a crash
-- [ ] `cargo test`, `pnpm typecheck`, `pnpm format:check`, `pnpm lint:check`,
+- [x] `cargo test`, `pnpm typecheck`, `pnpm format:check`, `pnpm lint:check`,
       and `pnpm test` pass; the compiler is rebuilt before the JS suite runs
+
+## Outcome
+
+Current behaviour is correct and is now stated. The rule — **an empty part is a
+part**: it occupies its position, counts toward the arity, and is never read as
+absent — is written once, in the module documentation of
+`crates/stylex-css/src/values/parser.rs`, which is the only producer of a part
+and so the place a consumer already reads.
+
+All four consumers were checked against it and all four already agreed:
+
+- the four-sided view assigns it to a side, whose declaration emits nothing
+  later because its value is empty;
+- the importance fold qualifies it like any other part;
+- `contain-intrinsic-size`'s fold joins it onto a preceding `auto`;
+- `list-style` lets it take the slot it landed in, and refuses `url(a.png) /**/`
+  for two images.
+
+`padding: '1px /*'` is asserted: `padding-top` and `padding-bottom` carry `1px`
+and both inline sides are present and empty. The absence of a reference answer
+is recorded beside the rule — the reference compiler throws
+`Cannot read properties of undefined (reading 'type')` — so the next reader does
+not re-derive it from a crash.
+
+Seven splitter tests and nine expansion tests, including the second way to reach
+an empty part (`/**/`, a terminated comment with nothing in it), an empty part
+that is not last, importance landing on one, and the near miss of a quoted empty
+string, which is a two-character part rather than an empty one.

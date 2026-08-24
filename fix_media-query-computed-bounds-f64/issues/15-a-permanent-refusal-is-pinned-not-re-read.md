@@ -28,15 +28,53 @@ can only be read by someone who already knows which is which."
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `pnpm parity` reports zero rows that are neither agreement nor a recorded
+- [x] `pnpm parity` reports zero rows that are neither agreement nor a recorded
       expectation, and `changed` stays 0
-- [ ] Each pinned entry carries the reason the divergence is permanent, in
+- [x] Each pinned entry carries the reason the divergence is permanent, in
       terms of what agreement would cost — not "known difference"
-- [ ] The refusal families are named once, somewhere a later harness can reuse
+- [x] The refusal families are named once, somewhere a later harness can reuse
       the same names rather than inventing its own
-- [ ] A deliberately broken expectation is shown to report loudly, so the gate
+- [x] A deliberately broken expectation is shown to report loudly, so the gate
       is demonstrated rather than assumed
-- [ ] `cargo test`, `pnpm typecheck`, `pnpm format:check`, `pnpm lint:check`,
+- [x] `cargo test`, `pnpm typecheck`, `pnpm format:check`, `pnpm lint:check`,
       and `pnpm test` pass; the compiler is rebuilt before the JS suite runs
+
+## Outcome
+
+`parity/lib/refusal-families.ts` names the seven reasons this compiler diverges
+on purpose — one entry each, carrying the verdict a member reads, the test for
+whether a row is one, and the reason stated as what agreement would cost. Both
+harnesses read that list.
+
+Pinning is by family rather than by `expected` on an entry, because half the
+permanent rows live in `corpus/harvested.json`, which is regenerated wholesale
+from the Rust sources: a value written there is lost on the next harvest. The
+per-entry mechanism is untouched and still wins where an entry carries one.
+
+`pnpm parity` now reports 0 unexpected rows over 1029 subjects (35 pinned +
+`changed` 0). Three curated entries were added to `edge.json` for the seventh
+family, which only the generated corpus reached: two values that are both
+rule-breaking and unclosed, where the two compilers name different true
+complaints, and one declaration-terminating token inside a function body.
+
+**Measured on the checked-in corpus, which is stale.** `parity:harvest:check`
+was already failing before this work — 76 harvestable declarations are missing
+from `harvested.json`, none of them from a test added here. Zero-unexpected is
+therefore unproven for those 76. Regenerating also rewrites `cases.rs` in
+another crate, so it is ticket 21 rather than a footnote to this one.
+
+The gate: a family claiming no row at all exits non-zero, for the same reason a
+changed `expected` does. An unexpected row deliberately does not — a divergence
+nobody has looked at is information, and a corpus of degenerate values would
+otherwise fail every run.
+
+Demonstrated rather than assumed, which took a seam. The deciding half of the
+harness moved to `parity/lib/report.ts` — where a row stands, the summary, the
+family grouping, and `fails()` — leaving `parity-values.ts` to print. Twelve
+tests in `__tests__/report.test.ts` exercise it end to end: a changed
+expectation fails, an emptied family fails, an unexpected row does not, a
+filtered run is not asked, and a reworded diagnostic un-pins its rows so the
+unexpected count is what moves. `__tests__/refusal-families.test.ts` covers
+the predicate itself and every near miss a family must *not* claim.

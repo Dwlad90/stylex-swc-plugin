@@ -20,15 +20,45 @@ fixture nobody can read and a corpus that churns whenever the alphabet grows.
 **Blocked by:** 15 — for the family names and their reasons, not for the
 mechanism.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The report distinguishes pinned rows from unexpected ones, and prints the
+- [x] The report distinguishes pinned rows from unexpected ones, and prints the
       unexpected count as the number a reader acts on
-- [ ] A row belonging to no pinned family is reported as news even when its
+- [x] A row belonging to no pinned family is reported as news even when its
       verdict is one a pinned family also produces
-- [ ] Growing the alphabet does not require editing expectations, unless it
+- [x] Growing the alphabet does not require editing expectations, unless it
       reaches a genuinely new refusal
-- [ ] The family names match ticket 15's exactly, and there is one place they
+- [x] The family names match ticket 15's exactly, and there is one place they
       are written down
-- [ ] `cargo test`, `pnpm typecheck`, `pnpm format:check`, `pnpm lint:check`,
+- [x] `cargo test`, `pnpm typecheck`, `pnpm format:check`, `pnpm lint:check`,
       and `pnpm test` pass; the compiler is rebuilt before the JS suite runs
+
+## Outcome
+
+`pnpm fuzz:shorthand` splits its divergent rows into pinned and unexpected,
+reading ticket 15's family list rather than describing the refusals again. Over
+the grown alphabet it reports 153,624 subjects, 18,909 divergent, **0
+unexpected**. `--show` prints unexpected rows only; `--json` carries both, the
+pinned ones grouped by family name.
+
+A row is asked about its family, never about its verdict alone, so a row whose
+verdict a pinned family also produces is still news when the refusal underneath
+it differs — covered by six cases in `__tests__/refusal-families.test.ts`. Two
+families were too wide on first writing and were narrowed under review: `first
+refusal to fire` now requires the reference compiler's complaint to be one of the
+two this compiler's guard is known to preempt, and `style key off
+Object.prototype` requires the shape an inherited method produces rather than
+the key name alone.
+
+Narrowing the first of those turned 238 generated rows into news, and reading
+them is why a family carries a *set* of verdicts rather than one. Their shape is
+a value this compiler refuses for a declaration-terminating token that also
+crashes the reference compiler — the `reference TypeError` reason exactly, read
+under a both-reject verdict instead of an acceptance one, because this side
+happened to refuse too. The reason survives that; the single verdict did not.
+Precedence settles the overlap with `first refusal to fire`: the crash sits
+above it, because a crash is not a guard that spoke first.
+
+Nothing is pinned by count, so growing the alphabet costs no expectation edit:
+the three classes ticket 17 added moved every family's row count and required no
+change here.

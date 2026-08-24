@@ -756,6 +756,11 @@ fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> 
 /// Merge the numeric width/height constraints of an `and` list into a single
 /// interval per dimension.
 ///
+/// The recursive interior of `merge_and_simplify_ranges`, and named separately
+/// because each of the two names its own counterpart in the reference
+/// implementation -- collapsing them would cost the property that lets either
+/// be checked against it. Callers outside this pair want the boundary, not this.
+///
 /// The returned `Vec` carries three outcomes, and callers must read all three:
 /// empty means the constraints contradict each other, which the caller turns
 /// into `not all`; `rules` handed back unchanged means the list was not

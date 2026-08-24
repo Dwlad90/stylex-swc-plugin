@@ -303,7 +303,7 @@ impl MediaQuery {
           }
         }
 
-        let merged = merge_intervals_for_and(flattened);
+        let merged = merge_and_simplify_ranges(flattened);
         if merged.is_empty() {
           return MediaQueryRule::MediaKeyword(MediaKeyword::new("all".to_string(), true, false));
         }
@@ -725,6 +725,24 @@ fn distribution_is_hopeless(rules: &[MediaQueryRule]) -> bool {
     && dimensions
       .iter()
       .any(|(_, state)| !state.intervals.is_empty() && state.intersect().is_none())
+}
+
+/// The single boundary canonicalization crosses to simplify an `and` list's
+/// ranges, mirroring the reference implementation's `mergeAndSimplifyRanges`.
+///
+/// There it wraps the merge in a `try`/`catch` that hands the input rules back
+/// on any throw, and that is the whole point of it having a name: the merge
+/// recurses into itself rather than through the wrapper, so a ladder deep
+/// enough to exhaust the call stack lands here and comes back unmerged.
+///
+/// The two failure modes of this pass are deliberately kept apart. This one is
+/// the inner recovery -- give up merging, emit the author's rules as written --
+/// and it never propagates. The other is the outer refusal, which turns a query
+/// the parser cannot read into the invalid-media-query-syntax error and rejects
+/// the declaration. Conflating them would turn a query too deep to merge into
+/// an error the author cannot act on.
+fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
+  merge_intervals_for_and(rules)
 }
 
 /// Merge the numeric width/height constraints of an `and` list into a single

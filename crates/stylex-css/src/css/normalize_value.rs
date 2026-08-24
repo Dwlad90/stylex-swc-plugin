@@ -43,7 +43,6 @@
 //! what the reference compiler produces too.
 
 use postcss_value_parser::{ValueParser, stringify};
-use stylex_constants::constants::messages::LINT_RULE_BREAKING_TOKEN;
 use stylex_macros::stylex_panic;
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 
@@ -118,16 +117,21 @@ pub fn normalize_value(value: &str, key: &str, options: &StyleXStateOptions) -> 
 /// Normalizes `value`, with the caller's injection guard folded into the
 /// sequence at the position the module header describes.
 ///
-/// `rule_breaking_report` is the rule text a declaration-terminating token is
-/// reported against, or `None` where the value carries no such token. The text
-/// rather than the fact, because building it is the caller's vocabulary — the
-/// guard reads the raw value, which nothing here has kept — and because a
-/// `Some` is then the whole of the condition this function has to test.
+/// `deferred_refusal` is the complaint a structural guard has already built, or
+/// `None` where the value tripped none of them. The whole sentence rather than
+/// its parts, because building it is the caller's vocabulary — the guards read
+/// the raw bytes, which nothing here has kept — and because a `Some` is then the
+/// whole of the condition this function has to test.
+///
+/// One seam for two guards rather than one each. Both the declaration-terminating
+/// token and the unclosed comment belong *after* `SHARED_REJECTIONS` for the same
+/// reason, and giving each its own parameter was how the second came to be left
+/// in front of them.
 pub(crate) fn normalize_value_guarded(
   value: &str,
   key: &str,
   options: &StyleXStateOptions,
-  rule_breaking_report: Option<&str>,
+  deferred_refusal: Option<&str>,
 ) -> String {
   let mut ast = ValueParser::new(value);
 
@@ -135,8 +139,8 @@ pub(crate) fn normalize_value_guarded(
     pass(&mut ast, key);
   }
 
-  if let Some(rule) = rule_breaking_report {
-    stylex_panic!("{}, css rule: {}", LINT_RULE_BREAKING_TOKEN, rule);
+  if let Some(complaint) = deferred_refusal {
+    stylex_panic!("{}", complaint);
   }
 
   for pass in PASSES {

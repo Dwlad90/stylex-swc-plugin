@@ -693,9 +693,11 @@ fn keeps_the_token_ahead_of_a_rejection_the_reference_compiler_does_not_make() {
 /// The two guards that read the raw bytes still speak before the token, and
 /// they have to: both exist because the value cannot safely be parsed at all.
 ///
-/// A comment left open swallows every rule emitted after it, and a value nested
-/// past the recursion budget takes the process down without a diagnostic rather
-/// than panicking — so neither can wait for a pass that runs on a parsed value.
+/// A value nested past the recursion budget takes the process down without a
+/// diagnostic rather than panicking, so that one cannot wait for a pass that runs
+/// on a parsed value. The unclosed comment *can*, and now does — see
+/// `hands_an_unclosed_comment_to_the_rejections_the_reference_makes_too`. It is
+/// still ahead of the token, which is what the first case below says.
 #[test]
 fn keeps_the_guards_that_run_before_parsing_ahead_of_the_token() {
   refuses_with(
@@ -714,6 +716,40 @@ fn keeps_the_guards_that_run_before_parsing_ahead_of_the_token() {
     &format!("{deep};a"),
     "nested more deeply",
     LINT_RULE_BREAKING_TOKEN,
+  );
+}
+
+/// An unclosed comment waits for the two rejections the reference compiler also
+/// makes, the same way the token does.
+///
+/// It used to speak first, on the grounds that it "runs before parsing". That is
+/// true of the nesting guard, whose alternative is an abort — but not of this
+/// one: `postcss_value_parser` reads an unterminated comment as a comment node
+/// carrying `unclosed: true`, which is what
+/// `an_unterminated_comment_contributes_an_empty_part` relies on. So it had no
+/// more claim to preempt them than the token did.
+///
+/// The cost of speaking first was a value refused for the wrong fault.
+/// `calc(1px /*` carries an unclosed function *and* an unclosed comment; the
+/// reference compiler names the function, and this compiler named the comment.
+/// Same accept-or-refuse decision, different sentence — which is the whole thing
+/// the reorder that moved the token was for.
+#[test]
+fn hands_an_unclosed_comment_to_the_rejections_the_reference_makes_too() {
+  refuses_with(
+    "width",
+    "calc(1px /*",
+    LINT_UNCLOSED_FUNCTION,
+    LINT_UNCLOSED_COMMENT,
+  );
+
+  // A comment with no unclosed function or string beside it still reads the
+  // comment: the rejections it now defers to simply have nothing to say.
+  refuses_with(
+    "color",
+    "red /* x",
+    LINT_UNCLOSED_COMMENT,
+    LINT_UNCLOSED_FUNCTION,
   );
 }
 

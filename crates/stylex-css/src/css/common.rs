@@ -7,7 +7,7 @@ use crate::utils::pseudo::{is_pseudo_class, is_pseudo_element, is_pseudo_selecto
 use stylex_constants::constants::{
   long_hand_logical::LONG_HAND_LOGICAL,
   long_hand_physical::LONG_HAND_PHYSICAL,
-  messages::{LINT_UNCLOSED_COMMENT, LINT_VALUE_NESTED_TOO_DEEPLY},
+  messages::{LINT_RULE_BREAKING_TOKEN, LINT_UNCLOSED_COMMENT, LINT_VALUE_NESTED_TOO_DEEPLY},
   number_properties::NUMBER_PROPERTY_SUFFIXIES,
   priorities::{AT_RULE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY},
   shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
@@ -706,11 +706,11 @@ pub fn normalize_css_property_value(
 ) -> String {
   let structure = scan_value_structure(css_property_value);
 
-  // A comment left open swallows every rule emitted after this declaration.
-  if structure.has_unclosed_comment {
-    stylex_panic!("{}", LINT_UNCLOSED_COMMENT);
-  }
-
+  // The one guard that cannot wait for a pass. Parsing and normalizing each
+  // recurse once per nesting level, and past the budget the process *aborts*
+  // rather than panicking — a stack overflow is not unwindable, so the
+  // `catch_unwind` around compilation never sees it and no diagnostic is ever
+  // produced. There is nothing to defer to, so it speaks first.
   if structure.max_nesting_depth > MAX_VALUE_NESTING_DEPTH {
     stylex_panic!(
       "{} (limit {}, found {}), css rule: {}",
@@ -721,18 +721,38 @@ pub fn normalize_css_property_value(
     );
   }
 
+  // Both of the others are handed to the fold, to fire *after* the two
+  // rejections the reference compiler also makes. See the header for why the
+  // token waits; the unclosed comment waits for the same reason and used not to.
+  //
+  // An unclosed comment does not overrun the stack — `postcss_value_parser`
+  // reads it as a comment node carrying `unclosed: true`, which is what
+  // `an_unterminated_comment_contributes_an_empty_part` relies on — so it has no
+  // more claim to preempt those two than the token does. Speaking first meant
+  // `calc(1px /*` was refused here for the comment where the reference compiler
+  // refuses it for the unclosed function: the same accept-or-refuse decision,
+  // reported as a different fault.
+  //
   // A stray `{`, `}` or `;` splices arbitrary CSS into the stylesheet: the value
   // reaches the output verbatim, so `height: "1px solid } color: red"` would
-  // escape its own declaration. Built here and fired there — see the header.
-  let rule_breaking_report = structure
-    .has_rule_breaking_token
-    .then(|| build_reported_css_rule(css_property, css_property_value));
+  // escape its own declaration.
+  let deferred_refusal = if structure.has_unclosed_comment {
+    Some(Cow::Borrowed(LINT_UNCLOSED_COMMENT))
+  } else if structure.has_rule_breaking_token {
+    Some(Cow::Owned(format!(
+      "{}, css rule: {}",
+      LINT_RULE_BREAKING_TOKEN,
+      build_reported_css_rule(css_property, css_property_value)
+    )))
+  } else {
+    None
+  };
 
   normalize_value_guarded(
     css_property_value,
     css_property,
     options,
-    rule_breaking_report.as_deref(),
+    deferred_refusal.as_deref(),
   )
 }
 

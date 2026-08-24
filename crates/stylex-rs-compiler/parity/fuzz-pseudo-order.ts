@@ -48,6 +48,7 @@ import chalk from 'chalk';
 
 import { createComparer } from './lib/compare.js';
 import { subjectBlock } from './lib/compilers.js';
+import { countFlag } from './lib/flags.js';
 import type { CompilerOutcome } from './lib/types.js';
 
 const parityDir = path.dirname(fileURLToPath(import.meta.url));
@@ -161,12 +162,8 @@ function selectorOf(outcome: CompilerOutcome): string {
 }
 
 async function run(): Promise<void> {
-  const pairs = Number.parseInt(cliOptions.pairs ?? '1000', 10);
-  const show = Number.parseInt(cliOptions.show ?? '20', 10);
-  if (!Number.isFinite(pairs) || pairs < 1) {
-    console.error(chalk.red(`--pairs must be a positive integer, got ${String(cliOptions.pairs)}`));
-    process.exit(1);
-  }
+  const pairs = countFlag('--pairs', cliOptions.pairs, 1000, 1_000_000);
+  const show = countFlag('--show', cliOptions.show, 20, 10_000);
 
   const comparer = await createComparer({ packageDir, enableFontSizePxToRem: false });
   // The printed seed was decorative while it could not be given back: a failing

@@ -50,7 +50,9 @@ import chalk from 'chalk';
 import { createComparer } from './lib/compare.js';
 import { subjectBlock } from './lib/compilers.js';
 import { entry } from './lib/declaration.js';
+import { countFlag } from './lib/flags.js';
 import { REFUSAL_FAMILIES, familyOf, groupByFamily } from './lib/refusal-families.js';
+import { AGREED } from './lib/report.js';
 import type { CompilerOutcome, LoadedCorpusEntry, ReportEntry } from './lib/types.js';
 
 /**
@@ -308,8 +310,12 @@ const comparer = await createComparer({
 const entries = corpus();
 const results: ReportEntry[] = entries.map(subject => comparer.compare(subject));
 
-const agreed = new Set(['identical', 'identical-empty', 'both-reject']);
-const diverged = results.filter(result => !agreed.has(result.verdict));
+// `AGREED` rather than a second spelling of it. `lib/report.ts` decides what
+// counts as agreement and argues there against exactly this duplicate: a verdict
+// added to one list and not the other is either printed here as a divergence it
+// is not, or -- the direction that matters -- dropped out of `unexpected` and so
+// out of the count this run exits on.
+const diverged = results.filter(result => !AGREED.has(result.verdict));
 
 /**
  * The divergent rows, split into the ones a refusal family accounts for and the
@@ -376,7 +382,7 @@ if (pinned.size > 0) {
   console.log(chalk.dim('  reasons: parity/lib/refusal-families.ts'));
 }
 
-const show = Number.parseInt(cliOptions.show ?? '25', 10);
+const show = countFlag('--show', cliOptions.show, 25, 10_000);
 if (unexpected.length > 0 && show > 0) {
   console.log(chalk.bold(`\nFirst ${Math.min(show, unexpected.length)} unexpected divergences`));
   for (const result of unexpected.slice(0, show)) {
@@ -391,7 +397,12 @@ if (unexpected.length > 0 && show > 0) {
 }
 
 if (cliOptions.json != null) {
-  const target = path.resolve(process.cwd(), cliOptions.json);
+  // Resolved against the package rather than the shell's working directory, for
+  // the reason `parity-values.ts` gives where it does the same: `pnpm run
+  // --filter` leaves cwd at the repo root, so the same command run from there
+  // and from this package would otherwise write two different files -- and this
+  // is the harness whose report CI archives.
+  const target = path.resolve(packageDir, cliOptions.json);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(
     target,

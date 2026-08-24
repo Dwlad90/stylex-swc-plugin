@@ -49,8 +49,17 @@ const serialized = `${JSON.stringify(corpus, null, 2)}\n`;
 if (cliOptions.check) {
   const current = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : '';
   if (current !== serialized) {
+    // Says where the corpus comes from, not only what to run. This check gates
+    // this package's `test` script, and it harvests from the Rust suites of the
+    // *whole* workspace -- so editing a CSS value test in `stylex-css` fails
+    // `pnpm --filter=@stylexswc/rs-compiler test` before a single vitest case
+    // runs, which reads as unrelated to what was just changed unless the message
+    // says otherwise. It is also the only place the check runs.
     console.error(
-      `${path.relative(workspaceRoot, outputPath)} is out of date; run \`pnpm parity:harvest\`.`
+      `${path.relative(workspaceRoot, outputPath)} is out of date; run \`pnpm parity:harvest\`.\n` +
+        'It is harvested from the Rust test suites across the workspace, so a ' +
+        'declaration added to or removed from any of them moves it. This is not a ' +
+        'failure of the tests that were about to run.'
     );
     process.exit(1);
   }

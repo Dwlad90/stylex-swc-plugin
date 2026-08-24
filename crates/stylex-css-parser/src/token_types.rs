@@ -6,6 +6,7 @@ use crate::CssResult;
 use cssparser::{Parser, ParserInput, Token as CssToken};
 use log::error;
 use stylex_macros::stylex_panic;
+use stylex_utils::number::to_js_string;
 
 /// Simple token representation
 #[derive(Debug, Clone, PartialEq)]
@@ -44,9 +45,16 @@ impl SimpleToken {
       SimpleToken::Hash(value) => Some(value.clone()),
       SimpleToken::AtKeyword(value) => Some(value.clone()),
       SimpleToken::Comment(value) => Some(value.clone()),
-      SimpleToken::Number(value) => Some(value.to_string()),
-      SimpleToken::Percentage(value) => Some(value.to_string()),
-      SimpleToken::Dimension { value, unit } => Some(format!("{}{}", value, unit)),
+      // Through `to_js_string`, like every other number-to-text path in this
+      // crate. `f64`'s own `Display` never switches to exponential form, so this
+      // answered `1e21` as twenty-two digits and `1e-7` as `0.0000001`, neither
+      // of which JavaScript writes -- and widening the field to a double made
+      // the gap wider than it had been. Nothing in the plugin calls this today,
+      // which is why nothing failed; it is `pub`, and it was contradicting the
+      // rule its own crate documents.
+      SimpleToken::Number(value) => Some(to_js_string(*value)),
+      SimpleToken::Percentage(value) => Some(to_js_string(*value)),
+      SimpleToken::Dimension { value, unit } => Some(format!("{}{}", to_js_string(*value), unit)),
       SimpleToken::Delim(ch) => Some(ch.to_string()),
       SimpleToken::Unknown(value) => Some(value.clone()),
       _ => None, // No extractable value for structural tokens

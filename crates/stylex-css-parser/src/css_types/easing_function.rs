@@ -3,14 +3,14 @@ CSS easing function parser.
 */
 
 use stylex_macros::stylex_unreachable;
-use stylex_utils::number::to_js_string;
+use stylex_utils::number::{to_js_string, write_js_number_list};
 
 use crate::{
   CssParseError,
   token_parser::TokenParser,
   token_types::{SimpleToken, TokenList},
 };
-use std::fmt::{self, Display};
+use std::fmt::{self, Display, Write as _};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum EasingFunction {
@@ -537,13 +537,9 @@ impl Display for EasingFunction {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for LinearEasingFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let points_str = self
-      .points
-      .iter()
-      .map(|point| to_js_string(*point))
-      .collect::<Vec<_>>()
-      .join(", ");
-    write!(f, "linear({})", points_str)
+    f.write_str("linear(")?;
+    write_js_number_list(f, self.points.iter().copied(), ", ")?;
+    f.write_char(')')
   }
 }
 

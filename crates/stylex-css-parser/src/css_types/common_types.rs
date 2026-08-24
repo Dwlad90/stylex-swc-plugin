@@ -6,7 +6,7 @@ providing essential shared utilities for CSS processing.
 */
 
 use stylex_macros::stylex_unreachable;
-use stylex_utils::number::to_js_string;
+use stylex_utils::number::{to_js_string, write_js_number};
 
 use crate::{
   token_parser::{TokenParser, tokens},
@@ -219,7 +219,7 @@ impl Number {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Number {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", to_js_string(self.value))
+    write_js_number(f, self.value)
   }
 }
 

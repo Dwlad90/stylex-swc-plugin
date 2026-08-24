@@ -5,7 +5,7 @@ Implements complete calc() expression parsing with operator precedence.
 */
 
 use stylex_macros::stylex_unreachable;
-use stylex_utils::number::to_js_string;
+use stylex_utils::number::{to_js_string, write_js_number};
 
 use crate::{
   CssParseError,
@@ -490,7 +490,7 @@ impl CalcValue {
 impl Display for CalcValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      CalcValue::Number(n) => write!(f, "{}", to_js_string(*n)),
+      CalcValue::Number(n) => write_js_number(f, *n),
       CalcValue::Dimension(d) => write!(f, "{}", d),
       CalcValue::Percentage(p) => write!(f, "{}", p),
       CalcValue::Constant(c) => write!(f, "{}", c),

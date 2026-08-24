@@ -1,3 +1,5 @@
+use std::fmt;
+
 /// Reads a leading number out of `input` exactly as JS `parseFloat` does,
 /// returning `None` where JS returns `NaN`. See `CONTEXT.md` for why the
 /// spelling has to match JS rather than merely round-trip.
@@ -93,29 +95,43 @@ fn skip_ascii_digits(bytes: &[u8], from: usize) -> usize {
   index
 }
 
-/// Renders an `f64` exactly as JS `String(Number)` does.
+/// Writes an `f64` into `out` exactly as JS `String(Number)` spells it.
+///
+/// The primitive; [`to_js_string`] is this with a `String` to write into. Two
+/// forms rather than one because the callers want different things: a `Display`
+/// impl already holds a formatter, and `write!(f, "{}", to_js_string(x))` builds
+/// a `String` only to copy it out and drop it on the next line. A `matrix3d()`
+/// carries sixteen numbers, so that was sixteen allocations plus the `Vec` and
+/// the `join` holding them.
+///
+/// Not allocation-free, and worth being exact about: the digit decomposition
+/// below still allocates, because it reads the shortest round-tripping digits
+/// back out of Rust's own `LowerExp`. What this removes is the allocation per
+/// number *at the call site*, which is the one a formatter does not need. The
+/// remaining two are inside the one function in this crate whose output feeds
+/// the class-name hash directly, and rewriting it around a stack buffer would
+/// put that at risk to save an allocation nobody has measured -- which
+/// `guidelines/PERFORMANCE.md` is explicit about not doing.
 ///
 /// Rust's `f64` `Display` is not a substitute: it never switches to
 /// exponential form, so `1e21` would render as `"1000000000000000000000"` where
 /// JS renders `"1e+21"`. Since this rendering reaches both generated code and
 /// the class-name hash, the spelling itself is observable and has to match, not
 /// merely round-trip to the same `f64`.
-pub fn to_js_string(value: f64) -> String {
+pub fn write_js_number(out: &mut impl fmt::Write, value: f64) -> fmt::Result {
   if value.is_nan() {
-    return "NaN".to_string();
+    return out.write_str("NaN");
   }
   if value.is_infinite() {
-    return if value > 0.0 { "Infinity" } else { "-Infinity" }.to_string();
+    return out.write_str(if value > 0.0 { "Infinity" } else { "-Infinity" });
   }
   if value == 0.0 {
     // Covers `-0`, which JS also renders as `"0"`.
-    return "0".to_string();
+    return out.write_str("0");
   }
 
-  let mut result = String::with_capacity(24);
-
   if value < 0.0 {
-    result.push('-');
+    out.write_char('-')?;
   }
 
   // `s` and `n` are ECMA-262's `Number::toString` variables: `s` is the shortest
@@ -125,32 +141,72 @@ pub fn to_js_string(value: f64) -> String {
   let k = s.len() as i32;
 
   if k <= n && n <= 21 {
-    result.push_str(&s);
+    out.write_str(&s)?;
     for _ in 0..(n - k) {
-      result.push('0');
+      out.write_char('0')?;
     }
   } else if 0 < n && n <= 21 {
     let (integral, fractional) = s.split_at(n as usize);
-    result.push_str(integral);
-    result.push('.');
-    result.push_str(fractional);
+    out.write_str(integral)?;
+    out.write_char('.')?;
+    out.write_str(fractional)?;
   } else if -6 < n && n <= 0 {
-    result.push_str("0.");
+    out.write_str("0.")?;
     for _ in 0..(-n) {
-      result.push('0');
+      out.write_char('0')?;
     }
-    result.push_str(&s);
+    out.write_str(&s)?;
   } else {
     let (first, rest) = s.split_at(1);
-    result.push_str(first);
+    out.write_str(first)?;
     if !rest.is_empty() {
-      result.push('.');
-      result.push_str(rest);
+      out.write_char('.')?;
+      out.write_str(rest)?;
     }
-    result.push('e');
-    result.push(if n >= 1 { '+' } else { '-' });
-    result.push_str(&(n - 1).abs().to_string());
+    out.write_char('e')?;
+    out.write_char(if n >= 1 { '+' } else { '-' })?;
+    write!(out, "{}", (n - 1).abs())?;
   }
+
+  Ok(())
+}
+
+/// Writes `values` into `out`, separated by `separator`, each spelled as JS
+/// spells it.
+///
+/// One writer because three `Display` impls needed the same comma-separated list
+/// of numbers and each spelled it differently -- `matrix()` as six positional
+/// format arguments, `matrix3d()` and `linear()` each as a `Vec<String>` and a
+/// `join`. The list is what they have in common, and the two `join` forms were
+/// also the two that allocated once per number and once more for the result.
+pub fn write_js_number_list(
+  out: &mut impl fmt::Write,
+  values: impl IntoIterator<Item = f64>,
+  separator: &str,
+) -> fmt::Result {
+  for (index, value) in values.into_iter().enumerate() {
+    if index > 0 {
+      out.write_str(separator)?;
+    }
+
+    write_js_number(out, value)?;
+  }
+
+  Ok(())
+}
+
+/// Renders an `f64` exactly as JS `String(Number)` does.
+///
+/// [`write_js_number`] with a `String` to write into, and the form most callers
+/// want. Use the other one from a `Display` impl, where the formatter is already
+/// to hand.
+pub fn to_js_string(value: f64) -> String {
+  let mut result = String::with_capacity(24);
+
+  // `fmt::Write for String` returns `Ok` unconditionally -- it has nothing that
+  // can fail -- so the result is discarded rather than handled. There is no
+  // state here to report.
+  let _ = write_js_number(&mut result, value);
 
   result
 }

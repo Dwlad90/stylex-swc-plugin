@@ -7,7 +7,7 @@ alpha, only on the channels beside it, so `rgba(0, 0, 0, 2)` parses.
 */
 
 use stylex_macros::stylex_unreachable;
-use stylex_utils::number::to_js_string;
+use stylex_utils::number::write_js_number;
 
 use crate::{
   CssParseError,
@@ -75,7 +75,7 @@ impl AlphaValue {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for AlphaValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", to_js_string(self.value))
+    write_js_number(f, self.value)
   }
 }
 

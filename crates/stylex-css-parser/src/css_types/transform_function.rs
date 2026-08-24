@@ -2,7 +2,7 @@
 CSS transform function parser.
 */
 
-use stylex_utils::number::to_js_string;
+use stylex_utils::number::{to_js_string, write_js_number_list};
 
 use crate::{
   CssParseError,
@@ -13,7 +13,7 @@ use crate::{
   token_parser::TokenParser,
   token_types::{SimpleToken, TokenList},
 };
-use std::fmt::{self, Display};
+use std::fmt::{self, Display, Write as _};
 
 /// A CSS transform function
 #[derive(Debug, Clone, PartialEq)]
@@ -1106,8 +1106,9 @@ impl Display for TransformFunction {
         to_js_string(m.ty)
       ),
       TransformFunction::Matrix3d(m) => {
-        let args: Vec<String> = m.args.iter().map(|x| to_js_string(*x)).collect();
-        write!(f, "matrix3d({})", args.join(", "))
+        f.write_str("matrix3d(")?;
+        write_js_number_list(f, m.args.iter().copied(), ", ")?;
+        f.write_char(')')
       },
       TransformFunction::Perspective(p) => write!(f, "perspective({})", p.length),
       TransformFunction::Rotate(r) => write!(f, "rotate({})", r.angle),

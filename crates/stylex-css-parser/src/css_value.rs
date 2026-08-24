@@ -11,7 +11,7 @@ Key features:
 - Support for heterogeneous parser sequences
 */
 
-use stylex_utils::number::to_js_string;
+use stylex_utils::number::{to_js_string, write_js_number};
 
 use crate::{
   css_types::{Angle, Color, Length, Percentage},
@@ -223,7 +223,7 @@ impl CssValue {
 impl fmt::Display for CssValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      CssValue::Number(n) => write!(f, "{}", to_js_string(*n)),
+      CssValue::Number(n) => write_js_number(f, *n),
       CssValue::Percentage(p) => write!(f, "{}%", to_js_string(*p)),
       CssValue::Dimension { value, unit } => {
         write!(f, "{}{}", to_js_string(*value), unit)

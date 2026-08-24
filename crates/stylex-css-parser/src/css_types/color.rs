@@ -5,7 +5,7 @@ Handles all CSS color formats: named colors, hex, rgb, rgba, hsl, hsla, and mode
 */
 
 use stylex_macros::stylex_unreachable;
-use stylex_utils::number::to_js_string;
+use stylex_utils::number::{to_js_string, write_js_number};
 
 use crate::{
   CssParseError,
@@ -1806,7 +1806,7 @@ impl std::fmt::Display for LchHue {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       LchHue::Angle(angle) => write!(f, "{}", angle),
-      LchHue::Number(number) => write!(f, "{}", to_js_string(*number)),
+      LchHue::Number(number) => write_js_number(f, *number),
     }
   }
 }

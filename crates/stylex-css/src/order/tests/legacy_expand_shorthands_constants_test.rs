@@ -541,16 +541,24 @@ fn aliases_get_border_block_start_end_properties() {
   assert_eq!(bec[0].0, "borderBottomColor");
 }
 
+/// Each legacy spelling resolves to the logical property, never to itself.
+///
+/// The direction is the whole of what this asserts, so it is worth saying what
+/// the other one produced: an alias resolving to itself put
+/// `border-top-start-radius` in the stylesheet, which is not a CSS property, so
+/// every browser dropped the declaration and the corner silently stayed square.
+/// `Shorthands::border_radius` next door always expanded to the logical four,
+/// which is the inconsistency that gives this test its point.
 #[test]
 fn aliases_get_border_radius_aliases() {
   let ss = Aliases::get("borderTopStartRadius").unwrap()(None).unwrap();
   let se = Aliases::get("borderTopEndRadius").unwrap()(None).unwrap();
   let es = Aliases::get("borderBottomStartRadius").unwrap()(None).unwrap();
   let ee = Aliases::get("borderBottomEndRadius").unwrap()(None).unwrap();
-  assert_eq!(ss[0].0, "borderTopStartRadius");
-  assert_eq!(se[0].0, "borderTopEndRadius");
-  assert_eq!(es[0].0, "borderBottomStartRadius");
-  assert_eq!(ee[0].0, "borderBottomEndRadius");
+  assert_eq!(ss[0].0, "borderStartStartRadius");
+  assert_eq!(se[0].0, "borderStartEndRadius");
+  assert_eq!(es[0].0, "borderEndStartRadius");
+  assert_eq!(ee[0].0, "borderEndEndRadius");
 }
 
 #[test]

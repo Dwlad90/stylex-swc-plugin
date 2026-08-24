@@ -239,3 +239,34 @@ stylex_test!(
     });
   "#
 );
+
+// The four legacy radius spellings resolve to the logical properties, which is
+// the direction the reference compiler resolves them and the direction
+// `borderRadius` next door always expanded to.
+//
+// The constants test asserts the mapping; this asserts the stylesheet, and the
+// difference is the whole reason it exists. Resolving an alias to itself emitted
+// `border-top-start-radius`, which is not a CSS property: every browser drops
+// the declaration, so the corner stayed square and nothing reported a fault.
+// Only a fixture that carries the emitted rule can see that.
+//
+// `borderRadius` is included so the two paths are read side by side — the bug
+// was that they disagreed, and a reader should be able to see them agree.
+stylex_test!(
+  legacy_radius_aliases_resolve_to_the_logical_properties,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_style_resolution(StyleResolution::LegacyExpandShorthands)
+  }),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      corners: {
+        borderTopStartRadius: '4px',
+        borderTopEndRadius: '5px',
+        borderBottomStartRadius: '6px',
+        borderBottomEndRadius: '7px',
+      },
+      shorthand: { borderRadius: '8px' },
+    });
+  "#
+);

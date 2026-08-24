@@ -644,17 +644,26 @@ impl Aliases {
   fn border_block_end_color(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderBottomColor".into(), val)])
   }
-  fn border_start_start_radius(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderTopStartRadius".into(), val)])
+  /// The four legacy radius spellings, each resolving to the logical property.
+  ///
+  /// The direction is the one [`Shorthands::border_radius`] above already takes,
+  /// and the one the reference compiler takes
+  /// (`shared/preprocess-rules/legacy-expand-shorthands.js`, 0.19.0). It was
+  /// ported the other way from `packages/shared/lib`, a prebuilt artifact of a
+  /// release from before the mapping was flipped upstream — which left each
+  /// alias resolving to itself and emitting `border-top-start-radius`, a
+  /// property CSS does not have and every browser drops.
+  fn border_top_start_radius(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderStartStartRadius".into(), val)])
   }
-  fn border_start_end_radius(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderTopEndRadius".into(), val)])
+  fn border_top_end_radius(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderStartEndRadius".into(), val)])
   }
-  fn border_end_start_radius(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderBottomStartRadius".into(), val)])
+  fn border_bottom_start_radius(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderEndStartRadius".into(), val)])
   }
-  fn border_end_end_radius(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderBottomEndRadius".into(), val)])
+  fn border_bottom_end_radius(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    Ok(vec![OrderPair("borderEndEndRadius".into(), val)])
   }
 
   fn grid_row_gap(value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
@@ -765,10 +774,10 @@ impl Aliases {
       "borderInlineWidth" => Some(Shorthands::border_inline_width),
       "borderInlineStyle" => Some(Shorthands::border_inline_style),
       "borderInlineColor" => Some(Shorthands::border_inline_color),
-      "borderTopStartRadius" => Some(Aliases::border_start_start_radius),
-      "borderTopEndRadius" => Some(Aliases::border_start_end_radius),
-      "borderBottomStartRadius" => Some(Aliases::border_end_start_radius),
-      "borderBottomEndRadius" => Some(Aliases::border_end_end_radius),
+      "borderTopStartRadius" => Some(Aliases::border_top_start_radius),
+      "borderTopEndRadius" => Some(Aliases::border_top_end_radius),
+      "borderBottomStartRadius" => Some(Aliases::border_bottom_start_radius),
+      "borderBottomEndRadius" => Some(Aliases::border_bottom_end_radius),
       "gridGap" => Some(Shorthands::gap),
       "gridRowGap" => Some(Aliases::grid_row_gap),
       "gridColumnGap" => Some(Aliases::grid_column_gap),

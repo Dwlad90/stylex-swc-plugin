@@ -1605,3 +1605,105 @@ mod a_ladder_too_deep_to_expand {
     assert_eq!(keys[rungs], *authored.last().unwrap());
   }
 }
+
+/// Queries the transform refuses, and the ones it must not.
+///
+/// The refusal is the outer of the two failure modes: it rejects the whole
+/// declaration, where the depth bound quietly hands rules back. Which inputs
+/// reach it was compared against `@stylexjs/babel-plugin` 0.19.0 in
+/// `.scratch/fix_media-query-order-wrapping/evidence/sweep.md`, and every
+/// expectation here is a row of that comparison.
+#[cfg(test)]
+mod malformed_queries {
+  use super::*;
+
+  /// The transform panics on a query it cannot read; the compiler turns that
+  /// into the invalid-media-query-syntax error.
+  fn refuses(query: &str) -> bool {
+    let styles = json!({
+      "color": { "default": "black", query: "red", "@media (max-width: 50px)": "blue" }
+    });
+
+    std::panic::catch_unwind(|| transformed_keys(styles)).is_err()
+  }
+
+  /// A closing parenthesis the author never wrote.
+  ///
+  /// The tokenizer synthesizes one at end of input, so these parse cleanly and
+  /// would reach the stylesheet as queries nobody wrote. The balanced-
+  /// parenthesis check in front of the parse is what refuses them, and it is
+  /// the only reason they are refused — which is why each shape is listed
+  /// rather than one standing for the rest.
+  #[test]
+  fn an_unbalanced_parenthesis_is_refused() {
+    assert!(refuses("@media (min-width: 100px"));
+    assert!(refuses("@media ((min-width: 100px)"));
+    assert!(refuses("@media (width: calc(100px)"));
+    assert!(refuses("@media min-width: 100px)"));
+    assert!(refuses("@media (min-width: 100px))"));
+  }
+
+  /// An unclosed string swallows the rest of the query, and the tokenizer ends
+  /// it at end of input rather than failing, so this is refused for the same
+  /// reason as an unclosed parenthesis rather than for the quote itself.
+  #[test]
+  fn an_unclosed_quote_is_refused() {
+    assert!(refuses("@media (min-width: \"100px)"));
+    assert!(refuses("@media (min-width: '100px)"));
+  }
+
+  /// Token sequences that are balanced but say nothing the grammar reads.
+  #[test]
+  fn an_invalid_token_sequence_is_refused() {
+    assert!(refuses("@media ()"));
+    assert!(refuses("@media (:)"));
+    assert!(refuses("@media (min-width:)"));
+    assert!(refuses(
+      "@media (min-width: 100px) and and (max-width: 200px)"
+    ));
+    assert!(refuses("@media (min-width: 100px) and"));
+    assert!(refuses("@media and (min-width: 100px)"));
+    assert!(refuses("@media ,"));
+    assert!(refuses("@media ???"));
+    assert!(refuses("@media not"));
+    assert!(refuses("@media only"));
+  }
+
+  /// Refusing too much is the other way to diverge. These are accepted by the
+  /// reference implementation and must stay accepted here.
+  #[test]
+  fn an_unusual_but_valid_query_is_not_refused() {
+    // A width below zero is a number the merge reads like any other.
+    assert!(!refuses("@media (min-width: -100px)"));
+    // A unitless number is not a length, so the merge declines to read it and
+    // the query passes through with its negation printed.
+    assert!(!refuses("@media (min-width: 100)"));
+    // An escaped character in a feature name, and a name outside the basic
+    // multilingual plane.
+    assert!(!refuses("@media (min-\\77 idth: 100px)"));
+    assert!(!refuses("@media (min-width: 100px) and (\u{1D400}: 1)"));
+  }
+
+  /// A custom property is not a length, and a media feature has to resolve at
+  /// media-evaluation time rather than at cascade time — so both compilers
+  /// refuse this rather than emitting a query no browser could match.
+  #[test]
+  fn a_custom_property_in_a_value_position_is_refused() {
+    assert!(refuses("@media (min-width: var(--breakpoint))"));
+  }
+
+  /// Nesting is walked once per level rather than searched, so depth costs
+  /// linear time and no stack. The reference implementation's parser backtracks
+  /// here instead — twelve levels take it twenty seconds and sixteen do not
+  /// finish — so this is a divergence in the direction of finishing.
+  #[test]
+  fn deep_parenthesis_nesting_is_read_without_backtracking() {
+    let deep = format!(
+      "@media {}min-width: 100px{}",
+      "(".repeat(200),
+      ")".repeat(200)
+    );
+
+    assert!(!refuses(&deep));
+  }
+}

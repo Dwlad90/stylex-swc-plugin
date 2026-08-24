@@ -10,7 +10,9 @@ This implementation provides media query transformation:
 3. Use pure AST manipulation, not range-based logic
 */
 
-use super::media_query::{MediaAndRules, MediaNotRule, MediaOrRules, MediaQuery, MediaQueryRule};
+use super::media_query::{
+  MediaAndRules, MediaNotRule, MediaOrRules, MediaQuery, MediaQueryRule, validate_media_query,
+};
 use indexmap::{IndexMap, map::Entry};
 use stylex_macros::stylex_panic;
 use swc_core::{
@@ -142,7 +144,13 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
 
   let mut parsed_media_queries = Vec::with_capacity(media_keys.len());
   for media_key in &media_keys {
-    match MediaQuery::parser().parse_to_end(media_key) {
+    // Validated rather than merely parsed, because the tokenizer synthesizes a
+    // closing parenthesis at end of input: `(min-width: 100px` parses cleanly
+    // here and would reach the stylesheet as a query the author never wrote.
+    // The reference implementation's tokenizer synthesizes nothing, so its
+    // parse fails outright on the same input -- the balanced-parenthesis check
+    // is how the two arrive at the same refusal.
+    match validate_media_query(media_key) {
       Ok(media_query) => parsed_media_queries.push(media_query),
       Err(_) => {
         // An unparseable query is a hard error, not something to pass through:

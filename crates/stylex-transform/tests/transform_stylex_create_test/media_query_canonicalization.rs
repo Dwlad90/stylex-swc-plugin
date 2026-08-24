@@ -215,3 +215,78 @@ stylex_test_transform!(
     };
   "#
 );
+
+// A rewritten media key beside other at-rules, and beside plain properties.
+//
+// At-rule sorting compares the final key text, and a rewritten key is much
+// longer than the one an author wrote -- long enough that it could sort to a
+// different place among its siblings than the authored spelling did. It does
+// not. `@media not all` here is what `(min-width: 200px)` becomes once the
+// later `(min-width: 100px)` is negated out of it, which is about as far from
+// the authored text as a rewrite gets, and it still lands where it was.
+//
+// Plain properties on both sides pin the other half: a value map holding media
+// keys does not migrate past the declarations around it.
+//
+// Quoted from a run of `@stylexjs/babel-plugin@0.19.0`, whose emitted order is
+// identical rule for rule.
+stylex_test_transform!(
+  a_rewritten_media_key_sorts_where_the_authored_one_did,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: {
+        padding: '10px',
+        color: {
+          default: 'black',
+          '@supports (display: grid)': 'green',
+          '@media (min-width: 200px)': 'red',
+          '@container (min-width: 400px)': 'teal',
+          '@media (min-width: 100px)': 'blue',
+        },
+        margin: '2px',
+      },
+    });
+  "#,
+  r#"
+    import _inject from "@stylexjs/stylex/lib/stylex-inject";
+    var _inject2 = _inject;
+    import * as stylex from '@stylexjs/stylex';
+    _inject2({
+      ltr: ".x7z7khe{padding:10px}",
+      priority: 1000
+    });
+    _inject2({
+      ltr: ".x1mqxbix{color:black}",
+      priority: 3000
+    });
+    _inject2({
+      ltr: "@supports (display: grid){.x19g4ih5.x19g4ih5{color:green}}",
+      priority: 3030
+    });
+    _inject2({
+      ltr: "@container (min-width: 400px){.x15pkjp4.x15pkjp4{color:teal}}",
+      priority: 3300
+    });
+    _inject2({
+      ltr: "@media not all{.x1jqaanj.x1jqaanj{color:red}}",
+      priority: 3200
+    });
+    _inject2({
+      ltr: "@media (min-width: 100px){.x18tmubq.x18tmubq{color:blue}}",
+      priority: 3200
+    });
+    _inject2({
+      ltr: ".xy3p2pi{margin:2px}",
+      priority: 1000
+    });
+    export const styles = {
+      root: {
+        kmVPX3: "x7z7khe",
+        kMwMTN: "x1mqxbix x19g4ih5 x15pkjp4 x1jqaanj x18tmubq",
+        kogj98: "xy3p2pi",
+        $$css: true
+      }
+    };
+  "#
+);

@@ -3117,6 +3117,12 @@
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:305"
     },
     {
+      "id": "7826e219",
+      "property": "margin",
+      "value": "2px",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/media_query_canonicalization.rs:235"
+    },
+    {
       "id": "6b45c8fd",
       "property": "margin",
       "value": "4px ",
@@ -3277,6 +3283,12 @@
       "property": "padding",
       "value": "0",
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:229"
+    },
+    {
+      "id": "5c11000b",
+      "property": "padding",
+      "value": "10px",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/media_query_canonicalization.rs:235"
     },
     {
       "id": "f5c9180d",

@@ -604,9 +604,11 @@ fn lch_parser_rejects_non_function_token() {
 }
 
 #[test]
-fn lch_parser_rejects_invalid_lightness_token() {
-  // ident (not number/percentage) for lightness
-  assert!(Lch::parse().parse_to_end("lch(none 100 180)").is_err());
+fn lch_parser_reads_a_none_lightness_as_zero() {
+  match Lch::parse().parse_to_end("lch(none 100 180)") {
+    Ok(lch) => assert_eq!(lch.to_string(), "lch(0 100 180)"),
+    Err(error) => panic!("expected 'none' lightness to parse: {error:?}"),
+  }
 }
 
 #[test]
@@ -616,9 +618,12 @@ fn lch_parser_rejects_non_whitespace_after_l() {
 }
 
 #[test]
-fn lch_parser_rejects_invalid_chroma_token() {
-  // percentage not valid for chroma
-  assert!(Lch::parse().parse_to_end("lch(50 50% 180)").is_err());
+fn lch_parser_scales_a_percentage_chroma() {
+  // Upstream maps a chroma percentage through `(150 * p) / 100`.
+  match Lch::parse().parse_to_end("lch(50 50% 180)") {
+    Ok(lch) => assert_eq!(lch.to_string(), "lch(50 75 180)"),
+    Err(error) => panic!("expected a percentage chroma to parse: {error:?}"),
+  }
 }
 
 #[test]
@@ -700,9 +705,11 @@ fn oklch_parser_rejects_wrong_function() {
 }
 
 #[test]
-fn oklch_parser_rejects_invalid_lightness() {
-  // function token is oklch but next token is not number/none
-  assert!(Oklch::parse().parse_to_end("oklch(50% 0.1 180)").is_err());
+fn oklch_parser_reads_a_percentage_lightness() {
+  match Oklch::parse().parse_to_end("oklch(50% 0.1 180)") {
+    Ok(oklch) => assert_eq!(oklch.to_string(), "oklch(0.5 0.1 180deg)"),
+    Err(error) => panic!("expected a percentage lightness to parse: {error:?}"),
+  }
 }
 
 #[test]
@@ -711,8 +718,11 @@ fn oklch_parser_rejects_non_whitespace_after_l() {
 }
 
 #[test]
-fn oklch_parser_rejects_invalid_chroma() {
-  assert!(Oklch::parse().parse_to_end("oklch(0.5 50% 180)").is_err());
+fn oklch_parser_reads_a_percentage_chroma() {
+  match Oklch::parse().parse_to_end("oklch(0.5 50% 180)") {
+    Ok(oklch) => assert_eq!(oklch.to_string(), "oklch(0.5 0.5 180deg)"),
+    Err(error) => panic!("expected a percentage chroma to parse: {error:?}"),
+  }
 }
 
 #[test]
@@ -790,9 +800,11 @@ fn oklab_parser_rejects_wrong_function() {
 }
 
 #[test]
-fn oklab_parser_rejects_invalid_l_value() {
-  // percentage is not valid for oklab l
-  assert!(Oklab::parse().parse_to_end("oklab(50% 0.1 0.1)").is_err());
+fn oklab_parser_reads_a_percentage_lightness() {
+  match Oklab::parse().parse_to_end("oklab(50% 0.1 0.1)") {
+    Ok(oklab) => assert_eq!(oklab.to_string(), "oklab(0.5 0.1 0.1)"),
+    Err(error) => panic!("expected a percentage lightness to parse: {error:?}"),
+  }
 }
 
 #[test]
@@ -801,8 +813,11 @@ fn oklab_parser_rejects_non_whitespace_after_l() {
 }
 
 #[test]
-fn oklab_parser_rejects_invalid_a_value() {
-  assert!(Oklab::parse().parse_to_end("oklab(0.5 50% 0.1)").is_err());
+fn oklab_parser_reads_a_percentage_a_value() {
+  match Oklab::parse().parse_to_end("oklab(0.5 50% 0.1)") {
+    Ok(oklab) => assert_eq!(oklab.to_string(), "oklab(0.5 0.5 0.1)"),
+    Err(error) => panic!("expected a percentage channel to parse: {error:?}"),
+  }
 }
 
 #[test]
@@ -811,8 +826,11 @@ fn oklab_parser_rejects_non_whitespace_after_a() {
 }
 
 #[test]
-fn oklab_parser_rejects_invalid_b_value() {
-  assert!(Oklab::parse().parse_to_end("oklab(0.5 0.1 50%)").is_err());
+fn oklab_parser_reads_a_percentage_b_value() {
+  match Oklab::parse().parse_to_end("oklab(0.5 0.1 50%)") {
+    Ok(oklab) => assert_eq!(oklab.to_string(), "oklab(0.5 0.1 0.5)"),
+    Err(error) => panic!("expected a percentage channel to parse: {error:?}"),
+  }
 }
 
 #[test]
@@ -2107,12 +2125,15 @@ fn lch_parse_lch_lightness_token_eof_returns_error() {
 }
 
 #[test]
-fn lch_parse_lch_lightness_token_invalid_type() {
+fn lch_parse_lch_lightness_token_reads_none_as_zero() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Ident("none".to_string())],
     current_index: 0,
   };
-  assert!(Lch::parse_lch_lightness_token(&mut tl).is_err());
+  match Lch::parse_lch_lightness_token(&mut tl) {
+    Ok(lightness) => assert_eq!(lightness, 0.0),
+    Err(error) => panic!("expected 'none' to be read as zero: {error:?}"),
+  }
 }
 
 #[test]
@@ -2125,12 +2146,16 @@ fn lch_parse_lch_chroma_token_eof_returns_error() {
 }
 
 #[test]
-fn lch_parse_lch_chroma_token_invalid_type() {
+fn lch_parse_lch_chroma_token_scales_a_percentage_to_150() {
+  // `c: 100%` is `150` upstream, so 5000% is 7500.
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Percentage(5000.0)],
     current_index: 0,
   };
-  assert!(Lch::parse_lch_chroma_token(&mut tl).is_err());
+  match Lch::parse_lch_chroma_token(&mut tl) {
+    Ok(chroma) => assert_eq!(chroma, 7500.0),
+    Err(error) => panic!("expected a percentage chroma to be read: {error:?}"),
+  }
 }
 
 #[test]
@@ -2173,12 +2198,15 @@ fn oklch_parse_oklch_lc_value_eof_returns_error() {
 }
 
 #[test]
-fn oklch_parse_oklch_lc_value_invalid_type() {
+fn oklch_parse_oklch_lc_value_divides_a_percentage_by_100() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Percentage(5000.0)],
     current_index: 0,
   };
-  assert!(Oklch::parse_oklch_lc_value(&mut tl).is_err());
+  match Oklch::parse_oklch_lc_value(&mut tl) {
+    Ok(value) => assert_eq!(value, 50.0),
+    Err(error) => panic!("expected a percentage channel to be read: {error:?}"),
+  }
 }
 
 #[test]
@@ -2221,12 +2249,16 @@ fn oklab_parse_oklab_lab_value_eof_returns_error() {
 }
 
 #[test]
-fn oklab_parse_oklab_lab_value_invalid_type() {
+fn oklab_parse_oklab_lab_value_divides_a_percentage_by_100() {
+  // A modern channel reads a percentage the way an alpha does.
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Percentage(5000.0)],
     current_index: 0,
   };
-  assert!(Oklab::parse_oklab_lab_value(&mut tl).is_err());
+  match Oklab::parse_oklab_lab_value(&mut tl) {
+    Ok(value) => assert_eq!(value, 50.0),
+    Err(error) => panic!("expected a percentage channel to be read: {error:?}"),
+  }
 }
 
 // ── parse_optional_slash_alpha direct call variants ──────────────────────────

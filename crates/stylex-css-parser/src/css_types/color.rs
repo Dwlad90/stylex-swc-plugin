@@ -19,6 +19,31 @@ use crate::{
 
 use std::fmt::{self, Display};
 
+/// A channel of a modern colour space -- `oklch`'s lightness and chroma,
+/// `oklab`'s three -- read the way the reference compiler reads them.
+///
+/// Upstream spells this `TokenParser.oneOf(alphaAsNumber, Ident 'none' -> 0)`,
+/// literally reusing the alpha reader, which is why a percentage divides by 100
+/// here and not by anything else: these channels and an alpha are the same
+/// grammar to it. `none` is a channel the author declined to give, and upstream
+/// maps it to `0` rather than carrying an absence.
+///
+/// `lch` does *not* share this reader -- its percentages scale differently and
+/// its numbers are guarded. See [`Lch::parse_lch_lightness_token`] and
+/// [`Lch::parse_lch_chroma_token`].
+fn parse_modern_channel_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
+  match tokens.consume_next_token_infallible() {
+    Some(SimpleToken::Number(value)) => Ok(value),
+    // The token carries the authored percent, and a modern channel reads it as
+    // the fraction it denotes.
+    Some(SimpleToken::Percentage(value)) => Ok(value / 100.0),
+    Some(SimpleToken::Ident(keyword)) if keyword == "none" => Ok(0.0),
+    other => Err(CssParseError::ParseError {
+      message: format!("Expected a number, a percentage or 'none', got {:?}", other),
+    }),
+  }
+}
+
 /// The alpha a modern colour space prints, or `None` where it prints no tail.
 ///
 /// The reference implementation spells the tail
@@ -1918,14 +1943,18 @@ impl Lch {
       })?;
 
     match token {
-      SimpleToken::Percentage(value) => {
-        // The token already carries the authored percent: `50%` is `50`.
-        Ok(value)
-      },
-      SimpleToken::Number(value) => Ok(value),
+      // The token already carries the authored percent: `50%` is `50`. Upstream
+      // puts no guard on this arm, so a negative percentage is carried.
+      SimpleToken::Percentage(value) => Ok(value),
+      // The number arm *is* guarded upstream, and only this one.
+      SimpleToken::Number(value) if value >= 0.0 => Ok(value),
+      SimpleToken::Number(value) => Err(CssParseError::ParseError {
+        message: format!("lch() lightness must not be negative, got {}", value),
+      }),
+      SimpleToken::Ident(ref keyword) if keyword == "none" => Ok(0.0),
       _ => Err(CssParseError::ParseError {
         message: format!(
-          "Expected Number or Percentage token for lightness, got {:?}",
+          "Expected Number, Percentage or 'none' token for lightness, got {:?}",
           token
         ),
       }),
@@ -1940,12 +1969,20 @@ impl Lch {
         message: "Expected chroma value token".to_string(),
       })?;
 
-    if let SimpleToken::Number(value) = token {
-      Ok(value)
-    } else {
-      Err(CssParseError::ParseError {
-        message: format!("Expected Number token for chroma, got {:?}", token),
-      })
+    match token {
+      // `c: 100%` is `150`, which is the reference compiler's own comment on
+      // this line. Unguarded there, like the lightness percentage.
+      SimpleToken::Percentage(value) => Ok((150.0 * value) / 100.0),
+      SimpleToken::Number(value) if value >= 0.0 => Ok(value),
+      SimpleToken::Number(value) => Err(CssParseError::ParseError {
+        message: format!("lch() chroma must not be negative, got {}", value),
+      }),
+      _ => Err(CssParseError::ParseError {
+        message: format!(
+          "Expected Number or Percentage token for chroma, got {:?}",
+          token
+        ),
+      }),
     }
   }
 
@@ -2087,13 +2124,7 @@ impl Oklch {
 
   /// Parse OKLCH lightness/chroma value: number | 'none'
   fn parse_oklch_lc_value(input: &mut crate::token_types::TokenList) -> Result<f64, CssParseError> {
-    match input.consume_next_token_infallible() {
-      Some(SimpleToken::Number(n)) => Ok(n),
-      Some(SimpleToken::Ident(keyword)) if keyword == "none" => Ok(0.0),
-      _ => Err(CssParseError::ParseError {
-        message: "Expected number or 'none'".to_string(),
-      }),
-    }
+    parse_modern_channel_token(input)
   }
 
   /// Parse OKLCH hue: angle | number (interpreted as degrees) | 'none'
@@ -2223,13 +2254,7 @@ impl Oklab {
   fn parse_oklab_lab_value(
     input: &mut crate::token_types::TokenList,
   ) -> Result<f64, CssParseError> {
-    match input.consume_next_token_infallible() {
-      Some(SimpleToken::Number(n)) => Ok(n),
-      Some(SimpleToken::Ident(keyword)) if keyword == "none" => Ok(0.0),
-      _ => Err(CssParseError::ParseError {
-        message: "Expected number or 'none'".to_string(),
-      }),
-    }
+    parse_modern_channel_token(input)
   }
 }
 

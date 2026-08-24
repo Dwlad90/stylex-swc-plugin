@@ -2497,9 +2497,9 @@ fn parenthesized_expression_main_branch_missing_close_paren() {
 /// it for the length of a comparison.
 #[test]
 fn negated_bound_at_a_width_f32_cannot_nudge_is_still_a_contradiction() {
-  let parsed = parsed("@media (min-width: 10000000px) and (not (min-width: 10000000px))");
+  let query = parsed("@media (min-width: 10000000px) and (not (min-width: 10000000px))");
 
-  assert_eq!(parsed.to_string(), "@media not all");
+  assert_eq!(query.to_string(), "@media not all");
 }
 
 /// The nudge still prints as authored at the widths people write, so the
@@ -2573,10 +2573,10 @@ fn a_non_numeric_rule_keeps_a_numerically_dead_branch_alive() {
 /// `@stylexjs/babel-plugin@0.19.0` for the same input.
 #[test]
 fn a_strict_range_nudges_in_double_precision() {
-  let parsed = parsed("@media (400.5px < width < 900.25px)");
+  let query = parsed("@media (400.5px < width < 900.25px)");
 
   assert_eq!(
-    parsed.to_string(),
+    query.to_string(),
     "@media (min-width: 400.51px) and (max-width: 900.24px)"
   );
 }
@@ -2595,19 +2595,19 @@ fn a_single_ended_strict_range_nudges_in_double_precision() {
 /// The reversed spelling reaches the nudge through yet another branch.
 #[test]
 fn a_reversed_strict_inequality_nudges_in_double_precision() {
-  let parsed = parsed("@media (400.5px < width)");
+  let query = parsed("@media (400.5px < width)");
 
-  assert_eq!(parsed.to_string(), "@media (min-width: 400.51px)");
+  assert_eq!(query.to_string(), "@media (min-width: 400.51px)");
 }
 
 /// An authored value with more decimals than a single-precision float can hold
 /// is emitted as authored rather than as the nearest `f32` to it.
 #[test]
 fn an_authored_bound_is_emitted_with_the_digits_it_was_written_with() {
-  let parsed = parsed("@media (min-width: 1.2345678901234567rem)");
+  let query = parsed("@media (min-width: 1.2345678901234567rem)");
 
   assert_eq!(
-    parsed.to_string(),
+    query.to_string(),
     "@media (min-width: 1.2345678901234567rem)"
   );
 }
@@ -2616,7 +2616,7 @@ fn an_authored_bound_is_emitted_with_the_digits_it_was_written_with() {
 /// the intersection — not only the nudge — is shown to keep its digits.
 #[test]
 fn an_intersected_bound_keeps_the_digits_of_the_constraint_that_won() {
-  let parsed = parsed("@media (min-width: 28.81rem) and (min-width: 25.55rem)");
+  let query = parsed("@media (min-width: 28.81rem) and (min-width: 25.55rem)");
 
-  assert_eq!(parsed.to_string(), "@media (min-width: 28.81rem)");
+  assert_eq!(query.to_string(), "@media (min-width: 28.81rem)");
 }

@@ -2,72 +2,26 @@ import { describe, expect, test } from 'vitest';
 
 import { REFUSAL_FAMILIES } from '../lib/refusal-families.js';
 import { conclude, fails, stanceOf } from '../lib/report.js';
-import type { CompilerOutcome, ReportEntry, Verdict } from '../lib/types.js';
+import type { ReportEntry } from '../lib/types.js';
+import { ACCEPTED, TERMINATOR_REFUSAL, accepted, refused, subject } from './support.js';
 
 /**
- * The harness fails on exactly two things, and both are an expectation that has
- * stopped measuring anything. Asserted here rather than trusted, because the
- * printing half of the harness is a script and a gate nothing exercises is a
- * gate that has been assumed — the same argument `expected` on a corpus entry is
- * built on, turned on the code that reads it.
+ * The harness fails on three things, and each is a report that has stopped being
+ * read: a recorded verdict that moved, a family nothing reached, and a divergence
+ * nothing accounts for. Asserted here rather than trusted, because the printing
+ * half of the harness is a script and a gate nothing exercises is a gate that has
+ * been assumed — the same argument `expected` on a corpus entry is built on,
+ * turned on the code that reads it.
  */
-
-/** An acceptance emitting `declarations`, which is the half a verdict reads. */
-function accepted(declarations: string[] = ['color:red']): CompilerOutcome {
-  return {
-    status: 'ok',
-    classNames: declarations.map((_, index) => `x${index}`),
-    rules: declarations.map(declaration => `.x{${declaration}}`),
-    rtlRules: declarations.map(() => ''),
-    declarations,
-    styleObjects: ['{"k":class}'],
-  };
-}
-
-const ACCEPTED = accepted();
-
-function refused(sentence: string): CompilerOutcome {
-  return { status: 'error', message: `[StyleX] ${sentence}`, sentence };
-}
-
-let counter = 0;
-
-function subject(
-  verdict: Verdict,
-  rust: CompilerOutcome,
-  babel: CompilerOutcome,
-  expected?: Verdict,
-  value = 'red'
-): ReportEntry {
-  // A distinct id per subject because the stances are keyed by entry identity,
-  // and two structurally equal rows are two rows.
-  counter += 1;
-  return {
-    kind: 'declaration',
-    set: 'test',
-    id: `test-${counter}`,
-    origin: 'report.test.ts',
-    property: 'color',
-    value,
-    verdict,
-    rust,
-    babel,
-    ...(expected === undefined ? {} : { expected }),
-  };
-}
 
 /** One row of every family, so a corpus can be complete without being a corpus. */
 function everyFamily(): ReportEntry[] {
   return [
     // The value carries a bare `;`, because the family claims the refusal plus
     // the evidence for it rather than the refusal alone.
-    subject(
-      'acceptance-divergent',
-      refused('Rule contains a `{`, `}` or `;` outside of a string or comment'),
-      ACCEPTED,
-      undefined,
-      'red;blue'
-    ),
+    subject('acceptance-divergent', refused(TERMINATOR_REFUSAL), ACCEPTED, {
+      value: 'red;blue',
+    }),
     subject('acceptance-divergent', refused('Rule contains an unclosed comment'), ACCEPTED),
     subject('acceptance-divergent', refused('Unprefixed custom properties: var(x)'), ACCEPTED),
     subject(
@@ -85,7 +39,7 @@ function everyFamily(): ReportEntry[] {
       refused('String value contains invalid UTF-8 encoding.'),
       refused('Invalid pseudo or at-rule.')
     ),
-    subject('structurally-divergent', ACCEPTED, accepted(['[:', 'o:']), undefined),
+    subject('structurally-divergent', ACCEPTED, accepted(['[:', 'o:'])),
   ];
 }
 
@@ -109,12 +63,9 @@ describe('where a row stands', () => {
 
   test("a row's own expectation wins over any family that would claim it", () => {
     const stance = stanceOf(
-      subject(
-        'acceptance-divergent',
-        refused('Rule contains an unclosed comment'),
-        ACCEPTED,
-        'acceptance-divergent'
-      )
+      subject('acceptance-divergent', refused('Rule contains an unclosed comment'), ACCEPTED, {
+        expected: 'acceptance-divergent',
+      })
     );
 
     expect(stance).toEqual({ kind: 'expected' });
@@ -124,7 +75,7 @@ describe('where a row stands', () => {
     // The direction that is easy to get wrong: the row now *agrees*, and that is
     // the loud case — a corpus row recording a divergence that stopped happening
     // has stopped measuring what it was written for.
-    const stance = stanceOf(subject('identical', ACCEPTED, ACCEPTED, 'divergent'));
+    const stance = stanceOf(subject('identical', ACCEPTED, ACCEPTED, { expected: 'divergent' }));
 
     expect(stance).toEqual({ kind: 'changed' });
   });
@@ -149,7 +100,7 @@ describe('what a run concludes', () => {
   test('a changed expectation fails the run', () => {
     // The gate, demonstrated: one row whose recorded verdict moved is enough,
     // and it is listed rather than only counted.
-    const moved = subject('identical', ACCEPTED, ACCEPTED, 'divergent');
+    const moved = subject('identical', ACCEPTED, ACCEPTED, { expected: 'divergent' });
     const verdicts = conclude([...completeCorpus(), moved], { whole: true });
 
     expect(verdicts.summary.changed).toBe(1);
@@ -212,7 +163,9 @@ describe('what a run concludes', () => {
     // The other half of the gate: `expected` is what turns a divergence from
     // news into a measurement, and it has to keep working or the tightening
     // above would leave no way to say "looked at, still true".
-    const looked = subject('divergent', ACCEPTED, accepted(['color:#f00']), 'divergent');
+    const looked = subject('divergent', ACCEPTED, accepted(['color:#f00']), {
+      expected: 'divergent',
+    });
     const verdicts = conclude([...completeCorpus(), looked], { whole: true });
 
     expect(verdicts.summary.unexpected).toBe(0);

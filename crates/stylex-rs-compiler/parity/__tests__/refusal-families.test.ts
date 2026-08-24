@@ -10,7 +10,8 @@ import {
   groupByFamily,
   unreachedFamilies,
 } from '../lib/refusal-families.js';
-import type { CompilerOutcome, ReportEntry, Verdict } from '../lib/types.js';
+import type { ReportEntry } from '../lib/types.js';
+import { ACCEPTED, TERMINATOR_REFUSAL, accepted, refused, subject } from './support.js';
 
 /**
  * A family pins a divergence both harnesses would otherwise print as news, so
@@ -19,47 +20,6 @@ import type { CompilerOutcome, ReportEntry, Verdict } from '../lib/types.js';
  * regression behind a reason that does not apply to it, which is worse than
  * printing an extra row — the row at least gets read.
  */
-
-/** An acceptance emitting `declarations`, which is the half a verdict reads. */
-function accepted(declarations: string[] = ['color:red']): CompilerOutcome {
-  return {
-    status: 'ok',
-    classNames: declarations.map((_, index) => `x${index}`),
-    rules: declarations.map(declaration => `.x{${declaration}}`),
-    rtlRules: declarations.map(() => ''),
-    declarations,
-    styleObjects: ['{"k":class}'],
-  };
-}
-
-const ACCEPTED = accepted();
-
-function refused(sentence: string): CompilerOutcome {
-  return { status: 'error', message: `[StyleX] ${sentence}`, sentence };
-}
-
-function subject(
-  verdict: Verdict,
-  rust: CompilerOutcome,
-  babel: CompilerOutcome,
-  property = 'color',
-  value = 'red'
-): ReportEntry {
-  return {
-    kind: 'declaration',
-    set: 'test',
-    id: 'test',
-    origin: 'refusal-families.test.ts',
-    property,
-    value,
-    verdict,
-    rust,
-    babel,
-  };
-}
-
-/** The complaint the declaration-terminating token guard writes. */
-const TERMINATOR_REFUSAL = 'Rule contains a `{`, `}` or `;` outside of a string or comment';
 
 /** The name of the family that claimed `entry`, for a readable expectation. */
 function nameOf(entry: ReportEntry): string | undefined {
@@ -70,7 +30,10 @@ describe('what a family claims', () => {
   test('a value refused for a declaration-terminating token it actually carries', () => {
     expect(
       nameOf(
-        subject('acceptance-divergent', refused(TERMINATOR_REFUSAL), ACCEPTED, 'color', 'red;blue')
+        subject('acceptance-divergent', refused(TERMINATOR_REFUSAL), ACCEPTED, {
+          property: 'color',
+          value: 'red;blue',
+        })
       )
     ).toBe('declaration-terminating token');
   });
@@ -173,12 +136,12 @@ describe('what a family claims', () => {
     // character of what the method returned there.
     const perCharacter = accepted(['[:', 'o:', 'b:', 'j:']);
 
-    expect(nameOf(subject('structurally-divergent', ACCEPTED, perCharacter, 'toString'))).toBe(
-      'style key off Object.prototype'
-    );
-    expect(nameOf(subject('structurally-divergent', ACCEPTED, perCharacter, 'valueOf'))).toBe(
-      'style key off Object.prototype'
-    );
+    expect(
+      nameOf(subject('structurally-divergent', ACCEPTED, perCharacter, { property: 'toString' }))
+    ).toBe('style key off Object.prototype');
+    expect(
+      nameOf(subject('structurally-divergent', ACCEPTED, perCharacter, { property: 'valueOf' }))
+    ).toBe('style key off Object.prototype');
   });
 });
 
@@ -259,7 +222,7 @@ describe('what a family leaves as news', () => {
     // for some other reason — here both sides emitting one declaration — is a
     // row nobody has read.
     expect(
-      nameOf(subject('structurally-divergent', ACCEPTED, ACCEPTED, 'toString'))
+      nameOf(subject('structurally-divergent', ACCEPTED, ACCEPTED, { property: 'toString' }))
     ).toBeUndefined();
   });
 
@@ -363,13 +326,10 @@ describe('a family will not vouch for a refusal it has no evidence for', () => {
     // the over-refusal to return, this row would be news again.
     expect(
       nameOf(
-        subject(
-          'acceptance-divergent',
-          refused(TERMINATOR_REFUSAL),
-          ACCEPTED,
-          'fontFamily',
-          'A\\;B'
-        )
+        subject('acceptance-divergent', refused(TERMINATOR_REFUSAL), ACCEPTED, {
+          property: 'fontFamily',
+          value: 'A\\;B',
+        })
       )
     ).toBeUndefined();
   });
@@ -377,7 +337,10 @@ describe('a family will not vouch for a refusal it has no evidence for', () => {
   test('a terminator inside a string is not one either', () => {
     expect(
       nameOf(
-        subject('acceptance-divergent', refused(TERMINATOR_REFUSAL), ACCEPTED, 'content', '";"')
+        subject('acceptance-divergent', refused(TERMINATOR_REFUSAL), ACCEPTED, {
+          property: 'content',
+          value: '";"',
+        })
       )
     ).toBeUndefined();
   });
@@ -442,7 +405,10 @@ describe('a broken expectation reports loudly', () => {
     // The state the checked-in corpus is in, asserted here so the case that
     // matters — an empty list — is covered by something cheaper than a full run.
     const everyFamily = [
-      subject('acceptance-divergent', refused(TERMINATOR_REFUSAL), ACCEPTED, 'color', 'red;blue'),
+      subject('acceptance-divergent', refused(TERMINATOR_REFUSAL), ACCEPTED, {
+        property: 'color',
+        value: 'red;blue',
+      }),
       subject('acceptance-divergent', refused('Rule contains an unclosed comment'), ACCEPTED),
       subject('acceptance-divergent', refused('Unprefixed custom properties: var(x)'), ACCEPTED),
       subject(
@@ -455,7 +421,7 @@ describe('a broken expectation reports loudly', () => {
         ACCEPTED,
         refused("Cannot read properties of undefined (reading 'type')")
       ),
-      subject('structurally-divergent', ACCEPTED, accepted(['[:', 'o:']), 'toString'),
+      subject('structurally-divergent', ACCEPTED, accepted(['[:', 'o:']), { property: 'toString' }),
       subject(
         'both-reject-divergent',
         refused('String value contains invalid UTF-8 encoding.'),

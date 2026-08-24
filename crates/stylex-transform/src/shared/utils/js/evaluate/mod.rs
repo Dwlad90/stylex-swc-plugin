@@ -11,6 +11,7 @@ pub(crate) use deopt::{deopt, deopt_at_declaration};
 pub(crate) use helpers::evaluate_result_is_nullish;
 use helpers::*;
 pub(crate) use nodes::binary_expression::binary_expr_to_num_or_str;
+pub(crate) use nodes::object_expression::spread_own_properties;
 
 // Import error handling macros from shared utilities
 use crate::{deopt_unsupported, expr_to_str_or_deopt, stylex_panic_with_context};

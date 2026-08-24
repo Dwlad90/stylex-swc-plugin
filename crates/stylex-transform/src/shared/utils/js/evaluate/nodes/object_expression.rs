@@ -39,7 +39,18 @@ fn indexed_props(
   Some(props)
 }
 
-fn spread_own_properties(value: EvaluateResultValue, operand: &Expr) -> Option<Vec<PropOrSpread>> {
+/// The own enumerable properties a spread operand contributes.
+///
+/// `pub(crate)` because two paths spread, not one. This reads the operand for
+/// `evaluate_object_expression` below and for `evaluate_partial_object_recursively`
+/// in `utils::core::evaluate_stylex_create_arg`, which is the create-argument
+/// fold — and the reference compiler reaches the same `Object.assign` from both,
+/// so a second reader here would be a second answer to a question the language
+/// only asks once.
+pub(crate) fn spread_own_properties(
+  value: EvaluateResultValue,
+  operand: &Expr,
+) -> Option<Vec<PropOrSpread>> {
   // An array hole has no key of its own, so an operand carrying one would answer
   // `{ 0: 1 }` where the language says `{ 1: 1 }` if the hole were dropped
   // rather than kept. Read off the operand's own literal, where it has one, so

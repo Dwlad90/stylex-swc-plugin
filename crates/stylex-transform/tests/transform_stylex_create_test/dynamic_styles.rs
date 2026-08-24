@@ -762,3 +762,60 @@ stylex_test!(
     });
   "#
 );
+
+// ── A static spread inside a dynamic body ────────────────────────────
+
+// A spread whose operand folds contributes that value's keys and the fold
+// carries on, which is `Object.assign(obj, result.value)` upstream
+// (`visitors/parse-stylex-create-arg.js:140-147`, 0.19.0). It used to abort with
+// `The spread operator (...) is not supported in this context`, so a program the
+// reference compiler compiles did not build here.
+//
+// The refusal is *not* gone. A spread whose operand cannot fold -- a shadowing
+// parameter, say -- still refuses, because there are no keys to enumerate;
+// `a_shadowing_param_spread_into_the_style` holds that. What changed is the case
+// where the operand did fold and the keys were sitting there.
+stylex_test!(
+  a_static_spread_folds_into_a_dynamic_body,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const base = { color: 'red', opacity: 1 };
+    export const styles = stylex.create({
+      dyn: (w) => ({ ...base, width: w }),
+    });
+  "#
+);
+
+// Last-wins, both ways round, which is the half of `Object.assign` a fixture has
+// to carry: a repeated key takes the *later* value and keeps the position it
+// first took. So `color` is spelled once in each namespace below, blue in the
+// first and red in the second, and in the second it still sits where the
+// authored `color` put it rather than where the spread did.
+stylex_test!(
+  a_spread_and_an_authored_key_resolve_last_wins,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const base = { color: 'red' };
+    export const styles = stylex.create({
+      spreadFirst: (w) => ({ ...base, color: 'blue', width: w }),
+      spreadLast: (w) => ({ color: 'blue', ...base, width: w }),
+    });
+  "#
+);
+
+// One level down, where the fold recurses. A pseudo is the shape a style object
+// is mostly made of, so a spread that worked only at the top would be the more
+// misleading half-fix.
+stylex_test!(
+  a_static_spread_folds_inside_a_nested_condition,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const base = { color: 'red' };
+    export const styles = stylex.create({
+      dyn: (w) => ({ width: w, ':hover': { ...base } }),
+    });
+  "#
+);

@@ -24,9 +24,11 @@ use crate::shared::{
       convert_expr_to_str, create_ident_expr, create_null_expr, create_string_expr,
       expand_shorthand_prop,
     },
+    common::assign_props,
     css::common::get_number_suffix,
     js::evaluate::{
       evaluate, evaluate_obj_key, evaluate_result_vec_to_array_expr, function_fold_to_object,
+      spread_own_properties,
     },
     log::build_code_frame_error::build_code_frame_error_and_panic_at,
     validators::validate_dynamic_style_params,
@@ -376,9 +378,29 @@ fn evaluate_partial_object_recursively(
             fns: None,
           });
         }
-        {
+        // `Object.assign(obj, result.value)` upstream
+        // (`visitors/parse-stylex-create-arg.js:140-147`, 0.19.0): a spread whose
+        // operand folded contributes that value's own enumerable properties, and
+        // the fold carries on.
+        //
+        // The same two helpers the object-expression path uses, rather than a
+        // reader of its own. `spread_own_properties` already answers what a
+        // spread operand contributes for every reading one can arrive as -- an
+        // object, a string's code units, an array's indices -- and `assign_props`
+        // already *is* `Object.assign`: shallow, a repeated key taking the later
+        // value and keeping the position it first took. Both are the semantics
+        // the language fixes, so spelling them again here would be a second
+        // answer to a question asked once.
+        let Some(new_props) = result
+          .value
+          .and_then(|value| spread_own_properties(value, &spread.expr))
+        else {
+          // A value with no own-properties reading: a number, a boolean, a
+          // callback. Nothing to enumerate, so the refusal stands.
           stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED);
-        }
+        };
+
+        obj = assign_props(obj, new_props);
       },
       PropOrSpread::Prop(prop) => {
         let mut prop = prop.clone();

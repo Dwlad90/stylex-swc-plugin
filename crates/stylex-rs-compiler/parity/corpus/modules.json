@@ -1024,7 +1024,7 @@
     {
       "id": "modules-an-accented-pseudo-name-sorts-above-ascii",
       "label": "two pseudo-class names where one carries an accented letter",
-      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  w: { color: { ':\u00e4': { ':z': 'red' } } },\n});\n",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  w: { color: { ':ä': { ':z': 'red' } } },\n});\n",
       "origin": "the residual half of the comparator, issue 32 of this effort",
       "note": "The leaf selector is `:ä:z` on both sides now, hashing `x1enrlzn`. It used to read `:z:ä` here and `x143q076`: `pseudo_comparator` covered the whole of root collation over *printable ASCII* and ranked every character outside it above the entire table, so an accented letter sorted above every ASCII one where root collation places it beside its base letter. That was the last divergence in this harness costing a class name. Anything not printable ASCII now goes to `icu_collator` at the root locale, and the five shapes the one rule produced -- the accented letter, a non-ASCII letter's two cases, an emoji, a lone combining mark, a control character -- all agree, each pinned in `nested_pseudo_ordering`. `pre_rule.rs` holds the numbers the choice was costed on and names what it leaves: upstream calls `localeCompare` bare, so a Swedish or Danish build machine sorts `ö` after `z` where this always sorts as root.",
       "expected": "identical"
@@ -1781,6 +1781,38 @@
       "origin": "issue #1266, a spread whose binding resolves to something with no keys to enumerate",
       "expected": "both-reject",
       "note": "The third spread shape, and the one where the binding resolves fine: a function declaration is a value, it just has no keys a style object can take. Read from a run, both compilers name the call rather than the binding -- so the complaint a spread earns is about the position on both sides, whatever the spread resolved to. The computed-key subject beside these still names the binding, which is what keeps this a rule about spreads rather than about refusals generally."
+    },
+    {
+      "id": "modules-a-static-spread-folds-into-a-dynamic-body",
+      "label": "a static spread folded into a dynamic style body",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = { color: 'red', opacity: 1 };\n\nexport const styles = stylex.create({\n  dyn: (w) => ({ ...base, width: w }),\n});\n",
+      "origin": "the spread arm of evaluate_partial_object_recursively",
+      "expected": "identical",
+      "note": "A spread whose operand folds contributes that value's keys and the fold carries on, which is `Object.assign(obj, result.value)` upstream. This compiler used to refuse it outright, so a program the reference compiler compiles did not build. Pinned as an agreement rather than left to a snapshot, because the snapshot cannot notice the reference compiler moving."
+    },
+    {
+      "id": "modules-a-spread-and-an-authored-key-resolve-last-wins",
+      "label": "a spread and an authored key colliding, spread first",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = { color: 'red' };\n\nexport const styles = stylex.create({\n  x: (w) => ({ ...base, color: 'blue', width: w }),\n});\n",
+      "origin": "the spread arm of evaluate_partial_object_recursively",
+      "expected": "identical",
+      "note": "`Object.assign` is last-wins, so the authored `color` after the spread takes it: blue, not red. The direction is the half of the merge a fixture has to carry, and the sibling entry below runs it the other way round."
+    },
+    {
+      "id": "modules-a-spread-after-an-authored-key-takes-it",
+      "label": "a spread and an authored key colliding, spread last",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = { color: 'red' };\n\nexport const styles = stylex.create({\n  x: (w) => ({ color: 'blue', ...base, width: w }),\n});\n",
+      "origin": "the spread arm of evaluate_partial_object_recursively",
+      "expected": "identical",
+      "note": "The same collision the other way: the spread is later, so `red` wins. The key also keeps the position the authored `color` gave it rather than moving to where the spread sits, which is what `assign_props` means by keeping the first position."
+    },
+    {
+      "id": "modules-a-static-spread-folds-inside-a-nested-condition",
+      "label": "a static spread folded one level down, under a pseudo",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = { color: 'red' };\n\nexport const styles = stylex.create({\n  x: (w) => ({ width: w, ':hover': { ...base } }),\n});\n",
+      "origin": "the spread arm of evaluate_partial_object_recursively, reached through the recursion",
+      "expected": "identical",
+      "note": "Nesting is what a style object is mostly made of, so a spread that folded only at the top would be the more misleading half-fix. This is the recursive call reaching the same arm."
     }
   ]
 }

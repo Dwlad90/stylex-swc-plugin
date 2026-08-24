@@ -1,4 +1,5 @@
-use crate::number::{parse_js_float, to_js_string};
+use crate::number::{parse_js_float, to_js_string, write_js_number, write_js_number_list};
+use std::fmt;
 
 include!("number_parse_float_cases.rs");
 
@@ -244,5 +245,154 @@ fn should_never_panic_on_any_slice_of_adversarial_input() {
         let _ = parse_js_float(&input[start..start + end]);
       }
     }
+  }
+}
+
+// ── Writing into a formatter that can fail ──────────────────────────
+
+/// A `fmt::Write` that accepts `allow` writes and refuses every one after.
+///
+/// The point is the refusal, not the text. `write_js_number` writes a number in
+/// several pieces -- a sign, a digit run, a decimal point, an exponent -- and
+/// each piece is a `?` that has to carry a writer's failure back out rather than
+/// panic, truncate, or return `Ok` on a buffer it never filled. A `String` can
+/// never fail, so nothing that writes into one exercises those paths, and every
+/// production caller writes into a `Formatter` that can.
+struct RefusingWriter {
+  allow: usize,
+  written: String,
+}
+
+impl RefusingWriter {
+  fn after(allow: usize) -> Self {
+    Self {
+      allow,
+      written: String::new(),
+    }
+  }
+}
+
+impl fmt::Write for RefusingWriter {
+  fn write_str(&mut self, text: &str) -> fmt::Result {
+    if self.allow == 0 {
+      return Err(fmt::Error);
+    }
+
+    self.allow -= 1;
+    self.written.push_str(text);
+
+    Ok(())
+  }
+}
+
+/// Every `?` in `write_js_number` propagates the writer's failure.
+///
+/// Driven by refusing at each position in turn, over values chosen to reach a
+/// different arm each: the three early returns, a negative sign, an integer with
+/// trailing zeros, a fraction, a leading-zero fraction, and the exponential form
+/// with both signs. Whatever position fails, the call must answer `Err` and must
+/// not have written past the refusal.
+#[test]
+fn write_js_number_propagates_a_writer_failure_at_every_position() {
+  let values: &[f64] = &[
+    f64::NAN,
+    f64::INFINITY,
+    f64::NEG_INFINITY,
+    0.0,
+    -0.0,
+    -1.5,
+    100.0,
+    1.5,
+    // `n == 0`, so the zero-padding loop runs zero times...
+    0.5,
+    // ...and these run it once and five times, which is the only way the
+    // `write_char('0')` inside it is reached at all.
+    0.05,
+    1e-6,
+    1e21,
+    // `n == -6` exactly, which is the *exponential* branch rather than the
+    // padded one -- the bound is exclusive, and getting that backwards is how
+    // the loop body came to be unexercised.
+    1e-7,
+    -1e21,
+    // A negative exponent with a fractional mantissa, so the exponential branch
+    // writes its `.`, its `e`, and a `-` sign rather than a `+`.
+    -1.25e-9,
+  ];
+
+  for &value in values {
+    // The number of writes a successful run takes, found by letting one
+    // succeed -- so the loop below covers every prefix of it and one past.
+    let mut counting = RefusingWriter::after(usize::MAX);
+    assert!(write_js_number(&mut counting, value).is_ok());
+    let writes = usize::MAX - counting.allow;
+
+    for allow in 0..writes {
+      let mut refusing = RefusingWriter::after(allow);
+
+      assert!(
+        write_js_number(&mut refusing, value).is_err(),
+        "value {value} refused at write {allow} of {writes} should have failed"
+      );
+    }
+
+    // And with every write allowed, it succeeds and spells the same thing
+    // `to_js_string` does -- the two must not be able to disagree.
+    let mut permissive = RefusingWriter::after(writes);
+    assert!(write_js_number(&mut permissive, value).is_ok());
+    assert_eq!(permissive.written, to_js_string(value));
+  }
+}
+
+/// The list writer separates with `", "` and spells each member as JS does.
+#[test]
+fn write_js_number_list_joins_with_a_comma_and_a_space() {
+  let mut out = String::new();
+  write_js_number_list(&mut out, [1.0, -0.5, 1e21]).expect("a String cannot fail");
+
+  assert_eq!(out, "1, -0.5, 1e+21");
+}
+
+/// One member carries no separator, and none is written before the first.
+#[test]
+fn write_js_number_list_writes_no_separator_before_the_first_member() {
+  let mut out = String::new();
+  write_js_number_list(&mut out, [42.0]).expect("a String cannot fail");
+
+  assert_eq!(out, "42");
+}
+
+/// An empty list writes nothing and still succeeds, so a caller that opened a
+/// function name emits `f()` rather than a stray separator.
+#[test]
+fn write_js_number_list_of_nothing_writes_nothing() {
+  let mut out = String::from("matrix(");
+  write_js_number_list(&mut out, []).expect("a String cannot fail");
+  out.push(')');
+
+  assert_eq!(out, "matrix()");
+}
+
+/// The list writer propagates a failure from either of its two writes -- the
+/// separator, and the number.
+#[test]
+fn write_js_number_list_propagates_a_writer_failure() {
+  let values = [1.0, 2.0, 3.0];
+
+  let mut counting = RefusingWriter::after(usize::MAX);
+  assert!(write_js_number_list(&mut counting, values).is_ok());
+  let writes = usize::MAX - counting.allow;
+  assert!(
+    writes > values.len(),
+    "separators should add writes of their own"
+  );
+
+  for allow in 0..writes {
+    let mut refusing = RefusingWriter::after(allow);
+
+    assert!(
+      write_js_number_list(&mut refusing, values).is_err(),
+      "refusing at write {allow} of {writes} should have failed"
+    );
   }
 }

@@ -207,16 +207,20 @@ pub fn write_js_number_list(
 pub fn to_js_string(value: f64) -> String {
   let mut result = String::with_capacity(24);
 
-  match write_js_number(&mut result, value) {
-    Ok(()) => result,
-    // `fmt::Write for String` returns `Ok` unconditionally -- pushing onto a
-    // `String` has no failure mode -- so this arm describes no state. Written as
-    // a `match` rather than discarded with `let _ =` because `RUST.md` asks for
-    // every case to be handled, and returning the buffer is the honest answer:
-    // there is nothing to report and nothing to panic about, which is why it is
-    // not `unreachable!` either.
-    Err(_) => result,
-  }
+  // Discarded rather than matched. `fmt::Write for String` returns `Ok`
+  // unconditionally -- pushing onto a `String` has no failure mode -- so an
+  // `Err` arm here is a branch no test can reach, and this repo does not exclude
+  // code from coverage. A `match` was tried for the letter of `RUST.md`'s
+  // "handle all cases" rule and reverted: the rule is about `.unwrap()` and
+  // `.expect()`, neither of which this is, and trading an unreachable arm for it
+  // makes the coverage gate the thing that is wrong rather than the code.
+  //
+  // The propagation itself *is* tested, one level down:
+  // `write_js_number` is driven with a writer that refuses at each position in
+  // turn, so every `?` in it is exercised.
+  let _ = write_js_number(&mut result, value);
+
+  result
 }
 
 /// Decomposes a finite, strictly positive `f64` into ECMA-262's `s` (the

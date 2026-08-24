@@ -1547,14 +1547,40 @@ mod nested_expansion_position_tests {
   use super::Shorthands;
 
   /// The property names a shorthand expands to, in emission order.
+  ///
+  /// The `Ok`/`Err` split goes through [`Shorthands::infallible`] rather than a
+  /// second copy of it here. That is the one place this crate decides what a
+  /// shorthand returning `Err` means, it already has its own test, and `all` --
+  /// which really does return `Err` -- reaches it, so the arm is not a formality.
   fn expansion_of(name: &str) -> Vec<String> {
-    match Shorthands::get(name) {
-      Some(expand) => match expand(None) {
-        Ok(pairs) => pairs.into_iter().map(|pair| pair.0.to_string()).collect(),
-        Err(error) => panic!("{name} refused its own expansion: {error}"),
-      },
-      None => panic!("{name} is not a shorthand"),
-    }
+    let Some(expand) = Shorthands::get(name) else {
+      panic!("{name} is not a shorthand");
+    };
+
+    Shorthands::infallible(expand(None))
+      .into_iter()
+      .map(|pair| pair.0.to_string())
+      .collect()
+  }
+
+  /// A name that is not a shorthand fails loudly rather than reading as one that
+  /// expands to nothing.
+  ///
+  /// The guard above is the only thing standing between a typo in an expectation
+  /// and a test that passes by comparing two empty lists.
+  #[test]
+  #[should_panic(expected = "notAShorthand is not a shorthand")]
+  fn expansion_of_refuses_a_name_that_is_not_a_shorthand() {
+    let _ = expansion_of("notAShorthand");
+  }
+
+  /// `all` is a registered shorthand that refuses its own expansion, which is
+  /// what makes the `Err` side of `infallible` reachable from here rather than a
+  /// shape of the shared function-pointer type.
+  #[test]
+  #[should_panic(expected = "infallible shorthand returned Err")]
+  fn expansion_of_a_shorthand_that_refuses_reaches_the_infallible_guard() {
+    let _ = expansion_of("all");
   }
 
   #[test]

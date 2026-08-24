@@ -1114,3 +1114,104 @@ fn the_order_names_each_character_once() {
   assert_eq!(seen.len(), 69);
   assert_eq!(ASCII_PRIMARY_ORDER.len(), 69);
 }
+
+// ── The two fallbacks the sorted paths never reach ──────────────────
+
+/// A byte the primary order does not name still gets a weight of its own.
+///
+/// `pseudo_comparator` hands every key with such a byte to the collator, so this
+/// arm is a fallback rather than a behaviour and nothing in a sorted key path
+/// reaches it. What it must not do is collapse two distinct unnamed bytes onto
+/// one weight: the widening to `u16` and the `+ 256` exist for that, and this
+/// asserts it rather than leaving it to the comment.
+///
+/// The `+ 256` also has to clear every *named* rank, or an unnamed byte would
+/// tie with a letter.
+#[test]
+fn an_unnamed_byte_keeps_a_weight_of_its_own() {
+  use crate::utils::pre_rule::{ASCII_PRIMARY_RANK, UNRANKED, primary_weight};
+
+  // Read off the rank table rather than off the order literal, because that is
+  // what `primary_weight` branches on -- and the two differ. The order spells
+  // only lowercase letters, but `build_ascii_primary_rank` gives a letter's two
+  // cases one rank, so `A` is *named* despite not appearing in it. Filtering on
+  // the literal called `A` unnamed and this assertion caught it.
+  let named = |byte: u8| (byte as usize) < 128 && ASCII_PRIMARY_RANK[byte as usize] != UNRANKED;
+  let unnamed: Vec<u8> = (0u8..=255).filter(|byte| !named(*byte)).collect();
+
+  assert!(
+    unnamed.len() > 128,
+    "the high half alone is 128 unnamed bytes, found {}",
+    unnamed.len()
+  );
+
+  // Distinct in, distinct out: no two unnamed bytes share a weight.
+  let mut weights: Vec<u16> = unnamed.iter().map(|byte| primary_weight(*byte)).collect();
+  let before = weights.len();
+  weights.sort_unstable();
+  weights.dedup();
+
+  assert_eq!(before, weights.len(), "two unnamed bytes shared one weight");
+
+  // And every unnamed weight sits above every named one, so an unnamed byte
+  // cannot tie with a character the table ranks.
+  let heaviest_named = (0u8..=255)
+    .filter(|byte| named(*byte))
+    .map(primary_weight)
+    .max()
+    .expect("the table names at least one byte");
+
+  for byte in unnamed {
+    assert!(
+      primary_weight(byte) > heaviest_named,
+      "unnamed byte {byte:#04x} weighs {} against a named maximum of {heaviest_named}",
+      primary_weight(byte)
+    );
+  }
+}
+
+/// `at_rule_comparator` is a total order, `default` against itself included.
+///
+/// Every arm is unreachable from both callers, whose key paths are filtered
+/// before they arrive -- which is precisely why it is worth asserting. The pair
+/// that mattered is `("default", "default")`: answered sequentially it was `Less`
+/// whichever way round it was asked, and `sort_unstable_by` is permitted to abort
+/// on a comparator that contradicts itself.
+#[test]
+fn at_rule_comparator_is_a_total_order() {
+  use crate::utils::pre_rule::at_rule_comparator;
+
+  assert_eq!(at_rule_comparator("default", "default"), Ordering::Equal);
+  assert_eq!(
+    at_rule_comparator("default", "@media print"),
+    Ordering::Less
+  );
+  assert_eq!(
+    at_rule_comparator("@media print", "default"),
+    Ordering::Greater
+  );
+  assert_eq!(
+    at_rule_comparator("@media print", "@supports (a:b)"),
+    Ordering::Less
+  );
+
+  // Antisymmetry over a run that includes `default` twice, which is the shape
+  // the sequential form could not answer consistently.
+  let keys = [
+    "default",
+    "default",
+    "@media print",
+    "@supports (a:b)",
+    "@layer x",
+  ];
+
+  for left in keys {
+    for right in keys {
+      assert_eq!(
+        at_rule_comparator(left, right).reverse(),
+        at_rule_comparator(right, left),
+        "{left:?} against {right:?} is not antisymmetric"
+      );
+    }
+  }
+}

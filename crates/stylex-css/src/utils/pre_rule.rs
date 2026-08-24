@@ -210,8 +210,13 @@ pub(super) fn collating_pseudo_comparator(a: &str, b: &str) -> Ordering {
 /// letter. The sorted key path feeds the class-name hash, so the two compilers
 /// named different classes for the same source. The widening is kept so the arm
 /// stays total rather than collapsing two distinct bytes onto one weight.
+///
+/// `pub(super)` for the same reason [`collating_pseudo_comparator`] is: the
+/// fallback arm is unreachable through [`pseudo_comparator`], so the only way to
+/// assert it stays total -- rather than collapsing two unnamed bytes onto one
+/// weight -- is to ask it directly.
 #[inline]
-fn primary_weight(byte: u8) -> u16 {
+pub(super) fn primary_weight(byte: u8) -> u16 {
   match ASCII_PRIMARY_RANK.get(byte as usize) {
     Some(&rank) if rank != UNRANKED => u16::from(rank),
     _ => u16::from(byte) + 256,
@@ -383,7 +388,12 @@ pub fn sort_at_rules(at_rules: &[String]) -> Vec<String> {
 /// line either way: a `match` on the pair cannot express the inconsistent
 /// version, which is the reason to write it this way rather than a reason to
 /// trust the filter above.
-fn at_rule_comparator(a: &str, b: &str) -> Ordering {
+///
+/// `pub(super)` so the arms can be asserted directly. Every one of them is
+/// unreachable from both callers -- the key paths are filtered before they
+/// arrive -- and a comparator whose self-consistency rests on a filter somewhere
+/// else is exactly the thing worth pinning.
+pub(super) fn at_rule_comparator(a: &str, b: &str) -> Ordering {
   match (a == "default", b == "default") {
     (true, true) => Ordering::Equal,
     (true, false) => Ordering::Less,

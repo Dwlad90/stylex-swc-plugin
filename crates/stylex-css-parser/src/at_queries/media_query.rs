@@ -730,17 +730,25 @@ fn distribution_is_hopeless(rules: &[MediaQueryRule]) -> bool {
 /// The single boundary canonicalization crosses to simplify an `and` list's
 /// ranges, mirroring the reference implementation's `mergeAndSimplifyRanges`.
 ///
-/// There it wraps the merge in a `try`/`catch` that hands the input rules back
-/// on any throw, and that is the whole point of it having a name: the merge
-/// recurses into itself rather than through the wrapper, so a ladder deep
-/// enough to exhaust the call stack lands here and comes back unmerged.
+/// There the merge is wrapped in a `try`/`catch` handing the input rules back
+/// on any throw. The recursion re-enters the merge directly rather than
+/// crossing the wrapper again, which is what makes the wrapper the one place a
+/// give-up can live. This is that place, and it is empty on purpose: today it
+/// only forwards, and the depth bound meant to use it is still to come. Read
+/// the paragraph below as describing the shape, not behaviour already here.
 ///
-/// The two failure modes of this pass are deliberately kept apart. This one is
-/// the inner recovery -- give up merging, emit the author's rules as written --
-/// and it never propagates. The other is the outer refusal, which turns a query
-/// the parser cannot read into the invalid-media-query-syntax error and rejects
-/// the declaration. Conflating them would turn a query too deep to merge into
-/// an error the author cannot act on.
+/// The two failure modes of this pass are deliberately kept apart. The inner
+/// recovery gives up merging and emits the author's rules as written, and it
+/// never propagates. The outer refusal turns a query the parser cannot read
+/// into the invalid-media-query-syntax error and rejects the declaration.
+/// Conflating them would turn a query too deep to merge into an error the
+/// author cannot act on.
+///
+/// One correction worth leaving here, because it is easy to assume otherwise:
+/// the reference implementation's own recovery is not reachable by a deep
+/// breakpoint ladder. Its recursion depth grows with ladder length while its
+/// branch count doubles per rung, so the heap gives out first -- fatally, where
+/// no `catch` can see it -- rather than the call stack.
 fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
   merge_intervals_for_and(rules)
 }

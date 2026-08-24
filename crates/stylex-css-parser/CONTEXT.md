@@ -108,9 +108,13 @@ them misplaces the behaviour: the range parsers turn `width >= 720px` into
 flattens nested `and`s, merges each dimension's bounds into one interval, and
 distributes a `not` over a two-clause `and` by DeMorgan; serialization collapses
 an empty or single-child `or`, which is how a contradiction prints as `not all`.
-This is the media-query counterpart of value
-[normalization](../stylex-css/CONTEXT.md) in `stylex-css`.
-_Avoid_: minification, formatting, cleanup
+A branch that contradicts is **retained, not pruned** — it reaches the bottom of
+the distribution as an empty `or` and prints as `not all`, keeping the nesting
+built around it, so a ladder of exclusive breakpoints canonicalizes to something
+much longer than the queries the author wrote. That text is what the class name
+hashes, so the wrapper is contract rather than noise. This is the media-query
+counterpart of value [normalization](../stylex-css/CONTEXT.md) in `stylex-css`.
+_Avoid_: minification, formatting, cleanup, pruning
 
 **Range merge boundary**:
 `merge_and_simplify_ranges` — the single place media query canonicalization
@@ -119,7 +123,11 @@ the reference implementation. It exists to keep the pass's two failure modes
 apart: the _inner recovery_ gives up merging and emits the author's rules as
 written, while the _outer refusal_ rejects the declaration with the
 invalid-media-query-syntax error. The function's own comment carries why that
-distinction is load-bearing.
+distinction is load-bearing. The inner recovery is a depth bound, measured
+before the distribution starts: past 18 levels of splitting the rules are handed
+straight back, because each level doubles the query text. That number was chosen
+against output size and is not arbitrary — its provenance is in
+[ADR 0001](./docs/adr/0001-the-official-compilers-output-wins.md).
 _Avoid_: merge wrapper, simplify wrapper, merge guard
 
 **Last-media-query-wins transform**:
@@ -128,5 +136,10 @@ later one beats an earlier one, matching how authors expect overlapping queries
 to behave rather than how the cascade actually resolves them. It rebuilds each
 query through `MediaQuery`, so the keys it emits are canonicalized; it runs only
 on nested `@media` keys, and only while `enableMediaQueryOrder` is on — its
-default — so opting out hashes the authored spelling instead.
+default — so opting out hashes the authored spelling instead. Its rewritten
+keys go into an insertion-ordered map, so two entries that canonicalize to one
+query text leave **one** entry, at the earlier key's position and holding the
+later key's value: one authored declaration is dropped, silently and on purpose.
+See [ADR 0001](./docs/adr/0001-the-official-compilers-output-wins.md) for why
+that and the retained branches are matched rather than improved on.
 _Avoid_: media merge, query dedupe

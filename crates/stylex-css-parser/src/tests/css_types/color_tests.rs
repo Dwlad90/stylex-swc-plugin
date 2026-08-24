@@ -68,25 +68,25 @@ fn test_hex_color_display() {
 #[test]
 fn test_rgb_color_display() {
   let color = Rgb::new(255, 0, 0);
-  assert_eq!(color.to_string(), "rgb(255, 0, 0)");
+  assert_eq!(color.to_string(), "rgb(255,0,0)");
 }
 
 #[test]
 fn test_rgba_color_display() {
   let color = Rgba::new(255, 0, 0, 0.5);
-  assert_eq!(color.to_string(), "rgba(255, 0, 0, 0.5)");
+  assert_eq!(color.to_string(), "rgba(255,0,0,0.5)");
 }
 
 #[test]
 fn test_hsl_color_display() {
   let color = Hsl::from_primitives(360.0, 100.0, 50.0);
-  assert_eq!(color.to_string(), "hsl(360deg, 100%, 50%)");
+  assert_eq!(color.to_string(), "hsl(360deg,100%,50%)");
 }
 
 #[test]
 fn test_hsla_color_display() {
   let color = Hsla::from_primitives(360.0, 100.0, 50.0, 0.8);
-  assert_eq!(color.to_string(), "hsla(360deg, 100%, 50%, 0.8)");
+  assert_eq!(color.to_string(), "hsla(360deg,100%,50%,0.8)");
 }
 
 #[test]
@@ -98,7 +98,7 @@ fn test_color_enum_display() {
   assert_eq!(hash.to_string(), "#FF0000");
 
   let rgb = Color::Rgb(Rgb::new(255, 0, 0));
-  assert_eq!(rgb.to_string(), "rgb(255, 0, 0)");
+  assert_eq!(rgb.to_string(), "rgb(255,0,0)");
 }
 
 #[test]

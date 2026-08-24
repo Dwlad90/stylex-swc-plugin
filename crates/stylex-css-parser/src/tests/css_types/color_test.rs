@@ -85,7 +85,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Rgb"),
     }
-    assert_eq!(color1.to_string(), "rgb(255, 0, 0)");
+    assert_eq!(color1.to_string(), "rgb(255,0,0)");
 
     let color2 = Color::parse().parse_to_end("rgb(0, 255, 0)").unwrap();
     match color2 {
@@ -96,7 +96,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Rgb"),
     }
-    assert_eq!(color2.to_string(), "rgb(0, 255, 0)");
+    assert_eq!(color2.to_string(), "rgb(0,255,0)");
 
     let color3 = Color::parse().parse_to_end("rgb(128, 128, 128)").unwrap();
     match color3 {
@@ -107,7 +107,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Rgb"),
     }
-    assert_eq!(color3.to_string(), "rgb(128, 128, 128)");
+    assert_eq!(color3.to_string(), "rgb(128,128,128)");
   }
 
   #[test]
@@ -122,7 +122,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Rgba"),
     }
-    assert_eq!(color1.to_string(), "rgba(255, 0, 0, 0.5)");
+    assert_eq!(color1.to_string(), "rgba(255,0,0,0.5)");
 
     let color2 = Color::parse()
       .parse_to_end("rgba(0, 128, 255, 1.0)")
@@ -136,7 +136,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Rgba"),
     }
-    assert_eq!(color2.to_string(), "rgba(0, 128, 255, 1)");
+    assert_eq!(color2.to_string(), "rgba(0,128,255,1)");
 
     let color3 = Color::parse()
       .parse_to_end("rgba(255, 255, 255, 0)")
@@ -150,7 +150,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Rgba"),
     }
-    assert_eq!(color3.to_string(), "rgba(255, 255, 255, 0)");
+    assert_eq!(color3.to_string(), "rgba(255,255,255,0)");
   }
 
   #[test]
@@ -233,7 +233,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Hsl"),
     }
-    assert_eq!(color1.to_string(), "hsl(120deg, 100%, 50%)");
+    assert_eq!(color1.to_string(), "hsl(120deg,100%,50%)");
 
     let color2 = Color::parse().parse_to_end("hsl(0, 100%, 50%)").unwrap();
     match color2 {
@@ -244,7 +244,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Hsl"),
     }
-    assert_eq!(color2.to_string(), "hsl(0deg, 100%, 50%)");
+    assert_eq!(color2.to_string(), "hsl(0deg,100%,50%)");
 
     let color3 = Color::parse().parse_to_end("hsl(240, 100%, 50%)").unwrap();
     match color3 {
@@ -255,7 +255,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Hsl"),
     }
-    assert_eq!(color3.to_string(), "hsl(240deg, 100%, 50%)");
+    assert_eq!(color3.to_string(), "hsl(240deg,100%,50%)");
   }
 
   #[test]
@@ -272,7 +272,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Hsla"),
     }
-    assert_eq!(color1.to_string(), "hsla(240deg, 100%, 50%, 0.8)");
+    assert_eq!(color1.to_string(), "hsla(240deg,100%,50%,0.8)");
 
     let color2 = Color::parse()
       .parse_to_end("hsla(120, 50%, 75%, 0.3)")
@@ -286,7 +286,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Hsla"),
     }
-    assert_eq!(color2.to_string(), "hsla(120deg, 50%, 75%, 0.3)");
+    assert_eq!(color2.to_string(), "hsla(120deg,50%,75%,0.3)");
   }
 
   #[test]
@@ -486,8 +486,8 @@ mod test_css_type_color {
       ("RED", "red"),
       ("Blue", "blue"),
       ("TRANSPARENT", "transparent"),
-      ("RGB(255, 0, 0)", "rgb(255, 0, 0)"),
-      ("HSL(120, 100%, 50%)", "hsl(120deg, 100%, 50%)"),
+      ("RGB(255, 0, 0)", "rgb(255,0,0)"),
+      ("HSL(120, 100%, 50%)", "hsl(120deg,100%,50%)"),
     ];
 
     for (input, expected_normalized) in test_cases {

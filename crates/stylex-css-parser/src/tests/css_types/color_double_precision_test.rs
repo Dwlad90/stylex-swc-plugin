@@ -45,7 +45,7 @@ mod an_rgba_alpha_keeps_its_digits {
   fn a_comma_separated_alpha_survives_to_the_printed_colour() {
     assert_eq!(
       printed!("rgba(255, 0, 0, 0.123456789012345)"),
-      "rgba(255, 0, 0, 0.123456789012345)"
+      "rgba(255,0,0,0.123456789012345)"
     );
   }
 
@@ -55,7 +55,7 @@ mod an_rgba_alpha_keeps_its_digits {
   fn a_slash_separated_alpha_survives_to_the_printed_colour() {
     assert_eq!(
       printed!("rgb(255 0 0 / 0.123456789012345)"),
-      "rgba(255, 0, 0, 0.123456789012345)"
+      "rgba(255,0,0,0.123456789012345)"
     );
   }
 
@@ -65,12 +65,12 @@ mod an_rgba_alpha_keeps_its_digits {
   fn an_alpha_written_as_a_percentage_divides_at_double_precision() {
     assert_eq!(
       printed!("rgba(255, 0, 0, 12.3456789%)"),
-      "rgba(255, 0, 0, 0.123456789)"
+      "rgba(255,0,0,0.123456789)"
     );
-    assert_eq!(printed!("rgba(255, 0, 0, 100%)"), "rgba(255, 0, 0, 1)");
+    assert_eq!(printed!("rgba(255, 0, 0, 100%)"), "rgba(255,0,0,1)");
     assert_eq!(
       printed!("rgb(255 0 0 / 12.3456789%)"),
-      "rgba(255, 0, 0, 0.123456789)"
+      "rgba(255,0,0,0.123456789)"
     );
   }
 
@@ -79,10 +79,10 @@ mod an_rgba_alpha_keeps_its_digits {
   #[test]
   fn ordinary_alphas_are_not_rounded() {
     for (input, expected) in [
-      ("rgba(255, 0, 0, 0.1)", "rgba(255, 0, 0, 0.1)"),
-      ("rgba(255, 0, 0, .1)", "rgba(255, 0, 0, 0.1)"),
-      ("rgba(255, 0, 0, 0.3)", "rgba(255, 0, 0, 0.3)"),
-      ("rgba(255, 0, 0, 0.7)", "rgba(255, 0, 0, 0.7)"),
+      ("rgba(255, 0, 0, 0.1)", "rgba(255,0,0,0.1)"),
+      ("rgba(255, 0, 0, .1)", "rgba(255,0,0,0.1)"),
+      ("rgba(255, 0, 0, 0.3)", "rgba(255,0,0,0.3)"),
+      ("rgba(255, 0, 0, 0.7)", "rgba(255,0,0,0.7)"),
     ] {
       assert_eq!(printed!(input), expected, "for {input:?}");
     }
@@ -95,7 +95,7 @@ mod an_rgba_alpha_keeps_its_digits {
   fn an_alpha_computed_by_the_caller_keeps_the_error_javascript_keeps() {
     assert_eq!(
       Rgba::new(255, 0, 0, 0.1 + 0.2).to_string(),
-      "rgba(255, 0, 0, 0.30000000000000004)"
+      "rgba(255,0,0,0.30000000000000004)"
     );
   }
 
@@ -105,7 +105,7 @@ mod an_rgba_alpha_keeps_its_digits {
   fn an_uppercase_function_name_takes_the_same_path() {
     assert_eq!(
       printed!("RGBA(255, 0, 0, 0.123456789012345)"),
-      "rgba(255, 0, 0, 0.123456789012345)"
+      "rgba(255,0,0,0.123456789012345)"
     );
   }
 }
@@ -127,7 +127,7 @@ mod an_hsl_channel_keeps_its_digits {
       printed!(
         "hsla(1.2345678901234567deg, 33.333333333333336%, 50.50000000000001%, 0.123456789012345)"
       ),
-      "hsla(1.2345678901234567deg, 33.333333333333336%, 50.50000000000001%, 0.123456789012345)"
+      "hsla(1.2345678901234567deg,33.333333333333336%,50.50000000000001%,0.123456789012345)"
     );
   }
 
@@ -137,7 +137,7 @@ mod an_hsl_channel_keeps_its_digits {
   fn every_hsl_channel_survives_to_the_printed_colour() {
     assert_eq!(
       printed!("hsl(1.2345678901234567deg, 33.333333333333336%, 50.50000000000001%)"),
-      "hsl(1.2345678901234567deg, 33.333333333333336%, 50.50000000000001%)"
+      "hsl(1.2345678901234567deg,33.333333333333336%,50.50000000000001%)"
     );
   }
 
@@ -147,7 +147,7 @@ mod an_hsl_channel_keeps_its_digits {
   fn an_hsla_alpha_written_as_a_percentage_divides_at_double_precision() {
     assert_eq!(
       printed!("hsla(120deg, 100%, 50%, 12.3456789%)"),
-      "hsla(120deg, 100%, 50%, 0.123456789)"
+      "hsla(120deg,100%,50%,0.123456789)"
     );
   }
 
@@ -157,19 +157,19 @@ mod an_hsl_channel_keeps_its_digits {
     for (input, expected) in [
       (
         "hsla(120.5deg, 100%, 50%, 0.1)",
-        "hsla(120.5deg, 100%, 50%, 0.1)",
+        "hsla(120.5deg,100%,50%,0.1)",
       ),
       (
         "hsla(120.5grad, 100%, 50%, 0.1)",
-        "hsla(120.5grad, 100%, 50%, 0.1)",
+        "hsla(120.5grad,100%,50%,0.1)",
       ),
       (
         "hsla(1.5707963267948966rad, 100%, 50%, 0.1)",
-        "hsla(1.5707963267948966rad, 100%, 50%, 0.1)",
+        "hsla(1.5707963267948966rad,100%,50%,0.1)",
       ),
       (
         "hsla(0.3333333333333333turn, 100%, 50%, 0.1)",
-        "hsla(0.3333333333333333turn, 100%, 50%, 0.1)",
+        "hsla(0.3333333333333333turn,100%,50%,0.1)",
       ),
     ] {
       assert_eq!(printed!(input), expected, "for {input:?}");
@@ -181,11 +181,11 @@ mod an_hsl_channel_keeps_its_digits {
   fn channels_computed_by_the_caller_keep_the_error_javascript_keeps() {
     assert_eq!(
       Hsla::from_primitives(120.0, 100.0 / 3.0, 50.5, 0.1 + 0.2).to_string(),
-      "hsla(120deg, 33.333333333333336%, 50.5%, 0.30000000000000004)"
+      "hsla(120deg,33.333333333333336%,50.5%,0.30000000000000004)"
     );
     assert_eq!(
       Hsl::from_primitives(120.0, 100.0 / 3.0, 50.5).to_string(),
-      "hsl(120deg, 33.333333333333336%, 50.5%)"
+      "hsl(120deg,33.333333333333336%,50.5%)"
     );
   }
 }
@@ -243,7 +243,7 @@ mod boundaries_and_refusals {
   fn a_subnormal_alpha_is_not_flushed_to_zero() {
     let printed = printed!("rgba(255, 0, 0, 5e-324)");
     let alpha = match printed
-      .strip_prefix("rgba(255, 0, 0, ")
+      .strip_prefix("rgba(255,0,0,")
       .and_then(|rest| rest.strip_suffix(')'))
     {
       Some(alpha) => alpha,
@@ -261,14 +261,11 @@ mod boundaries_and_refusals {
   /// shared formatter names a double one way.
   #[test]
   fn a_very_small_alpha_keeps_its_value() {
-    assert_eq!(printed!("rgba(255, 0, 0, 1e-7)"), "rgba(255, 0, 0, 1e-7)");
-    assert_eq!(
-      printed!("rgba(255, 0, 0, 0.0000001)"),
-      "rgba(255, 0, 0, 1e-7)"
-    );
+    assert_eq!(printed!("rgba(255, 0, 0, 1e-7)"), "rgba(255,0,0,1e-7)");
+    assert_eq!(printed!("rgba(255, 0, 0, 0.0000001)"), "rgba(255,0,0,1e-7)");
     assert_eq!(
       printed!("rgba(255, 0, 0, 0.000001)"),
-      "rgba(255, 0, 0, 0.000001)"
+      "rgba(255,0,0,0.000001)"
     );
   }
 
@@ -277,9 +274,9 @@ mod boundaries_and_refusals {
   /// authored `0` are one alpha with one spelling.
   #[test]
   fn the_ends_of_the_alpha_range_are_accepted() {
-    assert_eq!(printed!("rgba(255, 0, 0, 0)"), "rgba(255, 0, 0, 0)");
-    assert_eq!(printed!("rgba(255, 0, 0, 1)"), "rgba(255, 0, 0, 1)");
-    assert_eq!(printed!("rgba(255, 0, 0, -0)"), "rgba(255, 0, 0, 0)");
+    assert_eq!(printed!("rgba(255, 0, 0, 0)"), "rgba(255,0,0,0)");
+    assert_eq!(printed!("rgba(255, 0, 0, 1)"), "rgba(255,0,0,1)");
+    assert_eq!(printed!("rgba(255, 0, 0, -0)"), "rgba(255,0,0,0)");
   }
 
   /// An alpha outside 0..=1 is refused by these parsers rather than clamped,
@@ -348,10 +345,10 @@ mod boundaries_and_refusals {
   /// the behaviour it actually is, so a change to it is visible.
   #[test]
   fn an_unclosed_function_with_every_channel_is_tolerated() {
-    assert_eq!(printed!("rgba(255, 0, 0, 0.1"), "rgba(255, 0, 0, 0.1)");
+    assert_eq!(printed!("rgba(255, 0, 0, 0.1"), "rgba(255,0,0,0.1)");
     assert_eq!(
       printed!("hsla(120deg, 100%, 50%, 0.1"),
-      "hsla(120deg, 100%, 50%, 0.1)"
+      "hsla(120deg,100%,50%,0.1)"
     );
   }
 
@@ -380,7 +377,7 @@ mod boundaries_and_refusals {
   fn an_escaped_function_name_still_names_a_colour() {
     assert_eq!(
       printed!("\\72 gba(255, 0, 0, 0.123456789012345)"),
-      "rgba(255, 0, 0, 0.123456789012345)"
+      "rgba(255,0,0,0.123456789012345)"
     );
   }
 
@@ -390,7 +387,7 @@ mod boundaries_and_refusals {
   #[test]
   fn an_absurdly_long_alpha_mantissa_rounds_to_the_nearest_double() {
     let input = format!("rgba(255, 0, 0, 0.{})", "1".repeat(400));
-    assert_eq!(printed!(&input), "rgba(255, 0, 0, 0.1111111111111111)");
+    assert_eq!(printed!(&input), "rgba(255,0,0,0.1111111111111111)");
   }
 
   /// A colour function nested inside itself is not valid CSS, and the parser
@@ -804,13 +801,10 @@ mod a_channel_is_spelled_the_way_javascript_spells_it {
       printed!("oklab(0.000001 0.0000001 -0.0000001)"),
       "oklab(0.000001 1e-7 -1e-7)"
     );
-    assert_eq!(
-      printed!("rgba(255, 0, 0, 0.0000001)"),
-      "rgba(255, 0, 0, 1e-7)"
-    );
+    assert_eq!(printed!("rgba(255, 0, 0, 0.0000001)"), "rgba(255,0,0,1e-7)");
     assert_eq!(
       printed!("hsla(120deg, 100%, 50%, 0.0000001)"),
-      "hsla(120deg, 100%, 50%, 1e-7)"
+      "hsla(120deg,100%,50%,1e-7)"
     );
   }
 
@@ -857,8 +851,8 @@ mod a_channel_is_spelled_the_way_javascript_spells_it {
   /// no-op where the number cannot go exponential.
   #[test]
   fn but_an_integer_channel_is_unchanged() {
-    assert_eq!(printed!("rgb(255, 0, 128)"), "rgb(255, 0, 128)");
-    assert_eq!(printed!("rgba(255, 0, 128, 1)"), "rgba(255, 0, 128, 1)");
+    assert_eq!(printed!("rgb(255, 0, 128)"), "rgb(255,0,128)");
+    assert_eq!(printed!("rgba(255, 0, 128, 1)"), "rgba(255,0,128,1)");
   }
 
   /// A malformed channel is still refused, and a tolerated one still

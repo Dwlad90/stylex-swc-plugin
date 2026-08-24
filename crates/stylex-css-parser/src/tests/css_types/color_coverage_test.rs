@@ -1207,7 +1207,7 @@ fn color_enum_display_all_variants_not_empty() {
 #[test]
 fn hsl_display_format() {
   let hsl = Hsl::from_primitives(360.0, 100.0, 50.0);
-  assert_eq!(format!("{}", hsl), "hsl(360deg, 100%, 50%)");
+  assert_eq!(format!("{}", hsl), "hsl(360deg,100%,50%)");
 }
 
 // ── Hsla Display ─────────────────────────────────────────────────────────────
@@ -1215,7 +1215,7 @@ fn hsl_display_format() {
 #[test]
 fn hsla_display_format() {
   let hsla = Hsla::from_primitives(240.0, 100.0, 50.0, 0.5);
-  assert_eq!(format!("{}", hsla), "hsla(240deg, 100%, 50%, 0.5)");
+  assert_eq!(format!("{}", hsla), "hsla(240deg,100%,50%,0.5)");
 }
 
 // ── Rgb Display ──────────────────────────────────────────────────────────────
@@ -1223,7 +1223,7 @@ fn hsla_display_format() {
 #[test]
 fn rgb_display_format() {
   let rgb = Rgb::new(0, 128, 255);
-  assert_eq!(format!("{}", rgb), "rgb(0, 128, 255)");
+  assert_eq!(format!("{}", rgb), "rgb(0,128,255)");
 }
 
 // ── Rgba Display ─────────────────────────────────────────────────────────────
@@ -1231,7 +1231,7 @@ fn rgb_display_format() {
 #[test]
 fn rgba_display_format() {
   let rgba = Rgba::new(0, 128, 255, 0.75);
-  assert_eq!(format!("{}", rgba), "rgba(0, 128, 255, 0.75)");
+  assert_eq!(format!("{}", rgba), "rgba(0,128,255,0.75)");
 }
 
 // ── NamedColor Display ────────────────────────────────────────────────────────

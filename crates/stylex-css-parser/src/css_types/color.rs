@@ -959,7 +959,7 @@ impl Rgb {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Rgb {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "rgb({}, {}, {})", self.r, self.g, self.b)
+    write!(f, "rgb({},{},{})", self.r, self.g, self.b)
   }
 }
 
@@ -1218,7 +1218,7 @@ impl Display for Rgba {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
       f,
-      "rgba({}, {}, {}, {})",
+      "rgba({},{},{},{})",
       self.r,
       self.g,
       self.b,
@@ -1483,7 +1483,7 @@ impl Hsl {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Hsl {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "hsl({}, {}, {})", self.h, self.s, self.l)
+    write!(f, "hsl({},{},{})", self.h, self.s, self.l)
   }
 }
 
@@ -1769,7 +1769,7 @@ impl Display for Hsla {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
       f,
-      "hsla({}, {}, {}, {})",
+      "hsla({},{},{},{})",
       self.h,
       self.s,
       self.l,

@@ -2516,17 +2516,47 @@ fn nudged_bounds_keep_their_authored_precision() {
 }
 
 // ---------------------------------------------------------------------------
-// DeMorgan distribution pruning
+// DeMorgan distribution, and the branches it leaves behind
 // ---------------------------------------------------------------------------
 
-/// Every `not (A and B)` clause splits the rule list in two, so a query
-/// carrying one negation per neighbouring breakpoint costs 2^n expansions
-/// unless dead branches are recognized before they are built. The ladder below
-/// is what the last-media-query-wins transform hands to `normalize` for the
-/// first of a dozen disjoint breakpoints; it has to stay cheap, and it has to
-/// still canonicalize to the bare range the negations do not touch.
+/// A ladder short enough for the whole expansion to fit in a literal.
+///
+/// Every `not (A and B)` clause splits the rule list in two, and a branch whose
+/// numeric constraints contradict is kept rather than dropped: it reaches the
+/// bottom as an empty disjunction, which prints as `not all`. Three negations
+/// collapse into a single one of those beside the authored range.
+///
+/// Quoted from a run of `@stylexjs/babel-plugin@0.19.0` over the four-rung
+/// ladder whose first key this is.
 #[test]
-fn a_ladder_of_negated_disjoint_ranges_collapses_to_its_own_range() {
+fn a_ladder_of_negated_disjoint_ranges_keeps_its_dead_branch() {
+  let query = parsed(
+    "@media (min-width: 100px) and (max-width: 200px) \
+     and (not ((min-width: 300px) and (max-width: 400px))) \
+     and (not ((min-width: 500px) and (max-width: 600px))) \
+     and (not ((min-width: 700px) and (max-width: 800px)))",
+  );
+
+  assert_eq!(
+    query.to_string(),
+    "@media ((min-width: 100px) and (max-width: 200px)) or (not all)"
+  );
+}
+
+/// The same shape at twelve negations, where the expansion is real.
+///
+/// Splitting once per negated neighbour costs 2^n branches, and none of them
+/// are pruned, so the key grows to fifteen kilobytes of nested disjunctions
+/// around the one authored range. That cost is the price of the class name
+/// matching, and it is why the recursion depth is bounded elsewhere rather than
+/// here.
+///
+/// The three numbers below are measurements of `@stylexjs/babel-plugin@0.19.0`
+/// on the same input, not a restatement of the algorithm: a literal this long
+/// tells a reader nothing, while its length, its count of dead branches, and
+/// the single surviving range together move under any change to the expansion.
+#[test]
+fn a_long_ladder_of_negated_disjoint_ranges_expands_rather_than_collapsing() {
   let mut query = String::from("@media (min-width: 100px) and (max-width: 200px)");
   for i in 0..12 {
     let lower = 300 + i * 200;
@@ -2536,18 +2566,17 @@ fn a_ladder_of_negated_disjoint_ranges_collapses_to_its_own_range() {
     ));
   }
 
-  let query = parsed(&query);
+  let printed = parsed(&query).to_string();
 
-  assert_eq!(
-    query.to_string(),
-    "@media (min-width: 100px) and (max-width: 200px)"
-  );
+  assert_eq!(printed.len(), 15393);
+  assert_eq!(printed.matches("not all").count(), 1023);
+  assert_eq!(printed.matches("(min-width: 100px)").count(), 1);
 }
 
-/// A branch whose numeric constraints already contradict is dropped, but only
-/// when the merge decides every leaf below it. A rule the merge cannot read —
-/// `(orientation: portrait)` here — makes it hand the list back unchanged
-/// instead, so that branch survives and must not be pruned away.
+/// A rule the merge cannot read keeps its branch alive as itself rather than as
+/// `not all` — `(orientation: portrait)` here, which makes the merge hand the
+/// list back unchanged instead of intersecting it. Both branches therefore
+/// print in full, with no contradiction to collapse.
 #[test]
 fn a_non_numeric_rule_keeps_a_numerically_dead_branch_alive() {
   let query = parsed(

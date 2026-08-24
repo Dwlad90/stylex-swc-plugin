@@ -13,6 +13,15 @@
 //! implementation coupling this effort exists to remove, and would fight the
 //! next maintainer who diffs them against a new reference-compiler release.
 //!
+//! **The entry point is [`normalize_value`], not the compiler's own
+//! `normalize_css_property_value`, and that is the point.** The latter adds
+//! three guards the reference compiler has no counterpart for — the unclosed
+//! comment, the nesting budget, the declaration-terminating token — so entering
+//! through it would measure this compiler's additions rather than the port.
+//! Those guards are asserted in `value_normalization_parity_test.rs`, which does
+//! enter there. Two cases below would be rejected outright on that path, and
+//! their being normalized here is the contract this module exists to state.
+//!
 //! Where the reference compiler does something that reads as a defect —
 //! `ABC` gaining a leading dash, an importance annotation mid-value crashing —
 //! the defect is asserted, not corrected. Hash parity outranks local

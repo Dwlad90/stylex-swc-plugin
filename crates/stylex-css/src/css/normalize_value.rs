@@ -94,6 +94,23 @@ const PASSES: [Pass; 7] = [
 /// Fails — as a panic the compiler catches and reports — on an unclosed
 /// function, an unclosed string, an unprefixed custom-property reference, and
 /// on a value that scans to no tokens at all.
+///
+/// **This is the fold without the structural guards, and it is a seam rather
+/// than a leftover.** The compiler itself enters at
+/// [`crate::css::common::normalize_css_property_value`], which reads the raw
+/// bytes for an unclosed comment, a nesting depth past the budget, and a
+/// declaration-terminating token before handing the value here. Those three are
+/// local additions the reference compiler does not make, so a caller that wants
+/// only the ported pipeline — every pass the reference compiler runs, and
+/// nothing this one adds — wants this function.
+///
+/// `css/tests/normalize_value_test.rs` is that caller, deliberately: it pins
+/// what the fold does with `{`, `}` and `;`, which is to normalize them like any
+/// other token, so that the division of labour is written down. If a value able
+/// to break out of its own rule ever reaches a stylesheet, that suite says the
+/// missing guard is the defect rather than the fold. The guards have their own
+/// suite in `css/tests/value_normalization_parity_test.rs`, which enters through
+/// `normalize_css_property_value`.
 pub fn normalize_value(value: &str, key: &str, options: &StyleXStateOptions) -> String {
   normalize_value_guarded(value, key, options, None)
 }

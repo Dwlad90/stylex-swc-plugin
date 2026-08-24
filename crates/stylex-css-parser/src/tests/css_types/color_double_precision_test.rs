@@ -603,6 +603,10 @@ mod a_modern_colour_space_keeps_its_digits {
 mod modern_space_boundaries_and_refusals {
   use super::*;
 
+  // `Lch` is constructed directly by `a_nan_alpha_prints_no_tail`, since no
+  // value tokenizes to `NaN`.
+  use crate::css_types::color::Lch;
+
   /// A subnormal alpha survives as a non-zero value, where single precision
   /// flushed anything below ~1.2e-38 to zero. As with the legacy spaces,
   /// Rust's own formatting spells it as a long decimal where JavaScript
@@ -657,6 +661,23 @@ mod modern_space_boundaries_and_refusals {
       "oklch(0.7 0.1 200deg)"
     );
     assert_eq!(printed!("lch(50 20 30 / 0)"), "lch(50 20 30)");
+  }
+
+  /// A `NaN` alpha prints no tail either, for the same reason a zero does not.
+  ///
+  /// The reference implementation's guard is `this.alpha ?`, and `NaN` is falsy
+  /// in JavaScript exactly as `0` is. Unreachable through the parser -- no value
+  /// tokenizes to `NaN` -- so it is constructed directly, which the public
+  /// constructor allows since it takes any `f64`. Pinned because it was the one
+  /// uncovered branch left in `printed_alpha`, and an uncovered branch on the
+  /// path that feeds the class-name hash is exactly what the crate's own
+  /// comments say not to leave behind.
+  #[test]
+  fn a_nan_alpha_prints_no_tail() {
+    assert_eq!(
+      format!("{}", Lch::new_with_number(50.0, 20.0, 30.0, Some(f64::NAN))),
+      "lch(50 20 30)"
+    );
   }
 
   /// The contrast to [`a_zero_alpha_prints_no_tail`]: every other alpha keeps

@@ -237,6 +237,14 @@ impl NumberOrPercentage {
   /// A percentage token carries the percent that was authored, so every caller
   /// that wants a fraction has to divide -- and eight of them were writing the
   /// same two-arm match to do it.
+  ///
+  /// Parity on the percentage arm, and *not* on the number arm, for the reason
+  /// [`crate::css_types::alpha_value::parse_alpha_token`] sets out at length: the
+  /// reference compiler's `numberOrPercentage` multiplies an already-signed token
+  /// value by its sign character and so negates twice, answering `+2` for `-2`.
+  /// A negative number stays negative here. No caller in the plugin reaches
+  /// either, so nothing emitted differs -- but it is a divergence rather than a
+  /// port, and saying so is cheaper than the next person measuring it again.
   pub fn as_fraction(&self) -> f64 {
     match self {
       NumberOrPercentage::Number(number) => number.value,

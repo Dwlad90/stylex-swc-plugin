@@ -97,6 +97,23 @@ pub fn alpha_as_number() -> TokenParser<f64> {
 /// percentage token holding `50`, and the alpha it denotes is `0.5`. That much
 /// the reference compiler also does, in `AlphaValue.parser` itself.
 ///
+/// **One thing here is not parity, and the doc used to claim it was.** The
+/// reference compiler's `AlphaValue.parser` multiplies its token value by
+/// `signCharacter === '-' ? -1 : 1` -- and that value already carries the sign,
+/// so it negates twice. Measured through its own tokenizer rather than read off
+/// the source: `-0.5` arrives as `value: -0.5` *and* `signCharacter: '-'`, so
+/// the parser answers `+0.5`, and `-50%` likewise answers `+0.5`.
+///
+/// This reader keeps a negative alpha negative. Nothing in the plugin reaches it
+/// -- see the *Unreachable port* entry in `CONTEXT.md` -- so no emitted CSS
+/// differs, and reproducing a sign bug in a type with no caller would be the
+/// wrong way to close the gap. What is fixed here is the claim: this is a
+/// divergence, and the next person to add a caller needs to know that rather
+/// than trust a comment that said "parity".
+///
+/// [`crate::css_types::common_types::NumberOrPercentage`] inherits the same gap
+/// through its number arm, and says so.
+///
 /// Kept as a token reader rather than a `TokenParser` because the four callers
 /// read their way through a comma-separated legacy grammar by hand rather than
 /// by combinator.

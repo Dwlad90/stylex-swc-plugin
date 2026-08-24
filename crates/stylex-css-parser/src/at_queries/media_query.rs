@@ -826,6 +826,17 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
       return Vec::new();
     };
 
+    // `is_finite` where the reference compiler asks `!== -Infinity`, and the
+    // difference is one input wide: at `(min-width: 1e400px)` the bound overflows
+    // to infinity, and upstream emits `(min-width: Infinitypx)` where this drops
+    // the bound. Left as it is -- `Infinitypx` is not a length any browser reads,
+    // so emitting it would be faithful to a spelling nobody can use.
+    //
+    // Pre-existing, and the double-width sweep *narrowed* it rather than opening
+    // it: under `f32` every bound above ~3.4e38 collapsed to infinity, so
+    // `(min-width: 1e39px)` was silently dropped, where it now emits `1e+39px`
+    // and matches. Recorded here so the residue reads as known rather than as an
+    // oversight.
     if lower.is_finite() {
       result.push(MediaQueryRule::Pair(MediaRulePair::new(
         format!("min-{dim}"),

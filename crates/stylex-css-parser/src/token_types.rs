@@ -148,12 +148,20 @@ fn leading_number_len(text: &str) -> Option<usize> {
 // The three numeric arms each end in `.unwrap_or(<cssparser's own value>)`, and
 // none of those fallbacks is reachable: `cssparser` produced the token from
 // digits that are still in `text`, so `leading_f64` finds them. They are kept
-// because the alternative is a panic in a compiler, and they are *deliberately*
-// the pre-`leading_f64` behaviour rather than an improvement on it -- widening a
-// single-precision `unit_value` and multiplying it back up is exactly what made
-// `7%` print as `7.000000000000001%`, which the comment on that arm names. If
-// one of them ever does fire, the wrong digits are the symptom to chase and the
-// offset bookkeeping is the cause; do not make the fallback cleverer.
+// because the alternative is a panic in a compiler, and each is *deliberately*
+// what its arm did before the digits were re-read rather than an improvement on
+// it: `cssparser`'s single-precision value, and for a percentage that value
+// scaled back up to the authored percent -- which is exactly what made `7%` print
+// as `7.000000000000001%`.
+//
+// Worth being precise about the baseline, because there are two and only one is
+// this. On `develop` the percentage arm was the *un-scaled* fraction, so
+// `unit_value as f64 * 100.0` is the pre-`leading_f64` behaviour of this branch
+// and not of the code it replaced. In a comment that closes by saying not to make
+// the fallback cleverer, which "before" is meant should not be left to the reader.
+//
+// If one of them ever does fire, the wrong digits are the symptom to chase and
+// the offset bookkeeping is the cause; do not make the fallback cleverer.
 //
 // `text` is the input from the token's first byte onward, which is where the
 // numeric variants recover the digits `cssparser`'s `f32` dropped.

@@ -74,3 +74,81 @@ stylex_test!(
   }),
   INPUT_CODE
 );
+
+/// The reproduction from issue #1268, verbatim: a ladder of exclusive
+/// `min-width`/`max-width` breakpoints ending in a `max-width`-only rung, whose
+/// values are variables defined in a separate module.
+///
+/// Every rung is disjoint from the next, so the negation chain
+/// last-media-query-wins builds distributes into branches that all contradict.
+/// A contradiction is kept rather than dropped: it prints as `not all`, and the
+/// disjunction nesting around it stays in the key. The key text is what the
+/// class name hashes, so the wrapper is not cosmetic — two of the seven class
+/// names below depend on it.
+///
+/// The expected output is quoted from row `r01` of the ticket 02 divergence
+/// table, a recorded run of `@stylexjs/babel-plugin@0.19.0`.
+const LADDER_CODE: &str = r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from 'colors.stylex.js';
+    export const styles = stylex.create({
+      root: {
+        color: {
+          default: colors.base,
+          '@media (min-width: 1440px)': colors.xl,
+          '@media (min-width: 1200px) and (max-width: 1439px)': colors.lg,
+          '@media (min-width: 1024px) and (max-width: 1199px)': colors.md,
+          '@media (min-width: 768px) and (max-width: 1023px)': colors.sm,
+          '@media (min-width: 480px) and (max-width: 767px)': colors.xs,
+          '@media (max-width: 479px)': colors.xxs,
+        },
+      },
+    });
+  "#;
+
+stylex_test_transform!(
+  a_disjoint_breakpoint_ladder_keeps_its_contradictory_branches,
+  |tr| theme_import_transform(tr.comments.clone()),
+  LADDER_CODE,
+  r#"
+    import _inject from "@stylexjs/stylex/lib/stylex-inject";
+    var _inject2 = _inject;
+    import "colors.stylex.js";
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from 'colors.stylex.js';
+    _inject2({
+      ltr: ".x1fm9ujy{color:var(--x1g366na)}",
+      priority: 3000
+    });
+    _inject2({
+      ltr: "@media ((not all) or (not all)) or ((not all) or ((min-width: 1440px))){.x11g08g8.x11g08g8{color:var(--x1gey9a0)}}",
+      priority: 3200
+    });
+    _inject2({
+      ltr: "@media (not all) or ((min-width: 1200px) and (max-width: 1439px)){.x1qsezja.x1qsezja{color:var(--xo0k5im)}}",
+      priority: 3200
+    });
+    _inject2({
+      ltr: "@media (min-width: 1024px) and (max-width: 1199px){.xqw8h0p.xqw8h0p{color:var(--x1ncemq0)}}",
+      priority: 3200
+    });
+    _inject2({
+      ltr: "@media (min-width: 768px) and (max-width: 1023px){.x1bhj7sf.x1bhj7sf{color:var(--x5eudzp)}}",
+      priority: 3200
+    });
+    _inject2({
+      ltr: "@media (min-width: 480px) and (max-width: 767px){.x1p9ejzw.x1p9ejzw{color:var(--xtqmhjj)}}",
+      priority: 3200
+    });
+    _inject2({
+      ltr: "@media (max-width: 479px){.xw70vyp.xw70vyp{color:var(--xuk8yok)}}",
+      priority: 3200
+    });
+    export const styles = {
+      root: {
+        kMwMTN: "x1fm9ujy x11g08g8 x1qsezja xqw8h0p x1bhj7sf x1p9ejzw xw70vyp",
+        $$css: true
+      }
+    };
+  "#
+);

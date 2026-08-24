@@ -1759,6 +1759,14 @@
       "note": "A `@supports` condition carries no length to normalize, which is the point: it is the wrapper the media chain is derived *inside*, so this asks whether the transform still runs one level down. It does, and inexactly -- the derived bound reads `2.1900000000000004rem`, so the row measures the digits as well as the reach."
     },
     {
+      "id": "modules-1268-disjoint-breakpoint-ladder",
+      "label": "a ladder of exclusive `@media` breakpoints ending in a `max-width`-only rung",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { colors } from 'colors.stylex.js';\n\nexport const styles = stylex.create({\n  root: {\n    color: {\n      default: colors.base,\n      '@media (min-width: 1440px)': colors.xl,\n      '@media (min-width: 1200px) and (max-width: 1439px)': colors.lg,\n      '@media (min-width: 1024px) and (max-width: 1199px)': colors.md,\n      '@media (min-width: 768px) and (max-width: 1023px)': colors.sm,\n      '@media (min-width: 480px) and (max-width: 767px)': colors.xs,\n      '@media (max-width: 479px)': colors.xxs,\n    },\n  },\n});\n",
+      "origin": "issue #1268, the reported reproduction verbatim",
+      "expected": "identical",
+      "note": "No two rungs touch, so every branch the negation chain distributes into contradicts. A contradiction is retained rather than pruned -- it prints as `not all`, and the disjunction nesting around it stays in the key that the class name hashes. Two of the seven class names here depend on that wrapper, which is why the subject belongs in the corpus rather than only in the Rust suites: it is the seam that fails when the reference implementation moves rather than when this compiler does."
+    },
+    {
       "id": "modules-an-accented-attribute-selector-sorts-between-its-neighbours",
       "label": "an accented attribute selector nested between two ASCII neighbours",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  w: { color: { '[data-e]': { '[data-état]': { '[data-f]': 'red' } } } },\n});\n",

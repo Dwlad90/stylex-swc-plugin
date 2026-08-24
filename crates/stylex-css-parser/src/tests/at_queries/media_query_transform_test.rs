@@ -1414,3 +1414,51 @@ mod computed_bounds_carry_the_authored_digits {
     );
   }
 }
+
+/// The reported ladder of exclusive breakpoints, at the transform's own seam.
+///
+/// Regression coverage for
+/// https://github.com/Dwlad90/stylex-swc-plugin/issues/1268. Every expectation
+/// here is quoted from row `r01` of the ticket 02 divergence table, which
+/// recorded what `@stylexjs/babel-plugin@0.19.0` emits for this input.
+#[cfg(test)]
+mod a_ladder_of_exclusive_breakpoints {
+  use super::*;
+
+  /// A ladder whose rungs never touch, ending in a `max-width`-only rung.
+  ///
+  /// Every distributed branch of the two widest rungs contradicts, and a
+  /// contradiction is retained rather than pruned: it prints as `not all`, and
+  /// the disjunction nesting built around it survives into the key. The two
+  /// narrowest rungs have nothing after them to negate, so they are handed back
+  /// as authored.
+  ///
+  /// The reason this matters at all is the class hash: the key text is what is
+  /// hashed, so dropping the wrapper costs two of the seven class names for
+  /// this input.
+  #[test]
+  fn contradictory_branches_are_retained_as_not_all() {
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (min-width: 1440px)": "c1",
+          "@media (min-width: 1200px) and (max-width: 1439px)": "c2",
+          "@media (min-width: 1024px) and (max-width: 1199px)": "c3",
+          "@media (min-width: 768px) and (max-width: 1023px)": "c4",
+          "@media (min-width: 480px) and (max-width: 767px)": "c5",
+          "@media (max-width: 479px)": "c6"
+        }
+      })),
+      vec![
+        "default",
+        "@media ((not all) or (not all)) or ((not all) or ((min-width: 1440px)))",
+        "@media (not all) or ((min-width: 1200px) and (max-width: 1439px))",
+        "@media (min-width: 1024px) and (max-width: 1199px)",
+        "@media (min-width: 768px) and (max-width: 1023px)",
+        "@media (min-width: 480px) and (max-width: 767px)",
+        "@media (max-width: 479px)",
+      ]
+    );
+  }
+}

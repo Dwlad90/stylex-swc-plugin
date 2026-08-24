@@ -422,8 +422,13 @@ impl Shorthands {
     let mut list_type: Option<TRawValue> = None;
     let mut remaining_parts: Vec<String> = Vec::new();
 
-    // First pass: assign values that can only belong to one property
-    for part in &parts {
+    // First pass: assign values that can only belong to one property.
+    //
+    // The parts are consumed rather than borrowed. `parts` is dead after this
+    // loop, and the borrow forced a `String` clone at each of the three places a
+    // part is kept -- the global-keyword return above has already finished with
+    // it, so there is nothing left that needs the original.
+    for part in parts {
       // Check for global keywords mixed with other values (invalid)
       // and use of `var()` which can't be disambiguated
       if list_style_global_values.contains(&part.as_str()) || part.contains("var(--") {
@@ -434,15 +439,15 @@ impl Shorthands {
         if position.is_some() {
           return Err(list_style_rejection(&raw_value_str));
         }
-        position = Some(TRawValue::String(part.clone()));
+        position = Some(TRawValue::String(part));
       }
       // Check if it's a type value that's not 'none' (unambiguous)
       // Type values are: keywords (letters and hyphens) or quoted strings
-      else if part != "none" && is_list_style_type(part) {
+      else if part != "none" && is_list_style_type(&part) {
         if list_type.is_some() {
           return Err(list_style_rejection(&raw_value_str));
         }
-        list_type = Some(TRawValue::String(part.clone()));
+        list_type = Some(TRawValue::String(part));
       }
       // Keep ambiguous values for second pass. An empty part arrives here: it is
       // neither a global keyword nor a position, and `is_list_style_type`
@@ -451,7 +456,7 @@ impl Shorthands {
       // `crate::values::parser` states -- so `list-style: 'url(a.png) /*'`
       // refuses for two images rather than quietly discarding one of them.
       else {
-        remaining_parts.push(part.clone());
+        remaining_parts.push(part);
       }
     }
 

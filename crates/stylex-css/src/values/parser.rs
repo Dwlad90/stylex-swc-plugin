@@ -109,7 +109,12 @@ pub fn split_value_parts(css_string: &str) -> Vec<String> {
   // is a depth count kept here that has to agree with the one the diagnostic is
   // raised from, and a splitter that declined at a depth normalization accepts
   // would refuse a value nobody rejected.
-  if nests_too_deeply(trimmed) {
+  //
+  // A value with no `(` in it opens no function, so it nests nothing and the
+  // second scan is skipped for it -- which is nearly every shorthand value there
+  // is: `1px 2px`, `auto`, `red solid 1px`. The guarantee is unchanged, since
+  // `nests_too_deeply` can only answer `true` for a value that opens one.
+  if trimmed.contains('(') && nests_too_deeply(trimmed) {
     return vec![trimmed.to_string()];
   }
 
@@ -140,22 +145,29 @@ pub fn split_value_parts(css_string: &str) -> Vec<String> {
 /// oddly and it is what the reference compiler does — the middle part becomes
 /// ` !important`, which normalization spells `!important`, and both compilers
 /// hash the same class name for it.
-fn apply_importance(parts: Vec<String>) -> Vec<String> {
-  let Some(last) = parts.last() else {
-    return parts;
-  };
-
+fn apply_importance(mut parts: Vec<String>) -> Vec<String> {
   // The `!` test is what keeps the case fold off the common path: no character
   // lowercases *into* `!`, so a part that does not start with one cannot be an
   // importance annotation however it is spelled.
-  if parts.len() < 2 || !last.starts_with('!') || last.to_lowercase() != "!important" {
+  let qualifies = parts.len() >= 2
+    && parts
+      .last()
+      .is_some_and(|last| last.starts_with('!') && last.to_lowercase() == "!important");
+
+  if !qualifies {
     return parts;
   }
 
-  parts[..parts.len() - 1]
-    .iter()
-    .map(|part| format!("{part} !important"))
-    .collect()
+  // Annotated in place. The fold this replaces allocated a fresh `Vec` and a
+  // fresh `String` per part, on the path every shorthand declaration takes, to
+  // append the same eleven bytes each time.
+  parts.pop();
+
+  for part in &mut parts {
+    part.push_str(" !important");
+  }
+
+  parts
 }
 
 /// One node as the text it contributes to its part.

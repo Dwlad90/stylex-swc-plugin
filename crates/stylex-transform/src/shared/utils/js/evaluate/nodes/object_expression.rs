@@ -142,8 +142,12 @@ pub(in super::super) fn evaluate(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
-  let path = Expr::Object(obj_path.clone());
-  let path = &path;
+  // Built on demand rather than up front. Every read of this below is a
+  // refusal, and the eager binding it replaces cloned the whole object literal
+  // on the path that succeeds -- once per literal, at every level of nesting,
+  // for a value nine sites out of nine only look at when they are about to
+  // report a fault.
+  let refusal_path = || Expr::Object(obj_path.clone());
   let mut props = Vec::with_capacity(obj_path.props.len());
 
   for prop in &obj_path.props {
@@ -152,13 +156,24 @@ pub(in super::super) fn evaluate(
         let spread_expression = evaluate_cached(&prop.expr, state, traversal_state, fns);
 
         if !state.confident {
-          return deopt(path, state, OBJECT_METHOD);
+          // The nested evaluation has already recorded its reason and cleared
+          // `confident`, so `deopt` will not overwrite it -- the read is here to
+          // keep the call shaped like the reference compiler's, which reports
+          // `state.deoptReason ?? 'unknown error'` for exactly this refusal
+          // (`utils/evaluate-path.js:762`, 0.19.0).
+          let reason = state
+            .deopt_reason
+            .as_deref()
+            .unwrap_or("unknown error")
+            .to_string();
+
+          return deopt(&refusal_path(), state, &reason);
         }
 
         let Some(new_props) =
           spread_expression.and_then(|value| spread_own_properties(value, &prop.expr))
         else {
-          deopt_unsupported!(path, state, SPREAD_PROPERTIES_UNREADABLE);
+          deopt_unsupported!(&refusal_path(), state, SPREAD_PROPERTIES_UNREADABLE);
         };
 
         let merged_object = assign_props(props, new_props);
@@ -169,13 +184,14 @@ pub(in super::super) fn evaluate(
       },
       PropOrSpread::Prop(prop) => {
         if prop.is_method() {
-          let deopt_reason = state
-            .deopt_reason
-            .as_deref()
-            .unwrap_or("unknown error")
-            .to_string();
-
-          return deopt(path, state, &deopt_reason);
+          // `OBJECT_METHOD`, which is what the reference compiler reports here
+          // (`utils/evaluate-path.js:759-761`, 0.19.0). This arm and the spread
+          // arm above held each other's reason, and `deopt` only writes while
+          // `confident` is still true -- so the reason read from the state
+          // arrived here as `None` every time and the author was handed the bare
+          // `unknown error`, while the constant that belonged here sat in the
+          // spread arm where it could never be applied at all.
+          return deopt(&refusal_path(), state, OBJECT_METHOD);
         }
 
         let mut prop = prop.clone();
@@ -232,7 +248,7 @@ pub(in super::super) fn evaluate(
                     EXPRESSION_IS_NOT_A_STRING
                   ))
                 } else {
-                  deopt_unsupported!(path, state, ILLEGAL_PROP_VALUE);
+                  deopt_unsupported!(&refusal_path(), state, ILLEGAL_PROP_VALUE);
                 }
               },
               PropName::BigInt(big_int) => Some(big_int.value.to_string()),
@@ -272,7 +288,7 @@ pub(in super::super) fn evaluate(
 
             let Some(value) = eval_value.value else {
               deopt_unsupported!(
-                path,
+                &refusal_path(),
                 state,
                 format!(
                   "Value of key '{}' has no compile-time value, but got {}",
@@ -293,7 +309,7 @@ pub(in super::super) fn evaluate(
               EvaluateResultValue::Expr(expr) => expr,
               EvaluateResultValue::Vec(items) => match evaluate_result_vec_to_array_expr(&items) {
                 Some(expr) => expr,
-                None => deopt_unsupported!(path, state, ILLEGAL_PROP_ARRAY_VALUE),
+                None => deopt_unsupported!(&refusal_path(), state, ILLEGAL_PROP_ARRAY_VALUE),
               },
               EvaluateResultValue::Callback(cb) => match path_key_value.value.as_ref() {
                 Expr::Call(call_expr) => {
@@ -314,7 +330,7 @@ pub(in super::super) fn evaluate(
                   cb(cb_args, traversal_state)
                 },
                 Expr::Arrow(arrow_func_expr) => Expr::Arrow(arrow_func_expr.clone()),
-                _ => deopt_unsupported!(path, state, ILLEGAL_PROP_VALUE),
+                _ => deopt_unsupported!(&refusal_path(), state, ILLEGAL_PROP_VALUE),
               },
               // A folded function map or function config, materialized as the
               // object it stands for so it reaches whatever validates this
@@ -323,7 +339,7 @@ pub(in super::super) fn evaluate(
               // expression form is a refusal.
               value => match function_fold_to_object(&value) {
                 Some(object) => Expr::from(object),
-                None => deopt_unsupported!(path, state, ILLEGAL_PROP_VALUE),
+                None => deopt_unsupported!(&refusal_path(), state, ILLEGAL_PROP_VALUE),
               },
             };
 
@@ -337,7 +353,7 @@ pub(in super::super) fn evaluate(
           },
           // A getter, a setter or an assignment pattern: object properties
           // with no compile-time value of their own.
-          _ => deopt_unsupported!(path, state, OBJECT_METHOD),
+          _ => deopt_unsupported!(&refusal_path(), state, OBJECT_METHOD),
         }
       },
     }

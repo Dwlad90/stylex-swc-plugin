@@ -14,6 +14,7 @@ mod media_query_canonicalization;
 mod media_query_computed_bounds;
 mod nested_pseudo_ordering;
 mod non_ascii_hash_parity;
+mod object_method_refusals;
 mod object_own_keys;
 mod operator_interaction;
 mod static_styles;

@@ -10,7 +10,7 @@ use crate::{
   CssParseError,
   css_types::{Length, calc::Calc},
   token_parser::{TokenParser, tokens},
-  token_types::SimpleToken,
+  token_types::{SimpleToken, TokenList},
 };
 use std::fmt::{self, Display};
 
@@ -1956,8 +1956,50 @@ fn parenthesized_not_parser() -> TokenParser<MediaQueryRule> {
 }
 
 fn media_query_rule_parser() -> TokenParser<MediaQueryRule> {
-  // Parse OR-separated rules (comma-separated)
-  or_combinator_parser()
+  comma_list_parser()
+}
+
+/// Parse a comma-separated media query list.
+///
+/// Comma and `or` both mean disjunction, and both end up in the same `Or` node,
+/// but they do not bind equally: `or` groups inside one comma segment, and the
+/// segments group above it. Flattening the two into one list would be simpler
+/// and is wrong -- `(a) and (b), (c) or (d)` is two segments, not three
+/// disjuncts, and the last-media-query-wins transform distributes its negations
+/// over whatever the top-level `Or` holds. Getting the nesting wrong there
+/// changes the emitted rule text, and with it the class name.
+fn comma_list_parser() -> TokenParser<MediaQueryRule> {
+  TokenParser::new(
+    |tokens| {
+      let mut segments = vec![(or_combinator_parser().run)(tokens)?];
+
+      loop {
+        let checkpoint = tokens.save_position();
+        skip_whitespace(tokens);
+
+        if !matches!(tokens.peek(), Ok(Some(SimpleToken::Comma))) {
+          let _ = tokens.restore_position(checkpoint);
+          break;
+        }
+
+        let _ = tokens.consume_next_token();
+        skip_whitespace(tokens);
+        segments.push((or_combinator_parser().run)(tokens)?);
+      }
+
+      Ok(collapse_single_rule(segments, |segments| {
+        MediaQueryRule::Or(MediaOrRules::new(segments))
+      }))
+    },
+    "comma_list_parser",
+  )
+}
+
+/// Consume any run of whitespace tokens, leaving the next real token in place.
+fn skip_whitespace(tokens: &mut TokenList) {
+  while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+    let _ = tokens.consume_next_token();
+  }
 }
 
 /// Returns the sole rule when `rules` holds exactly one, otherwise groups them
@@ -1984,27 +2026,14 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
       let first_rule = (and_combinator_parser().run)(tokens)?;
       rules.push(first_rule);
 
-      // Parse additional OR rules (comma-separated OR "or" keyword)
+      // Parse additional OR rules. A comma is a disjunction too, but it binds
+      // more loosely and is handled a level up.
       loop {
         let checkpoint = tokens.save_position();
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
           let _ = tokens.consume_next_token();
-        }
-
-        // Check for comma-separated OR
-        if let Ok(Some(SimpleToken::Comma)) = tokens.peek() {
-          let _ = tokens.consume_next_token(); // consume comma
-
-          // Skip optional whitespace after comma
-          while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            let _ = tokens.consume_next_token();
-          }
-
-          let rule = (and_combinator_parser().run)(tokens)?;
-          rules.push(rule);
-          continue;
         }
 
         // Check for "or" keyword

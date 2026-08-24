@@ -1944,3 +1944,63 @@ mod unusual_but_valid_queries {
     );
   }
 }
+
+/// How a comma and an `or` divide a query between them.
+///
+/// Both mean disjunction and both end up in the same `Or` node, but `or` groups
+/// inside one comma segment and the segments group above it. The transform
+/// distributes its negations over whatever the top-level `Or` holds, so getting
+/// that nesting wrong changes the emitted rule text and the class name with it —
+/// which is what these three shapes did before the two were told apart.
+///
+/// Every expectation is quoted from a run of `@stylexjs/babel-plugin` 0.19.0.
+#[cfg(test)]
+mod a_comma_binds_more_loosely_than_or {
+  use super::*;
+
+  /// One key, one later key to negate. The first key's rewritten text is what
+  /// each case asserts.
+  fn rewritten(query: &str) -> String {
+    let styles = json!({
+      "color": { "default": "black", query: "red", "@media (max-width: 50px)": "blue" }
+    });
+
+    transformed_keys(styles)[1].clone()
+  }
+
+  /// Two segments, the second holding an `or`. Flattening them into three
+  /// disjuncts spread the negation over three, and printed three commas.
+  #[test]
+  fn a_segment_holding_an_or_stays_one_disjunct() {
+    assert_eq!(
+      rewritten(
+        "@media (min-width: 1px) and (min-width: 2px), (min-width: 3px) or (min-width: 1px)"
+      ),
+      "@media (min-width: 50.01px), (min-width: 3px) or (min-width: 1px) and (not (max-width: 50px))"
+    );
+  }
+
+  /// The same with the `or` in the first segment, so a reader can see the
+  /// grouping move rather than the text.
+  #[test]
+  fn the_or_segment_may_come_first() {
+    assert_eq!(
+      rewritten(
+        "@media (min-width: 1px) or (min-width: 2px), (min-width: 3px) and (min-width: 1px)"
+      ),
+      "@media (min-width: 1px) or (min-width: 2px) and (not (max-width: 50px)), (min-width: 50.01px)"
+    );
+  }
+
+  /// A media type as its own segment, beside one holding an `or`. The media
+  /// type blocks the merge on its side, which leaves both segments visible in
+  /// the output at once.
+  #[test]
+  fn a_media_type_segment_sits_beside_an_or_segment() {
+    assert_eq!(
+      rewritten("@media screen, (min-width: 1px) or (min-width: 2px)"),
+      "@media (screen) and (not (max-width: 50px)), \
+       (min-width: 1px) or (min-width: 2px) and (not (max-width: 50px))"
+    );
+  }
+}

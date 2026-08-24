@@ -275,15 +275,22 @@ fn rgba_comma_parser_rejects_out_of_range_rgb() {
 }
 
 #[test]
-fn rgba_comma_parser_rejects_out_of_range_alpha() {
-  // alpha > 1.0
-  assert!(Rgba::parse().parse_to_end("rgba(255, 0, 0, 1.5)").is_err());
+fn rgba_comma_parser_carries_an_out_of_range_alpha() {
+  // The reference compiler bounds the channels and not the alpha, so an alpha
+  // above 1 is carried through rather than refused.
+  match Rgba::parse().parse_to_end("rgba(255, 0, 0, 1.5)") {
+    Ok(rgba) => assert_eq!(rgba.to_string(), "rgba(255,0,0,1.5)"),
+    Err(error) => panic!("expected the alpha to be carried: {error:?}"),
+  }
 }
 
 #[test]
-fn rgba_comma_parser_rejects_out_of_range_alpha_percentage() {
-  // alpha percentage > 100% (stored as > 1.0)
-  assert!(Rgba::parse().parse_to_end("rgba(255, 0, 0, 150%)").is_err());
+fn rgba_comma_parser_carries_an_out_of_range_alpha_percentage() {
+  // Divided down to the fraction it denotes, then carried: 150% is 1.5.
+  match Rgba::parse().parse_to_end("rgba(255, 0, 0, 150%)") {
+    Ok(rgba) => assert_eq!(rgba.to_string(), "rgba(255,0,0,1.5)"),
+    Err(error) => panic!("expected the alpha to be carried: {error:?}"),
+  }
 }
 
 #[test]
@@ -476,21 +483,19 @@ fn hsla_comma_parser_rejects_non_comma_separator() {
 }
 
 #[test]
-fn hsla_comma_parser_rejects_invalid_alpha_out_of_range() {
-  assert!(
-    Hsla::parse()
-      .parse_to_end("hsla(180, 50%, 50%, 2.0)")
-      .is_err()
-  );
+fn hsla_comma_parser_carries_an_out_of_range_alpha() {
+  match Hsla::parse().parse_to_end("hsla(180, 50%, 50%, 2.0)") {
+    Ok(hsla) => assert_eq!(hsla.to_string(), "hsla(180deg,50%,50%,2)"),
+    Err(error) => panic!("expected the alpha to be carried: {error:?}"),
+  }
 }
 
 #[test]
-fn hsla_comma_parser_rejects_invalid_alpha_percentage_out_of_range() {
-  assert!(
-    Hsla::parse()
-      .parse_to_end("hsla(180, 50%, 50%, 200%)")
-      .is_err()
-  );
+fn hsla_comma_parser_carries_an_out_of_range_alpha_percentage() {
+  match Hsla::parse().parse_to_end("hsla(180, 50%, 50%, 200%)") {
+    Ok(hsla) => assert_eq!(hsla.to_string(), "hsla(180deg,50%,50%,2)"),
+    Err(error) => panic!("expected the alpha to be carried: {error:?}"),
+  }
 }
 
 #[test]
@@ -2344,10 +2349,11 @@ fn rgba_comma_parser_whitespace_before_comma() {
 // ── Additional coverage for specific error paths still uncovered ──────────────
 
 #[test]
-fn rgba_space_slash_parser_out_of_range_alpha() {
-  // Exercises parse_alpha_value_token failure in space_slash_parser
-  // alpha > 1.0 is out of range
-  assert!(Rgba::parse().parse_to_end("rgba(255 0 0 / 1.5)").is_err());
+fn rgba_space_slash_parser_carries_an_out_of_range_alpha() {
+  match Rgba::parse().parse_to_end("rgba(255 0 0 / 1.5)") {
+    Ok(rgba) => assert_eq!(rgba.to_string(), "rgba(255,0,0,1.5)"),
+    Err(error) => panic!("expected the alpha to be carried: {error:?}"),
+  }
 }
 
 #[test]
@@ -2386,13 +2392,11 @@ fn hsla_comma_parser_missing_second_comma_between_s_and_l() {
 }
 
 #[test]
-fn hsla_space_slash_parser_out_of_range_alpha() {
-  // Exercises parse_hsla_alpha_token failure in space_slash_parser
-  assert!(
-    Hsla::parse()
-      .parse_to_end("hsl(180deg 50% 50% / 1.5)")
-      .is_err()
-  );
+fn hsla_space_slash_parser_carries_an_out_of_range_alpha() {
+  match Hsla::parse().parse_to_end("hsl(180deg 50% 50% / 1.5)") {
+    Ok(hsla) => assert_eq!(hsla.to_string(), "hsla(180deg,50%,50%,1.5)"),
+    Err(error) => panic!("expected the alpha to be carried: {error:?}"),
+  }
 }
 
 #[test]

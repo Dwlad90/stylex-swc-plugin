@@ -38,7 +38,7 @@ fn extract_number_token_panics_for_non_number() {
   AlphaValue::extract_number_token(SimpleToken::Percentage(0.5));
 }
 
-// ── parse_alpha_in_unit_range ────────────────────────────────────────────────
+// ── parse_alpha_token ────────────────────────────────────────────────
 
 // `rgba()` and `hsla()` both read their alpha through this one function, so it
 // is tested once here rather than once per colour type.
@@ -49,25 +49,32 @@ fn an_alpha_token_at_end_of_input_is_refused() {
     tokens: vec![],
     current_index: 0,
   };
-  assert!(parse_alpha_in_unit_range(&mut tokens).is_err());
+  assert!(parse_alpha_token(&mut tokens).is_err());
 }
 
+/// An alpha outside `0..=1` is carried through rather than refused.
+///
+/// The reference compiler's `alphaAsNumber` has no range predicate on it --
+/// only the channels beside it are bounded, to `0..=255` -- so `rgba(0,0,0,2)`
+/// parses there. This function used to refuse it, on a doc comment asserting
+/// the opposite of what the reference compiler does.
 #[test]
-fn a_number_above_one_is_refused() {
-  let mut tokens = TokenList {
-    tokens: vec![SimpleToken::Number(2.0)],
-    current_index: 0,
-  };
-  assert!(parse_alpha_in_unit_range(&mut tokens).is_err());
-}
-
-#[test]
-fn a_percentage_above_one_hundred_is_refused() {
-  let mut tokens = TokenList {
-    tokens: vec![SimpleToken::Percentage(200.0)],
-    current_index: 0,
-  };
-  assert!(parse_alpha_in_unit_range(&mut tokens).is_err());
+fn an_alpha_outside_the_unit_range_is_carried_through() {
+  for (token, expected) in [
+    (SimpleToken::Number(2.0), 2.0),
+    (SimpleToken::Number(-1.0), -1.0),
+    (SimpleToken::Percentage(200.0), 2.0),
+    (SimpleToken::Percentage(-50.0), -0.5),
+  ] {
+    let mut tokens = TokenList {
+      tokens: vec![token.clone()],
+      current_index: 0,
+    };
+    match parse_alpha_token(&mut tokens) {
+      Ok(alpha) => assert_eq!(alpha, expected, "for {token:?}"),
+      Err(error) => panic!("expected {token:?} to be carried through: {error:?}"),
+    }
+  }
 }
 
 #[test]
@@ -76,11 +83,11 @@ fn a_token_that_is_not_a_number_or_a_percentage_is_refused() {
     tokens: vec![SimpleToken::Ident("none".to_string())],
     current_index: 0,
   };
-  assert!(parse_alpha_in_unit_range(&mut tokens).is_err());
+  assert!(parse_alpha_token(&mut tokens).is_err());
 }
 
 #[test]
-fn an_alpha_inside_the_range_is_read_at_full_width() {
+fn an_alpha_is_read_at_full_width() {
   for (token, expected) in [
     (SimpleToken::Number(0.123456789012345), 0.123456789012345),
     (SimpleToken::Percentage(12.3456789), 0.123456789),
@@ -91,7 +98,7 @@ fn an_alpha_inside_the_range_is_read_at_full_width() {
       tokens: vec![token.clone()],
       current_index: 0,
     };
-    match parse_alpha_in_unit_range(&mut tokens) {
+    match parse_alpha_token(&mut tokens) {
       Ok(alpha) => assert_eq!(alpha, expected, "for {token:?}"),
       Err(error) => panic!("expected {token:?} to be read: {error:?}"),
     }

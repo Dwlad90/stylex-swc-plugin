@@ -82,19 +82,23 @@ pub fn alpha_as_number() -> TokenParser<f64> {
   AlphaValue::parser().map(|alpha| alpha.value, Some("alpha_to_number"))
 }
 
-/// Reads an alpha and refuses one outside `0..=1`, which is what `rgba()` and
-/// `hsla()` require: they reject an out-of-range alpha rather than carrying it
-/// through, where `alpha_as_number` above accepts whatever was written. A
-/// difference in the legacy grammar, not in the width of the number.
+/// Reads a legacy colour's alpha from the token list, at whatever value was
+/// written.
 ///
-/// The range is checked against the alpha, not against the token: `50%` is a
-/// percentage token holding `50`, and it is the `0.5` it divides down to that
-/// has to be in range.
+/// Deliberately unbounded, which is what the reference compiler does: its
+/// `alphaAsNumber` is `AlphaValue.parser.map((alpha) => alpha.value)` with no
+/// `.where()` on it, while the *channels* beside it go through
+/// `rgbNumberParser`, which does bound them to `0..=255`. So `rgba(0,0,0,2)`
+/// parses there and has to parse here.
 ///
-/// Kept as a token reader rather than a `TokenParser` because the two range
-/// arms carry different messages -- one names the fraction, the other the
-/// percentage -- which a single combinator predicate could not say.
-pub(crate) fn parse_alpha_in_unit_range(tokens: &mut TokenList) -> Result<f64, CssParseError> {
+/// A percentage divides down to a fraction on the way through -- `50%` is a
+/// percentage token holding `50`, and the alpha it denotes is `0.5`. That much
+/// the reference compiler also does, in `AlphaValue.parser` itself.
+///
+/// Kept as a token reader rather than a `TokenParser` because the four callers
+/// read their way through a comma-separated legacy grammar by hand rather than
+/// by combinator.
+pub(crate) fn parse_alpha_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
   let token = tokens
     .consume_next_token_infallible()
     .ok_or(CssParseError::ParseError {
@@ -102,29 +106,9 @@ pub(crate) fn parse_alpha_in_unit_range(tokens: &mut TokenList) -> Result<f64, C
     })?;
 
   match token {
-    SimpleToken::Number(value) => {
-      if (0.0..=1.0).contains(&value) {
-        Ok(value)
-      } else {
-        Err(CssParseError::ParseError {
-          message: format!("Alpha number must be 0.0-1.0, got {}", value),
-        })
-      }
-    },
-    SimpleToken::Percentage(value) => {
-      // An alpha is a fraction, and the token carries the authored percent.
-      let value = value / 100.0;
-      if (0.0..=1.0).contains(&value) {
-        Ok(value)
-      } else {
-        Err(CssParseError::ParseError {
-          message: format!(
-            "Alpha percentage must be 0%-100% (stored as 0.0-1.0), got {}",
-            value
-          ),
-        })
-      }
-    },
+    SimpleToken::Number(value) => Ok(value),
+    // The authored percent, divided down to the fraction it denotes.
+    SimpleToken::Percentage(value) => Ok(value / 100.0),
     _ => Err(CssParseError::ParseError {
       message: format!(
         "Expected Number or Percentage token for alpha, got {:?}",

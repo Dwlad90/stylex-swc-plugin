@@ -283,17 +283,23 @@ mod boundaries_and_refusals {
   /// which is the behaviour the widening had to leave alone: a range check on
   /// a double is the same check, not a wider one.
   #[test]
-  fn an_alpha_outside_its_range_is_refused() {
-    for input in [
-      "rgba(255, 0, 0, 1.5)",
-      "rgba(255, 0, 0, -0.5)",
-      "rgba(255, 0, 0, 101%)",
-      "hsla(120deg, 100%, 50%, 1.0000000000000002)",
+  /// An alpha outside `0..=1` is carried through, not refused.
+  ///
+  /// The reference compiler puts a range predicate on the *channels*
+  /// (`rgbNumberParser`, `0..=255`) and none at all on the alpha
+  /// (`alphaAsNumber`), so each of these parses there. A percentage divides
+  /// down first, so `101%` is `1.01`.
+  fn an_alpha_outside_its_range_is_carried_through() {
+    for (input, expected) in [
+      ("rgba(255, 0, 0, 1.5)", "rgba(255,0,0,1.5)"),
+      ("rgba(255, 0, 0, -0.5)", "rgba(255,0,0,-0.5)"),
+      ("rgba(255, 0, 0, 101%)", "rgba(255,0,0,1.01)"),
+      (
+        "hsla(120deg, 100%, 50%, 1.0000000000000002)",
+        "hsla(120deg,100%,50%,1.0000000000000002)",
+      ),
     ] {
-      assert!(
-        Color::parse().parse_to_end(input).is_err(),
-        "{input:?} should be refused"
-      );
+      assert_eq!(printed!(input), expected, "for {input:?}");
     }
   }
 
@@ -864,7 +870,6 @@ mod a_channel_is_spelled_the_way_javascript_spells_it {
       "oklab(1e21 1e21)",
       "oklab(1e21, 1e21, 1e21)",
       "oklch(1e21 1e21 1e21deg /)",
-      "rgba(255, 0, 0, 1e21)",
       "lab(1e21 1e21 1e21)",
     ] {
       assert!(
@@ -872,6 +877,10 @@ mod a_channel_is_spelled_the_way_javascript_spells_it {
         "accepted {input:?}"
       );
     }
+
+    // An alpha is not bounded -- only the channels are -- so an absurd one is
+    // carried through and spelled the way JavaScript spells it.
+    assert_eq!(printed!("rgba(255, 0, 0, 1e21)"), "rgba(255,0,0,1e+21)");
 
     // Truncated at the closing paren rather than before a channel: tolerated,
     // as ticket 05 pinned, and the exponential spelling rides along.

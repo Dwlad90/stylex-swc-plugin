@@ -1286,6 +1286,22 @@ fn single_media_query_moves_after_the_default() {
 
 /// Run the transform over `styles` and return the keys of the single property
 /// it contains, in order.
+/// The whole transformed object, keys and values both.
+///
+/// `transformed_keys` above answers what the rewritten queries are; this
+/// answers what survived under them, which is the half a collision moves.
+fn transformed_styles(styles: Value) -> Value {
+  let props = match styles {
+    Value::Object(obj) => obj
+      .into_iter()
+      .map(|(k, v)| create_key_value_prop(&k, v))
+      .collect::<Vec<_>>(),
+    _ => vec![],
+  };
+
+  key_value_prop_to_json(&last_media_query_wins_transform(&props))
+}
+
 fn transformed_keys(styles: Value) -> Vec<String> {
   let props = match styles {
     Value::Object(obj) => obj
@@ -1459,6 +1475,49 @@ mod a_ladder_of_exclusive_breakpoints {
         "@media (min-width: 480px) and (max-width: 767px)",
         "@media (max-width: 479px)",
       ]
+    );
+  }
+}
+
+/// What happens when two rewritten query keys land on the same text.
+#[cfg(test)]
+mod colliding_rewritten_keys {
+  use super::*;
+
+  /// Two entries that canonicalize to one query text leave one entry.
+  ///
+  /// The rewritten keys are written into a map, so the second entry to reach
+  /// `@media not all` replaces the first one's value and keeps its position.
+  /// `red` is gone from the output, `blue` sits where `red` would have, and the
+  /// rule count is one lower than the author wrote — all three quoted from
+  /// `@stylexjs/babel-plugin@0.19.0`.
+  ///
+  /// The `min-height` key between the two colliding ones is what makes the
+  /// position observable: neighbours would collide into the same slot whichever
+  /// of the two positions survived.
+  #[test]
+  fn a_collision_keeps_the_earlier_position_and_the_later_value() {
+    let transformed = transformed_styles(json!({
+      "color": {
+        "default": "black",
+        "@media (min-width: 200px)": "red",
+        "@media (min-height: 100px)": "green",
+        "@media (min-width: 300px)": "blue",
+        "@media (min-width: 100px)": "purple"
+      }
+    }));
+
+    assert_eq!(
+      serde_json::to_string(&transformed).unwrap(),
+      serde_json::to_string(&json!({
+        "color": {
+          "default": "black",
+          "@media not all": "blue",
+          "@media (max-width: 99.99px) and (min-height: 100px)": "green",
+          "@media (min-width: 100px)": "purple"
+        }
+      }))
+      .unwrap()
     );
   }
 }

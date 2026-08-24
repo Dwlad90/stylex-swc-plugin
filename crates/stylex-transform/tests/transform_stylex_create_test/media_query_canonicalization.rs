@@ -153,24 +153,24 @@ stylex_test_transform!(
   "#
 );
 
-/// Two entries of one conditional value map that canonicalize to the same query
-/// text, which retained contradictory branches are what make possible.
-///
-/// The rewritten keys are written into a map rather than appended to a list, so
-/// the second entry to reach a key replaces the first entry's value and keeps
-/// that entry's position. One authored declaration is therefore absent from the
-/// output entirely — `red` here — and the rule count is four rather than five.
-/// That loss is faithful rather than incidental, and no diagnostic accompanies
-/// it, because the official compiler prints none.
-///
-/// The ladder is chosen so the collision straddles a third key: `min-width:
-/// 200px` and `min-width: 300px` both contradict the trailing
-/// `min-width: 100px` and collapse to `not all`, while the `min-height` key
-/// between them survives on its own. That is what makes the surviving position
-/// observable — a collision between neighbours would land in the same place
-/// either way.
-///
-/// Expectations are quoted from a run of `@stylexjs/babel-plugin@0.19.0`.
+// Two entries of one conditional value map that canonicalize to the same query
+// text, which retained contradictory branches are what make possible.
+//
+// The rewritten keys are written into a map rather than appended to a list, so
+// the second entry to reach a key replaces the first entry's value and keeps
+// that entry's position. One authored declaration is therefore absent from the
+// output entirely — `red` here — and the rule count is four rather than five.
+// That loss is faithful rather than incidental, and no diagnostic accompanies
+// it, because the official compiler prints none.
+//
+// The ladder is chosen so the collision straddles a third key: `min-width:
+// 200px` and `min-width: 300px` both contradict the trailing
+// `min-width: 100px` and collapse to `not all`, while the `min-height` key
+// between them survives on its own. That is what makes the surviving position
+// observable — a collision between neighbours would land in the same place
+// either way.
+//
+// Expectations are quoted from a run of `@stylexjs/babel-plugin@0.19.0`.
 stylex_test_transform!(
   colliding_rewritten_keys_drop_a_declaration,
   r#"

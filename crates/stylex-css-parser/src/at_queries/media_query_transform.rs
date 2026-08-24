@@ -11,6 +11,7 @@ This implementation provides media query transformation:
 */
 
 use super::media_query::{MediaAndRules, MediaNotRule, MediaOrRules, MediaQuery, MediaQueryRule};
+use indexmap::{IndexMap, map::Entry};
 use stylex_macros::stylex_panic;
 use swc_core::{
   atoms::Wtf8Atom,
@@ -99,36 +100,50 @@ fn dfs_process_queries_with_depth(obj: &[KeyValueProp], depth: u32) -> Vec<KeyVa
   }
 }
 
-/// Transform media queries in the result object
+/// Rewrite the `@media` keys of one object level so that a later query wins.
+///
+/// The keys live in an insertion-ordered map rather than a list, because the
+/// reference implementation's `dfsProcessQueries` holds them in a plain
+/// JavaScript object and rewrites each one with `delete result[old]` followed
+/// by `result[new] = value`. Three consequences follow from that pair, and all
+/// three are contract:
+///
+/// - deleting and re-adding moves a key to the end, so the rewritten media keys
+///   end up after every other property, in their own declaration order
+/// - assigning a key that is already present keeps that key's position and
+///   replaces only its value, so two entries canonicalizing to one query text
+///   leave one rule, at the earlier position, holding the later value
+/// - the value is read from the map at the moment its key is rewritten, not
+///   collected beforehand, so an earlier rewrite that landed on a later key is
+///   what that later key then carries
+///
+/// The second is the one an author notices: one of their declarations is absent
+/// from the output. That is faithful rather than accidental, and nothing is
+/// reported for it, because the reference implementation reports nothing.
 fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueProp> {
-  // Check if we have any media queries
-  let has_media_queries = result.iter().any(|kv| {
-    let key = key_value_to_str(kv);
-    key.starts_with("@media ")
-  });
+  let is_media_key = |key: &str| key.starts_with("@media ");
 
-  if !has_media_queries {
+  // Bail out before building the map so that a level with no media key is
+  // handed back exactly as it arrived.
+  if !result.iter().any(|kv| is_media_key(&key_value_to_str(kv))) {
     return result;
   }
 
-  // Collect all media query key+prop pairs in declaration order.
-  // Collecting the pair together avoids a second `.find()` scan later.
-  let media_pairs: Vec<(String, KeyValueProp)> = result
-    .iter()
-    .filter_map(|kv| {
-      let key = key_value_to_str(kv);
-      if key.starts_with("@media ") {
-        Some((key, kv.clone()))
-      } else {
-        None
-      }
-    })
+  let mut entries: IndexMap<String, KeyValueProp> = IndexMap::with_capacity(result.len());
+  for kv in result {
+    entries.insert(key_value_to_str(&kv), kv);
+  }
+
+  let media_keys: Vec<String> = entries
+    .keys()
+    .filter(|key| is_media_key(key))
+    .cloned()
     .collect();
 
-  let mut parsed_media_pairs = Vec::with_capacity(media_pairs.len());
-  for (media_key, original_kv) in media_pairs {
-    match MediaQuery::parser().parse_to_end(&media_key) {
-      Ok(media_query) => parsed_media_pairs.push((original_kv, media_query)),
+  let mut parsed_media_queries = Vec::with_capacity(media_keys.len());
+  for media_key in &media_keys {
+    match MediaQuery::parser().parse_to_end(media_key) {
+      Ok(media_query) => parsed_media_queries.push(media_query),
       Err(_) => {
         // An unparseable query is a hard error, not something to pass through:
         // no later phase rejects it, so returning here emitted the broken query
@@ -139,44 +154,47 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     }
   }
 
-  // Build negations array: for each media query, collect all later queries in
-  // reverse declaration order.
-  let mut accumulated_negations = vec![Vec::new(); parsed_media_pairs.len()];
-  let mut later_negations = Vec::new();
-  for i in (0..parsed_media_pairs.len()).rev() {
-    accumulated_negations[i] = later_negations.clone();
-    later_negations.push(parsed_media_pairs[i].1.clone());
+  // For each key, the queries that follow it, in declaration order. Built once
+  // from the back so that the list of later queries grows by one per step
+  // instead of being re-collected per key.
+  let mut accumulated_negations = vec![Vec::new(); media_keys.len()];
+  let mut later_queries = Vec::new();
+  for i in (0..media_keys.len()).rev() {
+    let mut in_order = later_queries.clone();
+    in_order.reverse();
+    accumulated_negations[i] = in_order;
+    later_queries.push(parsed_media_queries[i].clone());
   }
 
-  // Convert back to Vec, preserving order (non-media first, then media)
-  let mut final_result = Vec::new();
+  for (i, media_key) in media_keys.iter().enumerate() {
+    let Some(current) = entries.shift_remove(media_key) else {
+      continue;
+    };
 
-  // Add non-media properties first
-  for kv in &result {
-    let key = key_value_to_str(kv);
-    if !key.starts_with("@media ") {
-      final_result.push(kv.clone());
+    let combined_query = combine_media_query_with_negations(
+      parsed_media_queries[i].clone(),
+      accumulated_negations[i].clone(),
+    );
+    let new_media_key = combined_query.to_string();
+
+    match entries.entry(new_media_key.clone()) {
+      // The key is already there: it keeps its position and takes this value,
+      // and the declaration that put it there is gone from the output.
+      Entry::Occupied(mut occupied) => occupied.get_mut().value = current.value,
+      Entry::Vacant(vacant) => {
+        vacant.insert(KeyValueProp {
+          key: PropName::Str(Str {
+            span: DUMMY_SP,
+            value: Wtf8Atom::from(new_media_key),
+            raw: None,
+          }),
+          value: current.value,
+        });
+      },
     }
   }
 
-  for (i, (original_kv, base_mq)) in parsed_media_pairs.into_iter().enumerate() {
-    let mut reversed_negations = accumulated_negations[i].clone();
-    reversed_negations.reverse();
-
-    let combined_query = combine_media_query_with_negations(base_mq, reversed_negations);
-    let new_media_key = combined_query.to_string();
-
-    final_result.push(KeyValueProp {
-      key: PropName::Str(Str {
-        span: DUMMY_SP,
-        value: Wtf8Atom::from(new_media_key),
-        raw: None,
-      }),
-      value: original_kv.value,
-    });
-  }
-
-  final_result
+  entries.into_values().collect()
 }
 
 /// Combine a media query with the negations of every query that follows it

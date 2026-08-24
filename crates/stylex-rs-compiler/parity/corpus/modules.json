@@ -1767,6 +1767,14 @@
       "note": "No two rungs touch, so every branch the negation chain distributes into contradicts. A contradiction is retained rather than pruned -- it prints as `not all`, and the disjunction nesting around it stays in the key that the class name hashes. Two of the seven class names here depend on that wrapper, which is why the subject belongs in the corpus rather than only in the Rust suites: it is the seam that fails when the reference implementation moves rather than when this compiler does."
     },
     {
+      "id": "modules-1268-colliding-rewritten-keys",
+      "label": "two `@media` entries of one value map that canonicalize to the same query",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: {\n    color: {\n      default: 'black',\n      '@media (min-width: 200px)': 'red',\n      '@media (min-height: 100px)': 'green',\n      '@media (min-width: 300px)': 'blue',\n      '@media (min-width: 100px)': 'purple',\n    },\n  },\n});\n",
+      "origin": "issue #1268, the second divergence the first one exposes",
+      "expected": "identical",
+      "note": "Rewritten keys are written into a map, so the second entry to reach a key replaces the first entry's value and keeps its position -- and one authored declaration, `red`, is absent from the output. The collision straddles the `min-height` key, so the surviving position is observable rather than incidental. Recorded here rather than only in the Rust suites because the rule count is the thing being compared, and this is the seam that compares it against the reference implementation instead of against our own belief about it."
+    },
+    {
       "id": "modules-an-accented-attribute-selector-sorts-between-its-neighbours",
       "label": "an accented attribute selector nested between two ASCII neighbours",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  w: { color: { '[data-e]': { '[data-état]': { '[data-f]': 'red' } } } },\n});\n",

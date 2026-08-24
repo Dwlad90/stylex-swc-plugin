@@ -83,7 +83,7 @@ describe('what a family claims', () => {
       set: 'test',
       id: 'test',
       origin: 'refusal-families.test.ts',
-      name: 'a module refused for the token',
+      label: 'a module refused for the token',
       note: 'the module arm of the family',
       source: 'export const x = 1;',
       verdict: 'acceptance-divergent',

@@ -2181,8 +2181,12 @@ fn parenthesized_expression_parser() -> TokenParser<MediaQueryRule> {
           }
         }
 
-        // Parse complex expression using full combinator parser
-        let inner_expression = (and_combinator_parser().run)(tokens)?;
+        // The `or` parser rather than the `and` one, because a parenthesized
+        // condition may hold either -- `((a) or (b)) and (c)` is a query the
+        // reference implementation accepts and CSS defines, and reading only
+        // `and` here refused it. Comma stops at the parenthesis, which is why
+        // this is not the comma parser.
+        let inner_expression = (or_combinator_parser().run)(tokens)?;
 
         // Skip optional whitespace before closing
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {

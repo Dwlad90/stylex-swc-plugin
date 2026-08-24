@@ -2004,3 +2004,63 @@ mod a_comma_binds_more_loosely_than_or {
     );
   }
 }
+
+/// A disjunction inside parentheses.
+///
+/// `( <media-condition> )` is a media query in its own right, and a condition
+/// may hold an `or`, so `((a) or (b))` is valid CSS. Reading only `and` inside
+/// parentheses refused all four of these — including the shape the reference
+/// implementation's own wrapped output is written in.
+///
+/// Every expectation is quoted from a run of `@stylexjs/babel-plugin` 0.19.0,
+/// and each is worth reading twice: the parentheses that made the query
+/// parseable do not survive into the output. That is the reference
+/// implementation's serialization, precedence loss and all, and matching it is
+/// the point.
+#[cfg(test)]
+mod a_disjunction_inside_parentheses {
+  use super::*;
+
+  fn rewritten(query: &str) -> String {
+    let styles = json!({
+      "color": { "default": "black", query: "red", "@media (max-width: 50px)": "blue" }
+    });
+
+    transformed_keys(styles)[1].clone()
+  }
+
+  /// On its own, the wrapper is dropped and the disjunction becomes the query.
+  #[test]
+  fn a_parenthesized_or_is_a_query_of_its_own() {
+    assert_eq!(
+      rewritten("@media ((min-width: 1px) or (min-width: 2px))"),
+      "@media (min-width: 50.01px), (min-width: 50.01px)"
+    );
+  }
+
+  /// Beside an `and`, on either side. The printed result reads as though the
+  /// `and` bound tighter than the `or`, which is not what was written — the
+  /// parentheses are gone and nothing replaced them.
+  #[test]
+  fn a_parenthesized_or_beside_an_and_loses_its_parentheses() {
+    assert_eq!(
+      rewritten("@media ((min-width: 1px) or (min-width: 2px)) and (min-width: 3px)"),
+      "@media (min-width: 1px) or (min-width: 2px) and (min-width: 3px) and (not (max-width: 50px))"
+    );
+
+    assert_eq!(
+      rewritten("@media (min-width: 1px) and ((min-width: 2px) or (min-width: 3px))"),
+      "@media (min-width: 1px) and (min-width: 2px) or (min-width: 3px) and (not (max-width: 50px))"
+    );
+  }
+
+  /// Under a negation the parentheses do survive, because `not` prints its
+  /// operand wrapped.
+  #[test]
+  fn a_negated_parenthesized_or_keeps_its_parentheses() {
+    assert_eq!(
+      rewritten("@media not ((min-width: 1px) or (min-width: 2px))"),
+      "@media (not ((min-width: 1px) or (min-width: 2px))) and (not (max-width: 50px))"
+    );
+  }
+}

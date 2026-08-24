@@ -222,6 +222,21 @@ fn next_token_offset(parser: &Parser) -> usize {
   parser.position().byte_index()
 }
 
+/// The input from `start` onward, or `""` where the string has no such
+/// boundary.
+///
+/// `start` is a byte index `cssparser` reported for a token it just produced,
+/// so it lands on a character boundary within `input` and the slice succeeds.
+/// Taken fallibly all the same, because the cost of being wrong is asymmetric:
+/// this crate runs inside a NAPI addon, where slicing out of range aborts the
+/// process with no diagnostic at all, while `""` is a value every caller already
+/// handles -- `leading_f64` reads no number from it and each numeric arm falls
+/// back to `cssparser`'s own value, which is the behaviour this whole path had
+/// before the digits were re-read from source.
+fn from_offset(input: &str, start: usize) -> &str {
+  input.get(start..).unwrap_or_default()
+}
+
 /// Recursively tokenize nested content, handling ParenthesisBlock and other
 /// nested structures
 fn tokenize_nested_content(input: &str, parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
@@ -258,7 +273,7 @@ fn tokenize_nested_content(input: &str, parser: &mut Parser, tokens: &mut Vec<Si
       },
       // Handle all other tokens normally
       _ => {
-        tokens.push(map_css_token(inner_token, &input[start..]));
+        tokens.push(map_css_token(inner_token, from_offset(input, start)));
       },
     }
     start = next_token_offset(parser);
@@ -306,7 +321,7 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
       },
       // Handle all other tokens normally
       _ => {
-        tokens.push(map_css_token(t, &input[start..]));
+        tokens.push(map_css_token(t, from_offset(input, start)));
       },
     }
     start = next_token_offset(&parser);

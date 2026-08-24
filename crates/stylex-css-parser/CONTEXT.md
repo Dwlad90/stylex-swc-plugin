@@ -112,6 +112,16 @@ This is the media-query counterpart of value
 [normalization](../stylex-css/CONTEXT.md) in `stylex-css`.
 _Avoid_: minification, formatting, cleanup
 
+**Range merge boundary**:
+`merge_and_simplify_ranges` — the single place media query canonicalization
+crosses to merge an `and` list's ranges, named after the wrapper it mirrors in
+the reference implementation. It exists to keep the pass's two failure modes
+apart: the _inner recovery_ gives up merging and emits the author's rules as
+written, while the _outer refusal_ rejects the declaration with the
+invalid-media-query-syntax error. The function's own comment carries why that
+distinction is load-bearing.
+_Avoid_: merge wrapper, simplify wrapper, merge guard
+
 **Last-media-query-wins transform**:
 `last_media_query_wins_transform` — rewrites a set of media queries so that a
 later one beats an earlier one, matching how authors expect overlapping queries

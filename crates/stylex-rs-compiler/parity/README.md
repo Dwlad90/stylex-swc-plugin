@@ -76,9 +76,14 @@ The harness loads the compiler from `dist/`, not from the Rust sources. **A
 report is only about the last build.** Rebuild after touching a crate or the
 verdicts are stale.
 
-It exits non-zero for exactly one reason: an entry whose recorded `expected`
-verdict no longer holds. A divergence with no expectation recorded against it is
-information for a person to read, not a failure.
+It exits non-zero for three reasons, and each one is a report that has stopped
+being read: an entry whose recorded `expected` verdict no longer holds, a refusal
+family no row in the corpus reaches, and a divergence nothing accounts for.
+
+A divergence that should not fail a run has two ways to say so, and both are
+statements a later reader can check rather than suppressions: record its verdict
+as `expected` on the corpus entry, or write the refusal family that accounts for
+it.
 
 | Flag                     | Effect                                            |
 | ------------------------ | ------------------------------------------------- |
@@ -373,7 +378,15 @@ churn expectations. What is checked instead is that every family still claims
 something: a family no row reaches is listed under **Refusal families no row
 reached** and exits non-zero, for the same reason a changed `expected` does —
 either the refusal is gone, which is worth reading, or the corpus stopped
-reaching it. Those two are the only things `pnpm parity` fails on.
+reaching it.
+
+A family claims a row on its evidence and not on the diagnostic alone, where
+there is evidence to read. `declaration-terminating token` asks whether the value
+actually carries a `;`, `{` or `}` that is neither escaped nor inside a string;
+`reference TypeError` reads both sides rather than only the reference's. Claiming
+on a sentence by itself absorbs the guard's own false positives into this column,
+and it did: an escaped `\;` closes nothing, the reference compiler emits it, and
+the row sat here as a divergence produced on purpose until the guard was fixed.
 
 Family membership is decided from the complaint this compiler wrote, matched as
 a prefix, so rewording a diagnostic un-pins the rows it accounted for and they

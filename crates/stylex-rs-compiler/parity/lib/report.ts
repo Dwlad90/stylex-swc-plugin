@@ -143,15 +143,30 @@ export function conclude(entries: readonly ReportEntry[], options: ConcludeOptio
 /**
  * Whether a run should exit non-zero.
  *
- * Both conditions are an expectation that has stopped measuring anything: a row
- * whose recorded verdict moved, and a family nothing reached. Neither is "a
- * divergence was found" — reading a divergence is a person's job, and a corpus
- * of degenerate values would otherwise fail every run.
+ * Three conditions, and all three are a report that has stopped being read: a
+ * row whose recorded verdict moved, a family nothing reached, and a divergence
+ * nothing accounts for.
  *
- * An unexpected row is deliberately not one of them. It is a divergence nobody
- * has looked at yet, which is information rather than a regression, and the
- * report puts its count in front of the reader as the number to act on.
+ * The third was excluded on the argument that reading a divergence is a person's
+ * job and a corpus of degenerate values would otherwise fail every run. That
+ * argument stopped describing this corpus: `unexpected` is **0** across all of
+ * it, and across the generated sweep — every divergent row is either an
+ * `expected` verdict or a row a refusal family accounts for. So the clean-run
+ * invariant already holds, and leaving the count out of the gate meant a new
+ * value divergence landed green in the leg that runs per pull request, which is
+ * the one failure this harness exists to catch.
+ *
+ * `fuzz-shorthand-split.ts` next door already exits non-zero on the same number.
+ * Two harnesses disagreeing about whether an unaccounted divergence is a failure
+ * meant one of them was wrong, whichever way it was settled.
+ *
+ * A divergence that should not fail a run has two ways to say so, and both are
+ * durable: record its verdict as `expected` on the corpus entry, or write the
+ * family that accounts for it. Neither is a suppression — each is a statement a
+ * later reader can check.
  */
 export function fails(verdicts: Verdicts): boolean {
-  return verdicts.changed.length > 0 || verdicts.unreached.length > 0;
+  return (
+    verdicts.changed.length > 0 || verdicts.unreached.length > 0 || verdicts.summary.unexpected > 0
+  );
 }

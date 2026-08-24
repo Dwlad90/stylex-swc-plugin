@@ -190,14 +190,33 @@ describe('what a run concludes', () => {
     expect(fails(verdicts)).toBe(true);
   });
 
-  test('a divergence nobody has looked at is reported, not failed on', () => {
-    // Deliberate, and the line between the two conditions: reading a divergence
-    // is a person's job, and a corpus of degenerate values would otherwise fail
-    // every run.
+  test('a divergence nobody has accounted for fails the run', () => {
+    // This used to pass, on the argument that reading a divergence is a person's
+    // job and a corpus of degenerate values would otherwise fail every run. The
+    // corpus carries no such divergence — `unexpected` is 0 over all 1085
+    // subjects and over the generated sweep — so the only thing the exclusion
+    // bought was a new divergence landing green in the leg that runs per pull
+    // request.
+    //
+    // A divergence that should not fail still has two ways to say so, and this
+    // test's own corpus is built from both: an `expected` verdict on the entry,
+    // or a refusal family that accounts for it.
     const news = subject('divergent', ACCEPTED, accepted(['color:#f00']));
     const verdicts = conclude([...completeCorpus(), news], { whole: true });
 
     expect(verdicts.summary.unexpected).toBe(1);
+    expect(fails(verdicts)).toBe(true);
+  });
+
+  test('the same divergence, recorded, does not fail the run', () => {
+    // The other half of the gate: `expected` is what turns a divergence from
+    // news into a measurement, and it has to keep working or the tightening
+    // above would leave no way to say "looked at, still true".
+    const looked = subject('divergent', ACCEPTED, accepted(['color:#f00']), 'divergent');
+    const verdicts = conclude([...completeCorpus(), looked], { whole: true });
+
+    expect(verdicts.summary.unexpected).toBe(0);
+    expect(verdicts.summary.expected).toBeGreaterThan(0);
     expect(fails(verdicts)).toBe(false);
   });
 

@@ -662,15 +662,80 @@ impl DimensionIntervals {
   }
 }
 
+/// How deep distribution is allowed to go before the merge is abandoned.
+///
+/// Each `not (A and B)` clause splits the rule list in two, so a list carrying
+/// `d` of them costs `2^d` branches and emits a query whose text doubles with
+/// every one. That is the number this bounds: `2^18` branches. For the
+/// breakpoint ladder that produces the worst case, a ladder of `n` rungs
+/// reaches depth `n - 2` -- its first and last rungs are single bounds and
+/// split nothing -- so twenty rungs are merged, costing 983 051 characters of
+/// query text and about three seconds, and a twenty-first rung is handed back
+/// unmerged instead.
+///
+/// The number is this compiler's own choice and not a length read off the
+/// reference implementation, because there is no such length to read.
+/// `@stylexjs/babel-plugin` 0.19.0 never gives up: its recursion depth is
+/// linear in ladder length while its branch count doubles, so the call stack it
+/// wraps in a `try`/`catch` is never what gives out. What gives out is the heap
+/// or V8's string-length limit -- the first is a fatal abort no `catch` sees,
+/// the second is raised while the text is built, outside the `try` that would
+/// have caught it. Measured at 28 rungs: 435 seconds, 252 MB of query text,
+/// about 7.4 GB resident.
+///
+/// So past this bound we deliberately stop matching rather than reproduce a
+/// build that dies. Eighteen is chosen against output size rather than against
+/// stack depth, because depth is not what runs out: a bound generous enough to
+/// permit 26 rungs would permit a 63 MB single query. Real ladders are a
+/// handful of rungs; the measured curve is in
+/// `.scratch/fix_media-query-order-wrapping/evidence/give-up-length.md`.
+const MAX_DISTRIBUTION_DEPTH: u32 = 18;
+
+/// How many times distributing `rules` can split before it runs out of clauses.
+///
+/// Every `not (A and B)` in the list is peeled at its own level, and each branch
+/// keeps the rest, so the longest path down is the sum over the list rather than
+/// its maximum. Measured before the expansion starts, because measuring it
+/// during would mean already having paid for it.
+fn distribution_depth(rules: &[MediaQueryRule]) -> u32 {
+  rules
+    .iter()
+    .map(|rule| match rule {
+      MediaQueryRule::Not(not_rule) => negation_depth(not_rule.rule.as_ref()),
+      _ => 0,
+    })
+    .sum()
+}
+
+/// How many splits `not operand` costs.
+///
+/// Negating an `and` of two operands is one split, and each operand is negated
+/// in turn -- so an operand that is itself an `and` of two splits again. The
+/// walk is as deep as the tree, and no deeper than `normalize`'s own walk over
+/// the same tree, which runs first.
+fn negation_depth(operand: &MediaQueryRule) -> u32 {
+  match operand {
+    MediaQueryRule::And(and_rules) if and_rules.rules.len() == 2 => {
+      1 + and_rules
+        .rules
+        .iter()
+        .map(negation_depth)
+        .max()
+        .unwrap_or(0)
+    },
+    _ => 0,
+  }
+}
+
 /// The single boundary canonicalization crosses to simplify an `and` list's
 /// ranges, mirroring the reference implementation's `mergeAndSimplifyRanges`.
 ///
 /// There the merge is wrapped in a `try`/`catch` handing the input rules back
 /// on any throw. The recursion re-enters the merge directly rather than
 /// crossing the wrapper again, which is what makes the wrapper the one place a
-/// give-up can live. This is that place, and it is empty on purpose: today it
-/// only forwards, and the depth bound meant to use it is still to come. Read
-/// the paragraph below as describing the shape, not behaviour already here.
+/// give-up can live. This is that place, and the give-up living here is the
+/// depth bound: the expansion is measured before it starts, and a list too deep
+/// to expand is handed straight back.
 ///
 /// The two failure modes of this pass are deliberately kept apart. The inner
 /// recovery gives up merging and emits the author's rules as written, and it
@@ -687,6 +752,13 @@ impl DimensionIntervals {
 /// reaches its recovery: the heap aborts where no `catch` runs, and the string
 /// limit is raised outside the one that would have caught it.
 fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
+  // Giving up here rather than partway down is what makes the outcome the
+  // author's own rules: a bound checked inside the recursion would leave some
+  // branches merged and some not, which is neither compiler's answer.
+  if distribution_depth(&rules) > MAX_DISTRIBUTION_DEPTH {
+    return rules;
+  }
+
   merge_intervals_for_and(rules)
 }
 

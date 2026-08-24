@@ -2649,3 +2649,100 @@ fn an_intersected_bound_keeps_the_digits_of_the_constraint_that_won() {
 
   assert_eq!(query.to_string(), "@media (min-width: 28.81rem)");
 }
+
+// ---------------------------------------------------------------------------
+// The depth bound on distribution
+// ---------------------------------------------------------------------------
+
+/// A query carrying `clauses` negated disjoint ranges, which is the shape the
+/// last-media-query-wins transform builds for the first rung of a ladder.
+fn negated_ladder_query(clauses: usize) -> String {
+  let mut query = String::from("@media (min-width: 100px) and (max-width: 200px)");
+  for i in 0..clauses {
+    let lower = 300 + i * 200;
+    query.push_str(&format!(
+      " and (not ((min-width: {lower}px) and (max-width: {}px)))",
+      lower + 100
+    ));
+  }
+  query
+}
+
+/// One `min-`/`max-` pair, as the rule list holds it before normalization.
+fn width_pair(bound: &str, value: f64) -> MediaQueryRule {
+  MediaQueryRule::Pair(MediaRulePair::new(
+    format!("{bound}-width"),
+    MediaRuleValue::Length(Length::new(value, "px".to_string())),
+  ))
+}
+
+/// `not (min-width and max-width)`, the clause distribution splits on.
+fn negated_range(lower: f64, upper: f64) -> MediaQueryRule {
+  MediaQueryRule::Not(MediaNotRule::new(MediaQueryRule::And(MediaAndRules::new(
+    vec![width_pair("min", lower), width_pair("max", upper)],
+  ))))
+}
+
+/// The rule list the transform hands the merge for the first rung of a ladder,
+/// built rather than parsed: parsing normalizes, and normalization is the pass
+/// whose input this is.
+fn ladder_rules(clauses: usize) -> Vec<MediaQueryRule> {
+  let mut rules = vec![width_pair("min", 100.0), width_pair("max", 200.0)];
+  for i in 0..clauses {
+    let lower = 300.0 + i as f64 * 200.0;
+    rules.push(negated_range(lower, lower + 100.0));
+  }
+  rules
+}
+
+/// Distribution depth is the number of clauses that split, not the size of the
+/// tree: each negated pair is peeled at its own level and each branch keeps the
+/// rest, so the count is a sum over the list.
+#[test]
+fn distribution_depth_counts_one_level_per_negated_pair() {
+  // Nothing to distribute: a plain range splits nowhere.
+  assert_eq!(distribution_depth(&ladder_rules(0)), 0);
+  assert_eq!(distribution_depth(&ladder_rules(1)), 1);
+  assert_eq!(distribution_depth(&ladder_rules(18)), 18);
+  assert_eq!(distribution_depth(&ladder_rules(19)), 19);
+}
+
+/// A nested `and` inside a negation splits again when its own operands are
+/// negated, so depth is not simply the number of `not` rules in the list.
+#[test]
+fn a_nested_and_inside_a_negation_costs_a_further_level() {
+  let inner = MediaQueryRule::And(MediaAndRules::new(vec![
+    width_pair("min", 20.0),
+    width_pair("max", 30.0),
+  ]));
+  let outer = MediaQueryRule::Not(MediaNotRule::new(MediaQueryRule::And(MediaAndRules::new(
+    vec![inner, width_pair("max", 40.0)],
+  ))));
+
+  assert_eq!(distribution_depth(&[width_pair("min", 10.0), outer]), 2);
+}
+
+/// Past the bound the merge hands its input back, so the query prints as it was
+/// written rather than as a nest of disjunctions — and the process is still
+/// running to be asked, which is the other half of the assertion.
+///
+/// The bound is checked before the expansion starts, so this costs nothing: a
+/// ladder deep enough to exhaust a machine returns as fast as a shallow one.
+#[test]
+fn a_query_past_the_bound_prints_as_it_was_written() {
+  let authored = negated_ladder_query(60);
+
+  assert_eq!(parsed(&authored).to_string(), authored);
+}
+
+/// The bound is a give-up, not a refusal: an over-deep query is still a query,
+/// and nothing about it is reported to the author. Read next to the parse
+/// failures elsewhere in this file, which are the refusal.
+#[test]
+fn exceeding_the_bound_is_not_a_parse_failure() {
+  assert!(
+    MediaQuery::parser()
+      .parse_to_end(&negated_ladder_query(60))
+      .is_ok()
+  );
+}

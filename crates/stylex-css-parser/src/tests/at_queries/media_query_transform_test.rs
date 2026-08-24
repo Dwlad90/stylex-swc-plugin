@@ -1521,3 +1521,87 @@ mod colliding_rewritten_keys {
     );
   }
 }
+
+/// The bound past which the range merge stops expanding.
+#[cfg(test)]
+mod a_ladder_too_deep_to_expand {
+  use super::*;
+
+  /// The reported ladder shape at `rungs` rungs: exclusive `min-width` /
+  /// `max-width` pairs from widest to narrowest, the first `min-width`-only and
+  /// the last `max-width`-only. No two rungs touch, so every distributed branch
+  /// contradicts and the expansion is as large as a ladder can make it.
+  fn ladder(rungs: usize) -> Value {
+    // Signed, because a long ladder walks the widths past zero and a negative
+    // breakpoint is still a query the merge reads.
+    let width = |step: usize| 1000_i64 - step as i64 * 50;
+
+    let mut value = serde_json::Map::new();
+    value.insert("default".to_string(), Value::from("black"));
+
+    for i in 0..rungs - 1 {
+      let lower = width(i);
+      let key = match i {
+        0 => format!("@media (min-width: {lower}px)"),
+        _ => {
+          let upper = width(i - 1) - 1;
+          format!("@media (min-width: {lower}px) and (max-width: {upper}px)")
+        },
+      };
+      value.insert(key, Value::from(format!("c{i}")));
+    }
+
+    value.insert(
+      format!("@media (max-width: {}px)", width(rungs - 2) - 1),
+      Value::from(format!("c{}", rungs - 1)),
+    );
+
+    json!({ "color": Value::Object(value) })
+  }
+
+  /// Past the bound the rules come back as they went in, so the first rung's
+  /// key is its authored query followed by one negation per later rung, printed
+  /// rather than merged.
+  ///
+  /// Twenty-one rungs is the shortest ladder that exceeds the bound, and it is
+  /// used rather than a longer one because every ladder past the bound still
+  /// contains a twenty-rung one among its later rungs, which expands in full.
+  /// The three questions worth asking are asked of a single transform for the
+  /// same reason.
+  ///
+  /// The expectation is built from the input rather than written out, because
+  /// what is being asserted is that nothing happened to it. Without the bound
+  /// the first key would instead be about two megabytes of nested disjunctions.
+  #[test]
+  fn a_ladder_past_the_bound_comes_back_unmerged() {
+    let rungs = 21;
+    let input = ladder(rungs);
+
+    let authored: Vec<String> = match &input["color"] {
+      Value::Object(map) => map.keys().skip(1).cloned().collect(),
+      other => panic!("expected an object, got {other:?}"),
+    };
+
+    let negations = authored[1..]
+      .iter()
+      .map(|key| {
+        let query = key.trim_start_matches("@media ");
+        // A `not` prints a pair of parentheses around a compound operand; a
+        // single condition already carries the only pair it needs.
+        match query.contains(" and ") {
+          true => format!(" and (not ({query}))"),
+          false => format!(" and (not {query})"),
+        }
+      })
+      .collect::<String>();
+
+    let keys = transformed_keys(input);
+
+    // Nothing was dropped, nothing collapsed to a contradiction, and the last
+    // rung -- which had nothing after it to negate -- is untouched either way.
+    assert_eq!(keys.len(), rungs + 1);
+    assert_eq!(keys[1], format!("{}{negations}", authored[0]));
+    assert!(!keys[1].contains("not all"));
+    assert_eq!(keys[rungs], *authored.last().unwrap());
+  }
+}

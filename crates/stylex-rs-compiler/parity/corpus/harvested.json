@@ -1635,7 +1635,7 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:726"
     },
     {
-      "id": "2b2d0d1b",
+      "id": "525895c7",
       "property": "color",
       "value": "var(--emoji-🎨)",
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:242"
@@ -1845,7 +1845,7 @@
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:763"
     },
     {
-      "id": "b9dd7c47",
+      "id": "8daeb34a",
       "property": "content",
       "value": "\"→ Привет 日本語 🙂\"",
       "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:74"
@@ -1905,7 +1905,7 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/non_ascii_hash_parity.rs:27"
     },
     {
-      "id": "a29e3f5c",
+      "id": "47561165",
       "property": "content",
       "value": "🎉",
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/non_ascii_hash_parity.rs:61"
@@ -2217,19 +2217,19 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:774"
     },
     {
-      "id": "62adb4bc",
+      "id": "707b7143",
       "property": "fontFamily",
       "value": "\"•✓日本語😀\"",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:775"
     },
     {
-      "id": "59b9f24e",
+      "id": "3070a563",
       "property": "fontFamily",
       "value": "\"→ Привет 日本語 🙂\", sans-serif",
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:444"
     },
     {
-      "id": "942bd124",
+      "id": "e79299ff",
       "property": "fontFamily",
       "value": "\"🎉 -.5\"",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:855"
@@ -2271,7 +2271,7 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:496"
     },
     {
-      "id": "0a4ae2e0",
+      "id": "734b085f",
       "property": "fontFamily",
       "value": "'•✓日本語😀'",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:785"
@@ -2307,13 +2307,13 @@
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:783"
     },
     {
-      "id": "dc576c38",
+      "id": "8496934d",
       "property": "fontFamily",
       "value": "\\\\😀",
       "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:378"
     },
     {
-      "id": "b379d514",
+      "id": "0308fb71",
       "property": "fontFamily",
       "value": "\\😀",
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:883"
@@ -2403,19 +2403,19 @@
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:439"
     },
     {
-      "id": "00ceb266",
+      "id": "137a1ce7",
       "property": "fontFamily",
       "value": "🎉",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:773"
     },
     {
-      "id": "296555e0",
+      "id": "b07a2ca5",
       "property": "fontFamily",
       "value": "😀",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:772"
     },
     {
-      "id": "ea1432ae",
+      "id": "0afd708b",
       "property": "fontFamily",
       "value": "🙂;sans-serif",
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:789"
@@ -3669,7 +3669,7 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:808"
     },
     {
-      "id": "a124b746",
+      "id": "1eaae0f9",
       "property": "transform",
       "value": "translate(🎉,-.5px)",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:809"
@@ -4203,7 +4203,7 @@
       "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:413"
     },
     {
-      "id": "2ae0a53c",
+      "id": "d80ecbb1",
       "property": "width",
       "value": "1😀px",
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:884"

@@ -35,7 +35,18 @@ export function entryId(property: string, value: string): string {
   let hash = 0x811c9dc5;
   const text = declarationKey(property, value);
   for (let i = 0; i < text.length; i++) {
-    hash ^= text.codePointAt(i) ?? 0;
+    // `charCodeAt`, which is what the loop bounds describe: `text.length` counts
+    // UTF-16 code units, and `codePointAt` reads a whole astral character at a
+    // surrogate index. So an emoji mixed in its full code point and then, one
+    // index later, its own trailing surrogate again -- a hash over a sequence
+    // the string does not contain.
+    //
+    // The lint prefers `codePointAt` in general and is right to; it is wrong
+    // here, and the loop is why. Disabled rather than worked around, because
+    // `--fix` reverts this line otherwise -- which it did once, leaving the code
+    // disagreeing with the comment above it.
+    // oxlint-disable-next-line unicorn/prefer-code-point
+    hash ^= text.charCodeAt(i);
     hash = Math.imul(hash, 0x01000193) >>> 0;
   }
   return hash.toString(16).padStart(8, '0');
@@ -60,11 +71,20 @@ function byCodePoint(a: string, b: string): number {
  * repeat heavily across suites and a corpus entry costs two compiler runs.
  */
 export function dedupe(entries: DeclarationEntry[]): DeclarationEntry[] {
-  const byId = new Map<string, DeclarationEntry>();
+  // Keyed on the declaration itself, not on the id derived from it. The id is a
+  // 32-bit hash, so keying on it let two *different* declarations collide and
+  // one of them vanish from the corpus -- with nothing to show it but a count
+  // nobody checks. At 823 entries the birthday probability is around 1e-4, and
+  // it grows with the square of the harvest.
+  //
+  // The exact identity was already to hand, and it is the same key the id is
+  // computed from.
+  const byDeclaration = new Map<string, DeclarationEntry>();
   for (const candidate of entries) {
-    if (!byId.has(candidate.id)) byId.set(candidate.id, candidate);
+    const key = declarationKey(candidate.property, candidate.value);
+    if (!byDeclaration.has(key)) byDeclaration.set(key, candidate);
   }
-  return [...byId.values()].toSorted((a, b) =>
+  return [...byDeclaration.values()].toSorted((a, b) =>
     a.property === b.property ? byCodePoint(a.value, b.value) : byCodePoint(a.property, b.property)
   );
 }

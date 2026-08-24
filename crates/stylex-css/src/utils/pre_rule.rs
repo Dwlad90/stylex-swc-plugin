@@ -294,6 +294,23 @@ pub(crate) fn pseudo_comparator(a: &str, b: &str) -> Ordering {
   // `sort_unstable_by` on a cycle may produce anything at all. Everything
   // outside `0x20..=0x7e` therefore goes to the collator, which is the only
   // comparison that has an opinion about all of it.
+  // Asked per pair rather than once per run, and that is a decision rather than
+  // an oversight. Hoisting it into `sort_pseudos` -- "if any key in this run is
+  // not printable ASCII, collate the whole run" -- would make the total order
+  // structural instead of argued, which is the tempting version.
+  //
+  // It would also move every *multi-character* ASCII pair inside a mixed run
+  // from the table to the collator. The two are asserted to agree exhaustively
+  // only over single characters: `ascii_and_root_collation_agree_on_every_printable_pair`
+  // walks the 9 025 one-character pairs, and agreement on longer keys rests on
+  // 20 000 sampled pairs plus the hand-picked ones. Sampling is the right tool
+  // for that shape, but it is not a proof -- and the sorted key path feeds the
+  // class-name hash, so a pair the sample missed would rename a class rather
+  // than reorder a diagnostic.
+  //
+  // So the branch stays where the guarantee is strongest: per pair, where both
+  // comparators are defined for every input, and where the agreement property
+  // tests exactly the pairs the fast path actually decides.
   if !is_printable_ascii(a) || !is_printable_ascii(b) {
     return collating_pseudo_comparator(a, b);
   }

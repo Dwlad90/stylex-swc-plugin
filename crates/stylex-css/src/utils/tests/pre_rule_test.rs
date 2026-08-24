@@ -9,6 +9,70 @@ use stylex_utils::collections::FxHashSet;
 /// Only here to keep a case's keys readable as the list it is: the cases below
 /// are about the *order* keys come back in, and threading `String::from` through
 /// each one buries that under conversion noise.
+/// A deterministic key generator: the alphabet to draw from, and a `next` that
+/// yields one pseudo key of `length` characters.
+///
+/// Shared because both random properties below need exactly this and had a copy
+/// each -- the same alphabet build, the same 64-bit xorshift with the same seed,
+/// the same `":"`-prefixed key builder. Two copies of a *seeded* generator is the
+/// worse kind of duplicate: they can drift into producing different sequences
+/// while both still look reproducible.
+///
+/// The seed is a constant rather than the clock, which is the whole point. A
+/// property check that fails on one run in ten and cannot be reproduced is worse
+/// than one that never runs.
+struct RandomKeys {
+  alphabet: Vec<char>,
+  state: u64,
+}
+
+impl RandomKeys {
+  /// Printable ASCII: the characters the fast path claims, and the only ones the
+  /// two comparators are asserted to agree on.
+  fn printable_ascii() -> Self {
+    Self::over((0x20u32..=0x7e).filter_map(char::from_u32).collect())
+  }
+
+  /// Printable ASCII plus Latin-1 Supplement, Latin Extended-A and the combining
+  /// diacritics -- wide enough that a generated run crosses the fast path's
+  /// boundary, which is what the transitivity property is about.
+  fn crossing_the_boundary() -> Self {
+    Self::over(
+      (0x20u32..=0x7e)
+        .chain(0xa0..=0x17f)
+        .chain(0x300..=0x36f)
+        .filter_map(char::from_u32)
+        .collect(),
+    )
+  }
+
+  fn over(alphabet: Vec<char>) -> Self {
+    Self {
+      alphabet,
+      state: 0x2545_F491_4F6C_DD1D,
+    }
+  }
+
+  fn next_state(&mut self) -> u64 {
+    self.state ^= self.state << 13;
+    self.state ^= self.state >> 7;
+    self.state ^= self.state << 17;
+    self.state
+  }
+
+  /// One key of `length` characters, prefixed `:` so it reads as a pseudo.
+  fn key(&mut self, length: usize) -> String {
+    let mut built = String::from(":");
+
+    for _ in 0..length {
+      let index = (self.next_state() % self.alphabet.len() as u64) as usize;
+      built.push(self.alphabet[index]);
+    }
+
+    built
+  }
+}
+
 fn keys(keys: &[&str]) -> Vec<String> {
   keys.iter().map(|key| (*key).to_string()).collect()
 }
@@ -549,32 +613,12 @@ fn ascii_and_root_collation_agree_on_every_printable_pair() {
 fn the_two_paths_agree_over_random_printable_ascii_keys() {
   use crate::utils::pre_rule::collating_pseudo_comparator;
 
-  let alphabet: Vec<char> = (0x20u32..=0x7e).filter_map(char::from_u32).collect();
-
-  // A 64-bit xorshift, so the sequence is the same on every machine and in every
-  // run -- the shape a failure has to be reproducible from.
-  let mut state = 0x2545_F491_4F6C_DD1Du64;
-  let mut next = move || {
-    state ^= state << 13;
-    state ^= state >> 7;
-    state ^= state << 17;
-    state
-  };
-
-  let mut key = |length: usize, alphabet: &[char]| -> String {
-    let mut built = String::from(":");
-    for _ in 0..length {
-      let index = (next() % alphabet.len() as u64) as usize;
-      built.push(alphabet[index]);
-    }
-    built
-  };
-
+  let mut random = RandomKeys::printable_ascii();
   let mut asserted = 0usize;
 
   for round in 0..20_000 {
-    let left = key(1 + round % 6, &alphabet);
-    let right = key(1 + (round / 6) % 6, &alphabet);
+    let left = random.key(1 + round % 6);
+    let right = random.key(1 + (round / 6) % 6);
 
     assert_eq!(
       pseudo_comparator(&left, &right),
@@ -602,31 +646,11 @@ fn the_two_paths_agree_over_random_printable_ascii_keys() {
 /// same question asked over pairs nobody chose.
 #[test]
 fn a_random_mixed_run_sorts_into_an_order_the_comparator_agrees_with() {
-  let alphabet: Vec<char> = (0x20u32..=0x7e)
-    .chain(0xa0..=0x17f)
-    .chain(0x300..=0x36f)
-    .filter_map(char::from_u32)
-    .collect();
-
-  let mut state = 0x2545_F491_4F6C_DD1Du64;
-  let mut next = move || {
-    state ^= state << 13;
-    state ^= state >> 7;
-    state ^= state << 17;
-    state
-  };
+  let mut random = RandomKeys::crossing_the_boundary();
 
   for run in 0..500 {
     let mut keys: Vec<String> = (0..12)
-      .map(|index| {
-        let length = 1 + (run + index) % 6;
-        let mut built = String::from(":");
-        for _ in 0..length {
-          let pick = (next() % alphabet.len() as u64) as usize;
-          built.push(alphabet[pick]);
-        }
-        built
-      })
+      .map(|index| random.key(1 + (run + index) % 6))
       .collect();
 
     keys.sort_unstable_by(|a, b| pseudo_comparator(a, b));

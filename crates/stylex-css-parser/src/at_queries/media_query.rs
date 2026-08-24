@@ -498,10 +498,33 @@ impl MediaQuery {
   }
 }
 
+/// How deeply a media query may nest parentheses before it is rejected.
+///
+/// Parsing and normalizing each recurse once per level, and neither carries a
+/// limit of its own. Past the point where the stack runs out the process
+/// **aborts** rather than panicking -- a stack overflow is not unwindable, so
+/// the `catch_unwind` around compilation never sees it and no diagnostic is
+/// ever produced. Measured on this machine, two thousand levels take 10 ms and
+/// five thousand abort.
+///
+/// Sixty-four is the same number, for the same reason, as
+/// `MAX_VALUE_NESTING_DEPTH` in `stylex-css`: stated here rather than left to
+/// whatever stack the host provides, so the same source compiles the same way
+/// everywhere, set well below the observed cliff, and far above real CSS. An
+/// author writes one or two.
+const MAX_QUERY_NESTING_DEPTH: usize = 64;
+
 /// Validate media query string
 pub fn validate_media_query(input: &str) -> Result<MediaQuery, String> {
-  if !has_balanced_parens(input) {
+  let structure = scan_query_structure(input);
+
+  if !structure.parens_balanced {
     return Err(crate::at_queries::messages::MediaQueryErrors::UNBALANCED_PARENS.to_string());
+  }
+
+  // Before the parse rather than during it: the parse is what would abort.
+  if structure.max_nesting_depth > MAX_QUERY_NESTING_DEPTH {
+    return Err(crate::at_queries::messages::MediaQueryErrors::SYNTAX_ERROR.to_string());
   }
 
   match MediaQuery::parser().parse_to_end(input) {
@@ -527,7 +550,26 @@ pub fn validate_media_query(input: &str) -> Result<MediaQuery, String> {
 /// of the query, including whatever would have closed the parenthesis it sits
 /// in.
 fn has_balanced_parens(input: &str) -> bool {
+  scan_query_structure(input).parens_balanced
+}
+
+/// What one walk over the raw query text can answer.
+///
+/// Both questions are asked before the query is parsed, and both have to be:
+/// an unbalanced parenthesis is a query the tokenizer would silently close, and
+/// nesting past the budget is a parse that would abort the process. One walk
+/// answers both rather than two that could disagree about where a string ends.
+struct QueryStructure {
+  /// Every parenthesis that is syntax closes, and none closes too early.
+  parens_balanced: bool,
+  /// The deepest the query nests parentheses, counted outside strings and
+  /// escapes. See [`MAX_QUERY_NESTING_DEPTH`].
+  max_nesting_depth: usize,
+}
+
+fn scan_query_structure(input: &str) -> QueryStructure {
   let mut depth: i32 = 0;
+  let mut max_nesting_depth: usize = 0;
   let mut chars = input.chars();
 
   while let Some(ch) = chars.next() {
@@ -535,26 +577,41 @@ fn has_balanced_parens(input: &str) -> bool {
       // A backslash escapes whatever follows, including a quote or a paren.
       '\\' => {
         if chars.next().is_none() {
-          return false;
+          return QueryStructure {
+            parens_balanced: false,
+            max_nesting_depth,
+          };
         }
       },
       '"' | '\'' => {
         if !skip_string(&mut chars, ch) {
-          return false;
+          return QueryStructure {
+            parens_balanced: false,
+            max_nesting_depth,
+          };
         }
       },
-      '(' => depth += 1,
+      '(' => {
+        depth += 1;
+        max_nesting_depth = max_nesting_depth.max(depth.unsigned_abs() as usize);
+      },
       ')' => {
         depth -= 1;
         if depth < 0 {
-          return false;
+          return QueryStructure {
+            parens_balanced: false,
+            max_nesting_depth,
+          };
         }
       },
       _ => {},
     }
   }
 
-  depth == 0
+  QueryStructure {
+    parens_balanced: depth == 0,
+    max_nesting_depth,
+  }
 }
 
 /// Consume up to and including the `quote` that ends a string, reporting
@@ -1091,9 +1148,7 @@ fn media_keyword_parser() -> TokenParser<MediaQueryRule> {
         not_value = true;
 
         // Consume whitespace after "not"
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          let _ = tokens.consume_next_token();
-        }
+        skip_whitespace(tokens);
       }
 
       // Try to parse optional "only" after "not" (or at beginning if no "not")
@@ -1104,9 +1159,7 @@ fn media_keyword_parser() -> TokenParser<MediaQueryRule> {
         only_value = true;
 
         // Consume whitespace after "only"
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          let _ = tokens.consume_next_token();
-        }
+        skip_whitespace(tokens);
       }
 
       if not_value && only_value {
@@ -1174,9 +1227,7 @@ fn media_rule_value_parser() -> TokenParser<MediaRuleValue> {
         };
 
         // Optional whitespace before slash
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          let _ = tokens.consume_next_token();
-        }
+        skip_whitespace(tokens);
 
         // Parse slash delimiter
         if let Ok(Some(SimpleToken::Delim(ch))) = tokens.consume_next_token() {
@@ -1192,9 +1243,7 @@ fn media_rule_value_parser() -> TokenParser<MediaRuleValue> {
         }
 
         // Optional whitespace after slash
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          let _ = tokens.consume_next_token();
-        }
+        skip_whitespace(tokens);
 
         // Parse second number
         let second_num = if let Ok(Some(SimpleToken::Number(value))) = tokens.consume_next_token() {
@@ -1233,9 +1282,7 @@ fn simple_pair_parser(value_parser: TokenParser<MediaRuleValue>) -> TokenParser<
       }
 
       // Optional whitespace after opening paren
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse key (identifier)
       let key = if let Ok(Some(SimpleToken::Ident(key_name))) = tokens.consume_next_token() {
@@ -1247,9 +1294,7 @@ fn simple_pair_parser(value_parser: TokenParser<MediaRuleValue>) -> TokenParser<
       };
 
       // Optional whitespace before colon
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse colon
       if let Ok(Some(SimpleToken::Colon)) = tokens.consume_next_token() {
@@ -1261,17 +1306,13 @@ fn simple_pair_parser(value_parser: TokenParser<MediaRuleValue>) -> TokenParser<
       }
 
       // Optional whitespace after colon
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse value using the cloned value parser
       let value = (value_parser_rc)(tokens)?;
 
       // Optional whitespace before closing paren
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse closing parenthesis
       if let Ok(Some(SimpleToken::RightParen)) = tokens.consume_next_token() {
@@ -1316,9 +1357,7 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse property name (width or height)
       let key_token =
@@ -1344,9 +1383,7 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse operator (< or >)
       let op_token =
@@ -1372,9 +1409,7 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse optional equals sign
       let has_equals = if let Ok(Some(SimpleToken::Delim('='))) = tokens.peek() {
@@ -1385,9 +1420,7 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse dimension value
       let dim_token =
@@ -1407,9 +1440,7 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Expect closing paren
       let close_token =
@@ -1472,9 +1503,7 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
       }
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse dimension value first
       let dim_token =
@@ -1494,9 +1523,7 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse operator (< or >)
       let op_token =
@@ -1522,9 +1549,7 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse optional equals sign
       let has_equals = if let Ok(Some(SimpleToken::Delim('='))) = tokens.peek() {
@@ -1535,9 +1560,7 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse property name (width or height)
       let key_token =
@@ -1563,9 +1586,7 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Expect closing paren
       let close_token =
@@ -1623,9 +1644,7 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse lower bound dimension
       let lower_dim_token =
@@ -1645,9 +1664,7 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse first operator (< or >)
       let op1_token =
@@ -1673,9 +1690,7 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse optional first equals sign
       let _eq1 = if let Ok(Some(SimpleToken::Delim('='))) = tokens.peek() {
@@ -1686,9 +1701,7 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse property name (width or height)
       let key_token =
@@ -1714,9 +1727,7 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse second operator (< or >)
       let op2_token =
@@ -1742,9 +1753,7 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse optional second equals sign
       let _eq2 = if let Ok(Some(SimpleToken::Delim('='))) = tokens.peek() {
@@ -1755,9 +1764,7 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Parse upper bound dimension
       let upper_dim_token =
@@ -1777,9 +1784,7 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       };
 
       // Skip optional whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        let _ = tokens.consume_next_token();
-      }
+      skip_whitespace(tokens);
 
       // Expect closing paren
       let close_token =
@@ -1891,9 +1896,7 @@ fn parenthesized_not_parser() -> TokenParser<MediaQueryRule> {
         let _ = tokens.consume_next_token(); // consume '('
 
         // Skip optional whitespace
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          let _ = tokens.consume_next_token();
-        }
+        skip_whitespace(tokens);
 
         // Expect "not" keyword
         if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek() {
@@ -1921,9 +1924,7 @@ fn parenthesized_not_parser() -> TokenParser<MediaQueryRule> {
             let inner_rule = (normal_rule_parser().run)(tokens)?;
 
             // Skip optional whitespace before closing
-            while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-              let _ = tokens.consume_next_token();
-            }
+            skip_whitespace(tokens);
 
             // Expect closing parenthesis
             if let Ok(Some(SimpleToken::RightParen)) = tokens.peek() {
@@ -1955,11 +1956,7 @@ fn parenthesized_not_parser() -> TokenParser<MediaQueryRule> {
   )
 }
 
-fn media_query_rule_parser() -> TokenParser<MediaQueryRule> {
-  comma_list_parser()
-}
-
-/// Parse a comma-separated media query list.
+/// Parse a whole media query: a comma-separated list of conditions.
 ///
 /// Comma and `or` both mean disjunction, and both end up in the same `Or` node,
 /// but they do not bind equally: `or` groups inside one comma segment, and the
@@ -1968,7 +1965,7 @@ fn media_query_rule_parser() -> TokenParser<MediaQueryRule> {
 /// disjuncts, and the last-media-query-wins transform distributes its negations
 /// over whatever the top-level `Or` holds. Getting the nesting wrong there
 /// changes the emitted rule text, and with it the class name.
-fn comma_list_parser() -> TokenParser<MediaQueryRule> {
+fn media_query_rule_parser() -> TokenParser<MediaQueryRule> {
   TokenParser::new(
     |tokens| {
       let mut segments = vec![(or_combinator_parser().run)(tokens)?];
@@ -1991,7 +1988,7 @@ fn comma_list_parser() -> TokenParser<MediaQueryRule> {
         MediaQueryRule::Or(MediaOrRules::new(segments))
       }))
     },
-    "comma_list_parser",
+    "media_query_rule_parser",
   )
 }
 
@@ -2023,9 +2020,11 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
       let mut rules = Vec::new();
 
       // Parse the first rule
+      // Read once from the first list: past the guards below, both are false
+      // for every operand, because an operand that made either true returned.
       let first = parse_and_list(tokens)?;
-      let mut joined_by_and = first.joined_by_and;
-      let mut is_bare_negation = first.is_bare_negation;
+      let joined_by_and = first.joined_by_and;
+      let is_bare_negation = first.is_bare_negation;
       rules.push(first.rule);
 
       // Parse additional OR rules. A comma is a disjunction too, but it binds
@@ -2034,9 +2033,7 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
         let checkpoint = tokens.save_position();
 
         // Skip optional whitespace
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          let _ = tokens.consume_next_token();
-        }
+        skip_whitespace(tokens);
 
         // Check for "or" keyword
         if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
@@ -2047,10 +2044,10 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
           // would mean inventing a precedence the language does not define, and
           // emitting a query that means something the author did not write.
           if joined_by_and {
-            return Err(uncombinable("`and` and `or` cannot be mixed"));
+            return Err(uncombinable(MIXED_COMBINATORS));
           }
           if is_bare_negation {
-            return Err(uncombinable("a `not` condition cannot take an `or`"));
+            return Err(uncombinable(COMBINED_NEGATION));
           }
 
           let _ = tokens.consume_next_token(); // consume "or"
@@ -2058,14 +2055,12 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
 
           let operand = parse_and_list(tokens)?;
           if operand.joined_by_and {
-            return Err(uncombinable("`or` and `and` cannot be mixed"));
+            return Err(uncombinable(MIXED_COMBINATORS));
           }
           if operand.is_bare_negation {
-            return Err(uncombinable("an `or` cannot take a `not` condition"));
+            return Err(uncombinable(COMBINED_NEGATION));
           }
 
-          joined_by_and = false;
-          is_bare_negation = false;
           rules.push(operand.rule);
           continue;
         }
@@ -2117,10 +2112,16 @@ fn peeks_bare_not(tokens: &mut TokenList) -> bool {
   found
 }
 
-/// The error a spelling CSS does not define earns, whichever of them it is.
-fn uncombinable(what: &str) -> CssParseError {
+/// One condition takes `and`s or `or`s, never both.
+const MIXED_COMBINATORS: &str = "`and` and `or` cannot be mixed without parentheses";
+
+/// A bare `not` is the whole condition, not an operand in one.
+const COMBINED_NEGATION: &str = "a `not` condition cannot be combined without parentheses";
+
+/// The error a spelling CSS does not define earns.
+fn uncombinable(reason: &'static str) -> CssParseError {
   CssParseError::ParseError {
-    message: format!("{what} without parentheses"),
+    message: reason.to_string(),
   }
 }
 
@@ -2147,16 +2148,24 @@ fn parse_and_list(tokens: &mut TokenList) -> Result<AndList, CssParseError> {
     }
 
     if is_bare_negation {
-      return Err(uncombinable("a `not` condition cannot take an `and`"));
+      return Err(uncombinable(COMBINED_NEGATION));
     }
 
     let _ = tokens.consume_next_token(); // consume "and"
     skip_whitespace(tokens);
 
+    // One position does take a bare negation: straight after a media type's
+    // `and`, where `<media-query> = [not | only]? <media-type>
+    // [ and <media-condition-without-or> ]?` and a
+    // `<media-condition-without-or>` may be a `<media-not>`. Only there, and
+    // only immediately -- `screen and (a) and not (b)` is back inside a
+    // condition, where an operand must be parenthesized.
+    let follows_a_media_type = matches!(rules.as_slice(), [MediaQueryRule::MediaKeyword(_)]);
+
     let operand_leading_not = peeks_bare_not(tokens);
     let rule = (normal_rule_parser().run)(tokens)?;
-    if operand_leading_not && matches!(rule, MediaQueryRule::Not(_)) {
-      return Err(uncombinable("an `and` cannot take a `not` condition"));
+    if operand_leading_not && !follows_a_media_type && matches!(rule, MediaQueryRule::Not(_)) {
+      return Err(uncombinable(COMBINED_NEGATION));
     }
 
     rules.push(rule);
@@ -2207,9 +2216,7 @@ fn parenthesized_expression_parser() -> TokenParser<MediaQueryRule> {
         let _ = tokens.consume_next_token(); // consume '('
 
         // Skip optional whitespace
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          let _ = tokens.consume_next_token();
-        }
+        skip_whitespace(tokens);
 
         // Try to parse a NOT expression first
         if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
@@ -2219,9 +2226,7 @@ fn parenthesized_expression_parser() -> TokenParser<MediaQueryRule> {
           let not_rule = (leading_not_parser().run)(tokens)?;
 
           // Skip optional whitespace before closing
-          while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            let _ = tokens.consume_next_token();
-          }
+          skip_whitespace(tokens);
 
           // Expect closing parenthesis
           if let Ok(Some(SimpleToken::RightParen)) = tokens.peek() {
@@ -2243,9 +2248,7 @@ fn parenthesized_expression_parser() -> TokenParser<MediaQueryRule> {
         let inner_expression = (or_combinator_parser().run)(tokens)?;
 
         // Skip optional whitespace before closing
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          let _ = tokens.consume_next_token();
-        }
+        skip_whitespace(tokens);
 
         // Expect closing parenthesis
         if let Ok(Some(SimpleToken::RightParen)) = tokens.peek() {

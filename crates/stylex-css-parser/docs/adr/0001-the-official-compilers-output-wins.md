@@ -138,18 +138,30 @@ parenthesis written as an escape or sitting inside a string, where upstream's
 own counter would not — but upstream never runs that counter on this path, so
 what is matched is what its parser actually accepts.
 
-**One grammar difference is kept on purpose.** Parentheses nested around a
-single condition — `@media ((min-width: 1px))` — are accepted here and refused
-upstream. `( <media-condition> )` is what the language defines and a condition
-may itself be one, so this is valid CSS and upstream's `oneOf` chain simply has
-no alternative for it. Refusing valid input to match buys nothing: nobody gets a
-divergent class name from a query the other compiler will not compile at all,
-and the same reasoning that makes this ADR match upstream's worse output does
-not reach a case where upstream produces no output.
+**Two grammar differences are kept on purpose.** Parentheses nested around a
+single condition — `@media ((min-width: 1px))` — and one bare `not` straight
+after a media type's `and` — `@media screen and not (orientation: portrait)` —
+are accepted here and refused upstream. The language defines both, and
+upstream's `oneOf` chain simply has an alternative for neither.
+
+Refusing valid input to match buys nothing: nobody gets a divergent class name
+from a query the other compiler will not compile at all. That is the boundary of
+this record's own argument. Matching upstream's _worse output_ protects a hash;
+matching its _refusals_ would only cost an author a query they are entitled to
+write, and protects nothing.
 
 Every other combinator shape was matched — see the glossary's
 [media query grammar](../../CONTEXT.md) entry. One caution if this is ever
 revisited: upstream's parser backtracks exponentially in parenthesis nesting
-depth — eight levels take it 1.18 s, twelve take 20.5 s, sixteen do not finish
-in thirty seconds, where this compiler answers two thousand levels in 10 ms.
-Matching its answers must not mean matching that.
+depth — eight levels take it 1.12 s, twelve take 19.8 s, sixteen do not finish
+in forty seconds, where this compiler answers every depth in about a
+millisecond. Matching its answers must not mean matching that.
+
+**A query may nest sixty-four levels of parentheses.** Walking each level once
+is linear in time and still recursive in stack, and five thousand levels aborted
+the process — a stack overflow is not unwindable, so nothing downstream could
+have turned it into a diagnostic. The depth is counted before the parse, by the
+same walk over the raw text that checks the balance, because the parse is what
+would abort. Sixty-four is the same number and the same reasoning as
+`MAX_VALUE_NESTING_DEPTH` in `stylex-css`, which guards the identical exposure
+for values.

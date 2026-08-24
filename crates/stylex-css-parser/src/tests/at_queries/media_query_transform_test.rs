@@ -1318,6 +1318,41 @@ fn transformed_entries(styles: Value) -> Vec<(String, Value)> {
   }
 }
 
+/// One authored `@media` key, with a later key after it to negate, and the
+/// rewritten text the first one came out as.
+///
+/// The trailing key is what makes the first one interesting: a key with nothing
+/// after it is handed back as authored, which tests nothing about the rewrite.
+fn rewritten_first_key(query: &str) -> String {
+  transformed_keys(json!({
+    "color": { "default": "black", query: "red", "@media (max-width: 50px)": "blue" }
+  }))[1]
+    .clone()
+}
+
+/// Whether the transform refuses `query` outright.
+///
+/// The refusal reaches a caller as a panic, which the compiler turns into the
+/// invalid-media-query-syntax error. The message is checked rather than the
+/// mere fact of a panic, so an unrelated one -- an index out of range, say --
+/// cannot read as a refusal.
+fn refuses_query(query: &str) -> bool {
+  let styles = json!({
+    "color": { "default": "black", query: "red", "@media (max-width: 50px)": "blue" }
+  });
+
+  match std::panic::catch_unwind(|| transformed_keys(styles)) {
+    Ok(_) => false,
+    Err(payload) => match payload.downcast_ref::<String>() {
+      Some(message) => message.contains("Invalid media query"),
+      None => match payload.downcast_ref::<&str>() {
+        Some(message) => message.contains("Invalid media query"),
+        None => false,
+      },
+    },
+  }
+}
+
 /// Run the transform over `styles` and return the keys of the single property
 /// it contains, in order.
 fn transformed_keys(styles: Value) -> Vec<String> {
@@ -1622,16 +1657,6 @@ mod a_ladder_too_deep_to_expand {
 mod malformed_queries {
   use super::*;
 
-  /// The transform panics on a query it cannot read; the compiler turns that
-  /// into the invalid-media-query-syntax error.
-  fn refuses(query: &str) -> bool {
-    let styles = json!({
-      "color": { "default": "black", query: "red", "@media (max-width: 50px)": "blue" }
-    });
-
-    std::panic::catch_unwind(|| transformed_keys(styles)).is_err()
-  }
-
   /// A closing parenthesis the author never wrote.
   ///
   /// The tokenizer synthesizes one at end of input, so these parse cleanly and
@@ -1641,11 +1666,11 @@ mod malformed_queries {
   /// rather than one standing for the rest.
   #[test]
   fn an_unbalanced_parenthesis_is_refused() {
-    assert!(refuses("@media (min-width: 100px"));
-    assert!(refuses("@media ((min-width: 100px)"));
-    assert!(refuses("@media (width: calc(100px)"));
-    assert!(refuses("@media min-width: 100px)"));
-    assert!(refuses("@media (min-width: 100px))"));
+    assert!(refuses_query("@media (min-width: 100px"));
+    assert!(refuses_query("@media ((min-width: 100px)"));
+    assert!(refuses_query("@media (width: calc(100px)"));
+    assert!(refuses_query("@media min-width: 100px)"));
+    assert!(refuses_query("@media (min-width: 100px))"));
   }
 
   /// An unclosed string swallows the rest of the query, including whatever
@@ -1653,8 +1678,8 @@ mod malformed_queries {
   /// own right and refused for the same reason as an unclosed parenthesis.
   #[test]
   fn an_unclosed_quote_is_refused() {
-    assert!(refuses("@media (min-width: \"100px)"));
-    assert!(refuses("@media (min-width: '100px)"));
+    assert!(refuses_query("@media (min-width: \"100px)"));
+    assert!(refuses_query("@media (min-width: '100px)"));
   }
 
   /// A parenthesis that is a character rather than syntax does not count
@@ -1667,27 +1692,27 @@ mod malformed_queries {
   #[test]
   fn a_parenthesis_that_is_not_syntax_does_not_count() {
     // An escaped open parenthesis, which prints as the bare character.
-    assert!(!refuses("@media (min-width: 100px) and (\\(: 1)"));
+    assert!(!refuses_query("@media (min-width: 100px) and (\\(: 1)"));
     // Inside a closed string the balance check gets out of the way, and the
     // grammar is what refuses — as it does in the reference implementation.
-    assert!(refuses("@media (min-width: 100px) and (foo: \"(\")"));
+    assert!(refuses_query("@media (min-width: 100px) and (foo: \"(\")"));
   }
 
   /// Token sequences that are balanced but say nothing the grammar reads.
   #[test]
   fn an_invalid_token_sequence_is_refused() {
-    assert!(refuses("@media ()"));
-    assert!(refuses("@media (:)"));
-    assert!(refuses("@media (min-width:)"));
-    assert!(refuses(
+    assert!(refuses_query("@media ()"));
+    assert!(refuses_query("@media (:)"));
+    assert!(refuses_query("@media (min-width:)"));
+    assert!(refuses_query(
       "@media (min-width: 100px) and and (max-width: 200px)"
     ));
-    assert!(refuses("@media (min-width: 100px) and"));
-    assert!(refuses("@media and (min-width: 100px)"));
-    assert!(refuses("@media ,"));
-    assert!(refuses("@media ???"));
-    assert!(refuses("@media not"));
-    assert!(refuses("@media only"));
+    assert!(refuses_query("@media (min-width: 100px) and"));
+    assert!(refuses_query("@media and (min-width: 100px)"));
+    assert!(refuses_query("@media ,"));
+    assert!(refuses_query("@media ???"));
+    assert!(refuses_query("@media not"));
+    assert!(refuses_query("@media only"));
   }
 
   /// Refusing too much is the other way to diverge. These are accepted by the
@@ -1695,14 +1720,16 @@ mod malformed_queries {
   #[test]
   fn an_unusual_but_valid_query_is_not_refused() {
     // A width below zero is a number the merge reads like any other.
-    assert!(!refuses("@media (min-width: -100px)"));
+    assert!(!refuses_query("@media (min-width: -100px)"));
     // A unitless number is not a length, so the merge declines to read it and
     // the query passes through with its negation printed.
-    assert!(!refuses("@media (min-width: 100)"));
+    assert!(!refuses_query("@media (min-width: 100)"));
     // An escaped character in a feature name, and a name outside the basic
     // multilingual plane.
-    assert!(!refuses("@media (min-\\77 idth: 100px)"));
-    assert!(!refuses("@media (min-width: 100px) and (\u{1D400}: 1)"));
+    assert!(!refuses_query("@media (min-\\77 idth: 100px)"));
+    assert!(!refuses_query(
+      "@media (min-width: 100px) and (\u{1D400}: 1)"
+    ));
   }
 
   /// A custom property is not a length, and a media feature has to resolve at
@@ -1710,7 +1737,7 @@ mod malformed_queries {
   /// refuse this rather than emitting a query no browser could match.
   #[test]
   fn a_custom_property_in_a_value_position_is_refused() {
-    assert!(refuses("@media (min-width: var(--breakpoint))"));
+    assert!(refuses_query("@media (min-width: var(--breakpoint))"));
   }
 
   /// A key that is `@media` and nothing else, and one with a space the author
@@ -1718,29 +1745,54 @@ mod malformed_queries {
   /// media keys, and neither parses to a query.
   #[test]
   fn a_key_that_is_only_the_at_rule_is_refused() {
-    assert!(refuses("@media "));
-    assert!(refuses("@media (min-width: 100px) "));
+    assert!(refuses_query("@media "));
+    assert!(refuses_query("@media (min-width: 100px) "));
   }
 
-  /// Nesting is walked once per level rather than searched, so two hundred
-  /// levels are answered rather than hung on. The reference implementation's
-  /// parser backtracks here instead — twelve levels take it twenty seconds and
-  /// sixteen do not finish.
+  /// Nesting is walked once per level rather than searched, so a depth that
+  /// makes the reference implementation backtrack for minutes is answered here
+  /// in milliseconds — twelve levels take it twenty seconds and sixteen do not
+  /// finish in thirty.
   ///
-  /// Which answer it gives is deliberately not asserted. The two compilers
-  /// disagree on whether nested parentheses around a single condition are valid
-  /// at all, and that is a separate open question; this test would otherwise
-  /// pin one side of it. What is asserted is that an answer arrives, because a
-  /// test that never returns is the failure this shape produces upstream.
+  /// Sixty-four levels is the budget, so this is the deepest query that still
+  /// compiles, and what it compiles to is the query with the wrapping gone.
   #[test]
-  fn deep_parenthesis_nesting_is_read_without_backtracking() {
+  fn nesting_up_to_the_budget_is_read_without_backtracking() {
     let deep = format!(
       "@media {}min-width: 100px{}",
-      "(".repeat(200),
-      ")".repeat(200)
+      "(".repeat(64),
+      ")".repeat(64)
     );
 
-    let _answered = refuses(&deep);
+    assert_eq!(
+      transformed_keys(json!({ "color": { "default": "black", deep: "red" } })),
+      vec!["default", "@media (min-width: 100px)"]
+    );
+  }
+
+  /// One level further is refused rather than compiled.
+  ///
+  /// Parsing recurses once per level and a stack overflow aborts the process
+  /// instead of panicking, so nothing downstream could turn it into a
+  /// diagnostic — which is why the depth is measured before the parse rather
+  /// than caught during it. The number is far above any query an author writes
+  /// and far below where the stack actually gives out: two thousand levels take
+  /// 10 ms here, five thousand abort.
+  #[test]
+  fn nesting_past_the_budget_is_refused_rather_than_fatal() {
+    let past = format!(
+      "@media {}min-width: 100px{}",
+      "(".repeat(65),
+      ")".repeat(65)
+    );
+    assert!(refuses_query(&past));
+
+    let far_past = format!(
+      "@media {}min-width: 100px{}",
+      "(".repeat(5000),
+      ")".repeat(5000)
+    );
+    assert!(refuses_query(&far_past));
   }
 }
 
@@ -1958,22 +2010,12 @@ mod unusual_but_valid_queries {
 mod a_comma_binds_more_loosely_than_or {
   use super::*;
 
-  /// One key, one later key to negate. The first key's rewritten text is what
-  /// each case asserts.
-  fn rewritten(query: &str) -> String {
-    let styles = json!({
-      "color": { "default": "black", query: "red", "@media (max-width: 50px)": "blue" }
-    });
-
-    transformed_keys(styles)[1].clone()
-  }
-
   /// Two segments, the second holding an `or`. Flattening them into three
   /// disjuncts spread the negation over three, and printed three commas.
   #[test]
   fn a_segment_holding_an_or_stays_one_disjunct() {
     assert_eq!(
-      rewritten(
+      rewritten_first_key(
         "@media (min-width: 1px) and (min-width: 2px), (min-width: 3px) or (min-width: 1px)"
       ),
       "@media (min-width: 50.01px), (min-width: 3px) or (min-width: 1px) and (not (max-width: 50px))"
@@ -1985,7 +2027,7 @@ mod a_comma_binds_more_loosely_than_or {
   #[test]
   fn the_or_segment_may_come_first() {
     assert_eq!(
-      rewritten(
+      rewritten_first_key(
         "@media (min-width: 1px) or (min-width: 2px), (min-width: 3px) and (min-width: 1px)"
       ),
       "@media (min-width: 1px) or (min-width: 2px) and (not (max-width: 50px)), (min-width: 50.01px)"
@@ -1998,7 +2040,7 @@ mod a_comma_binds_more_loosely_than_or {
   #[test]
   fn a_media_type_segment_sits_beside_an_or_segment() {
     assert_eq!(
-      rewritten("@media screen, (min-width: 1px) or (min-width: 2px)"),
+      rewritten_first_key("@media screen, (min-width: 1px) or (min-width: 2px)"),
       "@media (screen) and (not (max-width: 50px)), \
        (min-width: 1px) or (min-width: 2px) and (not (max-width: 50px))"
     );
@@ -2021,19 +2063,11 @@ mod a_comma_binds_more_loosely_than_or {
 mod a_disjunction_inside_parentheses {
   use super::*;
 
-  fn rewritten(query: &str) -> String {
-    let styles = json!({
-      "color": { "default": "black", query: "red", "@media (max-width: 50px)": "blue" }
-    });
-
-    transformed_keys(styles)[1].clone()
-  }
-
   /// On its own, the wrapper is dropped and the disjunction becomes the query.
   #[test]
   fn a_parenthesized_or_is_a_query_of_its_own() {
     assert_eq!(
-      rewritten("@media ((min-width: 1px) or (min-width: 2px))"),
+      rewritten_first_key("@media ((min-width: 1px) or (min-width: 2px))"),
       "@media (min-width: 50.01px), (min-width: 50.01px)"
     );
   }
@@ -2044,12 +2078,12 @@ mod a_disjunction_inside_parentheses {
   #[test]
   fn a_parenthesized_or_beside_an_and_loses_its_parentheses() {
     assert_eq!(
-      rewritten("@media ((min-width: 1px) or (min-width: 2px)) and (min-width: 3px)"),
+      rewritten_first_key("@media ((min-width: 1px) or (min-width: 2px)) and (min-width: 3px)"),
       "@media (min-width: 1px) or (min-width: 2px) and (min-width: 3px) and (not (max-width: 50px))"
     );
 
     assert_eq!(
-      rewritten("@media (min-width: 1px) and ((min-width: 2px) or (min-width: 3px))"),
+      rewritten_first_key("@media (min-width: 1px) and ((min-width: 2px) or (min-width: 3px))"),
       "@media (min-width: 1px) and (min-width: 2px) or (min-width: 3px) and (not (max-width: 50px))"
     );
   }
@@ -2059,7 +2093,7 @@ mod a_disjunction_inside_parentheses {
   #[test]
   fn a_negated_parenthesized_or_keeps_its_parentheses() {
     assert_eq!(
-      rewritten("@media not ((min-width: 1px) or (min-width: 2px))"),
+      rewritten_first_key("@media not ((min-width: 1px) or (min-width: 2px))"),
       "@media (not ((min-width: 1px) or (min-width: 2px))) and (not (max-width: 50px))"
     );
   }
@@ -2079,33 +2113,34 @@ mod a_disjunction_inside_parentheses {
 mod combinators_css_does_not_define {
   use super::*;
 
-  fn refuses(query: &str) -> bool {
-    let styles = json!({
-      "color": { "default": "black", query: "red", "@media (max-width: 50px)": "blue" }
-    });
-
-    std::panic::catch_unwind(|| transformed_keys(styles)).is_err()
-  }
-
   /// Mixing the two combinators at one level, in either order.
   #[test]
   fn an_unparenthesized_mix_of_and_and_or_is_refused() {
-    assert!(refuses(
+    assert!(refuses_query(
       "@media (min-width: 1px) and (min-width: 2px) or (min-width: 3px)"
     ));
-    assert!(refuses(
+    assert!(refuses_query(
       "@media (min-width: 1px) or (min-width: 2px) and (min-width: 3px)"
     ));
   }
 
-  /// A bare `not` beside anything, on either side of it.
+  /// A bare `not` beside anything, on either side of it — inside a condition,
+  /// which is everywhere except the one position below.
   #[test]
   fn a_bare_negation_cannot_be_combined() {
-    assert!(refuses("@media not (min-width: 1px) and (min-width: 2px)"));
-    assert!(refuses("@media not (min-width: 1px) or (min-width: 2px)"));
-    assert!(refuses("@media (min-width: 2px) and not (min-width: 1px)"));
-    assert!(refuses("@media (min-width: 2px) or not (min-width: 1px)"));
-    assert!(refuses(
+    assert!(refuses_query(
+      "@media not (min-width: 1px) and (min-width: 2px)"
+    ));
+    assert!(refuses_query(
+      "@media not (min-width: 1px) or (min-width: 2px)"
+    ));
+    assert!(refuses_query(
+      "@media (min-width: 2px) and not (min-width: 1px)"
+    ));
+    assert!(refuses_query(
+      "@media (min-width: 2px) or not (min-width: 1px)"
+    ));
+    assert!(refuses_query(
       "@media not (min-width: 1px) or not (min-width: 2px)"
     ));
   }
@@ -2114,17 +2149,42 @@ mod combinators_css_does_not_define {
   /// difference — so each of these is the refused spelling with brackets added.
   #[test]
   fn parentheses_make_the_same_operands_legal() {
-    assert!(!refuses(
+    assert!(!refuses_query(
       "@media ((min-width: 1px) and (min-width: 2px)) or (min-width: 3px)"
     ));
-    assert!(!refuses(
+    assert!(!refuses_query(
       "@media (min-width: 1px) or ((min-width: 2px) and (min-width: 3px))"
     ));
-    assert!(!refuses(
+    assert!(!refuses_query(
       "@media (not (min-width: 1px)) and (min-width: 2px)"
     ));
-    assert!(!refuses(
+    assert!(!refuses_query(
       "@media (not (min-width: 1px)) or (not (min-width: 2px))"
+    ));
+  }
+
+  /// Straight after a media type's `and` is the one place a bare `not` is a
+  /// query: `<media-query> = [not | only]? <media-type>
+  /// [ and <media-condition-without-or> ]?`, and a
+  /// `<media-condition-without-or>` may be a `<media-not>`.
+  ///
+  /// Only immediately, though. One more operand and the tail is a condition
+  /// again, where an operand has to be parenthesized.
+  ///
+  /// This is the second place the two compilers disagree by choice: the
+  /// official compiler refuses all of these, and refusing valid CSS to match it
+  /// would cost an author a query they are entitled to write.
+  #[test]
+  fn a_media_type_takes_one_bare_negation_after_its_and() {
+    assert!(!refuses_query(
+      "@media screen and not (orientation: portrait)"
+    ));
+    assert!(!refuses_query(
+      "@media not screen and not (orientation: portrait)"
+    ));
+
+    assert!(refuses_query(
+      "@media screen and (orientation: portrait) and not (monochrome)"
     ));
   }
 
@@ -2133,9 +2193,18 @@ mod combinators_css_does_not_define {
   /// has. The refusal above must not reach it.
   #[test]
   fn a_negated_media_type_still_takes_an_and() {
-    assert!(!refuses("@media not screen"));
-    assert!(!refuses("@media not screen and (min-width: 1px)"));
-    assert!(!refuses("@media only screen and (min-width: 1px)"));
+    // Every media type, not only `screen`: they reach the same leading-`not`
+    // peek, and it is the rule that comes back -- a keyword rather than a
+    // negation -- that tells them apart from `not (min-width: 1px)`.
+    for media_type in ["screen", "print", "all"] {
+      assert!(!refuses_query(&format!("@media not {media_type}")));
+      assert!(!refuses_query(&format!(
+        "@media not {media_type} and (min-width: 1px)"
+      )));
+      assert!(!refuses_query(&format!(
+        "@media only {media_type} and (min-width: 1px)"
+      )));
+    }
   }
 
   /// Nesting parentheses around a single condition stays accepted, and this is

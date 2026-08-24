@@ -123,12 +123,18 @@ never both, a bare `not` is the whole condition rather than an operand in one,
 and a comma binds more loosely than an `or` — so `(a) and (b), (c) or (d)` is
 two disjuncts and not three, which matters because the
 [last-media-query-wins transform](#last-media-query-wins-transform) distributes
-its negations over the top-level `Or`. One spelling is accepted here and refused
+its negations over the top-level `Or`. Two spellings are accepted here and refused
 by the official compiler, on purpose: parentheses nested around a single
-condition, which the language defines and its `oneOf` chain has no alternative
-for. Refusing valid CSS to match a stricter reference buys nothing — an author
-cannot get a divergent class name from a query the other compiler will not
-compile. Every other combinator shape agrees.
+condition, and one bare `not` straight after a media type's `and`. The language
+defines both and its `oneOf` chain has an alternative for neither. Refusing
+valid CSS to match a stricter reference buys nothing — an author cannot get a
+divergent class name from a query the other compiler will not compile at all.
+Every other combinator shape agrees.
+
+Nesting is bounded at sixty-four levels of parentheses, counted before the parse
+by the same walk that checks the balance, because parsing recurses once per
+level and a stack overflow aborts rather than panicking. Same number and same
+reasoning as `MAX_VALUE_NESTING_DEPTH` in `stylex-css`.
 _Avoid_: media syntax, query validation, condition parser
 
 **Range merge boundary**:

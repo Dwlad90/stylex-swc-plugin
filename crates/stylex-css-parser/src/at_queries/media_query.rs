@@ -2023,8 +2023,10 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
       let mut rules = Vec::new();
 
       // Parse the first rule
-      let first_rule = (and_combinator_parser().run)(tokens)?;
-      rules.push(first_rule);
+      let first = parse_and_list(tokens)?;
+      let mut joined_by_and = first.joined_by_and;
+      let mut is_bare_negation = first.is_bare_negation;
+      rules.push(first.rule);
 
       // Parse additional OR rules. A comma is a disjunction too, but it binds
       // more loosely and is handled a level up.
@@ -2040,15 +2042,31 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
         if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
           && keyword == "or"
         {
-          let _ = tokens.consume_next_token(); // consume "or"
-
-          // Skip whitespace after "or"
-          while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            let _ = tokens.consume_next_token();
+          // CSS lets one condition take `and`s or `or`s, never both:
+          // `<media-in-parens> [ <media-and>* | <media-or>* ]`. Accepting a mix
+          // would mean inventing a precedence the language does not define, and
+          // emitting a query that means something the author did not write.
+          if joined_by_and {
+            return Err(uncombinable("`and` and `or` cannot be mixed"));
+          }
+          if is_bare_negation {
+            return Err(uncombinable("a `not` condition cannot take an `or`"));
           }
 
-          let rule = (and_combinator_parser().run)(tokens)?;
-          rules.push(rule);
+          let _ = tokens.consume_next_token(); // consume "or"
+          skip_whitespace(tokens);
+
+          let operand = parse_and_list(tokens)?;
+          if operand.joined_by_and {
+            return Err(uncombinable("`or` and `and` cannot be mixed"));
+          }
+          if operand.is_bare_negation {
+            return Err(uncombinable("an `or` cannot take a `not` condition"));
+          }
+
+          joined_by_and = false;
+          is_bare_negation = false;
+          rules.push(operand.rule);
           continue;
         }
 
@@ -2066,57 +2084,93 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
   )
 }
 
-/// Parse AND-separated media query rules
-fn and_combinator_parser() -> TokenParser<MediaQueryRule> {
-  TokenParser::new(
-    |tokens| {
-      let mut rules = Vec::new();
+/// What one `and` list at a level turned out to be.
+///
+/// Neither flag can be recovered from `rule`. A parenthesized `((a) and (b))`
+/// is also an `And`, and a parenthesized `(not (a))` is also a `Not` -- and both
+/// of those may be combined freely, precisely because their parentheses say
+/// where they bind. What CSS restricts is the unparenthesized spelling, which
+/// only the parse knows it saw.
+struct AndList {
+  rule: MediaQueryRule,
+  /// An `and` keyword joined this list, with no parentheses around it.
+  joined_by_and: bool,
+  /// The list is a bare `not <media-in-parens>`. CSS makes that the whole
+  /// condition -- `<media-condition> = <media-not> | ...` -- so nothing may be
+  /// combined with it at this level.
+  is_bare_negation: bool,
+}
 
-      // Parse the first rule
-      let first_rule = (normal_rule_parser().run)(tokens)?;
-      rules.push(first_rule);
+/// Whether the next thing in the stream is a bare `not` keyword.
+///
+/// Peeked rather than inferred, and paired with the rule that comes back: a
+/// leading `not` may still turn out to be a media type query such as
+/// `not screen and (min-width: 1px)`, which is valid and combines normally.
+/// Only a leading `not` that produced a `Not` rule is the restricted spelling.
+fn peeks_bare_not(tokens: &mut TokenList) -> bool {
+  let checkpoint = tokens.save_position();
+  skip_whitespace(tokens);
 
-      // Parse additional AND rules
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        // Check if next non-whitespace token is "and"
-        let checkpoint = tokens.save_position();
+  let found = matches!(tokens.peek(), Ok(Some(SimpleToken::Ident(keyword))) if keyword == "not");
 
-        // Skip whitespace
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          let _ = tokens.consume_next_token();
-        }
+  let _ = tokens.restore_position(checkpoint);
+  found
+}
 
-        // Check for "and" keyword
-        if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek() {
-          if keyword == "and" {
-            let _ = tokens.consume_next_token(); // consume "and"
+/// The error a spelling CSS does not define earns, whichever of them it is.
+fn uncombinable(what: &str) -> CssParseError {
+  CssParseError::ParseError {
+    message: format!("{what} without parentheses"),
+  }
+}
 
-            // Skip whitespace after "and"
-            while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-              let _ = tokens.consume_next_token();
-            }
+/// Parse an `and`-separated list of media query rules.
+fn parse_and_list(tokens: &mut TokenList) -> Result<AndList, CssParseError> {
+  let leading_not = peeks_bare_not(tokens);
+  let first_rule = (normal_rule_parser().run)(tokens)?;
+  let is_bare_negation = leading_not && matches!(first_rule, MediaQueryRule::Not(_));
 
-            let rule = (normal_rule_parser().run)(tokens)?;
-            rules.push(rule);
-          } else {
-            // Not an "and", restore position and break
-            let _ = tokens.restore_position(checkpoint);
-            break;
-          }
-        } else {
-          // No identifier after whitespace, restore position and break
-          let _ = tokens.restore_position(checkpoint);
-          break;
-        }
-      }
+  let mut rules = vec![first_rule];
+  let mut joined_by_and = false;
 
-      // If we only have one rule, return it directly
-      Ok(collapse_single_rule(rules, |rules| {
-        MediaQueryRule::And(MediaAndRules::new(rules))
-      }))
-    },
-    "and_combinator_parser",
-  )
+  // Parse additional AND rules
+  while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+    // Check if next non-whitespace token is "and"
+    let checkpoint = tokens.save_position();
+    skip_whitespace(tokens);
+
+    // Check for "and" keyword
+    let is_and = matches!(tokens.peek(), Ok(Some(SimpleToken::Ident(keyword))) if keyword == "and");
+    if !is_and {
+      let _ = tokens.restore_position(checkpoint);
+      break;
+    }
+
+    if is_bare_negation {
+      return Err(uncombinable("a `not` condition cannot take an `and`"));
+    }
+
+    let _ = tokens.consume_next_token(); // consume "and"
+    skip_whitespace(tokens);
+
+    let operand_leading_not = peeks_bare_not(tokens);
+    let rule = (normal_rule_parser().run)(tokens)?;
+    if operand_leading_not && matches!(rule, MediaQueryRule::Not(_)) {
+      return Err(uncombinable("an `and` cannot take a `not` condition"));
+    }
+
+    rules.push(rule);
+    joined_by_and = true;
+  }
+
+  // If we only have one rule, return it directly
+  Ok(AndList {
+    rule: collapse_single_rule(rules, |rules| {
+      MediaQueryRule::And(MediaAndRules::new(rules))
+    }),
+    joined_by_and,
+    is_bare_negation,
+  })
 }
 
 /// Normal rule parser that combines all rule types

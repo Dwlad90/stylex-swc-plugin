@@ -2064,3 +2064,99 @@ mod a_disjunction_inside_parentheses {
     );
   }
 }
+
+/// The combinator spellings CSS does not define, and the ones it does.
+///
+/// `<media-condition> = <media-not> | <media-in-parens> [ <media-and>* |
+/// <media-or>* ]` — one condition takes `and`s or `or`s, never both, and a bare
+/// `not` is the whole condition rather than an operand in one. Accepting either
+/// spelling meant inventing a precedence the language does not define and
+/// emitting a query that means something the author did not write.
+///
+/// Every verdict here was compared against `@stylexjs/babel-plugin` 0.19.0,
+/// which refuses each of the refused ones.
+#[cfg(test)]
+mod combinators_css_does_not_define {
+  use super::*;
+
+  fn refuses(query: &str) -> bool {
+    let styles = json!({
+      "color": { "default": "black", query: "red", "@media (max-width: 50px)": "blue" }
+    });
+
+    std::panic::catch_unwind(|| transformed_keys(styles)).is_err()
+  }
+
+  /// Mixing the two combinators at one level, in either order.
+  #[test]
+  fn an_unparenthesized_mix_of_and_and_or_is_refused() {
+    assert!(refuses(
+      "@media (min-width: 1px) and (min-width: 2px) or (min-width: 3px)"
+    ));
+    assert!(refuses(
+      "@media (min-width: 1px) or (min-width: 2px) and (min-width: 3px)"
+    ));
+  }
+
+  /// A bare `not` beside anything, on either side of it.
+  #[test]
+  fn a_bare_negation_cannot_be_combined() {
+    assert!(refuses("@media not (min-width: 1px) and (min-width: 2px)"));
+    assert!(refuses("@media not (min-width: 1px) or (min-width: 2px)"));
+    assert!(refuses("@media (min-width: 2px) and not (min-width: 1px)"));
+    assert!(refuses("@media (min-width: 2px) or not (min-width: 1px)"));
+    assert!(refuses(
+      "@media not (min-width: 1px) or not (min-width: 2px)"
+    ));
+  }
+
+  /// Parentheses are what make the same operands legal, and they are the whole
+  /// difference — so each of these is the refused spelling with brackets added.
+  #[test]
+  fn parentheses_make_the_same_operands_legal() {
+    assert!(!refuses(
+      "@media ((min-width: 1px) and (min-width: 2px)) or (min-width: 3px)"
+    ));
+    assert!(!refuses(
+      "@media (min-width: 1px) or ((min-width: 2px) and (min-width: 3px))"
+    ));
+    assert!(!refuses(
+      "@media (not (min-width: 1px)) and (min-width: 2px)"
+    ));
+    assert!(!refuses(
+      "@media (not (min-width: 1px)) or (not (min-width: 2px))"
+    ));
+  }
+
+  /// A leading `not` before a media type is a different construct — a media
+  /// query rather than a condition — and it combines with `and` as it always
+  /// has. The refusal above must not reach it.
+  #[test]
+  fn a_negated_media_type_still_takes_an_and() {
+    assert!(!refuses("@media not screen"));
+    assert!(!refuses("@media not screen and (min-width: 1px)"));
+    assert!(!refuses("@media only screen and (min-width: 1px)"));
+  }
+
+  /// Nesting parentheses around a single condition stays accepted, and this is
+  /// the one shape where the two compilers still disagree — deliberately.
+  /// `( <media-condition> )` is what CSS says a condition in parentheses is,
+  /// and a condition may itself be one, so `((min-width: 1px))` is valid.
+  /// Refusing it to match would mean rejecting correct CSS.
+  #[test]
+  fn nested_parentheses_around_one_condition_stay_accepted() {
+    assert_eq!(
+      transformed_keys(json!({
+        "color": { "default": "black", "@media ((min-width: 1px))": "red" }
+      })),
+      vec!["default", "@media (min-width: 1px)"]
+    );
+
+    assert_eq!(
+      transformed_keys(json!({
+        "color": { "default": "black", "@media (((((min-width: 1px)))))": "red" }
+      })),
+      vec!["default", "@media (min-width: 1px)"]
+    );
+  }
+}

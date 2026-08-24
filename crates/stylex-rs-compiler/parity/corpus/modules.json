@@ -1775,6 +1775,22 @@
       "note": "Rewritten keys are written into a map, so the second entry to reach a key replaces the first entry's value and keeps its position -- and one authored declaration, `red`, is absent from the output. The collision straddles the `min-height` key, so the surviving position is observable rather than incidental. Recorded here rather than only in the Rust suites because the rule count is the thing being compared, and this is the seam that compares it against the reference implementation instead of against our own belief about it."
     },
     {
+      "id": "modules-1268-comma-binds-looser-than-or",
+      "label": "a `@media` list whose comma segments each hold their own combinator",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: {\n    color: {\n      default: 'black',\n      '@media (min-width: 1px) and (min-width: 2px), (min-width: 3px) or (min-width: 1px)': 'c0',\n      '@media screen, (min-width: 1px) or (min-width: 2px)': 'c1',\n      '@media (max-width: 50px)': 'c2',\n    },\n  },\n});\n",
+      "origin": "issue #1268, ticket 13 -- the grammar sweep",
+      "expected": "identical",
+      "note": "Comma and `or` both mean disjunction and both reach the same `Or` node, but `or` groups inside a comma segment and the segments group above it. The last-media-query-wins transform distributes negations over whatever the top-level `Or` holds, so flattening the two spread them over the wrong number of disjuncts and emitted a different rule under a different class name -- with both compilers accepting the query and neither saying anything."
+    },
+    {
+      "id": "modules-1268-parenthesized-disjunction",
+      "label": "a `@media` disjunction inside parentheses, in each position it can take",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: {\n    color: {\n      default: 'black',\n      '@media ((min-width: 1px) or (min-width: 2px))': 'c0',\n      '@media ((min-width: 1px) or (min-width: 2px)) and (min-width: 3px)': 'c1',\n      '@media not ((min-width: 1px) or (min-width: 2px))': 'c2',\n      '@media (max-width: 50px)': 'c3',\n    },\n  },\n});\n",
+      "origin": "issue #1268, ticket 13 -- the grammar sweep",
+      "expected": "identical",
+      "note": "`( <media-condition> )` is a media query in its own right and a condition may hold an `or`, so all three are valid CSS -- and this compiler refused them. Worth pinning for the second half too: the parentheses that made the query parseable do not survive serialization, so the middle key prints as though the `and` bound tighter than the `or`. That is the reference implementation's output and the class name hashes it."
+    },
+    {
       "id": "modules-an-accented-attribute-selector-sorts-between-its-neighbours",
       "label": "an accented attribute selector nested between two ASCII neighbours",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  w: { color: { '[data-e]': { '[data-état]': { '[data-f]': 'red' } } } },\n});\n",

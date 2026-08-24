@@ -510,22 +510,69 @@ pub fn validate_media_query(input: &str) -> Result<MediaQuery, String> {
   }
 }
 
-/// Check if parentheses are balanced
+/// Whether every parenthesis in `input` closes, counting only the ones that are
+/// syntax.
+///
+/// The check exists because the tokenizer synthesizes a closing parenthesis at
+/// end of input, so `(min-width: 100px` parses cleanly and would reach the
+/// stylesheet as a query nobody wrote. The reference implementation's tokenizer
+/// synthesizes nothing and its parse fails on the same input, so this is how the
+/// two arrive at the same refusal.
+///
+/// A parenthesis inside a string, or one written as the escape `\(`, is a
+/// character rather than syntax and is skipped -- which the reference
+/// implementation's own counter does not do. Counting those too would refuse
+/// queries it accepts, and refusing too much is a divergence like any other.
+/// An unterminated string is unbalanced in its own right: it swallows the rest
+/// of the query, including whatever would have closed the parenthesis it sits
+/// in.
 fn has_balanced_parens(input: &str) -> bool {
-  let mut count = 0;
-  for ch in input.chars() {
+  let mut depth: i32 = 0;
+  let mut chars = input.chars();
+
+  while let Some(ch) = chars.next() {
     match ch {
-      '(' => count += 1,
+      // A backslash escapes whatever follows, including a quote or a paren.
+      '\\' => {
+        if chars.next().is_none() {
+          return false;
+        }
+      },
+      '"' | '\'' => {
+        if !skip_string(&mut chars, ch) {
+          return false;
+        }
+      },
+      '(' => depth += 1,
       ')' => {
-        count -= 1;
-        if count < 0 {
+        depth -= 1;
+        if depth < 0 {
           return false;
         }
       },
       _ => {},
     }
   }
-  count == 0
+
+  depth == 0
+}
+
+/// Consume up to and including the `quote` that ends a string, reporting
+/// whether one was found before the input ran out.
+fn skip_string(chars: &mut std::str::Chars<'_>, quote: char) -> bool {
+  while let Some(ch) = chars.next() {
+    match ch {
+      '\\' => {
+        if chars.next().is_none() {
+          return false;
+        }
+      },
+      c if c == quote => return true,
+      _ => {},
+    }
+  }
+
+  false
 }
 
 /// The dimensions whose `min-`/`max-` bounds merge into a single interval.
@@ -687,8 +734,13 @@ impl DimensionIntervals {
 /// build that dies. Eighteen is chosen against output size rather than against
 /// stack depth, because depth is not what runs out: a bound generous enough to
 /// permit 26 rungs would permit a 63 MB single query. Real ladders are a
-/// handful of rungs; the measured curve is in
-/// `.scratch/fix_media-query-order-wrapping/evidence/give-up-length.md`.
+/// handful of rungs.
+///
+/// What this caps is one `and` list, which is what the boundary is crossed
+/// once for -- so a query holding several, such as a comma-separated
+/// disjunction, costs that many times as much. See
+/// [ADR 0001](../../docs/adr/0001-the-official-compilers-output-wins.md) for
+/// the measurements and for what is not capped.
 const MAX_DISTRIBUTION_DEPTH: u32 = 18;
 
 /// How many times distributing `rules` can split before it runs out of clauses.

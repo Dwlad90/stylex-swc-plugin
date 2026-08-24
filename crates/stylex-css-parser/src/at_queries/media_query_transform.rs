@@ -189,7 +189,16 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     later_queries.push(parsed_media_queries[i].clone());
   }
 
+  // `shift_remove` keeps the surviving entries in order, which is the whole
+  // point, and costs a shift each time -- so this loop is quadratic in the
+  // number of properties at one level. That is the right trade at the sizes a
+  // style object reaches; the expensive thing here is the expansion below, not
+  // the bookkeeping.
   for (i, media_key) in media_keys.iter().enumerate() {
+    // The keys came from this map and nothing removes one but this line, so a
+    // miss cannot happen. Skipping rather than asserting keeps a future caller
+    // that finds a way from taking the process down over a key it could
+    // simply leave alone.
     let Some(current) = entries.shift_remove(media_key) else {
       continue;
     };

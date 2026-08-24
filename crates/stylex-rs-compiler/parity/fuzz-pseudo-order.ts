@@ -191,6 +191,7 @@ async function run(): Promise<void> {
   let compared = 0;
   let refused = 0;
   let localeShifted = 0;
+  let unreadable = 0;
 
   for (let index = 0; index < pairs; index += 1) {
     const left = key();
@@ -245,7 +246,23 @@ async function run(): Promise<void> {
     // upstream reaches. Read off the selector, which is the sorted keys spelled
     // out, so this asks the comparator rather than the hash.
     const selector = selectorOf(entry.rust);
-    const leadsHere = selector.indexOf(left) < selector.indexOf(right);
+    const leftAt = selector.indexOf(left);
+    const rightAt = selector.indexOf(right);
+
+    // Both keys have to be findable in the selector for their order to be read
+    // off it. A key the emitter escaped is not there verbatim, and `indexOf`
+    // answers -1 for it -- so `-1 < -1` would read as "left does not lead",
+    // which agrees with root collation on about half of such pairs and reports
+    // nothing on the rest. That is the failure mode this whole harness exists to
+    // avoid, so an unreadable pair is counted and fails the run rather than
+    // being silently credited. The first check above already covered this pair
+    // by class name; it is only the order that cannot be read.
+    if (leftAt < 0 || rightAt < 0) {
+      unreadable += 1;
+      continue;
+    }
+
+    const leadsHere = leftAt < rightAt;
     const leadsInRoot = rootCollator.compare(left, right) < 0;
     if (leadsHere !== leadsInRoot) {
       disagreements.push({
@@ -263,6 +280,7 @@ async function run(): Promise<void> {
       `  compared               ${compared}\n` +
       `  skipped (refused)      ${refused}   ${chalk.gray('(neither reached the sort)')}\n` +
       `  ${chalk.bold('disagreements')}          ${disagreements.length}\n` +
+      `  unreadable order       ${unreadable}   ${chalk.gray('(a key the selector does not spell verbatim)')}\n` +
       `  default locale differs ${localeShifted}   ${chalk.gray("(pairs where a bare localeCompare would not answer root's order)")}`
   );
 
@@ -274,10 +292,21 @@ async function run(): Promise<void> {
     return;
   }
 
+  if (unreadable > 0) {
+    console.error(
+      chalk.red(
+        `\n${unreadable} pair${unreadable === 1 ? '' : 's'} had an order this run could not read off the selector,\n` +
+          'so that many pairs went unchecked. Escaped keys are the likely cause: match the\n' +
+          "emitter's escaping in `selectorOf`, or narrow the alphabet. That is a failure."
+      )
+    );
+    process.exitCode = 1;
+  }
+
   if (localeShifted > 0) {
     console.log(
       chalk.gray(
-        '\nThe default-locale count is the remainder `pre_rule.rs` names, not a defect: upstream\n' +
+        '\nThe default-locale count is the remainder the collation ADR names, not a defect: upstream\n' +
           'calls `localeCompare` bare, so its answer follows the build machine. A non-zero count\n' +
           'here means this machine tailors some of the characters in play, and the two compilers\n' +
           'would name different classes for those pairs however correct this comparator is.'

@@ -231,6 +231,19 @@ const properties =
     ? PROPERTIES.filter(name => selected.includes(name))
     : PROPERTIES;
 
+// A `--property` nobody spells correctly selects nothing, and a sweep over
+// nothing finds no unexpected row and exits 0 -- a typo reading as a pass. The
+// curated harnesses both refuse an empty selection for the same reason.
+if (properties.length === 0) {
+  console.error(
+    chalk.red(
+      `No property matches ${JSON.stringify(selected)}.\n` +
+        `Known properties: ${PROPERTIES.join(', ')}`
+    )
+  );
+  process.exit(1);
+}
+
 /**
  * Every generated value: one fragment alone, and every ordered pair of
  * fragments with every joiner between them.
@@ -309,6 +322,16 @@ const diverged = results.filter(result => !agreed.has(result.verdict));
  */
 const pinned = groupByFamily(diverged);
 const unexpected = diverged.filter(result => familyOf(result) === undefined);
+
+// A family nothing reached is deliberately *not* checked here, though it is the
+// other way an expectation stops measuring and the curated harness does fail on
+// it. This sweep is broader in volume but narrower in kind: it generates
+// shorthand values for eight properties, so it structurally cannot produce a
+// custom-property name, a lone surrogate in a key, nesting past the recursion
+// budget, or a key off `Object.prototype`. Measured -- those four families go
+// unreached on every run. Checking here would fail the nightly sweep for a
+// reason that is a property of the alphabet rather than of the compiler, so the
+// check stays with the corpus that can actually reach every family.
 
 const byVerdict = new Map<string, number>();
 for (const result of results) {

@@ -244,7 +244,12 @@ async function run(): Promise<void> {
       `  acceptance divergent   ${summary['acceptance-divergent']}   ${chalk.gray('(one compiler rejected)')}\n` +
       `  both reject            ${summary['both-reject']}\n` +
       `  both reject (diverged) ${summary['both-reject-divergent']}   ${chalk.gray('(both refused, for reasons worded differently)')}\n` +
-      `  expected               ${summary.expected}   ${chalk.gray('(divergences already looked at)')}\n` +
+      // Not "divergences already looked at": most of these are pinned
+      // *agreements*. Of the 220 entries carrying an `expected` verdict, 197 are
+      // `identical`, `identical-empty` or `both-reject` -- recorded so a
+      // regression on them reads as `changed` rather than going quiet, which is
+      // the field's other and larger use.
+      `  expected               ${summary.expected}   ${chalk.gray('(the verdict the entry recorded, agreement or divergence)')}\n` +
       `  pinned                 ${summary.pinned}   ${chalk.gray('(a refusal family accounts for them)')}\n` +
       `  changed                ${summary.changed}   ${chalk.gray('(no longer the recorded verdict)')}\n` +
       `  ${chalk.bold('unexpected')}             ${summary.unexpected}   ${chalk.gray('(neither agreement nor accounted for — the number to act on)')}`

@@ -165,7 +165,17 @@ async function run(): Promise<void> {
   const pairs = countFlag('--pairs', cliOptions.pairs, 1000, 1_000_000);
   const show = countFlag('--show', cliOptions.show, 20, 10_000);
 
-  const comparer = await createComparer({ packageDir, enableFontSizePxToRem: false });
+  // The resolution is passed explicitly, and printed below, though ordering does
+  // not depend on it. `lib/compare.ts` argues that a report which does not name
+  // the resolution it measured cannot be compared with another one, and both
+  // other harnesses pass it; leaving it off here made this the one report whose
+  // configuration a reader had to infer. That ordering is resolution-independent
+  // is the reason it is safe, which is worth one line rather than a silence.
+  const comparer = await createComparer({
+    packageDir,
+    enableFontSizePxToRem: false,
+    styleResolution: 'property-specificity',
+  });
   // The printed seed was decorative while it could not be given back: a failing
   // pair could be read but not re-run, and the same 1000 pairs were the only
   // ones ever measured. A bad value is refused rather than defaulted, so a typo
@@ -191,6 +201,7 @@ async function run(): Promise<void> {
       ['seed', `0x${seed.toString(16)}`],
       ['alphabet', `${ALPHABET.length} characters, ASCII through U+036F`],
       ['reference ordering', `Intl.Collator('und'), root`],
+      ['style resolution', String(comparer.options.styleResolution)],
       // The ADR leaves the CLDR data version uncosted. Printed so a run that
       // disagrees with another machine's says which data each measured with.
       ['icu', process.versions.icu ?? 'not reported'],

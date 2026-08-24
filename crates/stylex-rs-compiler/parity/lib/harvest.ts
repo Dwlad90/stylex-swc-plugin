@@ -329,6 +329,24 @@ function extractStyleObjects(file: ScannedFile): DeclarationEntry[] {
       const property = unquote(match[1]!);
       const value = unquote(match[2]!);
       if (!isCssProperty(property)) continue;
+      // A JavaScript-style interpolation is skipped because the value it stands
+      // for is not in the source; a *Rust* format placeholder is not skipped,
+      // and deliberately.
+      //
+      // Twelve harvested values carry one -- `calc({deep})`,
+      // `0px 0px {n}px #000`, and message templates such as
+      // ``normalizing `color: {expected}` ``. They read as noise, and it is
+      // tempting to filter them, but ten of the twelve are
+      // `acceptance-divergent` and every one of those is pinned by the
+      // declaration-terminating token family *on its merits*: a `{` in a value
+      // really would close the rule being generated, the guard really does refuse
+      // it, and the reference compiler really does emit it. They are degenerate
+      // subjects and honest members of that family.
+      //
+      // Filtering on `{word}` would also drop
+      // `url("a;b{c}d: e /* f */")`, which is an authored test value where the
+      // braces are literal text. So the noise is left in rather than traded for
+      // a filter that removes a real subject.
       if (value.includes('${')) continue;
       if (value.trim() === '') continue;
       entries.push(entry(property, value, `${file.relativePath}:${literal.line}`));

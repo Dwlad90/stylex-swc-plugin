@@ -287,7 +287,12 @@ function corpus(): LoadedCorpusEntry[] {
 
 /** One alphabet half, as the line the report prints for it. */
 function labelled(name: string, entries: readonly AlphabetEntry[]): string {
-  return chalk.dim(`  ${name}: ${entries.map(member => member.label).join(', ')}`);
+  // Joined on a separator no label contains. Several labels are themselves
+  // comma-separated -- `dimension, trailing-zero digits`, `quoted string,
+  // double` -- so a comma-joined list of them read as half again as many classes
+  // as the count printed directly above it. The alphabet line is what the report
+  // offers as its claim about coverage, so it has to be countable by eye.
+  return chalk.dim(`  ${name}: ${entries.map(member => member.label).join(' · ')}`);
 }
 
 /** What one compiler did with one subject, as a single report cell. */

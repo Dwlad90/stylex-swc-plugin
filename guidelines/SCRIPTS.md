@@ -133,8 +133,10 @@ Which harness runs where, and why:
 - `parity`: runs a corpus of CSS declarations through this compiler and through
   a pinned `@stylexjs/babel-plugin`, and reports which ones disagree on class
   name or rule text. Flags: `--only-mismatches`, repeatable `--set`
-  (`reported|edge|harvested`), `--filter <substring>`, `--json <path>`,
-  `--font-size-px-to-rem`.
+  (`reported|modules|edge|harvested`), `--filter <substring>`, `--json <path>`,
+  `--font-size-px-to-rem`, `--style-resolution <name>`
+  (`application-order|property-specificity|legacy-expand-shorthands`, default
+  `property-specificity`).
 - `parity:harvest`: regenerates `parity/corpus/harvested.json` from the Rust
   test suites. `--check` fails instead of writing when it is out of date, and
   runs as the first half of this package's `test` script. Regenerating also

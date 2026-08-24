@@ -552,8 +552,14 @@ fn dimension_constraint<'a>(
   }
 }
 
-/// How far a negated bound is nudged past the value it excludes: `not
-/// (min-width: 600px)` is `max-width: 599.99px`.
+/// How far an exclusive bound is nudged past the value it excludes.
+///
+/// Two callers, one number. A negated bound is the first: `not (min-width:
+/// 600px)` is `max-width: 599.99px`. A strict inequality is the second: `(width
+/// > 400px)` is `min-width: 400.01px`, and `(400px < width <= 700px)` nudges its
+/// lower bound the same way. Both are the same question -- how to spell "not
+/// this value" in a syntax that only has inclusive bounds -- so they read one
+/// constant rather than three copies of it.
 const EPSILON: f64 = 0.01;
 
 /// The interval a single constraint imposes on its dimension.
@@ -1300,7 +1306,6 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       if !has_equals {
-        const EPSILON: f64 = 0.01;
         if op == '>' {
           // (width > 400px) -> min-width: 400.01px
           dimension.value += EPSILON;
@@ -1458,7 +1463,6 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
 
       let mut adjusted_dimension = dimension;
       if !has_equals {
-        const EPSILON: f64 = 0.01;
         adjust_reversed_inequality_dimension(&mut adjusted_dimension, op, EPSILON);
       }
 
@@ -1677,7 +1681,6 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       let max_key = format!("max-{}", key);
 
       // Adjust values with epsilon only for strict inequalities
-      const EPSILON: f64 = 0.01;
 
       // Determine which dimension is min vs max based on the operators
       // For (A op1 width op2 B), we need to map to min/max constraints

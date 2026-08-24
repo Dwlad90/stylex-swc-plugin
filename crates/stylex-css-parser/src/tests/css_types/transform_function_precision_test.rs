@@ -270,3 +270,34 @@ mod malformed_and_extreme_input {
     assert_eq!(printed!(&huge), "scaleX(Infinity)");
   }
 }
+
+/// The reference compiler's own `matrix` and `matrix3d` cases, ported verbatim.
+///
+/// Its suite asserts the parsed *value* -- `new Matrix(0.4, 0, 0.5, 1.2, 60,
+/// 10)` -- where this one asserts the printed text, because the text is what
+/// reaches a class name. They say the same thing: the arguments are reprinted
+/// from the number, not echoed from the source, so `1.200` prints as `1.2` and
+/// `.4` as `0.4`. Worth having verbatim because these are the whitespace and
+/// leading-dot shapes the prefix scanner reads, and nothing else in this file
+/// reaches them.
+///
+/// Source: `style-value-parser/src/css-types/__tests__/transform-function-test.js`.
+#[test]
+fn the_reference_compilers_own_matrix_cases() {
+  assert_eq!(
+    printed!("matrix(1.2,0.2,  -1, 0.9, 0, 20 )"),
+    "matrix(1.2, 0.2, -1, 0.9, 0, 20)"
+  );
+  assert_eq!(
+    printed!("matrix(\n.4,0,0.5,1.200,60,10   )"),
+    "matrix(0.4, 0, 0.5, 1.2, 60, 10)"
+  );
+  assert_eq!(
+    printed!("matrix(0.1, 1, -0.3, 1, 0, 0)"),
+    "matrix(0.1, 1, -0.3, 1, 0, 0)"
+  );
+  assert_eq!(
+    printed!("matrix3d(-0.6,1.34788,0,0,-2.34788,-.6,0, 0,0,0,1,0,0,0,10,1)"),
+    "matrix3d(-0.6, 1.34788, 0, 0, -2.34788, -0.6, 0, 0, 0, 0, 1, 0, 0, 0, 10, 1)"
+  );
+}

@@ -276,3 +276,35 @@ mod malformed_and_extreme_input {
     assert_eq!(printed!(&huge), "cubic-bezier(Infinity, 0, 1, 1)");
   }
 }
+
+/// The reference compiler's own `cubic-bezier` and `steps` cases, ported
+/// verbatim.
+///
+/// The accepted shape is the one worth having: whitespace around each argument
+/// and a leading-dot control point, which is what the prefix scanner reads and
+/// what nothing else in this file exercises. The refusals come with it because
+/// an arity or separator this compiler tolerated where the reference compiler
+/// refuses would be as much a divergence as a misprinted number.
+///
+/// Source: `style-value-parser/src/css-types/__tests__/easing-function-test.js`.
+#[test]
+fn the_reference_compilers_own_easing_cases() {
+  assert_eq!(
+    printed!("cubic-bezier(1,1,1,1)"),
+    "cubic-bezier(1, 1, 1, 1)"
+  );
+  assert_eq!(
+    printed!("cubic-bezier( 1.5 ,    1 ,    .1 , 1 )"),
+    "cubic-bezier(1.5, 1, 0.1, 1)"
+  );
+
+  // Wrong arity, a missing separator, and two names that are not easing
+  // functions at all.
+  refused!("linear(1 2 3)");
+  refused!("cubic-bezier(1, 2, 3)");
+  refused!("cubic-bezier(1, 2, 3, 4, 5)");
+  refused!("cubic-bezier(1 .25 1 .25)");
+  refused!("out-ease");
+  refused!("linear()");
+  refused!("steps(1, 2)");
+}

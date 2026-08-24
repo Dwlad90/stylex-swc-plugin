@@ -44,15 +44,18 @@ _Avoid_: single precision, f32 value
 
 **Echoed value**:
 Text emitted with the bytes the author wrote, rather than reprinted from a
-value this crate computed — a transform's arguments and an easing curve's
-control points, which are printed as given. The official compiler echoes there
-too, so the target is the source text and not any rendering of the number it
-denotes: `1E2px` stays `1E2px`, and a double cannot hold that, because it cannot
-hold a spelling. This is the one numeric path the double-precision rule above
-does not govern, and reaching for the formatter here _causes_ a divergence
-rather than closing one. The shorthand expansion path echoes as well and no
-longer echoes through this crate — see
-[value part](../stylex-css/CONTEXT.md).
+value some crate computed. **No path in this crate echoes** — the entry is here
+so that a reader who has met the term elsewhere does not go looking for it in
+the wrong place. Every numeric type here holds a double and reprints it through
+the formatter, which is what the reference compiler does too: it stores a
+`number` and interpolates it, so `matrix(1.200, …)` is `matrix(1.2, …)` on both
+sides and `.4` becomes `0.4`. The reference compiler's own transform and easing
+cases are ported verbatim and assert exactly that.
+
+Echoing happens one crate over, on the shorthand expansion path, where the unit
+is a [value part](../stylex-css/CONTEXT.md) rather than a number — `1E2px` stays
+`1E2px` there, because a double cannot hold a spelling. Reaching for the
+formatter _there_ causes a divergence; reaching for it here closes one.
 _Avoid_: passthrough, verbatim, raw
 
 **Precision suite**:

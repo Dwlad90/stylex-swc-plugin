@@ -558,3 +558,44 @@ fn a_separator_standing_alone_is_a_part_and_not_an_empty_one() {
   assert_eq!(parts("; 1px"), [";", "1px"]);
   assert_eq!(parts("1px;2px"), ["1px;2px"]);
 }
+
+// ── The reference compiler's own cases ──────────────────────────────
+
+/// Every case from the reference compiler's `splitValue` suite, in its order.
+///
+/// Ported verbatim rather than paraphrased. The cases above were written to
+/// exercise this port's own decisions, which means they were chosen by someone
+/// who already knew where the seams are; these were chosen by whoever wrote the
+/// function, and two of them reach shapes nothing above does — a `div` inside a
+/// function, and an anonymous parenthesised group. That is exactly the node-kind
+/// logic this module cuts on, so they are the cases most worth having.
+///
+/// Source: `shared/utils/__tests__/split-css-value-test.js`.
+#[test]
+fn the_reference_compilers_own_split_cases() {
+  // simple space-separated numbers
+  assert_eq!(parts("0 1 2 3"), ["0", "1", "2", "3"]);
+  // simple space-separated lengths
+  assert_eq!(parts("0px 1rem 2% 3em"), ["0px", "1rem", "2%", "3em"]);
+  // simple comma-separated numbers
+  assert_eq!(parts("0, 1, 2, 3"), ["0", "1", "2", "3"]);
+  // simple comma-separated lengths
+  assert_eq!(parts("0px, 1rem, 2%, 3em"), ["0px", "1rem", "2%", "3em"]);
+
+  // "Does not lists within functions" -- a function is one part however many
+  // separators sit inside it, and the `/` in the second is the `div` node kind
+  // that ends a part at the top level and does not here.
+  assert_eq!(parts("rgb(255 200 0)"), ["rgb(255 200 0)"]);
+  assert_eq!(parts("rgb(255 200 / 0.5)"), ["rgb(255 200/0.5)"]);
+
+  // "Does not lists within calc" -- the second reaches an anonymous
+  // parenthesised group, which is a node kind of its own rather than a function.
+  assert_eq!(
+    parts("calc((100% - 50px) * 0.5)"),
+    ["calc((100% - 50px) * 0.5)"]
+  );
+  assert_eq!(
+    parts("calc((100% - 50px) * 0.5) var(--rightpadding, 20px)"),
+    ["calc((100% - 50px) * 0.5)", "var(--rightpadding,20px)"]
+  );
+}

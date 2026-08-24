@@ -554,12 +554,15 @@ fn dimension_constraint<'a>(
 
 /// How far an exclusive bound is nudged past the value it excludes.
 ///
-/// Two callers, one number. A negated bound is the first: `not (min-width:
-/// 600px)` is `max-width: 599.99px`. A strict inequality is the second: `(width
-/// > 400px)` is `min-width: 400.01px`, and `(400px < width <= 700px)` nudges its
-/// lower bound the same way. Both are the same question -- how to spell "not
-/// this value" in a syntax that only has inclusive bounds -- so they read one
-/// constant rather than three copies of it.
+/// Two callers, one number.
+///
+/// A negated bound is the first: `not (min-width: 600px)` is
+/// `max-width: 599.99px`. A strict inequality is the second: a `width` greater
+/// than `400px` is `min-width: 400.01px`, and `(400px < width <= 700px)` nudges
+/// its lower bound the same way.
+///
+/// Both ask how to spell "not this value" in a syntax that has only inclusive
+/// bounds, so they read one constant rather than three copies of it.
 const EPSILON: f64 = 0.01;
 
 /// The interval a single constraint imposes on its dimension.

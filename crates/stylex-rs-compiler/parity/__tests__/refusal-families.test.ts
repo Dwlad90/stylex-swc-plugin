@@ -42,7 +42,8 @@ function subject(
   verdict: Verdict,
   rust: CompilerOutcome,
   babel: CompilerOutcome,
-  property = 'color'
+  property = 'color',
+  value = 'red'
 ): ReportEntry {
   return {
     kind: 'declaration',
@@ -50,12 +51,15 @@ function subject(
     id: 'test',
     origin: 'refusal-families.test.ts',
     property,
-    value: 'red',
+    value,
     verdict,
     rust,
     babel,
   };
 }
+
+/** The complaint the declaration-terminating token guard writes. */
+const TERMINATOR_REFUSAL = 'Rule contains a `{`, `}` or `;` outside of a string or comment';
 
 /** The name of the family that claimed `entry`, for a readable expectation. */
 function nameOf(entry: ReportEntry): string | undefined {
@@ -63,16 +67,31 @@ function nameOf(entry: ReportEntry): string | undefined {
 }
 
 describe('what a family claims', () => {
-  test('a value refused for a declaration-terminating token', () => {
+  test('a value refused for a declaration-terminating token it actually carries', () => {
     expect(
       nameOf(
-        subject(
-          'acceptance-divergent',
-          refused('Rule contains a `{`, `}` or `;` outside of a string or comment'),
-          ACCEPTED
-        )
+        subject('acceptance-divergent', refused(TERMINATOR_REFUSAL), ACCEPTED, 'color', 'red;blue')
       )
     ).toBe('declaration-terminating token');
+  });
+
+  test('a module subject refused for the token, which has no value to scan', () => {
+    // A module carries a whole source rather than one authored value, so the
+    // shape check has nothing to read and the diagnostic is the whole claim.
+    const entry: ReportEntry = {
+      kind: 'module',
+      set: 'test',
+      id: 'test',
+      origin: 'refusal-families.test.ts',
+      name: 'a module refused for the token',
+      note: 'the module arm of the family',
+      source: 'export const x = 1;',
+      verdict: 'acceptance-divergent',
+      rust: refused(TERMINATOR_REFUSAL),
+      babel: ACCEPTED,
+    };
+
+    expect(nameOf(entry)).toBe('declaration-terminating token');
   });
 
   test('a value refused for an unclosed comment', () => {
@@ -331,6 +350,67 @@ describe('what a family leaves as news', () => {
   });
 });
 
+describe('a family will not vouch for a refusal it has no evidence for', () => {
+  // The failure mode these guard against is the one the families exist to avoid
+  // in reverse: not a family too narrow to claim its row, but one so broad it
+  // absorbs a genuine over-refusal into the column a reader is told not to act
+  // on. Both of these were live.
+
+  test('an escaped terminator is not a terminator, so the family declines it', () => {
+    // `A\;B` is an escaped semicolon: it closes nothing, and the reference
+    // compiler emits `font-family:A\;B`. It sat pinned under this family until
+    // the guard was fixed, which is the whole reason the shape is checked. Were
+    // the over-refusal to return, this row would be news again.
+    expect(
+      nameOf(
+        subject(
+          'acceptance-divergent',
+          refused(TERMINATOR_REFUSAL),
+          ACCEPTED,
+          'fontFamily',
+          'A\\;B'
+        )
+      )
+    ).toBeUndefined();
+  });
+
+  test('a terminator inside a string is not one either', () => {
+    expect(
+      nameOf(
+        subject('acceptance-divergent', refused(TERMINATOR_REFUSAL), ACCEPTED, 'content', '";"')
+      )
+    ).toBeUndefined();
+  });
+
+  test('a reference crash beside a Rust refusal the family does not name', () => {
+    // Under `both-reject-divergent` the family reads only the reference side. A
+    // Rust refusal it has never been shown — a reworded guard, a new
+    // over-refusal, a panic surfaced as a throw — must not be pinned merely
+    // because the reference compiler crashed on the same value.
+    expect(
+      nameOf(
+        subject(
+          'both-reject-divergent',
+          refused('Some complaint nobody has read yet'),
+          refused("Cannot read properties of undefined (reading 'type')")
+        )
+      )
+    ).toBeUndefined();
+  });
+
+  test('a reference crash beside a Rust refusal the family does name', () => {
+    expect(
+      nameOf(
+        subject(
+          'both-reject-divergent',
+          refused('Rule contains an unclosed comment'),
+          refused("Cannot read properties of undefined (reading 'type')")
+        )
+      )
+    ).toBe('reference TypeError');
+  });
+});
+
 describe('a broken expectation reports loudly', () => {
   test('a reworded diagnostic stops being pinned and becomes news', () => {
     // The gate, demonstrated rather than assumed. A family is recognized by the
@@ -362,11 +442,7 @@ describe('a broken expectation reports loudly', () => {
     // The state the checked-in corpus is in, asserted here so the case that
     // matters — an empty list — is covered by something cheaper than a full run.
     const everyFamily = [
-      subject(
-        'acceptance-divergent',
-        refused('Rule contains a `{`, `}` or `;` outside of a string or comment'),
-        ACCEPTED
-      ),
+      subject('acceptance-divergent', refused(TERMINATOR_REFUSAL), ACCEPTED, 'color', 'red;blue'),
       subject('acceptance-divergent', refused('Rule contains an unclosed comment'), ACCEPTED),
       subject('acceptance-divergent', refused('Unprefixed custom properties: var(x)'), ACCEPTED),
       subject(

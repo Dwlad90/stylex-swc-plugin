@@ -118,6 +118,63 @@ function refusedWith(entry: ReportEntry, refusal: string): boolean {
 }
 
 /**
+ * Whether `value` carries a token that would close the declaration being
+ * generated: a `;`, `{` or `}` that is neither escaped nor inside a string.
+ *
+ * The family below is the refusal *plus* this, not the refusal alone. Claiming
+ * on the diagnostic by itself absorbs every false positive of the guard into the
+ * column a reader is told not to act on — and it did: `A\;B` is an escaped
+ * semicolon that closes nothing, the reference compiler emits it, and it sat
+ * pinned here as a divergence produced on purpose until the guard was fixed.
+ *
+ * Deliberately the *shape*, not a second copy of the guard. It does not need to
+ * agree with the Rust scan on every input to do its job; it needs to be
+ * unwilling to vouch for a refusal it has no evidence for.
+ */
+function carriesUnescapedTerminator(value: string): boolean {
+  let quote: '"' | "'" | undefined;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+
+    if (character === '\\') {
+      index += 1;
+      continue;
+    }
+
+    if (quote !== undefined) {
+      if (character === quote) quote = undefined;
+      continue;
+    }
+
+    if (character === '"' || character === "'") {
+      quote = character;
+      continue;
+    }
+
+    if (character === ';' || character === '{' || character === '}') return true;
+  }
+
+  return false;
+}
+
+/**
+ * The complaints this compiler is known to reach on a value the reference
+ * compiler crashes on.
+ *
+ * Named rather than accepted wholesale. Under `both-reject-divergent` both sides
+ * refused, and the family reads only the reference side's sentence — so a Rust
+ * refusal it does not name (a reworded guard, a new over-refusal, a panic
+ * surfaced as a throw) would be pinned as a crash declined rather than reported
+ * as news, the moment the reference compiler happened to hit its `TypeError` on
+ * the same value.
+ */
+const LOCAL_REFUSALS_BESIDE_A_REFERENCE_CRASH: readonly string[] = [
+  REFUSALS.ruleBreakingToken,
+  REFUSALS.unclosedComment,
+];
+
+/**
  * Every deliberate divergence, in the order the reports group them.
  *
  * Ordered most-populated first, because the order is what a reader scans: the
@@ -147,7 +204,13 @@ export const REFUSAL_FAMILIES: readonly RefusalFamily[] = [
       'its own. The reference compiler has no equivalent guard and emits the token; this is ' +
       'one of the two families agreement is not wanted on.',
     verdicts: ['acceptance-divergent'],
-    claims: entry => refusedWith(entry, REFUSALS.ruleBreakingToken),
+    // The refusal *and* the evidence for it, the way `style key off
+    // Object.prototype` below is the shape rather than the key name. A module
+    // subject has no single authored value to scan, so it is claimed on the
+    // diagnostic alone.
+    claims: entry =>
+      refusedWith(entry, REFUSALS.ruleBreakingToken) &&
+      (entry.kind === 'module' || carriesUnescapedTerminator(entry.value)),
   },
   {
     name: 'reference TypeError',
@@ -159,7 +222,13 @@ export const REFUSAL_FAMILIES: readonly RefusalFamily[] = [
       'or refuses it for a fault of its own, which is the same divergence read under a ' +
       'both-reject verdict rather than an acceptance one.',
     verdicts: ['acceptance-divergent', 'both-reject-divergent'],
-    claims: entry => sentenceOf(entry, 'babel') === REFERENCE_TYPE_ERROR,
+    // Both sides are read, not just the reference's. See
+    // `LOCAL_REFUSALS_BESIDE_A_REFERENCE_CRASH` for why the `both-reject`
+    // half cannot be claimed on the reference sentence alone.
+    claims: entry =>
+      sentenceOf(entry, 'babel') === REFERENCE_TYPE_ERROR &&
+      (entry.rust.status === 'ok' ||
+        LOCAL_REFUSALS_BESIDE_A_REFERENCE_CRASH.some(refusal => refusedWith(entry, refusal))),
   },
   {
     name: 'unclosed comment',

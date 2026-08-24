@@ -36,7 +36,8 @@ function subject(
   verdict: Verdict,
   rust: CompilerOutcome,
   babel: CompilerOutcome,
-  expected?: Verdict
+  expected?: Verdict,
+  value = 'red'
 ): ReportEntry {
   // A distinct id per subject because the stances are keyed by entry identity,
   // and two structurally equal rows are two rows.
@@ -47,7 +48,7 @@ function subject(
     id: `test-${counter}`,
     origin: 'report.test.ts',
     property: 'color',
-    value: 'red',
+    value,
     verdict,
     rust,
     babel,
@@ -58,10 +59,14 @@ function subject(
 /** One row of every family, so a corpus can be complete without being a corpus. */
 function everyFamily(): ReportEntry[] {
   return [
+    // The value carries a bare `;`, because the family claims the refusal plus
+    // the evidence for it rather than the refusal alone.
     subject(
       'acceptance-divergent',
       refused('Rule contains a `{`, `}` or `;` outside of a string or comment'),
-      ACCEPTED
+      ACCEPTED,
+      undefined,
+      'red;blue'
     ),
     subject('acceptance-divergent', refused('Rule contains an unclosed comment'), ACCEPTED),
     subject('acceptance-divergent', refused('Unprefixed custom properties: var(x)'), ACCEPTED),

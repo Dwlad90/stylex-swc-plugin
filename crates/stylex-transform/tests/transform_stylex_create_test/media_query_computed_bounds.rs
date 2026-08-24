@@ -99,3 +99,32 @@ stylex_test!(
     });
   "#
 );
+
+// A fractional aspect-ratio reaches the stylesheet at the width it was written.
+//
+// The same widening as the bounds above, one field over: a media fraction was
+// held as two `i32`s, so `16.5/9` reprinted as `16 / 9` -- a different shape of
+// screen -- and anything past `i32::MAX` saturated onto `2147483647`.
+//
+// At the transform level rather than only in the parser, because that is where
+// the field's reachability is the claim: the transform reparses and reprints
+// every `@media` key nested one level down, and it does so even where there is
+// nothing to negate. So a fraction held at the wrong width did not stay inside
+// the parser, and only a fixture carrying the emitted rule can show that.
+//
+// The second query is the saturating half of the same bug.
+stylex_test!(
+  a_fractional_aspect_ratio_reaches_the_stylesheet_intact,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      a: {
+        color: {
+          default: 'red',
+          '@media (aspect-ratio: 16.5/9)': 'blue',
+          '@media (aspect-ratio: 3000000000/1)': 'green',
+        },
+      },
+    });
+  "#
+);

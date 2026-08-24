@@ -77,8 +77,9 @@ report is only about the last build.** Rebuild after touching a crate or the
 verdicts are stale.
 
 It exits non-zero for three reasons, and each one is a report that has stopped
-being read: an entry whose recorded `expected` verdict no longer holds, a refusal
-family no row in the corpus reaches, and a divergence nothing accounts for.
+being read: an entry whose recorded `expected` verdict no longer holds, a
+refusal family no row in the corpus reaches, and a divergence nothing accounts
+for.
 
 A divergence that should not fail a run has two ways to say so, and both are
 statements a later reader can check rather than suppressions: record its verdict
@@ -239,16 +240,16 @@ compiler produces is pinned in `__tests__/position.test.ts` — a parser that
 silently misreads a frame would turn the whole set green.
 
 Each subject is written to `parity/__fixture__/positions-<id>.js` while the run
-lasts, because this compiler locates a refusal in the file it names rather than in
-the string it was handed. Those paths are git-ignored.
+lasts, because this compiler locates a refusal in the file it names rather than
+in the string it was handed. Those paths are git-ignored.
 
-A path per subject, and that is what lets the children overlap: while they shared
-one fixture, each was overwriting the file the last was compiling, so the run had
-to be serial and its wall clock was 18 process spawns end to end — each paying
-for the `tsx` loader, the addon and `@babel/core` again. The value harness pins a
-single filename for the opposite reason, and the reason does not reach here: it
-hashes class names, which read the path, while this compares a line and a column
-that neither `rustPosition` nor `babelPosition` takes from it.
+A path per subject, and that is what lets the children overlap: while they
+shared one fixture, each was overwriting the file the last was compiling, so the
+run had to be serial and its wall clock was 18 process spawns end to end — each
+paying for the `tsx` loader, the addon and `@babel/core` again. The value
+harness pins a single filename for the opposite reason, and that reason does not
+reach here: it hashes class names, which read the path, while this compares a
+line and a column that neither `rustPosition` nor `babelPosition` takes from it.
 
 ## Ordering, over random pairs: `pnpm fuzz:pseudo-order`
 
@@ -389,12 +390,13 @@ either the refusal is gone, which is worth reading, or the corpus stopped
 reaching it.
 
 A family claims a row on its evidence and not on the diagnostic alone, where
-there is evidence to read. `declaration-terminating token` asks whether the value
-actually carries a `;`, `{` or `}` that is neither escaped nor inside a string;
-`reference TypeError` reads both sides rather than only the reference's. Claiming
-on a sentence by itself absorbs the guard's own false positives into this column,
-and it did: an escaped `\;` closes nothing, the reference compiler emits it, and
-the row sat here as a divergence produced on purpose until the guard was fixed.
+there is evidence to read. `declaration-terminating token` asks whether the
+value actually carries a `;`, `{` or `}` that is neither escaped nor inside a
+string; `reference TypeError` reads both sides rather than only the reference's.
+Claiming on a sentence by itself absorbs the guard's own false positives into
+this column, and it did: an escaped `\;` closes nothing, the reference compiler
+emits it, and the row sat here as a divergence produced on purpose until the
+guard was fixed.
 
 Family membership is decided from the complaint this compiler wrote, matched as
 a prefix, so rewording a diagnostic un-pins the rows it accounted for and they

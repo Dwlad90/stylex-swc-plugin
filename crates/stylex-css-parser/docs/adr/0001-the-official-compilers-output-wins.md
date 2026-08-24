@@ -28,9 +28,17 @@ a divergence in what a build produces.
 Three things in the tree contradict that on first reading, and each is
 deliberate.
 
-**lightningcss will not parse what we emit.** Its minifier refuses the doubly
-parenthesised form — `@media ((not all) or (not all)) or (...)` — so a project
-running the wrapped output through it gets a rejected stylesheet. This is
+**lightningcss will not parse what we emit.** Measured on 1.33.0, both wrapped
+forms are refused, not only the doubly parenthesised one:
+
+```text
+@media ((not all) or (not all)) or ((not all) or ((min-width: 1440px)))
+  → Unexpected token ParenthesisBlock
+@media (not all) or ((min-width: 1200px) and (max-width: 1439px))
+  → Unexpected token Ident("all")
+```
+
+So a project running the wrapped output through it gets a rejected stylesheet. This is
 accepted knowingly, and the reason is the failure mode rather than the
 frequency: a rejected stylesheet fails loudly, at build time, with the offending
 rule in the message. A class-name divergence fails silently — the markup names a

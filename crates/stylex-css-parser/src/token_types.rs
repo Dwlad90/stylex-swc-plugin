@@ -137,6 +137,16 @@ fn leading_number_len(text: &str) -> Option<usize> {
 // wildcard arm falls back to `SimpleToken::Unknown`), so it returns the token
 // directly rather than an `Option`.
 //
+// The three numeric arms each end in `.unwrap_or(<cssparser's own value>)`, and
+// none of those fallbacks is reachable: `cssparser` produced the token from
+// digits that are still in `text`, so `leading_f64` finds them. They are kept
+// because the alternative is a panic in a compiler, and they are *deliberately*
+// the pre-`leading_f64` behaviour rather than an improvement on it -- widening a
+// single-precision `unit_value` and multiplying it back up is exactly what made
+// `7%` print as `7.000000000000001%`, which the comment on that arm names. If
+// one of them ever does fire, the wrong digits are the symptom to chase and the
+// offset bookkeeping is the cause; do not make the fallback cleverer.
+//
 // `text` is the input from the token's first byte onward, which is where the
 // numeric variants recover the digits `cssparser`'s `f32` dropped.
 fn map_css_token(token: &CssToken, text: &str) -> SimpleToken {

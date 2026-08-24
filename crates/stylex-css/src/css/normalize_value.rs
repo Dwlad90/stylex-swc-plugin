@@ -110,6 +110,12 @@ const PASSES: [Pass; 7] = [
 /// missing guard is the defect rather than the fold. The guards have their own
 /// suite in `css/tests/value_normalization_parity_test.rs`, which enters through
 /// `normalize_css_property_value`.
+///
+/// `pub` because `benches/normalize_value_bench.rs` is a separate target and
+/// cannot reach a `pub(crate)` item -- a requirement, not an invitation. This
+/// function will normalize a `}` straight into a stylesheet, which is the whole
+/// reason the guarded entry point exists; production code wants
+/// `normalize_css_property_value`.
 pub fn normalize_value(value: &str, key: &str, options: &StyleXStateOptions) -> String {
   normalize_value_guarded(value, key, options, None)
 }

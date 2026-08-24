@@ -70,6 +70,20 @@
 //! position meant: it is what made `contain-intrinsic-size: 'auto /*'` size only
 //! the width where the reference compiler sizes both.
 //!
+//! **One consequence is worth stating where the decision is made.** A value
+//! carrying an unterminated comment now reaches two different verdicts depending
+//! on the style resolution, because only one of them splits it. Under
+//! `legacy-expand-shorthands` `padding: '1px /*'` is *accepted* and emits a top
+//! and a bottom, since the splitter reads the comment as an empty part and hands
+//! the parts on; under the default `application-order` the same declaration is
+//! refused for the unclosed comment, because nothing splits it and it arrives at
+//! `normalize_css_property_value` whole.
+//!
+//! Not a defect of either path -- the reference compiler crashes on this input,
+//! so there is nothing to be faithful to -- but two verdicts for one source is
+//! the kind of thing a reader should meet here rather than discover from a
+//! failing build.
+//!
 //! [value scanner]: postcss_value_parser
 
 use crate::css::common::nests_too_deeply;

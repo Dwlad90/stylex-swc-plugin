@@ -527,15 +527,29 @@ fn ascii_and_root_collation_agree_on_every_printable_pair() {
 ///
 /// Deterministic rather than seeded from the clock: a property check that fails
 /// on one run in ten and cannot be reproduced is worse than one that never runs.
+///
+/// **Drawn from printable ASCII, which is a correction.** The generator used to
+/// draw from a 431-character alphabet -- printable ASCII, Latin-1 Supplement,
+/// Latin Extended-A and the combining diacritics -- and then `continue` on any
+/// pair that was not wholly ASCII, because a pair crossing the boundary goes
+/// through the collator on both sides and would only compare the collator with
+/// itself. With 95 of 431 characters admissible and keys of one to six
+/// characters, that skipped all but **36** of the 20 000 rounds, and 20 of those
+/// 36 were single-character pairs the exhaustive 9 025-pair sweep already
+/// covers. So the table's multi-character rules -- length before case, the
+/// tertiary difference read only at the first primary tie -- rested on 16 random
+/// pairs and the eight hand-picked ones above, while the number quoted as
+/// coverage was 20 000.
+///
+/// Narrowing the alphabet to the characters the fast path actually claims makes
+/// all 20 000 rounds assert. The wide alphabet has not been dropped: it moved to
+/// [`a_random_mixed_run_sorts_into_an_order_the_comparator_agrees_with`], where
+/// crossing the boundary is the property rather than a reason to skip.
 #[test]
-fn the_two_paths_agree_over_random_ascii_keys_drawn_from_a_wider_alphabet() {
+fn the_two_paths_agree_over_random_printable_ascii_keys() {
   use crate::utils::pre_rule::collating_pseudo_comparator;
 
-  let alphabet: Vec<char> = (0x20u32..=0x7e)
-    .chain(0xa0..=0x17f)
-    .chain(0x300..=0x36f)
-    .filter_map(char::from_u32)
-    .collect();
+  let alphabet: Vec<char> = (0x20u32..=0x7e).filter_map(char::from_u32).collect();
 
   // A 64-bit xorshift, so the sequence is the same on every machine and in every
   // run -- the shape a failure has to be reproducible from.
@@ -556,23 +570,75 @@ fn the_two_paths_agree_over_random_ascii_keys_drawn_from_a_wider_alphabet() {
     built
   };
 
+  let mut asserted = 0usize;
+
   for round in 0..20_000 {
     let left = key(1 + round % 6, &alphabet);
     let right = key(1 + (round / 6) % 6, &alphabet);
-
-    // Only the pairs the fast path claims. Every other pair already goes through
-    // the collator on both sides, so asserting it would compare the collator
-    // with itself -- and the generation is deliberately not narrowed to match,
-    // because a pair rejected here is a pair that crossed the boundary.
-    if !left.is_ascii() || !right.is_ascii() {
-      continue;
-    }
 
     assert_eq!(
       pseudo_comparator(&left, &right),
       collating_pseudo_comparator(&left, &right),
       "round {round}: {left:?} against {right:?}"
     );
+
+    asserted += 1;
+  }
+
+  // The count is asserted, not merely reached. A generator that stopped
+  // producing admissible pairs is the failure this test could not previously
+  // report -- it passed loudest when it measured least.
+  assert_eq!(asserted, 20_000, "every round has to assert something");
+}
+
+/// The comparator is transitive over random runs that cross its own boundary.
+///
+/// Where the wide alphabet earns its place. A run mixing ASCII and non-ASCII keys
+/// has some pairs decided by the table and some by the collator, and
+/// `sort_unstable_by` is entitled to any output at all if the two disagree --
+/// so the property is that a sorted run is in fact sorted, which is what an
+/// intransitive comparator fails. The hand-picked version of this is
+/// [`a_mixed_run_sorts_into_an_order_the_comparator_agrees_with`]; this is the
+/// same question asked over pairs nobody chose.
+#[test]
+fn a_random_mixed_run_sorts_into_an_order_the_comparator_agrees_with() {
+  let alphabet: Vec<char> = (0x20u32..=0x7e)
+    .chain(0xa0..=0x17f)
+    .chain(0x300..=0x36f)
+    .filter_map(char::from_u32)
+    .collect();
+
+  let mut state = 0x2545_F491_4F6C_DD1Du64;
+  let mut next = move || {
+    state ^= state << 13;
+    state ^= state >> 7;
+    state ^= state << 17;
+    state
+  };
+
+  for run in 0..500 {
+    let mut keys: Vec<String> = (0..12)
+      .map(|index| {
+        let length = 1 + (run + index) % 6;
+        let mut built = String::from(":");
+        for _ in 0..length {
+          let pick = (next() % alphabet.len() as u64) as usize;
+          built.push(alphabet[pick]);
+        }
+        built
+      })
+      .collect();
+
+    keys.sort_unstable_by(|a, b| pseudo_comparator(a, b));
+
+    for window in keys.windows(2) {
+      let (left, right) = (&window[0], &window[1]);
+      assert_ne!(
+        pseudo_comparator(left, right),
+        Ordering::Greater,
+        "run {run}: sorted output is out of order at {left:?} before {right:?}"
+      );
+    }
   }
 }
 

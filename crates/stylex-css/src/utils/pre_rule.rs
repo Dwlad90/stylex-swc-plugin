@@ -241,10 +241,17 @@ fn primary_weight(byte: u8) -> u16 {
 /// out of `localeCompare` by sorting the printable ASCII characters with it, and
 /// the table is now checked against root collation itself: every one of the 9 025
 /// printable-ASCII pairs, the multi-character shapes the table settles with rules
-/// of its own, and 20 000 random keys drawn from printable ASCII, Latin-1
-/// Supplement, Latin Extended-A and the combining diacritics. `pre_rule_test.rs`
-/// holds those and the pairs that decide the ordering; `stylex-transform`'s
-/// `nested_pseudo_ordering` suite pins the class names they hash to.
+/// of its own, and 20 000 random printable-ASCII key pairs -- every one of which
+/// asserts, which the test also checks, because it used to draw from a
+/// 431-character alphabet and skip every pair that crossed the fast path's
+/// boundary. That left 36 rounds of the 20 000 asserting anything, and 20 of
+/// those were single characters the exhaustive sweep already covered.
+///
+/// Crossing the boundary is a separate property, asserted separately: 500 random
+/// mixed runs are sorted and checked to come out sorted, which is what an
+/// intransitive comparator fails. `pre_rule_test.rs` holds both, along with the
+/// pairs that decide the ordering; `stylex-transform`'s `nested_pseudo_ordering`
+/// suite pins the class names they hash to.
 ///
 /// **Everything else goes to root collation.** A control character, `DEL`, and
 /// every non-ASCII character are handed to [`collating_pseudo_comparator`],
@@ -352,12 +359,18 @@ pub fn sort_at_rules(at_rules: &[String]) -> Vec<String> {
 /// neither by the time either is called. Moving it would be a change to
 /// unreachable code, and asserting the move changed nothing is the same work as
 /// reading this comment.
+/// Two `default`s answer `Equal` rather than `Less` both ways round. The
+/// sequential form said `Less` for `(a, b)` and `Less` again for `(b, a)`, which
+/// is not an ordering -- and `sort_unstable_by` is permitted to abort on a
+/// comparator that contradicts itself. Unreachable, like the arm itself, and one
+/// line either way: a `match` on the pair cannot express the inconsistent
+/// version, which is the reason to write it this way rather than a reason to
+/// trust the filter above.
 fn at_rule_comparator(a: &str, b: &str) -> Ordering {
-  if a == "default" {
-    return Ordering::Less;
+  match (a == "default", b == "default") {
+    (true, true) => Ordering::Equal,
+    (true, false) => Ordering::Less,
+    (false, true) => Ordering::Greater,
+    (false, false) => a.cmp(b),
   }
-  if b == "default" {
-    return Ordering::Greater;
-  }
-  a.cmp(b)
 }

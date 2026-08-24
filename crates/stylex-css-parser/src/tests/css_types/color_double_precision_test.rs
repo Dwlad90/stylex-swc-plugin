@@ -279,16 +279,13 @@ mod boundaries_and_refusals {
     assert_eq!(printed!("rgba(255, 0, 0, -0)"), "rgba(255,0,0,0)");
   }
 
-  /// An alpha outside 0..=1 is refused by these parsers rather than clamped,
-  /// which is the behaviour the widening had to leave alone: a range check on
-  /// a double is the same check, not a wider one.
-  #[test]
   /// An alpha outside `0..=1` is carried through, not refused.
   ///
   /// The reference compiler puts a range predicate on the *channels*
   /// (`rgbNumberParser`, `0..=255`) and none at all on the alpha
   /// (`alphaAsNumber`), so each of these parses there. A percentage divides
   /// down first, so `101%` is `1.01`.
+  #[test]
   fn an_alpha_outside_its_range_is_carried_through() {
     for (input, expected) in [
       ("rgba(255, 0, 0, 1.5)", "rgba(255,0,0,1.5)"),
@@ -303,10 +300,40 @@ mod boundaries_and_refusals {
     }
   }
 
-  /// An RGB channel is a byte, so the range check on it is unchanged too.
+  /// A fractional `rgb()` channel keeps its fraction.
+  ///
+  /// The channels were held as `u8`, so `rgb(2.5, 0, 0)` truncated to
+  /// `rgb(2,0,0)`. The reference compiler bounds them with `rgbNumberParser`
+  /// (`value >= 0 && value <= 255`) but stores a `number`, so the fraction
+  /// survives to the printed colour there and now here. The bound is unchanged:
+  /// it is the width that was wrong, not the range.
+  ///
+  /// Values confirmed against the reference compiler's own interpolation.
   #[test]
-  fn a_channel_outside_the_byte_range_is_refused() {
-    for input in ["rgba(256, 0, 0, 0.5)", "rgba(-1, 0, 0, 0.5)"] {
+  fn a_fractional_rgb_channel_is_not_truncated() {
+    for (input, expected) in [
+      ("rgb(2.5, 0, 0)", "rgb(2.5,0,0)"),
+      ("rgb(0.5, 127.5, 254.5)", "rgb(0.5,127.5,254.5)"),
+      ("rgba(2.5, 0, 0, 0.5)", "rgba(2.5,0,0,0.5)"),
+      // An integral channel is still spelled as an integer.
+      ("rgb(255, 0, 0)", "rgb(255,0,0)"),
+    ] {
+      assert_eq!(printed!(input), expected, "for {input:?}");
+    }
+  }
+
+  /// A channel outside `0..=255` is refused. The channel is no longer a byte --
+  /// it holds a double, so a fraction inside the range survives -- but the
+  /// bound the reference compiler puts on it (`rgbNumberParser`,
+  /// `value >= 0 && value <= 255`) is unchanged, which is why `255.5` is
+  /// refused rather than truncated.
+  #[test]
+  fn a_channel_outside_its_range_is_refused() {
+    for input in [
+      "rgba(256, 0, 0, 0.5)",
+      "rgba(-1, 0, 0, 0.5)",
+      "rgb(255.5, 0, 0)",
+    ] {
       assert!(
         Color::parse().parse_to_end(input).is_err(),
         "{input:?} should be refused"
@@ -885,38 +912,5 @@ mod a_channel_is_spelled_the_way_javascript_spells_it {
     // Truncated at the closing paren rather than before a channel: tolerated,
     // as ticket 05 pinned, and the exponential spelling rides along.
     assert_eq!(printed!("oklab(1e21 1e21 1e21"), "oklab(1e+21 1e+21 1e+21)");
-  }
-}
-
-/// A fractional `rgb()` channel keeps its fraction.
-///
-/// The channels were held as `u8`, so `rgb(2.5, 0, 0)` truncated to
-/// `rgb(2,0,0)`. The reference compiler bounds them with `rgbNumberParser`
-/// (`value >= 0 && value <= 255`) but stores a `number`, so the fraction
-/// survives to the printed colour there and now here. The bound is unchanged:
-/// it is the width that was wrong, not the range.
-///
-/// Values confirmed against the reference compiler's own interpolation.
-#[test]
-fn a_fractional_rgb_channel_is_not_truncated() {
-  for (input, expected) in [
-    ("rgb(2.5, 0, 0)", "rgb(2.5,0,0)"),
-    ("rgb(0.5, 127.5, 254.5)", "rgb(0.5,127.5,254.5)"),
-    ("rgba(2.5, 0, 0, 0.5)", "rgba(2.5,0,0,0.5)"),
-    // An integral channel is still spelled as an integer.
-    ("rgb(255, 0, 0)", "rgb(255,0,0)"),
-  ] {
-    assert_eq!(printed!(input), expected, "for {input:?}");
-  }
-}
-
-/// The `0..=255` bound the reference compiler puts on a channel still holds.
-#[test]
-fn an_out_of_range_rgb_channel_is_still_refused() {
-  for input in ["rgb(256, 0, 0)", "rgb(-1, 0, 0)", "rgb(255.5, 0, 0)"] {
-    assert!(
-      Color::parse().parse_to_end(input).is_err(),
-      "accepted {input:?}"
-    );
   }
 }

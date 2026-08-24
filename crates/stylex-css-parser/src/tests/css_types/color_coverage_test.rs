@@ -1511,13 +1511,13 @@ fn oklab_parser_rejects_empty() {
 
 #[test]
 fn rgb_comma_parser_rejects_out_of_range_g() {
-  // valid r, but g is out of range -> fails at parse_rgb_number_token for g
+  // valid r, but g is out of range -> fails at parse_rgb_channel_token for g
   assert!(Rgb::parse().parse_to_end("rgb(0, 300, 0)").is_err());
 }
 
 #[test]
 fn rgb_comma_parser_rejects_out_of_range_b() {
-  // valid r and g, but b is out of range -> fails at parse_rgb_number_token for b
+  // valid r and g, but b is out of range -> fails at parse_rgb_channel_token for b
   assert!(Rgb::parse().parse_to_end("rgb(0, 0, 300)").is_err());
 }
 
@@ -1803,7 +1803,7 @@ fn oklab_parser_non_whitespace_between_a_b() {
 
 #[test]
 fn rgb_space_parser_rejects_out_of_range_g() {
-  // valid r but g is out of range -> fails at space parser parse_rgb_number_token for g
+  // valid r but g is out of range -> fails at space parser parse_rgb_channel_token for g
   // Note: rgb(0 300 0) may not parse correctly as CSS because of how tokenizer handles
   // negative or large numbers, but the error path IS exercised
   assert!(Rgb::parse().parse_to_end("rgb(0 300 0)").is_err());
@@ -1893,22 +1893,25 @@ fn oklab_invalid_alpha_after_slash() {
 // the `ok_or()?.` Err branches that fire when the TokenList is empty (EOF),
 // and also the wrong-type branches.
 
+// One reader serves `rgb()` and `rgba()` alike, as `rgbNumberParser` does
+// upstream, so it is tested once rather than once per colour type.
+
 #[test]
-fn rgb_parse_rgb_number_token_eof_returns_error() {
+fn parse_rgb_channel_token_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
   };
-  assert!(Rgb::parse_rgb_number_token(&mut tl).is_err());
+  assert!(parse_rgb_channel_token(&mut tl).is_err());
 }
 
 #[test]
-fn rgb_parse_rgb_number_token_non_number_returns_error() {
+fn parse_rgb_channel_token_non_number_returns_error() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Ident("red".to_string())],
     current_index: 0,
   };
-  assert!(Rgb::parse_rgb_number_token(&mut tl).is_err());
+  assert!(parse_rgb_channel_token(&mut tl).is_err());
 }
 
 #[test]
@@ -1927,24 +1930,6 @@ fn rgb_consume_comma_with_optional_whitespace_non_comma_returns_error() {
     current_index: 0,
   };
   assert!(Rgb::consume_comma_with_optional_whitespace(&mut tl).is_err());
-}
-
-#[test]
-fn rgba_parse_rgba_number_token_eof_returns_error() {
-  let mut tl = TokenList {
-    tokens: vec![],
-    current_index: 0,
-  };
-  assert!(Rgba::parse_rgba_number_token(&mut tl).is_err());
-}
-
-#[test]
-fn rgba_parse_rgba_number_token_non_number_returns_error() {
-  let mut tl = TokenList {
-    tokens: vec![SimpleToken::Ident("none".to_string())],
-    current_index: 0,
-  };
-  assert!(Rgba::parse_rgba_number_token(&mut tl).is_err());
 }
 
 #[test]

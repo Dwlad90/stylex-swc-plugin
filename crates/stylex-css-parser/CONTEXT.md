@@ -58,6 +58,24 @@ is a [value part](../stylex-css/CONTEXT.md) rather than a number — `1E2px` sta
 formatter _there_ causes a divergence; reaching for it here closes one.
 _Avoid_: passthrough, verbatim, raw
 
+**Unreachable port**:
+A type in this crate whose reference counterpart the plugin never runs, so its
+behaviour cannot be settled by comparing output. The colour types are the case
+that matters. Two separate reasons: the plugin normalizes a colour as _text_ and
+never rebuilds it from parsed channels -- `lch(50 50% 180)` comes out as
+`lch(50 50% 180)`, the percentage echoed rather than scaled -- and
+`Oklch.parser`/`Oklab.parser` throw on every input anyway, because `lc` carries
+a `.prefix(Whitespace.optional)` that eats the space the enclosing sequence then
+demands.
+
+What follows is a rule about evidence, not about width: a claim that some colour
+grammar "matches the reference compiler" cannot be checked against the reference
+compiler, so it is a design decision of this crate wearing a parity costume. One
+such claim was made and reverted. Where a colour _does_ reach emitted text --
+the comma spelling, an unbounded alpha, a fractional `rgb()` channel -- the
+plugin can be run end to end, and was.
+_Avoid_: dead code, unused type, aspirational port
+
 **Precision suite**:
 A test file named for what it pins rather than for an upstream test file —
 `double_precision_test.rs`, `color_double_precision_test.rs`,

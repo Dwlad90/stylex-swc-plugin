@@ -45,6 +45,34 @@ fn extract_number_from_token(token: SimpleToken) -> f64 {
   }
 }
 
+/// A channel of a legacy `rgb()`/`rgba()` colour, read from the token list.
+///
+/// One reader for both, because the reference compiler has one: `rgbNumberParser`
+/// serves `rgb`, `rgba` and their space-separated forms alike, bounding the
+/// value to `0..=255` while keeping it a `number`. The bound is the channel's,
+/// not the alpha's -- see [`crate::css_types::alpha_value::parse_alpha_token`],
+/// which is deliberately unbounded.
+///
+/// A fraction inside the bound survives, since the field holds a double and only
+/// the range is checked: `rgb(2.5, 0, 0)` is `rgb(2.5,0,0)`.
+fn parse_rgb_channel_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
+  let token = tokens
+    .consume_next_token_infallible()
+    .ok_or(CssParseError::ParseError {
+      message: "Expected number token".to_string(),
+    })?;
+
+  match token {
+    SimpleToken::Number(value) if (0.0..=255.0).contains(&value) => Ok(value),
+    SimpleToken::Number(value) => Err(CssParseError::ParseError {
+      message: format!("RGB channel must be 0-255, got {}", value),
+    }),
+    _ => Err(CssParseError::ParseError {
+      message: format!("Expected Number token, got {:?}", token),
+    }),
+  }
+}
+
 /// Parses numbers in range 0-255 for RGB color channels
 fn rgb_number_parser() -> TokenParser<f64> {
   tokens::number()
@@ -786,19 +814,19 @@ impl Rgb {
         }
 
         // Parse r value
-        let r = Self::parse_rgb_number_token(tokens)?;
+        let r = parse_rgb_channel_token(tokens)?;
 
         // Expect comma (with optional whitespace)
         Self::consume_comma_with_optional_whitespace(tokens)?;
 
         // Parse g value
-        let g = Self::parse_rgb_number_token(tokens)?;
+        let g = parse_rgb_channel_token(tokens)?;
 
         // Expect comma (with optional whitespace)
         Self::consume_comma_with_optional_whitespace(tokens)?;
 
         // Parse b value
-        let b = Self::parse_rgb_number_token(tokens)?;
+        let b = parse_rgb_channel_token(tokens)?;
 
         // Skip optional whitespace before closing paren
         while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
@@ -850,7 +878,7 @@ impl Rgb {
         }
 
         // Parse r value
-        let r = Self::parse_rgb_number_token(tokens)?;
+        let r = parse_rgb_channel_token(tokens)?;
 
         // Expect whitespace
         let whitespace_token =
@@ -866,7 +894,7 @@ impl Rgb {
         }
 
         // Parse g value
-        let g = Self::parse_rgb_number_token(tokens)?;
+        let g = parse_rgb_channel_token(tokens)?;
 
         // Expect whitespace
         let whitespace_token =
@@ -882,7 +910,7 @@ impl Rgb {
         }
 
         // Parse b value
-        let b = Self::parse_rgb_number_token(tokens)?;
+        let b = parse_rgb_channel_token(tokens)?;
 
         // Expect closing paren
         let close_token =
@@ -902,29 +930,6 @@ impl Rgb {
       },
       "rgb_space_parser",
     )
-  }
-
-  /// Helper: Parse RGB number token (0-255)
-  fn parse_rgb_number_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
-    let token = tokens
-      .consume_next_token_infallible()
-      .ok_or(CssParseError::ParseError {
-        message: "Expected number token".to_string(),
-      })?;
-
-    if let SimpleToken::Number(value) = token {
-      if (0.0..=255.0).contains(&value) {
-        Ok(value)
-      } else {
-        Err(CssParseError::ParseError {
-          message: format!("RGB number must be 0-255, got {}", value),
-        })
-      }
-    } else {
-      Err(CssParseError::ParseError {
-        message: format!("Expected Number token, got {:?}", token),
-      })
-    }
   }
 
   fn consume_comma_with_optional_whitespace(tokens: &mut TokenList) -> Result<(), CssParseError> {
@@ -1016,19 +1021,19 @@ impl Rgba {
         }
 
         // Parse r value
-        let r = Self::parse_rgba_number_token(tokens)?;
+        let r = parse_rgb_channel_token(tokens)?;
 
         // Expect comma (with optional whitespace)
         Self::consume_comma_with_optional_whitespace(tokens)?;
 
         // Parse g value
-        let g = Self::parse_rgba_number_token(tokens)?;
+        let g = parse_rgb_channel_token(tokens)?;
 
         // Expect comma (with optional whitespace)
         Self::consume_comma_with_optional_whitespace(tokens)?;
 
         // Parse b value
-        let b = Self::parse_rgba_number_token(tokens)?;
+        let b = parse_rgb_channel_token(tokens)?;
 
         // Expect comma (with optional whitespace)
         Self::consume_comma_with_optional_whitespace(tokens)?;
@@ -1087,7 +1092,7 @@ impl Rgba {
         }
 
         // Parse r value
-        let r = Self::parse_rgba_number_token(tokens)?;
+        let r = parse_rgb_channel_token(tokens)?;
 
         // Expect whitespace
         let whitespace_token =
@@ -1103,7 +1108,7 @@ impl Rgba {
         }
 
         // Parse g value
-        let g = Self::parse_rgba_number_token(tokens)?;
+        let g = parse_rgb_channel_token(tokens)?;
 
         // Expect whitespace
         let whitespace_token =
@@ -1119,7 +1124,7 @@ impl Rgba {
         }
 
         // Parse b value
-        let b = Self::parse_rgba_number_token(tokens)?;
+        let b = parse_rgb_channel_token(tokens)?;
 
         // Expect whitespace before slash (optional)
         if let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
@@ -1165,29 +1170,6 @@ impl Rgba {
       },
       "rgba_space_slash_parser",
     )
-  }
-
-  /// Helper: Parse RGBA number token (0-255) - same as RGB
-  fn parse_rgba_number_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
-    let token = tokens
-      .consume_next_token_infallible()
-      .ok_or(CssParseError::ParseError {
-        message: "Expected number token".to_string(),
-      })?;
-
-    if let SimpleToken::Number(value) = token {
-      if (0.0..=255.0).contains(&value) {
-        Ok(value)
-      } else {
-        Err(CssParseError::ParseError {
-          message: format!("RGBA number must be 0-255, got {}", value),
-        })
-      }
-    } else {
-      Err(CssParseError::ParseError {
-        message: format!("Expected Number token, got {:?}", token),
-      })
-    }
   }
 
   fn consume_comma_with_optional_whitespace(tokens: &mut TokenList) -> Result<(), CssParseError> {
@@ -1498,7 +1480,7 @@ pub struct Hsla {
   pub h: Angle,      // hue angle (0-360deg)
   pub s: Percentage, // saturation percentage (0-100%)
   pub l: Percentage, // lightness percentage (0-100%)
-  pub a: f64,        // alpha (0.0-1.0)
+  pub a: f64,        // alpha, unbounded like every other legacy alpha
 }
 
 impl Hsla {

@@ -1,7 +1,9 @@
 /*!
 CSS Alpha value parsing.
 
-Handles alpha values for colors - numbers (0.0-1.0) and percentages (0%-100%).
+Handles alpha values for colors - a number, or a percentage that divides down to
+one. Not bounded to `0..=1`: the reference compiler puts no range predicate on an
+alpha, only on the channels beside it, so `rgba(0, 0, 0, 2)` parses.
 */
 
 use stylex_macros::stylex_unreachable;
@@ -17,7 +19,7 @@ use std::fmt::{self, Display};
 /// Alpha value for CSS colors
 #[derive(Debug, Clone, PartialEq)]
 pub struct AlphaValue {
-  pub value: f64, // 0.0 to 1.0
+  pub value: f64, // the authored alpha, unbounded -- see the module header
 }
 
 impl AlphaValue {

@@ -68,30 +68,39 @@ not list is the next bug report; evaluating covers `String.prototype`,
 the receiver of a call is itself a candidate and the whole chain is evaluated
 once. Only an expression that carries its own value qualifies — the engine is
 handed the expression alone and knows nothing of the module — which is what the
-[guard](#fold-guard) decides.
+[guard](#fold-guard) decides. What comes back is the evaluator's own value
+type, not a syntax node: an array answers the list an array literal answers and
+an object the object an object literal answers, so a folded value reaches
+everywhere a value the author wrote reaches.
 _Avoid_: boa fold, reflection, dynamic dispatch
 
 **Fold guard**:
 The predicate in front of an [engine fold](#engine-fold), and the whole of that
 fold's behaviour: what it admits is answered by the language rather than by any
 code here, so every boundary the compiler owns is a refusal the guard states.
-Five are not about the scope. A **mutating** array method is refused because
-matching upstream means carrying mutation into an otherwise pure evaluator. A
-**locale-sensitive** method is refused because the engine has no locale data and
-would answer from the root locale, which is a wrong value rather than no value.
-An **escaping** property -- `constructor`, `call`, `apply`, `bind` -- is refused
-because it walks off the value that was written and onto the language's function
-graph, where `Function` compiles a string into a body that answers differently
-on every build and can write to a prototype the next fold reads. A
-**length-amplifying** call is bounded, on the argument written and again on the
-string that comes back, because nothing in the engine bounds allocation; a
-callback body is refused outright, since a written bound bounds one evaluation
-and a callback runs once per element. And **nesting** is bounded on both sides:
-on the way in because the engine's parser recurses, and on the way out because
-the depth of an answer is not what the width bound measures. An overflow inside
-an evaluation that is allowed to fail aborts the build instead of reporting
-anything. Each applies at every link of a chain, since a chain hides its middle
-links.
+Four are not about the scope. A **locale-sensitive** method is refused because
+the engine has no locale data and would answer from the root locale, which is a
+wrong value rather than no value. An **escaping** property -- `constructor`,
+`call`, `apply`, `bind` -- is refused because it walks off the value that was
+written and onto the language's function graph, where `Function` compiles a
+string into a body that answers differently on every build and can write to a
+prototype the next fold reads. A **length-amplifying** call is bounded, on the
+argument written and again on the string that comes back, because nothing in the
+engine bounds allocation; a callback body is refused outright, since a written
+bound bounds one evaluation and a callback runs once per element. And **nesting**
+is bounded on both sides: on the way in because the engine's parser recurses, and
+on the way out because the depth of an answer is not what the width bound
+measures. An overflow inside an evaluation that is allowed to fail aborts the
+build instead of reporting anything. Each applies at every link of a chain, since
+a chain hides its middle links.
+
+A **mutating** method is not among them. It was, on the reasoning that matching
+upstream would carry mutation into an otherwise pure evaluator; measured, the
+reference compiler does not refuse one at all. It folds it on any receiver not
+reachable by name and disqualifies the **binding** instead — with no position
+check, so a read above the mutation is dead too — which leaves the engine
+mutating only a temporary nothing can name afterwards. That rule belongs to
+binding resolution and already existed there.
 
 The guard reads syntax, so "carries its own value" means _written into the
 expression_. A receiver reached through a binding is resolved by the evaluator
@@ -105,8 +114,13 @@ value. Every refusal in this area is one — there is no separate error-raising
 path — so whether an author sees a failed build or working runtime code depends
 on where the call sat, not on which refusal it was: in a static position the
 `stylex.*` call it belongs to fails, and inside a dynamic style function the
-call is left for the runtime instead. Some refusals therefore borrow a
-diagnostic from further down the pipeline instead of routing a value to it, for
+call is left for the runtime instead. A refusal carries the rule that refused
+it, in this compiler's own words: message text is not a parity obligation, and
+the comparison harness compares class name, rule text and style-object shape
+rather than sentences. A call the guard never recognised is not a refusal — it
+is not the fold's, and the dispatch behind it decides instead. Some refusals
+therefore borrow a diagnostic from further down the pipeline instead of routing
+a value to it, for
 the reasons in
 [docs/adr/0001](./docs/adr/0001-a-refused-fold-borrows-a-later-diagnostic.md).
 _Avoid_: fold error, hard error, invalid call

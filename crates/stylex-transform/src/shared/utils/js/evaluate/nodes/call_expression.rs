@@ -149,13 +149,23 @@ pub(in super::super) fn evaluate(
 ) -> Option<EvaluateResultValue> {
   // A method call that carries its own value is evaluated rather than matched
   // against the names below, so the whole prototype surface folds and a chain
-  // folds at every link. What it declines falls through to the globals here.
-  if let Some(folded) = super::super::engine_fold::try_fold(call) {
-    return Some(EvaluateResultValue::Expr(folded));
+  // folds at every link. A call it never recognised falls through to the
+  // globals here; one it recognised and declined is raised as an ordinary
+  // deopt, so the refusal names its rule instead of reaching the catch-all's
+  // `Unsupported expression: CallExpression`.
+  //
+  // Asked before the expression is cloned for a code frame, so a fold that
+  // succeeds — the common case once a file folds anything — pays for no clone
+  // it does not use.
+  match super::super::engine_fold::try_fold(call) {
+    Some(Ok(value)) => return Some(value),
+    Some(Err(reason)) => return deopt(&Expr::Call(call.clone()), state, &reason),
+    None => {},
   }
 
   let path = Expr::Call(call.clone());
   let path = &path;
+
   let mut context: Option<Vec<EvaluateResultValue>> = None;
   let mut func: Option<Box<FunctionConfig>> = None;
 

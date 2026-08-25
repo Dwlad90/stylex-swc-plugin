@@ -48,9 +48,11 @@ fn every_unfoldable_shape_survives_every_logical_operand_position() {
     // A locale-sensitive method, which the engine has no locale data for; a
     // length the engine is not allowed to build; and a result that has no
     // literal form. The three boundaries around the folded prototype surface.
+    // A plain object *does* have a literal form now, so the third is an
+    // iterator, which does not.
     "\"abc\".toLocaleUpperCase()",
     "\"x\".repeat(2000000)",
-    "({}).valueOf()",
+    "[1, 2].entries()",
     "/re/.test(\"a\")",
     "Math.sin(1)",
     "Math.pow(\"a\", 2)",

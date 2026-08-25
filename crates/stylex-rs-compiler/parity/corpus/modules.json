@@ -1878,11 +1878,31 @@
     },
     {
       "id": "modules-06-mutating-array-method",
-      "label": "a mutating array method, refused here and folded upstream",
+      "label": "a mutating array method on a value written out",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { zIndex: ['a', 'b'].push('c') },\n  s1: { transitionProperty: ['opacity', 'color'].sort().join(', ') },\n  s2: { content: ['a', 'b'].reverse().join('-') },\n});\n",
-      "origin": "issue 06, the mutation divergence held deliberately",
-      "note": "Acceptance divergent, deliberately. Upstream reflects on a real array, so a mutating method mutates it and folds: `push` answers 3 and `sort().join()` answers the sorted text. Matching that means carrying mutation into an evaluator whose every other answer is pure, to serve input nobody writes in a stylesheet. Refused at every link of a chain, because a chain hides the mutating call in the middle.",
-      "expected": "acceptance-divergent"
+      "origin": "issue 06, the mutation divergence held deliberately, reversed",
+      "note": "Agreement now, and the row that says the divergence was closed rather than forgotten. It read `acceptance-divergent` while a mutating method was refused here on the reasoning that matching upstream would carry mutation into a pure evaluator. Measured, upstream does not refuse mutating methods at all: it folds them on any receiver not reachable by name and disqualifies the *binding* instead, so the engine only ever mutates a temporary nothing can name afterwards. `modules-mutated-binding-read-through-a-method-call` is the other half -- the rule that does the work, and where both compilers still refuse."
+    },
+    {
+      "id": "modules-mutated-binding-read-through-a-method-call",
+      "label": "a mutated binding read as a method receiver, above and below the mutation",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst parts = ['b', 'a'];\n\nexport const styles = stylex.create({\n  s0: { transitionProperty: parts.join(',') },\n});\n\nparts.sort();\n",
+      "origin": "the rule that replaces the mutating-method refusal",
+      "note": "The mutation disqualifies the binding, not the method, and it does so for the whole file: this read sits *above* the `sort()` and still refuses on both compilers. Upstream's mutation test walks a binding's references with no position check, so agreeing here is what keeps the two builds from naming different classes for one authored style. `modules-06-mutating-array-method` is the same method with no binding involved, where both fold."
+    },
+    {
+      "id": "modules-folded-object-as-a-condition-object",
+      "label": "an object a fold produced, used as a value object",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { color: ['red'].reduce((o, v) => ({ default: v, ':hover': 'blue' }), {}) },\n  s1: { backgroundColor: [1].reduce(() => ({ default: 'red', '@media (min-width: 100px)': { default: 'blue' } }), {}) },\n});\n",
+      "origin": "the fold answering a value rather than a syntax node",
+      "note": "A fold whose result is a plain object used to answer nothing at all, so an expression that computed a nested value object deopted even though the engine had produced it correctly. Both rows reach the same declarations a written-out value object reaches, which is the claim: a folded object is as usable as one somebody typed, conditions and nesting included."
+    },
+    {
+      "id": "modules-folded-array-reaching-a-declaration",
+      "label": "an array a fold produced, as a fallback list and as a join receiver",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst sep = ', ';\n\nexport const styles = stylex.create({\n  s0: { fontFamily: 'Inter,serif'.split(',') },\n  s1: { transitionProperty: ['opacity', 'color'].map(p => p).join(sep) },\n});\n",
+      "origin": "the two array dispatch arms collapsing into one",
+      "note": "`s1` is the shape two dispatch arms disagreed about: one accepted `join` for a list the evaluation produced and the other refused it for the array literal a fold produced, so a mapped list could not be joined once the separator was a binding and the outer call fell to the older path. The fold answers the evaluator's own list now, so there is one arm. `s0` is the same value in the position that shows it whole -- a folded array expands into one declaration per entry, exactly as a written one does."
     },
     {
       "id": "modules-06-locale-sensitive-method",

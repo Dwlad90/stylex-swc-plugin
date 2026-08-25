@@ -166,3 +166,129 @@ pub fn expression_too_deep(limit: usize) -> String {
     limit
   )
 }
+
+/// A method whose answer depends on locale data the compiler does not carry.
+///
+/// The engine resolves these against the root locale, so
+/// `"i".toLocaleUpperCase("tr")` comes back `I` where the language says `İ`.
+/// Folding would write a wrong value into the stylesheet, which is worse than
+/// writing none, so the fold declines and says which method it declined.
+pub fn locale_sensitive_method(method: &str) -> String {
+  format!(
+    "Cannot fold '{}' at compile time.\nIts answer depends on locale data the compiler does not carry.\n\n",
+    method
+  )
+}
+
+/// A method called on a number written into the source as a literal.
+///
+/// Every `Number.prototype` method throws on one of those in the reference
+/// implementation, which applies the method without a receiver. Refusing keeps
+/// both compilers rejecting the same input. A number a fold *produced* is a
+/// different shape and folds in both.
+pub fn numeric_literal_receiver(method: &str) -> String {
+  format!(
+    "Cannot call '{}' on a number literal.\nOnly a number a fold produced can be a method receiver.\n\n",
+    method
+  )
+}
+
+/// A length-amplifying call whose result length could not be bounded.
+///
+/// The engine bounds loop iterations, recursion and stack, but not allocation:
+/// growth inside a native builtin is not a counted loop. So the length has to
+/// be readable, and under the ceiling, before the call is evaluated at all.
+pub fn unbounded_amplified_length(method: &str, limit: f64) -> String {
+  format!(
+    "Cannot bound the string '{}' would build.\nIts length must be a number literal of at most {}, on a receiver that is not itself a call.\n\n",
+    method, limit
+  )
+}
+
+/// A folded object with more properties than the fold's budget.
+///
+/// Shaped after [`array_length_too_large`] and bounded by the same number, for
+/// the same reason: every property crossing back becomes an AST node, which
+/// costs far more as a tree than it did as a value in the engine.
+pub fn object_size_too_large(limit: u64) -> String {
+  format!(
+    "Object is too large to evaluate at compile time.\nAt most {} properties are supported.\n\n",
+    limit
+  )
+}
+
+/// A folded value with no form this evaluator carries — a function, a symbol,
+/// `undefined`, a BigInt, or an object that is not a plain one.
+///
+/// Names the kind rather than the expression, because the expression is what
+/// the author wrote and the kind is what the language answered with; only the
+/// second says why an otherwise valid call folds to nothing usable.
+pub fn unfoldable_fold_result(kind: &str) -> String {
+  format!(
+    "The folded value is {}, which has no compile-time representation.\nOnly strings, numbers, booleans, null, arrays and plain objects can be folded.\n\n",
+    kind
+  )
+}
+
+/// A call the engine threw on, reported in the engine's own words under this
+/// compiler's naming of the call that produced them.
+///
+/// A throw is an answer rather than a fault of the fold: `[].reduce(f)` and
+/// `"a".repeat(-1)` throw in the language too, and the sentence the language
+/// wrote says more than any sentence this compiler could substitute for it.
+///
+/// The method is named alongside it because the language's sentence does not
+/// always name it. A call to a method that does not exist reads a property that
+/// is `undefined` and then calls it, so the throw is `not a callable function` —
+/// which tells an author nothing the code frame has not already shown them.
+pub fn engine_threw(method: &str, message: &str) -> String {
+  format!("Cannot fold '{}' at compile time.\n{}\n\n", method, message)
+}
+
+/// A named property read that leads off the value the author wrote.
+///
+/// `constructor` on a literal is `String`, and `String.constructor` is
+/// `Function`, which compiles a string into a body — so two reads and a call
+/// are arbitrary code inside the compiler, answering differently on every build
+/// and able to write to a prototype every later fold in the build shares.
+/// `call`, `apply` and `bind` are what turn an unapplied function back into a
+/// call, so they are refused with it.
+///
+/// Names the property rather than the method call it sat in, because the
+/// property is the whole of the reason: the same call on any other name folds.
+pub fn escaping_property(property: &str) -> String {
+  format!(
+    "Cannot fold a read of '{}' at compile time.\n\
+     It leads off the value that was written and onto the language's own function graph.\n\n",
+    property
+  )
+}
+
+/// A length-amplifying call written inside a callback.
+///
+/// [`unbounded_amplified_length`] bounds one evaluation, which is what a length
+/// written into the source can bound. A callback body is evaluated once per
+/// element of a receiver nothing measured, so the same written bound is
+/// multiplied by a count the source never states — and two calls each inside
+/// the bound build a length that is not.
+pub fn amplification_inside_a_callback(method: &str) -> String {
+  format!(
+    "Cannot bound the string '{}' would build inside a callback.\n\
+     A callback runs once per element, so a length written into the source bounds one evaluation rather than the call.\n\n",
+    method
+  )
+}
+
+/// A folded string longer than the fold will carry back.
+///
+/// [`unbounded_amplified_length`] bounds what one written call may be *asked*
+/// to build; this bounds what actually came back, whatever produced it. Shaped
+/// after [`array_length_too_large`] and bounded by the same number as the
+/// argument is, because it is the same string measured on the other side.
+pub fn folded_string_too_large(limit: f64) -> String {
+  format!(
+    "Folded string is too large to evaluate at compile time.\n\
+     At most {} characters are supported.\n\n",
+    limit
+  )
+}

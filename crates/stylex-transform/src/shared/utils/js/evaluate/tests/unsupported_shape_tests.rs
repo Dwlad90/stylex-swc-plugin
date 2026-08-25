@@ -43,10 +43,23 @@ fn a_method_call_on_a_receiver_kind_with_no_folds_refuses() {
     "/re/.test(\"a\")",
     "/re/.exec(\"a\")",
     "(() => 1).call()",
-    "({}).constructor()",
   ] {
     assert_deopts(source);
   }
+}
+
+/// `({}).constructor()` is `Object()`, which answers a plain object — a value
+/// the fold carries. The reference implementation folds it, and this compiler
+/// does not: `constructor` is the first step off the value that was written and
+/// onto the language's function graph, where two reads reach `Function`. The
+/// divergence is deliberate and is argued at `ESCAPING_PROPERTIES`; what it
+/// costs is this one call, whose answer no declaration uses.
+///
+/// The value it would have folded to is still reachable, written as itself.
+#[test]
+fn a_constructor_call_that_answers_a_plain_object_refuses_with_the_escaping_rule() {
+  assert_deopt_reason_contains("({}).constructor()", "Cannot fold a read of 'constructor'");
+  assert_folds("({}).valueOf()");
 }
 
 /// The receiver kinds that do have folds, at the edges where it is least
@@ -599,7 +612,6 @@ fn names_a_call_whose_callee_is_not_callable() {
     "(class {})()",
     "(1 + 1)()",
     "(1, 2)()",
-    "[1, 2].filter(1)",
   ] {
     assert_unsupported_expression(source, "CallExpression");
   }
@@ -612,9 +624,6 @@ fn names_a_call_whose_callee_is_not_callable() {
 /// receiver's kind says which half of `a.b` the evaluator could not use.
 #[test]
 fn names_the_value_a_refusal_arrived_with() {
-  // The receiver of a method call carries no methods this evaluator folds.
-  assert_unsupported_expression("(5).toFixed(2)", "NumericLiteral");
-
   // The receiver of a property read is a value with no properties to read.
   assert_unsupported_expression("({ a: () => 1 }).a.b", "ArrowFunctionExpression");
 

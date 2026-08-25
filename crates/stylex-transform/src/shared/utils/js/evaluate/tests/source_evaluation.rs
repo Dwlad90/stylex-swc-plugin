@@ -108,6 +108,68 @@ fn assert_deopt_result(result: &EvaluateResult, source: &str) {
   );
 }
 
+/// Asserts the refusal says what it says — the sentence an author reads, not
+/// merely that there was one.
+///
+/// A refusal with no reason is already caught by [`assert_deopts`]; what this
+/// catches is a refusal whose reason names the wrong rule, which reads to an
+/// author exactly like the right one and is why every rule the fold applies
+/// pins its own words here.
+#[track_caller]
+pub(crate) fn assert_deopt_reason_contains(source: &str, expected: &str) {
+  let result = evaluate_source(source);
+
+  assert_deopt_result(&result, source);
+
+  match result.reason {
+    Some(reason) => assert!(
+      reason.contains(expected),
+      "expected the refusal of `{}` to say `{}`, got {:?}",
+      source,
+      expected,
+      reason
+    ),
+    None => panic!("expected `{}` to record a deopt reason", source),
+  }
+}
+
+/// Asserts the source folds to an object, and to one carrying exactly these own
+/// keys in this order.
+///
+/// The keys rather than the whole object because order is the half a test can
+/// get wrong by accident: two objects with the same properties in different
+/// orders are different values to the language, and only one of them hashes the
+/// class name the reference implementation hashes.
+#[track_caller]
+pub(crate) fn assert_folds_to_object_keys(source: &str, expected: &[&str]) {
+  match assert_folds(source) {
+    Expr::Object(object) => {
+      let keys: Vec<String> = object
+        .props
+        .iter()
+        .map(|prop| match prop {
+          PropOrSpread::Prop(prop) => match prop.as_ref() {
+            Prop::KeyValue(key_value) => convert_key_value_to_str(key_value),
+            other => panic!(
+              "expected `{}` to fold to key-value props, got {:?}",
+              source, other
+            ),
+          },
+          PropOrSpread::Spread(_) => {
+            panic!("expected `{}` to fold to an object with no spread", source)
+          },
+        })
+        .collect();
+
+      assert_eq!(keys, expected, "wrong own-key order for `{}`", source);
+    },
+    other => panic!(
+      "expected `{}` to fold to an object, got {:?}",
+      source, other
+    ),
+  }
+}
+
 /// Asserts the refusal names the property that could not be read. The node kind
 /// is the half an author can already see; which property was asked for is the
 /// half that says why the declaration will not fold.
@@ -138,6 +200,25 @@ pub(crate) fn assert_deopt_names_property(source: &str, property: &str) {
 #[track_caller]
 pub(crate) fn assert_folds(source: &str) -> Expr {
   assert_folds_result(*evaluate_source(source), source)
+}
+
+/// The same, for a source whose value is not an expression — an array folds to
+/// the evaluator's own list rather than to an array literal, and a case whose
+/// subject is *that it folded* should not have to know which.
+#[track_caller]
+pub(crate) fn assert_folds_to_a_value(source: &str) -> EvaluateResultValue {
+  let result = evaluate_source(source);
+
+  assert!(
+    result.confident,
+    "expected `{}` to fold, got a deopt: {:?}",
+    source, result.reason
+  );
+
+  match result.value {
+    Some(value) => value,
+    None => panic!("expected `{}` to fold to a value, got none", source),
+  }
 }
 
 /// The same, with the depth ceiling raised for a source whose subject is depth.
@@ -194,26 +275,23 @@ pub(crate) fn assert_folds_to_null(source: &str) {
 
 /// Asserts the source folds to an array holding exactly `expected`, in order.
 ///
-/// A folded array reaches the evaluator as an `ArrayLit`, and every other array
-/// case asserts a `length` or a `join` the engine had already applied — so none
-/// of them would notice elements arriving in the wrong order, or a conversion
-/// that dropped one.
+/// A folded array is the evaluator's own list rather than an array literal —
+/// the same shape an array the author wrote evaluates to — so it is read
+/// through [`assert_folds_to_a_value`]. Every other array case asserts a
+/// `length` or a `join` the engine had already applied, so none of them would
+/// notice elements arriving in the wrong order, or a conversion that dropped
+/// one.
 #[track_caller]
 pub(crate) fn assert_folds_to_strings(source: &str, expected: &[&str]) {
-  match assert_folds(source) {
-    Expr::Array(array) => {
-      let folded = array
-        .elems
+  match assert_folds_to_a_value(source) {
+    EvaluateResultValue::Vec(items) => {
+      let folded = items
         .iter()
-        .map(|elem| match elem {
-          Some(ExprOrSpread { spread: None, expr }) => match expr.as_ref() {
-            Expr::Lit(Lit::Str(strng)) => convert_atom_to_string(&strng.value),
-            other => panic!("expected `{}` to hold strings, got {:?}", source, other),
+        .map(|item| match item {
+          EvaluateResultValue::Expr(Expr::Lit(Lit::Str(strng))) => {
+            convert_atom_to_string(&strng.value)
           },
-          other => panic!(
-            "expected `{}` to hold plain elements, got {:?}",
-            source, other
-          ),
+          other => panic!("expected `{}` to hold strings, got {:?}", source, other),
         })
         .collect::<Vec<String>>();
 

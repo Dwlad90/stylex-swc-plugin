@@ -253,3 +253,37 @@ pub(crate) fn theme_module_transform(comments: TestComments) -> impl Pass {
       .with_runtime_injection()
   })
 }
+
+/// Compile one module under the theme-import transform and hand back what it
+/// printed, rules included.
+///
+/// The four files whose subject is what the evaluator folds each need exactly
+/// this — compile a whole module, then assert on the class names and rule text
+/// upstream was measured to produce. Kept here rather than copied per file so
+/// they cannot drift into compiling under different options and reporting the
+/// difference as a divergence in the value under test.
+#[allow(dead_code)]
+pub(crate) fn fold_module(input: &str) -> String {
+  stringify_js(input, ts_syntax(), |tr| {
+    theme_import_transform(tr.comments.clone())
+  })
+}
+
+/// One `stylex.create` module: `decls` above it, `body` as the declarations of
+/// its single `base` style.
+///
+/// `decls` is where a case that needs a binding puts it, and empty where the
+/// case is about a value written out.
+#[allow(dead_code)]
+pub(crate) fn create_module(decls: &str, body: &str) -> String {
+  format!(
+    r#"
+      import * as stylex from '@stylexjs/stylex';
+      {}
+      export const styles = stylex.create({{
+        base: {{ {} }},
+      }});
+    "#,
+    decls, body
+  )
+}

@@ -60,21 +60,33 @@ fn a_chain_folds_at_every_link() {
   assert_folds_to_string("\"  a-b  \".trim().replace(\"-\", \"_\")", "a_b");
 }
 
-// ==================== mutation stays refused ====================
+// ==================== mutation ====================
 
-/// The reference implementation folds these by accident of reflecting on a real
-/// array. Issue 06 holds the divergence deliberately, so the guard has to state
-/// it — and at every link, because a chain hides the mutating call in the middle.
+/// A mutating method folds, at every link of a chain, exactly as it does under
+/// the reference implementation.
+///
+/// It was refused here on the reasoning that matching would carry mutation into
+/// an otherwise pure evaluation. Measured, that reasoning does not hold: the
+/// reference implementation does not refuse mutating methods at all — it folds
+/// them on any receiver not reachable by name, and disqualifies the **binding**
+/// instead. The engine therefore only ever mutates a temporary nothing can name
+/// afterwards, which is unobservable, and the rule that does the work lives in
+/// binding resolution rather than here. `resolution_order` pins that half.
 #[test]
-fn a_mutating_array_method_refuses_at_any_position_in_a_chain() {
-  assert_deopts("[\"a\", \"b\"].push(\"c\")");
-  assert_deopts("[\"b\", \"a\"].sort()");
-  assert_deopts("[\"b\", \"a\"].sort().join(\"-\")");
-  assert_deopts("[\"a\", \"b\"].reverse().join(\"-\")");
-  assert_deopts("[1, 2, 3].splice(1).join(\"-\")");
-  assert_deopts("[\"a\"].pop()");
-  assert_deopts("[\"a\"].shift()");
-  assert_deopts("[\"a\"].unshift(\"b\")");
+fn a_mutating_array_method_folds_at_any_position_in_a_chain() {
+  assert_folds_to_number("[\"a\", \"b\"].push(\"c\")", 3.0);
+  assert_folds_to_string("[\"b\", \"a\"].sort().join(\",\")", "a,b");
+  assert_folds_to_string("\"b,a\".split(\",\").sort().join(\",\")", "a,b");
+  assert_folds_to_string("[\"a\", \"b\"].reverse().join(\"-\")", "b-a");
+  assert_folds_to_string("[1, 2, 3].splice(1).join(\"-\")", "2-3");
+  assert_folds_to_string("[\"a\"].pop()", "a");
+  assert_folds_to_string("[\"a\", \"b\"].shift()", "a");
+  assert_folds_to_number("[\"a\"].unshift(\"b\")", 2.0);
+  assert_folds_to_string("[3, 1, 2].sort().reverse().join(\"\")", "321");
+
+  // The receiver is a fresh value each time, so a fold is not carried into the
+  // next one: the same expression folded twice answers the same thing.
+  assert_folds_to_string("[\"b\", \"a\"].sort().join(\",\")", "a,b");
 }
 
 // ==================== the scope the engine does not have ====================
@@ -126,15 +138,61 @@ fn a_computed_method_name_refuses_even_when_it_is_a_literal() {
 // ==================== the value domain ====================
 
 /// The engine hands back everything JavaScript has, and only some of it is a
-/// value this evaluator carries. An object, a function and `undefined` have no
-/// literal, so the fold declines and the existing path answers.
+/// value this evaluator carries. A function, a symbol, `undefined` and a
+/// BigInt have no literal, and neither does an object that is not a plain one,
+/// so each declines with the kind it declined on.
 #[test]
 fn a_result_with_no_literal_form_refuses() {
-  assert_deopts("({ a: 1 }).valueOf()");
-  assert_deopts("[1, 2].entries()");
-  assert_deopts("\"abc\".at(99)");
-  assert_deopts("[1, 2].at(99)");
-  assert_deopts("\"abc\".split(\"\").values()");
+  // An iterator is an object, and not a plain one.
+  assert_deopt_reason_contains("[1, 2].entries()", "no literal form");
+  assert_deopt_reason_contains("\"abc\".split(\"\").values()", "no literal form");
+
+  // `undefined` is what a read past the end answers.
+  assert_deopt_reason_contains("\"abc\".at(99)", "undefined");
+  assert_deopt_reason_contains("[1, 2].at(99)", "undefined");
+
+  // A function, which a method read off a value is. Read through a callback
+  // parameter, because `bind` — the other way to reach one — is refused before
+  // the conversion is asked anything.
+  assert_deopt_reason_contains("[\"a\"].reduce((a, b) => b.trim, 0)", "a function");
+
+  // A symbol and a BigInt are refused by the same rule and named as
+  // themselves, and no input the guard admits today produces either: both are
+  // reachable only through a bare global, which is not a self-contained
+  // receiver. They are written as refusals rather than assumed away, because
+  // widening the guard is what the rest of this effort does.
+}
+
+/// A plain object crosses back and reaches the same places an object the author
+/// wrote reaches, which is what makes a fold's result as usable as a value
+/// somebody typed. The reference implementation folds each of these to the same
+/// declaration.
+#[test]
+fn a_plain_object_result_crosses_back() {
+  assert_folds_to_object_keys("({ a: 1 }).valueOf()", &["a"]);
+  assert_folds_to_object_keys(
+    "[\"red\"].reduce((o, v) => ({ default: v, \":hover\": \"blue\" }), {})",
+    &["default", ":hover"],
+  );
+
+  // An empty one, and one whose properties are themselves folded values.
+  assert_folds_to_object_keys("({}).valueOf()", &[]);
+  assert_folds_to_object_keys(
+    "[1].reduce((o, v) => ({ list: [v, v + 1], nested: { deep: v } }), {})",
+    &["list", "nested"],
+  );
+}
+
+/// Own-key order is the language's, and is produced by the same ordering an
+/// object the author wrote goes through: integer-like keys ascending first,
+/// then the rest in insertion order. Asserted rather than assumed, because two
+/// implementations of own-key order agreeing today says nothing about tomorrow.
+#[test]
+fn an_object_result_carries_the_own_key_order_the_language_gives_it() {
+  assert_folds_to_object_keys(
+    "[1].reduce((o) => ({ b: 1, 2: 2, a: 3, 1: 4 }), {})",
+    &["1", "2", "b", "a"],
+  );
 }
 
 /// `NaN` and `Infinity` are numbers JavaScript produces and the reference
@@ -311,8 +369,6 @@ fn nesting_past_the_bound_refuses_rather_than_overflowing_a_stack() {
 }
 
 /// The object prototype the reference implementation reaches by reflection.
-/// `valueOf` answers the object itself, which has no literal form, so it is the
-/// one that refuses — and refuses for that reason rather than by name.
 #[test]
 fn the_object_prototype_methods_fold() {
   assert_folds_to_boolean("({ a: 1 }).hasOwnProperty(\"a\")", true);
@@ -321,7 +377,90 @@ fn the_object_prototype_methods_fold() {
   assert_folds_to_boolean("({ a: 1 }).isPrototypeOf({})", false);
   assert_folds_to_string("({ a: 1 }).toString()", "[object Object]");
   assert_folds_to_string("({ \"a-b\": 1, 2: 3 }).toString()", "[object Object]");
-  assert_deopts("({ a: 1 }).valueOf()");
+}
+
+// ==================== the boundaries around a folded value ====================
+
+/// An object costs one AST node per property, exactly as an array costs one per
+/// element, so it is bounded by the same number. Written out rather than
+/// generated by a loop inside the engine, because the source is the only way to
+/// reach ten thousand properties through the guard today.
+#[test]
+fn an_object_result_with_more_properties_than_a_declaration_could_use_refuses() {
+  assert_deopt_reason_contains(&object_of(10_001), "Object is too large");
+
+  // Exactly at the bound still folds, so the refusal above is the count and not
+  // the shape.
+  assert_folds(&object_of(10_000));
+}
+
+/// One object literal of `count` properties, as a receiver whose method answers
+/// the object itself.
+fn object_of(count: usize) -> String {
+  let props: Vec<String> = (0..count)
+    .map(|index| format!("k{}:{}", index, index))
+    .collect();
+
+  format!("({{{}}}).valueOf()", props.join(","))
+}
+
+/// A value can be nested deeper on the way *out* than any expression the guard
+/// admits on the way in, because a loop inside the engine builds it rather than
+/// syntax the author wrote. The conversion recurses on the bare thread stack,
+/// so it is bounded for the reason the input is bounded — and says so with the
+/// same sentence.
+#[test]
+fn a_value_the_engine_nested_past_the_bound_refuses_rather_than_overflowing_a_stack() {
+  let nest = |levels: usize| {
+    format!(
+      "\"x\".repeat({}).split(\"\").reduce((a, c) => [a], [])",
+      levels
+    )
+  };
+
+  assert_deopt_reason_contains(&nest(40), "too deeply nested");
+  assert_deopt_reason_contains(&nest(400), "too deeply nested");
+
+  // Well inside the bound, so the refusals above are the depth and not the
+  // shape: the same expression at four levels folds.
+  assert_folds_to_a_value(&nest(4));
+}
+
+/// A key an object literal cannot spell as an identifier survives being carried
+/// back, because it is carried as the key node the object evaluation uses and
+/// not re-parsed as source.
+#[test]
+fn a_folded_object_carries_keys_no_identifier_could_spell() {
+  assert_folds_to_object_keys(
+    "({ \"a-b\": 1, \"\": 2, \"ä ü\": 3 }).valueOf()",
+    &["a-b", "", "ä ü"],
+  );
+  assert_folds_to_object_keys(
+    "({ \"a\\nb\": 1, \"a\\\"b\": 2 }).valueOf()",
+    &["a\nb", "a\"b"],
+  );
+  assert_folds_to_object_keys(
+    "({ \"@media (min-width: 1px)\": 1 }).valueOf()",
+    &["@media (min-width: 1px)"],
+  );
+}
+
+/// The kinds of input that are not a fold at all, at every position the guard
+/// walks. Each has to leave the existing dispatch in charge rather than raise a
+/// refusal of its own, because that dispatch is what folds `Math` and the
+/// callable globals.
+#[test]
+fn a_shape_the_guard_never_recognised_leaves_the_existing_path_in_charge() {
+  // The globals the older dispatch still owns keep folding.
+  assert_folds_to_number("Math.round(1.5)", 2.0);
+  assert_folds_to_string("String(1)", "1");
+
+  // And a receiver it owns nothing for still refuses in its own words, rather
+  // than with a rule the fold invented.
+  assert_deopt_reason_contains(
+    "Object.assign({}, {})",
+    "Referenced value is not a constant",
+  );
 }
 
 // ==================== the boundaries, at their own value ====================
@@ -417,11 +556,13 @@ fn an_object_receiver_written_as_anything_but_a_key_and_a_value_refuses() {
 }
 
 /// The two mutating names that are neither a `push` nor a `sort`: they mutate
-/// in place and answer the receiver, so a chain hides them as completely.
+/// in place and answer the receiver, so a chain hides them as completely — and
+/// they fold, for the reason every other mutating name folds, which
+/// `a_mutating_array_method_folds_at_any_position_in_a_chain` argues.
 #[test]
-fn the_remaining_mutating_array_methods_refuse_too() {
-  assert_deopts("[\"a\", \"b\"].fill(\"c\").join(\"\")");
-  assert_deopts("[\"a\", \"b\"].copyWithin(0).join(\"\")");
+fn the_remaining_mutating_array_methods_fold_too() {
+  assert_folds_to_string("[\"a\", \"b\"].fill(\"c\").join(\"\")", "cc");
+  assert_folds_to_string("[\"a\", \"b\"].copyWithin(0).join(\"\")", "ab");
 }
 
 /// The array a fold hands back, asserted as the array. Every other array case
@@ -458,12 +599,12 @@ fn a_call_whose_callee_is_not_an_expression_refuses() {
 /// The level the guard stops accepting at, with the evaluator's own ceiling
 /// raised past it so the guard is what answers.
 ///
-/// One past the bound the expression falls through to the older `join`, whose
-/// elements are arrays rather than strings. That has to refuse like any other
-/// shape it cannot fold: a project that raises `max_evaluation_depth` must get
-/// a diagnostic pointing at the declaration, not an unwound panic.
+/// Both sides of the bound are pinned under the raised ceiling, so what the
+/// refusal measures is the depth and not the shape — the older path would fold
+/// the second of these if the guard handed it back, which is the fold this
+/// bound costs and `Depth` argues.
 #[test]
-fn nesting_one_past_the_bound_refuses_through_the_older_join_rather_than_panicking() {
+fn nesting_one_past_the_bound_refuses_under_a_ceiling_that_admits_it() {
   let admitted = format!("{}[\"a\"]{}.join(\"\")", "[".repeat(30), "]".repeat(30));
   let refused = format!("{}[\"a\"]{}.join(\"\")", "[".repeat(31), "]".repeat(31));
 

@@ -11,10 +11,19 @@
 //! Everything therefore rests on the guard in front of the engine. What it
 //! lets through is answered by the language; what it holds back is a boundary
 //! with a reason, and each one is named where it is applied below.
+//!
+//! A fold answers one of two things: the value, or the rule that refused it.
+//! There is no silent refusal — a call the guard recognised and declined says
+//! which rule declined it, rather than falling through to the caller's
+//! `Unsupported expression: CallExpression`. A call the guard never recognised
+//! is not a refusal at all: it is simply not this module's, and the dispatch
+//! below it decides what happens instead.
 
-use std::{cell::RefCell, mem::ManuallyDrop};
+use std::{borrow::Cow, cell::RefCell, mem::ManuallyDrop};
 
-use boa_engine::{Context, JsValue, Source, js_string};
+use boa_engine::{
+  Context, JsError, JsObject, JsResult, JsValue, Source, js_string, property::PropertyKey,
+};
 use swc_core::{
   atoms::Atom,
   common::DUMMY_SP,
@@ -28,17 +37,28 @@ use swc_core::{
   },
 };
 
-use stylex_js::helpers::is_mutating_array_method;
+use stylex_ast::ast::factories::{create_ident_key_value_prop, create_object_lit};
+use stylex_constants::constants::evaluation_errors::{
+  amplification_inside_a_callback, array_length_too_large, engine_threw, escaping_property,
+  expression_too_deep, folded_string_too_large, locale_sensitive_method, numeric_literal_receiver,
+  object_size_too_large, unbounded_amplified_length, unfoldable_fold_result,
+};
 
-use crate::shared::utils::log::build_code_frame_error::{CodeFrame, print_module};
+use super::evaluate_result_vec_to_array_expr;
+use crate::shared::{
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  utils::{
+    common::order_own_keys,
+    log::build_code_frame_error::{CodeFrame, print_module},
+  },
+};
 
 /// Methods whose answer depends on locale data the engine does not carry.
 ///
 /// It resolves them against the root locale, so `"i".toLocaleUpperCase("tr")`
 /// comes back `I` where the language says `İ`, and a collation comparison
 /// answers by code point. Folding those would put a wrong value in the
-/// stylesheet, which is worse than not folding at all, so they are refused and
-/// the caller's existing refusal reports them.
+/// stylesheet, which is worse than not folding at all.
 ///
 /// `toLocaleString` is here for a receiver the name cannot be separated from.
 /// On an object it delegates to `toString` and carries no locale at all, and
@@ -83,22 +103,28 @@ const LENGTH_AMPLIFYING_METHODS: [&str; 3] = ["repeat", "padStart", "padEnd"];
 /// megabytes in the engine and instant, and no CSS value is a megabyte long.
 const MAX_AMPLIFIED_LENGTH: f64 = 1_000_000.0;
 
-/// How many elements a folded array may carry back.
+/// How many entries a folded array or object may carry back.
 ///
 /// [`MAX_AMPLIFIED_LENGTH`] bounds a string, and a string can still be turned
 /// into one element per code unit: `"x".repeat(999999).split("")` folds to an
 /// array literal of a million AST nodes, which costs far more as a tree than it
-/// did as text. A fallback list in a real declaration holds a handful of values,
-/// so this is generous by three orders of magnitude and still refuses that.
-const MAX_FOLDED_ARRAY_LENGTH: u64 = 10_000;
+/// did as text. An object pays the same price per property, so it is bounded by
+/// the same number rather than by one of its own. A fallback list in a real
+/// declaration holds a handful of values, and a nested style object a handful of
+/// conditions, so this is generous by three orders of magnitude and still
+/// refuses that.
+const MAX_FOLDED_ENTRIES: u64 = 10_000;
 
-/// How deeply nested an expression this module will hand to the engine.
+/// How deeply nested an expression this module will hand to the engine, and how
+/// deeply nested a value it will carry back.
 ///
 /// Nesting is not free for whoever parses it. The engine's parser descends
 /// through a nested array literal recursively and, measured on a debug build,
 /// overflows its stack somewhere around a hundred levels — which aborts the
 /// process from inside an evaluation whose whole contract is that it may fail.
-/// Refusing deeper input is what turns that crash back into a diagnostic.
+/// Refusing deeper input is what turns that crash back into a diagnostic, and
+/// the same bound applies on the way out because a loop inside the engine can
+/// nest a value deeper than any expression that reached it.
 ///
 /// One level is spent per step of the walk, and a leaf spends one too, so this
 /// admits an expression nested 31 levels and refuses the 32nd. The number is
@@ -150,6 +176,32 @@ thread_local! {
   static ENGINE: RefCell<Option<ManuallyDrop<Context>>> = const { RefCell::new(None) };
 }
 
+/// The words a [refused fold](../../../../../CONTEXT.md) hands the caller,
+/// ready to be raised as a deopt.
+///
+/// Borrowed where the rule has one fixed sentence and owned where it names the
+/// method or the limit it refused on, so the common path allocates nothing.
+pub(crate) type Refusal = Cow<'static, str>;
+
+/// Why the guard did not hand a call to the engine — the outcome, where
+/// [`Refusal`] is the half of it an author reads.
+///
+/// Only one of the two arms is a refusal in the glossary's sense. A call that
+/// is not a candidate was decided from syntax before any rule ran: nothing
+/// declined it, so nothing is reported and the dispatch below this module owns
+/// the call. A rule that fired declined a call the guard did recognise, and
+/// carries the words for it.
+enum Decline {
+  NotACandidate,
+  Rule(Refusal),
+}
+
+impl Decline {
+  fn rule(reason: impl Into<Refusal>) -> Self {
+    Self::Rule(reason.into())
+  }
+}
+
 /// Where a bare identifier in an expression is allowed to get its value from.
 #[derive(Clone, Copy)]
 enum Scope<'a> {
@@ -161,26 +213,44 @@ enum Scope<'a> {
   Params(&'a [Atom]),
 }
 
+/// How much nesting is left, and the one refusal spent at the bottom of it.
+///
+/// Both directions across the bridge count the same budget for the same
+/// reason — the walk in recurses on the bare thread stack and so does the
+/// conversion out — so they share the counter and the sentence rather than
+/// keeping two that could drift apart.
+#[derive(Clone, Copy)]
+struct Depth(usize);
+
+impl Depth {
+  /// A full budget, at the start of a walk or a conversion.
+  const FULL: Self = Self(MAX_ENGINE_NESTING);
+
+  /// One level in, or the depth refusal at the bound — so depth is answered the
+  /// same way as any other rule the guard applies.
+  fn descend(self) -> Result<Self, Decline> {
+    match self.0 {
+      0 => Err(Decline::rule(expression_too_deep(MAX_ENGINE_NESTING))),
+      left => Ok(Self(left - 1)),
+    }
+  }
+}
+
 /// What the guard carries as it walks: where a bare identifier may come from,
 /// and how much nesting is left before the expression is refused as too deep.
 #[derive(Clone, Copy)]
 struct Guard<'a> {
   scope: Scope<'a>,
-  levels_left: usize,
+  depth: Depth,
 }
 
 impl<'a> Guard<'a> {
-  /// The guard one level in, or `None` at the bound — which every walk reads as
-  /// a refusal, so depth is answered the same way as any other shape it
-  /// declines.
-  fn descend(self) -> Option<Self> {
-    match self.levels_left {
-      0 => None,
-      levels_left => Some(Self {
-        levels_left: levels_left - 1,
-        ..self
-      }),
-    }
+  /// The guard one level in.
+  fn descend(self) -> Result<Self, Decline> {
+    Ok(Self {
+      depth: self.depth.descend()?,
+      ..self
+    })
   }
 
   /// The same remaining depth, with a callback's parameters now in scope.
@@ -192,19 +262,26 @@ impl<'a> Guard<'a> {
   }
 }
 
-/// Folds `call` through the engine, or answers `None` to leave the existing
-/// path in charge.
-pub(crate) fn try_fold(call: &CallExpr) -> Option<Expr> {
-  // Only a method call on a self-contained receiver is a candidate. Anything
-  // else would need the surrounding scope, which the engine does not have.
+/// Folds `call` through the engine.
+///
+/// `None` leaves the existing path in charge: the call is not one this module
+/// handles, which is a question of syntax and not a refusal. `Some` is the
+/// fold's own answer — the value, or the rule that declined it.
+pub(crate) fn try_fold(call: &CallExpr) -> Option<Result<EvaluateResultValue, Refusal>> {
   let guard = Guard {
     scope: Scope::Nothing,
-    levels_left: MAX_ENGINE_NESTING,
+    depth: Depth::FULL,
   };
 
-  if !is_foldable_call(call, guard) {
-    return None;
+  match fold(call, guard) {
+    Ok(value) => Some(Ok(value)),
+    Err(Decline::NotACandidate) => None,
+    Err(Decline::Rule(reason)) => Some(Err(reason)),
   }
+}
+
+fn fold(call: &CallExpr, guard: Guard) -> Result<EvaluateResultValue, Decline> {
+  let method = admit_call(call, guard)?;
 
   let source = print_call(call);
 
@@ -217,11 +294,17 @@ pub(crate) fn try_fold(call: &CallExpr) -> Option<Expr> {
     // what `ManuallyDrop` already makes it do at thread exit.
     let mut engine = slot.take().unwrap_or_else(new_engine);
 
+    let outward = Outward {
+      method,
+      depth: Depth::FULL,
+    };
+
     let folded = match engine.eval(Source::from_bytes(&source)) {
-      Ok(value) => to_expr(&value, &mut engine),
-      // A throw is an answer, not a failure of this module: the caller's
-      // existing refusal already reports it. Nothing to fold.
-      Err(_) => None,
+      Ok(value) => to_value(&value, &mut engine, outward),
+      // A throw is an answer, not a failure of this module — the language
+      // throws on `[].reduce(f)` too — so the engine's own sentence is what the
+      // author reads, rather than a generic refusal standing in for it.
+      Err(error) => Err(outward.threw(&error)),
     };
 
     *slot = Some(engine);
@@ -241,49 +324,101 @@ fn new_engine() -> ManuallyDrop<Context> {
   ManuallyDrop::new(engine)
 }
 
+/// What the outward bridge carries as it converts a value back: the method
+/// whose answer it is reading, so a refusal can name it, and how much nesting
+/// is left before the value is refused as too deep.
+///
+/// The method is carried because the engine's own sentence does not always
+/// name it — `"abc".unsupported()` throws `not a callable function`, which
+/// tells an author nothing the code frame has not already shown them.
+#[derive(Clone, Copy)]
+struct Outward<'a> {
+  method: &'a Atom,
+  depth: Depth,
+}
+
+impl Outward<'_> {
+  /// The bridge one level in.
+  ///
+  /// A value nested deeper than the guard admits on the way in can still be
+  /// built on the way out, by a loop the engine ran rather than by syntax the
+  /// author wrote. Bounded for the reason the input is bounded: the conversion
+  /// recurses on the bare thread stack.
+  fn descend(self) -> Result<Self, Decline> {
+    Ok(Self {
+      depth: self.depth.descend()?,
+      ..self
+    })
+  }
+
+  /// A throw, in the engine's own words under this compiler's naming of the
+  /// call that produced it.
+  fn threw(self, error: &JsError) -> Decline {
+    Decline::rule(engine_threw(self.method, &error.to_string()))
+  }
+}
+
 /// Whether every value `expr` needs is either written into it or bound by the
 /// guard's scope, so printing it yields source the engine can evaluate alone.
 ///
 /// One walk serves both questions this module asks — a receiver that must be
 /// wholly self-contained is the same walk with an empty scope — so a shape
 /// accepted in one position cannot silently be refused in the other.
-/// Deliberately narrow: a shape it does not recognise is refused.
-fn carries_its_own_value(expr: &Expr, guard: Guard) -> bool {
-  let Some(inner) = guard.descend() else {
-    return false;
-  };
+/// Deliberately narrow: a shape it does not recognise is not a candidate.
+fn admit_value(expr: &Expr, guard: Guard) -> Result<(), Decline> {
+  let inner = guard.descend()?;
 
   match expr {
     Expr::Ident(ident) => match guard.scope {
-      Scope::Nothing => false,
-      Scope::Params(params) => params.contains(&ident.sym),
+      Scope::Nothing => Err(Decline::NotACandidate),
+      Scope::Params(params) if params.contains(&ident.sym) => Ok(()),
+      Scope::Params(_) => Err(Decline::NotACandidate),
     },
     // A regular expression and a BigInt have no value this evaluator carries,
     // and neither does the reference implementation fold one.
-    Expr::Lit(lit) => !matches!(lit, Lit::Regex(_) | Lit::BigInt(_)),
-    Expr::Paren(paren) => carries_its_own_value(&paren.expr, inner),
-    Expr::Unary(unary) => carries_its_own_value(&unary.arg, inner),
+    Expr::Lit(Lit::Regex(_) | Lit::BigInt(_)) => Err(Decline::NotACandidate),
+    Expr::Lit(_) => Ok(()),
+    Expr::Paren(paren) => admit_value(&paren.expr, inner),
+    Expr::Unary(unary) => admit_value(&unary.arg, inner),
     Expr::Bin(bin) => {
-      carries_its_own_value(&bin.left, inner) && carries_its_own_value(&bin.right, inner)
+      admit_value(&bin.left, inner)?;
+      admit_value(&bin.right, inner)
     },
     Expr::Cond(cond) => {
-      carries_its_own_value(&cond.test, inner)
-        && carries_its_own_value(&cond.cons, inner)
-        && carries_its_own_value(&cond.alt, inner)
+      admit_value(&cond.test, inner)?;
+      admit_value(&cond.cons, inner)?;
+      admit_value(&cond.alt, inner)
     },
     // A named property read: `x.length` inside a callback, and `({a:1}).a` as
     // a receiver. A computed one is a lookup that needs the scope.
-    Expr::Member(MemberExpr { obj, prop, .. }) => match prop {
-      MemberProp::Ident(name) if !lists(&ESCAPING_PROPERTIES, &name.sym) => {
-        carries_its_own_value(obj, inner)
-      },
-      _ => false,
+    //
+    // Whether the receiver carries its own value is asked first, so a read the
+    // guard cannot see the value of stays the dispatch below's rather than
+    // becoming a refusal this module raised over it.
+    Expr::Member(MemberExpr {
+      obj,
+      prop: MemberProp::Ident(name),
+      ..
+    }) => {
+      admit_value(obj, inner)?;
+
+      if lists(&ESCAPING_PROPERTIES, &name.sym) {
+        return Err(Decline::rule(escaping_property(&name.sym)));
+      }
+
+      Ok(())
     },
-    Expr::Array(ArrayLit { elems, .. }) => elems.iter().all(|elem| match elem {
-      Some(ExprOrSpread { spread: None, expr }) => carries_its_own_value(expr, inner),
-      // A hole is `undefined` and a spread needs the scope; both stay out.
-      _ => false,
-    }),
+    Expr::Array(ArrayLit { elems, .. }) => {
+      for elem in elems {
+        match elem {
+          Some(ExprOrSpread { spread: None, expr }) => admit_value(expr, inner)?,
+          // A hole is `undefined` and a spread needs the scope; both stay out.
+          _ => return Err(Decline::NotACandidate),
+        }
+      }
+
+      Ok(())
+    },
     // A key and a value written out, which is a value the engine can be handed
     // whole. `__proto__` is the one key that is not: written as a plain
     // property it sets the prototype rather than a member, so the receiver the
@@ -291,72 +426,86 @@ fn carries_its_own_value(expr: &Expr, guard: Guard) -> bool {
     // in because the reference implementation folds it identically and every
     // route off the prototype is refused above — not because the walk models
     // it.
-    Expr::Object(ObjectLit { props, .. }) => props.iter().all(|prop| match prop {
-      PropOrSpread::Prop(prop) => match prop.as_ref() {
-        Prop::KeyValue(KeyValueProp { key, value }) => {
-          matches!(
-            key,
-            PropName::Ident(_) | PropName::Str(_) | PropName::Num(_)
-          ) && carries_its_own_value(value, inner)
-        },
-        _ => false,
-      },
-      PropOrSpread::Spread(_) => false,
-    }),
+    Expr::Object(ObjectLit { props, .. }) => {
+      for prop in props {
+        let PropOrSpread::Prop(prop) = prop else {
+          return Err(Decline::NotACandidate);
+        };
+
+        let Prop::KeyValue(KeyValueProp { key, value }) = prop.as_ref() else {
+          return Err(Decline::NotACandidate);
+        };
+
+        if !matches!(
+          key,
+          PropName::Ident(_) | PropName::Str(_) | PropName::Num(_)
+        ) {
+          return Err(Decline::NotACandidate);
+        }
+
+        admit_value(value, inner)?;
+      }
+
+      Ok(())
+    },
     // A chained call: the receiver is itself a fold. Printing the whole chain
     // and evaluating it once is what makes `[…].map(…).join('-')` work, which
     // two separate method tables cannot agree on.
-    Expr::Call(call) => is_foldable_call(call, inner),
-    _ => false,
+    Expr::Call(call) => admit_call(call, inner).map(|_| ()),
+    _ => Err(Decline::NotACandidate),
   }
 }
 
 /// Whether a call is a method call this module can hand to the engine whole.
 ///
 /// Every boundary is checked here rather than at the outermost call, because a
-/// chain hides its middle links: `["b","a"].sort().join("-")` is a `join` whose
-/// receiver mutates.
-fn is_foldable_call(call: &CallExpr, guard: Guard) -> bool {
+/// chain hides its middle links: `"AB".toLocaleLowerCase().trim()` is a `trim`
+/// whose receiver needs a locale.
+///
+/// Candidacy is settled before any rule fires, and both questions are settled
+/// before anything is printed. The order is what keeps a rule from answering
+/// for a call that was never this module's: a receiver the guard cannot see the
+/// value of belongs to the dispatch below, and a rule raised over it would stop
+/// the call reaching that dispatch — which is where `Math` and the callable
+/// globals still fold. It costs nothing today, because the walk is syntax and
+/// resolves nothing. Ticket 05 is where the walk starts resolving bindings and
+/// the cheap rules have to move back in front of it.
+fn admit_call<'a>(call: &'a CallExpr, guard: Guard) -> Result<&'a Atom, Decline> {
   let Callee::Expr(callee) = &call.callee else {
-    return false;
+    return Err(Decline::NotACandidate);
   };
 
   let Expr::Member(MemberExpr { obj, prop, .. }) = callee.as_ref() else {
-    return false;
+    return Err(Decline::NotACandidate);
   };
 
   // A computed method name is a lookup the guard cannot resolve, even when it
   // is written as a literal.
   let MemberProp::Ident(method) = prop else {
-    return false;
+    return Err(Decline::NotACandidate);
   };
 
-  // A mutating method is refused rather than folded. The reference
-  // implementation folds `["a","b"].push("c")` to `3` by reflecting on a real
-  // array, and an engine reproduces that exactly — so the refusal has to be
-  // stated. Matching it would mean carrying mutation into an evaluator whose
-  // every other answer is pure, to serve input nobody writes.
-  if is_mutating_array_method(prop) {
-    return false;
+  admit_value(obj, guard)?;
+
+  for arg in &call.args {
+    admit_argument(arg, guard)?;
   }
 
   if lists(&ESCAPING_PROPERTIES, &method.sym) {
-    return false;
+    return Err(Decline::rule(escaping_property(&method.sym)));
   }
 
   if lists(&LOCALE_SENSITIVE_METHODS, &method.sym) {
-    return false;
+    return Err(Decline::rule(locale_sensitive_method(&method.sym)));
   }
 
   if receiver_is_a_written_number(obj) {
-    return false;
+    return Err(Decline::rule(numeric_literal_receiver(&method.sym)));
   }
 
-  if !amplification_is_bounded(&method.sym, obj, &call.args, guard.scope) {
-    return false;
-  }
+  admit_amplification(&method.sym, obj, &call.args, guard.scope)?;
 
-  carries_its_own_value(obj, guard) && call.args.iter().all(|arg| is_argument_foldable(arg, guard))
+  Ok(&method.sym)
 }
 
 /// Whether the receiver is a number written into the source as a literal.
@@ -380,17 +529,19 @@ fn receiver_is_a_written_number(receiver: &Expr) -> bool {
 /// The length asked for has to be written into the source as a number under
 /// [`MAX_AMPLIFIED_LENGTH`], and the receiver must not itself be a call:
 /// per-link bounds alone would let `"x".repeat(1000000).repeat(1000000)`
-/// multiply two allowed lengths into one that is not. With both in place the
-/// most a fold can build is one bounded string per amplifying call written, so
-/// the source file bounds the total.
-fn amplification_is_bounded(
+/// multiply two allowed lengths into one that is not. And the call must not sit
+/// inside a callback, which runs once per element of a receiver nothing here
+/// measured, so a bound written once is multiplied by a count the source never
+/// states. With all three in place the most a fold can build is one bounded
+/// string per amplifying call written, so the source file bounds the total.
+fn admit_amplification(
   method: &Atom,
   receiver: &Expr,
   args: &[ExprOrSpread],
   scope: Scope,
-) -> bool {
+) -> Result<(), Decline> {
   if !lists(&LENGTH_AMPLIFYING_METHODS, method) {
-    return true;
+    return Ok(());
   }
 
   // A written bound bounds one evaluation. A callback body is evaluated once
@@ -400,35 +551,37 @@ fn amplification_is_bounded(
   // bound, building a terabyte between them. The count cannot be read here, so
   // an amplifying call inside a callback is refused whatever its argument says.
   if matches!(scope, Scope::Params(_)) {
-    return false;
+    return Err(Decline::rule(amplification_inside_a_callback(method)));
   }
 
+  let unbounded = || Decline::rule(unbounded_amplified_length(method, MAX_AMPLIFIED_LENGTH));
+
   if matches!(receiver, Expr::Call(_)) {
-    return false;
+    return Err(unbounded());
   }
 
   match args.first() {
     // `"x".padStart()` amplifies nothing, so there is no length to bound.
-    None => true,
+    None => Ok(()),
     Some(ExprOrSpread { spread: None, expr }) => match expr.as_ref() {
-      Expr::Lit(Lit::Num(length)) => length.value <= MAX_AMPLIFIED_LENGTH,
-      _ => false,
+      Expr::Lit(Lit::Num(length)) if length.value <= MAX_AMPLIFIED_LENGTH => Ok(()),
+      _ => Err(unbounded()),
     },
-    Some(_) => false,
+    Some(_) => Err(unbounded()),
   }
 }
 
-/// An argument is foldable when it carries its own value, or is an arrow
+/// An argument is admitted when it carries its own value, or is an arrow
 /// function reading nothing but its own parameters — the callback shape `map`,
 /// `filter` and `reduce` take.
-fn is_argument_foldable(arg: &ExprOrSpread, guard: Guard) -> bool {
+fn admit_argument(arg: &ExprOrSpread, guard: Guard) -> Result<(), Decline> {
   if arg.spread.is_some() {
-    return false;
+    return Err(Decline::NotACandidate);
   }
 
   match arg.expr.as_ref() {
-    Expr::Arrow(arrow) => is_closed_arrow(arrow, guard),
-    expr => carries_its_own_value(expr, guard),
+    Expr::Arrow(arrow) => admit_arrow(arrow, guard),
+    expr => admit_value(expr, guard),
   }
 }
 
@@ -437,100 +590,198 @@ fn is_argument_foldable(arg: &ExprOrSpread, guard: Guard) -> bool {
 ///
 /// A block body is refused rather than analysed: statements bind, assign and
 /// loop, and none of that is modelled here.
-fn is_closed_arrow(arrow: &ArrowExpr, guard: Guard) -> bool {
+fn admit_arrow(arrow: &ArrowExpr, guard: Guard) -> Result<(), Decline> {
   let mut params = Vec::with_capacity(arrow.params.len());
 
   for param in &arrow.params {
     match param {
       Pat::Ident(ident) => params.push(ident.sym.clone()),
-      _ => return false,
+      _ => return Err(Decline::NotACandidate),
     }
   }
 
   let BlockStmtOrExpr::Expr(body) = arrow.body.as_ref() else {
-    return false;
+    return Err(Decline::NotACandidate);
   };
 
-  carries_its_own_value(body, guard.binding(&params))
+  admit_value(body, guard.binding(&params))
 }
 
-/// Converts an engine value back to an AST literal, or answers `None` when it
-/// has no representation the evaluator carries.
-fn to_expr(value: &JsValue, engine: &mut Context) -> Option<Expr> {
-  to_expr_within(value, engine, MAX_ENGINE_NESTING)
-}
-
-/// The conversion, with a nesting bound of its own.
+/// Converts an engine value into the evaluator's own value type, or declines
+/// with the rule that refused it.
 ///
-/// [`MAX_ENGINE_NESTING`] bounds the expression handed to the engine and
-/// [`MAX_FOLDED_ARRAY_LENGTH`] bounds how wide an array comes back, but neither
-/// bounds how *deep* the answer is: `[0, 1, 2, …].reduce((a, b) => [a, b])` is
-/// two elements wide at every level and one level deeper per element, so the
-/// width check never fires and this recursion runs off the stack. That is an
-/// abort rather than an unwind, which the `catch_unwind` at the NAPI boundary
-/// cannot turn back into a diagnostic — the one failure this module must not
-/// have. Same ceiling as the input side, for the same reason.
-fn to_expr_within(value: &JsValue, engine: &mut Context, levels_left: usize) -> Option<Expr> {
-  let levels_left = levels_left.checked_sub(1)?;
-
+/// The evaluator's type rather than a bare syntax node, so a folded value
+/// reaches every place a value the author wrote reaches: an array answers the
+/// `Vec` an array literal answers, and an object the `Expr::Object` an object
+/// literal answers. Answering a syntax node instead is what left a folded array
+/// and an evaluated one in two dispatch arms that disagree about which methods
+/// they carry.
+fn to_value(
+  value: &JsValue,
+  engine: &mut Context,
+  outward: Outward,
+) -> Result<EvaluateResultValue, Decline> {
   // Read through the accessors rather than matching variants: the engine's
   // value is nan-boxed by default and an enum only under a feature, and both
   // answer these.
-  if let Some(truth) = value.as_boolean() {
-    return Some(Expr::Lit(Lit::Bool(truth.into())));
-  }
-
-  if let Some(number) = value.as_number() {
-    return Some(Expr::Lit(Lit::Num(number.into())));
-  }
-
-  if value.is_null() {
-    return Some(Expr::Lit(Lit::Null(Null { span: DUMMY_SP })));
-  }
-
-  if let Some(string) = value.as_string() {
+  let literal = if let Some(truth) = value.as_boolean() {
+    Lit::Bool(truth.into())
+  } else if let Some(number) = value.as_number() {
+    Lit::Num(number.into())
+  } else if value.is_null() {
+    Lit::Null(Null { span: DUMMY_SP })
+  } else if let Some(string) = value.as_string() {
     // The bound on an amplifying argument bounds what one written call may be
     // asked to build; this bounds what actually came back, whatever produced
     // it. The array arm below has had such a bound from the start, and a string
     // is the other shape a fold can return at size.
     if string.len() as f64 > MAX_AMPLIFIED_LENGTH {
-      return None;
+      return Err(Decline::rule(folded_string_too_large(MAX_AMPLIFIED_LENGTH)));
     }
 
     // The engine's strings are UTF-16 and `Lit::Str`'s atom is UTF-8, so an
     // unpaired surrogate cannot survive this step. Substituting the replacement
     // character keeps the declaration text identical to what the reference
     // implementation writes to disk, and diverges only in the class name.
-    return Some(Expr::Lit(Lit::Str(string.to_std_string_lossy().into())));
+    Lit::Str(string.to_std_string_lossy().into())
+  } else {
+    return to_object_value(value, engine, outward);
+  };
+
+  Ok(EvaluateResultValue::Expr(Expr::Lit(literal)))
+}
+
+/// The half of [`to_value`] that needs the engine to read the value back:
+/// arrays and plain objects, and the refusal for everything else.
+fn to_object_value(
+  value: &JsValue,
+  engine: &mut Context,
+  outward: Outward,
+) -> Result<EvaluateResultValue, Decline> {
+  let Some(object) = value.as_object() else {
+    return Err(Decline::rule(unfoldable_fold_result(describe(value))));
+  };
+
+  let inner = outward.descend()?;
+
+  if object.is_array() {
+    let length = read_length(&object, engine, outward)?;
+    let mut items = Vec::with_capacity(length as usize);
+
+    for index in 0..length {
+      let element = read(outward, || object.get(index, engine))?;
+
+      items.push(to_value(&element, engine, inner)?);
+    }
+
+    return Ok(EvaluateResultValue::Vec(items));
   }
 
-  match value.as_object() {
-    Some(object) if object.is_array() => {
-      let length = object.get(js_string!("length"), engine).ok()?.as_number()? as u64;
+  if !object.is_ordinary() {
+    return Err(Decline::rule(unfoldable_fold_result(describe(value))));
+  }
 
-      if length > MAX_FOLDED_ARRAY_LENGTH {
-        return None;
-      }
+  let keys = read(outward, || object.own_property_keys(engine))?;
 
-      let mut elems = Vec::with_capacity(usize::try_from(length).ok()?);
+  if keys.len() as u64 > MAX_FOLDED_ENTRIES {
+    return Err(Decline::rule(object_size_too_large(MAX_FOLDED_ENTRIES)));
+  }
 
-      for index in 0..length {
-        let element = object.get(index, engine).ok()?;
+  let mut props = Vec::with_capacity(keys.len());
 
-        elems.push(Some(ExprOrSpread {
-          spread: None,
-          expr: Box::new(to_expr_within(&element, engine, levels_left)?),
-        }));
-      }
+  for key in keys {
+    // A symbol key has no spelling in an object literal, so an object carrying
+    // one cannot be written back out whole — and writing it out partly would
+    // fold a value the source does not describe. No input the guard admits
+    // today produces one, since a symbol is reachable only through a bare
+    // global; it is a refusal rather than an assumption because widening the
+    // guard is what the rest of this work does.
+    let name = match &key {
+      PropertyKey::String(string) => string.to_std_string_lossy(),
+      PropertyKey::Index(index) => index.get().to_string(),
+      PropertyKey::Symbol(_) => return Err(Decline::rule(unfoldable_fold_result("a symbol key"))),
+    };
 
-      Some(Expr::Array(ArrayLit {
-        span: DUMMY_SP,
-        elems,
-      }))
-    },
-    // A plain object, a function, a symbol, `undefined` and a BigInt have no
-    // literal the evaluator carries, so the existing path keeps them.
+    let element = read(outward, || object.get(key.clone(), engine))?;
+    let expr = as_property_value(to_value(&element, engine, inner)?)?;
+
+    props.push(create_ident_key_value_prop(&name, expr));
+  }
+
+  // Ordered by the same rule an object the author wrote is ordered by, rather
+  // than by trusting two implementations of own-key order to agree.
+  Ok(EvaluateResultValue::Expr(Expr::Object(create_object_lit(
+    order_own_keys(props),
+  ))))
+}
+
+/// One folded value as the expression an object property carries.
+///
+///
+/// An array is the one case that has to be rebuilt rather than moved: a `Vec`
+/// is the shape the evaluator wants at the top of a value, and an object
+/// literal wants a nested array literal in the same position. Rebuilt by the
+/// evaluator's own conversion rather than by a second copy of it here, so a
+/// folded property and an evaluated one cannot come to disagree about what an
+/// array element may be.
+fn as_property_value(value: EvaluateResultValue) -> Result<Expr, Decline> {
+  let expr = match &value {
+    EvaluateResultValue::Expr(expr) => Some(expr.clone()),
+    EvaluateResultValue::Vec(items) => evaluate_result_vec_to_array_expr(items),
+    // Every arm of `to_value` answers one of the two above, so nothing else is
+    // reachable by construction — and answers a refusal rather than panicking
+    // if that ever stops holding.
     _ => None,
+  };
+
+  expr.ok_or_else(|| Decline::rule(unfoldable_fold_result("an unreadable value")))
+}
+
+/// An array's `length`, bounded: the count the conversion loop below reads.
+///
+/// The two ways it can fail say different things, because they are different
+/// faults. A length past [`MAX_FOLDED_ENTRIES`] is the bound, and names it. A
+/// `length` that is not a count at all — not a number, or negative — is not the
+/// bound and must not claim to be; it is a value the bridge cannot read, and is
+/// refused as one.
+fn read_length(object: &JsObject, engine: &mut Context, outward: Outward) -> Result<u64, Decline> {
+  let length = read(outward, || object.get(js_string!("length"), engine))?;
+
+  let Some(length) = length.as_number().filter(|length| *length >= 0.0) else {
+    return Err(Decline::rule(unfoldable_fold_result(
+      "an array with no readable length",
+    )));
+  };
+
+  if length > MAX_FOLDED_ENTRIES as f64 {
+    return Err(Decline::rule(array_length_too_large(
+      MAX_FOLDED_ENTRIES as usize,
+    )));
+  }
+
+  Ok(length as u64)
+}
+
+/// A read back out of the engine, with a throw carried in the engine's words.
+///
+/// Reading a property can run a getter, which can throw, so the outward bridge
+/// needs the same answer the evaluation itself gets rather than a second one.
+fn read<T>(outward: Outward, read: impl FnOnce() -> JsResult<T>) -> Result<T, Decline> {
+  read().map_err(|error| outward.threw(&error))
+}
+
+/// What kind of value the fold could not carry, in the words a refusal uses.
+fn describe(value: &JsValue) -> &'static str {
+  if value.is_undefined() {
+    "undefined"
+  } else if value.is_symbol() {
+    "a symbol"
+  } else if value.is_bigint() {
+    "a BigInt"
+  } else if value.as_object().is_some_and(|object| object.is_callable()) {
+    "a function"
+  } else {
+    "an object of a kind with no literal form"
   }
 }
 

@@ -70,3 +70,101 @@ fn test_static_constants() {
   assert!(!UNDEFINED_CONST.is_empty());
   assert!(!OBJECT_METHOD.is_empty());
 }
+
+// The refusals a fold hands an author when it declines a call. Each names the
+// method or the limit it refused on, so each is asserted with that half in
+// place rather than as a fixed sentence — the name is the part that says what
+// to write instead.
+
+#[test]
+fn test_locale_sensitive_method() {
+  assert_eq!(
+    locale_sensitive_method("toLocaleUpperCase"),
+    "Cannot fold 'toLocaleUpperCase' at compile time.\nIts answer depends on locale data the compiler does not carry.\n\n"
+  );
+  assert!(locale_sensitive_method("localeCompare").contains("'localeCompare'"));
+}
+
+#[test]
+fn test_numeric_literal_receiver() {
+  assert_eq!(
+    numeric_literal_receiver("toFixed"),
+    "Cannot call 'toFixed' on a number literal.\nOnly a number a fold produced can be a method receiver.\n\n"
+  );
+}
+
+#[test]
+fn test_unbounded_amplified_length() {
+  assert_eq!(
+    unbounded_amplified_length("repeat", 1_000_000.0),
+    "Cannot bound the string 'repeat' would build.\nIts length must be a number literal of at most 1000000, on a receiver that is not itself a call.\n\n"
+  );
+  // The limit is the caller's, like the depth ceiling above: a bound an author
+  // can raise has to be the number they read.
+  assert!(unbounded_amplified_length("padStart", 32.0).contains("at most 32"));
+}
+
+#[test]
+fn test_object_size_too_large() {
+  assert_eq!(
+    object_size_too_large(10_000),
+    "Object is too large to evaluate at compile time.\nAt most 10000 properties are supported.\n\n"
+  );
+}
+
+#[test]
+fn test_unfoldable_fold_result() {
+  assert_eq!(
+    unfoldable_fold_result("a function"),
+    "The folded value is a function, which has no compile-time representation.\nOnly strings, numbers, booleans, null, arrays and plain objects can be folded.\n\n"
+  );
+  assert!(unfoldable_fold_result("undefined").starts_with("The folded value is undefined,"));
+}
+
+#[test]
+fn test_engine_threw() {
+  assert_eq!(
+    engine_threw(
+      "reduce",
+      "TypeError: Reduce of empty array with no initial value"
+    ),
+    "Cannot fold 'reduce' at compile time.\nTypeError: Reduce of empty array with no initial value\n\n"
+  );
+  // The method is named by this compiler because the engine's own sentence does
+  // not always name it: a call to a method that does not exist reads
+  // `undefined` and calls it, so the language says only this much.
+  assert!(
+    engine_threw("unsupported", "TypeError: not a callable function").contains("'unsupported'")
+  );
+}
+
+#[test]
+fn test_escaping_property() {
+  assert_eq!(
+    escaping_property("constructor"),
+    "Cannot fold a read of 'constructor' at compile time.\nIt leads off the value that was written and onto the language's own function graph.\n\n"
+  );
+  // The three names that turn an unapplied function back into a call read the
+  // same way, because the property is the whole of the reason.
+  assert!(escaping_property("bind").contains("'bind'"));
+}
+
+#[test]
+fn test_amplification_inside_a_callback() {
+  assert_eq!(
+    amplification_inside_a_callback("repeat"),
+    "Cannot bound the string 'repeat' would build inside a callback.\nA callback runs once per element, so a length written into the source bounds one evaluation rather than the call.\n\n"
+  );
+  assert!(amplification_inside_a_callback("padStart").contains("'padStart'"));
+}
+
+#[test]
+fn test_folded_string_too_large() {
+  assert_eq!(
+    folded_string_too_large(1_000_000.0),
+    "Folded string is too large to evaluate at compile time.\nAt most 1000000 characters are supported.\n\n"
+  );
+  // The number an author reads is the limit they can raise, so it is the one
+  // the caller passed rather than a constant spelled again here.
+  assert!(folded_string_too_large(32.0).contains("At most 32"));
+}

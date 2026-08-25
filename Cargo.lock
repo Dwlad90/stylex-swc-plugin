@@ -2700,7 +2700,6 @@ version = "0.18.4"
 dependencies = [
  "criterion",
  "cssparser",
- "indexmap",
  "log",
  "rustc-hash",
  "serde_json",

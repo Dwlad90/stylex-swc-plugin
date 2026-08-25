@@ -13,8 +13,8 @@ This implementation provides media query transformation:
 use super::media_query::{
   MediaAndRules, MediaNotRule, MediaOrRules, MediaQuery, MediaQueryRule, validate_media_query,
 };
-use indexmap::{IndexMap, map::Entry};
 use stylex_macros::stylex_panic;
+use stylex_utils::collections::{FxBuildHasher, FxIndexMap, IndexMapEntry};
 use swc_core::{
   atoms::Wtf8Atom,
   common::DUMMY_SP,
@@ -136,7 +136,17 @@ fn map_key(key_value: &KeyValueProp, index: usize) -> String {
 ///
 /// The second is the one an author notices: one of their declarations is absent
 /// from the output. That is faithful rather than accidental, and nothing is
-/// reported for it, because the reference implementation reports nothing.
+/// reported for it, because the reference implementation reports nothing. It is
+/// a **ported upstream defect, not a design** -- see
+/// [ADR 0001](../../docs/adr/0001-the-official-compilers-output-wins.md). When
+/// the upstream report is resolved this follows it.
+///
+/// TODO(upstream-report): record the facebook/stylex issue number here and in
+/// the ADR once the report drafted for it is filed.
+//
+// JS-parity: insertion order is observable here, so this is an `FxIndexMap`
+// rather than an `FxHashMap` -- it stands in for the plain JavaScript object
+// `dfsProcessQueries` builds in `@stylexjs/babel-plugin` 0.19.0.
 fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueProp> {
   let is_media_key = |key: &str| key.starts_with("@media ");
 
@@ -146,7 +156,8 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     return result;
   }
 
-  let mut entries: IndexMap<String, KeyValueProp> = IndexMap::with_capacity(result.len());
+  let mut entries: FxIndexMap<String, KeyValueProp> =
+    FxIndexMap::with_capacity_and_hasher(result.len(), FxBuildHasher);
   for (index, kv) in result.into_iter().enumerate() {
     entries.insert(map_key(&kv, index), kv);
   }
@@ -203,17 +214,18 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
       continue;
     };
 
+    // Taken rather than cloned: this entry is read once and dead afterwards.
     let combined_query = combine_media_query_with_negations(
       parsed_media_queries[i].clone(),
-      accumulated_negations[i].clone(),
+      std::mem::take(&mut accumulated_negations[i]),
     );
     let new_media_key = combined_query.to_string();
 
     match entries.entry(new_media_key.clone()) {
       // The key is already there: it keeps its position and takes this value,
       // and the declaration that put it there is gone from the output.
-      Entry::Occupied(mut occupied) => occupied.get_mut().value = current.value,
-      Entry::Vacant(vacant) => {
+      IndexMapEntry::Occupied(mut occupied) => occupied.get_mut().value = current.value,
+      IndexMapEntry::Vacant(vacant) => {
         vacant.insert(KeyValueProp {
           key: PropName::Str(Str {
             span: DUMMY_SP,

@@ -761,16 +761,29 @@ impl DimensionIntervals {
   }
 }
 
-/// How deep distribution is allowed to go before the merge is abandoned.
+/// How much distribution work is allowed before the merge is abandoned.
 ///
-/// Each `not (A and B)` clause splits the rule list in two, so a list carrying
-/// `d` of them costs `2^d` branches and emits a query whose text doubles with
-/// every one. That is the number this bounds: `2^18` branches. For the
-/// breakpoint ladder that produces the worst case, a ladder of `n` rungs
-/// reaches depth `n - 2` -- its first and last rungs are single bounds and
-/// split nothing -- so twenty rungs are merged, costing 983 051 characters of
-/// query text and about three seconds, and a twenty-first rung is handed back
-/// unmerged instead.
+/// Stated in branch *nodes* rather than in levels, because depth is only one
+/// factor of the cost. Each `not (A and B)` clause splits the rule list in two,
+/// so a list carrying `d` of them expands into `2^d` branches -- but every one
+/// of those branches carries a copy of the whole list, and every surviving
+/// branch prints it, so both the clones and the emitted text are
+/// `2^d * rules.len()`.
+///
+/// The second factor is not bounded by the first, which is what a depth bound
+/// cannot see. `negation_depth` charges nothing for a clause it cannot split, so
+/// a negated non-range condition -- `not (orientation: portrait)`,
+/// `not (min-resolution: 200dpi)` -- adds width and no depth at all. Twenty of
+/// those beside a fourteen-rung ladder is depth 12, comfortably under any depth
+/// bound ever proposed here, and emitted 255 MB of query text in 6.7 seconds
+/// from 1.7 KB of authored input; sixteen rungs made it 1.1 GB and 30 seconds.
+/// Nor is the shape exotic, because the transform builds it: each key is
+/// rewritten against a negation of every later sibling, so one `and` list is as
+/// wide as the conditional value map is long.
+///
+/// `2^18` nodes leaves every shape in this repo untouched -- the deepest is the
+/// benchmark fixture's `2^6 * 9` -- and caps a single list in the low tens of
+/// kilobytes.
 ///
 /// The number is this compiler's own choice and not a length read off the
 /// reference implementation, because there is no such length to read.
@@ -783,17 +796,17 @@ impl DimensionIntervals {
 /// about 7.4 GB resident.
 ///
 /// So past this bound we deliberately stop matching rather than reproduce a
-/// build that dies. Eighteen is chosen against output size rather than against
-/// stack depth, because depth is not what runs out: a bound generous enough to
-/// permit 26 rungs would permit a 63 MB single query. Real ladders are a
-/// handful of rungs.
+/// build that dies. Under the node budget a pure ladder expands to about
+/// fourteen rungs where the old depth bound reached twenty; no single budget
+/// does both, because the shape that blows up sits under any depth that keeps
+/// twenty. Real ladders are a handful of rungs. See
+/// [ADR 0001](../../docs/adr/0001-the-official-compilers-output-wins.md) for the
+/// measurements and for what is still not capped.
 ///
-/// What this caps is one `and` list, which is what the boundary is crossed
-/// once for -- so a query holding several, such as a comma-separated
-/// disjunction, costs that many times as much. See
-/// [ADR 0001](../../docs/adr/0001-the-official-compilers-output-wins.md) for
-/// the measurements and for what is not capped.
-const MAX_DISTRIBUTION_DEPTH: u32 = 18;
+/// What this caps is one `and` list, which is what the boundary is crossed once
+/// for -- so a query holding several, such as a comma-separated disjunction,
+/// costs that many times as much.
+const MAX_DISTRIBUTION_NODES: u64 = 1 << 18;
 
 /// How many times distributing `rules` can split before it runs out of clauses.
 ///
@@ -868,7 +881,18 @@ fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> 
   // Giving up here rather than partway down is what makes the outcome the
   // author's own rules: a bound checked inside the recursion would leave some
   // branches merged and some not, which is neither compiler's answer.
-  if distribution_depth(&rules) > MAX_DISTRIBUTION_DEPTH {
+  //
+  // Branches times the list each one carries, because that product is what the
+  // expansion costs to build and to print -- see [`MAX_DISTRIBUTION_NODES`].
+  // The saturating arithmetic is how a list too deep to shift stays a refusal
+  // rather than becoming an overflow: `checked_shl` gives up at 64 levels and
+  // `saturating_mul` cannot wrap, so an absurd input lands on "too big" by the
+  // same path a merely large one does.
+  let branches = 1u64
+    .checked_shl(distribution_depth(&rules))
+    .unwrap_or(u64::MAX);
+
+  if branches.saturating_mul(rules.len() as u64) > MAX_DISTRIBUTION_NODES {
     return rules;
   }
 

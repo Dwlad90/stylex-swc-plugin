@@ -52,11 +52,12 @@ Measured on `feat_boa-engine`, a throwaway branch. Host: Apple M1 Max, Node
 it in one lazily created engine reused for the process, and converts the result
 back to a literal.
 
-**The verdict: the coverage is real and the throughput is free, but the engine
-cannot be added to this workspace today, and the two costs it does carry —
-6 MiB and a leaked engine per thread — are decisions for a person, not
-measurements.** Do not start 06 on the engine until the first of those is fixed
-upstream.
+**The verdict: the coverage is real, the throughput is free, and the 6 MiB is a
+price worth paying — what grows is a build-time artifact, not anything a
+consumer ships. The one thing that stops this today is dependency resolution:
+the engine does not resolve against this workspace at all.** Do not start 06 on
+the engine until that is fixed upstream. The leaked engine per thread (§5) is a
+constraint to write down, not an objection.
 
 ### 1. Upstream `boa_engine` does not resolve against this workspace
 

@@ -165,15 +165,14 @@ fn validate_media_query_syntax_error_path() {
 }
 
 // ---------------------------------------------------------------------------
-// MediaQuery new/new_from_rule constructors
+// MediaQuery new constructor
 // ---------------------------------------------------------------------------
 
 #[test]
-fn new_from_rule_produces_same_as_new() {
+fn new_normalizes_the_rule_it_is_given() {
   let rule = MediaQueryRule::MediaKeyword(MediaKeyword::new("screen", false, false));
-  let q1 = MediaQuery::new(rule.clone());
-  let q2 = MediaQuery::new_from_rule(rule);
-  assert_eq!(q1, q2);
+  let query = MediaQuery::new(rule.clone());
+  assert_eq!(query.queries, MediaQuery::normalize(rule));
 }
 
 // ---------------------------------------------------------------------------
@@ -2044,14 +2043,14 @@ fn reversed_inequality_wrong_close_token() {
 }
 
 // ---------------------------------------------------------------------------
-// adjust_reversed_inequality_dimension helper — covers the implicit else
+// adjust_dimension helper — covers the implicit else
 // which fires when 'value' is not a MediaRuleValue::Length
 // ---------------------------------------------------------------------------
 
 #[test]
-fn adjust_reversed_inequality_dimension_gt_adjusts_down() {
+fn adjust_dimension_max_end_adjusts_down() {
   let mut value = MediaRuleValue::Length(crate::css_types::Length::new(1250.0, "px".to_string()));
-  adjust_reversed_inequality_dimension(&mut value, '>', 0.01);
+  adjust_dimension(&mut value, BoundEnd::Max, 0.01);
   match value {
     MediaRuleValue::Length(l) => {
       assert!((l.value - 1249.99).abs() < 0.001);
@@ -2061,9 +2060,9 @@ fn adjust_reversed_inequality_dimension_gt_adjusts_down() {
 }
 
 #[test]
-fn adjust_reversed_inequality_dimension_lt_adjusts_up() {
+fn adjust_dimension_min_end_adjusts_up() {
   let mut value = MediaRuleValue::Length(crate::css_types::Length::new(500.0, "px".to_string()));
-  adjust_reversed_inequality_dimension(&mut value, '<', 0.01);
+  adjust_dimension(&mut value, BoundEnd::Min, 0.01);
   match value {
     MediaRuleValue::Length(l) => {
       assert!((l.value - 500.01).abs() < 0.001);
@@ -2073,10 +2072,10 @@ fn adjust_reversed_inequality_dimension_lt_adjusts_up() {
 }
 
 #[test]
-fn adjust_reversed_inequality_dimension_non_length_is_noop() {
+fn adjust_dimension_non_length_is_noop() {
   // Passing a non-Length value exercises the implicit else branch
   let mut value = MediaRuleValue::Number(42.0);
-  adjust_reversed_inequality_dimension(&mut value, '>', 0.01);
+  adjust_dimension(&mut value, BoundEnd::Max, 0.01);
   // Number is unchanged — non-Length defensive arm
   match value {
     MediaRuleValue::Number(n) => {
@@ -2241,14 +2240,14 @@ fn select_double_inequality_values_fallback_branch() {
 }
 
 // ---------------------------------------------------------------------------
-// apply_epsilon_to_min_value and apply_epsilon_to_max_value helpers —
+// adjust_dimension at each end —
 // covers the implicit else branches for non-Length values
 // ---------------------------------------------------------------------------
 
 #[test]
-fn apply_epsilon_to_min_value_adds_epsilon() {
+fn adjust_dimension_min_adds_epsilon() {
   let mut value = MediaRuleValue::Length(crate::css_types::Length::new(100.0, "px".to_string()));
-  apply_epsilon_to_min_value(&mut value, 0.01);
+  adjust_dimension(&mut value, BoundEnd::Min, 0.01);
   match value {
     MediaRuleValue::Length(l) => {
       assert!((l.value - 100.01).abs() < 0.001);
@@ -2258,10 +2257,10 @@ fn apply_epsilon_to_min_value_adds_epsilon() {
 }
 
 #[test]
-fn apply_epsilon_to_min_value_non_length_is_noop() {
+fn adjust_dimension_min_non_length_is_noop() {
   // Passing a non-Length value exercises the implicit else branch
   let mut value = MediaRuleValue::Number(5.0);
-  apply_epsilon_to_min_value(&mut value, 0.01);
+  adjust_dimension(&mut value, BoundEnd::Min, 0.01);
   match value {
     MediaRuleValue::Number(n) => assert!((n - 5.0).abs() < 0.001),
     other => panic!("Expected Number, got {:?}", other),
@@ -2269,9 +2268,9 @@ fn apply_epsilon_to_min_value_non_length_is_noop() {
 }
 
 #[test]
-fn apply_epsilon_to_max_value_subtracts_epsilon() {
+fn adjust_dimension_max_subtracts_epsilon() {
   let mut value = MediaRuleValue::Length(crate::css_types::Length::new(700.0, "px".to_string()));
-  apply_epsilon_to_max_value(&mut value, 0.01);
+  adjust_dimension(&mut value, BoundEnd::Max, 0.01);
   match value {
     MediaRuleValue::Length(l) => {
       assert!((l.value - 699.99).abs() < 0.001);
@@ -2281,10 +2280,10 @@ fn apply_epsilon_to_max_value_subtracts_epsilon() {
 }
 
 #[test]
-fn apply_epsilon_to_max_value_non_length_is_noop() {
+fn adjust_dimension_max_non_length_is_noop() {
   // Passing a non-Length value exercises the implicit else branch
   let mut value = MediaRuleValue::String("landscape".to_string());
-  apply_epsilon_to_max_value(&mut value, 0.01);
+  adjust_dimension(&mut value, BoundEnd::Max, 0.01);
   match value {
     MediaRuleValue::String(s) => assert_eq!(s, "landscape"),
     other => panic!("Expected String, got {:?}", other),

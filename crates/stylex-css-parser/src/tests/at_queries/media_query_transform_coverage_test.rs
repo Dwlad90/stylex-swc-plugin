@@ -88,7 +88,7 @@ mod key_value_to_str_coverage {
 }
 
 // ---------------------------------------------------------------------------
-// dfs_process_queries_with_depth
+// dfs_process_queries
 // (ObjectLit with non-KeyValue prop, hitting else of let-chain condition)
 // ---------------------------------------------------------------------------
 
@@ -97,7 +97,7 @@ mod dfs_coverage {
   use super::*;
 
   /// Covers Expr::Array arm: when a top-level prop's value is an Array expression,
-  /// dfs_process_queries_with_depth passes it through unchanged.
+  /// dfs_process_queries passes it through unchanged.
   #[test]
   fn array_valued_prop_passes_through_unchanged() {
     let array_expr = Expr::Array(ArrayLit {
@@ -114,7 +114,7 @@ mod dfs_coverage {
       value: Box::new(array_expr),
     };
 
-    // Call last_media_query_wins_transform which delegates to dfs_process_queries_with_depth
+    // Call last_media_query_wins_transform which delegates to dfs_process_queries
     let result = last_media_query_wins_transform(&[prop]);
 
     assert_eq!(result.len(), 1);

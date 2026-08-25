@@ -282,10 +282,6 @@ impl MediaQuery {
     }
   }
 
-  pub fn new_from_rule(rule: MediaQueryRule) -> Self {
-    Self::new(rule)
-  }
-
   /// Takes `rule` by value and consumes each combinator's children, so a tree
   /// is normalized without being deep-cloned once per level of its own depth.
   pub fn normalize(rule: MediaQueryRule) -> MediaQueryRule {
@@ -486,7 +482,7 @@ impl MediaQuery {
         }
 
         let rule = (media_query_rule_parser().run)(tokens)?;
-        Ok(MediaQuery::new_from_rule(rule))
+        Ok(MediaQuery::new(rule))
       },
       "media_query_parser",
     )
@@ -1046,18 +1042,33 @@ fn number_to_media_rule_value(token: SimpleToken) -> MediaRuleValue {
   }
 }
 
-/// Adjust a `MediaRuleValue::Length` in a reversed inequality by epsilon.
-/// The else branch (non-Length) is a defensive arm unreachable via the reversed
-/// inequality parser, which always produces `MediaRuleValue::Length`.
-fn adjust_reversed_inequality_dimension(value: &mut MediaRuleValue, op: char, epsilon: f64) {
+/// Which end of a range a bound is, and so which way its epsilon moves.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum BoundEnd {
+  /// A lower bound: a strict `>` becomes an inclusive `>=` one epsilon up.
+  Min,
+  /// An upper bound: a strict `<` becomes an inclusive `<=` one epsilon down.
+  Max,
+}
+
+/// Shift a length bound by one epsilon so a strict inequality can be written as
+/// an inclusive one, mirroring the reference implementation's `adjustDimension`.
+///
+/// Three functions did this before -- one per parser that needed it -- differing
+/// only in which way they moved. They are one here for the same reason upstream
+/// has one: the epsilon convention is a single rule, and a second copy of it is
+/// a second place for it to drift.
+///
+/// A value that is not a `Length` carries no number to shift and is left alone.
+/// None of the inequality parsers can produce one, so this is a defensive arm
+/// rather than a case; leaving it alone is the answer all three gave.
+fn adjust_dimension(value: &mut MediaRuleValue, end: BoundEnd, epsilon: f64) {
   if let MediaRuleValue::Length(length) = value {
-    if op == '>' {
-      length.value -= epsilon;
-    } else {
-      length.value += epsilon;
+    match end {
+      BoundEnd::Min => length.value += epsilon,
+      BoundEnd::Max => length.value -= epsilon,
     }
   }
-  // else: non-Length defensive arm — unreachable via the reversed inequality parser
 }
 
 /// Determine the (min_value, max_value) pair for a double-inequality expression
@@ -1097,26 +1108,6 @@ fn select_double_inequality_values(
       (lower, upper)
     }
   }
-}
-
-/// Apply an additive epsilon to a `MediaRuleValue::Length`'s value.
-/// The else branch (non-Length) is a defensive arm unreachable via the
-/// double-inequality parser, which always produces `MediaRuleValue::Length`.
-fn apply_epsilon_to_min_value(value: &mut MediaRuleValue, epsilon: f64) {
-  if let MediaRuleValue::Length(length) = value {
-    length.value += epsilon;
-  }
-  // else: non-Length defensive arm — unreachable via the double inequality parser
-}
-
-/// Apply a subtractive epsilon to a `MediaRuleValue::Length`'s value.
-/// The else branch (non-Length) is a defensive arm unreachable via the
-/// double-inequality parser, which always produces `MediaRuleValue::Length`.
-fn apply_epsilon_to_max_value(value: &mut MediaRuleValue, epsilon: f64) {
-  if let MediaRuleValue::Length(length) = value {
-    length.value -= epsilon;
-  }
-  // else: non-Length defensive arm — unreachable via the double inequality parser
 }
 
 /// Basic media type parser: screen | print | all
@@ -1601,7 +1592,13 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
 
       let mut adjusted_dimension = dimension;
       if !has_equals {
-        adjust_reversed_inequality_dimension(&mut adjusted_dimension, op, EPSILON);
+        // `>` in a reversed inequality reads as an upper bound: `100px > width`.
+        let end = if op == '>' {
+          BoundEnd::Max
+        } else {
+          BoundEnd::Min
+        };
+        adjust_dimension(&mut adjusted_dimension, end, EPSILON);
       }
 
       // Convert to final key: (1250px > width) becomes max-width
@@ -1812,10 +1809,10 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
 
       // Apply epsilon for strict (non-inclusive) operators
       if (_op1 == '<' && !_eq1) || (_op2 == '>' && !_eq2) {
-        apply_epsilon_to_min_value(&mut min_value, EPSILON);
+        adjust_dimension(&mut min_value, BoundEnd::Min, EPSILON);
       }
       if (_op1 == '>' && !_eq1) || (_op2 == '<' && !_eq2) {
-        apply_epsilon_to_max_value(&mut max_value, EPSILON);
+        adjust_dimension(&mut max_value, BoundEnd::Max, EPSILON);
       }
 
       Ok(MediaQueryRule::And(MediaAndRules::new(vec![

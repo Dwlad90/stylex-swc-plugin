@@ -32,7 +32,7 @@ fn key_value_to_str(key_value: &KeyValueProp) -> String {
 
 /// Main entry point for the last-media-query-wins transform
 pub fn last_media_query_wins_transform(styles: &[KeyValueProp]) -> Vec<KeyValueProp> {
-  dfs_process_queries_with_depth(styles, 0)
+  dfs_process_queries(styles, 0)
 }
 
 /// Helper function to create ObjectLit from key-value pairs
@@ -48,8 +48,9 @@ fn create_object_from_key_values(key_values: Vec<KeyValueProp>) -> ObjectLit {
   }
 }
 
-/// DFS traversal with depth tracking
-fn dfs_process_queries_with_depth(obj: &[KeyValueProp], depth: u32) -> Vec<KeyValueProp> {
+/// DFS traversal with depth tracking, mirroring the reference
+/// implementation's `dfsProcessQueries`.
+fn dfs_process_queries(obj: &[KeyValueProp], depth: u32) -> Vec<KeyValueProp> {
   let mut result = Vec::new();
 
   for prop in obj {
@@ -78,7 +79,7 @@ fn dfs_process_queries_with_depth(obj: &[KeyValueProp], depth: u32) -> Vec<KeyVa
         }
 
         // Recursively process the object at depth + 1
-        let processed_values = dfs_process_queries_with_depth(&key_values, depth + 1);
+        let processed_values = dfs_process_queries(&key_values, depth + 1);
         let transformed_obj = create_object_from_key_values(processed_values);
 
         result.push(KeyValueProp {
@@ -289,7 +290,7 @@ fn combine_media_query_with_negations(
     },
   };
 
-  MediaQuery::new_from_rule(combined_ast)
+  MediaQuery::new(combined_ast)
 }
 
 #[cfg(test)]

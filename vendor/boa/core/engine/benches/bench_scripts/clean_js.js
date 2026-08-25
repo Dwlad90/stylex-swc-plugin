@@ -1,5 +1,5 @@
 !function () {
-	var M = [];
+	var M = new Array();
 	for (i = 0; i < 100; i++) {
 		M.push(Math.floor(Math.random() * 100));
 	}

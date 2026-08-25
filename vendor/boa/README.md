@@ -52,6 +52,15 @@ is already on. Verified: boa's own suite passes with the change in place
 actually vendored, since the upstream globs name directories that are not here.
 No engine source file is modified.
 
+That last sentence is a checkable claim, so check it when bumping: `diff -rq`
+each vendored directory against a clone at `VENDORED_COMMIT` and expect the
+workspace manifest to be the only file that differs. It was not true when this
+directory first landed -- the repo's own lint autofix had rewritten five
+benchmark scripts under `core/engine/benches/bench_scripts/`, turning
+`new String(x)` into `String(x)` and leaving `number_object_access.js` as a
+syntax error. The ignore rules below now prevent that; the diff is what proves
+it.
+
 ## Bumping it
 
 1. Check whether upstream has relaxed the bounds itself. If it has, delete this

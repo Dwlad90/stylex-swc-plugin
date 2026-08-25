@@ -157,6 +157,38 @@ fn has_balanced_parens_accepts_a_closed_query_and_refuses_an_open_one() {
   assert!(!MediaQuery::has_balanced_parens("(min-width: 300px"));
 }
 
+/// A backslash at the very end of the query escapes nothing, and the scan runs
+/// out of input looking for what it escapes. There is no way to read that as a
+/// closed query, so it is unbalanced -- the same answer an unclosed parenthesis
+/// gets, and for the same reason.
+#[test]
+fn a_query_ending_in_a_backslash_is_unbalanced() {
+  assert!(!MediaQuery::has_balanced_parens("(min-width: 300px)\\"));
+  assert!(!MediaQuery::has_balanced_parens("\\"));
+}
+
+/// A backslash inside a string escapes the character after it, including the
+/// quote that would otherwise have ended the string. Without that the closing
+/// quote here would be read as the string's end, the trailing `"` would open a
+/// second one, and the parenthesis it swallowed would be reported unclosed.
+#[test]
+fn a_backslash_inside_a_string_escapes_the_quote_after_it() {
+  assert!(MediaQuery::has_balanced_parens(
+    "(content: \"a\\\"b\") and (min-width: 1px)"
+  ));
+  assert!(MediaQuery::has_balanced_parens("(content: 'it\\'s')"));
+}
+
+/// A string whose last character is a backslash runs the scan out of input
+/// inside the string, so the string never closes -- and an unterminated string
+/// is unbalanced in its own right, because it has swallowed whatever would have
+/// closed the parenthesis it sits in.
+#[test]
+fn a_string_ending_in_a_backslash_is_unbalanced() {
+  assert!(!MediaQuery::has_balanced_parens("(content: \"a\\"));
+  assert!(!MediaQuery::has_balanced_parens("(content: \"a\\\")"));
+}
+
 #[test]
 fn validate_media_query_syntax_error_path() {
   // : parse fails → SYNTAX_ERROR
@@ -2744,4 +2776,17 @@ fn exceeding_the_bound_is_not_a_parse_failure() {
       .parse_to_end(&negated_ladder_query(60))
       .is_ok()
   );
+}
+
+/// A leading `not` after an `and` is only the restricted spelling when it
+/// actually produced a negation. `not screen` is a media type query with a
+/// `not` modifier -- a `MediaKeyword`, not a `Not` -- so the refusal that
+/// guards a bare `not` operand must look past the keyword and let it through.
+///
+/// This is the third condition of that guard: the first two are already true
+/// here, and only the shape of the parsed rule keeps the query alive.
+#[test]
+fn a_negated_media_type_after_an_and_is_not_a_bare_negation() {
+  let query = parsed("@media (min-width: 1px) and not screen");
+  assert_eq!(query.to_string(), "@media (min-width: 1px) and not screen");
 }

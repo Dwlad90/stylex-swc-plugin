@@ -2988,3 +2988,27 @@ fn hsla_consume_comma_whitespace_before_and_after() {
     panic!("Expected Hsla");
   }
 }
+
+// ── Rgba::space_slash_parser: the alpha after the slash fails to parse ───────
+
+/// The slash form reads its alpha with the same parser the comma form uses, and
+/// that parser refuses anything that is not a number or a percentage. The three
+/// channels here are well formed, so the only thing that can fail is the alpha
+/// -- which is the point: this pins the failure to the alpha read rather than
+/// to a malformed colour that would have been refused earlier anyway.
+#[test]
+fn rgb_with_a_slash_refuses_a_non_numeric_alpha() {
+  assert!(Color::parse().parse_to_end("rgb(255 0 0 / red)").is_err());
+  assert!(Color::parse().parse_to_end("rgba(255 0 0 / red)").is_err());
+}
+
+/// The same read, succeeding, so the refusal above is known to be the alpha's
+/// and not the slash form failing to parse at all.
+#[test]
+fn rgb_with_a_slash_accepts_a_percentage_alpha() {
+  let color = Color::parse().parse_to_end("rgb(255 0 0 / 50%)").unwrap();
+  match color {
+    Color::Rgba(rgba) => assert_eq!(rgba.a, 0.5),
+    other => panic!("Expected Rgba, got {other:?}"),
+  }
+}

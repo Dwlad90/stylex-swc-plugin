@@ -329,3 +329,41 @@ fn parse_nested_or_panic_panics_when_nested_parse_errors() {
     })
   });
 }
+
+// ---------------------------------------------------------------------------
+// leading_f64(): the paths where there is no number to read
+// ---------------------------------------------------------------------------
+
+/// `leading_f64` reads the numeric prefix of a token's raw text. Every caller
+/// hands it the text of a token `cssparser` already classified as numeric, so
+/// through the parser there is always a number there -- but the function is
+/// written to answer honestly when there is not, and that answer is what the
+/// `unwrap_or` fallbacks at each call site depend on.
+///
+/// Called directly because no tokenizer input can produce a `Number` token
+/// whose text has no digits; a test routed through the parser would assert the
+/// tokenizer's classification rather than this function's contract.
+#[test]
+fn leading_f64_reads_nothing_from_text_without_digits() {
+  assert_eq!(leading_f64(""), None);
+  assert_eq!(leading_f64("px"), None);
+  assert_eq!(leading_f64("+"), None);
+  assert_eq!(leading_f64("-"), None);
+  // A lone `.` is a delimiter, not the start of a number.
+  assert_eq!(leading_f64("."), None);
+  assert_eq!(leading_f64("-.px"), None);
+}
+
+/// The prefix stops where the number does, so trailing text is ignored rather
+/// than making the whole read fail.
+#[test]
+fn leading_f64_reads_the_number_in_front_of_its_unit() {
+  assert_eq!(leading_f64("10px"), Some(10.0));
+  assert_eq!(leading_f64("-2.5em"), Some(-2.5));
+  assert_eq!(leading_f64("+0.75turn"), Some(0.75));
+  // A trailing `.` with no digits after it is not part of the number.
+  assert_eq!(leading_f64("3.px"), Some(3.0));
+  // An exponent only counts when it is complete.
+  assert_eq!(leading_f64("1e"), Some(1.0));
+  assert_eq!(leading_f64("1e3"), Some(1000.0));
+}

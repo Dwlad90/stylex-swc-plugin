@@ -60,7 +60,6 @@ EXCLUDED_CRATES=(
   stylex_logs
   stylex_compiler_rs
   stylex_test_parser
-  stylex_css_parser
   stylex_transform
 )
 WORKSPACE_EXCLUDES=()
@@ -334,7 +333,7 @@ _IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _SNAKE = re.compile(r"[a-z][a-z0-9_]*")
 _CAMEL = re.compile(r"[A-Z][a-z][A-Za-z0-9]*")
 # Std/crate-root path noise we drop to keep the hint focused on our own code.
-_DROP = {"core", "alloc", "std", "option", "result", "string", "stylex_css_parser"}
+_DROP = {"core", "alloc", "std", "option", "result", "string"}
 
 
 def readable_symbol(sym):

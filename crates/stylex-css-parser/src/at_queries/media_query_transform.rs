@@ -222,32 +222,36 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
   // style object reaches; the expensive thing here is the expansion below, not
   // the bookkeeping.
   for entry in media_entries {
-    // The keys came from this map and nothing removes one but this line, so a
-    // miss cannot happen. Skipping rather than asserting keeps a future caller
-    // that finds a way from taking the process down over a key it could
-    // simply leave alone.
-    let Some(current) = entries.shift_remove(&entry.key) else {
-      continue;
-    };
+    // Every key here came from this map and this line is the only thing that
+    // removes one, so the lookup cannot miss. The rewrite is computed through
+    // the option rather than branched on, so the impossible case needs no arm
+    // of its own -- an arm no test could ever reach.
+    //
+    // The value is read here, at the moment this key is rewritten, rather than
+    // collected up front: an earlier rewrite that landed on a later key is what
+    // that later key then carries.
+    let rewritten = entries.shift_remove(&entry.key).map(|current| {
+      // Consumed rather than cloned: an entry is read once and dead afterwards.
+      let combined_query = combine_media_query_with_negations(entry.query, entry.later_queries);
+      (combined_query.to_string(), current.value)
+    });
 
-    // Consumed rather than cloned: an entry is read once and dead afterwards.
-    let combined_query = combine_media_query_with_negations(entry.query, entry.later_queries);
-    let new_media_key = combined_query.to_string();
-
-    match entries.entry(new_media_key.clone()) {
-      // The key is already there: it keeps its position and takes this value,
-      // and the declaration that put it there is gone from the output.
-      IndexMapEntry::Occupied(mut occupied) => occupied.get_mut().value = current.value,
-      IndexMapEntry::Vacant(vacant) => {
-        vacant.insert(KeyValueProp {
-          key: PropName::Str(Str {
-            span: DUMMY_SP,
-            value: Wtf8Atom::from(new_media_key),
-            raw: None,
-          }),
-          value: current.value,
-        });
-      },
+    for (new_media_key, value) in rewritten.into_iter() {
+      match entries.entry(new_media_key.clone()) {
+        // The key is already there: it keeps its position and takes this value,
+        // and the declaration that put it there is gone from the output.
+        IndexMapEntry::Occupied(mut occupied) => occupied.get_mut().value = value,
+        IndexMapEntry::Vacant(vacant) => {
+          vacant.insert(KeyValueProp {
+            key: PropName::Str(Str {
+              span: DUMMY_SP,
+              value: Wtf8Atom::from(new_media_key),
+              raw: None,
+            }),
+            value,
+          });
+        },
+      }
     }
   }
 

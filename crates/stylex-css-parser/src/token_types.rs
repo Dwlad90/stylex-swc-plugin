@@ -87,7 +87,12 @@ impl SimpleToken {
 pub(crate) fn leading_f64(text: &str) -> Option<f64> {
   let end = leading_number_len(text)?;
 
-  text.get(..end)?.parse::<f64>().ok()
+  // `end` is counted off `text`'s own bytes and only ever advances over an
+  // ASCII one, so the prefix is always a char boundary and this slice always
+  // exists. `unwrap_or` states that rather than asserting it: were it ever
+  // untrue, the empty string fails to parse and the answer is the same `None`
+  // the caller already handles, where indexing would take the process down.
+  text.get(..end).unwrap_or("").parse::<f64>().ok()
 }
 
 /// Length in bytes of the numeric literal at the start of `text`, or `None`

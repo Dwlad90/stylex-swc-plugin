@@ -6,7 +6,7 @@ PATTERNS="#\[test\]|test_transform\(|test!\("
 crate_name="$(basename "$PWD")"
 
 case "$crate_name" in
-  stylex-logs|stylex-rs-compiler|stylex-test-parser|stylex-transform|stylex-css-parser)
+  stylex-logs|stylex-rs-compiler|stylex-test-parser|stylex-transform)
     exit 0
     ;;
 esac

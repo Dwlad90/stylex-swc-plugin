@@ -54,9 +54,11 @@ back to a literal.
 
 **The verdict: the coverage is real, the throughput is free, and the 6 MiB is a
 price worth paying — what grows is a build-time artifact, not anything a
-consumer ships. The one thing that stops this today is dependency resolution:
-the engine does not resolve against this workspace at all.** Do not start 06 on
-the engine until that is fixed upstream. The leaked engine per thread (§5) is a
+consumer ships. The one thing in the way is dependency resolution — and it is
+solvable: upstream boa resolves against this workspace once `icu_collator` is
+pinned to `=2.0.0`, at the cost of one documented decision in `pre_rule.rs`.
+Relaxing boa's bound upstream costs nothing at all.** Pick one of §1's three
+options before starting 06 on the engine. The leaked engine per thread (§5) is a
 constraint to write down, not an objection.
 
 ### 1. Upstream `boa_engine` does not resolve against this workspace
@@ -71,14 +73,57 @@ error: failed to select a version for `icu_normalizer`.
   previously selected package `icu_normalizer v2.3.0`
 ```
 
-Downgrading is not available either: `icu_collator` 2.0.0 has no `unstable`
-feature, and `pre_rule.rs` needs it for `CollatorBorrowed::new_root`.
+Every number below comes from `superui_boa_engine` 0.3.3, a third-party fork
+whose only change is relaxing that requirement to `>=2.0.0, <3`. The numbers
+carry over to upstream unchanged — the fork differs in a version bound and
+nothing else — but a published compiler depending on one person's fork of an
+engine is not a trade this spike can make on its own.
 
-Every number below therefore comes from `superui_boa_engine` 0.3.3, a
-third-party fork whose only change is relaxing that requirement to
-`>=2.0.0, <3`. A published compiler taking a dependency on one person's fork of
-an engine is not a trade this spike can make on its own. The fix is a one-line
-relaxation in boa; until it lands upstream, this option is closed.
+**There is a way to use upstream boa, and it costs one documented decision.**
+`icu_normalizer` cannot be removed from either side. Boa needs it for
+`String.prototype.normalize` (`builtins/string/mod.rs` imports
+`ComposingNormalizer` and `DecomposingNormalizer`), it is not behind a feature,
+and swapping it for `unicode-normalization` would mean patching the engine's
+internals rather than a version bound — strictly worse than the fork. On this
+side it is not a direct dependency at all: it arrives through `icu_collator` and
+through SWC's `url` → `idna_adapter`. So nothing can be substituted; the graph
+just has to agree on one version, and every consumer can accept `2.0.1`:
+
+| `icu_collator` | pulls `icu_normalizer` | resolves with upstream boa |
+| -------------- | ---------------------- | -------------------------- |
+| `2.0.0`        | `2.0.1`                | **yes**                    |
+| `2.1.0`–`2.1.2`| `2.1.1`                | no                         |
+| `2.2.0`–`2.2.1`| `2.2.0`                | no                         |
+| `2.3.0`–`2.3.1`| `2.3.0`                | no                         |
+
+Pinning `icu_collator = "=2.0.0"` with `compiled_data` instead of `unstable`
+resolves the whole workspace against upstream `boa_engine` 0.21.1 —
+`idna_adapter` follows from 1.2.2 down to 1.2.1 on its own — and
+`cargo check --workspace --all-features` then reports **exactly one** error:
+
+```
+error[E0599]: no associated function or constant named `new_root` found for
+              struct `CollatorBorrowed<'a>` in the current scope
+   --> crates/stylex-css/src/utils/pre_rule.rs:178:38
+```
+
+`CollatorBorrowed::new_root` does not exist before 2.1, so `PSEUDO_COLLATOR`
+goes back to `CollatorBorrowed::try_new` and its `Err` arm. That arm is
+unreachable — the compiled CLDR data is a build-time dependency — which is
+precisely why it was replaced: `pre_rule.rs` and the root `Cargo.toml` both
+record that an unreachable arm is a region no test can exercise, and it was the
+last thing keeping `scripts/coverage-missing.sh` from a clean run.
+
+So the choice is between three things, and it is a person's to make:
+
+1. **Pin `icu_collator` to `=2.0.0`** and take the uncoverable arm back, plus
+   three years of ICU collation fixes not applied. Cheapest to do, undoes a
+   decision that was argued in writing.
+2. **Relax the bound upstream in boa** — it is one line, `~2.0.0` to
+   `>=2.0.0, <3`, and the fork proves it compiles. Costs a PR and a release
+   cycle, and leaves both decisions intact. This is the one to try first.
+3. **Depend on the fork.** Fastest, and the worst supply-chain position of the
+   three for a package this many builds pull.
 
 ### 2. Binary size
 

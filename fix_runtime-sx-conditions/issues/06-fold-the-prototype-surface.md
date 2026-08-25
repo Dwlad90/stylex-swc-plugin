@@ -70,13 +70,15 @@ Agreed boundaries, if this is built by hand rather than via 05:
 class names against the reference implementation across 80 rules), folds chains
 for free, and costs nothing on the release gate. It grows the published artifact
 by 5.6–6.1 MiB, which is accepted — that artifact is a build-time dependency, so
-no consumer bundle carries it. What stops it today is that it **cannot be
-resolved into this workspace at all**: `boa_engine` requires
-`icu_normalizer ~2.0.0` where `icu_collator` needs `~2.3.0`.
+no consumer bundle carries it. What stands in the way is dependency resolution:
+`boa_engine` requires `icu_normalizer ~2.0.0` where `icu_collator 2.3.1` needs
+`~2.3.0`. 05 §1 measures the way through — pinning `icu_collator` to `=2.0.0`
+resolves upstream boa into this workspace and costs exactly one thing, the
+`new_root` decision in `pre_rule.rs` — and names relaxing boa's bound upstream
+as the option that costs nothing here.
 
-So this ticket is not unblocked in practice. Either wait for boa to relax that
-requirement upstream, or build the boundaries above by hand. Two of 05's findings
-apply whichever way it is built:
+So this ticket needs that dependency question settled first, or the boundaries
+above built by hand. Two of 05's findings apply whichever way it is built:
 
 - Locale-sensitive methods must stay excluded — the exclusion list above was
   right. `normalize` could move into scope only with an ICU dependency of its own.

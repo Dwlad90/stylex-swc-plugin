@@ -3,8 +3,17 @@ dir = "target/nextest"
 
 # The evaluator's ceiling is read from the environment when a project does not
 # configure one, and the depth-budget suite pins the built-in default. An
-# ambient value on a developer box or a CI runner would move every expectation
-# in it, so the variable is pinned for the run rather than inherited.
+# ambient value on a developer box or a CI runner moves every expectation in it.
+#
+# This table does NOT stop that, and is kept only so the intent is on record.
+# cargo-nextest 0.9.132 prints `ignoring unknown configuration key: env` on every
+# run and inherits the ambient value anyway; `[profile.default.env]` is rejected
+# the same way. Demonstrated by setting STYLEX_MAX_EVALUATION_DEPTH=3, which
+# fails the depth suite with the table in place. `cargo test` and
+# `cargo llvm-cov` never read this file at all.
+#
+# The durable fix is for the depth tests to pin the budget where they read it
+# rather than trusting the runner. Until then, do not rely on this pin.
 [env]
 STYLEX_MAX_EVALUATION_DEPTH = { value = "32", force = true }
 

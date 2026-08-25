@@ -280,7 +280,11 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
         (combined_query.to_string(), current.value)
       });
 
-    if let Some((new_media_key, value)) = rewritten {
+    // Iterated rather than branched on, which is what keeps the impossible
+    // `None` from becoming an arm no test can reach -- see the note above the
+    // lookup. A one-or-zero-iteration loop is the price of not having an
+    // uncoverable branch here.
+    for (new_media_key, value) in rewritten.into_iter() {
       // The atom is taken off the text before the key is moved into the map, so
       // the rewritten name is copied once rather than twice. On a distributed
       // ladder one of these names is hundreds of kilobytes, which is not a copy

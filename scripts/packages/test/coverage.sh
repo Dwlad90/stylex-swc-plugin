@@ -27,7 +27,6 @@ if grep -qRE --include="*.rs" "$PATTERNS" src tests; then
     --all-features \
     --fail-uncovered-lines 0 \
     --fail-uncovered-regions 0 \
-    --fail-under-functions 0 \
     --ignore-filename-regex "$IGNORE_REGEX" \
     "$@"
 else

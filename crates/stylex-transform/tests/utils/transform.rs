@@ -269,13 +269,15 @@ pub(crate) fn fold_module(input: &str) -> String {
   })
 }
 
-/// One `stylex.create` module: `decls` above it, `body` as the declarations of
-/// its single `base` style.
+/// One `stylex.create` module of a single `base` style: `decls` above it,
+/// `body` as that style's declarations.
 ///
 /// `decls` is where a case that needs a binding puts it, and empty where the
-/// case is about a value written out.
+/// case is about a value written out. A file whose subject is the *shape* of
+/// the create call rather than one style's value writes its own, since this
+/// one fixes the style name.
 #[allow(dead_code)]
-pub(crate) fn create_module(decls: &str, body: &str) -> String {
+pub(crate) fn base_style_module(decls: &str, body: &str) -> String {
   format!(
     r#"
       import * as stylex from '@stylexjs/stylex';

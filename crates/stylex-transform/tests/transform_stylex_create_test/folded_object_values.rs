@@ -12,11 +12,11 @@
 
 use crate::utils::{
   prelude::*,
-  transform::{create_module, fold_module as fold},
+  transform::{base_style_module, fold_module as fold},
 };
 
 fn module(body: &str) -> String {
-  create_module("", body)
+  base_style_module("", body)
 }
 
 /// The shape the divergence was reported as: a value object computed by a fold

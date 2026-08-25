@@ -20,11 +20,11 @@
 
 use crate::utils::{
   prelude::*,
-  transform::{create_module, fold_module as fold},
+  transform::{base_style_module, fold_module as fold},
 };
 
 fn module(body: &str) -> String {
-  create_module("", body)
+  base_style_module("", body)
 }
 
 /// The engine carries no locale data, so it would answer from the root locale —
@@ -83,7 +83,7 @@ fn a_method_that_does_not_exist_is_named_by_this_compiler_rather_than_the_engine
 /// A value the bridge cannot carry says which kind it was. The kind is the half
 /// that says why an otherwise valid call folded to nothing usable.
 #[test]
-#[should_panic(expected = "The folded value is undefined, which has no compile-time")]
+#[should_panic(expected = "Cannot carry a folded undefined back from the engine.")]
 fn a_result_with_no_literal_form_names_the_kind_it_was() {
   fold(&module("content: 'abc'.at(99),"));
 }
@@ -94,6 +94,27 @@ fn a_result_with_no_literal_form_names_the_kind_it_was() {
 #[should_panic(expected = "Array length is too large to evaluate at compile time.")]
 fn an_array_result_past_the_bound_names_the_bound() {
   fold(&module("fontFamily: 'x'.repeat(10001).split(''),"));
+}
+
+/// An object costs one AST node per property, exactly as an array costs one per
+/// element, so it is bounded by the same number.
+///
+/// The input has to be written out — ten thousand properties is past what any
+/// loop the guard admits can build — so this is the one rule whose case is a
+/// generated source string rather than a stylesheet anybody would write. It is
+/// here anyway, with the other seven, because the sentence an author reads is
+/// the thing under test and this is where that is asserted.
+#[test]
+#[should_panic(expected = "Object is too large to evaluate at compile time.")]
+fn an_object_result_past_the_bound_names_the_bound() {
+  let properties: Vec<String> = (0..10_001)
+    .map(|index| format!("k{index}:{index}"))
+    .collect();
+
+  fold(&module(&format!(
+    "content: ({{{}}}).valueOf(),",
+    properties.join(",")
+  )));
 }
 
 /// Nesting is bounded because the engine's parser recurses on the bare thread
@@ -140,7 +161,7 @@ fn an_amplifying_call_inside_a_callback_names_the_callback_as_the_reason() {
 #[test]
 #[should_panic(expected = "base > content > join() requires a string separator")]
 fn a_nested_array_reaching_the_older_join_refuses_rather_than_panicking() {
-  fold(&create_module(
+  fold(&base_style_module(
     "const parts = [['a'], ['b']];",
     "content: parts.join(''),",
   ));

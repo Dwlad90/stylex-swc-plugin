@@ -219,6 +219,18 @@ enum Scope<'a> {
 /// reason — the walk in recurses on the bare thread stack and so does the
 /// conversion out — so they share the counter and the sentence rather than
 /// keeping two that could drift apart.
+///
+/// Reaching the bottom is a refusal and not a "not mine", which is the one
+/// place the two are worth telling apart. This bound is the engine parser's
+/// stack, so it does not move when a project raises the evaluator's ceiling,
+/// and under a raised ceiling the older path would fold what this declines —
+/// so the refusal costs a fold. It is taken because the two ceilings no longer
+/// carry the same number, and a bound this module owns has to answer in this
+/// module's words: handing the shape back instead makes which sentence an
+/// author reads depend on which of two disagreeing ceilings they crossed.
+/// Handing it back is at least safe now — the nested array that reached the
+/// older `join` refuses rather than panicking — so what remains is the
+/// diagnostic, and Ticket 11 owns unifying the two ceilings.
 #[derive(Clone, Copy)]
 struct Depth(usize);
 
@@ -658,8 +670,11 @@ fn to_object_value(
   engine: &mut Context,
   outward: Outward,
 ) -> Result<EvaluateResultValue, Decline> {
+  // `typeof` names the kind rather than a word list of this module's own: the
+  // engine already answers this question, exhaustively, and its answer is the
+  // one an author would use for the value they wrote.
   let Some(object) = value.as_object() else {
-    return Err(Decline::rule(unfoldable_fold_result(describe(value))));
+    return Err(Decline::rule(unfoldable_fold_result(value.type_of())));
   };
 
   let inner = outward.descend()?;
@@ -678,7 +693,7 @@ fn to_object_value(
   }
 
   if !object.is_ordinary() {
-    return Err(Decline::rule(unfoldable_fold_result(describe(value))));
+    return Err(Decline::rule(unfoldable_fold_result(value.type_of())));
   }
 
   let keys = read(outward, || object.own_property_keys(engine))?;
@@ -692,14 +707,16 @@ fn to_object_value(
   for key in keys {
     // A symbol key has no spelling in an object literal, so an object carrying
     // one cannot be written back out whole — and writing it out partly would
-    // fold a value the source does not describe. No input the guard admits
-    // today produces one, since a symbol is reachable only through a bare
-    // global; it is a refusal rather than an assumption because widening the
-    // guard is what the rest of this work does.
+    // fold a value the source does not describe. `PropertyKey` has three
+    // variants and all three are answered, as the crate's error policy asks.
     let name = match &key {
       PropertyKey::String(string) => string.to_std_string_lossy(),
       PropertyKey::Index(index) => index.get().to_string(),
-      PropertyKey::Symbol(_) => return Err(Decline::rule(unfoldable_fold_result("a symbol key"))),
+      PropertyKey::Symbol(_) => {
+        return Err(Decline::rule(unfoldable_fold_result(
+          "object with a symbol key",
+        )));
+      },
     };
 
     let element = read(outward, || object.get(key.clone(), engine))?;
@@ -734,7 +751,7 @@ fn as_property_value(value: EvaluateResultValue) -> Result<Expr, Decline> {
     _ => None,
   };
 
-  expr.ok_or_else(|| Decline::rule(unfoldable_fold_result("an unreadable value")))
+  expr.ok_or_else(|| Decline::rule(unfoldable_fold_result("value of an unreadable kind")))
 }
 
 /// An array's `length`, bounded: the count the conversion loop below reads.
@@ -749,7 +766,7 @@ fn read_length(object: &JsObject, engine: &mut Context, outward: Outward) -> Res
 
   let Some(length) = length.as_number().filter(|length| *length >= 0.0) else {
     return Err(Decline::rule(unfoldable_fold_result(
-      "an array with no readable length",
+      "array with no readable length",
     )));
   };
 
@@ -768,21 +785,6 @@ fn read_length(object: &JsObject, engine: &mut Context, outward: Outward) -> Res
 /// needs the same answer the evaluation itself gets rather than a second one.
 fn read<T>(outward: Outward, read: impl FnOnce() -> JsResult<T>) -> Result<T, Decline> {
   read().map_err(|error| outward.threw(&error))
-}
-
-/// What kind of value the fold could not carry, in the words a refusal uses.
-fn describe(value: &JsValue) -> &'static str {
-  if value.is_undefined() {
-    "undefined"
-  } else if value.is_symbol() {
-    "a symbol"
-  } else if value.is_bigint() {
-    "a BigInt"
-  } else if value.as_object().is_some_and(|object| object.is_callable()) {
-    "a function"
-  } else {
-    "an object of a kind with no literal form"
-  }
 }
 
 /// The call as the minified source the engine is handed.

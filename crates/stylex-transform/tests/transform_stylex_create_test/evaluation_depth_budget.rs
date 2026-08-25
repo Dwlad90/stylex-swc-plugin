@@ -42,7 +42,15 @@
 //!    deepest accepted source nesting differs per shape, and each one is
 //!    measured and pinned rather than derived.
 
-use crate::utils::{prelude::*, source::nest_expression as nest, transform::stringify_js};
+use crate::utils::{
+  prelude::*,
+  source::nest_expression as nest,
+  // Compile under the shipped default ceiling -- what a project gets with no
+  // configuration at all. Shared with the other files that compile a whole
+  // module and assert on its rules, so none of them can drift into compiling
+  // under different options.
+  transform::{fold_module as fold, stringify_js},
+};
 
 /// `MY_CONST` under `depth` levels of `+ 1`, the shape every arm is measured
 /// against unless it is the arm under test. Folds to `5 + depth`.
@@ -61,14 +69,6 @@ fn create(decls: &str, body: &str) -> String {
     "#,
     decls, body
   )
-}
-
-/// Compile under the shipped default ceiling -- what a project gets with no
-/// configuration at all.
-fn fold(input: &str) -> String {
-  stringify_js(input, ts_syntax(), |tr| {
-    theme_import_transform(tr.comments.clone())
-  })
 }
 
 /// Compile with the ceiling raised to [`RAISED`].

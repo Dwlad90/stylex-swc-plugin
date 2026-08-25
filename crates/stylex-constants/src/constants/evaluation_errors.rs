@@ -223,9 +223,14 @@ pub fn object_size_too_large(limit: u64) -> String {
 /// Names the kind rather than the expression, because the expression is what
 /// the author wrote and the kind is what the language answered with; only the
 /// second says why an otherwise valid call folds to nothing usable.
+///
+/// Phrased so the kind needs no article in front of it. That is what lets the
+/// caller pass the language's own `typeof` straight through instead of keeping
+/// a word per kind of its own, and the second line is what tells an author
+/// whose value is `object` that theirs is not a plain one.
 pub fn unfoldable_fold_result(kind: &str) -> String {
   format!(
-    "The folded value is {}, which has no compile-time representation.\nOnly strings, numbers, booleans, null, arrays and plain objects can be folded.\n\n",
+    "Cannot carry a folded {} back from the engine.\nOnly strings, numbers, booleans, null, arrays and plain objects can be folded.\n\n",
     kind
   )
 }

@@ -1,0 +1,36 @@
+[package]
+name = "boa_gc"
+description = "Garbage collector for the Boa JavaScript engine."
+keywords = ["javascript", "js", "garbage", "memory"]
+categories = ["command-line-utilities"]
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[features]
+# Enable default implementations of trace and finalize for the thin-vec crate
+thin-vec = ["dep:thin-vec"]
+# Enable default implementations of trace and finalize for some `ICU4X` types
+icu = ["dep:icu_locale_core"]
+# Enable default implementations of trace and finalize for the `boa_string` crate
+boa_string = ["dep:boa_string"]
+# Enable default implementations of trace and finalize for the `either` crate
+either = ["dep:either"]
+
+[dependencies]
+boa_macros.workspace = true
+hashbrown.workspace = true
+
+boa_string = { workspace = true, optional = true }
+either = { workspace = true, optional = true }
+thin-vec = { workspace = true, optional = true }
+icu_locale_core = { workspace = true, optional = true }
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true

@@ -1,0 +1,27 @@
+[package]
+name = "boa_string"
+keywords = ["javascript", "js", "string"]
+categories = ["parser-implementations", "compilers"]
+readme = "../../README.md"
+description.workspace = true
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+itoa.workspace = true
+rustc-hash = { workspace = true, features = ["std"] }
+ryu-js.workspace = true
+
+static_assertions.workspace = true
+paste.workspace = true
+fast-float2.workspace = true
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true

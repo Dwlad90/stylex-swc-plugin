@@ -375,6 +375,9 @@
     "**/dist",
     "**/node_modules",
     "**/output",
+    // Vendored upstream source -- see `vendor/boa/README.md`. Its JavaScript is
+    // engine benchmark input, written to exercise shapes this config forbids.
+    "vendor",
     // The ESLint config wrote `**/fixture`, which never matched the actual
     // `fixtures` directories and left them being linted by accident.
     "**/fixture",

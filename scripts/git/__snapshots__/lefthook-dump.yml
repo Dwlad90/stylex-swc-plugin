@@ -36,6 +36,8 @@ pre-commit:
     - name: js-ts
       glob:
         - '*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'
+      exclude:
+        - vendor/**
       group:
         piped: true
         jobs:
@@ -49,10 +51,13 @@ pre-commit:
       exclude:
         - '**/package.json'
         - package.json
+        - vendor/**
       stage_fixed: true
     - name: markdown
       glob:
         - '*.{md,mdx}'
+      exclude:
+        - vendor/**
       group:
         piped: true
         jobs:
@@ -73,11 +78,15 @@ pre-commit:
       run: rustfmt {staged_files}
       glob:
         - '*.rs'
+      exclude:
+        - vendor/**
       stage_fixed: true
     - name: toml
       run: ./node_modules/.bin/taplo format {staged_files}
       glob:
         - '*.toml'
+      exclude:
+        - vendor/**
       stage_fixed: true
 pre-push:
   parallel: true

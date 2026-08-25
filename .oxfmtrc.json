@@ -27,6 +27,7 @@
     }
   ],
   "ignorePatterns": [
+    "vendor/**",
     "**/output/**",
     "**/test/**",
     "**/tests/**",

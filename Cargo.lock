@@ -256,8 +256,6 @@ dependencies = [
 [[package]]
 name = "boa_ast"
 version = "0.21.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6339a700715bda376f5ea65c76e8fe8fc880930d8b0638cea68e7f3da6538e0a"
 dependencies = [
  "bitflags",
  "boa_interner",
@@ -269,10 +267,58 @@ dependencies = [
 ]
 
 [[package]]
+name = "boa_engine"
+version = "0.21.1"
+dependencies = [
+ "aligned-vec",
+ "arrayvec",
+ "bitflags",
+ "boa_ast",
+ "boa_gc",
+ "boa_interner",
+ "boa_macros",
+ "boa_parser",
+ "boa_string",
+ "bytemuck",
+ "cfg-if",
+ "cow-utils",
+ "dashmap",
+ "dynify",
+ "fast-float2",
+ "float16",
+ "futures-channel",
+ "futures-concurrency",
+ "futures-lite",
+ "hashbrown 0.16.1",
+ "icu_normalizer",
+ "indexmap",
+ "intrusive-collections",
+ "itertools 0.14.0",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "num_enum",
+ "paste",
+ "portable-atomic",
+ "rand 0.9.5",
+ "regress 0.10.5",
+ "rustc-hash",
+ "ryu-js",
+ "serde",
+ "serde_json",
+ "small_btree",
+ "static_assertions",
+ "tag_ptr",
+ "tap",
+ "thin-vec",
+ "thiserror 2.0.19",
+ "time",
+ "xsum",
+]
+
+[[package]]
 name = "boa_gc"
 version = "0.21.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17323a98cf2e631afacf1a6d659c1212c48a68bacfa85afab0a66ade80582e51"
 dependencies = [
  "boa_macros",
  "boa_string",
@@ -283,8 +329,6 @@ dependencies = [
 [[package]]
 name = "boa_interner"
 version = "0.21.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20510b8b02bcde9b0a01cf34c0c308c56156503d1d91cdab4c8cfbd292b747ea"
 dependencies = [
  "boa_gc",
  "boa_macros",
@@ -299,8 +343,6 @@ dependencies = [
 [[package]]
 name = "boa_macros"
 version = "0.21.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5822cb4f146d243060e588bc5a5f2e709683fdad3d7111f42c48e6b5c921d23d"
 dependencies = [
  "cfg-if",
  "cow-utils",
@@ -311,10 +353,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "boa_parser"
+version = "0.21.1"
+dependencies = [
+ "bitflags",
+ "boa_ast",
+ "boa_interner",
+ "boa_macros",
+ "fast-float2",
+ "icu_properties",
+ "num-bigint",
+ "num-traits",
+ "regress 0.10.5",
+ "rustc-hash",
+]
+
+[[package]]
 name = "boa_string"
 version = "0.21.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca2da1d7f4a76fd9040788a122f0d807910800a7b86f5952e9244848c36511de"
 dependencies = [
  "fast-float2",
  "itoa",
@@ -2919,8 +2975,6 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 [[package]]
 name = "small_btree"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ba60d2df92ba73864714808ca68c059734853e6ab722b40e1cf543ebb3a057a"
 dependencies = [
  "arrayvec",
 ]
@@ -3207,6 +3261,7 @@ name = "stylex_transform"
 version = "0.18.4"
 dependencies = [
  "anyhow",
+ "boa_engine",
  "criterion",
  "ctor",
  "indexmap",
@@ -3235,7 +3290,6 @@ dependencies = [
  "stylex_styleq",
  "stylex_types",
  "stylex_utils",
- "superui_boa_engine",
  "swc_compiler_base",
  "swc_config",
  "swc_core",
@@ -3272,77 +3326,6 @@ dependencies = [
  "swc_core",
  "swc_ecma_parser",
  "xxhash-rust",
-]
-
-[[package]]
-name = "superui_boa_engine"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73c6ad6b8671a77cddbf6b83b8a9b01c28705c6a36083fe42f0d7cc857b25005"
-dependencies = [
- "aligned-vec",
- "arrayvec",
- "bitflags",
- "boa_ast",
- "boa_gc",
- "boa_interner",
- "boa_macros",
- "boa_string",
- "bytemuck",
- "cfg-if",
- "cow-utils",
- "dashmap",
- "dynify",
- "fast-float2",
- "float16",
- "futures-channel",
- "futures-concurrency",
- "futures-lite",
- "hashbrown 0.16.1",
- "icu_normalizer",
- "indexmap",
- "intrusive-collections",
- "itertools 0.14.0",
- "num-bigint",
- "num-integer",
- "num-traits",
- "num_enum",
- "paste",
- "portable-atomic",
- "rand 0.9.5",
- "regress 0.10.5",
- "rustc-hash",
- "ryu-js",
- "serde",
- "serde_json",
- "small_btree",
- "static_assertions",
- "superui_boa_parser",
- "tag_ptr",
- "tap",
- "thin-vec",
- "thiserror 2.0.19",
- "time",
- "xsum",
-]
-
-[[package]]
-name = "superui_boa_parser"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bec5fc902bf93b99030b308491e8925f495ee29998c49a3366e5a0890a2b727"
-dependencies = [
- "bitflags",
- "boa_ast",
- "boa_interner",
- "boa_macros",
- "fast-float2",
- "icu_properties",
- "num-bigint",
- "num-traits",
- "regress 0.10.5",
- "rustc-hash",
- "stacker",
 ]
 
 [[package]]
@@ -3915,8 +3898,6 @@ dependencies = [
 [[package]]
 name = "tag_ptr"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0e973b34477b7823833469eb0f5a3a60370fef7a453e02d751b59180d0a5a05"
 
 [[package]]
 name = "tap"

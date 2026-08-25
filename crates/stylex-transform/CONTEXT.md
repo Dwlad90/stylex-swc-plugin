@@ -75,15 +75,23 @@ _Avoid_: boa fold, reflection, dynamic dispatch
 The predicate in front of an [engine fold](#engine-fold), and the whole of that
 fold's behaviour: what it admits is answered by the language rather than by any
 code here, so every boundary the compiler owns is a refusal the guard states.
-Four are not about the scope. A **mutating** array method is refused because
+Five are not about the scope. A **mutating** array method is refused because
 matching upstream means carrying mutation into an otherwise pure evaluator. A
 **locale-sensitive** method is refused because the engine has no locale data and
 would answer from the root locale, which is a wrong value rather than no value.
-A **length-amplifying** call is bounded because the engine bounds iterations,
-recursion and stack but not allocation. And **nesting** is bounded because the
-engine's parser recurses, and an overflow inside an evaluation that is allowed
-to fail aborts the build instead of reporting anything. Each applies at every
-link of a chain, since a chain hides its middle links.
+An **escaping** property -- `constructor`, `call`, `apply`, `bind` -- is refused
+because it walks off the value that was written and onto the language's function
+graph, where `Function` compiles a string into a body that answers differently
+on every build and can write to a prototype the next fold reads. A
+**length-amplifying** call is bounded, on the argument written and again on the
+string that comes back, because nothing in the engine bounds allocation; a
+callback body is refused outright, since a written bound bounds one evaluation
+and a callback runs once per element. And **nesting** is bounded on both sides:
+on the way in because the engine's parser recurses, and on the way out because
+the depth of an answer is not what the width bound measures. An overflow inside
+an evaluation that is allowed to fail aborts the build instead of reporting
+anything. Each applies at every link of a chain, since a chain hides its middle
+links.
 
 The guard reads syntax, so "carries its own value" means _written into the
 expression_. A receiver reached through a binding is resolved by the evaluator

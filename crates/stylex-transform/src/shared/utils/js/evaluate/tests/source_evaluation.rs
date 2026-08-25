@@ -179,6 +179,50 @@ pub(crate) fn assert_folds_to_string(source: &str, expected: &str) {
   }
 }
 
+/// Asserts the source folds to `null`.
+///
+/// Its own assertion because `null` carries no value to compare — the variant
+/// is the whole of it, and the neighbouring `undefined` has no literal at all
+/// and refuses instead.
+#[track_caller]
+pub(crate) fn assert_folds_to_null(source: &str) {
+  match assert_folds(source) {
+    Expr::Lit(Lit::Null(_)) => {},
+    other => panic!("expected `{}` to fold to null, got {:?}", source, other),
+  }
+}
+
+/// Asserts the source folds to an array holding exactly `expected`, in order.
+///
+/// A folded array reaches the evaluator as an `ArrayLit`, and every other array
+/// case asserts a `length` or a `join` the engine had already applied — so none
+/// of them would notice elements arriving in the wrong order, or a conversion
+/// that dropped one.
+#[track_caller]
+pub(crate) fn assert_folds_to_strings(source: &str, expected: &[&str]) {
+  match assert_folds(source) {
+    Expr::Array(array) => {
+      let folded = array
+        .elems
+        .iter()
+        .map(|elem| match elem {
+          Some(ExprOrSpread { spread: None, expr }) => match expr.as_ref() {
+            Expr::Lit(Lit::Str(strng)) => convert_atom_to_string(&strng.value),
+            other => panic!("expected `{}` to hold strings, got {:?}", source, other),
+          },
+          other => panic!(
+            "expected `{}` to hold plain elements, got {:?}",
+            source, other
+          ),
+        })
+        .collect::<Vec<String>>();
+
+      assert_eq!(folded, expected, "wrong folded array for `{}`", source);
+    },
+    other => panic!("expected `{}` to fold to an array, got {:?}", source, other),
+  }
+}
+
 /// Asserts the source folds to a boolean.
 ///
 /// A predicate method — `startsWith`, `includes`, `hasOwnProperty` — folds to

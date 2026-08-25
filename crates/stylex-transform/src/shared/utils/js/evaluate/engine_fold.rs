@@ -20,8 +20,9 @@ use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{
-      ArrayLit, ArrowExpr, BlockStmtOrExpr, CallExpr, Callee, Expr, ExprOrSpread, KeyValueProp,
-      Lit, MemberExpr, MemberProp, Null, ObjectLit, Pat, Prop, PropName, PropOrSpread,
+      ArrayLit, ArrowExpr, BlockStmtOrExpr, CallExpr, Callee, Expr, ExprOrSpread, ExprStmt,
+      KeyValueProp, Lit, MemberExpr, MemberProp, Module, ModuleItem, Null, ObjectLit, Pat, Prop,
+      PropName, PropOrSpread, Stmt,
     },
     codegen::Config,
   },
@@ -29,7 +30,7 @@ use swc_core::{
 
 use stylex_js::helpers::is_mutating_array_method;
 
-use crate::shared::utils::log::build_code_frame_error::{CodeFrame, create_module, print_module};
+use crate::shared::utils::log::build_code_frame_error::{CodeFrame, print_module};
 
 /// Methods whose answer depends on locale data the engine does not carry.
 ///
@@ -53,14 +54,29 @@ const LOCALE_SENSITIVE_METHODS: [&str; 4] = [
   "toLocaleString",
 ];
 
+/// Property names that walk off the value that was written and onto the
+/// language's function graph.
+///
+/// `constructor` on a literal is `String`, whose own `constructor` is
+/// `Function`, which compiles a string into a function. So
+/// `"".constructor.constructor("return Date.now()").call()` is a chain every
+/// other rule here admits — two named property reads on a literal, then a call
+/// — whose answer is a different number on every build, and whose body can
+/// assign to `String.prototype` in an engine every later fold shares. `call`,
+/// `apply` and `bind` are what turn an unapplied function back into a call, so
+/// they are refused with it.
+const ESCAPING_PROPERTIES: [&str; 4] = ["constructor", "call", "apply", "bind"];
+
 /// Methods whose result length is set by an argument rather than by the
 /// receiver, and so are the only ones a single small argument can blow up.
 const LENGTH_AMPLIFYING_METHODS: [&str; 3] = ["repeat", "padStart", "padEnd"];
 
 /// How long a string one of those may be asked to build.
 ///
-/// The engine bounds loop iterations, recursion and stack depth, but not
-/// allocation: growth inside a native builtin is not a counted loop. So
+/// The engine bounds recursion and VM stack depth by default, and this module
+/// bounds loop iterations itself ([`MAX_LOOP_ITERATIONS`]), because Boa's own
+/// default for that is `u64::MAX`. What none of them bound is allocation:
+/// growth inside a native builtin is not a counted loop. So
 /// `"x".repeat(200000000)` is a typo that folds — agreeing with the language —
 /// at several gigabytes of resident memory, and a compiler that dies there is
 /// worse than one that declines the fold. A million UTF-16 code units is two
@@ -94,9 +110,36 @@ const MAX_FOLDED_ARRAY_LENGTH: u64 = 10_000;
 /// project that raised it must not lose the diagnostic here.
 const MAX_ENGINE_NESTING: usize = 32;
 
+/// How many loop iterations an evaluation may run.
+///
+/// Boa's own default is `u64::MAX` — `RuntimeLimits::loop_iteration` documents
+/// it as no limit — so a loop is unbounded until it is said to be bounded. The
+/// guard refuses the shapes that reach a loop body, and this is the second
+/// answer behind that one: a bound the engine enforces whatever the guard let
+/// through. Ten million iterations of an empty loop is well under a second, and
+/// no folded CSS value is reached by counting that far.
+const MAX_LOOP_ITERATIONS: u64 = 10_000_000;
+
+/// Whether `name` is one of the names in `list`.
+///
+/// The lists above are three to four entries, so a scan beats any structure
+/// that would have to hash first, and one function keeps the four call sites
+/// from each spelling the double reference their own way.
+fn lists(list: &[&str], name: &Atom) -> bool {
+  list.contains(&&**name)
+}
+
 thread_local! {
   /// One engine per thread, created on the first fold that needs it and reused
   /// for every later one. A file with no foldable method call never builds it.
+  ///
+  /// Reuse is what makes the guard load-bearing rather than merely tidy: a fold
+  /// that reached a prototype would be read by every later fold in the build,
+  /// including one in another file, so the boundaries below are what keeps one
+  /// engine safe to share. Reuse also costs: the engine interns each distinct
+  /// source it is handed and never reclaims it, measured at roughly half a
+  /// kilobyte per distinct folded call site, which a real corpus keeps in the
+  /// low megabytes for the life of the process.
   ///
   /// `ManuallyDrop` is not a convenience: the engine's garbage collector lives
   /// in a thread-local of its own, and the order two thread-locals are dropped
@@ -163,18 +206,39 @@ pub(crate) fn try_fold(call: &CallExpr) -> Option<Expr> {
     return None;
   }
 
-  let source = print_expr(&Expr::Call(call.clone()));
+  let source = print_call(call);
 
   ENGINE.with_borrow_mut(|slot| {
-    let engine = slot.get_or_insert_with(|| ManuallyDrop::new(Context::default()));
+    // Taken, not borrowed in place. A panic unwinding out of the engine is
+    // caught at the NAPI boundary and the process carries on, so an engine left
+    // in the slot would be reused by every later fold with its VM stack
+    // abandoned mid-frame. Taking it means an unwind leaves the slot empty and
+    // the next fold builds a fresh engine; the abandoned one leaks, which is
+    // what `ManuallyDrop` already makes it do at thread exit.
+    let mut engine = slot.take().unwrap_or_else(new_engine);
 
-    match engine.eval(Source::from_bytes(&source)) {
-      Ok(value) => to_expr(&value, engine),
+    let folded = match engine.eval(Source::from_bytes(&source)) {
+      Ok(value) => to_expr(&value, &mut engine),
       // A throw is an answer, not a failure of this module: the caller's
       // existing refusal already reports it. Nothing to fold.
       Err(_) => None,
-    }
+    };
+
+    *slot = Some(engine);
+
+    folded
   })
+}
+
+/// A context with the one runtime limit its default leaves open.
+fn new_engine() -> ManuallyDrop<Context> {
+  let mut engine = Context::default();
+
+  engine
+    .runtime_limits_mut()
+    .set_loop_iteration_limit(MAX_LOOP_ITERATIONS);
+
+  ManuallyDrop::new(engine)
 }
 
 /// Whether every value `expr` needs is either written into it or bound by the
@@ -209,14 +273,24 @@ fn carries_its_own_value(expr: &Expr, guard: Guard) -> bool {
     },
     // A named property read: `x.length` inside a callback, and `({a:1}).a` as
     // a receiver. A computed one is a lookup that needs the scope.
-    Expr::Member(MemberExpr { obj, prop, .. }) => {
-      carries_its_own_value(obj, inner) && matches!(prop, MemberProp::Ident(_))
+    Expr::Member(MemberExpr { obj, prop, .. }) => match prop {
+      MemberProp::Ident(name) if !lists(&ESCAPING_PROPERTIES, &name.sym) => {
+        carries_its_own_value(obj, inner)
+      },
+      _ => false,
     },
     Expr::Array(ArrayLit { elems, .. }) => elems.iter().all(|elem| match elem {
       Some(ExprOrSpread { spread: None, expr }) => carries_its_own_value(expr, inner),
       // A hole is `undefined` and a spread needs the scope; both stay out.
       _ => false,
     }),
+    // A key and a value written out, which is a value the engine can be handed
+    // whole. `__proto__` is the one key that is not: written as a plain
+    // property it sets the prototype rather than a member, so the receiver the
+    // engine sees is not the object the source appears to describe. It is left
+    // in because the reference implementation folds it identically and every
+    // route off the prototype is refused above — not because the walk models
+    // it.
     Expr::Object(ObjectLit { props, .. }) => props.iter().all(|prop| match prop {
       PropOrSpread::Prop(prop) => match prop.as_ref() {
         Prop::KeyValue(KeyValueProp { key, value }) => {
@@ -266,7 +340,11 @@ fn is_foldable_call(call: &CallExpr, guard: Guard) -> bool {
     return false;
   }
 
-  if LOCALE_SENSITIVE_METHODS.contains(&&*method.sym) {
+  if lists(&ESCAPING_PROPERTIES, &method.sym) {
+    return false;
+  }
+
+  if lists(&LOCALE_SENSITIVE_METHODS, &method.sym) {
     return false;
   }
 
@@ -274,7 +352,7 @@ fn is_foldable_call(call: &CallExpr, guard: Guard) -> bool {
     return false;
   }
 
-  if !amplification_is_bounded(&method.sym, obj, &call.args) {
+  if !amplification_is_bounded(&method.sym, obj, &call.args, guard.scope) {
     return false;
   }
 
@@ -305,9 +383,24 @@ fn receiver_is_a_written_number(receiver: &Expr) -> bool {
 /// multiply two allowed lengths into one that is not. With both in place the
 /// most a fold can build is one bounded string per amplifying call written, so
 /// the source file bounds the total.
-fn amplification_is_bounded(method: &Atom, receiver: &Expr, args: &[ExprOrSpread]) -> bool {
-  if !LENGTH_AMPLIFYING_METHODS.contains(&&**method) {
+fn amplification_is_bounded(
+  method: &Atom,
+  receiver: &Expr,
+  args: &[ExprOrSpread],
+  scope: Scope,
+) -> bool {
+  if !lists(&LENGTH_AMPLIFYING_METHODS, method) {
     return true;
+  }
+
+  // A written bound bounds one evaluation. A callback body is evaluated once
+  // per element of a receiver this guard never measured, so the same bound is
+  // multiplied by a count the source never states: `"x".repeat(999999)
+  // .split("").map(() => "y".repeat(999999))` is two calls, each inside the
+  // bound, building a terabyte between them. The count cannot be read here, so
+  // an amplifying call inside a callback is refused whatever its argument says.
+  if matches!(scope, Scope::Params(_)) {
+    return false;
   }
 
   if matches!(receiver, Expr::Call(_)) {
@@ -364,6 +457,22 @@ fn is_closed_arrow(arrow: &ArrowExpr, guard: Guard) -> bool {
 /// Converts an engine value back to an AST literal, or answers `None` when it
 /// has no representation the evaluator carries.
 fn to_expr(value: &JsValue, engine: &mut Context) -> Option<Expr> {
+  to_expr_within(value, engine, MAX_ENGINE_NESTING)
+}
+
+/// The conversion, with a nesting bound of its own.
+///
+/// [`MAX_ENGINE_NESTING`] bounds the expression handed to the engine and
+/// [`MAX_FOLDED_ARRAY_LENGTH`] bounds how wide an array comes back, but neither
+/// bounds how *deep* the answer is: `[0, 1, 2, …].reduce((a, b) => [a, b])` is
+/// two elements wide at every level and one level deeper per element, so the
+/// width check never fires and this recursion runs off the stack. That is an
+/// abort rather than an unwind, which the `catch_unwind` at the NAPI boundary
+/// cannot turn back into a diagnostic — the one failure this module must not
+/// have. Same ceiling as the input side, for the same reason.
+fn to_expr_within(value: &JsValue, engine: &mut Context, levels_left: usize) -> Option<Expr> {
+  let levels_left = levels_left.checked_sub(1)?;
+
   // Read through the accessors rather than matching variants: the engine's
   // value is nan-boxed by default and an enum only under a feature, and both
   // answer these.
@@ -380,6 +489,14 @@ fn to_expr(value: &JsValue, engine: &mut Context) -> Option<Expr> {
   }
 
   if let Some(string) = value.as_string() {
+    // The bound on an amplifying argument bounds what one written call may be
+    // asked to build; this bounds what actually came back, whatever produced
+    // it. The array arm below has had such a bound from the start, and a string
+    // is the other shape a fold can return at size.
+    if string.len() as f64 > MAX_AMPLIFIED_LENGTH {
+      return None;
+    }
+
     // The engine's strings are UTF-16 and `Lit::Str`'s atom is UTF-8, so an
     // unpaired surrogate cannot survive this step. Substituting the replacement
     // character keeps the declaration text identical to what the reference
@@ -402,7 +519,7 @@ fn to_expr(value: &JsValue, engine: &mut Context) -> Option<Expr> {
 
         elems.push(Some(ExprOrSpread {
           spread: None,
-          expr: Box::new(to_expr(&element, engine)?),
+          expr: Box::new(to_expr_within(&element, engine, levels_left)?),
         }));
       }
 
@@ -417,10 +534,25 @@ fn to_expr(value: &JsValue, engine: &mut Context) -> Option<Expr> {
   }
 }
 
-fn print_expr(expr: &Expr) -> String {
+/// The call as the minified source the engine is handed.
+///
+/// The module is assembled here rather than by `create_module`, which takes
+/// `&Expr` and clones it — so going through it means cloning the subtree once
+/// to build the `Expr` and once more inside. The printer needs an owned tree
+/// either way, because it drops the spans in place before emitting.
+fn print_call(call: &CallExpr) -> String {
+  let module = Module {
+    span: DUMMY_SP,
+    body: vec![ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+      span: DUMMY_SP,
+      expr: Box::new(Expr::Call(call.clone())),
+    }))],
+    shebang: None,
+  };
+
   print_module(
     &CodeFrame::new(),
-    create_module(expr),
+    module,
     Some(
       Config::default()
         .with_minify(true)

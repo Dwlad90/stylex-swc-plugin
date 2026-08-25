@@ -323,3 +323,134 @@ fn the_object_prototype_methods_fold() {
   assert_folds_to_string("({ \"a-b\": 1, 2: 3 }).toString()", "[object Object]");
   assert_deopts("({ a: 1 }).valueOf()");
 }
+
+// ==================== the boundaries, at their own value ====================
+
+/// `Function` is two named property reads away from any literal, and a body
+/// reached that way is arbitrary code running inside the compiler: it answers a
+/// different number on every build and it can assign to a prototype the next
+/// fold will read. The reference implementation folds all of this; matching it
+/// would mean a class name that is not a function of the source.
+#[test]
+fn a_property_that_reaches_the_function_constructor_refuses() {
+  assert_deopts("\"\".constructor.constructor(\"return 1\").call()");
+  assert_deopts("[1].constructor.constructor(\"return Date.now()\").call()");
+  assert_deopts("\"a\".trim.call(\"  b  \")");
+  assert_deopts("\"a\".trim.apply(\"  b  \")");
+  assert_deopts("[1].map(\"\".trim.bind(\"  b  \")).join(\"\")");
+}
+
+/// The engine reuses one context per thread, so a fold that writes to a
+/// prototype would be read by every later fold in the build — including one in
+/// another file. The guard is what makes the reuse safe, so the property is
+/// asserted through the guard rather than by trusting it.
+#[test]
+fn a_fold_cannot_write_to_a_prototype_the_next_fold_reads() {
+  assert_folds_to_string("\"  x  \".trim()", "x");
+  assert_deopts(
+    "\"\".constructor.constructor(\
+     \"String.prototype.trim = function () { return 'poisoned'; }; return 1\").call()",
+  );
+  assert_folds_to_string("\"  x  \".trim()", "x");
+}
+
+/// An amplifying call is bounded by an argument written into the source, which
+/// bounds one evaluation. A callback runs once per element, so the same written
+/// bound is multiplied by a length the guard never measured.
+#[test]
+fn an_amplifying_call_inside_a_callback_refuses_however_small_its_argument() {
+  assert_deopts("\"x\".repeat(4).split(\"\").map(c => c.repeat(4)).join(\"\")");
+  assert_deopts("[\"1\", \"2\"].map(x => x.padStart(2, \"0\")).join(\"\")");
+  assert_deopts("[\"1\"].map(x => x.padEnd(2, \"0\")).join(\"\")");
+
+  // The same call outside a callback is still bounded by its argument alone.
+  assert_folds_to_string("\"1\".padStart(2, \"0\")", "01");
+}
+
+/// The amplification bound at its own value. Every other case is orders of
+/// magnitude away from it, so the comparison could be the wrong one and they
+/// would all still answer the same way.
+#[test]
+fn the_amplified_length_bound_admits_its_own_value_and_refuses_one_past_it() {
+  assert_folds_to_number("\"x\".repeat(1000000).length", 1_000_000.0);
+  assert_deopts("\"x\".repeat(1000001)");
+  assert_deopts("\"x\".padStart(1000001)");
+}
+
+/// The bound on the input says nothing about the depth of the answer: two
+/// elements per level is never wide enough to trip the width bound, and each
+/// element is one level deeper. Overflowing there aborts rather than unwinds,
+/// which is the one failure a fold allowed to decline must not have.
+#[test]
+fn a_result_nested_deeper_than_the_bound_refuses_rather_than_overflowing_a_stack() {
+  let deep = format!(
+    "[{}].reduce((a, b) => [a, b]).length",
+    (0..2000)
+      .map(|index| index.to_string())
+      .collect::<Vec<_>>()
+      .join(",")
+  );
+
+  assert_deopts(&deep);
+
+  // Shallow enough to represent still folds, so the refusal is the depth.
+  assert_folds_to_number("[0, 1, 2].reduce((a, b) => [a, b]).length", 2.0);
+}
+
+/// A conditional carries its own value when all three of its parts do, which is
+/// the one nesting shape the walk accepts that no other case here reaches.
+#[test]
+fn a_receiver_written_as_a_conditional_folds_and_one_that_needs_the_scope_refuses() {
+  assert_folds_to_string("(1 > 0 ? \"ab\" : \"c\").trim()", "ab");
+  assert_deopts("(runtimeFlag ? \"a\" : \"b\").trim()");
+  assert_deopts("(1 > 0 ? runtimeValue : \"b\").trim()");
+}
+
+/// An object receiver is a key and a value written out. A shorthand reads the
+/// scope, and a method or an accessor is a function body the guard does not
+/// model, so all three are refused by their shape rather than by what they hold.
+#[test]
+fn an_object_receiver_written_as_anything_but_a_key_and_a_value_refuses() {
+  assert_deopts("({ shorthand }).hasOwnProperty(\"shorthand\")");
+  assert_deopts("({ method() { return 1; } }).hasOwnProperty(\"method\")");
+  assert_deopts("({ get a() { return 1; } }).hasOwnProperty(\"a\")");
+}
+
+/// The two mutating names that are neither a `push` nor a `sort`: they mutate
+/// in place and answer the receiver, so a chain hides them as completely.
+#[test]
+fn the_remaining_mutating_array_methods_refuse_too() {
+  assert_deopts("[\"a\", \"b\"].fill(\"c\").join(\"\")");
+  assert_deopts("[\"a\", \"b\"].copyWithin(0).join(\"\")");
+}
+
+/// The array a fold hands back, asserted as the array. Every other array case
+/// here reads a `length` or a `join` that the engine answered before the
+/// conversion ran, so none of them would notice elements arriving in the wrong
+/// order or one going missing on the way out.
+#[test]
+fn a_fold_whose_result_is_an_array_carries_every_element_in_order() {
+  assert_folds_to_strings("\"a,b\".split(\",\")", &["a", "b"]);
+  assert_folds_to_strings(
+    "[\"1px\", \"solid\"].concat([\"red\"])",
+    &["1px", "solid", "red"],
+  );
+  assert_folds_to_strings("[\"a\", \"b\", \"c\"].slice(1)", &["b", "c"]);
+}
+
+/// `null` is a value the evaluator carries, and the only one of JavaScript's
+/// empty answers with a literal to carry it in: `undefined` next door has none
+/// and refuses. Asserted apart from the rest because the two leave the
+/// conversion through different arms.
+#[test]
+fn a_fold_whose_result_is_null_carries_null_and_undefined_still_refuses() {
+  assert_folds_to_null("[null].at(0)");
+  assert_deopts("[undefined].at(0)");
+}
+
+/// A callee that is not an expression at all — `import` is the one an author
+/// writes — never reaches the member check, so its refusal is its own arm.
+#[test]
+fn a_call_whose_callee_is_not_an_expression_refuses() {
+  assert_deopts("import(\"./a\").then(x => x)");
+}

@@ -92,27 +92,56 @@ twenty-eight rungs, then a heap abort. It has no give-up of its own to copy: its
 a fatal abort no `catch` sees and the string-length error is raised outside the
 one that would have caught it.
 
-So `MAX_DISTRIBUTION_DEPTH = 18` in `src/at_queries/media_query.rs` is this
+So `MAX_DISTRIBUTION_NODES = 2^18` in `src/at_queries/media_query.rs` is this
 compiler's own number. Past it the merge hands the author's rules back unmerged
-— the inner recovery, not the invalid-media-query-syntax refusal. Eighteen is
-chosen against output size and not against stack depth, because depth is not
-what runs out: a bound generous enough for twenty-six rungs would permit a 63 MB
-single query. Do not delete it as arbitrary — the curve it was chosen from is
-below.
+— the inner recovery, not the invalid-media-query-syntax refusal.
 
-| Rungs | Wall clock | First rung's query |
-| ----- | ---------- | ------------------ |
-| 14    | 31 ms      | 15 371 chars       |
-| 16    | 131 ms     | 61 451 chars       |
-| 18    | 599 ms     | 245 771 chars      |
-| 20    | 2 634 ms   | 983 051 chars      |
-| 21    | 2 664 ms   | 1 078 chars        |
-| 40    | 2 673 ms   | 2 135 chars        |
-| 100   | 2 690 ms   | 5 613 chars        |
+It is stated in branch **nodes** rather than in levels, and that correction
+matters more than the value. A depth bound models the cost as `2^d` characters,
+which is what the table below was measured against — but every one of those
+`2^d` branches carries a copy of the whole `and` list, and every surviving
+branch prints it, so the real figure is `2^d · rules.len()`. The second factor is
+not bounded by the first: `negation_depth` charges nothing for a clause it cannot
+split, so a negated non-range condition — `not (orientation: portrait)`,
+`not (min-resolution: 200dpi)` — buys width for free.
 
-Apple M1 Max, release build, one ladder per process. Twenty rungs is the last
-length that expands; the ladder that follows it collapses from a megabyte to a
-kilobyte, which is the authored query with one printed negation per later rung.
+That hole was reachable, and not by anything exotic, because the transform builds
+the wide list itself: each key is rewritten against a negation of every later
+sibling, so one `and` list is as wide as the conditional value map is long.
+Measured on one property of one `stylex.create`, every row _under_ the old depth
+bound:
+
+| Non-range keys | Rungs | Depth | Input  | Wall clock | Emitted CSS |
+| -------------- | ----- | ----- | ------ | ---------- | ----------- |
+| 0              | 14    | 12    | 917 B  | 60 ms      | 62 KB       |
+| 10             | 14    | 12    | 1.3 KB | 2 696 ms   | 98.9 MB     |
+| 20             | 14    | 12    | 1.7 KB | 6 732 ms   | 255.0 MB    |
+| 40             | 14    | 12    | 2.4 KB | 20 244 ms  | 739.3 MB    |
+| 20             | 16    | 14    | 1.8 KB | 30 478 ms  | 1 098.6 MB  |
+
+Under the node budget those became 15.3 MB in 477 ms, 15.3 MB in 479 ms, 15.3 MB
+in 480 ms, and 150 KB in 122 ms. Do not delete the bound as arbitrary — the
+curve it was chosen from is below, and the pure-ladder shape it was originally
+read off is the _narrow_ edge of a two-factor cost.
+
+Pure ladder, before (depth bound) and after (node budget). The last column is
+the longest single query emitted, over all rungs rather than the first one:
+
+| Rungs | Before, wall | Before, longest | After, wall | After, longest |
+| ----- | ------------ | --------------- | ----------- | -------------- |
+| 14    | 31 ms        | 15 371 chars    | 92 ms       | 30 786 chars   |
+| 15    | —            | —               | 660 ms      | 61 506 chars   |
+| 16    | 131 ms       | 61 451 chars    | 138 ms      | 61 506 chars   |
+| 18    | 599 ms       | 245 771 chars   | 159 ms      | 61 506 chars   |
+| 20    | 2 634 ms     | 983 051 chars   | 129 ms      | 61 504 chars   |
+| 100   | 2 690 ms     | 5 613 chars     | —           | —              |
+
+Apple M1 Max, release build, one ladder per process. Under the depth bound twenty
+rungs was the last length that expanded, and the ladder after it collapsed from a
+megabyte to a kilobyte. Under the node budget fifteen is the last length that
+expands in full, and there is no collapse after it — the cost plateaus instead,
+because each key's own `and` list is capped on its own rather than the whole
+ladder being handed back.
 
 ## Considered options
 
@@ -137,12 +166,29 @@ observable behaviour, which is the class of thing this ADR exists to eliminate.
 measured. Depth is the logarithm of the real quantity; a bound set where a stack
 would notice is a bound set tens of megabytes too late.
 
+**Bound the recursion by depth alone, tightly.** Also rejected, and this is the
+option the first version of this record actually took. Depth is the logarithm of
+only _one_ factor of the cost, and the other one — the length of the list every
+branch carries — is free of it. There is no depth that both keeps the twenty-rung
+ladder and refuses the 255 MB shape, because that shape sits at depth 12. So the
+budget had to change units, not value.
+
+**Budget the whole declaration rather than one `and` list.** Not taken, and still
+open. It would cap what a comma query multiplies, which the node budget does not.
+Left out because it is a question about resource limits rather than about parity,
+and because a per-list cap was enough to close the reachable blow-up.
+
 ## Consequences
 
-**A ladder past twenty rungs compiles differently from upstream, on purpose.**
+**A ladder past fifteen rungs compiles differently from upstream, on purpose.**
 This is the one place byte parity is knowingly abandoned, and it is above any
 ladder a person writes. The parity harness carries the reported input at six
-rungs, not at twenty-one, so it measures agreement rather than this boundary.
+rungs, not at sixteen, so it measures agreement rather than this boundary.
+
+The boundary used to sit at twenty rungs, and moving it in was the price of
+seeing the width factor. Nothing pinned moved with it: the ladder expansion test
+still measures 15 393 characters and every canonicalization fixture is
+byte-identical, because those shapes are far inside either bound.
 
 **The bound caps one `and` list, not one compile.** The boundary is crossed once
 per `and` node, so lengthening a ladder stops costing more — a hundred-rung one
@@ -167,11 +213,46 @@ parenthesis written as an escape or sitting inside a string, where upstream's
 own counter would not — but upstream never runs that counter on this path, so
 what is matched is what its parser actually accepts.
 
+**Four divergences were found by re-reading upstream, and all four are fixed.**
+They were pre-existing rather than introduced by the canonicalization work, and
+each is the kind this record exists to eliminate. Every expectation below was
+obtained by executing 0.19.0, not by reading it.
+
+- **Each range bound takes its key from its own operator.** `doubleInequalityRuleParser`
+  reads `lowerKey = op === '>' ? max- : min-` and `upperKey = op2 === '>' ? min- : max-`,
+  so a mixed-direction range puts two bounds on one side and the merge collapses
+  them. Deriving a fixed `min`/`max` pair and only choosing which value went
+  where could not express that: `(500px > width < 1000px)` is
+  `(max-width: 499.99px)` upstream and came out here as `not all` — a satisfiable
+  query compiled to a rule that can never match.
+- **`not only <type>` is accepted.** `mediaKeywordParser` takes both modifiers as
+  independently optional and its serializer reads `not` first, so
+  `@media not only screen` prints `@media not screen`. Refusing it failed a build
+  the official compiler completes.
+- **An overflowed bound is kept.** The merge asks `!== -Infinity`, not
+  `isFinite`. Dropping the bound was not a spelling difference: upstream's
+  `(min-width: Infinitypx) and (min-height: 10px)` is invalid CSS a browser
+  discards whole, where the dropped form left a rule that _applies_.
+- **A fraction is spelled the way JavaScript spells a number**, so `1e30/1` is
+  `1e+30 / 1` and `-0/1` is `0 / 1`.
+
+The first two are the serious ones, because they are the direction this record's
+argument does not cover. Matching upstream's _worse output_ protects a hash;
+diverging from its _accepted input_ either changes which viewports a declaration
+matches, or fails a build that upstream completes.
+
 **Two grammar differences are kept on purpose.** Parentheses nested around a
 single condition — `@media ((min-width: 1px))` — and one bare `not` straight
 after a media type's `and` — `@media screen and not (orientation: portrait)` —
 are accepted here and refused upstream. The language defines both, and
 upstream's `oneOf` chain simply has an alternative for neither.
+
+Two more acceptances are neither valid CSS nor upstream-accepted, and are
+recorded rather than defended: `@media (screen)` and `@media (not screen)` parse
+here and are `No parser matched` upstream, because a bare media type is not a
+`<media-in-parens>`. Nobody can act on the difference — upstream refuses to build
+the input — so nothing is at stake, but the enumeration is only useful if it is
+complete.
 
 Refusing valid input to match buys nothing: nobody gets a divergent class name
 from a query the other compiler will not compile at all. That is the boundary of
@@ -187,7 +268,7 @@ in forty seconds, where this compiler answers every depth in about a
 millisecond. Matching its answers must not mean matching that.
 
 **The two bounds deliberately pick opposite failure modes.**
-`MAX_DISTRIBUTION_DEPTH` gives up and hands the author's rules back — the inner
+`MAX_DISTRIBUTION_NODES` gives up and hands the author's rules back — the inner
 recovery — because a query too deep to _merge_ is still a query, and emitting it
 unmerged is what the official compiler does. `MAX_QUERY_NESTING_DEPTH` refuses
 with the invalid-media-query-syntax error — the outer refusal — because a query
@@ -196,13 +277,30 @@ back to. The pass's two failure modes are kept visibly apart precisely so this
 choice reads as a choice. Note that the second refuses input that is valid CSS,
 which is the price of not aborting the process on it.
 
-**A query may nest sixty-four levels of parentheses.** Walking each level once
-is linear in time and still recursive in stack, and five thousand levels aborted
-the process — a stack overflow is not unwindable, so nothing downstream could
-have turned it into a diagnostic. The depth is counted before the parse, by the
-same walk over the raw text that checks the balance, because the parse is what
-would abort. Sixty-four is `stylex_utils::nesting::MAX_NESTING_DEPTH`, shared with the value
-guard in `stylex-css`, which faces the identical exposure. The two scans differ
--- one steps over comments and `url()` bodies, this one reports whether the
-parentheses balance -- but the budget is one decision about the stack, so it is
-stated once.
+**A query may nest sixty-four levels, and two guards enforce that.** Walking
+each level once is linear in time and still recursive in stack, and five thousand
+levels aborted the process — a stack overflow is not unwindable, so nothing
+downstream could have turned it into a diagnostic. Sixty-four is
+`stylex_utils::nesting::MAX_NESTING_DEPTH`, shared with the value guard in
+`stylex-css`, which faces the identical exposure; the two scans differ -- one
+steps over comments and `url()` bodies -- but the budget is one decision about
+the stack, so it is stated once.
+
+Two guards rather than one, because there are two recursions and neither guard
+can see the other's. **Tokenizing** descends once per nested block while it
+builds the token list, so a walk over the raw text has to refuse deep
+parentheses _before_ tokenizing — measured directly: five thousand parentheses
+abort inside `TokenList::new`, before a single token exists, where no counter
+inside the parser is reached in time. **Parsing** then descends again, and for
+frames no parenthesis pays for: the operand of a bare `not` is a whole rule, so
+`not not not …` recurses once per keyword while a scan for parentheses sees
+depth one. That gap was live — twenty thousand `not` keywords in one `@media`
+key segfaulted the process with no output at all — and is closed by
+`TokenList::with_depth`, which charges a frame where a frame is entered and so
+needs to know nothing about spelling. A text scan would have had to
+over-approximate every escape, since `n\6ft` decodes to an ident spelling `not`
+and recurses identically.
+
+A wide query is not a deep one, and the frame counter keeps that distinction
+where a keyword count could not: `(not (a)) and (not (b)) and …` is parsed by a
+loop, so each negation releases its frame before the next is read.

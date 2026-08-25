@@ -145,11 +145,13 @@ the reference implementation. It exists to keep the pass's two failure modes
 apart: the _inner recovery_ gives up merging and emits the author's rules as
 written, while the _outer refusal_ rejects the declaration with the
 invalid-media-query-syntax error. The function's own comment carries why that
-distinction is load-bearing. The inner recovery is a depth bound, measured
-before the distribution starts: past 18 levels of splitting the rules are handed
-straight back, because each level doubles the query text. That number was chosen
-against output size and is not arbitrary — its provenance is in
-[docs/adr/0001](./docs/adr/0001-the-official-compilers-output-wins.md).
+distinction is load-bearing. The inner recovery is a node budget, measured
+before the distribution starts: past `2^18` branch nodes the rules are handed
+straight back. Nodes rather than levels, because each level doubles the branch
+count while each branch carries the whole list, and the list's length is free of
+the depth — so a depth bound could not see a query that is wide and shallow.
+That number was chosen against output size and is not arbitrary — its provenance
+is in [docs/adr/0001](./docs/adr/0001-the-official-compilers-output-wins.md).
 _Avoid_: merge wrapper, simplify wrapper, merge guard
 
 **Last-media-query-wins transform**:

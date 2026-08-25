@@ -898,29 +898,31 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
       let left = &and_rules.rules[0];
       let right = &and_rules.rules[1];
 
-      // Create left branch: all rules except current, plus (not left)
-      let mut left_branch_rules: Vec<MediaQueryRule> = rules
-        .iter()
-        .filter(|r| !std::ptr::eq(*r, rule))
-        .cloned()
-        .collect();
-      left_branch_rules.push(MediaQueryRule::Not(MediaNotRule::new(left.clone())));
+      // Each branch is every rule except the current one, plus one negated
+      // operand -- so it ends up exactly as long as `rules`, and is built at
+      // that capacity rather than grown into. This runs once per node of a
+      // 2^d expansion, so the reallocations it saves are not incidental.
+      let branch_without_current = |negated: &MediaQueryRule| {
+        let mut branch = Vec::with_capacity(rules.len());
+        branch.extend(rules.iter().filter(|r| !std::ptr::eq(*r, rule)).cloned());
+        branch.push(MediaQueryRule::Not(MediaNotRule::new(negated.clone())));
+        branch
+      };
 
-      // Create right branch: all rules except current, plus (not right)
-      let mut right_branch_rules: Vec<MediaQueryRule> = rules
-        .iter()
-        .filter(|r| !std::ptr::eq(*r, rule))
-        .cloned()
-        .collect();
-      right_branch_rules.push(MediaQueryRule::Not(MediaNotRule::new(right.clone())));
+      let left_branch_rules = branch_without_current(left);
+      let right_branch_rules = branch_without_current(right);
 
       // Recursively process each branch
       let left_branch = merge_intervals_for_and(left_branch_rules);
       let right_branch = merge_intervals_for_and(right_branch_rules);
 
-      // Contradictory branches are dropped; a branch of several rules is
-      // re-wrapped in `and`. An `or` left empty by this is kept as-is and
-      // collapsed to `not all` by serialization.
+      // An *empty* branch is dropped; a contradictory one is not. A
+      // contradiction recurses to the bottom and comes back as a one-element
+      // result holding an empty `or`, which survives this filter and is kept
+      // as-is, then collapsed to `not all` by serialization -- along with the
+      // nesting built around it. That retention is the contract; see
+      // [ADR 0001](../../docs/adr/0001-the-official-compilers-output-wins.md).
+      // A branch of several rules is re-wrapped in `and`.
       let or_rules: Vec<MediaQueryRule> = [left_branch, right_branch]
         .into_iter()
         .filter(|branch| !branch.is_empty())

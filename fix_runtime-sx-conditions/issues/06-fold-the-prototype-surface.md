@@ -63,3 +63,22 @@ Agreed boundaries, if this is built by hand rather than via 05:
   surrogate faithfully would mean the evaluator no longer carries values as SWC
   AST nodes, which is a rewrite of its core value type and needs its own spec.
   Pin the divergence in the corpus.
+
+## 05's answer, and what it means here
+
+05 is resolved: the engine matches the table (69/70 against Node, byte-identical
+class names against the reference implementation across 80 rules), folds chains
+for free, and costs nothing on the release gate — but it grows the published
+artifact by 5.6–6.1 MiB and, today, **cannot be resolved into this workspace at
+all**, because `boa_engine` requires `icu_normalizer ~2.0.0` where `icu_collator`
+needs `~2.3.0`.
+
+So this ticket is not unblocked in practice. Either wait for boa to relax that
+requirement upstream, or build the boundaries above by hand. Two of 05's findings
+apply whichever way it is built:
+
+- Locale-sensitive methods must stay excluded — the exclusion list above was
+  right. `normalize` could move into scope only with an ICU dependency of its own.
+- `"abc".charCodeAt(10)` folding to `NaN` emits `z-index:NaN`, and that is what
+  the reference implementation emits too. Parity and a useful refusal disagree
+  here; this ticket has to choose one and say why.

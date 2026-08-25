@@ -8,6 +8,11 @@
  * for each of its betters -- so the shape that prices it is many conditions on
  * one property, repeated across properties.
  *
+ * Ranking is only half the cost. Where the negated conditions are themselves
+ * bounded ranges, canonicalization distributes them by DeMorgan and the branch
+ * count doubles per clause. `breakpointLadder` below is the shape that pays
+ * that, and it is here because the rest of this file does not reach it.
+ *
  * `media-queries.js` covers the canonicalizer's branches: it is broad and
  * shallow, one or two conditions per shape. This file is the opposite, and the
  * two are not interchangeable. The condition shapes here are still mixed on
@@ -77,6 +82,31 @@ export const styles = stylex.create({
       '@media (forced-colors: active)': 'CanvasText',
       '@media (min-width: 800px)': '#111',
       '@media (min-width: 1400px)': '#222',
+    },
+  },
+  // A ladder of mutually exclusive breakpoints, ending in a `max-width`-only
+  // rung. This is the shape that prices the DeMorgan distribution rather than
+  // the ranking above it: each rung becomes a `not ((min-width) and
+  // (max-width))` clause in its predecessors' keys, and every such clause
+  // splits the rule list in two. Eight rungs is a distribution depth of six,
+  // so 64 branches -- deliberately far below `MAX_DISTRIBUTION_DEPTH` (18),
+  // which would be 262 144 and several seconds.
+  //
+  // The rest of this file has depth 2 at most, so without this the fixture
+  // measured the ordering rewrite while leaving the expansion it restored --
+  // the expensive half -- unpriced. See ADR 0001 in `stylex-css-parser` for
+  // the cost curve.
+  breakpointLadder: {
+    gridColumn: {
+      default: '1 / 2',
+      '@media (min-width: 320px) and (max-width: 479px)': '1 / 3',
+      '@media (min-width: 480px) and (max-width: 639px)': '1 / 4',
+      '@media (min-width: 640px) and (max-width: 767px)': '1 / 5',
+      '@media (min-width: 768px) and (max-width: 1023px)': '1 / 6',
+      '@media (min-width: 1024px) and (max-width: 1279px)': '1 / 7',
+      '@media (min-width: 1280px) and (max-width: 1535px)': '1 / 8',
+      '@media (min-width: 1536px) and (max-width: 1919px)': '1 / 9',
+      '@media (max-width: 2560px)': '1 / -1',
     },
   },
   motion: {

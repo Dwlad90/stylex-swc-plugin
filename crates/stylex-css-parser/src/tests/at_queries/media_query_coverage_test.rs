@@ -2807,3 +2807,69 @@ fn a_negated_media_type_after_an_and_is_not_a_bare_negation() {
   let query = parsed("@media (min-width: 1px) and not screen");
   assert_eq!(query.to_string(), "@media (min-width: 1px) and not screen");
 }
+
+/// An overflowed bound is kept rather than dropped, as the reference
+/// implementation keeps it.
+///
+/// `1e400` exceeds double precision and becomes infinity, and the merge asks
+/// `!= -Infinity` / `!= Infinity` where asking `is_finite` would drop the pair.
+/// The distinction only shows when the overflowed bound is *not* the whole
+/// result: alone it is handed back unmerged either way, but beside a second
+/// dimension, dropping it left a rule that applies at every viewport ten pixels
+/// tall or more, where upstream's whole at-rule is invalid CSS a browser
+/// discards. All three expectations are quoted from a run of 0.19.0.
+#[test]
+fn an_overflowed_bound_is_kept_beside_another_dimension() {
+  assert_eq!(
+    parsed("@media (min-width: 1e400px) and (min-height: 10px)").to_string(),
+    "@media (min-width: Infinitypx) and (min-height: 10px)"
+  );
+
+  assert_eq!(
+    parsed("@media (max-width: -1e400px) and (min-height: 10px)").to_string(),
+    "@media (max-width: -Infinitypx) and (min-height: 10px)"
+  );
+
+  // A bound that contradicts a finite one still collapses, because the
+  // intersection is empty before either bound is printed.
+  assert_eq!(
+    parsed("@media (min-width: 1e400px) and (max-width: 500px)").to_string(),
+    "@media not all"
+  );
+}
+
+/// A fraction is spelled the way JavaScript spells a number.
+///
+/// The reference implementation interpolates a `number` into the query text, so
+/// its exponent form takes over outside `[1e-6, 1e21)` and `-0` prints as `0`.
+/// Rust's `{}` agrees on `16 / 9`, which is why nothing caught the arm going
+/// through it. Every expectation is quoted from a run of 0.19.0.
+#[test]
+fn a_fraction_is_spelled_the_way_javascript_spells_a_number() {
+  assert_eq!(
+    parsed("@media (aspect-ratio: 1e30/1)").to_string(),
+    "@media (aspect-ratio: 1e+30 / 1)"
+  );
+
+  assert_eq!(
+    parsed("@media (aspect-ratio: 1e21/9)").to_string(),
+    "@media (aspect-ratio: 1e+21 / 9)"
+  );
+
+  assert_eq!(
+    parsed("@media (aspect-ratio: 0.0000001/1)").to_string(),
+    "@media (aspect-ratio: 1e-7 / 1)"
+  );
+
+  assert_eq!(
+    parsed("@media (aspect-ratio: -0/1)").to_string(),
+    "@media (aspect-ratio: 0 / 1)"
+  );
+
+  // The case both spellings already agreed on, kept so a regression that
+  // reverts the arm cannot pass by only breaking the exotic values.
+  assert_eq!(
+    parsed("@media (aspect-ratio: 16/9)").to_string(),
+    "@media (aspect-ratio: 16 / 9)"
+  );
+}

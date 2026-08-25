@@ -378,7 +378,19 @@ impl MediaQuery {
       },
       MediaQueryRule::Pair(pair) => match &pair.value {
         MediaRuleValue::Fraction(frac) => {
-          format!("({}: {} / {})", pair.key, frac.numerator, frac.denominator)
+          // Through the shared formatter, like every other numeric arm here.
+          // The reference implementation interpolates a JavaScript `number`, so
+          // the two spellings part company outside `[1e-6, 1e21)` and at `-0`:
+          // `1e30/1` prints `1e+30 / 1` there and would print thirty-one digits
+          // under Rust's `{}`, and `-0/1` prints `0 / 1` rather than `-0 / 1`.
+          // `Fraction`'s own `Display` already does this, but nothing reaches
+          // it -- `to_string` routes through here.
+          format!(
+            "({}: {} / {})",
+            pair.key,
+            to_js_string(frac.numerator),
+            to_js_string(frac.denominator)
+          )
         },
         MediaRuleValue::Length(len) => {
           format!("({}: {})", pair.key, len)
@@ -996,25 +1008,24 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
       return Vec::new();
     };
 
-    // `is_finite` where the reference compiler asks `!== -Infinity`, and the
-    // difference is one input wide: at `(min-width: 1e400px)` the bound overflows
-    // to infinity, and upstream emits `(min-width: Infinitypx)` where this drops
-    // the bound. Left as it is -- `Infinitypx` is not a length any browser reads,
-    // so emitting it would be faithful to a spelling nobody can use.
-    //
-    // Pre-existing, and the double-width sweep *narrowed* it rather than opening
-    // it: under `f32` every bound above ~3.4e38 collapsed to infinity, so
-    // `(min-width: 1e39px)` was silently dropped, where it now emits `1e+39px`
-    // and matches. Recorded here so the residue reads as known rather than as an
-    // oversight.
-    if lower.is_finite() {
+    // `!= -Infinity` and `!= Infinity` rather than `is_finite`, which is what
+    // the reference compiler asks. An overflowed bound is kept, not dropped,
+    // and dropping it was not a spelling difference: at
+    // `(min-width: 1e400px) and (min-height: 10px)` upstream emits
+    // `(min-width: Infinitypx) and (min-height: 10px)`, which is invalid CSS a
+    // browser discards whole, where dropping the bound left
+    // `(min-height: 10px)` -- a rule that *applies*, at every viewport ten
+    // pixels tall or more. Emitting a spelling nobody can use is the faithful
+    // answer here, because the alternative is applying a declaration upstream
+    // never applies.
+    if lower != f64::NEG_INFINITY {
       result.push(MediaQueryRule::Pair(MediaRulePair::new(
         format!("min-{dim}"),
         MediaRuleValue::Length(Length::new(lower, state.unit.clone())),
       )));
     }
 
-    if upper.is_finite() {
+    if upper != f64::INFINITY {
       result.push(MediaQueryRule::Pair(MediaRulePair::new(
         format!("max-{dim}"),
         MediaRuleValue::Length(Length::new(upper, state.unit.clone())),

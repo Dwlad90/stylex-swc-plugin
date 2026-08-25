@@ -119,9 +119,9 @@ So the choice is between three things, and it is a person's to make:
 1. **Pin `icu_collator` to `=2.0.0`** and take the uncoverable arm back, plus
    three years of ICU collation fixes not applied. Cheapest to do, undoes a
    decision that was argued in writing.
-2. **Relax the bound upstream in boa** — it is one line, `~2.0.0` to
-   `>=2.0.0, <3`, and the fork proves it compiles. Costs a PR and a release
-   cycle, and leaves both decisions intact. This is the one to try first.
+2. **Relax the bound upstream in boa.** Measured, not assumed — see below. Two
+   lines, both decisions intact, `icu_collator` stays at 2.3.1. This is the one
+   to try first.
 3. **Depend on the fork.** Fastest, and the worst supply-chain position of the
    three for a package this many builds pull.
 
@@ -281,3 +281,48 @@ would be a precondition of shipping one.
 vehicle. `crates/stylex-rs-compiler/parity/spike05-parity.ts` compares one
 module against `@stylexjs/babel-plugin` rule by rule. Both are throwaway and
 this branch is not for merging.
+
+### 9. Option 2, measured
+
+Against a clone of `boa-dev/boa` at `v0.21.1`, patched into this workspace
+through `[patch.crates-io]`:
+
+```diff
+--- i/Cargo.toml
++++ w/Cargo.toml
+@@ -154,8 +154,8 @@
+-icu_properties = { version = "~2.0.0", default-features = true }
+-icu_normalizer = { version = "~2.0.0", default-features = false }
++icu_properties = { version = ">=2.0.0, <3", default-features = true }
++icu_normalizer = { version = ">=2.0.0, <3", default-features = false }
+```
+
+**Two lines, not one.** `icu_normalizer` alone is not enough: `boa_parser` also
+requires `icu_properties ~2.0.0` for its lexer, and `icu_collator 2.3.1` needs
+`~2.3.0`, so the second bound surfaces as the next resolution error. Relaxing
+both is the whole change.
+
+With that patch in place:
+
+- The workspace resolves with **`icu_collator` untouched at 2.3.1**, one version
+  of every ICU crate (`icu_normalizer 2.3.0`, `icu_properties 2.3.0`,
+  `icu_collections 2.3.0`), `new_root` intact, `unstable` intact, and
+  `idna_adapter` at its current 1.2.2. Option 1's cost disappears entirely.
+- `cargo test --workspace --all-features`: **5 073 passed**, and the only 7
+  failures are the same seven §6 lists — the spike hook's intended behaviour
+  change, identical under the fork and under the patch. So boa compiles and runs
+  correctly against ICU 2.3: `normalize('NFC')` and `normalize('NFKC')` answer as
+  Node does on that build, along with the rest of §4's corpus.
+- boa's own suite with the relaxed bound: `cargo test -p boa_engine -p boa_parser
+  -p boa_string --features annex-b` → **1 292 passed, 0 failed**.
+
+**The relaxation is permissive, not forcing**, which is the argument to make
+upstream: boa's own build still resolves `icu_normalizer` to 2.0.0, because its
+`intl` feature pins `icu_casemap`, `icu_collator` and `icu_calendar` at `~2.0`
+and those hold the family down. Nothing about boa's own builds or CI changes. A
+consumer that carries a newer ICU elsewhere in its graph — and does not enable
+`intl`, as this workspace does not — becomes able to depend on boa at all.
+
+Moving boa's whole `intl` stack forward is a larger change (17 bounds, and it
+lands on icu 2.1 rather than 2.3) and is not needed for this. The patch is saved
+alongside this spike's other artifacts.

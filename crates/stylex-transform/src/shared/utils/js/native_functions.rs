@@ -65,27 +65,23 @@ pub(crate) fn evaluate_join(
 ) -> Option<EvaluateResultValue> {
   let join_arg = funcs.first()?;
 
-  let join_arg = match convert_expr_to_str(join_arg.as_expr()?, state, functions) {
-    Some(s) => s,
-    None => stylex_panic!("The join() separator argument must be a string value."),
-  };
+  let join_arg = convert_expr_to_str(join_arg.as_expr()?, state, functions)?;
 
-  let result = args
-    .iter()
-    .map(|arg| {
-      let arg_expr = match arg.as_expr() {
-        Some(expr) => expr,
-        None => stylex_panic!("Array element must evaluate to a string for join()."),
-      };
-      match convert_expr_to_str(arg_expr, state, functions) {
-        Some(s) => s,
-        None => stylex_panic!("Array element must evaluate to a string for join()."),
-      }
-    })
-    .collect::<Vec<String>>()
-    .join(&join_arg);
+  let mut parts = Vec::with_capacity(args.len());
 
-  Some(EvaluateResultValue::Expr(create_string_expr(&result)))
+  for arg in args {
+    // A separator or an element that is not a string is input this fold cannot
+    // answer, not a broken compiler: a nested array reaches here whenever the
+    // evaluator's depth ceiling is raised past the point the engine fold stops
+    // accepting one. Answering `None` lets the caller raise the refusal it
+    // raises for every other shape it cannot fold, which is a diagnostic
+    // pointing at the declaration rather than a panic unwound to the caller.
+    parts.push(convert_expr_to_str(arg.as_expr()?, state, functions)?);
+  }
+
+  Some(EvaluateResultValue::Expr(create_string_expr(
+    &parts.join(&join_arg),
+  )))
 }
 
 pub(crate) fn evaluate_filter(

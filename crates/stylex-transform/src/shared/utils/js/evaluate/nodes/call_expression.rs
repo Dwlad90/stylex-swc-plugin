@@ -1087,7 +1087,16 @@ pub(in super::super) fn evaluate(
             CallbackType::Array(ArrayJS::Join) => {
               let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
 
-              return evaluate_join(&args, &context, traversal_state, &state.functions);
+              let Some(joined) = evaluate_join(&args, &context, traversal_state, &state.functions)
+              else {
+                deopt_unsupported!(
+                  path,
+                  state,
+                  "join() requires a string separator and elements that are strings."
+                );
+              };
+
+              return Some(joined);
             },
             CallbackType::Object(ObjectJS::Entries) => {
               let Some(EvaluateResultValue::Entries(entries)) = context.first() else {

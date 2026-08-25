@@ -454,3 +454,19 @@ fn a_fold_whose_result_is_null_carries_null_and_undefined_still_refuses() {
 fn a_call_whose_callee_is_not_an_expression_refuses() {
   assert_deopts("import(\"./a\").then(x => x)");
 }
+
+/// The level the guard stops accepting at, with the evaluator's own ceiling
+/// raised past it so the guard is what answers.
+///
+/// One past the bound the expression falls through to the older `join`, whose
+/// elements are arrays rather than strings. That has to refuse like any other
+/// shape it cannot fold: a project that raises `max_evaluation_depth` must get
+/// a diagnostic pointing at the declaration, not an unwound panic.
+#[test]
+fn nesting_one_past_the_bound_refuses_through_the_older_join_rather_than_panicking() {
+  let admitted = format!("{}[\"a\"]{}.join(\"\")", "[".repeat(30), "]".repeat(30));
+  let refused = format!("{}[\"a\"]{}.join(\"\")", "[".repeat(31), "]".repeat(31));
+
+  assert_folds_to_string_with_ceiling(&admitted, "a", 512);
+  assert_deopts_with_ceiling(&refused, 512);
+}

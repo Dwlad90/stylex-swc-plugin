@@ -147,6 +147,13 @@ pub(in super::super) fn evaluate(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
+  // Spike hook for issue 05: a self-contained method call goes to the engine
+  // first, so the measurement covers the whole prototype surface rather than
+  // the names below.
+  if let Some(folded) = super::super::boa_fold::try_fold(call) {
+    return Some(EvaluateResultValue::Expr(folded));
+  }
+
   let path = Expr::Call(call.clone());
   let path = &path;
   let mut context: Option<Vec<EvaluateResultValue>> = None;

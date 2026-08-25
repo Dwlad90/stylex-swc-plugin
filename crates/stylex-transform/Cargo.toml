@@ -15,6 +15,7 @@ doctest = false
 
 [dependencies]
 anyhow.workspace = true
+boa_engine.workspace = true
 ctor.workspace = true
 indexmap.workspace = true
 log.workspace = true

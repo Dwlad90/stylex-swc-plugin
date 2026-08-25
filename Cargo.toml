@@ -54,6 +54,9 @@ strip = "symbols"
 
 [workspace.dependencies]
 anyhow = "1.0.102"
+boa_engine = { package = "superui_boa_engine", version = "0.3.3", features = [
+  "annex-b",
+] }
 color-backtrace = { version = "0.7.2" }
 colored = { version = "3.1.1" }
 criterion = { version = "0.8", features = ["html_reports"] }

@@ -1,6 +1,7 @@
 use std::{borrow::Borrow, rc::Rc, sync::Arc};
 
 mod binding;
+mod boa_fold;
 mod cache;
 mod deopt;
 mod helpers;

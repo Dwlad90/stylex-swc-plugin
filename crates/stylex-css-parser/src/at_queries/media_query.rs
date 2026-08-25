@@ -1116,45 +1116,6 @@ fn adjust_dimension(value: &mut MediaRuleValue, end: BoundEnd, epsilon: f64) {
   }
 }
 
-/// Determine the (min_value, max_value) pair for a double-inequality expression
-/// `A op1 width op2 B`, based on operator types and strictness.
-///
-/// The final `else` branch (when both ops are inclusive but op1 is neither `<` nor `>`)
-/// is a defensive fallback; it is unreachable through the public parser because the
-/// double-inequality parser validates that op1 must be `<` or `>`.
-fn select_double_inequality_values(
-  op1: char,
-  eq1: bool,
-  op2: char,
-  eq2: bool,
-  lower: MediaRuleValue,
-  upper: MediaRuleValue,
-) -> (MediaRuleValue, MediaRuleValue) {
-  if !eq1 {
-    if op1 == '>' {
-      (upper, lower)
-    } else {
-      (lower, upper)
-    }
-  } else if !eq2 {
-    if op2 == '>' {
-      (upper, lower)
-    } else {
-      (lower, upper)
-    }
-  } else {
-    // Both operators are inclusive — determine by operator type
-    if op1 == '>' && eq1 {
-      (upper, lower)
-    } else if op1 == '<' && eq1 {
-      (lower, upper)
-    } else {
-      // Fallback: op1 is neither '<' nor '>' — unreachable via normal parsing
-      (lower, upper)
-    }
-  }
-}
-
 /// Basic media type parser: screen | print | all
 fn basic_media_type_parser() -> TokenParser<String> {
   tokens::ident()
@@ -1850,30 +1811,53 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
         });
       }
 
-      // Return an AND rule with min and max constraints
-      // For (A op1 width op2 B), we need to determine min and max constraints
-      let min_key = format!("min-{}", key);
-      let max_key = format!("max-{}", key);
+      // Each bound takes its key from its *own* operator, which is what the
+      // reference implementation's `doubleInequalityRuleParser` does:
+      //
+      //   lowerKey = op  === '>' ? `max-${key}` : `min-${key}`
+      //   upperKey = op2 === '>' ? `min-${key}` : `max-${key}`
+      //
+      // So a mixed-direction range puts both bounds on the *same* side, and the
+      // interval merge then collapses them to one. Deriving the pair as a fixed
+      // `min`/`max` and only choosing which value went where could not express
+      // that, and answered a different question: `(500px > width < 1000px)` is
+      // `(max-width: 499.99px)` upstream, and came out here as `not all` -- a
+      // satisfiable query turned into a rule that can never match.
+      //
+      // The epsilon follows the key rather than the operator, again as upstream
+      // does: its `adjustDimension` ignores the operator it is passed and
+      // shifts down for a `max-` bound and up for a `min-` one.
+      let end_for = |op: char| match op {
+        '>' => BoundEnd::Max,
+        _ => BoundEnd::Min,
+      };
 
-      // Adjust values with epsilon only for strict inequalities
+      let lower_end = end_for(_op1);
+      // The upper operator reads the other way: `width > B` is a lower bound.
+      let upper_end = match _op2 {
+        '>' => BoundEnd::Min,
+        _ => BoundEnd::Max,
+      };
 
-      // Determine which dimension is min vs max based on the operators
-      // For (A op1 width op2 B), we need to map to min/max constraints
+      let key_for = |end: BoundEnd| match end {
+        BoundEnd::Min => format!("min-{}", key),
+        BoundEnd::Max => format!("max-{}", key),
+      };
 
-      let (mut min_value, mut max_value) =
-        select_double_inequality_values(_op1, _eq1, _op2, _eq2, lower_dimension, upper_dimension);
+      let mut lower_value = lower_dimension;
+      let mut upper_value = upper_dimension;
 
-      // Apply epsilon for strict (non-inclusive) operators
-      if (_op1 == '<' && !_eq1) || (_op2 == '>' && !_eq2) {
-        adjust_dimension(&mut min_value, BoundEnd::Min, EPSILON);
+      if !_eq1 {
+        adjust_dimension(&mut lower_value, lower_end, EPSILON);
       }
-      if (_op1 == '>' && !_eq1) || (_op2 == '<' && !_eq2) {
-        adjust_dimension(&mut max_value, BoundEnd::Max, EPSILON);
+
+      if !_eq2 {
+        adjust_dimension(&mut upper_value, upper_end, EPSILON);
       }
 
       Ok(MediaQueryRule::And(MediaAndRules::new(vec![
-        MediaQueryRule::Pair(MediaRulePair::new(min_key, min_value)),
-        MediaQueryRule::Pair(MediaRulePair::new(max_key, max_value)),
+        MediaQueryRule::Pair(MediaRulePair::new(key_for(lower_end), lower_value)),
+        MediaQueryRule::Pair(MediaRulePair::new(key_for(upper_end), upper_value)),
       ])))
     },
     "double_inequality_rule_parser",

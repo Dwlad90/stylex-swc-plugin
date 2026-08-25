@@ -2273,22 +2273,6 @@ fn double_inequality_wrong_close_token() {
 }
 
 // ---------------------------------------------------------------------------
-// select_double_inequality_values helper — covers the fallback branch
-// which fires when both ops are inclusive but op1 is neither '<' nor '>'
-// ---------------------------------------------------------------------------
-
-#[test]
-fn select_double_inequality_values_fallback_branch() {
-  // op1='=' is impossible via normal parsing; exercises the fallback else
-  let lower = MediaRuleValue::Length(crate::css_types::Length::new(100.0, "px".to_string()));
-  let upper = MediaRuleValue::Length(crate::css_types::Length::new(700.0, "px".to_string()));
-  let (min, max) =
-    select_double_inequality_values('=', true, '=', true, lower.clone(), upper.clone());
-  assert_eq!(min, lower);
-  assert_eq!(max, upper);
-}
-
-// ---------------------------------------------------------------------------
 // adjust_dimension at each end —
 // covers the implicit else branches for non-Length values
 // ---------------------------------------------------------------------------
@@ -2872,4 +2856,71 @@ fn a_fraction_is_spelled_the_way_javascript_spells_a_number() {
     parsed("@media (aspect-ratio: 16/9)").to_string(),
     "@media (aspect-ratio: 16 / 9)"
   );
+}
+
+/// Every double-inequality shape, against the reference implementation.
+///
+/// Each bound takes its key from its own operator, so a mixed-direction range
+/// puts both bounds on one side and the merge collapses them to a single
+/// constraint. The four mixed rows are the ones a fixed `min`/`max` pair could
+/// not express: they came out as an interval, and the second of them as
+/// `not all` -- a satisfiable query compiled to a rule that never matches.
+///
+/// Every expectation is quoted from a run of 0.19.0. Both dimensions and both
+/// strictness mixtures are here so that a regression cannot pass by only
+/// getting the symmetric cases right.
+#[test]
+fn a_double_inequality_takes_each_key_from_its_own_operator() {
+  let cases = [
+    // Same direction: an interval, which is what both compilers emit.
+    (
+      "@media (500px < width < 1000px)",
+      "@media (min-width: 500.01px) and (max-width: 999.99px)",
+    ),
+    (
+      "@media (500px <= width <= 1000px)",
+      "@media (min-width: 500px) and (max-width: 1000px)",
+    ),
+    (
+      "@media (500px <= width < 1000px)",
+      "@media (min-width: 500px) and (max-width: 999.99px)",
+    ),
+    (
+      "@media (500px < width <= 1000px)",
+      "@media (min-width: 500.01px) and (max-width: 1000px)",
+    ),
+    (
+      "@media (100px < height < 200px)",
+      "@media (min-height: 100.01px) and (max-height: 199.99px)",
+    ),
+    // Mixed direction: two bounds on one side, merged to the binding one.
+    (
+      "@media (500px < width > 1000px)",
+      "@media (min-width: 1000.01px)",
+    ),
+    (
+      "@media (500px > width < 1000px)",
+      "@media (max-width: 499.99px)",
+    ),
+    (
+      "@media (400px < width >= 700px)",
+      "@media (min-width: 700px)",
+    ),
+    (
+      "@media (1000px >= width <= 500px)",
+      "@media (max-width: 500px)",
+    ),
+    // Mixed direction that genuinely contradicts.
+    ("@media (500px > width > 1000px)", "@media not all"),
+    // Units that disagree cannot be intersected, so the pair survives as
+    // written -- which is where the order the keys are emitted in shows.
+    (
+      "@media (1000px >= width >= 50em)",
+      "@media (max-width: 1000px) and (min-width: 50em)",
+    ),
+  ];
+
+  for (input, expected) in cases {
+    assert_eq!(parsed(input).to_string(), expected, "for {input}");
+  }
 }

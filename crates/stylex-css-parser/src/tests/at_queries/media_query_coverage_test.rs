@@ -689,8 +689,12 @@ fn double_inequality_height_succeeds() {
 
 #[test]
 fn leading_not_parser_not_ident_keyword_fails() {
-  // "not only screen" → "only" after not → error
-  let result = MediaQuery::parser().parse_to_end("@media not only screen");
+  // "not only (min-width: 100px)" → "only" after not → error in
+  // leading_not_parser. A media *type* after the pair is read by
+  // media_keyword_parser instead, which takes both modifiers and drops the
+  // `only`; this reaches the leading parser because a parenthesized condition
+  // is not a media type. Upstream refuses this spelling too.
+  let result = MediaQuery::parser().parse_to_end("@media not only (min-width: 100px)");
   assert!(result.is_err());
 }
 
@@ -1316,11 +1320,23 @@ fn parser_at_keyword_wrong_then_falls_back() {
 }
 
 #[test]
-fn not_only_combined_in_keyword_parser_errors() {
-  // "not only screen" in media_keyword_parser
-  // (not_value=true AND only_value=true → error)
-  let result = MediaQuery::parser().parse_to_end("@media not only screen");
-  assert!(result.is_err());
+fn not_only_combined_in_keyword_parser_drops_the_only() {
+  // "not only screen" in media_keyword_parser: both modifiers are optional and
+  // independent, as they are upstream, and the serializer reads `not` first --
+  // so the `only` is parsed and then never printed.
+  let parsed = MediaQuery::parser()
+    .parse_to_end("@media not only screen")
+    .expect("both modifiers together are a query the reference implementation compiles");
+
+  match &parsed.queries {
+    MediaQueryRule::MediaKeyword(keyword) => {
+      assert!(keyword.not);
+      assert!(!keyword.only);
+    },
+    other => panic!("Expected a media keyword rule, got {other:?}"),
+  }
+
+  assert_eq!(parsed.to_string(), "@media not screen");
 }
 
 #[test]

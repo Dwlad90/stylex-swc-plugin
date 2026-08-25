@@ -1183,10 +1183,21 @@ fn media_keyword_parser() -> TokenParser<MediaQueryRule> {
         skip_whitespace(tokens);
       }
 
-      if not_value && only_value {
-        return Err(CssParseError::ParseError {
-          message: "Media query modifiers 'not' and 'only' cannot be combined".to_string(),
-        });
+      // `not only screen` is accepted and prints as `not screen`, matching the
+      // reference implementation. Its `mediaKeywordParser` is
+      // `sequence(string('not').optional, string('only').optional, <type>)`, so
+      // the pair parses, and its serializer reads `not` first and never reaches
+      // the `only`. Refusing the pair turned a build the official compiler
+      // completes into an invalid-media-query-syntax error, which is a
+      // divergence in the one direction ADR 0001 declines to justify: matching
+      // its worse *output* protects a class name, matching its *refusals* only
+      // costs an author a query they are entitled to write.
+      //
+      // Only this spelling. `(not only screen)` and `only not screen` are
+      // refused upstream too, and stay refused here -- they are handled by the
+      // parenthesized and leading `not` parsers, which are left alone.
+      if not_value {
+        only_value = false;
       }
 
       // Parse the media type (required)

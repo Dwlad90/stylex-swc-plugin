@@ -179,6 +179,26 @@ pub(crate) fn assert_folds_to_string(source: &str, expected: &str) {
   }
 }
 
+/// Asserts the source folds to a boolean.
+///
+/// A predicate method — `startsWith`, `includes`, `hasOwnProperty` — folds to
+/// one, so a test can say which boolean rather than routing it through a
+/// conditional and asserting the branch it picked.
+#[track_caller]
+pub(crate) fn assert_folds_to_boolean(source: &str, expected: bool) {
+  match assert_folds(source) {
+    Expr::Lit(Lit::Bool(truth)) => assert_eq!(
+      truth.value, expected,
+      "wrong folded boolean for `{}`",
+      source
+    ),
+    other => panic!(
+      "expected `{}` to fold to a boolean, got {:?}",
+      source, other
+    ),
+  }
+}
+
 /// The same, with the depth ceiling raised for a source whose subject is depth.
 #[track_caller]
 pub(crate) fn assert_folds_to_string_with_ceiling(

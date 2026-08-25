@@ -1845,6 +1845,114 @@
       "origin": "the spread arm of evaluate_partial_object_recursively, reached through the recursion",
       "expected": "identical",
       "note": "Nesting is what a style object is mostly made of, so a spread that folded only at the top would be the more misleading half-fix. This is the recursive call reaching the same arm."
+    },
+    {
+      "id": "modules-06-string-prototype",
+      "label": "the string methods a static receiver answers",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: '  4px  '.trim() },\n  s1: { fontFamily: 'a-b'.replaceAll('-', ' ') },\n  s2: { gridArea: '7'.padStart(3, '0') },\n  s3: { zIndex: 'documentation'.indexOf('m') },\n  s4: { content: 'AbC'.toLowerCase() },\n  s5: { content: 'abc'.at(-1) },\n  s6: { content: 'x4px'.substring(1) },\n  s7: { content: 'ab'.repeat(2) },\n  s8: { order: 'abc'.codePointAt(1) },\n});\n",
+      "origin": "issue 06, the string half of the divergence table"
+    },
+    {
+      "id": "modules-06-array-prototype",
+      "label": "the array methods a static receiver answers",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { transitionProperty: ['color', 'opacity'].join(', ') },\n  s1: { padding: [4, 8].map(size => size + 'px').join(' ') },\n  s2: { zIndex: [1, 2, 3].reduce((total, x) => total + x, 0) },\n  s3: { order: [1, 2, 3].findIndex(x => x === 2) },\n  s4: { zIndex: [[1], [2]].flat().length },\n  s5: { content: ['a', 'b'].at(0) },\n  s6: { content: ['a', 'b', 'c'].slice(1).join('') },\n  s7: { zIndex: ['a'].includes('a') ? 1 : 2 },\n});\n",
+      "origin": "issue 06, the array half of the divergence table"
+    },
+    {
+      "id": "modules-06-chained-calls",
+      "label": "a chain folded at every link",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { border: ['1px', 'solid'].concat(['red']).join(' ') },\n  s1: { content: '  a-b  '.trim().replace('-', '_') },\n  s2: { content: 'a,b'.split(',').join('-') },\n  s3: { gridArea: [1, 2].indexOf(2).toFixed(1) },\n  s4: { content: ['ab'].map(x => x.toUpperCase()).join('') },\n});\n",
+      "origin": "issue 06, the shape two separate method tables cannot agree on"
+    },
+    {
+      "id": "modules-06-object-prototype",
+      "label": "the object prototype reached by reflection",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: ({ a: 1 }).toString() },\n  s1: { content: ({ a: 'x' }).a.toUpperCase() },\n});\n",
+      "origin": "issue 06, the object row of the divergence table"
+    },
+    {
+      "id": "modules-06-numeric-edges",
+      "label": "NaN and Infinity reaching a declaration",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { zIndex: 'abc'.charCodeAt(10) },\n  s1: { order: [1].reduce(total => total / 0, 1) },\n});\n",
+      "origin": "issue 06, the parity-versus-useful-refusal choice"
+    },
+    {
+      "id": "modules-06-mutating-array-method",
+      "label": "a mutating array method, refused here and folded upstream",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { zIndex: ['a', 'b'].push('c') },\n  s1: { transitionProperty: ['opacity', 'color'].sort().join(', ') },\n  s2: { content: ['a', 'b'].reverse().join('-') },\n});\n",
+      "origin": "issue 06, the mutation divergence held deliberately",
+      "note": "Acceptance divergent, deliberately. Upstream reflects on a real array, so a mutating method mutates it and folds: `push` answers 3 and `sort().join()` answers the sorted text. Matching that means carrying mutation into an evaluator whose every other answer is pure, to serve input nobody writes in a stylesheet. Refused at every link of a chain, because a chain hides the mutating call in the middle.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-06-locale-sensitive-method",
+      "label": "a locale-sensitive method, refused here and folded upstream",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'i'.toLocaleUpperCase('tr') },\n  s1: { zIndex: 'a'.localeCompare('b') },\n});\n",
+      "origin": "issue 06, the exclusion the engine has no locale data for",
+      "note": "Acceptance divergent, deliberately. Upstream folds all four locale-sensitive methods against the host's full locale data. The engine here carries none, and answers `'i'.toLocaleUpperCase('tr')` as `I` where the language says `İ` — so folding would emit a wrong declaration rather than no declaration. A refusal costs a build that would have compiled; a wrong fold costs a stylesheet nobody can find the fault in.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-06-numeric-literal-receiver",
+      "label": "a method call on a number written into the source",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: (5).toFixed(2) },\n});\n",
+      "origin": "issue 06, the one receiver kind upstream cannot call a method on",
+      "note": "Both reject, in different words, which is what the parent spec's non-goal already asserts about this input -- so what is pinned here is that neither compiler compiles it, not either compiler's sentence. That is the half worth a regression test: without the guard this compiler would newly *fold* a method call on a written number and emit a declaration where the reference implementation fails the build, and no test outside the corpus would notice. A number a fold produced is a different shape and folds in both; see the chained-calls entry.",
+      "expected": "both-reject-divergent"
+    },
+    {
+      "id": "modules-06-unpaired-surrogate",
+      "label": "a fold whose result is half a surrogate pair",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: '\\u{1F600}a'.slice(1) },\n});\n",
+      "origin": "issue 06, the UTF-16 divergence pinned rather than carried quietly",
+      "note": "Divergent in the class name only, and pinned rather than fixed. Slicing an astral pair leaves a lone low surrogate: well-formed UTF-16, and not a string any Rust `String` holds. The declaration text agrees, because upstream's own becomes a replacement character the moment the stylesheet is written to disk; the hash of the pre-encoding text does not. Refusing instead would fail a build upstream completes, and carrying the surrogate faithfully means a value type that holds WTF-8 through the whole pipeline — which is the same rewrite an indexed string read is waiting on.",
+      "expected": "divergent"
+    },
+    {
+      "id": "modules-06-amplified-length",
+      "label": "a length no declaration could use",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'x'.repeat(200000000).slice(0, 1) },\n});\n",
+      "origin": "issue 06, the allocation the engine does not bound itself",
+      "note": "Acceptance divergent, deliberately. Upstream folds this at 200 MB of string. The engine bounds loop iterations, recursion and stack but not allocation, because growth inside a native builtin is not a counted loop, and the same call peaks at several gigabytes here. A refusal turns a typo into a diagnostic instead of into the machine.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-06-deep-nesting",
+      "label": "nesting past what the engine's parser survives",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[['a']]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].join('') },\n});\n",
+      "origin": "issue 06, the refusal that replaces a stack overflow",
+      "note": "Acceptance divergent, deliberately. A hundred levels of nesting is past what the engine's parser survives: it descends recursively and overflows its stack, which aborts the build from inside an evaluation that is allowed to fail. The nesting bound in front of the engine is what turns that abort back into a refusal, and it is set well below the measured limit.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-06-normalize",
+      "label": "a normalization the engine's Unicode tables do answer",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'cafe\\u0301'.normalize('NFC') },\n  s1: { content: '\\uFB01'.normalize('NFKC') },\n});\n",
+      "origin": "issue 06, the exclusion that moved back into scope"
+    },
+    {
+      "id": "modules-06-amplified-array-length",
+      "label": "an array result longer than a declaration could use",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'x'.repeat(20000).split('').length },\n});\n",
+      "origin": "issue 06, the second half of the allocation bound",
+      "note": "Acceptance divergent, deliberately, and the second half of the string bound rather than a separate rule. A string short enough to build becomes one array element per code unit, and an element costs far more as an AST node than a code unit costs as text, so the length that reaches a literal is bounded too. Upstream folds this.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-06-unwritten-amplification-count",
+      "label": "a length written as an expression rather than a number",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { gridArea: '7'.padStart([1, 2, 3].length, '0') },\n  s1: { content: 'x'.repeat(2 * 2) },\n});\n",
+      "origin": "issue 06, the cost of bounding a count by reading it",
+      "note": "Acceptance divergent, and the price of bounding a length by reading it. A count is bounded only if it is written into the source as a number, so a count computed from an expression refuses even when it is small -- the guard runs before anything is evaluated, and reading it any other way would mean evaluating an argument to decide whether evaluating is safe. Upstream folds both of these.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-06-locale-string-on-an-object",
+      "label": "toLocaleString on a receiver that carries no locale",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: ({ a: 1 }).toLocaleString() },\n});\n",
+      "origin": "issue 06, the agreed object method the locale exclusion costs",
+      "note": "Acceptance divergent, and the one method on the ticket's agreed object list that does not fold. `toLocaleString` carries no locale on an object -- it delegates to `toString` -- but it formats on a number, and which of the two a receiver will produce is not knowable before evaluating it. One name cannot be both admitted and refused, so it is refused and this is the cost.",
+      "expected": "acceptance-divergent"
     }
   ]
 }

@@ -138,18 +138,10 @@ fn a_result_with_no_literal_form_refuses() {
 }
 
 /// `NaN` and `Infinity` are numbers JavaScript produces and the reference
-/// implementation folds. They are pinned because they are also invalid CSS: the
-/// value that reaches the declaration is what upstream writes, and the choice to
-/// keep matching it belongs to issue 06 rather than to this test.
-///
-/// **This contradicts `unsupported_shape_tests::char_code_at_past_the_end_
-/// refuses_rather_than_aborting`, deliberately and visibly.** That test states
-/// the decision this repo shipped: `NaN` is not a value the evaluator carries,
-/// so the receiver refuses. The engine reaches the opposite answer, and it is
-/// upstream's. Both are left standing rather than one quietly deleted, because
-/// choosing between parity and a refusal an author can act on is issue 06's
-/// call, and a spike that silently overwrote it would hide the decision it was
-/// commissioned to inform.
+/// implementation folds, so they reach the declaration here too. Why parity
+/// wins over the more useful refusal is argued once, at
+/// `unsupported_shape_tests::char_code_at_past_the_end_folds_to_nan_as_the_
+/// reference_implementation_does`.
 #[test]
 fn the_numeric_edges_fold_as_the_reference_implementation_folds_them() {
   assert_folds_to_nan("\"abc\".charCodeAt(10)");
@@ -210,4 +202,124 @@ fn folding_many_times_reuses_one_engine_and_carries_nothing_between_folds() {
 
   assert_folds_to_string("[\"a\"].join(\"\")", "a");
   assert_folds_to_string("\"  4px  \".trim()", "4px");
+}
+
+// ==================== the boundaries around the surface ====================
+
+/// A locale-sensitive method is refused rather than answered from the root
+/// locale. The reference implementation folds all four, so refusing costs
+/// parity — but the engine carries no locale data, and it answers
+/// `"i".toLocaleUpperCase("tr")` as `I` where the language says `İ`. A refused
+/// fold leaves the expression alone; a wrong fold writes a wrong stylesheet.
+#[test]
+fn a_locale_sensitive_method_refuses_rather_than_answering_from_the_root_locale() {
+  assert_deopts("\"i\".toLocaleUpperCase(\"tr\")");
+  assert_deopts("\"I\".toLocaleLowerCase(\"tr\")");
+  assert_deopts("\"ä\".localeCompare(\"z\", \"de\")");
+  assert_deopts("\"ab\".toLocaleString()");
+  assert_deopts("({ a: 1 }).toLocaleString()");
+
+  // Refused at every link of a chain, like mutation, and under a logical
+  // operand, which is the position that used to abort the build.
+  assert_deopts("\"ab\".toLocaleUpperCase().trim()");
+  assert_deopts("\"a,b\".split(\",\").map(x => x.toLocaleUpperCase()).join(\"\")");
+  assert_deopts("1 > 0 && \"i\".toLocaleUpperCase(\"tr\")");
+
+  // `normalize` is not locale-sensitive — it reads the Unicode tables the
+  // engine does carry — so it stays in scope and agrees with the language.
+  assert_folds_to_string("\"ﬁ\".normalize(\"NFKC\")", "fi");
+}
+
+/// The engine bounds loops, recursion and stack, but not allocation, so a
+/// single argument is enough to make a fold exhaust memory. These refuse
+/// instead. Upstream folds them, so this is a deliberate divergence: a typo
+/// costs a refusal rather than the machine.
+#[test]
+fn a_length_no_declaration_could_use_refuses_rather_than_being_built() {
+  assert_deopts("\"x\".repeat(200000000)");
+  assert_deopts("\"x\".padStart(50000000)");
+  assert_deopts("\"x\".padEnd(50000000)");
+
+  // Per-call bounds alone are multiplied by a chain, so an amplifying call on
+  // a receiver that is itself a call refuses whatever the counts are.
+  assert_deopts("\"x\".repeat(1000).repeat(1000)");
+  assert_deopts("\"x\".repeat(2).padStart(4, \"y\")");
+
+  // A count that is not written as a number cannot be bounded by reading it,
+  // and a spread stands for however many arguments it holds, so neither can it.
+  assert_deopts("\"x\".repeat([1000].length)");
+  assert_deopts("\"x\".repeat(2 * 2)");
+  assert_deopts("\"x\".repeat(...[2])");
+  assert_deopts("\"x\".padStart(...[4, \"0\"])");
+
+  // Under the bound, and the no-argument form that amplifies nothing.
+  assert_folds_to_string("\"ab\".repeat(2)", "abab");
+  assert_folds_to_number("\"x\".repeat(999999).length", 999_999.0);
+  assert_folds_to_string("\"7\".padStart(3, \"0\")", "007");
+  assert_folds_to_string("\"x\".padStart()", "x");
+  assert_folds_to_string("\"x\".padEnd(4, \"-\")", "x---");
+}
+
+/// A bounded string can still become one array element per code unit, which
+/// costs far more as a tree than it did as text.
+#[test]
+fn an_array_result_longer_than_a_declaration_could_use_refuses() {
+  assert_deopts("\"x\".repeat(999999).split(\"\")");
+  assert_deopts("\"x\".repeat(10001).split(\"\")");
+
+  assert_folds_to_number("\"x\".repeat(10000).split(\"\").length", 10_000.0);
+  assert_folds_to_string("[\"a\", \"b\"].slice(0, 1).join(\"\")", "a");
+}
+
+/// Nesting is not free for whoever parses it: past a hundred levels or so the
+/// engine's parser overflows its stack, and an overflow inside an evaluation
+/// that is allowed to fail aborts the build instead of reporting anything. The
+/// guard refuses first, so the answer stays a refusal at any depth.
+///
+/// Asserted well past the bound as well as just over it, because the failure
+/// this prevents gets *more* likely as the input gets deeper, so a test that
+/// stopped at the boundary would not be testing the crash.
+#[test]
+fn nesting_past_the_bound_refuses_rather_than_overflowing_a_stack() {
+  for levels in [33, 100, 400, 900] {
+    let nested = format!(
+      "{}[\"a\"]{}.join(\"\")",
+      "[".repeat(levels),
+      "]".repeat(levels)
+    );
+
+    assert_deopts(&nested);
+  }
+
+  // Depth reached through the other nesting shapes the walk accepts, not only
+  // through an array: a chain of calls, a chain of member reads, and nested
+  // objects. Each counts the same, because each is a level the printed source
+  // makes the engine's parser descend through.
+  assert_deopts(&format!("\"a\"{}", ".concat(\"b\")".repeat(400)));
+  assert_deopts(&format!(
+    "({}\"x\"{}){}.toUpperCase()",
+    "{ a: ".repeat(40),
+    " }".repeat(40),
+    ".a".repeat(40)
+  ));
+  assert_deopts(&format!("(1{}).toFixed(1)", " + 1".repeat(400)));
+
+  // Just inside the bound still folds, so the refusals above are the depth and
+  // not the shape.
+  let shallow = format!("{}[\"a\"]{}.join(\"\")", "[".repeat(4), "]".repeat(4));
+  assert_folds_to_string(&shallow, "a");
+}
+
+/// The object prototype the reference implementation reaches by reflection.
+/// `valueOf` answers the object itself, which has no literal form, so it is the
+/// one that refuses — and refuses for that reason rather than by name.
+#[test]
+fn the_object_prototype_methods_fold() {
+  assert_folds_to_boolean("({ a: 1 }).hasOwnProperty(\"a\")", true);
+  assert_folds_to_boolean("({ a: 1 }).hasOwnProperty(\"b\")", false);
+  assert_folds_to_boolean("({ a: 1 }).propertyIsEnumerable(\"a\")", true);
+  assert_folds_to_boolean("({ a: 1 }).isPrototypeOf({})", false);
+  assert_folds_to_string("({ a: 1 }).toString()", "[object Object]");
+  assert_folds_to_string("({ \"a-b\": 1, 2: 3 }).toString()", "[object Object]");
+  assert_deopts("({ a: 1 }).valueOf()");
 }

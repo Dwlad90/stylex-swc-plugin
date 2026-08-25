@@ -26,25 +26,47 @@ fn a_string_method_the_evaluator_does_not_fold_refuses_rather_than_aborting() {
 
 // ==================== receivers with no folded methods ====================
 
+/// A number written into the source is the one receiver kind the reference
+/// implementation cannot call a method on: it applies the method without a
+/// receiver, so `(5).toFixed(2)` reports there that `toFixed` requires a
+/// Number. Refusing keeps both compilers rejecting the same input. The rest
+/// here are receivers with no static value at all.
 #[test]
 fn a_method_call_on_a_receiver_kind_with_no_folds_refuses() {
   for source in [
     "(5).toFixed(2)",
     "(5.5).toPrecision(2)",
-    "true.toString()",
-    "false.valueOf()",
+    "(5).toString()",
+    "((5)).toFixed(2)",
+    "(5n).toString()",
     "null?.toString()",
     "/re/.test(\"a\")",
     "/re/.exec(\"a\")",
     "(() => 1).call()",
-    "({}).hasOwnProperty(\"a\")",
     "({}).constructor()",
   ] {
     assert_deopts(source);
   }
 }
 
-/// The two receivers whose methods this evaluator does fold keep folding.
+/// The receiver kinds that do have folds, at the edges where it is least
+/// obvious. A negated number is a unary expression rather than a literal, and
+/// folds in both compilers; so does a number a fold produced, which is why the
+/// refusal above is about how the number was written and not about its type.
+/// A boolean answers its prototype methods in both; the object prototype has
+/// its own test in `engine_fold_tests`.
+#[test]
+fn a_receiver_kind_the_reference_implementation_folds_folds_here_too() {
+  assert_folds_to_string("(-5).toFixed(1)", "-5.0");
+  assert_folds_to_string("[1, 2].indexOf(2).toFixed(1)", "1.0");
+  assert_folds_to_string("true.toString()", "true");
+  assert_folds_to_string("(1 + 2).toFixed(1)", "3.0");
+  assert_folds_to_string("({ a: \"x\" }).a.toUpperCase()", "X");
+  assert_folds_to_boolean("false.valueOf()", false);
+}
+
+/// The methods that folded before the prototype surface did keep folding, so
+/// the refusals above cannot be satisfied by an evaluator that folds nothing.
 #[test]
 fn the_folded_string_and_array_methods_still_fold() {
   assert_folds_to_string("\"abc\".concat(\"d\")", "abcd");
@@ -55,8 +77,10 @@ fn the_folded_string_and_array_methods_still_fold() {
 // ==================== unicode and escapes ====================
 
 /// A method the evaluator does not fold is refused whatever the receiver
-/// holds. The receivers here are the ones a UTF-16 mistake would surface on:
-/// an astral pair, a combining sequence, an escaped quote, a NUL.
+/// holds, and the refusal must not abort. The receivers here are the ones a
+/// UTF-16 mistake would surface on: an astral pair, a combining sequence, an
+/// escaped quote, a NUL. The method is locale-sensitive because that is now
+/// what a string receiver refuses -- the rest of its prototype folds.
 #[test]
 fn an_unfoldable_method_on_a_unicode_receiver_refuses_rather_than_aborting() {
   for receiver in [
@@ -66,8 +90,8 @@ fn an_unfoldable_method_on_a_unicode_receiver_refuses_rather_than_aborting() {
     "\"a\\u0000b\"",
     "\"\\uD83D\"",
   ] {
-    assert_deopts(&format!("{}.normalize()", receiver));
-    assert_deopts(&format!("1 > 0 && {}.padStart(4)", receiver));
+    assert_deopts(&format!("{}.toLocaleUpperCase()", receiver));
+    assert_deopts(&format!("1 > 0 && {}.toLocaleLowerCase()", receiver));
   }
 }
 
@@ -80,14 +104,29 @@ fn char_code_at_still_reads_utf16_code_units() {
   assert_folds_to_number("\"\\u{1F600}a\".charCodeAt(2)", 97.0);
 }
 
-/// Past the end is `NaN` in JavaScript, which this evaluator does not carry as
-/// a folded value — so it refuses. It used to abort.
+/// Past the end is `NaN`, and `NaN` reaches the declaration.
+///
+/// This test used to assert a refusal, and the refusal was the more useful
+/// answer: `z-index: NaN` is not a value any browser applies, and an author who
+/// indexed past the end would rather be told. Parity won anyway, for two
+/// reasons. The reference implementation writes `NaN` into the rule, so
+/// refusing here fails a build that compiles there — and a class name is a hash
+/// of the declaration text, which makes the text a contract that a *better*
+/// answer still breaks. And the choice was already made next door:
+/// `Number("10px")` folds to `NaN` in this evaluator for exactly that reason.
+/// One evaluator cannot hold both rules.
+///
+/// Where an author is served instead is the CSS layer, which sees the value and
+/// can reject it knowing the property it belongs to.
 #[test]
-fn char_code_at_past_the_end_refuses_rather_than_aborting() {
-  assert_deopts("\"abc\".charCodeAt(10)");
-  assert_deopts("\"abc\".charCodeAt(-1)");
-  assert_deopts("\"abc\".charCodeAt(\"x\")");
-  assert_deopts("1 > 0 && \"abc\".charCodeAt(99)");
+fn char_code_at_past_the_end_folds_to_nan_as_the_reference_implementation_does() {
+  assert_folds_to_nan("\"abc\".charCodeAt(10)");
+  assert_folds_to_nan("\"abc\".charCodeAt(-1)");
+  assert_folds_to_nan("1 > 0 && \"abc\".charCodeAt(99)");
+
+  // Not past the end: an index that is not a number coerces to zero, so this
+  // reads the first code unit rather than answering `NaN`.
+  assert_folds_to_number("\"abc\".charCodeAt(\"x\")", 97.0);
 }
 
 // ==================== the globals ====================
@@ -347,7 +386,7 @@ fn a_conditional_whose_test_has_no_compile_time_truthiness_refuses() {
 fn a_deeply_nested_refusal_stays_a_refusal() {
   let deep = std::iter::repeat_n("1 > 0 && ", 100).collect::<String>();
 
-  assert_deopts_with_ceiling(&format!("{}\"abc\".normalize()", deep), 512);
+  assert_deopts_with_ceiling(&format!("{}\"abc\".toLocaleUpperCase()", deep), 512);
 }
 
 #[test]

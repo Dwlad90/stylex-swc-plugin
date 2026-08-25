@@ -378,7 +378,7 @@ fn a_computed_key_with_no_compile_time_value_refuses() {
 fn a_receiver_that_did_not_fold_refuses_rather_than_being_counted() {
   for source in [
     "runtimeValue.length",
-    "\"abc\".normalize().length",
+    "\"abc\".toLocaleUpperCase().length",
     "[1, 2].reduce(f).length",
     "(runtimeFlag ? \"a\" : \"bc\").length",
   ] {

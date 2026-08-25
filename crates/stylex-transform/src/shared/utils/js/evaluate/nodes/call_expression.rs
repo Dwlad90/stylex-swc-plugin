@@ -147,10 +147,10 @@ pub(in super::super) fn evaluate(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
-  // Spike hook for issue 05: a self-contained method call goes to the engine
-  // first, so the measurement covers the whole prototype surface rather than
-  // the names below.
-  if let Some(folded) = super::super::boa_fold::try_fold(call) {
+  // A method call that carries its own value is evaluated rather than matched
+  // against the names below, so the whole prototype surface folds and a chain
+  // folds at every link. What it declines falls through to the globals here.
+  if let Some(folded) = super::super::engine_fold::try_fold(call) {
     return Some(EvaluateResultValue::Expr(folded));
   }
 

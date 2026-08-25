@@ -60,6 +60,37 @@ is rejected rather than folded. Only a global with no binding in scope is one at
 all — a declared `String` is an ordinary function and is called, not folded.
 _Avoid_: built-in function, global function, wrapper call
 
+**Engine fold**:
+Folding a method call by evaluating it in an embedded JavaScript engine instead
+of matching its name against a table. A table is finite, so the method it does
+not list is the next bug report; evaluating covers `String.prototype`,
+`Array.prototype` and `Object.prototype` at once, and covers a chain, because
+the receiver of a call is itself a candidate and the whole chain is evaluated
+once. Only an expression that carries its own value qualifies — the engine is
+handed the expression alone and knows nothing of the module — which is what the
+[guard](#fold-guard) decides.
+_Avoid_: boa fold, reflection, dynamic dispatch
+
+**Fold guard**:
+The predicate in front of an [engine fold](#engine-fold), and the whole of that
+fold's behaviour: what it admits is answered by the language rather than by any
+code here, so every boundary the compiler owns is a refusal the guard states.
+Four are not about the scope. A **mutating** array method is refused because
+matching upstream means carrying mutation into an otherwise pure evaluator. A
+**locale-sensitive** method is refused because the engine has no locale data and
+would answer from the root locale, which is a wrong value rather than no value.
+A **length-amplifying** call is bounded because the engine bounds iterations,
+recursion and stack but not allocation. And **nesting** is bounded because the
+engine's parser recurses, and an overflow inside an evaluation that is allowed
+to fail aborts the build instead of reporting anything. Each applies at every
+link of a chain, since a chain hides its middle links.
+
+The guard reads syntax, so "carries its own value" means _written into the
+expression_. A receiver reached through a binding is resolved by the evaluator
+rather than by the guard, and so still reaches the older method tables, which
+answer a narrower set. That gap is tracked, not intended.
+_Avoid_: whitelist, allowlist, filter, validator
+
 **Refused fold**:
 A deopt raised by a fold that recognised its callee and will not produce a
 value. Every refusal in this area is one — there is no separate error-raising

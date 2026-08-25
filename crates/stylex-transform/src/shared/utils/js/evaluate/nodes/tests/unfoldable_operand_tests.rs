@@ -43,17 +43,19 @@ fn an_unfoldable_right_operand_of_nullish_refuses_rather_than_aborting() {
 fn every_unfoldable_shape_survives_every_logical_operand_position() {
   const UNFOLDABLE: &[&str] = &[
     "\"documentation\".startsWith(q)",
-    "\"abc\".normalize()",
     "[\"a\", \"b\"].reduce(f)",
-    "[\"a\", \"b\"].at(0)",
     "(5).toFixed(2)",
-    "true.toString()",
+    // A locale-sensitive method, which the engine has no locale data for; a
+    // length the engine is not allowed to build; and a result that has no
+    // literal form. The three boundaries around the folded prototype surface.
+    "\"abc\".toLocaleUpperCase()",
+    "\"x\".repeat(2000000)",
+    "({}).valueOf()",
     "/re/.test(\"a\")",
     "Math.sin(1)",
     "Math.pow(\"a\", 2)",
     "Object.assign({}, {})",
     "Object.fromEntries(1)",
-    "({}).hasOwnProperty(\"a\")",
     "tag`x`",
     // A unary operator over an operand that does not fold. `-({})` used to sit
     // here, but it folds to `NaN` now, through the same `ToNumber` upstream

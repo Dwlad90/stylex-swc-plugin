@@ -57,7 +57,8 @@ pre-commit:
       glob:
         - '*.{md,mdx}'
       exclude:
-        - vendor/**
+        - vendor/*/core/**
+        - vendor/*/utils/**
       group:
         piped: true
         jobs:

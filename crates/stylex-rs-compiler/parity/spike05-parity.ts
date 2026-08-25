@@ -15,21 +15,46 @@ import { fileURLToPath } from 'node:url';
 import * as babel from '@babel/core';
 
 import { baseStyleXOptions, loadBabelPlugin, loadRustCompiler } from './lib/compilers.js';
+import { isRecord, stringAt } from './lib/guards.js';
 
 const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
+/**
+ * One `[className, rule]` metadata entry, narrowed rather than asserted.
+ *
+ * Both compilers emit the same shape, but this harness compares the two to
+ * decide agreement, so a malformed entry has to be visible as one instead of
+ * reading as an empty declaration that happens to match.
+ */
+function ruleLine(entry: unknown): string {
+  if (!Array.isArray(entry)) return `<not-a-pair>\t${JSON.stringify(entry)}`;
+
+  const [className, rule] = entry;
+  const name = typeof className === 'string' ? className : '<not-a-name>';
+
+  return `${name}\t${(isRecord(rule) ? stringAt(rule, 'ltr') : undefined) ?? ''}`;
+}
+
 /** Every `[className, declarationText]` pair a compiler emitted, sorted. */
 function rules(metadata: readonly unknown[]): string[] {
-  return metadata
-    .map(entry => {
-      const [className, rule] = entry as [string, { ltr?: string } | undefined];
-      return `${className}\t${rule?.ltr ?? ''}`;
-    })
-    .sort();
+  return metadata.map(ruleLine).toSorted();
+}
+
+/** The `stylex` array off a Babel result's metadata, without asserting it. */
+function babelRuleMetadata(metadata: unknown): readonly unknown[] {
+  if (!isRecord(metadata)) return [];
+
+  return Array.isArray(metadata.stylex) ? metadata.stylex : [];
 }
 
 async function main(): Promise<void> {
-  const file = path.resolve(process.argv[2]);
+  const target = process.argv[2];
+
+  if (!target) {
+    throw new Error('usage: spike05-parity.ts <module.js>');
+  }
+
+  const file = path.resolve(target);
   const code = fs.readFileSync(file, 'utf8');
   const options = baseStyleXOptions(packageDir);
 
@@ -41,7 +66,7 @@ async function main(): Promise<void> {
     plugins: [[plugin, options]],
   });
 
-  const babelRules = rules((babelResult?.metadata as { stylex?: unknown[] })?.stylex ?? []);
+  const babelRules = rules(babelRuleMetadata(babelResult?.metadata));
 
   const { transform } = await loadRustCompiler(packageDir);
   const rustRules = rules(transform(file, code, options).metadata.stylex);

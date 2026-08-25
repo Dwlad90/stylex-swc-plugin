@@ -65,10 +65,11 @@ on a literal — `'documentation'.startsWith('doc')` and the rest of
 matching the method's name against a table of its own, because a table is finite
 and the reference implementation's reflection is not.
 
-[`vendor/boa`](./vendor/boa) carries nine of its crates as source. Only two
-dependency bounds in its workspace manifest are changed, for a version conflict
-[`vendor/boa/README.md`](./vendor/boa/README.md) explains; no engine source file
-is modified.
+[`vendor/boa`](./vendor/boa) carries nine of its crates as source. Its workspace
+manifest has two dependency bounds relaxed, for a version conflict
+[`vendor/boa/README.md`](./vendor/boa/README.md) explains, and its `members`
+list narrowed to the crates actually carried. No engine source file is
+modified.
 
 ## Everything else
 

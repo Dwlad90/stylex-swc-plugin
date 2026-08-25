@@ -21,6 +21,8 @@ use swc_core::{
   },
 };
 
+use stylex_js::helpers::is_mutating_array_method;
+
 use crate::shared::utils::log::build_code_frame_error::{CodeFrame, create_module, print_module};
 
 thread_local! {
@@ -102,6 +104,17 @@ fn is_foldable_call(call: &CallExpr) -> bool {
   let Expr::Member(MemberExpr { obj, prop, .. }) = callee.as_ref() else {
     return false;
   };
+
+  // A mutating method is refused here rather than folded, at every link of a
+  // chain and not only the outer one. The reference implementation folds
+  // `["a","b"].push("c")` to `3` by accident of reflecting on a real array, and
+  // an engine reproduces that accident exactly — which is why the refusal has
+  // to be stated. Issue 06 holds this divergence deliberately: matching it
+  // would mean carrying mutation into a pure evaluator to serve input nobody
+  // writes.
+  if is_mutating_array_method(prop) {
+    return false;
+  }
 
   matches!(prop, MemberProp::Ident(_))
     && is_self_contained(obj)

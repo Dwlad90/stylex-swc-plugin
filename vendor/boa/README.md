@@ -5,8 +5,8 @@ source rather than pulled from crates.io.
 
 - **Upstream:** <https://github.com/boa-dev/boa>, tag `v0.21.1`, commit recorded
   in `VENDORED_COMMIT`.
-- **Licence:** MIT or Unlicense, at your option. Both texts are beside this
-  file, unmodified.
+- **Licence:** MIT or Unlicense, at your option. Both texts are beside
+  this file, unmodified.
 
 ## Why it is vendored
 
@@ -27,8 +27,8 @@ The alternatives were measured and this one was chosen:
 - Vendoring costs repo size and this file. Nothing else in the graph moves:
   `icu_collator` stays at 2.3.1 and every ICU crate resolves to one 2.3 version.
 
-`.scratch/fix_runtime-sx-conditions/issues/05-spike-a-js-engine-as-the-parity-vehicle.md`
-carries the measurements behind that choice.
+Issue 05 of the `fix_runtime-sx-conditions` effort, in the local tracker under
+`.scratch`, carries the measurements behind that choice.
 
 ## What was changed
 
@@ -57,13 +57,16 @@ No engine source file is modified.
 1. Check whether upstream has relaxed the bounds itself. If it has, delete this
    directory, drop the `[patch.crates-io]` section from the root `Cargo.toml`,
    and depend on the release.
-2. Otherwise: clone the new tag, copy `core/{ast,engine,gc,interner,macros,parser,string}`
-   and `utils/{small_btree,tag_ptr}` over this directory along with the licences
-   and the workspace manifest, then reapply the two bound edits and the narrowed
+2. Otherwise: clone the new tag, copy
+   `core/{ast,engine,gc,interner,macros,parser,string}` and
+   `utils/{small_btree,tag_ptr}` over this directory along with the licences and
+   the workspace manifest, then reapply the two bound edits and the narrowed
    `members` list. Record the new commit in `VENDORED_COMMIT`.
 3. Run `cargo test --workspace --all-features` and the paired benchmark. An
    engine bump can move a fold's result, and a fold's result is a class name.
 
-Nothing here is formatted or linted by this repo's hooks — `lefthook.yml`
-excludes `vendor/**` so a commit cannot rewrite upstream source — and
-`cargo fmt --all` skips it because it is not a member of this workspace.
+Upstream's own files are not formatted or linted by this repo's hooks:
+`lefthook.yml`, `.oxlintrc.jsonc` and `.oxfmtrc.json` exclude `core/**` and
+`utils/**` so a commit cannot rewrite them, and `cargo fmt --all` skips the tree
+because it is not a member of this workspace. This file is not upstream's, so it
+is held to the repo's rules like any other document here.

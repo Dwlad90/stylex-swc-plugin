@@ -35,7 +35,21 @@ even workspace ones, and the boundary is what keeps it that way -- a module
 inside a crate can quietly reach for a sibling; a crate with an empty
 `[dependencies]` cannot. The workspace `members` glob only matches
 `crates/stylex-*`, so it is listed explicitly in the root `Cargo.toml`.
-Anything else vendored belongs beside it on the same terms.
+Third-party code _ported_ into this project belongs beside it on the same
+terms.
+
+An upstream tree carried **as upstream wrote it** cannot go there, and lives
+under `vendor/` instead. `vendor/boa` is the JavaScript engine the evaluator
+folds method calls through, kept as source because the published crate's
+`icu_normalizer` and `icu_properties` bounds cannot coexist with the
+`icu_collator` this workspace already depends on. Its crates keep their own
+workspace and inherit from their own root manifest, so they cannot be members
+of this one: the root `Cargo.toml` names it in `exclude` and reaches it through
+`[patch.crates-io]`. That is sound here because nothing in this repo ships to
+crates.io -- a patched graph can never reach a downstream Rust consumer, only
+the `.node` this repo builds. `vendor/boa/README.md` records the provenance,
+what was changed, and how to bump it; this repo's hooks do not format or lint
+the tree, so a commit cannot rewrite it.
 
 Workspace dependencies are defined in the root `Cargo.toml`.
 

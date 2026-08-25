@@ -117,8 +117,12 @@ pre-commit:
     # commit; `pnpm lint:markdown` passes none and sweeps the whole tree.
     - name: markdown
       glob: '*.{md,mdx}'
+      # Only upstream's own markdown is exempt. `vendor/boa/README.md` is this
+      # repo's writing about a vendored tree, so it stays held to the 80-column
+      # rule and the alert check like any other document here.
       exclude:
-        - 'vendor/**'
+        - 'vendor/*/core/**'
+        - 'vendor/*/utils/**'
       group:
         piped: true
         jobs:

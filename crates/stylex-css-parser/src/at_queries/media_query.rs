@@ -492,9 +492,24 @@ impl MediaQuery {
     )
   }
 
-  /// Check if parentheses are balanced in a media query string
+  /// Whether every parenthesis in `input` closes, counting only the ones that
+  /// are syntax. Mirrors the reference implementation's `_hasBalancedParens`.
+  ///
+  /// The check exists because the tokenizer synthesizes a closing parenthesis
+  /// at end of input, so `(min-width: 100px` parses cleanly and would reach the
+  /// stylesheet as a query nobody wrote. The reference implementation's
+  /// tokenizer synthesizes nothing and its parse fails on the same input, so
+  /// this is how the two arrive at the same refusal.
+  ///
+  /// A parenthesis inside a string, or one written as the escape `\(`, is a
+  /// character rather than syntax and is skipped -- which the reference
+  /// implementation's own counter does not do. Counting those too would refuse
+  /// queries it accepts, and refusing too much is a divergence like any other.
+  /// An unterminated string is unbalanced in its own right: it swallows the
+  /// rest of the query, including whatever would have closed the parenthesis it
+  /// sits in.
   pub fn has_balanced_parens(input: &str) -> bool {
-    has_balanced_parens(input)
+    scan_query_structure(input).parens_balanced
   }
 }
 
@@ -533,26 +548,6 @@ pub fn validate_media_query(input: &str) -> Result<MediaQuery, String> {
   }
 }
 
-/// Whether every parenthesis in `input` closes, counting only the ones that are
-/// syntax.
-///
-/// The check exists because the tokenizer synthesizes a closing parenthesis at
-/// end of input, so `(min-width: 100px` parses cleanly and would reach the
-/// stylesheet as a query nobody wrote. The reference implementation's tokenizer
-/// synthesizes nothing and its parse fails on the same input, so this is how the
-/// two arrive at the same refusal.
-///
-/// A parenthesis inside a string, or one written as the escape `\(`, is a
-/// character rather than syntax and is skipped -- which the reference
-/// implementation's own counter does not do. Counting those too would refuse
-/// queries it accepts, and refusing too much is a divergence like any other.
-/// An unterminated string is unbalanced in its own right: it swallows the rest
-/// of the query, including whatever would have closed the parenthesis it sits
-/// in.
-fn has_balanced_parens(input: &str) -> bool {
-  scan_query_structure(input).parens_balanced
-}
-
 /// What one walk over the raw query text can answer.
 ///
 /// Both questions are asked before the query is parsed, and both have to be:
@@ -568,48 +563,47 @@ struct QueryStructure {
 }
 
 fn scan_query_structure(input: &str) -> QueryStructure {
-  let mut depth: i32 = 0;
+  let mut depth: usize = 0;
   let mut max_nesting_depth: usize = 0;
   let mut chars = input.chars();
 
-  while let Some(ch) = chars.next() {
+  // One exit rather than four. Every way this walk can decide the parentheses
+  // do not balance breaks out of the same loop with the depth seen so far,
+  // which is what the caller needs either way -- a query that is refused for
+  // its nesting is refused before the balance is consulted.
+  let parens_balanced = loop {
+    let Some(ch) = chars.next() else {
+      break depth == 0;
+    };
+
     match ch {
       // A backslash escapes whatever follows, including a quote or a paren.
       '\\' => {
         if chars.next().is_none() {
-          return QueryStructure {
-            parens_balanced: false,
-            max_nesting_depth,
-          };
+          break false;
         }
       },
       '"' | '\'' => {
         if !skip_string(&mut chars, ch) {
-          return QueryStructure {
-            parens_balanced: false,
-            max_nesting_depth,
-          };
+          break false;
         }
       },
       '(' => {
         depth += 1;
-        max_nesting_depth = max_nesting_depth.max(depth.unsigned_abs() as usize);
+        max_nesting_depth = max_nesting_depth.max(depth);
       },
-      ')' => {
-        depth -= 1;
-        if depth < 0 {
-          return QueryStructure {
-            parens_balanced: false,
-            max_nesting_depth,
-          };
-        }
+      // A close with nothing open is unbalanced, which `checked_sub` is how
+      // an unsigned depth says.
+      ')' => match depth.checked_sub(1) {
+        Some(remaining) => depth = remaining,
+        None => break false,
       },
       _ => {},
     }
-  }
+  };
 
   QueryStructure {
-    parens_balanced: depth == 0,
+    parens_balanced,
     max_nesting_depth,
   }
 }

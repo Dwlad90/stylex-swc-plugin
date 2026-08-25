@@ -151,8 +151,8 @@ fn parser_no_at_prefix_parses_just_query() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn has_balanced_parens_public_method_matches_private() {
-  // : MediaQuery::has_balanced_parens delegates to has_balanced_parens
+fn has_balanced_parens_accepts_a_closed_query_and_refuses_an_open_one() {
+  // : the public entry point reads the balance off one walk of the raw text
   assert!(MediaQuery::has_balanced_parens("(min-width: 300px)"));
   assert!(!MediaQuery::has_balanced_parens("(min-width: 300px"));
 }

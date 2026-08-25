@@ -117,6 +117,21 @@ fn map_key(key_value: &KeyValueProp, index: usize) -> String {
   }
 }
 
+/// One `@media` key at this level, with everything its rewrite needs.
+///
+/// These three travelled as parallel vectors indexed in lockstep, which is one
+/// off-by-one away from combining a key with another key's negations -- a
+/// mistake that would not fail to compile and would emit a plausible query.
+struct MediaEntry {
+  /// The authored key, exactly as it appears in the map.
+  key: String,
+  /// That key, parsed.
+  query: MediaQuery,
+  /// The queries declared after it, in declaration order. These are what the
+  /// rewrite negates, so that a later query wins.
+  later_queries: Vec<MediaQuery>,
+}
+
 /// Rewrite the `@media` keys of one object level so that a later query wins.
 ///
 /// The keys live in an insertion-ordered map rather than a list, because the
@@ -162,42 +177,42 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     entries.insert(map_key(&kv, index), kv);
   }
 
-  let media_keys: Vec<String> = entries
+  let media_keys = entries
     .keys()
     .filter(|key| is_media_key(key))
     .cloned()
-    .collect();
+    .collect::<Vec<_>>();
 
-  let mut parsed_media_queries = Vec::with_capacity(media_keys.len());
-  for media_key in &media_keys {
+  let mut media_entries: Vec<MediaEntry> = Vec::with_capacity(media_keys.len());
+  for key in media_keys {
     // Validated rather than merely parsed, because the tokenizer synthesizes a
     // closing parenthesis at end of input: `(min-width: 100px` parses cleanly
     // here and would reach the stylesheet as a query the author never wrote.
     // The reference implementation's tokenizer synthesizes nothing, so its
     // parse fails outright on the same input -- the balanced-parenthesis check
     // is how the two arrive at the same refusal.
-    match validate_media_query(media_key) {
-      Ok(media_query) => parsed_media_queries.push(media_query),
+    match validate_media_query(&key) {
+      Ok(query) => media_entries.push(MediaEntry {
+        key,
+        query,
+        later_queries: Vec::new(),
+      }),
       Err(_) => {
         // An unparseable query is a hard error, not something to pass through:
         // no later phase rejects it, so returning here emitted the broken query
         // verbatim into the stylesheet. The caller catches this and reports it
         // as invalid media query syntax.
-        stylex_panic!("Invalid media query: {}", media_key);
+        stylex_panic!("Invalid media query: {}", key);
       },
     }
   }
 
-  // For each key, the queries that follow it, in declaration order. Built once
-  // from the back so that the list of later queries grows by one per step
-  // instead of being re-collected per key.
-  let mut accumulated_negations = vec![Vec::new(); media_keys.len()];
+  // Filled from the back so that the run of later queries grows by one per
+  // step instead of being re-collected per entry.
   let mut later_queries = Vec::new();
-  for i in (0..media_keys.len()).rev() {
-    let mut in_order = later_queries.clone();
-    in_order.reverse();
-    accumulated_negations[i] = in_order;
-    later_queries.push(parsed_media_queries[i].clone());
+  for entry in media_entries.iter_mut().rev() {
+    entry.later_queries = later_queries.iter().rev().cloned().collect();
+    later_queries.push(entry.query.clone());
   }
 
   // `shift_remove` keeps the surviving entries in order, which is the whole
@@ -205,20 +220,17 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
   // number of properties at one level. That is the right trade at the sizes a
   // style object reaches; the expensive thing here is the expansion below, not
   // the bookkeeping.
-  for (i, media_key) in media_keys.iter().enumerate() {
+  for entry in media_entries {
     // The keys came from this map and nothing removes one but this line, so a
     // miss cannot happen. Skipping rather than asserting keeps a future caller
     // that finds a way from taking the process down over a key it could
     // simply leave alone.
-    let Some(current) = entries.shift_remove(media_key) else {
+    let Some(current) = entries.shift_remove(&entry.key) else {
       continue;
     };
 
-    // Taken rather than cloned: this entry is read once and dead afterwards.
-    let combined_query = combine_media_query_with_negations(
-      parsed_media_queries[i].clone(),
-      std::mem::take(&mut accumulated_negations[i]),
-    );
+    // Consumed rather than cloned: an entry is read once and dead afterwards.
+    let combined_query = combine_media_query_with_negations(entry.query, entry.later_queries);
     let new_media_key = combined_query.to_string();
 
     match entries.entry(new_media_key.clone()) {

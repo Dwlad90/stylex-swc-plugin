@@ -215,6 +215,23 @@
       }
     },
     {
+      "name": "Feature - media query order",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/media-query-order.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Feature - media query order off",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/media-query-order.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "enableMediaQueryOrder": false
+      }
+    },
+    {
       "name": "Feature - keyframes and animations",
       "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/keyframes-animations.js",
       "category": "perf",

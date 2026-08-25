@@ -55,6 +55,7 @@ export const BOOLEAN_OPTION_KEYS = [
   'enableFontSizePxToRem',
   'enableInlinedConditionalMerge',
   'enableLegacyValueFlipping',
+  'enableMediaQueryOrder',
   'useRealFileForSource',
   'runtimeInjection',
   'injectStylexSideEffects',

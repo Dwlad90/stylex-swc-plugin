@@ -33,8 +33,8 @@ describe('loadAllFixtures', () => {
   });
 
   test('loads the complete versioned registry', () => {
-    expect(fixtures).toHaveLength(59);
-    expect(new Set(fixtures.map(fixture => fixture.name)).size).toBe(59);
+    expect(fixtures).toHaveLength(61);
+    expect(new Set(fixtures.map(fixture => fixture.name)).size).toBe(61);
   });
 
   // The runner refuses to time a subject that produces no rules, so a
@@ -114,12 +114,16 @@ describe('loadAllFixtures', () => {
 
   // The assertion that makes a feature fixture worth having: the option shape it
   // declares has to change what the compiler emits. Seven entries did not when
-  // this was written -- `enableMediaQueryOrder`, `legacyDisableLayers`,
-  // `propertyValidationMode: throw` and `treeshakeCompensation: false` changed
-  // not one byte on any fixture in the corpus, and a `(dev)` twin of a token file
-  // emitted the same module as its production run. Each was reported as a
-  // measurement of a development feature and was a second measurement of the
-  // production shape.
+  // this was written -- `legacyDisableLayers`, `propertyValidationMode: throw`
+  // and `treeshakeCompensation: false` changed not one byte on any fixture in
+  // the corpus, and a `(dev)` twin of a token file emitted the same module as
+  // its production run. Each was reported as a measurement of a development
+  // feature and was a second measurement of the production shape.
+  //
+  // `enableMediaQueryOrder` was on that list too, and came off it: it was dead
+  // only because no fixture stacked enough conditions on one property for the
+  // exclusion rewrite to have anything to do. `media-query-order.js` is that
+  // fixture, and the option moves ~2 KB of CSS on it.
   //
   // Asserted against the real binding rather than against the option object,
   // because the question is what the compiler does with the option, not whether

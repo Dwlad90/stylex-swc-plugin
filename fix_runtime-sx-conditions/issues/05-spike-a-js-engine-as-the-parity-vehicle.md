@@ -326,3 +326,130 @@ consumer that carries a newer ICU elsewhere in its graph — and does not enable
 Moving boa's whole `intl` stack forward is a larger change (17 bounds, and it
 lands on icu 2.1 rather than 2.3) and is not needed for this. The patch is saved
 alongside this spike's other artifacts.
+
+## Comments
+
+### Code review, 2026-08-25 — `b0bb7c5dd...HEAD`
+
+Two axes, run as independent sub-agents over commits `46ff6b789` and
+`1899d2076`, reported separately and deliberately not merged or reranked.
+`vendor/boa/core/**` and `vendor/boa/utils/**` were excluded as unmodified
+upstream source; our own integration files were in scope.
+
+#### Standards
+
+**Documented-standard breaches**
+
+1. **`vendor/boa/` placement contradicts `guidelines/STRUCTURE.md` (hard).**
+   STRUCTURE.md, Rust Crates: third-party code is a crate *because* the boundary
+   is visible — "The workspace `members` glob only matches `crates/stylex-*`, so
+   it is listed explicitly in the root `Cargo.toml`. **Anything else vendored
+   belongs beside it on the same terms.**" This change instead adds
+   `exclude = ["vendor/boa"]` plus `[patch.crates-io]`. Whatever the merits (and
+   `vendor/boa/README.md` argues them well), STRUCTURE.md now states a rule the
+   repo no longer follows and is not updated in the diff. Either place it on
+   `postcss-value-parser`'s terms or amend STRUCTURE.md.
+2. **`vendor/boa/README.md` — our own markdown now exempt from lint.** CLAUDE.md
+   Quick Reference: "80 for markdown". Lines 30 and 60 exceed 80. The new
+   `lefthook.yml` `vendor/**` excludes are right for upstream source but also
+   silence the three files we authored there. Consider `vendor/boa/*.md` staying
+   in the markdown glob, or the README living at `docs/`.
+3. **`spike05-parity.ts` — broad object assertions.**
+   `guidelines/stack/TYPESCRIPT.md`, Coding Standards: "Do not use
+   double-casting … or broad object assertions … utilize type guards, type
+   predicates, or schemas". Two sites: `entry as [string, { ltr?: string } |
+   undefined]` and `(babelResult?.metadata as { stylex?: unknown[] })?.stylex`.
+   Soft for a throwaway harness, but `parity/lib/compilers.js` is shared and a
+   typed helper there would remove both.
+4. **`boa_fold.rs` has no tests.** `guidelines/stack/RUST.md`, Coverage: "100%
+   line coverage is enforced". Zero `#[cfg(test)]`, and `call_expression.rs` now
+   routes every method call through it. Acceptable for a measurement vehicle; a
+   hard blocker if kept.
+
+Clean on the rules most often missed: no `.unwrap()`/`.expect()`, no std
+`HashMap`, workspace dep used in `crates/stylex-transform/Cargo.toml`, all lines
+<= 100, commit types (`chore`/`build`) match `guidelines/git/CONVENTIONS.md`.
+
+**Baseline smells (judgement calls)**
+
+- **Duplicated Code** — `is_self_contained` and `free_identifiers_are_within`
+  are the same recursive `Expr` walk with overlapping arms
+  (`Expr::Lit(lit) => !matches!(lit, Lit::Regex(_))`, `Paren`, `Unary` all
+  repeated verbatim). One walk parameterised by how a bare `Ident` is judged
+  would collapse them.
+- **Mysterious Name** — `boa_fold`/`try_fold` name the vendor and the mechanism,
+  not the concept. `engine_fold` or `fold_by_evaluation` would survive a swap of
+  engine.
+- **Primitive Obsession** — `params: &[String]` built with
+  `ident.sym.to_string()` and compared by `contains`; `Atom` is the domain type
+  and avoids an allocation per identifier per compare.
+- **Divergent Change (mild)** — `crates/stylex-rs-compiler/parity/` gains a
+  harness that is not in `parity/README.md`'s "Where it runs" table nor any
+  script, so the directory's documented inventory is now incomplete.
+
+#### Spec
+
+**(a) Missing / partial**
+
+- *"Binary-size delta on each of the seven published targets."* Only 2 of 7
+  measured (§2). The shortfall **is** stated honestly ("They need a
+  `workflow_dispatch` run") with a reasoned extrapolation. But the ticket's
+  premise — *"all seven NAPI targets… keep cross-compiling"* — is left
+  unverified for musl and `aarch64-pc-windows-msvc`; §2 addresses size, never
+  buildability, and the answer doesn't flag that half as open.
+- *"`bench:budget` is seeded on `x86_64-unknown-linux-gnu`"* — not run there
+  (§3: "unseeded… has to run on x86_64-unknown-linux-gnu"). Honest, but the
+  release-gate half of requirement 2 is unanswered. `bench:verdict` passing is
+  also vacuous by the answer's own admission ("the engine is never
+  constructed"), which it says plainly.
+- Requirements 3 and 4 are answered with numbers and provenance.
+
+**(b) Scope creep**
+
+The ticket says *"Answer with numbers, on a throwaway branch"* and §Reproducing
+repeats *"Both are throwaway and this branch is not for merging."* Commit
+`1899d2076` is not throwaway: it vendors nine boa crates with
+`[patch.crates-io]`, and edits `NOTICE.md`, `deny.toml` (a RUSTSEC ignore),
+`lefthook.yml` + its snapshot, `.oxlintrc.jsonc`, `.oxfmtrc.json`, and the
+workspace `exclude`. Its Cargo.toml comment argues policy ("Patching is sound
+here rather than a workaround a published crate would have to apologise for"),
+which is an adoption decision, not a measurement. `boa_fold.rs` and
+`parity/spike05-parity.ts` are within a measurement vehicle; the repo-wide
+config and licence surface is not.
+
+06's *"Do not start it before 05 answers how"* is respected — no work on 06's
+boundaries appears — but 06's body was edited to carry 05's answer as a bespoke
+`## 05's answer` section rather than `## Comments` (tracker: "Comments and
+conversation history append to the bottom of the file under a `## Comments`
+heading").
+
+**(c) Implemented but wrong**
+
+1. **The Answer contradicts the diff.** §1: *"the choice is between three
+   things, and it is a person's to make"* — pin `=2.0.0`, relax upstream, or
+   depend on the fork — and *"Pick one of §1's three options before starting
+   06."* The branch picks an unlisted fourth (vendoring), and neither 05 nor 06
+   mentions the word "vendor" anywhere. The tracker now misdirects the human
+   decision it defers to; only `vendor/boa/README.md` records the actual choice.
+2. **Numbers' provenance is stale.** §1: *"Every number below comes from
+   `superui_boa_engine` 0.3.3"* (ICU 2.0 line). The vendored build resolves ICU
+   2.3 throughout, and §2's size and §3's timings were not re-measured on it.
+   §9 only re-ran the test suites, not the size or bench numbers.
+3. **A deliberate divergence is silently broken.** 06: *"Mutating methods keep
+   deopting… `is_mutating_array_method` already refuses them."* The hook in
+   `call_expression.rs:150` runs `boa_fold::try_fold` **before** everything, so
+   `["a","b"].sort().join("-")` now folds. §4/§6 never mention it — §6 accounts
+   for 7 failures as "06's stated goal arriving", so a boundary 06 holds
+   deliberately is reported as progress.
+4. Minor: the Answer's preamble says *"one lazily created engine reused for the
+   process"*; it is one per thread (§5 corrects it, the preamble doesn't).
+   `NOTICE.md` says *"Only two dependency bounds… are changed"*;
+   `vendor/boa/README.md` also narrows `members`.
+
+#### Summary
+
+Standards: 4 findings plus 4 judgement calls; worst is the STRUCTURE.md rule the
+vendoring contradicts without amending it. Spec: 7 findings; worst is (c)3 — the
+hook folds mutating array methods, which 06 refuses deliberately. Reproduced:
+`['opacity','color'].sort().join(', ')` emits `transition-property:color,opacity`
+and `['a','b'].push('c')` emits `z-index:3`.

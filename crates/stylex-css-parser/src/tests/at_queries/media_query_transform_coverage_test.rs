@@ -55,35 +55,35 @@ fn num_kv(key: f64, value: &str) -> KeyValueProp {
 }
 
 // ---------------------------------------------------------------------------
-// key_value_to_str — (PropName::Ident) and (_ arm)
+// key_value_str — (PropName::Ident) and (_ arm)
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
-mod key_value_to_str_coverage {
+mod key_value_str_coverage {
   use super::*;
 
-  /// Covers PropName::Ident branch of key_value_to_str.
+  /// Covers PropName::Ident branch of key_value_str.
   #[test]
   fn ident_key_returns_sym_string() {
     let kv = ident_kv("gridColumn", "1 / 2");
-    let result = key_value_to_str(&kv);
-    assert_eq!(result, "gridColumn");
+    assert_eq!(key_value_str(&kv), Some("gridColumn"));
   }
 
-  /// Covers _ arm of key_value_to_str (PropName::Num, which is neither Str nor Ident).
+  /// Covers the `_` arm of key_value_str (PropName::Num, which is neither Str
+  /// nor Ident). `None` rather than the empty string it used to stand for: the
+  /// caller maps both onto a positional key, so nothing downstream can tell the
+  /// two apart, and a name this pass cannot read now says so in its type.
   #[test]
-  fn numeric_key_returns_empty_string() {
+  fn numeric_key_returns_no_name() {
     let kv = num_kv(42.0, "value");
-    let result = key_value_to_str(&kv);
-    assert_eq!(result, "");
+    assert_eq!(key_value_str(&kv), None);
   }
 
   /// Covers the existing Str arm — ensures Str still works after the coverage tests run.
   #[test]
   fn str_key_returns_value_string() {
     let kv = str_kv("color", "red");
-    let result = key_value_to_str(&kv);
-    assert_eq!(result, "color");
+    assert_eq!(key_value_str(&kv), Some("color"));
   }
 }
 

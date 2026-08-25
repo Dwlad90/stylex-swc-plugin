@@ -519,6 +519,10 @@ impl MediaQuery {
   /// invalid-syntax error. An unterminated string is unbalanced in its own
   /// right: it swallows the rest of the query, including whatever would have
   /// closed the parenthesis it sits in.
+  ///
+  /// Kept as public API and as the name this check is asked for by. Inside the
+  /// crate `validate_media_query` reads the scan directly, because it wants the
+  /// nesting depth from the same walk.
   pub fn has_balanced_parens(input: &str) -> bool {
     scan_query_structure(input).parens_balanced
   }
@@ -930,17 +934,20 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
   let mut dimensions = new_dimension_intervals();
 
   // Handle DeMorgan's law: not (A and B) = (not A) or (not B)
-  for rule in &rules {
+  for (index, rule) in rules.iter().enumerate() {
     if let MediaQueryRule::Not(not_rule) = rule
       && let Some((left, right)) = as_binary_and(not_rule.rule.as_ref())
     {
-      // Each branch is every rule except the current one, plus one negated
-      // operand -- so it ends up exactly as long as `rules`, and is built at
-      // that capacity rather than grown into. This runs once per node of a
-      // 2^d expansion, so the reallocations it saves are not incidental.
+      // Each branch is every rule except this one, plus one negated operand --
+      // so it ends up exactly as long as `rules`, and is built at that capacity
+      // rather than grown into. This runs once per node of a 2^d expansion, so
+      // the reallocations it saves are not incidental. The current rule is left
+      // out by its position, which the loop already knows, rather than by
+      // comparing addresses inside the slice.
       let branch_without_current = |negated: &MediaQueryRule| {
         let mut branch = Vec::with_capacity(rules.len());
-        branch.extend(rules.iter().filter(|r| !std::ptr::eq(*r, rule)).cloned());
+        branch.extend_from_slice(&rules[..index]);
+        branch.extend_from_slice(&rules[index + 1..]);
         branch.push(MediaQueryRule::Not(MediaNotRule::new(negated.clone())));
         branch
       };

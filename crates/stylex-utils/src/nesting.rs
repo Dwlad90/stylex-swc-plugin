@@ -12,10 +12,15 @@
 /// same way everywhere instead of depending on which thread the compiler runs
 /// on.
 ///
-/// Sixty-four is set well below the observed cliff -- a 2 MiB thread, the
-/// smallest in play, survives past a hundred levels -- and far above real CSS,
-/// where the deepest value in the project's own corpus nests eight and an
-/// author writes one or two parentheses in a media query.
+/// Sixty-four is set well below the observed cliff, and the two syntaxes reach
+/// theirs in very different places: a 2 MiB thread, the smallest in play,
+/// survives past a hundred levels of *value* nesting, while media query
+/// parentheses reach two thousand in 10 ms and abort the process at five
+/// thousand. The budget is set against the tighter of the two on purpose, so
+/// that raising it for one syntax is visibly a decision about the other as
+/// well. Either way it is far above real CSS, where the deepest value in the
+/// project's own corpus nests eight and an author writes one or two parentheses
+/// in a media query.
 ///
 /// It lives here because two guards enforce it over different syntax: value
 /// nesting in `stylex-css` and media query parentheses in `stylex-css-parser`.

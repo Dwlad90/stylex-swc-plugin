@@ -21,12 +21,18 @@ use swc_core::{
   ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, Str},
 };
 
-/// Helper function to extract key as string from KeyValueProp
-fn key_value_to_str(key_value: &KeyValueProp) -> String {
+/// The property's key as text, when this pass can read it.
+///
+/// Borrowed rather than owned, because the media-key bail-out below asks this of
+/// every property of every style object the compiler sees and throws the answer
+/// away. Both readable key kinds already hold their text. `None` is a name this
+/// pass cannot read -- numeric, bigint, computed -- which is the same answer the
+/// empty string used to stand for, and costs nothing to give.
+fn key_value_str(key_value: &KeyValueProp) -> Option<&str> {
   match &key_value.key {
-    PropName::Str(s) => s.value.as_str().map(str::to_owned).unwrap_or_default(),
-    PropName::Ident(id) => id.sym.to_string(),
-    _ => String::new(),
+    PropName::Str(s) => s.value.as_str(),
+    PropName::Ident(id) => Some(id.sym.as_str()),
+    _ => None,
   }
 }
 
@@ -51,7 +57,8 @@ fn create_object_from_key_values(key_values: Vec<KeyValueProp>) -> ObjectLit {
 /// DFS traversal with depth tracking, mirroring the reference
 /// implementation's `dfsProcessQueries`.
 fn dfs_process_queries(obj: &[KeyValueProp], depth: u32) -> Vec<KeyValueProp> {
-  let mut result = Vec::new();
+  // Every arm of the loop below pushes exactly once, so the length is known.
+  let mut result = Vec::with_capacity(obj.len());
 
   for prop in obj {
     match &*prop.value {
@@ -120,7 +127,7 @@ fn dfs_process_queries(obj: &[KeyValueProp], depth: u32) -> Vec<KeyValueProp> {
 /// integer-like, so the rewrite this map exists for cannot reach the
 /// difference, and matching it would mean reproducing a rule of the language
 /// rather than of the transform.
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash)]
 enum PropertyKey {
   /// A name this pass can read, which is what an author wrote.
   Named(String),
@@ -140,15 +147,15 @@ impl PropertyKey {
 }
 
 fn property_key(key_value: &KeyValueProp, index: usize) -> PropertyKey {
-  match key_value_to_str(key_value) {
-    name if !name.is_empty() => PropertyKey::Named(name),
+  match key_value_str(key_value) {
+    Some(name) if !name.is_empty() => PropertyKey::Named(name.to_owned()),
     _ => PropertyKey::Positional(index),
   }
 }
 
 /// One `@media` key at this level, with everything its rewrite needs.
 ///
-/// These three travelled as parallel vectors indexed in lockstep, which is one
+/// These travelled as parallel vectors indexed in lockstep, which is one
 /// off-by-one away from combining a key with another key's negations -- a
 /// mistake that would not fail to compile and would emit a plausible query.
 struct MediaEntry {
@@ -156,9 +163,6 @@ struct MediaEntry {
   key: String,
   /// That key, parsed.
   query: MediaQuery,
-  /// The queries declared after it, in declaration order. These are what the
-  /// rewrite negates, so that a later query wins.
-  later_queries: Vec<MediaQuery>,
 }
 
 /// Rewrite the `@media` keys of one object level so that a later query wins.
@@ -166,8 +170,8 @@ struct MediaEntry {
 /// The keys live in an insertion-ordered map rather than a list, because the
 /// reference implementation's `dfsProcessQueries` holds them in a plain
 /// JavaScript object and rewrites each one with `delete result[old]` followed
-/// by `result[new] = value`. Three consequences follow from that pair, and all
-/// three are contract:
+/// by `result[new] = value`. Four consequences follow, and all four are
+/// contract:
 ///
 /// - deleting and re-adding moves a key to the end, so the rewritten media keys
 ///   end up after every other property, in their own declaration order
@@ -177,9 +181,15 @@ struct MediaEntry {
 /// - the value is read from the map at the moment its key is rewritten, not
 ///   collected beforehand, so an earlier rewrite that landed on a later key is
 ///   what that later key then carries
+/// - building the map is itself an assignment per property, so two properties
+///   an author wrote under one name collapse the same way, before any rewrite
+///   runs -- the first position, the last value. A duplicate key is legal
+///   JavaScript and an object keeps one of it; this keeps one of it too
 ///
-/// The second is the one an author notices: one of their declarations is absent
-/// from the output. That is faithful rather than accidental, and nothing is
+/// The second is the one an author notices, and the fourth looks like it from
+/// the outside: one of their declarations is absent from the output. The fourth
+/// is not a defect -- it is what the language does with a duplicate key, and
+/// upstream's object does it too. The second is. That is faithful rather than accidental, and nothing is
 /// reported for it, because the reference implementation reports nothing. It is
 /// a **ported upstream defect, not a design** -- see
 /// [ADR 0001](../../docs/adr/0001-the-official-compilers-output-wins.md). When
@@ -196,7 +206,10 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
 
   // Bail out before building the map so that a level with no media key is
   // handed back exactly as it arrived.
-  if !result.iter().any(|kv| is_media_key(&key_value_to_str(kv))) {
+  if !result
+    .iter()
+    .any(|kv| key_value_str(kv).is_some_and(is_media_key))
+  {
     return result;
   }
 
@@ -222,11 +235,7 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     // parse fails outright on the same input -- the balanced-parenthesis check
     // is how the two arrive at the same refusal.
     match validate_media_query(&key) {
-      Ok(query) => media_entries.push(MediaEntry {
-        key,
-        query,
-        later_queries: Vec::new(),
-      }),
+      Ok(query) => media_entries.push(MediaEntry { key, query }),
       Err(_) => {
         // An unparseable query is a hard error, not something to pass through:
         // no later phase rejects it, so returning here emitted the broken query
@@ -237,20 +246,22 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     }
   }
 
-  // Filled from the back so that the run of later queries grows by one per
-  // step instead of being re-collected per entry.
-  let mut later_queries = Vec::new();
-  for entry in media_entries.iter_mut().rev() {
-    entry.later_queries = later_queries.iter().rev().cloned().collect();
-    later_queries.push(entry.query.clone());
-  }
+  // What each key negates is the run of queries declared after it, so the runs
+  // are the suffixes of one list. Held as that list and sliced where it is
+  // consumed rather than materialized per entry: the combined query embeds its
+  // negations by value, so the same number of clones is paid either way, but
+  // only one entry's suffix is alive at a time instead of all of them at once.
+  let declared_queries: Vec<MediaQuery> = media_entries
+    .iter()
+    .map(|entry| entry.query.clone())
+    .collect();
 
   // `shift_remove` keeps the surviving entries in order, which is the whole
   // point, and costs a shift each time -- so this loop is quadratic in the
   // number of properties at one level. That is the right trade at the sizes a
   // style object reaches; the expensive thing here is the expansion below, not
   // the bookkeeping.
-  for entry in media_entries {
+  for (index, entry) in media_entries.into_iter().enumerate() {
     // Every key here came from this map and this line is the only thing that
     // removes one, so the lookup cannot miss. The rewrite is computed through
     // the option rather than branched on, so the impossible case needs no arm
@@ -264,12 +275,19 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
       .map(|current| {
         // Consumed rather than cloned: an entry is read once and dead
         // afterwards.
-        let combined_query = combine_media_query_with_negations(entry.query, entry.later_queries);
+        let later_queries = declared_queries[index + 1..].to_vec();
+        let combined_query = combine_media_query_with_negations(entry.query, later_queries);
         (combined_query.to_string(), current.value)
       });
 
-    for (new_media_key, value) in rewritten.into_iter() {
-      match entries.entry(PropertyKey::Named(new_media_key.clone())) {
+    if let Some((new_media_key, value)) = rewritten {
+      // The atom is taken off the text before the key is moved into the map, so
+      // the rewritten name is copied once rather than twice. On a distributed
+      // ladder one of these names is hundreds of kilobytes, which is not a copy
+      // to make for nothing.
+      let key_atom = Wtf8Atom::from(new_media_key.as_str());
+
+      match entries.entry(PropertyKey::Named(new_media_key)) {
         // The key is already there: it keeps its position and takes this value,
         // and the declaration that put it there is gone from the output.
         IndexMapEntry::Occupied(mut occupied) => occupied.get_mut().value = value,
@@ -277,7 +295,7 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
           vacant.insert(KeyValueProp {
             key: PropName::Str(Str {
               span: DUMMY_SP,
-              value: Wtf8Atom::from(new_media_key),
+              value: key_atom,
               raw: None,
             }),
             value,

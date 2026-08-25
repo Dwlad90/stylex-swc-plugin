@@ -3120,7 +3120,7 @@
       "id": "7826e219",
       "property": "margin",
       "value": "2px",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/media_query_canonicalization.rs:235"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/media_query_canonicalization.rs:251"
     },
     {
       "id": "6b45c8fd",
@@ -3288,7 +3288,7 @@
       "id": "5c11000b",
       "property": "padding",
       "value": "10px",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/media_query_canonicalization.rs:235"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/media_query_canonicalization.rs:251"
     },
     {
       "id": "f5c9180d",

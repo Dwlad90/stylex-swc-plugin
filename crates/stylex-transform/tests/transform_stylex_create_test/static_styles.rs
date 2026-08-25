@@ -802,7 +802,7 @@ stylex_test!(
 );
 
 stylex_test!(
-  media_queries_without_last_query_wins_v2,
+  media_queries_with_last_query_wins_over_a_media_type,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_enable_media_query_order(true)
       .with_runtime_injection()

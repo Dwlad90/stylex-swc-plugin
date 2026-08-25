@@ -202,10 +202,25 @@ where
 /// asking under different options.
 #[allow(dead_code)]
 pub(crate) fn theme_import_transform(comments: TestComments) -> impl Pass {
-  build_test_transform(comments, |b| {
-    b.with_filename(FileName::Real("MyComponent.js".into()))
-      .with_unstable_module_resolution(ModuleResolution::haste(None))
-      .with_runtime_injection()
+  theme_import_transform_with(comments, |b| b)
+}
+
+/// The theme-import transform with one further option applied.
+///
+/// For a case that needs the same module resolution and runtime injection but
+/// differs in one setting -- media query ordering, say -- so that the shared
+/// half stays in one place and the difference is the only thing the test says.
+#[allow(dead_code)]
+pub(crate) fn theme_import_transform_with<F>(comments: TestComments, customize: F) -> impl Pass
+where
+  F: FnOnce(TestBuilder) -> TestBuilder,
+{
+  build_test_transform(comments, move |b| {
+    customize(
+      b.with_filename(FileName::Real("MyComponent.js".into()))
+        .with_unstable_module_resolution(ModuleResolution::haste(None))
+        .with_runtime_injection(),
+    )
   })
 }
 

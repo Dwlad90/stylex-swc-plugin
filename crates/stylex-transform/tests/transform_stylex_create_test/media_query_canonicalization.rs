@@ -106,6 +106,22 @@ const LADDER_CODE: &str = r#"
     });
   "#;
 
+// The same ladder with ordering turned off, which is the documented way out of
+// all of this: no rung is rewritten, so no contradictory branch is built and
+// no wrapper appears. The authored spelling is what gets hashed.
+//
+// Asserted over the reported ladder rather than a two-query input, because
+// opting out is only worth anything on the shape that would otherwise grow a
+// wrapper -- a small input cannot tell a working opt-out from a rewrite that
+// happened to be a no-op.
+stylex_test!(
+  a_disjoint_breakpoint_ladder_opted_out_hashes_the_authored_spelling,
+  |tr| theme_import_transform_with(tr.comments.clone(), |b| {
+    b.with_enable_media_query_order(false)
+  }),
+  LADDER_CODE
+);
+
 stylex_test_transform!(
   a_disjoint_breakpoint_ladder_keeps_its_contradictory_branches,
   |tr| theme_import_transform(tr.comments.clone()),

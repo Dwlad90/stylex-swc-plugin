@@ -9,6 +9,7 @@ fn make_token_list(tokens: Vec<SimpleToken>) -> TokenList {
   TokenList {
     tokens,
     current_index: 0,
+    depth: 0,
   }
 }
 

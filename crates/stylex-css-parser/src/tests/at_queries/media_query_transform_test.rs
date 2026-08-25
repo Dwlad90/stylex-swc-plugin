@@ -1794,6 +1794,57 @@ mod malformed_queries {
     );
     assert!(refuses_query(&far_past));
   }
+
+  /// A chain of `not` keywords is refused, and it is refused by the budget
+  /// rather than by luck.
+  ///
+  /// This is the nesting that costs no parenthesis: the operand of a bare `not`
+  /// is a whole rule, so `not not (…)` recurses once per keyword while a scan
+  /// for parentheses sees depth one. Before the parser charged its own frames,
+  /// twenty thousand of these took the process down with a segfault and no
+  /// diagnostic -- a stack overflow is not unwindable, so neither
+  /// `catch_unwind` around compilation ever saw it.
+  #[test]
+  fn a_chain_of_not_keywords_is_refused_by_the_budget() {
+    let past = format!("@media {}(min-width: 1px)", "not ".repeat(64));
+    assert!(refuses_query(&past));
+
+    let far_past = format!("@media {}(min-width: 1px)", "not ".repeat(20_000));
+    assert!(refuses_query(&far_past));
+  }
+
+  /// The escaped spelling costs the same frame as the plain one.
+  ///
+  /// `n\6ft` is decoded by the tokenizer to `Ident("not")` and recurses
+  /// identically, so a guard that read the raw text would have to
+  /// over-approximate every escape to catch it. Charging the frame where it is
+  /// entered needs to know nothing about how the keyword was spelled.
+  #[test]
+  fn an_escaped_not_chain_is_refused_like_a_plain_one() {
+    let past = format!("@media {}(min-width: 1px)", "n\\6ft ".repeat(64));
+
+    assert!(refuses_query(&past));
+  }
+
+  /// A *wide* run of negations is not a deep one, and stays accepted.
+  ///
+  /// `(not (a)) and (not (b)) and …` is parsed by a loop rather than by
+  /// recursion, so each negation costs its own frame and releases it before the
+  /// next is read -- the run is one level deep however long it gets. This is
+  /// the case a guard that counted `not` keywords in the raw text would have
+  /// refused, having no way to tell a run from a chain.
+  ///
+  /// The negations are parenthesized because a bare `not` combined with `and`
+  /// is refused for its own reasons, matching the reference implementation.
+  #[test]
+  fn a_wide_run_of_negations_is_not_a_deep_one() {
+    let clauses = (0..80)
+      .map(|index| format!("(not (min-width: {}px))", index + 1))
+      .collect::<Vec<_>>()
+      .join(" and ");
+
+    assert!(!refuses_query(&format!("@media {clauses}")));
+  }
 }
 
 /// Queries that look wrong and are not.

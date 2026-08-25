@@ -361,9 +361,12 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
 }
 
 /// A list of CSS tokens with parsing state
+#[derive(Default)]
 pub struct TokenList {
   pub tokens: Vec<SimpleToken>, // Made public for debugging
   pub current_index: usize,
+  /// Parser frames open on the current path. See [`TokenList::with_depth`].
+  pub(crate) depth: usize,
 }
 
 impl TokenList {
@@ -372,7 +375,53 @@ impl TokenList {
     Self {
       tokens: tokenize_all(input),
       current_index: 0,
+      depth: 0,
     }
+  }
+
+  /// Run `parse` one frame deeper, refusing to descend past the compiler's
+  /// nesting budget.
+  ///
+  /// Counted here, where a frame is entered, rather than off the raw text,
+  /// because not every frame costs a parenthesis: a parser that recurses for
+  /// its operand -- `not X`, whose operand is a whole rule -- grows the stack
+  /// with nothing for a text scan to count. Counting the frames themselves also
+  /// cannot be bypassed by a spelling, where a scan over undecoded text would
+  /// have to over-approximate: `n\6ft` tokenizes as `Ident("not")` and recurses
+  /// exactly like `not`.
+  ///
+  /// The budget matters because past it the process **aborts** rather than
+  /// panicking -- a stack overflow is not unwindable, so the `catch_unwind`
+  /// around compilation never sees it and no diagnostic is ever produced. The
+  /// refusal is an ordinary parse error instead, which the caller turns into
+  /// invalid-syntax.
+  ///
+  /// The frame is released on the way out whether `parse` succeeded or not, so
+  /// an alternative that fails deep inside `one_of` does not leave the budget
+  /// spent for the alternatives tried after it.
+  pub(crate) fn with_depth<T, F>(&mut self, parse: F) -> CssResult<T>
+  where
+    F: FnOnce(&mut Self) -> CssResult<T>,
+  {
+    // `depth + 1` rather than `depth`, because the budget counts nesting levels
+    // and this counts the frames between them: the innermost level recurses
+    // into nothing, so a query nesting N levels of parentheses charges N-1
+    // frames. Comparing the level keeps the budget the one the docs and the
+    // tests state -- sixty-four levels accepted, sixty-five refused.
+    if self.depth + 1 >= stylex_utils::nesting::MAX_NESTING_DEPTH {
+      return Err(crate::CssParseError::ParseError {
+        message: format!(
+          "Nesting is deeper than the {} levels the compiler parses",
+          stylex_utils::nesting::MAX_NESTING_DEPTH
+        ),
+      });
+    }
+
+    self.depth += 1;
+    let result = parse(self);
+    self.depth -= 1;
+
+    result
   }
 
   /// Consume the next token

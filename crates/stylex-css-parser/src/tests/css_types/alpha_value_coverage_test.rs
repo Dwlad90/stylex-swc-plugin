@@ -48,6 +48,7 @@ fn an_alpha_token_at_end_of_input_is_refused() {
   let mut tokens = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(parse_alpha_token(&mut tokens).is_err());
 }
@@ -69,6 +70,7 @@ fn an_alpha_outside_the_unit_range_is_carried_through() {
     let mut tokens = TokenList {
       tokens: vec![token.clone()],
       current_index: 0,
+      depth: 0,
     };
     match parse_alpha_token(&mut tokens) {
       Ok(alpha) => assert_eq!(alpha, expected, "for {token:?}"),
@@ -82,6 +84,7 @@ fn a_token_that_is_not_a_number_or_a_percentage_is_refused() {
   let mut tokens = TokenList {
     tokens: vec![SimpleToken::Ident("none".to_string())],
     current_index: 0,
+    depth: 0,
   };
   assert!(parse_alpha_token(&mut tokens).is_err());
 }
@@ -97,6 +100,7 @@ fn an_alpha_is_read_at_full_width() {
     let mut tokens = TokenList {
       tokens: vec![token.clone()],
       current_index: 0,
+      depth: 0,
     };
     match parse_alpha_token(&mut tokens) {
       Ok(alpha) => assert_eq!(alpha, expected, "for {token:?}"),

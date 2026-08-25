@@ -1898,6 +1898,7 @@ fn token_list_from(tokens: Vec<SimpleToken>) -> crate::token_types::TokenList {
   crate::token_types::TokenList {
     tokens,
     current_index: 0,
+    depth: 0,
   }
 }
 

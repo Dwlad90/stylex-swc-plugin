@@ -499,26 +499,38 @@ impl MediaQuery {
   ///
   /// A parenthesis inside a string, or one written as the escape `\(`, is a
   /// character rather than syntax and is skipped -- which the reference
-  /// implementation's own counter does not do. Counting those too would refuse
-  /// queries it accepts, and refusing too much is a divergence like any other.
-  /// An unterminated string is unbalanced in its own right: it swallows the
-  /// rest of the query, including whatever would have closed the parenthesis it
-  /// sits in.
+  /// implementation's own counter does not do. That makes this scanner *more*
+  /// permissive than upstream's, not less: upstream counts every parenthesis
+  /// and so refuses `(foo: "(")`, where this reaches the parser. It is inert in
+  /// practice, because the tokenizer handles neither strings nor escapes, so
+  /// such a query fails the parse instead and both refusals become the same
+  /// invalid-syntax error. An unterminated string is unbalanced in its own
+  /// right: it swallows the rest of the query, including whatever would have
+  /// closed the parenthesis it sits in.
   pub fn has_balanced_parens(input: &str) -> bool {
     scan_query_structure(input).parens_balanced
   }
 }
 
-/// How deeply a media query may nest parentheses before it is rejected.
+/// How deeply a media query may nest before it is rejected.
 ///
 /// The number and the reasoning behind it are
 /// [`stylex_utils::nesting::MAX_NESTING_DEPTH`], shared with the value guard in
 /// `stylex-css` because both enforce one decision about this compiler's stack.
-/// Measured for this syntax specifically: two thousand levels take 10 ms and
-/// five thousand abort the process.
+/// Measured for this syntax specifically: two thousand levels of parentheses
+/// take 10 ms and five thousand abort the process.
 const MAX_QUERY_NESTING_DEPTH: usize = stylex_utils::nesting::MAX_NESTING_DEPTH;
 
 /// Validate media query string
+///
+/// Two guards enforce the one nesting budget, because there are two recursions
+/// and neither guard can see the other's. The scan below bounds the
+/// **tokenizer**, which recurses once per nested block while building the token
+/// list -- so it has to run before tokenizing, and a counter inside the parser
+/// is reached too late to help. [`TokenList::with_depth`] bounds the **parser**,
+/// which recurses for frames no parenthesis pays for: the operand of a bare
+/// `not` is a whole rule, so a chain of them grows the stack with nothing for a
+/// text scan to count.
 pub fn validate_media_query(input: &str) -> Result<MediaQuery, String> {
   let structure = scan_query_structure(input);
 
@@ -526,8 +538,8 @@ pub fn validate_media_query(input: &str) -> Result<MediaQuery, String> {
     return Err(crate::at_queries::messages::MediaQueryErrors::UNBALANCED_PARENS.to_string());
   }
 
-  // Before the parse rather than during it: the parse is what would abort.
-  if structure.max_nesting_depth > MAX_QUERY_NESTING_DEPTH {
+  // Before the parse rather than during it: tokenizing is what would abort.
+  if structure.max_paren_depth > MAX_QUERY_NESTING_DEPTH {
     return Err(crate::at_queries::messages::MediaQueryErrors::SYNTAX_ERROR.to_string());
   }
 
@@ -539,27 +551,27 @@ pub fn validate_media_query(input: &str) -> Result<MediaQuery, String> {
 
 /// What one walk over the raw query text can answer.
 ///
-/// Both questions are asked before the query is parsed, and both have to be:
+/// Both questions are asked before the query is tokenized, and both have to be:
 /// an unbalanced parenthesis is a query the tokenizer would silently close, and
-/// nesting past the budget is a parse that would abort the process. One walk
+/// parentheses nested past the budget are what the *tokenizer* aborts on, since
+/// it recurses once per nested block while building the token list. One walk
 /// answers both rather than two that could disagree about where a string ends.
 struct QueryStructure {
   /// Every parenthesis that is syntax closes, and none closes too early.
   parens_balanced: bool,
   /// The deepest the query nests parentheses, counted outside strings and
-  /// escapes. See [`MAX_QUERY_NESTING_DEPTH`].
-  max_nesting_depth: usize,
+  /// escapes.
+  max_paren_depth: usize,
 }
 
 fn scan_query_structure(input: &str) -> QueryStructure {
   let mut depth: usize = 0;
-  let mut max_nesting_depth: usize = 0;
+  let mut max_paren_depth: usize = 0;
   let mut chars = input.chars();
 
   // One exit rather than four. Every way this walk can decide the parentheses
   // do not balance breaks out of the same loop with the depth seen so far,
-  // which is what the caller needs either way -- a query that is refused for
-  // its nesting is refused before the balance is consulted.
+  // which is what the caller needs either way.
   let parens_balanced = loop {
     let Some(ch) = chars.next() else {
       break depth == 0;
@@ -579,7 +591,7 @@ fn scan_query_structure(input: &str) -> QueryStructure {
       },
       '(' => {
         depth += 1;
-        max_nesting_depth = max_nesting_depth.max(depth);
+        max_paren_depth = max_paren_depth.max(depth);
       },
       // A close with nothing open is unbalanced, which `checked_sub` is how
       // an unsigned depth says.
@@ -593,7 +605,7 @@ fn scan_query_structure(input: &str) -> QueryStructure {
 
   QueryStructure {
     parens_balanced,
-    max_nesting_depth,
+    max_paren_depth,
   }
 }
 
@@ -1870,8 +1882,13 @@ fn leading_not_parser() -> TokenParser<MediaQueryRule> {
         });
       }
 
-      // Parse the rule that follows "not" using normal rule parser
-      let inner_rule = (normal_rule_parser().run)(tokens)?;
+      // Parse the rule that follows "not" using normal rule parser.
+      //
+      // Through the depth budget, because this is the recursion no parenthesis
+      // pays for: the operand of a bare `not` is a whole rule, which may be
+      // another bare `not`. A chain of them grows the stack once per keyword
+      // while a scan for parentheses sees none of it.
+      let inner_rule = tokens.with_depth(|tokens| (normal_rule_parser().run)(tokens))?;
       Ok(MediaQueryRule::Not(MediaNotRule::new(inner_rule)))
     },
     "leading_not_parser",
@@ -1912,7 +1929,7 @@ fn parenthesized_not_parser() -> TokenParser<MediaQueryRule> {
             }
 
             // Parse the rule after "not" using the normal rule parser
-            let inner_rule = (normal_rule_parser().run)(tokens)?;
+            let inner_rule = tokens.with_depth(|tokens| (normal_rule_parser().run)(tokens))?;
 
             // Skip optional whitespace before closing
             skip_whitespace(tokens);
@@ -2260,7 +2277,7 @@ fn parenthesized_expression_parser() -> TokenParser<MediaQueryRule> {
         // reference implementation accepts and CSS defines, and reading only
         // `and` here refused it. Comma stops at the parenthesis, which is why
         // this is not the comma parser.
-        let inner_expression = (or_combinator_parser().run)(tokens)?;
+        let inner_expression = tokens.with_depth(|tokens| (or_combinator_parser().run)(tokens))?;
 
         // Skip optional whitespace before closing
         skip_whitespace(tokens);

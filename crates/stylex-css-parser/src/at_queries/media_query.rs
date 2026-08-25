@@ -511,19 +511,12 @@ impl MediaQuery {
 
 /// How deeply a media query may nest parentheses before it is rejected.
 ///
-/// Parsing and normalizing each recurse once per level, and neither carries a
-/// limit of its own. Past the point where the stack runs out the process
-/// **aborts** rather than panicking -- a stack overflow is not unwindable, so
-/// the `catch_unwind` around compilation never sees it and no diagnostic is
-/// ever produced. Measured on this machine, two thousand levels take 10 ms and
-/// five thousand abort.
-///
-/// Sixty-four is the same number, for the same reason, as
-/// `MAX_VALUE_NESTING_DEPTH` in `stylex-css`: stated here rather than left to
-/// whatever stack the host provides, so the same source compiles the same way
-/// everywhere, set well below the observed cliff, and far above real CSS. An
-/// author writes one or two.
-const MAX_QUERY_NESTING_DEPTH: usize = 64;
+/// The number and the reasoning behind it are
+/// [`stylex_utils::nesting::MAX_NESTING_DEPTH`], shared with the value guard in
+/// `stylex-css` because both enforce one decision about this compiler's stack.
+/// Measured for this syntax specifically: two thousand levels take 10 ms and
+/// five thousand abort the process.
+const MAX_QUERY_NESTING_DEPTH: usize = stylex_utils::nesting::MAX_NESTING_DEPTH;
 
 /// Validate media query string
 pub fn validate_media_query(input: &str) -> Result<MediaQuery, String> {
@@ -813,16 +806,25 @@ fn distribution_depth(rules: &[MediaQueryRule]) -> u32 {
 /// walk is as deep as the tree, and no deeper than `normalize`'s own walk over
 /// the same tree, which runs first.
 fn negation_depth(operand: &MediaQueryRule) -> u32 {
-  match operand {
-    MediaQueryRule::And(and_rules) if and_rules.rules.len() == 2 => {
-      1 + and_rules
-        .rules
-        .iter()
-        .map(negation_depth)
-        .max()
-        .unwrap_or(0)
+  match as_binary_and(operand) {
+    Some((left, right)) => 1 + negation_depth(left).max(negation_depth(right)),
+    None => 0,
+  }
+}
+
+/// The two operands of an `and` of exactly two, or `None` for anything else.
+///
+/// This is the one shape distribution acts on: DeMorgan splits it into two
+/// branches, and the depth walk counts one split for it. Both readers ask the
+/// same question, so they ask it in one place -- a second spelling of "an `and`
+/// of exactly two" is a second thing to keep in step with the first.
+fn as_binary_and(rule: &MediaQueryRule) -> Option<(&MediaQueryRule, &MediaQueryRule)> {
+  match rule {
+    MediaQueryRule::And(and_rules) => match and_rules.rules.as_slice() {
+      [left, right] => Some((left, right)),
+      _ => None,
     },
-    _ => 0,
+    _ => None,
   }
 }
 
@@ -882,12 +884,8 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
   // Handle DeMorgan's law: not (A and B) = (not A) or (not B)
   for rule in &rules {
     if let MediaQueryRule::Not(not_rule) = rule
-      && let MediaQueryRule::And(and_rules) = not_rule.rule.as_ref()
-      && and_rules.rules.len() == 2
+      && let Some((left, right)) = as_binary_and(not_rule.rule.as_ref())
     {
-      let left = &and_rules.rules[0];
-      let right = &and_rules.rules[1];
-
       // Each branch is every rule except the current one, plus one negated
       // operand -- so it ends up exactly as long as `rules`, and is built at
       // that capacity rather than grown into. This runs once per node of a
@@ -2016,8 +2014,7 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
       // Read once from the first list: past the guards below, both are false
       // for every operand, because an operand that made either true returned.
       let first = parse_and_list(tokens)?;
-      let joined_by_and = first.joined_by_and;
-      let is_bare_negation = first.is_bare_negation;
+      let first_combinability = first.combinability;
       rules.push(first.rule);
 
       // Parse additional OR rules. A comma is a disjunction too, but it binds
@@ -2032,27 +2029,16 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
         if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
           && keyword == "or"
         {
-          // CSS lets one condition take `and`s or `or`s, never both:
-          // `<media-in-parens> [ <media-and>* | <media-or>* ]`. Accepting a mix
-          // would mean inventing a precedence the language does not define, and
-          // emitting a query that means something the author did not write.
-          if joined_by_and {
-            return Err(uncombinable(MIXED_COMBINATORS));
-          }
-          if is_bare_negation {
-            return Err(uncombinable(COMBINED_NEGATION));
-          }
+          // Both sides of the disjunction have to be spellings CSS defines,
+          // and the left one is only judged now: `(a) and (b)` on its own is a
+          // fine condition, and only becomes uncombinable once an `or` follows.
+          first_combinability.refuse_as_or_operand()?;
 
           let _ = tokens.consume_next_token(); // consume "or"
           skip_whitespace(tokens);
 
           let operand = parse_and_list(tokens)?;
-          if operand.joined_by_and {
-            return Err(uncombinable(MIXED_COMBINATORS));
-          }
-          if operand.is_bare_negation {
-            return Err(uncombinable(COMBINED_NEGATION));
-          }
+          operand.combinability.refuse_as_or_operand()?;
 
           rules.push(operand.rule);
           continue;
@@ -2081,12 +2067,46 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
 /// only the parse knows it saw.
 struct AndList {
   rule: MediaQueryRule,
+  combinability: Combinability,
+}
+
+/// The two unparenthesized spellings CSS restricts.
+///
+/// Kept together, and kept `Copy`, because they are always asked about together
+/// and because the answer has to outlive the rule being moved out of the list
+/// that carried them.
+#[derive(Clone, Copy)]
+struct Combinability {
   /// An `and` keyword joined this list, with no parentheses around it.
   joined_by_and: bool,
   /// The list is a bare `not <media-in-parens>`. CSS makes that the whole
   /// condition -- `<media-condition> = <media-not> | ...` -- so nothing may be
   /// combined with it at this level.
   is_bare_negation: bool,
+}
+
+impl Combinability {
+  /// Refuse a list CSS does not let stand as an operand of an `or`.
+  ///
+  /// One condition takes `and`s or `or`s and never both --
+  /// `<media-in-parens> [ <media-and>* | <media-or>* ]` -- and a bare `not` is
+  /// the whole condition rather than an operand in one. Accepting either would
+  /// mean inventing a precedence the language does not define, and emitting a
+  /// query that means something the author did not write.
+  ///
+  /// Asked of every operand of a disjunction, the first one included, which is
+  /// why it is one function rather than the same pair of tests written twice.
+  fn refuse_as_or_operand(self) -> Result<(), CssParseError> {
+    if self.joined_by_and {
+      return Err(uncombinable(MIXED_COMBINATORS));
+    }
+
+    if self.is_bare_negation {
+      return Err(uncombinable(COMBINED_NEGATION));
+    }
+
+    Ok(())
+  }
 }
 
 /// Whether the next thing in the stream is a bare `not` keyword.
@@ -2170,8 +2190,10 @@ fn parse_and_list(tokens: &mut TokenList) -> Result<AndList, CssParseError> {
     rule: collapse_single_rule(rules, |rules| {
       MediaQueryRule::And(MediaAndRules::new(rules))
     }),
-    joined_by_and,
-    is_bare_negation,
+    combinability: Combinability {
+      joined_by_and,
+      is_bare_negation,
+    },
   })
 }
 

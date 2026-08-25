@@ -201,6 +201,8 @@ is linear in time and still recursive in stack, and five thousand levels aborted
 the process — a stack overflow is not unwindable, so nothing downstream could
 have turned it into a diagnostic. The depth is counted before the parse, by the
 same walk over the raw text that checks the balance, because the parse is what
-would abort. Sixty-four is the same number and the same reasoning as
-`MAX_VALUE_NESTING_DEPTH` in `stylex-css`, which guards the identical exposure
-for values.
+would abort. Sixty-four is `stylex_utils::nesting::MAX_NESTING_DEPTH`, shared with the value
+guard in `stylex-css`, which faces the identical exposure. The two scans differ
+-- one steps over comments and `url()` bodies, this one reports whether the
+parentheses balance -- but the budget is one decision about the stack, so it is
+stated once.

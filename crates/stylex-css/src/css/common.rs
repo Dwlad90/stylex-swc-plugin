@@ -495,19 +495,13 @@ struct ValueStructure {
 
 /// How deeply a value may nest functions before it is rejected.
 ///
-/// Parsing and normalizing a value each recurse once per nesting level, and
-/// neither carries a depth limit of its own. Past the point where the stack
-/// runs out the process **aborts** rather than panicking — a stack overflow is
-/// not unwindable, so the `catch_unwind` around compilation never sees it and
-/// no diagnostic is ever produced.
-///
-/// The limit is stated here rather than left to whatever stack the host
-/// happens to provide, so that the same source compiles the same way
-/// everywhere instead of depending on which thread the compiler runs on. It is
-/// set well below the observed cliff — a 2 MiB thread, the smallest in play,
-/// survives past a hundred levels — and far above real CSS, where the deepest
-/// value in the project's own corpus nests eight.
-pub(crate) const MAX_VALUE_NESTING_DEPTH: usize = 64;
+/// The number and the reasoning behind it are
+/// [`stylex_utils::nesting::MAX_NESTING_DEPTH`], shared with the media query
+/// guard in `stylex-css-parser` because both enforce one decision about this
+/// compiler's stack. What is local to values is where the depth comes from: the
+/// scan below steps over comments and `url()` bodies before it counts a
+/// parenthesis.
+pub(crate) const MAX_VALUE_NESTING_DEPTH: usize = stylex_utils::nesting::MAX_NESTING_DEPTH;
 
 /// Whether `css_property_value` nests deeper than the compiler's budget.
 ///

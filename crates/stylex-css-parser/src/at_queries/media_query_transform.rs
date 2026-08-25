@@ -106,15 +106,43 @@ fn dfs_process_queries(obj: &[KeyValueProp], depth: u32) -> Vec<KeyValueProp> {
 /// What identifies a property inside one object level.
 ///
 /// The rewritten keys are held in a map, so this has to tell two properties
-/// apart as reliably as a JavaScript object's own key does. A name the renderer
-/// cannot spell -- numeric, bigint, computed -- comes back empty, and letting
-/// every one of those share the empty string would merge properties that are
-/// genuinely distinct. They get a key built from their position instead, with a
-/// NUL byte in front so nothing an author could write can reach it.
-fn map_key(key_value: &KeyValueProp, index: usize) -> String {
+/// apart the way a JavaScript object's own key does. A name this pass cannot
+/// read -- numeric, bigint, computed -- has no text to key on, and letting every
+/// one of those share the empty string would merge properties that are
+/// genuinely distinct; they are identified by where they sit instead. Two
+/// variants rather than one string with a reserved prefix, so that "a position
+/// can never collide with something an author wrote" holds by construction
+/// rather than by nothing else ever using a NUL byte.
+///
+/// One respect in which this is *not* a JavaScript object: an object enumerates
+/// integer-like keys first and in ascending order, whatever the source order,
+/// while this keeps every key where it was written. No `@media` key is
+/// integer-like, so the rewrite this map exists for cannot reach the
+/// difference, and matching it would mean reproducing a rule of the language
+/// rather than of the transform.
+#[derive(Clone, PartialEq, Eq, Hash)]
+enum PropertyKey {
+  /// A name this pass can read, which is what an author wrote.
+  Named(String),
+  /// A property whose name this pass cannot read, identified by its position so
+  /// that two of them stay distinct.
+  Positional(usize),
+}
+
+impl PropertyKey {
+  /// The property's name, when it has one this pass can read.
+  fn name(&self) -> Option<&str> {
+    match self {
+      PropertyKey::Named(name) => Some(name),
+      PropertyKey::Positional(_) => None,
+    }
+  }
+}
+
+fn property_key(key_value: &KeyValueProp, index: usize) -> PropertyKey {
   match key_value_to_str(key_value) {
-    name if !name.is_empty() => name,
-    _ => format!("\0{index}"),
+    name if !name.is_empty() => PropertyKey::Named(name),
+    _ => PropertyKey::Positional(index),
   }
 }
 
@@ -172,16 +200,17 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     return result;
   }
 
-  let mut entries: FxIndexMap<String, KeyValueProp> =
+  let mut entries: FxIndexMap<PropertyKey, KeyValueProp> =
     FxIndexMap::with_capacity_and_hasher(result.len(), FxBuildHasher);
   for (index, kv) in result.into_iter().enumerate() {
-    entries.insert(map_key(&kv, index), kv);
+    entries.insert(property_key(&kv, index), kv);
   }
 
   let media_keys = entries
     .keys()
-    .filter(|key| is_media_key(key))
-    .cloned()
+    .filter_map(PropertyKey::name)
+    .filter(|name| is_media_key(name))
+    .map(str::to_owned)
     .collect::<Vec<_>>();
 
   let mut media_entries: Vec<MediaEntry> = Vec::with_capacity(media_keys.len());
@@ -230,14 +259,17 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     // The value is read here, at the moment this key is rewritten, rather than
     // collected up front: an earlier rewrite that landed on a later key is what
     // that later key then carries.
-    let rewritten = entries.shift_remove(&entry.key).map(|current| {
-      // Consumed rather than cloned: an entry is read once and dead afterwards.
-      let combined_query = combine_media_query_with_negations(entry.query, entry.later_queries);
-      (combined_query.to_string(), current.value)
-    });
+    let rewritten = entries
+      .shift_remove(&PropertyKey::Named(entry.key))
+      .map(|current| {
+        // Consumed rather than cloned: an entry is read once and dead
+        // afterwards.
+        let combined_query = combine_media_query_with_negations(entry.query, entry.later_queries);
+        (combined_query.to_string(), current.value)
+      });
 
     for (new_media_key, value) in rewritten.into_iter() {
-      match entries.entry(new_media_key.clone()) {
+      match entries.entry(PropertyKey::Named(new_media_key.clone())) {
         // The key is already there: it keeps its position and takes this value,
         // and the declaration that put it there is gone from the output.
         IndexMapEntry::Occupied(mut occupied) => occupied.get_mut().value = value,

@@ -133,8 +133,9 @@ Every other combinator shape agrees.
 
 Nesting is bounded at sixty-four levels of parentheses, counted before the parse
 by the same walk that checks the balance, because parsing recurses once per
-level and a stack overflow aborts rather than panicking. Same number and same
-reasoning as `MAX_VALUE_NESTING_DEPTH` in `stylex-css`.
+level and a stack overflow aborts rather than panicking. The budget itself is
+`stylex_utils::nesting::MAX_NESTING_DEPTH`, shared with the value guard in
+`stylex-css`: the two scans differ, but the stack they are protecting is one.
 _Avoid_: media syntax, query validation, condition parser
 
 **Range merge boundary**:

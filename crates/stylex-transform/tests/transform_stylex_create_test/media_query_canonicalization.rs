@@ -122,51 +122,10 @@ stylex_test!(
   LADDER_CODE
 );
 
-stylex_test_transform!(
+stylex_test!(
   a_disjoint_breakpoint_ladder_keeps_its_contradictory_branches,
   |tr| theme_import_transform(tr.comments.clone()),
-  LADDER_CODE,
-  r#"
-    import _inject from "@stylexjs/stylex/lib/stylex-inject";
-    var _inject2 = _inject;
-    import "colors.stylex.js";
-    import * as stylex from '@stylexjs/stylex';
-    import { colors } from 'colors.stylex.js';
-    _inject2({
-      ltr: ".x1fm9ujy{color:var(--x1g366na)}",
-      priority: 3000
-    });
-    _inject2({
-      ltr: "@media ((not all) or (not all)) or ((not all) or ((min-width: 1440px))){.x11g08g8.x11g08g8{color:var(--x1gey9a0)}}",
-      priority: 3200
-    });
-    _inject2({
-      ltr: "@media (not all) or ((min-width: 1200px) and (max-width: 1439px)){.x1qsezja.x1qsezja{color:var(--xo0k5im)}}",
-      priority: 3200
-    });
-    _inject2({
-      ltr: "@media (min-width: 1024px) and (max-width: 1199px){.xqw8h0p.xqw8h0p{color:var(--x1ncemq0)}}",
-      priority: 3200
-    });
-    _inject2({
-      ltr: "@media (min-width: 768px) and (max-width: 1023px){.x1bhj7sf.x1bhj7sf{color:var(--x5eudzp)}}",
-      priority: 3200
-    });
-    _inject2({
-      ltr: "@media (min-width: 480px) and (max-width: 767px){.x1p9ejzw.x1p9ejzw{color:var(--xtqmhjj)}}",
-      priority: 3200
-    });
-    _inject2({
-      ltr: "@media (max-width: 479px){.xw70vyp.xw70vyp{color:var(--xuk8yok)}}",
-      priority: 3200
-    });
-    export const styles = {
-      root: {
-        kMwMTN: "x1fm9ujy x11g08g8 x1qsezja xqw8h0p x1bhj7sf x1p9ejzw xw70vyp",
-        $$css: true
-      }
-    };
-  "#
+  LADDER_CODE
 );
 
 // Two entries of one conditional value map that canonicalize to the same query
@@ -187,7 +146,7 @@ stylex_test_transform!(
 // either way.
 //
 // Expectations are quoted from a run of `@stylexjs/babel-plugin@0.19.0`.
-stylex_test_transform!(
+stylex_test!(
   colliding_rewritten_keys_drop_a_declaration,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -202,33 +161,6 @@ stylex_test_transform!(
         },
       },
     });
-  "#,
-  r#"
-    import _inject from "@stylexjs/stylex/lib/stylex-inject";
-    var _inject2 = _inject;
-    import * as stylex from '@stylexjs/stylex';
-    _inject2({
-      ltr: ".x1mqxbix{color:black}",
-      priority: 3000
-    });
-    _inject2({
-      ltr: "@media not all{.x12vud9h.x12vud9h{color:blue}}",
-      priority: 3200
-    });
-    _inject2({
-      ltr: "@media (max-width: 99.99px) and (min-height: 100px){.xsllcrx.xsllcrx{color:green}}",
-      priority: 3200
-    });
-    _inject2({
-      ltr: "@media (min-width: 100px){.xr6za1w.xr6za1w{color:purple}}",
-      priority: 3200
-    });
-    export const styles = {
-      root: {
-        kMwMTN: "x1mqxbix x12vud9h xsllcrx xr6za1w",
-        $$css: true
-      }
-    };
   "#
 );
 
@@ -246,7 +178,7 @@ stylex_test_transform!(
 //
 // Quoted from a run of `@stylexjs/babel-plugin@0.19.0`, whose emitted order is
 // identical rule for rule.
-stylex_test_transform!(
+stylex_test!(
   a_rewritten_media_key_sorts_where_the_authored_one_did,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -263,46 +195,5 @@ stylex_test_transform!(
         margin: '2px',
       },
     });
-  "#,
-  r#"
-    import _inject from "@stylexjs/stylex/lib/stylex-inject";
-    var _inject2 = _inject;
-    import * as stylex from '@stylexjs/stylex';
-    _inject2({
-      ltr: ".x7z7khe{padding:10px}",
-      priority: 1000
-    });
-    _inject2({
-      ltr: ".x1mqxbix{color:black}",
-      priority: 3000
-    });
-    _inject2({
-      ltr: "@supports (display: grid){.x19g4ih5.x19g4ih5{color:green}}",
-      priority: 3030
-    });
-    _inject2({
-      ltr: "@container (min-width: 400px){.x15pkjp4.x15pkjp4{color:teal}}",
-      priority: 3300
-    });
-    _inject2({
-      ltr: "@media not all{.x1jqaanj.x1jqaanj{color:red}}",
-      priority: 3200
-    });
-    _inject2({
-      ltr: "@media (min-width: 100px){.x18tmubq.x18tmubq{color:blue}}",
-      priority: 3200
-    });
-    _inject2({
-      ltr: ".xy3p2pi{margin:2px}",
-      priority: 1000
-    });
-    export const styles = {
-      root: {
-        kmVPX3: "x7z7khe",
-        kMwMTN: "x1mqxbix x19g4ih5 x15pkjp4 x1jqaanj x18tmubq",
-        kogj98: "xy3p2pi",
-        $$css: true
-      }
-    };
   "#
 );

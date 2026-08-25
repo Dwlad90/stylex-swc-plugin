@@ -148,7 +148,7 @@ distinction is load-bearing. The inner recovery is a depth bound, measured
 before the distribution starts: past 18 levels of splitting the rules are handed
 straight back, because each level doubles the query text. That number was chosen
 against output size and is not arbitrary — its provenance is in
-[ADR 0001](./docs/adr/0001-the-official-compilers-output-wins.md).
+[docs/adr/0001](./docs/adr/0001-the-official-compilers-output-wins.md).
 _Avoid_: merge wrapper, simplify wrapper, merge guard
 
 **Last-media-query-wins transform**:
@@ -161,6 +161,6 @@ default — so opting out hashes the authored spelling instead. Its rewritten
 keys go into an insertion-ordered map, so two entries that canonicalize to one
 query text leave **one** entry, at the earlier key's position and holding the
 later key's value: one authored declaration is dropped, silently and on purpose.
-See [ADR 0001](./docs/adr/0001-the-official-compilers-output-wins.md) for why
+See [docs/adr/0001](./docs/adr/0001-the-official-compilers-output-wins.md) for why
 that and the retained branches are matched rather than improved on.
 _Avoid_: media merge, query dedupe

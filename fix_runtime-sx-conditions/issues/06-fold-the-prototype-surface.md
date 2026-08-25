@@ -64,7 +64,9 @@ Agreed boundaries, if this is built by hand rather than via 05:
   AST nodes, which is a rewrite of its core value type and needs its own spec.
   Pin the divergence in the corpus.
 
-## 05's answer, and what it means here
+## Comments
+
+### 05's answer, and what it means here
 
 05 is resolved: the engine matches the table (69/70 against Node, byte-identical
 class names against the reference implementation across 80 rules), folds chains
@@ -84,4 +86,12 @@ above built by hand. Two of 05's findings apply whichever way it is built:
   right. `normalize` could move into scope only with an ICU dependency of its own.
 - `"abc".charCodeAt(10)` folding to `NaN` emits `z-index:NaN`, and that is what
   the reference implementation emits too. Parity and a useful refusal disagree
-  here; this ticket has to choose one and say why.
+  here; this ticket has to choose one and say why. Both answers are currently
+  asserted by tests that name each other, so whichever way this goes, one test
+  gets deleted deliberately rather than discovered.
+- The mutating-method boundary above is load-bearing and easy to lose. 05's
+  first hook ran ahead of `is_mutating_array_method` and folded
+  `["a","b"].sort().join("-")` for a while before its code review caught it. A
+  dispatch that reflects, whether an engine or a table, refuses mutation only
+  because something in front of it says so — and a chain hides the mutating
+  call in the middle, so the check belongs at every link.

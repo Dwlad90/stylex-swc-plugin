@@ -49,8 +49,9 @@ not with an argument.
 Measured on `feat_boa-engine`, a throwaway branch. Host: Apple M1 Max, Node
 24.11.0, `x86_64-apple-darwin` cross-built from the same machine. The vehicle is
 `boa_fold.rs`: it prints a self-contained method call back to source, evaluates
-it in one lazily created engine reused for the process, and converts the result
-back to a literal.
+it in one lazily created engine reused for the rest of that thread's work (§5
+explains why it is per thread and why it is never dropped), and converts the
+result back to a literal.
 
 **The verdict: the coverage is real, the throughput is free, and the 6 MiB is a
 price worth paying — what grows is a build-time artifact, not anything a
@@ -73,11 +74,11 @@ error: failed to select a version for `icu_normalizer`.
   previously selected package `icu_normalizer v2.3.0`
 ```
 
-Every number below comes from `superui_boa_engine` 0.3.3, a third-party fork
-whose only change is relaxing that requirement to `>=2.0.0, <3`. The numbers
-carry over to upstream unchanged — the fork differs in a version bound and
-nothing else — but a published compiler depending on one person's fork of an
-engine is not a trade this spike can make on its own.
+The measurements in §2 to §8 below were taken against `superui_boa_engine`
+0.3.3, a third-party fork whose only change is relaxing that requirement to
+`>=2.0.0, <3` — the vehicle available when they were run. §10 records which of
+them were re-taken against the vendored engine the branch settled on, and which
+were not.
 
 **There is a way to use upstream boa, and it costs one documented decision.**
 `icu_normalizer` cannot be removed from either side. Boa needs it for
@@ -114,16 +115,19 @@ precisely why it was replaced: `pre_rule.rs` and the root `Cargo.toml` both
 record that an unreachable arm is a region no test can exercise, and it was the
 last thing keeping `scripts/coverage-missing.sh` from a clean run.
 
-So the choice is between three things, and it is a person's to make:
+Four options, and **the fourth is the one this branch took** — see §10:
 
 1. **Pin `icu_collator` to `=2.0.0`** and take the uncoverable arm back, plus
    three years of ICU collation fixes not applied. Cheapest to do, undoes a
    decision that was argued in writing.
-2. **Relax the bound upstream in boa.** Measured, not assumed — see below. Two
-   lines, both decisions intact, `icu_collator` stays at 2.3.1. This is the one
-   to try first.
-3. **Depend on the fork.** Fastest, and the worst supply-chain position of the
-   three for a package this many builds pull.
+2. **Relax the bound upstream in boa.** Measured, not assumed — §9. Two lines,
+   both decisions intact, `icu_collator` stays at 2.3.1. Costs a PR and a
+   release cycle.
+3. **Depend on the fork.** Fastest, and the worst supply-chain position for a
+   package this many builds pull.
+4. **Vendor the engine** with option 2's two-line diff applied locally, so
+   nothing waits on upstream and nothing trusts a third party's release. This is
+   what `vendor/boa` is; §10 records the decision and its cost.
 
 ### 2. Binary size
 
@@ -142,6 +146,13 @@ darwin machine — Docker is installed but has no running daemon. They need a
 and the added code is target-independent pure Rust plus ICU data tables, so
 expect the same ~6 MiB on each; the musl binding is the one worth confirming,
 because it is the smallest baseline.
+
+**Buildability on the other five is unverified, and that is a separate open
+question from size.** This ticket's premise — "all seven NAPI targets … keep
+cross-compiling" — is asserted from the engine being pure Rust, not measured.
+The engine adds no C toolchain, so the premise is sound in principle, but
+`x86_64-unknown-linux-musl` and `aarch64-pc-windows-msvc` have not compiled it
+here. The same CI run that answers the size question answers this one.
 
 `Cargo.lock` grows by **49 packages**, and the clean release build compiles
 **83 more crates**.
@@ -326,6 +337,70 @@ consumer that carries a newer ICU elsewhere in its graph — and does not enable
 Moving boa's whole `intl` stack forward is a larger change (17 bounds, and it
 lands on icu 2.1 rather than 2.3) and is not needed for this. The patch is saved
 alongside this spike's other artifacts.
+
+### 10. What the branch settled on, and which numbers were re-taken
+
+Option 4: the engine is **vendored**, at `vendor/boa` — release `v0.21.1` with
+§9's two-line relaxation applied locally and nothing else changed, reached
+through `[patch.crates-io]`. Nothing waits on an upstream release and nothing
+trusts a third party's build of someone else's engine. `icu_collator` stays at
+2.3.1, `new_root` stays, the whole graph resolves on one 2.3 version of every
+ICU crate. `vendor/boa/README.md` records provenance and the bump procedure;
+`guidelines/STRUCTURE.md` was amended, because it said every vendored thing
+belongs beside `postcss-value-parser` and a nested workspace cannot.
+
+Patching is a permanent mechanism here rather than a development trick: nothing
+in this repo publishes to crates.io, so a rewritten graph can never reach a
+downstream Rust consumer. What ships is the `.node`.
+
+Re-taken against the vendored engine, since §1's provenance line no longer
+describes the build:
+
+| measurement                | fork (§2-§4)     | vendored             |
+| -------------------------- | ---------------- | -------------------- |
+| artifact, `aarch64-apple-darwin` | 15.15 MiB  | **15.11 MiB**        |
+| `bench:verdict`            | 60/60 pass       | **60/60 pass**       |
+| cold start, first fold     | ~240 µs          | **~260 µs**          |
+| warm per fold              | ~3.4 µs          | **~3.8 µs**          |
+| Babel parity               | 48/48, 32/32     | **48/48, 32/32**     |
+| `cargo test --workspace`   | 5 073 pass       | **5 089 pass**       |
+
+The paired run flagged `global-tokens` at point 1.118 once (lower bound 1.017,
+still a pass, and 1.004 on the fork run). Re-running that fixture alone gave
+0.997 — noise, not a regression, and recorded here rather than dropped because
+the first number is in the artifact.
+
+`x86_64-apple-darwin` size and §8's memory ceiling were not re-taken; both are
+properties of the engine's code rather than of which manifest carried it, and
+the two-line diff touches neither.
+
+### 11. What the code review changed
+
+`/code-review` ran over both commits after §10 and is recorded under Comments.
+Two of its findings were defects rather than notes, and are fixed:
+
+- **Mutating array methods were folding.** The hook ran ahead of everything,
+  including `is_mutating_array_method`, so `["a","b"].sort().join("-")` emitted
+  `transition-property:color,opacity` and `["a","b"].push("c")` emitted
+  `z-index:3`. Issue 06 holds that divergence deliberately — matching upstream
+  there means putting mutation inside a pure evaluator — and §4/§6 had reported
+  the breakage as coverage arriving. `is_foldable_call` now refuses a mutating
+  method at every link of a chain, not only the outer one.
+- **`boa_fold.rs` had no tests**, against `guidelines/stack/RUST.md`'s coverage
+  rule, while every method call in the compiler routed through it.
+  `tests/engine_fold_tests.rs` now covers the guard's edges: the scope it must
+  refuse, callbacks that escape their parameters, computed method names, holes
+  and spreads, results with no literal form, the numeric edges, throwing calls,
+  unicode and escape round-tripping through printed source, mutation at every
+  chain position, and engine reuse across fifty folds. 16 tests.
+
+One of its findings is left standing on purpose: `engine_fold_tests`'s
+`the_numeric_edges_fold_as_the_reference_implementation_folds_them` contradicts
+`unsupported_shape_tests::char_code_at_past_the_end_refuses_rather_than_aborting`.
+Both are in the tree, and each says so in its own doc comment. That is the
+parity-versus-useful-refusal choice from §6, and it is issue 06's to make; a
+spike that deleted one side would have hidden the decision it exists to inform.
+The seven pre-existing tests §6 lists still fail for the same reason.
 
 ## Comments
 

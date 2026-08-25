@@ -25,7 +25,7 @@ declaration is absent from the output. No warning accompanies it, because the
 official compiler prints none — and a warning it does not print would itself be
 a divergence in what a build produces.
 
-Three things in the tree contradict that on first reading, and each is
+Four things in the tree contradict that on first reading, and each is
 deliberate.
 
 **lightningcss will not parse what we emit.** Measured on 1.33.0, both wrapped
@@ -46,6 +46,35 @@ class the stylesheet never defines, nothing errors, and the page renders wrong
 in production. Matching the official compiler is the point of this compiler; a
 minifier that cannot read valid-enough CSS is that minifier's problem to fix, or
 ours to work around downstream, but not a reason to hash differently.
+
+**An `or` nested inside an `and` loses its parentheses, and browsers reject the
+result.** Serialization joins an `and` list with `" and "` and does not
+parenthesize an `Or` child, where the `or` arm does the mirror for an `And`
+child. Two shapes reach it: a parenthesized disjunction beside an `and`, and a
+comma segment holding an `or`, which the negation chain then wraps in an `and`.
+
+```text
+@media ((min-width: 100px) or (max-width: 50px)) and (min-height: 10px)
+  → @media (min-width: 100px) or (max-width: 50px) and (min-height: 10px)
+```
+
+Per Media Queries Level 4 an unparenthesized `and`/`or` mix is a syntax error,
+so this is worse than the lightningcss case above: a _browser_ drops the whole
+at-rule, and the author's declaration is silently lost at runtime rather than
+loudly at build time.
+
+It is emitted anyway, for the same reason everything else here is: the official
+compiler emits the identical text, so the class name matches. The expectations
+in `media_query_transform_test.rs` are quoted from a run of it. Adding the
+parentheses would be semantically correct and would diverge the hash, which is
+the trade this record exists to refuse.
+
+Two consequences worth stating rather than rediscovering. This compiler now
+emits media keys that its own `validate_media_query` refuses, because the
+grammar work taught the parser that the mix is undefined while the serializer
+still produces it — a round-trip inconsistency, not a bug to close. And this is
+a _third_ upstream defect, alongside the two above; it is the most serious of
+them, and belongs in a cross-report of its own.
 
 **The dropped declaration is a ported defect, not a design.** It is recorded
 that way on purpose, so it is revisited rather than defended: redundant CSS is
@@ -156,6 +185,16 @@ revisited: upstream's parser backtracks exponentially in parenthesis nesting
 depth — eight levels take it 1.12 s, twelve take 19.8 s, sixteen do not finish
 in forty seconds, where this compiler answers every depth in about a
 millisecond. Matching its answers must not mean matching that.
+
+**The two bounds deliberately pick opposite failure modes.**
+`MAX_DISTRIBUTION_DEPTH` gives up and hands the author's rules back — the inner
+recovery — because a query too deep to _merge_ is still a query, and emitting it
+unmerged is what the official compiler does. `MAX_QUERY_NESTING_DEPTH` refuses
+with the invalid-media-query-syntax error — the outer refusal — because a query
+too deep to _parse_ yields nothing to emit; there is no unmerged form to fall
+back to. The pass's two failure modes are kept visibly apart precisely so this
+choice reads as a choice. Note that the second refuses input that is valid CSS,
+which is the price of not aborting the process on it.
 
 **A query may nest sixty-four levels of parentheses.** Walking each level once
 is linear in time and still recursive in stack, and five thousand levels aborted

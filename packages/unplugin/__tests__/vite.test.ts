@@ -604,7 +604,7 @@ export const styles = stylex.create({
 
     const emitted = await readdir(path.join(root, 'dist'), { recursive: true });
 
-    expect(emitted.filter(name => String(name).endsWith('.css'))).toEqual([]);
+    expect(emitted.filter(name => name.endsWith('.css'))).toEqual([]);
   });
 
   test('invalidates dev CSS again when a late module adds rules', async () => {

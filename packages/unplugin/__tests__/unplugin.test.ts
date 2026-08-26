@@ -8,6 +8,7 @@ import { vi, describe, expect, test } from 'vitest';
 
 import unplugin from '../src';
 import stylexPlugin from '../src/rollup';
+import type { UnpluginStylexRSOptions } from '../src/types';
 
 type TestPluginInstance = {
   buildStart?: (this: UnpluginBuildContext) => void;
@@ -61,7 +62,8 @@ async function collectStyleXRules(pluginInstance: TestPluginInstance) {
 
 async function runWebpackLikeCssInjection(
   framework: 'webpack' | 'rspack',
-  initialAssets: Record<string, string> = { 'app.css': 'body{margin:0}\n@stylex;' }
+  initialAssets: Record<string, string> = { 'app.css': 'body{margin:0}\n@stylex;' },
+  extraOptions: UnpluginStylexRSOptions = {}
 ) {
   const transformCss = vi.fn(async (css: string, filePath: string | undefined) => {
     return `${css}\n/* transformed:${framework}:${filePath} */`;
@@ -74,6 +76,7 @@ async function runWebpackLikeCssInjection(
         runtimeInjection: false,
         dev: false,
       },
+      ...extraOptions,
     },
     { framework } as UnpluginContextMeta
   );
@@ -279,6 +282,18 @@ describe('@stylexswc/unplugin', () => {
     expect(compilation.emitAsset).not.toHaveBeenCalled();
     expect(Object.keys(assets)).toEqual([]);
     expect(compilation.warnings).toHaveLength(1);
+  });
+
+  test('webpack stays silent about a missing target on request', async () => {
+    const { compilation } = await runWebpackLikeCssInjection(
+      'webpack',
+      {},
+      {
+        onMissingCssPlaceholder: 'ignore',
+      }
+    );
+
+    expect(compilation.warnings).toEqual([]);
   });
 
   test('webpack does not warn when the marker was replaced', async () => {

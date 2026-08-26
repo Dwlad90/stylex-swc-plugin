@@ -335,7 +335,8 @@ The plugin replaces the marker with the generated StyleX CSS during the build.
 >
 > A plugin that removes CSS assets during the bundle — inlining them into JS,
 > for instance — takes that target away, so combining one with
-> `useCssPlaceholder` under Vite fails the build.
+> `useCssPlaceholder` under Vite fails the build. Set
+> `onMissingCssPlaceholder` to `'warn'` when that is expected.
 
 > [!WARNING]
 > Farm does not support `useCssPlaceholder` yet. Its plugin adapter never
@@ -351,6 +352,30 @@ The plugin replaces the marker with the generated StyleX CSS during the build.
 > no race conditions or timing issues, and deterministic builds with stable
 > hashes. To migrate, create a CSS file with a marker and set
 > `useCssPlaceholder: true` (or use a custom marker string).
+
+#### `onMissingCssPlaceholder`
+
+- Type: `'error' | 'warn' | 'ignore'`
+- Default: `'error'`
+- Description: How to report a build where `useCssPlaceholder` is enabled but no
+  stylesheet in the output can carry the StyleX rules.
+
+Placeholder mode never links a standalone stylesheet, so the default fails the
+build rather than let the styles go missing at runtime. Only Vite can prove the
+marker was part of the build, so `'error'` is fatal there and reported as a
+warning everywhere else.
+
+```ts
+StylexRsPlugin({
+  useCssPlaceholder: true,
+  // Another plugin inlines the CSS into JS, so there is no CSS asset left to
+  // inject into by the time the rules are ready.
+  onMissingCssPlaceholder: 'warn',
+});
+```
+
+`'ignore'` silences the report entirely. SSR builds are never reported: they
+have no stylesheet of their own by design.
 
 ### Example Configuration
 

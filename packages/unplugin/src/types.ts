@@ -21,6 +21,18 @@ export type CSSTransformer = (
   filePath: string | undefined
 ) => string | Buffer | Promise<string | Buffer>;
 
+/**
+ * What to do when placeholder mode finds no stylesheet to inject into.
+ *
+ * - `error`: fail the build wherever the plugin can prove the marker was part
+ *   of it, which today is Vite; every other bundler reports a warning, because
+ *   there a missing stylesheet is indistinguishable from a build that has no
+ *   CSS at all
+ * - `warn`: never fatal, report everywhere
+ * - `ignore`: stay silent
+ */
+export type MissingCssPlaceholderReport = 'error' | 'warn' | 'ignore';
+
 export interface UnpluginStylexRSOptions {
   fileName?: string;
   useCSSLayers?: TransformedOptions['useLayers'];
@@ -64,4 +76,20 @@ export interface UnpluginStylexRSOptions {
    * marker.
    */
   useCssPlaceholder?: boolean | string;
+  /**
+   * How to report a build where `useCssPlaceholder` is on but no stylesheet in
+   * the output can carry the StyleX rules.
+   *
+   * Defaults to `error`: nothing links a standalone stylesheet in placeholder
+   * mode, so the styles would silently go missing at runtime.
+   *
+   * Lower it to `warn` when another plugin legitimately takes the stylesheet
+   * out of the bundle -- inlining the CSS into JavaScript, for instance -- and
+   * the build is expected to have no CSS asset left by the time the rules are
+   * ready.
+   *
+   * Ignored when `useCssPlaceholder` is off, and never applied to SSR builds,
+   * which have no stylesheet of their own by design.
+   */
+  onMissingCssPlaceholder?: MissingCssPlaceholderReport;
 }

@@ -38,6 +38,7 @@ export default function normalizeOptions(options: UnpluginStylexRSOptions): Norm
     extractCSS: options.extractCSS ?? true,
     transformCss: options.transformCss ?? identityTransformCss,
     useCssPlaceholder,
+    onMissingCssPlaceholder: options.onMissingCssPlaceholder ?? 'error',
     enableLTRRTLComments: normalizedRsOptions.enableLTRRTLComments,
     legacyDisableLayers: normalizedRsOptions.legacyDisableLayers,
   };

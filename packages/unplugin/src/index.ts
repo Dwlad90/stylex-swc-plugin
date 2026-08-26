@@ -334,7 +334,9 @@ async function injectStyleXCss<TSource>(
   // An asset emitted here could not be linked, and unlike the Vite adapter this
   // one has no signal that the marker was ever part of the build, so the styles
   // going missing is reported rather than fatal.
-  if (!injected) reportMissingTarget(MISSING_INJECTION_TARGET_WARNING);
+  if (!injected && normalizedOptions.onMissingCssPlaceholder !== 'ignore') {
+    reportMissingTarget(MISSING_INJECTION_TARGET_WARNING);
+  }
 }
 
 /**
@@ -361,7 +363,7 @@ async function injectPlaceholderIntoBundle(
   stylexRules: StyleXRules,
   normalizedOptions: NormalizedOptions,
   transformedOptions: TransformedOptions,
-  reportMissingTarget: boolean
+  canProveMarkerWasBuilt: boolean
 ): Promise<void> {
   if (!normalizedOptions.useCssPlaceholder) return;
 
@@ -421,13 +423,14 @@ async function injectPlaceholderIntoBundle(
 
   // Emitting a standalone stylesheet here used to look like a safety net, but
   // placeholder mode never links it, so it only ever hid missing styles.
-  if (injected) return;
+  if (injected || normalizedOptions.onMissingCssPlaceholder === 'ignore') return;
 
-  if (reportMissingTarget) {
+  // Failing is only fair where the marker is known to have been in the build:
+  // elsewhere a missing stylesheet looks the same as a build with no CSS.
+  if (normalizedOptions.onMissingCssPlaceholder === 'error' && canProveMarkerWasBuilt) {
     context.error(MISSING_INJECTION_TARGET_ERROR);
   }
 
-  // Rollup has no load-hook signal, so the same situation is only reported.
   context.warn(MISSING_INJECTION_TARGET_WARNING);
 }
 
@@ -1060,7 +1063,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
             // A standalone file written here would never be linked, since
             // placeholder mode skips HTML injection.
-            if (!injected) {
+            if (!injected && normalizedOptions.onMissingCssPlaceholder !== 'ignore') {
               return { warnings: [{ text: MISSING_INJECTION_TARGET_WARNING }] };
             }
 

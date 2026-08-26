@@ -262,6 +262,7 @@ async function buildPlaceholderFixture(
   options: {
     cssCodeSplit?: boolean;
     files?: Record<string, string>;
+    onWarn?: (warning: { message: string }) => void;
     plugins?: PluginOption[];
     pluginOptions?: UnpluginStylexRSOptions;
   } = {}
@@ -276,6 +277,9 @@ async function buildPlaceholderFixture(
       cssCodeSplit: options.cssCodeSplit ?? false,
       outDir: 'dist',
       write: true,
+      rolldownOptions: options.onWarn
+        ? { onLog: (_level, log) => options.onWarn?.(log) }
+        : undefined,
     },
     configFile: false,
     logLevel: 'silent',
@@ -671,6 +675,35 @@ export const styles = stylex.create({
     // marker in place cannot invalidate one that follows it.
     expect(source).toContain('outline-style:dashed');
     expect(source).toContain('color:red');
+  });
+
+  test('downgrades the missing-target failure to a warning on request', async () => {
+    const warnings: string[] = [];
+
+    // The setup this option exists for: a plugin that takes the stylesheet out
+    // of the bundle, so nothing is left to inject into.
+    const cssFiles = await buildPlaceholderFixture({
+      onWarn: warning => warnings.push(warning.message),
+      pluginOptions: { onMissingCssPlaceholder: 'warn' },
+      plugins: [delayModuleTransform('/lazy.js', 0), dropCssAssets],
+    });
+
+    expect(cssFiles).toEqual([]);
+    expect(warnings).toContainEqual(
+      expect.stringContaining('no CSS asset contained the placeholder')
+    );
+  });
+
+  test('stays silent about a missing target on request', async () => {
+    const warnings: string[] = [];
+
+    await buildPlaceholderFixture({
+      onWarn: warning => warnings.push(warning.message),
+      pluginOptions: { onMissingCssPlaceholder: 'ignore' },
+      plugins: [delayModuleTransform('/lazy.js', 0), dropCssAssets],
+    });
+
+    expect(warnings).toEqual([]);
   });
 
   test('should inject a base-prefixed stylesheet link in dev', async () => {

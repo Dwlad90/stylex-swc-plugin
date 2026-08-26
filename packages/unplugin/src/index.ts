@@ -1349,8 +1349,14 @@ function transformStyleXCode(
 
   const { metadata } = result;
 
-  if (normalizedOptions.extractCSS && metadata.stylex && metadata.stylex.length > 0) {
-    stylexRules[id] = metadata.stylex;
+  if (normalizedOptions.extractCSS) {
+    if (metadata.stylex && metadata.stylex.length > 0) {
+      stylexRules[id] = metadata.stylex;
+    } else {
+      // The rules accumulate across a watch session, so a module that no longer
+      // produces any has to drop its old ones rather than keep serving them.
+      Reflect.deleteProperty(stylexRules, id);
+    }
   }
 
   return result;

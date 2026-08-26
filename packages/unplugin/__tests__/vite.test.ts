@@ -676,6 +676,37 @@ export const styles = stylex.create({
     expect(emitted.filter(name => name.endsWith('.css'))).toEqual([]);
   });
 
+  // The rules accumulate for the whole watch session, so a module whose styles
+  // were deleted would otherwise keep serving them until the server restarted.
+  test('drops the rules of a module that no longer produces any', async () => {
+    const server = await createPlaceholderDevServer('.stylex-vite-dev-prune-');
+    const root = server.config.root;
+
+    try {
+      await server.transformRequest('/main.js');
+      await server.transformRequest('/lazy.js');
+
+      const withRules = await server.transformRequest('/global.css');
+
+      expect(withRules?.code).toContain('background-color:blue');
+
+      // The lazy module keeps its StyleX import, so it is still transformed --
+      // it simply has no styles left to contribute.
+      await writeFile(
+        path.join(root, 'lazy.js'),
+        "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = {};\n"
+      );
+      server.moduleGraph.invalidateAll();
+      await server.transformRequest('/lazy.js');
+
+      const afterEdit = await server.transformRequest('/global.css');
+
+      expect(afterEdit?.code).not.toContain('background-color:blue');
+    } finally {
+      await server.close();
+    }
+  });
+
   test('invalidates dev CSS again when a late module adds rules', async () => {
     expect(await countDevCssInvalidations()).toBeGreaterThan(0);
   });

@@ -317,12 +317,17 @@ pub(crate) struct CallExpressionState {
   /// the key alone would refuse a match the walk made. Nothing sets that flag
   /// today; confirming means nothing has to remember this if something does.
   ///
-  /// Held as a list rather than a set because the map collapses structurally
-  /// equal calls onto one entry while two *different* calls can still share a
-  /// callee -- `a.b(1)` and `a.b(2)`. Dropping `a.b` when either one of them is
-  /// replaced would leave [`Self::is_member_callee`] answering `false` for a
-  /// callee that is still live.
-  callee_members: FxHashMap<u128, Vec<MemberExpr>>,
+  /// Counted per distinct member rather than held one-per-call, because a
+  /// module's calls overwhelmingly share a handful of callee shapes: every
+  /// `stylex.create(...)` in a file spells the same `stylex.create`. Holding a
+  /// clone per call made the bucket as long as the call list -- 15,000 copies
+  /// of one member on a large module, and an allocation for each -- which cost
+  /// 12.7% on a producer-heavy fixture and is the whole reason the count is
+  /// here. The count is still needed for the reason a set would not do: two
+  /// *different* calls can share a callee -- `a.b(1)` and `a.b(2)` -- and
+  /// forgetting `a.b` when either is replaced would leave
+  /// [`Self::is_member_callee`] answering `false` for a callee still live.
+  callee_members: FxHashMap<u128, Vec<(MemberExpr, u32)>>,
 }
 
 impl CallExpressionState {
@@ -340,11 +345,18 @@ impl CallExpressionState {
     }
 
     if let Some(member) = member {
-      self
+      let bucket = self
         .callee_members
         .entry(stable_hash_unspanned_member(&member))
-        .or_default()
-        .push(member);
+        .or_default();
+
+      match bucket
+        .iter_mut()
+        .find(|(candidate, _)| candidate.eq_ignore_span(&member))
+      {
+        Some((_, count)) => *count += 1,
+        None => bucket.push((member, 1)),
+      }
     }
   }
 
@@ -355,7 +367,7 @@ impl CallExpressionState {
       .is_some_and(|bucket| {
         bucket
           .iter()
-          .any(|candidate| candidate.eq_ignore_span(member))
+          .any(|(candidate, _)| candidate.eq_ignore_span(member))
       })
   }
 
@@ -398,9 +410,14 @@ impl CallExpressionState {
 
     if let Some(position) = bucket
       .iter()
-      .position(|candidate| candidate.eq_ignore_span(member))
+      .position(|(candidate, _)| candidate.eq_ignore_span(member))
     {
-      bucket.remove(position);
+      match &mut bucket[position].1 {
+        1 => {
+          bucket.remove(position);
+        },
+        count => *count -= 1,
+      }
     }
 
     if bucket.is_empty() {

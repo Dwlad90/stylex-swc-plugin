@@ -286,6 +286,89 @@ async function injectStyleXCss<TSource>(
   }
 }
 
+/**
+ * Shape of a Rollup-style output bundle, described structurally rather than
+ * imported: Vite and Rollup do not share a plugin type, and the injection only
+ * ever touches these members.
+ */
+type BundleAssetLike = { type: string; fileName: string; source: string | Uint8Array };
+type BundleOutputLike = { type: string; fileName: string; source?: string | Uint8Array };
+type OutputBundleLike = Record<string, BundleOutputLike>;
+type PlaceholderBundleContext = {
+  emitFile(file: { type: 'asset'; fileName: string; source: string }): unknown;
+};
+
+/**
+ * Replaces the CSS placeholder marker in a Rollup-style bundle with the
+ * collected StyleX rules. Shared by the Vite and Rollup adapters; webpack and
+ * rspack have their own asset pipeline and use `injectStyleXCss` instead.
+ */
+async function injectPlaceholderIntoBundle(
+  context: PlaceholderBundleContext,
+  bundle: OutputBundleLike,
+  stylexRules: StyleXRules,
+  normalizedOptions: NormalizedOptions,
+  transformedOptions: TransformedOptions
+): Promise<void> {
+  if (!normalizedOptions.useCssPlaceholder) return;
+
+  const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
+  if (!collectedCSS) return;
+
+  const cssAssets = Object.values(bundle).filter(
+    (output): output is BundleAssetLike =>
+      output.type === 'asset' && output.fileName.endsWith('.css')
+  );
+
+  let injected = false;
+
+  // First pass: look for marker-based injection
+  for (const asset of cssAssets) {
+    const source = asset.source.toString();
+
+    if (!source.includes(normalizedOptions.useCssPlaceholder)) continue;
+
+    const finalCSS = await transformStyleXCSS(collectedCSS, asset.fileName, normalizedOptions);
+
+    // Replacement callback keeps `$&`/`$\'`-like sequences in the CSS literal
+    asset.source = source.replace(normalizedOptions.useCssPlaceholder, () => finalCSS);
+    injected = true;
+    break;
+  }
+
+  // The load hook may have replaced the placeholder before all modules were
+  // transformed, so the fallback append must still run to deliver the full
+  // rule set; StyleX rules are idempotent when repeated
+  // Fallback: if marker not found, append to preferred CSS asset
+  if (!injected && cssAssets.length > 0) {
+    const targetName = pickCssAsset(cssAssets.map(asset => asset.fileName));
+    const target = cssAssets.find(asset => asset.fileName === targetName);
+
+    if (target) {
+      const existing = target.source.toString();
+      const finalCSS = await transformStyleXCSS(collectedCSS, target.fileName, normalizedOptions);
+
+      target.source = existing ? existing + '\n' + finalCSS : finalCSS;
+      injected = true;
+    }
+  }
+
+  // Last resort: emit standalone stylex.css if no CSS assets found
+  if (!injected) {
+    const finalCSS = await transformStyleXCSS(
+      collectedCSS,
+      normalizedOptions.fileName,
+      normalizedOptions
+    );
+
+    context.emitFile({
+      type: 'asset',
+      fileName: normalizedOptions.fileName,
+      source: finalCSS,
+    });
+  }
+}
+
 export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefined> = (
   options = {}
 ) => {
@@ -317,6 +400,25 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   let viteDevServer: ViteDevServer | null = null;
   let hasInvalidatedInitialCSS = false;
   let initialCssInvalidationTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // One hook object, registered by both Rollup-style hosts below.
+  //
+  // `post` is load-bearing: in the default order the hook runs before Vite's
+  // own CSS plugin emits the combined stylesheet, so a build with
+  // `cssCodeSplit: false` saw no CSS asset to inject into and fell through to a
+  // standalone file that nothing links.
+  const placeholderGenerateBundle = {
+    order: 'post' as const,
+    async handler(this: PlaceholderBundleContext, _options: unknown, bundle: OutputBundleLike) {
+      await injectPlaceholderIntoBundle(
+        this,
+        bundle,
+        stylexRules,
+        normalizedOptions,
+        transformedOptions
+      );
+    },
+  };
 
   return {
     name: PLUGIN_NAME,
@@ -501,6 +603,14 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       }
     },
 
+    // Rollup needs its own registration: the hook used to live under `vite`
+    // only, which left plain Rollup builds with no StyleX CSS at all. Webpack
+    // and Rspack map a fixed hook list and ignore this one, so their own
+    // `processAssets` injection cannot run twice.
+    rollup: {
+      generateBundle: placeholderGenerateBundle,
+    },
+
     vite: {
       config(config) {
         // Deliberately the *user* `assetsDir`: leaving it unset keeps the
@@ -565,76 +675,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         return cssContent.replace(normalizedOptions.useCssPlaceholder, () => replacementCSS);
       },
 
-      async generateBundle(_options, bundle) {
-        if (!normalizedOptions.useCssPlaceholder) return;
-
-        const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
-        if (!collectedCSS) return;
-
-        // Collect all CSS assets
-        const cssAssets: Array<{ fileName: string; output: (typeof bundle)[string] }> = [];
-        for (const [fileName, output] of Object.entries(bundle)) {
-          if (output.type === 'asset' && fileName.endsWith('.css')) {
-            cssAssets.push({ fileName, output });
-          }
-        }
-
-        let injected = false;
-
-        // First pass: look for marker-based injection
-        for (const { output } of cssAssets) {
-          if (output.type !== 'asset') continue;
-          const source = output.source.toString();
-
-          // Handle useCssPlaceholder (custom marker in real CSS file)
-          if (
-            normalizedOptions.useCssPlaceholder &&
-            source.includes(normalizedOptions.useCssPlaceholder)
-          ) {
-            const finalCSS = await transformStyleXCSS(
-              collectedCSS,
-              output.fileName,
-              normalizedOptions
-            );
-            output.source = source.replace(normalizedOptions.useCssPlaceholder, () => finalCSS);
-            injected = true;
-            break;
-          }
-        }
-
-        // The load hook may have replaced the placeholder before all modules were
-        // transformed, so the fallback append must still run to deliver the full
-        // rule set; StyleX rules are idempotent when repeated
-        // Fallback: if marker not found, append to preferred CSS asset
-        if (!injected && cssAssets.length > 0) {
-          const targetName = pickCssAsset(cssAssets.map(a => a.fileName));
-          const target = cssAssets.find(a => a.fileName === targetName);
-          if (target && target.output.type === 'asset') {
-            const existing = target.output.source.toString();
-            const finalCSS = await transformStyleXCSS(
-              collectedCSS,
-              target.fileName,
-              normalizedOptions
-            );
-            target.output.source = existing ? existing + '\n' + finalCSS : finalCSS;
-            injected = true;
-          }
-        }
-
-        // Last resort: emit standalone stylex.css if no CSS assets found
-        if (!injected) {
-          const finalCSS = await transformStyleXCSS(
-            collectedCSS,
-            normalizedOptions.fileName,
-            normalizedOptions
-          );
-          this.emitFile({
-            type: 'asset',
-            fileName: normalizedOptions.fileName,
-            source: finalCSS,
-          });
-        }
-      },
+      generateBundle: placeholderGenerateBundle,
 
       async buildEnd() {
         // Skip emitting CSS file when using useCssPlaceholder

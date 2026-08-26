@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { build, createServer } from 'vite';
@@ -135,12 +135,10 @@ async function buildIndexHtml(base: string, pages: string[] = []): Promise<Recor
   });
 
   const built = await Promise.all(
-    ['index.html', ...pages].map(
-      async (page): Promise<[string, string]> => [
-        page,
-        await readFile(path.join(root, 'dist', page), 'utf8'),
-      ]
-    )
+    ['index.html', ...pages].map(async (page): Promise<[string, string]> => [
+      page,
+      await readFile(path.join(root, 'dist', page), 'utf8'),
+    ])
   );
 
   return Object.fromEntries(built);
@@ -196,6 +194,112 @@ export const styles = stylex.create({
 function rejectUnresolvedAtRules(css: string): string {
   if (/var\(--[^)]+\)\s*\{/.test(css)) throw new Error('Invalid unresolved at-rule');
   return css;
+}
+
+// The reported bug needs one StyleX module to be transformed *after* the
+// placeholder CSS has already been loaded. A slow transform makes that ordering
+// deterministic; a large module graph produces it on its own.
+function delayModuleTransform(suffix: string, ms: number): Plugin {
+  return {
+    name: 'delay-module-transform',
+    enforce: 'pre',
+    async transform(code, id) {
+      if (!id.endsWith(suffix)) return null;
+
+      await new Promise(resolve => {
+        setTimeout(resolve, ms);
+      });
+
+      return code;
+    },
+  };
+}
+
+const eagerPlaceholderSource = `import * as stylex from '@stylexjs/stylex';
+import './global.css';
+
+export const styles = stylex.create({ eager: { color: 'red' } });
+
+void import('./lazy.js');
+`;
+
+const lazyPlaceholderSource = `import * as stylex from '@stylexjs/stylex';
+
+export const styles = stylex.create({ lazy: { backgroundColor: 'blue' } });
+`;
+
+// Mirrors the reproduction from issue #1276: an eager rule, a rule behind a
+// dynamic import, and a stylesheet carrying the marker.
+const placeholderFixtureFiles: Record<string, string> = {
+  'index.html': buildFixtureHtml,
+  'main.js': eagerPlaceholderSource,
+  'lazy.js': lazyPlaceholderSource,
+  'global.css': `body { margin: 0; }\n${placeholder}\n`,
+};
+
+type BuiltCssFile = { name: string; source: string; linked: boolean };
+
+// Reads every emitted stylesheet back off disk together with whether the
+// document actually links it, which is the distinction the bug turns on.
+async function readBuiltCss(outDir: string, html: string): Promise<BuiltCssFile[]> {
+  const entries = await readdir(outDir, { recursive: true, withFileTypes: true });
+  const cssFiles = entries
+    .filter(entry => entry.isFile() && entry.name.endsWith('.css'))
+    .map(entry => path.relative(outDir, path.join(entry.parentPath, entry.name)));
+
+  return Promise.all(
+    cssFiles.toSorted().map(async name => ({
+      name,
+      source: await readFile(path.join(outDir, name), 'utf8'),
+      linked: html.includes(name.split(path.sep).join('/')),
+    }))
+  );
+}
+
+// Builds the placeholder fixture for real: only a full build exercises the
+// ordering between the plugin hooks and the bundler's own CSS asset.
+async function buildPlaceholderFixture(
+  options: {
+    cssCodeSplit?: boolean;
+    files?: Record<string, string>;
+    plugins?: PluginOption[];
+    pluginOptions?: UnpluginStylexRSOptions;
+  } = {}
+): Promise<BuiltCssFile[]> {
+  const root = await writeFixtureRoot('.stylex-vite-placeholder-', {
+    ...placeholderFixtureFiles,
+    ...options.files,
+  });
+
+  await build({
+    build: {
+      cssCodeSplit: options.cssCodeSplit ?? false,
+      outDir: 'dist',
+      write: true,
+    },
+    configFile: false,
+    logLevel: 'silent',
+    plugins: [
+      ...(options.plugins ?? [delayModuleTransform('/lazy.js', 100)]),
+      stylexRuntimeStub,
+      stylexSwc({
+        fileName: 'stylex.[hash].css',
+        useCssPlaceholder: placeholder,
+        ...options.pluginOptions,
+        rsOptions: {
+          dev: false,
+          unstable_moduleResolution: { type: 'commonJS' },
+          ...options.pluginOptions?.rsOptions,
+        },
+      }),
+    ],
+    root,
+  });
+
+  const outDir = path.join(root, 'dist');
+  const html = await readFile(path.join(outDir, 'index.html'), 'utf8');
+
+  return readBuiltCss(outDir, html);
 }
 
 describe('Vite', () => {
@@ -355,6 +459,17 @@ export const styles = stylex.create({
 
     expect(built['index.html']).toContain('href="./stylex.css"');
     expect(built['pages/about.html']).toContain('href="../stylex.css"');
+  });
+
+  test('injects late dynamic-import rules into the linked stylesheet without code splitting', async () => {
+    const cssFiles = await buildPlaceholderFixture();
+
+    const linked = cssFiles.filter(file => file.linked);
+
+    expect(linked).toHaveLength(1);
+    expect(linked[0]?.source).toContain('color:red');
+    expect(linked[0]?.source).toContain('background-color:blue');
+    expect(cssFiles.filter(file => !file.linked)).toEqual([]);
   });
 
   test('should inject a base-prefixed stylesheet link in dev', async () => {

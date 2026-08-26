@@ -328,9 +328,14 @@ The plugin replaces the marker with the generated StyleX CSS during the build.
 > [!NOTE]
 > When `useCssPlaceholder` is enabled, the plugin no longer injects CSS
 > automatically into HTML or emits a separate `stylex.css` file. The CSS goes
-> into your specified CSS file instead. If no stylesheet in the build can
-> receive the marker, the build fails rather than emitting a file nothing
-> links.
+> into your specified CSS file instead. No bundler emits a standalone
+> stylesheet in this mode any more, since nothing would link it: under Vite,
+> where the plugin can tell the marker was part of the build, a missing
+> injection target fails the build; every other bundler reports a warning.
+>
+> A plugin that removes CSS assets during the bundle — inlining them into JS,
+> for instance — takes that target away, so combining one with
+> `useCssPlaceholder` under Vite fails the build.
 
 > [!WARNING]
 > Farm does not support `useCssPlaceholder` yet. Its plugin adapter never

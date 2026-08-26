@@ -5,6 +5,7 @@ import * as path from 'node:path';
 
 import { shouldTransformFile, transform as stylexTransform } from '@stylexswc/rs-compiler';
 import type { StyleXMetadata, TransformedOptions } from '@stylexswc/rs-compiler';
+import type { OnEndResult } from 'esbuild';
 import { createUnplugin } from 'unplugin';
 import type { UnpluginFactory, UnpluginInstance } from 'unplugin';
 import type { Connect } from 'vite';
@@ -52,8 +53,8 @@ const { writeFile, mkdir } = promises;
 const PLUGIN_NAME = 'unplugin-stylex-rs';
 
 /**
- * Stands in for the user's marker between the Vite load hook and the bundle,
- * during builds only.
+ * The build placeholder: stands in for the user's CSS placeholder between the
+ * Vite load hook and the bundle, during builds only.
  *
  * A statement at-rule is the one form that survives CSS minification in place:
  * esbuild and Lightning CSS both drop comments, including legal ones, but must
@@ -61,25 +62,7 @@ const PLUGIN_NAME = 'unplugin-stylex-rs';
  * style also keeps Lightning CSS from ever parsing the default `@stylex;`
  * marker, which it reports as an unknown at-rule.
  */
-const CSS_PLACEHOLDER_SENTINEL = '@layer __stylex_placeholder__;';
-
-/**
- * Placeholder mode deliberately skips HTML injection, so a stylesheet emitted
- * on its own would never be linked and the styles would simply be missing at
- * runtime. Failing the build is the only honest outcome.
- */
-/**
- * Replaces the first marker occurrence and drops every later one: repeating the
- * whole rule set per marker would only duplicate it. Splitting rather than
- * `String#replace` also keeps `$&`-like sequences in the CSS literal intact.
- */
-function replaceFirstMarker(source: string, marker: string, replacement: string): string {
-  const [head, ...rest] = source.split(marker);
-
-  if (head === undefined || rest.length === 0) return source;
-
-  return head + replacement + rest.join('');
-}
+const BUILD_CSS_PLACEHOLDER = '@layer __stylex_build_placeholder__;';
 
 /**
  * Removes every marker occurrence, for the stylesheets that did not receive the
@@ -89,9 +72,39 @@ function stripMarkers(source: string, markers: string[]): string {
   return markers.reduce((stripped, marker) => stripped.split(marker).join(''), source);
 }
 
+/**
+ * Replaces the first marker occurrence and drops every later one: repeating the
+ * whole rule set per marker would only duplicate it. Splitting rather than
+ * `String#replace` also keeps `$&`-like sequences in the CSS literal intact.
+ */
+function replaceFirstMarker(source: string, marker: string, replacement: string): string {
+  const start = source.indexOf(marker);
+
+  if (start === -1) return source;
+
+  const tail = source.slice(start + marker.length);
+
+  return source.slice(0, start) + replacement + stripMarkers(tail, [marker]);
+}
+
+/**
+ * Placeholder mode deliberately skips HTML injection, so a stylesheet emitted
+ * on its own would never be linked and the styles would simply be missing at
+ * runtime. Saying so is the only honest outcome.
+ */
 const MISSING_INJECTION_TARGET_ERROR =
   'StyleX: no CSS asset was available to receive the placeholder styles. ' +
   'Make sure the stylesheet holding the marker is imported by the module graph.';
+
+/**
+ * Only the Vite adapter learns from its load hook that the marker really is
+ * part of the build. Everywhere else a missing target is indistinguishable from
+ * a build that legitimately has no CSS, so it is reported rather than fatal --
+ * silence would leave the styles missing with nothing to explain it.
+ */
+const MISSING_INJECTION_TARGET_WARNING =
+  'StyleX: no CSS asset contained the placeholder marker, so no styles were ' +
+  'injected. The stylesheet holding the marker may be missing from the build.';
 
 function replaceFileName(original: string, css: string) {
   if (!original.includes('[hash]')) {
@@ -273,9 +286,9 @@ async function transformStyleXDependencies(
  * incompatible `Source`, and this function is called once per bundler; naming
  * either one here would force a cast at the other call site.
  *
- * It replaces three `any` parameters, and is stricter than they were: the
- * source produced by `createRawSource` must be the same type `updateAsset` and
- * `emitAsset` accept. Under `any`, handing a webpack `RawSource` to rspack's
+ * It replaces the `any` parameters it started with, and is stricter than they
+ * were: the source produced by `createRawSource` must be the same type
+ * `updateAsset` accepts. Under `any`, handing a webpack `RawSource` to rspack's
  * `updateAsset` type-checked cleanly and would only have failed at runtime.
  */
 async function injectStyleXCss<TSource>(
@@ -284,7 +297,8 @@ async function injectStyleXCss<TSource>(
   collectedCSS: string,
   normalizedOptions: NormalizedOptions,
   updateAsset: (fileName: string, source: TSource) => void,
-  createRawSource: (content: string) => TSource
+  createRawSource: (content: string) => TSource,
+  reportMissingTarget: (message: string) => void
 ): Promise<void> {
   const cssAssets = Object.keys(assets).filter(f => f.endsWith('.css'));
 
@@ -317,9 +331,10 @@ async function injectStyleXCss<TSource>(
     }
   }
 
-  // Nothing else to do when the compilation produced no stylesheet at all: an
-  // asset emitted here could not be linked, and unlike the Vite adapter this
-  // one has no signal that the marker was ever part of the build.
+  // An asset emitted here could not be linked, and unlike the Vite adapter this
+  // one has no signal that the marker was ever part of the build, so the styles
+  // going missing is reported rather than fatal.
+  if (!injected) reportMissingTarget(MISSING_INJECTION_TARGET_WARNING);
 }
 
 /**
@@ -332,6 +347,7 @@ type BundleOutputLike = { type: string; fileName: string; source?: string | Uint
 type OutputBundleLike = Record<string, BundleOutputLike>;
 type PlaceholderBundleContext = {
   error(message: string): never;
+  warn(message: string): void;
 };
 
 /**
@@ -356,10 +372,11 @@ async function injectPlaceholderIntoBundle(
       output.type === 'asset' && output.fileName.endsWith('.css')
   );
 
-  // The sentinel is what the Vite load hook leaves behind; the raw marker still
-  // turns up when the stylesheet reached the bundle without passing through it,
-  // as it does under plain Rollup.
-  const markers = [CSS_PLACEHOLDER_SENTINEL, normalizedOptions.useCssPlaceholder];
+  // The build placeholder is what the Vite load hook leaves behind; the raw
+  // marker still
+  // turns up when the stylesheet reached the bundle without passing through
+  // that hook, as it does under plain Rollup.
+  const markers = [BUILD_CSS_PLACEHOLDER, normalizedOptions.useCssPlaceholder];
 
   let injected = false;
 
@@ -371,8 +388,8 @@ async function injectPlaceholderIntoBundle(
     if (!marker) continue;
 
     if (!injected) {
-      // An empty rule set still has to take the sentinel back out, otherwise it
-      // ships to the browser.
+      // An empty rule set still has to take the build placeholder back out,
+      // otherwise it ships to the browser.
       const finalCSS = collectedCSS
         ? await transformStyleXCSS(collectedCSS, asset.fileName, normalizedOptions)
         : '';
@@ -404,9 +421,14 @@ async function injectPlaceholderIntoBundle(
 
   // Emitting a standalone stylesheet here used to look like a safety net, but
   // placeholder mode never links it, so it only ever hid missing styles.
-  if (!injected && reportMissingTarget) {
+  if (injected) return;
+
+  if (reportMissingTarget) {
     context.error(MISSING_INJECTION_TARGET_ERROR);
   }
+
+  // Rollup has no load-hook signal, so the same situation is only reported.
+  context.warn(MISSING_INJECTION_TARGET_WARNING);
 }
 
 export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefined> = (
@@ -714,17 +736,15 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
         // In a build the rule set is still incomplete here: modules reached
         // through a dynamic import are transformed long after this stylesheet
-        // is loaded. Leave a sentinel for generateBundle to replace with the
-        // final rules, so they are injected once and at the marker's position.
+        // is loaded. Leave the build placeholder for generateBundle to fill with
+        // the final rules, so they are injected once and at the marker's position.
         // The dev server has no bundle step and keeps inlining what it has.
         if (!viteDevServer) {
           placeholderSeen = true;
 
           // Every occurrence, so a stray second marker cannot survive into the
           // output: generateBundle fills the first and removes the rest.
-          return cssContent
-            .split(normalizedOptions.useCssPlaceholder)
-            .join(CSS_PLACEHOLDER_SENTINEL);
+          return cssContent.split(normalizedOptions.useCssPlaceholder).join(BUILD_CSS_PLACEHOLDER);
         }
 
         // Get collected StyleX CSS
@@ -954,11 +974,11 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     },
     esbuild: {
       setup(build) {
-        build.onEnd(async ({ outputFiles, metafile }) => {
+        build.onEnd(async ({ outputFiles, metafile }): Promise<OnEndResult> => {
           const fileName = normalizedOptions.fileName;
           const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
 
-          if (!collectedCSS) return;
+          if (!collectedCSS) return {};
 
           const shouldWriteToDisk =
             build.initialOptions.write === undefined || build.initialOptions.write;
@@ -1038,19 +1058,13 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               }
             }
 
-            // Last resort: emit standalone stylex.css
+            // A standalone file written here would never be linked, since
+            // placeholder mode skips HTML injection.
             if (!injected) {
-              const generatedCSSFileName = path.join(outDir, fileName);
-              const finalCSS = await transformStyleXCSS(
-                collectedCSS,
-                generatedCSSFileName,
-                normalizedOptions
-              );
-              await mkdir(path.dirname(generatedCSSFileName), { recursive: true });
-              await writeFile(generatedCSSFileName, finalCSS, 'utf8');
+              return { warnings: [{ text: MISSING_INJECTION_TARGET_WARNING }] };
             }
 
-            return;
+            return {};
           }
 
           // Default behavior: emit standalone CSS file
@@ -1066,7 +1080,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             });
             await writeFile(generatedCSSFileName, finalCSS, 'utf8');
 
-            return;
+            return {};
           }
 
           if (outputFiles !== undefined) {
@@ -1080,6 +1094,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               },
             });
           }
+
+          return {};
         });
       },
     },
@@ -1128,7 +1144,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               collectedCSS,
               normalizedOptions,
               (fileName, source) => compilation.updateAsset(fileName, source),
-              (content: string) => new compiler.webpack.sources.RawSource(content)
+              (content: string) => new compiler.webpack.sources.RawSource(content),
+              message => compilation.warnings.push(new compiler.webpack.WebpackError(message))
             );
           }
         );
@@ -1157,7 +1174,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               collectedCSS,
               normalizedOptions,
               (fileName, source) => compilation.updateAsset(fileName, source),
-              (content: string) => new compiler.webpack.sources.RawSource(content)
+              (content: string) => new compiler.webpack.sources.RawSource(content),
+              message => compilation.warnings.push(new compiler.webpack.WebpackError(message))
             );
           }
         );

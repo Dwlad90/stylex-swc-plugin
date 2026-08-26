@@ -106,12 +106,14 @@ async function runWebpackLikeCssInjection(
       assets[fileName] = source;
     }),
     emitAsset: vi.fn(),
+    warnings: [] as Error[],
   };
   const compiler = {
     webpack: {
       Compilation: {
         PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE: 0,
       },
+      WebpackError: class WebpackError extends Error {},
       sources: {
         RawSource: class RawSource {
           #source: string;
@@ -260,20 +262,29 @@ describe('@stylexswc/unplugin', () => {
     expect(finalCSS).not.toContain('@stylex;');
   });
 
-  test('webpack emits no stylesheet when the compilation has no CSS asset', async () => {
+  test('webpack warns instead of emitting a stylesheet nothing links', async () => {
     const { assets, compilation } = await runWebpackLikeCssInjection('webpack', {});
 
     // Placeholder mode never links an emitted file, so emitting one here would
     // only hide the fact that the styles cannot be delivered.
     expect(compilation.emitAsset).not.toHaveBeenCalled();
     expect(Object.keys(assets)).toEqual([]);
+    expect(compilation.warnings).toHaveLength(1);
+    expect(compilation.warnings[0]?.message).toContain('no CSS asset contained the placeholder');
   });
 
-  test('rspack emits no stylesheet when the compilation has no CSS asset', async () => {
+  test('rspack warns instead of emitting a stylesheet nothing links', async () => {
     const { assets, compilation } = await runWebpackLikeCssInjection('rspack', {});
 
     expect(compilation.emitAsset).not.toHaveBeenCalled();
     expect(Object.keys(assets)).toEqual([]);
+    expect(compilation.warnings).toHaveLength(1);
+  });
+
+  test('webpack does not warn when the marker was replaced', async () => {
+    const { compilation } = await runWebpackLikeCssInjection('webpack');
+
+    expect(compilation.warnings).toEqual([]);
   });
 
   test('warns that Farm does not support placeholder mode', () => {

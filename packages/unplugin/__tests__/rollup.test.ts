@@ -11,11 +11,16 @@ import type { UnpluginStylexRSOptions } from '../src/index.js';
 import stylexPlugin from '../src/rollup.js';
 
 describe('@stylexswc/unplugin/rollup', () => {
-  async function runStylex(options: UnpluginStylexRSOptions, extraPlugins: rollup.Plugin[] = []) {
+  async function runStylex(
+    options: UnpluginStylexRSOptions,
+    extraPlugins: rollup.Plugin[] = [],
+    warnings: rollup.RollupLog[] = []
+  ) {
     // Configure a rollup bundle
     const bundle = await rollup.rollup({
       // Remove stylex runtime from bundle
       external: ['stylex', '@stylexjs/stylex', '@stylexjs/stylex/lib/stylex-inject'],
+      onwarn: warning => warnings.push(warning),
       input: path.resolve(__dirname, '__fixtures__/index.js'),
       plugins: [
         nodeResolve(),
@@ -85,6 +90,17 @@ describe('@stylexswc/unplugin/rollup', () => {
     // Placeholder mode never links a standalone stylesheet, so there must not
     // be a second one.
     expect(cssFileNames).toEqual(['styles.css']);
+  });
+
+  test('warns instead of emitting a stylesheet nothing links', async () => {
+    const warnings: rollup.RollupLog[] = [];
+    // No CSS plugin at all, so nothing in the bundle can carry the marker.
+    const { output } = await runStylex({ useCssPlaceholder: placeholder }, [], warnings);
+
+    expect(output.filter(chunkOrAsset => chunkOrAsset.fileName.endsWith('.css'))).toEqual([]);
+    expect(warnings.map(warning => warning.message ?? '')).toContainEqual(
+      expect.stringContaining('no CSS asset contained the placeholder')
+    );
   });
 
   test('extracts CSS and removes stylex.inject calls', async () => {

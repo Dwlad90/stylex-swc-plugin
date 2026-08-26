@@ -18,6 +18,14 @@ once compilation has produced it. The alternative to appending to a chosen
 asset, and what `useCssPlaceholder` selects.
 _Avoid_: token, sentinel, slot
 
+**Build placeholder**:
+The plugin's own marker, written over the CSS placeholder while a build is
+running because the rule set is not complete when the stylesheet is loaded. A
+`@layer` statement rather than a comment, since that is what survives CSS
+minification in place, and replaced with the final rules before the bundle is
+written.
+_Avoid_: sentinel, temporary marker, internal token
+
 **Injection asset**:
 The CSS asset the extracted styles are appended to when no placeholder is in
 use, picked by preference: `index.css`, then `style.css`, then `main.css`, then

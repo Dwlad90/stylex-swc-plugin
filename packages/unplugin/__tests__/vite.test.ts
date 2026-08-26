@@ -561,7 +561,7 @@ export const styles = stylex.create({
     expect(source.indexOf('color:red')).toBeLessThan(source.indexOf('color:green'));
   });
 
-  test('leaves neither marker nor sentinel behind when no StyleX rules exist', async () => {
+  test('leaves neither marker nor build placeholder behind when no StyleX rules exist', async () => {
     const cssFiles = await buildPlaceholderFixture({
       files: {
         'main.js': "import './global.css';\n\nexport const noStyles = true;\n",
@@ -572,7 +572,7 @@ export const styles = stylex.create({
 
     for (const file of cssFiles) {
       expect(file.source).not.toContain(placeholder);
-      expect(file.source).not.toContain('__stylex_placeholder__');
+      expect(file.source).not.toContain('__stylex_build_placeholder__');
     }
   });
 
@@ -621,7 +621,7 @@ export const styles = stylex.create({
 
     expect(countOccurrences(source, 'color:red')).toBe(1);
     expect(source).not.toContain(placeholder);
-    expect(source).not.toContain('__stylex_placeholder__');
+    expect(source).not.toContain('__stylex_build_placeholder__');
   });
 
   test('strips the marker from stylesheets that did not receive the rules', async () => {
@@ -639,7 +639,7 @@ export const styles = stylex.create({
 
     for (const file of cssFiles) {
       expect(file.source).not.toContain(placeholder);
-      expect(file.source).not.toContain('__stylex_placeholder__');
+      expect(file.source).not.toContain('__stylex_build_placeholder__');
     }
   });
 

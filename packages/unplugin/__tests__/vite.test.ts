@@ -234,7 +234,7 @@ const placeholderFixtureFiles: Record<string, string> = {
   'index.html': buildFixtureHtml,
   'main.js': eagerPlaceholderSource,
   'lazy.js': lazyPlaceholderSource,
-  'global.css': `body { margin: 0; }\n${placeholder}\n`,
+  'global.css': `body { margin: 0; }\n${placeholder}\n.after-marker { color: green; }\n`,
 };
 
 type BuiltCssFile = { name: string; source: string; linked: boolean };
@@ -300,6 +300,12 @@ async function buildPlaceholderFixture(
   const html = await readFile(path.join(outDir, 'index.html'), 'utf8');
 
   return readBuiltCss(outDir, html);
+}
+
+// Counting occurrences is what separates "the rules are present" from "the
+// rules are present once", which is the difference an appended copy hides.
+function countOccurrences(source: string, needle: string): number {
+  return source.split(needle).length - 1;
 }
 
 describe('Vite', () => {
@@ -470,6 +476,39 @@ export const styles = stylex.create({
     expect(linked[0]?.source).toContain('color:red');
     expect(linked[0]?.source).toContain('background-color:blue');
     expect(cssFiles.filter(file => !file.linked)).toEqual([]);
+  });
+
+  test('injects every StyleX rule exactly once', async () => {
+    const cssFiles = await buildPlaceholderFixture();
+    const linked = cssFiles.find(file => file.linked);
+
+    expect(countOccurrences(linked?.source ?? '', 'color:red')).toBe(1);
+    expect(countOccurrences(linked?.source ?? '', 'background-color:blue')).toBe(1);
+  });
+
+  test('keeps StyleX rules at the marker position', async () => {
+    const cssFiles = await buildPlaceholderFixture();
+    const source = cssFiles.find(file => file.linked)?.source ?? '';
+
+    // The marker sits between the reset and the override, so the injected
+    // rules have to land there rather than at the end of the file.
+    expect(source.indexOf('margin:0')).toBeLessThan(source.indexOf('color:red'));
+    expect(source.indexOf('color:red')).toBeLessThan(source.indexOf('color:green'));
+  });
+
+  test('leaves neither marker nor sentinel behind when no StyleX rules exist', async () => {
+    const cssFiles = await buildPlaceholderFixture({
+      files: {
+        'main.js': "import './global.css';\n\nexport const noStyles = true;\n",
+        'lazy.js': 'export const lazy = true;\n',
+      },
+      plugins: [],
+    });
+
+    for (const file of cssFiles) {
+      expect(file.source).not.toContain(placeholder);
+      expect(file.source).not.toContain('__stylex_placeholder__');
+    }
   });
 
   test('should inject a base-prefixed stylesheet link in dev', async () => {

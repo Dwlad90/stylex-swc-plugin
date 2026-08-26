@@ -51,6 +51,18 @@ const { writeFile, mkdir } = promises;
 
 const PLUGIN_NAME = 'unplugin-stylex-rs';
 
+/**
+ * Stands in for the user's marker between the Vite load hook and the bundle,
+ * during builds only.
+ *
+ * A statement at-rule is the one form that survives CSS minification in place:
+ * esbuild and Lightning CSS both drop comments, including legal ones, but must
+ * keep `@layer` because it declares layer order. Using it for every marker
+ * style also keeps Lightning CSS from ever parsing the default `@stylex;`
+ * marker, which it reports as an unknown at-rule.
+ */
+const CSS_PLACEHOLDER_SENTINEL = '@layer __stylex_placeholder__;';
+
 function replaceFileName(original: string, css: string) {
   if (!original.includes('[hash]')) {
     return original;
@@ -313,34 +325,42 @@ async function injectPlaceholderIntoBundle(
   if (!normalizedOptions.useCssPlaceholder) return;
 
   const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
-  if (!collectedCSS) return;
 
   const cssAssets = Object.values(bundle).filter(
     (output): output is BundleAssetLike =>
       output.type === 'asset' && output.fileName.endsWith('.css')
   );
 
-  let injected = false;
+  // The sentinel is what the Vite load hook leaves behind; the raw marker still
+  // turns up when the stylesheet reached the bundle without passing through it,
+  // as it does under plain Rollup.
+  const markers = [CSS_PLACEHOLDER_SENTINEL, normalizedOptions.useCssPlaceholder];
 
   // First pass: look for marker-based injection
   for (const asset of cssAssets) {
     const source = asset.source.toString();
+    const marker = markers.find(candidate => source.includes(candidate));
 
-    if (!source.includes(normalizedOptions.useCssPlaceholder)) continue;
+    if (!marker) continue;
 
-    const finalCSS = await transformStyleXCSS(collectedCSS, asset.fileName, normalizedOptions);
+    // An empty rule set still has to take the sentinel back out, otherwise it
+    // ships to the browser.
+    const finalCSS = collectedCSS
+      ? await transformStyleXCSS(collectedCSS, asset.fileName, normalizedOptions)
+      : '';
 
     // Replacement callback keeps `$&`/`$\'`-like sequences in the CSS literal
-    asset.source = source.replace(normalizedOptions.useCssPlaceholder, () => finalCSS);
-    injected = true;
-    break;
+    asset.source = source.replace(marker, () => finalCSS);
+
+    return;
   }
 
-  // The load hook may have replaced the placeholder before all modules were
-  // transformed, so the fallback append must still run to deliver the full
-  // rule set; StyleX rules are idempotent when repeated
+  if (!collectedCSS) return;
+
+  let injected = false;
+
   // Fallback: if marker not found, append to preferred CSS asset
-  if (!injected && cssAssets.length > 0) {
+  if (cssAssets.length > 0) {
     const targetName = pickCssAsset(cssAssets.map(asset => asset.fileName));
     const target = cssAssets.find(asset => asset.fileName === targetName);
 
@@ -647,29 +667,34 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         // Check if it contains the placeholder
         if (!cssContent.includes(normalizedOptions.useCssPlaceholder)) return null;
 
+        // In a build the rule set is still incomplete here: modules reached
+        // through a dynamic import are transformed long after this stylesheet
+        // is loaded. Leave a sentinel for generateBundle to replace with the
+        // final rules, so they are injected once and at the marker's position.
+        // The dev server has no bundle step and keeps inlining what it has.
+        if (!viteDevServer) {
+          return cssContent.replace(
+            normalizedOptions.useCssPlaceholder,
+            () => CSS_PLACEHOLDER_SENTINEL
+          );
+        }
+
         // Get collected StyleX CSS
         let collectedCSS = getStyleXRules(stylexRules, transformedOptions);
 
-        if (collectedCSS && viteDevServer && hasUnresolvedDefineConstAtRule(collectedCSS)) {
+        if (collectedCSS && hasUnresolvedDefineConstAtRule(collectedCSS)) {
           // Static imports can be registered but not transformed when Vite's request
           // pre-transform is disabled, leaving defineConsts metadata unavailable.
           await transformStyleXDependencies(viteDevServer, stylexRules, normalizedOptions);
           collectedCSS = getStyleXRules(stylexRules, transformedOptions);
         }
-        // Check if dev server is running (more reliable than watchMode)
-        const isDevMode = !!viteDevServer;
 
-        // Determine replacement CSS based on mode and whether CSS exists
+        // Determine replacement CSS based on whether usable CSS exists yet
         let replacementCSS: string;
-        if (!collectedCSS?.trim()) {
-          // No CSS yet: use a comment that indicates the mode
-          replacementCSS = isDevMode
-            ? '/* StyleX styles will load after transformation */'
-            : '/* No StyleX styles */';
-        } else if (!hasUnresolvedDefineConstAtRule(collectedCSS)) {
-          replacementCSS = await transformStyleXCSS(collectedCSS, id, normalizedOptions);
-        } else {
+        if (!collectedCSS?.trim() || hasUnresolvedDefineConstAtRule(collectedCSS)) {
           replacementCSS = '/* StyleX styles will load after transformation */';
+        } else {
+          replacementCSS = await transformStyleXCSS(collectedCSS, id, normalizedOptions);
         }
 
         return cssContent.replace(normalizedOptions.useCssPlaceholder, () => replacementCSS);

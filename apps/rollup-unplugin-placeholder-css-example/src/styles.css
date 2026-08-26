@@ -1,0 +1,15 @@
+@layer global {
+  body {
+    background-color: #e5dbff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+/* StyleX CSS is injected here, between the globals above and the overrides below */
+@stylex;
+
+@layer overrides {
+  [data-testid='late-card'] {
+    letter-spacing: 0.02em;
+  }
+}

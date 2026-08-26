@@ -1,0 +1,33 @@
+{
+  "name": "@stylexswc/rollup-unplugin-placeholder-css-example",
+  "description": "A simple rollup unplugin example placeholder css to test @stylexswc/unplugin/rollup",
+  "version": "0.18.4",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "NODE_ENV=production rollup --config ./rollup.config.mjs",
+    "serve": "serve --listen 3015 ./dist",
+    "start": "pnpx rollup --config ./rollup.config.mjs --watch",
+    "test:visual": "playwright test"
+  },
+  "dependencies": {
+    "@stylexjs/open-props": "catalog:runtime",
+    "@stylexjs/stylex": "catalog:runtime",
+    "@stylexswc/design-system": "catalog:internal",
+    "@stylexswc/rs-compiler": "catalog:internal",
+    "@stylexswc/unplugin": "catalog:internal",
+    "react": "catalog:frameworks",
+    "react-dom": "catalog:frameworks"
+  },
+  "devDependencies": {
+    "@playwright/test": "catalog:testing",
+    "@rollup/plugin-commonjs": "catalog:bundlers",
+    "@rollup/plugin-html": "catalog:bundlers",
+    "@rollup/plugin-node-resolve": "catalog:bundlers",
+    "@rollup/plugin-replace": "catalog:bundlers",
+    "@rollup/plugin-swc": "catalog:bundlers",
+    "@stylexswc/playwright": "catalog:internal",
+    "rollup": "catalog:bundlers",
+    "serve": "catalog:testing"
+  }
+}

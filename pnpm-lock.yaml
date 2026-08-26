@@ -1248,6 +1248,58 @@ importers:
         specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
 
+  apps/rollup-unplugin-placeholder-css-example:
+    dependencies:
+      '@stylexjs/open-props':
+        specifier: catalog:runtime
+        version: 0.11.1
+      '@stylexjs/stylex':
+        specifier: catalog:runtime
+        version: 0.19.0
+      '@stylexswc/design-system':
+        specifier: catalog:internal
+        version: link:../../packages/design-system
+      '@stylexswc/rs-compiler':
+        specifier: catalog:internal
+        version: link:../../crates/stylex-rs-compiler
+      '@stylexswc/unplugin':
+        specifier: catalog:internal
+        version: link:../../packages/unplugin
+      react:
+        specifier: catalog:frameworks
+        version: 19.2.8
+      react-dom:
+        specifier: catalog:frameworks
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@playwright/test':
+        specifier: catalog:testing
+        version: 1.62.1
+      '@rollup/plugin-commonjs':
+        specifier: catalog:bundlers
+        version: 29.0.3(rollup@4.62.4)
+      '@rollup/plugin-html':
+        specifier: catalog:bundlers
+        version: 2.0.0(rollup@4.62.4)
+      '@rollup/plugin-node-resolve':
+        specifier: catalog:bundlers
+        version: 16.0.3(rollup@4.62.4)
+      '@rollup/plugin-replace':
+        specifier: catalog:bundlers
+        version: 6.0.3(rollup@4.62.4)
+      '@rollup/plugin-swc':
+        specifier: catalog:bundlers
+        version: 0.4.1(@swc/core@1.15.47(@swc/helpers@0.5.23))(rollup@4.62.4)
+      '@stylexswc/playwright':
+        specifier: catalog:internal
+        version: link:../../packages/playwright
+      rollup:
+        specifier: catalog:bundlers
+        version: 4.62.4
+      serve:
+        specifier: catalog:testing
+        version: 14.2.6(supports-color@8.1.1)
+
   apps/rsbuild-unplugin-example:
     dependencies:
       '@stylexjs/open-props':

@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "build": "NODE_ENV=production rollup --config ./rollup.config.mjs",
-    "serve": "serve --listen 3015 ./dist",
+    "serve": "serve --listen 3021 ./dist",
     "start": "pnpx rollup --config ./rollup.config.mjs --watch",
     "test:visual": "playwright test"
   },

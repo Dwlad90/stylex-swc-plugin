@@ -48,7 +48,7 @@ function shouldTransformStyleXFile(id: string, normalizedOptions: NormalizedOpti
   );
 }
 
-const { writeFile, mkdir } = promises;
+const { writeFile, mkdir, readFile, readdir } = promises;
 
 const PLUGIN_NAME = 'unplugin-stylex-rs';
 
@@ -80,6 +80,83 @@ function stripMarkers(source: string, markers: string[]): string {
 }
 
 /**
+ * One stylesheet the rules can go into, named so `transformCss` and the asset
+ * preference have something to work with. Each host stores its stylesheets
+ * differently -- a bundle asset, a webpack asset, a file already on disk -- and
+ * this is the only part of that difference the injection needs to know about.
+ */
+type CssInjectionTarget = {
+  name: string;
+  read(): string | Promise<string>;
+  write(source: string): void | Promise<void>;
+};
+
+/** Runs the collected rules through whatever the host does to CSS. */
+type FinalizeCss = (css: string, targetName: string) => Promise<string>;
+
+/**
+ * Puts the collected rules where the marker is and takes every marker they did
+ * not replace back out, falling back to a preferred stylesheet when no marker
+ * survived into the output.
+ *
+ * Returns whether the caller has nothing left to report: either the rules were
+ * placed, or there were none to place and the markers are gone.
+ */
+async function injectIntoCssTargets(
+  targets: CssInjectionTarget[],
+  markers: string[],
+  collectedCSS: string | null,
+  finalizeCss: FinalizeCss
+): Promise<boolean> {
+  // Read once per target: the fallback below needs the same contents, and a
+  // second read of a file on disk would be wasted work.
+  const sources = new Map<CssInjectionTarget, string>();
+
+  for (const target of targets) {
+    sources.set(target, (await target.read()).toString());
+  }
+
+  let injected = false;
+
+  for (const target of targets) {
+    const source = sources.get(target) ?? '';
+    const marker = markers.find(candidate => source.includes(candidate));
+
+    if (!marker) continue;
+
+    let next = source;
+
+    if (!injected) {
+      // An empty rule set still has to take the marker back out, otherwise it
+      // ships to the browser.
+      const finalCSS = collectedCSS ? await finalizeCss(collectedCSS, target.name) : '';
+
+      next = replaceFirstMarker(next, marker, finalCSS);
+      injected = true;
+    }
+
+    // Whatever is left over -- a second marker here, or a marker in another
+    // stylesheet -- would repeat the rules, so it is only removed.
+    await target.write(stripMarkers(next, markers));
+  }
+
+  if (injected || !collectedCSS) return true;
+
+  // No marker reached the output, so append to a preferred stylesheet instead.
+  const targetName = pickCssAsset(targets.map(target => target.name));
+  const fallback = targets.find(target => target.name === targetName);
+
+  if (!fallback) return false;
+
+  const existing = sources.get(fallback) ?? '';
+  const finalCSS = await finalizeCss(collectedCSS, fallback.name);
+
+  await fallback.write(existing ? existing + '\n' + finalCSS : finalCSS);
+
+  return true;
+}
+
+/**
  * Replaces the first marker occurrence and drops every later one: repeating the
  * whole rule set per marker would only duplicate it. Splitting rather than
  * `String#replace` also keeps `$&`-like sequences in the CSS literal intact.
@@ -92,6 +169,40 @@ function replaceFirstMarker(source: string, marker: string, replacement: string)
   const tail = source.slice(start + marker.length);
 
   return source.slice(0, start) + replacement + stripMarkers(tail, [marker]);
+}
+
+/**
+ * Whether the host minifies CSS, taken from Vite's `build.cssMinify`. Undefined
+ * outside Vite, which is what keeps plain Rollup unchanged.
+ */
+type CssMinifier = boolean | string | undefined;
+
+/**
+ * Minifies the rules the injection splices in.
+ *
+ * The host's CSS plugin has already minified the stylesheet by the time the
+ * bundle hook runs, so rules added there would otherwise be the only unminified
+ * CSS in the output. PostCSS cannot be recovered this late -- it runs per
+ * module, long before the full rule set is known -- which is why the placeholder
+ * docs promise the pipeline for the stylesheet, not for the rules.
+ *
+ * Always esbuild, even where the host chose Lightning CSS: this only has to
+ * shrink the rules, both minifiers leave StyleX's atomic longhand declarations
+ * alone, and esbuild is already here for every host worth minifying for.
+ */
+async function minifyInjectedCss(css: string, minifier: CssMinifier): Promise<string> {
+  if (!minifier || !css.trim()) return css;
+
+  try {
+    const { transform } = await import('esbuild');
+
+    return (await transform(css, { loader: 'css', minify: true })).code;
+  } catch (error) {
+    // Shipping the rules unminified beats failing a build over the minifier.
+    console.warn('StyleX: could not minify the injected placeholder CSS', error);
+
+    return css;
+  }
 }
 
 /**
@@ -301,47 +412,36 @@ async function transformStyleXDependencies(
 async function injectStyleXCss<TSource>(
   assets: Record<string, { source(): { toString(): string } }>,
   injectMarker: string,
-  collectedCSS: string,
+  collectedCSS: string | null,
   normalizedOptions: NormalizedOptions,
   updateAsset: (fileName: string, source: TSource) => void,
   createRawSource: (content: string) => TSource,
   reportMissingTarget: (message: string) => void
 ): Promise<void> {
-  const cssAssets = Object.keys(assets).filter(f => f.endsWith('.css'));
+  const targets = Object.keys(assets)
+    .filter(fileName => fileName.endsWith('.css'))
+    .flatMap<CssInjectionTarget>(fileName => {
+      const asset = assets[fileName];
 
-  // Try to find asset with the marker first
-  let injected = false;
-  for (const fileName of cssAssets) {
-    const asset = assets[fileName];
-    if (!asset) continue;
-    const source = asset.source().toString();
-    if (source.includes(injectMarker)) {
-      const finalCSS = await transformStyleXCSS(collectedCSS, fileName, normalizedOptions);
-      updateAsset(fileName, createRawSource(replaceFirstMarker(source, injectMarker, finalCSS)));
-      injected = true;
-      break;
-    }
-  }
+      if (!asset) return [];
 
-  // Fallback: append to a preferred CSS asset if marker not found
-  if (!injected && cssAssets.length > 0) {
-    const targetAsset = pickCssAsset(cssAssets);
-    if (targetAsset) {
-      const asset = assets[targetAsset];
-      if (asset) {
-        const existing = asset.source().toString();
-        const finalCSS = await transformStyleXCSS(collectedCSS, targetAsset, normalizedOptions);
-        const newSource = existing ? existing + '\n' + finalCSS : finalCSS;
-        updateAsset(targetAsset, createRawSource(newSource));
-        injected = true;
-      }
-    }
-  }
+      return [
+        {
+          name: fileName,
+          read: () => asset.source().toString(),
+          write: source => updateAsset(fileName, createRawSource(source)),
+        },
+      ];
+    });
+
+  const handled = await injectIntoCssTargets(targets, [injectMarker], collectedCSS, (css, name) =>
+    transformStyleXCSS(css, name, normalizedOptions)
+  );
 
   // An asset emitted here could not be linked, and unlike the Vite adapter this
   // one has no signal that the marker was ever part of the build, so the styles
   // going missing is reported rather than fatal.
-  if (!injected && normalizedOptions.onMissingCssPlaceholder !== 'ignore') {
+  if (!handled && normalizedOptions.onMissingCssPlaceholder !== 'ignore') {
     reportMissingTarget(MISSING_INJECTION_TARGET_WARNING);
   }
 }
@@ -370,7 +470,8 @@ async function injectPlaceholderIntoBundle(
   stylexRules: StyleXRules,
   normalizedOptions: NormalizedOptions,
   transformedOptions: TransformedOptions,
-  canProveMarkerWasBuilt: boolean
+  canProveMarkerWasBuilt: boolean,
+  finalizeCss: FinalizeCss
 ): Promise<void> {
   if (!normalizedOptions.useCssPlaceholder) return;
 
@@ -379,61 +480,29 @@ async function injectPlaceholderIntoBundle(
   // The source is tested, not assumed: the narrowing hands back a type where it
   // is required, so a host reporting a stylesheet without one would otherwise
   // fail on the read below rather than here.
-  const cssAssets = Object.values(bundle).filter(
-    (output): output is BundleAssetLike =>
-      output.type === 'asset' && output.fileName.endsWith('.css') && output.source != null
-  );
+  const targets = Object.values(bundle)
+    .filter(
+      (output): output is BundleAssetLike =>
+        output.type === 'asset' && output.fileName.endsWith('.css') && output.source != null
+    )
+    .map<CssInjectionTarget>(asset => ({
+      name: asset.fileName,
+      read: () => asset.source.toString(),
+      write: source => {
+        asset.source = source;
+      },
+    }));
 
-  // The build placeholder is what the Vite load hook leaves behind; the raw
-  // marker still
-  // turns up when the stylesheet reached the bundle without passing through
-  // that hook, as it does under plain Rollup.
+  // The build placeholder is what the load hook leaves behind; the raw marker
+  // still turns up when the stylesheet reached the bundle without passing
+  // through that hook, as it does under plain Rollup.
   const markers = [BUILD_CSS_PLACEHOLDER, normalizedOptions.useCssPlaceholder];
 
-  let injected = false;
-
-  // First pass: look for marker-based injection
-  for (const asset of cssAssets) {
-    let source = asset.source.toString();
-    const marker = markers.find(candidate => source.includes(candidate));
-
-    if (!marker) continue;
-
-    if (!injected) {
-      // An empty rule set still has to take the build placeholder back out,
-      // otherwise it ships to the browser.
-      const finalCSS = collectedCSS
-        ? await transformStyleXCSS(collectedCSS, asset.fileName, normalizedOptions)
-        : '';
-
-      source = replaceFirstMarker(source, marker, finalCSS);
-      injected = true;
-    }
-
-    // Whatever is left over -- a second marker here, or a marker in another
-    // stylesheet -- would repeat the rules, so it is only removed.
-    asset.source = stripMarkers(source, markers);
-  }
-
-  if (injected || !collectedCSS) return;
-
-  // Fallback: if marker not found, append to preferred CSS asset
-  if (cssAssets.length > 0) {
-    const targetName = pickCssAsset(cssAssets.map(asset => asset.fileName));
-    const target = cssAssets.find(asset => asset.fileName === targetName);
-
-    if (target) {
-      const existing = target.source.toString();
-      const finalCSS = await transformStyleXCSS(collectedCSS, target.fileName, normalizedOptions);
-
-      target.source = existing ? existing + '\n' + finalCSS : finalCSS;
-      injected = true;
-    }
-  }
+  const handled = await injectIntoCssTargets(targets, markers, collectedCSS, finalizeCss);
 
   // Emitting a standalone stylesheet here used to look like a safety net, but
   // placeholder mode never links it, so it only ever hid missing styles.
-  if (injected || normalizedOptions.onMissingCssPlaceholder === 'ignore') return;
+  if (handled || normalizedOptions.onMissingCssPlaceholder === 'ignore') return;
 
   // Failing is only fair where the marker is known to have been in the build:
   // elsewhere a missing stylesheet looks the same as a build with no CSS.
@@ -472,6 +541,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   // for hosts other than Vite.
   let viteUserAssetsDir: string | undefined;
   let viteResolvedBase: string | undefined;
+  let viteCssMinify: CssMinifier;
 
   let hasCssToExtract = false;
   let cssFileName: string | null = null;
@@ -568,6 +638,13 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   // own CSS plugin emits the combined stylesheet, so a build with
   // `cssCodeSplit: false` saw no CSS asset to inject into and fell through to a
   // standalone file that nothing links.
+  // The rules are spliced in after the host's CSS plugin has already minified
+  // the stylesheet, so they arrive unminified unless they are minified here.
+  // `viteCssMinify` stays unset outside Vite, which leaves plain Rollup, with no
+  // CSS pipeline of its own, exactly as it was.
+  const finalizePlaceholderCss: FinalizeCss = async (css, targetName) =>
+    minifyInjectedCss(await transformStyleXCSS(css, targetName, normalizedOptions), viteCssMinify);
+
   const placeholderGenerateBundle = {
     order: 'post' as const,
     async handler(this: PlaceholderBundleContext, _options: unknown, bundle: OutputBundleLike) {
@@ -577,7 +654,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         stylexRules,
         normalizedOptions,
         transformedOptions,
-        placeholderSeen && !viteIsSsrBuild
+        placeholderSeen && !viteIsSsrBuild,
+        finalizePlaceholderCss
       );
     },
   };
@@ -739,6 +817,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         // An SSR bundle emits no stylesheet of its own, so a missing injection
         // target there is expected rather than a misconfiguration.
         viteIsSsrBuild = !!config.build.ssr;
+
+        // The injection runs after Vite has minified the stylesheet, so it has
+        // to apply the same minifier to the rules it splices in.
+        viteCssMinify = config.build.cssMinify;
 
         // `base`, unlike `assetsDir`, is wanted in its resolved form: the user
         // value may be unset or missing the trailing slash Vite normalizes in.
@@ -1006,11 +1088,41 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     },
     esbuild: {
       setup(build) {
+        // esbuild drops CSS comments, so a comment marker never reaches the
+        // output and the injection could only ever append the rules at the end.
+        // Rewriting it to a statement at-rule here, the way the Vite load hook
+        // does, is what keeps the marker's position.
+        if (normalizedOptions.useCssPlaceholder) {
+          const marker = normalizedOptions.useCssPlaceholder;
+
+          build.onLoad({ filter: /\.css$/ }, async ({ path: cssPath }) => {
+            let contents: string;
+
+            try {
+              contents = await readFile(cssPath, 'utf8');
+            } catch {
+              return null;
+            }
+
+            if (!contents.includes(marker)) return null;
+
+            return {
+              // Every occurrence, so a stray second marker cannot survive into
+              // the output: the bundle step fills the first and removes the rest.
+              contents: contents.split(marker).join(BUILD_CSS_PLACEHOLDER),
+              loader: 'css' as const,
+              resolveDir: path.dirname(cssPath),
+            };
+          });
+        }
+
         build.onEnd(async ({ outputFiles, metafile }): Promise<OnEndResult> => {
           const fileName = normalizedOptions.fileName;
           const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
 
-          if (!collectedCSS) return {};
+          // A build with no rules still has to take the marker back out, so the
+          // placeholder branch below runs either way.
+          if (!collectedCSS && !normalizedOptions.useCssPlaceholder) return {};
 
           const shouldWriteToDisk =
             build.initialOptions.write === undefined || build.initialOptions.write;
@@ -1021,8 +1133,6 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
           // Handle useCssPlaceholder mode
           if (normalizedOptions.useCssPlaceholder && outDir && shouldWriteToDisk) {
-            const injectMarker = normalizedOptions.useCssPlaceholder;
-
             // Find CSS files in output
             let cssFiles: string[] = [];
 
@@ -1036,7 +1146,6 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             // Fallback: scan outDir for CSS files
             if (cssFiles.length === 0) {
               try {
-                const { readdir } = await import('node:fs/promises');
                 const files = await readdir(outDir);
                 cssFiles = files.filter(f => f.endsWith('.css')).map(f => path.join(outDir, f));
               } catch {
@@ -1044,60 +1153,43 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               }
             }
 
-            // Try to inject into a CSS file with marker
-            let injected = false;
+            // Read up front so a stylesheet that cannot be read is left out
+            // entirely rather than being picked as the fallback and overwritten
+            // with only the rules.
+            const targets: CssInjectionTarget[] = [];
+
             for (const cssFile of cssFiles) {
               try {
-                const { readFile } = await import('node:fs/promises');
-                const content = await readFile(cssFile, 'utf8');
-                if (content.includes(injectMarker)) {
-                  const finalCSS = await transformStyleXCSS(
-                    collectedCSS,
-                    cssFile,
-                    normalizedOptions
-                  );
-                  const newContent = content.replace(injectMarker, () => finalCSS);
-                  await writeFile(cssFile, newContent, 'utf8');
-                  injected = true;
-                  break;
-                }
+                const existing = await readFile(cssFile, 'utf8');
+
+                targets.push({
+                  name: cssFile,
+                  read: () => existing,
+                  write: source => writeFile(cssFile, source, 'utf8'),
+                });
               } catch {
                 // Ignore errors
               }
             }
 
-            // Fallback: append to a preferred CSS file
-            if (!injected && cssFiles.length > 0) {
-              const targetFile = pickCssAsset(cssFiles.map(f => path.basename(f)));
-              if (targetFile) {
-                const fullPath = cssFiles.find(f => path.basename(f) === targetFile);
-                if (fullPath) {
-                  try {
-                    const { readFile } = await import('node:fs/promises');
-                    const existing = await readFile(fullPath, 'utf8');
-                    const finalCSS = await transformStyleXCSS(
-                      collectedCSS,
-                      fullPath,
-                      normalizedOptions
-                    );
-                    const newContent = existing ? existing + '\n' + finalCSS : finalCSS;
-                    await writeFile(fullPath, newContent, 'utf8');
-                    injected = true;
-                  } catch {
-                    // Ignore errors
-                  }
-                }
-              }
-            }
+            const handled = await injectIntoCssTargets(
+              targets,
+              [BUILD_CSS_PLACEHOLDER, normalizedOptions.useCssPlaceholder],
+              collectedCSS,
+              (css, name) => transformStyleXCSS(css, name, normalizedOptions)
+            );
 
             // A standalone file written here would never be linked, since
             // placeholder mode skips HTML injection.
-            if (!injected && normalizedOptions.onMissingCssPlaceholder !== 'ignore') {
+            if (!handled && normalizedOptions.onMissingCssPlaceholder !== 'ignore') {
               return { warnings: [{ text: MISSING_INJECTION_TARGET_WARNING }] };
             }
 
             return {};
           }
+
+          // Past the placeholder branch there is nothing to emit without rules.
+          if (!collectedCSS) return {};
 
           // Default behavior: emit standalone CSS file
           if (shouldWriteToDisk) {
@@ -1167,13 +1259,11 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE,
           },
           async assets => {
-            const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
-            if (!collectedCSS) return;
-
+            // Called even with no rules: the marker still has to come out.
             await injectStyleXCss(
               assets,
               injectMarker,
-              collectedCSS,
+              getStyleXRules(stylexRules, transformedOptions),
               normalizedOptions,
               (fileName, source) => compilation.updateAsset(fileName, source),
               (content: string) => new compiler.webpack.sources.RawSource(content),
@@ -1197,13 +1287,11 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE,
           },
           async assets => {
-            const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
-            if (!collectedCSS) return;
-
+            // Called even with no rules: the marker still has to come out.
             await injectStyleXCss(
               assets,
               injectMarker,
-              collectedCSS,
+              getStyleXRules(stylexRules, transformedOptions),
               normalizedOptions,
               (fileName, source) => compilation.updateAsset(fileName, source),
               (content: string) => new compiler.webpack.sources.RawSource(content),

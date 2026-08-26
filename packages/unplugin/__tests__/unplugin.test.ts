@@ -63,7 +63,10 @@ async function collectStyleXRules(pluginInstance: TestPluginInstance) {
 async function runWebpackLikeCssInjection(
   framework: 'webpack' | 'rspack',
   initialAssets: Record<string, string> = { 'app.css': 'body{margin:0}\n@stylex;' },
-  extraOptions: UnpluginStylexRSOptions = {}
+  extraOptions: UnpluginStylexRSOptions = {},
+  // Skipped to reach a build that carries the marker but produced no rules,
+  // which still has to leave the marker out of the output.
+  collectRules = true
 ) {
   const transformCss = vi.fn(async (css: string, filePath: string | undefined) => {
     return `${css}\n/* transformed:${framework}:${filePath} */`;
@@ -86,7 +89,9 @@ async function runWebpackLikeCssInjection(
     throw new Error('Plugin instance is undefined');
   }
 
-  await collectStyleXRules(pluginInstance);
+  if (collectRules) {
+    await collectStyleXRules(pluginInstance);
+  }
 
   type MockAssets = Record<string, ReturnType<typeof createMockCssAsset>>;
 
@@ -301,6 +306,39 @@ describe('@stylexswc/unplugin', () => {
 
     expect(compilation.warnings).toEqual([]);
   });
+
+  // A marker the rules never replaced is invalid CSS the browser is handed for
+  // nothing, so the cleanup cannot depend on there being rules to inject.
+  test.each(['webpack', 'rspack'] as const)(
+    '%s leaves no marker behind when the build has no StyleX rules',
+    async framework => {
+      const { assets, compilation } = await runWebpackLikeCssInjection(
+        framework,
+        { 'app.css': 'body{margin:0}\n@stylex;' },
+        {},
+        false
+      );
+
+      expect(assets['app.css']?.source().toString()).toBe('body{margin:0}\n');
+      // Nothing went missing, so there is nothing to report either.
+      expect(compilation.warnings).toEqual([]);
+    }
+  );
+
+  test.each(['webpack', 'rspack'] as const)(
+    '%s strips the marker from a stylesheet that did not receive the rules',
+    async framework => {
+      const { assets } = await runWebpackLikeCssInjection(framework, {
+        'app.css': 'body{margin:0}\n@stylex;',
+        'other.css': '.other{outline:0}\n@stylex;',
+      });
+
+      expect(assets['app.css']?.source().toString()).toContain('color:red');
+      // The rules belong in one stylesheet; a second copy would only duplicate
+      // them, so the other marker is removed rather than filled.
+      expect(assets['other.css']?.source().toString()).toBe('.other{outline:0}\n');
+    }
+  );
 
   test('warns that Farm does not support placeholder mode', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});

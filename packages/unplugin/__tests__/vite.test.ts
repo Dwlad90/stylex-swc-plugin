@@ -261,6 +261,7 @@ async function readBuiltCss(outDir: string, html: string): Promise<BuiltCssFile[
 async function buildPlaceholderFixture(
   options: {
     cssCodeSplit?: boolean;
+    cssMinify?: boolean | 'esbuild' | 'lightningcss';
     files?: Record<string, string>;
     onWarn?: (warning: { message: string }) => void;
     plugins?: PluginOption[];
@@ -275,6 +276,7 @@ async function buildPlaceholderFixture(
   await build({
     build: {
       cssCodeSplit: options.cssCodeSplit ?? false,
+      cssMinify: options.cssMinify,
       outDir: 'dist',
       write: true,
       rolldownOptions: options.onWarn
@@ -584,7 +586,7 @@ export const styles = stylex.create({
 
     expect(linked).toHaveLength(1);
     expect(linked[0]?.source).toContain('color:red');
-    expect(linked[0]?.source).toContain('background-color:blue');
+    expect(linked[0]?.source).toContain('background-color:');
     expect(cssFiles.filter(file => !file.linked)).toEqual([]);
   });
 
@@ -593,7 +595,29 @@ export const styles = stylex.create({
     const linked = cssFiles.find(file => file.linked);
 
     expect(countOccurrences(linked?.source ?? '', 'color:red')).toBe(1);
-    expect(countOccurrences(linked?.source ?? '', 'background-color:blue')).toBe(1);
+    expect(countOccurrences(linked?.source ?? '', 'background-color:')).toBe(1);
+  });
+
+  // The rules are spliced in after Vite has already minified the stylesheet, so
+  // without minifying them too they would be the only unminified CSS shipped.
+  test('minifies the injected rules alongside the rest of the stylesheet', async () => {
+    const cssFiles = await buildPlaceholderFixture({ cssMinify: 'esbuild' });
+    const source = cssFiles.find(file => file.linked)?.source ?? '';
+
+    expect(source).toContain('color:red');
+    // A trailing semicolon before the closing brace is what the unminified
+    // rules carry, and the minifier is the only thing that takes it out.
+    expect(source).not.toContain('color:red;}');
+    expect(source).not.toMatch(/\n\s*\n/);
+  });
+
+  test('leaves the injected rules alone when CSS minification is off', async () => {
+    const cssFiles = await buildPlaceholderFixture({ cssMinify: false });
+    const source = cssFiles.find(file => file.linked)?.source ?? '';
+
+    expect(source).toContain('color:red');
+    // Minification is the user's call, so the authored value survives untouched.
+    expect(source).toContain('background-color:blue');
   });
 
   test('keeps StyleX rules at the marker position', async () => {

@@ -6,6 +6,10 @@ test.describe('StyleX Visual Regression', () => {
 
     await page.waitForSelector('body', { state: 'visible' });
 
+    // The lazily loaded card is what proves rules collected after the
+    // placeholder was processed still reach the stylesheet.
+    await page.waitForSelector('[data-testid="late-card"]', { state: 'visible' });
+
     await expect(page).toHaveScreenshot('full-page.png', screenshotOptions);
   });
 });

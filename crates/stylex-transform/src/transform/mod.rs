@@ -1,7 +1,7 @@
 use indexmap::{IndexMap, IndexSet};
 use rustc_hash::FxHashMap;
 use swc_core::{
-  common::{EqIgnoreSpan, Mark, comments::Comments},
+  common::{Mark, comments::Comments},
   ecma::{
     ast::{CallExpr, Callee, Expr, Id, MemberProp, Pass, VarDeclarator},
     transforms::{base::resolver, typescript::strip},
@@ -354,21 +354,7 @@ where
   ) -> (Option<String>, Option<VarDeclarator>) {
     let mut var_name: Option<String> = None;
 
-    let parent_var_decl = self
-      .state
-      .declarations
-      .iter()
-      .find(|decl| match &decl.init {
-        Some(init) => {
-          if let Expr::Call(init_call) = init.as_ref() {
-            init_call.eq_ignore_span(call)
-          } else {
-            false
-          }
-        },
-        _ => false,
-      })
-      .cloned();
+    let parent_var_decl = self.state.find_call_declaration(call).cloned();
 
     if let Some(ref parent_var_decl) = parent_var_decl
       && let Some(ident) = parent_var_decl.name.as_ident()

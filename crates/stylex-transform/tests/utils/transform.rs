@@ -299,8 +299,25 @@ pub(crate) fn assert_folds(decls: &str, body: &str, rule: &str) {
 #[track_caller]
 #[allow(dead_code)]
 pub(crate) fn assert_refuses(decls: &str, body: &str, sentence: &str) {
+  assert_refuses_under(decls, body, sentence, fold_module);
+}
+
+/// The same, with the compile step handed in.
+///
+/// A file whose subject is an *option* has to compile under that option, so the
+/// reading of the refusal cannot be tied to the default transform. Everything
+/// else about a refusal case is the same, which is why this is one function
+/// rather than a second copy of it.
+#[track_caller]
+#[allow(dead_code)]
+pub(crate) fn assert_refuses_under(
+  decls: &str,
+  body: &str,
+  sentence: &str,
+  compile: impl FnOnce(&str) -> String + std::panic::UnwindSafe,
+) {
   let module = base_style_module(decls, body);
-  let refusal = std::panic::catch_unwind(|| fold_module(&module));
+  let refusal = std::panic::catch_unwind(|| compile(&module));
 
   let Err(payload) = refusal else {
     panic!("expected `{}` with `{}` to refuse", body, decls);

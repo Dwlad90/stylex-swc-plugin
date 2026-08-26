@@ -490,17 +490,8 @@ const options = { maxEvaluationDepth: 256 };
 > because it is unwrapped before evaluation. So raise it by measuring the input
 > that was refused, not by counting brackets in it.
 
-The same value can be set process-wide with the
-`STYLEX_MAX_EVALUATION_DEPTH` environment variable:
-
-```bash
-STYLEX_MAX_EVALUATION_DEPTH=256 npm run build
-```
-
-An explicit `maxEvaluationDepth` always wins over the environment, which in turn
-overrides the built-in default -- so a stray value in a CI environment cannot
-change what a project that configured the option compiles to. A value of zero,
-or one that is not a number, is ignored rather than honoured.
+It can also be set process-wide with `STYLEX_MAX_EVALUATION_DEPTH` -- see [the
+three ceilings](#the-three-ceilings-share-a-precedence), which resolve alike.
 
 The ceiling is capped at `8192`, and a larger value is quietly read as that.
 The compiler reserves stack for the depth you ask for, so a number it could not
@@ -515,6 +506,84 @@ the name of the setting that prevents it.
 > Depths in the thousands are reached in practice by a value the evaluator
 > _builds_ -- a loop that nests an array once per element, say -- rather than by
 > anything written out, and that is the direction the cap is sized for.
+
+### `maxFoldedCharacters`
+
+How long a string one compile-time fold may build or carry, in UTF-16 code
+units. Defaults to `1000000`.
+
+The compiler evaluates a method call by running it, and the engine it runs on
+bounds loops, recursion and stack -- but not allocation, because growth inside a
+built-in method is not a counted loop. So a mistyped `'x'.repeat(200000000)`
+agrees with JavaScript and reaches gigabytes of resident memory. Past the
+ceiling you get an ordinary StyleX error instead, naming both numbers:
+
+```bash
+[StyleX] base > content > Cannot bound the string 'repeat' would build.
+It asks for 200000000 characters, and at most 1000000 are supported.
+```
+
+The count does not have to be written out. `'x'.repeat(n)`, `'x'.repeat(2 * 2)`
+and `'x'.repeat(4)` are all bounded by reading the count, and `repeat`
+multiplies its receiver's own length into the total -- so `'ab'.repeat(600000)`
+is refused where `'a'.repeat(600000)` folds. The one receiver left unread is
+another call: `'x'.repeat(1000).repeat(1000)` is refused whatever the counts
+are, because bounding each link separately is exactly how two allowed lengths
+multiply into one that is not.
+
+Raise it if a project really generates values this large:
+
+```js
+const options = { maxFoldedCharacters: 4000000 };
+```
+
+Building a string costs about 19 bytes of peak memory per code unit, measured,
+so the default is around 20 MB at the peak of one fold and 4000000 is around
+80 MB. The ceiling is capped at `40000000` -- 783 MB, measured, for a single
+declaration -- and a larger value is quietly read as that.
+
+### `maxFoldedEntries`
+
+How many array elements and object properties one compile-time fold may build or
+carry. Defaults to `10000`.
+
+Separate from [`maxFoldedCharacters`](#maxfoldedcharacters) because the two
+costs do not stand in for each other: a string that fits the ceiling can still
+become one element per code unit, and an element costs far more as a syntax
+node than a code unit costs as text. `'x'.repeat(9999).split('')` is a bounded
+string and ten thousand nodes.
+
+```bash
+[StyleX] base > fontFamily > Array length is too large to evaluate at
+compile time. At most 10000 elements are supported.
+```
+
+```js
+const options = { maxFoldedEntries: 50000 };
+```
+
+An entry costs about 190 bytes of peak memory, measured, so the default is
+around 2 MB. The ceiling is capped at `1000000`, and a larger value is quietly
+read as that.
+
+### The three ceilings share a precedence
+
+All three -- [`maxEvaluationDepth`](#maxevaluationdepth),
+[`maxFoldedCharacters`](#maxfoldedcharacters) and
+[`maxFoldedEntries`](#maxfoldedentries) -- resolve the same way, and each has a
+process-wide environment variable:
+
+```bash
+STYLEX_MAX_EVALUATION_DEPTH=256 npm run build
+STYLEX_MAX_FOLDED_CHARACTERS=4000000 npm run build
+STYLEX_MAX_FOLDED_ENTRIES=50000 npm run build
+```
+
+An explicit option always wins over the environment, which in turn overrides the
+built-in default -- so a stray value in a CI environment cannot change what a
+project that configured the option compiles to. A value of zero, or one that is
+not a number, is ignored rather than honoured, and a value past a ceiling's cap
+is read as the cap.
 
 ## Debug Logging
 

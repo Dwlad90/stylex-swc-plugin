@@ -511,27 +511,33 @@ test('normalizeRsOptions: boolean input treated as empty object', () => {
   expect(result).toStrictEqual(defaultResult);
 });
 
-// ── maxEvaluationDepth ─────────────────────────────────────────────
+// ── the three ceilings ─────────────────────────────────────────────
 
-// The one option deliberately absent from `defaultOptions`: its default lives in
-// the compiler, which consults `STYLEX_MAX_EVALUATION_DEPTH` before reaching for
-// it. A value injected here would be sent on every call and make that variable
-// unreachable, so "stays undefined" is the behaviour to pin rather than an
-// omission to fix.
-test('normalizeRsOptions: maxEvaluationDepth is not defaulted', () => {
+// The options deliberately absent from `defaultOptions`: each default lives in
+// the compiler, which consults that ceiling's environment variable before
+// reaching for it. A value injected here would be sent on every call and make
+// the variable unreachable, so "stays undefined" is the behaviour to pin rather
+// than an omission to fix.
+//
+// One table for all three, because the reason is one reason: a fourth ceiling
+// added to `defaultOptions` by habit should fail here rather than silently cost
+// its escape hatch.
+const CEILINGS = ['maxEvaluationDepth', 'maxFoldedCharacters', 'maxFoldedEntries'] as const;
+
+test.each(CEILINGS)('normalizeRsOptions: %s is not defaulted', ceiling => {
   const result = normalizeRsOptions({});
-  expect(result.maxEvaluationDepth).toBeUndefined();
+  expect(result[ceiling]).toBeUndefined();
 });
 
-test('normalizeRsOptions: maxEvaluationDepth is preserved', () => {
-  const result = normalizeRsOptions({ maxEvaluationDepth: 256 });
-  expect(result.maxEvaluationDepth).toBe(256);
+test.each(CEILINGS)('normalizeRsOptions: %s is preserved', ceiling => {
+  const result = normalizeRsOptions({ [ceiling]: 256 });
+  expect(result[ceiling]).toBe(256);
 });
 
 // An explicit `undefined` must not survive as a key either, or it would reach
 // the compiler as a present-but-empty option.
-test('normalizeRsOptions: an explicit undefined maxEvaluationDepth is stripped', () => {
-  const result = normalizeRsOptions({ maxEvaluationDepth: undefined });
-  expect(result.maxEvaluationDepth).toBeUndefined();
-  expect('maxEvaluationDepth' in result).toBe(false);
+test.each(CEILINGS)('normalizeRsOptions: an explicit undefined %s is stripped', ceiling => {
+  const result = normalizeRsOptions({ [ceiling]: undefined });
+  expect(result[ceiling]).toBeUndefined();
+  expect(ceiling in result).toBe(false);
 });

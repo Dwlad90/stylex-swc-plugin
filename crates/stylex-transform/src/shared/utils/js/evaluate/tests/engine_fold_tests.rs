@@ -314,17 +314,23 @@ fn a_length_no_declaration_could_use_refuses_rather_than_being_built() {
   assert_deopts("\"x\".padStart(50000000)");
   assert_deopts("\"x\".padEnd(50000000)");
 
-  // Per-call bounds alone are multiplied by a chain, so an amplifying call on
-  // a receiver that is itself a call refuses whatever the counts are.
-  assert_deopts("\"x\".repeat(1000).repeat(1000)");
-  assert_deopts("\"x\".repeat(2).padStart(4, \"y\")");
+  // The bound is the product, so a receiver longer than one character reaches
+  // it at a proportionally smaller count.
+  assert_deopts("\"xx\".repeat(600000)");
 
-  // A count that is not written as a number cannot be bounded by reading it,
-  // and a spread stands for however many arguments it holds, so neither can it.
-  assert_deopts("\"x\".repeat([1000].length)");
-  assert_deopts("\"x\".repeat(2 * 2)");
+  // `repeat` multiplies its receiver, so a receiver whose length cannot be read
+  // leaves the product unbounded. A call is the receiver deliberately left
+  // unread: reading it is what would let two allowed lengths multiply.
+  assert_deopts("\"x\".repeat(1000).repeat(1000)");
+
+  // A spread stands for however many arguments it holds, so a count written as
+  // one cannot be read at all.
   assert_deopts("\"x\".repeat(...[2])");
   assert_deopts("\"x\".padStart(...[4, \"0\"])");
+
+  // An infinite count is the one the language cannot build either, and the one
+  // number no ceiling bounds.
+  assert_deopts("\"x\".repeat(1 / 0)");
 
   // Under the bound, and the no-argument form that amplifies nothing.
   assert_folds_to_string("\"ab\".repeat(2)", "abab");
@@ -332,6 +338,37 @@ fn a_length_no_declaration_could_use_refuses_rather_than_being_built() {
   assert_folds_to_string("\"7\".padStart(3, \"0\")", "007");
   assert_folds_to_string("\"x\".padStart()", "x");
   assert_folds_to_string("\"x\".padEnd(4, \"-\")", "x---");
+}
+
+/// The count is bounded by being read, not by being written out — so an
+/// expression and a name reach the same arithmetic a literal does. Each of
+/// these refused before the ceilings became configuration, and upstream folds
+/// every one.
+#[test]
+fn an_amplifying_count_folds_however_it_is_spelled() {
+  assert_folds_to_string("\"x\".repeat(2 * 2)", "xxxx");
+  assert_folds_to_string("\"7\".padStart([1, 2, 3].length, \"0\")", "007");
+  assert_folds_to_string("\"ab\".repeat([1, 2, 3].length)", "ababab");
+
+  // The language reads a fractional or negative count through
+  // `ToIntegerOrInfinity`, and so does the bound: three and a half repeats are
+  // three, and a negative count is the `RangeError` the language raises rather
+  // than a refusal of this compiler's.
+  assert_folds_to_string("\"ab\".repeat(3.5)", "ababab");
+  assert_folds_to_string("\"x\".repeat(0)", "");
+  assert_folds_to_string("\"x\".repeat(0 / 0)", "");
+  // The count takes the language's own `ToNumber`, so anything it reads as zero
+  // repeats none — which is what the reference compiler folds too.
+  assert_folds_to_string("\"x\".repeat(\"lots\")", "");
+  assert_folds_to_string("\"x\".repeat(\"3\")", "xxx");
+  assert_deopts("\"x\".repeat(-1)");
+
+  // A count past the ceiling refuses whichever way it was spelled, so reading a
+  // count does not become a way around the bound. The named spellings of both
+  // halves are in `tests/transform_stylex_create_test/amplification_ceilings.rs`,
+  // where a module can declare one.
+  assert_deopts("\"x\".repeat(100000 * 100000)");
+  assert_deopts("\"x\".repeat([1, 2, 3].length * 100000000)");
 }
 
 /// A bounded string can still become one array element per code unit, which

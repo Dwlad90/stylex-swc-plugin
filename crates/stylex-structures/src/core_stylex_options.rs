@@ -9,7 +9,8 @@ use stylex_enums::{
 };
 
 use crate::{
-  evaluation_depth::resolve_max_evaluation_depth,
+  evaluation_depth::MAX_EVALUATION_DEPTH,
+  fold_ceilings::{MAX_FOLDED_CHARACTERS, MAX_FOLDED_ENTRIES},
   named_import_source::ImportSources,
   stylex_env::{EnvEntry, JSFunction},
   stylex_options::CheckModuleResolution,
@@ -57,6 +58,16 @@ pub struct CoreStyleXOptions {
   /// [`crate::evaluation_depth`]. Held as a plain number here because by the
   /// time options exist the question of where it came from is settled.
   pub max_evaluation_depth: usize,
+  /// How many UTF-16 code units of string one fold may build or carry.
+  ///
+  /// Resolved the same way, from [`crate::fold_ceilings`], and held as a plain
+  /// number for the same reason.
+  pub max_folded_characters: usize,
+  /// How many array elements and object properties one fold may build or carry.
+  ///
+  /// Resolved the same way, from [`crate::fold_ceilings`], and held as a plain
+  /// number for the same reason.
+  pub max_folded_entries: usize,
   /// The `env` option's object, shared rather than copied.
   ///
   /// Registered per `stylex` import name per `create` call, from three places,
@@ -96,7 +107,9 @@ impl Default for CoreStyleXOptions {
       aliases: None,
       unstable_module_resolution: CheckModuleResolution::default(),
       sx_prop_name: Some("sx".to_string()),
-      max_evaluation_depth: resolve_max_evaluation_depth(None),
+      max_evaluation_depth: MAX_EVALUATION_DEPTH.resolve(None),
+      max_folded_characters: MAX_FOLDED_CHARACTERS.resolve(None),
+      max_folded_entries: MAX_FOLDED_ENTRIES.resolve(None),
       env: Rc::new(IndexMap::new()),
       debug_file_path: None,
     }
@@ -173,7 +186,19 @@ impl CoreStyleXOptions {
   /// Set the evaluator's ceiling, resolving an absent value the same way the
   /// default does: environment, then the built-in default.
   pub fn maybe_max_evaluation_depth(mut self, depth: Option<usize>) -> Self {
-    self.max_evaluation_depth = resolve_max_evaluation_depth(depth);
+    self.max_evaluation_depth = MAX_EVALUATION_DEPTH.resolve(depth);
+    self
+  }
+
+  /// Set the fold's string ceiling, resolved the same way.
+  pub fn maybe_max_folded_characters(mut self, characters: Option<usize>) -> Self {
+    self.max_folded_characters = MAX_FOLDED_CHARACTERS.resolve(characters);
+    self
+  }
+
+  /// Set the fold's entry ceiling, resolved the same way.
+  pub fn maybe_max_folded_entries(mut self, entries: Option<usize>) -> Self {
+    self.max_folded_entries = MAX_FOLDED_ENTRIES.resolve(entries);
     self
   }
 

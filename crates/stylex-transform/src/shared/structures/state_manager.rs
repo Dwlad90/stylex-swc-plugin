@@ -67,7 +67,8 @@ use super::{
   types::{InjectImportIdents, SeenModuleSource, StylesObjectMap},
 };
 use stylex_structures::{
-  evaluation_depth::MAX_EVALUATION_DEPTH_LIMIT,
+  evaluation_depth::MAX_EVALUATION_DEPTH,
+  fold_ceilings::{MAX_FOLDED_CHARACTERS, MAX_FOLDED_ENTRIES},
   named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState},
   plugin_pass::PluginPass,
   stylex_options::{CheckModuleResolution, StyleXOptions},
@@ -740,19 +741,31 @@ impl StateManager {
   /// than each keeping a constant, so raising the configured depth raises all
   /// of them together and an author reads one number whichever walk refused.
   ///
-  /// Both ends are clamped here rather than where the number is spent. The
-  /// option is a bare `usize` a struct-update literal can set to anything, and
-  /// every path that *parses* a configured value already clamps it -- this
-  /// guards the one that does not, so a walk downstream can spend what it is
-  /// given. Zero would refuse every expression, including the folds the
-  /// compiler runs to do its own work; past the limit is a depth no stack could
-  /// be claimed for, which is the overflow the ceiling exists to prevent
-  /// wearing the name of the setting that prevents it.
+  /// The value is brought back inside the ceiling's own bracket rather than
+  /// spent as the options struct holds it, because that struct is a bare `usize`
+  /// a struct-update literal can set to anything. `Ceiling::clamped` is where the
+  /// two numbers live, so the three readings below cannot come to disagree about
+  /// what a ceiling's bounds are.
   pub(crate) fn evaluation_ceiling(&self) -> usize {
-    self
-      .options
-      .max_evaluation_depth
-      .clamp(1, MAX_EVALUATION_DEPTH_LIMIT)
+    MAX_EVALUATION_DEPTH.clamped(self.options.max_evaluation_depth)
+  }
+
+  /// How long a string one fold may build or carry, in UTF-16 code units.
+  ///
+  /// Read here for the reason the depth is: three sites spend it -- a resolved
+  /// value on the way in, an amplifying call's own arithmetic, and a folded
+  /// string on the way back -- and one number is what lets an author raise it
+  /// once.
+  pub(crate) fn character_ceiling(&self) -> usize {
+    MAX_FOLDED_CHARACTERS.clamped(self.options.max_folded_characters)
+  }
+
+  /// How many array elements and object properties one fold may build or carry.
+  ///
+  /// Three sites again, mirroring the three above: a resolved value on the way
+  /// in, and a folded array and a folded object on the way back.
+  pub(crate) fn entry_ceiling(&self) -> usize {
+    MAX_FOLDED_ENTRIES.clamped(self.options.max_folded_entries)
   }
 
   pub(crate) fn set_plugin_pass(&mut self, plugin_pass: PluginPass) {

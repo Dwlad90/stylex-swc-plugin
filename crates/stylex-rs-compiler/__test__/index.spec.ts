@@ -496,3 +496,132 @@ test("maxEvaluationDepth: the default ceiling is the compiler's own", () => {
     /At most 32 levels of nested evaluation are supported/
   );
 });
+
+// ── the two allocation ceilings ─────────────────────────────────────
+
+// The other half of what a project can say about a fold: the evaluation depth
+// bounds how deep it descends, and these two bound what it may allocate on the
+// way. Same precedence, same boundary, same escape hatch -- so the cases are the
+// same shape, and each says which of the three it is about.
+const amplifyingFixture = (count: number) => `
+  import stylex from "@stylexjs/stylex";
+  export const styles = stylex.create({ base: { content: "x".repeat(${count}) } });
+`;
+
+const splittingFixture = (count: number) => `
+  import stylex from "@stylexjs/stylex";
+  export const styles = stylex.create({ base: { content: "x".repeat(${count}).split("").length } });
+`;
+
+const compileWithCeilings = (
+  source: string,
+  options: { maxFoldedCharacters?: number; maxFoldedEntries?: number } = {}
+) =>
+  transform('page.tsx', source, {
+    dev: false,
+    unstable_moduleResolution: { type: 'commonJS' },
+    ...options,
+  });
+
+test('maxFoldedCharacters: a raised ceiling folds what the default refuses', () => {
+  const source = amplifyingFixture(2_000_000);
+
+  expect(() => compileWithCeilings(source)).toThrow(/It asks for 2000000 characters/);
+  expect(injectedCss(compileWithCeilings(source, { maxFoldedCharacters: 4_000_000 }))).toContain(
+    'content:"x'
+  );
+});
+
+test('maxFoldedCharacters: a lowered ceiling refuses what the default folds', () => {
+  const source = amplifyingFixture(64);
+
+  expect(injectedCss(compileWithCeilings(source))).toContain('content:"x');
+  expect(() => compileWithCeilings(source, { maxFoldedCharacters: 8 })).toThrow(
+    /It asks for 64 characters, and at most 8 are supported/
+  );
+});
+
+test('maxFoldedEntries: the ceiling moves the same way', () => {
+  const source = splittingFixture(20_000);
+
+  expect(() => compileWithCeilings(source)).toThrow(/Array length is too large/);
+  expect(injectedCss(compileWithCeilings(source, { maxFoldedEntries: 50_000 }))).toContain(
+    'content:"20000px"'
+  );
+});
+
+// A ceiling the boundary cannot represent is not a ceiling, exactly as for the
+// depth: both arrive as signed integers so a negative one is read as unset
+// rather than as ~4.29 billion, which would remove the guard it configures.
+test.each([
+  ['negative', -1],
+  ['zero', 0],
+])('the allocation ceilings given %s fall back to the default', (_label, value) => {
+  expect(() =>
+    compileWithCeilings(amplifyingFixture(2_000_000), { maxFoldedCharacters: value })
+  ).toThrow(/It asks for 2000000 characters/);
+});
+
+// Past the compiler's own limit the value is clamped rather than honoured, so a
+// number no build could survive cannot be asked for by name.
+test('a folded-character ceiling past the limit is clamped rather than honoured', () => {
+  expect(() =>
+    compileWithCeilings(amplifyingFixture(200_000_000), { maxFoldedCharacters: 2 ** 40 })
+  ).toThrow(/at most 40000000 are supported/);
+});
+
+// And the process-wide escape hatches, read where they actually live. A child
+// per case, because each is read once per process behind a `OnceLock`.
+test('STYLEX_MAX_FOLDED_CHARACTERS raises the ceiling for the whole process', () => {
+  const source = amplifyingFixture(2_000_000);
+
+  expect(compileInChildWithEnv(source, {}).message).toMatch(/It asks for 2000000 characters/);
+  expect(compileInChildWithEnv(source, { STYLEX_MAX_FOLDED_CHARACTERS: '4000000' }).ok).toBe(true);
+});
+
+test('STYLEX_MAX_FOLDED_ENTRIES raises the ceiling for the whole process', () => {
+  const source = splittingFixture(20_000);
+
+  expect(compileInChildWithEnv(source, {}).message).toMatch(/Array length is too large/);
+  expect(compileInChildWithEnv(source, { STYLEX_MAX_FOLDED_ENTRIES: '50000' }).ok).toBe(true);
+});
+
+// Precedence, across the boundary: a configured option beats the environment, so
+// a stray value in a CI environment cannot change what a configured project
+// compiles to.
+test('an explicit maxFoldedCharacters wins over the environment', () => {
+  const script = `
+    const { transform } = require(${JSON.stringify(compilerEntry)});
+    try {
+      transform('page.tsx', ${JSON.stringify(amplifyingFixture(2_000_000))}, {
+        dev: false,
+        maxFoldedCharacters: 1000,
+        unstable_moduleResolution: { type: 'commonJS' },
+      });
+      process.stdout.write('folded');
+    } catch (error) {
+      process.stdout.write(String(error));
+    }
+  `;
+
+  const printed = execFileSync(process.execPath, ['-e', script], {
+    env: { ...process.env, STYLEX_MAX_FOLDED_CHARACTERS: '4000000' },
+    encoding: 'utf8',
+  });
+
+  expect(printed).toMatch(/at most 1000 are supported/);
+});
+
+// An unusable value is read as unset rather than failing the build, because the
+// variable is an escape hatch and one that broke a build when mistyped would be
+// a worse one.
+test.each([
+  ['zero', '0'],
+  ['a word', 'nope'],
+  ['negative', '-1'],
+])('STYLEX_MAX_FOLDED_CHARACTERS given %s falls back to the default', (_label, value) => {
+  expect(
+    compileInChildWithEnv(amplifyingFixture(2_000_000), { STYLEX_MAX_FOLDED_CHARACTERS: value })
+      .message
+  ).toMatch(/It asks for 2000000 characters/);
+});

@@ -67,10 +67,10 @@ export type TransformedOptions = Partial<
  * Default values for StyleX options.
  * Every field that has a sensible default is listed here.
  *
- * `maxEvaluationDepth` is deliberately absent. Its default lives in the
- * compiler, which falls back to the `STYLEX_MAX_EVALUATION_DEPTH` environment
- * variable before reaching for it -- so a value listed here would be sent on
- * every call and make that variable unreachable.
+ * `maxEvaluationDepth`, `maxFoldedCharacters` and `maxFoldedEntries` are
+ * deliberately absent. Each default lives in the compiler, which falls back to
+ * that ceiling's environment variable before reaching for it -- so a value
+ * listed here would be sent on every call and make the variable unreachable.
  */
 const defaultOptions: Partial<StyleXOptions> = {
   dev: false,

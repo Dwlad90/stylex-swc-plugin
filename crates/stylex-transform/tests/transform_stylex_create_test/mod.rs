@@ -1,4 +1,5 @@
 mod absent_style_values;
+mod amplification_ceilings;
 mod array_index_reads;
 mod array_style_values;
 mod callback_bodies;

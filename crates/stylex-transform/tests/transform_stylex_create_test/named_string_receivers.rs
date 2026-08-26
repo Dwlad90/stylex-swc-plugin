@@ -580,14 +580,12 @@ fn a_name_cannot_carry_a_value_past_a_rule() {
       "content: undefined.toUpperCase(),",
       "cannot convert 'null' or 'undefined' to object",
     ),
-    // A name is still not a written bound, so an amplifying length it holds
-    // cannot be read. Upstream folds `'x'.repeat(n)` for `n = 3` — and folds a
-    // two-hundred-megabyte rule for `n = 200000000`, measured, which is the
-    // reason this compiler wants the bound written. Ticket 12 is where the bound
-    // reads the resolved count and closes the smaller divergence without
-    // reopening the larger one.
+    // A name holding a length past the ceiling is refused exactly as a written
+    // one is: the bound is read from the value, so naming it is not a way round
+    // it. The small counterpart — a name holding a length under the ceiling,
+    // which now folds and agrees with upstream — is in `amplification_ceilings`.
     (
-      "const n = 3;",
+      "const n = 200000000;",
       "content: 'x'.repeat(n),",
       "Cannot bound the string 'repeat' would build.",
     ),

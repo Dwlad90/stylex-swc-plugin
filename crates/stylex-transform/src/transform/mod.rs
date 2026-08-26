@@ -144,6 +144,25 @@ where
     self
   }
 
+  /// How many UTF-16 code units of string one fold may build or carry.
+  ///
+  /// The engine bounds loops, recursion and stack but not allocation, so this
+  /// is what turns a mistyped repeat count into a diagnostic rather than into
+  /// the machine.
+  pub fn with_max_folded_characters(mut self, val: usize) -> Self {
+    self.ensure_config().max_folded_characters = Some(val);
+    self
+  }
+
+  /// How many array elements and object properties one fold may build or carry.
+  ///
+  /// Separate from the string ceiling because a bounded string can still become
+  /// one element per code unit, which costs far more as a tree than as text.
+  pub fn with_max_folded_entries(mut self, val: usize) -> Self {
+    self.ensure_config().max_folded_entries = Some(val);
+    self
+  }
+
   pub fn with_treeshake_compensation(mut self, val: bool) -> Self {
     self.ensure_config().treeshake_compensation = Some(val);
     self

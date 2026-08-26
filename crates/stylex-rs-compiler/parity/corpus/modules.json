@@ -1933,8 +1933,8 @@
       "id": "modules-06-amplified-length",
       "label": "a length no declaration could use",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'x'.repeat(200000000).slice(0, 1) },\n});\n",
-      "origin": "issue 06, the allocation the engine does not bound itself",
-      "note": "Acceptance divergent, deliberately. Upstream folds this at 200 MB of string. The engine bounds loop iterations, recursion and stack but not allocation, because growth inside a native builtin is not a counted loop, and the same call peaks at several gigabytes here. A refusal turns a typo into a diagnostic instead of into the machine.",
+      "origin": "issue 06, the allocation the engine does not bound itself; re-measured for issue 12",
+      "note": "Acceptance divergent, deliberately, and now configurably so. Upstream folds this at 200 MB of string. The engine bounds loop iterations, recursion and stack but not allocation, because growth inside a native builtin is not a counted loop, and building a string costs about 19 bytes of peak resident memory per code unit here -- so 200 million of them is gigabytes. A refusal turns a typo into a diagnostic instead of into the machine, and names both numbers so an author can tell a typo from a project that has outgrown the ceiling. The ceiling is `maxFoldedCharacters`, default 1000000: raise it past the count and the same source folds to the value upstream reaches.",
       "expected": "acceptance-divergent"
     },
     {
@@ -1952,20 +1952,27 @@
       "origin": "issue 06, the exclusion that moved back into scope"
     },
     {
+      "id": "modules-12-amplification-across-a-chain",
+      "label": "an amplifying call whose receiver is itself a call",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'x'.repeat(1000).repeat(1000).length },\n});\n",
+      "origin": "issue 12, the rule that keeps per-link bounds from multiplying",
+      "note": "Acceptance divergent, deliberately, and the one length a readable count is still not enough to bound. The ceiling is compared against the length the call would build, which for `repeat` is the count times the receiver's own length -- and a receiver that is itself a call has no length the guard can read without evaluating it, which is exactly what bounding each link separately fails to prevent. Two counts of a thousand are each far inside the ceiling and their product is a million. Upstream folds this. A named receiver is not this case: a name holding a string has a length that can be read, and `base.repeat(3)` folds.",
+      "expected": "acceptance-divergent"
+    },
+    {
       "id": "modules-06-amplified-array-length",
       "label": "an array result longer than a declaration could use",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'x'.repeat(20000).split('').length },\n});\n",
-      "origin": "issue 06, the second half of the allocation bound",
-      "note": "Acceptance divergent, deliberately, and the second half of the string bound rather than a separate rule. A string short enough to build becomes one array element per code unit, and an element costs far more as an AST node than a code unit costs as text, so the length that reaches a literal is bounded too. Upstream folds this.",
+      "origin": "issue 06, the second half of the allocation bound; re-measured for issue 12",
+      "note": "Acceptance divergent, deliberately, and configurably so. A string short enough to build becomes one array element per code unit, and an element costs about 190 bytes of peak resident memory against a code unit's one or two, so the count that reaches a literal is bounded by a ceiling of its own. Upstream folds this. The ceiling is `maxFoldedEntries`, default 10000: raise it past the count and the same source folds.",
       "expected": "acceptance-divergent"
     },
     {
       "id": "modules-06-unwritten-amplification-count",
       "label": "a length written as an expression rather than a number",
-      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { gridArea: '7'.padStart([1, 2, 3].length, '0') },\n  s1: { content: 'x'.repeat(2 * 2) },\n});\n",
-      "origin": "issue 06, the cost of bounding a count by reading it",
-      "note": "Acceptance divergent, and the price of bounding a length by reading it. A count is bounded only if it is written into the source as a number, so a count computed from an expression refuses even when it is small -- the guard runs before anything is evaluated, and reading it any other way would mean evaluating an argument to decide whether evaluating is safe. Upstream folds both of these.",
-      "expected": "acceptance-divergent"
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst N = 4;\n\nexport const styles = stylex.create({\n  s0: { gridArea: '7'.padStart([1, 2, 3].length, '0') },\n  s1: { content: 'x'.repeat(2 * 2) },\n  s2: { content: 'x'.repeat(N) },\n});\n",
+      "origin": "issue 06, the cost of bounding a count by reading it; re-measured for issue 12",
+      "note": "Identical, and the divergence this row was written for is closed. The count used to have to be written into the source as a number, so a count computed from an expression refused even when it was small. It is now bounded by being read -- through the evaluator and then the language's own ToNumber -- so an expression, a name and a literal all reach the same arithmetic. The bound itself did not move: the ceiling is compared against the length the call would build, which for `repeat` is the count times the receiver's own length."
     },
     {
       "id": "modules-06-locale-string-on-an-object",

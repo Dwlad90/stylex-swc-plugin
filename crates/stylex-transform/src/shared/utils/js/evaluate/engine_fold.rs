@@ -40,7 +40,7 @@ use swc_core::{
   ecma::{
     ast::{
       ArrayLit, ArrowExpr, BlockStmtOrExpr, CallExpr, Callee, Decl, Expr, ExprOrSpread, ExprStmt,
-      Ident, KeyValueProp, Lit, MemberExpr, MemberProp, Module, ModuleItem, Null, ObjectLit,
+      KeyValueProp, Lit, MemberExpr, MemberProp, Module, ModuleItem, Null, ObjectLit,
       ObjectPatProp, Pat, Prop, PropName, PropOrSpread, ReturnStmt, Stmt, Tpl,
     },
     codegen::Config,
@@ -53,14 +53,14 @@ use stylex_ast::ast::factories::{
   create_ident_key_value_prop, create_object_lit,
 };
 use stylex_constants::constants::evaluation_errors::{
-  SPREAD_ELEMENT, amplification_inside_a_callback, array_length_too_large,
-  bound_value_has_too_many_entries, bound_value_too_large, engine_did_not_start, engine_threw,
-  escaping_property, expression_too_deep, folded_string_too_large, locale_sensitive_method,
-  not_a_function, numeric_literal_receiver, object_size_too_large, unbounded_amplified_length,
-  uncallable_printed_fold, uncoercible_value, unfoldable_fold_result, unfoldable_statement,
-  unfoldable_static,
+  SPREAD_ELEMENT, amplification_inside_a_callback, amplified_length_too_large,
+  array_length_too_large, bound_value_has_too_many_entries, bound_value_too_large,
+  engine_did_not_start, engine_threw, escaping_property, expression_too_deep,
+  folded_string_too_large, locale_sensitive_method, not_a_function, numeric_literal_receiver,
+  object_size_too_large, unbounded_amplified_length, uncallable_printed_fold, uncoercible_value,
+  unfoldable_fold_result, unfoldable_statement, unfoldable_static,
 };
-use stylex_js::coercions::{self, is_global_spelled_as_an_identifier};
+use stylex_js::coercions::{self, is_global_spelled_as_an_identifier, to_js_number};
 use stylex_js::helpers::{is_invalid_method, is_valid_callee};
 use stylex_utils::number::to_js_string;
 use stylex_utils::swc::get_stmt_node_kind;
@@ -123,31 +123,44 @@ const PROTOTYPE_KEY: &str = "__proto__";
 
 /// Methods whose result length is set by an argument rather than by the
 /// receiver, and so are the only ones a single small argument can blow up.
+///
+/// Set by an argument is what makes them answerable *here*, in front of the
+/// engine: the guard reads arguments. A method whose result length comes from
+/// its receiver — `Array(n).fill(0)` — is the same arithmetic read from the
+/// other end, and is bounded only once the value exists, which is late rather
+/// than never. That is issue 18 rather than this list, because widening the list
+/// is a claim about which calls amplify and not about the bound they meet.
 const LENGTH_AMPLIFYING_METHODS: [&str; 3] = ["repeat", "padStart", "padEnd"];
 
-/// How long a string one of those may be asked to build.
+/// What one fold may allocate, in the two units that cost separately.
 ///
 /// The engine bounds recursion and VM stack depth by default, and this module
 /// bounds loop iterations itself ([`MAX_LOOP_ITERATIONS`]), because Boa's own
 /// default for that is `u64::MAX`. What none of them bound is allocation:
 /// growth inside a native builtin is not a counted loop. So
 /// `"x".repeat(200000000)` is a typo that folds — agreeing with the language —
-/// at several gigabytes of resident memory, and a compiler that dies there is
-/// worse than one that declines the fold. A million UTF-16 code units is two
-/// megabytes in the engine and instant, and no CSS value is a megabyte long.
-const MAX_AMPLIFIED_LENGTH: f64 = 1_000_000.0;
-
-/// How many entries a folded array or object may carry back.
+/// at gigabytes of resident memory, and a compiler that dies there is worse than
+/// one that declines the fold.
 ///
-/// [`MAX_AMPLIFIED_LENGTH`] bounds a string, and a string can still be turned
-/// into one element per code unit: `"x".repeat(999999).split("")` folds to an
-/// array literal of a million AST nodes, which costs far more as a tree than it
-/// did as text. An object pays the same price per property, so it is bounded by
-/// the same number rather than by one of its own. A fallback list in a real
-/// declaration holds a handful of values, and a nested style object a handful of
-/// conditions, so this is generous by three orders of magnitude and still
-/// refuses that.
-const MAX_FOLDED_ENTRIES: u64 = 10_000;
+/// Two numbers rather than one, because a value costs in two ways that do not
+/// stand in for each other: a bounded string can still become one element per
+/// code unit, which costs far more as a tree than it did as text, and a thousand
+/// empty arrays hold no text at all and are still a thousand values to build.
+///
+/// Carried rather than read at each of the six sites that spend them -- three
+/// each, a resolved value on the way in and the answer on the way back -- for
+/// the reason the depth ceiling is carried: the same number bounds both
+/// directions, and sites that each reached for the option could come to
+/// disagree about which number that is. Where the values
+/// come from, and what each costs, is `stylex_structures::fold_ceilings`.
+#[derive(Clone, Copy)]
+struct Ceilings {
+  /// UTF-16 code units of string — the unit the engine's own strings are
+  /// measured in.
+  characters: u64,
+  /// Array elements and object properties.
+  entries: u64,
+}
 
 /// How many loop iterations an evaluation may run.
 ///
@@ -344,6 +357,7 @@ impl Depth {
 struct Guard<'a> {
   scope: Scope<'a>,
   depth: Depth,
+  ceilings: Ceilings,
 }
 
 impl<'a> Guard<'a> {
@@ -361,6 +375,7 @@ impl<'a> Guard<'a> {
     Guard {
       scope: Scope::Names(names, &self.scope),
       depth: self.depth,
+      ceilings: self.ceilings,
     }
   }
 }
@@ -382,14 +397,25 @@ impl<'a> Guard<'a> {
 /// Chosen over registering the names on the engine because the engine is one
 /// leaked instance per thread, shared by every file that thread compiles: a name
 /// left behind or shadowed there would be a cross-file correctness bug.
-#[derive(Default)]
 struct Transport {
   params: Vec<Atom>,
   values: Vec<Carried>,
   totals: Totals,
+  ceilings: Ceilings,
 }
 
 impl Transport {
+  /// An empty transport, holding the ceilings every value it carries is counted
+  /// against.
+  fn new(ceilings: Ceilings) -> Self {
+    Self {
+      params: Vec::new(),
+      values: Vec::new(),
+      totals: Totals::default(),
+      ceilings,
+    }
+  }
+
   /// Records what `name` resolves to, or does nothing where the name is already
   /// carried.
   ///
@@ -417,6 +443,7 @@ impl Transport {
     let carried = Inward {
       name,
       totals: &mut self.totals,
+      ceilings: self.ceilings,
     }
     .value(value, depth.restart())?;
 
@@ -490,6 +517,7 @@ struct Totals {
 struct Inward<'a> {
   name: &'a Atom,
   totals: &'a mut Totals,
+  ceilings: Ceilings,
 }
 
 impl Inward<'_> {
@@ -617,10 +645,10 @@ impl Inward<'_> {
       .units
       .saturating_add(atom_utf16_length(text) as u64);
 
-    if self.totals.units as f64 > MAX_AMPLIFIED_LENGTH {
+    if self.totals.units > self.ceilings.characters {
       return Err(Decline::rule(bound_value_too_large(
         self.name,
-        MAX_AMPLIFIED_LENGTH,
+        self.ceilings.characters,
       )));
     }
 
@@ -634,10 +662,10 @@ impl Inward<'_> {
   fn count(&mut self, entries: usize) -> Result<(), Decline> {
     self.totals.entries = self.totals.entries.saturating_add(entries as u64);
 
-    if self.totals.entries > MAX_FOLDED_ENTRIES {
+    if self.totals.entries > self.ceilings.entries {
       return Err(Decline::rule(bound_value_has_too_many_entries(
         self.name,
-        MAX_FOLDED_ENTRIES,
+        self.ceilings.entries,
       )));
     }
 
@@ -698,7 +726,7 @@ struct Reader<'a> {
 }
 
 impl Reader<'_> {
-  /// The value `ident` resolves to, or `None` where it resolves to nothing.
+  /// The value `expr` resolves to, or `None` where it resolves to nothing.
   ///
   /// Resolved through the evaluator's own memoised entry point rather than by a
   /// second reading of its own, so a binding this fold reads is the binding
@@ -706,13 +734,16 @@ impl Reader<'_> {
   /// there: a reassigned binding, one mutated in place, and one read above its
   /// own declaration all answer nothing here because they answer nothing there.
   ///
+  /// Takes an expression rather than a name because two questions need it: what
+  /// a name holds, and what an amplifying call's count comes to. `2 * 2` is a
+  /// count as surely as `4` is, and the evaluator is what already knows so.
+  ///
   /// The read is a speculation and is marked as one, so nothing it refuses is
   /// left behind: the evaluation's confidence and deopt are put back, and the
-  /// memo withholds the refusal. A name this module could not read is not a
-  /// refusal — the dispatch below owns the call, evaluates the same name itself,
-  /// and has to find both the state and the sentence it would have had.
-  fn resolve(&mut self, ident: &Ident) -> Option<EvaluateResultValue> {
-    let reference = Expr::Ident(ident.clone());
+  /// memo withholds the refusal. An expression this module could not read is not
+  /// a refusal — the dispatch below owns the call, evaluates the same names
+  /// itself, and has to find both the state and the sentence it would have had.
+  fn resolve(&mut self, expr: &Expr) -> Option<EvaluateResultValue> {
     let Reader {
       state,
       traversal_state,
@@ -724,7 +755,7 @@ impl Reader<'_> {
     // that own the fields rather than to a sequence written out here that a
     // later edit could return past.
     speculate(state, traversal_state, |state, traversal_state| {
-      evaluate_cached(&reference, state, traversal_state, fns)
+      evaluate_cached(expr, state, traversal_state, fns)
     })
   }
 }
@@ -833,17 +864,22 @@ pub(crate) fn try_fold(
   fns: &FunctionMap,
 ) -> Option<Result<EvaluateResultValue, Refusal>> {
   let ceiling = traversal_state.evaluation_ceiling();
+  let ceilings = Ceilings {
+    characters: traversal_state.character_ceiling() as u64,
+    entries: traversal_state.entry_ceiling() as u64,
+  };
 
   let guard = Guard {
     scope: Scope::Module,
     depth: Depth::full(ceiling),
+    ceilings,
   };
 
   let mut reader = Reader {
     state,
     traversal_state,
     fns,
-    transport: Transport::default(),
+    transport: Transport::new(ceilings),
   };
 
   // Grown before the first recursive step rather than at every step: the
@@ -882,6 +918,7 @@ fn fold(
     let outward = Outward {
       method,
       depth: guard.depth.restart(),
+      ceilings: guard.ceilings,
     };
 
     let applied = match admitted {
@@ -1003,6 +1040,7 @@ fn new_engine() -> Result<ManuallyDrop<Context>, Decline> {
 struct Outward<'a> {
   method: &'a Atom,
   depth: Depth,
+  ceilings: Ceilings,
 }
 
 impl Outward<'_> {
@@ -1065,7 +1103,7 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
         return Ok(());
       }
 
-      match reader.resolve(ident) {
+      match reader.resolve(expr) {
         Some(value) if is_a_carryable_receiver(&value) => {
           reader.transport.bind(&ident.sym, &value, guard.depth)
         },
@@ -1274,10 +1312,13 @@ fn unshadowed_global<'a>(expr: &'a Expr, reader: &Reader) -> Option<&'a Atom> {
 ///
 /// Nearly everything answerable from syntax is answered before the walk, because
 /// the walk resolves bindings and resolution is the only expensive thing here. So
-/// the shape of the callee, the spelling of the method name, a receiver written
-/// as a number and a length nothing bounds are all settled while they are still
-/// free, and only an expression this module intends to fold pays to have its
-/// names read. The one exception is named where it is applied.
+/// the shape of the callee, the spelling of the method name and a receiver
+/// written as a number are all settled while they are still free, and only an
+/// expression this module intends to fold pays to have its names read. Two rules
+/// do resolve, and each is named where it is applied: the amplification bound,
+/// which is arithmetic on values rather than a shape, and the escaping-property
+/// check, which is deliberately behind the walk so a chain is named for its
+/// outermost cause.
 fn admit_call<'a>(
   call: &'a CallExpr,
   guard: Guard,
@@ -1331,7 +1372,7 @@ fn admit_call<'a>(
     return Err(Decline::rule(numeric_literal_receiver(&method.sym)));
   }
 
-  admit_amplification(&method.sym, obj, &call.args, guard.scope)?;
+  admit_amplification(&method.sym, obj, &call.args, guard, reader)?;
 
   // A global the engine provides itself carries no value across the bridge: the
   // printed source names it and the language answers. It is admitted here, as a
@@ -1406,49 +1447,156 @@ fn receiver_is_a_written_number(receiver: &Expr) -> bool {
 
 /// Whether a length-amplifying call is bounded well enough to evaluate.
 ///
-/// The length asked for has to be written into the source as a number under
-/// [`MAX_AMPLIFIED_LENGTH`], and the receiver must not itself be a call:
-/// per-link bounds alone would let `"x".repeat(1000000).repeat(1000000)`
-/// multiply two allowed lengths into one that is not. And the call must not sit
-/// inside a callback, which runs once per element of a receiver nothing here
-/// measured, so a bound written once is multiplied by a count the source never
-/// states. With all three in place the most a fold can build is one bounded
-/// string per amplifying call written, so the source file bounds the total.
+/// The rule is arithmetic rather than syntax: work out how long a string the
+/// call would build, and refuse when that is past the ceiling. So a count may be
+/// written out, named, or computed — `'x'.repeat(n)` and `'x'.repeat(2 * 2)` are
+/// bounded by reading them, exactly as `'x'.repeat(4)` is — and what stays
+/// refused is a length that cannot be read at all.
+///
+/// `repeat` multiplies its receiver, so the receiver's own length is half of the
+/// product and a receiver whose length cannot be read leaves it unbounded. A
+/// **call** is the receiver deliberately left unread: its answer is bounded per
+/// link, and multiplying two allowed lengths is exactly how
+/// `"x".repeat(1000000).repeat(1000000)` reaches a length neither of them is.
+/// That is the rule that used to be spelled as "the receiver must not be a
+/// call", and the product is what it was standing in for — a name holding a
+/// bounded string is a receiver it never covered.
+///
+/// `padStart` and `padEnd` build to their count whatever the receiver holds, so
+/// the count alone bounds them and a chain through one cannot multiply.
+///
+/// And the call must not sit inside a callback, which runs once per element of a
+/// receiver nothing here measured, so a bound read once is multiplied by a count
+/// the source never states. With those in place the most a fold can build is one
+/// bounded string per amplifying call written, so the source file bounds the
+/// total.
+///
+/// Reading a length costs a fold that folded before nothing at all. The
+/// name check above answers first, so every call to a method that is not one of
+/// the three pays one scan of three names, exactly as it did. For the three, a
+/// count and a receiver written out are matched as syntax and nothing is
+/// evaluated. The only resolution this rule adds is for a *named* count or
+/// receiver — a call that used to refuse outright — where the read is memoised
+/// and the walk below would make it a moment later anyway.
 fn admit_amplification(
   method: &Atom,
   receiver: &Expr,
   args: &[ExprOrSpread],
-  scope: Scope,
+  guard: Guard,
+  reader: &mut Reader,
 ) -> Result<(), Decline> {
   if !lists(&LENGTH_AMPLIFYING_METHODS, method) {
     return Ok(());
   }
 
-  // A written bound bounds one evaluation. A callback body is evaluated once
-  // per element of a receiver this guard never measured, so the same bound is
+  // A read bound bounds one evaluation. A callback body is evaluated once per
+  // element of a receiver this guard never measured, so the same bound is
   // multiplied by a count the source never states: `"x".repeat(999999)
   // .split("").map(() => "y".repeat(999999))` is two calls, each inside the
-  // bound, building a terabyte between them. The count cannot be read here, so
-  // an amplifying call inside a callback is refused whatever its argument says.
-  if scope.inside_a_callback() {
+  // bound, building a terabyte between them. The element count cannot be read
+  // here, so an amplifying call inside a callback is refused whatever its
+  // argument says.
+  if guard.scope.inside_a_callback() {
     return Err(Decline::rule(amplification_inside_a_callback(method)));
   }
 
-  let unbounded = || Decline::rule(unbounded_amplified_length(method, MAX_AMPLIFIED_LENGTH));
+  let ceiling = guard.ceilings.characters;
+  let unreadable = || Decline::rule(unbounded_amplified_length(method, ceiling));
 
-  if matches!(receiver, Expr::Call(_)) {
-    return Err(unbounded());
-  }
-
-  match args.first() {
+  let count = match args.first() {
     // `"x".padStart()` amplifies nothing, so there is no length to bound.
-    None => Ok(()),
-    Some(ExprOrSpread { spread: None, expr }) => match expr.as_ref() {
-      Expr::Lit(Lit::Num(length)) if length.value <= MAX_AMPLIFIED_LENGTH => Ok(()),
-      _ => Err(unbounded()),
-    },
-    Some(_) => Err(unbounded()),
+    None => return Ok(()),
+    // A spread is a count that is not one argument, and the guard refuses a
+    // spread everywhere else too.
+    Some(ExprOrSpread {
+      spread: Some(_), ..
+    }) => return Err(unreadable()),
+    Some(ExprOrSpread { expr, .. }) => resolved_count(expr, reader).ok_or_else(unreadable)?,
+  };
+
+  // Saturating because the product exists to be refused on, and a wrapped one
+  // would admit.
+  let built = match method == "repeat" {
+    true => receiver_length(receiver, reader)
+      .ok_or_else(unreadable)?
+      .saturating_mul(count),
+    false => count,
+  };
+
+  if built > ceiling {
+    return Err(Decline::rule(amplified_length_too_large(
+      method, count, built, ceiling,
+    )));
   }
+
+  Ok(())
+}
+
+/// The count an amplifying call asks for, or `None` where the argument is not a
+/// number this guard can read.
+///
+/// A literal is answered where it stands, because that is the common spelling
+/// and reading it costs nothing. Anything else is resolved through the
+/// evaluator, which is a [speculative read](../../../../../CONTEXT.md) like
+/// every other the guard makes — and one the fold would pay for anyway, since a
+/// call it admits evaluates the same argument a moment later.
+///
+/// Whatever it resolves to then goes through the compiler's own `ToNumber`,
+/// because that is what the language does to it: `'x'.repeat('3')` repeats three
+/// times and `'x'.repeat('lots')` repeats none. Reading the count any other way
+/// would refuse an input the reference compiler folds, and bound a call by a
+/// number the engine is not going to use.
+fn resolved_count(expr: &Expr, reader: &mut Reader) -> Option<u64> {
+  let resolved = match expr {
+    Expr::Lit(_) => return count_of(to_js_number(expr)?),
+    _ => as_expr(&reader.resolve(expr)?)?,
+  };
+
+  count_of(to_js_number(&resolved)?)
+}
+
+/// One resolved number as the bound it puts on what a call will build.
+///
+/// Truncated toward zero and floored there, which is what the language's own
+/// `ToIntegerOrInfinity` does to it — so a fractional or negative count is
+/// bounded exactly as the engine will read it, and the `RangeError` a negative
+/// one really produces is left to the language to say, in its own words. A count
+/// that is infinite is not a bound at all; `NaN` is zero, because `f64::max`
+/// answers zero for one and so does the language.
+fn count_of(value: f64) -> Option<u64> {
+  match value.is_infinite() {
+    true => None,
+    false => Some(value.trunc().max(0.0) as u64),
+  }
+}
+
+/// The receiver's own length in UTF-16 code units, or `None` where the guard
+/// cannot read it.
+///
+/// A string written into the source is measured where it stands; anything else
+/// is resolved, so a name holding a string is a receiver like the literal it was
+/// given the name of. A **call** is refused rather than resolved, which is the
+/// half of this rule that keeps per-link bounds from multiplying across a chain.
+fn receiver_length(receiver: &Expr, reader: &mut Reader) -> Option<u64> {
+  // Unwrapped in a loop rather than by recursing, because every other walk on
+  // this bridge spends the nesting budget and this one has no budget to spend:
+  // it is asked before the guard descends. A loop needs none.
+  let mut receiver = receiver;
+
+  while let Expr::Paren(paren) = receiver {
+    receiver = &paren.expr;
+  }
+
+  let text = match receiver {
+    Expr::Lit(Lit::Str(text)) => text.value.clone(),
+    Expr::Call(_) => return None,
+    _ => match reader.resolve(receiver)? {
+      EvaluateResultValue::Expr(Expr::Lit(Lit::Str(text))) => text.value,
+      _ => return None,
+    },
+  };
+
+  Some(atom_utf16_length(&text) as u64)
 }
 
 /// An argument is admitted when it is a value the walk carries — an arrow among
@@ -1708,8 +1856,10 @@ fn to_value(
     // asked to build; this bounds what actually came back, whatever produced
     // it. The array arm below has had such a bound from the start, and a string
     // is the other shape a fold can return at size.
-    if string.len() as f64 > MAX_AMPLIFIED_LENGTH {
-      return Err(Decline::rule(folded_string_too_large(MAX_AMPLIFIED_LENGTH)));
+    if string.len() as u64 > outward.ceilings.characters {
+      return Err(Decline::rule(folded_string_too_large(
+        outward.ceilings.characters,
+      )));
     }
 
     // The engine's strings are UTF-16 and `Lit::Str`'s atom is UTF-8, so an
@@ -1767,8 +1917,10 @@ fn to_object_value(
 
   let keys = read(outward.method, || object.own_property_keys(engine))?;
 
-  if keys.len() as u64 > MAX_FOLDED_ENTRIES {
-    return Err(Decline::rule(object_size_too_large(MAX_FOLDED_ENTRIES)));
+  if keys.len() as u64 > outward.ceilings.entries {
+    return Err(Decline::rule(object_size_too_large(
+      outward.ceilings.entries,
+    )));
   }
 
   let mut props = Vec::with_capacity(keys.len());
@@ -1811,22 +1963,32 @@ fn to_object_value(
 /// folded property and an evaluated one cannot come to disagree about what an
 /// array element may be.
 fn as_property_value(value: EvaluateResultValue) -> Result<Expr, Decline> {
-  let expr = match &value {
+  // Every arm of `to_value` answers one of the two shapes `as_expr` reads, so
+  // nothing else is reachable by construction — and a refusal is answered rather
+  // than a panic if that ever stops holding.
+  as_expr(&value)
+    .ok_or_else(|| Decline::rule(unfoldable_fold_result("value of an unreadable kind")))
+}
+
+/// One evaluated value as the expression it spells, where it spells one.
+///
+/// An array is the one case that has to be rebuilt rather than cloned, by the
+/// evaluator's own conversion rather than by a second copy of it here. Shared
+/// between the two positions that ask — a folded property on the way out, and a
+/// resolved amplification count on the way in — so the two cannot come to
+/// disagree about which values have an expression form.
+fn as_expr(value: &EvaluateResultValue) -> Option<Expr> {
+  match value {
     EvaluateResultValue::Expr(expr) => Some(expr.clone()),
     EvaluateResultValue::Vec(items) => evaluate_result_vec_to_array_expr(items),
-    // Every arm of `to_value` answers one of the two above, so nothing else is
-    // reachable by construction — and answers a refusal rather than panicking
-    // if that ever stops holding.
     _ => None,
-  };
-
-  expr.ok_or_else(|| Decline::rule(unfoldable_fold_result("value of an unreadable kind")))
+  }
 }
 
 /// An array's `length`, bounded: the count the conversion loop below reads.
 ///
 /// The two ways it can fail say different things, because they are different
-/// faults. A length past [`MAX_FOLDED_ENTRIES`] is the bound, and names it. A
+/// faults. A length past the entry ceiling is the bound, and names it. A
 /// `length` that is not a count at all — not a number, or negative — is not the
 /// bound and must not claim to be; it is a value the bridge cannot read, and is
 /// refused as one.
@@ -1839,9 +2001,9 @@ fn read_length(object: &JsObject, engine: &mut Context, outward: Outward) -> Res
     )));
   };
 
-  if length > MAX_FOLDED_ENTRIES as f64 {
+  if length > outward.ceilings.entries as f64 {
     return Err(Decline::rule(array_length_too_large(
-      MAX_FOLDED_ENTRIES as usize,
+      outward.ceilings.entries,
     )));
   }
 

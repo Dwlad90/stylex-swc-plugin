@@ -96,12 +96,39 @@ fn test_numeric_literal_receiver() {
 #[test]
 fn test_unbounded_amplified_length() {
   assert_eq!(
-    unbounded_amplified_length("repeat", 1_000_000.0),
-    "Cannot bound the string 'repeat' would build.\nIts length must be a number literal of at most 1000000, on a receiver that is not itself a call.\n\n"
+    unbounded_amplified_length("repeat", 1_000_000),
+    "Cannot bound the string 'repeat' would build.\nIts length must resolve to a number of at most 1000000, on a receiver whose own length can be read.\n\n"
   );
   // The limit is the caller's, like the depth ceiling above: a bound an author
   // can raise has to be the number they read.
-  assert!(unbounded_amplified_length("padStart", 32.0).contains("at most 32"));
+  assert!(unbounded_amplified_length("padStart", 32).contains("at most 32"));
+}
+
+// The other half of the same question, and the one an author reaches by asking
+// for a length that *was* read: it names what was asked for beside the limit,
+// because the two together say whether this is a typo or a project that has
+// outgrown the ceiling.
+#[test]
+fn test_amplified_length_too_large() {
+  // A call that pads builds what it was asked for, so there is one number and
+  // it is named once.
+  assert_eq!(
+    amplified_length_too_large("padStart", 1_200_000, 1_200_000, 1_000_000),
+    "Cannot bound the string 'padStart' would build.\nIt asks for 1200000 characters, and at most 1000000 are supported.\n\n"
+  );
+  // A call that repeats builds the count times its receiver, and the count is
+  // the only one of the two an author can find in what they wrote -- so both
+  // are named, rather than a total that appears nowhere in the source.
+  assert_eq!(
+    amplified_length_too_large("repeat", 600_000, 1_200_000, 1_000_000),
+    "Cannot bound the string 'repeat' would build.\nIt asks for 600000 copies of the value it is called on, which is 1200000 characters, and at most 1000000 are supported.\n\n"
+  );
+  // Both refusals of an amplifying call open with the same line, so an author
+  // learns to recognise one class of failure rather than two.
+  assert!(
+    amplified_length_too_large("padEnd", 9, 9, 8)
+      .starts_with("Cannot bound the string 'padEnd' would build.")
+  );
 }
 
 #[test]
@@ -164,24 +191,24 @@ fn test_amplification_inside_a_callback() {
 #[test]
 fn test_folded_string_too_large() {
   assert_eq!(
-    folded_string_too_large(1_000_000.0),
+    folded_string_too_large(1_000_000),
     "Folded string is too large to evaluate at compile time.\nAt most 1000000 characters are supported.\n\n"
   );
   // The number an author reads is the limit they can raise, so it is the one
   // the caller passed rather than a constant spelled again here.
-  assert!(folded_string_too_large(32.0).contains("At most 32"));
+  assert!(folded_string_too_large(32).contains("At most 32"));
 }
 
 #[test]
 fn test_bound_value_too_large() {
   assert_eq!(
-    bound_value_too_large("big", 1_000_000.0),
+    bound_value_too_large("big", 1_000_000),
     "Cannot carry the value of 'big' into a fold.\nAt most 1000000 characters are supported.\n\n"
   );
   // The binding is named rather than the method, because the size belongs to
   // what the name holds and the same call on a shorter value folds.
-  assert!(bound_value_too_large("fonts", 32.0).contains("'fonts'"));
-  assert!(bound_value_too_large("fonts", 32.0).contains("At most 32"));
+  assert!(bound_value_too_large("fonts", 32).contains("'fonts'"));
+  assert!(bound_value_too_large("fonts", 32).contains("At most 32"));
 }
 
 #[test]

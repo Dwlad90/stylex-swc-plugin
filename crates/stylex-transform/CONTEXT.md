@@ -97,10 +97,18 @@ wrong value rather than no value. An **escaping** property -- `constructor`,
 `call`, `apply`, `bind` -- is refused because it walks off the value that was
 written and onto the language's function graph, where `Function` compiles a
 string into a body that answers differently on every build and can write to a
-prototype the next fold reads. A **length-amplifying** call is bounded, on the
-argument written and again on the string that comes back, because nothing in the
-engine bounds allocation; a callback body is refused outright, since a written
-bound bounds one evaluation and a callback runs once per element. And **nesting**
+prototype the next fold reads. A **length-amplifying** call is bounded by
+arithmetic rather than by a shape, because nothing in the engine bounds
+allocation: the guard works out how long a string the call would build and
+refuses when that is past the project's [allocation
+ceiling](../stylex-structures/CONTEXT.md). A count is read, not required to be
+written — through the evaluator and then the language's own `ToNumber`, so an
+expression and a name reach the same bound a literal does — and `repeat`
+multiplies its receiver's own length into the product. A receiver that is itself
+a **call** is the one deliberately left unread: its answer is bounded per link,
+and reading it is exactly what would let two allowed lengths multiply into one
+that is not. A callback body is refused outright, since a bound read once bounds
+one evaluation and a callback runs once per element. And **nesting**
 is bounded on both sides against the project's configured evaluation depth: on
 the way in because the engine's parser recurses, and on the way out because the
 depth of an answer is not what the width bound measures. The fold claims a stack
@@ -188,7 +196,9 @@ they are part of the value the receiver is, but a name holding one alone is a
 receiver of its own and `Number.prototype` is not reachable yet. The bounds are
 counted on the value rather than on the syntax that named it — a name is three
 characters whatever it holds — and counted across every name one fold carries,
-in text, in entries and in nesting.
+in text, in entries and in nesting — against the project's [allocation
+ceilings](../stylex-structures/CONTEXT.md), which are the same two numbers that
+bound what an answer carries back.
 _Avoid_: primitive, scalar, serialisable, carryable string
 
 **Speculative read**:

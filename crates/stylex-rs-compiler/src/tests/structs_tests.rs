@@ -4,6 +4,8 @@ fn empty_options() -> StyleXOptions {
   StyleXOptions {
     style_resolution: None,
     max_evaluation_depth: None,
+    max_folded_characters: None,
+    max_folded_entries: None,
     enable_font_size_px_to_rem: None,
     runtime_injection: None,
     class_name_prefix: None,

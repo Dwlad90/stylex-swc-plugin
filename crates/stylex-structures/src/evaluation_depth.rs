@@ -6,9 +6,12 @@
 //! a diagnostic -- so the ceiling is not a tuning knob so much as the thing that
 //! turns a crash into a message. It is configurable because the right number
 //! depends on what a project generates, not on anything the compiler can know.
+//!
+//! How the number is chosen -- option, then environment, then default, clamped
+//! to the limit -- is [`Ceiling`]'s, which the two allocation ceilings in
+//! [`crate::fold_ceilings`] share.
 
-use std::env;
-use std::sync::OnceLock;
+use crate::ceiling::Ceiling;
 
 /// The ceiling when nothing configures one.
 ///
@@ -38,235 +41,49 @@ pub const DEFAULT_MAX_EVALUATION_DEPTH: usize = 32;
 pub const MAX_EVALUATION_DEPTH_LIMIT: usize = 8 * 1024;
 
 /// Environment variable that overrides [`DEFAULT_MAX_EVALUATION_DEPTH`].
-///
-/// It overrides the default only -- a project that configures
-/// `maxEvaluationDepth` gets what it configured, whatever the environment says.
-/// The precedence is that way round on purpose: a stray value in a CI
-/// environment must not silently change what a configured project compiles to.
 pub const MAX_EVALUATION_DEPTH_ENV: &str = "STYLEX_MAX_EVALUATION_DEPTH";
 
-/// The ceiling to use, given whatever the caller configured.
-///
-/// The environment is read once per process, not once per call. "Once per call"
-/// sounded free -- a lookup per options value rather than per folded node -- and
-/// it measured at about a microsecond per transform on a `node` process, whose
-/// environment `getenv` walks and string-compares entry by entry. That is a
-/// fixed cost on every file, so it showed up as roughly 3% on a small module and
-/// was invisible on a large one, which is exactly the shape of regression a
-/// benchmark corpus of small fixtures reports and a profile does not localize.
-///
-/// Caching it costs nothing a build can observe: the variable is read from the
-/// environment the process was started with, and nothing in a build mutates its
-/// own environment between files. What it does cost is that a test cannot set
-/// the variable and see the answer change -- which is why the rule below takes
-/// the value as an argument and is tested there, rather than through a
-/// process-global write that would leak into every other test in the binary.
-pub fn resolve_max_evaluation_depth(configured: Option<usize>) -> usize {
-  static FROM_ENV: OnceLock<Option<String>> = OnceLock::new();
-
-  let from_env = FROM_ENV.get_or_init(read_env);
-
-  resolve_from(configured, from_env.as_deref())
-}
-
-/// One read of the documented variable.
-///
-/// Split out from the cache so a test can prove *which* variable seeds it
-/// without depending on when the cache was first filled: a test that went
-/// through the public resolver would answer differently depending on test
-/// order, because the cache is filled once per process.
-fn read_env() -> Option<String> {
-  env::var(MAX_EVALUATION_DEPTH_ENV).ok()
-}
-
-/// The precedence, with the environment passed in rather than read.
-///
-/// Split out so the *rule* is testable without a process-global write: setting
-/// an environment variable from a test leaks into every other test in the
-/// binary, is `unsafe` in this edition, and precedence does not need a side
-/// channel to be verified. Which variable seeds the cache is a separate
-/// question, answered end to end from the JavaScript side -- see the note in
-/// this module's tests.
-fn resolve_from(configured: Option<usize>, from_env: Option<&str>) -> usize {
-  let resolved = match configured {
-    Some(depth) if depth > 0 => depth,
-    _ => from_env
-      .and_then(parse_depth)
-      .unwrap_or(DEFAULT_MAX_EVALUATION_DEPTH),
-  };
-
-  // Clamped on the way out rather than in the `configured` arm alone, so the
-  // environment cannot ask for what an option cannot. `STYLEX_MAX_EVALUATION_DEPTH`
-  // parses any `usize`, and a number no stack could be claimed for is not a
-  // ceiling whichever side of the boundary it arrived from.
-  resolved.min(MAX_EVALUATION_DEPTH_LIMIT)
-}
-
-/// One environment value, read as a ceiling or not at all.
-///
-/// Zero is refused along with everything unparseable: a ceiling of zero would
-/// refuse every expression, including the folds the compiler runs to do its own
-/// work. Both fall through to the caller's default rather than failing the
-/// build -- the variable is an escape hatch, and one that broke the build when
-/// mistyped would be a worse one.
-fn parse_depth(raw: &str) -> Option<usize> {
-  raw.trim().parse::<usize>().ok().filter(|depth| *depth > 0)
-}
+/// `maxEvaluationDepth`, as the ceiling the options builder resolves through.
+pub static MAX_EVALUATION_DEPTH: Ceiling = Ceiling::new(
+  MAX_EVALUATION_DEPTH_ENV,
+  DEFAULT_MAX_EVALUATION_DEPTH,
+  MAX_EVALUATION_DEPTH_LIMIT,
+);
 
 #[cfg(test)]
 mod tests {
   use super::*;
 
+  // Inline rather than in `src/tests/`, unlike `ceiling.rs` beside it: this
+  // module declares numbers rather than behaviour, so what there is to assert is
+  // that the declaration says what the documentation says. A file of its own
+  // would put the constants and their assertions a directory apart.
+  //
+  // The precedence itself is `Ceiling`'s and is pinned there. What is this
+  // module's is which numbers and which variable this ceiling declares, since
+  // those are what a project reads in the documentation.
   #[test]
-  fn a_configured_depth_is_used_as_given() {
-    assert_eq!(resolve_max_evaluation_depth(Some(7)), 7);
-    assert_eq!(resolve_max_evaluation_depth(Some(1)), 1);
-    assert_eq!(resolve_max_evaluation_depth(Some(5_000)), 5_000);
+  fn the_declared_ceiling_is_the_documented_one() {
+    assert_eq!(MAX_EVALUATION_DEPTH.env, "STYLEX_MAX_EVALUATION_DEPTH");
+    assert_eq!(MAX_EVALUATION_DEPTH.default, 32);
+    assert_eq!(MAX_EVALUATION_DEPTH.limit, 8 * 1024);
   }
 
-  // Zero would refuse every expression, including the folds the compiler runs to
-  // do its own work, so it is read as unset rather than honoured.
+  // "The rule is right" is `ceiling.rs`'s claim; this is the other one -- that
+  // the ceiling a project configures is wired to that rule, in every arm of it.
   #[test]
-  fn a_configured_zero_falls_back_rather_than_refusing_everything() {
-    assert_eq!(resolve_from(Some(0), None), DEFAULT_MAX_EVALUATION_DEPTH);
+  fn it_resolves_through_the_shared_precedence() {
+    crate::ceiling::assert_resolves_by_precedence(&MAX_EVALUATION_DEPTH);
   }
 
+  // The public entry point reaches the same rule, so the cached read of the
+  // environment is wired to the precedence the arms above pin.
   #[test]
-  fn nothing_configured_and_nothing_in_the_environment_is_the_default() {
-    assert_eq!(resolve_from(None, None), DEFAULT_MAX_EVALUATION_DEPTH);
-    assert_eq!(DEFAULT_MAX_EVALUATION_DEPTH, 32);
-  }
-
-  // The reading the environment variable exists for.
-  #[test]
-  fn the_environment_supplies_the_ceiling_when_nothing_is_configured() {
-    assert_eq!(resolve_from(None, Some("256")), 256);
-    assert_eq!(resolve_from(None, Some("1")), 1);
-  }
-
-  // Surrounding whitespace is what a shell export or a CI variable pane leaves
-  // behind, and it is not a reason to ignore an otherwise good number.
-  #[test]
-  fn the_environment_value_is_trimmed_before_it_is_read() {
-    assert_eq!(resolve_from(None, Some("  64  ")), 64);
-    assert_eq!(resolve_from(None, Some("\t8\n")), 8);
-  }
-
-  // Config wins, which is the whole point of the precedence: a stray value in a
-  // CI environment cannot change what a configured project compiles to.
-  #[test]
-  fn a_configured_depth_beats_the_environment() {
-    assert_eq!(resolve_from(Some(16), Some("256")), 16);
-  }
-
-  // And a configured zero does not beat it, because zero is not a ceiling. The
-  // environment is consulted next, exactly as if nothing were configured.
-  #[test]
-  fn a_configured_zero_falls_through_to_the_environment() {
-    assert_eq!(resolve_from(Some(0), Some("256")), 256);
-  }
-
-  // Every way an environment value can fail to be a ceiling, each falling back
-  // rather than failing the build.
-  #[test]
-  fn an_unusable_environment_value_is_ignored() {
-    for raw in [
-      "",
-      "   ",
-      "0",
-      "  0  ",
-      "-1",
-      "1.5",
-      "32px",
-      "abc",
-      "1e3",
-      "0x20",
-      "99999999999999999999999999999999999999",
-    ] {
-      assert_eq!(
-        resolve_from(None, Some(raw)),
-        DEFAULT_MAX_EVALUATION_DEPTH,
-        "`{}` should not be read as a ceiling",
-        raw
-      );
-    }
-  }
-
-  // An explicit sign is accepted, because Rust's integer parser accepts it and
-  // `+8` is unambiguously eight. Pinned rather than left to be discovered: it is
-  // the one spelling in the neighbourhood of the rejected ones that works.
-  #[test]
-  fn a_leading_plus_is_still_a_number() {
-    assert_eq!(resolve_from(None, Some("+8")), 8);
-  }
-
-  #[test]
-  fn parse_depth_answers_for_itself() {
-    assert_eq!(parse_depth("32"), Some(32));
-    assert_eq!(parse_depth(" 32 "), Some(32));
-    assert_eq!(parse_depth("0"), None);
-    assert_eq!(parse_depth("nope"), None);
-  }
-
-  #[test]
-  fn the_environment_variable_is_the_documented_name() {
-    assert_eq!(MAX_EVALUATION_DEPTH_ENV, "STYLEX_MAX_EVALUATION_DEPTH");
-  }
-
-  // A ceiling the fold cannot reach before exhausting memory is not a ceiling.
-  // The clamp is what keeps a number that crossed the boundary as `ToUint32`
-  // garbage -- or one a caller simply asked too much of -- from removing the
-  // guard it was configuring.
-  #[test]
-  fn a_ceiling_past_the_limit_is_clamped_rather_than_honoured() {
+  fn the_cached_read_answers_through_the_same_rule() {
+    assert_eq!(MAX_EVALUATION_DEPTH.resolve(Some(7)), 7);
     assert_eq!(
-      resolve_from(Some(usize::MAX), None),
+      MAX_EVALUATION_DEPTH.resolve(Some(usize::MAX)),
       MAX_EVALUATION_DEPTH_LIMIT
-    );
-    // The environment reaches the same clamp. It parses any `usize`, so without
-    // this the escape hatch could ask for what the option cannot.
-    assert_eq!(
-      resolve_from(None, Some("99999999999")),
-      MAX_EVALUATION_DEPTH_LIMIT
-    );
-    assert_eq!(
-      resolve_from(Some(MAX_EVALUATION_DEPTH_LIMIT + 1), None),
-      MAX_EVALUATION_DEPTH_LIMIT
-    );
-    assert_eq!(
-      resolve_from(Some(MAX_EVALUATION_DEPTH_LIMIT), None),
-      MAX_EVALUATION_DEPTH_LIMIT
-    );
-  }
-
-  // A configured ceiling below the limit is still taken as given: the clamp is a
-  // ceiling on the ceiling, not a floor on it.
-  #[test]
-  fn a_ceiling_below_the_limit_is_untouched_by_the_clamp() {
-    assert_eq!(resolve_from(Some(1), None), 1);
-    assert_eq!(
-      resolve_from(Some(MAX_EVALUATION_DEPTH_LIMIT - 1), None),
-      MAX_EVALUATION_DEPTH_LIMIT - 1
-    );
-  }
-
-  // Which variable seeds the cache is *not* asserted here, and deliberately not.
-  // Proving it needs a process whose environment differs from this one's, and
-  // writing the environment from a test is `unsafe` in this edition -- against
-  // `guidelines/stack/RUST.md` -- for a read that is cached once per process and
-  // so unobservable from the test that wrote it anyway. It is proved end to end
-  // instead, in `crates/stylex-rs-compiler/__test__/index.spec.ts`, by compiling
-  // in a child process with the variable set: that covers the name, the parse,
-  // the precedence against a configured option, and the fallback for an unusable
-  // value, none of which a unit test on this side can reach.
-
-  // The public entry point agrees with the rule asked directly, so the cached
-  // read is wired to the same precedence every other case here pins.
-  #[test]
-  fn the_public_resolver_answers_the_default_with_nothing_configured() {
-    assert_eq!(
-      resolve_max_evaluation_depth(None),
-      resolve_from(None, read_env().as_deref())
     );
   }
 }

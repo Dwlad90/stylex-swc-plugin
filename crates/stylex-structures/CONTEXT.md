@@ -59,14 +59,42 @@ compile-time `JSFunction` taking `Vec<Expr>` and returning an `Expr`. The
 function case is what lets configuration compute a value per call site.
 _Avoid_: constant, env var, config value
 
+**Ceiling**:
+A bound a project can raise, and the rule for choosing its value: the configured
+option, then that ceiling's environment variable, then the built-in default,
+clamped to a limit past which neither is honoured. Precedence in that order so a
+stray value in a CI environment cannot change what a project that configured the
+option compiles to; zero and anything non-numeric are read as unset rather than
+honoured, because a ceiling of zero refuses the folds the compiler runs to do
+its own work. The environment is read once per process, since a `getenv` per
+options value measured at roughly 3% on a small module. Three exist — the
+evaluation ceiling and the two allocation ceilings below — and each is a
+declaration of what it bounds, since the rule is not per bound.
+
+A ceiling's **limit** is the number past which neither an option nor the
+environment is honoured — the ceiling on the ceiling, and a separate concept
+from the ceiling itself. It exists because a bound the failure arrives before is
+not a bound: it is the old crash under a new name.
+_Avoid_ (for the ceiling): threshold, budget, knob, tuning value
+
 **Evaluation ceiling**:
 `maxEvaluationDepth` — how many levels the evaluator descends into a nested
-expression before refusing it, resolved from the configured option, then the
-`STYLEX_MAX_EVALUATION_DEPTH` environment variable, then the built-in default
-of 32. Precedence in that order so a stray value in a CI environment cannot
-change what a project that configured the option compiles to; zero and anything
-non-numeric are read as unset rather than honoured, because a ceiling of zero
-refuses the folds the compiler runs to do its own work. Counted in evaluation
-steps, not in levels of source nesting — the [evaluation
+expression before refusing it, default 32, `STYLEX_MAX_EVALUATION_DEPTH`.
+Counted in evaluation steps, not in levels of source nesting — the [evaluation
 depth](../stylex-transform/CONTEXT.md) it bounds is defined where it is spent.
 _Avoid_: recursion limit, max depth, nesting limit
+
+**Allocation ceilings**:
+`maxFoldedCharacters` and `maxFoldedEntries` — how long a string and how many
+array elements and object properties one [fold](../stylex-transform/CONTEXT.md)
+may build or carry. Defaults 1000000 and 10000,
+`STYLEX_MAX_FOLDED_CHARACTERS` and `STYLEX_MAX_FOLDED_ENTRIES`. They exist
+because the engine a fold runs on bounds loops, recursion and stack but not
+allocation: growth inside a native builtin is not a counted loop, so a mistyped
+repeat count agrees with the language and reaches gigabytes. Two rather than one
+because the costs do not stand in for each other — measured, a code unit is
+about 19 bytes of peak resident memory while it is being built and an entry
+about 190, and a bounded string can still become one entry per code unit. Each
+bounds both directions: what a resolved name copies into the engine, and what an
+answer carries back.
+_Avoid_: string limit, size cap, memory budget, amplification limit

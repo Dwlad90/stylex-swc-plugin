@@ -46,20 +46,28 @@ fn a_numeric_literal_receiver_names_the_rule_rather_than_the_node() {
 }
 
 /// The engine bounds loops, recursion and stack, but not allocation, so a
-/// length it cannot read is a length it will not build. The message states the
-/// limit, so an author can see the number rather than guess at it.
+/// length past the ceiling is a length it will not build. The message states
+/// both numbers, so an author can see whether this is a typo or a project that
+/// has outgrown the ceiling rather than guess at it.
 #[test]
-#[should_panic(expected = "Cannot bound the string 'repeat' would build.")]
-fn an_unbounded_amplifying_length_names_the_limit() {
+#[should_panic(
+  expected = "Cannot bound the string 'repeat' would build.\nIt asks for 200000000 characters, and at most 1000000 are supported."
+)]
+fn an_amplified_length_past_the_ceiling_names_both_numbers() {
   fold(&module("content: 'x'.repeat(200000000),"));
 }
 
-/// The same rule, reached the other way: a count that is not written as a
-/// number cannot be bounded by reading it.
+/// The same rule, reached the other way: a length that cannot be read at all
+/// has no number to name, so the sentence says what would have to be readable.
+/// A receiver that is itself a call is the case, and it is deliberate — its
+/// answer is bounded per link, so reading it is what would let two allowed
+/// lengths multiply into one that is not.
 #[test]
-#[should_panic(expected = "Cannot bound the string 'padStart' would build.")]
+#[should_panic(
+  expected = "Cannot bound the string 'repeat' would build.\nIts length must resolve to a number of at most 1000000, on a receiver whose own length can be read."
+)]
 fn an_unreadable_amplifying_length_reaches_the_same_rule() {
-  fold(&module("content: 'x'.padStart(2 * 2, '0'),"));
+  fold(&module("content: 'x'.repeat(1000).repeat(1000),"));
 }
 
 /// A throw is an answer rather than a fault of the fold — the language throws

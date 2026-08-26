@@ -87,7 +87,7 @@ pub fn uncoercible_value(callee: &str) -> String {
 /// An array came back from a fold longer than the fold will materialise: every
 /// element costs the width of an evaluated value, so a length JavaScript accepts
 /// can still be an allocation the compiler does not survive.
-pub fn array_length_too_large(limit: usize) -> String {
+pub fn array_length_too_large(limit: u64) -> String {
   format!(
     "Array length is too large to evaluate at compile time.\nAt most {} elements are supported.\n\n",
     limit
@@ -231,15 +231,62 @@ pub fn numeric_literal_receiver(method: &str) -> String {
   )
 }
 
-/// A length-amplifying call whose result length could not be bounded.
+/// The one shape both refusals of a length-amplifying call take: the string the
+/// call would build, then why it cannot be built.
 ///
 /// The engine bounds loop iterations, recursion and stack, but not allocation:
-/// growth inside a native builtin is not a counted loop. So the length has to
-/// be readable, and under the ceiling, before the call is evaluated at all.
-pub fn unbounded_amplified_length(method: &str, limit: f64) -> String {
+/// growth inside a native builtin is not a counted loop. So the length has to be
+/// readable, and under the ceiling, before the call is evaluated at all -- two
+/// ways to fail one question, which is why they share a first line.
+fn cannot_bound(method: &str, reason: &str) -> String {
   format!(
-    "Cannot bound the string '{}' would build.\nIts length must be a number literal of at most {}, on a receiver that is not itself a call.\n\n",
-    method, limit
+    "Cannot bound the string '{}' would build.\n{}\n\n",
+    method, reason
+  )
+}
+
+/// A length-amplifying call whose result length could not be read.
+///
+/// A count and, for `repeat`, the receiver it multiplies are both needed before
+/// the product can be compared to anything. Either may be written out or named,
+/// and a call is the one receiver deliberately left unread: its own answer is
+/// bounded per link, so reading it is what would let two allowed lengths
+/// multiply into one that is not.
+pub fn unbounded_amplified_length(method: &str, limit: u64) -> String {
+  cannot_bound(
+    method,
+    &format!(
+      "Its length must resolve to a number of at most {}, on a receiver whose own length can be read.",
+      limit
+    ),
+  )
+}
+
+/// A length-amplifying call whose result length was read and is too large.
+///
+/// Names the length asked for beside the limit, because the two together are
+/// what say whether the call is a typo or a project that has outgrown the
+/// ceiling -- and a limit alone leaves an author guessing which.
+///
+/// `count` and `built` are the same number for a call that pads, and differ for
+/// one that repeats: `'xx'.repeat(600000)` builds 1200000 characters, and 600000
+/// is the only one of those an author can find in what they wrote. So both are
+/// named where they differ, and the one number is named once where they do not.
+pub fn amplified_length_too_large(method: &str, count: u64, built: u64, limit: u64) -> String {
+  let asked = match built == count {
+    true => format!("{} characters", built),
+    false => format!(
+      "{} copies of the value it is called on, which is {} characters",
+      count, built
+    ),
+  };
+
+  cannot_bound(
+    method,
+    &format!(
+      "It asks for {}, and at most {} are supported.",
+      asked, limit
+    ),
   )
 }
 
@@ -361,7 +408,7 @@ pub fn unfoldable_statement(kind: &str) -> String {
 /// to build; this bounds what actually came back, whatever produced it. Shaped
 /// after [`array_length_too_large`] and bounded by the same number as the
 /// argument is, because it is the same string measured on the other side.
-pub fn folded_string_too_large(limit: f64) -> String {
+pub fn folded_string_too_large(limit: u64) -> String {
   format!(
     "Folded string is too large to evaluate at compile time.\n\
      At most {} characters are supported.\n\n",
@@ -379,7 +426,7 @@ pub fn folded_string_too_large(limit: f64) -> String {
 ///
 /// Names the binding rather than the method, because the size is a property of
 /// what the name holds and the same call on a shorter value folds.
-pub fn bound_value_too_large(name: &str, limit: f64) -> String {
+pub fn bound_value_too_large(name: &str, limit: u64) -> String {
   format!(
     "Cannot carry the value of '{}' into a fold.\nAt most {} characters are supported.\n\n",
     name, limit

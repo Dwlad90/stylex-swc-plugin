@@ -65,6 +65,13 @@ const PLUGIN_NAME = 'unplugin-stylex-rs';
 const BUILD_CSS_PLACEHOLDER = '@layer __stylex_build_placeholder__;';
 
 /**
+ * How many times in a row a dev CSS refresh may fail before the plugin stops
+ * retrying it. Enough to ride out a reconnecting websocket, small enough that a
+ * socket which never recovers stops logging.
+ */
+const MAX_CSS_REFRESH_FAILURES = 3;
+
+/**
  * Removes every marker occurrence, for the stylesheets that did not receive the
  * rules.
  */
@@ -478,6 +485,11 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   let rulesRevision = 0;
   let refreshedRulesRevision = 0;
   let cssRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  // A refresh whose update never reached the browser leaves the stylesheet
+  // stale, and no further transform is guaranteed to come along and re-arm it,
+  // so the failure has to retry itself. Counted so a permanently broken socket
+  // cannot turn into an endless retry loop.
+  let cssRefreshFailures = 0;
 
   // Debounced so a burst of transforms costs one refresh, and re-armable so the
   // next burst gets its own. `viteDevServer` is re-read inside the callback
@@ -506,8 +518,6 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           normalizedOptions.useCssPlaceholder
         );
 
-        refreshedRulesRevision = coveredRevision;
-
         // Send update to trigger HMR
         if (cssModules.length > 0) {
           server.ws.send({
@@ -521,12 +531,24 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           });
         }
 
+        // Only now is the revision genuinely covered. Recording it before the
+        // send would call a refresh done that the browser never heard about.
+        refreshedRulesRevision = coveredRevision;
+        cssRefreshFailures = 0;
+
         // Rules that arrived while this refresh was in flight need their own.
         if (viteDevServer === server) scheduleCssRefresh();
       })().catch((error: unknown) => {
-        // A transient read or websocket failure must not swallow the refresh:
-        // leaving the revision untouched lets the next transform retry.
         console.error('StyleX: failed to refresh placeholder CSS modules', error);
+
+        // The revision is untouched, so the refresh is still owed. Re-arm it
+        // here because nothing else will, and stop once the budget is spent so
+        // a socket that never recovers cannot spin.
+        cssRefreshFailures += 1;
+
+        if (cssRefreshFailures < MAX_CSS_REFRESH_FAILURES && viteDevServer === server) {
+          scheduleCssRefresh();
+        }
       });
     }, 50);
   }
@@ -624,6 +646,9 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           // Bumped synchronously, before any await, so concurrent transforms
           // cannot lose each other's contribution.
           rulesRevision += 1;
+          // New rules deserve a fresh set of attempts, so the retry budget
+          // counts only the failures that happened with no new work in between.
+          cssRefreshFailures = 0;
           scheduleCssRefresh();
         }
 
@@ -811,6 +836,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
         viteDevServer = server;
         refreshedRulesRevision = rulesRevision;
+        cssRefreshFailures = 0;
 
         server.watcher.once('close', () => {
           if (viteDevServer !== server) return;

@@ -329,13 +329,21 @@ const dropCssAssets: Plugin = {
   },
 };
 
-// Counts how many times the dev server is told the placeholder stylesheet is
-// stale. Without a bundle step that invalidation is the only way rules
-// collected after the stylesheet was served can reach the browser.
-async function countDevCssInvalidations(): Promise<number> {
-  const root = await writeFixtureRoot('.stylex-vite-dev-refresh-', placeholderFixtureFiles);
+// Comfortably past the plugin's 50ms debounce, and past the retry that follows
+// a refresh whose update could not be sent.
+async function settle(): Promise<void> {
+  await new Promise(resolve => {
+    setTimeout(resolve, 200);
+  });
+}
 
-  const server = await createServer({
+// The dev server every placeholder refresh test runs against. Request
+// pre-transform is off so each test decides exactly when a module is
+// transformed, which is what the refresh behaviour turns on.
+async function createPlaceholderDevServer(prefix: string) {
+  const root = await writeFixtureRoot(prefix, placeholderFixtureFiles);
+
+  return createServer({
     configFile: false,
     logLevel: 'silent',
     optimizeDeps: { noDiscovery: true },
@@ -349,13 +357,13 @@ async function countDevCssInvalidations(): Promise<number> {
     root,
     server: { middlewareMode: true, preTransformRequests: false },
   });
+}
 
-  // Comfortably past the plugin's 50ms debounce.
-  const settle = async () =>
-    new Promise(resolve => {
-      setTimeout(resolve, 200);
-    });
-
+// Counts how many times the dev server is told the placeholder stylesheet is
+// stale. Without a bundle step that invalidation is the only way rules
+// collected after the stylesheet was served can reach the browser.
+async function countDevCssInvalidations(): Promise<number> {
+  const server = await createPlaceholderDevServer('.stylex-vite-dev-refresh-');
   const invalidate = vi.spyOn(server.moduleGraph, 'invalidateModule');
 
   try {
@@ -373,6 +381,39 @@ async function countDevCssInvalidations(): Promise<number> {
     return invalidate.mock.calls.length - beforeLateModule;
   } finally {
     invalidate.mockRestore();
+    await server.close();
+  }
+}
+
+// Drives a dev server whose CSS updates never reach the browser, and reports
+// the attempts made before the retries had time to stop and after. The
+// stylesheet stays stale until an update lands, so a failure has to be retried;
+// a retry that never gives up keeps adding attempts in the second window.
+async function measureFailedRefreshRetries(): Promise<{
+  attempts: number;
+  attemptsAfterSettling: number;
+}> {
+  const server = await createPlaceholderDevServer('.stylex-vite-dev-retry-');
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const send = vi.spyOn(server.ws, 'send').mockImplementation(() => {
+    throw new Error('websocket closed');
+  });
+
+  try {
+    await server.transformRequest('/main.js');
+    await server.transformRequest('/global.css');
+    await settle();
+
+    const attempts = send.mock.calls.length;
+
+    // No further transform, so anything counted here is the retry chain alone.
+    await settle();
+    await settle();
+
+    return { attempts, attemptsAfterSettling: send.mock.calls.length - attempts };
+  } finally {
+    send.mockRestore();
+    error.mockRestore();
     await server.close();
   }
 }
@@ -613,6 +654,18 @@ export const styles = stylex.create({
 
   test('invalidates dev CSS again when a late module adds rules', async () => {
     expect(await countDevCssInvalidations()).toBeGreaterThan(0);
+  });
+
+  test('retries the dev CSS refresh when the update cannot be sent', async () => {
+    const { attempts } = await measureFailedRefreshRetries();
+
+    expect(attempts).toBeGreaterThan(1);
+  });
+
+  test('gives up retrying the dev CSS refresh instead of looping forever', async () => {
+    const { attemptsAfterSettling } = await measureFailedRefreshRetries();
+
+    expect(attemptsAfterSettling).toBe(0);
   });
 
   test('injects once when the marker appears several times', async () => {

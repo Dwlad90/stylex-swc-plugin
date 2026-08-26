@@ -116,11 +116,25 @@ mutating only a temporary nothing can name afterwards. That rule belongs to
 binding resolution and already existed there.
 
 The guard reads values, not only syntax: a leaf qualifies when it is written into
-the expression, bound by a callback's parameters, or a name the module resolves
+the expression, bound by a callback around it, or a name the module resolves
 to a value the bridge carries. So giving a value a name no longer changes whether
 the call on it folds. What it costs is that the walk can evaluate, which is why
 every refusal answerable from a name alone is applied before the walk begins and
 only an expression the guard intends to fold pays to have its names read.
+
+A **callback** is not a shape the guard recognises. It is printed into the same
+[transport](#transport) and parsed by the engine, so its parameters may be
+destructured and its body may be a block — the language answers both. What the
+guard still does is name what the callback binds, so a read of one is not
+asked of the module, and apply to the body every rule above, because a
+callback body is source that really runs. Scope is a chain: an inner arrow adds
+to the names around it rather than replacing them, and a block adds what it
+declares. A statement outside the set the body walk reads is a refusal that
+names the statement, not the callback around it — a **loop** above all, because
+the engine's iteration count lives on the call frame, so a callback invoked once
+per element starts a fresh count and the bound is multiplied by an element count
+the source never states. An **assignment** is not among them: it is an
+expression, so it is answered by the value walk, which does not model it.
 
 A name the guard could not read is not a refusal but a **candidacy** answer: the
 call is simply not this module's, and the dispatch below owns it — which is what
@@ -144,10 +158,11 @@ that resolved names is printed as an arrow taking them as parameters and called
 with their values, so `s.toLowerCase()` is handed over as `(s)=>s.toLowerCase()`
 applied to the string `s` holds; one that resolved none is evaluated as itself,
 because wrapping it costs a function object and a VM frame that measured 44% of
-the cheapest fold. The author's own name is the parameter name,
-which means nothing is rewritten and a callback parameter of the same name
-shadows the value exactly as it does in the module. Chosen over substituting a
-literal into the printed text, which would reprint and reparse the whole value at
+the cheapest fold. The author's own name is the parameter name, which means
+nothing is rewritten and a name the callback binds — a parameter, or something
+its body declares — shadows the value exactly as it does in the module. Chosen
+over substituting a literal into the printed text, which would reprint and
+reparse the whole value at
 every use site and could not carry a value with no literal spelling; and over
 registering names on the engine, which is one leaked instance per thread shared by
 every file that thread compiles, where a name left behind would be a cross-file

@@ -335,6 +335,26 @@ pub fn amplification_inside_a_callback(method: &str) -> String {
   )
 }
 
+/// A statement inside a callback body that the fold does not read.
+///
+/// A callback runs as real JavaScript, so its body may branch, declare and
+/// return. A **loop** is the one kind left out for a bound rather than for a
+/// shape: the engine's iteration count lives on the call frame, so a callback
+/// invoked once per element starts a fresh count every time and the bound is
+/// multiplied by an element count the source never states — exactly as a
+/// length-amplifying call's is. See [`amplification_inside_a_callback`].
+///
+/// Names the statement kind, because that is the word an author can look for in
+/// the body they wrote -- and says what *is* read, so the next step is a
+/// rewrite rather than a guess.
+pub fn unfoldable_statement(kind: &str) -> String {
+  format!(
+    "Cannot fold a callback whose body uses a {}.\n\
+     Only a declaration, a branch, a block and a return are read inside a callback body.\n\n",
+    kind
+  )
+}
+
 /// A folded string longer than the fold will carry back.
 ///
 /// [`unbounded_amplified_length`] bounds what one written call may be *asked*

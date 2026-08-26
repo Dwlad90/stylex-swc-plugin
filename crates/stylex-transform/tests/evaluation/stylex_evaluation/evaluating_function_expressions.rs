@@ -144,6 +144,14 @@ stylex_test_transform!(
   "#
 );
 
+// An array holding an arrow is where the three statics stop agreeing with each
+// other, and each answer is the language's. `Object.keys` reads names and never
+// reaches the function, so it counts every element; `values` and `entries` carry
+// the element itself, and a function has no compile-time value — so the fold
+// declines and the call is left standing to run at runtime. Both used to answer
+// by silently dropping the element the arrow sat in, which was a shorter list
+// than the language produces. The reference implementation refuses all three
+// outright, so nothing of its output disagrees with these.
 stylex_test_transform!(
   object_keys_with_legal_non_object_args,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
@@ -158,7 +166,7 @@ stylex_test_transform!(
 
     ["0", "1", "2"];
     ["0", "1", "2"];
-    ["0", "2"];
+    ["0", "1", "2"];
     ["0", "1", "2"];
     ["0", "1", "2", "3", "4"];
   "#
@@ -212,7 +220,7 @@ stylex_test_transform!(
 
     [1, 2, 3];
     [[1], [2], [3]];
-    [[1], [NaN]];
+    Object.values([[1], [()=>{}], [NaN]]);
     ["1", "2", "3"];
     [null, undefined, NaN, "1", 1]
   "#
@@ -266,7 +274,7 @@ stylex_test_transform!(
 
     [["0", 1], ["1", 2], ["2", 3]];
     [["0", [1]], ["1", [2]], ["2", [3]]];
-    [["0", [1]], ["2", [NaN]]];
+    Object.entries([[1], [()=>{}], [NaN]]);
     [["0", "1"], ["1", "2"], ["2", "3"]];
     [["0", null], ["1", undefined], ["2", NaN], ["3", "1"], ["4", 1]];
   "#

@@ -1,6 +1,7 @@
 mod absent_style_values;
 mod array_index_reads;
 mod array_style_values;
+mod callback_bodies;
 mod debug_options;
 mod dynamic_param_shadowing_edges;
 mod dynamic_styles;

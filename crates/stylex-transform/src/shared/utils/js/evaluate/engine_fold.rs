@@ -39,9 +39,9 @@ use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{
-      ArrayLit, ArrowExpr, BlockStmtOrExpr, CallExpr, Callee, Expr, ExprOrSpread, ExprStmt, Ident,
-      KeyValueProp, Lit, MemberExpr, MemberProp, Module, ModuleItem, Null, ObjectLit, Pat, Prop,
-      PropName, PropOrSpread, Stmt, Tpl,
+      ArrayLit, ArrowExpr, BlockStmtOrExpr, CallExpr, Callee, Decl, Expr, ExprOrSpread, ExprStmt,
+      Ident, KeyValueProp, Lit, MemberExpr, MemberProp, Module, ModuleItem, Null, ObjectLit,
+      ObjectPatProp, Pat, Prop, PropName, PropOrSpread, ReturnStmt, Stmt, Tpl,
     },
     codegen::Config,
   },
@@ -57,11 +57,13 @@ use stylex_constants::constants::evaluation_errors::{
   bound_value_has_too_many_entries, bound_value_too_large, engine_did_not_start, engine_threw,
   escaping_property, expression_too_deep, folded_string_too_large, locale_sensitive_method,
   not_a_function, numeric_literal_receiver, object_size_too_large, unbounded_amplified_length,
-  uncallable_printed_fold, uncoercible_value, unfoldable_fold_result, unfoldable_static,
+  uncallable_printed_fold, uncoercible_value, unfoldable_fold_result, unfoldable_statement,
+  unfoldable_static,
 };
 use stylex_js::coercions::{self, is_global_spelled_as_an_identifier};
 use stylex_js::helpers::{is_invalid_method, is_valid_callee};
 use stylex_utils::number::to_js_string;
+use stylex_utils::swc::get_stmt_node_kind;
 
 use super::{evaluate_cached, evaluate_result_vec_to_array_expr, helpers::get_binding};
 use crate::shared::{
@@ -266,10 +268,32 @@ enum Scope<'a> {
   /// name it resolves to a carryable value becomes a parameter of the printed
   /// arrow; a name it cannot is not this module's call.
   Module,
-  /// A callback's own parameters, which the engine binds itself when it invokes
-  /// the callback with values from the receiver. A name that is not one of them
-  /// is still resolved against the module.
-  Params(&'a [Atom]),
+  /// Names a callback binds itself — its parameters, and whatever a block of
+  /// its body declares — over the scope they were written inside. The engine
+  /// binds them when it runs the callback, so the guard neither resolves one
+  /// nor carries a value for it.
+  ///
+  /// A chain rather than one set, because an inner arrow does not replace the
+  /// scope around it: `a.map(x => b.map(y => x + y))` reads `x` from the arrow
+  /// outside the one that is being walked.
+  Names(&'a [Atom], &'a Scope<'a>),
+}
+
+impl Scope<'_> {
+  /// Whether this scope or any around it binds `name` — in which case the name
+  /// is the engine's to resolve, not the module's.
+  fn binds(&self, name: &Atom) -> bool {
+    match self {
+      Scope::Module => false,
+      Scope::Names(names, outer) => names.contains(name) || outer.binds(name),
+    }
+  }
+
+  /// Whether the walk is inside a callback body, where a call runs once per
+  /// element of a receiver nothing here measured.
+  fn inside_a_callback(&self) -> bool {
+    matches!(self, Scope::Names(..))
+  }
 }
 
 /// How much nesting is left, and the one refusal spent at the bottom of it.
@@ -329,11 +353,12 @@ impl<'a> Guard<'a> {
     })
   }
 
-  /// The same remaining depth, with a callback's parameters now in scope.
-  fn binding(self, params: &'a [Atom]) -> Self {
-    Self {
-      scope: Scope::Params(params),
-      ..self
+  /// The same remaining depth, with `names` bound over the scope this guard
+  /// already carries.
+  fn binding<'b>(&'b self, names: &'b [Atom]) -> Guard<'b> {
+    Guard {
+      scope: Scope::Names(names, &self.scope),
+      depth: self.depth,
     }
   }
 }
@@ -1005,13 +1030,12 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
   let inner = guard.descend()?;
 
   match expr {
-    // A name in the callback's own parameters is bound by the engine when it
-    // invokes the callback. Any other name is asked of the module, and becomes a
-    // parameter of the printed arrow carrying the value it resolved to.
+    // A name a callback binds — a parameter of its own, or something a block of
+    // its body declares — is bound by the engine when it runs the callback. Any
+    // other name is asked of the module, and becomes a parameter of the printed
+    // arrow carrying the value it resolved to.
     Expr::Ident(ident) => {
-      if let Scope::Params(params) = guard.scope
-        && params.contains(&ident.sym)
-      {
+      if guard.scope.binds(&ident.sym) {
         return Ok(());
       }
 
@@ -1390,7 +1414,7 @@ fn admit_amplification(
   // .split("").map(() => "y".repeat(999999))` is two calls, each inside the
   // bound, building a terabyte between them. The count cannot be read here, so
   // an amplifying call inside a callback is refused whatever its argument says.
-  if matches!(scope, Scope::Params(_)) {
+  if scope.inside_a_callback() {
     return Err(Decline::rule(amplification_inside_a_callback(method)));
   }
 
@@ -1425,26 +1449,213 @@ fn admit_argument(arg: &ExprOrSpread, guard: Guard, reader: &mut Reader) -> Resu
   admit_value(&arg.expr, guard, reader)
 }
 
-/// Whether an arrow reads nothing but its own parameters and names the module
+/// Whether an arrow reads nothing but the names it binds and names the module
 /// resolves. Anything else would need a scope the engine does not have.
 ///
-/// A block body is refused rather than analysed: statements bind, assign and
-/// loop, and none of that is modelled here.
+/// The arrow itself is not analysed — the engine parses it, so a destructured
+/// parameter and a block body are shapes the language answers rather than
+/// shapes this guard has to recognise. What the walk still does is name what
+/// the arrow binds, so a read of one is not asked of the module, and apply to
+/// the body the rules every other position gets: a callback body is source that
+/// really runs.
 fn admit_arrow(arrow: &ArrowExpr, guard: Guard, reader: &mut Reader) -> Result<(), Decline> {
-  let mut params = Vec::with_capacity(arrow.params.len());
+  let mut bindings = Bindings::default();
 
   for param in &arrow.params {
-    match param {
-      Pat::Ident(ident) => params.push(ident.sym.clone()),
-      _ => return Err(Decline::NotACandidate),
+    bindings.pattern(param, guard.depth)?;
+  }
+
+  let inner = bindings.enter(&guard, reader)?;
+
+  match arrow.body.as_ref() {
+    BlockStmtOrExpr::Expr(body) => admit_value(body, inner, reader),
+    BlockStmtOrExpr::BlockStmt(body) => admit_block(&body.stmts, inner, reader),
+  }
+}
+
+/// What a set of patterns binds, and the expressions those patterns evaluate.
+///
+/// Both in one walk, because the names have to be in scope before an expression
+/// beside them is walked and the two are written into the same pattern.
+#[derive(Default)]
+struct Bindings<'a> {
+  /// The names the patterns introduce.
+  names: Vec<Atom>,
+  /// The expressions the patterns evaluate where they stand: a default value,
+  /// and a computed key.
+  evaluates: Vec<&'a Expr>,
+}
+
+impl<'a> Bindings<'a> {
+  /// Records what `pat` binds and what it evaluates, or declines a pattern that
+  /// binds no name this walk can put in scope.
+  ///
+  /// Nesting is spent here as it is everywhere else on this bridge: a pattern
+  /// is printed into the transport with the arrow it belongs to, so a
+  /// destructuring nested deeper than the engine's parser can descend has to be
+  /// refused before it reaches that parser.
+  fn pattern(&mut self, pat: &'a Pat, depth: Depth) -> Result<(), Decline> {
+    let inner = depth.descend()?;
+
+    match pat {
+      Pat::Ident(ident) => self.names.push(ident.sym.clone()),
+      // A hole binds nothing and skips an element, which the engine does itself.
+      Pat::Array(array) => {
+        for element in array.elems.iter().flatten() {
+          self.pattern(element, inner)?;
+        }
+      },
+      Pat::Object(object) => {
+        for prop in &object.props {
+          match prop {
+            // `{ a }` and `{ a = 1 }`: the key is the name, and the default is
+            // an expression beside it.
+            ObjectPatProp::Assign(shorthand) => {
+              self.names.push(shorthand.key.sym.clone());
+
+              if let Some(default) = &shorthand.value {
+                self.evaluates.push(default);
+              }
+            },
+            // `{ a: b }`, and `{ [k]: b }` whose key is a value in its own
+            // right.
+            ObjectPatProp::KeyValue(entry) => {
+              if let PropName::Computed(key) = &entry.key {
+                self.evaluates.push(&key.expr);
+              }
+
+              self.pattern(&entry.value, inner)?;
+            },
+            ObjectPatProp::Rest(rest) => self.pattern(&rest.arg, inner)?,
+          }
+        }
+      },
+      Pat::Rest(rest) => self.pattern(&rest.arg, inner)?,
+      Pat::Assign(assign) => {
+        self.pattern(&assign.left, inner)?;
+        self.evaluates.push(&assign.right);
+      },
+      // `[o.a] = …` assigns through a member rather than binding a name, so
+      // there is nothing to put in scope; an invalid pattern is not a shape to
+      // reason about at all.
+      Pat::Expr(_) | Pat::Invalid(_) => return Err(Decline::NotACandidate),
+    }
+
+    Ok(())
+  }
+
+  /// The guard with these names in scope, once the expressions beside them have
+  /// been walked.
+  ///
+  /// The order is the whole of this: a pattern's own expressions are evaluated
+  /// where the pattern is, so they are walked with every name already bound —
+  /// reading one declared later throws where the language throws, rather than
+  /// quietly resolving to a module name the binding shadows. Written once here
+  /// because both callers depend on it and neither states it.
+  fn enter<'b>(&'b self, guard: &'b Guard, reader: &mut Reader) -> Result<Guard<'b>, Decline> {
+    let inner = guard.binding(&self.names);
+
+    for expr in &self.evaluates {
+      admit_value(expr, inner, reader)?;
+    }
+
+    Ok(inner)
+  }
+}
+
+/// A block, admitted as a scope of its own: what it declares is bound before
+/// its statements are walked, so a declaration reads as itself rather than as a
+/// module name it shadows.
+///
+/// A `var` is function-scoped and is bound here as though it were not. That
+/// only narrows what is visible — a read of one from an enclosing block finds
+/// no binding and the call is handed back — so it costs a fold rather than
+/// answering one wrongly.
+fn admit_block(stmts: &[Stmt], guard: Guard, reader: &mut Reader) -> Result<(), Decline> {
+  let outer = guard.descend()?;
+  let mut bindings = Bindings::default();
+
+  for stmt in stmts {
+    if let Stmt::Decl(Decl::Var(declaration)) = stmt {
+      for declarator in &declaration.decls {
+        bindings.pattern(&declarator.name, outer.depth)?;
+      }
     }
   }
 
-  let BlockStmtOrExpr::Expr(body) = arrow.body.as_ref() else {
-    return Err(Decline::NotACandidate);
-  };
+  let inner = bindings.enter(&outer, reader)?;
 
-  admit_value(body, guard.binding(&params), reader)
+  for stmt in stmts {
+    admit_statement(stmt, inner, reader)?;
+  }
+
+  Ok(())
+}
+
+/// A statement inside a callback body.
+///
+/// The set is the statements that compute a value and hand it back, which is
+/// all a callback is for. What is left out is left out for a reason, and each
+/// one is written here.
+///
+/// A **loop** is bounded by the engine ([`MAX_LOOP_ITERATIONS`]), but the
+/// count that bound is applied to lives on the *call frame* — so a callback
+/// invoked once per element starts a fresh count every time, and the bound is
+/// multiplied by an element count the source never states. That is the same
+/// arithmetic [`admit_amplification`] refuses inside a callback, and every loop
+/// this walk can reach is inside one, since a statement is only ever walked in
+/// a callback body.
+///
+/// A **function or class declaration** carries a body this walk does not read,
+/// and neither does the value walk read one written as an expression.
+///
+/// Both are refusals and not "not mine". The exclusion is a boundary this
+/// module owns with a reason written down, and a boundary like that has to
+/// answer in this module's words — handing the shape back instead ends it at
+/// the dispatch's `Unsupported expression: ArrowFunctionExpression`, which
+/// names the callback rather than the statement inside it and leaves an author
+/// to guess.
+///
+/// An assignment is not among them, because it is an expression rather than a
+/// statement: `v = 1;` is a `Stmt::Expr`, so it is answered by the value walk,
+/// which does not model it and hands the call back like every other expression
+/// kind it does not read.
+fn admit_statement(stmt: &Stmt, guard: Guard, reader: &mut Reader) -> Result<(), Decline> {
+  let inner = guard.descend()?;
+
+  match stmt {
+    Stmt::Expr(ExprStmt { expr, .. }) => admit_value(expr, inner, reader),
+    Stmt::Return(ReturnStmt { arg, .. }) => match arg {
+      Some(value) => admit_value(value, inner, reader),
+      None => Ok(()),
+    },
+    // The names were bound by the block around this, so only the initialisers
+    // are walked here.
+    Stmt::Decl(Decl::Var(declaration)) => {
+      for declarator in &declaration.decls {
+        if let Some(init) = &declarator.init {
+          admit_value(init, inner, reader)?;
+        }
+      }
+
+      Ok(())
+    },
+    Stmt::Block(block) => admit_block(&block.stmts, inner, reader),
+    Stmt::If(branch) => {
+      admit_value(&branch.test, inner, reader)?;
+      admit_statement(&branch.cons, inner, reader)?;
+
+      match &branch.alt {
+        Some(alt) => admit_statement(alt, inner, reader),
+        None => Ok(()),
+      }
+    },
+    // A stray semicolon binds nothing and evaluates nothing.
+    Stmt::Empty(_) => Ok(()),
+    _ => Err(Decline::rule(unfoldable_statement(get_stmt_node_kind(
+      stmt,
+    )))),
+  }
 }
 
 /// Converts an engine value into the evaluator's own value type, or declines

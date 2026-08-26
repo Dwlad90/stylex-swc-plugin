@@ -1,4 +1,4 @@
-use swc_core::ecma::ast::{BinaryOp, Expr, Lit, OptChainBase};
+use swc_core::ecma::ast::{BinaryOp, Decl, Expr, Lit, OptChainBase, Stmt};
 
 /// The ESTree node kind of an expression, as a diagnostic names it —
 /// `"CallExpression"`, `"ArrowFunctionExpression"`, `"BigIntLiteral"`.
@@ -100,6 +100,49 @@ pub fn get_expr_node_kind(expr: &Expr) -> &'static str {
       OptChainBase::Call(_) => "OptionalCallExpression",
     },
     Expr::Invalid(_) => "Invalid",
+  }
+}
+
+/// The ESTree node kind of a statement, as a diagnostic names it —
+/// `"ForStatement"`, `"SwitchStatement"`, `"FunctionDeclaration"`.
+///
+/// The statement half of [`get_expr_node_kind`], spelled the same way and for
+/// the same reason: the kind reaches an author inside a diagnostic, so it has
+/// to be the word a parser, a linter rule or the language spec would use.
+///
+/// The match is deliberately exhaustive — no wildcard arm — so a new SWC
+/// statement kind fails to compile here instead of silently reporting the
+/// wrong name.
+pub fn get_stmt_node_kind(stmt: &Stmt) -> &'static str {
+  match stmt {
+    Stmt::Block(_) => "BlockStatement",
+    Stmt::Empty(_) => "EmptyStatement",
+    Stmt::Debugger(_) => "DebuggerStatement",
+    Stmt::With(_) => "WithStatement",
+    Stmt::Return(_) => "ReturnStatement",
+    Stmt::Labeled(_) => "LabeledStatement",
+    Stmt::Break(_) => "BreakStatement",
+    Stmt::Continue(_) => "ContinueStatement",
+    Stmt::If(_) => "IfStatement",
+    Stmt::Switch(_) => "SwitchStatement",
+    Stmt::Throw(_) => "ThrowStatement",
+    Stmt::Try(_) => "TryStatement",
+    Stmt::While(_) => "WhileStatement",
+    Stmt::DoWhile(_) => "DoWhileStatement",
+    Stmt::For(_) => "ForStatement",
+    Stmt::ForIn(_) => "ForInStatement",
+    Stmt::ForOf(_) => "ForOfStatement",
+    Stmt::Expr(_) => "ExpressionStatement",
+    Stmt::Decl(decl) => match decl {
+      Decl::Class(_) => "ClassDeclaration",
+      Decl::Fn(_) => "FunctionDeclaration",
+      Decl::Var(_) => "VariableDeclaration",
+      Decl::Using(_) => "VariableDeclaration",
+      Decl::TsInterface(_) => "TSInterfaceDeclaration",
+      Decl::TsTypeAlias(_) => "TSTypeAliasDeclaration",
+      Decl::TsEnum(_) => "TSEnumDeclaration",
+      Decl::TsModule(_) => "TSModuleDeclaration",
+    },
   }
 }
 

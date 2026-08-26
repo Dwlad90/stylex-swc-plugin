@@ -100,9 +100,9 @@ fn a_receiver_or_argument_that_needs_the_scope_refuses() {
   assert_deopts("\"a\".concat(...args)");
 }
 
-/// A callback may read its own parameters and nothing else. A block body is
-/// refused rather than analysed: statements can bind, assign and loop, and the
-/// guard does not model any of that.
+/// A callback may read the names it binds. What it may not do is read a name
+/// nothing resolves — the engine would be handed a source with a free variable
+/// in it.
 #[test]
 fn a_callback_that_escapes_its_parameters_refuses() {
   assert_folds_to_string("[\"a\"].map(x => x + \"!\").join(\"\")", "a!");
@@ -111,8 +111,25 @@ fn a_callback_that_escapes_its_parameters_refuses() {
     2.0,
   );
   assert_deopts("[\"a\"].map(x => outer).join(\"\")");
-  assert_deopts("[\"a\"].map(x => { return x; }).join(\"\")");
-  assert_deopts("[\"a\"].map(({ x }) => x).join(\"\")");
+}
+
+/// A callback runs as a real function, so its body may be a block and its
+/// parameters may be destructured — the engine parses the arrow rather than the
+/// guard recognising its shape.
+#[test]
+fn a_callback_body_and_parameters_are_the_language_s_to_read() {
+  assert_folds_to_string("[\"a\"].map(x => { return x; }).join(\"\")", "a");
+  assert_folds_to_string("[{ x: \"a\" }].map(({ x }) => x).join(\"\")", "a");
+}
+
+/// A statement outside the admitted set is not this module's call. A loop
+/// repeats work no bound here measured, and an assignment can write to a global
+/// the engine keeps for every later fold on the thread.
+#[test]
+fn a_callback_body_that_loops_or_assigns_refuses() {
+  assert_deopts("[\"a\"].map(x => { for (;;) { return x; } }).join(\"\")");
+  assert_deopts("[\"a\"].map(x => { let v; v = x; return v; }).join(\"\")");
+  assert_deopts("[\"a\"].map(x => { class C {} return x; }).join(\"\")");
 }
 
 // ==================== shapes with no static value ====================

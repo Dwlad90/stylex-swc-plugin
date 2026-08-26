@@ -54,8 +54,11 @@ fn every_unfoldable_shape_survives_every_logical_operand_position() {
     "\"x\".repeat(2000000)",
     "[1, 2].entries()",
     "/re/.test(\"a\")",
-    "Math.sin(1)",
-    "Math.pow(\"a\", 2)",
+    // The two statics that refuse: one whose answer would move between builds,
+    // one that answers by changing what it was given. The rest of `Math` and
+    // `Object` folds, so `Math.sin(1)` and `Math.pow("a", 2)` are no longer
+    // here.
+    "Math.random()",
     "Object.assign({}, {})",
     "Object.fromEntries(1)",
     "tag`x`",

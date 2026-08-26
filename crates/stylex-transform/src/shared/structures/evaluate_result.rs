@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use swc_core::ecma::ast::{Expr, KeyValueProp, Lit};
+use swc_core::ecma::ast::{Expr, KeyValueProp};
 
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 
@@ -56,13 +56,6 @@ impl EvaluateResultValue {
   pub fn as_map(&self) -> Option<&IndexMap<Expr, Vec<KeyValueProp>>> {
     match self {
       EvaluateResultValue::Map(value) => Some(value),
-      _ => None,
-    }
-  }
-
-  pub fn as_entries(&self) -> Option<&IndexMap<Lit, Box<Expr>>> {
-    match self {
-      EvaluateResultValue::Entries(value) => Some(value),
       _ => None,
     }
   }

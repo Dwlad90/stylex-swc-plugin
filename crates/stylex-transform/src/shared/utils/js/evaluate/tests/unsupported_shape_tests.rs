@@ -144,23 +144,16 @@ fn char_code_at_past_the_end_folds_to_nan_as_the_reference_implementation_does()
 
 // ==================== the globals ====================
 
+/// The whole of `Math` folds, because the surface is the language's rather
+/// than a list of names this compiler kept.
+///
+/// The seven names that used to be the table are here beside seven that were
+/// not, and the difference between the two groups is gone. Every expected
+/// value is measured output of the reference compiler, including the ones that
+/// are not numbers an author wants: `Math.max()` really is `-Infinity` there,
+/// and a fold that refused it would fail a build that compiles.
 #[test]
-fn an_unfolded_math_method_refuses_and_the_folded_ones_still_fold() {
-  for source in [
-    "Math.sin(1)",
-    "Math.hypot(1, 2)",
-    "Math.random()",
-    "Math.max()",
-    "Math.min()",
-    "Math.round()",
-    "Math.pow(2)",
-    "Math.pow(\"a\", 2)",
-    "Math.abs({})",
-    "Math.max(1, {})",
-  ] {
-    assert_deopts(source);
-  }
-
+fn the_math_surface_folds_rather_than_being_a_list_of_names() {
   assert_folds_to_number("Math.pow(2, 3)", 8.0);
   assert_folds_to_number("Math.max(1, 5, 3)", 5.0);
   assert_folds_to_number("Math.min(1, 5, 3)", 1.0);
@@ -169,25 +162,103 @@ fn an_unfolded_math_method_refuses_and_the_folded_ones_still_fold() {
   assert_folds_to_number("Math.round(-1.5)", -1.0);
   assert_folds_to_number("Math.ceil(1.1)", 2.0);
   assert_folds_to_number("Math.floor(1.9)", 1.0);
+
+  // The names the table did not list, which is the whole point of deleting it.
+  assert_folds_to_number("Math.trunc(1.5)", 1.0);
+  assert_folds_to_number("Math.sign(-3)", -1.0);
+  assert_folds_to_number("Math.sqrt(16)", 4.0);
+  assert_folds_to_number("Math.hypot(3, 4)", 5.0);
+  assert_folds_to_number("Math.cbrt(27)", 3.0);
+  assert_folds_to_number("Math.clz32(2)", 30.0);
+  assert_folds_to_number("Math.imul(2, 3)", 6.0);
+  assert_folds_to_number("Math.log2(8)", 3.0);
+
+  // The edges, each of which the reference compiler folds to exactly this.
+  assert_folds_to_number("Math.max()", f64::NEG_INFINITY);
+  assert_folds_to_number("Math.min()", f64::INFINITY);
+  assert_folds_to_nan("Math.round()");
+  assert_folds_to_nan("Math.pow(2)");
+  assert_folds_to_nan("Math.pow(\"a\", 2)");
+  assert_folds_to_nan("Math.abs({})");
+  assert_folds_to_nan("Math.max(1, {})");
+  assert_folds_to_nan("Math.acos(2)");
 }
 
+/// `Math.random` is the one name on that surface that cannot fold: a class name
+/// is a hash of the declaration it names, so a value that differs per build
+/// would give the same source a different stylesheet every time.
 #[test]
-fn an_unfolded_object_method_refuses_and_the_folded_ones_still_fold() {
+fn a_static_whose_answer_moves_between_builds_refuses_by_name() {
+  assert_deopt_reason_contains(
+    "Math.random()",
+    "Cannot fold 'Math.random' at compile time.",
+  );
+  assert_deopt_reason_contains(
+    "Math.random().toFixed(2)",
+    "Cannot fold 'Math.random' at compile time.",
+  );
+}
+
+/// The `Object` statics fold the same way, and the three that read own keys
+/// keep answering for the receivers the fold cannot carry.
+#[test]
+fn the_object_statics_fold_rather_than_being_a_list_of_names() {
+  assert_folds_to_strings("Object.keys({ a: 1, b: 2 })", &["a", "b"]);
+  assert_folds_to_a_value("Object.values({ a: 1, b: 2 })");
+  assert_folds_to_a_value("Object.entries({ a: 1, b: 2 })");
+  assert_folds("Object.fromEntries([[\"a\", 1]])");
+
+  // Never listed, and folded by the reference compiler.
+  assert_folds_to_string("Object.getOwnPropertyNames({ a: 1 }).join(\",\")", "a");
+  assert_folds_to_boolean("Object.hasOwn({ a: 1 }, \"a\")", true);
+  assert_folds_to_boolean("Object.is(1, 1)", true);
+  assert_folds_to_boolean("Object.isFrozen({})", false);
+  assert_folds_to_string(
+    "Object.keys(Object.groupBy([\"a\", \"bb\"], s => s.length)).join(\",\")",
+    "1,2",
+  );
+
+  // A key written as `__proto__` sets the prototype rather than a property, so
+  // the object the language sees has one own key. Both compilers answer `a`.
+  assert_folds_to_string(
+    "Object.keys({ __proto__: \"x\", a: \"y\" }).join(\",\")",
+    "a",
+  );
+}
+
+/// A static the reference compiler refuses by name is refused here too, and
+/// says which name.
+///
+/// Each of these answers by changing the object it was handed rather than by
+/// computing one, so folding it would write a declaration the source does not
+/// describe.
+#[test]
+fn a_static_that_changes_its_argument_refuses_by_name() {
+  for (source, name) in [
+    ("Object.assign({}, {})", "Object.assign"),
+    ("Object.freeze({})", "Object.freeze"),
+    ("Object.seal({})", "Object.seal"),
+    (
+      "Object.defineProperty({}, \"a\", {})",
+      "Object.defineProperty",
+    ),
+  ] {
+    assert_deopt_reason_contains(source, &format!("Cannot fold '{}' at compile time.", name));
+  }
+}
+
+/// A static the language itself throws on refuses under the engine's own
+/// complaint, which is the sentence the reference compiler stops on too.
+#[test]
+fn a_static_the_language_throws_on_refuses_with_what_it_threw() {
   for source in [
-    "Object.assign({}, {})",
-    "Object.freeze({})",
+    "Object.keys()",
+    "Object.keys(null)",
     "Object.fromEntries(1)",
     "Object.fromEntries([1])",
-    "Object.fromEntries([[{}, 1]])",
-    "Object.keys()",
   ] {
     assert_deopts(source);
   }
-
-  assert_folds("Object.keys({ a: 1, b: 2 })");
-  assert_folds("Object.values({ a: 1, b: 2 })");
-  assert_folds("Object.entries({ a: 1, b: 2 })");
-  assert_folds("Object.fromEntries([[\"a\", 1]])");
 }
 
 /// A spread argument refuses, with the one answer upstream gives, whatever the
@@ -226,7 +297,7 @@ fn the_same_calls_still_fold_without_a_spread() {
   assert_folds("String(\"a\")");
   assert_folds("Math.max(1, 2)");
   assert_folds("Math.pow(2, 3)");
-  assert_folds("Object.keys({ a: 1 })");
+  assert_folds_to_a_value("Object.keys({ a: 1 })");
   assert_folds("[\"a\", \"b\"].join(\"-\")");
   assert_folds("\"a\".concat(\"b\")");
 }
@@ -419,7 +490,11 @@ fn a_long_argument_list_folds_and_a_long_one_with_a_bad_argument_refuses() {
     .join(", ");
 
   assert_folds_to_number(&format!("Math.max({})", numbers), 255.0);
-  assert_deopts(&format!("Math.max({}, {{}})", numbers));
+
+  // An argument with no numeric reading makes the answer `NaN` rather than a
+  // refusal, which is what the language says and what the reference compiler
+  // writes into the rule.
+  assert_folds_to_nan(&format!("Math.max({}, {{}})", numbers));
 }
 
 /// An array hole is a refusal rather than a broken invariant; reading one must
@@ -481,13 +556,20 @@ fn an_unreadable_receiver_element_refuses_rather_than_shortening_the_list() {
 /// refusal above.
 #[test]
 fn a_readable_object_method_receiver_still_folds() {
-  assert_folds("Object.keys([1, 2])");
-  assert_folds("Object.values([1, 2])");
-  assert_folds("Object.entries([1, 2])");
-  assert_folds("Object.keys([, 1])");
-  assert_folds("Object.keys([[1, 2]])");
-  assert_folds("Object.keys(5)");
-  assert_folds("Object.keys(\"ab\")");
+  // Read through the value rather than the expression: a key list is the
+  // evaluator's own list where the engine answered it, and an array literal
+  // where the receiver had a hole and the older path did.
+  for source in [
+    "Object.keys([1, 2])",
+    "Object.values([1, 2])",
+    "Object.entries([1, 2])",
+    "Object.keys([, 1])",
+    "Object.keys([[1, 2]])",
+    "Object.keys(5)",
+    "Object.keys(\"ab\")",
+  ] {
+    assert_folds_to_a_value(source);
+  }
 }
 
 // ── The refusal names what it could not fold ────────────────────────
@@ -636,20 +718,6 @@ fn names_the_value_a_refusal_arrived_with() {
 
   // `typeof` folded its operand and has no `typeof` answer for the result.
   assert_unsupported_expression("typeof /a/", "RegExpLiteral");
-}
-
-/// A numeric coercion reports through the `Result` it already had, so the
-/// label reaches the author from outside `evaluate/` too — the one site that
-/// had to move with the panic/deopt split.
-#[test]
-fn names_an_expression_with_no_numeric_reading() {
-  // The unary operators used to be here too. They read `ToNumber` now, which an
-  // object has, so they fold rather than refuse -- as upstream does. A builtin
-  // argument is still refused, and still names the shape it could not read.
-  assert_deopt_reason(
-    "Math.abs({})",
-    "[StyleX] Expression is not a number: ObjectExpression",
-  );
 }
 
 /// A logical operator names the operand that refused, not the operator. The

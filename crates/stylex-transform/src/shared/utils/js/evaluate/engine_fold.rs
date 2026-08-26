@@ -3,8 +3,9 @@
 //!
 //! A table is finite by construction, so the method it does not list is the
 //! next bug report. Handing the call to a JavaScript engine instead covers
-//! `String.prototype`, `Array.prototype` and `Object.prototype` at once, and
-//! covers a chain for free: the receiver of a call is itself a candidate, so
+//! `String.prototype`, `Array.prototype` and `Object.prototype` at once, along
+//! with the `Math` and `Object` statics, and covers a chain for free: the
+//! receiver of a call is itself a candidate, so
 //! `["1px","solid"].concat(["red"]).join(" ")` is printed and evaluated once
 //! instead of being split across two tables that have to agree.
 //!
@@ -52,11 +53,11 @@ use stylex_ast::ast::factories::{
   create_ident_key_value_prop, create_object_lit,
 };
 use stylex_constants::constants::evaluation_errors::{
-  amplification_inside_a_callback, array_length_too_large, bound_value_has_too_many_entries,
-  bound_value_too_large, engine_threw, escaping_property, expression_too_deep,
-  folded_string_too_large, locale_sensitive_method, numeric_literal_receiver,
+  SPREAD_ELEMENT, amplification_inside_a_callback, array_length_too_large,
+  bound_value_has_too_many_entries, bound_value_too_large, engine_threw, escaping_property,
+  expression_too_deep, folded_string_too_large, locale_sensitive_method, numeric_literal_receiver,
   object_size_too_large, unbounded_amplified_length, uncallable_printed_fold,
-  unfoldable_fold_result,
+  unfoldable_fold_result, unfoldable_static,
 };
 use stylex_js::helpers::{is_invalid_method, is_valid_callee};
 use stylex_utils::number::to_js_string;
@@ -104,6 +105,16 @@ const LOCALE_SENSITIVE_METHODS: [&str; 4] = [
 /// `apply` and `bind` are what turn an unapplied function back into a call, so
 /// they are refused with it.
 const ESCAPING_PROPERTIES: [&str; 4] = ["constructor", "call", "apply", "bind"];
+
+/// The one property name that is not a property when it is written as one.
+///
+/// `{ __proto__: x }` sets the object's prototype, so the object the source
+/// describes carries no own property called `__proto__`. This evaluator's own
+/// object form keeps it as an ordinary key, which is why the two directions of
+/// this bridge have to agree on it explicitly: an expression written out reaches
+/// the engine as text and the language drops it, and a value the guard resolved
+/// is built property by property and would keep it.
+const PROTOTYPE_KEY: &str = "__proto__";
 
 /// Methods whose result length is set by an argument rather than by the
 /// receiver, and so are the only ones a single small argument can blow up.
@@ -271,27 +282,23 @@ impl Depth {
 }
 
 /// What the guard carries as it walks: where a bare identifier may come from,
-/// how much nesting is left before the expression is refused as too deep, and
-/// whether the call being looked at is the one the caller asked about.
+/// and how much nesting is left before the expression is refused as too deep.
+///
+/// Nothing here records *where* in the expression the walk is. Every rule below
+/// reads the call in front of it and nothing else, so a static, a chain link and
+/// the call the caller asked about are all answered the same way — which is what
+/// one guard walk is for.
 #[derive(Clone, Copy)]
 struct Guard<'a> {
   scope: Scope<'a>,
   depth: Depth,
-  /// Whether nothing has been descended into yet — so the call under
-  /// examination is the whole of what the caller asked to fold, rather than a
-  /// receiver or an argument inside it. The one rule that turns on it is the
-  /// hand-back in [`admit_call`], which exists to let the dispatch below answer
-  /// for a call of its own and so has nothing to say about a link the dispatch
-  /// will never be asked about.
-  outermost: bool,
 }
 
 impl<'a> Guard<'a> {
-  /// The guard one level in, where nothing is the outermost call any more.
+  /// The guard one level in.
   fn descend(self) -> Result<Self, Decline> {
     Ok(Self {
       depth: self.depth.descend()?,
-      outermost: false,
       ..self
     })
   }
@@ -505,7 +512,19 @@ impl Inward<'_> {
             return Err(Decline::NotACandidate);
           };
 
-          entries.push((self.key(key)?, self.expr(value, inner)?));
+          let key = self.key(key)?;
+
+          // `__proto__` written as a plain key sets the prototype rather than a
+          // member, so the object the source describes has no own property of
+          // that name. The evaluator keeps it as one, so it is dropped here —
+          // where an expression written out reaches the engine as text and the
+          // language drops it for us. Both paths then answer alike, and alike is
+          // what the reference compiler answers.
+          if key == PROTOTYPE_KEY {
+            continue;
+          }
+
+          entries.push((key, self.expr(value, inner)?));
         }
 
         Ok(Carried::Object(entries))
@@ -714,17 +733,32 @@ fn carry_string(value: &Wtf8Atom) -> JsString {
 /// because an object receiver is still where a function map's own methods are
 /// looked up.
 ///
-/// A string, an array and a plain object are what a name holds in the shapes
-/// this bridge was proved on. A number and a boolean cross freely as an element
-/// or a property, where they are part of a value the receiver is; standing alone
-/// they are a receiver of their own, and `Number.prototype` on a named receiver
-/// is ticket 08 — which owns the refusal that has to survive it, since a method
-/// call on a number *written out* must keep failing in both compilers.
+/// A string, an array, a plain object, a number and a boolean — the primitives
+/// and the two composites the bridge was proved on, in the one shape that
+/// matters to the guard: a value the engine can be handed and the source can go
+/// on reading as itself.
+///
+/// A number is here because the statics need it. `Math.round(BASE / 4)` is the
+/// ordinary way to write one, and `BASE` is a name; refusing a name that holds a
+/// number would have refused every arithmetic fold whose operands were not
+/// written out. It follows that `const n = 255; n.toString(16)` folds too, which
+/// is what the reference compiler does. The refusal that has to survive is about
+/// how the receiver was *written*, not what it holds — a number literal in the
+/// source is still refused, in [`receiver_is_a_written_number`], because the
+/// reference compiler throws on one.
+///
+/// A boolean comes with it rather than for a case of its own. Once a name may
+/// hold a number, a boolean is the only primitive left outside, and there is no
+/// sentence that would say why: it prints, it crosses, and its prototype folds
+/// like any other. Leaving it out would be a table of one — the shape this whole
+/// module exists to delete.
 fn is_a_carryable_receiver(value: &EvaluateResultValue) -> bool {
   matches!(
     value,
     EvaluateResultValue::Vec(_)
-      | EvaluateResultValue::Expr(Expr::Lit(Lit::Str(_)) | Expr::Array(_) | Expr::Object(_))
+      | EvaluateResultValue::Expr(
+        Expr::Lit(Lit::Str(_) | Lit::Num(_) | Lit::Bool(_)) | Expr::Array(_) | Expr::Object(_)
+      )
   )
 }
 
@@ -743,7 +777,6 @@ pub(crate) fn try_fold(
   let guard = Guard {
     scope: Scope::Module,
     depth: Depth::FULL,
-    outermost: true,
   };
 
   let mut reader = Reader {
@@ -1067,12 +1100,6 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
 /// as a number and a length nothing bounds are all settled while they are still
 /// free, and only an expression this module intends to fold pays to have its
 /// names read. The one exception is named where it is applied.
-///
-/// That ordering is why candidacy is *not* settled first. A rule firing over a
-/// call that was never this module's would stop it reaching the dispatch below —
-/// which is where `Math` and the callable globals still fold — so the one
-/// candidacy question resolution would otherwise pay for is asked up front:
-/// a receiver naming one of those globals is handed straight back.
 fn admit_call<'a>(
   call: &'a CallExpr,
   guard: Guard,
@@ -1092,39 +1119,34 @@ fn admit_call<'a>(
     return Err(Decline::NotACandidate);
   };
 
-  // A receiver naming a global whose methods the dispatch below folds — `Math`
-  // and `Object` today — is that dispatch's call and not this one's. Tickets 07
-  // and 09 are where those surfaces move here and this question goes away.
+  // A receiver naming one of the globals the engine provides itself — `Math`,
+  // `Object`, `String`, `Number`, `Array` — carries no value across the bridge:
+  // the printed source names it and the language answers. That is the whole of
+  // what folding a static needs, so the surface is the language's rather than a
+  // list of names this compiler chose, and where a static is written no longer
+  // decides whether it folds.
   //
-  // Only where the module declares no binding of that name, which is the same
-  // question the callee branch of that dispatch asks. A locally-declared shadow
-  // is the module's own value and is resolved like any other name: measured,
-  // `const String = 'abc'; String.toUpperCase()` folds to `ABC` in the reference
-  // compiler, so treating the name as the global would refuse an input it
-  // compiles. The lookup is one map read and no evaluation, so it stays in front
-  // of the walk with the other cheap answers.
-  //
-  // And only where the call is the one the dispatch will be asked about. A
-  // static inside a chain is a link nobody else is ever handed on its own, so
-  // handing it back takes the whole chain down with it — which is what
-  // `Object.entries(o).filter(f)` was: folded through the array table this work
-  // deletes, and folded end to end by the engine now. Nested, the engine is what
-  // answers, so a name the reference compiler refuses has to be refused here
-  // too: it reads `INVALID_METHODS`, which is that compiler's own set and the one
-  // the dispatch gates its statics on, and which is why a nondeterministic static
-  // cannot fold a different class name on every build.
-  //
-  // That leaves the one place in this module where position decides the answer:
-  // `Math.trunc(1.5)` is refused written alone and folds written inside a chain,
-  // because alone it is the dispatch's seven-name table that answers and the
-  // table does not list it. It is the opposite of what one guard walk is for, and
-  // it is recorded here rather than fixed here — the fix is the static surface
-  // moving to the engine, which is ticket 07, and the alternative until then is
-  // taking the chain away from folds that have it today.
-  let global_receiver = is_valid_callee(obj) && get_binding(obj, reader.traversal_state).is_none();
+  // Only where the module declares no binding of that name. A locally-declared
+  // shadow is the module's own value and is resolved like any other name:
+  // measured, `const String = 'abc'; String.toUpperCase()` folds to `ABC` in the
+  // reference compiler, so treating the name as the global would refuse an input
+  // it compiles. The lookup is one map read and no evaluation, so it stays in
+  // front of the walk with the other cheap answers.
+  let global = match obj.as_ident() {
+    Some(name) if is_valid_callee(obj) && get_binding(obj, reader.traversal_state).is_none() => {
+      Some(&name.sym)
+    },
+    _ => None,
+  };
 
-  if global_receiver && (guard.outermost || is_invalid_method(prop)) {
-    return Err(Decline::NotACandidate);
+  // The statics the reference compiler refuses by name, refused here for the
+  // reason it refuses them: each answers by changing what it was handed, or
+  // answers something new on every build, and either way a fold of it is not a
+  // function of the source. `INVALID_METHODS` is that compiler's own set.
+  if let Some(global) = global
+    && is_invalid_method(prop)
+  {
+    return Err(Decline::rule(unfoldable_static(global, &method.sym)));
   }
 
   if lists(&LOCALE_SENSITIVE_METHODS, &method.sym) {
@@ -1142,7 +1164,7 @@ fn admit_call<'a>(
   // receiver, and nowhere else — a global's *name* is not a value this fold
   // carries, and admitting it as one would let `['a'].concat(String)` fold a
   // function's own source text into a declaration.
-  if !global_receiver {
+  if global.is_none() {
     admit_value(obj, guard, reader)?;
   }
 
@@ -1232,8 +1254,12 @@ fn admit_amplification(
 /// function reading nothing but its own parameters — the callback shape `map`,
 /// `filter` and `reduce` take.
 fn admit_argument(arg: &ExprOrSpread, guard: Guard, reader: &mut Reader) -> Result<(), Decline> {
+  // A spread needs the scope, and is refused rather than handed back: the
+  // receiver is walked before the arguments, so a call reaching here is one this
+  // module owns, and the sentence for a spread is the same one every other
+  // position gives it.
   if arg.spread.is_some() {
-    return Err(Decline::NotACandidate);
+    return Err(Decline::rule(SPREAD_ELEMENT));
   }
 
   match arg.expr.as_ref() {

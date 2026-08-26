@@ -446,17 +446,30 @@ fn a_named_array_past_the_entry_bound_names_the_binding() {
   );
 }
 
-/// A name holding a number is not a receiver this bridge carries. It refuses as
-/// a call on a numeric value has always refused here, which is the divergence
-/// `Number.prototype` closes: the reference compiler folds `n.toFixed(1)` on a
-/// named number, and a method call on a number *written out* has to keep failing
-/// in both compilers whatever happens to the named case.
+/// A name holding a number crosses, so `Number.prototype` is reachable on one —
+/// the statics need a named number as an argument, and a bridge that carried one
+/// there but not as a receiver would be deciding by position again.
+///
+/// The refusal that has to survive it is about how the receiver was *written*: a
+/// number literal in the source is still refused, because the reference compiler
+/// applies the method without a receiver and throws on it.
 #[test]
-fn a_name_holding_a_number_is_still_handed_back() {
-  assert_refuses(
+fn a_name_holding_a_number_is_a_receiver_and_a_written_one_is_not() {
+  assert_folds(
     "const n = 5;",
     "content: n.toFixed(1),",
-    "Unsupported expression: NumericLiteral",
+    ".xqj1kdb{content:\"5.0\"}",
+  );
+  assert_folds(
+    "const b = true;",
+    "content: b.toString(),",
+    ".x1ez55b5{content:\"true\"}",
+  );
+
+  assert_refuses(
+    "",
+    "content: (5).toFixed(1),",
+    "Cannot call 'toFixed' on a number literal.",
   );
 }
 

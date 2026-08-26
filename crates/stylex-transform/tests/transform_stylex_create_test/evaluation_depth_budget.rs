@@ -379,21 +379,27 @@ fn a_template_literal_refuses_one_level_past_the_ceiling() {
   ));
 }
 
-// The arm that used to be the worst: a nested `Math.max` descends through
-// argument collection and callee dispatch, so a debug build ran out of stack
-// between 32 and 64 levels while plain arithmetic reached 384. It now refuses at
-// a depth the ceiling decides, which is the whole point of growing the stack.
+// A nested `Math.max` is the one shape in this file that does not answer to the
+// configured ceiling at all. `Math` folds in the engine now, and the engine's
+// parser recurses on the bare thread stack, so the fold carries a ceiling of its
+// own -- 32 levels, which a `Math.max` that also adds spends two of per source
+// level. It refuses at 17 where it folded 158 before the statics moved, and
+// raising the project's ceiling does not move it.
+//
+// That is the second, lower limit ticket 11 exists to remove; the string and
+// array surfaces have answered to it since their own tables were deleted, so
+// this is `Math` joining a rule rather than a rule made for `Math`.
 #[test]
 fn a_builtin_call_folds_at_the_deepest_accepted_nesting() {
   let output = fold_deep(&create(
     "const MY_CONST = 5;",
     &format!(
       "base: {{ zIndex: {} }},",
-      nest("Math.max(", " + 1, 0)", "MY_CONST", 158)
+      nest("Math.max(", " + 1, 0)", "MY_CONST", 16)
     ),
   ));
 
-  assert!(output.contains(".xg6sfce{z-index:163}"));
+  assert!(output.contains(".x1jinmle{z-index:21}"));
 }
 
 #[test]
@@ -403,7 +409,7 @@ fn a_builtin_call_refuses_one_level_past_the_ceiling() {
     "const MY_CONST = 5;",
     &format!(
       "base: {{ zIndex: {} }},",
-      nest("Math.max(", " + 1, 0)", "MY_CONST", 159)
+      nest("Math.max(", " + 1, 0)", "MY_CONST", 17)
     ),
   ));
 }

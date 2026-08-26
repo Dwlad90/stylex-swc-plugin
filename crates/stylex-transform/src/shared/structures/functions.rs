@@ -7,20 +7,20 @@ use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{theme_ref::ThemeRef, types::FlatCompiledStyles},
 };
-use stylex_enums::{
-  js::{CallableGlobalJS, MathJS, ObjectJS},
-  value_with_default::ValueWithDefault,
-};
+use stylex_enums::{js::CallableGlobalJS, value_with_default::ValueWithDefault};
 
 use super::types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression};
 use stylex_structures::stylex_env::JSFunction;
 
 use stylex_types::traits::StyleOptions;
 
+/// What a folded callback stands for.
+///
+/// Two answers, not a table of method names: a global called as a function, and
+/// an arrow the module wrote. A method *on* a value is evaluated as JavaScript,
+/// so there is nothing here to name it.
 #[derive(Debug, Hash, PartialEq, Clone)]
 pub enum CallbackType {
-  Object(ObjectJS),
-  Math(MathJS),
   /// A call to the global itself — `String(x)` — rather than to one of its
   /// methods.
   Global(CallableGlobalJS),

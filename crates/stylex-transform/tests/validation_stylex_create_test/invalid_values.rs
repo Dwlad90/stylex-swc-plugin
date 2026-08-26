@@ -530,32 +530,6 @@ stylex_test_panic!(
   "#
 );
 
-// The label reaches the author from the numeric coercion too, which reports
-// through a `Result` rather than through the evaluation state.
-//
-// `-({})` used to be the case pinned here, refused on the judgement that `NaN`
-// should not be written into a stylesheet even though the reference
-// implementation folds it and emits `width:NaNpx`. That judgement was not one
-// this compiler kept anywhere else: `height:NaNpx`, `color:NaNpx`, `opacity:NaN`
-// and `font-family:aNaNb` are all asserted elsewhere in this suite, one of them
-// specifically to say that a `NaN` reached by arithmetic agrees with upstream.
-// The refusal was `expr_to_num` bailing on an `ObjectExpression` rather than a
-// policy, so it folds now, and the fold is pinned in
-// `transform_stylex_create_test::unary_operand_kinds`.
-//
-// A builtin argument still reaches the author through the same `Result`, so what
-// this pins -- that the refusal names the shape it could not read -- is kept on
-// the case that still refuses.
-stylex_test_panic!(
-  an_unreadable_builtin_argument_names_the_operand,
-  "Expression is not a number: ObjectExpression",
-  r#"
-    import * as stylex from '@stylexjs/stylex';
-
-    const styles = stylex.create({ x: { width: Math.abs({}) } });
-  "#
-);
-
 // The reported position: a refusal inside the right operand of a logical
 // operator keeps the operand's label rather than the operator's.
 stylex_test_panic!(
@@ -2892,15 +2866,17 @@ stylex_test_panic!(
 // rather than answering `[]`. It folded to the empty list before, quietly, in
 // every position a key list can be read from.
 //
-// The sentence is the `TypeError` the language raises, word for word, and is the
-// reason this is a case of its own rather than an arm of the unreadable-receiver
-// refusal: the reference implementation reaches it by calling `Object.keys` and
-// letting the runtime throw, so the two agree on the message only if this is the
-// runtime's. Told instead that their *array* holds something illegal -- which is
-// what the shared refusal said -- an author would go looking in the wrong place.
+// The sentence is the `TypeError` the language raises, which is the reason this
+// is a case of its own rather than an arm of the unreadable-receiver refusal:
+// the reference implementation reaches it by calling `Object.keys` and letting
+// the runtime throw, and so does this one now that the static folds in the
+// engine. The two runtimes word it differently -- `Cannot convert undefined or
+// null to object` there against the engine's own phrasing here -- and both name
+// the receiver, which is what an author needs. Told instead that their *array*
+// holds something illegal, they would go looking in the wrong place.
 stylex_test_panic!(
   object_keys_of_null_is_refused,
-  "Cannot convert undefined or null to object",
+  "cannot convert 'null' or 'undefined' to object",
   r#"
     import * as stylex from '@stylexjs/stylex';
 

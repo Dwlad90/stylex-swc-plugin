@@ -1,6 +1,13 @@
 //! `Object.keys`, `Object.values` and `Object.entries` of every receiver the
 //! evaluator can hand them.
 //!
+//! The three statics fold in the engine now, like every other one, so what this
+//! file is about is the receiver they cannot be asked of there: a folded
+//! function map is not a JavaScript value at all, and an array with a hole in it
+//! is one the fold will not print. Those are the only receivers still answered
+//! below the fold, which is why the own-keys reader survived the deletion of the
+//! two static name tables.
+//!
 //! Three places read "what own enumerable properties does this value have", and
 //! the folded namespace map used to be classified differently in each: the
 //! spread arm answered its keys, the object bridge answered "an object", and the

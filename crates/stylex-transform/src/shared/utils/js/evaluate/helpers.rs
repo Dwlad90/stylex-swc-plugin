@@ -124,6 +124,83 @@ impl ObjectMethodReceiver {
       Self::Nullish => Err(NULLISH_TO_OBJECT),
     }
   }
+
+  /// The list `Object.keys`, `Object.values` or `Object.entries` answers for
+  /// this receiver.
+  ///
+  /// `Err` is the sentence to refuse with: a property the walk cannot read, or a
+  /// receiver there is no `ToObject` to ask.
+  pub(super) fn own_keys(self, question: OwnKeysQuestion) -> Result<Expr, &'static str> {
+    let Some(object) = self.into_own_keys()? else {
+      return Ok(create_array_expression(Vec::new()));
+    };
+
+    let mut list = Vec::with_capacity(object.props.len());
+
+    for prop in &object.props {
+      let Some(prop) = prop.as_prop() else {
+        return Err(SPREAD_NOT_SUPPORTED);
+      };
+
+      let Some(key_value) = prop.as_key_value() else {
+        return Err(OBJECT_METHOD);
+      };
+
+      let key = convert_key_value_to_str(key_value);
+
+      list.push(Some(create_expr_or_spread(
+        question.read(&key, &key_value.value),
+      )));
+    }
+
+    Ok(create_array_expression(list))
+  }
+}
+
+/// Which of the three spellings of the own-keys question is being asked.
+///
+/// Not a table of methods the compiler chose to support: the `Object` statics
+/// fold in the engine, and these three are here only because the *receiver* can
+/// be something the engine never sees — this compiler's own function fold, or an
+/// array the fold will not print. What the three share is the walk over that
+/// receiver's properties, so they are one enum over one walk rather than three
+/// arms that have to be kept agreeing.
+#[derive(Clone, Copy)]
+pub(super) enum OwnKeysQuestion {
+  Keys,
+  Values,
+  Entries,
+}
+
+impl TryFrom<&str> for OwnKeysQuestion {
+  type Error = ();
+
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
+    match value {
+      "keys" => Ok(Self::Keys),
+      "values" => Ok(Self::Values),
+      "entries" => Ok(Self::Entries),
+      _ => Err(()),
+    }
+  }
+}
+
+impl OwnKeysQuestion {
+  /// What this question answers for one property of the receiver.
+  ///
+  /// `keys` is the name, `values` is what the name holds, and `entries` is the
+  /// pair — one match rather than three loops, so a change to how a key is read
+  /// cannot reach two of them and miss the third.
+  fn read(self, key: &str, value: &Expr) -> Expr {
+    match self {
+      Self::Keys => create_string_expr(key),
+      Self::Values => value.clone(),
+      Self::Entries => create_array_expression(vec![
+        Some(create_expr_or_spread(create_string_expr(key))),
+        Some(create_expr_or_spread(value.clone())),
+      ]),
+    }
+  }
 }
 
 /// Reads the receiver of `Object.keys`, `Object.values` or `Object.entries`,
@@ -345,7 +422,6 @@ pub(super) fn evaluate_result_to_js_object(
 
     EvaluateResultValue::Vec(_)
     | EvaluateResultValue::Map(_)
-    | EvaluateResultValue::Entries(_)
     | EvaluateResultValue::EnvObject(_)
     | EvaluateResultValue::ThemeRef(_)
     // The namespace object, and so `ToObject`'s identity rather than a wrapper.
@@ -379,7 +455,6 @@ pub(super) fn evaluate_result_to_js_boolean(value: &EvaluateResultValue) -> Opti
 
     EvaluateResultValue::Vec(_)
     | EvaluateResultValue::Map(_)
-    | EvaluateResultValue::Entries(_)
     | EvaluateResultValue::EnvObject(_)
     | EvaluateResultValue::ThemeRef(_)
     | EvaluateResultValue::Callback(_)
@@ -418,7 +493,6 @@ pub(crate) fn evaluate_result_is_nullish(value: &EvaluateResultValue) -> bool {
 
     EvaluateResultValue::Vec(_)
     | EvaluateResultValue::Map(_)
-    | EvaluateResultValue::Entries(_)
     | EvaluateResultValue::EnvObject(_)
     | EvaluateResultValue::ThemeRef(_)
     | EvaluateResultValue::Callback(_)
@@ -448,9 +522,9 @@ fn evaluate_result_to_string_of(
     // group hash rather than the object default.
     EvaluateResultValue::ThemeRef(theme_ref) => Some(theme_ref.to_string_value()),
 
-    EvaluateResultValue::Map(_)
-    | EvaluateResultValue::Entries(_)
-    | EvaluateResultValue::EnvObject(_) => Some(coercions::OBJECT_TO_STRING.to_string()),
+    EvaluateResultValue::Map(_) | EvaluateResultValue::EnvObject(_) => {
+      Some(coercions::OBJECT_TO_STRING.to_string())
+    },
 
     // A folded *map* of function configs is the namespace object, and an object
     // upstream rather than a function: `import * as stylex` binds an object
@@ -475,69 +549,6 @@ fn evaluate_result_to_string_of(
     // reaches this bridge is actually decided.
     EvaluateResultValue::Null => None,
   }
-}
-
-/// Reads every argument as a number, flattening nested argument vectors.
-///
-/// `None` means one of them has no numeric reading — `Math.max({}, 1)` — which
-/// is an ordinary call this evaluator does not fold, so the caller deopts on
-/// it. The reason of the refusal is already recorded on `state`.
-pub(super) fn args_to_numbers(
-  args: &[EvaluateResultValue],
-  path: &Expr,
-  state: &mut EvaluationState,
-  traversal_state: &mut StateManager,
-  fns: &FunctionMap,
-) -> Option<Vec<f64>> {
-  let mut numbers = Vec::with_capacity(args.len());
-
-  push_args_to_numbers(args, path, state, traversal_state, fns, &mut numbers)?;
-
-  Some(numbers)
-}
-
-fn push_args_to_numbers(
-  args: &[EvaluateResultValue],
-  path: &Expr,
-  state: &mut EvaluationState,
-  traversal_state: &mut StateManager,
-  fns: &FunctionMap,
-  numbers: &mut Vec<f64>,
-) -> Option<()> {
-  for arg in args {
-    match arg {
-      // Deopted on the operand rather than on `path`, because the operand is
-      // the thing an author has to change and the code frame points at it. The
-      // catch-all below has no expression of its own to name and falls back to
-      // the call.
-      EvaluateResultValue::Expr(expr) => match expr_to_num(expr, state, traversal_state, fns) {
-        Ok(number) => numbers.push(number),
-        Err(error) => {
-          deopt(expr, state, error.to_string().as_str());
-
-          return None;
-        },
-      },
-      EvaluateResultValue::Vec(vec) => {
-        push_args_to_numbers(vec, path, state, traversal_state, fns, numbers)?;
-      },
-      // A confidently evaluated argument with no value is `undefined`, whose
-      // `ToNumber` is `NaN` — and `Math.max(undefined, 1)` is `NaN`, not `1`.
-      // Skipping it is what this has always done and is left alone here; the
-      // divergence belongs with the prototype-surface work, not with the
-      // panic/deopt split.
-      EvaluateResultValue::Null => {},
-      // Every remaining variant stands for an object or a function upstream,
-      // neither of which has a numeric reading.
-      _ => {
-        deopt(path, state, ILLEGAL_PROP_VALUE);
-
-        return None;
-      },
-    }
-  }
-
-  Some(())
 }
 
 pub(super) fn get_binding<'a>(

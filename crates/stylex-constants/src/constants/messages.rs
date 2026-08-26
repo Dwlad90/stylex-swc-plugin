@@ -131,8 +131,6 @@ pub static UNPREFIXED_CUSTOM_PROPERTIES: &str = "Unprefixed custom properties";
 pub static NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE: &str =
   "createTheme() can only accept an object as the second argument.";
 
-pub static BUILT_IN_FUNCTION: &str = "Evaluation built-in functions not supported";
-
 pub static THEME_IMPORT_KEY_AS_OBJECT_KEY: &str =
   "Theme import keys cannot be used as object keys. Please use a valid object key.";
 

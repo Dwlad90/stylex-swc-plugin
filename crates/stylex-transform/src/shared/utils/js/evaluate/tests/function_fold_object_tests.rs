@@ -181,7 +181,6 @@ fn the_values_that_are_not_folds_of_a_function_have_no_object_form() {
   );
   assert!(function_fold_to_object(&EvaluateResultValue::Vec(vec![])).is_none());
   assert!(function_fold_to_object(&EvaluateResultValue::Map(IndexMap::default())).is_none());
-  assert!(function_fold_to_object(&EvaluateResultValue::Entries(IndexMap::default())).is_none());
   assert!(function_fold_to_object(&EvaluateResultValue::Null).is_none());
   assert!(function_fold_to_object(&EvaluateResultValue::Expr(create_null_expr())).is_none());
 }

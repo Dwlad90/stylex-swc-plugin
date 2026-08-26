@@ -1,57 +1,8 @@
-#[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
-pub enum ObjectJS {
-  Entries,
-  Keys,
-  Values,
-  FromEntries,
-}
-
-impl TryFrom<&str> for ObjectJS {
-  type Error = ();
-
-  fn try_from(value: &str) -> Result<Self, Self::Error> {
-    match value {
-      "entries" => Ok(ObjectJS::Entries),
-      "keys" => Ok(ObjectJS::Keys),
-      "values" => Ok(ObjectJS::Values),
-      "fromEntries" => Ok(ObjectJS::FromEntries),
-      _ => Err(()),
-    }
-  }
-}
-
-#[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
-pub enum MathJS {
-  Pow,
-  Round,
-  Ceil,
-  Floor,
-  Max,
-  Min,
-  Abs,
-}
-
-impl TryFrom<&str> for MathJS {
-  type Error = ();
-
-  fn try_from(value: &str) -> Result<Self, Self::Error> {
-    match value {
-      "pow" => Ok(MathJS::Pow),
-      "round" => Ok(MathJS::Round),
-      "ceil" => Ok(MathJS::Ceil),
-      "floor" => Ok(MathJS::Floor),
-      "max" => Ok(MathJS::Max),
-      "min" => Ok(MathJS::Min),
-      "abs" => Ok(MathJS::Abs),
-      _ => Err(()),
-    }
-  }
-}
-
-/// A global the compiler folds when it is *called* — `String(x)` — as opposed
-/// to the method enums above, which name what may be called *on* a global.
-/// Kept apart from them because a callable global is a different concept: it
-/// maps a callee name, not a method name.
+/// A global the compiler folds when it is *called* — `String(x)`.
+///
+/// The only enum of its kind left here: what may be called *on* a global is no
+/// longer a list of names, because the statics of `Math` and `Object` are
+/// evaluated as JavaScript rather than matched against a table.
 #[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
 pub enum CallableGlobalJS {
   String,

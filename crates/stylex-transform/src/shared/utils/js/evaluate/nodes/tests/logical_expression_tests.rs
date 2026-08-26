@@ -158,7 +158,7 @@ fn the_winning_operand_keeps_its_own_shape() {
   let (value, reason) = fold_expr(
     BinaryOp::NullishCoalescing,
     create_null_expr(),
-    create_object_expression(vec![]),
+    Expr::Object(create_object_lit(vec![])),
   );
 
   assert!(

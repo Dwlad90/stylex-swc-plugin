@@ -54,17 +54,20 @@ _Avoid_: bailout, failure, fallback, error
 A JavaScript global the evaluator folds when the global _itself_ is called —
 `String(x)`, `Number(x)`, `Array(x)`, `Object(x)`. A
 [valid callee](../stylex-js/CONTEXT.md) is the wider set, because
-it also admits globals that only contribute methods: `Math` is a valid callee so
-that `Math.round(1.5)` folds, and is not a callable global, so a bare `Math(x)`
-is rejected rather than folded. Only a global with no binding in scope is one at
-all — a declared `String` is an ordinary function and is called, not folded.
+it also admits globals that only contribute methods: `Math` is a valid callee,
+so `Math.round(1.5)` names a global rather than a module binding, and is not a
+callable global, so a bare `Math(x)` is rejected rather than folded. Its
+_statics_ are not folded here at all — they are an [engine fold](#engine-fold)
+like any other method call. Only a global with no binding in scope is one at all
+— a declared `String` is an ordinary function and is called, not folded.
 _Avoid_: built-in function, global function, wrapper call
 
 **Engine fold**:
 Folding a method call by evaluating it in an embedded JavaScript engine instead
 of matching its name against a table. A table is finite, so the method it does
 not list is the next bug report; evaluating covers `String.prototype`,
-`Array.prototype` and `Object.prototype` at once, and covers a chain, because
+`Array.prototype` and `Object.prototype` at once, along with the `Math` and
+`Object` statics, and covers a chain, because
 the receiver of a call is itself a candidate and the whole chain is evaluated
 once. An expression qualifies when every leaf of it resolves to a value the
 bridge can carry, which is what the [guard](#fold-guard) decides. The engine is
@@ -113,13 +116,16 @@ only an expression the guard intends to fold pays to have its names read.
 
 A name the guard could not read is not a refusal but a **candidacy** answer: the
 call is simply not this module's, and the dispatch below owns it — which is what
-keeps `Math` and the callable globals folding. Reading a name to decide that is a
-[speculative read](#speculative-read). A receiver naming one of those globals is
-handed back the same way, but only where it is the call the caller asked about: a
-static _inside_ a chain is a link nothing else is ever handed, so handing it back
-would take the whole chain down with it. Nested, the engine answers it, and the
-names the reference compiler refuses — the nondeterministic and mutating statics
-it lists — are refused here with it.
+keeps the [callable globals](#callable-global) folding, and what leaves the
+own-keys statics an answer for a receiver the bridge cannot carry. Reading a
+name to decide that is a [speculative read](#speculative-read).
+
+Nothing the guard carries records _where_ in an expression it is. Every rule
+reads the call in front of it and nothing else, so a static, a middle link of a
+chain and the call the caller asked about are all answered alike. The statics
+the reference compiler refuses by name — the nondeterministic and the mutating
+ones — are refused here wherever they are written, because a fold has to answer
+from the source alone and neither of those does.
 _Avoid_: whitelist, allowlist, filter, validator
 
 **Transport**:

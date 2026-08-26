@@ -40,9 +40,13 @@ stylex_test_panic!(
   "#
 );
 
+// `Object.assign` refuses by name before the binding it mutates is ever read,
+// which is why this one names the call rather than the value: the whole
+// `Object` surface folds in the engine now, and this is one of the names that
+// cannot, because it answers by changing what it was handed.
 stylex_test_panic!(
   should_bail_out_when_object_is_mutated_via_object_assign,
-  "Referenced value is not a constant",
+  "Cannot fold 'Object.assign' at compile time.",
   |_tr| EvaluationStyleXLastStatementTransform::default_with_pass(),
   r#"
     import react from 'react';

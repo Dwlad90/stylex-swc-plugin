@@ -1707,8 +1707,8 @@
       "label": "`Object.keys` of `null`, in a template and behind a length read",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  interpolated: { fontFamily: `x${Object.keys(null)}y` },\n  counted: { width: Object.keys(null).length },\n});\n",
       "origin": "issue #1266, ticket 40, found while measuring the three methods",
-      "expected": "both-reject",
-      "note": "`null` and `undefined` have no `ToObject`, so the language throws where every other non-object receiver answers `[]`. This folded to the empty list before -- CSS the source does not describe, written quietly in both rows -- and refuses now, with the `TypeError` the language raises rather than a sentence about arrays. Both rows refuse on both sides with the same sentence, which is the whole of what a refused build hands an author."
+      "expected": "both-reject-divergent",
+      "note": "`null` and `undefined` have no `ToObject`, so the language throws where every other non-object receiver answers `[]`. This folded to the empty list before -- CSS the source does not describe, written quietly in both rows -- and refuses now, with the `TypeError` the language raises rather than a sentence about arrays. The two sentences stopped matching when the `Object` statics moved to the engine: the refusal is the engine's own throw now, worded `cannot convert 'null' or 'undefined' to object` where the reference compiler's runtime says `Cannot convert undefined or null to object`. Both name the receiver, which is what an author acts on, and neither compiler builds the module."
     },
     {
       "id": "modules-1266-object-keys-of-an-array-with-a-hole",

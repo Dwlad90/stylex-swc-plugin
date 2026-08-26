@@ -89,11 +89,6 @@ pub fn sum_hash_map_values(
   sum_map
 }
 
-/// Returns a comparator that sorts f64 values in ascending order.
-pub fn sort_numbers_factory() -> impl FnMut(&f64, &f64) -> std::cmp::Ordering {
-  |a: &f64, b: &f64| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
-}
-
 #[cfg(test)]
 #[path = "tests/collection_test.rs"]
 mod tests;

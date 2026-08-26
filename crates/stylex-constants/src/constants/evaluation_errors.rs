@@ -167,6 +167,18 @@ pub fn expression_too_deep(limit: usize) -> String {
   )
 }
 
+/// The one shape every refusal of a *call* takes: the call this compiler could
+/// not fold, then the reason it could not.
+///
+/// Five rules end here, and each of them names a method rather than a node kind,
+/// because the method is what an author has to change. One function rather than
+/// the same `format!` five times: the first line is what a reader learns to
+/// recognise, and a site that spelled it differently would read as a different
+/// class of failure without being one.
+fn cannot_fold(call: &str, reason: &str) -> String {
+  format!("Cannot fold '{}' at compile time.\n{}\n\n", call, reason)
+}
+
 /// A method whose answer depends on locale data the compiler does not carry.
 ///
 /// The engine resolves these against the root locale, so
@@ -174,9 +186,34 @@ pub fn expression_too_deep(limit: usize) -> String {
 /// Folding would write a wrong value into the stylesheet, which is worse than
 /// writing none, so the fold declines and says which method it declined.
 pub fn locale_sensitive_method(method: &str) -> String {
-  format!(
-    "Cannot fold '{}' at compile time.\nIts answer depends on locale data the compiler does not carry.\n\n",
-    method
+  cannot_fold(
+    method,
+    "Its answer depends on locale data the compiler does not carry.",
+  )
+}
+
+/// A static of one of the globals whose surface the engine owns, named in the
+/// set the compiler refuses by name.
+///
+/// The set is `INVALID_METHODS`, and every name in it breaks the one property a
+/// fold rests on: `Math.random` answers a different number each time it is
+/// asked, so the class name hashed from it would move between builds, and
+/// `Object.freeze` and the rest answer by changing the value they were handed
+/// rather than by computing one. Folding either writes a declaration the source
+/// does not describe.
+///
+/// Names the receiver with the method — `Object.assign` rather than `assign` —
+/// because on a static the receiver is the half that disambiguates: `assign` and
+/// `freeze` are `Object`'s, `random` is `Math`'s, and a message naming only the
+/// method would read the same for a method call on a value.
+///
+/// Named as a refusal rather than left to fall through, because the whole static
+/// surface folds now: a call this set holds back is the only one an author can
+/// write on these globals and not get an answer for, so it has to say why.
+pub fn unfoldable_static(callee: &str, method: &str) -> String {
+  cannot_fold(
+    &format!("{}.{}", callee, method),
+    "A fold has to answer from the source alone, and this call does not.",
   )
 }
 
@@ -247,7 +284,7 @@ pub fn unfoldable_fold_result(kind: &str) -> String {
 /// is `undefined` and then calls it, so the throw is `not a callable function` —
 /// which tells an author nothing the code frame has not already shown them.
 pub fn engine_threw(method: &str, message: &str) -> String {
-  format!("Cannot fold '{}' at compile time.\n{}\n\n", method, message)
+  cannot_fold(method, message)
 }
 
 /// A named property read that leads off the value the author wrote.
@@ -340,9 +377,9 @@ pub fn bound_value_has_too_many_entries(name: &str, limit: u64) -> String {
 /// than asserted, because a broken invariant inside an evaluation whose whole
 /// contract is that it may fail must not abort the build.
 pub fn uncallable_printed_fold(method: &str) -> String {
-  format!(
-    "Cannot fold '{}' at compile time.\nThe printed expression did not compile to a function.\n\n",
-    method
+  cannot_fold(
+    method,
+    "The printed expression did not compile to a function.",
   )
 }
 
@@ -358,8 +395,8 @@ pub fn uncallable_printed_fold(method: &str) -> String {
 /// Names the method, because that is what an author has to look at -- where the
 /// node kind would only tell them they wrote a call.
 pub fn unfoldable_call(method: &str) -> String {
-  format!(
-    "Cannot fold '{}' at compile time.\nIts receiver or one of its arguments is not in a form the compiler can evaluate.\n\n",
-    method
+  cannot_fold(
+    method,
+    "Its receiver or one of its arguments is not in a form the compiler can evaluate.",
   )
 }

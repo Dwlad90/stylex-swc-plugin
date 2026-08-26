@@ -440,22 +440,14 @@ fn a_folded_object_carries_keys_no_identifier_could_spell() {
   );
 }
 
-/// The kinds of input that are not a fold at all, at every position the guard
-/// walks. Each has to leave the existing dispatch in charge rather than raise a
-/// refusal of its own, because that dispatch is what folds `Math` and the
-/// callable globals.
+/// The kinds of input that are not a fold at all have to leave the existing
+/// dispatch in charge rather than raise a refusal of their own, because that
+/// dispatch is what folds a call to a global — `String(1)` — and what answers
+/// for a receiver the bridge cannot carry.
 #[test]
 fn a_shape_the_guard_never_recognised_leaves_the_existing_path_in_charge() {
-  // The globals the older dispatch still owns keep folding.
-  assert_folds_to_number("Math.round(1.5)", 2.0);
   assert_folds_to_string("String(1)", "1");
-
-  // And a receiver it owns nothing for still refuses in its own words, rather
-  // than with a rule the fold invented.
-  assert_deopt_reason_contains(
-    "Object.assign({}, {})",
-    "Referenced value is not a constant",
-  );
+  assert_folds_to_a_value("Object.keys([, 1])");
 }
 
 // ==================== the boundaries, at their own value ====================
@@ -660,7 +652,7 @@ fn input_with_no_foldable_call_builds_no_engine() {
     "\"abc\"[\"trim\"]()",
     "\"i\".toLocaleUpperCase(\"tr\")",
     "(1.5).toFixed(1)",
-    "Math.round(1.5)",
+    "String(1)",
   ] {
     super::engine_fold::forget_engine();
 

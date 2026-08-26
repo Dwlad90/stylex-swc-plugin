@@ -38,11 +38,14 @@ _Avoid_: scope, counter scope
 
 **Callable global**:
 A JavaScript global the compiler folds when it is _called_ — `String`, `Number`,
-`Array`, `Object` — as `CallableGlobalJS`. Distinct from the per-type method
-enums (`ArrayJS`, `MathJS` and the rest), which map a _method_ name: `Math` is a
-valid callee because its methods fold, but calling `Math` itself is not a fold,
-so it is deliberately absent here. `name()` is the inverse of the `TryFrom<&str>`
-that recognises one, so a diagnostic naming the callee never repeats a literal.
+`Array`, `Object` — as `CallableGlobalJS`. The only enum of its kind left here:
+the per-type method enums it was distinguished from (`ArrayJS`, `MathJS`,
+`ObjectJS`) are gone, because what may be called _on_ a value is evaluated as
+JavaScript rather than matched against a table of names. `Math` is still a valid
+callee, so its statics name a global rather than a module binding, but calling
+`Math` itself is not a fold and it is deliberately absent here. `name()` is the
+inverse of the `TryFrom<&str>` that recognises one, so a diagnostic naming the
+callee never repeats a literal.
 _Avoid_: builtin, wrapper, global function
 
 **Value with default**:

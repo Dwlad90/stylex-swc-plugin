@@ -30,7 +30,6 @@ pub enum EvaluateResultValue {
   Expr(Expr),
   Vec(Vec<EvaluateResultValue>),
   Map(IndexMap<Expr, Vec<KeyValueProp>>),
-  Entries(IndexMap<Lit, Box<Expr>>),
   Callback(EvaluationCallback),
   FunctionConfig(FunctionConfig),
   FunctionConfigMap(FunctionConfigMap),
@@ -65,9 +64,6 @@ impl Serialize for EvaluateResultValue {
         serializer.serialize_str(&printed_module)
       },
       Self::Map(_) => stylex_unimplemented!("Serialization of Map values is not yet supported."),
-      Self::Entries(_) => {
-        stylex_unimplemented!("Serialization of Entries values is not yet supported.")
-      },
       Self::Callback(_) => {
         stylex_unimplemented!("Serialization of Callback values is not yet supported.")
       },
@@ -142,7 +138,6 @@ impl Clone for EvaluateResultValue {
       Self::Expr(e) => Self::Expr(e.clone()),
       Self::Vec(v) => Self::Vec(v.clone()),
       Self::Map(m) => Self::Map(m.clone()),
-      Self::Entries(e) => Self::Entries(e.clone()),
       Self::FunctionConfig(f) => Self::FunctionConfig(f.clone()),
       Self::FunctionConfigMap(f) => Self::FunctionConfigMap(f.clone()),
       Self::Callback(c) => Self::Callback(Rc::clone(c)),
@@ -160,7 +155,6 @@ impl fmt::Debug for EvaluateResultValue {
       Self::Expr(e) => f.debug_tuple("Expr").field(e).finish(),
       Self::Vec(v) => f.debug_tuple("Vec").field(v).finish(),
       Self::Map(m) => f.debug_tuple("Map").field(m).finish(),
-      Self::Entries(e) => f.debug_tuple("Entries").field(e).finish(),
       Self::FunctionConfig(e) => f.debug_tuple("FunctionConfig").field(e).finish(),
       Self::FunctionConfigMap(e) => f.debug_tuple("FunctionConfigMap").field(e).finish(),
       Self::ThemeRef(e) => f.debug_tuple("ThemeRef").field(e).finish(),

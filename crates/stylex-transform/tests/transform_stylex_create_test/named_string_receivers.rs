@@ -479,12 +479,13 @@ fn a_call_on_a_dynamic_parameter_is_still_left_to_the_runtime() {
 
 /// A name bound to something the bridge does not carry is handed back rather
 /// than refused, so the dispatch that owns those values keeps answering for
-/// them. A string, an array and a plain object cross; a name holding a number
-/// alone is a receiver `Number.prototype` has yet to be reachable on.
+/// them. The primitives, arrays and plain objects all cross; a regular
+/// expression is a value this evaluator holds no reading of, and neither
+/// compiler folds a call on one.
 #[test]
-#[should_panic(expected = "base > content > Unsupported expression: NumericLiteral")]
+#[should_panic(expected = "base > content > Unsupported expression: RegExpLiteral")]
 fn a_name_bound_to_a_value_the_bridge_cannot_carry_is_handed_back() {
-  fold(&module("const size = 5;", "content: size.toFixed(1),"));
+  fold(&module("const re = /a/;", "content: re.test('a'),"));
 }
 
 /// A value longer than the fold will carry is refused on the way *in*, naming

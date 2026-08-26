@@ -102,21 +102,26 @@ stylex_test_transform!(
   "#
 );
 
-// A built-in this evaluator does not fold refuses rather than aborting, so the
-// call survives into the output unchanged — which is what the reference
-// implementation does for a global outside its whitelist. Refusing had to stop
-// being an abort because the operand of a `&&` is evaluated speculatively; see
+// A static that was outside the evaluator's list of names now folds, because
+// there is no list: `Object` and `Math` are evaluated as JavaScript, and the
+// reference implementation folds this one to the same list.
+//
+// A built-in that still does not fold refuses rather than aborting, so the call
+// survives into the output unchanged. Refusing had to stop being an abort
+// because the operand of a `&&` is evaluated speculatively; see
 // `deopt_unsupported!`.
 stylex_test_transform!(
   evaluates_built_in_functions,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
     const x = Object.getOwnPropertyNames({a: 2});
+    const y = Symbol.for("a");
   "#,
   r#"
-    Object.getOwnPropertyNames({
-        a: 2
-    });
+    [
+        "a"
+    ];
+    Symbol.for("a");
   "#
 );
 

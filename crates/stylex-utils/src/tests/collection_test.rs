@@ -172,36 +172,3 @@ mod sum_hash_map_values_tests {
     assert!(sum_hash_map_values(&a, &b).is_empty());
   }
 }
-
-#[cfg(test)]
-mod sort_numbers_factory_tests {
-  use crate::collection::sort_numbers_factory;
-
-  #[test]
-  fn sorts_ascending() {
-    let mut nums = vec![3.0, 1.0, 2.0];
-    nums.sort_unstable_by(sort_numbers_factory());
-    assert_eq!(nums, vec![1.0, 2.0, 3.0]);
-  }
-
-  #[test]
-  fn sorts_with_negatives() {
-    let mut nums = vec![0.0, -1.0, 1.0, -2.0];
-    nums.sort_unstable_by(sort_numbers_factory());
-    assert_eq!(nums, vec![-2.0, -1.0, 0.0, 1.0]);
-  }
-
-  #[test]
-  fn sorts_already_sorted() {
-    let mut nums = vec![1.0, 2.0, 3.0];
-    nums.sort_unstable_by(sort_numbers_factory());
-    assert_eq!(nums, vec![1.0, 2.0, 3.0]);
-  }
-
-  #[test]
-  fn handles_empty() {
-    let mut nums: Vec<f64> = vec![];
-    nums.sort_unstable_by(sort_numbers_factory());
-    assert!(nums.is_empty());
-  }
-}

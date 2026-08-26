@@ -1,7 +1,6 @@
 use super::super::*;
 use crate::deopt_unsupported;
 use stylex_ast::ast::convertors::get_key_values_from_object;
-use stylex_utils::math::js_math_round;
 use swc_core::ecma::ast::CallExpr;
 
 /// Applies a call to one of the JavaScript globals the compiler folds.
@@ -167,7 +166,6 @@ pub(in super::super) fn evaluate(
   let path = Expr::Call(call.clone());
   let path = &path;
 
-  let mut context: Option<Vec<EvaluateResultValue>> = None;
   let mut func: Option<Box<FunctionConfig>> = None;
 
   if let Callee::Expr(callee_expr) = &call.callee {
@@ -247,378 +245,53 @@ pub(in super::super) fn evaluate(
             let callee_name = get_callee_name(object);
             let method_name = get_method_name(property);
 
-            match callee_name {
-              "Math" => {
-                // `Math.max()` is `-Infinity` and `Math.round()` is `NaN`;
-                // neither is folded here, and neither is a broken invariant.
-                let Some(first_arg) = call.args.first() else {
-                  deopt_unsupported!(
-                    path,
-                    state,
-                    format!("Math.{}() requires an argument", method_name).as_str()
-                  );
-                };
+            // The statics of these globals fold in the engine, on every receiver
+            // and in every position, so a static reaching here is one the fold
+            // declined — and the only thing it can have declined is the receiver.
+            // Two of those exist: `Object.keys(stylex)` asks for the own keys of
+            // this compiler's own function fold, which is not a JavaScript value
+            // at all, and `Object.keys([, 'p'])` asks them of an array with a
+            // hole in it, which the fold will not print.
+            //
+            // So the one question left here is the own-keys one, in its three
+            // spellings. It is not a surface of names this compiler picked —
+            // `Object.getOwnPropertyNames`, `Object.fromEntries` and the whole of
+            // `Math` fold above — and nothing but a receiver the language never
+            // sees comes this far.
+            if callee_name == "Object"
+              && let Ok(question) = OwnKeysQuestion::try_from(method_name)
+            {
+              let Some(arg) = call.args.first() else {
+                deopt_unsupported!(path, state, &unfoldable_call(method_name));
+              };
 
-                if first_arg.spread.is_some() {
-                  deopt_unsupported!(path, state, SPREAD_ELEMENT);
-                }
+              if arg.spread.is_some() {
+                deopt_unsupported!(path, state, SPREAD_ELEMENT);
+              }
 
-                match method_name {
-                  "pow" => {
-                    func = Some(Box::new(FunctionConfig {
-                      fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(MathJS::Pow))),
-                      takes_path: false,
-                    }));
+              // An array literal is read from the syntax rather than from its
+              // evaluated form, because a hole has no value to evaluate and the
+              // receiver reader is what knows a hole carries no key.
+              let cached_arg = if arg.expr.is_array() {
+                None
+              } else {
+                evaluate_cached(&arg.expr, state, traversal_state, fns)
+              };
 
-                    let Some(second_arg) = call.args.get(1) else {
-                      deopt_unsupported!(
-                        path,
-                        state,
-                        "Math.pow() requires a second numeric argument."
-                      );
-                    };
+              let receiver = normalize_object_method_receiver(
+                cached_arg,
+                &arg.expr,
+                traversal_state,
+                Rc::clone(&state.functions),
+              );
 
-                    if second_arg.spread.is_some() {
-                      deopt_unsupported!(path, state, SPREAD_ELEMENT);
-                    }
-
-                    let cached_first_arg =
-                      evaluate_cached(&first_arg.expr, state, traversal_state, fns);
-                    let cached_second_arg =
-                      evaluate_cached(&second_arg.expr, state, traversal_state, fns);
-
-                    if let Some(cached_first_arg) = cached_first_arg
-                      && let Some(cached_second_arg) = cached_second_arg
-                    {
-                      context = Some(vec![EvaluateResultValue::Vec(vec![
-                        cached_first_arg,
-                        cached_second_arg,
-                      ])]);
-                    }
-                  },
-                  "round" | "ceil" | "floor" => {
-                    let math_method = MathJS::try_from(method_name)
-                      .unwrap_or_else(|()| stylex_unreachable!("Invalid method: {}", method_name));
-
-                    func = Some(Box::new(FunctionConfig {
-                      fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(math_method))),
-                      takes_path: false,
-                    }));
-
-                    let cached_first_arg =
-                      evaluate_cached(&first_arg.expr, state, traversal_state, fns);
-
-                    if let Some(cached_first_arg) = cached_first_arg {
-                      let Some(expr) = cached_first_arg.as_expr() else {
-                        deopt_unsupported!(path, state, ARGUMENT_NOT_EXPRESSION);
-                      };
-
-                      context = Some(vec![EvaluateResultValue::Expr(expr.clone())]);
-                    }
-                  },
-                  "min" | "max" => {
-                    let math_method = MathJS::try_from(method_name)
-                      .unwrap_or_else(|()| stylex_unreachable!("Invalid method: {}", method_name));
-
-                    func = Some(Box::new(FunctionConfig {
-                      fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(math_method))),
-                      takes_path: false,
-                    }));
-
-                    let cached_first_arg =
-                      evaluate_cached(&first_arg.expr, state, traversal_state, fns);
-
-                    if let Some(cached_first_arg) = cached_first_arg {
-                      let mut result = Vec::with_capacity(call.args.len());
-                      result.push(cached_first_arg);
-
-                      result.extend(
-                        call
-                          .args
-                          .iter()
-                          .skip(1)
-                          .map(|arg| evaluate_cached(&arg.expr, state, traversal_state, fns))
-                          .map(|arg| arg.unwrap_or(EvaluateResultValue::Null)),
-                      );
-
-                      context = Some(vec![EvaluateResultValue::Vec(result)]);
-                    }
-                  },
-                  "abs" => {
-                    let cached_first_arg =
-                      evaluate_cached(&first_arg.expr, state, traversal_state, fns);
-
-                    if let Some(cached_first_arg) = cached_first_arg {
-                      func = Some(Box::new(FunctionConfig {
-                        fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(MathJS::Abs))),
-                        takes_path: false,
-                      }));
-
-                      let Some(expr) = cached_first_arg.as_expr() else {
-                        deopt_unsupported!(path, state, ARGUMENT_NOT_EXPRESSION);
-                      };
-
-                      context = Some(vec![EvaluateResultValue::Expr(expr.clone())]);
-                    }
-                  },
-                  // `Math.sin`, `Math.hypot`, … — real methods this
-                  // evaluator does not fold.
-                  _ => deopt_unsupported!(
-                    path,
-                    state,
-                    format!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name).as_str()
-                  ),
-                }
-              },
-              "Object" => {
-                let args = &call.args;
-
-                let Some(arg) = args.first() else {
-                  deopt_unsupported!(
-                    path,
-                    state,
-                    format!("Object.{}() requires an argument", method_name).as_str()
-                  );
-                };
-
-                if arg.spread.is_some() {
-                  deopt_unsupported!(path, state, SPREAD_ELEMENT);
-                }
-
-                let object_method = ObjectJS::try_from(method_name);
-                let cached_arg = if matches!(
-                  object_method,
-                  Ok(ObjectJS::Keys | ObjectJS::Values | ObjectJS::Entries)
-                ) && arg.expr.is_array()
-                {
-                  None
-                } else {
-                  evaluate_cached(&arg.expr, state, traversal_state, fns)
-                };
-
-                match object_method {
-                  Ok(ObjectJS::FromEntries) => {
-                    func = Some(Box::new(FunctionConfig {
-                      fn_ptr: FunctionType::Callback(Box::new(CallbackType::Object(
-                        ObjectJS::FromEntries,
-                      ))),
-                      takes_path: false,
-                    }));
-
-                    let mut from_entries_result = IndexMap::new();
-
-                    // Every refusal below is the same complaint — the
-                    // argument is not a list of `[key, value]` pairs the
-                    // evaluator can read — and every one of them is an
-                    // argument an author can write.
-                    const NOT_ENTRIES: &str =
-                      "Object.fromEntries() requires an array of [key, value] entries.";
-
-                    match cached_arg {
-                      Some(EvaluateResultValue::Expr(expr)) => {
-                        let Some(array) = expr.as_array().cloned() else {
-                          deopt_unsupported!(path, state, NOT_ENTRIES);
-                        };
-
-                        for entry in array.elems.into_iter().flatten() {
-                          if entry.spread.is_some() {
-                            deopt_unsupported!(path, state, SPREAD_ELEMENT);
-                          }
-
-                          let Some(array) = entry.expr.as_array() else {
-                            deopt_unsupported!(path, state, NOT_ENTRIES);
-                          };
-
-                          let mut elems = array.elems.iter().flatten();
-
-                          let Some(key) = elems.next().and_then(|e| e.expr.as_lit()) else {
-                            deopt_unsupported!(path, state, OBJECT_KEY_MUST_BE_IDENT);
-                          };
-
-                          let Some(value) = elems.next().map(|e| e.expr.clone()) else {
-                            deopt_unsupported!(path, state, VALUE_MUST_BE_LITERAL);
-                          };
-
-                          from_entries_result.insert(key.clone(), value.clone());
-                        }
-                      },
-                      Some(EvaluateResultValue::Vec(vec)) => {
-                        for entry in vec {
-                          let Some(entry) = entry.as_vec().cloned() else {
-                            deopt_unsupported!(path, state, NOT_ENTRIES);
-                          };
-
-                          let key = entry
-                            .first()
-                            .and_then(|item| item.as_expr().cloned())
-                            .and_then(|expr| expr.as_lit().cloned());
-
-                          let Some(key) = key else {
-                            deopt_unsupported!(path, state, OBJECT_KEY_MUST_BE_IDENT);
-                          };
-
-                          let Some(value) = entry.get(1).and_then(|item| item.as_expr().cloned())
-                          else {
-                            deopt_unsupported!(path, state, VALUE_MUST_BE_LITERAL);
-                          };
-
-                          from_entries_result.insert(key.clone(), Box::new(value.clone()));
-                        }
-                      },
-                      _ => deopt_unsupported!(path, state, NOT_ENTRIES),
-                    };
-
-                    context = Some(vec![EvaluateResultValue::Entries(from_entries_result)]);
-                  },
-                  Ok(ObjectJS::Keys) => {
-                    func = Some(Box::new(FunctionConfig {
-                      fn_ptr: FunctionType::Callback(Box::new(CallbackType::Object(
-                        ObjectJS::Keys,
-                      ))),
-                      takes_path: false,
-                    }));
-
-                    let object = match normalize_object_method_receiver(
-                      cached_arg,
-                      &arg.expr,
-                      traversal_state,
-                      Rc::clone(&state.functions),
-                    )
-                    .into_own_keys()
-                    {
-                      Ok(object) => object,
-                      Err(reason) => deopt_unsupported!(path, state, reason),
-                    };
-
-                    if let Some(object) = object {
-                      let mut keys = Vec::with_capacity(object.props.len());
-
-                      for prop in &object.props {
-                        let Some(expr) = prop.as_prop().cloned() else {
-                          deopt_unsupported!(path, state, SPREAD_NOT_SUPPORTED);
-                        };
-
-                        let Some(key_values) = expr.as_key_value() else {
-                          deopt_unsupported!(path, state, OBJECT_METHOD);
-                        };
-
-                        let key = convert_key_value_to_str(key_values);
-
-                        keys.push(Some(create_expr_or_spread(create_string_expr(
-                          key.as_str(),
-                        ))));
-                      }
-
-                      context = Some(vec![EvaluateResultValue::Expr(create_array_expression(
-                        keys,
-                      ))]);
-                    } else {
-                      context = Some(vec![EvaluateResultValue::Expr(create_array_expression(
-                        Vec::new(),
-                      ))]);
-                    }
-                  },
-                  Ok(ObjectJS::Values) => {
-                    func = Some(Box::new(FunctionConfig {
-                      fn_ptr: FunctionType::Callback(Box::new(CallbackType::Object(
-                        ObjectJS::Values,
-                      ))),
-                      takes_path: false,
-                    }));
-
-                    let object = match normalize_object_method_receiver(
-                      cached_arg,
-                      &arg.expr,
-                      traversal_state,
-                      Rc::clone(&state.functions),
-                    )
-                    .into_own_keys()
-                    {
-                      Ok(object) => object,
-                      Err(reason) => deopt_unsupported!(path, state, reason),
-                    };
-
-                    if let Some(object) = object {
-                      let mut values = Vec::with_capacity(object.props.len());
-
-                      for prop in &object.props {
-                        let Some(prop) = prop.as_prop().cloned() else {
-                          deopt_unsupported!(path, state, SPREAD_NOT_SUPPORTED);
-                        };
-
-                        let Some(key_values) = prop.as_key_value() else {
-                          deopt_unsupported!(path, state, OBJECT_METHOD);
-                        };
-
-                        values.push(Some(create_expr_or_spread(*key_values.value.clone())));
-                      }
-
-                      context = Some(vec![EvaluateResultValue::Expr(create_array_expression(
-                        values,
-                      ))]);
-                    } else {
-                      context = Some(vec![EvaluateResultValue::Expr(create_array_expression(
-                        Vec::new(),
-                      ))]);
-                    }
-                  },
-                  Ok(ObjectJS::Entries) => {
-                    func = Some(Box::new(FunctionConfig {
-                      fn_ptr: FunctionType::Callback(Box::new(CallbackType::Object(
-                        ObjectJS::Entries,
-                      ))),
-                      takes_path: false,
-                    }));
-
-                    let object = match normalize_object_method_receiver(
-                      cached_arg,
-                      &arg.expr,
-                      traversal_state,
-                      Rc::clone(&state.functions),
-                    )
-                    .into_own_keys()
-                    {
-                      Ok(object) => object,
-                      Err(reason) => deopt_unsupported!(path, state, reason),
-                    };
-
-                    let mut entries: IndexMap<Lit, Box<Expr>> = IndexMap::new();
-
-                    if let Some(object) = object {
-                      for prop in &object.props {
-                        let Some(expr) = prop.as_prop().map(|prop| *prop.clone()) else {
-                          deopt_unsupported!(path, state, SPREAD_NOT_SUPPORTED);
-                        };
-
-                        let Some(key_values) = expr.as_key_value() else {
-                          deopt_unsupported!(path, state, OBJECT_METHOD);
-                        };
-
-                        let value = key_values.value.clone();
-
-                        let key = convert_key_value_to_str(key_values);
-
-                        entries.insert(create_string_lit(key.as_str()), value);
-                      }
-                    }
-
-                    context = Some(vec![EvaluateResultValue::Entries(entries)]);
-                  },
-                  // `Object.assign`, `Object.freeze`, … — methods this
-                  // evaluator does not fold.
-                  Err(()) => deopt_unsupported!(
-                    path,
-                    state,
-                    format!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name).as_str()
-                  ),
-                }
-              },
-              _ => deopt_unsupported!(
-                path,
-                state,
-                format!("{} - {}", BUILT_IN_FUNCTION, callee_name).as_str()
-              ),
+              return match receiver.own_keys(question) {
+                Ok(list) => Some(EvaluateResultValue::Expr(list)),
+                Err(reason) => deopt(path, state, reason),
+              };
             }
+
+            deopt_unsupported!(path, state, &unfoldable_call(method_name));
           } else {
             let Some(prop_ident) = property.as_ident() else {
               deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
@@ -737,7 +410,7 @@ pub(in super::super) fn evaluate(
               deopt_unsupported!(path, state, &unfoldable_call(&prop_name))
             }
 
-            match value.clone() {
+            match value {
               EvaluateResultValue::Map(map) => {
                 let result_fn = map.get(&Expr::from(prop_ident.clone()));
 
@@ -768,22 +441,6 @@ pub(in super::super) fn evaluate(
                     ))),
                     takes_path: false,
                   }));
-
-                  let args: Vec<EvaluateResultValue> = call
-                    .args
-                    .iter()
-                    .map(|arg| {
-                      let arg = evaluate_cached(&arg.expr, state, traversal_state, fns);
-
-                      if !state.confident {
-                        return EvaluateResultValue::Null;
-                      }
-
-                      arg.unwrap_or(EvaluateResultValue::Null)
-                    })
-                    .collect();
-
-                  context = Some(args);
                 },
                 Expr::Lit(Lit::Regex(_)) => {
                   // Regex methods like .test(), .exec(), etc. require runtime evaluation
@@ -806,8 +463,6 @@ pub(in super::super) fn evaluate(
                     fn_ptr: FunctionType::StylexTypeFn(fc),
                     takes_path: false,
                   }));
-
-                  context = Some(vec![value]);
                 },
                 FunctionType::DefaultMarker(default_marker) => {
                   if let Some(expr_fn) = default_marker.get(&prop_name) {
@@ -815,8 +470,6 @@ pub(in super::super) fn evaluate(
                       fn_ptr: FunctionType::StylexWhenFn(*expr_fn),
                       takes_path: false,
                     }));
-
-                    context = Some(vec![value]);
                   };
                 },
                 _ => deopt_unsupported!(path, state, NON_CONSTANT),
@@ -1021,191 +674,25 @@ pub(in super::super) fn evaluate(
           let func_result = (func)(ValueWithDefault::Map(fn_args));
           return Some(EvaluateResultValue::Expr(func_result));
         },
-        FunctionType::Callback(func) => {
-          // A callable global takes its arguments and nothing else — there is
-          // no receiver for a `context` to carry.
-          if let CallbackType::Global(global) = func.as_ref() {
+        FunctionType::Callback(func) => match func.as_ref() {
+          // A callable global takes its arguments and nothing else, so it is
+          // applied without reading a receiver at all.
+          CallbackType::Global(global) => {
             return evaluate_callable_global(*global, call, path, state, traversal_state, fns);
-          }
+          },
+          CallbackType::Custom(arrow_fn) => {
+            let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
 
-          // The receiver never produced a value to apply the method to.
-          let Some(context) = context else {
-            deopt_unsupported!(path, state, ARGUMENT_WITHOUT_VALUE);
-          };
+            let evaluation_result = evaluate_cached(arrow_fn, state, traversal_state, fns);
 
-          match func.as_ref() {
-            CallbackType::Object(ObjectJS::Entries) => {
-              let Some(EvaluateResultValue::Entries(entries)) = context.first() else {
-                deopt_unsupported!(path, state, "Object.entries() requires an object argument.");
-              };
+            let Some(EvaluateResultValue::Callback(cb)) = evaluation_result.as_ref() else {
+              deopt_unsupported!(path, state, NON_CONSTANT);
+            };
 
-              let mut entry_elems: Vec<Option<ExprOrSpread>> = Vec::with_capacity(entries.len());
+            let expr_result = cb(args, traversal_state);
 
-              for (key, value) in entries {
-                let key_spread = create_expr_or_spread(Expr::from(key.clone()));
-                let value_spread = create_expr_or_spread(*value.clone());
-
-                entry_elems.push(Some(create_expr_or_spread(create_array_expression(vec![
-                  Some(key_spread),
-                  Some(value_spread),
-                ]))));
-              }
-
-              return Some(EvaluateResultValue::Expr(create_array_expression(
-                entry_elems,
-              )));
-            },
-            CallbackType::Object(ObjectJS::Keys) => {
-              let Some(EvaluateResultValue::Expr(keys)) = context.first() else {
-                deopt_unsupported!(path, state, "Object.keys() requires an argument.");
-              };
-
-              return Some(EvaluateResultValue::Expr(keys.clone()));
-            },
-            CallbackType::Object(ObjectJS::Values) => {
-              let Some(EvaluateResultValue::Expr(values)) = context.first() else {
-                deopt_unsupported!(path, state, "Object.values() requires an argument.");
-              };
-
-              return Some(EvaluateResultValue::Expr(values.clone()));
-            },
-            CallbackType::Object(ObjectJS::FromEntries) => {
-              let Some(EvaluateResultValue::Entries(entries)) = context.first() else {
-                deopt_unsupported!(
-                  path,
-                  state,
-                  "Object.fromEntries() requires an array of [key, value] entries."
-                );
-              };
-
-              let mut entry_elems = Vec::with_capacity(entries.len());
-
-              for (key, value) in entries {
-                let Lit::Str(lit_str) = key else {
-                  deopt_unsupported!(path, state, OBJECT_KEY_MUST_BE_IDENT);
-                };
-
-                let key_str = convert_atom_to_str_ref(&lit_str.value);
-
-                entry_elems.push(create_ident_key_value_prop(key_str, *value.clone()));
-              }
-
-              return Some(EvaluateResultValue::Expr(create_object_expression(
-                entry_elems,
-              )));
-            },
-            CallbackType::Math(MathJS::Pow) => {
-              let Some(EvaluateResultValue::Vec(args)) = context.first() else {
-                deopt_unsupported!(path, state, "Math.pow() requires an argument.");
-              };
-
-              // Cloned off the receiver so the numeric read can borrow the
-              // evaluation state it records a refusal on.
-              let args = args.clone();
-              let num_args = args_to_numbers(&args, path, state, traversal_state, fns)?;
-
-              let (Some(base), Some(exp)) = (num_args.first(), num_args.get(1)) else {
-                deopt_unsupported!(path, state, "Math.pow() requires two numeric arguments.");
-              };
-
-              let result = base.powf(*exp);
-
-              return Some(EvaluateResultValue::Expr(create_number_expr(result)));
-            },
-            CallbackType::Math(MathJS::Round | MathJS::Floor | MathJS::Ceil) => {
-              let Some(EvaluateResultValue::Expr(expr)) = context.first() else {
-                deopt_unsupported!(
-                  path,
-                  state,
-                  "Math.round()/Math.ceil()/Math.floor() requires one numeric argument."
-                );
-              };
-
-              let expr = expr.clone();
-
-              let num = match expr_to_num(&expr, state, traversal_state, fns) {
-                Ok(num) => num,
-                Err(error) => deopt_unsupported!(path, state, error.to_string().as_str()),
-              };
-
-              let result = match func.as_ref() {
-                // Not `f64::round`: it breaks ties away from zero, so it answers
-                // `-2` where `Math.round(-1.5)` is `-1`.
-                CallbackType::Math(MathJS::Round) => js_math_round(num),
-                CallbackType::Math(MathJS::Ceil) => num.ceil(),
-                CallbackType::Math(MathJS::Floor) => num.floor(),
-                _ => stylex_unreachable!("Invalid function type"),
-              };
-
-              return Some(EvaluateResultValue::Expr(create_number_expr(result)));
-            },
-            CallbackType::Math(MathJS::Min | MathJS::Max) => {
-              let Some(EvaluateResultValue::Vec(args)) = context.first() else {
-                deopt_unsupported!(
-                  path,
-                  state,
-                  "Math.min()/Math.max() requires at least one numeric argument."
-                );
-              };
-
-              // Cloned for the reason given on the `Math.pow()` arm above.
-              let args = args.clone();
-              let num_args = args_to_numbers(&args, path, state, traversal_state, fns)?;
-
-              let result = match func.as_ref() {
-                CallbackType::Math(MathJS::Min) => {
-                  num_args.iter().copied().min_by(sort_numbers_factory())
-                },
-                CallbackType::Math(MathJS::Max) => {
-                  num_args.iter().copied().max_by(sort_numbers_factory())
-                },
-                _ => stylex_unreachable!("Invalid function type"),
-              };
-
-              // `Math.min()` is `Infinity` and `Math.max()` is `-Infinity`;
-              // neither is folded, and an empty argument list is a call the
-              // author wrote rather than a state the evaluator broke.
-              let Some(result) = result else {
-                deopt_unsupported!(
-                  path,
-                  state,
-                  "Math.min()/Math.max() requires at least one numeric argument."
-                );
-              };
-
-              return Some(EvaluateResultValue::Expr(create_number_expr(result)));
-            },
-            CallbackType::Math(MathJS::Abs) => {
-              let Some(EvaluateResultValue::Expr(expr)) = context.first() else {
-                deopt_unsupported!(path, state, "Math.abs() requires one numeric argument.");
-              };
-
-              let expr = expr.clone();
-
-              let num = match expr_to_num(&expr, state, traversal_state, fns) {
-                Ok(num) => num,
-                Err(error) => deopt_unsupported!(path, state, error.to_string().as_str()),
-              };
-
-              return Some(EvaluateResultValue::Expr(create_number_expr(num.abs())));
-            },
-            CallbackType::Global(_) => {
-              stylex_unreachable!("Callable globals are applied before the receiver is read.")
-            },
-            CallbackType::Custom(arrow_fn) => {
-              let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
-
-              let evaluation_result = evaluate_cached(arrow_fn, state, traversal_state, fns);
-
-              let Some(EvaluateResultValue::Callback(cb)) = evaluation_result.as_ref() else {
-                deopt_unsupported!(path, state, NON_CONSTANT);
-              };
-
-              let expr_result = cb(args, traversal_state);
-
-              return Some(EvaluateResultValue::Expr(expr_result));
-            },
-          }
+            return Some(EvaluateResultValue::Expr(expr_result));
+          },
         },
         FunctionType::DefaultMarker(default_marker) => {
           return Some(EvaluateResultValue::FunctionConfig(FunctionConfig {

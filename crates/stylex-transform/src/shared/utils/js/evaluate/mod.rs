@@ -61,8 +61,7 @@ use crate::shared::{
 use stylex_ast::ast::convertors::{is_js_undefined, normalize_expr};
 use stylex_ast::ast::factories::{
   create_array_expression, create_arrow_expression, create_expr_or_spread,
-  create_ident_key_value_prop, create_key_value_prop, create_object_expression, create_object_lit,
-  create_string_lit,
+  create_ident_key_value_prop, create_key_value_prop, create_object_lit,
 };
 use stylex_constants::constants::{
   evaluation_errors::{
@@ -73,7 +72,7 @@ use stylex_constants::constants::{
     unsupported_expression, unsupported_operator,
   },
   messages::{
-    ARGUMENT_NOT_EXPRESSION, BUILT_IN_FUNCTION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
+    ARGUMENT_NOT_EXPRESSION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
     ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, KEY_VALUE_EXPECTED, MEMBER_NOT_RESOLVED,
     MEMBER_OBJ_NOT_IDENT, NULLISH_TO_OBJECT, OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND,
     SPREAD_HIDES_OBJECT_KEYS, SPREAD_NOT_SUPPORTED, SPREAD_PROPERTIES_UNREADABLE,
@@ -81,9 +80,7 @@ use stylex_constants::constants::{
   },
 };
 use stylex_enums::{
-  import_path_resolution::ImportPathResolution,
-  js::{CallableGlobalJS, MathJS, ObjectJS},
-  misc::BinaryExprType,
+  import_path_resolution::ImportPathResolution, js::CallableGlobalJS, misc::BinaryExprType,
   value_with_default::ValueWithDefault,
 };
 use stylex_js::coercions;
@@ -93,9 +90,7 @@ use stylex_js::helpers::{
   is_mutation_expr, is_valid_callee,
 };
 use stylex_structures::{named_import_source::ImportSources, stylex_env::EnvEntry};
-use stylex_utils::{
-  collection::sort_numbers_factory, hash::stable_hash_unspanned, swc::get_expr_node_kind,
-};
+use stylex_utils::{hash::stable_hash_unspanned, swc::get_expr_node_kind};
 
 use super::check_declaration::check_ident_declaration;
 

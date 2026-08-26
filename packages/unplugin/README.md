@@ -260,7 +260,7 @@ Routing the StyleX output through a real CSS file has practical benefits:
   modules
 - All CSS follows the same processing rules and bundling strategy
 - CSS can be code-split and optimized alongside other stylesheets
-- The same approach works for Vite, webpack, Rspack, esbuild, Rollup, and Farm
+- The same approach works for Vite, webpack, Rspack, esbuild, and Rollup
 
 How to use it:
 
@@ -328,7 +328,14 @@ The plugin replaces the marker with the generated StyleX CSS during the build.
 > [!NOTE]
 > When `useCssPlaceholder` is enabled, the plugin no longer injects CSS
 > automatically into HTML or emits a separate `stylex.css` file. The CSS goes
-> into your specified CSS file instead.
+> into your specified CSS file instead. If no stylesheet in the build can
+> receive the marker, the build fails rather than emitting a file nothing
+> links.
+
+> [!WARNING]
+> Farm does not support `useCssPlaceholder` yet. Its plugin adapter never
+> receives the bundle hook that replaces the marker, so the marker would stay
+> in the stylesheet. The plugin warns when the two are combined.
 
 > [!IMPORTANT]
 > **Migration from `useViteCssPipeline`**

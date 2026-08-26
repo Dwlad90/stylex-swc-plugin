@@ -59,7 +59,9 @@ export interface UnpluginStylexRSOptions {
    * This allows StyleX CSS to go through the standard bundler CSS pipeline
    * (PostCSS, css-loader, LightningCSS, etc.) for processing.
    *
-   * Works with all bundlers: Vite, Webpack, Rspack, esbuild, Rollup, Farm.
+   * Works with Vite, Webpack, Rspack, esbuild and Rollup. Farm is not
+   * supported yet: its adapter never receives the hook that replaces the
+   * marker.
    */
   useCssPlaceholder?: boolean | string;
 }

@@ -3504,7 +3504,6 @@ dependencies = [
  "radix_fmt",
  "rustc-hash",
  "serde_json",
- "stylex_regex",
  "swc_core",
  "swc_ecma_parser",
  "xxhash-rust",

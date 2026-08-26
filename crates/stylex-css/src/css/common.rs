@@ -211,6 +211,16 @@ pub fn generate_css_rule(
 
 /// Calculates priority for compound pseudo selectors (e.g. `:hover::after`).
 fn get_compound_pseudo_priority(key: &str) -> Option<f64> {
+  // Both alternations in `PSEUDO_PART_REGEX` open with a colon, so a key
+  // without one cannot hold a pseudo part and the scan below can only come
+  // back empty. Asked first because the overwhelming majority of keys reaching
+  // here are plain property names -- `color`, `paddingBottom` -- and running a
+  // backtracking regex over each of them to learn nothing made this the
+  // single hottest leaf in a sampled profile of a large module.
+  if !key.contains(':') {
+    return None;
+  }
+
   let parts: Vec<&str> = PSEUDO_PART_REGEX
     .find_iter(key)
     .flatten()

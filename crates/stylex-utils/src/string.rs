@@ -1,7 +1,5 @@
 use std::borrow::Cow;
 
-use stylex_regex::regex::DASHIFY_REGEX;
-
 /// Converts a camelCase or PascalCase string to its hyphenated (kebab-case)
 /// equivalent by inserting hyphens before uppercase letters and lowercasing
 /// the result.
@@ -19,7 +17,26 @@ pub fn dashify(s: &str) -> Cow<'_, str> {
     return Cow::Borrowed(s);
   }
 
-  Cow::Owned(DASHIFY_REGEX.replace_all(s, "-$1").to_lowercase())
+  let mut dashed = String::with_capacity(s.len() + 4);
+  let mut previous: Option<char> = None;
+
+  for character in s.chars() {
+    // The rule the pattern `(?<=^|[a-z])([A-Z])` spelled: an ASCII uppercase
+    // letter takes a hyphen when it opens the string or follows an ASCII
+    // lowercase one. Both classes are ASCII in the pattern, so a preceding
+    // non-ASCII character is no more a match here than it was there --
+    // `Ǆolume` keeps its single leading character either way.
+    if character.is_ascii_uppercase()
+      && previous.is_none_or(|previous| previous.is_ascii_lowercase())
+    {
+      dashed.push('-');
+    }
+
+    dashed.push(character);
+    previous = Some(character);
+  }
+
+  Cow::Owned(dashed.to_lowercase())
 }
 
 /// Whether a value spells no CSS text at all — empty, or nothing but

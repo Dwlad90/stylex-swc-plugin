@@ -260,7 +260,8 @@ function pickCssAsset(cssAssets: string[]): string | null {
  */
 async function invalidateAndCollectCssModules(
   server: ViteDevServer,
-  placeholder: NormalizedOptions['useCssPlaceholder']
+  placeholder: NormalizedOptions['useCssPlaceholder'],
+  carriesMarker: Map<string, boolean>
 ): Promise<ModuleNode[]> {
   const cssModules: ModuleNode[] = [];
 
@@ -284,8 +285,17 @@ async function invalidateAndCollectCssModules(
         // Skip modules without a valid id
         if (!mod.id) return;
 
-        const content = await promises.readFile(mod.id, 'utf8');
-        if (content.includes(placeholder)) {
+        // Whether a stylesheet holds the marker only changes when the file
+        // does, and the watcher already reports that, so this is read once
+        // rather than on every refresh.
+        let holdsMarker = carriesMarker.get(mod.id);
+
+        if (holdsMarker === undefined) {
+          holdsMarker = (await promises.readFile(mod.id, 'utf8')).includes(placeholder);
+          carriesMarker.set(mod.id, holdsMarker);
+        }
+
+        if (holdsMarker) {
           server.moduleGraph.invalidateModule(mod);
           cssModules.push(mod);
         }
@@ -501,6 +511,9 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   // so the failure has to retry itself. Counted so a permanently broken socket
   // cannot turn into an endless retry loop.
   let cssRefreshFailures = 0;
+  // Which stylesheets hold the marker, keyed by module id. Cleared per file by
+  // the watcher below, since only an edit can change the answer.
+  const cssMarkerCache = new Map<string, boolean>();
 
   // Debounced so a burst of transforms costs one refresh, and re-armable so the
   // next burst gets its own. `viteDevServer` is re-read inside the callback
@@ -526,7 +539,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         // Find all CSS modules that actually contain the placeholder
         const cssModules = await invalidateAndCollectCssModules(
           server,
-          normalizedOptions.useCssPlaceholder
+          normalizedOptions.useCssPlaceholder,
+          cssMarkerCache
         );
 
         // Send update to trigger HMR
@@ -860,11 +874,21 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         viteDevServer = server;
         refreshedRulesRevision = rulesRevision;
         cssRefreshFailures = 0;
+        cssMarkerCache.clear();
+
+        // Editing a stylesheet is the only thing that can add or remove its
+        // marker, so the cached answer is dropped for exactly that file.
+        const forgetMarker = (file: string) => cssMarkerCache.delete(file);
+
+        server.watcher.on('change', forgetMarker);
+        server.watcher.on('unlink', forgetMarker);
+        server.watcher.on('add', forgetMarker);
 
         server.watcher.once('close', () => {
           if (viteDevServer !== server) return;
 
           viteDevServer = null;
+          cssMarkerCache.clear();
           if (cssRefreshTimer) {
             clearTimeout(cssRefreshTimer);
             cssRefreshTimer = null;
@@ -909,7 +933,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             // Find CSS modules that contain the placeholder
             const cssModules = await invalidateAndCollectCssModules(
               server,
-              normalizedOptions.useCssPlaceholder
+              normalizedOptions.useCssPlaceholder,
+              cssMarkerCache
             );
 
             if (cssModules.length > 0) {
@@ -949,7 +974,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           // Find CSS modules that contain the placeholder
           const cssModules = await invalidateAndCollectCssModules(
             server,
-            normalizedOptions.useCssPlaceholder
+            normalizedOptions.useCssPlaceholder,
+            cssMarkerCache
           );
 
           if (cssModules.length > 0) {

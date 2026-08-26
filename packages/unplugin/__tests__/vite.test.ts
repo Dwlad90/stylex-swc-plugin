@@ -1,3 +1,4 @@
+import { promises } from 'node:fs';
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -702,6 +703,63 @@ export const styles = stylex.create({
       const afterEdit = await server.transformRequest('/global.css');
 
       expect(afterEdit?.code).not.toContain('background-color:blue');
+    } finally {
+      await server.close();
+    }
+  });
+
+  // Re-reading every stylesheet in the graph on every refresh does not scale
+  // with the number of CSS modules, and only an edit can change the answer.
+  test('reads a stylesheet once to learn whether it carries the marker', async () => {
+    const server = await createPlaceholderDevServer('.stylex-vite-dev-cache-');
+    const readFileSpy = vi.spyOn(promises, 'readFile');
+
+    try {
+      await server.transformRequest('/main.js');
+      await server.transformRequest('/global.css');
+      await settle();
+
+      const globalCssReads = () =>
+        readFileSpy.mock.calls.filter(call => String(call[0]).endsWith('global.css')).length;
+      const before = globalCssReads();
+
+      await server.transformRequest('/lazy.js');
+      await settle();
+
+      // The second refresh reuses what the first learned.
+      expect(globalCssReads()).toBe(before);
+    } finally {
+      readFileSpy.mockRestore();
+      await server.close();
+    }
+  });
+
+  test('notices the marker being added to a stylesheet after it was cached', async () => {
+    const server = await createPlaceholderDevServer('.stylex-vite-dev-cache-add-');
+    const root = server.config.root;
+    const extraCss = path.join(root, 'extra.css');
+
+    await writeFile(extraCss, '.extra{outline:0}\n');
+
+    try {
+      // Cached as marker-free on the first look.
+      await server.transformRequest('/main.js');
+      await server.transformRequest('/extra.css');
+      await settle();
+
+      await writeFile(extraCss, `.extra{outline:0}\n${placeholder}\n`);
+      server.watcher.emit('change', extraCss);
+
+      const invalidate = vi.spyOn(server.moduleGraph, 'invalidateModule');
+
+      await server.transformRequest('/lazy.js');
+      await settle();
+
+      const invalidated = invalidate.mock.calls.map(call => call[0]?.id ?? '');
+
+      expect(invalidated.some(id => String(id).endsWith('extra.css'))).toBe(true);
+
+      invalidate.mockRestore();
     } finally {
       await server.close();
     }

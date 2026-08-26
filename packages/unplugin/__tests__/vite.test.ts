@@ -611,6 +611,68 @@ export const styles = stylex.create({
     expect(await countDevCssInvalidations()).toBeGreaterThan(0);
   });
 
+  test('injects once when the marker appears several times', async () => {
+    const cssFiles = await buildPlaceholderFixture({
+      files: {
+        'global.css': `body { margin: 0; }\n${placeholder}\n.after-marker { color: green; }\n${placeholder}\n`,
+      },
+    });
+    const source = cssFiles.find(file => file.linked)?.source ?? '';
+
+    expect(countOccurrences(source, 'color:red')).toBe(1);
+    expect(source).not.toContain(placeholder);
+    expect(source).not.toContain('__stylex_placeholder__');
+  });
+
+  test('strips the marker from stylesheets that did not receive the rules', async () => {
+    const cssFiles = await buildPlaceholderFixture({
+      cssCodeSplit: true,
+      files: {
+        'lazy.js': `import * as stylex from '@stylexjs/stylex';\nimport './lazy.css';\n\nexport const styles = stylex.create({ lazy: { backgroundColor: 'blue' } });\n`,
+        'lazy.css': `.lazy-scope { outline: 0; }\n${placeholder}\n`,
+      },
+    });
+
+    const withRules = cssFiles.filter(file => file.source.includes('color:red'));
+
+    expect(withRules).toHaveLength(1);
+
+    for (const file of cssFiles) {
+      expect(file.source).not.toContain(placeholder);
+      expect(file.source).not.toContain('__stylex_placeholder__');
+    }
+  });
+
+  test('injects once when the default `@stylex;` marker is repeated', async () => {
+    const cssFiles = await buildPlaceholderFixture({
+      files: {
+        'global.css': 'body { margin: 0; }\n@stylex;\n.after-marker { color: green; }\n@stylex;\n',
+      },
+      pluginOptions: { useCssPlaceholder: true },
+    });
+    const source = cssFiles.find(file => file.linked)?.source ?? '';
+
+    // Unlike a comment marker, this one survives minification, so a leftover
+    // would ship as an unknown at-rule.
+    expect(source).not.toContain('@stylex;');
+    expect(countOccurrences(source, 'color:red')).toBe(1);
+  });
+
+  test('keeps an `@import` that follows the marker', async () => {
+    const cssFiles = await buildPlaceholderFixture({
+      files: {
+        'global.css': `${placeholder}\n@import './imported.css';\nbody { margin: 0; }\n`,
+        'imported.css': '.imported { outline-style: dashed; }\n',
+      },
+    });
+    const source = cssFiles.find(file => file.linked)?.source ?? '';
+
+    // A `@layer` statement is allowed ahead of `@import`, so replacing the
+    // marker in place cannot invalidate one that follows it.
+    expect(source).toContain('outline-style:dashed');
+    expect(source).toContain('color:red');
+  });
+
   test('should inject a base-prefixed stylesheet link in dev', async () => {
     const html = await transformDevIndexHtml('/app/');
 

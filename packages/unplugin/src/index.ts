@@ -68,6 +68,27 @@ const CSS_PLACEHOLDER_SENTINEL = '@layer __stylex_placeholder__;';
  * on its own would never be linked and the styles would simply be missing at
  * runtime. Failing the build is the only honest outcome.
  */
+/**
+ * Replaces the first marker occurrence and drops every later one: repeating the
+ * whole rule set per marker would only duplicate it. Splitting rather than
+ * `String#replace` also keeps `$&`-like sequences in the CSS literal intact.
+ */
+function replaceFirstMarker(source: string, marker: string, replacement: string): string {
+  const [head, ...rest] = source.split(marker);
+
+  if (head === undefined || rest.length === 0) return source;
+
+  return head + replacement + rest.join('');
+}
+
+/**
+ * Removes every marker occurrence, for the stylesheets that did not receive the
+ * rules.
+ */
+function stripMarkers(source: string, markers: string[]): string {
+  return markers.reduce((stripped, marker) => stripped.split(marker).join(''), source);
+}
+
 const MISSING_INJECTION_TARGET_ERROR =
   'StyleX: no CSS asset was available to receive the placeholder styles. ' +
   'Make sure the stylesheet holding the marker is imported by the module graph.';
@@ -275,9 +296,7 @@ async function injectStyleXCss<TSource>(
     const source = asset.source().toString();
     if (source.includes(injectMarker)) {
       const finalCSS = await transformStyleXCSS(collectedCSS, fileName, normalizedOptions);
-      // Replacement callback keeps `$&`/`$'`-like sequences in the CSS literal
-      const newSource = source.replace(injectMarker, () => finalCSS);
-      updateAsset(fileName, createRawSource(newSource));
+      updateAsset(fileName, createRawSource(replaceFirstMarker(source, injectMarker, finalCSS)));
       injected = true;
       break;
     }
@@ -342,28 +361,32 @@ async function injectPlaceholderIntoBundle(
   // as it does under plain Rollup.
   const markers = [CSS_PLACEHOLDER_SENTINEL, normalizedOptions.useCssPlaceholder];
 
+  let injected = false;
+
   // First pass: look for marker-based injection
   for (const asset of cssAssets) {
-    const source = asset.source.toString();
+    let source = asset.source.toString();
     const marker = markers.find(candidate => source.includes(candidate));
 
     if (!marker) continue;
 
-    // An empty rule set still has to take the sentinel back out, otherwise it
-    // ships to the browser.
-    const finalCSS = collectedCSS
-      ? await transformStyleXCSS(collectedCSS, asset.fileName, normalizedOptions)
-      : '';
+    if (!injected) {
+      // An empty rule set still has to take the sentinel back out, otherwise it
+      // ships to the browser.
+      const finalCSS = collectedCSS
+        ? await transformStyleXCSS(collectedCSS, asset.fileName, normalizedOptions)
+        : '';
 
-    // Replacement callback keeps `$&`/`$\'`-like sequences in the CSS literal
-    asset.source = source.replace(marker, () => finalCSS);
+      source = replaceFirstMarker(source, marker, finalCSS);
+      injected = true;
+    }
 
-    return;
+    // Whatever is left over -- a second marker here, or a marker in another
+    // stylesheet -- would repeat the rules, so it is only removed.
+    asset.source = stripMarkers(source, markers);
   }
 
-  if (!collectedCSS) return;
-
-  let injected = false;
+  if (injected || !collectedCSS) return;
 
   // Fallback: if marker not found, append to preferred CSS asset
   if (cssAssets.length > 0) {
@@ -697,10 +720,11 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         if (!viteDevServer) {
           placeholderSeen = true;
 
-          return cssContent.replace(
-            normalizedOptions.useCssPlaceholder,
-            () => CSS_PLACEHOLDER_SENTINEL
-          );
+          // Every occurrence, so a stray second marker cannot survive into the
+          // output: generateBundle fills the first and removes the rest.
+          return cssContent
+            .split(normalizedOptions.useCssPlaceholder)
+            .join(CSS_PLACEHOLDER_SENTINEL);
         }
 
         // Get collected StyleX CSS
@@ -721,7 +745,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           replacementCSS = await transformStyleXCSS(collectedCSS, id, normalizedOptions);
         }
 
-        return cssContent.replace(normalizedOptions.useCssPlaceholder, () => replacementCSS);
+        return replaceFirstMarker(cssContent, normalizedOptions.useCssPlaceholder, replacementCSS);
       },
 
       generateBundle: placeholderGenerateBundle,

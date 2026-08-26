@@ -213,7 +213,8 @@ async function minifyInjectedCss(css: string, minifier: CssMinifier): Promise<st
  */
 const MISSING_INJECTION_TARGET_ERROR =
   'StyleX: no CSS asset was available to receive the placeholder styles. ' +
-  'Make sure the stylesheet holding the marker is imported by the module graph.';
+  'Make sure the stylesheet holding the marker is imported by the module graph. ' +
+  "Set `onMissingCssPlaceholder` to 'warn' or 'ignore' if that is expected.";
 
 /**
  * Only the Vite adapter learns from its load hook that the marker really is
@@ -223,7 +224,8 @@ const MISSING_INJECTION_TARGET_ERROR =
  */
 const MISSING_INJECTION_TARGET_WARNING =
   'StyleX: no CSS asset contained the placeholder marker, so no styles were ' +
-  'injected. The stylesheet holding the marker may be missing from the build.';
+  'injected. The stylesheet holding the marker may be missing from the build. ' +
+  "Set `onMissingCssPlaceholder` to 'ignore' if that is expected.";
 
 function replaceFileName(original: string, css: string) {
   if (!original.includes('[hash]')) {
@@ -237,17 +239,8 @@ function replaceFileName(original: string, css: string) {
  * Pick a stable CSS asset to inject into.
  * Preference: index.css > style.css > main.css > first .css asset
  */
-function pickCssAsset(
-  cssAssets: string[],
-  chooseFn?: (fileName: string) => boolean
-): string | null {
+function pickCssAsset(cssAssets: string[]): string | null {
   if (cssAssets.length === 0) return null;
-
-  // If user provided a chooser function, use it first
-  if (typeof chooseFn === 'function') {
-    const chosen = cssAssets.find(chooseFn);
-    if (chosen) return chosen;
-  }
 
   // Prefer well-known CSS filenames
   const preferred =

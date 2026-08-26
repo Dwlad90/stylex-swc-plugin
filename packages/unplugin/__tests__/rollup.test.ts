@@ -103,6 +103,27 @@ describe('@stylexswc/unplugin/rollup', () => {
     );
   });
 
+  // Reaches the injection with a bundle entry a host reported as a stylesheet
+  // but without any source, which the narrowing used to promise could not
+  // happen.
+  test('skips a CSS bundle entry that carries no source', async () => {
+    const plugin = stylexPlugin({ useCssPlaceholder: placeholder }) as rollup.Plugin;
+    const generateBundle = plugin.generateBundle;
+
+    if (typeof generateBundle !== 'object' || typeof generateBundle.handler !== 'function') {
+      throw new Error('generateBundle is not an ordered hook');
+    }
+
+    const bundle = {
+      'sourceless.css': { fileName: 'sourceless.css', type: 'asset' },
+    } as unknown as rollup.OutputBundle;
+    const context = { error: () => {}, warn: () => {} } as unknown as rollup.PluginContext;
+
+    await expect(
+      generateBundle.handler.call(context, {} as rollup.NormalizedOutputOptions, bundle, false)
+    ).resolves.not.toThrow();
+  });
+
   test('extracts CSS and removes stylex.inject calls', async () => {
     const { css, js } = await runStylex({ fileName: 'stylex.css' });
 

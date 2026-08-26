@@ -376,9 +376,12 @@ async function injectPlaceholderIntoBundle(
 
   const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
 
+  // The source is tested, not assumed: the narrowing hands back a type where it
+  // is required, so a host reporting a stylesheet without one would otherwise
+  // fail on the read below rather than here.
   const cssAssets = Object.values(bundle).filter(
     (output): output is BundleAssetLike =>
-      output.type === 'asset' && output.fileName.endsWith('.css')
+      output.type === 'asset' && output.fileName.endsWith('.css') && output.source != null
   );
 
   // The build placeholder is what the Vite load hook leaves behind; the raw

@@ -415,8 +415,64 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   // same process (e.g. Next.js client/server, or several Vite dev servers)
   // don't clobber each other's dev-server reference or invalidation flag.
   let viteDevServer: ViteDevServer | null = null;
-  let hasInvalidatedInitialCSS = false;
-  let initialCssInvalidationTimer: ReturnType<typeof setTimeout> | null = null;
+  // Counts the transforms that contributed StyleX rules. A refresh is owed
+  // whenever this moves past the revision the last one covered, which is what
+  // makes late modules -- anything behind a dynamic import -- reach the browser.
+  let rulesRevision = 0;
+  let refreshedRulesRevision = 0;
+  let cssRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Debounced so a burst of transforms costs one refresh, and re-armable so the
+  // next burst gets its own. `viteDevServer` is re-read inside the callback
+  // rather than captured: it is mutable and the server can be torn down during
+  // the wait.
+  function scheduleCssRefresh(): void {
+    if (cssRefreshTimer || rulesRevision === refreshedRulesRevision) return;
+
+    cssRefreshTimer = setTimeout(() => {
+      cssRefreshTimer = null;
+
+      const server = viteDevServer;
+      if (!server) return;
+
+      const coveredRevision = rulesRevision;
+
+      // `setTimeout` expects a void-returning callback, so the async work is
+      // wrapped rather than handed to it directly. The `catch` is the part that
+      // matters: nothing awaits this, so without it a rejection would reach
+      // `unhandledRejection` and take the dev server down over a failed CSS
+      // refresh. `void` alone would silence the lint without handling anything.
+      void (async () => {
+        // Find all CSS modules that actually contain the placeholder
+        const cssModules = await invalidateAndCollectCssModules(
+          server,
+          normalizedOptions.useCssPlaceholder
+        );
+
+        refreshedRulesRevision = coveredRevision;
+
+        // Send update to trigger HMR
+        if (cssModules.length > 0) {
+          server.ws.send({
+            type: 'update',
+            updates: cssModules.map(mod => ({
+              type: 'css-update' as const,
+              acceptedPath: mod.url,
+              path: mod.url,
+              timestamp: Date.now(),
+            })),
+          });
+        }
+
+        // Rules that arrived while this refresh was in flight need their own.
+        if (viteDevServer === server) scheduleCssRefresh();
+      })().catch((error: unknown) => {
+        // A transient read or websocket failure must not swallow the refresh:
+        // leaving the revision untouched lets the next transform retry.
+        console.error('StyleX: failed to refresh placeholder CSS modules', error);
+      });
+    }, 50);
+  }
 
   // Only the Vite load hook can tell that the marker really is part of this
   // build, which is what separates a broken configuration from a build that
@@ -450,8 +506,6 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     buildStart() {
       // stylexRules accumulates during watch mode for proper HMR
       hasCssToExtract = false;
-      // Reset initial CSS invalidation flag for better lifecycle management
-      hasInvalidatedInitialCSS = false;
       placeholderSeen = false;
     },
 
@@ -505,65 +559,15 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           inputSourceMap
         );
 
-        // Invalidate CSS modules in dev mode (initial load only)
-        // For subsequent HMR, handleHotUpdate handles the CSS module inclusion
-        if (normalizedOptions.useCssPlaceholder && viteDevServer && !hasInvalidatedInitialCSS) {
-          const wasCodeTransformed = code !== inputCode;
-
-          if (wasCodeTransformed) {
-            // Set the flag here rather than above the check. Setting it first
-            // burned this one-shot refresh on the earliest StyleX-importing
-            // module that happened to compile to byte-identical output, after
-            // which nothing ever resolved the placeholder for the rest of the
-            // session. It is still assigned synchronously, before any await,
-            // so concurrent transforms cannot both schedule a refresh.
-            hasInvalidatedInitialCSS = true;
-
-            // `setTimeout` expects a void-returning callback, so the async work
-            // is wrapped rather than handed to it directly. The `catch` is the
-            // part that matters: nothing awaits this, so without it a rejection
-            // would reach `unhandledRejection` and take the dev server down
-            // over a failed CSS refresh. `void` alone would silence the lint
-            // without handling anything.
-            //
-            // `viteDevServer` is re-read inside the callback rather than
-            // asserted: it is module-level mutable state and the server can be
-            // torn down during the 50ms wait.
-            initialCssInvalidationTimer = setTimeout(() => {
-              initialCssInvalidationTimer = null;
-              const server = viteDevServer;
-              if (!server) {
-                hasInvalidatedInitialCSS = false;
-                return;
-              }
-
-              void (async () => {
-                // Find all CSS modules that actually contain the placeholder
-                const cssModules = await invalidateAndCollectCssModules(
-                  server,
-                  normalizedOptions.useCssPlaceholder
-                );
-
-                // Send update to trigger HMR
-                if (cssModules.length > 0) {
-                  server.ws.send({
-                    type: 'update',
-                    updates: cssModules.map(mod => ({
-                      type: 'css-update' as const,
-                      acceptedPath: mod.url,
-                      path: mod.url,
-                      timestamp: Date.now(),
-                    })),
-                  });
-                }
-              })().catch((error: unknown) => {
-                // A transient read or websocket failure must not permanently
-                // consume the one initial refresh. A later transform can retry.
-                if (viteDevServer === server) hasInvalidatedInitialCSS = false;
-                console.error('StyleX: failed to refresh placeholder CSS modules', error);
-              });
-            }, 50);
-          }
+        // Refresh the placeholder CSS in dev whenever a module actually
+        // contributed rules. Comparing the code is what tells the two apart:
+        // an untouched module adds nothing to refresh for. HMR for later edits
+        // is still handled by handleHotUpdate.
+        if (normalizedOptions.useCssPlaceholder && viteDevServer && code !== inputCode) {
+          // Bumped synchronously, before any await, so concurrent transforms
+          // cannot lose each other's contribution.
+          rulesRevision += 1;
+          scheduleCssRefresh();
         }
 
         if (typeof wsSend === 'function' && cssFileName) {
@@ -744,22 +748,21 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         }
       },
       configureServer(server) {
-        if (initialCssInvalidationTimer) {
-          clearTimeout(initialCssInvalidationTimer);
-          initialCssInvalidationTimer = null;
+        if (cssRefreshTimer) {
+          clearTimeout(cssRefreshTimer);
+          cssRefreshTimer = null;
         }
 
         viteDevServer = server;
-        hasInvalidatedInitialCSS = false;
+        refreshedRulesRevision = rulesRevision;
 
         server.watcher.once('close', () => {
           if (viteDevServer !== server) return;
 
           viteDevServer = null;
-          hasInvalidatedInitialCSS = false;
-          if (initialCssInvalidationTimer) {
-            clearTimeout(initialCssInvalidationTimer);
-            initialCssInvalidationTimer = null;
+          if (cssRefreshTimer) {
+            clearTimeout(cssRefreshTimer);
+            cssRefreshTimer = null;
           }
         });
 

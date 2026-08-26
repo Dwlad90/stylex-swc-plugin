@@ -325,6 +325,54 @@ const dropCssAssets: Plugin = {
   },
 };
 
+// Counts how many times the dev server is told the placeholder stylesheet is
+// stale. Without a bundle step that invalidation is the only way rules
+// collected after the stylesheet was served can reach the browser.
+async function countDevCssInvalidations(): Promise<number> {
+  const root = await writeFixtureRoot('.stylex-vite-dev-refresh-', placeholderFixtureFiles);
+
+  const server = await createServer({
+    configFile: false,
+    logLevel: 'silent',
+    optimizeDeps: { noDiscovery: true },
+    plugins: [
+      stylexRuntimeStub,
+      stylexSwc({
+        rsOptions: { dev: true, unstable_moduleResolution: { type: 'commonJS' } },
+        useCssPlaceholder: placeholder,
+      }),
+    ],
+    root,
+    server: { middlewareMode: true, preTransformRequests: false },
+  });
+
+  // Comfortably past the plugin's 50ms debounce.
+  const settle = async () =>
+    new Promise(resolve => {
+      setTimeout(resolve, 200);
+    });
+
+  const invalidate = vi.spyOn(server.moduleGraph, 'invalidateModule');
+
+  try {
+    await server.transformRequest('/main.js');
+    await server.transformRequest('/global.css');
+    await settle();
+
+    const beforeLateModule = invalidate.mock.calls.length;
+
+    // The module behind the dynamic import is transformed only now, long after
+    // the stylesheet was served.
+    await server.transformRequest('/lazy.js');
+    await settle();
+
+    return invalidate.mock.calls.length - beforeLateModule;
+  } finally {
+    invalidate.mockRestore();
+    await server.close();
+  }
+}
+
 describe('Vite', () => {
   test('resolves imported defineConsts at-rules before transforming placeholder CSS', async () => {
     const transformCss = vi.fn<(css: string) => string>(rejectUnresolvedAtRules);
@@ -557,6 +605,10 @@ export const styles = stylex.create({
     const emitted = await readdir(path.join(root, 'dist'), { recursive: true });
 
     expect(emitted.filter(name => String(name).endsWith('.css'))).toEqual([]);
+  });
+
+  test('invalidates dev CSS again when a late module adds rules', async () => {
+    expect(await countDevCssInvalidations()).toBeGreaterThan(0);
   });
 
   test('should inject a base-prefixed stylesheet link in dev', async () => {

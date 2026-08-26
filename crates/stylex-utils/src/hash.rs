@@ -1,7 +1,8 @@
 use std::{
   collections::hash_map::DefaultHasher,
   hash::{Hash, Hasher},
-  mem::discriminant,
+  mem::{Discriminant, discriminant},
+  sync::LazyLock,
 };
 
 use xxhash_rust::xxh3::Xxh3Default;
@@ -11,11 +12,11 @@ use swc_core::{
   ecma::{
     ast::{
       ArrayLit, ArrowExpr, AwaitExpr, BigInt, BinExpr, BlockStmtOrExpr, Bool, CallExpr, Callee,
-      ComputedPropName, CondExpr, Expr, ExprOrSpread, Ident, IdentName, Import, Lit, MemberExpr,
-      MemberProp, MetaPropExpr, NewExpr, Null, Number, ObjectLit, OptCall, OptChainBase,
-      OptChainExpr, ParenExpr, Pat, PrivateName, Prop, PropName, PropOrSpread, Regex, SeqExpr, Str,
-      Super, SuperProp, SuperPropExpr, TaggedTpl, ThisExpr, Tpl, TplElement, UnaryExpr, UpdateExpr,
-      YieldExpr,
+      ComputedPropName, CondExpr, Expr, ExprOrSpread, Ident, IdentName, Import, Invalid, Lit,
+      MemberExpr, MemberProp, MetaPropExpr, NewExpr, Null, Number, ObjectLit, OptCall,
+      OptChainBase, OptChainExpr, ParenExpr, Pat, PrivateName, Prop, PropName, PropOrSpread, Regex,
+      SeqExpr, Str, Super, SuperProp, SuperPropExpr, TaggedTpl, ThisExpr, Tpl, TplElement,
+      UnaryExpr, UpdateExpr, YieldExpr,
     },
     utils::drop_span,
   },
@@ -294,6 +295,46 @@ pub fn stable_hash_unspanned_call(call: &CallExpr) -> u128 {
     hasher.finish_wide()
   } else {
     stable_hash_wide(&drop_span(Expr::Call(call.clone())))
+  }
+}
+
+/// Hashes a [`MemberExpr`] producing the exact same key as
+/// `stable_hash_unspanned(&Expr::Member(member.clone()))` — so a member
+/// expression can be looked up against a map keyed by whole-`Expr` spread
+/// hashes — without cloning it into an owned `Expr` on the common, fully
+/// hashable path.
+///
+/// The counterpart of [`stable_hash_unspanned_call`], and it exists for the
+/// same reason: the caller holds a borrowed node and the question it asks runs
+/// on a hot path, so materializing an owned `Expr` per lookup is the cost the
+/// helper removes.
+///
+/// Unlike the call variant, the `Expr::Member` discriminant cannot be taken
+/// from a throwaway stack value: `MemberExpr::obj` is a `Box`, so building one
+/// would allocate on every call. It is computed once into a `LazyLock`
+/// instead. `Discriminant<T>` is `Send + Sync` for every `T` and depends only
+/// on the variant, never on the contents.
+#[inline]
+pub fn stable_hash_unspanned_member(member: &MemberExpr) -> u128 {
+  static MEMBER_DISCRIMINANT: LazyLock<Discriminant<Expr>> = LazyLock::new(|| {
+    discriminant(&Expr::Member(MemberExpr {
+      span: DUMMY_SP,
+      obj: Box::new(Expr::Invalid(Invalid { span: DUMMY_SP })),
+      prop: MemberProp::PrivateName(PrivateName {
+        span: DUMMY_SP,
+        name: "".into(),
+      }),
+    }))
+  });
+
+  let mut hasher = WideHasher::new();
+
+  MEMBER_DISCRIMINANT.hash(&mut hasher);
+
+  if hash_member_expr_unspanned(member, &mut hasher) {
+    hasher.finish_wide()
+  } else {
+    stable_hash_wide(&drop_span(Expr::Member(member.clone())))
   }
 }
 

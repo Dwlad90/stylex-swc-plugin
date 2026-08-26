@@ -11,7 +11,7 @@ import type { UnpluginStylexRSOptions } from '../src/index.js';
 import stylexPlugin from '../src/rollup.js';
 
 describe('@stylexswc/unplugin/rollup', () => {
-  async function runStylex(options: UnpluginStylexRSOptions) {
+  async function runStylex(options: UnpluginStylexRSOptions, extraPlugins: rollup.Plugin[] = []) {
     // Configure a rollup bundle
     const bundle = await rollup.rollup({
       // Remove stylex runtime from bundle
@@ -24,6 +24,7 @@ describe('@stylexswc/unplugin/rollup', () => {
           useCSSLayers: true,
           ...options,
         }),
+        ...extraPlugins,
       ],
     });
 
@@ -48,6 +49,43 @@ describe('@stylexswc/unplugin/rollup', () => {
 
     return { css, js, output };
   }
+
+  // Rollup has no CSS pipeline of its own, so the stylesheet carrying the
+  // marker is emitted the way a CSS plugin would emit it.
+  const placeholder = '/* @stylex-placeholder */';
+
+  function emitPlaceholderStylesheet(): rollup.Plugin {
+    return {
+      name: 'emit-placeholder-stylesheet',
+      buildEnd() {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'styles.css',
+          source: `body{margin:0}\n${placeholder}\n`,
+        });
+      },
+    };
+  }
+
+  test('replaces the placeholder marker in an emitted stylesheet', async () => {
+    const { output } = await runStylex({ useCssPlaceholder: placeholder }, [
+      emitPlaceholderStylesheet(),
+    ]);
+
+    const stylesheet = output.find(
+      chunkOrAsset => chunkOrAsset.type === 'asset' && chunkOrAsset.fileName === 'styles.css'
+    ) as rollup.OutputAsset | undefined;
+    const cssFileNames = output
+      .filter(chunkOrAsset => chunkOrAsset.fileName.endsWith('.css'))
+      .map(chunkOrAsset => chunkOrAsset.fileName);
+
+    expect(stylesheet?.source).toContain('body{margin:0}');
+    expect(stylesheet?.source).toContain('color');
+    expect(stylesheet?.source).not.toContain(placeholder);
+    // Placeholder mode never links a standalone stylesheet, so there must not
+    // be a second one.
+    expect(cssFileNames).toEqual(['styles.css']);
+  });
 
   test('extracts CSS and removes stylex.inject calls', async () => {
     const { css, js } = await runStylex({ fileName: 'stylex.css' });

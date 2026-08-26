@@ -387,9 +387,18 @@ async function injectPlaceholderIntoBundle(
 }
 
 export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefined> = (
-  options = {}
+  options = {},
+  meta
 ) => {
   const normalizedOptions = normalizeOptions(options);
+
+  if (normalizedOptions.useCssPlaceholder && meta.framework === 'farm') {
+    // Farm maps a fixed hook list and never receives `generateBundle`, so the
+    // marker would simply stay in the stylesheet.
+    console.warn(
+      'StyleX: `useCssPlaceholder` is not supported under Farm yet; the marker will not be replaced.'
+    );
+  }
 
   const transformedOptions: TransformedOptions = {
     useLayers: normalizedOptions.useLayers,
@@ -1071,8 +1080,6 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           return resource.htmlResource;
         },
       },
-      // Farm uses Rollup-like bundle hooks, so generateBundle handles CSS injection
-      // The useCssPlaceholder logic is handled in the shared generateBundle (via Vite hooks)
     },
     rspack(compiler) {
       if (!normalizedOptions.useCssPlaceholder) return;

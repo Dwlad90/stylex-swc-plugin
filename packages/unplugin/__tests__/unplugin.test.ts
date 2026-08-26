@@ -276,6 +276,18 @@ describe('@stylexswc/unplugin', () => {
     expect(Object.keys(assets)).toEqual([]);
   });
 
+  test('warns that Farm does not support placeholder mode', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      unplugin.raw({ useCssPlaceholder: true }, { framework: 'farm' } as UnpluginContextMeta);
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('not supported under Farm'));
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   test('transform error includes the file path and preserves cause', async () => {
     const plugin = unplugin.raw({}, { framework: 'rollup', versions: {} });
     const pluginInstance = Array.isArray(plugin) ? plugin[0] : plugin;

@@ -254,11 +254,13 @@ The `filePath` argument identifies the CSS destination and is bundler-specific:
 
 Routing the StyleX output through a real CSS file has practical benefits:
 
-- The generated CSS goes through the bundler's CSS pipeline (PostCSS, Lightning
-  CSS, css-loader, and so on)
+- Your stylesheet keeps going through the bundler's CSS pipeline (PostCSS,
+  Lightning CSS, css-loader, and so on), and the StyleX rules land inside it at
+  the marker
 - Deterministic builds — no race conditions or hash instability from virtual
   modules
-- All CSS follows the same processing rules and bundling strategy
+- One stylesheet, so the rules follow the same bundling strategy as the rest of
+  your CSS
 - CSS can be code-split and optimized alongside other stylesheets
 - The same approach works for Vite, webpack, Rspack, esbuild, and Rollup
 
@@ -337,6 +339,21 @@ The plugin replaces the marker with the generated StyleX CSS during the build.
 > for instance — takes that target away, so combining one with
 > `useCssPlaceholder` under Vite fails the build. Set
 > `onMissingCssPlaceholder` to `'warn'` when that is expected.
+
+> [!IMPORTANT]
+> **What the CSS pipeline does and does not see**
+>
+> Your stylesheet goes through the pipeline in full. The StyleX rules do not:
+> in a build they are spliced in at the marker once the bundle is assembled,
+> because modules behind a dynamic import are transformed long after the
+> stylesheet is loaded, and there is no earlier point where the rule set is
+> complete.
+>
+> So the rules are minified along with everything else, but per-module steps
+> such as PostCSS or Lightning CSS transpilation never run over them. Use
+> [`transformCss`](#transformcss) to run your own processing over the rules.
+> The dev server has no bundle step and inlines the rules in the stylesheet, so
+> there the pipeline sees everything.
 
 > [!WARNING]
 > Farm does not support `useCssPlaceholder` yet. Its plugin adapter never

@@ -68,8 +68,15 @@ export interface UnpluginStylexRSOptions {
    * { useCssPlaceholder: '/* INJECT_STYLEX_HERE *\/' }
    * ```
    *
-   * This allows StyleX CSS to go through the standard bundler CSS pipeline
-   * (PostCSS, css-loader, LightningCSS, etc.) for processing.
+   * This keeps your stylesheet on the standard bundler CSS pipeline (PostCSS,
+   * css-loader, LightningCSS, etc.) with the StyleX rules inside it.
+   *
+   * In a build the rules themselves are spliced in at the marker once the
+   * bundle is assembled, since modules behind a dynamic import are transformed
+   * long after the stylesheet is loaded. They are minified with the rest of the
+   * output, but per-module steps such as PostCSS do not run over them; use
+   * `transformCss` for that. The dev server has no bundle step and inlines the
+   * rules, so there the whole pipeline sees them.
    *
    * Works with Vite, Webpack, Rspack, esbuild and Rollup. Farm is not
    * supported yet: its adapter never receives the hook that replaces the

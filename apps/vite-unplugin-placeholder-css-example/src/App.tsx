@@ -5,6 +5,9 @@ import * as stylex from '@stylexjs/stylex';
 import { Text } from '@stylexswc/design-system';
 import { breakpoints } from '@stylexswc/design-system/consts.stylex';
 import { tokens } from '@stylexswc/design-system/tokens.stylex';
+import { lazy, Suspense } from 'react';
+
+const LateCard = lazy(() => import('./LateCard'));
 
 const styles = stylex.create({
   main: {
@@ -63,6 +66,9 @@ export default function App() {
       <div {...stylex.props(styles.card, styles.redBg, styles.onlyDesktop)}>
         <Text>Red rounded rectangle with green text</Text>
       </div>
+      <Suspense fallback={null}>
+        <LateCard />
+      </Suspense>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-turbopack-example",
-  "version": "0.18.4",
+  "version": "0.18.5-rc.1",
   "private": true,
   "scripts": {
     "build": "next build",

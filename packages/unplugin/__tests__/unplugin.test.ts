@@ -8,6 +8,7 @@ import { vi, describe, expect, test } from 'vitest';
 
 import unplugin from '../src';
 import stylexPlugin from '../src/rollup';
+import type { UnpluginStylexRSOptions } from '../src/types';
 
 type TestPluginInstance = {
   buildStart?: (this: UnpluginBuildContext) => void;
@@ -59,7 +60,14 @@ async function collectStyleXRules(pluginInstance: TestPluginInstance) {
   );
 }
 
-async function runWebpackLikeCssInjection(framework: 'webpack' | 'rspack') {
+async function runWebpackLikeCssInjection(
+  framework: 'webpack' | 'rspack',
+  initialAssets: Record<string, string> = { 'app.css': 'body{margin:0}\n@stylex;' },
+  extraOptions: UnpluginStylexRSOptions = {},
+  // Skipped to reach a build that carries the marker but produced no rules,
+  // which still has to leave the marker out of the output.
+  collectRules = true
+) {
   const transformCss = vi.fn(async (css: string, filePath: string | undefined) => {
     return `${css}\n/* transformed:${framework}:${filePath} */`;
   });
@@ -71,6 +79,7 @@ async function runWebpackLikeCssInjection(framework: 'webpack' | 'rspack') {
         runtimeInjection: false,
         dev: false,
       },
+      ...extraOptions,
     },
     { framework } as UnpluginContextMeta
   );
@@ -80,13 +89,19 @@ async function runWebpackLikeCssInjection(framework: 'webpack' | 'rspack') {
     throw new Error('Plugin instance is undefined');
   }
 
-  await collectStyleXRules(pluginInstance);
+  if (collectRules) {
+    await collectStyleXRules(pluginInstance);
+  }
 
   type MockAssets = Record<string, ReturnType<typeof createMockCssAsset>>;
+
   let processAssetsCallback: ((assets: MockAssets) => Promise<void>) | undefined;
-  const assets = {
-    'app.css': createMockCssAsset('body{margin:0}\n@stylex;'),
-  };
+  const assets: MockAssets = Object.fromEntries(
+    Object.entries(initialAssets).map(([fileName, source]) => [
+      fileName,
+      createMockCssAsset(source),
+    ])
+  );
   const compilation = {
     hooks: {
       processAssets: {
@@ -96,15 +111,17 @@ async function runWebpackLikeCssInjection(framework: 'webpack' | 'rspack') {
       },
     },
     updateAsset: vi.fn((fileName: string, source: ReturnType<typeof createMockCssAsset>) => {
-      assets[fileName as keyof typeof assets] = source;
+      assets[fileName] = source;
     }),
     emitAsset: vi.fn(),
+    warnings: [] as Error[],
   };
   const compiler = {
     webpack: {
       Compilation: {
         PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE: 0,
       },
+      WebpackError: class WebpackError extends Error {},
       sources: {
         RawSource: class RawSource {
           #source: string;
@@ -229,7 +246,7 @@ describe('@stylexswc/unplugin', () => {
 
   test('webpack hook transforms StyleX CSS before placeholder injection', async () => {
     const { assets, compilation, transformCss } = await runWebpackLikeCssInjection('webpack');
-    const finalCSS = assets['app.css'].source().toString();
+    const finalCSS = assets['app.css']?.source().toString();
 
     expect(transformCss).toHaveBeenCalledTimes(1);
     expect(transformCss.mock.calls[0]?.[1]).toBe('app.css');
@@ -242,7 +259,7 @@ describe('@stylexswc/unplugin', () => {
 
   test('rspack hook transforms StyleX CSS before placeholder injection', async () => {
     const { assets, compilation, transformCss } = await runWebpackLikeCssInjection('rspack');
-    const finalCSS = assets['app.css'].source().toString();
+    const finalCSS = assets['app.css']?.source().toString();
 
     expect(transformCss).toHaveBeenCalledTimes(1);
     expect(transformCss.mock.calls[0]?.[1]).toBe('app.css');
@@ -251,6 +268,88 @@ describe('@stylexswc/unplugin', () => {
     expect(finalCSS).toContain('color:red');
     expect(finalCSS).toContain('/* transformed:rspack:app.css */');
     expect(finalCSS).not.toContain('@stylex;');
+  });
+
+  test('webpack warns instead of emitting a stylesheet nothing links', async () => {
+    const { assets, compilation } = await runWebpackLikeCssInjection('webpack', {});
+
+    // Placeholder mode never links an emitted file, so emitting one here would
+    // only hide the fact that the styles cannot be delivered.
+    expect(compilation.emitAsset).not.toHaveBeenCalled();
+    expect(Object.keys(assets)).toEqual([]);
+    expect(compilation.warnings).toHaveLength(1);
+    expect(compilation.warnings[0]?.message).toContain('no CSS asset contained the placeholder');
+  });
+
+  test('rspack warns instead of emitting a stylesheet nothing links', async () => {
+    const { assets, compilation } = await runWebpackLikeCssInjection('rspack', {});
+
+    expect(compilation.emitAsset).not.toHaveBeenCalled();
+    expect(Object.keys(assets)).toEqual([]);
+    expect(compilation.warnings).toHaveLength(1);
+  });
+
+  test('webpack stays silent about a missing target on request', async () => {
+    const { compilation } = await runWebpackLikeCssInjection(
+      'webpack',
+      {},
+      {
+        onMissingCssPlaceholder: 'ignore',
+      }
+    );
+
+    expect(compilation.warnings).toEqual([]);
+  });
+
+  test('webpack does not warn when the marker was replaced', async () => {
+    const { compilation } = await runWebpackLikeCssInjection('webpack');
+
+    expect(compilation.warnings).toEqual([]);
+  });
+
+  // A marker the rules never replaced is invalid CSS the browser is handed for
+  // nothing, so the cleanup cannot depend on there being rules to inject.
+  test.each(['webpack', 'rspack'] as const)(
+    '%s leaves no marker behind when the build has no StyleX rules',
+    async framework => {
+      const { assets, compilation } = await runWebpackLikeCssInjection(
+        framework,
+        { 'app.css': 'body{margin:0}\n@stylex;' },
+        {},
+        false
+      );
+
+      expect(assets['app.css']?.source().toString()).toBe('body{margin:0}\n');
+      // Nothing went missing, so there is nothing to report either.
+      expect(compilation.warnings).toEqual([]);
+    }
+  );
+
+  test.each(['webpack', 'rspack'] as const)(
+    '%s strips the marker from a stylesheet that did not receive the rules',
+    async framework => {
+      const { assets } = await runWebpackLikeCssInjection(framework, {
+        'app.css': 'body{margin:0}\n@stylex;',
+        'other.css': '.other{outline:0}\n@stylex;',
+      });
+
+      expect(assets['app.css']?.source().toString()).toContain('color:red');
+      // The rules belong in one stylesheet; a second copy would only duplicate
+      // them, so the other marker is removed rather than filled.
+      expect(assets['other.css']?.source().toString()).toBe('.other{outline:0}\n');
+    }
+  );
+
+  test('warns that Farm does not support placeholder mode', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      unplugin.raw({ useCssPlaceholder: true }, { framework: 'farm' } as UnpluginContextMeta);
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('not supported under Farm'));
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   test('transform error includes the file path and preserves cause', async () => {

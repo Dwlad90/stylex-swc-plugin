@@ -379,27 +379,21 @@ fn a_template_literal_refuses_one_level_past_the_ceiling() {
   ));
 }
 
-// A nested `Math.max` is the one shape in this file that does not answer to the
-// configured ceiling at all. `Math` folds in the engine now, and the engine's
-// parser recurses on the bare thread stack, so the fold carries a ceiling of its
-// own -- 32 levels, which a `Math.max` that also adds spends two of per source
-// level. It refuses at 17 where it folded 158 before the statics moved, and
-// raising the project's ceiling does not move it.
-//
-// That is the second, lower limit ticket 11 exists to remove; the string and
-// array surfaces have answered to it since their own tables were deleted, so
-// this is `Math` joining a rule rather than a rule made for `Math`.
+// A nested `Math.max` folds in the engine, and it answers to the configured
+// ceiling like every other shape in this file: half of it, because a `Math.max`
+// that also adds spends two fold levels per source level. Half of 320 is the
+// boundary below.
 #[test]
 fn a_builtin_call_folds_at_the_deepest_accepted_nesting() {
   let output = fold_deep(&create(
     "const MY_CONST = 5;",
     &format!(
       "base: {{ zIndex: {} }},",
-      nest("Math.max(", " + 1, 0)", "MY_CONST", 16)
+      nest("Math.max(", " + 1, 0)", "MY_CONST", 160)
     ),
   ));
 
-  assert!(output.contains(".x1jinmle{z-index:21}"));
+  assert!(output.contains(".xj7c5yd{z-index:165}"));
 }
 
 #[test]
@@ -409,7 +403,7 @@ fn a_builtin_call_refuses_one_level_past_the_ceiling() {
     "const MY_CONST = 5;",
     &format!(
       "base: {{ zIndex: {} }},",
-      nest("Math.max(", " + 1, 0)", "MY_CONST", 17)
+      nest("Math.max(", " + 1, 0)", "MY_CONST", 161)
     ),
   ));
 }
@@ -689,23 +683,18 @@ fn a_style_array_element_refuses_one_level_past_the_ceiling() {
 
 // `Array(n)` is a call to a native function, so it folds in the engine and its
 // length is walked by the fold's guard rather than by the evaluator's descent.
-// The guard carries a ceiling of its own -- the engine's parser recurses on the
-// bare thread stack -- and it does not move when a project raises the
-// evaluator's, so under a raised ceiling it is the one that arrives first.
-//
-// It also counts something else: nodes rather than evaluation levels, and
-// `(x + 1)` is two nodes. So the boundary is fifteen additions here where the
-// bare arithmetic above reaches three hundred and seventeen, and the two numbers
-// being equal at the shipped default does not make them interchangeable. Ticket
-// 11 is where they become one.
+// Both spend the same configured ceiling, but the guard counts something else:
+// nodes rather than evaluation levels, and `(x + 1)` is two nodes. So the
+// boundary is half what the bare arithmetic above reaches, and the two numbers
+// answer to one setting without being the same number.
 #[test]
 fn an_array_length_folds_at_the_deepest_the_fold_admits() {
   let output = fold_deep(&create(
     "const MY_CONST = 5;",
-    &format!("base: {{ zIndex: Array({}).length }},", arithmetic(15)),
+    &format!("base: {{ zIndex: Array({}).length }},", arithmetic(159)),
   ));
 
-  assert!(output.contains(".x1355qak{z-index:20}"));
+  assert!(output.contains(".xf8gxui{z-index:164}"));
 }
 
 #[test]
@@ -713,8 +702,41 @@ fn an_array_length_folds_at_the_deepest_the_fold_admits() {
 fn an_array_length_refuses_one_level_past_what_the_fold_admits() {
   fold_deep(&create(
     "const MY_CONST = 5;",
-    &format!("base: {{ zIndex: Array({}).length }},", arithmetic(16)),
+    &format!("base: {{ zIndex: Array({}).length }},", arithmetic(160)),
   ));
+}
+
+// The deepest a fold goes: a deep expression whose deepest leaf is a *name*,
+// bound to a value that is deep in its own right. The guard walks the
+// expression, and the value it resolves the name to is a walk of its own
+// measured against the whole ceiling -- so the two are inside one another and
+// the stack has to hold both at once. Nothing shallower reaches that, which is
+// why this shape is here rather than a deeper version of the cases above.
+//
+// Both depths are in the folded string: one `b` per level of the value and one
+// `c` per level of the expression around it, so the class name is a hash over
+// a value only both descents produce.
+#[test]
+fn a_deep_expression_reading_a_deep_value_folds_rather_than_aborting() {
+  const LEVELS: usize = 90;
+
+  let output = fold_deep(&create(
+    &format!("const DEEP = {};", nest("[", ", 'b']", "['a']", LEVELS)),
+    &format!(
+      "base: {{ content: {}.join('') }},",
+      nest("[", ", 'c']", "DEEP", LEVELS)
+    ),
+  ));
+
+  // A nested array inside another stringifies with `,` between elements, so
+  // each level of the value shows up as `,b` and each level of the expression
+  // as `,c` -- except the outermost, whose separator is the `''` given to
+  // `join`.
+  assert!(output.contains(&format!(
+    ".xbqvfa8{{content:\"a{}{}c\"}}",
+    ",b".repeat(LEVELS),
+    ",c".repeat(LEVELS - 1)
+  )));
 }
 
 // ──────────────────────────────────────────────

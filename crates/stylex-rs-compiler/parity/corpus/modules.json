@@ -1939,10 +1939,10 @@
     },
     {
       "id": "modules-06-deep-nesting",
-      "label": "nesting past what the engine's parser survives",
+      "label": "nesting past the configured evaluation depth",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[['a']]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].join('') },\n});\n",
       "origin": "issue 06, the refusal that replaces a stack overflow",
-      "note": "Acceptance divergent, deliberately. A hundred levels of nesting is past what the engine's parser survives: it descends recursively and overflows its stack, which aborts the build from inside an evaluation that is allowed to fail. The nesting bound in front of the engine is what turns that abort back into a refusal, and it is set well below the measured limit.",
+      "note": "Acceptance divergent, and configurably so. A hundred levels is past the shipped `maxEvaluationDepth` of 32, so this compiler refuses it with a message naming that number where upstream folds it to `.x16319ns`. The fold runs on a stack it claims for the configured depth, so the refusal is the setting rather than a bound of the fold's own: raise `maxEvaluationDepth` past the nesting and the same source folds to the same value upstream reaches. Re-measured against `@stylexjs/babel-plugin` 0.19.0 when the fold stopped carrying a ceiling of its own.",
       "expected": "acceptance-divergent"
     },
     {

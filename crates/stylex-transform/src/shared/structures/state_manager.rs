@@ -67,6 +67,7 @@ use super::{
   types::{InjectImportIdents, SeenModuleSource, StylesObjectMap},
 };
 use stylex_structures::{
+  evaluation_depth::MAX_EVALUATION_DEPTH_LIMIT,
   named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState},
   plugin_pass::PluginPass,
   stylex_options::{CheckModuleResolution, StyleXOptions},
@@ -728,6 +729,30 @@ impl StateManager {
 
       cycle: TransformationCycle::Discover,
     }
+  }
+
+  /// How many levels a walk may descend before it refuses the expression as
+  /// too deeply nested.
+  ///
+  /// One number for every walk that recurses on the bare thread stack — the
+  /// evaluator's descent, the guard's walk into an expression on its way to the
+  /// engine, and the conversion of an engine value back. They ask here rather
+  /// than each keeping a constant, so raising the configured depth raises all
+  /// of them together and an author reads one number whichever walk refused.
+  ///
+  /// Both ends are clamped here rather than where the number is spent. The
+  /// option is a bare `usize` a struct-update literal can set to anything, and
+  /// every path that *parses* a configured value already clamps it -- this
+  /// guards the one that does not, so a walk downstream can spend what it is
+  /// given. Zero would refuse every expression, including the folds the
+  /// compiler runs to do its own work; past the limit is a depth no stack could
+  /// be claimed for, which is the overflow the ceiling exists to prevent
+  /// wearing the name of the setting that prevents it.
+  pub(crate) fn evaluation_ceiling(&self) -> usize {
+    self
+      .options
+      .max_evaluation_depth
+      .clamp(1, MAX_EVALUATION_DEPTH_LIMIT)
   }
 
   pub(crate) fn set_plugin_pass(&mut self, plugin_pass: PluginPass) {

@@ -101,9 +101,11 @@ prototype the next fold reads. A **length-amplifying** call is bounded, on the
 argument written and again on the string that comes back, because nothing in the
 engine bounds allocation; a callback body is refused outright, since a written
 bound bounds one evaluation and a callback runs once per element. And **nesting**
-is bounded on both sides: on the way in because the engine's parser recurses, and
-on the way out because the depth of an answer is not what the width bound
-measures. An overflow inside an evaluation that is allowed to fail aborts the
+is bounded on both sides against the project's configured evaluation depth: on
+the way in because the engine's parser recurses, and on the way out because the
+depth of an answer is not what the width bound measures. The fold claims a stack
+for that many levels before it starts, so the number a project sets is the number
+it gets; an overflow inside an evaluation that is allowed to fail would abort the
 build instead of reporting anything. Each applies at every link of a chain, since
 a chain hides its middle links.
 

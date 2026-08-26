@@ -502,6 +502,20 @@ overrides the built-in default -- so a stray value in a CI environment cannot
 change what a project that configured the option compiles to. A value of zero,
 or one that is not a number, is ignored rather than honoured.
 
+The ceiling is capped at `8192`, and a larger value is quietly read as that.
+The compiler reserves stack for the depth you ask for, so a number it could not
+reserve for would be the stack overflow this option exists to prevent, wearing
+the name of the setting that prevents it.
+
+> [!NOTE]
+> The cap bounds what the compiler will reserve for **evaluating** an
+> expression, not what every stage of a build survives. Source nested past
+> roughly a thousand levels does not get as far as being evaluated -- the
+> parser recurses without a budget of its own, and no option here reaches it.
+> Depths in the thousands are reached in practice by a value the evaluator
+> _builds_ -- a loop that nests an array once per element, say -- rather than by
+> anything written out, and that is the direction the cap is sized for.
+
 ## Debug Logging
 
 Enable debug logging with the `STYLEX_DEBUG` environment variable. Available

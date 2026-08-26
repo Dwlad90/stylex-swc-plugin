@@ -4,6 +4,7 @@ mod binding;
 mod cache;
 mod deopt;
 mod engine_fold;
+mod growable_stack;
 mod helpers;
 mod nodes;
 

@@ -1,24 +1,6 @@
+use super::growable_stack;
 use super::*;
 use stylex_constants::constants::evaluation_errors::expression_too_deep;
-
-/// Grow the stack when less than this is left.
-///
-/// One level of the fold is not one frame and the arms are not the same size:
-/// a nested `Math.max` call descends through argument collection and the callee
-/// dispatch, and a debug build keeps every local of a long arm alive across the
-/// recursive call. Measured against the most expensive arm, a debug level costs
-/// tens of kilobytes, so the zone is sized in megabytes rather than in the
-/// hundreds of kilobytes a uniform walk would need.
-const RED_ZONE: usize = 1024 * 1024;
-
-/// How much stack to allocate when the red zone is reached.
-///
-/// Sized to carry a few hundred levels of the most expensive arm in a debug
-/// build in a single segment, so even a ceiling raised well past the default
-/// allocates once rather than repeatedly. Nothing is allocated for an expression
-/// that stays clear of the red zone, which is everything under the default
-/// ceiling.
-const STACK_SIZE: usize = 16 * 1024 * 1024;
 
 pub(crate) fn evaluate_cached(
   path: &Expr,
@@ -63,11 +45,7 @@ pub(crate) fn evaluate_cached(
   // number comes from, and why the default is sized for hand-written styles
   // rather than for the deepest foldable input, is
   // `stylex_structures::evaluation_depth`.
-  // `.max(1)` because the option is a bare `usize` a struct-update literal can
-  // set to zero, and a ceiling of zero refuses every expression -- including the
-  // folds the compiler runs to do its own work. Every path that parses a
-  // configured value already refuses zero; this guards the one that does not.
-  let ceiling = traversal_state.options.max_evaluation_depth.max(1);
+  let ceiling = traversal_state.evaluation_ceiling();
 
   if traversal_state.evaluation_depth == 0 {
     // A new top-level fold. Whatever the previous one refused, its unwind is
@@ -83,11 +61,7 @@ pub(crate) fn evaluate_cached(
 
   traversal_state.evaluation_depth += 1;
 
-  // A panic unwinding out of the fold -- a StyleX diagnostic, which is how a
-  // refusal in a position requiring a static value is reported -- crosses this
-  // boundary safely: `stacker` catches it on the grown stack and resumes the
-  // unwind on the original one, so the payload the caller matches on survives.
-  let result = stacker::maybe_grow(RED_ZONE, STACK_SIZE, || {
+  let result = growable_stack::grown_per_level(|| {
     evaluate_cached_within_budget(path, state, traversal_state, fns)
   });
 

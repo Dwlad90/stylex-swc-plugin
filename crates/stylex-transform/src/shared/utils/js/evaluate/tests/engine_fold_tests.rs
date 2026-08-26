@@ -345,22 +345,18 @@ fn an_array_result_longer_than_a_declaration_could_use_refuses() {
   assert_folds_to_string("[\"a\", \"b\"].slice(0, 1).join(\"\")", "a");
 }
 
-/// Nesting is not free for whoever parses it: past a hundred levels or so the
-/// engine's parser overflows its stack, and an overflow inside an evaluation
-/// that is allowed to fail aborts the build instead of reporting anything. The
-/// guard refuses first, so the answer stays a refusal at any depth.
+/// Nesting is not free for whoever parses it, and an overflow inside an
+/// evaluation that is allowed to fail aborts the build instead of reporting
+/// anything. The guard refuses at the configured ceiling first, so the answer
+/// stays a refusal at any depth.
 ///
-/// Asserted well past the bound as well as just over it, because the failure
+/// Asserted well past the ceiling as well as just over it, because the failure
 /// this prevents gets *more* likely as the input gets deeper, so a test that
 /// stopped at the boundary would not be testing the crash.
 #[test]
 fn nesting_past_the_bound_refuses_rather_than_overflowing_a_stack() {
   for levels in [33, 100, 400, 900] {
-    let nested = format!(
-      "{}[\"a\"]{}.join(\"\")",
-      "[".repeat(levels),
-      "]".repeat(levels)
-    );
+    let nested = format!("{}[\"a\"]{}", "[".repeat(levels), "]".repeat(levels));
 
     assert_deopts(&nested);
   }
@@ -418,9 +414,9 @@ fn object_of(count: usize) -> String {
 
 /// A value can be nested deeper on the way *out* than any expression the guard
 /// admits on the way in, because a loop inside the engine builds it rather than
-/// syntax the author wrote. The conversion recurses on the bare thread stack,
-/// so it is bounded for the reason the input is bounded — and says so with the
-/// same sentence.
+/// syntax the author wrote. The conversion recurses like the walk in, so it is
+/// bounded for the reason the input is bounded, against the same ceiling — and
+/// says so with the same sentence.
 #[test]
 fn a_value_the_engine_nested_past_the_bound_refuses_rather_than_overflowing_a_stack() {
   let nest = |levels: usize| {
@@ -600,52 +596,157 @@ fn a_call_whose_callee_is_not_an_expression_refuses() {
   assert_deopts("import(\"./a\").then(x => x)");
 }
 
-/// The level the guard stops accepting at, with the evaluator's own ceiling
-/// raised past it so the guard is what answers.
+/// The level the guard stops accepting at is the level the project configured,
+/// so raising the configured depth raises what the fold accepts.
 ///
 /// Both sides of the bound are pinned under the raised ceiling, so what the
-/// refusal measures is the depth and not the shape — the older path would fold
-/// the second of these if the guard handed it back, which is the fold this
-/// bound costs and `Depth` argues.
+/// refusal measures is the depth and not the shape. The admitted side is six
+/// times deeper than the fold used to accept at any ceiling, which is the
+/// change: the guard no longer carries a bound of its own.
 #[test]
-fn nesting_one_past_the_bound_refuses_under_a_ceiling_that_admits_it() {
-  let admitted = format!("{}[\"a\"]{}.join(\"\")", "[".repeat(30), "]".repeat(30));
-  let refused = format!("{}[\"a\"]{}.join(\"\")", "[".repeat(31), "]".repeat(31));
+fn a_raised_ceiling_raises_the_nesting_the_fold_accepts() {
+  let nest = |levels: usize| {
+    format!(
+      "{}[\"a\"]{}.join(\"\")",
+      "[".repeat(levels),
+      "]".repeat(levels)
+    )
+  };
 
-  assert_folds_to_string_with_ceiling(&admitted, "a", 512);
-  assert_deopts_with_ceiling(&refused, 512);
+  // Two levels go to the call and its receiver, so a ceiling of 200 admits 198
+  // levels of array and refuses the 199th.
+  assert_folds_to_string_with_ceiling(&nest(198), "a", 200);
+  assert_deopts_with_ceiling(&nest(199), 200);
+
+  // The same shapes under the default ceiling, where the fold's old bound and
+  // the configured one happened to carry the same number, so nothing about a
+  // project that configures nothing moved.
+  assert_folds_to_string(&nest(30), "a");
+  assert_deopts(&nest(31));
 }
 
-/// Depth is answered as a refusal rather than as "not mine", and that costs a
-/// fold. The cost is deliberate, and both halves of it are measured here
-/// because the reasoning is not obvious from either half alone.
-///
-/// The bound is this module's own — the engine's parser recurses on the bare
-/// thread stack — so it does not move when a project raises the evaluator's
-/// ceiling. Under a raised ceiling the older path *would* fold the input below,
-/// so answering "not mine" instead of refusing would hand it back and fold it.
-/// That is the fold this refusal costs.
-///
-/// It is taken because the two ceilings no longer carry the same number, and a
-/// bound this module owns has to answer in this module's words rather than let
-/// which sentence an author reads depend on which of two disagreeing ceilings
-/// they crossed. Handing it back is at least safe: the nested array that
-/// reached the older `join` refuses rather than panicking, which
-/// `engine_fold_refusals::a_nested_array_reaching_the_older_join_refuses_
-/// rather_than_panicking` pins. Ticket 11 owns unifying the two ceilings.
+/// The refusal names the depth the project configured rather than a number of
+/// this module's own, which is what tells an author which setting to raise.
 #[test]
-fn depth_refuses_rather_than_handing_a_deep_expression_back_to_the_older_path() {
-  let deep = "1 > 0 && ".repeat(40);
+fn the_depth_refusal_names_the_configured_ceiling() {
+  let too_deep = format!("{}[\"a\"]{}.join(\"\")", "[".repeat(60), "]".repeat(60));
 
-  assert_deopts_with_ceiling(&format!("\"a\".concat({}\"b\")", deep), 512);
+  assert_deopt_reason_contains_with_ceiling(&too_deep, "At most 40 levels", 40);
+  assert_deopt_reason_contains_with_ceiling(&too_deep, "At most 50 levels", 50);
+}
 
-  // The same shape inside the bound folds under the same ceiling, so what the
-  // refusal above measures is the depth and not the shape.
+/// A deep expression under a raised ceiling folds rather than being refused for
+/// crossing a bound nobody set.
+///
+/// This shape used to be the cost of the guard carrying its own ceiling: the
+/// path below the fold would have folded it, and the guard refused it first.
+#[test]
+fn a_deep_expression_folds_under_a_ceiling_that_admits_it() {
   assert_folds_to_string_with_ceiling(
-    &format!("\"a\".concat({}\"b\")", "1 > 0 && ".repeat(4)),
+    &format!("\"a\".concat({}\"b\")", "1 > 0 && ".repeat(40)),
     "ab",
     512,
   );
+
+  // A long chain of calls and a long chain of member reads reach the same depth
+  // by other shapes, and fold for the same reason.
+  assert_folds_to_string_with_ceiling(
+    &format!("\"a\"{}", ".concat(\"b\")".repeat(100)),
+    &format!("a{}", "b".repeat(100)),
+    512,
+  );
+  assert_folds_to_string_with_ceiling(
+    &format!(
+      "({}\"x\"{}){}.toUpperCase()",
+      "{ a: ".repeat(40),
+      " }".repeat(40),
+      ".a".repeat(40)
+    ),
+    "X",
+    512,
+  );
+}
+
+/// A value the engine nested past the configured ceiling is still refused, and
+/// the same value folds once the ceiling admits it — so the bound on the way
+/// out answers to the same setting as the bound on the way in.
+///
+/// The conversion back is where a loop inside the engine can build nesting no
+/// expression the guard admitted ever had, so this is the half of the ceiling
+/// that a deeper *input* cannot reach on its own.
+#[test]
+fn a_raised_ceiling_raises_the_nesting_a_folded_value_may_carry() {
+  let nest = |levels: usize| {
+    format!(
+      "\"x\".repeat({}).split(\"\").reduce((a, c) => [a], [])",
+      levels
+    )
+  };
+
+  assert_deopt_reason_contains(&nest(40), "too deeply nested");
+  assert_folds_to_a_value_with_ceiling(&nest(40), 200);
+  assert_deopts_with_ceiling(&nest(400), 200);
+}
+
+/// The smallest ceiling a project can reach admits one level and refuses the
+/// second, rather than aborting or refusing everything.
+///
+/// One is what a configured zero is read as by the walks below the option
+/// parser, so it is the number the fold has least room to get wrong: it is
+/// where the arithmetic that turns a ceiling into a stack claim is smallest,
+/// and a claim that underflowed to nothing would abort here instead of
+/// refusing.
+#[test]
+fn the_smallest_ceiling_admits_one_level_and_no_more() {
+  // A literal receiver and literal arguments are one level each, which a budget
+  // of one pays for.
+  assert_folds_to_string_with_ceiling("\"  4px  \".trim()", "4px", 1);
+  assert_folds_to_number_with_ceiling("Math.max(1, 2)", 2.0, 1);
+
+  // An array literal spends its level on the array, so its elements are the
+  // second and there is nothing left to pay for them.
+  assert_deopts_with_ceiling("[\"a\", \"b\"].join(\",\")", 1);
+  assert_deopt_reason_contains_with_ceiling("(1 + 1).toFixed(0)", "At most 1 level", 1);
+}
+
+/// The largest ceiling a project can reach still folds an ordinary call.
+///
+/// This is where the fold claims the most stack it will ever claim, so what it
+/// proves is that the claim succeeds: a ceiling whose stack could not be
+/// allocated would abort here rather than refuse, which is the failure the
+/// whole ceiling exists to prevent.
+#[test]
+fn the_largest_ceiling_still_folds_an_ordinary_call() {
+  assert_folds_to_string_with_ceiling(
+    "\"  4px  \".trim()",
+    "4px",
+    stylex_structures::evaluation_depth::MAX_EVALUATION_DEPTH_LIMIT,
+  );
+}
+
+/// A ceiling past the largest one is clamped rather than honoured, so it folds
+/// what the largest folds instead of asking for a stack nothing could give.
+///
+/// The option parser clamps every configured value, and a struct-update literal
+/// goes around it — this is the shape that would reach the fold with a number
+/// no allocation could satisfy.
+#[test]
+fn a_ceiling_past_the_limit_folds_rather_than_asking_for_an_impossible_stack() {
+  assert_folds_to_string_with_ceiling("\"  4px  \".trim()", "4px", usize::MAX);
+}
+
+/// A folded value that is large in every direction at once still answers,
+/// because width and depth are bounded separately and neither stands in for the
+/// other.
+#[test]
+fn a_wide_and_deep_fold_under_a_raised_ceiling_still_answers() {
+  // Ten thousand entries is exactly the width bound, nested well past the old
+  // fixed depth, under a ceiling that admits the depth.
+  assert_folds_to_number_with_ceiling("\"x\".repeat(10000).split(\"\").length", 10_000.0, 200);
+
+  // The same width past its bound is still refused under the raised ceiling:
+  // raising the depth does not raise the width.
+  assert_deopts_with_ceiling("\"x\".repeat(10001).split(\"\")", 200);
 }
 
 // ==================== what the guard costs ====================

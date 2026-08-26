@@ -23,10 +23,19 @@ pub const DEFAULT_MAX_EVALUATION_DEPTH: usize = 32;
 /// The highest ceiling a caller can ask for.
 ///
 /// The ceiling exists to turn a stack overflow into a diagnostic, so a number
-/// large enough that the fold exhausts memory before it reaches the number is
-/// not a ceiling. `stacker` grows the fold in 16 MiB segments, so a million
-/// levels is already far past any input a diagnostic could still describe.
-pub const MAX_EVALUATION_DEPTH_LIMIT: usize = 1 << 20;
+/// no stack could be claimed for is not a ceiling -- it is the old crash under
+/// a new name. The fold claims its stack up front, at a measured cost per level
+/// and for as many walks as can nest, so the largest segment worth asking an
+/// operating system for is what sets this: eight thousand levels of two nested
+/// walks at sixty-four kilobytes each is a gigabyte of address space.
+///
+/// It is a ceiling on what the *fold* will be asked for, not a promise about
+/// every stage of a build. An expression nested past roughly a thousand levels
+/// does not survive being parsed in the first place -- the parser recurses
+/// without a budget, and no setting here reaches it -- so a depth in the
+/// thousands is only ever reached by a value the engine built in a loop, which
+/// is the direction this number does serve.
+pub const MAX_EVALUATION_DEPTH_LIMIT: usize = 8 * 1024;
 
 /// Environment variable that overrides [`DEFAULT_MAX_EVALUATION_DEPTH`].
 ///
@@ -88,8 +97,8 @@ fn resolve_from(configured: Option<usize>, from_env: Option<&str>) -> usize {
 
   // Clamped on the way out rather than in the `configured` arm alone, so the
   // environment cannot ask for what an option cannot. `STYLEX_MAX_EVALUATION_DEPTH`
-  // parses any `usize`, and a number the fold exhausts memory before reaching is
-  // not a ceiling whichever side of the boundary it arrived from.
+  // parses any `usize`, and a number no stack could be claimed for is not a
+  // ceiling whichever side of the boundary it arrived from.
   resolved.min(MAX_EVALUATION_DEPTH_LIMIT)
 }
 
@@ -112,7 +121,7 @@ mod tests {
   fn a_configured_depth_is_used_as_given() {
     assert_eq!(resolve_max_evaluation_depth(Some(7)), 7);
     assert_eq!(resolve_max_evaluation_depth(Some(1)), 1);
-    assert_eq!(resolve_max_evaluation_depth(Some(100_000)), 100_000);
+    assert_eq!(resolve_max_evaluation_depth(Some(5_000)), 5_000);
   }
 
   // Zero would refuse every expression, including the folds the compiler runs to

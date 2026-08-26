@@ -117,8 +117,25 @@ fn assert_deopt_result(result: &EvaluateResult, source: &str) {
 /// pins its own words here.
 #[track_caller]
 pub(crate) fn assert_deopt_reason_contains(source: &str, expected: &str) {
-  let result = evaluate_source(source);
+  assert_deopt_reason(*evaluate_source(source), source, expected);
+}
 
+/// The same, with the depth ceiling raised for a source whose subject is depth.
+#[track_caller]
+pub(crate) fn assert_deopt_reason_contains_with_ceiling(
+  source: &str,
+  expected: &str,
+  max_evaluation_depth: usize,
+) {
+  assert_deopt_reason(
+    *evaluate_source_with_ceiling(source, max_evaluation_depth),
+    source,
+    expected,
+  );
+}
+
+#[track_caller]
+fn assert_deopt_reason(result: EvaluateResult, source: &str, expected: &str) {
   assert_deopt_result(&result, source);
 
   match result.reason {
@@ -207,8 +224,23 @@ pub(crate) fn assert_folds(source: &str) -> Expr {
 /// subject is *that it folded* should not have to know which.
 #[track_caller]
 pub(crate) fn assert_folds_to_a_value(source: &str) -> EvaluateResultValue {
-  let result = evaluate_source(source);
+  assert_folds_to_a_value_result(*evaluate_source(source), source)
+}
 
+/// The same, with the depth ceiling raised for a source whose subject is depth.
+#[track_caller]
+pub(crate) fn assert_folds_to_a_value_with_ceiling(
+  source: &str,
+  max_evaluation_depth: usize,
+) -> EvaluateResultValue {
+  assert_folds_to_a_value_result(
+    *evaluate_source_with_ceiling(source, max_evaluation_depth),
+    source,
+  )
+}
+
+#[track_caller]
+fn assert_folds_to_a_value_result(result: EvaluateResult, source: &str) -> EvaluateResultValue {
   assert!(
     result.confident,
     "expected `{}` to fold, got a deopt: {:?}",

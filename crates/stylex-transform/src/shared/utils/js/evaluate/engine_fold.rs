@@ -65,7 +65,9 @@ use stylex_js::helpers::{is_invalid_method, is_valid_callee};
 use stylex_utils::number::to_js_string;
 use stylex_utils::swc::get_stmt_node_kind;
 
-use super::{evaluate_cached, evaluate_result_vec_to_array_expr, helpers::get_binding};
+use super::{
+  evaluate_cached, evaluate_result_vec_to_array_expr, growable_stack, helpers::get_binding,
+};
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
@@ -146,27 +148,6 @@ const MAX_AMPLIFIED_LENGTH: f64 = 1_000_000.0;
 /// conditions, so this is generous by three orders of magnitude and still
 /// refuses that.
 const MAX_FOLDED_ENTRIES: u64 = 10_000;
-
-/// How deeply nested an expression this module will hand to the engine, and how
-/// deeply nested a value it will carry back.
-///
-/// Nesting is not free for whoever parses it. The engine's parser descends
-/// through a nested array literal recursively and, measured on a debug build,
-/// overflows its stack somewhere around a hundred levels — which aborts the
-/// process from inside an evaluation whose whole contract is that it may fail.
-/// Refusing deeper input is what turns that crash back into a diagnostic, and
-/// the same bound applies on the way out because a loop inside the engine can
-/// nest a value deeper than any expression that reached it.
-///
-/// One level is spent per step of the walk, and a leaf spends one too, so this
-/// admits an expression nested 31 levels and refuses the 32nd. The number is
-/// deliberately the same as
-/// `stylex_structures::evaluation_depth::DEFAULT_MAX_EVALUATION_DEPTH`, for the
-/// same reason and with a wide margin over the measured limit rather than an
-/// exact match to it. It is *not* that setting: raising the ceiling on the
-/// evaluator's own recursion says nothing about the engine's stack, and a
-/// project that raised it must not lose the diagnostic here.
-const MAX_ENGINE_NESTING: usize = 32;
 
 /// How many loop iterations an evaluation may run.
 ///
@@ -298,35 +279,56 @@ impl Scope<'_> {
 
 /// How much nesting is left, and the one refusal spent at the bottom of it.
 ///
-/// Every walk across the bridge counts the same budget for the same reason —
+/// Every walk across the bridge counts the same budget for the same reason ---
 /// the guard's walk in, the conversion of a value it resolved, and the
-/// conversion out all recurse on the bare thread stack — so they share the
-/// counter and the sentence rather than keeping three that could drift apart.
+/// conversion out all recurse on the stack — so they share the counter and
+/// the sentence rather than keeping three that could drift apart.
 ///
-/// Reaching the bottom is a refusal and not a "not mine", which is the one
-/// place the two are worth telling apart. This bound is the engine parser's
-/// stack, so it does not move when a project raises the evaluator's ceiling,
-/// and under a raised ceiling the older path would fold what this declines —
-/// so the refusal costs a fold. It is taken because the two ceilings no longer
-/// carry the same number, and a bound this module owns has to answer in this
-/// module's words: handing the shape back instead makes which sentence an
-/// author reads depend on which of two disagreeing ceilings they crossed.
-/// Handing it back is at least safe now — the nested array that reached the
-/// older `join` refuses rather than panicking — so what remains is the
-/// diagnostic, and Ticket 11 owns unifying the two ceilings.
+/// The budget is the project's configured evaluation depth, which is also what
+/// the evaluator's own descent spends. One number, because both walks run on
+/// the same grown stack for the same reason, and two would mean an author who
+/// raised the configured depth still met a ceiling nobody set.
+///
+/// Reaching the bottom is a refusal and not a "not mine": the shape is one an
+/// author can shorten, and saying so is more use than handing it back to a path
+/// that would refuse it in vaguer words.
 #[derive(Clone, Copy)]
-struct Depth(usize);
+struct Depth {
+  /// Levels left before the walk refuses.
+  left: usize,
+  /// The ceiling the refusal names — kept beside the count because a walk
+  /// that has spent its budget no longer knows what it started with.
+  ceiling: usize,
+}
 
 impl Depth {
   /// A full budget, at the start of a walk or a conversion.
-  const FULL: Self = Self(MAX_ENGINE_NESTING);
+  fn full(ceiling: usize) -> Self {
+    Self {
+      left: ceiling,
+      ceiling,
+    }
+  }
 
-  /// One level in, or the depth refusal at the bound — so depth is answered the
-  /// same way as any other rule the guard applies.
+  /// A full budget again, for a walk that starts where this one stands.
+  ///
+  /// A value the guard resolved and a value the engine answered are each
+  /// converted by a walk of their own, and neither is nested inside the
+  /// expression that reached them — so each is measured against the whole
+  /// ceiling rather than against what the walk before it had left.
+  fn restart(self) -> Self {
+    Self::full(self.ceiling)
+  }
+
+  /// One level in, or the depth refusal at the bound — so depth is answered
+  /// the same way as any other rule the guard applies.
   fn descend(self) -> Result<Self, Decline> {
-    match self.0 {
-      0 => Err(Decline::rule(expression_too_deep(MAX_ENGINE_NESTING))),
-      left => Ok(Self(left - 1)),
+    match self.left {
+      0 => Err(Decline::rule(expression_too_deep(self.ceiling))),
+      left => Ok(Self {
+        left: left - 1,
+        ..self
+      }),
     }
   }
 }
@@ -402,7 +404,12 @@ impl Transport {
   /// value past a bound refuses before anything is printed or built. What comes
   /// out is [`Carried`]: the shapes the bridge carries, measured, and not yet
   /// the engine's own values.
-  fn bind(&mut self, name: &Atom, value: &EvaluateResultValue) -> Result<(), Decline> {
+  fn bind(
+    &mut self,
+    name: &Atom,
+    value: &EvaluateResultValue,
+    depth: Depth,
+  ) -> Result<(), Decline> {
     if self.params.contains(name) {
       return Ok(());
     }
@@ -411,7 +418,7 @@ impl Transport {
       name,
       totals: &mut self.totals,
     }
-    .value(value, Depth::FULL)?;
+    .value(value, depth.restart())?;
 
     self.params.push(name.clone());
     self.values.push(carried);
@@ -825,9 +832,11 @@ pub(crate) fn try_fold(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<Result<EvaluateResultValue, Refusal>> {
+  let ceiling = traversal_state.evaluation_ceiling();
+
   let guard = Guard {
     scope: Scope::Module,
-    depth: Depth::FULL,
+    depth: Depth::full(ceiling),
   };
 
   let mut reader = Reader {
@@ -837,7 +846,11 @@ pub(crate) fn try_fold(
     transport: Transport::default(),
   };
 
-  match fold(call, guard, &mut reader) {
+  // Grown before the first recursive step rather than at every step: the
+  // engine's parser descends through a nested literal without ever asking for
+  // room, so the whole fold has to run on a stack that was already large enough
+  // when it started.
+  match growable_stack::grown_for_depth(ceiling, || fold(call, guard, &mut reader)) {
     Ok(value) => Some(Ok(value)),
     Err(Decline::NotACandidate) => None,
     Err(Decline::Rule(reason)) => Some(Err(reason)),
@@ -868,7 +881,7 @@ fn fold(
 
     let outward = Outward {
       method,
-      depth: Depth::FULL,
+      depth: guard.depth.restart(),
     };
 
     let applied = match admitted {
@@ -997,8 +1010,9 @@ impl Outward<'_> {
   ///
   /// A value nested deeper than the guard admits on the way in can still be
   /// built on the way out, by a loop the engine ran rather than by syntax the
-  /// author wrote. Bounded for the reason the input is bounded: the conversion
-  /// recurses on the bare thread stack.
+  /// author wrote. Bounded for the reason the input is bounded, and against the
+  /// same ceiling: the conversion recurses, and the stack it recurses on was
+  /// claimed for that many levels and no more.
   fn descend(self) -> Result<Self, Decline> {
     Ok(Self {
       depth: self.depth.descend()?,
@@ -1052,7 +1066,9 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
       }
 
       match reader.resolve(ident) {
-        Some(value) if is_a_carryable_receiver(&value) => reader.transport.bind(&ident.sym, &value),
+        Some(value) if is_a_carryable_receiver(&value) => {
+          reader.transport.bind(&ident.sym, &value, guard.depth)
+        },
         _ => Err(Decline::NotACandidate),
       }
     },

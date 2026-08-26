@@ -1,4 +1,5 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { promises } from 'node:fs';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { build, createServer } from 'vite';
@@ -196,6 +197,251 @@ function rejectUnresolvedAtRules(css: string): string {
   return css;
 }
 
+// The reported bug needs one StyleX module to be transformed *after* the
+// placeholder CSS has already been loaded. A slow transform makes that ordering
+// deterministic; a large module graph produces it on its own.
+function delayModuleTransform(suffix: string, ms: number): Plugin {
+  return {
+    name: 'delay-module-transform',
+    enforce: 'pre',
+    async transform(code, id) {
+      if (!id.endsWith(suffix)) return null;
+
+      await new Promise(resolve => {
+        setTimeout(resolve, ms);
+      });
+
+      return code;
+    },
+  };
+}
+
+const eagerPlaceholderSource = `import * as stylex from '@stylexjs/stylex';
+import './global.css';
+
+export const styles = stylex.create({ eager: { color: 'red' } });
+
+void import('./lazy.js');
+`;
+
+const lazyPlaceholderSource = `import * as stylex from '@stylexjs/stylex';
+
+export const styles = stylex.create({ lazy: { backgroundColor: 'blue' } });
+`;
+
+// Mirrors the reproduction from issue #1276: an eager rule, a rule behind a
+// dynamic import, and a stylesheet carrying the marker.
+const placeholderFixtureFiles: Record<string, string> = {
+  'index.html': buildFixtureHtml,
+  'main.js': eagerPlaceholderSource,
+  'lazy.js': lazyPlaceholderSource,
+  'global.css': `body { margin: 0; }\n${placeholder}\n.after-marker { color: green; }\n`,
+};
+
+type BuiltCssFile = { name: string; source: string; linked: boolean };
+
+// Reads every emitted stylesheet back off disk together with whether the
+// document actually links it, which is the distinction the bug turns on.
+async function readBuiltCss(outDir: string, html: string): Promise<BuiltCssFile[]> {
+  const entries = await readdir(outDir, { recursive: true, withFileTypes: true });
+  const cssFiles = entries
+    .filter(entry => entry.isFile() && entry.name.endsWith('.css'))
+    .map(entry => path.relative(outDir, path.join(entry.parentPath, entry.name)));
+
+  return Promise.all(
+    cssFiles.toSorted().map(async name => ({
+      name,
+      source: await readFile(path.join(outDir, name), 'utf8'),
+      linked: html.includes(name.split(path.sep).join('/')),
+    }))
+  );
+}
+
+// Builds the placeholder fixture for real: only a full build exercises the
+// ordering between the plugin hooks and the bundler's own CSS asset.
+async function buildPlaceholderFixture(
+  options: {
+    cssCodeSplit?: boolean;
+    cssMinify?: boolean | 'esbuild' | 'lightningcss';
+    files?: Record<string, string>;
+    onWarn?: (warning: { message: string }) => void;
+    plugins?: PluginOption[];
+    pluginOptions?: UnpluginStylexRSOptions;
+  } = {}
+): Promise<BuiltCssFile[]> {
+  const root = await writeFixtureRoot('.stylex-vite-placeholder-', {
+    ...placeholderFixtureFiles,
+    ...options.files,
+  });
+
+  await build({
+    build: {
+      cssCodeSplit: options.cssCodeSplit ?? false,
+      cssMinify: options.cssMinify,
+      outDir: 'dist',
+      write: true,
+      rolldownOptions: options.onWarn
+        ? { onLog: (_level, log) => options.onWarn?.(log) }
+        : undefined,
+    },
+    configFile: false,
+    logLevel: 'silent',
+    plugins: [
+      ...(options.plugins ?? [delayModuleTransform('/lazy.js', 100)]),
+      stylexRuntimeStub,
+      stylexSwc({
+        fileName: 'stylex.[hash].css',
+        useCssPlaceholder: placeholder,
+        ...options.pluginOptions,
+        rsOptions: {
+          dev: false,
+          unstable_moduleResolution: { type: 'commonJS' },
+          ...options.pluginOptions?.rsOptions,
+        },
+      }),
+    ],
+    root,
+  });
+
+  const outDir = path.join(root, 'dist');
+  const html = await readFile(path.join(outDir, 'index.html'), 'utf8');
+
+  return readBuiltCss(outDir, html);
+}
+
+// Counting occurrences is what separates "the rules are present" from "the
+// rules are present once", which is the difference an appended copy hides.
+function countOccurrences(source: string, needle: string): number {
+  return source.split(needle).length - 1;
+}
+
+// Drops the bundler's stylesheets before the injection runs, which is the one
+// way to reach "the marker was in the build but nothing can carry the rules"
+// without an exotic host configuration.
+const dropCssAssets: Plugin = {
+  name: 'drop-css-assets',
+  // Also `post`, and registered ahead of the plugin under test, so the
+  // stylesheets are gone by the time the injection looks for them.
+  generateBundle: {
+    order: 'post',
+    handler(_options, bundle) {
+      for (const fileName of Object.keys(bundle)) {
+        if (fileName.endsWith('.css')) Reflect.deleteProperty(bundle, fileName);
+      }
+    },
+  },
+};
+
+// Stands in for a CSS plugin or minifier that removes the build placeholder,
+// which leaves the stylesheet in the bundle but with nowhere to put the rules.
+const eatBuildPlaceholder: Plugin = {
+  name: 'eat-build-placeholder',
+  // Also `post`, and registered ahead of the plugin under test, so the marker is
+  // already gone by the time the injection looks for it.
+  generateBundle: {
+    order: 'post',
+    handler(_options, bundle) {
+      for (const output of Object.values(bundle)) {
+        if (output.type !== 'asset' || !output.fileName.endsWith('.css')) continue;
+
+        output.source = output.source
+          .toString()
+          .split('@layer __stylex_build_placeholder__;')
+          .join('');
+      }
+    },
+  },
+};
+
+// Comfortably past the plugin's 50ms debounce, and past the retry that follows
+// a refresh whose update could not be sent.
+async function settle(): Promise<void> {
+  await new Promise(resolve => {
+    setTimeout(resolve, 200);
+  });
+}
+
+// The dev server every placeholder refresh test runs against. Request
+// pre-transform is off so each test decides exactly when a module is
+// transformed, which is what the refresh behaviour turns on.
+async function createPlaceholderDevServer(prefix: string) {
+  const root = await writeFixtureRoot(prefix, placeholderFixtureFiles);
+
+  return createServer({
+    configFile: false,
+    logLevel: 'silent',
+    optimizeDeps: { noDiscovery: true },
+    plugins: [
+      stylexRuntimeStub,
+      stylexSwc({
+        rsOptions: { dev: true, unstable_moduleResolution: { type: 'commonJS' } },
+        useCssPlaceholder: placeholder,
+      }),
+    ],
+    root,
+    server: { middlewareMode: true, preTransformRequests: false },
+  });
+}
+
+// Counts how many times the dev server is told the placeholder stylesheet is
+// stale. Without a bundle step that invalidation is the only way rules
+// collected after the stylesheet was served can reach the browser.
+async function countDevCssInvalidations(): Promise<number> {
+  const server = await createPlaceholderDevServer('.stylex-vite-dev-refresh-');
+  const invalidate = vi.spyOn(server.moduleGraph, 'invalidateModule');
+
+  try {
+    await server.transformRequest('/main.js');
+    await server.transformRequest('/global.css');
+    await settle();
+
+    const beforeLateModule = invalidate.mock.calls.length;
+
+    // The module behind the dynamic import is transformed only now, long after
+    // the stylesheet was served.
+    await server.transformRequest('/lazy.js');
+    await settle();
+
+    return invalidate.mock.calls.length - beforeLateModule;
+  } finally {
+    invalidate.mockRestore();
+    await server.close();
+  }
+}
+
+// Drives a dev server whose CSS updates never reach the browser, and reports
+// the attempts made before the retries had time to stop and after. The
+// stylesheet stays stale until an update lands, so a failure has to be retried;
+// a retry that never gives up keeps adding attempts in the second window.
+async function measureFailedRefreshRetries(): Promise<{
+  attempts: number;
+  attemptsAfterSettling: number;
+}> {
+  const server = await createPlaceholderDevServer('.stylex-vite-dev-retry-');
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const send = vi.spyOn(server.ws, 'send').mockImplementation(() => {
+    throw new Error('websocket closed');
+  });
+
+  try {
+    await server.transformRequest('/main.js');
+    await server.transformRequest('/global.css');
+    await settle();
+
+    const attempts = send.mock.calls.length;
+
+    // No further transform, so anything counted here is the retry chain alone.
+    await settle();
+    await settle();
+
+    return { attempts, attemptsAfterSettling: send.mock.calls.length - attempts };
+  } finally {
+    send.mockRestore();
+    error.mockRestore();
+    await server.close();
+  }
+}
+
 describe('Vite', () => {
   test('resolves imported defineConsts at-rules before transforming placeholder CSS', async () => {
     const transformCss = vi.fn<(css: string) => string>(rejectUnresolvedAtRules);
@@ -353,6 +599,343 @@ export const styles = stylex.create({
 
     expect(built['index.html']).toContain('href="./stylex.css"');
     expect(built['pages/about.html']).toContain('href="../stylex.css"');
+  });
+
+  test('injects late dynamic-import rules into the linked stylesheet without code splitting', async () => {
+    const cssFiles = await buildPlaceholderFixture();
+
+    const linked = cssFiles.filter(file => file.linked);
+
+    expect(linked).toHaveLength(1);
+    expect(linked[0]?.source).toContain('color:red');
+    expect(linked[0]?.source).toContain('background-color:');
+    expect(cssFiles.filter(file => !file.linked)).toEqual([]);
+  });
+
+  // Code splitting is the other half of the reported shape: the marker
+  // stylesheet and the late module can land in different chunks, and the rules
+  // still have to reach the document's own stylesheet.
+  test('injects late dynamic-import rules with code splitting on', async () => {
+    const cssFiles = await buildPlaceholderFixture({ cssCodeSplit: true });
+    const linked = cssFiles.filter(file => file.linked);
+
+    expect(linked.length).toBeGreaterThan(0);
+
+    const linkedCss = linked.map(file => file.source).join('\n');
+
+    expect(linkedCss).toContain('color:red');
+    expect(linkedCss).toContain('background-color:');
+    expect(countOccurrences(linkedCss, 'color:red')).toBe(1);
+
+    // Nothing may be left carrying a marker, linked or not.
+    for (const file of cssFiles) {
+      expect(file.source).not.toContain(placeholder);
+      expect(file.source).not.toContain('__stylex_build_placeholder__');
+    }
+  });
+
+  test('injects every StyleX rule exactly once', async () => {
+    const cssFiles = await buildPlaceholderFixture();
+    const linked = cssFiles.find(file => file.linked);
+
+    expect(countOccurrences(linked?.source ?? '', 'color:red')).toBe(1);
+    expect(countOccurrences(linked?.source ?? '', 'background-color:')).toBe(1);
+  });
+
+  // The rules are spliced in after Vite has already minified the stylesheet, so
+  // without minifying them too they would be the only unminified CSS shipped.
+  test('minifies the injected rules alongside the rest of the stylesheet', async () => {
+    const cssFiles = await buildPlaceholderFixture({ cssMinify: 'esbuild' });
+    const source = cssFiles.find(file => file.linked)?.source ?? '';
+
+    expect(source).toContain('color:red');
+    // A trailing semicolon before the closing brace is what the unminified
+    // rules carry, and the minifier is the only thing that takes it out.
+    expect(source).not.toContain('color:red;}');
+    expect(source).not.toMatch(/\n\s*\n/);
+  });
+
+  test('leaves the injected rules alone when CSS minification is off', async () => {
+    const cssFiles = await buildPlaceholderFixture({ cssMinify: false });
+    const source = cssFiles.find(file => file.linked)?.source ?? '';
+
+    expect(source).toContain('color:red');
+    // Minification is the user's call, so the authored value survives untouched.
+    expect(source).toContain('background-color:blue');
+  });
+
+  test('keeps StyleX rules at the marker position', async () => {
+    const cssFiles = await buildPlaceholderFixture();
+    const source = cssFiles.find(file => file.linked)?.source ?? '';
+
+    // The marker sits between the reset and the override, so the injected
+    // rules have to land there rather than at the end of the file.
+    expect(source.indexOf('margin:0')).toBeLessThan(source.indexOf('color:red'));
+    expect(source.indexOf('color:red')).toBeLessThan(source.indexOf('color:green'));
+  });
+
+  test('leaves neither marker nor build placeholder behind when no StyleX rules exist', async () => {
+    const cssFiles = await buildPlaceholderFixture({
+      files: {
+        'main.js': "import './global.css';\n\nexport const noStyles = true;\n",
+        'lazy.js': 'export const lazy = true;\n',
+      },
+      plugins: [],
+    });
+
+    for (const file of cssFiles) {
+      expect(file.source).not.toContain(placeholder);
+      expect(file.source).not.toContain('__stylex_build_placeholder__');
+    }
+  });
+
+  // Appending is a usable result but not the requested one, and staying quiet
+  // about it is the same silent wrongness the marker exists to avoid.
+  test('warns when the marker was built but did not survive into the output', async () => {
+    const warnings: { message: string }[] = [];
+
+    const cssFiles = await buildPlaceholderFixture({
+      onWarn: warning => warnings.push(warning),
+      plugins: [delayModuleTransform('/lazy.js', 100), eatBuildPlaceholder],
+    });
+    const linkedCss = cssFiles
+      .filter(file => file.linked)
+      .map(file => file.source)
+      .join('\n');
+
+    // The rules still ship, just at the end rather than at the marker.
+    expect(linkedCss).toContain('color:red');
+    expect(warnings.map(warning => warning.message ?? '')).toContainEqual(
+      expect.stringContaining('no CSS asset still contained it')
+    );
+  });
+
+  test('fails the build when no CSS asset can carry the placeholder styles', async () => {
+    await expect(
+      buildPlaceholderFixture({
+        plugins: [delayModuleTransform('/lazy.js', 0), dropCssAssets],
+      })
+    ).rejects.toThrow(/no CSS asset was available/);
+  });
+
+  test('stays quiet when an SSR bundle emits no stylesheet of its own', async () => {
+    const root = await writeFixtureRoot('.stylex-vite-ssr-', placeholderFixtureFiles);
+
+    await build({
+      build: { outDir: 'dist', ssr: 'main.js', write: true },
+      configFile: false,
+      logLevel: 'silent',
+      plugins: [
+        stylexRuntimeStub,
+        stylexSwc({
+          fileName: 'stylex.[hash].css',
+          rsOptions: { dev: false, unstable_moduleResolution: { type: 'commonJS' } },
+          useCssPlaceholder: placeholder,
+        }),
+      ],
+      root,
+    });
+
+    const emitted = await readdir(path.join(root, 'dist'), { recursive: true });
+
+    expect(emitted.filter(name => name.endsWith('.css'))).toEqual([]);
+  });
+
+  // The rules accumulate for the whole watch session, so a module whose styles
+  // were deleted would otherwise keep serving them until the server restarted.
+  test('drops the rules of a module that no longer produces any', async () => {
+    const server = await createPlaceholderDevServer('.stylex-vite-dev-prune-');
+    const root = server.config.root;
+
+    try {
+      await server.transformRequest('/main.js');
+      await server.transformRequest('/lazy.js');
+
+      const withRules = await server.transformRequest('/global.css');
+
+      expect(withRules?.code).toContain('background-color:blue');
+
+      // The lazy module keeps its StyleX import, so it is still transformed --
+      // it simply has no styles left to contribute.
+      await writeFile(
+        path.join(root, 'lazy.js'),
+        "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = {};\n"
+      );
+      server.moduleGraph.invalidateAll();
+      await server.transformRequest('/lazy.js');
+
+      const afterEdit = await server.transformRequest('/global.css');
+
+      expect(afterEdit?.code).not.toContain('background-color:blue');
+    } finally {
+      await server.close();
+    }
+  });
+
+  // Re-reading every stylesheet in the graph on every refresh does not scale
+  // with the number of CSS modules, and only an edit can change the answer.
+  test('reads a stylesheet once to learn whether it carries the marker', async () => {
+    const server = await createPlaceholderDevServer('.stylex-vite-dev-cache-');
+    const readFileSpy = vi.spyOn(promises, 'readFile');
+
+    try {
+      await server.transformRequest('/main.js');
+      await server.transformRequest('/global.css');
+      await settle();
+
+      const globalCssReads = () =>
+        readFileSpy.mock.calls.filter(
+          call => typeof call[0] === 'string' && call[0].endsWith('global.css')
+        ).length;
+      const before = globalCssReads();
+
+      await server.transformRequest('/lazy.js');
+      await settle();
+
+      // The second refresh reuses what the first learned.
+      expect(globalCssReads()).toBe(before);
+    } finally {
+      readFileSpy.mockRestore();
+      await server.close();
+    }
+  });
+
+  test('notices the marker being added to a stylesheet after it was cached', async () => {
+    const server = await createPlaceholderDevServer('.stylex-vite-dev-cache-add-');
+    const root = server.config.root;
+    const extraCss = path.join(root, 'extra.css');
+
+    await writeFile(extraCss, '.extra{outline:0}\n');
+
+    try {
+      // Cached as marker-free on the first look.
+      await server.transformRequest('/main.js');
+      await server.transformRequest('/extra.css');
+      await settle();
+
+      await writeFile(extraCss, `.extra{outline:0}\n${placeholder}\n`);
+      server.watcher.emit('change', extraCss);
+
+      const invalidate = vi.spyOn(server.moduleGraph, 'invalidateModule');
+
+      await server.transformRequest('/lazy.js');
+      await settle();
+
+      const invalidated = invalidate.mock.calls.map(call => call[0]?.id ?? '');
+
+      expect(invalidated.some(id => id.endsWith('extra.css'))).toBe(true);
+
+      invalidate.mockRestore();
+    } finally {
+      await server.close();
+    }
+  });
+
+  test('invalidates dev CSS again when a late module adds rules', async () => {
+    expect(await countDevCssInvalidations()).toBeGreaterThan(0);
+  });
+
+  test('retries the dev CSS refresh when the update cannot be sent', async () => {
+    const { attempts } = await measureFailedRefreshRetries();
+
+    expect(attempts).toBeGreaterThan(1);
+  });
+
+  test('gives up retrying the dev CSS refresh instead of looping forever', async () => {
+    const { attemptsAfterSettling } = await measureFailedRefreshRetries();
+
+    expect(attemptsAfterSettling).toBe(0);
+  });
+
+  test('injects once when the marker appears several times', async () => {
+    const cssFiles = await buildPlaceholderFixture({
+      files: {
+        'global.css': `body { margin: 0; }\n${placeholder}\n.after-marker { color: green; }\n${placeholder}\n`,
+      },
+    });
+    const source = cssFiles.find(file => file.linked)?.source ?? '';
+
+    expect(countOccurrences(source, 'color:red')).toBe(1);
+    expect(source).not.toContain(placeholder);
+    expect(source).not.toContain('__stylex_build_placeholder__');
+  });
+
+  test('strips the marker from stylesheets that did not receive the rules', async () => {
+    const cssFiles = await buildPlaceholderFixture({
+      cssCodeSplit: true,
+      files: {
+        'lazy.js': `import * as stylex from '@stylexjs/stylex';\nimport './lazy.css';\n\nexport const styles = stylex.create({ lazy: { backgroundColor: 'blue' } });\n`,
+        'lazy.css': `.lazy-scope { outline: 0; }\n${placeholder}\n`,
+      },
+    });
+
+    const withRules = cssFiles.filter(file => file.source.includes('color:red'));
+
+    expect(withRules).toHaveLength(1);
+
+    for (const file of cssFiles) {
+      expect(file.source).not.toContain(placeholder);
+      expect(file.source).not.toContain('__stylex_build_placeholder__');
+    }
+  });
+
+  test('injects once when the default `@stylex;` marker is repeated', async () => {
+    const cssFiles = await buildPlaceholderFixture({
+      files: {
+        'global.css': 'body { margin: 0; }\n@stylex;\n.after-marker { color: green; }\n@stylex;\n',
+      },
+      pluginOptions: { useCssPlaceholder: true },
+    });
+    const source = cssFiles.find(file => file.linked)?.source ?? '';
+
+    // Unlike a comment marker, this one survives minification, so a leftover
+    // would ship as an unknown at-rule.
+    expect(source).not.toContain('@stylex;');
+    expect(countOccurrences(source, 'color:red')).toBe(1);
+  });
+
+  test('keeps an `@import` that follows the marker', async () => {
+    const cssFiles = await buildPlaceholderFixture({
+      files: {
+        'global.css': `${placeholder}\n@import './imported.css';\nbody { margin: 0; }\n`,
+        'imported.css': '.imported { outline-style: dashed; }\n',
+      },
+    });
+    const source = cssFiles.find(file => file.linked)?.source ?? '';
+
+    // A `@layer` statement is allowed ahead of `@import`, so replacing the
+    // marker in place cannot invalidate one that follows it.
+    expect(source).toContain('outline-style:dashed');
+    expect(source).toContain('color:red');
+  });
+
+  test('downgrades the missing-target failure to a warning on request', async () => {
+    const warnings: string[] = [];
+
+    // The setup this option exists for: a plugin that takes the stylesheet out
+    // of the bundle, so nothing is left to inject into.
+    const cssFiles = await buildPlaceholderFixture({
+      onWarn: warning => warnings.push(warning.message),
+      pluginOptions: { onMissingCssPlaceholder: 'warn' },
+      plugins: [delayModuleTransform('/lazy.js', 0), dropCssAssets],
+    });
+
+    expect(cssFiles).toEqual([]);
+    expect(warnings).toContainEqual(
+      expect.stringContaining('no CSS asset contained the placeholder')
+    );
+  });
+
+  test('stays silent about a missing target on request', async () => {
+    const warnings: string[] = [];
+
+    await buildPlaceholderFixture({
+      onWarn: warning => warnings.push(warning.message),
+      pluginOptions: { onMissingCssPlaceholder: 'ignore' },
+      plugins: [delayModuleTransform('/lazy.js', 0), dropCssAssets],
+    });
+
+    expect(warnings).toEqual([]);
   });
 
   test('should inject a base-prefixed stylesheet link in dev', async () => {

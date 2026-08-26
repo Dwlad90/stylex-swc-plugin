@@ -18,6 +18,20 @@ once compilation has produced it. The alternative to appending to a chosen
 asset, and what `useCssPlaceholder` selects.
 _Avoid_: token, sentinel, slot
 
+**Build placeholder**:
+The plugin's own marker, written over the CSS placeholder while a build is
+running because the rule set is not complete when the stylesheet is loaded. A
+`@layer` statement rather than a comment, since that is what survives CSS
+minification in place, and replaced with the final rules before the bundle is
+written. Written by the Vite load hook and the esbuild load hook.
+_Avoid_: sentinel, temporary marker, internal token
+
+**Injection target**:
+One stylesheet the rules can go into, whichever way the host stores it: a
+bundle asset, a webpack asset, or a file already written to disk. The single
+abstraction every adapter's marker replacement runs over.
+_Avoid_: sink, destination, output
+
 **Injection asset**:
 The CSS asset the extracted styles are appended to when no placeholder is in
 use, picked by preference: `index.css`, then `style.css`, then `main.css`, then

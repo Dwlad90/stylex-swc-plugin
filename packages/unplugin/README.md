@@ -254,13 +254,15 @@ The `filePath` argument identifies the CSS destination and is bundler-specific:
 
 Routing the StyleX output through a real CSS file has practical benefits:
 
-- The generated CSS goes through the bundler's CSS pipeline (PostCSS, Lightning
-  CSS, css-loader, and so on)
+- Your stylesheet keeps going through the bundler's CSS pipeline (PostCSS,
+  Lightning CSS, css-loader, and so on), and the StyleX rules land inside it at
+  the marker
 - Deterministic builds — no race conditions or hash instability from virtual
   modules
-- All CSS follows the same processing rules and bundling strategy
+- One stylesheet, so the rules follow the same bundling strategy as the rest of
+  your CSS
 - CSS can be code-split and optimized alongside other stylesheets
-- The same approach works for Vite, webpack, Rspack, esbuild, Rollup, and Farm
+- The same approach works for Vite, webpack, Rspack, esbuild, and Rollup
 
 How to use it:
 
@@ -328,7 +330,39 @@ The plugin replaces the marker with the generated StyleX CSS during the build.
 > [!NOTE]
 > When `useCssPlaceholder` is enabled, the plugin no longer injects CSS
 > automatically into HTML or emits a separate `stylex.css` file. The CSS goes
-> into your specified CSS file instead.
+> into your specified CSS file instead. No bundler emits a standalone
+> stylesheet in this mode any more, since nothing would link it: under Vite,
+> where the plugin can tell the marker was part of the build, a missing
+> injection target fails the build; every other bundler reports a warning.
+>
+> A plugin that removes CSS assets during the bundle — inlining them into JS,
+> for instance — takes that target away, so combining one with
+> `useCssPlaceholder` under Vite fails the build. Set
+> `onMissingCssPlaceholder` to `'warn'` when that is expected.
+>
+> If a stylesheet survives but something strips the marker out of it, the rules
+> are appended to the end of a stylesheet instead of landing at the marker, and
+> the plugin warns. The styles still ship; only their position is lost.
+
+> [!IMPORTANT]
+> **What the CSS pipeline does and does not see**
+>
+> Your stylesheet goes through the pipeline in full. The StyleX rules do not:
+> in a build they are spliced in at the marker once the bundle is assembled,
+> because modules behind a dynamic import are transformed long after the
+> stylesheet is loaded, and there is no earlier point where the rule set is
+> complete.
+>
+> So the rules are minified along with everything else, but per-module steps
+> such as PostCSS or Lightning CSS transpilation never run over them. Use
+> [`transformCss`](#transformcss) to run your own processing over the rules.
+> The dev server has no bundle step and inlines the rules in the stylesheet, so
+> there the pipeline sees everything.
+
+> [!WARNING]
+> Farm does not support `useCssPlaceholder` yet. Its plugin adapter never
+> receives the bundle hook that replaces the marker, so the marker would stay
+> in the stylesheet. The plugin warns when the two are combined.
 
 > [!IMPORTANT]
 > **Migration from `useViteCssPipeline`**
@@ -339,6 +373,30 @@ The plugin replaces the marker with the generated StyleX CSS during the build.
 > no race conditions or timing issues, and deterministic builds with stable
 > hashes. To migrate, create a CSS file with a marker and set
 > `useCssPlaceholder: true` (or use a custom marker string).
+
+#### `onMissingCssPlaceholder`
+
+- Type: `'error' | 'warn' | 'ignore'`
+- Default: `'error'`
+- Description: How to report a build where `useCssPlaceholder` is enabled but no
+  stylesheet in the output can carry the StyleX rules.
+
+Placeholder mode never links a standalone stylesheet, so the default fails the
+build rather than let the styles go missing at runtime. Only Vite can prove the
+marker was part of the build, so `'error'` is fatal there and reported as a
+warning everywhere else.
+
+```ts
+StylexRsPlugin({
+  useCssPlaceholder: true,
+  // Another plugin inlines the CSS into JS, so there is no CSS asset left to
+  // inject into by the time the rules are ready.
+  onMissingCssPlaceholder: 'warn',
+});
+```
+
+`'ignore'` silences the report entirely. SSR builds are never reported: they
+have no stylesheet of their own by design.
 
 ### Example Configuration
 

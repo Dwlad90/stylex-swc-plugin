@@ -95,7 +95,7 @@ export default async function injectIntoCssTargets(
   const sources = new Map<CssInjectionTarget, string>();
 
   for (const target of targets) {
-    sources.set(target, (await target.read()).toString());
+    sources.set(target, await target.read());
   }
 
   let injected = false;

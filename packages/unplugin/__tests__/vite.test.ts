@@ -720,7 +720,9 @@ export const styles = stylex.create({
       await settle();
 
       const globalCssReads = () =>
-        readFileSpy.mock.calls.filter(call => String(call[0]).endsWith('global.css')).length;
+        readFileSpy.mock.calls.filter(
+          call => typeof call[0] === 'string' && call[0].endsWith('global.css')
+        ).length;
       const before = globalCssReads();
 
       await server.transformRequest('/lazy.js');
@@ -757,7 +759,7 @@ export const styles = stylex.create({
 
       const invalidated = invalidate.mock.calls.map(call => call[0]?.id ?? '');
 
-      expect(invalidated.some(id => String(id).endsWith('extra.css'))).toBe(true);
+      expect(invalidated.some(id => id.endsWith('extra.css'))).toBe(true);
 
       invalidate.mockRestore();
     } finally {

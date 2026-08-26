@@ -346,19 +346,6 @@ pub(in super::super) fn evaluate(
         }
       }
 
-      if object.is_lit() {
-        // `object.is_lit()` was just asked, so this cannot answer `None`.
-        let Some(obj_lit) = object.as_lit() else {
-          stylex_unreachable!("A literal receiver stopped being a literal between two lookups.")
-        };
-
-        if property.is_ident()
-          && let Lit::Bool(_) = obj_lit
-        {
-          deopt_unsupported!(path, state, &unsupported_expression("BooleanLiteral"));
-        }
-      }
-
       if func.is_none() {
         let parsed_obj =
           evaluate_with_functions(object, traversal_state, Rc::clone(&state.functions));
@@ -383,14 +370,21 @@ pub(in super::super) fn evaluate(
               );
             };
 
-            // A string or an array reaching this dispatch means the fold
-            // declined the call, and the whole of both prototypes folds there —
-            // so what is left is a call whose receiver or arguments hold
-            // something with no compile-time value, or a shape the fold's guard
-            // does not read. The evaluator answers an array in two shapes, its
-            // own list and the literal it was written as, and the two arms that
-            // answered for them separately are what let `join` be known for one
-            // and unknown for the other; one arm cannot disagree with itself.
+            // A receiver whose prototype the fold owns whole reaching this
+            // dispatch means the fold declined the call — so what is left is a
+            // call whose receiver or arguments hold something with no
+            // compile-time value, or a shape the fold's guard does not read.
+            // The evaluator answers an array in two shapes, its own list and
+            // the literal it was written as, and the two arms that answered for
+            // them separately are what let `join` be known for one and unknown
+            // for the other; one arm cannot disagree with itself.
+            //
+            // A number and a boolean are among them for the same reason a name
+            // may hold one: their prototypes fold through the engine like a
+            // string's, so the sentence a declined call reads has to be the
+            // string's too. Without them `n.toFixed(undefined)` named the
+            // receiver's node kind instead of the rule that declined it, which
+            // tells an author only that they wrote a number.
             //
             // The arguments are evaluated first because a spread reads the same
             // sentence whatever the callee, and the shared argument evaluation
@@ -403,7 +397,9 @@ pub(in super::super) fn evaluate(
             if matches!(
               &value,
               EvaluateResultValue::Vec(_)
-                | EvaluateResultValue::Expr(Expr::Array(_) | Expr::Lit(Lit::Str(_)))
+                | EvaluateResultValue::Expr(
+                  Expr::Array(_) | Expr::Lit(Lit::Str(_) | Lit::Num(_) | Lit::Bool(_))
+                )
             ) {
               evaluate_func_call_args(call, state, traversal_state, fns)?;
 
@@ -448,7 +444,10 @@ pub(in super::super) fn evaluate(
                   return deopt(path, state, "Regex methods cannot be statically evaluated");
                 },
                 // A method call on a receiver whose kind carries no methods
-                // this evaluator folds: a number, a boolean, a nested call.
+                // this evaluator folds — a `null`, a template literal, a name
+                // that resolved to something with no prototype here. The
+                // primitives whose prototypes do fold are answered above, by
+                // the rule that declined them rather than by their node kind.
                 _ => deopt_unsupported!(
                   path,
                   state,

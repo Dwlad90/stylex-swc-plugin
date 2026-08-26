@@ -606,10 +606,11 @@ fn a_name_cannot_carry_a_value_past_a_rule() {
 /// that re-serialises writes `1e+21px` and `1.5px`. Both compilers write the
 /// second, measured.
 ///
-/// Only a hole written as a literal reaches the engine at all: a *named* hole has
-/// to resolve to a carryable string first, and a number is not one — so
-/// `const n = 1e21; `${n}px`.trim()` refuses here where upstream folds it, which
-/// is the same named-number gap ticket 08 owns for a receiver.
+/// A named hole reads the same coercion, and has to: a name holding a number is
+/// a value the bridge carries now, so the hole resolves to it and the engine
+/// prints it. If the two coercions had parted company, a hole written as `1e21`
+/// and one written as a name holding it would spell the same declaration
+/// differently — which is a class name, not a formatting preference.
 #[test]
 fn a_template_hole_is_coerced_the_way_the_reference_compiler_coerces_it() {
   assert_folds(
@@ -626,5 +627,11 @@ fn a_template_hole_is_coerced_the_way_the_reference_compiler_coerces_it() {
     "",
     "content: `${1.50}px`.trim(),",
     ".xe54kcq{content:\"1.5px\"}",
+  );
+
+  assert_folds(
+    "const n = 1e21;",
+    "content: `${n}px`.trim(),",
+    ".x1h4pnls{content:\"1e+21px\"}",
   );
 }

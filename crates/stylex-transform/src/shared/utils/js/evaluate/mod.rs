@@ -38,7 +38,7 @@ use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{
     evaluate_result::EvaluateResult,
-    functions::{CallbackType, FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+    functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
     seen_value::SeenValue,
     state::EvaluationState,
     state_manager::{StateManager, add_import_expression},
@@ -65,11 +65,10 @@ use stylex_ast::ast::factories::{
 };
 use stylex_constants::constants::{
   evaluation_errors::{
-    ARGUMENT_WITHOUT_VALUE, IMPORT_FILE_EVAL_ERROR, IMPORT_PATH_RESOLUTION_ERROR,
-    INVALID_ARRAY_LENGTH, NON_CONSTANT, OBJECT_METHOD, PATH_WITHOUT_NODE, SPREAD_ELEMENT,
-    UNDEFINED_CONST, UNEXPECTED_MEMBER_LOOKUP, UNINITIALIZED_CONST, USED_BEFORE_DECLARATION,
-    array_length_too_large, not_a_function, uncoercible_value, unfoldable_call,
-    unsupported_expression, unsupported_operator,
+    IMPORT_FILE_EVAL_ERROR, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, OBJECT_METHOD,
+    PATH_WITHOUT_NODE, SPREAD_ELEMENT, UNDEFINED_CONST, UNEXPECTED_MEMBER_LOOKUP,
+    UNINITIALIZED_CONST, USED_BEFORE_DECLARATION, unfoldable_call, unsupported_expression,
+    unsupported_operator,
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
@@ -80,7 +79,7 @@ use stylex_constants::constants::{
   },
 };
 use stylex_enums::{
-  import_path_resolution::ImportPathResolution, js::CallableGlobalJS, misc::BinaryExprType,
+  import_path_resolution::ImportPathResolution, misc::BinaryExprType,
   value_with_default::ValueWithDefault,
 };
 use stylex_js::coercions;
@@ -514,3 +513,7 @@ mod engine_fold_tests;
 #[cfg(test)]
 #[path = "tests/function_fold_object_tests.rs"]
 mod function_fold_object_tests;
+
+#[cfg(test)]
+#[path = "tests/applied_global_tests.rs"]
+mod applied_global_tests;

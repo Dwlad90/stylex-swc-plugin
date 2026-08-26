@@ -7,25 +7,12 @@ use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{theme_ref::ThemeRef, types::FlatCompiledStyles},
 };
-use stylex_enums::{js::CallableGlobalJS, value_with_default::ValueWithDefault};
+use stylex_enums::value_with_default::ValueWithDefault;
 
 use super::types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression};
 use stylex_structures::stylex_env::JSFunction;
 
 use stylex_types::traits::StyleOptions;
-
-/// What a folded callback stands for.
-///
-/// Two answers, not a table of method names: a global called as a function, and
-/// an arrow the module wrote. A method *on* a value is evaluated as JavaScript,
-/// so there is nothing here to name it.
-#[derive(Debug, Hash, PartialEq, Clone)]
-pub enum CallbackType {
-  /// A call to the global itself — `String(x)` — rather than to one of its
-  /// methods.
-  Global(CallableGlobalJS),
-  Custom(Expr),
-}
 
 pub type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;
 pub type StylexExprFn = fn(Expr, &mut dyn StyleOptions) -> Expr;
@@ -47,7 +34,12 @@ pub enum FunctionType {
 
   Mapper(Rc<dyn Fn() -> Expr + 'static>),
   ThemeRefMapper(Rc<dyn Fn() -> ThemeRef + 'static>),
-  Callback(Box<CallbackType>),
+  /// A function the module wrote, called with evaluated arguments.
+  ///
+  /// The expression itself rather than a named kind of callback: a method on a
+  /// value is evaluated as JavaScript, and a global called as a function is
+  /// too, so an arrow the author wrote is the only callback left to stand for.
+  Callback(Box<Expr>),
   DefaultMarker(Arc<IndexMap<String, StylexWhenFn>>),
   /// An env function from the `env` config option.
   /// Takes evaluated arguments as `Expr`s and returns an `Expr`.

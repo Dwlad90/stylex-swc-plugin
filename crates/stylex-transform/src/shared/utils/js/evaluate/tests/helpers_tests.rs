@@ -81,9 +81,9 @@ fn the_two_bridges_agree_a_function_map_is_an_object() {
   assert!(
     matches!(
       evaluate_result_to_js_object(&map),
-      Some(coercions::ObjectCoercion::Identity)
+      Some(coercions::ObjectCoercion::Object)
     ),
-    "the object bridge must read a function map as an object, not wrap it"
+    "the object bridge must read a function map as an object, not as a function"
   );
 }
 
@@ -105,6 +105,6 @@ fn the_two_bridges_agree_a_callback_is_a_function() {
       evaluate_result_to_js_object(&callback),
       Some(coercions::ObjectCoercion::Function)
     ),
-    "the object bridge must wrap a function"
+    "the object bridge must read a callback as a function"
   );
 }

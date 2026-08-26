@@ -260,6 +260,26 @@ pub(crate) fn assert_folds_to_string(source: &str, expected: &str) {
   }
 }
 
+/// The folded string, for a caller comparing a fold against something other
+/// than a literal it wrote out — the differential pass beside the coercions.
+#[track_caller]
+pub(crate) fn folded_string(source: &str) -> String {
+  match assert_folds(source) {
+    Expr::Lit(Lit::Str(strng)) => convert_atom_to_string(&strng.value),
+    other => panic!("expected `{}` to fold to a string, got {:?}", source, other),
+  }
+}
+
+/// The folded number, likewise. `NaN` is among the values it answers, because
+/// `NaN` is a value here rather than a refusal.
+#[track_caller]
+pub(crate) fn folded_number(source: &str) -> f64 {
+  match assert_folds(source) {
+    Expr::Lit(Lit::Num(number)) => number.value,
+    other => panic!("expected `{}` to fold to a number, got {:?}", source, other),
+  }
+}
+
 /// Asserts the source folds to `null`.
 ///
 /// Its own assertion because `null` carries no value to compare — the variant

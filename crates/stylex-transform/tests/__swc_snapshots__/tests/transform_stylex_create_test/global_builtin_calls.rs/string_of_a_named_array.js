@@ -2,12 +2,12 @@ import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import * as stylex from '@stylexjs/stylex';
 _inject2({
-    ltr: ".xuk3mqx{font-family:x[object Object]y}",
+    ltr: ".x1cc2d69{font-family:Inter,sans-serif}",
     priority: 3000
 });
 export const styles = {
-    wrapped: {
-        kMv6JI: "xuk3mqx",
+    root: {
+        kMv6JI: "x1cc2d69",
         $$css: true
     }
 };

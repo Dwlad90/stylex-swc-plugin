@@ -921,9 +921,9 @@
       "id": "modules-the-folded-map-wrapped-in-object",
       "label": "the folded namespace map wrapped in `Object()` and interpolated",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  wrapped: { fontFamily: `x${Object(stylex)}y` },\n});\n",
-      "expected": "identical",
+      "expected": "acceptance-divergent",
       "origin": "ticket 23, the second bridge that classifies the fold",
-      "note": "Agrees now, and the two halves of getting there are worth keeping apart. The receiver normalizer had no arm for a folded map, so it read as \"not an object\" and answered the empty list -- the spread arm one function away answered the keys. That was ticket 40. The list was then still one key short, because `env` was registered only in the namespace's member expressions and not in the fold the keys are read from; ticket 41 widened the fold's value type so it could hold one. The row only became visible at all when the template evaluator stopped dropping every interpolation it could not spell."
+      "note": "Acceptance divergent since ticket 09, deliberately. `Object(x)` is a native JavaScript function and is now folded by calling it in the engine, so its argument has to cross the value bridge -- and the namespace map is this compiler's own value, not a JavaScript one, so it does not. Upstream folds `[object Object]`, which no stylesheet can use; a refusal is loud where a wrong class name is silent. The interpolation one line away still agrees, because a template coerces in Rust: the two conversion implementations serve disjoint positions, and `modules-object-keys-of-a-folded-map` is the row that keeps the Rust side honest. It agreed before this, and the two halves of getting there are worth keeping: the receiver normalizer had no arm for a folded map, so it read as \"not an object\" and answered the empty list -- ticket 40 -- and the list was then one key short because `env` was registered only in the namespace's member expressions, which ticket 41 widened the fold's value type for."
     },
     {
       "id": "modules-object-keys-of-a-folded-map",
@@ -1974,6 +1974,46 @@
       "origin": "issue 06, the agreed object method the locale exclusion costs",
       "note": "Acceptance divergent, and the one method on the ticket's agreed object list that does not fold. `toLocaleString` carries no locale on an object -- it delegates to `toString` -- but it formats on a number, and which of the two a receiver will produce is not knowable before evaluating it. One name cannot be both admitted and refused, so it is refused and this is the cost.",
       "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-09-string-of-the-environment-object",
+      "label": "`String()` of the environment object",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: { color: String(stylex.env) },\n});\n",
+      "expected": "acceptance-divergent",
+      "origin": "ticket 09, the globals that fold by being called",
+      "note": "Acceptance divergent since ticket 09, deliberately. `String(x)` is a native JavaScript function and is folded by calling it in the engine, so its argument has to cross the value bridge -- and the environment object is this compiler's own value, not a JavaScript one, so it does not. Upstream folds `[object Object]`, which no stylesheet can use; a refusal is loud where a wrong class name is silent. The same value interpolated in a template still agrees, because a template coerces in Rust: the two conversion implementations serve disjoint positions."
+    },
+    {
+      "id": "modules-09-string-of-a-token-group",
+      "label": "`String()` of a token group and of a token reference",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { colors } from 'colors.stylex.js';\n\nexport const styles = stylex.create({\n  group: { color: String(colors) },\n  reference: { color: String(colors.primary) },\n});\n",
+      "expected": "acceptance-divergent",
+      "origin": "ticket 09, the globals that fold by being called",
+      "note": "Acceptance divergent since ticket 09, deliberately, and the one divergence the effort's spec did not sanction -- it says the string a theme reference has already resolved to crosses inward. It cannot cross under one carriage of the name: upstream folds the group to its variable-group hash and a member of it to the `var(...)` the token names, and a value that answers the first cannot be read through a property to answer the second. Carrying the group as its hash string would make `colors.primary` read a property off a string; carrying it as an object of resolved strings would lose the hash. Answering both needs a name for a subexpression the author never named, which is a transport the effort chose against. Refused rather than guessed, and left for ticket 16 to decide against the spec."
+    },
+    {
+      "id": "modules-09-string-of-a-spread-holding-a-function",
+      "label": "`String()` of a spread of an object holding a function",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = { toString: () => 'blue' };\n\nexport const styles = stylex.create({\n  root: { color: String({ ...base }) },\n});\n",
+      "expected": "acceptance-divergent",
+      "origin": "ticket 09, the globals that fold by being called",
+      "note": "Acceptance divergent since ticket 09, deliberately. The spread's operand is a name, so its value has to cross the bridge -- and a function has no form the bridge carries. The same object written out in place still folds to `blue`, because the arrow is printed as source and the engine calls it; what cannot cross is a function held in an already-evaluated value. Upstream folds `blue`."
+    },
+    {
+      "id": "modules-09-number-of-a-function",
+      "label": "`Number()` of a function",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: { opacity: Number(() => 1) },\n});\n",
+      "expected": "acceptance-divergent",
+      "origin": "ticket 09, the globals that fold by being called",
+      "note": "Acceptance divergent since ticket 09, deliberately, and the one place the two conversion implementations are allowed to part company. Upstream answers `NaN`, because it reaches a number *through* the string and no function's source text is a numeric literal. The engine the fold runs in is built with no function source text at all -- which is what stops `String(fn)` folding a spelling no other build produces -- so the conversion throws before it can reach the number. The operators keep the `NaN`: they coerce in Rust and never ask the engine, and the differential test beside the coercions records this as their single deliberate disagreement."
+    },
+    {
+      "id": "modules-09-string-of-a-lone-surrogate",
+      "label": "`String()` of a lone surrogate",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: { content: String('\\uD800') },\n});\n",
+      "expected": "divergent",
+      "origin": "ticket 09, the globals that fold by being called",
+      "note": "Both compile and the class names differ, which is the outcome this harness exists to catch -- and it is the lone-surrogate decision ticket 06 already took, reached here by a coercion for the first time. The engine's strings are UTF-16 and `Lit::Str` carries UTF-8, so a value crossing back substitutes the replacement character. The declaration text is what upstream writes to disk; only the hash differs, because upstream still holds the surrogate. Recorded rather than fixed: refusing instead would refuse every fold whose result is ill-formed, which is a decision about the outward bridge rather than about this call, and `engine_fold_tests` is where that decision is pinned."
     }
   ]
 }

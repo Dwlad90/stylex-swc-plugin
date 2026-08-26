@@ -142,24 +142,42 @@ pub fn global_identifier_to_value(ident: &Ident) -> Option<Expr> {
     // No literal spells it, so the name stands. Every coercion above reads the
     // identifier form, so nothing downstream is worse off for it.
     SurvivingGlobal::Undefined => Some(Expr::Ident(ident.clone())),
-    SurvivingGlobal::NaN => Some(number_spelled_as(f64::NAN, "NaN")),
-    SurvivingGlobal::Infinity => Some(number_spelled_as(f64::INFINITY, "Infinity")),
+    SurvivingGlobal::NaN => Some(js_number_expr(f64::NAN)),
+    SurvivingGlobal::Infinity => Some(js_number_expr(f64::INFINITY)),
   }
 }
 
-/// A number carrying the text it was authored with.
+/// A number as the expression that writes it, carrying its authored text where
+/// the grammar has no literal for it.
 ///
-/// Only the two globals need it, and they need it because neither has a
-/// numeric literal to print: asked to write a `Number` node holding `NaN`, the
-/// emitter falls back to `0 / 0`, and `Infinity` to a numeral no author wrote.
-/// Both evaluate to the right value, so this is about the text rather than the
-/// semantics -- but the text is what a reader diffs and what the reference
-/// implementation prints, so the name is kept.
-fn number_spelled_as(value: f64, raw: &str) -> Expr {
+/// `NaN` and the two infinities have none: asked to write a `Number` node
+/// holding `NaN`, the emitter falls back to `0 / 0`, and an infinity to a
+/// numeral no author wrote. Both evaluate to the right value, so this is about
+/// the text rather than the semantics -- but the text is what a reader diffs,
+/// what the reference implementation prints, and what a class name is a hash of.
+///
+/// Every finite number spells itself, so this is safe to reach for wherever a
+/// number becomes an expression rather than being asked about first.
+///
+/// A negative infinity spells itself with the minus sign in the text. That is a
+/// unary expression rather than a numeric literal, and it is the right text all
+/// the same: nothing re-parses the raw form, every reader of the node takes its
+/// value, and the alternative is the numeral the emitter invents.
+pub fn js_number_expr(value: f64) -> Expr {
+  let raw = if value.is_nan() {
+    Some("NaN")
+  } else if value == f64::INFINITY {
+    Some("Infinity")
+  } else if value == f64::NEG_INFINITY {
+    Some("-Infinity")
+  } else {
+    None
+  };
+
   Expr::Lit(Lit::Num(Number {
     span: DUMMY_SP,
     value,
-    raw: Some(raw.into()),
+    raw: raw.map(Into::into),
   }))
 }
 
@@ -467,52 +485,6 @@ pub fn joins_as_empty(expr: &Expr) -> bool {
   }
 }
 
-/// The number an expression *is*, as opposed to what it would coerce to.
-///
-/// `Array(3)` is a length where `Array('3')` is an element, so a caller that
-/// has to tell a number from a numeric string asks this rather than
-/// [`to_js_number`]. `NaN` and `Infinity` survive evaluation as the global
-/// identifiers they were written as and are numbers all the same; `undefined`
-/// arrives the same way and is not one.
-pub fn js_number_value(expr: &Expr) -> Option<f64> {
-  match expr {
-    Expr::Lit(Lit::Num(num)) => Some(num.value),
-    Expr::Ident(ident) => match surviving_global(ident)? {
-      SurvivingGlobal::NaN => Some(f64::NAN),
-      SurvivingGlobal::Infinity => Some(f64::INFINITY),
-      SurvivingGlobal::Undefined => None,
-    },
-    _ => None,
-  }
-}
-
-/// The most holes a folded `Array(n)` will materialise.
-///
-/// A length is only a count until the array exists, and every hole costs the
-/// width of an evaluated value, so `Array(2 ** 32 - 1)` — a length JavaScript
-/// accepts — is an allocation the compiler does not survive. Bounded at a count
-/// no stylesheet reaches: a counted array used as a style value is refused
-/// whatever its length, and the one shape that folds to something usable, the
-/// join `String(Array(n))`, is `n - 1` commas.
-///
-/// A budget rather than a rule of the language, which is why it sits beside
-/// [`to_array_length`] rather than inside it: the coercion answers what
-/// JavaScript says, and the caller decides what it can afford.
-pub const MAX_FOLDED_ARRAY_LENGTH: usize = 65_536;
-
-/// ECMA-262 `ArrayCreate`'s length check: a length is an integer in
-/// `0..2 ** 32`.
-///
-/// `None` is every count JavaScript answers with a `RangeError` — a fraction,
-/// a negative, `NaN`, an infinity, or a value at or past the limit — for which
-/// no array exists.
-pub fn to_array_length(count: f64) -> Option<usize> {
-  const LENGTH_LIMIT: f64 = 4_294_967_296.0;
-
-  (count.is_finite() && count.fract() == 0.0 && (0.0..LENGTH_LIMIT).contains(&count))
-    .then_some(count as usize)
-}
-
 /// `ToInt32` over a number, the coercion the bitwise operators apply to their
 /// operands before operating on them.
 ///
@@ -540,52 +512,35 @@ pub fn to_int32(value: f64) -> i32 {
   }
 }
 
-/// Which outcome `ToObject` takes over a value.
+/// What kind of object `ToObject` answers with over a value.
 ///
-/// Reported rather than carried out, because not every outcome produces a value
-/// a caller can hold: naming the wrapper keeps a boxed primitive out of the
-/// caller's value type.
+/// Reported rather than carried out, and now only as coarsely as its one caller
+/// asks: `typeof` tells a function from everything else and nothing else does.
+/// `Object(x)` is folded by the engine, which answers with a real object rather
+/// than a name for one, so the outcomes it needed apart — a fresh empty object,
+/// the value itself, a boxed primitive — are the language's business again.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum ObjectCoercion {
-  /// `null` and `undefined`, which `ToObject` answers with a fresh empty
-  /// object rather than a wrapper around anything.
-  EmptyObject,
-  /// A value that already is an object — an array among them — which
-  /// `ToObject` returns unchanged.
-  Identity,
-  /// A function, which is an object and which `ToObject` also returns
-  /// unchanged.
-  ///
-  /// Reported apart from [`ObjectCoercion::Identity`] even though the
-  /// coercion treats the two alike, and apart from
-  /// [`ObjectCoercion::Wrapper`] even though the only caller refuses both:
-  /// what it separates is the *identity*, because an evaluator that reduces a
-  /// function to its return value folds `Object(() => 'red')` to `red` if the
-  /// two ever merge. Wrong output, not a lost distinction, is what the variant
-  /// prevents — see the transform crate's ADR
-  /// `0001-a-refused-fold-borrows-a-later-diagnostic`.
+  /// A function, which is an object whose `typeof` is nonetheless `function`.
   Function,
-  /// A primitive, which `ToObject` boxes in a wrapper object.
-  Wrapper,
+  /// Every other object `ToObject` can answer with — one the value already is,
+  /// a wrapper around a primitive, or the fresh object the nullish values take.
+  Object,
 }
 
-/// ECMA-262 `ToObject`, reported as which outcome it takes rather than as a
-/// value.
+/// ECMA-262 `ToObject`, reported as which kind of object it answers with rather
+/// than as a value.
 ///
 /// `None` is a value whose kind cannot be read off the expression, so the
-/// caller deopts instead of guessing which outcome applies.
+/// caller deopts instead of guessing.
 pub fn to_object(expr: &Expr) -> Option<ObjectCoercion> {
   match expr {
-    Expr::Lit(Lit::Null(_)) => Some(ObjectCoercion::EmptyObject),
-    // `NaN` and `Infinity` are numbers, so they box like one.
-    Expr::Ident(ident) => match surviving_global(ident)? {
-      SurvivingGlobal::Undefined => Some(ObjectCoercion::EmptyObject),
-      SurvivingGlobal::NaN | SurvivingGlobal::Infinity => Some(ObjectCoercion::Wrapper),
-    },
     Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => Some(ObjectCoercion::Function),
-    // A regular expression is an object, so it passes through as one.
-    Expr::Object(_) | Expr::Array(_) | Expr::Lit(Lit::Regex(_)) => Some(ObjectCoercion::Identity),
-    Expr::Lit(_) => Some(ObjectCoercion::Wrapper),
+    // Every remaining readable value is an object or boxes into one: the two
+    // nullish spellings take a fresh one, an array, an object and a regular
+    // expression already are one, and a primitive is wrapped in one.
+    Expr::Ident(ident) => surviving_global(ident).map(|_| ObjectCoercion::Object),
+    Expr::Object(_) | Expr::Array(_) | Expr::Lit(_) => Some(ObjectCoercion::Object),
     _ => None,
   }
 }

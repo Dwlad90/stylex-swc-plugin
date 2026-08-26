@@ -54,11 +54,12 @@ use stylex_ast::ast::factories::{
 };
 use stylex_constants::constants::evaluation_errors::{
   SPREAD_ELEMENT, amplification_inside_a_callback, array_length_too_large,
-  bound_value_has_too_many_entries, bound_value_too_large, engine_threw, escaping_property,
-  expression_too_deep, folded_string_too_large, locale_sensitive_method, numeric_literal_receiver,
-  object_size_too_large, unbounded_amplified_length, uncallable_printed_fold,
-  unfoldable_fold_result, unfoldable_static,
+  bound_value_has_too_many_entries, bound_value_too_large, engine_did_not_start, engine_threw,
+  escaping_property, expression_too_deep, folded_string_too_large, locale_sensitive_method,
+  not_a_function, numeric_literal_receiver, object_size_too_large, unbounded_amplified_length,
+  uncallable_printed_fold, uncoercible_value, unfoldable_fold_result, unfoldable_static,
 };
+use stylex_js::coercions::{self, is_global_spelled_as_an_identifier};
 use stylex_js::helpers::{is_invalid_method, is_valid_callee};
 use stylex_utils::number::to_js_string;
 
@@ -174,6 +175,31 @@ const MAX_ENGINE_NESTING: usize = 32;
 /// through. Ten million iterations of an empty loop is well under a second, and
 /// no folded CSS value is reached by counting that far.
 const MAX_LOOP_ITERATIONS: u64 = 10_000_000;
+
+/// What the engine answers when anything asks a function for its source text.
+///
+/// A function's `ToString` is its source, and this compiler has none to give: an
+/// arrow reaches the engine as this module's own minified printing of it, not as
+/// the text the author wrote, so `String(() => 'x')` would fold to a spelling no
+/// other build produces — and a class name is a hash of the declaration text.
+/// The reference compiler answers such a call with the source of a wrapper from
+/// inside its own evaluator, which is no better.
+///
+/// So the source is taken away and every conversion that would read one throws,
+/// which the fold reports as a refusal. A function reached only to be *called*
+/// is untouched, which is what `String({ toString: () => 'red' })` needs, and is
+/// the whole of the difference between a function used as a value and one used
+/// as a method.
+///
+/// Assigned rather than defined, because `Function.prototype.toString` is a
+/// writable property; and assigned once when the engine is built, because a fold
+/// cannot reach it afterwards — every route from a value to a prototype is a
+/// refused property read.
+const NO_FUNCTION_SOURCE: &str = concat!(
+  "Function.prototype.toString = function () {",
+  " throw new TypeError('A function has no source text at compile time.')",
+  " };"
+);
 
 /// Whether `name` is one of the names in `list`.
 ///
@@ -798,7 +824,8 @@ fn fold(
   guard: Guard,
   reader: &mut Reader,
 ) -> Result<EvaluateResultValue, Decline> {
-  let method = admit_call(call, guard, reader)?;
+  let admitted = admit_call(call, guard, reader)?;
+  let method = admitted.name();
 
   let source = print_fold(call, &reader.transport.params);
 
@@ -809,16 +836,23 @@ fn fold(
     // abandoned mid-frame. Taking it means an unwind leaves the slot empty and
     // the next fold builds a fresh engine; the abandoned one leaks, which is
     // what `ManuallyDrop` already makes it do at thread exit.
-    let mut engine = slot.take().unwrap_or_else(new_engine);
+    let mut engine = match slot.take() {
+      Some(engine) => engine,
+      None => new_engine()?,
+    };
 
     let outward = Outward {
       method,
       depth: Depth::FULL,
     };
 
-    let folded = reader
-      .transport
-      .arguments(&mut engine, method)
+    let applied = match admitted {
+      Admitted::Global(global) => admit_an_applied_global(global, &mut engine),
+      Admitted::Method(_) => Ok(()),
+    };
+
+    let folded = applied
+      .and_then(|()| reader.transport.arguments(&mut engine, method))
       .and_then(|arguments| apply(&source, &arguments, &mut engine, outward))
       .and_then(|value| to_value(&value, &mut engine, outward));
 
@@ -898,15 +932,26 @@ pub(super) fn forget_engine() {
   });
 }
 
-/// A context with the one runtime limit its default leaves open.
-fn new_engine() -> ManuallyDrop<Context> {
+/// A context with the one runtime limit its default leaves open, and without
+/// the one thing the language provides that this compiler cannot: function
+/// source text.
+///
+/// Answers a refusal rather than asserting, because the assignment runs inside
+/// an evaluation whose whole contract is that it may fail — and because an
+/// engine that kept function source would fold a spelling no other build
+/// produces, which is worse than declining the fold.
+fn new_engine() -> Result<ManuallyDrop<Context>, Decline> {
   let mut engine = Context::default();
 
   engine
     .runtime_limits_mut()
     .set_loop_iteration_limit(MAX_LOOP_ITERATIONS);
 
-  ManuallyDrop::new(engine)
+  engine
+    .eval(Source::from_bytes(NO_FUNCTION_SOURCE))
+    .map_err(|error| Decline::rule(engine_did_not_start(&error.to_string())))?;
+
+  Ok(ManuallyDrop::new(engine))
 }
 
 /// What the outward bridge carries as it converts a value back: the method
@@ -966,6 +1011,18 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
     Expr::Ident(ident) => {
       if let Scope::Params(params) = guard.scope
         && params.contains(&ident.sym)
+      {
+        return Ok(());
+      }
+
+      // `undefined`, `NaN` and `Infinity` are values the grammar has no literal
+      // for, so an author writes them as names and they reach the guard as
+      // names. The engine holds them, so they are printed and the language
+      // answers — the same arrangement a global receiver takes, and for the same
+      // reason. Only where the module bound nothing of the name, in which case
+      // the binding is resolved like any other below.
+      if is_global_spelled_as_an_identifier(ident)
+        && get_binding(expr, reader.traversal_state).is_none()
       {
         return Ok(());
       }
@@ -1061,7 +1118,16 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
     Expr::Object(ObjectLit { props, .. }) => {
       for prop in props {
         let PropOrSpread::Prop(prop) = prop else {
-          return Err(Decline::NotACandidate);
+          // A spread is a value in its own right and the language does the
+          // spreading, so the operand is walked and the printed source keeps the
+          // spread exactly as it was written.
+          let PropOrSpread::Spread(spread) = prop else {
+            return Err(Decline::NotACandidate);
+          };
+
+          admit_value(&spread.expr, inner, reader)?;
+
+          continue;
         };
 
         let Prop::KeyValue(KeyValueProp { key, value }) = prop.as_ref() else {
@@ -1084,11 +1150,83 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
     // and evaluating it once is what makes `[…].map(…).join('-')` work, which
     // two separate method tables cannot agree on.
     Expr::Call(call) => admit_call(call, inner, reader).map(|_| ()),
+    // An arrow is a value the language can hold and call: the callback `map` and
+    // `filter` take, and the own `toString` an object converts through. It has
+    // no *string* form here — the engine is built without function source text,
+    // so a conversion that would read one refuses. See [`NO_FUNCTION_SOURCE`].
+    Expr::Arrow(arrow) => admit_arrow(arrow, inner, reader),
     _ => Err(Decline::NotACandidate),
   }
 }
 
-/// Whether a call is a method call this module can hand to the engine whole.
+/// What the guard admitted, and the name a refusal or a throw is reported
+/// under.
+///
+/// The two arms are the two ways a native function is reached: a method on a
+/// receiver, and a global applied as a function. They are told apart because
+/// only the second can name something that is not a function at all — `Math` is
+/// a valid callee because its methods fold, which says nothing about whether the
+/// name itself can be applied.
+#[derive(Clone, Copy)]
+enum Admitted<'a> {
+  Method(&'a Atom),
+  Global(&'a Atom),
+}
+
+impl<'a> Admitted<'a> {
+  /// The method or global the call names.
+  fn name(self) -> &'a Atom {
+    match self {
+      Admitted::Method(name) | Admitted::Global(name) => name,
+    }
+  }
+}
+
+/// Refuses an applied global that is not a function.
+///
+/// Asked of the language rather than of a list of names: the global object holds
+/// the value, and the value says whether it can be applied. The engine's own
+/// sentence for applying one is `not a callable function`, which names neither
+/// the global nor the mistake, so the refusal is this compiler's.
+///
+/// Asked with the engine in hand and so after the guard, because it is the one
+/// rule here that cannot be answered from the source. Asked of the outermost call
+/// only: a global applied in the middle of a chain reads the engine's own throw,
+/// and there is no sentence about a chain worth preferring to it.
+fn admit_an_applied_global(name: &Atom, engine: &mut Context) -> Result<(), Decline> {
+  let global_object = engine.global_object();
+  let value = read(name, || {
+    global_object.get(JsString::from(name.as_str()), engine)
+  })?;
+
+  match value.is_callable() {
+    true => Ok(()),
+    false => Err(Decline::rule(not_a_function(name))),
+  }
+}
+
+/// The name a bare identifier names as a global the module never bound, or
+/// `None` where it is not one.
+///
+/// One question asked in the two positions a global appears in — the receiver of
+/// a static and the callee of an applied global — so a name that is the global
+/// in one cannot be a binding in the other.
+///
+/// A locally-declared shadow is the module's own value and is resolved like any
+/// other name: measured, `const String = 'abc'; String.toUpperCase()` folds to
+/// `ABC` in the reference compiler, so treating the name as the global would
+/// refuse an input it compiles. The lookup is one map read and no evaluation, so
+/// it stays in front of the walk with the other cheap answers.
+fn unshadowed_global<'a>(expr: &'a Expr, reader: &Reader) -> Option<&'a Atom> {
+  match expr.as_ident() {
+    Some(name) if is_valid_callee(expr) && get_binding(expr, reader.traversal_state).is_none() => {
+      Some(&name.sym)
+    },
+    _ => None,
+  }
+}
+
+/// Whether a call is one this module can hand to the engine whole.
 ///
 /// Every boundary is checked here rather than at the outermost call, because a
 /// chain hides its middle links: `"AB".toLocaleLowerCase().trim()` is a `trim`
@@ -1104,10 +1242,18 @@ fn admit_call<'a>(
   call: &'a CallExpr,
   guard: Guard,
   reader: &mut Reader,
-) -> Result<&'a Atom, Decline> {
+) -> Result<Admitted<'a>, Decline> {
   let Callee::Expr(callee) = &call.callee else {
     return Err(Decline::NotACandidate);
   };
+
+  // `String(x)`, `Number(x)`, `Array(n)` and `Object(x)` are native JavaScript
+  // functions, so they are folded by being called rather than by a conversion
+  // written out here. A name the module bound is not one of them and is left to
+  // the dispatch below, which calls the author's own function.
+  if let Some(global) = unshadowed_global(callee, reader) {
+    return admit_applied_global(global, call, guard, reader);
+  }
 
   let Expr::Member(MemberExpr { obj, prop, .. }) = callee.as_ref() else {
     return Err(Decline::NotACandidate);
@@ -1125,19 +1271,7 @@ fn admit_call<'a>(
   // what folding a static needs, so the surface is the language's rather than a
   // list of names this compiler chose, and where a static is written no longer
   // decides whether it folds.
-  //
-  // Only where the module declares no binding of that name. A locally-declared
-  // shadow is the module's own value and is resolved like any other name:
-  // measured, `const String = 'abc'; String.toUpperCase()` folds to `ABC` in the
-  // reference compiler, so treating the name as the global would refuse an input
-  // it compiles. The lookup is one map read and no evaluation, so it stays in
-  // front of the walk with the other cheap answers.
-  let global = match obj.as_ident() {
-    Some(name) if is_valid_callee(obj) && get_binding(obj, reader.traversal_state).is_none() => {
-      Some(&name.sym)
-    },
-    _ => None,
-  };
+  let global = unshadowed_global(obj, reader);
 
   // The statics the reference compiler refuses by name, refused here for the
   // reason it refuses them: each answers by changing what it was handed, or
@@ -1184,7 +1318,34 @@ fn admit_call<'a>(
     return Err(Decline::rule(escaping_property(&method.sym)));
   }
 
-  Ok(&method.sym)
+  Ok(Admitted::Method(&method.sym))
+}
+
+/// Whether a call applying a global is one the engine can answer.
+///
+/// The arguments are walked as values and nothing else: none of the globals is a
+/// higher-order function, so an arrow among them is a value like any other.
+///
+/// A name the bridge cannot carry is a refusal here rather than a shape handed
+/// back, because the fold owns every call to an unbound global — nothing below
+/// it folds one, so handing the call back would end it at the catch-all's
+/// `Unsupported expression` with the reason lost. The one thing the guard does
+/// not answer is whether the global is a function at all: that is the language's
+/// answer and is read off the engine in [`Admitted::callable`].
+fn admit_applied_global<'a>(
+  global: &'a Atom,
+  call: &CallExpr,
+  guard: Guard,
+  reader: &mut Reader,
+) -> Result<Admitted<'a>, Decline> {
+  for arg in &call.args {
+    admit_argument(arg, guard, reader).map_err(|declined| match declined {
+      Decline::NotACandidate => Decline::rule(uncoercible_value(global)),
+      rule => rule,
+    })?;
+  }
+
+  Ok(Admitted::Global(global))
 }
 
 /// Whether the receiver is a number written into the source as a literal.
@@ -1250,9 +1411,8 @@ fn admit_amplification(
   }
 }
 
-/// An argument is admitted when it carries its own value, or is an arrow
-/// function reading nothing but its own parameters — the callback shape `map`,
-/// `filter` and `reduce` take.
+/// An argument is admitted when it is a value the walk carries — an arrow among
+/// them, which is how a callback and an own conversion method reach the engine.
 fn admit_argument(arg: &ExprOrSpread, guard: Guard, reader: &mut Reader) -> Result<(), Decline> {
   // A spread needs the scope, and is refused rather than handed back: the
   // receiver is walked before the arguments, so a call reaching here is one this
@@ -1262,10 +1422,7 @@ fn admit_argument(arg: &ExprOrSpread, guard: Guard, reader: &mut Reader) -> Resu
     return Err(Decline::rule(SPREAD_ELEMENT));
   }
 
-  match arg.expr.as_ref() {
-    Expr::Arrow(arrow) => admit_arrow(arrow, guard, reader),
-    expr => admit_value(expr, guard, reader),
-  }
+  admit_value(&arg.expr, guard, reader)
 }
 
 /// Whether an arrow reads nothing but its own parameters and names the module
@@ -1307,10 +1464,16 @@ fn to_value(
   // Read through the accessors rather than matching variants: the engine's
   // value is nan-boxed by default and an enum only under a feature, and both
   // answer these.
+  if let Some(number) = value.as_number() {
+    // Spelled rather than written straight into a `Number` node: `NaN` and the
+    // infinities have no numeric literal, so the emitter would write `0 / 0` and
+    // a numeral no author wrote. A class name is a hash of the declaration text,
+    // so the spelling is the value.
+    return Ok(EvaluateResultValue::Expr(coercions::js_number_expr(number)));
+  }
+
   let literal = if let Some(truth) = value.as_boolean() {
     Lit::Bool(truth.into())
-  } else if let Some(number) = value.as_number() {
-    Lit::Num(number.into())
   } else if value.is_null() {
     Lit::Null(Null { span: DUMMY_SP })
   } else if let Some(string) = value.as_string() {
@@ -1357,7 +1520,15 @@ fn to_object_value(
     for index in 0..length {
       let element = read(outward.method, || object.get(index, engine))?;
 
-      items.push(to_value(&element, engine, inner)?);
+      // A hole and an element written `undefined` are the same value, and it
+      // crosses back as the name the language spells it with — the one value
+      // with no literal at all. `Array(3)` is three of them, and refusing
+      // instead would refuse the array rather than the holes in it, where the
+      // style-array check is what an author should hear from, on both compilers.
+      items.push(match element.is_undefined() {
+        true => EvaluateResultValue::Expr(Expr::Ident(create_ident(&Atom::from("undefined")))),
+        false => to_value(&element, engine, inner)?,
+      });
     }
 
     return Ok(EvaluateResultValue::Vec(items));

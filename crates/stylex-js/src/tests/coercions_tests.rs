@@ -619,95 +619,40 @@ fn a_value_with_no_string_form_has_no_number_either() {
 }
 
 #[test]
-fn only_a_number_has_a_number_value() {
-  // What the value *is*, not what it coerces to: a numeric string coerces to
-  // a number but is not one.
-  assert_eq!(js_number_value(&num_expr(3.0)), Some(3.0));
-  assert_eq!(js_number_value(&num_expr(-0.0)), Some(-0.0));
-  assert_eq!(js_number_value(&str_expr("3")), None);
-  assert_eq!(js_number_value(&bool_expr(true)), None);
-  assert_eq!(js_number_value(&null_expr()), None);
-  assert_eq!(js_number_value(&array_expr(vec![])), None);
-  assert_eq!(js_number_value(&empty_object_expr()), None);
-}
-
-#[test]
-fn the_numeric_globals_have_a_number_value() {
-  // These survive evaluation as the identifiers they were written as, and are
-  // numbers all the same. `undefined` arrives the same way and is not one.
-  assert!(matches!(js_number_value(&ident_expr("NaN")), Some(value) if value.is_nan()));
-  assert_eq!(
-    js_number_value(&ident_expr("Infinity")),
-    Some(f64::INFINITY)
-  );
-  assert_eq!(js_number_value(&ident_expr("undefined")), None);
-  assert_eq!(js_number_value(&ident_expr("someBinding")), None);
-}
-
-#[test]
-fn an_array_length_is_an_integer_below_two_to_the_thirty_second() {
-  assert_eq!(to_array_length(0.0), Some(0));
-  assert_eq!(to_array_length(-0.0), Some(0));
-  assert_eq!(to_array_length(1.0), Some(1));
-  assert_eq!(to_array_length(4_294_967_295.0), Some(4_294_967_295));
-}
-
-#[test]
-fn a_count_that_is_not_an_array_length_has_none() {
-  // Each of these is a `RangeError` in JavaScript, so no array exists.
-  assert_eq!(to_array_length(2.5), None);
-  assert_eq!(to_array_length(-1.0), None);
-  assert_eq!(to_array_length(f64::NAN), None);
-  assert_eq!(to_array_length(f64::INFINITY), None);
-  assert_eq!(to_array_length(f64::NEG_INFINITY), None);
-  // The limit is exclusive: `2 ** 32` is one past the largest length.
-  assert_eq!(to_array_length(4_294_967_296.0), None);
-  assert_eq!(to_array_length(1e30), None);
-}
-
-#[test]
-fn null_and_undefined_coerce_to_an_empty_object() {
-  // `ToObject` of either is a fresh object rather than a wrapper around
-  // anything, which is why `Object(null)` carries no properties.
-  assert_eq!(to_object(&null_expr()), Some(ObjectCoercion::EmptyObject));
+fn every_value_but_a_function_coerces_to_a_plain_object() {
+  // The nullish pair takes a fresh object, an object and an array already are
+  // one, and a primitive is boxed in one -- three outcomes `typeof` cannot tell
+  // apart, and the one caller left is `typeof`.
+  assert_eq!(to_object(&null_expr()), Some(ObjectCoercion::Object));
   assert_eq!(
     to_object(&ident_expr("undefined")),
-    Some(ObjectCoercion::EmptyObject)
+    Some(ObjectCoercion::Object)
   );
-}
-
-#[test]
-fn a_value_that_is_already_an_object_coerces_to_itself() {
-  // An array is an object too, so `ToObject` returns it unchanged.
   assert_eq!(
     to_object(&empty_object_expr()),
-    Some(ObjectCoercion::Identity)
+    Some(ObjectCoercion::Object)
   );
   assert_eq!(
     to_object(&array_expr(vec![Some(str_expr("a"))])),
-    Some(ObjectCoercion::Identity)
+    Some(ObjectCoercion::Object)
   );
-}
-
-#[test]
-fn a_function_coerces_to_itself_and_says_so() {
-  // Also returned unchanged, and reported apart because a caller may have no
-  // way to hold a function.
-  assert_eq!(to_object(&arrow_expr()), Some(ObjectCoercion::Function));
-}
-
-#[test]
-fn a_primitive_coerces_to_a_wrapper_object() {
-  assert_eq!(to_object(&str_expr("red")), Some(ObjectCoercion::Wrapper));
-  assert_eq!(to_object(&num_expr(10.0)), Some(ObjectCoercion::Wrapper));
-  assert_eq!(to_object(&bool_expr(true)), Some(ObjectCoercion::Wrapper));
+  assert_eq!(to_object(&str_expr("red")), Some(ObjectCoercion::Object));
+  assert_eq!(to_object(&num_expr(10.0)), Some(ObjectCoercion::Object));
+  assert_eq!(to_object(&bool_expr(true)), Some(ObjectCoercion::Object));
   // The numeric globals arrive as identifiers and box like the numbers they
-  // are, unlike the `undefined` that arrives the same way.
-  assert_eq!(to_object(&ident_expr("NaN")), Some(ObjectCoercion::Wrapper));
+  // are, as does the `undefined` that arrives the same way.
+  assert_eq!(to_object(&ident_expr("NaN")), Some(ObjectCoercion::Object));
   assert_eq!(
     to_object(&ident_expr("Infinity")),
-    Some(ObjectCoercion::Wrapper)
+    Some(ObjectCoercion::Object)
   );
+}
+
+#[test]
+fn a_function_coerces_to_an_object_that_says_it_is_a_function() {
+  // An object like the rest, and reported apart because it is the one whose
+  // `typeof` is not `object`.
+  assert_eq!(to_object(&arrow_expr()), Some(ObjectCoercion::Function));
 }
 
 /// An expression the evaluator reduced to no value at all — neither a literal,
@@ -896,16 +841,55 @@ fn a_key_that_is_not_a_name_is_not_a_conversion_method() {
   );
 }
 
+/// The three numbers the grammar has no literal for carry their authored text,
+/// and every other number carries none.
+///
+/// The text is what a reader diffs, what the reference implementation prints, and
+/// what a class name is a hash of, so a `Number` node holding `NaN` must not
+/// reach the emitter bare — it writes `0 / 0` for one and a numeral no author
+/// wrote for an infinity.
+#[test]
+fn only_the_unspellable_numbers_carry_their_text() {
+  let raw_of = |value: f64| match js_number_expr(value) {
+    Expr::Lit(Lit::Num(number)) => number.raw.map(|raw| raw.to_string()),
+    other => panic!("expected a number, got {:?}", other),
+  };
+
+  assert_eq!(raw_of(f64::NAN).as_deref(), Some("NaN"));
+  assert_eq!(raw_of(f64::INFINITY).as_deref(), Some("Infinity"));
+  assert_eq!(raw_of(f64::NEG_INFINITY).as_deref(), Some("-Infinity"));
+
+  assert_eq!(raw_of(0.0), None);
+  assert_eq!(raw_of(-0.0), None);
+  assert_eq!(raw_of(1.5), None);
+  assert_eq!(raw_of(f64::MAX), None);
+}
+
+/// The value is the number itself whatever its text, so a consumer that reads
+/// the value rather than the spelling is unaffected by the arm above.
+#[test]
+fn an_unspellable_number_still_holds_its_value() {
+  let value_of = |value: f64| match js_number_expr(value) {
+    Expr::Lit(Lit::Num(number)) => number.value,
+    other => panic!("expected a number, got {:?}", other),
+  };
+
+  assert!(value_of(f64::NAN).is_nan());
+  assert_eq!(value_of(f64::INFINITY), f64::INFINITY);
+  assert_eq!(value_of(f64::NEG_INFINITY), f64::NEG_INFINITY);
+  assert_eq!(value_of(1.5), 1.5);
+}
+
 #[test]
 fn a_value_of_no_readable_kind_has_no_object_coercion() {
-  // Which of the three outcomes applies cannot be read off this, so the caller
-  // deopts rather than picking one.
+  // Whether this is a function cannot be read off it, so the caller deopts
+  // rather than picking an answer.
   assert_eq!(to_object(&ident_expr("someBinding")), None);
   // An array is an object however its elements were written, so a spread does
   // not make its kind unreadable the way it makes its string form unknowable.
   assert_eq!(
     to_object(&spread_array_expr(array_expr(vec![]))),
-    Some(ObjectCoercion::Identity)
+    Some(ObjectCoercion::Object)
   );
 }
 

@@ -399,7 +399,7 @@ pub(super) fn evaluate_result_to_js_number(value: &EvaluateResultValue) -> Optio
 ///
 /// `None` means the value's kind cannot be read, so the caller deopts. Every
 /// variant the evaluator has of its own stands for either an object or a
-/// function upstream, so only the expression variant can reach a wrapper.
+/// function upstream, which is the whole of what the coercion now reports.
 pub(super) fn evaluate_result_to_js_object(
   value: &EvaluateResultValue,
 ) -> Option<coercions::ObjectCoercion> {
@@ -415,8 +415,8 @@ pub(super) fn evaluate_result_to_js_object(
     // answers `None` rather than `Some(Null)` for a value that is absent. A
     // bare `Null` therefore only becomes reachable if that changes, and on the
     // day it does the meaning may be "absent" or may be "unknown" -- so this
-    // refuses, which deopts under either, where answering an empty object
-    // would fold `Object(x)` to `{}` under the second. The nested case, which
+    // refuses, which deopts under either, where answering an object would tell
+    // `typeof` a value is an object under the second. The nested case, which
     // *is* reachable, is decided in `evaluate_result_to_string_of` below.
     EvaluateResultValue::Null => None,
 
@@ -424,10 +424,10 @@ pub(super) fn evaluate_result_to_js_object(
     | EvaluateResultValue::Map(_)
     | EvaluateResultValue::EnvObject(_)
     | EvaluateResultValue::ThemeRef(_)
-    // The namespace object, and so `ToObject`'s identity rather than a wrapper.
+    // The namespace object, and so an object rather than a function.
     // Classified on `evaluate_result_to_string_of`'s arm for the same variant,
     // which is where the reason is written down.
-    | EvaluateResultValue::FunctionConfigMap(_) => Some(coercions::ObjectCoercion::Identity),
+    | EvaluateResultValue::FunctionConfigMap(_) => Some(coercions::ObjectCoercion::Object),
 
     EvaluateResultValue::Callback(_) | EvaluateResultValue::FunctionConfig(_) => {
       Some(coercions::ObjectCoercion::Function)

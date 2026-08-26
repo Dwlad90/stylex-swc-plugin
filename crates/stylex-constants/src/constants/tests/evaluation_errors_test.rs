@@ -37,8 +37,8 @@ fn test_uncoercible_value() {
 #[test]
 fn test_array_length_too_large() {
   assert_eq!(
-    array_length_too_large(65_536),
-    "Array length is too large to evaluate at compile time.\nAt most 65536 elements are supported.\n\n"
+    array_length_too_large(10_000),
+    "Array length is too large to evaluate at compile time.\nAt most 10000 elements are supported.\n\n"
   );
 }
 

@@ -50,17 +50,25 @@ code that must be emitted for the runtime to finish the job. Recorded on the
 result, not thrown.
 _Avoid_: bailout, failure, fallback, error
 
-**Callable global**:
-A JavaScript global the evaluator folds when the global _itself_ is called —
-`String(x)`, `Number(x)`, `Array(x)`, `Object(x)`. A
-[valid callee](../stylex-js/CONTEXT.md) is the wider set, because
-it also admits globals that only contribute methods: `Math` is a valid callee,
-so `Math.round(1.5)` names a global rather than a module binding, and is not a
-callable global, so a bare `Math(x)` is rejected rather than folded. Its
-_statics_ are not folded here at all — they are an [engine fold](#engine-fold)
-like any other method call. Only a global with no binding in scope is one at all
-— a declared `String` is an ordinary function and is called, not folded.
-_Avoid_: built-in function, global function, wrapper call
+**Applied global**:
+A JavaScript global folded by being _called_ — `String(x)`, `Number(x)`,
+`Array(x)`, `Object(x)`. All four are native functions, so they are an
+[engine fold](#engine-fold) like every method call: there is no table of them
+and no conversion written out in Rust behind them. Whether the name can be
+applied at all is asked of the language rather than of a list — the global
+object holds the value, and the value says. `Math` is a
+[valid callee](../stylex-js/CONTEXT.md), so `Math.round(1.5)` names a global
+rather than a module binding, but the value it holds is not callable, so a bare
+`Math(x)` is refused by name. Only a global with no binding in scope is one at
+all — a declared `String` is an ordinary function and is called, not folded.
+
+The fold owns every such call, so an argument the [transport](#transport) cannot
+carry is a refusal here rather than a shape handed back: nothing below the fold
+folds one, and handing it on would end it at `Unsupported expression` with the
+reason lost. Refused arguments are this compiler's own values — the environment
+object, a theme reference, the namespace map — and a function, whose only string
+form is source text the engine is built without.
+_Avoid_: callable global, built-in function, global function, wrapper call
 
 **Engine fold**:
 Folding a method call by evaluating it in an embedded JavaScript engine instead
@@ -116,9 +124,11 @@ only an expression the guard intends to fold pays to have its names read.
 
 A name the guard could not read is not a refusal but a **candidacy** answer: the
 call is simply not this module's, and the dispatch below owns it — which is what
-keeps the [callable globals](#callable-global) folding, and what leaves the
-own-keys statics an answer for a receiver the bridge cannot carry. Reading a
-name to decide that is a [speculative read](#speculative-read).
+leaves the own-keys statics an answer for a receiver the bridge cannot carry,
+and what lets a declared `String` be called rather than folded. The one place
+the answer becomes a refusal is an [applied global](#applied-global), because
+nothing below the fold folds one. Reading a name to decide any of this is a
+[speculative read](#speculative-read).
 
 Nothing the guard carries records _where_ in an expression it is. Every rule
 reads the call in front of it and nothing else, so a static, a middle link of a
@@ -185,18 +195,19 @@ call is left for the runtime instead. A refusal carries the rule that refused
 it, in this compiler's own words: message text is not a parity obligation, and
 the comparison harness compares class name, rule text and style-object shape
 rather than sentences. A call the guard never recognised is not a refusal — it
-is not the fold's, and the dispatch behind it decides instead. Some refusals
-therefore borrow a diagnostic from further down the pipeline instead of routing
-a value to it, for
-the reasons in
-[docs/adr/0001](./docs/adr/0001-a-refused-fold-borrows-a-later-diagnostic.md).
+is not the fold's, and the dispatch behind it decides instead. Refusals used to
+borrow a diagnostic from further down the pipeline instead of routing a value to
+it; that is gone now the globals fold in the engine, and
+[docs/adr/0001](./docs/adr/0001-a-refused-fold-borrows-a-later-diagnostic.md)
+records what replaced it.
 _Avoid_: fold error, hard error, invalid call
 
 **Hole**:
 An array slot with no element in it. Two arrive by different routes and are
 answered differently. One `Array(n)` created by counting rather than by listing
-is held as the same absent value a confidently evaluated element with no value
-already is, so it joins as nothing and reaches the style-array check unchanged —
+crosses back from the engine as `undefined`, the one value with no literal
+spelling of its own, so it joins as nothing and reaches the style-array check
+unchanged —
 a style array cannot contain one, which is where a counted array is refused, the
 fold itself succeeding. One an author _wrote_, as in `[, 1]`, refuses the whole
 array instead: the reference implementation evaluates element paths and a hole's

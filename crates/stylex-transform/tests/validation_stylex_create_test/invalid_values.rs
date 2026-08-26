@@ -2884,9 +2884,12 @@ stylex_test_panic!(
   "#
 );
 
+// `undefined` is a name the engine holds, so the receiver is printed rather than
+// resolved and the language's own throw is the sentence — the same one
+// `Object.keys(null)` reads above.
 stylex_test_panic!(
   object_values_of_undefined_behind_a_length_read_is_refused,
-  "Cannot convert undefined or null to object",
+  "cannot convert 'null' or 'undefined' to object",
   r#"
     import * as stylex from '@stylexjs/stylex';
 

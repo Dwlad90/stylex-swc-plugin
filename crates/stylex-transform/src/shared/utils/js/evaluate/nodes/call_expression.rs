@@ -3,143 +3,6 @@ use crate::deopt_unsupported;
 use stylex_ast::ast::convertors::get_key_values_from_object;
 use swc_core::ecma::ast::CallExpr;
 
-/// Applies a call to one of the JavaScript globals the compiler folds.
-///
-/// Surplus arguments are ignored and a missing one is `undefined`, as in
-/// JavaScript: `String(1, 2)` is `"1"` and `String()` is `""`.
-fn evaluate_callable_global(
-  global: CallableGlobalJS,
-  call: &CallExpr,
-  path: &Expr,
-  state: &mut EvaluationState,
-  traversal_state: &mut StateManager,
-  fns: &FunctionMap,
-) -> Option<EvaluateResultValue> {
-  let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
-
-  if !state.confident {
-    return None;
-  }
-
-  // An argument that evaluated to nothing while staying confident was dropped
-  // rather than deopted, so the remaining arguments no longer line up with
-  // what was written. Refuse rather than fold a shifted argument list.
-  if args.len() != call.args.len() {
-    return deopt(path, state, ARGUMENT_WITHOUT_VALUE);
-  }
-
-  // Each coercion below reads the one argument that matters through this, so
-  // the no-argument form and the refusal read once rather than three times.
-  // `None` is the caller's cue to return: the deopt is already recorded.
-  fn coerce_first<T>(
-    args: &[EvaluateResultValue],
-    path: &Expr,
-    state: &mut EvaluationState,
-    callee: CallableGlobalJS,
-    no_arguments: T,
-    coerce: impl Fn(&EvaluateResultValue) -> Option<T>,
-  ) -> Option<T> {
-    match args.first() {
-      Some(arg) => match coerce(arg) {
-        Some(coerced) => Some(coerced),
-        None => {
-          deopt(path, state, &uncoercible_value(callee.name()));
-          None
-        },
-      },
-      None => Some(no_arguments),
-    }
-  }
-
-  match global {
-    CallableGlobalJS::String => {
-      // `String()` is the empty string, not `String(undefined)`.
-      let coerced = coerce_first(
-        &args,
-        path,
-        state,
-        global,
-        String::new(),
-        evaluate_result_to_js_string,
-      )?;
-
-      Some(EvaluateResultValue::Expr(create_string_expr(&coerced)))
-    },
-    CallableGlobalJS::Number => {
-      // `Number()` is zero, not `Number(undefined)`. `NaN` is not a refusal: it
-      // arrives as a value and flows into the declaration, the same as
-      // upstream, where `Number('10px')` writes `NaN` into the rule.
-      let coerced = coerce_first(
-        &args,
-        path,
-        state,
-        global,
-        0.0,
-        evaluate_result_to_js_number,
-      )?;
-
-      Some(EvaluateResultValue::Expr(create_number_expr(coerced)))
-    },
-    CallableGlobalJS::Array => {
-      // One numeric argument is a length rather than an element: `Array(3)`
-      // is three holes where `Array('3')` is the one-element list. Every
-      // other argument list folds to itself, including no arguments at all.
-      if let [EvaluateResultValue::Expr(count)] = args.as_slice()
-        && let Some(count) = coercions::js_number_value(count)
-      {
-        let Some(length) = coercions::to_array_length(count) else {
-          return deopt(path, state, INVALID_ARRAY_LENGTH);
-        };
-
-        if length > coercions::MAX_FOLDED_ARRAY_LENGTH {
-          return deopt(
-            path,
-            state,
-            &array_length_too_large(coercions::MAX_FOLDED_ARRAY_LENGTH),
-          );
-        }
-
-        // A hole holds the same absent value a confidently evaluated element
-        // with no value already does. The fold succeeds and the
-        // holes reach the existing style-array check, which is what refuses
-        // them — a counted array is rejected as a value, not as a call.
-        return Some(EvaluateResultValue::Vec(vec![
-          EvaluateResultValue::Null;
-          length
-        ]));
-      }
-
-      Some(EvaluateResultValue::Vec(args))
-    },
-    CallableGlobalJS::Object => {
-      // `Object()` is `Object(undefined)`, unlike `String()` and `Number()`,
-      // whose no-argument forms are not their `undefined` ones.
-      let coercion = coerce_first(
-        &args,
-        path,
-        state,
-        global,
-        coercions::ObjectCoercion::EmptyObject,
-        evaluate_result_to_js_object,
-      )?;
-
-      match coercion {
-        coercions::ObjectCoercion::EmptyObject => Some(EvaluateResultValue::Expr(Expr::Object(
-          create_object_lit(vec![]),
-        ))),
-        coercions::ObjectCoercion::Identity => args.into_iter().next(),
-        // A boxed wrapper and a function are told apart by the coercion and
-        // refused alike here: neither is an array, a string or a number, so
-        // both end at this rejection, and neither is represented. See
-        // `docs/adr/0001-a-refused-fold-borrows-a-later-diagnostic.md`.
-        coercions::ObjectCoercion::Function | coercions::ObjectCoercion::Wrapper => {
-          deopt(path, state, ILLEGAL_PROP_VALUE)
-        },
-      }
-    },
-  }
-}
-
 pub(in super::super) fn evaluate(
   call: &CallExpr,
   state: &mut EvaluationState,
@@ -169,26 +32,10 @@ pub(in super::super) fn evaluate(
   let mut func: Option<Box<FunctionConfig>> = None;
 
   if let Callee::Expr(callee_expr) = &call.callee {
-    if get_binding(callee_expr, traversal_state).is_none() && is_valid_callee(callee_expr) {
-      // A valid callee with no binding in scope is the global itself, not a
-      // function the module declared, so calling it folds.
-      let callee_name = get_callee_name(callee_expr);
-
-      if let Ok(global) = CallableGlobalJS::try_from(callee_name) {
-        // A spread argument is refused by `evaluate_func_call_args`, which every
-        // callee's arguments now go through, so there is no case for one here.
-        func = Some(Box::new(FunctionConfig {
-          fn_ptr: FunctionType::Callback(Box::new(CallbackType::Global(global))),
-          takes_path: false,
-        }));
-      } else {
-        // A valid callee that is not a callable global contributes methods and
-        // nothing else — `Math` today, and any later addition of that shape.
-        // There is nothing to fold, so it names the callee rather than deopting
-        // into the catch-all's `Unsupported expression`.
-        return deopt(path, state, &not_a_function(callee_name));
-      }
-    } else if let Expr::Ident(ident) = callee_expr.as_ref() {
+    // A bare name reaching here is one the module bound — an unbound global is a
+    // native function and was folded above, whether it could be applied or not.
+    // So this is the author's own function and is called as one.
+    if let Expr::Ident(ident) = callee_expr.as_ref() {
       let ident_id = ident.to_id();
 
       if state.functions.identifiers.contains_key(&ident_id.0) {
@@ -432,9 +279,7 @@ pub(in super::super) fn evaluate(
                   };
 
                   func = Some(Box::new(FunctionConfig {
-                    fn_ptr: FunctionType::Callback(Box::new(CallbackType::Custom(
-                      *key_value.value,
-                    ))),
+                    fn_ptr: FunctionType::Callback(key_value.value),
                     takes_path: false,
                   }));
                 },
@@ -673,25 +518,18 @@ pub(in super::super) fn evaluate(
           let func_result = (func)(ValueWithDefault::Map(fn_args));
           return Some(EvaluateResultValue::Expr(func_result));
         },
-        FunctionType::Callback(func) => match func.as_ref() {
-          // A callable global takes its arguments and nothing else, so it is
-          // applied without reading a receiver at all.
-          CallbackType::Global(global) => {
-            return evaluate_callable_global(*global, call, path, state, traversal_state, fns);
-          },
-          CallbackType::Custom(arrow_fn) => {
-            let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
+        FunctionType::Callback(arrow_fn) => {
+          let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
 
-            let evaluation_result = evaluate_cached(arrow_fn, state, traversal_state, fns);
+          let evaluation_result = evaluate_cached(&arrow_fn, state, traversal_state, fns);
 
-            let Some(EvaluateResultValue::Callback(cb)) = evaluation_result.as_ref() else {
-              deopt_unsupported!(path, state, NON_CONSTANT);
-            };
+          let Some(EvaluateResultValue::Callback(cb)) = evaluation_result.as_ref() else {
+            deopt_unsupported!(path, state, NON_CONSTANT);
+          };
 
-            let expr_result = cb(args, traversal_state);
+          let expr_result = cb(args, traversal_state);
 
-            return Some(EvaluateResultValue::Expr(expr_result));
-          },
+          return Some(EvaluateResultValue::Expr(expr_result));
         },
         FunctionType::DefaultMarker(default_marker) => {
           return Some(EvaluateResultValue::FunctionConfig(FunctionConfig {

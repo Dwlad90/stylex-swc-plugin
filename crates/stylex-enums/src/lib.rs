@@ -5,7 +5,6 @@ pub mod core;
 pub mod counter_mode;
 pub mod css_syntax;
 pub mod import_path_resolution;
-pub mod js;
 pub mod misc;
 pub mod property_validation_mode;
 pub mod style_resolution;

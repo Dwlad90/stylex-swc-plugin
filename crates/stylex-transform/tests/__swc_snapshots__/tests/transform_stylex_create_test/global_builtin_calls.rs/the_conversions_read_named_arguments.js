@@ -2,20 +2,20 @@ import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import * as stylex from '@stylexjs/stylex';
 _inject2({
-    ltr: ".x1yfwku{opacity:NaN}",
+    ltr: ".x1rrpg6l{color:red;color:blue}",
     priority: 3000
 });
+_inject2({
+    ltr: ".xq14iec{width:31px}",
+    priority: 4000
+});
 export const styles = {
-    root: {
-        kSiTet: "x1yfwku",
+    list: {
+        kMwMTN: "x1rrpg6l",
         $$css: true
     },
-    inAnArray: {
-        kSiTet: "x1yfwku",
-        $$css: true
-    },
-    besideANumber: {
-        kSiTet: "x1yfwku",
+    width: {
+        kzqmXN: "xq14iec",
         $$css: true
     }
 };

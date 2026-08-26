@@ -68,10 +68,15 @@ pub static OBJECT_METHOD: &str = "Unsupported object method.\n\n";
 pub static ARGUMENT_WITHOUT_VALUE: &str =
   "An argument has no compile-time value.\nEvery argument must evaluate to a static value.\n\n";
 
-/// A callable global was given a value the compiler cannot coerce — a
-/// function, whose string form is its own source text. Deopting says so
-/// instead of folding to a value that would be confidently wrong. The callee
-/// is named because which coercion refused is the first thing an author needs.
+/// A global called as a function was given a value the bridge cannot carry into
+/// the engine — the environment object, a theme reference that has not resolved,
+/// or a name with no compile-time value at all.
+///
+/// A refusal rather than a shape handed back, because the fold owns every call
+/// to an unbound global: nothing below it folds one, so handing the call back
+/// would end it at the catch-all's `Unsupported expression` with the reason
+/// lost. The callee is named because which conversion refused is the first thing
+/// an author needs.
 pub fn uncoercible_value(callee: &str) -> String {
   format!(
     "Cannot coerce this value at compile time.\nOnly static values can be passed to {}().\n\n",
@@ -79,13 +84,9 @@ pub fn uncoercible_value(callee: &str) -> String {
   )
 }
 
-/// `Array(n)` was given a count that is not an array length — a fraction, a
-/// negative, `NaN`, or a value at or past `2 ** 32`. JavaScript raises a
-/// `RangeError` for each of these, so there is no array to fold.
-pub static INVALID_ARRAY_LENGTH: &str = "Invalid array length.\n\n";
-
-/// `Array(n)` was given a length that is legal in JavaScript but past the
-/// fold's own budget, which the coercions own and pass in.
+/// An array came back from a fold longer than the fold will materialise: every
+/// element costs the width of an evaluated value, so a length JavaScript accepts
+/// can still be an allocation the compiler does not survive.
 pub fn array_length_too_large(limit: usize) -> String {
   format!(
     "Array length is too large to evaluate at compile time.\nAt most {} elements are supported.\n\n",
@@ -269,6 +270,19 @@ pub fn unfoldable_fold_result(kind: &str) -> String {
   format!(
     "Cannot carry a folded {} back from the engine.\nOnly strings, numbers, booleans, null, arrays and plain objects can be folded.\n\n",
     kind
+  )
+}
+
+/// The engine could not be prepared, so there is nothing to fold with.
+///
+/// Unreachable in practice — what it reports is the one assignment the fold
+/// makes when it builds an engine — and answered rather than asserted, because
+/// this runs inside an evaluation whose whole contract is that it may fail,
+/// where a panic would abort a build that a refusal only leaves to the runtime.
+pub fn engine_did_not_start(message: &str) -> String {
+  format!(
+    "The compile-time JavaScript engine could not start.\n{}\n\n",
+    message
   )
 }
 

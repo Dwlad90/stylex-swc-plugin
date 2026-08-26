@@ -33,13 +33,12 @@ than refused.
 _Avoid_: conversion, cast, stringify, formatting
 
 **Object coercion**:
-Which of `ToObject`'s outcomes a value takes, reported rather than carried out:
-a fresh empty object for `null` and `undefined`, the value itself for an object,
-and a boxed wrapper for a primitive. A function is the identity too and is
-reported apart from the other objects, because a caller may have no way to hold
-one. Reported rather than carried out because only one outcome produces a value
-worth holding -- the caller decides what a wrapper or a function means where it
-sits.
+Which kind of object `ToObject` answers with, reported rather than carried out:
+a function, or every other object -- one the value already is, a boxed wrapper
+for a primitive, and the fresh object the nullish pair takes. Reported this
+coarsely because its one caller is `typeof`, which tells a function from
+everything else and nothing else does; `Object(x)` is folded by the engine,
+which answers with a real object rather than with a name for one.
 _Avoid_: boxing, object conversion, wrapping
 
 **Nullish**:

@@ -11,7 +11,6 @@
 //! move, and the rule text is what proves the coerced value itself is right.
 
 use crate::utils::prelude::*;
-use stylex_ast::ast::convertors::create_string_expr;
 
 fn stylex_transform(
   comments: TestComments,
@@ -144,20 +143,13 @@ stylex_test!(
   "#
 );
 
-// The environment is an object, so it takes the `Object.prototype` default —
-// `[object Object]` — rather than deopting or leaking its contents.
-stylex_test!(
-  string_of_the_environment_object,
-  |tr| {
-    let mut env = IndexMap::new();
-    env.insert(
-      "brandPrimary".to_string(),
-      EnvEntry::Expr(create_string_expr("#123456")),
-    );
-    stylex_transform(tr.comments.clone(), |b| {
-      b.with_runtime_injection().with_env(env)
-    })
-  },
+// The environment object is this compiler's own value, not a JavaScript one, so
+// it has no form the bridge carries into the engine and the call refuses.
+// Upstream folds it to `[object Object]`, which no stylesheet can use; a written
+// divergence, in the safe direction.
+stylex_test_panic!(
+  string_of_the_environment_object_is_rejected,
+  "Only static values can be passed to String().",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -179,11 +171,14 @@ stylex_test_panic!(
   "#
 );
 
-// `String(fn)` is the function's source text upstream. This evaluator retains
-// no source, so it refuses rather than fold a confidently wrong value.
+// `String(fn)` is the function's source text upstream — and upstream's own
+// answer is the source of a wrapper from inside its evaluator, not of the arrow
+// the author wrote. This compiler has no source to give either: the engine it
+// folds in is built without function source text, so the conversion throws and
+// the fold refuses rather than writing a spelling no other build produces.
 stylex_test_panic!(
   string_of_a_function_is_rejected,
-  "Cannot coerce this value at compile time",
+  "A function has no source text at compile time.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -251,12 +246,28 @@ stylex_test!(
   "#
 );
 
-// A spread reaches the coercion already flattened by the evaluator, so an
-// override it carries in is an own key like any other: `.xju2f9n{color:blue}`,
-// the class name measured upstream.
+// A spread is printed as written and the language does the spreading, so a
+// spread of plain values folds: `.x19y1wga{color:[object Object]}`, the class
+// name measured upstream.
 stylex_test!(
-  string_of_an_object_spreading_an_override,
+  string_of_an_object_spreading_plain_values,
   |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const base = { a: 1 };
+    export const styles = stylex.create({
+      root: { color: String({ ...base }) },
+    });
+  "#
+);
+
+// A spread of an object holding a *function* refuses. The spread operand is a
+// name, so its value has to cross the bridge — and a function has no form the
+// bridge carries, unlike the arrow written out in place above. Upstream folds
+// this to `blue`; a written divergence, in the safe direction.
+stylex_test_panic!(
+  string_of_an_object_spreading_an_override_is_rejected,
+  "Only static values can be passed to String().",
   r#"
     import * as stylex from '@stylexjs/stylex';
     const base = { toString: () => 'blue' };
@@ -268,10 +279,11 @@ stylex_test!(
 
 // A method that is not callable, and one that answers an object rather than a
 // primitive, both end in a `TypeError` upstream rather than in a value. There
-// is nothing to fold, so the build fails here too.
+// is nothing to fold, so the build fails here too — in the language's own
+// words, which is the same sentence upstream reports.
 stylex_test_panic!(
   string_of_an_object_whose_to_string_is_not_callable_is_rejected,
-  "Cannot coerce this value at compile time",
+  "cannot convert object to primitive value",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -282,7 +294,7 @@ stylex_test_panic!(
 
 stylex_test_panic!(
   string_of_an_object_whose_to_string_answers_an_object_is_rejected,
-  "Cannot coerce this value at compile time",
+  "cannot convert object to primitive value",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -304,12 +316,19 @@ stylex_test!(
   "#
 );
 
-// A lone surrogate is a legal JavaScript string with no Rust `str`. The
-// coercion refuses so the deopt carries the key path the property sits on,
-// rather than failing from inside the coercion with only its own location.
-stylex_test_panic!(
-  string_of_a_lone_surrogate_is_rejected,
-  "root > content > Cannot coerce this value at compile time",
+// A lone surrogate is a legal JavaScript string with no Rust `str`, so it
+// crosses back from the engine with the replacement character substituted for
+// it. The declaration text is what upstream writes to disk; only the class name
+// diverges, because upstream hashes the surrogate itself.
+//
+// That is not a decision this case takes — it is the one issue 06 took for the
+// outward bridge, pinned in `engine_fold_tests::a_fold_whose_result_is_an_
+// unpaired_surrogate_becomes_the_replacement_character` and carried in the
+// parity corpus. This is the first coercion to reach it, which is why it is
+// pinned here rather than left implied.
+stylex_test!(
+  string_of_a_lone_surrogate_substitutes_the_replacement_character,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -458,17 +477,31 @@ stylex_test!(
   "#
 );
 
-// Unlike `String(fn)`, this needs no source text: whatever a function's source
-// says, it is not a numeric literal, so the answer is `NaN`.
-stylex_test!(
-  number_of_a_function_is_not_a_number,
-  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+// Upstream reaches `NaN` here, because a number is reached *through* the string
+// and no function's source text is a numeric literal. This compiler refuses
+// instead: its engine is built without function source text, so the conversion
+// throws before it can reach the number. A written divergence, and in the safe
+// direction — a refused build never names a class the other build does not
+// define. The operators keep the `NaN`, because they coerce in Rust and never
+// ask the engine; `unary_operand_kinds` pins that side.
+stylex_test_panic!(
+  number_of_a_function_is_rejected,
+  "A function has no source text at compile time.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
       root: { opacity: Number(() => 1) },
-      inAnArray: { opacity: Number([() => 1]) },
-      besideANumber: { opacity: Number([() => 1, 2]) },
+    });
+  "#
+);
+
+stylex_test_panic!(
+  number_of_an_array_holding_a_function_is_rejected,
+  "A function has no source text at compile time.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { opacity: Number([() => 1, 2]) },
     });
   "#
 );
@@ -624,10 +657,12 @@ stylex_test_panic!(
 );
 
 // A fraction, a negative, and `NaN` are not array lengths, so there is no
-// array to fold and the build fails rather than inventing one.
+// array to fold and the build fails rather than inventing one. The sentence is
+// the language's own `RangeError`, which is what `Array(n)` answers a bad count
+// with — upstream reports the same throw in its own words.
 stylex_test_panic!(
   array_of_a_fractional_length_is_rejected,
-  "Invalid array length.",
+  "Cannot fold 'Array' at compile time.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -638,7 +673,7 @@ stylex_test_panic!(
 
 stylex_test_panic!(
   array_of_a_negative_length_is_rejected,
-  "Invalid array length.",
+  "Cannot fold 'Array' at compile time.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -652,7 +687,7 @@ stylex_test_panic!(
 // read as elements instead, they would be refused by the wrong check.
 stylex_test_panic!(
   array_of_a_not_a_number_length_is_rejected,
-  "Invalid array length.",
+  "Cannot fold 'Array' at compile time.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -663,7 +698,7 @@ stylex_test_panic!(
 
 stylex_test_panic!(
   array_of_an_infinite_length_is_rejected,
-  "Invalid array length.",
+  "Cannot fold 'Array' at compile time.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -675,7 +710,7 @@ stylex_test_panic!(
 // `2 ** 32` is one past the largest length, so it is not a length either.
 stylex_test_panic!(
   array_of_a_length_past_the_limit_is_rejected,
-  "Invalid array length.",
+  "Cannot fold 'Array' at compile time.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -880,12 +915,13 @@ stylex_test!(
   "#
 );
 
-// A primitive argument is a wrapper object upstream, whose only observable
-// effect is this rejection — it is not an array, a string or a number, and it
-// never becomes one.
+// A primitive argument is boxed in a wrapper object, which is not a plain one
+// and so has no form the bridge carries back. Upstream folds the wrapper and
+// then refuses it as a style value; both compilers reject the module, and this
+// one says why one step earlier.
 stylex_test_panic!(
-  object_of_a_string_reaches_the_style_value_check,
-  "A style value can only contain an array, string or number.",
+  object_of_a_string_is_rejected,
+  "Cannot carry a folded object back from the engine.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -895,8 +931,8 @@ stylex_test_panic!(
 );
 
 stylex_test_panic!(
-  object_of_a_number_reaches_the_style_value_check,
-  "A style value can only contain an array, string or number.",
+  object_of_a_number_is_rejected,
+  "Cannot carry a folded object back from the engine.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -906,8 +942,8 @@ stylex_test_panic!(
 );
 
 stylex_test_panic!(
-  object_of_a_boolean_reaches_the_style_value_check,
-  "A style value can only contain an array, string or number.",
+  object_of_a_boolean_is_rejected,
+  "Cannot carry a folded object back from the engine.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -919,8 +955,8 @@ stylex_test_panic!(
 // `NaN` reaches the evaluator as its identifier rather than as a numeric
 // literal, and is a number that boxes like one.
 stylex_test_panic!(
-  object_of_a_not_a_number_reaches_the_style_value_check,
-  "A style value can only contain an array, string or number.",
+  object_of_a_not_a_number_is_rejected,
+  "Cannot carry a folded object back from the engine.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -932,8 +968,8 @@ stylex_test_panic!(
 // A coercion of a primitive is still a primitive, so wrapping one changes
 // nothing about the rejection.
 stylex_test_panic!(
-  object_of_a_string_call_reaches_the_style_value_check,
-  "A style value can only contain an array, string or number.",
+  object_of_a_string_call_is_rejected,
+  "Cannot carry a folded object back from the engine.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -956,11 +992,11 @@ stylex_test_panic!(
 );
 
 // A function is returned unchanged rather than boxed, and is no more usable
-// for it: it is not an array, a string or a number either, so it ends at the
+// for it: a function has no form the bridge carries either, so it ends at the
 // same rejection a wrapper does.
 stylex_test_panic!(
-  object_of_a_function_reaches_the_style_value_check,
-  "A style value can only contain an array, string or number.",
+  object_of_a_function_is_rejected,
+  "Cannot carry a folded function back from the engine.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -969,9 +1005,12 @@ stylex_test_panic!(
   "#
 );
 
+// A name holding a function is refused before the call rather than after it: a
+// function is not a value the bridge carries inward, and nothing below the fold
+// folds a call to a global, so the refusal is the fold's own.
 stylex_test_panic!(
-  object_of_a_declared_function_reaches_the_style_value_check,
-  "A style value can only contain an array, string or number.",
+  object_of_a_declared_function_is_rejected,
+  "Only static values can be passed to Object().",
   r#"
     import * as stylex from '@stylexjs/stylex';
     const value = () => 'red';
@@ -981,14 +1020,13 @@ stylex_test_panic!(
   "#
 );
 
-// A regular expression is an object, so the identity hands it on — and it is
-// not an array, a string or a number, so the style-value check refuses it.
-// Upstream refuses the regular expression a step earlier, as an expression its
-// evaluator will not read at all; that difference predates this fold and shows
-// on a bare `color: /re/` with no coercion anywhere.
+// A regular expression has no value this compiler carries, so it never reaches
+// the engine. Upstream refuses it too, as an expression its evaluator will not
+// read at all; that difference predates this fold and shows on a bare
+// `color: /re/` with no coercion anywhere.
 stylex_test_panic!(
-  object_of_a_regular_expression_refuses_at_the_literal,
-  "Unsupported expression: RegExpLiteral",
+  object_of_a_regular_expression_is_rejected,
+  "Only static values can be passed to Object().",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -1065,6 +1103,73 @@ stylex_test!(
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
       root: { color: String(Array(Number('0x1f'), Object({ a: 1 }))) },
+    });
+  "#
+);
+
+// --- Names, chains and callbacks the conversions now reach ------------------
+//
+// The four globals are folded by being called rather than by a conversion
+// written out in Rust, so a conversion is a fold like any other: its argument
+// may be a name, its answer may be a receiver, and it may sit inside a callback.
+// Each class name below is measured output of `@stylexjs/babel-plugin@0.19.0`.
+
+// A named array crosses the bridge as a value and joins with commas:
+// `.x1cc2d69{font-family:Inter,sans-serif}`.
+stylex_test!(
+  string_of_a_named_array,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const fonts = ['Inter', 'sans-serif'];
+    export const styles = stylex.create({
+      root: { fontFamily: String(fonts) },
+    });
+  "#
+);
+
+// Two names as two elements, and a hexadecimal string read from a third:
+// `.x1rrpg6l{color:red;color:blue}` and `.xq14iec{width:31px}`.
+stylex_test!(
+  the_conversions_read_named_arguments,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const a = 'red';
+    const b = 'blue';
+    const size = '0x1f';
+    export const styles = stylex.create({
+      list: { color: Array(a, b) },
+      width: { width: Number(size) },
+    });
+  "#
+);
+
+// An object crossing back from the engine is a value, so a property read off one
+// folds: `.x1e2nbdu{color:red}`. So does a key list taken of one:
+// `.xprt6xs{content:"a,b"}`.
+stylex_test!(
+  a_folded_object_is_read_and_chained,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const o = { a: 'red' };
+    export const styles = stylex.create({
+      property: { color: Object(o).a },
+      keys: { content: Object.keys(Object({ a: 1, b: 2 })).join(',') },
+    });
+  "#
+);
+
+// A conversion inside a callback runs once per element: `.x1ulm48k{color:1-2}`.
+stylex_test!(
+  a_conversion_inside_a_callback_folds,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const xs = [1, 2];
+    export const styles = stylex.create({
+      root: { color: xs.map(x => String(x)).join('-') },
     });
   "#
 );

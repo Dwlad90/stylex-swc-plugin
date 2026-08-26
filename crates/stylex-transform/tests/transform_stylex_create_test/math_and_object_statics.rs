@@ -184,10 +184,14 @@ fn every_object_static_folds() {
 /// functions — and a function is what the fold will not carry back, because a
 /// function's only compile-time form is its own source text.
 ///
-/// So it refuses where the reference compiler folds it to `[object Object]`. The
-/// divergence is the outward bridge's, not the static surface's: it is the same
-/// boundary that refuses `['a'].concat(String)`, and what it costs is one call
-/// whose answer no declaration uses.
+/// So the prototype itself refuses, where the reference compiler carries it as
+/// far as its own style-value check. The divergence is the outward bridge's, not
+/// the static surface's, and what it costs is one call whose answer no
+/// declaration uses.
+///
+/// Wrapped in a coercion it folds, and agrees: the prototype never crosses the
+/// bridge at all, because the whole expression is one fold and `[object Object]`
+/// is what comes back — the same text the reference compiler writes.
 ///
 /// `Object.create` is the near miss beside it and folds, because the object it
 /// answers has the prototype but no own properties of its own to carry.
@@ -195,8 +199,14 @@ fn every_object_static_folds() {
 fn a_static_answering_a_prototype_refuses_on_the_way_back() {
   assert_refuses(
     "",
-    "content: String(Object.getPrototypeOf({a: 1})),",
+    "content: Object.getPrototypeOf({a: 1}),",
     "Cannot carry a folded function back from the engine.",
+  );
+
+  assert_folds(
+    "",
+    "content: String(Object.getPrototypeOf({a: 1})),",
+    ".x12ljtz1{content:\"[object Object]\"}",
   );
 }
 

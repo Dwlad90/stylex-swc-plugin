@@ -687,26 +687,33 @@ fn a_style_array_element_refuses_one_level_past_the_ceiling() {
   ));
 }
 
-// `Array(n)` folds its length through the same descent, and the call plus the
-// `.length` read off the result cost two more levels than the length alone. The
-// fold's *other* size budget -- the one on how many elements `Array(n)` may
-// produce -- is never reached here, because this ceiling arrives first.
+// `Array(n)` is a call to a native function, so it folds in the engine and its
+// length is walked by the fold's guard rather than by the evaluator's descent.
+// The guard carries a ceiling of its own -- the engine's parser recurses on the
+// bare thread stack -- and it does not move when a project raises the
+// evaluator's, so under a raised ceiling it is the one that arrives first.
+//
+// It also counts something else: nodes rather than evaluation levels, and
+// `(x + 1)` is two nodes. So the boundary is fifteen additions here where the
+// bare arithmetic above reaches three hundred and seventeen, and the two numbers
+// being equal at the shipped default does not make them interchangeable. Ticket
+// 11 is where they become one.
 #[test]
-fn an_array_length_folds_at_the_deepest_accepted_nesting() {
+fn an_array_length_folds_at_the_deepest_the_fold_admits() {
   let output = fold_deep(&create(
     "const MY_CONST = 5;",
-    &format!("base: {{ zIndex: Array({}).length }},", arithmetic(315)),
+    &format!("base: {{ zIndex: Array({}).length }},", arithmetic(15)),
   ));
 
-  assert!(output.contains(".x12lt65p{z-index:320}"));
+  assert!(output.contains(".x1355qak{z-index:20}"));
 }
 
 #[test]
 #[should_panic(expected = "base > zIndex > Expression is too deeply nested")]
-fn an_array_length_refuses_one_level_past_the_ceiling() {
+fn an_array_length_refuses_one_level_past_what_the_fold_admits() {
   fold_deep(&create(
     "const MY_CONST = 5;",
-    &format!("base: {{ zIndex: Array({}).length }},", arithmetic(316)),
+    &format!("base: {{ zIndex: Array({}).length }},", arithmetic(16)),
   ));
 }
 

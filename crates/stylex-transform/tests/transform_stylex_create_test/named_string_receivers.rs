@@ -571,11 +571,14 @@ fn a_name_cannot_carry_a_value_past_a_rule() {
       "content: s.toUpperCase(),",
       "Referenced value is not a constant.",
     ),
-    // Read off `undefined`, which has no properties in either compiler.
+    // Read off `undefined`, which has no properties in either compiler. The name
+    // is one the engine holds, so it is printed rather than resolved and the
+    // language's own throw is the sentence — upstream reports the same fault in
+    // its own words.
     (
       "",
       "content: undefined.toUpperCase(),",
-      "Unsupported expression:",
+      "cannot convert 'null' or 'undefined' to object",
     ),
     // A name is still not a written bound, so an amplifying length it holds
     // cannot be read. Upstream folds `'x'.repeat(n)` for `n = 3` — and folds a

@@ -373,15 +373,27 @@ fn a_declined_number_call_names_the_rule_that_declined_it() {
     r#".x1nx6bbg{content:"TRUE"}"#,
   );
 
+  // `undefined` is a name the engine holds, so it is printed as written and the
+  // language answers — `(255).toFixed(undefined)` is `"255"`, which is what the
+  // reference compiler folds it to as well.
+  assert_folds(
+    N,
+    "content: n.toFixed(undefined),",
+    r#".x14joq6f{content:"255"}"#,
+  );
+
+  // The argument is the namespace object: a value the evaluator has and the
+  // bridge does not carry, so the fold declines and the dispatch behind it is
+  // the one that answers — which is the arm this case exists to reach.
   let cases: &[(&str, &str, &str)] = &[
-    (N, "content: n.toFixed(undefined),", "toFixed"),
-    (N, "content: n.toExponential(undefined),", "toExponential"),
+    (N, "content: n.toFixed(stylex),", "toFixed"),
+    (N, "content: n.toExponential(stylex),", "toExponential"),
     (
       "const b = true;",
-      "content: b.toString(undefined),",
+      "content: b.toString(stylex),",
       "toString",
     ),
-    ("", "content: true.toString(undefined),", "toString"),
+    ("", "content: true.toString(stylex),", "toString"),
   ];
 
   for (decls, body, method) in cases {

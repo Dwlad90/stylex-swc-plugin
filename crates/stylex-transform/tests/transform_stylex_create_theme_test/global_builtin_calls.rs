@@ -41,10 +41,15 @@ stylex_test!(
   "#
 );
 
-// A coerced token *reference* keeps the `var(…)` it resolves to, because that
-// reference is already a string by the time the coercion sees it.
-stylex_test!(
-  theme_override_wrapped_in_string_around_a_token_reference,
+// A token reference is this compiler's own value rather than a JavaScript one,
+// so it has no form the bridge carries into the engine and the coercion refuses.
+// Upstream folds it to the `var(…)` the reference resolves to; a written
+// divergence, in the safe direction — a refused build never names a class the
+// other build does not define. A token reference used *without* a coercion is
+// untouched, which is what `create_theme.rs` pins.
+stylex_test_panic!(
+  theme_override_wrapped_in_string_around_a_token_reference_is_rejected,
+  "Only static values are allowed inside of a createTheme() call.",
   |tr| stylex_transform(tr.comments.clone(), "src/themes/dark.stylex.js"),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -55,10 +60,13 @@ stylex_test!(
   "#
 );
 
-// The token group itself is an object carrying its own `toString`, which
-// answers the variable group hash rather than the object default.
-stylex_test!(
-  create_with_a_coerced_token_group,
+// The token group and its members are this compiler's own values, so neither
+// crosses into the engine and both coercions refuse. Upstream folds the group to
+// its variable-group hash and a member to its `var(…)`; a written divergence,
+// for the reason above.
+stylex_test_panic!(
+  create_with_a_coerced_token_group_is_rejected,
+  "Only static values can be passed to String().",
   |tr| stylex_transform(tr.comments.clone(), "src/components/Card.js"),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -84,11 +92,12 @@ stylex_test!(
   "#
 );
 
-// The token group is an object, so it is returned unchanged: its own
-// `toString` still answers the variable group hash, and a member of the
-// coerced group still resolves to the `var(…)` it names.
-stylex_test!(
-  create_with_a_token_group_wrapped_in_object,
+// The identity is no different: an object crossing back from the engine is a
+// plain object literal, so a token group could not survive one even if it
+// crossed inward. Refused on the way in, for the reason above.
+stylex_test_panic!(
+  create_with_a_token_group_wrapped_in_object_is_rejected,
+  "Only static values can be passed to Object().",
   |tr| stylex_transform(tr.comments.clone(), "src/components/Card.js"),
   r#"
     import * as stylex from '@stylexjs/stylex';

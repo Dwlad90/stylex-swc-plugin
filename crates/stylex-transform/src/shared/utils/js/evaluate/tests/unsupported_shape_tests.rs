@@ -532,22 +532,30 @@ fn an_operand_with_no_value_refuses_rather_than_aborting() {
   assert_deopts("1 > 0 && (() => { return 1 }) + 1");
 }
 
-/// A receiver element the evaluator holds but cannot write down leaves the
-/// whole receiver unreadable, so `Object.keys`/`values`/`entries` refuse.
+/// A receiver holding a function still answers its own keys, and never a short
+/// list.
 ///
-/// Answering the short list instead is the failure this suite exists to
-/// prevent, and it is the one a refusal can slide into unnoticed: the fold
-/// still succeeds, the build still passes, and the stylesheet gets a value the
-/// source never described. `Object.keys([x => x])` has one own key in
-/// JavaScript, so `[]` would be wrong rather than merely incomplete.
+/// Answering the short list is the failure this suite exists to prevent, and it
+/// is the one a refusal can slide into unnoticed: the fold still succeeds, the
+/// build still passes, and the stylesheet gets a value the source never
+/// described. `Object.keys([x => x])` has one own key in JavaScript, so `[]`
+/// would be wrong rather than merely incomplete — and `0` is what the reference
+/// compiler writes for it.
+///
+/// A key is a string whatever it names, so the whole list crosses back. The
+/// *values* do not: a function has no form the bridge carries, so asking for
+/// them refuses rather than dropping the one it cannot write.
 #[test]
-fn an_unreadable_receiver_element_refuses_rather_than_shortening_the_list() {
-  for receiver in ["[x => x]", "[[x => x]]", "[1, x => x]"] {
-    assert_deopts(&format!("Object.keys({})", receiver));
+fn a_receiver_holding_a_function_answers_its_keys_and_refuses_its_values() {
+  for receiver in ["[x => x]", "[[x => x]]"] {
+    assert_folds_to_string(&format!("Object.keys({}).join(\",\")", receiver), "0");
     assert_deopts(&format!("Object.values({})", receiver));
     assert_deopts(&format!("Object.entries({})", receiver));
-    assert_deopts(&format!("1 > 0 && Object.keys({})", receiver));
   }
+
+  assert_folds_to_string("Object.keys([1, x => x]).join(\",\")", "0,1");
+  assert_deopts("Object.values([1, x => x])");
+  assert_deopts("Object.entries([1, x => x])");
 }
 
 /// The receivers around it still fold, including the two that are absent for

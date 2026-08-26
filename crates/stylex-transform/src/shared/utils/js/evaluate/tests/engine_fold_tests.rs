@@ -652,7 +652,9 @@ fn input_with_no_foldable_call_builds_no_engine() {
     "\"abc\"[\"trim\"]()",
     "\"i\".toLocaleUpperCase(\"tr\")",
     "(1.5).toFixed(1)",
-    "String(1)",
+    // A bare name the module never bound and the language does not know is not
+    // a global, so there is nothing to apply and nothing to fold.
+    "notDeclared(1)",
   ] {
     super::engine_fold::forget_engine();
 

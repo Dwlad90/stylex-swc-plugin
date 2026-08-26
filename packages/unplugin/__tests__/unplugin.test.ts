@@ -59,7 +59,10 @@ async function collectStyleXRules(pluginInstance: TestPluginInstance) {
   );
 }
 
-async function runWebpackLikeCssInjection(framework: 'webpack' | 'rspack') {
+async function runWebpackLikeCssInjection(
+  framework: 'webpack' | 'rspack',
+  initialAssets: Record<string, string> = { 'app.css': 'body{margin:0}\n@stylex;' }
+) {
   const transformCss = vi.fn(async (css: string, filePath: string | undefined) => {
     return `${css}\n/* transformed:${framework}:${filePath} */`;
   });
@@ -83,10 +86,14 @@ async function runWebpackLikeCssInjection(framework: 'webpack' | 'rspack') {
   await collectStyleXRules(pluginInstance);
 
   type MockAssets = Record<string, ReturnType<typeof createMockCssAsset>>;
+
   let processAssetsCallback: ((assets: MockAssets) => Promise<void>) | undefined;
-  const assets = {
-    'app.css': createMockCssAsset('body{margin:0}\n@stylex;'),
-  };
+  const assets: MockAssets = Object.fromEntries(
+    Object.entries(initialAssets).map(([fileName, source]) => [
+      fileName,
+      createMockCssAsset(source),
+    ])
+  );
   const compilation = {
     hooks: {
       processAssets: {
@@ -96,7 +103,7 @@ async function runWebpackLikeCssInjection(framework: 'webpack' | 'rspack') {
       },
     },
     updateAsset: vi.fn((fileName: string, source: ReturnType<typeof createMockCssAsset>) => {
-      assets[fileName as keyof typeof assets] = source;
+      assets[fileName] = source;
     }),
     emitAsset: vi.fn(),
   };
@@ -229,7 +236,7 @@ describe('@stylexswc/unplugin', () => {
 
   test('webpack hook transforms StyleX CSS before placeholder injection', async () => {
     const { assets, compilation, transformCss } = await runWebpackLikeCssInjection('webpack');
-    const finalCSS = assets['app.css'].source().toString();
+    const finalCSS = assets['app.css']?.source().toString();
 
     expect(transformCss).toHaveBeenCalledTimes(1);
     expect(transformCss.mock.calls[0]?.[1]).toBe('app.css');
@@ -242,7 +249,7 @@ describe('@stylexswc/unplugin', () => {
 
   test('rspack hook transforms StyleX CSS before placeholder injection', async () => {
     const { assets, compilation, transformCss } = await runWebpackLikeCssInjection('rspack');
-    const finalCSS = assets['app.css'].source().toString();
+    const finalCSS = assets['app.css']?.source().toString();
 
     expect(transformCss).toHaveBeenCalledTimes(1);
     expect(transformCss.mock.calls[0]?.[1]).toBe('app.css');
@@ -251,6 +258,22 @@ describe('@stylexswc/unplugin', () => {
     expect(finalCSS).toContain('color:red');
     expect(finalCSS).toContain('/* transformed:rspack:app.css */');
     expect(finalCSS).not.toContain('@stylex;');
+  });
+
+  test('webpack emits no stylesheet when the compilation has no CSS asset', async () => {
+    const { assets, compilation } = await runWebpackLikeCssInjection('webpack', {});
+
+    // Placeholder mode never links an emitted file, so emitting one here would
+    // only hide the fact that the styles cannot be delivered.
+    expect(compilation.emitAsset).not.toHaveBeenCalled();
+    expect(Object.keys(assets)).toEqual([]);
+  });
+
+  test('rspack emits no stylesheet when the compilation has no CSS asset', async () => {
+    const { assets, compilation } = await runWebpackLikeCssInjection('rspack', {});
+
+    expect(compilation.emitAsset).not.toHaveBeenCalled();
+    expect(Object.keys(assets)).toEqual([]);
   });
 
   test('transform error includes the file path and preserves cause', async () => {

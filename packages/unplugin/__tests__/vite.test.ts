@@ -308,6 +308,23 @@ function countOccurrences(source: string, needle: string): number {
   return source.split(needle).length - 1;
 }
 
+// Drops the bundler's stylesheets before the injection runs, which is the one
+// way to reach "the marker was in the build but nothing can carry the rules"
+// without an exotic host configuration.
+const dropCssAssets: Plugin = {
+  name: 'drop-css-assets',
+  // Also `post`, and registered ahead of the plugin under test, so the
+  // stylesheets are gone by the time the injection looks for them.
+  generateBundle: {
+    order: 'post',
+    handler(_options, bundle) {
+      for (const fileName of Object.keys(bundle)) {
+        if (fileName.endsWith('.css')) Reflect.deleteProperty(bundle, fileName);
+      }
+    },
+  },
+};
+
 describe('Vite', () => {
   test('resolves imported defineConsts at-rules before transforming placeholder CSS', async () => {
     const transformCss = vi.fn<(css: string) => string>(rejectUnresolvedAtRules);
@@ -509,6 +526,37 @@ export const styles = stylex.create({
       expect(file.source).not.toContain(placeholder);
       expect(file.source).not.toContain('__stylex_placeholder__');
     }
+  });
+
+  test('fails the build when no CSS asset can carry the placeholder styles', async () => {
+    await expect(
+      buildPlaceholderFixture({
+        plugins: [delayModuleTransform('/lazy.js', 0), dropCssAssets],
+      })
+    ).rejects.toThrow(/no CSS asset was available/);
+  });
+
+  test('stays quiet when an SSR bundle emits no stylesheet of its own', async () => {
+    const root = await writeFixtureRoot('.stylex-vite-ssr-', placeholderFixtureFiles);
+
+    await build({
+      build: { outDir: 'dist', ssr: 'main.js', write: true },
+      configFile: false,
+      logLevel: 'silent',
+      plugins: [
+        stylexRuntimeStub,
+        stylexSwc({
+          fileName: 'stylex.[hash].css',
+          rsOptions: { dev: false, unstable_moduleResolution: { type: 'commonJS' } },
+          useCssPlaceholder: placeholder,
+        }),
+      ],
+      root,
+    });
+
+    const emitted = await readdir(path.join(root, 'dist'), { recursive: true });
+
+    expect(emitted.filter(name => String(name).endsWith('.css'))).toEqual([]);
   });
 
   test('should inject a base-prefixed stylesheet link in dev', async () => {

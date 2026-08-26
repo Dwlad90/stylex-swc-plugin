@@ -63,6 +63,15 @@ const PLUGIN_NAME = 'unplugin-stylex-rs';
  */
 const CSS_PLACEHOLDER_SENTINEL = '@layer __stylex_placeholder__;';
 
+/**
+ * Placeholder mode deliberately skips HTML injection, so a stylesheet emitted
+ * on its own would never be linked and the styles would simply be missing at
+ * runtime. Failing the build is the only honest outcome.
+ */
+const MISSING_INJECTION_TARGET_ERROR =
+  'StyleX: no CSS asset was available to receive the placeholder styles. ' +
+  'Make sure the stylesheet holding the marker is imported by the module graph.';
+
 function replaceFileName(original: string, css: string) {
   if (!original.includes('[hash]')) {
     return original;
@@ -252,10 +261,8 @@ async function injectStyleXCss<TSource>(
   assets: Record<string, { source(): { toString(): string } }>,
   injectMarker: string,
   collectedCSS: string,
-  fallbackFileName: string,
   normalizedOptions: NormalizedOptions,
   updateAsset: (fileName: string, source: TSource) => void,
-  emitAsset: (fileName: string, source: TSource) => void,
   createRawSource: (content: string) => TSource
 ): Promise<void> {
   const cssAssets = Object.keys(assets).filter(f => f.endsWith('.css'));
@@ -291,11 +298,9 @@ async function injectStyleXCss<TSource>(
     }
   }
 
-  // Last resort: emit standalone stylex.css
-  if (!injected) {
-    const finalCSS = await transformStyleXCSS(collectedCSS, fallbackFileName, normalizedOptions);
-    emitAsset(fallbackFileName, createRawSource(finalCSS));
-  }
+  // Nothing else to do when the compilation produced no stylesheet at all: an
+  // asset emitted here could not be linked, and unlike the Vite adapter this
+  // one has no signal that the marker was ever part of the build.
 }
 
 /**
@@ -307,7 +312,7 @@ type BundleAssetLike = { type: string; fileName: string; source: string | Uint8A
 type BundleOutputLike = { type: string; fileName: string; source?: string | Uint8Array };
 type OutputBundleLike = Record<string, BundleOutputLike>;
 type PlaceholderBundleContext = {
-  emitFile(file: { type: 'asset'; fileName: string; source: string }): unknown;
+  error(message: string): never;
 };
 
 /**
@@ -320,7 +325,8 @@ async function injectPlaceholderIntoBundle(
   bundle: OutputBundleLike,
   stylexRules: StyleXRules,
   normalizedOptions: NormalizedOptions,
-  transformedOptions: TransformedOptions
+  transformedOptions: TransformedOptions,
+  reportMissingTarget: boolean
 ): Promise<void> {
   if (!normalizedOptions.useCssPlaceholder) return;
 
@@ -373,19 +379,10 @@ async function injectPlaceholderIntoBundle(
     }
   }
 
-  // Last resort: emit standalone stylex.css if no CSS assets found
-  if (!injected) {
-    const finalCSS = await transformStyleXCSS(
-      collectedCSS,
-      normalizedOptions.fileName,
-      normalizedOptions
-    );
-
-    context.emitFile({
-      type: 'asset',
-      fileName: normalizedOptions.fileName,
-      source: finalCSS,
-    });
+  // Emitting a standalone stylesheet here used to look like a safety net, but
+  // placeholder mode never links it, so it only ever hid missing styles.
+  if (!injected && reportMissingTarget) {
+    context.error(MISSING_INJECTION_TARGET_ERROR);
   }
 }
 
@@ -421,6 +418,12 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   let hasInvalidatedInitialCSS = false;
   let initialCssInvalidationTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Only the Vite load hook can tell that the marker really is part of this
+  // build, which is what separates a broken configuration from a build that
+  // legitimately produces no CSS, such as an SSR bundle.
+  let placeholderSeen = false;
+  let viteIsSsrBuild = false;
+
   // One hook object, registered by both Rollup-style hosts below.
   //
   // `post` is load-bearing: in the default order the hook runs before Vite's
@@ -435,7 +438,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         bundle,
         stylexRules,
         normalizedOptions,
-        transformedOptions
+        transformedOptions,
+        placeholderSeen && !viteIsSsrBuild
       );
     },
   };
@@ -448,6 +452,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       hasCssToExtract = false;
       // Reset initial CSS invalidation flag for better lifecycle management
       hasInvalidatedInitialCSS = false;
+      placeholderSeen = false;
     },
 
     transformInclude(id) {
@@ -642,6 +647,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       },
 
       configResolved(config) {
+        // An SSR bundle emits no stylesheet of its own, so a missing injection
+        // target there is expected rather than a misconfiguration.
+        viteIsSsrBuild = !!config.build.ssr;
+
         // `base`, unlike `assetsDir`, is wanted in its resolved form: the user
         // value may be unset or missing the trailing slash Vite normalizes in.
         viteResolvedBase = config.base;
@@ -673,6 +682,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         // final rules, so they are injected once and at the marker's position.
         // The dev server has no bundle step and keeps inlining what it has.
         if (!viteDevServer) {
+          placeholderSeen = true;
+
           return cssContent.replace(
             normalizedOptions.useCssPlaceholder,
             () => CSS_PLACEHOLDER_SENTINEL
@@ -1081,10 +1092,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               assets,
               injectMarker,
               collectedCSS,
-              normalizedOptions.fileName,
               normalizedOptions,
               (fileName, source) => compilation.updateAsset(fileName, source),
-              (fileName, source) => compilation.emitAsset(fileName, source),
               (content: string) => new compiler.webpack.sources.RawSource(content)
             );
           }
@@ -1112,10 +1121,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               assets,
               injectMarker,
               collectedCSS,
-              normalizedOptions.fileName,
               normalizedOptions,
               (fileName, source) => compilation.updateAsset(fileName, source),
-              (fileName, source) => compilation.emitAsset(fileName, source),
               (content: string) => new compiler.webpack.sources.RawSource(content)
             );
           }

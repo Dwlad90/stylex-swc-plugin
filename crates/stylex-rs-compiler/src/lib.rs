@@ -1,5 +1,20 @@
 #![allow(deprecated)]
 
+// Sets this addon's global allocator. Linked for its `#[global_allocator]` and
+// nothing else, hence the `as _`.
+//
+// The transform is allocation-bound rather than compute-bound: a sampled
+// profile of a large module puts roughly 45% of samples in `malloc`/`free`,
+// because every folded style flows through short-lived `String`s, `Vec`s and
+// cloned AST nodes. Swapping the allocator is the whole of the change and it
+// measures 1.09-1.15x end-to-end on this repo's two largest fixtures.
+//
+// `swc_malloc` rather than `mimalloc` directly: it resolves to mimalloc on
+// every target `.github/workflows/npm.yml` publishes except
+// `x86_64-unknown-linux-musl`, where the system allocator is kept on purpose.
+// The workspace manifest records why.
+use swc_malloc as _;
+
 mod enums;
 mod structs;
 mod utils;

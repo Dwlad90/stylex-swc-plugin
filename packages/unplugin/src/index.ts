@@ -14,6 +14,7 @@ import type { HotPayload, ModuleNode, ViteDevServer } from 'vite';
 import type { UnpluginStylexRSOptions } from './types';
 import generateHash from './utils/generateHash';
 import getStyleXRules from './utils/getStyleXRules';
+import hasUnresolvedDefineConstAtRule from './utils/hasUnresolvedDefineConstAtRule';
 import normalizeOptions, { identityTransformCss } from './utils/normalizeOptions';
 import resolveStylesheetHref from './utils/resolveStylesheetHref';
 
@@ -303,62 +304,6 @@ async function invalidateAndCollectCssModules(
   );
 
   return cssModules;
-}
-
-function hasUnresolvedDefineConstAtRule(css: string): boolean {
-  let atRuleStart = true;
-
-  for (let index = 0; index < css.length; index += 1) {
-    const character = css[index];
-    const nextCharacter = css[index + 1];
-
-    if (character === '/' && nextCharacter === '*') {
-      const commentEnd = css.indexOf('*/', index + 2);
-      if (commentEnd === -1) return false;
-      index = commentEnd + 1;
-      continue;
-    }
-
-    if (character === '"' || character === "'") {
-      const quote = character;
-      index += 1;
-
-      for (; index < css.length; index += 1) {
-        if (css[index] === '\\') {
-          index += 1;
-        } else if (css[index] === quote) {
-          break;
-        }
-      }
-
-      atRuleStart = false;
-      continue;
-    }
-
-    if (character === '{' || character === '}') {
-      atRuleStart = true;
-      continue;
-    }
-
-    if (/\s/.test(character ?? '')) continue;
-
-    if (atRuleStart && css.startsWith('var(--', index)) {
-      const closingParenthesis = css.indexOf(')', index + 6);
-      if (closingParenthesis === -1) return false;
-
-      if (closingParenthesis > index + 6) {
-        let nextToken = closingParenthesis + 1;
-        while (/\s/.test(css[nextToken] ?? '')) nextToken += 1;
-        if (css[nextToken] === '{') return true;
-      }
-
-      index = closingParenthesis;
-    }
-
-    atRuleStart = false;
-  }
-
-  return false;
 }
 
 async function transformStyleXDependencies(

@@ -63,8 +63,9 @@ expression, and they do not agree about how much the hash has to mean:
 - the code-frame `span_cache` returns a cached span on a **hash hit alone** —
   twice over, once keyed by `compute_cache_key` and once by
   `compute_key_span_cache_key`;
-- the JSX-spread replacement map and the queued-decl dedup narrow a bucket by
-  hash and then confirm with `eq_ignore_span`;
+- the JSX-spread replacement map, the queued-decl dedup and the callee index
+  behind `is_member_callee` narrow a bucket by hash and then confirm with
+  `eq_ignore_span`;
 - `all_call_expressions` confirms on read too, but a collision can evict the
   wrong entry when a call is replaced.
 

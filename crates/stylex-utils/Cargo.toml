@@ -21,7 +21,6 @@ serde_json.workspace = true
 swc_core = { workspace = true, features = ["common", "ecma_ast", "ecma_utils"] }
 xxhash-rust.workspace = true
 
-
 [dev-dependencies]
 swc_ecma_parser.workspace = true
 

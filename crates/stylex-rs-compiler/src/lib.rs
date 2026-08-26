@@ -11,8 +11,8 @@
 //
 // `swc_malloc` rather than `mimalloc` directly: it resolves to mimalloc on
 // every target `.github/workflows/npm.yml` publishes except
-// `x86_64-unknown-linux-musl`, where the system allocator is kept on purpose.
-// The workspace manifest records why.
+// `x86_64-unknown-linux-musl`, where the system allocator is kept on purpose
+// because mimalloc segfaults on ARM64 musl. The workspace manifest records why.
 use swc_malloc as _;
 
 mod enums;

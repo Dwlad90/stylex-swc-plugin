@@ -294,59 +294,78 @@ impl ModuleSourceState {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct CallExpressionState {
   all_call_expressions: FxHashMap<u128, Callee>,
-  /// How many entries of [`Self::all_call_expressions`] have a member
-  /// expression for a callee, counted per structural key of that member.
+  /// The member expressions that are the callee of some entry of
+  /// [`Self::all_call_expressions`], bucketed by their structural key.
   ///
-  /// This is an index over the callees, and the whole of what
-  /// [`Self::is_member_callee`] needs. Without it that question was answered by
-  /// scanning every call in the module and comparing whole `MemberExpr`
-  /// subtrees with `eq_ignore_span`. It is asked once per member expression the
-  /// evaluator visits, so the scan made the consumer phase quadratic in the
-  /// number of calls a module makes: on a 1,500-component JSX module it grew
-  /// 3.6x for every doubling of the input and reached 41% of total compile
-  /// time.
+  /// The whole of what [`Self::is_member_callee`] needs. Without it that
+  /// question was answered by walking every call in the module and comparing
+  /// whole `MemberExpr` subtrees, once per member expression the evaluator
+  /// visits -- which made the consumer phase quadratic in the number of calls
+  /// a module makes. On a 1,500-component JSX module it grew 3.6x for every
+  /// doubling of the input and reached 41% of total compile time.
   ///
-  /// Counted rather than held as a set because the map collapses structurally
+  /// A bucket of members rather than a bare key, because the key narrows and
+  /// [`EqIgnoreSpan`] still decides: this is the shape
+  /// `adr/0005` calls "narrow a bucket by hash and then confirm", and it is
+  /// what keeps the answer the same one the walk gave. Answering on a hash hit
+  /// alone would make this a fifth consumer for which the key *is* the equality
+  /// test, which is a decision that ADR owns rather than this index.
+  ///
+  /// Confirming is also what keeps the answer right under
+  /// `EQ_IGNORE_SPAN_IGNORE_CTXT`: the key hashes an identifier's
+  /// `SyntaxContext` while `eq_ignore_span` ignores it inside that scope, so
+  /// the key alone would refuse a match the walk made. Nothing sets that flag
+  /// today; confirming means nothing has to remember this if something does.
+  ///
+  /// Held as a list rather than a set because the map collapses structurally
   /// equal calls onto one entry while two *different* calls can still share a
-  /// callee — `a.b(1)` and `a.b(2)`. A plain set would drop `a.b` when either
-  /// one of them is replaced, and `is_member_callee` would start answering
-  /// `false` for a callee that is still live.
-  ///
-  /// Keyed by the same 128-bit structural hash that keys the map itself, so a
-  /// collision was already able to conflate two calls before this existed; the
-  /// index widens nothing.
-  callee_member_keys: FxHashMap<u128, u32>,
+  /// callee -- `a.b(1)` and `a.b(2)`. Dropping `a.b` when either one of them is
+  /// replaced would leave [`Self::is_member_callee`] answering `false` for a
+  /// callee that is still live.
+  callee_members: FxHashMap<u128, Vec<MemberExpr>>,
 }
 
 impl CallExpressionState {
   fn add_call_expression(&mut self, call_expr: &CallExpr) {
     let key = stable_hash_unspanned_call(call_expr);
     let callee = call_expr.callee.clone();
-    let member_key = Self::callee_member_key(&callee);
+    let member = Self::callee_member(&callee).cloned();
 
     // `insert` overwrites, so an existing entry's callee leaves the map here
-    // and its count has to go with it.
-    if let Some(replaced) = self.all_call_expressions.insert(key, callee) {
-      self.release_member_key(Self::callee_member_key(&replaced));
+    // and its bucket entry has to go with it.
+    if let Some(replaced) = self.all_call_expressions.insert(key, callee)
+      && let Some(replaced) = Self::callee_member(&replaced)
+    {
+      self.release_member(replaced);
     }
 
-    if let Some(member_key) = member_key {
-      *self.callee_member_keys.entry(member_key).or_default() += 1;
+    if let Some(member) = member {
+      self
+        .callee_members
+        .entry(stable_hash_unspanned_member(&member))
+        .or_default()
+        .push(member);
     }
   }
 
   fn is_member_callee(&self, member: &MemberExpr) -> bool {
     self
-      .callee_member_keys
-      .contains_key(&stable_hash_unspanned_member(member))
+      .callee_members
+      .get(&stable_hash_unspanned_member(member))
+      .is_some_and(|bucket| {
+        bucket
+          .iter()
+          .any(|candidate| candidate.eq_ignore_span(member))
+      })
   }
 
   fn replace_call_expression(&mut self, call: &CallExpr, ast: &Expr) {
     if let Some(removed) = self
       .all_call_expressions
       .remove(&stable_hash_unspanned_call(call))
+      && let Some(removed) = Self::callee_member(&removed)
     {
-      self.release_member_key(Self::callee_member_key(&removed));
+      self.release_member(removed);
     }
 
     if let Some(call_expr) = ast.as_call() {
@@ -354,30 +373,38 @@ impl CallExpressionState {
     }
   }
 
-  /// The structural key of `callee`, where the callee is a member expression.
-  fn callee_member_key(callee: &Callee) -> Option<u128> {
+  /// The member expression `callee` is, where it is one.
+  fn callee_member(callee: &Callee) -> Option<&MemberExpr> {
     match callee {
       Callee::Expr(expr) => match expr.as_ref() {
-        Expr::Member(member) => Some(stable_hash_unspanned_member(member)),
+        Expr::Member(member) => Some(member),
         _ => None,
       },
       _ => None,
     }
   }
 
-  /// Drop one reference to `key`, forgetting it once nothing holds it.
-  fn release_member_key(&mut self, key: Option<u128>) {
-    let Some(key) = key else {
+  /// Drops one occurrence of `member` from its bucket, forgetting the bucket
+  /// once nothing holds it.
+  fn release_member(&mut self, member: &MemberExpr) {
+    let Entry::Occupied(mut occupied) = self
+      .callee_members
+      .entry(stable_hash_unspanned_member(member))
+    else {
       return;
     };
 
-    if let Entry::Occupied(mut occupied) = self.callee_member_keys.entry(key) {
-      match occupied.get_mut() {
-        1 => {
-          occupied.remove();
-        },
-        count => *count -= 1,
-      }
+    let bucket = occupied.get_mut();
+
+    if let Some(position) = bucket
+      .iter()
+      .position(|candidate| candidate.eq_ignore_span(member))
+    {
+      bucket.remove(position);
+    }
+
+    if bucket.is_empty() {
+      occupied.remove();
     }
   }
 }

@@ -17,6 +17,9 @@ pub fn dashify(s: &str) -> Cow<'_, str> {
     return Cow::Borrowed(s);
   }
 
+  // The input's length plus room for the hyphens this inserts. A CSS property
+  // name spells one or two, and overshooting by a few bytes costs less than the
+  // realloc that undershooting buys.
   let mut dashed = String::with_capacity(s.len() + 4);
   let mut previous: Option<char> = None;
 
@@ -36,6 +39,14 @@ pub fn dashify(s: &str) -> Cow<'_, str> {
     previous = Some(character);
   }
 
+  // Lowercased in a second pass over the built string rather than per character
+  // on the way in, which would save this allocation and be wrong.
+  // `str::to_lowercase` is context-sensitive where `char::to_lowercase` is not:
+  // a Greek capital sigma lowercases to the final form at the end of a word and
+  // the medial form elsewhere, and a single character cannot know which it is.
+  // `dashify("aBΣ")` is `a-bς` through the string and `a-bσ` through the chars.
+  // The regex this replaced also lowercased the finished string, so this keeps
+  // the answer it gave.
   Cow::Owned(dashed.to_lowercase())
 }
 

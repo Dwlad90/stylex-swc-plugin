@@ -25,6 +25,14 @@ mod dashify_tests {
     assert_eq!(dashify("a"), "a");
   }
 
+  /// The lowercasing has to see the finished string. `char::to_lowercase` is
+  /// context-free, so fusing it into the hyphen scan would spell a trailing
+  /// Greek sigma in its medial form.
+  #[test]
+  fn lowercases_a_trailing_sigma_to_its_final_form() {
+    assert_eq!(dashify("aBΣ"), "a-bς");
+  }
+
   #[test]
   fn handles_empty_string() {
     assert_eq!(dashify(""), "");

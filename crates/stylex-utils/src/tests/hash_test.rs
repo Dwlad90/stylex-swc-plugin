@@ -432,7 +432,8 @@ mod hash_f64_tests {
 #[cfg(test)]
 mod unspanned_fast_path_tests {
   use super::super::{
-    create_hash, stable_hash_unspanned, stable_hash_unspanned_call, stable_hash_wide, to_base36,
+    create_hash, stable_hash_unspanned, stable_hash_unspanned_call, stable_hash_unspanned_member,
+    stable_hash_wide, to_base36,
   };
   use swc_core::{
     common::{DUMMY_SP, SyntaxContext},
@@ -773,6 +774,70 @@ mod unspanned_fast_path_tests {
     assert_eq!(
       stable_hash_unspanned_call(call),
       stable_hash_unspanned_call(shifted_call)
+    );
+  }
+
+  #[test]
+  fn unspanned_member_hash_matches_whole_expr() {
+    let expr = parse_expr("foo.bar");
+    let Expr::Member(member) = &expr else {
+      panic!("expected a member expression");
+    };
+
+    // The dedicated member hasher must produce exactly the same key as hashing
+    // the member wrapped in a whole `Expr`, for the reason its call-shaped
+    // counterpart must: the two sides of a lookup reach the key differently.
+    assert_eq!(
+      stable_hash_unspanned_member(member),
+      stable_hash_unspanned(&expr)
+    );
+
+    // ...and it must stay span-insensitive.
+    let shifted = parse_expr("      foo.bar");
+    let Expr::Member(shifted_member) = &shifted else {
+      panic!("expected a member expression");
+    };
+    assert_eq!(
+      stable_hash_unspanned_member(member),
+      stable_hash_unspanned_member(shifted_member)
+    );
+
+    // Different members must not collide on the discriminant prefix alone.
+    let other = parse_expr("foo.baz");
+    let Expr::Member(other_member) = &other else {
+      panic!("expected a member expression");
+    };
+    assert_ne!(
+      stable_hash_unspanned_member(member),
+      stable_hash_unspanned_member(other_member)
+    );
+  }
+
+  #[test]
+  fn unspanned_member_hash_fallback_matches_whole_expr() {
+    // A computed key holding a function expression is a shape the in-place
+    // hasher does not cover, so `stable_hash_unspanned_member` takes its
+    // fallback branch. On that branch it must still agree with
+    // `stable_hash_unspanned` over the whole `Expr::Member`, which falls back
+    // identically -- keeping the insertion-side and lookup-side keys aligned
+    // for exotic members too.
+    let expr = parse_expr("foo[function () {}]");
+    let Expr::Member(member) = &expr else {
+      panic!("expected a member expression");
+    };
+
+    assert_eq!(
+      stable_hash_unspanned_member(member),
+      stable_hash_unspanned(&expr)
+    );
+
+    let shifted = parse_expr("      foo[function () {}]");
+    let Expr::Member(shifted_member) = &shifted else {
+      panic!("expected a member expression");
+    };
+    assert_eq!(
+      stable_hash_unspanned_member(member),
+      stable_hash_unspanned_member(shifted_member)
     );
   }
 

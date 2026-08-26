@@ -1,7 +1,4 @@
-use swc_core::{
-  common::EqIgnoreSpan,
-  ecma::ast::{Expr, Ident},
-};
+use swc_core::ecma::ast::{Expr, Ident};
 
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
@@ -55,12 +52,4 @@ pub(crate) fn check_ident_declaration(
     ),
     None => deopt(path, state, UNDEFINED_CONST),
   }
-}
-
-/// Whether `declarations` holds the binding `ident` names -- the same `Id`
-/// comparison every other step of the reference chain makes.
-pub(crate) fn declares_ident(declarations: &[Ident], ident: &Ident) -> bool {
-  declarations
-    .iter()
-    .any(|declared| declared.eq_ignore_span(ident))
 }

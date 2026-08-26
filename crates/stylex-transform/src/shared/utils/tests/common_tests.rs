@@ -1096,9 +1096,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn finds_named_import_by_local() {
     let mut state = StateManager::default();
-    state
-      .top_imports
-      .push(import_from("@stylexjs/stylex", vec![named("stylex", 0)]));
+    state.push_top_import(import_from("@stylexjs/stylex", vec![named("stylex", 0)]));
     let ident = create_ident("stylex");
     let result = get_import_by_ident(&ident, &state);
     assert!(result.is_some());
@@ -1115,7 +1113,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn finds_default_import() {
     let mut state = StateManager::default();
-    state.top_imports.push(import_from(
+    state.push_top_import(import_from(
       "@stylexjs/stylex",
       vec![default_of("stylex", 0)],
     ));
@@ -1127,9 +1125,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn finds_namespace_import() {
     let mut state = StateManager::default();
-    state
-      .top_imports
-      .push(import_from("module", vec![namespace_of("ns", 0)]));
+    state.push_top_import(import_from("module", vec![namespace_of("ns", 0)]));
     let ident = create_ident("ns");
     let result = get_import_by_ident(&ident, &state);
     assert!(result.is_some());
@@ -1138,7 +1134,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn does_not_match_a_renamed_import_by_the_name_it_was_aliased_away_from() {
     let mut state = StateManager::default();
-    state.top_imports.push(import_from(
+    state.push_top_import(import_from(
       "@stylexjs/stylex",
       vec![aliased("localName", "create", 0)],
     ));
@@ -1154,7 +1150,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn finds_renamed_import_by_local_name() {
     let mut state = StateManager::default();
-    state.top_imports.push(import_from(
+    state.push_top_import(import_from(
       "@stylexjs/stylex",
       vec![aliased("localName", "create", 0)],
     ));
@@ -1166,9 +1162,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn does_not_match_wrong_ident() {
     let mut state = StateManager::default();
-    state
-      .top_imports
-      .push(import_from("@stylexjs/stylex", vec![named("stylex", 0)]));
+    state.push_top_import(import_from("@stylexjs/stylex", vec![named("stylex", 0)]));
     let ident = create_ident("wrongName");
     let result = get_import_by_ident(&ident, &state);
     assert!(result.is_none());
@@ -1177,7 +1171,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn does_not_match_a_string_named_specifier_by_its_imported_name() {
     let mut state = StateManager::default();
-    state.top_imports.push(import_from(
+    state.push_top_import(import_from(
       "module",
       vec![str_named("localName", "strExport", 0)],
     ));
@@ -1207,9 +1201,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn does_not_match_a_named_import_shadowed_by_another_binding() {
     let mut state = StateManager::default();
-    state
-      .top_imports
-      .push(import_from("zIndex.stylex.js", vec![named("zIndex", 1)]));
+    state.push_top_import(import_from("zIndex.stylex.js", vec![named("zIndex", 1)]));
 
     // The arrow parameter in `(zIndex) => ({ zIndex })`: same symbol, its own
     // context. Resolving it to the import is #1266.
@@ -1221,9 +1213,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn finds_a_named_import_from_its_own_context() {
     let mut state = StateManager::default();
-    state
-      .top_imports
-      .push(import_from("zIndex.stylex.js", vec![named("zIndex", 1)]));
+    state.push_top_import(import_from("zIndex.stylex.js", vec![named("zIndex", 1)]));
 
     // The other half of the same question: a genuine reference to the import
     // still resolves. A fix that answered `None` for everything would pass the
@@ -1234,7 +1224,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn does_not_match_an_aliased_import_shadowed_by_another_binding() {
     let mut state = StateManager::default();
-    state.top_imports.push(import_from(
+    state.push_top_import(import_from(
       "zIndex.stylex.js",
       vec![aliased("zi", "zIndex", 1)],
     ));
@@ -1247,12 +1237,8 @@ mod get_import_by_ident_tests {
   #[test]
   fn matches_only_the_specifier_whose_context_agrees() {
     let mut state = StateManager::default();
-    state
-      .top_imports
-      .push(import_from("first.stylex.js", vec![named("shadowed", 1)]));
-    state
-      .top_imports
-      .push(import_from("second.stylex.js", vec![named("shadowed", 2)]));
+    state.push_top_import(import_from("first.stylex.js", vec![named("shadowed", 1)]));
+    state.push_top_import(import_from("second.stylex.js", vec![named("shadowed", 2)]));
 
     // Two declarations cannot bind one name in valid source, but the lookup
     // scans a flat list and must not answer by position.
@@ -1267,7 +1253,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn matches_one_specifier_of_a_declaration_without_matching_its_siblings() {
     let mut state = StateManager::default();
-    state.top_imports.push(import_from(
+    state.push_top_import(import_from(
       "tokens.stylex.js",
       vec![named("spacing", 1), named("zIndex", 1)],
     ));
@@ -1286,10 +1272,8 @@ mod get_import_by_ident_tests {
   #[test]
   fn a_shadowed_default_or_namespace_import_was_already_context_aware() {
     let mut state = StateManager::default();
-    state
-      .top_imports
-      .push(import_from("theme.stylex.js", vec![default_of("theme", 1)]));
-    state.top_imports.push(import_from(
+    state.push_top_import(import_from("theme.stylex.js", vec![default_of("theme", 1)]));
+    state.push_top_import(import_from(
       "tokens.stylex.js",
       vec![namespace_of("tokens", 1)],
     ));
@@ -1305,7 +1289,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn a_string_named_specifier_answers_only_for_its_local_binding() {
     let mut state = StateManager::default();
-    state.top_imports.push(import_from(
+    state.push_top_import(import_from(
       "tokens.stylex.js",
       vec![str_named("spacing", "spacing-lg", 1)],
     ));
@@ -1331,12 +1315,8 @@ mod get_import_by_ident_tests {
     // lexer folds `\u007AIndex` to the atom `zIndex` long before this, so at
     // this seam the two spellings are one value. The escape is exercised where
     // it can still differ -- as authored source, in the parity corpus.
-    state
-      .top_imports
-      .push(import_from("zIndex.stylex.js", vec![named("zIndex", 1)]));
-    state
-      .top_imports
-      .push(import_from("accented.stylex.js", vec![named("zÍndex", 1)]));
+    state.push_top_import(import_from("zIndex.stylex.js", vec![named("zIndex", 1)]));
+    state.push_top_import(import_from("accented.stylex.js", vec![named("zÍndex", 1)]));
 
     assert!(get_import_by_ident(&ident_at("zIndex", 1), &state).is_some());
     assert!(get_import_by_ident(&ident_at("zÍndex", 1), &state).is_some());
@@ -1346,7 +1326,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn answers_with_the_specifier_that_bound_the_name() {
     let mut state = StateManager::default();
-    state.top_imports.push(import_from(
+    state.push_top_import(import_from(
       "tokens.stylex.js",
       vec![default_of("theme", 1), named("spacing", 1)],
     ));
@@ -1371,9 +1351,7 @@ mod get_import_by_ident_tests {
   #[test]
   fn an_empty_import_declaration_answers_for_nothing() {
     let mut state = StateManager::default();
-    state
-      .top_imports
-      .push(import_from("side-effect.css", vec![]));
+    state.push_top_import(import_from("side-effect.css", vec![]));
 
     // `import './side-effect.css'` binds no name at all. `Iterator::any` over
     // no specifiers is `false`, which is the answer -- pinned because a

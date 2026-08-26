@@ -25,12 +25,15 @@ use swc_core::{
   },
 };
 
-use crate::shared::utils::js::check_declaration::{DeclarationType, declares_ident};
+use crate::shared::utils::js::check_declaration::DeclarationType;
 use crate::shared::{
   structures::types::InjectableStylesMap,
   utils::{
     ast::{convertors::create_number_expr, helpers::namespace_name_from_member_prop},
-    common::{extract_filename_from_path, extract_filename_with_ext_from_path, extract_path},
+    common::{
+      extract_filename_from_path, extract_filename_with_ext_from_path, extract_path,
+      local_binding_of,
+    },
     validators::{is_attrs_call, is_props_call},
   },
 };
@@ -54,7 +57,6 @@ use stylex_enums::{
   counter_mode::CounterMode,
   import_path_resolution::ImportPathResolution,
   style_vars_to_keep::{NonNullProp, NonNullProps},
-  top_level_expression::TopLevelExpressionKind,
 };
 use stylex_structures::{
   style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
@@ -65,6 +67,7 @@ use stylex_utils::hash::{
 };
 
 use super::{
+  candidate_index::CandidateIndex,
   key_span_index::{KeySpanIndex, ModuleBase},
   seen_value::SeenValue,
   types::{InjectImportIdents, SeenModuleSource, StylesObjectMap},
@@ -476,39 +479,85 @@ impl CacheState {
   }
 }
 
+/// Where the module's hoisted `class` and `function` declarations are, keyed by
+/// the binding each one declares.
+///
+/// A map rather than the two lists it replaces, because both questions asked of
+/// it -- does this reference name one of them, and where was it written -- are
+/// questions about a single binding, and a list answers them by walking every
+/// declaration the module holds once per reference. That is quadratic in a
+/// module of many components, and it bought nothing: the order of the lists was
+/// never read.
+///
+/// Keyed by the full `Id`, so a reference resolves to the binding its own
+/// `SyntaxContext` names rather than to whichever declaration happens to spell
+/// the same symbol first. That is what the rest of the state manager keys on --
+/// [`StateManager::declaration_index`] and the pre-scan's binding sets -- and it
+/// is the scope-aware answer, where matching the symbol alone would resolve a
+/// shadowed name to the declaration shadowing it.
+///
+/// The key *is* the equality test here, unlike the indexes that narrow and then
+/// confirm, and that is sound because an `Id` is the whole of what identifies a
+/// binding. It differs from `Ident::eq_ignore_span` in two ways that cannot
+/// separate two declarations: the `optional` flag, which a `class` or `function`
+/// declaration name never carries, and `EQ_IGNORE_SPAN_IGNORE_CTXT`, under which
+/// the comparison would stop being scope-aware and resolve a shadowed name to
+/// the declaration shadowing it -- the bug this keying exists to avoid.
+///
+/// First writer wins, which is the answer the deduplicating push it replaces
+/// gave, and it is the first spelling of a name whose position a
+/// used-before-declaration diagnostic is about.
+/// The structural key of `expr` where it is a call, and nothing where it is
+/// anything else -- what the call indexes are keyed by, spelled once for the
+/// four places that move an entry between keys.
+fn call_key_of(expr: Option<&Expr>) -> Option<u128> {
+  match expr {
+    Some(Expr::Call(call)) => Some(stable_hash_unspanned_call(call)),
+    _ => None,
+  }
+}
+
+/// The earliest of `candidates` that `confirm` accepts.
+///
+/// The earliest rather than the first the bucket holds: a bucket is filled in
+/// the order its entries were recorded, and moving one re-records it at the
+/// back, so only the minimum is reliably the one a walk in source order would
+/// have reached first.
+fn earliest_confirmed(candidates: &[usize], confirm: impl Fn(usize) -> bool) -> Option<usize> {
+  candidates
+    .iter()
+    .copied()
+    .filter(|position| confirm(*position))
+    .min()
+}
+
 #[derive(Clone, Debug, Default)]
 pub(crate) struct DeclarationState {
-  class_name_declarations: Vec<Ident>,
-  function_name_declarations: Vec<Ident>,
+  class_names: FxHashMap<Id, Span>,
+  function_names: FxHashMap<Id, Span>,
 }
 
 impl DeclarationState {
   fn add_class_name_declaration(&mut self, ident: Ident) {
-    if !self
-      .class_name_declarations
-      .iter()
-      .any(|existing| existing.eq_ignore_span(&ident))
-    {
-      self.class_name_declarations.push(ident);
-    }
+    self.class_names.entry(ident.to_id()).or_insert(ident.span);
   }
 
   fn add_function_name_declaration(&mut self, ident: Ident) {
-    if !self
-      .function_name_declarations
-      .iter()
-      .any(|existing| existing.eq_ignore_span(&ident))
-    {
-      self.function_name_declarations.push(ident);
-    }
+    self
+      .function_names
+      .entry(ident.to_id())
+      .or_insert(ident.span);
   }
 
-  fn class_name_declarations(&self) -> &[Ident] {
-    &self.class_name_declarations
+  /// Where the hoisted `class` binding `ident` names was declared, if one was.
+  fn class_name_declaration(&self, ident: &Ident) -> Option<Span> {
+    self.class_names.get(&ident.to_id()).copied()
   }
 
-  fn function_name_declarations(&self) -> &[Ident] {
-    &self.function_name_declarations
+  /// Where the hoisted `function` binding `ident` names was declared, if one
+  /// was.
+  fn function_name_declaration(&self, ident: &Ident) -> Option<Span> {
+    self.function_names.get(&ident.to_id()).copied()
   }
 }
 
@@ -597,6 +646,17 @@ pub struct StateManager {
   /// truncates it, and the in-place edits reach `init` rather than `name`, so a
   /// recorded position stays the position of the same binding.
   pub(crate) declaration_index: FxHashMap<Id, usize>,
+  /// Positions in [`Self::declarations`] of the declarators initialised by a
+  /// given call, so pinning a call to its declarator is a hash probe rather
+  /// than a walk of every declarator in the module comparing whole call
+  /// subtrees. Maintained by [`Self::push_declaration`] and
+  /// [`Self::set_declaration_init`], which are the only writers of the list and
+  /// of a declarator's initializer.
+  pub(crate) declaration_call_index: CandidateIndex<u128, usize>,
+  /// Positions in [`Self::declarations`] of the declarators written at a given
+  /// source position, which is what [`Self::holds_declaration`] narrows on.
+  /// Maintained by [`Self::push_declaration`], the only writer of the list.
+  pub(crate) declaration_span_index: CandidateIndex<Span, usize>,
   /// Bindings rebound after their declaration — an assignment, update,
   /// destructuring or loop target. The reference implementation's constant
   /// violations, probed as its own step of the reference-resolution chain.
@@ -642,6 +702,25 @@ pub struct StateManager {
   /// Shared rather than copied -- see [`Self::binding_reassignments`].
   pub(crate) declared_bindings: Rc<FxHashSet<Id>>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
+  /// Positions in [`Self::top_level_expressions`] of the entries that *are* a
+  /// given call. Maintained by [`Self::push_top_level_expression`] and
+  /// [`Self::set_top_level_expr`], for the reason
+  /// [`Self::declaration_call_index`] is.
+  ///
+  /// Only calls, where the list holds expressions of every shape, because a key
+  /// costs a walk of the expression it describes and a top-level expression can
+  /// be a whole module's styles in one array. Keying those too cost about 50 ms
+  /// on a 7.3 MB file to serve one lookup [`Self::top_level_name_index`]
+  /// answers without a walk at all.
+  pub(crate) top_level_call_index: CandidateIndex<u128, usize>,
+  /// Positions in [`Self::top_level_expressions`] of the entries bound to each
+  /// name. Maintained by [`Self::push_top_level_expression`].
+  ///
+  /// Every position a name binds rather than only the first, because `var`
+  /// permits redeclaration: `var styles = …; var styles = …;` records two
+  /// entries under one name, and keeping only the first would answer `None` for
+  /// the second where the walk this replaces found it.
+  pub(crate) top_level_name_index: CandidateIndex<Atom, usize>,
   /// Spans of the calls that initialise a top-level declarator bound to a
   /// pattern rather than a name — `export const { foo } = stylex.create(…);`.
   /// [`Self::top_level_expressions`] is keyed by the exported name and so has
@@ -713,6 +792,11 @@ pub struct StateManager {
   // `stylex.create` calls
   pub(crate) style_map: FxHashMap<String, Rc<StylesObjectMap>>,
   pub(crate) style_vars: FxHashMap<String, VarDeclarator>,
+  /// Names in [`Self::style_vars`] whose declarator is initialised by a given
+  /// call. Maintained by [`Self::insert_style_var`] and
+  /// [`Self::set_style_var_init`], for the reason
+  /// [`Self::declaration_call_index`] is.
+  pub(crate) style_var_call_index: CandidateIndex<u128, String>,
 
   /// Map of local identifier -> imported name for `@stylexjs/atoms` imports.
   /// The key includes `SyntaxContext`, so shadowed bindings with the same symbol
@@ -766,6 +850,16 @@ pub struct StateManager {
 
   pub(crate) other_injected_css_rules: InjectableStylesMap,
   pub(crate) top_imports: Vec<ImportDecl>,
+  /// Where in [`Self::top_imports`] the specifier binding each imported name
+  /// sits, as the import's position and the specifier's within it, so resolving
+  /// a reference to its import is a probe rather than a walk of every specifier
+  /// the module imports. Maintained by [`Self::push_top_import`], the only
+  /// writer of the list.
+  ///
+  /// Keyed by the local binding's `Id` and confirmed with `eq_ignore_span` on
+  /// read, for the reason [`Self::declaration_call_index`] is: the key narrows
+  /// and equality decides.
+  pub(crate) top_import_index: CandidateIndex<Id, (usize, usize)>,
   pub(crate) named_exports: FxHashSet<NamedExport>,
 
   pub cycle: TransformationCycle,
@@ -791,6 +885,7 @@ impl StateManager {
       local_rebinding_scopes: FxHashMap::default(),
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
+      style_var_call_index: CandidateIndex::default(),
       atom_imports: FxHashMap::default(),
       dynamic_style_namespaces: FxHashMap::default(),
       style_vars_to_keep: IndexSet::default(),
@@ -807,16 +902,21 @@ impl StateManager {
       module_source: ModuleSourceState::default(),
 
       top_imports: vec![],
+      top_import_index: CandidateIndex::default(),
       named_exports: FxHashSet::default(),
 
       declarations: vec![],
       declaration_index: FxHashMap::default(),
+      declaration_call_index: CandidateIndex::default(),
+      declaration_span_index: CandidateIndex::default(),
       declarations_state: DeclarationState::default(),
       binding_reassignments: Rc::default(),
       binding_mutations: Rc::default(),
       binding_deep_mutations: Rc::default(),
       declared_bindings: Rc::default(),
       top_level_expressions: vec![],
+      top_level_call_index: CandidateIndex::default(),
+      top_level_name_index: CandidateIndex::default(),
       pattern_bound_top_level_calls: FxHashSet::default(),
       call_expressions: CallExpressionState::default(),
       jsx_spread_attr_exprs_map: FxHashMap::default(),
@@ -914,11 +1014,11 @@ impl StateManager {
   /// for by cloning both lists on the path every dynamic style's parameter
   /// takes.
   pub(crate) fn declared_as(&self, ident: &Ident) -> Option<DeclarationType> {
-    if declares_ident(self.class_name_declarations(), ident) {
+    if self.class_name_declaration(ident).is_some() {
       return Some(DeclarationType::Class);
     }
 
-    if declares_ident(self.function_name_declarations(), ident) {
+    if self.function_name_declaration(ident).is_some() {
       return Some(DeclarationType::Function);
     }
 
@@ -947,14 +1047,229 @@ impl StateManager {
   /// the binding it added invisible to [`Self::declaration_of`], which is what
   /// the three test builders that did so discovered.
   pub(crate) fn push_declaration(&mut self, declarator: VarDeclarator) {
+    let position = self.declarations.len();
+
     if let Pat::Ident(binding) = &declarator.name {
       self
         .declaration_index
         .entry(binding.id.to_id())
-        .or_insert(self.declarations.len());
+        .or_insert(position);
     }
 
+    if let Some(Expr::Call(call)) = declarator.init.as_deref() {
+      self
+        .declaration_call_index
+        .record(stable_hash_unspanned_call(call), position);
+    }
+
+    self
+      .declaration_span_index
+      .record(declarator.span, position);
+
     self.declarations.push(declarator);
+  }
+
+  /// Whether a declarator written at `declarator`'s position and reading the
+  /// same is already recorded -- the question the discovery cycle asks before
+  /// storing one.
+  ///
+  /// Position decides first and content second, which is the order the walk
+  /// this replaces used: the same declaration seen on more than one discovery
+  /// pass carries the same span and is stored once, while two declarations that
+  /// merely read alike, `var m = f(); var m = f();`, stay two entries, as a
+  /// lookup that pins a call to its declarator by span needs them to be.
+  ///
+  /// The span narrows and `eq_ignore_span` still decides, which is what settles
+  /// the synthesized declarators that share `DUMMY_SP`. Every caller runs over
+  /// the parsed module, where a span is a real position and so narrows to at
+  /// most a handful.
+  pub(crate) fn holds_declaration(&self, declarator: &VarDeclarator) -> bool {
+    let found = self
+      .declaration_span_index
+      .candidates(|| declarator.span)
+      .iter()
+      .any(|position| {
+        self
+          .declarations
+          .get(*position)
+          .is_some_and(|recorded| recorded.eq_ignore_span(declarator))
+      });
+
+    debug_assert_eq!(
+      found,
+      self.declarations.iter().any(|recorded| {
+        recorded.span == declarator.span && recorded.eq_ignore_span(declarator)
+      }),
+      "`declaration_span_index` disagrees with `declarations`; something grew \
+       the list without going through `push_declaration`"
+    );
+
+    found
+  }
+
+  /// Replaces the initializer of the declarator at `position`, keeping the call
+  /// index beside it in step.
+  ///
+  /// The one way a recorded declarator's initializer changes, because the index
+  /// is keyed by that initializer: replacing it in place leaves the declarator
+  /// findable under the call it no longer holds, and unfindable under the one it
+  /// now does.
+  pub(crate) fn set_declaration_init(&mut self, position: usize, init: Expr) {
+    let Some(declarator) = self.declarations.get_mut(position) else {
+      return;
+    };
+
+    let replaced = declarator.init.replace(Box::new(init));
+
+    self.declaration_call_index.move_entry(
+      call_key_of(replaced.as_deref()),
+      call_key_of(self.declarations[position].init.as_deref()),
+      position,
+    );
+  }
+
+  /// Appends an import declaration and records where each name it binds went.
+  ///
+  /// Every caller that grows [`Self::top_imports`] goes through here, for the
+  /// reason [`Self::push_declaration`] exists.
+  pub(crate) fn push_top_import(&mut self, import: ImportDecl) {
+    let position = self.top_imports.len();
+
+    for (specifier_position, specifier) in import.specifiers.iter().enumerate() {
+      self.top_import_index.record(
+        local_binding_of(specifier).to_id(),
+        (position, specifier_position),
+      );
+    }
+
+    self.top_imports.push(import);
+  }
+
+  /// The import declaration and the specifier that bind `ident`, earliest
+  /// first.
+  ///
+  /// The two travel together because the caller that asks *whether* an import
+  /// binds a reference immediately asks *which specifier* did -- a named
+  /// specifier resolves to a theme reference where a default one is refused. A
+  /// second search for the specifier could come back empty and leave the caller
+  /// holding an unanswerable case.
+  ///
+  /// The binding, not the name: a reference and an import specifier are the
+  /// same thing only when their `SyntaxContext` agrees too. Matching on the
+  /// symbol alone resolved a *shadowing* binding -- an arrow parameter carries a
+  /// context of its own -- to the import it shadows, so a dynamic style whose
+  /// parameter is named after an imported theme answered a confident `ThemeRef`
+  /// and aborted the build (#1266).
+  ///
+  /// The local binding is the only name asked about. A specifier's *imported*
+  /// name binds nothing in this module -- `import { spacing as sp }` leaves
+  /// `spacing` unbound here -- so a reference spelled that way names something
+  /// else, or nothing at all, and resolving it to the import it was aliased away
+  /// from is not a resolution the language allows.
+  pub(crate) fn import_binding(&self, ident: &Ident) -> Option<(&ImportDecl, &ImportSpecifier)> {
+    let found = self
+      .top_import_index
+      .candidates(|| ident.to_id())
+      .iter()
+      .filter(|(import, specifier)| {
+        self
+          .specifier_at(*import, *specifier)
+          .is_some_and(|specifier| local_binding_of(specifier).eq_ignore_span(ident))
+      })
+      .min()
+      .and_then(|(import, specifier)| {
+        Some((
+          self.top_imports.get(*import)?,
+          self.specifier_at(*import, *specifier)?,
+        ))
+      });
+
+    debug_assert_eq!(
+      found.is_some(),
+      self.top_imports.iter().any(|import| {
+        import
+          .specifiers
+          .iter()
+          .any(|specifier| local_binding_of(specifier).eq_ignore_span(ident))
+      }),
+      "`top_import_index` disagrees with `top_imports` about `{}`; something \
+       grew the list without going through `push_top_import`",
+      ident.sym
+    );
+
+    found
+  }
+
+  fn specifier_at(&self, import: usize, specifier: usize) -> Option<&ImportSpecifier> {
+    self.top_imports.get(import)?.specifiers.get(specifier)
+  }
+
+  /// Appends a top-level expression and records the call it is, if it is one.
+  ///
+  /// Every caller that grows [`Self::top_level_expressions`] goes through here,
+  /// for the reason [`Self::push_declaration`] exists.
+  pub(crate) fn push_top_level_expression(&mut self, expression: TopLevelExpression) {
+    let position = self.top_level_expressions.len();
+
+    if let Expr::Call(call) = &expression.1 {
+      self
+        .top_level_call_index
+        .record(stable_hash_unspanned_call(call), position);
+    }
+
+    if let Some(name) = &expression.2 {
+      self.top_level_name_index.record(name.clone(), position);
+    }
+
+    self.top_level_expressions.push(expression);
+  }
+
+  /// Replaces the expression recorded at `position`, keeping the call index in
+  /// step. See [`Self::set_declaration_init`] for why it is the one way.
+  pub(crate) fn set_top_level_expr(&mut self, position: usize, expr: Expr) {
+    let Some(recorded) = self.top_level_expressions.get_mut(position) else {
+      return;
+    };
+
+    let replaced = std::mem::replace(&mut recorded.1, expr);
+
+    // The name an entry binds does not change with its expression, so only the
+    // call index needs repairing here.
+    self.top_level_call_index.move_entry(
+      call_key_of(Some(&replaced)),
+      call_key_of(Some(&self.top_level_expressions[position].1)),
+      position,
+    );
+  }
+
+  /// Records the declarator `name` is bound by, and the call it is initialised
+  /// by. The one way [`Self::style_vars`] grows, for the reason
+  /// [`Self::push_declaration`] is the one way `declarations` does.
+  pub(crate) fn insert_style_var(&mut self, name: String, declarator: VarDeclarator) {
+    let replaced = self.style_vars.insert(name.clone(), declarator);
+
+    self.style_var_call_index.move_entry(
+      call_key_of(replaced.as_ref().and_then(|decl| decl.init.as_deref())),
+      call_key_of(self.style_vars[&name].init.as_deref()),
+      name,
+    );
+  }
+
+  /// Replaces the initializer of the declarator bound to `name`, keeping the
+  /// call index in step. See [`Self::set_declaration_init`] for why it is the
+  /// one way.
+  pub(crate) fn set_style_var_init(&mut self, name: String, init: Expr) {
+    let Some(declarator) = self.style_vars.get_mut(&name) else {
+      return;
+    };
+
+    let replaced = declarator.init.replace(Box::new(init));
+
+    self.style_var_call_index.move_entry(
+      call_key_of(replaced.as_deref()),
+      call_key_of(self.style_vars[&name].init.as_deref()),
+      name,
+    );
   }
 
   /// The declarator binding `ident`, by hash probe rather than by scan.
@@ -1028,12 +1343,15 @@ impl StateManager {
     self.declarations_state.add_function_name_declaration(ident);
   }
 
-  pub(crate) fn class_name_declarations(&self) -> &[Ident] {
-    self.declarations_state.class_name_declarations()
+  /// Where the hoisted `class` binding `ident` names was declared, if one was.
+  pub(crate) fn class_name_declaration(&self, ident: &Ident) -> Option<Span> {
+    self.declarations_state.class_name_declaration(ident)
   }
 
-  pub(crate) fn function_name_declarations(&self) -> &[Ident] {
-    self.declarations_state.function_name_declarations()
+  /// Where the hoisted `function` binding `ident` names was declared, if one
+  /// was.
+  pub(crate) fn function_name_declaration(&self, ident: &Ident) -> Option<Span> {
+    self.declarations_state.function_name_declaration(ident)
   }
 
   pub(crate) fn has_import_paths(&self) -> bool {
@@ -1578,17 +1896,105 @@ impl StateManager {
     }
   }
 
-  pub(crate) fn find_top_level_expr(
+  /// The recorded top-level expression that *is* `call`, earliest first.
+  ///
+  /// Answered from [`Self::top_level_call_index`]: the key narrows to the
+  /// entries that may be this call and `eq_ignore_span` decides between them,
+  /// which is the answer the walk over every recorded expression gave.
+  pub(crate) fn find_top_level_expr(&self, call: &CallExpr) -> Option<&TopLevelExpression> {
+    let found = self
+      .find_top_level_expr_index(call)
+      .and_then(|position| self.top_level_expressions.get(position));
+
+    debug_assert_eq!(
+      found.is_some(),
+      self
+        .top_level_expressions
+        .iter()
+        .any(|tpe| matches!(tpe.1, Expr::Call(ref recorded) if recorded.eq_ignore_span(call))),
+      "`top_level_call_index` disagrees with `top_level_expressions`; something \
+       changed the list without going through `push_top_level_expression` or \
+       `set_top_level_expr`"
+    );
+
+    found
+  }
+
+  /// Position of the earliest recorded top-level expression that is `call`.
+  fn find_top_level_expr_index(&self, call: &CallExpr) -> Option<usize> {
+    earliest_confirmed(
+      self
+        .top_level_call_index
+        .candidates(|| stable_hash_unspanned_call(call)),
+      |position| {
+        matches!(self.top_level_expressions.get(position),
+          Some(TopLevelExpression(_, Expr::Call(recorded), _)) if recorded.eq_ignore_span(call))
+      },
+    )
+  }
+
+  /// The recorded top-level expression bound to `name`, if it reads as `expr`
+  /// does.
+  ///
+  /// Found by the name it binds rather than by the expression it holds, which is
+  /// what a walk of every recorded expression comparing whole subtrees used to
+  /// decide. The name is the sharper question of the two, and the walk conflated
+  /// two things it separates: where two declarators hold structurally identical
+  /// initializers, the walk answered with whichever came first, so a
+  /// `const styles = create({…})` beside an *exported* declarator spelling the
+  /// same styles read the export's kind and skipped a pruning that was its own
+  /// to do. Every position a name binds is a candidate, because `var` permits
+  /// redeclaration, and `eq_ignore_span` still confirms -- so an entry whose
+  /// expression has moved on since answers `None` as the walk did.
+  pub(crate) fn find_top_level_expr_named(
+    &self,
+    name: &Atom,
+    expr: &Expr,
+  ) -> Option<&TopLevelExpression> {
+    let position = earliest_confirmed(
+      self.top_level_name_index.candidates(|| name.clone()),
+      |position| {
+        self
+          .top_level_expressions
+          .get(position)
+          .is_some_and(|recorded| recorded.1.eq_ignore_span(expr))
+      },
+    )?;
+
+    self.top_level_expressions.get(position)
+  }
+
+  /// The style variable bound to `name`, if its declarator reads as
+  /// `declarator` does.
+  ///
+  /// [`Self::style_vars`] is keyed by the name its declarator binds, so the
+  /// entry that can equal `declarator` is the one under `declarator`'s own name
+  /// -- which is what turns the walk of every style variable in the module into
+  /// a probe. `eq_ignore_span` still decides, so a name rebound to something
+  /// else answers `None` as the walk did.
+  pub(crate) fn matching_style_var(&self, declarator: &VarDeclarator) -> Option<&VarDeclarator> {
+    let name = declarator.name.as_ident()?;
+
+    self
+      .style_vars
+      .get(name.sym.as_str())
+      .filter(|recorded| declarator.eq_ignore_span(recorded))
+  }
+
+  /// Whether the module records `call` at program level, either as a top-level
+  /// expression of its own or inside one that `binds_call` recognises.
+  ///
+  /// The two are asked together because the answer is a yes or a no rather than
+  /// an entry: `binds_call` covers the shapes that *hold* a call without being
+  /// it -- an array literal of styles, a member access on the call -- and no
+  /// key can find those, so they stay a walk. It is a cheap one, and it only
+  /// runs when the indexed lookup has already missed.
+  pub(crate) fn has_top_level_expr(
     &self,
     call: &CallExpr,
-    extended_predicate_fn: impl Fn(&TopLevelExpression) -> bool,
-    kind: Option<TopLevelExpressionKind>,
-  ) -> Option<&TopLevelExpression> {
-    self.top_level_expressions.iter().find(|tpe| {
-      kind.is_none_or(|kind| tpe.0 == kind)
-        && (matches!(tpe.1, Expr::Call(ref c) if c.eq_ignore_span(call))
-          || extended_predicate_fn(tpe))
-    })
+    binds_call: impl Fn(&TopLevelExpression) -> bool,
+  ) -> bool {
+    self.find_top_level_expr(call).is_some() || self.top_level_expressions.iter().any(binds_call)
   }
 
   /// Find the top level expression recorded from *this* call node, matched by
@@ -1650,13 +2056,58 @@ impl StateManager {
       .get(self.find_call_declaration_index_by_span(call)?)
   }
 
+  /// The declarator `call` initialises, earliest first.
+  ///
+  /// Answered from [`Self::declaration_call_index`] rather than by walking every
+  /// declarator the module holds and comparing whole call subtrees. Asked once
+  /// per `stylex.*` call, that walk was the largest single cost in the
+  /// transform of a module of many components -- and the calls it answers `None`
+  /// for, every `stylex.props` site among them, were the ones that paid for the
+  /// whole of it.
   pub(crate) fn find_call_declaration(&self, call: &CallExpr) -> Option<&VarDeclarator> {
-    self.declarations.iter().find(|decl| {
-      decl
-        .init
-        .as_ref()
-        .is_some_and(|expr| matches!(**expr, Expr::Call(ref c) if c.eq_ignore_span(call)))
-    })
+    let found = self
+      .find_call_declaration_index(call)
+      .and_then(|position| self.declarations.get(position));
+
+    debug_assert_eq!(
+      found.is_some(),
+      self.declarations.iter().any(|decl| {
+        matches!(decl.init.as_deref(), Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
+      }),
+      "`declaration_call_index` disagrees with `declarations`; something changed \
+       the list without going through `push_declaration` or `set_declaration_init`"
+    );
+
+    found
+  }
+
+  /// Position of the earliest declarator `call` initialises.
+  fn find_call_declaration_index(&self, call: &CallExpr) -> Option<usize> {
+    earliest_confirmed(
+      self
+        .declaration_call_index
+        .candidates(|| stable_hash_unspanned_call(call)),
+      |position| {
+        matches!(self.declarations.get(position).and_then(|decl| decl.init.as_deref()),
+          Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
+      },
+    )
+  }
+
+  /// Name of the style variable `call` initialises.
+  ///
+  /// Unordered, unlike the two lookups above: [`Self::style_vars`] is a map, so
+  /// the walk this replaces had no order to preserve either.
+  fn find_style_var_name(&self, call: &CallExpr) -> Option<String> {
+    self
+      .style_var_call_index
+      .candidates(|| stable_hash_unspanned_call(call))
+      .iter()
+      .find(|name| {
+        matches!(self.style_vars.get(*name).and_then(|decl| decl.init.as_deref()),
+          Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
+      })
+      .cloned()
   }
 
   pub(crate) fn register_styles(
@@ -1802,26 +2253,16 @@ impl StateManager {
   }
 
   fn update_references(&mut self, call: &CallExpr, ast: &Expr, _fallback_ast: Option<&Expr>) {
-    if let Some(item) = self.declarations.iter_mut().find(|decl| {
-      decl.init.as_ref().is_some_and(|expr| {
-        matches!(**expr, Expr::Call(ref existing_call) if existing_call.eq_ignore_span(call))
-      })
-    }) {
-      item.init = Some(Box::new(ast.clone()));
+    if let Some(position) = self.find_call_declaration_index(call) {
+      self.set_declaration_init(position, ast.clone());
     }
 
-    if let Some((_, item)) = self.style_vars.iter_mut().find(|(_, decl)| {
-      decl.init.as_ref().is_some_and(|expr| {
-        matches!(**expr, Expr::Call(ref existing_call) if existing_call.eq_ignore_span(call))
-      })
-    }) {
-      item.init = Some(Box::new(ast.clone()));
+    if let Some(name) = self.find_style_var_name(call) {
+      self.set_style_var_init(name, ast.clone());
     }
 
-    if let Some(top_level_expr) = self.top_level_expressions.iter_mut().find(
-      |TopLevelExpression(_, expr, _)| matches!(expr, Expr::Call(c) if c.eq_ignore_span(call)),
-    ) {
-      top_level_expr.1 = ast.clone();
+    if let Some(position) = self.find_top_level_expr_index(call) {
+      self.set_top_level_expr(position, ast.clone());
     }
 
     self.call_expressions.replace_call_expression(call, ast);

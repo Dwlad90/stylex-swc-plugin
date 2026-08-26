@@ -1,4 +1,5 @@
 // Kept locally (depend on StateManager, functions, or utils)
+pub(crate) mod candidate_index;
 pub mod evaluate_result;
 pub mod functions;
 pub(crate) mod key_span_index;

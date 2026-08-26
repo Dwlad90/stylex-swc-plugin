@@ -12,7 +12,7 @@
 //! steps, which carry their own line ranges in the banner that opens them.
 
 use super::*;
-use swc_core::common::{EqIgnoreSpan, Span};
+use swc_core::common::Span;
 
 // A note on what the unit tests beside this file do and do not cover. The
 // resolved-import arm is exercised only by `validation_stylex_create_test`,
@@ -327,13 +327,16 @@ pub(super) fn resolve_reference(
   // so a reference above one of these is early rather than unsupported. Only the
   // reference above is taken from this step; one below still falls through to
   // step 8 and keeps its kind's wording.
-  if traversal_state
-    .class_name_declarations()
-    .iter()
-    .chain(traversal_state.function_name_declarations())
-    .any(|declared| {
-      declared.eq_ignore_span(ident) && reads_before_its_declaration(ident, declared.span)
-    })
+  // Both kinds are asked, not the first that answers: the walk this replaces
+  // ran over the two lists joined, so a `class` whose position does not read
+  // early must not hide a `function` of the same binding that does.
+  if [
+    traversal_state.class_name_declaration(ident),
+    traversal_state.function_name_declaration(ident),
+  ]
+  .into_iter()
+  .flatten()
+  .any(|declared| reads_before_its_declaration(ident, declared))
   {
     return deopt_at_declaration(
       path,

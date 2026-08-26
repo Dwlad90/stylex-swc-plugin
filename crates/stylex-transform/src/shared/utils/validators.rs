@@ -89,10 +89,7 @@ fn validate_single_object_arg_indent(
     build_code_frame_error_and_panic_at(init_expr, &non_static_value(fn_name), state);
   });
 
-  if state
-    .find_top_level_expr(init_call, |_| false, None)
-    .is_none()
-  {
+  if state.find_top_level_expr(init_call).is_none() {
     build_code_frame_error_and_panic_at(init_expr, &unbound_call_value(fn_name), state);
   }
 
@@ -200,13 +197,9 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
   // `Expr::Call(call.clone())` deep-clones the whole style object, so it is
   // built lazily — only on the paths that are about to panic anyway.
   if state.find_call_declaration(call).is_none()
-    && state
-      .find_top_level_expr(
-        call,
-        |tpe: &TopLevelExpression| is_bound_create_expr(&tpe.1, call),
-        None,
-      )
-      .is_none()
+    && !state.has_top_level_expr(call, |tpe: &TopLevelExpression| {
+      is_bound_create_expr(&tpe.1, call)
+    })
   {
     build_code_frame_error_and_panic_at(
       &Expr::Call(call.clone()),
@@ -330,7 +323,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
     );
   });
 
-  match state.find_top_level_expr(call, |_| false, None) {
+  match state.find_top_level_expr(call) {
     Some(_) => {},
     None => build_code_frame_error_and_panic(
       init_expr,
@@ -377,7 +370,7 @@ pub(crate) fn find_and_validate_stylex_define_vars(
 
   let call_expr = Expr::from(call.clone());
 
-  let stylex_create_theme_top_level_expr = match state.find_top_level_expr(call, |_| false, None) {
+  let stylex_create_theme_top_level_expr = match state.find_top_level_expr(call) {
     Some(stylex_create_theme_top_level_expr) => stylex_create_theme_top_level_expr,
     None => build_code_frame_error_and_panic(
       &call_expr,
@@ -487,7 +480,7 @@ pub(crate) fn find_and_validate_stylex_define_consts(
 
   let call_expr = Expr::from(call.clone());
 
-  let define_consts_top_level_expr = match state.find_top_level_expr(call, |_| false, None) {
+  let define_consts_top_level_expr = match state.find_top_level_expr(call) {
     Some(define_consts_top_level_expr) => define_consts_top_level_expr,
     None => build_code_frame_error_and_panic(
       &call_expr,
@@ -608,12 +601,9 @@ pub(crate) fn validate_define_call(
   state: &mut StateManager,
 ) -> TopLevelExpression {
   let call_expr = Expr::Call(call.clone());
-  let top_level_expr = state
-    .find_top_level_expr(call, |_| false, None)
-    .cloned()
-    .unwrap_or_else(|| {
-      build_code_frame_error_and_panic_at(&call_expr, &unbound_call_value(api_name), state)
-    });
+  let top_level_expr = state.find_top_level_expr(call).cloned().unwrap_or_else(|| {
+    build_code_frame_error_and_panic_at(&call_expr, &unbound_call_value(api_name), state)
+  });
 
   if require_export && !is_variable_named_exported(&top_level_expr, state) {
     build_code_frame_error_and_panic_at(&call_expr, &non_export_named_declaration(api_name), state);

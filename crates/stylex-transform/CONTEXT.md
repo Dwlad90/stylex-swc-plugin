@@ -774,6 +774,22 @@ zero sorts before every authored node, so comparing one answers a fact about its
 having been built.
 _Avoid_: generated node, dummy node, fake node
 
+**Candidate index**:
+Where the entries holding a given thing live, bucketed by a key that narrows to
+them, held beside the collection it indexes on the
+[state manager](#state-manager). The answer to "which recorded entry holds
+_this_?" -- which declarator a call initialises, which style variable it is
+bound to, which top-level expression it is, which import specifier binds a
+reference, whether a declarator at this position is already stored. Each of
+those was a walk of the whole collection comparing whole subtrees with
+`eq_ignore_span`, once per call the transform meets, which made the consumer
+phase quadratic in the number of calls a module makes. The key only narrows:
+equality still decides between the candidates it hands back, so the answer is
+the one the walk gave. What the key is depends on the question -- a structural
+hash for an expression, a source position for where something was written, a
+name for what a declarator binds.
+_Avoid_: lookup table, call map, bucket map
+
 **Key span index**:
 Where every style namespace key of the module's _own parsed source_ is written,
 collected in one walk and held beside that memoized source on the

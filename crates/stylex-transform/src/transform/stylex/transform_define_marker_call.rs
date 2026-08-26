@@ -91,9 +91,9 @@ where
     // here and there takes `&mut self.state` — `get_filename_for_hashing`
     // borrows it shared, and the rest only reads `options` — so the vector
     // cannot have been pushed to or reordered.
-    if let Some(declaration) = self.state.declarations.get_mut(parent_var_decl_index) {
-      declaration.init = Some(Box::new(marker_obj_ast.clone()));
-    }
+    self
+      .state
+      .set_declaration_init(parent_var_decl_index, marker_obj_ast.clone());
 
     Some(marker_obj_ast)
   }

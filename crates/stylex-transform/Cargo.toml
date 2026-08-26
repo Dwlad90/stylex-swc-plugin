@@ -87,6 +87,10 @@ name = "module_path_bench"
 
 [[bench]]
 harness = false
+name = "transform_consumers_bench"
+
+[[bench]]
+harness = false
 name = "transform_debug_bench"
 
 [lints]

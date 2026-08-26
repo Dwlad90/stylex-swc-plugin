@@ -54,7 +54,7 @@ collapses to nothing, which reads exactly like a win. `key_fallback_benchmarks`
 now asserts which arm each leg takes before timing it, so the figure above
 cannot quietly stop being about the boundary.
 
-**Its width was load-bearing and too narrow.** Seven things key off a hash of an
+**Its width was load-bearing and too narrow.** Ten things key off a hash of an
 expression, and they do not agree about how much the hash has to mean:
 
 - the evaluator's `seen` memo returns a cached fold on a **hash hit alone**;
@@ -63,13 +63,14 @@ expression, and they do not agree about how much the hash has to mean:
 - the code-frame `span_cache` returns a cached span on a **hash hit alone** —
   twice over, once keyed by `compute_cache_key` and once by
   `compute_key_span_cache_key`;
-- the JSX-spread replacement map, the queued-decl dedup and the callee index
-  behind `is_member_callee` narrow a bucket by hash and then confirm with
-  `eq_ignore_span`;
+- the JSX-spread replacement map, the queued-decl dedup, the callee index behind
+  `is_member_callee`, and the three `StructuralIndex`es that pin a call to its
+  declarator, to its style variable and to its top-level expression, narrow a
+  bucket by hash and then confirm with `eq_ignore_span`;
 - `all_call_expressions` confirms on read too, but a collision can evict the
   wrong entry when a call is replaced.
 
-So for four of the seven the key _is_ the equality test. At 64 bits and ten
+So for four of the ten the key _is_ the equality test. At 64 bits and ten
 thousand distinct expressions in a file that is a collision every `1e-12` files,
 and they fail with different volumes: a wrong folded value or a misplaced
 injection is silent, while a wrong cached span is **directly visible in the
@@ -77,8 +78,9 @@ output** as a style annotated with another style's `file:line`. All four are now
 **128 bits**, which puts them past `1e-31`.
 
 The span cache arrived at this decision late — it was missed on the first count
-of consumers and found in review, which is why this section says seven rather
-than five. It keys a _positional_ hash rather than the structural one, because it
+of consumers and found in review, which took the count from five to seven; the
+three that pin a call to what holds it came later still. It keys a _positional_
+hash rather than the structural one, because it
 caches "where was this written" and two identical expressions at different
 positions must not share an entry. That is why it has its own key derivation and
 did not come along for free.
@@ -98,12 +100,13 @@ It cost **+49% on the key and +5.8% on a whole production transform** of the
 400-`create` corpus file (26.0 ms to 27.5 ms, 25 runs each), and paying that
 forever to remove a failure that arrives once per `1e4` years is the wrong trade.
 
-**Confirm the hit with `eq_ignore_span` instead of widening.** What the other two
-consumers do. Rejected for the evaluator's memo: a confirm costs a subtree
-compare on _every hit_ — the same order as the walk just paid — and `seen` would
-have to hold a deep clone of every memoized expression to have something to
-compare against. It remains the right answer for a consumer whose hits are rare;
-`InsertionSlot::BeforeDecl` would qualify, and is covered by the width instead.
+**Confirm the hit with `eq_ignore_span` instead of widening.** What the
+confirming consumers do. Rejected for the evaluator's memo: a confirm costs a
+subtree compare on _every hit_ — the same order as the walk just paid — and
+`seen` would have to hold a deep clone of every memoized expression to have
+something to compare against. It remains the right answer for a consumer whose
+hits are rare; `InsertionSlot::BeforeDecl` would qualify, and is covered by the
+width instead.
 
 **xxh3, taken 128 bits wide.** What shipped. A single pass emits 128 bits, and it
 is enough faster than SipHash that the wider key is also the _cheaper_ one:

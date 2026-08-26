@@ -199,12 +199,9 @@ where
         .contains(&call.span)
         || self
           .state
-          .find_top_level_expr(
-            call,
-            |tpe: &TopLevelExpression| matches!(tpe.1, Expr::Array(_)),
-            None,
-          )
-          .is_some();
+          .has_top_level_expr(call, |tpe: &TopLevelExpression| {
+            matches!(tpe.1, Expr::Array(_))
+          });
 
       let mut first_arg = call.args.first()?.expr.clone();
 
@@ -335,8 +332,7 @@ where
         if let Some(parent_var_decl) = parent_var_decl {
           self
             .state
-            .style_vars
-            .insert(var_name.clone(), parent_var_decl);
+            .insert_style_var(var_name.clone(), parent_var_decl);
         } else {
           let call_expr = Expr::Call(call.clone());
 

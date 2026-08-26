@@ -5,7 +5,7 @@ use stylex_types::traits::StyleOptions;
 use stylex_utils::{number::to_js_string, string::remove_quotes};
 use swc_core::atoms::Atom;
 use swc_core::{
-  common::{EqIgnoreSpan, FileName, Span},
+  common::{FileName, Span},
   ecma::ast::{
     Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Module, ModuleDecl, ModuleItem,
     ObjectPatProp, Pat, Prop, PropName, PropOrSpread, Stmt, VarDeclarator,
@@ -131,34 +131,14 @@ pub fn get_var_decl_by_ident<'a>(
 /// The import declaration and the specifier that bind `ident`, or `None` where
 /// no import binds it.
 ///
-/// The two travel together because the caller that asks *whether* an import
-/// binds a reference immediately asks *which specifier* did -- a named
-/// specifier resolves to a theme reference where a default one is refused. A
-/// second search for the specifier could come back empty and left the caller
-/// holding an unanswerable case; answering both from one scan removes it.
+/// Asked of the state, which indexes the bindings its imports declare -- see
+/// [`StateManager::import_binding`] for what the lookup answers and why it is
+/// the binding rather than the name.
 pub fn get_import_by_ident<'a>(
   ident: &Ident,
   state: &'a StateManager,
 ) -> Option<(&'a ImportDecl, &'a ImportSpecifier)> {
-  state.top_imports.iter().find_map(|import| {
-    import
-      .specifiers
-      .iter()
-      // The binding, not the name: a reference and an import specifier are the
-      // same thing only when their `SyntaxContext` agrees too. Matching on the
-      // symbol alone resolved a *shadowing* binding -- an arrow parameter
-      // carries a context of its own -- to the import it shadows, so a dynamic
-      // style whose parameter is named after an imported theme answered a
-      // confident `ThemeRef` and aborted the build (#1266).
-      //
-      // The local binding is the only name asked about. A specifier's
-      // *imported* name binds nothing in this module -- `import { spacing as
-      // sp }` leaves `spacing` unbound here -- so a reference spelled that way
-      // names something else, or nothing at all, and resolving it to the import
-      // it was aliased away from is not a resolution the language allows.
-      .find(|specifier| local_binding_of(specifier).eq_ignore_span(ident))
-      .map(|specifier| (import, specifier))
-  })
+  state.import_binding(ident)
 }
 
 pub(crate) fn get_var_decl_from<'a>(
@@ -415,14 +395,14 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
     ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(export_decl)) => {
       match export_decl.expr.as_paren() {
         Some(paren) => {
-          state.top_level_expressions.push(TopLevelExpression(
+          state.push_top_level_expression(TopLevelExpression(
             TopLevelExpressionKind::DefaultExport,
             paren.expr.as_ref().clone(),
             None,
           ));
         },
         _ => {
-          state.top_level_expressions.push(TopLevelExpression(
+          state.push_top_level_expression(TopLevelExpression(
             TopLevelExpressionKind::DefaultExport,
             export_decl.expr.as_ref().clone(),
             None,
@@ -458,7 +438,7 @@ fn record_top_level_declarator(
 
   match decl.name.as_ident() {
     Some(ident) => {
-      state.top_level_expressions.push(TopLevelExpression(
+      state.push_top_level_expression(TopLevelExpression(
         kind,
         decl_init.as_ref().clone(),
         Some(ident.sym.clone()),
@@ -477,20 +457,7 @@ fn record_top_level_declarator(
 }
 
 pub fn fill_state_declarations(state: &mut StateManager, decl: &VarDeclarator) {
-  // Dedup on position first, then content. Every filler runs in the `Discover`
-  // cycle over the pristine AST, so the same declaration seen on more than one
-  // of those passes carries the same span and is stored once — while two
-  // declarations that merely *read* the same, `var m = f(); var m = f();`, stay
-  // two entries, as a lookup that pins a call to its declarator by span needs
-  // them to be.
-  //
-  // Content is still compared span-insensitively, which is what decides the
-  // synthesized declarators that share `DUMMY_SP`.
-  if !state
-    .declarations
-    .iter()
-    .any(|existing| existing.span == decl.span && existing.eq_ignore_span(decl))
-  {
+  if !state.holds_declaration(decl) {
     state.push_declaration(decl.clone());
   }
 }

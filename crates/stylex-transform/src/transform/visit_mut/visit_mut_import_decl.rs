@@ -21,7 +21,7 @@ where
         return;
       }
 
-      self.state.top_imports.push(import_decl.clone());
+      self.state.push_top_import(import_decl.clone());
 
       let source_path = convert_atom_to_string(&import_decl.src.value);
 

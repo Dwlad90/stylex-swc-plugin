@@ -218,8 +218,6 @@ pub static VALUE_NOT_EXPRESSION: &str = "Style value must evaluate to a static e
 
 pub static EVAL_RESULT_EXPECTED: &str = "Expected a value from evaluation result.";
 
-pub static VAR_DECL_NAME_NOT_IDENT: &str = "Variable declarator name must be an identifier.";
-
 pub static VAR_DECL_INIT_REQUIRED: &str = "Variable declaration must have an initializer.";
 
 pub static KEY_VALUE_EXPECTED: &str = "Expected a key-value property in the object.";

@@ -435,9 +435,7 @@ impl ModuleState {
       let module_binding = (Atom::from(name), MODULE_CONTEXT);
 
       if let Some(imported_as) = &self.imported {
-        traversal_state
-          .top_imports
-          .push(imported_as.declaration_of(name));
+        traversal_state.push_top_import(imported_as.declaration_of(name));
 
         if imported_as.binds_the_subject() {
           Rc::make_mut(&mut traversal_state.declared_bindings).insert(module_binding.clone());

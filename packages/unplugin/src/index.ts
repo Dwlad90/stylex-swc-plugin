@@ -12,8 +12,9 @@ import type { Connect } from 'vite';
 import type { HotPayload, ModuleNode, ViteDevServer } from 'vite';
 
 import type { UnpluginStylexRSOptions } from './types';
-import injectIntoCssTargets, {
+import {
   BUILD_CSS_PLACEHOLDER,
+  injectIntoCssTargets,
   replaceFirstMarker,
   toBuildPlaceholder,
 } from './utils/cssPlaceholder';
@@ -116,6 +117,16 @@ const MISSING_INJECTION_TARGET_ERROR =
  * a build that legitimately has no CSS, so it is reported rather than fatal --
  * silence would leave the styles missing with nothing to explain it.
  */
+/**
+ * The marker was in the build but not in the output, so something between the
+ * two removed it and the rules had to go somewhere. Saying so is what keeps the
+ * fallback from quietly putting them in the wrong place.
+ */
+const MARKER_LOST_WARNING =
+  'StyleX: the placeholder marker was part of the build but no CSS asset still ' +
+  'contained it, so the styles were appended to a stylesheet instead of being ' +
+  'injected at the marker. A CSS plugin or minifier may be removing it.';
+
 const MISSING_INJECTION_TARGET_WARNING =
   'StyleX: no CSS asset contained the placeholder marker, so no styles were ' +
   'injected. The stylesheet holding the marker may be missing from the build. ' +
@@ -260,14 +271,14 @@ async function injectStyleXCss<TSource>(
       ];
     });
 
-  const handled = await injectIntoCssTargets(targets, [injectMarker], collectedCSS, (css, name) =>
+  const outcome = await injectIntoCssTargets(targets, [injectMarker], collectedCSS, (css, name) =>
     transformStyleXCSS(css, name, normalizedOptions)
   );
 
   // An asset emitted here could not be linked, and unlike the Vite adapter this
   // one has no signal that the marker was ever part of the build, so the styles
   // going missing is reported rather than fatal.
-  if (!handled && normalizedOptions.onMissingCssPlaceholder !== 'ignore') {
+  if (outcome === 'no-target' && normalizedOptions.onMissingCssPlaceholder !== 'ignore') {
     reportMissingTarget(MISSING_INJECTION_TARGET_WARNING);
   }
 }
@@ -277,13 +288,25 @@ async function injectStyleXCss<TSource>(
  * imported: Vite and Rollup do not share a plugin type, and the injection only
  * ever touches these members.
  */
-type BundleAssetLike = { type: string; fileName: string; source: string | Uint8Array };
-type BundleOutputLike = { type: string; fileName: string; source?: string | Uint8Array };
+interface BundleAssetLike {
+  readonly type: string;
+  readonly fileName: string;
+  // The one member the injection writes back, so it is deliberately mutable.
+  source: string | Uint8Array;
+}
+
+interface BundleOutputLike {
+  readonly type: string;
+  readonly fileName: string;
+  readonly source?: string | Uint8Array;
+}
+
 type OutputBundleLike = Record<string, BundleOutputLike>;
-type PlaceholderBundleContext = {
+
+interface PlaceholderBundleContext {
   error(message: string): never;
   warn(message: string): void;
-};
+}
 
 /**
  * Replaces the CSS placeholder marker in a Rollup-style bundle with the
@@ -324,12 +347,24 @@ async function injectPlaceholderIntoBundle(
   // through that hook, as it does under plain Rollup.
   const markers = [BUILD_CSS_PLACEHOLDER, normalizedOptions.useCssPlaceholder];
 
-  const handled = await injectIntoCssTargets(targets, markers, collectedCSS, finalizeCss);
+  const outcome = await injectIntoCssTargets(targets, markers, collectedCSS, finalizeCss);
+
+  if (outcome === 'injected' || outcome === 'nothing-to-inject') return;
+
+  if (normalizedOptions.onMissingCssPlaceholder === 'ignore') return;
+
+  // The rules landed, but at the end of a stylesheet rather than at the marker.
+  // Only worth saying where the marker is known to have been in the build,
+  // which means something removed it on the way to the output.
+  if (outcome === 'appended') {
+    if (canProveMarkerWasBuilt) context.warn(MARKER_LOST_WARNING);
+
+    return;
+  }
 
   // Emitting a standalone stylesheet here used to look like a safety net, but
   // placeholder mode never links it, so it only ever hid missing styles.
-  if (handled || normalizedOptions.onMissingCssPlaceholder === 'ignore') return;
-
+  //
   // Failing is only fair where the marker is known to have been in the build:
   // elsewhere a missing stylesheet looks the same as a build with no CSS.
   if (normalizedOptions.onMissingCssPlaceholder === 'error' && canProveMarkerWasBuilt) {
@@ -1014,7 +1049,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               }
             }
 
-            const handled = await injectIntoCssTargets(
+            const outcome = await injectIntoCssTargets(
               targets,
               [BUILD_CSS_PLACEHOLDER, normalizedOptions.useCssPlaceholder],
               collectedCSS,
@@ -1023,7 +1058,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
             // A standalone file written here would never be linked, since
             // placeholder mode skips HTML injection.
-            if (!handled && normalizedOptions.onMissingCssPlaceholder !== 'ignore') {
+            if (outcome === 'no-target' && normalizedOptions.onMissingCssPlaceholder !== 'ignore') {
               return { warnings: [{ text: MISSING_INJECTION_TARGET_WARNING }] };
             }
 
@@ -1087,13 +1122,18 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         },
       },
     },
+    // Webpack and Rspack are wired separately on purpose. Their `Source` types
+    // are incompatible and neither is assignable to a shared structural
+    // compiler type, so folding these two blocks into one needs a cast to get
+    // past the checker -- which is the type safety `injectStyleXCss` exists to
+    // keep. The duplication is the wiring only; all the logic is shared.
     rspack(compiler) {
       if (!normalizedOptions.useCssPlaceholder) return;
 
       const injectMarker = normalizedOptions.useCssPlaceholder;
 
-      // Use processAssets hook to replace the CSS marker with actual StyleX content
-      // This runs after all CSS is processed through loaders (PostCSS, etc.)
+      // `processAssets` is the stage where every stylesheet has already been
+      // through the loaders, PostCSS included.
       compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
         compilation.hooks.processAssets.tapPromise(
           {
@@ -1120,8 +1160,6 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
       const injectMarker = normalizedOptions.useCssPlaceholder;
 
-      // Use processAssets hook to replace the CSS marker with actual StyleX content
-      // This runs after all CSS is processed through loaders (PostCSS, etc.)
       compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
         compilation.hooks.processAssets.tapPromise(
           {

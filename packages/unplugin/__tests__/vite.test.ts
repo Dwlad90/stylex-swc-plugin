@@ -332,6 +332,27 @@ const dropCssAssets: Plugin = {
   },
 };
 
+// Stands in for a CSS plugin or minifier that removes the build placeholder,
+// which leaves the stylesheet in the bundle but with nowhere to put the rules.
+const eatBuildPlaceholder: Plugin = {
+  name: 'eat-build-placeholder',
+  // Also `post`, and registered ahead of the plugin under test, so the marker is
+  // already gone by the time the injection looks for it.
+  generateBundle: {
+    order: 'post',
+    handler(_options, bundle) {
+      for (const output of Object.values(bundle)) {
+        if (output.type !== 'asset' || !output.fileName.endsWith('.css')) continue;
+
+        output.source = output.source
+          .toString()
+          .split('@layer __stylex_build_placeholder__;')
+          .join('');
+      }
+    },
+  },
+};
+
 // Comfortably past the plugin's 50ms debounce, and past the retry that follows
 // a refresh whose update could not be sent.
 async function settle(): Promise<void> {
@@ -591,6 +612,28 @@ export const styles = stylex.create({
     expect(cssFiles.filter(file => !file.linked)).toEqual([]);
   });
 
+  // Code splitting is the other half of the reported shape: the marker
+  // stylesheet and the late module can land in different chunks, and the rules
+  // still have to reach the document's own stylesheet.
+  test('injects late dynamic-import rules with code splitting on', async () => {
+    const cssFiles = await buildPlaceholderFixture({ cssCodeSplit: true });
+    const linked = cssFiles.filter(file => file.linked);
+
+    expect(linked.length).toBeGreaterThan(0);
+
+    const linkedCss = linked.map(file => file.source).join('\n');
+
+    expect(linkedCss).toContain('color:red');
+    expect(linkedCss).toContain('background-color:');
+    expect(countOccurrences(linkedCss, 'color:red')).toBe(1);
+
+    // Nothing may be left carrying a marker, linked or not.
+    for (const file of cssFiles) {
+      expect(file.source).not.toContain(placeholder);
+      expect(file.source).not.toContain('__stylex_build_placeholder__');
+    }
+  });
+
   test('injects every StyleX rule exactly once', async () => {
     const cssFiles = await buildPlaceholderFixture();
     const linked = cssFiles.find(file => file.linked);
@@ -644,6 +687,27 @@ export const styles = stylex.create({
       expect(file.source).not.toContain(placeholder);
       expect(file.source).not.toContain('__stylex_build_placeholder__');
     }
+  });
+
+  // Appending is a usable result but not the requested one, and staying quiet
+  // about it is the same silent wrongness the marker exists to avoid.
+  test('warns when the marker was built but did not survive into the output', async () => {
+    const warnings: { message: string }[] = [];
+
+    const cssFiles = await buildPlaceholderFixture({
+      onWarn: warning => warnings.push(warning),
+      plugins: [delayModuleTransform('/lazy.js', 100), eatBuildPlaceholder],
+    });
+    const linkedCss = cssFiles
+      .filter(file => file.linked)
+      .map(file => file.source)
+      .join('\n');
+
+    // The rules still ship, just at the end rather than at the marker.
+    expect(linkedCss).toContain('color:red');
+    expect(warnings.map(warning => warning.message ?? '')).toContainEqual(
+      expect.stringContaining('no CSS asset still contained it')
+    );
   });
 
   test('fails the build when no CSS asset can carry the placeholder styles', async () => {

@@ -339,6 +339,10 @@ The plugin replaces the marker with the generated StyleX CSS during the build.
 > for instance — takes that target away, so combining one with
 > `useCssPlaceholder` under Vite fails the build. Set
 > `onMissingCssPlaceholder` to `'warn'` when that is expected.
+>
+> If a stylesheet survives but something strips the marker out of it, the rules
+> are appended to the end of a stylesheet instead of landing at the marker, and
+> the plugin warns. The styles still ship; only their position is lost.
 
 > [!IMPORTANT]
 > **What the CSS pipeline does and does not see**

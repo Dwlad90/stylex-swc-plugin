@@ -1,7 +1,8 @@
 import { describe, expect, test, vi } from 'vitest';
 
-import injectIntoCssTargets, {
+import {
   BUILD_CSS_PLACEHOLDER,
+  injectIntoCssTargets,
   pickCssAsset,
   replaceFirstMarker,
   stripMarkers,
@@ -168,14 +169,14 @@ describe('injectIntoCssTargets', () => {
     const first = stringTarget('a.css', `head${MARKER}tail`);
     const second = stringTarget('b.css', '.b{outline:0}');
 
-    const handled = await injectIntoCssTargets(
+    const outcome = await injectIntoCssTargets(
       [first.target, second.target],
       [MARKER],
       RULES,
       identityFinalize
     );
 
-    expect(handled).toBe(true);
+    expect(outcome).toBe('injected');
     expect(first.state.source).toBe(`head${RULES}tail`);
     expect(second.state.source).toBe('.b{outline:0}');
   });
@@ -193,9 +194,11 @@ describe('injectIntoCssTargets', () => {
   test('removes the marker when there are no rules to inject', async () => {
     const only = stringTarget('a.css', `body{margin:0}${MARKER}`);
 
-    const handled = await injectIntoCssTargets([only.target], [MARKER], null, identityFinalize);
+    // The marker was still dealt with at its position, so there is nothing to
+    // report even though the rules were empty.
+    const outcome = await injectIntoCssTargets([only.target], [MARKER], null, identityFinalize);
 
-    expect(handled).toBe(true);
+    expect(outcome).toBe('injected');
     expect(only.state.source).toBe('body{margin:0}');
   });
 
@@ -216,14 +219,16 @@ describe('injectIntoCssTargets', () => {
     const other = stringTarget('a.css', '.a{outline:0}');
     const preferred = stringTarget('index.css', '.i{outline:0}');
 
-    const handled = await injectIntoCssTargets(
+    const outcome = await injectIntoCssTargets(
       [other.target, preferred.target],
       [MARKER],
       RULES,
       identityFinalize
     );
 
-    expect(handled).toBe(true);
+    // Appending is distinct from injecting: the rules landed, but at the end
+    // rather than where the marker was.
+    expect(outcome).toBe('appended');
     expect(preferred.state.source).toBe(`.i{outline:0}\n${RULES}`);
     expect(other.state.source).toBe('.a{outline:0}');
   });
@@ -237,9 +242,10 @@ describe('injectIntoCssTargets', () => {
   });
 
   test.each([
-    ['no targets and rules to place', [] as const, RULES, false],
-    ['no targets and no rules', [] as const, null, true],
-  ])('reports %s correctly', async (_label, _targets, collected, expected) => {
+    ['no targets and rules to place', RULES, 'no-target'],
+    ['no targets and no rules', null, 'nothing-to-inject'],
+    ['no marker anywhere and no rules', null, 'nothing-to-inject'],
+  ])('reports %s correctly', async (_label, collected, expected) => {
     expect(await injectIntoCssTargets([], [MARKER], collected, identityFinalize)).toBe(expected);
   });
 
@@ -328,14 +334,14 @@ describe('injectIntoCssTargets', () => {
       stringTarget(`chunk-${index}.css`, `c${index}${MARKER}`)
     );
 
-    const handled = await injectIntoCssTargets(
+    const outcome = await injectIntoCssTargets(
       targets.map(entry => entry.target),
       [MARKER],
       rules,
       identityFinalize
     );
 
-    expect(handled).toBe(true);
+    expect(outcome).toBe('injected');
     expect(targets[0]?.state.source).toBe(`c0${rules}`);
     expect(targets.at(-1)?.state.source).toBe(`c49`);
   });

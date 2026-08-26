@@ -67,29 +67,41 @@ export function pickCssAsset(cssAssets: string[]): string | null {
  * differently -- a bundle asset, a webpack asset, a file already on disk -- and
  * this is the only part of that difference the injection needs to know about.
  */
-export type CssInjectionTarget = {
-  name: string;
+export interface CssInjectionTarget {
+  readonly name: string;
   read(): string | Promise<string>;
   write(source: string): void | Promise<void>;
-};
+}
 
 /** Runs the collected rules through whatever the host does to CSS. */
 export type FinalizeCss = (css: string, targetName: string) => Promise<string>;
 
 /**
+ * What became of the rules.
+ *
+ * `injected` means a marker was dealt with at its position, which includes
+ * being replaced by nothing when there were no rules -- the marker is gone
+ * either way, so there is nothing to report.
+ *
+ * `appended` is deliberately distinct: no marker reached the output, so the
+ * rules went to the end of a preferred stylesheet instead of the marker's
+ * position. That is a usable result but not the requested one, and a caller that
+ * knows the marker was in the build should say so rather than let the rules land
+ * somewhere silently.
+ */
+export type CssInjectionOutcome = 'injected' | 'appended' | 'nothing-to-inject' | 'no-target';
+
+/**
  * Puts the collected rules where the marker is and takes every marker they did
  * not replace back out, falling back to a preferred stylesheet when no marker
  * survived into the output.
- *
- * Returns whether the caller has nothing left to report: either the rules were
- * placed, or there were none to place and the markers are gone.
  */
-export default async function injectIntoCssTargets(
+export async function injectIntoCssTargets(
   targets: CssInjectionTarget[],
   markers: string[],
   collectedCSS: string | null,
   finalizeCss: FinalizeCss
-): Promise<boolean> {
+): Promise<CssInjectionOutcome> {
   // Read once per target: the fallback below needs the same contents, and a
   // second read of a file on disk would be wasted work.
   const sources = new Map<CssInjectionTarget, string>();
@@ -122,18 +134,19 @@ export default async function injectIntoCssTargets(
     await target.write(stripMarkers(next, markers));
   }
 
-  if (injected || !collectedCSS) return true;
+  if (injected) return 'injected';
+  if (!collectedCSS) return 'nothing-to-inject';
 
   // No marker reached the output, so append to a preferred stylesheet instead.
   const targetName = pickCssAsset(targets.map(target => target.name));
   const fallback = targets.find(target => target.name === targetName);
 
-  if (!fallback) return false;
+  if (!fallback) return 'no-target';
 
   const existing = sources.get(fallback) ?? '';
   const finalCSS = await finalizeCss(collectedCSS, fallback.name);
 
   await fallback.write(existing ? existing + '\n' + finalCSS : finalCSS);
 
-  return true;
+  return 'appended';
 }

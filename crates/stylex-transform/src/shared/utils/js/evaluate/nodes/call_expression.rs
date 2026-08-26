@@ -147,17 +147,18 @@ pub(in super::super) fn evaluate(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
-  // A method call that carries its own value is evaluated rather than matched
-  // against the names below, so the whole prototype surface folds and a chain
-  // folds at every link. A call it never recognised falls through to the
-  // globals here; one it recognised and declined is raised as an ordinary
-  // deopt, so the refusal names its rule instead of reaching the catch-all's
-  // `Unsupported expression: CallExpression`.
+  // A method call whose every leaf resolves to a value the bridge can carry is
+  // evaluated rather than matched against the names below, so the whole
+  // prototype surface folds, a chain folds at every link, and naming a value
+  // does not change whether the call on it folds. A call it never recognised
+  // falls through to the globals here; one it recognised and declined is raised
+  // as an ordinary deopt, so the refusal names its rule instead of reaching the
+  // catch-all's `Unsupported expression: CallExpression`.
   //
   // Asked before the expression is cloned for a code frame, so a fold that
   // succeeds — the common case once a file folds anything — pays for no clone
   // it does not use.
-  match super::super::engine_fold::try_fold(call) {
+  match super::super::engine_fold::try_fold(call, state, traversal_state, fns) {
     Some(Ok(value)) => return Some(value),
     Some(Err(reason)) => return deopt(&Expr::Call(call.clone()), state, &reason),
     None => {},
@@ -788,26 +789,21 @@ pub(in super::super) fn evaluate(
 
                   context = Some(vec![EvaluateResultValue::Vec(receiver)]);
                 },
+                // A string receiver reaching here at all means the fold declined
+                // the call, and the whole of `String.prototype` folds there — so
+                // what is left is a call whose *arguments* hold something with no
+                // compile-time value. The two methods this arm used to carry are
+                // gone with the name table they were looked up in: a table is
+                // finite by construction, and the method it does not list was the
+                // next bug report.
                 Expr::Lit(Lit::Str(_)) => {
-                  let string_method = match StringJS::try_from(prop_name.as_str()) {
-                    Ok(string_method) => string_method,
-                    Err(()) => deopt_unsupported!(
-                      path,
-                      state,
-                      format!(
-                        "The method '{}' is not yet supported in static evaluation.",
-                        prop_name
-                      )
-                      .as_str()
-                    ),
-                  };
+                  // A spread reads the same sentence whatever the callee, and
+                  // the shared argument evaluation is what owns that sentence —
+                  // so it is asked first rather than the rule being restated
+                  // here. Anything it accepts is refused by name below.
+                  evaluate_func_call_args(call, state, traversal_state, fns)?;
 
-                  func = Some(Box::new(FunctionConfig {
-                    fn_ptr: FunctionType::Callback(Box::new(CallbackType::String(string_method))),
-                    takes_path: false,
-                  }));
-
-                  context = Some(vec![EvaluateResultValue::Expr(expr.clone())]);
+                  deopt_unsupported!(path, state, &unfoldable_call(&prop_name))
                 },
                 Expr::Object(object) => {
                   let key_values = get_key_values_from_object(&object);
@@ -937,6 +933,18 @@ pub(in super::super) fn evaluate(
               None => None,
             };
           }
+        } else {
+          // The receiver has no compile-time value, and the evaluation that
+          // found that out said why. Its sentence is raised here rather than
+          // discarded: falling through to the terminal refusal below named the
+          // node the author wrote — `CallExpression` — where the reason is that
+          // the receiver is not defined, or was reassigned, or was mutated. The
+          // receiver is evaluated under a state of its own, so the reason has to
+          // be carried over deliberately or it is lost with that state.
+          return match parsed_obj.reason {
+            Some(reason) => deopt(path, state, &reason),
+            None => deopt(path, state, UNDEFINED_CONST),
+          };
         }
       }
     }
@@ -1262,94 +1270,6 @@ pub(in super::super) fn evaluate(
               };
 
               return Some(EvaluateResultValue::Expr(create_number_expr(num.abs())));
-            },
-            CallbackType::String(StringJS::Concat) => {
-              let Some(EvaluateResultValue::Expr(base_str)) = context.first() else {
-                deopt_unsupported!(
-                  path,
-                  state,
-                  "String.concat() requires at least one argument."
-                );
-              };
-
-              let base_str = base_str.clone();
-
-              let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
-
-              let mut str_args_vec = Vec::with_capacity(args.len());
-              for arg in &args {
-                match arg.as_expr() {
-                  Some(expr) => {
-                    str_args_vec.push(expr_to_str_or_deopt!(
-                      expr,
-                      state,
-                      traversal_state,
-                      fns,
-                      EXPRESSION_IS_NOT_A_STRING
-                    ));
-                  },
-                  None => {
-                    deopt(path, state, "All arguments must be a string");
-                    return None;
-                  },
-                }
-              }
-              let str_args = str_args_vec.join("");
-
-              let base_str = expr_to_str_or_deopt!(
-                &base_str,
-                state,
-                traversal_state,
-                fns,
-                EXPRESSION_IS_NOT_A_STRING
-              );
-
-              let mut result = String::with_capacity(base_str.len() + str_args.len());
-              result.push_str(&base_str);
-              result.push_str(&str_args);
-
-              return Some(EvaluateResultValue::Expr(create_string_expr(&result)));
-            },
-            CallbackType::String(StringJS::CharCodeAt) => {
-              let Some(EvaluateResultValue::Expr(base_str)) = context.first() else {
-                deopt_unsupported!(path, state, "String.charCodeAt() requires a receiver.");
-              };
-
-              let base_str = base_str.clone();
-
-              let base_str = expr_to_str_or_deopt!(
-                &base_str,
-                state,
-                traversal_state,
-                fns,
-                EXPRESSION_IS_NOT_A_STRING
-              );
-
-              let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
-
-              let num_args = args_to_numbers(&args, path, state, traversal_state, fns)?;
-
-              let Some(char_index) = num_args.first() else {
-                deopt_unsupported!(
-                  path,
-                  state,
-                  "The first argument of String.charCodeAt() must be a number."
-                );
-              };
-
-              // Out of range is `NaN` in JavaScript, which this evaluator does
-              // not represent as a folded value, so it refuses instead.
-              let Some(char_code) = char_code_at_f64(&base_str, *char_index) else {
-                deopt_unsupported!(
-                  path,
-                  state,
-                  "String.charCodeAt() has no result for the given index."
-                );
-              };
-
-              return Some(EvaluateResultValue::Expr(create_number_expr(
-                char_code as f64,
-              )));
             },
             CallbackType::Global(_) => {
               stylex_unreachable!("Callable globals are applied before the receiver is read.")

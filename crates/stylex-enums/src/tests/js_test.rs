@@ -1,4 +1,4 @@
-use super::{ArrayJS, CallableGlobalJS, MathJS, ObjectJS, StringJS};
+use super::{ArrayJS, CallableGlobalJS, MathJS, ObjectJS};
 
 #[test]
 fn array_js_try_from_maps_known_methods() {
@@ -62,11 +62,4 @@ fn callable_global_js_name_is_the_name_it_was_mapped_from() {
   ] {
     assert_eq!(CallableGlobalJS::try_from(global.name()), Ok(global));
   }
-}
-
-#[test]
-fn string_js_try_from_maps_known_methods() {
-  assert_eq!(StringJS::try_from("concat"), Ok(StringJS::Concat));
-  assert_eq!(StringJS::try_from("charCodeAt"), Ok(StringJS::CharCodeAt));
-  assert_eq!(StringJS::try_from("slice"), Err(()));
 }

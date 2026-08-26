@@ -66,9 +66,11 @@ of matching its name against a table. A table is finite, so the method it does
 not list is the next bug report; evaluating covers `String.prototype`,
 `Array.prototype` and `Object.prototype` at once, and covers a chain, because
 the receiver of a call is itself a candidate and the whole chain is evaluated
-once. Only an expression that carries its own value qualifies — the engine is
-handed the expression alone and knows nothing of the module — which is what the
-[guard](#fold-guard) decides. What comes back is the evaluator's own value
+once. An expression qualifies when every leaf of it resolves to a value the
+bridge can carry, which is what the [guard](#fold-guard) decides. The engine is
+handed the expression alone and knows nothing of the module, so a name the guard
+resolved crosses beside the source as a [transport](#transport) argument rather
+than being looked up. What comes back is the evaluator's own value
 type, not a syntax node: an array answers the list an array literal answers and
 an object the object an object literal answers, so a folded value reaches
 everywhere a value the author wrote reaches.
@@ -102,11 +104,58 @@ check, so a read above the mutation is dead too — which leaves the engine
 mutating only a temporary nothing can name afterwards. That rule belongs to
 binding resolution and already existed there.
 
-The guard reads syntax, so "carries its own value" means _written into the
-expression_. A receiver reached through a binding is resolved by the evaluator
-rather than by the guard, and so still reaches the older method tables, which
-answer a narrower set. That gap is tracked, not intended.
+The guard reads values, not only syntax: a leaf qualifies when it is written into
+the expression, bound by a callback's parameters, or a name the module resolves
+to a value the bridge carries. So giving a value a name no longer changes whether
+the call on it folds. What it costs is that the walk can evaluate, which is why
+every refusal answerable from a name alone is applied before the walk begins and
+only an expression the guard intends to fold pays to have its names read.
+
+A name the guard could not read is not a refusal but a **candidacy** answer: the
+call is simply not this module's, and the dispatch below owns it — which is what
+keeps `Math` and the callable globals folding. Reading a name to decide that is a
+[speculative read](#speculative-read).
 _Avoid_: whitelist, allowlist, filter, validator
+
+**Transport**:
+How a value the [guard](#fold-guard) resolved reaches the engine. An expression
+that resolved names is printed as an arrow taking them as parameters and called
+with their values, so `s.toLowerCase()` is handed over as `(s)=>s.toLowerCase()`
+applied to the string `s` holds; one that resolved none is evaluated as itself,
+because wrapping it costs a function object and a VM frame that measured 44% of
+the cheapest fold. The author's own name is the parameter name,
+which means nothing is rewritten and a callback parameter of the same name
+shadows the value exactly as it does in the module. Chosen over substituting a
+literal into the printed text, which would reprint and reparse the whole value at
+every use site and could not carry a value with no literal spelling; and over
+registering names on the engine, which is one leaked instance per thread shared by
+every file that thread compiles, where a name left behind would be a cross-file
+correctness bug. Because the value is an argument rather than text, the printed
+source stays the size of the expression however large the value is — so the value
+carries a size bound of its own.
+_Avoid_: injection, substitution, interpolation, binding the engine
+
+**Carryable string**:
+The one value shape the bridge carries inward today. Every other shape the
+evaluator can answer — an array, a plain object, a number, a function
+configuration, an unresolved theme reference — is handed back rather than
+refused, so the dispatch below keeps answering for it. It is also the inward
+nesting bound: a string is one level deep by construction and a value that nests
+at all is refused for not being one. A theme reference therefore crosses only as
+the `var(--…)` string it already resolved to, because resolving it is what mutates
+compiler state and that happens before the bridge.
+_Avoid_: primitive, scalar, serialisable
+
+**Speculative read**:
+Resolving a name to decide whether a fold is _possible_, as opposed to folding.
+The distinction is load-bearing because a refusal raised under one is not the
+subtree's answer: the [guard](#fold-guard) hands the call back, the dispatch below
+evaluates the same name in earnest, and it has to find the state and the sentence
+it would have had. So a speculative read puts back the evaluation's confidence
+and deopt, and the per-file memo withholds the refusal — while still memoising a
+value that did resolve, since only the refusal is the speculation's own. The same
+distinction the depth ceiling already needed, for the same reason.
+_Avoid_: dry run, probe, tentative evaluation, trial fold
 
 **Refused fold**:
 A deopt raised by a fold that recognised its callee and will not produce a

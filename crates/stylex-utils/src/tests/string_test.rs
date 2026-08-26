@@ -133,7 +133,7 @@ mod wrap_key_in_quotes_tests {
 
 #[cfg(test)]
 mod utf16_length_tests {
-  use crate::string::{char_code_at, utf16_length};
+  use crate::string::utf16_length;
 
   #[test]
   fn counts_ascii_characters() {
@@ -173,94 +173,26 @@ mod utf16_length_tests {
     assert_eq!(utf16_length("\u{1}\u{2}"), 2);
   }
 
-  /// The property that makes this the right view to share with `char_code_at`:
-  /// the last index that reads a code unit is one below the length, and the
-  /// length itself reads nothing.
+  /// The property that makes this the language's view of a length: the last
+  /// index that reads a code unit is one below it, and the length itself reads
+  /// nothing. Read off the code units directly, so the claim does not rest on a
+  /// second helper agreeing with this one.
   #[test]
-  fn agrees_with_char_code_at_on_where_a_string_ends() {
+  fn counts_one_past_the_last_readable_index() {
     for source in ["abc", "", "\u{1F600}a", "é", "e\u{301}", "a\u{0}b"] {
       let length = utf16_length(source);
+      let unit = |index: usize| source.encode_utf16().nth(index);
 
-      assert_eq!(
-        char_code_at(source, length),
-        None,
-        "past the end of {:?}",
-        source
-      );
+      assert_eq!(unit(length), None, "past the end of {:?}", source);
 
       if length > 0 {
         assert!(
-          char_code_at(source, length - 1).is_some(),
+          unit(length - 1).is_some(),
           "at the last index of {:?}",
           source
         );
       }
     }
-  }
-}
-
-#[cfg(test)]
-mod char_code_at_tests {
-  use crate::string::char_code_at;
-
-  #[test]
-  fn returns_code_unit_at_index() {
-    assert_eq!(char_code_at("abc", 0), Some(97)); // 'a'
-    assert_eq!(char_code_at("abc", 1), Some(98)); // 'b'
-    assert_eq!(char_code_at("abc", 2), Some(99)); // 'c'
-  }
-
-  #[test]
-  fn returns_none_for_out_of_bounds() {
-    assert_eq!(char_code_at("abc", 3), None);
-    assert_eq!(char_code_at("", 0), None);
-  }
-
-  #[test]
-  fn handles_unicode() {
-    assert_eq!(char_code_at("é", 0), Some(0xe9));
-    // `"日本語".charCodeAt(i)` — one code unit per scalar in the BMP.
-    assert_eq!(char_code_at("日本語", 0), Some(26085));
-    assert_eq!(char_code_at("日本語", 1), Some(26412));
-    assert_eq!(char_code_at("日本語", 2), Some(35486));
-  }
-
-  #[test]
-  fn indexes_astral_scalars_by_code_unit() {
-    // `"🎉".length === 2`, and the two indices read back as the surrogate
-    // halves rather than the `0x1F389` scalar.
-    assert_eq!(char_code_at("🎉", 0), Some(55356)); // 0xD83C
-    assert_eq!(char_code_at("🎉", 1), Some(57225)); // 0xDF89
-    assert_eq!(char_code_at("🎉", 2), None);
-  }
-
-  /// `charCodeAt` coerces its argument with `ToIntegerOrInfinity`, which a bare
-  /// `as usize` does not reproduce: the cast saturates, so `-1.0` would land on
-  /// index 0.
-  #[test]
-  fn coerces_a_numeric_index_like_to_integer_or_infinity() {
-    use crate::string::char_code_at_f64;
-
-    // `NaN` coerces to 0, so `"abc".charCodeAt(NaN) === 97`.
-    assert_eq!(char_code_at_f64("abc", f64::NAN), Some(97));
-    // Fractional indices truncate toward zero.
-    assert_eq!(char_code_at_f64("abc", 1.9), Some(98));
-    assert_eq!(char_code_at_f64("abc", 0.0), Some(97));
-    // Negative and infinite indices are out of range — `NaN` in JS — rather
-    // than index 0 or a saturated `usize`.
-    assert_eq!(char_code_at_f64("abc", -1.0), None);
-    assert_eq!(char_code_at_f64("abc", -0.5), None);
-    assert_eq!(char_code_at_f64("abc", f64::NEG_INFINITY), None);
-    assert_eq!(char_code_at_f64("abc", f64::INFINITY), None);
-    assert_eq!(char_code_at_f64("abc", 3.0), None);
-  }
-
-  #[test]
-  fn astral_scalars_shift_following_indices() {
-    // `"a🎉b".charCodeAt(3) === 98` — the surrogate pair consumes indices 1
-    // and 2, so `'b'` lands at 3, not at 2.
-    assert_eq!(char_code_at("a🎉b", 0), Some(97));
-    assert_eq!(char_code_at("a🎉b", 3), Some(98));
   }
 }
 

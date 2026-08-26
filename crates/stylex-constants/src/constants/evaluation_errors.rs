@@ -297,3 +297,51 @@ pub fn folded_string_too_large(limit: f64) -> String {
     limit
   )
 }
+
+/// A binding whose resolved value is too large to carry into a fold.
+///
+/// The transport passes a resolved value as an *argument* rather than printing
+/// it into the source, so the printed text stays the size of the expression
+/// however large the value is. What that does not shrink is the value itself:
+/// it is copied into the engine, so it is bounded on the way in by the same
+/// number that bounds a folded string on the way out.
+///
+/// Names the binding rather than the method, because the size is a property of
+/// what the name holds and the same call on a shorter value folds.
+pub fn bound_value_too_large(name: &str, limit: f64) -> String {
+  format!(
+    "Cannot carry the value of '{}' into a fold.\nAt most {} characters are supported.\n\n",
+    name, limit
+  )
+}
+
+/// A printed fold that did not evaluate to the function it was printed as.
+///
+/// The fold prints its expression as an arrow and calls it, so the value the
+/// engine answers is a function by construction. Answered as a refusal rather
+/// than asserted, because a broken invariant inside an evaluation whose whole
+/// contract is that it may fail must not abort the build.
+pub fn uncallable_printed_fold(method: &str) -> String {
+  format!(
+    "Cannot fold '{}' at compile time.\nThe printed expression did not compile to a function.\n\n",
+    method
+  )
+}
+
+/// A method call the fold declined, where the receiver's own value was fine.
+///
+/// The whole prototype surface folds through the engine, so a call arriving at
+/// the older dispatch with a usable receiver was declined for one of two reasons:
+/// something in it has no compile-time value, or it is written in a shape the
+/// fold's guard does not read. The sentence names neither, because the arm cannot
+/// tell them apart and a sentence that named the wrong one would send an author
+/// looking in the wrong place. It says what is true of both.
+///
+/// Names the method, because that is what an author has to look at -- where the
+/// node kind would only tell them they wrote a call.
+pub fn unfoldable_call(method: &str) -> String {
+  format!(
+    "Cannot fold '{}' at compile time.\nIts receiver or one of its arguments is not in a form the compiler can evaluate.\n\n",
+    method
+  )
+}

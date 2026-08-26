@@ -638,3 +638,45 @@ fn depth_refuses_rather_than_handing_a_deep_expression_back_to_the_older_path() 
     512,
   );
 }
+
+// ==================== what the guard costs ====================
+
+/// The engine is built on the first fold that needs one and never before, which
+/// is what makes the fold free for a file that folds nothing.
+///
+/// Asserted from a thread holding no engine, because the claim is about an input
+/// the guard declined leaving the slot empty — a test that ran after another
+/// fold on the same thread would find the engine that fold built and pass for
+/// the wrong reason.
+///
+/// Each input below is declined for a different reason, so the claim covers the
+/// three ways a call leaves the guard: not a candidate, refused by a name rule,
+/// and refused by a rule that had to read a binding first.
+#[test]
+fn input_with_no_foldable_call_builds_no_engine() {
+  for source in [
+    "\"a\" + \"b\"",
+    "someString.trim()",
+    "\"abc\"[\"trim\"]()",
+    "\"i\".toLocaleUpperCase(\"tr\")",
+    "(1.5).toFixed(1)",
+    "Math.round(1.5)",
+  ] {
+    super::engine_fold::forget_engine();
+
+    let _ = evaluate_source(source);
+
+    assert!(
+      !super::engine_fold::holds_an_engine(),
+      "`{}` built an engine",
+      source
+    );
+  }
+
+  // And the guard that makes the above mean something: a call the fold does take
+  // builds one.
+  super::engine_fold::forget_engine();
+
+  assert_folds_to_string("\"  4px  \".trim()", "4px");
+  assert!(super::engine_fold::holds_an_engine());
+}

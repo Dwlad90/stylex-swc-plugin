@@ -151,11 +151,11 @@ fn evaluate_cached_within_budget(
               resolved: true,
             })
           });
-      } else if !traversal_state.depth_refused {
+      } else if traversal_state.owns_its_refusals() {
         // Recorded so the same refusal is not re-walked, but only where the
-        // refusal was about the subtree itself. A depth refusal is about where
-        // the subtree sat, and this key cannot say where that was -- see the
-        // budget check in `evaluate_cached`.
+        // refusal was about the subtree itself -- which is the one question
+        // `owns_its_refusals` answers, and where the reasons it can answer `false`
+        // are written down.
         traversal_state
           .seen
           .entry(cleaned_path_hash)

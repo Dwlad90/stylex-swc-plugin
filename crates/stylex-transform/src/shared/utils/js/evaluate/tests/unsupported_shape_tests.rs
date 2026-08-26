@@ -548,6 +548,13 @@ fn assert_unsupported_expression(source: &str, kind: &str) {
 /// same reason. The reported `startsWith` call likewise refuses by name, which
 /// is a better message than any node kind would be.
 ///
+/// `startsWith` no longer refuses for being unlisted — the whole prototype
+/// surface folds and the list it was looked up in is gone. What answers instead
+/// is the argument's own refusal, which turns out to be the same sentence the
+/// `filter(Boolean)` case above earns and for the same reason: the name in the
+/// call is not defined. Both reported inputs now read alike, which is what they
+/// always had in common.
+///
 /// Both are pinned because they are the inputs a reader will reach for when
 /// checking this work, and finding them absent invites the label being
 /// "restored" onto arms that never produced it.
@@ -560,14 +567,14 @@ fn the_reported_inputs_refuse_by_name_rather_than_by_node_kind() {
 
   assert_deopt_reason(
     "\"documentation\".startsWith(lowerQuery)",
-    "The method 'startsWith' is not yet supported in static evaluation.",
+    "Referenced constant is not defined.",
   );
 
-  // Naming the method survives the logical-operand position that made the
+  // Naming the reason survives the logical-operand position that made the
   // original panic reachable, which is the whole point of issue 02.
   assert_deopt_reason(
     "1 > 0 && \"documentation\".startsWith(lowerQuery)",
-    "The method 'startsWith' is not yet supported in static evaluation.",
+    "Referenced constant is not defined.",
   );
 }
 

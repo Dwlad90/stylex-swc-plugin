@@ -12,6 +12,14 @@
 //! lets through is answered by the language; what it holds back is a boundary
 //! with a reason, and each one is named where it is applied below.
 //!
+//! The guard asks whether every leaf of an expression *resolves to a value the
+//! bridge can carry*, not whether it is written out — so giving a value a name
+//! does not change whether the call on it folds. A name the guard resolved
+//! becomes a parameter of a printed arrow and its value an argument to it, so
+//! `s.toLowerCase()` is handed over as `(s) => s.toLowerCase()` called with the
+//! string `s` holds. See [`Transport`] for why the value travels beside the
+//! source rather than inside it.
+//!
 //! A fold answers one of two things: the value, or the rule that refused it.
 //! There is no silent refusal — a call the guard recognised and declined says
 //! which rule declined it, rather than falling through to the caller's
@@ -22,31 +30,38 @@
 use std::{borrow::Cow, cell::RefCell, mem::ManuallyDrop};
 
 use boa_engine::{
-  Context, JsError, JsObject, JsResult, JsValue, Source, js_string, property::PropertyKey,
+  Context, JsError, JsObject, JsResult, JsString, JsValue, Source, js_string, property::PropertyKey,
 };
 use swc_core::{
-  atoms::Atom,
+  atoms::{Atom, Wtf8Atom},
   common::DUMMY_SP,
   ecma::{
     ast::{
-      ArrayLit, ArrowExpr, BlockStmtOrExpr, CallExpr, Callee, Expr, ExprOrSpread, ExprStmt,
+      ArrayLit, ArrowExpr, BlockStmtOrExpr, CallExpr, Callee, Expr, ExprOrSpread, ExprStmt, Ident,
       KeyValueProp, Lit, MemberExpr, MemberProp, Module, ModuleItem, Null, ObjectLit, Pat, Prop,
-      PropName, PropOrSpread, Stmt,
+      PropName, PropOrSpread, Stmt, Tpl,
     },
     codegen::Config,
   },
 };
 
-use stylex_ast::ast::factories::{create_ident_key_value_prop, create_object_lit};
-use stylex_constants::constants::evaluation_errors::{
-  amplification_inside_a_callback, array_length_too_large, engine_threw, escaping_property,
-  expression_too_deep, folded_string_too_large, locale_sensitive_method, numeric_literal_receiver,
-  object_size_too_large, unbounded_amplified_length, unfoldable_fold_result,
+use stylex_ast::ast::convertors::atom_utf16_length;
+use stylex_ast::ast::factories::{
+  create_arrow_expression_with_params, create_binding_ident, create_ident,
+  create_ident_key_value_prop, create_object_lit,
 };
+use stylex_constants::constants::evaluation_errors::{
+  amplification_inside_a_callback, array_length_too_large, bound_value_too_large, engine_threw,
+  escaping_property, expression_too_deep, folded_string_too_large, locale_sensitive_method,
+  numeric_literal_receiver, object_size_too_large, unbounded_amplified_length,
+  uncallable_printed_fold, unfoldable_fold_result,
+};
+use stylex_js::helpers::is_valid_callee;
 
-use super::evaluate_result_vec_to_array_expr;
+use super::{evaluate_cached, evaluate_result_vec_to_array_expr, helpers::get_binding};
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
   utils::{
     common::order_own_keys,
     log::build_code_frame_error::{CodeFrame, print_module},
@@ -205,11 +220,13 @@ impl Decline {
 /// Where a bare identifier in an expression is allowed to get its value from.
 #[derive(Clone, Copy)]
 enum Scope<'a> {
-  /// Nowhere. The expression has to carry its whole value with it, because the
-  /// engine is handed the expression alone and knows nothing of the module.
-  Nothing,
+  /// The module the expression was written in, read through the evaluator. A
+  /// name it resolves to a carryable value becomes a parameter of the printed
+  /// arrow; a name it cannot is not this module's call.
+  Module,
   /// A callback's own parameters, which the engine binds itself when it invokes
-  /// the callback with values from the receiver.
+  /// the callback with values from the receiver. A name that is not one of them
+  /// is still resolved against the module.
   Params(&'a [Atom]),
 }
 
@@ -274,28 +291,245 @@ impl<'a> Guard<'a> {
   }
 }
 
+/// The names the guard resolved and the values it resolved them to, ready to
+/// cross the bridge inward.
+///
+/// The value travels *beside* the printed source rather than inside it: the
+/// expression is printed as an arrow taking these names as parameters, and the
+/// values are passed as arguments. Substituting a literal into the text instead
+/// would reprint and reparse the whole value at every use site, and a value with
+/// no literal spelling could not cross at all — where an argument keeps the
+/// printed text the size of the expression however large the value is.
+///
+/// The author's own name is the parameter name. Nothing has to be rewritten for
+/// that, and a callback parameter of the same name shadows it in the printed
+/// arrow exactly as it does in the module the author wrote.
+///
+/// Chosen over registering the names on the engine because the engine is one
+/// leaked instance per thread, shared by every file that thread compiles: a name
+/// left behind or shadowed there would be a cross-file correctness bug.
+#[derive(Default)]
+struct Transport {
+  params: Vec<Atom>,
+  values: Vec<Wtf8Atom>,
+}
+
+impl Transport {
+  /// Records `value` under `name`, or does nothing where the name is already
+  /// carried.
+  ///
+  /// One parameter per name however often the expression reads it, because a
+  /// repeated parameter is a syntax error in the arrow this is printed into. The
+  /// second reading resolves to the same value — the evaluator memoises it — so
+  /// dropping it loses nothing. A scan rather than a set, because an expression
+  /// carries a handful of names and hashing them would cost more than comparing
+  /// them.
+  fn bind(&mut self, name: &Atom, value: Wtf8Atom) {
+    if self.params.contains(name) {
+      return;
+    }
+
+    self.params.push(name.clone());
+    self.values.push(value);
+  }
+
+  /// The resolved values as the arguments the printed arrow is called with,
+  /// bounded.
+  ///
+  /// The bound is on the value rather than on the syntax that named it, which is
+  /// the whole reason it is applied here: a name is three characters whatever it
+  /// holds, so the printed expression says nothing about how much is about to be
+  /// copied into the engine. Bounded by the number that bounds a folded string
+  /// on the way out, because it is the same measurement on the other side.
+  ///
+  /// Nesting needs no bound of its own while a resolved value crosses only as a
+  /// string: a string is one level deep by construction, and a value that is
+  /// nested at all is refused for not being one.
+  ///
+  /// Bounded on the running total and not on each value, because what is about to
+  /// be copied into the engine is all of them: eight names each one code unit
+  /// under the limit is eight megabytes, and a per-value check would wave every
+  /// one of them through. The name reported is the one that crossed the line,
+  /// which is the one an author can shorten.
+  fn arguments(&self) -> Result<Vec<JsValue>, Decline> {
+    let mut arguments = Vec::with_capacity(self.values.len());
+    let mut carried = 0u64;
+
+    for (name, value) in self.params.iter().zip(&self.values) {
+      // Counted in UTF-16 code units, which is what the engine's own strings are
+      // measured in and what bounds a folded string on the way out. Saturating
+      // because the sum is a bound to refuse on, and a wrapped one would admit.
+      carried = carried.saturating_add(atom_utf16_length(value) as u64);
+
+      if carried as f64 > MAX_AMPLIFIED_LENGTH {
+        return Err(Decline::rule(bound_value_too_large(
+          name,
+          MAX_AMPLIFIED_LENGTH,
+        )));
+      }
+
+      arguments.push(JsValue::from(carry_string(value)));
+    }
+
+    Ok(arguments)
+  }
+}
+
+/// What the walk needs that the expression does not carry: the evaluator, so a
+/// name can be resolved to the value it holds, and the transport the resolved
+/// values are collected into.
+struct Reader<'a> {
+  state: &'a mut EvaluationState,
+  traversal_state: &'a mut StateManager,
+  fns: &'a FunctionMap,
+  transport: Transport,
+}
+
+impl Reader<'_> {
+  /// The string `ident` resolves to, or `None` where it resolves to nothing the
+  /// bridge carries.
+  ///
+  /// Resolved through the evaluator's own memoised entry point rather than by a
+  /// second reading of its own, so a binding this fold reads is the binding
+  /// every other position reads — including the disqualifications that live
+  /// there: a reassigned binding, one mutated in place, and one read above its
+  /// own declaration all answer nothing here because they answer nothing there.
+  ///
+  /// A string is the only value carried, so a theme reference crosses only as
+  /// the string it already resolved to and never as the reference itself.
+  ///
+  /// The read is a speculation and is marked as one, so nothing it refuses is
+  /// left behind: the evaluation's confidence and deopt are put back, and the
+  /// memo withholds the refusal. A name this module could not read is not a
+  /// refusal — the dispatch below owns the call, evaluates the same name itself,
+  /// and has to find both the state and the sentence it would have had.
+  fn resolve(&mut self, ident: &Ident) -> Option<Wtf8Atom> {
+    let reference = Expr::Ident(ident.clone());
+    let Reader {
+      state,
+      traversal_state,
+      fns,
+      ..
+    } = self;
+
+    // The putting-back is the whole contract, so it belongs to the two states
+    // that own the fields rather than to a sequence written out here that a
+    // later edit could return past.
+    speculate(state, traversal_state, |state, traversal_state| {
+      evaluate_cached(&reference, state, traversal_state, fns)
+    })
+    .and_then(as_carryable_string)
+  }
+}
+
+/// Runs `read` as a [speculative
+/// read](../../../../../CONTEXT.md#speculative-read), and puts back everything it
+/// refused.
+///
+/// `None` where the read refused, so a caller cannot mistake a refusal for a
+/// value: the confidence that says which it was is gone by the time the caller
+/// sees the answer, which is the point.
+///
+/// The two flags are saved and restored rather than cleared, so a fold reached
+/// from inside another speculation stays inside it for as long as that one lasts.
+/// Written as one function taking a closure rather than as a save, a call and a
+/// restore at the call site, because the restore is the contract and a `return`
+/// added between the halves would silently drop it.
+fn speculate(
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  read: impl FnOnce(&mut EvaluationState, &mut StateManager) -> Option<EvaluateResultValue>,
+) -> Option<EvaluateResultValue> {
+  let confident = state.confident;
+  let deopt_path = state.deopt_path.take();
+  let deopt_reason = state.deopt_reason.take();
+  let speculating = traversal_state.speculating;
+
+  traversal_state.speculating = true;
+
+  let read = read(state, traversal_state);
+
+  let value = match state.confident {
+    true => read,
+    false => None,
+  };
+
+  traversal_state.speculating = speculating;
+  state.confident = confident;
+  state.deopt_path = deopt_path;
+  state.deopt_reason = deopt_reason;
+
+  value
+}
+
+/// One resolved string as the engine's own string type.
+///
+/// Two readings of the same atom, because a JavaScript string literal can hold
+/// an unpaired surrogate and no Rust `str` can. The engine's strings are UTF-16,
+/// so the ill-formed reading carries such a value across *exactly* — where the
+/// outward direction has to substitute the replacement character, since a
+/// `Lit::Str` is what it has to land in. A valid value takes the direct reading
+/// rather than being taken apart into code units it would only be rebuilt from.
+fn carry_string(value: &Wtf8Atom) -> JsString {
+  match value.as_str() {
+    Some(text) => JsString::from(text),
+    None => JsString::from(&value.to_ill_formed_utf16().collect::<Vec<u16>>()[..]),
+  }
+}
+
+/// The string an evaluated value carries, where it carries one.
+///
+/// Deliberately narrow. Every other shape the evaluator can answer — an array, a
+/// plain object, a number, a function configuration, an unresolved theme
+/// reference — is a value some later ticket widens the bridge to, and admitting
+/// one before its own tests exist would fold it silently.
+fn as_carryable_string(value: EvaluateResultValue) -> Option<Wtf8Atom> {
+  match value {
+    EvaluateResultValue::Expr(Expr::Lit(Lit::Str(string))) => Some(string.value),
+    _ => None,
+  }
+}
+
 /// Folds `call` through the engine.
 ///
 /// `None` leaves the existing path in charge: the call is not one this module
-/// handles, which is a question of syntax and not a refusal. `Some` is the
-/// fold's own answer — the value, or the rule that declined it.
-pub(crate) fn try_fold(call: &CallExpr) -> Option<Result<EvaluateResultValue, Refusal>> {
+/// handles, which is a question of syntax and of what the module's names hold,
+/// not a refusal. `Some` is the fold's own answer — the value, or the rule that
+/// declined it.
+pub(crate) fn try_fold(
+  call: &CallExpr,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> Option<Result<EvaluateResultValue, Refusal>> {
   let guard = Guard {
-    scope: Scope::Nothing,
+    scope: Scope::Module,
     depth: Depth::FULL,
   };
 
-  match fold(call, guard) {
+  let mut reader = Reader {
+    state,
+    traversal_state,
+    fns,
+    transport: Transport::default(),
+  };
+
+  match fold(call, guard, &mut reader) {
     Ok(value) => Some(Ok(value)),
     Err(Decline::NotACandidate) => None,
     Err(Decline::Rule(reason)) => Some(Err(reason)),
   }
 }
 
-fn fold(call: &CallExpr, guard: Guard) -> Result<EvaluateResultValue, Decline> {
-  let method = admit_call(call, guard)?;
+fn fold(
+  call: &CallExpr,
+  guard: Guard,
+  reader: &mut Reader,
+) -> Result<EvaluateResultValue, Decline> {
+  let method = admit_call(call, guard, reader)?;
 
-  let source = print_call(call);
+  let arguments = reader.transport.arguments()?;
+  let source = print_fold(call, &reader.transport.params);
 
   ENGINE.with_borrow_mut(|slot| {
     // Taken, not borrowed in place. A panic unwinding out of the engine is
@@ -311,18 +545,83 @@ fn fold(call: &CallExpr, guard: Guard) -> Result<EvaluateResultValue, Decline> {
       depth: Depth::FULL,
     };
 
-    let folded = match engine.eval(Source::from_bytes(&source)) {
-      Ok(value) => to_value(&value, &mut engine, outward),
-      // A throw is an answer, not a failure of this module — the language
-      // throws on `[].reduce(f)` too — so the engine's own sentence is what the
-      // author reads, rather than a generic refusal standing in for it.
-      Err(error) => Err(outward.threw(&error)),
-    };
+    let folded = apply(&source, &arguments, &mut engine, outward)
+      .and_then(|value| to_value(&value, &mut engine, outward));
 
     *slot = Some(engine);
 
     folded
   })
+}
+
+/// Compiles the printed arrow and calls it with the transported values.
+///
+/// Two steps rather than one evaluation *when there is something to pass*,
+/// because the values cross as arguments rather than as text. Every step can
+/// throw and all of them are answered the same way: a throw is an answer, not a
+/// failure of this module — the language throws on `[].reduce(f)` too — so the
+/// engine's own sentence is what the author reads rather than a generic refusal
+/// standing in for it.
+///
+/// A fold that resolved no name is evaluated directly, which is the whole of why
+/// this branches. Wrapping it in an arrow and invoking that arrow costs a
+/// function object and a VM frame on top of the expression itself: measured, it
+/// is +44% on the cheapest leg of the benchmark and +24% on the chain, paid by
+/// exactly the folds that gained nothing from the transport, since every
+/// expression that folded before this work resolves no name. The branch is on one
+/// question — did the guard resolve anything — and both arms hand the same
+/// expression to the same engine, so it is not the two-tables-that-must-agree
+/// this module exists to remove.
+///
+/// The compiled value is a function by construction, so the refusal for one that
+/// is not stands in for a broken invariant rather than for anything an author can
+/// write. It is a refusal all the same: this runs inside an evaluation whose
+/// whole contract is that it may fail, where an assertion would abort a build
+/// that a deopt would only leave to the runtime.
+fn apply(
+  source: &str,
+  arguments: &[JsValue],
+  engine: &mut Context,
+  outward: Outward,
+) -> Result<JsValue, Decline> {
+  let evaluated = engine
+    .eval(Source::from_bytes(source))
+    .map_err(|error| outward.threw(&error))?;
+
+  if arguments.is_empty() {
+    return Ok(evaluated);
+  }
+
+  let Some(callable) = evaluated.as_callable() else {
+    return Err(Decline::rule(uncallable_printed_fold(outward.method)));
+  };
+
+  callable
+    .call(&JsValue::undefined(), arguments, engine)
+    .map_err(|error| outward.threw(&error))
+}
+
+/// Whether this thread is holding an engine — the observable half of "built on
+/// first use and never before".
+///
+/// Test-only, and reading the slot rather than counting constructions, because
+/// what the claim is about is whether an engine exists after an input the fold
+/// declined. Paired with [`forget_engine`], since a test asserting an engine was
+/// *not* built has to start from a thread that has none.
+#[cfg(test)]
+pub(super) fn holds_an_engine() -> bool {
+  ENGINE.with_borrow(|slot| slot.is_some())
+}
+
+/// Drops this thread's engine reference without dropping the engine, which is
+/// what the slot's `ManuallyDrop` already does at thread exit and for the same
+/// reason: the collector lives in a thread-local of its own and the drop order
+/// between the two is not defined.
+#[cfg(test)]
+pub(super) fn forget_engine() {
+  ENGINE.with_borrow_mut(|slot| {
+    slot.take();
+  });
 }
 
 /// A context with the one runtime limit its default leaves open.
@@ -370,60 +669,84 @@ impl Outward<'_> {
   }
 }
 
-/// Whether every value `expr` needs is either written into it or bound by the
-/// guard's scope, so printing it yields source the engine can evaluate alone.
+/// Whether every value `expr` needs is written into it, bound by the guard's
+/// scope, or resolvable from the module — so the printed arrow and the values
+/// beside it are together something the engine can evaluate alone.
 ///
-/// One walk serves both questions this module asks — a receiver that must be
-/// wholly self-contained is the same walk with an empty scope — so a shape
-/// accepted in one position cannot silently be refused in the other.
-/// Deliberately narrow: a shape it does not recognise is not a candidate.
-fn admit_value(expr: &Expr, guard: Guard) -> Result<(), Decline> {
+/// One walk serves both questions this module asks — the receiver's and the
+/// arguments' — so a shape accepted in one position cannot silently be refused
+/// in the other. Deliberately narrow: a shape it does not recognise is not a
+/// candidate.
+fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Decline> {
   let inner = guard.descend()?;
 
   match expr {
-    Expr::Ident(ident) => match guard.scope {
-      Scope::Nothing => Err(Decline::NotACandidate),
-      Scope::Params(params) if params.contains(&ident.sym) => Ok(()),
-      Scope::Params(_) => Err(Decline::NotACandidate),
+    // A name in the callback's own parameters is bound by the engine when it
+    // invokes the callback. Any other name is asked of the module, and becomes a
+    // parameter of the printed arrow carrying the value it resolved to.
+    Expr::Ident(ident) => {
+      if let Scope::Params(params) = guard.scope
+        && params.contains(&ident.sym)
+      {
+        return Ok(());
+      }
+
+      match reader.resolve(ident) {
+        Some(value) => {
+          reader.transport.bind(&ident.sym, value);
+
+          Ok(())
+        },
+        None => Err(Decline::NotACandidate),
+      }
     },
     // A regular expression and a BigInt have no value this evaluator carries,
     // and neither does the reference implementation fold one.
     Expr::Lit(Lit::Regex(_) | Lit::BigInt(_)) => Err(Decline::NotACandidate),
     Expr::Lit(_) => Ok(()),
-    Expr::Paren(paren) => admit_value(&paren.expr, inner),
-    Expr::Unary(unary) => admit_value(&unary.arg, inner),
+    Expr::Paren(paren) => admit_value(&paren.expr, inner, reader),
+    Expr::Unary(unary) => admit_value(&unary.arg, inner, reader),
     Expr::Bin(bin) => {
-      admit_value(&bin.left, inner)?;
-      admit_value(&bin.right, inner)
+      admit_value(&bin.left, inner, reader)?;
+      admit_value(&bin.right, inner, reader)
     },
     Expr::Cond(cond) => {
-      admit_value(&cond.test, inner)?;
-      admit_value(&cond.cons, inner)?;
-      admit_value(&cond.alt, inner)
+      admit_value(&cond.test, inner, reader)?;
+      admit_value(&cond.cons, inner, reader)?;
+      admit_value(&cond.alt, inner, reader)
+    },
+    // A template literal is written-out syntax whose holes are values in their
+    // own right, so it is walked like any other composite and printed back
+    // exactly as it was written. A tagged one is a different node and is not
+    // here: its tag is a call this module cannot see the body of.
+    Expr::Tpl(Tpl { exprs, .. }) => {
+      for hole in exprs {
+        admit_value(hole, inner, reader)?;
+      }
+
+      Ok(())
     },
     // A named property read: `x.length` inside a callback, and `({a:1}).a` as
     // a receiver. A computed one is a lookup that needs the scope.
     //
-    // Whether the receiver carries its own value is asked first, so a read the
-    // guard cannot see the value of stays the dispatch below's rather than
-    // becoming a refusal this module raised over it.
+    // The property is answered before the receiver is walked, because the name
+    // alone decides it and the walk now resolves bindings — so a read that no
+    // receiver could make safe must not cost a resolution first.
     Expr::Member(MemberExpr {
       obj,
       prop: MemberProp::Ident(name),
       ..
     }) => {
-      admit_value(obj, inner)?;
-
       if lists(&ESCAPING_PROPERTIES, &name.sym) {
         return Err(Decline::rule(escaping_property(&name.sym)));
       }
 
-      Ok(())
+      admit_value(obj, inner, reader)
     },
     Expr::Array(ArrayLit { elems, .. }) => {
       for elem in elems {
         match elem {
-          Some(ExprOrSpread { spread: None, expr }) => admit_value(expr, inner)?,
+          Some(ExprOrSpread { spread: None, expr }) => admit_value(expr, inner, reader)?,
           // A hole is `undefined` and a spread needs the scope; both stay out.
           _ => return Err(Decline::NotACandidate),
         }
@@ -455,7 +778,7 @@ fn admit_value(expr: &Expr, guard: Guard) -> Result<(), Decline> {
           return Err(Decline::NotACandidate);
         }
 
-        admit_value(value, inner)?;
+        admit_value(value, inner, reader)?;
       }
 
       Ok(())
@@ -463,7 +786,7 @@ fn admit_value(expr: &Expr, guard: Guard) -> Result<(), Decline> {
     // A chained call: the receiver is itself a fold. Printing the whole chain
     // and evaluating it once is what makes `[…].map(…).join('-')` work, which
     // two separate method tables cannot agree on.
-    Expr::Call(call) => admit_call(call, inner).map(|_| ()),
+    Expr::Call(call) => admit_call(call, inner, reader).map(|_| ()),
     _ => Err(Decline::NotACandidate),
   }
 }
@@ -474,15 +797,23 @@ fn admit_value(expr: &Expr, guard: Guard) -> Result<(), Decline> {
 /// chain hides its middle links: `"AB".toLocaleLowerCase().trim()` is a `trim`
 /// whose receiver needs a locale.
 ///
-/// Candidacy is settled before any rule fires, and both questions are settled
-/// before anything is printed. The order is what keeps a rule from answering
-/// for a call that was never this module's: a receiver the guard cannot see the
-/// value of belongs to the dispatch below, and a rule raised over it would stop
-/// the call reaching that dispatch — which is where `Math` and the callable
-/// globals still fold. It costs nothing today, because the walk is syntax and
-/// resolves nothing. Ticket 05 is where the walk starts resolving bindings and
-/// the cheap rules have to move back in front of it.
-fn admit_call<'a>(call: &'a CallExpr, guard: Guard) -> Result<&'a Atom, Decline> {
+/// Nearly everything answerable from syntax is answered before the walk, because
+/// the walk resolves bindings and resolution is the only expensive thing here. So
+/// the shape of the callee, the spelling of the method name, a receiver written
+/// as a number and a length nothing bounds are all settled while they are still
+/// free, and only an expression this module intends to fold pays to have its
+/// names read. The one exception is named where it is applied.
+///
+/// That ordering is why candidacy is *not* settled first. A rule firing over a
+/// call that was never this module's would stop it reaching the dispatch below —
+/// which is where `Math` and the callable globals still fold — so the one
+/// candidacy question resolution would otherwise pay for is asked up front:
+/// a receiver naming one of those globals is handed straight back.
+fn admit_call<'a>(
+  call: &'a CallExpr,
+  guard: Guard,
+  reader: &mut Reader,
+) -> Result<&'a Atom, Decline> {
   let Callee::Expr(callee) = &call.callee else {
     return Err(Decline::NotACandidate);
   };
@@ -497,14 +828,19 @@ fn admit_call<'a>(call: &'a CallExpr, guard: Guard) -> Result<&'a Atom, Decline>
     return Err(Decline::NotACandidate);
   };
 
-  admit_value(obj, guard)?;
-
-  for arg in &call.args {
-    admit_argument(arg, guard)?;
-  }
-
-  if lists(&ESCAPING_PROPERTIES, &method.sym) {
-    return Err(Decline::rule(escaping_property(&method.sym)));
+  // A receiver naming a global whose methods the dispatch below folds — `Math`
+  // and `Object` today — is that dispatch's call and not this one's. Tickets 07
+  // and 09 are where those surfaces move here and this question goes away.
+  //
+  // Only where the module declares no binding of that name, which is the same
+  // question the callee branch of that dispatch asks. A locally-declared shadow
+  // is the module's own value and is resolved like any other name: measured,
+  // `const String = 'abc'; String.toUpperCase()` folds to `ABC` in the reference
+  // compiler, so treating the name as the global would refuse an input it
+  // compiles. The lookup is one map read and no evaluation, so it stays in front
+  // of the walk with the other cheap answers.
+  if is_valid_callee(obj) && get_binding(obj, reader.traversal_state).is_none() {
+    return Err(Decline::NotACandidate);
   }
 
   if lists(&LOCALE_SENSITIVE_METHODS, &method.sym) {
@@ -516,6 +852,24 @@ fn admit_call<'a>(call: &'a CallExpr, guard: Guard) -> Result<&'a Atom, Decline>
   }
 
   admit_amplification(&method.sym, obj, &call.args, guard.scope)?;
+
+  admit_value(obj, guard, reader)?;
+
+  for arg in &call.args {
+    admit_argument(arg, guard, reader)?;
+  }
+
+  // The one rule left behind the walk, and deliberately. It is a name check like
+  // the three above and would cost nothing in front of them, but a chain of
+  // escaping reads is refused outermost-first there — so
+  // `''.constructor.constructor('return 1').call()` would be named for its
+  // `call` rather than for the `constructor` that is the whole of the reason.
+  // The walk reaches the receiver's reads first, which is the sentence worth
+  // reading, and the resolution it costs is one binding on a call already
+  // certain to refuse.
+  if lists(&ESCAPING_PROPERTIES, &method.sym) {
+    return Err(Decline::rule(escaping_property(&method.sym)));
+  }
 
   Ok(&method.sym)
 }
@@ -586,23 +940,23 @@ fn admit_amplification(
 /// An argument is admitted when it carries its own value, or is an arrow
 /// function reading nothing but its own parameters — the callback shape `map`,
 /// `filter` and `reduce` take.
-fn admit_argument(arg: &ExprOrSpread, guard: Guard) -> Result<(), Decline> {
+fn admit_argument(arg: &ExprOrSpread, guard: Guard, reader: &mut Reader) -> Result<(), Decline> {
   if arg.spread.is_some() {
     return Err(Decline::NotACandidate);
   }
 
   match arg.expr.as_ref() {
-    Expr::Arrow(arrow) => admit_arrow(arrow, guard),
-    expr => admit_value(expr, guard),
+    Expr::Arrow(arrow) => admit_arrow(arrow, guard, reader),
+    expr => admit_value(expr, guard, reader),
   }
 }
 
-/// Whether an arrow reads nothing but its own parameters. Anything else would
-/// need a scope the engine does not have.
+/// Whether an arrow reads nothing but its own parameters and names the module
+/// resolves. Anything else would need a scope the engine does not have.
 ///
 /// A block body is refused rather than analysed: statements bind, assign and
 /// loop, and none of that is modelled here.
-fn admit_arrow(arrow: &ArrowExpr, guard: Guard) -> Result<(), Decline> {
+fn admit_arrow(arrow: &ArrowExpr, guard: Guard, reader: &mut Reader) -> Result<(), Decline> {
   let mut params = Vec::with_capacity(arrow.params.len());
 
   for param in &arrow.params {
@@ -616,7 +970,7 @@ fn admit_arrow(arrow: &ArrowExpr, guard: Guard) -> Result<(), Decline> {
     return Err(Decline::NotACandidate);
   };
 
-  admit_value(body, guard.binding(&params))
+  admit_value(body, guard.binding(&params), reader)
 }
 
 /// Converts an engine value into the evaluator's own value type, or declines
@@ -787,18 +1141,39 @@ fn read<T>(outward: Outward, read: impl FnOnce() -> JsResult<T>) -> Result<T, De
   read().map_err(|error| outward.threw(&error))
 }
 
-/// The call as the minified source the engine is handed.
+/// The call as the minified source the engine is handed: an arrow over the names
+/// the guard resolved, whose values [`apply`] passes to it as arguments — or the
+/// call alone where it resolved none.
+///
+/// The bare form is not a second path so much as the absence of one: an arrow
+/// over no parameters, invoked immediately, is the same expression with a
+/// function object and a VM frame added, and [`apply`] carries the measurement
+/// that says what those cost. Printing the call itself is what lets an expression
+/// that names nothing pay nothing.
 ///
 /// The module is assembled here rather than by `create_module`, which takes
 /// `&Expr` and clones it — so going through it means cloning the subtree once
 /// to build the `Expr` and once more inside. The printer needs an owned tree
 /// either way, because it drops the spans in place before emitting.
-fn print_call(call: &CallExpr) -> String {
+fn print_fold(call: &CallExpr, params: &[Atom]) -> String {
+  let folded = Expr::Call(call.clone());
+
+  let printed = match params.is_empty() {
+    true => folded,
+    false => create_arrow_expression_with_params(
+      params
+        .iter()
+        .map(|name| Pat::Ident(create_binding_ident(create_ident(name))))
+        .collect(),
+      folded,
+    ),
+  };
+
   let module = Module {
     span: DUMMY_SP,
     body: vec![ModuleItem::Stmt(Stmt::Expr(ExprStmt {
       span: DUMMY_SP,
-      expr: Box::new(Expr::Call(call.clone())),
+      expr: Box::new(printed),
     }))],
     shebang: None,
   };

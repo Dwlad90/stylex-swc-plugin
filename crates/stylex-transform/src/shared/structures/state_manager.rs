@@ -578,6 +578,22 @@ pub struct StateManager {
   /// perfectly well on their own. The flag is not being conservative about the
   /// unwind, it is compensating for a flag that never comes back.
   pub(crate) depth_refused: bool,
+  /// Whether a guard is reading a name to decide whether it *could* fold an
+  /// expression, rather than folding it.
+  ///
+  /// Set for exactly as long as such a read, and for the same reason
+  /// [`Self::depth_refused`] exists: a refusal raised under it is not the
+  /// subtree's answer, so recording it would answer for the next reader that
+  /// asks the same question in earnest. The engine fold asks whether a receiver
+  /// resolves to a value it can carry, and hands a name it cannot read back to
+  /// the dispatch below -- which then evaluates the same name itself and has to
+  /// find the refusal *that* evaluation earns, with the sentence naming the
+  /// binding, rather than a memo entry saying only that something already said
+  /// no.
+  ///
+  /// A value that resolved is still memoized. Only the refusal is withheld,
+  /// because only the refusal is the speculation's own.
+  pub(crate) speculating: bool,
   pub(crate) cache: CacheState,
   /// Maps a JSX spread expression to the JSX attributes that replace it.
   ///
@@ -683,6 +699,7 @@ impl StateManager {
       seen: FxHashMap::default(),
       evaluation_depth: 0,
       depth_refused: false,
+      speculating: false,
       cache: CacheState::default(),
       module_source: ModuleSourceState::default(),
 
@@ -1801,6 +1818,24 @@ impl StateManager {
   /// `Vec::contains` short-circuits on PartialEq mismatch, which
   /// is significantly cheaper than a full `stable_hash` walk over
   /// the AST in the typical case.
+  /// Whether a refusal raised right now is the evaluated subtree's own answer,
+  /// and so worth recording against it in the memo.
+  ///
+  /// Two things can make it somebody else's, and they are asked together because
+  /// every caller wants the one answer rather than the two reasons:
+  ///
+  /// - [`Self::depth_refused`] -- the refusal is about *where* the subtree sat,
+  ///   which the memo key cannot say, so it would answer for the same subtree
+  ///   written shallowly.
+  /// - [`Self::speculating`] -- the refusal is about nothing yet, because a guard
+  ///   was reading a name to decide whether it *could* fold rather than folding.
+  ///
+  /// Named once here so a third reason is a third arm of one question rather than
+  /// a third condition every reader has to remember to add.
+  pub(crate) fn owns_its_refusals(&self) -> bool {
+    !self.depth_refused && !self.speculating
+  }
+
   pub(crate) fn queue_theme_import_if_absent(&mut self, item: ModuleItem) {
     if !self.injection.queued_theme_imports.contains(&item) {
       self.injection.queued_theme_imports.push(item.clone());

@@ -171,3 +171,36 @@ fn test_folded_string_too_large() {
   // the caller passed rather than a constant spelled again here.
   assert!(folded_string_too_large(32.0).contains("At most 32"));
 }
+
+#[test]
+fn test_bound_value_too_large() {
+  assert_eq!(
+    bound_value_too_large("big", 1_000_000.0),
+    "Cannot carry the value of 'big' into a fold.\nAt most 1000000 characters are supported.\n\n"
+  );
+  // The binding is named rather than the method, because the size belongs to
+  // what the name holds and the same call on a shorter value folds.
+  assert!(bound_value_too_large("fonts", 32.0).contains("'fonts'"));
+  assert!(bound_value_too_large("fonts", 32.0).contains("At most 32"));
+}
+
+#[test]
+fn test_uncallable_printed_fold() {
+  assert_eq!(
+    uncallable_printed_fold("trim"),
+    "Cannot fold 'trim' at compile time.\nThe printed expression did not compile to a function.\n\n"
+  );
+  assert!(uncallable_printed_fold("join").contains("'join'"));
+}
+
+#[test]
+fn test_unfoldable_call() {
+  assert_eq!(
+    unfoldable_call("startsWith"),
+    "Cannot fold 'startsWith' at compile time.\nIts receiver or one of its arguments is not in a form the compiler can evaluate.\n\n"
+  );
+  // Neither of the two reasons the caller cannot tell apart is named, so the
+  // sentence stays true whichever one applied.
+  assert!(!unfoldable_call("trim").contains("argument must"));
+  assert!(unfoldable_call("trim").contains("'trim'"));
+}

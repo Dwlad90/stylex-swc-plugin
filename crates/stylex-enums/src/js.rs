@@ -108,24 +108,6 @@ impl TryFrom<&str> for CallableGlobalJS {
   }
 }
 
-#[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
-pub enum StringJS {
-  Concat,
-  CharCodeAt,
-}
-
-impl TryFrom<&str> for StringJS {
-  type Error = ();
-
-  fn try_from(value: &str) -> Result<Self, Self::Error> {
-    match value {
-      "concat" => Ok(StringJS::Concat),
-      "charCodeAt" => Ok(StringJS::CharCodeAt),
-      _ => Err(()),
-    }
-  }
-}
-
 #[cfg(test)]
 #[path = "tests/js_test.rs"]
 mod tests;

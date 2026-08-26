@@ -61,13 +61,17 @@ fn a_mutating_method_on_an_intermediate_value_folds() {
 /// A binding a mutating method touches stops folding — the read is below the
 /// mutation, which is the ordering an author would expect to matter.
 ///
-/// The sentence is the receiver's refusal reported at the call, which is what
-/// the reference compiler writes for this input too: it names the node the
-/// value was read through, and the mutated binding is the reason underneath it.
+/// The sentence names the rule the *binding* broke, not the node the value was
+/// read through. The reference compiler writes `Unsupported expression:
+/// CallExpression` here, having discarded the receiver's own refusal by the time
+/// it reports; this compiler carries it up, and message text is not a parity
+/// obligation — the comparison harness compares class name, rule text and
+/// style-object shape, and both compilers reject this input either way.
 /// `a_mutated_binding_read_without_a_call_names_the_rule` below is the same
-/// module with the call taken away, where both compilers name the rule instead.
+/// module with the call taken away, where the reference compiler names the rule
+/// too — so what changed is that a call no longer hides it.
 #[test]
-#[should_panic(expected = "base > transitionProperty > Unsupported expression: CallExpression")]
+#[should_panic(expected = "base > transitionProperty > Referenced value is not a constant.")]
 fn a_binding_a_mutating_method_touches_stops_folding() {
   fold(&module(
     "const parts = ['b', 'a'];\nparts.sort();",
@@ -80,7 +84,7 @@ fn a_binding_a_mutating_method_touches_stops_folding() {
 /// the whole file; agreeing matters because a disagreement here emits a class
 /// the other build never defines.
 #[test]
-#[should_panic(expected = "base > transitionProperty > Unsupported expression: CallExpression")]
+#[should_panic(expected = "base > transitionProperty > Referenced value is not a constant.")]
 fn a_read_before_the_mutation_stops_folding_too() {
   fold(
     r#"
@@ -96,7 +100,7 @@ fn a_read_before_the_mutation_stops_folding_too() {
 
 /// Reassignment is the separate rule beside it, and refuses the same way.
 #[test]
-#[should_panic(expected = "base > transitionProperty > Unsupported expression: CallExpression")]
+#[should_panic(expected = "base > transitionProperty > Referenced value is not a constant.")]
 fn a_reassigned_binding_stops_folding() {
   fold(&module(
     "let parts = ['b', 'a'];\nparts = ['c'];",
@@ -107,7 +111,7 @@ fn a_reassigned_binding_stops_folding() {
 /// The mutation reaches the binding through a member chain as well as through
 /// the receiver itself, which is the shape a nested theme object is.
 #[test]
-#[should_panic(expected = "base > transitionProperty > Unsupported expression: CallExpression")]
+#[should_panic(expected = "base > transitionProperty > Referenced value is not a constant.")]
 fn a_mutation_further_down_a_member_chain_stops_folding() {
   fold(&module(
     "const theme = { parts: ['b', 'a'] };\ntheme.parts.sort();",

@@ -82,43 +82,10 @@ pub fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> Cow<'_, str
 /// one is the language's. `str::len` counts bytes, so `"é".length` would read
 /// as `2`; `chars().count()` counts Unicode scalars, so an astral character
 /// would read as `1` where JavaScript says `2`. `String.prototype.length`
-/// counts code units, which is the same view `char_code_at` indexes by — an
-/// astral scalar occupies two of them — so the two agree that
-/// `"\u{1F600}a".length` is `3` and that index `2` is where the `a` lives.
+/// counts code units — an astral scalar occupies two of them — so
+/// `"\u{1F600}a".length` is `3` and index `2` is where the `a` lives.
 pub fn utf16_length(s: &str) -> usize {
   s.encode_utf16().count()
-}
-
-/// Returns the UTF-16 code unit at the given index, or `None` if the index is
-/// out of bounds.
-///
-/// `charCodeAt` indexes by UTF-16 code unit and returns a single code unit, so
-/// an astral scalar occupies two indices and reads back as its surrogate halves
-/// — `"🎉"` is `0xD83C` at 0 and `0xDF89` at 1, never the `0x1F389` scalar.
-/// Indexing by `char` instead would return the whole scalar and shift every
-/// index that follows one.
-pub fn char_code_at(s: &str, index: usize) -> Option<u32> {
-  s.encode_utf16().nth(index).map(u32::from)
-}
-
-/// `char_code_at` for an index that arrived as a JS number, applying
-/// `charCodeAt`'s own argument coercion.
-///
-/// `charCodeAt` runs `ToIntegerOrInfinity` on its argument: `NaN` becomes `0`,
-/// fractional values truncate toward zero, and any negative or infinite index is
-/// out of range. `index as usize` saturates rather than wrapping, so a bare cast
-/// would silently turn `charCodeAt(-1)` — which JS answers with `NaN` — into the
-/// code unit at index 0.
-pub fn char_code_at_f64(s: &str, index: f64) -> Option<u32> {
-  if index.is_nan() {
-    return char_code_at(s, 0);
-  }
-
-  if index < 0.0 || index.is_infinite() {
-    return None;
-  }
-
-  char_code_at(s, index as usize)
 }
 
 /// A string rendered as `JSON.stringify` renders it: double-quoted, with the

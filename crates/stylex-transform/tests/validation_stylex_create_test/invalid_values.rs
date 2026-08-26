@@ -2985,15 +2985,16 @@ stylex_test_panic!(
   "#
 );
 
-// Called rather than read, where the sentence above is *lost*: the member step
-// refuses, and the call step then refuses the callee it was handed without
-// carrying the reason, so the author is told a call expression is unsupported
-// and hears nothing about the option. Pinned as it behaves rather than as it
-// ought to, so the reading is recorded rather than assumed -- and so a change
-// that improves it reports as a moved snapshot rather than passing quietly.
+// Called rather than read, where the sentence above used to be *lost*: the
+// member step refused, and the call step then refused the callee it was handed
+// without carrying the reason, so the author was told a call expression is
+// unsupported and heard nothing about the option. It was pinned as it behaved
+// rather than as it ought to, so that a change improving it would report as a
+// moved snapshot rather than pass quietly. This is that move: the call step now
+// carries the receiver's own refusal, so both spellings name the option.
 stylex_test_panic!(
-  an_env_call_without_the_env_option_reports_only_the_call,
-  "Unsupported expression: CallExpression",
+  an_env_call_without_the_env_option_names_the_option,
+  "The stylex.env object is not configured.",
   r#"
     import * as stylex from '@stylexjs/stylex';
 

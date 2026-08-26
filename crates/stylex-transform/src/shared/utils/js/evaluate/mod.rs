@@ -69,8 +69,9 @@ use stylex_constants::constants::{
   evaluation_errors::{
     ARGUMENT_WITHOUT_VALUE, IMPORT_FILE_EVAL_ERROR, IMPORT_PATH_RESOLUTION_ERROR,
     INVALID_ARRAY_LENGTH, NON_CONSTANT, OBJECT_METHOD, PATH_WITHOUT_NODE, SPREAD_ELEMENT,
-    UNEXPECTED_MEMBER_LOOKUP, UNINITIALIZED_CONST, USED_BEFORE_DECLARATION, array_length_too_large,
-    not_a_function, uncoercible_value, unsupported_expression, unsupported_operator,
+    UNDEFINED_CONST, UNEXPECTED_MEMBER_LOOKUP, UNINITIALIZED_CONST, USED_BEFORE_DECLARATION,
+    array_length_too_large, not_a_function, uncoercible_value, unfoldable_call,
+    unsupported_expression, unsupported_operator,
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, BUILT_IN_FUNCTION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
@@ -82,7 +83,7 @@ use stylex_constants::constants::{
 };
 use stylex_enums::{
   import_path_resolution::ImportPathResolution,
-  js::{ArrayJS, CallableGlobalJS, MathJS, ObjectJS, StringJS},
+  js::{ArrayJS, CallableGlobalJS, MathJS, ObjectJS},
   misc::BinaryExprType,
   value_with_default::ValueWithDefault,
 };
@@ -94,8 +95,7 @@ use stylex_js::helpers::{
 };
 use stylex_structures::{named_import_source::ImportSources, stylex_env::EnvEntry};
 use stylex_utils::{
-  collection::sort_numbers_factory, hash::stable_hash_unspanned, string::char_code_at_f64,
-  swc::get_expr_node_kind,
+  collection::sort_numbers_factory, hash::stable_hash_unspanned, swc::get_expr_node_kind,
 };
 
 use super::check_declaration::check_ident_declaration;

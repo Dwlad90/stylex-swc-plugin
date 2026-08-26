@@ -508,6 +508,23 @@
       }
     },
     {
+      "name": "Feature - engine fold",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/engine-fold.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Feature - engine fold (dev)",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/engine-fold.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true
+      }
+    },
+    {
       "name": "Feature - class name prefix",
       "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
       "category": "perf",

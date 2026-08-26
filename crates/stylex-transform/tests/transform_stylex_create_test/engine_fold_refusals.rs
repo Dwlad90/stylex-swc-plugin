@@ -153,20 +153,6 @@ fn an_amplifying_call_inside_a_callback_names_the_callback_as_the_reason() {
   ));
 }
 
-/// A nested array reaching the older `join` — through a binding, which is what
-/// the guard hands back rather than folds — refuses like any other shape that
-/// path cannot fold. It used to panic with an internal message, which aborts
-/// rather than unwinds, and the NAPI boundary cannot turn an abort back into a
-/// diagnostic pointing at the declaration.
-#[test]
-#[should_panic(expected = "base > content > join() requires a string separator")]
-fn a_nested_array_reaching_the_older_join_refuses_rather_than_panicking() {
-  fold(&base_style_module(
-    "const parts = [['a'], ['b']];",
-    "content: parts.join(''),",
-  ));
-}
-
 /// Where the refusal lands is still decided by where the call sat, which this
 /// work does not change: inside a dynamic style function the same refusal
 /// leaves the call for the runtime rather than failing the build.

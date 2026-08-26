@@ -17,17 +17,16 @@ stylex_test_transform!(
   "#
 );
 
-stylex_test_panic!(
-  should_bail_out_when_array_is_mutated_via_push,
-  "Referenced value is not a constant",
-  |_tr| EvaluationStyleXLastStatementTransform::default_with_pass(),
-  r#"
-    import react from 'react';
-    const a = [1, 2];
-    a.push(3);
-    a;
-  "#
-);
+// A mutating *method* is not among the cases below, and the omission is the
+// rule. It was here, refused by a predicate the fold guard carried; the fold
+// now evaluates every array method and the mutation is answered where the
+// reference compiler answers it — by disqualifying the binding, which the
+// module visitor collects and this harness does not run. The behaviour is
+// pinned at the transform level, where the visitor is, in
+// `transform_stylex_create_test::mutating_methods_and_bindings` and
+// `::named_array_receivers`. What is left below is the mutation the evaluator
+// itself refuses to evaluate: an assignment, an update and a delete, none of
+// which is a call.
 
 stylex_test_panic!(
   should_bail_out_when_array_is_mutated_via_assignment,

@@ -269,6 +269,64 @@ pub(crate) fn fold_module(input: &str) -> String {
   })
 }
 
+/// The rule a `stylex.create` module of one style is expected to emit,
+/// asserted on what it printed.
+///
+/// The three things a fold case is — the bindings, the declaration, the measured
+/// rule — read once here rather than per file, so two files whose subject is the
+/// same fold cannot come to assert it differently.
+#[track_caller]
+#[allow(dead_code)]
+pub(crate) fn assert_folds(decls: &str, body: &str, rule: &str) {
+  let output = fold_module(&base_style_module(decls, body));
+
+  assert!(
+    output.contains(rule),
+    "expected `{}` with `{}` to emit `{}`, got:\n{}",
+    body,
+    decls,
+    rule,
+    output
+  );
+}
+
+/// The sentence a refusal has to carry, so a case cannot be satisfied by a
+/// refusal for some later, wrong reason.
+///
+/// A `should_panic` attribute answers one case per function and says nothing
+/// about which rule fired when a file has several; this reads the panic's own
+/// message, so a list of refusals stays a list.
+#[track_caller]
+#[allow(dead_code)]
+pub(crate) fn assert_refuses(decls: &str, body: &str, sentence: &str) {
+  let module = base_style_module(decls, body);
+  let refusal = std::panic::catch_unwind(|| fold_module(&module));
+
+  let Err(payload) = refusal else {
+    panic!("expected `{}` with `{}` to refuse", body, decls);
+  };
+
+  // A panic payload is whichever of the two string types the caller raised, and
+  // both reach here: `panic!("{}", …)` carries a `String` and a literal message
+  // a `&str`.
+  let said = match payload.downcast_ref::<String>() {
+    Some(message) => message.clone(),
+    None => match payload.downcast_ref::<&str>() {
+      Some(message) => (*message).to_string(),
+      None => panic!("the refusal of `{}` carried no message", body),
+    },
+  };
+
+  assert!(
+    said.contains(sentence),
+    "expected `{}` with `{}` to refuse with `{}`, got `{}`",
+    body,
+    decls,
+    sentence,
+    said
+  );
+}
+
 /// One `stylex.create` module of a single `base` style: `decls` above it,
 /// `body` as that style's declarations.
 ///

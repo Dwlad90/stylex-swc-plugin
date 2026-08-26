@@ -114,7 +114,12 @@ only an expression the guard intends to fold pays to have its names read.
 A name the guard could not read is not a refusal but a **candidacy** answer: the
 call is simply not this module's, and the dispatch below owns it — which is what
 keeps `Math` and the callable globals folding. Reading a name to decide that is a
-[speculative read](#speculative-read).
+[speculative read](#speculative-read). A receiver naming one of those globals is
+handed back the same way, but only where it is the call the caller asked about: a
+static _inside_ a chain is a link nothing else is ever handed, so handing it back
+would take the whole chain down with it. Nested, the engine answers it, and the
+names the reference compiler refuses — the nondeterministic and mutating statics
+it lists — are refused here with it.
 _Avoid_: whitelist, allowlist, filter, validator
 
 **Transport**:
@@ -135,16 +140,23 @@ source stays the size of the expression however large the value is — so the va
 carries a size bound of its own.
 _Avoid_: injection, substitution, interpolation, binding the engine
 
-**Carryable string**:
-The one value shape the bridge carries inward today. Every other shape the
-evaluator can answer — an array, a plain object, a number, a function
-configuration, an unresolved theme reference — is handed back rather than
-refused, so the dispatch below keeps answering for it. It is also the inward
-nesting bound: a string is one level deep by construction and a value that nests
-at all is refused for not being one. A theme reference therefore crosses only as
-the `var(--…)` string it already resolved to, because resolving it is what mutates
-compiler state and that happens before the bridge.
-_Avoid_: primitive, scalar, serialisable
+**Carried value**:
+A value the bridge copies inward: a string, a number, a boolean, `null`, an
+array, or a plain object, nested to any depth of those. Everything else the
+evaluator can answer — a function configuration, a callback, the environment
+object, an unresolved theme reference, an AST-keyed map — is handed back rather
+than refused, so the dispatch below keeps answering for it. A theme reference
+therefore crosses only as the `var(--…)` string it already resolved to, because
+resolving it is what mutates compiler state and that happens before the bridge.
+
+What a _name_ may hold is narrower than what the bridge carries, and
+deliberately: a number and a boolean cross as an element or a property, where
+they are part of the value the receiver is, but a name holding one alone is a
+receiver of its own and `Number.prototype` is not reachable yet. The bounds are
+counted on the value rather than on the syntax that named it — a name is three
+characters whatever it holds — and counted across every name one fold carries,
+in text, in entries and in nesting.
+_Avoid_: primitive, scalar, serialisable, carryable string
 
 **Speculative read**:
 Resolving a name to decide whether a fold is _possible_, as opposed to folding.

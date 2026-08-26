@@ -698,10 +698,6 @@ pub(in super::super) fn evaluate(
 
             let prop_name = prop_ident.sym.to_string();
 
-            if is_mutating_array_method(property) {
-              return deopt(path, state, NON_CONSTANT);
-            }
-
             let Some(value) = parsed_obj.value else {
               deopt_unsupported!(
                 path,
@@ -714,6 +710,33 @@ pub(in super::super) fn evaluate(
               );
             };
 
+            // A string or an array reaching this dispatch means the fold
+            // declined the call, and the whole of both prototypes folds there —
+            // so what is left is a call whose receiver or arguments hold
+            // something with no compile-time value, or a shape the fold's guard
+            // does not read. The evaluator answers an array in two shapes, its
+            // own list and the literal it was written as, and the two arms that
+            // answered for them separately are what let `join` be known for one
+            // and unknown for the other; one arm cannot disagree with itself.
+            //
+            // The arguments are evaluated first because a spread reads the same
+            // sentence whatever the callee, and the shared argument evaluation
+            // is what owns that sentence.
+            //
+            // An object receiver is deliberately not among them, though the
+            // fold carries one inward: this is a claim about which prototypes
+            // the fold owns whole, and the object arm below is where a folded
+            // function map's own methods are looked up.
+            if matches!(
+              &value,
+              EvaluateResultValue::Vec(_)
+                | EvaluateResultValue::Expr(Expr::Array(_) | Expr::Lit(Lit::Str(_)))
+            ) {
+              evaluate_func_call_args(call, state, traversal_state, fns)?;
+
+              deopt_unsupported!(path, state, &unfoldable_call(&prop_name))
+            }
+
             match value.clone() {
               EvaluateResultValue::Map(map) => {
                 let result_fn = map.get(&Expr::from(prop_ident.clone()));
@@ -723,88 +746,7 @@ pub(in super::super) fn evaluate(
                   None => None,
                 };
               },
-              EvaluateResultValue::Vec(expr) => {
-                let callback_type = match ArrayJS::try_from(prop_name.as_str()) {
-                  Ok(array_method) => CallbackType::Array(array_method),
-                  Err(()) => match ObjectJS::try_from(prop_name.as_str()) {
-                    Ok(ObjectJS::Entries) => CallbackType::Object(ObjectJS::Entries),
-                    _ => deopt_unsupported!(
-                      path,
-                      state,
-                      format!(
-                        "The array method '{}' is not yet supported in static evaluation.",
-                        prop_name
-                      )
-                      .as_str()
-                    ),
-                  },
-                };
-
-                func = Some(Box::new(FunctionConfig {
-                  fn_ptr: FunctionType::Callback(Box::new(callback_type)),
-                  takes_path: false,
-                }));
-
-                context = Some(expr)
-              },
               EvaluateResultValue::Expr(expr) => match expr {
-                Expr::Array(ArrayLit { elems, .. }) => {
-                  let callback_type = match ArrayJS::try_from(prop_name.as_str()) {
-                    Ok(array_method @ (ArrayJS::Map | ArrayJS::Filter)) => {
-                      CallbackType::Array(array_method)
-                    },
-                    Ok(ArrayJS::Join) | Err(()) => match ObjectJS::try_from(prop_name.as_str()) {
-                      Ok(ObjectJS::Entries) => CallbackType::Object(ObjectJS::Entries),
-                      _ => deopt_unsupported!(
-                        path,
-                        state,
-                        format!(
-                          "The method '{}' is not yet supported in static evaluation.",
-                          prop_name
-                        )
-                        .as_str()
-                      ),
-                    },
-                  };
-
-                  func = Some(Box::new(FunctionConfig {
-                    fn_ptr: FunctionType::Callback(Box::new(callback_type)),
-                    takes_path: false,
-                  }));
-
-                  let mut receiver = Vec::with_capacity(elems.len());
-
-                  for elem in elems {
-                    // A hole is `undefined`, which the array methods below
-                    // join as the empty string. They do not carry one, so
-                    // folding `[, 1].join('-')` would write `"1"` where
-                    // JavaScript gives `"-1"` — a wrong value, where a refusal
-                    // costs only a declaration that falls to the runtime.
-                    let Some(elem) = elem else {
-                      deopt_unsupported!(path, state, ILLEGAL_PROP_ARRAY_VALUE);
-                    };
-
-                    receiver.push(EvaluateResultValue::Expr(*elem.expr.clone()));
-                  }
-
-                  context = Some(vec![EvaluateResultValue::Vec(receiver)]);
-                },
-                // A string receiver reaching here at all means the fold declined
-                // the call, and the whole of `String.prototype` folds there — so
-                // what is left is a call whose *arguments* hold something with no
-                // compile-time value. The two methods this arm used to carry are
-                // gone with the name table they were looked up in: a table is
-                // finite by construction, and the method it does not list was the
-                // next bug report.
-                Expr::Lit(Lit::Str(_)) => {
-                  // A spread reads the same sentence whatever the callee, and
-                  // the shared argument evaluation is what owns that sentence —
-                  // so it is asked first rather than the rule being restated
-                  // here. Anything it accepts is refused by name below.
-                  evaluate_func_call_args(call, state, traversal_state, fns)?;
-
-                  deopt_unsupported!(path, state, &unfoldable_call(&prop_name))
-                },
                 Expr::Object(object) => {
                   let key_values = get_key_values_from_object(&object);
 
@@ -1092,30 +1034,6 @@ pub(in super::super) fn evaluate(
           };
 
           match func.as_ref() {
-            CallbackType::Array(ArrayJS::Map) => {
-              let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
-
-              return evaluate_map(&args, &context, traversal_state);
-            },
-            CallbackType::Array(ArrayJS::Filter) => {
-              let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
-
-              return evaluate_filter(&args, &context, traversal_state);
-            },
-            CallbackType::Array(ArrayJS::Join) => {
-              let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
-
-              let Some(joined) = evaluate_join(&args, &context, traversal_state, &state.functions)
-              else {
-                deopt_unsupported!(
-                  path,
-                  state,
-                  "join() requires a string separator and elements that are strings."
-                );
-              };
-
-              return Some(joined);
-            },
             CallbackType::Object(ObjectJS::Entries) => {
               let Some(EvaluateResultValue::Entries(entries)) = context.first() else {
                 deopt_unsupported!(path, state, "Object.entries() requires an object argument.");

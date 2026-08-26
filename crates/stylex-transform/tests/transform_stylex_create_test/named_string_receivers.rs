@@ -16,28 +16,8 @@
 
 use crate::utils::{
   prelude::*,
-  transform::{base_style_module as module, fold_module as fold},
+  transform::{assert_folds, assert_refuses, base_style_module as module, fold_module as fold},
 };
-
-/// One `stylex.create` module of declarations and one style, folded, asserting
-/// the rule the reference compiler measured.
-///
-/// Every case is the same three things — the bindings, the declaration, the
-/// measured rule — so they are written as data and read by one function rather
-/// than as thirty copies of the same three lines.
-#[track_caller]
-fn assert_folds(decls: &str, body: &str, rule: &str) {
-  let output = fold(&module(decls, body));
-
-  assert!(
-    output.contains(rule),
-    "expected `{}` with `{}` to emit `{}`, got:\n{}",
-    body,
-    decls,
-    rule,
-    output
-  );
-}
 
 // ──────────────────────────────────────────────
 // The prototype surface, on a name
@@ -499,14 +479,12 @@ fn a_call_on_a_dynamic_parameter_is_still_left_to_the_runtime() {
 
 /// A name bound to something the bridge does not carry is handed back rather
 /// than refused, so the dispatch that owns those values keeps answering for
-/// them. Only a string crosses today; ticket 06 is where an array does.
+/// them. A string, an array and a plain object cross; a name holding a number
+/// alone is a receiver `Number.prototype` has yet to be reachable on.
 #[test]
-#[should_panic(expected = "base > content > join() requires a string separator")]
+#[should_panic(expected = "base > content > Unsupported expression: NumericLiteral")]
 fn a_name_bound_to_a_value_the_bridge_cannot_carry_is_handed_back() {
-  fold(&module(
-    "const parts = [['a'], ['b']];",
-    "content: parts.join(''),",
-  ));
+  fold(&module("const size = 5;", "content: size.toFixed(1),"));
 }
 
 /// A value longer than the fold will carry is refused on the way *in*, naming
@@ -612,28 +590,7 @@ fn a_name_cannot_carry_a_value_past_a_rule() {
   ];
 
   for (decls, body, sentence) in refusals {
-    let refusal = std::panic::catch_unwind(|| fold(&module(decls, body)));
-
-    let Err(payload) = refusal else {
-      panic!("expected `{}` with `{}` to refuse", body, decls);
-    };
-
-    let said = match payload.downcast_ref::<String>() {
-      Some(message) => message.clone(),
-      None => match payload.downcast_ref::<&str>() {
-        Some(message) => (*message).to_string(),
-        None => panic!("the refusal of `{}` carried no message", body),
-      },
-    };
-
-    assert!(
-      said.contains(sentence),
-      "expected `{}` with `{}` to refuse with `{}`, got `{}`",
-      body,
-      decls,
-      sentence,
-      said
-    );
+    assert_refuses(decls, body, sentence);
   }
 }
 

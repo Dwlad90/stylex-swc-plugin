@@ -16,6 +16,32 @@ use swc_core::{
     visit::{Fold, FoldWith, fold_pass},
   },
 };
+/// An evaluated list as the array literal it stands for, at every depth.
+///
+/// A nested list is a list of its own — an array literal evaluates to one
+/// element per element, whatever those elements are — so the rendering has to
+/// recurse or a nested array prints as a hole. Written once here because both
+/// harnesses below render the same shape.
+fn render_array(items: &[EvaluateResultValue]) -> Expr {
+  Expr::from(ArrayLit {
+    span: DUMMY_SP,
+    elems: items
+      .iter()
+      .map(|value| match value {
+        EvaluateResultValue::Null => None,
+        EvaluateResultValue::Vec(nested) => Some(ExprOrSpread {
+          spread: None,
+          expr: Box::new(render_array(nested)),
+        }),
+        value => value.as_expr().map(|expr| ExprOrSpread {
+          spread: None,
+          expr: Box::new(expr.clone()),
+        }),
+      })
+      .collect(),
+  })
+}
+
 pub(crate) struct EvaluationStyleXFirstStatementTransform {
   pub(crate) functions: FunctionMap,
   pub(crate) state: StateManager,
@@ -79,19 +105,7 @@ impl Fold for EvaluationStyleXFirstStatementTransform {
     match evaluate_result.value {
       Some(value) => match value {
         EvaluateResultValue::Expr(expr) => expr,
-        EvaluateResultValue::Vec(vec) => Expr::from(ArrayLit {
-          span: DUMMY_SP,
-          elems: vec
-            .iter()
-            .map(|value| match value {
-              EvaluateResultValue::Null => None,
-              value => value.as_expr().map(|expr| ExprOrSpread {
-                spread: None,
-                expr: Box::new(expr.clone()),
-              }),
-            })
-            .collect(),
-        }),
+        EvaluateResultValue::Vec(vec) => render_array(&vec),
         EvaluateResultValue::Callback(func) => func(
           vec![
             EvaluateResultValue::Expr(create_number_expr(2.0)),
@@ -191,19 +205,7 @@ impl EvaluationStyleXLastStatementTransform {
     match evaluate_result.value {
       Some(value) => match value {
         EvaluateResultValue::Expr(expr) => expr,
-        EvaluateResultValue::Vec(vec) => Expr::from(ArrayLit {
-          span: DUMMY_SP,
-          elems: vec
-            .iter()
-            .map(|value| match value {
-              EvaluateResultValue::Null => None,
-              value => value.as_expr().map(|expr| ExprOrSpread {
-                spread: None,
-                expr: Box::new(expr.clone()),
-              }),
-            })
-            .collect(),
-        }),
+        EvaluateResultValue::Vec(vec) => render_array(&vec),
         EvaluateResultValue::Callback(func) => func(
           vec![
             EvaluateResultValue::Expr(create_number_expr(2.0)),

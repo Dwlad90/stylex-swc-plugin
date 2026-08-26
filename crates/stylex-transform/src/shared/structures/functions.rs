@@ -8,7 +8,7 @@ use crate::shared::{
   structures::{theme_ref::ThemeRef, types::FlatCompiledStyles},
 };
 use stylex_enums::{
-  js::{ArrayJS, CallableGlobalJS, MathJS, ObjectJS},
+  js::{CallableGlobalJS, MathJS, ObjectJS},
   value_with_default::ValueWithDefault,
 };
 
@@ -19,7 +19,6 @@ use stylex_types::traits::StyleOptions;
 
 #[derive(Debug, Hash, PartialEq, Clone)]
 pub enum CallbackType {
-  Array(ArrayJS),
   Object(ObjectJS),
   Math(MathJS),
   /// A call to the global itself — `String(x)` — rather than to one of its

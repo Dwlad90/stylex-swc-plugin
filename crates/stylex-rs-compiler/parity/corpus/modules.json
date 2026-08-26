@@ -1888,7 +1888,8 @@
       "label": "a mutated binding read as a method receiver, above and below the mutation",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nconst parts = ['b', 'a'];\n\nexport const styles = stylex.create({\n  s0: { transitionProperty: parts.join(',') },\n});\n\nparts.sort();\n",
       "origin": "the rule that replaces the mutating-method refusal",
-      "note": "The mutation disqualifies the binding, not the method, and it does so for the whole file: this read sits *above* the `sort()` and still refuses on both compilers. Upstream's mutation test walks a binding's references with no position check, so agreeing here is what keeps the two builds from naming different classes for one authored style. `modules-06-mutating-array-method` is the same method with no binding involved, where both fold."
+      "expected": "both-reject-divergent",
+      "note": "The mutation disqualifies the binding, not the method, and it does so for the whole file: this read sits *above* the `sort()` and still refuses on both compilers. Upstream's mutation test walks a binding's references with no position check, so agreeing here is what keeps the two builds from naming different classes for one authored style. `modules-06-mutating-array-method` is the same method with no binding involved, where both fold. Both refuse, in different words: upstream reports `Unsupported expression: CallExpression`, having dropped the receiver's own reason with the state it evaluated it under, where this compiler carries the rule up and names the binding. Message text is not a parity obligation, and the sentence that names the rule is the better one."
     },
     {
       "id": "modules-folded-object-as-a-condition-object",

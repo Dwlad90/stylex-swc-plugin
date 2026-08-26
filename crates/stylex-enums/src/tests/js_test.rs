@@ -1,12 +1,4 @@
-use super::{ArrayJS, CallableGlobalJS, MathJS, ObjectJS};
-
-#[test]
-fn array_js_try_from_maps_known_methods() {
-  assert_eq!(ArrayJS::try_from("map"), Ok(ArrayJS::Map));
-  assert_eq!(ArrayJS::try_from("filter"), Ok(ArrayJS::Filter));
-  assert_eq!(ArrayJS::try_from("join"), Ok(ArrayJS::Join));
-  assert_eq!(ArrayJS::try_from("reduce"), Err(()));
-}
+use super::{CallableGlobalJS, MathJS, ObjectJS};
 
 #[test]
 fn object_js_try_from_maps_known_methods() {

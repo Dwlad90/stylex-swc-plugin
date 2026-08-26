@@ -56,7 +56,6 @@ use crate::shared::{
       assign_props, get_import_by_ident, get_var_decl_from, get_var_decl_parts_by_ident,
       order_own_keys, remove_duplicates,
     },
-    js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
   },
 };
 use stylex_ast::ast::convertors::{is_js_undefined, normalize_expr};
@@ -83,15 +82,15 @@ use stylex_constants::constants::{
 };
 use stylex_enums::{
   import_path_resolution::ImportPathResolution,
-  js::{ArrayJS, CallableGlobalJS, MathJS, ObjectJS},
+  js::{CallableGlobalJS, MathJS, ObjectJS},
   misc::BinaryExprType,
   value_with_default::ValueWithDefault,
 };
 use stylex_js::coercions;
 use stylex_js::coercions::{global_identifier_to_value, is_global_spelled_as_an_identifier};
 use stylex_js::helpers::{
-  get_callee_name, get_method_name, is_id_prop, is_invalid_method, is_mutating_array_method,
-  is_mutating_object_method, is_mutation_expr, is_valid_callee,
+  get_callee_name, get_method_name, is_id_prop, is_invalid_method, is_mutating_object_method,
+  is_mutation_expr, is_valid_callee,
 };
 use stylex_structures::{named_import_source::ImportSources, stylex_env::EnvEntry};
 use stylex_utils::{

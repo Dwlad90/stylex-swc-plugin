@@ -1,24 +1,4 @@
 #[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
-pub enum ArrayJS {
-  Map,
-  Filter,
-  Join,
-}
-
-impl TryFrom<&str> for ArrayJS {
-  type Error = ();
-
-  fn try_from(value: &str) -> Result<Self, Self::Error> {
-    match value {
-      "map" => Ok(ArrayJS::Map),
-      "filter" => Ok(ArrayJS::Filter),
-      "join" => Ok(ArrayJS::Join),
-      _ => Err(()),
-    }
-  }
-}
-
-#[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
 pub enum ObjectJS {
   Entries,
   Keys,

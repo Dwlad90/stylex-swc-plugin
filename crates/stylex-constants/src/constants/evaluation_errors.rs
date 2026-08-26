@@ -315,6 +315,24 @@ pub fn bound_value_too_large(name: &str, limit: f64) -> String {
   )
 }
 
+/// A binding whose resolved value carries more entries than the fold will copy
+/// into the engine.
+///
+/// [`bound_value_too_large`] bounds the text a value holds; this bounds how many
+/// elements and properties hold it, because those are two costs rather than one:
+/// a thousand empty arrays are no text at all and still a thousand values to
+/// build in the engine. Bounded by the number that bounds a folded array on the
+/// way out, since it is the same count measured on the other side.
+///
+/// Names the binding for the reason [`bound_value_too_large`] does: the size
+/// belongs to what the name holds, and the same call on a smaller value folds.
+pub fn bound_value_has_too_many_entries(name: &str, limit: u64) -> String {
+  format!(
+    "Cannot carry the value of '{}' into a fold.\nAt most {} elements and properties are supported.\n\n",
+    name, limit
+  )
+}
+
 /// A printed fold that did not evaluate to the function it was printed as.
 ///
 /// The fold prints its expression as an arrow and calls it, so the value the

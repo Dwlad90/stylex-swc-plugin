@@ -30,7 +30,8 @@
 use std::{borrow::Cow, cell::RefCell, mem::ManuallyDrop};
 
 use boa_engine::{
-  Context, JsError, JsObject, JsResult, JsString, JsValue, Source, js_string, property::PropertyKey,
+  Context, JsError, JsObject, JsResult, JsString, JsValue, Source, js_string,
+  object::builtins::JsArray, property::PropertyKey,
 };
 use swc_core::{
   atoms::{Atom, Wtf8Atom},
@@ -51,12 +52,14 @@ use stylex_ast::ast::factories::{
   create_ident_key_value_prop, create_object_lit,
 };
 use stylex_constants::constants::evaluation_errors::{
-  amplification_inside_a_callback, array_length_too_large, bound_value_too_large, engine_threw,
-  escaping_property, expression_too_deep, folded_string_too_large, locale_sensitive_method,
-  numeric_literal_receiver, object_size_too_large, unbounded_amplified_length,
-  uncallable_printed_fold, unfoldable_fold_result,
+  amplification_inside_a_callback, array_length_too_large, bound_value_has_too_many_entries,
+  bound_value_too_large, engine_threw, escaping_property, expression_too_deep,
+  folded_string_too_large, locale_sensitive_method, numeric_literal_receiver,
+  object_size_too_large, unbounded_amplified_length, uncallable_printed_fold,
+  unfoldable_fold_result,
 };
-use stylex_js::helpers::is_valid_callee;
+use stylex_js::helpers::{is_invalid_method, is_valid_callee};
+use stylex_utils::number::to_js_string;
 
 use super::{evaluate_cached, evaluate_result_vec_to_array_expr, helpers::get_binding};
 use crate::shared::{
@@ -164,10 +167,12 @@ const MAX_LOOP_ITERATIONS: u64 = 10_000_000;
 /// Whether `name` is one of the names in `list`.
 ///
 /// The lists above are three to four entries, so a scan beats any structure
-/// that would have to hash first, and one function keeps the four call sites
-/// from each spelling the double reference their own way.
-fn lists(list: &[&str], name: &Atom) -> bool {
-  list.contains(&&**name)
+/// that would have to hash first, and one function keeps every call site from
+/// spelling the double reference its own way. Takes a `&str` so a name read off
+/// a member property and one read out of a string literal ask the same question
+/// rather than one of them reaching past the helper.
+fn lists(list: &[&str], name: &str) -> bool {
+  list.contains(&name)
 }
 
 thread_local! {
@@ -232,10 +237,10 @@ enum Scope<'a> {
 
 /// How much nesting is left, and the one refusal spent at the bottom of it.
 ///
-/// Both directions across the bridge count the same budget for the same
-/// reason — the walk in recurses on the bare thread stack and so does the
-/// conversion out — so they share the counter and the sentence rather than
-/// keeping two that could drift apart.
+/// Every walk across the bridge counts the same budget for the same reason —
+/// the guard's walk in, the conversion of a value it resolved, and the
+/// conversion out all recurse on the bare thread stack — so they share the
+/// counter and the sentence rather than keeping three that could drift apart.
 ///
 /// Reaching the bottom is a refusal and not a "not mine", which is the one
 /// place the two are worth telling apart. This bound is the engine parser's
@@ -266,18 +271,27 @@ impl Depth {
 }
 
 /// What the guard carries as it walks: where a bare identifier may come from,
-/// and how much nesting is left before the expression is refused as too deep.
+/// how much nesting is left before the expression is refused as too deep, and
+/// whether the call being looked at is the one the caller asked about.
 #[derive(Clone, Copy)]
 struct Guard<'a> {
   scope: Scope<'a>,
   depth: Depth,
+  /// Whether nothing has been descended into yet — so the call under
+  /// examination is the whole of what the caller asked to fold, rather than a
+  /// receiver or an argument inside it. The one rule that turns on it is the
+  /// hand-back in [`admit_call`], which exists to let the dispatch below answer
+  /// for a call of its own and so has nothing to say about a link the dispatch
+  /// will never be asked about.
+  outermost: bool,
 }
 
 impl<'a> Guard<'a> {
-  /// The guard one level in.
+  /// The guard one level in, where nothing is the outermost call any more.
   fn descend(self) -> Result<Self, Decline> {
     Ok(Self {
       depth: self.depth.descend()?,
+      outermost: false,
       ..self
     })
   }
@@ -311,11 +325,12 @@ impl<'a> Guard<'a> {
 #[derive(Default)]
 struct Transport {
   params: Vec<Atom>,
-  values: Vec<Wtf8Atom>,
+  values: Vec<Carried>,
+  totals: Totals,
 }
 
 impl Transport {
-  /// Records `value` under `name`, or does nothing where the name is already
+  /// Records what `name` resolves to, or does nothing where the name is already
   /// carried.
   ///
   /// One parameter per name however often the expression reads it, because a
@@ -324,55 +339,275 @@ impl Transport {
   /// dropping it loses nothing. A scan rather than a set, because an expression
   /// carries a handful of names and hashing them would cost more than comparing
   /// them.
-  fn bind(&mut self, name: &Atom, value: Wtf8Atom) {
+  ///
+  /// The value is converted here rather than when the engine is in hand, so a
+  /// value past a bound refuses before anything is printed or built. What comes
+  /// out is [`Carried`]: the shapes the bridge carries, measured, and not yet
+  /// the engine's own values.
+  fn bind(&mut self, name: &Atom, value: &EvaluateResultValue) -> Result<(), Decline> {
     if self.params.contains(name) {
-      return;
+      return Ok(());
     }
 
+    let carried = Inward {
+      name,
+      totals: &mut self.totals,
+    }
+    .value(value, Depth::FULL)?;
+
     self.params.push(name.clone());
-    self.values.push(value);
+    self.values.push(carried);
+
+    Ok(())
   }
 
-  /// The resolved values as the arguments the printed arrow is called with,
-  /// bounded.
+  /// The carried values as the arguments the printed arrow is called with.
   ///
-  /// The bound is on the value rather than on the syntax that named it, which is
-  /// the whole reason it is applied here: a name is three characters whatever it
-  /// holds, so the printed expression says nothing about how much is about to be
-  /// copied into the engine. Bounded by the number that bounds a folded string
-  /// on the way out, because it is the same measurement on the other side.
-  ///
-  /// Nesting needs no bound of its own while a resolved value crosses only as a
-  /// string: a string is one level deep by construction, and a value that is
-  /// nested at all is refused for not being one.
-  ///
-  /// Bounded on the running total and not on each value, because what is about to
-  /// be copied into the engine is all of them: eight names each one code unit
-  /// under the limit is eight megabytes, and a per-value check would wave every
-  /// one of them through. The name reported is the one that crossed the line,
-  /// which is the one an author can shorten.
-  fn arguments(&self) -> Result<Vec<JsValue>, Decline> {
+  /// Built with the engine in hand, because an array and an object are engine
+  /// objects and there is no way to make one without it. Everything that could
+  /// refuse was answered when the value was carried, so this step only builds.
+  fn arguments(&self, engine: &mut Context, method: &Atom) -> Result<Vec<JsValue>, Decline> {
     let mut arguments = Vec::with_capacity(self.values.len());
-    let mut carried = 0u64;
 
-    for (name, value) in self.params.iter().zip(&self.values) {
-      // Counted in UTF-16 code units, which is what the engine's own strings are
-      // measured in and what bounds a folded string on the way out. Saturating
-      // because the sum is a bound to refuse on, and a wrapped one would admit.
-      carried = carried.saturating_add(atom_utf16_length(value) as u64);
-
-      if carried as f64 > MAX_AMPLIFIED_LENGTH {
-        return Err(Decline::rule(bound_value_too_large(
-          name,
-          MAX_AMPLIFIED_LENGTH,
-        )));
-      }
-
-      arguments.push(JsValue::from(carry_string(value)));
+    for value in &self.values {
+      arguments.push(to_js(value, engine, method)?);
     }
 
     Ok(arguments)
   }
+}
+
+/// A resolved value on its way into the engine, in the shapes the bridge
+/// carries.
+///
+/// A tree of the bridge's own rather than the evaluator's value or the engine's.
+/// The evaluator's can be walked with no engine in hand, which is what lets
+/// every bound be answered before one is built; the engine's cannot exist until
+/// it is. So a value crosses in two steps, and this is what stands between them.
+///
+/// Refused in both directions, as stated rules rather than omissions: function
+/// configurations, callbacks, the environment object, an unresolved theme
+/// reference, and the AST-keyed map variants. A theme reference therefore
+/// crosses only as the `var(--…)` string it already resolved to, because
+/// resolving it is what mutates compiler state and that happens before the
+/// bridge.
+enum Carried {
+  Str(Wtf8Atom),
+  Num(f64),
+  Bool(bool),
+  Null,
+  List(Vec<Carried>),
+  Object(Vec<(Wtf8Atom, Carried)>),
+}
+
+/// How much one fold has already promised to copy into the engine.
+///
+/// Counted across every name a fold carries rather than per name, because what
+/// is about to be copied is all of them: eight names each one unit under the
+/// limit is eight times the limit, and a per-value check would wave every one of
+/// them through.
+///
+/// Two counts, because a value costs in two ways that do not stand in for each
+/// other. A thousand empty arrays hold no text at all and are still a thousand
+/// values to build; a single string is one entry and can be a megabyte.
+#[derive(Default)]
+struct Totals {
+  /// UTF-16 code units of every string and key carried — the unit the engine's
+  /// own strings are measured in, and the one that bounds a folded string on the
+  /// way out.
+  units: u64,
+  /// Array elements and object properties carried.
+  entries: u64,
+}
+
+/// What the inward conversion carries: the name whose value is crossing, so a
+/// bound can say which binding to shorten, and the totals it counts against.
+struct Inward<'a> {
+  name: &'a Atom,
+  totals: &'a mut Totals,
+}
+
+impl Inward<'_> {
+  /// One value the evaluator answered as the bridge's own, or the reason it does
+  /// not cross.
+  ///
+  /// A shape the bridge does not carry is not a refusal. The dispatch below the
+  /// fold owns those values and answers for them, and a rule fired here would
+  /// stop it ever being asked.
+  fn value(&mut self, value: &EvaluateResultValue, depth: Depth) -> Result<Carried, Decline> {
+    match value {
+      EvaluateResultValue::Expr(expr) => self.expr(expr, depth),
+      // The evaluator answers an array either as a list of its own or as the
+      // array literal it was written as. Both are one array here, which is the
+      // whole of why the two dispatch arms that carried the array methods could
+      // disagree about which names they knew: they were answering for the same
+      // value in two shapes.
+      EvaluateResultValue::Vec(items) => {
+        let inner = depth.descend()?;
+
+        self.count(items.len())?;
+
+        let mut list = Vec::with_capacity(items.len());
+
+        for item in items {
+          list.push(self.value(item, inner)?);
+        }
+
+        Ok(Carried::List(list))
+      },
+      _ => Err(Decline::NotACandidate),
+    }
+  }
+
+  /// One evaluated expression as the bridge's own value.
+  ///
+  /// One level of the budget per node, leaves included, exactly as the guard's
+  /// own walk spends it — the two walk the same shapes and would otherwise
+  /// disagree about how deep the same value is.
+  fn expr(&mut self, expr: &Expr, depth: Depth) -> Result<Carried, Decline> {
+    let inner = depth.descend()?;
+
+    match expr {
+      Expr::Lit(Lit::Str(text)) => Ok(Carried::Str(self.text(&text.value)?)),
+      Expr::Lit(Lit::Num(number)) => Ok(Carried::Num(number.value)),
+      Expr::Lit(Lit::Bool(truth)) => Ok(Carried::Bool(truth.value)),
+      Expr::Lit(Lit::Null(_)) => Ok(Carried::Null),
+      Expr::Array(ArrayLit { elems, .. }) => {
+        self.count(elems.len())?;
+
+        let mut list = Vec::with_capacity(elems.len());
+
+        for elem in elems {
+          // A hole is `undefined` and a spread was refused where it was
+          // written, so neither reaches a fold: the reference compiler refuses
+          // a method call on both, and folding a hole as anything at all would
+          // write a value the source does not describe.
+          let Some(ExprOrSpread { spread: None, expr }) = elem else {
+            return Err(Decline::NotACandidate);
+          };
+
+          list.push(self.expr(expr, inner)?);
+        }
+
+        Ok(Carried::List(list))
+      },
+      Expr::Object(ObjectLit { props, .. }) => {
+        self.count(props.len())?;
+
+        let mut entries = Vec::with_capacity(props.len());
+
+        for prop in props {
+          let PropOrSpread::Prop(prop) = prop else {
+            return Err(Decline::NotACandidate);
+          };
+
+          let Prop::KeyValue(KeyValueProp { key, value }) = prop.as_ref() else {
+            return Err(Decline::NotACandidate);
+          };
+
+          entries.push((self.key(key)?, self.expr(value, inner)?));
+        }
+
+        Ok(Carried::Object(entries))
+      },
+      _ => Err(Decline::NotACandidate),
+    }
+  }
+
+  /// A property name as the string the language reads it as.
+  fn key(&mut self, key: &PropName) -> Result<Wtf8Atom, Decline> {
+    let name = match key {
+      PropName::Ident(name) => Wtf8Atom::from(&*name.sym),
+      PropName::Str(name) => name.value.clone(),
+      // A numeric key names the property its own string form spells, read by
+      // the conversion every other number-to-string in this compiler uses
+      // rather than by a spelling of its own.
+      PropName::Num(number) => Wtf8Atom::from(to_js_string(number.value).as_str()),
+      // A computed key was evaluated before it reached a value, and a BigInt is
+      // not a value this bridge carries in any position.
+      _ => return Err(Decline::NotACandidate),
+    };
+
+    self.text(&name)
+  }
+
+  /// One string, counted against what this fold may copy in.
+  fn text(&mut self, text: &Wtf8Atom) -> Result<Wtf8Atom, Decline> {
+    // Saturating because the sum exists to be refused on, and a wrapped one
+    // would admit.
+    self.totals.units = self
+      .totals
+      .units
+      .saturating_add(atom_utf16_length(text) as u64);
+
+    if self.totals.units as f64 > MAX_AMPLIFIED_LENGTH {
+      return Err(Decline::rule(bound_value_too_large(
+        self.name,
+        MAX_AMPLIFIED_LENGTH,
+      )));
+    }
+
+    Ok(text.clone())
+  }
+
+  /// Some elements or properties, counted against the same budget.
+  ///
+  /// Counted before they are walked, so a list past the bound refuses without
+  /// first converting every entry in it.
+  fn count(&mut self, entries: usize) -> Result<(), Decline> {
+    self.totals.entries = self.totals.entries.saturating_add(entries as u64);
+
+    if self.totals.entries > MAX_FOLDED_ENTRIES {
+      return Err(Decline::rule(bound_value_has_too_many_entries(
+        self.name,
+        MAX_FOLDED_ENTRIES,
+      )));
+    }
+
+    Ok(())
+  }
+}
+
+/// One carried value as the engine's own, under the name of the method whose
+/// fold it is about to be an argument to.
+///
+/// Needs no bound of its own: what it walks was bounded when it was carried, in
+/// text, in entries and in nesting, and nothing has been added to it since.
+fn to_js(carried: &Carried, engine: &mut Context, method: &Atom) -> Result<JsValue, Decline> {
+  let value = match carried {
+    Carried::Str(text) => JsValue::from(carry_string(text)),
+    Carried::Num(number) => JsValue::from(*number),
+    Carried::Bool(truth) => JsValue::from(*truth),
+    Carried::Null => JsValue::null(),
+    Carried::List(items) => {
+      let mut values = Vec::with_capacity(items.len());
+
+      for item in items {
+        values.push(to_js(item, engine, method)?);
+      }
+
+      JsValue::from(JsArray::from_iter(values, engine))
+    },
+    Carried::Object(entries) => {
+      let object = JsObject::with_object_proto(engine.intrinsics());
+
+      for (key, value) in entries {
+        let value = to_js(value, engine, method)?;
+
+        // A fresh ordinary object takes a data property without complaint, so
+        // the throw is unreachable — and answered rather than asserted, because
+        // this runs inside an evaluation whose whole contract is that it may
+        // fail.
+        read(method, || {
+          object.create_data_property_or_throw(carry_string(key), value, engine)
+        })?;
+      }
+
+      JsValue::from(object)
+    },
+  };
+
+  Ok(value)
 }
 
 /// What the walk needs that the expression does not carry: the evaluator, so a
@@ -386,8 +621,7 @@ struct Reader<'a> {
 }
 
 impl Reader<'_> {
-  /// The string `ident` resolves to, or `None` where it resolves to nothing the
-  /// bridge carries.
+  /// The value `ident` resolves to, or `None` where it resolves to nothing.
   ///
   /// Resolved through the evaluator's own memoised entry point rather than by a
   /// second reading of its own, so a binding this fold reads is the binding
@@ -395,15 +629,12 @@ impl Reader<'_> {
   /// there: a reassigned binding, one mutated in place, and one read above its
   /// own declaration all answer nothing here because they answer nothing there.
   ///
-  /// A string is the only value carried, so a theme reference crosses only as
-  /// the string it already resolved to and never as the reference itself.
-  ///
   /// The read is a speculation and is marked as one, so nothing it refuses is
   /// left behind: the evaluation's confidence and deopt are put back, and the
   /// memo withholds the refusal. A name this module could not read is not a
   /// refusal — the dispatch below owns the call, evaluates the same name itself,
   /// and has to find both the state and the sentence it would have had.
-  fn resolve(&mut self, ident: &Ident) -> Option<Wtf8Atom> {
+  fn resolve(&mut self, ident: &Ident) -> Option<EvaluateResultValue> {
     let reference = Expr::Ident(ident.clone());
     let Reader {
       state,
@@ -418,7 +649,6 @@ impl Reader<'_> {
     speculate(state, traversal_state, |state, traversal_state| {
       evaluate_cached(&reference, state, traversal_state, fns)
     })
-    .and_then(as_carryable_string)
   }
 }
 
@@ -477,17 +707,25 @@ fn carry_string(value: &Wtf8Atom) -> JsString {
   }
 }
 
-/// The string an evaluated value carries, where it carries one.
+/// Whether a *name* may hold this value — a question of its own, and narrower
+/// than what [`Carried`] carries. Narrower, too, than the set of receivers the
+/// dispatch below hands straight back to a refusal: that one is about which
+/// prototypes this module now owns whole, and an object is not among them
+/// because an object receiver is still where a function map's own methods are
+/// looked up.
 ///
-/// Deliberately narrow. Every other shape the evaluator can answer — an array, a
-/// plain object, a number, a function configuration, an unresolved theme
-/// reference — is a value some later ticket widens the bridge to, and admitting
-/// one before its own tests exist would fold it silently.
-fn as_carryable_string(value: EvaluateResultValue) -> Option<Wtf8Atom> {
-  match value {
-    EvaluateResultValue::Expr(Expr::Lit(Lit::Str(string))) => Some(string.value),
-    _ => None,
-  }
+/// A string, an array and a plain object are what a name holds in the shapes
+/// this bridge was proved on. A number and a boolean cross freely as an element
+/// or a property, where they are part of a value the receiver is; standing alone
+/// they are a receiver of their own, and `Number.prototype` on a named receiver
+/// is ticket 08 — which owns the refusal that has to survive it, since a method
+/// call on a number *written out* must keep failing in both compilers.
+fn is_a_carryable_receiver(value: &EvaluateResultValue) -> bool {
+  matches!(
+    value,
+    EvaluateResultValue::Vec(_)
+      | EvaluateResultValue::Expr(Expr::Lit(Lit::Str(_)) | Expr::Array(_) | Expr::Object(_))
+  )
 }
 
 /// Folds `call` through the engine.
@@ -505,6 +743,7 @@ pub(crate) fn try_fold(
   let guard = Guard {
     scope: Scope::Module,
     depth: Depth::FULL,
+    outermost: true,
   };
 
   let mut reader = Reader {
@@ -528,7 +767,6 @@ fn fold(
 ) -> Result<EvaluateResultValue, Decline> {
   let method = admit_call(call, guard, reader)?;
 
-  let arguments = reader.transport.arguments()?;
   let source = print_fold(call, &reader.transport.params);
 
   ENGINE.with_borrow_mut(|slot| {
@@ -545,7 +783,10 @@ fn fold(
       depth: Depth::FULL,
     };
 
-    let folded = apply(&source, &arguments, &mut engine, outward)
+    let folded = reader
+      .transport
+      .arguments(&mut engine, method)
+      .and_then(|arguments| apply(&source, &arguments, &mut engine, outward))
       .and_then(|value| to_value(&value, &mut engine, outward));
 
     *slot = Some(engine);
@@ -586,7 +827,7 @@ fn apply(
 ) -> Result<JsValue, Decline> {
   let evaluated = engine
     .eval(Source::from_bytes(source))
-    .map_err(|error| outward.threw(&error))?;
+    .map_err(|error| threw(outward.method, &error))?;
 
   if arguments.is_empty() {
     return Ok(evaluated);
@@ -598,7 +839,7 @@ fn apply(
 
   callable
     .call(&JsValue::undefined(), arguments, engine)
-    .map_err(|error| outward.threw(&error))
+    .map_err(|error| threw(outward.method, &error))
 }
 
 /// Whether this thread is holding an engine — the observable half of "built on
@@ -661,12 +902,17 @@ impl Outward<'_> {
       ..self
     })
   }
+}
 
-  /// A throw, in the engine's own words under this compiler's naming of the
-  /// call that produced it.
-  fn threw(self, error: &JsError) -> Decline {
-    Decline::rule(engine_threw(self.method, &error.to_string()))
-  }
+/// A throw, in the engine's own words under this compiler's naming of the call
+/// that produced it.
+///
+/// Takes the method rather than a direction, because both directions throw: a
+/// getter runs while a value is read back out, and a property is written while
+/// one is carried in. What an author needs from either is the same two things,
+/// and neither of them is which way the value was going.
+fn threw(method: &Atom, error: &JsError) -> Decline {
+  Decline::rule(engine_threw(method, &error.to_string()))
 }
 
 /// Whether every value `expr` needs is written into it, bound by the guard's
@@ -692,12 +938,8 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
       }
 
       match reader.resolve(ident) {
-        Some(value) => {
-          reader.transport.bind(&ident.sym, value);
-
-          Ok(())
-        },
-        None => Err(Decline::NotACandidate),
+        Some(value) if is_a_carryable_receiver(&value) => reader.transport.bind(&ident.sym, &value),
+        _ => Err(Decline::NotACandidate),
       }
     },
     // A regular expression and a BigInt have no value this evaluator carries,
@@ -726,19 +968,41 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
 
       Ok(())
     },
-    // A named property read: `x.length` inside a callback, and `({a:1}).a` as
-    // a receiver. A computed one is a lookup that needs the scope.
+    // A property read: `x.length` inside a callback, `({a:1}).a` as a receiver,
+    // and `p[0]` on an element a callback was handed.
     //
     // The property is answered before the receiver is walked, because the name
     // alone decides it and the walk now resolves bindings — so a read that no
     // receiver could make safe must not cost a resolution first.
-    Expr::Member(MemberExpr {
-      obj,
-      prop: MemberProp::Ident(name),
-      ..
-    }) => {
-      if lists(&ESCAPING_PROPERTIES, &name.sym) {
-        return Err(Decline::rule(escaping_property(&name.sym)));
+    Expr::Member(MemberExpr { obj, prop, .. }) => {
+      match prop {
+        MemberProp::Ident(name) => {
+          if lists(&ESCAPING_PROPERTIES, &name.sym) {
+            return Err(Decline::rule(escaping_property(&name.sym)));
+          }
+        },
+        // A computed key is a value in its own right, so it is walked as one.
+        // The escaping-property rule is applied to a key written as a string,
+        // because `x['constructor']` spells the read `x.constructor` spells.
+        //
+        // A key whose value the guard cannot read is still admitted, and that
+        // is a boundary rather than a hole: what such a read can reach is a
+        // function, which is refused on the way out and cannot be applied on
+        // the way in — a call whose method name is computed is not a candidate
+        // at all, so there is no step from the function to its result.
+        MemberProp::Computed(key) => {
+          if let Expr::Lit(Lit::Str(name)) = key.expr.as_ref()
+            && let Some(name) = name.value.as_str()
+            && lists(&ESCAPING_PROPERTIES, name)
+          {
+            return Err(Decline::rule(escaping_property(name)));
+          }
+
+          admit_value(&key.expr, inner, reader)?;
+        },
+        // A private name belongs to a class body, which no value a fold carries
+        // has.
+        MemberProp::PrivateName(_) => return Err(Decline::NotACandidate),
       }
 
       admit_value(obj, inner, reader)
@@ -839,7 +1103,27 @@ fn admit_call<'a>(
   // compiler, so treating the name as the global would refuse an input it
   // compiles. The lookup is one map read and no evaluation, so it stays in front
   // of the walk with the other cheap answers.
-  if is_valid_callee(obj) && get_binding(obj, reader.traversal_state).is_none() {
+  //
+  // And only where the call is the one the dispatch will be asked about. A
+  // static inside a chain is a link nobody else is ever handed on its own, so
+  // handing it back takes the whole chain down with it — which is what
+  // `Object.entries(o).filter(f)` was: folded through the array table this work
+  // deletes, and folded end to end by the engine now. Nested, the engine is what
+  // answers, so a name the reference compiler refuses has to be refused here
+  // too: it reads `INVALID_METHODS`, which is that compiler's own set and the one
+  // the dispatch gates its statics on, and which is why a nondeterministic static
+  // cannot fold a different class name on every build.
+  //
+  // That leaves the one place in this module where position decides the answer:
+  // `Math.trunc(1.5)` is refused written alone and folds written inside a chain,
+  // because alone it is the dispatch's seven-name table that answers and the
+  // table does not list it. It is the opposite of what one guard walk is for, and
+  // it is recorded here rather than fixed here — the fix is the static surface
+  // moving to the engine, which is ticket 07, and the alternative until then is
+  // taking the chain away from folds that have it today.
+  let global_receiver = is_valid_callee(obj) && get_binding(obj, reader.traversal_state).is_none();
+
+  if global_receiver && (guard.outermost || is_invalid_method(prop)) {
     return Err(Decline::NotACandidate);
   }
 
@@ -853,7 +1137,14 @@ fn admit_call<'a>(
 
   admit_amplification(&method.sym, obj, &call.args, guard.scope)?;
 
-  admit_value(obj, guard, reader)?;
+  // A global the engine provides itself carries no value across the bridge: the
+  // printed source names it and the language answers. It is admitted here, as a
+  // receiver, and nowhere else — a global's *name* is not a value this fold
+  // carries, and admitting it as one would let `['a'].concat(String)` fold a
+  // function's own source text into a declaration.
+  if !global_receiver {
+    admit_value(obj, guard, reader)?;
+  }
 
   for arg in &call.args {
     admit_argument(arg, guard, reader)?;
@@ -1038,7 +1329,7 @@ fn to_object_value(
     let mut items = Vec::with_capacity(length as usize);
 
     for index in 0..length {
-      let element = read(outward, || object.get(index, engine))?;
+      let element = read(outward.method, || object.get(index, engine))?;
 
       items.push(to_value(&element, engine, inner)?);
     }
@@ -1050,7 +1341,7 @@ fn to_object_value(
     return Err(Decline::rule(unfoldable_fold_result(value.type_of())));
   }
 
-  let keys = read(outward, || object.own_property_keys(engine))?;
+  let keys = read(outward.method, || object.own_property_keys(engine))?;
 
   if keys.len() as u64 > MAX_FOLDED_ENTRIES {
     return Err(Decline::rule(object_size_too_large(MAX_FOLDED_ENTRIES)));
@@ -1073,7 +1364,7 @@ fn to_object_value(
       },
     };
 
-    let element = read(outward, || object.get(key.clone(), engine))?;
+    let element = read(outward.method, || object.get(key.clone(), engine))?;
     let expr = as_property_value(to_value(&element, engine, inner)?)?;
 
     props.push(create_ident_key_value_prop(&name, expr));
@@ -1116,7 +1407,7 @@ fn as_property_value(value: EvaluateResultValue) -> Result<Expr, Decline> {
 /// bound and must not claim to be; it is a value the bridge cannot read, and is
 /// refused as one.
 fn read_length(object: &JsObject, engine: &mut Context, outward: Outward) -> Result<u64, Decline> {
-  let length = read(outward, || object.get(js_string!("length"), engine))?;
+  let length = read(outward.method, || object.get(js_string!("length"), engine))?;
 
   let Some(length) = length.as_number().filter(|length| *length >= 0.0) else {
     return Err(Decline::rule(unfoldable_fold_result(
@@ -1133,12 +1424,13 @@ fn read_length(object: &JsObject, engine: &mut Context, outward: Outward) -> Res
   Ok(length as u64)
 }
 
-/// A read back out of the engine, with a throw carried in the engine's words.
+/// A read across the bridge, with a throw carried in the engine's words.
 ///
-/// Reading a property can run a getter, which can throw, so the outward bridge
-/// needs the same answer the evaluation itself gets rather than a second one.
-fn read<T>(outward: Outward, read: impl FnOnce() -> JsResult<T>) -> Result<T, Decline> {
-  read().map_err(|error| outward.threw(&error))
+/// Reading a property runs a getter and writing one can be refused, so both
+/// directions need the same answer the evaluation itself gets rather than a
+/// second one of their own.
+fn read<T>(method: &Atom, read: impl FnOnce() -> JsResult<T>) -> Result<T, Decline> {
+  read().map_err(|error| threw(method, &error))
 }
 
 /// The call as the minified source the engine is handed: an arrow over the names

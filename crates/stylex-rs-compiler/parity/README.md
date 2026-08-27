@@ -29,9 +29,10 @@ declarations behind without anyone noticing.
 | `parity:positions`     | the same step                          | ~2s   |
 | `fuzz:pseudo-order`    | the same step                          | ~2s   |
 | `fuzz:shorthand`       | `parity-sweep`, the nightly schedule   | ~97s  |
+| `fuzz:prototypes`      | the same job                           | ~2s   |
 | `parity:harvest:check` | ahead of this package's `vitest` suite | <1s   |
 
-Both timings are wall clock on an Apple Silicon laptop with a warm build.
+Timings are wall clock on an Apple Silicon laptop with a warm build.
 
 **Why CI and not a hook.** Both comparison harnesses need a built `dist/` and a
 Node toolchain, which is a real cost to put in front of every commit — that
@@ -47,12 +48,18 @@ ordering divergence costs a class name, which is the failure this whole harness
 exists for, and it costs ~2s. The shorthand sweep guards where a value is cut,
 which shows up in a rule rather than in a hash.
 
-**Why the sweep is nightly.** The generated harness crosses an alphabet with
+**Why the sweeps are nightly.** The shorthand harness crosses an alphabet with
 itself — ~154k subjects, two compiler runs each — which is roughly forty times
 the curated one. That buys nothing per commit: a value-splitter defect shows up
 when a value pass or the alphabet changes, and a sweep once a night reports it
-as surely as one per pull request would. It is listed in the `pr-validation`
-gate so a failing sweep fails rather than sitting green beside it.
+as surely as one per pull request would.
+
+The prototype sweep is nightly for a different reason, since it is cheap: what
+it guards moves when the **surface** moves. It reads every method off the
+language at run time, so a new row appears under an engine upgrade, a widened
+guard or an added receiver shape — none of which arrive one commit at a time.
+Both are listed in the `pr-validation` gate, through the one job that carries
+them, so a failing sweep fails rather than sitting green beside it.
 
 **What a failing run says.** Each harness prints the versions it resolved before
 anything else, because the reference plugin is held by the lockfile rather than
@@ -514,8 +521,8 @@ because a method call on a number written into the source is refused by both
 compilers and that half would measure the refusal instead.
 
 A curated row per method is not a claim to have covered the surface — the method
-nobody listed is the next bug report, which is what the generated prototype
-sweep is for. What a row here is for is the place a **reason** gets written
+nobody listed is the next bug report, which is what **The generated surface**
+below is for. What a row here is for is the place a **reason** gets written
 down: `filter` records the one shape that was wrong rather than refused, `map`
 the chain that died at its second link, `substr` that nothing enumerates method
 names any more, `repeat` which ceiling bounds its result.
@@ -646,6 +653,122 @@ existing class produces, never on the rows it adds: a class crossed with the
 rest of the alphabet costs roughly 900 subjects per property. The candidates
 audited and dismissed are recorded in the `FRAGMENTS` documentation, because the
 argument is the useful half of an audit.
+
+## The generated surface: `pnpm fuzz:prototypes`
+
+The corpus above carries one row per method someone measured, and the fold
+evaluates a call rather than matching its name against a table — so the corpus
+cannot be the evidence that the surface is covered. A curated list of methods is
+itself a table, and the argument for deleting the tables was that the method
+nobody listed is the next bug report.
+
+This sweep reads the surface off the language instead:
+`Object.getOwnPropertyNames` over `String.prototype`, `Array.prototype`,
+`Object.prototype`, `Number.prototype`, `Boolean.prototype` and the `Math`,
+`Object`, `Number`, `String` and `Array` namespaces — some 180 methods as it
+stands, none of them written down anywhere here. Which surfaces belong is not a
+choice either: the namespaces are exactly the compiler's `VALID_CALLEES`, and
+the prototypes are the ones a value crossing the fold's bridge can have. Each is
+asked in **both shapes**, which is the question this whole effort turned on: a
+prototype method on a receiver written out and on the same receiver held by a
+name, and a namespace method on arguments written out and on the same arguments
+held by names. That is ~330 subjects, two compiler runs each, and it compares
+class names, rule text and style-object shape exactly as the curated harness
+does.
+
+```sh
+pnpm run --filter=@stylexswc/rs-compiler build     # the harness reads dist/
+pnpm fuzz:prototypes                                    # summary
+pnpm fuzz:prototypes --show 60                          # unexpected rows
+pnpm fuzz:prototypes --surface Math                     # one surface
+pnpm fuzz:prototypes --json parity/results/<name>.json  # full report
+```
+
+**What it does not ask.** One variable moves per row, so a prototype method's
+_arguments_ are written out in both of its shapes — the receiver is the
+question, and a row varying two things at once could not say which one refused
+it. So a callback, which is an argument, reaches the named shape only through a
+namespace method, where the shape moves to the arguments. `Object.groupBy` is
+the one such row today and it is how the gap in issue 19 was found; on the array
+methods where callbacks actually live, this sweep asks only the written-out
+form.
+
+**Arguments are measured, not tabulated.** A generated subject needs an argument
+list, and a table of which method takes what would put the curation back one
+level down. So a small pool of argument texts is crossed up to arity two and the
+first vector real JavaScript accepts — evaluated in the harness's own process,
+from the same text the compilers are handed — is the one that runs. The declared
+arity is tried first, then narrower, then wider, because a call made with fewer
+arguments than it wants usually still answers something and a subject like that
+measures the fold on a call nobody writes.
+
+Three exclusions fall out of that measurement rather than being listed as names,
+which matters because a name in a list is a claim nobody re-checks:
+
+- A method whose answer **differs between two evaluations** cannot be compared
+  across two compilers at all. `Math.random` is the whole of that category
+  today, and it is also in the compiler's own refused set — the sweep reaches it
+  from the other end.
+- A method answering a value **no declaration carries** — `undefined`, a
+  function, an iterator, `NaN`, the empty string — would be asked as a subject
+  both compilers drop, which the harness reads as agreement about nothing.
+- A method **no argument vector satisfies** at all, which is where the three
+  three-argument statics land.
+
+All three are printed under **Methods not exercised**, with what each one
+answered. That block is the honest half of the coverage claim: a sweep that
+quietly dropped a third of a prototype would otherwise report the same clean
+number as one that crossed all of it.
+
+**A terminal, where an answer has no declaration form.** A method answering an
+array, a plain object or a boolean gets one further call — `join`,
+`Object.keys`, `String` — so the row measures the method _and_ the terminal.
+That is accepted deliberately, and it is the trade the curated rows already make
+(`Object.keys(config).join(', ')` is how the curated static row is written): the
+alternative is asking a predicate or a key list with nowhere to put the answer.
+The three terminals are names the fold has to answer anyway, so a broken
+terminal breaks its own row rather than hiding behind these.
+
+**Where a reason lives.** A divergence this sweep expects is _accounted for_ by
+naming the curated corpus row that argues it — `lib/prototype-accounts.ts` holds
+one entry per reason, each with the complaint this compiler writes, the verdicts
+its rows read, and the id of the row that carries the argument. The reason
+itself is never copied here, because two statements of one reason come to
+disagree; what is checked instead is the link. A row that has been deleted, has
+lost its `note`, or has stopped recording a verdict the account claims fails the
+run, under **Accounts whose reason is no longer recorded** — the same failure
+the curated harness's unreached-family check catches, read from the other end.
+
+An account claims by reason and never by method name, exactly as a refusal
+family does, so adding a surface costs nothing and a reworded diagnostic un-pins
+its rows rather than quietly outliving them. The sweep reads the refusal
+families first, since a folded value can trip one of them without the fold being
+what diverged. These are not themselves families for a mechanical reason: a
+family may not claim a row carrying its own `expected` verdict, every curated
+row for these refusals carries one, and a family added for them would go
+unreached across the curated corpus and fail `pnpm parity`.
+
+Every divergent row is accounted for as it stands, across six reasons: the
+locale-sensitive methods, a read that escapes onto the language's function graph
+(`constructor`), a receiver written as a number, a mutation that disqualifies
+the binding, a static that answers by changing what it was handed, and one gap —
+a callback reached through a name, which upstream folds and this compiler
+refuses. The last is the row this sweep was built to find: nothing curated had
+named it, because the only place the sweep names a _function_ is a namespace
+method's argument. No count is written here, for the reason the refusal-family
+table gives: a number in this file has gone stale twice.
+
+**Three ways it exits non-zero**, and each is a report that has stopped being
+read: a divergence nothing accounts for, an account whose corpus row no longer
+carries its reason, and a run that exercised no method at all — the failure mode
+a generated harness is most prone to, where the surface changes shape, every
+candidate stops answering, and a green run reports agreement about nothing
+whatsoever.
+
+A failing row names the surface, the method, the receiver shape, what JavaScript
+itself answers for the expression, and what both compilers answered — so the
+first thing a reader has to decide, whether the fold is wrong or the reference
+compiler moved, is on the screen rather than in a re-run.
 
 ## Checking a future upstream release
 

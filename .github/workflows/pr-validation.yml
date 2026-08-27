@@ -200,8 +200,8 @@ jobs:
           # divergence is what the collation dependency was taken on to close.
           # Measured at ~2.5s, ~8s and ~2s on an Apple Silicon laptop, so the
           # step adds nothing worth weighing against the matrix around it. The
-          # generated shorthand sweep is forty times the first of those and runs
-          # on the nightly schedule instead -- see `parity-sweep`.
+          # generated sweeps -- the shorthand alphabet and the prototype surface
+          # -- run on the nightly schedule instead, see `parity-sweep`.
           - id: parity
             name: CSS value parity
             # The build restores from the `build-public-packages` cache; both
@@ -261,14 +261,17 @@ jobs:
 
   # The generated half of the parity corpus, on the nightly schedule only.
   #
-  # It crosses an alphabet with itself -- ~154k subjects, two compiler runs each,
-  # measured at ~97s against the curated harness's ~2.5s. Forty times the cost
-  # buys nothing per commit: a value-splitter defect shows up when a value pass
-  # or the alphabet changes, and a sweep once a night reports that as surely as
-  # one per pull request would. It fails on the one number a reader acts on, the
-  # divergent rows no refusal family accounts for.
+  # Two sweeps, both generated and both nightly for the same reason. The
+  # shorthand one crosses an alphabet with itself -- ~154k subjects, two compiler
+  # runs each, measured at ~97s against the curated harness's ~2.5s -- and forty
+  # times the cost buys nothing per commit: a value-splitter defect shows up when
+  # a value pass or the alphabet changes. The prototype one is cheap by
+  # comparison (~2s, ~330 subjects) but guards the same kind of thing from the
+  # other end: it reads every method off the language, so what moves it is an
+  # engine upgrade or a widened guard rather than a commit. Both fail on the one
+  # number a reader acts on, the divergent rows nothing accounts for.
   parity-sweep:
-    name: Shorthand split sweep
+    name: Generated parity sweeps
     if: github.event_name == 'schedule' && github.ref_name == 'develop'
     runs-on: ubuntu-24.04-arm
     # The only job here that bounds itself, because it is the only one whose
@@ -310,6 +313,9 @@ jobs:
 
       - name: Run the shorthand split sweep
         run: pnpm run --filter=@stylexswc/rs-compiler fuzz:shorthand
+
+      - name: Run the prototype sweep
+        run: pnpm run --filter=@stylexswc/rs-compiler fuzz:prototypes
 
       - name: Save turbo build cache
         if: always()
@@ -737,7 +743,8 @@ jobs:
       - benchmark
       # Runs on the nightly schedule only, so it reports `skipped` on every pull
       # request -- which the loop below accepts. It is listed so a failing sweep
-      # fails the gate rather than sitting green beside it.
+      # fails the gate rather than sitting green beside it, and it carries both
+      # generated sweeps for that reason: one job to list rather than two.
       - parity-sweep
     runs-on: ubuntu-24.04-arm
     steps:

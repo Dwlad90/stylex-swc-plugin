@@ -2263,6 +2263,30 @@
       "source": "import * as stylex from '@stylexjs/stylex';\n\nconst hex = 255;\nconst ratio = 1.5;\n\nexport const styles = stylex.create({\n  named: { content: hex.toString(16), gridArea: ratio.toFixed(1) },\n});\n",
       "origin": "issue 14, one of the three static surfaces",
       "note": "The one surface with no written-out half, deliberately. A method call on a number written into the source is refused by both compilers -- pinned as `modules-06-numeric-literal-receiver` -- so `(255).toString(16)` here would measure that refusal rather than this surface. Reached through a name, `Number.prototype` folds on both, which before this effort it did in neither position."
+    },
+    {
+      "id": "modules-15-a-read-that-escapes-onto-the-function-graph",
+      "label": "a property read that leads onto the language's function graph",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'AbC'.constructor('a') },\n  s1: { zIndex: [1, 2].constructor(3).length },\n});\n",
+      "origin": "issue 15, found by the generated sweep",
+      "expected": "acceptance-divergent",
+      "note": "Acceptance divergent, deliberately. `constructor` is an own property of every prototype the sweep crosses, and no curated row had named it -- upstream folds both of these, since a string's `constructor` is `String` and an array's is `Array`. What the refusal holds back is the step after: `String`'s own `constructor` is `Function`, which compiles a string into a function, so `\"\".constructor.constructor(\"return Date.now()\").call()` is a chain of two property reads and a call -- shapes every other rule here admits -- whose answer is a different number on every build and whose body can assign to `String.prototype` in an engine every later fold shares. `call`, `apply` and `bind` are refused with it because they turn an unapplied function back into a call. Folding the harmless half means admitting the read that reaches the harmful one, since the guard cannot know which `constructor` a chain will land on before evaluating it."
+    },
+    {
+      "id": "modules-15-an-impure-static",
+      "label": "a static that answers by changing what it was handed",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst config = { b: '1', a: '2' };\n\nexport const styles = stylex.create({\n  s0: { content: Object.keys(Object.freeze(config)).join(', ') },\n  s1: { content: Object.keys(Object.assign({ b: '1' }, { a: '2' })).join(', ') },\n});\n",
+      "origin": "issue 15, found by the generated sweep",
+      "expected": "both-reject-divergent",
+      "note": "Both reject, in different words, and neither compiler folds it -- so nothing an author writes is lost. `Object.assign`, `Object.defineProperty`, `Object.defineProperties`, `Object.freeze` and `Object.seal` answer by changing the value they were handed rather than by computing one, and a fold that mutated its way to an answer would write a declaration the source does not describe. `Math.random` sits in the same set for the neighbouring reason: it answers a different number each time, so the class name hashed from it would move between builds. The sweep reaches the set from the other side -- it excludes `Math.random` because two evaluations of it disagree, which is the same property measured rather than listed."
+    },
+    {
+      "id": "modules-15-a-callback-reached-through-a-name",
+      "label": "an array method whose callback is reached through a name",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst upper = (part) => part.toUpperCase();\n\nexport const styles = stylex.create({\n  s0: { content: ['b', 'a'].map(upper).join(', ') },\n});\n",
+      "origin": "issue 15, found by the generated sweep",
+      "expected": "acceptance-divergent",
+      "note": "Acceptance divergent and **not** deliberate: this is a gap, recorded so the sweep reports it once rather than every night, and so the day it closes is a changed verdict rather than silence. A callback written out in place folds -- issue 10 prints it and the engine runs it -- and the same arrow reached through a name refuses, because what crosses the bridge inward is a value and a function has no value form to carry. It is the receiver question this whole effort answered, asked one argument along, and it costs an author a build the reference compiler completes. Issue 19 carries it; issue 17 carries the neighbouring shape, a callback naming a StyleX function."
     }
   ]
 }

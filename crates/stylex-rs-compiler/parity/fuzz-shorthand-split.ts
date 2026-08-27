@@ -40,7 +40,6 @@
  *   pnpm fuzz:shorthand --property padding     # one property; repeatable
  */
 
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -51,9 +50,10 @@ import { createComparer } from './lib/compare.js';
 import { subjectBlock } from './lib/compilers.js';
 import { entry } from './lib/declaration.js';
 import { countFlag } from './lib/flags.js';
+import { answerOf, selectedOrExit, writeJsonReport } from './lib/harness-cli.js';
 import { REFUSAL_FAMILIES, familyOf, groupByFamily } from './lib/refusal-families.js';
 import { AGREED } from './lib/report.js';
-import type { CompilerOutcome, LoadedCorpusEntry, ReportEntry } from './lib/types.js';
+import type { LoadedCorpusEntry, ReportEntry } from './lib/types.js';
 
 /**
  * One member of the alphabet: what the report claims coverage of, and the
@@ -227,24 +227,7 @@ Options:
   process.exit(0);
 }
 
-const selected = cliOptions.property;
-const properties =
-  selected != null && selected.length > 0
-    ? PROPERTIES.filter(name => selected.includes(name))
-    : PROPERTIES;
-
-// A `--property` nobody spells correctly selects nothing, and a sweep over
-// nothing finds no unexpected row and exits 0 -- a typo reading as a pass. The
-// curated harnesses both refuse an empty selection for the same reason.
-if (properties.length === 0) {
-  console.error(
-    chalk.red(
-      `No property matches ${JSON.stringify(selected)}.\n` +
-        `Known properties: ${PROPERTIES.join(', ')}`
-    )
-  );
-  process.exit(1);
-}
+const properties = selectedOrExit('--property', cliOptions.property, PROPERTIES, name => name);
 
 /**
  * Every generated value: one fragment alone, and every ordered pair of
@@ -293,13 +276,6 @@ function labelled(name: string, entries: readonly AlphabetEntry[]): string {
   // as the count printed directly above it. The alphabet line is what the report
   // offers as its claim about coverage, so it has to be countable by eye.
   return chalk.dim(`  ${name}: ${entries.map(member => member.label).join(' · ')}`);
-}
-
-/** What one compiler did with one subject, as a single report cell. */
-function declarationsOf(outcome: CompilerOutcome): string {
-  return outcome.status === 'error'
-    ? `refused: ${outcome.sentence}`
-    : outcome.declarations.join(' | ');
 }
 
 // `legacy-expand-shorthands` is not a variation here, it is the subject: the
@@ -396,45 +372,31 @@ if (unexpected.length > 0 && show > 0) {
         ? `${result.property}: ${JSON.stringify(result.value)}`
         : result.label;
     console.log(`\n  ${chalk.yellow(label)}  ${chalk.dim(result.verdict)}`);
-    console.log(`    rust  ${declarationsOf(result.rust)}`);
-    console.log(`    babel ${declarationsOf(result.babel)}`);
+    console.log(`    rust  ${answerOf(result.rust)}`);
+    console.log(`    babel ${answerOf(result.babel)}`);
   }
 }
 
 if (cliOptions.json != null) {
-  // Resolved against the package rather than the shell's working directory, for
-  // the reason `parity-values.ts` gives where it does the same: `pnpm run
-  // --filter` leaves cwd at the repo root, so the same command run from there
-  // and from this package would otherwise write two different files -- and this
-  // is the harness whose report CI archives.
-  const target = path.resolve(packageDir, cliOptions.json);
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.writeFileSync(
-    target,
-    `${JSON.stringify(
-      {
-        alphabet: { fragments: FRAGMENTS, joiners: JOINERS, properties },
-        subjects: comparer.versions,
-        summary: {
-          total: results.length,
-          divergent: diverged.length,
-          unexpected: unexpected.length,
-          byVerdict: Object.fromEntries(byVerdict),
-          byFamily: Object.fromEntries(
-            [...pinned].map(([family, claimed]) => [family.name, claimed.length])
-          ),
-        },
-        // Both, and named apart: the unexpected rows are what a reader opens the
-        // file for, and the pinned ones are the evidence that the count above
-        // them is what it says.
-        unexpected,
-        pinned: Object.fromEntries([...pinned].map(([family, claimed]) => [family.name, claimed])),
-      },
-      null,
-      2
-    )}\n`
-  );
-  console.log(chalk.dim(`\nwrote ${target}`));
+  const written = writeJsonReport(packageDir, cliOptions.json, {
+    alphabet: { fragments: FRAGMENTS, joiners: JOINERS, properties },
+    subjects: comparer.versions,
+    summary: {
+      total: results.length,
+      divergent: diverged.length,
+      unexpected: unexpected.length,
+      byVerdict: Object.fromEntries(byVerdict),
+      byFamily: Object.fromEntries(
+        [...pinned].map(([family, claimed]) => [family.name, claimed.length])
+      ),
+    },
+    // Both, and named apart: the unexpected rows are what a reader opens the
+    // file for, and the pinned ones are the evidence that the count above
+    // them is what it says.
+    unexpected,
+    pinned: Object.fromEntries([...pinned].map(([family, claimed]) => [family.name, claimed])),
+  });
+  console.log(chalk.dim(`\nwrote ${written}`));
 }
 
 // Non-zero on the one number a reader acts on, for the reason the curated

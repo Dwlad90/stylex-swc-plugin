@@ -98,5 +98,8 @@ about 190, and a bounded string can still become one entry per code unit. Each
 bounds both directions: what a resolved name copies into the engine, and what an
 answer carries back. `maxFoldedEntries` also bounds a length a call _declares_
 without holding — `Array(n)` — since a sparse array costs nothing until something
-touches it and is unmeasured until then.
+touches it and is unmeasured until then. `maxFoldedCharacters` also bounds a
+string the [evaluator](../stylex-transform/CONTEXT.md) grows itself, at the `+`
+and the interpolation that grow it, since neither crosses a fold and a chain that
+doubles its own result is innocent one line at a time.
 _Avoid_: string limit, size cap, memory budget, amplification limit

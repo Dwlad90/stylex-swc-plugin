@@ -214,13 +214,16 @@ fn binary_expr_to_string(
 
   // The left side's buffer is grown rather than a third one allocated for the
   // join, which is what a chain of `+` folds through once per operand.
-  let mut joined = operand_to_string(
-    &binary_expr.left,
-    LEFT_NOT_A_STRING,
-    state,
-    traversal_state,
-    fns,
-  )?;
+  let mut joined = GrownString::of(
+    operand_to_string(
+      &binary_expr.left,
+      LEFT_NOT_A_STRING,
+      state,
+      traversal_state,
+      fns,
+    )?,
+    CONCATENATION,
+  );
   let right = operand_to_string(
     &binary_expr.right,
     RIGHT_NOT_A_STRING,
@@ -229,9 +232,20 @@ fn binary_expr_to_string(
     fns,
   )?;
 
-  joined.push_str(&right);
+  // Measured before the append rather than after: the two operands are already
+  // paid for, so what a ceiling can still refuse is the copy that joins them --
+  // and refusing it is what stops a chain of doublings from paying for the next
+  // one to find out it was too long.
+  joined
+    .push(
+      &right,
+      || Expr::Bin(binary_expr.clone()),
+      state,
+      traversal_state,
+    )
+    .map_err(|reason| anyhow!("{}", reason))?;
 
-  Result::Ok(BinaryExprType::String(joined))
+  Result::Ok(BinaryExprType::String(joined.into_text()))
 }
 
 /// One side of the expression, evaluated and taken through `ToString` — the

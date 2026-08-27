@@ -509,8 +509,8 @@ the name of the setting that prevents it.
 
 ### `maxFoldedCharacters`
 
-How long a string one compile-time fold may build or carry, in UTF-16 code
-units. Defaults to `1000000`.
+How long a string the compiler may build or carry while evaluating an
+expression, in UTF-16 code units. Defaults to `1000000`.
 
 The compiler evaluates a method call by running it, and the engine it runs on
 bounds loops, recursion and stack -- but not allocation, because growth inside a
@@ -530,6 +530,17 @@ is refused where `'a'.repeat(600000)` folds. The one receiver left unread is
 another call: `'x'.repeat(1000).repeat(1000)` is refused whatever the counts
 are, because bounding each link separately is exactly how two allowed lengths
 multiply into one that is not.
+
+The same number bounds a string the compiler grows without running a method at
+all. `a + a` and `` `${a}${a}` `` are answered directly rather than in the
+engine, so each concatenation and each interpolation is measured before its
+pieces are joined -- which is what stops a chain of doublings from reaching
+gigabytes one innocent line at a time:
+
+```bash
+[StyleX] base > width > This concatenation builds a string too large to
+evaluate at compile time. At most 1000000 characters are supported.
+```
 
 Raise it if a project really generates values this large:
 

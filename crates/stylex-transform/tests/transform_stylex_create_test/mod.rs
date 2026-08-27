@@ -13,6 +13,7 @@ mod fold_memo;
 mod folded_object_values;
 mod global_builtin_calls;
 mod globals_as_style_values;
+mod grown_string_ceiling;
 mod legacy_deprecated;
 mod logical_operators;
 mod math_and_object_statics;

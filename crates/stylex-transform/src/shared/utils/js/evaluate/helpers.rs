@@ -573,6 +573,123 @@ pub(super) fn evaluate_theme_ref(
   )
 }
 
+/// A string the **evaluator** is growing, measured against the character ceiling
+/// as it grows.
+///
+/// The ceiling is `maxFoldedCharacters`, and every other reading of it sits where
+/// a value crosses a fold. Nothing crosses for `a + a` or for an interpolation:
+/// the evaluator answers both itself, so a chain that doubles its own result was
+/// bounded by no number at all -- and the *depth* budget, which is what stopped
+/// it, limits how far a walk descends rather than how large a value gets.
+///
+/// The bound sits on the growth rather than on what a binding ends up holding,
+/// which is the other place it could have gone. Three things decide it. An inline
+/// `(a + a).length` allocates exactly as much and no binding holds the result, so
+/// a bound on bindings would miss the same string written one way. The growth is
+/// where the memory is spent, so refusing there refuses *before* the next
+/// doubling allocates rather than after. And a long string a binding merely holds
+/// is one allocation the author asked for -- what turns a typo into gigabytes is
+/// compounding, and only the growth site sees it.
+///
+/// So `concat` and `repeat` need nothing: both are calls, and the fold already
+/// bounds a call on the way in and on the way back. What the evaluator grows a
+/// string with itself is `+` and an interpolation, and those are the two users of
+/// this type.
+///
+/// It owns the buffer as well as the count so neither caller can append without
+/// being measured, and so the count is carried rather than recomputed: a template
+/// pays for one measurement per piece however many pieces it has.
+pub(super) struct GrownString {
+  text: String,
+  /// UTF-16 code units of `text`, which is the length JavaScript reports and the
+  /// unit every other reading of this ceiling spends.
+  units: usize,
+  /// Which expression is doing the growing, for the sentence a refusal carries.
+  kind: &'static str,
+}
+
+impl GrownString {
+  /// An empty buffer with room for `bytes`, for a caller that appends every piece
+  /// of its result.
+  pub(super) fn with_capacity(bytes: usize, kind: &'static str) -> Self {
+    Self {
+      text: String::with_capacity(bytes),
+      units: 0,
+      kind,
+    }
+  }
+
+  /// A buffer that starts from a string the caller already holds, counted once as
+  /// it is taken over.
+  ///
+  /// `+` arrives with its left operand already built, by a coercion that kept no
+  /// length -- so the one measurement it cannot avoid is of a string it is about
+  /// to copy anyway. Taking the `String` rather than borrowing it keeps that
+  /// allocation as the result's, which is what makes a chain of `+` grow one
+  /// buffer instead of one per link.
+  pub(super) fn of(text: String, kind: &'static str) -> Self {
+    let units = utf16_length(&text);
+
+    Self { text, units, kind }
+  }
+
+  /// Appends `addition`, or refuses `path` and hands the sentence back.
+  ///
+  /// `path` is a closure because one caller has no expression to hand over and
+  /// would have to build one: this runs on every append a style value makes, so
+  /// an eagerly cloned subtree would be an allocation per `+` that only a refusal
+  /// ever reads.
+  ///
+  /// The sentence comes back as well as being deopted because the two paths that
+  /// read a refused `+` read different halves: the node's own caller reports the
+  /// deopt, while `expr_to_num` evaluates on a state of its own and reports the
+  /// error. A refusal that kept its wording to itself would reach an author there
+  /// as an internal note.
+  pub(super) fn push(
+    &mut self,
+    addition: &str,
+    path: impl FnOnce() -> Expr,
+    state: &mut EvaluationState,
+    traversal_state: &mut StateManager,
+  ) -> Result<(), String> {
+    let ceiling = traversal_state.character_ceiling();
+
+    match units_within(self.units, addition, ceiling) {
+      Some(grown) => {
+        self.units = grown;
+        self.text.push_str(addition);
+
+        Ok(())
+      },
+      None => {
+        let reason = grown_string_too_large(self.kind, ceiling as u64);
+
+        deopt(&path(), state, &reason);
+
+        Err(reason)
+      },
+    }
+  }
+
+  /// The string that was grown.
+  pub(super) fn into_text(self) -> String {
+    self.text
+  }
+}
+
+/// How many code units `held` and `addition` make together, or `None` if the two
+/// pass `ceiling`.
+///
+/// The whole of the arithmetic, apart from the buffer and the refusal, so the
+/// boundary and the counting convention are testable without a compile.
+/// Saturating, because the sum exists to be refused on and a wrapped one would
+/// admit.
+pub(super) fn units_within(held: usize, addition: &str, ceiling: usize) -> Option<usize> {
+  let grown = held.saturating_add(utf16_length(addition));
+
+  if grown > ceiling { None } else { Some(grown) }
+}
+
 #[cfg(test)]
 #[path = "tests/helpers_tests.rs"]
 mod tests;

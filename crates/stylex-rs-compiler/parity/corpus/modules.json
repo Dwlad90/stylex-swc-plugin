@@ -1988,6 +1988,24 @@
       "expected": "acceptance-divergent"
     },
     {
+      "id": "modules-20-a-string-the-evaluator-doubles",
+      "label": "a string grown past the ceiling by `+`",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst a0 = 'x'.repeat(977);\nconst a1 = a0 + a0;\nconst a2 = a1 + a1;\nconst a3 = a2 + a2;\nconst a4 = a3 + a3;\nconst a5 = a4 + a4;\nconst a6 = a5 + a5;\nconst a7 = a6 + a6;\nconst a8 = a7 + a7;\nconst a9 = a8 + a8;\nconst a10 = a9 + a9;\n\nexport const styles = stylex.create({\n  s0: { width: a10.length },\n});\n",
+      "origin": "issue 20, the character ceiling reaching a string the evaluator grows",
+      "note": "Acceptance divergent, deliberately, and configurably so. `maxFoldedCharacters` bounds what a fold builds and what it carries, and both readings sit where a value crosses the engine -- so nothing looked at `a + a`, which the evaluator answers itself. A chain of ten such lines from this base folded to 102,400,000 characters in three seconds, past a ceiling a hundred times smaller, bounded only by the *depth* budget, which limits how far a walk descends rather than how large a value gets. The bound now sits on the growth: each `+` is measured against the same ceiling before the copy that joins its operands, so the refusal arrives before the next doubling allocates rather than after. The chain here is the reported one, at a base chosen so that upstream's answer -- `1000448px` -- is only just past the default ceiling: the shape is what the row is for, and a base that made upstream build a hundred megabytes would buy nothing. Upstream bounds none of this and folds it. Raise `maxFoldedCharacters` past the length and the same source folds to upstream's value.",
+      "expected": "acceptance-divergent",
+      "configuration": "maxFoldedCharacters"
+    },
+    {
+      "id": "modules-20-a-string-a-template-grows",
+      "label": "a string grown past the ceiling by an interpolation",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst a0 = 'x'.repeat(600000);\n\nexport const styles = stylex.create({\n  s0: { width: `${a0}${a0}`.length },\n});\n",
+      "origin": "issue 20, the second expression the evaluator grows a string with",
+      "note": "Acceptance divergent for the reason the row above is, on the other of the two expressions the evaluator grows a string with itself. A template is bounded by the same number and measured the same way -- each quasi and each interpolation against the running total -- so a template that passes the ceiling refuses at the piece that passes it. `concat` and `repeat` needed nothing: both are calls, and the fold already bounds a call on the way in and on the way back, which is why the bound went on the growth rather than on what a binding may hold. Upstream folds this too, and raising `maxFoldedCharacters` past the length folds it here.",
+      "expected": "acceptance-divergent",
+      "configuration": "maxFoldedCharacters"
+    },
+    {
       "id": "modules-06-amplified-array-length",
       "label": "an array result longer than a declaration could use",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'x'.repeat(20000).split('').length },\n});\n",

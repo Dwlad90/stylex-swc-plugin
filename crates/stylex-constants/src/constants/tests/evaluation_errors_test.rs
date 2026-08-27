@@ -205,6 +205,35 @@ fn test_folded_string_too_large() {
 }
 
 #[test]
+fn test_grown_string_too_large() {
+  assert_eq!(
+    grown_string_too_large(CONCATENATION, 1_000_000),
+    "This concatenation builds a string too large to evaluate at compile time.\nAt most 1000000 characters are supported.\n\n"
+  );
+  assert_eq!(
+    grown_string_too_large(TEMPLATE_LITERAL, 8),
+    "This template literal builds a string too large to evaluate at compile time.\nAt most 8 characters are supported.\n\n"
+  );
+  // The two kinds are what tells an author which expression on the line grew the
+  // string, so neither may read as the other.
+  assert_ne!(
+    grown_string_too_large(CONCATENATION, 8),
+    grown_string_too_large(TEMPLATE_LITERAL, 8)
+  );
+  // Bounded by the same number as a folded string and stated the same way, so an
+  // author who raises the ceiling for one raises it for both.
+  assert!(
+    grown_string_too_large(CONCATENATION, 32).contains(
+      &folded_string_too_large(32)
+        .lines()
+        .nth(1)
+        .unwrap_or_default()
+        .to_string()
+    )
+  );
+}
+
+#[test]
 fn test_bound_value_too_large() {
   assert_eq!(
     bound_value_too_large("big", 1_000_000),

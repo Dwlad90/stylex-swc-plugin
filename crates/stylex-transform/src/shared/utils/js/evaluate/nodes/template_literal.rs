@@ -1,6 +1,7 @@
 use super::super::*;
 
 pub(in super::super) fn evaluate_quasis(
+  path: &Expr,
   exprs: &[Box<Expr>],
   quasis: &[TplElement],
   raw: bool,
@@ -18,18 +19,26 @@ pub(in super::super) fn evaluate_quasis(
       }
     })
     .sum::<usize>();
-  let mut strng = String::with_capacity(quasi_len);
+  // Grown through a buffer that measures every append against the character
+  // ceiling, rather than measured once at the end: a template that interpolates a
+  // long value has to be refused at the piece that passes the ceiling, not after
+  // the last one is copied in.
+  let mut strng = GrownString::with_capacity(quasi_len, TEMPLATE_LITERAL);
 
   for (i, elem) in quasis.iter().enumerate() {
     if !state.confident {
       return None;
     }
 
-    if raw {
-      strng.push_str(&elem.raw);
+    let quasi = if raw {
+      &*elem.raw
     } else {
-      strng.push_str(extract_tpl_cooked_value(elem));
-    }
+      extract_tpl_cooked_value(elem)
+    };
+
+    strng
+      .push(quasi, || path.clone(), state, traversal_state)
+      .ok()?;
 
     let Some(expr) = exprs.get(i) else {
       continue;
@@ -66,12 +75,16 @@ pub(in super::super) fn evaluate_quasis(
       return None;
     };
 
-    strng.push_str(&text);
+    strng
+      .push(&text, || path.clone(), state, traversal_state)
+      .ok()?;
   }
 
   if !state.confident {
     return None;
   }
 
-  Some(EvaluateResultValue::Expr(create_string_expr(&strng)))
+  Some(EvaluateResultValue::Expr(create_string_expr(
+    &strng.into_text(),
+  )))
 }

@@ -750,20 +750,23 @@ impl StateManager {
     MAX_EVALUATION_DEPTH.clamped(self.options.max_evaluation_depth)
   }
 
-  /// How long a string one fold may build or carry, in UTF-16 code units.
+  /// How long a string the evaluator may build or carry, in UTF-16 code units.
   ///
-  /// Read here for the reason the depth is: three sites spend it -- a resolved
-  /// value on the way in, an amplifying call's own arithmetic, and a folded
-  /// string on the way back -- and one number is what lets an author raise it
-  /// once.
+  /// Read here for the reason the depth is: a fold spends it three times -- on a
+  /// resolved value going in, on an amplifying call's own arithmetic, and on the
+  /// string coming back -- and `GrownString` spends it on every append the
+  /// evaluator makes without a fold at all. One number is what lets an author
+  /// raise it once, whichever of them refused.
   pub(crate) fn character_ceiling(&self) -> usize {
     MAX_FOLDED_CHARACTERS.clamped(self.options.max_folded_characters)
   }
 
   /// How many array elements and object properties one fold may build or carry.
   ///
-  /// Three sites again, mirroring the three above: a resolved value on the way
-  /// in, and a folded array and a folded object on the way back.
+  /// A fold's three, mirroring the character ceiling's: a resolved value on the
+  /// way in, and a folded array and a folded object on the way back. Nothing
+  /// outside a fold spends it, because the expressions the evaluator grows a
+  /// value with itself grow text rather than entries.
   pub(crate) fn entry_ceiling(&self) -> usize {
     MAX_FOLDED_ENTRIES.clamped(self.options.max_folded_entries)
   }

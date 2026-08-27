@@ -457,6 +457,38 @@ pub fn folded_string_too_large(limit: u64) -> String {
   )
 }
 
+/// The two expressions the evaluator grows a string with, as
+/// [`grown_string_too_large`] names them.
+///
+/// Written here rather than at the two call sites so the wording an author reads
+/// lives beside the sentence it lands in.
+pub const CONCATENATION: &str = "concatenation";
+pub const TEMPLATE_LITERAL: &str = "template literal";
+
+/// A string the evaluator grew past what it will hold.
+///
+/// [`folded_string_too_large`] bounds a string the engine built and handed back,
+/// so it is read only where a value crosses a fold. Nothing crosses here: `+` and
+/// an interpolation are answered by the evaluator itself, so a chain that doubles
+/// its own result was bounded by no number at all -- and a depth budget, which is
+/// what stopped it, bounds how far a walk descends rather than how large a value
+/// gets.
+///
+/// Bounded by the same number as a folded string, because it is the same string
+/// and the same cost: the ceiling a project raises to fold a long value raises
+/// this with it.
+///
+/// Names which expression grew it, because a doubling chain is innocent one line
+/// at a time and the line that passed the ceiling is the one an author has to
+/// look at.
+pub fn grown_string_too_large(kind: &str, limit: u64) -> String {
+  format!(
+    "This {} builds a string too large to evaluate at compile time.\n\
+     At most {} characters are supported.\n\n",
+    kind, limit
+  )
+}
+
 /// A binding whose resolved value is too large to carry into a fold.
 ///
 /// The transport passes a resolved value as an *argument* rather than printing

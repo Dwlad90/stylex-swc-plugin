@@ -67,10 +67,10 @@ use stylex_ast::ast::factories::{
 };
 use stylex_constants::constants::{
   evaluation_errors::{
-    IMPORT_FILE_EVAL_ERROR, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, OBJECT_METHOD,
-    PATH_WITHOUT_NODE, SPREAD_ELEMENT, UNDEFINED_CONST, UNEXPECTED_MEMBER_LOOKUP,
-    UNINITIALIZED_CONST, USED_BEFORE_DECLARATION, unfoldable_call, unsupported_expression,
-    unsupported_operator,
+    CONCATENATION, IMPORT_FILE_EVAL_ERROR, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT,
+    OBJECT_METHOD, PATH_WITHOUT_NODE, SPREAD_ELEMENT, TEMPLATE_LITERAL, UNDEFINED_CONST,
+    UNEXPECTED_MEMBER_LOOKUP, UNINITIALIZED_CONST, USED_BEFORE_DECLARATION, grown_string_too_large,
+    unfoldable_call, unsupported_expression, unsupported_operator,
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
@@ -91,6 +91,7 @@ use stylex_js::helpers::{
   is_mutation_expr, is_valid_callee,
 };
 use stylex_structures::{named_import_source::ImportSources, stylex_env::EnvEntry};
+use stylex_utils::string::utf16_length;
 use stylex_utils::{hash::stable_hash_unspanned, swc::get_expr_node_kind};
 
 use super::check_declaration::check_ident_declaration;
@@ -408,6 +409,7 @@ fn _evaluate(
     },
     Expr::Lit(lit_path) => nodes::literal::evaluate(lit_path),
     Expr::Tpl(tpl) => nodes::template_literal::evaluate_quasis(
+      normalized_path,
       &tpl.exprs,
       &tpl.quasis,
       false,

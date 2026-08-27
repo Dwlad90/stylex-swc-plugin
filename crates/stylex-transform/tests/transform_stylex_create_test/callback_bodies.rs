@@ -383,23 +383,20 @@ fn a_dynamic_style_function_is_untouched() {
   );
 }
 
-/// A callback reaching a StyleX function is not the engine's to run — the
-/// function lives in this compiler's injected map, not in the language — so the
-/// fold hands the call back. Nothing below answers it either: the array method
-/// implementations were deleted when the prototype moved into the engine, and
-/// carrying the function map inward was measured and rejected, because its
-/// values are placeholders the engine would throw on.
+/// A callback reaching `firstThatWorks` folds, because that function answers
+/// from its arguments and nothing else — so the engine may call it, and the
+/// callback stays one JavaScript call per element rather than something this
+/// module has to run itself.
 ///
-/// So this refuses where the reference compiler folds it to `serif,a,serif,b`.
-/// The refusal is a failed build rather than a different class name, so the two
-/// compilers do not disagree about any output — one of them has none. Tracked
-/// as issue 17 of this effort.
+/// The whole battery for that, and for the StyleX functions the engine still may
+/// not call, is `stylex_functions_in_a_fold.rs`. This one case stays here
+/// because this file is where the shape was pinned as a refusal.
 #[test]
-fn a_callback_reaching_a_stylex_function_refuses() {
-  assert_refuses(
+fn a_callback_reaching_a_stylex_function_folds() {
+  assert_folds(
     "import { firstThatWorks } from '@stylexjs/stylex'; const a = ['a', 'b'];",
     "fontFamily: a.map(x => firstThatWorks(x, 'serif')).join(','),",
-    "Its receiver or one of its arguments is not in a form the compiler can evaluate.",
+    ".x10gm80u{font-family:serif,a,serif,b}",
   );
 }
 

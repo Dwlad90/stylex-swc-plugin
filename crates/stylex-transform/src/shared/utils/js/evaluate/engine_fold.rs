@@ -31,8 +31,9 @@
 use std::{borrow::Cow, cell::RefCell, mem::ManuallyDrop};
 
 use boa_engine::{
-  Context, JsError, JsObject, JsResult, JsString, JsValue, Script, Source, js_string,
-  object::builtins::JsArray, property::PropertyKey,
+  Context, JsError, JsObject, JsResult, JsString, JsValue, NativeFunction, Script, Source,
+  js_string, native_function::NativeFunctionPointer, object::builtins::JsArray,
+  property::PropertyKey,
 };
 use swc_core::{
   atoms::{Atom, Wtf8Atom},
@@ -67,7 +68,9 @@ use stylex_utils::number::to_js_string;
 use stylex_utils::swc::get_stmt_node_kind;
 
 use super::{
-  evaluate_cached, evaluate_result_vec_to_array_expr, growable_stack, helpers::get_binding,
+  engine_stylex_functions::{EngineCallable, Reached, engine_callable},
+  evaluate_cached, evaluate_result_vec_to_array_expr, growable_stack,
+  helpers::get_binding,
 };
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
@@ -458,9 +461,7 @@ impl Transport {
   /// One parameter per name however often the expression reads it, because a
   /// repeated parameter is a syntax error in the arrow this is printed into. The
   /// second reading resolves to the same value — the evaluator memoises it — so
-  /// dropping it loses nothing. A scan rather than a set, because an expression
-  /// carries a handful of names and hashing them would cost more than comparing
-  /// them.
+  /// dropping it loses nothing.
   ///
   /// The value is converted here rather than when the engine is in hand, so a
   /// value past a bound refuses before anything is printed or built. What comes
@@ -472,7 +473,9 @@ impl Transport {
     value: &EvaluateResultValue,
     depth: Depth,
   ) -> Result<(), Decline> {
-    if self.params.contains(name) {
+    // Asked before the conversion rather than left to `carry`, so a name read
+    // twice is not converted twice.
+    if self.holds(name) {
       return Ok(());
     }
 
@@ -483,10 +486,35 @@ impl Transport {
     }
     .value(value, depth.restart())?;
 
-    self.params.push(name.clone());
-    self.values.push(carried);
+    self.carry(name, carried);
 
     Ok(())
+  }
+
+  /// Records a value the bridge already holds in its own shapes, under the name
+  /// the printed source reads it through.
+  ///
+  /// Nothing here can refuse, which is the whole difference from [`bind`]: what
+  /// it takes was not copied out of the module, so there is no text and no entry
+  /// count to compare a ceiling to. A [StyleX function the engine may
+  /// call](engine_stylex_functions) is the one value that arrives this way.
+  ///
+  /// [`bind`]: Transport::bind
+  fn carry(&mut self, name: &Atom, carried: Carried) {
+    if self.holds(name) {
+      return;
+    }
+
+    self.params.push(name.clone());
+    self.values.push(carried);
+  }
+
+  /// Whether a value is already travelling under `name`.
+  ///
+  /// A scan rather than a set, because an expression carries a handful of names
+  /// and hashing them would cost more than comparing them.
+  fn holds(&self, name: &Atom) -> bool {
+    self.params.contains(name)
   }
 
   /// The carried values as the arguments the printed arrow is called with.
@@ -519,6 +547,11 @@ impl Transport {
 /// crosses only as the `var(--…)` string it already resolved to, because
 /// resolving it is what mutates compiler state and that happens before the
 /// bridge.
+///
+/// A *function* is the one thing here that is not copied out of the module. It
+/// is one of this compiler's own, handed over for the engine to call rather than
+/// to read, and only where nothing an author writes could reach it as a value —
+/// see [`engine_stylex_functions`].
 enum Carried {
   Str(Wtf8Atom),
   Num(f64),
@@ -526,6 +559,7 @@ enum Carried {
   Null,
   List(Vec<Carried>),
   Object(Vec<(Wtf8Atom, Carried)>),
+  Function(NativeFunctionPointer),
 }
 
 /// How much one fold has already promised to copy into the engine.
@@ -745,6 +779,13 @@ fn to_js(carried: &Carried, engine: &mut Context, method: &Atom) -> Result<JsVal
       }
 
       JsValue::from(object)
+    },
+    // Built per fold rather than kept, because a function object belongs to the
+    // realm that made it and costs one allocation — where keeping one would tie
+    // a value's lifetime to the engine's, which is the arrangement the memo
+    // beside it already had to be written around.
+    Carried::Function(call) => {
+      JsValue::from(NativeFunction::from_fn_ptr(*call).to_js_function(engine.realm()))
     },
   };
 
@@ -1321,7 +1362,14 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
     // A chained call: the receiver is itself a fold. Printing the whole chain
     // and evaluating it once is what makes `[…].map(…).join('-')` work, which
     // two separate method tables cannot agree on.
-    Expr::Call(call) => admit_call(call, inner, reader).map(|_| ()),
+    //
+    // A StyleX function is asked about first, because its callee is a name the
+    // module bound and every question `admit_call` asks would answer "not mine"
+    // for it.
+    Expr::Call(call) => match a_stylex_function(call, inner, reader) {
+      Some(callable) => admit_a_stylex_function(&callable, call, inner, reader),
+      None => admit_call(call, inner, reader).map(|_| ()),
+    },
     // An arrow is a value the language can hold and call: the callback `map` and
     // `filter` take, and the own `toString` an object converts through. It has
     // no *string* form here — the engine is built without function source text,
@@ -1396,6 +1444,76 @@ fn unshadowed_global<'a>(expr: &'a Expr, reader: &Reader) -> Option<&'a Atom> {
     },
     _ => None,
   }
+}
+
+/// The [StyleX function the engine may call](engine_stylex_functions) that
+/// `call` names, or `None` where it names none.
+///
+/// A name the *callback* binds is not one of them however the module spelled its
+/// imports: the engine binds it when it runs the callback, and a value the guard
+/// carried under the same name would be shadowed by it anyway.
+fn a_stylex_function(call: &CallExpr, guard: Guard, reader: &Reader) -> Option<EngineCallable> {
+  let Callee::Expr(callee) = &call.callee else {
+    return None;
+  };
+
+  let callable = engine_callable(callee, reader.traversal_state)?;
+
+  match guard.scope.binds(&callable.name) {
+    true => None,
+    false => Some(callable),
+  }
+}
+
+/// Admits a call to a StyleX function: its arguments are values like any other,
+/// and the name it is reached through carries the function itself.
+///
+/// An argument with no compile-time value is a rule *inside a callback* and a
+/// shape handed back outside one, which is the same question the [applied
+/// global](../../../../../CONTEXT.md#applied-global) answers by owning every one
+/// of its calls. Inside a callback nothing below the fold can answer: the array
+/// methods that would have run the body moved into the engine, so handing the
+/// call on ends it at a sentence about the *method*, naming neither the argument
+/// nor the reason. Outside one the dispatch may still own the call around this
+/// one, and a rule raised here would take a fold away from it.
+///
+/// A call written on its own never reaches here at all: the fold walks a value,
+/// and the outermost call stays the dispatch's. That is deliberate — it resolves
+/// its arguments this compiler's own way, a theme reference included, and the
+/// engine holds no value for one of those.
+fn admit_a_stylex_function(
+  callable: &EngineCallable,
+  call: &CallExpr,
+  guard: Guard,
+  reader: &mut Reader,
+) -> Result<(), Decline> {
+  let inside_a_callback = guard.scope.inside_a_callback();
+
+  for arg in &call.args {
+    admit_argument(arg, guard, reader).map_err(|declined| match declined {
+      Decline::NotACandidate if inside_a_callback => {
+        Decline::rule(uncoercible_value(callable.function_name()))
+      },
+      declined => declined,
+    })?;
+  }
+
+  // A name reached directly holds the function; a namespace holds an object of
+  // the properties the engine may call. Both come from the callable itself, so
+  // the value under a name is a function of the name and the transport's
+  // one-value-per-name rule cannot drop a second naming.
+  let carried = match callable.reached {
+    Reached::Directly => Carried::Function(callable.call()),
+    Reached::AsAProperty => Carried::Object(
+      EngineCallable::namespace_properties()
+        .map(|(property, call)| (property.into(), Carried::Function(call)))
+        .collect(),
+    ),
+  };
+
+  reader.transport.carry(&callable.name, carried);
+
+  Ok(())
 }
 
 /// Whether a call is one this module can hand to the engine whole.

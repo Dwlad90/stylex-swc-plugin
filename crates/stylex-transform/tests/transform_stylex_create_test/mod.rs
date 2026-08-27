@@ -30,6 +30,7 @@ mod operator_interaction;
 mod static_styles;
 mod string_coercion;
 mod string_concatenation;
+mod stylex_functions_in_a_fold;
 mod template_interpolation;
 mod truthiness_table;
 mod unary_operand_kinds;

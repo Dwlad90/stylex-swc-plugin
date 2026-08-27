@@ -5,7 +5,7 @@ use swc_core::ecma::ast::Expr;
 use stylex_types::traits::StyleOptions;
 
 use crate::shared::{
-  structures::{functions::FunctionMap, state_manager::StateManager},
+  structures::functions::FunctionMap,
   utils::{
     ast::convertors::{convert_expr_to_str, create_string_expr},
     common::downcast_style_options_to_state_manager,
@@ -15,20 +15,110 @@ use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread}
 use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
 use stylex_regex::regex::IS_CSS_VAR;
 
-fn is_var(arg: &Expr, state: &mut StateManager, functions: &FunctionMap) -> bool {
-  let str_arg = match convert_expr_to_str(arg, state, functions) {
-    Some(s) => s,
-    None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
-  };
+/// The `var(` prefix a CSS variable reference starts with, and whose length is
+/// what the name inside it begins after.
+const CSS_VAR_PREFIX: &str = "var(";
 
-  IS_CSS_VAR.is_match(&str_arg).unwrap_or_else(|err| {
+/// The variable name `text` references, or `None` where it is not a bare
+/// reference to a single one — the one shape of argument this function reads as a
+/// variable rather than as a value. So `var(--x)` reads as `--x`, and
+/// `var(--x, red)` as nothing.
+///
+/// One question rather than a test and a slice, because the slice is only in
+/// range for text the test admitted, and two callers each spelling the pair is
+/// how one of them comes to slice text the other would have rejected.
+///
+/// A regex failure is reported and read as "not a variable", which keeps a
+/// broken match from deciding a fallback order.
+pub(crate) fn css_variable_name(text: &str) -> Option<&str> {
+  let matched = IS_CSS_VAR.is_match(text).unwrap_or_else(|err| {
     warn!(
       "Error matching IS_CSS_VAR for '{}': {}. Skipping pattern match.",
-      str_arg, err
+      text, err
     );
 
     false
+  });
+
+  match matched {
+    true => text.strip_prefix(CSS_VAR_PREFIX)?.strip_suffix(')'),
+    false => None,
+  }
+}
+
+/// Where `firstThatWorks` puts each argument it was handed, as positions rather
+/// than as values.
+///
+/// Positions because two callers answer this function on two different kinds of
+/// value — the expressions the evaluator holds, and the values the compile-time
+/// engine holds — and the ordering arithmetic is the half they must not disagree
+/// about. Each caller then reads its own values back out at these positions.
+pub(crate) struct Fallbacks {
+  /// The arguments the `var()` chain is built from, in the order it folds them:
+  /// the outermost variable first, the value it falls back to last.
+  pub(crate) chain: Vec<usize>,
+  /// The arguments that follow the chain as further declarations, highest
+  /// priority last.
+  pub(crate) rest: Vec<usize>,
+}
+
+/// How `count` arguments fall back to one another, given which of them name a
+/// variable.
+///
+/// `None` where none of them does, which answers the arguments reversed and
+/// nothing else — there is no chain to build and no value to strip a name out
+/// of.
+///
+/// `is_var` is asked rather than handed in, because reading an argument can cost
+/// an evaluation and this walk asks about each position at most once and about
+/// nothing past the chain's end — where a list built up front would have read
+/// every argument, including the ones the chain never reaches.
+pub(crate) fn plan_fallbacks(
+  count: usize,
+  mut is_var: impl FnMut(usize) -> bool,
+) -> Option<Fallbacks> {
+  let first_var = (0..count).find(|&index| is_var(index))?;
+
+  // The chain ends on the first argument after the variables that is not one:
+  // that value is the innermost fallback, and everything past it is a
+  // declaration of its own.
+  let end = ((first_var + 1)..count)
+    .find(|&index| !is_var(index))
+    .map_or(count, |first_value| first_value + 1);
+
+  Some(Fallbacks {
+    chain: (first_var..end).rev().collect(),
+    rest: (0..first_var).rev().collect(),
   })
+}
+
+/// The single value a fallback chain collapses to, folded from its parts in the
+/// order [`Fallbacks::chain`] lists them.
+///
+/// Each part is a variable's own name — `--x` for a `var(--x)` argument — or the
+/// text of the value the chain bottoms out on.
+pub(crate) fn fold_fallback_chain(parts: impl IntoIterator<Item = String>) -> String {
+  parts
+    .into_iter()
+    .fold(String::new(), |so_far, part| match so_far.is_empty() {
+      false => {
+        let mut next = String::with_capacity(part.len() + so_far.len() + 7);
+        next.push_str(CSS_VAR_PREFIX);
+        next.push_str(&part);
+        next.push_str(", ");
+        next.push_str(&so_far);
+        next.push(')');
+        next
+      },
+      true if part.starts_with("--") => {
+        let mut next = String::with_capacity(part.len() + 5);
+        next.push_str(CSS_VAR_PREFIX);
+        next.push_str(&part);
+        next.push(')');
+        next
+      },
+      true => part,
+    })
 }
 
 pub(crate) fn stylex_first_that_works(
@@ -37,87 +127,48 @@ pub(crate) fn stylex_first_that_works(
   functions: &FunctionMap,
 ) -> Expr {
   let state = downcast_style_options_to_state_manager(state);
-  let first_var = args.iter().position(|arg| is_var(arg, state, functions));
 
-  match first_var {
-    None => {
-      let elems = args
-        .into_iter()
-        .rev()
-        .map(|arg| Some(create_expr_or_spread(arg)))
-        .collect();
+  // Reading an argument's text is the one thing that can fail here, and it fails
+  // the same way wherever it is asked, so the sentence lives in one closure
+  // rather than at each of the two sites that needs the text.
+  let mut text = |arg: &Expr| match convert_expr_to_str(arg, state, functions) {
+    Some(text) => text,
+    None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
+  };
 
-      create_array_expression(elems)
-    },
-    Some(first_var) => {
-      let priorities = args[..first_var].iter().rev().collect::<Vec<_>>();
-      let rest = &args[first_var..];
-      let first_non_var = rest.iter().position(|arg| !is_var(arg, state, functions));
-      let var_parts = if let Some(first_non_var) = first_non_var {
-        rest[..=first_non_var].iter().rev().collect::<Vec<_>>()
-      } else {
-        rest.iter().rev().collect::<Vec<_>>()
-      };
+  let Some(fallbacks) = plan_fallbacks(args.len(), |index| {
+    css_variable_name(&text(&args[index])).is_some()
+  }) else {
+    let elems = args
+      .into_iter()
+      .rev()
+      .map(|arg| Some(create_expr_or_spread(arg)))
+      .collect();
 
-      let vars = var_parts
-        .into_iter()
-        .map(|arg| {
-          if is_var(arg, state, functions) {
-            let str_arg = match convert_expr_to_str(arg, state, functions) {
-              Some(s) => s,
-              None => stylex_panic!("Argument is not a string"),
-            };
-            let cleared_str_arg = &str_arg[4..str_arg.len() - 1];
-            create_string_expr(cleared_str_arg)
-          } else {
-            arg.clone()
-          }
-        })
-        .collect::<Vec<_>>();
+    return create_array_expression(elems);
+  };
 
-      let return_value = {
-        let mut so_far = String::new();
-        for var_name in vars.iter() {
-          let var_name_str = match convert_expr_to_str(var_name, state, functions) {
-            Some(s) => s,
-            None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
-          };
+  let chain = fold_fallback_chain(fallbacks.chain.iter().map(|&index| {
+    let arg_text = text(&args[index]);
 
-          so_far = if !so_far.is_empty() {
-            let mut next = String::with_capacity(var_name_str.len() + so_far.len() + 7);
-            next.push_str("var(");
-            next.push_str(&var_name_str);
-            next.push_str(", ");
-            next.push_str(&so_far);
-            next.push(')');
-            next
-          } else if var_name_str.starts_with("--") {
-            let mut next = String::with_capacity(var_name_str.len() + 5);
-            next.push_str("var(");
-            next.push_str(&var_name_str);
-            next.push(')');
-            next
-          } else {
-            var_name_str
-          };
-        }
+    // A variable contributes its name; anything else contributes itself, which
+    // is where the chain bottoms out.
+    match css_variable_name(&arg_text) {
+      Some(name) => name.to_string(),
+      None => arg_text,
+    }
+  }));
 
-        let mut result = Vec::with_capacity(1 + priorities.len());
-        result.push(create_string_expr(&so_far));
-        result.extend(priorities.iter().map(|&expr| expr.clone()));
-        result
-      };
-
-      if return_value.len() == 1 {
-        return return_value[0].clone();
-      }
-
-      let return_value = return_value
-        .into_iter()
-        .map(|expr| Some(create_expr_or_spread(expr)))
-        .collect();
-
-      create_array_expression(return_value)
-    },
+  // The chain alone is a value rather than a list of declarations, so it is
+  // answered as one — which is what lets a single fallback stay a plain string.
+  if fallbacks.rest.is_empty() {
+    return create_string_expr(&chain);
   }
+
+  let elems = std::iter::once(create_string_expr(&chain))
+    .chain(fallbacks.rest.iter().map(|&index| args[index].clone()))
+    .map(|expr| Some(create_expr_or_spread(expr)))
+    .collect();
+
+  create_array_expression(elems)
 }

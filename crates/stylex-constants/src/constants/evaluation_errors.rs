@@ -77,6 +77,12 @@ pub static ARGUMENT_WITHOUT_VALUE: &str =
 /// would end it at the catch-all's `Unsupported expression` with the reason
 /// lost. The callee is named because which conversion refused is the first thing
 /// an author needs.
+///
+/// Also the sentence for a StyleX function the engine may call, whose argument
+/// the bridge cannot carry, reached inside a callback — where nothing below the
+/// fold can answer for the same reason. One sentence rather than two nearly
+/// identical ones: what the author has to do is the same, and the callee it names
+/// is the one they wrote.
 pub fn uncoercible_value(callee: &str) -> String {
   format!(
     "Cannot coerce this value at compile time.\nOnly static values can be passed to {}().\n\n",

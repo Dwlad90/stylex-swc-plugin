@@ -215,6 +215,39 @@ ceilings](../stylex-structures/CONTEXT.md), which are the same two numbers that
 bound what an answer carries back.
 _Avoid_: primitive, scalar, serialisable, carryable string
 
+The one thing that crosses without being copied is an
+[engine-callable StyleX function](#engine-callable-stylex-function), which is
+handed over to be _called_ and not to be read.
+
+**Engine-callable StyleX function**:
+A function of the [folded function map](#folded-function-map) whose answer is a
+function of its arguments alone, so the engine may run it. `firstThatWorks` is
+the whole of that set today: it reorders the fallbacks it was handed and folds
+the CSS variables among them into one `var()` chain, touching no state on the
+way. Every other function of the map answers by writing into the build —
+`keyframes` hashes a rule and injects it — and running one of those once per
+element of a receiver, inside a
+[speculative read](#speculative-read), would inject what the source describes
+once as many times as the receiver is long. Which is also why the map itself
+cannot cross: it holds all of them.
+
+Reached only in the _callee_ position of a call, and only through the name the
+module bound — a callback parameter of the same spelling is the callback's. It
+travels as an ordinary [transport](#transport) parameter rather than being
+registered on the engine, so nothing is left behind for the next file the thread
+compiles; a namespace spelling carries an object of that one property, so the
+printed call reads as it was written. What it buys is a callback: an array method
+whose callback names one is one JavaScript call per element, which is the
+engine's job — and it was a refused build between the ticket that moved
+`Array.prototype` into the engine and the ticket that moved this function.
+
+A call written on its own stays below the fold. That call's arguments are
+resolved this compiler's own way, a [theme reference](#theme-reference) included,
+and the engine holds no value for one of those. The ordering itself is shared
+Rust rather than written twice, so the engine's answer and the evaluator's cannot
+drift apart.
+_Avoid_: pure StyleX function, native binding, builtin, injected function
+
 **Speculative read**:
 Resolving a name to decide whether a fold is _possible_, as opposed to folding.
 The distinction is load-bearing because a refusal raised under one is not the
@@ -384,6 +417,11 @@ registered into the fold only where a `create` call sets its evaluation up: the
 other calls that build a function map leave the namespace name unregistered on
 purpose, so a bare `stylex` written where a static value belongs refuses rather
 than materializing and dropping the declaration.
+
+One entry of it is also an
+[engine-callable StyleX function](#engine-callable-stylex-function), which is a
+claim about that function and not about the map: it crosses into the engine on
+its own, in the callee position of a call, and the map does not.
 
 The fold carries no expression form, so every position that needs one
 **materializes** it as the object it stands for -- its keys, each carrying a

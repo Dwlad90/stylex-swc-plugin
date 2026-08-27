@@ -561,14 +561,21 @@ fn a_variable_name_built_from_the_parameter_folds() {
   );
 }
 
-/// The callback amplification bound still fires inside the body, and still
-/// names the amplifying call rather than this one. Refused where the reference
-/// compiler folds it, which is the rule's own trade and not this ticket's.
+/// The callback amplification bound still applies inside the body, and is still
+/// read off the amplifying call rather than this one — so a length the receiver's
+/// element count keeps inside the ceiling folds beside a StyleX function, and one
+/// past it is refused by the amplifying call's own name.
 #[test]
 fn an_amplifying_call_beside_it_is_still_bounded() {
-  assert_refuses(
+  assert_folds(
     IMPORT_AND_ONE,
     "content: a.map(x => firstThatWorks('var(--p)', 'x'.repeat(3))).join(''),",
-    "Cannot bound the string 'repeat' would build inside a callback.",
+    ".xwd2ya6{content:var(--p, xxx)}",
+  );
+
+  assert_refuses(
+    IMPORT_AND_ONE,
+    "content: a.map(x => firstThatWorks('var(--p)', 'x'.repeat(1000001))).join(''),",
+    "Cannot bound the string 'repeat' would build.",
   );
 }

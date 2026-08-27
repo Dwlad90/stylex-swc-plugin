@@ -150,14 +150,18 @@ fn an_escaping_property_names_the_property_rather_than_the_call() {
 }
 
 /// A length written into the source bounds one evaluation, and a callback runs
-/// once per element of a receiver nothing measured — so the sentence has to say
-/// that the callback is the reason, not the argument, which is inside the
-/// bound.
+/// once per element of its receiver — so where that receiver's element count
+/// cannot be read the sentence has to name the receiver, not the argument, which
+/// is inside the bound.
+///
+/// The receiver here is itself a call, which is the one element count the guard
+/// leaves unread on purpose. Written on an array whose elements are in the
+/// source, the same call folds, which the file for this rule asserts.
 #[test]
 #[should_panic(expected = "Cannot bound the string 'padStart' would build inside a callback.")]
-fn an_amplifying_call_inside_a_callback_names_the_callback_as_the_reason() {
+fn an_unmeasured_receiver_names_the_receiver_as_the_reason() {
   fold(&module(
-    "content: ['1'].map(x => x.padStart(2, '0')).join(''),",
+    "content: 'ab'.split('').map(x => x.padStart(2, '0')).join(''),",
   ));
 }
 

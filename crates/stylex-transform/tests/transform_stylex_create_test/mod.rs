@@ -3,6 +3,7 @@ mod amplification_ceilings;
 mod array_index_reads;
 mod array_style_values;
 mod callback_bodies;
+mod callback_element_counts;
 mod debug_options;
 mod dynamic_param_shadowing_edges;
 mod dynamic_styles;

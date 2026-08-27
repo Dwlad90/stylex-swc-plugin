@@ -113,22 +113,52 @@ fn test_amplified_length_too_large() {
   // A call that pads builds what it was asked for, so there is one number and
   // it is named once.
   assert_eq!(
-    amplified_length_too_large("padStart", 1_200_000, 1_200_000, 1_000_000),
+    amplified_length_too_large("padStart", 1_200_000, 1_200_000, 1, 1_000_000),
     "Cannot bound the string 'padStart' would build.\nIt asks for 1200000 characters, and at most 1000000 are supported.\n\n"
   );
   // A call that repeats builds the count times its receiver, and the count is
   // the only one of the two an author can find in what they wrote -- so both
   // are named, rather than a total that appears nowhere in the source.
   assert_eq!(
-    amplified_length_too_large("repeat", 600_000, 1_200_000, 1_000_000),
+    amplified_length_too_large("repeat", 600_000, 1_200_000, 1, 1_000_000),
     "Cannot bound the string 'repeat' would build.\nIt asks for 600000 copies of the value it is called on, which is 1200000 characters, and at most 1000000 are supported.\n\n"
   );
+  // Inside a callback the call is evaluated once per element of the receiver, so
+  // the number the ceiling was compared against is a product -- and the sentence
+  // has to say so, because a count of two against a limit of ten reads as being
+  // well inside it.
+  assert_eq!(
+    amplified_length_too_large("repeat", 3, 3, 4, 10),
+    "Cannot bound the string 'repeat' would build.\nIt asks for 3 characters once per element of the receiver it is written inside, which is 4 evaluations and 12 characters in all, and at most 10 are supported.\n\n"
+  );
+  // One evaluation is the common case and says nothing about repeats, so the
+  // clause appears only where there is more than one.
+  assert!(!amplified_length_too_large("repeat", 3, 3, 1, 2).contains("once per element"));
   // Both refusals of an amplifying call open with the same line, so an author
   // learns to recognise one class of failure rather than two.
   assert!(
-    amplified_length_too_large("padEnd", 9, 9, 8)
+    amplified_length_too_large("padEnd", 9, 9, 1, 8)
       .starts_with("Cannot bound the string 'padEnd' would build.")
   );
+}
+
+// The sibling of the two above in the other unit: a length a call declares
+// rather than a count of copies, so there is one number to name and not two.
+#[test]
+fn test_amplified_entries_too_large() {
+  assert_eq!(
+    amplified_entries_too_large("Array", 20_000, 1, 10_000),
+    "Cannot bound the array 'Array' would build.\nIt declares a length of 20000 elements, and at most 10000 are supported.\n\n"
+  );
+  // Inside a callback the declaration is made once per element, so the number
+  // the ceiling was compared against is the product and the sentence says so.
+  assert_eq!(
+    amplified_entries_too_large("Array.from", 9_999, 3, 10_000),
+    "Cannot bound the array 'Array.from' would build.\nIt declares a length of 9999 elements once per element of the receiver it is written inside, which is 3 evaluations and 29997 elements in all, and at most 10000 are supported.\n\n"
+  );
+  // Both spellings that declare a length read the same way, and one evaluation
+  // says nothing about repeats.
+  assert!(!amplified_entries_too_large("Array", 3, 1, 2).contains("once per element"));
 }
 
 #[test]
@@ -183,7 +213,7 @@ fn test_escaping_property() {
 fn test_amplification_inside_a_callback() {
   assert_eq!(
     amplification_inside_a_callback("string", "repeat"),
-    "Cannot bound the string 'repeat' would build inside a callback.\nA callback runs once per element, so a length written into the source bounds one evaluation rather than the call. Write the value out instead.\n\n"
+    "Cannot bound the string 'repeat' would build inside a callback.\nThe callback's receiver holds an element count that cannot be read here, so a length written into the source bounds one evaluation rather than the call. Write the receiver's elements out, or write the value out instead.\n\n"
   );
   assert!(amplification_inside_a_callback("string", "padStart").contains("'padStart'"));
   // The same sentence in the other unit, which is the whole of what the noun is

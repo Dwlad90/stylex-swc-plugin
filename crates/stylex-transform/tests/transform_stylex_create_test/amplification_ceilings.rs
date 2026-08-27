@@ -642,36 +642,44 @@ fn a_count_the_language_rejects_keeps_the_languages_sentence() {
   }
 }
 
-/// A declared length inside a callback is refused however small it is, which is
-/// the rule an amplifying string count already carries and for the same reason:
-/// a callback body runs once per element of a receiver nothing here measured, so
-/// a length written into the source bounds one evaluation rather than the call.
+/// A declared length inside a callback is bounded by the product of the length
+/// and the receiver's element count, which is the rule an amplifying string count
+/// carries in the other unit and for the same reason: a callback body runs once
+/// per element, so a length written into the source declares that many arrays.
 ///
-/// Upstream folds both of these. What the refusal costs is visible in the third
-/// case, which is the same array written out — `Array(2)` inside a `map` has a
-/// spelling whose length the source states, and that one folds.
+/// The first two fold and agree with upstream. The third is the same declaration
+/// over three elements rather than two and is past the entry ceiling, so it is
+/// the product being the bound rather than the length alone.
 #[test]
-fn a_declared_length_inside_a_callback_refuses() {
-  let refusals = [
-    "content: ['a','b','c'].map(x => Array(9999).fill(x).length).join('-'),",
-    "content: ['a','b'].map(x => Array(2).fill(x).join('')).join('-'),",
+fn a_declared_length_inside_a_callback_is_bounded_by_the_product() {
+  let folds = [
+    (
+      "content: ['a','b'].map(x => Array(2).fill(x).join('')).join('-'),",
+      ".xlpoh5y{content:\"aa-bb\"}",
+    ),
+    (
+      "content: ['a','b'].map(x => Array.from({length: 3}).length).join('-'),",
+      ".xzy23d7{content:\"3-3\"}",
+    ),
   ];
 
-  for body in refusals {
-    assert_refuses("", body, "would build inside a callback");
+  for (body, rule) in folds {
+    assert_folds("", body, rule);
   }
 
   assert_refuses(
     "",
-    "content: ['a','b'].map(x => Array.from({length: 3}).length).join('-'),",
-    "would build inside a callback",
+    "content: ['a','b','c'].map(x => Array(9999).fill(x).length).join('-'),",
+    CANNOT_BOUND_ARRAY,
   );
 
-  // A length the guard cannot read is refused there too, and only there. This is
-  // the shape that made the rule necessary rather than merely consistent: the
-  // declaration arrives through a parameter, so nothing in front of the engine
-  // can see it, and `[{length: 100000000}].map(x => Array.from(x).length)` folded
-  // in sixty-eight seconds while the readable cases were already refusing.
+  // A length the guard cannot read keeps the blanket refusal, and only inside a
+  // callback. This is the shape that made the rule necessary rather than merely
+  // consistent: the declaration arrives through a parameter, so nothing in front
+  // of the engine can see it, and `[{length: 100000000}].map(x =>
+  // Array.from(x).length)` folded in sixty-eight seconds while every readable
+  // spelling was already refusing. Refused whatever the element count came to,
+  // because it is the length that is unreadable rather than the repeats.
   let unreadable = [
     "content: [{length: 100000000}].map(x => Array.from(x).length).join('-'),",
     "content: [100000000].map(x => Array(x).fill(0).length).join('-'),",

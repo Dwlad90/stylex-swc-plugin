@@ -531,6 +531,26 @@ another call: `'x'.repeat(1000).repeat(1000)` is refused whatever the counts
 are, because bounding each link separately is exactly how two allowed lengths
 multiply into one that is not.
 
+Inside a callback the ceiling is compared against a product, because the body
+runs once per element of the array the callback was passed to. So
+`['a', 'b'].map(x => x.repeat(3))` is bounded at six characters and folds, while
+`['ab', 'cd', 'ef'].map(x => x.repeat(200000))` is refused at 1200000 -- and the
+refusal says how the total was reached, since none of the three numbers appears
+in what you wrote:
+
+```bash
+[StyleX] base > content > Cannot bound the string 'repeat' would build.
+It asks for 400000 characters once per element of the receiver it is written
+inside, which is 3 evaluations and 1200000 characters in all, and at most
+1000000 are supported.
+```
+
+An array whose element count the compiler cannot read is the one case still
+refused whatever the length says -- a receiver that is itself a call, or a
+method whose callback does not run once per element, such as `sort` or
+`reduce`. Writing the elements out, or naming the array they are in, is what
+makes the count readable.
+
 The same number bounds a string the compiler grows without running a method at
 all. `a + a` and `` `${a}${a}` `` are answered directly rather than in the
 engine, so each concatenation and each interpolation is measured before its
@@ -563,6 +583,12 @@ costs do not stand in for each other: a string that fits the ceiling can still
 become one element per code unit, and an element costs far more as a syntax
 node than a code unit costs as text. `'x'.repeat(9999).split('')` is a bounded
 string and ten thousand nodes.
+
+It bounds a product inside a callback for the reason
+[`maxFoldedCharacters`](#maxfoldedcharacters) does:
+`['a', 'b'].map(x => Array(2).fill(x))` declares four elements rather than two,
+and `['a', 'b', 'c'].map(x => Array(9999).fill(x))` declares 29997 and is
+refused.
 
 ```bash
 [StyleX] base > fontFamily > Array length is too large to evaluate at

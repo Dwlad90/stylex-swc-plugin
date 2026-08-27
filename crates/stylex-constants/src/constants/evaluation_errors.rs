@@ -285,7 +285,19 @@ pub fn unbounded_amplified_length(method: &str, limit: u64) -> String {
 /// one that repeats: `'xx'.repeat(600000)` builds 1200000 characters, and 600000
 /// is the only one of those an author can find in what they wrote. So both are
 /// named where they differ, and the one number is named once where they do not.
-pub fn amplified_length_too_large(method: &str, count: u64, built: u64, limit: u64) -> String {
+///
+/// `repeats` is how many times the call is evaluated -- one outside a callback,
+/// and the receiver's element count inside one. Named only where it is more than
+/// one, because that is where the total is a number the author cannot find
+/// anywhere in what they wrote and the call alone reads as being inside the
+/// limit.
+pub fn amplified_length_too_large(
+  method: &str,
+  count: u64,
+  built: u64,
+  repeats: u64,
+  limit: u64,
+) -> String {
   let asked = match built == count {
     true => format!("{} characters", built),
     false => format!(
@@ -298,10 +310,35 @@ pub fn amplified_length_too_large(method: &str, count: u64, built: u64, limit: u
     "string",
     method,
     &format!(
-      "It asks for {}, and at most {} are supported.",
-      asked, limit
+      "It asks for {}{}, and at most {} are supported.",
+      asked,
+      per_element(built, repeats, "characters"),
+      limit
     ),
   )
+}
+
+/// What a bound read once comes to across every evaluation of the call, or
+/// nothing at all where there is only one.
+///
+/// Only where there is more than one, because that is where the total is a number
+/// the author cannot find anywhere in what they wrote and the call alone reads as
+/// being inside the limit. One evaluation says nothing about repeats, and a
+/// clause saying so would be noise on the common refusal.
+///
+/// `built` is what one evaluation comes to and `unit` names it, for the reason
+/// [`cannot_bound`] takes a noun: a call amplifies in one of the two units a fold
+/// spends, and both refusals need the same sentence in their own.
+fn per_element(built: u64, repeats: u64, unit: &str) -> String {
+  match repeats > 1 {
+    true => format!(
+      " once per element of the receiver it is written inside, which is {} evaluations and {} {} in all",
+      repeats,
+      built.saturating_mul(repeats),
+      unit
+    ),
+    false => String::new(),
+  }
 }
 
 /// A call declaring more array elements than the fold's entry budget.
@@ -315,13 +352,19 @@ pub fn amplified_length_too_large(method: &str, count: u64, built: u64, limit: u
 /// [`array_length_too_large`], which is the same size measured after the fact.
 /// The difference is when: this one arrives before anything is allocated, so
 /// what it names is the argument to edit.
-pub fn amplified_entries_too_large(call: &str, declared: u64, limit: u64) -> String {
+///
+/// `repeats` is the sibling of the one [`amplified_length_too_large`] takes, and
+/// is named on the same terms: only where it is more than one, since that is
+/// where the declaration alone reads as being inside the limit.
+pub fn amplified_entries_too_large(call: &str, declared: u64, repeats: u64, limit: u64) -> String {
   cannot_bound(
     "array",
     call,
     &format!(
-      "It declares a length of {} elements, and at most {} are supported.",
-      declared, limit
+      "It declares a length of {} elements{}, and at most {} are supported.",
+      declared,
+      per_element(declared, repeats, "elements"),
+      limit
     ),
   )
 }
@@ -403,13 +446,18 @@ pub fn escaping_property(property: &str) -> String {
   )
 }
 
-/// A length-amplifying call written inside a callback.
+/// A length-amplifying call inside a callback whose evaluations were not counted.
 ///
 /// [`unbounded_amplified_length`] bounds one evaluation, which is what a length
 /// written into the source can bound. A callback body is evaluated once per
-/// element of a receiver nothing measured, so the same written bound is
-/// multiplied by a count the source never states — and two calls each inside
-/// the bound build a length that is not.
+/// element of its receiver, so the bound the source states is one factor and that
+/// element count is the other -- and where the receiver has an element count the
+/// guard can read, the product is the bound and this refusal does not arrive.
+///
+/// It arrives for the remainder: a receiver whose elements nothing measured. So
+/// the sentence names the receiver rather than the callback, because the receiver
+/// is what an author changes -- writing the elements out, or naming the array
+/// they are in, is what makes the count readable.
 ///
 /// `built` is the noun for the reason [`cannot_bound`] takes one: a call
 /// amplifies in one of the two units a fold spends. The advice fits both, and is
@@ -418,7 +466,7 @@ pub fn escaping_property(property: &str) -> String {
 pub fn amplification_inside_a_callback(built: &str, call: &str) -> String {
   format!(
     "Cannot bound the {} '{}' would build inside a callback.\n\
-     A callback runs once per element, so a length written into the source bounds one evaluation rather than the call. Write the value out instead.\n\n",
+     The callback's receiver holds an element count that cannot be read here, so a length written into the source bounds one evaluation rather than the call. Write the receiver's elements out, or write the value out instead.\n\n",
     built, call
   )
 }

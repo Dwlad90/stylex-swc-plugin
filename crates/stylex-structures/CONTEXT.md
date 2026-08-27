@@ -101,5 +101,9 @@ without holding — `Array(n)` — since a sparse array costs nothing until some
 touches it and is unmeasured until then. `maxFoldedCharacters` also bounds a
 string the [evaluator](../stylex-transform/CONTEXT.md) grows itself, at the `+`
 and the interpolation that grow it, since neither crosses a fold and a chain that
-doubles its own result is innocent one line at a time.
+doubles its own result is innocent one line at a time. Both are compared against
+a **product** where the call sits inside a callback: what one evaluation builds
+times the element count of the receiver the callback was written on, since a
+length written into a body bounds one evaluation and the body runs once per
+element.
 _Avoid_: string limit, size cap, memory budget, amplification limit

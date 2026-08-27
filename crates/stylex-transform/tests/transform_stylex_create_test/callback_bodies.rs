@@ -196,15 +196,27 @@ fn an_escaping_read_inside_a_body_refuses() {
   );
 }
 
-/// A length-amplifying call is refused inside a block body as it is inside an
-/// expression body: a bound written once is multiplied by an element count the
-/// source never states.
+/// A length-amplifying call is bounded inside a block body as it is inside an
+/// expression body: the bound written into the source times the element count of
+/// the receiver the callback belongs to.
+///
+/// Upstream refuses the whole call — a block body is a shape its evaluator does
+/// not read — so this is the fold being wider rather than agreement.
 #[test]
-fn an_amplifying_call_inside_a_body_refuses() {
-  assert_refuses(
+fn an_amplifying_call_inside_a_body_is_bounded_by_the_product() {
+  assert_folds(
     "const a = [1];",
     "content: a.map(n => { const s = 'x'.repeat(3); return s; }).join(''),",
-    "Cannot bound the string 'repeat' would build inside a callback.",
+    ".x1r4hedj{content:\"xxx\"}",
+  );
+
+  // What a *block* declares is a value the body built, so its length is not an
+  // element's and the receiver rule finds nothing to read. `y` here is twice as
+  // long as any element, which is the reason the width does not carry over.
+  assert_refuses(
+    "",
+    "content: ['a','b'].map(x => { const y = x + x; return y.repeat(2); }).join('-'),",
+    "Cannot bound the string 'repeat' would build.",
   );
 }
 

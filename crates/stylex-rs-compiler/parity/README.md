@@ -366,10 +366,12 @@ Not every ceiling is one. `modules-12-amplification-across-a-chain` is refused
 because the length the call would build cannot be read at all — its receiver is
 itself a call — so no value of the option folds it, and that row is a divergence
 with a written reason rather than a configuration.
-`modules-18-a-declared-length-inside-a-callback` is the same distinction on the
-other ceiling: the length is readable, but a callback runs once per element of a
-receiver nothing measured, so no value of `maxFoldedEntries` bounds the call
-rather than one evaluation of it.
+`modules-21-an-unmeasured-callback-receiver` is the same distinction inside a
+callback: the length written into the body is readable and the ceiling is
+compared against it times the receiver's element count, so what refuses is the
+pair of readings that count comes from — a declared length arriving through a
+parameter, and an element count on a receiver that is itself a call. Neither is
+a number an option can move.
 
 ### Refusal families
 

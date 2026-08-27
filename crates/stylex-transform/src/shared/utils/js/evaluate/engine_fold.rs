@@ -144,6 +144,33 @@ const PROTOTYPE_KEY: &str = "__proto__";
 /// innocent.
 const LENGTH_AMPLIFYING_METHODS: [&str; 3] = ["repeat", "padStart", "padEnd"];
 
+/// Methods whose callback the language evaluates at most once per element of the
+/// receiver, and hands the element to as its first parameter.
+///
+/// Both halves are what a bound needs. *At most once per element* is what makes
+/// the receiver's element count a factor the two amplification rules can
+/// multiply by; *first parameter* is what makes the element's width the width of
+/// the name a body reads it through.
+///
+/// A name not listed here leaves a callback unmeasured, which is the refusal
+/// every callback used to get — so the list is safe by default and grows only
+/// where both halves were checked. `sort` is left out because a comparator runs
+/// more often than its array is long, and `reduce` and `reduceRight` with it
+/// because the element they hand a callback is its second parameter, so a width
+/// read off the receiver would name the accumulator.
+const PER_ELEMENT_METHODS: [&str; 10] = [
+  "map",
+  "flatMap",
+  "filter",
+  "forEach",
+  "some",
+  "every",
+  "find",
+  "findIndex",
+  "findLast",
+  "findLastIndex",
+];
+
 /// The lengths an array may have, as the language's own range.
 ///
 /// A number outside it declares no length at all: `Array(2 ** 32)` is a
@@ -326,7 +353,14 @@ enum Scope<'a> {
   /// A chain rather than one set, because an inner arrow does not replace the
   /// scope around it: `a.map(x => b.map(y => x + y))` reads `x` from the arrow
   /// outside the one that is being walked.
-  Names(&'a [Atom], &'a Scope<'a>),
+  Names {
+    /// The names this scope introduces, in the order they were written.
+    names: &'a [Atom],
+    /// Which of them hold an element of a receiver the call around this scope
+    /// measured, and how wide such an element is.
+    elements: Elements,
+    outer: &'a Scope<'a>,
+  },
 }
 
 impl Scope<'_> {
@@ -335,15 +369,111 @@ impl Scope<'_> {
   fn binds(&self, name: &Atom) -> bool {
     match self {
       Scope::Module => false,
-      Scope::Names(names, outer) => names.contains(name) || outer.binds(name),
+      Scope::Names { names, outer, .. } => names.contains(name) || outer.binds(name),
     }
   }
 
   /// Whether the walk is inside a callback body, where a call runs once per
-  /// element of a receiver nothing here measured.
+  /// element of a receiver the guard may not have measured.
   fn inside_a_callback(&self) -> bool {
-    matches!(self, Scope::Names(..))
+    matches!(self, Scope::Names { .. })
   }
+
+  /// How many characters `name` may hold, where it is an element of a receiver
+  /// a call measured — and `None` for every other name, whose value nothing
+  /// here bounded.
+  ///
+  /// The innermost scope binding the name answers, so a name shadowing an
+  /// element is read as itself rather than borrowing the element's width.
+  fn characters_of(&self, name: &Atom) -> Option<u64> {
+    let Scope::Names {
+      names,
+      elements,
+      outer,
+    } = self
+    else {
+      return None;
+    };
+
+    match names.iter().position(|bound| bound == name) {
+      Some(at) if at < elements.named => elements.characters,
+      Some(_) => None,
+      None => outer.characters_of(name),
+    }
+  }
+}
+
+/// What the guard knows about the values a scope's leading names hold.
+///
+/// Leading, because only a callback's *first* parameter is handed the element:
+/// the parameters after it are the index and the receiver itself, and a name a
+/// block of the body declares holds whatever the body built. Neither is bounded
+/// by an element's width, so neither borrows it.
+#[derive(Clone, Copy, Default)]
+struct Elements {
+  /// How many of the scope's names hold one, counted from the first.
+  named: usize,
+  /// The characters the widest of them renders to, or `None` where an element
+  /// renders to a width the guard could not read.
+  characters: Option<u64>,
+}
+
+/// How many times the expression under the walk is evaluated.
+///
+/// One at module scope. Inside a callback it is the product of every enclosing
+/// receiver's element count, so nesting multiplies rather than resets — and a
+/// callback over a receiver nothing counted is unmeasured, which is the blanket
+/// refusal the two amplification rules used to give every callback body.
+#[derive(Clone, Copy, Default)]
+enum Repeats {
+  /// Evaluations the guard counted.
+  Times(u64),
+  /// A callback over a receiver whose element count nothing here read.
+  #[default]
+  Unmeasured,
+}
+
+impl Repeats {
+  /// The count a bound on one evaluation is multiplied by, or the refusal that
+  /// there is no such count — which is what both amplification rules do with an
+  /// unmeasured callback, so the sentence is written once here.
+  ///
+  /// `built` is the unit the refusal names, for the reason the message takes one:
+  /// a call amplifies in one of the two a fold spends, and the two do not stand
+  /// in for each other.
+  fn counted(self, built: &str, call: &str) -> Result<u64, Decline> {
+    match self {
+      Self::Times(times) => Ok(times),
+      Self::Unmeasured => Err(Decline::rule(amplification_inside_a_callback(built, call))),
+    }
+  }
+
+  /// The repeats of a body evaluated once per element of a receiver holding
+  /// `elements`, which multiplies what is already counted rather than replacing
+  /// it — so a callback nested in a callback is the product of both receivers.
+  ///
+  /// Saturating for the reason the product inside one evaluation saturates: it
+  /// exists to be refused on, and a wrapped one would admit.
+  fn per_element(self, elements: u64) -> Self {
+    match self {
+      Self::Times(times) => Self::Times(times.saturating_mul(elements)),
+      Self::Unmeasured => Self::Unmeasured,
+    }
+  }
+}
+
+/// What the call under the walk measured for a callback among its arguments.
+///
+/// One value rather than two fields on the guard, so the two things a callback
+/// body needs — how often it runs, and how wide the element it is handed — are
+/// read off the same measurement of the same receiver and cannot come to
+/// disagree.
+#[derive(Clone, Copy, Default)]
+struct Callback {
+  /// How many times the call will run the body.
+  repeats: Repeats,
+  /// The characters the widest element of the receiver renders to.
+  characters: Option<u64>,
 }
 
 /// How much nesting is left, and the one refusal spent at the bottom of it.
@@ -414,6 +544,14 @@ struct Guard<'a> {
   scope: Scope<'a>,
   depth: Depth,
   ceilings: Ceilings,
+  /// How many times the expression under the walk is evaluated.
+  repeats: Repeats,
+  /// What the call under the walk measured for a callback among its arguments,
+  /// and `None` where this position reaches no callback the guard counts.
+  ///
+  /// Set by a call for its own arguments and dropped everywhere else, so the
+  /// arrow that reads it is the one written inside the call that measured it.
+  callback: Option<Callback>,
 }
 
 impl<'a> Guard<'a> {
@@ -427,11 +565,24 @@ impl<'a> Guard<'a> {
 
   /// The same remaining depth, with `names` bound over the scope this guard
   /// already carries.
-  fn binding<'b>(&'b self, names: &'b [Atom]) -> Guard<'b> {
+  ///
+  /// `elements` says which of the names hold a value the call around them
+  /// measured, and `repeats` how many times the scope being entered runs. A
+  /// block inside a callback passes neither on: what a block declares is a value
+  /// the body built, and the body's own repeats are already counted.
+  fn binding<'b>(&'b self, names: &'b [Atom], elements: Elements, repeats: Repeats) -> Guard<'b> {
     Guard {
-      scope: Scope::Names(names, &self.scope),
+      scope: Scope::Names {
+        names,
+        elements,
+        outer: &self.scope,
+      },
       depth: self.depth,
       ceilings: self.ceilings,
+      repeats,
+      // The scope being entered is not a call, and only the call an arrow was
+      // written inside says how often that arrow runs.
+      callback: None,
     }
   }
 }
@@ -1024,6 +1175,9 @@ pub(crate) fn try_fold(
     scope: Scope::Module,
     depth: Depth::full(ceiling),
     ceilings,
+    // The expression the caller asked about is evaluated once.
+    repeats: Repeats::Times(1),
+    callback: None,
   };
 
   let mut reader = Reader {
@@ -1710,6 +1864,14 @@ fn admit_call<'a>(
     return Err(Decline::NotACandidate);
   };
 
+  // Whatever the call around this one measured is not this call's business: only
+  // the call an arrow is written directly inside says how often it runs. This
+  // call sets it again below, for its own arguments.
+  let guard = Guard {
+    callback: None,
+    ..guard
+  };
+
   // `String(x)`, `Number(x)`, `Array(n)` and `Object(x)` are native JavaScript
   // functions, so they are folded by being called rather than by a conversion
   // written out here. A name the module bound is not one of them and is left to
@@ -1765,17 +1927,35 @@ fn admit_call<'a>(
     admit_entry_amplification(amplifier, &call.args, guard, reader)?;
   }
 
+  // Two things on the receiver, and both skipped for a global.
+  //
   // A global the engine provides itself carries no value across the bridge: the
-  // printed source names it and the language answers. It is admitted here, as a
-  // receiver, and nowhere else — a global's *name* is not a value this fold
+  // printed source names it and the language answers. It is admitted as a
+  // receiver here and nowhere else — a global's *name* is not a value this fold
   // carries, and admitting it as one would let `['a'].concat(String)` fold a
   // function's own source text into a declaration.
-  if global.is_none() {
-    admit_value(obj, guard, reader)?;
-  }
+  //
+  // Then the count a callback among the arguments would repeat, read off the same
+  // receiver — after it has been admitted, so a receiver the guard is about to
+  // refuse is never read for a count nothing will use. A global holds no elements
+  // to count and no static on one takes a callback this rule owns, so the reading
+  // is not attempted there either.
+  let counted = match global {
+    None => {
+      admit_value(obj, guard, reader)?;
+
+      admitted_callback(&method.sym, obj, guard, reader)
+    },
+    Some(_) => None,
+  };
+
+  let inner = Guard {
+    callback: counted,
+    ..guard
+  };
 
   for arg in &call.args {
-    admit_argument(arg, guard, reader)?;
+    admit_argument(arg, inner, reader)?;
   }
 
   // The one rule left behind the walk, and deliberately. It is a name check like
@@ -1860,11 +2040,11 @@ fn receiver_is_a_written_number(receiver: &Expr) -> bool {
 /// `padStart` and `padEnd` build to their count whatever the receiver holds, so
 /// the count alone bounds them and a chain through one cannot multiply.
 ///
-/// And the call must not sit inside a callback, which runs once per element of a
-/// receiver nothing here measured, so a bound read once is multiplied by a count
-/// the source never states. With those in place the most a fold can build is one
-/// bounded string per amplifying call written, so the source file bounds the
-/// total.
+/// A call inside a callback is bounded by the product rather than refused: the
+/// body runs once per element of the receiver the call around it was written on,
+/// so the bound the source states is one factor and that element count is the
+/// other. A receiver nothing counted leaves the product unbounded, and that is
+/// the remainder the blanket refusal was standing in for all along.
 ///
 /// Reading a length costs a fold that folded before nothing at all. The
 /// name check above answers first, so every call to a method that is not one of
@@ -1884,19 +2064,6 @@ fn admit_amplification(
     return Ok(());
   }
 
-  // A read bound bounds one evaluation. A callback body is evaluated once per
-  // element of a receiver this guard never measured, so the same bound is
-  // multiplied by a count the source never states: `"x".repeat(999999)
-  // .split("").map(() => "y".repeat(999999))` is two calls, each inside the
-  // bound, building a terabyte between them. The element count cannot be read
-  // here, so an amplifying call inside a callback is refused whatever its
-  // argument says.
-  if guard.scope.inside_a_callback() {
-    return Err(Decline::rule(amplification_inside_a_callback(
-      "string", method,
-    )));
-  }
-
   let ceiling = guard.ceilings.characters;
   let unreadable = || Decline::rule(unbounded_amplified_length(method, ceiling));
 
@@ -1913,20 +2080,204 @@ fn admit_amplification(
 
   // Saturating because the product exists to be refused on, and a wrapped one
   // would admit.
-  let built = match method == "repeat" {
-    true => receiver_length(receiver, reader)
+  let per_evaluation = match method == "repeat" {
+    true => receiver_length(receiver, guard, reader)
       .ok_or_else(unreadable)?
       .saturating_mul(count),
     false => count,
   };
 
-  if built > ceiling {
+  // A read bound bounds one evaluation, and a callback body runs once per element
+  // of the receiver the call around it was written on. Where that count was read
+  // the product is the bound; where it was not, the same written bound would be
+  // multiplied by a number the source never states — `"x".repeat(999999)
+  // .split("").map(() => "y".repeat(999999))` is two calls, each inside the
+  // bound, building a terabyte between them.
+  let repeats = guard.repeats.counted("string", method)?;
+
+  if per_evaluation.saturating_mul(repeats) > ceiling {
     return Err(Decline::rule(amplified_length_too_large(
-      method, count, built, ceiling,
+      method,
+      count,
+      per_evaluation,
+      repeats,
+      ceiling,
     )));
   }
 
   Ok(())
+}
+
+/// What a callback passed to this call would repeat, or `None` where the call
+/// takes no callback the guard counts.
+///
+/// The receiver is read rather than the argument, because a callback's body runs
+/// once per element of the receiver the call was written on — and by the time
+/// this is asked that receiver has already been admitted, so the read is one the
+/// fold was going to pay for anyway.
+fn admitted_callback(
+  method: &Atom,
+  receiver: &Expr,
+  guard: Guard,
+  reader: &mut Reader,
+) -> Option<Callback> {
+  if !lists(&PER_ELEMENT_METHODS, method) {
+    return None;
+  }
+
+  // A callback the guard admits but could not measure is still a callback, so it
+  // is `Some` holding the unmeasured default rather than `None`: what tells the
+  // two apart is whether an arrow in this position is a body that runs at all.
+  Some(measured_receiver(receiver, guard, reader).unwrap_or_default())
+}
+
+/// What a callback over this receiver would repeat and hold, or `None` where the
+/// guard cannot read the receiver at all.
+///
+/// One reading answers both, so the count and the width come off the same
+/// measurement of the same value and cannot come to disagree.
+fn measured_receiver(receiver: &Expr, guard: Guard, reader: &mut Reader) -> Option<Callback> {
+  let depth = guard.depth;
+
+  // The evaluator answers an array either as a list of its own or as the literal
+  // it was written as, and both are one array here — the same two shapes the
+  // inward conversion reads, for the same reason.
+  let (elements, characters) = match &module_value_of(receiver, reader)? {
+    EvaluateResultValue::Vec(items) => (
+      items.len(),
+      widest_of(items.iter().map(|item| rendered_characters(item, depth))),
+    ),
+    EvaluateResultValue::Expr(Expr::Array(ArrayLit { elems, .. })) => {
+      // A spread stands for however many elements its operand holds, so the
+      // written length is not the count — and a count read short is the one
+      // reading that would admit a call nothing bounded. The literal arm is
+      // answered by written length alone, so a spread has to leave it.
+      if elems.iter().flatten().any(|elem| elem.spread.is_some()) {
+        return None;
+      }
+
+      (
+        elems.len(),
+        widest_of(elems.iter().map(|elem| rendered_element(elem, depth))),
+      )
+    },
+    _ => return None,
+  };
+
+  Some(Callback {
+    repeats: guard.repeats.per_element(elements as u64),
+    characters,
+  })
+}
+
+/// The value `expr` holds *in the module*, or `None` where the module has none to
+/// answer with.
+///
+/// The one home for what both speculative reads below share: the paren unwrapping
+/// and the **call** they each refuse, whose answer is bounded per link so that
+/// reading it is what would let two allowed counts multiply into one that is
+/// neither.
+///
+/// **Why a name a callback binds cannot come back from here**, which is what
+/// makes reading a receiver inside a callback safe at all. A module
+/// `const parts = ['q']` beside `big.map(parts => parts.map(…))` spells one name
+/// two ways, and answering the first where the call is made on the second would
+/// count one evaluation against ten thousand. It cannot happen: the evaluator
+/// resolves a reference through `StateManager::declaration_of`, which is keyed by
+/// the full SWC `Id` — the symbol *and* its `SyntaxContext` — so the parameter
+/// and the module binding are different keys and the parameter's has no
+/// initializer. The resolver, not a check here, is what holds that; this is the
+/// place that depends on it, so it is the place that says so.
+fn module_value_of(expr: &Expr, reader: &mut Reader) -> Option<EvaluateResultValue> {
+  let mut expr = expr;
+
+  // Unwrapped in a loop rather than by recursing, because this is asked before
+  // the guard descends and so has no nesting budget to spend. A loop needs none.
+  while let Expr::Paren(paren) = expr {
+    expr = &paren.expr;
+  }
+
+  match expr {
+    Expr::Call(_) => None,
+    _ => reader.resolve(expr),
+  }
+}
+
+/// One written array element's rendered width.
+///
+/// A hole renders to nothing, which is what the language's own join does with it;
+/// a spread stands for a count the source does not state, so it has no width.
+/// Read from one place because both the receiver's own elements and a nested
+/// array's are the same question.
+fn rendered_element(elem: &Option<ExprOrSpread>, depth: Depth) -> Option<u64> {
+  match elem {
+    Some(ExprOrSpread { spread: None, expr }) => rendered_expr(expr, depth),
+    Some(_) => None,
+    None => Some(0),
+  }
+}
+
+/// The widest of a receiver's elements, or `None` where one of them renders to a
+/// width the guard could not read.
+///
+/// Any one unreadable element gives up on all of them, because which element a
+/// callback's parameter will hold is not something the guard chooses.
+fn widest_of(mut widths: impl Iterator<Item = Option<u64>>) -> Option<u64> {
+  widths.try_fold(0, |widest, width| Some(widest.max(width?)))
+}
+
+/// How many characters one resolved value renders to under the language's own
+/// `ToString`, or `None` where the guard cannot read it.
+///
+/// An object is one of those: it renders to `[object Object]` whatever it holds,
+/// and treating that as a width would put a number in front of the engine that
+/// says nothing about the value. A refusal is the honest answer.
+fn rendered_characters(value: &EvaluateResultValue, depth: Depth) -> Option<u64> {
+  match value {
+    EvaluateResultValue::Expr(expr) => rendered_expr(expr, depth),
+    EvaluateResultValue::Vec(items) => {
+      let inner = depth.descend().ok()?;
+
+      joined(
+        items.len(),
+        items.iter().map(|item| rendered_characters(item, inner)),
+      )
+    },
+    _ => None,
+  }
+}
+
+/// The same for a value the evaluator answered as the expression it was written
+/// as.
+fn rendered_expr(expr: &Expr, depth: Depth) -> Option<u64> {
+  let inner = depth.descend().ok()?;
+
+  match expr {
+    Expr::Lit(Lit::Str(text)) => Some(atom_utf16_length(&text.value) as u64),
+    // Read through the conversion every other number-to-string in this compiler
+    // uses, so the width is the one the engine will actually build.
+    Expr::Lit(Lit::Num(number)) => Some(to_js_string(number.value).len() as u64),
+    Expr::Lit(Lit::Bool(truth)) => Some(match truth.value {
+      true => "true".len() as u64,
+      false => "false".len() as u64,
+    }),
+    Expr::Lit(Lit::Null(_)) => Some("null".len() as u64),
+    Expr::Array(ArrayLit { elems, .. }) => joined(
+      elems.len(),
+      elems.iter().map(|elem| rendered_element(elem, inner)),
+    ),
+    _ => None,
+  }
+}
+
+/// What a list of rendered widths comes to once the language joins them with a
+/// comma, or `None` where one of them could not be read.
+fn joined(count: usize, mut widths: impl Iterator<Item = Option<u64>>) -> Option<u64> {
+  let separators = count.saturating_sub(1) as u64;
+
+  widths.try_fold(separators, |total, width| {
+    Some(total.saturating_add(width?))
+  })
 }
 
 /// The count an amplifying call asks for, or `None` where the argument is not a
@@ -1974,7 +2325,11 @@ fn count_of(value: f64) -> Option<u64> {
 /// is resolved, so a name holding a string is a receiver like the literal it was
 /// given the name of. A **call** is refused rather than resolved, which is the
 /// half of this rule that keeps per-link bounds from multiplying across a chain.
-fn receiver_length(receiver: &Expr, reader: &mut Reader) -> Option<u64> {
+///
+/// A name a callback binds is neither: the module cannot resolve it, and what it
+/// holds is an element of a receiver the call around the callback measured — so
+/// that element's width is the length, and a name nothing measured has none.
+fn receiver_length(receiver: &Expr, guard: Guard, reader: &mut Reader) -> Option<u64> {
   // Unwrapped in a loop rather than by recursing, because every other walk on
   // this bridge spends the nesting budget and this one has no budget to spend:
   // it is asked before the guard descends. A loop needs none.
@@ -1986,8 +2341,15 @@ fn receiver_length(receiver: &Expr, reader: &mut Reader) -> Option<u64> {
 
   let text = match receiver {
     Expr::Lit(Lit::Str(text)) => text.value.clone(),
-    Expr::Call(_) => return None,
-    _ => match reader.resolve(receiver)? {
+    // A name the callback binds is answered from the element it was handed, and
+    // this arm is what makes `['a','b'].map(x => x.repeat(3))` fold at all: the
+    // module has no value for `x`, so without it there is no length to read.
+    // Asked before the resolution rather than left to it — see
+    // [`module_value_of`] for why the module could not answer for it anyway.
+    Expr::Ident(ident) if guard.scope.binds(&ident.sym) => {
+      return guard.scope.characters_of(&ident.sym);
+    },
+    _ => match module_value_of(receiver, reader)? {
       EvaluateResultValue::Expr(Expr::Lit(Lit::Str(text))) => text.value,
       _ => return None,
     },
@@ -2101,10 +2463,10 @@ enum Declared {
 /// ceilings already bounded. Inside a callback that reasoning does not hold, and
 /// [`Declared::Unreadable`] is why the read answers three things rather than two.
 ///
-/// The callback rule is therefore asked *after* the length rather than before it,
-/// unlike the string one: a call that declares no length is `Array('a', 'b')`,
-/// whose elements the source wrote out, and refusing that inside a callback would
-/// take away a fold nothing threatens.
+/// The unreadable rule is therefore asked *after* the length rather than in front
+/// of it, unlike the string one: a call that declares no length is
+/// `Array('a', 'b')`, whose elements the source wrote out, and refusing that
+/// inside a callback would take away a fold nothing threatens.
 fn admit_entry_amplification(
   amplifier: EntryAmplifier,
   args: &[ExprOrSpread],
@@ -2113,24 +2475,20 @@ fn admit_entry_amplification(
 ) -> Result<(), Decline> {
   let declared = amplifier.declared(args, reader);
 
-  // A read bound bounds one evaluation. A callback body is evaluated once per
-  // element of a receiver this guard never measured, so `['a', 'b'].map(x =>
-  // Array(9999).fill(x))` is one bounded length multiplied by a count the source
-  // never states. A length the guard could not read is refused here too, and only
-  // here: inside a callback it is the length that came through a parameter, which
-  // is the one place a declaration reaches the engine unmeasured.
+  // A length the guard could not read is refused inside a callback, and only
+  // there: that is where the declaration arrives through a parameter, so nothing
+  // in front of the engine sees it. `[{length: 100000000}].map(x =>
+  // Array.from(x).length)` folded in sixty-eight seconds when this told the two
+  // apart by reading nothing.
   //
-  // What is admitted inside a callback is a call the guard can see declares
-  // nothing — `Array(x, x)`, whose elements the source wrote out. That is why the
-  // reading happens before this rule rather than after it, unlike the string one.
-  if guard.scope.inside_a_callback() {
-    return match declared {
-      Declared::Nothing => Ok(()),
-      _ => Err(Decline::rule(amplification_inside_a_callback(
-        "array",
-        amplifier.name(),
-      ))),
-    };
+  // Refused whatever the element count came to, because it is the *length* that
+  // is unreadable rather than the repeats: a receiver of one element still
+  // declares an array of a hundred million.
+  if guard.scope.inside_a_callback() && matches!(declared, Declared::Unreadable) {
+    return Err(Decline::rule(amplification_inside_a_callback(
+      "array",
+      amplifier.name(),
+    )));
   }
 
   let Declared::Length(declared) = declared else {
@@ -2139,10 +2497,18 @@ fn admit_entry_amplification(
 
   let ceiling = guard.ceilings.entries;
 
-  match declared > ceiling {
+  // A callback body runs once per element of the receiver the call around it was
+  // written on, so a length written into one declares that many arrays rather
+  // than one. Where the receiver was never counted the product is unbounded, and
+  // `['a', 'b'].map(x => Array(9999).fill(x))` is one bounded length multiplied
+  // by a number the source never states.
+  let repeats = guard.repeats.counted("array", amplifier.name())?;
+
+  match declared.saturating_mul(repeats) > ceiling {
     true => Err(Decline::rule(amplified_entries_too_large(
       amplifier.name(),
       declared,
+      repeats,
       ceiling,
     ))),
     false => Ok(()),
@@ -2295,12 +2661,38 @@ fn admit_argument(arg: &ExprOrSpread, guard: Guard, reader: &mut Reader) -> Resu
 /// really runs.
 fn admit_arrow(arrow: &ArrowExpr, guard: Guard, reader: &mut Reader) -> Result<(), Decline> {
   let mut bindings = Bindings::default();
+  let mut first = 0;
 
-  for param in &arrow.params {
+  for (position, param) in arrow.params.iter().enumerate() {
     bindings.pattern(param, guard.depth)?;
+
+    // The names the first parameter binds are the ones handed an element of the
+    // receiver, whether that parameter is a plain name or destructures one.
+    if position == 0 {
+      first = bindings.names.len();
+    }
   }
 
-  let inner = bindings.enter(&guard, reader)?;
+  // What the call this arrow was written inside measured for it. A parameter with
+  // a default may be handed something else entirely, so a defaulted parameter
+  // list takes neither the width nor the count.
+  let measured = match bindings.evaluates.is_empty() {
+    true => guard.callback,
+    false => None,
+  };
+
+  let (elements, repeats) = match measured {
+    Some(callback) => (
+      Elements {
+        named: first,
+        characters: callback.characters,
+      },
+      callback.repeats,
+    ),
+    None => (Elements::default(), Repeats::Unmeasured),
+  };
+
+  let inner = bindings.enter(&guard, elements, repeats, reader)?;
 
   match arrow.body.as_ref() {
     BlockStmtOrExpr::Expr(body) => admit_value(body, inner, reader),
@@ -2387,8 +2779,14 @@ impl<'a> Bindings<'a> {
   /// reading one declared later throws where the language throws, rather than
   /// quietly resolving to a module name the binding shadows. Written once here
   /// because both callers depend on it and neither states it.
-  fn enter<'b>(&'b self, guard: &'b Guard, reader: &mut Reader) -> Result<Guard<'b>, Decline> {
-    let inner = guard.binding(&self.names);
+  fn enter<'b>(
+    &'b self,
+    guard: &'b Guard,
+    elements: Elements,
+    repeats: Repeats,
+    reader: &mut Reader,
+  ) -> Result<Guard<'b>, Decline> {
+    let inner = guard.binding(&self.names, elements, repeats);
 
     for expr in &self.evaluates {
       admit_value(expr, inner, reader)?;
@@ -2418,7 +2816,10 @@ fn admit_block(stmts: &[Stmt], guard: Guard, reader: &mut Reader) -> Result<(), 
     }
   }
 
-  let inner = bindings.enter(&outer, reader)?;
+  // A block declares values its own body built, so nothing here is an element of
+  // a measured receiver — and the repeats are the ones the body around it is
+  // already counted at.
+  let inner = bindings.enter(&outer, Elements::default(), outer.repeats, reader)?;
 
   for stmt in stmts {
     admit_statement(stmt, inner, reader)?;

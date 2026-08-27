@@ -121,8 +121,13 @@ expression and a name reach the same bound a literal does — and `repeat`
 multiplies its receiver's own length into the product. A receiver that is itself
 a **call** is the one deliberately left unread: its answer is bounded per link,
 and reading it is exactly what would let two allowed lengths multiply into one
-that is not. A callback body is refused outright, since a bound read once bounds
-one evaluation and a callback runs once per element. A call whose result is one
+that is not. Inside a **callback** body the bound is a product, since a bound
+read once bounds one evaluation and a callback runs once per element: the guard
+counts the receiver of the call the body was written inside and multiplies, so
+nesting multiplies rather than resets, and a receiver nothing counted keeps the
+refusal a callback used to get outright. That count also says how wide a value
+the callback's first parameter holds, which is what lets `x.repeat(3)` be
+bounded on a name no module can resolve. A call whose result is one
 element per unit of a length an **argument declares** — `Array(n)` and
 `Array.from({ length: n })` — is bounded by the same arithmetic in entries rather
 than characters, and for a reason of its own: the array `Array(n)` makes is

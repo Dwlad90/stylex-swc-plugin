@@ -404,13 +404,24 @@ fn a_locale_sensitive_method_inside_a_declaration_still_refuses() {
 }
 
 /// The body of a declaration reached as a callback is a callback body, so the
-/// rule that a length written into one bounds a single evaluation applies to it.
+/// rule bounding a length written into one by the receiver's element count
+/// applies to it. The declaration is walked as the arrow it is, and the call it
+/// was passed to is what says how often that arrow runs.
 #[test]
-fn an_amplifying_call_inside_a_declaration_still_refuses() {
-  assert_refuses(
+fn an_amplifying_call_inside_a_declaration_is_bounded_by_the_product() {
+  assert_folds(
     "const big = (x) => x.repeat(3);",
     "content: ['a', 'b'].map(big).join('-'),",
-    "Cannot bound the string 'repeat' would build inside a callback.",
+    ".x3d7avo{content:\"aaa-bbb\"}",
+  );
+
+  // And the product is the bound rather than a formality: three elements two
+  // characters wide, repeated a hundred thousand times, is past the default
+  // ceiling where each factor alone is far inside it.
+  assert_refuses(
+    "const big = (x) => x.repeat(200000);",
+    "content: ['ab', 'cd', 'ef'].map(big).join('-'),",
+    "Cannot bound the string 'repeat' would build.",
   );
 }
 

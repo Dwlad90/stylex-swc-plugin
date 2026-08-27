@@ -531,16 +531,47 @@ fn a_fold_cannot_write_to_a_prototype_the_next_fold_reads() {
 }
 
 /// An amplifying call is bounded by an argument written into the source, which
-/// bounds one evaluation. A callback runs once per element, so the same written
-/// bound is multiplied by a length the guard never measured.
+/// bounds one evaluation. A callback runs once per element, so the bound on the
+/// call is that argument times the receiver's element count — and a receiver
+/// whose elements nothing counted is the one case left refusing.
 #[test]
-fn an_amplifying_call_inside_a_callback_refuses_however_small_its_argument() {
+fn an_amplifying_call_inside_a_callback_is_bounded_by_the_product() {
+  assert_folds_to_string(
+    "[\"1\", \"2\"].map(x => x.padStart(2, \"0\")).join(\"\")",
+    "0102",
+  );
+  assert_folds_to_string("[\"1\"].map(x => x.padEnd(2, \"0\")).join(\"\")", "10");
+
+  // A receiver that is itself a call has no element count the guard can read
+  // without evaluating it, which is exactly what bounding each link separately
+  // fails to prevent.
   assert_deopts("\"x\".repeat(4).split(\"\").map(c => c.repeat(4)).join(\"\")");
-  assert_deopts("[\"1\", \"2\"].map(x => x.padStart(2, \"0\")).join(\"\")");
-  assert_deopts("[\"1\"].map(x => x.padEnd(2, \"0\")).join(\"\")");
 
   // The same call outside a callback is still bounded by its argument alone.
   assert_folds_to_string("\"1\".padStart(2, \"0\")", "01");
+}
+
+/// The product is a product: an element count and a written length that are each
+/// far inside the ceiling are refused where together they are not.
+#[test]
+fn the_amplification_product_refuses_what_neither_factor_would() {
+  // Ten elements times a hundred thousand characters is a million, which is the
+  // default ceiling, and one more element is past it.
+  assert_folds_to_number(
+    "[0,1,2,3,4,5,6,7,8,9].map(() => \"x\".repeat(100000)).join(\"\").length",
+    1_000_000.0,
+  );
+  assert_deopts("[0,1,2,3,4,5,6,7,8,9,10].map(() => \"x\".repeat(100000)).join(\"\")");
+
+  // And nesting multiplies rather than resets, so the same length inside two
+  // callbacks is bounded by both receivers.
+  assert_folds_to_number(
+    "[1, 2].map(() => [1, 2].map(() => \"x\".repeat(250000)).join(\"\")).join(\"\").length",
+    1_000_000.0,
+  );
+  assert_deopts(
+    "[1, 2].map(() => [1, 2, 3].map(() => \"x\".repeat(250000)).join(\"\")).join(\"\")",
+  );
 }
 
 /// The amplification bound at its own value. Every other case is orders of

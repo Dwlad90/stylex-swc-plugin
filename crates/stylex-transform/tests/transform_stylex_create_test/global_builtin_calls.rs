@@ -1006,12 +1006,13 @@ stylex_test_panic!(
   "#
 );
 
-// A name holding a function is refused before the call rather than after it: a
-// function is not a value the bridge carries inward, and nothing below the fold
-// folds a call to a global, so the refusal is the fold's own.
+// A name holding a function ends where the arrow written out in place does. The
+// name crosses as the declaration it came from, `Object` hands the function back
+// unchanged, and there is no form to carry it back in -- so naming it changes
+// nothing about the answer, which is what the reference compiler does too.
 stylex_test_panic!(
   object_of_a_declared_function_is_rejected,
-  "Only static values can be passed to Object().",
+  "Cannot carry a folded function back from the engine.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     const value = () => 'red';

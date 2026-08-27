@@ -21,6 +21,12 @@
 //! string `s` holds. See [`Transport`] for why the value travels beside the
 //! source rather than inside it.
 //!
+//! A name holding a *function* crosses by the other route, because a function
+//! has no value an argument could carry: the declaration it came from is
+//! printed as the parameter's default and nothing is passed for it. So a
+//! callback given a name folds exactly as the same arrow written out in place
+//! does, down to which spelling shadows which.
+//!
 //! A fold answers one of two things: the value, or the rule that refused it.
 //! There is no silent refusal — a call the guard recognised and declined says
 //! which rule declined it, rather than falling through to the caller's
@@ -40,9 +46,9 @@ use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{
-      ArrayLit, ArrowExpr, BlockStmtOrExpr, CallExpr, Callee, Decl, Expr, ExprOrSpread, ExprStmt,
-      KeyValueProp, Lit, MemberExpr, MemberProp, Module, ModuleItem, Null, ObjectLit,
-      ObjectPatProp, Pat, Prop, PropName, PropOrSpread, ReturnStmt, Stmt, Tpl,
+      ArrayLit, ArrowExpr, AssignPat, BlockStmtOrExpr, CallExpr, Callee, Decl, Expr, ExprOrSpread,
+      ExprStmt, Ident, KeyValueProp, Lit, MemberExpr, MemberProp, Module, ModuleItem, Null,
+      ObjectLit, ObjectPatProp, Pat, Prop, PropName, PropOrSpread, ReturnStmt, Stmt, Tpl,
     },
     codegen::Config,
   },
@@ -60,8 +66,8 @@ use stylex_constants::constants::evaluation_errors::{
   bound_value_too_large, engine_did_not_start, engine_threw, escaping_property,
   expression_too_deep, folded_string_too_large, locale_sensitive_method, not_a_function,
   numeric_literal_receiver, object_size_too_large, unbounded_amplified_length,
-  uncallable_printed_fold, uncoercible_value, unfoldable_fold_result, unfoldable_statement,
-  unfoldable_static,
+  uncallable_printed_fold, uncoercible_value, unfoldable_fold_result, unfoldable_function,
+  unfoldable_statement, unfoldable_static,
 };
 use stylex_js::coercions::{self, is_global_spelled_as_an_identifier, to_js_number};
 use stylex_js::helpers::{is_invalid_method, is_valid_callee};
@@ -78,6 +84,7 @@ use crate::shared::{
   structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
   utils::{
     common::order_own_keys,
+    js::check_declaration::DeclarationType,
     log::build_code_frame_error::{CodeFrame, print_module},
   },
 };
@@ -448,7 +455,7 @@ impl<'a> Guard<'a> {
 /// left behind or shadowed there would be a cross-file correctness bug.
 struct Transport {
   params: Vec<Atom>,
-  values: Vec<Carried>,
+  values: Vec<Crossing>,
   totals: Totals,
   ceilings: Ceilings,
 }
@@ -496,27 +503,59 @@ impl Transport {
     }
     .value(value, depth.restart())?;
 
-    self.carry(name, carried);
+    self.carry(name, Crossing::Value(carried));
 
     Ok(())
   }
 
-  /// Records a value the bridge already holds in its own shapes, under the name
-  /// the printed source reads it through.
+  /// Records something the bridge already holds in its own shapes, under the
+  /// name the printed source reads it through.
   ///
   /// Nothing here can refuse, which is the whole difference from [`bind`]: what
   /// it takes was not copied out of the module, so there is no text and no entry
   /// count to compare a ceiling to. A [StyleX function the engine may
-  /// call](engine_stylex_functions) is the one value that arrives this way.
+  /// call](engine_stylex_functions) and a resolved arrow are what arrive this
+  /// way.
   ///
   /// [`bind`]: Transport::bind
-  fn carry(&mut self, name: &Atom, carried: Carried) {
+  fn carry(&mut self, name: &Atom, crossing: Crossing) {
     if self.holds(name) {
       return;
     }
 
     self.params.push(name.clone());
-    self.values.push(carried);
+    self.values.push(crossing);
+  }
+
+  /// The names as the parameters of the printed arrow.
+  ///
+  /// A value's name is a bare parameter and its value arrives as an argument. A
+  /// function's is a parameter with the expression it was declared from as its
+  /// default, because a function has no argument form to arrive as — so the
+  /// printed source carries it and the call passes nothing.
+  ///
+  /// A default is evaluated where the parameter stands, so the order the names
+  /// were carried in is the order they have to be printed in: a name a default
+  /// reads is carried before the name whose default reads it, which is what
+  /// walking a declaration before recording it buys.
+  fn parameters(&self) -> Vec<Pat> {
+    self
+      .params
+      .iter()
+      .zip(&self.values)
+      .map(|(name, crossing)| {
+        let bound = Pat::Ident(create_binding_ident(create_ident(name)));
+
+        match crossing {
+          Crossing::Value(_) => bound,
+          Crossing::Source(source) => Pat::Assign(AssignPat {
+            span: DUMMY_SP,
+            left: Box::new(bound),
+            right: source.clone(),
+          }),
+        }
+      })
+      .collect()
   }
 
   /// Whether a value is already travelling under `name`.
@@ -536,11 +575,36 @@ impl Transport {
     let mut arguments = Vec::with_capacity(self.values.len());
 
     for value in &self.values {
-      arguments.push(to_js(value, engine, method)?);
+      arguments.push(match value {
+        Crossing::Value(carried) => to_js(carried, engine, method)?,
+        // A function travels in the printed source as the parameter's default,
+        // so passing nothing for it is what makes the default the value.
+        Crossing::Source(_) => JsValue::undefined(),
+      });
     }
 
     Ok(arguments)
   }
+}
+
+/// What travels under one parameter name of the printed arrow.
+///
+/// Two arms because a value and a function cross by different routes, and the
+/// routes are not interchangeable. A value is copied into the engine and passed
+/// as an argument, which keeps the printed text the size of the expression
+/// however large the value is. A function has no such form — there is no engine
+/// value a resolved arrow could be built into before the engine exists, and
+/// nothing an argument could carry — so what crosses is the source it was
+/// declared from, printed back where the parameter stands.
+///
+/// Printing it as a *default* rather than substituting it at each reading is
+/// what keeps shadowing the language's answer instead of this walk's: a callback
+/// parameter of the same name shadows the default exactly as it shadowed the
+/// module binding, and a substitution would have had to work that out for
+/// itself.
+enum Crossing {
+  Value(Carried),
+  Source(Box<Expr>),
 }
 
 /// A resolved value on its way into the engine, in the shapes the bridge
@@ -988,7 +1052,7 @@ fn fold(
   let admitted = admit_call(call, guard, reader)?;
   let method = admitted.name();
 
-  let source = print_fold(call, &reader.transport.params);
+  let source = print_fold(call, reader.transport.parameters());
 
   ENGINE.with_borrow_mut(|slot| {
     // Taken, not borrowed in place. A panic unwinding out of the engine is
@@ -1252,7 +1316,19 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
         Some(value) if is_a_carryable_receiver(&value) => {
           reader.transport.bind(&ident.sym, &value, guard.depth)
         },
-        _ => Err(Decline::NotACandidate),
+        // A name holding a function, which is what the evaluator answers a
+        // callback with. There is no value form to carry, so the declaration it
+        // came from crosses instead.
+        Some(EvaluateResultValue::Callback(_)) => {
+          admit_a_named_function(ident, expr, inner, reader)
+        },
+        // A name that resolved to nothing is usually not this module's business
+        // — the dispatch below owns the call and answers for it. A function is
+        // the exception: nothing below the fold carries one into an evaluation.
+        _ => match the_module_declares_a_function(ident, expr, reader) {
+          true => Err(Decline::rule(unfoldable_function(&ident.sym))),
+          false => Err(Decline::NotACandidate),
+        },
       }
     },
     // A regular expression and a BigInt have no value this evaluator carries,
@@ -1389,6 +1465,88 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
   }
 }
 
+/// Admits a name the module declared a function under, by crossing the
+/// declaration rather than a value.
+///
+/// The declaration is walked like any other expression, so an arrow reached
+/// through a chain of names crosses as the chain — each link a parameter of the
+/// printed arrow, defaulted to what the link before it resolved. What the walk
+/// admits is therefore the same set of shapes an arrow written in place gets,
+/// and nothing about being named is asked separately.
+///
+/// A name the walk cannot reach a declaration for is refused rather than handed
+/// back. The evaluator answered a function, so the fold is the only thing that
+/// could have carried it and there is nothing below to hand it to.
+fn admit_a_named_function(
+  ident: &Ident,
+  expr: &Expr,
+  guard: Guard,
+  reader: &mut Reader,
+) -> Result<(), Decline> {
+  if reader.transport.holds(&ident.sym) {
+    return Ok(());
+  }
+
+  // Cloned because the walk below takes the evaluator mutably and the
+  // declaration is borrowed out of it. One subtree per name per fold, and the
+  // printer would have wanted an owned tree anyway.
+  let Some(declaration) = initializer_of(expr, reader).cloned() else {
+    return Err(Decline::rule(unfoldable_function(&ident.sym)));
+  };
+
+  // Walked in the scope the declaration was written in, which is the module. A
+  // name the declaration reads is a module name however deep inside a callback
+  // the reading of *this* name was, and the default it prints into stands in the
+  // parameter list, where only the module names this fold carries are bound.
+  //
+  // Depth descends here rather than restarting, unlike the walk over a resolved
+  // value: a declaration can name a second function whose declaration names the
+  // first, and the descent is what bounds a walk that goes round.
+  let outer = Guard {
+    scope: Scope::Module,
+    ..guard
+  };
+
+  admit_value(&declaration, outer, reader)?;
+
+  // Recorded after the walk, so every name the declaration reads is already a
+  // parameter ahead of the parameter whose default reads it.
+  reader
+    .transport
+    .carry(&ident.sym, Crossing::Source(Box::new(declaration)));
+
+  Ok(())
+}
+
+/// The expression a name was declared with, or `None` where the module declares
+/// no such binding.
+///
+/// One walk from a name to its initializer, because both questions below start
+/// with it: what a function crosses as, and whether a name the guard could not
+/// resolve was a function at all. Two spellings of the same three links would
+/// have been two chances to disagree about which link is optional.
+fn initializer_of<'a>(expr: &'a Expr, reader: &'a Reader) -> Option<&'a Expr> {
+  get_binding(expr, reader.traversal_state).and_then(|declarator| declarator.init.as_deref())
+}
+
+/// Whether the module declares `ident` as a function, which is what makes a name
+/// the guard could not resolve a refusal rather than a call to hand back.
+///
+/// Three declarations answer yes here, and they are the three the reference
+/// compiler refuses too: an arrow the transport could not take, because a block
+/// body or a destructured parameter is a shape the evaluator answers no callback
+/// for; a `function` of either spelling; and a binding written to after it was
+/// declared, which is refused for the write rather than for its shape.
+///
+/// A `function` declaration is asked of the declaration list rather than of a
+/// declarator, because it is hoisted and has no initializer to read.
+fn the_module_declares_a_function(ident: &Ident, expr: &Expr, reader: &Reader) -> bool {
+  matches!(
+    reader.traversal_state.declared_as(ident),
+    Some(DeclarationType::Function)
+  ) || initializer_of(expr, reader).is_some_and(|init| matches!(init, Expr::Arrow(_) | Expr::Fn(_)))
+}
+
 /// What the guard admitted, and the name a refusal or a throw is reported
 /// under.
 ///
@@ -1521,7 +1679,9 @@ fn admit_a_stylex_function(
     ),
   };
 
-  reader.transport.carry(&callable.name, carried);
+  reader
+    .transport
+    .carry(&callable.name, Crossing::Value(carried));
 
   Ok(())
 }
@@ -2545,18 +2705,12 @@ fn read<T>(method: &Atom, read: impl FnOnce() -> JsResult<T>) -> Result<T, Decli
 /// `&Expr` and clones it — so going through it means cloning the subtree once
 /// to build the `Expr` and once more inside. The printer needs an owned tree
 /// either way, because it drops the spans in place before emitting.
-fn print_fold(call: &CallExpr, params: &[Atom]) -> String {
+fn print_fold(call: &CallExpr, params: Vec<Pat>) -> String {
   let folded = Expr::Call(call.clone());
 
   let printed = match params.is_empty() {
     true => folded,
-    false => create_arrow_expression_with_params(
-      params
-        .iter()
-        .map(|name| Pat::Ident(create_binding_ident(create_ident(name))))
-        .collect(),
-      folded,
-    ),
+    false => create_arrow_expression_with_params(params, folded),
   };
 
   let module = Module {

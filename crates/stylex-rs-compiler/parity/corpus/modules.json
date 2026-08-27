@@ -2310,9 +2310,16 @@
       "id": "modules-15-a-callback-reached-through-a-name",
       "label": "an array method whose callback is reached through a name",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nconst upper = (part) => part.toUpperCase();\n\nexport const styles = stylex.create({\n  s0: { content: ['b', 'a'].map(upper).join(', ') },\n});\n",
-      "origin": "issue 15, found by the generated sweep",
+      "origin": "issue 15, found by the generated sweep; closed by issue 19",
+      "note": "Agreement, and it was acceptance divergent until issue 19. A callback written out in place folded -- issue 10 prints it and the engine runs it -- while the same arrow reached through a name refused, because what crosses the bridge inward is a value and a function has no value form to carry. What crosses for a function instead is the declaration it came from, printed back as the default of the parameter the name became: the engine binds the name where the module bound it, so a callback parameter of the same spelling shadows it exactly as it did in the source. Which declarations qualify is decided by what the name resolves to, and the set is upstream's own -- an arrow with plain parameters and a single expression body, never written to after it was declared -- so a block body, a destructured or defaulted parameter, a `function` of either spelling and a reassigned binding are refused on both sides. Those refusals now name the binding rather than the call, since the method is not what an author has to change."
+    },
+    {
+      "id": "modules-19-a-call-reached-through-a-name",
+      "label": "a call whose callee is a name rather than a member",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst inner = (y) => y + '!';\nconst make = (s) => (x) => x + s;\n\nexport const styles = stylex.create({\n  s0: { content: ['b', 'a'].map((x) => inner(x)).join(',') },\n  s1: { content: ['a'].map(make('!')).join('') },\n});\n",
+      "origin": "issue 19, measured while closing the named-callback gap",
       "expected": "acceptance-divergent",
-      "note": "Acceptance divergent and **not** deliberate: this is a gap, recorded so the sweep reports it once rather than every night, and so the day it closes is a changed verdict rather than silence. A callback written out in place folds -- issue 10 prints it and the engine runs it -- and the same arrow reached through a name refuses, because what crosses the bridge inward is a value and a function has no value form to carry. It is the receiver question this whole effort answered, asked one argument along, and it costs an author a build the reference compiler completes. Issue 19 carries it. The neighbouring shape -- a callback naming a StyleX function -- closed in issue 17 and is recorded below, which narrows this row to a callback the guard cannot reach at all."
+      "note": "Acceptance divergent and **not** deliberate: this is a gap, recorded so it is reported once rather than found again, and so the day it closes is a changed verdict rather than silence. Issue 22 carries it. Distinct from the shape issue 19 closed, which is a callback *passed* by name: these two call a function through a name, and the guard admits a call only where its callee is a member or an unshadowed global. Nothing about the function is unreachable -- `inner` resolves and crosses exactly as issue 19 made it -- so what is missing is the admission of the callee, not the carriage of the value. Upstream folds both."
     },
     {
       "id": "modules-17-a-callback-naming-a-stylex-function",

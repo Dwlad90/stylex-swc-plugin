@@ -226,6 +226,19 @@ fn test_uncallable_printed_fold() {
 }
 
 #[test]
+fn test_unfoldable_function() {
+  assert_eq!(
+    unfoldable_function("upper"),
+    "Cannot carry the function 'upper' into a fold.\n\
+     Its declaration is not one the compiler can evaluate.\n\n"
+  );
+  // Names the binding rather than the call it was an argument to, which is the
+  // whole reason this sentence exists beside `unfoldable_call`.
+  assert!(unfoldable_function("byLength").contains("'byLength'"));
+  assert!(!unfoldable_function("byLength").contains("Cannot fold"));
+}
+
+#[test]
 fn test_unfoldable_call() {
   assert_eq!(
     unfoldable_call("startsWith"),

@@ -20,6 +20,7 @@ mod media_query_canonicalization;
 mod media_query_computed_bounds;
 mod mutating_methods_and_bindings;
 mod named_array_receivers;
+mod named_callbacks;
 mod named_string_receivers;
 mod nested_pseudo_ordering;
 mod non_ascii_hash_parity;

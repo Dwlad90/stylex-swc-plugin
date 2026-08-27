@@ -200,16 +200,26 @@ every file that thread compiles, where a name left behind would be a cross-file
 correctness bug. Because the value is an argument rather than text, the printed
 source stays the size of the expression however large the value is — so the value
 carries a size bound of its own.
+
+A _function_ is the one name that crosses by the other route. It has no value an
+argument could carry, so the declaration it came from is printed as the
+parameter's default and nothing is passed for it: `['b','a'].map(upper)` is
+handed over as `(upper=(p)=>p.toUpperCase())=>['b','a'].map(upper)`. A default
+is evaluated where the parameter stands, so a name the declaration reads is
+carried ahead of the parameter whose default reads it.
 _Avoid_: injection, substitution, interpolation, binding the engine
 
 **Carried value**:
 A value the bridge copies inward: a string, a number, a boolean, `null`, an
 array, or a plain object, nested to any depth of those. Everything else the
-evaluator can answer — a function configuration, a callback, the environment
-object, an unresolved theme reference, an AST-keyed map — is handed back rather
-than refused, so the dispatch below keeps answering for it. A theme reference
-therefore crosses only as the `var(--…)` string it already resolved to, because
-resolving it is what mutates compiler state and that happens before the bridge.
+evaluator can answer — a function configuration, the environment object, an
+unresolved theme reference, an AST-keyed map — is handed back rather than
+refused, so the dispatch below keeps answering for it. A callback is the
+exception: nothing below the fold carries a function into an evaluation, so a
+name holding one either crosses as its declaration or is refused by a sentence
+naming that binding. A theme reference therefore crosses only as the `var(--…)`
+string it already resolved to, because resolving it is what mutates compiler
+state and that happens before the bridge.
 
 What a _name_ may hold is narrower than what the bridge carries, and
 deliberately: a number and a boolean cross as an element or a property, where
@@ -222,9 +232,11 @@ ceilings](../stylex-structures/CONTEXT.md), which are the same two numbers that
 bound what an answer carries back.
 _Avoid_: primitive, scalar, serialisable, carryable string
 
-The one thing that crosses without being copied is an
-[engine-callable StyleX function](#engine-callable-stylex-function), which is
-handed over to be _called_ and not to be read.
+Two things cross without being copied. An
+[engine-callable StyleX function](#engine-callable-stylex-function) is handed
+over to be _called_ and not to be read; a
+[named callback](#named-callback) crosses as the source it was declared from,
+which is text the engine parses rather than a value anything built.
 
 **Engine-callable StyleX function**:
 A function of the [folded function map](#folded-function-map) whose answer is a
@@ -254,6 +266,32 @@ and the engine holds no value for one of those. The ordering itself is shared
 Rust rather than written twice, so the engine's answer and the evaluator's cannot
 drift apart.
 _Avoid_: pure StyleX function, native binding, builtin, injected function
+
+**Named callback**:
+A function an author declared once and passes to a method by name, rather than
+writing the arrow out at the call. It crosses the [transport](#transport) as the
+declaration it came from, printed as the default of the parameter its name
+became, because a function has no value an argument could carry. Which
+declarations qualify is decided by what the name resolves to and not by how it
+was spelled: an arrow with plain parameters and a single expression body that
+nothing writes to afterwards, which is the set the reference compiler folds too.
+A block body, a destructured, defaulted or rest parameter, a `function` of
+either spelling and a binding written to after it was declared each refuse on
+both sides, and the refusal here names the binding rather than the method — the
+call is fine, and the declaration is what an author has to change.
+
+A name outside that set gets one of two answers, and the difference is the
+resolution's rather than the spelling's. A binding the module declares as a
+function is _refused_, naming the binding. A name the module declares nothing
+for — a dynamic style's own parameter, most of all — is _handed back_, because
+what it holds is not knowable at compile time and refusing it would fail a build
+over a call that was only ever going to run at runtime.
+
+Passing one is answered; _calling_ a function through a name is not, because a
+call is admitted only where its callee is a member expression or an unshadowed
+global. That is recorded rather than intended, and it is one line of dispatch
+away from the carriage this term is about.
+_Avoid_: function reference, higher-order argument, callback binding
 
 **Speculative read**:
 Resolving a name to decide whether a fold is _possible_, as opposed to folding.

@@ -49,31 +49,6 @@ export interface Account {
   readonly verdicts: readonly Verdict[];
   /** The id of the corpus entry that records the reason. */
   readonly recordedBy: string;
-  /**
-   * Further evidence a row must carry, where the complaint alone is too broad.
-   *
-   * Only one account needs it, and it needs it for the reason
-   * `declaration-terminating token` reads the value rather than the diagnostic:
-   * a guard whose message names no particular rule would otherwise have every
-   * future refusal it makes absorbed into a column a reader is told to skip.
-   */
-  readonly evidence?: (entry: ReportEntry) => boolean;
-}
-
-/**
- * Whether a module subject binds a name to an arrow function.
- *
- * The narrowest evidence available from a subject, and not as narrow as the
- * claim: it says a function was named somewhere in the module, not that the
- * function is the argument the guard declined. A subject that names an arrow
- * *and* something else — a two-argument call in the named shape does — would
- * absorb a future refusal caused by the other name, since the complaint is the
- * same generic one either way. That residual is why this account is written
- * against an open ticket rather than a settled refusal: it goes away when the
- * gap closes, and until then it is one row.
- */
-function bindsAFunction(entry: ReportEntry): boolean {
-  return entry.kind === 'module' && /^const \w+ = \(.*\) =>/m.test(entry.source);
 }
 
 /**
@@ -125,16 +100,6 @@ export const ACCOUNTS: readonly Account[] = [
     verdicts: ['both-reject-divergent'],
     recordedBy: 'modules-15-an-impure-static',
   },
-  {
-    name: 'a callback reached through a name',
-    complaint: 'Its receiver or one of its arguments is not in a form the compiler can evaluate.',
-    verdicts: ['acceptance-divergent'],
-    recordedBy: 'modules-15-a-callback-reached-through-a-name',
-    // The one account whose complaint names no rule of its own: it is what the
-    // guard says whenever it declines, so without this every later refusal it
-    // learns to make would land here unread.
-    evidence: bindsAFunction,
-  },
 ];
 
 /** The complaint this compiler wrote, or `undefined` where it did not refuse. */
@@ -148,10 +113,7 @@ export function accountOf(entry: ReportEntry): Account | undefined {
   if (complaint === undefined) return undefined;
 
   return ACCOUNTS.find(
-    account =>
-      account.verdicts.includes(entry.verdict) &&
-      complaint.includes(account.complaint) &&
-      (account.evidence === undefined || account.evidence(entry))
+    account => account.verdicts.includes(entry.verdict) && complaint.includes(account.complaint)
   );
 }
 

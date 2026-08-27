@@ -492,6 +492,32 @@ pub fn bound_value_has_too_many_entries(name: &str, limit: u64) -> String {
   )
 }
 
+/// A binding the fold reached as a function and could not carry.
+///
+/// A function has no value form to pass beside the printed source, so the one
+/// the guard *can* carry is the arrow it was declared from, printed back as the
+/// parameter's default. Every other declaration of a function is out: a block
+/// body, a destructured or defaulted parameter, a `function` of either
+/// spelling, and a binding written to after it was declared.
+///
+/// Names the binding rather than the call, because the call is fine — an author
+/// told that `map` cannot fold would look at `map`, where what has to change is
+/// one declaration away. Says the declaration is the place to look rather than
+/// listing the shapes, since the list is what the doc comment above is for and a
+/// diagnostic that recites it is longer without being clearer.
+///
+/// Written out rather than routed through [`cannot_fold`], which is the shape of
+/// every refusal *of a call*: this one names a binding, so it would have to pass
+/// the wrong noun to get the first line it needs. Shaped after
+/// [`bound_value_too_large`] instead, which names a binding for the same reason.
+pub fn unfoldable_function(name: &str) -> String {
+  format!(
+    "Cannot carry the function '{}' into a fold.\n\
+     Its declaration is not one the compiler can evaluate.\n\n",
+    name
+  )
+}
+
 /// A printed fold that did not evaluate to the function it was printed as.
 ///
 /// The fold prints its expression as an arrow and calls it, so the value the

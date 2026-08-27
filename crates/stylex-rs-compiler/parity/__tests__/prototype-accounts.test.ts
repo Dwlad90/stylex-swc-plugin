@@ -29,11 +29,9 @@ function accountNamed(name: string): Account {
 }
 
 /** A module row refused here with `sentence` and accepted by the reference. */
-function moduleRow(
-  verdict: Verdict,
-  sentence: string,
-  source = "import * as stylex from '@stylexjs/stylex';\n"
-): ReportEntry {
+function moduleRow(verdict: Verdict, sentence: string): ReportEntry {
+  const source = "import * as stylex from '@stylexjs/stylex';\n";
+
   return {
     kind: 'module',
     set: 'prototype-sweep',
@@ -97,19 +95,6 @@ describe('claiming a row', () => {
     const reworded = account.complaint.replace('source alone', 'source by itself');
 
     expect(accountOf(moduleRow('both-reject-divergent', reworded))).toBeUndefined();
-  });
-
-  test('the account whose complaint names no rule also reads the evidence', () => {
-    const account = accountNamed('a callback reached through a name');
-    const withArrow =
-      "import * as stylex from '@stylexjs/stylex';\nconst upper = (part) => part;\n";
-
-    expect(accountOf(moduleRow('acceptance-divergent', account.complaint, withArrow))).toBe(
-      account
-    );
-    // The same refusal on a subject that names no function is what the guard
-    // says whenever it declines anything, and it is news.
-    expect(accountOf(moduleRow('acceptance-divergent', account.complaint))).toBeUndefined();
   });
 });
 

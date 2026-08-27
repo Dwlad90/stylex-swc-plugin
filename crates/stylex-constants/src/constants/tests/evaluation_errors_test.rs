@@ -182,10 +182,15 @@ fn test_escaping_property() {
 #[test]
 fn test_amplification_inside_a_callback() {
   assert_eq!(
-    amplification_inside_a_callback("repeat"),
-    "Cannot bound the string 'repeat' would build inside a callback.\nA callback runs once per element, so a length written into the source bounds one evaluation rather than the call.\n\n"
+    amplification_inside_a_callback("string", "repeat"),
+    "Cannot bound the string 'repeat' would build inside a callback.\nA callback runs once per element, so a length written into the source bounds one evaluation rather than the call. Write the value out instead.\n\n"
   );
-  assert!(amplification_inside_a_callback("padStart").contains("'padStart'"));
+  assert!(amplification_inside_a_callback("string", "padStart").contains("'padStart'"));
+  // The same sentence in the other unit, which is the whole of what the noun is
+  // for: one message rather than two that could come to disagree.
+  assert!(
+    amplification_inside_a_callback("array", "Array").contains("Cannot bound the array 'Array'")
+  );
 }
 
 #[test]

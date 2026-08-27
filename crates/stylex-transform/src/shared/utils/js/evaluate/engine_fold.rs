@@ -55,12 +55,13 @@ use stylex_ast::ast::factories::{
   create_ident_key_value_prop, create_object_lit,
 };
 use stylex_constants::constants::evaluation_errors::{
-  SPREAD_ELEMENT, amplification_inside_a_callback, amplified_length_too_large,
-  array_length_too_large, bound_value_has_too_many_entries, bound_value_too_large,
-  engine_did_not_start, engine_threw, escaping_property, expression_too_deep,
-  folded_string_too_large, locale_sensitive_method, not_a_function, numeric_literal_receiver,
-  object_size_too_large, unbounded_amplified_length, uncallable_printed_fold, uncoercible_value,
-  unfoldable_fold_result, unfoldable_statement, unfoldable_static,
+  SPREAD_ELEMENT, amplification_inside_a_callback, amplified_entries_too_large,
+  amplified_length_too_large, array_length_too_large, bound_value_has_too_many_entries,
+  bound_value_too_large, engine_did_not_start, engine_threw, escaping_property,
+  expression_too_deep, folded_string_too_large, locale_sensitive_method, not_a_function,
+  numeric_literal_receiver, object_size_too_large, unbounded_amplified_length,
+  uncallable_printed_fold, uncoercible_value, unfoldable_fold_result, unfoldable_statement,
+  unfoldable_static,
 };
 use stylex_js::coercions::{self, is_global_spelled_as_an_identifier, to_js_number};
 use stylex_js::helpers::{is_invalid_method, is_valid_callee};
@@ -125,16 +126,25 @@ const ESCAPING_PROPERTIES: [&str; 4] = ["constructor", "call", "apply", "bind"];
 /// is built property by property and would keep it.
 const PROTOTYPE_KEY: &str = "__proto__";
 
-/// Methods whose result length is set by an argument rather than by the
-/// receiver, and so are the only ones a single small argument can blow up.
+/// Methods whose result *string* length is set by an argument, and so are the
+/// only ones a single small argument can blow up into text.
 ///
 /// Set by an argument is what makes them answerable *here*, in front of the
-/// engine: the guard reads arguments. A method whose result length comes from
-/// its receiver — `Array(n).fill(0)` — is the same arithmetic read from the
-/// other end, and is bounded only once the value exists, which is late rather
-/// than never. That is issue 18 rather than this list, because widening the list
-/// is a claim about which calls amplify and not about the bound they meet.
+/// engine: the guard reads arguments. A method whose result length comes from its
+/// receiver adds nothing to that receiver's own length, so it is bounded by
+/// whatever set it — which is one call earlier and is [`EntryAmplifier`].
+/// `Array(n).fill(0)` is `n` read from the other end, and `fill` itself is
+/// innocent.
 const LENGTH_AMPLIFYING_METHODS: [&str; 3] = ["repeat", "padStart", "padEnd"];
+
+/// The lengths an array may have, as the language's own range.
+///
+/// A number outside it declares no length at all: `Array(2 ** 32)` is a
+/// `RangeError` rather than an array, raised before anything is allocated. Held
+/// as a range of floats because that is what the number being checked is, and
+/// comparing before any cast keeps a value the cast would saturate from reading
+/// as a length.
+const VALID_ARRAY_LENGTHS: std::ops::Range<f64> = 0.0..4_294_967_296.0;
 
 /// What one fold may allocate, in the two units that cost separately.
 ///
@@ -1586,6 +1596,15 @@ fn admit_call<'a>(
 
   admit_amplification(&method.sym, obj, &call.args, guard, reader)?;
 
+  // `Array.from` is the other spelling of a declared length, and the only static
+  // that carries one: every remaining `Array` static answers a length its own
+  // arguments write out.
+  if let Some(global) = global
+    && let Some(amplifier) = EntryAmplifier::named(global, Some(&method.sym))
+  {
+    admit_entry_amplification(amplifier, &call.args, guard, reader)?;
+  }
+
   // A global the engine provides itself carries no value across the bridge: the
   // printed source names it and the language answers. It is admitted here, as a
   // receiver, and nowhere else — a global's *name* is not a value this fold
@@ -1631,6 +1650,10 @@ fn admit_applied_global<'a>(
   guard: Guard,
   reader: &mut Reader,
 ) -> Result<Admitted<'a>, Decline> {
+  if let Some(amplifier) = EntryAmplifier::named(global, None) {
+    admit_entry_amplification(amplifier, &call.args, guard, reader)?;
+  }
+
   for arg in &call.args {
     admit_argument(arg, guard, reader).map_err(|declined| match declined {
       Decline::NotACandidate => Decline::rule(uncoercible_value(global)),
@@ -1709,7 +1732,9 @@ fn admit_amplification(
   // here, so an amplifying call inside a callback is refused whatever its
   // argument says.
   if guard.scope.inside_a_callback() {
-    return Err(Decline::rule(amplification_inside_a_callback(method)));
+    return Err(Decline::rule(amplification_inside_a_callback(
+      "string", method,
+    )));
   }
 
   let ceiling = guard.ceilings.characters;
@@ -1809,6 +1834,280 @@ fn receiver_length(receiver: &Expr, reader: &mut Reader) -> Option<u64> {
   };
 
   Some(atom_utf16_length(&text) as u64)
+}
+
+/// The two calls whose result is one array element per unit of a length an
+/// argument declares.
+///
+/// `Array(n)` is why this exists. The array it makes is *sparse*, so it looks
+/// free and is: nothing is allocated until a later call in the chain fills,
+/// copies, sorts or joins it, and by then the length is the engine's rather than
+/// the guard's. The refusal still arrives — the entry ceiling reads the answer on
+/// the way out — but it arrives after half a minute of work rather than before
+/// it, which is the failure the ceilings were put in to prevent. Bounding the
+/// declaration bounds every call that would go on to materialise one.
+///
+/// `Array.from(x)` is the same length read one property along, off `x`'s own. It
+/// is here for `{ length: n }`, the object that declares a length without
+/// holding it; a string or an array handed to `from` was either written out or
+/// carried inward, and both of those the ceilings already bounded.
+///
+/// Every other name was measured against the same question — what is the result
+/// length a function of? — and left out for the answer:
+///
+/// - `fill`, `copyWithin`, `reverse` and `sort` answer their receiver's own
+///   length, so they add nothing to it.
+/// - `slice`, `splice`, `concat` and `flat` answer a length no larger than the
+///   elements their receiver and their arguments already hold.
+/// - `map`, `filter` and `join` answer one element, or one element's text, per
+///   element of a receiver.
+///
+/// Each of those is a length something already paid for, so the two below are the
+/// whole of what a fold can be asked to build for free.
+#[derive(Clone, Copy)]
+enum EntryAmplifier {
+  /// `Array(n)`, whose length is its single numeric argument.
+  Constructor,
+  /// `Array.from(x)`, whose length is the one `x` declares.
+  From,
+}
+
+impl EntryAmplifier {
+  /// The amplifier a call on an unshadowed global names, or `None` where the call
+  /// declares no length.
+  ///
+  /// `method` is the static read off the global, and `None` where the global is
+  /// applied as a function. One recogniser rather than a test at each of the two
+  /// call sites, so the names are written once and the two sites cannot come to
+  /// disagree about which spellings this rule owns.
+  fn named(global: &Atom, method: Option<&Atom>) -> Option<Self> {
+    match (&**global, method.map(|method| &**method)) {
+      ("Array", None) => Some(Self::Constructor),
+      ("Array", Some("from")) => Some(Self::From),
+      _ => None,
+    }
+  }
+
+  /// How the call is spelled, which is what a refusal names.
+  fn name(self) -> &'static str {
+    match self {
+      Self::Constructor => "Array",
+      Self::From => "Array.from",
+    }
+  }
+
+  /// What the guard could read about the length the call declares.
+  fn declared(self, args: &[ExprOrSpread], reader: &mut Reader) -> Declared {
+    match self {
+      Self::Constructor => constructor_length(args, reader),
+      Self::From => length_property(args.first(), reader),
+    }
+  }
+}
+
+/// What the guard could read about the length a call declares.
+///
+/// Three answers rather than two, because the third is a rule of its own. Outside
+/// a callback an unreadable length is the same as no length: the argument that
+/// would say is a value the guard carried inward, and both ceilings already
+/// bounded that. Inside one it is the dangerous case — `[{ length: 100000000 }]
+/// .map(x => Array.from(x).length)` reaches the declaration through a parameter
+/// the guard cannot resolve, and folded in sixty-eight seconds when this told the
+/// two apart by returning `None` for both.
+enum Declared {
+  /// The elements the call will build.
+  Length(u64),
+  /// The call declares no length: its arguments are elements the source wrote
+  /// out, or an array-like holding what it says it holds.
+  Nothing,
+  /// The argument that would say is not one the guard can read.
+  Unreadable,
+}
+
+/// Whether a call declaring an array length is bounded well enough to evaluate.
+///
+/// The arithmetic [`admit_amplification`] does, in the other unit and read off a
+/// declaration rather than off a receiver: work out how many elements the call
+/// would build, and refuse when that is past the entry ceiling. It is that same
+/// ceiling which refuses the array on the way *out*, so this changes when the
+/// answer arrives rather than what it is — and when is the whole of the
+/// difference between a refusal that costs half a minute and one that costs
+/// nothing.
+///
+/// Outside a callback, a length it cannot read is admitted rather than refused —
+/// which is where this parts company with an amplifying method's count. A count
+/// that cannot be read leaves a product nothing bounds; a length that cannot be
+/// read means the argument is a value the guard carried inward, which both
+/// ceilings already bounded. Inside a callback that reasoning does not hold, and
+/// [`Declared::Unreadable`] is why the read answers three things rather than two.
+///
+/// The callback rule is therefore asked *after* the length rather than before it,
+/// unlike the string one: a call that declares no length is `Array('a', 'b')`,
+/// whose elements the source wrote out, and refusing that inside a callback would
+/// take away a fold nothing threatens.
+fn admit_entry_amplification(
+  amplifier: EntryAmplifier,
+  args: &[ExprOrSpread],
+  guard: Guard,
+  reader: &mut Reader,
+) -> Result<(), Decline> {
+  let declared = amplifier.declared(args, reader);
+
+  // A read bound bounds one evaluation. A callback body is evaluated once per
+  // element of a receiver this guard never measured, so `['a', 'b'].map(x =>
+  // Array(9999).fill(x))` is one bounded length multiplied by a count the source
+  // never states. A length the guard could not read is refused here too, and only
+  // here: inside a callback it is the length that came through a parameter, which
+  // is the one place a declaration reaches the engine unmeasured.
+  //
+  // What is admitted inside a callback is a call the guard can see declares
+  // nothing — `Array(x, x)`, whose elements the source wrote out. That is why the
+  // reading happens before this rule rather than after it, unlike the string one.
+  if guard.scope.inside_a_callback() {
+    return match declared {
+      Declared::Nothing => Ok(()),
+      _ => Err(Decline::rule(amplification_inside_a_callback(
+        "array",
+        amplifier.name(),
+      ))),
+    };
+  }
+
+  let Declared::Length(declared) = declared else {
+    return Ok(());
+  };
+
+  let ceiling = guard.ceilings.entries;
+
+  match declared > ceiling {
+    true => Err(Decline::rule(amplified_entries_too_large(
+      amplifier.name(),
+      declared,
+      ceiling,
+    ))),
+    false => Ok(()),
+  }
+}
+
+/// What `Array(n)` declares about the length of its array.
+///
+/// `Array` declares a length only when it is handed exactly one argument and
+/// that argument *is* a number: `Array(3)` is three holes, where `Array('3')` is
+/// one element holding a string and `Array('a', 'b')` is two elements. So the
+/// number is read as the language reads it rather than through `ToNumber`, which
+/// is where this parts company with [`resolved_count`] — `'x'.repeat('3')`
+/// repeats three times and `Array('3')` does not.
+///
+/// A number that is not a valid array length — fractional, negative, `NaN`,
+/// infinite, or `2 ** 32` and up — declares nothing either, and is left to the
+/// language: `Array` answers each of them with a `RangeError` before allocating,
+/// so a ceiling in front of it would replace the accurate sentence with a
+/// misleading one.
+fn constructor_length(args: &[ExprOrSpread], reader: &mut Reader) -> Declared {
+  // More than one argument, or none, is elements the source wrote out. So is a
+  // spread, which is refused where it is written in any case.
+  let [ExprOrSpread { spread: None, expr }] = args else {
+    return Declared::Nothing;
+  };
+
+  let number = match expr.as_ref() {
+    Expr::Lit(Lit::Num(number)) => number.value,
+    _ => match reader.resolve(expr) {
+      Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(number)))) => number.value,
+      // A value that resolved and is not a number is the single element it will
+      // become; one that did not resolve is the length nobody can see.
+      Some(_) => return Declared::Nothing,
+      None => return Declared::Unreadable,
+    },
+  };
+
+  match valid_array_length(number) {
+    Some(length) => Declared::Length(length),
+    None => Declared::Nothing,
+  }
+}
+
+/// What an `Array.from` argument declares about the length it will build.
+///
+/// `{ length: n }` is a length declared without being held, which is what
+/// `Array(n)` is bounded for one call earlier. The argument is *resolved* rather
+/// than read as syntax, so a name holding the object and a spread that builds one
+/// are the object they come to — the same reading the rest of this guard makes,
+/// and the reason `{ ...{ length: n } }` is not a way round the bound.
+///
+/// The last `length` property wins, because that is the one the object ends up
+/// with.
+fn length_property(arg: Option<&ExprOrSpread>, reader: &mut Reader) -> Declared {
+  // `Array.from()` with nothing to iterate throws, and a spread is refused where
+  // it is written.
+  let Some(ExprOrSpread { spread: None, expr }) = arg else {
+    return Declared::Nothing;
+  };
+
+  let resolved = match reader.resolve(expr) {
+    Some(resolved) => resolved,
+    None => return Declared::Unreadable,
+  };
+
+  // Anything that is not an object holds what its length says — a string or an
+  // array — and the ceilings bounded it where it was written or carried.
+  let EvaluateResultValue::Expr(Expr::Object(object)) = resolved else {
+    return Declared::Nothing;
+  };
+
+  let length = object.props.iter().rev().find_map(|prop| match prop {
+    PropOrSpread::Prop(prop) => match prop.as_ref() {
+      Prop::KeyValue(KeyValueProp { key, value }) if is_a_length_key(key) => Some(value),
+      _ => None,
+    },
+    PropOrSpread::Spread(_) => None,
+  });
+
+  // An object with no own `length` is the empty array, and one whose length the
+  // language will not accept is a throw it raises itself. Both declare nothing
+  // this guard has to bound. `trunc` is `ToLength`'s own truncation, which is
+  // what makes `{ length: 1.9 }` a length of one rather than none.
+  match length
+    .and_then(|length| to_js_number(length))
+    .and_then(|number| valid_array_length(number.trunc()))
+  {
+    Some(length) => Declared::Length(length),
+    None => Declared::Nothing,
+  }
+}
+
+/// Whether a property name is the `length` an array-like declares.
+///
+/// Both spellings of the one key, because `{ 'length': n }` declares what
+/// `{ length: n }` does. A computed key is not read: the evaluator answers a
+/// resolved object, whose keys are settled by the time this sees them.
+fn is_a_length_key(key: &PropName) -> bool {
+  match key {
+    PropName::Ident(name) => name.sym == "length",
+    PropName::Str(name) => name.value.as_str() == Some("length"),
+    _ => false,
+  }
+}
+
+/// One number as the array length the language would make of it, or `None` where
+/// the language rejects it instead.
+///
+/// Shared by both readers, because the range is the language's rather than this
+/// guard's: a length outside it raises a `RangeError` before anything is
+/// allocated — `Array` from its argument, `Array.from` from `ArrayCreate` — so
+/// falling through to that costs nothing and says more than a ceiling could.
+/// `Array.from({ length: Infinity })` is the case that makes it worth sharing:
+/// bounded here it would name `2 ** 53 - 1`, a number the language never reaches
+/// because it refuses the length first.
+///
+/// The two readers differ only in how they arrive at the number — `Array(n)`
+/// takes its argument as written, and an array-like's `length` comes through
+/// `ToLength` — which is why the range is checked here and the coercion is not.
+fn valid_array_length(number: f64) -> Option<u64> {
+  match VALID_ARRAY_LENGTHS.contains(&number) && number.fract() == 0.0 {
+    true => Some(number as u64),
+    false => None,
+  }
 }
 
 /// An argument is admitted when it is a value the walk carries — an arrow among

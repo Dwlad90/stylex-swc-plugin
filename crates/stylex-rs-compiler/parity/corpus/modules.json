@@ -1962,6 +1962,32 @@
       "expected": "acceptance-divergent"
     },
     {
+      "id": "modules-18-a-length-a-call-declares",
+      "label": "an array length declared by an argument",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: Array(20000).fill(0).length },\n});\n",
+      "origin": "issue 18, the allocation the ceilings reached too late",
+      "note": "Acceptance divergent, deliberately, and configurably so. `Array(n)` declares how long its array will be and allocates nothing for it -- the array is sparse -- so the cost lands on whichever call in the chain first touches it, and the entry ceiling used to read the length only where the array crossed back. `Array(100000000).fill(0)` therefore spent thirty-four seconds and four hundred megabytes of resident memory before refusing, and `Array(100000000).includes(1)` folded in thirteen seconds with no ceiling having measured anything at all. The bound is now read where the length is declared, so the same refusal costs milliseconds. The ceiling is `maxFoldedEntries`, default 10000: raise it past the declared length and the same source folds to the value upstream reaches. `Array.from({length: n})` is the same declaration one property along and is bounded with it.",
+      "expected": "acceptance-divergent",
+      "configuration": "maxFoldedEntries"
+    },
+    {
+      "id": "modules-18-a-declared-length-that-never-crosses",
+      "label": "an array length only a string comes back from",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(Array(10001)) },\n});\n",
+      "origin": "issue 18, the capability reading a length at its declaration trades away",
+      "note": "Acceptance divergent, deliberately, and the price of the row above. The entry ceiling used to bound entries that *crossed back*, so an array built and joined inside the engine was bounded only by the string it came to -- which is how `Array(100000000).join(',')` came to spend twenty seconds building an array nothing had measured before a string ceiling caught the text. Reading the length where it is declared closes that, and costs this shape: ten thousand and one commas is a string well inside `maxFoldedCharacters`, and upstream folds it. The ceiling is `maxFoldedEntries`, and raising it past the declared length folds the same source to upstream's value.",
+      "expected": "acceptance-divergent",
+      "configuration": "maxFoldedEntries"
+    },
+    {
+      "id": "modules-18-a-declared-length-inside-a-callback",
+      "label": "an array length declared inside a callback",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: ['a', 'b'].map(x => Array(2).fill(x).join('')).join('-') },\n});\n",
+      "origin": "issue 18, the length no ceiling can bound",
+      "note": "Acceptance divergent, deliberately, and not a configured ceiling: no value of `maxFoldedEntries` folds it. A callback body is evaluated once per element of a receiver the guard never measured, so a length written into the source bounds one evaluation rather than the call -- and a receiver of ten thousand elements times a declaration of ten thousand is a hundred million elements, each of them inside the ceiling. This is the rule `modules-12` already applies to an amplifying string count, in the other unit. What it costs is small and is visible in the input: `Array(2)` inside a `map` has a spelling whose length the source states -- `[x, x]` -- and that one folds on both compilers. The rule reaches a length the guard cannot *read* as well as one it can, and only inside a callback: there the declaration arrives through a parameter, so nothing in front of the engine sees it, and `[{length: 100000000}].map(x => Array.from(x).length)` folded in sixty-eight seconds while every readable spelling was already refusing. What is still admitted inside a callback is a call the guard can see declares nothing -- `Array(x, x)`, whose elements the source wrote out.",
+      "expected": "acceptance-divergent"
+    },
+    {
       "id": "modules-06-amplified-array-length",
       "label": "an array result longer than a declaration could use",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'x'.repeat(20000).split('').length },\n});\n",

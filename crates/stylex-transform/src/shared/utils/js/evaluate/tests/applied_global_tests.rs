@@ -209,6 +209,11 @@ fn a_function_has_no_source_text() {
 
 /// A count the language refuses is a `RangeError`, and a count the fold will not
 /// materialise is the fold's own bound. Two different faults, two sentences.
+///
+/// Which fault a count is decides which sentence it gets, so the fold's bound
+/// deliberately reads none of the counts above it: each is a number the language
+/// rejects before allocating anything, and a ceiling in front of that would
+/// replace an accurate sentence with a misleading one.
 #[test]
 fn a_count_that_is_not_an_array_length_refuses() {
   for source in [
@@ -221,9 +226,12 @@ fn a_count_that_is_not_an_array_length_refuses() {
     assert_deopt_reason_contains(source, "Cannot fold 'Array' at compile time.");
   }
 
+  // A length the language accepts and the fold will not build, which is the
+  // ceiling's own fault to report — and it reports it from in front of the
+  // engine, naming the length that has to change.
   assert_deopt_reason_contains(
     "Array(4294967295)",
-    "Array length is too large to evaluate at compile time.",
+    "It declares a length of 4294967295 elements, and at most 10000 are supported.",
   );
 }
 
@@ -381,9 +389,13 @@ fn the_two_conversions_part_company_only_on_a_function() {
 
 /// A count the fold will materialise, right up to the bound and one past it.
 ///
-/// The bound is on entries carried back, so the array that joins into a string
-/// still folds at a size the array itself would be refused at: the join happens
-/// inside the engine and only the string crosses.
+/// The bound is read where the length is *declared*, so one past it refuses
+/// wherever the array is written — including where only a string would have
+/// crossed back. The entry ceiling used to be read on the way out alone, which
+/// left the elements inside the engine unmeasured: `Array(100000000).join(',')`
+/// spent twenty seconds building an array nothing had bounded before a string
+/// ceiling caught the text it came to. A project that really generates arrays
+/// this long raises `maxFoldedEntries`, which is why the number is an option.
 #[test]
 fn a_count_at_the_bound_folds_and_one_past_it_refuses() {
   match assert_folds_to_a_value("Array(10000)") {
@@ -391,12 +403,12 @@ fn a_count_at_the_bound_folds_and_one_past_it_refuses() {
     other => panic!("expected a list of ten thousand, got {:?}", other),
   }
 
-  assert_deopt_reason_contains(
-    "Array(10001)",
-    "Array length is too large to evaluate at compile time.",
-  );
-
-  assert_eq!(folded_string("String(Array(10001))").len(), 10_000);
+  for source in ["Array(10001)", "String(Array(10001))"] {
+    assert_deopt_reason_contains(
+      source,
+      "It declares a length of 10001 elements, and at most 10000 are supported.",
+    );
+  }
 }
 
 /// A string a conversion is asked to build past the amplification bound refuses
@@ -448,7 +460,30 @@ fn the_empty_and_unspellable_arguments_fold() {
 fn a_conversion_inside_a_callback_folds() {
   assert_folds_to_string("[1, 2].map(x => String(x)).join(\"-\")", "1-2");
   assert_folds_to_string("[\"0x1f\", \"2\"].map(x => Number(x)).join(\"-\")", "31-2");
-  assert_folds_to_string("[[1], [2]].map(x => Array(x).length).join(\"-\")", "1-1");
+  // Elements written out, which is not a length: `Array` folds inside a callback
+  // wherever the guard can see the call declares no length.
+  assert_folds_to_string("[1, 2].map(x => Array(x, x).length).join(\"-\")", "2-2");
+}
+
+/// `Array` applied to one argument is the exception, and the argument is why.
+///
+/// A single argument is the length position, so inside a callback the guard has to
+/// see what it holds — and a parameter is the one thing it cannot resolve. It
+/// refuses rather than admitting, because the element the parameter holds is a
+/// number the receiver carried and nothing bounded: `[100000000].map(x =>
+/// Array(x).fill(0))` is thirty-four seconds per element, and
+/// `[{length: 100000000}].map(x => Array.from(x).length)` folded in sixty-eight.
+///
+/// `Array([1])` really is one element, so this costs a fold. What it buys is that
+/// no shape of it costs a build, and `[x, x]` above is the spelling that folds.
+#[test]
+fn an_unreadable_length_inside_a_callback_refuses() {
+  for source in [
+    "[[1], [2]].map(x => Array(x).length).join(\"-\")",
+    "[\"ab\", \"cd\"].map(x => Array.from(x).join(\"\")).join(\"-\")",
+  ] {
+    assert_deopt_reason_contains(source, "would build inside a callback");
+  }
 }
 
 /// A property read that leaves the value the author wrote is refused wherever it

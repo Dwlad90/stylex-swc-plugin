@@ -122,8 +122,15 @@ multiplies its receiver's own length into the product. A receiver that is itself
 a **call** is the one deliberately left unread: its answer is bounded per link,
 and reading it is exactly what would let two allowed lengths multiply into one
 that is not. A callback body is refused outright, since a bound read once bounds
-one evaluation and a callback runs once per element. And **nesting**
-is bounded on both sides against the project's configured evaluation depth: on
+one evaluation and a callback runs once per element. A call whose result is one
+element per unit of a length an **argument declares** — `Array(n)` and
+`Array.from({ length: n })` — is bounded by the same arithmetic in entries rather
+than characters, and for a reason of its own: the array `Array(n)` makes is
+sparse, so nothing is allocated until a later call in the chain touches it, and
+by then the length belongs to the engine. Reading the declaration is what turns
+`Array(100000000).fill(0)` from half a minute of work followed by a refusal into
+a refusal.
+And **nesting** is bounded on both sides against the project's configured evaluation depth: on
 the way in because the engine's parser recurses, and on the way out because the
 depth of an answer is not what the width bound measures. The fold claims a stack
 for that many levels before it starts, so the number a project sets is the number
@@ -312,6 +319,19 @@ of the receiver being evaluated. A spread never reaches the count: evaluating
 the array refuses it first, as a [spread refusal](#spread-refusal). The receiver
 is unwrapped before it is read, because a parenthesis is not a different
 receiver. _Avoid_: array length, element count, size
+
+**Declared length**:
+A length a call states in an argument and does not pay for -- `Array(n)`, whose
+array is sparse, and `Array.from({ length: n })`, which is one property saying
+the same thing. It is the only length a [fold](#engine-fold) can be asked to
+build that nothing has already been charged for: a written-out array costs source,
+and a resolved one crossed the bridge under the [allocation
+ceilings](../stylex-structures/CONTEXT.md). So the entry ceiling is compared
+against it where it is _declared_, before the engine runs, rather than only where
+an array crosses back -- which is what a sparse array never does until some later
+call in the chain fills, sorts or joins it. A length the language itself rejects
+is not one of these: it raises before allocating, and is left to say so.
+_Avoid_: sparse length, array size, allocation hint, entry count
 
 **Spread refusal**:
 The single answer every spread in a value position earns —

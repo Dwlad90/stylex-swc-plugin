@@ -237,17 +237,23 @@ pub fn numeric_literal_receiver(method: &str) -> String {
   )
 }
 
-/// The one shape both refusals of a length-amplifying call take: the string the
-/// call would build, then why it cannot be built.
+/// The one shape every refusal of a length-amplifying call takes: what the call
+/// would build, then why it cannot be built.
 ///
 /// The engine bounds loop iterations, recursion and stack, but not allocation:
 /// growth inside a native builtin is not a counted loop. So the length has to be
 /// readable, and under the ceiling, before the call is evaluated at all -- two
 /// ways to fail one question, which is why they share a first line.
-fn cannot_bound(method: &str, reason: &str) -> String {
+///
+/// `built` is the noun rather than a fixed word because a call amplifies in one
+/// of the two units a fold spends, and the two do not stand in for each other: a
+/// string that repeats builds characters, and an array length declares elements.
+/// Naming both through one helper keeps that first line the sentence a reader
+/// learns to recognise.
+fn cannot_bound(built: &str, call: &str, reason: &str) -> String {
   format!(
-    "Cannot bound the string '{}' would build.\n{}\n\n",
-    method, reason
+    "Cannot bound the {} '{}' would build.\n{}\n\n",
+    built, call, reason
   )
 }
 
@@ -260,6 +266,7 @@ fn cannot_bound(method: &str, reason: &str) -> String {
 /// multiply into one that is not.
 pub fn unbounded_amplified_length(method: &str, limit: u64) -> String {
   cannot_bound(
+    "string",
     method,
     &format!(
       "Its length must resolve to a number of at most {}, on a receiver whose own length can be read.",
@@ -288,10 +295,33 @@ pub fn amplified_length_too_large(method: &str, count: u64, built: u64, limit: u
   };
 
   cannot_bound(
+    "string",
     method,
     &format!(
       "It asks for {}, and at most {} are supported.",
       asked, limit
+    ),
+  )
+}
+
+/// A call declaring more array elements than the fold's entry budget.
+///
+/// The sibling of [`amplified_length_too_large`] in the other unit. It reads a
+/// length rather than a count of copies, so there is one number to name and not
+/// two: `Array(100000000)` says what it will build in the only place an author
+/// can change it.
+///
+/// Named for the call rather than for the array, unlike
+/// [`array_length_too_large`], which is the same size measured after the fact.
+/// The difference is when: this one arrives before anything is allocated, so
+/// what it names is the argument to edit.
+pub fn amplified_entries_too_large(call: &str, declared: u64, limit: u64) -> String {
+  cannot_bound(
+    "array",
+    call,
+    &format!(
+      "It declares a length of {} elements, and at most {} are supported.",
+      declared, limit
     ),
   )
 }
@@ -380,11 +410,16 @@ pub fn escaping_property(property: &str) -> String {
 /// element of a receiver nothing measured, so the same written bound is
 /// multiplied by a count the source never states — and two calls each inside
 /// the bound build a length that is not.
-pub fn amplification_inside_a_callback(method: &str) -> String {
+///
+/// `built` is the noun for the reason [`cannot_bound`] takes one: a call
+/// amplifies in one of the two units a fold spends. The advice fits both, and is
+/// the whole of what makes the refusal cheap to act on -- a repeat of three has
+/// the string written out, and an array of a declared length has its elements.
+pub fn amplification_inside_a_callback(built: &str, call: &str) -> String {
   format!(
-    "Cannot bound the string '{}' would build inside a callback.\n\
-     A callback runs once per element, so a length written into the source bounds one evaluation rather than the call.\n\n",
-    method
+    "Cannot bound the {} '{}' would build inside a callback.\n\
+     A callback runs once per element, so a length written into the source bounds one evaluation rather than the call. Write the value out instead.\n\n",
+    built, call
   )
 }
 

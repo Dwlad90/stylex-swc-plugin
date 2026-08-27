@@ -345,8 +345,8 @@ new one: an entry recording a divergence that no longer happens has stopped
 measuring what it was written for. `note` says _why_; `expected` is what the
 harness checks.
 
-A `configuration` says the refusal is not a disagreement at all. Three rows
-carry one — the two allocation ceilings and the evaluation depth — and what they
+A `configuration` says the refusal is not a disagreement at all. The rows that
+carry one name the two allocation ceilings or the evaluation depth, and what they
 have in common is that the same source folds to the same value on both compilers
 once the option passes the number the input needs, so the reference compiler
 compiling is the absence of the setting rather than a divergence from it. Those
@@ -366,6 +366,10 @@ Not every ceiling is one. `modules-12-amplification-across-a-chain` is refused
 because the length the call would build cannot be read at all — its receiver is
 itself a call — so no value of the option folds it, and that row is a divergence
 with a written reason rather than a configuration.
+`modules-18-a-declared-length-inside-a-callback` is the same distinction on the
+other ceiling: the length is readable, but a callback runs once per element of a
+receiver nothing measured, so no value of `maxFoldedEntries` bounds the call
+rather than one evaluation of it.
 
 ### Refusal families
 

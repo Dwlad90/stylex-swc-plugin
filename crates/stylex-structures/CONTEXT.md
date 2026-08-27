@@ -96,5 +96,7 @@ because the costs do not stand in for each other — measured, a code unit is
 about 19 bytes of peak resident memory while it is being built and an entry
 about 190, and a bounded string can still become one entry per code unit. Each
 bounds both directions: what a resolved name copies into the engine, and what an
-answer carries back.
+answer carries back. `maxFoldedEntries` also bounds a length a call _declares_
+without holding — `Array(n)` — since a sparse array costs nothing until something
+touches it and is unmeasured until then.
 _Avoid_: string limit, size cap, memory budget, amplification limit

@@ -437,13 +437,14 @@ fn a_large_key_list_folds_whole() {
   );
 }
 
-/// Past the ceiling the fold carries back, the refusal names the limit rather
-/// than building an AST of a hundred thousand nodes.
+/// Past the ceiling, the refusal names the limit rather than building an AST of a
+/// hundred thousand nodes — and it names it from in front of the engine, because
+/// `{ length: 20000 }` says how long the array will be before anything runs.
 #[test]
 fn a_key_list_past_the_carrying_ceiling_refuses() {
   assert_refuses(
     "",
     "zIndex: Object.keys(Object.fromEntries(Array.from({length: 20000}, (_, i) => ['k' + i, i]))).length,",
-    "at compile time",
+    "It declares a length of 20000 elements, and at most 10000 are supported.",
   );
 }

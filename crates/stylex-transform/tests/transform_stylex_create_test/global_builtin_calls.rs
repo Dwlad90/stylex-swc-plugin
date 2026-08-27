@@ -721,10 +721,11 @@ stylex_test_panic!(
 
 // A length JavaScript accepts but the compiler will not materialise. Every
 // hole past the first already fails the style-array check, so the refusal
-// costs nothing a stylesheet could have used.
+// costs nothing a stylesheet could have used -- and it arrives before the array
+// exists, because the argument says how long it will be.
 stylex_test_panic!(
   array_of_an_unmaterialisable_length_is_rejected,
-  "Array length is too large to evaluate at compile time.",
+  "It declares a length of 4294967295 elements, and at most 10000 are supported.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({

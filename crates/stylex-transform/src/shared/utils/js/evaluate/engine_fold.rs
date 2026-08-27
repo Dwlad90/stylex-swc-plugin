@@ -25,7 +25,9 @@
 //! has no value an argument could carry: the declaration it came from is
 //! printed as the parameter's default and nothing is passed for it. So a
 //! callback given a name folds exactly as the same arrow written out in place
-//! does, down to which spelling shadows which.
+//! does, down to which spelling shadows which. Calling such a name is the same
+//! carriage and a different question — see [`Position`] for the one thing on
+//! this bridge that reads where a call sits.
 //!
 //! A fold answers one of two things: the value, or the rule that refused it.
 //! There is no silent refusal — a call the guard recognised and declined says
@@ -462,12 +464,17 @@ impl Repeats {
   }
 }
 
-/// What the call under the walk measured for a callback among its arguments.
+/// What the call under the walk measured for an arrow it will run.
 ///
-/// One value rather than two fields on the guard, so the two things a callback
-/// body needs — how often it runs, and how wide the element it is handed — are
-/// read off the same measurement of the same receiver and cannot come to
-/// disagree.
+/// Two positions reach one, and they are measured differently. A callback among
+/// the arguments runs once per element of the receiver and is handed that
+/// element, so it carries both numbers. The callee of a call reached through a
+/// name runs once per evaluation of the call itself and is handed the
+/// arguments, whose width nothing here reads — so it carries the count alone.
+///
+/// One value rather than two fields on the guard, so the two things a body needs
+/// — how often it runs, and how wide the value it is handed — are read off the
+/// same measurement and cannot come to disagree.
 #[derive(Clone, Copy, Default)]
 struct Callback {
   /// How many times the call will run the body.
@@ -1203,7 +1210,7 @@ fn fold(
   guard: Guard,
   reader: &mut Reader,
 ) -> Result<EvaluateResultValue, Decline> {
-  let admitted = admit_call(call, guard, reader)?;
+  let admitted = admit_call(call, Position::Outermost, guard, reader)?;
   let method = admitted.name();
 
   let source = print_fold(call, reader.transport.parameters());
@@ -1228,7 +1235,7 @@ fn fold(
 
     let applied = match admitted {
       Admitted::Global(global) => admit_an_applied_global(global, &mut engine.context),
-      Admitted::Method(_) => Ok(()),
+      Admitted::Method(_) | Admitted::Named(_) => Ok(()),
     };
 
     let folded = applied
@@ -1608,7 +1615,7 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
     // for it.
     Expr::Call(call) => match a_stylex_function(call, inner, reader) {
       Some(callable) => admit_a_stylex_function(&callable, call, inner, reader),
-      None => admit_call(call, inner, reader).map(|_| ()),
+      None => admit_call(call, Position::Inside, inner, reader).map(|_| ()),
     },
     // An arrow is a value the language can hold and call: the callback `map` and
     // `filter` take, and the own `toString` an object converts through. It has
@@ -1704,24 +1711,46 @@ fn the_module_declares_a_function(ident: &Ident, expr: &Expr, reader: &Reader) -
 /// What the guard admitted, and the name a refusal or a throw is reported
 /// under.
 ///
-/// The two arms are the two ways a native function is reached: a method on a
-/// receiver, and a global applied as a function. They are told apart because
-/// only the second can name something that is not a function at all — `Math` is
-/// a valid callee because its methods fold, which says nothing about whether the
-/// name itself can be applied.
+/// The first two arms are the two ways a *native* function is reached: a method
+/// on a receiver, and a global applied as a function. They are told apart
+/// because only the second can name something that is not a function at all —
+/// `Math` is a valid callee because its methods fold, which says nothing about
+/// whether the name itself can be applied. The third is the author's own
+/// function, reached through the name the module bound it under, which the
+/// engine holds because its declaration crossed as one.
+///
+/// Only the first two are ever *read*. What reads one is the outermost call, and
+/// [`Position`] is why a named callee never reaches that: the arm exists so the
+/// admission answers with the binding it admitted rather than with a method it
+/// did not, and a chain link's answer is discarded either way.
 #[derive(Clone, Copy)]
 enum Admitted<'a> {
   Method(&'a Atom),
   Global(&'a Atom),
+  Named(&'a Atom),
 }
 
 impl<'a> Admitted<'a> {
-  /// The method or global the call names.
+  /// The method, global or binding the call names.
   fn name(self) -> &'a Atom {
     match self {
-      Admitted::Method(name) | Admitted::Global(name) => name,
+      Admitted::Method(name) | Admitted::Global(name) | Admitted::Named(name) => name,
     }
   }
+}
+
+/// Where the call under the guard sits, which is the whole of what decides who
+/// owns a callee written as a bare name.
+///
+/// The only thing on this bridge that reads position at all, and it is a
+/// parameter rather than something [`Guard`] carries, so the rest of the walk
+/// keeps answering the call in front of it and nothing else.
+#[derive(Clone, Copy, PartialEq)]
+enum Position {
+  /// The call the caller asked about, which the dispatch below still owns.
+  Outermost,
+  /// A call inside an expression the fold has already claimed.
+  Inside,
 }
 
 /// Refuses an applied global that is not a function.
@@ -1747,6 +1776,21 @@ fn admit_an_applied_global(name: &Atom, engine: &mut Context) -> Result<(), Decl
   }
 }
 
+/// The expression a parenthesised one wraps, however many layers deep.
+///
+/// Unwrapped in a loop rather than by recursing, because every caller asks this
+/// before the guard descends and so has no nesting budget to spend. A loop needs
+/// none.
+fn without_parens(expr: &Expr) -> &Expr {
+  let mut expr = expr;
+
+  while let Expr::Paren(paren) = expr {
+    expr = &paren.expr;
+  }
+
+  expr
+}
+
 /// The name a bare identifier names as a global the module never bound, or
 /// `None` where it is not one.
 ///
@@ -1759,7 +1803,13 @@ fn admit_an_applied_global(name: &Atom, engine: &mut Context) -> Result<(), Decl
 /// `ABC` in the reference compiler, so treating the name as the global would
 /// refuse an input it compiles. The lookup is one map read and no evaluation, so
 /// it stays in front of the walk with the other cheap answers.
+///
+/// Read through parentheses, because they change nothing about which name is
+/// written and the reference compiler folds `(String)('a')` and `(Math).max(1, 2)`
+/// exactly as it folds them bare.
 fn unshadowed_global<'a>(expr: &'a Expr, reader: &Reader) -> Option<&'a Atom> {
+  let expr = without_parens(expr);
+
   match expr.as_ident() {
     Some(name) if is_valid_callee(expr) && get_binding(expr, reader.traversal_state).is_none() => {
       Some(&name.sym)
@@ -1811,14 +1861,12 @@ fn admit_a_stylex_function(
 ) -> Result<(), Decline> {
   let inside_a_callback = guard.scope.inside_a_callback();
 
-  for arg in &call.args {
-    admit_argument(arg, guard, reader).map_err(|declined| match declined {
-      Decline::NotACandidate if inside_a_callback => {
-        Decline::rule(uncoercible_value(callable.function_name()))
-      },
-      declined => declined,
-    })?;
-  }
+  admit_arguments(&call.args, guard, reader).map_err(|declined| match declined {
+    Decline::NotACandidate if inside_a_callback => {
+      Decline::rule(uncoercible_value(callable.function_name()))
+    },
+    declined => declined,
+  })?;
 
   // A name reached directly holds the function; a namespace holds an object of
   // the properties the engine may call. Both come from the callable itself, so
@@ -1855,8 +1903,13 @@ fn admit_a_stylex_function(
 /// which is arithmetic on values rather than a shape, and the escaping-property
 /// check, which is deliberately behind the walk so a chain is named for its
 /// outermost cause.
+///
+/// `position` is read by one rule only — see [`admit_a_named_call`] — and is a
+/// parameter rather than something [`Guard`] carries, so nothing else on the
+/// walk can start depending on where it is.
 fn admit_call<'a>(
   call: &'a CallExpr,
+  position: Position,
   guard: Guard,
   reader: &mut Reader,
 ) -> Result<Admitted<'a>, Decline> {
@@ -1878,6 +1931,10 @@ fn admit_call<'a>(
   // the dispatch below, which calls the author's own function.
   if let Some(global) = unshadowed_global(callee, reader) {
     return admit_applied_global(global, call, guard, reader);
+  }
+
+  if let Some(name) = without_parens(callee).as_ident() {
+    return admit_a_named_call(name, callee, call, position, guard, reader);
   }
 
   let Expr::Member(MemberExpr { obj, prop, .. }) = callee.as_ref() else {
@@ -1954,9 +2011,7 @@ fn admit_call<'a>(
     ..guard
   };
 
-  for arg in &call.args {
-    admit_argument(arg, inner, reader)?;
-  }
+  admit_arguments(&call.args, inner, reader)?;
 
   // The one rule left behind the walk, and deliberately. It is a name check like
   // the three above and would cost nothing in front of them, but a chain of
@@ -1994,14 +2049,70 @@ fn admit_applied_global<'a>(
     admit_entry_amplification(amplifier, &call.args, guard, reader)?;
   }
 
-  for arg in &call.args {
-    admit_argument(arg, guard, reader).map_err(|declined| match declined {
-      Decline::NotACandidate => Decline::rule(uncoercible_value(global)),
-      rule => rule,
-    })?;
-  }
+  admit_arguments(&call.args, guard, reader).map_err(|declined| match declined {
+    Decline::NotACandidate => Decline::rule(uncoercible_value(global)),
+    rule => rule,
+  })?;
 
   Ok(Admitted::Global(global))
+}
+
+/// Whether a call whose callee is a bare name is one the engine can answer.
+///
+/// The callee is walked as a value like any other, so nothing about reaching the
+/// function is asked here: a name the surrounding callback binds is the engine's
+/// own and carries nothing, and a name the module bound to a function crosses as
+/// the declaration it came from — the same carriage a callback *passed* by name
+/// takes. What this adds is the dispatch, and the rule it applies is where the
+/// call sits.
+///
+/// **The outermost call stays the dispatch's**, which is the line
+/// [`admit_a_stylex_function`] already draws and for the same reason: below the
+/// fold a call through a name is resolved this compiler's own way — a dynamic
+/// style's own parameters, the injected function map and a resolved theme
+/// reference are all answered there, and the engine holds no value for any of
+/// them. Measured, that path already folds `inner('a')` to upstream's rule, so
+/// taking the call would replace a working answer with a narrower one.
+///
+/// A call *inside* an expression the fold claimed has no such second answer.
+/// Handing one back hands back the whole expression around it, and the method
+/// that would have re-run the body moved into the engine — so this is the only
+/// place that can answer, and the reason is the one the outermost call gives for
+/// not being answered here.
+fn admit_a_named_call<'a>(
+  name: &'a Ident,
+  callee: &Expr,
+  call: &CallExpr,
+  position: Position,
+  guard: Guard,
+  reader: &mut Reader,
+) -> Result<Admitted<'a>, Decline> {
+  if position == Position::Outermost {
+    return Err(Decline::NotACandidate);
+  }
+
+  // The callee is an arrow this call runs once per evaluation of itself, rather
+  // than once per element of a receiver — so what its body repeats is what the
+  // expression around it repeats, and a length written into that body is bounded
+  // like any other instead of refusing as a callback over something unmeasured.
+  // No width travels with the count: a parameter here holds an argument, and an
+  // argument's width is not something this reading measured.
+  let callee_guard = Guard {
+    callback: Some(Callback {
+      repeats: guard.repeats,
+      characters: None,
+    }),
+    ..guard
+  };
+
+  admit_value(callee, callee_guard, reader)?;
+
+  // The arguments keep the guard's own `callback`, which this call already
+  // cleared: an arrow handed to the author's own function is run by a body this
+  // fold cannot see, so how often it runs is exactly what nothing here measured.
+  admit_arguments(&call.args, guard, reader)?;
+
+  Ok(Admitted::Named(&name.sym))
 }
 
 /// Whether the receiver is a number written into the source as a literal.
@@ -2189,15 +2300,7 @@ fn measured_receiver(receiver: &Expr, guard: Guard, reader: &mut Reader) -> Opti
 /// initializer. The resolver, not a check here, is what holds that; this is the
 /// place that depends on it, so it is the place that says so.
 fn module_value_of(expr: &Expr, reader: &mut Reader) -> Option<EvaluateResultValue> {
-  let mut expr = expr;
-
-  // Unwrapped in a loop rather than by recursing, because this is asked before
-  // the guard descends and so has no nesting budget to spend. A loop needs none.
-  while let Expr::Paren(paren) = expr {
-    expr = &paren.expr;
-  }
-
-  match expr {
+  match without_parens(expr) {
     Expr::Call(_) => None,
     _ => reader.resolve(expr),
   }
@@ -2330,16 +2433,7 @@ fn count_of(value: f64) -> Option<u64> {
 /// holds is an element of a receiver the call around the callback measured — so
 /// that element's width is the length, and a name nothing measured has none.
 fn receiver_length(receiver: &Expr, guard: Guard, reader: &mut Reader) -> Option<u64> {
-  // Unwrapped in a loop rather than by recursing, because every other walk on
-  // this bridge spends the nesting budget and this one has no budget to spend:
-  // it is asked before the guard descends. A loop needs none.
-  let mut receiver = receiver;
-
-  while let Expr::Paren(paren) = receiver {
-    receiver = &paren.expr;
-  }
-
-  let text = match receiver {
+  let text = match without_parens(receiver) {
     Expr::Lit(Lit::Str(text)) => text.value.clone(),
     // A name the callback binds is answered from the element it was handed, and
     // this arm is what makes `['a','b'].map(x => x.repeat(3))` fold at all: the
@@ -2638,6 +2732,23 @@ fn valid_array_length(number: f64) -> Option<u64> {
 
 /// An argument is admitted when it is a value the walk carries — an arrow among
 /// them, which is how a callback and an own conversion method reach the engine.
+/// Every argument of a call, walked as a value.
+///
+/// One loop rather than one per calling shape, so a position that maps the
+/// refusal — an applied global's, a StyleX function's — differs from the others
+/// in the mapping alone and not in what it walked.
+fn admit_arguments(
+  args: &[ExprOrSpread],
+  guard: Guard,
+  reader: &mut Reader,
+) -> Result<(), Decline> {
+  for arg in args {
+    admit_argument(arg, guard, reader)?;
+  }
+
+  Ok(())
+}
+
 fn admit_argument(arg: &ExprOrSpread, guard: Guard, reader: &mut Reader) -> Result<(), Decline> {
   // A spread needs the scope, and is refused rather than handed back: the
   // receiver is walked before the arguments, so a call reaching here is one this

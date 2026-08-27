@@ -445,16 +445,16 @@ fn an_alias_chain_past_the_configured_depth_refuses() {
 /// Two declarations naming each other: the first reads the second above its own
 /// declaration, which the resolution refuses before the walk can go round.
 ///
-/// The general sentence rather than the one naming a binding, and correctly so:
-/// what the walk reached was a *call* on a name, which is a shape the guard does
-/// not admit at all — so the call is handed back rather than refused. Issue 22
-/// carries that.
+/// The sentence names `b`, the binding the walk could not reach a declaration
+/// for, rather than the method — the call on a name is admitted now, so the
+/// refusal is the carriage's and points at what an author has to change.
+/// Upstream refuses it too, in its own words about a value read early.
 #[test]
 fn two_declarations_naming_each_other_refuse() {
   assert_refuses(
     "const a = (x) => b(x); const b = (x) => a(x);",
     "content: ['q'].map(a).join(''),",
-    "Cannot fold 'map' at compile time.",
+    "Cannot carry the function 'b' into a fold.",
   );
 }
 

@@ -180,9 +180,13 @@ the answer becomes a refusal is an [applied global](#applied-global), because
 nothing below the fold folds one. Reading a name to decide any of this is a
 [speculative read](#speculative-read).
 
-Nothing the guard carries records _where_ in an expression it is. Every rule
+Nothing the guard _carries_ records where in an expression it is. Every rule
 reads the call in front of it and nothing else, so a static, a middle link of a
-chain and the call the caller asked about are all answered alike. The statics
+chain and the call the caller asked about are all answered alike. One question
+is the exception, and it is passed beside the guard rather than carried in it: a
+callee written as a bare name is admitted only where the call sits inside an
+expression the fold already claimed, because the outermost call is the one the
+dispatch below still owns. See [named callback](#named-callback). The statics
 the reference compiler refuses by name — the nondeterministic and the mutating
 ones — are refused here wherever they are written, because a fold has to answer
 from the source alone and neither of those does.
@@ -292,10 +296,18 @@ for — a dynamic style's own parameter, most of all — is _handed back_, becau
 what it holds is not knowable at compile time and refusing it would fail a build
 over a call that was only ever going to run at runtime.
 
-Passing one is answered; _calling_ a function through a name is not, because a
-call is admitted only where its callee is a member expression or an unshadowed
-global. That is recorded rather than intended, and it is one line of dispatch
-away from the carriage this term is about.
+Calling one through a name is the same carriage and a different question, and
+the question is where the call sits. A call _inside_ an expression the fold has
+already claimed is the fold's: handing it back hands back the whole expression
+around it, and the method that would have re-run a callback body moved into the
+engine, so nothing below could answer. The _outermost_ call stays the dispatch
+below the fold, on the same terms an
+[applied StyleX function](#engine-callable-stylex-function) stays there:
+that path resolves a name this compiler's own way — a dynamic style's own
+parameters, the injected function map and a resolved
+[theme reference](#theme-reference) are all answered there — and measured, it
+already folds `inner('a')` to the rule the reference compiler emits, so taking
+the call would replace a working answer with a narrower one.
 _Avoid_: function reference, higher-order argument, callback binding
 
 **Speculative read**:

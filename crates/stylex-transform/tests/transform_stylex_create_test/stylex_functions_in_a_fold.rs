@@ -355,16 +355,16 @@ fn a_callback_parameter_shadows_the_import() {
   );
 }
 
-/// The module's own function of the same name is not a StyleX function, and
-/// nothing about it changed: the fold hands the call back, as it does for any
-/// function this compiler cannot see the body of. Refused where the reference
-/// compiler folds it, which is the shape issue 19 carries.
+/// The module's own function of the same name is not a StyleX function, and it
+/// does not need to be: it is an ordinary declaration reached through a name, so
+/// it crosses as its own source and the engine runs it. The import's carriage is
+/// never asked about, since the name resolves to the module's binding.
 #[test]
 fn a_local_function_of_the_same_name_is_not_this_one() {
-  assert_refuses(
+  assert_folds(
     "const firstThatWorks = (x) => x + '!'; const a = ['a'];",
     "content: a.map(x => firstThatWorks(x)).join(''),",
-    "Its receiver or one of its arguments is not in a form the compiler can evaluate.",
+    ".x1bt3ucs{content:\"a!\"}",
   );
 }
 

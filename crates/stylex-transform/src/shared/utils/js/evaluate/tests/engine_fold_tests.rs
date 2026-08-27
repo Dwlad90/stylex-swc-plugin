@@ -829,3 +829,118 @@ fn input_with_no_foldable_call_builds_no_engine() {
   assert_folds_to_string("\"  4px  \".trim()", "4px");
   assert!(super::engine_fold::holds_an_engine());
 }
+
+// ==================== the fold memo ====================
+
+/// The number of expressions this thread's engine has compiled, read from a
+/// thread that starts holding no engine.
+///
+/// Every case in this section begins here rather than reading the count as it
+/// finds it: tests share a thread, so a count that started at whatever the last
+/// fold left behind would measure that fold as well as this one.
+fn compiled_after(fold: impl FnOnce()) -> usize {
+  super::engine_fold::forget_engine();
+
+  fold();
+
+  match super::engine_fold::compiled_expressions() {
+    Some(count) => count,
+    None => panic!("nothing folded, so there is no engine to count compilations on"),
+  }
+}
+
+/// One text, one parse, however many folds.
+#[test]
+fn one_printed_expression_is_parsed_once_however_often_it_folds() {
+  let compiled = compiled_after(|| {
+    for _ in 0..50 {
+      assert_folds_to_string("\"  4px  \".trim()", "4px");
+    }
+  });
+
+  assert_eq!(compiled, 1);
+}
+
+/// And distinct texts are distinct entries, so the count above is a memo doing
+/// its work rather than a memo that never records anything.
+#[test]
+fn distinct_printed_expressions_are_compiled_once_each() {
+  let compiled = compiled_after(|| {
+    assert_folds_to_string("\"a\".concat(\"b\")", "ab");
+    assert_folds_to_string("\"a\".concat(\"c\")", "ac");
+    assert_folds_to_string("\"a\".concat(\"b\")", "ab");
+  });
+
+  assert_eq!(compiled, 2);
+}
+
+/// A fold the engine throws on refuses the same way however often it is written.
+///
+/// `repeat(-1)` is a `RangeError` in the language, which is an answer rather
+/// than a fault of the fold — and an answer that arrives from running the
+/// compiled script, after it parsed. So the entry is there, and what this case
+/// pins is that the throw did not stop it being there: the second fold refuses
+/// for the same reason and not for a different one.
+#[test]
+fn an_expression_the_engine_throws_on_refuses_the_same_way_every_time() {
+  let compiled = compiled_after(|| {
+    assert_deopt_reason_contains("\"a\".repeat(-1)", "repeat");
+    assert_deopt_reason_contains("\"a\".repeat(-1)", "repeat");
+  });
+
+  assert_eq!(compiled, 1);
+}
+
+/// The engine is still built no earlier than the first fold that needs one — the
+/// memo lives inside it, so it cannot be built earlier either.
+#[test]
+fn a_declined_input_leaves_no_memo_because_it_leaves_no_engine() {
+  super::engine_fold::forget_engine();
+
+  let _ = evaluate_source("someString.trim()");
+
+  assert_eq!(super::engine_fold::compiled_expressions(), None);
+}
+
+/// A thousand distinct call sites compile a thousand arrows and answer every one
+/// of them, which is the shape a large real file has and the one that would find
+/// a memo that collided two keys.
+#[test]
+fn a_thousand_distinct_call_sites_each_answer_their_own_value() {
+  let compiled = compiled_after(|| {
+    for index in 0..1000 {
+      assert_folds_to_string(&format!("\"a\".concat(\"{index}\")"), &format!("a{index}"));
+    }
+  });
+
+  assert_eq!(compiled, 1000);
+}
+
+/// Two texts that differ only in the whitespace an author wrote are one entry,
+/// because the key is what this module *printed* rather than what was typed.
+#[test]
+fn two_spellings_of_one_expression_share_a_compilation() {
+  let compiled = compiled_after(|| {
+    assert_folds_to_string("[\"a\", \"b\"].join(\"-\")", "a-b");
+    assert_folds_to_string("[  \"a\",\n\"b\"  ].join(  \"-\"  )", "a-b");
+  });
+
+  assert_eq!(compiled, 1);
+}
+
+/// A chain is one entry, not one per link.
+///
+/// Each link is a candidate in its own right, which is what lets a chain fold at
+/// all — but the guard admits the outermost call with its whole receiver inside
+/// it, so the engine is handed the chain once and the inner calls are never
+/// printed on their own. Worth pinning because the opposite would be the obvious
+/// guess, and because a memo that recorded every link would grow with the depth
+/// of an expression rather than with the number of call sites.
+#[test]
+fn a_chain_is_one_entry_rather_than_one_per_link() {
+  let compiled = compiled_after(|| {
+    assert_folds_to_string("\"  a-b  \".trim().replace(\"-\", \"_\")", "a_b");
+  });
+
+  assert_eq!(compiled, 1);
+}

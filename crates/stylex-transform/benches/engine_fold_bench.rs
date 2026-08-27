@@ -20,11 +20,21 @@
 //! groups, because a warm fold measured on its own and a warm fold measured
 //! next to the engine are the same measurement.
 //!
-//! That gap is an upper bound on the round trip, not the round trip itself. The
-//! `fold` leg enters through `evaluate`, so it carries the evaluator's own entry
-//! cost — the memo lookup, the per-call state — alongside the guard walk, the
-//! print and the conversion of the answer back. Nothing here separates the two,
-//! and the bound is what a later ticket has to move.
+//! That gap is no longer an upper bound on the round trip, and reading it as one
+//! is the mistake this paragraph exists to prevent. The fold parses a distinct
+//! printed expression once per engine and re-runs the compiled script after,
+//! while the `engine` leg re-parses its source on every iteration — so the two
+//! legs no longer do the same work, and the `fold` leg is the faster of the
+//! pair. What the gap now reads as is the parse the memo saves, minus what the
+//! fold costs around it.
+//!
+//! **A first-sight fold** is what a shape nobody has folded before costs, priced
+//! by the `fold-distinct` leg: a fresh expression per iteration, so every one of
+//! them misses the memo and every one of them is recorded in it. That is the leg
+//! the memo is paid for out of, and it prices the worst case rather than a
+//! likely one — nothing is ever evicted, so a run of tens of thousands of
+//! iterations leaves the engine holding tens of thousands of compiled scripts,
+//! where a real build holds one per folded call site.
 //!
 //! Every fold through the evaluator runs inside `GLOBALS.set`, because the fold
 //! can reach the code-frame path and that path calls `Mark::new()`. Why that is
@@ -34,7 +44,9 @@
 use std::hint::black_box;
 
 use boa_engine::{Context, Source};
-use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+use criterion::{
+  BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::WallTime,
+};
 use stylex_ast::ast::convertors::convert_atom_to_string;
 use stylex_structures::stylex_options::StyleXOptions;
 use stylex_transform::shared::{
@@ -318,7 +330,55 @@ fn round_trip_benchmarks(c: &mut Criterion) {
       });
     }
 
+    distinct_fold_benchmark(&mut group, &functions);
+
     group.finish();
+  });
+}
+
+/// What a shape nobody has folded before costs — the leg the memo is paid out
+/// of.
+///
+/// Every iteration folds an expression no earlier iteration printed, so none of
+/// them can hit the memo. The counter is what makes them distinct and is also
+/// what keeps the assertion honest: the expected answer is derived from it, so a
+/// leg that stopped folding is caught the same way the table's legs are.
+///
+/// Parsing and building the state are setup, as they are for the `fold` legs, so
+/// what is measured is the same round trip those legs measure — with the parse
+/// inside the engine put back.
+fn distinct_fold_benchmark(group: &mut BenchmarkGroup<WallTime>, functions: &FunctionMap) {
+  let mut counter = 0_u64;
+
+  let mut next = || {
+    counter += 1;
+
+    (
+      counter,
+      expression(&format!(r#""a".concat("{counter}")"#)),
+      state(),
+    )
+  };
+
+  let (first, expr, mut warm) = next();
+
+  match evaluate(&expr, &mut warm, functions).value.as_ref() {
+    Some(value) => assert_eq!(fold_text(value), Some(format!("a{first}"))),
+    None => panic!("the `fold-distinct` leg refused what it exists to fold"),
+  }
+
+  group.bench_function("fold-distinct", |b| {
+    b.iter_batched(
+      &mut next,
+      |(_, expr, mut state)| {
+        black_box(evaluate(
+          black_box(&expr),
+          black_box(&mut state),
+          black_box(functions),
+        ))
+      },
+      BatchSize::SmallInput,
+    )
   });
 }
 

@@ -31,7 +31,7 @@
 use std::{borrow::Cow, cell::RefCell, mem::ManuallyDrop};
 
 use boa_engine::{
-  Context, JsError, JsObject, JsResult, JsString, JsValue, Source, js_string,
+  Context, JsError, JsObject, JsResult, JsString, JsValue, Script, Source, js_string,
   object::builtins::JsArray, property::PropertyKey,
 };
 use swc_core::{
@@ -47,6 +47,7 @@ use swc_core::{
   },
 };
 
+use rustc_hash::FxHashMap;
 use stylex_ast::ast::convertors::atom_utf16_length;
 use stylex_ast::ast::factories::{
   create_arrow_expression_with_params, create_binding_ident, create_ident,
@@ -225,8 +226,43 @@ thread_local! {
   /// in is not defined. Dropping this one after the collector's underflows a
   /// reference count, and that panic runs inside a destructor, which aborts the
   /// process instead of unwinding. Leaking one engine per thread at exit is the
-  /// price of not aborting.
-  static ENGINE: RefCell<Option<ManuallyDrop<Context>>> = const { RefCell::new(None) };
+  /// price of not aborting. It wraps the whole of [`Engine`] rather than the
+  /// context alone, because the memo beside it holds engine values and dropping
+  /// one of those late underflows the same count.
+  static ENGINE: RefCell<Option<ManuallyDrop<Engine>>> = const { RefCell::new(None) };
+}
+
+/// A thread's engine and the [fold memo](../../../../../CONTEXT.md) that may only
+/// live as long as it does.
+///
+/// The two are one value because their lifetimes are one lifetime. A compiled
+/// script belongs to a particular engine's realm, so a memo that outlived its
+/// engine would hand a later engine a script from a realm that no longer exists,
+/// and a memo built before the engine would have nothing to parse against.
+/// Holding them together is what makes both impossible to write.
+struct Engine {
+  context: Context,
+  /// One compiled script per distinct printed expression.
+  ///
+  /// Keyed by the printed text because that is what the engine would otherwise
+  /// re-parse: a file writing one shape a thousand times prints a thousand
+  /// identical strings, and parsing them is most of what a warm fold costs.
+  /// Reuse across files is safe for the reason a shared engine is — a printed
+  /// expression carries no name it did not resolve, since every one the guard
+  /// resolved became a parameter of an arrow and its value travels beside it as
+  /// an argument.
+  ///
+  /// A compiled script rather than the value or the function it evaluates to,
+  /// because those are two shapes and this is one. The bare form evaluates to
+  /// the answer and the arrow form to a function still waiting for its
+  /// arguments, so a memo of results would have to hold both and a memo of
+  /// functions could not hold the first at all — and re-running compiled
+  /// bytecode is what both of them wanted anyway.
+  ///
+  /// It grows for the life of the thread, alongside the source the engine
+  /// already interns and never reclaims, and is bounded by the number of
+  /// distinct folded call sites in the build rather than by the number of folds.
+  memo: FxHashMap<String, Script>,
 }
 
 /// The words a [refused fold](../../../../../CONTEXT.md) hands the caller,
@@ -912,7 +948,7 @@ fn fold(
     // what `ManuallyDrop` already makes it do at thread exit.
     let mut engine = match slot.take() {
       Some(engine) => engine,
-      None => new_engine()?,
+      None => Engine::new()?,
     };
 
     let outward = Outward {
@@ -922,14 +958,14 @@ fn fold(
     };
 
     let applied = match admitted {
-      Admitted::Global(global) => admit_an_applied_global(global, &mut engine),
+      Admitted::Global(global) => admit_an_applied_global(global, &mut engine.context),
       Admitted::Method(_) => Ok(()),
     };
 
     let folded = applied
-      .and_then(|()| reader.transport.arguments(&mut engine, method))
+      .and_then(|()| reader.transport.arguments(&mut engine.context, method))
       .and_then(|arguments| apply(&source, &arguments, &mut engine, outward))
-      .and_then(|value| to_value(&value, &mut engine, outward));
+      .and_then(|value| to_value(&value, &mut engine.context, outward));
 
     *slot = Some(engine);
 
@@ -937,14 +973,15 @@ fn fold(
   })
 }
 
-/// Compiles the printed arrow and calls it with the transported values.
+/// Evaluates the printed expression and, where there is something to pass,
+/// calls what it evaluated to with the transported values.
 ///
-/// Two steps rather than one evaluation *when there is something to pass*,
-/// because the values cross as arguments rather than as text. Every step can
-/// throw and all of them are answered the same way: a throw is an answer, not a
-/// failure of this module — the language throws on `[].reduce(f)` too — so the
-/// engine's own sentence is what the author reads rather than a generic refusal
-/// standing in for it.
+/// Two steps rather than one *when there is something to pass*, because the
+/// values cross as arguments rather than as text. Every step can throw and all
+/// of them are answered the same way: a throw is an answer, not a failure of
+/// this module — the language throws on `[].reduce(f)` too — so the engine's own
+/// sentence is what the author reads rather than a generic refusal standing in
+/// for it.
 ///
 /// A fold that resolved no name is evaluated directly, which is the whole of why
 /// this branches. Wrapping it in an arrow and invoking that arrow costs a
@@ -956,6 +993,9 @@ fn fold(
 /// expression to the same engine, so it is not the two-tables-that-must-agree
 /// this module exists to remove.
 ///
+/// Both arms go through the memo, because what is memoised is the compiled
+/// script and neither arm has to be a function for that.
+///
 /// The compiled value is a function by construction, so the refusal for one that
 /// is not stands in for a broken invariant rather than for anything an author can
 /// write. It is a refusal all the same: this runs inside an evaluation whose
@@ -964,12 +1004,10 @@ fn fold(
 fn apply(
   source: &str,
   arguments: &[JsValue],
-  engine: &mut Context,
+  engine: &mut Engine,
   outward: Outward,
 ) -> Result<JsValue, Decline> {
-  let evaluated = engine
-    .eval(Source::from_bytes(source))
-    .map_err(|error| threw(outward.method, &error))?;
+  let evaluated = engine.eval(source, outward.method)?;
 
   if arguments.is_empty() {
     return Ok(evaluated);
@@ -980,7 +1018,7 @@ fn apply(
   };
 
   callable
-    .call(&JsValue::undefined(), arguments, engine)
+    .call(&JsValue::undefined(), arguments, &mut engine.context)
     .map_err(|error| threw(outward.method, &error))
 }
 
@@ -996,6 +1034,18 @@ pub(super) fn holds_an_engine() -> bool {
   ENGINE.with_borrow(|slot| slot.is_some())
 }
 
+/// How many distinct expressions this thread's engine has compiled, or none
+/// where it holds no engine.
+///
+/// Test-only, and the observable half of "compiled once and reused after": the
+/// answer alone cannot tell a memo hit from a fresh compile, because both
+/// produce the same value — which is the whole point of the memo and also why it
+/// needs a witness of its own.
+#[cfg(test)]
+pub(super) fn compiled_expressions() -> Option<usize> {
+  ENGINE.with_borrow(|slot| slot.as_ref().map(|engine| engine.memo.len()))
+}
+
 /// Drops this thread's engine reference without dropping the engine, which is
 /// what the slot's `ManuallyDrop` already does at thread exit and for the same
 /// reason: the collector lives in a thread-local of its own and the drop order
@@ -1007,26 +1057,70 @@ pub(super) fn forget_engine() {
   });
 }
 
-/// A context with the one runtime limit its default leaves open, and without
-/// the one thing the language provides that this compiler cannot: function
-/// source text.
-///
-/// Answers a refusal rather than asserting, because the assignment runs inside
-/// an evaluation whose whole contract is that it may fail — and because an
-/// engine that kept function source would fold a spelling no other build
-/// produces, which is worse than declining the fold.
-fn new_engine() -> Result<ManuallyDrop<Context>, Decline> {
-  let mut engine = Context::default();
+impl Engine {
+  /// A context with the one runtime limit its default leaves open, without the
+  /// one thing the language provides that this compiler cannot — function source
+  /// text — and with an empty memo.
+  ///
+  /// Answers a refusal rather than asserting, because the assignment runs inside
+  /// an evaluation whose whole contract is that it may fail — and because an
+  /// engine that kept function source would fold a spelling no other build
+  /// produces, which is worse than declining the fold.
+  fn new() -> Result<ManuallyDrop<Self>, Decline> {
+    let mut context = Context::default();
 
-  engine
-    .runtime_limits_mut()
-    .set_loop_iteration_limit(MAX_LOOP_ITERATIONS);
+    context
+      .runtime_limits_mut()
+      .set_loop_iteration_limit(MAX_LOOP_ITERATIONS);
 
-  engine
-    .eval(Source::from_bytes(NO_FUNCTION_SOURCE))
-    .map_err(|error| Decline::rule(engine_did_not_start(&error.to_string())))?;
+    context
+      .eval(Source::from_bytes(NO_FUNCTION_SOURCE))
+      .map_err(|error| Decline::rule(engine_did_not_start(&error.to_string())))?;
 
-  Ok(ManuallyDrop::new(engine))
+    Ok(ManuallyDrop::new(Self {
+      context,
+      memo: FxHashMap::default(),
+    }))
+  }
+
+  /// What `source` evaluates to, parsing it the first time this engine is handed
+  /// the text and re-running the compiled script every time after.
+  ///
+  /// Named after the engine call it stands in for rather than after the memo,
+  /// because the memo is what it does and not what it is for.
+  ///
+  /// This is the engine's own `eval` with the parse lifted out of it — `eval` is
+  /// exactly parse-then-evaluate — so what the memo changes is when a source is
+  /// parsed and nothing else about what a fold answers.
+  ///
+  /// The parse is what the memo saves; the evaluation is not saved and must not
+  /// be. Re-running is what keeps a fold answering its own value rather than the
+  /// first caller's — an expression that mutates a literal it built reorders a
+  /// fresh array on every run, and an arrow form evaluates to a function still
+  /// waiting for the arguments this fold is about to pass it.
+  ///
+  /// A source the parser refused is never memoised, so a later fold of the same
+  /// text is refused by the parser again rather than by a cached mistake. It is
+  /// a refusal rather than an assertion because this runs inside an evaluation
+  /// whose whole contract is that it may fail, where an assertion would abort a
+  /// build that a deopt would only leave to the runtime.
+  fn eval(&mut self, source: &str, method: &Atom) -> Result<JsValue, Decline> {
+    let compiled = match self.memo.get(source) {
+      Some(compiled) => compiled.clone(),
+      None => {
+        let compiled = Script::parse(Source::from_bytes(source), None, &mut self.context)
+          .map_err(|error| threw(method, &error))?;
+
+        self.memo.insert(source.to_owned(), compiled.clone());
+
+        compiled
+      },
+    };
+
+    compiled
+      .evaluate(&mut self.context)
+      .map_err(|error| threw(method, &error))
+  }
 }
 
 /// What the outward bridge carries as it converts a value back: the method
@@ -2027,7 +2121,8 @@ fn read<T>(method: &Atom, read: impl FnOnce() -> JsResult<T>) -> Result<T, Decli
 /// over no parameters, invoked immediately, is the same expression with a
 /// function object and a VM frame added, and [`apply`] carries the measurement
 /// that says what those cost. Printing the call itself is what lets an expression
-/// that names nothing pay nothing.
+/// that names nothing pay nothing, and costs the memo nothing either, because
+/// what the memo holds is a compiled script rather than a function.
 ///
 /// The module is assembled here rather than by `create_module`, which takes
 /// `&Expr` and clones it — so going through it means cloning the subtree once

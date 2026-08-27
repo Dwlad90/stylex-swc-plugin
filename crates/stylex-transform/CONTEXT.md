@@ -87,6 +87,20 @@ an object the object an object literal answers, so a folded value reaches
 everywhere a value the author wrote reaches.
 _Avoid_: boa fold, reflection, dynamic dispatch
 
+**Fold memo**:
+The compiled scripts an engine keeps beside itself, one per distinct printed
+expression, so a file writing one shape a thousand times is parsed once rather
+than a thousand times. Keyed by the printed text, because that is what the
+engine would otherwise re-parse, and shared across files for the reason the
+engine itself is: a printed expression carries no name it did not resolve, so a
+compiled script closes over nothing a later file could read. What is memoised is
+the parse and never the answer -- the script is re-run on every fold, which is
+what keeps a mutating receiver reordering a fresh array and an
+[arrow transport](#transport) evaluating to a function still waiting for this
+fold's arguments. It is built with the engine and never before it, and leaks
+with it, because a compiled script belongs to a realm.
+_Avoid_: cache, arrow cache, compiled-arrow memo, script pool
+
 **Fold guard**:
 The predicate in front of an [engine fold](#engine-fold), and the whole of that
 fold's behaviour: what it admits is answered by the language rather than by any

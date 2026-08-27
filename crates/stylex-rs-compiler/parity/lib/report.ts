@@ -62,18 +62,54 @@ export const AGREED: ReadonlySet<Verdict> = new Set<Verdict>([
 export type Stance =
   | { kind: 'agreed' }
   | { kind: 'expected' }
+  | { kind: 'configured'; option: string }
   | { kind: 'changed' }
   | { kind: 'pinned'; family: RefusalFamily }
   | { kind: 'unexpected' };
 
 export function stanceOf(entry: ReportEntry): Stance {
   if (entry.expected !== undefined) {
-    return entry.verdict === entry.expected ? { kind: 'expected' } : { kind: 'changed' };
+    if (entry.verdict !== entry.expected) return { kind: 'changed' };
+    // A ceiling an author can raise is read apart from a divergence, so the two
+    // are not counted together. It is still an expectation first: a configured
+    // row whose verdict moved is `changed`, exactly as any other recorded one
+    // is, which is why this arm sits inside the expectation rather than beside
+    // it.
+    return entry.configuration === undefined
+      ? { kind: 'expected' }
+      : { kind: 'configured', option: entry.configuration };
   }
   if (AGREED.has(entry.verdict)) return { kind: 'agreed' };
 
   const family = familyOf(entry);
   return family === undefined ? { kind: 'unexpected' } : { kind: 'pinned', family };
+}
+
+/**
+ * Whether this row is the reference compiler compiling where this one refused.
+ *
+ * The direction matters. A row this compiler accepts and the reference refuses
+ * costs a build nobody was relying on; the other direction costs an author a
+ * build the reference compiler completes, which is the one that needs a reason
+ * written down before it can be left standing.
+ */
+function referenceCompiledAlone(entry: ReportEntry): boolean {
+  return entry.verdict === 'acceptance-divergent' && entry.rust.status === 'error';
+}
+
+/**
+ * Whether such a row says why, in a form a later reader can check.
+ *
+ * Two forms count, and they are the two the corpus already has: a `note` on the
+ * entry, for a refusal written for one subject, and a refusal family, for one
+ * shared by rows a generated corpus cannot carry a note on — `harvested.json` is
+ * regenerated wholesale, so a note written there is lost on the next harvest.
+ *
+ * Takes the stance's kind rather than the stance, since the family itself is not
+ * read: what matters is only that one claimed the row.
+ */
+function hasWrittenReason(entry: ReportEntry, stance: Stance['kind']): boolean {
+  return stance === 'pinned' || (entry.note !== undefined && entry.note.trim() !== '');
 }
 
 /** Everything a run concluded, before any of it is printed. */
@@ -92,6 +128,15 @@ export interface Verdicts {
    * there would train a reader to ignore the answer.
    */
   unreached: RefusalFamily[];
+  /**
+   * Rows where the reference compiler compiled and this one refused, with no
+   * reason written anywhere a reader can find it.
+   *
+   * The gap this closes is a recorded expectation with nothing beside it: it
+   * reads as a divergence somebody looked at while saying nothing about what
+   * they concluded, and a row like that is how a refusal outlives its argument.
+   */
+  unreasoned: ReportEntry[];
 }
 
 export interface ConcludeOptions {
@@ -110,6 +155,7 @@ export function conclude(entries: readonly ReportEntry[], options: ConcludeOptio
     expected: 0,
     changed: 0,
     pinned: 0,
+    configured: 0,
     unexpected: 0,
     identical: 0,
     'identical-empty': 0,
@@ -128,6 +174,7 @@ export function conclude(entries: readonly ReportEntry[], options: ConcludeOptio
     if (stance.kind === 'expected') summary.expected++;
     if (stance.kind === 'changed') summary.changed++;
     if (stance.kind === 'pinned') summary.pinned++;
+    if (stance.kind === 'configured') summary.configured++;
     if (stance.kind === 'unexpected') summary.unexpected++;
   }
 
@@ -137,15 +184,27 @@ export function conclude(entries: readonly ReportEntry[], options: ConcludeOptio
     byFamily: groupByFamily(entries),
     changed: entries.filter(entry => stances.get(entry)!.kind === 'changed'),
     unreached: options.whole ? unreachedFamilies(entries) : [],
+    unreasoned: entries.filter(
+      entry => referenceCompiledAlone(entry) && !hasWrittenReason(entry, stances.get(entry)!.kind)
+    ),
   };
 }
 
 /**
  * Whether a run should exit non-zero.
  *
- * Three conditions, and all three are a report that has stopped being read: a
- * row whose recorded verdict moved, a family nothing reached, and a divergence
- * nothing accounts for.
+ * Four conditions, and all four are a report that has stopped being read: a row
+ * whose recorded verdict moved, a family nothing reached, a divergence nothing
+ * accounts for, and a build the reference compiler completes and this one
+ * refuses with no reason written down.
+ *
+ * The fourth is the weakest of the four and the one the other three cannot
+ * reach. A recorded expectation satisfies them all while saying nothing about
+ * why the refusal is wanted, so a refusal added for a reason nobody wrote down
+ * outlives the argument for it and the corpus reads as though someone had
+ * checked. What is required is only that a reason exists — a `note` on the row
+ * or a family that claims it — because whether the reason is a good one is a
+ * person's judgement and not a thing a harness can hold.
  *
  * The third was excluded on the argument that reading a divergence is a person's
  * job and a corpus of degenerate values would otherwise fail every run. That
@@ -167,6 +226,9 @@ export function conclude(entries: readonly ReportEntry[], options: ConcludeOptio
  */
 export function fails(verdicts: Verdicts): boolean {
   return (
-    verdicts.changed.length > 0 || verdicts.unreached.length > 0 || verdicts.summary.unexpected > 0
+    verdicts.changed.length > 0 ||
+    verdicts.unreached.length > 0 ||
+    verdicts.summary.unexpected > 0 ||
+    verdicts.unreasoned.length > 0
   );
 }

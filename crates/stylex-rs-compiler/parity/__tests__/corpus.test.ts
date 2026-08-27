@@ -137,6 +137,96 @@ describe('the expected verdict', () => {
   });
 });
 
+describe('the configuration a refusal names', () => {
+  test('the option is carried onto the entry', () => {
+    const [entry] = loadOf(
+      moduleFile([
+        {
+          id: 'm',
+          label: 'l',
+          source: MODULE_SOURCE,
+          origin: 'o',
+          expected: 'acceptance-divergent',
+          configuration: 'maxFoldedCharacters',
+          note: 'Raise it past the count and the same source folds.',
+        },
+      ])
+    );
+
+    expect(entry).toMatchObject({ configuration: 'maxFoldedCharacters' });
+  });
+
+  /**
+   * A ceiling is a configuration claim only while the refusal it explains is
+   * measured. Without the recorded verdict the row says "raise this option"
+   * about behaviour nothing checks, and the day the ceiling stops refusing the
+   * row would read as accounted for rather than as changed.
+   */
+  test('naming an option without recording a verdict is refused', () => {
+    expect(() =>
+      loadOf(
+        moduleFile([
+          {
+            id: 'm',
+            label: 'l',
+            source: MODULE_SOURCE,
+            origin: 'o',
+            configuration: 'maxFoldedCharacters',
+          },
+        ])
+      )
+    ).toThrow(/maxFoldedCharacters/);
+  });
+
+  /**
+   * A row naming a knob and not a reason still records a build the reference
+   * compiler completes, and the run's own gate would fail it. Requiring the note
+   * here says so at the point the row is written rather than on the next run.
+   */
+  test('naming an option without a note is refused', () => {
+    expect(() =>
+      loadOf(
+        moduleFile([
+          {
+            id: 'm',
+            label: 'l',
+            source: MODULE_SOURCE,
+            origin: 'o',
+            expected: 'acceptance-divergent',
+            configuration: 'maxFoldedEntries',
+          },
+        ])
+      )
+    ).toThrow(/carries no note/);
+  });
+
+  test('an option nobody can set is refused rather than dropped', () => {
+    expect(() =>
+      loadOf(
+        moduleFile([
+          {
+            id: 'm',
+            label: 'l',
+            source: MODULE_SOURCE,
+            origin: 'o',
+            expected: 'acceptance-divergent',
+            configuration: 'maxFoldedCharcters',
+            note: 'a typo nobody can raise',
+          },
+        ])
+      )
+    ).toThrow(/unknown configuration option/);
+  });
+
+  test('an entry naming no option does not carry the key at all', () => {
+    const [entry] = loadOf(
+      moduleFile([{ id: 'm', label: 'l', source: MODULE_SOURCE, origin: 'o' }])
+    );
+
+    expect(entry).not.toHaveProperty('configuration');
+  });
+});
+
 describe('deduplication', () => {
   test('a repeated declaration keeps the first entry seen', () => {
     const entries = loadOf({

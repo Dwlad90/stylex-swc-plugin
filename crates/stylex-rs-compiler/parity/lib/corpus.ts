@@ -11,9 +11,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { arrayAt, stringAt, verdictAt } from './guards.js';
+import { arrayAt, configurationOptionAt, stringAt, verdictAt } from './guards.js';
 import { subjectKey } from './subject.js';
-import type { CorpusEntry, LoadedCorpusEntry, LoadedCorpusFile } from './types.js';
+import type {
+  ConfigurationOption,
+  CorpusEntry,
+  LoadedCorpusEntry,
+  LoadedCorpusFile,
+  Verdict,
+} from './types.js';
 
 /** Load order is the report order, so the reported cases read first. */
 export const CORPUS_FILES = [
@@ -85,6 +91,8 @@ function corpusEntryFrom(raw: unknown, filePath: string, index: number): CorpusE
   const noteField = note === undefined ? {} : { note };
   const expected = verdictAt(raw, 'expected', filePath);
   const expectedField = expected === undefined ? {} : { expected };
+  const configuration = configurationAt(raw, filePath, id, expected, note);
+  const configurationField = configuration === undefined ? {} : { configuration };
 
   const source = stringAt(raw, 'source');
   if (source !== undefined) {
@@ -94,7 +102,16 @@ function corpusEntryFrom(raw: unknown, filePath: string, index: number): CorpusE
         `Corpus entry ${index} malformed in ${filePath} — a module entry expects { id, label, source, origin }.`
       );
     }
-    return { kind: 'module', id, label, source, origin, ...noteField, ...expectedField };
+    return {
+      kind: 'module',
+      id,
+      label,
+      source,
+      origin,
+      ...noteField,
+      ...expectedField,
+      ...configurationField,
+    };
   }
 
   const property = stringAt(raw, 'property');
@@ -105,5 +122,53 @@ function corpusEntryFrom(raw: unknown, filePath: string, index: number): CorpusE
     );
   }
 
-  return { kind: 'declaration', id, property, value, origin, ...noteField, ...expectedField };
+  return {
+    kind: 'declaration',
+    id,
+    property,
+    value,
+    origin,
+    ...noteField,
+    ...expectedField,
+    ...configurationField,
+  };
+}
+
+/**
+ * The option a row names as the reason it refuses, refused unless the row also
+ * carries the verdict that option currently produces and the note saying what
+ * raising it buys.
+ *
+ * Both are what make the field a claim rather than a label. Without the recorded
+ * verdict the row says "raise this option" about behaviour nothing checks, and
+ * the day the ceiling stops refusing — because the guard moved, or the default
+ * rose past the input — the row would go on reading as accounted for rather than
+ * as changed. Without the note the row names a knob and not a reason, and a
+ * refusal of a build the reference compiler completes owes a reader the reason;
+ * requiring it here rather than leaving it to the run's own gate says so at the
+ * point the row is written.
+ */
+function configurationAt(
+  raw: unknown,
+  filePath: string,
+  id: string | undefined,
+  expected: Verdict | undefined,
+  note: string | undefined
+): ConfigurationOption | undefined {
+  const configuration = configurationOptionAt(raw, 'configuration', filePath);
+  if (configuration === undefined) return undefined;
+
+  const where = `Corpus entry ${id ?? '(unnamed)'} in ${filePath} names the \`${configuration}\` configuration but`;
+  if (expected === undefined) {
+    throw new Error(
+      `${where} records no expected verdict — a ceiling is a configuration claim only while the refusal it explains is measured.`
+    );
+  }
+  if (note === undefined || note.trim() === '') {
+    throw new Error(
+      `${where} carries no note — say what raising the option buys, since the row records a build the reference compiler completes.`
+    );
+  }
+
+  return configuration;
 }

@@ -13,11 +13,13 @@
  * toolchain, and runs in CI's `checks` matrix on every pull request rather than
  * in a hook -- it needs that built `dist/`, which the matrix already has and a
  * pre-commit hook would have to pay for. Reading a verdict is still a person's
- * job — a divergence is information, not a failure — with two exceptions, both
- * of which are an expectation that has stopped measuring anything: an entry
- * whose recorded `expected` verdict no longer holds, and a refusal family no
- * row in the corpus reaches. Either exits non-zero, so a pinned divergence
- * cannot change unnoticed by whoever runs this.
+ * job — a divergence is information, not a failure — with the exceptions `fails`
+ * in `lib/report.ts` names, each of which is a report that has stopped being
+ * read: an entry whose recorded `expected` verdict no longer holds, a refusal
+ * family no row reaches, a divergence nothing accounts for, and a refusal of a
+ * build the reference compiler completes with no reason written down. Any of
+ * them exits non-zero, so a pinned divergence cannot change unnoticed by whoever
+ * runs this.
  *
  * Usage:
  *   pnpm parity                              # full corpus, human report
@@ -202,7 +204,7 @@ async function run(): Promise<void> {
   const whole =
     !(cliOptions.set !== undefined && cliOptions.set.length > 0) && cliOptions.filter === undefined;
   const verdicts = conclude(entries, { whole });
-  const { summary, byFamily, changed, unreached } = verdicts;
+  const { summary, byFamily, changed, unreached, unreasoned } = verdicts;
   const stanceOfEntry = (entry: ReportEntry): Stance => verdicts.stances.get(entry)!;
 
   // A mismatch that is already accounted for — by the entry's own expectation
@@ -221,11 +223,13 @@ async function run(): Promise<void> {
     const stanceLabel =
       stance.kind === 'expected'
         ? chalk.gray(' (expected)')
-        : stance.kind === 'pinned'
-          ? chalk.gray(` (pinned: ${stance.family.name})`)
-          : stance.kind === 'changed'
-            ? chalk.red(` (expected ${entry.expected})`)
-            : '';
+        : stance.kind === 'configured'
+          ? chalk.gray(` (configured: ${stance.option})`)
+          : stance.kind === 'pinned'
+            ? chalk.gray(` (pinned: ${stance.family.name})`)
+            : stance.kind === 'changed'
+              ? chalk.red(` (expected ${entry.expected})`)
+              : '';
     console.log(
       `${VERDICT_LABELS[entry.verdict]}${stanceLabel}  ${chalk.bold(subjectLabel(entry))}  ${chalk.gray(`[${entry.set}] ${entry.origin}`)}`
     );
@@ -251,6 +255,7 @@ async function run(): Promise<void> {
       // the field's other and larger use.
       `  expected               ${summary.expected}   ${chalk.gray('(the verdict the entry recorded, agreement or divergence)')}\n` +
       `  pinned                 ${summary.pinned}   ${chalk.gray('(a refusal family accounts for them)')}\n` +
+      `  configured             ${summary.configured}   ${chalk.gray('(a ceiling an author can raise, not a divergence)')}\n` +
       `  changed                ${summary.changed}   ${chalk.gray('(no longer the recorded verdict)')}\n` +
       `  ${chalk.bold('unexpected')}             ${summary.unexpected}   ${chalk.gray('(neither agreement nor accounted for — the number to act on)')}`
   );
@@ -269,6 +274,25 @@ async function run(): Promise<void> {
       console.log(`  ${chalk.bold(family.name)}  ${chalk.gray(rows)}`);
       console.log(chalk.gray(`    ${family.reason}`));
     }
+  }
+
+  // Paired with the option as they are collected, rather than filtered and then
+  // re-narrowed: the option is the whole point of the section, and asking the
+  // stance a second time inside the loop leaves an arm nothing can reach.
+  const configured = entries.flatMap(entry => {
+    const stance = stanceOfEntry(entry);
+    return stance.kind === 'configured' ? [{ entry, option: stance.option }] : [];
+  });
+  if (configured.length > 0) {
+    console.log(
+      `\n${chalk.bold('Configured ceilings')}  ${chalk.gray('— refused here because a setting says so, not because the two compilers disagree')}`
+    );
+    for (const { entry, option } of configured) {
+      console.log(`  ${chalk.bold(subjectLabel(entry))}  ${chalk.gray(option)}`);
+    }
+    console.log(
+      chalk.gray('\nRaise the option past what the subject needs and the same source folds.')
+    );
   }
 
   if (unreached.length > 0) {
@@ -295,6 +319,18 @@ async function run(): Promise<void> {
     console.log(
       chalk.gray(
         '\nUpdate the entry — or its `expected` — in the corpus once you know which of the two moved.'
+      )
+    );
+  }
+
+  if (unreasoned.length > 0) {
+    console.log(
+      `\n${chalk.red.bold('Refusals with no reason written down')}  ${chalk.gray('— the reference compiler builds each of these')}`
+    );
+    for (const entry of unreasoned) console.log(`  ${chalk.bold(subjectLabel(entry))}`);
+    console.log(
+      chalk.gray(
+        '\nGive the entry a `note` saying why the refusal is wanted, or write the refusal family that accounts for it.'
       )
     );
   }

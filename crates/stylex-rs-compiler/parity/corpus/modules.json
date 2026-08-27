@@ -1910,7 +1910,7 @@
       "label": "a locale-sensitive method, refused here and folded upstream",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'i'.toLocaleUpperCase('tr') },\n  s1: { zIndex: 'a'.localeCompare('b') },\n});\n",
       "origin": "issue 06, the exclusion the engine has no locale data for",
-      "note": "Acceptance divergent, deliberately. Upstream folds all four locale-sensitive methods against the host's full locale data. The engine here carries none, and answers `'i'.toLocaleUpperCase('tr')` as `I` where the language says `İ` — so folding would emit a wrong declaration rather than no declaration. A refusal costs a build that would have compiled; a wrong fold costs a stylesheet nobody can find the fault in.",
+      "note": "Acceptance divergent, deliberately, and the category the effort's spec sanctioned. Four measured reasons, each on its own sufficient. First, the engine's internationalisation feature reintroduces the exact dependency conflict that forced the engine to be vendored: the vendored tree relaxes two version bounds, and the feature pins roughly eleven more against the line the rest of the workspace is on. Second, that feature carries no compiled locale data and the provider crate is not vendored either, so building a locale context would fail at runtime unless this project shipped a data blob of its own. Third, it would not fix the number-formatting method regardless -- the engine ignores `toLocaleString`'s arguments unconditionally, with no feature gate at all. Fourth, with no locale argument the reference compiler takes the host's default, so its own answer is machine-dependent, and folding it would pin one build machine's value into every stylesheet the project ships. What the refusal costs is visible in the subject: upstream folds all four locale-sensitive methods against the host's full locale data, and the engine here answers `'i'.toLocaleUpperCase('tr')` as `I` where the language says `İ` -- so folding would emit a wrong declaration rather than no declaration. A refusal costs a build that would have compiled; a wrong fold costs a stylesheet nobody can find the fault in. `modules-06-locale-string-on-an-object` is the other row here. It is not the only such category on this branch, which is the spec sentence rather than this row: the value bridge refuses four `modules-09-*` rows and `modules-12-amplification-across-a-chain` refuses a length it cannot read, each deliberately and each with its reason on the row. Which of the two counts stands is left to the decision record.",
       "expected": "acceptance-divergent"
     },
     {
@@ -1935,7 +1935,8 @@
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'x'.repeat(200000000).slice(0, 1) },\n});\n",
       "origin": "issue 06, the allocation the engine does not bound itself; re-measured for issue 12",
       "note": "Acceptance divergent, deliberately, and now configurably so. Upstream folds this at 200 MB of string. The engine bounds loop iterations, recursion and stack but not allocation, because growth inside a native builtin is not a counted loop, and building a string costs about 19 bytes of peak resident memory per code unit here -- so 200 million of them is gigabytes. A refusal turns a typo into a diagnostic instead of into the machine, and names both numbers so an author can tell a typo from a project that has outgrown the ceiling. The ceiling is `maxFoldedCharacters`, default 1000000: raise it past the count and the same source folds to the value upstream reaches.",
-      "expected": "acceptance-divergent"
+      "expected": "acceptance-divergent",
+      "configuration": "maxFoldedCharacters"
     },
     {
       "id": "modules-06-deep-nesting",
@@ -1943,7 +1944,8 @@
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[['a']]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].join('') },\n});\n",
       "origin": "issue 06, the refusal that replaces a stack overflow",
       "note": "Acceptance divergent, and configurably so. A hundred levels is past the shipped `maxEvaluationDepth` of 32, so this compiler refuses it with a message naming that number where upstream folds it to `.x16319ns`. The fold runs on a stack it claims for the configured depth, so the refusal is the setting rather than a bound of the fold's own: raise `maxEvaluationDepth` past the nesting and the same source folds to the same value upstream reaches. Re-measured against `@stylexjs/babel-plugin` 0.19.0 when the fold stopped carrying a ceiling of its own.",
-      "expected": "acceptance-divergent"
+      "expected": "acceptance-divergent",
+      "configuration": "maxEvaluationDepth"
     },
     {
       "id": "modules-06-normalize",
@@ -1965,7 +1967,8 @@
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'x'.repeat(20000).split('').length },\n});\n",
       "origin": "issue 06, the second half of the allocation bound; re-measured for issue 12",
       "note": "Acceptance divergent, deliberately, and configurably so. A string short enough to build becomes one array element per code unit, and an element costs about 190 bytes of peak resident memory against a code unit's one or two, so the count that reaches a literal is bounded by a ceiling of its own. Upstream folds this. The ceiling is `maxFoldedEntries`, default 10000: raise it past the count and the same source folds.",
-      "expected": "acceptance-divergent"
+      "expected": "acceptance-divergent",
+      "configuration": "maxFoldedEntries"
     },
     {
       "id": "modules-06-unwritten-amplification-count",
@@ -2021,6 +2024,245 @@
       "expected": "divergent",
       "origin": "ticket 09, the globals that fold by being called",
       "note": "Both compile and the class names differ, which is the outcome this harness exists to catch -- and it is the lone-surrogate decision ticket 06 already took, reached here by a coercion for the first time. The engine's strings are UTF-16 and `Lit::Str` carries UTF-8, so a value crossing back substitutes the replacement character. The declaration text is what upstream writes to disk; only the hash differs, because upstream still holds the surrogate. Recorded rather than fixed: refusing instead would refuse every fold whose result is ill-formed, which is a decision about the outward bridge rather than about this call, and `engine_fold_tests` is where that decision is pinned."
+    },
+    {
+      "id": "modules-concat-on-a-named-array",
+      "label": "`concat` on a named array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst names = ['color', 'opacity'];\n\nexport const styles = stylex.create({\n  named: { transitionProperty: names.concat(['transform']).join(', ') },\n  written: { transitionProperty: ['inset', 'margin'].concat(['padding']).join(', ') },\n});\n",
+      "origin": "issue 14, the array-binding half of the measured gap"
+    },
+    {
+      "id": "modules-slice-on-a-named-array",
+      "label": "`slice` on a named array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst names = ['color', 'opacity', 'transform'];\n\nexport const styles = stylex.create({\n  named: { transitionProperty: names.slice(1).join(', ') },\n  written: { transitionProperty: ['inset', 'margin', 'padding'].slice(1).join(', ') },\n});\n",
+      "origin": "issue 14, the array-binding half of the measured gap"
+    },
+    {
+      "id": "modules-flat-on-a-named-array",
+      "label": "`flat` on a named array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst nested = [['color'], ['opacity']];\n\nexport const styles = stylex.create({\n  named: { transitionProperty: nested.flat().join(', ') },\n  written: { transitionProperty: [['inset'], ['margin']].flat().join(', ') },\n});\n",
+      "origin": "issue 14, the array-binding half of the measured gap"
+    },
+    {
+      "id": "modules-index-of-on-a-named-array",
+      "label": "`indexOf` on a named array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst names = ['color', 'opacity'];\n\nexport const styles = stylex.create({\n  named: { zIndex: names.indexOf('opacity') },\n  written: { order: ['color', 'opacity', 'transform'].indexOf('transform') },\n});\n",
+      "origin": "issue 14, the array-binding half of the measured gap"
+    },
+    {
+      "id": "modules-at-on-a-named-array",
+      "label": "`at` on a named array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst names = ['color', 'opacity'];\n\nexport const styles = stylex.create({\n  named: { transitionProperty: names.at(-1) },\n  written: { willChange: ['inset', 'margin'].at(-1) },\n});\n",
+      "origin": "issue 14, the array-binding half of the measured gap"
+    },
+    {
+      "id": "modules-find-on-a-named-array",
+      "label": "`find` on a named array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst names = ['color', 'opacity'];\n\nexport const styles = stylex.create({\n  named: { transitionProperty: names.find(name => name === 'opacity') },\n  written: { willChange: ['inset', 'margin'].find(name => name === 'margin') },\n});\n",
+      "origin": "issue 14, the array-binding half of the measured gap"
+    },
+    {
+      "id": "modules-find-index-on-a-named-array",
+      "label": "`findIndex` on a named array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst names = ['color', 'opacity'];\n\nexport const styles = stylex.create({\n  named: { zIndex: names.findIndex(name => name === 'opacity') },\n  written: { order: ['color', 'opacity', 'transform'].findIndex(name => name === 'transform') },\n});\n",
+      "origin": "issue 14, the array-binding half of the measured gap"
+    },
+    {
+      "id": "modules-reduce-on-a-named-array",
+      "label": "`reduce` on a named array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst sizes = [1, 2, 3];\n\nexport const styles = stylex.create({\n  named: { zIndex: sizes.reduce((total, size) => total + size, 0) },\n  written: { order: [4, 5].reduce((total, size) => total + size, 0) },\n});\n",
+      "origin": "issue 14, the array-binding half of the measured gap"
+    },
+    {
+      "id": "modules-every-on-a-named-array",
+      "label": "`every` on a named array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst sizes = [1, 2];\n\nexport const styles = stylex.create({\n  named: { zIndex: sizes.every(size => size > 0) ? 1 : 2 },\n  written: { order: [1, 2].every(size => size > 5) ? 3 : 4 },\n});\n",
+      "origin": "issue 14, the array-binding half of the measured gap",
+      "note": "Read through a ternary because a boolean is not a style value in either compiler -- `modules-boolean-not-a-style-value` is where that is pinned. The fold under test is the call; the ternary is only what makes its answer reach a declaration. `some` next door is the same shape with the other branch taken."
+    },
+    {
+      "id": "modules-some-on-a-named-array",
+      "label": "`some` on a named array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst sizes = [1, 2];\n\nexport const styles = stylex.create({\n  named: { zIndex: sizes.some(size => size > 1) ? 1 : 2 },\n  written: { order: [1, 2].some(size => size > 5) ? 3 : 4 },\n});\n",
+      "origin": "issue 14, the array-binding half of the measured gap"
+    },
+    {
+      "id": "modules-to-string-on-a-named-array",
+      "label": "`toString` on a named array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst names = ['color', 'opacity'];\n\nexport const styles = stylex.create({\n  named: { transitionProperty: names.toString() },\n  written: { willChange: ['inset', 'margin'].toString() },\n});\n",
+      "origin": "issue 14, the array-binding half of the measured gap",
+      "note": "Inherited from `Object.prototype` rather than declared on the array, which is why it is measured on its own row: nothing in the fold enumerates method names any more, so a method reached through the prototype chain has to fold for the same reason a declared one does."
+    },
+    {
+      "id": "modules-map-on-a-named-array",
+      "label": "`map` on a named array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst sizes = [4, 8];\n\nexport const styles = stylex.create({\n  named: { content: sizes.map(size => size + 'px').join(' ') },\n  written: { gridArea: [1, 2].map(line => line + ' / ' + line).join(' / ') },\n});\n",
+      "origin": "issue 14, the array-binding half of the measured gap",
+      "note": "`map` folded on a named receiver before this effort, but only at the first link: the list it answered was a fold's own array and the outer `join` refused it, so a mapped list could not be joined. Both halves join here, which is the claim -- see `modules-folded-array-reaching-a-declaration` for the dispatch arms that disagreed."
+    },
+    {
+      "id": "modules-filter-on-a-named-array",
+      "label": "`filter` on a named array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst names = ['color', '', 'opacity'];\n\nexport const styles = stylex.create({\n  named: { transitionProperty: names.filter(name => name).join(', ') },\n  written: { willChange: ['inset', '', 'margin'].filter(name => name).join(', ') },\n});\n",
+      "origin": "issue 14, the array-binding half of the measured gap",
+      "note": "The row for the one shape that was wrong rather than refused. A truthy filter reported `Value in not a number`, because the callback decided truthiness by converting its result to a number; the callback is real JavaScript now and the language's own truthiness answers it. Both halves drop the empty string and keep the two names."
+    },
+    {
+      "id": "modules-to-lower-case-on-a-named-string",
+      "label": "`toLowerCase` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'AbC';\n\nexport const styles = stylex.create({\n  named: { content: base.toLowerCase() },\n  written: { gridArea: 'RoW'.toLowerCase() },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-to-upper-case-on-a-named-string",
+      "label": "`toUpperCase` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'AbC';\n\nexport const styles = stylex.create({\n  named: { content: base.toUpperCase() },\n  written: { gridArea: 'RoW'.toUpperCase() },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-trim-on-a-named-string",
+      "label": "`trim` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst padded = '  4px  ';\n\nexport const styles = stylex.create({\n  named: { content: padded.trim() },\n  written: { gridArea: '  row  '.trim() },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-trim-start-on-a-named-string",
+      "label": "`trimStart` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst padded = '  4px  ';\n\nexport const styles = stylex.create({\n  named: { content: padded.trimStart() },\n  written: { gridArea: '  row'.trimStart() },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-trim-end-on-a-named-string",
+      "label": "`trimEnd` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst padded = '  4px  ';\n\nexport const styles = stylex.create({\n  named: { content: padded.trimEnd() },\n  written: { gridArea: 'row  '.trimEnd() },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-pad-start-on-a-named-string",
+      "label": "`padStart` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst row = '7';\n\nexport const styles = stylex.create({\n  named: { gridArea: row.padStart(3, '0') },\n  written: { content: '9'.padStart(2, '0') },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-pad-end-on-a-named-string",
+      "label": "`padEnd` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst row = '7';\n\nexport const styles = stylex.create({\n  named: { gridArea: row.padEnd(3, '0') },\n  written: { content: '9'.padEnd(2, '0') },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-slice-on-a-named-string",
+      "label": "`slice` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'x4px';\n\nexport const styles = stylex.create({\n  named: { content: base.slice(1) },\n  written: { gridArea: 'xrow'.slice(1) },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-substring-on-a-named-string",
+      "label": "`substring` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'x4px';\n\nexport const styles = stylex.create({\n  named: { content: base.substring(1) },\n  written: { gridArea: 'xrow'.substring(1) },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-substr-on-a-named-string",
+      "label": "`substr` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'x4px';\n\nexport const styles = stylex.create({\n  named: { content: base.substr(1) },\n  written: { gridArea: 'xrow'.substr(1) },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap",
+      "note": "Deprecated and still reachable, so it is measured rather than assumed. The fold enumerates no method names, so what answers here is whatever the engine's `String.prototype` carries -- which is the same reason a method nobody listed folds, and the reason the generated sweep exists."
+    },
+    {
+      "id": "modules-char-at-on-a-named-string",
+      "label": "`charAt` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'abc';\n\nexport const styles = stylex.create({\n  named: { content: base.charAt(0) },\n  written: { gridArea: 'row'.charAt(1) },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-code-point-at-on-a-named-string",
+      "label": "`codePointAt` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'abc';\n\nexport const styles = stylex.create({\n  named: { order: base.codePointAt(1) },\n  written: { zIndex: 'abc'.codePointAt(2) },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-repeat-on-a-named-string",
+      "label": "`repeat` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'ab';\n\nexport const styles = stylex.create({\n  named: { content: base.repeat(2) },\n  written: { gridArea: 'cd'.repeat(3) },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap",
+      "note": "The one method in this set whose result the allocation ceiling bounds. A count and a receiver a name holds are both readable, so the length the call would build is arithmetic rather than a guess; `modules-06-amplified-length` is the same call over the ceiling and `modules-12-amplification-across-a-chain` is the receiver whose length cannot be read at all."
+    },
+    {
+      "id": "modules-replace-on-a-named-string",
+      "label": "`replace` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'a-b';\n\nexport const styles = stylex.create({\n  named: { content: base.replace('-', ' ') },\n  written: { gridArea: 'c-d'.replace('-', ' ') },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-replace-all-on-a-named-string",
+      "label": "`replaceAll` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'a-b-c';\n\nexport const styles = stylex.create({\n  named: { content: base.replaceAll('-', ' ') },\n  written: { gridArea: 'd-e-f'.replaceAll('-', ' ') },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-split-on-a-named-string",
+      "label": "`split` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst list = 'Inter,serif';\n\nexport const styles = stylex.create({\n  named: { fontFamily: list.split(',') },\n  written: { transitionProperty: 'color,opacity'.split(',').join(', ') },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap",
+      "note": "The named half is the answer in the position that shows it whole: a folded array expands into one declaration per entry, exactly as a written one does. The written-out half joins instead, so the two halves cannot mask each other and both the list and the string spelling of the same fold are measured."
+    },
+    {
+      "id": "modules-index-of-on-a-named-string",
+      "label": "`indexOf` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'documentation';\n\nexport const styles = stylex.create({\n  named: { zIndex: base.indexOf('m') },\n  written: { order: 'documentation'.indexOf('n') },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-last-index-of-on-a-named-string",
+      "label": "`lastIndexOf` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'documentation';\n\nexport const styles = stylex.create({\n  named: { zIndex: base.lastIndexOf('t') },\n  written: { order: 'documentation'.lastIndexOf('n') },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-at-on-a-named-string",
+      "label": "`at` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'abc';\n\nexport const styles = stylex.create({\n  named: { content: base.at(-1) },\n  written: { gridArea: 'row'.at(0) },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-normalize-on-a-named-string",
+      "label": "`normalize` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'cafe\\u0301';\n\nexport const styles = stylex.create({\n  named: { content: base.normalize('NFC') },\n  written: { gridArea: 'ro\\u0301w'.normalize('NFC') },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap",
+      "note": "Unicode normalization the engine's own tables answer, which is what separates it from the locale-sensitive methods next door: normalization data ships with the engine and locale data does not. `modules-06-locale-sensitive-method` carries that argument."
+    },
+    {
+      "id": "modules-to-string-on-a-named-string",
+      "label": "`toString` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'abc';\n\nexport const styles = stylex.create({\n  named: { content: base.toString() },\n  written: { gridArea: 'row'.toString() },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-value-of-on-a-named-string",
+      "label": "`valueOf` on a named string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = 'abc';\n\nexport const styles = stylex.create({\n  named: { content: base.valueOf() },\n  written: { gridArea: 'row'.valueOf() },\n});\n",
+      "origin": "issue 14, the string-binding half of the measured gap"
+    },
+    {
+      "id": "modules-math-statics",
+      "label": "`Math` statics, on a name and on literals",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst ratio = 1.5;\n\nexport const styles = stylex.create({\n  named: { zIndex: Math.trunc(ratio), order: Math.max(ratio, 4), flexGrow: Math.min(2, 3) },\n  written: { opacity: Math.round(0.6 * 10) / 10, flexShrink: Math.abs(-2), flexBasis: Math.sqrt(16) + 'px' },\n});\n",
+      "origin": "issue 14, one of the three static surfaces",
+      "note": "`Math` is an identifier, so the whole surface was refused by a guard that refused identifiers -- `Math.trunc(1.5)` failed with nothing but literals in it. What this compiler accepted before was seven names; the fold enumerates none now, so six of these are measured here and the rest of the surface is what the generated sweep crosses."
+    },
+    {
+      "id": "modules-object-statics",
+      "label": "`Object` statics, on a name and on a literal",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst config = { color: 'red', opacity: '1' };\n\nexport const styles = stylex.create({\n  named: { transitionProperty: Object.keys(config).join(', '), content: Object.values(config).join(' '), gridArea: Object.entries(config).length },\n  written: { willChange: Object.keys({ inset: 1, margin: 2 }).join(', ') },\n});\n",
+      "origin": "issue 14, one of the three static surfaces",
+      "note": "`Object.keys` folds and its answer is chainable, which are two claims and not one: a key list that cannot become a declaration value is no more usable than a refusal. `modules-1266-object-own-keys-of-a-fold` asks the same of a receiver a fold produced, and `math_and_object_statics::a_static_answering_a_prototype_refuses_on_the_way_back` is where `Object.getPrototypeOf` stops, since a prototype carries functions and a function has no compile-time form to carry back."
+    },
+    {
+      "id": "modules-number-prototype-on-a-named-number",
+      "label": "`Number.prototype` on a named number",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst hex = 255;\nconst ratio = 1.5;\n\nexport const styles = stylex.create({\n  named: { content: hex.toString(16), gridArea: ratio.toFixed(1) },\n});\n",
+      "origin": "issue 14, one of the three static surfaces",
+      "note": "The one surface with no written-out half, deliberately. A method call on a number written into the source is refused by both compilers -- pinned as `modules-06-numeric-literal-receiver` -- so `(255).toString(16)` here would measure that refusal rather than this surface. Reached through a name, `Number.prototype` folds on both, which before this effort it did in neither position."
     }
   ]
 }

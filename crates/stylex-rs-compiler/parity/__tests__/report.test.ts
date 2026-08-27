@@ -2,16 +2,17 @@ import { describe, expect, test } from 'vitest';
 
 import { REFUSAL_FAMILIES } from '../lib/refusal-families.js';
 import { conclude, fails, stanceOf } from '../lib/report.js';
-import type { ReportEntry } from '../lib/types.js';
+import type { ReportEntry, Verdict } from '../lib/types.js';
 import { ACCEPTED, TERMINATOR_REFUSAL, accepted, refused, subject } from './support.js';
 
 /**
- * The harness fails on three things, and each is a report that has stopped being
- * read: a recorded verdict that moved, a family nothing reached, and a divergence
- * nothing accounts for. Asserted here rather than trusted, because the printing
- * half of the harness is a script and a gate nothing exercises is a gate that has
- * been assumed — the same argument `expected` on a corpus entry is built on,
- * turned on the code that reads it.
+ * Every condition `fails` names, exercised. Asserted here rather than trusted,
+ * because the printing half of the harness is a script and a gate nothing
+ * exercises is a gate that has been assumed — the same argument `expected` on a
+ * corpus entry is built on, turned on the code that reads it.
+ *
+ * What each condition is and why it is one belongs beside `fails` in
+ * `lib/report.ts`; a second copy of that list here is one that goes stale.
  */
 
 /** One row of every family, so a corpus can be complete without being a corpus. */
@@ -51,6 +52,22 @@ function completeCorpus(): ReportEntry[] {
   const inherited = rows[6];
   if (inherited?.kind === 'declaration') inherited.property = 'toString';
   return rows;
+}
+
+/** Recorded, refused here, and silent about why. */
+function silent(): ReportEntry {
+  return subject('acceptance-divergent', refused('Cannot fold this at compile time.'), ACCEPTED, {
+    expected: 'acceptance-divergent',
+  });
+}
+
+/** A refusal a named option decides, which is not a divergence between the two. */
+function ceiling(verdict: Verdict = 'acceptance-divergent'): ReportEntry {
+  return subject(verdict, refused('Folded value exceeds maxFoldedCharacters'), ACCEPTED, {
+    expected: 'acceptance-divergent',
+    configuration: 'maxFoldedCharacters',
+    note: 'Raise the option past the count and the same source folds.',
+  });
 }
 
 describe('where a row stands', () => {
@@ -203,6 +220,7 @@ describe('what a run concludes', () => {
       verdicts.summary.expected +
         verdicts.summary.changed +
         verdicts.summary.pinned +
+        verdicts.summary.configured +
         verdicts.summary.unexpected
     ).toBe(REFUSAL_FAMILIES.length);
   });
@@ -213,5 +231,113 @@ describe('what a run concludes', () => {
 
     expect(grouped).toHaveLength(verdicts.summary.pinned);
     expect(new Set(grouped).size).toBe(grouped.length);
+  });
+});
+
+/**
+ * A refusal the reference compiler does not make is the one an author feels, so
+ * a row recording one has to say why it is wanted. Two forms count — a `note` on
+ * the entry, or a refusal family — and a row with neither fails the run.
+ *
+ * The gap this closes is not a divergence nobody looked at: those already fail
+ * as `unexpected`. It is a row someone recorded an expectation on and wrote
+ * nothing beside, which reads as looked-at while saying nothing about what was
+ * concluded.
+ */
+describe('a refusal of a build the reference compiler completes', () => {
+  test('fails the run when nothing says why', () => {
+    const verdicts = conclude([...completeCorpus(), silent()], { whole: true });
+
+    expect(verdicts.unreasoned).toHaveLength(1);
+    // Not caught by any of the other three: the row's expectation holds, no
+    // family was asked, and it is not counted as unexpected.
+    expect(verdicts.summary.changed).toBe(0);
+    expect(verdicts.summary.unexpected).toBe(0);
+    expect(fails(verdicts)).toBe(true);
+  });
+
+  test('a note on the entry is a reason, and the run passes', () => {
+    const reasoned = subject(
+      'acceptance-divergent',
+      refused('Cannot fold this at compile time.'),
+      ACCEPTED,
+      { expected: 'acceptance-divergent', note: 'The engine carries no locale data.' }
+    );
+    const verdicts = conclude([...completeCorpus(), reasoned], { whole: true });
+
+    expect(verdicts.unreasoned).toEqual([]);
+    expect(fails(verdicts)).toBe(false);
+  });
+
+  test('a whitespace-only note is not a reason', () => {
+    // A note is prose a later reader checks, so the empty forms of it have to
+    // fail the same way an absent one does — otherwise the cheapest way past
+    // the gate is a space.
+    const blank = subject(
+      'acceptance-divergent',
+      refused('Cannot fold this at compile time.'),
+      ACCEPTED,
+      { expected: 'acceptance-divergent', note: '   \n  ' }
+    );
+
+    expect(conclude([...completeCorpus(), blank], { whole: true }).unreasoned).toHaveLength(1);
+  });
+
+  test('a refusal family is a reason, so the generated corpora need no note', () => {
+    // Every row in `completeCorpus` is claimed by a family and none carries a
+    // note. `harvested.json` is regenerated wholesale, so a note written there
+    // is lost on the next harvest — a family is the only durable form it has.
+    const verdicts = conclude(completeCorpus(), { whole: true });
+
+    expect(verdicts.summary.pinned).toBe(REFUSAL_FAMILIES.length);
+    expect(verdicts.unreasoned).toEqual([]);
+  });
+
+  test('the other direction is not asked for one', () => {
+    // This compiler compiling where the reference refuses costs an author
+    // nothing, so it carries no such obligation. Only the direction that stops
+    // a build the reference completes does.
+    const ours = subject('acceptance-divergent', ACCEPTED, refused('Unsupported expression'), {
+      expected: 'acceptance-divergent',
+    });
+    const verdicts = conclude([...completeCorpus(), ours], { whole: true });
+
+    expect(verdicts.unreasoned).toEqual([]);
+    expect(fails(verdicts)).toBe(false);
+  });
+});
+
+/**
+ * A ceiling an author can raise is not a divergence between the two compilers:
+ * the same source folds to the same value on both once the option passes the
+ * number the input needs. Those rows are counted apart so the divergence columns
+ * a reader acts on do not carry them.
+ */
+describe('a configured ceiling', () => {
+  test('is read as configuration, naming the option', () => {
+    expect(stanceOf(ceiling())).toEqual({
+      kind: 'configured',
+      option: 'maxFoldedCharacters',
+    });
+  });
+
+  test('is counted apart from a recorded divergence, and fails nothing', () => {
+    const verdicts = conclude([...completeCorpus(), ceiling()], { whole: true });
+
+    expect(verdicts.summary.configured).toBe(1);
+    expect(verdicts.summary.expected).toBe(0);
+    expect(fails(verdicts)).toBe(false);
+  });
+
+  test('is still an expectation, so a verdict that moved is changed', () => {
+    // The direction that would otherwise go quiet: the ceiling stopped
+    // refusing — the guard moved, or the default rose past the input — and a
+    // row read as configuration would have gone on reading as accounted for.
+    const moved = ceiling('identical');
+    const verdicts = conclude([...completeCorpus(), moved], { whole: true });
+
+    expect(verdicts.summary.configured).toBe(0);
+    expect(verdicts.changed).toEqual([moved]);
+    expect(fails(verdicts)).toBe(true);
   });
 });

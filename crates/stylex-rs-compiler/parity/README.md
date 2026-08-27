@@ -76,15 +76,30 @@ The harness loads the compiler from `dist/`, not from the Rust sources. **A
 report is only about the last build.** Rebuild after touching a crate or the
 verdicts are stale.
 
-It exits non-zero for three reasons, and each one is a report that has stopped
+It exits non-zero for four reasons, and each one is a report that has stopped
 being read: an entry whose recorded `expected` verdict no longer holds, a
-refusal family no row in the corpus reaches, and a divergence nothing accounts
-for.
+refusal family no row in the corpus reaches, a divergence nothing accounts for,
+and a build the reference compiler completes that this one refuses with no
+reason written down.
 
 A divergence that should not fail a run has two ways to say so, and both are
 statements a later reader can check rather than suppressions: record its verdict
 as `expected` on the corpus entry, or write the refusal family that accounts for
 it.
+
+The fourth is the weakest of the four and the one the other three cannot reach.
+A refusal the reference compiler does not make is the one an author feels — the
+build stops where the other compiler's completes — and a recorded `expected`
+satisfies every other gate while saying nothing about why that is wanted, so a
+refusal added for a reason nobody wrote down outlives the argument for it and
+the corpus reads as though someone had checked. What is required is only that a
+reason exist, in one of the two forms the corpus already has: a `note` on the
+row, or a refusal family that claims it. Whether the reason is a good one is a
+person's judgement and not a thing a harness can hold. Rows that carry neither
+are listed under **Refusals with no reason written down**. The direction is
+asymmetric on purpose: this compiler refusing where the reference compiles costs
+an author a build, and the reverse costs nobody anything, so only the first
+carries the obligation.
 
 | Flag                     | Effect                                            |
 | ------------------------ | ------------------------------------------------- |
@@ -310,8 +325,9 @@ report nine refusals nobody wrote them to measure:
   far as the scan below recognizes them. **Generated — do not edit.**
 
 Adding a case means editing one of the three hand-written files. Entries take an
-optional `note`, which the report prints next to a mismatch, and an optional
-`expected` naming the verdict the entry is known to read.
+optional `note`, which the report prints next to a mismatch, an optional
+`expected` naming the verdict the entry is known to read, and an optional
+`configuration` naming the option whose value decides a refusal.
 
 An `expected` verdict is how a divergence someone has already looked at is told
 apart from a new one. While it holds, the report marks the entry `(expected)`
@@ -321,6 +337,28 @@ the run exits non-zero, so a divergence that quietly goes away is as loud as a
 new one: an entry recording a divergence that no longer happens has stopped
 measuring what it was written for. `note` says _why_; `expected` is what the
 harness checks.
+
+A `configuration` says the refusal is not a disagreement at all. Three rows
+carry one — the two allocation ceilings and the evaluation depth — and what they
+have in common is that the same source folds to the same value on both compilers
+once the option passes the number the input needs, so the reference compiler
+compiling is the absence of the setting rather than a divergence from it. Those
+rows print `(configured: <option>)`, are counted on their own summary line, and
+are listed under **Configured ceilings** with the option each names. They are
+still expectations first: a configured row whose verdict moves is `changed` like
+any other recorded one, because a ceiling that has stopped refusing — the guard
+moved, or the default rose past the input — is exactly what a row read as
+accounted for would otherwise go quiet about. The loader refuses a row that
+names an option and carries no `expected` verdict for that reason, and one that
+carries no `note` for the other: a row naming a knob and not a reason still
+records a build the reference compiler completes. The option name is checked
+against the compiler's own options, so a row cannot point at a setting nobody
+can set.
+
+Not every ceiling is one. `modules-12-amplification-across-a-chain` is refused
+because the length the call would build cannot be read at all — its receiver is
+itself a call — so no value of the option folds it, and that row is a divergence
+with a written reason rather than a configuration.
 
 ### Refusal families
 
@@ -461,6 +499,26 @@ silence.
 Other entries carry a `note` without an expectation, saying why a subject that
 reads `identical` still earns one -- the shorthand rejection table having once
 diverged, for instance.
+
+The largest block of them is one row per native method the evaluator folds. The
+gap they were written for was measured at thirty-five methods that the reference
+compiler folded and this compiler refused for no reason but that the receiver
+was a binding, plus three static surfaces — `Math`, `Object` and
+`Number.prototype` — refused because their receivers are identifiers. Each row
+asks one method on a named receiver beside the same call on a receiver written
+out, and the two halves answer **different** declarations deliberately: written
+to answer the same one, the half that had never been broken would emit the rule
+on its own and the row would go on reading `identical` after the half under test
+stopped folding. `Number.prototype` is the exception with no written-out half,
+because a method call on a number written into the source is refused by both
+compilers and that half would measure the refusal instead.
+
+A curated row per method is not a claim to have covered the surface — the method
+nobody listed is the next bug report, which is what the generated prototype
+sweep is for. What a row here is for is the place a **reason** gets written
+down: `filter` records the one shape that was wrong rather than refused, `map`
+the chain that died at its second link, `substr` that nothing enumerates method
+names any more, `repeat` which ceiling bounds its result.
 
 ### Regenerating the harvest
 

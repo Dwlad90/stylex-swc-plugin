@@ -1,4 +1,9 @@
-import { VERDICTS, type Verdict } from './types.js';
+import {
+  CONFIGURATION_OPTIONS,
+  VERDICTS,
+  type ConfigurationOption,
+  type Verdict,
+} from './types.js';
 
 /**
  * Runtime narrowing for data the type system cannot vouch for.
@@ -46,4 +51,28 @@ export function verdictAt(value: unknown, key: string, where: string): Verdict |
   }
 
   return found as Verdict;
+}
+
+/**
+ * The configuration option at `key`, or `undefined` when absent.
+ *
+ * Throws on a string that is not one, for the reason `verdictAt` does: a row
+ * naming an option nobody can set says "raise this and the source folds" about
+ * a setting that does not exist, and a loader that dropped the field silently
+ * would leave the row reading as accounted for.
+ */
+export function configurationOptionAt(
+  value: unknown,
+  key: string,
+  where: string
+): ConfigurationOption | undefined {
+  const found = stringAt(value, key);
+  if (found === undefined) return undefined;
+  if (!(found in CONFIGURATION_OPTIONS)) {
+    throw new Error(
+      `Corpus entry in ${where} names an unknown ${key} option: ${found} — expected one of ${Object.keys(CONFIGURATION_OPTIONS).join(', ')}.`
+    );
+  }
+
+  return found as ConfigurationOption;
 }

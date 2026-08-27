@@ -12,7 +12,7 @@
  * the ones before it, which is a placeholder a reader has to decode.
  */
 
-import type { CompilerOutcome, ReportEntry, Verdict } from '../lib/types.js';
+import type { CompilerOutcome, ConfigurationOption, ReportEntry, Verdict } from '../lib/types.js';
 
 /** An acceptance emitting `declarations`, which is the half a verdict reads. */
 export function accepted(declarations: string[] = ['color:red']): CompilerOutcome {
@@ -47,6 +47,13 @@ export interface SubjectOptions {
    * set one that carries what the family looks for.
    */
   value?: string;
+  /**
+   * The reason the row's refusal is wanted, in prose. Read by the gate over
+   * rows the reference compiler builds and this one refuses.
+   */
+  note?: string;
+  /** The option whose value decides the refusal, for a configured ceiling. */
+  configuration?: ConfigurationOption;
 }
 
 let counter = 0;
@@ -57,7 +64,7 @@ export function subject(
   babel: CompilerOutcome,
   options: SubjectOptions = {}
 ): ReportEntry {
-  const { expected, property = 'color', value = 'red' } = options;
+  const { expected, note, configuration, property = 'color', value = 'red' } = options;
 
   // A distinct id per subject because the stances are keyed by entry identity,
   // and two structurally equal rows are two rows.
@@ -74,5 +81,7 @@ export function subject(
     rust,
     babel,
     ...(expected === undefined ? {} : { expected }),
+    ...(note === undefined ? {} : { note }),
+    ...(configuration === undefined ? {} : { configuration }),
   };
 }

@@ -42,6 +42,21 @@ interface CorpusEntryBase {
    * Absent on the overwhelming majority, where the expectation is agreement.
    */
   expected?: Verdict;
+  /**
+   * The option whose value decides this refusal, for a row where the reference
+   * compiler compiles because it has no such setting.
+   *
+   * A ceiling an author can raise is not a divergence between the two
+   * compilers: the same source folds to the same value on both once the option
+   * passes the number the input needs. Recording which option that is keeps
+   * those rows out of the count a reader acts on, and names the knob rather
+   * than leaving it in prose only a person reads.
+   *
+   * Carries an `expected` verdict and a `note` as well — the verdict is still
+   * what was measured, and the note says what the ceiling buys. The loader
+   * requires both.
+   */
+  configuration?: ConfigurationOption;
 }
 
 /** One CSS declaration, as written in a corpus file. */
@@ -201,6 +216,25 @@ export type Verdict =
  * is what lets `expected` on a corpus entry be validated at load: a verdict
  * added to the union and not here does not compile.
  */
+/**
+ * The options a row may name as the reason it refuses.
+ *
+ * A closed list rather than a free string, because the field's whole use is that
+ * a reader can raise the named option and watch the row fold: an option that
+ * does not exist is worse than no field at all — it loads, prints and counts
+ * while naming nothing. Checked against `StyleXOptions` rather than written out
+ * on its own, so renaming an option in the compiler fails to compile here rather
+ * than leaving a row pointing at a setting nobody can set.
+ */
+export const CONFIGURATION_OPTIONS = {
+  maxEvaluationDepth: true,
+  maxFoldedCharacters: true,
+  maxFoldedEntries: true,
+} as const satisfies Partial<Record<keyof StyleXOptions, true>>;
+
+/** An option a row may name; see `CONFIGURATION_OPTIONS`. */
+export type ConfigurationOption = keyof typeof CONFIGURATION_OPTIONS;
+
 export const VERDICTS: Record<Verdict, true> = {
   identical: true,
   'identical-empty': true,
@@ -241,6 +275,11 @@ export interface Report {
      * `lib/refusal-families.ts`.
      */
     pinned: number;
+    /**
+     * Entries whose refusal is a configured ceiling rather than a divergence.
+     * See `configuration` on a corpus entry.
+     */
+    configured: number;
     /**
      * Entries that are neither agreement, nor a recorded expectation, nor a
      * pinned family. This is the number a reader acts on.

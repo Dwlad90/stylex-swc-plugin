@@ -537,6 +537,10 @@ struct Transport {
   values: Vec<Crossing>,
   totals: Totals,
   ceilings: Ceilings,
+  /// Whether anything that crossed was a theme reference, read as the string it
+  /// resolves to. See [`admit_value`] for the read that makes such a crossing
+  /// unsafe, and why the two are asked together rather than separately.
+  read_a_theme_reference: bool,
 }
 
 impl Transport {
@@ -548,6 +552,7 @@ impl Transport {
       values: Vec::new(),
       totals: Totals::default(),
       ceilings,
+      read_a_theme_reference: false,
     }
   }
 
@@ -579,6 +584,7 @@ impl Transport {
       name,
       totals: &mut self.totals,
       ceilings: self.ceilings,
+      read_a_theme_reference: &mut self.read_a_theme_reference,
     }
     .value(value, depth.restart())?;
 
@@ -741,6 +747,9 @@ struct Inward<'a> {
   name: &'a Atom,
   totals: &'a mut Totals,
   ceilings: Ceilings,
+  /// Set where a theme reference crossed, so the walk can refuse the one shape
+  /// that would read a property off the string it crossed as.
+  read_a_theme_reference: &'a mut bool,
 }
 
 impl Inward<'_> {
@@ -770,6 +779,23 @@ impl Inward<'_> {
         }
 
         Ok(Carried::List(list))
+      },
+      // A `defineVars` group reaching the bridge as a value rather than through
+      // a property: its own `toString` answers the variable-group hash, which is
+      // read off the reference itself and mutates nothing — so this is the one
+      // of this compiler's values that has a JavaScript form to cross as.
+      //
+      // Crossing as that string is only right where nothing reads a property
+      // off it, because a string has none of the group's members. The walk
+      // refuses that shape rather than the bridge, which sees one value at a
+      // time and cannot know what the expression around it does — see
+      // [`admit_value`].
+      EvaluateResultValue::ThemeRef(theme) => {
+        *self.read_a_theme_reference = true;
+
+        Ok(Carried::Str(
+          self.text(&Wtf8Atom::from(theme.to_string_value().as_str()))?,
+        ))
       },
       _ => Err(Decline::NotACandidate),
     }
@@ -953,6 +979,14 @@ struct Reader<'a> {
   traversal_state: &'a mut StateManager,
   fns: &'a FunctionMap,
   transport: Transport,
+  /// Whether the expression reads a property as a *value* somewhere — `o.k`
+  /// rather than the `o.m` of a method being called.
+  ///
+  /// Recorded rather than refused where it is seen, because on its own it is an
+  /// ordinary read the fold has always carried. It only matters beside a
+  /// carried theme reference, and the two can be seen in either order, so the
+  /// pair is asked once the whole walk is done. See [`fold`].
+  read_a_property_as_a_value: bool,
 }
 
 impl Reader<'_> {
@@ -1075,6 +1109,7 @@ fn is_a_carryable_receiver(value: &EvaluateResultValue) -> bool {
   matches!(
     value,
     EvaluateResultValue::Vec(_)
+      | EvaluateResultValue::ThemeRef(_)
       | EvaluateResultValue::Expr(
         Expr::Lit(Lit::Str(_) | Lit::Num(_) | Lit::Bool(_)) | Expr::Array(_) | Expr::Object(_)
       )
@@ -1113,6 +1148,7 @@ pub(crate) fn try_fold(
     traversal_state,
     fns,
     transport: Transport::new(ceilings),
+    read_a_property_as_a_value: false,
   };
 
   // Grown before the first recursive step rather than at every step: the
@@ -1132,6 +1168,21 @@ fn fold(
   reader: &mut Reader,
 ) -> Result<EvaluateResultValue, Decline> {
   let admitted = admit_call(call, Position::Outermost, guard, reader)?;
+
+  // A theme reference crosses as the string its own `toString` answers, which is
+  // every member the group has except the members themselves. So an expression
+  // that reads a property as a value is handed back rather than folded: the
+  // engine would read that property off a string and answer `undefined`, which
+  // is a wrong declaration where a hand-back is merely a narrower one — the
+  // dispatch below resolves the member this compiler's own way and folds it.
+  //
+  // Asked of the whole expression rather than of the read, because the read need
+  // not be on the reference: `[colors][0].primary` reads a property off an
+  // element, and nothing at that member says which value it will land on.
+  if reader.transport.read_a_theme_reference && reader.read_a_property_as_a_value {
+    return Err(Decline::NotACandidate);
+  }
+
   let method = admitted.name();
 
   let source = print_fold(call, reader.transport.parameters());
@@ -1162,7 +1213,23 @@ fn fold(
     let folded = applied
       .and_then(|()| reader.transport.arguments(&mut engine.context, method))
       .and_then(|arguments| apply(&source, &arguments, &mut engine, outward))
-      .and_then(|value| to_value(&value, &mut engine.context, outward));
+      .and_then(|value| {
+        // A theme reference crossed as a string, so an answer that is still an
+        // object may *be* that reference — `Object(colors)` hands its argument
+        // straight back — and a string standing where the group stood has lost
+        // every member it had. Handed back rather than refused: the dispatch
+        // below holds the reference itself and answers for it, where a refusal
+        // here would fail a build it can compile.
+        //
+        // Read off the answer rather than predicted from the call, because what
+        // a fold hands back is a property of the whole chain and not of the
+        // method that ends it.
+        if reader.transport.read_a_theme_reference && value.is_object() {
+          return Err(Decline::NotACandidate);
+        }
+
+        to_value(&value, &mut engine.context, outward)
+      });
 
     *slot = Some(engine);
 
@@ -1334,6 +1401,11 @@ fn admit_value(expr: &Expr, guard: Guard, reader: &mut Reader) -> Result<(), Dec
     // alone decides it and the walk now resolves bindings — so a read that no
     // receiver could make safe must not cost a resolution first.
     Expr::Member(MemberExpr { obj, prop, .. }) => {
+      // Every read that reaches here is a value rather than a method being
+      // called: `admit_call` destructures a callee's own member itself and
+      // walks only the receiver through this.
+      reader.read_a_property_as_a_value = true;
+
       match prop {
         MemberProp::Ident(name) => {
           if lists(&ESCAPING_PROPERTIES, &name.sym) {

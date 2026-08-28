@@ -163,6 +163,25 @@ pub(crate) fn evaluate_result_as_expr(value: &EvaluateResultValue) -> Option<Exp
   }
 }
 
+/// Whether an argument has a form an arrow's parameter can be bound to.
+///
+/// Two of them. Most values bind as the expression they write down. A theme
+/// reference writes none — it is this compiler's own value — and binds through
+/// the same factory a module's own token import binds through, so a parameter
+/// holding one answers a member read exactly as the imported name does.
+///
+/// One question rather than two, because the caller that refuses an argument and
+/// the binding that reads it have to agree: a value one accepted and the other
+/// dropped would leave the parameter unbound and hand the arrow's body back
+/// unevaluated, which reaches an author as an internal note rather than as a
+/// sentence about the call they wrote.
+pub(crate) fn binds_a_parameter(value: &EvaluateResultValue) -> bool {
+  match value {
+    EvaluateResultValue::ThemeRef(_) => true,
+    value => evaluate_result_as_expr(value).is_some(),
+  }
+}
+
 /// An object of the given keys, each carrying a function.
 ///
 /// Ordered, because the object's first key is the one a refusal names. The
@@ -534,3 +553,7 @@ mod function_fold_object_tests;
 #[cfg(test)]
 #[path = "tests/applied_global_tests.rs"]
 mod applied_global_tests;
+
+#[cfg(test)]
+#[path = "tests/parameter_binding_tests.rs"]
+mod parameter_binding_tests;

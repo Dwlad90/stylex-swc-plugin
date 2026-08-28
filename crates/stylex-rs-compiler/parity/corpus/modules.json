@@ -2087,6 +2087,22 @@
       "note": "Identical. A value the bridge cannot carry no longer refuses the call: the engine is handed JavaScript values, this compiler has values of its own, and the conversion behind the fold answers for those through the same coercion `+` and an interpolation use. So the two conversion implementations no longer serve disjoint positions, and a value cannot read one way in a call and another in a template. Upstream folds the group to its variable-group hash and a member of it to the `var(...)` the token names, and both now fold to the same class names and rule text here — measured against `@stylexjs/babel-plugin`. The earlier reading looked for a carriage of the *name* and found none, which was right: a value answering the hash cannot be read through a property to answer the member. What it missed is that the group need not cross at all."
     },
     {
+      "id": "modules-26-a-joined-token-group",
+      "label": "a token group joined by `Array.prototype`",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { colors } from 'colors.stylex.js';\n\nexport const styles = stylex.create({\n  joined: { color: [colors].join('-') },\n  chained: { color: [colors].concat(['a']).join('-') },\n  counted: { color: String([colors].length) },\n});\n",
+      "expected": "identical",
+      "origin": "the gap left when the conversions were answered",
+      "note": "A token group has no JavaScript form, so it used to stop every fold it appeared in. Its own `toString` is the exception: the variable-group hash is read off the reference and mutates nothing, so the group crosses into the engine as that string and the whole of `Array.prototype` folds on it. Answering only the conversions would have left this a table of the two methods whose answer is the receiver's string, where upstream folds the prototype whole."
+    },
+    {
+      "id": "modules-26-a-token-group-bound-to-a-parameter",
+      "label": "a token group handed to a function the author wrote",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { colors } from 'colors.stylex.js';\n\nconst member = (c) => c.primary;\nconst coerced = (c) => String(c);\n\nexport const styles = stylex.create({\n  read: { color: member(colors) },\n  converted: { color: coerced(colors) },\n});\n",
+      "expected": "identical",
+      "origin": "the gap left when the conversions were answered",
+      "note": "A token group has no expression form, so it used to refuse every call it was an argument to -- even one whose body never looks at it. It binds through the factory a module's own token import binds through, so a parameter holding one answers a member read exactly as the imported name does. The call that refuses an argument and the binding that reads it ask one question, so neither can come to accept what the other drops."
+    },
+    {
       "id": "modules-09-string-of-a-spread-holding-a-function",
       "label": "`String()` of a spread of an object holding a function",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nconst base = { toString: () => 'blue' };\n\nexport const styles = stylex.create({\n  root: { color: String({ ...base }) },\n});\n",

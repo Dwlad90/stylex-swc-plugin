@@ -603,10 +603,7 @@ fn evaluate_callback_args(
 ) -> Option<Vec<EvaluateResultValue>> {
   let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
 
-  if args
-    .iter()
-    .any(|arg| evaluate_result_as_expr(arg).is_none())
-  {
+  if args.iter().any(|arg| !binds_a_parameter(arg)) {
     deopt_unsupported!(&Expr::Call(call.clone()), state, ARGUMENT_NOT_EXPRESSION);
   }
 

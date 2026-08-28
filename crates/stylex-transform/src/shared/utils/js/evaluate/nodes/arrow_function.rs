@@ -30,18 +30,34 @@ pub(in super::super) fn evaluate(
               let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
               ident_params.iter().enumerate().for_each(|(index, ident)| {
-                // An argument with no expression form binds nothing, leaving
-                // the parameter unresolved so the body deopts on its own
-                // terms. The callback has no deopt to record and must not
-                // abort — see the fallback at the end of this closure. The
-                // callers that can refuse ask for the same form first, so what
-                // reaches here unbound is an argument no sentence was owed for.
-                if let Some(expr) = cb_args.get(index).and_then(evaluate_result_as_expr) {
-                  let cl = |arg: Expr| move || arg.clone();
+                // An argument with no form to bind binds nothing, leaving the
+                // parameter unresolved so the body deopts on its own terms. The
+                // callback has no deopt to record and must not abort — see the
+                // fallback at the end of this closure. The callers that can
+                // refuse ask `binds_a_parameter` first, so what reaches here
+                // unbound is an argument no sentence was owed for.
+                //
+                // A theme reference has no expression to write down and binds
+                // through the factory the module's own token imports bind
+                // through, so a parameter holding one resolves a member exactly
+                // as the imported name does.
+                let bound = match cb_args.get(index) {
+                  Some(EvaluateResultValue::ThemeRef(theme)) => {
+                    let theme = theme.clone();
 
-                  let result = (cl)(expr);
+                    Some(FunctionType::ThemeRefMapper(Rc::new(move || theme.clone())))
+                  },
+                  Some(arg) => evaluate_result_as_expr(arg).map(|expr| {
+                    let cl = |arg: Expr| move || arg.clone();
+
+                    FunctionType::Mapper(Rc::new((cl)(expr)))
+                  }),
+                  None => None,
+                };
+
+                if let Some(fn_ptr) = bound {
                   let function = FunctionConfig {
-                    fn_ptr: FunctionType::Mapper(Rc::new(result)),
+                    fn_ptr,
                     takes_path: false,
                   };
                   identifiers.insert(

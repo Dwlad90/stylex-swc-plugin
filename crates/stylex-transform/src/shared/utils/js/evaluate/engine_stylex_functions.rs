@@ -33,7 +33,9 @@ use stylex_constants::constants::api_names::STYLEX_FIRST_THAT_WORKS;
 
 use crate::shared::{
   structures::state_manager::{ImportKind, StateManager},
-  transformers::stylex_first_that_works::{css_variable_name, fold_fallback_chain, plan_fallbacks},
+  transformers::stylex_first_that_works::{
+    Fallbacks, css_variable_name, fold_fallback_chain, plan_fallbacks,
+  },
 };
 
 /// One StyleX function the engine may call: how the module can name it, and what
@@ -182,36 +184,35 @@ fn first_that_works(_this: &JsValue, args: &[JsValue], engine: &mut Context) -> 
     })
     .collect::<Vec<_>>();
 
-  let Some(fallbacks) = plan_fallbacks(args.len(), |index| names[index].is_some()) else {
-    return Ok(JsValue::from(JsArray::from_iter(
-      args.iter().rev().cloned(),
-      engine,
-    )));
+  // The chain's text is read the same way whichever shape holds it.
+  let folded = |chain: &[usize], engine: &mut Context| -> JsResult<JsValue> {
+    let mut parts = Vec::with_capacity(chain.len());
+
+    for &index in chain {
+      parts.push(match &names[index] {
+        Some(name) => name.clone(),
+        // The value the chain bottoms out on, read as the language reads it —
+        // which is what puts it inside `var(…, here)`.
+        None => args[index].to_string(engine)?.to_std_string_lossy(),
+      });
+    }
+
+    Ok(JsValue::from(JsString::from(fold_fallback_chain(parts))))
   };
 
-  let mut chain = Vec::with_capacity(fallbacks.chain.len());
+  match plan_fallbacks(args.len(), |index| names[index].is_some()) {
+    Fallbacks::Reversed => Ok(JsValue::from(JsArray::from_iter(
+      args.iter().rev().cloned(),
+      engine,
+    ))),
+    Fallbacks::Chain(chain) => folded(&chain, engine),
+    Fallbacks::ChainAndRest(chain, rest) => {
+      let chain = folded(&chain, engine)?;
+      let values = std::iter::once(chain)
+        .chain(rest.iter().map(|&index| args[index].clone()))
+        .collect::<Vec<_>>();
 
-  for &index in &fallbacks.chain {
-    chain.push(match &names[index] {
-      Some(name) => name.clone(),
-      // The value the chain bottoms out on, read as the language reads it —
-      // which is what puts it inside `var(…, here)`.
-      None => args[index].to_string(engine)?.to_std_string_lossy(),
-    });
+      Ok(JsValue::from(JsArray::from_iter(values, engine)))
+    },
   }
-
-  let chain = JsValue::from(JsString::from(fold_fallback_chain(chain)));
-
-  // A chain with nothing behind it is one value rather than a list of
-  // declarations, and stays a string — which is what lets it be concatenated
-  // like any other folded value.
-  if fallbacks.rest.is_empty() {
-    return Ok(chain);
-  }
-
-  let values = std::iter::once(chain)
-    .chain(fallbacks.rest.iter().map(|&index| args[index].clone()))
-    .collect::<Vec<_>>();
-
-  Ok(JsValue::from(JsArray::from_iter(values, engine)))
 }

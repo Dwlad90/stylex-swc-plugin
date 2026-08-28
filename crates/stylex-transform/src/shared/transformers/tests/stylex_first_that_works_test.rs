@@ -119,14 +119,44 @@ mod stylex_first_that_works {
 #[cfg(test)]
 mod fallback_plan {
   use crate::shared::transformers::stylex_first_that_works::{
-    css_variable_name, fold_fallback_chain, plan_fallbacks,
+    Fallbacks, css_variable_name, fold_fallback_chain, plan_fallbacks,
   };
 
   /// The plan for `is_var`, as `(chain, rest)`, or `None` where there is no
   /// variable to build a chain from.
+  ///
+  /// Reads the shape back down to the pair the arithmetic cases are written
+  /// against, so which of the three shapes a plan answers with is asserted in
+  /// one place — [`the_shape_says_how_the_answer_is_assembled`] — rather than
+  /// once per case.
   fn plan(is_var: &[bool]) -> Option<(Vec<usize>, Vec<usize>)> {
-    plan_fallbacks(is_var.len(), |index| is_var[index])
-      .map(|fallbacks| (fallbacks.chain, fallbacks.rest))
+    match plan_fallbacks(is_var.len(), |index| is_var[index]) {
+      Fallbacks::Reversed => None,
+      Fallbacks::Chain(chain) => Some((chain, Vec::new())),
+      Fallbacks::ChainAndRest(chain, rest) => Some((chain, rest)),
+    }
+  }
+
+  /// Which shape a plan answers with, which is the half both callers assemble
+  /// from and neither decides.
+  ///
+  /// A chain with nothing behind it is its own shape rather than a chain and an
+  /// empty list, because the two are assembled differently: one stays a single
+  /// value that can be concatenated, the other becomes a list of declarations.
+  #[test]
+  fn the_shape_says_how_the_answer_is_assembled() {
+    let shape = |is_var: &[bool]| match plan_fallbacks(is_var.len(), |index| is_var[index]) {
+      Fallbacks::Reversed => "reversed",
+      Fallbacks::Chain(_) => "chain",
+      Fallbacks::ChainAndRest(..) => "chain and rest",
+    };
+
+    assert_eq!(shape(&[]), "reversed");
+    assert_eq!(shape(&[false, false]), "reversed");
+    assert_eq!(shape(&[true]), "chain");
+    assert_eq!(shape(&[true, false]), "chain");
+    assert_eq!(shape(&[false, true]), "chain and rest");
+    assert_eq!(shape(&[false, false, true, false]), "chain and rest");
   }
 
   #[test]

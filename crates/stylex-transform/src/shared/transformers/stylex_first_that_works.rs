@@ -46,38 +46,42 @@ pub(crate) fn css_variable_name(text: &str) -> Option<&str> {
   }
 }
 
-/// Where `firstThatWorks` puts each argument it was handed, as positions rather
-/// than as values.
+/// What shape `firstThatWorks` answers with, and which arguments fill it — as
+/// positions rather than as values.
 ///
 /// Positions because two callers answer this function on two different kinds of
 /// value — the expressions the evaluator holds, and the values the compile-time
 /// engine holds — and the ordering arithmetic is the half they must not disagree
 /// about. Each caller then reads its own values back out at these positions.
-pub(crate) struct Fallbacks {
-  /// The arguments the `var()` chain is built from, in the order it folds them:
-  /// the outermost variable first, the value it falls back to last.
-  pub(crate) chain: Vec<usize>,
-  /// The arguments that follow the chain as further declarations, highest
-  /// priority last.
-  pub(crate) rest: Vec<usize>,
+///
+/// The *shape* is here for the same reason. Which of the three a call answers
+/// with is policy, not assembly: a chain with nothing behind it stays one value
+/// so that it can be concatenated like any other fold, and a call naming no
+/// variable at all is its arguments reversed. Written out at each caller, those
+/// two rules were two chances for the callers to part company over something
+/// neither of them decides.
+pub(crate) enum Fallbacks {
+  /// No argument names a variable, so there is no chain to build and no value to
+  /// strip a name out of. The answer is the arguments reversed.
+  Reversed,
+  /// One `var()` chain and nothing behind it, which stays a single value.
+  Chain(Vec<usize>),
+  /// The chain, followed by the arguments that stay declarations of their own,
+  /// highest priority last.
+  ChainAndRest(Vec<usize>, Vec<usize>),
 }
 
 /// How `count` arguments fall back to one another, given which of them name a
 /// variable.
 ///
-/// `None` where none of them does, which answers the arguments reversed and
-/// nothing else — there is no chain to build and no value to strip a name out
-/// of.
-///
 /// `is_var` is asked rather than handed in, because reading an argument can cost
 /// an evaluation and this walk asks about each position at most once and about
 /// nothing past the chain's end — where a list built up front would have read
 /// every argument, including the ones the chain never reaches.
-pub(crate) fn plan_fallbacks(
-  count: usize,
-  mut is_var: impl FnMut(usize) -> bool,
-) -> Option<Fallbacks> {
-  let first_var = (0..count).find(|&index| is_var(index))?;
+pub(crate) fn plan_fallbacks(count: usize, mut is_var: impl FnMut(usize) -> bool) -> Fallbacks {
+  let Some(first_var) = (0..count).find(|&index| is_var(index)) else {
+    return Fallbacks::Reversed;
+  };
 
   // The chain ends on the first argument after the variables that is not one:
   // that value is the innermost fallback, and everything past it is a
@@ -86,10 +90,13 @@ pub(crate) fn plan_fallbacks(
     .find(|&index| !is_var(index))
     .map_or(count, |first_value| first_value + 1);
 
-  Some(Fallbacks {
-    chain: (first_var..end).rev().collect(),
-    rest: (0..first_var).rev().collect(),
-  })
+  let chain = (first_var..end).rev().collect();
+  let rest: Vec<usize> = (0..first_var).rev().collect();
+
+  match rest.is_empty() {
+    true => Fallbacks::Chain(chain),
+    false => Fallbacks::ChainAndRest(chain, rest),
+  }
 }
 
 /// The single value a fallback chain collapses to, folded from its parts in the
@@ -136,39 +143,43 @@ pub(crate) fn stylex_first_that_works(
     None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
   };
 
-  let Some(fallbacks) = plan_fallbacks(args.len(), |index| {
+  let plan = plan_fallbacks(args.len(), |index| {
     css_variable_name(&text(&args[index])).is_some()
-  }) else {
-    let elems = args
-      .into_iter()
-      .rev()
-      .map(|arg| Some(create_expr_or_spread(arg)))
-      .collect();
+  });
 
-    return create_array_expression(elems);
+  // The chain's text is read the same way whichever shape holds it.
+  let mut folded = |chain: &[usize]| {
+    fold_fallback_chain(chain.iter().map(|&index| {
+      let arg_text = text(&args[index]);
+
+      // A variable contributes its name; anything else contributes itself,
+      // which is where the chain bottoms out.
+      match css_variable_name(&arg_text) {
+        Some(name) => name.to_string(),
+        None => arg_text,
+      }
+    }))
   };
 
-  let chain = fold_fallback_chain(fallbacks.chain.iter().map(|&index| {
-    let arg_text = text(&args[index]);
+  match &plan {
+    Fallbacks::Reversed => {
+      let elems = args
+        .iter()
+        .rev()
+        .map(|arg| Some(create_expr_or_spread(arg.clone())))
+        .collect();
 
-    // A variable contributes its name; anything else contributes itself, which
-    // is where the chain bottoms out.
-    match css_variable_name(&arg_text) {
-      Some(name) => name.to_string(),
-      None => arg_text,
-    }
-  }));
+      create_array_expression(elems)
+    },
+    Fallbacks::Chain(chain) => create_string_expr(&folded(chain)),
+    Fallbacks::ChainAndRest(chain, rest) => {
+      let chain = create_string_expr(&folded(chain));
+      let elems = std::iter::once(chain)
+        .chain(rest.iter().map(|&index| args[index].clone()))
+        .map(|expr| Some(create_expr_or_spread(expr)))
+        .collect();
 
-  // The chain alone is a value rather than a list of declarations, so it is
-  // answered as one — which is what lets a single fallback stay a plain string.
-  if fallbacks.rest.is_empty() {
-    return create_string_expr(&chain);
+      create_array_expression(elems)
+    },
   }
-
-  let elems = std::iter::once(create_string_expr(&chain))
-    .chain(fallbacks.rest.iter().map(|&index| args[index].clone()))
-    .map(|expr| Some(create_expr_or_spread(expr)))
-    .collect();
-
-  create_array_expression(elems)
 }

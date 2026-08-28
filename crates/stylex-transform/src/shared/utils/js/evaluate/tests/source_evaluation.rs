@@ -5,6 +5,10 @@
 //! answer is a fold or a refusal, and say which value it is. One copy, because
 //! two suites asserting "this refuses" through separately maintained helpers is
 //! how one of them comes to accept a refusal with no reason.
+//!
+//! [`on_a_thread_of`] is here for the same reason and is the one thing here that
+//! is not about source: a case whose subject is stack has to say how much of it
+//! there is, and two suites need to.
 
 use super::*;
 use stylex_structures::stylex_options::StyleXOptions;
@@ -511,5 +515,29 @@ pub(crate) fn assert_folds_to_undefined(source: &str) {
       "expected `{}` to fold to undefined, got {:?}",
       source, other
     ),
+  }
+}
+
+/// Runs `case` on a thread of `stack` bytes and hands back what it answered.
+///
+/// For a case whose subject is how much stack something needs. A test thread's
+/// own size is not something a case can state, and the failure it is measuring
+/// is an abort rather than an assertion, so the size has to be written down
+/// beside the case that depends on it.
+///
+/// A panic inside `case` is resumed here rather than swallowed, so an assertion
+/// that failed on the thread reads as a failure of the test that started it.
+pub(crate) fn on_a_thread_of<R: Send + 'static>(
+  stack: usize,
+  case: impl FnOnce() -> R + Send + 'static,
+) -> R {
+  let started = std::thread::Builder::new().stack_size(stack).spawn(case);
+
+  match started {
+    Ok(thread) => match thread.join() {
+      Ok(answer) => answer,
+      Err(panic) => std::panic::resume_unwind(panic),
+    },
+    Err(error) => panic!("could not start the thread the case runs on: {}", error),
   }
 }

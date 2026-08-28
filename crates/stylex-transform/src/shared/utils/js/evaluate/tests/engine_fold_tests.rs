@@ -12,6 +12,8 @@
 //! the evaluator to answer "not confident" without aborting, which is the
 //! property issue 02 established and this hook must not undo.
 
+use stylex_structures::evaluation_depth::MAX_EVALUATION_DEPTH_LIMIT;
+
 use super::source_evaluation::*;
 
 // ==================== the reported input, now folded ====================
@@ -851,11 +853,7 @@ fn the_smallest_ceiling_admits_one_level_and_no_more() {
 /// whole ceiling exists to prevent.
 #[test]
 fn the_largest_ceiling_still_folds_an_ordinary_call() {
-  assert_folds_to_string_with_ceiling(
-    "\"  4px  \".trim()",
-    "4px",
-    stylex_structures::evaluation_depth::MAX_EVALUATION_DEPTH_LIMIT,
-  );
+  assert_folds_to_string_with_ceiling("\"  4px  \".trim()", "4px", MAX_EVALUATION_DEPTH_LIMIT);
 }
 
 /// A ceiling past the largest one is clamped rather than honoured, so it folds
@@ -1127,4 +1125,86 @@ fn a_count_written_inside_a_callback_is_bounded_by_what_the_receiver_holds() {
   // string rather than adding to it and a bound taken off the coercion would not
   // survive the sum.
   assert_deopts("[\"2\", \"3\"].map(n => \"x\".repeat(n)).join(\"-\")");
+}
+
+/// The largest ceiling a project can configure, spent by an expression nested
+/// nearly that deep — which is the only input that actually asks the fold for
+/// the stack it claims.
+///
+/// Under-sizing that claim does not report. It aborts the process from inside an
+/// evaluation whose whole contract is that it may fail, so the claim has to be
+/// exercised at the size it is sized for rather than at the few hundred levels
+/// every other depth case here spends. Both verdicts are asserted, because a
+/// claim that were too small would show up as either one: an abort where the
+/// fold succeeds, and an abort where it is one level past the ceiling and about
+/// to refuse.
+///
+/// **Run on a thread of its own, and that is not the fold's business.** SWC's
+/// parser reads this test's own source before the fold is ever asked, and it
+/// overflows a stock test thread around twelve hundred levels — the residue
+/// [ADR 0004](../../../../../../docs/adr/0004-the-fold-owns-its-own-ceiling-and-its-own-stack.md)
+/// attributes to the stages around the fold. The thread is what gets the input
+/// as far as the fold; everything past that point is the claim under test.
+#[test]
+fn a_fold_nested_near_the_largest_ceiling_answers_rather_than_aborting() {
+  const CEILING: usize = MAX_EVALUATION_DEPTH_LIMIT;
+
+  // An array literal spends about a level a bracket, so these sit either side of
+  // the ceiling: one just inside it and one just past.
+  let nested = |levels: usize| {
+    format!(
+      "{}[\"a\"]{}.join(\"\")",
+      "[".repeat(levels),
+      "]".repeat(levels)
+    )
+  };
+
+  // Room for SWC to parse an expression nested this deep, at roughly twice the
+  // measured parse: what the thread is holding off is an abort rather than a
+  // failure.
+  on_a_thread_of(128 * 1024 * 1024, move || {
+    assert_folds_to_string_with_ceiling(&nested(CEILING - 2), "a", CEILING);
+
+    assert_deopt_reason_contains_with_ceiling(&nested(CEILING + 108), "too deeply nested", CEILING);
+
+    // And the same nesting around a leaf nothing resolves, which the guard walks
+    // to the bottom before declining — the deepest this walk goes without the
+    // engine ever being asked, and the shape that used to claim a whole stack to
+    // reach a refusal.
+    assert_deopts_with_ceiling(
+      &format!(
+        "{}[runtimeValue]{}.join(\"\")",
+        "[".repeat(CEILING - 2),
+        "]".repeat(CEILING - 2)
+      ),
+      CEILING,
+    );
+  });
+}
+
+/// A raised ceiling spent on the way *out*: the engine builds the nesting with
+/// a loop, so the source is shallow and only the conversion back is deep.
+///
+/// The conversion asks for room by the level, so what this pins is that asking
+/// by the level carries a conversion far past the levels a stock thread holds —
+/// a thousand of them cost more stack than a test thread has, and they used to
+/// be paid for by the claim the fold no longer makes around this walk.
+///
+/// A thousand rather than the ceiling itself: past roughly two thousand the
+/// engine aborts while *building* the value, before anything is converted, and
+/// that limit is the engine's own and was there before this walk grew by the
+/// level.
+#[test]
+fn a_value_the_engine_nested_deeply_converts_on_room_it_asks_for() {
+  let built = |levels: usize| {
+    format!(
+      "\"x\".repeat({}).split(\"\").reduce((a, c) => [a], [])",
+      levels
+    )
+  };
+
+  assert_folds_to_a_value_with_ceiling(&built(1000), 2048);
+
+  // Past the ceiling it is still the ceiling that answers, not the stack.
+  assert_deopt_reason_contains_with_ceiling(&built(1000), "too deeply nested", 512);
 }

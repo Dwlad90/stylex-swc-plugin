@@ -176,3 +176,64 @@ numbers cannot drift apart as the arms around the fold change size.
 One consequence is load-bearing and recorded at the code rather than here: a low
 ceiling is crossed by real input, and each crossing used to poison the memo for
 shallow siblings. See the budget check in `shared/utils/js/evaluate/cache.rs`.
+
+## Revised: the stack is claimed by what needs it
+
+The sentence above — "`evaluate_cached` runs the descent inside
+`stacker::maybe_grow`" — is still true of the evaluator and was never the whole
+picture once the engine-backed fold landed. Three things changed with it, and
+this section is what the ADR now says about the stack.
+
+**Two ways of asking, and one rule that decides which a descent gets: a descent
+that can ask again at the next level does.** Every walk this compiler owns can —
+the evaluator's descent, the guard's walk into an expression, the carriage of a
+resolved value inward, the conversion of an engine value back — so each spends a
+level and claims room for the one after it, and a walk that stops early pays for
+the levels it actually descended. The two that cannot are the two this compiler
+does not write: SWC's printer clones the expression and writes it out, and the
+engine's parser reads it back, and both descend through a nested literal on
+whatever stack they were handed. So the fold claims their whole descent up
+front, `maxEvaluationDepth × 2 × 64 KiB`, **around the printing, the parse and
+the evaluation and around nothing else**.
+
+Around nothing else is the part that was wrong before. The claim wrapped the
+whole fold, including the guard, and the guard runs on every call expression the
+evaluator visits — almost none of which fold. On a thread without the claim
+already underfoot that mapped and unmapped a segment per _declined_ call, which
+is the entire cost of the fold on a file that folds nothing. The measured 4–6%
+recorded above was measured against folds, where the fold's own cost dominates;
+on the no-fold path there is nothing for it to be a percentage of.
+
+**The ceiling is clamped, and the claim is why.** `maxEvaluationDepth` is
+clamped to 8192, so the largest claim any project can ask for is a gigabyte — a
+number an allocation can satisfy. Without the clamp a configured depth would be
+a stack size a project could ask the compiler to fail on. The clamp is asserted
+against the claim in `growable_stack.rs` rather than described, because the
+numbers it multiplies live in two crates.
+
+**The fixed nesting bound the fold once carried is gone.** Depth is one number,
+answered by the ceiling, and the walks that had bounds of their own answer to
+it.
+
+**What the claim does not cover, and this is a residue like the one above.** The
+ceiling bounds the walk, not the text. A short-circuited operand is printed
+without being walked, so printer and parser descend nesting no level was spent
+on: at
+the shipped ceiling that folds at 200 levels of dead nesting and aborts at 300.
+The factor of two in the claim is a margin against exactly this and is not a
+bound on it. `UNWALKED_NESTING` in `growable_stack.rs` says so where it is
+written, and the case that measures it is
+`a_dead_operand_deeper_than_the_ceiling_is_never_entered`.
+
+**And the claim is now tested at the size it is sized for.**
+`growable_stack_tests.rs` asks for the largest claim and asserts it is
+underfoot, because under-sizing it does not report — it aborts from inside an
+evaluation whose whole contract is that it may fail. The fold is exercised at
+nesting just under and just over the largest configurable ceiling in
+`a_fold_nested_near_the_largest_ceiling_answers_rather_than_aborting`, on a
+thread of its own: SWC's parser reads that test's source before the fold is
+asked and overflows a stock thread around 1200 levels, which is the residue this
+ADR already attributes to the stages around the fold.
+
+Recorded together with [0008](./0008-the-fold-guard-reads-values-and-the-engine-is-permanent.md),
+which is where the engine that does the parsing is decided on.

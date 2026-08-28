@@ -548,6 +548,10 @@ mod unsupported_shape_tests;
 mod engine_fold_tests;
 
 #[cfg(test)]
+#[path = "tests/growable_stack_tests.rs"]
+mod growable_stack_tests;
+
+#[cfg(test)]
 #[path = "tests/function_fold_object_tests.rs"]
 mod function_fold_object_tests;
 

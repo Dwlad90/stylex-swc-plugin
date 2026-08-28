@@ -323,14 +323,9 @@ pub(crate) fn try_fold(
   };
 
   let mut reader = Reader::new(state, traversal_state, fns, ceilings);
-
-  // Grown before the first recursive step rather than at every step: the
-  // engine's parser descends through a nested literal without ever asking for
-  // room, so the whole fold has to run on a stack that was already large enough
-  // when it started.
   let mut walk = Walk::new(guard, &mut reader);
 
-  match growable_stack::grown_for_depth(ceiling, || fold(call, &mut walk)) {
+  match fold(call, &mut walk) {
     Ok(value) => Some(Ok(value)),
     Err(Decline::NotACandidate) => None,
     Err(Decline::Rule(reason)) => Some(Err(reason)),
@@ -355,53 +350,63 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
   }
 
   let method = admitted.name();
+  let ceiling = walk.guard.depth.ceiling;
 
-  let source = print_fold(call, walk.parameters());
+  // Claimed here rather than around the whole fold. Above this line is the
+  // guard's walk, which is this compiler's own recursion and asks for room at
+  // every level it spends; below it is work that cannot ask — SWC's printer
+  // clones the expression and writes it out, and the engine's parser reads it
+  // back, and both descend through a nested literal on whatever stack they were
+  // handed. So a call the guard declined never pays for a stack the engine never
+  // entered, and everything that does need one runs inside it.
+  growable_stack::grown_for_depth(ceiling, || {
+    let source = print_fold(call, walk.parameters());
 
-  ENGINE.with_borrow_mut(|slot| {
-    // Taken, not borrowed in place. A panic unwinding out of the engine is
-    // caught at the NAPI boundary and the process carries on, so an engine left
-    // in the slot would be reused by every later fold with its VM stack
-    // abandoned mid-frame. Taking it means an unwind leaves the slot empty and
-    // the next fold builds a fresh engine; the abandoned one leaks, which is
-    // what `ManuallyDrop` already makes it do at thread exit.
-    let mut engine = match slot.take() {
-      Some(engine) => engine,
-      None => Engine::new()?,
-    };
+    ENGINE.with_borrow_mut(|slot| {
+      // Taken, not borrowed in place. A panic unwinding out of the engine is
+      // caught at the NAPI boundary and the process carries on, so an engine left
+      // in the slot would be reused by every later fold with its VM stack
+      // abandoned mid-frame. Taking it means an unwind leaves the slot empty and
+      // the next fold builds a fresh engine; the abandoned one leaks, which is
+      // what `ManuallyDrop` already makes it do at thread exit.
+      let mut engine = match slot.take() {
+        Some(engine) => engine,
+        None => Engine::new()?,
+      };
 
-    let depth = walk.guard.depth.restart();
-    let mut outward = Outward::new(method, walk.guard.ceilings);
+      let depth = walk.guard.depth.restart();
+      let mut outward = Outward::new(method, walk.guard.ceilings);
 
-    let applied = match admitted {
-      Admitted::Global(global) => admit_an_applied_global(global, &mut engine.context),
-      Admitted::Method(_) | Admitted::Named(_) => Ok(()),
-    };
+      let applied = match admitted {
+        Admitted::Global(global) => admit_an_applied_global(global, &mut engine.context),
+        Admitted::Method(_) | Admitted::Named(_) => Ok(()),
+      };
 
-    let folded = applied
-      .and_then(|()| walk.arguments(&mut engine.context, method))
-      .and_then(|arguments| apply(&source, &arguments, &mut engine, method))
-      .and_then(|value| {
-        // A theme reference crossed as a string, so an answer that is still an
-        // object may *be* that reference — `Object(colors)` hands its argument
-        // straight back — and a string standing where the group stood has lost
-        // every member it had. Handed back rather than refused: the dispatch
-        // below holds the reference itself and answers for it, where a refusal
-        // here would fail a build it can compile.
-        //
-        // Read off the answer rather than predicted from the call, because what
-        // a fold hands back is a property of the whole chain and not of the
-        // method that ends it.
-        if walk.carried_a_theme_reference() && value.is_object() {
-          return Err(Decline::NotACandidate);
-        }
+      let folded = applied
+        .and_then(|()| walk.arguments(&mut engine.context, method))
+        .and_then(|arguments| apply(&source, &arguments, &mut engine, method))
+        .and_then(|value| {
+          // A theme reference crossed as a string, so an answer that is still an
+          // object may *be* that reference — `Object(colors)` hands its argument
+          // straight back — and a string standing where the group stood has lost
+          // every member it had. Handed back rather than refused: the dispatch
+          // below holds the reference itself and answers for it, where a refusal
+          // here would fail a build it can compile.
+          //
+          // Read off the answer rather than predicted from the call, because what
+          // a fold hands back is a property of the whole chain and not of the
+          // method that ends it.
+          if walk.carried_a_theme_reference() && value.is_object() {
+            return Err(Decline::NotACandidate);
+          }
 
-        outward.value(&value, &mut engine.context, depth)
-      });
+          outward.value(&value, &mut engine.context, depth)
+        });
 
-    *slot = Some(engine);
+      *slot = Some(engine);
 
-    folded
+      folded
+    })
   })
 }
 

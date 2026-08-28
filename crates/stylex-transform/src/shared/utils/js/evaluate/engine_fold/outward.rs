@@ -26,6 +26,7 @@ use stylex_constants::constants::evaluation_errors::{
 use stylex_js::coercions;
 use stylex_utils::string::utf16_length;
 
+use super::super::growable_stack::grown_per_level;
 use super::super::helpers::js_undefined;
 use super::as_expr;
 use super::engine::read;
@@ -126,6 +127,21 @@ impl<'a> Outward<'a> {
   /// The half of [`value`](Outward::value) that needs the engine to read the
   /// value back: arrays and plain objects, and the refusal for everything else.
   fn object_value(
+    &mut self,
+    value: &JsValue,
+    engine: &mut Context,
+    depth: Depth,
+  ) -> Result<EvaluateResultValue, Decline> {
+    // Room for the next level asked for at this one, as every walk this module
+    // owns does — the engine builds by looping, so what comes back can be
+    // nested deeper than anything the guard admitted. See `growable_stack`.
+    grown_per_level(|| self.nested_object(value, engine, depth))
+  }
+
+  /// One object or array, on the room [`object_value`](Outward::object_value)
+  /// asked for, and reached only through it — a direct call would descend on no
+  /// room at all.
+  fn nested_object(
     &mut self,
     value: &JsValue,
     engine: &mut Context,

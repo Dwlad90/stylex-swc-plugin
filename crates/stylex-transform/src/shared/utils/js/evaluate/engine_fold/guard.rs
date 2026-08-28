@@ -42,6 +42,7 @@ use crate::shared::{
 use super::super::{
   engine_stylex_functions::{EngineCallable, Reached, engine_callable},
   evaluate_cached,
+  growable_stack::grown_per_level,
   helpers::{evaluate_result_to_js_boolean, get_binding},
   nodes::logical_expression::{LogicalOp, evaluates_its_right_operand},
 };
@@ -525,6 +526,16 @@ impl<'a> Bindings<'a> {
   /// destructuring nested deeper than the engine's parser can descend has to be
   /// refused before it reaches that parser.
   fn pattern(&mut self, pat: &'a Pat, depth: Depth) -> Result<(), Decline> {
+    // Room for the next level asked for at this one, which is what every walk
+    // this module owns does: the ceiling is configuration and can be raised far
+    // past what a thread has left, and an overflow here aborts a build rather
+    // than reporting anything. See `growable_stack`.
+    grown_per_level(|| self.nested_pattern(pat, depth))
+  }
+
+  /// One pattern, on the room [`pattern`](Bindings::pattern) asked for, and
+  /// reached only through it — a direct call would descend on no room at all.
+  fn nested_pattern(&mut self, pat: &'a Pat, depth: Depth) -> Result<(), Decline> {
     let inner = depth.descend()?;
 
     match pat {
@@ -677,6 +688,12 @@ impl<'r> Walk<'_, 'r> {
   /// in the other. Deliberately narrow: a shape it does not recognise is not a
   /// candidate.
   fn admit_value(&mut self, expr: &Expr) -> Result<(), Decline> {
+    grown_per_level(|| self.nested_value(expr))
+  }
+
+  /// One expression, on the room [`admit_value`](Walk::admit_value) asked for,
+  /// and reached only through it — a direct call would descend on no room at all.
+  fn nested_value(&mut self, expr: &Expr) -> Result<(), Decline> {
     let inner = self.guard.descend()?;
 
     match expr {
@@ -1462,6 +1479,13 @@ impl<'r> Walk<'_, 'r> {
   /// which does not model it and hands the call back like every other expression
   /// kind it does not read.
   fn admit_statement(&mut self, stmt: &Stmt) -> Result<(), Decline> {
+    grown_per_level(|| self.nested_statement(stmt))
+  }
+
+  /// One statement, on the room [`admit_statement`](Walk::admit_statement) asked
+  /// for, and reached only through it — a direct call would descend on no room at
+  /// all.
+  fn nested_statement(&mut self, stmt: &Stmt) -> Result<(), Decline> {
     let inner = self.guard.descend()?;
 
     match stmt {

@@ -250,6 +250,15 @@ name, rule text and style-object shape rather than sentences, and the two
 compilers' refusal wordings are compared only for whether they complain about the
 same thing.
 
+**Two neighbouring records answer for what this one does not.** The stack the
+engine's parser runs on, and the ceiling that sizes it, are
+[0004](./0004-the-fold-owns-its-own-ceiling-and-its-own-stack.md) — including
+where the claim is made, which is around the parse and the evaluation and around
+nothing else. And [0001](./0001-a-refused-fold-borrows-a-later-diagnostic.md) is
+superseded by this one: the borrowing it recorded is gone because the applied
+globals it named are now folded by being called, which is this decision rather
+than that one.
+
 **The corpus is the register, and it cannot grow quietly.** A row recording that
 this compiler refuses where the reference compiler compiles fails the harness
 unless a reason exists — on the row, or as a refusal family that claims it.

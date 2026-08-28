@@ -42,6 +42,8 @@
 //!    deepest accepted source nesting differs per shape, and each one is
 //!    measured and pinned rather than derived.
 
+use stylex_structures::evaluation_depth::MAX_EVALUATION_DEPTH_LIMIT;
+
 use crate::utils::{
   prelude::*,
   source::nest_expression as nest,
@@ -1109,4 +1111,39 @@ fn a_warm_inner_subtree_lets_a_deeper_expression_fold() {
     shared_subtree_in_both_orders(true).contains(".xr3buco{z-index:var(--x-zIndex)}"),
     "and refuses when it is the first thing folded"
   );
+}
+
+// ──────────────────────────────────────────────
+// The largest ceiling a project can configure
+//
+// The option is clamped to 8192, and that number sizes the stack the fold claims
+// for the engine. What this section says is that a module compiled under it
+// answers -- the claim is made and satisfied on the way through a real compile,
+// not only where the evaluator is asked directly.
+// ──────────────────────────────────────────────
+
+/// A module compiled at the largest configurable ceiling folds rather than
+/// aborting.
+///
+/// The nesting here is far under 8192 on purpose, and that is not the fold's
+/// bound: the stages *around* it abort a debug build somewhere past a thousand
+/// levels, which ADR 0004 records and attributes. So no module can be written
+/// that reaches this ceiling and crosses it -- the refusals in this file are
+/// pinned at ceilings a module can reach, and the case nested to the ceiling
+/// itself is in the evaluator's own suite, where nothing is compiled around it.
+/// What the module says is the half only a module can: the option carries the
+/// largest number it accepts all the way to the claim, and the claim is
+/// satisfied on a real compile.
+#[test]
+fn a_module_compiled_at_the_largest_ceiling_folds_rather_than_aborting() {
+  let output = stringify_js(
+    &create(
+      "const MY_CONST = 5;",
+      &format!("base: {{ zIndex: {} }},", arithmetic(300)),
+    ),
+    ts_syntax(),
+    |tr| deep_theme_import_transform(tr.comments.clone(), MAX_EVALUATION_DEPTH_LIMIT),
+  );
+
+  assert!(output.contains("z-index:305"));
 }

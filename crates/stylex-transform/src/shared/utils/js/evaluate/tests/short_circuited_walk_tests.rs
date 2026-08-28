@@ -108,6 +108,13 @@ fn a_dead_operand_past_the_allocation_ceiling_is_never_priced() {
 /// A dead operand nested far deeper than the evaluator's own ceiling. Depth is
 /// spent per step of the walk, so a side the walk does not enter costs none of
 /// it — which is the difference between this folding and refusing for depth.
+///
+/// **Two hundred is not an arbitrary number.** The operand is never walked and
+/// is still *printed*, so the engine's parser descends all of it, on a stack
+/// claimed from the ceiling the walk was measured against. Two hundred fits
+/// inside that claim at the shipped ceiling and three hundred does not — see
+/// `UNWALKED_NESTING` in `growable_stack`, which is the margin this case sits
+/// under.
 #[test]
 fn a_dead_operand_deeper_than_the_ceiling_is_never_entered() {
   let deep = "[".repeat(200) + "'x'" + &"]".repeat(200);

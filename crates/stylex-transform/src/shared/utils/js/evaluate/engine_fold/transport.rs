@@ -35,6 +35,7 @@ use stylex_constants::constants::evaluation_errors::{
 use stylex_utils::number::to_js_string;
 
 use super::super::engine_stylex_functions::EngineCallable;
+use super::super::growable_stack::grown_per_level;
 use super::engine::read;
 use super::{Ceilings, Decline, Depth, Totals};
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
@@ -435,6 +436,18 @@ fn cross<C: Carriage>(
   value: &EvaluateResultValue,
   depth: Depth,
 ) -> Result<C::Value, Decline> {
+  // Room for the next level asked for at this one, as every walk this module
+  // owns does. See `growable_stack`.
+  grown_per_level(|| nested_value(carriage, value, depth))
+}
+
+/// One value, on the room [`cross`] asked for, and reached only through it — a
+/// direct call would descend on no room at all.
+fn nested_value<C: Carriage>(
+  carriage: &mut C,
+  value: &EvaluateResultValue,
+  depth: Depth,
+) -> Result<C::Value, Decline> {
   match value {
     EvaluateResultValue::Expr(expr) => cross_expr(carriage, expr, depth),
     // The evaluator answers an array either as a list of its own or as the array
@@ -483,6 +496,16 @@ fn cross<C: Carriage>(
 /// walk spends it — the two walk the same shapes and would otherwise disagree
 /// about how deep the same value is.
 fn cross_expr<C: Carriage>(
+  carriage: &mut C,
+  expr: &Expr,
+  depth: Depth,
+) -> Result<C::Value, Decline> {
+  grown_per_level(|| nested_expr(carriage, expr, depth))
+}
+
+/// One expression, on the room [`cross_expr`] asked for, and reached only
+/// through it — a direct call would descend on no room at all.
+fn nested_expr<C: Carriage>(
   carriage: &mut C,
   expr: &Expr,
   depth: Depth,

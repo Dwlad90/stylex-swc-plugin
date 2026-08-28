@@ -1,6 +1,7 @@
 # A refused fold borrows the diagnostic it would have reached
 
-**Status:** superseded
+**Status:** superseded by
+[0008](./0008-the-fold-guard-reads-values-and-the-engine-is-permanent.md)
 
 The borrowing this recorded is gone, and the body that described it has been
 deleted rather than left to be believed: it named a dispatch that no longer

@@ -84,7 +84,10 @@ resolved crosses beside the source as a [transport](#transport) argument rather
 than being looked up. What comes back is the evaluator's own value
 type, not a syntax node: an array answers the list an array literal answers and
 an object the object an object literal answers, so a folded value reaches
-everywhere a value the author wrote reaches.
+everywhere a value the author wrote reaches. Why an embedded engine is a
+permanent dependency, what it costs, why it is vendored and why its instance is
+leaked per thread are
+[docs/adr/0008](./docs/adr/0008-the-fold-guard-reads-values-and-the-engine-is-permanent.md).
 _Avoid_: boa fold, reflection, dynamic dispatch
 
 **Fold memo**:
@@ -156,7 +159,10 @@ the expression, bound by a callback around it, or a name the module resolves
 to a value the bridge carries. So giving a value a name no longer changes whether
 the call on it folds. What it costs is that the walk can evaluate, which is why
 every refusal answerable from a name alone is applied before the walk begins and
-only an expression the guard intends to fold pays to have its names read.
+only an expression the guard intends to fold pays to have its names read. Why the
+rule is a value rather than a shape, and which refusals are wanted rather than
+merely written down, are
+[docs/adr/0008](./docs/adr/0008-the-fold-guard-reads-values-and-the-engine-is-permanent.md).
 
 A **callback** is not a shape the guard recognises. It is printed into the same
 [transport](#transport) and parsed by the engine, so its parameters may be

@@ -62,12 +62,14 @@ rather than a module binding, but the value it holds is not callable, so a bare
 `Math(x)` is refused by name. Only a global with no binding in scope is one at
 all — a declared `String` is an ordinary function and is called, not folded.
 
-The fold owns every such call, so an argument the [transport](#transport) cannot
-carry is a refusal here rather than a shape handed back: nothing below the fold
-folds one, and handing it on would end it at `Unsupported expression` with the
-reason lost. Refused arguments are this compiler's own values — the environment
-object, a theme reference, the namespace map — and a function, whose only string
-form is source text the engine is built without.
+An argument the [transport](#transport) cannot carry hands the call back rather
+than refusing it. Those arguments are this compiler's own values — the
+environment object, a theme reference, the namespace map — which have no
+JavaScript form to cross as, so the engine cannot be the thing that answers for
+them. The [conversion behind the fold](#conversion-behind-the-fold) answers
+instead, through the same coercions `+` and an interpolation use, and raises the
+refusal itself where it cannot — so the fold still owns every such call and the
+sentence is still written in one place.
 _Avoid_: callable global, built-in function, global function, wrapper call
 
 **Engine fold**:
@@ -232,9 +234,10 @@ unresolved theme reference, an AST-keyed map — is handed back rather than
 refused, so the dispatch below keeps answering for it. A callback is the
 exception: nothing below the fold carries a function into an evaluation, so a
 name holding one either crosses as its declaration or is refused by a sentence
-naming that binding. A theme reference therefore crosses only as the `var(--…)`
-string it already resolved to, because resolving it is what mutates compiler
-state and that happens before the bridge.
+naming that binding. A theme reference never crosses at all: what
+resolves it mutates compiler state and happens before the bridge, so the
+dispatch below is what reads it — as the variable-group hash its own `toString`
+answers, or as the `var(--…)` a member of it names.
 
 What a _name_ may hold is narrower than what the bridge carries, and
 deliberately: a number and a boolean cross as an element or a property, where
@@ -252,6 +255,25 @@ Two things cross without being copied. An
 over to be _called_ and not to be read; a
 [named callback](#named-callback) crosses as the source it was declared from,
 which is text the engine parses rather than a value anything built.
+
+**Conversion behind the fold**:
+What answers `String(x)`, `Number(x)`, `Object(x)` or `Array(x)` when the
+[fold](#engine-fold) hands the call back — that is, when the argument is one of
+this compiler's own values rather than a JavaScript one. It is not a second
+implementation of the conversions: it reads the same
+[coercion bridge](#coercion-bridge) that `+`, a template literal and a unary
+operator read, so a value cannot answer one way in a call and another in an
+interpolation. Everything the engine _can_ be handed is still folded by calling
+the real function, which is why there is no table of conversions standing in for
+the language.
+
+It measures a string as it writes it, so an array holding one of these values is
+refused at the element that passes the project's [allocation
+ceilings](../stylex-structures/CONTEXT.md) rather than after the whole join has
+been copied. Where it cannot convert at all
+it raises the refusal itself, which keeps the sentence an author reads in one
+place.
+_Avoid_: fallback coercion, the Rust conversion, the second bridge
 
 **Engine-callable StyleX function**:
 A function of the [folded function map](#folded-function-map) whose answer is a

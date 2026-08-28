@@ -41,15 +41,10 @@ stylex_test!(
   "#
 );
 
-// A token reference is this compiler's own value rather than a JavaScript one,
-// so it has no form the bridge carries into the engine and the coercion refuses.
-// Upstream folds it to the `var(…)` the reference resolves to; a written
-// divergence, in the safe direction — a refused build never names a class the
-// other build does not define. A token reference used *without* a coercion is
-// untouched, which is what `create_theme.rs` pins.
-stylex_test_panic!(
-  theme_override_wrapped_in_string_around_a_token_reference_is_rejected,
-  "Only static values are allowed inside of a createTheme() call.",
+// A coerced token *reference* keeps the `var(…)` it resolves to, because that
+// reference is already a string by the time the coercion sees it.
+stylex_test!(
+  theme_override_wrapped_in_string_around_a_token_reference,
   |tr| stylex_transform(tr.comments.clone(), "src/themes/dark.stylex.js"),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -60,13 +55,10 @@ stylex_test_panic!(
   "#
 );
 
-// The token group and its members are this compiler's own values, so neither
-// crosses into the engine and both coercions refuse. Upstream folds the group to
-// its variable-group hash and a member to its `var(…)`; a written divergence,
-// for the reason above.
-stylex_test_panic!(
-  create_with_a_coerced_token_group_is_rejected,
-  "Only static values can be passed to String().",
+// The token group itself is an object carrying its own `toString`, which
+// answers the variable group hash rather than the object default.
+stylex_test!(
+  create_with_a_coerced_token_group,
   |tr| stylex_transform(tr.comments.clone(), "src/components/Card.js"),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -92,12 +84,11 @@ stylex_test!(
   "#
 );
 
-// The identity is no different: an object crossing back from the engine is a
-// plain object literal, so a token group could not survive one even if it
-// crossed inward. Refused on the way in, for the reason above.
-stylex_test_panic!(
-  create_with_a_token_group_wrapped_in_object_is_rejected,
-  "Only static values can be passed to Object().",
+// The token group is an object, so it is returned unchanged: its own
+// `toString` still answers the variable group hash, and a member of the
+// coerced group still resolves to the `var(…)` it names.
+stylex_test!(
+  create_with_a_token_group_wrapped_in_object,
   |tr| stylex_transform(tr.comments.clone(), "src/components/Card.js"),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -105,6 +96,73 @@ stylex_test_panic!(
     export const styles = stylex.create({
       root: { color: String(Object(colors)) },
       reference: { color: Object(colors).primary },
+    });
+  "#
+);
+
+// --- The shapes a coerced token group has to survive ------------------------
+//
+// The conversions above are the plain positions. These pin the ones that
+// compose, because a token group crossing back unchanged is what every one of
+// them rests on, and a narrowing of that would show here first.
+
+// Wrapping the group over and over changes nothing: each `Object()` hands back
+// what it was given, so the member read at the end still resolves to its
+// `var(…)`. Measured against upstream, which folds it the same way.
+stylex_test!(
+  a_repeatedly_wrapped_token_group_still_reads_its_member,
+  |tr| stylex_transform(tr.comments.clone(), "src/components/Card.js"),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from '@design-system/tokens/src/colors.stylex';
+    export const styles = stylex.create({
+      root: { color: Object(Object(Object(colors))).primary },
+    });
+  "#
+);
+
+// A group and one of its members inside one array, so the join renders each
+// through its own `toString` rather than through the array's: the group answers
+// the variable-group hash and the member the `var(…)` it names.
+stylex_test!(
+  an_array_of_a_token_group_and_its_member_joins_both,
+  |tr| stylex_transform(tr.comments.clone(), "src/components/Card.js"),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from '@design-system/tokens/src/colors.stylex';
+    export const styles = stylex.create({
+      root: { color: String([colors, colors.primary]) },
+    });
+  "#
+);
+
+// Surplus arguments are ignored and a number conversion answers `NaN` rather
+// than refusing — both the language's answers, and both upstream's.
+stylex_test!(
+  a_coerced_token_group_reads_only_its_first_argument,
+  |tr| stylex_transform(tr.comments.clone(), "src/components/Card.js"),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from '@design-system/tokens/src/colors.stylex';
+    export const styles = stylex.create({
+      surplus: { color: String(colors, 1) },
+      notANumber: { color: String(Number(colors)) },
+    });
+  "#
+);
+
+// A group inside an array the conversion is applied to, which is the one shape
+// where the value the bridge cannot carry is nested rather than the argument
+// itself. The array's own `ToString` joins it, so the group still answers its
+// hash.
+stylex_test!(
+  a_token_group_nested_in_a_converted_array,
+  |tr| stylex_transform(tr.comments.clone(), "src/components/Card.js"),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from '@design-system/tokens/src/colors.stylex';
+    export const styles = stylex.create({
+      root: { color: String(Array(colors)) },
     });
   "#
 );

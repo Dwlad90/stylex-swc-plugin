@@ -144,12 +144,35 @@ stylex_test!(
 );
 
 // The environment object is this compiler's own value, not a JavaScript one, so
-// it has no form the bridge carries into the engine and the call refuses.
-// Upstream folds it to `[object Object]`, which no stylesheet can use; a written
-// divergence, in the safe direction.
+// it has no form the bridge carries and the engine never sees it. The conversion
+// behind the fold answers for it instead, with the object default upstream also
+// answers — `[object Object]`, which no stylesheet can use, but which is what
+// the language says and so what the two compilers have to agree on.
+stylex_test!(
+  string_of_the_environment_object,
+  |tr| {
+    let mut env = IndexMap::new();
+    env.insert(
+      "brandPrimary".to_string(),
+      EnvEntry::Expr(create_string_expr("#123456")),
+    );
+    stylex_transform(tr.comments.clone(), |b| {
+      b.with_runtime_injection().with_env(env)
+    })
+  },
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: String(stylex.env) },
+    });
+  "#
+);
+
+// Without the option there is no environment object to convert, and the refusal
+// is about the missing configuration rather than about the conversion.
 stylex_test_panic!(
-  string_of_the_environment_object_is_rejected,
-  "Only static values can be passed to String().",
+  string_of_an_unconfigured_environment_object_is_rejected,
+  "The stylex.env object is not configured.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -261,13 +284,12 @@ stylex_test!(
   "#
 );
 
-// A spread of an object holding a *function* refuses. The spread operand is a
-// name, so its value has to cross the bridge — and a function has no form the
-// bridge carries, unlike the arrow written out in place above. Upstream folds
-// this to `blue`; a written divergence, in the safe direction.
-stylex_test_panic!(
-  string_of_an_object_spreading_an_override_is_rejected,
-  "Only static values can be passed to String().",
+// A spread of an object holding a *function* folds through its own `toString`.
+// The spread operand is a name whose value holds a function, so nothing crosses
+// the bridge and the engine never sees it — the conversion behind the fold reads
+// the override instead, and answers `blue` as upstream does.
+stylex_test!(
+  string_of_an_object_spreading_an_override,
   r#"
     import * as stylex from '@stylexjs/stylex';
     const base = { toString: () => 'blue' };
@@ -1022,13 +1044,13 @@ stylex_test_panic!(
   "#
 );
 
-// A regular expression has no value this compiler carries, so it never reaches
-// the engine. Upstream refuses it too, as an expression its evaluator will not
-// read at all; that difference predates this fold and shows on a bare
-// `color: /re/` with no coercion anywhere.
+// A regular expression has no value this compiler carries. The conversion behind
+// the fold evaluates the argument like any other expression, so what an author
+// reads is the sentence the reference compiler reads for the same source —
+// which refuses a regular expression outright, wherever it is written.
 stylex_test_panic!(
   object_of_a_regular_expression_is_rejected,
-  "Only static values can be passed to Object().",
+  "Unsupported expression: RegExpLiteral",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -1172,6 +1194,48 @@ stylex_test!(
     const xs = [1, 2];
     export const styles = stylex.create({
       root: { color: xs.map(x => String(x)).join('-') },
+    });
+  "#
+);
+
+// --- A conversion the engine never sees, and what bounds it -----------------
+//
+// The three cases above each hand one of this compiler's own values to a
+// conversion. These pin what happens when such a value is *nested* in an
+// argument the bridge would otherwise carry, which is the shape where the
+// conversion behind the fold does real work rather than reading one value.
+
+// The namespace map inside an array. The array alone would cross the bridge, so
+// nothing but the map stops it — and the conversion behind the fold joins the
+// two through the same coercion an interpolation uses. Upstream folds it to the
+// same rule.
+stylex_test!(
+  string_of_an_array_holding_the_namespace_map,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: String([stylex, 'x']) },
+    });
+  "#
+);
+
+// The same shape carrying a string past the ceiling. The join is measured as it
+// is written, so the build refuses at the element that passes the ceiling rather
+// than after the whole megabyte has been copied — and the sentence names the
+// conversion, which is what the author has to look at.
+//
+// Upstream folds this: it has no ceiling and writes a one-megabyte declaration.
+// The ceiling is this compiler's own and is configurable, so raising
+// `maxFoldedCharacters` past what the value needs folds the same source.
+stylex_test_panic!(
+  string_of_an_array_grown_past_the_ceiling_is_rejected,
+  "This string conversion builds a string too large to evaluate at compile time.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const huge = 'x'.repeat(1000000);
+    export const styles = stylex.create({
+      root: { color: String([stylex, huge]) },
     });
   "#
 );

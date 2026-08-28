@@ -120,7 +120,7 @@
       "id": "a0dd3953",
       "property": "a",
       "value": "red",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/global_builtin_calls.rs:1156"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/global_builtin_calls.rs:1178"
     },
     {
       "id": "61902655",
@@ -3564,7 +3564,7 @@
       "id": "c054a0e4",
       "property": "toString",
       "value": "notfn",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/global_builtin_calls.rs:287"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/global_builtin_calls.rs:309"
     },
     {
       "id": "ff56a10c",

@@ -156,22 +156,21 @@ fn a_global_that_is_not_a_function_names_itself() {
   assert_folds_to_number("Math.pow(2, 3)", 8.0);
 }
 
-/// A value the bridge cannot carry is refused rather than handed back: nothing
-/// below the fold folds a call to a global, so a shape handed on would reach the
-/// catch-all's `Unsupported expression` with the reason lost.
+/// A value the bridge cannot carry is handed back rather than refused, and what
+/// an author reads is the argument's own reason.
+///
+/// The conversion behind the fold evaluates the argument like any other
+/// expression, so a shape the evaluator has never folded is named for what it is
+/// and a name that resolves to nothing is named for that. Both sentences are the
+/// reference compiler's own, measured: naming the callee instead said which
+/// conversion was written and nothing about why it could not be done.
 #[test]
-fn an_argument_the_bridge_cannot_carry_names_the_callee() {
-  assert_deopt_reason_contains(
-    "String(/re/)",
-    "Only static values can be passed to String().",
-  );
-  assert_deopt_reason_contains(
-    "Object(/re/)",
-    "Only static values can be passed to Object().",
-  );
+fn an_argument_the_bridge_cannot_carry_reads_its_own_reason() {
+  assert_deopt_reason_contains("String(/re/)", "Unsupported expression: RegExpLiteral");
+  assert_deopt_reason_contains("Object(/re/)", "Unsupported expression: RegExpLiteral");
   assert_deopt_reason_contains(
     "Number(someRuntimeValue)",
-    "Only static values can be passed to Number().",
+    "Referenced constant is not defined.",
   );
 }
 

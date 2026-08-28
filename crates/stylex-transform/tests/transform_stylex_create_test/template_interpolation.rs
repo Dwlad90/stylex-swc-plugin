@@ -239,15 +239,14 @@ stylex_test!(
   "#
 );
 
-// The interpolation above coerces in Rust, where the namespace map is read as an
-// object. `Object()` is a call and folds in the engine instead, and the map is
-// this compiler's own value with no form the bridge carries — so the call
-// refuses where the interpolation folds. The two are the disjoint positions the
-// two conversion implementations serve; upstream folds both to
-// `[object Object]`, so this is a written divergence in the safe direction.
-stylex_test_panic!(
-  the_folded_namespace_map_wrapped_in_object_is_rejected,
-  "Only static values can be passed to Object().",
+// The interpolation above reads the namespace map as an object. `Object()` is a
+// call, and the map is this compiler's own value with no form the bridge
+// carries — so the engine never sees it and the conversion behind the fold
+// answers, through the same coercion the interpolation used. Both spell
+// `[object Object]`, which is what upstream folds them to, and reading one way
+// here and another there is exactly what sharing the coercion prevents.
+stylex_test!(
+  the_folded_namespace_map_wrapped_in_object,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';

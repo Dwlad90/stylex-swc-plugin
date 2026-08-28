@@ -1807,13 +1807,11 @@ fn without_parens(expr: &Expr) -> &Expr {
 /// Read through parentheses, because they change nothing about which name is
 /// written and the reference compiler folds `(String)('a')` and `(Math).max(1, 2)`
 /// exactly as it folds them bare.
-fn unshadowed_global<'a>(expr: &'a Expr, reader: &Reader) -> Option<&'a Atom> {
+pub(super) fn unshadowed_global<'a>(expr: &'a Expr, state: &StateManager) -> Option<&'a Atom> {
   let expr = without_parens(expr);
 
   match expr.as_ident() {
-    Some(name) if is_valid_callee(expr) && get_binding(expr, reader.traversal_state).is_none() => {
-      Some(&name.sym)
-    },
+    Some(name) if is_valid_callee(expr) && get_binding(expr, state).is_none() => Some(&name.sym),
     _ => None,
   }
 }
@@ -1929,7 +1927,7 @@ fn admit_call<'a>(
   // functions, so they are folded by being called rather than by a conversion
   // written out here. A name the module bound is not one of them and is left to
   // the dispatch below, which calls the author's own function.
-  if let Some(global) = unshadowed_global(callee, reader) {
+  if let Some(global) = unshadowed_global(callee, reader.traversal_state) {
     return admit_applied_global(global, call, guard, reader);
   }
 
@@ -1953,7 +1951,7 @@ fn admit_call<'a>(
   // what folding a static needs, so the surface is the language's rather than a
   // list of names this compiler chose, and where a static is written no longer
   // decides whether it folds.
-  let global = unshadowed_global(obj, reader);
+  let global = unshadowed_global(obj, reader.traversal_state);
 
   // The statics the reference compiler refuses by name, refused here for the
   // reason it refuses them: each answers by changing what it was handed, or
@@ -2033,12 +2031,21 @@ fn admit_call<'a>(
 /// The arguments are walked as values and nothing else: none of the globals is a
 /// higher-order function, so an arrow among them is a value like any other.
 ///
-/// A name the bridge cannot carry is a refusal here rather than a shape handed
-/// back, because the fold owns every call to an unbound global — nothing below
-/// it folds one, so handing the call back would end it at the catch-all's
-/// `Unsupported expression` with the reason lost. The one thing the guard does
-/// not answer is whether the global is a function at all: that is the language's
-/// answer and is read off the engine in [`Admitted::callable`].
+/// An argument the bridge cannot carry hands the call back rather than refusing
+/// it. The bridge carries JavaScript values, and this compiler has values of its
+/// own — a resolved theme reference, the injected function map, the environment
+/// object — which have no JavaScript form to cross as, so the engine cannot be
+/// the thing that answers for them. The dispatch below folds a global applied to
+/// one, and raises [`uncoercible_value`] where it cannot, so the sentence a
+/// refusal carries is still written in one place.
+///
+/// A rule the walk *did* name is still a refusal: it is about the argument the
+/// author wrote rather than about what the bridge holds, and nothing below the
+/// fold would name it again.
+///
+/// The one thing the guard does not answer is whether the global is a function
+/// at all: that is the language's answer and is read off the engine in
+/// [`Admitted::callable`].
 fn admit_applied_global<'a>(
   global: &'a Atom,
   call: &CallExpr,
@@ -2049,10 +2056,7 @@ fn admit_applied_global<'a>(
     admit_entry_amplification(amplifier, &call.args, guard, reader)?;
   }
 
-  admit_arguments(&call.args, guard, reader).map_err(|declined| match declined {
-    Decline::NotACandidate => Decline::rule(uncoercible_value(global)),
-    rule => rule,
-  })?;
+  admit_arguments(&call.args, guard, reader)?;
 
   Ok(Admitted::Global(global))
 }

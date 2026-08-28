@@ -4,6 +4,7 @@ pub(super) mod await_expression;
 pub(super) mod binary_expression;
 pub(super) mod call_expression;
 pub(super) mod conditional_expression;
+pub(super) mod global_conversion;
 pub(super) mod identifier;
 pub(super) mod literal;
 pub(super) mod logical_expression;

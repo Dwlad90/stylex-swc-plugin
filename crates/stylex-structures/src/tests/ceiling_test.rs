@@ -143,3 +143,36 @@ fn the_public_resolver_agrees_with_the_rule_it_wraps() {
     CEILING.resolve_from(Some(9), None)
   );
 }
+
+// A ceiling declared where it is used is a `static`, which the compiler folds
+// before the process starts -- so the constructor is also asked for one built
+// while the program runs, to pin that it stores the three numbers it is handed
+// and starts with an unread environment.
+#[test]
+fn a_ceiling_built_at_runtime_carries_what_it_was_declared_with() {
+  let built = Ceiling::new("STYLEX_TEST_RUNTIME_CEILING", 16, 1_024);
+
+  assert_eq!(built.env, "STYLEX_TEST_RUNTIME_CEILING");
+  assert_eq!(built.default, 16);
+  assert_eq!(built.limit, 1_024);
+
+  // The whole precedence answers off the fresh ceiling's own numbers, so the
+  // constructor wired all three to the rule rather than only to the fields.
+  assert_resolves_by_precedence(&built);
+
+  // And its cache is its own: the first `resolve` reads a variable no test sets,
+  // so the answer is the default this ceiling declared and not the shared one's.
+  assert_eq!(built.resolve(None), 16);
+  assert_ne!(built.default, CEILING.default);
+
+  // A second read comes back the same, which is the cached lookup answering.
+  assert_eq!(built.resolve(None), 16);
+
+  // The degenerate bracket -- a default and a limit of one -- is still a
+  // ceiling, and everything collapses onto it.
+  let narrow = Ceiling::new("STYLEX_TEST_NARROW_CEILING", 1, 1);
+
+  assert_eq!(narrow.resolve(Some(usize::MAX)), 1);
+  assert_eq!(narrow.resolve_from(None, Some("4096")), 1);
+  assert_eq!(narrow.clamped(0), 1);
+}

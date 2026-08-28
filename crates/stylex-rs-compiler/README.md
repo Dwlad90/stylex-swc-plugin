@@ -545,11 +545,13 @@ inside, which is 3 evaluations and 1200000 characters in all, and at most
 1000000 are supported.
 ```
 
-An array whose element count the compiler cannot read is the one case still
-refused whatever the length says -- a receiver that is itself a call, or a
-method whose callback does not run once per element, such as `sort` or
-`reduce`. Writing the elements out, or naming the array they are in, is what
-makes the count readable.
+The count comes from the receiver's own value, so a receiver that is itself a
+call is counted like any other and so is a method the compiler has never heard
+of. What is still refused whatever the length says is a callback the language
+runs more often than its receiver is long -- a comparator handed to `sort` or
+`toSorted` -- and a receiver whose value cannot be read at all. Writing the
+elements out, or naming the array they are in, is what makes the count
+readable.
 
 The same number bounds a string the compiler grows without running a method at
 all. `a + a` and `` `${a}${a}` `` are answered directly rather than in the

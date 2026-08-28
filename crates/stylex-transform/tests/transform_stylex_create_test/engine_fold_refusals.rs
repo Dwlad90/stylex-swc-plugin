@@ -158,14 +158,14 @@ fn an_escaping_property_names_the_property_rather_than_the_call() {
 /// cannot be read the sentence has to name the receiver, not the argument, which
 /// is inside the bound.
 ///
-/// The receiver here is itself a call, which is the one element count the guard
-/// leaves unread on purpose. Written on an array whose elements are in the
-/// source, the same call folds, which the file for this rule asserts.
+/// The receiver here is sorted, and a comparator is the one callback the guard
+/// counts no evaluations of. Written on a call the language runs once per
+/// element, the same body folds, which the file for this rule asserts.
 #[test]
 #[should_panic(expected = "Cannot bound the string 'padStart' would build inside a callback.")]
 fn an_unmeasured_receiver_names_the_receiver_as_the_reason() {
   fold(&module(
-    "content: 'ab'.split('').map(x => x.padStart(2, '0')).join(''),",
+    "content: ['b','a'].sort((p, q) => p.length - q.padStart(2, '0').length).join('-'),",
   ));
 }
 

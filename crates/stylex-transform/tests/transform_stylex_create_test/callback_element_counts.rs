@@ -278,17 +278,30 @@ fn the_width_is_the_widest_element() {
   );
 }
 
-/// A parameter after the first is the index or the receiver rather than the
-/// element, so it carries no element's width and a length read off one is not a
-/// length the guard knows. Upstream refuses both of these too.
+/// The parameter after the element is its index, whose value the same reading of
+/// the same receiver settles: the largest index an array of two has is one. What
+/// comes after that is the receiver itself, which nothing bounded.
 #[test]
-fn a_later_parameter_carries_no_element_width() {
-  for body in [
-    "content: ['a','b'].map((x, i) => i.repeat(2)).join('-'),",
+fn the_index_parameter_carries_the_count_the_element_did() {
+  assert_folds(
+    "",
+    "content: ['a','b'].map((x, i) => x.padStart(i + 2, '0')).join('-'),",
+    ".xmtou9f{content:\"0a-00b\"}",
+  );
+
+  // A product of the index rather than a sum, so the arithmetic is read rather
+  // than one operator's special case.
+  assert_folds(
+    "",
+    "content: ['a','b','c'].map((x, i) => x.repeat(i * 2)).join('-'),",
+    ".x14kdrf{content:\"-bb-cccc\"}",
+  );
+
+  assert_refuses(
+    "",
     "content: ['a','b'].map((x, i, all) => all.repeat(2)).join('-'),",
-  ] {
-    assert_refuses("", body, CANNOT_BOUND);
-  }
+    CANNOT_BOUND,
+  );
 
   // What those parameters *are* still crosses, so the callback itself folds --
   // it is the width that is missing rather than the binding.
@@ -445,61 +458,26 @@ fn an_element_with_no_readable_width_leaves_the_sentence_to_the_language() {
 // The remainder that keeps its refusal
 // ──────────────────────────────────────────────
 
-/// A receiver that is itself a call has no element count the guard can read
-/// without evaluating it, which is exactly what bounding each link separately
-/// fails to prevent -- so this is the blanket refusal's honest remainder, and the
-/// sentence names the receiver rather than the argument.
+/// A comparator is the one callback the language runs more often than its
+/// receiver is long, so no element count bounds it and the blanket refusal is
+/// what it keeps. Upstream folds both, which is what the exception costs.
 #[test]
-fn a_receiver_that_is_a_call_keeps_the_blanket_refusal() {
-  // The declared length reaches the blanket refusal directly, because a length
-  // the source states is all that rule reads.
-  assert_refuses(
-    "",
-    "content: 'ab'.split('').map(x => Array(2).fill(x).join('')).join('-'),",
-    UNMEASURED,
-  );
-
-  // A padded length does too: the count is the whole of the bound, so the
-  // repeats are the only factor left unread.
-  assert_refuses(
-    "",
-    "content: 'ab'.split('').map(x => x.padStart(2, '0')).join(''),",
-    UNMEASURED,
-  );
-
-  // `repeat` asks for its receiver's own length first, and an element of an
-  // unmeasured receiver has no width -- so it refuses one rule earlier, naming
-  // the length it could not read rather than the count it could.
-  assert_refuses(
-    "",
-    "content: 'x'.repeat(4).split('').map(c => c.repeat(4)).join(''),",
-    CANNOT_BOUND,
-  );
-}
-
-/// A method whose callback the guard does not count leaves it unmeasured, and
-/// both names left out were left out for a measured reason: a comparator runs
-/// more often than its array is long, and a reducer is handed the element in its
-/// second parameter. Upstream folds both, which is what the list costs.
-#[test]
-fn a_method_outside_the_counted_set_keeps_the_blanket_refusal() {
+fn a_comparator_keeps_the_blanket_refusal() {
   // A `repeat` on a parameter refuses on the width, one rule ahead of the
   // repeats, because an element of a receiver nothing measured has none.
-  for body in [
+  assert_refuses(
+    "",
     "content: ['b','a'].sort((p, q) => p.repeat(2) < q.repeat(2) ? -1 : 1).join('-'),",
-    "content: ['a','b'].reduce((acc, x) => acc + x.repeat(2), '').length,",
-  ] {
-    assert_refuses("", body, CANNOT_BOUND);
-  }
+    CANNOT_BOUND,
+  );
 
   // And a length the source states reaches the blanket refusal, which is where
   // the uncounted repeats are the whole of the reason.
-  for body in [
+  assert_refuses(
+    "",
     "content: ['b','a'].sort((p, q) => Array(2).fill(p).length - q.length).join('-'),",
-    "content: ['a','b'].reduce((acc, x) => acc + x.padStart(2, '0'), '').length,",
-  ] {
-    assert_refuses("", body, UNMEASURED);
-  }
+    UNMEASURED,
+  );
 }
 
 /// A receiver the guard cannot resolve at all -- a spread element, or an array

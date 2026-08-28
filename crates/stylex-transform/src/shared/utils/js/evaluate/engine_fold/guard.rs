@@ -120,13 +120,13 @@ impl Scope<'_> {
     matches!(self, Scope::Names { .. })
   }
 
-  /// How many characters `name` may hold, where it is an element of a receiver
-  /// a call measured — and `None` for every other name, whose value nothing
-  /// here bounded.
+  /// What `name` holds, where it is a value a call measured for the callback
+  /// around it — and `None` for every other name, whose value nothing here
+  /// bounded.
   ///
-  /// The innermost scope binding the name answers, so a name shadowing an
-  /// element is read as itself rather than borrowing the element's width.
-  pub(super) fn characters_of(&self, name: &Atom) -> Option<u64> {
+  /// The innermost scope binding the name answers, so a name shadowing a
+  /// measured one is read as itself rather than borrowing its bounds.
+  pub(super) fn bounds_of(&self, name: &Atom) -> Option<Bounds> {
     let Scope::Names {
       names,
       elements,
@@ -137,26 +137,86 @@ impl Scope<'_> {
     };
 
     match names.iter().position(|bound| bound == name) {
-      Some(at) if at < elements.named => elements.characters,
-      Some(_) => None,
-      None => outer.characters_of(name),
+      Some(at) => elements.holding(at),
+      None => outer.bounds_of(name),
     }
   }
 }
 
-/// What the guard knows about the values a scope's leading names hold.
+/// What the guard read about a value it cannot see, because the engine is what
+/// binds it.
 ///
-/// Leading, because only a callback's *first* parameter is handed the element:
-/// the parameters after it are the index and the receiver itself, and a name a
-/// block of the body declares holds whatever the body built. Neither is bounded
-/// by an element's width, so neither borrows it.
+/// Two readings of one value rather than two values, so a width and a count
+/// taken off the same element cannot come to disagree. Both are upper bounds:
+/// reading either short admits a call nothing bounded, where reading it long
+/// only refuses sooner.
+#[derive(Clone, Copy, Default)]
+pub(super) struct Bounds {
+  /// The characters it renders to under the language's own `ToString`.
+  pub(super) characters: Option<u64>,
+  /// The largest number it is — set only where the guard could see that it is
+  /// a number at all, because a value that merely *coerces* to one is a string
+  /// under `+` and would make a sum of bounds no bound.
+  pub(super) magnitude: Option<u64>,
+}
+
+/// What the guard knows about the values a scope's names hold.
+///
+/// Two of a callback's parameters are values the call around it measured — the
+/// one handed an element of the receiver, and the one handed that element's
+/// index. Which position each sits in is the method's to say, so both are
+/// recorded as positions in the scope's name list rather than assumed to lead
+/// it: `map` hands the element first and `reduce` hands it after an
+/// accumulator.
+///
+/// Every other name — a later parameter, and a name a block of the body
+/// declares — holds whatever the body built, which nothing here bounded.
 #[derive(Clone, Copy, Default)]
 pub(super) struct Elements {
-  /// How many of the scope's names hold one, counted from the first.
-  named: usize,
-  /// The characters the widest of them renders to, or `None` where an element
-  /// renders to a width the guard could not read.
-  characters: Option<u64>,
+  /// The names handed an element, as the half-open span of the scope's list
+  /// the parameter in that position binds. A span rather than one position
+  /// because the parameter may destructure the element into several names.
+  element_names: (usize, usize),
+  /// What one element of the receiver holds.
+  element: Bounds,
+  /// The name handed the element's index, where the parameter in that position
+  /// is a plain name, and what that index holds.
+  index: Option<(usize, Bounds)>,
+}
+
+impl Elements {
+  /// What the name at `at` in the scope's list holds, or `None` where it is not
+  /// one of the two the call measured.
+  fn holding(&self, at: usize) -> Option<Bounds> {
+    let (from, to) = self.element_names;
+
+    match self.index {
+      Some((position, index)) if position == at => Some(index),
+      _ => match (from..to).contains(&at) {
+        true => Some(self.element),
+        false => None,
+      },
+    }
+  }
+
+  /// The names `callback` measured, placed at the positions `spans` says each
+  /// of the arrow's parameters binds.
+  ///
+  /// The index is the parameter after the element wherever the element sits,
+  /// and is only read where that parameter is a plain name: a destructuring in
+  /// its place binds parts of a number, which is nothing.
+  fn placed(callback: Callback, params: &[Pat], spans: &[(usize, usize)]) -> Self {
+    let index_at = callback.element_at + 1;
+
+    Self {
+      element_names: spans.get(callback.element_at).copied().unwrap_or_default(),
+      element: callback.element,
+      index: match params.get(index_at) {
+        Some(Pat::Ident(_)) => spans.get(index_at).map(|(from, _)| (*from, callback.index)),
+        _ => None,
+      },
+    }
+  }
 }
 
 /// How many times the expression under the walk is evaluated.
@@ -207,19 +267,24 @@ impl Repeats {
 ///
 /// Two positions reach one, and they are measured differently. A callback among
 /// the arguments runs once per element of the receiver and is handed that
-/// element, so it carries both numbers. The callee of a call reached through a
-/// name runs once per evaluation of the call itself and is handed the
-/// arguments, whose width nothing here reads — so it carries the count alone.
+/// element, so it carries everything below. The callee of a call reached through
+/// a name runs once per evaluation of the call itself and is handed the
+/// arguments, whose bounds nothing here reads — so it carries the count alone.
 ///
-/// One value rather than two fields on the guard, so the two things a body needs
-/// — how often it runs, and how wide the value it is handed — are read off the
-/// same measurement and cannot come to disagree.
+/// One value rather than a field each on the guard, so everything a body needs —
+/// how often it runs, and what the values it is handed hold — is read off the
+/// same measurement of the same receiver and cannot come to disagree.
 #[derive(Clone, Copy, Default)]
 pub(super) struct Callback {
   /// How many times the call will run the body.
   pub(super) repeats: Repeats,
-  /// The characters the widest element of the receiver renders to.
-  pub(super) characters: Option<u64>,
+  /// What the widest element of the receiver holds.
+  pub(super) element: Bounds,
+  /// What that element's index holds, which is a number the receiver's own
+  /// length settles.
+  pub(super) index: Bounds,
+  /// Which of the callback's parameters is handed the element.
+  pub(super) element_at: usize,
 }
 
 /// What the guard carries as it walks: where a bare identifier may come from,
@@ -1034,15 +1099,22 @@ impl<'r> Walk<'_, 'r> {
     // Then the count a callback among the arguments would repeat, read off the same
     // receiver — after it has been admitted, so a receiver the guard is about to
     // refuse is never read for a count nothing will use. A global holds no elements
-    // to count and no static on one takes a callback this rule owns, so the reading
-    // is not attempted there either.
+    // of its own, so the only static counted there is the one that iterates an
+    // argument.
     let counted = match global {
       None => {
         self.under(guard).admit_value(obj)?;
 
-        self.under(guard).admitted_callback(&method.sym, obj)
+        self
+          .under(guard)
+          .admitted_callback(&method.sym, obj, &call.args)
       },
-      Some(_) => None,
+      // `Array.from` is the one static that runs a callback once per element,
+      // and what it iterates is its first argument rather than a receiver.
+      Some(global) => match EntryAmplifier::named(global, Some(&method.sym)) {
+        Some(EntryAmplifier::From) => self.under(guard).admitted_mapper(&call.args),
+        _ => None,
+      },
     };
 
     let inner = Guard {
@@ -1143,7 +1215,7 @@ impl<'r> Walk<'_, 'r> {
     let callee_guard = Guard {
       callback: Some(Callback {
         repeats: self.guard.repeats,
-        characters: None,
+        ..Callback::default()
       }),
       ..self.guard
     };
@@ -1197,16 +1269,17 @@ impl<'r> Walk<'_, 'r> {
   /// really runs.
   fn admit_arrow(&mut self, arrow: &ArrowExpr) -> Result<(), Decline> {
     let mut bindings = Bindings::default();
-    let mut first = 0;
+    let mut spans = Vec::with_capacity(arrow.params.len());
 
-    for (position, param) in arrow.params.iter().enumerate() {
+    for param in &arrow.params {
+      // Where each parameter's names begin and end, so a value the call measured
+      // is bound to the names of the parameter it is really handed to rather
+      // than to whichever came first.
+      let from = bindings.names.len();
+
       bindings.pattern(param, self.guard.depth)?;
 
-      // The names the first parameter binds are the ones handed an element of the
-      // receiver, whether that parameter is a plain name or destructures one.
-      if position == 0 {
-        first = bindings.names.len();
-      }
+      spans.push((from, bindings.names.len()));
     }
 
     // What the call this arrow was written inside measured for it. A parameter with
@@ -1219,10 +1292,7 @@ impl<'r> Walk<'_, 'r> {
 
     let (elements, repeats) = match measured {
       Some(callback) => (
-        Elements {
-          named: first,
-          characters: callback.characters,
-        },
+        Elements::placed(callback, &arrow.params, &spans),
         callback.repeats,
       ),
       None => (Elements::default(), Repeats::Unmeasured),

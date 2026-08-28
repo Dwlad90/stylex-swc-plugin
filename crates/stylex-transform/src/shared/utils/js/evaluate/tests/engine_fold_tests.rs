@@ -546,8 +546,8 @@ fn a_fold_cannot_write_to_a_prototype_the_next_fold_reads() {
 
 /// An amplifying call is bounded by an argument written into the source, which
 /// bounds one evaluation. A callback runs once per element, so the bound on the
-/// call is that argument times the receiver's element count — and a receiver
-/// whose elements nothing counted is the one case left refusing.
+/// call is that argument times the receiver's element count — and a callback the
+/// language does not run once per element is the one case left refusing.
 #[test]
 fn an_amplifying_call_inside_a_callback_is_bounded_by_the_product() {
   assert_folds_to_string(
@@ -556,10 +556,17 @@ fn an_amplifying_call_inside_a_callback_is_bounded_by_the_product() {
   );
   assert_folds_to_string("[\"1\"].map(x => x.padEnd(2, \"0\")).join(\"\")", "10");
 
-  // A receiver that is itself a call has no element count the guard can read
-  // without evaluating it, which is exactly what bounding each link separately
-  // fails to prevent.
-  assert_deopts("\"x\".repeat(4).split(\"\").map(c => c.repeat(4)).join(\"\")");
+  // A receiver that is itself a call is counted like any other, because the walk
+  // admits it before the count is taken -- so what it resolves to is already
+  // inside both ceilings.
+  assert_folds_to_string(
+    "\"x\".repeat(4).split(\"\").map(c => c.repeat(4)).join(\"\")",
+    "xxxxxxxxxxxxxxxx",
+  );
+
+  // What is left refusing is a callback the language runs more often than the
+  // receiver is long, which no element count bounds.
+  assert_deopts("[\"b\", \"a\"].sort((x, y) => x.repeat(999999).length - y.length).join(\"\")");
 
   // The same call outside a callback is still bounded by its argument alone.
   assert_folds_to_string("\"1\".padStart(2, \"0\")", "01");
@@ -988,4 +995,43 @@ fn a_chain_is_one_entry_rather_than_one_per_link() {
   });
 
   assert_eq!(compiled, 1);
+}
+
+/// The element count a callback is priced against comes off the receiver, so it
+/// answers for a method no list holds and for a receiver that is itself a call.
+///
+/// Asserted at the evaluator rather than through a declaration because the
+/// question is which values fold, and a class name would only re-spell that.
+#[test]
+fn a_callback_is_measured_against_the_receiver_rather_than_against_its_method() {
+  // A reducer, which the list left out because it hands the element second.
+  assert_folds_to_string(
+    "[\"p\", \"q\"].reduce((total, x) => total + x.repeat(2), \"\")",
+    "ppqq",
+  );
+
+  // `Array.from`'s mapper, which is measured against the value it iterates.
+  assert_folds_to_string("Array.from(\"ab\", c => c.repeat(2)).join(\"-\")", "aa-bb");
+
+  // A method no list ever held, measured like every other.
+  assert_folds_to_string(
+    "[\"a\", \"b\"].findLast(x => x.padEnd(2, \"!\") === \"b!\")",
+    "b",
+  );
+}
+
+/// A count the module cannot resolve is bounded by the same reading of the same
+/// receiver: an element bounds `n`, and the largest index bounds `i + 1`.
+#[test]
+fn a_count_written_inside_a_callback_is_bounded_by_what_the_receiver_holds() {
+  assert_folds_to_string("[1, 2].map(n => \"x\".repeat(n)).join(\"-\")", "x-xx");
+  assert_folds_to_string(
+    "[\"p\", \"q\"].map((s, i) => s.repeat(i + 1)).join(\"-\")",
+    "p-qq",
+  );
+
+  // A value that only *coerces* to a number is left unread, because `+` joins a
+  // string rather than adding to it and a bound taken off the coercion would not
+  // survive the sum.
+  assert_deopts("[\"2\", \"3\"].map(n => \"x\".repeat(n)).join(\"-\")");
 }

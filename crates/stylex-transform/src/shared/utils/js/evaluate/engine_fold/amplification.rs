@@ -9,10 +9,19 @@
 //! around it was written on, so every bound below is multiplied by that count.
 //! A receiver nothing counted leaves the product unbounded, which is the one
 //! refusal both rules share.
+//!
+//! That count belongs to the receiver rather than to the method reading it, so
+//! it is taken off the receiver's own value and the method is asked only where
+//! its callback is not the ordinary once-per-element one — see
+//! [`element_parameter_of`]. A method nobody wrote down is therefore measured
+//! like every other, which is the whole of why there is no list of them here.
 
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{ArrayLit, Expr, ExprOrSpread, KeyValueProp, Lit, Prop, PropName, PropOrSpread},
+  ecma::ast::{
+    ArrayLit, BinExpr, BinaryOp, Expr, ExprOrSpread, KeyValueProp, Lit, Prop, PropName,
+    PropOrSpread,
+  },
 };
 
 use stylex_ast::ast::convertors::{atom_utf16_length, is_js_undefined};
@@ -23,7 +32,7 @@ use stylex_constants::constants::evaluation_errors::{
 use stylex_js::coercions::to_js_number;
 use stylex_utils::number::to_js_string;
 
-use super::guard::{Callback, Reader, Walk, without_parens};
+use super::guard::{Bounds, Callback, Reader, Walk, without_parens};
 use super::{Decline, Depth, as_expr, lists};
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 
@@ -37,33 +46,6 @@ use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResult
 /// `Array(n).fill(0)` is `n` read from the other end, and `fill` itself is
 /// innocent.
 const LENGTH_AMPLIFYING_METHODS: [&str; 3] = ["repeat", "padStart", "padEnd"];
-
-/// Methods whose callback the language evaluates at most once per element of the
-/// receiver, and hands the element to as its first parameter.
-///
-/// Both halves are what a bound needs. *At most once per element* is what makes
-/// the receiver's element count a factor the two amplification rules can
-/// multiply by; *first parameter* is what makes the element's width the width of
-/// the name a body reads it through.
-///
-/// A name not listed here leaves a callback unmeasured, which is the refusal
-/// every callback used to get — so the list is safe by default and grows only
-/// where both halves were checked. `sort` is left out because a comparator runs
-/// more often than its array is long, and `reduce` and `reduceRight` with it
-/// because the element they hand a callback is its second parameter, so a width
-/// read off the receiver would name the accumulator.
-const PER_ELEMENT_METHODS: [&str; 10] = [
-  "map",
-  "flatMap",
-  "filter",
-  "forEach",
-  "some",
-  "every",
-  "find",
-  "findIndex",
-  "findLast",
-  "findLastIndex",
-];
 
 /// The lengths an array may have, as the language's own range.
 ///
@@ -85,6 +67,12 @@ const VALID_ARRAY_LENGTHS: std::ops::Range<f64> = 0.0..4_294_967_296.0;
 /// short admits a call nothing bounded, where reading it long only refuses
 /// sooner. `null` beside it is read the same way, for the same reason.
 const UNDEFINED_WIDTH: u64 = "undefined".len() as u64;
+
+/// How wide one element of a string iterated by code point can be.
+///
+/// Two UTF-16 units, because a code point outside the basic plane is a surrogate
+/// pair and `Array.from` hands the mapper both halves as one element.
+const SURROGATE_PAIR_WIDTH: u64 = 2;
 
 impl Walk<'_, '_> {
   /// Whether a length-amplifying call is bounded well enough to evaluate.
@@ -141,10 +129,15 @@ impl Walk<'_, '_> {
       Some(ExprOrSpread {
         spread: Some(_), ..
       }) => return Err(unreadable()),
-      Some(ExprOrSpread { expr, .. }) => {
-        resolved_count(expr, self.reader).ok_or_else(unreadable)?
-      },
+      Some(ExprOrSpread { expr, .. }) => self.count_bound(expr).ok_or_else(unreadable)?,
     };
+
+    // A repeat of one is the receiver itself and a repeat of none is nothing, so
+    // neither builds a character the receiver had not already been paid for --
+    // and asking for its length would refuse a call that amplifies nothing.
+    if method == "repeat" && count <= 1 {
+      return Ok(());
+    }
 
     // Saturating because the product exists to be refused on, and a wrapped one
     // would admit.
@@ -178,38 +171,86 @@ impl Walk<'_, '_> {
   }
 
   /// What a callback passed to this call would repeat, or `None` where the call
-  /// takes no callback the guard counts.
+  /// hands the method no function to run.
   ///
   /// The receiver is read rather than the argument, because a callback's body runs
   /// once per element of the receiver the call was written on — and by the time
   /// this is asked that receiver has already been admitted, so the read is one the
   /// fold was going to pay for anyway.
-  pub(super) fn admitted_callback(&mut self, method: &Atom, receiver: &Expr) -> Option<Callback> {
-    if !lists(&PER_ELEMENT_METHODS, method) {
+  ///
+  /// **The method is asked only where its callback is not the ordinary one.** The
+  /// count belongs to the receiver, so a method the guard has never heard of is
+  /// measured like every other rather than refused for being absent from a list —
+  /// which is what [`element_parameter_of`] is for, and the whole of the
+  /// difference between this and the ten-name table it replaced.
+  pub(super) fn admitted_callback(
+    &mut self,
+    method: &Atom,
+    receiver: &Expr,
+    args: &[ExprOrSpread],
+  ) -> Option<Callback> {
+    if !hands_over_a_function(args) {
       return None;
     }
+
+    let Some(element_at) = element_parameter_of(method) else {
+      return Some(Callback::default());
+    };
 
     // A callback the guard admits but could not measure is still a callback, so it
     // is `Some` holding the unmeasured default rather than `None`: what tells the
     // two apart is whether an arrow in this position is a body that runs at all.
-    Some(self.measured_receiver(receiver).unwrap_or_default())
+    Some(
+      self
+        .measured_receiver(receiver, element_at)
+        .unwrap_or_default(),
+    )
+  }
+
+  /// The same for the mapper `Array.from` takes, whose elements come from the
+  /// call's first argument rather than from a receiver.
+  ///
+  /// The mapper is the second argument, so a call handing `from` nothing else
+  /// runs no callback at all and is left alone.
+  ///
+  /// **The ordering here is not the receiver's.** A receiver is admitted before
+  /// its count is taken; an argument is walked *after*, so the read below happens
+  /// in front of the source's own bounds. It costs nothing extra all the same,
+  /// because [`length_property`] has already resolved the very same expression
+  /// one step earlier — the entry ceiling is compared against a declared length
+  /// before the engine runs, and that comparison is what does the resolving. So
+  /// this adds a memo hit rather than a walk, and the exposure that is there is
+  /// the entry rule's own and older than this reading.
+  pub(super) fn admitted_mapper(&mut self, args: &[ExprOrSpread]) -> Option<Callback> {
+    let [source, mapper @ ..] = args else {
+      return None;
+    };
+
+    if !hands_over_a_function(mapper) {
+      return None;
+    }
+
+    Some(self.measured_source(&source.expr).unwrap_or_default())
   }
 
   /// What a callback over this receiver would repeat and hold, or `None` where the
   /// guard cannot read the receiver at all.
   ///
-  /// One reading answers both, so the count and the width come off the same
-  /// measurement of the same value and cannot come to disagree.
-  fn measured_receiver(&mut self, receiver: &Expr) -> Option<Callback> {
+  /// One reading answers all three, so the count, the width and the largest index
+  /// come off the same measurement of the same value and cannot come to disagree.
+  fn measured_receiver(&mut self, receiver: &Expr, element_at: usize) -> Option<Callback> {
     let depth = self.guard.depth;
 
     // The evaluator answers an array either as a list of its own or as the literal
     // it was written as, and both are one array here — the same two shapes the
     // inward conversion reads, for the same reason.
-    let (elements, characters) = match &module_value_of(receiver, self.reader)? {
+    let (elements, element) = match &countable_value_of(receiver, self.reader)? {
       EvaluateResultValue::Vec(items) => (
         items.len(),
-        widest_of(items.iter().map(|item| rendered_characters(item, depth))),
+        Bounds {
+          characters: greatest_of(items.iter().map(|item| rendered_characters(item, depth))),
+          magnitude: greatest_of(items.iter().map(number_held_by)),
+        },
       ),
       EvaluateResultValue::Expr(Expr::Array(ArrayLit { elems, .. })) => {
         // A spread stands for however many elements its operand holds, so the
@@ -222,16 +263,139 @@ impl Walk<'_, '_> {
 
         (
           elems.len(),
-          widest_of(elems.iter().map(|elem| rendered_element(elem, depth))),
+          Bounds {
+            characters: greatest_of(elems.iter().map(|elem| rendered_element(elem, depth))),
+            magnitude: greatest_of(elems.iter().map(number_written_as)),
+          },
         )
       },
       _ => return None,
     };
 
-    Some(Callback {
-      repeats: self.guard.repeats.per_element(elements as u64),
-      characters,
-    })
+    Some(self.callback_over(elements as u64, element, element_at))
+  }
+
+  /// The same for a value `Array.from` iterates, which is an array or one of two
+  /// shapes only this call counts as one.
+  ///
+  /// A **string** is iterated by code point, so its UTF-16 length is at least the
+  /// count and each element is one or two of those units wide. An **array-like**
+  /// declares a length it does not hold, and every element the mapper is handed is
+  /// `undefined` — the same length [`EntryAmplifier::From`] is bounded by one step
+  /// earlier, read here for the count it also settles.
+  fn measured_source(&mut self, source: &Expr) -> Option<Callback> {
+    if let Some(measured) = self.measured_receiver(source, 0) {
+      return Some(measured);
+    }
+
+    match countable_value_of(source, self.reader)? {
+      EvaluateResultValue::Expr(Expr::Lit(Lit::Str(text))) => Some(self.callback_over(
+        atom_utf16_length(&text.value) as u64,
+        Bounds {
+          characters: Some(SURROGATE_PAIR_WIDTH),
+          magnitude: None,
+        },
+        0,
+      )),
+      resolved => match declared_length_of(&resolved) {
+        Declared::Length(length) => Some(self.callback_over(
+          length,
+          Bounds {
+            characters: Some(UNDEFINED_WIDTH),
+            magnitude: None,
+          },
+          0,
+        )),
+        _ => None,
+      },
+    }
+  }
+
+  /// One measurement of a receiver as what the callback over it may do.
+  ///
+  /// The index is settled by the same count as the repeats — the largest one a
+  /// receiver of `elements` has is one below its length — so it is read here
+  /// rather than at each of the two places a count is taken.
+  fn callback_over(&self, elements: u64, element: Bounds, element_at: usize) -> Callback {
+    let last = elements.saturating_sub(1);
+
+    Callback {
+      repeats: self.guard.repeats.per_element(elements),
+      element,
+      index: Bounds {
+        characters: Some(to_js_string(last as f64).len() as u64),
+        magnitude: Some(last),
+      },
+      element_at,
+    }
+  }
+
+  /// The largest count an amplifying call can ask for, or `None` where the guard
+  /// cannot read one.
+  ///
+  /// A literal is answered where it stands, because that is the common spelling
+  /// and reading it costs nothing. Anything else is resolved through the
+  /// evaluator, which is a [speculative read](../../../../../CONTEXT.md) like
+  /// every other the guard makes — and one the fold would pay for anyway, since a
+  /// call it admits evaluates the same argument a moment later.
+  ///
+  /// Whatever it resolves to then goes through the compiler's own `ToNumber`,
+  /// because that is what the language does to it: `'x'.repeat('3')` repeats three
+  /// times and `'x'.repeat('lots')` repeats none. Reading the count any other way
+  /// would refuse an input the reference compiler folds, and bound a call by a
+  /// number the engine is not going to use.
+  ///
+  /// A count the module cannot resolve is the one a callback writes: `n` is an
+  /// element of a receiver the call around the body measured, and `i + 1` is that
+  /// receiver's index one step along. Neither has a value here — the engine binds
+  /// both — but each has a *ceiling*, taken off the same measurement the repeats
+  /// were, and a ceiling is all a bound ever needed.
+  fn count_bound(&mut self, expr: &Expr) -> Option<u64> {
+    if let Expr::Lit(_) = expr {
+      return count_of(to_js_number(expr)?);
+    }
+
+    match self.reader.resolve(expr) {
+      Some(value) => count_of(to_js_number(&as_expr(&value)?)?),
+      None => self.numeric_bound(expr),
+    }
+  }
+
+  /// The largest number `expr` can come to, or `None` where the guard cannot see
+  /// that it is a number at all.
+  ///
+  /// Narrower than [`Walk::count_bound`] on purpose, and the narrowing is what
+  /// makes the arithmetic sound. Every leaf here is a value the guard has seen is
+  /// a number and is not below zero, so `+` really is addition rather than
+  /// concatenation and both operations carry a bound on their operands through to
+  /// a bound on their result. A leaf that is anything else stops the reading,
+  /// which costs a fold rather than admitting one nothing measured.
+  fn numeric_bound(&mut self, expr: &Expr) -> Option<u64> {
+    match without_parens(expr) {
+      Expr::Lit(_) => number_of(expr),
+      // A name the callback binds is the element the receiver was measured for,
+      // or that element's index.
+      Expr::Ident(ident) if self.guard.scope.binds(&ident.sym) => {
+        self.guard.scope.bounds_of(&ident.sym)?.magnitude
+      },
+      Expr::Bin(BinExpr {
+        op: op @ (BinaryOp::Add | BinaryOp::Mul),
+        left,
+        right,
+        ..
+      }) => {
+        let left = self.numeric_bound(left)?;
+        let right = self.numeric_bound(right)?;
+
+        Some(match op {
+          BinaryOp::Add => left.saturating_add(right),
+          _ => left.saturating_mul(right),
+        })
+      },
+      // A name the module holds, which is a leaf like a written number once the
+      // evaluator has answered for it.
+      other => number_of(&as_expr(&self.reader.resolve(other)?)?),
+    }
   }
 
   /// The receiver's own length in UTF-16 code units, or `None` where the guard
@@ -254,7 +418,7 @@ impl Walk<'_, '_> {
       // Asked before the resolution rather than left to it — see
       // [`module_value_of`] for why the module could not answer for it anyway.
       Expr::Ident(ident) if self.guard.scope.binds(&ident.sym) => {
-        return self.guard.scope.characters_of(&ident.sym);
+        return self.guard.scope.bounds_of(&ident.sym)?.characters;
       },
       _ => match module_value_of(receiver, self.reader)? {
         EvaluateResultValue::Expr(Expr::Lit(Lit::Str(text))) => text.value,
@@ -359,6 +523,69 @@ fn module_value_of(expr: &Expr, reader: &mut Reader) -> Option<EvaluateResultVal
   }
 }
 
+/// The value `expr` holds, read for how many elements it has rather than for how
+/// long it is.
+///
+/// A **call** is resolved here where [`module_value_of`] refuses one, and the
+/// difference is *when* each is asked. A length bounds a call the guard has not
+/// admitted yet — `"x".repeat(1000000).repeat(1000000)` is refused before either
+/// link is walked, so resolving the inner one would be building the very string
+/// the bound exists to prevent. A count is taken after the receiver has been
+/// admitted, so whatever it resolves to is already inside both ceilings and the
+/// fold is about to build it anyway.
+///
+/// That ordering is [`Walk::admit_call`]'s to keep, and it is the only reason
+/// this is safe; the two readings are named apart so a later edit cannot swap
+/// one for the other without meeting this sentence.
+fn countable_value_of(expr: &Expr, reader: &mut Reader) -> Option<EvaluateResultValue> {
+  reader.resolve(expr)
+}
+
+/// Where a method hands its callback an element of the receiver, or `None` where
+/// the language does not run that callback once per element at all.
+///
+/// **Measuring is the default**, which is the whole of this rule: the count comes
+/// off the receiver, so it is the same count whatever the method does with it,
+/// and a method nobody wrote down folds rather than refusing. What is named here
+/// is only the two families whose arithmetic differs:
+///
+/// - A **comparator** runs once per comparison, which for any sort worth using is
+///   more often than the array is long. Nothing here counts comparisons, so the
+///   callback is admitted with no count and a body that amplifies inside one
+///   refuses — the answer every callback used to get, kept for the one shape that
+///   still earns it.
+/// - **`reduce`** and **`reduceRight`** hand the accumulator first and the element
+///   second, so a width read off the receiver belongs to the second parameter.
+///
+/// Nothing else in the language runs a callback more often than its receiver is
+/// long. A method added to it that did would be measured short here, and the
+/// growth would then be refused on the way out of the engine instead of in front
+/// of it — later and slower, but refused.
+fn element_parameter_of(method: &Atom) -> Option<usize> {
+  match &**method {
+    "sort" | "toSorted" => None,
+    "reduce" | "reduceRight" => Some(1),
+    _ => Some(0),
+  }
+}
+
+/// Whether any of these arguments could be a function the call runs.
+///
+/// A syntax check and deliberately a loose one: it decides whether measuring the
+/// receiver is worth a read, not whether the call takes a callback. An arrow and
+/// a function expression are written in place, and a name is the third spelling —
+/// [`Walk::admit_a_named_function`](super::guard) is what makes one reach a body.
+/// Everything else is an argument no method calls, and a call handing a method
+/// only those is left unmeasured because there is nothing there to price.
+fn hands_over_a_function(args: &[ExprOrSpread]) -> bool {
+  args.iter().any(|arg| {
+    matches!(
+      without_parens(&arg.expr),
+      Expr::Arrow(_) | Expr::Fn(_) | Expr::Ident(_)
+    )
+  })
+}
+
 /// One written array element's rendered width.
 ///
 /// A hole is `undefined`, so its width is that value's and not nothing: a
@@ -383,13 +610,65 @@ fn rendered_element(elem: &Option<ExprOrSpread>, depth: Depth) -> Option<u64> {
   }
 }
 
-/// The widest of a receiver's elements, or `None` where one of them renders to a
-/// width the guard could not read.
+/// The largest of a receiver's elements read one way, or `None` where one of them
+/// could not be read at all.
 ///
 /// Any one unreadable element gives up on all of them, because which element a
-/// callback's parameter will hold is not something the guard chooses.
-fn widest_of(mut widths: impl Iterator<Item = Option<u64>>) -> Option<u64> {
-  widths.try_fold(0, |widest, width| Some(widest.max(width?)))
+/// callback's parameter will hold is not something the guard chooses. Both units
+/// an element is read in — the characters it renders to and the number it is —
+/// are bounded by the same reasoning, so both come through here.
+fn greatest_of(mut readings: impl Iterator<Item = Option<u64>>) -> Option<u64> {
+  readings.try_fold(0, |greatest, reading| Some(greatest.max(reading?)))
+}
+
+/// The number one resolved element *is*, or `None` where the guard cannot see
+/// that it is a number.
+///
+/// Written out as a number is the whole of what counts. A string that coerces to
+/// one is left unread on purpose: `'2' + 1` is `'21'` and not `3`, so a bound
+/// taken off a value the guard only knows the *coercion* of is no bound once the
+/// source adds to it.
+fn number_held_by(value: &EvaluateResultValue) -> Option<u64> {
+  match value {
+    EvaluateResultValue::Expr(expr) => number_of(expr),
+    _ => None,
+  }
+}
+
+/// The same for one element as the source wrote it.
+///
+/// A hole is `undefined`, whose `ToNumber` is `NaN` and which no arithmetic
+/// recovers a number from, so it reads as no number rather than as zero.
+fn number_written_as(elem: &Option<ExprOrSpread>) -> Option<u64> {
+  match elem {
+    Some(ExprOrSpread { spread: None, expr }) => number_of(expr),
+    _ => None,
+  }
+}
+
+/// One written number as the largest count it can stand for, or `None` where it
+/// is not a number, or is one no count can be taken from.
+///
+/// Negative is refused rather than clamped, which is what makes a sum or a
+/// product of two of these a bound at all: both operations are only monotone over
+/// values that are not below zero, and `(-5) * (-5)` is the reading that would
+/// otherwise come to twenty-five against a bound of nothing.
+///
+/// Rounded **up**, where [`count_of`] truncates, and the difference is what each
+/// number is for. A count is truncated because that is what the language does to
+/// it and the reading is the call's own. This one is arithmetic's input, and the
+/// truncation happens to the result rather than to the parts: `0.9 * 2000000` is
+/// one million eight hundred thousand characters, which a bound of `0 * 2000000`
+/// admits and a bound of `1 * 2000000` refuses.
+fn number_of(expr: &Expr) -> Option<u64> {
+  let Expr::Lit(Lit::Num(number)) = without_parens(expr) else {
+    return None;
+  };
+
+  match number.value >= 0.0 && number.value.is_finite() {
+    true => Some(number.value.ceil() as u64),
+    false => None,
+  }
 }
 
 /// How many characters one resolved value renders to under the language's own
@@ -447,29 +726,6 @@ fn joined(count: usize, mut widths: impl Iterator<Item = Option<u64>>) -> Option
   widths.try_fold(separators, |total, width| {
     Some(total.saturating_add(width?))
   })
-}
-
-/// The count an amplifying call asks for, or `None` where the argument is not a
-/// number this guard can read.
-///
-/// A literal is answered where it stands, because that is the common spelling
-/// and reading it costs nothing. Anything else is resolved through the
-/// evaluator, which is a [speculative read](../../../../../CONTEXT.md) like
-/// every other the guard makes — and one the fold would pay for anyway, since a
-/// call it admits evaluates the same argument a moment later.
-///
-/// Whatever it resolves to then goes through the compiler's own `ToNumber`,
-/// because that is what the language does to it: `'x'.repeat('3')` repeats three
-/// times and `'x'.repeat('lots')` repeats none. Reading the count any other way
-/// would refuse an input the reference compiler folds, and bound a call by a
-/// number the engine is not going to use.
-fn resolved_count(expr: &Expr, reader: &mut Reader) -> Option<u64> {
-  let resolved = match expr {
-    Expr::Lit(_) => return count_of(to_js_number(expr)?),
-    _ => as_expr(&reader.resolve(expr)?)?,
-  };
-
-  count_of(to_js_number(&resolved)?)
 }
 
 /// One resolved number as the bound it puts on what a call will build.
@@ -630,11 +886,18 @@ fn length_property(arg: Option<&ExprOrSpread>, reader: &mut Reader) -> Declared 
     return Declared::Nothing;
   };
 
-  let resolved = match reader.resolve(expr) {
-    Some(resolved) => resolved,
-    None => return Declared::Unreadable,
-  };
+  match reader.resolve(expr) {
+    Some(resolved) => declared_length_of(&resolved),
+    None => Declared::Unreadable,
+  }
+}
 
+/// The same read off a value the evaluator has already answered.
+///
+/// Split from [`length_property`] because the count a mapper repeats asks the
+/// same question of the same object, one argument along — see
+/// [`Walk::measured_source`].
+fn declared_length_of(resolved: &EvaluateResultValue) -> Declared {
   // Anything that is not an object holds what its length says — a string or an
   // array — and the ceilings bounded it where it was written or carried.
   let EvaluateResultValue::Expr(Expr::Object(object)) = resolved else {

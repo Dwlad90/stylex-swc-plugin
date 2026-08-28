@@ -123,16 +123,22 @@ refuses when that is past the project's [allocation
 ceiling](../stylex-structures/CONTEXT.md). A count is read, not required to be
 written — through the evaluator and then the language's own `ToNumber`, so an
 expression and a name reach the same bound a literal does — and `repeat`
-multiplies its receiver's own length into the product. A receiver that is itself
-a **call** is the one deliberately left unread: its answer is bounded per link,
-and reading it is exactly what would let two allowed lengths multiply into one
-that is not. Inside a **callback** body the bound is a product, since a bound
-read once bounds one evaluation and a callback runs once per element: the guard
-counts the receiver of the call the body was written inside and multiplies, so
-nesting multiplies rather than resets, and a receiver nothing counted keeps the
-refusal a callback used to get outright. That count also says how wide a value
-the callback's first parameter holds, which is what lets `x.repeat(3)` be
-bounded on a name no module can resolve. A call whose result is one
+multiplies its receiver's own length into the product. For that **length** a
+receiver that is itself a **call** is deliberately left unread: the length is
+asked in front of the receiver's own bound, so resolving one would build the
+very string the bound exists to prevent. Inside a **callback** body the bound is
+a product, since a bound read once bounds one evaluation and a callback runs
+once per element: the guard counts the receiver of the call the body was written
+inside and multiplies, so nesting multiplies rather than resets. That **count**
+does read a call, because it is taken after the receiver has been admitted and
+so is already inside both ceilings; it belongs to the receiver rather than to
+the method, so a method nobody wrote down is measured like every other, and
+what keeps the blanket refusal is a **comparator**, which the language runs
+more often than its receiver is long. The same reading says how wide a value
+the parameter handed the element holds — the first for almost every method,
+the second for a reducer — and how large its **index** is, which is what lets
+`x.repeat(3)` and `s.repeat(i + 1)` be bounded on names no module can resolve.
+A call whose result is one
 element per unit of a length an **argument declares** — `Array(n)` and
 `Array.from({ length: n })` — is bounded by the same arithmetic in entries rather
 than characters, and for a reason of its own: the array `Array(n)` makes is
@@ -427,6 +433,24 @@ an array crosses back -- which is what a sparse array never does until some late
 call in the chain fills, sorts or joins it. A length the language itself rejects
 is not one of these: it raises before allocating, and is left to say so.
 _Avoid_: sparse length, array size, allocation hint, entry count
+
+**Measured receiver**:
+One reading of the value a callback's call was written on, which answers the
+three things the amplification bounds need and answers them together so they
+cannot come to disagree: how many **elements** it holds, and so how many times
+the body runs; what the widest of them **renders** to, which bounds a length
+read off the parameter handed the element; and the largest **index** it has,
+which bounds a count written as `i + 1`. The reading belongs to the receiver
+rather than to the method, so a method nobody wrote down is measured like every
+other -- the method is asked one question only, which parameter is handed the
+element, and only a reducer (the second) and a comparator (none, since the
+language runs one more often than the array is long) answer it other than
+plainly. `Array.from`
+measures the value it iterates instead of a receiver, since that is where its
+mapper's elements come from. A receiver the reading cannot resolve leaves the
+callback **unmeasured**, which is the blanket refusal every callback used to
+get.
+_Avoid_: callback size, receiver length, repeat count, per-element table
 
 **Spread refusal**:
 The single answer every spread in a value position earns —

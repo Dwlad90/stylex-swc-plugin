@@ -368,10 +368,10 @@ itself a call — so no value of the option folds it, and that row is a divergen
 with a written reason rather than a configuration.
 `modules-21-an-unmeasured-callback-receiver` is the same distinction inside a
 callback: the length written into the body is readable and the ceiling is
-compared against it times the receiver's element count, so what refuses is the
-pair of readings that count comes from — a declared length arriving through a
-parameter, and an element count on a receiver that is itself a call. Neither is
-a number an option can move.
+compared against it times the receiver's element count, so what refuses is a
+reading that count cannot come from — a declared length arriving through a
+parameter, and a comparator, which the language runs more often than its
+receiver is long. Neither is a number an option can move.
 
 ### Refusal families
 

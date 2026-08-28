@@ -156,7 +156,7 @@ fn evaluate_unary_numeric_of(
   // operand with no numeric reading still names its own shape where the bridge
   // has nothing to add. Only ever read on the refusal below, so nothing is
   // spelled out for an operand that folds.
-  let (read, shape) = match arg {
+  let (numeric_reading, first_refusal) = match arg {
     EvaluateResultValue::Expr(expr) => match expr_to_num(expr, state, traversal_state, fns) {
       Ok(value) => (Ok(value), None),
       Err(error) => (
@@ -167,12 +167,12 @@ fn evaluate_unary_numeric_of(
     _ => (evaluate_result_to_js_number(arg, traversal_state), None),
   };
 
-  let value = match read {
+  let value = match numeric_reading {
     Ok(value) => value,
     Err(NumberRefusal::NoNumberForm) => deopt_unsupported!(
       &create_unary_expr(unary),
       state,
-      shape.as_deref().unwrap_or(ILLEGAL_PROP_VALUE)
+      first_refusal.as_deref().unwrap_or(ILLEGAL_PROP_VALUE)
     ),
     // The operand's number is the number of a string, and that string is past
     // the ceiling. Named as the operator the author wrote rather than as the

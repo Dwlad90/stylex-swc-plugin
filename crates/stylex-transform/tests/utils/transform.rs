@@ -278,14 +278,33 @@ pub(crate) fn fold_module(input: &str) -> String {
 #[track_caller]
 #[allow(dead_code)]
 pub(crate) fn assert_folds(decls: &str, body: &str, rule: &str) {
-  let output = fold_module(&base_style_module(decls, body));
+  assert_folds_with(decls, body, rule, "", fold_module);
+}
+
+/// The same, with the compile step handed in and what it changed named.
+///
+/// `under` says which option the case was compiled at, so a failure reads the
+/// same as the one the default transform raises plus that clause. Everything
+/// else about a fold case is the same, which is why this is one function rather
+/// than a second copy of it.
+#[track_caller]
+#[allow(dead_code)]
+pub(crate) fn assert_folds_with(
+  decls: &str,
+  body: &str,
+  rule: &str,
+  under: &str,
+  compile: impl FnOnce(&str) -> String,
+) {
+  let output = compile(&base_style_module(decls, body));
 
   assert!(
     output.contains(rule),
-    "expected `{}` with `{}` to emit `{}`, got:\n{}",
+    "expected `{}` with `{}` to emit `{}`{}, got:\n{}",
     body,
     decls,
     rule,
+    under,
     output
   );
 }
@@ -364,16 +383,12 @@ pub(crate) fn fold_module_under(input: &str, characters: usize) -> String {
 #[track_caller]
 #[allow(dead_code)]
 pub(crate) fn assert_folds_under(decls: &str, body: &str, rule: &str, characters: usize) {
-  let output = fold_module_under(&base_style_module(decls, body), characters);
-
-  assert!(
-    output.contains(rule),
-    "expected `{}` with `{}` to emit `{}` under a ceiling of {}, got:\n{}",
-    body,
+  assert_folds_with(
     decls,
+    body,
     rule,
-    characters,
-    output
+    &format!(" under a ceiling of {}", characters),
+    |module| fold_module_under(module, characters),
   );
 }
 

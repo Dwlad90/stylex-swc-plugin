@@ -1852,16 +1852,6 @@ impl StateManager {
       .push(PendingInsertion { slot, item });
   }
 
-  /// Queue a `ThemeImports` item, deduped against earlier queues
-  /// of the same import. Replaces the legacy
-  /// `prepend_import_module_items.contains` gate that the theme
-  /// side-effect import path used. Each evaluation gets its own
-  /// `EvaluationState.added_imports` set; this dedup lives on the
-  /// StateManager so it works across evaluations.
-  ///
-  /// `Vec::contains` short-circuits on PartialEq mismatch, which
-  /// is significantly cheaper than a full `stable_hash` walk over
-  /// the AST in the typical case.
   /// Whether a refusal raised right now is the evaluated subtree's own answer,
   /// and so worth recording against it in the memo.
   ///
@@ -1880,6 +1870,16 @@ impl StateManager {
     !self.depth_refused && !self.speculating
   }
 
+  /// Queue a `ThemeImports` item, deduped against earlier queues
+  /// of the same import. Replaces the legacy
+  /// `prepend_import_module_items.contains` gate that the theme
+  /// side-effect import path used. Each evaluation gets its own
+  /// `EvaluationState.added_imports` set; this dedup lives on the
+  /// StateManager so it works across evaluations.
+  ///
+  /// `Vec::contains` short-circuits on PartialEq mismatch, which
+  /// is significantly cheaper than a full `stable_hash` walk over
+  /// the AST in the typical case.
   pub(crate) fn queue_theme_import_if_absent(&mut self, item: ModuleItem) {
     if !self.injection.queued_theme_imports.contains(&item) {
       self.injection.queued_theme_imports.push(item.clone());

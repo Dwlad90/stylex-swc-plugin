@@ -1,6 +1,6 @@
 //! Tests for evaluation error message functions and static constants.
 
-use crate::constants::evaluation_errors::*;
+use crate::constants::{common::INVALID_METHODS, evaluation_errors::*};
 
 #[test]
 fn test_unsupported_operator() {
@@ -307,4 +307,86 @@ fn test_unfoldable_call() {
   // sentence stays true whichever one applied.
   assert!(!unfoldable_call("trim").contains("argument must"));
   assert!(unfoldable_call("trim").contains("'trim'"));
+}
+
+#[test]
+fn test_unfoldable_static() {
+  assert_eq!(
+    unfoldable_static("Math", "random"),
+    "Cannot fold 'Math.random' at compile time.\nA fold has to answer from the source alone, and this call does not.\n\n"
+  );
+  // The receiver is the half that disambiguates on a static: two methods this
+  // set refuses read alike without it, and the same bare method name on a value
+  // is a different refusal entirely.
+  assert!(unfoldable_static("Object", "freeze").contains("'Object.freeze'"));
+  assert_ne!(
+    unfoldable_static("Object", "assign"),
+    unfoldable_static("Math", "assign")
+  );
+  // Every name the compiler refuses by name gets a sentence that names it, so
+  // the set and the message can never drift apart.
+  for method in INVALID_METHODS.iter() {
+    assert!(unfoldable_static("Object", method).contains(&format!("'Object.{}'", method)));
+  }
+  // Opens with the same line as every other refusal a fold hands back, so one
+  // class of failure reads as one class.
+  assert!(unfoldable_static("Math", "random").starts_with("Cannot fold '"));
+}
+
+#[test]
+fn test_engine_did_not_start() {
+  assert_eq!(
+    engine_did_not_start("out of memory"),
+    "The compile-time JavaScript engine could not start.\nout of memory\n\n"
+  );
+  // The engine's own sentence is carried through untouched, however it is
+  // punctuated, because nothing here is in a position to improve on it.
+  assert!(engine_did_not_start("Realm::create failed").contains("Realm::create failed"));
+  // An engine that fails without a word to say still produces a sentence that
+  // says which stage failed.
+  assert_eq!(
+    engine_did_not_start(""),
+    "The compile-time JavaScript engine could not start.\n\n\n"
+  );
+}
+
+#[test]
+fn test_unfoldable_statement() {
+  assert_eq!(
+    unfoldable_statement("for loop"),
+    "Cannot fold a callback whose body uses a for loop.\n\
+     Only a declaration, a branch, a block and a return are read inside a callback body.\n\n"
+  );
+  // Names the statement kind the author can look for in the body they wrote, so
+  // two kinds may not read alike.
+  assert_ne!(
+    unfoldable_statement("while loop"),
+    unfoldable_statement("for loop")
+  );
+  // Says what *is* read as well as what is not, which is what makes the next
+  // step a rewrite rather than a guess.
+  assert!(unfoldable_statement("throw").contains("Only a declaration, a branch"));
+}
+
+#[test]
+fn test_bound_value_has_too_many_entries() {
+  assert_eq!(
+    bound_value_has_too_many_entries("palette", 10_000),
+    "Cannot carry the value of 'palette' into a fold.\nAt most 10000 elements and properties are supported.\n\n"
+  );
+  // Opens on the same line as the sibling that bounds the *text* a binding
+  // holds: an author reads one refusal about carrying a binding in, and the
+  // second line says which of the two costs was too high.
+  assert_eq!(
+    bound_value_has_too_many_entries("palette", 8)
+      .lines()
+      .next(),
+    bound_value_too_large("palette", 8).lines().next()
+  );
+  assert_ne!(
+    bound_value_has_too_many_entries("palette", 8),
+    bound_value_too_large("palette", 8)
+  );
+  // The limit is the caller's, so a raised ceiling is the number an author reads.
+  assert!(bound_value_has_too_many_entries("sizes", 32).contains("At most 32"));
 }

@@ -282,3 +282,256 @@ mod node_kind {
     assert_kind("`\\u{1F600}${a}`", es(), "TemplateLiteral");
   }
 }
+
+// ── get_stmt_node_kind ─────────────────────────────────────────────
+//
+// The statement half, checked the same way and for the same reason: every name
+// is read back from the syntax that produces it, so a mapping copied from the
+// SWC variant names cannot agree with itself and still be wrong.
+
+mod stmt_kind {
+  use crate::swc::get_stmt_node_kind;
+  use swc_core::{
+    common::{FileName, SourceMap, sync::Lrc},
+    ecma::ast::{Decl, Stmt},
+  };
+  use swc_ecma_parser::{EsSyntax, Parser, StringInput, Syntax, TsSyntax, lexer::Lexer};
+
+  /// The first statement of `source`, parsed as a script.
+  ///
+  /// A script rather than a module because `with` is a syntax error under a
+  /// module's implicit strict mode, and it is one of the kinds this names.
+  fn parse_stmt(source: &str, syntax: Syntax) -> Stmt {
+    let source_map: Lrc<SourceMap> = Default::default();
+    let source_file = source_map.new_source_file(FileName::Anon.into(), source.to_string());
+
+    let lexer = Lexer::new(
+      syntax,
+      Default::default(),
+      StringInput::from(&*source_file),
+      None,
+    );
+
+    match Parser::new_from(lexer).parse_script() {
+      Ok(script) => match script.body.into_iter().next() {
+        Some(stmt) => stmt,
+        None => panic!("`{}` parsed to no statement at all", source),
+      },
+      Err(error) => panic!("failed to parse `{}`: {:?}", source, error),
+    }
+  }
+
+  fn es() -> Syntax {
+    Syntax::Es(EsSyntax::default())
+  }
+
+  fn ts() -> Syntax {
+    Syntax::Typescript(TsSyntax::default())
+  }
+
+  /// The first statement of the block `stmt` carries, for the kinds that are
+  /// only legal inside a loop or a function and so cannot be parsed alone.
+  fn first_in_body(stmt: &Stmt) -> Stmt {
+    let body = match stmt {
+      Stmt::While(while_stmt) => match while_stmt.body.as_ref() {
+        Stmt::Block(block) => block.stmts.clone(),
+        other => panic!("expected a block body, got {:?}", other),
+      },
+      Stmt::Decl(Decl::Fn(fn_decl)) => match &fn_decl.function.body {
+        Some(block) => block.stmts.clone(),
+        None => panic!("a function declaration always has a body"),
+      },
+      other => panic!("no body to read on {:?}", other),
+    };
+
+    match body.into_iter().next() {
+      Some(inner) => inner,
+      None => panic!("the body held no statement"),
+    }
+  }
+
+  #[track_caller]
+  fn assert_kind(source: &str, syntax: Syntax, expected: &str) {
+    assert_eq!(
+      get_stmt_node_kind(&parse_stmt(source, syntax)),
+      expected,
+      "wrong node kind for `{}`",
+      source
+    );
+  }
+
+  #[test]
+  fn names_every_kind_reachable_from_source() {
+    let cases = [
+      ("{ a; }", "BlockStatement"),
+      ("{}", "BlockStatement"),
+      (";", "EmptyStatement"),
+      ("debugger;", "DebuggerStatement"),
+      ("with (a) { b; }", "WithStatement"),
+      ("outer: a;", "LabeledStatement"),
+      ("if (a) b;", "IfStatement"),
+      ("if (a) b; else c;", "IfStatement"),
+      ("switch (a) {}", "SwitchStatement"),
+      ("switch (a) { case 1: break; default: }", "SwitchStatement"),
+      ("throw a;", "ThrowStatement"),
+      ("try {} catch (e) {}", "TryStatement"),
+      ("try {} finally {}", "TryStatement"),
+      ("while (a) b;", "WhileStatement"),
+      ("do b; while (a);", "DoWhileStatement"),
+      ("for (;;) ;", "ForStatement"),
+      ("for (let i = 0; i < 1; i++) ;", "ForStatement"),
+      ("for (const k in a) ;", "ForInStatement"),
+      ("for (k in a) ;", "ForInStatement"),
+      ("for (const v of a) ;", "ForOfStatement"),
+      ("a;", "ExpressionStatement"),
+      ("a = 1;", "ExpressionStatement"),
+      ("class A {}", "ClassDeclaration"),
+      ("function f() {}", "FunctionDeclaration"),
+      ("async function f() {}", "FunctionDeclaration"),
+      ("function* f() {}", "FunctionDeclaration"),
+      ("var a;", "VariableDeclaration"),
+      ("let a;", "VariableDeclaration"),
+      ("const a = 1;", "VariableDeclaration"),
+    ];
+
+    for (source, expected) in cases {
+      assert_kind(source, es(), expected);
+    }
+  }
+
+  /// The three kinds a statement position alone cannot reach: each is a syntax
+  /// error outside the loop or the function that gives it meaning.
+  #[test]
+  fn names_the_kinds_only_a_loop_or_a_function_body_can_hold() {
+    let in_loop = parse_stmt("while (a) { break; }", es());
+    assert_eq!(
+      get_stmt_node_kind(&first_in_body(&in_loop)),
+      "BreakStatement"
+    );
+
+    let continuing = parse_stmt("while (a) { continue; }", es());
+    assert_eq!(
+      get_stmt_node_kind(&first_in_body(&continuing)),
+      "ContinueStatement"
+    );
+
+    let returning = parse_stmt("function f() { return 1; }", es());
+    assert_eq!(
+      get_stmt_node_kind(&first_in_body(&returning)),
+      "ReturnStatement"
+    );
+
+    // A bare `return` is the same statement, since the kind describes the node
+    // and not the value it carries.
+    let bare = parse_stmt("function f() { return; }", es());
+    assert_eq!(get_stmt_node_kind(&first_in_body(&bare)), "ReturnStatement");
+  }
+
+  /// `using` is a declaration SWC keeps in its own variant, and ESTree spells
+  /// it as an ordinary `VariableDeclaration` — so the two share one name here.
+  /// Pinned so the compromise is a recorded choice rather than a rediscovery.
+  #[test]
+  fn names_a_using_declaration_after_the_variable_form() {
+    assert_kind("using a = f();", es(), "VariableDeclaration");
+    assert_eq!(
+      get_stmt_node_kind(&parse_stmt("using a = f();", es())),
+      get_stmt_node_kind(&parse_stmt("const a = f();", es()))
+    );
+  }
+
+  #[test]
+  fn names_every_typescript_declaration() {
+    let cases = [
+      ("interface A {}", "TSInterfaceDeclaration"),
+      ("type A = number;", "TSTypeAliasDeclaration"),
+      ("enum A {}", "TSEnumDeclaration"),
+      ("const enum A {}", "TSEnumDeclaration"),
+      ("namespace A {}", "TSModuleDeclaration"),
+      ("module A {}", "TSModuleDeclaration"),
+      ("declare module 'a' {}", "TSModuleDeclaration"),
+    ];
+
+    for (source, expected) in cases {
+      assert_kind(source, ts(), expected);
+    }
+  }
+
+  /// The kind describes the outermost node and nothing it contains, so a body
+  /// of any depth costs the same single match arm — no recursion and no walk.
+  /// The depth stays well under the parser's own recursion limit, which would
+  /// otherwise overflow before the label was ever asked for.
+  #[test]
+  fn names_only_the_outermost_statement_of_deep_syntax() {
+    let blocks = format!("{}a;{}", "{".repeat(200), "}".repeat(200));
+    assert_kind(&blocks, es(), "BlockStatement");
+
+    let loops = format!("{}a;", "while (a) ".repeat(200));
+    assert_kind(&loops, es(), "WhileStatement");
+
+    let labels = format!(
+      "{}a;",
+      (0..200).map(|n| format!("l{}: ", n)).collect::<String>()
+    );
+    assert_kind(&labels, es(), "LabeledStatement");
+
+    // A statement whose *body* is a different kind is still named for itself.
+    assert_kind("if (a) { for (;;) ; }", es(), "IfStatement");
+  }
+
+  /// Two calls agree and the answer borrows nothing from the statement, so a
+  /// label can be held past the node it describes.
+  #[test]
+  fn is_a_static_label() {
+    let stmt = parse_stmt("for (;;) ;", es());
+    let first: &'static str = get_stmt_node_kind(&stmt);
+    let second: &'static str = get_stmt_node_kind(&stmt);
+
+    assert_eq!(first, second);
+    drop(stmt);
+    assert_eq!(first, "ForStatement");
+  }
+
+  /// Every name is an ESTree kind, so none of them may leak an SWC spelling —
+  /// and the statement names never collide with a different statement's, which
+  /// is what makes the label worth putting in a diagnostic at all.
+  #[test]
+  fn every_name_is_an_estree_kind() {
+    let sources = [
+      "{}",
+      ";",
+      "debugger;",
+      "with (a) {}",
+      "outer: a;",
+      "if (a) b;",
+      "switch (a) {}",
+      "throw a;",
+      "try {} catch (e) {}",
+      "while (a) b;",
+      "do b; while (a);",
+      "for (;;) ;",
+      "for (const k in a) ;",
+      "for (const v of a) ;",
+      "a;",
+      "class A {}",
+      "function f() {}",
+      "var a;",
+    ];
+
+    for source in sources {
+      let kind = get_stmt_node_kind(&parse_stmt(source, es()));
+
+      assert!(
+        kind.ends_with("Statement") || kind.ends_with("Declaration"),
+        "`{}` is named `{}`, which is neither a statement nor a declaration",
+        source,
+        kind
+      );
+      assert!(
+        !kind.is_empty() && kind.is_ascii(),
+        "`{}` is named `{}`, which no diagnostic can spell",
+        source,
+        kind
+      );
+    }
+  }
+}

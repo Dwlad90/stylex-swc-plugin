@@ -9,8 +9,12 @@
 use super::*;
 use stylex_structures::stylex_options::StyleXOptions;
 use swc_core::{
-  common::{FileName, GLOBALS, Globals, SourceMap, sync::Lrc},
-  ecma::parser::{EsSyntax, Parser, StringInput, Syntax, lexer::Lexer},
+  common::{FileName, GLOBALS, Globals, SourceFile, SourceMap, sync::Lrc},
+  ecma::{
+    ast::Module,
+    parser::{EsSyntax, Parser, StringInput, Syntax, lexer::Lexer},
+    visit::{Visit, VisitWith},
+  },
 };
 
 /// Parses one expression and evaluates it. Panics propagate, which is the
@@ -38,7 +42,17 @@ fn evaluate_source_under_ceiling(
   source: &str,
   max_evaluation_depth: Option<usize>,
 ) -> Box<EvaluateResult> {
-  let expr = parse_expr(source);
+  evaluate_parsed(&parse_expr(source), max_evaluation_depth)
+}
+
+/// Evaluates an expression that was parsed out of something larger, so a suite
+/// reading a whole file asks the same evaluator under the same globals as one
+/// writing its subject out as source.
+pub(crate) fn evaluate_expr(expr: &Expr) -> Box<EvaluateResult> {
+  evaluate_parsed(expr, None)
+}
+
+fn evaluate_parsed(expr: &Expr, max_evaluation_depth: Option<usize>) -> Box<EvaluateResult> {
   let globals = Globals::new();
 
   GLOBALS.set(&globals, || {
@@ -51,27 +65,70 @@ fn evaluate_source_under_ceiling(
     let mut traversal_state = StateManager::new(options);
     let fns = FunctionMap::default();
 
-    evaluate(&expr, &mut traversal_state, &fns)
+    evaluate(expr, &mut traversal_state, &fns)
   })
 }
 
 pub(crate) fn parse_expr(source: &str) -> Expr {
-  let source_map: Lrc<SourceMap> = Default::default();
-  let source_file = source_map.new_source_file(FileName::Anon.into(), source.to_string());
+  let file = anonymous_file(source);
 
-  let lexer = Lexer::new(
+  match parser_for(&file).parse_expr() {
+    Ok(expr) => *expr,
+    Err(error) => panic!("failed to parse `{}`: {:?}", source, error),
+  }
+}
+
+fn anonymous_file(source: &str) -> Lrc<SourceFile> {
+  let source_map: Lrc<SourceMap> = Default::default();
+
+  source_map.new_source_file(FileName::Anon.into(), source.to_string())
+}
+
+/// A parser over one file, in the syntax every suite here reads.
+///
+/// One copy for the same reason the assertions have one: an expression and the
+/// module it was written in have to be read under the same syntax, or a suite
+/// comes to disagree with another about what the author wrote.
+fn parser_for(file: &SourceFile) -> Parser<Lexer<'_>> {
+  Parser::new_from(Lexer::new(
     Syntax::Es(EsSyntax {
       jsx: true,
       ..Default::default()
     }),
     Default::default(),
-    StringInput::from(&*source_file),
+    StringInput::from(file),
     None,
-  );
+  ))
+}
 
-  match Parser::new_from(lexer).parse_expr() {
-    Ok(expr) => *expr,
-    Err(error) => panic!("failed to parse `{}`: {:?}", source, error),
+/// Every call expression written anywhere in a module, in source order.
+///
+/// For a suite whose subject is a whole file rather than one expression -- the
+/// benchmark fixture that exists to fold nothing has to be read as the module
+/// it is, since one call it never lists would change what it measures.
+pub(crate) fn call_expressions(source: &str) -> Vec<Expr> {
+  #[derive(Default)]
+  struct Calls(Vec<Expr>);
+
+  impl Visit for Calls {
+    fn visit_call_expr(&mut self, call: &CallExpr) {
+      self.0.push(Expr::Call(call.clone()));
+      call.visit_children_with(self);
+    }
+  }
+
+  let mut calls = Calls::default();
+  parse_module(source).visit_with(&mut calls);
+
+  calls.0
+}
+
+fn parse_module(source: &str) -> Module {
+  let file = anonymous_file(source);
+
+  match parser_for(&file).parse_module() {
+    Ok(module) => module,
+    Err(error) => panic!("failed to parse the module: {:?}", error),
   }
 }
 

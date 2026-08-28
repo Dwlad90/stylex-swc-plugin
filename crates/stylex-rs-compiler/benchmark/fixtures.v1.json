@@ -525,6 +525,23 @@
       }
     },
     {
+      "name": "Feature - calls that do not fold",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/engine-fold-miss.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Feature - calls that do not fold (dev)",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/engine-fold-miss.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true
+      }
+    },
+    {
       "name": "Feature - class name prefix",
       "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
       "category": "perf",

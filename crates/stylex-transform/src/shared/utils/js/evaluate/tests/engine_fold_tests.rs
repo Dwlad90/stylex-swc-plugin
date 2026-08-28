@@ -927,6 +927,54 @@ fn input_with_no_foldable_call_builds_no_engine() {
   assert!(super::engine_fold::holds_an_engine());
 }
 
+/// The benchmark fixture that exists to fold nothing folds nothing.
+///
+/// `engine-fold-miss.js` prices what the guard costs on input it declines, and
+/// that number only means anything while not one call in the file reaches the
+/// engine: a single foldable call would put a round trip inside a measurement
+/// named for the absence of one, and would also stop the file compiling to the
+/// same CSS on the revision before the fold, which is the other half of what it
+/// claims.
+///
+/// Each call is asked on its own rather than through a whole compile, so what
+/// this catches is a call written out of literals — the way the mistake is
+/// actually made. A call that would only fold through a name the module binds
+/// still refuses here, and the paired comparison against the merge base is what
+/// catches that one.
+#[test]
+fn the_no_fold_benchmark_fixture_holds_no_foldable_call() {
+  let source = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../stylex-rs-compiler/benchmark/perf_fixtures/engine-fold-miss.js"
+  ));
+
+  // The count the fixture was measured at, less the room a rewrite of one
+  // namespace needs. Below it the calls stop being most of what the fixture
+  // costs, and the number it reports drifts towards the inline-style path it
+  // was written to keep out of the measurement.
+  const FEWEST_CALLS_WORTH_MEASURING: usize = 100;
+
+  let calls = super::source_evaluation::call_expressions(source);
+
+  assert!(
+    calls.len() >= FEWEST_CALLS_WORTH_MEASURING,
+    "the fixture prices visiting call expressions and holds only {} of them",
+    calls.len()
+  );
+
+  for call in &calls {
+    super::engine_fold::forget_engine();
+
+    let _ = super::source_evaluation::evaluate_expr(call);
+
+    assert!(
+      !super::engine_fold::holds_an_engine(),
+      "a call in `engine-fold-miss.js` folds on its own, so the fixture no \
+       longer prices input that folds nothing"
+    );
+  }
+}
+
 // ==================== the fold memo ====================
 
 /// The number of expressions this thread's engine has compiled, read from a

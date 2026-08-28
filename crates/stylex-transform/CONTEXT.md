@@ -203,6 +203,13 @@ the answer becomes a refusal is an [applied global](#applied-global), because
 nothing below the fold folds one. Reading a name to decide any of this is a
 [speculative read](#speculative-read).
 
+Candidacy is answered **before any rule that reads a resolved value**, and the
+allocation bounds are the rules that do — they are arithmetic on values rather
+than on syntax. A call the fold was never going to claim would otherwise report
+a ceiling for a receiver nothing had claimed, failing a build the dispatch below
+still answers. What stays in front of candidacy is the refusals that are pure
+syntax: a locale-sensitive method name, and a receiver written as a number.
+
 Nothing the guard _carries_ records where in an expression it is. Every rule
 reads the call in front of it and nothing else, so a static, a middle link of a
 chain and the call the caller asked about are all answered alike. One question
@@ -380,8 +387,15 @@ so the answer depended on who asked: an argument that was itself such a call
 arrived at the arrow as a function no parameter could bind, and the body came
 back unevaluated. Which argument binds is decided by the value's expression form
 rather than by its variant, so an array binds as the array it is, and the one
-argument left with no form is a function — refused, naming the call, where the
-reference compiler folds it as its own source text.
+argument left with no form is a function — the reference compiler folds one as
+its own source text and this compiler keeps none.
+
+An argument with no form **binds nothing and leaves the parameter unbound**,
+which is what the language does with an argument nobody passed. So a body that
+never reads that parameter folds, and only a body that does read it has nothing
+to answer with. The arrow says so by answering no value at all; the position
+that applied it is what names the refusal, and it names the argument where one
+bound nothing and the body where every argument did.
 _Avoid_: function reference, higher-order argument, callback binding
 
 **Speculative read**:

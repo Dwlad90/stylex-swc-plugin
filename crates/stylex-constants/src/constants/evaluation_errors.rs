@@ -62,6 +62,18 @@ pub static UNDEFINED_CONST: &str = "Referenced constant is not defined.";
 
 pub static OBJECT_METHOD: &str = "Unsupported object method.\n\n";
 
+/// An author's own arrow was applied and its body answered no value, with every
+/// argument bound. So the body is what has nothing to give: it read something
+/// with no compile-time value, or it answered one of this compiler's own values
+/// -- a whole token group, the injected function map -- which a stylesheet
+/// cannot hold.
+///
+/// Names the body rather than the call, because the call is fine and the body is
+/// the line an author has to change. The neighbouring refusal names the argument
+/// instead, and which of the two fires is decided by whether every argument
+/// bound.
+pub static FUNCTION_BODY_WITHOUT_VALUE: &str = "The function's body has no compile-time value.\n\n";
+
 /// An argument evaluated to no value at all while the evaluation stayed
 /// confident, so the arguments that follow it no longer line up with what was
 /// written. Refusing beats folding a shifted argument list.

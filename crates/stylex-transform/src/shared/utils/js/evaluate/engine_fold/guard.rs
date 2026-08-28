@@ -1070,11 +1070,15 @@ impl<'r> Walk<'_, 'r> {
   /// the walk resolves bindings and resolution is the only expensive thing here. So
   /// the shape of the callee, the spelling of the method name and a receiver
   /// written as a number are all settled while they are still free, and only an
-  /// expression this module intends to fold pays to have its names read. Two rules
-  /// do resolve, and each is named where it is applied: the amplification bound,
-  /// which is arithmetic on values rather than a shape, and the escaping-property
-  /// check, which is deliberately behind the walk so a chain is named for its
-  /// outermost cause.
+  /// expression this module intends to fold pays to have its names read.
+  ///
+  /// Two rules sit behind the walk instead, and each is named where it is applied.
+  /// The amplification bound is arithmetic on resolved values rather than a shape,
+  /// so a call whose receiver the walk declines is not this fold's to price — it
+  /// would otherwise report a ceiling for a receiver nothing had claimed, failing a
+  /// build the dispatch below still answers. The escaping-property check is a name
+  /// check that would cost nothing in front, and is behind so a chain of escaping
+  /// reads is named for its outermost cause.
   ///
   /// `position` is read by one rule only — see [`Walk::admit_a_named_call`] — and
   /// is a parameter rather than something [`Guard`] carries, so nothing else on the
@@ -1138,27 +1142,16 @@ impl<'r> Walk<'_, 'r> {
       return Err(Decline::rule(unfoldable_static(global, &method.sym)));
     }
 
+    // The two refusals that are pure syntax, and so the two that answer before
+    // anything is resolved: a method's own spelling, and a receiver written as a
+    // number. Neither reads a value, so neither can refuse a call the fold was
+    // never going to claim.
     if lists(&LOCALE_SENSITIVE_METHODS, &method.sym) {
       return Err(Decline::rule(locale_sensitive_method(&method.sym)));
     }
 
     if receiver_is_a_written_number(obj) {
       return Err(Decline::rule(numeric_literal_receiver(&method.sym)));
-    }
-
-    self
-      .under(guard)
-      .admit_amplification(&method.sym, obj, &call.args)?;
-
-    // `Array.from` is the other spelling of a declared length, and the only static
-    // that carries one: every remaining `Array` static answers a length its own
-    // arguments write out.
-    if let Some(global) = global
-      && let Some(amplifier) = EntryAmplifier::named(global, Some(&method.sym))
-    {
-      self
-        .under(guard)
-        .admit_entry_amplification(amplifier, &call.args)?;
     }
 
     // Two things on the receiver, and both skipped for a global.
@@ -1189,6 +1182,31 @@ impl<'r> Walk<'_, 'r> {
         _ => None,
       },
     };
+
+    // The allocation bounds, and they run *after* the receiver above because they
+    // are arithmetic on values rather than on syntax: a count or a receiver may be
+    // written out, and may equally be a name they resolve. A call whose receiver
+    // this fold cannot claim is not this fold's to price — reporting a ceiling for
+    // it would fail a build the dispatch below still answers, and the dispatch is
+    // what a decline hands the call back to.
+    //
+    // The cost of that ordering is a walk of the receiver on a call these will
+    // refuse anyway, which is a build that fails either way and pays one resolved
+    // binding for the better sentence.
+    self
+      .under(guard)
+      .admit_amplification(&method.sym, obj, &call.args)?;
+
+    // `Array.from` is the other spelling of a declared length, and the only static
+    // that carries one: every remaining `Array` static answers a length its own
+    // arguments write out.
+    if let Some(global) = global
+      && let Some(amplifier) = EntryAmplifier::named(global, Some(&method.sym))
+    {
+      self
+        .under(guard)
+        .admit_entry_amplification(amplifier, &call.args)?;
+    }
 
     let inner = Guard {
       callback: counted,

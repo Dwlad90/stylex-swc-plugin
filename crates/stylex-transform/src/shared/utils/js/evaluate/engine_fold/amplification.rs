@@ -527,16 +527,18 @@ fn module_value_of(expr: &Expr, reader: &mut Reader) -> Option<EvaluateResultVal
 /// long it is.
 ///
 /// A **call** is resolved here where [`module_value_of`] refuses one, and the
-/// difference is *when* each is asked. A length bounds a call the guard has not
-/// admitted yet — `"x".repeat(1000000).repeat(1000000)` is refused before either
-/// link is walked, so resolving the inner one would be building the very string
-/// the bound exists to prevent. A count is taken after the receiver has been
-/// admitted, so whatever it resolves to is already inside both ceilings and the
-/// fold is about to build it anyway.
+/// difference is what each reading would cost. A length is read off a receiver
+/// whose own answer is bounded per link, so resolving a call there is what would
+/// let two allowed lengths multiply into one that is neither —
+/// `"x".repeat(1000000).repeat(1000000)` builds the very string the bound exists
+/// to prevent. A count is taken off a receiver the guard has already admitted,
+/// so whatever it resolves to is inside both ceilings and the fold is about to
+/// build it anyway.
 ///
-/// That ordering is [`Walk::admit_call`]'s to keep, and it is the only reason
-/// this is safe; the two readings are named apart so a later edit cannot swap
-/// one for the other without meeting this sentence.
+/// That second half is [`Walk::admit_call`]'s ordering to keep — the count is read
+/// where the receiver has just been admitted — and the two readings are named
+/// apart so a later edit cannot swap one for the other without meeting this
+/// sentence.
 fn countable_value_of(expr: &Expr, reader: &mut Reader) -> Option<EvaluateResultValue> {
   reader.resolve(expr)
 }

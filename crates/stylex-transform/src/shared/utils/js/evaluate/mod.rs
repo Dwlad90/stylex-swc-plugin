@@ -67,10 +67,11 @@ use stylex_ast::ast::factories::{
 };
 use stylex_constants::constants::{
   evaluation_errors::{
-    CONCATENATION, IMPORT_FILE_EVAL_ERROR, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT,
-    NUMERIC_CONVERSION, OBJECT_METHOD, PATH_WITHOUT_NODE, SPREAD_ELEMENT, TEMPLATE_LITERAL,
-    UNDEFINED_CONST, UNEXPECTED_MEMBER_LOOKUP, UNINITIALIZED_CONST, USED_BEFORE_DECLARATION,
-    grown_string_too_large, unfoldable_call, unsupported_expression, unsupported_operator,
+    CONCATENATION, FUNCTION_BODY_WITHOUT_VALUE, IMPORT_FILE_EVAL_ERROR,
+    IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, NUMERIC_CONVERSION, OBJECT_METHOD,
+    PATH_WITHOUT_NODE, SPREAD_ELEMENT, TEMPLATE_LITERAL, UNDEFINED_CONST, UNEXPECTED_MEMBER_LOOKUP,
+    UNINITIALIZED_CONST, USED_BEFORE_DECLARATION, grown_string_too_large, unfoldable_call,
+    unsupported_expression, unsupported_operator,
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
@@ -170,11 +171,11 @@ pub(crate) fn evaluate_result_as_expr(value: &EvaluateResultValue) -> Option<Exp
 /// the same factory a module's own token import binds through, so a parameter
 /// holding one answers a member read exactly as the imported name does.
 ///
-/// One question rather than two, because the caller that refuses an argument and
-/// the binding that reads it have to agree: a value one accepted and the other
-/// dropped would leave the parameter unbound and hand the arrow's body back
-/// unevaluated, which reaches an author as an internal note rather than as a
-/// sentence about the call they wrote.
+/// An argument with neither form binds nothing and leaves the parameter unbound,
+/// which is what the language does with an argument nobody passed. This is asked
+/// only to tell the two refusals apart afterwards: a body that then failed to
+/// fold has an argument to name, where a body that failed with everything bound
+/// has only the call.
 pub(crate) fn binds_a_parameter(value: &EvaluateResultValue) -> bool {
   match value {
     EvaluateResultValue::ThemeRef(_) => true,
@@ -557,6 +558,10 @@ mod applied_global_tests;
 #[cfg(test)]
 #[path = "tests/parameter_binding_tests.rs"]
 mod parameter_binding_tests;
+
+#[cfg(test)]
+#[path = "tests/fall_through_tests.rs"]
+mod fall_through_tests;
 
 #[cfg(test)]
 #[path = "tests/short_circuited_walk_tests.rs"]

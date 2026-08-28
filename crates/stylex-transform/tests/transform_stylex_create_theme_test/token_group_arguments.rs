@@ -5,9 +5,10 @@
 //! same factory a module's own token import binds through, so a parameter
 //! holding one answers a member read exactly as the imported name does.
 //!
-//! The call that refuses an argument and the binding that reads it ask one
-//! question, `binds_a_parameter`, whose own cases are unit tests. What is
-//! measured here is the answer a build gets.
+//! An argument with no form binds nothing and leaves the parameter unbound, so
+//! the fold is decided by whether the body needed it. Which of the two refusals
+//! a body that answered nothing gets is decided by `binds_a_parameter`, whose own
+//! cases are unit tests. What is measured here is the answer a build gets.
 //!
 //! Every output below was measured against `@stylexjs/babel-plugin@0.19.0` with
 //! the same options and the same file layout.
@@ -102,13 +103,14 @@ stylex_test!(
   "#
 );
 
-// A body that hands the group straight back. The call folds; what refuses is the
-// declaration, because a token group is not a value a stylesheet can hold.
+// A body that hands the group straight back. The argument binds; what refuses is
+// the body, because a token group is not a value a stylesheet can hold — and the
+// sentence names the body rather than the argument for exactly that reason.
 // Upstream refuses the same source at the same point, in its own words — `A
 // style value can only contain an array, string or number.`
 stylex_test_panic!(
   a_function_returning_a_token_group_is_rejected,
-  "Only static values are allowed inside of a stylex() call.",
+  "The function's body has no compile-time value.",
   |tr| stylex_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';

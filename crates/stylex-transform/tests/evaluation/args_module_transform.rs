@@ -85,13 +85,18 @@ impl Fold for ArgsStyleXTransform {
             })
             .collect(),
         ),
-        EvaluateResultValue::Callback(func) => func(
+        // A callback that could not fold its body answers nothing, which for a
+        // harness that renders one value means the input under test was wrong.
+        EvaluateResultValue::Callback(func) => match func(
           vec![
             EvaluateResultValue::Expr(create_number_expr(2.0)),
             EvaluateResultValue::Expr(create_number_expr(7.0)),
           ],
           &mut self.state,
-        ),
+        ) {
+          Some(expr) => expr,
+          None => panic!("the callback folded no value"),
+        },
         EvaluateResultValue::Map(map) => {
           let mut props = vec![];
 

@@ -23,8 +23,13 @@ use stylex_structures::{inline_style::InlineStyle, named_import_source::ImportSo
 pub(crate) type FlatCompiledStyles = IndexMap<String, Rc<FlatCompiledStylesValue>>;
 pub(crate) type DynamicFns = IndexMap<String, (Vec<BindingIdent>, TInlineStyles)>;
 
+/// An author's own arrow, ready to be applied to evaluated arguments.
+///
+/// `None` is the answer for a body that did not fold. The callback has no deopt
+/// to record -- it answers a value, not a result -- so this is how it declines,
+/// and the caller is what names the call in a sentence.
 pub(crate) type EvaluationCallback =
-  Rc<dyn Fn(Vec<EvaluateResultValue>, &mut StateManager) -> Expr + 'static>;
+  Rc<dyn Fn(Vec<EvaluateResultValue>, &mut StateManager) -> Option<Expr> + 'static>;
 pub(crate) type FunctionMapMemberExpression =
   FxHashMap<ImportSources, Box<FxHashMap<Atom, Box<FunctionConfigType>>>>;
 pub(crate) type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>>;

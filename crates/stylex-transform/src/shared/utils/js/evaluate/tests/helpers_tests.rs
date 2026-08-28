@@ -108,7 +108,7 @@ fn the_two_bridges_agree_a_function_map_is_an_object() {
 /// under it has no string at all.
 #[test]
 fn the_two_bridges_agree_a_callback_is_a_function() {
-  let callback = EvaluateResultValue::Callback(Rc::new(|_args, _fns| create_null_expr()));
+  let callback = EvaluateResultValue::Callback(Rc::new(|_args, _fns| Some(create_null_expr())));
 
   assert_eq!(
     string_of(&callback, coercions::FunctionForm::Refuse),

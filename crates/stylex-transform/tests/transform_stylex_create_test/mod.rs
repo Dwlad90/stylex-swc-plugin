@@ -35,6 +35,7 @@ mod number_prototype_receivers;
 mod object_method_refusals;
 mod object_own_keys;
 mod operator_interaction;
+mod refusals_that_fall_through;
 mod short_circuited_operands;
 mod static_styles;
 mod string_coercion;

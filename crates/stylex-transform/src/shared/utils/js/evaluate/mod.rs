@@ -557,3 +557,7 @@ mod applied_global_tests;
 #[cfg(test)]
 #[path = "tests/parameter_binding_tests.rs"]
 mod parameter_binding_tests;
+
+#[cfg(test)]
+#[path = "tests/short_circuited_walk_tests.rs"]
+mod short_circuited_walk_tests;

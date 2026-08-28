@@ -14,9 +14,9 @@ use boa_engine::{Context, JsString, JsValue};
 use swc_core::{
   atoms::Atom,
   ecma::ast::{
-    ArrayLit, ArrowExpr, BlockStmtOrExpr, CallExpr, Callee, Decl, Expr, ExprOrSpread, ExprStmt,
-    Ident, KeyValueProp, Lit, MemberExpr, MemberProp, ObjectLit, ObjectPatProp, Pat, Prop,
-    PropName, PropOrSpread, ReturnStmt, Stmt, Tpl,
+    ArrayLit, ArrowExpr, BinExpr, BlockStmtOrExpr, CallExpr, Callee, CondExpr, Decl, Expr,
+    ExprOrSpread, ExprStmt, Ident, KeyValueProp, Lit, MemberExpr, MemberProp, ObjectLit,
+    ObjectPatProp, Pat, Prop, PropName, PropOrSpread, ReturnStmt, Stmt, Tpl,
   },
 };
 
@@ -42,7 +42,8 @@ use crate::shared::{
 use super::super::{
   engine_stylex_functions::{EngineCallable, Reached, engine_callable},
   evaluate_cached,
-  helpers::get_binding,
+  helpers::{evaluate_result_to_js_boolean, get_binding},
+  nodes::logical_expression::{LogicalOp, evaluates_its_right_operand},
 };
 
 /// Methods whose answer depends on locale data the engine does not carry.
@@ -727,14 +728,31 @@ impl<'r> Walk<'_, 'r> {
       Expr::Lit(_) => Ok(()),
       Expr::Paren(paren) => self.under(inner).admit_value(&paren.expr),
       Expr::Unary(unary) => self.under(inner).admit_value(&unary.arg),
+      // Both operands of an arithmetic or a comparison operator are evaluated, so
+      // both are walked. A short-circuiting one evaluates its right operand only
+      // where the left one lets it, and the walk stops exactly where the language
+      // does — see [`Walk::deciding_value_of`] for when it may tell.
       Expr::Bin(bin) => {
         self.under(inner).admit_value(&bin.left)?;
-        self.under(inner).admit_value(&bin.right)
+
+        match self.right_operand_runs(bin) {
+          true => self.under(inner).admit_value(&bin.right),
+          false => Ok(()),
+        }
       },
+      // The test is evaluated and exactly one arm is, on the same terms.
       Expr::Cond(cond) => {
         self.under(inner).admit_value(&cond.test)?;
-        self.under(inner).admit_value(&cond.cons)?;
-        self.under(inner).admit_value(&cond.alt)
+
+        match self.arm_that_runs(cond) {
+          Some(taken) => self.under(inner).admit_value(taken),
+          // A test whose truthiness this walk cannot read: either arm may be the
+          // one the engine evaluates, so both have to carry.
+          None => {
+            self.under(inner).admit_value(&cond.cons)?;
+            self.under(inner).admit_value(&cond.alt)
+          },
+        }
       },
       // A template literal is written-out syntax whose holes are values in their
       // own right, so it is walked like any other composite and printed back
@@ -865,6 +883,65 @@ impl<'r> Walk<'_, 'r> {
       // `NO_FUNCTION_SOURCE` in [`engine`](super::engine).
       Expr::Arrow(arrow) => self.under(inner).admit_arrow(arrow),
       _ => Err(Decline::NotACandidate),
+    }
+  }
+
+  /// Whether `bin`'s right operand is evaluated at all.
+  ///
+  /// True for every operator that is not short-circuiting, and for one that is
+  /// where its left operand does not settle the answer on its own. Which
+  /// operands a short circuit reaches is the operator's own rule, read from
+  /// [`evaluates_its_right_operand`] rather than restated here, so the walk and
+  /// the fold cannot come to disagree about which side a build reaches.
+  fn right_operand_runs(&mut self, bin: &BinExpr) -> bool {
+    let Some(op) = LogicalOp::of(bin.op) else {
+      return true;
+    };
+
+    match self.deciding_value_of(&bin.left) {
+      Some(left) => evaluates_its_right_operand(op, &left),
+      None => true,
+    }
+  }
+
+  /// The arm of `test ? cons : alt` the engine evaluates, and `None` where this
+  /// walk cannot read which of them that is.
+  ///
+  /// Truthiness comes from the one bridge every other reader of it uses, so a
+  /// test the conditional node would take the second arm for is the arm this walk
+  /// carries.
+  fn arm_that_runs<'e>(&mut self, cond: &'e CondExpr) -> Option<&'e Expr> {
+    let test = self.deciding_value_of(&cond.test)?;
+
+    match evaluate_result_to_js_boolean(&test)? {
+      true => Some(&cond.cons),
+      false => Some(&cond.alt),
+    }
+  }
+
+  /// What `expr` holds, where a [dead
+  /// operand](../../../../../CONTEXT.md#dead-operand) beside it may be decided
+  /// from the module at all — and `None` where it may not, which both callers
+  /// take for "walk both sides".
+  ///
+  /// Deciding is the correctness rather than a saving, and the glossary entry
+  /// above is where that is argued. What is decided here is only *whether the
+  /// module may be asked*: inside a callback it may not, because the engine binds
+  /// the callback's own names, so a test written on one of them holds a different
+  /// value per element and what the module resolves that spelling to is a
+  /// different binding entirely — the pruned side's own names would then go
+  /// unbound and the engine would reach for what nothing gave it. Asked of the
+  /// scope rather than of the expression, because a name bound one arrow further
+  /// out is as much the engine's as the parameter beside it.
+  ///
+  /// The operand this reads has already been walked by the caller, so it is read
+  /// twice. Both readings go through the evaluator's memo, so the second is a
+  /// hash of the subtree and a lookup rather than an evaluation, and it is paid
+  /// only where a short-circuiting form was written.
+  fn deciding_value_of(&mut self, expr: &Expr) -> Option<EvaluateResultValue> {
+    match self.guard.scope.inside_a_callback() {
+      true => None,
+      false => self.reader.resolve(expr),
     }
   }
 
@@ -1552,3 +1629,7 @@ fn is_a_carryable_receiver(value: &EvaluateResultValue) -> bool {
       )
   )
 }
+
+#[cfg(test)]
+#[path = "tests/speculation_tests.rs"]
+mod speculation_tests;

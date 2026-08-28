@@ -515,6 +515,25 @@ evaluator node, because they answer with an operand where every other binary
 operator answers with a coercion of both.
 _Avoid_: result, chosen branch, short-circuit value
 
+**Dead operand**:
+The side of `||`, `&&`, `??` or `?:` the language never evaluates, given what
+the side before it holds. Neither the evaluator nor the [fold
+guard](#fold-guard) enters one, and for the guard that is correctness rather
+than a saving: reading a leaf queues a [theme reference](#theme-reference)'s
+compensating import and can refuse the whole call by a rule, and a [speculative
+read](#speculative-read) puts back the evaluation's state but not the module's.
+So a token read behind a compile-time-false guard would leave an import behind
+for a value no stylesheet holds, and a name the module bound a function to would
+fail a build over a branch that cannot run. Which operand is dead is the
+operator's own rule and is read from the one place that states it. Read from the
+module only outside a callback body: inside one the engine binds the names, so a
+guard written on a callback's own parameter holds a different value per element
+and both sides have to carry. The reference implementation is eager here instead
+-- it evaluates both sides under forked states so a dead one may fail without
+deopting the whole -- which agrees on every value and differs on the import, and
+on a dead branch that throws rather than refusing.
+_Avoid_: unreachable branch, pruned side, skipped operand
+
 **Coercion bridge**:
 A helper that answers one of the [coercion crate](../stylex-js/CONTEXT.md)'s
 questions over `EvaluateResultValue` rather than over an expression, deciding

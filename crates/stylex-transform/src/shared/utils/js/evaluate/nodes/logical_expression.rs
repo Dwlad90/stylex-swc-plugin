@@ -128,6 +128,20 @@ fn evaluate_operand(
   }
 }
 
+/// Whether `op` evaluates its right operand at all, given the value its left
+/// operand holds.
+///
+/// The short circuit is a fact about the operator rather than about who is
+/// asking, so the guard in front of the engine reads it from here rather than
+/// keeping a table of its own that could come to disagree with [`decide`] about
+/// which operand a build reaches.
+pub(in super::super) fn evaluates_its_right_operand(
+  op: LogicalOp,
+  left: &EvaluateResultValue,
+) -> bool {
+  !matches!(decide(op, Some(left)), Decision::Left)
+}
+
 /// What the left side alone settles.
 enum Decision {
   /// The left operand is the answer, whatever the right side holds.

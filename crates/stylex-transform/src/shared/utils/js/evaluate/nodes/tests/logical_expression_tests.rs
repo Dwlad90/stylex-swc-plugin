@@ -212,3 +212,78 @@ fn only_the_three_logical_operators_are_recognised() {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Which operands a short circuit reaches
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// The table the guard in front of the engine reads, so that a walk stops on
+/// exactly the operands the fold does. Every row is what the language does with
+/// the left side it names.
+#[test]
+fn the_right_operand_runs_only_where_the_language_reaches_it() {
+  let truthy = EvaluateResultValue::Expr(create_string_expr("red"));
+  let falsy = EvaluateResultValue::Expr(create_string_expr(""));
+  let zero = EvaluateResultValue::Expr(create_number_expr(0.0));
+  let null = EvaluateResultValue::Expr(create_null_expr());
+
+  for (op, left, runs, why) in [
+    (
+      LogicalOp::And,
+      &truthy,
+      true,
+      "`x && y` reaches y for a truthy x",
+    ),
+    (
+      LogicalOp::And,
+      &falsy,
+      false,
+      "`x && y` skips y for a falsy x",
+    ),
+    (
+      LogicalOp::Or,
+      &truthy,
+      false,
+      "`x || y` skips y for a truthy x",
+    ),
+    (
+      LogicalOp::Or,
+      &falsy,
+      true,
+      "`x || y` reaches y for a falsy x",
+    ),
+    (
+      LogicalOp::Nullish,
+      &truthy,
+      false,
+      "`x ?? y` skips y for a set x",
+    ),
+    (
+      LogicalOp::Nullish,
+      &null,
+      true,
+      "`x ?? y` reaches y for null",
+    ),
+    // The operator's own guard tests truthiness where it meant nullishness, so a
+    // falsy-but-present left side settles nothing and the walk has to carry both
+    // sides. Wrong of upstream and inherited on purpose — what matters here is
+    // that the walk and the fold inherit it identically.
+    (LogicalOp::Nullish, &zero, true, "`0 ?? y` decides nothing"),
+    (LogicalOp::And, &zero, false, "`0 && y` skips y"),
+    (LogicalOp::Or, &zero, true, "`0 || y` reaches y"),
+  ] {
+    assert_eq!(evaluates_its_right_operand(op, left), runs, "{}", why);
+  }
+}
+
+/// An undefined left side, which the evaluator answers as a name rather than as
+/// a value, reads as falsy on all three — the row a table written over literals
+/// alone would miss.
+#[test]
+fn an_undefined_left_side_is_read_as_the_falsy_nullish_value_it_is() {
+  let undefined = js_undefined();
+
+  assert!(!evaluates_its_right_operand(LogicalOp::And, &undefined));
+  assert!(evaluates_its_right_operand(LogicalOp::Or, &undefined));
+  assert!(evaluates_its_right_operand(LogicalOp::Nullish, &undefined));
+}

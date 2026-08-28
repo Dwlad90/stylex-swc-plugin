@@ -74,6 +74,18 @@ const PER_ELEMENT_METHODS: [&str; 10] = [
 /// as a length.
 const VALID_ARRAY_LENGTHS: std::ops::Range<f64> = 0.0..4_294_967_296.0;
 
+/// How wide `undefined` renders under the language's own `ToString`.
+///
+/// Two spellings reach it — the identifier an author writes and the hole they
+/// leave — and both have to answer the same number, because they are the same
+/// value. One name so they cannot drift apart.
+///
+/// A join renders the value as nothing instead, so this is the wider of the two
+/// readings. That is the direction a ceiling is safe to be told: reading a width
+/// short admits a call nothing bounded, where reading it long only refuses
+/// sooner. `null` beside it is read the same way, for the same reason.
+const UNDEFINED_WIDTH: u64 = "undefined".len() as u64;
+
 impl Walk<'_, '_> {
   /// Whether a length-amplifying call is bounded well enough to evaluate.
   ///
@@ -349,15 +361,25 @@ fn module_value_of(expr: &Expr, reader: &mut Reader) -> Option<EvaluateResultVal
 
 /// One written array element's rendered width.
 ///
-/// A hole renders to nothing, which is what the language's own join does with it;
-/// a spread stands for a count the source does not state, so it has no width.
-/// Read from one place because both the receiver's own elements and a nested
-/// array's are the same question.
+/// A hole is `undefined`, so its width is that value's and not nothing: a
+/// callback handed the element renders it as the name. A spread stands for a
+/// count the source does not state, so it has no width. Read from one place
+/// because both the receiver's own elements and a nested array's are the same
+/// question.
+///
+/// No input reaches the hole arm today. The evaluator refuses an array carrying
+/// one at any depth, so nothing this resolves can hold a hole — see
+/// `tests/array_hole_tests.rs`, which is the rule rather than an accident of
+/// ordering. It answers the value's width all the same, because the reading a
+/// dead arm holds is what the branch would be admitting on the day that rule is
+/// relaxed, and nothing would then flag it. Nothing renders as zero characters,
+/// which is what it used to claim: a width read short admits a call no ceiling
+/// bounded, where reading it long only refuses sooner.
 fn rendered_element(elem: &Option<ExprOrSpread>, depth: Depth) -> Option<u64> {
   match elem {
     Some(ExprOrSpread { spread: None, expr }) => rendered_expr(expr, depth),
     Some(_) => None,
-    None => Some(0),
+    None => Some(UNDEFINED_WIDTH),
   }
 }
 
@@ -407,11 +429,8 @@ fn rendered_expr(expr: &Expr, depth: Depth) -> Option<u64> {
     }),
     Expr::Lit(Lit::Null(_)) => Some("null".len() as u64),
     // The value the grammar has no literal for, which a callback parameter can
-    // hold like any other element. Its `ToString` is the name itself, and that
-    // is the width to read: a join renders it as nothing instead, so this is
-    // the wider of the two readings and therefore the one a ceiling is safe to
-    // be told.
-    Expr::Ident(ident) if is_js_undefined(ident) => Some("undefined".len() as u64),
+    // hold like any other element.
+    Expr::Ident(ident) if is_js_undefined(ident) => Some(UNDEFINED_WIDTH),
     Expr::Array(ArrayLit { elems, .. }) => joined(
       elems.len(),
       elems.iter().map(|elem| rendered_element(elem, inner)),

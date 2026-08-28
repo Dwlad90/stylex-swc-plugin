@@ -64,9 +64,16 @@ A bound a project can raise, and the rule for choosing its value: the configured
 option, then that ceiling's environment variable, then the built-in default,
 clamped to a limit past which neither is honoured. Precedence in that order so a
 stray value in a CI environment cannot change what a project that configured the
-option compiles to; zero and anything non-numeric are read as unset rather than
-honoured, because a ceiling of zero refuses the folds the compiler runs to do
-its own work. The environment is read once per process, since a `getenv` per
+option compiles to. What is not a usable count is answered differently on the
+two paths: an **option written across the NAPI boundary** is refused there,
+naming the option and the limit, since it is one project's configuration and
+being clamped in silence tells its author nothing; a value in the
+**environment** is read as unset, because that variable is an escape hatch
+shared by every build on a machine and one that failed a build when mistyped
+would be a worse one. A Rust caller that builds the options itself gets the
+environment's answer rather than the refusal, since there is no written line to
+name. A ceiling of zero is not a usable count on any of the three -- it would
+refuse the folds the compiler runs to do its own work. The environment is read once per process, since a `getenv` per
 options value measured at roughly 3% on a small module. Three exist — the
 evaluation ceiling and the two allocation ceilings below — and each is a
 declaration of what it bounds, since the rule is not per bound.

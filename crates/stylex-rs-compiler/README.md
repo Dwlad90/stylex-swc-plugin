@@ -493,10 +493,11 @@ const options = { maxEvaluationDepth: 256 };
 It can also be set process-wide with `STYLEX_MAX_EVALUATION_DEPTH` -- see [the
 three ceilings](#the-three-ceilings-share-a-precedence), which resolve alike.
 
-The ceiling is capped at `8192`, and a larger value is quietly read as that.
-The compiler reserves stack for the depth you ask for, so a number it could not
-reserve for would be the stack overflow this option exists to prevent, wearing
-the name of the setting that prevents it.
+The ceiling is capped at `8192`, and a larger value is refused rather than
+clamped -- see [Upgrading](#upgrading). The compiler reserves stack for the
+depth you ask for, so a number it could not reserve for would be the stack
+overflow this option exists to prevent, wearing the name of the setting that
+prevents it.
 
 > [!NOTE]
 > The cap bounds what the compiler will reserve for **evaluating** an
@@ -593,7 +594,8 @@ const options = { maxFoldedCharacters: 4000000 };
 Building a string costs about 19 bytes of peak memory per code unit, measured,
 so the default is around 20 MB at the peak of one fold and 4000000 is around
 80 MB. The ceiling is capped at `40000000` -- 783 MB, measured, for a single
-declaration -- and a larger value is quietly read as that.
+declaration -- and a larger value is refused rather than clamped, as in
+[Upgrading](#upgrading).
 
 ### `maxFoldedEntries`
 
@@ -622,8 +624,9 @@ const options = { maxFoldedEntries: 50000 };
 ```
 
 An entry costs about 190 bytes of peak memory, measured, so the default is
-around 2 MB. The ceiling is capped at `1000000`, and a larger value is quietly
-read as that.
+around 2 MB. The ceiling is capped at `1000000`, and a larger value is refused
+rather than clamped. The default itself moved in this release -- see
+[Upgrading](#upgrading).
 
 ### The three ceilings share a precedence
 
@@ -640,9 +643,81 @@ STYLEX_MAX_FOLDED_ENTRIES=50000 npm run build
 
 An explicit option always wins over the environment, which in turn overrides the
 built-in default -- so a stray value in a CI environment cannot change what a
-project that configured the option compiles to. A value of zero, or one that is
-not a number, is ignored rather than honoured, and a value past a ceiling's cap
-is read as the cap.
+project that configured the option compiles to.
+
+The two are held to different standards, on purpose. An **option** is written in
+one project's configuration, so anything that is not a whole number between `1`
+and that ceiling's cap -- a fraction, `NaN`, an infinity, a negative, zero, a
+string, or a number past the cap -- fails the build with a message naming the
+option and the cap:
+
+```bash
+maxEvaluationDepth must be a whole number between 1 and 8192, but 50000 was configured.
+```
+
+An **environment variable** is shared by every build on a machine, and one that
+failed a build when mistyped would be a worse escape hatch than one that does
+nothing. So a value there that is not a usable count is ignored, and the default
+answers instead.
+
+## Upgrading
+
+### The three ceilings changed together
+
+Four changes to the ceilings land in the same release, and a project that hits
+one will want to know about the others. All four are about the same thing -- the
+numbers that decide when the compiler declines to evaluate an expression -- so
+they are listed here rather than as defaults you would have to notice.
+
+**`maxEvaluationDepth`'s cap is now `8192`, down from `1048576`.** The compiler
+reserves stack for the depth you ask for, and `8192` levels of two nested walks
+at 64 KB each is exactly one gibibyte of address space -- the largest segment
+worth asking an operating system for, and the number the cap was chosen against.
+A value past the cap is now **refused** rather than clamped, so a project that
+configured `50000` is told, rather than silently getting `8192`:
+
+```bash
+maxEvaluationDepth must be a whole number between 1 and 8192, but 50000 was configured.
+```
+
+**`maxEvaluationDepth` buys less inside an argument to a method call.** The
+number the evaluator's own descent spends is unchanged -- the same tower of
+arithmetic folds at the same ceiling it always did. What is new is that an
+expression handed to a method call is walked by the fold's guard on its way to
+the engine, and the guard counts syntax nodes where the evaluator counts
+evaluation levels: `(x + 1)` is one level and two nodes. So the same setting
+reaches about half as deep on that path -- `Array(...)` over 315 levels of
+arithmetic folded before and needs a ceiling sized for 159 today. Raise it by
+measuring the input that was refused rather than by counting brackets in it; the
+refusal names the number it spent.
+
+**`maxFoldedEntries` defaults to `10000`, down from the fixed `65536` that could
+not be configured at all.** An entry costs about 190 bytes of peak memory while
+it is being built, measured, so the old number was about 12 MB for a single
+folded value and the new one is about 2 MB. Sized for hand-written styles: a
+fallback list holds a handful of values and a nested style object a handful of
+conditions.
+
+Measured against the parity corpus, the two numbers separate three declarations
+out of 1,191 -- `Array(20000).fill(0).length`, `String(Array(10001))` and
+`'x'.repeat(20000).split('').length`, all three written to demonstrate the
+ceiling rather than to style anything. Nothing that reads as a real declaration
+sits between them. A generated token module is the case that could, and the
+option is what it is for:
+
+```js
+const options = { maxFoldedEntries: 65536 };
+```
+
+**All three ceilings now refuse a value that is not a count.** A fraction,
+`NaN`, an infinity, a negative, zero, a string, or a number past that ceiling's
+cap fails the build naming the option, where it used to be read as unset or
+clamped in silence -- see [the three ceilings share a
+precedence](#the-three-ceilings-share-a-precedence). The environment variables
+are unchanged: a stray value there still falls back to the default.
+
+Every refusal names the number it spent and the option that raises it, so an
+input that stops compiling tells you which of the three to move.
 
 ## Debug Logging
 

@@ -5,7 +5,7 @@
 import { execFileSync } from 'node:child_process';
 import * as path from 'path';
 
-import { expect, test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 
 import { transform, normalizeRsOptions } from '../dist/index.js';
 
@@ -391,23 +391,23 @@ test('maxEvaluationDepth: a lowered ceiling refuses what the default folds', () 
 });
 
 // A ceiling the boundary cannot represent is not a ceiling. `napi_get_value_uint32`
-// applies `ToUint32` rather than refusing, so a negative number used to arrive as
-// ~4.29 billion and remove the guard it was configuring; anything past the 32-bit
-// range wrapped instead. Both now read as unset, which is observable as the
-// default's refusal still happening.
-test('maxEvaluationDepth: a negative ceiling falls back to the default', () => {
-  expect(() => compileAtDepth(deepFixture(100), -1)).toThrow(
-    /At most 32 levels of nested evaluation are supported/
+// applied `ToUint32` rather than refusing, so a negative number arrived as ~4.29
+// billion and removed the guard it was configuring, and anything past the 32-bit
+// range wrapped instead. Neither reaches the compiler now: both are refused
+// where they were written, naming the option and the cap.
+test.each([
+  ['a negative', -1],
+  ['a value past the 32-bit range', 2 ** 32],
+])('maxEvaluationDepth: %s is refused by name', (_label, value) => {
+  expect(() => compileAtDepth(deepFixture(100), value)).toThrow(
+    /maxEvaluationDepth must be a whole number between 1 and 8192/
   );
 });
 
-// The other half of the same defect: `ToUint32` wrapped a number past the 32-bit
-// range down to something small, so `2 ** 32` used to read as `0` and fall back
-// to the default. It is now a legitimate -- if absurd -- depth, clamped to the
-// compiler's own limit, so what it must not do is refuse a tower the default
-// refuses only because the ceiling wrapped underneath it.
-test('maxEvaluationDepth: a ceiling past the 32-bit range is clamped, not wrapped', () => {
-  expect(injectedCss(compileAtDepth(deepFixture(100), 2 ** 32))).toContain('z-index:105');
+// A depth the cap does allow still raises what the default refuses, so the
+// refusal above is about the number rather than about configuring one at all.
+test('maxEvaluationDepth: a ceiling inside the cap raises the default', () => {
+  expect(injectedCss(compileAtDepth(deepFixture(100), 8192))).toContain('z-index:105');
 });
 
 // The environment variable the README documents as a process-wide escape hatch,
@@ -515,7 +515,10 @@ const splittingFixture = (count: number) => `
 
 const compileWithCeilings = (
   source: string,
-  options: { maxFoldedCharacters?: number; maxFoldedEntries?: number } = {}
+  // A ceiling written the way a project might write it, including the ways it
+  // should not -- so the boundary's refusals are reachable from the same helper
+  // the folds are.
+  options: Record<string, unknown> = {}
 ) =>
   transform('page.tsx', source, {
     dev: false,
@@ -550,24 +553,58 @@ test('maxFoldedEntries: the ceiling moves the same way', () => {
   );
 });
 
-// A ceiling the boundary cannot represent is not a ceiling, exactly as for the
-// depth: both arrive as signed integers so a negative one is read as unset
-// rather than as ~4.29 billion, which would remove the guard it configures.
-test.each([
-  ['negative', -1],
-  ['zero', 0],
-])('the allocation ceilings given %s fall back to the default', (_label, value) => {
-  expect(() =>
-    compileWithCeilings(amplifyingFixture(2_000_000), { maxFoldedCharacters: value })
-  ).toThrow(/It asks for 2000000 characters/);
-});
+// A ceiling is a count, and a project that writes something else is told so
+// where it wrote it -- rather than getting the default, or the cap, and no
+// message. One table for all three, because the rule is one rule.
+//
+// The same table is pinned in `structs_tests.rs`, and these are not a copy of
+// it: the Rust one constructs the refused value directly and so proves the
+// *rule*, while only these can prove the *delivery* -- that a JavaScript `NaN`
+// still reads as `NaN` on the other side. That is exactly what used to fail,
+// since the boundary read all three ceilings as `i64` and handed `NaN` on as a
+// zero, which the rule then read as unset.
+//
+// The caps are written out rather than read from Rust, as the default above is.
+// A cap that moves fails here rather than passing stale: the sentence names the
+// number, and `given the cap itself` would be past a lowered one.
+const CAPS = {
+  maxEvaluationDepth: 8192,
+  maxFoldedCharacters: 40_000_000,
+  maxFoldedEntries: 1_000_000,
+} as const;
 
-// Past the compiler's own limit the value is clamped rather than honoured, so a
-// number no build could survive cannot be asked for by name.
-test('a folded-character ceiling past the limit is clamped rather than honoured', () => {
-  expect(() =>
-    compileWithCeilings(amplifyingFixture(200_000_000), { maxFoldedCharacters: 2 ** 40 })
-  ).toThrow(/at most 40000000 are supported/);
+const NOT_A_COUNT = [
+  ['a fraction', 1.5],
+  ['NaN', Number.NaN],
+  ['Infinity', Number.POSITIVE_INFINITY],
+  ['-Infinity', Number.NEGATIVE_INFINITY],
+  ['a negative', -1],
+  ['zero', 0],
+  ['a string', '256'],
+] as const;
+
+describe.each(Object.entries(CAPS))('%s refuses what is not a count', (ceiling, cap) => {
+  test.each(NOT_A_COUNT)('given %s', (_label, value) => {
+    expect(() => compileWithCeilings(amplifyingFixture(4), { [ceiling]: value })).toThrow(
+      new RegExp(`${ceiling} must be a whole number between 1 and ${cap}`)
+    );
+  });
+
+  // Past the cap is refused rather than clamped, because a project that asks
+  // for a hundred thousand levels and silently gets 8192 has been told nothing
+  // about the input that was refused anyway.
+  test('given a value past the cap', () => {
+    expect(() => compileWithCeilings(amplifyingFixture(4), { [ceiling]: cap + 1 })).toThrow(
+      new RegExp(`${ceiling} must be a whole number between 1 and ${cap}, but ${cap + 1} was`)
+    );
+  });
+
+  // And the cap itself is a value a project may ask for.
+  test('given the cap itself', () => {
+    expect(injectedCss(compileWithCeilings(amplifyingFixture(4), { [ceiling]: cap }))).toContain(
+      'content:"xxxx"'
+    );
+  });
 });
 
 // And the process-wide escape hatches, read where they actually live. A child
@@ -612,6 +649,29 @@ test('an explicit maxFoldedCharacters wins over the environment', () => {
   expect(printed).toMatch(/at most 1000 are supported/);
 });
 
+test('an explicit maxFoldedEntries wins over the environment', () => {
+  const script = `
+    const { transform } = require(${JSON.stringify(compilerEntry)});
+    try {
+      transform('page.tsx', ${JSON.stringify(splittingFixture(20_000))}, {
+        dev: false,
+        maxFoldedEntries: 1000,
+        unstable_moduleResolution: { type: 'commonJS' },
+      });
+      process.stdout.write('folded');
+    } catch (error) {
+      process.stdout.write(String(error));
+    }
+  `;
+
+  const printed = execFileSync(process.execPath, ['-e', script], {
+    env: { ...process.env, STYLEX_MAX_FOLDED_ENTRIES: '50000' },
+    encoding: 'utf8',
+  });
+
+  expect(printed).toMatch(/At most 1000 elements are supported/);
+});
+
 // An unusable value is read as unset rather than failing the build, because the
 // variable is an escape hatch and one that broke a build when mistyped would be
 // a worse one.
@@ -624,4 +684,14 @@ test.each([
     compileInChildWithEnv(amplifyingFixture(2_000_000), { STYLEX_MAX_FOLDED_CHARACTERS: value })
       .message
   ).toMatch(/It asks for 2000000 characters/);
+});
+
+test.each([
+  ['zero', '0'],
+  ['a word', 'nope'],
+  ['negative', '-1'],
+])('STYLEX_MAX_FOLDED_ENTRIES given %s falls back to the default', (_label, value) => {
+  expect(
+    compileInChildWithEnv(splittingFixture(20_000), { STYLEX_MAX_FOLDED_ENTRIES: value }).message
+  ).toMatch(/At most 10000 elements are supported/);
 });

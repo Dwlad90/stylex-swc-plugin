@@ -86,6 +86,13 @@ impl Ceiling {
 
   /// The precedence, with the environment passed in rather than read.
   ///
+  /// Zero and every value that is not a count fall through to the environment
+  /// and then to the default. That fallback is what a Rust caller building the
+  /// options itself gets, and what the environment gets whatever it holds. It is
+  /// no longer what a *configured* option gets across the NAPI boundary: that
+  /// surface refuses one by name rather than letting it become something else,
+  /// because a project's own configuration has an author to tell.
+  ///
   /// Split out so the *rule* is testable without a process-global write: setting
   /// an environment variable from a test leaks into every other test in the
   /// binary, is `unsafe` in this edition, and precedence does not need a side

@@ -6,12 +6,15 @@ use stylex_enums::{
   style_resolution::StyleResolution, sx_prop_name_param::SxPropNameParam,
 };
 use stylex_structures::{
+  ceiling::Ceiling,
+  evaluation_depth::MAX_EVALUATION_DEPTH,
+  fold_ceilings::{MAX_FOLDED_CHARACTERS, MAX_FOLDED_ENTRIES},
   named_import_source::{ImportSources, NamedImportSource, RuntimeInjection},
   stylex_options::{ModuleResolution, ModuleResolutionKind, StyleXOptionsParams},
 };
 
 use crate::enums::{
-  ImportSourceUnion, PropertyValidationMode, RuntimeInjectionUnion, SourceMaps,
+  ConfiguredCeiling, ImportSourceUnion, PropertyValidationMode, RuntimeInjectionUnion, SourceMaps,
   StyleXModuleResolution, SxPropNameUnion,
 };
 
@@ -72,28 +75,29 @@ pub struct StyleXOptions {
   /// source nesting -- a member read costs two, a parenthesis costs none -- so
   /// raise it by measuring rather than by counting brackets. Absent means the
   /// `STYLEX_MAX_EVALUATION_DEPTH` environment variable decides, and failing
-  /// that the built-in default. Read as a signed integer because
-  /// `napi_get_value_uint32` applies `ToUint32` rather than refusing an
-  /// out-of-range number, so `-1` used to arrive as a ceiling near `u32::MAX`.
+  /// that the built-in default. A number that is not a usable count -- a
+  /// fraction, `NaN`, an infinity, a negative, or one past the cap -- is
+  /// refused where it is written rather than quietly becoming something else.
   #[napi(ts_type = "number")]
-  pub max_evaluation_depth: Option<i64>,
+  pub max_evaluation_depth: Option<ConfiguredCeiling>,
   /// How many UTF-16 code units of string one compile-time fold may build or
   /// carry, guarding against a mistyped repeat count that agrees with the
   /// language and reaches gigabytes of resident memory. Bounds a resolved value
   /// on the way into the fold and the answer on the way back. Absent means the
   /// `STYLEX_MAX_FOLDED_CHARACTERS` environment variable decides, and failing
-  /// that the built-in default. Read as a signed integer for the reason
-  /// `maxEvaluationDepth` is.
+  /// that the built-in default. A value that is not a usable count is refused
+  /// for the reason `maxEvaluationDepth`'s is.
   #[napi(ts_type = "number")]
-  pub max_folded_characters: Option<i64>,
+  pub max_folded_characters: Option<ConfiguredCeiling>,
   /// How many array elements and object properties one compile-time fold may
   /// build or carry. Separate from `maxFoldedCharacters` because a bounded
   /// string can still become one element per code unit, which costs far more as
   /// a syntax tree than it did as text. Absent means the
   /// `STYLEX_MAX_FOLDED_ENTRIES` environment variable decides, and failing that
-  /// the built-in default. Read as a signed integer for the same reason.
+  /// the built-in default. A value that is not a usable count is refused for
+  /// the same reason.
   #[napi(ts_type = "number")]
-  pub max_folded_entries: Option<i64>,
+  pub max_folded_entries: Option<ConfiguredCeiling>,
   /// Compile-time constants and functions accessible via `stylex.env`.
   #[napi(ts_type = "Record<string, any>")]
   pub env: Option<JsObject>,
@@ -202,26 +206,89 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       unstable_module_resolution,
       sx_prop_name,
       property_validation_mode,
-      // A negative or out-of-range ceiling is not a usable one, and a number
-      // near `u32::MAX` is no ceiling at all -- the fold exhausts memory long
-      // before it reaches one. Refusing it here falls back to the environment
-      // and then to the default, exactly as an absent value does. All three
-      // arrive as `i64` because `napi_get_value_uint32` applies `ToUint32`
-      // rather than refusing an out-of-range number, so `-1` used to arrive as
-      // a ceiling near `u32::MAX`.
-      max_evaluation_depth: as_ceiling(val.max_evaluation_depth),
-      max_folded_characters: as_ceiling(val.max_folded_characters),
-      max_folded_entries: as_ceiling(val.max_folded_entries),
+      max_evaluation_depth: as_ceiling(
+        val.max_evaluation_depth,
+        &MAX_EVALUATION_DEPTH,
+        "maxEvaluationDepth",
+      )?,
+      max_folded_characters: as_ceiling(
+        val.max_folded_characters,
+        &MAX_FOLDED_CHARACTERS,
+        "maxFoldedCharacters",
+      )?,
+      max_folded_entries: as_ceiling(
+        val.max_folded_entries,
+        &MAX_FOLDED_ENTRIES,
+        "maxFoldedEntries",
+      )?,
       env: None, // Parsed separately via parse_env_object since it needs napi::Env
       debug_file_path: None, // Parsed separately via parse_debug_file_path since it needs napi::Env
     })
   }
 }
 
-/// One configured ceiling as the compiler reads it, or nothing where the number
-/// JavaScript sent is not one.
-fn as_ceiling(configured: Option<i64>) -> Option<usize> {
-  configured.and_then(|value| usize::try_from(value).ok())
+/// One configured ceiling as the compiler reads it, or a refusal naming the
+/// option that was written.
+///
+/// A ceiling is a count between one and the cap its own declaration sets, and
+/// every other spelling used to be read as unset -- so a project that mistyped
+/// one, or asked for more than the compiler will reserve, silently got the
+/// default or the cap and was never told. Both are refused here instead, where
+/// the option's name is still known and an author can find the line that wrote
+/// it.
+///
+/// The environment variables are deliberately not held to this. They are an
+/// escape hatch shared by every build on a machine, and one that failed a build
+/// when mistyped would be a worse one, so a stray value there still falls back
+/// to the default. Nor is a Rust caller that builds the options itself: it has
+/// no written line to name, and `Ceiling::resolve` answers it as before.
+fn as_ceiling(
+  configured: Option<ConfiguredCeiling>,
+  ceiling: &Ceiling,
+  option: &str,
+) -> Result<Option<usize>, napi::Error> {
+  let Some(configured) = configured else {
+    return Ok(None);
+  };
+
+  let usable = 1.0..=(ceiling.limit as f64);
+
+  match configured {
+    // `fract` answers `NaN` for `NaN` and for either infinity, so the whole-
+    // number test refuses all three before the range is asked about.
+    ConfiguredCeiling::Number(value) if value.fract() == 0.0 && usable.contains(&value) => {
+      Ok(Some(value as usize))
+    },
+    ConfiguredCeiling::Number(value) => Err(napi::Error::from_reason(format!(
+      "{option} must be a whole number between 1 and {}, but {} was configured.",
+      ceiling.limit,
+      as_javascript_writes_it(value)
+    ))),
+    ConfiguredCeiling::NotANumber => Err(napi::Error::from_reason(format!(
+      "{option} must be a whole number between 1 and {}.",
+      ceiling.limit
+    ))),
+  }
+}
+
+/// A refused number spelled the way the author wrote it.
+///
+/// Rust prints the two infinities as `inf` and `-inf`, which is not what a
+/// reader typed or what the message should hand back to them.
+fn as_javascript_writes_it(value: f64) -> String {
+  // Guards rather than `f64::INFINITY` patterns: a float is not a pattern the
+  // language wants matched on, and the two readings would drift apart.
+  if value.is_nan() {
+    "NaN".to_owned()
+  } else if value.is_infinite() {
+    if value.is_sign_positive() {
+      "Infinity".to_owned()
+    } else {
+      "-Infinity".to_owned()
+    }
+  } else {
+    value.to_string()
+  }
 }
 
 #[cfg(test)]

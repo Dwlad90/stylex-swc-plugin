@@ -1,4 +1,8 @@
 use super::*;
+use stylex_structures::{
+  evaluation_depth::MAX_EVALUATION_DEPTH,
+  fold_ceilings::{MAX_FOLDED_CHARACTERS, MAX_FOLDED_ENTRIES},
+};
 
 fn empty_options() -> StyleXOptions {
   StyleXOptions {
@@ -360,5 +364,160 @@ fn try_from_all_style_resolutions() {
       "style_resolution '{}' should be valid",
       input
     );
+  }
+}
+
+// ── the three ceilings ─────────────────────────────────────────────
+
+/// One ceiling, named the three ways a test needs it: the option a project
+/// writes, the field the boundary reads, and the cap its own declaration sets.
+///
+/// A table rather than three copies of every case, because the rule is one rule
+/// -- and a fourth ceiling added without a refusal of its own should fail here
+/// rather than quietly accept a `NaN`.
+struct CeilingUnderTest {
+  option: &'static str,
+  limit: usize,
+  write: fn(&mut StyleXOptions, Option<ConfiguredCeiling>),
+  read: fn(&StyleXOptionsParams) -> Option<usize>,
+}
+
+/// A function rather than a `const`, because a `Ceiling` caches its environment
+/// read behind a `OnceLock` and so cannot be looked at while a constant is being
+/// evaluated.
+fn ceilings() -> [CeilingUnderTest; 3] {
+  [
+    CeilingUnderTest {
+      option: "maxEvaluationDepth",
+      limit: MAX_EVALUATION_DEPTH.limit,
+      write: |options, value| options.max_evaluation_depth = value,
+      read: |parsed| parsed.max_evaluation_depth,
+    },
+    CeilingUnderTest {
+      option: "maxFoldedCharacters",
+      limit: MAX_FOLDED_CHARACTERS.limit,
+      write: |options, value| options.max_folded_characters = value,
+      read: |parsed| parsed.max_folded_characters,
+    },
+    CeilingUnderTest {
+      option: "maxFoldedEntries",
+      limit: MAX_FOLDED_ENTRIES.limit,
+      write: |options, value| options.max_folded_entries = value,
+      read: |parsed| parsed.max_folded_entries,
+    },
+  ]
+}
+
+/// The options a project would send with one ceiling configured.
+fn options_with(ceiling: &CeilingUnderTest, value: Option<ConfiguredCeiling>) -> StyleXOptions {
+  let mut options = empty_options();
+  (ceiling.write)(&mut options, value);
+  options
+}
+
+#[test]
+fn a_ceiling_that_is_a_count_is_taken_as_written() {
+  for ceiling in &ceilings() {
+    for value in [1, 7, ceiling.limit] {
+      let options = options_with(ceiling, Some(ConfiguredCeiling::Number(value as f64)));
+
+      match StyleXOptionsParams::try_from(options) {
+        Ok(parsed) => assert_eq!(
+          (ceiling.read)(&parsed),
+          Some(value),
+          "{}: {value} is a usable count",
+          ceiling.option
+        ),
+        Err(error) => panic!("{}: {value} was refused -- {error}", ceiling.option),
+      }
+    }
+  }
+}
+
+#[test]
+fn an_absent_ceiling_leaves_the_environment_and_the_default_to_answer() {
+  for ceiling in &ceilings() {
+    match StyleXOptionsParams::try_from(options_with(ceiling, None)) {
+      Ok(parsed) => assert_eq!((ceiling.read)(&parsed), None, "{}", ceiling.option),
+      Err(error) => panic!(
+        "{}: an absent ceiling was refused -- {error}",
+        ceiling.option
+      ),
+    }
+  }
+}
+
+#[test]
+fn a_ceiling_that_is_not_a_count_is_refused_by_name() {
+  for ceiling in &ceilings() {
+    let past_the_cap = (ceiling.limit + 1) as f64;
+
+    let refused = [
+      ("a fraction", ConfiguredCeiling::Number(1.5), "1.5"),
+      ("NaN", ConfiguredCeiling::Number(f64::NAN), "NaN"),
+      (
+        "an infinity",
+        ConfiguredCeiling::Number(f64::INFINITY),
+        "Infinity",
+      ),
+      (
+        "a negative infinity",
+        ConfiguredCeiling::Number(f64::NEG_INFINITY),
+        "-Infinity",
+      ),
+      ("a negative", ConfiguredCeiling::Number(-1.0), "-1"),
+      ("zero", ConfiguredCeiling::Number(0.0), "0"),
+      (
+        "a value past the cap",
+        ConfiguredCeiling::Number(past_the_cap),
+        &past_the_cap.to_string(),
+      ),
+    ];
+
+    for (label, value, written) in refused {
+      match StyleXOptionsParams::try_from(options_with(ceiling, Some(value))) {
+        Ok(_) => panic!("{}: {label} was accepted", ceiling.option),
+        Err(error) => {
+          let message = error.reason;
+
+          // The three things an author needs from the sentence: which option,
+          // what the cap is, and what they actually wrote.
+          assert!(
+            message.contains(ceiling.option),
+            "{}: {label} does not name the option -- {message}",
+            ceiling.option
+          );
+          assert!(
+            message.contains(&ceiling.limit.to_string()),
+            "{}: {label} does not name the cap -- {message}",
+            ceiling.option
+          );
+          assert!(
+            message.contains(written),
+            "{}: {label} does not name what was configured -- {message}",
+            ceiling.option
+          );
+        },
+      }
+    }
+  }
+}
+
+/// A value with no number in it at all has nothing to hand back, so the sentence
+/// names the option and the cap and stops there.
+#[test]
+fn a_ceiling_that_is_not_a_number_is_refused_by_name() {
+  for ceiling in &ceilings() {
+    match StyleXOptionsParams::try_from(options_with(ceiling, Some(ConfiguredCeiling::NotANumber)))
+    {
+      Ok(_) => panic!("{}: a non-number was accepted", ceiling.option),
+      Err(error) => assert_eq!(
+        error.reason,
+        format!(
+          "{} must be a whole number between 1 and {}.",
+          ceiling.option, ceiling.limit
+        )
+      ),
+    }
   }
 }

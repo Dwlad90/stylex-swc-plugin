@@ -16,6 +16,9 @@ mod state_manager {
     flush_pending_insertions,
   };
   use stylex_enums::top_level_expression::TopLevelExpressionKind;
+  use stylex_structures::ceiling::Ceiling;
+  use stylex_structures::evaluation_depth::MAX_EVALUATION_DEPTH;
+  use stylex_structures::fold_ceilings::{MAX_FOLDED_CHARACTERS, MAX_FOLDED_ENTRIES};
   use stylex_structures::top_level_expression::TopLevelExpression;
   use stylex_utils::hash::stable_hash_unspanned;
 
@@ -474,5 +477,69 @@ mod state_manager {
       state.find_call_declaration_index_by_span(&call_at(DUMMY_SP)),
       None
     );
+  }
+
+  /// The options struct holds each ceiling as a bare `usize`, which a
+  /// struct-update literal can set to anything -- so what the three accessors
+  /// answer is bracketed again where it is read rather than trusted as held.
+  /// Without that bracket a zero would refuse every fold the compiler runs to do
+  /// its own work, and a `usize::MAX` would be no ceiling at all.
+  ///
+  /// Asserted through the accessors rather than through `Ceiling::clamped`,
+  /// because the claim is that these three readings are wired to it: a `clamped`
+  /// pinned only in its own crate stays green when a call site here drops it.
+  #[test]
+  fn a_ceiling_held_by_the_options_struct_is_read_back_inside_its_bracket() {
+    /// One reading: the option a project writes, the field the options struct
+    /// holds it in, the accessor that spends it, and the ceiling that brackets
+    /// it. Named rather than a tuple, so the loop below reads as the claim.
+    struct Reading {
+      option: &'static str,
+      hold: fn(&mut StateManager, usize),
+      spend: fn(&StateManager) -> usize,
+      ceiling: &'static Ceiling,
+    }
+
+    let readings = [
+      Reading {
+        option: "maxEvaluationDepth",
+        hold: |state, held| state.options.max_evaluation_depth = held,
+        spend: StateManager::evaluation_ceiling,
+        ceiling: &MAX_EVALUATION_DEPTH,
+      },
+      Reading {
+        option: "maxFoldedCharacters",
+        hold: |state, held| state.options.max_folded_characters = held,
+        spend: StateManager::character_ceiling,
+        ceiling: &MAX_FOLDED_CHARACTERS,
+      },
+      Reading {
+        option: "maxFoldedEntries",
+        hold: |state, held| state.options.max_folded_entries = held,
+        spend: StateManager::entry_ceiling,
+        ceiling: &MAX_FOLDED_ENTRIES,
+      },
+    ];
+
+    for reading in readings {
+      let ceiling = reading.ceiling;
+
+      for (held, expected) in [
+        (0, 1),
+        (usize::MAX, ceiling.limit),
+        (ceiling.limit + 1, ceiling.limit),
+        (ceiling.default, ceiling.default),
+      ] {
+        let mut state = StateManager::default();
+        (reading.hold)(&mut state, held);
+
+        assert_eq!(
+          (reading.spend)(&state),
+          expected,
+          "{}: held {held}",
+          reading.option
+        );
+      }
+    }
   }
 }

@@ -1,7 +1,7 @@
 use log::warn;
 use napi::{
   Env, Error, JsValue, NapiRaw, Unknown,
-  bindgen_prelude::{FromNapiValue, ToNapiValue},
+  bindgen_prelude::{FromNapiValue, Null, ToNapiValue},
   sys::{napi_env, napi_value},
 };
 use napi_derive::napi;
@@ -209,6 +209,44 @@ impl ToNapiValue for SxPropNameUnion {
         let js_str = env.create_string(&s)?;
         Ok(js_str.raw())
       },
+    }
+  }
+}
+
+/// One [ceiling](stylex_structures::ceiling::Ceiling) as JavaScript sent it.
+///
+/// The three ceilings used to arrive as `i64`, which reads `1.5` as `1`, `NaN`
+/// and both infinities as `0`, and refuses a string with a message about a
+/// conversion rather than about the option. A `f64` keeps every one of those
+/// distinguishable, and the `NotANumber` arm keeps the last of them -- so the
+/// refusal is written once, where the option's name and its limit are both
+/// known.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ConfiguredCeiling {
+  /// The number JavaScript sent, whether or not it is a usable ceiling.
+  Number(f64),
+  /// Something that is not a number at all -- a string, a boolean, an object.
+  NotANumber,
+}
+
+impl FromNapiValue for ConfiguredCeiling {
+  unsafe fn from_napi_value(env: napi_env, value: napi::sys::napi_value) -> Result<Self, Error> {
+    match unsafe { f64::from_napi_value(env, value) } {
+      Ok(number) => Ok(ConfiguredCeiling::Number(number)),
+      Err(_) => Ok(ConfiguredCeiling::NotANumber),
+    }
+  }
+}
+
+impl ToNapiValue for ConfiguredCeiling {
+  unsafe fn to_napi_value(env: napi_env, value: Self) -> Result<napi_value, Error> {
+    match value {
+      ConfiguredCeiling::Number(number) => unsafe { f64::to_napi_value(env, number) },
+      // `#[napi(object)]` derives both directions for the options struct, so
+      // this arm exists because every field must answer it -- nothing hands the
+      // options back to JavaScript. `null` is the honest answer anyway: what
+      // arrived was not a number, and nothing kept it.
+      ConfiguredCeiling::NotANumber => unsafe { Null::to_napi_value(env, Null) },
     }
   }
 }

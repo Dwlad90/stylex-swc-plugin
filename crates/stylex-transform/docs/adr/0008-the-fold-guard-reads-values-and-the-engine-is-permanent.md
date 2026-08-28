@@ -190,6 +190,42 @@ owned the position of. Two more were measured and closed rather than counted: an
 argument that is itself a call through a name, and the join a `ToNumber` reaches
 its number through.
 
+## A shadowed name is ruled on twice, in opposite directions
+
+`String`, `Number`, `Object`, `Array` and `Math` are folded by being called
+rather than by a table of conversions, so whose name it is has to be decided
+before anything else. The answer differs by **position**, which is the one place
+in this module where it does.
+
+**A callee honours every binding.** A `const`, a hoisted `function`, a `class`,
+an import — each is the module's own name, and the call is the author's own
+function. Folding there is the only direction that _invents_ output: this
+compiler would name a class hashed from a declaration the reference compiler
+never wrote, and a build mixing the two would carry markup naming a class the
+stylesheet does not define. A name that fails this test reaches the ordinary
+reference chain below the fold, which refuses it with the sentence the reference
+compiler uses for the same declaration — or, where the binding holds an arrow,
+_calls_ it, as that compiler does.
+
+**A receiver honours only a declarator.** A receiver carries no value across the
+bridge: the printed source names it and the language answers, so a `function` or
+a `class` of the same name changes nothing about the static that folds. Measured,
+the reference compiler folds `Math.max(1, 2)` under `function Math() {}`, and
+this compiler now does too — as both fold `Math.trunc(1.5)` under an import of
+the name, which is the same rule read on the other binding kind with no
+declarator. Only a declarator is read, because only a declarator holds a value
+the static could have been meant to read — `const String = 'abc';
+String.toUpperCase()` folds to `ABC` on both.
+
+**Where a declarator holds an object, the two part, and this one refuses.**
+`const Math = { trunc: () => 9 }; Math.trunc(1.5)` is `1px` in the reference
+compiler, which reads the shadow's _name_ and the global's _method_ and so
+answers for neither. That is a bug there rather than a rule to match. Refusing
+is the safe direction — the call is left to the runtime, where a wrong fold
+writes a wrong declaration — and it is safe here precisely because a receiver
+fold cannot invent a class name the way a callee fold can. The row is pinned in
+the module corpus as `acceptance-divergent`.
+
 ## Consequences
 
 **Position is a parameter, not something the guard carries.** Every rule reads

@@ -275,6 +275,22 @@ pub fn unbounded_amplified_length(method: &str, limit: u64) -> String {
   )
 }
 
+/// An `Array(n)` whose length reached the conversion behind the fold.
+///
+/// A length is read and bounded in front of the engine, on the whole call. A
+/// call the fold handed back was never bounded there, so the elements are
+/// refused rather than allocated on a number nothing checked.
+///
+/// Shares its first line with the other length refusals, because it is the same
+/// question failed one step later.
+pub fn unbounded_declared_length(call: &str) -> String {
+  cannot_bound(
+    "array",
+    call,
+    "Write the elements out, or keep the rest of the expression foldable so its length can be checked.",
+  )
+}
+
 /// A length-amplifying call whose result length was read and is too large.
 ///
 /// Names the length asked for beside the limit, because the two together are

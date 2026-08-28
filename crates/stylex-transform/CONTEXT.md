@@ -59,8 +59,17 @@ applied at all is asked of the language rather than of a list — the global
 object holds the value, and the value says. `Math` is a
 [valid callee](../stylex-js/CONTEXT.md), so `Math.round(1.5)` names a global
 rather than a module binding, but the value it holds is not callable, so a bare
-`Math(x)` is refused by name. Only a global with no binding in scope is one at
-all — a declared `String` is an ordinary function and is called, not folded.
+`Math(x)` is refused by name.
+
+**Which bindings shadow one depends on where it is written**, and the two rules
+go opposite ways. Applied as a function, _every_ [declared
+binding](#declared-binding) shadows it — a `const`, a `function`, a `class`, an
+import, a dynamic style's parameter — because folding the module's own function
+would name a class hashed from a declaration the reference compiler never wrote.
+Read as the receiver of a static, only a declarator shadows it: the receiver
+carries no value across the [transport](#transport), so the printed source names
+it and the language answers, and a `function Math() {}` changes nothing about
+`Math.max(1, 2)`. `ADR 0008` carries the ruling and the divergence it leaves.
 
 An argument the [transport](#transport) cannot carry hands the call back rather
 than refusing it. Those arguments are this compiler's own values — the
@@ -290,6 +299,17 @@ ceilings](../stylex-structures/CONTEXT.md) rather than after the whole join has
 been copied. Where it cannot convert at all
 it raises the refusal itself, which keeps the sentence an author reads in one
 place.
+
+How much of the argument list it answers for is each conversion's own.
+`String`, `Number` and `Object` read the first argument and ignore the rest;
+`Array` has no surplus, since every argument is an element — and a style array
+is a fallback list, so an argument dropped there is a declaration the author
+wrote. A lone number is the exception, because it is a length rather than an
+element. The usual way to write one is answered by the engine, with the [fold
+guard](#fold-guard)'s ceiling already applied — but the hand-back is decided by
+the whole expression, so a number reaches here whenever something else in the
+call declined, carrying a length nothing bounded. Refused there rather than
+allocated.
 _Avoid_: fallback coercion, the Rust conversion, the second bridge
 
 **Engine-callable StyleX function**:

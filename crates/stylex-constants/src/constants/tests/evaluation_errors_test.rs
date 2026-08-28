@@ -104,6 +104,18 @@ fn test_unbounded_amplified_length() {
   assert!(unbounded_amplified_length("padStart", 32).contains("at most 32"));
 }
 
+// The same first line on the other unit, for a length that reached the
+// conversion behind the fold rather than the guard. It names no limit, because
+// the refusal is that nothing measured the length -- not that a number was too
+// large -- so what it offers is the two ways to make the length readable.
+#[test]
+fn test_unbounded_declared_length() {
+  assert_eq!(
+    unbounded_declared_length("Array"),
+    "Cannot bound the array 'Array' would build.\nWrite the elements out, or keep the rest of the expression foldable so its length can be checked.\n\n"
+  );
+}
+
 // The other half of the same question, and the one an author reaches by asking
 // for a length that *was* read: it names what was asked for beside the limit,
 // because the two together say whether this is a typo or a project that has

@@ -17,7 +17,9 @@
 //! class the other build defines.
 
 use super::super::*;
-use stylex_constants::constants::evaluation_errors::{STRING_CONVERSION, uncoercible_value};
+use stylex_constants::constants::evaluation_errors::{
+  STRING_CONVERSION, unbounded_declared_length, uncoercible_value,
+};
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::CallExpr;
 
@@ -59,9 +61,13 @@ impl Conversion {
   /// way or the other: a call handed on from here would end at the catch-all's
   /// `Unsupported expression` with the reason lost.
   ///
-  /// Surplus arguments are ignored and a missing one is the conversion's own
-  /// empty answer, as in JavaScript — `String(1, 2)` is `"1"` and `String()` is
-  /// `""`.
+  /// How much of the argument list a conversion answers for is the conversion's
+  /// own, as in JavaScript. `String`, `Number` and `Object` read the first
+  /// argument and ignore the rest — `String(1, 2)` is `"1"`. `Array` has no
+  /// surplus: every argument is an element, so `Array(1, 2)` is two of them —
+  /// except a lone number, which is a length rather than an element and is
+  /// refused here for the reason [`Self::of`] gives. A missing argument is each
+  /// conversion's own empty answer.
   pub(super) fn evaluate(
     self,
     call: &CallExpr,
@@ -83,80 +89,92 @@ impl Conversion {
       return deopt(path, state, &uncoercible_value(self.name()));
     }
 
-    match args.first() {
-      Some(argument) => self.of(argument, path, state, traversal_state),
-      None => Some(self.of_nothing()),
-    }
+    self.of(args, path, state, traversal_state)
   }
 
-  /// The conversion applied to the one argument that matters.
+  /// The conversion applied to the arguments it answers for.
+  ///
+  /// One match on the conversion rather than two, so each arm states both what
+  /// it does with an argument and what it answers without one. The empty answers
+  /// are each conversion's own rather than the conversion of `undefined`:
+  /// `String()` is the empty string where `String(undefined)` is `"undefined"`,
+  /// and `Number()` is zero where `Number(undefined)` is `NaN`.
   fn of(
     self,
-    argument: &EvaluateResultValue,
+    args: Vec<EvaluateResultValue>,
     path: &Expr,
     state: &mut EvaluationState,
     traversal_state: &mut StateManager,
   ) -> Option<EvaluateResultValue> {
     match self {
-      Self::String => {
-        // Grown through the shared buffer rather than collected, so an array
-        // holding one of this compiler's values is still measured element by
-        // element and refuses at the one that passes the ceiling.
-        let mut text = GrownString::new(STRING_CONVERSION);
-
-        match text.push_string_of(argument, || path.clone(), state, traversal_state) {
-          Ok(()) => Some(EvaluateResultValue::Expr(create_string_expr(
-            &text.into_text(),
-          ))),
-          // A value with no compile-time string at all — a function, whose only
-          // string form is its source text and neither compiler has the
-          // author's. The ceiling refusal already deopted and carries its own
-          // sentence.
-          Err(StringAppend::NoStringForm) => deopt(path, state, &uncoercible_value(self.name())),
-          Err(StringAppend::TooLarge(sentence)) => deopt(path, state, &sentence),
-        }
+      // The one conversion with no surplus: every argument is an element, so the
+      // whole list is read and an empty one is already the empty array.
+      //
+      // A lone number is the exception, because it is a length rather than an
+      // element. A number crosses the bridge, so the usual way to write one is
+      // answered by the engine with the guard's ceiling already applied — but the
+      // hand-back is decided by the whole expression rather than by this
+      // argument, so a number does reach here whenever something else in the call
+      // declined. That length was bounded by nothing, and reading it here would
+      // allocate on a number the guard never checked. Refused instead, which is
+      // also what the reference compiler does with the shapes that get here.
+      Self::Array => match args.as_slice() {
+        [EvaluateResultValue::Expr(Expr::Lit(Lit::Num(_)))] => {
+          deopt(path, state, &unbounded_declared_length(self.name()))
+        },
+        _ => Some(EvaluateResultValue::Vec(args)),
       },
-      Self::Number => match evaluate_result_to_js_number(argument, traversal_state) {
-        // `NaN` is not a refusal: it flows into the declaration exactly as it
-        // does upstream, where `Number('10px')` writes `NaN` into the rule.
-        Ok(number) => Some(EvaluateResultValue::Expr(create_number_expr(number))),
-        Err(NumberRefusal::NoNumberForm) => deopt(path, state, &uncoercible_value(self.name())),
-        Err(NumberRefusal::TooLarge) => deopt(
-          path,
-          state,
-          &grown_string_too_large(
-            NUMERIC_CONVERSION,
-            traversal_state.character_ceiling() as u64,
+      Self::String => match args.into_iter().next() {
+        None => Some(EvaluateResultValue::Expr(create_string_expr(""))),
+        Some(argument) => {
+          // Grown through the shared buffer rather than collected, so an array
+          // holding one of this compiler's values is still measured element by
+          // element and refuses at the one that passes the ceiling.
+          let mut text = GrownString::new(STRING_CONVERSION);
+
+          match text.push_string_of(&argument, || path.clone(), state, traversal_state) {
+            Ok(()) => Some(EvaluateResultValue::Expr(create_string_expr(
+              &text.into_text(),
+            ))),
+            // A value with no compile-time string at all — a function, whose only
+            // string form is its source text and neither compiler has the
+            // author's. The ceiling refusal already deopted and carries its own
+            // sentence.
+            Err(StringAppend::NoStringForm) => deopt(path, state, &uncoercible_value(self.name())),
+            Err(StringAppend::TooLarge(sentence)) => deopt(path, state, &sentence),
+          }
+        },
+      },
+      Self::Number => match args.into_iter().next() {
+        None => Some(EvaluateResultValue::Expr(create_number_expr(0.0))),
+        Some(argument) => match evaluate_result_to_js_number(&argument, traversal_state) {
+          // `NaN` is not a refusal: it flows into the declaration exactly as it
+          // does upstream, where `Number('10px')` writes `NaN` into the rule.
+          Ok(number) => Some(EvaluateResultValue::Expr(create_number_expr(number))),
+          Err(NumberRefusal::NoNumberForm) => deopt(path, state, &uncoercible_value(self.name())),
+          Err(NumberRefusal::TooLarge) => deopt(
+            path,
+            state,
+            &grown_string_too_large(
+              NUMERIC_CONVERSION,
+              traversal_state.character_ceiling() as u64,
+            ),
           ),
-        ),
+        },
       },
-      // Every value that reaches here is an object upstream, and `Object` hands
-      // an object back unchanged — which is what keeps a member read off the
-      // result resolving to the same thing the bare group resolves to.
-      Self::Object => match evaluate_result_to_js_object(argument) {
-        Some(_) => Some(argument.clone()),
-        None => deopt(path, state, &uncoercible_value(self.name())),
+      Self::Object => match args.into_iter().next() {
+        None => Some(EvaluateResultValue::Expr(Expr::Object(ObjectLit {
+          span: DUMMY_SP,
+          props: vec![],
+        }))),
+        // Every value that reaches here is an object upstream, and `Object` hands
+        // an object back unchanged — which is what keeps a member read off the
+        // result resolving to the same thing the bare group resolves to.
+        Some(argument) => match evaluate_result_to_js_object(&argument) {
+          Some(_) => Some(argument),
+          None => deopt(path, state, &uncoercible_value(self.name())),
+        },
       },
-      // A single argument that is not a number is an element rather than a
-      // length, and none of the values reaching here is a number.
-      Self::Array => Some(EvaluateResultValue::Vec(vec![argument.clone()])),
-    }
-  }
-
-  /// The conversion applied to no arguments at all.
-  ///
-  /// Each is its own empty answer rather than the conversion of `undefined`:
-  /// `String()` is the empty string where `String(undefined)` is `"undefined"`,
-  /// and `Number()` is zero where `Number(undefined)` is `NaN`.
-  fn of_nothing(self) -> EvaluateResultValue {
-    match self {
-      Self::String => EvaluateResultValue::Expr(create_string_expr("")),
-      Self::Number => EvaluateResultValue::Expr(create_number_expr(0.0)),
-      Self::Object => EvaluateResultValue::Expr(Expr::Object(ObjectLit {
-        span: DUMMY_SP,
-        props: vec![],
-      })),
-      Self::Array => EvaluateResultValue::Vec(vec![]),
     }
   }
 }

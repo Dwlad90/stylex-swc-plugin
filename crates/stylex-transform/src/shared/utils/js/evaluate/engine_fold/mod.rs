@@ -60,7 +60,7 @@ use engine::{ENGINE, Engine, print_fold, threw};
 use guard::{Admitted, Guard, Position, Reader, Repeats, Scope, Walk, admit_an_applied_global};
 use outward::Outward;
 
-pub(super) use guard::unshadowed_global;
+pub(super) use guard::unshadowed_applied_global;
 
 // Read by the evaluator's own tests, which sit one level up.
 #[cfg(test)]

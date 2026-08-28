@@ -33,7 +33,7 @@ pub(in super::super) fn evaluate(
   // A conversion the engine handed back, because what it was applied to is one
   // of this compiler's own values rather than a JavaScript one.
   if let Callee::Expr(callee) = &call.callee
-    && let Some(global) = engine_fold::unshadowed_global(callee, traversal_state)
+    && let Some(global) = engine_fold::unshadowed_applied_global(callee, traversal_state)
     && let Some(conversion) = Conversion::named(global)
   {
     return conversion.evaluate(call, path, state, traversal_state, fns);

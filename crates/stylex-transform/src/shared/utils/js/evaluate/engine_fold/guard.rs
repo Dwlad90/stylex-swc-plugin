@@ -36,7 +36,7 @@ use super::{Ceilings, Decline, Depth, lists};
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
-  utils::js::check_declaration::DeclarationType,
+  utils::{common::get_var_decl_from, js::check_declaration::DeclarationType},
 };
 
 use super::super::{
@@ -1100,7 +1100,7 @@ impl<'r> Walk<'_, 'r> {
     // functions, so they are folded by being called rather than by a conversion
     // written out here. A name the module bound is not one of them and is left to
     // the dispatch below, which calls the author's own function.
-    if let Some(global) = unshadowed_global(callee, self.reader.traversal_state) {
+    if let Some(global) = unshadowed_applied_global(callee, self.reader.traversal_state) {
       return self.under(guard).admit_applied_global(global, call);
     }
 
@@ -1126,7 +1126,7 @@ impl<'r> Walk<'_, 'r> {
     // what folding a static needs, so the surface is the language's rather than a
     // list of names this compiler chose, and where a static is written no longer
     // decides whether it folds.
-    let global = unshadowed_global(obj, self.reader.traversal_state);
+    let global = unshadowed_receiver_global(obj, self.reader.traversal_state);
 
     // The statics the reference compiler refuses by name, refused here for the
     // reason it refuses them: each answers by changing what it was handed, or
@@ -1520,31 +1520,80 @@ pub(super) fn without_parens(expr: &Expr) -> &Expr {
   expr
 }
 
-/// The name a bare identifier names as a global the module never bound, or
-/// `None` where it is not one.
-///
-/// One question asked in the two positions a global appears in — the receiver of
-/// a static and the callee of an applied global — so a name that is the global
-/// in one cannot be a binding in the other.
-///
-/// A locally-declared shadow is the module's own value and is resolved like any
-/// other name: measured, `const String = 'abc'; String.toUpperCase()` folds to
-/// `ABC` in the reference compiler, so treating the name as the global would
-/// refuse an input it compiles. The lookup is one map read and no evaluation, so
-/// it stays in front of the walk with the other cheap answers.
+/// The identifier a global is written as, through parentheses, before any
+/// question of shadowing.
 ///
 /// Read through parentheses, because they change nothing about which name is
 /// written and the reference compiler folds `(String)('a')` and `(Math).max(1, 2)`
 /// exactly as it folds them bare.
-pub(in super::super) fn unshadowed_global<'a>(
-  expr: &'a Expr,
-  state: &StateManager,
-) -> Option<&'a Atom> {
+fn written_global(expr: &Expr) -> Option<&Ident> {
   let expr = without_parens(expr);
 
   match expr.as_ident() {
-    Some(name) if is_valid_callee(expr) && get_binding(expr, state).is_none() => Some(&name.sym),
+    Some(ident) if is_valid_callee(expr) => Some(ident),
     _ => None,
+  }
+}
+
+/// The name an applied global names, or `None` where the module bound it.
+///
+/// **Every** binding shadows here — a `const`, a hoisted `function`, a `class`,
+/// an import — because folding a call the module owns is the one direction that
+/// invents output: this compiler would name a class the other build never
+/// defines, hashed from a declaration it never wrote. Measured, the reference
+/// compiler refuses each of those shapes for the declaration it names, and a
+/// name this returns `None` for reaches exactly that chain below the fold.
+///
+/// A binding is not the same as a refusal. `const String = (x) => 'no'` is a
+/// function this compiler can call, and the dispatch below calls it — which is
+/// what the reference compiler does too.
+///
+/// One `Id` probe and no evaluation, so it stays in front of the walk with the
+/// other cheap answers.
+pub(in super::super) fn unshadowed_applied_global<'a>(
+  expr: &'a Expr,
+  state: &StateManager,
+) -> Option<&'a Atom> {
+  let ident = written_global(expr)?;
+
+  // Read in the same order as the receiver rule below -- the global first, the
+  // shadow second -- so the difference a reader is looking for is the question
+  // each asks and not the shape of the answer.
+  match state.declares_binding(ident) {
+    false => Some(&ident.sym),
+    true => None,
+  }
+}
+
+/// The name a static's receiver names as a global, or `None` where the module
+/// declared a value under it.
+///
+/// **Narrower than the callee rule above, and the two go opposite ways on
+/// purpose.** A receiver carries no value across the bridge: the printed source
+/// names it and the language answers, so a `function` or a `class` of the same
+/// name changes nothing about the static that folds — and the reference compiler
+/// folds `Math.max(1, 2)` under `function Math() {}` for exactly that reason.
+/// Only a declarator is read here, because only a declarator holds a value the
+/// static could have been meant to read.
+///
+/// A declarator that does hold one is the module's own value and is resolved
+/// like any other name: measured, `const String = 'abc'; String.toUpperCase()`
+/// folds to `ABC` in the reference compiler, so treating the name as the global
+/// would refuse an input it compiles.
+///
+/// Where the value it holds is an *object*, the two compilers part: `const Math
+/// = { trunc: () => 9 }; Math.trunc(1.5)` is `1` upstream, which reads the
+/// shadow's name and the global's method and so answers for neither. Refusing is
+/// the safe direction — a refusal leaves the call to the runtime where a wrong
+/// fold writes a wrong declaration — and it is the direction the callee rule
+/// cannot take, since only a callee fold can name a class the other build never
+/// defines. See `ADR 0008`.
+fn unshadowed_receiver_global<'a>(expr: &'a Expr, state: &StateManager) -> Option<&'a Atom> {
+  let ident = written_global(expr)?;
+
+  match get_var_decl_from(state, ident) {
+    None => Some(&ident.sym),
+    Some(_) => None,
   }
 }
 
@@ -1633,3 +1682,7 @@ fn is_a_carryable_receiver(value: &EvaluateResultValue) -> bool {
 #[cfg(test)]
 #[path = "tests/speculation_tests.rs"]
 mod speculation_tests;
+
+#[cfg(test)]
+#[path = "tests/shadowed_names_tests.rs"]
+mod shadowed_names_tests;

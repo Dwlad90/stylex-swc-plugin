@@ -2408,6 +2408,43 @@
       "source": "import * as stylex from '@stylexjs/stylex';\n\nconst list = ['a', undefined, 'b'];\nconst spelled = ['a', void 0, 'b'];\nconst nested = ['a', [undefined, ['b', undefined]]];\nconst record = { a: undefined, b: 1 };\n\nexport const styles = stylex.create({\n  s0: { content: list.join('-') },\n  s1: { content: spelled.join('-') },\n  s2: { content: nested.flat(2).join('-') },\n  s3: { content: Object.keys(record).join(',') },\n  s4: { content: Object.values(record).join(',') },\n  s5: { content: `${list}` },\n  s6: { content: list.join('-').padEnd(8, 'x') },\n  s7: { content: String(list.at(1)) },\n});\n",
       "origin": "issue 27, the gap the binding path was missing",
       "note": "Agreement, and it was a refusal here until issue 27. `undefined` is the one value the grammar has no literal for, so the bridge into the engine had no arm for it and a named value holding one declined the whole fold -- while the same array written out folded, and `null` in the same position folded. Not one of the four refusals ADR 0008 argues for, so it was closed rather than recorded. `void 0` is the same value under a different spelling and the evaluator answers it as the same identifier, so `s1` reaches the same arm as `s0`. Two refusals above and beside the bridge were the same omission and closed with it: the amplification guard could not read how wide the value renders, which is `s6`, and the outward conversion refused to carry it back, which is `s7`. A binding that shadows the name is refused before the bridge sees it, by the evaluator, and stays refused on both compilers."
+    },
+    {
+      "id": "modules-31-a-shadowed-global-callee",
+      "label": "a call through a name the module declared over a global",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nfunction String(x) {\n  return 'no';\n}\n\nexport const styles = stylex.create({\n  s0: { color: String(1) },\n});\n",
+      "origin": "issue 31, measured against the reference compiler",
+      "note": "Agreement, and it folded here until issue 31. The four conversions and `Math` are folded by being called rather than by a table, so whose name it is decides whether the fold owns the call at all. Only a `const` shadowed the global before: a hoisted `function`, a `class` and an import each left the name reading as the global, and `String(1)` folded to `\"1\"` where the reference compiler refuses for the declaration it names. That is the dangerous direction -- this build names a class hashed from a declaration the other build never wrote -- so every binding shadows now, and the refusal is the reference chain's own: `Unsupported expression: FunctionDeclaration` here, `ClassDeclaration` for a class, `Referenced value is not a constant.` for a binding written to after it was declared, and the imported-file sentence for an import. A `const` holding an arrow is still *called* rather than refused, on both compilers, since a shadow this compiler can run is honoured by running it."
+    },
+    {
+      "id": "modules-31-an-applied-array-keeps-every-argument",
+      "label": "`Array` applied to a value the bridge cannot carry",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { colors } from 'colors.stylex.js';\n\nexport const styles = stylex.create({\n  s0: { color: Array(colors.primary, 'blue') },\n  s1: { color: Array(colors.primary, colors.surface, 'blue') },\n  s2: { color: Array(colors.primary) },\n  s3: { color: String(colors, 'blue') },\n  s4: { content: Array(2).length },\n  s5: { content: Array(colors.primary.length).length },\n});\n",
+      "origin": "issue 31, measured against the reference compiler",
+      "note": "Agreement, and `s0` through `s2` dropped their surplus here until issue 31. A token group has no JavaScript form to cross the bridge as, so the whole call is handed back and the conversion behind the fold answers it -- and that conversion read `args.first()` for all four names. Three of them are right to: `String`, `Number` and `Object` ignore every argument past the first. `Array` has no surplus at all, so `Array(colors.primary, 'blue')` came to `[colors.primary]` and lost the fallback the author wrote, which a style array is. Every argument is an element now. `s3` is the surplus rule the other three keep, on the same hand-back path so the difference is the conversion rather than the path. `s4` is a lone number, which is a length rather than an element, answered by the engine with the guard's ceiling applied. `s5` is an argument that resolved to something else, which is still the one element both compilers build."
+    },
+    {
+      "id": "modules-31-a-shadowed-static-receiver",
+      "label": "a static read off a receiver the module declared",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst Math = { trunc: () => 9 };\n\nexport const styles = stylex.create({\n  s0: { width: Math.trunc(1.5) },\n});\n",
+      "origin": "issue 31, the ruling that goes the other way",
+      "expected": "acceptance-divergent",
+      "note": "Divergent, and deliberately. The reference compiler folds this to `1px`: it reads the shadow's *name* and the global's *method*, so the answer belongs to neither the author's object nor the language. Refusing is the safe direction -- the call is left to the runtime, where a wrong fold would write a wrong declaration -- and it is the opposite of the ruling on a shadowed *callee* one row above for one reason: folding a shadowed callee produces output where the other compiler produces none, while folding a shadowed receiver only agrees with output the other compiler already emits. A `function` or `class` of the same name changes nothing here, and folds on both, because a receiver carries no value across the bridge: the printed source names it and the language answers. ADR 0008 carries the ruling."
+    },
+    {
+      "id": "modules-31-a-length-reaching-the-conversion-behind-the-fold",
+      "label": "`Array` applied to a length the guard never bounded",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: Array([, 1].length).length },\n});\n",
+      "origin": "issue 31, found by the review of the argument-list change",
+      "expected": "both-reject-divergent",
+      "note": "Both compilers refuse, in words of their own, and this one answered `1` until issue 31 -- where JavaScript says `2`. A lone number handed to `Array` is a length rather than an element, and the ceiling on that length is read in front of the engine, on the whole call. The hand-back is decided by the whole expression rather than by one argument, though: the array hole here declines the call, so the number arrives at the conversion behind the fold with nothing having bounded the elements it declares. Refused there rather than read, since reading it would allocate on a number the guard never checked and a second reading of a length is a second place to disagree about an allocation. The reference compiler refuses the same source for its own reason -- an array hole leaves its evaluator nothing to resolve -- so both builds stop, and neither names a class the other does not define."
+    },
+    {
+      "id": "modules-31-an-import-over-a-static-receiver",
+      "label": "a static read off a receiver an import bound",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { Math } from './helpers';\n\nexport const styles = stylex.create({\n  s0: { width: Math.trunc(1.5) },\n});\n",
+      "origin": "issue 31, the receiver rule read on a binding with no declarator",
+      "note": "Agreement. The receiver rule reads a declarator and nothing else, so an import -- which binds the name without leaving one -- does not shadow a static, and the language's `Math.trunc` answers whatever the imported file holds. The reference compiler folds it for the same reason, since it never resolves a static's receiver at all. Measured beside the callee rule one row up, where the identical import *does* shadow and both compilers refuse: the difference is the position, and it is the ruling `ADR 0008` records."
     }
   ]
 }

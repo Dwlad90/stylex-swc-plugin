@@ -33,11 +33,13 @@ pub(in super::super) fn evaluate(
                 // An argument with no expression form binds nothing, leaving
                 // the parameter unresolved so the body deopts on its own
                 // terms. The callback has no deopt to record and must not
-                // abort — see the fallback at the end of this closure.
-                if let Some(expr) = cb_args.get(index).and_then(|arg| arg.as_expr()) {
+                // abort — see the fallback at the end of this closure. The
+                // callers that can refuse ask for the same form first, so what
+                // reaches here unbound is an argument no sentence was owed for.
+                if let Some(expr) = cb_args.get(index).and_then(evaluate_result_as_expr) {
                   let cl = |arg: Expr| move || arg.clone();
 
-                  let result = (cl)(expr.clone());
+                  let result = (cl)(expr);
                   let function = FunctionConfig {
                     fn_ptr: FunctionType::Mapper(Rc::new(result)),
                     takes_path: false,

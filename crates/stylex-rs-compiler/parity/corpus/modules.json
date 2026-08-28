@@ -2031,6 +2031,14 @@
       "configuration": "maxFoldedCharacters"
     },
     {
+      "id": "modules-24-an-argument-that-is-a-named-call",
+      "label": "a call through a name whose argument is another one",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst inner = (y) => y + '!';\nconst other = (y) => y + '?';\nconst join2 = (a, b) => a + b;\nconst arr = ['a', 'b'];\n\nexport const styles = stylex.create({\n  s0: { content: inner(inner('a')) },\n  s1: { content: inner(other('a')) },\n  s2: { content: join2(inner('a'), 'b') },\n  s3: { content: inner(arr) },\n});\n",
+      "origin": "issue 24, an argument that is itself a call through a name",
+      "note": "Identical, and the divergence this row was written for is closed. The dispatch answered a call through a name by handing back the arrow the name holds, and the style-value position applied it -- so the answer depended on who asked. The same call one argument deeper arrived at the arrow as a function no parameter could bind, which left the body unevaluated and reported an internal expectation about a binary operand. The call is now applied where it is written, and an array argument binds as the array it is rather than as nothing.",
+      "expected": "identical"
+    },
+    {
       "id": "modules-06-amplified-array-length",
       "label": "an array result longer than a declaration could use",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'x'.repeat(20000).split('').length },\n});\n",

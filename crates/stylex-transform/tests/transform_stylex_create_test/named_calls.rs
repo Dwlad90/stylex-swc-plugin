@@ -558,3 +558,197 @@ fn a_named_call_beside_a_dynamic_parameter_still_folds() {
     output
   );
 }
+
+// ──────────────────────────────────────────────
+// An argument that is itself a call through a name
+// ──────────────────────────────────────────────
+//
+// The dispatch used to answer a call through a name by handing back the arrow
+// the name holds, and the style-value position applied it. So the answer
+// depended on who asked: `inner('a')` folded where a style value read it, and
+// the same call one argument deeper arrived at the arrow as a function no
+// parameter could bind -- which left the body unevaluated and reported an
+// internal expectation about a binary operand, naming neither the call nor the
+// argument. Applied where the call is, one rule answers every position.
+
+/// The reported shape: the argument is another call through the same name.
+#[test]
+fn a_named_call_as_an_argument_to_a_named_call_folds() {
+  assert_folds(
+    INNER,
+    "content: inner(inner('a')),",
+    ".xjczvju{content:\"a!!\"}",
+  );
+}
+
+/// Through two different names, so the answer is not about one binding being
+/// reached twice.
+#[test]
+fn two_different_names_nested_in_each_other_fold() {
+  assert_folds(
+    "const inner = (y) => y + '!';\nconst other = (y) => y + '?';",
+    "content: inner(other('a')),",
+    ".xavg6lb{content:\"a?!\"}",
+  );
+}
+
+/// A named call *beside* an argument that is not one, since only one of the two
+/// is the shape that failed.
+#[test]
+fn a_named_call_beside_an_argument_that_is_not_one_folds() {
+  assert_folds(
+    "const join2 = (a, b) => a + b;\nconst inner = (y) => y + '!';",
+    "content: join2(inner('a'), 'b'),",
+    ".xzbf3kh{content:\"a!b\"}",
+  );
+}
+
+/// Three deep and unwrapped, which is the shape the fold owns once anything
+/// claims it -- so the two paths agree on the same answer.
+#[test]
+fn a_named_call_nested_three_deep_folds() {
+  assert_folds(
+    INNER,
+    "content: inner(inner(inner('a'))),",
+    ".xg35vm4{content:\"a!!!\"}",
+  );
+}
+
+/// The call inside a larger argument rather than as the whole of one.
+#[test]
+fn a_named_call_inside_a_larger_argument_folds() {
+  assert_folds(
+    INNER,
+    "content: inner(inner('a') + 'z'),",
+    ".xwfcpxd{content:\"a!z!\"}",
+  );
+}
+
+/// An array argument binds as the array it is. The evaluator holds an array in
+/// two spellings and the binding read only one of them, so a list written out
+/// bound nothing and left the body unevaluated exactly as a nested call did.
+#[test]
+fn an_array_argument_binds_as_the_array() {
+  assert_folds(
+    INNER,
+    "content: inner(['a', 'b']),",
+    ".x15vkifo{content:\"a,b!\"}",
+  );
+}
+
+/// The same array through a name, which is the spelling that reaches the
+/// evaluator's own list.
+#[test]
+fn a_named_array_argument_binds_as_the_array() {
+  assert_folds(
+    "const inner = (y) => y + '!';\nconst arr = ['a', 'b'];",
+    "content: inner(arr),",
+    ".x15vkifo{content:\"a,b!\"}",
+  );
+}
+
+/// An object argument takes the `Object.prototype` default, as it does anywhere
+/// else a string is wanted.
+#[test]
+fn an_object_argument_binds_as_its_string() {
+  assert_folds(
+    INNER,
+    "content: inner({}),",
+    ".x1gaedpw{content:\"[object Object]!\"}",
+  );
+}
+
+/// `undefined` is a value rather than a name that failed to resolve, so it
+/// binds and spells itself.
+#[test]
+fn an_undefined_argument_binds() {
+  assert_folds(
+    INNER,
+    "content: inner(undefined),",
+    ".xbnrqzp{content:\"undefined!\"}",
+  );
+}
+
+/// A function argument is the one that still refuses, and the refusal names the
+/// call rather than an operand of the binary expression inside the body.
+/// Upstream folds this to the function's own source text, which this compiler
+/// does not retain.
+#[test]
+fn a_function_argument_names_the_call() {
+  assert_refuses(
+    INNER,
+    "content: inner(inner),",
+    "Function argument must be a static expression.",
+  );
+}
+
+/// An argument whose own call refuses keeps that refusal, rather than reaching
+/// the arrow with nothing bound.
+#[test]
+fn an_argument_whose_call_refuses_keeps_its_sentence() {
+  assert_refuses(
+    INNER,
+    "content: inner(inner('a'.toLocaleUpperCase())),",
+    "Cannot fold 'toLocaleUpperCase' at compile time.",
+  );
+}
+
+/// An argument naming nothing keeps the resolution's own sentence.
+#[test]
+fn an_argument_naming_nothing_keeps_its_sentence() {
+  assert_refuses(
+    INNER,
+    "content: inner(nope('a')),",
+    "Referenced constant is not defined.",
+  );
+}
+
+/// A block-bodied declaration reached through an argument refuses as it does
+/// anywhere else, and upstream refuses it with the same sentence.
+#[test]
+fn a_block_bodied_declaration_in_an_argument_refuses() {
+  assert_refuses(
+    "const inner = (y) => y + '!';\nconst bad = (y) => { return y; };",
+    "content: inner(bad('a')),",
+    "Unsupported expression: ArrowFunctionExpression",
+  );
+}
+
+/// Nesting deep enough to exhaust the evaluation depth refuses with the depth's
+/// own sentence rather than folding a wrong value or aborting the process.
+#[test]
+fn nesting_past_the_evaluation_depth_refuses() {
+  let mut body = String::from("content: ");
+
+  body.push_str(&"inner(".repeat(200));
+  body.push_str("'a'");
+  body.push_str(&")".repeat(200));
+  body.push(',');
+
+  assert_refuses(INNER, &body, "too deeply nested");
+}
+
+/// Nesting inside the evaluation depth answers every call, so the shape that
+/// used to fail at one level deep now runs to the depth the project configured.
+#[test]
+fn deep_but_foldable_nesting_answers_every_call() {
+  const DEPTH: usize = 10;
+
+  let mut body = String::from("content: ");
+
+  body.push_str(&"inner(".repeat(DEPTH));
+  body.push_str("'a'");
+  body.push_str(&")".repeat(DEPTH));
+  body.push(',');
+
+  let output = fold(&crate::utils::transform::base_style_module(INNER, &body));
+  let expected = format!("content:\"a{}\"", "!".repeat(DEPTH));
+
+  assert!(
+    output.contains(&expected),
+    "expected {} nested calls to fold to `{}`, got:\n{}",
+    DEPTH,
+    expected,
+    output
+  );
+}

@@ -331,24 +331,13 @@ pub(in super::super) fn evaluate(
                 Some(expr) => expr,
                 None => deopt_unsupported!(&refusal_path(), state, ILLEGAL_PROP_ARRAY_VALUE),
               },
-              EvaluateResultValue::Callback(cb) => match path_key_value.value.as_ref() {
-                Expr::Call(call_expr) => {
-                  let cb_args: Vec<EvaluateResultValue> = call_expr
-                    .args
-                    .iter()
-                    .map(|arg| {
-                      let eval_arg = evaluate_cached(&arg.expr, state, traversal_state, fns);
-
-                      if !state.confident {
-                        return EvaluateResultValue::Null;
-                      }
-
-                      eval_arg.unwrap_or(EvaluateResultValue::Null)
-                    })
-                    .collect();
-
-                  cb(cb_args, traversal_state)
-                },
+              // A callback reaches a value position as the arrow it was written
+              // as -- a dynamic style's function, which is kept for the runtime
+              // to call. A *call* on one no longer arrives here: applying it
+              // used to be this arm's second job, and doing it beside the
+              // dispatch is what made the same call fold in a style value and
+              // refuse one argument deeper.
+              EvaluateResultValue::Callback(_) => match path_key_value.value.as_ref() {
                 Expr::Arrow(arrow_func_expr) => Expr::Arrow(arrow_func_expr.clone()),
                 _ => deopt_unsupported!(&refusal_path(), state, ILLEGAL_PROP_VALUE),
               },

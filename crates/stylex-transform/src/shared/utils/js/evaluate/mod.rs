@@ -150,6 +150,19 @@ pub(crate) fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -
   Some(create_array_expression(elems))
 }
 
+/// The expression form of an evaluated value, if it has one.
+///
+/// An array has two spellings -- the evaluator's own list, and the literal it
+/// was written as -- so a reader that knows only the second finds no form for
+/// half of the arrays it is handed. The values with no form at all are the
+/// functions: `String(fn)` is its source text, and this evaluator keeps none.
+pub(crate) fn evaluate_result_as_expr(value: &EvaluateResultValue) -> Option<Expr> {
+  match value {
+    EvaluateResultValue::Vec(items) => evaluate_result_vec_to_array_expr(items),
+    value => value.as_expr().cloned(),
+  }
+}
+
 /// An object of the given keys, each carrying a function.
 ///
 /// Ordered, because the object's first key is the one a refusal names. The

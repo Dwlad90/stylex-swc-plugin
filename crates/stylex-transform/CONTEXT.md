@@ -308,6 +308,15 @@ parameters, the injected function map and a resolved
 [theme reference](#theme-reference) are all answered there — and measured, it
 already folds `inner('a')` to the rule the reference compiler emits, so taking
 the call would replace a working answer with a narrower one.
+
+What the dispatch does with such a call is _apply_ it, at the call. It used to
+hand back the arrow the name holds and leave the style value position to run it,
+so the answer depended on who asked: an argument that was itself such a call
+arrived at the arrow as a function no parameter could bind, and the body came
+back unevaluated. Which argument binds is decided by the value's expression form
+rather than by its variant, so an array binds as the array it is, and the one
+argument left with no form is a function — refused, naming the call, where the
+reference compiler folds it as its own source text.
 _Avoid_: function reference, higher-order argument, callback binding
 
 **Speculative read**:

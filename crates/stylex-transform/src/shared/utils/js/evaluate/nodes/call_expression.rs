@@ -60,8 +60,19 @@ pub(in super::super) fn evaluate(
         if state.confident {
           match _maybe_function {
             Some(EvaluateResultValue::FunctionConfig(fc)) => func = Some(Box::new(fc)),
+            // The name resolved to one of the author's own arrows, so the call
+            // on it is *applied* here rather than handed back as the function
+            // it names. Handing it back made the answer depend on who asked:
+            // the style value position ran the callback itself, so
+            // `inner('a')` folded there and the same call nested inside another
+            // one arrived at the arrow as a function no parameter could bind --
+            // which left the body unresolved and reported an internal
+            // expectation about a binary operand. Applied where the call is,
+            // one rule answers every position.
             Some(EvaluateResultValue::Callback(cb)) => {
-              return Some(EvaluateResultValue::Callback(cb));
+              let args = evaluate_callback_args(call, state, traversal_state, fns)?;
+
+              return Some(EvaluateResultValue::Expr(cb(args, traversal_state)));
             },
             _ => {
               return deopt(path, state, NON_CONSTANT);
@@ -519,7 +530,7 @@ pub(in super::super) fn evaluate(
           return Some(EvaluateResultValue::Expr(func_result));
         },
         FunctionType::Callback(arrow_fn) => {
-          let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
+          let args = evaluate_callback_args(call, state, traversal_state, fns)?;
 
           let evaluation_result = evaluate_cached(&arrow_fn, state, traversal_state, fns);
 
@@ -560,4 +571,34 @@ pub(in super::super) fn evaluate(
     state,
     &unsupported_expression(get_expr_node_kind(path)),
   )
+}
+
+/// The arguments an author's own arrow is applied to, or a refusal naming the
+/// call.
+///
+/// An argument with no expression form binds nothing, and a parameter left
+/// unbound hands the arrow's body back unevaluated -- which reaches an author as
+/// an internal note from whatever reads the body next rather than as a sentence
+/// about the call they wrote. A function is the argument that arrives that way:
+/// the reference compiler folds one as its source text, and this compiler keeps
+/// no source to fold.
+///
+/// Asked of the same form the binding uses, so a value one of them can write
+/// down is never refused by the other.
+fn evaluate_callback_args(
+  call: &CallExpr,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> Option<Vec<EvaluateResultValue>> {
+  let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
+
+  if args
+    .iter()
+    .any(|arg| evaluate_result_as_expr(arg).is_none())
+  {
+    deopt_unsupported!(&Expr::Call(call.clone()), state, ARGUMENT_NOT_EXPRESSION);
+  }
+
+  Some(args)
 }

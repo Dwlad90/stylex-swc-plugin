@@ -160,10 +160,6 @@ fn a_computed_method_name_refuses_even_when_it_is_a_literal() {
 /// rather than falling into a catch-all this module would have to maintain.
 #[test]
 fn a_result_with_no_literal_form_refuses() {
-  // `undefined` is what a read past the end answers.
-  assert_deopt_reason_contains("\"abc\".at(99)", "folded undefined");
-  assert_deopt_reason_contains("[1, 2].at(99)", "folded undefined");
-
   // A function, which a method read off a value is. Read through a callback
   // parameter, because `bind` — the other way to reach one — is refused before
   // the conversion is asked anything.
@@ -177,6 +173,24 @@ fn a_result_with_no_literal_form_refuses() {
     "\"abc\".split(\"\").values()",
     "plain objects can be folded",
   );
+}
+
+/// `undefined` is the one value with no literal at all, and it crosses back as
+/// the name the language spells it with rather than refusing. A read past the
+/// end of a value answers it, and so does a method that returns nothing —
+/// which the reference compiler folds and this compiler used to refuse. Where
+/// the value then lands in a declaration on its own, the style-value check is
+/// what refuses it, on both compilers.
+#[test]
+fn a_result_that_is_undefined_crosses_back_as_the_name_it_has() {
+  assert_folds_to_undefined("\"abc\".at(99)");
+  assert_folds_to_undefined("[1, 2].at(99)");
+  assert_folds_to_undefined("[\"a\"].forEach(x => x)");
+  assert_folds_to_undefined("[\"a\"].find(x => x === \"z\")");
+
+  // Rendered from inside an array rather than answered on its own, which is the
+  // position it already crossed in — one arm now rather than two.
+  assert_folds_to_string("[\"a\", undefined, \"b\"].join(\"-\")", "a--b");
 }
 
 /// A plain object crosses back and reaches the same places an object the author
@@ -647,14 +661,14 @@ fn a_fold_whose_result_is_an_array_carries_every_element_in_order() {
   assert_folds_to_strings("[\"a\", \"b\", \"c\"].slice(1)", &["b", "c"]);
 }
 
-/// `null` is a value the evaluator carries, and the only one of JavaScript's
-/// empty answers with a literal to carry it in: `undefined` next door has none
-/// and refuses. Asserted apart from the rest because the two leave the
-/// conversion through different arms.
+/// `null` is the one of JavaScript's two empty answers with a literal to carry
+/// it in, and `undefined` next door has none and carries its name instead.
+/// Asserted apart from the rest because the two leave the conversion through
+/// different arms.
 #[test]
-fn a_fold_whose_result_is_null_carries_null_and_undefined_still_refuses() {
+fn a_fold_whose_result_is_empty_carries_whichever_emptiness_it_was() {
   assert_folds_to_null("[null].at(0)");
-  assert_deopts("[undefined].at(0)");
+  assert_folds_to_undefined("[undefined].at(0)");
 }
 
 /// A callee that is not an expression at all — `import` is the one an author

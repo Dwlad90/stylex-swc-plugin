@@ -90,10 +90,14 @@ fn a_method_that_does_not_exist_is_named_by_this_compiler_rather_than_the_engine
 
 /// A value the bridge cannot carry says which kind it was. The kind is the half
 /// that says why an otherwise valid call folded to nothing usable.
+///
+/// An iterator, because it is the shape an author is likeliest to reach by
+/// accident: `typeof` says only `object`, so the second line is what tells them
+/// theirs is not a plain one.
 #[test]
-#[should_panic(expected = "Cannot carry a folded undefined back from the engine.")]
+#[should_panic(expected = "Cannot carry a folded object back from the engine.")]
 fn a_result_with_no_literal_form_names_the_kind_it_was() {
-  fold(&module("content: 'abc'.at(99),"));
+  fold(&module("content: [1, 2].entries(),"));
 }
 
 /// A bounded string can still become one array element per code unit, which

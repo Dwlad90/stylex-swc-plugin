@@ -13,12 +13,13 @@ use swc_core::{
   ecma::ast::{Expr, Lit, Null},
 };
 
-use stylex_ast::ast::factories::{create_ident, create_ident_key_value_prop, create_object_lit};
+use stylex_ast::ast::factories::{create_ident_key_value_prop, create_object_lit};
 use stylex_constants::constants::evaluation_errors::{
   array_length_too_large, folded_string_too_large, object_size_too_large, unfoldable_fold_result,
 };
 use stylex_js::coercions;
 
+use super::super::helpers::js_undefined;
 use super::as_expr;
 use super::engine::read;
 use super::{Ceilings, Decline, Depth};
@@ -70,6 +71,16 @@ pub(super) fn to_value(
   engine: &mut Context,
   outward: Outward,
 ) -> Result<EvaluateResultValue, Decline> {
+  // The one value with no literal at all, so it crosses back as the name the
+  // language spells it with. An array hole is the same value and arrives here
+  // the same way, as does a member read that found nothing and a callback that
+  // returned nothing. Answering it rather than refusing is what leaves the
+  // style-value check to be the one an author hears from, on both compilers --
+  // a refusal here would refuse the whole array rather than the holes in it.
+  if value.is_undefined() {
+    return Ok(js_undefined());
+  }
+
   // Read through the accessors rather than matching variants: the engine's
   // value is nan-boxed by default and an enum only under a feature, and both
   // answer these.
@@ -131,15 +142,7 @@ fn to_object_value(
     for index in 0..length {
       let element = read(outward.method, || object.get(index, engine))?;
 
-      // A hole and an element written `undefined` are the same value, and it
-      // crosses back as the name the language spells it with — the one value
-      // with no literal at all. `Array(3)` is three of them, and refusing
-      // instead would refuse the array rather than the holes in it, where the
-      // style-array check is what an author should hear from, on both compilers.
-      items.push(match element.is_undefined() {
-        true => EvaluateResultValue::Expr(Expr::Ident(create_ident(&Atom::from("undefined")))),
-        false => to_value(&element, engine, inner)?,
-      });
+      items.push(to_value(&element, engine, inner)?);
     }
 
     return Ok(EvaluateResultValue::Vec(items));

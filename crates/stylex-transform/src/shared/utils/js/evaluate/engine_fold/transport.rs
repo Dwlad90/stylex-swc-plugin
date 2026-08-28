@@ -23,7 +23,7 @@ use swc_core::{
   },
 };
 
-use stylex_ast::ast::convertors::atom_utf16_length;
+use stylex_ast::ast::convertors::{atom_utf16_length, is_js_undefined};
 use stylex_ast::ast::factories::{create_binding_ident, create_ident};
 use stylex_constants::constants::evaluation_errors::{
   bound_value_has_too_many_entries, bound_value_too_large,
@@ -250,6 +250,7 @@ pub(super) enum Carried {
   Num(f64),
   Bool(bool),
   Null,
+  Undefined,
   List(Vec<Carried>),
   Object(Vec<(Wtf8Atom, Carried)>),
   Function(NativeFunctionPointer),
@@ -348,6 +349,13 @@ impl Inward<'_> {
       Expr::Lit(Lit::Num(number)) => Ok(Carried::Num(number.value)),
       Expr::Lit(Lit::Bool(truth)) => Ok(Carried::Bool(truth.value)),
       Expr::Lit(Lit::Null(_)) => Ok(Carried::Null),
+      // The one value the grammar has no literal for, so an author spells it as
+      // a name and the evaluator hands it back as one. A binding of that name
+      // never arrives here — the evaluator refuses a shadowed `undefined`
+      // ahead of every reader of this shape — and `void 0` is the same value
+      // under a different spelling, which the evaluator has already answered as
+      // this identifier.
+      Expr::Ident(ident) if is_js_undefined(ident) => Ok(Carried::Undefined),
       Expr::Array(ArrayLit { elems, .. }) => {
         self.count(elems.len())?;
 
@@ -467,6 +475,7 @@ fn to_js(carried: &Carried, engine: &mut Context, method: &Atom) -> Result<JsVal
     Carried::Num(number) => JsValue::from(*number),
     Carried::Bool(truth) => JsValue::from(*truth),
     Carried::Null => JsValue::null(),
+    Carried::Undefined => JsValue::undefined(),
     Carried::List(items) => {
       let mut values = Vec::with_capacity(items.len());
 

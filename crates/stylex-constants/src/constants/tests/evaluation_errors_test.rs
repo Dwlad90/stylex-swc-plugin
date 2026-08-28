@@ -173,7 +173,7 @@ fn test_object_size_too_large() {
 fn test_unfoldable_fold_result() {
   assert_eq!(
     unfoldable_fold_result("function"),
-    "Cannot carry a folded function back from the engine.\nOnly strings, numbers, booleans, null, arrays and plain objects can be folded.\n\n"
+    "Cannot carry a folded function back from the engine.\nOnly strings, numbers, booleans, null, undefined, arrays and plain objects can be folded.\n\n"
   );
   // The kind is passed through without an article in front of it, which is what
   // lets the caller hand over the language's own `typeof` unchanged.

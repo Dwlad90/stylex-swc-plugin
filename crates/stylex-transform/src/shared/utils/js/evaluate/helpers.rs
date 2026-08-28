@@ -9,12 +9,13 @@ use stylex_ast::ast::convertors::create_ident_expr;
 /// `undefined` has to hand back a value, or it fails a build it should have
 /// folded.
 ///
-/// One helper rather than one construction per site, because the four places
+/// One helper rather than one construction per site, because the five places
 /// that answer `undefined` have to agree on what they hand back: `void x`, a
-/// key an object does not carry, an index past the end of an array, and the
-/// winning operand of a logical that evaluated confidently to nothing. `??`
-/// reads all four through the same nullish bridge, and a site that answered
-/// differently would fold differently for no reason an author could see.
+/// key an object does not carry, an index past the end of an array, the
+/// winning operand of a logical that evaluated confidently to nothing, and the
+/// value the engine fold reads back out. `??` reads every one of them through
+/// the same nullish bridge, and a site that answered differently would fold
+/// differently for no reason an author could see.
 pub(super) fn js_undefined() -> EvaluateResultValue {
   EvaluateResultValue::Expr(create_ident_expr("undefined"))
 }

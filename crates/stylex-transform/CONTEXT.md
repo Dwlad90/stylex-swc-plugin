@@ -227,8 +227,11 @@ carried ahead of the parameter whose default reads it.
 _Avoid_: injection, substitution, interpolation, binding the engine
 
 **Carried value**:
-A value the bridge copies inward: a string, a number, a boolean, `null`, an
-array, or a plain object, nested to any depth of those. Everything else the
+A value the bridge copies inward: a string, a number, a boolean, `null`,
+`undefined`, an array, or a plain object, nested to any depth of those.
+`undefined` is the one of them the grammar has no literal for, so an author
+spells it as a name — or as `void 0` — and it crosses under that spelling in both
+directions. Everything else the
 evaluator can answer — a function configuration, the environment object, an
 unresolved theme reference, an AST-keyed map — is handed back rather than
 refused, so the dispatch below keeps answering for it. A callback is the

@@ -382,7 +382,7 @@ pub fn object_size_too_large(limit: u64) -> String {
 }
 
 /// A folded value with no form this evaluator carries — a function, a symbol,
-/// `undefined`, a BigInt, or an object that is not a plain one.
+/// a BigInt, or an object that is not a plain one.
 ///
 /// Names the kind rather than the expression, because the expression is what
 /// the author wrote and the kind is what the language answered with; only the
@@ -394,7 +394,7 @@ pub fn object_size_too_large(limit: u64) -> String {
 /// whose value is `object` that theirs is not a plain one.
 pub fn unfoldable_fold_result(kind: &str) -> String {
   format!(
-    "Cannot carry a folded {} back from the engine.\nOnly strings, numbers, booleans, null, arrays and plain objects can be folded.\n\n",
+    "Cannot carry a folded {} back from the engine.\nOnly strings, numbers, booleans, null, undefined, arrays and plain objects can be folded.\n\n",
     kind
   )
 }

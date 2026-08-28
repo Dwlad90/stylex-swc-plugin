@@ -389,17 +389,13 @@ fn a_hole_or_a_spread_in_the_named_array_refuses() {
 
 /// A method whose answer is not a value the bridge carries back refuses on the
 /// way out, naming the kind the language answered with. The reference compiler
-/// folds each of these and then rejects the value as a style value, so both
-/// compilers reject the input.
+/// folds it and then rejects the value as a style value, so both compilers
+/// reject the input.
+///
+/// An iterator is the shape: it is an object, and not a plain one, so `typeof`
+/// alone would not tell an author why theirs does not fold.
 #[test]
 fn a_method_answering_something_unfoldable_refuses_on_the_way_out() {
-  assert_refuses(
-    "const a = ['a'];",
-    "content: a.forEach(x => x),",
-    "Cannot carry a folded undefined back from the engine.",
-  );
-
-  // An iterator is an object, and not a plain one.
   assert_refuses(
     "const a = ['a'];",
     "content: a.keys().length,",

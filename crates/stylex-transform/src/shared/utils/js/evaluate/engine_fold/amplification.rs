@@ -15,7 +15,7 @@ use swc_core::{
   ecma::ast::{ArrayLit, Expr, ExprOrSpread, KeyValueProp, Lit, Prop, PropName, PropOrSpread},
 };
 
-use stylex_ast::ast::convertors::atom_utf16_length;
+use stylex_ast::ast::convertors::{atom_utf16_length, is_js_undefined};
 use stylex_constants::constants::evaluation_errors::{
   amplification_inside_a_callback, amplified_entries_too_large, amplified_length_too_large,
   unbounded_amplified_length,
@@ -406,6 +406,12 @@ fn rendered_expr(expr: &Expr, depth: Depth) -> Option<u64> {
       false => "false".len() as u64,
     }),
     Expr::Lit(Lit::Null(_)) => Some("null".len() as u64),
+    // The value the grammar has no literal for, which a callback parameter can
+    // hold like any other element. Its `ToString` is the name itself, and that
+    // is the width to read: a join renders it as nothing instead, so this is
+    // the wider of the two readings and therefore the one a ceiling is safe to
+    // be told.
+    Expr::Ident(ident) if is_js_undefined(ident) => Some("undefined".len() as u64),
     Expr::Array(ArrayLit { elems, .. }) => joined(
       elems.len(),
       elems.iter().map(|elem| rendered_element(elem, inner)),

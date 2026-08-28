@@ -12,6 +12,7 @@ mod engine_fold_refusals;
 mod env;
 mod evaluation_depth_budget;
 mod fold_memo;
+mod folded_answer_totals;
 mod folded_object_values;
 mod global_builtin_calls;
 mod globals_as_style_values;

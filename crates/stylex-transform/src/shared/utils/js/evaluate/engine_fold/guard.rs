@@ -31,7 +31,7 @@ use stylex_utils::swc::get_stmt_node_kind;
 
 use super::amplification::EntryAmplifier;
 use super::engine::read;
-use super::transport::{Carried, Crossing, Transport};
+use super::transport::{Crossing, Transport};
 use super::{Ceilings, Decline, Depth, lists};
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
@@ -646,7 +646,10 @@ impl<'a, 'r> Walk<'a, 'r> {
     engine: &mut Context,
     method: &Atom,
   ) -> Result<Vec<JsValue>, Decline> {
-    self.reader.transport.arguments(engine, method)
+    self
+      .reader
+      .transport
+      .arguments(engine, method, self.guard.depth)
   }
 }
 
@@ -701,7 +704,7 @@ impl<'r> Walk<'_, 'r> {
 
         match self.reader.resolve(expr) {
           Some(value) if is_a_carryable_receiver(&value) => {
-            self.reader.transport.bind(&ident.sym, &value, depth)
+            self.reader.transport.bind(&ident.sym, value, depth)
           },
           // A name holding a function, which is what the evaluator answers a
           // callback with. There is no value form to carry, so the declaration it
@@ -970,19 +973,12 @@ impl<'r> Walk<'_, 'r> {
     // the properties the engine may call. Both come from the callable itself, so
     // the value under a name is a function of the name and the transport's
     // one-value-per-name rule cannot drop a second naming.
-    let carried = match callable.reached {
-      Reached::Directly => Carried::Function(callable.call()),
-      Reached::AsAProperty => Carried::Object(
-        EngineCallable::namespace_properties()
-          .map(|(property, call)| (property.into(), Carried::Function(call)))
-          .collect(),
-      ),
+    let crossing = match callable.reached {
+      Reached::Directly => Crossing::Function(callable.call()),
+      Reached::AsAProperty => Crossing::Namespace,
     };
 
-    self
-      .reader
-      .transport
-      .carry(&callable.name, Crossing::Value(carried));
+    self.reader.transport.carry(&callable.name, crossing);
 
     Ok(())
   }
@@ -1521,11 +1517,11 @@ fn receiver_is_a_written_number(receiver: &Expr) -> bool {
 }
 
 /// Whether a *name* may hold this value — a question of its own, and narrower
-/// than what [`Carried`] carries. Narrower, too, than the set of receivers the
-/// dispatch below hands straight back to a refusal: that one is about which
-/// prototypes this module now owns whole, and an object is not among them
-/// because an object receiver is still where a function map's own methods are
-/// looked up.
+/// than what the bridge [carries](super::transport::Crossing::Value). Narrower,
+/// too, than the set of receivers the dispatch below hands straight back to a
+/// refusal: that one is about which prototypes this module now owns whole, and
+/// an object is not among them because an object receiver is still where a
+/// function map's own methods are looked up.
 ///
 /// A string, an array, a plain object, a number and a boolean — the primitives
 /// and the two composites the bridge was proved on, in the one shape that

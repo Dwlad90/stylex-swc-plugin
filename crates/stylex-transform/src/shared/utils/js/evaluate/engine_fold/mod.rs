@@ -58,7 +58,7 @@ mod transport;
 
 use engine::{ENGINE, Engine, print_fold, threw};
 use guard::{Admitted, Guard, Position, Reader, Repeats, Scope, Walk, admit_an_applied_global};
-use outward::{Outward, to_value};
+use outward::Outward;
 
 pub(super) use guard::unshadowed_global;
 
@@ -69,7 +69,10 @@ pub(super) use engine::{compiled_expressions, forget_engine, holds_an_engine};
 use std::borrow::Cow;
 
 use boa_engine::JsValue;
-use swc_core::ecma::ast::{CallExpr, Expr};
+use swc_core::{
+  atoms::Atom,
+  ecma::ast::{CallExpr, Expr},
+};
 
 use stylex_constants::constants::evaluation_errors::{
   expression_too_deep, uncallable_printed_fold,
@@ -97,12 +100,13 @@ use crate::shared::{
 /// code unit, which costs far more as a tree than it did as text, and a thousand
 /// empty arrays hold no text at all and are still a thousand values to build.
 ///
-/// Carried rather than read at each of the six sites that spend them -- three
-/// each, a resolved value on the way in and the answer on the way back -- for
-/// the reason the depth ceiling is carried: the same number bounds both
-/// directions, and sites that each reached for the option could come to
-/// disagree about which number that is. Where the values
-/// come from, and what each costs, is `stylex_structures::fold_ceilings`.
+/// Carried rather than read at each site that spends them, for the reason the
+/// depth ceiling is carried: the same number bounds both directions, and sites
+/// that each reached for the option could come to disagree about which number
+/// that is. The two directions spend them through a [`Totals`] each, and what
+/// the guard reads directly is only how much a call *would* build. Where the
+/// values come from, and what each costs, is
+/// `stylex_structures::fold_ceilings`.
 #[derive(Clone, Copy)]
 struct Ceilings {
   /// UTF-16 code units of string — the unit the engine's own strings are
@@ -110,6 +114,74 @@ struct Ceilings {
   characters: u64,
   /// Array elements and object properties.
   entries: u64,
+}
+
+/// How much one direction of the bridge has already promised to build, and the
+/// ceilings it is promising against.
+///
+/// A running total rather than a check per value, because what is about to be
+/// built is all of them: eight values each one unit under the limit is eight
+/// times the limit, and a per-value check waves every one of them through. The
+/// shape that made it necessary is aliasing — an engine array holding the same
+/// ten-thousand-element array ten thousand times costs the engine one array and
+/// costs this side a hundred million syntax nodes, and no single value in it is
+/// over the line.
+///
+/// Both directions count, because both allocate: a resolved name is copied into
+/// the engine, and an answer is copied back out as a tree. Each direction keeps
+/// its own total, since neither pays for what the other built.
+///
+/// Two counts, because a value costs in two ways that do not stand in for each
+/// other. A thousand empty arrays hold no text at all and are still a thousand
+/// values to build; a single string is one entry and can be a megabyte.
+struct Totals {
+  /// UTF-16 code units of every string and key so far.
+  units: u64,
+  /// Array elements and object properties so far.
+  entries: u64,
+  ceilings: Ceilings,
+}
+
+impl Totals {
+  /// An empty total, counted against `ceilings`.
+  fn new(ceilings: Ceilings) -> Self {
+    Self {
+      units: 0,
+      entries: 0,
+      ceilings,
+    }
+  }
+
+  /// Counts `units` code units of string, answering the ceiling it passed where
+  /// the running total passed one.
+  ///
+  /// The ceiling comes back rather than being read off the field, so the sentence
+  /// a caller writes names the number this counted against rather than reaching
+  /// for it a second time.
+  ///
+  /// Saturating because the sum exists to be refused on, and a wrapped one would
+  /// admit.
+  fn count_characters(&mut self, units: u64) -> Result<(), u64> {
+    self.units = self.units.saturating_add(units);
+
+    match self.units > self.ceilings.characters {
+      true => Err(self.ceilings.characters),
+      false => Ok(()),
+    }
+  }
+
+  /// The same for array elements and object properties.
+  ///
+  /// Counted before they are walked, so a value past the bound refuses without
+  /// first building every entry in it.
+  fn count_entries(&mut self, entries: u64) -> Result<(), u64> {
+    self.entries = self.entries.saturating_add(entries);
+
+    match self.entries > self.ceilings.entries {
+      true => Err(self.ceilings.entries),
+      false => Ok(()),
+    }
+  }
 }
 
 /// Whether `name` is one of the names in `list`.
@@ -298,11 +370,8 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
       None => Engine::new()?,
     };
 
-    let outward = Outward {
-      method,
-      depth: walk.guard.depth.restart(),
-      ceilings: walk.guard.ceilings,
-    };
+    let depth = walk.guard.depth.restart();
+    let mut outward = Outward::new(method, walk.guard.ceilings);
 
     let applied = match admitted {
       Admitted::Global(global) => admit_an_applied_global(global, &mut engine.context),
@@ -311,7 +380,7 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
 
     let folded = applied
       .and_then(|()| walk.arguments(&mut engine.context, method))
-      .and_then(|arguments| apply(&source, &arguments, &mut engine, outward))
+      .and_then(|arguments| apply(&source, &arguments, &mut engine, method))
       .and_then(|value| {
         // A theme reference crossed as a string, so an answer that is still an
         // object may *be* that reference — `Object(colors)` hands its argument
@@ -327,7 +396,7 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
           return Err(Decline::NotACandidate);
         }
 
-        to_value(&value, &mut engine.context, outward)
+        outward.value(&value, &mut engine.context, depth)
       });
 
     *slot = Some(engine);
@@ -368,19 +437,19 @@ fn apply(
   source: &str,
   arguments: &[JsValue],
   engine: &mut Engine,
-  outward: Outward,
+  method: &Atom,
 ) -> Result<JsValue, Decline> {
-  let evaluated = engine.eval(source, outward.method)?;
+  let evaluated = engine.eval(source, method)?;
 
   if arguments.is_empty() {
     return Ok(evaluated);
   }
 
   let Some(callable) = evaluated.as_callable() else {
-    return Err(Decline::rule(uncallable_printed_fold(outward.method)));
+    return Err(Decline::rule(uncallable_printed_fold(method)));
   };
 
   callable
     .call(&JsValue::undefined(), arguments, &mut engine.context)
-    .map_err(|error| threw(outward.method, &error))
+    .map_err(|error| threw(method, &error))
 }

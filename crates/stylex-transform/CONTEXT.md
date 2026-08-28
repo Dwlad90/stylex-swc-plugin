@@ -255,8 +255,16 @@ receiver of its own and `Number.prototype` is not reachable yet. The bounds are
 counted on the value rather than on the syntax that named it — a name is three
 characters whatever it holds — and counted across every name one fold carries,
 in text, in entries and in nesting — against the project's [allocation
-ceilings](../stylex-structures/CONTEXT.md), which are the same two numbers that
-bound what an answer carries back.
+ceilings](../stylex-structures/CONTEXT.md). What the answer carries back is
+counted the same way against the same two numbers: one running total per
+direction, because a value the engine aliases is a value this side copies, and
+no single value of an answer need be over the line for the tree to be.
+
+A value crosses in two walks. The first only measures, so every bound is
+answered before there is an engine and nothing oversized reaches one; the second
+builds the engine's own values, once, from the value the evaluator already
+answered. One traversal serves both, so measuring and building cannot come to
+disagree about which shapes the bridge carries.
 _Avoid_: primitive, scalar, serialisable, carryable string
 
 Two things cross without being copied. An

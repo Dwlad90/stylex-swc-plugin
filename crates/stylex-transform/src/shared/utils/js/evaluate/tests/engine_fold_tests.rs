@@ -225,6 +225,51 @@ fn an_object_result_carries_the_own_key_order_the_language_gives_it() {
   );
 }
 
+/// The rule is the language's own definition of an array index — the canonical
+/// decimal spelling of an integer below 2^32 - 1 — and not "the key reads as a
+/// number". `"01"` has a leading zero and `"4294967295"` is one past the last
+/// index there is, so neither is one and both keep the place they were written
+/// in. Asserted through a fold because this is the one ordering a folded object
+/// goes through, and a naive numeric sort would pass every other case here.
+#[test]
+fn a_numeric_key_that_is_not_an_array_index_keeps_its_place() {
+  assert_folds_to_object_keys(
+    "[1].reduce((o) => ({ b: 1, \"01\": 2, 2: 3, \"4294967295\": 4, 0: 5 }), {})",
+    &["0", "2", "b", "01", "4294967295"],
+  );
+}
+
+/// The answer the per-value ceilings could never have refused: one array the
+/// engine hands back once per element of itself. The engine aliases, so it holds
+/// one array; this side copies, so it would hold the ceiling squared — a hundred
+/// million syntax nodes for an answer no single value of which is over the line.
+///
+/// The refusal has to arrive before the tree is built rather than after, which is
+/// what makes this a test rather than an argument: it runs at the shipped ceiling
+/// and finishes, where the same input built its way to the answer first would not.
+#[test]
+fn an_answer_that_aliases_one_array_refuses_before_it_is_built() {
+  assert_deopt_reason_contains(
+    "\"x\".repeat(10000).split(\"\").map((c, i, all) => all)",
+    "At most 10000 elements are supported",
+  );
+
+  // The same shape well inside the ceiling folds, so the refusal is the total and
+  // not the aliasing.
+  assert_folds_to_a_value("\"xyz\".split(\"\").map((c, i, all) => all)");
+}
+
+/// The invariant the symbol-keyed refusal rests on: nothing a module can write
+/// reaches a symbol at all, so an object carrying one cannot be folded into
+/// being. `Symbol` is not one of the globals the guard admits — in a callback
+/// body as much as at the top of an expression, since a free name there is
+/// resolved by the same walk — and a computed key is refused by its shape.
+#[test]
+fn nothing_a_module_can_write_reaches_a_symbol() {
+  assert_deopts("({ [Symbol.iterator]: 1 }).valueOf()");
+  assert_deopts("[1].map(() => Symbol())");
+}
+
 /// `NaN` and `Infinity` are numbers JavaScript produces and the reference
 /// implementation folds, so they reach the declaration here too. Why parity
 /// wins over the more useful refusal is argued once, at

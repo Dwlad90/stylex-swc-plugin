@@ -1,3 +1,7 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { describe, expect, test } from 'vitest';
 
 import {
@@ -9,10 +13,12 @@ import {
   labelFor,
   methodsOf,
   renderingFor,
+  shortfalls,
   sweep,
   vectorsOfArity,
 } from '../lib/prototype-surface.js';
 import type { Surface } from '../lib/prototype-surface.js';
+import { phfSetMembers } from '../lib/rust-source.js';
 
 /**
  * The generation half of the prototype sweep, which is where its whole claim
@@ -64,6 +70,7 @@ describe('reading the surface off the language', () => {
     const hostile: Surface = {
       kind: 'namespace',
       name: 'Hostile',
+      floor: 1,
       target: Object.defineProperties(
         {},
         {
@@ -253,5 +260,95 @@ describe('naming a row', () => {
 
   test('a namespace row names the arguments instead', () => {
     expect(labelFor(mathNamespace, 'trunc', 'named')).toBe('`Math.trunc` on arguments named');
+  });
+});
+
+describe('the recorded coverage floor', () => {
+  test('every surface still reaches the floor recorded for it', () => {
+    // The gate itself, run over the real surfaces. A change to the argument
+    // pool, the arities or `renderingFor` that stops a prototype answering
+    // fails here rather than printing a smaller number beside a green sweep.
+    expect(shortfalls(sweep())).toStrictEqual([]);
+  });
+
+  test('a floor is a number a run has to clear, never zero', () => {
+    for (const surface of SURFACES) {
+      expect(surface.floor, surface.name).toBeGreaterThan(0);
+    }
+  });
+
+  test('a surface that asks about less than its floor is reported with both counts', () => {
+    const raised: Surface = { ...stringPrototype, floor: 10_000 };
+
+    expect(shortfalls(sweep([raised]))).toStrictEqual([
+      { surface: 'String.prototype', exercised: methodsOfExercised(raised), floor: 10_000 },
+    ]);
+  });
+
+  test('a surface that exactly meets its floor is not a shortfall', () => {
+    const met: Surface = { ...stringPrototype, floor: methodsOfExercised(stringPrototype) };
+
+    expect(shortfalls(sweep([met]))).toStrictEqual([]);
+  });
+
+  test('a surface that answers for nothing at all is a shortfall, not a silent pass', () => {
+    // The failure a generated harness is most prone to: the surface changes
+    // shape, no candidate answers, and the run agrees about no method at all.
+    const empty: Surface = { kind: 'namespace', name: 'Empty', target: {}, floor: 1 };
+
+    expect(shortfalls(sweep([empty]))).toStrictEqual([
+      { surface: 'Empty', exercised: 0, floor: 1 },
+    ]);
+  });
+
+  test('a narrower selection is judged on the surfaces it swept, not on the rest', () => {
+    // `--surface Math` covers one surface, and the nine it did not ask about
+    // have not fallen below anything.
+    expect(shortfalls(sweep([mathNamespace]))).toStrictEqual([]);
+  });
+
+  test('every shortfall is named, rather than the first one standing for the rest', () => {
+    const raised: Surface[] = [
+      { ...stringPrototype, floor: 10_000 },
+      { ...mathNamespace, floor: 10_000 },
+    ];
+
+    expect(shortfalls(sweep(raised)).map(one => one.surface)).toStrictEqual([
+      'String.prototype',
+      'Math',
+    ]);
+  });
+});
+
+/** What one surface actually exercises, so a case can state a floor against it. */
+function methodsOfExercised(surface: Surface): number {
+  return sweep([surface]).exercised.length;
+}
+
+describe('the surfaces and the compiler agree about the callees', () => {
+  /**
+   * The claim `SURFACES` makes in prose — that its namespaces are exactly the
+   * compiler's `VALID_CALLEES` — read off the Rust source rather than trusted.
+   *
+   * Without this, a sixth callee added to the compiler is swept by nobody,
+   * which is the precise failure the sweep exists to prevent: the surface grows
+   * and the harness that measures it does not.
+   */
+  const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
+  const constants = path.join(workspaceRoot, 'crates/stylex-constants/src/constants/common.rs');
+  const callees = phfSetMembers(fs.readFileSync(constants, 'utf8'), 'VALID_CALLEES');
+
+  test('the compiler declares the callees this test reads', () => {
+    // Asserted on its own, so a moved or renamed declaration says that rather
+    // than reporting the sweep's namespaces as the ones that drifted.
+    expect(callees).not.toBeUndefined();
+  });
+
+  test('the namespace surfaces are exactly the callees the compiler declares', () => {
+    const swept = SURFACES.filter(surface => surface.kind === 'namespace').map(
+      surface => surface.name
+    );
+
+    expect(swept.toSorted()).toStrictEqual(callees?.toSorted());
   });
 });

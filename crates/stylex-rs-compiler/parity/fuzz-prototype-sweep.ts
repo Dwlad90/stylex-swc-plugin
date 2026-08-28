@@ -44,10 +44,11 @@ import { countFlag } from './lib/flags.js';
 import { answerOf, selectedOrExit, writeJsonReport } from './lib/harness-cli.js';
 import { ACCOUNTS, accountOf, unrecorded } from './lib/prototype-accounts.js';
 import type { Standing } from './lib/prototype-accounts.js';
-import { SURFACES, methodsOf, sweep } from './lib/prototype-surface.js';
-import type { Asked, Rejection } from './lib/prototype-surface.js';
+import { SURFACES, methodsOf, shortfalls, sweep } from './lib/prototype-surface.js';
+import type { Asked, Rejection, Surface } from './lib/prototype-surface.js';
 import { REFUSAL_FAMILIES, familyOf } from './lib/refusal-families.js';
 import { AGREED } from './lib/report.js';
+import { VERDICTS } from './lib/types.js';
 import type { ReportEntry, Verdict } from './lib/types.js';
 
 const parityDir = path.dirname(fileURLToPath(import.meta.url));
@@ -157,6 +158,22 @@ const byAccount = groupedBy(rows, row =>
   row.standing.kind === 'accounted' ? row.standing.account : undefined
 );
 
+/**
+ * The accounted rows in `ACCOUNTS` order rather than in the order the surfaces
+ * reached them.
+ *
+ * Ordered once and read by both the summary and the JSON, so the two cannot
+ * disagree and neither depends on which surfaces a run selected: a report
+ * printed in encounter order says the same thing as one printed in declaration
+ * order, but a file written that way diffs against yesterday's for a reason
+ * that has nothing to do with what changed.
+ */
+const claimedByAccount = ACCOUNTS.flatMap(account => {
+  const claimed = byAccount.get(account);
+
+  return claimed === undefined ? [] : [[account, claimed] as const];
+});
+
 // The link every account rests on, checked against the corpus rather than
 // assumed: an account states that a reason is written down somewhere, and a row
 // that has been deleted or has lost its note takes the reason with it while the
@@ -176,12 +193,24 @@ console.log(
   ])
 );
 
-function counted(total: number, surface: (typeof SURFACES)[number]): number {
+function counted(total: number, surface: Surface): number {
   return total + methodsOf(surface).length;
+}
+
+function recorded(total: number, surface: Surface): number {
+  return total + surface.floor;
 }
 
 console.log(chalk.bold('\nCoverage'));
 console.log(`  ${'methods exercised'.padEnd(26)} ${generated.exercised.length}`);
+// On every run rather than only on a failing one: a floor a reader never sees
+// is a gate nobody knows the headroom of, and the headroom is what says whether
+// the number above it is close to falling.
+console.log(
+  `  ${'floors they must clear'.padEnd(26)} ${surfaces.reduce(recorded, 0)}   ${chalk.gray(
+    '(summed; each surface is gated on its own)'
+  )}`
+);
 console.log(`  ${'subjects'.padEnd(26)} ${rows.length}`);
 console.log(
   `  ${'methods not exercised'.padEnd(26)} ${generated.unexercised.length}   ${chalk.gray(
@@ -196,14 +225,9 @@ for (const [verdict, count] of [...byVerdict].toSorted((left, right) => right[1]
 console.log(`  ${'total'.padEnd(26)} ${rows.length}`);
 console.log(`  ${chalk.bold('unexpected'.padEnd(26))} ${unexpected.length}`);
 
-if (byAccount.size > 0) {
+if (claimedByAccount.length > 0) {
   console.log(chalk.bold('\nAccounted divergences'));
-  // Walked in declaration order rather than in the order the surfaces reached
-  // them, so two runs over different surface selections print the same list in
-  // the same order.
-  for (const account of ACCOUNTS) {
-    const claimed = byAccount.get(account);
-    if (claimed === undefined) continue;
+  for (const [account, claimed] of claimedByAccount) {
     console.log(
       `  ${account.name.padEnd(44)} ${String(claimed.length).padStart(3)}  ${chalk.gray(account.recordedBy)}`
     );
@@ -270,6 +294,22 @@ if (unexpected.length > 0 && show > 0) {
   }
 }
 
+/**
+ * The verdict counts a run produced, in the order `VERDICTS` declares them.
+ *
+ * A verdict nothing reached is left out rather than written as a zero: the
+ * counts say what a run saw, and an invented zero would read as a measurement.
+ */
+function counts(tally: ReadonlyMap<Verdict, number>): [Verdict, number][] {
+  const ordered: [Verdict, number][] = [];
+  for (const verdict of Object.keys(VERDICTS) as Verdict[]) {
+    const count = tally.get(verdict);
+    if (count !== undefined) ordered.push([verdict, count]);
+  }
+
+  return ordered;
+}
+
 if (cliOptions.json != null) {
   const written = writeJsonReport(packageDir, cliOptions.json, {
     subjects: comparer.versions,
@@ -282,9 +322,12 @@ if (cliOptions.json != null) {
       exercised: generated.exercised.length,
       unexercised: generated.unexercised.length,
       unexpected: unexpected.length,
-      byVerdict: Object.fromEntries(byVerdict),
+      // Both keyed in the order their canonical list declares rather than in
+      // the order the rows arrived, so a report diffs against an earlier one
+      // over what actually moved.
+      byVerdict: Object.fromEntries(counts(byVerdict)),
       byAccount: Object.fromEntries(
-        [...byAccount].map(([account, claimed]) => [account.name, claimed.length])
+        claimedByAccount.map(([account, claimed]) => [account.name, claimed.length])
       ),
     },
     unexercised: generated.unexercised,
@@ -293,7 +336,7 @@ if (cliOptions.json != null) {
     // them is what it says.
     unexpected: unexpected.map(row => ({ ...row.asked, ...row.entry })),
     accounted: Object.fromEntries(
-      [...byAccount].map(([account, claimed]) => [
+      claimedByAccount.map(([account, claimed]) => [
         account.name,
         { recordedBy: account.recordedBy, rows: claimed.map(row => row.asked.subject.id) },
       ])
@@ -308,16 +351,24 @@ if (cliOptions.json != null) {
  * A divergence nothing accounts for is the one the sweep exists to find. An
  * account whose corpus row no longer carries its reason is the same failure the
  * curated harness's unreached-family check catches, read from the other end. And
- * a run that exercised nothing at all is the failure mode a generated harness is
- * most prone to: the surface changes shape, every candidate stops answering, and
- * a green run reports agreement about no method whatsoever.
+ * a surface below its recorded floor is the failure mode a generated harness is
+ * most prone to: the surface changes shape, its candidates stop answering, and a
+ * green run reports agreement about a fraction of what it says it covered.
  */
-if (generated.exercised.length === 0) {
+const missed = shortfalls(generated);
+if (missed.length > 0) {
+  console.error(chalk.red.bold('\nSurfaces below their recorded coverage floor'));
+  for (const one of missed) {
+    console.error(
+      `  ${one.surface.padEnd(26)} exercised ${one.exercised}, on record for ${one.floor}`
+    );
+  }
   console.error(
-    chalk.red(
-      '\nNo method was exercised, so this run measured nothing. That is a failure: the argument\n' +
-        'pool in `parity/lib/prototype-surface.ts` no longer answers for any method on the\n' +
-        'selected surfaces.'
+    chalk.gray(
+      '\nA method that stops answering leaves no row to disagree about, so a coverage number is\n' +
+        'the only place it shows. Either the argument pool in parity/lib/prototype-surface.ts no\n' +
+        'longer answers for those methods, or the language stopped carrying them — and if the\n' +
+        'smaller number is the right one, record it as the floor beside the surface.'
     )
   );
   process.exitCode = 1;

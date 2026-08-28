@@ -1,12 +1,13 @@
 /**
- * Reading Rust test sources as text.
+ * Reading Rust sources as text.
  *
  * The primitives an extractor needs before it can recognize anything: which
  * files to scan, where the string literals are, which brackets enclose an
- * offset, where a `#[test]` body starts and stops. None of them know what a
- * CSS declaration is — that is `harvest.ts`. Kept apart because they change
- * for different reasons: these change when Rust source is laid out
- * differently, the extractors change when a test is written differently.
+ * offset, where a `#[test]` body starts and stops, and what a `phf_set!`
+ * declares. None of them know what a CSS declaration is — that is
+ * `harvest.ts`. Kept apart because they change for different reasons: these
+ * change when Rust source is laid out differently, the extractors change when a
+ * test is written differently.
  */
 
 import fs from 'node:fs';
@@ -151,7 +152,12 @@ export function findCallSites(source: string, name: string): number[] {
 
 /** Literals whose opening delimiter falls inside `[start, end)`. */
 export function literalsBetween(file: ScannedFile, start: number, end: number): RustLiteral[] {
-  return file.literals.filter(literal => literal.start >= start && literal.start < end);
+  return literalsWithin(file.literals, start, end);
+}
+
+/** The same range, over literals a caller scanned rather than a whole file. */
+function literalsWithin(literals: RustLiteral[], start: number, end: number): RustLiteral[] {
+  return literals.filter(literal => literal.start >= start && literal.start < end);
 }
 
 /** Offset ranges of every `#[test] fn … { … }` body in a source file. */
@@ -162,17 +168,84 @@ export function testBlocks(source: string): { start: number; end: number }[] {
   for (const match of source.matchAll(marker)) {
     const open = source.indexOf('{', match.index);
     if (open === -1) continue;
-    let depth = 0;
-    let i = open;
-    for (; i < source.length; i++) {
-      if (source[i] === '{') depth++;
-      else if (source[i] === '}') {
-        depth--;
-        if (depth === 0) break;
-      }
-    }
-    blocks.push({ start: open, end: i });
+    const close = closingBrace(source, open);
+    // An unclosed body runs to the end of the file, which is what the walk
+    // answered before it was named.
+    blocks.push({ start: open, end: close === -1 ? source.length : close });
   }
 
   return blocks;
+}
+
+/**
+ * The string members of the `phf_set!` declared as `name`, or `undefined` where
+ * the source declares no such set.
+ *
+ * Read so that a list the compiler owns can be asserted against a list a
+ * harness keeps beside it, rather than the two agreeing today and drifting
+ * silently afterwards. It is not a Rust parser and does not need to be: the
+ * declaration is found by name, its braces are matched, and the literals inside
+ * them are the members — which is the same masked-source, matched-bracket
+ * approach every extractor above uses.
+ *
+ * What it reads is the *declaration*, and only that. A name is mentioned in a
+ * `use`, in a comment and at every call site, and any of those followed by
+ * somebody else's `phf_set!` would answer with the wrong set — a list that
+ * loads, compares and passes while measuring another constant entirely. So an
+ * occurrence counts only where Rust declares one: `static NAME:` or `const
+ * NAME:`, with `phf_set!` reached before the statement ends.
+ */
+export function phfSetMembers(source: string, name: string): string[] | undefined {
+  const literals = scanRustLiterals(source);
+  const masked = maskLiterals(source, literals);
+
+  for (const at of findDeclarations(masked, name)) {
+    const macro = masked.indexOf('phf_set!', at);
+    const ends = masked.indexOf(';', at);
+    if (macro === -1 || (ends !== -1 && ends < macro)) continue;
+
+    const open = masked.indexOf('{', macro);
+    const close = open === -1 ? -1 : closingBrace(masked, open);
+    if (close === -1) continue;
+
+    return literalsWithin(literals, open + 1, close).map(literal => literal.value);
+  }
+
+  return undefined;
+}
+
+/**
+ * Offsets where `name` is declared as a static or a const, in source order.
+ *
+ * The keyword in front of it is what tells a declaration from a mention, and
+ * the same test settles the other way a text scan answers wrongly: a short name
+ * cannot be found inside a longer one, because what precedes it there is the
+ * rest of that name rather than `static` or `const`.
+ */
+function findDeclarations(masked: string, name: string): number[] {
+  const found: number[] = [];
+  let at = masked.indexOf(name);
+  while (at !== -1) {
+    // Long enough to hold either keyword, the space after it and one character
+    // before — which is what keeps `mystatic` from reading as `static`.
+    const before = masked.slice(Math.max(0, at - 16), at);
+    if (/(?:^|\W)(?:static|const)\s+$/.test(before)) found.push(at);
+    at = masked.indexOf(name, at + name.length);
+  }
+
+  return found;
+}
+
+/** Offset of the `}` closing the `{` at `open`, or `-1` where none does. */
+function closingBrace(masked: string, open: number): number {
+  let depth = 0;
+  for (let i = open; i < masked.length; i += 1) {
+    if (masked[i] === '{') depth += 1;
+    else if (masked[i] === '}') {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+
+  return -1;
 }

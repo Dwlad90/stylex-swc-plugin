@@ -73,7 +73,7 @@ export const SHAPES = ['written', 'named'] as const satisfies readonly Shape[];
  * the shape moves to the arguments, which is the same question read one step
  * along: `Math.trunc(ratio)` against `Math.trunc(1.5)`.
  */
-export type Surface =
+type Reach =
   | {
       readonly kind: 'prototype';
       /** How the report names the surface. */
@@ -91,6 +91,32 @@ export type Surface =
       readonly name: string;
       readonly target: object;
     };
+
+/**
+ * A surface, with the coverage it is on record as reaching.
+ *
+ * The floor is written beside the surface rather than in a table of its own,
+ * because the two are one statement: this surface, and how much of it the sweep
+ * was last seen to ask about.
+ */
+export type Surface = Reach & {
+  /**
+   * The fewest methods this surface may exercise before the run fails.
+   *
+   * Recorded from a run rather than derived, and that is the point of it. The
+   * count of methods is read off the language, but how many of them the sweep
+   * can actually *ask* depends on this file — the argument pool, the arities
+   * tried, what `renderingFor` accepts — so a change here that stopped half a
+   * prototype from answering would leave the sweep reporting agreement about
+   * the half that was left. A floor is the number a reader agreed to, and
+   * moving it is an edit somebody has to make on purpose.
+   *
+   * Raising one is ordinary: a wider pool reaches more methods, and the new
+   * count is the new floor. Lowering one is the claim that needs an argument in
+   * the commit that does it.
+   */
+  readonly floor: number;
+};
 
 /**
  * Every surface, with the receiver each prototype is asked about.
@@ -122,6 +148,7 @@ export const SURFACES: readonly Surface[] = [
     target: String.prototype,
     receiver: "'AbC dEf'",
     binding: 'text',
+    floor: 50,
   },
   {
     kind: 'prototype',
@@ -129,6 +156,7 @@ export const SURFACES: readonly Surface[] = [
     target: Array.prototype,
     receiver: "['b', 'a']",
     binding: 'list',
+    floor: 35,
   },
   {
     kind: 'prototype',
@@ -136,6 +164,7 @@ export const SURFACES: readonly Surface[] = [
     target: Object.prototype,
     receiver: "({ b: '1', a: '2' })",
     binding: 'config',
+    floor: 7,
   },
   {
     kind: 'prototype',
@@ -143,6 +172,7 @@ export const SURFACES: readonly Surface[] = [
     target: Number.prototype,
     receiver: '(255)',
     binding: 'count',
+    floor: 7,
   },
   {
     kind: 'prototype',
@@ -150,12 +180,13 @@ export const SURFACES: readonly Surface[] = [
     target: Boolean.prototype,
     receiver: '(true)',
     binding: 'enabled',
+    floor: 3,
   },
-  { kind: 'namespace', name: 'Math', target: Math },
-  { kind: 'namespace', name: 'Object', target: Object },
-  { kind: 'namespace', name: 'Number', target: Number },
-  { kind: 'namespace', name: 'String', target: String },
-  { kind: 'namespace', name: 'Array', target: Array },
+  { kind: 'namespace', name: 'Math', target: Math, floor: 35 },
+  { kind: 'namespace', name: 'Object', target: Object, floor: 18 },
+  { kind: 'namespace', name: 'Number', target: Number, floor: 6 },
+  { kind: 'namespace', name: 'String', target: String, floor: 2 },
+  { kind: 'namespace', name: 'Array', target: Array, floor: 3 },
 ];
 
 /**
@@ -266,10 +297,49 @@ export interface Exercised {
 
 /** What one pass over the surfaces produced. */
 export interface Sweep {
+  /** The surfaces this pass covered, which is what its counts answer for. */
+  readonly surfaces: readonly Surface[];
   readonly exercised: readonly Exercised[];
   readonly unexercised: readonly Unexercised[];
   /** Every question, flattened, in the order the surfaces are declared. */
   readonly asked: readonly Asked[];
+}
+
+/** A surface that asked about fewer methods than it is on record as asking. */
+export interface Shortfall {
+  readonly surface: string;
+  readonly exercised: number;
+  readonly floor: number;
+}
+
+/**
+ * The swept surfaces that fell below their recorded floor, in surface order.
+ *
+ * The check the coverage numbers are worth reading for. Every other gate in the
+ * sweep is about a *row* — a divergence nothing accounts for, an account whose
+ * reason is gone — and none of them fires when the sweep simply stops asking:
+ * a method that no longer answers produces no row to disagree about, so a
+ * regression that halved the coverage would print a smaller number beside a
+ * green run. Read per surface rather than over the total, because a total hides
+ * exactly the case worth catching — one prototype falling silent while the
+ * rest carry the sum.
+ *
+ * Only the surfaces the pass covered are judged, so `--surface Math` is a
+ * narrower run rather than a failing one.
+ */
+export function shortfalls(swept: Sweep): Shortfall[] {
+  const asked = new Map<string, number>();
+  for (const one of swept.exercised) {
+    asked.set(one.surface, (asked.get(one.surface) ?? 0) + 1);
+  }
+
+  return swept.surfaces
+    .map(surface => ({
+      surface: surface.name,
+      exercised: asked.get(surface.name) ?? 0,
+      floor: surface.floor,
+    }))
+    .filter(one => one.exercised < one.floor);
 }
 
 /**
@@ -676,7 +746,7 @@ export function sweep(surfaces: readonly Surface[] = SURFACES): Sweep {
     }
   }
 
-  return { exercised, unexercised, asked: exercised.flatMap(one => one.asked) };
+  return { surfaces, exercised, unexercised, asked: exercised.flatMap(one => one.asked) };
 }
 
 function isChosen(chosen: Chosen | Refused): chosen is Chosen {

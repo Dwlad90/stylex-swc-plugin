@@ -673,8 +673,10 @@ This sweep reads the surface off the language instead:
 `Object.prototype`, `Number.prototype`, `Boolean.prototype` and the `Math`,
 `Object`, `Number`, `String` and `Array` namespaces — some 180 methods as it
 stands, none of them written down anywhere here. Which surfaces belong is not a
-choice either: the namespaces are exactly the compiler's `VALID_CALLEES`, and
-the prototypes are the ones a value crossing the fold's bridge can have. Each is
+choice either: the namespaces are exactly the compiler's `VALID_CALLEES` —
+read out of the Rust source and asserted, so a sixth callee added there and not
+here fails rather than going unswept — and the prototypes are the ones a value
+crossing the fold's bridge can have. Each is
 asked in **both shapes**, which is the question this whole effort turned on: a
 prototype method on a receiver written out and on the same receiver held by a
 name, and a namespace method on arguments written out and on the same arguments
@@ -766,10 +768,20 @@ table gives: a number in this file has gone stale twice.
 
 **Three ways it exits non-zero**, and each is a report that has stopped being
 read: a divergence nothing accounts for, an account whose corpus row no longer
-carries its reason, and a run that exercised no method at all — the failure mode
-a generated harness is most prone to, where the surface changes shape, every
-candidate stops answering, and a green run reports agreement about nothing
-whatsoever.
+carries its reason, and a surface that exercised fewer methods than it is on
+record for.
+
+The last is the failure mode a generated harness is most prone to, and the one
+no other gate reaches: a method that stops answering leaves no row to disagree
+about, so a change to the argument pool or to `renderingFor` that silenced half
+a prototype would print a smaller coverage number beside a green run. So each
+surface carries a **floor** — the count it was last seen to reach — and the run
+fails below it. The floors are per surface rather than over the total, because a
+total hides exactly the case worth catching: one prototype falling silent while
+the rest carry the sum. The summary prints their sum beside the count on every
+run, so a reader sees the gate without waiting for it to fail, and a failing run
+names each surface with both of its numbers. Raising a floor is ordinary;
+lowering one is the claim that needs an argument in the commit that makes it.
 
 A failing row names the surface, the method, the receiver shape, what JavaScript
 itself answers for the expression, and what both compilers answered — so the

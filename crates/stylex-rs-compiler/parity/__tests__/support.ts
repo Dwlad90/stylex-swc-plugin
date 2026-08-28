@@ -1,5 +1,6 @@
 /**
- * The outcome and subject builders both report suites need.
+ * The outcome and subject builders both report suites need, and the throwaway
+ * directory every suite that loads from disk needs.
  *
  * `accepted`, `ACCEPTED`, `refused` and `subject` were defined twice, verbatim
  * apart from which optional field each `subject` exposed — `report.test.ts`
@@ -12,7 +13,35 @@
  * the ones before it, which is a placeholder a reader has to decode.
  */
 
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+import { afterEach } from 'vitest';
+
 import type { CompilerOutcome, ConfigurationOption, ReportEntry, Verdict } from '../lib/types.js';
+
+const temporaryDirs: string[] = [];
+
+/**
+ * A throwaway directory, removed after the test that asked for it.
+ *
+ * Three suites had written the same make-it, remember-it, remove-it shape, and a
+ * suite that forgets the last step leaves a tree in the temporary directory for
+ * every case it ran. Cleanup is per test rather than per file: several cases ask
+ * for more than one, and holding them all until the suite ends leaves every one
+ * behind if a single case takes the process down.
+ */
+export function temporaryDir(prefix: string): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  temporaryDirs.push(dir);
+
+  return dir;
+}
+
+afterEach(() => {
+  for (const dir of temporaryDirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+});
 
 /** An acceptance emitting `declarations`, which is the half a verdict reads. */
 export function accepted(declarations: string[] = ['color:red']): CompilerOutcome {

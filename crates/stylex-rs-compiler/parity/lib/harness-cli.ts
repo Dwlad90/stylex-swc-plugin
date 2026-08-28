@@ -19,11 +19,13 @@ import type { CompilerOutcome } from './types.js';
 /**
  * The members `selected` names, or an exit.
  *
- * An empty selection is refused rather than run. A `--property` or `--surface`
- * nobody spells correctly selects nothing, a sweep over nothing finds no
- * unexpected row, and the run exits 0 — so a typo reads as a pass, which in a
- * harness whose whole claim is how much it covered is the worst possible
- * failure mode.
+ * Every name has to match. A `--property` or `--surface` nobody spells correctly
+ * selects nothing, a sweep over nothing finds no unexpected row, and the run
+ * exits 0 — so a typo reads as a pass, which in a harness whose whole claim is
+ * how much it covered is the worst possible failure mode. Asking only whether
+ * *something* matched left the same hole one name wide: `--surface Math
+ * --surface Strnig` ran one surface and reported a green sweep over a selection
+ * the reader did not ask for.
  */
 export function selectedOrExit<Member>(
   flag: string,
@@ -33,13 +35,18 @@ export function selectedOrExit<Member>(
 ): Member[] {
   if (selected === undefined || selected.length === 0) return [...members];
 
-  const chosen = members.filter(member => selected.includes(nameOf(member)));
-  if (chosen.length > 0) return chosen;
+  const names = members.map(nameOf);
+  const known = new Set(names);
+  const unknown = selected.filter(name => !known.has(name));
+  if (unknown.length === 0) {
+    const wanted = new Set(selected);
+    return members.filter(member => wanted.has(nameOf(member)));
+  }
 
   console.error(
     chalk.red(
-      `No ${flag} matches ${JSON.stringify(selected)}.\n` +
-        `Known: ${members.map(nameOf).join(', ')}`
+      `No ${flag} named ${unknown.map(name => JSON.stringify(name)).join(', ')}.\n` +
+        `Known: ${names.join(', ')}`
     )
   );
 
@@ -70,10 +77,11 @@ export function writeJsonReport(packageDir: string, target: string, report: unkn
  * A refusal keeps every line of its complaint, joined rather than cut. Several
  * diagnostics are two lines in both compilers and the second is the one that
  * names the rule, so a cell showing only the first says a call could not be
- * folded without saying what declined it.
+ * folded without saying what declined it. Either line ending splits, so a
+ * carriage return cannot ride into a report cell as a control character.
  */
 export function answerOf(outcome: CompilerOutcome): string {
   return outcome.status === 'error'
-    ? `refused: ${outcome.sentence.trim().split('\n').join(' / ')}`
+    ? `refused: ${outcome.sentence.trim().split(/\r?\n/).join(' / ')}`
     : outcome.declarations.join(' | ');
 }

@@ -1,23 +1,20 @@
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 
-import { afterEach, describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 
 import { declarationKey, entryId } from '../lib/declaration.js';
 import { harvestCorpus } from '../lib/harvest.js';
 import type { DeclarationEntry } from '../lib/types.js';
+import { temporaryDir } from './support.js';
 
 /**
  * The harvester walks `<root>/crates/<crate>` for `.rs` files, so a case is a
  * throwaway tree holding one source. Scanning the real suites is what
  * `parity:harvest` does; these pin the extractors instead.
  */
-const roots: string[] = [];
-
 function harvestOf(source: string, filename = 'tests/case.rs'): DeclarationEntry[] {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'parity-harvest-'));
-  roots.push(root);
+  const root = temporaryDir('parity-harvest-');
   const file = path.join(root, 'crates/stylex-css', filename);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, source, 'utf8');
@@ -28,16 +25,6 @@ function harvestOf(source: string, filename = 'tests/case.rs'): DeclarationEntry
 function declarationsOf(source: string, filename?: string): [string, string][] {
   return harvestOf(source, filename).map(entry => [entry.property, entry.value]);
 }
-
-// Per test rather than per file: a `harvestOf` call makes a directory, several
-// tests make more than one, and holding all of them until the suite ends leaves
-// every one of them behind if a single test takes the process down.
-afterEach(() => {
-  while (roots.length > 0) {
-    const root = roots.pop();
-    if (root !== undefined) fs.rmSync(root, { recursive: true, force: true });
-  }
-});
 
 describe('shape 1 — direct normalize_css_property_value calls', () => {
   test('takes the property and value literals as a pair', () => {

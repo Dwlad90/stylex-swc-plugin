@@ -1,12 +1,12 @@
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 
-import { afterEach, describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 
 import { CORPUS_FILES, loadCorpus } from '../lib/corpus.js';
 import { moduleFor, subjectKey, subjectLabel, subjectText } from '../lib/subject.js';
 import type { CorpusEntry } from '../lib/types.js';
+import { temporaryDir } from './support.js';
 
 /**
  * `loadCorpus` reads a directory of JSON files, so a case is a throwaway
@@ -14,11 +14,8 @@ import type { CorpusEntry } from '../lib/types.js';
  * present or it throws, so a case that cares about one of them writes the rest
  * empty.
  */
-const directories: string[] = [];
-
 function corpusDirOf(files: Record<string, unknown>): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'parity-corpus-'));
-  directories.push(dir);
+  const dir = temporaryDir('parity-corpus-');
   for (const filename of CORPUS_FILES) {
     const contents = files[filename] ?? {
       set: filename.replace('.json', ''),
@@ -39,10 +36,6 @@ const MODULE_SOURCE = "import * as stylex from '@stylexjs/stylex';\n";
 function moduleFile(entries: unknown[]): Record<string, unknown> {
   return { 'modules.json': { set: 'modules', description: 'modules', entries } };
 }
-
-afterEach(() => {
-  for (const dir of directories.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
-});
 
 describe('loading', () => {
   test('a declaration entry is tagged as one without the file saying so', () => {
@@ -218,6 +211,29 @@ describe('the configuration a refusal names', () => {
     ).toThrow(/unknown configuration option/);
   });
 
+  /**
+   * `constructor`, `toString` and their neighbours are on every object, so a
+   * membership test that walks the prototype chain accepts them as option names
+   * and the row loads carrying a setting nobody can spell.
+   */
+  test('an option borrowing a prototype key is refused', () => {
+    expect(() =>
+      loadOf(
+        moduleFile([
+          {
+            id: 'm',
+            label: 'l',
+            source: MODULE_SOURCE,
+            origin: 'o',
+            expected: 'acceptance-divergent',
+            configuration: 'toString',
+            note: 'a key every object has',
+          },
+        ])
+      )
+    ).toThrow(/unknown configuration option: toString/);
+  });
+
   test('an entry naming no option does not carry the key at all', () => {
     const [entry] = loadOf(
       moduleFile([{ id: 'm', label: 'l', source: MODULE_SOURCE, origin: 'o' }])
@@ -320,6 +336,21 @@ describe('malformed input', () => {
         ])
       )
     ).toThrow(/unknown expected verdict: nearly-identical/);
+  });
+
+  /**
+   * The same prototype-chain hazard as the configuration field: a verdict named
+   * `constructor` matches no stance, so the row would read as permanently
+   * changed rather than as the mistake it is.
+   */
+  test('an expected verdict borrowing a prototype key is rejected by name', () => {
+    expect(() =>
+      loadOf(
+        moduleFile([
+          { id: 'm', label: 'l', source: MODULE_SOURCE, origin: 'o', expected: 'constructor' },
+        ])
+      )
+    ).toThrow(/unknown expected verdict: constructor/);
   });
 
   test('a missing corpus file is named, and the generated one says how to make it', () => {

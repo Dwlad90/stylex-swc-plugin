@@ -12,6 +12,8 @@
 
 use std::{cell::RefCell, mem::ManuallyDrop};
 
+#[cfg(test)]
+use boa_engine::JsString;
 use boa_engine::{Context, JsError, JsResult, JsValue, Script, Source};
 use rustc_hash::FxHashMap;
 use swc_core::{
@@ -76,6 +78,15 @@ thread_local! {
   /// engine interns each distinct source it is handed and never reclaims it,
   /// measured at roughly half a kilobyte per distinct folded call site, which a
   /// real corpus keeps in the low megabytes for the life of the process.
+  ///
+  /// One per thread and never one more: the napi binding is synchronous and
+  /// takes an `Env`, so it folds on the JavaScript thread that called it, and
+  /// the threads a build has are the ones its host already had. That is what
+  /// makes the leak below a cost per *thread* rather than per file — how many
+  /// threads there are, and how often a host retires one, are the host's answer
+  /// rather than this compiler's.
+  /// `docs/adr/0008-the-fold-guard-reads-values-and-the-engine-is-permanent.md`
+  /// carries the argument, and `thread_isolation_tests` the observation.
   ///
   /// `ManuallyDrop` is not a convenience: the engine's garbage collector lives
   /// in a thread-local of its own, and the order two thread-locals are dropped
@@ -206,6 +217,36 @@ pub(in crate::shared::utils::js::evaluate) fn holds_an_engine() -> bool {
 #[cfg(test)]
 pub(in crate::shared::utils::js::evaluate) fn compiled_expressions() -> Option<usize> {
   ENGINE.with_borrow(|slot| slot.as_ref().map(|engine| engine.memo.len()))
+}
+
+/// Whether this thread's engine has `name` bound on its global object, or none
+/// where it holds no engine.
+///
+/// Test-only, and the direct reading of the claim the transport was chosen for:
+/// a resolved name crosses as an argument to a printed arrow rather than as a
+/// property written onto the engine, so a fold leaves the global object exactly
+/// as it found it. Nothing a fold answers can show that on its own — a leaked
+/// name and a name that was never written produce the same value — so the object
+/// has to be asked.
+///
+/// Own properties rather than the whole prototype chain, because what is being
+/// asked is whether a *fold* wrote something, and the names the language brings
+/// with it are not that.
+#[cfg(test)]
+pub(in crate::shared::utils::js::evaluate) fn holds_a_global(name: &str) -> Option<bool> {
+  ENGINE.with_borrow_mut(|slot| {
+    slot.as_mut().map(|engine| {
+      let global = engine.context.global_object();
+
+      match global.has_own_property(JsString::from(name), &mut engine.context) {
+        Ok(held) => held,
+        // A global object that will not answer whether it holds a name is a
+        // broken invariant rather than a fold refusing, and this only runs
+        // under a test.
+        Err(error) => panic!("the engine would not say whether `{name}` is bound: {error}"),
+      }
+    })
+  })
 }
 
 /// Drops this thread's engine reference without dropping the engine, which is

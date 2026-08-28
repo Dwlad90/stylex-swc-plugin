@@ -12,12 +12,9 @@
 //! the evaluator to answer "not confident" without aborting, which is the
 //! property issue 02 established and this hook must not undo.
 
-use stylex_ast::ast::convertors::convert_atom_to_string;
 use stylex_structures::evaluation_depth::MAX_EVALUATION_DEPTH_LIMIT;
-use stylex_structures::stylex_options::StyleXOptions;
 
-use swc_core::common::{DUMMY_SP, GLOBALS, Globals, Spanned, SyntaxContext};
-use swc_core::ecma::ast::{BindingIdent, VarDeclarator};
+use swc_core::common::Spanned;
 
 use super::engine_fold::MAX_COMPILED_SCRIPTS;
 use super::source_evaluation::*;
@@ -1049,16 +1046,6 @@ fn a_declined_input_leaves_no_memo_because_it_leaves_no_engine() {
   assert_eq!(super::engine_fold::compiled_expressions(), None);
 }
 
-/// The string a folded value holds, for a case reading a value it evaluated
-/// itself rather than one an assertion helper folded for it.
-#[track_caller]
-fn folded_text(value: &EvaluateResultValue) -> String {
-  match value {
-    EvaluateResultValue::Expr(Expr::Lit(Lit::Str(text))) => convert_atom_to_string(&text.value),
-    other => panic!("expected a folded string, got {other:?}"),
-  }
-}
-
 /// The same call written twice in a module, so the two occurrences differ only
 /// in where they sit.
 ///
@@ -1107,52 +1094,6 @@ fn two_positions_of_one_call_share_a_memo_entry() {
   });
 
   assert_eq!(compiled, 1);
-}
-
-/// `const <name> = <init>`, as the module-wide collector would have recorded it.
-fn declarator_of(name: &str, init: Expr) -> VarDeclarator {
-  let id = Ident {
-    span: DUMMY_SP,
-    sym: name.into(),
-    optional: false,
-    ctxt: SyntaxContext::empty(),
-  };
-
-  VarDeclarator {
-    span: DUMMY_SP,
-    name: Pat::Ident(BindingIdent { id, type_ann: None }),
-    init: Some(Box::new(init)),
-    definite: false,
-  }
-}
-
-/// Folds `source` against a module holding one declaration, which is the only
-/// way to reach a printed parameter: an expression that resolves no name is
-/// printed with none.
-fn folded_in_a_module_binding(name: &str, init: &str, source: &str) -> String {
-  let globals = Globals::new();
-
-  GLOBALS.set(&globals, || {
-    let mut traversal_state = StateManager::new(StyleXOptions::default());
-
-    traversal_state.push_declaration(declarator_of(name, parse_expr(init)));
-
-    let result = evaluate(
-      &parse_expr(source),
-      &mut traversal_state,
-      &FunctionMap::default(),
-    );
-
-    assert!(
-      result.confident,
-      "`{source}` refused with `{init}` bound to `{name}`"
-    );
-
-    match result.value.as_ref() {
-      Some(value) => folded_text(value),
-      None => panic!("`{source}` answered no value with `{init}` bound to `{name}`"),
-    }
-  })
 }
 
 /// The printed parameters are part of the key, not just the call.

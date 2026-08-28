@@ -9,13 +9,18 @@
 //! [`on_a_thread_of`] is here for the same reason and is the one thing here that
 //! is not about source: a case whose subject is stack has to say how much of it
 //! there is, and two suites need to.
+//!
+//! [`folded_in_a_module_binding`] is the other thing two suites need: an
+//! expression that resolves no name is printed with no parameters, so a case
+//! about what the transport carries has to evaluate against a module that binds
+//! something.
 
 use super::*;
 use stylex_structures::stylex_options::StyleXOptions;
 use swc_core::{
-  common::{FileName, GLOBALS, Globals, SourceFile, SourceMap, sync::Lrc},
+  common::{DUMMY_SP, FileName, GLOBALS, Globals, SourceFile, SourceMap, SyntaxContext, sync::Lrc},
   ecma::{
-    ast::Module,
+    ast::{BindingIdent, Module},
     parser::{EsSyntax, Parser, StringInput, Syntax, lexer::Lexer},
     visit::{Visit, VisitWith},
   },
@@ -516,6 +521,62 @@ pub(crate) fn assert_folds_to_undefined(source: &str) {
       source, other
     ),
   }
+}
+
+/// The string a folded value holds, for a case reading a value it evaluated
+/// itself rather than one an assertion helper folded for it.
+#[track_caller]
+pub(crate) fn folded_text(value: &EvaluateResultValue) -> String {
+  match value {
+    EvaluateResultValue::Expr(Expr::Lit(Lit::Str(text))) => convert_atom_to_string(&text.value),
+    other => panic!("expected a folded string, got {other:?}"),
+  }
+}
+
+/// `const <name> = <init>`, as the module-wide collector would have recorded it.
+fn declarator_of(name: &str, init: Expr) -> VarDeclarator {
+  let id = Ident {
+    span: DUMMY_SP,
+    sym: name.into(),
+    optional: false,
+    ctxt: SyntaxContext::empty(),
+  };
+
+  VarDeclarator {
+    span: DUMMY_SP,
+    name: Pat::Ident(BindingIdent { id, type_ann: None }),
+    init: Some(Box::new(init)),
+    definite: false,
+  }
+}
+
+/// Folds `source` against a module holding one declaration, which is the only
+/// way to reach a printed parameter: an expression that resolves no name is
+/// printed with none.
+pub(crate) fn folded_in_a_module_binding(name: &str, init: &str, source: &str) -> String {
+  let globals = Globals::new();
+
+  GLOBALS.set(&globals, || {
+    let mut traversal_state = StateManager::new(StyleXOptions::default());
+
+    traversal_state.push_declaration(declarator_of(name, parse_expr(init)));
+
+    let result = evaluate(
+      &parse_expr(source),
+      &mut traversal_state,
+      &FunctionMap::default(),
+    );
+
+    assert!(
+      result.confident,
+      "`{source}` refused with `{init}` bound to `{name}`"
+    );
+
+    match result.value.as_ref() {
+      Some(value) => folded_text(value),
+      None => panic!("`{source}` answered no value with `{init}` bound to `{name}`"),
+    }
+  })
 }
 
 /// Runs `case` on a thread of `stack` bytes and hands back what it answered.

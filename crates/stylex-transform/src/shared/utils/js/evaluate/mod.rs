@@ -570,3 +570,7 @@ mod fall_through_tests;
 #[cfg(test)]
 #[path = "tests/short_circuited_walk_tests.rs"]
 mod short_circuited_walk_tests;
+
+#[cfg(test)]
+#[path = "tests/thread_isolation_tests.rs"]
+mod thread_isolation_tests;

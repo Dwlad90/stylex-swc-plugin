@@ -103,6 +103,32 @@ unwinding. Leaking one engine per thread at exit is the price of not aborting.
 The [fold memo](../../CONTEXT.md) is leaked with it, because a compiled script
 belongs to a realm and holds engine values.
 
+**How many threads there are.** One leak per thread is only a bounded cost while
+threads are, so how many there can be is worth stating. `transform` is this
+compiler's single exported binding and it is synchronous: it takes `napi::Env`,
+which is not `Send`, so it runs on the JavaScript thread that called it and
+cannot be handed to libuv's pool. No package here spawns a thread of its own.
+Every thread that ever folds is therefore one the host already had, and the leak
+is bounded by how many of those the host runs rather than by how many files they
+compile. This is the paragraph to revisit if the binding ever becomes an
+`AsyncTask`, which would move folds onto a pool nobody here sizes.
+
+**How long they live is the host's answer, not this compiler's.** A host that
+retires and respawns a worker leaks one context, its interned sources and its
+memo each time it does — `jest-worker` is the case in this repository's own
+dependency graph that retires workers, though under its default child-process
+mode a retired worker takes the whole process with it and frees everything. What
+this compiler can say is the shape of the cost: it is per retired _thread_, not
+per file, so it grows with how often a host churns its pool and not with the size
+of the build. Nothing measured here suggests that is a cost worth a second engine
+lifetime to avoid, and the alternative — dropping the engine — aborts the
+process.
+
+That every thread answers its own fold is observed rather than assumed:
+`thread_isolation_tests` folds on eight threads at once, gives each of them an
+answer only it may reach, and asks each engine's global object directly whether a
+fold left a name behind.
+
 Reuse across files is what makes the guard's boundaries load-bearing rather than
 merely tidy: a fold that reached a prototype would be read by every later fold in
 the build, so the escaping-read refusal is what keeps one shared engine safe.

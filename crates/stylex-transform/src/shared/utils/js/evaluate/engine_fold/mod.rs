@@ -65,7 +65,7 @@ pub(super) use guard::unshadowed_applied_global;
 // Read by the evaluator's own tests, which sit one level up.
 #[cfg(test)]
 pub(super) use engine::{
-  MAX_COMPILED_SCRIPTS, compiled_expressions, forget_engine, holds_an_engine,
+  MAX_COMPILED_SCRIPTS, compiled_expressions, forget_engine, holds_a_global, holds_an_engine,
 };
 
 use std::borrow::Cow;

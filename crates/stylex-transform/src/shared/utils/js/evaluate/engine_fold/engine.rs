@@ -1,0 +1,268 @@
+//! One JavaScript engine per thread, and the printed source it is handed.
+//!
+//! Owning the engine is a concern of its own, separate from deciding what may
+//! reach it. The [guard](super) answers which expressions fold; this answers
+//! where they run, how long the engine lives, and what reading a value out of
+//! one costs — none of which turns on a rule the guard applies.
+//!
+//! What it offers the rest of the fold is small, and deliberately: build or
+//! reuse the thread's engine, evaluate a printed expression on it, read a value
+//! back with a throw named for the method that raised it, and print a call as
+//! the source the engine parses.
+
+use super::*;
+
+/// How many loop iterations an evaluation may run.
+///
+/// Boa's own default is `u64::MAX` — `RuntimeLimits::loop_iteration` documents
+/// it as no limit — so a loop is unbounded until it is said to be bounded. The
+/// guard refuses the shapes that reach a loop body, and this is the second
+/// answer behind that one: a bound the engine enforces whatever the guard let
+/// through. Ten million iterations of an empty loop is well under a second, and
+/// no folded CSS value is reached by counting that far.
+const MAX_LOOP_ITERATIONS: u64 = 10_000_000;
+
+/// What the engine answers when anything asks a function for its source text.
+///
+/// A function's `ToString` is its source, and this compiler has none to give: an
+/// arrow reaches the engine as this module's own minified printing of it, not as
+/// the text the author wrote, so `String(() => 'x')` would fold to a spelling no
+/// other build produces — and a class name is a hash of the declaration text.
+/// The reference compiler answers such a call with the source of a wrapper from
+/// inside its own evaluator, which is no better.
+///
+/// So the source is taken away and every conversion that would read one throws,
+/// which the fold reports as a refusal. A function reached only to be *called*
+/// is untouched, which is what `String({ toString: () => 'red' })` needs, and is
+/// the whole of the difference between a function used as a value and one used
+/// as a method.
+///
+/// Assigned rather than defined, because `Function.prototype.toString` is a
+/// writable property; and assigned once when the engine is built, because a fold
+/// cannot reach it afterwards — every route from a value to a prototype is a
+/// refused property read.
+const NO_FUNCTION_SOURCE: &str = concat!(
+  "Function.prototype.toString = function () {",
+  " throw new TypeError('A function has no source text at compile time.')",
+  " };"
+);
+
+thread_local! {
+  /// One engine per thread, created on the first fold that needs it and reused
+  /// for every later one. A file with no foldable method call never builds it.
+  ///
+  /// Reuse is what makes the guard load-bearing rather than merely tidy: a fold
+  /// that reached a prototype would be read by every later fold in the build,
+  /// including one in another file, so the boundaries below are what keeps one
+  /// engine safe to share. Reuse also costs: the engine interns each distinct
+  /// source it is handed and never reclaims it, measured at roughly half a
+  /// kilobyte per distinct folded call site, which a real corpus keeps in the
+  /// low megabytes for the life of the process.
+  ///
+  /// `ManuallyDrop` is not a convenience: the engine's garbage collector lives
+  /// in a thread-local of its own, and the order two thread-locals are dropped
+  /// in is not defined. Dropping this one after the collector's underflows a
+  /// reference count, and that panic runs inside a destructor, which aborts the
+  /// process instead of unwinding. Leaking one engine per thread at exit is the
+  /// price of not aborting. It wraps the whole of [`Engine`] rather than the
+  /// context alone, because the memo beside it holds engine values and dropping
+  /// one of those late underflows the same count.
+  pub(super) static ENGINE: RefCell<Option<ManuallyDrop<Engine>>> = const { RefCell::new(None) };
+}
+
+/// A thread's engine and the [fold memo](../../../../../CONTEXT.md) that may only
+/// live as long as it does.
+///
+/// The two are one value because their lifetimes are one lifetime. A compiled
+/// script belongs to a particular engine's realm, so a memo that outlived its
+/// engine would hand a later engine a script from a realm that no longer exists,
+/// and a memo built before the engine would have nothing to parse against.
+/// Holding them together is what makes both impossible to write.
+pub(super) struct Engine {
+  pub(super) context: Context,
+  /// One compiled script per distinct printed expression.
+  ///
+  /// Keyed by the printed text because that is what the engine would otherwise
+  /// re-parse: a file writing one shape a thousand times prints a thousand
+  /// identical strings, and parsing them is most of what a warm fold costs.
+  /// Reuse across files is safe for the reason a shared engine is — a printed
+  /// expression carries no name it did not resolve, since every one the guard
+  /// resolved became a parameter of an arrow and its value travels beside it as
+  /// an argument.
+  ///
+  /// A compiled script rather than the value or the function it evaluates to,
+  /// because those are two shapes and this is one. The bare form evaluates to
+  /// the answer and the arrow form to a function still waiting for its
+  /// arguments, so a memo of results would have to hold both and a memo of
+  /// functions could not hold the first at all — and re-running compiled
+  /// bytecode is what both of them wanted anyway.
+  ///
+  /// It grows for the life of the thread, alongside the source the engine
+  /// already interns and never reclaims, and is bounded by the number of
+  /// distinct folded call sites in the build rather than by the number of folds.
+  memo: FxHashMap<String, Script>,
+}
+
+/// Whether this thread is holding an engine — the observable half of "built on
+/// first use and never before".
+///
+/// Test-only, and reading the slot rather than counting constructions, because
+/// what the claim is about is whether an engine exists after an input the fold
+/// declined. Paired with [`forget_engine`], since a test asserting an engine was
+/// *not* built has to start from a thread that has none.
+#[cfg(test)]
+pub(in crate::shared::utils::js::evaluate) fn holds_an_engine() -> bool {
+  ENGINE.with_borrow(|slot| slot.is_some())
+}
+
+/// How many distinct expressions this thread's engine has compiled, or none
+/// where it holds no engine.
+///
+/// Test-only, and the observable half of "compiled once and reused after": the
+/// answer alone cannot tell a memo hit from a fresh compile, because both
+/// produce the same value — which is the whole point of the memo and also why it
+/// needs a witness of its own.
+#[cfg(test)]
+pub(in crate::shared::utils::js::evaluate) fn compiled_expressions() -> Option<usize> {
+  ENGINE.with_borrow(|slot| slot.as_ref().map(|engine| engine.memo.len()))
+}
+
+/// Drops this thread's engine reference without dropping the engine, which is
+/// what the slot's `ManuallyDrop` already does at thread exit and for the same
+/// reason: the collector lives in a thread-local of its own and the drop order
+/// between the two is not defined.
+#[cfg(test)]
+pub(in crate::shared::utils::js::evaluate) fn forget_engine() {
+  ENGINE.with_borrow_mut(|slot| {
+    slot.take();
+  });
+}
+
+impl Engine {
+  /// A context with the one runtime limit its default leaves open, without the
+  /// one thing the language provides that this compiler cannot — function source
+  /// text — and with an empty memo.
+  ///
+  /// Answers a refusal rather than asserting, because the assignment runs inside
+  /// an evaluation whose whole contract is that it may fail — and because an
+  /// engine that kept function source would fold a spelling no other build
+  /// produces, which is worse than declining the fold.
+  pub(super) fn new() -> Result<ManuallyDrop<Self>, Decline> {
+    let mut context = Context::default();
+
+    context
+      .runtime_limits_mut()
+      .set_loop_iteration_limit(MAX_LOOP_ITERATIONS);
+
+    context
+      .eval(Source::from_bytes(NO_FUNCTION_SOURCE))
+      .map_err(|error| Decline::rule(engine_did_not_start(&error.to_string())))?;
+
+    Ok(ManuallyDrop::new(Self {
+      context,
+      memo: FxHashMap::default(),
+    }))
+  }
+
+  /// What `source` evaluates to, parsing it the first time this engine is handed
+  /// the text and re-running the compiled script every time after.
+  ///
+  /// Named after the engine call it stands in for rather than after the memo,
+  /// because the memo is what it does and not what it is for.
+  ///
+  /// This is the engine's own `eval` with the parse lifted out of it — `eval` is
+  /// exactly parse-then-evaluate — so what the memo changes is when a source is
+  /// parsed and nothing else about what a fold answers.
+  ///
+  /// The parse is what the memo saves; the evaluation is not saved and must not
+  /// be. Re-running is what keeps a fold answering its own value rather than the
+  /// first caller's — an expression that mutates a literal it built reorders a
+  /// fresh array on every run, and an arrow form evaluates to a function still
+  /// waiting for the arguments this fold is about to pass it.
+  ///
+  /// A source the parser refused is never memoised, so a later fold of the same
+  /// text is refused by the parser again rather than by a cached mistake. It is
+  /// a refusal rather than an assertion because this runs inside an evaluation
+  /// whose whole contract is that it may fail, where an assertion would abort a
+  /// build that a deopt would only leave to the runtime.
+  pub(super) fn eval(&mut self, source: &str, method: &Atom) -> Result<JsValue, Decline> {
+    let compiled = match self.memo.get(source) {
+      Some(compiled) => compiled.clone(),
+      None => {
+        let compiled = Script::parse(Source::from_bytes(source), None, &mut self.context)
+          .map_err(|error| threw(method, &error))?;
+
+        self.memo.insert(source.to_owned(), compiled.clone());
+
+        compiled
+      },
+    };
+
+    compiled
+      .evaluate(&mut self.context)
+      .map_err(|error| threw(method, &error))
+  }
+}
+
+/// A throw, in the engine's own words under this compiler's naming of the call
+/// that produced it.
+///
+/// Takes the method rather than a direction, because both directions throw: a
+/// getter runs while a value is read back out, and a property is written while
+/// one is carried in. What an author needs from either is the same two things,
+/// and neither of them is which way the value was going.
+pub(super) fn threw(method: &Atom, error: &JsError) -> Decline {
+  Decline::rule(engine_threw(method, &error.to_string()))
+}
+
+/// A read across the bridge, with a throw carried in the engine's words.
+///
+/// Reading a property runs a getter and writing one can be refused, so both
+/// directions need the same answer the evaluation itself gets rather than a
+/// second one of their own.
+pub(super) fn read<T>(method: &Atom, read: impl FnOnce() -> JsResult<T>) -> Result<T, Decline> {
+  read().map_err(|error| threw(method, &error))
+}
+
+/// The call as the minified source the engine is handed: an arrow over the names
+/// the guard resolved, whose values [`apply`] passes to it as arguments — or the
+/// call alone where it resolved none.
+///
+/// The bare form is not a second path so much as the absence of one: an arrow
+/// over no parameters, invoked immediately, is the same expression with a
+/// function object and a VM frame added, and [`apply`] carries the measurement
+/// that says what those cost. Printing the call itself is what lets an expression
+/// that names nothing pay nothing, and costs the memo nothing either, because
+/// what the memo holds is a compiled script rather than a function.
+///
+/// The module is assembled here rather than by `create_module`, which takes
+/// `&Expr` and clones it — so going through it means cloning the subtree once
+/// to build the `Expr` and once more inside. The printer needs an owned tree
+/// either way, because it drops the spans in place before emitting.
+pub(super) fn print_fold(call: &CallExpr, params: Vec<Pat>) -> String {
+  let folded = Expr::Call(call.clone());
+
+  let printed = match params.is_empty() {
+    true => folded,
+    false => create_arrow_expression_with_params(params, folded),
+  };
+
+  let module = Module {
+    span: DUMMY_SP,
+    body: vec![ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+      span: DUMMY_SP,
+      expr: Box::new(printed),
+    }))],
+    shebang: None,
+  };
+
+  print_module(
+    &CodeFrame::new(),
+    module,
+    Some(
+      Config::default()
+        .with_minify(true)
+        .with_omit_last_semi(true),
+    ),
+  )
+}

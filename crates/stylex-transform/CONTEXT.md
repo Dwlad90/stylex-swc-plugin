@@ -829,6 +829,19 @@ costs against the reference implementation, is
 [docs/adr/0004](./docs/adr/0004-the-fold-owns-its-own-ceiling-and-its-own-stack.md).
 _Avoid_: recursion limit, nesting level, stack depth
 
+**Measured string**:
+A string the evaluator grew with `+` or a template interpolation, together with
+the count of UTF-16 code units it was measured to. The count is what the
+character ceiling (`maxFoldedCharacters`, resolved in
+[stylex-structures](../stylex-structures/CONTEXT.md)) is spent in, and it
+travels with the text so a chain of `+` measures each operand once rather than
+re-reading everything already joined at every link -- the link above **adopts**
+the buffer below it, text and count together, instead of copying it into a
+fresh one. A measured string that goes through the [memo](#seen-value) comes
+back as a plain string literal and is measured again, because the tree has
+nowhere to carry a count.
+_Avoid_: grown string, sized string, string with a length
+
 **Pre-rule**:
 A style entry that has been recognised but not yet turned into CSS —
 `PreRuleValue` plus the pseudos and at-rules it sits under. `PreRuleSet`

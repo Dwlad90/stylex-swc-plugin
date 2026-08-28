@@ -67,6 +67,10 @@ testing.workspace = true
 
 [[bench]]
 harness = false
+name = "concatenation_chain_bench"
+
+[[bench]]
+harness = false
 name = "engine_fold_bench"
 
 [[bench]]

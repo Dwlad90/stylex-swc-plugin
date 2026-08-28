@@ -370,3 +370,106 @@ fn a_character_outside_a_number_settles_rather_than_counts() {
     assert!(text.into_number().is_nan());
   }
 }
+
+/// A buffer that adopts a measured string takes the count with the text, and
+/// spends the ceiling against that count.
+///
+/// The whole of what adopting has to be right about: the text is the text, the
+/// count is the count, and the next append is measured from where the adopted
+/// one left off. A count adopted too low would let a chain grow past the
+/// ceiling, and one adopted too high would refuse a chain inside it.
+#[test]
+fn an_adopted_buffer_keeps_the_count_it_was_handed() {
+  let (text, units) = GrownString::adopt("abcd".to_string(), 4, "concatenation").into_measured();
+
+  assert_eq!(text, "abcd");
+  assert_eq!(units, 4);
+
+  // And an empty one, which is the operand a chain of empty strings adopts at
+  // every link.
+  let (empty, none) = GrownString::adopt(String::new(), 0, "concatenation").into_measured();
+
+  assert_eq!(empty, "");
+  assert_eq!(none, 0);
+}
+
+/// A grown buffer answers with the count it measured, so the level above adopts
+/// a number rather than reading the text again. Grown through the coercion as
+/// well as through a direct append, since a template and a `+` reach the buffer
+/// by the two different doors.
+#[test]
+fn a_grown_buffer_answers_with_the_count_it_measured() {
+  let mut state = EvaluationState::new();
+  let mut traversal_state = StateManager::default();
+
+  let mut grown = GrownString::new("concatenation");
+
+  assert!(
+    grown
+      .push(
+        "ab",
+        || create_string_expr("ab"),
+        &mut state,
+        &mut traversal_state
+      )
+      .is_ok()
+  );
+  assert!(
+    grown
+      .push_string_of(
+        &EvaluateResultValue::Expr(create_number_expr(12.0)),
+        || create_string_expr("12"),
+        &mut state,
+        &mut traversal_state,
+      )
+      .is_ok()
+  );
+
+  // An astral character, so the answer is a code-unit count rather than a
+  // scalar or a byte one.
+  assert!(
+    grown
+      .push(
+        "\u{1F600}",
+        || create_string_expr("\u{1F600}"),
+        &mut state,
+        &mut traversal_state
+      )
+      .is_ok()
+  );
+
+  let (text, units) = grown.into_measured();
+
+  assert_eq!(text, "ab12\u{1F600}");
+  assert_eq!(units, 6);
+  assert_eq!(units, utf16_length(&text));
+}
+
+/// Adopting is only a shortcut when it answers the same as re-reading, so the
+/// two readings are compared directly -- over the texts a chain actually grows,
+/// ASCII and otherwise, and over the one a byte count would get right by
+/// accident.
+#[test]
+fn an_adopted_count_agrees_with_a_fresh_reading() {
+  for text in [
+    "",
+    "a",
+    "abcd",
+    "é",
+    "日本語",
+    "\u{1F600}",
+    "a\u{1F600}b",
+    "e\u{301}",
+    "a\u{0}b",
+  ] {
+    let (adopted, count) =
+      GrownString::adopt(text.to_string(), utf16_length(text), "concatenation").into_measured();
+
+    assert_eq!(
+      count,
+      utf16_length(&adopted),
+      "the count adopted with {:?} is not its length",
+      text
+    );
+  }
+}

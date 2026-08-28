@@ -19,23 +19,13 @@ pub(in super::super) fn evaluate(
     return logical_expression::evaluate(op, bin, state, traversal_state, fns);
   }
 
-  unwrap_or_panic!(
-    binary_expr_to_num_or_str(bin, state, traversal_state, fns)
-      .or_else(|num_error| {
-        binary_expr_to_string(bin, state, traversal_state, fns).or_else::<String, _>(|str_error| {
-          debug!("Binary expression to string error: {}", str_error);
-          debug!("Binary expression to number error: {}", num_error);
-
-          Ok(BinaryExprType::Null)
-        })
-      })
-      .map(|result| match result {
-        BinaryExprType::Number(num) => Some(EvaluateResultValue::Expr(create_number_expr(num))),
-        BinaryExprType::String(strng) =>
-          Some(EvaluateResultValue::Expr(create_string_expr(&strng))),
-        BinaryExprType::Null => None,
-      })
-  )
+  match fold_binary_expr(bin, state, traversal_state, fns)? {
+    BinaryExprType::Number(num) => Some(EvaluateResultValue::Expr(create_number_expr(num))),
+    BinaryExprType::String { text, .. } => {
+      Some(EvaluateResultValue::Expr(create_string_expr(&text)))
+    },
+    BinaryExprType::Null => None,
+  }
 }
 
 /// `ToNumber` over a boolean: the number a comparison result becomes when the
@@ -86,6 +76,147 @@ fn evaluate_operand(
   }
 }
 
+/// The left operand of a binary expression, as much of it as the level above
+/// can use.
+///
+/// A `+` whose left side is another `+` is the one shape that carries more than
+/// a value: the text below was measured while it was grown, and the level above
+/// appends to it. Every other operand is just the value the evaluator resolved.
+enum LeftOperand {
+  /// A concatenation this same path folded one level down, still carrying the
+  /// count it was measured to.
+  Measured { text: String, units: usize },
+  /// Every other operand.
+  Value(EvaluateResultValue),
+}
+
+impl LeftOperand {
+  /// Whether this side makes a `+` a concatenation rather than an addition.
+  fn is_string(&self) -> bool {
+    match self {
+      Self::Measured { .. } => true,
+      Self::Value(value) => value.as_expr().is_some_and(is_string),
+    }
+  }
+
+  /// The expression behind an operand that is not a folded concatenation.
+  ///
+  /// `None` for a measured one, which the numeric path never sees: a folded
+  /// concatenation is a string, and a string on either side sends the `+` to
+  /// the concatenation path before any coercion to a number is asked for.
+  fn as_expr(&self) -> Option<&Expr> {
+    match self {
+      Self::Measured { .. } => None,
+      Self::Value(value) => value.as_expr(),
+    }
+  }
+}
+
+/// A measured left side is remembered as the string literal it spells, which is
+/// all the tree can hold, and read back as an ordinary value -- so a chain
+/// answered from the memo is measured where it lands, exactly as it was before
+/// the count started travelling.
+impl Memoized for LeftOperand {
+  fn from_memo(remembered: EvaluateResultValue) -> Self {
+    Self::Value(remembered)
+  }
+
+  fn to_memo(&self) -> EvaluateResultValue {
+    match self {
+      Self::Measured { text, .. } => EvaluateResultValue::Expr(create_string_expr(text)),
+      Self::Value(value) => value.clone(),
+    }
+  }
+}
+
+/// One side of a binary expression, evaluated -- folding the left side of a `+`
+/// chain here rather than through the evaluator's own dispatch, so a
+/// concatenation keeps the count it was measured to.
+///
+/// The dispatch hands a folded `+` back as a plain string literal, which has
+/// nowhere to carry a length. Measured again one level up, and copied into a
+/// fresh buffer beside it, a chain spends the length of everything already
+/// joined once per remaining link -- the square of its text rather than its
+/// length. Folded here, the buffer and the count travel together and each
+/// operand is read exactly once.
+///
+/// It is the *same* level of the ceiling and the *same* memo either way, which
+/// is what [`folded_once`] is for: a chain refuses at the link it always
+/// refused at, and a subtree written twice still answers from the first
+/// reading. Only the measurement is extra, and only on the way down -- a
+/// remembered answer is a literal like any other, and is measured.
+///
+/// The mutation check the dispatch makes is not repeated: it asks about an
+/// assignment, an update and a `delete`, and this arm has already matched a
+/// binary expression.
+fn evaluate_left_operand(
+  binary_expr: &BinExpr,
+  reason: &str,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> Result<LeftOperand, anyhow::Error> {
+  if matches!(binary_expr.op, BinaryOp::Add)
+    && let Expr::Bin(inner) = normalize_expr(&binary_expr.left)
+    && matches!(inner.op, BinaryOp::Add)
+  {
+    let folded = folded_once(
+      &binary_expr.left,
+      state,
+      traversal_state,
+      |state, traversal_state| match fold_binary_expr(inner, state, traversal_state, fns)? {
+        BinaryExprType::String { text, units } => Some(LeftOperand::Measured { text, units }),
+        BinaryExprType::Number(number) => Some(LeftOperand::Value(EvaluateResultValue::Expr(
+          create_number_expr(number),
+        ))),
+        BinaryExprType::Null => None,
+      },
+    );
+
+    // Reported on the same terms an operand resolving to nothing is reported on
+    // anywhere else, which is `evaluate_operand`'s below.
+    return match folded {
+      Some(left) => Result::Ok(left),
+      None if !state.confident => Result::Err(anyhow!("{}", reason)),
+      None => stylex_panic!("{}", reason),
+    };
+  }
+
+  evaluate_operand(&binary_expr.left, reason, state, traversal_state, fns).map(LeftOperand::Value)
+}
+
+/// A binary expression folded to its value rather than to an expression: the
+/// number-or-string path, falling back to the string path.
+///
+/// The same two-step [`evaluate`] performs, minus the boxing back into the
+/// tree, so the descent above reads a measured string where `evaluate` would
+/// hand back a string literal. `Null` is the refusal, as it is there.
+fn fold_binary_expr(
+  binary_expr: &BinExpr,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> Option<BinaryExprType> {
+  if !state.confident {
+    return None;
+  }
+
+  Some(
+    binary_expr_to_num_or_str(binary_expr, state, traversal_state, fns).unwrap_or_else(
+      |num_error| {
+        binary_expr_to_string(binary_expr, state, traversal_state, fns).unwrap_or_else(
+          |str_error| {
+            debug!("Binary expression to string error: {}", str_error);
+            debug!("Binary expression to number error: {}", num_error);
+
+            BinaryExprType::Null
+          },
+        )
+      },
+    ),
+  )
+}
+
 /// Every binary operator but the three logical ones, folded to whichever of a
 /// number and a string its operands decide.
 ///
@@ -102,8 +233,8 @@ pub(crate) fn binary_expr_to_num_or_str(
 ) -> Result<BinaryExprType, anyhow::Error> {
   let op = binary_expr.op;
 
-  let left = evaluate_operand(
-    &binary_expr.left,
+  let left = evaluate_left_operand(
+    binary_expr,
     match op {
       BinaryOp::Add => LEFT_HAS_NO_VALUE,
       _ => LEFT_NOT_A_NUMBER,
@@ -112,7 +243,6 @@ pub(crate) fn binary_expr_to_num_or_str(
     traversal_state,
     fns,
   )?;
-  let left_expr = as_expr_or_err!(left, "Left argument not expression");
 
   // `+` is the one operator whose result type its operands decide rather than
   // the path that claimed it: JavaScript concatenates as soon as either side is
@@ -134,11 +264,16 @@ pub(crate) fn binary_expr_to_num_or_str(
       fns,
     )?;
 
-    if is_string(left_expr) || right.as_expr().is_some_and(is_string) {
-      return binary_expr_to_string(binary_expr, state, traversal_state, fns);
+    // Concatenated here rather than by handing the expression back to the
+    // string path, which would evaluate both operands a second time -- and
+    // would drop the left side's measurement on the way, since only a value can
+    // carry one.
+    if left.is_string() || right.as_expr().is_some_and(is_string) {
+      return concatenate(binary_expr, left, &right, state, traversal_state);
     }
   }
 
+  let left_expr = as_expr_or_err!(left, "Left argument not expression");
   let left_num = expr_to_num(left_expr, state, traversal_state, fns)?;
 
   let right = evaluate_operand(
@@ -197,6 +332,11 @@ pub(crate) fn binary_expr_to_num_or_str(
 /// number path's fallback, having already refused there, and is refused again
 /// so the caller deopts rather than failing the build — which is also what the
 /// language asks for, since `'a' * 'b'` is a value rather than an error.
+///
+/// Reached for a `+` only when the number path refused one — an operand with no
+/// numeric reading and no string either side, such as an array. The `+` the
+/// number path *did* claim concatenates through [`concatenate`] directly,
+/// keeping the operands it has already evaluated.
 fn binary_expr_to_string(
   binary_expr: &BinExpr,
   state: &mut EvaluationState,
@@ -212,58 +352,98 @@ fn binary_expr_to_string(
     ));
   }
 
-  // Both operands grow one buffer, which measures every piece before it lands --
-  // so a chain of doublings is refused at the append that passes the ceiling
-  // rather than after the next one has allocated, and an operand that is an
-  // array is refused at the element that passes it rather than after its whole
-  // join.
-  //
-  // The left operand used to be handed over as a finished string and adopted as
-  // this buffer's allocation, which cost a chain of `+` one buffer rather than
-  // one per link. It is copied in now, deliberately: an array's join is only
-  // measurable while it is being written, and an array on the left has to be
-  // measured too. What that buys back is bounded -- one copy per link of a chain
-  // the ceiling already bounds -- and what it prevents is unbounded.
-  //
-  // Each side is taken through `ToString`, the coercion the rest of the evaluator
-  // already shares from `stylex_js`. This arm used to keep a second, weaker one
-  // of its own, which read a string, a number and a big integer and refused the
-  // rest -- so `'x' + true` failed to fold where JavaScript says `"xtrue"`. The
-  // shared one answers for the whole falsy list, for arrays and for objects, and
-  // refuses only where no compile-time string exists at all.
-  //
-  // It is also more permissive than the reference implementation on two
-  // operands, and deliberately left that way: a big integer and a regular
-  // expression both have a string here, where upstream refuses either literal
-  // outright with an unsupported-expression diagnostic. The folded strings are
-  // what the language says, so the disagreement costs nothing but a build that
-  // succeeds where the other fails.
-  let mut joined = GrownString::new(CONCATENATION);
+  // Both operands through the plain reading, not the measured one: a left side
+  // that folds to a string never arrives here, because the number-or-string
+  // path claims that `+` and concatenates it itself. What reaches this fallback
+  // is a `+` that path refused -- an operand with no numeric form and no string
+  // either side, such as an array -- so a descent here could only pay for a
+  // measurement nothing would carry.
+  let left = evaluate_operand(
+    &binary_expr.left,
+    LEFT_NOT_A_STRING,
+    state,
+    traversal_state,
+    fns,
+  )
+  .map(LeftOperand::Value)?;
+  let right = evaluate_operand(
+    &binary_expr.right,
+    RIGHT_NOT_A_STRING,
+    state,
+    traversal_state,
+    fns,
+  )?;
 
-  for (operand, reason) in [
-    (&binary_expr.left, LEFT_NOT_A_STRING),
-    (&binary_expr.right, RIGHT_NOT_A_STRING),
-  ] {
-    let value = evaluate_operand(operand, reason, state, traversal_state, fns)?;
+  concatenate(binary_expr, left, &right, state, traversal_state)
+}
 
-    joined
-      .push_string_of(
-        &value,
-        || Expr::Bin(binary_expr.clone()),
-        state,
-        traversal_state,
-      )
-      // The sentence for an operand with no string at all names which side it
-      // was; a ceiling refusal carries the buffer's own, which names the
-      // concatenation rather than a side, because either side reaching the
-      // ceiling is the same expression growing too large.
-      .map_err(|refusal| match refusal {
-        StringAppend::NoStringForm => anyhow!("{}", reason),
-        StringAppend::TooLarge(sentence) => anyhow!("{}", sentence),
-      })?;
-  }
+/// Two evaluated operands of a `+`, joined through one measured buffer.
+///
+/// Both sides grow the same buffer, which measures every piece before it lands
+/// -- so a chain of doublings is refused at the append that passes the ceiling
+/// rather than after the next one has allocated, and an operand that is an
+/// array is refused at the element that passes it rather than after its whole
+/// join.
+///
+/// A left side this path folded one level down is *adopted* rather than copied
+/// in: it is the same text and the same count, already checked against the same
+/// ceiling, so re-reading it would spend the length of everything joined so far
+/// once per remaining link. Any other left side is written through the coercion
+/// like the right one, because an array's join is only measurable while it is
+/// being written.
+///
+/// Each side is taken through `ToString`, the coercion the rest of the evaluator
+/// already shares from `stylex_js`. This arm used to keep a second, weaker one
+/// of its own, which read a string, a number and a big integer and refused the
+/// rest -- so `'x' + true` failed to fold where JavaScript says `"xtrue"`. The
+/// shared one answers for the whole falsy list, for arrays and for objects, and
+/// refuses only where no compile-time string exists at all.
+///
+/// It is also more permissive than the reference implementation on two
+/// operands, and deliberately left that way: a big integer and a regular
+/// expression both have a string here, where upstream refuses either literal
+/// outright with an unsupported-expression diagnostic. The folded strings are
+/// what the language says, so the disagreement costs nothing but a build that
+/// succeeds where the other fails.
+fn concatenate(
+  binary_expr: &BinExpr,
+  left: LeftOperand,
+  right: &EvaluateResultValue,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+) -> Result<BinaryExprType, anyhow::Error> {
+  // The sentence for an operand with no string at all names which side it was;
+  // a ceiling refusal carries the buffer's own, which names the concatenation
+  // rather than a side, because either side reaching the ceiling is the same
+  // expression growing too large.
+  let refusal = |reason: &'static str| {
+    move |refused: StringAppend| match refused {
+      StringAppend::NoStringForm => anyhow!("{}", reason),
+      StringAppend::TooLarge(sentence) => anyhow!("{}", sentence),
+    }
+  };
+  let path = || Expr::Bin(binary_expr.clone());
 
-  Result::Ok(BinaryExprType::String(joined.into_text()))
+  let mut joined = match left {
+    LeftOperand::Measured { text, units } => GrownString::adopt(text, units, CONCATENATION),
+    LeftOperand::Value(value) => {
+      let mut joined = GrownString::new(CONCATENATION);
+
+      joined
+        .push_string_of(&value, path, state, traversal_state)
+        .map_err(refusal(LEFT_NOT_A_STRING))?;
+
+      joined
+    },
+  };
+
+  joined
+    .push_string_of(right, path, state, traversal_state)
+    .map_err(refusal(RIGHT_NOT_A_STRING))?;
+
+  let (text, units) = joined.into_measured();
+
+  Result::Ok(BinaryExprType::String { text, units })
 }
 
 #[cfg(test)]

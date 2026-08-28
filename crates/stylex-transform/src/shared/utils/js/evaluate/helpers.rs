@@ -707,8 +707,11 @@ pub(super) fn evaluate_theme_ref(
 ///
 /// It owns the buffer as well as the count so neither caller can append without
 /// being measured, and so the count is carried rather than recomputed: a template
-/// pays for one measurement per piece however many pieces it has. Owning the
-/// buffer is also what lets a value be *coerced* into it rather than beside it:
+/// pays for one measurement per piece however many pieces it has, and a chain of
+/// `+` one per operand rather than one per operand per link -- the buffer a link
+/// grew is [adopted](GrownString::adopt) by the link above it, text and count
+/// together. Owning the buffer is also what lets a value be *coerced* into it
+/// rather than beside it:
 /// an array's `ToString` writes its elements and separators through
 /// [`GrownString::push_string_of`], so the join is measured as it happens instead
 /// of arriving as one string already paid for.
@@ -726,6 +729,18 @@ impl GrownString {
   /// nothing about either operand until it has evaluated it.
   pub(super) fn new(kind: &'static str) -> Self {
     Self::with_capacity(0, kind)
+  }
+
+  /// A buffer that adopts an already-measured string, by move and without
+  /// reading it again.
+  ///
+  /// This is what keeps a chain of `+` linear. The left operand of a link is the
+  /// text the link below grew, and the count it was measured to was checked
+  /// against this same ceiling there -- so re-counting it here would spend the
+  /// length of everything already joined, once per remaining link. Adopted, only
+  /// the operand being added is measured.
+  pub(super) fn adopt(text: String, units: usize, kind: &'static str) -> Self {
+    Self { text, units, kind }
   }
 
   /// An empty buffer with room for `bytes`, for a caller that knows the length of
@@ -814,6 +829,12 @@ impl GrownString {
   /// The string that was grown.
   pub(super) fn into_text(self) -> String {
     self.text
+  }
+
+  /// The string that was grown and the count it was measured to, for a caller
+  /// that hands it to another buffer rather than to the tree.
+  pub(super) fn into_measured(self) -> (String, usize) {
+    (self.text, self.units)
   }
 }
 

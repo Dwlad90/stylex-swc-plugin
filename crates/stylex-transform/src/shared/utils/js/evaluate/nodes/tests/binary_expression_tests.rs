@@ -5,6 +5,7 @@
 
 use super::*;
 use stylex_ast::ast::convertors::create_ident_expr;
+use stylex_utils::string::utf16_length;
 
 /// The expression under test. Built here rather than at each case so a case
 /// reads as its operator and its operands, and nothing else.
@@ -50,10 +51,24 @@ fn expect_number(result: Result<BinaryExprType, anyhow::Error>) -> f64 {
 }
 
 /// The string a path folded to, on the same terms as [`expect_number`].
+///
+/// The count the string carries is checked against a fresh reading of the text
+/// on the way through, because every case here then holds the carried count as
+/// well as the text: a count that drifts from what it labels would spend the
+/// character ceiling against a length nothing has.
 #[track_caller]
 fn expect_string(result: Result<BinaryExprType, anyhow::Error>) -> String {
   match result {
-    Result::Ok(BinaryExprType::String(strng)) => strng,
+    Result::Ok(BinaryExprType::String { text, units }) => {
+      assert_eq!(
+        units,
+        utf16_length(&text),
+        "the count carried with {:?} is not its length",
+        text
+      );
+
+      text
+    },
     Result::Ok(other) => panic!("expected a string, folded to {:?}", other),
     Result::Err(error) => panic!("expected a string, refused with {}", error),
   }

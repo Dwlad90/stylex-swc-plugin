@@ -173,6 +173,37 @@ mod utf16_length_tests {
     assert_eq!(utf16_length("\u{1}\u{2}"), 2);
   }
 
+  /// ASCII is answered from the byte length rather than from the encoder, so the
+  /// two readings are compared directly -- across the boundary, since a string
+  /// with one non-ASCII scalar in it must leave the fast path whichever end that
+  /// scalar sits at.
+  #[test]
+  fn the_ascii_shortcut_answers_what_the_encoder_answers() {
+    for source in [
+      "",
+      "a",
+      "abc",
+      "a b\tc\n",
+      "\u{7f}",
+      "\u{80}",
+      "é",
+      "aé",
+      "éa",
+      "日本語",
+      "\u{1F600}",
+      "a\u{1F600}",
+      "\u{1F600}a",
+      "a\u{0}b",
+    ] {
+      assert_eq!(
+        utf16_length(source),
+        source.encode_utf16().count(),
+        "the two readings of {:?} disagree",
+        source
+      );
+    }
+  }
+
   /// The property that makes this the language's view of a length: the last
   /// index that reads a code unit is one below it, and the length itself reads
   /// nothing. Read off the code units directly, so the claim does not rest on a

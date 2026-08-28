@@ -22,6 +22,7 @@ mod legacy_deprecated;
 mod logical_operators;
 mod math_and_object_statics;
 mod measured_callback_receivers;
+mod measured_concatenation_chains;
 mod media_query_canonicalization;
 mod media_query_computed_bounds;
 mod mutating_methods_and_bindings;

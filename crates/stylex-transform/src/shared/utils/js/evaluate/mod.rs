@@ -9,7 +9,7 @@ mod growable_stack;
 mod helpers;
 mod nodes;
 
-pub(crate) use cache::evaluate_cached;
+pub(crate) use cache::{Memoized, evaluate_cached, folded_once};
 pub(crate) use deopt::{deopt, deopt_at_declaration};
 pub(crate) use helpers::evaluate_result_is_nullish;
 use helpers::*;
@@ -23,7 +23,7 @@ use stylex_constants::constants::api_names::FUNCTION_CONFIG_FN_KEY;
 use indexmap::IndexMap;
 use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
-use stylex_macros::{stylex_panic, stylex_unreachable, unwrap_or_panic};
+use stylex_macros::{stylex_panic, stylex_unreachable};
 use swc_core::{
   atoms::Atom,
   ecma::{

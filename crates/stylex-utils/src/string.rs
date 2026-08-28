@@ -84,7 +84,16 @@ pub fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> Cow<'_, str
 /// would read as `1` where JavaScript says `2`. `String.prototype.length`
 /// counts code units — an astral scalar occupies two of them — so
 /// `"\u{1F600}a".length` is `3` and index `2` is where the `a` lives.
+///
+/// ASCII is answered from the byte length, which is the same number: one byte
+/// per code unit, and `is_ascii` is a vectorised scan where the encoder is a
+/// scalar-at-a-time walk. Every CSS value a build measures is ASCII, and this
+/// runs on every `+` and every template interpolation in every file.
 pub fn utf16_length(s: &str) -> usize {
+  if s.is_ascii() {
+    return s.len();
+  }
+
   s.encode_utf16().count()
 }
 

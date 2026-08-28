@@ -7,6 +7,10 @@
 use super::*;
 use stylex_utils::string::utf16_length;
 use swc_core::{
+  atoms::{
+    Wtf8Atom,
+    wtf8::{CodePoint, Wtf8Buf},
+  },
   common::DUMMY_SP,
   ecma::ast::{
     ArrayLit, ArrowExpr, AssignProp, BigInt, BindingIdent, BlockStmt, BlockStmtOrExpr, Bool,
@@ -1561,4 +1565,174 @@ fn a_character_no_numeric_literal_holds_is_refused() {
       character
     );
   }
+}
+
+/// The separator is a piece the sink can refuse on its own, which is the case a
+/// ceiling that admits every element still reaches: two one-character elements
+/// under a ceiling of one hold the first and stop at the comma, before the
+/// second element is ever rendered.
+#[test]
+fn a_refused_separator_ends_the_join_before_the_next_element() {
+  let array = array_expr(vec![Some(str_expr("a")), Some(str_expr("b"))]);
+
+  let mut sink = Bounded::new(1);
+
+  match write_js_string_of(&array, FunctionForm::Refuse, &mut sink) {
+    // One code unit is held and the separator would make two, which is the
+    // number the refusal carries -- an element's own length is not in it.
+    Err(StringRefusal::Sink(grown)) => assert_eq!(grown, 2),
+    other => panic!("expected the separator to be refused, got {:?}", other),
+  }
+
+  assert_eq!(sink.text, "a");
+
+  // The same array one code unit higher gets past the separator and refuses on
+  // the element after it, so the ceiling above is the separator's alone.
+  let mut wider = Bounded::new(2);
+
+  assert!(matches!(
+    write_js_string_of(&array, FunctionForm::Refuse, &mut wider),
+    Err(StringRefusal::Sink(3))
+  ));
+  assert_eq!(wider.text, "a,");
+}
+
+/// A string literal holding a lone surrogate has no `str` for Rust to write, so
+/// it is the value's own ending rather than the sink's -- the same deopt every
+/// unreadable value gets, which leaves the caller free to name the property the
+/// value sits on.
+#[test]
+fn a_string_with_no_utf8_form_has_no_string_form() {
+  // A lone surrogate: valid WTF-8 storage, invalid UTF-8 decoding.
+  let mut lone_surrogate = Wtf8Buf::new();
+
+  match CodePoint::from_u32(0xd800) {
+    Some(code_point) => lone_surrogate.push(code_point),
+    None => panic!("U+D800 is within the code-point range."),
+  }
+
+  let unreadable = Expr::Lit(Lit::Str(Str {
+    span: DUMMY_SP,
+    value: Wtf8Atom::new(lone_surrogate),
+    raw: None,
+  }));
+
+  let mut sink = Bounded::new(1000);
+
+  assert!(matches!(
+    write_js_string_of(&unreadable, FunctionForm::Refuse, &mut sink),
+    Err(StringRefusal::NoStringForm)
+  ));
+  // A refusal writes nothing, so a bounded caller is charged for no part of it.
+  assert_eq!(sink.text, "");
+
+  // The collecting coercion answers the same nothing, and so does the value in
+  // every position a string reaches: an array element and an object's key.
+  assert_eq!(to_js_string(&unreadable), None);
+  assert_eq!(
+    to_js_string(&array_expr(vec![Some(unreadable.clone())])),
+    None
+  );
+
+  let mut nested = String::new();
+  assert!(matches!(
+    write_js_string_of(
+      &array_expr(vec![Some(str_expr("a")), Some(unreadable)]),
+      FunctionForm::Refuse,
+      &mut nested
+    ),
+    Err(StringRefusal::NoStringForm)
+  ));
+  // The join stops rather than rewinds, so what was written before the
+  // unreadable element stays written.
+  assert_eq!(nested, "a,");
+}
+
+/// An object with no primitive of its own reaches its number through the
+/// `Object.prototype` text, and that text is a piece the sink may refuse -- so
+/// the number form has the sink's ending too, not only the string form's.
+#[test]
+fn an_object_default_text_can_be_refused_by_the_sink() {
+  let object = object_expr(vec![key_value_prop(
+    PropName::Ident(IdentName::new("a".into(), DUMMY_SP)),
+    num_expr(1.0),
+  )]);
+
+  let mut sink = Bounded::new(OBJECT_TO_STRING.len() - 1);
+
+  assert!(matches!(
+    write_js_number_of(&object, &mut sink),
+    Err(StringRefusal::Sink(_))
+  ));
+  assert_eq!(sink.text, "");
+
+  // One code unit wider the same object writes its text and answers through it,
+  // which is `NaN` -- so the refusal above is the ceiling's and not the shape's.
+  let mut exact = Bounded::new(OBJECT_TO_STRING.len());
+
+  assert_eq!(write_js_number_of(&object, &mut exact), Ok(NumberOf::Text));
+  assert_eq!(exact.text, OBJECT_TO_STRING);
+  assert!(string_to_js_number(&exact.text).is_nan());
+}
+
+/// Every ending the number form has, reached through a sink that can refuse --
+/// the recursion into an own method's answer, the value with no string form at
+/// all, and the sink's own refusal on the text a non-object renders.
+///
+/// The bounded sink is walked through all of them rather than only the ones a
+/// ceiling is interesting for, because a sink that answers on some endings and
+/// not others is a sink whose behaviour depends on which arm the value took.
+#[test]
+fn the_number_form_reaches_every_ending_through_a_bounded_sink() {
+  // An own `valueOf` answers a primitive, and the coercion carries on into it:
+  // the number is that answer's, and no text was written to reach it.
+  let returning = object_expr(vec![key_value_prop(
+    ident_key("valueOf"),
+    returning_arrow(num_expr(2.0)),
+  )]);
+
+  let mut answered = Bounded::new(0);
+
+  assert_eq!(
+    write_js_number_of(&returning, &mut answered),
+    Ok(NumberOf::Value(2.0))
+  );
+  assert_eq!(answered.text, "");
+
+  // A method in a form this crate cannot apply is the value's own ending, not
+  // the sink's -- a caller that read them alike would name a ceiling where a
+  // `TypeError` was written.
+  let unapplicable = object_expr(vec![key_value_prop(
+    ident_key("valueOf"),
+    str_expr("notfn"),
+  )]);
+
+  let mut refused = Bounded::new(1000);
+
+  assert_eq!(
+    write_js_number_of(&unapplicable, &mut refused),
+    Err(StringRefusal::NoStringForm)
+  );
+  assert_eq!(refused.text, "");
+
+  // And a value that is neither a number nor an object reaches its number
+  // through the text it renders, which the sink may refuse part-way.
+  let mut narrow = Bounded::new(2);
+
+  assert!(matches!(
+    write_js_number_of(&str_expr("abcdef"), &mut narrow),
+    Err(StringRefusal::Sink(_))
+  ));
+  assert_eq!(narrow.text, "");
+
+  // One code unit wider than the text the same value renders, the sink takes it
+  // and the number is read back through what was written.
+  let mut wide = Bounded::new(6);
+
+  assert_eq!(
+    write_js_number_of(&str_expr("abcdef"), &mut wide),
+    Ok(NumberOf::Text)
+  );
+  assert_eq!(wide.text, "abcdef");
+  assert!(string_to_js_number(&wide.text).is_nan());
 }

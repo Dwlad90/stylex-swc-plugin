@@ -68,9 +68,9 @@ use stylex_ast::ast::factories::{
 use stylex_constants::constants::{
   evaluation_errors::{
     CONCATENATION, IMPORT_FILE_EVAL_ERROR, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT,
-    OBJECT_METHOD, PATH_WITHOUT_NODE, SPREAD_ELEMENT, TEMPLATE_LITERAL, UNDEFINED_CONST,
-    UNEXPECTED_MEMBER_LOOKUP, UNINITIALIZED_CONST, USED_BEFORE_DECLARATION, grown_string_too_large,
-    unfoldable_call, unsupported_expression, unsupported_operator,
+    NUMERIC_CONVERSION, OBJECT_METHOD, PATH_WITHOUT_NODE, SPREAD_ELEMENT, TEMPLATE_LITERAL,
+    UNDEFINED_CONST, UNEXPECTED_MEMBER_LOOKUP, UNINITIALIZED_CONST, USED_BEFORE_DECLARATION,
+    grown_string_too_large, unfoldable_call, unsupported_expression, unsupported_operator,
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,

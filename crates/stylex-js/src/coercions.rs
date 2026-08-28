@@ -338,26 +338,87 @@ pub fn write_js_string_of<S: StringSink>(
 /// source text. `NaN` is a value, not a refusal — `Number('10px')` is `NaN` in
 /// JavaScript and lands in the stylesheet as `NaN`.
 pub fn to_js_number(expr: &Expr) -> Option<f64> {
+  let mut text = String::new();
+
+  match write_js_number_of(expr, &mut text) {
+    Ok(NumberOf::Value(value)) => Some(value),
+    Ok(NumberOf::Text) => Some(string_to_js_number(&text)),
+    // A `String` sink refuses nothing, so the only way here is a value with no
+    // compile-time number at all.
+    Err(_) => None,
+  }
+}
+
+/// Where a value's number comes from, once [`write_js_number_of`] has looked at
+/// it.
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum NumberOf {
+  /// The value carries its own number, and nothing was written to the sink.
+  Value(f64),
+  /// The number is [`string_to_js_number`] of the text the sink was given.
+  Text,
+}
+
+/// `ToNumber` under a sink, which is handed the text the coercion reads its
+/// number *through*.
+///
+/// Streaming rather than answering a `String` is what puts an array's join under
+/// the caller's own bound, exactly as it does for [`write_js_string_of`]: a
+/// caller measuring the text refuses at the element that passes its ceiling, and
+/// a caller that can already tell the text is not a numeric literal stops
+/// keeping it.
+pub fn write_js_number_of<S: StringSink>(
+  expr: &Expr,
+  sink: &mut S,
+) -> Result<NumberOf, StringRefusal<S::Refusal>> {
   match expr {
-    Expr::Lit(Lit::Num(num)) => Some(num.value),
-    Expr::Lit(Lit::Bool(bool_lit)) => Some(if bool_lit.value { 1.0 } else { 0.0 }),
+    Expr::Lit(Lit::Num(num)) => Ok(NumberOf::Value(num.value)),
+    Expr::Lit(Lit::Bool(bool_lit)) => Ok(NumberOf::Value(if bool_lit.value { 1.0 } else { 0.0 })),
     // `null` is zero and `undefined` is `NaN` — the one place the two part
     // company, since `ToString` spells both out. `undefined` needs no arm of
     // its own: it stringifies to `"undefined"`, which is not a numeric
     // literal.
-    Expr::Lit(Lit::Null(_)) => Some(0.0),
+    Expr::Lit(Lit::Null(_)) => Ok(NumberOf::Value(0.0)),
     // An object converts through the method pair a number prefers, which is
     // the reverse of the string one: an own `valueOf` answers ahead of an own
     // `toString`, so `Number({ valueOf: () => 2, toString: () => '1' })` is
     // `2`. An array owns neither and so still reaches its join below.
-    Expr::Object(object) => match object_to_primitive(object, ToPrimitiveHint::Number)? {
-      ObjectPrimitive::Default => Some(string_to_js_number(OBJECT_TO_STRING)),
-      ObjectPrimitive::Returned(returned) => to_js_number(returned),
+    Expr::Object(object) => match object_to_primitive(object, ToPrimitiveHint::Number) {
+      Some(ObjectPrimitive::Default) => {
+        sink.write_piece(OBJECT_TO_STRING)?;
+
+        Ok(NumberOf::Text)
+      },
+      Some(ObjectPrimitive::Returned(returned)) => write_js_number_of(returned, sink),
+      None => Err(StringRefusal::NoStringForm),
     },
     // Everything else takes `ToNumber` of its primitive value, which for a
     // string is itself and for an array is its join.
-    _ => to_js_string_with(expr, FunctionForm::NotANumber).map(|strng| string_to_js_number(&strng)),
+    _ => {
+      write_js_string_of(expr, FunctionForm::NotANumber, sink)?;
+
+      Ok(NumberOf::Text)
+    },
   }
+}
+
+/// Whether a character can appear in the text `ToNumber` reads as a number.
+///
+/// Sound rather than exact: every character a numeric literal holds answers
+/// `true`, so a `false` settles the whole text as `NaN` however it continues.
+/// That is what lets a caller stop reading — and the character it stops on is
+/// usually a comma, since an array of two or more elements joins with one and no
+/// numeric literal holds it.
+///
+/// The set is the surrounding whitespace, the signs, the decimal point, the
+/// digits of every radix with their `0x`/`0o`/`0b` prefixes and the exponent
+/// marker, and the letters of `Infinity`.
+pub fn can_appear_in_a_number(character: char) -> bool {
+  matches!(
+    character,
+    '0'..='9' | 'a'..='f' | 'A'..='F' | 'x' | 'X' | 'o' | 'O' | '+' | '-' | '.'
+  ) || matches!(character, 'I' | 'n' | 'i' | 't' | 'y')
+    || is_js_whitespace(character)
 }
 
 /// ECMA-262 `ToBoolean`, over an already-evaluated expression.

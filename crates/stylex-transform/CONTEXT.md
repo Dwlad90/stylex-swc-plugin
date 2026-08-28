@@ -459,6 +459,15 @@ for each evaluator-only variant what the value it stands for would have
 answered. There is exactly one per question and every caller goes through it,
 because a private copy of a question is how two call sites come to disagree
 about the same value.
+
+The string and the number bridge read the same text and keep different amounts
+of it, because they answer different things. A string is the answer, so it is
+written into whatever buffer the caller is measuring. A number is not: its
+answer is one `f64` however wide the text was, and its only question is whether
+the text spells a numeric literal — so the reading is abandoned at the first
+character no numeric literal holds, and what survives that is bounded by the
+[allocation ceiling](../stylex-structures/CONTEXT.md) like any other string the
+evaluator writes.
 _Avoid_: adapter, wrapper, converter
 
 **String operand**:

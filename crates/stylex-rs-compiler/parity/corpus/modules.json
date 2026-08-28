@@ -2039,6 +2039,14 @@
       "expected": "identical"
     },
     {
+      "id": "modules-25-a-number-an-array-joins-to-reach",
+      "label": "a number reached through an array's join",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst x = 'y'.repeat(900000);\nconst a = [x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x];\n\nexport const styles = stylex.create({\n  s0: { width: +a },\n  s1: { width: +[5] },\n  s2: { width: +[] },\n  s3: { width: +[[7]] },\n});\n",
+      "origin": "issue 25, the join `ToNumber` reaches its number through",
+      "note": "Identical, and the cost this row was written for is gone. `ToNumber` of an array is `ToNumber` of its join, and the number bridge collected it: the two hundred elements above spent 10.2 seconds and 180 MB reaching upstream's own `NaN`. A bound alone would have made that a refusal where upstream folds, so the bridge reads what the ceiling bounds instead -- `ToNumber` keeps no string, and its only question is whether the text spells a numeric literal, so the text is dropped at the first character no numeric literal holds. A comma is such a character, which settles an array of two or more elements at its first separator. What the ceiling is left bounding is a text still numeric at a million characters, and no expression can build one: every way of growing a string is bounded by the same number, so the only route to it is a literal of a million digits written out. That half is pinned as a test rather than as a row here, since the source would be the megabyte it measures.",
+      "expected": "identical"
+    },
+    {
       "id": "modules-06-amplified-array-length",
       "label": "an array result longer than a declaration could use",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'x'.repeat(20000).split('').length },\n});\n",

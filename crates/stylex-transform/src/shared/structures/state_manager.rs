@@ -756,8 +756,10 @@ impl StateManager {
   /// resolved value going in, on an amplifying call's own arithmetic, and on the
   /// string coming back -- and `GrownString` spends it on every append the
   /// evaluator makes without a fold at all, including every element and
-  /// separator an array's `ToString` joins. One number is what lets an author
-  /// raise it once, whichever of them refused.
+  /// separator an array's `ToString` joins. `NumericText` spends it on the same
+  /// join where a `ToNumber` reaches through one, on the part of the text that
+  /// could still spell a number. One number is what lets an author raise it once,
+  /// whichever of them refused.
   pub(crate) fn character_ceiling(&self) -> usize {
     MAX_FOLDED_CHARACTERS.clamped(self.options.max_folded_characters)
   }

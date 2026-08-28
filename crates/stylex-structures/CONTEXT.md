@@ -104,7 +104,13 @@ and the interpolation that grow it, since neither crosses a fold and a chain tha
 doubles its own result is innocent one line at a time. An array reaching either
 of those two is measured element by element as its `ToString` joins them, rather
 than once on the finished join, so the refusal costs the element that passed the
-ceiling rather than every element before it. Both are compared against
+ceiling rather than every element before it. A **numeric conversion** reaches the
+same join and spends the same number on as much of the text as could still be
+one, which is the difference the other three do not have: `ToNumber` keeps no string, so its reading stops at the first character no
+numeric literal holds and answers `NaN` from there. A separator is such a
+character, which settles an array of two or more elements at its first — so what
+this ceiling is left bounding on that path is a single text still numeric at a
+million characters. Both are compared against
 a **product** where the call sits inside a callback: what one evaluation builds
 times the element count of the receiver the callback was written on, since a
 length written into a body bounds one evaluation and the body runs once per

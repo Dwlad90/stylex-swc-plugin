@@ -1433,3 +1433,132 @@ fn a_sink_that_takes_nothing_still_admits_an_empty_join() {
     Err(StringRefusal::Sink(_))
   ));
 }
+
+// ──────────────────────────────────────────────
+// The streamed number
+// ──────────────────────────────────────────────
+
+/// `ToNumber` writes only where the value has no number of its own, so a caller
+/// measuring the text is charged for nothing it did not have to read.
+#[test]
+fn a_value_with_its_own_number_writes_nothing() {
+  for (expr, number) in [
+    (num_expr(7.0), 7.0),
+    (bool_expr(true), 1.0),
+    (bool_expr(false), 0.0),
+    (null_expr(), 0.0),
+  ] {
+    let mut sink = Bounded::new(0);
+
+    assert_eq!(
+      write_js_number_of(&expr, &mut sink),
+      Ok(NumberOf::Value(number))
+    );
+    assert_eq!(sink.text, "");
+  }
+}
+
+/// Everything else reaches its number through the text it renders, which is what
+/// the sink is handed.
+#[test]
+fn a_value_without_one_reaches_its_number_through_the_sink() {
+  let array = array_expr(vec![Some(str_expr("1")), Some(str_expr("2"))]);
+  let mut sink = Bounded::new(8);
+
+  assert_eq!(write_js_number_of(&array, &mut sink), Ok(NumberOf::Text));
+  assert_eq!(sink.text, "1,2");
+  assert!(string_to_js_number(&sink.text).is_nan());
+}
+
+/// The two answers together are the collecting coercion, so the wrapper and the
+/// stream cannot come to disagree.
+#[test]
+fn the_streamed_number_agrees_with_the_collected_one() {
+  let cases = [
+    num_expr(7.0),
+    bool_expr(true),
+    null_expr(),
+    str_expr("0x10"),
+    str_expr("nope"),
+    array_expr(vec![]),
+    array_expr(vec![Some(num_expr(5.0))]),
+    array_expr(vec![Some(num_expr(1.0)), Some(num_expr(2.0))]),
+    object_expr(vec![]),
+  ];
+
+  for expr in cases {
+    let mut text = String::new();
+    let streamed = match write_js_number_of(&expr, &mut text) {
+      Ok(NumberOf::Value(number)) => Some(number),
+      Ok(NumberOf::Text) => Some(string_to_js_number(&text)),
+      Err(_) => None,
+    };
+
+    let collected = to_js_number(&expr);
+
+    assert_eq!(
+      streamed.map(f64::to_bits),
+      collected.map(f64::to_bits),
+      "the two readings of `ToNumber` must agree"
+    );
+  }
+}
+
+/// The character test is sound: every character a numeric literal can hold
+/// answers `true`, so a `false` proves the whole text is `NaN`.
+#[test]
+fn every_character_a_numeric_literal_holds_is_admitted() {
+  let literals = [
+    "0",
+    "9",
+    "0x1234567890abcdefABCDEF",
+    "0X1F",
+    "0o17",
+    "0O7",
+    "0b01",
+    "0B1",
+    "1.5",
+    "+1",
+    "-1",
+    "1e10",
+    "1E-10",
+    "Infinity",
+    "-Infinity",
+    " \t\n\r\u{000B}\u{000C}\u{00A0}\u{FEFF}1 ",
+  ];
+
+  for literal in literals {
+    for character in literal.chars() {
+      assert!(
+        can_appear_in_a_number(character),
+        "`{}` appears in the numeric literal `{}` and must be admitted",
+        character,
+        literal
+      );
+    }
+  }
+}
+
+/// And the characters that settle the answer, of which the separator between two
+/// array elements is the one that matters.
+#[test]
+fn a_character_no_numeric_literal_holds_is_refused() {
+  for character in [
+    ',',
+    'z',
+    'q',
+    '%',
+    '(',
+    '\u{0000}',
+    '\u{1F600}',
+    '_',
+    '/',
+    '*',
+  ] {
+    assert!(
+      !can_appear_in_a_number(character),
+      "`{}` appears in no numeric literal and must not be admitted",
+      character
+    );
+  }
+}

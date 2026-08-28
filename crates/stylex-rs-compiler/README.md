@@ -569,6 +569,19 @@ the ceiling, so the refusal costs that element rather than the whole join --
 which is the difference between a diagnostic in milliseconds and one after
 several seconds of copying.
 
+Converting an array to a _number_ reads the same join and mostly costs nothing,
+because a number needs no string kept. `+a` asks only whether the text spells a
+numeric literal, so the reading stops at the first character no numeric literal
+holds -- and the comma between two elements is one, so `+a` over the same two
+hundred values answers `NaN` at the first separator, which is what JavaScript
+answers. The ceiling is left bounding a single element that really could still
+be a number:
+
+```bash
+[StyleX] base > width > This numeric conversion builds a string too large to
+evaluate at compile time. At most 1000000 characters are supported.
+```
+
 Raise it if a project really generates values this large:
 
 ```js

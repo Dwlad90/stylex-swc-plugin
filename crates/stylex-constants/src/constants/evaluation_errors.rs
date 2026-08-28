@@ -505,13 +505,20 @@ pub fn folded_string_too_large(limit: u64) -> String {
   )
 }
 
-/// The two expressions the evaluator grows a string with, as
+/// The three expressions that make the evaluator write a string, as
 /// [`grown_string_too_large`] names them.
 ///
-/// Written here rather than at the two call sites so the wording an author reads
+/// Written here rather than at the call sites so the wording an author reads
 /// lives beside the sentence it lands in.
+///
+/// The first two *grow* one. The third does not keep a string at all: a numeric
+/// conversion reads its number out of the text its operand renders, and an
+/// array renders as the join of its elements — so the ceiling is spent there
+/// too, and the sentence names the operator the author wrote rather than the
+/// join inside it.
 pub const CONCATENATION: &str = "concatenation";
 pub const TEMPLATE_LITERAL: &str = "template literal";
+pub const NUMERIC_CONVERSION: &str = "numeric conversion";
 
 /// A string the evaluator grew past what it will hold.
 ///

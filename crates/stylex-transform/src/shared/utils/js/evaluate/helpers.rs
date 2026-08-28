@@ -375,11 +375,116 @@ pub(super) fn evaluate_func_call_args(
 /// primitive string form, so this refuses where the string coercion does —
 /// except on the functions, which have a number even though they have no
 /// string, whether they stand alone or sit inside an array.
-pub(super) fn evaluate_result_to_js_number(value: &EvaluateResultValue) -> Option<f64> {
-  match value {
-    EvaluateResultValue::Expr(expr) => coercions::to_js_number(expr),
-    _ => evaluate_result_to_string_of(value, coercions::FunctionForm::NotANumber)
-      .map(|strng| coercions::string_to_js_number(&strng)),
+///
+/// That text is read through [`NumericText`] rather than collected: an array's
+/// number is the number of its join, and a join nothing can be a number is one
+/// this never has to hold.
+pub(super) fn evaluate_result_to_js_number(
+  value: &EvaluateResultValue,
+  traversal_state: &StateManager,
+) -> Result<f64, NumberRefusal> {
+  let mut text = NumericText::new(traversal_state.character_ceiling());
+
+  let read = match value {
+    EvaluateResultValue::Expr(expr) => coercions::write_js_number_of(expr, &mut text),
+    _ => write_string_of(value, coercions::FunctionForm::NotANumber, &mut text)
+      .map(|()| coercions::NumberOf::Text),
+  };
+
+  match read {
+    Ok(coercions::NumberOf::Value(number)) => Ok(number),
+    Ok(coercions::NumberOf::Text) => Ok(text.into_number()),
+    Err(coercions::StringRefusal::NoStringForm) => Err(NumberRefusal::NoNumberForm),
+    Err(coercions::StringRefusal::Sink(TooManyCharacters)) => Err(NumberRefusal::TooLarge),
+  }
+}
+
+/// Why an evaluated value had no number.
+pub(super) enum NumberRefusal {
+  /// The value has no compile-time number at all — a function where the form
+  /// stands nothing in for it, or a string holding a lone surrogate.
+  NoNumberForm,
+  /// The text the number would have been read from passed the character
+  /// ceiling. Reported by the caller, which knows the expression an author
+  /// wrote.
+  TooLarge,
+}
+
+/// The sink would not take another piece, because the text is past the ceiling.
+struct TooManyCharacters;
+
+/// The text a `ToNumber` reads, gathered as the coercion writes it.
+///
+/// Two things it does that a plain `String` does not, and an array is the value
+/// that needs both. It stops keeping text at the first character no numeric
+/// literal holds, because the answer is `NaN` from there on however the text
+/// continues — and the comma between an array's first two elements is such a
+/// character, so `+a` over two hundred long elements costs one of them rather
+/// than the whole join. What it does keep is measured against the character
+/// ceiling, so a text that really could still be a number is bounded like every
+/// other string the evaluator writes.
+///
+/// The parting is what keeps the compilers agreeing where they can: upstream
+/// answers `NaN` for an array nothing can be a number, and so does this — the
+/// ceiling is reached only by a text that is still a numeric literal at a
+/// million characters, and a project that writes one can raise it.
+struct NumericText {
+  held: String,
+  /// UTF-16 code units of `held`, which is the length JavaScript reports and the
+  /// unit every other reading of this ceiling spends.
+  units: usize,
+  ceiling: usize,
+  /// Set once a character arrived that no numeric literal holds.
+  refuted: bool,
+}
+
+impl NumericText {
+  fn new(ceiling: usize) -> Self {
+    Self {
+      held: String::new(),
+      units: 0,
+      ceiling,
+      refuted: false,
+    }
+  }
+
+  /// The number the text spells.
+  fn into_number(self) -> f64 {
+    if self.refuted {
+      f64::NAN
+    } else {
+      coercions::string_to_js_number(&self.held)
+    }
+  }
+}
+
+impl coercions::StringSink for NumericText {
+  type Refusal = TooManyCharacters;
+
+  fn write(&mut self, piece: &str) -> Result<(), TooManyCharacters> {
+    // Still written to rather than stopped once the answer is settled, so the
+    // coercion finishes its walk and an element with no string form after the
+    // settling piece is still refused rather than silently answered `NaN`.
+    if self.refuted {
+      return Ok(());
+    }
+
+    if piece.contains(|character| !coercions::can_appear_in_a_number(character)) {
+      self.refuted = true;
+      self.held = String::new();
+
+      return Ok(());
+    }
+
+    match units_within(self.units, piece, self.ceiling) {
+      Some(grown) => {
+        self.units = grown;
+        self.held.push_str(piece);
+
+        Ok(())
+      },
+      None => Err(TooManyCharacters),
+    }
   }
 }
 
@@ -406,7 +511,7 @@ pub(super) fn evaluate_result_to_js_object(
     // day it does the meaning may be "absent" or may be "unknown" -- so this
     // refuses, which deopts under either, where answering an object would tell
     // `typeof` a value is an object under the second. The nested case, which
-    // *is* reachable, is decided in `evaluate_result_to_string_of` below.
+    // *is* reachable, is decided in `write_string_of` below.
     EvaluateResultValue::Null => None,
 
     EvaluateResultValue::Vec(_)
@@ -414,7 +519,7 @@ pub(super) fn evaluate_result_to_js_object(
     | EvaluateResultValue::EnvObject(_)
     | EvaluateResultValue::ThemeRef(_)
     // The namespace object, and so an object rather than a function.
-    // Classified on `evaluate_result_to_string_of`'s arm for the same variant,
+    // Classified on `write_string_of`'s arm for the same variant,
     // which is where the reason is written down.
     | EvaluateResultValue::FunctionConfigMap(_) => Some(coercions::ObjectCoercion::Object),
 
@@ -487,32 +592,6 @@ pub(crate) fn evaluate_result_is_nullish(value: &EvaluateResultValue) -> bool {
     | EvaluateResultValue::Callback(_)
     | EvaluateResultValue::FunctionConfig(_)
     | EvaluateResultValue::FunctionConfigMap(_) => false,
-  }
-}
-
-/// `ToString` over an evaluated value, collected -- bridging the evaluator's own
-/// value representation to the ECMAScript coercion.
-///
-/// `None` means the value has no compile-time string form, so the caller deopts.
-/// The variants that stand for a JavaScript object take the `Object.prototype`
-/// default; the ones that stand for a function have none, because `String(fn)` is
-/// its source text and the evaluator keeps no source.
-///
-/// Collecting is for a caller with no ceiling to spend -- the number bridge,
-/// whose answer is one `f64` however wide the string it read. A caller growing a
-/// string of its own reaches the same coercion through
-/// [`GrownString::push_string_of`], which is measured piece by piece.
-fn evaluate_result_to_string_of(
-  value: &EvaluateResultValue,
-  function_form: coercions::FunctionForm,
-) -> Option<String> {
-  let mut text = String::new();
-
-  match write_string_of(value, function_form, &mut text) {
-    Ok(()) => Some(text),
-    // A `String` sink refuses nothing, so the only way here is a value with no
-    // compile-time string form.
-    Err(_) => None,
   }
 }
 

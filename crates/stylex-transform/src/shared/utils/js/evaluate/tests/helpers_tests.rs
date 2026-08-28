@@ -8,6 +8,21 @@ use swc_core::{
   ecma::ast::{UnaryExpr, UnaryOp},
 };
 
+/// `ToString` over an evaluated value, collected -- the shape these cases assert
+/// on. The bridge itself streams, since its one caller has a ceiling to spend,
+/// so the collecting is here rather than beside it.
+fn string_of(
+  value: &EvaluateResultValue,
+  function_form: coercions::FunctionForm,
+) -> Option<String> {
+  let mut text = String::new();
+
+  match write_string_of(value, function_form, &mut text) {
+    Ok(()) => Some(text),
+    Err(_) => None,
+  }
+}
+
 fn void_expr(arg: Expr) -> Expr {
   Expr::Unary(UnaryExpr {
     span: DUMMY_SP,
@@ -74,7 +89,7 @@ fn the_two_bridges_agree_a_function_map_is_an_object() {
   let map = EvaluateResultValue::FunctionConfigMap(FunctionConfigMap::default());
 
   assert_eq!(
-    evaluate_result_to_string_of(&map, coercions::FunctionForm::Refuse).as_deref(),
+    string_of(&map, coercions::FunctionForm::Refuse).as_deref(),
     Some(coercions::OBJECT_TO_STRING),
     "the string bridge must give a function map the object default"
   );
@@ -96,7 +111,7 @@ fn the_two_bridges_agree_a_callback_is_a_function() {
   let callback = EvaluateResultValue::Callback(Rc::new(|_args, _fns| create_null_expr()));
 
   assert_eq!(
-    evaluate_result_to_string_of(&callback, coercions::FunctionForm::Refuse),
+    string_of(&callback, coercions::FunctionForm::Refuse),
     None,
     "a function has no compile-time string under the refusing form"
   );
@@ -224,7 +239,7 @@ fn the_evaluator_s_own_array_joins_by_the_literal_s_rule() {
 
   for (items, expected) in cases {
     assert_eq!(
-      evaluate_result_to_string_of(
+      string_of(
         &EvaluateResultValue::Vec(items.clone()),
         coercions::FunctionForm::Refuse
       )
@@ -259,4 +274,99 @@ fn a_bounded_sink_stops_the_array_join_where_it_passes() {
     "five characters cannot hold two three-character elements and a separator"
   );
   assert_eq!(sink.text, "aaa,");
+}
+
+// ──────────────────────────────────────────────
+// The text a number is read out of
+// ──────────────────────────────────────────────
+
+use coercions::StringSink as _;
+
+/// Text that could still spell a number is kept and measured, and the number is
+/// the language's own reading of it.
+#[test]
+fn a_numeric_text_reads_the_number_it_spells() {
+  for (pieces, number) in [
+    (vec!["123"], 123.0),
+    (vec!["1", "2", "3"], 123.0),
+    (vec!["0x", "1f"], 31.0),
+    (vec![" ", "5", " "], 5.0),
+    (vec![], 0.0),
+  ] {
+    let mut text = NumericText::new(16);
+
+    for piece in &pieces {
+      assert!(
+        text.write(piece).is_ok(),
+        "`{}` is inside the ceiling and must be taken",
+        piece
+      );
+    }
+
+    assert_eq!(
+      text.into_number(),
+      number,
+      "the pieces {:?} spell it",
+      pieces
+    );
+  }
+}
+
+/// The first character no numeric literal holds settles the answer, and nothing
+/// after it is kept -- which is what makes an array of two elements cost the
+/// first of them rather than the whole join. The pieces after the settling one
+/// pass the ceiling several times over and are still taken, because the sink has
+/// nothing left to measure.
+#[test]
+fn a_settled_text_stops_measuring_and_answers_not_a_number() {
+  let mut text = NumericText::new(8);
+
+  assert!(text.write("1234").is_ok());
+  assert!(
+    text.write(",").is_ok(),
+    "a separator settles rather than refuses"
+  );
+  assert!(
+    text.write(&"9".repeat(1000)).is_ok(),
+    "a settled text measures nothing, however wide the piece"
+  );
+
+  assert!(text.into_number().is_nan());
+}
+
+/// A text that is still a number at the ceiling is where the ceiling is spent,
+/// and the piece that passes it is refused rather than truncated.
+#[test]
+fn a_numeric_text_past_the_ceiling_refuses() {
+  let mut text = NumericText::new(4);
+
+  assert!(text.write("1234").is_ok());
+  assert!(
+    text.write("5").is_err(),
+    "one code unit past four must refuse"
+  );
+
+  // The ceiling is reached inside a piece as well as between two, since what is
+  // measured is the text and not the number of writes.
+  let mut once = NumericText::new(4);
+
+  assert!(once.write("12345").is_err());
+}
+
+/// The characters the ceiling never has to measure, because no numeric literal
+/// holds them. An astral character is one, which is why the code-unit
+/// convention is pinned on `units_within` rather than here: every text this
+/// buffer can still be measuring is ASCII or whitespace.
+#[test]
+fn a_character_outside_a_number_settles_rather_than_counts() {
+  for piece in ["\u{1F600}", ",", "px"] {
+    let mut text = NumericText::new(0);
+
+    assert!(
+      text.write(piece).is_ok(),
+      "`{}` settles the answer rather than passing the ceiling",
+      piece
+    );
+    assert!(text.into_number().is_nan());
+  }
 }

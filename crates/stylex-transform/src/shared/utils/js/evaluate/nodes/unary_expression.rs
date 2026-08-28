@@ -152,21 +152,40 @@ fn evaluate_unary_numeric_of(
   fns: &FunctionMap,
   transform: impl FnOnce(f64) -> f64,
 ) -> Option<EvaluateResultValue> {
-  let value = match arg {
+  // The first reading's own wording, carried alongside its answer so that an
+  // operand with no numeric reading still names its own shape where the bridge
+  // has nothing to add. Only ever read on the refusal below, so nothing is
+  // spelled out for an operand that folds.
+  let (read, shape) = match arg {
     EvaluateResultValue::Expr(expr) => match expr_to_num(expr, state, traversal_state, fns) {
-      Ok(value) => Some(value),
-      // Kept as the refusal's wording where the bridge has nothing to add, so
-      // an operand with no numeric reading still names its own shape.
-      Err(error) => match evaluate_result_to_js_number(arg) {
-        Some(value) => Some(value),
-        None => deopt_unsupported!(&create_unary_expr(unary), state, error.to_string().as_str()),
-      },
+      Ok(value) => (Ok(value), None),
+      Err(error) => (
+        evaluate_result_to_js_number(arg, traversal_state),
+        Some(error.to_string()),
+      ),
     },
-    _ => evaluate_result_to_js_number(arg),
+    _ => (evaluate_result_to_js_number(arg, traversal_state), None),
   };
 
-  let Some(value) = value else {
-    deopt_unsupported!(&create_unary_expr(unary), state, ILLEGAL_PROP_VALUE);
+  let value = match read {
+    Ok(value) => value,
+    Err(NumberRefusal::NoNumberForm) => deopt_unsupported!(
+      &create_unary_expr(unary),
+      state,
+      shape.as_deref().unwrap_or(ILLEGAL_PROP_VALUE)
+    ),
+    // The operand's number is the number of a string, and that string is past
+    // the ceiling. Named as the operator the author wrote rather than as the
+    // join inside it, the way a growing string's refusal names the `+` or the
+    // interpolation it grew in.
+    Err(NumberRefusal::TooLarge) => deopt_unsupported!(
+      &create_unary_expr(unary),
+      state,
+      &grown_string_too_large(
+        NUMERIC_CONVERSION,
+        traversal_state.character_ceiling() as u64
+      )
+    ),
   };
 
   Some(EvaluateResultValue::Expr(create_number_expr(transform(

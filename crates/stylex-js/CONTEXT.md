@@ -26,11 +26,40 @@ What ECMAScript says a value converts to when another type is asked for --
 `ToString`, `ToNumber`, `ToBoolean` and `ToObject` over an already-evaluated
 expression.
 Answers only what the language answers: a value with no compile-time form of
-that type gets `None`, and the caller
+that type is refused, and the caller
 [deopts](../stylex-transform/CONTEXT.md) rather than inventing one. `NaN` is not
 that case -- it is a value the language produces, and it is returned rather
 than refused.
 _Avoid_: conversion, cast, stringify, formatting
+
+**Streamed coercion**:
+The two coercions that reach their answer through a _string_ -- `ToString`, and
+`ToNumber` of anything that is not already a number -- written into a
+[sink](#sink) piece by piece rather than handed back whole. An array is why: its
+string is the join of every element, each rendered before the join copies them
+all again, so a caller with a bound that read the finished join had already paid
+for the whole of it. Every writer of one calls `write_piece`, so a sink's refusal
+is lifted into the coercion's own two endings in one place.
+
+A number's reading also says where its answer came from: the value's own number
+where it has one -- a number, a boolean, `null`, an object with an own `valueOf`
+-- and otherwise the number of the text the sink was given.
+_Avoid_: incremental conversion, chunked coercion, callback coercion
+
+**Sink**:
+Where a [streamed coercion](#streamed-coercion) writes what it is building, one
+piece at a time, and the only thing allowed to refuse a piece. A plain `String`
+refuses nothing, which is what a caller collecting the whole answer wants; a
+caller with an [allocation
+ceiling](../stylex-structures/CONTEXT.md) to spend measures each piece as it
+arrives and refuses the one that passes it.
+
+The number sink is the one that also _stops caring_. `ToNumber` keeps no string,
+so its sink drops the text at the first character no numeric literal can hold and
+answers `NaN` from there -- and the test for that is deliberately **sound rather
+than exact**: every character a numeric literal can hold is admitted, so a
+rejection proves the whole text is `NaN` however it continues.
+_Avoid_: writer, buffer, accumulator, visitor
 
 **Object coercion**:
 Which kind of object `ToObject` answers with, reported rather than carried out:

@@ -25,9 +25,10 @@ use swc_core::{
 
 use stylex_ast::ast::factories::create_arrow_expression_with_params;
 use stylex_constants::constants::evaluation_errors::{engine_did_not_start, engine_threw};
+use stylex_utils::hash::stable_hash_unspanned_call;
 
 use super::Decline;
-use crate::shared::utils::log::build_code_frame_error::{CodeFrame, print_module};
+use crate::shared::utils::log::build_code_frame_error::print_module;
 
 /// How many loop iterations an evaluation may run.
 ///
@@ -87,6 +88,68 @@ thread_local! {
   pub(super) static ENGINE: RefCell<Option<ManuallyDrop<Engine>>> = const { RefCell::new(None) };
 }
 
+/// How many compiled scripts one thread's memo holds before it is emptied.
+///
+/// A compiled script is roughly half a kilobyte of bytecode, so this is a
+/// ceiling of about a megabyte per thread — and the number is a memory bound
+/// rather than a tuning knob: a build with fewer distinct folded call sites than
+/// this never reaches it, and one with more only re-parses the shapes it meets
+/// after the reset. It is well above the largest real file, which is what keeps
+/// the reset off the path any ordinary build takes.
+///
+/// Emptied rather than evicted one entry at a time. An LRU would carry the
+/// hottest shapes across the boundary, and would charge a recency update to
+/// every hit to do it — a cost on the path a build spends its time on, to save
+/// a re-parse on a path it reaches at most a handful of times.
+pub(in crate::shared::utils::js::evaluate) const MAX_COMPILED_SCRIPTS: usize = 2048;
+
+/// What two folds have to agree on to share one compiled script.
+///
+/// The printed text was the key until it was this, which meant printing before
+/// there was anything to look one up with — so the print, the deep clone of the
+/// call and the emitter walk were paid on a hit as well as on a miss. Both
+/// halves here are to hand the moment the guard finishes, and both are already
+/// 128 bits wide, so the lookup happens first and only a miss prints.
+///
+/// Hashes rather than the values they stand for, so the memo retains no source
+/// text and no expression of its own.
+///
+/// **The call**, hashed span-insensitively: the same shape written a thousand
+/// times in a file is one entry, which is the whole of what the memo is for.
+///
+/// **The parameters**, because they are printed and the call is not the whole of
+/// what is printed: the same call resolves different names in different modules,
+/// and a name holding a function is printed with its declaration as a default.
+/// Two folds agreeing on the call alone would share a script one of them never
+/// wrote.
+///
+/// Two fields rather than one combined hash, because combining them would be a
+/// third hashing pass over two values that are each already wide enough to be
+/// read as a key on their own.
+///
+/// Structure separates a little more than the printed text would: a literal's
+/// own spelling is part of the call and not of the minified print, so `'a'` and
+/// `"a"` are two entries. That is the safe direction — it costs a parse, where a
+/// key blind to the spelling would risk one script standing for two texts the
+/// printer quotes differently.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub(super) struct FoldKey {
+  call: u128,
+  parameters: u128,
+}
+
+impl FoldKey {
+  /// The key for `call` printed under a parameter list whose shape hashes to
+  /// `parameters` — see [`Transport::parameters_key`](super::transport::Transport::parameters_key)
+  /// for what that stands for.
+  pub(super) fn new(call: &CallExpr, parameters: u128) -> Self {
+    Self {
+      call: stable_hash_unspanned_call(call),
+      parameters,
+    }
+  }
+}
+
 /// A thread's engine and the [fold memo](../../../../../CONTEXT.md) that may only
 /// live as long as it does.
 ///
@@ -99,13 +162,13 @@ pub(super) struct Engine {
   pub(super) context: Context,
   /// One compiled script per distinct printed expression.
   ///
-  /// Keyed by the printed text because that is what the engine would otherwise
-  /// re-parse: a file writing one shape a thousand times prints a thousand
-  /// identical strings, and parsing them is most of what a warm fold costs.
-  /// Reuse across files is safe for the reason a shared engine is — a printed
-  /// expression carries no name it did not resolve, since every one the guard
-  /// resolved became a parameter of an arrow and its value travels beside it as
-  /// an argument.
+  /// Keyed by what the printed text is made of — see [`FoldKey`] — because
+  /// printing and parsing are both what a warm fold would otherwise repeat: a
+  /// file writing one shape a thousand times would print a thousand identical
+  /// strings and parse each one. Reuse across files is safe for the reason a
+  /// shared engine is — a printed expression carries no name it did not resolve,
+  /// since every one the guard resolved became a parameter of an arrow and its
+  /// value travels beside it as an argument.
   ///
   /// A compiled script rather than the value or the function it evaluates to,
   /// because those are two shapes and this is one. The bare form evaluates to
@@ -114,10 +177,11 @@ pub(super) struct Engine {
   /// functions could not hold the first at all — and re-running compiled
   /// bytecode is what both of them wanted anyway.
   ///
-  /// It grows for the life of the thread, alongside the source the engine
-  /// already interns and never reclaims, and is bounded by the number of
-  /// distinct folded call sites in the build rather than by the number of folds.
-  memo: FxHashMap<String, Script>,
+  /// It is bounded by [`MAX_COMPILED_SCRIPTS`] rather than by the life of the
+  /// thread, which is the difference between a watch-mode process and a
+  /// one-shot build: without a bound the memo grows with every distinct call
+  /// site every save introduces, for as long as the dev server runs.
+  memo: FxHashMap<FoldKey, Script>,
 }
 
 /// Whether this thread is holding an engine — the observable half of "built on
@@ -181,43 +245,67 @@ impl Engine {
     }))
   }
 
-  /// What `source` evaluates to, parsing it the first time this engine is handed
-  /// the text and re-running the compiled script every time after.
+  /// What the expression `key` stands for evaluates to, printing and parsing it
+  /// the first time this engine is asked for it and re-running the compiled
+  /// script every time after.
   ///
   /// Named after the engine call it stands in for rather than after the memo,
   /// because the memo is what it does and not what it is for.
   ///
-  /// This is the engine's own `eval` with the parse lifted out of it — `eval` is
-  /// exactly parse-then-evaluate — so what the memo changes is when a source is
-  /// parsed and nothing else about what a fold answers.
+  /// This is the engine's own `eval` with the print and the parse lifted out of
+  /// it — `eval` is exactly parse-then-evaluate — so what the memo changes is
+  /// when a source is written and read, and nothing else about what a fold
+  /// answers.
   ///
-  /// The parse is what the memo saves; the evaluation is not saved and must not
-  /// be. Re-running is what keeps a fold answering its own value rather than the
-  /// first caller's — an expression that mutates a literal it built reorders a
-  /// fresh array on every run, and an arrow form evaluates to a function still
-  /// waiting for the arguments this fold is about to pass it.
+  /// `print` is taken rather than the text it produces, because producing it is
+  /// half of what the memo exists to save: it deep-clones the call, rebuilds the
+  /// parameter list, drops every span and runs the emitter, all to reach a
+  /// string that on a hit nothing reads.
+  ///
+  /// The print and the parse are what the memo saves; the evaluation is not
+  /// saved and must not be. Re-running is what keeps a fold answering its own
+  /// value rather than the first caller's — an expression that mutates a literal
+  /// it built reorders a fresh array on every run, and an arrow form evaluates
+  /// to a function still waiting for the arguments this fold is about to pass
+  /// it.
   ///
   /// A source the parser refused is never memoised, so a later fold of the same
-  /// text is refused by the parser again rather than by a cached mistake. It is
+  /// shape is refused by the parser again rather than by a cached mistake. It is
   /// a refusal rather than an assertion because this runs inside an evaluation
   /// whose whole contract is that it may fail, where an assertion would abort a
   /// build that a deopt would only leave to the runtime.
-  pub(super) fn eval(&mut self, source: &str, method: &Atom) -> Result<JsValue, Decline> {
-    let compiled = match self.memo.get(source) {
+  pub(super) fn eval(
+    &mut self,
+    key: FoldKey,
+    print: impl FnOnce() -> String,
+    method: &Atom,
+  ) -> Result<JsValue, Decline> {
+    let compiled = match self.memo.get(&key) {
       Some(compiled) => compiled.clone(),
-      None => {
-        let compiled = Script::parse(Source::from_bytes(source), None, &mut self.context)
-          .map_err(|error| threw(method, &error))?;
-
-        self.memo.insert(source.to_owned(), compiled.clone());
-
-        compiled
-      },
+      None => self.compile(key, &print(), method)?,
     };
 
     compiled
       .evaluate(&mut self.context)
       .map_err(|error| threw(method, &error))
+  }
+
+  /// Parses `source` and records it under `key`, emptying the memo first where
+  /// recording it would take the thread past [`MAX_COMPILED_SCRIPTS`].
+  ///
+  /// Emptied before the insert rather than after, so the map is never larger
+  /// than the bound rather than one entry larger than it.
+  fn compile(&mut self, key: FoldKey, source: &str, method: &Atom) -> Result<Script, Decline> {
+    let compiled = Script::parse(Source::from_bytes(source), None, &mut self.context)
+      .map_err(|error| threw(method, &error))?;
+
+    if self.memo.len() >= MAX_COMPILED_SCRIPTS {
+      self.memo.clear();
+    }
+
+    self.memo.insert(key, compiled.clone());
+
+    Ok(compiled)
   }
 }
 
@@ -257,6 +345,9 @@ pub(super) fn read<T>(method: &Atom, read: impl FnOnce() -> JsResult<T>) -> Resu
 /// `&Expr` and clones it — so going through it means cloning the subtree once
 /// to build the `Expr` and once more inside. The printer needs an owned tree
 /// either way, because it drops the spans in place before emitting.
+///
+/// Called only where [`Engine::eval`] misses its memo, which is what makes the
+/// clone and the emitter walk below a per-shape cost rather than a per-fold one.
 pub(super) fn print_fold(call: &CallExpr, params: Vec<Pat>) -> String {
   let folded = Expr::Call(call.clone());
 
@@ -275,7 +366,6 @@ pub(super) fn print_fold(call: &CallExpr, params: Vec<Pat>) -> String {
   };
 
   print_module(
-    &CodeFrame::new(),
     module,
     Some(
       Config::default()

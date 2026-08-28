@@ -12,9 +12,16 @@
 //! the evaluator to answer "not confident" without aborting, which is the
 //! property issue 02 established and this hook must not undo.
 
+use stylex_ast::ast::convertors::convert_atom_to_string;
 use stylex_structures::evaluation_depth::MAX_EVALUATION_DEPTH_LIMIT;
+use stylex_structures::stylex_options::StyleXOptions;
 
+use swc_core::common::{DUMMY_SP, GLOBALS, Globals, Spanned, SyntaxContext};
+use swc_core::ecma::ast::{BindingIdent, VarDeclarator};
+
+use super::engine_fold::MAX_COMPILED_SCRIPTS;
 use super::source_evaluation::*;
+use super::*;
 
 // ==================== the reported input, now folded ====================
 
@@ -986,10 +993,7 @@ fn compiled_after(fold: impl FnOnce()) -> usize {
 
   fold();
 
-  match super::engine_fold::compiled_expressions() {
-    Some(count) => count,
-    None => panic!("nothing folded, so there is no engine to count compilations on"),
-  }
+  compiled_so_far()
 }
 
 /// One text, one parse, however many folds.
@@ -1045,6 +1049,175 @@ fn a_declined_input_leaves_no_memo_because_it_leaves_no_engine() {
   assert_eq!(super::engine_fold::compiled_expressions(), None);
 }
 
+/// The string a folded value holds, for a case reading a value it evaluated
+/// itself rather than one an assertion helper folded for it.
+#[track_caller]
+fn folded_text(value: &EvaluateResultValue) -> String {
+  match value {
+    EvaluateResultValue::Expr(Expr::Lit(Lit::Str(text))) => convert_atom_to_string(&text.value),
+    other => panic!("expected a folded string, got {other:?}"),
+  }
+}
+
+/// The same call written twice in a module, so the two occurrences differ only
+/// in where they sit.
+///
+/// Read out of a module rather than parsed twice, because two separate parses of
+/// one string produce the same byte positions and would prove nothing about
+/// spans.
+fn the_same_call_at_two_positions(source: &str) -> (Expr, Expr) {
+  let calls = call_expressions(source);
+
+  match calls.as_slice() {
+    [first, second] => (first.clone(), second.clone()),
+    other => panic!("expected two calls in `{source}`, found {}", other.len()),
+  }
+}
+
+/// Where a call sits is not part of what it prints, so the same shape written
+/// twice is one entry.
+///
+/// The key used to be the printed text, which dropped spans on the way through
+/// the printer and so answered this by accident. It is now a structural hash,
+/// and this is the case that says the hash has to be the span-insensitive one.
+#[test]
+fn two_positions_of_one_call_share_a_memo_entry() {
+  let (first, second) = the_same_call_at_two_positions("\"a\".concat(\"b\"); \"a\".concat(\"b\");");
+
+  assert_ne!(
+    first.span(),
+    second.span(),
+    "the two calls are at one position, so this case is not about spans"
+  );
+
+  let compiled = compiled_after(|| {
+    for call in [&first, &second] {
+      let result = evaluate_expr(call);
+
+      assert!(
+        result.confident,
+        "a call this suite folds elsewhere refused here"
+      );
+
+      match result.value.as_ref() {
+        Some(value) => assert_eq!(folded_text(value), "ab"),
+        None => panic!("a call this suite folds elsewhere answered no value"),
+      }
+    }
+  });
+
+  assert_eq!(compiled, 1);
+}
+
+/// `const <name> = <init>`, as the module-wide collector would have recorded it.
+fn declarator_of(name: &str, init: Expr) -> VarDeclarator {
+  let id = Ident {
+    span: DUMMY_SP,
+    sym: name.into(),
+    optional: false,
+    ctxt: SyntaxContext::empty(),
+  };
+
+  VarDeclarator {
+    span: DUMMY_SP,
+    name: Pat::Ident(BindingIdent { id, type_ann: None }),
+    init: Some(Box::new(init)),
+    definite: false,
+  }
+}
+
+/// Folds `source` against a module holding one declaration, which is the only
+/// way to reach a printed parameter: an expression that resolves no name is
+/// printed with none.
+fn folded_in_a_module_binding(name: &str, init: &str, source: &str) -> String {
+  let globals = Globals::new();
+
+  GLOBALS.set(&globals, || {
+    let mut traversal_state = StateManager::new(StyleXOptions::default());
+
+    traversal_state.push_declaration(declarator_of(name, parse_expr(init)));
+
+    let result = evaluate(
+      &parse_expr(source),
+      &mut traversal_state,
+      &FunctionMap::default(),
+    );
+
+    assert!(
+      result.confident,
+      "`{source}` refused with `{init}` bound to `{name}`"
+    );
+
+    match result.value.as_ref() {
+      Some(value) => folded_text(value),
+      None => panic!("`{source}` answered no value with `{init}` bound to `{name}`"),
+    }
+  })
+}
+
+/// The printed parameters are part of the key, not just the call.
+///
+/// One call shape, two modules, and a callback whose declaration is printed as
+/// the parameter's default — so the two folds print different sources from the
+/// same call. A key that read the call alone would hand the second module the
+/// first one's compiled script and fold `1b` to `1a`.
+#[test]
+fn one_call_shape_with_two_printed_callbacks_is_two_entries() {
+  let call = "[1].map(f).join(\"\")";
+
+  let compiled = compiled_after(|| {
+    assert_eq!(
+      folded_in_a_module_binding("f", "x => x + \"a\"", call),
+      "1a"
+    );
+    assert_eq!(
+      folded_in_a_module_binding("f", "x => x + \"b\"", call),
+      "1b"
+    );
+  });
+
+  assert_eq!(compiled, 2);
+}
+
+/// How many expressions the thread's engine holds right now.
+fn compiled_so_far() -> usize {
+  match super::engine_fold::compiled_expressions() {
+    Some(count) => count,
+    None => panic!("nothing folded, so there is no engine to count compilations on"),
+  }
+}
+
+/// The memo is bounded, and past the bound it is still a memo.
+///
+/// Both halves are needed: a memo that emptied itself on every insert would
+/// never pass its bound either, and would have turned the parse back into a
+/// per-fold cost while reporting the same size. So the size is checked as each
+/// shape goes in, and then a shape folded twice after the reset has to cost one
+/// compilation rather than two.
+#[test]
+fn the_memo_stays_within_its_bound_and_keeps_memoizing() {
+  super::engine_fold::forget_engine();
+
+  for index in 0..=MAX_COMPILED_SCRIPTS {
+    assert_folds_to_string(&format!("\"a\".concat(\"{index}\")"), &format!("a{index}"));
+
+    let held = compiled_so_far();
+
+    assert!(
+      held <= MAX_COMPILED_SCRIPTS,
+      "the memo holds {held} scripts, past its bound of {MAX_COMPILED_SCRIPTS}"
+    );
+  }
+
+  let after_the_reset = compiled_so_far();
+
+  assert_folds_to_string("\"  4px  \".trim()", "4px");
+  assert_eq!(compiled_so_far(), after_the_reset + 1);
+
+  assert_folds_to_string("\"  4px  \".trim()", "4px");
+  assert_eq!(compiled_so_far(), after_the_reset + 1);
+}
+
 /// A thousand distinct call sites compile a thousand arrows and answer every one
 /// of them, which is the shape a large real file has and the one that would find
 /// a memo that collided two keys.
@@ -1060,7 +1233,15 @@ fn a_thousand_distinct_call_sites_each_answer_their_own_value() {
 }
 
 /// Two texts that differ only in the whitespace an author wrote are one entry,
-/// because the key is what this module *printed* rather than what was typed.
+/// because the key is the *structure* of what this module prints rather than
+/// anything about the text it was typed as.
+///
+/// Structure is the narrower claim of the two, and deliberately so: a literal's
+/// own spelling is part of that structure, so `'a'` and `"a"` are two entries
+/// where the printed text would be one. That costs a parse and nothing else,
+/// where a key that dropped the spelling would risk the opposite — one entry for
+/// two texts the printer might quote differently, which is a wrong folded
+/// value.
 #[test]
 fn two_spellings_of_one_expression_share_a_compilation() {
   let compiled = compiled_after(|| {

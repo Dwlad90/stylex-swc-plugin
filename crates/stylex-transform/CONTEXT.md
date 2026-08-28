@@ -103,16 +103,23 @@ _Avoid_: boa fold, reflection, dynamic dispatch
 
 **Fold memo**:
 The compiled scripts an engine keeps beside itself, one per distinct printed
-expression, so a file writing one shape a thousand times is parsed once rather
-than a thousand times. Keyed by the printed text, because that is what the
-engine would otherwise re-parse, and shared across files for the reason the
+expression, so a file writing one shape a thousand times is printed and parsed
+once rather than a thousand times. Keyed by a structural hash of the call and of
+the parameters the [transport](#transport) resolved -- which together are what
+the print is made from -- so the key is in hand before anything is printed and
+the print is paid only on a miss. Structure tells a little more apart than the
+print does, since a literal's own spelling survives into the key and not into the
+minified text; the direction is the safe one, costing a parse where the opposite
+would share a script between two texts. Shared across files for the reason the
 engine itself is: a printed expression carries no name it did not resolve, so a
 compiled script closes over nothing a later file could read. What is memoised is
-the parse and never the answer -- the script is re-run on every fold, which is
-what keeps a mutating receiver reordering a fresh array and an
+the print and the parse, never the answer -- the script is re-run on every fold,
+which is what keeps a mutating receiver reordering a fresh array and an
 [arrow transport](#transport) evaluating to a function still waiting for this
-fold's arguments. It is built with the engine and never before it, and leaks
-with it, because a compiled script belongs to a realm.
+fold's arguments. It is bounded rather than kept for the life of the thread, so
+a watch-mode process does not accumulate one entry per call site per save. It is
+built with the engine and never before it, and leaks with it, because a compiled
+script belongs to a realm.
 _Avoid_: cache, arrow cache, compiled-arrow memo, script pool
 
 **Fold guard**:

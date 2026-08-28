@@ -14,6 +14,8 @@
 //! bridge carries — is the kind of agreement this module exists to remove, so
 //! they are one traversal under two [carriages](Carriage).
 
+use std::hash::{Hash, Hasher};
+
 use boa_engine::{
   Context, JsObject, JsString, JsValue, NativeFunction, native_function::NativeFunctionPointer,
   object::builtins::JsArray,
@@ -32,6 +34,7 @@ use stylex_ast::ast::factories::{create_binding_ident, create_ident};
 use stylex_constants::constants::evaluation_errors::{
   bound_value_has_too_many_entries, bound_value_too_large,
 };
+use stylex_utils::hash::{stable_hash_unspanned, stable_hash_wide};
 use stylex_utils::number::to_js_string;
 
 use super::super::engine_stylex_functions::EngineCallable;
@@ -162,25 +165,57 @@ impl Transport {
   /// walking a declaration before recording it buys.
   pub(super) fn parameters(&self) -> Vec<Pat> {
     self
-      .params
-      .iter()
-      .zip(&self.values)
-      .map(|(name, crossing)| {
+      .printed_parameters()
+      .map(|(name, default)| {
         let bound = Pat::Ident(create_binding_ident(create_ident(name)));
 
-        match crossing {
-          Crossing::Source(source) => Pat::Assign(AssignPat {
+        match default {
+          Some(source) => Pat::Assign(AssignPat {
             span: DUMMY_SP,
             left: Box::new(bound),
-            right: source.clone(),
+            right: Box::new(source.clone()),
           }),
-          // Everything else arrives as an argument, so its name is a bare
-          // parameter. Named rather than left to a wildcard: the next crossing
-          // added should have to say which of the two it is.
-          Crossing::Value(_) | Crossing::Function(_) | Crossing::Namespace => bound,
+          None => bound,
         }
       })
       .collect()
+  }
+
+  /// Each parameter as the two things it is printed from: the name it binds, and
+  /// the declaration printed as its default where it has one.
+  ///
+  /// One walk, because two read it — the parameters themselves and the
+  /// [key](Transport::parameters_key) the fold memo shares a compiled script on.
+  /// A second copy would be a second answer to "what does this print", and the
+  /// memo would hand one fold the script of another the day the two disagreed.
+  ///
+  /// A source crossing is the only one with a default: it carries a function,
+  /// which has no argument form to arrive as. Everything else arrives as an
+  /// argument, so its name is the whole of its parameter. Named rather than left
+  /// to a wildcard, so the next crossing added has to say which of the two it is.
+  fn printed_parameters(&self) -> impl Iterator<Item = (&Atom, Option<&Expr>)> {
+    self
+      .params
+      .iter()
+      .zip(&self.values)
+      .map(|(name, crossing)| match crossing {
+        Crossing::Source(source) => (name, Some(&**source)),
+        Crossing::Value(_) | Crossing::Function(_) | Crossing::Namespace => (name, None),
+      })
+  }
+
+  /// The parameter list as a hash, for the [fold memo](super::engine::FoldKey).
+  ///
+  /// Stands for the parameters [`parameters`](Transport::parameters) would
+  /// print, without printing or building them: two folds whose calls hash alike
+  /// share a compiled script only if this agrees too.
+  ///
+  /// A name alone is not enough for the crossing that prints a default, since
+  /// the default is a whole declaration and two modules can bind the same name
+  /// to different ones — so a source crossing contributes its expression as well
+  /// as its name.
+  pub(super) fn parameters_key(&self) -> u128 {
+    stable_hash_wide(&PrintedParameters(self))
   }
 
   /// Whether a value is already travelling under `name`.
@@ -263,6 +298,26 @@ pub(super) enum Crossing {
   Namespace,
   /// A function the module declared, printed back as the parameter's default.
   Source(Box<Expr>),
+}
+
+/// The printed parameter list, as something a hasher can read.
+///
+/// A borrowed view rather than a collected list, so taking the key allocates
+/// nothing — which matters because the key is taken on every fold, including the
+/// ones that go on to hit the memo and print nothing at all.
+struct PrintedParameters<'a>(&'a Transport);
+
+impl Hash for PrintedParameters<'_> {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.0.params.len().hash(state);
+
+    for (name, default) in self.0.printed_parameters() {
+      name.hash(state);
+      // Hashed rather than walked into this stream, because a default is an
+      // expression and the span-insensitive hash is what reads one.
+      default.map(stable_hash_unspanned).hash(state);
+    }
+  }
 }
 
 /// What one walk over a resolved value does with it.

@@ -18,7 +18,7 @@ use crate::shared::{
     theme_ref::ThemeRef,
     types::{EvaluationCallback, FunctionConfigMap},
   },
-  utils::log::build_code_frame_error::{CodeFrame, create_module, print_module},
+  utils::log::build_code_frame_error::{create_module, print_module},
 };
 use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_structures::stylex_env::EnvEntry;
@@ -48,10 +48,8 @@ impl Serialize for EvaluateResultValue {
       Self::Null => serializer.serialize_none(),
       Self::Expr(expr) => {
         let module = create_module(expr);
-        let code_frame = CodeFrame::new();
 
         let printed_module = print_module(
-          &code_frame,
           module,
           Some(
             Config::default()

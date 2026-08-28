@@ -21,20 +21,26 @@
 //! next to the engine are the same measurement.
 //!
 //! That gap is no longer an upper bound on the round trip, and reading it as one
-//! is the mistake this paragraph exists to prevent. The fold parses a distinct
-//! printed expression once per engine and re-runs the compiled script after,
+//! is the mistake this paragraph exists to prevent. The fold prints and parses a
+//! distinct expression once per engine and re-runs the compiled script after,
 //! while the `engine` leg re-parses its source on every iteration — so the two
 //! legs no longer do the same work, and the `fold` leg is the faster of the
-//! pair. What the gap now reads as is the parse the memo saves, minus what the
-//! fold costs around it.
+//! pair. What the gap now reads as is the print and the parse the memo saves,
+//! minus what the fold costs around it.
 //!
 //! **A first-sight fold** is what a shape nobody has folded before costs, priced
 //! by the `fold-distinct` leg: a fresh expression per iteration, so every one of
 //! them misses the memo and every one of them is recorded in it. That is the leg
-//! the memo is paid for out of, and it prices the worst case rather than a
-//! likely one — nothing is ever evicted, so a run of tens of thousands of
-//! iterations leaves the engine holding tens of thousands of compiled scripts,
-//! where a real build holds one per folded call site.
+//! the memo is paid for out of, and the pair is what says the memo is doing its
+//! work: `fold-distinct` pays the print and the parse on every iteration where
+//! the `fold` legs pay neither, so a change that put either back on a hit closes
+//! the distance between them. Read as a pair on one runner, never as two point
+//! estimates — `guidelines/PERFORMANCE.md` has why, and the `engine` legs are
+//! the control that says a moved `fold` leg is the fold and not the machine.
+//!
+//! `fold-distinct` prices the worst case rather than a likely one — a run long
+//! enough to reach the memo's bound empties it and pays the print again, where a
+//! real build holds one entry per folded call site.
 //!
 //! Every fold through the evaluator runs inside `GLOBALS.set`, because the fold
 //! can reach the code-frame path and that path calls `Mark::new()`. Why that is

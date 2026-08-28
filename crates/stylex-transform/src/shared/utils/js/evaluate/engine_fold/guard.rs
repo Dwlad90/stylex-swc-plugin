@@ -652,6 +652,12 @@ impl<'a, 'r> Walk<'a, 'r> {
     self.reader.transport.parameters()
   }
 
+  /// The same parameters as the hash the fold memo is keyed on, answered
+  /// without printing them.
+  pub(super) fn parameters_key(&self) -> u128 {
+    self.reader.transport.parameters_key()
+  }
+
   /// The values it resolved, as the arguments that arrow is called with.
   pub(super) fn arguments(
     &self,

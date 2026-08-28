@@ -77,11 +77,20 @@ where
   result
 }
 
+/// The process-global map every span in this compiler is resolved against.
+///
+/// Reached on its own so printing can have it without a [`CodeFrame`]: building
+/// one constructs a diagnostic handler with a boxed emitter and probes the
+/// terminal for colour support, none of which printing uses.
+fn shared_source_map() -> Arc<SourceMap> {
+  SOURCE_MAP
+    .get_or_init(|| Arc::new(SourceMap::default()))
+    .clone()
+}
+
 impl CodeFrame {
   pub(crate) fn new() -> Self {
-    let source_map = SOURCE_MAP
-      .get_or_init(|| Arc::new(SourceMap::default()))
-      .clone();
+    let source_map = shared_source_map();
 
     let handler =
       Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(source_map.clone()));
@@ -567,7 +576,7 @@ fn memoize_module(
     // Registered once, not once per lookup -- see `register_source_once`.
     code_frame.register_source_once(file_name, || Ok(source_code.to_owned()))?;
   } else {
-    let source_code = get_source_code(wrapped_expression, state, file_name, code_frame)
+    let source_code = get_source_code(wrapped_expression, state, file_name)
       .ok_or_else(|| anyhow::anyhow!("Failed to read source file: {}", state.get_filename()))?;
 
     // Through the same reuse `register_source_once` applies, rather than around
@@ -617,14 +626,12 @@ fn get_source_code(
   wrapped_expression: &Expr,
   state: &StateManager,
   file_name: &FileName,
-  code_frame: &CodeFrame,
 ) -> Option<String> {
   if let Some((module, source_code)) = state.get_seen_module_source_code() {
     if let Some(source_code) = source_code {
       return Some(source_code.clone());
     } else {
       return Some(print_module(
-        code_frame,
         module.clone(),
         Some(
           Config::default()
@@ -641,7 +648,7 @@ fn get_source_code(
   }
 
   let synthetic_module = create_module(wrapped_expression);
-  Some(print_module(code_frame, synthetic_module, None))
+  Some(print_module(synthetic_module, None))
 }
 
 /// Parses source code into a Program AST and normalizes it
@@ -688,19 +695,11 @@ fn parse_and_normalize_program(
   }
 }
 
-pub(crate) fn print_module(
-  code_frame: &CodeFrame,
-  module: Module,
-  codegen_config: Option<Config>,
-) -> String {
-  print_program(code_frame, Program::Module(module), codegen_config)
+pub(crate) fn print_module(module: Module, codegen_config: Option<Config>) -> String {
+  print_program(Program::Module(module), codegen_config)
 }
 
-pub(crate) fn print_program(
-  code_frame: &CodeFrame,
-  mut program: Program,
-  codegen_config: Option<Config>,
-) -> String {
+pub(crate) fn print_program(mut program: Program, codegen_config: Option<Config>) -> String {
   // The printed AST carries spans from the compiler's own source map, which
   // are meaningless in the shared code-frame map. The codegen resolves
   // non-dummy spans against its source map (e.g. `span_to_snippet` for
@@ -709,7 +708,7 @@ pub(crate) fn print_program(
   program.visit_mut_with(&mut DropSpan {});
 
   let printed_source_code = print(
-    code_frame.source_map.clone(),
+    shared_source_map(),
     &program,
     PrintArgs {
       source_map: SourceMapsConfig::Bool(false),

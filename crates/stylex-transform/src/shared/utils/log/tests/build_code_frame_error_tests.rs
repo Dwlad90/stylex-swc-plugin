@@ -225,7 +225,7 @@ fn print_module_ignores_foreign_spans_over_multibyte_sources() {
     shebang: None,
   };
 
-  let printed = print_module(&code_frame, module, None);
+  let printed = print_module(module, None);
 
   assert!(
     printed.contains("exampleExport"),

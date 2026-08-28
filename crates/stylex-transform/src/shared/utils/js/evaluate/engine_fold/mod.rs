@@ -56,7 +56,7 @@ mod guard;
 mod outward;
 mod transport;
 
-use engine::{ENGINE, Engine, print_fold, threw};
+use engine::{ENGINE, Engine, FoldKey, print_fold, threw};
 use guard::{Admitted, Guard, Position, Reader, Repeats, Scope, Walk, admit_an_applied_global};
 use outward::Outward;
 
@@ -64,7 +64,9 @@ pub(super) use guard::unshadowed_applied_global;
 
 // Read by the evaluator's own tests, which sit one level up.
 #[cfg(test)]
-pub(super) use engine::{compiled_expressions, forget_engine, holds_an_engine};
+pub(super) use engine::{
+  MAX_COMPILED_SCRIPTS, compiled_expressions, forget_engine, holds_an_engine,
+};
 
 use std::borrow::Cow;
 
@@ -360,7 +362,10 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
   // handed. So a call the guard declined never pays for a stack the engine never
   // entered, and everything that does need one runs inside it.
   growable_stack::grown_for_depth(ceiling, || {
-    let source = print_fold(call, walk.parameters());
+    // The key rather than the printed source: what the engine is asked for is
+    // an expression it may already hold a compiled script for, and printing one
+    // to find that out is most of what a hit would cost.
+    let key = FoldKey::new(call, walk.parameters_key());
 
     ENGINE.with_borrow_mut(|slot| {
       // Taken, not borrowed in place. A panic unwinding out of the engine is
@@ -384,7 +389,15 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
 
       let folded = applied
         .and_then(|()| walk.arguments(&mut engine.context, method))
-        .and_then(|arguments| apply(&source, &arguments, &mut engine, method))
+        .and_then(|arguments| {
+          apply(
+            key,
+            || print_fold(call, walk.parameters()),
+            &arguments,
+            &mut engine,
+            method,
+          )
+        })
         .and_then(|value| {
           // A theme reference crossed as a string, so an answer that is still an
           // object may *be* that reference — `Object(colors)` hands its argument
@@ -439,12 +452,13 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
 /// whole contract is that it may fail, where an assertion would abort a build
 /// that a deopt would only leave to the runtime.
 fn apply(
-  source: &str,
+  key: FoldKey,
+  print: impl FnOnce() -> String,
   arguments: &[JsValue],
   engine: &mut Engine,
   method: &Atom,
 ) -> Result<JsValue, Decline> {
-  let evaluated = engine.eval(source, method)?;
+  let evaluated = engine.eval(key, print, method)?;
 
   if arguments.is_empty() {
     return Ok(evaluated);

@@ -1,7 +1,7 @@
 //! One JavaScript engine per thread, and the printed source it is handed.
 //!
 //! Owning the engine is a concern of its own, separate from deciding what may
-//! reach it. The [guard](super) answers which expressions fold; this answers
+//! reach it. The [guard](super::guard) answers which expressions fold; this answers
 //! where they run, how long the engine lives, and what reading a value out of
 //! one costs — none of which turns on a rule the guard applies.
 //!
@@ -10,7 +10,24 @@
 //! back with a throw named for the method that raised it, and print a call as
 //! the source the engine parses.
 
-use super::*;
+use std::{cell::RefCell, mem::ManuallyDrop};
+
+use boa_engine::{Context, JsError, JsResult, JsValue, Script, Source};
+use rustc_hash::FxHashMap;
+use swc_core::{
+  atoms::Atom,
+  common::DUMMY_SP,
+  ecma::{
+    ast::{CallExpr, Expr, ExprStmt, Module, ModuleItem, Pat, Stmt},
+    codegen::Config,
+  },
+};
+
+use stylex_ast::ast::factories::create_arrow_expression_with_params;
+use stylex_constants::constants::evaluation_errors::{engine_did_not_start, engine_threw};
+
+use super::Decline;
+use crate::shared::utils::log::build_code_frame_error::{CodeFrame, print_module};
 
 /// How many loop iterations an evaluation may run.
 ///
@@ -20,7 +37,7 @@ use super::*;
 /// answer behind that one: a bound the engine enforces whatever the guard let
 /// through. Ten million iterations of an empty loop is well under a second, and
 /// no folded CSS value is reached by counting that far.
-const MAX_LOOP_ITERATIONS: u64 = 10_000_000;
+pub(super) const MAX_LOOP_ITERATIONS: u64 = 10_000_000;
 
 /// What the engine answers when anything asks a function for its source text.
 ///
@@ -53,11 +70,11 @@ thread_local! {
   ///
   /// Reuse is what makes the guard load-bearing rather than merely tidy: a fold
   /// that reached a prototype would be read by every later fold in the build,
-  /// including one in another file, so the boundaries below are what keeps one
-  /// engine safe to share. Reuse also costs: the engine interns each distinct
-  /// source it is handed and never reclaims it, measured at roughly half a
-  /// kilobyte per distinct folded call site, which a real corpus keeps in the
-  /// low megabytes for the life of the process.
+  /// including one in another file, so the boundaries the [guard](super::guard)
+  /// applies are what keeps one engine safe to share. Reuse also costs: the
+  /// engine interns each distinct source it is handed and never reclaims it,
+  /// measured at roughly half a kilobyte per distinct folded call site, which a
+  /// real corpus keeps in the low megabytes for the life of the process.
   ///
   /// `ManuallyDrop` is not a convenience: the engine's garbage collector lives
   /// in a thread-local of its own, and the order two thread-locals are dropped
@@ -225,15 +242,16 @@ pub(super) fn read<T>(method: &Atom, read: impl FnOnce() -> JsResult<T>) -> Resu
 }
 
 /// The call as the minified source the engine is handed: an arrow over the names
-/// the guard resolved, whose values [`apply`] passes to it as arguments — or the
-/// call alone where it resolved none.
+/// the guard resolved, whose values [`apply`](super::apply) passes to it as
+/// arguments — or the call alone where it resolved none.
 ///
 /// The bare form is not a second path so much as the absence of one: an arrow
 /// over no parameters, invoked immediately, is the same expression with a
-/// function object and a VM frame added, and [`apply`] carries the measurement
-/// that says what those cost. Printing the call itself is what lets an expression
-/// that names nothing pay nothing, and costs the memo nothing either, because
-/// what the memo holds is a compiled script rather than a function.
+/// function object and a VM frame added, and [`apply`](super::apply) carries the
+/// measurement that says what those cost. Printing the call itself is what lets
+/// an expression that names nothing pay nothing, and costs the memo nothing
+/// either, because what the memo holds is a compiled script rather than a
+/// function.
 ///
 /// The module is assembled here rather than by `create_module`, which takes
 /// `&Expr` and clones it — so going through it means cloning the subtree once

@@ -6,6 +6,8 @@
 //! compile-time form of that type — the caller deopts rather than inventing
 //! one.
 
+use std::convert::Infallible;
+
 use stylex_utils::number;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{
@@ -59,27 +61,87 @@ impl FunctionForm {
   /// The string a function renders as under this form. Exported because the
   /// evaluator's own function values never take the shape of a function
   /// expression and so reach the same decision by their own route.
-  pub fn render(self) -> Option<String> {
+  pub fn render(self) -> Option<&'static str> {
     match self {
       FunctionForm::Refuse => None,
-      FunctionForm::NotANumber => Some(FUNCTION_TO_NUMBER.to_string()),
+      FunctionForm::NotANumber => Some(FUNCTION_TO_NUMBER),
     }
   }
 }
 
-/// `Array.prototype.join(',')` over elements each rendered by `render`, which
-/// answers `None` for an element with no string form and so refuses the whole
-/// join. Exported because the evaluator's own array representation joins by the
-/// same rule as an array literal's, and the two must not drift.
-pub fn join_js_elements<T>(
+/// The separator `Array.prototype.join` uses when it is given none, and which an
+/// array's `ToString` therefore joins with.
+///
+/// Written once, here, because [`write_js_join`] is the only thing allowed to
+/// spell it: the evaluator's own array representation joins by the same rule as
+/// an array literal's, and a second copy of the rule is what lets the two drift.
+const ARRAY_SEPARATOR: &str = ",";
+
+/// Why a streamed `ToString` stopped short of a whole string.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub enum StringRefusal<R> {
+  /// The value has no compile-time string form at all: a function, whose
+  /// `ToString` is its source text and this compiler retains none, or a string
+  /// holding a lone surrogate, which Rust has no `str` for.
+  NoStringForm,
+  /// The sink would not take a piece, and says why in its own terms.
+  Sink(R),
+}
+
+/// Where a `ToString` writes the string it is building, one piece at a time.
+///
+/// A sink may refuse a piece, and its refusal ends the coercion. That is what
+/// lets a caller measure a string against a ceiling *as* it grows: an array's
+/// `ToString` renders every element and joins them, so a coercion that answered
+/// one finished string had already charged the caller for the whole join before
+/// any bound could look at it.
+pub trait StringSink {
+  /// What this sink reports a refused piece as.
+  type Refusal;
+
+  /// Appends `piece`, or refuses it. The one method an implementer writes.
+  fn write(&mut self, piece: &str) -> Result<(), Self::Refusal>;
+
+  /// The same, with the refusal lifted into the coercion's own two endings --
+  /// which is what every writer of a streamed `ToString` calls, so the lifting
+  /// is written once here rather than once per crate that streams into a sink.
+  fn write_piece(&mut self, piece: &str) -> Result<(), StringRefusal<Self::Refusal>> {
+    self.write(piece).map_err(StringRefusal::Sink)
+  }
+}
+
+/// A plain buffer, which refuses nothing -- what a caller that collects the whole
+/// string rather than measuring it needs.
+impl StringSink for String {
+  type Refusal = Infallible;
+
+  fn write(&mut self, piece: &str) -> Result<(), Infallible> {
+    self.push_str(piece);
+
+    Ok(())
+  }
+}
+
+/// `Array.prototype.join(',')` over `elements`, written into `sink` as it goes
+/// rather than collected and handed back.
+///
+/// The one place the join rule lives: every element `write_element` renders, the
+/// separator between two of them, and a refusal ending the whole join. Exported
+/// because the evaluator's own array representation joins by this rule too.
+pub fn write_js_join<T, S: StringSink>(
   elements: impl IntoIterator<Item = T>,
-  render: impl FnMut(T) -> Option<String>,
-) -> Option<String> {
-  elements
-    .into_iter()
-    .map(render)
-    .collect::<Option<Vec<_>>>()
-    .map(|parts| parts.join(","))
+  sink: &mut S,
+  mut write_element: impl FnMut(T, &mut S) -> Result<(), StringRefusal<S::Refusal>>,
+) -> Result<(), StringRefusal<S::Refusal>> {
+  for (index, element) in elements.into_iter().enumerate() {
+    if index > 0 {
+      sink.write_piece(ARRAY_SEPARATOR)?;
+    }
+
+    write_element(element, sink)?;
+  }
+
+  Ok(())
 }
 
 /// A value the language spells as an identifier rather than as a literal, and
@@ -193,44 +255,79 @@ pub fn to_js_string(expr: &Expr) -> Option<String> {
 /// own value representation walks the same values and has to walk them the same
 /// way.
 pub fn to_js_string_with(expr: &Expr, function_form: FunctionForm) -> Option<String> {
+  let mut text = String::new();
+
+  match write_js_string_of(expr, function_form, &mut text) {
+    Ok(()) => Some(text),
+    // A `String` sink refuses nothing, so the only way here is a value with no
+    // compile-time string form.
+    Err(_) => None,
+  }
+}
+
+/// `ToString` under a chosen [`FunctionForm`], written into `sink` as it goes.
+///
+/// Streaming rather than answering a `String` is what puts an array's join under
+/// the caller's own bound: each element is written straight through, so a caller
+/// measuring the result refuses at the element that passes its ceiling instead of
+/// paying for every element and the join between them first. It also spares every
+/// value a copy, since a piece reaches the sink as the `str` the value already
+/// holds.
+pub fn write_js_string_of<S: StringSink>(
+  expr: &Expr,
+  function_form: FunctionForm,
+  sink: &mut S,
+) -> Result<(), StringRefusal<S::Refusal>> {
   match expr {
     // A string that is not valid UTF-8 holds a lone surrogate, which Rust has
     // no `str` for. Refusing hands the caller the same deopt every other
     // unreadable value gets, which names the property the value sits on --
     // where panicking here would report the coercion's own source location and
     // lose that key path.
-    Expr::Lit(Lit::Str(strng)) => strng.value.as_str().map(ToString::to_string),
-    Expr::Lit(Lit::Num(num)) => Some(number::to_js_string(num.value)),
-    Expr::Lit(Lit::Bool(bool_lit)) => Some(bool_lit.value.to_string()),
-    Expr::Lit(Lit::Null(_)) => Some("null".to_string()),
+    Expr::Lit(Lit::Str(strng)) => match strng.value.as_str() {
+      Some(text) => sink.write_piece(text),
+      None => Err(StringRefusal::NoStringForm),
+    },
+    Expr::Lit(Lit::Num(num)) => sink.write_piece(&number::to_js_string(num.value)),
+    Expr::Lit(Lit::Bool(bool_lit)) => {
+      sink.write_piece(if bool_lit.value { "true" } else { "false" })
+    },
+    Expr::Lit(Lit::Null(_)) => sink.write_piece("null"),
     // A big integer renders as its digits with no `n` suffix, which is the one
     // place its string and its source text part company.
-    Expr::Lit(Lit::BigInt(big_int)) => Some(format!("{}", big_int.value)),
+    Expr::Lit(Lit::BigInt(big_int)) => sink.write_piece(&format!("{}", big_int.value)),
     // A regular expression is the one object whose `ToString` is not the
     // `Object.prototype` default: it answers its own source text, which unlike
     // a function's the evaluator does retain.
-    Expr::Lit(Lit::Regex(regex)) => Some(format!("/{}/{}", regex.exp, regex.flags)),
-    Expr::Ident(ident) => match surviving_global(ident)? {
-      SurvivingGlobal::Undefined => Some("undefined".to_string()),
-      SurvivingGlobal::NaN => Some(number::to_js_string(f64::NAN)),
-      SurvivingGlobal::Infinity => Some(number::to_js_string(f64::INFINITY)),
+    Expr::Lit(Lit::Regex(regex)) => sink.write_piece(&format!("/{}/{}", regex.exp, regex.flags)),
+    Expr::Ident(ident) => match surviving_global(ident) {
+      Some(SurvivingGlobal::Undefined) => sink.write_piece("undefined"),
+      Some(SurvivingGlobal::NaN) => sink.write_piece(&number::to_js_string(f64::NAN)),
+      Some(SurvivingGlobal::Infinity) => sink.write_piece(&number::to_js_string(f64::INFINITY)),
+      None => Err(StringRefusal::NoStringForm),
     },
-    Expr::Array(array) => join_js_elements(&array.elems, |elem| match elem {
+    Expr::Array(array) => write_js_join(&array.elems, sink, |elem, sink| match elem {
       // A hole joins as nothing, the same as the `null` and `undefined` that
       // can occupy the slot.
-      None => Some(String::new()),
-      Some(elem) if elem.spread.is_some() => None,
-      Some(elem) => js_array_element_to_string(&elem.expr, function_form),
+      None => Ok(()),
+      Some(elem) if elem.spread.is_some() => Err(StringRefusal::NoStringForm),
+      Some(elem) => write_js_array_element(&elem.expr, function_form, sink),
     }),
     // An object converts through the method pair a string prefers: its own
     // `toString` where it has one, and the `Object.prototype` default where it
     // does not.
-    Expr::Object(object) => match object_to_primitive(object, ToPrimitiveHint::String)? {
-      ObjectPrimitive::Default => Some(OBJECT_TO_STRING.to_string()),
-      ObjectPrimitive::Returned(returned) => to_js_string_with(returned, function_form),
+    Expr::Object(object) => match object_to_primitive(object, ToPrimitiveHint::String) {
+      Some(ObjectPrimitive::Default) => sink.write_piece(OBJECT_TO_STRING),
+      Some(ObjectPrimitive::Returned(returned)) => {
+        write_js_string_of(returned, function_form, sink)
+      },
+      None => Err(StringRefusal::NoStringForm),
     },
-    Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => function_form.render(),
-    _ => None,
+    Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => match function_form.render() {
+      Some(text) => sink.write_piece(text),
+      None => Err(StringRefusal::NoStringForm),
+    },
+    _ => Err(StringRefusal::NoStringForm),
   }
 }
 
@@ -695,12 +792,18 @@ fn prop_name(prop: &Prop) -> Option<&str> {
   }
 }
 
-fn js_array_element_to_string(expr: &Expr, function_form: FunctionForm) -> Option<String> {
+/// An element as an array's join renders it, which parts from `ToString` on the
+/// two values that join as nothing rather than as their own spelling.
+fn write_js_array_element<S: StringSink>(
+  expr: &Expr,
+  function_form: FunctionForm,
+  sink: &mut S,
+) -> Result<(), StringRefusal<S::Refusal>> {
   if joins_as_empty(expr) {
-    return Some(String::new());
+    return Ok(());
   }
 
-  to_js_string_with(expr, function_form)
+  write_js_string_of(expr, function_form, sink)
 }
 
 #[cfg(test)]

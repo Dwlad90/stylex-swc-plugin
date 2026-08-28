@@ -1,7 +1,7 @@
 use super::*;
 use crate::shared::structures::types::FunctionConfigMap;
 use std::rc::Rc;
-use stylex_ast::ast::convertors::{create_ident_expr, create_null_expr};
+use stylex_ast::ast::convertors::{create_ident_expr, create_null_expr, create_string_expr};
 use stylex_structures::fold_ceilings::MAX_FOLDED_CHARACTERS_LIMIT;
 use swc_core::{
   common::DUMMY_SP,
@@ -74,7 +74,7 @@ fn the_two_bridges_agree_a_function_map_is_an_object() {
   let map = EvaluateResultValue::FunctionConfigMap(FunctionConfigMap::default());
 
   assert_eq!(
-    evaluate_result_to_js_string(&map).as_deref(),
+    evaluate_result_to_string_of(&map, coercions::FunctionForm::Refuse).as_deref(),
     Some(coercions::OBJECT_TO_STRING),
     "the string bridge must give a function map the object default"
   );
@@ -96,7 +96,7 @@ fn the_two_bridges_agree_a_callback_is_a_function() {
   let callback = EvaluateResultValue::Callback(Rc::new(|_args, _fns| create_null_expr()));
 
   assert_eq!(
-    evaluate_result_to_js_string(&callback),
+    evaluate_result_to_string_of(&callback, coercions::FunctionForm::Refuse),
     None,
     "a function has no compile-time string under the refusing form"
   );
@@ -164,4 +164,99 @@ fn the_character_ceiling_refuses_rather_than_wrapping() {
 fn a_zero_ceiling_admits_only_an_empty_append() {
   assert_eq!(units_within(0, "", 0), Some(0));
   assert_eq!(units_within(0, "x", 0), None);
+}
+
+/// A sink that takes a fixed number of characters and refuses the piece that
+/// would pass it, standing in for the character ceiling without a compile.
+struct Bounded {
+  text: String,
+  ceiling: usize,
+}
+
+impl coercions::StringSink for Bounded {
+  type Refusal = ();
+
+  fn write(&mut self, piece: &str) -> Result<(), ()> {
+    // UTF-16 code units, which is what the real ceiling spends -- so the stand-in
+    // cannot pass a case `GrownString` would refuse.
+    if utf16_length(&self.text) + utf16_length(piece) > self.ceiling {
+      return Err(());
+    }
+
+    self.text.push_str(piece);
+
+    Ok(())
+  }
+}
+
+fn string_expr(value: &str) -> EvaluateResultValue {
+  EvaluateResultValue::Expr(create_string_expr(value))
+}
+
+/// The evaluator's own array representation joins by an array literal's rule,
+/// including the two values that join as nothing -- and the absent-value variant
+/// is one of them, which is the arm no coercion in `stylex_js` can reach.
+#[test]
+fn the_evaluator_s_own_array_joins_by_the_literal_s_rule() {
+  let cases: &[(Vec<EvaluateResultValue>, &str)] = &[
+    (vec![], ""),
+    (vec![string_expr("a")], "a"),
+    (vec![string_expr("a"), string_expr("b")], "a,b"),
+    // The absent value and a written `null` both join as nothing, so an array of
+    // them is separators alone.
+    (
+      vec![
+        EvaluateResultValue::Null,
+        EvaluateResultValue::Expr(create_null_expr()),
+        string_expr("a"),
+      ],
+      ",,a",
+    ),
+    // A nested array flattens into the outer join rather than adding a level.
+    (
+      vec![
+        EvaluateResultValue::Vec(vec![string_expr("a"), string_expr("b")]),
+        string_expr("c"),
+      ],
+      "a,b,c",
+    ),
+  ];
+
+  for (items, expected) in cases {
+    assert_eq!(
+      evaluate_result_to_string_of(
+        &EvaluateResultValue::Vec(items.clone()),
+        coercions::FunctionForm::Refuse
+      )
+      .as_deref(),
+      Some(*expected),
+      "the array {:?} must join to `{}`",
+      items,
+      expected
+    );
+  }
+}
+
+/// The join is written into the sink as it goes, so a bounded caller refuses at
+/// the element that passes the ceiling and the elements after it are never
+/// rendered. That is the whole of the change: the same array measured after the
+/// join had already been paid for in full.
+#[test]
+fn a_bounded_sink_stops_the_array_join_where_it_passes() {
+  let array = EvaluateResultValue::Vec(vec![
+    string_expr("aaa"),
+    string_expr("bbb"),
+    string_expr("ccc"),
+  ]);
+
+  let mut sink = Bounded {
+    text: String::new(),
+    ceiling: 5,
+  };
+
+  assert!(
+    write_string_of(&array, coercions::FunctionForm::Refuse, &mut sink).is_err(),
+    "five characters cannot hold two three-character elements and a separator"
+  );
+  assert_eq!(sink.text, "aaa,");
 }

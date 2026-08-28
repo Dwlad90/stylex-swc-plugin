@@ -562,6 +562,13 @@ gigabytes one innocent line at a time:
 evaluate at compile time. At most 1000000 characters are supported.
 ```
 
+An array interpolated or concatenated is measured element by element, because
+its string is a join of every element and the join is what the ceiling is for.
+`` `${a}` `` over two hundred long values is refused at the element that passes
+the ceiling, so the refusal costs that element rather than the whole join --
+which is the difference between a diagnostic in milliseconds and one after
+several seconds of copying.
+
 Raise it if a project really generates values this large:
 
 ```js

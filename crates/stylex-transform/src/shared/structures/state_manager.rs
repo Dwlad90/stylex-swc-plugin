@@ -755,7 +755,8 @@ impl StateManager {
   /// Read here for the reason the depth is: a fold spends it three times -- on a
   /// resolved value going in, on an amplifying call's own arithmetic, and on the
   /// string coming back -- and `GrownString` spends it on every append the
-  /// evaluator makes without a fold at all. One number is what lets an author
+  /// evaluator makes without a fold at all, including every element and
+  /// separator an array's `ToString` joins. One number is what lets an author
   /// raise it once, whichever of them refused.
   pub(crate) fn character_ceiling(&self) -> usize {
     MAX_FOLDED_CHARACTERS.clamped(self.options.max_folded_characters)

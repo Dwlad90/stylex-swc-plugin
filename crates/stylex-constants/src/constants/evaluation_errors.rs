@@ -528,7 +528,9 @@ pub const TEMPLATE_LITERAL: &str = "template literal";
 ///
 /// Names which expression grew it, because a doubling chain is innocent one line
 /// at a time and the line that passed the ceiling is the one an author has to
-/// look at.
+/// look at. An array's own join is measured through the same buffer and so
+/// carries one of the same two names: what an author has to look at there is the
+/// interpolation or the `+` the array was written in, not the join.
 pub fn grown_string_too_large(kind: &str, limit: u64) -> String {
   format!(
     "This {} builds a string too large to evaluate at compile time.\n\

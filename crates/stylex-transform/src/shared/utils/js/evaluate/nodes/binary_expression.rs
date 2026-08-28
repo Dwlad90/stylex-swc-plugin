@@ -212,70 +212,58 @@ fn binary_expr_to_string(
     ));
   }
 
-  // The left side's buffer is grown rather than a third one allocated for the
-  // join, which is what a chain of `+` folds through once per operand.
-  let mut joined = GrownString::of(
-    operand_to_string(
-      &binary_expr.left,
-      LEFT_NOT_A_STRING,
-      state,
-      traversal_state,
-      fns,
-    )?,
-    CONCATENATION,
-  );
-  let right = operand_to_string(
-    &binary_expr.right,
-    RIGHT_NOT_A_STRING,
-    state,
-    traversal_state,
-    fns,
-  )?;
+  // Both operands grow one buffer, which measures every piece before it lands --
+  // so a chain of doublings is refused at the append that passes the ceiling
+  // rather than after the next one has allocated, and an operand that is an
+  // array is refused at the element that passes it rather than after its whole
+  // join.
+  //
+  // The left operand used to be handed over as a finished string and adopted as
+  // this buffer's allocation, which cost a chain of `+` one buffer rather than
+  // one per link. It is copied in now, deliberately: an array's join is only
+  // measurable while it is being written, and an array on the left has to be
+  // measured too. What that buys back is bounded -- one copy per link of a chain
+  // the ceiling already bounds -- and what it prevents is unbounded.
+  //
+  // Each side is taken through `ToString`, the coercion the rest of the evaluator
+  // already shares from `stylex_js`. This arm used to keep a second, weaker one
+  // of its own, which read a string, a number and a big integer and refused the
+  // rest -- so `'x' + true` failed to fold where JavaScript says `"xtrue"`. The
+  // shared one answers for the whole falsy list, for arrays and for objects, and
+  // refuses only where no compile-time string exists at all.
+  //
+  // It is also more permissive than the reference implementation on two
+  // operands, and deliberately left that way: a big integer and a regular
+  // expression both have a string here, where upstream refuses either literal
+  // outright with an unsupported-expression diagnostic. The folded strings are
+  // what the language says, so the disagreement costs nothing but a build that
+  // succeeds where the other fails.
+  let mut joined = GrownString::new(CONCATENATION);
 
-  // Measured before the append rather than after: the two operands are already
-  // paid for, so what a ceiling can still refuse is the copy that joins them --
-  // and refusing it is what stops a chain of doublings from paying for the next
-  // one to find out it was too long.
-  joined
-    .push(
-      &right,
-      || Expr::Bin(binary_expr.clone()),
-      state,
-      traversal_state,
-    )
-    .map_err(|reason| anyhow!("{}", reason))?;
+  for (operand, reason) in [
+    (&binary_expr.left, LEFT_NOT_A_STRING),
+    (&binary_expr.right, RIGHT_NOT_A_STRING),
+  ] {
+    let value = evaluate_operand(operand, reason, state, traversal_state, fns)?;
+
+    joined
+      .push_string_of(
+        &value,
+        || Expr::Bin(binary_expr.clone()),
+        state,
+        traversal_state,
+      )
+      // The sentence for an operand with no string at all names which side it
+      // was; a ceiling refusal carries the buffer's own, which names the
+      // concatenation rather than a side, because either side reaching the
+      // ceiling is the same expression growing too large.
+      .map_err(|refusal| match refusal {
+        StringAppend::NoStringForm => anyhow!("{}", reason),
+        StringAppend::TooLarge(sentence) => anyhow!("{}", sentence),
+      })?;
+  }
 
   Result::Ok(BinaryExprType::String(joined.into_text()))
-}
-
-/// One side of the expression, evaluated and taken through `ToString` — the
-/// coercion the rest of the evaluator already shares, from `stylex_js`.
-///
-/// This arm used to keep a second, weaker string coercion of its own, which
-/// read a string, a number and a big integer and refused the rest — so
-/// `'x' + true` failed to fold where JavaScript says `"xtrue"`. The shared one
-/// answers for the whole falsy list, for arrays and for objects, and refuses
-/// only where no compile-time string exists at all.
-///
-/// It is also more permissive than the reference implementation on two
-/// operands, and deliberately left that way: a big integer and a regular
-/// expression both have a string here, where upstream refuses either literal
-/// outright with an unsupported-expression diagnostic. The folded strings are
-/// what the language says, so the disagreement costs nothing but a build that
-/// succeeds where the other fails.
-fn operand_to_string(
-  operand: &Expr,
-  reason: &str,
-  state: &mut EvaluationState,
-  traversal_state: &mut StateManager,
-  fns: &FunctionMap,
-) -> Result<String, anyhow::Error> {
-  let value = evaluate_operand(operand, reason, state, traversal_state, fns)?;
-
-  match evaluate_result_to_js_string(&value) {
-    Some(strng) => Result::Ok(strng),
-    None => Result::Err(anyhow!("{}", reason)),
-  }
 }
 
 #[cfg(test)]

@@ -31,7 +31,8 @@
 use crate::utils::{
   prelude::*,
   transform::{
-    assert_folds, assert_refuses, assert_refuses_under, base_style_module as module, stringify_js,
+    assert_folds, assert_folds_under, assert_refuses, assert_refuses_under,
+    base_style_module as module, fold_module_under, stringify_js,
   },
 };
 
@@ -42,19 +43,6 @@ const CONCATENATION_TOO_LARGE: &str =
   "This concatenation builds a string too large to evaluate at compile time.";
 const TEMPLATE_TOO_LARGE: &str =
   "This template literal builds a string too large to evaluate at compile time.";
-
-/// Compile with the character ceiling set to `characters`.
-///
-/// The cases that assert an author can move the ceiling have to move it the way
-/// an author does -- through the option -- rather than by asserting the default
-/// from the inside.
-fn fold_under(input: &str, characters: usize) -> String {
-  stringify_js(input, ts_syntax(), move |tr| {
-    theme_import_transform_with(tr.comments.clone(), move |builder| {
-      builder.with_max_folded_characters(characters)
-    })
-  })
-}
 
 /// `n` bindings, each the concatenation of the one before it with itself, over a
 /// base of `base` characters. So `a{n}` is `base * 2^n` characters long and every
@@ -72,22 +60,6 @@ fn doubling_chain(base: usize, doublings: usize) -> String {
   }
 
   source
-}
-
-/// Assert that `body` folds to `rule` under a character ceiling of `characters`.
-#[track_caller]
-fn assert_folds_under(decls: &str, body: &str, rule: &str, characters: usize) {
-  let output = fold_under(&module(decls, body), characters);
-
-  assert!(
-    output.contains(rule),
-    "expected `{}` with `{}` to emit `{}` under a ceiling of {}, got:\n{}",
-    body,
-    decls,
-    rule,
-    characters,
-    output
-  );
 }
 
 // ──────────────────────────────────────────────
@@ -274,14 +246,14 @@ fn a_lowered_ceiling_refuses_what_the_default_folds() {
     "",
     "content: 'abcd' + 'efghi',",
     CONCATENATION_TOO_LARGE,
-    |input| fold_under(input, 8),
+    |input| fold_module_under(input, 8),
   );
 
   assert_refuses_under(
     "",
     "content: `abcd${'efghi'}`,",
     TEMPLATE_TOO_LARGE,
-    |input| fold_under(input, 8),
+    |input| fold_module_under(input, 8),
   );
 }
 
@@ -294,7 +266,7 @@ fn a_configured_zero_leaves_the_default_in_place() {
     &doubling_chain(600_000, 1),
     "width: a1.length,",
     "At most 1000000 characters are supported.",
-    |input| fold_under(input, 0),
+    |input| fold_module_under(input, 0),
   );
 }
 
@@ -324,7 +296,7 @@ fn the_bound_admits_exactly_the_ceiling() {
     "",
     "content: 'abcd' + 'efgh' + 'i',",
     CONCATENATION_TOO_LARGE,
-    |input| fold_under(input, 8),
+    |input| fold_module_under(input, 8),
   );
 
   // And at the default's own scale, where the two operands are built rather
@@ -359,7 +331,7 @@ fn a_length_is_counted_in_code_units() {
     "",
     "content: '\u{1F600}' + '\u{1F600}',",
     CONCATENATION_TOO_LARGE,
-    |input| fold_under(input, 3),
+    |input| fold_module_under(input, 3),
   );
 
   // Three of them is six code units, so a ceiling of four refuses the third
@@ -368,7 +340,7 @@ fn a_length_is_counted_in_code_units() {
     "",
     "content: '\u{1F600}' + '\u{1F600}' + '\u{1F600}',",
     CONCATENATION_TOO_LARGE,
-    |input| fold_under(input, 4),
+    |input| fold_module_under(input, 4),
   );
 
   assert_folds(

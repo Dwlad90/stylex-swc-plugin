@@ -344,6 +344,39 @@ pub(crate) fn assert_refuses_under(
   );
 }
 
+/// Compile one module with the character ceiling set to `characters`, the way an
+/// author moves it.
+///
+/// A file whose subject is that ceiling has to move it through the option rather
+/// than assert the default from the inside, and two files now have that subject --
+/// a string the evaluator grows and the join an array's `ToString` performs -- so
+/// the compile step lives here rather than once per file.
+#[allow(dead_code)]
+pub(crate) fn fold_module_under(input: &str, characters: usize) -> String {
+  stringify_js(input, ts_syntax(), move |tr| {
+    theme_import_transform_with(tr.comments.clone(), move |builder| {
+      builder.with_max_folded_characters(characters)
+    })
+  })
+}
+
+/// The rule `body` is expected to emit under a character ceiling of `characters`.
+#[track_caller]
+#[allow(dead_code)]
+pub(crate) fn assert_folds_under(decls: &str, body: &str, rule: &str, characters: usize) {
+  let output = fold_module_under(&base_style_module(decls, body), characters);
+
+  assert!(
+    output.contains(rule),
+    "expected `{}` with `{}` to emit `{}` under a ceiling of {}, got:\n{}",
+    body,
+    decls,
+    rule,
+    characters,
+    output
+  );
+}
+
 /// One `stylex.create` module of a single `base` style: `decls` above it,
 /// `body` as that style's declarations.
 ///

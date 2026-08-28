@@ -2013,6 +2013,24 @@
       "configuration": "maxFoldedCharacters"
     },
     {
+      "id": "modules-23-an-array-the-interpolation-joins",
+      "label": "an array joined past the ceiling by an interpolation",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst x = 'y'.repeat(900000);\nconst a = [x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x];\n\nexport const styles = stylex.create({\n  s0: { width: `${a}`.length },\n});\n",
+      "origin": "issue 23, the character ceiling reaching the join an array's `ToString` performs",
+      "note": "Acceptance divergent, deliberately, and configurably so. Two hundred elements of nine hundred thousand characters join to 180,000,199 -- a hundred and eighty times the default ceiling -- and upstream folds them to `180000199px` in well under a second, because the join it builds is never materialised. This compiler refuses, and the number is `maxFoldedCharacters`: raise it past the length and the same source folds to upstream's value. What changed with issue 23 is not the verdict but when it arrives. The refusal already named the right ceiling, and it named it after rendering every element and joining them -- 3.9 seconds on this spelling and 7.5 on the `+` one, since each element's `ToString` copies a string the value already holds and the join copies them all again. The join is now written into the measured buffer element by element, so the refusal costs the element that passed the ceiling and nothing after it: 65 milliseconds here and 92 on the row below. The separator counts as part of what is built, so two four-character elements are nine characters.",
+      "expected": "acceptance-divergent",
+      "configuration": "maxFoldedCharacters"
+    },
+    {
+      "id": "modules-23-an-array-the-concatenation-joins",
+      "label": "an array joined past the ceiling by `+`",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst x = 'y'.repeat(900000);\nconst a = [x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x];\n\nexport const styles = stylex.create({\n  s0: { width: ('' + a).length },\n});\n",
+      "origin": "issue 23, the second expression an array's join reaches the ceiling through",
+      "note": "Acceptance divergent for the reason the row above is, on the other of the two expressions the evaluator grows a string with itself. Two hundred elements of nine hundred thousand characters join to 180,000,199 -- a hundred and eighty times the default ceiling -- and upstream folds them to `180000199px` in well under a second, because the join it builds is never materialised. Both operands of a `+` now grow one buffer, so an array on either side is measured as it joins rather than after -- and the sentence names the concatenation, because an author looking for what grew the string has the expression they wrote rather than the join inside it. Raising `maxFoldedCharacters` past the length folds this too.",
+      "expected": "acceptance-divergent",
+      "configuration": "maxFoldedCharacters"
+    },
+    {
       "id": "modules-06-amplified-array-length",
       "label": "an array result longer than a declaration could use",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'x'.repeat(20000).split('').length },\n});\n",

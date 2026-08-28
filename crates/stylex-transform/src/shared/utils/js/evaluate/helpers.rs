@@ -368,17 +368,6 @@ pub(super) fn evaluate_func_call_args(
   Some(args)
 }
 
-/// `ToString` over an evaluated value, bridging the evaluator's own value
-/// representation to the ECMAScript coercion.
-///
-/// `None` means the value has no compile-time string form, so the caller
-/// deopts. The variants that stand for a JavaScript object take the
-/// `Object.prototype` default; the ones that stand for a function have none,
-/// because `String(fn)` is its source text and the evaluator keeps no source.
-pub(super) fn evaluate_result_to_js_string(value: &EvaluateResultValue) -> Option<String> {
-  evaluate_result_to_string_of(value, coercions::FunctionForm::Refuse)
-}
-
 /// `ToNumber` over an evaluated value, bridging the evaluator's own value
 /// representation to the ECMAScript coercion.
 ///
@@ -501,29 +490,66 @@ pub(crate) fn evaluate_result_is_nullish(value: &EvaluateResultValue) -> bool {
   }
 }
 
+/// `ToString` over an evaluated value, collected -- bridging the evaluator's own
+/// value representation to the ECMAScript coercion.
+///
+/// `None` means the value has no compile-time string form, so the caller deopts.
+/// The variants that stand for a JavaScript object take the `Object.prototype`
+/// default; the ones that stand for a function have none, because `String(fn)` is
+/// its source text and the evaluator keeps no source.
+///
+/// Collecting is for a caller with no ceiling to spend -- the number bridge,
+/// whose answer is one `f64` however wide the string it read. A caller growing a
+/// string of its own reaches the same coercion through
+/// [`GrownString::push_string_of`], which is measured piece by piece.
 fn evaluate_result_to_string_of(
   value: &EvaluateResultValue,
   function_form: coercions::FunctionForm,
 ) -> Option<String> {
+  let mut text = String::new();
+
+  match write_string_of(value, function_form, &mut text) {
+    Ok(()) => Some(text),
+    // A `String` sink refuses nothing, so the only way here is a value with no
+    // compile-time string form.
+    Err(_) => None,
+  }
+}
+
+/// `ToString` over an evaluated value, written into `sink` as it goes.
+///
+/// The array arm is why this streams. An array reaches the coercion as its
+/// elements, each of which renders into a string of its own before the join
+/// copies them all again -- so a caller with a ceiling that read the finished
+/// join had already paid for every element by the time it could refuse. Written
+/// piece by piece, the same caller refuses at the element that passes the
+/// ceiling, and no element is copied twice.
+fn write_string_of<S: coercions::StringSink>(
+  value: &EvaluateResultValue,
+  function_form: coercions::FunctionForm,
+  sink: &mut S,
+) -> Result<(), coercions::StringRefusal<S::Refusal>> {
   match value {
-    EvaluateResultValue::Expr(expr) => coercions::to_js_string_with(expr, function_form),
+    EvaluateResultValue::Expr(expr) => coercions::write_js_string_of(expr, function_form, sink),
 
     // The evaluator's own array representation, joined by the same rule as an
     // array literal's.
-    EvaluateResultValue::Vec(items) => coercions::join_js_elements(items, |item| match item {
-      // A confidently evaluated element with no value is `undefined`, which
-      // joins as nothing.
-      EvaluateResultValue::Null => Some(String::new()),
-      EvaluateResultValue::Expr(expr) if coercions::joins_as_empty(expr) => Some(String::new()),
-      item => evaluate_result_to_string_of(item, function_form),
-    }),
+    EvaluateResultValue::Vec(items) => {
+      coercions::write_js_join(items, sink, |item, sink| match item {
+        // A confidently evaluated element with no value is `undefined`, which
+        // joins as nothing.
+        EvaluateResultValue::Null => Ok(()),
+        EvaluateResultValue::Expr(expr) if coercions::joins_as_empty(expr) => Ok(()),
+        item => write_string_of(item, function_form, sink),
+      })
+    },
 
     // A `defineVars` group carries its own `toString`, which answers the var
     // group hash rather than the object default.
-    EvaluateResultValue::ThemeRef(theme_ref) => Some(theme_ref.to_string_value()),
+    EvaluateResultValue::ThemeRef(theme_ref) => sink.write_piece(&theme_ref.to_string_value()),
 
     EvaluateResultValue::Map(_) | EvaluateResultValue::EnvObject(_) => {
-      Some(coercions::OBJECT_TO_STRING.to_string())
+      sink.write_piece(coercions::OBJECT_TO_STRING)
     },
 
     // A folded *map* of function configs is the namespace object, and an object
@@ -534,20 +560,23 @@ fn evaluate_result_to_string_of(
     // `the_two_bridges_agree_a_function_map_is_an_object` fails if they part
     // again -- which they had, and a template interpolating the fold refused
     // where the reference implementation wrote `[object Object]`.
-    EvaluateResultValue::FunctionConfigMap(_) => Some(coercions::OBJECT_TO_STRING.to_string()),
+    EvaluateResultValue::FunctionConfigMap(_) => sink.write_piece(coercions::OBJECT_TO_STRING),
 
     // A single config and a callback *are* functions, and a function has no
     // compile-time string: `String(fn)` is its source text and this evaluator
     // keeps none, so the form decides -- refuse, or answer `NaN` where a number
     // was wanted.
     EvaluateResultValue::Callback(_) | EvaluateResultValue::FunctionConfig(_) => {
-      function_form.render()
+      match function_form.render() {
+        Some(text) => sink.write_piece(text),
+        None => Err(coercions::StringRefusal::NoStringForm),
+      }
     },
 
     // Unreachable for the reason given on `evaluate_result_to_js_object`, and
     // refused on the same terms. The `Vec` arm above is where a `Null` that
     // reaches this bridge is actually decided.
-    EvaluateResultValue::Null => None,
+    EvaluateResultValue::Null => Err(coercions::StringRefusal::NoStringForm),
   }
 }
 
@@ -598,7 +627,11 @@ pub(super) fn evaluate_theme_ref(
 ///
 /// It owns the buffer as well as the count so neither caller can append without
 /// being measured, and so the count is carried rather than recomputed: a template
-/// pays for one measurement per piece however many pieces it has.
+/// pays for one measurement per piece however many pieces it has. Owning the
+/// buffer is also what lets a value be *coerced* into it rather than beside it:
+/// an array's `ToString` writes its elements and separators through
+/// [`GrownString::push_string_of`], so the join is measured as it happens instead
+/// of arriving as one string already paid for.
 pub(super) struct GrownString {
   text: String,
   /// UTF-16 code units of `text`, which is the length JavaScript reports and the
@@ -609,28 +642,21 @@ pub(super) struct GrownString {
 }
 
 impl GrownString {
-  /// An empty buffer with room for `bytes`, for a caller that appends every piece
-  /// of its result.
+  /// An empty buffer, for a caller with nothing to reserve against: `+` knows
+  /// nothing about either operand until it has evaluated it.
+  pub(super) fn new(kind: &'static str) -> Self {
+    Self::with_capacity(0, kind)
+  }
+
+  /// An empty buffer with room for `bytes`, for a caller that knows the length of
+  /// part of its result before it starts -- a template, whose quasis are written
+  /// out.
   pub(super) fn with_capacity(bytes: usize, kind: &'static str) -> Self {
     Self {
       text: String::with_capacity(bytes),
       units: 0,
       kind,
     }
-  }
-
-  /// A buffer that starts from a string the caller already holds, counted once as
-  /// it is taken over.
-  ///
-  /// `+` arrives with its left operand already built, by a coercion that kept no
-  /// length -- so the one measurement it cannot avoid is of a string it is about
-  /// to copy anyway. Taking the `String` rather than borrowing it keeps that
-  /// allocation as the result's, which is what makes a chain of `+` grow one
-  /// buffer instead of one per link.
-  pub(super) fn of(text: String, kind: &'static str) -> Self {
-    let units = utf16_length(&text);
-
-    Self { text, units, kind }
   }
 
   /// Appends `addition`, or refuses `path` and hands the sentence back.
@@ -671,9 +697,77 @@ impl GrownString {
     }
   }
 
+  /// Appends `value`'s `ToString`, measuring every piece the coercion produces
+  /// rather than the string it would otherwise have finished first.
+  ///
+  /// An array is the value that needs it: its `ToString` renders each element and
+  /// joins them, so a buffer handed the finished join had already paid for the
+  /// whole of it -- two hundred long elements spent four seconds reaching a
+  /// refusal that was correct about everything except when it arrived. Written
+  /// through the buffer, the join is refused at the element that passes the
+  /// ceiling.
+  ///
+  /// Functions are refused rather than stood in for, because a string is what is
+  /// being grown and a function has none.
+  pub(super) fn push_string_of(
+    &mut self,
+    value: &EvaluateResultValue,
+    path: impl Fn() -> Expr,
+    state: &mut EvaluationState,
+    traversal_state: &mut StateManager,
+  ) -> Result<(), StringAppend> {
+    let mut sink = MeasuredSink {
+      grown: self,
+      path,
+      state,
+      traversal_state,
+    };
+
+    write_string_of(value, coercions::FunctionForm::Refuse, &mut sink).map_err(|refusal| {
+      match refusal {
+        coercions::StringRefusal::NoStringForm => StringAppend::NoStringForm,
+        coercions::StringRefusal::Sink(reason) => StringAppend::TooLarge(reason),
+      }
+    })
+  }
+
   /// The string that was grown.
   pub(super) fn into_text(self) -> String {
     self.text
+  }
+}
+
+/// Why appending a value's `ToString` to a [`GrownString`] stopped.
+pub(super) enum StringAppend {
+  /// The value has no compile-time string form at all. Reported by the caller
+  /// rather than here, because what an author should read differs between an
+  /// interpolation and an operand of `+`.
+  NoStringForm,
+  /// The buffer passed the character ceiling. Already deopted, and carrying the
+  /// sentence for the caller that reports the error itself rather than the deopt.
+  TooLarge(String),
+}
+
+/// A [`GrownString`] as a [`coercions::StringSink`], so a coercion streaming its
+/// pieces is measured by the buffer it is filling.
+///
+/// Carries the state a refusal is reported on, since a refusal here has to arrive
+/// as a deopt on the expression the author wrote -- the same one [`GrownString`]
+/// reports for an append the caller makes directly.
+struct MeasuredSink<'a, P: Fn() -> Expr> {
+  grown: &'a mut GrownString,
+  path: P,
+  state: &'a mut EvaluationState,
+  traversal_state: &'a mut StateManager,
+}
+
+impl<P: Fn() -> Expr> coercions::StringSink for MeasuredSink<'_, P> {
+  type Refusal = String;
+
+  fn write(&mut self, piece: &str) -> Result<(), String> {
+    self
+      .grown
+      .push(piece, &self.path, self.state, self.traversal_state)
   }
 }
 

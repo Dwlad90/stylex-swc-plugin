@@ -5,6 +5,7 @@
 // runtime, which is what `@stylexjs/babel-plugin` folds those calls to.
 
 use super::*;
+use stylex_utils::string::utf16_length;
 use swc_core::{
   common::DUMMY_SP,
   ecma::ast::{
@@ -1222,4 +1223,213 @@ fn the_numeric_globals_carry_the_text_they_were_authored_with() {
 
   assert_eq!(raw_of("NaN").as_deref(), Some("NaN"));
   assert_eq!(raw_of("Infinity").as_deref(), Some("Infinity"));
+}
+
+// ──────────────────────────────────────────────
+// The streamed join
+// ──────────────────────────────────────────────
+
+/// A sink that takes a fixed number of code units and refuses the piece that
+/// would pass it -- the shape of the character ceiling, without a compile.
+///
+/// It records what it took as well, so a case can assert that a refusal arrives
+/// *before* the rest of the pieces are written rather than after.
+struct Bounded {
+  text: String,
+  ceiling: usize,
+}
+
+impl Bounded {
+  fn new(ceiling: usize) -> Self {
+    Self {
+      text: String::new(),
+      ceiling,
+    }
+  }
+}
+
+impl StringSink for Bounded {
+  type Refusal = usize;
+
+  fn write(&mut self, piece: &str) -> Result<(), usize> {
+    // UTF-16 code units, which is what the real ceiling spends -- so the stand-in
+    // cannot pass a case the compiler's own sink would refuse.
+    let grown = utf16_length(&self.text) + utf16_length(piece);
+
+    if grown > self.ceiling {
+      return Err(grown);
+    }
+
+    self.text.push_str(piece);
+
+    Ok(())
+  }
+}
+
+/// Streaming answers exactly what collecting did, over every shape an array's
+/// join has a rule for: the separator between elements, the two values that join
+/// as nothing, a hole, and nesting.
+#[test]
+fn a_streamed_join_writes_what_the_collected_one_answered() {
+  let cases: &[(Expr, &str)] = &[
+    (array_expr(vec![]), ""),
+    (array_expr(vec![Some(str_expr("a"))]), "a"),
+    (
+      array_expr(vec![Some(str_expr("a")), Some(str_expr("b"))]),
+      "a,b",
+    ),
+    (
+      array_expr(vec![Some(null_expr()), Some(ident_expr("undefined"))]),
+      ",",
+    ),
+    (array_expr(vec![None, Some(str_expr("a")), None]), ",a,"),
+    (
+      array_expr(vec![
+        Some(array_expr(vec![Some(str_expr("a")), Some(str_expr("b"))])),
+        Some(str_expr("c")),
+      ]),
+      "a,b,c",
+    ),
+    (
+      array_expr(vec![Some(num_expr(1.0)), Some(bool_expr(true))]),
+      "1,true",
+    ),
+  ];
+
+  for (expr, expected) in cases {
+    let mut streamed = String::new();
+
+    assert!(
+      write_js_string_of(expr, FunctionForm::Refuse, &mut streamed).is_ok(),
+      "expected `{:?}` to have a string",
+      expr
+    );
+    assert_eq!(streamed, *expected);
+    assert_eq!(to_js_string(expr).as_deref(), Some(*expected));
+  }
+}
+
+/// A refusal ends the join where it happens, so the pieces after it are never
+/// written. That is the whole point of streaming: the elements a bounded caller
+/// refuses are elements it never rendered.
+#[test]
+fn a_sink_refusal_ends_the_join_where_it_happens() {
+  let array = array_expr(vec![
+    Some(str_expr("aaa")),
+    Some(str_expr("bbb")),
+    Some(str_expr("ccc")),
+  ]);
+
+  let mut sink = Bounded::new(5);
+
+  match write_js_string_of(&array, FunctionForm::Refuse, &mut sink) {
+    // Four code units are held -- `aaa` and the separator -- and `bbb` would
+    // make seven, which is the number the refusal carries.
+    Err(StringRefusal::Sink(grown)) => assert_eq!(grown, 7),
+    other => panic!("expected the sink to refuse, got {:?}", other),
+  }
+
+  assert_eq!(sink.text, "aaa,");
+}
+
+/// The separator counts against the sink as much as an element does, since it is
+/// part of the string being built. Two single-character elements need three.
+#[test]
+fn the_separator_is_measured_with_the_elements() {
+  let array = array_expr(vec![Some(str_expr("a")), Some(str_expr("b"))]);
+
+  let mut exact = Bounded::new(3);
+  assert!(write_js_string_of(&array, FunctionForm::Refuse, &mut exact).is_ok());
+  assert_eq!(exact.text, "a,b");
+
+  // Two admits the first element and the separator after it, and refuses the
+  // second element -- so the separator is charged where it is written rather
+  // than held back until an element follows it.
+  let mut one_short = Bounded::new(2);
+  assert!(matches!(
+    write_js_string_of(&array, FunctionForm::Refuse, &mut one_short),
+    Err(StringRefusal::Sink(_))
+  ));
+  assert_eq!(one_short.text, "a,");
+}
+
+/// An element with no string form is the join's other ending, and it is reported
+/// as its own kind rather than as the sink's -- a caller that reads them alike
+/// would tell an author about a ceiling where a function was written.
+#[test]
+fn an_element_with_no_string_form_is_not_a_sink_refusal() {
+  let array = array_expr(vec![Some(str_expr("a")), Some(arrow_expr())]);
+
+  let mut sink = Bounded::new(1000);
+
+  assert!(matches!(
+    write_js_string_of(&array, FunctionForm::Refuse, &mut sink),
+    Err(StringRefusal::NoStringForm)
+  ));
+
+  // Under the number form the same function stands in for its source text, so
+  // the join has an answer and the sink takes it.
+  let mut counted = Bounded::new(1000);
+  assert!(write_js_string_of(&array, FunctionForm::NotANumber, &mut counted).is_ok());
+  assert_eq!(counted.text, "a,function");
+}
+
+/// A spread element is not a written element, so an array holding one has no
+/// join at all -- and the pieces before it are what the sink was given, since a
+/// refusal stops rather than rewinds.
+#[test]
+fn a_spread_element_has_no_join() {
+  let array = Expr::Array(ArrayLit {
+    span: DUMMY_SP,
+    elems: vec![
+      Some(ExprOrSpread {
+        spread: None,
+        expr: Box::new(str_expr("a")),
+      }),
+      Some(ExprOrSpread {
+        spread: Some(DUMMY_SP),
+        expr: Box::new(str_expr("b")),
+      }),
+    ],
+  });
+
+  let mut sink = Bounded::new(1000);
+
+  assert!(matches!(
+    write_js_string_of(&array, FunctionForm::Refuse, &mut sink),
+    Err(StringRefusal::NoStringForm)
+  ));
+  assert_eq!(sink.text, "a,");
+}
+
+/// Nesting deep enough to be worth naming still answers one flat join, and the
+/// sink sees no separator for a level that holds one element.
+#[test]
+fn nesting_flattens_into_one_join() {
+  let mut nested = str_expr("a");
+
+  for _ in 0..64 {
+    nested = array_expr(vec![Some(nested)]);
+  }
+
+  let mut sink = Bounded::new(1);
+
+  assert!(write_js_string_of(&nested, FunctionForm::Refuse, &mut sink).is_ok());
+  assert_eq!(sink.text, "a");
+}
+
+/// A sink that takes nothing at all refuses the first piece, and a value with no
+/// pieces to write is not a refusal -- an empty array writes nothing, so a
+/// ceiling of zero admits it.
+#[test]
+fn a_sink_that_takes_nothing_still_admits_an_empty_join() {
+  let mut sink = Bounded::new(0);
+  assert!(write_js_string_of(&array_expr(vec![]), FunctionForm::Refuse, &mut sink).is_ok());
+  assert_eq!(sink.text, "");
+
+  let mut refuses = Bounded::new(0);
+  assert!(matches!(
+    write_js_string_of(&str_expr("a"), FunctionForm::Refuse, &mut refuses),
+    Err(StringRefusal::Sink(_))
+  ));
 }

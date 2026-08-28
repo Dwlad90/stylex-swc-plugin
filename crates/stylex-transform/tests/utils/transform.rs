@@ -1,3 +1,9 @@
+//! Not every test binary uses every helper here, so an item unused by the
+//! one being compiled is expected rather than dead. Said once for the
+//! module: this is a shared helper library, and per-item attributes were
+//! the same fact repeated at each of them.
+#![allow(dead_code)]
+
 use std::{rc::Rc, sync::Arc};
 
 use stylex_structures::stylex_options::ModuleResolution;
@@ -119,7 +125,6 @@ impl VisitMut for RegeneratorHandler {
   }
 }
 
-#[allow(dead_code)]
 pub(crate) fn stringify_js<F, P>(input: &str, syntax: Syntax, tr: F) -> String
 where
   F: for<'a> FnOnce(&mut Tester<'a>) -> P,
@@ -181,7 +186,6 @@ pub(crate) type TestBuilder = StyleXTransformBuilder<TestComments>;
 /// // Inline in a macro:
 /// stylex_test!(name, |tr| build_test_transform(tr.comments.clone(), |b| b), code);
 /// ```
-#[allow(dead_code)]
 pub(crate) fn build_test_transform<F>(
   comments: Rc<SingleThreadedComments>,
   customize: F,
@@ -200,7 +204,6 @@ where
 /// otherwise the case is about the path rather than about what it asks. One
 /// function rather than a name per caller, so the files asking cannot drift into
 /// asking under different options.
-#[allow(dead_code)]
 pub(crate) fn theme_import_transform(comments: TestComments) -> impl Pass {
   theme_import_transform_with(comments, |b| b)
 }
@@ -210,7 +213,6 @@ pub(crate) fn theme_import_transform(comments: TestComments) -> impl Pass {
 /// For a case that needs the same module resolution and runtime injection but
 /// differs in one setting -- media query ordering, say -- so that the shared
 /// half stays in one place and the difference is the only thing the test says.
-#[allow(dead_code)]
 pub(crate) fn theme_import_transform_with<F>(comments: TestComments, customize: F) -> impl Pass
 where
   F: FnOnce(TestBuilder) -> TestBuilder,
@@ -229,7 +231,6 @@ where
 /// For the cases that measure how deep a fold can go: the shipped default is
 /// sized for hand-written styles, and a test that walks hundreds of levels has
 /// to say so rather than quietly depend on the default being generous.
-#[allow(dead_code)]
 pub(crate) fn deep_theme_import_transform(comments: TestComments, depth: usize) -> impl Pass {
   build_test_transform(comments, move |b| {
     b.with_filename(FileName::Real("MyComponent.js".into()))
@@ -245,7 +246,6 @@ pub(crate) fn deep_theme_import_transform(comments: TestComments, depth: usize) 
 /// `*.stylex.js` refuses for the filename before the value under test is ever
 /// read -- which is how a value question comes to be measured as a path
 /// question.
-#[allow(dead_code)]
 pub(crate) fn theme_module_transform(comments: TestComments) -> impl Pass {
   build_test_transform(comments, |b| {
     b.with_filename(FileName::Real("vars.stylex.js".into()))
@@ -262,7 +262,6 @@ pub(crate) fn theme_module_transform(comments: TestComments) -> impl Pass {
 /// upstream was measured to produce. Kept here rather than copied per file so
 /// they cannot drift into compiling under different options and reporting the
 /// difference as a divergence in the value under test.
-#[allow(dead_code)]
 pub(crate) fn fold_module(input: &str) -> String {
   stringify_js(input, ts_syntax(), |tr| {
     theme_import_transform(tr.comments.clone())
@@ -276,7 +275,6 @@ pub(crate) fn fold_module(input: &str) -> String {
 /// rule — read once here rather than per file, so two files whose subject is the
 /// same fold cannot come to assert it differently.
 #[track_caller]
-#[allow(dead_code)]
 pub(crate) fn assert_folds(decls: &str, body: &str, rule: &str) {
   assert_folds_with(decls, body, rule, "", fold_module);
 }
@@ -288,7 +286,6 @@ pub(crate) fn assert_folds(decls: &str, body: &str, rule: &str) {
 /// else about a fold case is the same, which is why this is one function rather
 /// than a second copy of it.
 #[track_caller]
-#[allow(dead_code)]
 pub(crate) fn assert_folds_with(
   decls: &str,
   body: &str,
@@ -316,7 +313,6 @@ pub(crate) fn assert_folds_with(
 /// about which rule fired when a file has several; this reads the panic's own
 /// message, so a list of refusals stays a list.
 #[track_caller]
-#[allow(dead_code)]
 pub(crate) fn assert_refuses(decls: &str, body: &str, sentence: &str) {
   assert_refuses_under(decls, body, sentence, fold_module);
 }
@@ -328,7 +324,6 @@ pub(crate) fn assert_refuses(decls: &str, body: &str, sentence: &str) {
 /// else about a refusal case is the same, which is why this is one function
 /// rather than a second copy of it.
 #[track_caller]
-#[allow(dead_code)]
 pub(crate) fn assert_refuses_under(
   decls: &str,
   body: &str,
@@ -370,7 +365,6 @@ pub(crate) fn assert_refuses_under(
 /// than assert the default from the inside, and two files now have that subject --
 /// a string the evaluator grows and the join an array's `ToString` performs -- so
 /// the compile step lives here rather than once per file.
-#[allow(dead_code)]
 pub(crate) fn fold_module_under(input: &str, characters: usize) -> String {
   stringify_js(input, ts_syntax(), move |tr| {
     theme_import_transform_with(tr.comments.clone(), move |builder| {
@@ -381,7 +375,6 @@ pub(crate) fn fold_module_under(input: &str, characters: usize) -> String {
 
 /// The rule `body` is expected to emit under a character ceiling of `characters`.
 #[track_caller]
-#[allow(dead_code)]
 pub(crate) fn assert_folds_under(decls: &str, body: &str, rule: &str, characters: usize) {
   assert_folds_with(
     decls,
@@ -399,7 +392,6 @@ pub(crate) fn assert_folds_under(decls: &str, body: &str, rule: &str, characters
 /// case is about a value written out. A file whose subject is the *shape* of
 /// the create call rather than one style's value writes its own, since this
 /// one fixes the style name.
-#[allow(dead_code)]
 pub(crate) fn base_style_module(decls: &str, body: &str) -> String {
   format!(
     r#"

@@ -1,8 +1,9 @@
+use super::super::engine_fold::escaping_property_named;
 use super::super::*;
 use stylex_ast::ast::convertors::{
   atom_utf16_length, convert_member_prop_to_string, normalize_expr,
 };
-use stylex_constants::constants::evaluation_errors::unreadable_index;
+use stylex_constants::constants::evaluation_errors::{escaping_property, unreadable_index};
 use swc_core::ecma::ast::MemberExpr;
 
 /// The one property a string or an array answers by counting.
@@ -261,6 +262,16 @@ pub(in super::super) fn evaluate(
 ) -> Option<EvaluateResultValue> {
   let path = Expr::Member(member.clone());
   let path = &path;
+
+  // A read that walks off the value onto the language's function graph, refused
+  // here as well as inside a fold: the rule is about the property alone, so a
+  // read with no call around it is no safer than one with. Answered before the
+  // receiver is evaluated, for the reason the fold's own walk answers it first —
+  // the name decides it, and no receiver could make it safe.
+  if let Some(escaping) = escaping_property_named(&member.prop) {
+    return deopt(path, state, &escaping_property(escaping));
+  }
+
   let parent_is_call_expr = traversal_state.is_member_call_callee(member);
 
   let evaluated_value = if parent_is_call_expr {

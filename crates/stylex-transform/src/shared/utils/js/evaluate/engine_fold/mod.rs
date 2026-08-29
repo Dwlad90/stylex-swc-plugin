@@ -73,7 +73,7 @@ use std::borrow::Cow;
 use boa_engine::JsValue;
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{CallExpr, Expr},
+  ecma::ast::{CallExpr, Expr, Lit, MemberProp},
 };
 
 use stylex_constants::constants::evaluation_errors::{
@@ -196,6 +196,51 @@ impl Totals {
 /// them reaching past the helper.
 fn lists(list: &[&str], name: &str) -> bool {
   list.contains(&name)
+}
+
+/// Property names that walk off the value that was written and onto the
+/// language's function graph.
+///
+/// `constructor` on a literal is `String`, whose own `constructor` is
+/// `Function`, which compiles a string into a function. So
+/// `"".constructor.constructor("return Date.now()").call()` is a chain every
+/// other rule admits — two named property reads on a literal, then a call —
+/// whose answer is a different number on every build, and whose body can assign
+/// to `String.prototype` in an engine every later fold shares. `call`, `apply`
+/// and `bind` are what turn an unapplied function back into a call, so they are
+/// refused with it.
+///
+/// Four names and not five: `__proto__` reaches the same prototype and is left
+/// out, because the step *after* it is one of these four. `s.__proto__` alone
+/// holds nothing a stylesheet can use, and `s.__proto__.constructor` is refused
+/// here as `s.constructor` is -- so the chain is cut either way, and the list
+/// stays the set of reads that reach a callable in one step.
+pub(super) const ESCAPING_PROPERTIES: [&str; 4] = ["constructor", "call", "apply", "bind"];
+
+/// The escaping property a read spells, or `None` where it spells some other
+/// property.
+///
+/// Shared with the dispatch below the fold, because a read of one of these
+/// names is refused whether or not a call is around it: `s.constructor.name` is
+/// no more foldable than `s.constructor.constructor('…')()`, and an author who
+/// wrote the first would otherwise be told only that a property could not be
+/// determined.
+///
+/// A key written as a string is answered too, because `x['constructor']` spells
+/// the read `x.constructor` spells. A key whose value cannot be read here is
+/// not one of these: what such a read can reach is a function, which is refused
+/// on the way out and cannot be applied on the way in.
+pub(super) fn escaping_property_named(prop: &MemberProp) -> Option<&str> {
+  let name = match prop {
+    MemberProp::Ident(name) => name.sym.as_str(),
+    MemberProp::Computed(key) => match key.expr.as_ref() {
+      Expr::Lit(Lit::Str(text)) => text.value.as_str()?,
+      _ => return None,
+    },
+    MemberProp::PrivateName(_) => return None,
+  };
+
+  lists(&ESCAPING_PROPERTIES, name).then_some(name)
 }
 
 /// The words a [refused fold](../../../../../CONTEXT.md) hands the caller,
@@ -472,3 +517,7 @@ fn apply(
     .call(&JsValue::undefined(), arguments, &mut engine.context)
     .map_err(|error| threw(method, &error))
 }
+
+#[cfg(test)]
+#[path = "tests/escaping_property_tests.rs"]
+mod escaping_property_tests;

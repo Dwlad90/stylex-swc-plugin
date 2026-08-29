@@ -32,7 +32,7 @@ use stylex_utils::swc::get_stmt_node_kind;
 use super::amplification::EntryAmplifier;
 use super::engine::read;
 use super::transport::{Crossing, Transport};
-use super::{Ceilings, Decline, Depth, lists};
+use super::{Ceilings, Decline, Depth, ESCAPING_PROPERTIES, escaping_property_named, lists};
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
@@ -67,19 +67,6 @@ const LOCALE_SENSITIVE_METHODS: [&str; 4] = [
   "toLocaleUpperCase",
   "toLocaleString",
 ];
-
-/// Property names that walk off the value that was written and onto the
-/// language's function graph.
-///
-/// `constructor` on a literal is `String`, whose own `constructor` is
-/// `Function`, which compiles a string into a function. So
-/// `"".constructor.constructor("return Date.now()").call()` is a chain every
-/// other rule here admits — two named property reads on a literal, then a call
-/// — whose answer is a different number on every build, and whose body can
-/// assign to `String.prototype` in an engine every later fold shares. `call`,
-/// `apply` and `bind` are what turn an unapplied function back into a call, so
-/// they are refused with it.
-const ESCAPING_PROPERTIES: [&str; 4] = ["constructor", "call", "apply", "bind"];
 
 /// Where a bare identifier in an expression is allowed to get its value from.
 #[derive(Clone, Copy)]
@@ -800,31 +787,22 @@ impl<'r> Walk<'_, 'r> {
         // walks only the receiver through this.
         self.reader.read_a_property_as_a_value = true;
 
+        if let Some(escaping) = escaping_property_named(prop) {
+          return Err(Decline::rule(escaping_property(escaping)));
+        }
+
         match prop {
-          MemberProp::Ident(name) => {
-            if lists(&ESCAPING_PROPERTIES, &name.sym) {
-              return Err(Decline::rule(escaping_property(&name.sym)));
-            }
-          },
+          // A named read has nothing left to walk: the name is the whole of it,
+          // and the rule above is what reads it.
+          MemberProp::Ident(_) => {},
           // A computed key is a value in its own right, so it is walked as one.
-          // The escaping-property rule is applied to a key written as a string,
-          // because `x['constructor']` spells the read `x.constructor` spells.
           //
           // A key whose value the guard cannot read is still admitted, and that
           // is a boundary rather than a hole: what such a read can reach is a
           // function, which is refused on the way out and cannot be applied on
           // the way in — a call whose method name is computed is not a candidate
           // at all, so there is no step from the function to its result.
-          MemberProp::Computed(key) => {
-            if let Expr::Lit(Lit::Str(name)) = key.expr.as_ref()
-              && let Some(name) = name.value.as_str()
-              && lists(&ESCAPING_PROPERTIES, name)
-            {
-              return Err(Decline::rule(escaping_property(name)));
-            }
-
-            self.under(inner).admit_value(&key.expr)?;
-          },
+          MemberProp::Computed(key) => self.under(inner).admit_value(&key.expr)?,
           // A private name belongs to a class body, which no value a fold carries
           // has.
           MemberProp::PrivateName(_) => return Err(Decline::NotACandidate),

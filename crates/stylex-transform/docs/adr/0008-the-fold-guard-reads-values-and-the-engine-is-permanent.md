@@ -203,6 +203,31 @@ Four categories survive in this effort, and they map onto those kinds:
    graph, where `Function` compiles a string into a body that answers differently
    on every build and can write to a prototype the next fold reads.
 
+   **The rule applies to a read with no call around it**, which is the one part
+   of it that changed after the row was written. `s.constructor.name` used to
+   answer `Could not determine the property being accessed.` one property later,
+   which names the syntax rather than the reason; and `s.constructor` used to
+   fold to `undefined`, which is a quietly wrong value of exactly the kind the
+   fold exists to prevent — a string's `constructor` is `String`. Both are now
+   the escaping-property refusal, and so are the bare `call`, `apply` and `bind`
+   reads that used to answer `undefined` beside them: the rule is about the four
+   names rather than about one of them, and leaving three folding to a wrong
+   value would be a table of one.
+
+   It costs two divergences beyond the row. A read reaching the prototype now
+   refuses where upstream folds it — `s.constructor.name` is `"String"` there —
+   and so does a receiver carrying one of the names as an _own_ property, where
+   upstream folds `({ constructor: 'red' }).constructor` to `red`. The guard
+   already refused that same own-property read with a call on the end of it, so
+   the second is a parting between the two compilers rather than between this
+   compiler's two paths. Both go the safe way: a refusal stops a build where a
+   wrong fold names a class the other build never defines.
+
+   Four names and not five. `__proto__` reaches the same prototype and is left
+   out, because the step after it is one of these four: `s.__proto__` alone
+   holds nothing a stylesheet can use, and `s.__proto__.constructor` is refused
+   exactly as `s.constructor` is, so the chain is cut either way.
+
 **The spec's "one category" claim is therefore amended to four.** It was written
 before the value bridge and the allocation bound existed as they now do, and it
 is the count rather than the reasoning that was wrong: each of the four carries

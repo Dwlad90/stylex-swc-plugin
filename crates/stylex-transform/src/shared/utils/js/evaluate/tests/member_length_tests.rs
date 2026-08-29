@@ -239,7 +239,6 @@ fn a_property_a_string_does_not_carry_answers_undefined() {
     "\"abc\".Length",
     "\"abc\".LENGTH",
     "\"abc\".toUpperCase",
-    "\"abc\".constructor",
     "\"abc\".__proto__",
     "\"abc\"[\"foo\"]",
   ] {
@@ -248,6 +247,39 @@ fn a_property_a_string_does_not_carry_answers_undefined() {
 
   // The answer exists so a fallback folds rather than reaching the runtime.
   assert_folds_to_string("\"abc\".foo ?? \"red\"", "red");
+}
+
+/// A key no compile-time text can hold is not one of these names, so the rule
+/// does not fire and the read is answered by whatever reads an unreadable key.
+/// A lone surrogate is the one such key: it is well-formed UTF-16 and not
+/// well-formed Unicode, so no Rust string carries it.
+#[test]
+fn a_key_no_text_can_hold_is_not_read_as_an_escaping_property() {
+  assert_deopts("\"abc\"[\"\\u{D800}\"]");
+}
+
+/// The four reads that are not "a property the receiver does not carry" at all.
+/// `"abc".constructor` is `String` in the language, so `undefined` would be a
+/// quietly wrong answer of exactly the kind this file exists to prevent — and
+/// the value it leads to compiles source text into a function. Refused, in both
+/// spellings, on both receivers, with or without a call around it.
+#[test]
+fn a_read_that_escapes_the_value_refuses_rather_than_answering_undefined() {
+  for (source, property) in [
+    ("\"abc\".constructor", "constructor"),
+    ("\"abc\"[\"constructor\"]", "constructor"),
+    ("\"abc\".call", "call"),
+    ("\"abc\".apply", "apply"),
+    ("\"abc\".bind", "bind"),
+    ("[1, 2].constructor", "constructor"),
+    ("[1, 2][\"bind\"]", "bind"),
+    ("({ a: 1 }).constructor", "constructor"),
+  ] {
+    assert_deopt_reason_contains(
+      source,
+      &format!("Cannot fold a read of '{}' at compile time.", property),
+    );
+  }
 }
 
 /// An index into a string refuses, and deliberately. The reference
@@ -345,7 +377,6 @@ fn a_property_an_array_does_not_carry_answers_undefined() {
     "[1, 2].foo",
     "[1, 2].size",
     "[1, 2].reverse",
-    "[1, 2].constructor",
     "[1, 2][\"foo\"]",
     "Object.keys({ a: 1 }).foo",
   ] {

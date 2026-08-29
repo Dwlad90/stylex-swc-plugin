@@ -45,6 +45,7 @@
     }
   },
   "dependencies": {
+    "@stylexswc/plugin-shared": "catalog:internal",
     "@stylexswc/rs-compiler": "catalog:internal",
     "@stylexswc/rspack-plugin": "catalog:internal",
     "@stylexswc/turbopack-plugin": "catalog:internal",

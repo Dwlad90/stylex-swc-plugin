@@ -14,6 +14,8 @@ import type { NextConfig, WebpackConfigContext } from 'next/dist/server/config-s
 import type { Processor as PostCSSProcessor } from 'postcss';
 import type webpack from 'webpack';
 
+import { exportAsCommonJs } from './cjs-interop';
+
 /** Next.js' precompilation add "__esModule: true", but doesn't add an actual default exports */
 const NextMiniCssExtractPlugin: (typeof import('next/dist/build/webpack/plugins/mini-css-extract-plugin'))['default'] =
   nextMiniCssExtractPluginExports;
@@ -308,5 +310,4 @@ const withStyleX =
 
 export default withStyleX;
 
-module.exports = withStyleX;
-module.exports.default = withStyleX;
+exportAsCommonJs(typeof module === 'undefined' ? undefined : module, withStyleX);

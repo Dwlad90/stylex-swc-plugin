@@ -16,6 +16,8 @@ import { getRspackCore } from 'next/dist/shared/lib/get-rspack';
 import type { Processor as PostCSSProcessor } from 'postcss';
 import type webpack from 'webpack';
 
+import { exportAsCommonJs } from './cjs-interop';
+
 /** Rspack-only; absent from the webpack `Configuration` type Next.js hands us */
 type RspackPersistentCache = false | { type: 'persistent' | 'memory'; [key: string]: unknown };
 
@@ -505,10 +507,4 @@ const withStyleX =
 
 export default withStyleX;
 
-const moduleExportsDescriptor =
-  typeof module === 'undefined' ? undefined : Object.getOwnPropertyDescriptor(module, 'exports');
-
-if (moduleExportsDescriptor?.writable) {
-  module.exports = withStyleX;
-  module.exports.default = withStyleX;
-}
+exportAsCommonJs(typeof module === 'undefined' ? undefined : module, withStyleX);

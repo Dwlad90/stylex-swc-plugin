@@ -2343,6 +2343,9 @@ importers:
 
   packages/nextjs-plugin:
     dependencies:
+      '@stylexswc/plugin-shared':
+        specifier: catalog:internal
+        version: link:../plugin-shared
       '@stylexswc/rs-compiler':
         specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
@@ -2432,6 +2435,9 @@ importers:
       '@stylexjs/babel-plugin':
         specifier: catalog:runtime
         version: 0.19.0(supports-color@8.1.1)
+      '@stylexswc/plugin-shared':
+        specifier: catalog:internal
+        version: link:../plugin-shared
       '@stylexswc/rs-compiler':
         specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
@@ -2561,6 +2567,9 @@ importers:
       '@stylexjs/babel-plugin':
         specifier: catalog:runtime
         version: 0.19.0(supports-color@8.1.1)
+      '@stylexswc/plugin-shared':
+        specifier: catalog:internal
+        version: link:../plugin-shared
       '@stylexswc/rs-compiler':
         specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler

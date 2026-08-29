@@ -14,9 +14,11 @@
 /// commented out below -- and does not reach it from here; the reference chain
 /// refuses a default specifier with this one instead, and the two compilers
 /// agreeing on the text is what makes a diagnostic portable between them.
-pub static IMPORT_FILE_EVAL_ERROR: &str = r#"There was an error when attempting to evaluate the imported file.
-Please ensure that the imported file is self-contained and does not rely on dynamic behavior.
-"#;
+pub static IMPORT_FILE_EVAL_ERROR: &str = concat!(
+  "There was an error when attempting to evaluate the imported file.\n",
+  "Please ensure that the imported file is self-contained and does not rely ",
+  "on dynamic behavior.\n"
+);
 
 // pub static DEFAULT_IMPORT: &str = r#"Error: Cannot use default imports.
 
@@ -74,12 +76,6 @@ pub static OBJECT_METHOD: &str = "Unsupported object method.\n\n";
 /// bound.
 pub static FUNCTION_BODY_WITHOUT_VALUE: &str = "The function's body has no compile-time value.\n\n";
 
-/// An argument evaluated to no value at all while the evaluation stayed
-/// confident, so the arguments that follow it no longer line up with what was
-/// written. Refusing beats folding a shifted argument list.
-pub static ARGUMENT_WITHOUT_VALUE: &str =
-  "An argument has no compile-time value.\nEvery argument must evaluate to a static value.\n\n";
-
 /// A global called as a function was given a value the bridge cannot carry into
 /// the engine — the environment object, a theme reference that has not resolved,
 /// or a name with no compile-time value at all.
@@ -107,7 +103,10 @@ pub fn uncoercible_value(callee: &str) -> String {
 /// can still be an allocation the compiler does not survive.
 pub fn array_length_too_large(limit: u64) -> String {
   format!(
-    "Array length is too large to evaluate at compile time.\nAt most {} elements are supported.\n\n",
+    concat!(
+      "Array length is too large to evaluate at compile time.\n",
+      "At most {} elements are supported.\n\n"
+    ),
     limit
   )
 }
@@ -244,7 +243,10 @@ pub fn unfoldable_static(callee: &str, method: &str) -> String {
 /// different shape and folds in both.
 pub fn numeric_literal_receiver(method: &str) -> String {
   format!(
-    "Cannot call '{}' on a number literal.\nOnly a number a fold produced can be a method receiver.\n\n",
+    concat!(
+      "Cannot call '{}' on a number literal.\n",
+      "Only a number a fold produced can be a method receiver.\n\n"
+    ),
     method
   )
 }
@@ -281,7 +283,10 @@ pub fn unbounded_amplified_length(method: &str, limit: u64) -> String {
     "string",
     method,
     &format!(
-      "Its length must resolve to a number of at most {}, on a receiver whose own length can be read.",
+      concat!(
+        "Its length must resolve to a number of at most {}, ",
+        "on a receiver whose own length can be read."
+      ),
       limit
     ),
   )
@@ -299,7 +304,10 @@ pub fn unbounded_declared_length(call: &str) -> String {
   cannot_bound(
     "array",
     call,
-    "Write the elements out, or keep the rest of the expression foldable so its length can be checked.",
+    concat!(
+      "Write the elements out, or keep the rest of the expression foldable ",
+      "so its length can be checked."
+    ),
   )
 }
 
@@ -360,7 +368,10 @@ pub fn amplified_length_too_large(
 fn per_element(built: u64, repeats: u64, unit: &str) -> String {
   match repeats > 1 {
     true => format!(
-      " once per element of the receiver it is written inside, which is {} evaluations and {} {} in all",
+      concat!(
+        " once per element of the receiver it is written inside, ",
+        "which is {} evaluations and {} {} in all"
+      ),
       repeats,
       built.saturating_mul(repeats),
       unit
@@ -422,7 +433,11 @@ pub fn object_size_too_large(limit: u64) -> String {
 /// whose value is `object` that theirs is not a plain one.
 pub fn unfoldable_fold_result(kind: &str) -> String {
   format!(
-    "Cannot carry a folded {} back from the engine.\nOnly strings, numbers, booleans, null, undefined, arrays and plain objects can be folded.\n\n",
+    concat!(
+      "Cannot carry a folded {} back from the engine.\n",
+      "Only strings, numbers, booleans, null, undefined, arrays and plain objects ",
+      "can be folded.\n\n"
+    ),
     kind
   )
 }
@@ -493,8 +508,12 @@ pub fn escaping_property(property: &str) -> String {
 /// the string written out, and an array of a declared length has its elements.
 pub fn amplification_inside_a_callback(built: &str, call: &str) -> String {
   format!(
-    "Cannot bound the {} '{}' would build inside a callback.\n\
-     The callback's receiver holds an element count that cannot be read here, so a length written into the source bounds one evaluation rather than the call. Write the receiver's elements out, or write the value out instead.\n\n",
+    concat!(
+      "Cannot bound the {} '{}' would build inside a callback.\n",
+      "The callback's receiver holds an element count that cannot be read here, ",
+      "so a length written into the source bounds one evaluation rather than the ",
+      "call. Write the receiver's elements out, or write the value out instead.\n\n"
+    ),
     built, call
   )
 }
@@ -604,7 +623,10 @@ pub fn bound_value_too_large(name: &str, limit: u64) -> String {
 /// belongs to what the name holds, and the same call on a smaller value folds.
 pub fn bound_value_has_too_many_entries(name: &str, limit: u64) -> String {
   format!(
-    "Cannot carry the value of '{}' into a fold.\nAt most {} elements and properties are supported.\n\n",
+    concat!(
+      "Cannot carry the value of '{}' into a fold.\n",
+      "At most {} elements and properties are supported.\n\n"
+    ),
     name, limit
   )
 }

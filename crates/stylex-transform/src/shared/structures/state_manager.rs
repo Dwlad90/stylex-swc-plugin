@@ -648,18 +648,28 @@ pub struct StateManager {
   /// because `declarations` is append-only -- nothing removes, reorders or
   /// truncates it, and the in-place edits reach `init` rather than `name`, so a
   /// recorded position stays the position of the same binding.
-  declaration_index: FxHashMap<Id, usize>,
+  ///
+  /// Shared rather than copied -- see [`Self::declaration_call_index`].
+  declaration_index: Rc<FxHashMap<Id, usize>>,
   /// Positions in [`Self::declarations`] of the declarators initialised by a
   /// given call, so pinning a call to its declarator is a hash probe rather
   /// than a walk of every declarator in the module comparing whole call
   /// subtrees. Maintained by [`Self::push_declaration`] and
   /// [`Self::set_declaration_init`], which are the only writers of the list and
   /// of a declarator's initializer.
-  declaration_call_index: CandidateIndex<u128, usize>,
+  ///
+  /// Behind an `Rc` for the reason [`Self::binding_reassignments`] is: a dynamic
+  /// style's callback clones the whole state manager once per invocation, and
+  /// six deep-copied maps on that path is what the note there exists to prevent.
+  /// Copy-on-write rather than read-only, because these are still written after
+  /// the pre-scan -- the copy happens only where a clone records something, and
+  /// a clone made to fold a callback body records nothing.
+  declaration_call_index: Rc<CandidateIndex<u128, usize>>,
   /// Positions in [`Self::declarations`] of the declarators written at a given
   /// source position, which is what [`Self::holds_declaration`] narrows on.
   /// Maintained by [`Self::push_declaration`], the only writer of the list.
-  declaration_span_index: CandidateIndex<Span, usize>,
+  /// Shared rather than copied -- see [`Self::declaration_call_index`].
+  declaration_span_index: Rc<CandidateIndex<Span, usize>>,
   /// Bindings rebound after their declaration — an assignment, update,
   /// destructuring or loop target. The reference implementation's constant
   /// violations, probed as its own step of the reference-resolution chain.
@@ -715,7 +725,8 @@ pub struct StateManager {
   /// be a whole module's styles in one array. Keying those too cost about 50 ms
   /// on a 7.3 MB file to serve one lookup [`Self::top_level_name_index`]
   /// answers without a walk at all.
-  top_level_call_index: CandidateIndex<u128, usize>,
+  /// Shared rather than copied -- see [`Self::declaration_call_index`].
+  top_level_call_index: Rc<CandidateIndex<u128, usize>>,
   /// Positions in [`Self::top_level_expressions`] of the entries bound to each
   /// name. Maintained by [`Self::push_top_level_expression`].
   ///
@@ -723,7 +734,8 @@ pub struct StateManager {
   /// permits redeclaration: `var styles = …; var styles = …;` records two
   /// entries under one name, and keeping only the first would answer `None` for
   /// the second where the walk this replaces found it.
-  top_level_name_index: CandidateIndex<Atom, usize>,
+  /// Shared rather than copied -- see [`Self::declaration_call_index`].
+  top_level_name_index: Rc<CandidateIndex<Atom, usize>>,
   /// Spans of the calls that initialise a top-level declarator bound to a
   /// pattern rather than a name — `export const { foo } = stylex.create(…);`.
   /// [`Self::top_level_expressions`] is keyed by the exported name and so has
@@ -799,7 +811,8 @@ pub struct StateManager {
   /// call. Maintained by [`Self::insert_style_var`] and
   /// [`Self::set_style_var_init`], for the reason
   /// [`Self::declaration_call_index`] is.
-  style_var_call_index: CandidateIndex<u128, String>,
+  /// Shared rather than copied -- see [`Self::declaration_call_index`].
+  style_var_call_index: Rc<CandidateIndex<u128, String>>,
 
   /// Map of local identifier -> imported name for `@stylexjs/atoms` imports.
   /// The key includes `SyntaxContext`, so shadowed bindings with the same symbol
@@ -862,7 +875,8 @@ pub struct StateManager {
   /// Keyed by the local binding's `Id` and confirmed with `eq_ignore_span` on
   /// read, for the reason [`Self::declaration_call_index`] is: the key narrows
   /// and equality decides.
-  top_import_index: CandidateIndex<Id, (usize, usize)>,
+  /// Shared rather than copied -- see [`Self::declaration_call_index`].
+  top_import_index: Rc<CandidateIndex<Id, (usize, usize)>>,
   pub(crate) named_exports: FxHashSet<NamedExport>,
 
   pub cycle: TransformationCycle,
@@ -888,7 +902,7 @@ impl StateManager {
       local_rebinding_scopes: FxHashMap::default(),
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
-      style_var_call_index: CandidateIndex::default(),
+      style_var_call_index: Rc::default(),
       atom_imports: FxHashMap::default(),
       dynamic_style_namespaces: FxHashMap::default(),
       style_vars_to_keep: IndexSet::default(),
@@ -905,21 +919,21 @@ impl StateManager {
       module_source: ModuleSourceState::default(),
 
       top_imports: vec![],
-      top_import_index: CandidateIndex::default(),
+      top_import_index: Rc::default(),
       named_exports: FxHashSet::default(),
 
       declarations: vec![],
-      declaration_index: FxHashMap::default(),
-      declaration_call_index: CandidateIndex::default(),
-      declaration_span_index: CandidateIndex::default(),
+      declaration_index: Rc::default(),
+      declaration_call_index: Rc::default(),
+      declaration_span_index: Rc::default(),
       declarations_state: DeclarationState::default(),
       binding_reassignments: Rc::default(),
       binding_mutations: Rc::default(),
       binding_deep_mutations: Rc::default(),
       declared_bindings: Rc::default(),
       top_level_expressions: vec![],
-      top_level_call_index: CandidateIndex::default(),
-      top_level_name_index: CandidateIndex::default(),
+      top_level_call_index: Rc::default(),
+      top_level_name_index: Rc::default(),
       pattern_bound_top_level_calls: FxHashSet::default(),
       call_expressions: CallExpressionState::default(),
       jsx_spread_attr_exprs_map: FxHashMap::default(),
@@ -1069,21 +1083,17 @@ impl StateManager {
     let position = self.declarations.len();
 
     if let Pat::Ident(binding) = &declarator.name {
-      self
-        .declaration_index
+      Rc::make_mut(&mut self.declaration_index)
         .entry(binding.id.to_id())
         .or_insert(position);
     }
 
     if let Some(Expr::Call(call)) = declarator.init.as_deref() {
-      self
-        .declaration_call_index
+      Rc::make_mut(&mut self.declaration_call_index)
         .record(stable_hash_unspanned_call(call), position);
     }
 
-    self
-      .declaration_span_index
-      .record(declarator.span, position);
+    Rc::make_mut(&mut self.declaration_span_index).record(declarator.span, position);
 
     self.declarations.push(declarator);
   }
@@ -1143,9 +1153,11 @@ impl StateManager {
     let recorded = call_key_of(Some(&init));
     let replaced = declarator.init.replace(Box::new(init));
 
-    self
-      .declaration_call_index
-      .move_entry(call_key_of(replaced.as_deref()), recorded, position);
+    Rc::make_mut(&mut self.declaration_call_index).move_entry(
+      call_key_of(replaced.as_deref()),
+      recorded,
+      position,
+    );
   }
 
   /// Appends an import declaration and records where each name it binds went.
@@ -1156,7 +1168,7 @@ impl StateManager {
     let position = self.top_imports.len();
 
     for (specifier_position, specifier) in import.specifiers.iter().enumerate() {
-      self.top_import_index.record(
+      Rc::make_mut(&mut self.top_import_index).record(
         local_binding_of(specifier).to_id(),
         (position, specifier_position),
       );
@@ -1232,13 +1244,12 @@ impl StateManager {
     let position = self.top_level_expressions.len();
 
     if let Expr::Call(call) = &expression.1 {
-      self
-        .top_level_call_index
+      Rc::make_mut(&mut self.top_level_call_index)
         .record(stable_hash_unspanned_call(call), position);
     }
 
     if let Some(name) = &expression.2 {
-      self.top_level_name_index.record(name.clone(), position);
+      Rc::make_mut(&mut self.top_level_name_index).record(name.clone(), position);
     }
 
     self.top_level_expressions.push(expression);
@@ -1258,9 +1269,11 @@ impl StateManager {
 
     // The name an entry binds does not change with its expression, so only the
     // call index needs repairing here.
-    self
-      .top_level_call_index
-      .move_entry(call_key_of(Some(&replaced)), recorded, position);
+    Rc::make_mut(&mut self.top_level_call_index).move_entry(
+      call_key_of(Some(&replaced)),
+      recorded,
+      position,
+    );
   }
 
   /// Records the declarator `name` is bound by, and the call it is initialised
@@ -1270,7 +1283,7 @@ impl StateManager {
     let recorded = call_key_of(declarator.init.as_deref());
     let replaced = self.style_vars.insert(name.clone(), declarator);
 
-    self.style_var_call_index.move_entry(
+    Rc::make_mut(&mut self.style_var_call_index).move_entry(
       call_key_of(replaced.as_ref().and_then(|decl| decl.init.as_deref())),
       recorded,
       name,
@@ -1288,9 +1301,11 @@ impl StateManager {
     let recorded = call_key_of(Some(&init));
     let replaced = declarator.init.replace(Box::new(init));
 
-    self
-      .style_var_call_index
-      .move_entry(call_key_of(replaced.as_deref()), recorded, name);
+    Rc::make_mut(&mut self.style_var_call_index).move_entry(
+      call_key_of(replaced.as_deref()),
+      recorded,
+      name,
+    );
   }
 
   /// The declarator binding `ident`, by hash probe rather than by scan.

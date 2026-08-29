@@ -33,7 +33,7 @@ Add the plugin to `postcss.config.js`:
 module.exports = {
   plugins: {
     '@stylexswc/postcss-plugin': {
-      include: ['src/**/*.{js,jsx,ts,tsx}'],
+      include: ['src/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'],
     },
     autoprefixer: {},
   },

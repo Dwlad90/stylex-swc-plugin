@@ -2,7 +2,7 @@ module.exports = {
   plugins: {
     '@stylexswc/postcss-plugin': {
       include: [
-        './src/**/*.{js,jsx,ts,tsx}',
+        './src/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}',
         // any other files that should be included
         // this should include NPM dependencies that use StyleX
       ],

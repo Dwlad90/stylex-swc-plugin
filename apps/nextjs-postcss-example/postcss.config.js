@@ -34,7 +34,13 @@ const includePaths = ['@stylexjs/open-props', '@stylexswc/design-system'].flatMa
 module.exports = {
   plugins: {
     '@stylexswc/postcss-plugin': {
-      include: ['app/**/*.{js,jsx,ts,tsx}', 'components/**/*.{js,jsx,ts,tsx}', ...includePaths],
+      // The same eight extensions that the bundler plugins transform. CSS
+      // discovery must not scan less than the transform compiles.
+      include: [
+        'app/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}',
+        'components/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}',
+        ...includePaths,
+      ],
       useCSSLayers: true,
       rsOptions: {
         aliases: {

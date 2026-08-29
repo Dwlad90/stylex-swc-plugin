@@ -22,6 +22,7 @@
     "@stylexjs/stylex": "catalog:runtime",
     "@stylexswc/design-system": "catalog:internal",
     "@stylexswc/nextjs-plugin": "catalog:internal",
+    "@stylexswc/plugin-shared": "catalog:internal",
     "@stylexswc/postcss-plugin": "catalog:internal",
     "next": "catalog:frameworks",
     "react": "catalog:frameworks",

@@ -903,6 +903,9 @@ importers:
       '@stylexswc/nextjs-plugin':
         specifier: catalog:internal
         version: link:../../packages/nextjs-plugin
+      '@stylexswc/plugin-shared':
+        specifier: catalog:internal
+        version: link:../../packages/plugin-shared
       '@stylexswc/postcss-plugin':
         specifier: catalog:internal
         version: link:../../packages/postcss-plugin
@@ -1067,6 +1070,9 @@ importers:
       '@stylexswc/nextjs-plugin':
         specifier: catalog:internal
         version: link:../../packages/nextjs-plugin
+      '@stylexswc/plugin-shared':
+        specifier: catalog:internal
+        version: link:../../packages/plugin-shared
       '@stylexswc/postcss-plugin':
         specifier: catalog:internal
         version: link:../../packages/postcss-plugin
@@ -1720,6 +1726,9 @@ importers:
       '@stylexswc/playwright':
         specifier: catalog:internal
         version: link:../../packages/playwright
+      '@stylexswc/plugin-shared':
+        specifier: catalog:internal
+        version: link:../../packages/plugin-shared
       '@stylexswc/postcss-plugin':
         specifier: catalog:internal
         version: link:../../packages/postcss-plugin

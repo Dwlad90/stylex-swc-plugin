@@ -20,6 +20,7 @@
     "@playwright/test": "catalog:testing",
     "@pmmmwh/react-refresh-webpack-plugin": "catalog:bundlers",
     "@stylexswc/playwright": "catalog:internal",
+    "@stylexswc/plugin-shared": "catalog:internal",
     "@stylexswc/postcss-plugin": "catalog:internal",
     "@stylexswc/webpack-plugin": "catalog:internal",
     "@swc/core": "catalog:bundlers",

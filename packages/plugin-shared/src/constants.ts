@@ -55,6 +55,24 @@ export const INCLUDE_EXTENSIONS = ['js', 'jsx', 'mjs', 'cjs', 'ts', 'tsx', 'mts'
 export const INCLUDE_REGEXP = new RegExp(`\\.(${INCLUDE_EXTENSIONS.join('|')})$`);
 
 /**
+ * Glob form of `INCLUDE_EXTENSIONS`, built from the list itself. All three
+ * forms therefore always agree.
+ *
+ * CSS discovery and a PostCSS config both scan with a glob. A glob that names
+ * fewer extensions than the bundler plugins compile makes StyleX compile and
+ * the page then get no CSS for it.
+ *
+ * @param dir - directory to scan, such as `src` or `./app`. Give no directory
+ *   to scan from wherever the glob is applied.
+ * @returns a glob that matches every transformable file under `dir`
+ */
+export function buildIncludeGlob(dir?: string): string {
+  const extensions = `**/*.{${INCLUDE_EXTENSIONS.join(',')}}`;
+
+  return dir == null || dir === '' ? extensions : `${dir.replace(/\/+$/, '')}/${extensions}`;
+}
+
+/**
  * Key under which the stylex-loader stores extracted rules on
  * `module.buildInfo`. webpack persists `buildInfo` in its filesystem cache, so
  * rules survive cached rebuilds where the loader doesn't re-run.

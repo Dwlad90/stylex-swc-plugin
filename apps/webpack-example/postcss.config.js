@@ -1,8 +1,10 @@
+const { buildIncludeGlob } = require('@stylexswc/plugin-shared/constants');
+
 module.exports = {
   plugins: {
     '@stylexswc/postcss-plugin': {
       include: [
-        './src/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}',
+        buildIncludeGlob('./src'),
         // any other files that should be included
         // this should include NPM dependencies that use StyleX
       ],

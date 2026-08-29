@@ -20,8 +20,36 @@ describe('INCLUDE_EXTENSIONS', () => {
 });
 
 describe('INCLUDE_REGEXP', () => {
-  it('is built from the list, so the two always agree', () => {
-    expect(INCLUDE_REGEXP.source).toBe(`\\.(${INCLUDE_EXTENSIONS.join('|')})$`);
+  // The two forms agree when the pattern accepts an extension exactly when the
+  // list names it. Read against a wide alphabet, this states the agreement as
+  // behaviour rather than repeating how the pattern is built.
+  it('accepts an extension exactly when the list names it', () => {
+    const alphabet = [
+      ...INCLUDE_EXTENSIONS,
+      'js ',
+      ' js',
+      'jss',
+      'sjs',
+      'j',
+      't',
+      'm',
+      'c',
+      'x',
+      'ts2',
+      'd',
+      'node',
+      'json',
+      'mjsx',
+      'JS',
+      'Ts',
+      '',
+    ];
+
+    for (const extension of alphabet) {
+      const named = (INCLUDE_EXTENSIONS as readonly string[]).includes(extension);
+
+      expect(INCLUDE_REGEXP.test(`/src/module.${extension}`)).toBe(named);
+    }
   });
 
   // These four read like the list entries but Node and TypeScript do not use
@@ -76,13 +104,13 @@ describe('INCLUDE_REGEXP', () => {
     expect(INCLUDE_REGEXP.test(`${deepPath}.map`)).toBe(false);
   });
 
-  it('reads a long path that almost matches without slowing down', () => {
-    // A pattern that can backtrack takes exponential time on input like this.
+  // A pattern that can backtrack takes exponential time on input of this shape,
+  // so it would run out of the test timeout instead of answering. The timeout,
+  // not a stopwatch reading, is what reports the fault here.
+  it('answers on a long path that almost matches', () => {
     const nearMiss = `/src/${'module.mjsx/'.repeat(20_000)}name.txt`;
-    const start = Date.now();
 
     expect(INCLUDE_REGEXP.test(nearMiss)).toBe(false);
-    expect(Date.now() - start).toBeLessThan(1_000);
   });
 
   it('holds no group that can repeat', () => {

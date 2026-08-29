@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { buildIncludeGlob } = require('@stylexswc/plugin-shared/constants');
+
 const projectRoot = __dirname;
 const monorepoRoot = path.join(projectRoot, '../../');
 
@@ -34,13 +36,7 @@ const includePaths = ['@stylexjs/open-props', '@stylexswc/design-system'].flatMa
 module.exports = {
   plugins: {
     '@stylexswc/postcss-plugin': {
-      // The same eight extensions that the bundler plugins transform. CSS
-      // discovery must not scan less than the transform compiles.
-      include: [
-        'app/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}',
-        'components/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}',
-        ...includePaths,
-      ],
+      include: [buildIncludeGlob('app'), buildIncludeGlob('components'), ...includePaths],
       useCSSLayers: true,
       rsOptions: {
         aliases: {

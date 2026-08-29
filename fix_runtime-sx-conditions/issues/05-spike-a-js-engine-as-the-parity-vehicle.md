@@ -394,13 +394,21 @@ Two of its findings were defects rather than notes, and are fixed:
   unicode and escape round-tripping through printed source, mutation at every
   chain position, and engine reuse across fifty folds. 16 tests.
 
-One of its findings is left standing on purpose: `engine_fold_tests`'s
-`the_numeric_edges_fold_as_the_reference_implementation_folds_them` contradicts
+One of its findings was left standing on purpose: `engine_fold_tests`'s
+`the_numeric_edges_fold_as_the_reference_implementation_folds_them` contradicted
 `unsupported_shape_tests::char_code_at_past_the_end_refuses_rather_than_aborting`.
-Both are in the tree, and each says so in its own doc comment. That is the
-parity-versus-useful-refusal choice from §6, and it is issue 06's to make; a
+Both were in the tree, and each said so in its own doc comment. That is the
+parity-versus-useful-refusal choice from §6, and it was issue 06's to make; a
 spike that deleted one side would have hidden the decision it exists to inform.
-The seven pre-existing tests §6 lists still fail for the same reason.
+06 has since made it -- parity, for the reasons recorded there -- so the
+contradiction is gone and the seven tests §6 lists pass again.
+
+Two of §6's seven were not "06's stated goal arriving" after all, and 06 says
+which: `(5).toFixed(2)` folding to `"5.00"` is a receiver kind the reference
+implementation *throws* on, so the fold was a new divergence rather than
+coverage. §8's memory ceiling turned out to need two rules rather than one, and
+a third hazard this spike did not reach -- the engine's parser overflowing on
+deeply nested input -- is recorded there too.
 
 ## Comments
 

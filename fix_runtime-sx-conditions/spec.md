@@ -137,8 +137,13 @@ surrogate still aborts two string folds, which is the panic family 02 closed for
 `evaluate/` reached one layer down in a convertor. It ships no wrong value and
 can ride along with a fix that has to go out quickly.
 
-**Deferred.** Issues 05 and 06, in that order. Not scheduled; 06 does not start
-until 05 answers how.
+**Deferred.** Issues 05 and 06, in that order; both are done. 05 answered how --
+an embedded JavaScript engine rather than a hand-written method table -- and 06
+built it on that answer, so the prototype-surface gap this spec put out of scope
+is closed. What remains out of scope is what 06 pins as deliberate: mutating
+methods, locale-sensitive methods, a length no declaration could use, nesting
+past what the engine's parser survives, and the unpaired surrogate's class name.
+Each has a corpus entry carrying its reason.
 
 ## Non-goals
 

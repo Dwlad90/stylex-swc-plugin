@@ -5,13 +5,21 @@
 //! them — which is why there is no table of conversions here standing in for the
 //! language.
 //!
-//! What is here is the one set of arguments the engine can never be handed. Its
-//! bridge carries JavaScript values, and this compiler has values of its own: a
-//! resolved theme reference, the injected function map, the environment object.
-//! None has a JavaScript form to cross as, so the fold hands the call back and
-//! this answers it — with the same coercions `+` and an interpolation already
-//! use, so a coerced token group cannot come to read one way here and another
-//! there.
+//! What is here is the set of arguments the engine cannot answer for. Its bridge
+//! carries JavaScript values, and this compiler has values of its own. The
+//! injected function map and the environment object have no JavaScript form at
+//! all, so they never cross and every call over one arrives here.
+//!
+//! A resolved theme reference does cross, as the string its own `toString`
+//! answers, so `String(group)` folds in the engine like any other string. What
+//! arrives here is the pair of shapes where that string has lost what the call
+//! needs: an answer that is still an object — `Object(group)` hands its argument
+//! straight back — and an expression reading a property as a value, since a
+//! string has none of the group's members.
+//!
+//! This answers all of them with the same coercions `+` and an interpolation
+//! already use, so a coerced theme reference cannot come to read one way here
+//! and another there.
 //!
 //! Upstream folds every one of these, and a build that refused them would name a
 //! class the other build defines.

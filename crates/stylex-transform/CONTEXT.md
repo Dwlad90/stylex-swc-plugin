@@ -72,13 +72,16 @@ it and the language answers, and a `function Math() {}` changes nothing about
 `Math.max(1, 2)`. `ADR 0008` carries the ruling and the divergence it leaves.
 
 An argument the [transport](#transport) cannot carry hands the call back rather
-than refusing it. Those arguments are this compiler's own values — the
-environment object, a theme reference, the namespace map — which have no
-JavaScript form to cross as, so the engine cannot be the thing that answers for
-them. The [conversion behind the fold](#conversion-behind-the-fold) answers
-instead, through the same coercions `+` and an interpolation use, and raises the
-refusal itself where it cannot — so the fold still owns every such call and the
-sentence is still written in one place.
+than refusing it. Those arguments are this compiler's own values. The
+environment object and the namespace map have no JavaScript form at all, so
+every call over one is handed back. A [theme reference](#theme-reference) does
+cross, as the string its own `toString` answers, so `String(group)` folds in the
+engine — what is handed back is the pair of shapes where that string has lost
+what the call needs: an answer that is still an object, and a property read as a
+value. The [conversion behind the fold](#conversion-behind-the-fold) answers all
+of them instead, through the same coercions `+` and an interpolation use, and
+raises the refusal itself where it cannot — so the fold still owns every such
+call and the sentence is still written in one place.
 _Avoid_: callable global, built-in function, global function, wrapper call
 
 **Engine fold**:
@@ -253,7 +256,8 @@ parameter's default and nothing is passed for it: `['b','a'].map(upper)` is
 handed over as `(upper=(p)=>p.toUpperCase())=>['b','a'].map(upper)`. A default
 is evaluated where the parameter stands, so a name the declaration reads is
 carried ahead of the parameter whose default reads it.
-_Avoid_: injection, substitution, interpolation, binding the engine
+_Avoid_: value bridge, injection, substitution, interpolation, binding the
+engine
 
 **Carried value**:
 A value the bridge copies inward: a string, a number, a boolean, `null`,
@@ -266,10 +270,12 @@ unresolved theme reference, an AST-keyed map — is handed back rather than
 refused, so the dispatch below keeps answering for it. A callback is the
 exception: nothing below the fold carries a function into an evaluation, so a
 name holding one either crosses as its declaration or is refused by a sentence
-naming that binding. A theme reference never crosses at all: what
-resolves it mutates compiler state and happens before the bridge, so the
-dispatch below is what reads it — as the variable-group hash its own `toString`
-answers, or as the `var(--…)` a member of it names.
+naming that binding. A [theme reference](#theme-reference) is the one of this
+compiler's own values that does cross, and only as the string its own `toString`
+answers — the variable-group hash, which is read off the reference itself and
+mutates nothing. A string has none of the group's members, so an expression that
+reads a property off one is handed back instead, and the dispatch below answers
+it as the `var(--…)` that member names.
 
 What a _name_ may hold is narrower than what the bridge carries, and
 deliberately: a number and a boolean cross as an element or a property, where
@@ -672,8 +678,8 @@ because the keys it would need live in the other file -- so the CSS a style
 value needs comes from a _member_ read off it (`zIndex.ten` is
 `var(--x1ew7r74)`), and the group read without one is refused wherever a value
 belongs. Refused, not dropped: answering "no value" there compiled the object as
-if the declaration had not been written. _Avoid_: theme object, vars object,
-defineVars value
+if the declaration had not been written. _Avoid_: token group, theme object,
+vars object, defineVars value
 
 **Import specifier kind**:
 Which of `{ c }`, `c` or `* as c` bound the name a reference reads, answered by

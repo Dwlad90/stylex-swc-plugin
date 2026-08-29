@@ -178,23 +178,41 @@ same thing as a wanted refusal.**
   `maxFoldedEntries` and `maxEvaluationDepth`. These are not divergences in
   behaviour; they are a number a project sets.
 - **Held open.** A gap, with a reason recorded so the harness reports it once
-  rather than nightly, and no argument that it should stay. One row.
+  rather than nightly, and no argument that it should stay. The one row of this
+  kind was the theme reference, and it closed by crossing — so the kind is
+  written down with no occupant, because the next row that needs it should be
+  filed against a name that already exists.
 
 Four categories survive in this effort, and they map onto those kinds:
 
 1. **Locale-sensitive methods** — 2 rows, wanted. The reasons are above.
-2. **The value bridge** — 4 rows, three wanted and one held open. The environment
-   object, the folded namespace map and a function held inside an
-   already-evaluated value are this compiler's own values rather than JavaScript
-   ones, so there is nothing to carry inward and refusing is right: upstream
-   folds `[object Object]`, which no stylesheet can use, and a refusal is loud
-   where a wrong class name is silent. **The token group is the exception, and
-   the spec sentence it contradicts is amended here.** The spec says a resolved
-   theme reference crosses inward; it cannot under one carriage of the name,
-   because the value that answers `String(group)` — the variable-group hash —
-   cannot also answer `group.token`, and answering both needs a name for a
-   subexpression the author never wrote. That is a transport this effort chose
-   against, so the row stays open rather than being argued closed.
+2. **The value bridge** — 3 rows, all wanted. `String()` of the environment
+   object with no `env` option set, where the refusal names the missing
+   configuration rather than the conversion; and two that reach for a function's
+   source text, which the engine the fold runs in is built without — `Number()`
+   of a function, where upstream finds its `NaN` through that text, and a
+   function interpolated in a template, where upstream answers with the source
+   of its own evaluator closure and hashes a compiler artifact into a class
+   name. A refusal is loud where a wrong class name is silent.
+
+   The count was four when this was written; two of those closed and one
+   arrived, which is why it is worth reading the rows rather than the number.
+
+   **Two rows counted here when this was written have since closed, and the spec
+   sentence one of them rested on is amended here.** The spec's bridge section
+   said a theme reference does not cross at all. It does, as the string its own
+   `toString` answers — the variable-group hash, read off the reference and
+   mutating nothing — and the whole of `Array.prototype` folds on it, measured
+   identical to the reference compiler. The earlier reading looked for a
+   carriage that could answer both `String(group)` and `group.token` under one
+   name and found none, which was right; what it missed is that the second need
+   not be carried at all. A string has none of the group's members, so an
+   expression reading a property _as a value_ anywhere in it is handed back to
+   the dispatch below, which holds the reference and answers that member as the
+   `var(--…)` it names. `String()` of a spread holding a function closed with
+   it, once the conversion behind the fold answered for every value the bridge
+   does not carry.
+
 3. **An unreadable amplification length** — 2 rows, wanted. Not configurable: no
    value of either allocation option folds them, because the length arrives
    through a parameter or the count comes from a receiver that is itself a call.
@@ -289,9 +307,10 @@ StyleX function draws the same line for the same reason, and a reader who finds
 two rules will look for a difference that is not there.
 
 **The dispatch below the fold is not vestigial.** It resolves a name this
-compiler's own way: a dynamic style's own parameters, the injected function map
-and a resolved theme reference are all answered there and hold no value the
-engine could be handed. Measured, it already folds `inner('a')` to the rule the
+compiler's own way: a dynamic style's own parameters and the injected function
+map hold no value the engine could be handed at all, and a resolved theme
+reference is answered there for the reads the string it crosses as cannot serve.
+Measured, it already folds `inner('a')` to the rule the
 reference compiler emits, so admitting the outermost call would replace a working
 answer with a narrower one.
 

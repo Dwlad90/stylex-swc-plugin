@@ -206,21 +206,9 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       unstable_module_resolution,
       sx_prop_name,
       property_validation_mode,
-      max_evaluation_depth: as_ceiling(
-        val.max_evaluation_depth,
-        &MAX_EVALUATION_DEPTH,
-        "maxEvaluationDepth",
-      )?,
-      max_folded_characters: as_ceiling(
-        val.max_folded_characters,
-        &MAX_FOLDED_CHARACTERS,
-        "maxFoldedCharacters",
-      )?,
-      max_folded_entries: as_ceiling(
-        val.max_folded_entries,
-        &MAX_FOLDED_ENTRIES,
-        "maxFoldedEntries",
-      )?,
+      max_evaluation_depth: as_ceiling(val.max_evaluation_depth, &MAX_EVALUATION_DEPTH)?,
+      max_folded_characters: as_ceiling(val.max_folded_characters, &MAX_FOLDED_CHARACTERS)?,
+      max_folded_entries: as_ceiling(val.max_folded_entries, &MAX_FOLDED_ENTRIES)?,
       env: None, // Parsed separately via parse_env_object since it needs napi::Env
       debug_file_path: None, // Parsed separately via parse_debug_file_path since it needs napi::Env
     })
@@ -245,12 +233,14 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
 fn as_ceiling(
   configured: Option<ConfiguredCeiling>,
   ceiling: &Ceiling,
-  option: &str,
 ) -> Result<Option<usize>, napi::Error> {
   let Some(configured) = configured else {
     return Ok(None);
   };
 
+  // Read off the ceiling rather than taken from the caller, so a refusal cannot
+  // name an option other than the one whose ceiling refused it.
+  let option = ceiling.option;
   let usable = 1.0..=(ceiling.limit as f64);
 
   match configured {

@@ -11,9 +11,17 @@
 use std::env;
 use std::sync::OnceLock;
 
-/// One configurable ceiling, with the environment it reads and the two numbers
-/// that bracket what it will answer.
+/// One configurable ceiling, with the option that writes it, the environment it
+/// reads and the two numbers that bracket what it will answer.
 pub struct Ceiling {
+  /// The option a project writes to configure this ceiling.
+  ///
+  /// Carried here rather than passed beside the ceiling at every call, because a
+  /// ceiling and the name it is written under travel together everywhere they
+  /// travel at all -- and a refusal that names the wrong option is worse than one
+  /// that names none. Spelled as JavaScript writes it, since the only reader is a
+  /// message handed back across the boundary to the line that wrote it.
+  pub option: &'static str,
   /// Environment variable that overrides [`Self::default`].
   ///
   /// It overrides the default only -- a project that configures the option gets
@@ -55,8 +63,9 @@ impl Ceiling {
   ///
   /// `const` so each one can be a `static` and share the single cached read of
   /// its variable across every call in the process.
-  pub const fn new(env: &'static str, default: usize, limit: usize) -> Self {
+  pub const fn new(option: &'static str, env: &'static str, default: usize, limit: usize) -> Self {
     Self {
+      option,
       env,
       default,
       limit,

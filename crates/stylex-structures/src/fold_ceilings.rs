@@ -48,6 +48,7 @@ pub const MAX_FOLDED_CHARACTERS_ENV: &str = "STYLEX_MAX_FOLDED_CHARACTERS";
 
 /// `maxFoldedCharacters`, as the ceiling the options builder resolves through.
 pub static MAX_FOLDED_CHARACTERS: Ceiling = Ceiling::new(
+  "maxFoldedCharacters",
   MAX_FOLDED_CHARACTERS_ENV,
   DEFAULT_MAX_FOLDED_CHARACTERS,
   MAX_FOLDED_CHARACTERS_LIMIT,
@@ -79,6 +80,7 @@ pub const MAX_FOLDED_ENTRIES_ENV: &str = "STYLEX_MAX_FOLDED_ENTRIES";
 
 /// `maxFoldedEntries`, as the ceiling the options builder resolves through.
 pub static MAX_FOLDED_ENTRIES: Ceiling = Ceiling::new(
+  "maxFoldedEntries",
   MAX_FOLDED_ENTRIES_ENV,
   DEFAULT_MAX_FOLDED_ENTRIES,
   MAX_FOLDED_ENTRIES_LIMIT,
@@ -98,10 +100,12 @@ mod tests {
   // are what a project reads in the documentation.
   #[test]
   fn the_declared_ceilings_are_the_documented_ones() {
+    assert_eq!(MAX_FOLDED_CHARACTERS.option, "maxFoldedCharacters");
     assert_eq!(MAX_FOLDED_CHARACTERS.env, "STYLEX_MAX_FOLDED_CHARACTERS");
     assert_eq!(MAX_FOLDED_CHARACTERS.default, 1_000_000);
     assert_eq!(MAX_FOLDED_CHARACTERS.limit, 40_000_000);
 
+    assert_eq!(MAX_FOLDED_ENTRIES.option, "maxFoldedEntries");
     assert_eq!(MAX_FOLDED_ENTRIES.env, "STYLEX_MAX_FOLDED_ENTRIES");
     assert_eq!(MAX_FOLDED_ENTRIES.default, 10_000);
     assert_eq!(MAX_FOLDED_ENTRIES.limit, 1_000_000);

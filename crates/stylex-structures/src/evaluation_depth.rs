@@ -45,6 +45,7 @@ pub const MAX_EVALUATION_DEPTH_ENV: &str = "STYLEX_MAX_EVALUATION_DEPTH";
 
 /// `maxEvaluationDepth`, as the ceiling the options builder resolves through.
 pub static MAX_EVALUATION_DEPTH: Ceiling = Ceiling::new(
+  "maxEvaluationDepth",
   MAX_EVALUATION_DEPTH_ENV,
   DEFAULT_MAX_EVALUATION_DEPTH,
   MAX_EVALUATION_DEPTH_LIMIT,
@@ -64,6 +65,7 @@ mod tests {
   // those are what a project reads in the documentation.
   #[test]
   fn the_declared_ceiling_is_the_documented_one() {
+    assert_eq!(MAX_EVALUATION_DEPTH.option, "maxEvaluationDepth");
     assert_eq!(MAX_EVALUATION_DEPTH.env, "STYLEX_MAX_EVALUATION_DEPTH");
     assert_eq!(MAX_EVALUATION_DEPTH.default, 32);
     assert_eq!(MAX_EVALUATION_DEPTH.limit, 8 * 1024);

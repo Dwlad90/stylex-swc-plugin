@@ -3,7 +3,7 @@ use super::*;
 /// A ceiling of this test's own, so the rule is pinned without depending on any
 /// real one's numbers -- those move when what they bound is re-measured, and
 /// the precedence does not.
-static CEILING: Ceiling = Ceiling::new("STYLEX_TEST_CEILING", 32, 8 * 1024);
+static CEILING: Ceiling = Ceiling::new("testCeiling", "STYLEX_TEST_CEILING", 32, 8 * 1024);
 
 #[test]
 fn a_configured_value_is_used_as_given() {
@@ -146,12 +146,18 @@ fn the_public_resolver_agrees_with_the_rule_it_wraps() {
 
 // A ceiling declared where it is used is a `static`, which the compiler folds
 // before the process starts -- so the constructor is also asked for one built
-// while the program runs, to pin that it stores the three numbers it is handed
-// and starts with an unread environment.
+// while the program runs, to pin that it stores the four things it is handed and
+// starts with an unread environment.
 #[test]
 fn a_ceiling_built_at_runtime_carries_what_it_was_declared_with() {
-  let built = Ceiling::new("STYLEX_TEST_RUNTIME_CEILING", 16, 1_024);
+  let built = Ceiling::new(
+    "testRuntimeCeiling",
+    "STYLEX_TEST_RUNTIME_CEILING",
+    16,
+    1_024,
+  );
 
+  assert_eq!(built.option, "testRuntimeCeiling");
   assert_eq!(built.env, "STYLEX_TEST_RUNTIME_CEILING");
   assert_eq!(built.default, 16);
   assert_eq!(built.limit, 1_024);
@@ -170,7 +176,7 @@ fn a_ceiling_built_at_runtime_carries_what_it_was_declared_with() {
 
   // The degenerate bracket -- a default and a limit of one -- is still a
   // ceiling, and everything collapses onto it.
-  let narrow = Ceiling::new("STYLEX_TEST_NARROW_CEILING", 1, 1);
+  let narrow = Ceiling::new("testNarrowCeiling", "STYLEX_TEST_NARROW_CEILING", 1, 1);
 
   assert_eq!(narrow.resolve(Some(usize::MAX)), 1);
   assert_eq!(narrow.resolve_from(None, Some("4096")), 1);

@@ -64,7 +64,7 @@ expression, and they do not agree about how much the hash has to mean:
   twice over, once keyed by `compute_cache_key` and once by
   `compute_key_span_cache_key`;
 - the JSX-spread replacement map, the queued-decl dedup, the callee index behind
-  `is_member_callee`, and the three `StructuralIndex`es that pin a call to its
+  `is_member_callee`, and the three `CandidateIndex`es that pin a call to its
   declarator, to its style variable and to its top-level expression, narrow a
   bucket by hash and then confirm with `eq_ignore_span`;
 - `all_call_expressions` confirms on read too, but a collision can evict the

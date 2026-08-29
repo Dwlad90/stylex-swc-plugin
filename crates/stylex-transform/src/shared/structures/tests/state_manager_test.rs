@@ -454,10 +454,7 @@ mod state_manager {
       .push(var_declarator("second", Expr::Call(second.clone())));
 
     assert_eq!(
-      state
-        .find_call_declaration_by_span(&second)
-        .and_then(|decl| decl.name.as_ident())
-        .map(|ident| ident.sym.as_str()),
+      bound_name(state.find_call_declaration_by_span(&second)),
       Some("second")
     );
     assert!(
@@ -560,6 +557,22 @@ mod state_manager {
     }
   }
 
+  /// A call that carries both content and a position, so the two lookups can be
+  /// asked about the same node.
+  fn call_of_at(name: &str, argument: &str, span: Span) -> CallExpr {
+    CallExpr {
+      span,
+      ..call_of(name, argument)
+    }
+  }
+
+  /// The name a found declarator binds, for assertions that only care about it.
+  fn bound_name(declarator: Option<&VarDeclarator>) -> Option<&str> {
+    declarator
+      .and_then(|decl| decl.name.as_ident())
+      .map(|ident| ident.sym.as_str())
+  }
+
   fn declarator_at(name: &str, span: Span, init: Expr) -> VarDeclarator {
     VarDeclarator {
       span,
@@ -579,10 +592,7 @@ mod state_manager {
     state.push_declaration(var_declarator("plain", string_expr("no call here")));
 
     assert_eq!(
-      state
-        .find_call_declaration(&second)
-        .and_then(|decl| decl.name.as_ident())
-        .map(|ident| ident.sym.as_str()),
+      bound_name(state.find_call_declaration(&second)),
       Some("second")
     );
     assert!(
@@ -604,11 +614,87 @@ mod state_manager {
     // Two declarators can hold structurally equal calls, and the walk this
     // replaced answered with whichever came first in the module.
     assert_eq!(
-      state
-        .find_call_declaration(&call)
-        .and_then(|decl| decl.name.as_ident())
-        .map(|ident| ident.sym.as_str()),
+      bound_name(state.find_call_declaration(&call)),
       Some("earlier")
+    );
+  }
+
+  /// The two lookups answer different questions and must keep disagreeing.
+  ///
+  /// `find_call_declaration` is keyed on what a call *is*, so two calls that
+  /// differ only in position collapse onto the earliest declarator holding one.
+  /// `find_call_declaration_by_span` is keyed on where a call was *written*, so
+  /// the same pair resolves to one declarator each. Routing either through the
+  /// other would look like a tidy-up and would silently break whichever
+  /// question it stopped answering.
+  #[test]
+  fn a_call_is_found_by_content_collapsed_and_by_position_apart() {
+    let mut state = StateManager::default();
+
+    let earlier = call_of_at("create", "shared", span_at(1, 10));
+    let later = call_of_at("create", "shared", span_at(20, 30));
+
+    state.push_declaration(var_declarator("earlier", Expr::Call(earlier.clone())));
+    state.push_declaration(var_declarator("later", Expr::Call(later.clone())));
+
+    for call in [&earlier, &later] {
+      assert_eq!(
+        bound_name(state.find_call_declaration(call)),
+        Some("earlier")
+      );
+    }
+
+    assert_eq!(
+      bound_name(state.find_call_declaration_by_span(&earlier)),
+      Some("earlier")
+    );
+    assert_eq!(
+      bound_name(state.find_call_declaration_by_span(&later)),
+      Some("later")
+    );
+  }
+
+  /// The same disagreement at a width no hand-written module reaches, so the
+  /// index answering from a bucket and the walk answering from a position are
+  /// both exercised past the point where a linear fallback would be visible.
+  #[test]
+  fn content_and_position_keep_disagreeing_across_five_thousand_equal_calls() {
+    const DECLARATORS: usize = 5_000;
+
+    let mut state = StateManager::default();
+
+    let calls: Vec<CallExpr> = (0..DECLARATORS)
+      .map(|index| {
+        let start = (index as u32 + 1) * 100;
+        call_of_at("create", "shared", span_at(start, start + 10))
+      })
+      .collect();
+
+    for (index, call) in calls.iter().enumerate() {
+      state.push_declaration(var_declarator(
+        &format!("styles{index}"),
+        Expr::Call(call.clone()),
+      ));
+    }
+
+    for index in [0usize, 1, 2_499, DECLARATORS - 1] {
+      assert_eq!(
+        bound_name(state.find_call_declaration(&calls[index])),
+        Some("styles0"),
+        "content lookup at {index}"
+      );
+      assert_eq!(
+        bound_name(state.find_call_declaration_by_span(&calls[index])),
+        Some(format!("styles{index}").as_str()),
+        "positional lookup at {index}"
+      );
+    }
+
+    // A position no declarator was written at is not the last one seen.
+    assert!(
+      state
+        .find_call_declaration_by_span(&call_of_at("create", "shared", span_at(7, 8)))
+        .is_none()
     );
   }
 
@@ -1035,10 +1121,7 @@ mod state_manager {
 
     for index in [0usize, 1, 4_999, 9_998, 9_999] {
       assert_eq!(
-        state
-          .find_call_declaration(&calls[index])
-          .and_then(|decl| decl.name.as_ident())
-          .map(|ident| ident.sym.as_str()),
+        bound_name(state.find_call_declaration(&calls[index])),
         Some(format!("styles{index}").as_str())
       );
       assert_eq!(

@@ -479,6 +479,30 @@ impl CacheState {
   }
 }
 
+/// The structural key of `expr` where it is a call, and nothing where it is
+/// anything else -- what the call indexes are keyed by, spelled once for the
+/// four places that move an entry between keys.
+fn call_key_of(expr: Option<&Expr>) -> Option<u128> {
+  match expr {
+    Some(Expr::Call(call)) => Some(stable_hash_unspanned_call(call)),
+    _ => None,
+  }
+}
+
+/// The earliest of `candidates` that `confirm` accepts.
+///
+/// The earliest rather than the first the bucket holds: a bucket is filled in
+/// the order its entries were recorded, and moving one re-records it at the
+/// back, so only the minimum is reliably the one a walk in source order would
+/// have reached first.
+fn earliest_confirmed(candidates: &[usize], confirm: impl Fn(usize) -> bool) -> Option<usize> {
+  candidates
+    .iter()
+    .copied()
+    .filter(|position| confirm(*position))
+    .min()
+}
+
 /// Where the module's hoisted `class` and `function` declarations are, keyed by
 /// the binding each one declares.
 ///
@@ -507,30 +531,6 @@ impl CacheState {
 /// First writer wins, which is the answer the deduplicating push it replaces
 /// gave, and it is the first spelling of a name whose position a
 /// used-before-declaration diagnostic is about.
-/// The structural key of `expr` where it is a call, and nothing where it is
-/// anything else -- what the call indexes are keyed by, spelled once for the
-/// four places that move an entry between keys.
-fn call_key_of(expr: Option<&Expr>) -> Option<u128> {
-  match expr {
-    Some(Expr::Call(call)) => Some(stable_hash_unspanned_call(call)),
-    _ => None,
-  }
-}
-
-/// The earliest of `candidates` that `confirm` accepts.
-///
-/// The earliest rather than the first the bucket holds: a bucket is filled in
-/// the order its entries were recorded, and moving one re-records it at the
-/// back, so only the minimum is reliably the one a walk in source order would
-/// have reached first.
-fn earliest_confirmed(candidates: &[usize], confirm: impl Fn(usize) -> bool) -> Option<usize> {
-  candidates
-    .iter()
-    .copied()
-    .filter(|position| confirm(*position))
-    .min()
-}
-
 #[derive(Clone, Debug, Default)]
 pub(crate) struct DeclarationState {
   class_names: FxHashMap<Id, Span>,

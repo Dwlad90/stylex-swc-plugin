@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 /// Where the entries holding a given thing live, bucketed by a key that narrows
 /// to them.
 ///
-/// Five of the state manager's questions have the same shape: "which recorded
+/// Six of the state manager's questions have the same shape: "which recorded
 /// entry holds *this*?", asked once per `stylex.*` call or per identifier
 /// reference the transform meets. Answered by walking the whole collection and
 /// comparing whole subtrees with `eq_ignore_span`, each of those runs once per

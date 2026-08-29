@@ -54,8 +54,8 @@ collapses to nothing, which reads exactly like a win. `key_fallback_benchmarks`
 now asserts which arm each leg takes before timing it, so the figure above
 cannot quietly stop being about the boundary.
 
-**Its width was load-bearing and too narrow.** Ten things key off a hash of an
-expression, and they do not agree about how much the hash has to mean:
+**Its width was load-bearing and too narrow.** Eleven things key off a hash of
+an expression, and they do not agree about how much the hash has to mean:
 
 - the evaluator's `seen` memo returns a cached fold on a **hash hit alone**;
 - `InsertionSlot::BeforeDecl` splices a declaration's style metadata on a
@@ -64,13 +64,14 @@ expression, and they do not agree about how much the hash has to mean:
   twice over, once keyed by `compute_cache_key` and once by
   `compute_key_span_cache_key`;
 - the JSX-spread replacement map, the queued-decl dedup, the callee index behind
-  `is_member_callee`, and the three `CandidateIndex`es that pin a call to its
-  declarator, to its style variable and to its top-level expression, narrow a
-  bucket by hash and then confirm with `eq_ignore_span`;
+  `is_member_callee`, and three of the state manager's six `CandidateIndex`es --
+  the ones that pin a call to its declarator, to its style variable and to its
+  top-level expression -- narrow a bucket by hash and then confirm with
+  `eq_ignore_span`;
 - `all_call_expressions` confirms on read too, but a collision can evict the
   wrong entry when a call is replaced.
 
-So for four of the ten the key _is_ the equality test. At 64 bits and ten
+So for four of the eleven the key _is_ the equality test. At 64 bits and ten
 thousand distinct expressions in a file that is a collision every `1e-12` files,
 and they fail with different volumes: a wrong folded value or a misplaced
 injection is silent, while a wrong cached span is **directly visible in the

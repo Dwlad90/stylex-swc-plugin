@@ -302,17 +302,18 @@ pub(crate) struct CallExpressionState {
   ///
   /// The whole of what [`Self::is_member_callee`] needs. Without it that
   /// question was answered by walking every call in the module and comparing
-  /// whole `MemberExpr` subtrees, once per member expression the evaluator
-  /// visits -- which made the consumer phase quadratic in the number of calls
-  /// a module makes. On a 1,500-component JSX module it grew 3.6x for every
-  /// doubling of the input and reached 41% of total compile time.
+  /// whole `MemberExpr` subtrees, which is `O(calls)` for each ask.
   ///
-  /// That pair, and the percentage below it, were taken while this was written.
-  /// The benches used the system allocator then. The figures are smaller under
-  /// the allocator the shipped `.node` links, which is what
-  /// `transform_consumers_bench` measures now: there the lookups this index
-  /// serves are 25% of a 400-component transform. Read all three as the shape of
-  /// the cost, not as a figure to compare a later run against.
+  /// **The ask is cold, so the bound is a guard rather than a win.** Counted
+  /// over the whole transform suite, the question is asked 2,261 times, and the
+  /// largest module that asks it at all holds 85 calls. Four generated modules
+  /// -- 1,500 components of JSX, the same with a folded method call in every
+  /// style value, the producer-heavy fixture, and 7.3 MB of one top-level array
+  /// -- never ask it once, and restoring the walk moves none of them outside
+  /// measurement noise. An earlier note here put the walk at 41% of compile time
+  /// on a large JSX module; that is not reproducible from this repository and
+  /// has been removed rather than repeated. What the index buys is that a module
+  /// which does ask, and holds many calls, cannot pay `O(calls)` for it.
   ///
   /// A bucket of members rather than a bare key, because the key narrows and
   /// [`EqIgnoreSpan`] still decides: this is the shape
@@ -331,10 +332,13 @@ pub(crate) struct CallExpressionState {
   /// Counted per distinct member rather than held one-per-call, because a
   /// module's calls overwhelmingly share a handful of callee shapes: every
   /// `stylex.create(...)` in a file spells the same `stylex.create`. Holding a
-  /// clone per call made the bucket as long as the call list -- 15,000 copies
-  /// of one member on a large module, and an allocation for each -- which cost
-  /// 12.7% on a producer-heavy fixture and is the whole reason the count is
-  /// here. The count is still needed for the reason a set would not do: two
+  /// clone per call made the bucket as long as the call list -- one copy of the
+  /// same member per call, and an allocation for each. Restoring that shape
+  /// costs 1.12x on a 1,500-component JSX module (84.6 ms against 94.4 ms) and
+  /// 2.08x on 7.3 MB of one top-level array (1.26 s against 2.63 s), which is
+  /// the whole reason the count is here. Unlike the bound above, this is paid on
+  /// every call a module makes rather than on an ask that may never come.
+  /// The count is still needed for the reason a set would not do: two
   /// *different* calls can share a callee -- `a.b(1)` and `a.b(2)` -- and
   /// forgetting `a.b` when either is replaced would leave
   /// [`Self::is_member_callee`] answering `false` for a callee still live.
@@ -751,10 +755,9 @@ pub struct StateManager {
   ///
   /// Only calls, where the list holds expressions of every shape, because a key
   /// costs a walk of the expression it describes and a top-level expression can
-  /// be a whole module's styles in one array. Keying those too cost about 50 ms
-  /// on a 7.3 MB file to serve one lookup [`Self::top_level_name_index`]
-  /// answers without a walk at all -- measured under the system allocator, for
-  /// the reason the `callee_members` comment gives.
+  /// be a whole module's styles in one array. Keying those too costs about 60 ms
+  /// on 7.3 MB of one such array -- 1.26 s against 1.32 s -- to serve one lookup
+  /// [`Self::top_level_name_index`] answers without a walk at all.
   /// Shared rather than copied -- see [`Self::declaration_call_index`].
   top_level_call_index: Rc<CandidateIndex<u128, usize>>,
   /// Positions in [`Self::top_level_expressions`] of the entries bound to each

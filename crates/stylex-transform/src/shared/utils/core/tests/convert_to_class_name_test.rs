@@ -53,16 +53,16 @@ mod convert_style_to_class_name {
   fn prefixes_classname_with_property_name_when_options_debug_is_true() {
     let class_name = class_name_of(
       ("margin", &PreRuleValue::number(10.0)),
-      &mut StateManager {
-        options: StyleXStateOptions::default()
+      &mut StateManager::for_test(
+        None,
+        StyleXStateOptions::default()
           .with_class_name_prefix("x")
           .with_style_resolution(StyleResolution::PropertySpecificity)
           .with_dev(false)
           .with_test(false)
           .with_debug(true)
           .with_enable_debug_class_names(true),
-        ..Default::default()
-      },
+      ),
     );
     assert!(class_name.as_str().starts_with("margin-"))
   }
@@ -71,16 +71,16 @@ mod convert_style_to_class_name {
   fn prefixes_classname_with_prefix_only_when_options_enable_debug_class_names_is_false() {
     let class_name = class_name_of(
       ("margin", &PreRuleValue::number(10.0)),
-      &mut StateManager {
-        options: StyleXStateOptions::default()
+      &mut StateManager::for_test(
+        None,
+        StyleXStateOptions::default()
           .with_class_name_prefix("x")
           .with_style_resolution(StyleResolution::PropertySpecificity)
           .with_dev(false)
           .with_test(false)
           .with_debug(true)
           .with_enable_debug_class_names(false),
-        ..Default::default()
-      },
+      ),
     );
     assert!(class_name.as_str().starts_with("x"));
     assert!(!class_name.as_str().starts_with("margin-x"));
@@ -90,15 +90,15 @@ mod convert_style_to_class_name {
   fn prefixes_classname_with_prefix_only_when_options_debug_is_false() {
     let class_name = class_name_of(
       ("margin", &PreRuleValue::number(10.0)),
-      &mut StateManager {
-        options: StyleXStateOptions::default()
+      &mut StateManager::for_test(
+        None,
+        StyleXStateOptions::default()
           .with_class_name_prefix("x")
           .with_style_resolution(StyleResolution::PropertySpecificity)
           .with_dev(false)
           .with_test(false)
           .with_debug(false),
-        ..Default::default()
-      },
+      ),
     );
     assert!(!class_name.as_str().starts_with("margin-"));
     assert!(class_name.as_str().starts_with("x"));

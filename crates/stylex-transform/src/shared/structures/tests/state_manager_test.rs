@@ -347,12 +347,12 @@ mod state_manager {
     let first = call_at(span_at(1, 10));
     let second = call_at(span_at(20, 30));
 
-    state.top_level_expressions.push(TopLevelExpression(
+    state.push_top_level_expression(TopLevelExpression(
       TopLevelExpressionKind::NamedExport,
       Expr::Call(first.clone()),
       Some("first".into()),
     ));
-    state.top_level_expressions.push(TopLevelExpression(
+    state.push_top_level_expression(TopLevelExpression(
       TopLevelExpressionKind::Stmt,
       Expr::Call(second.clone()),
       Some("second".into()),
@@ -381,7 +381,7 @@ mod state_manager {
 
     let call = call_at(span_at(1, 10));
 
-    state.top_level_expressions.push(TopLevelExpression(
+    state.push_top_level_expression(TopLevelExpression(
       TopLevelExpressionKind::NamedExport,
       Expr::Ident(Ident {
         span: span_at(1, 10),
@@ -401,7 +401,7 @@ mod state_manager {
   fn find_top_level_expr_by_span_never_matches_a_spanless_call() {
     let mut state = StateManager::default();
 
-    state.top_level_expressions.push(TopLevelExpression(
+    state.push_top_level_expression(TopLevelExpression(
       TopLevelExpressionKind::NamedExport,
       Expr::Call(call_at(DUMMY_SP)),
       Some("synthesized".into()),

@@ -271,12 +271,12 @@ mod stylex_create {
     stylex_create_set(
       &EvaluateResultValue::Map(style_object),
       &mut EvaluationState::default(),
-      &mut StateManager {
-        options: StyleXStateOptions::default()
+      &mut StateManager::for_test(
+        None,
+        StyleXStateOptions::default()
           .with_debug(true)
           .with_enable_debug_class_names(true),
-        ..Default::default()
-      },
+      ),
       &FunctionMap::default(),
     )
   }

@@ -415,11 +415,14 @@ impl CallExpressionState {
       .iter()
       .position(|(candidate, _)| candidate.eq_ignore_span(member))
     {
-      match &mut bucket[position].1 {
-        1 => {
+      // The last call that holds a member drops it from the bucket. Any other
+      // one only decrements the count that keeps it alive for the calls left.
+      match bucket.get_mut(position) {
+        Some((_, 1)) => {
           bucket.remove(position);
         },
-        count => *count -= 1,
+        Some((_, count)) => *count -= 1,
+        None => {},
       }
     }
 
@@ -645,18 +648,18 @@ pub struct StateManager {
   /// because `declarations` is append-only -- nothing removes, reorders or
   /// truncates it, and the in-place edits reach `init` rather than `name`, so a
   /// recorded position stays the position of the same binding.
-  pub(crate) declaration_index: FxHashMap<Id, usize>,
+  declaration_index: FxHashMap<Id, usize>,
   /// Positions in [`Self::declarations`] of the declarators initialised by a
   /// given call, so pinning a call to its declarator is a hash probe rather
   /// than a walk of every declarator in the module comparing whole call
   /// subtrees. Maintained by [`Self::push_declaration`] and
   /// [`Self::set_declaration_init`], which are the only writers of the list and
   /// of a declarator's initializer.
-  pub(crate) declaration_call_index: CandidateIndex<u128, usize>,
+  declaration_call_index: CandidateIndex<u128, usize>,
   /// Positions in [`Self::declarations`] of the declarators written at a given
   /// source position, which is what [`Self::holds_declaration`] narrows on.
   /// Maintained by [`Self::push_declaration`], the only writer of the list.
-  pub(crate) declaration_span_index: CandidateIndex<Span, usize>,
+  declaration_span_index: CandidateIndex<Span, usize>,
   /// Bindings rebound after their declaration — an assignment, update,
   /// destructuring or loop target. The reference implementation's constant
   /// violations, probed as its own step of the reference-resolution chain.
@@ -712,7 +715,7 @@ pub struct StateManager {
   /// be a whole module's styles in one array. Keying those too cost about 50 ms
   /// on a 7.3 MB file to serve one lookup [`Self::top_level_name_index`]
   /// answers without a walk at all.
-  pub(crate) top_level_call_index: CandidateIndex<u128, usize>,
+  top_level_call_index: CandidateIndex<u128, usize>,
   /// Positions in [`Self::top_level_expressions`] of the entries bound to each
   /// name. Maintained by [`Self::push_top_level_expression`].
   ///
@@ -720,7 +723,7 @@ pub struct StateManager {
   /// permits redeclaration: `var styles = …; var styles = …;` records two
   /// entries under one name, and keeping only the first would answer `None` for
   /// the second where the walk this replaces found it.
-  pub(crate) top_level_name_index: CandidateIndex<Atom, usize>,
+  top_level_name_index: CandidateIndex<Atom, usize>,
   /// Spans of the calls that initialise a top-level declarator bound to a
   /// pattern rather than a name — `export const { foo } = stylex.create(…);`.
   /// [`Self::top_level_expressions`] is keyed by the exported name and so has
@@ -796,7 +799,7 @@ pub struct StateManager {
   /// call. Maintained by [`Self::insert_style_var`] and
   /// [`Self::set_style_var_init`], for the reason
   /// [`Self::declaration_call_index`] is.
-  pub(crate) style_var_call_index: CandidateIndex<u128, String>,
+  style_var_call_index: CandidateIndex<u128, String>,
 
   /// Map of local identifier -> imported name for `@stylexjs/atoms` imports.
   /// The key includes `SyntaxContext`, so shadowed bindings with the same symbol
@@ -859,7 +862,7 @@ pub struct StateManager {
   /// Keyed by the local binding's `Id` and confirmed with `eq_ignore_span` on
   /// read, for the reason [`Self::declaration_call_index`] is: the key narrows
   /// and equality decides.
-  pub(crate) top_import_index: CandidateIndex<Id, (usize, usize)>,
+  top_import_index: CandidateIndex<Id, (usize, usize)>,
   pub(crate) named_exports: FxHashSet<NamedExport>,
 
   pub cycle: TransformationCycle,
@@ -930,6 +933,22 @@ impl StateManager {
       other_injected_css_rules: IndexMap::new(),
 
       cycle: TransformationCycle::Discover,
+    }
+  }
+
+  /// A state manager that holds `options` and exports under `export_id`, which
+  /// is the whole of what a transformer unit test sets on one.
+  ///
+  /// A constructor rather than the `StateManager { .., ..default() }` literal
+  /// those tests wrote, because that form names every field and so needs every
+  /// field visible -- the indexes included, which only the writers beside them
+  /// may touch.
+  #[cfg(test)]
+  pub(crate) fn for_test(export_id: Option<&str>, options: StyleXStateOptions) -> Self {
+    Self {
+      export_id: export_id.map(str::to_string),
+      options,
+      ..Self::default()
     }
   }
 
@@ -1119,13 +1138,14 @@ impl StateManager {
       return;
     };
 
+    // Keyed before the move, because reading the initializer back from the list
+    // needs an index operator, which panics where a stale position gets here.
+    let recorded = call_key_of(Some(&init));
     let replaced = declarator.init.replace(Box::new(init));
 
-    self.declaration_call_index.move_entry(
-      call_key_of(replaced.as_deref()),
-      call_key_of(self.declarations[position].init.as_deref()),
-      position,
-    );
+    self
+      .declaration_call_index
+      .move_entry(call_key_of(replaced.as_deref()), recorded, position);
   }
 
   /// Appends an import declaration and records where each name it binds went.
@@ -1227,30 +1247,32 @@ impl StateManager {
   /// Replaces the expression recorded at `position`, keeping the call index in
   /// step. See [`Self::set_declaration_init`] for why it is the one way.
   pub(crate) fn set_top_level_expr(&mut self, position: usize, expr: Expr) {
-    let Some(recorded) = self.top_level_expressions.get_mut(position) else {
+    let Some(entry) = self.top_level_expressions.get_mut(position) else {
       return;
     };
 
-    let replaced = std::mem::replace(&mut recorded.1, expr);
+    // Keyed before the move, for the reason [`Self::set_declaration_init`] keys
+    // its initializer before it.
+    let recorded = call_key_of(Some(&expr));
+    let replaced = std::mem::replace(&mut entry.1, expr);
 
     // The name an entry binds does not change with its expression, so only the
     // call index needs repairing here.
-    self.top_level_call_index.move_entry(
-      call_key_of(Some(&replaced)),
-      call_key_of(Some(&self.top_level_expressions[position].1)),
-      position,
-    );
+    self
+      .top_level_call_index
+      .move_entry(call_key_of(Some(&replaced)), recorded, position);
   }
 
   /// Records the declarator `name` is bound by, and the call it is initialised
   /// by. The one way [`Self::style_vars`] grows, for the reason
   /// [`Self::push_declaration`] is the one way `declarations` does.
   pub(crate) fn insert_style_var(&mut self, name: String, declarator: VarDeclarator) {
+    let recorded = call_key_of(declarator.init.as_deref());
     let replaced = self.style_vars.insert(name.clone(), declarator);
 
     self.style_var_call_index.move_entry(
       call_key_of(replaced.as_ref().and_then(|decl| decl.init.as_deref())),
-      call_key_of(self.style_vars[&name].init.as_deref()),
+      recorded,
       name,
     );
   }
@@ -1263,13 +1285,12 @@ impl StateManager {
       return;
     };
 
+    let recorded = call_key_of(Some(&init));
     let replaced = declarator.init.replace(Box::new(init));
 
-    self.style_var_call_index.move_entry(
-      call_key_of(replaced.as_deref()),
-      call_key_of(self.style_vars[&name].init.as_deref()),
-      name,
-    );
+    self
+      .style_var_call_index
+      .move_entry(call_key_of(replaced.as_deref()), recorded, name);
   }
 
   /// The declarator binding `ident`, by hash probe rather than by scan.
@@ -1280,8 +1301,9 @@ impl StateManager {
       .and_then(|position| self.declarations.get(*position));
 
     // The index and the list have to agree, and only [`Self::push_declaration`]
-    // keeps them agreeing. The field is `pub(crate)`, so nothing in the type
-    // system stops a future caller pushing straight to it and leaving the
+    // keeps them agreeing. The index is private, so nothing can write it without
+    // the writer, but the list beside it is `pub(crate)`: nothing in the type
+    // system stops a future caller pushing straight to that and leaving the
     // binding it added invisible here -- which is what three test builders did
     // the day the index was added. Checking the answer against the scan it
     // replaced turns that back into a loud test failure rather than a reference

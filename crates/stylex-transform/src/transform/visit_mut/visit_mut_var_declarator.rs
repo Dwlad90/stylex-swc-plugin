@@ -121,9 +121,7 @@ where
             )
           };
 
-          let top_level_expression = self
-            .state
-            .find_top_level_expr_named(&binding.sym.clone(), init);
+          let top_level_expression = self.state.find_top_level_expr_named(&binding.sym, init);
 
           if let Some(TopLevelExpression(kind, _, _)) = top_level_expression
             && *kind == TopLevelExpressionKind::Stmt

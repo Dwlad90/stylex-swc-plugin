@@ -145,10 +145,10 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      ..StateManager::default()
-    });
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default(),
+    ));
 
     let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -262,10 +262,10 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      ..StateManager::default()
-    });
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default(),
+    ));
 
     let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -361,10 +361,10 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      ..StateManager::default()
-    });
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default(),
+    ));
 
     let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -507,13 +507,12 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      options: StyleXStateOptions::default()
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default()
         .with_debug(true)
         .with_enable_debug_class_names(true),
-      ..StateManager::default()
-    });
+    ));
 
     let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -659,13 +658,12 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      options: StyleXStateOptions::default()
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default()
         .with_debug(false)
         .with_enable_debug_class_names(false),
-      ..StateManager::default()
-    });
+    ));
 
     let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -879,15 +877,10 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let state = Box::<StateManager>::default();
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      options: state
-        .options
-        .clone()
-        .with_class_name_prefix(class_name_prefix),
-      ..*state
-    });
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default().with_class_name_prefix(class_name_prefix),
+    ));
 
     let (_, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -1122,15 +1115,10 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let state = Box::<StateManager>::default();
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      options: state
-        .options
-        .clone()
-        .with_class_name_prefix(class_name_prefix),
-      ..*state
-    });
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default().with_class_name_prefix(class_name_prefix),
+    ));
 
     let (_, css_output) = stylex_define_vars(&default_vars, &mut state);
 

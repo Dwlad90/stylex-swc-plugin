@@ -10,23 +10,27 @@ Pure utility functions for JS expression evaluation — expression traversal,
 value extraction, and type coercion helpers used by the transform layer. This
 crate was extracted so that evaluation helpers with no `StateManager` dependency
 can be reused by `stylex-css` and tested in isolation from the full transform
-pipeline. Every function is stateless and side-effect-free, operating only on
-SWC AST nodes and primitive values.
+pipeline. Every function is stateless, operating only on SWC AST nodes and
+primitive values — package resolution is the single exception, and it is called
+out below.
 
 - **Binary expression evaluation** — `evaluate_bin_expr` handles arithmetic
   (`+`, `-`, `*`, `/`, `%`, `**`), bitwise (`|`, `^`, `&`), and shift (`<<`,
   `>>`, `>>>`) operators on `f64` values
-- **Hashing utilities** — `create_hash` (Murmur2 → base-36), `create_short_hash`
-  (base-62, 5-char max), and `stable_hash` (generic `DefaultHasher`) for
-  deterministic class name generation
-- **AST helpers** — `get_expr_from_var_decl`, `normalize_expr`,
-  `wrap_key_in_quotes` for SWC node manipulation
-- **Numeric utilities** — `round_f64`, `hash_f64`, `sort_numbers_factory` for
-  float-safe operations
-- **Collection helpers** — `find_and_swap_remove` for O(1) vector removal,
-  `char_code_at` for Unicode code-point access
+- **Nested configuration values** — `NestedVarsValue` and the
+  `object_lit_to_nested_*_config` readers turn a `defineVars`, `createTheme` or
+  `defineConsts` object literal into a nested map, and the
+  `flatten_nested_*_config` writers collapse one back to the flat keys those
+  APIs emit
+- **Configuration shape tests** — `is_vars_leaf` answers whether a nested value
+  stops flattening, while `is_css_type_object` and `is_conditional_object` read
+  an `ObjectLit` for the two shapes a key may hold: a `syntax`/`value` CSS type,
+  and a `default` with at-rule alternatives
+- **Value emission** — `to_vars_config_value` and `value_with_default_to_expr`
+  turn a nested value back into the SWC expression the transform writes out
 - **Node.js integration** — `resolve_node_package_path` resolves package paths
-  with CommonJS / ESM support
+  with CommonJS / ESM support, which is the one function here that reads the
+  filesystem
 
 ## Architecture
 

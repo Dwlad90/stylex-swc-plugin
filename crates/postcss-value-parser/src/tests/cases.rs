@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 958 values: the differential harness's whole corpus, plus
+/// 960 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -808,6 +808,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"purple\" 0..6",
   },
   ParserCase {
+    input: "rgb(0, {index}, 0)",
+    output: "rgb(0, {index}, 0)",
+    ast: "function \"rgb\" 0..18 before=\"\" after=\"\" nodes=5\n  word \"0\" 4..5\n  div \",\" 5..7 before=\"\" after=\" \"\n  word \"{index}\" 7..14\n  div \",\" 14..16 before=\"\" after=\" \"\n  word \"0\" 16..17",
+  },
+  ParserCase {
     input: "rgb(0,0,",
     output: "rgb(0,0,",
     ast: "function \"rgb\" 0..8 before=\"\" after=\"\" unclosed nodes=4\n  word \"0\" 4..5\n  div \",\" 5..6 before=\"\" after=\"\"\n  word \"0\" 6..7\n  div \",\" 7..8 before=\"\" after=\"\"",
@@ -1571,6 +1576,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "rgb(var(r), 0, 0)",
     output: "rgb(var(r), 0, 0)",
     ast: "function \"rgb\" 0..17 before=\"\" after=\"\" nodes=5\n  function \"var\" 4..10 before=\"\" after=\"\" nodes=1\n    word \"r\" 8..9\n  div \",\" 10..12 before=\"\" after=\" \"\n  word \"0\" 12..13\n  div \",\" 13..15 before=\"\" after=\" \"\n  word \"0\" 15..16",
+  },
+  ParserCase {
+    input: "rgb({index}, 0, 0)",
+    output: "rgb({index}, 0, 0)",
+    ast: "function \"rgb\" 0..18 before=\"\" after=\"\" nodes=5\n  word \"{index}\" 4..11\n  div \",\" 11..13 before=\"\" after=\" \"\n  word \"0\" 13..14\n  div \",\" 14..16 before=\"\" after=\" \"\n  word \"0\" 16..17",
   },
   ParserCase {
     input: "rgba( 1, 222,  33 , 0.5)",
@@ -4924,7 +4934,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 682 words paired with their number/unit split, `None` standing for a
+/// 683 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -5114,6 +5124,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("#F7F5F6", None),
   ("black", None),
   ("purple", None),
+  ("{index}", None),
   ("r", None),
   ("g", None),
   ("----__hashed_var__1jqb1tb", None),

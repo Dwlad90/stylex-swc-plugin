@@ -219,6 +219,12 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/absent_style_values.rs:466"
     },
     {
+      "id": "9cf14a20",
+      "property": "backgroundColor",
+      "value": "rgb(0, {index}, 0)",
+      "origin": "crates/stylex-transform/benches/transform_consumers_bench.rs:110"
+    },
+    {
       "id": "077eb7f1",
       "property": "backgroundColor",
       "value": "rgb(0,0,",
@@ -1531,6 +1537,12 @@
       "property": "color",
       "value": "rgb(var(r), 0, 0)",
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:140"
+    },
+    {
+      "id": "2c26fd14",
+      "property": "color",
+      "value": "rgb({index}, 0, 0)",
+      "origin": "crates/stylex-transform/benches/transform_consumers_bench.rs:110"
     },
     {
       "id": "d31768cb",

@@ -1,4 +1,4 @@
-import { INCLUDE_EXTENSIONS } from '@stylexswc/plugin-shared';
+import { INCLUDE_EXTENSIONS } from '@stylexswc/plugin-shared/constants';
 import type { StyleXPluginOption } from '@stylexswc/webpack-plugin';
 import type {
   NextConfig,

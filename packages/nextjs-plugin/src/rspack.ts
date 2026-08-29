@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
+import { INCLUDE_EXTENSIONS } from '@stylexswc/plugin-shared/constants';
 import StyleXRspackPlugin, {
   DEFAULT_STYLEX_PACKAGES,
   buildVirtualCssPattern,
@@ -63,8 +64,9 @@ const NEXTJS_PROXY_FILENAMES = ['proxy', 'middleware'] as const;
 const NEXTJS_PROXY_DIRS = ['', 'src'] as const;
 // Detection only gates a cache optimization, so a superset of Next.js'
 // `pageExtensions` is deliberate: a false positive costs build cache, a
-// false negative costs a hanging build
-const NEXTJS_PROXY_EXTENSIONS = ['ts', 'tsx', 'js', 'jsx', 'mjs', 'mts', 'cjs', 'cts'] as const;
+// false negative costs a hanging build. The shared list is that superset, and
+// it stays correct when a new extension joins it.
+const NEXTJS_PROXY_EXTENSIONS = INCLUDE_EXTENSIONS;
 /**
  * Extensions are interpolated into a probe path, so anything that could escape
  * the project directory is rejected. Anchored and single-class: no backtracking.

@@ -1,4 +1,4 @@
-import { INCLUDE_EXTENSIONS, INCLUDE_REGEXP } from '@stylexswc/plugin-shared';
+import { INCLUDE_EXTENSIONS, INCLUDE_REGEXP } from '@stylexswc/plugin-shared/constants';
 import type {
   NextConfig,
   TurbopackLoaderItem,

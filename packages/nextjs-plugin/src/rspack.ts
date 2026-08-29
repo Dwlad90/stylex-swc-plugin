@@ -1,6 +1,8 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
+import { exportAsCommonJs } from '@stylexswc/plugin-shared/cjs-interop';
+import { INCLUDE_EXTENSIONS } from '@stylexswc/plugin-shared/constants';
 import StyleXRspackPlugin, {
   DEFAULT_STYLEX_PACKAGES,
   buildVirtualCssPattern,
@@ -59,10 +61,6 @@ export interface StyleXNextRspackPluginOption extends StyleXPluginOption {
  */
 const NEXTJS_PROXY_FILENAMES = ['proxy', 'middleware'] as const;
 const NEXTJS_PROXY_DIRS = ['', 'src'] as const;
-// Detection only gates a cache optimization, so a superset of Next.js'
-// `pageExtensions` is deliberate: a false positive costs build cache, a
-// false negative costs a hanging build
-const NEXTJS_PROXY_EXTENSIONS = ['ts', 'tsx', 'js', 'jsx', 'mjs', 'mts', 'cjs', 'cts'] as const;
 /**
  * Extensions are interpolated into a probe path, so anything that could escape
  * the project directory is rejected. Anchored and single-class: no backtracking.
@@ -103,8 +101,12 @@ const snapshotPersistentCache = (cache: RspackPersistentCache | undefined): stri
  *   `undefined` when the project has no proxy/middleware entry
  */
 const findNextjsProxyEntry = (dir: string, pageExtensions?: string[]): string | undefined => {
+  // Detection only gates a cache optimization, so a superset of Next.js'
+  // `pageExtensions` is deliberate: a false positive costs build cache, a
+  // false negative costs a hanging build. The shared list is that superset, and
+  // it stays correct when a new extension joins it.
   const extensions = new Set(
-    [...NEXTJS_PROXY_EXTENSIONS, ...(pageExtensions ?? [])].filter(extension =>
+    [...INCLUDE_EXTENSIONS, ...(pageExtensions ?? [])].filter(extension =>
       SAFE_EXTENSION_PATTERN.test(extension)
     )
   );
@@ -505,10 +507,4 @@ const withStyleX =
 
 export default withStyleX;
 
-const moduleExportsDescriptor =
-  typeof module === 'undefined' ? undefined : Object.getOwnPropertyDescriptor(module, 'exports');
-
-if (moduleExportsDescriptor?.writable) {
-  module.exports = withStyleX;
-  module.exports.default = withStyleX;
-}
+exportAsCommonJs(typeof module === 'undefined' ? undefined : module, withStyleX);

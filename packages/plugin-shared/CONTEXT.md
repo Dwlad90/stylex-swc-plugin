@@ -27,6 +27,16 @@ through the loader chain twice — which Next.js App Router does — is not
 transformed again.
 _Avoid_: sentinel, guard, cache key
 
+**Transformable extension**:
+A file extension the StyleX loader compiles: the eight JavaScript and
+TypeScript extensions that `INCLUDE_EXTENSIONS` names. Every bundler plugin
+reads that one list, in the list form or in the path form `INCLUDE_REGEXP`, so
+that no two plugins can disagree about the set. A plugin that leaves an
+extension out sends the StyleX in it to the browser uncompiled. The list has
+its own `./constants` entry point, which loads no compiler, because a config
+file reads it.
+_Avoid_: page extension, source extension, supported file type
+
 **Rules map**:
 A module path to `StyleXRule[]` mapping, published by one compiler.
 `RegisterStyleXRules` is how the loader hands rules to the plugin core.

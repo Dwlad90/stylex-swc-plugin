@@ -54,6 +54,10 @@
       "outputs": [],
       "outputLogs": "errors-only"
     },
+    "@stylexswc/postcss-plugin#test": {
+      "dependsOn": ["^build", "build"],
+      "outputLogs": "errors-only"
+    },
     "test": {
       "dependsOn": ["^build", "build"],
       "outputs": ["**/__swc_snapshots__", "**/__snapshots__"],

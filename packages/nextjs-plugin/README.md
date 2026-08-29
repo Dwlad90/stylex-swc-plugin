@@ -172,6 +172,26 @@ export default withStylexTurbopack({
 > - `transformCss`
 > - `extractCSS`
 
+<!-- stylex:include-extensions -->
+
+The plugin adds one rule for each module extension it compiles: `js`, `jsx`,
+`mjs`, `cjs`, `ts`, `tsx`, `mts` and `cts`.
+
+A rule that you write in `turbopack.rules` keeps every one of its fields. When
+your rule uses one of those globs, the plugin adds the StyleX loader to that
+same rule. It does not add a second rule beside yours, because Turbopack reads a
+list of rules as a set of alternatives: it keeps the first rule whose condition
+agrees, and it drops the rest. A second rule would therefore lose one of the two
+loaders.
+
+Turbopack runs the loaders of one rule from right to left, the same as webpack.
+`loaderOrder` chooses which of your loaders StyleX runs against: `'first'`, the
+default, runs StyleX before your loaders, and `'last'` runs StyleX after them.
+
+When you give one glob a list of rules that all carry a `condition`, the plugin
+adds one more rule at the end of the list. That last rule has no condition, so
+StyleX still compiles the file when none of your conditions agree.
+
 ## Plugin Options
 
 ### Basic Options
@@ -350,6 +370,8 @@ export default withStylexTurbopack({
 
 Required PostCSS configuration for CSS extraction under Turbopack:
 
+<!-- stylex:include-extensions -->
+
 ```js
 // postcss.config.js
 const path = require('path');
@@ -357,7 +379,10 @@ const path = require('path');
 module.exports = {
   plugins: {
     '@stylexswc/postcss-plugin': {
-      include: ['app/**/*.{js,jsx,ts,tsx}', 'components/**/*.{js,jsx,ts,tsx}'],
+      include: [
+        'app/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}',
+        'components/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}',
+      ],
       rsOptions: {
         aliases: {
           '@/*': [path.join(__dirname, '*')],

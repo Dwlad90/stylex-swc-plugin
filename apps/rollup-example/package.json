@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rollup-example",
   "description": "A simple rollup example to test @stylexswc/rollup-plugin",
-  "version": "0.18.5",
+  "version": "0.18.6-rc.1",
   "private": true,
   "license": "MIT",
   "scripts": {

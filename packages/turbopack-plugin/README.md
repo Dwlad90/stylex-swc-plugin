@@ -45,14 +45,16 @@ npm install @stylexjs/stylex
 > [`@stylexswc/postcss-plugin`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/postcss-plugin#readme)
 > in your `postcss.config.js`:
 >
+> <!-- stylex:include-extensions -->
+>
 > ```js
 > // postcss.config.js
 > module.exports = {
 >   plugins: {
 >     '@stylexswc/postcss-plugin': {
 >       include: [
->         'app/**/*.{js,jsx,ts,tsx}',
->         'components/**/*.{js,jsx,ts,tsx}',
+>         'app/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}',
+>         'components/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}',
 >       ],
 >       rsOptions: {
 >         dev: process.env.NODE_ENV === 'development',

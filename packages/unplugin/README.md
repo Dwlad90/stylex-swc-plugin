@@ -192,11 +192,15 @@ build({
 - Description: Controls whether the generated CSS is extracted into a separate
   file.
 
+<!-- stylex:include-extensions -->
+
 #### `pageExtensions`
 
 - Type: `string[]`
-- Default: `['js', 'jsx', 'ts', 'tsx', 'mjs', 'mts']`
-- Description: File extensions to process for StyleX transformations.
+- Default: `['js', 'jsx', 'mjs', 'cjs', 'ts', 'tsx', 'mts', 'cts']`
+- Description: File extensions to process for StyleX transformations. The
+  default holds every extension that the compiler transforms. A shorter list
+  leaves StyleX in the other extensions uncompiled.
 
 #### `transformCss`
 

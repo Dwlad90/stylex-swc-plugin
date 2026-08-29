@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { buildIncludeGlob } = require('@stylexswc/plugin-shared/constants');
+
 const projectRoot = __dirname;
 const monorepoRoot = path.join(projectRoot, '../../');
 
@@ -34,7 +36,7 @@ const includePaths = ['@stylexjs/open-props', '@stylexswc/design-system'].flatMa
 module.exports = {
   plugins: {
     '@stylexswc/postcss-plugin': {
-      include: ['app/**/*.{js,jsx,ts,tsx}', 'components/**/*.{js,jsx,ts,tsx}', ...includePaths],
+      include: [buildIncludeGlob('app'), buildIncludeGlob('components'), ...includePaths],
       useCSSLayers: true,
       rsOptions: {
         aliases: {

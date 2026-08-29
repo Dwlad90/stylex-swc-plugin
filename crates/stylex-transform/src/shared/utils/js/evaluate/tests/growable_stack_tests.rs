@@ -13,8 +13,10 @@
 
 use stylex_structures::evaluation_depth::MAX_EVALUATION_DEPTH_LIMIT;
 
-use super::growable_stack::{claim_for, grown_for_depth, grown_per_level};
-use super::source_evaluation::{SMALL_THREAD, on_a_thread_of};
+use super::growable_stack::{claim_for, grown_for_depth, grown_per_level, nesting_of};
+use super::source_evaluation::{
+  LARGE_THREAD, SMALL_THREAD, nested_literal, on_a_thread_of, parse_expr,
+};
 
 /// What one written level costs, and comfortably more than a level of any walk
 /// the fold runs — the point is to spend measurable stack, not to imitate one.
@@ -73,11 +75,11 @@ fn asking_by_the_level_carries_a_walk_past_the_thread_it_started_on() {
 fn a_claim_carries_a_descent_that_never_asks_again() {
   // Two levels of written frame per level claimed, since a claimed level is
   // sized for the engine's parser and this frame is not it.
-  let ceiling = 128;
-  let levels = ceiling * 2;
+  let claimed = 128;
+  let levels = claimed * 2;
 
   assert_eq!(
-    on_a_thread_of(SMALL_THREAD, move || grown_for_depth(ceiling, || descend(
+    on_a_thread_of(SMALL_THREAD, move || grown_for_depth(claimed, || descend(
       levels,
       Asking::Never
     ))),
@@ -163,4 +165,104 @@ fn a_panic_crosses_a_grown_stack_with_its_payload() {
       Some(way)
     );
   }
+}
+
+// ==================== how deep the text goes ====================
+
+/// The count is of expressions rather than of source levels, and it starts at
+/// one: an expression the printer writes out is itself a level of the descent.
+#[test]
+fn a_leaf_nests_one_level() {
+  assert_eq!(nesting_of(&parse_expr("'x'")), 1);
+  assert_eq!(nesting_of(&parse_expr("1")), 1);
+}
+
+/// Nesting written out, at the shape the claim exists for.
+#[test]
+fn a_nested_literal_nests_once_per_level_and_once_for_its_leaf() {
+  for levels in [1, 2, 17, 300] {
+    assert_eq!(nesting_of(&parse_expr(&nested_literal(levels))), levels + 1);
+  }
+}
+
+/// The deepest branch is what answers, not the last one or the first.
+#[test]
+fn the_deepest_branch_is_what_the_count_answers() {
+  assert_eq!(nesting_of(&parse_expr("['x', [['y']], 'z']")), 4);
+  assert_eq!(nesting_of(&parse_expr("[[['y']], 'x']")), 4);
+}
+
+/// Every shape the printer descends through counts, not only array literals.
+#[test]
+fn objects_calls_and_templates_all_nest() {
+  assert_eq!(nesting_of(&parse_expr("({ a: { b: 'x' } })")), 4);
+  // A callee is a sibling of the arguments rather than a level above them, so a
+  // chain of three calls is three levels and its innermost leaf the fourth.
+  assert_eq!(nesting_of(&parse_expr("f(g(h('x')))")), 4);
+  assert_eq!(nesting_of(&parse_expr("`a${`b${'c'}`}`")), 3);
+  assert_eq!(nesting_of(&parse_expr("(x) => [[x]]")), 4);
+}
+
+/// A statement nests as readily as an expression, and the printer and the parser
+/// descend it the same way — so a block is a level like any other.
+#[test]
+fn statements_nest_as_expressions_do() {
+  // The parenthesis and the arrow, then the `if` and the expression it tests —
+  // two more for each `if` the one above it holds.
+  assert_eq!(nesting_of(&parse_expr("(() => { if(1){} })")), 4);
+  assert_eq!(nesting_of(&parse_expr("(() => { if(1){ if(1){} } })")), 6);
+}
+
+/// And a binding pattern, which is neither of the two and is printed with the
+/// arrow that binds it.
+#[test]
+fn patterns_nest_as_expressions_do() {
+  assert_eq!(nesting_of(&parse_expr("(([q]) => q)")), 4);
+  assert_eq!(nesting_of(&parse_expr("(([[q]]) => q)")), 5);
+}
+
+/// A string full of brackets is one expression, which is the whole reason the
+/// count is taken from the tree rather than from the text: scanning the printed
+/// source for unclosed brackets would have claimed a stack this input has no use
+/// for.
+#[test]
+fn brackets_inside_a_string_nest_nothing() {
+  let source = format!("'{}'", "[".repeat(10000));
+
+  assert_eq!(nesting_of(&parse_expr(&source)), 1);
+}
+
+/// Past the largest claim, the exact depth stops being measured: the caller
+/// refuses either way, so what is answered is only that the limit was passed.
+///
+/// On a thread large enough to parse and to drop a tree that deep, neither of
+/// which is what this measures.
+#[test]
+fn a_tree_past_the_largest_claim_is_counted_no_further() {
+  let answered = on_a_thread_of(LARGE_THREAD, || {
+    nesting_of(&parse_expr(&nested_literal(MAX_EVALUATION_DEPTH_LIMIT * 2)))
+  });
+
+  assert_eq!(answered, MAX_EVALUATION_DEPTH_LIMIT + 1);
+}
+
+/// And it measures such a tree on a thread that could not have descended it
+/// unaided, since the measurement asks for room at every level as every walk
+/// this compiler owns does.
+#[test]
+fn the_count_carries_itself_past_the_thread_it_started_on() {
+  let deep = on_a_thread_of(LARGE_THREAD, || parse_expr(&nested_literal(2000)));
+
+  assert_eq!(
+    on_a_thread_of(SMALL_THREAD, move || {
+      let counted = nesting_of(&deep);
+
+      // Dropped where there is room for it: an expression this deep drops
+      // recursively, and that descent is not one this measures.
+      std::mem::forget(deep);
+
+      counted
+    }),
+    2001
+  );
 }

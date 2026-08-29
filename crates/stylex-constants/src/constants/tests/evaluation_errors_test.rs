@@ -57,6 +57,19 @@ fn test_expression_too_deep() {
 }
 
 #[test]
+fn test_nesting_too_deep_to_carry() {
+  assert_eq!(
+    nesting_too_deep_to_carry(8192),
+    "Expression is nested too deeply to fold at compile time.\nAt most 8192 levels of nested expressions can be carried.\n\n"
+  );
+
+  // Distinct from the depth ceiling's sentence, because the two count different
+  // things: an author told to shorten their *evaluation* would be reading about
+  // something they had not written.
+  assert_ne!(nesting_too_deep_to_carry(8192), expression_too_deep(8192));
+}
+
+#[test]
 fn test_not_a_function() {
   assert_eq!(
     not_a_function("Math"),

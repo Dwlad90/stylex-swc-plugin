@@ -185,6 +185,24 @@ pub fn expression_too_deep(limit: usize) -> String {
   )
 }
 
+/// Source nested deeper than the fold can carry the printing and the parsing of
+/// it.
+///
+/// The sibling of [`expression_too_deep`] and deliberately not the same
+/// sentence, because the two count different things. That one is spent per step
+/// of the fold's own walk, and a step is not a source level. This one is source
+/// levels exactly: an operand a short circuit never reaches is printed and
+/// parsed whole without the walk entering it, so what bounds it is how deeply
+/// the text nests and nothing else. Quoting one number through the other's
+/// wording would tell an author to shorten something they had not written.
+pub fn nesting_too_deep_to_carry(limit: usize) -> String {
+  format!(
+    "Expression is nested too deeply to fold at compile time.\n\
+     At most {} levels of nested expressions can be carried.\n\n",
+    limit
+  )
+}
+
 /// The one shape every refusal of a *call* takes: the call this compiler could
 /// not fold, then the reason it could not.
 ///

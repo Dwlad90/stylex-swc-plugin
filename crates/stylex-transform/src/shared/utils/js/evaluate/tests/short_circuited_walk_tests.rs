@@ -16,10 +16,8 @@
 //! wherever the reference has one; the difference shows only where evaluating a
 //! branch nothing runs is what breaks it.
 
-use stylex_structures::evaluation_depth::DEFAULT_MAX_EVALUATION_DEPTH;
-
 use super::source_evaluation::*;
-use crate::shared::utils::js::evaluate::growable_stack::UNWALKED_NESTING;
+use crate::shared::utils::js::evaluate::growable_stack::DEEPEST_CARRIED;
 
 // ==================== the side that never runs ====================
 
@@ -112,33 +110,105 @@ fn a_dead_operand_past_the_allocation_ceiling_is_never_priced() {
 /// spent per step of the walk, so a side the walk does not enter costs none of
 /// it — which is the difference between this folding and refusing for depth.
 ///
-/// **The depth is not an arbitrary number, and neither is the thread.** The
-/// operand is never walked and is still *printed*, so the engine's parser
-/// descends all of it, on the stack `grown_for_depth` claims from the ceiling.
-/// What that claim promises is `UNWALKED_NESTING` levels of text per level of
-/// ceiling, so the case asks for exactly that and reads as the promise rather
-/// than as a number somebody picked.
+/// **The depth is the reference implementation's answer, not this compiler's.**
+/// `@stylexjs/babel-plugin@0.19.0` folds three hundred levels of dead nesting to
+/// the same `a-false`, so that is what agreement means here. Nothing about the
+/// number is a limit of this compiler's: the operand is measured rather than
+/// bounded, so the claim grows with the text and any depth a stack can be
+/// claimed for folds.
 ///
 /// It runs on a thread far too small to hold the claim, which is what forces the
 /// claim to be allocated: on an ordinary test thread the descent would run on
 /// whatever stack was left over and pass without the claim being exercised. So
 /// an engine whose parser outgrows the margin `BYTES_PER_LEVEL` holds aborts
 /// here, on the one case that measures it, rather than in somebody's build.
-///
-/// **What is deliberately not asserted is the slack above the promise.** This
-/// case asked for two hundred levels until an engine bump made two hundred
-/// unaffordable and the case aborted rather than failed. Any depth past the
-/// ceiling proves the same thing about the walk — that a side it does not enter
-/// costs it nothing — so the walk is measured here and the stack no further than
-/// what the claim undertakes to carry.
 #[test]
 fn a_dead_operand_deeper_than_the_ceiling_is_never_entered() {
-  let nesting = DEFAULT_MAX_EVALUATION_DEPTH * UNWALKED_NESTING;
-
-  on_a_thread_of(SMALL_THREAD, move || {
-    let deep = "[".repeat(nesting) + "'x'" + &"]".repeat(nesting);
+  on_a_thread_of(SMALL_THREAD, || {
+    let deep = nested_literal(300);
 
     assert_folds_to_string(&format!("['a', false && {}].join('-')", deep), "a-false");
+  });
+}
+
+/// The same depth on the arm of a conditional the test does not take, on each
+/// arm in turn — the other place the walk declines to enter and the printer does
+/// not. `@stylexjs/babel-plugin@0.19.0` folds both to `a`.
+#[test]
+fn a_dead_arm_deeper_than_the_ceiling_is_never_entered() {
+  on_a_thread_of(SMALL_THREAD, || {
+    let deep = nested_literal(300);
+
+    assert_folds_to_string(&format!("[true ? 'a' : {}].join('')", deep), "a");
+    assert_folds_to_string(&format!("[false ? {} : 'a'].join('')", deep), "a");
+  });
+}
+
+/// A dead operand inside a dead operand. The outer skip measures the whole
+/// subtree it is not entering, so the inner one is covered by the same claim
+/// rather than by a second one. `@stylexjs/babel-plugin@0.19.0` folds this to
+/// `a-false`.
+#[test]
+fn a_dead_operand_inside_a_dead_operand_is_measured_with_it() {
+  on_a_thread_of(SMALL_THREAD, || {
+    let deep = nested_literal(300);
+
+    assert_folds_to_string(
+      &format!("['a', false && ['q', true || {}]].join('-')", deep),
+      "a-false",
+    );
+  });
+}
+
+/// A dead operand that is a string of nothing but brackets. It nests one level
+/// and claims one, which a count taken from the printed text rather than from
+/// the tree would have got wrong by two thousand.
+/// `@stylexjs/babel-plugin@0.19.0` folds this to `a-false`.
+#[test]
+fn brackets_written_inside_a_dead_string_claim_nothing() {
+  let quoted = format!("'{}'", "[".repeat(2000));
+
+  assert_folds_to_string(&format!("['a', false && {}].join('-')", quoted), "a-false");
+}
+
+/// The same nesting on the side that *does* run is walked, so it meets the
+/// evaluation ceiling and refuses — the claim grows with the text and the walk's
+/// own budget does not.
+///
+/// `@stylexjs/babel-plugin@0.19.0` folds this to `a-x`. The ceiling refusing
+/// input the reference implementation folds is the boundary ADR 0004 records,
+/// and this case is only that measuring the dead side did not move it.
+#[test]
+fn a_live_operand_deeper_than_the_ceiling_still_refuses() {
+  let deep = nested_literal(300);
+
+  assert_deopt_reason_contains(
+    &format!("['a', true && {}].join('-')", deep),
+    "too deeply nested",
+  );
+}
+
+/// A dead operand nested past what a stack can be claimed for at all.
+///
+/// The claim is sized from the text, so text that would outgrow the largest
+/// claim the compiler will make is the one case measuring cannot answer. It
+/// refuses, in a sentence about nested expressions rather than the depth
+/// ceiling's one about levels of evaluation — the two count different things and
+/// this is the one the author can act on. The reference implementation aborts
+/// with `Maximum call stack size exceeded` on the same input, and a diagnostic is
+/// the better of the two answers.
+///
+/// On a thread large enough to parse and to drop a tree that deep, since both
+/// happen before the fold is asked anything and neither is what this measures.
+#[test]
+fn a_dead_operand_past_the_largest_claim_refuses() {
+  on_a_thread_of(LARGE_THREAD, || {
+    let deep = nested_literal(DEEPEST_CARRIED + 1);
+
+    assert_deopt_reason_contains(
+      &format!("['a', false && {}].join('-')", deep),
+      "nested too deeply",
+    );
   });
 }
 
@@ -224,4 +294,35 @@ fn the_live_operand_is_what_the_fold_answers_with() {
   assert_folds_to_string("['a', null ?? 'b'].join('-')", "a-b");
   assert_folds_to_string("['a', undefined ?? 'b'].join('-')", "a-b");
   assert_folds_to_string("[false ? 'x' : 'b'].join('')", "b");
+}
+
+/// A dead operand whose nesting is *statements* rather than expressions. The
+/// printer and the parser descend a block as readily as a bracket, so what is
+/// counted has to be the descent rather than one node kind of it: read as
+/// expressions alone this callback is three levels deep and aborts the process
+/// at four hundred.
+///
+/// `@stylexjs/babel-plugin@0.19.0` folds it to `a-false`.
+#[test]
+fn a_dead_operand_of_nested_statements_is_measured_too() {
+  on_a_thread_of(SMALL_THREAD, || {
+    let body = "if(1){".repeat(400) + &"}".repeat(400);
+    let dead = format!("(() => {{ {} }})()", body);
+
+    assert_folds_to_string(&format!("['a', false && {}].join('-')", dead), "a-false");
+  });
+}
+
+/// And the third kind that nests without bound: a destructuring pattern, which
+/// is neither an expression nor a statement and is printed with the arrow that
+/// binds it. `@stylexjs/babel-plugin@0.19.0` folds this to `a-false`; at four
+/// hundred levels it exceeds its own stack instead.
+#[test]
+fn a_dead_operand_of_nested_patterns_is_measured_too() {
+  on_a_thread_of(SMALL_THREAD, || {
+    let pattern = "[".repeat(200) + "q" + &"]".repeat(200);
+    let dead = format!("(({}) => q)", pattern);
+
+    assert_folds_to_string(&format!("['a', false && {}].join('-')", dead), "a-false");
+  });
 }

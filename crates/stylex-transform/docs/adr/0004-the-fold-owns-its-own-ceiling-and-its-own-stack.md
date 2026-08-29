@@ -193,8 +193,9 @@ the levels it actually descended. The two that cannot are the two this compiler
 does not write: SWC's printer clones the expression and writes it out, and the
 engine's parser reads it back, and both descend through a nested literal on
 whatever stack they were handed. So the fold claims their whole descent up
-front, `maxEvaluationDepth × 2 × 64 KiB`, **around the printing, the parse and
-the evaluation and around nothing else**.
+front, `nesting × 64 KiB`, **around the printing, the parse and the evaluation
+and around nothing else** — where `nesting` is how deep the text they are handed
+actually goes, measured rather than assumed. See the section below.
 
 Around nothing else is the part that was wrong before. The claim wrapped the
 whole fold, including the guard, and the guard runs on every call expression the
@@ -205,32 +206,23 @@ recorded above was measured against folds, where the fold's own cost dominates;
 on the no-fold path there is nothing for it to be a percentage of.
 
 **The ceiling is clamped, and the claim is why.** `maxEvaluationDepth` is
-clamped to 8192, so the largest claim any project can ask for is a gigabyte — a
-number an allocation can satisfy. Without the clamp a configured depth would be
-a stack size a project could ask the compiler to fail on. The clamp is asserted
-against the claim in `growable_stack.rs` rather than described, because the
-numbers it multiplies live in two crates.
+clamped to 8192, so the largest claim any project can ask for is half a gigabyte
+— a number an allocation can satisfy. Without the clamp a configured depth would
+be a stack size a project could ask the compiler to fail on. The clamp is
+asserted against the claim in `growable_stack.rs` rather than described, because
+the numbers it multiplies live in two crates.
 
 **The fixed nesting bound the fold once carried is gone.** Depth is one number,
 answered by the ceiling, and the walks that had bounds of their own answer to
 it.
 
-**What the claim does not cover, and this is a residue like the one above.** The
-ceiling bounds the walk, not the text. A short-circuited operand is printed
-without being walked, so printer and parser descend nesting no level was spent
-on: at the shipped ceiling the claim carries about 148 such levels and not 152.
-The factor of two in the claim is a margin against exactly this and is not a
-bound on it. `UNWALKED_NESTING` in `growable_stack.rs` says so where it is
-written, and the case that measures it is
-`a_dead_operand_deeper_than_the_ceiling_is_never_entered`, which asks for the
-factor of two rather than for the slack above it.
-
-**That number belongs to an engine version, not to this compiler.** The same
-input cost about 20 KiB a level on the engine's 0.21 line and about 28 KiB on its
-0.22 one, so the claim that carried 200 dead levels now carries 148. Nothing
-promised changed — twice the ceiling is 64 levels either way — but a case pinned
-to the slack turned an engine bump into an abort, which is why the one above is
-pinned to the promise and runs on a thread too small to skip the claim.
+**The per-level cost belongs to an engine version, not to this compiler.** The
+same input cost about 20 KiB a level on the engine's 0.21 line and about 28 KiB
+on its 0.22 one. 64 KiB is more than twice the larger of them, which is the
+margin between a claim that carries and one that aborts — and
+`a_dead_operand_deeper_than_the_ceiling_is_never_entered` runs on a thread too
+small to skip the claim, so an engine bump that outgrows the margin fails there
+rather than in somebody's build.
 
 **And the claim is now tested at the size it is sized for.**
 `growable_stack_tests.rs` asks for the largest claim and asserts it is
@@ -241,6 +233,42 @@ nesting just under and just over the largest configurable ceiling in
 thread of its own: SWC's parser reads that test's source before the fold is
 asked and overflows a stock thread around 1200 levels, which is the residue this
 ADR already attributes to the stages around the fold.
+
+## Revised: the claim is made from the text, not from the ceiling
+
+The section above sized the claim from `maxEvaluationDepth`, with a factor of
+two as a margin for text the guard never walked. The margin was not a bound, and
+the input that outgrew it was ordinary: a dead operand nested 200 levels deep
+folded, and one nested 300 levels deep aborted the process — the failure the
+ceiling exists to prevent, reached by input the ceiling does not look at.
+
+**So the claim is sized from the text.** The guard spends a level on every
+expression it enters, so what it walked is covered by the ceiling it walked
+under. The one thing it does not enter is the operand a short circuit never
+reaches — the engine decides the short circuit itself — and that operand is now
+measured where the walk declines it, by `nesting_of` in `growable_stack.rs`.
+The claim is the deeper of the ceiling and that measurement.
+
+**Measured structurally rather than from the printed text.** Counting unclosed
+brackets in the source would have been cheaper and wrong: a string literal full
+of brackets nests nothing and would have claimed wildly. Counting the tree SWC
+already parsed is exact, costs no allocation, and is paid only where a
+short-circuiting form was written.
+
+**Counted at the three node kinds that nest without bound**: an expression, a
+statement and a binding pattern. Everything between two of them is a fixed
+number of frames, so counting the three counts the descent. Expressions alone
+were not enough and the gap was not theoretical: a callback whose body is four
+hundred nested `if` statements reads as three levels and aborts the process.
+
+**What is left is a refusal rather than a residue.** Text nesting past
+`DEEPEST_CARRIED` is past the largest claim an allocation can satisfy, so the
+fold declines it instead of claiming a stack it cannot have. It declines in a
+sentence of its own — `nesting_too_deep_to_carry`, about nested expressions —
+rather than in the ceiling's, which counts fold levels and would have quoted a
+number in the wrong unit. The reference implementation aborts with `Maximum call
+stack size exceeded` on the same input, so a diagnostic is the better of the two
+answers and not a divergence worth carrying forward.
 
 Recorded together with [0008](./0008-the-fold-guard-reads-values-and-the-engine-is-permanent.md),
 which is where the engine that does the parsing is decided on.

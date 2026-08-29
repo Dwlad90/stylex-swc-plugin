@@ -594,6 +594,14 @@ and both sides have to carry. The reference implementation is eager here instead
 -- it evaluates both sides under forked states so a dead one may fail without
 deopting the whole -- which agrees on every value and differs on the import, and
 on a dead branch that throws rather than refusing.
+
+Not entered is not the same as not printed: the engine decides the short circuit
+itself, so a dead operand crosses the bridge whole and the printer and the
+parser both descend through it. So the guard measures how deeply it nests where
+it declines to enter it -- expressions, statements and binding patterns alike,
+since all three nest without bound -- and the stack the fold claims is sized
+from that rather than from the [evaluation depth](#evaluation-depth) it never
+spent.
 _Avoid_: unreachable branch, pruned side, skipped operand
 
 **Coercion bridge**:
@@ -852,6 +860,13 @@ evaluation's confidence forks -- a logical operand and a computed key each get
 their own -- while the stack it is accounting for does not. Crossing the ceiling
 is a [refused fold](#refused-fold), not an abort. The fold also grows its own
 stack, so the ceiling is a policy rather than whatever a 2 MiB thread survived.
+
+The stack the fold claims is not this number, though it is usually the same one.
+What is claimed has to carry the print and the parse, which descend through the
+text rather than through the walk -- so what is claimed for is the deeper of
+this ceiling and the nesting of a [dead operand](#dead-operand) the walk
+declined to enter. Text nesting past what the largest claim covers is a refusal
+of its own.
 
 Always in **fold levels**, never in levels of source nesting -- a member read
 spends two, a spread spends two, an array element spends one for the array, and

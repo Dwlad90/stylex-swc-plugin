@@ -47,7 +47,7 @@ use crate::shared::{
 use super::super::{
   engine_stylex_functions::{EngineCallable, Reached, engine_callable},
   evaluate_cached,
-  growable_stack::grown_per_level,
+  growable_stack::{grown_per_level, nesting_of},
   helpers::{evaluate_result_to_js_boolean, get_binding},
   nodes::logical_expression::{LogicalOp, evaluates_its_right_operand},
   nodes::member_expression::{get_full_member_path, is_theme_ref_base},
@@ -352,6 +352,13 @@ pub(super) struct Reader<'a> {
   /// Per name rather than per fold, because an expression can read two groups
   /// and a path off one says nothing about the other.
   dotted_prefixes: FxHashMap<Atom, FxHashSet<Atom>>,
+  /// How deep the printed source nests through the operand the walk declined to
+  /// enter, measured from the top of the expression.
+  ///
+  /// Per fold rather than per step, for the reason the transport is: what the
+  /// claim has to cover is the deepest text anywhere in the call, and a step
+  /// that kept its own answer could only report the branch it happened to be on.
+  unentered_nesting: usize,
 }
 
 impl<'a> Reader<'a> {
@@ -374,6 +381,7 @@ impl<'a> Reader<'a> {
       fns,
       transport: Transport::new(ceilings),
       dotted_prefixes: FxHashMap::default(),
+      unentered_nesting: 0,
     }
   }
 
@@ -633,6 +641,22 @@ impl<'a, 'r> Walk<'a, 'r> {
     self.reader.transport.read_a_theme_reference
   }
 
+  /// How deep the source about to be printed nests.
+  ///
+  /// The ceiling, which every level the walk entered was spent under, or the
+  /// deeper reach of an operand it declined to enter — see
+  /// [`never_entered`](Walk::never_entered).
+  ///
+  /// The outermost call and the arrow the transport wraps it in are a couple of
+  /// levels the walk never spent, so this reads a level or two short of the text
+  /// at exactly the ceiling. That is what the margin on `BYTES_PER_LEVEL` in
+  /// [`growable_stack`](super::super::growable_stack) is for, and it is more
+  /// than twice what a level costs: the fold nested to the largest configurable
+  /// ceiling is pinned in the evaluator's own suite.
+  pub(super) fn printed_nesting(&self) -> usize {
+    self.guard.depth.ceiling.max(self.reader.unentered_nesting)
+  }
+
   /// The names the walk resolved, as the parameters of the printed arrow.
   pub(super) fn parameters(&self) -> Vec<Pat> {
     self.reader.transport.parameters()
@@ -678,6 +702,20 @@ impl<'r> Walk<'_, 'r> {
       guard,
       reader: &mut *self.reader,
     }
+  }
+
+  /// Records how deep `expr` nests, for an operand the walk is not entering.
+  ///
+  /// A dead operand costs the walk nothing and the print and the parse
+  /// everything — the engine decides the short circuit itself, so both descend
+  /// through it whole. Measuring it here is what lets the claim be made from the
+  /// text rather than from a ceiling the text does not answer to. Placed at the
+  /// level the walk stands on, since the brackets above the operand are as much
+  /// of the descent as the ones inside it.
+  fn never_entered(&mut self, expr: &Expr) {
+    let nesting = self.guard.depth.spent() + nesting_of(expr);
+
+    self.reader.unentered_nesting = self.reader.unentered_nesting.max(nesting);
   }
 
   /// Whether every value `expr` needs is written into it, bound by the guard's
@@ -769,15 +807,22 @@ impl<'r> Walk<'_, 'r> {
 
         match self.right_operand_runs(bin) {
           true => self.under(inner).admit_value(&bin.right),
-          false => Ok(()),
+          false => {
+            self.under(inner).never_entered(&bin.right);
+
+            Ok(())
+          },
         }
       },
       // The test is evaluated and exactly one arm is, on the same terms.
       Expr::Cond(cond) => {
         self.under(inner).admit_value(&cond.test)?;
 
-        match self.arm_that_runs(cond) {
-          Some(taken) => self.under(inner).admit_value(taken),
+        match self.arms_of(cond) {
+          Some((taken, dead)) => {
+            self.under(inner).never_entered(dead);
+            self.under(inner).admit_value(taken)
+          },
           // A test whose truthiness this walk cannot read: either arm may be the
           // one the engine evaluates, so both have to carry.
           None => {
@@ -991,18 +1036,19 @@ impl<'r> Walk<'_, 'r> {
     }
   }
 
-  /// The arm of `test ? cons : alt` the engine evaluates, and `None` where this
-  /// walk cannot read which of them that is.
+  /// The arm of `test ? cons : alt` the engine evaluates and the arm it does
+  /// not, and `None` where this walk cannot read which is which.
   ///
   /// Truthiness comes from the one bridge every other reader of it uses, so a
   /// test the conditional node would take the second arm for is the arm this walk
-  /// carries.
-  fn arm_that_runs<'e>(&mut self, cond: &'e CondExpr) -> Option<&'e Expr> {
+  /// carries. Both arms are answered rather than only the live one, because the
+  /// dead one is still printed and the claim has to cover it.
+  fn arms_of<'e>(&mut self, cond: &'e CondExpr) -> Option<(&'e Expr, &'e Expr)> {
     let test = self.deciding_value_of(&cond.test)?;
 
     match evaluate_result_to_js_boolean(&test)? {
-      true => Some(&cond.cons),
-      false => Some(&cond.alt),
+      true => Some((&cond.cons, &cond.alt)),
+      false => Some((&cond.alt, &cond.cons)),
     }
   }
 

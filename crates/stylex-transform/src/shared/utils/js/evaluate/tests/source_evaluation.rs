@@ -585,6 +585,24 @@ pub(crate) fn folded_in_a_module_binding(name: &str, init: &str, source: &str) -
 /// this is the smallest honest floor rather than the smallest number that fits.
 pub(crate) const SMALL_THREAD: usize = 1024 * 1024;
 
+/// An array literal nested `levels` deep around a string.
+///
+/// The shape every case about how deep the printer and the parser go is written
+/// in, so a case can say which depth it is about without also saying how a
+/// bracket is spelled.
+pub(crate) fn nested_literal(levels: usize) -> String {
+  "[".repeat(levels) + "'x'" + &"]".repeat(levels)
+}
+
+/// A thread large enough for the stages either side of the fold — SWC's parse of
+/// the source and the drop of the tree it answered — to run on input nested as
+/// deeply as the compiler will carry.
+///
+/// For a case whose subject is what the fold does with such input rather than
+/// what those stages cost: both recurse on the bare thread stack and neither is
+/// the fold's, so a case measuring the fold has to be given room for them.
+pub(crate) const LARGE_THREAD: usize = 256 * 1024 * 1024;
+
 /// Runs `case` on a thread of `stack` bytes and hands back what it answered.
 ///
 /// For a case whose subject is how much stack something needs. A test thread's

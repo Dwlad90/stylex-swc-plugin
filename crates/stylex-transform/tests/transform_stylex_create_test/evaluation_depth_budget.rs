@@ -165,6 +165,60 @@ fn the_default_ceiling_refuses_a_twenty_nine_link_member_chain() {
   ));
 }
 
+// A dead operand nested far past the ceiling, compiled as a whole module under
+// the shipped default. The walk never enters it and the printer writes it out
+// whole, so the stack the fold claims is sized from how deep the text goes
+// rather than from the ceiling the walk spent. This module used to abort the
+// process rather than answer; `@stylexjs/babel-plugin@0.19.0` folds it to the
+// same rule.
+#[test]
+fn a_dead_operand_nested_far_past_the_default_ceiling_still_folds() {
+  let deep = nest("[", "]", "'x'", 300);
+
+  let output = fold(&create(
+    "",
+    &format!("base: {{ content: ['a', false && {}].join('-') }},", deep),
+  ));
+
+  assert!(output.contains(r#".x9llfw3{content:"a-false"}"#));
+}
+
+// And past what any stack can be claimed for, where the refusal is a sentence
+// about nested expressions rather than the ceiling's one about levels of
+// evaluation — the two count different things, and this is the one an author of
+// input this deep can act on. Compiled on a thread of its own, because SWC reads
+// a module nested this deep before the fold is ever asked and overflows a stock
+// one; that stage is the residue ADR 0004 already attributes, and the thread is
+// only what gets the input as far as the fold.
+//
+// `@stylexjs/babel-plugin@0.19.0` aborts with `Maximum call stack size exceeded`
+// on the same module, so a diagnostic is the better of the two answers.
+#[test]
+#[should_panic(expected = "nested too deeply to fold")]
+fn a_module_nested_past_the_largest_claim_refuses_rather_than_aborting() {
+  let levels = MAX_EVALUATION_DEPTH_LIMIT + 1;
+
+  let compiled = std::thread::Builder::new()
+    .stack_size(1024 * 1024 * 1024)
+    .spawn(move || {
+      fold(&create(
+        "",
+        &format!(
+          "base: {{ content: ['a', false && {}].join('-') }},",
+          nest("[", "]", "'x'", levels)
+        ),
+      ))
+    });
+
+  match compiled
+    .expect("could not start the thread the case runs on")
+    .join()
+  {
+    Ok(output) => panic!("the module compiled to {}", output),
+    Err(panic) => std::panic::resume_unwind(panic),
+  }
+}
+
 // ──────────────────────────────────────────────
 // Raising and lowering it
 //

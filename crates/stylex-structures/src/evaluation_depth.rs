@@ -27,10 +27,10 @@ pub const DEFAULT_MAX_EVALUATION_DEPTH: usize = 32;
 ///
 /// The ceiling exists to turn a stack overflow into a diagnostic, so a number
 /// no stack could be claimed for is not a ceiling -- it is the old crash under
-/// a new name. The fold claims its stack up front, at a measured cost per level
-/// and for as many walks as can nest, so the largest segment worth asking an
-/// operating system for is what sets this: eight thousand levels of two nested
-/// walks at sixty-four kilobytes each is a gigabyte of address space.
+/// a new name. The fold claims its stack up front, at a measured cost per level,
+/// so the largest segment worth asking an operating system for is what sets
+/// this: eight thousand levels at sixty-four kilobytes each is half a gigabyte
+/// of address space.
 ///
 /// It is a ceiling on what the *fold* will be asked for, not a promise about
 /// every stage of a build. An expression nested past roughly a thousand levels

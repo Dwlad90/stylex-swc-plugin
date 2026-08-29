@@ -79,7 +79,7 @@ use swc_core::{
 };
 
 use stylex_constants::constants::evaluation_errors::{
-  expression_too_deep, uncallable_printed_fold,
+  expression_too_deep, nesting_too_deep_to_carry, uncallable_printed_fold,
 };
 
 use super::{evaluate_result_vec_to_array_expr, growable_stack};
@@ -331,6 +331,15 @@ impl Depth {
     Self::full(self.ceiling)
   }
 
+  /// How many levels the walk has spent to stand where it stands.
+  ///
+  /// Read only to place an operand the walk does not enter: the nesting of that
+  /// operand is measured from itself, and the text around it nests as deep as
+  /// the walk that reached it.
+  fn spent(self) -> usize {
+    self.ceiling - self.left
+  }
+
   /// One level in, or the depth refusal at the bound — so depth is answered
   /// the same way as any other rule the guard applies.
   fn descend(self) -> Result<Self, Decline> {
@@ -385,7 +394,19 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
   let admitted = walk.admit_call(call, Position::Outermost)?;
 
   let method = admitted.name();
-  let ceiling = walk.guard.depth.ceiling;
+
+  // How deep the source below is about to nest, which is not how deep the walk
+  // above went: an operand a short circuit never reaches is printed and parsed
+  // whole without a level ever being spent on it. Past what a stack can be
+  // claimed for, the fold refuses — the one answer that is neither an abort nor
+  // a wrong one.
+  let nesting = walk.printed_nesting();
+
+  if !growable_stack::carriable(nesting) {
+    return Err(Decline::rule(nesting_too_deep_to_carry(
+      growable_stack::DEEPEST_CARRIED,
+    )));
+  }
 
   // Claimed here rather than around the whole fold. Above this line is the
   // guard's walk, which is this compiler's own recursion and asks for room at
@@ -394,7 +415,7 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
   // back, and both descend through a nested literal on whatever stack they were
   // handed. So a call the guard declined never pays for a stack the engine never
   // entered, and everything that does need one runs inside it.
-  growable_stack::grown_for_depth(ceiling, || {
+  growable_stack::grown_for_depth(nesting, || {
     // The key rather than the printed source: what the engine is asked for is
     // an expression it may already hold a compiled script for, and printing one
     // to find that out is most of what a hit would cost.

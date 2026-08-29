@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/example-storybook",
-  "version": "0.18.5-rc.1",
+  "version": "0.18.5",
   "private": true,
   "scripts": {
     "build": "storybook build",

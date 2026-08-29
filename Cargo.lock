@@ -3476,6 +3476,7 @@ dependencies = [
  "swc_config",
  "swc_core",
  "swc_ecma_parser",
+ "swc_malloc",
  "swc_sourcemap",
  "testing",
 ]

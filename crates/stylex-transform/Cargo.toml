@@ -63,6 +63,10 @@ swc_core = { workspace = true, features = [
   "ecma_utils",
   "testing_transform",
 ] }
+# The benches stand in for the shipped `.node`, which runs mimalloc on every
+# published target but musl. Without this they measure the system allocator, and
+# an allocation-reducing change reads larger there than it does in production.
+swc_malloc.workspace = true
 testing.workspace = true
 
 [[bench]]

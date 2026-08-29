@@ -182,3 +182,78 @@ fn a_ceiling_built_at_runtime_carries_what_it_was_declared_with() {
   assert_eq!(narrow.resolve_from(None, Some("4096")), 1);
   assert_eq!(narrow.clamped(0), 1);
 }
+
+/// Every declared ceiling names one setting, and names it the same way twice.
+///
+/// The option and the environment variable are two spellings of the same
+/// setting, and the derivation between them is the rule the documentation
+/// states: the variable is `STYLEX_` and the option in screaming snake case.
+///
+/// Before the name lived on the ceiling it was written out again at each call,
+/// so a fourth ceiling could be refused under a third one's name and every
+/// assertion would still pass. That is the mistake this pins, rather than the
+/// naming taste -- which is why it asks all three together and counts them,
+/// where each declaration's own test asks only about itself.
+#[test]
+fn every_declared_ceiling_names_one_setting_the_same_way_on_both_surfaces() {
+  let declared = [
+    &crate::evaluation_depth::MAX_EVALUATION_DEPTH,
+    &crate::fold_ceilings::MAX_FOLDED_CHARACTERS,
+    &crate::fold_ceilings::MAX_FOLDED_ENTRIES,
+  ];
+
+  let mut seen: Vec<&'static str> = Vec::new();
+
+  for ceiling in declared {
+    let option = ceiling.option;
+
+    assert!(!option.is_empty(), "a ceiling with no option name");
+    assert!(
+      option.starts_with("max"),
+      "{option}: every ceiling is a maximum and is written as one"
+    );
+    assert!(
+      !seen.contains(&option),
+      "{option}: two ceilings cannot answer to one option"
+    );
+    assert!(
+      !seen.contains(&ceiling.env),
+      "{option}: two ceilings cannot read one variable"
+    );
+    seen.push(option);
+    seen.push(ceiling.env);
+
+    assert_eq!(
+      ceiling.env,
+      screaming_snake_case(option),
+      "{option}: the variable is not this option's own spelling"
+    );
+
+    // A ceiling whose bracket is empty could never answer, so the two numbers
+    // are asked to be a bracket at all rather than only to exist.
+    assert!(
+      ceiling.default >= 1 && ceiling.default <= ceiling.limit,
+      "{option}: the default sits outside its own bracket"
+    );
+  }
+
+  assert_eq!(seen.len(), 6, "a ceiling was added without a case here");
+}
+
+/// `maxFoldedEntries` -> `STYLEX_MAX_FOLDED_ENTRIES`, so a reader who knows one
+/// spelling of a setting knows the other.
+fn screaming_snake_case(option: &str) -> String {
+  // The underscore goes before each later word, so the prefix supplies the only
+  // one the first word needs.
+  let mut derived = String::from("STYLEX_");
+
+  for character in option.chars() {
+    if character.is_ascii_uppercase() {
+      derived.push('_');
+    }
+
+    derived.push(character.to_ascii_uppercase());
+  }
+
+  derived
+}

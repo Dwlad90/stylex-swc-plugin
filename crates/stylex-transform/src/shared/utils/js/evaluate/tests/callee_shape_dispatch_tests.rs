@@ -45,12 +45,21 @@ fn parentheses_around_an_applied_global_do_not_change_which_arm_reads_it() {
 // ==================== a method call ====================
 
 /// A method has a receiver, and the receiver's own rules are what separates this
-/// arm: a locale-sensitive name refuses where the identical call on any other
-/// name folds.
+/// arm from the two above it.
+///
+/// That the locale-sensitive names refuse is `engine_fold_tests.rs`'s claim and
+/// is pinned there. What is this file's is that the refusal belongs to the
+/// *method* arm: the same spelling in the two positions the other arms read --
+/// applied as a name, and as a name the module bound -- is not a method, and
+/// answers by those arms' rules rather than by this one's.
 #[test]
 fn a_method_call_reads_the_rules_its_receiver_carries() {
   assert_folds_to_string("'AB'.toLowerCase()", "ab");
   assert_deopts("'AB'.toLocaleLowerCase()");
+
+  // `String` is read by the applied-global arm, which has no receiver and so no
+  // locale rule to reach -- the same source text, answered somewhere else.
+  assert_folds_to_string("String('AB').toLowerCase()", "ab");
 }
 
 /// Parentheses are unwrapped for the two arms that read a name, and not for the
@@ -70,12 +79,20 @@ fn parentheses_around_a_method_take_it_out_of_the_arm_that_reads_receivers() {
   }
 }
 
-/// A chain hides its middle links, so the rules run per link rather than at the
-/// outermost call only.
+/// A chain hides its middle links, so each link is matched for its own shape
+/// rather than the outermost one standing in for all of them.
+///
+/// That a refusing link refuses the chain is pinned in `engine_fold_tests.rs`.
+/// The claim here is the dispatch's: a chain mixes the three arms freely, and
+/// every link still reaches the arm its own spelling names.
 #[test]
-fn every_link_of_a_chain_is_read_as_its_own_call() {
-  assert_folds_to_string("'AB'.toLowerCase().trim()", "ab");
-  assert_deopts("'AB'.toLocaleLowerCase().trim()");
+fn every_link_of_a_chain_is_matched_for_its_own_shape() {
+  assert_folds_to_string("String(['a', 'b']).split(',').join('-')", "a-b");
+  assert_folds_to_number("Object.keys({ a: 1, b: 2 }).join('').length", 2.0);
+
+  // A refusing link buried mid-chain is still what the whole chain answers for,
+  // so no link is skipped once an earlier one has folded.
+  assert_deopts("String(['a']).toLocaleUpperCase().trim()");
 }
 
 // ==================== the shapes that are none of the three ====================
@@ -110,7 +127,8 @@ fn a_callee_of_no_shape_reaches_no_arm() {
 ///
 /// Under a raised ceiling, because a chain this long is deeper than the shipped
 /// default admits -- which is the depth ceiling answering rather than the
-/// dispatch, and is a different claim, pinned in `evaluation_depth_budget.rs`.
+/// dispatch, and is a different claim, pinned in
+/// `transform_stylex_create_test/evaluation_depth_budget.rs`.
 #[test]
 fn a_very_long_chain_reads_every_link_without_losing_a_rule() {
   let ceiling = 1_024;
@@ -142,4 +160,39 @@ fn deeply_nested_parentheses_still_resolve_to_one_shape() {
   let wrapped = format!("{}String{}(1)", "(".repeat(depth), ")".repeat(depth));
 
   assert_folds_to_string(&wrapped, "1");
+}
+
+// ==================== the phase a rule answers in ====================
+
+/// The three rules that read only the source text answer before anything is
+/// resolved, so a receiver the walk could never look up still refuses for its
+/// method's own spelling.
+///
+/// This is the ordering the split makes visible rather than a new behaviour, and
+/// it is worth a case of its own because getting it wrong is silent: run after
+/// resolution, these would report an unresolved binding for a call whose real
+/// fault is the method, and an author would go looking at the wrong half of the
+/// line.
+#[test]
+fn a_rule_that_reads_only_the_text_answers_before_a_name_is_resolved() {
+  // Nothing here binds `unknownName`, so resolution has nothing to answer with.
+  assert_deopt_reason_contains("unknownName.toLocaleUpperCase()", "toLocaleUpperCase");
+  assert_deopt_reason_contains("unknownName.toLocaleLowerCase()", "toLocaleLowerCase");
+
+  // A receiver that is an expression rather than a name reaches the same rule.
+  assert_deopt_reason_contains("(1 + 1 + 'a').toLocaleUpperCase()", "toLocaleUpperCase");
+}
+
+/// A number written into the source is refused for being one, whatever the
+/// method is -- the other rule of the same phase, and the only one that reads
+/// the receiver's shape rather than the method's name.
+#[test]
+fn a_receiver_written_as_a_number_is_refused_before_it_is_evaluated() {
+  for source in ["(5).toString()", "(5.5).toFixed(2)", "(0).toLowerCase()"] {
+    assert_deopts(source);
+  }
+
+  // The same value reached through anything but a written number is not this
+  // rule's business, so the phase cannot be refusing on the answer.
+  assert_folds_to_string("String(5).padStart(2, '0')", "05");
 }

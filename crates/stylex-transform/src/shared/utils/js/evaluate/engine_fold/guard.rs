@@ -1289,27 +1289,7 @@ impl<'r> Walk<'_, 'r> {
     // decides whether it folds.
     let global = unshadowed_receiver_global(obj, self.reader.traversal_state);
 
-    // The statics the reference compiler refuses by name, refused here for the
-    // reason it refuses them: each answers by changing what it was handed, or
-    // answers something new on every build, and either way a fold of it is not a
-    // function of the source. `INVALID_METHODS` is that compiler's own set.
-    if let Some(global) = global
-      && INVALID_METHODS.contains(&method.sym)
-    {
-      return Err(Decline::rule(unfoldable_static(global, &method.sym)));
-    }
-
-    // The two refusals that are pure syntax, and so the two that answer before
-    // anything is resolved: a method's own spelling, and a receiver written as a
-    // number. Neither reads a value, so neither can refuse a call the fold was
-    // never going to claim.
-    if lists(&LOCALE_SENSITIVE_METHODS, &method.sym) {
-      return Err(Decline::rule(locale_sensitive_method(&method.sym)));
-    }
-
-    if receiver_is_a_written_number(obj) {
-      return Err(Decline::rule(numeric_literal_receiver(&method.sym)));
-    }
+    refuse_a_method_by_its_spelling(obj, method, global)?;
 
     // Two things on the receiver, and both skipped for a global.
     //
@@ -1831,6 +1811,46 @@ fn the_module_declares_a_function(ident: &Ident, expr: &Expr, reader: &Reader) -
     reader.traversal_state.declared_as(ident),
     Some(DeclarationType::Function)
   ) || initializer_of(expr, reader).is_some_and(|init| matches!(init, Expr::Arrow(_) | Expr::Fn(_)))
+}
+
+/// The refusals a method call can answer from its own text.
+///
+/// First of the three phases [`Walk::admit_a_method_call`] runs, and the only one
+/// that resolves nothing: each rule reads the method's spelling or the shape the
+/// receiver was written as, so none of them can refuse a call on the strength of
+/// a binding the walk went and looked up. That is what makes running them first
+/// free, and it is why they are out here as a function rather than a method --
+/// nothing in the walk is in reach, so nothing in the walk can be leaned on.
+///
+/// `global` is the receiver's own name where it is one of the language's, which
+/// the first rule needs and the other two do not.
+fn refuse_a_method_by_its_spelling(
+  obj: &Expr,
+  method: &IdentName,
+  global: Option<&Atom>,
+) -> Result<(), Decline> {
+  // The statics the reference compiler refuses by name, refused here for the
+  // reason it refuses them: each answers by changing what it was handed, or
+  // answers something new on every build, and either way a fold of it is not a
+  // function of the source. `INVALID_METHODS` is that compiler's own set.
+  if let Some(global) = global
+    && INVALID_METHODS.contains(method.sym.as_ref())
+  {
+    return Err(Decline::rule(unfoldable_static(global, &method.sym)));
+  }
+
+  // A method whose answer needs locale data the engine does not carry.
+  if lists(&LOCALE_SENSITIVE_METHODS, &method.sym) {
+    return Err(Decline::rule(locale_sensitive_method(&method.sym)));
+  }
+
+  // A receiver written as a number, which the reference compiler applies the
+  // method without, so refusing keeps both compilers rejecting one input.
+  if receiver_is_a_written_number(obj) {
+    return Err(Decline::rule(numeric_literal_receiver(&method.sym)));
+  }
+
+  Ok(())
 }
 
 /// Whether the receiver is a number written into the source as a literal.

@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rollup-plugin",
   "description": "StyleX plugin for Rollup powered by a Rust NAPI-RS/SWC compiler. Fast StyleX transforms and CSS extraction without Babel.",
-  "version": "0.18.5",
+  "version": "0.18.6-rc.1",
   "private": false,
   "license": "MIT",
   "sideEffects": false,

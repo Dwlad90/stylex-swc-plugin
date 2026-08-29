@@ -29,6 +29,8 @@ npm install --save-dev @stylexswc/postcss-plugin
 
 Add the plugin to `postcss.config.js`:
 
+<!-- stylex:include-extensions -->
+
 ```js
 module.exports = {
   plugins: {

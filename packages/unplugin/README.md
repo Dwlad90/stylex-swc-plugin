@@ -192,6 +192,8 @@ build({
 - Description: Controls whether the generated CSS is extracted into a separate
   file.
 
+<!-- stylex:include-extensions -->
+
 #### `pageExtensions`
 
 - Type: `string[]`

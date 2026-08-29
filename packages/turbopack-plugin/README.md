@@ -45,6 +45,8 @@ npm install @stylexjs/stylex
 > [`@stylexswc/postcss-plugin`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/postcss-plugin#readme)
 > in your `postcss.config.js`:
 >
+> <!-- stylex:include-extensions -->
+>
 > ```js
 > // postcss.config.js
 > module.exports = {

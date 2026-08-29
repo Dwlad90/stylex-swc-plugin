@@ -172,6 +172,8 @@ export default withStylexTurbopack({
 > - `transformCss`
 > - `extractCSS`
 
+<!-- stylex:include-extensions -->
+
 The plugin adds one rule for each module extension it compiles: `js`, `jsx`,
 `mjs`, `cjs`, `ts`, `tsx`, `mts` and `cts`.
 
@@ -367,6 +369,8 @@ export default withStylexTurbopack({
 ```
 
 Required PostCSS configuration for CSS extraction under Turbopack:
+
+<!-- stylex:include-extensions -->
 
 ```js
 // postcss.config.js

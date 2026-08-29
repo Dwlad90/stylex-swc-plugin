@@ -34,7 +34,25 @@ export const VIRTUAL_ENTRYPOINT_CSS_PATTERN = /[\\/]stylex\.css$/;
 /** Matches only the per-module HMR dummy imports. */
 export const VIRTUAL_STYLEX_CSS_DUMMY_IMPORT_PATTERN = /stylex-virtual\.css/;
 
-export const INCLUDE_REGEXP = /\.[cm]?[jt]sx?$/;
+/**
+ * Every file extension that the StyleX loader transforms.
+ *
+ * This list is the one source for the set. A plugin that matches on a path
+ * uses `INCLUDE_REGEXP`, which is built from this list. A plugin that must
+ * give a glob to its bundler builds the glob from this list too. Nothing
+ * repeats the set by hand, so no two plugins can disagree about it.
+ *
+ * The list is also the cheapest entry point of this package: read it from
+ * `@stylexswc/plugin-shared/constants`, which loads no compiler.
+ */
+export const INCLUDE_EXTENSIONS = ['js', 'jsx', 'mjs', 'cjs', 'ts', 'tsx', 'mts', 'cts'] as const;
+
+/**
+ * Path form of `INCLUDE_EXTENSIONS`, built from the list itself. The two forms
+ * therefore always agree. The pattern holds only literal names and one anchor,
+ * so it reads a path in one pass and cannot backtrack.
+ */
+export const INCLUDE_REGEXP = new RegExp(`\\.(${INCLUDE_EXTENSIONS.join('|')})$`);
 
 /**
  * Key under which the stylex-loader stores extracted rules on

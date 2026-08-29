@@ -13,6 +13,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
+    "./constants": {
+      "types": "./dist/constants.d.ts",
+      "import": "./dist/constants.js",
+      "require": "./dist/constants.js"
+    },
     "./source-map-options": {
       "types": "./dist/source-map-options.d.ts",
       "import": "./dist/source-map-options.js",

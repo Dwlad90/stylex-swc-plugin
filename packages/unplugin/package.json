@@ -136,6 +136,7 @@
   },
   "dependencies": {
     "@stylexjs/babel-plugin": "catalog:runtime",
+    "@stylexswc/plugin-shared": "catalog:internal",
     "@stylexswc/rs-compiler": "catalog:internal",
     "unplugin": "catalog:bundlers",
     "vite": "catalog:bundlers"

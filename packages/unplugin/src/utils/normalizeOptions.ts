@@ -1,3 +1,4 @@
+import { INCLUDE_EXTENSIONS } from '@stylexswc/plugin-shared/constants';
 import { normalizeRsOptions } from '@stylexswc/rs-compiler';
 import type { TransformedOptions } from '@stylexswc/rs-compiler';
 
@@ -33,7 +34,10 @@ export default function normalizeOptions(options: UnpluginStylexRSOptions): Norm
   return {
     fileName: options.fileName ?? 'stylex.css',
     useLayers: options.useCSSLayers,
-    pageExtensions: options.pageExtensions ?? ['tsx', 'jsx', 'js', 'ts'],
+    // The shared list holds every extension that the compiler transforms. A
+    // shorter default lets StyleX in the extensions it leaves out reach the
+    // browser uncompiled.
+    pageExtensions: options.pageExtensions ?? [...INCLUDE_EXTENSIONS],
     rsOptions: normalizedRsOptions,
     extractCSS: options.extractCSS ?? true,
     transformCss: options.transformCss ?? identityTransformCss,

@@ -657,6 +657,28 @@ pub fn unfoldable_function(name: &str) -> String {
   )
 }
 
+/// A global whose *name* was written where the fold needs a value.
+///
+/// `[…].filter(Boolean)` is the shape it arrives as. The bridge carries values
+/// and a global is not one: the engine holds the real function, and nothing this
+/// side can hand across stands for it.
+///
+/// Names the global rather than the call around it, for the reason
+/// [`unfoldable_function`] names a binding — the call is fine, and the name is
+/// what an author has to replace.
+///
+/// Says what a fold does answer for a global rather than which position would
+/// have worked. Naming a position would promise one: `Boolean` is here and
+/// `Boolean(x)` does not fold either, so a sentence pointing at the call would
+/// send an author to a second refusal.
+pub fn global_as_a_value(name: &str) -> String {
+  format!(
+    "Cannot carry the global '{}' into a fold.\n\
+     The compiler folds what a global answers, not the global itself.\n\n",
+    name
+  )
+}
+
 /// A printed fold that did not evaluate to the function it was printed as.
 ///
 /// The fold prints its expression as an arrow and calls it, so the value the

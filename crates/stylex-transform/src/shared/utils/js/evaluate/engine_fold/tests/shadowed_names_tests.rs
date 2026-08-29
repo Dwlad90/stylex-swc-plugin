@@ -1,13 +1,19 @@
-//! Which bindings shadow one of the globals the fold owns, in each of the two
+//! Which bindings shadow one of the globals the fold owns, in each of the
 //! positions a global is written in.
 //!
-//! The two rules go opposite ways, so a single table would hide the one thing
-//! worth reading here: every binding shadows a **callee**, and only a declarator
-//! shadows a **receiver**. Both directions are asserted on every shape, because a
-//! rule that answers the same way in both positions is a rule that has drifted
-//! back into one.
+//! The callee and receiver rules go opposite ways, so a single table would hide
+//! the one thing worth reading here: every binding shadows a **callee**, and only
+//! a declarator shadows a **receiver**. Both directions are asserted on every
+//! shape, because a rule that answers the same way in both positions is a rule
+//! that has drifted back into one.
+//!
+//! A third position holds no call at all — the name written where a **value**
+//! belongs, `[…].filter(Boolean)` above all. It shadows the way a callee does,
+//! and owns one name more, so it is asserted on its own below.
 
 use super::*;
+
+use stylex_constants::constants::common::{VALID_CALLEES, VALUE_ONLY_GLOBALS};
 
 use std::rc::Rc;
 
@@ -79,6 +85,14 @@ fn declared_as_a_const(name: &str, init: Expr) -> StateManager {
 fn assert_applied_global(expr: &Expr, state: &StateManager, expected: Option<&str>) {
   assert_eq!(
     unshadowed_applied_global(expr, state).map(|name| &**name),
+    expected
+  );
+}
+
+#[track_caller]
+fn assert_global_as_a_value(name: &str, state: &StateManager, expected: bool) {
+  assert_eq!(
+    a_global_written_as_a_value(&reference(name), state),
     expected
   );
 }
@@ -160,6 +174,7 @@ fn parentheses_are_read_through_however_many_deep() {
 
   assert_applied_global(&wrapped, &state, Some("Math"));
   assert_receiver_global(&wrapped, &state, Some("Math"));
+  assert!(a_global_written_as_a_value(&wrapped, &state));
 }
 
 // A name that is not one of the globals the fold owns is not one either rule
@@ -181,4 +196,65 @@ fn an_expression_that_is_not_a_name_is_no_global() {
 
   assert_applied_global(&literal, &state, None);
   assert_receiver_global(&literal, &state, None);
+}
+
+// ──────────────────────────────────────────────
+// The value position, which owns `Boolean` as well
+// ──────────────────────────────────────────────
+
+// The five callees stand where a value belongs too, and `Boolean` — never a
+// callee, because the reference compiler does not fold `Boolean(x)` either — is
+// the one an author writes here most.
+#[test]
+fn every_global_the_fold_names_is_claimed_in_a_value_position() {
+  let state = a_module();
+
+  for name in VALID_CALLEES.iter().chain(VALUE_ONLY_GLOBALS.iter()) {
+    assert_global_as_a_value(name, &state, true);
+  }
+}
+
+// Shadowed like a callee rather than like a receiver: a binding of any kind is
+// the module's name, and the rules around this one answer for whatever it holds.
+//
+// This is the shape a `function` and an *import* both take — a binding with no
+// declarator to read — so it is where those two cases are answered.
+#[test]
+fn a_binding_without_a_declarator_shadows_a_value_position() {
+  assert_global_as_a_value("Boolean", &binding_only("Boolean"), false);
+}
+
+#[test]
+fn a_declarator_shadows_a_value_position() {
+  let state = declared_as_a_const("String", create_string_expr("abc"));
+
+  assert_global_as_a_value("String", &state, false);
+}
+
+// A binding some unrelated scope holds is not this reference's, as in both rules
+// above.
+#[test]
+fn a_binding_in_another_scope_shadows_no_value_position() {
+  let mut state = a_module();
+  Rc::make_mut(&mut state.declared_bindings).insert(ident_in("Boolean", another_scope()).to_id());
+
+  assert_global_as_a_value("Boolean", &state, true);
+}
+
+// A global outside the set the fold names is nobody's here either, so the rule
+// cannot start claiming names it has no answer for.
+#[test]
+fn a_name_outside_the_owned_set_is_no_value_position_global() {
+  let state = a_module();
+
+  for name in [
+    "Reflect",
+    "Symbol",
+    "parseInt",
+    "isNaN",
+    "undefined",
+    "Promise",
+  ] {
+    assert_global_as_a_value(name, &state, false);
+  }
 }

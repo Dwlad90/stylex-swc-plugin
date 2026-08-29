@@ -71,6 +71,16 @@ carries no value across the [transport](#transport), so the printed source names
 it and the language answers, and a `function Math() {}` changes nothing about
 `Math.max(1, 2)`. `ADR 0008` carries the ruling and the divergence it leaves.
 
+**A global written where a _value_ belongs is refused and named.** The name
+handed to a method as its callback, or written into an array, an operand or a
+template hole — `['Arial', false].filter(Boolean)` — carries nothing across the
+[transport](#transport), so there is nothing to admit. The refusal names the
+global, since the evaluator below resolves the name to nothing and would report
+a constant the author never wrote. `Boolean` is recognised only
+here: the reference compiler refuses `Boolean(x)` as a call too, so it is a
+global this compiler names and never folds. Shadowing follows the callee rule —
+any binding of the spelling is the module's.
+
 An argument the [transport](#transport) cannot carry hands the call back rather
 than refusing it. Those arguments are this compiler's own values. The
 environment object and the namespace map have no JavaScript form at all, so

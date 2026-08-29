@@ -21,10 +21,11 @@ use swc_core::{
   },
 };
 
+use stylex_constants::constants::common::VALUE_ONLY_GLOBALS;
 use stylex_constants::constants::evaluation_errors::{
-  SPREAD_ELEMENT, amplification_inside_a_callback, escaping_property, locale_sensitive_method,
-  not_a_function, numeric_literal_receiver, uncoercible_value, unfoldable_function,
-  unfoldable_statement, unfoldable_static,
+  SPREAD_ELEMENT, amplification_inside_a_callback, escaping_property, global_as_a_value,
+  locale_sensitive_method, not_a_function, numeric_literal_receiver, uncoercible_value,
+  unfoldable_function, unfoldable_statement, unfoldable_static,
 };
 use stylex_js::coercions::is_global_spelled_as_an_identifier;
 use stylex_js::helpers::{is_invalid_method, is_valid_callee};
@@ -716,6 +717,20 @@ impl<'r> Walk<'_, 'r> {
           && get_binding(expr, self.reader.traversal_state).is_none()
         {
           return Ok(());
+        }
+
+        // A global the language holds and the bridge cannot carry. Answered from
+        // the source, so it sits in front of the resolution with the rule above
+        // rather than among the arms below — a name the module bound nothing of
+        // has nothing to resolve, and asking anyway would price a walk on an
+        // answer already known.
+        //
+        // Named here because nothing else would: the dispatch below owns the
+        // call, resolves the name to nothing and reports a constant the author
+        // never wrote, which is a sentence about something else. Both compilers
+        // refuse the input either way, so only the wording changes.
+        if a_global_written_as_a_value(expr, self.reader.traversal_state) {
+          return Err(Decline::rule(global_as_a_value(&ident.sym)));
         }
 
         let depth = self.guard.depth;
@@ -1692,6 +1707,31 @@ fn unshadowed_receiver_global<'a>(expr: &'a Expr, state: &StateManager) -> Optio
     None => Some(&ident.sym),
     Some(_) => None,
   }
+}
+
+/// Whether a name is one of the globals the fold recognises, standing where a
+/// value belongs rather than being called or read from.
+///
+/// The callees the fold already owns, read through the same predicate the callee
+/// rule reads, plus the ones it recognises without ever calling — see
+/// [`VALUE_ONLY_GLOBALS`].
+///
+/// Every binding shadows, exactly as it does for a callee: a module that bound
+/// the spelling owns it, whatever it bound it to, and the rules above answer for
+/// what it holds.
+///
+/// Read through parentheses like the two rules above, so all three answer for
+/// the same written name.
+fn a_global_written_as_a_value(expr: &Expr, state: &StateManager) -> bool {
+  let expr = without_parens(expr);
+
+  let Some(ident) = expr.as_ident() else {
+    return false;
+  };
+
+  let named = is_valid_callee(expr) || VALUE_ONLY_GLOBALS.contains(ident.sym.as_ref());
+
+  named && !state.declares_binding(ident)
 }
 
 /// The expression a name was declared with, or `None` where the module declares

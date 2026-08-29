@@ -1,6 +1,9 @@
 //! Tests for evaluation error message functions and static constants.
 
-use crate::constants::{common::INVALID_METHODS, evaluation_errors::*};
+use crate::constants::{
+  common::{INVALID_METHODS, VALID_CALLEES, VALUE_ONLY_GLOBALS},
+  evaluation_errors::*,
+};
 
 #[test]
 fn test_unsupported_operator() {
@@ -307,6 +310,21 @@ fn test_unfoldable_function() {
   // whole reason this sentence exists beside `unfoldable_call`.
   assert!(unfoldable_function("byLength").contains("'byLength'"));
   assert!(!unfoldable_function("byLength").contains("Cannot fold"));
+}
+
+#[test]
+fn test_global_as_a_value() {
+  assert_eq!(
+    global_as_a_value("Boolean"),
+    "Cannot carry the global 'Boolean' into a fold.\n\
+     The compiler folds what a global answers, not the global itself.\n\n"
+  );
+  // Every global the fold names reads the same way, and none of them borrows
+  // the sentence about a name nothing declared.
+  for name in VALID_CALLEES.iter().chain(VALUE_ONLY_GLOBALS.iter()) {
+    assert!(global_as_a_value(name).contains(&format!("'{}'", name)));
+    assert!(!global_as_a_value(name).contains("constant"));
+  }
 }
 
 #[test]

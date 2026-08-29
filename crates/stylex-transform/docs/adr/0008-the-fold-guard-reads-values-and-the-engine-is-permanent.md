@@ -271,7 +271,7 @@ owned the position of. Two more were measured and closed rather than counted: an
 argument that is itself a call through a name, and the join a `ToNumber` reaches
 its number through.
 
-## A shadowed name is ruled on twice, in opposite directions
+## A shadowed name is ruled on by position, and the rules go opposite ways
 
 `String`, `Number`, `Object`, `Array` and `Math` are folded by being called
 rather than by a table of conversions, so whose name it is has to be decided
@@ -306,6 +306,22 @@ is the safe direction — the call is left to the runtime, where a wrong fold
 writes a wrong declaration — and it is safe here precisely because a receiver
 fold cannot invent a class name the way a callee fold can. The row is pinned in
 the module corpus as `acceptance-divergent`.
+
+## A global written where a value belongs is refused, and named
+
+A third position holds no call: the name itself, handed to a method as its
+callback or written into an array, an operand or a template hole —
+`['Arial', false].filter(Boolean)` is how it arrives. The bridge carries values
+and a global is not one, so there is nothing to admit; the reference compiler
+refuses every such input too, `Boolean(x)` as a call included, which is why
+`Boolean` is recognised here and folded nowhere.
+
+What was wrong was the sentence. The name resolved to nothing, the guard handed
+the whole call back, and the dispatch below reported a constant the author never
+wrote — a refusal borrowed from something else. It is named here instead, because
+the guard is the only place that knows the name is a global rather than a
+missing binding. Shadowing follows the callee rule: any binding of the spelling
+is the module's, and the rules above answer for whatever it holds.
 
 ## Consequences
 

@@ -17,6 +17,7 @@ mod folded_object_values;
 mod global_builtin_calls;
 mod global_conversions_answer_for_their_call;
 mod globals_as_style_values;
+mod globals_written_as_a_value;
 mod grown_string_ceiling;
 mod legacy_deprecated;
 mod logical_operators;

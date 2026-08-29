@@ -14,7 +14,9 @@
 //! broken.
 
 use super::source_evaluation::*;
-use stylex_constants::constants::evaluation_errors::{SPREAD_ELEMENT, unsupported_expression};
+use stylex_constants::constants::evaluation_errors::{
+  SPREAD_ELEMENT, global_as_a_value, unsupported_expression,
+};
 
 // ==================== the reported input ====================
 
@@ -632,18 +634,17 @@ fn assert_unsupported_expression(source: &str, kind: &str) {
 /// ticket.
 ///
 /// The ticket claimed `["a", "b"].filter(Boolean)` answered `Unsupported
-/// expression: Unknown`. It does not, and never did: `Boolean` is not a folded
-/// global, so the refusal is about the *identifier* long before the call is
-/// dispatched — and the reference implementation answers the same thing for the
-/// same reason. The reported `startsWith` call likewise refuses by name, which
-/// is a better message than any node kind would be.
+/// expression: Unknown`. It does not, and never did: the refusal is about the
+/// *identifier* long before the call is dispatched. Which identifier it names
+/// has since changed — `Boolean` is a global the fold recognises and has no
+/// value for, so it is named as the global it is rather than as a constant
+/// nothing declared.
 ///
 /// `startsWith` no longer refuses for being unlisted — the whole prototype
 /// surface folds and the list it was looked up in is gone. What answers instead
-/// is the argument's own refusal, which turns out to be the same sentence the
-/// `filter(Boolean)` case above earns and for the same reason: the name in the
-/// call is not defined. Both reported inputs now read alike, which is what they
-/// always had in common.
+/// is the argument's own refusal: a name the module really does not declare.
+/// Both reported inputs still refuse by name, which is what they always had in
+/// common.
 ///
 /// Both are pinned because they are the inputs a reader will reach for when
 /// checking this work, and finding them absent invites the label being
@@ -652,7 +653,7 @@ fn assert_unsupported_expression(source: &str, kind: &str) {
 fn the_reported_inputs_refuse_by_name_rather_than_by_node_kind() {
   assert_deopt_reason(
     "[\"a\", \"b\"].filter(Boolean)",
-    "Referenced constant is not defined.",
+    &global_as_a_value("Boolean"),
   );
 
   assert_deopt_reason(

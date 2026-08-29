@@ -121,6 +121,26 @@ fn a_computed_method_on_a_value_with_no_methods_says_so() {
 }
 
 // ──────────────────────────────────────────────
+// A global standing where a value belongs
+// ──────────────────────────────────────────────
+
+/// A global handed to a method as its callback. The bridge carries values and a
+/// global is not one, so the guard names it here rather than letting the
+/// dispatch below report a constant nothing declared.
+///
+/// The reference compiler refuses the input too, in a sentence about the call
+/// rather than about the name. The whole surface is in
+/// `globals_written_as_a_value`; this is the sentence's registration.
+#[test]
+fn a_global_written_as_a_value_names_itself() {
+  assert_refuses(
+    "",
+    "fontFamily: ['Arial', false].filter(Boolean).join(', ')",
+    "Cannot carry the global 'Boolean' into a fold.",
+  );
+}
+
+// ──────────────────────────────────────────────
 // A value too wide to carry into a fold
 // ──────────────────────────────────────────────
 

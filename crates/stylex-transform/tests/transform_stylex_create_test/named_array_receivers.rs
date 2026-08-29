@@ -682,15 +682,15 @@ fn a_folded_value_still_reaches_the_css_guards() {
 }
 
 /// A global the dispatch below folds is a receiver and not a value. Its *name*
-/// carries nothing across the bridge, so a fold that reads one as a value is not
-/// this module's call at all — where admitting it would fold a function's own
-/// source text into a declaration. Both compilers refuse.
+/// carries nothing across the bridge, so the guard refuses it and names it —
+/// where admitting it would fold a function's own source text into a
+/// declaration. Both compilers refuse.
 #[test]
 fn a_global_read_as_a_value_rather_than_a_receiver_refuses() {
   assert_refuses(
     "const a = ['a'];",
     "content: a.concat(String).join(''),",
-    "Referenced constant is not defined.",
+    "Cannot carry the global 'String' into a fold.",
   );
 }
 

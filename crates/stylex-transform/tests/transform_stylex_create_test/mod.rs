@@ -43,6 +43,7 @@ mod short_circuited_operands;
 mod static_styles;
 mod string_coercion;
 mod string_concatenation;
+mod structurally_identical_calls;
 mod stylex_functions_in_a_fold;
 mod template_interpolation;
 mod theme_members_in_a_fold;

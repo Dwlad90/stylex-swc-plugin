@@ -16,19 +16,19 @@ use swc_core::{
   atoms::Atom,
   ecma::ast::{
     ArrayLit, ArrowExpr, BinExpr, BlockStmtOrExpr, CallExpr, Callee, CondExpr, Decl, Expr,
-    ExprOrSpread, ExprStmt, Ident, KeyValueProp, Lit, MemberExpr, MemberProp, ObjectLit,
+    ExprOrSpread, ExprStmt, Ident, IdentName, KeyValueProp, Lit, MemberExpr, MemberProp, ObjectLit,
     ObjectPatProp, Pat, Prop, PropName, PropOrSpread, ReturnStmt, Stmt, Tpl,
   },
 };
 
-use stylex_constants::constants::common::VALUE_ONLY_GLOBALS;
+use stylex_constants::constants::common::{INVALID_METHODS, VALUE_ONLY_GLOBALS};
 use stylex_constants::constants::evaluation_errors::{
   SPREAD_ELEMENT, amplification_inside_a_callback, escaping_property, global_as_a_value,
   locale_sensitive_method, not_a_function, numeric_literal_receiver, uncoercible_value,
   unfoldable_function, unfoldable_statement, unfoldable_static,
 };
 use stylex_js::coercions::is_global_spelled_as_an_identifier;
-use stylex_js::helpers::{is_invalid_method, is_valid_callee};
+use stylex_js::helpers::is_valid_callee;
 use stylex_utils::swc::get_stmt_node_kind;
 
 use super::amplification::EntryAmplifier;
@@ -1199,19 +1199,10 @@ impl<'r> Walk<'_, 'r> {
   /// chain hides its middle links: `"AB".toLocaleLowerCase().trim()` is a `trim`
   /// whose receiver needs a locale.
   ///
-  /// Nearly everything answerable from syntax is answered before the walk, because
-  /// the walk resolves bindings and resolution is the only expensive thing here. So
-  /// the shape of the callee, the spelling of the method name and a receiver
-  /// written as a number are all settled while they are still free, and only an
-  /// expression this module intends to fold pays to have its names read.
-  ///
-  /// Two rules sit behind the walk instead, and each is named where it is applied.
-  /// The amplification bound is arithmetic on resolved values rather than a shape,
-  /// so a call whose receiver the walk declines is not this fold's to price — it
-  /// would otherwise report a ceiling for a receiver nothing had claimed, failing a
-  /// build the dispatch below still answers. The escaping-property check is a name
-  /// check that would cost nothing in front, and is behind so a chain of escaping
-  /// reads is named for its outermost cause.
+  /// What this function itself decides is which of three shapes the callee is —
+  /// an applied global, a name, or a method — and each shape's own rules are the
+  /// helper it hands the call to. Nothing is read off a value here, so a call this
+  /// module was never going to fold costs the match and nothing else.
   ///
   /// `position` is read by one rule only — see [`Walk::admit_a_named_call`] — and
   /// is a parameter rather than something [`Guard`] carries, so nothing else on the
@@ -1257,6 +1248,39 @@ impl<'r> Walk<'_, 'r> {
       return Err(Decline::NotACandidate);
     };
 
+    self.under(guard).admit_a_method_call(obj, method, call)
+  }
+
+  /// Whether a method call is one the engine can answer.
+  ///
+  /// The third of the three callee shapes [`Walk::admit_call`] dispatches on, and
+  /// the one that carries the boundaries: the other two name a function, while a
+  /// method has a receiver, and a receiver is where the rest is read.
+  ///
+  /// Nearly everything answerable from syntax is answered before the walk, because
+  /// the walk resolves bindings and resolution is the only expensive thing here. So
+  /// the spelling of the method name and a receiver written as a number are settled
+  /// while they are still free, and only a call this module intends to fold pays to
+  /// have its names read.
+  ///
+  /// Two rules sit behind the walk instead, and each is named where it is applied.
+  /// The amplification bound is arithmetic on resolved values rather than a shape,
+  /// so a call whose receiver the walk declines is not this fold's to price — it
+  /// would otherwise report a ceiling for a receiver nothing had claimed, failing a
+  /// build the dispatch below still answers. The escaping-property check is a name
+  /// check that would cost nothing in front, and is behind so a chain of escaping
+  /// reads is named for its outermost cause.
+  ///
+  /// `guard` arrives already applied by the caller, so the callback count this sets
+  /// for its own arguments is the only one in scope.
+  fn admit_a_method_call<'c>(
+    &mut self,
+    obj: &Expr,
+    method: &'c IdentName,
+    call: &CallExpr,
+  ) -> Result<Admitted<'c>, Decline> {
+    let guard = self.guard;
+
     // A receiver naming one of the globals the engine provides itself — `Math`,
     // `Object`, `String`, `Number`, `Array` — carries no value across the bridge:
     // the printed source names it and the language answers. That is the whole of
@@ -1270,7 +1294,7 @@ impl<'r> Walk<'_, 'r> {
     // answers something new on every build, and either way a fold of it is not a
     // function of the source. `INVALID_METHODS` is that compiler's own set.
     if let Some(global) = global
-      && is_invalid_method(prop)
+      && INVALID_METHODS.contains(&method.sym)
     {
       return Err(Decline::rule(unfoldable_static(global, &method.sym)));
     }

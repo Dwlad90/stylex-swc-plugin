@@ -544,6 +544,10 @@ mod array_index_tests;
 mod unsupported_shape_tests;
 
 #[cfg(test)]
+#[path = "tests/callee_shape_dispatch_tests.rs"]
+mod callee_shape_dispatch_tests;
+
+#[cfg(test)]
 #[path = "tests/engine_fold_tests.rs"]
 mod engine_fold_tests;
 

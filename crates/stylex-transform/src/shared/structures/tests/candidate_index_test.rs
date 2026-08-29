@@ -110,6 +110,34 @@ mod candidate_index {
     assert_eq!(index.candidates(|| OTHER_KEY), [1]);
   }
 
+  /// The bucket `forget` removed has to come back, not stay gone: a declarator
+  /// whose initializer is replaced and then replaced with the call it first held
+  /// takes exactly this path.
+  /// `a_handle_can_be_recorded_again_after_being_forgotten` re-records under a
+  /// *different* key, so it never exercises it.
+  #[test]
+  fn a_key_whose_bucket_was_removed_can_be_recorded_under_again() {
+    let mut index = CandidateIndex::default();
+
+    index.record(KEY, 1usize);
+    index.forget(&KEY, &1);
+    index.record(KEY, 1);
+
+    assert_eq!(index.candidates(|| KEY), [1]);
+  }
+
+  /// `set_declaration_init` produces this shape whenever a non-call initializer
+  /// is replaced by a call: a key to leave that never held the handle.
+  #[test]
+  fn moving_an_entry_that_was_never_under_the_key_it_leaves_still_joins_the_new_one() {
+    let mut index = CandidateIndex::default();
+
+    index.record(OTHER_KEY, 2usize);
+    index.move_entry(Some(KEY), Some(OTHER_KEY), 1usize);
+
+    assert_eq!(index.candidates(|| OTHER_KEY), [2, 1]);
+  }
+
   #[test]
   fn computes_no_key_while_the_index_holds_nothing() {
     let index: CandidateIndex<u128, usize> = CandidateIndex::default();

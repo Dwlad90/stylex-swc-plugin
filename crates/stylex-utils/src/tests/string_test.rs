@@ -87,6 +87,25 @@ mod dashify_tests {
   fn handles_single_uppercase() {
     assert_eq!(dashify("A"), "-a");
   }
+
+  /// The hyphen tracks a preceding *lowercase* letter, not merely a
+  /// non-uppercase one, so only the first of a run takes one -- which is what
+  /// `(?<=^|[a-z])` spelled, and what the hand-rolled scan that replaced it has
+  /// to reproduce. Expectations produced by running
+  /// `str.replace(/(^|[a-z])([A-Z])/g, '$1-$2').toLowerCase()`.
+  #[test]
+  fn only_the_first_of_a_run_of_uppercase_takes_a_hyphen() {
+    assert_eq!(dashify("aBC"), "a-bc");
+    assert_eq!(dashify("msTransformXY"), "ms-transform-xy");
+    assert_eq!(dashify("ABC"), "-abc");
+  }
+
+  /// A digit is not a lowercase letter, so an uppercase letter after one takes
+  /// no hyphen -- the other half of the class the lookbehind named.
+  #[test]
+  fn a_digit_before_an_uppercase_letter_takes_no_hyphen() {
+    assert_eq!(dashify("grid2Column"), "grid2column");
+  }
 }
 
 #[cfg(test)]

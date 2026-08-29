@@ -6,9 +6,10 @@ mod state_manager {
     common::{BytePos, DUMMY_SP, EqIgnoreSpan, Span, SyntaxContext},
     ecma::ast::{
       ArrayLit, AssignPatProp, BindingIdent, CallExpr, Callee, Decl, Expr, ExprOrSpread, ExprStmt,
-      Ident, IdentName, ImportDecl, ImportNamedSpecifier, ImportPhase, ImportSpecifier, Lit,
-      MemberExpr, MemberProp, Module, ModuleDecl, ModuleItem, ObjectLit, ObjectPat, ObjectPatProp,
-      Pat, Prop, PropName, PropOrSpread, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
+      Ident, IdentName, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
+      ImportSpecifier, ImportStarAsSpecifier, Lit, MemberExpr, MemberProp, Module, ModuleDecl,
+      ModuleItem, ObjectLit, ObjectPat, ObjectPatProp, Pat, Prop, PropName, PropOrSpread, Stmt,
+      Str, VarDecl, VarDeclKind, VarDeclarator,
     },
   };
 
@@ -1362,6 +1363,43 @@ mod state_manager {
       Some("other.stylex.js")
     );
     assert!(state.import_binding(&ident("unbound")).is_none());
+  }
+
+  /// `import * as stylex` binds through another arm of `local_binding_of` than
+  /// the named form the helper above builds, and the namespace form is what
+  /// every StyleX module actually writes.
+  #[test]
+  fn import_binding_answers_for_a_namespace_specifier() {
+    let mut state = StateManager::default();
+
+    state.push_top_import(ImportDecl {
+      specifiers: vec![ImportSpecifier::Namespace(ImportStarAsSpecifier {
+        span: DUMMY_SP,
+        local: ident("stylex"),
+      })],
+      ..named_import("@stylexjs/stylex", &[])
+    });
+
+    assert!(state.import_binding(&ident("stylex")).is_some());
+    assert!(state.import_binding(&ident("other")).is_none());
+  }
+
+  /// `import stylex from` is the third arm, and the only one whose binding is
+  /// the declaration's own default.
+  #[test]
+  fn import_binding_answers_for_a_default_specifier() {
+    let mut state = StateManager::default();
+
+    state.push_top_import(ImportDecl {
+      specifiers: vec![ImportSpecifier::Default(ImportDefaultSpecifier {
+        span: DUMMY_SP,
+        local: ident("stylex"),
+      })],
+      ..named_import("@stylexjs/stylex", &[])
+    });
+
+    assert!(state.import_binding(&ident("stylex")).is_some());
+    assert!(state.import_binding(&ident("other")).is_none());
   }
 
   #[test]

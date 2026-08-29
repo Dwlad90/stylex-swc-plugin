@@ -823,6 +823,92 @@ mod state_manager {
     assert!(!state.has_top_level_expr(&call, |_| false));
   }
 
+  /// The array question is a count, so what it answers has to follow the list
+  /// in both directions -- including the case a flag could not express, where
+  /// the last array is rewritten into something else.
+  #[test]
+  fn the_top_level_array_count_follows_the_list_it_counts() {
+    let mut state = StateManager::default();
+
+    let call = call_of("create", "styles");
+    let array = Expr::Array(ArrayLit {
+      span: DUMMY_SP,
+      elems: vec![Some(ExprOrSpread {
+        spread: None,
+        expr: Box::new(Expr::Call(call.clone())),
+      })],
+    });
+
+    assert!(!state.holds_top_level_array());
+
+    state.push_top_level_expression(TopLevelExpression(
+      TopLevelExpressionKind::Stmt,
+      Expr::Call(call),
+      Some("styles".into()),
+    ));
+
+    // A call is not an array.
+    assert!(!state.holds_top_level_array());
+
+    state.push_top_level_expression(TopLevelExpression(
+      TopLevelExpressionKind::Stmt,
+      array.clone(),
+      Some("lotsOfStyles".into()),
+    ));
+
+    assert!(state.holds_top_level_array());
+
+    // A second array, so the count has something to come back to.
+    state.push_top_level_expression(TopLevelExpression(
+      TopLevelExpressionKind::Stmt,
+      array,
+      Some("moreStyles".into()),
+    ));
+
+    state.set_top_level_expr(1, string_expr("no longer an array"));
+    assert!(state.holds_top_level_array());
+
+    state.set_top_level_expr(2, string_expr("nor is this"));
+    assert!(!state.holds_top_level_array());
+
+    // And a replacement out of range counts nothing.
+    state.set_top_level_expr(99, string_expr("nowhere"));
+    assert!(!state.holds_top_level_array());
+  }
+
+  /// A bucket a lookup can stop early in is one nothing has moved. Rewriting an
+  /// entry back to the expression it started with re-records it at the back, so
+  /// the bucket stops being ascending -- and the answer has to stay the earliest
+  /// entry the module writes, not the first the bucket holds.
+  #[test]
+  fn a_bucket_an_entry_moved_back_into_still_answers_with_the_earliest() {
+    let mut state = StateManager::default();
+
+    let shared = call_of("create", "shared");
+    let other = call_of("create", "other");
+
+    for name in ["first", "second", "third"] {
+      state.push_top_level_expression(TopLevelExpression(
+        TopLevelExpressionKind::Stmt,
+        Expr::Call(shared.clone()),
+        Some(name.into()),
+      ));
+    }
+
+    // Out of the bucket and back into it, which leaves position 0 behind
+    // positions 1 and 2 in it.
+    state.set_top_level_expr(0, Expr::Call(other));
+    state.set_top_level_expr(0, Expr::Call(shared.clone()));
+
+    assert_eq!(
+      state
+        .find_top_level_expr(&shared)
+        .and_then(|tpe| tpe.2.as_ref())
+        .map(Atom::as_str),
+      Some("first")
+    );
+  }
+
   #[test]
   fn has_top_level_expr_answers_from_the_index_before_the_predicate() {
     let mut state = StateManager::default();

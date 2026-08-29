@@ -344,30 +344,35 @@ pub(crate) struct CallExpressionState {
 impl CallExpressionState {
   fn add_call_expression(&mut self, call_expr: &CallExpr) {
     let key = stable_hash_unspanned_call(call_expr);
-    let callee = call_expr.callee.clone();
-    let member = Self::callee_member(&callee).cloned();
 
     // `insert` overwrites, so an existing entry's callee leaves the map here
     // and its bucket entry has to go with it.
-    if let Some(replaced) = self.all_call_expressions.insert(key, callee)
+    if let Some(replaced) = self
+      .all_call_expressions
+      .insert(key, call_expr.callee.clone())
       && let Some(replaced) = Self::callee_member(&replaced)
     {
       self.release_member(replaced);
     }
 
-    if let Some(member) = member {
-      let bucket = self
-        .callee_members
-        .entry(stable_hash_unspanned_member(&member))
-        .or_default();
+    // Borrowed from the argument rather than from the clone above, so a member
+    // is copied only where the bucket has no entry to count -- which a module's
+    // handful of distinct callee shapes makes the rare case.
+    let Some(member) = Self::callee_member(&call_expr.callee) else {
+      return;
+    };
 
-      match bucket
-        .iter_mut()
-        .find(|(candidate, _)| candidate.eq_ignore_span(&member))
-      {
-        Some((_, count)) => *count += 1,
-        None => bucket.push((member, 1)),
-      }
+    let bucket = self
+      .callee_members
+      .entry(stable_hash_unspanned_member(member))
+      .or_default();
+
+    match bucket
+      .iter_mut()
+      .find(|(candidate, _)| candidate.eq_ignore_span(member))
+    {
+      Some((_, count)) => *count += 1,
+      None => bucket.push((member.clone(), 1)),
     }
   }
 
@@ -506,7 +511,23 @@ fn call_key_of(expr: Option<&Expr>) -> Option<u128> {
 /// the order its entries were recorded, and moving one re-records it at the
 /// back, so only the minimum is reliably the one a walk in source order would
 /// have reached first.
+///
+/// A bucket nothing has moved is still in recording order. There the first
+/// entry that confirms *is* the minimum, so that case stops at it, as the walk
+/// this replaces stopped at its first match.
+///
+/// That case matters. A module of structurally identical calls puts all of them
+/// in one bucket, and every one of them confirms. To confirm the rest costs more
+/// than the walk did. The check is cheap: it compares integers, where a
+/// confirmation compares whole subtrees.
 fn earliest_confirmed(candidates: &[usize], confirm: impl Fn(usize) -> bool) -> Option<usize> {
+  if candidates.is_sorted() {
+    return candidates
+      .iter()
+      .copied()
+      .find(|position| confirm(*position));
+  }
+
   candidates
     .iter()
     .copied()
@@ -745,6 +766,16 @@ pub struct StateManager {
   /// the second where the walk this replaces found it.
   /// Shared rather than copied -- see [`Self::declaration_call_index`].
   top_level_name_index: Rc<CandidateIndex<Atom, usize>>,
+  /// How many entries of [`Self::top_level_expressions`] are an array literal.
+  ///
+  /// A count rather than a walk, because the question every `stylex.create`
+  /// asks of that list -- does the module hold *any* top-level array -- does not
+  /// read the call, so re-walking the list per call was O(creates x declarators)
+  /// for one module-constant bit.
+  ///
+  /// A count rather than a flag, because [`Self::set_top_level_expr`] can
+  /// replace an array with something else and a flag could not be lowered.
+  top_level_array_count: usize,
   /// Spans of the calls that initialise a top-level declarator bound to a
   /// pattern rather than a name — `export const { foo } = stylex.create(…);`.
   /// [`Self::top_level_expressions`] is keyed by the exported name and so has
@@ -943,6 +974,7 @@ impl StateManager {
       top_level_expressions: vec![],
       top_level_call_index: Rc::default(),
       top_level_name_index: Rc::default(),
+      top_level_array_count: 0,
       pattern_bound_top_level_calls: FxHashSet::default(),
       call_expressions: CallExpressionState::default(),
       jsx_spread_attr_exprs_map: FxHashMap::default(),
@@ -1267,6 +1299,10 @@ impl StateManager {
       Rc::make_mut(&mut self.top_level_name_index).record(name.clone(), position);
     }
 
+    if matches!(expression.1, Expr::Array(_)) {
+      self.top_level_array_count += 1;
+    }
+
     self.top_level_expressions.push(expression);
   }
 
@@ -1281,6 +1317,17 @@ impl StateManager {
     // its initializer before it.
     let recorded = call_key_of(Some(&expr));
     let replaced = std::mem::replace(&mut entry.1, expr);
+    // Read while the entry is still borrowed, because the count below is a
+    // field of the same state manager.
+    let records_array = matches!(entry.1, Expr::Array(_));
+
+    // Exact rather than approximate: an entry that stops being an array lowers
+    // the count, which is what keeps [`Self::holds_top_level_array`] the answer
+    // the walk gave.
+    self.top_level_array_count = self
+      .top_level_array_count
+      .saturating_sub(usize::from(matches!(replaced, Expr::Array(_))))
+      + usize::from(records_array);
 
     // The name an entry binds does not change with its expression, so only the
     // call index needs repairing here.
@@ -2060,6 +2107,27 @@ impl StateManager {
     binds_call: impl Fn(&TopLevelExpression) -> bool,
   ) -> bool {
     self.find_top_level_expr(call).is_some() || self.top_level_expressions.iter().any(binds_call)
+  }
+
+  /// Whether any recorded top-level expression is an array literal.
+  ///
+  /// Answered from [`Self::top_level_array_count`], which is why it takes no
+  /// call: the question does not read one.
+  pub(crate) fn holds_top_level_array(&self) -> bool {
+    let found = self.top_level_array_count > 0;
+
+    debug_assert_eq!(
+      found,
+      self
+        .top_level_expressions
+        .iter()
+        .any(|recorded| matches!(recorded.1, Expr::Array(_))),
+      "`top_level_array_count` disagrees with `top_level_expressions`; something \
+       changed the list without going through `push_top_level_expression` or \
+       `set_top_level_expr`"
+    );
+
+    found
   }
 
   /// Find the top level expression recorded from *this* call node, matched by

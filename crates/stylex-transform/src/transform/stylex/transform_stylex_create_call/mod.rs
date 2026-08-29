@@ -80,7 +80,7 @@ use stylex_enums::{counter_mode::CounterMode, style_resolution::StyleResolution}
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;
 use stylex_structures::{
   dynamic_style::DynamicStyle, order_pair::OrderPair, stylex_state_options::StyleXStateOptions,
-  top_level_expression::TopLevelExpression, uid_generator::UidGenerator,
+  uid_generator::UidGenerator,
 };
 use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_types::traits::WhenMarkerValue;
@@ -193,15 +193,17 @@ where
       // Asked first: it is a hash lookup on two integers, where
       // `find_top_level_expr` compares this call against every recorded one
       // with `eq_ignore_span` — a deep walk of the whole style object.
+      //
+      // The array question does not read the call, so it is a counter rather
+      // than a second walk. It keeps the answer the walk gave, including the
+      // case where the module holds an array that no longer belongs to this
+      // call.
       let is_program_level = self
         .state
         .pattern_bound_top_level_calls
         .contains(&call.span)
-        || self
-          .state
-          .has_top_level_expr(call, |tpe: &TopLevelExpression| {
-            matches!(tpe.1, Expr::Array(_))
-          });
+        || self.state.find_top_level_expr(call).is_some()
+        || self.state.holds_top_level_array();
 
       let mut first_arg = call.args.first()?.expr.clone();
 

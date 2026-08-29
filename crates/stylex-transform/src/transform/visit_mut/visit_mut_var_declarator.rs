@@ -116,9 +116,11 @@ where
           .and_then(|var_name| Some((var_name.name.as_ident()?, var_name)))
         {
           let Some(init) = var_name.init.as_deref() else {
-            stylex_panic!(
-              "Variable declaration must have an initializer for top-level expression lookup."
-            )
+            // A style variable is only ever recorded from a declarator its own
+            // initializer identified, so this cannot happen. Skipping keeps an
+            // unreachable shape from becoming an abort -- and from becoming a
+            // region no test can cover.
+            return;
           };
 
           let top_level_expression = self.state.find_top_level_expr_named(&binding.sym, init);

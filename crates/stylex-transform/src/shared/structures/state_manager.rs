@@ -2011,9 +2011,22 @@ impl StateManager {
           .get(position)
           .is_some_and(|recorded| recorded.1.eq_ignore_span(expr))
       },
-    )?;
+    );
 
-    self.top_level_expressions.get(position)
+    // The scan must not consult the index: it is the independent answer the
+    // index is checked against.
+    debug_assert_eq!(
+      position.is_some(),
+      self
+        .top_level_expressions
+        .iter()
+        .any(|recorded| { recorded.2.as_ref() == Some(name) && recorded.1.eq_ignore_span(expr) }),
+      "`top_level_name_index` disagrees with `top_level_expressions` about \
+       `{name}`; something grew the list without going through \
+       `push_top_level_expression`"
+    );
+
+    self.top_level_expressions.get(position?)
   }
 
   /// The style variable bound to `name`, if its declarator reads as
@@ -2149,9 +2162,12 @@ impl StateManager {
   /// Name of the style variable `call` initialises.
   ///
   /// Unordered, unlike the two lookups above: [`Self::style_vars`] is a map, so
-  /// the walk this replaces had no order to preserve either.
+  /// the walk this replaces had no order to preserve either. Nothing turns on
+  /// which of a bucket's names comes first, because at most one of them can
+  /// confirm: the moment a style variable's initializer is rewritten,
+  /// [`Self::set_style_var_init`] moves it off this call's key.
   fn find_style_var_name(&self, call: &CallExpr) -> Option<String> {
-    self
+    let found = self
       .style_var_call_index
       .candidates(|| stable_hash_unspanned_call(call))
       .iter()
@@ -2159,7 +2175,18 @@ impl StateManager {
         matches!(self.style_vars.get(*name).and_then(|decl| decl.init.as_deref()),
           Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
       })
-      .cloned()
+      .cloned();
+
+    debug_assert_eq!(
+      found.is_some(),
+      self.style_vars.values().any(|decl| {
+        matches!(decl.init.as_deref(), Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
+      }),
+      "`style_var_call_index` disagrees with `style_vars`; something changed the \
+       map without going through `insert_style_var` or `set_style_var_init`"
+    );
+
+    found
   }
 
   pub(crate) fn register_styles(

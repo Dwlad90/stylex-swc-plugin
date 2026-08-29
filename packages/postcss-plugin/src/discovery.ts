@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
+import { INCLUDE_EXTENSIONS } from '@stylexswc/plugin-shared/constants';
+
 import type { StyleXPluginOption } from './types';
 
 type ImportSource = string | { from: string; as?: string };
@@ -21,7 +23,13 @@ const DEFAULT_IMPORT_SOURCE_PACKAGES = new Set(
   }).filter(Boolean) as string[]
 );
 
-export const DEFAULT_INCLUDE_GLOB = '**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}';
+/**
+ * The glob that CSS discovery scans when the user names no include path. It is
+ * built from the shared list, so discovery reads the same files that the
+ * bundler plugins compile. A narrower glob would compile StyleX and then find
+ * no CSS for it.
+ */
+export const DEFAULT_INCLUDE_GLOB = `**/*.{${INCLUDE_EXTENSIONS.join(',')}}`;
 
 // Keep auto-discovery focused on source files.
 // Explicit include values from users are always respected.

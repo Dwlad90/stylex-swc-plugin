@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@stylexjs/babel-plugin": "catalog:runtime",
+    "@stylexswc/plugin-shared": "catalog:internal",
     "@stylexswc/rs-compiler": "catalog:internal",
     "fast-glob": "catalog:runtime",
     "glob-parent": "catalog:runtime",

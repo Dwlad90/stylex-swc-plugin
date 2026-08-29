@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/structures",
   "description": "Core data structures and configuration types for the StyleX system",
-  "version": "0.18.5-rc.1",
+  "version": "0.18.5",
   "private": true,
   "sideEffects": false,
   "files": [

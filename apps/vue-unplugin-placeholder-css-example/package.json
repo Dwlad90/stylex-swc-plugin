@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/vue-unplugin-placeholder-css-example",
   "description": "A simple vue unplugin placeholder css example to test @stylexswc/unplugin/vue",
-  "version": "0.18.5-rc.1",
+  "version": "0.18.5",
   "private": true,
   "license": "MIT",
   "scripts": {

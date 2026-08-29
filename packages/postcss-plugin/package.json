@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/postcss-plugin",
   "description": "PostCSS plugin that collects and extracts StyleX styles using a Rust NAPI-RS/SWC compiler. Ideal for Turbopack and custom CSS pipelines.",
-  "version": "0.18.5-rc.1",
+  "version": "0.18.5",
   "private": false,
   "license": "MIT",
   "sideEffects": false,

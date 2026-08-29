@@ -808,9 +808,9 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"purple\" 0..6",
   },
   ParserCase {
-    input: "rgb(0, {index}, 0)",
-    output: "rgb(0, {index}, 0)",
-    ast: "function \"rgb\" 0..18 before=\"\" after=\"\" nodes=5\n  word \"0\" 4..5\n  div \",\" 5..7 before=\"\" after=\" \"\n  word \"{index}\" 7..14\n  div \",\" 14..16 before=\"\" after=\" \"\n  word \"0\" 16..17",
+    input: "rgb(0, {channel}, 0)",
+    output: "rgb(0, {channel}, 0)",
+    ast: "function \"rgb\" 0..20 before=\"\" after=\"\" nodes=5\n  word \"0\" 4..5\n  div \",\" 5..7 before=\"\" after=\" \"\n  word \"{channel}\" 7..16\n  div \",\" 16..18 before=\"\" after=\" \"\n  word \"0\" 18..19",
   },
   ParserCase {
     input: "rgb(0,0,",
@@ -1578,9 +1578,9 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "function \"rgb\" 0..17 before=\"\" after=\"\" nodes=5\n  function \"var\" 4..10 before=\"\" after=\"\" nodes=1\n    word \"r\" 8..9\n  div \",\" 10..12 before=\"\" after=\" \"\n  word \"0\" 12..13\n  div \",\" 13..15 before=\"\" after=\" \"\n  word \"0\" 15..16",
   },
   ParserCase {
-    input: "rgb({index}, 0, 0)",
-    output: "rgb({index}, 0, 0)",
-    ast: "function \"rgb\" 0..18 before=\"\" after=\"\" nodes=5\n  word \"{index}\" 4..11\n  div \",\" 11..13 before=\"\" after=\" \"\n  word \"0\" 13..14\n  div \",\" 14..16 before=\"\" after=\" \"\n  word \"0\" 16..17",
+    input: "rgb({channel}, 0, 0)",
+    output: "rgb({channel}, 0, 0)",
+    ast: "function \"rgb\" 0..20 before=\"\" after=\"\" nodes=5\n  word \"{channel}\" 4..13\n  div \",\" 13..15 before=\"\" after=\" \"\n  word \"0\" 15..16\n  div \",\" 16..18 before=\"\" after=\" \"\n  word \"0\" 18..19",
   },
   ParserCase {
     input: "rgba( 1, 222,  33 , 0.5)",
@@ -5124,7 +5124,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("#F7F5F6", None),
   ("black", None),
   ("purple", None),
-  ("{index}", None),
+  ("{channel}", None),
   ("r", None),
   ("g", None),
   ("----__hashed_var__1jqb1tb", None),

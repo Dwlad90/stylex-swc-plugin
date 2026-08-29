@@ -558,6 +558,16 @@ carry CSS values.
 | 6a    | `refuses_with("color", "red {", MESSAGE, OTHER)`                | the same, for a value expected to be refused                   |
 | 7     | `rejects("width", &["*(", "/.5 *("], MESSAGE, &opts)`           | the property and every value in the slice                      |
 
+**What the gate cannot see.** Every shape above takes a `property`/`value`
+declaration, which is the _value_ a test carries and never the _capability_ it
+was written for. A suite proving that a method call folds through a named
+receiver contributes its `color: 'red'` and nothing that records the fold, and
+one proving that a refusal names its rule contributes no value at all. So a run
+reporting no change after such a suite lands is the gate answering truthfully,
+not the corpus confirming the suite is covered. Those capabilities are pinned in
+the curated corpus in `modules.json` instead, which is written by hand for
+exactly that reason.
+
 Shapes 6 and 7 are the two worth knowing about, because what they _omit_ is
 deliberate. A verdict case row carries the expected output and the reference
 compiler's spelling after the input; a rejection table carries the diagnostic

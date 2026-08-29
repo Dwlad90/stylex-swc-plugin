@@ -2450,7 +2450,7 @@ dependencies = [
 
 [[package]]
 name = "postcss_value_parser"
-version = "0.18.4"
+version = "0.18.5"
 dependencies = [
  "criterion",
 ]

@@ -212,18 +212,18 @@ Four categories survive in this effort, and they map onto those kinds:
 
    **Two rows counted here when this was written have since closed, and the spec
    sentence one of them rested on is amended here.** The spec's bridge section
-   said a theme reference does not cross at all. It does, as the string its own
-   `toString` answers — the variable-group hash, read off the reference and
-   mutating nothing — and the whole of `Array.prototype` folds on it, measured
-   identical to the reference compiler. The earlier reading looked for a
-   carriage that could answer both `String(group)` and `group.token` under one
-   name and found none, which was right; what it missed is that the second need
-   not be carried at all. A string has none of the group's members, so an
-   expression reading a property _as a value_ anywhere in it is handed back to
-   the dispatch below, which holds the reference and answers that member as the
-   `var(--…)` it names. `String()` of a spread holding a function closed with
-   it, once the conversion behind the fold answered for every value the bridge
-   does not carry.
+   said a theme reference does not cross at all. It does, and the whole of
+   `Array.prototype` folds on it, measured identical to the reference compiler.
+   The earlier reading looked for a carriage that could answer both
+   `String(group)` and `group.token` under one name and found none. That was the
+   wrong shape to look for: a group stores no members and derives every one of
+   them from its own identity, so what crosses is the identity and a proxy over
+   it — the same arrangement the reference compiler holds a group in, and the
+   same Rust derives the name on both sides of the bridge. What is still handed
+   back is the one answer that _is_ the group again, since the group's members
+   live in another file and no expression this side writes stands for it.
+   `String()` of a spread holding a function closed with it, once the conversion
+   behind the fold answered for every value the bridge does not carry.
 
 3. **An unreadable amplification length** — 2 rows, wanted. Not configurable: no
    value of either allocation option folds them, because the length arrives

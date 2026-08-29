@@ -10,12 +10,11 @@
 //! injected function map and the environment object have no JavaScript form at
 //! all, so they never cross and every call over one arrives here.
 //!
-//! A resolved theme reference does cross, as the string its own `toString`
-//! answers, so `String(group)` folds in the engine like any other string. What
-//! arrives here is the pair of shapes where that string has lost what the call
-//! needs: an answer that is still an object — `Object(group)` hands its argument
-//! straight back — and an expression reading a property as a value, since a
-//! string has none of the group's members.
+//! A resolved theme reference does cross, as a stand-in the engine reads members
+//! off, so `String(group)` and `group.token` both fold there. What arrives here
+//! is the one answer that *is* the group again — `Object(group)` hands its
+//! argument straight back — since the group's members live in another file and
+//! no expression this side writes stands for it.
 //!
 //! This answers all of them with the same coercions `+` and an interpolation
 //! already use, so a coerced theme reference cannot come to read one way here

@@ -14,7 +14,9 @@ use std::{cell::RefCell, mem::ManuallyDrop};
 
 #[cfg(test)]
 use boa_engine::JsString;
-use boa_engine::{Context, JsError, JsResult, JsValue, Script, Source};
+use boa_engine::{
+  Context, JsError, JsResult, JsValue, Script, Source, object::builtins::JsFunction,
+};
 use rustc_hash::FxHashMap;
 use swc_core::{
   atoms::Atom,
@@ -30,6 +32,7 @@ use stylex_constants::constants::evaluation_errors::{engine_did_not_start, engin
 use stylex_utils::hash::stable_hash_unspanned_call;
 
 use super::Decline;
+use super::theme::compile_var_group;
 use crate::shared::utils::log::build_code_frame_error::print_module;
 
 /// How many loop iterations an evaluation may run.
@@ -193,6 +196,13 @@ pub(super) struct Engine {
   /// one-shot build: without a bound the memo grows with every distinct call
   /// site every save introduces, for as long as the dev server runs.
   memo: FxHashMap<FoldKey, Script>,
+  /// What a `defineVars` group crosses as, built once per engine — see
+  /// [`theme`](super::theme).
+  ///
+  /// Kept beside the memo rather than rebuilt per group, and for the same
+  /// reason: what it saves is a parse, and the source it parses is the same one
+  /// every group in the build reads through.
+  pub(super) var_group: JsFunction,
 }
 
 /// Whether this thread is holding an engine — the observable half of "built on
@@ -280,9 +290,12 @@ impl Engine {
       .eval(Source::from_bytes(NO_FUNCTION_SOURCE))
       .map_err(|error| Decline::rule(engine_did_not_start(&error.to_string())))?;
 
+    let var_group = compile_var_group(&mut context)?;
+
     Ok(ManuallyDrop::new(Self {
       context,
       memo: FxHashMap::default(),
+      var_group,
     }))
   }
 

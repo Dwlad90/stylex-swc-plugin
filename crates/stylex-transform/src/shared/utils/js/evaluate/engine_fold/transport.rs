@@ -16,9 +16,12 @@
 
 use std::hash::{Hash, Hasher};
 
+use rustc_hash::{FxHashMap, FxHashSet};
+
 use boa_engine::{
-  Context, JsObject, JsString, JsValue, NativeFunction, native_function::NativeFunctionPointer,
-  object::builtins::JsArray,
+  Context, JsObject, JsString, JsValue, NativeFunction,
+  native_function::NativeFunctionPointer,
+  object::builtins::{JsArray, JsFunction},
 };
 use swc_core::{
   atoms::{Atom, Wtf8Atom},
@@ -40,8 +43,10 @@ use stylex_utils::number::to_js_string;
 use super::super::engine_stylex_functions::EngineCallable;
 use super::super::growable_stack::grown_per_level;
 use super::engine::read;
+use super::theme::var_group;
 use super::{Ceilings, Decline, Depth, Totals};
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+use crate::shared::structures::theme_ref::{ThemeRef, VarNaming};
 
 /// The one property name that is not a property when it is written as one.
 ///
@@ -74,10 +79,12 @@ pub(super) struct Transport {
   params: Vec<Atom>,
   values: Vec<Crossing>,
   totals: Totals,
-  /// Whether anything that crossed was a theme reference, read as the string it
-  /// resolves to. See [`admit_value`](super::guard::Walk::admit_value) for the
-  /// read that makes such a crossing unsafe, and why the two are asked together
-  /// rather than separately.
+  /// Whether anything that crossed was a theme reference.
+  ///
+  /// The cheap half of the question [`fold`](super::fold) asks of its answer: a
+  /// group standing where a value belongs has to be handed back, and only a fold
+  /// that carried one can produce one. Kept so an ordinary answer never pays for
+  /// asking the engine.
   pub(super) read_a_theme_reference: bool,
 }
 
@@ -238,13 +245,24 @@ impl Transport {
     engine: &mut Context,
     method: &Atom,
     depth: Depth,
+    var_group: &JsFunction,
+    naming: VarNaming,
+    dotted_prefixes: &FxHashMap<Atom, FxHashSet<Atom>>,
   ) -> Result<Vec<JsValue>, Decline> {
     let mut arguments = Vec::with_capacity(self.values.len());
 
-    for crossing in &self.values {
+    // Zipped rather than walked alone, because what a group has to nest is a
+    // property of the name it travels under and not of the fold.
+    for (name, crossing) in self.params.iter().zip(&self.values) {
       arguments.push(match crossing {
         Crossing::Value(value) => {
-          let mut build = Build { engine, method };
+          let mut build = Build {
+            engine,
+            method,
+            var_group,
+            naming,
+            dotted_prefixes: dotted_prefixes.get(name),
+          };
 
           cross(&mut build, value, depth.restart())?
         },
@@ -286,10 +304,10 @@ pub(super) enum Crossing {
   ///
   /// Refused in both directions, as stated rules rather than omissions: function
   /// configurations, callbacks, the environment object, an unresolved theme
-  /// reference, and the AST-keyed map variants. A theme reference therefore
-  /// crosses only as the `var(--…)` string it already resolved to, because
-  /// resolving it is what mutates compiler state and that happens before the
-  /// bridge.
+  /// reference, and the AST-keyed map variants. A *resolved* theme reference
+  /// crosses as the stand-in the engine reads members off — see
+  /// [`theme`](super::theme) — because resolving it is what mutates compiler
+  /// state and that happens before the bridge.
   Value(EvaluateResultValue),
   /// One of this compiler's own functions, reached by its own name.
   Function(NativeFunctionPointer),
@@ -343,9 +361,9 @@ trait Carriage {
   fn counted_text(&mut self, text: &Wtf8Atom) -> Result<(), Decline>;
   /// Counts the elements or properties about to be walked.
   fn counted(&mut self, entries: usize) -> Result<(), Decline>;
-  /// Records that a theme reference crossed, which is a fact about the whole
-  /// expression rather than about this value.
-  fn theme_reference(&mut self);
+  /// Carries a `defineVars` group, and records that one crossed — which is a
+  /// fact about the whole expression as well as about this value.
+  fn theme_reference(&mut self, theme: &ThemeRef) -> Result<Self::Value, Decline>;
 
   fn string(&mut self, text: &Wtf8Atom) -> Self::Value;
   fn number(&mut self, number: f64) -> Self::Value;
@@ -396,8 +414,14 @@ impl Carriage for Measure<'_> {
       .map_err(|ceiling| Decline::rule(bound_value_has_too_many_entries(self.name, ceiling)))
   }
 
-  fn theme_reference(&mut self) {
+  fn theme_reference(&mut self, theme: &ThemeRef) -> Result<(), Decline> {
     *self.read_a_theme_reference = true;
+
+    // The group's own hash is the one text of it that is written whatever the
+    // expression reads, so it is what a group costs to carry. A member is
+    // derived inside the engine as it is read, and what comes back is counted
+    // against the outward total like every other answer.
+    self.counted_text(&Wtf8Atom::from(theme.to_string_value().as_str()))
   }
 
   fn string(&mut self, _: &Wtf8Atom) {}
@@ -419,6 +443,13 @@ impl Carriage for Measure<'_> {
 struct Build<'a> {
   engine: &'a mut Context,
   method: &'a Atom,
+  var_group: &'a JsFunction,
+  naming: VarNaming,
+  /// The dotted paths a group carried under this name has to answer with a
+  /// stand-in rather than a variable, read off the source by the guard's walk.
+  /// `None` where the walk read no chain through it, which is every name that
+  /// holds something other than a group.
+  dotted_prefixes: Option<&'a FxHashSet<Atom>>,
 }
 
 impl Carriage for Build<'_> {
@@ -435,8 +466,18 @@ impl Carriage for Build<'_> {
     Ok(())
   }
 
-  // A fact the measuring walk recorded, on the walk that recorded it.
-  fn theme_reference(&mut self) {}
+  // A fact the measuring walk recorded, so this half only builds.
+  fn theme_reference(&mut self, theme: &ThemeRef) -> Result<JsValue, Decline> {
+    read(self.method, || {
+      var_group(
+        self.var_group,
+        theme,
+        self.naming,
+        self.dotted_prefixes,
+        self.engine,
+      )
+    })
+  }
 
   fn string(&mut self, text: &Wtf8Atom) -> JsValue {
     JsValue::from(carry_string(text))
@@ -523,24 +564,11 @@ fn nested_value<C: Carriage>(
 
       Ok(carriage.list(list))
     },
-    // A `defineVars` group reaching the bridge as a value rather than through a
-    // property: its own `toString` answers the variable-group hash, which is read
-    // off the reference itself and mutates nothing — so this is the one of this
-    // compiler's values that has a JavaScript form to cross as.
-    //
-    // Crossing as that string is only right where nothing reads a property off
-    // it, because a string has none of the group's members. The walk refuses that
-    // shape rather than the bridge, which sees one value at a time and cannot
-    // know what the expression around it does — see [`admit_value`].
-    EvaluateResultValue::ThemeRef(theme) => {
-      carriage.theme_reference();
-
-      let text = Wtf8Atom::from(theme.to_string_value().as_str());
-
-      carriage.counted_text(&text)?;
-
-      Ok(carriage.string(&text))
-    },
+    // A `defineVars` group, carried as the stand-in the engine reads members off
+    // — see [`theme`](super::theme). It is the one of this compiler's own values
+    // with a JavaScript form to cross as, and the form is a proxy rather than a
+    // string because the group answers a member it never stored.
+    EvaluateResultValue::ThemeRef(theme) => carriage.theme_reference(theme),
     _ => Err(Decline::NotACandidate),
   }
 }

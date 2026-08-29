@@ -75,11 +75,12 @@ An argument the [transport](#transport) cannot carry hands the call back rather
 than refusing it. Those arguments are this compiler's own values. The
 environment object and the namespace map have no JavaScript form at all, so
 every call over one is handed back. A [theme reference](#theme-reference) does
-cross, as the string its own `toString` answers, so `String(group)` folds in the
-engine — what is handed back is the pair of shapes where that string has lost
-what the call needs: an answer that is still an object, and a property read as a
-value. The [conversion behind the fold](#conversion-behind-the-fold) answers all
-of them instead, through the same coercions `+` and an interpolation use, and
+cross, as a stand-in the engine reads members off, so both `String(group)` and
+`group.member` fold in the engine — what is handed back is the one answer that
+_is_ the group again, since the group's members live in another file and no
+expression this side writes stands for it. The [conversion behind the
+fold](#conversion-behind-the-fold) answers those instead, through the same
+coercions `+` and an interpolation use, and
 raises the refusal itself where it cannot — so the fold still owns every such
 call and the sentence is still written in one place.
 _Avoid_: callable global, built-in function, global function, wrapper call
@@ -271,11 +272,15 @@ refused, so the dispatch below keeps answering for it. A callback is the
 exception: nothing below the fold carries a function into an evaluation, so a
 name holding one either crosses as its declaration or is refused by a sentence
 naming that binding. A [theme reference](#theme-reference) is the one of this
-compiler's own values that does cross, and only as the string its own `toString`
-answers — the variable-group hash, which is read off the reference itself and
-mutates nothing. A string has none of the group's members, so an expression that
-reads a property off one is handed back instead, and the dispatch below answers
-it as the `var(--…)` that member names.
+compiler's own values that does cross, as a **group stand-in**: a proxy carrying
+the group's identity, which answers a member read with the `var(--…)` that member
+names and the group itself with the variable-group hash. Nothing of the group is
+copied, because a group stores no members — every name is derived from the
+identity as it is read, by the same Rust the evaluator's own lookup calls. A
+dotted path is the one thing the stand-in cannot work out for itself, since
+`colors.brand.primary` is one token rather than a read of a read: the [fold
+guard](#fold-guard) reads those paths off the source and names them, exactly as
+the dispatch below reads them off the same source.
 
 What a _name_ may hold is narrower than what the bridge carries, and
 deliberately: a number and a boolean cross as an element or a property, where
@@ -355,8 +360,8 @@ engine's job — and it was a refused build between the ticket that moved
 `Array.prototype` into the engine and the ticket that moved this function.
 
 A call written on its own stays below the fold. That call's arguments are
-resolved this compiler's own way, a [theme reference](#theme-reference) included,
-and the engine holds no value for one of those. The ordering itself is shared
+resolved this compiler's own way, and the engine holds no value for the injected
+function map or the environment object. The ordering itself is shared
 Rust rather than written twice, so the engine's answer and the evaluator's cannot
 drift apart.
 _Avoid_: pure StyleX function, native binding, builtin, injected function
@@ -678,8 +683,16 @@ because the keys it would need live in the other file -- so the CSS a style
 value needs comes from a _member_ read off it (`zIndex.ten` is
 `var(--x1ew7r74)`), and the group read without one is refused wherever a value
 belongs. Refused, not dropped: answering "no value" there compiled the object as
-if the declaration had not been written. _Avoid_: token group, theme object,
-vars object, defineVars value
+if the declaration had not been written.
+
+A chain of two or more names is one member and not a read of a read:
+`colors.brand.primary` names the token `brand.primary`, which is how a group
+whose members are groups is written. A chain that is the callee of a call is not
+one — `colors.brand.toUpperCase()` resolves `colors.brand` and calls a string
+method on it — so which of the two a chain is, is a question about the source.
+Inside a fold it crosses as the [carried value](#carried-value) a group is, with
+the paths the guard read off the source named for it.
+_Avoid_: token group, theme object, vars object, defineVars value
 
 **Import specifier kind**:
 Which of `{ c }`, `c` or `* as c` bound the name a reference reads, answered by

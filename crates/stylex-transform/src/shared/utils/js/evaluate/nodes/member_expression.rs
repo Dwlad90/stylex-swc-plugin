@@ -696,7 +696,19 @@ pub(in super::super) fn evaluate(
   }
 }
 
-fn get_full_member_path(member: &MemberExpr) -> Option<(Expr, Vec<String>)> {
+/// The base of a member chain and the static property names read off it, or
+/// `None` where the chain is shorter than two names or one of them is not
+/// static.
+///
+/// Shared with the [fold guard](crate::shared::utils::js::evaluate::engine_fold)
+/// rather than read twice: the chain this answers is the one shape a fold cannot
+/// express — its printed source would read the members one at a time, where a
+/// group answers the whole dotted path as one variable — so the guard has to
+/// recognise exactly what this recognises, or the two would answer the same
+/// source differently.
+pub(in crate::shared::utils::js::evaluate) fn get_full_member_path(
+  member: &MemberExpr,
+) -> Option<(Expr, Vec<String>)> {
   let mut parts = Vec::new();
   let mut current = member;
 
@@ -725,6 +737,6 @@ fn get_full_member_path(member: &MemberExpr) -> Option<(Expr, Vec<String>)> {
 /// `Object`, `Array`, …) is guaranteed not to produce a `ThemeRef`, so we
 /// skip the fast-path eval to avoid the speculative work the Copilot review
 /// flagged.
-fn is_theme_ref_base(base: &Expr) -> bool {
+pub(in crate::shared::utils::js::evaluate) fn is_theme_ref_base(base: &Expr) -> bool {
   matches!(base, Expr::Ident(_))
 }

@@ -10,7 +10,8 @@
 //! beside the reader that resolves a name to the value it holds. What the guard
 //! carries, and the one thing it deliberately does not, is [`Guard`].
 
-use boa_engine::{Context, JsString, JsValue};
+use boa_engine::{Context, JsString, JsValue, object::builtins::JsFunction};
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
   ecma::ast::{
@@ -35,7 +36,10 @@ use super::transport::{Crossing, Transport};
 use super::{Ceilings, Decline, Depth, ESCAPING_PROPERTIES, escaping_property_named, lists};
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
+  structures::{
+    functions::FunctionMap, state::EvaluationState, state_manager::StateManager,
+    theme_ref::VarNaming,
+  },
   utils::{common::get_var_decl_from, js::check_declaration::DeclarationType},
 };
 
@@ -45,6 +49,7 @@ use super::super::{
   growable_stack::grown_per_level,
   helpers::{evaluate_result_to_js_boolean, get_binding},
   nodes::logical_expression::{LogicalOp, evaluates_its_right_operand},
+  nodes::member_expression::{get_full_member_path, is_theme_ref_base},
 };
 
 /// Methods whose answer depends on locale data the engine does not carry.
@@ -339,14 +344,13 @@ pub(super) struct Reader<'a> {
   traversal_state: &'a mut StateManager,
   fns: &'a FunctionMap,
   transport: Transport,
-  /// Whether the expression reads a property as a *value* somewhere — `o.k`
-  /// rather than the `o.m` of a method being called.
+  /// The dotted paths this walk saw read off a theme group, under the name each
+  /// was read through — the prefixes that group has to answer with a stand-in.
+  /// See [`var_group_traps`](super::theme).
   ///
-  /// Recorded rather than refused where it is seen, because on its own it is an
-  /// ordinary read the fold has always carried. It only matters beside a
-  /// carried theme reference, and the two can be seen in either order, so the
-  /// pair is asked once the whole walk is done. See [`fold`](super::fold).
-  read_a_property_as_a_value: bool,
+  /// Per name rather than per fold, because an expression can read two groups
+  /// and a path off one says nothing about the other.
+  dotted_prefixes: FxHashMap<Atom, FxHashSet<Atom>>,
 }
 
 impl<'a> Reader<'a> {
@@ -368,7 +372,7 @@ impl<'a> Reader<'a> {
       traversal_state,
       fns,
       transport: Transport::new(ceilings),
-      read_a_property_as_a_value: false,
+      dotted_prefixes: FxHashMap::default(),
     }
   }
 
@@ -628,12 +632,6 @@ impl<'a, 'r> Walk<'a, 'r> {
     self.reader.transport.read_a_theme_reference
   }
 
-  /// Whether the expression read a property as a *value* anywhere — the other
-  /// half of the pair [`fold`](super::fold) asks once the walk is done.
-  pub(super) fn read_a_property_as_a_value(&self) -> bool {
-    self.reader.read_a_property_as_a_value
-  }
-
   /// The names the walk resolved, as the parameters of the printed arrow.
   pub(super) fn parameters(&self) -> Vec<Pat> {
     self.reader.transport.parameters()
@@ -646,15 +644,24 @@ impl<'a, 'r> Walk<'a, 'r> {
   }
 
   /// The values it resolved, as the arguments that arrow is called with.
+  ///
+  /// The group builder is taken rather than reached through the engine, because
+  /// what builds a value here is the engine's *context* and the two cannot be
+  /// borrowed from it at once.
   pub(super) fn arguments(
     &self,
     engine: &mut Context,
     method: &Atom,
+    var_group: &JsFunction,
   ) -> Result<Vec<JsValue>, Decline> {
-    self
-      .reader
-      .transport
-      .arguments(engine, method, self.guard.depth)
+    self.reader.transport.arguments(
+      engine,
+      method,
+      self.guard.depth,
+      var_group,
+      VarNaming::of(self.reader.traversal_state),
+      &self.reader.dotted_prefixes,
+    )
   }
 }
 
@@ -781,12 +788,7 @@ impl<'r> Walk<'_, 'r> {
       // The property is answered before the receiver is walked, because the name
       // alone decides it and the walk now resolves bindings — so a read that no
       // receiver could make safe must not cost a resolution first.
-      Expr::Member(MemberExpr { obj, prop, .. }) => {
-        // Every read that reaches here is a value rather than a method being
-        // called: `admit_call` destructures a callee's own member itself and
-        // walks only the receiver through this.
-        self.reader.read_a_property_as_a_value = true;
-
+      Expr::Member(member @ MemberExpr { obj, prop, .. }) => {
         if let Some(escaping) = escaping_property_named(prop) {
           return Err(Decline::rule(escaping_property(escaping)));
         }
@@ -807,6 +809,16 @@ impl<'r> Walk<'_, 'r> {
           // has.
           MemberProp::PrivateName(_) => return Err(Decline::NotACandidate),
         }
+
+        // A chain of two or more names read off a theme group is one token
+        // rather than a read of a read: `colors.brand.primary` names
+        // `brand.primary`. The printed source reads the names one at a time, so
+        // the group is told which paths it has to answer with a stand-in for the
+        // path so far rather than with the variable that path names.
+        //
+        // After the property, for the reason the property is answered first: a
+        // read no receiver could make safe must not cost a resolution.
+        self.record_a_dotted_theme_read(member);
 
         self.under(inner).admit_value(obj)
       },
@@ -884,6 +896,65 @@ impl<'r> Walk<'_, 'r> {
       // `NO_FUNCTION_SOURCE` in [`engine`](super::engine).
       Expr::Arrow(arrow) => self.under(inner).admit_arrow(arrow),
       _ => Err(Decline::NotACandidate),
+    }
+  }
+
+  /// Records the paths `member` reads off a theme group, where it reads any.
+  ///
+  /// The same question the dispatch below asks of the same source, read from the
+  /// same two helpers rather than from a second copy of them — a chain of two or
+  /// more static names whose base holds a group. Every path *up to* the last name
+  /// is a prefix, because each of them is a group in its own right and the last
+  /// name is the one that answers a variable.
+  ///
+  /// Cheapest questions first, and none of them costs a resolution the walk was
+  /// not about to spend anyway: the chain's shape and its base's spelling are
+  /// syntax, the scope is the guard's own, and the base is the very name the step
+  /// below this resolves — through the evaluator's memo, so it is read once.
+  fn record_a_dotted_theme_read(&mut self, member: &MemberExpr) {
+    let Some((base, parts)) = get_full_member_path(member) else {
+      return;
+    };
+
+    // The base of a chain that reads a group is the name the group is carried
+    // under, which is the name the paths below belong to.
+    let Expr::Ident(name) = &base else {
+      return;
+    };
+
+    if !is_theme_ref_base(&base) {
+      return;
+    }
+
+    // A name a callback binds is the callback's, whatever the module binds it to
+    // — so a parameter shadowing a group reads properties off whatever it was
+    // handed, and nothing about that chain belongs to the group.
+    if self.guard.scope.binds(&name.sym) {
+      return;
+    }
+
+    if !matches!(
+      self.reader.resolve(&base),
+      Some(EvaluateResultValue::ThemeRef(_))
+    ) {
+      return;
+    }
+
+    let paths = self
+      .reader
+      .dotted_prefixes
+      .entry(name.sym.clone())
+      .or_default();
+    let mut path = String::new();
+
+    for part in parts.iter().take(parts.len() - 1) {
+      if !path.is_empty() {
+        path.push('.');
+      }
+
+      path.push_str(part);
+
+      paths.insert(Atom::from(path.as_str()));
     }
   }
 
@@ -1238,9 +1309,9 @@ impl<'r> Walk<'_, 'r> {
   ///
   /// An argument the bridge cannot carry hands the call back rather than refusing
   /// it. The bridge carries JavaScript values, and this compiler has values of its
-  /// own — a resolved theme reference, the injected function map, the environment
-  /// object — which have no JavaScript form to cross as, so the engine cannot be
-  /// the thing that answers for them. The dispatch below folds a global applied to
+  /// own — the injected function map and the environment object — which have no
+  /// JavaScript form to cross as, so the engine cannot be the thing that answers
+  /// for them. The dispatch below folds a global applied to
   /// one, and raises [`uncoercible_value`] where it cannot, so the sentence a
   /// refusal carries is still written in one place.
   ///
@@ -1277,9 +1348,9 @@ impl<'r> Walk<'_, 'r> {
   /// **The outermost call stays the dispatch's**, which is the line
   /// [`Walk::admit_a_stylex_function`] already draws and for the same reason: below
   /// the fold a call through a name is resolved this compiler's own way — a dynamic
-  /// style's own parameters, the injected function map and a resolved theme
-  /// reference are all answered there, and the engine holds no value for any of
-  /// them. Measured, that path already folds `inner('a')` to upstream's rule, so
+  /// style's own parameters and the injected function map are answered there, and
+  /// the engine holds no value for either of them. Measured, that path already
+  /// folds `inner('a')` to upstream's rule, so
   /// taking the call would replace a working answer with a narrower one.
   ///
   /// A call *inside* an expression the fold claimed has no such second answer.

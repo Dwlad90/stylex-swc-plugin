@@ -30,6 +30,7 @@ use super::super::growable_stack::grown_per_level;
 use super::super::helpers::js_undefined;
 use super::as_expr;
 use super::engine::read;
+use super::theme::{is_a_var_group, var_group_text};
 use super::{Ceilings, Decline, Depth, Totals};
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue, utils::common::order_own_keys,
@@ -175,6 +176,23 @@ impl<'a> Outward<'a> {
     }
 
     if !object.is_ordinary() {
+      // A theme group inside an answer, which is the one exotic object a fold can
+      // produce. It converts to the text it answers for itself — the same text
+      // the language would have read off it the moment anything joined or printed
+      // the array holding it — because the group's own members live in another
+      // file and no expression this side writes stands for them.
+      //
+      // A group standing *alone* as the answer is handed back instead, one step
+      // above this: there the dispatch still holds the reference and can resolve
+      // a member off it, where here the whole expression around it has folded.
+      if is_a_var_group(value, self.method, engine)? {
+        let hash = var_group_text(&object, self.method, engine)?;
+
+        return Ok(EvaluateResultValue::Expr(Expr::Lit(Lit::Str(
+          hash.to_std_string_lossy().into(),
+        ))));
+      }
+
       return Err(Decline::rule(unfoldable_fold_result(value.type_of())));
     }
 

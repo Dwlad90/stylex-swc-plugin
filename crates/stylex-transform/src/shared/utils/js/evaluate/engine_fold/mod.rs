@@ -54,11 +54,13 @@ mod amplification;
 mod engine;
 mod guard;
 mod outward;
+mod theme;
 mod transport;
 
 use engine::{ENGINE, Engine, FoldKey, print_fold, threw};
 use guard::{Admitted, Guard, Position, Reader, Repeats, Scope, Walk, admit_an_applied_global};
 use outward::Outward;
+use theme::is_a_var_group;
 
 pub(super) use guard::unshadowed_applied_global;
 
@@ -382,20 +384,6 @@ pub(crate) fn try_fold(
 fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline> {
   let admitted = walk.admit_call(call, Position::Outermost)?;
 
-  // A theme reference crosses as the string its own `toString` answers, which is
-  // every member the group has except the members themselves. So an expression
-  // that reads a property as a value is handed back rather than folded: the
-  // engine would read that property off a string and answer `undefined`, which
-  // is a wrong declaration where a hand-back is merely a narrower one — the
-  // dispatch below resolves the member this compiler's own way and folds it.
-  //
-  // Asked of the whole expression rather than of the read, because the read need
-  // not be on the reference: `[colors][0].primary` reads a property off an
-  // element, and nothing at that member says which value it will land on.
-  if walk.carried_a_theme_reference() && walk.read_a_property_as_a_value() {
-    return Err(Decline::NotACandidate);
-  }
-
   let method = admitted.name();
   let ceiling = walk.guard.depth.ceiling;
 
@@ -424,6 +412,11 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
         None => Engine::new()?,
       };
 
+      // Cloned rather than borrowed: it is a handle the engine's own collector
+      // owns, and the build below needs the engine's context borrowed at the
+      // same time.
+      let var_group = engine.var_group.clone();
+
       let depth = walk.guard.depth.restart();
       let mut outward = Outward::new(method, walk.guard.ceilings);
 
@@ -433,7 +426,7 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
       };
 
       let folded = applied
-        .and_then(|()| walk.arguments(&mut engine.context, method))
+        .and_then(|()| walk.arguments(&mut engine.context, method, &var_group))
         .and_then(|arguments| {
           apply(
             key,
@@ -444,17 +437,17 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
           )
         })
         .and_then(|value| {
-          // A theme reference crossed as a string, so an answer that is still an
-          // object may *be* that reference — `Object(colors)` hands its argument
-          // straight back — and a string standing where the group stood has lost
-          // every member it had. Handed back rather than refused: the dispatch
-          // below holds the reference itself and answers for it, where a refusal
-          // here would fail a build it can compile.
+          // An answer that is the theme group itself — `Object(colors)` hands its
+          // argument straight back — is handed back rather than converted: the
+          // group's members live in another file and nothing this side can write
+          // stands for it, where the dispatch below holds the reference and
+          // answers for it. A refusal here would fail a build it can compile.
           //
-          // Read off the answer rather than predicted from the call, because what
-          // a fold hands back is a property of the whole chain and not of the
-          // method that ends it.
-          if walk.carried_a_theme_reference() && value.is_object() {
+          // Asked only where a group crossed, so an ordinary answer pays nothing
+          // for a question that could not be true of it.
+          if walk.carried_a_theme_reference()
+            && is_a_var_group(&value, method, &mut engine.context)?
+          {
             return Err(Decline::NotACandidate);
           }
 

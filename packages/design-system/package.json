@@ -18,7 +18,7 @@
   "scripts": {
     "build": "scripty --ts",
     "check:artifacts": "scripty",
-    "clean": "del-cli dist",
+    "clean": "del-cli dist \"*.tsbuildinfo\"",
     "postbuild": "pnpm run check:artifacts",
     "prepublishOnly": "pnpm run build",
     "test": "echo \"Error: no test specified\" && exit 0",

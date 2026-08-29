@@ -14,16 +14,11 @@
 use stylex_structures::evaluation_depth::MAX_EVALUATION_DEPTH_LIMIT;
 
 use super::growable_stack::{claim_for, grown_for_depth, grown_per_level};
-use super::source_evaluation::on_a_thread_of;
+use super::source_evaluation::{SMALL_THREAD, on_a_thread_of};
 
 /// What one written level costs, and comfortably more than a level of any walk
 /// the fold runs — the point is to spend measurable stack, not to imitate one.
 const FRAME: usize = 16 * 1024;
-
-/// A thread small enough that every case below has to be given room it did not
-/// start with. Under a megabyte the runtime's own guard page arithmetic starts
-/// to matter, so this is the smallest honest floor rather than the smallest.
-const SMALL_THREAD: usize = 1024 * 1024;
 
 /// Which of the two subjects a descent is.
 #[derive(Clone, Copy)]

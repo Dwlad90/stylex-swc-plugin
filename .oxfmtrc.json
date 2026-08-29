@@ -27,8 +27,6 @@
     }
   ],
   "ignorePatterns": [
-    "vendor/*/core/**",
-    "vendor/*/utils/**",
     "**/output/**",
     "**/test/**",
     "**/tests/**",

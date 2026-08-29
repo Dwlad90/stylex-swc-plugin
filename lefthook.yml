@@ -83,10 +83,6 @@ pre-commit:
     # Lint first so that autofixes are then formatted, not the reverse.
     - name: js-ts
       glob: '*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'
-      # Vendored upstream source, as under `rust` below. `.oxlintrc.jsonc` and
-      # `.oxfmtrc.json` ignore it too, so the sweep and this path agree.
-      exclude:
-        - 'vendor/**'
       group:
         piped: true
         jobs:
@@ -104,7 +100,6 @@ pre-commit:
       exclude:
         - '**/package.json'
         - 'package.json'
-        - 'vendor/**'
       run: ./node_modules/.bin/oxfmt --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
 
@@ -117,12 +112,6 @@ pre-commit:
     # commit; `pnpm lint:markdown` passes none and sweeps the whole tree.
     - name: markdown
       glob: '*.{md,mdx}'
-      # Only upstream's own markdown is exempt. `vendor/boa/README.md` is this
-      # repo's writing about a vendored tree, so it stays held to the 80-column
-      # rule and the alert check like any other document here.
-      exclude:
-        - 'vendor/*/core/**'
-        - 'vendor/*/utils/**'
       group:
         piped: true
         jobs:
@@ -179,10 +168,6 @@ pre-commit:
     # so the two cannot disagree.
     - name: rust
       glob: '*.rs'
-      # Vendored upstream source. Formatting it would rewrite someone else's
-      # crate to this repo's style and make every bump a conflict.
-      exclude:
-        - 'vendor/**'
       run: rustfmt {staged_files}
       stage_fixed: true
 
@@ -191,10 +176,6 @@ pre-commit:
     # individually.
     - name: toml
       glob: '*.toml'
-      # As above: `vendor/boa/Cargo.toml` is upstream's manifest with two bounds
-      # relaxed, and a reformat would bury that diff.
-      exclude:
-        - 'vendor/**'
       run: ./node_modules/.bin/taplo format {staged_files}
       stage_fixed: true
 

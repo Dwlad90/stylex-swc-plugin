@@ -218,12 +218,19 @@ it.
 **What the claim does not cover, and this is a residue like the one above.** The
 ceiling bounds the walk, not the text. A short-circuited operand is printed
 without being walked, so printer and parser descend nesting no level was spent
-on: at
-the shipped ceiling that folds at 200 levels of dead nesting and aborts at 300.
+on: at the shipped ceiling the claim carries about 148 such levels and not 152.
 The factor of two in the claim is a margin against exactly this and is not a
 bound on it. `UNWALKED_NESTING` in `growable_stack.rs` says so where it is
 written, and the case that measures it is
-`a_dead_operand_deeper_than_the_ceiling_is_never_entered`.
+`a_dead_operand_deeper_than_the_ceiling_is_never_entered`, which asks for the
+factor of two rather than for the slack above it.
+
+**That number belongs to an engine version, not to this compiler.** The same
+input cost about 20 KiB a level on the engine's 0.21 line and about 28 KiB on its
+0.22 one, so the claim that carried 200 dead levels now carries 148. Nothing
+promised changed — twice the ceiling is 64 levels either way — but a case pinned
+to the slack turned an engine bump into an abort, which is why the one above is
+pinned to the promise and runs on a thread too small to skip the claim.
 
 **And the claim is now tested at the size it is sized for.**
 `growable_stack_tests.rs` asks for the largest claim and asserts it is

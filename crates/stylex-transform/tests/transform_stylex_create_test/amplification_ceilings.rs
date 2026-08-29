@@ -227,7 +227,7 @@ fn a_length_that_cannot_be_bounded_still_refuses() {
 /// `Invalid count value: -1` — so the two agree on the answer and differ only in
 /// the sentence, which is not a parity obligation.
 #[test]
-#[should_panic(expected = "RangeError: repeat count must be a positive finite number")]
+#[should_panic(expected = "RangeError: String.prototype.repeat: count must be non-negative")]
 fn a_negative_count_carries_the_language_s_own_sentence() {
   fold(&module("", "content: 'x'.repeat(-1),"));
 }

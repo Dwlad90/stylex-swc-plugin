@@ -1,4 +1,4 @@
-exclude = ["**/node_modules/**", "**/target/**", "**/vendor/**"]
+exclude = ["**/node_modules/**", "**/target/**"]
 
 [formatting]
 reorder_arrays = true

@@ -43,12 +43,19 @@ const SEGMENT: usize = 16 * 1024 * 1024;
 /// Only those, because only those run on this claim — every walk this compiler
 /// owns asks for its own room, and the print has unwound before the parse
 /// begins, so what is sized here is the deeper of the two rather than the sum.
-/// Measured on a debug build, which is the expensive one, by claiming nothing
-/// and shrinking the thread instead: sixty-four megabytes carry three thousand
-/// three hundred levels of nested array literal and not three thousand five
-/// hundred, so a level costs about twenty kilobytes. Sixty-four kilobytes is
-/// three times that, which is the margin between a ceiling that refuses and a
-/// ceiling that aborts.
+/// Measured on a debug build, which is the expensive one, by running the descent
+/// on a thread too small to skip the claim, so that what carries it is the claim
+/// and nothing else: four megabytes carry a hundred and forty-eight levels of
+/// nested array literal and not a hundred and fifty-two, so a level costs about
+/// twenty-eight kilobytes. Sixty-four kilobytes is more than twice that, which
+/// is the margin between a ceiling that refuses and a ceiling that aborts.
+///
+/// **The measurement moves with the engine, and it has.** A level cost about
+/// twenty kilobytes under the engine's 0.21 line and about twenty-eight under
+/// its 0.22 one, for the same input — the parser's frames grew. That is why
+/// `a_dead_operand_deeper_than_the_ceiling_is_never_entered` runs at exactly the
+/// depth this claim promises, on exactly the stack it promises: an engine bump
+/// that outgrows the margin fails there rather than in somebody's build.
 const BYTES_PER_LEVEL: usize = 64 * 1024;
 
 /// How much deeper than the ceiling the printed source may nest.
@@ -57,14 +64,14 @@ const BYTES_PER_LEVEL: usize = 64 * 1024;
 /// rather than the text. An operand a short circuit never reaches is printed
 /// without being walked — the engine decides the short circuit itself — so the
 /// printer and the parser both descend through nesting the guard never spent a
-/// level on. Two is what the deepest such shape in the suite comes to at the
-/// shipped ceiling, and it is a margin rather than a bound: nothing in the guard
-/// stops a dead operand nesting deeper still.
+/// level on. Two is a margin rather than a bound: nothing in the guard stops a
+/// dead operand nesting deeper still, and what is promised is that twice the
+/// ceiling is carried.
 ///
 /// Multiplied into the claim rather than left to the margin on
 /// [`BYTES_PER_LEVEL`], so the room is there by construction and stays there if
 /// either measurement moves.
-const UNWALKED_NESTING: usize = 2;
+pub(super) const UNWALKED_NESTING: usize = 2;
 
 /// The largest claim [`grown_for_depth`] will ever make.
 ///

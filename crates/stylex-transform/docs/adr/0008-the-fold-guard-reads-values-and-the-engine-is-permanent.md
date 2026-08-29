@@ -64,9 +64,10 @@ is closed.
 
 **What it costs.** Measured on `aarch64-apple-darwin` and `x86_64-apple-darwin`
 when the engine landed: the published artifact grows 5.6–6.1 MiB, 58–60%, and the
-lock file by 49 packages. The 49 is stable — of the 425 crates the compiler
-resolves under `--all-features`, exactly 49 are reachable only through
-`boa_engine`, `regress`, `time` and `toml_edit` among them. Runtime cost is
+lock file by 49 packages, `regress`, `time` and `toml_edit` among them. That
+count belongs to the release it was taken on and moves with the engine: on 0.22
+the workspace resolves 492 packages under `--all-features` and 425 without the
+engine, so 67 are reachable only through it. Runtime cost is
 close to nothing for input that folds nothing: the engine is built on first use,
 so a file with no foldable method call never creates one, and the paired
 benchmark reported every ratio between 0.989 and 1.017 across sixty fixtures for
@@ -82,16 +83,26 @@ grows. Every one of those is a wrong value rather than a missing one when it
 drifts, and a wrong value is hashed into a class name that no later build
 reproduces. 5.6 MiB buys the language's own answer.
 
-**Why it is vendored rather than taken from the registry.** Published
-`boa_engine` 0.21.1 requires `icu_normalizer ~2.0.0` and `boa_parser` requires
-`icu_properties ~2.0.0`; neither can coexist with the `~2.3.0` that
-`icu_collator 2.3.1` needs, and the versions share a major, so Cargo has to pick
-one and cannot. `vendor/boa` is that release with those two bounds relaxed to
-`>= 2.0.0, < 3` and nothing else changed. Patching is sound here rather than a
-workaround a published crate would apologise for: nothing in this repository
-ships to crates.io, so no downstream Rust consumer can be handed a dependency
-graph a `[patch]` section quietly rewrote. What ships is the compiled `.node`.
-`vendor/boa/README.md` records the provenance and how to bump it.
+**It was vendored for one release, and is not any more.** Published `boa_engine`
+0.21.1 required `icu_normalizer ~2.0.0` and `boa_parser` required
+`icu_properties ~2.0.0`; neither could coexist with the `~2.3.0` that
+`icu_collator 2.3.1` needs, and the versions share a major, so Cargo had to pick
+one and could not. The engine was carried under `vendor/boa` as that release with
+those two bounds relaxed and nothing else changed, reached through
+`[patch.crates-io]`. **0.22.0 asks for `~2.3.0` itself**, which is the line the
+rest of this workspace was already on, so the tree, the patch section and the
+exception every formatter and linter here had to make for them are gone and the
+engine resolves from the registry like anything else.
+
+Two things are worth keeping from that episode rather than the tree. The first is
+that a vendored dependency trades the registry's integrity guarantee for a local
+one, and the local one was a sentence in a README asking a person to remember to
+`diff` — which had already failed once unnoticed, this repo's own lint autofix
+having rewritten five of the engine's benchmark scripts. The second is that an
+engine bump is not only an API question: 0.22's parser spends about forty per
+cent more stack per nesting level than 0.21's, which turned one case pinned to a
+margin into an abort. [0004](./0004-the-fold-owns-its-own-ceiling-and-its-own-stack.md)
+carries that number and the case now pinned to the promise instead.
 
 **Why its instance is leaked per thread rather than dropped.** One engine per
 thread, created on the first fold that needs it. It is held in `ManuallyDrop`,
@@ -142,13 +153,14 @@ Locale-sensitive methods are refused, and this is the one refusal in the effort
 that was sanctioned in advance. Four measured reasons, each on its own
 sufficient:
 
-1. The engine's internationalisation feature reintroduces the exact dependency
-   conflict that forced the vendoring: the vendored tree relaxes two version
-   bounds, and the feature pins roughly eleven more against the line the rest of
-   the workspace is on.
-2. That feature carries no compiled locale data and the provider crate is not
-   vendored either, so building a locale context would fail at runtime unless
-   this project shipped a data blob of its own.
+1. The engine's internationalisation feature pins roughly eleven further ICU
+   crates. On the release that forced the vendoring those pins were against the
+   line the rest of the workspace is on, which is the same conflict again; on the
+   release in use they are not, so this reason has weakened to a dependency
+   surface nobody here needs rather than a conflict nobody could resolve.
+2. That feature carries no compiled locale data and this project does not depend
+   on the provider crate, so building a locale context would fail at runtime
+   unless it shipped a data blob of its own.
 3. It would not fix the number-formatting method regardless — the engine ignores
    `toLocaleString`'s arguments unconditionally, with no feature gate at all.
 4. With no locale argument the reference compiler takes the _host's_ default, so

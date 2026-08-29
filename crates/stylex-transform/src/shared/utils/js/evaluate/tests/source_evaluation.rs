@@ -579,6 +579,12 @@ pub(crate) fn folded_in_a_module_binding(name: &str, init: &str, source: &str) -
   })
 }
 
+/// A thread small enough that a case has to be given room it did not start with.
+///
+/// Under a megabyte the runtime's own guard-page arithmetic starts to matter, so
+/// this is the smallest honest floor rather than the smallest number that fits.
+pub(crate) const SMALL_THREAD: usize = 1024 * 1024;
+
 /// Runs `case` on a thread of `stack` bytes and hands back what it answered.
 ///
 /// For a case whose subject is how much stack something needs. A test thread's

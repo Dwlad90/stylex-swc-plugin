@@ -38,18 +38,12 @@ inside a crate can quietly reach for a sibling; a crate with an empty
 Third-party code _ported_ into this project belongs beside it on the same
 terms.
 
-An upstream tree carried **as upstream wrote it** cannot go there, and lives
-under `vendor/` instead. `vendor/boa` is the JavaScript engine the evaluator
-folds method calls through, kept as source because the published crate's
-`icu_normalizer` and `icu_properties` bounds cannot coexist with the
-`icu_collator` this workspace already depends on. Its crates keep their own
-workspace and inherit from their own root manifest, so they cannot be members
-of this one: the root `Cargo.toml` names it in `exclude` and reaches it through
-`[patch.crates-io]`. That is sound here because nothing in this repo ships to
-crates.io -- a patched graph can never reach a downstream Rust consumer, only
-the `.node` this repo builds. `vendor/boa/README.md` records the provenance,
-what was changed, and how to bump it; this repo's hooks do not format or lint
-the tree, so a commit cannot rewrite it.
+An upstream tree carried **as upstream wrote it** would belong under `vendor/`
+rather than in `crates/`, on the reasoning that a carried tree keeps its own
+workspace and cannot be a member of this one. Nothing is carried that way today:
+the JavaScript engine the evaluator folds method calls through was, for a
+version-bound conflict its release has since resolved, and it is now an ordinary
+registry dependency like every other.
 
 Workspace dependencies are defined in the root `Cargo.toml`.
 

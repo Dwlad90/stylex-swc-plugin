@@ -99,8 +99,8 @@ than being looked up. What comes back is the evaluator's own value
 type, not a syntax node: an array answers the list an array literal answers and
 an object the object an object literal answers, so a folded value reaches
 everywhere a value the author wrote reaches. Why an embedded engine is a
-permanent dependency, what it costs, why it is vendored and why its instance is
-leaked per thread are
+permanent dependency, what it costs and why its instance is leaked per thread
+are
 [docs/adr/0008](./docs/adr/0008-the-fold-guard-reads-values-and-the-engine-is-permanent.md).
 _Avoid_: boa fold, reflection, dynamic dispatch
 

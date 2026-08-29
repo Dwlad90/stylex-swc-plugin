@@ -21,10 +21,6 @@ ignore = [
   # SWC. Recheck when swc_core moves.
   "RUSTSEC-2020-0095", # difference unmaintained <- testing
   "RUSTSEC-2021-0139", # ansi_term unmaintained <- swc_ecma_transforms_testing
-  # A proc-macro, so it runs at build time and is not in the shipped binary at
-  # all. Arrives through the vendored engine, which upstream would have to move
-  # off it. Recheck when `vendor/boa` is bumped.
-  "RUSTSEC-2024-0436", # paste unmaintained <- boa_engine, boa_string
 ]
 
 # `cargo audit` additionally reports RUSTSEC-2023-0055 and RUSTSEC-2023-0086

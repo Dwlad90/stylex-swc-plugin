@@ -16,7 +16,10 @@
 //! wherever the reference has one; the difference shows only where evaluating a
 //! branch nothing runs is what breaks it.
 
+use stylex_structures::evaluation_depth::DEFAULT_MAX_EVALUATION_DEPTH;
+
 use super::source_evaluation::*;
+use crate::shared::utils::js::evaluate::growable_stack::UNWALKED_NESTING;
 
 // ==================== the side that never runs ====================
 
@@ -109,17 +112,34 @@ fn a_dead_operand_past_the_allocation_ceiling_is_never_priced() {
 /// spent per step of the walk, so a side the walk does not enter costs none of
 /// it — which is the difference between this folding and refusing for depth.
 ///
-/// **Two hundred is not an arbitrary number.** The operand is never walked and
-/// is still *printed*, so the engine's parser descends all of it, on a stack
-/// claimed from the ceiling the walk was measured against. Two hundred fits
-/// inside that claim at the shipped ceiling and three hundred does not — see
-/// `UNWALKED_NESTING` in `growable_stack`, which is the margin this case sits
-/// under.
+/// **The depth is not an arbitrary number, and neither is the thread.** The
+/// operand is never walked and is still *printed*, so the engine's parser
+/// descends all of it, on the stack `grown_for_depth` claims from the ceiling.
+/// What that claim promises is `UNWALKED_NESTING` levels of text per level of
+/// ceiling, so the case asks for exactly that and reads as the promise rather
+/// than as a number somebody picked.
+///
+/// It runs on a thread far too small to hold the claim, which is what forces the
+/// claim to be allocated: on an ordinary test thread the descent would run on
+/// whatever stack was left over and pass without the claim being exercised. So
+/// an engine whose parser outgrows the margin `BYTES_PER_LEVEL` holds aborts
+/// here, on the one case that measures it, rather than in somebody's build.
+///
+/// **What is deliberately not asserted is the slack above the promise.** This
+/// case asked for two hundred levels until an engine bump made two hundred
+/// unaffordable and the case aborted rather than failed. Any depth past the
+/// ceiling proves the same thing about the walk — that a side it does not enter
+/// costs it nothing — so the walk is measured here and the stack no further than
+/// what the claim undertakes to carry.
 #[test]
 fn a_dead_operand_deeper_than_the_ceiling_is_never_entered() {
-  let deep = "[".repeat(200) + "'x'" + &"]".repeat(200);
+  let nesting = DEFAULT_MAX_EVALUATION_DEPTH * UNWALKED_NESTING;
 
-  assert_folds_to_string(&format!("['a', false && {}].join('-')", deep), "a-false");
+  on_a_thread_of(SMALL_THREAD, move || {
+    let deep = "[".repeat(nesting) + "'x'" + &"]".repeat(nesting);
+
+    assert_folds_to_string(&format!("['a', false && {}].join('-')", deep), "a-false");
+  });
 }
 
 // ==================== where the walk may not decide ====================

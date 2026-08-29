@@ -299,10 +299,13 @@ pub fn stable_hash_unspanned_call(call: &CallExpr) -> u128 {
 }
 
 /// Hashes a [`MemberExpr`] producing the exact same key as
-/// `stable_hash_unspanned(&Expr::Member(member.clone()))` — so a member
-/// expression can be looked up against a map keyed by whole-`Expr` spread
-/// hashes — without cloning it into an owned `Expr` on the common, fully
-/// hashable path.
+/// `stable_hash_unspanned(&Expr::Member(member.clone()))`, without cloning it
+/// into an owned `Expr` on the common, fully hashable path.
+///
+/// Nothing relies on that parity today: `callee_members` is the only map keyed
+/// this way, and it is written and read through this function alone. Kept
+/// identical anyway so a future consumer keyed by whole-`Expr` hashes can probe
+/// it without a special case, and pinned by the tests beside it.
 ///
 /// The counterpart of [`stable_hash_unspanned_call`], and it exists for the
 /// same reason: the caller holds a borrowed node and the question it asks runs

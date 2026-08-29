@@ -307,6 +307,13 @@ pub(crate) struct CallExpressionState {
   /// a module makes. On a 1,500-component JSX module it grew 3.6x for every
   /// doubling of the input and reached 41% of total compile time.
   ///
+  /// That pair, and the percentage below it, were taken while this was written.
+  /// The benches used the system allocator then. The figures are smaller under
+  /// the allocator the shipped `.node` links, which is what
+  /// `transform_consumers_bench` measures now: there the lookups this index
+  /// serves are 25% of a 400-component transform. Read all three as the shape of
+  /// the cost, not as a figure to compare a later run against.
+  ///
   /// A bucket of members rather than a bare key, because the key narrows and
   /// [`EqIgnoreSpan`] still decides: this is the shape
   /// `adr/0005` calls "narrow a bucket by hash and then confirm", and it is
@@ -314,11 +321,12 @@ pub(crate) struct CallExpressionState {
   /// alone would make this a fifth consumer for which the key *is* the equality
   /// test, which is a decision that ADR owns rather than this index.
   ///
-  /// Confirming is also what keeps the answer right under
-  /// `EQ_IGNORE_SPAN_IGNORE_CTXT`: the key hashes an identifier's
-  /// `SyntaxContext` while `eq_ignore_span` ignores it inside that scope, so
-  /// the key alone would refuse a match the walk made. Nothing sets that flag
-  /// today; confirming means nothing has to remember this if something does.
+  /// Confirming settles collisions, not context. Under
+  /// `EQ_IGNORE_SPAN_IGNORE_CTXT` the key would be *stricter* than the equality
+  /// below it -- the key hashes an identifier's `SyntaxContext` while
+  /// `eq_ignore_span` ignores it inside that scope -- and a bucket miss is
+  /// final, so confirming could not recover the match the walk made. Nothing
+  /// sets that flag today.
   ///
   /// Counted per distinct member rather than held one-per-call, because a
   /// module's calls overwhelmingly share a handful of callee shapes: every
@@ -724,7 +732,8 @@ pub struct StateManager {
   /// costs a walk of the expression it describes and a top-level expression can
   /// be a whole module's styles in one array. Keying those too cost about 50 ms
   /// on a 7.3 MB file to serve one lookup [`Self::top_level_name_index`]
-  /// answers without a walk at all.
+  /// answers without a walk at all -- measured under the system allocator, for
+  /// the reason the `callee_members` comment gives.
   /// Shared rather than copied -- see [`Self::declaration_call_index`].
   top_level_call_index: Rc<CandidateIndex<u128, usize>>,
   /// Positions in [`Self::top_level_expressions`] of the entries bound to each
@@ -1198,6 +1207,12 @@ impl StateManager {
   /// `spacing` unbound here -- so a reference spelled that way names something
   /// else, or nothing at all, and resolving it to the import it was aliased away
   /// from is not a resolution the language allows.
+  ///
+  /// The `Id` key carries a `SyntaxContext`, which is what makes this
+  /// scope-aware -- and what makes it stricter than the `eq_ignore_span` that
+  /// confirms it under `EQ_IGNORE_SPAN_IGNORE_CTXT`. A bucket miss is final, so
+  /// anything that sets that flag has to key this differently rather than lean
+  /// on the confirm. Nothing sets it today.
   pub(crate) fn import_binding(&self, ident: &Ident) -> Option<(&ImportDecl, &ImportSpecifier)> {
     let found = self
       .top_import_index

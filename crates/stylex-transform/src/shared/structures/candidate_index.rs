@@ -22,11 +22,15 @@ use rustc_hash::FxHashMap;
 ///
 /// **The key narrows and equality still decides.** Callers confirm the
 /// candidates this hands back, which is the shape `adr/0005` calls "narrow a
-/// bucket by hash and then confirm" and what keeps every answer the one the walk
-/// gave: a hit alone would make these consumers ones for which the key *is* the
-/// equality test, and would refuse a match the walk made whenever
-/// `EQ_IGNORE_SPAN_IGNORE_CTXT` is in scope, since a structural key hashes an
-/// identifier's `SyntaxContext` and `eq_ignore_span` there does not.
+/// bucket by hash and then confirm". Confirmation removes false positives -- a
+/// hit alone would make these consumers ones for which the key *is* the
+/// equality test. It cannot remove false negatives: a bucket miss is final, so
+/// the key must never be *stricter* than the equality that confirms it. It is
+/// stricter in three places today, all unreachable: `Ident::optional` and the
+/// `raw` of `Str`/`Number`/`BigInt` are hashed but not compared, and under
+/// `EQ_IGNORE_SPAN_IGNORE_CTXT` -- which nothing sets -- an identifier's
+/// `SyntaxContext` would join them. Anything that sets that flag has to change
+/// the key.
 #[derive(Clone, Debug)]
 pub(crate) struct CandidateIndex<K, H> {
   buckets: FxHashMap<K, Vec<H>>,
@@ -56,6 +60,10 @@ impl<K: Eq + Hash, H: PartialEq> CandidateIndex<K, H> {
 
   /// Drops the record that the entry at `handle` holds what `key` narrows to,
   /// forgetting the bucket once nothing is left in it.
+  ///
+  /// Removing the emptied bucket is for [`Self::candidates`]' `is_empty()`
+  /// short-circuit alone, never for correctness: an empty bucket and an absent
+  /// key both answer with nothing.
   pub(crate) fn forget(&mut self, key: &K, handle: &H) {
     let Some(bucket) = self.buckets.get_mut(key) else {
       return;

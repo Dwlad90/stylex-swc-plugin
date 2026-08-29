@@ -13,6 +13,10 @@
 // every musl target, and `.github/workflows/npm.yml` publishes one of them
 // (`x86_64-unknown-linux-musl`). The other six published targets get mimalloc.
 // The workspace manifest records why, and which target takes jemalloc instead.
+//
+// Reached through the `rlib` half of this crate's `crate-type` as well as the
+// `cdylib`, so anything that later depends on `stylex_compiler_rs` inherits
+// mimalloc rather than choosing it. Nothing does today.
 use swc_malloc as _;
 
 mod enums;

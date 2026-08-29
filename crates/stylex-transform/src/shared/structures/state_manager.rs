@@ -766,16 +766,24 @@ pub struct StateManager {
   /// the second where the walk this replaces found it.
   /// Shared rather than copied -- see [`Self::declaration_call_index`].
   top_level_name_index: Rc<CandidateIndex<Atom, usize>>,
-  /// How many entries of [`Self::top_level_expressions`] are an array literal.
+  /// Where each entry of [`Self::top_level_expressions`] that is an array
+  /// literal was written.
   ///
-  /// A count rather than a walk, because the question every `stylex.create`
-  /// asks of that list -- does the module hold *any* top-level array -- does not
-  /// read the call, so re-walking the list per call was O(creates x declarators)
-  /// for one module-constant bit.
+  /// The whole of what [`Self::holds_call_in_top_level_array`] needs. A module
+  /// writes a handful of top-level arrays and can write thousands of calls, so
+  /// asking the arrays is not the walk of every top-level expression that
+  /// question used to cost, once per `stylex.create`.
   ///
-  /// A count rather than a flag, because [`Self::set_top_level_expr`] can
-  /// replace an array with something else and a flag could not be lowered.
-  top_level_array_count: usize,
+  /// Spans rather than the expressions, because the question is whether a call
+  /// sits *inside* one, and a span answers that by containment -- the same O(1)
+  /// test `is_bound_create_expr` uses, and for the same reason: a single
+  /// top-level array holding every style in a module is an idiomatic shape, so
+  /// walking its elements would be quadratic in the styles it holds.
+  ///
+  /// A list rather than a count, because [`Self::set_top_level_expr`] can
+  /// replace an array with something else, and because a count cannot say which
+  /// call an array holds.
+  top_level_array_spans: Vec<Span>,
   /// Spans of the calls that initialise a top-level declarator bound to a
   /// pattern rather than a name — `export const { foo } = stylex.create(…);`.
   /// [`Self::top_level_expressions`] is keyed by the exported name and so has
@@ -974,7 +982,7 @@ impl StateManager {
       top_level_expressions: vec![],
       top_level_call_index: Rc::default(),
       top_level_name_index: Rc::default(),
-      top_level_array_count: 0,
+      top_level_array_spans: vec![],
       pattern_bound_top_level_calls: FxHashSet::default(),
       call_expressions: CallExpressionState::default(),
       jsx_spread_attr_exprs_map: FxHashMap::default(),
@@ -1299,8 +1307,8 @@ impl StateManager {
       Rc::make_mut(&mut self.top_level_name_index).record(name.clone(), position);
     }
 
-    if matches!(expression.1, Expr::Array(_)) {
-      self.top_level_array_count += 1;
+    if let Expr::Array(array) = &expression.1 {
+      self.top_level_array_spans.push(array.span);
     }
 
     self.top_level_expressions.push(expression);
@@ -1317,17 +1325,27 @@ impl StateManager {
     // its initializer before it.
     let recorded = call_key_of(Some(&expr));
     let replaced = std::mem::replace(&mut entry.1, expr);
-    // Read while the entry is still borrowed, because the count below is a
-    // field of the same state manager.
-    let records_array = matches!(entry.1, Expr::Array(_));
+    // Read while the entry is still borrowed, because the list below is a field
+    // of the same state manager.
+    let records_array = match &entry.1 {
+      Expr::Array(array) => Some(array.span),
+      _ => None,
+    };
 
-    // Exact rather than approximate: an entry that stops being an array lowers
-    // the count, which is what keeps [`Self::holds_top_level_array`] the answer
-    // the walk gave.
-    self.top_level_array_count = self
-      .top_level_array_count
-      .saturating_sub(usize::from(matches!(replaced, Expr::Array(_))))
-      + usize::from(records_array);
+    // An entry that stops being an array leaves the list, which is what keeps
+    // [`Self::holds_call_in_top_level_array`] the answer the walk gave.
+    if let Expr::Array(array) = &replaced
+      && let Some(position) = self
+        .top_level_array_spans
+        .iter()
+        .position(|recorded| *recorded == array.span)
+    {
+      self.top_level_array_spans.remove(position);
+    }
+
+    if let Some(span) = records_array {
+      self.top_level_array_spans.push(span);
+    }
 
     // The name an entry binds does not change with its expression, so only the
     // call index needs repairing here.
@@ -2109,20 +2127,36 @@ impl StateManager {
     self.find_top_level_expr(call).is_some() || self.top_level_expressions.iter().any(binds_call)
   }
 
-  /// Whether any recorded top-level expression is an array literal.
+  /// Whether a recorded top-level array literal holds `call`.
   ///
-  /// Answered from [`Self::top_level_array_count`], which is why it takes no
-  /// call: the question does not read one.
-  pub(crate) fn holds_top_level_array(&self) -> bool {
-    let found = self.top_level_array_count > 0;
+  /// The shape a name cannot find: `export const styles = [stylex.create(…)];`
+  /// writes the call at program level, and the recorded entry is the array
+  /// rather than the call, so no key answers for it.
+  ///
+  /// Containment decides, not the mere presence of an array. A call written
+  /// inside a function is not at program level because the module also holds an
+  /// array somewhere else, and `is_bound_create_expr` reads the same shape the
+  /// same way.
+  ///
+  /// A span-less call is held by nothing. Such a call is synthesized rather than
+  /// parsed, so no recorded array can be where it was written, and a dummy span
+  /// would otherwise be read as position zero.
+  pub(crate) fn holds_call_in_top_level_array(&self, call: &CallExpr) -> bool {
+    if call.span.is_dummy() {
+      return false;
+    }
+
+    let found = self
+      .top_level_array_spans
+      .iter()
+      .any(|array| array.contains(call.span));
 
     debug_assert_eq!(
       found,
-      self
-        .top_level_expressions
-        .iter()
-        .any(|recorded| matches!(recorded.1, Expr::Array(_))),
-      "`top_level_array_count` disagrees with `top_level_expressions`; something \
+      self.top_level_expressions.iter().any(|recorded| {
+        matches!(&recorded.1, Expr::Array(array) if array.span.contains(call.span))
+      }),
+      "`top_level_array_spans` disagrees with `top_level_expressions`; something \
        changed the list without going through `push_top_level_expression` or \
        `set_top_level_expr`"
     );

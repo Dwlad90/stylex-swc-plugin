@@ -194,16 +194,17 @@ where
       // `find_top_level_expr` compares this call against every recorded one
       // with `eq_ignore_span` — a deep walk of the whole style object.
       //
-      // The array question does not read the call, so it is a counter rather
-      // than a second walk. It keeps the answer the walk gave, including the
-      // case where the module holds an array that no longer belongs to this
-      // call.
+      // A call inside a top-level array is program level too, and the entry
+      // recorded for it is the array. Asked of the arrays alone rather than of
+      // every recorded expression, and answered by containment: a call written
+      // inside a function is not at program level because the module holds an
+      // array elsewhere.
       let is_program_level = self
         .state
         .pattern_bound_top_level_calls
         .contains(&call.span)
         || self.state.find_top_level_expr(call).is_some()
-        || self.state.holds_top_level_array();
+        || self.state.holds_call_in_top_level_array(call);
 
       let mut first_arg = call.args.first()?.expr.clone();
 

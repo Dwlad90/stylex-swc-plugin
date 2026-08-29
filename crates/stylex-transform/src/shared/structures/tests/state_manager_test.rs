@@ -824,57 +824,89 @@ mod state_manager {
     assert!(!state.has_top_level_expr(&call, |_| false));
   }
 
-  /// The array question is a count, so what it answers has to follow the list
-  /// in both directions -- including the case a flag could not express, where
-  /// the last array is rewritten into something else.
+  /// The arrays a module records have to follow the list they come from, in
+  /// both directions -- including the case where the last one is rewritten into
+  /// something else.
   #[test]
-  fn the_top_level_array_count_follows_the_list_it_counts() {
+  fn the_top_level_arrays_follow_the_list_they_come_from() {
     let mut state = StateManager::default();
 
-    let call = call_of("create", "styles");
-    let array = Expr::Array(ArrayLit {
-      span: DUMMY_SP,
-      elems: vec![Some(ExprOrSpread {
-        spread: None,
-        expr: Box::new(Expr::Call(call.clone())),
-      })],
-    });
+    let held = call_of_at("create", "held", span_at(12, 30));
+    let outside = call_of_at("create", "outside", span_at(90, 99));
+    let array = |span| {
+      Expr::Array(ArrayLit {
+        span,
+        elems: vec![Some(ExprOrSpread {
+          spread: None,
+          expr: Box::new(Expr::Call(held.clone())),
+        })],
+      })
+    };
 
-    assert!(!state.holds_top_level_array());
+    assert!(!state.holds_call_in_top_level_array(&held));
 
     state.push_top_level_expression(TopLevelExpression(
       TopLevelExpressionKind::Stmt,
-      Expr::Call(call),
+      Expr::Call(held.clone()),
       Some("styles".into()),
     ));
 
-    // A call is not an array.
-    assert!(!state.holds_top_level_array());
+    // A call is not an array, whatever it holds.
+    assert!(!state.holds_call_in_top_level_array(&held));
 
     state.push_top_level_expression(TopLevelExpression(
       TopLevelExpressionKind::Stmt,
-      array.clone(),
+      array(span_at(10, 40)),
       Some("lotsOfStyles".into()),
     ));
 
-    assert!(state.holds_top_level_array());
+    assert!(state.holds_call_in_top_level_array(&held));
+    // A call the array does not hold answers no, however many arrays the module
+    // writes. That is the whole of what containment decides.
+    assert!(!state.holds_call_in_top_level_array(&outside));
 
-    // A second array, so the count has something to come back to.
+    // A second array over the same call, so the answer has something to come
+    // back to.
     state.push_top_level_expression(TopLevelExpression(
       TopLevelExpressionKind::Stmt,
-      array,
+      array(span_at(50, 80)),
       Some("moreStyles".into()),
     ));
 
     state.set_top_level_expr(1, string_expr("no longer an array"));
-    assert!(state.holds_top_level_array());
+    // The second array does not hold the call, so nothing does.
+    assert!(!state.holds_call_in_top_level_array(&held));
+
+    state.set_top_level_expr(2, array(span_at(10, 40)));
+    assert!(state.holds_call_in_top_level_array(&held));
 
     state.set_top_level_expr(2, string_expr("nor is this"));
-    assert!(!state.holds_top_level_array());
+    assert!(!state.holds_call_in_top_level_array(&held));
 
-    // And a replacement out of range counts nothing.
-    state.set_top_level_expr(99, string_expr("nowhere"));
-    assert!(!state.holds_top_level_array());
+    // And a replacement out of range records nothing.
+    state.set_top_level_expr(99, array(span_at(10, 40)));
+    assert!(!state.holds_call_in_top_level_array(&held));
+  }
+
+  /// A synthesized call was written nowhere, so no recorded array can hold it.
+  /// A dummy span reads as position zero, which an array starting at zero would
+  /// otherwise contain.
+  #[test]
+  fn a_span_less_call_is_held_by_no_top_level_array() {
+    let mut state = StateManager::default();
+
+    let synthesized = call_of("create", "styles");
+
+    state.push_top_level_expression(TopLevelExpression(
+      TopLevelExpressionKind::Stmt,
+      Expr::Array(ArrayLit {
+        span: span_at(0, 40),
+        elems: vec![],
+      }),
+      Some("lotsOfStyles".into()),
+    ));
+
+    assert!(!state.holds_call_in_top_level_array(&synthesized));
   }
 
   /// A bucket a lookup can stop early in is one nothing has moved. Rewriting an

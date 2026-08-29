@@ -49,9 +49,18 @@ How they stack (each package's `dependencies` is the authority):
 - `turbopack-plugin` -- on `rs-compiler`, plus `plugin-shared` for
   `source-map-options` only, not the loader core
 - `nextjs-plugin` -- composes the webpack, rspack and turbopack plugins rather
-  than the core directly
-- `rollup-plugin`, `unplugin`, `postcss-plugin`, `jest` -- on `rs-compiler`
-  alone; their hosts have no loader chain to share
+  than the core directly, plus `plugin-shared/constants` for the transformable
+  extension list, which the Turbopack rules are built from
+- `rollup-plugin`, `jest` -- on `rs-compiler` alone; their hosts have no loader
+  chain to share
+- `unplugin`, `postcss-plugin` -- on `rs-compiler`, plus
+  `plugin-shared/constants` for the transformable extension list
+
+`plugin-shared/constants` and `plugin-shared/cjs-interop` are the entry points
+that a config file may read. `constants` holds the extension list and the path
+matcher; `cjs-interop` publishes a plugin under CommonJS, which every plugin a
+host loads with `require` needs. Neither loads the compiler. Import the package
+root only from code that already needs the loader core.
 
 Shared configs: `typescript-config`, `playwright` (neither depends on the
 compiler), `design-system` (does).

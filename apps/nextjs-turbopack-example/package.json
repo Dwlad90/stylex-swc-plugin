@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-turbopack-example",
-  "version": "0.18.5",
+  "version": "0.18.6-rc.1",
   "private": true,
   "scripts": {
     "build": "next build",
@@ -22,6 +22,7 @@
     "@stylexjs/stylex": "catalog:runtime",
     "@stylexswc/design-system": "catalog:internal",
     "@stylexswc/nextjs-plugin": "catalog:internal",
+    "@stylexswc/plugin-shared": "catalog:internal",
     "@stylexswc/postcss-plugin": "catalog:internal",
     "next": "catalog:frameworks",
     "react": "catalog:frameworks",

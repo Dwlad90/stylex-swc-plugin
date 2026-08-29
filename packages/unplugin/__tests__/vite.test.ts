@@ -783,10 +783,12 @@ export const styles = stylex.create({
       await server.transformRequest('/global.css');
       await settle();
 
+      // Count only the stylesheet of this server. A server that another test
+      // left open can still read a file with the same name, and that read must
+      // not count here.
+      const ownGlobalCss = path.join(server.config.root, 'global.css');
       const globalCssReads = () =>
-        readFileSpy.mock.calls.filter(
-          call => typeof call[0] === 'string' && call[0].endsWith('global.css')
-        ).length;
+        readFileSpy.mock.calls.filter(call => call[0] === ownGlobalCss).length;
       const before = globalCssReads();
 
       await server.transformRequest('/lazy.js');

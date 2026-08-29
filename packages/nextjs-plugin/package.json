@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/nextjs-plugin",
   "description": "StyleX plugin for Next.js powered by a Rust NAPI-RS/SWC compiler. Supports Webpack, Rspack, and Turbopack builds with CSS extraction.",
-  "version": "0.18.5",
+  "version": "0.18.6-rc.1",
   "private": false,
   "license": "MIT",
   "sideEffects": false,
@@ -33,7 +33,7 @@
   "scripts": {
     "build": "scripty --ts",
     "check:artifacts": "scripty",
-    "clean": "del-cli dist",
+    "clean": "del-cli dist \"*.tsbuildinfo\"",
     "postbuild": "pnpm run check:artifacts",
     "prepublishOnly": "pnpm run build",
     "test": "vitest run",
@@ -45,6 +45,7 @@
     }
   },
   "dependencies": {
+    "@stylexswc/plugin-shared": "catalog:internal",
     "@stylexswc/rs-compiler": "catalog:internal",
     "@stylexswc/rspack-plugin": "catalog:internal",
     "@stylexswc/turbopack-plugin": "catalog:internal",

@@ -1,5 +1,6 @@
 import path from 'path';
 
+import { exportAsCommonJs } from '@stylexswc/plugin-shared/cjs-interop';
 import StyleXWebpackPlugin, {
   DEFAULT_STYLEX_PACKAGES,
   buildVirtualCssPattern,
@@ -308,5 +309,4 @@ const withStyleX =
 
 export default withStyleX;
 
-module.exports = withStyleX;
-module.exports.default = withStyleX;
+exportAsCommonJs(typeof module === 'undefined' ? undefined : module, withStyleX);

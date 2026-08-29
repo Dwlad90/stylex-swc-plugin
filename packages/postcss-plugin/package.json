@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/postcss-plugin",
   "description": "PostCSS plugin that collects and extracts StyleX styles using a Rust NAPI-RS/SWC compiler. Ideal for Turbopack and custom CSS pipelines.",
-  "version": "0.18.5",
+  "version": "0.18.6-rc.1",
   "private": false,
   "license": "MIT",
   "sideEffects": false,
@@ -15,7 +15,7 @@
   "scripts": {
     "build": "scripty --ts --flatten",
     "check:artifacts": "scripty",
-    "clean": "del-cli dist",
+    "clean": "del-cli dist \"*.tsbuildinfo\"",
     "postbuild": "pnpm run check:artifacts",
     "prepublishOnly": "pnpm run build",
     "test": "vitest run",
@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@stylexjs/babel-plugin": "catalog:runtime",
+    "@stylexswc/plugin-shared": "catalog:internal",
     "@stylexswc/rs-compiler": "catalog:internal",
     "fast-glob": "catalog:runtime",
     "glob-parent": "catalog:runtime",

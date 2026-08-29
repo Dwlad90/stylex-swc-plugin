@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rspack-plugin",
   "description": "StyleX plugin for Rspack powered by a Rust NAPI-RS/SWC compiler. Fast StyleX transforms and CSS extraction without Babel.",
-  "version": "0.18.5",
+  "version": "0.18.6-rc.1",
   "private": false,
   "license": "MIT",
   "sideEffects": [
@@ -26,7 +26,7 @@
   "scripts": {
     "build": "scripty --ts",
     "check:artifacts": "scripty",
-    "clean": "del-cli dist",
+    "clean": "del-cli dist \"*.tsbuildinfo\"",
     "postbuild": "pnpm run check:artifacts",
     "prebuild": "pnpm run clean",
     "prepublishOnly": "pnpm run build",

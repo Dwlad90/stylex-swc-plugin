@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/vite-unplugin-example",
   "description": "A simple vite unplugin example to test @stylexswc/unplugin/vite",
-  "version": "0.18.5-rc.1",
+  "version": "0.18.5",
   "private": true,
   "license": "MIT",
   "scripts": {

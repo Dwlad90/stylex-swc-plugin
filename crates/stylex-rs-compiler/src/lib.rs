@@ -9,10 +9,10 @@
 // cloned AST nodes. Swapping the allocator is the whole of the change and it
 // measures 1.09-1.15x end-to-end on this repo's two largest fixtures.
 //
-// `swc_malloc` rather than `mimalloc` directly: it resolves to mimalloc on
-// every target `.github/workflows/npm.yml` publishes except
-// `x86_64-unknown-linux-musl`, where the system allocator is kept on purpose
-// because mimalloc segfaults on ARM64 musl. The workspace manifest records why.
+// `swc_malloc` rather than `mimalloc` directly: it keeps the system allocator on
+// every musl target, and `.github/workflows/npm.yml` publishes one of them
+// (`x86_64-unknown-linux-musl`). The other six published targets get mimalloc.
+// The workspace manifest records why, and which target takes jemalloc instead.
 use swc_malloc as _;
 
 mod enums;

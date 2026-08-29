@@ -107,11 +107,14 @@ swc_compiler_base = { version = "62.0.0" }
 swc_config = { version = "6.0.0" }
 swc_core = { version = "75.0.0" }
 swc_ecma_parser = { version = "43.0.0" }
-# The global allocator for the shipped `.node`. Selects mimalloc on every target
-# this repo publishes except `x86_64-unknown-linux-musl`, where it deliberately
-# keeps the system allocator because mimalloc segfaults on ARM64 musl
-# (microsoft/mimalloc#556). Depending on `mimalloc` directly would take mimalloc
-# on musl too, which is the configuration SWC found unshippable.
+# The global allocator for the shipped `.node`. Keeps the system allocator on
+# *every* musl target -- `x86_64-unknown-linux-musl` is the one this repo
+# publishes -- because mimalloc segfaults on ARM64 musl (microsoft/mimalloc#556)
+# and jemalloc misbehaves against musl threads (jemalloc/jemalloc#1443).
+# Depending on `mimalloc` directly would take mimalloc on musl too, which is the
+# configuration SWC found unshippable. It also takes jemalloc rather than
+# mimalloc on `armv7-unknown-linux-gnueabihf`, which this repo does not publish
+# today: adding that target changes the allocator without a change here.
 swc_malloc = { version = "1.2.5" }
 swc_sourcemap = { version = "10.0.2" }
 testing = "25.0.0"

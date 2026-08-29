@@ -490,234 +490,49 @@ const options = { maxEvaluationDepth: 256 };
 > because it is unwrapped before evaluation. So raise it by measuring the input
 > that was refused, not by counting brackets in it.
 
-It can also be set process-wide with `STYLEX_MAX_EVALUATION_DEPTH` -- see [the
-three ceilings](#the-three-ceilings-share-a-precedence), which resolve alike.
+You can also set this ceiling with the `STYLEX_MAX_EVALUATION_DEPTH`
+environment variable. See [the three
+ceilings](#the-three-ceilings-share-a-precedence).
 
-The ceiling is capped at `8192`, and a larger value is refused rather than
-clamped -- see [Upgrading](#upgrading). The compiler reserves stack for the
-depth you ask for, so a number it could not reserve for would be the stack
-overflow this option exists to prevent, wearing the name of the setting that
-prevents it.
-
-> [!NOTE]
-> The cap bounds what the compiler will reserve for **evaluating** an
-> expression, not what every stage of a build survives. Source nested past
-> roughly a thousand levels does not get as far as being evaluated -- the
-> parser recurses without a budget of its own, and no option here reaches it.
-> Depths in the thousands are reached in practice by a value the evaluator
-> _builds_ -- a loop that nests an array once per element, say -- rather than by
-> anything written out, and that is the direction the cap is sized for.
+The maximum value is `8192`. The compiler refuses a larger value, and does not
+clamp it. The compiler reserves stack memory for the depth that you ask for.
 
 ### `maxFoldedCharacters`
 
-How long a string the compiler may build or carry while evaluating an
-expression, in UTF-16 code units. Defaults to `1000000`.
+The maximum length of a string that the compiler builds or carries during
+evaluation, in UTF-16 code units. Defaults to `1000000`.
 
-The compiler evaluates a method call by running it, and the engine it runs on
-bounds loops, recursion and stack -- but not allocation, because growth inside a
-built-in method is not a counted loop. So a mistyped `'x'.repeat(200000000)`
-agrees with JavaScript and reaches gigabytes of resident memory. Past the
-ceiling you get an ordinary StyleX error instead, naming both numbers:
-
-```bash
-[StyleX] base > content > Cannot bound the string 'repeat' would build.
-It asks for 200000000 characters, and at most 1000000 are supported.
-```
-
-The count does not have to be written out. `'x'.repeat(n)`, `'x'.repeat(2 * 2)`
-and `'x'.repeat(4)` are all bounded by reading the count, and `repeat`
-multiplies its receiver's own length into the total -- so `'ab'.repeat(600000)`
-is refused where `'a'.repeat(600000)` folds. The one receiver left unread is
-another call: `'x'.repeat(1000).repeat(1000)` is refused whatever the counts
-are, because bounding each link separately is exactly how two allowed lengths
-multiply into one that is not.
-
-Inside a callback the ceiling is compared against a product, because the body
-runs once per element of the array the callback was passed to. So
-`['a', 'b'].map(x => x.repeat(3))` is bounded at six characters and folds, while
-`['ab', 'cd', 'ef'].map(x => x.repeat(200000))` is refused at 1200000 -- and the
-refusal says how the total was reached, since none of the three numbers appears
-in what you wrote:
-
-```bash
-[StyleX] base > content > Cannot bound the string 'repeat' would build.
-It asks for 400000 characters once per element of the receiver it is written
-inside, which is 3 evaluations and 1200000 characters in all, and at most
-1000000 are supported.
-```
-
-The count comes from the receiver's own value, so a receiver that is itself a
-call is counted like any other and so is a method the compiler has never heard
-of. What is still refused whatever the length says is a callback the language
-runs more often than its receiver is long -- a comparator handed to `sort` or
-`toSorted` -- and a receiver whose value cannot be read at all. Writing the
-elements out, or naming the array they are in, is what makes the count
-readable.
-
-The same number bounds a string the compiler grows without running a method at
-all. `a + a` and `` `${a}${a}` `` are answered directly rather than in the
-engine, so each concatenation and each interpolation is measured before its
-pieces are joined -- which is what stops a chain of doublings from reaching
-gigabytes one innocent line at a time:
-
-```bash
-[StyleX] base > width > This concatenation builds a string too large to
-evaluate at compile time. At most 1000000 characters are supported.
-```
-
-An array interpolated or concatenated is measured element by element, because
-its string is a join of every element and the join is what the ceiling is for.
-`` `${a}` `` over two hundred long values is refused at the element that passes
-the ceiling, so the refusal costs that element rather than the whole join --
-which is the difference between a diagnostic in milliseconds and one after
-several seconds of copying.
-
-Converting an array to a _number_ reads the same join and mostly costs nothing,
-because a number needs no string kept. `+a` asks only whether the text spells a
-numeric literal, so the reading stops at the first character no numeric literal
-holds -- and the comma between two elements is one, so `+a` over the same two
-hundred values answers `NaN` at the first separator, which is what JavaScript
-answers. The ceiling is left bounding a single element that really could still
-be a number:
-
-```bash
-[StyleX] base > width > This numeric conversion builds a string too large to
-evaluate at compile time. At most 1000000 characters are supported.
-```
-
-Raise it if a project really generates values this large:
+The ceiling applies to a string from a method call, a concatenation, an
+interpolation, and a conversion of an array to a string. In a callback, the
+compiler compares the ceiling with the product of the length and the number of
+elements. The compiler refuses a call for all lengths if it cannot read the
+count.
 
 ```js
 const options = { maxFoldedCharacters: 4000000 };
 ```
 
-Building a string costs about 19 bytes of peak memory per code unit, measured,
-so the default is around 20 MB at the peak of one fold and 4000000 is around
-80 MB. The ceiling is capped at `40000000` -- 783 MB, measured, for a single
-declaration -- and a larger value is refused rather than clamped, as in
-[Upgrading](#upgrading).
+A string costs approximately 19 bytes of peak memory for each code unit. Thus
+the default is approximately 20 MB for one fold. The maximum value is
+`40000000`. The compiler refuses a larger value, and does not clamp it.
 
 ### `maxFoldedEntries`
 
-How many array elements and object properties one compile-time fold may build or
-carry. Defaults to `10000`.
+The maximum number of array elements and object properties that one
+compile-time fold builds or carries. Defaults to `10000`. In a callback, the
+ceiling applies to a product, as for
+[`maxFoldedCharacters`](#maxfoldedcharacters).
 
-Separate from [`maxFoldedCharacters`](#maxfoldedcharacters) because the two
-costs do not stand in for each other: a string that fits the ceiling can still
-become one element per code unit, and an element costs far more as a syntax
-node than a code unit costs as text. `'x'.repeat(9999).split('')` is a bounded
-string and ten thousand nodes.
-
-It bounds a product inside a callback for the reason
-[`maxFoldedCharacters`](#maxfoldedcharacters) does:
-`['a', 'b'].map(x => Array(2).fill(x))` declares four elements rather than two,
-and `['a', 'b', 'c'].map(x => Array(9999).fill(x))` declares 29997 and is
-refused.
-
-```bash
-[StyleX] base > fontFamily > Array length is too large to evaluate at
-compile time. At most 10000 elements are supported.
-```
+This ceiling is separate, because an element as a syntax node costs much more
+than a code unit as text.
 
 ```js
 const options = { maxFoldedEntries: 50000 };
 ```
 
-An entry costs about 190 bytes of peak memory, measured, so the default is
-around 2 MB. The ceiling is capped at `1000000`, and a larger value is refused
-rather than clamped. The default itself moved in this release -- see
-[Upgrading](#upgrading).
-
-### The three ceilings share a precedence
-
-All three -- [`maxEvaluationDepth`](#maxevaluationdepth),
-[`maxFoldedCharacters`](#maxfoldedcharacters) and
-[`maxFoldedEntries`](#maxfoldedentries) -- resolve the same way, and each has a
-process-wide environment variable:
-
-```bash
-STYLEX_MAX_EVALUATION_DEPTH=256 npm run build
-STYLEX_MAX_FOLDED_CHARACTERS=4000000 npm run build
-STYLEX_MAX_FOLDED_ENTRIES=50000 npm run build
-```
-
-An explicit option always wins over the environment, which in turn overrides the
-built-in default -- so a stray value in a CI environment cannot change what a
-project that configured the option compiles to.
-
-The two are held to different standards, on purpose. An **option** is written in
-one project's configuration, so anything that is not a whole number between `1`
-and that ceiling's cap -- a fraction, `NaN`, an infinity, a negative, zero, a
-string, or a number past the cap -- fails the build with a message naming the
-option and the cap:
-
-```bash
-maxEvaluationDepth must be a whole number between 1 and 8192, but 50000 was configured.
-```
-
-An **environment variable** is shared by every build on a machine, and one that
-failed a build when mistyped would be a worse escape hatch than one that does
-nothing. So a value there that is not a usable count is ignored, and the default
-answers instead.
-
-## Upgrading
-
-### The three ceilings changed together
-
-Four changes to the ceilings land in the same release, and a project that hits
-one will want to know about the others. All four are about the same thing -- the
-numbers that decide when the compiler declines to evaluate an expression -- so
-they are listed here rather than as defaults you would have to notice.
-
-**`maxEvaluationDepth`'s cap is now `8192`, down from `1048576`.** The compiler
-reserves stack for the depth you ask for, and `8192` levels of two nested walks
-at 64 KB each is exactly one gibibyte of address space -- the largest segment
-worth asking an operating system for, and the number the cap was chosen against.
-A value past the cap is now **refused** rather than clamped, so a project that
-configured `50000` is told, rather than silently getting `8192`:
-
-```bash
-maxEvaluationDepth must be a whole number between 1 and 8192, but 50000 was configured.
-```
-
-**`maxEvaluationDepth` buys less inside an argument to a method call.** The
-number the evaluator's own descent spends is unchanged -- the same tower of
-arithmetic folds at the same ceiling it always did. What is new is that an
-expression handed to a method call is walked by the fold's guard on its way to
-the engine, and the guard counts syntax nodes where the evaluator counts
-evaluation levels: `(x + 1)` is one level and two nodes. So the same setting
-reaches about half as deep on that path -- `Array(...)` over 315 levels of
-arithmetic folded before and needs a ceiling sized for 159 today. Raise it by
-measuring the input that was refused rather than by counting brackets in it; the
-refusal names the number it spent.
-
-**`maxFoldedEntries` defaults to `10000`, down from the fixed `65536` that could
-not be configured at all.** An entry costs about 190 bytes of peak memory while
-it is being built, measured, so the old number was about 12 MB for a single
-folded value and the new one is about 2 MB. Sized for hand-written styles: a
-fallback list holds a handful of values and a nested style object a handful of
-conditions.
-
-Measured against the parity corpus, the two numbers separate three declarations
-out of 1,191 -- `Array(20000).fill(0).length`, `String(Array(10001))` and
-`'x'.repeat(20000).split('').length`, all three written to demonstrate the
-ceiling rather than to style anything. Nothing that reads as a real declaration
-sits between them. A generated token module is the case that could, and the
-option is what it is for:
-
-```js
-const options = { maxFoldedEntries: 65536 };
-```
-
-**All three ceilings now refuse a value that is not a count.** A fraction,
-`NaN`, an infinity, a negative, zero, a string, or a number past that ceiling's
-cap fails the build naming the option, where it used to be read as unset or
-clamped in silence -- see [the three ceilings share a
-precedence](#the-three-ceilings-share-a-precedence). The environment variables
-are unchanged: a stray value there still falls back to the default.
-
-Every refusal names the number it spent and the option that raises it, so an
-input that stops compiling tells you which of the three to move.
+An entry costs approximately 190 bytes of peak memory. Thus the default is
+approximately 2 MB. The maximum value is `1000000`. The compiler refuses a
+larger value, and does not clamp it.
 
 ## Debug Logging
 

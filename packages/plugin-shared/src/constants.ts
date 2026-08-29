@@ -69,7 +69,20 @@ export const INCLUDE_REGEXP = new RegExp(`\\.(${INCLUDE_EXTENSIONS.join('|')})$`
 export function buildIncludeGlob(dir?: string): string {
   const extensions = `**/*.{${INCLUDE_EXTENSIONS.join(',')}}`;
 
-  return dir == null || dir === '' ? extensions : `${dir.replace(/\/+$/, '')}/${extensions}`;
+  if (dir == null || dir === '') {
+    return extensions;
+  }
+
+  // Count the separators at the end and cut them. A pattern such as `/\/+$/`
+  // reads a path that holds many separators in square time, because the
+  // pattern starts again at each one of them. This loop reads the path once.
+  let end = dir.length;
+
+  while (end > 0 && dir[end - 1] === '/') {
+    end -= 1;
+  }
+
+  return `${dir.slice(0, end)}/${extensions}`;
 }
 
 /**

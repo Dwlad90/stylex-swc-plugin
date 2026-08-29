@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { INCLUDE_EXTENSIONS, INCLUDE_REGEXP } from '../src/constants';
+import { INCLUDE_EXTENSIONS, INCLUDE_REGEXP, buildIncludeGlob } from '../src/constants';
 
 // `INCLUDE_EXTENSIONS` and `INCLUDE_REGEXP` say the same thing in two
 // different forms. The bundler plugins read one or the other, so they must
@@ -116,5 +116,58 @@ describe('INCLUDE_REGEXP', () => {
   it('holds no group that can repeat', () => {
     // A repeat inside a group is the shape that makes a pattern backtrack.
     expect(INCLUDE_REGEXP.source).not.toMatch(/[*+?]/);
+  });
+});
+
+describe('buildIncludeGlob', () => {
+  const extensions = `{${INCLUDE_EXTENSIONS.join(',')}}`;
+
+  it('names every extension the list holds', () => {
+    expect(buildIncludeGlob('src')).toBe(`src/**/*.${extensions}`);
+  });
+
+  it('scans from the place it is applied when no directory is given', () => {
+    expect(buildIncludeGlob()).toBe(`**/*.${extensions}`);
+  });
+
+  it('treats an empty directory as no directory', () => {
+    expect(buildIncludeGlob('')).toBe(`**/*.${extensions}`);
+  });
+
+  it('accepts a relative directory', () => {
+    expect(buildIncludeGlob('./src')).toBe(`./src/**/*.${extensions}`);
+  });
+
+  it('accepts a nested directory', () => {
+    expect(buildIncludeGlob('app/components')).toBe(`app/components/**/*.${extensions}`);
+  });
+
+  it.each(['src/', 'src//', 'src///'])('cuts the separators at the end of %s', dir => {
+    expect(buildIncludeGlob(dir)).toBe(`src/**/*.${extensions}`);
+  });
+
+  it('keeps a separator that stands alone', () => {
+    expect(buildIncludeGlob('/')).toBe(`/**/*.${extensions}`);
+  });
+
+  it('keeps a separator inside the directory', () => {
+    expect(buildIncludeGlob('a//b')).toBe(`a//b/**/*.${extensions}`);
+  });
+
+  // A pattern such as `/\/+$/` reads this path in square time. The loop that
+  // replaced it reads the path once, so this test answers rather than running
+  // out of the test timeout.
+  it('cuts the separators of a path that holds very many of them', () => {
+    const dir = `a${'/'.repeat(200_000)}`;
+
+    expect(buildIncludeGlob(dir)).toBe(`a/**/*.${extensions}`);
+  });
+
+  it('reads a path whose separators do not sit at the end', () => {
+    // This is the shape that makes a backtracking pattern slow: many
+    // separators, and a character after them that stops the match.
+    const dir = `a${'/'.repeat(200_000)}b`;
+
+    expect(buildIncludeGlob(dir)).toBe(`${dir}/**/*.${extensions}`);
   });
 });

@@ -13,6 +13,12 @@
 //! it did, and the group asked for its own text still answers the variable-group
 //! hash.
 //!
+//! Which path answers matters for one shape in particular. An element that is
+//! itself an array has no reading below the fold — the dispatch there answers no
+//! `Array.prototype` method — so `[[vars.primary, 'a'], 'b'].join('|')` folds
+//! only because the group crosses and the engine reads the nesting. That is the
+//! section below.
+//!
 //! Every class name and rule text below is measured output of
 //! `@stylexjs/babel-plugin` 0.19.0 under the same options, so each case asserts
 //! agreement with the reference compiler rather than agreement with this
@@ -149,6 +155,200 @@ fn a_callback_measures_what_a_member_answers() {
     IMPORT,
     "zIndex: [vars.primary].map(v => v.length)[0],",
     ".x52sccv{z-index:15}",
+  );
+}
+
+// ──────────────────────────────────────────────
+// The array that holds an array
+// ──────────────────────────────────────────────
+
+/// An element that is itself an array, which is the shape that used to be
+/// refused for reasons that have since gone away.
+///
+/// While a group crossed the bridge as nothing but the string its `toString`
+/// answers, a member read beside one was handed back — and the dispatch below
+/// answers no `Array.prototype` method at all, so `join` refused. What crosses
+/// now is the group stand-in, so the whole expression folds in the engine, which
+/// reads a nested element the way the language does. `Array` in the receiver's
+/// place is the same expression written differently and folds the same.
+#[test]
+fn an_element_that_is_an_array_folds_in_the_engine() {
+  assert_folds(
+    IMPORT,
+    "content: [[vars.primary, 'a'], 'b'].join('|'),",
+    ".xb5soey{content:var(--x1ineb92),a|b}",
+  );
+
+  assert_folds(
+    IMPORT,
+    "content: Array([vars.primary, 'a'], 'b').join('|'),",
+    ".xb5soey{content:var(--x1ineb92),a|b}",
+  );
+}
+
+/// Every way of reaching a nested element, since one of them folding says
+/// nothing about the rest: the engine owns the array whole, so the nesting reads
+/// the same under each. Mostly methods, and two that are not — an index and
+/// `length`, which reach an element and count one without calling anything.
+///
+/// `join` with no argument, `toString` and the `String` global are the same
+/// coercion reached three ways, and all three flatten with a comma — which is
+/// why the separator they answer differs from the one `join('|')` was given.
+///
+/// `flat` is measured further up as well, on a nesting with nothing beside it;
+/// the rows here give it a sibling element and an argument, which is what makes
+/// the depth it flattens observable.
+#[test]
+fn every_read_reaching_a_nested_element_folds() {
+  let cases: &[(&str, &str)] = &[
+    (
+      "content: [[vars.primary, 'a'], 'b'].flat().join('|'),",
+      ".x1y5rhow{content:var(--x1ineb92)|a|b}",
+    ),
+    (
+      "content: [[[vars.primary], 'a'], 'b'].flat(Infinity).join('|'),",
+      ".x1y5rhow{content:var(--x1ineb92)|a|b}",
+    ),
+    (
+      "content: [[[vars.primary]], [['a']]].flat(2).join('|'),",
+      ".x1si2cuh{content:var(--x1ineb92)|a}",
+    ),
+    (
+      "content: [[vars.primary, 'a'], 'b'].toString(),",
+      ".x1yfb1rq{content:var(--x1ineb92),a,b}",
+    ),
+    (
+      "content: [[vars.primary, 'a'], 'b'].join(),",
+      ".x1yfb1rq{content:var(--x1ineb92),a,b}",
+    ),
+    (
+      "content: String([[vars.primary, 'a'], 'b']),",
+      ".x1yfb1rq{content:var(--x1ineb92),a,b}",
+    ),
+    (
+      "content: [[vars.primary, 'a']].concat(['b']).join('|'),",
+      ".xb5soey{content:var(--x1ineb92),a|b}",
+    ),
+    (
+      "content: [[vars.primary, 'a'], 'b'][0].join('|'),",
+      ".x1si2cuh{content:var(--x1ineb92)|a}",
+    ),
+    (
+      "content: [[vars.primary, 'a'], ['b']].map(x => x.join('-')).join('|'),",
+      ".xxm0u1e{content:var(--x1ineb92)-a|b}",
+    ),
+    (
+      "content: [[vars.primary, 'a'], []].filter(x => x.length).join('|'),",
+      ".xsgtmi3{content:var(--x1ineb92),a}",
+    ),
+    (
+      "content: [[vars.primary, 'a'], 'b'].reverse().join('|'),",
+      ".x3hocjs{content:b|var(--x1ineb92),a}",
+    ),
+    (
+      "content: [[vars.primary, 'a'], 'b'].slice(0, 1).join('|'),",
+      ".xsgtmi3{content:var(--x1ineb92),a}",
+    ),
+    (
+      "content: [[vars.primary], ['a']].sort().join('|'),",
+      ".x1tdztuk{content:a|var(--x1ineb92)}",
+    ),
+    (
+      "content: [[vars.primary], 'b'].indexOf('b'),",
+      ".x1fy28pd{content:\"1px\"}",
+    ),
+    (
+      "content: [[vars.primary, 'a'], 'b'].length,",
+      ".x1sn2kax{content:\"2px\"}",
+    ),
+  ];
+
+  for (body, rule) in cases {
+    assert_folds(IMPORT, body, rule);
+  }
+}
+
+/// The elements a nested one can be that carry no text: an empty array and the
+/// two nullish values each read as nothing, so the separators around them are
+/// all that is left.
+#[test]
+fn every_element_carrying_no_text_reads_as_the_empty_string() {
+  assert_folds(
+    IMPORT,
+    "content: [[], [], vars.primary].join('|'),",
+    ".x1lak4p8{content:||var(--x1ineb92)}",
+  );
+
+  assert_folds(
+    IMPORT,
+    "content: [[vars.primary, null, undefined], 'b'].join('|'),",
+    ".xarj5bt{content:var(--x1ineb92),,|b}",
+  );
+}
+
+/// An object in the same position is not an array, so it reads as the text the
+/// language gives an object rather than as its contents — and the member inside
+/// it is never reached.
+#[test]
+fn an_object_element_reads_as_the_text_the_language_gives_an_object() {
+  assert_folds(
+    IMPORT,
+    "content: [{ a: vars.primary }, 'b'].join('|'),",
+    ".x1lfvzc0{content:\"[object Object]|b\"}",
+  );
+}
+
+/// Nesting wide and nesting deep, so the shape is pinned past the size a case
+/// written out by hand reaches. Sixty nested elements and eight levels of
+/// nesting both fold whole, and the deep one shows that only the outermost level
+/// takes the separator it was given.
+#[test]
+fn a_wide_and_a_deep_nesting_both_fold_whole() {
+  let elements = (0..60)
+    .map(|index| format!("[vars.primary, {}]", index))
+    .collect::<Vec<_>>()
+    .join(", ");
+  let joined = (0..60)
+    .map(|index| format!("var(--x1ineb92),{}", index))
+    .collect::<Vec<_>>()
+    .join("|");
+
+  assert_folds(
+    IMPORT,
+    &format!("content: [{}].join('|'),", elements),
+    &format!(".x1axehh6{{content:{}}}", joined),
+  );
+
+  let mut nested = String::from("vars.primary");
+
+  for level in 0..8 {
+    nested = format!("[{}, {}]", nested, level);
+  }
+
+  assert_folds(
+    IMPORT,
+    &format!("content: {}.join('|'),", nested),
+    ".xbt3iq1{content:var(--x1ineb92),0,1,2,3,4,5,6|7}",
+  );
+}
+
+/// Two nested shapes neither compiler accepts, pinned so the agreement is on
+/// the record rather than assumed. A hole inside a nested element is refused
+/// before the fold, and a nested element the method answers a boolean for is
+/// folded and then refused by the guard on style values. The sentences differ;
+/// what matters is that no class name is invented on either side.
+#[test]
+fn a_nested_shape_neither_compiler_accepts_is_refused_here_too() {
+  assert_refuses(
+    IMPORT,
+    "content: [[vars.primary, , 'a'], 'b'].join('|'),",
+    "Could not resolve the code being evaluated.",
+  );
+
+  assert_refuses(
+    IMPORT,
+    "content: [[vars.primary], 'b'].includes('b'),",
+    "A style value can only contain an array, string or number.",
   );
 }
 

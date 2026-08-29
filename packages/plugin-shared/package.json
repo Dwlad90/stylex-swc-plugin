@@ -13,6 +13,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
+    "./cjs-interop": {
+      "types": "./dist/cjs-interop.d.ts",
+      "import": "./dist/cjs-interop.js",
+      "require": "./dist/cjs-interop.js"
+    },
     "./constants": {
       "types": "./dist/constants.d.ts",
       "import": "./dist/constants.js",

@@ -29,6 +29,24 @@ const ruleAt = (
   glob: string
 ): TurbopackRuleConfigItem => rules[glob] as TurbopackRuleConfigItem;
 
+/**
+ * Reads the options of the first loader under a glob. The loader entry has a
+ * short string form as well, so narrow the entry before reading the options
+ * rather than asserting the shape.
+ */
+function loaderOptionsAt(
+  rules: Record<string, TurbopackRuleConfigCollection>,
+  glob: string
+): Record<string, unknown> {
+  const loader = ruleAt(rules, glob).loaders?.[0];
+
+  if (loader === undefined || typeof loader === 'string' || loader.options === undefined) {
+    throw new Error(`No loader with options under the glob ${glob}`);
+  }
+
+  return loader.options;
+}
+
 describe('turbopack rules', () => {
   test('registers one rule for every transformable extension', () => {
     const globs = Object.keys(buildRules());
@@ -111,16 +129,25 @@ describe('loader options', () => {
 
   test('gives each rule its own loader options object', () => {
     const rules = buildRules({}, { rsOptions: { dev: true } });
-    const first = ruleAt(rules, '*.js').loaders?.[0] as unknown as {
-      options: Record<string, unknown>;
-    };
-    const second = ruleAt(rules, '*.mjs').loaders?.[0] as unknown as {
-      options: Record<string, unknown>;
-    };
+    const first = loaderOptionsAt(rules, '*.js');
+    const second = loaderOptionsAt(rules, '*.mjs');
 
-    first.options.dev = 'changed';
+    first.dev = 'changed';
 
-    expect(second.options).toEqual({ rsOptions: { dev: true } });
+    expect(second).toEqual({ rsOptions: { dev: true } });
+  });
+
+  // A shallow copy would share the nested object between all eight rules.
+  test('gives each rule its own nested options', () => {
+    const rules = buildRules({}, { rsOptions: { dev: true } });
+    const first = loaderOptionsAt(rules, '*.js').rsOptions as Record<string, unknown>;
+    const second = loaderOptionsAt(rules, '*.mjs').rsOptions as Record<string, unknown>;
+
+    expect(first).not.toBe(second);
+
+    first.dev = 'changed';
+
+    expect(second).toEqual({ dev: true });
   });
 });
 
@@ -370,10 +397,61 @@ describe('unusual input', () => {
       Array.from({ length: 1_000 }, (_unused, index) => [`@a${index}/*`, [`/src/a${index}/*`]])
     );
     const rules = buildRules({}, { rsOptions: { aliases } });
-    const loader = ruleAt(rules, '*.js').loaders?.[0] as unknown as {
-      options: { rsOptions: unknown };
-    };
 
-    expect(loader.options.rsOptions).toEqual({ aliases });
+    expect(loaderOptionsAt(rules, '*.js').rsOptions).toEqual({ aliases });
+  });
+});
+
+// Next.js gives loader options to the Turbopack worker as JSON. The plugin
+// writes them once, so a value that JSON cannot hold is reported here.
+describe('loader options that JSON cannot hold', () => {
+  // The option values below hold a value that JSON cannot write. The tests feed
+  // them to prove that the plugin reports such a value itself, rather than
+  // letting the build fail much later inside Next.js.
+  const buildWithUnsupportedValue = (options: Record<string, unknown>) => () =>
+    buildRules({}, options);
+
+  test('reports a circular option value against this plugin', () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+
+    expect(buildWithUnsupportedValue({ rsOptions: circular })).toThrow(
+      /@stylexswc\/nextjs-plugin\/turbopack: the plugin options cannot be written as JSON/
+    );
+  });
+
+  test('names the plugin when an option holds a BigInt', () => {
+    expect(buildWithUnsupportedValue({ rsOptions: { dev: 1n } })).toThrow(
+      /nextjs-plugin\/turbopack/
+    );
+  });
+
+  test('drops a key whose value is undefined, as JSON does', () => {
+    const rules = buildRules({}, { rsOptions: { dev: true }, stylexImports: undefined });
+
+    expect(loaderOptionsAt(rules, '*.js')).toEqual({ rsOptions: { dev: true } });
+  });
+
+  test('drops a key whose value is a function, as JSON does', () => {
+    const rules = buildWithUnsupportedValue({ rsOptions: { dev: true }, transformCss: () => '' })();
+
+    expect(loaderOptionsAt(rules, '*.js')).toEqual({ rsOptions: { dev: true } });
+  });
+
+  test('accepts an empty option set', () => {
+    expect(loaderOptionsAt(buildRules(), '*.js')).toEqual({});
+  });
+
+  test('carries a deeply nested option value', () => {
+    const depth = 500;
+    let nested: Record<string, unknown> = { leaf: true };
+
+    for (let level = 0; level < depth; level += 1) {
+      nested = { nested };
+    }
+
+    const rules = buildRules({}, { rsOptions: nested });
+
+    expect(loaderOptionsAt(rules, '*.js').rsOptions).toEqual(nested);
   });
 });

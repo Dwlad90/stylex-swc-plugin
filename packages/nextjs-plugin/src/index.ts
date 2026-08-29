@@ -1,5 +1,6 @@
 import path from 'path';
 
+import { exportAsCommonJs } from '@stylexswc/plugin-shared/cjs-interop';
 import StyleXWebpackPlugin, {
   DEFAULT_STYLEX_PACKAGES,
   buildVirtualCssPattern,
@@ -13,8 +14,6 @@ import browserslist from 'next/dist/compiled/browserslist';
 import type { NextConfig, WebpackConfigContext } from 'next/dist/server/config-shared';
 import type { Processor as PostCSSProcessor } from 'postcss';
 import type webpack from 'webpack';
-
-import { exportAsCommonJs } from './cjs-interop';
 
 /** Next.js' precompilation add "__esModule: true", but doesn't add an actual default exports */
 const NextMiniCssExtractPlugin: (typeof import('next/dist/build/webpack/plugins/mini-css-extract-plugin'))['default'] =

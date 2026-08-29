@@ -1,3 +1,4 @@
+import { exportAsCommonJs } from '@stylexswc/plugin-shared/cjs-interop';
 import { INCLUDE_EXTENSIONS } from '@stylexswc/plugin-shared/constants';
 import type { StyleXPluginOption } from '@stylexswc/webpack-plugin';
 import type {
@@ -7,8 +8,6 @@ import type {
   TurbopackRuleConfigCollection,
   TurbopackRuleConfigItem,
 } from 'next/dist/server/config-shared';
-
-import { exportAsCommonJs } from './cjs-interop';
 
 const LOADER_PATH = '@stylexswc/turbopack-plugin/loader';
 
@@ -26,6 +25,29 @@ const toRuleItem = (
 ): TurbopackRuleConfigItem =>
   typeof item === 'string' || 'loader' in item ? { loaders: [item] } : item;
 
+/**
+ * Writes the plugin options as JSON text.
+ *
+ * Next.js gives loader options to the Turbopack worker as JSON, and it refuses
+ * a value that JSON cannot hold. Write the text once here, so that a bad value
+ * is reported against this plugin and not much later in the build.
+ */
+const serializeLoaderOptions = (options: object): string => {
+  try {
+    return JSON.stringify(options);
+  } catch (error) {
+    // A circular reference and a BigInt are the two values that stop the write.
+    throw new Error(
+      [
+        '@stylexswc/nextjs-plugin/turbopack: the plugin options cannot be written as JSON,',
+        'which Next.js needs in order to give them to the StyleX loader.',
+        'Remove the value that cannot be written.',
+      ].join(' '),
+      { cause: error }
+    );
+  }
+};
+
 const withStyleX =
   (
     pluginOptions?: Omit<
@@ -38,13 +60,17 @@ const withStyleX =
     // need it. Next.js also refuses loader options that JSON cannot carry.
     const { loaderOrder = 'first', ...loaderOptions } = pluginOptions ?? {};
 
-    // Build a new loader entry for each rule. One shared entry would let a
-    // change to one rule reach all of the others.
+    const serializedOptions = serializeLoaderOptions(loaderOptions);
+
+    // Build a new loader entry for each rule. Reading the text again gives each
+    // rule its own deep copy, so a change to the options of one rule cannot
+    // reach another. A shared entry, or a shallow copy, would let it through.
+    //
+    // The write above succeeded, which proves that the options hold only what
+    // JSON can carry. The named type states that proof. It passes no check by.
     const stylexLoader = (): TurbopackLoaderItem => ({
       loader: LOADER_PATH,
-      // The plugin options match what the loader reads. Next.js types loader
-      // options as plain JSON, which the wider option type does not satisfy.
-      options: { ...loaderOptions } as TurbopackLoaderOptions,
+      options: JSON.parse(serializedOptions) as TurbopackLoaderOptions,
     });
 
     const stylexRule = (): TurbopackRuleConfigItem => ({ loaders: [stylexLoader()] });

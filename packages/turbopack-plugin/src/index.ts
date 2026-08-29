@@ -1,3 +1,5 @@
+import { exportAsCommonJs } from '@stylexswc/plugin-shared/cjs-interop';
+
 function StyleXTurbopackPlugin() {
   throw new Error(
     `
@@ -8,5 +10,9 @@ function StyleXTurbopackPlugin() {
   );
 }
 
-module.exports = StyleXTurbopackPlugin;
-module.exports.default = StyleXTurbopackPlugin;
+export default StyleXTurbopackPlugin;
+
+// Next.js reads the plugin with `require`, so `module.exports` must be the
+// function itself. A bare write breaks the file when it is read as an ES
+// module.
+exportAsCommonJs(typeof module === 'undefined' ? undefined : module, StyleXTurbopackPlugin);

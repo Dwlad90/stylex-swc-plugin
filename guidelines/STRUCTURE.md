@@ -48,9 +48,11 @@ How they stack (each package's `dependencies` is the authority):
 - `unplugin`, `postcss-plugin` -- on `rs-compiler`, plus
   `plugin-shared/constants` for the transformable extension list
 
-`plugin-shared/constants` is the one entry point that a config file may read.
-It holds the extension list and the path matcher, and it loads no compiler.
-Import the package root only from code that already needs the loader core.
+`plugin-shared/constants` and `plugin-shared/cjs-interop` are the entry points
+that a config file may read. `constants` holds the extension list and the path
+matcher; `cjs-interop` publishes a plugin under CommonJS, which every plugin a
+host loads with `require` needs. Neither loads the compiler. Import the package
+root only from code that already needs the loader core.
 
 Shared configs: `typescript-config`, `playwright` (neither depends on the
 compiler), `design-system` (does).

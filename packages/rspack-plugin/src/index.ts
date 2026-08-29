@@ -10,6 +10,7 @@ import {
   stylexLoaderPath,
   stylexVirtualCssLoaderPath,
 } from '@stylexswc/plugin-shared';
+import { exportAsCommonJs } from '@stylexswc/plugin-shared/cjs-interop';
 
 export const STYLEX_CHUNK_NAME = '_stylex-rspack-generated';
 
@@ -136,19 +137,15 @@ export type {
   StyleXPluginOption,
 } from '@stylexswc/plugin-shared';
 
-// Skipped when `module.exports` is an ES module namespace (frozen, cannot be
-// reassigned) — the ESM exports above provide the same surface there
-if (
-  typeof module !== 'undefined' &&
-  Object.prototype.toString.call(module.exports) !== '[object Module]'
-) {
-  module.exports = StyleXPlugin;
-  module.exports.default = StyleXPlugin;
-  module.exports.StyleXPlugin = StyleXPlugin;
-  module.exports.loader = stylexLoaderPath;
-  module.exports.virtualLoader = stylexVirtualCssLoaderPath;
-  module.exports.VIRTUAL_CSS_PATTERN = VIRTUAL_CSS_PATTERN;
-  module.exports.STYLEX_CHUNK_NAME = STYLEX_CHUNK_NAME;
-  module.exports.DEFAULT_STYLEX_PACKAGES = DEFAULT_STYLEX_PACKAGES;
-  module.exports.buildVirtualCssPattern = buildVirtualCssPattern;
-}
+// Skipped when this file is read as an ES module, where a write to
+// `module.exports` cannot succeed. The ESM exports above give the same surface
+// there.
+exportAsCommonJs(typeof module === 'undefined' ? undefined : module, StyleXPlugin, {
+  StyleXPlugin,
+  loader: stylexLoaderPath,
+  virtualLoader: stylexVirtualCssLoaderPath,
+  VIRTUAL_CSS_PATTERN,
+  STYLEX_CHUNK_NAME,
+  DEFAULT_STYLEX_PACKAGES,
+  buildVirtualCssPattern,
+});

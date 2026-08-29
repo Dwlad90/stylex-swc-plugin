@@ -301,6 +301,27 @@ name, rule text and style-object shape rather than sentences, and the two
 compilers' refusal wordings are compared only for whether they complain about the
 same thing.
 
+Three wordings were decided under that freedom rather than inherited.
+`BUILT_IN_FUNCTION` and `INVALID_ARRAY_LENGTH` are deleted: every call they
+described is now evaluated by being called, so neither had a consumer left. What
+replaced the second is the engine's own `RangeError: invalid array length`,
+carried under this compiler's naming of the call — deliberately the language's
+sentence, because a negative length is the language refusing rather than one of
+this module's two allocation ceilings, and a sentence of our own would claim a
+rule that does not exist. `ARGUMENT_WITHOUT_VALUE` is deleted for the same
+reason with an extra one: nothing referenced it, and the condition its text
+described is an invariant break that no module reaches.
+
+**Every sentence has a module that reaches it.** A refusal nobody can produce
+reads as covered while its wording is never checked against what an author sees,
+so each one is reached from source in
+`tests/transform_stylex_create_test/refusals_a_module_reaches.rs`. The
+exceptions are the refusals that guard an invariant rather than an input — a
+destructuring whose question was asked on the line above, an argument list that
+cannot be shorter than the call that produced it, a `ToObject` over values that
+are all objects or functions. Each names its invariant where it is written
+rather than being reached by a contrived module.
+
 **Two neighbouring records answer for what this one does not.** The stack the
 engine's parser runs on, and the ceiling that sizes it, are
 [0004](./0004-the-fold-owns-its-own-ceiling-and-its-own-stack.md) — including

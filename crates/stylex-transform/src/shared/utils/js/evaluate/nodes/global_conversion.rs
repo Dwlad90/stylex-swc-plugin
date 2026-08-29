@@ -85,6 +85,11 @@ impl Conversion {
     // An argument that evaluated to nothing while staying confident was dropped
     // rather than deopted, so the remaining arguments no longer line up with
     // what was written. Refuse rather than convert a shifted argument list.
+    //
+    // Unreachable from any module an author can write, and kept for the day the
+    // invariant behind that changes: `evaluate_func_call_args` drops an argument
+    // only where `evaluate_cached` answers nothing, which it does only after
+    // deopting -- and the confidence check above has already returned by then.
     if args.len() != call.args.len() {
       return deopt(path, state, &uncoercible_value(self.name()));
     }
@@ -170,6 +175,12 @@ impl Conversion {
         // Every value that reaches here is an object upstream, and `Object` hands
         // an object back unchanged — which is what keeps a member read off the
         // result resolving to the same thing the bare group resolves to.
+        //
+        // The refusal is unreachable from any module an author can write, and
+        // kept on the same terms as the one above: every value the evaluator has
+        // of its own stands for an object or a function, and every expression it
+        // answers with is a literal, an array, an object, an arrow or one of the
+        // three globals spelled as a name -- each of which `ToObject` reads.
         Some(argument) => match evaluate_result_to_js_object(&argument) {
           Some(_) => Some(argument),
           None => deopt(path, state, &uncoercible_value(self.name())),

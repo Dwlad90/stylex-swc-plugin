@@ -628,6 +628,14 @@ fn write_string_of<S: coercions::StringSink>(
     // group hash rather than the object default.
     EvaluateResultValue::ThemeRef(theme_ref) => sink.write_piece(&theme_ref.to_string_value()),
 
+    // The environment object takes the `Object.prototype` default, which is what
+    // it is upstream.
+    //
+    // The AST-keyed map is grouped with it rather than given an arm of its own,
+    // and is unreachable here: it is only ever the answer a `stylex.create`
+    // argument evaluates to, and an argument to a coercion is evaluated by the
+    // ordinary dispatch, which never builds one. Classified all the same, so the
+    // day something does hand one over it reads as the object it stands for.
     EvaluateResultValue::Map(_) | EvaluateResultValue::EnvObject(_) => {
       sink.write_piece(coercions::OBJECT_TO_STRING)
     },

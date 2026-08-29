@@ -359,6 +359,10 @@ fn member_callee(
         return global_static_callee(object, property, call, path, state, traversal_state, fns);
       }
 
+      // Unreachable: `property.is_ident()` was asked one branch up, so the
+      // destructuring cannot fail. Refused rather than asserted, because a
+      // broken invariant is worth a sentence an author can report and not an
+      // aborted build.
       let Some(prop_ident) = property.as_ident() else {
         deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
       };
@@ -415,6 +419,8 @@ fn member_callee(
   }
 
   if property.is_ident() {
+    // Unreachable for the reason the same destructuring above is: the question
+    // was asked on the line before.
     let Some(prop_ident) = property.as_ident() else {
       deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
     };

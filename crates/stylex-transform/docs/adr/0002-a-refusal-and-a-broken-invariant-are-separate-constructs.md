@@ -21,6 +21,10 @@ The signatures keep them apart without a reader following the message text. The
 refusal takes the `EvaluationState` it records itself on; the panicking one takes
 the `StateManager` it builds a code frame from.
 
+Both macros live in `stylex-macros`, below every layer that owns the functions
+they call, so each one takes those functions as its leading arguments and the
+call site supplies them.
+
 ## Considered options
 
 **One construct with a flag or a documented convention.** This is what the code
@@ -34,7 +38,7 @@ shape, and rejected on blast radius rather than on merit: the evaluator's arms
 answer `Option<EvaluateResultValue>` throughout, and threading a result type
 through them is a change to every fold in the crate for no change in behaviour.
 The macro hiding a `return` follows `expr_to_str_or_deopt!` beside it, which is
-the existing convention in the same file.
+the existing convention for the same job.
 
 ## Consequences
 

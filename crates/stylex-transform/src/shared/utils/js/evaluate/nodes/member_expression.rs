@@ -136,11 +136,11 @@ fn read_fold_member(
   state: &mut EvaluationState,
 ) -> Option<EvaluateResultValue> {
   let Some(object) = function_fold_to_object(value) else {
-    deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
+    deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
   };
 
   let Some(key) = property.and_then(|prop| prop.as_string_key()) else {
-    deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
+    deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
   };
 
   Some(match fold_entry_value(&object, &key) {
@@ -310,7 +310,7 @@ pub(in super::super) fn evaluate(
         let value = theme_ref.get(&parts.join("."), traversal_state);
 
         let Some(css_var) = value.as_css_var() else {
-          deopt_unsupported!(path, state, EXPECTED_CSS_VAR);
+          deopt_unsupported!(deopt, path, state, EXPECTED_CSS_VAR);
         };
 
         return Some(EvaluateResultValue::Expr(create_string_expr(css_var)));
@@ -347,7 +347,7 @@ pub(in super::super) fn evaluate(
         EvaluateResultValue::Expr(expr) => match &expr {
           Expr::Array(ArrayLit { elems, .. }) => {
             let Some(eval_res) = property else {
-              deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
+              deopt_unsupported!(deopt, path, state, PROPERTY_NOT_FOUND);
             };
 
             let lookup = classify_lookup(Some(&eval_res));
@@ -368,7 +368,7 @@ pub(in super::super) fn evaluate(
               // the matching case.
               ArrayLikeLookup::Missing(_) => return Some(js_undefined()),
               ArrayLikeLookup::Unreadable => {
-                deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
+                deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
               },
               // Read below, which is the arm that folds one.
               ArrayLikeLookup::Index(_) => {},
@@ -384,7 +384,7 @@ pub(in super::super) fn evaluate(
             // evaluating an array refuses every spread first, so no receiver
             // carrying one arrives here.
             if written_slot_count(elems).is_none() {
-              deopt_unsupported!(path, state, SPREAD_ELEMENT);
+              deopt_unsupported!(deopt, path, state, SPREAD_ELEMENT);
             }
 
             index_answer(elems, slot, |element| {
@@ -395,7 +395,7 @@ pub(in super::super) fn evaluate(
               // reaching here would mean a fold produced a slot it could not
               // fill, and answering `undefined` would hide that.
               let Some(element) = element.as_ref() else {
-                deopt_unsupported!(path, state, MEMBER_NOT_RESOLVED);
+                deopt_unsupported!(deopt, path, state, MEMBER_NOT_RESOLVED);
               };
 
               Some(EvaluateResultValue::Expr(*element.expr.clone()))
@@ -403,7 +403,7 @@ pub(in super::super) fn evaluate(
           },
           Expr::Object(ObjectLit { props, .. }) => {
             let Some(eval_res) = property else {
-              deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
+              deopt_unsupported!(deopt, path, state, PROPERTY_NOT_FOUND);
             };
 
             let ident = match eval_res {
@@ -431,7 +431,7 @@ pub(in super::super) fn evaluate(
                 debug!("Evaluation result: {:?}", eval_res);
                 debug!("Original property: {:?}", prop_path);
 
-                deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
+                deopt_unsupported!(deopt, path, state, PROPERTY_NOT_FOUND);
               },
             };
 
@@ -443,9 +443,9 @@ pub(in super::super) fn evaluate(
               // reads, and a key that is still an expression never resolved.
               Expr::Lit(lit) => match convert_lit_to_string(lit) {
                 Some(key) => key,
-                None => deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP),
+                None => deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP),
               },
-              _ => deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP),
+              _ => deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP),
             };
 
             // Written as a loop rather than a `find`, because a property the
@@ -458,7 +458,7 @@ pub(in super::super) fn evaluate(
               let PropOrSpread::Prop(prop) = prop else {
                 // A spread leaves the object's own keys unknown, so a key that
                 // is not among the literal ones cannot be called absent.
-                deopt_unsupported!(path, state, SPREAD_HIDES_OBJECT_KEYS);
+                deopt_unsupported!(deopt, path, state, SPREAD_HIDES_OBJECT_KEYS);
               };
 
               let mut prop = prop.clone();
@@ -467,7 +467,7 @@ pub(in super::super) fn evaluate(
 
               // A getter, a setter or a method carries no value to read.
               let Prop::KeyValue(key_value) = prop.as_ref() else {
-                deopt_unsupported!(path, state, OBJECT_METHOD);
+                deopt_unsupported!(deopt, path, state, OBJECT_METHOD);
               };
 
               if ident_string_name == convert_key_value_to_str(key_value) {
@@ -532,6 +532,7 @@ pub(in super::super) fn evaluate(
           // A member access on a call, an arrow, a class — expression kinds
           // this evaluator reads no properties from.
           _ => deopt_unsupported!(
+            deopt,
             path,
             state,
             &unsupported_expression(get_expr_node_kind(&expr))
@@ -578,6 +579,7 @@ pub(in super::super) fn evaluate(
                 // which would send an author looking in their source.
                 if env_map.is_empty() {
                   deopt_unsupported!(
+                    deopt,
                     path,
                     state,
                     "The stylex.env object is not configured. Check that the 'env' option is set in your StyleX configuration."
@@ -596,7 +598,7 @@ pub(in super::super) fn evaluate(
               // shape that starts arriving here should be decided, not silently
               // answered as whichever neighbour compiled.
               FunctionConfigType::IndexMap(_) => {
-                deopt_unsupported!(path, state, &unsupported_expression("IndexMap"));
+                deopt_unsupported!(deopt, path, state, &unsupported_expression("IndexMap"));
               },
             }
           }
@@ -652,26 +654,27 @@ pub(in super::super) fn evaluate(
             Some(EvaluateResultValue::Expr(Expr::Ident(Ident { sym, .. }))) => sym.to_string(),
             Some(EvaluateResultValue::Expr(Expr::Lit(lit))) => match convert_lit_to_string(&lit) {
               Some(key) => key,
-              None => deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP),
+              None => deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP),
             },
-            _ => deopt_unsupported!(path, state, MEMBER_NOT_RESOLVED),
+            _ => deopt_unsupported!(deopt, path, state, MEMBER_NOT_RESOLVED),
           };
 
           let value = theme_ref.get(&key, traversal_state);
 
           let Some(css_var) = value.as_css_var() else {
-            deopt_unsupported!(path, state, EXPECTED_CSS_VAR);
+            deopt_unsupported!(deopt, path, state, EXPECTED_CSS_VAR);
           };
 
           Some(EvaluateResultValue::Expr(create_string_expr(css_var)))
         },
         EvaluateResultValue::EnvObject(env_map) => {
           let Some(key) = property.as_ref().and_then(|prop| prop.as_string_key()) else {
-            deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
+            deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
           };
 
           let Some(entry) = env_map.get(&key) else {
             deopt_unsupported!(
+              deopt,
               path,
               state,
               format!(
@@ -684,12 +687,12 @@ pub(in super::super) fn evaluate(
 
           match resolve_env_entry_to_result(entry, &env_map) {
             Some(result) => Some(result),
-            None => deopt_unsupported!(path, state, ILLEGAL_PROP_VALUE),
+            None => deopt_unsupported!(deopt, path, state, ILLEGAL_PROP_VALUE),
           }
         },
         // An evaluated value the member path reads no properties from: a
         // callback, an entries map, a raw function configuration.
-        _ => deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP),
+        _ => deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP),
       }
     },
     _ => None,

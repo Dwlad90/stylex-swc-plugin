@@ -1,8 +1,8 @@
 use super::super::*;
 use super::global_conversion::Conversion;
-use crate::deopt_unsupported;
 use crate::shared::structures::types::EvaluationCallback;
 use stylex_ast::ast::convertors::get_key_values_from_object;
+use stylex_macros::deopt_unsupported;
 use swc_core::ecma::ast::{CallExpr, MemberExpr, MemberProp};
 
 pub(in super::super) fn evaluate(
@@ -56,7 +56,7 @@ pub(in super::super) fn evaluate(
       if let Some(entry) = entry {
         match entry {
           MapEntry::Function(config) => func = Some(config),
-          MapEntry::NotAFunction => deopt_unsupported!(path, state, NON_CONSTANT),
+          MapEntry::NotAFunction => deopt_unsupported!(deopt, path, state, NON_CONSTANT),
         }
       } else {
         let named = evaluate_cached(callee_expr, state, traversal_state, fns);
@@ -111,6 +111,7 @@ pub(in super::super) fn evaluate(
         FunctionType::StylexExprFn(func) => {
           let Some(first_arg) = args.first() else {
             deopt_unsupported!(
+              deopt,
               path,
               state,
               "StyleX expression function requires at least one argument."
@@ -131,7 +132,7 @@ pub(in super::super) fn evaluate(
         | FunctionType::Mapper(_)
         | FunctionType::ThemeRefMapper(_)
         | FunctionType::DefaultMarker(_)
-        | FunctionType::EnvFunction(_) => deopt_unsupported!(path, state, NON_CONSTANT),
+        | FunctionType::EnvFunction(_) => deopt_unsupported!(deopt, path, state, NON_CONSTANT),
       }
     } else {
       if !state.confident {
@@ -146,7 +147,7 @@ pub(in super::super) fn evaluate(
           for arg in args {
             match arg.as_expr().cloned() {
               Some(expr) => fn_args.push(expr),
-              None => deopt_unsupported!(path, state, ARGUMENT_NOT_EXPRESSION),
+              None => deopt_unsupported!(deopt, path, state, ARGUMENT_NOT_EXPRESSION),
             }
           }
 
@@ -158,6 +159,7 @@ pub(in super::super) fn evaluate(
           let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
           let Some(first_arg) = args.first().and_then(|arg| arg.as_expr().cloned()) else {
             deopt_unsupported!(
+              deopt,
               path,
               state,
               "StyleX expression function requires an expression argument."
@@ -172,6 +174,7 @@ pub(in super::super) fn evaluate(
           let mut args = evaluate_func_call_args(call, state, traversal_state, fns)?.into_iter();
           let Some(pseudo) = args.next() else {
             deopt_unsupported!(
+              deopt,
               path,
               state,
               "stylex.when functions require a selector argument."
@@ -184,26 +187,26 @@ pub(in super::super) fn evaluate(
           let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
           let mut fn_args = IndexMap::default();
           let Some(expr) = args.first().and_then(|expr| expr.as_expr()) else {
-            deopt_unsupported!(path, state, ARGUMENT_NOT_EXPRESSION);
+            deopt_unsupported!(deopt, path, state, ARGUMENT_NOT_EXPRESSION);
           };
 
           match expr {
             Expr::Object(obj) => {
               for prop in &obj.props {
                 let Some(prop) = prop.as_prop() else {
-                  deopt_unsupported!(path, state, SPREAD_NOT_SUPPORTED);
+                  deopt_unsupported!(deopt, path, state, SPREAD_NOT_SUPPORTED);
                 };
 
                 let Some(key_value) = prop.as_key_value() else {
-                  deopt_unsupported!(path, state, KEY_VALUE_EXPECTED);
+                  deopt_unsupported!(deopt, path, state, KEY_VALUE_EXPECTED);
                 };
 
                 let Some(key) = key_value.key.as_ident().map(|ident| ident.sym.to_string()) else {
-                  deopt_unsupported!(path, state, OBJECT_KEY_MUST_BE_IDENT);
+                  deopt_unsupported!(deopt, path, state, OBJECT_KEY_MUST_BE_IDENT);
                 };
 
                 let Some(value) = key_value.value.as_lit() else {
-                  deopt_unsupported!(path, state, VALUE_MUST_BE_LITERAL);
+                  deopt_unsupported!(deopt, path, state, VALUE_MUST_BE_LITERAL);
                 };
 
                 fn_args.insert(
@@ -228,7 +231,7 @@ pub(in super::super) fn evaluate(
           let evaluation_result = evaluate_cached(&arrow_fn, state, traversal_state, fns);
 
           let Some(EvaluateResultValue::Callback(cb)) = evaluation_result else {
-            deopt_unsupported!(path, state, NON_CONSTANT);
+            deopt_unsupported!(deopt, path, state, NON_CONSTANT);
           };
 
           return apply_own_arrow(&cb, call, path, state, traversal_state, fns);
@@ -246,13 +249,13 @@ pub(in super::super) fn evaluate(
           for arg in &args {
             match arg.as_expr() {
               Some(expr) => env_args.push(expr.clone()),
-              None => deopt_unsupported!(path, state, ARGUMENT_NOT_EXPRESSION),
+              None => deopt_unsupported!(deopt, path, state, ARGUMENT_NOT_EXPRESSION),
             }
           }
           let result = env_fn.call(env_args);
           return Some(EvaluateResultValue::Expr(result));
         },
-        _ => deopt_unsupported!(path, state, NON_CONSTANT),
+        _ => deopt_unsupported!(deopt, path, state, NON_CONSTANT),
       }
     }
   }
@@ -352,7 +355,7 @@ fn member_callee(
 
     if property.is_ident() {
       if is_mutating_object_method(property) {
-        deopt_unsupported!(path, state, NON_CONSTANT);
+        deopt_unsupported!(deopt, path, state, NON_CONSTANT);
       }
 
       if is_valid_callee(object) && !is_invalid_method(property) {
@@ -364,7 +367,7 @@ fn member_callee(
       // broken invariant is worth a sentence an author can report and not an
       // aborted build.
       let Some(prop_ident) = property.as_ident() else {
-        deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
+        deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
       };
 
       let obj_name = obj_ident.sym.to_string();
@@ -380,7 +383,7 @@ fn member_callee(
       if let Some(entry) = entry {
         return match entry {
           MapEntry::Function(config) => Some(MemberCallee::Function(config)),
-          MapEntry::NotAFunction => deopt_unsupported!(path, state, NON_CONSTANT),
+          MapEntry::NotAFunction => deopt_unsupported!(deopt, path, state, NON_CONSTANT),
         };
       }
     }
@@ -394,7 +397,7 @@ fn member_callee(
         .get(&ImportSources::Regular(obj_name))
         && member_expr.contains_key(prop_id)
       {
-        deopt_unsupported!(path, state, NON_CONSTANT);
+        deopt_unsupported!(deopt, path, state, NON_CONSTANT);
 
         // TODO: uncomment this for implementation of member expressions
         // return applied_entry(...) as the ident spelling above does.
@@ -413,8 +416,8 @@ fn member_callee(
     // its own, so the reason has to be carried over deliberately or it is lost
     // with that state.
     match parsed_obj.reason {
-      Some(reason) => deopt_unsupported!(path, state, &reason),
-      None => deopt_unsupported!(path, state, UNDEFINED_CONST),
+      Some(reason) => deopt_unsupported!(deopt, path, state, &reason),
+      None => deopt_unsupported!(deopt, path, state, UNDEFINED_CONST),
     }
   }
 
@@ -422,13 +425,14 @@ fn member_callee(
     // Unreachable for the reason the same destructuring above is: the question
     // was asked on the line before.
     let Some(prop_ident) = property.as_ident() else {
-      deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
+      deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
     };
 
     let prop_name = prop_ident.sym.to_string();
 
     let Some(value) = parsed_obj.value else {
       deopt_unsupported!(
+        deopt,
         path,
         state,
         format!(
@@ -470,7 +474,7 @@ fn member_callee(
     ) {
       evaluate_func_call_args(call, state, traversal_state, fns)?;
 
-      deopt_unsupported!(path, state, &unfoldable_call(&prop_name))
+      deopt_unsupported!(deopt, path, state, &unfoldable_call(&prop_name))
     }
 
     return match value {
@@ -489,7 +493,7 @@ fn member_callee(
             });
 
           let Some(key_value) = key_value else {
-            deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
+            deopt_unsupported!(deopt, path, state, PROPERTY_NOT_FOUND);
           };
 
           Some(MemberCallee::Function(Box::new(FunctionConfig {
@@ -500,7 +504,12 @@ fn member_callee(
         // Regex methods like .test(), .exec(), etc. require runtime evaluation
         // We can't statically evaluate them, so we deopt
         Expr::Lit(Lit::Regex(_)) => {
-          deopt_unsupported!(path, state, "Regex methods cannot be statically evaluated");
+          deopt_unsupported!(
+            deopt,
+            path,
+            state,
+            "Regex methods cannot be statically evaluated"
+          );
         },
         // A method call on a receiver whose kind carries no methods this
         // evaluator folds — a `null`, a template literal, a name that resolved to
@@ -508,6 +517,7 @@ fn member_callee(
         // fold are answered above, by the rule that declined them rather than by
         // their node kind.
         _ => deopt_unsupported!(
+          deopt,
           path,
           state,
           &unsupported_expression(get_expr_node_kind(&expr))
@@ -527,13 +537,14 @@ fn member_callee(
           }))),
           None => Some(MemberCallee::Unnamed),
         },
-        _ => deopt_unsupported!(path, state, NON_CONSTANT),
+        _ => deopt_unsupported!(deopt, path, state, NON_CONSTANT),
       },
       // An `env` entry, which is a function or a value depending on how the
       // option was configured.
       EvaluateResultValue::EnvObject(env_map) => {
         let Some(env_val) = env_map.get(&prop_name) else {
           deopt_unsupported!(
+            deopt,
             path,
             state,
             format!(
@@ -557,7 +568,7 @@ fn member_callee(
       },
       // A receiver the evaluator carries in a representation with no methods of
       // its own — an entries map, a callback, a theme ref.
-      _ => deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP),
+      _ => deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP),
     };
   }
 
@@ -566,6 +577,7 @@ fn member_callee(
 
     let Some(value) = parsed_obj.value else {
       deopt_unsupported!(
+        deopt,
         path,
         state,
         format!(
@@ -577,7 +589,7 @@ fn member_callee(
     };
 
     let Some(map) = value.as_map() else {
-      deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
+      deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
     };
 
     return map_method(map.get(&create_string_expr(&prop_id_owned)), path, state);
@@ -613,19 +625,19 @@ fn global_static_callee(
   let method_name = get_method_name(property);
 
   if callee_name != "Object" {
-    deopt_unsupported!(path, state, &unfoldable_call(method_name));
+    deopt_unsupported!(deopt, path, state, &unfoldable_call(method_name));
   }
 
   let Ok(question) = OwnKeysQuestion::try_from(method_name) else {
-    deopt_unsupported!(path, state, &unfoldable_call(method_name));
+    deopt_unsupported!(deopt, path, state, &unfoldable_call(method_name));
   };
 
   let Some(arg) = call.args.first() else {
-    deopt_unsupported!(path, state, &unfoldable_call(method_name));
+    deopt_unsupported!(deopt, path, state, &unfoldable_call(method_name));
   };
 
   if arg.spread.is_some() {
-    deopt_unsupported!(path, state, SPREAD_ELEMENT);
+    deopt_unsupported!(deopt, path, state, SPREAD_ELEMENT);
   }
 
   // An array literal is read from the syntax rather than from its evaluated
@@ -645,7 +657,7 @@ fn global_static_callee(
 
   match receiver.own_keys(question) {
     Ok(list) => Some(MemberCallee::Value(EvaluateResultValue::Expr(list))),
-    Err(reason) => deopt_unsupported!(path, state, reason),
+    Err(reason) => deopt_unsupported!(deopt, path, state, reason),
   }
 }
 
@@ -692,7 +704,7 @@ fn map_method(
   state: &mut EvaluationState,
 ) -> Option<MemberCallee> {
   if entry.is_some() {
-    deopt_unsupported!(path, state, NON_CONSTANT);
+    deopt_unsupported!(deopt, path, state, NON_CONSTANT);
   }
 
   Some(MemberCallee::Unnamed)

@@ -1,6 +1,6 @@
 use super::super::*;
-use crate::deopt_unsupported;
 use stylex_ast::ast::factories::create_unary_expr;
+use stylex_macros::deopt_unsupported;
 use swc_core::ecma::ast::{Lit, UnaryExpr, UnaryOp};
 
 pub(in super::super) fn evaluate(
@@ -46,7 +46,7 @@ pub(in super::super) fn evaluate(
   // operator to. `typeof someObject.method` is ordinary JavaScript, so this
   // refuses the fold rather than aborting the build.
   let Some(arg) = arg else {
-    deopt_unsupported!(&create_unary_expr(unary), state, ILLEGAL_PROP_VALUE);
+    deopt_unsupported!(deopt, &create_unary_expr(unary), state, ILLEGAL_PROP_VALUE);
   };
 
   // `!` is answered off the evaluated value rather than off an expression form
@@ -58,7 +58,7 @@ pub(in super::super) fn evaluate(
   // and that deopts.
   if unary.op == UnaryOp::Bang {
     let Some(value) = evaluate_result_to_js_boolean(&arg) else {
-      deopt_unsupported!(&create_unary_expr(unary), state, ILLEGAL_PROP_VALUE);
+      deopt_unsupported!(deopt, &create_unary_expr(unary), state, ILLEGAL_PROP_VALUE);
     };
 
     return Some(EvaluateResultValue::Expr(create_bool_expr(!value)));
@@ -70,6 +70,7 @@ pub(in super::super) fn evaluate(
   if unary.op == UnaryOp::TypeOf {
     let Some(arg_type) = type_of(&arg) else {
       deopt_unsupported!(
+        deopt,
         &create_unary_expr(unary),
         state,
         // A kind this evaluator has no reading of. Named as the expression it
@@ -170,6 +171,7 @@ fn evaluate_unary_numeric_of(
   let value = match numeric_reading {
     Ok(value) => value,
     Err(NumberRefusal::NoNumberForm) => deopt_unsupported!(
+      deopt,
       &create_unary_expr(unary),
       state,
       first_refusal.as_deref().unwrap_or(ILLEGAL_PROP_VALUE)
@@ -179,6 +181,7 @@ fn evaluate_unary_numeric_of(
     // join inside it, the way a growing string's refusal names the `+` or the
     // interpolation it grew in.
     Err(NumberRefusal::TooLarge) => deopt_unsupported!(
+      deopt,
       &create_unary_expr(unary),
       state,
       &grown_string_too_large(

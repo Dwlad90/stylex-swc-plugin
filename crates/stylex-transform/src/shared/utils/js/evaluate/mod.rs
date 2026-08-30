@@ -16,14 +16,15 @@ use helpers::*;
 pub(crate) use nodes::binary_expression::binary_expr_to_num_or_str;
 pub(crate) use nodes::object_expression::spread_own_properties;
 
-// Import error handling macros from shared utilities
-use crate::{deopt_unsupported, expr_to_str_or_deopt, stylex_panic_with_context};
 use stylex_constants::constants::api_names::FUNCTION_CONFIG_FN_KEY;
 
 use indexmap::IndexMap;
 use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
-use stylex_macros::{stylex_panic, stylex_unreachable};
+use stylex_macros::{
+  deopt_unsupported, expr_to_str_or_deopt, stylex_panic, stylex_panic_with_context,
+  stylex_unreachable,
+};
 use swc_core::{
   atoms::Atom,
   ecma::{
@@ -53,6 +54,7 @@ use crate::shared::{
       assign_props, get_import_by_ident, get_var_decl_from, get_var_decl_parts_by_ident,
       order_own_keys, remove_duplicates,
     },
+    log::build_code_frame_error::build_code_frame_error_and_panic,
   },
 };
 use stylex_ast::ast::convertors::{
@@ -62,7 +64,7 @@ use stylex_ast::ast::convertors::{
 };
 use stylex_ast::ast::factories::{
   create_array_expression, create_arrow_expression, create_expr_or_spread,
-  create_ident_key_value_prop, create_key_value_prop, create_object_lit,
+  create_ident_key_value_prop, create_key_value_prop, create_object_lit, wrap_in_paren_ref,
 };
 use stylex_constants::constants::{
   evaluation_errors::{
@@ -451,6 +453,7 @@ fn _evaluate(
     ),
     Expr::TaggedTpl(_tagged_tpl) => {
       deopt_unsupported!(
+        deopt,
         normalized_path,
         state,
         &unsupported_expression("TaggedTemplateExpression")
@@ -465,6 +468,8 @@ fn _evaluate(
     },
     Expr::Cond(cond) => nodes::conditional_expression::evaluate(cond, state, traversal_state, fns),
     Expr::Paren(_) => stylex_panic_with_context!(
+      wrap_in_paren_ref,
+      build_code_frame_error_and_panic,
       path,
       traversal_state,
       "Parenthesized expressions should be unwrapped before evaluation."
@@ -502,6 +507,8 @@ fn _evaluate(
   if result.is_none() && normalized_path.is_ident() {
     let Some(ident) = normalized_path.as_ident() else {
       stylex_panic_with_context!(
+        wrap_in_paren_ref,
+        build_code_frame_error_and_panic,
         path,
         traversal_state,
         "Could not resolve the identifier. Ensure it is defined and in scope."

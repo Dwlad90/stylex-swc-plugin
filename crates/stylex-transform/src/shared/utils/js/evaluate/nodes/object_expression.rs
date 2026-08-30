@@ -1,6 +1,6 @@
 use super::super::*;
-use crate::deopt_unsupported;
 use stylex_ast::ast::convertors::normalize_expr;
+use stylex_macros::deopt_unsupported;
 use stylex_utils::number::to_js_string;
 use swc_core::ecma::ast::ObjectLit;
 
@@ -185,7 +185,7 @@ pub(in super::super) fn evaluate(
         let Some(new_props) =
           spread_expression.and_then(|value| spread_own_properties(value, &prop.expr))
         else {
-          deopt_unsupported!(&refusal_path(), state, SPREAD_PROPERTIES_UNREADABLE);
+          deopt_unsupported!(deopt, &refusal_path(), state, SPREAD_PROPERTIES_UNREADABLE);
         };
 
         let merged_object = assign_props(props, new_props);
@@ -253,6 +253,8 @@ pub(in super::super) fn evaluate(
                   .and_then(|value| value.as_expr())
                 {
                   Some(expr_to_str_or_deopt!(
+                    convert_expr_to_str,
+                    deopt,
                     expr,
                     state,
                     traversal_state,
@@ -260,7 +262,7 @@ pub(in super::super) fn evaluate(
                     EXPRESSION_IS_NOT_A_STRING
                   ))
                 } else {
-                  deopt_unsupported!(&refusal_path(), state, ILLEGAL_PROP_VALUE);
+                  deopt_unsupported!(deopt, &refusal_path(), state, ILLEGAL_PROP_VALUE);
                 }
               },
               PropName::BigInt(big_int) => Some(big_int.value.to_string()),
@@ -308,6 +310,7 @@ pub(in super::super) fn evaluate(
 
             let Some(value) = eval_value.value else {
               deopt_unsupported!(
+                deopt,
                 &refusal_path(),
                 state,
                 format!(
@@ -329,7 +332,7 @@ pub(in super::super) fn evaluate(
               EvaluateResultValue::Expr(expr) => expr,
               EvaluateResultValue::Vec(items) => match evaluate_result_vec_to_array_expr(&items) {
                 Some(expr) => expr,
-                None => deopt_unsupported!(&refusal_path(), state, ILLEGAL_PROP_ARRAY_VALUE),
+                None => deopt_unsupported!(deopt, &refusal_path(), state, ILLEGAL_PROP_ARRAY_VALUE),
               },
               // A callback reaches a value position as the arrow it was written
               // as -- a dynamic style's function, which is kept for the runtime
@@ -339,7 +342,7 @@ pub(in super::super) fn evaluate(
               // refuse one argument deeper.
               EvaluateResultValue::Callback(_) => match path_key_value.value.as_ref() {
                 Expr::Arrow(arrow_func_expr) => Expr::Arrow(arrow_func_expr.clone()),
-                _ => deopt_unsupported!(&refusal_path(), state, ILLEGAL_PROP_VALUE),
+                _ => deopt_unsupported!(deopt, &refusal_path(), state, ILLEGAL_PROP_VALUE),
               },
               // A folded function map or function config, materialized as the
               // object it stands for so it reaches whatever validates this
@@ -348,7 +351,7 @@ pub(in super::super) fn evaluate(
               // expression form is a refusal.
               value => match function_fold_to_object(&value) {
                 Some(object) => Expr::from(object),
-                None => deopt_unsupported!(&refusal_path(), state, ILLEGAL_PROP_VALUE),
+                None => deopt_unsupported!(deopt, &refusal_path(), state, ILLEGAL_PROP_VALUE),
               },
             };
 
@@ -362,7 +365,7 @@ pub(in super::super) fn evaluate(
           },
           // A getter, a setter or an assignment pattern: object properties
           // with no compile-time value of their own.
-          _ => deopt_unsupported!(&refusal_path(), state, OBJECT_METHOD),
+          _ => deopt_unsupported!(deopt, &refusal_path(), state, OBJECT_METHOD),
         }
       },
     }

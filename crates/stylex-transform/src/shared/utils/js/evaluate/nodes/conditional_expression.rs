@@ -1,5 +1,5 @@
 use super::super::*;
-use crate::deopt_unsupported;
+use stylex_macros::deopt_unsupported;
 use swc_core::ecma::ast::CondExpr;
 
 pub(in super::super) fn evaluate(
@@ -20,7 +20,7 @@ pub(in super::super) fn evaluate(
   let Some(ref test_value) = test_result else {
     let path = Expr::Cond(cond.clone());
 
-    deopt_unsupported!(&path, state, ILLEGAL_PROP_VALUE);
+    deopt_unsupported!(deopt, &path, state, ILLEGAL_PROP_VALUE);
   };
 
   // Read through the same `ToBoolean` bridge the logical operators read, and
@@ -35,7 +35,7 @@ pub(in super::super) fn evaluate(
   let Some(test_result) = evaluate_result_to_js_boolean(test_value) else {
     let path = Expr::Cond(cond.clone());
 
-    deopt_unsupported!(&path, state, ILLEGAL_PROP_VALUE);
+    deopt_unsupported!(deopt, &path, state, ILLEGAL_PROP_VALUE);
   };
 
   if test_result {

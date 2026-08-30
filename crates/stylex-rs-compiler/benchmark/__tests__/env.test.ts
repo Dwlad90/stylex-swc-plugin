@@ -1,11 +1,11 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { captureEnvironment } from '../lib/env.js';
+import { createTempDirs } from './helpers/temp-dirs.js';
 
 const packageDir = path.resolve(import.meta.dirname, '..', '..');
 const workspaceRoot = path.resolve(packageDir, '..', '..');
@@ -42,18 +42,12 @@ function commitOf(cwd: string): string | undefined {
 }
 
 describe('captureEnvironment commit provenance', () => {
-  const created: string[] = [];
-
-  /** Makes a temporary directory and registers it for removal. */
-  function tempDir(prefix: string): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
-    created.push(dir);
-    return dir;
-  }
+  const temp = createTempDirs();
+  const tempDir = (prefix: string) => temp.make(prefix);
 
   afterEach(() => {
     vi.unstubAllEnvs();
-    for (const dir of created.splice(0)) fs.rmSync(dir, { force: true, recursive: true });
+    temp.removeAll();
   });
 
   // On `pull_request`, GITHUB_SHA holds the merge SHA from the event payload.

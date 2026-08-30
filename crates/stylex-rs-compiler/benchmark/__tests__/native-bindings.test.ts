@@ -221,6 +221,20 @@ describe('loadedNativeBindings', () => {
   });
 });
 
+/** Writes a platform package the way a published install holds one. */
+function addPlatformPackage(packageDir: string, target: string): string {
+  const dir = path.join(
+    packageDir,
+    'node_modules',
+    '@stylexswc',
+    `${NATIVE_BINARY_NAME}-${target}`
+  );
+  fs.mkdirSync(dir, { recursive: true });
+  const addon = path.join(dir, `${NATIVE_BINARY_NAME}.${target}.node`);
+  fs.writeFileSync(addon, '');
+  return fs.realpathSync(addon);
+}
+
 describe('isCompilerBinding', () => {
   test('accepts an addon that a build of this compiler writes', () => {
     expect(isCompilerBinding('/pkg/dist/rs-compiler.darwin-arm64.node')).toBe(true);
@@ -244,20 +258,6 @@ describe('isCompilerBinding', () => {
 });
 
 describe('findNativeBindings resolution paths', () => {
-  /** Writes a platform package the way a published install holds one. */
-  function addPlatformPackage(packageDir: string, target: string): string {
-    const dir = path.join(
-      packageDir,
-      'node_modules',
-      '@stylexswc',
-      `${NATIVE_BINARY_NAME}-${target}`
-    );
-    fs.mkdirSync(dir, { recursive: true });
-    const addon = path.join(dir, `${NATIVE_BINARY_NAME}.${target}.node`);
-    fs.writeFileSync(addon, '');
-    return fs.realpathSync(addon);
-  }
-
   // `files` in the manifest ships no addon, so a subject unpacked from the
   // registry keeps its addon in a platform package. A search of `dist` alone
   // finds nothing, and the guard would permit the load that stops the process.

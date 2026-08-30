@@ -512,14 +512,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # `summary-always` writes a Current / Previous / Ratio table to the job
-      # summary. The two columns come from two runners, so the ratio holds
-      # machine-to-machine noise together with any code change. The table says
-      # none of this, and a reader takes the ratio for a verdict. Two runs of
-      # one commit have differed by 9% in this series. The caveat above is in
-      # this file, which nobody reads next to the numbers, so state it under
-      # the table. Only run this when a baseline was restored, because without
-      # one the action writes no comparison for the note to qualify.
+      # The note below is the text a reader sees. Do not repeat it here.
+      # It runs only when a baseline was restored, because without one the
+      # action writes no comparison for the note to qualify.
       - name: Explain the trend-series comparison
         if: ${{ steps.benchmark-cache-restore.outputs.cache-matched-key != '' }}
         run: |

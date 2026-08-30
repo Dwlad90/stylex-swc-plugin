@@ -21,7 +21,7 @@
     "format:toml": "taplo format",
     "format:toml:check": "taplo format --check",
     "prepublishOnly": "pnpm run build",
-    "test": "grep -qrE '#\\[test\\]|test_transform\\(|test!\\(' src/ && NODE_ENV=test cargo nextest run --all-features || true",
+    "test": "echo \"Skip: tests with workspace tests suite\" || true",
     "test:coverage": "scripty",
     "test:flamegraph": "scripty",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"

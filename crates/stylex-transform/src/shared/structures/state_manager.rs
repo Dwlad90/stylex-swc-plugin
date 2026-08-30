@@ -29,7 +29,7 @@ use crate::shared::utils::js::check_declaration::DeclarationType;
 use crate::shared::{
   structures::types::InjectableStylesMap,
   utils::{
-    ast::{convertors::create_number_expr, helpers::namespace_name_from_member_prop},
+    ast::helpers::namespace_name_from_member_prop,
     common::{
       extract_filename_from_path, extract_filename_with_ext_from_path, extract_path,
       local_binding_of,
@@ -37,6 +37,7 @@ use crate::shared::{
     validators::{is_attrs_call, is_props_call},
   },
 };
+use stylex_ast::ast::convertors::create_number_expr;
 use stylex_ast::ast::factories::{
   create_binding_ident, create_call_expr, create_expr_or_spread, create_jsx_attr_or_spread,
   create_jsx_spread_attr, create_key_value_prop, create_number_expr_or_spread,

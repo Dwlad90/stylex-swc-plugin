@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod stylex_define_consts_nested {
+  use stylex_ast::ast::convertors::{create_number_expr, create_string_expr};
   use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
   use stylex_structures::stylex_options::StyleXOptions;
   use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
@@ -11,10 +12,7 @@ mod stylex_define_consts_nested {
       stylex_define_consts::stylex_define_consts,
       stylex_define_consts_nested::stylex_define_consts_nested,
     },
-    utils::{
-      ast::convertors::{create_number_expr, create_string_expr},
-      core::stylex_nested_utils::UnflattenedCompiledStylesValue,
-    },
+    utils::core::stylex_nested_utils::UnflattenedCompiledStylesValue,
   };
 
   fn create_test_state_manager() -> StateManager {

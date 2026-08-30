@@ -1,3 +1,4 @@
+use stylex_ast::ast::convertors::{create_number_expr, create_string_expr};
 use stylex_macros::stylex_panic;
 use swc_core::{
   common::DUMMY_SP,
@@ -7,10 +8,7 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  enums::data_structures::fn_result::FnResult,
-  utils::ast::convertors::{create_number_expr, create_string_expr},
-};
+use crate::shared::enums::data_structures::fn_result::FnResult;
 use stylex_ast::ast::factories::{
   create_bin_expr, create_computed_member_prop, create_member_expr, create_object_expression,
 };

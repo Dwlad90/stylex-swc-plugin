@@ -12,21 +12,17 @@ use swc_core::{
   },
 };
 
+use stylex_ast::ast::convertors::{convert_wtf8_to_atom, expand_shorthand_prop};
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
 use stylex_structures::{base_css_type::BaseCSSType, top_level_expression::TopLevelExpression};
 
-use crate::shared::{
-  structures::{
-    functions::{FunctionConfigType, FunctionMap, FunctionType},
-    state_manager::StateManager,
-  },
-  utils::ast::convertors::convert_wtf8_to_atom,
+use crate::shared::structures::{
+  functions::{FunctionConfigType, FunctionMap, FunctionType},
+  state_manager::StateManager,
 };
+use stylex_ast::ast::factories::create_var_declarator;
 use stylex_constants::constants::messages::{INVALID_UTF8, SPREAD_NOT_SUPPORTED};
 use stylex_regex::regex::JSON_REGEX;
-
-use super::ast::convertors::expand_shorthand_prop;
-use stylex_ast::ast::factories::create_var_declarator;
 
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {

@@ -1,6 +1,9 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
+use stylex_ast::ast::convertors::{
+  convert_lit_to_number, convert_lit_to_string, create_string_expr,
+};
 use stylex_ast::ast::{
   convertors::get_key_values_from_object,
   factories::{create_key_value_prop, create_object_expression},
@@ -17,11 +20,8 @@ use swc_core::ecma::ast::{Expr, Lit};
 use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::types::FlatCompiledStyles,
-  utils::{
-    ast::convertors::{convert_lit_to_number, convert_lit_to_string, create_string_expr},
-    core::stylex_nested_utils::{
-      UnflattenedCompiledStylesValue, convert_unflattened_object_to_ast, unflatten_object,
-    },
+  utils::core::stylex_nested_utils::{
+    UnflattenedCompiledStylesValue, convert_unflattened_object_to_ast, unflatten_object,
   },
 };
 
@@ -83,7 +83,7 @@ fn object_prop(expr: &Expr, name: &str) -> Expr {
   };
 
   for key_value in get_key_values_from_object(obj) {
-    if crate::shared::utils::ast::convertors::convert_key_value_to_str(&key_value) == name {
+    if stylex_ast::ast::convertors::convert_key_value_to_str(&key_value) == name {
       return key_value.value.as_ref().clone();
     }
   }

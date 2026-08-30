@@ -9,11 +9,9 @@ mod stylex_define_vars_nested {
     transformers::{
       stylex_define_vars::stylex_define_vars, stylex_define_vars_nested::stylex_define_vars_nested,
     },
-    utils::{
-      ast::convertors::create_string_expr,
-      core::stylex_nested_utils::UnflattenedCompiledStylesValue,
-    },
+    utils::core::stylex_nested_utils::UnflattenedCompiledStylesValue,
   };
+  use stylex_ast::ast::convertors::create_string_expr;
   use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
   use stylex_structures::stylex_options::StyleXOptions;
   use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;

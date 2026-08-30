@@ -1,4 +1,5 @@
 use rustc_hash::FxHashMap;
+use stylex_ast::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
 use stylex_macros::{stylex_panic, stylex_unreachable};
 use swc_core::ecma::{
   ast::{
@@ -16,13 +17,10 @@ use crate::shared::{
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
   transformers::stylex_default_marker,
-  utils::{
-    ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
-    core::{
-      make_string_expression::make_string_expression,
-      member_expression::MemberTransform,
-      parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
-    },
+  utils::core::{
+    make_string_expression::make_string_expression,
+    member_expression::MemberTransform,
+    parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
   },
 };
 use stylex_ast::ast::factories::{create_jsx_attr, create_jsx_attr_or_spread};

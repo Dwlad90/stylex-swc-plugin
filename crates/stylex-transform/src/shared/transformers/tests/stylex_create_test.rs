@@ -3,6 +3,7 @@ mod stylex_create {
   use std::rc::Rc;
 
   use indexmap::IndexMap;
+  use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::{Expr, ExprOrSpread, KeyValueProp};
 
   use crate::shared::{
@@ -17,7 +18,6 @@ mod stylex_create {
       types::{ClassPathsMap, InjectableStylesMap, StylesObjectMap},
     },
     transformers::stylex_create::stylex_create_set,
-    utils::ast::convertors::create_string_expr,
   };
   use stylex_ast::ast::factories::{
     create_array_expression, create_key_value_prop, create_key_value_prop_ident,

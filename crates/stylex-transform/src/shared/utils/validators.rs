@@ -13,12 +13,16 @@ use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::state_manager::{ImportKind, StateManager},
   utils::{
-    ast::{convertors::create_string_expr, helpers::is_variable_named_exported},
+    ast::helpers::is_variable_named_exported,
     common::get_import_by_ident,
     log::build_code_frame_error::{
       build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
     },
   },
+};
+use stylex_ast::ast::convertors::{
+  convert_key_value_to_str, convert_lit_to_string, create_string_expr, get_key_values_from_object,
+  normalize_expr,
 };
 use stylex_ast::ast::factories::{create_expr_or_spread, create_key_value_prop_ident};
 use stylex_constants::constants::{
@@ -37,9 +41,6 @@ use stylex_constants::constants::{
   },
 };
 use stylex_css::utils::condition::is_conditional_key;
-
-use super::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
-use stylex_ast::ast::convertors::{get_key_values_from_object, normalize_expr};
 
 fn validate_arg_count_for_expr(
   wrapped_expr: &Expr,

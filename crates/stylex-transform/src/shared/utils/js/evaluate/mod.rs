@@ -48,19 +48,18 @@ use crate::shared::{
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
   utils::{
-    ast::convertors::{
-      convert_atom_to_str_ref, convert_atom_to_string, convert_expr_to_str,
-      convert_key_value_to_str, convert_lit_to_string, create_big_int_expr, create_bool_expr,
-      create_null_expr, create_number_expr, create_string_expr, expand_shorthand_prop, expr_to_num,
-      extract_tpl_cooked_value,
-    },
+    ast::convertors::{convert_expr_to_str, expr_to_num},
     common::{
       assign_props, get_import_by_ident, get_var_decl_from, get_var_decl_parts_by_ident,
       order_own_keys, remove_duplicates,
     },
   },
 };
-use stylex_ast::ast::convertors::{is_js_undefined, normalize_expr};
+use stylex_ast::ast::convertors::{
+  convert_atom_to_str_ref, convert_atom_to_string, convert_key_value_to_str, convert_lit_to_string,
+  create_big_int_expr, create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
+  expand_shorthand_prop, extract_tpl_cooked_value, is_js_undefined, normalize_expr,
+};
 use stylex_ast::ast::factories::{
   create_array_expression, create_arrow_expression, create_expr_or_spread,
   create_ident_key_value_prop, create_key_value_prop, create_object_lit,

@@ -1,11 +1,9 @@
 use crate::utils::prelude::*;
 use rustc_hash::FxHashMap;
-use stylex_transform::shared::{
-  structures::{
-    functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-    state_manager::StateManager,
-  },
-  utils::ast::convertors::{create_ident_expr, create_string_expr},
+use stylex_ast::ast::convertors::{create_ident_expr, create_string_expr};
+use stylex_transform::shared::structures::{
+  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+  state_manager::StateManager,
 };
 use swc_core::{
   atoms::Atom,

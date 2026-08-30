@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod flatten_style_object_with_legacy_shorthand_expansion {
   use indexmap::IndexMap;
+  use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::Expr;
 
   use crate::shared::{
@@ -12,9 +13,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
       state::EvaluationState,
       state_manager::StateManager,
     },
-    utils::{
-      ast::convertors::create_string_expr, core::flatten_raw_style_object::flatten_raw_style_object,
-    },
+    utils::core::flatten_raw_style_object::flatten_raw_style_object,
   };
   use stylex_ast::ast::factories::{create_array, create_key_value_prop_ident};
   use stylex_enums::style_resolution::StyleResolution;
@@ -431,8 +430,8 @@ mod nested_objects {
     pre_rule_factory,
     pre_rule_set_factory,
   };
-  use crate::shared::utils::ast::convertors::create_string_expr;
   use crate::shared::utils::core::flatten_raw_style_object::flatten_raw_style_object;
+  use stylex_ast::ast::convertors::create_string_expr;
 
   #[test]
   fn legacy_pseudo_classes() {

@@ -1,8 +1,10 @@
-use crate::shared::{
-  structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
-  utils::ast::convertors::{
-    convert_string_to_prop_name, create_ident_expr, create_number_expr, create_string_expr,
-  },
+use crate::shared::structures::{
+  functions::FunctionMap, state::EvaluationState, state_manager::StateManager,
+};
+use stylex_ast::ast::convertors::{
+  convert_concat_to_tpl_expr, convert_key_value_to_str, convert_simple_tpl_to_str_expr,
+  convert_string_to_prop_name, convert_tpl_to_string_lit, create_ident_expr, create_number_expr,
+  create_string_expr,
 };
 use swc_core::{
   common::SyntaxContext,
@@ -87,7 +89,6 @@ fn string_to_prop_name_without_quotes() {
 
 #[test]
 fn test_simple_tpl_to_string_without_expressions() {
-  use crate::shared::utils::ast::convertors::convert_tpl_to_string_lit;
   use swc_core::ecma::ast::{Tpl, TplElement};
 
   // Create a simple template literal: `hello world`
@@ -117,7 +118,6 @@ fn test_simple_tpl_to_string_without_expressions() {
 
 #[test]
 fn test_simple_tpl_to_string_with_expressions() {
-  use crate::shared::utils::ast::convertors::convert_tpl_to_string_lit;
   use swc_core::ecma::ast::{Tpl, TplElement};
 
   // Create a template literal with expressions: `hello ${name}`
@@ -149,7 +149,6 @@ fn test_simple_tpl_to_string_with_expressions() {
 
 #[test]
 fn test_convert_simple_tpl_to_str_expr() {
-  use crate::shared::utils::ast::convertors::convert_simple_tpl_to_str_expr;
   use swc_core::ecma::ast::{Tpl, TplElement};
 
   // Create a simple template literal
@@ -180,7 +179,6 @@ fn test_convert_simple_tpl_to_str_expr() {
 
 #[test]
 fn test_convert_simple_tpl_to_str_expr_with_expressions() {
-  use crate::shared::utils::ast::convertors::convert_simple_tpl_to_str_expr;
   use swc_core::ecma::ast::{Tpl, TplElement};
 
   // Create a template with expressions
@@ -217,7 +215,6 @@ fn test_convert_simple_tpl_to_str_expr_with_expressions() {
 
 #[test]
 fn test_convert_concat_to_tpl_expr_simple() {
-  use crate::shared::utils::ast::convertors::convert_concat_to_tpl_expr;
   use swc_core::ecma::ast::{CallExpr, Callee, ExprOrSpread, MemberExpr, MemberProp};
 
   // Create: "hello".concat("world")
@@ -261,7 +258,6 @@ fn test_convert_concat_to_tpl_expr_simple() {
 
 #[test]
 fn test_convert_concat_to_tpl_expr_multiple_args() {
-  use crate::shared::utils::ast::convertors::convert_concat_to_tpl_expr;
   use swc_core::ecma::ast::{CallExpr, Callee, ExprOrSpread, MemberExpr, MemberProp};
 
   // Create: "prefix".concat(var1, var2, var3)
@@ -316,7 +312,6 @@ fn test_convert_concat_to_tpl_expr_multiple_args() {
 
 #[test]
 fn test_convert_concat_to_tpl_expr_not_concat_method() {
-  use crate::shared::utils::ast::convertors::convert_concat_to_tpl_expr;
   use swc_core::ecma::ast::{CallExpr, Callee, ExprOrSpread, MemberExpr, MemberProp};
 
   // Create: "hello".split("world") - not a concat call
@@ -351,8 +346,6 @@ fn test_convert_concat_to_tpl_expr_not_concat_method() {
 
 #[test]
 fn test_convert_concat_to_tpl_expr_non_call_expr() {
-  use crate::shared::utils::ast::convertors::convert_concat_to_tpl_expr;
-
   // Test with a non-call expression (e.g., just a string)
   let expr = create_string_expr("hello");
   let result = convert_concat_to_tpl_expr(expr);
@@ -371,7 +364,6 @@ fn test_convert_concat_to_tpl_expr_non_call_expr() {
 
 #[test]
 fn test_convert_concat_to_tpl_expr_with_spread() {
-  use crate::shared::utils::ast::convertors::convert_concat_to_tpl_expr;
   use swc_core::ecma::ast::{CallExpr, Callee, ExprOrSpread, MemberExpr, MemberProp};
 
   // Create: "prefix".concat(...args) - with spread argument
@@ -608,7 +600,6 @@ mod convert_ident_to_expr_tests {
 
 mod convert_key_value_to_str_tests {
   use super::*;
-  use crate::shared::utils::ast::convertors::convert_key_value_to_str;
   use swc_core::ecma::ast::{ComputedPropName, IdentName, KeyValueProp, Number, PropName};
 
   fn make_kv(key: PropName) -> KeyValueProp {
@@ -1159,7 +1150,6 @@ mod convert_expr_to_str_tests {
 
 mod convert_key_value_to_str_bigint_tests {
   use super::*;
-  use crate::shared::utils::ast::convertors::convert_key_value_to_str;
   use swc_core::ecma::ast::{BigInt, KeyValueProp, PropName};
 
   #[test]
@@ -1670,7 +1660,6 @@ mod expr_to_num_unsupported_tests {
 
 mod convert_key_value_to_str_panic_tests {
   use super::*;
-  use crate::shared::utils::ast::convertors::convert_key_value_to_str;
   use swc_core::ecma::ast::{ComputedPropName, KeyValueProp, PropName};
 
   #[test]

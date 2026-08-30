@@ -1,19 +1,17 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
+use stylex_ast::ast::convertors::convert_lit_to_string;
 use stylex_constants::constants::common::COMPILED_KEY;
 
 use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  utils::{
-    ast::convertors::convert_lit_to_string,
-    core::{
-      attrs::attrs,
-      js_to_ast::NestedStringObject,
-      parse_nullable_style::{ResolvedArg, StyleObject},
-      props::props,
-      stylex::stylex,
-    },
+  utils::core::{
+    attrs::attrs,
+    js_to_ast::NestedStringObject,
+    parse_nullable_style::{ResolvedArg, StyleObject},
+    props::props,
+    stylex::stylex,
   },
 };
 

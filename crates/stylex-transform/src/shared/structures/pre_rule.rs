@@ -10,12 +10,11 @@ use stylex_css::utils::{
   pre_rule::{sort_at_rules, sort_pseudos},
   pseudo::is_pseudo_selector,
 };
+use stylex_types::structures::style_key::ClassName;
 
 use super::{
-  null_pre_rule::NullPreRule,
-  pre_rule_set::PreRuleSet,
-  state_manager::StateManager,
-  types::{ClassName, ClassNameToOriginalPaths},
+  null_pre_rule::NullPreRule, pre_rule_set::PreRuleSet, state_manager::StateManager,
+  types::ClassNameToOriginalPaths,
 };
 use stylex_structures::raw_value::TRawValue;
 use stylex_types::structures::injectable_style::InjectableStyle;

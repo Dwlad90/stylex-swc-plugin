@@ -1,12 +1,10 @@
+use stylex_ast::ast::convertors::convert_atom_to_string;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{ImportDecl, ImportNamedSpecifier, ImportSpecifier, ModuleExportName},
 };
 
-use crate::{
-  StyleXTransform,
-  shared::{structures::state_manager::ImportKind, utils::ast::convertors::convert_atom_to_string},
-};
+use crate::{StyleXTransform, shared::structures::state_manager::ImportKind};
 use stylex_atoms::transform::ATOMS_SOURCE;
 use stylex_enums::core::TransformationCycle;
 use stylex_structures::named_import_source::ImportSources;

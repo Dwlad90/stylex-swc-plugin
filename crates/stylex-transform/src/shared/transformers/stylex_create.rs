@@ -2,6 +2,7 @@ use std::{collections::VecDeque, rc::Rc};
 
 use indexmap::{IndexMap, IndexSet};
 use stylex_macros::stylex_panic;
+use stylex_types::structures::style_key::RuleKey;
 
 use crate::shared::{
   enums::data_structures::{
@@ -13,7 +14,7 @@ use crate::shared::{
     state::EvaluationState,
     state_manager::StateManager,
     types::{
-      ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap, RuleKey,
+      ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap,
       StylesObjectMap,
     },
   },

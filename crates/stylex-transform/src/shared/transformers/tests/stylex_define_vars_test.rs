@@ -3,6 +3,7 @@ mod stylex_define_vars {
   use std::rc::Rc;
 
   use indexmap::IndexMap;
+  use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::{Expr, PropOrSpread};
 
   use crate::shared::{
@@ -16,7 +17,6 @@ mod stylex_define_vars {
       types::{FlatCompiledStyles, InjectableStylesMap},
     },
     transformers::{stylex_define_vars::stylex_define_vars, stylex_types::get_types_fn},
-    utils::ast::convertors::create_string_expr,
   };
   use stylex_ast::ast::factories::{
     create_key_value_prop, create_nested_object_prop, create_object_expression,

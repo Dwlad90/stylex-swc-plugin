@@ -12,10 +12,10 @@ use crate::shared::{
   structures::{pre_rule::PreRuleValue, state_manager::StateManager, types::FlatCompiledStyles},
   utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
 };
-use stylex_ast::ast::convertors::get_key_values_from_object;
+use stylex_ast::ast::convertors::{convert_key_value_to_str, get_key_values_from_object};
 use stylex_structures::{order_pair::OrderPair, pair::Pair, raw_value::TRawValue};
 
-use super::{ast::convertors::convert_key_value_to_str, css::common::transform_value_cached};
+use super::css::common::transform_value_cached;
 
 pub(crate) fn obj_map<F>(
   prop_values: ObjMapType,

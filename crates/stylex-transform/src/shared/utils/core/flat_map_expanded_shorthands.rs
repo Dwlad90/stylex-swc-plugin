@@ -1,10 +1,9 @@
 use log::warn;
+use stylex_ast::ast::convertors::convert_lit_to_string;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, Lit};
 
-use crate::shared::{
-  structures::pre_rule::PreRuleValue, utils::ast::convertors::convert_lit_to_string,
-};
+use crate::shared::structures::pre_rule::PreRuleValue;
 use stylex_css::order::structures::{
   application_order::ApplicationOrder, legacy_expand_shorthands_order::LegacyExpandShorthandsOrder,
   property_specificity_order::PropertySpecificityOrder,

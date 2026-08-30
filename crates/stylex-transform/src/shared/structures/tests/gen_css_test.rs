@@ -1,11 +1,12 @@
 #[cfg(test)]
 mod converting_pre_rule_to_css {
   use indexmap::IndexMap;
+  use stylex_types::structures::style_key::ClassName;
 
   use crate::shared::structures::{
     pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRuleValue, StylesPreRule},
     state_manager::StateManager,
-    types::{ClassName, ClassNameToOriginalPaths},
+    types::ClassNameToOriginalPaths,
   };
   use stylex_enums::style_resolution::StyleResolution;
   use stylex_types::structures::injectable_style::InjectableStyle;

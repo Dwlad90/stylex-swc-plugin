@@ -1,12 +1,13 @@
 #[cfg(test)]
 mod convert_style_to_class_name {
   use crate::shared::{
-    structures::{pre_rule::PreRuleValue, state_manager::StateManager, types::ClassName},
+    structures::{pre_rule::PreRuleValue, state_manager::StateManager},
     utils::core::convert_style_to_class_name::convert_style_to_class_name,
   };
   use stylex_enums::style_resolution::StyleResolution;
   use stylex_structures::raw_value::TRawValue;
   use stylex_structures::stylex_state_options::StyleXStateOptions;
+  use stylex_types::structures::style_key::ClassName;
   /// The declaration text, for a pair that compiles to one.
   fn convert(styles: (&str, &PreRuleValue)) -> String {
     match try_convert(styles) {

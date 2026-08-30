@@ -1,14 +1,3 @@
-// Re-export convertor functions from stylex-ast (canonical source)
-#[allow(unused_imports)]
-pub use stylex_ast::ast::convertors::{
-  convert_atom_to_str_ref, convert_atom_to_string, convert_concat_to_tpl_expr,
-  convert_key_value_to_str, convert_lit_to_number, convert_lit_to_string,
-  convert_simple_tpl_to_str_expr, convert_str_lit_to_atom, convert_str_lit_to_string,
-  convert_string_to_prop_name, convert_tpl_to_string_lit, convert_wtf8_to_atom,
-  create_big_int_expr, create_bool_expr, create_ident_expr, create_null_expr, create_number_expr,
-  create_string_expr, expand_shorthand_prop, extract_str_lit_ref, extract_tpl_cooked_value,
-};
-
 use stylex_evaluator::common::evaluate_bin_expr;
 // Import error handling macros from shared utilities
 use stylex_macros::{
@@ -23,7 +12,9 @@ use crate::shared::{
     js::evaluate::{binary_expr_to_num_or_str, evaluate_cached},
   },
 };
-use stylex_ast::ast::convertors::get_expr_from_var_decl;
+use stylex_ast::ast::convertors::{
+  convert_lit_to_number, convert_lit_to_string, get_expr_from_var_decl,
+};
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_VALUE, VAR_DECL_INIT_REQUIRED, non_static_value,
 };

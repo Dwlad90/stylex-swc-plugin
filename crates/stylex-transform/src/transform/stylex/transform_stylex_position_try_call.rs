@@ -3,6 +3,7 @@ use stylex_constants::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
+use stylex_ast::ast::convertors::create_string_expr;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   common::comments::Comments,
@@ -21,7 +22,6 @@ use crate::{
       stylex_first_that_works::stylex_first_that_works, stylex_position_try::stylex_position_try,
     },
     utils::{
-      ast::convertors::create_string_expr,
       js::evaluate::evaluate,
       log::build_code_frame_error::build_code_frame_error,
       validators::{

@@ -1,21 +1,9 @@
 use crate::shared::structures::state_manager::StateManager;
 use stylex_constants::constants::common::{CSS_CONTENT_FUNCTIONS, CSS_CONTENT_KEYWORDS};
+use stylex_css::css::common::{get_number_suffix, normalize_css_property_value};
 use stylex_structures::raw_value::TRawValue;
 use stylex_types::traits::StyleOptions;
 use stylex_utils::{math::round_f64, number::to_js_string, string::is_blank_css_text};
-
-// Re-export moved functions from stylex_css so existing callers keep compiling.
-#[allow(unused_imports)]
-pub(crate) use stylex_css::css::common::{
-  build_nested_css_rule, generate_css_rule, get_number_suffix, get_priority,
-  inline_style_to_css_string, normalize_css_property_name, normalize_css_property_value,
-};
-
-#[allow(unused_imports)]
-pub(crate) use stylex_css::values::common::split_value_required;
-
-#[allow(unused_imports)]
-pub(crate) use stylex_css::values::common::split_value;
 
 /// Converts a CSS value in JS to the final CSS string value.
 ///

@@ -14,6 +14,7 @@ use swc_core::{
   },
 };
 
+use stylex_ast::ast::convertors::{convert_str_lit_to_string, expand_shorthand_prop};
 use stylex_enums::{
   style_vars_to_keep::{NonNullProp, NonNullProps},
   top_level_expression::TopLevelExpressionKind,
@@ -26,13 +27,7 @@ use crate::{
   StyleXTransform,
   shared::{
     structures::state_manager::{DeclId, ImportKind},
-    utils::{
-      ast::{
-        convertors::{convert_str_lit_to_string, expand_shorthand_prop},
-        helpers::namespace_name_from_prop_key,
-      },
-      common::fill_state_declarations,
-    },
+    utils::{ast::helpers::namespace_name_from_prop_key, common::fill_state_declarations},
   },
 };
 use stylex_atoms::transform::ATOMS_SOURCE;

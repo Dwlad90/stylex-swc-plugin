@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use stylex_css::css::common::get_number_suffix;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   common::DUMMY_SP,
@@ -20,12 +21,8 @@ use crate::shared::{
     types::{DynamicFns, TInlineStyles},
   },
   utils::{
-    ast::convertors::{
-      convert_expr_to_str, create_ident_expr, create_null_expr, create_string_expr,
-      expand_shorthand_prop,
-    },
+    ast::convertors::convert_expr_to_str,
     common::assign_props,
-    css::common::get_number_suffix,
     js::evaluate::{
       evaluate, evaluate_obj_key, evaluate_result_vec_to_array_expr, function_fold_to_object,
       spread_own_properties,
@@ -34,7 +31,9 @@ use crate::shared::{
     validators::validate_dynamic_style_params,
   },
 };
-use stylex_ast::ast::convertors::normalize_expr;
+use stylex_ast::ast::convertors::{
+  create_ident_expr, create_null_expr, create_string_expr, expand_shorthand_prop, normalize_expr,
+};
 use stylex_ast::ast::factories::{
   create_arrow_expression_with_params, create_bin_expr, create_call_expr, create_cond_expr,
   create_expr_or_spread, create_key_value_prop, create_object_expression,

@@ -14,7 +14,7 @@ use crate::shared::{
     types::{FlatCompiledStyles, InjectableStylesMap},
   },
   utils::{
-    ast::convertors::{convert_expr_to_str, convert_key_value_to_str},
+    ast::convertors::convert_expr_to_str,
     common::get_css_value,
     core::define_vars_utils::{
       collect_vars_by_at_rules, theme_override_priority, wrap_with_at_rules,
@@ -22,7 +22,7 @@ use crate::shared::{
     validators::validate_theme_variables,
   },
 };
-use stylex_ast::ast::convertors::get_key_values_from_object;
+use stylex_ast::ast::convertors::{convert_key_value_to_str, get_key_values_from_object};
 use stylex_constants::constants::{
   common::{COMPILED_KEY, VAR_GROUP_HASH_KEY},
   messages::{

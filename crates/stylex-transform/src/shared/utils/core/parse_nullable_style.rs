@@ -1,7 +1,9 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use stylex_ast::ast::convertors::is_js_undefined;
+use stylex_ast::ast::convertors::{
+  convert_key_value_to_str, convert_lit_to_string, is_js_undefined,
+};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::{Expr, Lit, MemberProp, ObjectLit};
 
@@ -10,10 +12,7 @@ use crate::shared::{
     evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
   },
   structures::{functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles},
-  utils::{
-    ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
-    js::evaluate::evaluate,
-  },
+  utils::js::evaluate::evaluate,
 };
 
 #[derive(Debug, PartialEq, Clone)]

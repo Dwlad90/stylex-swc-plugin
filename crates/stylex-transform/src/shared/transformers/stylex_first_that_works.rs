@@ -2,14 +2,12 @@ use log::warn;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
+use stylex_ast::ast::convertors::create_string_expr;
 use stylex_types::traits::StyleOptions;
 
 use crate::shared::{
   structures::functions::FunctionMap,
-  utils::{
-    ast::convertors::{convert_expr_to_str, create_string_expr},
-    common::downcast_style_options_to_state_manager,
-  },
+  utils::{ast::convertors::convert_expr_to_str, common::downcast_style_options_to_state_manager},
 };
 use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
 use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;

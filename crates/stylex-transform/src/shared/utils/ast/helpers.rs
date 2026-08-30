@@ -12,9 +12,7 @@ use swc_core::{
 };
 
 use crate::shared::structures::state_manager::StateManager;
-
-use super::convertors::{convert_str_lit_to_atom, convert_tpl_to_string_lit};
-
+use stylex_ast::ast::convertors::{convert_str_lit_to_atom, convert_tpl_to_string_lit};
 pub(crate) fn is_variable_named_exported(
   TopLevelExpression(kind, _, variable_name): &TopLevelExpression,
   state: &StateManager,

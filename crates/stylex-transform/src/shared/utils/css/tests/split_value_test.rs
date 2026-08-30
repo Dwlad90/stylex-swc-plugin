@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod ensure_css_values_are_split_correctly {
-  use crate::shared::utils::css::common::split_value;
+  use stylex_css::values::common::split_value;
   use stylex_structures::raw_value::TRawValue;
 
   #[test]

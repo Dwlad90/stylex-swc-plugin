@@ -1,3 +1,4 @@
+use stylex_ast::ast::convertors::convert_atom_to_string;
 use swc_core::{
   common::{BytePos, Span, comments::Comments},
   ecma::{
@@ -22,10 +23,7 @@ use crate::{
         mark_style_vars_to_keep,
       },
     },
-    utils::{
-      ast::convertors::convert_atom_to_string,
-      common::{fill_top_level_expressions, local_binding_of},
-    },
+    utils::common::{fill_top_level_expressions, local_binding_of},
   },
 };
 use rustc_hash::{FxHashMap, FxHashSet};

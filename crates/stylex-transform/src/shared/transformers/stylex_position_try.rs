@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use stylex_ast::ast::convertors::{convert_lit_to_string, create_string_expr};
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
@@ -14,7 +15,6 @@ use crate::shared::{
     types::FlatCompiledStyles,
   },
   utils::{
-    ast::convertors::{convert_lit_to_string, create_string_expr},
     common::downcast_style_options_to_state_manager,
     object::{Pipe, obj_map, obj_map_keys_and_transform_values, preprocess_object_properties},
   },

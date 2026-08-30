@@ -13,7 +13,7 @@ use crate::shared::enums::data_structures::{
   evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
 };
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-pub(crate) use stylex_types::structures::style_key::{ClassName, RuleKey};
+use stylex_types::structures::style_key::{ClassName, RuleKey};
 
 use super::{
   functions::FunctionConfigType, key_span_index::KeySpanIndex, state_manager::StateManager,

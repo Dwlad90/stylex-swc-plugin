@@ -2,18 +2,16 @@ use std::rc::Rc;
 use stylex_structures::pair::Pair;
 
 use indexmap::IndexMap;
+use stylex_css::css::common::normalize_css_property_name;
 
 use crate::shared::{
   enums::data_structures::{
     flat_compiled_styles_value::FlatCompiledStylesValue, fn_result::FnResult,
   },
   structures::types::FlatCompiledStyles,
-  utils::{
-    core::{
-      js_to_ast::NestedStringObject,
-      styleq::{StyleQResult, styleq},
-    },
-    css::common::normalize_css_property_name,
+  utils::core::{
+    js_to_ast::NestedStringObject,
+    styleq::{StyleQResult, styleq},
   },
 };
 

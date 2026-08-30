@@ -16,6 +16,10 @@ use stylex_path_resolver::package_json::PackageJsonExtended;
 
 use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
+use stylex_ast::ast::convertors::{
+  convert_atom_to_string, convert_key_value_to_str, convert_lit_to_string, create_null_expr,
+  create_string_expr,
+};
 use swc_core::{
   common::{DUMMY_SP, comments::Comments},
   ecma::ast::{
@@ -43,10 +47,7 @@ use crate::{
       stylex_position_try::get_position_try_fn,
     },
     utils::{
-      ast::convertors::{
-        convert_atom_to_string, convert_expr_to_str, convert_key_value_to_str,
-        convert_lit_to_string, create_null_expr, create_string_expr,
-      },
+      ast::convertors::convert_expr_to_str,
       common::downcast_style_options_to_state_manager,
       core::{
         add_source_map_data::add_source_map_data,

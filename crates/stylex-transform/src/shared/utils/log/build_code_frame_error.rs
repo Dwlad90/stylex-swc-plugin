@@ -7,6 +7,7 @@ use std::{
   path::Path,
   sync::{Arc, Once, OnceLock},
 };
+use stylex_ast::ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr};
 use stylex_macros::{panic_macros::__stylex_panic, stylex_error::StyleXError, stylex_panic};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
 use swc_config::is_module::IsModule;
@@ -32,10 +33,7 @@ use crate::shared::{
     key_span_index::{CallLookup, NamespaceKeyQuery},
     state_manager::StateManager,
   },
-  utils::{
-    ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
-    log::declaration_span::find_declaration_span,
-  },
+  utils::log::declaration_span::find_declaration_span,
 };
 use stylex_regex::regex::URL_REGEX;
 use stylex_utils::hash::stable_hash_wide;

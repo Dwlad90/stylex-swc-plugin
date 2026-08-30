@@ -1,14 +1,12 @@
 use std::borrow::Cow;
 
+use stylex_css::css::common::generate_css_rule;
 use stylex_macros::stylex_panic;
+use stylex_types::structures::style_key::{ClassName, RuleKey};
 
 use crate::shared::{
-  structures::{
-    pre_rule::PreRuleValue,
-    state_manager::StateManager,
-    types::{ClassName, RuleKey},
-  },
-  utils::css::common::{generate_css_rule, transform_value_cached},
+  structures::{pre_rule::PreRuleValue, state_manager::StateManager},
+  utils::css::common::transform_value_cached,
 };
 use stylex_constants::constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS};
 use stylex_css::utils::pre_rule::{sort_at_rules, sort_pseudos};

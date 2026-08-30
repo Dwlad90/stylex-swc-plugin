@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod stylex_create_theme_nested {
   use indexmap::IndexMap;
+  use stylex_ast::ast::convertors::create_string_expr;
   use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
   use stylex_structures::stylex_options::StyleXOptions;
   use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
@@ -16,11 +17,8 @@ mod stylex_create_theme_nested {
       stylex_create_theme_nested::stylex_create_theme_nested,
       stylex_define_vars::stylex_define_vars, stylex_define_vars_nested::stylex_define_vars_nested,
     },
-    utils::{
-      ast::convertors::create_string_expr,
-      core::stylex_nested_utils::{
-        UnflattenedCompiledStylesValue, convert_unflattened_object_to_ast,
-      },
+    utils::core::stylex_nested_utils::{
+      UnflattenedCompiledStylesValue, convert_unflattened_object_to_ast,
     },
   };
 

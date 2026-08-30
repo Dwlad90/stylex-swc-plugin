@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use stylex_ast::ast::convertors::{convert_lit_to_string, convert_tpl_to_string_lit};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
 use crate::shared::{
@@ -11,11 +12,7 @@ use crate::shared::{
     state_manager::StateManager,
     types::{FlatCompiledStyles, InjectableStylesMap},
   },
-  utils::{
-    ast::convertors::{convert_lit_to_string, convert_tpl_to_string_lit},
-    common::serialize_value_to_json_string,
-    object::obj_map,
-  },
+  utils::{common::serialize_value_to_json_string, object::obj_map},
 };
 use stylex_constants::constants::messages::{
   EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT,

@@ -13,6 +13,11 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import type { StyleXOptions } from '../../dist/index.js';
+import {
+  assertBindingCanLoad,
+  findNativeBindings,
+  loadedNativeBindings,
+} from './native-bindings.js';
 import type { FixtureDescriptor, SubjectDescriptor } from './types.js';
 
 /** Runs a fixture and returns the number of StyleX rules produced. */
@@ -42,14 +47,23 @@ type TransformFn = (
  * Load an `@stylexswc/rs-compiler`-shaped subject from an on-disk package.
  *
  * The loader imports the entry via a `file://` URL so the runtime resolves
- * it exactly like `import`, giving each subject its own resolution scope so
- * two independently built NAPI bindings can coexist in one process.
+ * it exactly like `import`, and each subject keeps its own resolution scope.
+ *
+ * Two separately built NAPI bindings can share a process on Linux, where CI
+ * runs the paired gate. They cannot share one on macOS. The guard below stops
+ * that load and explains it, because the runtime answers it with SIGSEGV.
  */
 export async function loadSubject(options: LoadSubjectOptions): Promise<LoadedSubject> {
   const entry = path.join(options.packageDir, 'dist/index.js');
   if (!fs.existsSync(entry)) {
     throw new Error(`Subject "${options.label}" entry does not exist: ${entry}`);
   }
+
+  assertBindingCanLoad({
+    label: options.label,
+    bindings: findNativeBindings(options.packageDir),
+    loaded: loadedNativeBindings(),
+  });
 
   const loaded = (await import(pathToFileURL(entry).href)) as { transform?: TransformFn };
   const transform = loaded.transform;

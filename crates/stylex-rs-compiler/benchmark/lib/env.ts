@@ -83,15 +83,22 @@ function detectRustToolchain(): string | undefined {
 }
 
 /**
- * The checked-out HEAD is the only SHA that names the tree these numbers came
- * from. On `pull_request`, `GITHUB_SHA` is the event payload's merge SHA, and
- * GitHub recomputes the test-merge asynchronously, so the payload routinely
- * carries the previous value while `refs/pull/N/merge` already points at a
- * rebuilt commit -- pr-validation.yml warns about exactly that and benchmarks
- * the ref as checked out. Recording the payload SHA attributes a run to a tree
- * that was never measured, so two runs of one commit read as two commits and
- * runner variance reads as a regression. Environment SHAs stay as the fallback
- * for checkouts without git metadata.
+ * Finds the commit that names the tree these numbers came from.
+ *
+ * The checked-out HEAD is that commit, so read it first.
+ *
+ * `GITHUB_SHA` is not that commit on a `pull_request` event. It holds the
+ * merge SHA from the event payload. GitHub makes the test-merge again in the
+ * background, and the checkout can replace that merge commit before the job
+ * starts. The workflow warns when this occurs, and it measures the ref as
+ * checked out.
+ *
+ * A run that records the payload SHA gives its numbers to a tree that no job
+ * measured. Two runs of one commit then look like two commits, and runner
+ * noise looks like a regression.
+ *
+ * The environment variables stay as the fallback. A checkout that holds no git
+ * metadata has no HEAD to read.
  */
 function detectCommit(cwd?: string): string | undefined {
   try {

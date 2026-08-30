@@ -30,6 +30,29 @@
   `serde_plain` for simple string conversions.
 - Avoid using `unsafe` blocks unless absolutely necessary.
 
+## Re-exports
+
+A `pub use` must make a boundary. It must not copy a path that exists.
+
+Permitted:
+
+- `lib.rs` publishes what the crate defines. The module tree stays free to
+  change.
+- A parent publishes an item from a private `mod`. That module has no path of
+  its own, so this is the only route to it.
+- A crate publishes a dependency type that its own API shows. Callers then do
+  not add that dependency again and get a second version of it.
+- A test prelude. Test code is not part of the crate graph.
+
+Not permitted:
+
+- A shim that keeps an old path alive after a move. Update the callers.
+- A shorter path to a module that is already public.
+- A glob, such as `pub use foo::*`. A new item upstream then changes this API.
+
+Import from the crate that defines the item. A crate boundary here shows the
+layer, so a republished item hides the true graph.
+
 ## SWC Pitfalls
 
 These fail silently rather than at compile time, so they are worth knowing

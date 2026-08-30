@@ -6,8 +6,9 @@ Monorepo with `pnpm` workspaces (`pnpm-workspace.yaml`): `apps/*`, `crates/*`,
 ## Rust Crates (`crates/`)
 
 Atomic crates arranged in a strict dependency DAG (higher layers depend only on
-lower layers). Each crate owns exactly one concern -- no re-export facades, no
-mixed-domain files.
+lower layers). Each crate owns exactly one concern -- no mixed-domain files, and
+no re-export facades. For what a `pub use` may and may not do, see
+[Rust / SWC](./stack/RUST.md#re-exports).
 
 The layer decides what a crate may depend on. What each one is _responsible
 for_, and the vocabulary it defines, is in

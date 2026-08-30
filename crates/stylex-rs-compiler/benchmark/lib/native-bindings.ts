@@ -4,7 +4,7 @@
  * The paired benchmark loads a base subject and a candidate subject together,
  * so it can measure both on one runner in one process. This works on Linux,
  * which is where CI runs the gate. It does not work on macOS: the second
- * binding kills the process with SIGSEGV.
+ * binding stops the process with SIGSEGV.
  *
  * A SIGSEGV gives no message and no exit code that names a cause. A benchmark
  * that dies without a message is the failure that the performance policy warns
@@ -19,8 +19,21 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { isRecord } from './json.js';
+
 /** File extension of a Node native addon. */
 const NATIVE_EXTENSION = '.node';
+
+/**
+ * Name that NAPI gives the addon file, from `napi.binaryName` in the package
+ * manifest. Every build writes `rs-compiler.<target>.node`, in the package
+ * `dist` and in each platform package. `native-bindings.test.ts` compares this
+ * against the manifest, so the two cannot drift apart.
+ */
+export const NATIVE_BINARY_NAME = 'rs-compiler';
+
+/** Scope that holds the per-platform packages, such as `@stylexswc/rs-compiler-darwin-arm64`. */
+const PLATFORM_PACKAGE_SCOPE = '@stylexswc';
 
 /**
  * Platforms that cannot hold two different native bindings in one process.
@@ -37,41 +50,90 @@ export function isDualLoadUnsafe(platform: NodeJS.Platform = process.platform): 
 }
 
 /**
- * Lists the native bindings that a subject package holds.
+ * Whether a file is an addon that this compiler builds.
  *
- * Reads `<packageDir>/dist` and returns the real path of each `.node` file.
- * Real paths let two directories that link to one file count as one binding.
- *
- * Returns an empty list when the directory is absent or holds no addon. A
- * caller must not fail for that reason: the entry point decides whether the
- * subject can run, and it gives a better message than this function can.
+ * Reads the name, because the loaded list holds every addon in the process and
+ * most of them belong to other packages. A watcher such as `fsevents` must not
+ * count as a second compiler binding, or the guard stops a run that is safe.
  */
-export function findNativeBindings(packageDir: string): string[] {
-  const distDir = path.join(packageDir, 'dist');
+export function isCompilerBinding(file: string): boolean {
+  const name = path.basename(file);
+  return name.startsWith(`${NATIVE_BINARY_NAME}.`) && name.endsWith(NATIVE_EXTENSION);
+}
 
+/** Real paths of the addons that lie directly in one directory. */
+function addonsIn(dir: string): string[] {
   let entries: string[];
   try {
-    entries = fs.readdirSync(distDir);
+    entries = fs.readdirSync(dir);
   } catch {
     return [];
   }
 
-  const found = new Set<string>();
+  const found: string[] = [];
   for (const entry of entries) {
     if (!entry.endsWith(NATIVE_EXTENSION)) continue;
-    const full = path.join(distDir, entry);
     try {
-      found.add(fs.realpathSync(full));
+      found.push(fs.realpathSync(path.join(dir, entry)));
     } catch {
       // A broken link names no file. Nothing can load it, so skip it.
     }
+  }
+
+  return found;
+}
+
+/**
+ * Lists the native bindings that a subject package can load.
+ *
+ * `dist/transform.js` looks for the addon in three places, and this function
+ * reads all three. A published package is the reason: `files` in the manifest
+ * ships `dist/index.js` and `dist/transform.js` but no addon, so a subject
+ * unpacked from the registry keeps its addon in a platform package under
+ * `node_modules`. A search of `dist` alone finds nothing there, and the guard
+ * would then permit the load that stops the process.
+ *
+ * The three places, in the order that `transform.js` tries them:
+ *   1. the file that `NAPI_RS_NATIVE_LIBRARY_PATH` names;
+ *   2. `<packageDir>/dist`;
+ *   3. each `<packageDir>/node_modules/@stylexswc/rs-compiler-*` package.
+ *
+ * Returns an empty list when the package holds no addon. A caller must not fail
+ * for that reason: the entry point decides whether the subject can run, and it
+ * gives a better message than this function can.
+ */
+export function findNativeBindings(packageDir: string): string[] {
+  const found = new Set<string>();
+
+  const override = process.env.NAPI_RS_NATIVE_LIBRARY_PATH;
+  if (override) {
+    try {
+      found.add(fs.realpathSync(override));
+    } catch {
+      // The variable names a file that is not there. Nothing can load it.
+    }
+  }
+
+  for (const addon of addonsIn(path.join(packageDir, 'dist'))) found.add(addon);
+
+  const scopeDir = path.join(packageDir, 'node_modules', PLATFORM_PACKAGE_SCOPE);
+  let platformPackages: string[];
+  try {
+    platformPackages = fs.readdirSync(scopeDir);
+  } catch {
+    platformPackages = [];
+  }
+
+  for (const name of platformPackages) {
+    if (!name.startsWith(`${NATIVE_BINARY_NAME}-`)) continue;
+    for (const addon of addonsIn(path.join(scopeDir, name))) found.add(addon);
   }
 
   return [...found].toSorted();
 }
 
 /**
- * Lists the native bindings that the process holds now.
+ * Lists the compiler bindings that the process holds now.
  *
  * Reads the Node diagnostic report, which names every shared object that the
  * process loaded. This finds a binding that any module pulled in, not only one
@@ -79,24 +141,29 @@ export function findNativeBindings(packageDir: string): string[] {
  * package's own build, so the harness holds a binding before the first subject
  * arrives, and a list that counted only subjects would miss it.
  *
+ * Keeps the addons of this compiler and drops the rest, because the process
+ * holds addons of other packages that cannot conflict with a subject.
+ *
  * Returns an empty set when the runtime gives no report. The guard then permits
  * the load, because a guard must not stop a run on a fact it cannot read.
  */
 export function loadedNativeBindings(): Set<string> {
-  let sharedObjects: readonly string[];
+  let sharedObjects: readonly unknown[];
   try {
-    // `getReport` is typed as `object`. The report names the loaded shared
-    // objects under `sharedObjects`, so read that field and check its shape.
-    const report = process.report?.getReport() as { sharedObjects?: unknown } | undefined;
-    const listed = report?.sharedObjects;
-    sharedObjects = Array.isArray(listed) ? listed.filter(item => typeof item === 'string') : [];
+    const report: unknown = process.report?.getReport();
+    sharedObjects =
+      isRecord(report) && Array.isArray(report.sharedObjects) ? report.sharedObjects : [];
   } catch {
     return new Set();
   }
 
+  const override = process.env.NAPI_RS_NATIVE_LIBRARY_PATH;
   const loaded = new Set<string>();
   for (const object of sharedObjects) {
-    if (!object.endsWith(NATIVE_EXTENSION)) continue;
+    if (typeof object !== 'string') continue;
+    // The override can name a file that the compiler naming rule does not
+    // match, so accept it as well as a file with the standard name.
+    if (!isCompilerBinding(object) && object !== override) continue;
     try {
       loaded.add(fs.realpathSync(object));
     } catch {

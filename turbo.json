@@ -18,6 +18,7 @@
     "ImageOS",
     "ImageVersion",
     "LEFTHOOK",
+    "NAPI_RS_NATIVE_LIBRARY_PATH",
     "RUNNER_IMAGE"
   ],
   "futureFlags": {

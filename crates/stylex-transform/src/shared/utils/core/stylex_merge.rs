@@ -49,12 +49,16 @@ pub(crate) fn stylex_merge(
   let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
   let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
-  if let Some(set) = state.get_stylex_api_import(ImportKind::DefaultMarker) {
+  if let Some(set) = state.get_stylex_api_import(ImportKind::DefaultMarker)
+    && !set.is_empty()
+  {
+    let marker = stylex_default_marker::stylex_default_marker(&state.options);
+    let values = match marker.as_values() {
+      Some(v) => v,
+      None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
+    };
+
     for name in set {
-      let values = match stylex_default_marker::stylex_default_marker(&state.options).as_values() {
-        Some(v) => v.clone(),
-        None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
-      };
       identifiers.insert(
         name.clone(),
         Box::new(FunctionConfigType::IndexMap(values.clone())),
@@ -227,7 +231,7 @@ pub(crate) fn stylex_merge(
       let mut member_transform = MemberTransform {
         index,
         bail_out_index,
-        non_null_props: non_null_props.clone(),
+        non_null_props,
         state: &mut *state,
         functions: &evaluate_path_fn_config,
       };
@@ -236,7 +240,7 @@ pub(crate) fn stylex_merge(
 
       index = member_transform.index;
       bail_out_index = member_transform.bail_out_index;
-      non_null_props = member_transform.non_null_props.clone();
+      non_null_props = member_transform.non_null_props;
 
       // Hoist any inline compiled-style objects (produced by atoms) to module
       // scope so the runtime `stylex.props` receives a stable reference instead

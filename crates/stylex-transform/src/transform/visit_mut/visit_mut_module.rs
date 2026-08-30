@@ -18,15 +18,16 @@ use crate::{
   shared::{
     structures::{
       key_span_index::ModuleBase,
-      state_manager::{
-        BindingWrites, build_decl_use_graph, compute_live_set, flush_pending_insertions,
-        mark_style_vars_to_keep,
-      },
+      state_manager::{BindingWrites, flush_pending_insertions},
     },
-    utils::common::{fill_top_level_expressions, local_binding_of},
+    utils::{
+      common::fill_top_level_expressions,
+      live_declarations::{build_decl_use_graph, compute_live_set, mark_style_vars_to_keep},
+    },
   },
 };
 use rustc_hash::{FxHashMap, FxHashSet};
+use stylex_ast::ast::imports::local_binding_of;
 use stylex_constants::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS};
 use stylex_enums::core::TransformationCycle;
 

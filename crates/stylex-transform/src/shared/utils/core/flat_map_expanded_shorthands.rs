@@ -1,9 +1,5 @@
 use log::warn;
 use stylex_ast::ast::convertors::convert_lit_to_string;
-use stylex_macros::stylex_panic;
-use swc_core::ecma::ast::{Expr, Lit};
-
-use crate::shared::structures::pre_rule::PreRuleValue;
 use stylex_css::order::structures::{
   application_order::ApplicationOrder, legacy_expand_shorthands_order::LegacyExpandShorthandsOrder,
   property_specificity_order::PropertySpecificityOrder,
@@ -11,10 +7,13 @@ use stylex_css::order::structures::{
 use stylex_enums::{
   property_validation_mode::PropertyValidationMode, style_resolution::StyleResolution,
 };
+use stylex_macros::stylex_panic;
+use stylex_structures::pre_rule_value::PreRuleValue;
 use stylex_structures::{
   order::Order, order_pair::OrderPair, raw_value::TRawValue,
   stylex_state_options::StyleXStateOptions,
 };
+use swc_core::ecma::ast::{Expr, Lit};
 
 pub(crate) fn flat_map_expanded_shorthands(
   obj_entry: (String, PreRuleValue),

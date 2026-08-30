@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
+use stylex_structures::pre_rule_value::PreRuleValue;
 use swc_core::ecma::ast::{Expr, Lit};
 
 use crate::shared::{
@@ -11,7 +12,6 @@ use crate::shared::{
   },
   structures::{
     functions::{FunctionConfig, FunctionMap, FunctionType},
-    pre_rule::PreRuleValue,
     state_manager::StateManager,
     types::FlatCompiledStyles,
   },

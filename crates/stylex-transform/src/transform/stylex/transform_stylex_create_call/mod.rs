@@ -20,6 +20,7 @@ use stylex_ast::ast::convertors::{
   convert_atom_to_string, convert_key_value_to_str, convert_lit_to_string, create_null_expr,
   create_string_expr,
 };
+use stylex_structures::pre_rule_value::PreRuleValue;
 use swc_core::{
   common::{DUMMY_SP, comments::Comments},
   ecma::ast::{
@@ -33,7 +34,6 @@ use crate::{
     enums::data_structures::evaluate_result_value::EvaluateResultValue,
     structures::{
       functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType, StylexWhenFn},
-      pre_rule::PreRuleValue,
       state::EvaluationState,
       state_manager::{ImportKind, StateManager},
       types::{

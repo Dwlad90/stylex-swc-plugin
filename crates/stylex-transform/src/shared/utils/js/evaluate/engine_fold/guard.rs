@@ -27,6 +27,7 @@ use stylex_constants::constants::evaluation_errors::{
   locale_sensitive_method, not_a_function, numeric_literal_receiver, uncoercible_value,
   unfoldable_function, unfoldable_statement, unfoldable_static,
 };
+use stylex_enums::declaration_type::DeclarationType;
 use stylex_js::coercions::is_global_spelled_as_an_identifier;
 use stylex_js::helpers::is_valid_callee;
 use stylex_utils::swc::get_stmt_node_kind;
@@ -41,7 +42,7 @@ use crate::shared::{
     functions::FunctionMap, state::EvaluationState, state_manager::StateManager,
     theme_ref::VarNaming,
   },
-  utils::{common::get_var_decl_from, js::check_declaration::DeclarationType},
+  utils::common::get_var_decl_from,
 };
 
 use super::super::{

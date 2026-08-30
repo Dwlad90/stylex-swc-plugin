@@ -13,6 +13,7 @@ pub mod order;
 pub mod order_pair;
 pub mod pair;
 pub mod plugin_pass;
+pub mod pre_rule_value;
 pub mod raw_value;
 pub mod style_vars_to_keep;
 pub mod stylex_env;

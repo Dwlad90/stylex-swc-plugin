@@ -1,7 +1,8 @@
 use super::{
-  pre_rule::{CompiledResult, PreRule, PreRuleValue},
+  pre_rule::{CompiledResult, PreRule},
   state_manager::StateManager,
 };
+use stylex_structures::pre_rule_value::PreRuleValue;
 
 #[derive(Debug, Clone, PartialEq, Copy, Default)]
 pub(crate) struct NullPreRule {}

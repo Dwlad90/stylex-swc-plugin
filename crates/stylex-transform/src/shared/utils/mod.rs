@@ -3,6 +3,7 @@ pub mod common;
 pub mod core;
 pub mod css;
 pub mod js;
+pub(crate) mod live_declarations;
 pub mod log;
 pub mod macros;
 pub mod object;

@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 
 use indexmap::IndexMap;
-use swc_core::ecma::ast::Expr;
 
 use crate::shared::utils::{
   common::type_of, core::convert_style_to_class_name::convert_style_to_class_name,
@@ -16,31 +15,8 @@ use super::{
   null_pre_rule::NullPreRule, pre_rule_set::PreRuleSet, state_manager::StateManager,
   types::ClassNameToOriginalPaths,
 };
-use stylex_structures::raw_value::TRawValue;
+use stylex_structures::pre_rule_value::PreRuleValue;
 use stylex_types::structures::injectable_style::InjectableStyle;
-
-/// A style value on its way to becoming a CSS declaration:
-/// `string | number | Array<string | number>`.
-///
-/// `Raw` keeps the authored JS type, which decides whether a unit suffix is
-/// appended: `width: 1` compiles to `1px`, `width: '1'` to `1`.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) enum PreRuleValue {
-  Expr(Expr),
-  Raw(TRawValue),
-  Vec(Vec<TRawValue>),
-  Null,
-}
-
-impl PreRuleValue {
-  pub(crate) fn string(value: impl Into<String>) -> Self {
-    PreRuleValue::Raw(TRawValue::String(value.into()))
-  }
-
-  pub(crate) fn number(value: f64) -> Self {
-    PreRuleValue::Raw(TRawValue::Number(value))
-  }
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ComputedStyle(

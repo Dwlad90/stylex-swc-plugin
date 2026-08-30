@@ -14,10 +14,10 @@ mod state_manager {
   };
 
   use crate::shared::structures::state_manager::{
-    DeclId, InsertionSlot, StateManager, build_decl_use_graph, compute_live_set,
-    flush_pending_insertions,
+    DeclId, InsertionSlot, StateManager, flush_pending_insertions,
   };
-  use crate::shared::utils::js::check_declaration::DeclarationType;
+  use crate::shared::utils::live_declarations::{build_decl_use_graph, compute_live_set};
+  use stylex_enums::declaration_type::DeclarationType;
   use stylex_enums::top_level_expression::TopLevelExpressionKind;
   use stylex_structures::ceiling::Ceiling;
   use stylex_structures::evaluation_depth::MAX_EVALUATION_DEPTH;

@@ -5,7 +5,7 @@ use stylex_types::traits::StyleOptions;
 use stylex_utils::{number::to_js_string, string::remove_quotes};
 use swc_core::atoms::Atom;
 use swc_core::{
-  common::{FileName, Span},
+  common::Span,
   ecma::ast::{
     Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Module, ModuleDecl, ModuleItem,
     ObjectPatProp, Pat, Prop, PropName, PropOrSpread, Stmt, VarDeclarator,
@@ -21,50 +21,8 @@ use crate::shared::structures::{
   state_manager::StateManager,
 };
 use stylex_ast::ast::factories::create_var_declarator;
-use stylex_constants::constants::messages::{INVALID_UTF8, SPREAD_NOT_SUPPORTED};
+use stylex_constants::constants::messages::SPREAD_NOT_SUPPORTED;
 use stylex_regex::regex::JSON_REGEX;
-
-pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
-  match path {
-    FileName::Real(path_buf) => {
-      let stem = match path_buf.file_stem() {
-        Some(s) => s,
-        None => stylex_panic!("File path has no file stem component."),
-      };
-      match stem.to_str() {
-        Some(s) => s.to_string(),
-        None => stylex_panic!("{}", INVALID_UTF8),
-      }
-    },
-    _ => String::new(),
-  }
-}
-
-pub(crate) fn extract_path(path: &FileName) -> &str {
-  match path {
-    FileName::Real(path_buf) => match path_buf.to_str() {
-      Some(s) => s,
-      None => stylex_panic!("{}", INVALID_UTF8),
-    },
-    _ => "",
-  }
-}
-
-pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&str> {
-  match path {
-    FileName::Real(path_buf) => {
-      let name = match path_buf.file_name() {
-        Some(n) => n,
-        None => stylex_panic!("File path has no file name component."),
-      };
-      Some(match name.to_str() {
-        Some(s) => s,
-        None => stylex_panic!("{}", INVALID_UTF8),
-      })
-    },
-    _ => None,
-  }
-}
 
 /// The two parts of a declarator the reference chain actually reads.
 ///
@@ -145,22 +103,6 @@ pub(crate) fn get_var_decl_from<'a>(
   // `Vec` keeps its source order, which `find_top_level_expr` and the insertion
   // queue both read; the index only says where in it to look.
   state.declaration_of(ident)
-}
-
-/// The binding an import specifier introduces, whichever of the three kinds it
-/// is.
-///
-/// One question with one home, because two readers need it and they need it for
-/// opposite reasons: the pre-scan records every import local as a declared
-/// binding, and `get_import_by_ident` matches a reference against it -- the one
-/// name a specifier introduces, and so the only one a reference can resolve
-/// through.
-pub(crate) fn local_binding_of(specifier: &ImportSpecifier) -> &Ident {
-  match specifier {
-    ImportSpecifier::Named(named) => &named.local,
-    ImportSpecifier::Default(default) => &default.local,
-    ImportSpecifier::Namespace(namespace) => &namespace.local,
-  }
 }
 
 #[allow(dead_code)]

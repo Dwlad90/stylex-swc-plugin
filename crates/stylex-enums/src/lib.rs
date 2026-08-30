@@ -4,6 +4,7 @@ pub mod aliases;
 pub mod core;
 pub mod counter_mode;
 pub mod css_syntax;
+pub mod declaration_type;
 pub mod import_path_resolution;
 pub mod misc;
 pub mod property_validation_mode;

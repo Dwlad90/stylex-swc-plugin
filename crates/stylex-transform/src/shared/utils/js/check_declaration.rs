@@ -1,3 +1,4 @@
+use stylex_enums::declaration_type::DeclarationType;
 use swc_core::ecma::ast::{Expr, Ident};
 
 use crate::shared::{
@@ -7,12 +8,6 @@ use crate::shared::{
 use stylex_constants::constants::evaluation_errors::{UNDEFINED_CONST, unsupported_expression};
 
 use super::evaluate::{deopt, deopt_at_declaration};
-
-#[derive(Clone, Copy)]
-pub(crate) enum DeclarationType {
-  Class,
-  Function,
-}
 
 /// The tail of the reference chain (`evaluate-path.js:685-690`, 0.19.0): a name
 /// whose binding holds no initializer to fold is refused for the kind of

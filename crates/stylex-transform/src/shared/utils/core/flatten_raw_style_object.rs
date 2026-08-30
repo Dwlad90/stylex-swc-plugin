@@ -3,6 +3,7 @@ use log::warn;
 use rustc_hash::FxHashSet;
 use stylex_css_parser::at_queries::media_query_transform::last_media_query_wins_transform;
 use stylex_macros::stylex_panic;
+use stylex_structures::pre_rule_value::PreRuleValue;
 use swc_core::ecma::{
   ast::{Expr, KeyValueProp, Lit, Prop, PropName, PropOrSpread},
   utils::quote_str,
@@ -12,7 +13,7 @@ use crate::shared::{
   structures::{
     functions::FunctionMap,
     null_pre_rule::NullPreRule,
-    pre_rule::{PreRuleValue, PreRules, StylesPreRule},
+    pre_rule::{PreRules, StylesPreRule},
     pre_rule_set::PreRuleSet,
     state::EvaluationState,
     state_manager::StateManager,

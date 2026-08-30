@@ -12,7 +12,6 @@ use crate::shared::{
   enums::data_structures::fn_result::FnResult,
   structures::{
     functions::{FunctionConfigType, FunctionMap},
-    member_transform::MemberTransform,
     state_manager::{ImportKind, StateManager},
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
@@ -21,20 +20,25 @@ use crate::shared::{
     ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
     core::{
       make_string_expression::make_string_expression,
+      member_expression::MemberTransform,
       parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
     },
   },
 };
-use crate::transform::stylex::transform_stylex_create_call::hoist_expression;
 use stylex_ast::ast::factories::{create_jsx_attr, create_jsx_attr_or_spread};
 use stylex_constants::constants::{
   api_names::STYLEX_DEFAULT_MARKER, common::COMPILED_KEY, messages::EXPECTED_COMPILED_STYLES,
 };
 use stylex_enums::style_vars_to_keep::NonNullProps;
 
+/// Merges the arguments of a `stylex.props`-family call into one value.
+///
+/// The caller supplies `hoist_expression`, which lifts an expression into a
+/// module-scoped `const` and returns a reference to it.
 pub(crate) fn stylex_merge(
   call: &mut CallExpr,
   transform: fn(&[ResolvedArg]) -> Option<FnResult>,
+  hoist_expression: fn(Expr, &mut StateManager) -> Expr,
   state: &mut StateManager,
 ) -> Option<Expr> {
   let mut bail_out = false;
@@ -237,7 +241,10 @@ pub(crate) fn stylex_merge(
       // Hoist any inline compiled-style objects (produced by atoms) to module
       // scope so the runtime `stylex.props` receives a stable reference instead
       // of a re-created object literal.
-      let mut object_hoister = CompiledStyleObjectHoister { state: &mut *state };
+      let mut object_hoister = CompiledStyleObjectHoister {
+        state: &mut *state,
+        hoist_expression,
+      };
       arg_path.expr.visit_mut_with(&mut object_hoister);
     }
   } else {
@@ -297,6 +304,7 @@ fn static_jsx_attr_from_prop(prop: &PropOrSpread) -> Option<JSXAttrOrSpread> {
 /// reference to it.
 struct CompiledStyleObjectHoister<'a> {
   state: &'a mut StateManager,
+  hoist_expression: fn(Expr, &mut StateManager) -> Expr,
 }
 
 impl VisitMut for CompiledStyleObjectHoister<'_> {
@@ -306,7 +314,7 @@ impl VisitMut for CompiledStyleObjectHoister<'_> {
     if let Expr::Object(object) = expr
       && object_has_css_marker(object)
     {
-      let hoisted = hoist_expression(expr.clone(), self.state);
+      let hoisted = (self.hoist_expression)(expr.clone(), self.state);
       *expr = hoisted;
     }
   }

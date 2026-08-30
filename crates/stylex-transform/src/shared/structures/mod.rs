@@ -3,7 +3,6 @@ pub(crate) mod candidate_index;
 pub mod evaluate_result;
 pub mod functions;
 pub(crate) mod key_span_index;
-pub(crate) mod member_transform;
 pub(crate) mod null_pre_rule;
 pub(crate) mod pre_rule;
 pub(crate) mod pre_rule_set;

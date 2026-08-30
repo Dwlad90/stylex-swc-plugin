@@ -6,6 +6,7 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::utils::core::{stylex::stylex, stylex_merge::stylex_merge},
+  transform::stylex::transform_stylex_create_call::hoist_expression,
 };
 
 impl<C> StyleXTransform<C>
@@ -17,7 +18,7 @@ where
       Callee::Expr(expr) => match expr.as_ref() {
         Expr::Ident(ident) => {
           if self.state.is_regular_stylex_import(&ident.sym)
-            && let Some(value) = stylex_merge(call, stylex, &mut self.state)
+            && let Some(value) = stylex_merge(call, stylex, hoist_expression, &mut self.state)
           {
             return Some(value);
           }

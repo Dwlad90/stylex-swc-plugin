@@ -2,7 +2,10 @@ use stylex_constants::constants::messages::{OBJECT_KEY_MUST_BE_IDENT, SPREAD_NOT
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{Expr, Lit, MemberExpr, ObjectLit, Prop, PropOrSpread},
+  ecma::{
+    ast::{Expr, Lit, MemberExpr, ObjectLit, Prop, PropOrSpread},
+    visit::{VisitMut, VisitMutWith, noop_visit_mut_type},
+  },
 };
 
 use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
@@ -99,5 +102,34 @@ pub(crate) fn member_expression(
     );
 
     state.style_vars_to_keep.insert(style_var_to_keep);
+  }
+}
+
+/// Walks the member expressions of a `stylex.props`-family call argument and
+/// records which style variables and namespaces the runtime still needs.
+pub(crate) struct MemberTransform<'a> {
+  pub(crate) index: i32,
+  pub(crate) bail_out_index: Option<i32>,
+  pub(crate) non_null_props: NonNullProps,
+  pub(crate) state: &'a mut StateManager,
+  pub(crate) functions: &'a FunctionMap,
+}
+
+impl VisitMut for MemberTransform<'_> {
+  noop_visit_mut_type!();
+
+  fn visit_mut_expr(&mut self, expr: &mut Expr) {
+    expr.visit_mut_children_with(self);
+  }
+
+  fn visit_mut_member_expr(&mut self, member: &mut MemberExpr) {
+    member_expression(
+      member,
+      &mut self.index,
+      &mut self.bail_out_index,
+      &mut self.non_null_props,
+      &mut *self.state,
+      self.functions,
+    );
   }
 }

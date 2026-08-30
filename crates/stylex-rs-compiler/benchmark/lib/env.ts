@@ -19,12 +19,17 @@ export interface CaptureEnvironmentOptions {
   packageDir: string;
   workspaceRoot: string;
   target?: string;
+  /**
+   * Directory that supplies the git HEAD. Defaults to the current directory.
+   * Callers give it so a test does not have to change the process directory.
+   */
+  cwd?: string;
 }
 
 export function captureEnvironment(options: CaptureEnvironmentOptions): RawStatsEnvironment {
   const packageVersion = readJsonField(path.join(options.packageDir, 'package.json'), 'version');
   const rust = detectRustToolchain();
-  const commit = detectCommit();
+  const commit = detectCommit(options.cwd);
   // GitHub exposes the image family as `ImageOS` (e.g. `ubuntu24`) and the
   // exact build as `ImageVersion` (e.g. `20260803.1.0`). `RUNNER_IMAGE` is
   // an optional override for self-hosted or containerised runs.
@@ -77,18 +82,30 @@ function detectRustToolchain(): string | undefined {
   }
 }
 
-function detectCommit(): string | undefined {
-  const fromEnv = process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA;
-  if (fromEnv) return fromEnv;
+/**
+ * The checked-out HEAD is the only SHA that names the tree these numbers came
+ * from. On `pull_request`, `GITHUB_SHA` is the event payload's merge SHA, and
+ * GitHub recomputes the test-merge asynchronously, so the payload routinely
+ * carries the previous value while `refs/pull/N/merge` already points at a
+ * rebuilt commit -- pr-validation.yml warns about exactly that and benchmarks
+ * the ref as checked out. Recording the payload SHA attributes a run to a tree
+ * that was never measured, so two runs of one commit read as two commits and
+ * runner variance reads as a regression. Environment SHAs stay as the fallback
+ * for checkouts without git metadata.
+ */
+function detectCommit(cwd?: string): string | undefined {
   try {
     const out = execSync('git rev-parse HEAD', {
+      cwd,
       stdio: ['ignore', 'pipe', 'ignore'],
       encoding: 'utf-8',
     });
-    return out.trim() || undefined;
+    const head = out.trim();
+    if (head) return head;
   } catch {
-    return undefined;
+    // Not a git checkout, or git is unavailable -- fall through to the env.
   }
+  return process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA || undefined;
 }
 
 function detectTarget(): string {

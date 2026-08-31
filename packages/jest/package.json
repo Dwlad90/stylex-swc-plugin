@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/jest",
   "description": "Jest transformer for StyleX that compiles CSS-in-JS with the Rust NAPI-RS/SWC compiler, enabling Babel-free StyleX component tests.",
-  "version": "0.18.6-rc.1",
+  "version": "0.18.6",
   "private": false,
   "license": "MIT",
   "sideEffects": false,

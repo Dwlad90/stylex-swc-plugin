@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/design-system",
   "description": "A design system for stylex workspace examples",
-  "version": "0.18.6-rc.1",
+  "version": "0.18.6",
   "private": true,
   "license": "MIT",
   "sideEffects": true,

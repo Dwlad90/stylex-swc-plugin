@@ -42,7 +42,7 @@ types and `StateManager` live in different crates.
                                     │ implements
                          ┌──────────▼────────────┐
                          │  StateManager          │
-                         │  (stylex-transform)    │
+                         │  (stylex-state)        │
                          └────────────────────────┘
 ```
 

@@ -6,20 +6,18 @@
 
 ## Overview
 
-Main SWC transform orchestration crate for the StyleX compiler. This is the
-**largest** crate in the workspace (108 files, ~27,700 lines) and replaces the
-former `stylex-shared` monolith. It owns the `StyleXTransform` entry point
-struct, the central `StateManager`, the SWC `Fold` visitor implementation, and
-every piece of logic that depends on per-file compiler state. All other crates
-in the pipeline are stateless utilities; `stylex-transform` is where stateful
-orchestration happens.
+Main SWC transform orchestration crate for the StyleX compiler, and still the
+largest in the workspace (185 files, ~47,000 lines including tests). It owns the
+`StyleXTransform` entry point struct, the SWC `Fold` visitor implementation, the
+StyleX API transformers and the style-semantics layer.
+
+The per-file compiler state it threads through all of that is **not** here: the
+`StateManager` and the value types it composes live one layer down, in
+[`stylex-state`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-state).
 
 - **`StyleXTransform` entry point** — the single public struct that implements
   SWC's `Fold` trait, serving as the bridge between the NAPI-RS compiler layer
   and the internal transform pipeline.
-- **`StateManager`** — central state holder for each file compilation, tracking
-  declarations, injected styles, metadata, theme variables, and generated class
-  names.
 - **21 `fold_*` visitors** — fine-grained SWC `Fold` implementations for every
   relevant AST node type (`fold_module`, `fold_call_expr`,
   `fold_var_declarator`, etc.), each in its own module for readability.
@@ -61,16 +59,11 @@ Dedicated transform modules for every public StyleX API:
 Compiles `styleq()` calls at build time, merging class name arrays so the
 runtime `styleq` library is not required in production bundles.
 
-#### `shared::structures::state_manager`
+#### `shared::structures`
 
-Central `StateManager` struct holding all per-file compiler state: declarations,
-injected styles, metadata, theme variables, generated class names, and
-configuration.
-
-#### `shared::structures::functions`
-
-Function type definitions and closure representations used during transformation
-to model StyleX function arguments and return values.
+The pre-rule chain the style-semantics layer builds, and the evaluator's own
+result types. The state manager, the function configs and the compiled-style
+value types moved to `stylex-state`.
 
 #### `shared::transformers`
 
@@ -81,8 +74,8 @@ matching call expression is encountered.
 
 #### `shared::utils::ast`
 
-AST helper functions that depend on `StateManager`. These differ from the
-stateless helpers in
+AST helper functions that read or write the compilation state. These differ from
+the stateless helpers in
 [`stylex-ast`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-ast)
 because they read or mutate compiler state while manipulating the AST.
 
@@ -106,8 +99,8 @@ declarations, and generating deterministic class names.
 
 #### `shared::enums::data_structures`
 
-Transform-specific enum types that model intermediate data structures used
-exclusively within the transform pipeline.
+The two intermediate enums used only inside the transform pipeline. The
+evaluated-value and compiled-style enums moved to `stylex-state`.
 
 ## License
 

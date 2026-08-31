@@ -25,7 +25,7 @@ The nine questions a diagnostic asks of the compiler's traversal state --
 filename, the memoized module and its text, the span cache, the key span index,
 and the three framed-declaration questions. A trait owned here and implemented by
 the caller, so that building a frame never names the state manager, which would
-make the transform and the diagnostics depend on each other. Consulted while a
+make the state crate and the diagnostics depend on each other. Consulted while a
 diagnostic is being written, never while a module is being evaluated, so the
 dispatch costs nothing measurable. _Avoid_: state adapter, frame context,
 diagnostic context

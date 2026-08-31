@@ -29,9 +29,9 @@ belong to its own source map, not to the text on disk.
 Of what this crate reads, `stylex-ast` reads expressions back, `stylex-macros`
 raises the error a refusal panics with, `stylex-regex` builds the links a
 message carries, `stylex-state-index` supplies the key span index, and
-`stylex-utils` supplies the stable hash the span cache is keyed by. The
-transform is the one consumer, and its state manager implements
-`DiagnosticState`.
+`stylex-utils` supplies the stable hash the span cache is keyed by. `stylex-state`
+implements `DiagnosticState` on its state manager, and the transform and the
+evaluator reach a code frame through it.
 
 Everything here is best effort. Every lookup sits behind a panic boundary and
 degrades to "no code frame", because a compilation must never stop on account of
@@ -42,7 +42,7 @@ the hook that was there before.
 What a diagnostic needs from the compiler's traversal state is declared here as
 the `DiagnosticState` trait and implemented by the caller — the same injection
 `stylex-atoms` uses — so that building a frame never names the state manager,
-which would make the transform and the diagnostics depend on each other. The
+which would make the state crate and the diagnostics depend on each other. The
 trait is consulted while a diagnostic is being written, never while a module is
 being evaluated.
 

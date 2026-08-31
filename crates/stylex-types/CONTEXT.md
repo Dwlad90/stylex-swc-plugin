@@ -31,8 +31,9 @@ _Avoid_: style key, hash, id
 **Style options trait**:
 `StyleOptions` — the interface the CSS layer needs from whatever is holding
 state: the resolved options, the seen-property map, and the injected-rules map.
-It exists so [stylex-css](../stylex-css/CONTEXT.md) can be given the transform's
-`StateManager` without depending on it.
+It exists so [stylex-css](../stylex-css/CONTEXT.md) can be given
+[stylex-state](../stylex-state/CONTEXT.md)'s `StateManager` without depending on
+it.
 _Avoid_: state trait, context trait
 
 **When marker value**:

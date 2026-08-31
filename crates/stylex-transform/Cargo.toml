@@ -19,7 +19,6 @@ boa_engine.workspace = true
 ctor.workspace = true
 indexmap.workspace = true
 log.workspace = true
-node-resolve.workspace = true
 path-clean.workspace = true
 phf = { workspace = true, features = ["macros"] }
 pretty_env_logger.workspace = true

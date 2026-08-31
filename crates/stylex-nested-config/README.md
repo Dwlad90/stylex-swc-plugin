@@ -11,9 +11,8 @@ Reads the arbitrarily nested configuration objects that `defineVars`,
 of dot-joined keys those APIs emit. Every function is stateless and operates
 only on SWC AST nodes and primitive values.
 
-Two helpers the flatteners do not use — binary-expression arithmetic and Node
-package resolution — also sit here and still await a better home. Package
-resolution is the one function in the crate that reads the filesystem.
+One helper the flatteners do not use — binary-expression arithmetic — also sits
+here and still awaits a better home.
 
 - **Nested configuration values** — `NestedVarsValue` and the
   `object_lit_to_nested_*_config` readers turn a `defineVars`, `createTheme` or
@@ -29,9 +28,6 @@ resolution is the one function in the crate that reads the filesystem.
 - **Binary expression evaluation** — `evaluate_bin_expr` handles arithmetic
   (`+`, `-`, `*`, `/`, `%`, `**`), bitwise (`|`, `^`, `&`), and shift (`<<`,
   `>>`, `>>>`) operators on `f64` values
-- **Node.js integration** — `resolve_node_package_path` resolves package paths
-  with CommonJS / ESM support, which is the one function here that reads the
-  filesystem
 
 ## Architecture
 

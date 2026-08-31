@@ -6,7 +6,7 @@ use swc_core::{
 };
 
 use stylex_ast::ast::convertors::{get_expr_from_var_decl, normalize_expr};
-use stylex_nested_config::common::{evaluate_bin_expr, resolve_node_package_path};
+use stylex_nested_config::common::evaluate_bin_expr;
 
 // ---------------------------------------------------------------------------
 // evaluate_bin_expr
@@ -325,77 +325,5 @@ mod normalize_expr_tests {
       Expr::Lit(Lit::Str(s)) => assert_eq!(&*s.value, "wrapped"),
       _ => panic!("Expected string literal after unwrapping paren"),
     }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// resolve_node_package_path
-// ---------------------------------------------------------------------------
-mod resolve_node_package_path_tests {
-  use super::*;
-  use std::{
-    fs,
-    sync::Mutex,
-    time::{SystemTime, UNIX_EPOCH},
-  };
-
-  static CWD_LOCK: Mutex<()> = Mutex::new(());
-
-  #[test]
-  fn nonexistent_package_returns_err() {
-    let result = resolve_node_package_path("this-package-does-not-exist-abc123xyz");
-    assert!(result.is_err());
-  }
-
-  #[test]
-  fn empty_package_name_returns_err() {
-    let result = resolve_node_package_path("");
-    assert!(result.is_err());
-  }
-
-  #[test]
-  fn error_message_contains_package_name() {
-    let pkg = "nonexistent-pkg-xyz";
-    let result = resolve_node_package_path(pkg);
-    match result {
-      Err(msg) => assert!(
-        msg.contains(pkg),
-        "Error message should contain the package name, got: {msg}"
-      ),
-      Ok(_) => panic!("Expected Err for nonexistent package"),
-    }
-  }
-
-  #[test]
-  fn scoped_nonexistent_package_returns_err() {
-    let result = resolve_node_package_path("@nonexistent-scope/nonexistent-pkg");
-    assert!(result.is_err());
-  }
-
-  #[test]
-  fn existing_package_returns_ok() {
-    let _cwd_guard = CWD_LOCK.lock().unwrap();
-    let original_cwd = std::env::current_dir().unwrap();
-    let unique = SystemTime::now()
-      .duration_since(UNIX_EPOCH)
-      .unwrap()
-      .as_nanos();
-    let temp_root = std::env::temp_dir().join(format!("stylex-nested-config-resolve-{unique}"));
-    let pkg_dir = temp_root.join("node_modules").join("typescript");
-
-    fs::create_dir_all(&pkg_dir).unwrap();
-    fs::write(
-      pkg_dir.join("package.json"),
-      r#"{"name":"typescript","main":"index.js"}"#,
-    )
-    .unwrap();
-    fs::write(pkg_dir.join("index.js"), "module.exports = {};").unwrap();
-
-    std::env::set_current_dir(&temp_root).unwrap();
-    let result = resolve_node_package_path("typescript");
-    std::env::set_current_dir(&original_cwd).unwrap();
-    fs::remove_dir_all(&temp_root).unwrap();
-
-    assert!(result.is_ok());
   }
 }

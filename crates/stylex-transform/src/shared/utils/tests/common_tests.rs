@@ -2329,18 +2329,3 @@ mod assign_props_bigint_key_tests {
     assert_eq!(result.len(), 1);
   }
 }
-
-// ──────────────────────────────────────────────
-// resolve_node_package_path
-// ──────────────────────────────────────────────
-
-mod resolve_node_package_path_tests {
-  use crate::shared::utils::common::resolve_node_package_path;
-
-  #[test]
-  fn returns_err_for_nonexistent_package() {
-    let result = resolve_node_package_path("nonexistent_package_12345");
-    assert!(result.is_err());
-    assert!(result.unwrap_err().contains("Error resolving package"));
-  }
-}

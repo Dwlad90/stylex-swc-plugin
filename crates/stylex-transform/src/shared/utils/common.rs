@@ -1,5 +1,5 @@
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{any::type_name, ops::Deref, path::PathBuf};
+use std::{any::type_name, ops::Deref};
 use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 use stylex_types::traits::StyleOptions;
 use stylex_utils::{number::to_js_string, string::remove_quotes};
@@ -433,23 +433,6 @@ pub(crate) fn gen_file_based_identifier(
   let key = key.map_or(String::new(), |k| format!(".{}", k));
 
   format!("{}//{}{}", file_name, export_name, key)
-}
-
-#[allow(dead_code)]
-pub(crate) fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
-  match node_resolve::Resolver::default()
-    .with_basedir(PathBuf::from("./cwd"))
-    .preserve_symlinks(true)
-    .with_extensions([".ts", ".tsx", ".js", ".jsx", ".json"])
-    .with_main_fields(vec![String::from("main"), String::from("module")])
-    .resolve(package_name)
-  {
-    Ok(path) => Ok(path),
-    Err(error) => Err(format!(
-      "Error resolving package {}: {:?}",
-      package_name, error
-    )),
-  }
 }
 
 pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> String {

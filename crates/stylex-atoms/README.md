@@ -38,19 +38,16 @@ were authored locally, enabling the same optimizations as normal StyleX styles.
 
 ## Architecture
 
+`stylex-constants` is read only for the shared `$$css` compiled-key constant.
+The transform is the one consumer: it implements `Compile` for its
+`StyleXTransform` and runs the visitor between the `stylex.create` and
+`stylex.props` passes.
+
 The heavy style-compilation utilities (`styleXCreateSet`, `convertObjectToAST`,
 `hoistExpression`, `injectDevClassNames`, and the needed `StateManager` access)
 are injected through the `Compile` trait, which receives a `compile` object.
 This keeps the crate dependency-light and avoids a circular dependency on
 `stylex-transform`.
-
-- **Depends on**: `swc_core`, `rustc-hash`, and
-  [`stylex-constants`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-constants)
-  (only for the shared `$$css` compiled-key constant)
-- **Depended on by**:
-  [`stylex-transform`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-transform),
-  which implements `Compile` for its `StyleXTransform` and runs the visitor
-  between the `stylex.create` and `stylex.props` transformation passes.
 
 ## License
 

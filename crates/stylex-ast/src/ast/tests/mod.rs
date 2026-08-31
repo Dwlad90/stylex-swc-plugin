@@ -5,4 +5,5 @@ mod convertors_test;
 mod factories_error_paths_test;
 mod factories_test;
 mod imports_test;
+mod keys_test;
 mod source_file_test;

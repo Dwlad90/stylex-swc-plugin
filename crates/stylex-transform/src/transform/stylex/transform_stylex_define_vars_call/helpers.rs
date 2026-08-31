@@ -20,14 +20,14 @@ use swc_core::{
   },
 };
 
+use stylex_ast::ast::keys::{namespace_name_from_prop_key, prop_as_key_value};
+
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
-    ast::helpers::{namespace_name_from_prop_key, prop_as_key_value, prop_contains_arrow},
-    core::define_vars_utils::any_level_needs_a_default,
-    js::evaluate::evaluate,
-    log::build_code_frame_error::build_code_frame_error,
+    ast::helpers::prop_contains_arrow, core::define_vars_utils::any_level_needs_a_default,
+    js::evaluate::evaluate, log::build_code_frame_error::build_code_frame_error,
   },
 };
 

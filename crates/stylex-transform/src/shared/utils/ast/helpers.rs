@@ -1,18 +1,13 @@
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
 use stylex_structures::top_level_expression::TopLevelExpression;
-use swc_core::{
-  atoms::Atom,
-  ecma::{
-    ast::{
-      ArrowExpr, ExportSpecifier, Expr, KeyValueProp, Lit, MemberProp, ModuleExportName, ObjectLit,
-      Prop, PropName, PropOrSpread,
-    },
-    visit::{Visit, VisitWith},
-  },
+use swc_core::ecma::{
+  ast::{ArrowExpr, ExportSpecifier, Expr, ModuleExportName, PropName, PropOrSpread},
+  visit::{Visit, VisitWith},
 };
 
 use crate::shared::structures::state_manager::StateManager;
-use stylex_ast::ast::convertors::{convert_str_lit_to_atom, convert_tpl_to_string_lit};
+use stylex_ast::ast::keys::prop_as_key_value;
+
 pub(crate) fn is_variable_named_exported(
   TopLevelExpression(kind, _, variable_name): &TopLevelExpression,
   state: &StateManager,
@@ -55,66 +50,6 @@ pub fn get_property_by_key<'a>(expr: &'a Expr, key: &str) -> Option<&'a Expr> {
         }
       }
       None
-    },
-    _ => None,
-  }
-}
-
-pub(crate) fn namespace_name_from_prop_key(key: &PropName) -> Option<Atom> {
-  match key {
-    PropName::Ident(ident) => Some(ident.sym.clone()),
-    PropName::Str(strng) => Some(convert_str_lit_to_atom(strng)),
-    PropName::Num(num) => Some(Atom::from(num.value.to_string())),
-    PropName::BigInt(big_int) => Some(Atom::from(big_int.value.to_string())),
-    PropName::Computed(computed) => namespace_name_from_expr(computed.expr.as_ref()),
-  }
-}
-
-pub(crate) fn namespace_name_from_member_prop(prop: &MemberProp) -> Option<Atom> {
-  match prop {
-    MemberProp::Ident(ident) => Some(ident.sym.clone()),
-    MemberProp::Computed(computed) => namespace_name_from_expr(computed.expr.as_ref()),
-    MemberProp::PrivateName(_) => None,
-  }
-}
-
-fn namespace_name_from_lit(lit: &Lit) -> Option<Atom> {
-  match lit {
-    Lit::Str(strng) => Some(convert_str_lit_to_atom(strng)),
-    Lit::Num(num) => Some(Atom::from(num.value.to_string())),
-    Lit::BigInt(big_int) => Some(Atom::from(big_int.value.to_string())),
-    _ => None,
-  }
-}
-
-fn namespace_name_from_expr(expr: &Expr) -> Option<Atom> {
-  match expr {
-    Expr::Lit(lit) => namespace_name_from_lit(lit),
-    Expr::Tpl(tpl) => convert_tpl_to_string_lit(tpl)
-      .as_ref()
-      .and_then(namespace_name_from_lit),
-    _ => None,
-  }
-}
-
-/// The literal keys of an object literal, in source order, duplicates included
-/// -- a key written twice is two properties, and a count over them reads it that
-/// way.
-pub(crate) fn collect_object_lit_keys(object: &ObjectLit) -> impl Iterator<Item = Atom> + '_ {
-  object.props.iter().filter_map(|prop| {
-    prop_as_key_value(prop).and_then(|key_value| namespace_name_from_prop_key(&key_value.key))
-  })
-}
-
-/// Returns `Some(kv)` only for `PropOrSpread::Prop(Box<Prop::KeyValue>)`
-/// shapes; any other variant (spread, method, getter, setter, shorthand, …)
-/// yields `None`. Callers typically use this to skip props they can't handle in
-/// a single pass.
-pub(crate) fn prop_as_key_value(prop: &PropOrSpread) -> Option<&KeyValueProp> {
-  match prop {
-    PropOrSpread::Prop(p) => match p.as_ref() {
-      Prop::KeyValue(kv) => Some(kv),
-      _ => None,
     },
     _ => None,
   }

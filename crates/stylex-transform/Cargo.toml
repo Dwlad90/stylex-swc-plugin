@@ -38,6 +38,7 @@ stylex_js = { path = "../stylex-js" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_path_resolver = { path = "../stylex-path-resolver" }
 stylex_regex = { path = "../stylex-regex" }
+stylex_state_index = { path = "../stylex-state-index" }
 stylex_structures = { path = "../stylex-structures" }
 stylex_styleq = { path = "../stylex-styleq" }
 stylex_types = { path = "../stylex-types" }

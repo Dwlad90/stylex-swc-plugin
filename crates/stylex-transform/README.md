@@ -37,18 +37,20 @@ orchestration happens.
 
 ## Architecture
 
-- **Layer**: 8 — StyleX Transform
-- **Depends on** (all 14 other internal crates):
+- **Layer**: 9 — StyleX Transform
+- **Depends on** (all 16 other internal crates):
   [`stylex-ast`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-ast),
+  [`stylex-atoms`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-atoms),
   [`stylex-constants`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-constants),
   [`stylex-css`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css),
   [`stylex-css-parser`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css-parser),
   [`stylex-enums`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-enums),
   [`stylex-evaluator`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-evaluator),
-  [`stylex-logs`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-logs),
+  [`stylex-js`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-js),
   [`stylex-macros`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-macros),
   [`stylex-path-resolver`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-path-resolver),
   [`stylex-regex`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-regex),
+  [`stylex-state-index`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-state-index),
   [`stylex-structures`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-structures),
   [`stylex-styleq`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-styleq),
   [`stylex-types`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-types),
@@ -166,19 +168,23 @@ graph TD
     stylex_ast["ast"]
   end
 
-  subgraph L6["Evaluation"]
+  subgraph L6["State Lookup"]
+    stylex_state_index["state-index"]
+  end
+
+  subgraph L7["Evaluation"]
     stylex_evaluator["evaluator"]
   end
 
-  subgraph L7["CSS Processing"]
+  subgraph L8["CSS Processing"]
     stylex_css["css"]
   end
 
-  subgraph L8["StyleX Transform"]
+  subgraph L9["StyleX Transform"]
     stylex_transform["transform"]
   end
 
-  subgraph L9["Compilers"]
+  subgraph L10["Compilers"]
     stylex_compiler_rs["rs-compiler"]
   end
 
@@ -208,6 +214,9 @@ graph TD
   stylex_ast           --> stylex_types
   stylex_ast           --> stylex_utils
 
+  stylex_state_index   --> stylex_ast
+  stylex_state_index   --> stylex_utils
+
   stylex_evaluator     --> stylex_ast
   stylex_evaluator     --> stylex_constants
   stylex_evaluator     --> stylex_js
@@ -236,6 +245,7 @@ graph TD
   stylex_transform     --> stylex_macros
   stylex_transform     --> stylex_path_resolver
   stylex_transform     --> stylex_regex
+  stylex_transform     --> stylex_state_index
   stylex_transform     --> stylex_structures
   stylex_transform     --> stylex_styleq
   stylex_transform     --> stylex_types
@@ -257,10 +267,11 @@ graph TD
   classDef l3 fill:#fff3dc,stroke:#cc9933,color:#333
   classDef l4 fill:#ffe8dc,stroke:#cc6633,color:#333
   classDef l5 fill:#f5dcff,stroke:#9933cc,color:#333
-  classDef l6 fill:#dcfff5,stroke:#33aaaa,color:#333
-  classDef l7 fill:#ffdcdc,stroke:#cc3333,color:#333
-  classDef l8 fill:#fffdc0,stroke:#aaaa33,color:#333
-  classDef l9 fill:#ffc0c0,stroke:#cc0000,color:#333
+  classDef l6 fill:#dcecff,stroke:#3388cc,color:#333
+  classDef l7 fill:#dcfff5,stroke:#33aaaa,color:#333
+  classDef l8 fill:#ffdcdc,stroke:#cc3333,color:#333
+  classDef l9 fill:#fffdc0,stroke:#aaaa33,color:#333
+  classDef l10 fill:#ffc0c0,stroke:#cc0000,color:#333
 
   class stylex_constants,stylex_regex,stylex_styleq,stylex_utils l0
   class stylex_macros l1
@@ -268,10 +279,11 @@ graph TD
   class stylex_structures l3
   class stylex_types l4
   class stylex_ast l5
-  class stylex_evaluator l6
-  class stylex_css l7
-  class stylex_transform l8
-  class stylex_compiler_rs l9
+  class stylex_state_index l6
+  class stylex_evaluator l7
+  class stylex_css l8
+  class stylex_transform l9
+  class stylex_compiler_rs l10
 ```
 
 </details>

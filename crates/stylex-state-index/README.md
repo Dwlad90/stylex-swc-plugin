@@ -1,4 +1,4 @@
-# `stylex-evaluator`
+# `stylex-state-index`
 
 > Part of the
 > [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
@@ -6,45 +6,47 @@
 
 ## Overview
 
-Pure utility functions for JS expression evaluation — expression traversal,
-value extraction, and type coercion helpers used by the transform layer. This
-crate was extracted so that evaluation helpers with no `StateManager` dependency
-can be reused by `stylex-css` and tested in isolation from the full transform
-pipeline. Every function is stateless, operating only on SWC AST nodes and
-primitive values — package resolution is the single exception, and it is called
-out below.
+The lookup structures the StyleX state manager composes so that "which
+declarator, which call, which span" is answered with one hash probe instead of a
+scan of the module. Both are pure lookup machinery: neither holds the entries it
+points at, and neither decides what a style means.
 
-- **Binary expression evaluation** — `evaluate_bin_expr` handles arithmetic
-  (`+`, `-`, `*`, `/`, `%`, `**`), bitwise (`|`, `^`, `&`), and shift (`<<`,
-  `>>`, `>>>`) operators on `f64` values
-- **Nested configuration values** — `NestedVarsValue` and the
-  `object_lit_to_nested_*_config` readers turn a `defineVars`, `createTheme` or
-  `defineConsts` object literal into a nested map, and the
-  `flatten_nested_*_config` writers collapse one back to the flat keys those
-  APIs emit
-- **Configuration shape tests** — `is_vars_leaf` answers whether a nested value
-  stops flattening, while `is_css_type_object` and `is_conditional_object` read
-  an `ObjectLit` for the two shapes a key may hold: a `syntax`/`value` CSS type,
-  and a `default` with at-rule alternatives
-- **Value emission** — `to_vars_config_value` and `value_with_default_to_expr`
-  turn a nested value back into the SWC expression the transform writes out
-- **Node.js integration** — `resolve_node_package_path` resolves package paths
-  with CommonJS / ESM support, which is the one function here that reads the
-  filesystem
+- **Candidate index** — `CandidateIndex<K, H>`, a bucket map from a narrowing
+  key to the handles of the entries that may hold what the key describes. The
+  key only narrows; the caller still confirms a candidate by equality. It
+  replaces a walk of the whole collection that made the transform quadratic in
+  the number of `stylex.*` calls a module makes.
+- **Key span index** — `KeySpanIndex`, every authored position a style namespace
+  key could resolve to in one module, collected in a single walk. It is what the
+  `file:line` annotation on `$$css` is resolved from. A key that two namespaces
+  spell gives several candidates, ranked by how much of the compiled call each
+  reproduces; a tie resolves to nothing, because a wrong `file:line` is worse
+  than none.
 
 ## Architecture
 
-- **Layer**: 7 — Evaluation
-- **Depends on**:
-  [`stylex-ast`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-ast),
-  [`stylex-constants`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-constants),
-  [`stylex-js`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-js),
-  [`stylex-macros`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-macros),
-  [`stylex-path-resolver`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-path-resolver),
-  [`stylex-types`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-types)
+Positions are compared as `FileOffset`, never as raw `BytePos`. The index is
+built from a module re-parsed into the code frame's shared source map, while the
+call it places is read out of the per-transform one, so two `BytePos` can name
+the same character and hold different numbers. A `FileOffset` can only be built
+from a position and the `ModuleBase` it belongs to, which makes the wrong
+comparison unspellable.
+
+A lookup is split in two. `CallLookup` carries everything that belongs to the
+`stylex.create` call — the sibling keys, the proximity anchor, the cache-key
+digest and the call wrapped as an expression — and is built once per call.
+`NamespaceKeyQuery` carries the one namespace being placed. Building the call
+half per namespace would make a call quadratic in its own namespace count.
+
+- **Layer**: 6 — State Lookup
+- **Depends on**: `swc_core`, `rustc-hash`,
+  [`stylex-ast`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-ast)
+  for reading object keys, and
+  [`stylex-utils`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-utils)
+  for the stable hash the cache key is built from
 - **Depended on by**:
-  [`stylex-css`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css),
-  [`stylex-transform`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-transform)
+  [`stylex-transform`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-transform),
+  whose state manager holds the indices and shares them by `Rc`
 
 ## Dependency Graph
 

@@ -27,9 +27,10 @@ use crate::{
   StyleXTransform,
   shared::{
     structures::state_manager::{DeclId, ImportKind},
-    utils::{ast::helpers::namespace_name_from_prop_key, common::fill_state_declarations},
+    utils::common::fill_state_declarations,
   },
 };
+use stylex_ast::ast::keys::namespace_name_from_prop_key;
 use stylex_atoms::transform::ATOMS_SOURCE;
 use stylex_constants::constants::{
   api_names::STYLEX_CREATE,

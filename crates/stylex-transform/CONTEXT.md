@@ -10,7 +10,9 @@ is recognised and rewritten.
 `StateManager` — everything the transform knows about the file it is part-way
 through: imports, declarations, discovered style objects, caches, and the
 current [transformation cycle](../stylex-enums/CONTEXT.md). One per file; passed
-by mutable reference through the whole visitor.
+by mutable reference through the whole visitor. The lookup structures it answers
+its position questions from live in
+[stylex-state-index](../stylex-state-index/CONTEXT.md).
 _Avoid_: context, session, environment, state
 
 **Pre-scan**:
@@ -774,37 +776,6 @@ zero sorts before every authored node, so comparing one answers a fact about its
 having been built.
 _Avoid_: generated node, dummy node, fake node
 
-**Candidate index**:
-Where the entries holding a given thing live, bucketed by a key that narrows to
-them, held beside the collection it indexes on the
-[state manager](#state-manager). The answer to "which recorded entry holds
-_this_?" -- which declarator a call initialises, which style variable it is
-bound to, which top-level expression it is, which top-level expression a name
-binds, which import specifier binds a reference, whether a declarator at this
-position is already stored. Each of those was a walk of the whole collection
-comparing whole subtrees with `eq_ignore_span`, once per call the transform
-meets, which made the consumer phase quadratic in the number of calls a module
-makes. The key only narrows:
-equality still decides between the candidates it hands back, so the answer is
-the one the walk gave. What the key is depends on the question -- a structural
-hash for an expression, a source position for where something was written, a
-name for what a declarator binds.
-_Avoid_: lookup table, call map, bucket map
-
-**Key span index**:
-Where every style namespace key of the module's _own parsed source_ is written,
-collected in one walk and held beside that memoized source on the
-[state manager](#state-manager). What the `file:line` annotation on `$$css` is
-resolved from: the annotation asks for the authored position of every namespace
-of every `stylex.create` call, and answering each by walking the source made a
-`dev` build quadratic in the size of a file that is one long list of styles. A
-key two namespaces spell is several candidates, ranked by how much of the
-compiled call each reproduces; a tie resolves to nothing, because a wrong
-`file:line` is worse than none. Distinct from the state manager's span cache,
-which memoizes the _answers_ this index is asked for, keyed by the lookup rather
-than by the key.
-_Avoid_: namespace key index, key map, position table
-
 **Framed declaration**:
 The binding a refusal is _about_, recorded so its code frame names the line that
 binding was declared on rather than the line it was read from — which is what
@@ -817,44 +788,6 @@ falls through to an inline style instead of stopping the build, and a later
 diagnostic must not inherit an earlier refusal's position. A name that module
 does not declare falls back to locating the read. _Avoid_: deopt span,
 declaration span cache, reported position
-
-**File offset**:
-How far into its own file a position sits, and the only thing the
-[key span index](#key-span-index)'s proximity tie-break may compare. Two
-`BytePos` in this compiler can name the same character and hold different
-numbers: the index is built from a module re-parsed into the code frame's
-shared, process-global source map, while the call it places is read out of the
-per-transform one, and a source map gives each file a start position after the
-previous file's end. So the two agree only for the first file a process
-compiles. A file offset can only be built from a position and the
-[module base](#module-base) it belongs to, and exposes no way to read the number
-back out, so the subtraction cannot be skipped at a new call site.
-_Avoid_: byte position, column, index
-
-**Module base**:
-Where the module being transformed starts, in the source map it was parsed into
-— the thing a position is measured against to become a
-[file offset](#file-offset). Its own type for two reasons: both arguments would
-otherwise be `BytePos`, so transposing them compiles and answers zero for every
-candidate; and it must have no default, because a base nobody recorded would be
-byte zero, which turns every offset straight back into the raw position. Where a
-base may be genuinely unavailable it is spelled as absent rather than defaulted,
-so a lookup that never got one loses the proximity tie-break instead of silently
-ranking by "earliest in the file". _Avoid_: module start, origin, offset base
-
-**Call lookup**:
-The half of a key-span lookup that belongs to the `stylex.create` _call_ rather
-than to one of its namespaces: the sibling keys every namespace of that call
-ranks against, the proximity anchor, the span cache key's call-side digest, and
-the call wrapped as an expression for the value-matching fallback. Built once
-per call, because building any of it per namespace makes the call quadratic in
-its own namespace count — the same shape the [key span index](#key-span-index)
-removed one level up. One type rather than four arguments so that they cannot
-describe different calls: a digest paired with another call's keys is a wrong
-span cached under a key that looks right. The wrapper inside it is a deep clone,
-so it is built on the first namespace that needs one and never for a call whose
-namespaces all hit the span cache. _Avoid_: call keys, sibling context, lookup
-context
 
 **Seen value**:
 A memoized evaluation, keyed by the

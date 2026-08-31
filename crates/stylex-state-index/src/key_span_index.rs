@@ -10,11 +10,10 @@ use swc_core::{
   },
 };
 
-use stylex_utils::hash::stable_hash_wide;
-
-use crate::shared::utils::ast::helpers::{
+use stylex_ast::ast::keys::{
   collect_object_lit_keys, namespace_name_from_prop_key, prop_as_key_value,
 };
+use stylex_utils::hash::stable_hash_wide;
 
 /// How far into its own file a position sits.
 ///
@@ -32,7 +31,7 @@ use crate::shared::utils::ast::helpers::{
 /// subtraction cannot be forgotten at a new call site, and a raw `BytePos`
 /// cannot reach [`FileOffset::distance`] at all.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub(crate) struct FileOffset(u32);
+pub struct FileOffset(u32);
 
 /// Where a module starts, in the source map it was parsed into — what a
 /// [`FileOffset`] is measured against.
@@ -53,10 +52,10 @@ pub(crate) struct FileOffset(u32);
 /// `Option<ModuleBase>`, and absent costs the proximity tie-break rather than
 /// answering from zero.
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct ModuleBase(BytePos);
+pub struct ModuleBase(BytePos);
 
 impl ModuleBase {
-  pub(crate) fn of(module: &Module) -> Self {
+  pub fn of(module: &Module) -> Self {
     Self(module.span.lo)
   }
 }
@@ -113,7 +112,7 @@ impl FileOffset {
 /// Built from the memoized parsed source and discarded with it, so a candidate
 /// span always belongs to the module the caller is resolving against.
 #[derive(Clone, Debug)]
-pub(crate) struct KeySpanIndex {
+pub struct KeySpanIndex {
   by_key: FxHashMap<Atom, Vec<IndexedCandidate>>,
   /// Where the indexed module starts, so a candidate's position can be recorded
   /// as an offset into its own file rather than into a source map the query side
@@ -148,7 +147,7 @@ struct IndexedCandidate {
 }
 
 impl KeySpanIndex {
-  pub(crate) fn build(module: &Module) -> Self {
+  pub fn build(module: &Module) -> Self {
     let mut index = Self {
       by_key: FxHashMap::default(),
       base: ModuleBase::of(module),
@@ -166,7 +165,7 @@ impl KeySpanIndex {
   /// alone is not an answer. Candidates are ranked by how much of the compiled
   /// call they reproduce -- see [`CandidateRank`] -- and a tie is refused rather
   /// than guessed, because a wrong `file:line` is worse than none.
-  pub(crate) fn resolve(&self, query: &NamespaceKeyQuery) -> Span {
+  pub fn resolve(&self, query: &NamespaceKeyQuery) -> Span {
     // Interned rather than borrowed: an `Atom` key cannot be looked up by
     // `&str`, and interning one name is nothing against the walk this replaces.
     let candidates = match self.by_key.get(&Atom::from(query.namespace_key)) {
@@ -338,14 +337,14 @@ fn overlap(authored: &[Atom], compiled: &FxHashSet<Atom>) -> usize {
 /// granted: shorthand expansion has already rewritten the values, and a
 /// synthesized call carries no position at all.
 #[derive(Clone, Debug)]
-pub(crate) struct NamespaceKeyQuery<'a> {
-  pub(crate) namespace_key: &'a str,
+pub struct NamespaceKeyQuery<'a> {
+  pub namespace_key: &'a str,
   /// The namespace keys of the call's object argument, this one included.
   pub(crate) sibling_keys: Rc<FxHashSet<Atom>>,
   /// The keys of this namespace's own value object.
-  pub(crate) namespace_value_keys: FxHashSet<Atom>,
+  pub namespace_value_keys: FxHashSet<Atom>,
   /// Where the call's object argument starts, for the proximity tie-break.
-  pub(crate) target_offset: Option<FileOffset>,
+  pub target_offset: Option<FileOffset>,
   /// The callee of the call being placed, so an object argument to a different
   /// function cannot answer for it.
   pub(crate) callee: Option<&'a Callee>,
@@ -365,7 +364,7 @@ pub(crate) struct NamespaceKeyQuery<'a> {
 /// over a digest built from one call beside the keys of another, and the result
 /// is a wrong span written into the cache under a key that looks right. Held
 /// together, the invariant is the constructor's rather than the caller's.
-pub(crate) struct CallLookup<'a> {
+pub struct CallLookup<'a> {
   call_expr: &'a CallExpr,
   /// The call's object argument, resolved once. Read by every namespace's query,
   /// which is why it is not re-walked per namespace.
@@ -392,7 +391,7 @@ impl<'a> CallLookup<'a> {
   /// Optional, and absent means "no proximity signal" rather than "measured
   /// from zero" -- see [`ModuleBase`]. Without one every candidate ties on
   /// distance and the overlap fields decide.
-  pub(crate) fn new(call_expr: &'a CallExpr, module_base: Option<ModuleBase>) -> Self {
+  pub fn new(call_expr: &'a CallExpr, module_base: Option<ModuleBase>) -> Self {
     let object_arg = first_object_arg(call_expr);
     let sibling_keys: Rc<FxHashSet<Atom>> = Rc::new(
       object_arg
@@ -416,19 +415,19 @@ impl<'a> CallLookup<'a> {
   }
 
   /// The call's half of a span cache key, mixed with each namespace's half.
-  pub(crate) fn digest(&self) -> u128 {
+  pub fn digest(&self) -> u128 {
     self.digest
   }
 
   /// The call as an expression, cloned on the first caller that needs one.
-  pub(crate) fn wrapped(&self) -> &Expr {
+  pub fn wrapped(&self) -> &Expr {
     self
       .wrapped
       .get_or_init(|| Expr::Call(self.call_expr.clone()))
   }
 
   /// A lookup for one of this call's namespaces.
-  pub(crate) fn query(&self, namespace_key: &'a str) -> NamespaceKeyQuery<'a> {
+  pub fn query(&self, namespace_key: &'a str) -> NamespaceKeyQuery<'a> {
     NamespaceKeyQuery {
       namespace_key,
       sibling_keys: Rc::clone(&self.sibling_keys),

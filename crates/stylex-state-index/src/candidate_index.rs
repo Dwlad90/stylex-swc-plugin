@@ -32,7 +32,7 @@ use rustc_hash::FxHashMap;
 /// `SyntaxContext` would join them. Anything that sets that flag has to change
 /// the key.
 #[derive(Clone, Debug)]
-pub(crate) struct CandidateIndex<K, H> {
+pub struct CandidateIndex<K, H> {
   buckets: FxHashMap<K, Vec<H>>,
 }
 
@@ -50,7 +50,7 @@ impl<K: Eq + Hash, H: PartialEq> CandidateIndex<K, H> {
   /// Recording one that is already there is a no-op rather than a second bucket
   /// entry, so a collection filled twice -- which the discovery cycle does --
   /// indexes each entry once.
-  pub(crate) fn record(&mut self, key: K, handle: H) {
+  pub fn record(&mut self, key: K, handle: H) {
     let bucket = self.buckets.entry(key).or_default();
 
     if !bucket.contains(&handle) {
@@ -83,7 +83,7 @@ impl<K: Eq + Hash, H: PartialEq> CandidateIndex<K, H> {
   /// than a pair of calls at four sites: the order matters. Forgetting first
   /// means an entry replaced by something under the *same* key keeps its record
   /// instead of losing it to the forget that would otherwise follow.
-  pub(crate) fn move_entry(&mut self, replaced: Option<K>, recorded: Option<K>, handle: H) {
+  pub fn move_entry(&mut self, replaced: Option<K>, recorded: Option<K>, handle: H) {
     if let Some(replaced) = replaced {
       self.forget(&replaced, &handle);
     }
@@ -101,7 +101,7 @@ impl<K: Eq + Hash, H: PartialEq> CandidateIndex<K, H> {
   /// records nothing of the kind this index holds -- every style in one
   /// top-level array is the common shape -- then answers for free, where hashing
   /// a style object first would cost more than the scan this replaces did.
-  pub(crate) fn candidates(&self, key_of: impl FnOnce() -> K) -> &[H] {
+  pub fn candidates(&self, key_of: impl FnOnce() -> K) -> &[H] {
     if self.buckets.is_empty() {
       return &[];
     }

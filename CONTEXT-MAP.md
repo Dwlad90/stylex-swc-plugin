@@ -44,7 +44,11 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
 - **stylex-types** ([CONTEXT.md](./crates/stylex-types/CONTEXT.md)) -- the
   output types that get serialized into JavaScript.
 - **stylex-ast** ([CONTEXT.md](./crates/stylex-ast/CONTEXT.md)) -- factories
-  that build SWC nodes and convertors that read them back.
+  that build SWC nodes, convertors that read them back, and the readers that
+  answer what a key is written as.
+- **stylex-state-index**
+  ([CONTEXT.md](./crates/stylex-state-index/CONTEXT.md)) -- the lookup indices
+  the state manager answers "which declarator, which call, which span" from.
 - **stylex-evaluator** ([CONTEXT.md](./crates/stylex-evaluator/CONTEXT.md)) --
   flattening the nested config objects `defineVars` and friends accept. The
   general JS evaluator is in `stylex-transform`, not here.

@@ -17,12 +17,11 @@ use swc_core::ecma::{
   visit::{Visit, VisitMut, VisitMutWith, VisitWith},
 };
 
+use stylex_ast::ast::keys::namespace_name_from_member_prop;
+
 use crate::shared::{
   structures::state_manager::{DeclId, StateManager},
-  utils::{
-    ast::helpers::namespace_name_from_member_prop,
-    validators::{is_attrs_call, is_props_call},
-  },
+  utils::validators::{is_attrs_call, is_props_call},
 };
 
 /// Read-only visitor used by [`build_decl_use_graph`] to collect every

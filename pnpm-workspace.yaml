@@ -188,6 +188,7 @@ catalogs:
     '@stylexswc/rollup-plugin': '0.18.6'
     '@stylexswc/rs-compiler': '0.18.6'
     '@stylexswc/rspack-plugin': '0.18.6'
+    '@stylexswc/state-index': '0.18.6'
     '@stylexswc/structures': '0.18.6'
     '@stylexswc/stylex-js': '0.18.6'
     '@stylexswc/transform': '0.18.6'

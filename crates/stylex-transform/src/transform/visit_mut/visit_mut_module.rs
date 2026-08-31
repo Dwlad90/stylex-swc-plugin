@@ -13,13 +13,12 @@ use swc_core::{
   },
 };
 
+use stylex_state_index::key_span_index::ModuleBase;
+
 use crate::{
   StyleXTransform,
   shared::{
-    structures::{
-      key_span_index::ModuleBase,
-      state_manager::{BindingWrites, flush_pending_insertions},
-    },
+    structures::state_manager::{BindingWrites, flush_pending_insertions},
     utils::{
       common::fill_top_level_expressions,
       live_declarations::{build_decl_use_graph, compute_live_set, mark_style_vars_to_keep},

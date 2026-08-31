@@ -2,7 +2,7 @@
 mod candidate_index {
   use std::cell::Cell;
 
-  use crate::shared::structures::candidate_index::CandidateIndex;
+  use crate::candidate_index::CandidateIndex;
 
   /// A key the tests can spell without building an expression, since the index
   /// never derives one itself.
@@ -229,6 +229,27 @@ mod candidate_index {
     // Neither side is a no-op rather than a panic.
     index.move_entry(None, None, 1);
     assert!(index.candidates(|| KEY).is_empty());
+  }
+
+  /// One lookup site asked before and after anything is recorded, so the same
+  /// closure walks both the empty short-circuit and the bucket behind it.
+  ///
+  /// Written as one site on purpose: the key is taken by a closure, so every
+  /// call site is its own instantiation, and a site that only ever meets an
+  /// empty index leaves the lookup below it unexercised in that instantiation.
+  #[test]
+  fn one_lookup_site_answers_before_and_after_anything_is_recorded() {
+    fn look(index: &CandidateIndex<u128, usize>) -> Vec<usize> {
+      index.candidates(|| KEY).to_vec()
+    }
+
+    let mut index = CandidateIndex::default();
+
+    assert!(look(&index).is_empty());
+
+    index.record(KEY, 7usize);
+
+    assert_eq!(look(&index), [7]);
   }
 
   /// Far past any module, to show the bucket that answers is the one the key

@@ -11,13 +11,15 @@ use swc_core::{
 use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
 use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
+use stylex_ast::ast::keys::namespace_name_from_member_prop;
+
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{
     functions::FunctionMap,
     state_manager::{DeclId, StateManager},
   },
-  utils::{ast::helpers::namespace_name_from_member_prop, js::evaluate::evaluate},
+  utils::js::evaluate::evaluate,
 };
 
 pub(crate) fn member_expression(

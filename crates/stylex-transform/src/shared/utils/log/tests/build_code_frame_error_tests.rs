@@ -15,8 +15,10 @@ use swc_core::ecma::ast::{
   Module, ModuleDecl, ModuleItem, Str,
 };
 
+use stylex_state_index::key_span_index::CallLookup;
+
 use crate::shared::{
-  structures::{key_span_index::CallLookup, state_manager::StateManager},
+  structures::state_manager::StateManager,
   utils::log::build_code_frame_error::{
     CodeFrame, build_code_frame_error_and_panic, frame_declaration_of,
     get_key_span_from_source_code, get_span_from_source_code, print_module,

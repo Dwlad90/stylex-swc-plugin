@@ -2624,7 +2624,7 @@ dependencies = [
 
 [[package]]
 name = "postcss_value_parser"
-version = "0.18.6-rc.1"
+version = "0.18.6"
 dependencies = [
  "criterion",
 ]
@@ -3394,6 +3394,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylex_state_index"
+version = "0.18.6"
+dependencies = [
+ "ctor",
+ "pretty_env_logger",
+ "rustc-hash",
+ "stylex_ast",
+ "stylex_utils",
+ "swc_core",
+]
+
+[[package]]
 name = "stylex_structures"
 version = "0.18.6"
 dependencies = [
@@ -3468,6 +3480,7 @@ dependencies = [
  "stylex_macros",
  "stylex_path_resolver",
  "stylex_regex",
+ "stylex_state_index",
  "stylex_structures",
  "stylex_styleq",
  "stylex_types",

@@ -10,12 +10,11 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr, KeyValueProp},
 };
 
+use stylex_state_index::key_span_index::CallLookup;
+
 use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  structures::{
-    functions::FunctionMap, key_span_index::CallLookup, state_manager::StateManager,
-    types::StylesObjectMap,
-  },
+  structures::{functions::FunctionMap, state_manager::StateManager, types::StylesObjectMap},
   utils::{
     ast::convertors::convert_expr_to_str,
     js::evaluate::evaluate_obj_key,

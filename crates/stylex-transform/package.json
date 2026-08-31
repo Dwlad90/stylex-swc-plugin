@@ -43,6 +43,7 @@
     "@stylexswc/macros": "catalog:internal",
     "@stylexswc/path-resolver": "catalog:internal",
     "@stylexswc/regex": "catalog:internal",
+    "@stylexswc/state-index": "catalog:internal",
     "@stylexswc/structures": "catalog:internal",
     "@stylexswc/types": "catalog:internal",
     "@stylexswc/utils": "catalog:internal",

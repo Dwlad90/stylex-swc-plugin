@@ -15,9 +15,8 @@ use crate::shared::enums::data_structures::{
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_types::structures::style_key::{ClassName, RuleKey};
 
-use super::{
-  functions::FunctionConfigType, key_span_index::KeySpanIndex, state_manager::StateManager,
-};
+use super::{functions::FunctionConfigType, state_manager::StateManager};
+use stylex_state_index::key_span_index::KeySpanIndex;
 use stylex_structures::{inline_style::InlineStyle, named_import_source::ImportSources};
 
 pub(crate) type FlatCompiledStyles = IndexMap<String, Rc<FlatCompiledStylesValue>>;

@@ -47,6 +47,10 @@ use stylex_enums::{
   core::TransformationCycle, counter_mode::CounterMode, declaration_type::DeclarationType,
   import_path_resolution::ImportPathResolution,
 };
+use stylex_state_index::{
+  candidate_index::CandidateIndex,
+  key_span_index::{KeySpanIndex, ModuleBase},
+};
 use stylex_structures::{
   style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
 };
@@ -56,8 +60,6 @@ use stylex_utils::hash::{
 };
 
 use super::{
-  candidate_index::CandidateIndex,
-  key_span_index::{KeySpanIndex, ModuleBase},
   seen_value::SeenValue,
   types::{InjectImportIdents, SeenModuleSource, StylesObjectMap},
 };

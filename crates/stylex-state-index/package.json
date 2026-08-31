@@ -1,6 +1,6 @@
 {
-  "name": "@stylexswc/postcss-value-parser",
-  "description": "Loose CSS declaration-value scanner that preserves the author's own characters",
+  "name": "@stylexswc/state-index",
+  "description": "Lookup indices the StyleX state manager answers its position questions from",
   "version": "0.18.6",
   "private": true,
   "sideEffects": false,
@@ -20,8 +20,6 @@
     "format:rs:check": "cargo fmt -- --check",
     "format:toml": "taplo format",
     "format:toml:check": "taplo format --check",
-    "generate:value-parser-cases": "node scripts/generate-value-parser-cases.mjs | rustfmt --edition 2024 > src/tests/cases.rs",
-    "generate:value-parser-cases:check": "node scripts/generate-value-parser-cases.mjs | rustfmt --edition 2024 | diff -u src/tests/cases.rs -",
     "prepublishOnly": "pnpm run build",
     "test": "echo \"Skip: tests with workspace tests suite\" || true",
     "test:coverage": "scripty",
@@ -34,14 +32,14 @@
     }
   },
   "devDependencies": {
+    "@stylexswc/ast": "catalog:internal",
+    "@stylexswc/utils": "catalog:internal",
     "@taplo/cli": "catalog:tooling",
-    "npm-run-all2": "catalog:tooling",
-    "postcss-value-parser": "catalog:tooling"
+    "npm-run-all2": "catalog:tooling"
   },
   "keywords": [
-    "css",
-    "parser",
     "stylex",
-    "swc"
+    "swc",
+    "swc-plugin"
   ]
 }

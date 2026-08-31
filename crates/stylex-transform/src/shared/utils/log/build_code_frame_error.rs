@@ -29,13 +29,10 @@ use swc_core::{
 };
 
 use crate::shared::{
-  structures::{
-    key_span_index::{CallLookup, NamespaceKeyQuery},
-    state_manager::StateManager,
-  },
-  utils::log::declaration_span::find_declaration_span,
+  structures::state_manager::StateManager, utils::log::declaration_span::find_declaration_span,
 };
 use stylex_regex::regex::URL_REGEX;
+use stylex_state_index::key_span_index::{CallLookup, NamespaceKeyQuery};
 use stylex_utils::hash::stable_hash_wide;
 
 pub(crate) struct CodeFrame {

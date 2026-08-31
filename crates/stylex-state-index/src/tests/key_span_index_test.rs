@@ -5,7 +5,9 @@ mod key_span_index {
   use rustc_hash::FxHashSet;
   use swc_core::{
     atoms::Atom,
-    common::{BytePos, DUMMY_SP, FileName, SourceMap, Span, SyntaxContext, sync::Lrc},
+    common::{
+      BytePos, DUMMY_SP, EqIgnoreSpan, FileName, SourceMap, Span, SyntaxContext, sync::Lrc,
+    },
     ecma::{
       ast::{
         CallExpr, Callee, Decl, EsVersion, Expr, ExprStmt, Ident, IdentName, KeyValueProp, Lit,
@@ -15,7 +17,7 @@ mod key_span_index {
     },
   };
 
-  use crate::shared::structures::key_span_index::{
+  use crate::key_span_index::{
     CallLookup, CandidateRank, FileOffset, KeySpanIndex, ModuleBase, NamespaceKeyQuery,
   };
 
@@ -665,6 +667,73 @@ b=stylex.create({root:{color:'blue'}});";
         .target_offset
         .is_some(),
       "and a base is what makes one measurable"
+    );
+  }
+
+  /// A property the index cannot read a name off -- a spread here -- is skipped,
+  /// while the properties beside it are still indexed.
+  #[test]
+  fn a_property_with_no_readable_name_is_skipped() {
+    let source = "\
+const styles = stylex.create({
+  ...shared,
+  root: { color: 'red' },
+});
+";
+
+    assert_eq!(
+      resolved_line(source, "root", &["root"], &["color"]),
+      line_of(source, "root:")
+    );
+  }
+
+  /// The compiled call spells the key but binds it to a reference rather than to
+  /// an object literal, so the namespace contributes no value keys to rank on.
+  #[test]
+  fn a_namespace_bound_to_a_reference_offers_no_value_keys() {
+    let module = parse("const styles = stylex.create({ root: someVar });\n");
+    let calls = create_calls(&module);
+
+    let call = match calls.first() {
+      Some(call) => call,
+      None => panic!("the fixture no longer holds a call"),
+    };
+
+    assert!(
+      CallLookup::new(call, Some(ModuleBase::of(&module)))
+        .query("root")
+        .namespace_value_keys
+        .is_empty(),
+      "a namespace that is not an object literal spells no value keys"
+    );
+  }
+
+  /// The wrapped call is a deep clone, so it is built once and handed back to
+  /// every later caller rather than cloned again.
+  #[test]
+  fn the_wrapped_call_is_built_once_and_reused() {
+    let module = parse("const styles = stylex.create({ root: { color: 'red' } });\n");
+    let calls = create_calls(&module);
+
+    let call = match calls.first() {
+      Some(call) => call,
+      None => panic!("the fixture no longer holds a call"),
+    };
+
+    let lookup = CallLookup::new(call, Some(ModuleBase::of(&module)));
+    let first = lookup.wrapped();
+
+    match first {
+      Expr::Call(wrapped) => assert!(
+        wrapped.eq_ignore_span(call),
+        "the wrapper must carry the call it was built from"
+      ),
+      other => panic!("the wrapper is not a call: {other:?}"),
+    }
+
+    assert!(
+      std::ptr::eq(first, lookup.wrapped()),
+      "a second reader must get the wrapper the first one built"
     );
   }
 

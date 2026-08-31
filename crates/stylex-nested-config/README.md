@@ -1,4 +1,4 @@
-# `stylex-evaluator`
+# `stylex-nested-config`
 
 > Part of the
 > [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
@@ -6,17 +6,15 @@
 
 ## Overview
 
-Pure utility functions for JS expression evaluation — expression traversal,
-value extraction, and type coercion helpers used by the transform layer. This
-crate was extracted so that evaluation helpers with no `StateManager` dependency
-can be reused by `stylex-css` and tested in isolation from the full transform
-pipeline. Every function is stateless, operating only on SWC AST nodes and
-primitive values — package resolution is the single exception, and it is called
-out below.
+Reads the arbitrarily nested configuration objects that `defineVars`,
+`defineConsts` and `createTheme` accept, and flattens them into the single map
+of dot-joined keys those APIs emit. Every function is stateless and operates
+only on SWC AST nodes and primitive values.
 
-- **Binary expression evaluation** — `evaluate_bin_expr` handles arithmetic
-  (`+`, `-`, `*`, `/`, `%`, `**`), bitwise (`|`, `^`, `&`), and shift (`<<`,
-  `>>`, `>>>`) operators on `f64` values
+Two helpers the flatteners do not use — binary-expression arithmetic and Node
+package resolution — also sit here and still await a better home. Package
+resolution is the one function in the crate that reads the filesystem.
+
 - **Nested configuration values** — `NestedVarsValue` and the
   `object_lit_to_nested_*_config` readers turn a `defineVars`, `createTheme` or
   `defineConsts` object literal into a nested map, and the
@@ -28,13 +26,16 @@ out below.
   and a `default` with at-rule alternatives
 - **Value emission** — `to_vars_config_value` and `value_with_default_to_expr`
   turn a nested value back into the SWC expression the transform writes out
+- **Binary expression evaluation** — `evaluate_bin_expr` handles arithmetic
+  (`+`, `-`, `*`, `/`, `%`, `**`), bitwise (`|`, `^`, `&`), and shift (`<<`,
+  `>>`, `>>>`) operators on `f64` values
 - **Node.js integration** — `resolve_node_package_path` resolves package paths
   with CommonJS / ESM support, which is the one function here that reads the
   filesystem
 
 ## Architecture
 
-- **Layer**: 8 — Evaluation
+- **Layer**: 8 — Nested config and inline syntax
 - **Depends on**:
   [`stylex-ast`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-ast),
   [`stylex-constants`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-constants),
@@ -92,8 +93,8 @@ graph TD
     stylex_diagnostics["diagnostics"]
   end
 
-  subgraph L8["Evaluation"]
-    stylex_evaluator["evaluator"]
+  subgraph L8["Nested Config"]
+    stylex_nested_config["nested-config"]
   end
 
   subgraph L9["CSS Processing"]
@@ -143,18 +144,18 @@ graph TD
   stylex_diagnostics   --> stylex_state_index
   stylex_diagnostics   --> stylex_utils
 
-  stylex_evaluator     --> stylex_ast
-  stylex_evaluator     --> stylex_constants
-  stylex_evaluator     --> stylex_js
-  stylex_evaluator     --> stylex_macros
-  stylex_evaluator     --> stylex_path_resolver
-  stylex_evaluator     --> stylex_types
+  stylex_nested_config --> stylex_ast
+  stylex_nested_config --> stylex_constants
+  stylex_nested_config --> stylex_js
+  stylex_nested_config --> stylex_macros
+  stylex_nested_config --> stylex_path_resolver
+  stylex_nested_config --> stylex_types
 
   stylex_css           --> stylex_ast
   stylex_css           --> stylex_constants
   stylex_css           --> stylex_css_parser
   stylex_css           --> stylex_enums
-  stylex_css           --> stylex_evaluator
+  stylex_css           --> stylex_nested_config
   stylex_css           --> stylex_macros
   stylex_css           --> stylex_regex
   stylex_css           --> stylex_structures
@@ -167,7 +168,7 @@ graph TD
   stylex_transform     --> stylex_css_parser
   stylex_transform     --> stylex_diagnostics
   stylex_transform     --> stylex_enums
-  stylex_transform     --> stylex_evaluator
+  stylex_transform     --> stylex_nested_config
   stylex_transform     --> stylex_logs
   stylex_transform     --> stylex_macros
   stylex_transform     --> stylex_path_resolver
@@ -209,7 +210,7 @@ graph TD
   class stylex_ast l5
   class stylex_state_index l6
   class stylex_diagnostics l7
-  class stylex_evaluator l8
+  class stylex_nested_config l8
   class stylex_css l9
   class stylex_transform l10
   class stylex_compiler_rs l11

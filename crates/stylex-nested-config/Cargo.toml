@@ -1,8 +1,8 @@
 [package]
-description = "JS expression evaluation engine for StyleX SWC plugin"
+description = "Nested config flattening for the StyleX SWC plugin"
 edition.workspace = true
 license.workspace = true
-name = "stylex_evaluator"
+name = "stylex_nested_config"
 repository.workspace = true
 rust-version.workspace = true
 version.workspace = true

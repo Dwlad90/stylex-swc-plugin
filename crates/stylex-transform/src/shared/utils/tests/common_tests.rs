@@ -20,7 +20,7 @@ use stylex_ast::ast::convertors::{
   normalize_expr,
 };
 use stylex_ast::ast::factories::create_ident;
-use stylex_evaluator::common::evaluate_bin_expr;
+use stylex_nested_config::common::evaluate_bin_expr;
 
 // ──────────────────────────────────────────────
 // Helpers

@@ -1,8 +1,8 @@
-use stylex_evaluator::nested::{
+use stylex_macros::stylex_panic;
+use stylex_nested_config::nested::{
   flatten_nested_overrides_config, object_lit_to_nested_string_config,
   object_lit_to_nested_vars_config,
 };
-use stylex_macros::stylex_panic;
 use stylex_structures::nested::flatten_nested_string_config;
 
 use crate::shared::{

@@ -1,4 +1,4 @@
-use stylex_evaluator::common::evaluate_bin_expr;
+use stylex_nested_config::common::evaluate_bin_expr;
 // Import error handling macros from shared utilities
 use stylex_macros::{
   as_expr_or_panic, stylex_bail, stylex_panic, stylex_unimplemented, unwrap_or_panic,

@@ -6,7 +6,7 @@ use swc_core::{
 };
 
 use stylex_ast::ast::convertors::{get_expr_from_var_decl, normalize_expr};
-use stylex_evaluator::common::{evaluate_bin_expr, resolve_node_package_path};
+use stylex_nested_config::common::{evaluate_bin_expr, resolve_node_package_path};
 
 // ---------------------------------------------------------------------------
 // evaluate_bin_expr
@@ -380,7 +380,7 @@ mod resolve_node_package_path_tests {
       .duration_since(UNIX_EPOCH)
       .unwrap()
       .as_nanos();
-    let temp_root = std::env::temp_dir().join(format!("stylex-evaluator-resolve-{unique}"));
+    let temp_root = std::env::temp_dir().join(format!("stylex-nested-config-resolve-{unique}"));
     let pkg_dir = temp_root.join("node_modules").join("typescript");
 
     fs::create_dir_all(&pkg_dir).unwrap();

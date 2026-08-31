@@ -1,5 +1,5 @@
 // Tests for node package resolution error messages from basedir helper.
-// Source: crates/stylex-evaluator/src/common.rs
+// Source: crates/stylex-nested-config/src/common.rs
 
 use std::path::PathBuf;
 

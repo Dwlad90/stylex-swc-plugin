@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
-use stylex_evaluator::nested::{flatten_nested_vars_config, object_lit_to_nested_vars_config};
 use stylex_macros::stylex_panic;
+use stylex_nested_config::nested::{flatten_nested_vars_config, object_lit_to_nested_vars_config};
 
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,

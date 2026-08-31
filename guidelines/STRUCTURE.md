@@ -24,7 +24,8 @@ for_, and the vocabulary it defines, is in
 - **5 -- AST foundations**: `stylex-ast`
 - **6 -- State lookup**: `stylex-state-index`
 - **7 -- Diagnostics**: `stylex-diagnostics`
-- **8 -- Evaluation and inline syntax**: `stylex-evaluator`, `stylex-atoms`
+- **8 -- Nested config and inline syntax**: `stylex-nested-config`,
+  `stylex-atoms`
 - **9 -- CSS processing**: `stylex-css`
 - **10 -- StyleX transform**: `stylex-transform`
 - **11 -- Compilers** (top-level consumers): `stylex-rs-compiler`

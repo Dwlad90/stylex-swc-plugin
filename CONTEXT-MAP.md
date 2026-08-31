@@ -52,9 +52,9 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
 - **stylex-diagnostics**
   ([CONTEXT.md](./crates/stylex-diagnostics/CONTEXT.md)) -- code frames and the
   declaration position an error should point at.
-- **stylex-evaluator** ([CONTEXT.md](./crates/stylex-evaluator/CONTEXT.md)) --
-  flattening the nested config objects `defineVars` and friends accept. The
-  general JS evaluator is in `stylex-transform`, not here.
+- **stylex-nested-config**
+  ([CONTEXT.md](./crates/stylex-nested-config/CONTEXT.md)) -- flattening the
+  nested config objects `defineVars` and friends accept.
 - **stylex-css** ([CONTEXT.md](./crates/stylex-css/CONTEXT.md)) -- a resolved
   property/value pair into injectable CSS: expansion, normalization, direction,
   priority.

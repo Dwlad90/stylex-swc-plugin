@@ -1,10 +1,10 @@
-# stylex-evaluator
+# stylex-nested-config
 
 Helpers for the shapes `defineVars`, `defineConsts` and `createTheme` accept:
 arbitrarily nested configuration objects, flattened into a single map of
-dot-joined keys. The general JS expression evaluator is not here — it lives in
-[stylex-transform](../stylex-transform/CONTEXT.md), because it needs the
-transform's state.
+dot-joined keys. Two helpers with no part in flattening — binary-expression
+arithmetic and Node package resolution — also sit here and define no vocabulary
+of their own.
 
 ## Language
 

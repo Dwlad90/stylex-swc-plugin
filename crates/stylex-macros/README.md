@@ -23,7 +23,7 @@ other crate imports.
 - **Layer**: 1 — Macros
 - **Depends on**: `stylex-constants`
 - **Depended on by**: `stylex-ast`, `stylex-css`, `stylex-css-parser`,
-  `stylex-enums`, `stylex-evaluator`, `stylex-js`, `stylex-logs`,
+  `stylex-enums`, `stylex-js`, `stylex-logs`, `stylex-nested-config`,
   `stylex-path-resolver`, `stylex-rs-compiler`, `stylex-structures`,
   `stylex-transform`, `stylex-types`
 
@@ -73,8 +73,8 @@ graph TD
     stylex_diagnostics["diagnostics"]
   end
 
-  subgraph L8["Evaluation"]
-    stylex_evaluator["evaluator"]
+  subgraph L8["Nested Config"]
+    stylex_nested_config["nested-config"]
   end
 
   subgraph L9["CSS Processing"]
@@ -124,18 +124,18 @@ graph TD
   stylex_diagnostics   --> stylex_state_index
   stylex_diagnostics   --> stylex_utils
 
-  stylex_evaluator     --> stylex_ast
-  stylex_evaluator     --> stylex_constants
-  stylex_evaluator     --> stylex_js
-  stylex_evaluator     --> stylex_macros
-  stylex_evaluator     --> stylex_path_resolver
-  stylex_evaluator     --> stylex_types
+  stylex_nested_config --> stylex_ast
+  stylex_nested_config --> stylex_constants
+  stylex_nested_config --> stylex_js
+  stylex_nested_config --> stylex_macros
+  stylex_nested_config --> stylex_path_resolver
+  stylex_nested_config --> stylex_types
 
   stylex_css           --> stylex_ast
   stylex_css           --> stylex_constants
   stylex_css           --> stylex_css_parser
   stylex_css           --> stylex_enums
-  stylex_css           --> stylex_evaluator
+  stylex_css           --> stylex_nested_config
   stylex_css           --> stylex_macros
   stylex_css           --> stylex_regex
   stylex_css           --> stylex_structures
@@ -148,7 +148,7 @@ graph TD
   stylex_transform     --> stylex_css_parser
   stylex_transform     --> stylex_diagnostics
   stylex_transform     --> stylex_enums
-  stylex_transform     --> stylex_evaluator
+  stylex_transform     --> stylex_nested_config
   stylex_transform     --> stylex_logs
   stylex_transform     --> stylex_macros
   stylex_transform     --> stylex_path_resolver
@@ -190,7 +190,7 @@ graph TD
   class stylex_ast l5
   class stylex_state_index l6
   class stylex_diagnostics l7
-  class stylex_evaluator l8
+  class stylex_nested_config l8
   class stylex_css l9
   class stylex_transform l10
   class stylex_compiler_rs l11

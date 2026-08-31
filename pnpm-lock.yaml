@@ -206,9 +206,6 @@ catalogs:
     '@stylexswc/enums':
       specifier: 0.18.6
       version: 0.18.6
-    '@stylexswc/evaluator':
-      specifier: 0.18.6
-      version: 0.18.6
     '@stylexswc/jest':
       specifier: 0.18.6
       version: 0.18.6
@@ -216,6 +213,9 @@ catalogs:
       specifier: 0.18.6
       version: 0.18.6
     '@stylexswc/macros':
+      specifier: 0.18.6
+      version: 0.18.6
+    '@stylexswc/nested-config':
       specifier: 0.18.6
       version: 0.18.6
     '@stylexswc/nextjs-plugin':
@@ -1977,12 +1977,12 @@ importers:
       '@stylexswc/enums':
         specifier: catalog:internal
         version: link:../stylex-enums
-      '@stylexswc/evaluator':
-        specifier: catalog:internal
-        version: link:../stylex-evaluator
       '@stylexswc/macros':
         specifier: catalog:internal
         version: link:../stylex-macros
+      '@stylexswc/nested-config':
+        specifier: catalog:internal
+        version: link:../stylex-nested-config
       '@stylexswc/regex':
         specifier: catalog:internal
         version: link:../stylex-regex
@@ -2047,39 +2047,6 @@ importers:
         specifier: catalog:tooling
         version: 9.0.3
 
-  crates/stylex-evaluator:
-    devDependencies:
-      '@stylexswc/ast':
-        specifier: catalog:internal
-        version: link:../stylex-ast
-      '@stylexswc/constants':
-        specifier: catalog:internal
-        version: link:../stylex-constants
-      '@stylexswc/enums':
-        specifier: catalog:internal
-        version: link:../stylex-enums
-      '@stylexswc/macros':
-        specifier: catalog:internal
-        version: link:../stylex-macros
-      '@stylexswc/path-resolver':
-        specifier: catalog:internal
-        version: link:../stylex-path-resolver
-      '@stylexswc/structures':
-        specifier: catalog:internal
-        version: link:../stylex-structures
-      '@stylexswc/stylex-js':
-        specifier: catalog:internal
-        version: link:../stylex-js
-      '@stylexswc/types':
-        specifier: catalog:internal
-        version: link:../stylex-types
-      '@taplo/cli':
-        specifier: catalog:tooling
-        version: 0.7.0
-      npm-run-all2:
-        specifier: catalog:tooling
-        version: 9.0.3
-
   crates/stylex-js:
     devDependencies:
       '@stylexswc/constants':
@@ -2112,6 +2079,39 @@ importers:
       '@stylexswc/constants':
         specifier: catalog:internal
         version: link:../stylex-constants
+      '@taplo/cli':
+        specifier: catalog:tooling
+        version: 0.7.0
+      npm-run-all2:
+        specifier: catalog:tooling
+        version: 9.0.3
+
+  crates/stylex-nested-config:
+    devDependencies:
+      '@stylexswc/ast':
+        specifier: catalog:internal
+        version: link:../stylex-ast
+      '@stylexswc/constants':
+        specifier: catalog:internal
+        version: link:../stylex-constants
+      '@stylexswc/enums':
+        specifier: catalog:internal
+        version: link:../stylex-enums
+      '@stylexswc/macros':
+        specifier: catalog:internal
+        version: link:../stylex-macros
+      '@stylexswc/path-resolver':
+        specifier: catalog:internal
+        version: link:../stylex-path-resolver
+      '@stylexswc/structures':
+        specifier: catalog:internal
+        version: link:../stylex-structures
+      '@stylexswc/stylex-js':
+        specifier: catalog:internal
+        version: link:../stylex-js
+      '@stylexswc/types':
+        specifier: catalog:internal
+        version: link:../stylex-types
       '@taplo/cli':
         specifier: catalog:tooling
         version: 0.7.0

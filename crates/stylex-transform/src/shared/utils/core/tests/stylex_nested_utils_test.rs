@@ -8,7 +8,7 @@ use stylex_ast::ast::{
   convertors::get_key_values_from_object,
   factories::{create_key_value_prop, create_object_expression},
 };
-use stylex_evaluator::nested::{
+use stylex_nested_config::nested::{
   NestedVarsValue, flatten_nested_consts_config, flatten_nested_overrides_config,
   flatten_nested_vars_config, object_lit_to_nested_vars_config,
 };

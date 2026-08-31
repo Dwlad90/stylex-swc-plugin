@@ -1,0 +1,721 @@
+error: [StyleX] a > A style array value can only contain strings or numbers.
+error: [StyleX] a > A style value can only contain an array, string or number.
+error: [StyleX] a > color > Cannot carry the function 'pick' into a fold.
+error: [StyleX] a > color > The stylex.env object is not configured. Check that the 'env' option is set in your StyleX configuration.
+error: [StyleX] a > color > The stylex.env object is not configured. Check that the 'env' option is set in your StyleX configuration.
+error: [StyleX] a > color > unknown error
+error: [StyleX] a > color > unknown error
+error: [StyleX] a > content > Cannot convert undefined or null to object
+error: [StyleX] a > content > Unsupported expression: SpreadElement
+error: [StyleX] a > flexGrow > unknown error
+error: [StyleX] a > flexGrow > unknown error
+error: [StyleX] a > fontFamily > Cannot fold 'keys' at compile time.
+error: [StyleX] a > fontFamily > Expected a string value but received a non-string expression.
+error: [StyleX] a > fontFamily > Expected a string value but received a non-string expression.
+error: [StyleX] a > height > Unsupported expression: BinaryExpression
+error: [StyleX] a > Unsupported object method.
+error: [StyleX] a > Unsupported object method.
+error: [StyleX] a > width > Cannot fold 'values' at compile time.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style array value can only contain strings or numbers.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value can only contain an array, string or number.
+error: [StyleX] A style value must be static
+error: [StyleX] base > --depth > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > :hover > :focus > content > Cannot call 'toFixed' on a number literal.
+error: [StyleX] base > color > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > color > Cannot coerce this value at compile time.
+error: [StyleX] base > color > Cannot coerce this value at compile time.
+error: [StyleX] base > color > Cannot coerce this value at compile time.
+error: [StyleX] base > color > Cannot coerce this value at compile time.
+error: [StyleX] base > color > Cannot fold 'Array' at compile time.
+error: [StyleX] base > color > Cannot fold 'join' at compile time.
+error: [StyleX] base > color > Could not resolve the path to the imported file.
+error: [StyleX] base > color > Could not resolve the path to the imported file.
+error: [StyleX] base > color > Could not resolve the path to the imported file.
+error: [StyleX] base > color > Could not resolve the path to the imported file.
+error: [StyleX] base > color > Could not resolve the path to the imported file.
+error: [StyleX] base > color > Folded string is too large to evaluate at compile time.
+error: [StyleX] base > color > Function argument must be a static expression.
+error: [StyleX] base > color > Referenced value is not a constant.
+error: [StyleX] base > color > Referenced value is not a constant.
+error: [StyleX] base > color > Referenced value is not a constant.
+error: [StyleX] base > color > Referenced value is not a constant.
+error: [StyleX] base > color > The function's body has no compile-time value.
+error: [StyleX] base > color > Unexpected error:
+error: [StyleX] base > color > Unsupported expression: CallExpression
+error: [StyleX] base > color > Unsupported expression: ClassDeclaration
+error: [StyleX] base > color > Unsupported expression: ClassDeclaration
+error: [StyleX] base > color > Unsupported expression: ClassDeclaration
+error: [StyleX] base > color > Unsupported expression: ClassDeclaration
+error: [StyleX] base > color > Unsupported expression: ClassDeclaration
+error: [StyleX] base > color > Unsupported expression: FunctionDeclaration
+error: [StyleX] base > color > Unsupported expression: FunctionDeclaration
+error: [StyleX] base > color > Unsupported expression: FunctionDeclaration
+error: [StyleX] base > color > Unsupported expression: FunctionDeclaration
+error: [StyleX] base > color > Unsupported expression: FunctionDeclaration
+error: [StyleX] base > content > Array length is too large to evaluate at compile time.
+error: [StyleX] base > content > Cannot bound the array 'Array.from' would build inside a callback.
+error: [StyleX] base > content > Cannot bound the array 'Array.from' would build inside a callback.
+error: [StyleX] base > content > Cannot bound the array 'Array.from' would build inside a callback.
+error: [StyleX] base > content > Cannot bound the array 'Array.from' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array.from' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array.from' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array.from' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array.from' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array.from' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array.from' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build inside a callback.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build inside a callback.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build inside a callback.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the array 'Array' would build.
+error: [StyleX] base > content > Cannot bound the string 'padStart' would build inside a callback.
+error: [StyleX] base > content > Cannot bound the string 'padStart' would build inside a callback.
+error: [StyleX] base > content > Cannot bound the string 'padStart' would build inside a callback.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build inside a callback.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build inside a callback.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > content > Cannot call 'toFixed' on a number literal.
+error: [StyleX] base > content > Cannot call 'toFixed' on a number literal.
+error: [StyleX] base > content > Cannot call 'toFixed' on a number literal.
+error: [StyleX] base > content > Cannot call 'toFixed' on a number literal.
+error: [StyleX] base > content > Cannot call 'toFixed' on a number literal.
+error: [StyleX] base > content > Cannot call 'toFixed' on a number literal.
+error: [StyleX] base > content > Cannot call 'toFixed' on a number literal.
+error: [StyleX] base > content > Cannot call 'toFixed' on a number literal.
+error: [StyleX] base > content > Cannot call 'toFixed' on a number literal.
+error: [StyleX] base > content > Cannot call 'toString' on a number literal.
+error: [StyleX] base > content > Cannot call 'toString' on a number literal.
+error: [StyleX] base > content > Cannot call 'valueOf' on a number literal.
+error: [StyleX] base > content > Cannot carry a folded function back from the engine.
+error: [StyleX] base > content > Cannot carry a folded object back from the engine.
+error: [StyleX] base > content > Cannot carry a folded object back from the engine.
+error: [StyleX] base > content > Cannot carry the function 'b' into a fold.
+error: [StyleX] base > content > Cannot carry the function 'b' into a fold.
+error: [StyleX] base > content > Cannot carry the function 'first' into a fold.
+error: [StyleX] base > content > Cannot carry the function 'firstOf' into a fold.
+error: [StyleX] base > content > Cannot carry the function 'inner' into a fold.
+error: [StyleX] base > content > Cannot carry the function 'inner' into a fold.
+error: [StyleX] base > content > Cannot carry the function 'tag' into a fold.
+error: [StyleX] base > content > Cannot carry the function 'upper' into a fold.
+error: [StyleX] base > content > Cannot carry the function 'upper' into a fold.
+error: [StyleX] base > content > Cannot carry the function 'upper' into a fold.
+error: [StyleX] base > content > Cannot carry the function 'upper' into a fold.
+error: [StyleX] base > content > Cannot carry the function 'upper' into a fold.
+error: [StyleX] base > content > Cannot carry the function 'upper' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'Array' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'Boolean' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'Boolean' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'Boolean' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'Boolean' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'Boolean' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'Boolean' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'Boolean' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'Boolean' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'Boolean' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'Math' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'Math' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'Object' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'String' into a fold.
+error: [StyleX] base > content > Cannot carry the global 'String' into a fold.
+error: [StyleX] base > content > Cannot carry the value of 'a' into a fold.
+error: [StyleX] base > content > Cannot carry the value of 'big' into a fold.
+error: [StyleX] base > content > Cannot carry the value of 'big' into a fold.
+error: [StyleX] base > content > Cannot carry the value of 'big' into a fold.
+error: [StyleX] base > content > Cannot carry the value of 'palette' into a fold.
+error: [StyleX] base > content > Cannot carry the value of 'parts' into a fold.
+error: [StyleX] base > content > Cannot carry the value of 'text' into a fold.
+error: [StyleX] base > content > Cannot coerce this value at compile time.
+error: [StyleX] base > content > Cannot coerce this value at compile time.
+error: [StyleX] base > content > Cannot fold 'Array' at compile time.
+error: [StyleX] base > content > Cannot fold 'Array' at compile time.
+error: [StyleX] base > content > Cannot fold 'Array' at compile time.
+error: [StyleX] base > content > Cannot fold 'Array' at compile time.
+error: [StyleX] base > content > Cannot fold 'Array' at compile time.
+error: [StyleX] base > content > Cannot fold 'Array' at compile time.
+error: [StyleX] base > content > Cannot fold 'from' at compile time.
+error: [StyleX] base > content > Cannot fold 'from' at compile time.
+error: [StyleX] base > content > Cannot fold 'from' at compile time.
+error: [StyleX] base > content > Cannot fold 'join' at compile time.
+error: [StyleX] base > content > Cannot fold 'join' at compile time.
+error: [StyleX] base > content > Cannot fold 'map' at compile time.
+error: [StyleX] base > content > Cannot fold 'map' at compile time.
+error: [StyleX] base > content > Cannot fold 'map' at compile time.
+error: [StyleX] base > content > Cannot fold 'map' at compile time.
+error: [StyleX] base > content > Cannot fold 'map' at compile time.
+error: [StyleX] base > content > Cannot fold 'map' at compile time.
+error: [StyleX] base > content > Cannot fold 'Math.random' at compile time.
+error: [StyleX] base > content > Cannot fold 'Object.assign' at compile time.
+error: [StyleX] base > content > Cannot fold 'Object.assign' at compile time.
+error: [StyleX] base > content > Cannot fold 'Object.defineProperty' at compile time.
+error: [StyleX] base > content > Cannot fold 'Object.freeze' at compile time.
+error: [StyleX] base > content > Cannot fold 'Object.seal' at compile time.
+error: [StyleX] base > content > Cannot fold 'reduce' at compile time.
+error: [StyleX] base > content > Cannot fold 'repeat' at compile time.
+error: [StyleX] base > content > Cannot fold 'toExponential' at compile time.
+error: [StyleX] base > content > Cannot fold 'toExponential' at compile time.
+error: [StyleX] base > content > Cannot fold 'toFixed' at compile time.
+error: [StyleX] base > content > Cannot fold 'toFixed' at compile time.
+error: [StyleX] base > content > Cannot fold 'toFixed' at compile time.
+error: [StyleX] base > content > Cannot fold 'toFixed' at compile time.
+error: [StyleX] base > content > Cannot fold 'toLocaleString' at compile time.
+error: [StyleX] base > content > Cannot fold 'toLocaleString' at compile time.
+error: [StyleX] base > content > Cannot fold 'toLocaleUpperCase' at compile time.
+error: [StyleX] base > content > Cannot fold 'toLocaleUpperCase' at compile time.
+error: [StyleX] base > content > Cannot fold 'toLocaleUpperCase' at compile time.
+error: [StyleX] base > content > Cannot fold 'toLocaleUpperCase' at compile time.
+error: [StyleX] base > content > Cannot fold 'toLocaleUpperCase' at compile time.
+error: [StyleX] base > content > Cannot fold 'toLocaleUpperCase' at compile time.
+error: [StyleX] base > content > Cannot fold 'toPrecision' at compile time.
+error: [StyleX] base > content > Cannot fold 'toPrecision' at compile time.
+error: [StyleX] base > content > Cannot fold 'toString' at compile time.
+error: [StyleX] base > content > Cannot fold 'toString' at compile time.
+error: [StyleX] base > content > Cannot fold 'toString' at compile time.
+error: [StyleX] base > content > Cannot fold 'toString' at compile time.
+error: [StyleX] base > content > Cannot fold 'toString' at compile time.
+error: [StyleX] base > content > Cannot fold 'toString' at compile time.
+error: [StyleX] base > content > Cannot fold 'toString' at compile time.
+error: [StyleX] base > content > Cannot fold 'toUpperCase' at compile time.
+error: [StyleX] base > content > Cannot fold 'trunc' at compile time.
+error: [StyleX] base > content > Cannot fold 'unsupported' at compile time.
+error: [StyleX] base > content > Cannot fold a callback whose body uses a ForStatement.
+error: [StyleX] base > content > Cannot fold a callback whose body uses a FunctionDeclaration.
+error: [StyleX] base > content > Cannot fold a callback whose body uses a SwitchStatement.
+error: [StyleX] base > content > Cannot fold a callback whose body uses a TryStatement.
+error: [StyleX] base > content > Cannot fold a read of 'apply' at compile time.
+error: [StyleX] base > content > Cannot fold a read of 'bind' at compile time.
+error: [StyleX] base > content > Cannot fold a read of 'call' at compile time.
+error: [StyleX] base > content > Cannot fold a read of 'constructor' at compile time.
+error: [StyleX] base > content > Cannot fold a read of 'constructor' at compile time.
+error: [StyleX] base > content > Cannot fold a read of 'constructor' at compile time.
+error: [StyleX] base > content > Cannot fold a read of 'constructor' at compile time.
+error: [StyleX] base > content > Cannot fold a read of 'constructor' at compile time.
+error: [StyleX] base > content > Cannot fold a read of 'constructor' at compile time.
+error: [StyleX] base > content > Cannot fold a read of 'constructor' at compile time.
+error: [StyleX] base > content > Cannot fold a read of 'constructor' at compile time.
+error: [StyleX] base > content > Cannot fold a read of 'constructor' at compile time.
+error: [StyleX] base > content > Cannot fold a read of 'constructor' at compile time.
+error: [StyleX] base > content > Expected a string value but received a non-string expression.
+error: [StyleX] base > content > Expected a string value but received a non-string expression.
+error: [StyleX] base > content > Expression is nested too deeply to fold at compile time.
+error: [StyleX] base > content > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > content > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > content > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > content > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > content > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > content > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > content > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > content > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > content > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > content > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > content > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > content > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > content > Function argument must be a static expression.
+error: [StyleX] base > content > Function argument must be a static expression.
+error: [StyleX] base > content > Function argument must be a static expression.
+error: [StyleX] base > content > Object is too large to evaluate at compile time.
+error: [StyleX] base > content > Object is too large to evaluate at compile time.
+error: [StyleX] base > content > Referenced constant is not defined.
+error: [StyleX] base > content > Referenced constant is not defined.
+error: [StyleX] base > content > Referenced constant is not defined.
+error: [StyleX] base > content > Referenced constant is not defined.
+error: [StyleX] base > content > Referenced constant is not defined.
+error: [StyleX] base > content > Referenced constant is not defined.
+error: [StyleX] base > content > Referenced constant is not defined.
+error: [StyleX] base > content > Referenced constant is not initialized.
+error: [StyleX] base > content > Referenced constant is not initialized.
+error: [StyleX] base > content > Referenced value is not a constant.
+error: [StyleX] base > content > Referenced value is not a constant.
+error: [StyleX] base > content > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > content > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > content > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > content > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > content > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > content > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > content > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > content > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > content > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > content > This template literal builds a string too large to evaluate at compile time.
+error: [StyleX] base > content > This template literal builds a string too large to evaluate at compile time.
+error: [StyleX] base > content > Unexpected error:
+error: [StyleX] base > content > Unexpected error:
+error: [StyleX] base > content > Unexpected error:
+error: [StyleX] base > content > Unexpected error:
+error: [StyleX] base > content > Unsupported expression: ArrowFunctionExpression
+error: [StyleX] base > content > Unsupported expression: ArrowFunctionExpression
+error: [StyleX] base > content > Unsupported expression: BigIntLiteral
+error: [StyleX] base > content > Unsupported expression: BinaryExpression
+error: [StyleX] base > content > Unsupported expression: BinaryExpression
+error: [StyleX] base > content > Unsupported expression: CallExpression
+error: [StyleX] base > content > Unsupported expression: CallExpression
+error: [StyleX] base > content > Unsupported expression: FunctionExpression
+error: [StyleX] base > content > Unsupported expression: RegExpLiteral
+error: [StyleX] base > content > Unsupported expression: SpreadElement
+error: [StyleX] base > content > Unsupported expression: SpreadElement
+error: [StyleX] base > content > Unsupported expression: SpreadElement
+error: [StyleX] base > content > Unsupported expression: SpreadElement
+error: [StyleX] base > content > Unsupported expression: SpreadElement
+error: [StyleX] base > content > Unsupported expression: SpreadElement
+error: [StyleX] base > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > flexGrow > Referenced value is not a constant.
+error: [StyleX] base > fontFamily > Array length is too large to evaluate at compile time.
+error: [StyleX] base > fontFamily > Array length is too large to evaluate at compile time.
+error: [StyleX] base > fontFamily > Array length is too large to evaluate at compile time.
+error: [StyleX] base > fontFamily > Cannot carry the function 'Boolean' into a fold.
+error: [StyleX] base > fontFamily > Cannot carry the function 'Boolean' into a fold.
+error: [StyleX] base > fontFamily > Cannot carry the global 'Boolean' into a fold.
+error: [StyleX] base > fontFamily > Cannot carry the global 'Boolean' into a fold.
+error: [StyleX] base > fontFamily > Cannot carry the global 'Number' into a fold.
+error: [StyleX] base > fontFamily > Cannot carry the global 'String' into a fold.
+error: [StyleX] base > fontFamily > Folded string is too large to evaluate at compile time.
+error: [StyleX] base > fontFamily > Referenced constant is not defined.
+error: [StyleX] base > marginInlineStart > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > padding > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > transitionProperty > Referenced value is not a constant.
+error: [StyleX] base > transitionProperty > Referenced value is not a constant.
+error: [StyleX] base > transitionProperty > Referenced value is not a constant.
+error: [StyleX] base > transitionProperty > Referenced value is not a constant.
+error: [StyleX] base > transitionProperty > Referenced value is not a constant.
+error: [StyleX] base > transitionProperty > Referenced value is not a constant.
+error: [StyleX] base > transitionProperty > Referenced value is not a constant.
+error: [StyleX] base > transitionProperty > Unsupported expression: SpreadElement
+error: [StyleX] base > width > A style value can only contain an array, string or number.
+error: [StyleX] base > width > Cannot bound the string 'repeat' would build.
+error: [StyleX] base > width > Cannot fold 'trunc' at compile time.
+error: [StyleX] base > width > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > width > Folded string is too large to evaluate at compile time.
+error: [StyleX] base > width > Referenced constant is not defined.
+error: [StyleX] base > width > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This concatenation builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This numeric conversion builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This numeric conversion builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This numeric conversion builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This numeric conversion builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This template literal builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This template literal builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This template literal builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This template literal builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This template literal builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This template literal builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This template literal builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This template literal builds a string too large to evaluate at compile time.
+error: [StyleX] base > width > This template literal builds a string too large to evaluate at compile time.
+error: [StyleX] base > zIndex > :hover > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > @media (min-width: 100px) > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > a > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > a > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Cannot bound the array 'Array.from' would build.
+error: [StyleX] base > zIndex > Cannot fold 'Math.random' at compile time.
+error: [StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+error: [StyleX] base > zIndex > Math is not a function.
+error: [StyleX] base > zIndex > Referenced value is not a constant.
+error: [StyleX] base > zIndex > Unsupported expression: BigIntLiteral
+error: [StyleX] base > zIndex > Unsupported expression: RegExpLiteral
+error: [StyleX] base > zIndex > Unsupported expression: RegExpLiteral
+error: [StyleX] base > zIndex > Unsupported expression: SpreadElement
+error: [StyleX] Block statement is not allowed in Dynamic Style functions
+error: [StyleX] create() calls must be bound to a bare variable.
+error: [StyleX] create() calls must be bound to a bare variable.
+error: [StyleX] create() calls must be bound to a bare variable.
+error: [StyleX] create() calls must be bound to a bare variable.
+error: [StyleX] create() should have 1 argument.
+error: [StyleX] create() should have 1 argument.
+error: [StyleX] createTheme() calls must be bound to a bare variable.
+error: [StyleX] createTheme() can only accept an object as the second argument.
+error: [StyleX] createTheme() can only accept an object as the second argument.
+error: [StyleX] createTheme() should have 1 argument.
+error: [StyleX] createTheme() should have 1 argument.
+error: [StyleX] defineConsts() calls must be bound to a bare variable.
+error: [StyleX] defineConsts() can only accept an object.
+error: [StyleX] defineConsts() can only accept an object.
+error: [StyleX] defineConsts() should have 1 argument.
+error: [StyleX] defineConsts() should have 1 argument.
+error: [StyleX] defineMarker() calls must be bound to a bare variable.
+error: [StyleX] defineMarker() calls must be bound to a bare variable.
+error: [StyleX] defineMarker() calls must be bound to a bare variable.
+error: [StyleX] defineMarker() calls must be bound to a bare variable.
+error: [StyleX] defineMarker() should have 0 arguments.
+error: [StyleX] defineVars() calls must be bound to a bare variable.
+error: [StyleX] defineVars() can only accept an object.
+error: [StyleX] defineVars() can only accept an object.
+error: [StyleX] defineVars() should have 1 argument.
+error: [StyleX] defineVars() should have 1 argument.
+error: [StyleX] dyn > Referenced constant is not defined.
+error: [StyleX] Every frame within a keyframes() call must be an object.
+error: [StyleX] fn > fontFamily > Expected a string value but received a non-string expression.
+error: [StyleX] fn > fontFamily > Unsupported expression: FunctionExpression
+error: [StyleX] keyframes() can only accept an object.
+error: [StyleX] keyframes() can only accept an object.
+error: [StyleX] Object spreads are not allowed in create() calls.
+error: [StyleX] Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed.
+error: [StyleX] Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed.
+error: [StyleX] Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed.
+error: [StyleX] Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed.
+error: [StyleX] Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed.
+error: [StyleX] Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed.
+error: [StyleX] Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed.
+error: [StyleX] Only static values are allowed inside of a create() call.
+error: [StyleX] Only static values are allowed inside of a createTheme() call.
+error: [StyleX] Only static values are allowed inside of a createTheme() call.
+error: [StyleX] Only static values are allowed inside of a createTheme() call.
+error: [StyleX] Only static values are allowed inside of a createTheme() call.
+error: [StyleX] Only static values are allowed inside of a createTheme() call.
+error: [StyleX] Only static values are allowed inside of a createTheme() call.
+error: [StyleX] Only static values are allowed inside of a createTheme() call.
+error: [StyleX] Only static values are allowed inside of a defineConsts() call.
+error: [StyleX] Only static values are allowed inside of a defineConsts() call.
+error: [StyleX] Only static values are allowed inside of a defineConsts() call.
+error: [StyleX] Only static values are allowed inside of a defineConsts() call.
+error: [StyleX] Only static values are allowed inside of a defineConsts() call.
+error: [StyleX] Only static values are allowed inside of a defineConsts() call.
+error: [StyleX] Only static values are allowed inside of a defineVars() call.
+error: [StyleX] Only static values are allowed inside of a defineVars() call.
+error: [StyleX] Only static values are allowed inside of a defineVars() call.
+error: [StyleX] Only static values are allowed inside of a defineVars() call.
+error: [StyleX] Only static values are allowed inside of a defineVars() call.
+error: [StyleX] Only static values are allowed inside of a defineVars() call.
+error: [StyleX] Only static values are allowed inside of a defineVars() call.
+error: [StyleX] Only static values are allowed inside of a defineVars() call.
+error: [StyleX] Only static values are allowed inside of a keyframes() call.
+error: [StyleX] Only static values are allowed inside of a keyframes() call.
+error: [StyleX] Only static values are allowed inside of a keyframes() call.
+error: [StyleX] Only static values are allowed inside of a keyframes() call.
+error: [StyleX] Only static values are allowed inside of a keyframes() call.
+error: [StyleX] Only static values are allowed inside of a positionTry() call.
+error: [StyleX] Only static values are allowed inside of a positionTry() call.
+error: [StyleX] Only static values are allowed inside of a viewTransitionClass() call.
+error: [StyleX] Only static values are allowed inside of a viewTransitionClass() call.
+error: [StyleX] Only static values are allowed inside of an unstable_createThemeNested() call.
+error: [StyleX] Only static values are allowed inside of an unstable_defineConstsNested() call.
+error: [StyleX] Only static values are allowed inside of an unstable_defineVarsNested() call.
+error: [StyleX] red > color > Could not resolve the path to the imported file.
+error: [StyleX] Referenced constant is not defined.
+error: [StyleX] root > backgroundColor > Could not resolve the path to the imported file.
+error: [StyleX] root > backgroundColor > Referenced constant is not defined.
+error: [StyleX] root > backgroundColor > Referenced constant is not defined.
+error: [StyleX] root > backgroundColor > There was an error when attempting to evaluate the imported file.
+error: [StyleX] root > color > Cannot bound the array 'Array' would build.
+error: [StyleX] root > color > Cannot carry a folded function back from the engine.
+error: [StyleX] root > color > Cannot carry a folded function back from the engine.
+error: [StyleX] root > color > Cannot carry a folded object back from the engine.
+error: [StyleX] root > color > Cannot carry a folded object back from the engine.
+error: [StyleX] root > color > Cannot carry a folded object back from the engine.
+error: [StyleX] root > color > Cannot carry the value of 'colors' into a fold.
+error: [StyleX] root > color > Cannot fold 'Array' at compile time.
+error: [StyleX] root > color > Cannot fold 'Array' at compile time.
+error: [StyleX] root > color > Cannot fold 'Array' at compile time.
+error: [StyleX] root > color > Cannot fold 'Array' at compile time.
+error: [StyleX] root > color > Cannot fold 'Array' at compile time.
+error: [StyleX] root > color > Cannot fold 'String' at compile time.
+error: [StyleX] root > color > Cannot fold 'String' at compile time.
+error: [StyleX] root > color > The function's body has no compile-time value.
+error: [StyleX] root > color > The stylex.env object is not configured. Check that the 'env' option is set in your StyleX configuration.
+error: [StyleX] root > color > This string conversion builds a string too large to evaluate at compile time.
+error: [StyleX] root > color > Unsupported expression: BigIntLiteral
+error: [StyleX] root > color > Unsupported expression: RegExpLiteral
+error: [StyleX] root > color > Unsupported expression: RegExpLiteral
+error: [StyleX] root > color > Unsupported expression: SpreadElement
+error: [StyleX] root > color > Unsupported expression: SpreadElement
+error: [StyleX] root > color > Unsupported expression: SpreadElement
+error: [StyleX] root > opacity > Cannot fold 'Number' at compile time.
+error: [StyleX] root > opacity > Cannot fold 'Number' at compile time.
+error: [StyleX] root > opacity > Unsupported expression: SpreadElement
+error: [StyleX] root > Referenced constant is not defined.
+error: [StyleX] root > width > Cannot carry a folded object back from the engine.
+error: [StyleX] root > width > Cannot carry a folded object back from the engine.
+error: [StyleX] root > width > Math is not a function.
+error: [StyleX] root > width > Math is not a function.
+error: [StyleX] s > color > Referenced constant is not defined.
+error: [StyleX] s > content > Unsupported index: 0
+error: [StyleX] s > height > Unexpected error:
+error: [StyleX] s > height > Unexpected error:
+error: [StyleX] s > height > Unexpected error:
+error: [StyleX] s > height > Unexpected error:
+error: [StyleX] s > height > Unexpected error:
+error: [StyleX] s > height > Unexpected error:
+error: [StyleX] s > height > Unsupported expression: SpreadElement
+error: [StyleX] shadowed > height > Referenced constant is not initialized.
+error: [StyleX] The return value of defineConsts() must be bound to a named export.
+error: [StyleX] The return value of defineConsts() must be bound to a named export.
+error: [StyleX] The return value of defineConsts() must be bound to a named export.
+error: [StyleX] The return value of defineConsts() must be bound to a named export.
+error: [StyleX] The return value of defineConsts() must be bound to a named export.
+error: [StyleX] The return value of defineMarker() must be bound to a named export.
+error: [StyleX] The return value of defineMarker() must be bound to a named export.
+error: [StyleX] The return value of defineMarker() must be bound to a named export.
+error: [StyleX] The return value of defineMarker() must be bound to a named export.
+error: [StyleX] The return value of defineMarker() must be bound to a named export.
+error: [StyleX] The return value of defineMarker() must be bound to a named export.
+error: [StyleX] The return value of defineMarker() must be bound to a named export.
+error: [StyleX] The return value of defineMarker() must be bound to a named export.
+error: [StyleX] The return value of defineVars() must be bound to a named export.
+error: [StyleX] The return value of defineVars() must be bound to a named export.
+error: [StyleX] The return value of defineVars() must be bound to a named export.
+error: [StyleX] The return value of defineVars() must be bound to a named export.
+error: [StyleX] The return value of defineVars() must be bound to a named export.
+error: [StyleX] The return value of unstable_defineConstsNested() must be bound to a named export.
+error: [StyleX] The return value of unstable_defineVarsNested() must be bound to a named export.
+error: [StyleX] unknown > fontFamily > Referenced constant is not defined.
+error: [StyleX] unstable_createThemeNested() calls must be bound to a bare variable.
+error: [StyleX] unstable_createThemeNested() can only accept an object.
+error: [StyleX] unstable_createThemeNested() should have 2 arguments.
+error: [StyleX] unstable_createThemeNested() should have 2 arguments.
+error: [StyleX] unstable_defineConstsNested() calls must be bound to a bare variable.
+error: [StyleX] unstable_defineConstsNested() can only accept an object.
+error: [StyleX] unstable_defineConstsNested() should have 1 argument.
+error: [StyleX] unstable_defineConstsNested() should have 1 argument.
+error: [StyleX] unstable_defineVarsNested() calls must be bound to a bare variable.
+error: [StyleX] unstable_defineVarsNested() can only accept an object.
+error: [StyleX] unstable_defineVarsNested() should have 1 argument.
+error: [StyleX] unstable_defineVarsNested() should have 1 argument.
+error: [StyleX] w > --my-var > Referenced constant is not defined.
+error: [StyleX] w > :hover > :focus > :active > @media (min-width: 1px) > @supports (color: red) > color > Referenced constant is not defined.
+error: [StyleX] w > A style array value can only contain strings or numbers.
+error: [StyleX] w > A style array value can only contain strings or numbers.
+error: [StyleX] w > A style value can only contain an array, string or number.
+error: [StyleX] w > A style value can only contain an array, string or number.
+error: [StyleX] w > A style value can only contain an array, string or number.
+error: [StyleX] w > A style value can only contain an array, string or number.
+error: [StyleX] w > A style value can only contain an array, string or number.
+error: [StyleX] w > A style value can only contain an array, string or number.
+error: [StyleX] w > A style value can only contain an array, string or number.
+error: [StyleX] w > A style value can only contain an array, string or number.
+error: [StyleX] w > A style value can only contain an array, string or number.
+error: [StyleX] w > A style value can only contain an array, string or number.
+error: [StyleX] w > A style value can only contain an array, string or number.
+error: [StyleX] w > A style value can only contain an array, string or number.
+error: [StyleX] w > A style value can only contain an array, string or number.
+error: [StyleX] w > color > @media (min-width: 1px) > :active > :focus > A style value can only contain an array, string or number.
+error: [StyleX] w > color > Function argument must be a static expression.
+error: [StyleX] w > color > Referenced constant is not defined.
+error: [StyleX] w > color > Referenced constant is not defined.
+error: [StyleX] w > color > Referenced constant is not defined.
+error: [StyleX] w > color > Referenced constant is not defined.
+error: [StyleX] w > color > Referenced constant is not defined.
+error: [StyleX] w > color > Referenced constant is not defined.
+error: [StyleX] w > margin > Referenced constant is not defined.
+error: [StyleX] w > not-a-real-prop > Referenced constant is not defined.
+error: [StyleX] w > The spread argument's properties could not be read at compile time.
+error: [StyleX] w > The spread argument's properties could not be read at compile time.
+error: [StyleX] w > WebkitLineClamp > Referenced constant is not defined.
+error: [StyleX] w > zIndex > :focus > A style value can only contain an array, string or number.
+error: [StyleX] w > zIndex > A style value can only contain an array, string or number.
+error: [StyleX] w > zIndex > A style value can only contain an array, string or number.
+error: [StyleX] w > zIndex > A style value can only contain an array, string or number.
+error: [StyleX] w > zIndex > A style value can only contain an array, string or number.
+error: [StyleX] w > zIndex > Function argument must be a static expression.
+error: [StyleX] w > zIndex > Referenced constant is not defined.
+error: [StyleX] wrapper > color > :hover > @media (min-width: 600px) > :focus > There was an error when attempting to evaluate the imported file.
+error: [StyleX] wrapper > color > Referenced constant is not defined.
+error: [StyleX] wrapper > color > Referenced constant is not defined.
+error: [StyleX] wrapper > color > Referenced constant is not defined.
+error: [StyleX] wrapper > color > Referenced constant is not defined.
+error: [StyleX] wrapper > color > Referenced constant is not defined.
+error: [StyleX] wrapper > color > Referenced constant is not defined.
+error: [StyleX] wrapper > color > Referenced constant is not initialized.
+error: [StyleX] wrapper > color > There was an error when attempting to evaluate the imported file.
+error: [StyleX] wrapper > color > There was an error when attempting to evaluate the imported file.
+error: [StyleX] wrapper > color > There was an error when attempting to evaluate the imported file.
+error: [StyleX] wrapper > color > There was an error when attempting to evaluate the imported file.
+error: [StyleX] wrapper > color > There was an error when attempting to evaluate the imported file.
+error: [StyleX] wrapper > margin > Referenced constant is not defined.
+error: [StyleX] wrapper > margin > There was an error when attempting to evaluate the imported file.
+error: [StyleX] wrapper > padding > :hover > @media (min-width: 600px) > :focus > Referenced constant is not defined.
+error: [StyleX] wrapper > padding > Referenced constant is not defined.
+error: [StyleX] wrapper > padding > Referenced constant is not defined.
+error: [StyleX] wrapper > padding > Referenced constant is not defined.
+error: [StyleX] wrapper > Referenced constant is not defined.
+error: [StyleX] wrapper > There was an error when attempting to evaluate the imported file.
+error: [StyleX] wrapper > width > Referenced constant is not defined.
+error: [StyleX] wrapper > width > There was an error when attempting to evaluate the imported file.
+error: [StyleX] wrapper > width > There was an error when attempting to evaluate the imported file.
+error: [StyleX] x > --custom > Referenced value is not a constant.
+error: [StyleX] x > --gap > Referenced value is not a constant.
+error: [StyleX] x > :hover > color > Unsupported expression: SpreadElement
+error: [StyleX] x > borderTop > Unsupported expression: SpreadElement
+error: [StyleX] x > color > @media (min-width: 100px) > :hover > :active > Referenced value is not a constant.
+error: [StyleX] x > color > default > Unsupported expression: RegExpLiteral
+error: [StyleX] x > color > default > Unsupported expression: SpreadElement
+error: [StyleX] x > color > Referenced constant is not defined.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is not a constant.
+error: [StyleX] x > color > Referenced value is used before declaration.
+error: [StyleX] x > color > Referenced value is used before declaration.
+error: [StyleX] x > color > Referenced value is used before declaration.
+error: [StyleX] x > color > Referenced value is used before declaration.
+error: [StyleX] x > color > Unsupported expression: ClassDeclaration
+error: [StyleX] x > color > Unsupported expression: FunctionDeclaration
+error: [StyleX] x > color > Unsupported expression: FunctionDeclaration
+error: [StyleX] x > color > Unsupported expression: FunctionDeclaration
+error: [StyleX] x > color > Unsupported expression: SpreadElement
+error: [StyleX] x > color > Unsupported expression: SpreadElement
+error: [StyleX] x > color > Unsupported expression: SpreadElement
+error: [StyleX] x > color > Unsupported expression: SpreadElement
+error: [StyleX] x > color > Unsupported expression: SpreadElement
+error: [StyleX] x > color > Unsupported expression: SpreadElement
+error: [StyleX] x > color > Unsupported expression: SpreadElement
+error: [StyleX] x > color > Unsupported expression: SpreadElement
+error: [StyleX] x > color > Unsupported expression: SpreadElement
+error: [StyleX] x > color > Unsupported expression: SpreadElement
+error: [StyleX] x > color > Unsupported expression: SpreadElement
+error: [StyleX] x > content > Referenced value is not a constant.
+error: [StyleX] x > content > Referenced value is not a constant.
+error: [StyleX] x > content > Unsupported expression: ArrowFunctionExpression
+error: [StyleX] x > content > Unsupported expression: AssignmentExpression
+error: [StyleX] x > content > Unsupported expression: CallExpression
+error: [StyleX] x > content > Unsupported expression: ClassExpression
+error: [StyleX] x > content > Unsupported expression: FunctionExpression
+error: [StyleX] x > content > Unsupported expression: MetaProperty
+error: [StyleX] x > content > Unsupported expression: NewExpression
+error: [StyleX] x > content > Unsupported expression: NewExpression
+error: [StyleX] x > content > Unsupported expression: RegExpLiteral
+error: [StyleX] x > content > Unsupported expression: TaggedTemplateExpression
+error: [StyleX] x > content > Unsupported expression: ThisExpression
+error: [StyleX] x > content > Unsupported expression: UpdateExpression
+error: [StyleX] x > gap > Referenced value is not a constant.
+error: [StyleX] x > gap > Referenced value is not a constant.
+error: [StyleX] x > gap > Referenced value is not a constant.
+error: [StyleX] x > gap > Referenced value is not a constant.
+error: [StyleX] x > margin > Referenced value is used before declaration.
+error: [StyleX] x > width > Referenced value is not a constant.
+error: [StyleX] x > width > Referenced value is not a constant.
+error: [StyleX] x > width > Unsupported expression: BigIntLiteral
+error: [StyleX] x > zIndex > Referenced constant is not initialized.
+error: Expected ',', got '<eof>'
+error: Expected '</', got '<eof>'
+error: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+error: Unexpected token. Did you mean `{'>'}` or `&gt;`?

@@ -1,0 +1,696 @@
+===== concatenation_chain_bench =====
+    Finished `bench` profile [optimized + debuginfo] target(s) in 0.62s
+     Running benches/concatenation_chain_bench.rs (target/release/deps/concatenation_chain_bench-39adc277f04d51f9)
+Benchmarking ConcatenationChain/links/2
+Benchmarking ConcatenationChain/links/2: Warming up for 3.0000 s
+Benchmarking ConcatenationChain/links/2: Collecting 100 samples in estimated 7.5607 s (10k iterations)
+Benchmarking ConcatenationChain/links/2: Analyzing
+ConcatenationChain/links/2
+                        time:   [733.41 µs 740.22 µs 751.32 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking ConcatenationChain/links/5
+Benchmarking ConcatenationChain/links/5: Warming up for 3.0000 s
+Benchmarking ConcatenationChain/links/5: Collecting 100 samples in estimated 9.9965 s (10k iterations)
+Benchmarking ConcatenationChain/links/5: Analyzing
+ConcatenationChain/links/5
+                        time:   [977.86 µs 984.86 µs 994.93 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  1 (1.00%) high mild
+  6 (6.00%) high severe
+Benchmarking ConcatenationChain/links/10
+Benchmarking ConcatenationChain/links/10: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 6.7s, enable flat sampling, or reduce sample count to 60.
+Benchmarking ConcatenationChain/links/10: Collecting 100 samples in estimated 6.7043 s (5050 iterations)
+Benchmarking ConcatenationChain/links/10: Analyzing
+ConcatenationChain/links/10
+                        time:   [1.3071 ms 1.3098 ms 1.3127 ms]
+Benchmarking ConcatenationChain/links/20
+Benchmarking ConcatenationChain/links/20: Warming up for 3.0000 s
+Benchmarking ConcatenationChain/links/20: Collecting 100 samples in estimated 5.1829 s (2600 iterations)
+Benchmarking ConcatenationChain/links/20: Analyzing
+ConcatenationChain/links/20
+                        time:   [1.9882 ms 1.9937 ms 1.9993 ms]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+
+----- concatenation_chain_bench exit=0
+===== engine_fold_bench =====
+    Finished `bench` profile [optimized + debuginfo] target(s) in 0.21s
+     Running benches/engine_fold_bench.rs (target/release/deps/engine_fold_bench-51d86b0415195c55)
+Benchmarking EngineFoldColdStart/build-and-answer
+Benchmarking EngineFoldColdStart/build-and-answer: Warming up for 3.0000 s
+Benchmarking EngineFoldColdStart/build-and-answer: Collecting 100 samples in estimated 5.7881 s (35k iterations)
+Benchmarking EngineFoldColdStart/build-and-answer: Analyzing
+EngineFoldColdStart/build-and-answer
+                        time:   [167.51 µs 169.49 µs 171.55 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+
+Benchmarking EngineFoldRoundTrip/engine/string
+Benchmarking EngineFoldRoundTrip/engine/string: Warming up for 3.0000 s
+Benchmarking EngineFoldRoundTrip/engine/string: Collecting 100 samples in estimated 5.0027 s (2.1M iterations)
+Benchmarking EngineFoldRoundTrip/engine/string: Analyzing
+EngineFoldRoundTrip/engine/string
+                        time:   [2.3583 µs 2.3754 µs 2.3938 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  1 (1.00%) low mild
+  4 (4.00%) high mild
+Benchmarking EngineFoldRoundTrip/fold/string
+Benchmarking EngineFoldRoundTrip/fold/string: Warming up for 3.0000 s
+Benchmarking EngineFoldRoundTrip/fold/string: Collecting 100 samples in estimated 5.0039 s (4.9M iterations)
+Benchmarking EngineFoldRoundTrip/fold/string: Analyzing
+EngineFoldRoundTrip/fold/string
+                        time:   [767.82 ns 769.64 ns 771.69 ns]
+Found 8 outliers among 100 measurements (8.00%)
+  3 (3.00%) high mild
+  5 (5.00%) high severe
+Benchmarking EngineFoldRoundTrip/engine/callback
+Benchmarking EngineFoldRoundTrip/engine/callback: Warming up for 3.0000 s
+Benchmarking EngineFoldRoundTrip/engine/callback: Collecting 100 samples in estimated 5.0269 s (429k iterations)
+Benchmarking EngineFoldRoundTrip/engine/callback: Analyzing
+EngineFoldRoundTrip/engine/callback
+                        time:   [11.564 µs 11.609 µs 11.658 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  3 (3.00%) low mild
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking EngineFoldRoundTrip/fold/callback
+Benchmarking EngineFoldRoundTrip/fold/callback: Warming up for 3.0000 s
+Benchmarking EngineFoldRoundTrip/fold/callback: Collecting 100 samples in estimated 5.0043 s (909k iterations)
+Benchmarking EngineFoldRoundTrip/fold/callback: Analyzing
+EngineFoldRoundTrip/fold/callback
+                        time:   [5.2172 µs 5.2285 µs 5.2400 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  5 (5.00%) low severe
+  2 (2.00%) low mild
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking EngineFoldRoundTrip/engine/chain
+Benchmarking EngineFoldRoundTrip/engine/chain: Warming up for 3.0000 s
+Benchmarking EngineFoldRoundTrip/engine/chain: Collecting 100 samples in estimated 5.0065 s (823k iterations)
+Benchmarking EngineFoldRoundTrip/engine/chain: Analyzing
+EngineFoldRoundTrip/engine/chain
+                        time:   [6.0418 µs 6.0695 µs 6.0983 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  4 (4.00%) low mild
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking EngineFoldRoundTrip/fold/chain
+Benchmarking EngineFoldRoundTrip/fold/chain: Warming up for 3.0000 s
+Benchmarking EngineFoldRoundTrip/fold/chain: Collecting 100 samples in estimated 5.0017 s (2.4M iterations)
+Benchmarking EngineFoldRoundTrip/fold/chain: Analyzing
+EngineFoldRoundTrip/fold/chain
+                        time:   [1.8249 µs 1.8295 µs 1.8345 µs]
+Found 15 outliers among 100 measurements (15.00%)
+  6 (6.00%) low severe
+  2 (2.00%) low mild
+  4 (4.00%) high mild
+  3 (3.00%) high severe
+Benchmarking EngineFoldRoundTrip/engine/array-answer
+Benchmarking EngineFoldRoundTrip/engine/array-answer: Warming up for 3.0000 s
+Benchmarking EngineFoldRoundTrip/engine/array-answer: Collecting 100 samples in estimated 5.0037 s (833k iterations)
+Benchmarking EngineFoldRoundTrip/engine/array-answer: Analyzing
+EngineFoldRoundTrip/engine/array-answer
+                        time:   [5.9338 µs 5.9768 µs 6.0254 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  2 (2.00%) low mild
+  2 (2.00%) high mild
+  3 (3.00%) high severe
+Benchmarking EngineFoldRoundTrip/fold/array-answer
+Benchmarking EngineFoldRoundTrip/fold/array-answer: Warming up for 3.0000 s
+Benchmarking EngineFoldRoundTrip/fold/array-answer: Collecting 100 samples in estimated 5.0021 s (1.9M iterations)
+Benchmarking EngineFoldRoundTrip/fold/array-answer: Analyzing
+EngineFoldRoundTrip/fold/array-answer
+                        time:   [2.3307 µs 2.3388 µs 2.3467 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) low severe
+  2 (2.00%) high severe
+Benchmarking EngineFoldRoundTrip/fold-distinct
+Benchmarking EngineFoldRoundTrip/fold-distinct: Warming up for 3.0000 s
+Benchmarking EngineFoldRoundTrip/fold-distinct: Collecting 100 samples in estimated 5.0283 s (778k iterations)
+Benchmarking EngineFoldRoundTrip/fold-distinct: Analyzing
+EngineFoldRoundTrip/fold-distinct
+                        time:   [5.5477 µs 5.6175 µs 5.7064 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  6 (6.00%) low mild
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+
+----- engine_fold_bench exit=0
+===== evaluate_bench =====
+    Finished `bench` profile [optimized + debuginfo] target(s) in 0.27s
+     Running benches/evaluate_bench.rs (target/release/deps/evaluate_bench-a0b5150f6c02f9d2)
+Benchmarking EvaluatePerfFixtures/colors.stylex.js
+Benchmarking EvaluatePerfFixtures/colors.stylex.js: Warming up for 3.0000 s
+Benchmarking EvaluatePerfFixtures/colors.stylex.js: Collecting 100 samples in estimated 5.0952 s (141k iterations)
+Benchmarking EvaluatePerfFixtures/colors.stylex.js: Analyzing
+EvaluatePerfFixtures/colors.stylex.js
+                        time:   [31.528 µs 31.832 µs 32.226 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Benchmarking EvaluatePerfFixtures/sizes.stylex.js
+Benchmarking EvaluatePerfFixtures/sizes.stylex.js: Warming up for 3.0000 s
+Benchmarking EvaluatePerfFixtures/sizes.stylex.js: Collecting 100 samples in estimated 5.0962 s (242k iterations)
+Benchmarking EvaluatePerfFixtures/sizes.stylex.js: Analyzing
+EvaluatePerfFixtures/sizes.stylex.js
+                        time:   [18.146 µs 18.314 µs 18.489 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking EvaluatePerfFixtures/create-basic.js
+Benchmarking EvaluatePerfFixtures/create-basic.js: Warming up for 3.0000 s
+Benchmarking EvaluatePerfFixtures/create-basic.js: Collecting 100 samples in estimated 5.0482 s (424k iterations)
+Benchmarking EvaluatePerfFixtures/create-basic.js: Analyzing
+EvaluatePerfFixtures/create-basic.js
+                        time:   [9.3701 µs 9.4042 µs 9.4387 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  6 (6.00%) low mild
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking EvaluatePerfFixtures/create-complex.js
+Benchmarking EvaluatePerfFixtures/create-complex.js: Warming up for 3.0000 s
+Benchmarking EvaluatePerfFixtures/create-complex.js: Collecting 100 samples in estimated 5.1630 s (131k iterations)
+Benchmarking EvaluatePerfFixtures/create-complex.js: Analyzing
+EvaluatePerfFixtures/create-complex.js
+                        time:   [19.286 µs 19.401 µs 19.524 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+Benchmarking EvaluatePerfFixtures/createTheme-basic.js
+Benchmarking EvaluatePerfFixtures/createTheme-basic.js: Warming up for 3.0000 s
+Benchmarking EvaluatePerfFixtures/createTheme-basic.js: Collecting 100 samples in estimated 5.0103 s (152k iterations)
+Benchmarking EvaluatePerfFixtures/createTheme-basic.js: Analyzing
+EvaluatePerfFixtures/createTheme-basic.js
+                        time:   [26.506 µs 27.093 µs 27.775 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  1 (1.00%) high mild
+  5 (5.00%) high severe
+Benchmarking EvaluatePerfFixtures/createTheme-complex.js
+Benchmarking EvaluatePerfFixtures/createTheme-complex.js: Warming up for 3.0000 s
+Benchmarking EvaluatePerfFixtures/createTheme-complex.js: Collecting 100 samples in estimated 5.0630 s (1500 iterations)
+Benchmarking EvaluatePerfFixtures/createTheme-complex.js: Analyzing
+EvaluatePerfFixtures/createTheme-complex.js
+                        time:   [3.2429 ms 3.2626 ms 3.2889 ms]
+Found 6 outliers among 100 measurements (6.00%)
+  4 (4.00%) high mild
+  2 (2.00%) high severe
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import: Warming up for 3.0000 s
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import: Collecting 100 samples in estimated 5.0100 s (1.3M iterations)
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import: Analyzing
+EvaluatePerfFixtures/dynamic-param-shadows-import
+                        time:   [2.5672 µs 2.5891 µs 2.6109 µs]
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import-edges
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import-edges: Warming up for 3.0000 s
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import-edges: Collecting 100 samples in estimated 5.0679 s (348k iterations)
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import-edges: Analyzing
+EvaluatePerfFixtures/dynamic-param-shadows-import-edges
+                        time:   [7.5062 µs 7.5536 µs 7.6112 µs]
+Found 11 outliers among 100 measurements (11.00%)
+  6 (6.00%) low mild
+  4 (4.00%) high mild
+  1 (1.00%) high severe
+
+----- evaluate_bench exit=0
+===== evaluate_depth_bench =====
+    Finished `bench` profile [optimized + debuginfo] target(s) in 0.25s
+     Running benches/evaluate_depth_bench.rs (target/release/deps/evaluate_depth_bench-d95e7ee756ca82bc)
+Benchmarking EvaluateDepth/arithmetic/30
+Benchmarking EvaluateDepth/arithmetic/30: Warming up for 3.0000 s
+Benchmarking EvaluateDepth/arithmetic/30: Collecting 100 samples in estimated 5.0866 s (278k iterations)
+Benchmarking EvaluateDepth/arithmetic/30: Analyzing
+EvaluateDepth/arithmetic/30
+                        time:   [17.508 µs 17.554 µs 17.614 µs]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking EvaluateDepth/arithmetic/60
+Benchmarking EvaluateDepth/arithmetic/60: Warming up for 3.0000 s
+Benchmarking EvaluateDepth/arithmetic/60: Collecting 100 samples in estimated 5.1341 s (86k iterations)
+Benchmarking EvaluateDepth/arithmetic/60: Analyzing
+EvaluateDepth/arithmetic/60
+                        time:   [59.006 µs 59.081 µs 59.165 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  6 (6.00%) high mild
+  4 (4.00%) high severe
+Benchmarking EvaluateDepth/arithmetic/120
+Benchmarking EvaluateDepth/arithmetic/120: Warming up for 3.0000 s
+Benchmarking EvaluateDepth/arithmetic/120: Collecting 100 samples in estimated 5.3491 s (25k iterations)
+Benchmarking EvaluateDepth/arithmetic/120: Analyzing
+EvaluateDepth/arithmetic/120
+                        time:   [211.25 µs 211.55 µs 211.90 µs]
+Found 12 outliers among 100 measurements (12.00%)
+  1 (1.00%) low mild
+  8 (8.00%) high mild
+  3 (3.00%) high severe
+Benchmarking EvaluateDepth/arithmetic/240
+Benchmarking EvaluateDepth/arithmetic/240: Warming up for 3.0000 s
+Benchmarking EvaluateDepth/arithmetic/240: Collecting 100 samples in estimated 8.0968 s (10k iterations)
+Benchmarking EvaluateDepth/arithmetic/240: Analyzing
+EvaluateDepth/arithmetic/240
+                        time:   [799.87 µs 800.69 µs 801.57 µs]
+Found 12 outliers among 100 measurements (12.00%)
+  7 (7.00%) high mild
+  5 (5.00%) high severe
+
+Benchmarking StructuralKeyDepth/arithmetic/30
+Benchmarking StructuralKeyDepth/arithmetic/30: Warming up for 3.0000 s
+Benchmarking StructuralKeyDepth/arithmetic/30: Collecting 100 samples in estimated 5.0022 s (7.7M iterations)
+Benchmarking StructuralKeyDepth/arithmetic/30: Analyzing
+StructuralKeyDepth/arithmetic/30
+                        time:   [645.39 ns 648.92 ns 654.65 ns]
+Found 7 outliers among 100 measurements (7.00%)
+  4 (4.00%) high mild
+  3 (3.00%) high severe
+Benchmarking StructuralKeyDepth/arithmetic/60
+Benchmarking StructuralKeyDepth/arithmetic/60: Warming up for 3.0000 s
+Benchmarking StructuralKeyDepth/arithmetic/60: Collecting 100 samples in estimated 5.0069 s (3.2M iterations)
+Benchmarking StructuralKeyDepth/arithmetic/60: Analyzing
+StructuralKeyDepth/arithmetic/60
+                        time:   [1.5786 µs 1.5812 µs 1.5843 µs]
+Found 12 outliers among 100 measurements (12.00%)
+  2 (2.00%) low mild
+  6 (6.00%) high mild
+  4 (4.00%) high severe
+Benchmarking StructuralKeyDepth/arithmetic/120
+Benchmarking StructuralKeyDepth/arithmetic/120: Warming up for 3.0000 s
+Benchmarking StructuralKeyDepth/arithmetic/120: Collecting 100 samples in estimated 5.0091 s (1.6M iterations)
+Benchmarking StructuralKeyDepth/arithmetic/120: Analyzing
+StructuralKeyDepth/arithmetic/120
+                        time:   [3.1307 µs 3.1344 µs 3.1389 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  1 (1.00%) low severe
+  1 (1.00%) low mild
+  4 (4.00%) high mild
+  3 (3.00%) high severe
+Benchmarking StructuralKeyDepth/arithmetic/240
+Benchmarking StructuralKeyDepth/arithmetic/240: Warming up for 3.0000 s
+Benchmarking StructuralKeyDepth/arithmetic/240: Collecting 100 samples in estimated 5.0282 s (778k iterations)
+Benchmarking StructuralKeyDepth/arithmetic/240: Analyzing
+StructuralKeyDepth/arithmetic/240
+                        time:   [6.4543 µs 6.4606 µs 6.4677 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  1 (1.00%) low mild
+  3 (3.00%) high mild
+  5 (5.00%) high severe
+
+Benchmarking StructuralKeyFallback/object/128
+Benchmarking StructuralKeyFallback/object/128: Warming up for 3.0000 s
+Benchmarking StructuralKeyFallback/object/128: Collecting 100 samples in estimated 5.0030 s (1.9M iterations)
+Benchmarking StructuralKeyFallback/object/128: Analyzing
+StructuralKeyFallback/object/128
+                        time:   [2.6052 µs 2.6079 µs 2.6107 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  1 (1.00%) low mild
+  6 (6.00%) high mild
+  1 (1.00%) high severe
+Benchmarking StructuralKeyFallback/object/129
+Benchmarking StructuralKeyFallback/object/129: Warming up for 3.0000 s
+Benchmarking StructuralKeyFallback/object/129: Collecting 100 samples in estimated 5.0008 s (591k iterations)
+Benchmarking StructuralKeyFallback/object/129: Analyzing
+StructuralKeyFallback/object/129
+                        time:   [8.4787 µs 8.4893 µs 8.5014 µs]
+Found 14 outliers among 100 measurements (14.00%)
+  2 (2.00%) low mild
+  7 (7.00%) high mild
+  5 (5.00%) high severe
+
+----- evaluate_depth_bench exit=0
+===== module_path_bench =====
+    Finished `bench` profile [optimized + debuginfo] target(s) in 0.21s
+     Running benches/module_path_bench.rs (target/release/deps/module_path_bench-b5ec6fb3559d6d6a)
+Benchmarking ModuleWalk/calls/1x
+Benchmarking ModuleWalk/calls/1x: Warming up for 3.0000 s
+Benchmarking ModuleWalk/calls/1x: Collecting 100 samples in estimated 5.1556 s (25k iterations)
+Benchmarking ModuleWalk/calls/1x: Analyzing
+ModuleWalk/calls/1x     time:   [150.44 µs 150.74 µs 151.05 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high severe
+Benchmarking ModuleWalk/no-calls/1x
+Benchmarking ModuleWalk/no-calls/1x: Warming up for 3.0000 s
+Benchmarking ModuleWalk/no-calls/1x: Collecting 100 samples in estimated 5.1155 s (81k iterations)
+Benchmarking ModuleWalk/no-calls/1x: Analyzing
+ModuleWalk/no-calls/1x  time:   [21.497 µs 21.581 µs 21.674 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  5 (5.00%) high mild
+  1 (1.00%) high severe
+Benchmarking ModuleWalk/imported/1x
+Benchmarking ModuleWalk/imported/1x: Warming up for 3.0000 s
+Benchmarking ModuleWalk/imported/1x: Collecting 100 samples in estimated 5.7721 s (20k iterations)
+Benchmarking ModuleWalk/imported/1x: Analyzing
+ModuleWalk/imported/1x  time:   [222.60 µs 223.42 µs 224.34 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  4 (4.00%) high mild
+  3 (3.00%) high severe
+Benchmarking ModuleWalk/calls/4x
+Benchmarking ModuleWalk/calls/4x: Warming up for 3.0000 s
+Benchmarking ModuleWalk/calls/4x: Collecting 100 samples in estimated 8.2339 s (10k iterations)
+Benchmarking ModuleWalk/calls/4x: Analyzing
+ModuleWalk/calls/4x     time:   [598.21 µs 599.44 µs 600.76 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking ModuleWalk/no-calls/4x
+Benchmarking ModuleWalk/no-calls/4x: Warming up for 3.0000 s
+Benchmarking ModuleWalk/no-calls/4x: Collecting 100 samples in estimated 6.1803 s (25k iterations)
+Benchmarking ModuleWalk/no-calls/4x: Analyzing
+ModuleWalk/no-calls/4x  time:   [79.812 µs 80.036 µs 80.280 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking ModuleWalk/imported/4x
+Benchmarking ModuleWalk/imported/4x: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.3s, enable flat sampling, or reduce sample count to 60.
+Benchmarking ModuleWalk/imported/4x: Collecting 100 samples in estimated 5.3442 s (5050 iterations)
+Benchmarking ModuleWalk/imported/4x: Analyzing
+ModuleWalk/imported/4x  time:   [827.83 µs 830.27 µs 833.11 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking SeenModuleSource/kept/calls/1x
+Benchmarking SeenModuleSource/kept/calls/1x: Warming up for 3.0000 s
+Benchmarking SeenModuleSource/kept/calls/1x: Collecting 100 samples in estimated 5.2023 s (20k iterations)
+Benchmarking SeenModuleSource/kept/calls/1x: Analyzing
+SeenModuleSource/kept/calls/1x
+                        time:   [201.65 µs 201.97 µs 202.32 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking SeenModuleSource/kept/no-calls/1x
+Benchmarking SeenModuleSource/kept/no-calls/1x: Warming up for 3.0000 s
+Benchmarking SeenModuleSource/kept/no-calls/1x: Collecting 100 samples in estimated 5.2441 s (50k iterations)
+Benchmarking SeenModuleSource/kept/no-calls/1x: Analyzing
+SeenModuleSource/kept/no-calls/1x
+                        time:   [61.302 µs 61.522 µs 61.752 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  2 (2.00%) low mild
+  3 (3.00%) high mild
+  2 (2.00%) high severe
+Benchmarking SeenModuleSource/kept/calls/4x
+Benchmarking SeenModuleSource/kept/calls/4x: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.1s, enable flat sampling, or reduce sample count to 60.
+Benchmarking SeenModuleSource/kept/calls/4x: Collecting 100 samples in estimated 5.1495 s (5050 iterations)
+Benchmarking SeenModuleSource/kept/calls/4x: Analyzing
+SeenModuleSource/kept/calls/4x
+                        time:   [800.10 µs 801.69 µs 803.45 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  2 (2.00%) high mild
+  3 (3.00%) high severe
+Benchmarking SeenModuleSource/kept/no-calls/4x
+Benchmarking SeenModuleSource/kept/no-calls/4x: Warming up for 3.0000 s
+Benchmarking SeenModuleSource/kept/no-calls/4x: Collecting 100 samples in estimated 6.0650 s (15k iterations)
+Benchmarking SeenModuleSource/kept/no-calls/4x: Analyzing
+SeenModuleSource/kept/no-calls/4x
+                        time:   [234.86 µs 235.16 µs 235.47 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low severe
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+
+Benchmarking StructuralKey/call/shallow
+Benchmarking StructuralKey/call/shallow: Warming up for 3.0000 s
+Benchmarking StructuralKey/call/shallow: Collecting 100 samples in estimated 5.0000 s (85M iterations)
+Benchmarking StructuralKey/call/shallow: Analyzing
+StructuralKey/call/shallow
+                        time:   [58.587 ns 58.668 ns 58.751 ns]
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high severe
+Benchmarking StructuralKey/call/member
+Benchmarking StructuralKey/call/member: Warming up for 3.0000 s
+Benchmarking StructuralKey/call/member: Collecting 100 samples in estimated 5.0001 s (77M iterations)
+Benchmarking StructuralKey/call/member: Analyzing
+StructuralKey/call/member
+                        time:   [64.583 ns 64.648 ns 64.720 ns]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking StructuralKey/call/nested
+Benchmarking StructuralKey/call/nested: Warming up for 3.0000 s
+Benchmarking StructuralKey/call/nested: Collecting 100 samples in estimated 5.0004 s (40M iterations)
+Benchmarking StructuralKey/call/nested: Analyzing
+StructuralKey/call/nested
+                        time:   [123.84 ns 123.99 ns 124.14 ns]
+Found 13 outliers among 100 measurements (13.00%)
+  2 (2.00%) low severe
+  1 (1.00%) low mild
+  8 (8.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking StateManager/new
+Benchmarking StateManager/new: Warming up for 3.0000 s
+Benchmarking StateManager/new: Collecting 100 samples in estimated 5.0008 s (12M iterations)
+Benchmarking StateManager/new: Analyzing
+StateManager/new        time:   [170.52 ns 170.88 ns 171.26 ns]
+Found 6 outliers among 100 measurements (6.00%)
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+
+Benchmarking FullPipeline/calls/1x
+Benchmarking FullPipeline/calls/1x: Warming up for 3.0000 s
+Benchmarking FullPipeline/calls/1x: Collecting 100 samples in estimated 6.5278 s (20k iterations)
+Benchmarking FullPipeline/calls/1x: Analyzing
+FullPipeline/calls/1x   time:   [294.28 µs 296.58 µs 299.50 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  4 (4.00%) high mild
+  4 (4.00%) high severe
+Benchmarking FullPipeline/no-calls/1x
+Benchmarking FullPipeline/no-calls/1x: Warming up for 3.0000 s
+Benchmarking FullPipeline/no-calls/1x: Collecting 100 samples in estimated 5.6559 s (35k iterations)
+Benchmarking FullPipeline/no-calls/1x: Analyzing
+FullPipeline/no-calls/1x
+                        time:   [139.97 µs 141.01 µs 142.38 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking FullPipeline/imported/1x
+Benchmarking FullPipeline/imported/1x: Warming up for 3.0000 s
+Benchmarking FullPipeline/imported/1x: Collecting 100 samples in estimated 5.9057 s (15k iterations)
+Benchmarking FullPipeline/imported/1x: Analyzing
+FullPipeline/imported/1x
+                        time:   [362.65 µs 364.47 µs 367.00 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  4 (4.00%) high mild
+  2 (2.00%) high severe
+Benchmarking FullPipeline/calls/4x
+Benchmarking FullPipeline/calls/4x: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 6.4s, enable flat sampling, or reduce sample count to 60.
+Benchmarking FullPipeline/calls/4x: Collecting 100 samples in estimated 6.3620 s (5050 iterations)
+Benchmarking FullPipeline/calls/4x: Analyzing
+FullPipeline/calls/4x   time:   [1.1500 ms 1.1522 ms 1.1545 ms]
+Found 8 outliers among 100 measurements (8.00%)
+  4 (4.00%) high mild
+  4 (4.00%) high severe
+Benchmarking FullPipeline/no-calls/4x
+Benchmarking FullPipeline/no-calls/4x: Warming up for 3.0000 s
+Benchmarking FullPipeline/no-calls/4x: Collecting 100 samples in estimated 6.2772 s (10k iterations)
+Benchmarking FullPipeline/no-calls/4x: Analyzing
+FullPipeline/no-calls/4x
+                        time:   [539.03 µs 540.04 µs 541.12 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  6 (6.00%) high mild
+  2 (2.00%) high severe
+Benchmarking FullPipeline/imported/4x
+Benchmarking FullPipeline/imported/4x: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 7.5s, enable flat sampling, or reduce sample count to 50.
+Benchmarking FullPipeline/imported/4x: Collecting 100 samples in estimated 7.5068 s (5050 iterations)
+Benchmarking FullPipeline/imported/4x: Analyzing
+FullPipeline/imported/4x
+                        time:   [1.3769 ms 1.3804 ms 1.3854 ms]
+Found 5 outliers among 100 measurements (5.00%)
+  2 (2.00%) high mild
+  3 (3.00%) high severe
+
+----- module_path_bench exit=0
+===== transform_consumers_bench =====
+    Finished `bench` profile [optimized + debuginfo] target(s) in 0.19s
+     Running benches/transform_consumers_bench.rs (target/release/deps/transform_consumers_bench-eddccdba56fa2aa6)
+Benchmarking TransformConsumers/components/25
+Benchmarking TransformConsumers/components/25: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 6.7s, enable flat sampling, or reduce sample count to 60.
+Benchmarking TransformConsumers/components/25: Collecting 100 samples in estimated 6.6822 s (5050 iterations)
+Benchmarking TransformConsumers/components/25: Analyzing
+TransformConsumers/components/25
+                        time:   [1.2234 ms 1.2292 ms 1.2361 ms]
+Found 18 outliers among 100 measurements (18.00%)
+  9 (9.00%) low mild
+  6 (6.00%) high mild
+  3 (3.00%) high severe
+Benchmarking TransformConsumers/components/100
+Benchmarking TransformConsumers/components/100: Warming up for 3.0000 s
+Benchmarking TransformConsumers/components/100: Collecting 100 samples in estimated 5.5242 s (1000 iterations)
+Benchmarking TransformConsumers/components/100: Analyzing
+TransformConsumers/components/100
+                        time:   [5.1171 ms 5.1345 ms 5.1542 ms]
+Found 13 outliers among 100 measurements (13.00%)
+  7 (7.00%) high mild
+  6 (6.00%) high severe
+Benchmarking TransformConsumers/components/400
+Benchmarking TransformConsumers/components/400: Warming up for 3.0000 s
+Benchmarking TransformConsumers/components/400: Collecting 100 samples in estimated 6.9581 s (300 iterations)
+Benchmarking TransformConsumers/components/400: Analyzing
+TransformConsumers/components/400
+                        time:   [21.229 ms 21.309 ms 21.401 ms]
+Found 8 outliers among 100 measurements (8.00%)
+  4 (4.00%) high mild
+  4 (4.00%) high severe
+Benchmarking TransformConsumers/identicalStyles/25
+Benchmarking TransformConsumers/identicalStyles/25: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.8s, enable flat sampling, or reduce sample count to 60.
+Benchmarking TransformConsumers/identicalStyles/25: Collecting 100 samples in estimated 5.7894 s (5050 iterations)
+Benchmarking TransformConsumers/identicalStyles/25: Analyzing
+TransformConsumers/identicalStyles/25
+                        time:   [1.0821 ms 1.0864 ms 1.0912 ms]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking TransformConsumers/identicalStyles/100
+Benchmarking TransformConsumers/identicalStyles/100: Warming up for 3.0000 s
+Benchmarking TransformConsumers/identicalStyles/100: Collecting 100 samples in estimated 5.2053 s (1100 iterations)
+Benchmarking TransformConsumers/identicalStyles/100: Analyzing
+TransformConsumers/identicalStyles/100
+                        time:   [4.3452 ms 4.3607 ms 4.3778 ms]
+Found 8 outliers among 100 measurements (8.00%)
+  7 (7.00%) high mild
+  1 (1.00%) high severe
+Benchmarking TransformConsumers/identicalStyles/400
+Benchmarking TransformConsumers/identicalStyles/400: Warming up for 3.0000 s
+Benchmarking TransformConsumers/identicalStyles/400: Collecting 100 samples in estimated 5.6963 s (300 iterations)
+Benchmarking TransformConsumers/identicalStyles/400: Analyzing
+TransformConsumers/identicalStyles/400
+                        time:   [17.922 ms 17.997 ms 18.083 ms]
+Found 11 outliers among 100 measurements (11.00%)
+  6 (6.00%) high mild
+  5 (5.00%) high severe
+
+----- transform_consumers_bench exit=0
+===== transform_debug_bench =====
+    Finished `bench` profile [optimized + debuginfo] target(s) in 0.19s
+     Running benches/transform_debug_bench.rs (target/release/deps/transform_debug_bench-13af1d6e41b7f2d0)
+Benchmarking TransformDebugPath/dev/25
+Benchmarking TransformDebugPath/dev/25: Warming up for 3.0000 s
+Benchmarking TransformDebugPath/dev/25: Collecting 100 samples in estimated 5.1009 s (2200 iterations)
+Benchmarking TransformDebugPath/dev/25: Analyzing
+TransformDebugPath/dev/25
+                        time:   [2.2231 ms 2.2322 ms 2.2422 ms]
+Found 12 outliers among 100 measurements (12.00%)
+  7 (7.00%) high mild
+  5 (5.00%) high severe
+Benchmarking TransformDebugPath/prod/25
+Benchmarking TransformDebugPath/prod/25: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 8.6s, enable flat sampling, or reduce sample count to 50.
+Benchmarking TransformDebugPath/prod/25: Collecting 100 samples in estimated 8.5698 s (5050 iterations)
+Benchmarking TransformDebugPath/prod/25: Analyzing
+TransformDebugPath/prod/25
+                        time:   [1.6513 ms 1.6548 ms 1.6591 ms]
+Found 14 outliers among 100 measurements (14.00%)
+  4 (4.00%) high mild
+  10 (10.00%) high severe
+Benchmarking TransformDebugPath/dev/50
+Benchmarking TransformDebugPath/dev/50: Warming up for 3.0000 s
+Benchmarking TransformDebugPath/dev/50: Collecting 100 samples in estimated 5.1640 s (1400 iterations)
+Benchmarking TransformDebugPath/dev/50: Analyzing
+TransformDebugPath/dev/50
+                        time:   [3.6006 ms 3.6074 ms 3.6152 ms]
+Found 14 outliers among 100 measurements (14.00%)
+  2 (2.00%) high mild
+  12 (12.00%) high severe
+Benchmarking TransformDebugPath/prod/50
+Benchmarking TransformDebugPath/prod/50: Warming up for 3.0000 s
+Benchmarking TransformDebugPath/prod/50: Collecting 100 samples in estimated 5.0165 s (1800 iterations)
+Benchmarking TransformDebugPath/prod/50: Analyzing
+TransformDebugPath/prod/50
+                        time:   [2.7020 ms 2.7055 ms 2.7094 ms]
+Found 7 outliers among 100 measurements (7.00%)
+  5 (5.00%) high mild
+  2 (2.00%) high severe
+Benchmarking TransformDebugPath/dev/100
+Benchmarking TransformDebugPath/dev/100: Warming up for 3.0000 s
+Benchmarking TransformDebugPath/dev/100: Collecting 100 samples in estimated 5.6017 s (700 iterations)
+Benchmarking TransformDebugPath/dev/100: Analyzing
+TransformDebugPath/dev/100
+                        time:   [7.6952 ms 7.7152 ms 7.7374 ms]
+Found 20 outliers among 100 measurements (20.00%)
+  1 (1.00%) high mild
+  19 (19.00%) high severe
+Benchmarking TransformDebugPath/prod/100
+Benchmarking TransformDebugPath/prod/100: Warming up for 3.0000 s
+Benchmarking TransformDebugPath/prod/100: Collecting 100 samples in estimated 5.3928 s (900 iterations)
+Benchmarking TransformDebugPath/prod/100: Analyzing
+TransformDebugPath/prod/100
+                        time:   [5.8084 ms 5.8220 ms 5.8374 ms]
+Found 11 outliers among 100 measurements (11.00%)
+  6 (6.00%) high mild
+  5 (5.00%) high severe
+
+Benchmarking TransformDebugNamespacesPerCall/dev/8
+Benchmarking TransformDebugNamespacesPerCall/dev/8: Warming up for 3.0000 s
+Benchmarking TransformDebugNamespacesPerCall/dev/8: Collecting 100 samples in estimated 5.7115 s (20k iterations)
+Benchmarking TransformDebugNamespacesPerCall/dev/8: Analyzing
+TransformDebugNamespacesPerCall/dev/8
+                        time:   [273.75 µs 274.25 µs 274.78 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  3 (3.00%) high mild
+  5 (5.00%) high severe
+Benchmarking TransformDebugNamespacesPerCall/prod/8
+Benchmarking TransformDebugNamespacesPerCall/prod/8: Warming up for 3.0000 s
+Benchmarking TransformDebugNamespacesPerCall/prod/8: Collecting 100 samples in estimated 5.3093 s (30k iterations)
+Benchmarking TransformDebugNamespacesPerCall/prod/8: Analyzing
+TransformDebugNamespacesPerCall/prod/8
+                        time:   [166.29 µs 166.61 µs 166.96 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  5 (5.00%) high mild
+  5 (5.00%) high severe
+Benchmarking TransformDebugNamespacesPerCall/dev/32
+Benchmarking TransformDebugNamespacesPerCall/dev/32: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.7s, enable flat sampling, or reduce sample count to 60.
+Benchmarking TransformDebugNamespacesPerCall/dev/32: Collecting 100 samples in estimated 5.7129 s (5050 iterations)
+Benchmarking TransformDebugNamespacesPerCall/dev/32: Analyzing
+TransformDebugNamespacesPerCall/dev/32
+                        time:   [1.0939 ms 1.0962 ms 1.0989 ms]
+Found 17 outliers among 100 measurements (17.00%)
+  1 (1.00%) low mild
+  9 (9.00%) high mild
+  7 (7.00%) high severe
+Benchmarking TransformDebugNamespacesPerCall/prod/32
+Benchmarking TransformDebugNamespacesPerCall/prod/32: Warming up for 3.0000 s
+Benchmarking TransformDebugNamespacesPerCall/prod/32: Collecting 100 samples in estimated 9.2622 s (10k iterations)
+Benchmarking TransformDebugNamespacesPerCall/prod/32: Analyzing
+TransformDebugNamespacesPerCall/prod/32
+                        time:   [888.60 µs 890.64 µs 892.95 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  4 (4.00%) high mild
+  1 (1.00%) high severe
+Benchmarking TransformDebugNamespacesPerCall/dev/128
+Benchmarking TransformDebugNamespacesPerCall/dev/128: Warming up for 3.0000 s
+Benchmarking TransformDebugNamespacesPerCall/dev/128: Collecting 100 samples in estimated 5.3006 s (600 iterations)
+Benchmarking TransformDebugNamespacesPerCall/dev/128: Analyzing
+TransformDebugNamespacesPerCall/dev/128
+                        time:   [8.5431 ms 8.5703 ms 8.6011 ms]
+Found 17 outliers among 100 measurements (17.00%)
+  5 (5.00%) high mild
+  12 (12.00%) high severe
+Benchmarking TransformDebugNamespacesPerCall/prod/128
+Benchmarking TransformDebugNamespacesPerCall/prod/128: Warming up for 3.0000 s
+Benchmarking TransformDebugNamespacesPerCall/prod/128: Collecting 100 samples in estimated 5.5135 s (700 iterations)
+Benchmarking TransformDebugNamespacesPerCall/prod/128: Analyzing
+TransformDebugNamespacesPerCall/prod/128
+                        time:   [7.7114 ms 7.7292 ms 7.7494 ms]
+Found 16 outliers among 100 measurements (16.00%)
+  6 (6.00%) high mild
+  10 (10.00%) high severe
+
+----- transform_debug_bench exit=0
+bench exit=0

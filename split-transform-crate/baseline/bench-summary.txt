@@ -1,0 +1,87 @@
+Criterion medians at baseline commit e8887ab8f, criterion baseline name 'pre-split'.
+
+concatenation_chain_bench
+  ConcatenationChain/links/2                                  740.22 µs
+  ConcatenationChain/links/5                                  984.86 µs
+  ConcatenationChain/links/10                                 1.3098 ms
+  ConcatenationChain/links/20                                 1.9937 ms
+
+engine_fold_bench
+  EngineFoldColdStart/build-and-answer                        169.49 µs
+  EngineFoldRoundTrip/engine/string                           2.3754 µs
+  EngineFoldRoundTrip/fold/string                             769.64 ns
+  EngineFoldRoundTrip/engine/callback                         11.609 µs
+  EngineFoldRoundTrip/fold/callback                           5.2285 µs
+  EngineFoldRoundTrip/engine/chain                            6.0695 µs
+  EngineFoldRoundTrip/fold/chain                              1.8295 µs
+  EngineFoldRoundTrip/engine/array-answer                     5.9768 µs
+  EngineFoldRoundTrip/fold/array-answer                       2.3388 µs
+  EngineFoldRoundTrip/fold-distinct                           5.6175 µs
+
+evaluate_bench
+  EvaluatePerfFixtures/colors.stylex.js                       31.832 µs
+  EvaluatePerfFixtures/sizes.stylex.js                        18.314 µs
+  EvaluatePerfFixtures/create-basic.js                        9.4042 µs
+  EvaluatePerfFixtures/create-complex.js                      19.401 µs
+  EvaluatePerfFixtures/createTheme-basic.js                   27.093 µs
+  EvaluatePerfFixtures/createTheme-complex.js                 3.2626 ms
+  EvaluatePerfFixtures/dynamic-param-shadows-import           2.5891 µs
+  EvaluatePerfFixtures/dynamic-param-shadows-import-edges     7.5536 µs
+
+evaluate_depth_bench
+  EvaluateDepth/arithmetic/30                                 17.554 µs
+  EvaluateDepth/arithmetic/60                                 59.081 µs
+  EvaluateDepth/arithmetic/120                                211.55 µs
+  EvaluateDepth/arithmetic/240                                800.69 µs
+  StructuralKeyDepth/arithmetic/30                            648.92 ns
+  StructuralKeyDepth/arithmetic/60                            1.5812 µs
+  StructuralKeyDepth/arithmetic/120                           3.1344 µs
+  StructuralKeyDepth/arithmetic/240                           6.4606 µs
+  StructuralKeyFallback/object/128                            2.6079 µs
+  StructuralKeyFallback/object/129                            8.4893 µs
+
+module_path_bench
+  ModuleWalk/calls/1x                                         150.74 µs
+  ModuleWalk/no-calls/1x                                      21.581 µs
+  ModuleWalk/imported/1x                                      223.42 µs
+  ModuleWalk/calls/4x                                         599.44 µs
+  ModuleWalk/no-calls/4x                                      80.036 µs
+  ModuleWalk/imported/4x                                      830.27 µs
+  SeenModuleSource/kept/calls/1x                              201.97 µs
+  SeenModuleSource/kept/no-calls/1x                           61.522 µs
+  SeenModuleSource/kept/calls/4x                              801.69 µs
+  SeenModuleSource/kept/no-calls/4x                           235.16 µs
+  StructuralKey/call/shallow                                  58.668 ns
+  StructuralKey/call/member                                   64.648 ns
+  StructuralKey/call/nested                                   123.99 ns
+  StateManager/new                                            170.88 ns
+  FullPipeline/calls/1x                                       296.58 µs
+  FullPipeline/no-calls/1x                                    141.01 µs
+  FullPipeline/imported/1x                                    364.47 µs
+  FullPipeline/calls/4x                                       1.1522 ms
+  FullPipeline/no-calls/4x                                    540.04 µs
+  FullPipeline/imported/4x                                    1.3804 ms
+
+transform_consumers_bench
+  TransformConsumers/components/25                            1.2292 ms
+  TransformConsumers/components/100                           5.1345 ms
+  TransformConsumers/components/400                           21.309 ms
+  TransformConsumers/identicalStyles/25                       1.0864 ms
+  TransformConsumers/identicalStyles/100                      4.3607 ms
+  TransformConsumers/identicalStyles/400                      17.997 ms
+
+transform_debug_bench
+  TransformDebugPath/dev/25                                   2.2322 ms
+  TransformDebugPath/prod/25                                  1.6548 ms
+  TransformDebugPath/dev/50                                   3.6074 ms
+  TransformDebugPath/prod/50                                  2.7055 ms
+  TransformDebugPath/dev/100                                  7.7152 ms
+  TransformDebugPath/prod/100                                 5.8220 ms
+  TransformDebugNamespacesPerCall/dev/8                       274.25 µs
+  TransformDebugNamespacesPerCall/prod/8                      166.61 µs
+  TransformDebugNamespacesPerCall/dev/32                      1.0962 ms
+  TransformDebugNamespacesPerCall/prod/32                     890.64 µs
+  TransformDebugNamespacesPerCall/dev/128                     8.5703 ms
+  TransformDebugNamespacesPerCall/prod/128                    7.7292 ms
+
+70 measurements

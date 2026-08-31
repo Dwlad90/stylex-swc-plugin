@@ -17,7 +17,7 @@ Three consequences fall out of that:
 1. **Nothing separates unrelated work.** A change to class-name generation lives
    in the same crate as import resolution and the visitors, with only module
    privacy between them — and the module graph does not even hold that line
-   today: a util in the style-semantics layer reaches *up* into the visitor
+   today: a util in the style-semantics layer reaches _up_ into the visitor
    layer, and a structure and a util depend on each other in a cycle. The
    guidelines require a strict DAG where higher layers depend only on lower
    ones; inside this crate that rule is unenforced and already broken.
@@ -54,7 +54,7 @@ Four crates change hands:
 - **stylex-evaluator** — the general JavaScript evaluator: **confident** results
   and **deopt** expressions, the per-node evaluation, the **engine fold** and its
   **transport**, **applied globals**, the binding lookup and the evaluation cache.
-- **stylex-nested-config** — the crate currently *named* `stylex-evaluator`,
+- **stylex-nested-config** — the crate currently _named_ `stylex-evaluator`,
   which does nested-config flattening and no evaluation at all, renamed so the
   name goes to the code that earns it and the disclaimer in `CONTEXT-MAP.md` can
   be deleted.
@@ -167,7 +167,7 @@ every new crate comes from. This matches how earlier splits were done:
 Feature-vertical boundaries (one crate per `stylex.*` API) were rejected: every
 API funnels through the same flatten → pre-rule → class-name pipeline, so
 vertical crates would either duplicate it or all depend on a shared crate that
-*is* the layered cut.
+_is_ the layered cut.
 
 ### New crates and their responsibilities
 
@@ -187,10 +187,21 @@ Everything else stays: the state manager and the remaining structures, the
 style-semantics layer, the AST/CSS/common/object utilities, the validators, the
 enums, and the whole visitor tree.
 
+> **Amended.** The state manager did not stay. Every unit the evaluator move
+> touches takes `&mut StateManager`, so leaving it here made the evaluator crate
+> depend on the transform -- a cycle Cargo rejects, and both escapes this spec
+> allows are closed by its own constraints. It moved down into `stylex-state`
+> instead, keeping one struct with an unchanged method surface, so the parity
+> rule below still holds. See
+> [ticket 08](./issues/08-move-evaluator-core.md); landed as `a1baab79e`.
+> `utils/common.rs` and the AST convertors are affected in the same way --
+> [ticket 12](./issues/12-extract-declarations-crate.md) and
+> [ticket 14](./issues/14-decompose-common.md).
+
 ### The state manager is not decomposed
 
 It stays one struct with its method surface unchanged, because it corresponds to
-a single unit on the comparison side. Only the Rust-only machinery it *composes*
+a single unit on the comparison side. Only the Rust-only machinery it _composes_
 leaves. A four-way split into context/imports/bindings/output was considered and
 rejected on parity grounds.
 
@@ -221,7 +232,7 @@ transform, which would be a cycle. This follows the established pattern.
 
 The crate's three exported macros expand to hard-coded paths rooted at the
 defining crate, and those paths point at **three different destinations**: one
-into diagnostics, one into the evaluator, and one into *both* the AST convertors
+into diagnostics, one into the evaluator, and one into _both_ the AST convertors
 (staying) and the evaluator (leaving) within a single expansion.
 
 Because an exported macro publishes at its defining crate's root, leaving them
@@ -248,8 +259,24 @@ to the new crate paths.
 
 The consequence is that **import paths in test and bench files do change**. The
 constraint is narrowed accordingly, and stated precisely below under Testing
-Decisions: a test's *assertions and fixtures* are never edited to accommodate a
-move; a test's *import lines* may be.
+Decisions: a test's _assertions and fixtures_ are never edited to accommodate a
+move; a test's _import lines_ may be.
+
+What a `pub use` may and may not do is stated once, under "Re-exports" in
+`guidelines/stack/RUST.md`. The rule binds on code that is already here, not
+only on code this work moves.
+
+Earlier extractions left shims behind — `utils::ast::convertors` republished
+twenty items from `stylex-ast`, `utils::css::common` nine from `stylex-css`, and
+`structures::types` two from `stylex-types`. Each carried
+`#[allow(unused_imports)]`, so nothing warned. They hid the true crate graph: a
+module read as a dependant of the transform when it really depended on a lower
+crate, and one shim masked a cycle inside the transform. They are removed, and
+call sites import direct.
+
+What stays is what the guideline permits: the one `pub use` in `lib.rs`, and the
+lifts out of private modules in `utils::js::evaluate` and
+`transform_stylex_create_call`.
 
 ### The documented DAG is renumbered
 
@@ -292,7 +319,7 @@ The evaluator goes last because it depends on both state-index and diagnostics.
 ### What makes a good test here
 
 This is a refactor with zero intended behaviour change, so the tests are not
-being *written* — they are the **invariant**. A good test in this work is one
+being _written_ — they are the **invariant**. A good test in this work is one
 whose assertions and fixtures are byte-identical before and after, and which
 still exercises the same code through the same entry point. Tests assert on
 transform output — emitted JavaScript, injected CSS, metadata — never on which
@@ -312,7 +339,7 @@ preserved:
    before each run, because the JavaScript suite exercises the built artifact and
    not the Rust sources.
 2. **The crate's integration test tree with its snapshots** — whole-module
-   transform assertions. Unchanged in content. At risk only of snapshot *path*
+   transform assertions. Unchanged in content. At risk only of snapshot _path_
    churn, which is quarantined to its own commit.
 3. **Per-module unit tests living beside their code** — these travel with the
    module they cover, which is what lets each new crate reach the coverage gate
@@ -330,6 +357,14 @@ the coverage gate runs across the whole workspace, so **a new crate is gated the
 moment it exists**. Each extraction commit either lands at full coverage or ships
 a temporary exclusion that its own immediate follow-up removes. The gate ignores
 test, bench and example directories, so only library source counts.
+
+> **Amended.** `stylex-state` ships an exclusion whose remover,
+> [ticket 11](./issues/11-cover-the-state-crate.md), is backlogged rather than
+> immediate. The rule assumed a new crate's coverage arrives with its code; this
+> crate's did not, because the state manager was covered *transitively* through
+> the transform, which is itself exempt, and the boundary is what stopped that
+> counting. No previously covered line became uncovered. The rule still binds
+> every other extraction -- `stylex-declarations` takes no exclusion.
 
 Note that coverage tooling keeps only the best-covered instantiation of a
 generic, so a generic helper can read as fully covered while one instantiation is
@@ -368,7 +403,7 @@ re-run coverage with the new crate included; confirm the compiler's dependency
 and entry points are unchanged; regenerate the lockfile.
 
 Two known traps: the pre-commit hook rewrites code, so typecheck must be re-run
-*after* committing rather than only before; and one bench plus the performance
+_after_ committing rather than only before; and one bench plus the performance
 fixture test are wall-clock flaky, so a lone failure is re-run before being
 believed.
 
@@ -418,3 +453,11 @@ hand-edit.
 - Expected end state: the transform crate drops from ~32k to ~20k lines of
   source; three new gated crates hold ~13.8k lines at full region coverage; the
   workspace's uncovered-by-policy surface shrinks by roughly a third.
+
+### Tests Coverage
+
+For checking the coverage of the tests, please run the following command:
+
+```bash
+scripts/coverage-missing.sh
+```

@@ -25,13 +25,62 @@ isolated: a failure here stops the work early and cheaply.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] All three macros live in the macro crate.
-- [ ] No macro body names a path in a layer above the macro crate.
-- [ ] Each call site supplies the function the macro invokes.
-- [ ] The macro crate gains no new dependency.
-- [ ] Behaviour at every expansion site is identical — the emitted code is the same.
-- [ ] Test files change import lines only; no assertion, input or fixture is touched.
-- [ ] Debug workspace build and test green.
-- [ ] Coverage gate still passes.
+- [x] All three macros live in the macro crate.
+- [x] No macro body names a path in a layer above the macro crate.
+- [x] Each call site supplies the function the macro invokes.
+- [x] The macro crate gains no new dependency.
+- [x] Behaviour at every expansion site is identical — the emitted code is the same.
+- [x] Test files change import lines only; no assertion, input or fixture is touched.
+- [x] Debug workspace build and test green.
+- [x] Coverage gate still passes.
+
+## Verification
+
+The three macros are `crates/stylex-macros/src/evaluation_macros.rs`. Each one
+now names only its own `$` parameters, and the leading arguments are the
+functions it calls:
+
+- `deopt_unsupported!(deopt, ...)` — 75 call sites.
+- `expr_to_str_or_deopt!(convert_expr_to_str, deopt, ...)` — 1 call site.
+- `stylex_panic_with_context!(wrap_in_paren_ref,
+  build_code_frame_error_and_panic, ...)` — 2 call sites.
+
+`stylex_panic_with_context!` takes **two** functions, not one. Its body wrapped
+the expression through `stylex_ast::ast::factories::wrap_in_paren_ref` — an
+absolute path into layer 5 — as well as calling the reporter, and the ticket
+forbids a body naming any layer above the macro crate. Both are injected.
+
+Every injected path resolves to what the old body hard-coded. `deopt` and
+`convert_expr_to_str` are already in scope at every site: `deopt` through the
+`super::super::*` glob off `evaluate/mod.rs`, `convert_expr_to_str` through
+that file's own import. Only `wrap_in_paren_ref` and
+`build_code_frame_error_and_panic` needed adding to `evaluate/mod.rs`.
+
+`stylex-macros/Cargo.toml` is untouched: a macro body expands at the call site,
+so the caller's crate carries the dependency.
+
+### Results
+
+- `cargo check`, `cargo clippy --all-targets` and `cargo test`, all
+  `--workspace --all-features`: green, debug profile, 8119 passed, 0 failed.
+  Seven of those are new; nothing was removed, because the deleted module held
+  no tests.
+- `pnpm run test:coverage:workspace`: 100% on lines, functions and regions.
+- `cargo fmt --all --check` and `pnpm format:check`: clean.
+- `cargo doc -p stylex_macros`: no warnings.
+
+### Notes for later tickets
+
+- **The macro crate is coverage-gated, the transform crate is not.** Moving a
+  macro moves it from an excluded crate to an included one. The new tests
+  expand each macro over stubs so the gate has something to measure; expansion
+  itself emits no region in the defining crate.
+- **A `macro_rules!` intra-doc link is order-dependent.** A macro referring
+  forward to one defined below it in the same file does not resolve by bare
+  name. Write `[`name!`](crate::name)`.
+- **ADR 0002 lives in the transform crate and describes macros that no longer
+  do.** It gained a paragraph on the injection and lost the claim that the
+  macros sit "in the same file" as the evaluator. Ticket 08 should decide
+  whether the ADR travels with the evaluator.

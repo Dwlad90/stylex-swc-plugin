@@ -1,0 +1,7 @@
+    Checking stylex_transform v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-transform)
+    Checking stylex_compiler_rs v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-rs-compiler)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.82s
+real 0.87
+user 0.53
+sys 0.27
+check exit=0

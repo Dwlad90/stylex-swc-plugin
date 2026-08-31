@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/turbopack-plugin",
   "description": "StyleX loader for Next.js Turbopack powered by a Rust NAPI-RS/SWC compiler.",
-  "version": "0.18.6-rc.1",
+  "version": "0.18.6",
   "private": false,
   "license": "MIT",
   "sideEffects": false,

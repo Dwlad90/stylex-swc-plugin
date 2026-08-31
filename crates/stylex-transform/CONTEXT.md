@@ -797,6 +797,8 @@ evaluation's confidence forks -- a logical operand and a computed key each get
 their own -- while the stack it is accounting for does not. Crossing the ceiling
 is a [refused fold](#refused-fold), not an abort. The fold also grows its own
 stack, so the ceiling is a policy rather than whatever a 2 MiB thread survived.
+What the growing costs and how it is sized is
+[stylex-evaluator](../stylex-evaluator/CONTEXT.md#grown-stack).
 
 The stack the fold claims is not this number, though it is usually the same one.
 What is claimed has to carry the print and the parse, which descend through the

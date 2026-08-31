@@ -81,8 +81,9 @@ use swc_core::{
 use stylex_constants::constants::evaluation_errors::{
   expression_too_deep, nesting_too_deep_to_carry, uncallable_printed_fold,
 };
+use stylex_evaluator::growable_stack;
 
-use super::{evaluate_result_vec_to_array_expr, growable_stack};
+use super::evaluate_result_vec_to_array_expr;
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},

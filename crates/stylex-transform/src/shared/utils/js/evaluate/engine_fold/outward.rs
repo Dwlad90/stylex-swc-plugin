@@ -23,10 +23,10 @@ use stylex_ast::ast::factories::{create_ident_key_value_prop, create_object_lit}
 use stylex_constants::constants::evaluation_errors::{
   array_length_too_large, folded_string_too_large, object_size_too_large, unfoldable_fold_result,
 };
+use stylex_evaluator::growable_stack::grown_per_level;
 use stylex_js::coercions;
 use stylex_utils::string::utf16_length;
 
-use super::super::growable_stack::grown_per_level;
 use super::super::helpers::js_undefined;
 use super::as_expr;
 use super::engine::read;
@@ -35,7 +35,6 @@ use super::{Ceilings, Decline, Depth, Totals};
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue, utils::common::order_own_keys,
 };
-
 /// What the outward bridge carries as it converts a value back: the method whose
 /// answer it is reading, so a refusal can name it, and how much of the two
 /// allocation ceilings the answer has spent so far.

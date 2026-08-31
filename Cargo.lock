@@ -3322,6 +3322,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylex_evaluator"
+version = "0.18.6"
+dependencies = [
+ "ctor",
+ "pretty_env_logger",
+ "stacker",
+ "stylex_structures",
+ "swc_core",
+]
+
+[[package]]
 name = "stylex_js"
 version = "0.18.6"
 dependencies = [
@@ -3477,6 +3488,7 @@ dependencies = [
  "stylex_css_parser",
  "stylex_diagnostics",
  "stylex_enums",
+ "stylex_evaluator",
  "stylex_js",
  "stylex_macros",
  "stylex_nested_config",

@@ -1,0 +1,27 @@
+[package]
+description = "The JavaScript evaluator the StyleX compiler folds authored expressions with"
+edition.workspace = true
+license.workspace = true
+name = "stylex_evaluator"
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+stacker.workspace = true
+swc_core = { workspace = true, features = ["common", "ecma_ast", "ecma_visit"] }
+
+stylex_structures = { path = "../stylex-structures" }
+
+[dev-dependencies]
+ctor.workspace = true
+pretty_env_logger.workspace = true
+swc_core = { workspace = true, features = ["ecma_parser"] }
+
+[lints]
+workspace = true

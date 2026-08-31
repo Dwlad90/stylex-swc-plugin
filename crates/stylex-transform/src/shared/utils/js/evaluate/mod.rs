@@ -5,7 +5,6 @@ mod cache;
 mod deopt;
 mod engine_fold;
 mod engine_stylex_functions;
-mod growable_stack;
 mod helpers;
 mod nodes;
 
@@ -556,10 +555,6 @@ mod callee_shape_dispatch_tests;
 #[cfg(test)]
 #[path = "tests/engine_fold_tests.rs"]
 mod engine_fold_tests;
-
-#[cfg(test)]
-#[path = "tests/growable_stack_tests.rs"]
-mod growable_stack_tests;
 
 #[cfg(test)]
 #[path = "tests/function_fold_object_tests.rs"]

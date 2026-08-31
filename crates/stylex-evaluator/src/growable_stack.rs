@@ -69,7 +69,7 @@ const BYTES_PER_LEVEL: usize = 64 * 1024;
 /// the ceiling always fits and only text nesting past what any walk spends can
 /// ask for more. One name for both because they are one thing: how far down this
 /// compiler is prepared to go.
-pub(crate) const DEEPEST_CARRIED: usize = MAX_EVALUATION_DEPTH_LIMIT;
+pub const DEEPEST_CARRIED: usize = MAX_EVALUATION_DEPTH_LIMIT;
 
 /// The largest claim [`grown_for_depth`] will ever make.
 ///
@@ -88,7 +88,7 @@ const _: () = assert!(DEEPEST_CARRIED * BYTES_PER_LEVEL == LARGEST_CLAIM);
 /// refusal in a position requiring a static value is reported — crosses the
 /// boundary safely: `stacker` catches it on the grown stack and resumes the
 /// unwind on the original one, so the payload the caller matches on survives.
-pub(crate) fn grown_per_level<R>(work: impl FnOnce() -> R) -> R {
+pub fn grown_per_level<R>(work: impl FnOnce() -> R) -> R {
   stacker::maybe_grow(HEADROOM_PER_LEVEL, SEGMENT, work)
 }
 
@@ -117,7 +117,7 @@ pub(crate) fn grown_per_level<R>(work: impl FnOnce() -> R) -> R {
 /// declined call, on a file that folds nothing at all. What is left is a cost on
 /// folds, which is where the fold's cost belongs, and it buys the thing the
 /// claim exists for: outgrowing it is a diagnostic instead of an abort.
-pub(crate) fn grown_for_depth<R>(levels: usize, work: impl FnOnce() -> R) -> R {
+pub fn grown_for_depth<R>(levels: usize, work: impl FnOnce() -> R) -> R {
   let claim = claim_for(levels);
 
   stacker::maybe_grow(claim, claim, work)
@@ -127,7 +127,7 @@ pub(crate) fn grown_for_depth<R>(levels: usize, work: impl FnOnce() -> R) -> R {
 ///
 /// Asked here rather than by the caller comparing against the constant, so what
 /// the claim can cover is decided in the module that decides what the claim is.
-pub(crate) fn carriable(levels: usize) -> bool {
+pub fn carriable(levels: usize) -> bool {
   levels <= DEEPEST_CARRIED
 }
 
@@ -160,7 +160,7 @@ pub(crate) fn claim_for(levels: usize) -> usize {
 /// depth of a tree nobody can carry changes nothing: the caller refuses either
 /// way. And it asks for room at every level, as every walk this compiler owns
 /// does, so measuring a deep tree cannot itself overflow.
-pub(crate) fn nesting_of(expr: &Expr) -> usize {
+pub fn nesting_of(expr: &Expr) -> usize {
   let mut nesting = Nesting {
     standing: 0,
     deepest: 0,

@@ -1,6 +1,6 @@
-use super::growable_stack;
 use super::*;
 use stylex_constants::constants::evaluation_errors::expression_too_deep;
+use stylex_evaluator::growable_stack;
 
 pub(crate) fn evaluate_cached(
   path: &Expr,

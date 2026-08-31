@@ -13,10 +13,8 @@
 
 use stylex_structures::evaluation_depth::MAX_EVALUATION_DEPTH_LIMIT;
 
-use super::growable_stack::{claim_for, grown_for_depth, grown_per_level, nesting_of};
-use super::source_evaluation::{
-  LARGE_THREAD, SMALL_THREAD, nested_literal, on_a_thread_of, parse_expr,
-};
+use super::scaffolding::{LARGE_THREAD, SMALL_THREAD, nested_literal, on_a_thread_of, parse_expr};
+use crate::growable_stack::{claim_for, grown_for_depth, grown_per_level, nesting_of};
 
 /// What one written level costs, and comfortably more than a level of any walk
 /// the fold runs — the point is to spend measurable stack, not to imitate one.

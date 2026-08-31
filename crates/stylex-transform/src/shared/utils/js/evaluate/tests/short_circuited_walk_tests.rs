@@ -17,7 +17,7 @@
 //! branch nothing runs is what breaks it.
 
 use super::source_evaluation::*;
-use crate::shared::utils::js::evaluate::growable_stack::DEEPEST_CARRIED;
+use stylex_evaluator::growable_stack::DEEPEST_CARRIED;
 
 // ==================== the side that never runs ====================
 

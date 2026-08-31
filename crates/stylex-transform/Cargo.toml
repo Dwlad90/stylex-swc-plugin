@@ -33,6 +33,7 @@ stylex_css = { path = "../stylex-css" }
 stylex_css_parser = { path = "../stylex-css-parser" }
 stylex_diagnostics = { path = "../stylex-diagnostics" }
 stylex_enums = { path = "../stylex-enums" }
+stylex_evaluator = { path = "../stylex-evaluator" }
 stylex_js = { path = "../stylex-js" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_nested_config = { path = "../stylex-nested-config" }

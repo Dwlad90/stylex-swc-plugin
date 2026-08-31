@@ -37,17 +37,16 @@ use stylex_ast::ast::factories::{create_binding_ident, create_ident};
 use stylex_constants::constants::evaluation_errors::{
   bound_value_has_too_many_entries, bound_value_too_large,
 };
+use stylex_evaluator::growable_stack::grown_per_level;
 use stylex_utils::hash::{stable_hash_unspanned, stable_hash_wide};
 use stylex_utils::number::to_js_string;
 
 use super::super::engine_stylex_functions::EngineCallable;
-use super::super::growable_stack::grown_per_level;
 use super::engine::read;
 use super::theme::var_group;
 use super::{Ceilings, Decline, Depth, Totals};
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use crate::shared::structures::theme_ref::{ThemeRef, VarNaming};
-
 /// The one property name that is not a property when it is written as one.
 ///
 /// `{ __proto__: x }` sets the object's prototype, so the object the source

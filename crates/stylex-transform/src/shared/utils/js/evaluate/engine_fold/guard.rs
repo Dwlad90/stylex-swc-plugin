@@ -44,11 +44,11 @@ use crate::shared::{
   },
   utils::common::get_var_decl_from,
 };
+use stylex_evaluator::growable_stack::{grown_per_level, nesting_of};
 
 use super::super::{
   engine_stylex_functions::{EngineCallable, Reached, engine_callable},
   evaluate_cached,
-  growable_stack::{grown_per_level, nesting_of},
   helpers::{evaluate_result_to_js_boolean, get_binding},
   nodes::logical_expression::{LogicalOp, evaluates_its_right_operand},
   nodes::member_expression::{get_full_member_path, is_theme_ref_base},
@@ -651,7 +651,7 @@ impl<'a, 'r> Walk<'a, 'r> {
   /// The outermost call and the arrow the transport wraps it in are a couple of
   /// levels the walk never spent, so this reads a level or two short of the text
   /// at exactly the ceiling. That is what the margin on `BYTES_PER_LEVEL` in
-  /// [`growable_stack`](super::super::growable_stack) is for, and it is more
+  /// [`growable_stack`](stylex_evaluator::growable_stack) is for, and it is more
   /// than twice what a level costs: the fold nested to the largest configurable
   /// ceiling is pinned in the evaluator's own suite.
   pub(super) fn printed_nesting(&self) -> usize {

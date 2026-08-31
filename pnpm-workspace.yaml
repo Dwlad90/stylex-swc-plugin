@@ -176,6 +176,7 @@ catalogs:
     '@stylexswc/design-system': '0.18.6'
     '@stylexswc/diagnostics': '0.18.6'
     '@stylexswc/enums': '0.18.6'
+    '@stylexswc/evaluator': '0.18.6'
     '@stylexswc/jest': '0.18.6'
     '@stylexswc/logs': '0.18.6'
     '@stylexswc/macros': '0.18.6'

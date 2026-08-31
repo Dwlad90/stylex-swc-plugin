@@ -28,8 +28,9 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
   error and panic vocabulary every crate raises failures through.
 - **stylex-enums** ([CONTEXT.md](./crates/stylex-enums/CONTEXT.md)) -- the
   compiler's closed sets, most of them user-facing options.
-- **stylex-js** ([CONTEXT.md](./crates/stylex-js/CONTEXT.md)) -- predicates
-  about JavaScript semantics, asked before trusting an expression.
+- **stylex-js** ([CONTEXT.md](./crates/stylex-js/CONTEXT.md)) -- predicates,
+  coercions and numeric operators over JavaScript semantics, asked before
+  trusting an expression and while folding one.
 - **stylex-logs** ([CONTEXT.md](./crates/stylex-logs/CONTEXT.md)) -- the logging
   backend and message format the Node host sees.
 - **stylex-path-resolver**

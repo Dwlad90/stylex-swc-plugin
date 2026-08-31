@@ -2,8 +2,7 @@
 
 Helpers for the shapes `defineVars`, `defineConsts` and `createTheme` accept:
 arbitrarily nested configuration objects, flattened into a single map of
-dot-joined keys. One helper with no part in flattening — binary-expression
-arithmetic — also sits here and defines no vocabulary of its own.
+dot-joined keys.
 
 ## Language
 

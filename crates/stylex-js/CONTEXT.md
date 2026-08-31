@@ -6,9 +6,9 @@ predicates answer one yes/no question about an AST node, or read a name off one;
 the coercions answer what the language says a value converts to. Neither kind
 transforms anything.
 
-The two live in separate modules -- `helpers` and `coercions` -- and neither is
-re-exported from the crate root, so an import site says which kind of helper it
-is reaching for.
+The three live in separate modules -- `helpers`, `coercions` and `operators` --
+and none is re-exported from the crate root, so an import site says which kind
+of helper it is reaching for.
 
 The evaluator in `stylex-transform` is the consumer, and these are the only
 copies -- a change to the set of foldable callees lands in one place.
@@ -31,6 +31,15 @@ that type is refused, and the caller
 that case -- it is a value the language produces, and it is returned rather
 than refused.
 _Avoid_: conversion, cast, stringify, formatting
+
+**Binary operator**:
+One of the operators that reads two numbers and answers a number -- the four
+arithmetic ones, `%`, `**`, the three bitwise ones and the three shifts. A
+comparison or a logical operator is not one: those answer a boolean or pick a
+side, and a different reader handles them. `evaluate_bin_expr` panics on
+anything outside the set rather than guessing, because an operator arriving
+there is a fault in the caller and not in the source being compiled.
+_Avoid_: arithmetic, binary expression, math operator
 
 **Streamed coercion**:
 The two coercions that reach their answer through a _string_ -- `ToString`, and

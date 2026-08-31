@@ -11,9 +11,6 @@ Reads the arbitrarily nested configuration objects that `defineVars`,
 of dot-joined keys those APIs emit. Every function is stateless and operates
 only on SWC AST nodes and primitive values.
 
-One helper the flatteners do not use — binary-expression arithmetic — also sits
-here and still awaits a better home.
-
 - **Nested configuration values** — `NestedVarsValue` and the
   `object_lit_to_nested_*_config` readers turn a `defineVars`, `createTheme` or
   `defineConsts` object literal into a nested map, and the
@@ -25,9 +22,6 @@ here and still awaits a better home.
   and a `default` with at-rule alternatives
 - **Value emission** — `to_vars_config_value` and `value_with_default_to_expr`
   turn a nested value back into the SWC expression the transform writes out
-- **Binary expression evaluation** — `evaluate_bin_expr` handles arithmetic
-  (`+`, `-`, `*`, `/`, `%`, `**`), bitwise (`|`, `^`, `&`), and shift (`<<`,
-  `>>`, `>>>`) operators on `f64` values
 
 ## Architecture
 

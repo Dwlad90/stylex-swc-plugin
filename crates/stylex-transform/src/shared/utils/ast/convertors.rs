@@ -1,4 +1,3 @@
-use stylex_nested_config::common::evaluate_bin_expr;
 // Import error handling macros from shared utilities
 use stylex_macros::{
   as_expr_or_panic, stylex_bail, stylex_panic, stylex_unimplemented, unwrap_or_panic,
@@ -19,7 +18,7 @@ use stylex_constants::constants::messages::{
   ILLEGAL_PROP_VALUE, VAR_DECL_INIT_REQUIRED, non_static_value,
 };
 use stylex_enums::misc::BinaryExprType;
-use stylex_js::coercions;
+use stylex_js::{coercions, operators::evaluate_bin_expr};
 use stylex_structures::raw_value::TRawValue;
 use stylex_utils::swc::get_expr_node_kind;
 

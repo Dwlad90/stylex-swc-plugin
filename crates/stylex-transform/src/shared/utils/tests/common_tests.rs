@@ -1,8 +1,8 @@
 use swc_core::{
   common::{BytePos, DUMMY_SP, Span, SyntaxContext},
   ecma::ast::{
-    BinaryOp, BindingIdent, Decl, ExportDecl, Expr, Lit, Module, ModuleDecl, ModuleItem, Number,
-    Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
+    BindingIdent, Decl, ExportDecl, Expr, Lit, Module, ModuleDecl, ModuleItem, Number, Pat, Stmt,
+    Str, VarDecl, VarDeclKind, VarDeclarator,
   },
 };
 
@@ -20,7 +20,6 @@ use stylex_ast::ast::convertors::{
   normalize_expr,
 };
 use stylex_ast::ast::factories::create_ident;
-use stylex_nested_config::common::evaluate_bin_expr;
 
 // ──────────────────────────────────────────────
 // Helpers
@@ -47,108 +46,6 @@ fn make_var_declarator_no_init(name: &str) -> VarDeclarator {
     }),
     init: None,
     definite: false,
-  }
-}
-
-// ──────────────────────────────────────────────
-// evaluate_bin_expr
-// ──────────────────────────────────────────────
-
-mod evaluate_bin_expr_tests {
-  use super::*;
-
-  #[test]
-  fn add_positive_numbers() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::Add, 3.0, 4.0), 7.0);
-  }
-
-  #[test]
-  fn sub_positive_numbers() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::Sub, 10.0, 3.0), 7.0);
-  }
-
-  #[test]
-  fn mul_positive_numbers() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::Mul, 5.0, 6.0), 30.0);
-  }
-
-  #[test]
-  fn div_positive_numbers() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::Div, 20.0, 4.0), 5.0);
-  }
-
-  #[test]
-  fn add_negative_numbers() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::Add, -3.0, -4.0), -7.0);
-  }
-
-  #[test]
-  fn sub_negative_result() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::Sub, 3.0, 10.0), -7.0);
-  }
-
-  #[test]
-  fn mul_negative_numbers() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::Mul, -5.0, 6.0), -30.0);
-  }
-
-  #[test]
-  fn div_by_zero_returns_infinity() {
-    let result = evaluate_bin_expr(BinaryOp::Div, 1.0, 0.0);
-    assert!(result.is_infinite());
-    assert!(result.is_sign_positive());
-  }
-
-  #[test]
-  fn div_negative_by_zero_returns_neg_infinity() {
-    let result = evaluate_bin_expr(BinaryOp::Div, -1.0, 0.0);
-    assert!(result.is_infinite());
-    assert!(result.is_sign_negative());
-  }
-
-  #[test]
-  fn add_zeros() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::Add, 0.0, 0.0), 0.0);
-  }
-
-  #[test]
-  fn mul_by_zero() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::Mul, 999.0, 0.0), 0.0);
-  }
-
-  #[test]
-  fn add_large_numbers() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::Add, 1e15, 1e15), 2e15);
-  }
-
-  #[test]
-  fn div_fractional_result() {
-    let result = evaluate_bin_expr(BinaryOp::Div, 1.0, 3.0);
-    assert!((result - 1.0 / 3.0).abs() < f64::EPSILON);
-  }
-
-  #[test]
-  fn modulo_returns_remainder() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::Mod, 10.0, 3.0), 1.0);
-  }
-
-  #[test]
-  fn exponentiation_returns_power() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::Exp, 2.0, 10.0), 1024.0);
-  }
-
-  #[test]
-  fn bitwise_operators_match_numeric_results() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::BitOr, 5.0, 3.0), 7.0);
-    assert_eq!(evaluate_bin_expr(BinaryOp::BitAnd, 5.0, 3.0), 1.0);
-    assert_eq!(evaluate_bin_expr(BinaryOp::BitXor, 5.0, 3.0), 6.0);
-  }
-
-  #[test]
-  fn shift_operators_match_numeric_results() {
-    assert_eq!(evaluate_bin_expr(BinaryOp::LShift, 1.0, 4.0), 16.0);
-    assert_eq!(evaluate_bin_expr(BinaryOp::RShift, 16.0, 2.0), 4.0);
-    assert_eq!(evaluate_bin_expr(BinaryOp::ZeroFillRShift, 16.0, 2.0), 4.0);
   }
 }
 
@@ -1896,20 +1793,6 @@ mod get_var_decl_from_tests {
     let state = StateManager::default();
     let ident = create_ident("nonexistent");
     assert!(get_var_decl_from(&state, &ident).is_none());
-  }
-}
-
-// ──────────────────────────────────────────────
-// evaluate_bin_expr - should_panic
-// ──────────────────────────────────────────────
-
-mod evaluate_bin_expr_panic_tests {
-  use super::*;
-
-  #[test]
-  #[should_panic(expected = "Unsupported binary operator")]
-  fn panics_for_unsupported_operator() {
-    evaluate_bin_expr(BinaryOp::EqEq, 10.0, 3.0);
   }
 }
 

@@ -16,6 +16,16 @@ line near the top of an issue file. There is no label API to call.
 | `ready-for-human` | Requires human implementation            |
 | `wontfix`         | Will not be actioned                     |
 
+One label beyond the five is in use:
+
+| Label              | Meaning                                            |
+| ------------------ | -------------------------------------------------- |
+| `not now, backlog` | Accepted and specified, deliberately not scheduled |
+
+It is not one of the canonical roles, so a skill asking for an AFK-ready ticket
+will not pick it up. That is the point: it parks work that is ready to do but
+should not be done next.
+
 When a skill names a role (e.g. "apply the AFK-ready triage label"), write the
 matching string above into the file's `Status:` line.
 

@@ -33,13 +33,9 @@
   },
   "devDependencies": {
     "@stylexswc/ast": "catalog:internal",
-    "@stylexswc/constants": "catalog:internal",
     "@stylexswc/enums": "catalog:internal",
     "@stylexswc/macros": "catalog:internal",
-    "@stylexswc/path-resolver": "catalog:internal",
     "@stylexswc/structures": "catalog:internal",
-    "@stylexswc/stylex-js": "catalog:internal",
-    "@stylexswc/types": "catalog:internal",
     "@taplo/cli": "catalog:tooling",
     "npm-run-all2": "catalog:tooling"
   },

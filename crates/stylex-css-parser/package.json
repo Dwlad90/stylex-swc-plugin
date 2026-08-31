@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@stylexswc/macros": "catalog:internal",
+    "@stylexswc/utils": "catalog:internal",
     "@taplo/cli": "catalog:tooling",
     "npm-run-all2": "catalog:tooling"
   },

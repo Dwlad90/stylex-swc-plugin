@@ -233,6 +233,9 @@ catalogs:
     '@stylexswc/postcss-plugin':
       specifier: 0.18.6
       version: 0.18.6
+    '@stylexswc/postcss-value-parser':
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/regex':
       specifier: 0.18.6
       version: 0.18.6
@@ -252,6 +255,9 @@ catalogs:
       specifier: 0.18.6
       version: 0.18.6
     '@stylexswc/stylex-js':
+      specifier: 0.18.6
+      version: 0.18.6
+    '@stylexswc/stylex-styleq':
       specifier: 0.18.6
       version: 0.18.6
     '@stylexswc/transform':
@@ -1944,6 +1950,9 @@ importers:
 
   crates/stylex-atoms:
     devDependencies:
+      '@stylexswc/ast':
+        specifier: catalog:internal
+        version: link:../stylex-ast
       '@stylexswc/constants':
         specifier: catalog:internal
         version: link:../stylex-constants
@@ -1965,9 +1974,6 @@ importers:
 
   crates/stylex-css:
     devDependencies:
-      '@stylexswc/ast':
-        specifier: catalog:internal
-        version: link:../stylex-ast
       '@stylexswc/constants':
         specifier: catalog:internal
         version: link:../stylex-constants
@@ -1980,9 +1986,9 @@ importers:
       '@stylexswc/macros':
         specifier: catalog:internal
         version: link:../stylex-macros
-      '@stylexswc/nested-config':
+      '@stylexswc/postcss-value-parser':
         specifier: catalog:internal
-        version: link:../stylex-nested-config
+        version: link:../postcss-value-parser
       '@stylexswc/regex':
         specifier: catalog:internal
         version: link:../stylex-regex
@@ -1992,6 +1998,9 @@ importers:
       '@stylexswc/types':
         specifier: catalog:internal
         version: link:../stylex-types
+      '@stylexswc/utils':
+        specifier: catalog:internal
+        version: link:../stylex-utils
       '@taplo/cli':
         specifier: catalog:tooling
         version: 0.7.0
@@ -2004,6 +2013,9 @@ importers:
       '@stylexswc/macros':
         specifier: catalog:internal
         version: link:../stylex-macros
+      '@stylexswc/utils':
+        specifier: catalog:internal
+        version: link:../stylex-utils
       '@taplo/cli':
         specifier: catalog:tooling
         version: 0.7.0
@@ -2055,6 +2067,9 @@ importers:
       '@stylexswc/macros':
         specifier: catalog:internal
         version: link:../stylex-macros
+      '@stylexswc/utils':
+        specifier: catalog:internal
+        version: link:../stylex-utils
       '@taplo/cli':
         specifier: catalog:tooling
         version: 0.7.0
@@ -2091,27 +2106,15 @@ importers:
       '@stylexswc/ast':
         specifier: catalog:internal
         version: link:../stylex-ast
-      '@stylexswc/constants':
-        specifier: catalog:internal
-        version: link:../stylex-constants
       '@stylexswc/enums':
         specifier: catalog:internal
         version: link:../stylex-enums
       '@stylexswc/macros':
         specifier: catalog:internal
         version: link:../stylex-macros
-      '@stylexswc/path-resolver':
-        specifier: catalog:internal
-        version: link:../stylex-path-resolver
       '@stylexswc/structures':
         specifier: catalog:internal
         version: link:../stylex-structures
-      '@stylexswc/stylex-js':
-        specifier: catalog:internal
-        version: link:../stylex-js
-      '@stylexswc/types':
-        specifier: catalog:internal
-        version: link:../stylex-types
       '@taplo/cli':
         specifier: catalog:tooling
         version: 0.7.0
@@ -2266,12 +2269,6 @@ importers:
       '@stylexswc/constants':
         specifier: catalog:internal
         version: link:../stylex-constants
-      '@stylexswc/enums':
-        specifier: catalog:internal
-        version: link:../stylex-enums
-      '@stylexswc/macros':
-        specifier: catalog:internal
-        version: link:../stylex-macros
       '@taplo/cli':
         specifier: catalog:tooling
         version: 0.7.0
@@ -2311,12 +2308,12 @@ importers:
       '@stylexswc/enums':
         specifier: catalog:internal
         version: link:../stylex-enums
-      '@stylexswc/logs':
-        specifier: catalog:internal
-        version: link:../stylex-logs
       '@stylexswc/macros':
         specifier: catalog:internal
         version: link:../stylex-macros
+      '@stylexswc/nested-config':
+        specifier: catalog:internal
+        version: link:../stylex-nested-config
       '@stylexswc/path-resolver':
         specifier: catalog:internal
         version: link:../stylex-path-resolver
@@ -2329,6 +2326,12 @@ importers:
       '@stylexswc/structures':
         specifier: catalog:internal
         version: link:../stylex-structures
+      '@stylexswc/stylex-js':
+        specifier: catalog:internal
+        version: link:../stylex-js
+      '@stylexswc/stylex-styleq':
+        specifier: catalog:internal
+        version: link:../stylex-styleq
       '@stylexswc/types':
         specifier: catalog:internal
         version: link:../stylex-types

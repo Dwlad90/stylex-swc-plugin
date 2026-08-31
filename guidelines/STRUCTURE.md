@@ -15,17 +15,17 @@ for_, and the vocabulary it defines, is in
 [CONTEXT-MAP.md](../CONTEXT-MAP.md).
 
 - **0 -- Primitives** (no internal dependencies): `postcss-value-parser`,
-  `stylex-constants`, `stylex-regex`, `stylex-styleq`, `stylex-utils`
+  `stylex-constants`, `stylex-regex`, `stylex-utils`
 - **1 -- Macros**: `stylex-macros`
-- **2 -- Domain leaves**: `stylex-enums`, `stylex-js`, `stylex-logs`,
-  `stylex-css-parser`, `stylex-path-resolver`
-- **3 -- Core data structures**: `stylex-structures`
-- **4 -- Type system**: `stylex-types`
-- **5 -- AST foundations**: `stylex-ast`
+- **2 -- Domain leaves**: `stylex-css-parser`, `stylex-enums`, `stylex-js`,
+  `stylex-logs`, `stylex-path-resolver`, `stylex-styleq`
+- **3 -- AST foundations**: `stylex-ast`
+- **4 -- Core data structures**: `stylex-structures`
+- **5 -- Type system**: `stylex-types`
 - **6 -- State lookup**: `stylex-state-index`
 - **7 -- Diagnostics**: `stylex-diagnostics`
-- **8 -- Nested config and inline syntax**: `stylex-nested-config`,
-  `stylex-atoms`
+- **8 -- Nested config and inline syntax**: `stylex-atoms`,
+  `stylex-nested-config`
 - **9 -- CSS processing**: `stylex-css`
 - **10 -- StyleX transform**: `stylex-transform`
 - **11 -- Compilers** (top-level consumers): `stylex-rs-compiler`

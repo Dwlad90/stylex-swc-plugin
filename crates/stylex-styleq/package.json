@@ -33,8 +33,6 @@
   },
   "devDependencies": {
     "@stylexswc/constants": "catalog:internal",
-    "@stylexswc/enums": "catalog:internal",
-    "@stylexswc/macros": "catalog:internal",
     "@taplo/cli": "catalog:tooling",
     "npm-run-all2": "catalog:tooling"
   },

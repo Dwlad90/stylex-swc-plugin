@@ -32,6 +32,7 @@
     }
   },
   "devDependencies": {
+    "@stylexswc/ast": "catalog:internal",
     "@stylexswc/constants": "catalog:internal",
     "@taplo/cli": "catalog:tooling",
     "npm-run-all2": "catalog:tooling"

@@ -32,15 +32,15 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/ast": "catalog:internal",
     "@stylexswc/constants": "catalog:internal",
     "@stylexswc/css-parser": "catalog:internal",
     "@stylexswc/enums": "catalog:internal",
     "@stylexswc/macros": "catalog:internal",
-    "@stylexswc/nested-config": "catalog:internal",
+    "@stylexswc/postcss-value-parser": "catalog:internal",
     "@stylexswc/regex": "catalog:internal",
     "@stylexswc/structures": "catalog:internal",
     "@stylexswc/types": "catalog:internal",
+    "@stylexswc/utils": "catalog:internal",
     "@taplo/cli": "catalog:tooling",
     "npm-run-all2": "catalog:tooling"
   },

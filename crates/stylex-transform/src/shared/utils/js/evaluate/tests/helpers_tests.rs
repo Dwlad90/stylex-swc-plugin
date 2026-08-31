@@ -1,7 +1,7 @@
 use super::*;
-use crate::shared::structures::types::FunctionConfigMap;
 use std::rc::Rc;
 use stylex_ast::ast::convertors::{create_ident_expr, create_null_expr, create_string_expr};
+use stylex_state::types::FunctionConfigMap;
 use stylex_structures::fold_ceilings::MAX_FOLDED_CHARACTERS_LIMIT;
 use swc_core::{
   common::DUMMY_SP,

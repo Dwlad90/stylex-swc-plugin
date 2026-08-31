@@ -5,25 +5,22 @@ use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
 use crate::shared::{
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
-  },
-  structures::{
-    functions::{FunctionConfig, FunctionType},
-    state_manager::StateManager,
-    types::FlatCompiledStyles,
-  },
-  utils::{
-    common::downcast_style_options_to_state_manager,
-    object::{Pipe, obj_map, obj_map_keys_and_transform_values, preprocess_object_properties},
-  },
+  enums::data_structures::obj_map_type::ObjMapType,
+  utils::object::{Pipe, obj_map, obj_map_keys_and_transform_values, preprocess_object_properties},
 };
 use stylex_ast::ast::factories::{create_object_lit, create_string_key_value_prop};
 use stylex_constants::constants::messages::{
   THEME_VAR_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
 };
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
+use stylex_state::{
+  common::downcast_style_options_to_state_manager,
+  evaluate_result_value::EvaluateResultValue,
+  flat_compiled_styles_value::FlatCompiledStylesValue,
+  functions::{FunctionConfig, FunctionType},
+  state_manager::StateManager,
+  types::FlatCompiledStyles,
+};
 use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,

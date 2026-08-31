@@ -9,7 +9,7 @@
 //! Every expected value below is what `@stylexjs/babel-plugin` 0.19.0 derives
 //! for the same key under the same options.
 
-use crate::shared::structures::theme_ref::{VarNaming, var_group_member};
+use crate::theme_ref::{VarNaming, var_group_member};
 
 /// The two options as a pair, so a case says which spelling it is asking about.
 fn naming(debug: bool, readable_names: bool) -> VarNaming {

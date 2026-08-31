@@ -19,24 +19,24 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    structures::{
-      functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-      state_manager::ImportKind,
-      theme_ref::ThemeRef,
-      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-    },
     transformers::{
       stylex_define_vars::stylex_define_vars, stylex_keyframes::get_keyframes_fn,
       stylex_position_try::get_position_try_fn, stylex_types::get_types_fn,
     },
     utils::{
-      common::gen_file_based_identifier,
       core::js_to_ast::{NestedStringObject, convert_object_to_ast},
       js::evaluate::evaluate,
       validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
     },
   },
   transform::stylex::visitor_utils::{apply_unstable_conditional, insert_stylex_identifier_entry},
+};
+use stylex_state::{
+  common::gen_file_based_identifier,
+  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+  state_manager::ImportKind,
+  theme_ref::ThemeRef,
+  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 use stylex_structures::top_level_expression::TopLevelExpression;
 

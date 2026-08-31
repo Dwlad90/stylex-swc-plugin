@@ -1,7 +1,7 @@
 # stylex-state-index
 
 The lookup structures the
-[state manager](../stylex-transform/CONTEXT.md#state-manager) composes to answer
+[state manager](../stylex-state/CONTEXT.md#state-manager) composes to answer
 "which declarator, which call, which span" with one hash probe instead of a scan
 of the module. Pure lookup machinery: nothing here decides what a style means,
 and nothing here holds the entries it points at.
@@ -11,7 +11,7 @@ and nothing here holds the entries it points at.
 **Candidate index**:
 Where the entries holding a given thing live, bucketed by a key that narrows to
 them, held beside the collection it indexes on the
-[state manager](../stylex-transform/CONTEXT.md#state-manager). The answer to
+[state manager](../stylex-state/CONTEXT.md#state-manager). The answer to
 "which recorded entry holds _this_?" -- which declarator a call initialises,
 which style variable it is bound to, which top-level expression it is, which
 top-level expression a name binds, which import specifier binds a reference,
@@ -28,7 +28,7 @@ _Avoid_: lookup table, call map, bucket map
 **Key span index**:
 Where every style namespace key of the module's _own parsed source_ is written,
 collected in one walk and held beside that memoized source on the
-[state manager](../stylex-transform/CONTEXT.md#state-manager). What the
+[state manager](../stylex-state/CONTEXT.md#state-manager). What the
 `file:line` annotation on `$$css` is resolved from: the annotation asks for the
 authored position of every namespace of every `stylex.create` call, and
 answering each by walking the source made a `dev` build quadratic in the size of

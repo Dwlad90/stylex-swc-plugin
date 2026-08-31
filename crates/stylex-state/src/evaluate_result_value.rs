@@ -12,7 +12,7 @@ use swc_core::ecma::{
   codegen::Config,
 };
 
-use crate::shared::structures::{
+use crate::{
   functions::FunctionConfig,
   theme_ref::ThemeRef,
   types::{EvaluationCallback, FunctionConfigMap},
@@ -179,45 +179,6 @@ impl PartialEq for EvaluateResultValue {
 }
 
 impl EvaluateResultValue {
-  /// Extracts an ObjectLit from an EvaluateResultValue if it contains an
-  /// Expr(Object).
-  ///
-  /// This is a common pattern when evaluating spread expressions or object
-  /// literals.
-  ///
-  /// # Example
-  /// ```ignore
-  /// let Some(obj) = spread_expression.into_object() else {
-  ///   return None;
-  /// };
-  /// ```
-  #[inline]
-  pub fn into_object(self) -> Option<swc_core::ecma::ast::ObjectLit> {
-    match self {
-      Self::Expr(Expr::Object(obj)) => Some(obj),
-      _ => None,
-    }
-  }
-
-  /// Extracts an ArrayLit from an EvaluateResultValue if it contains an
-  /// Expr(Array).
-  ///
-  /// This is a common pattern when evaluating array expressions.
-  ///
-  /// # Example
-  /// ```ignore
-  /// let Some(arr) = value.into_array() else {
-  ///   return None;
-  /// };
-  /// ```
-  #[inline]
-  pub fn into_array(self) -> Option<swc_core::ecma::ast::ArrayLit> {
-    match self {
-      Self::Expr(Expr::Array(arr)) => Some(arr),
-      _ => None,
-    }
-  }
-
   /// Extracts a string key from an `EvaluateResultValue::Expr` variant.
   ///
   /// Handles the common pattern of resolving a property name from an evaluated
@@ -247,6 +208,34 @@ impl EvaluateResultValue {
         Expr::Lit(Lit::BigInt(bi)) => Some(bi.value.to_string()),
         _ => None,
       },
+      _ => None,
+    }
+  }
+
+  pub fn as_expr(&self) -> Option<&Expr> {
+    match self {
+      EvaluateResultValue::Expr(value) => Some(value),
+      _ => None,
+    }
+  }
+
+  pub fn as_vec(&self) -> Option<&Vec<EvaluateResultValue>> {
+    match self {
+      EvaluateResultValue::Vec(value) => Some(value),
+      _ => None,
+    }
+  }
+
+  pub fn as_map(&self) -> Option<&IndexMap<Expr, Vec<KeyValueProp>>> {
+    match self {
+      EvaluateResultValue::Map(value) => Some(value),
+      _ => None,
+    }
+  }
+
+  pub fn as_theme_ref(&self) -> Option<&ThemeRef> {
+    match self {
+      EvaluateResultValue::ThemeRef(value) => Some(value),
       _ => None,
     }
   }

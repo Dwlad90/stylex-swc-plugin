@@ -1,35 +1,17 @@
 use std::rc::Rc;
 
 use stylex_macros::{stylex_panic, stylex_unreachable};
-use stylex_styleq::{StyleMap, StyleqArgument, StyleqValue};
+use stylex_styleq::{StyleMap, StyleqArgument};
 
-use crate::shared::{
-  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  structures::types::FlatCompiledStyles,
-  utils::core::parse_nullable_style::{ResolvedArg, StyleObject},
+use crate::shared::utils::core::parse_nullable_style::{ResolvedArg, StyleObject};
+use stylex_state::{
+  flat_compiled_styles_value::FlatCompiledStylesValue, types::FlatCompiledStyles,
 };
 
 pub(crate) struct StyleQResult {
   pub(crate) class_name: String,
   pub(crate) inline_style: Option<FlatCompiledStyles>,
   pub(crate) data_style_src: Option<String>,
-}
-
-impl StyleqValue for FlatCompiledStylesValue {
-  fn as_class_name(&self) -> Option<&str> {
-    match self {
-      FlatCompiledStylesValue::String(value) => Some(value.as_str()),
-      _ => None,
-    }
-  }
-
-  fn is_null(&self) -> bool {
-    matches!(self, FlatCompiledStylesValue::Null)
-  }
-
-  fn is_true_bool(&self) -> bool {
-    matches!(self, FlatCompiledStylesValue::Bool(true))
-  }
 }
 
 impl StyleqArgument<Rc<FlatCompiledStylesValue>> for ResolvedArg {

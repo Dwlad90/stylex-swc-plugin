@@ -3,19 +3,18 @@ use std::{fmt::Debug, rc::Rc, sync::Arc};
 use indexmap::IndexMap;
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{theme_ref::ThemeRef, types::FlatCompiledStyles},
+use crate::{
+  evaluate_result_value::EvaluateResultValue, theme_ref::ThemeRef, types::FlatCompiledStyles,
 };
 use stylex_enums::value_with_default::ValueWithDefault;
 
-use super::types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression};
+use crate::types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression};
 use stylex_structures::stylex_env::JSFunction;
 
 use stylex_types::traits::StyleOptions;
 
-pub type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;
-pub type StylexExprFn = fn(Expr, &mut dyn StyleOptions) -> Expr;
+pub(crate) type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;
+pub(crate) type StylexExprFn = fn(Expr, &mut dyn StyleOptions) -> Expr;
 
 /// The `stylex.when.*` functions, which alone among the StyleX helpers take a
 /// second argument: an optional custom marker to observe instead of the
@@ -163,7 +162,7 @@ impl PartialEq for FunctionConfigType {
 }
 
 impl FunctionConfigType {
-  pub(crate) fn as_map_mut(&mut self) -> Option<&mut FunctionConfigMap> {
+  pub fn as_map_mut(&mut self) -> Option<&mut FunctionConfigMap> {
     match self {
       Self::Map(map) => Some(map),
       Self::Regular(_) | Self::IndexMap(_) | Self::EnvObject(_) => None,

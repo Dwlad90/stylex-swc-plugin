@@ -5,13 +5,11 @@ use swc_core::ecma::ast::Expr;
 use stylex_ast::ast::convertors::create_string_expr;
 use stylex_types::traits::StyleOptions;
 
-use crate::shared::{
-  structures::functions::FunctionMap,
-  utils::{ast::convertors::convert_expr_to_str, common::downcast_style_options_to_state_manager},
-};
+use crate::shared::utils::ast::convertors::convert_expr_to_str;
 use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
 use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
 use stylex_regex::regex::IS_CSS_VAR;
+use stylex_state::{common::downcast_style_options_to_state_manager, functions::FunctionMap};
 
 /// The `var(` prefix a CSS variable reference starts with, and whose length is
 /// what the name inside it begins after.

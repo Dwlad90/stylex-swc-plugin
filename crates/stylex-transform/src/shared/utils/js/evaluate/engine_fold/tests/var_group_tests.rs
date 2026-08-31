@@ -11,7 +11,7 @@ use super::*;
 
 use boa_engine::{Context, JsValue, Source};
 
-use crate::shared::structures::theme_ref::{ThemeRef, VarNaming};
+use stylex_state::theme_ref::{ThemeRef, VarNaming};
 
 /// The group every case below reads, under the identity the transform tests use.
 fn group(context: &mut Context, prefixes: &[&str]) -> JsValue {

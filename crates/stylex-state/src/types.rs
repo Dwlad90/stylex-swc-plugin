@@ -9,29 +9,29 @@ use swc_core::{
   ecma::ast::{BindingIdent, Expr, Ident, Module},
 };
 
-use crate::shared::enums::data_structures::{
+use crate::{
   evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
 };
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_types::structures::style_key::{ClassName, RuleKey};
 
-use super::{functions::FunctionConfigType, state_manager::StateManager};
+use crate::{functions::FunctionConfigType, state_manager::StateManager};
 use stylex_state_index::key_span_index::KeySpanIndex;
 use stylex_structures::{inline_style::InlineStyle, named_import_source::ImportSources};
 
-pub(crate) type FlatCompiledStyles = IndexMap<String, Rc<FlatCompiledStylesValue>>;
-pub(crate) type DynamicFns = IndexMap<String, (Vec<BindingIdent>, TInlineStyles)>;
+pub type FlatCompiledStyles = IndexMap<String, Rc<FlatCompiledStylesValue>>;
+pub type DynamicFns = IndexMap<String, (Vec<BindingIdent>, TInlineStyles)>;
 
 /// An author's own arrow, ready to be applied to evaluated arguments.
 ///
 /// `None` is the answer for a body that did not fold. The callback has no deopt
 /// to record -- it answers a value, not a result -- so this is how it declines,
 /// and the caller is what names the call in a sentence.
-pub(crate) type EvaluationCallback =
+pub type EvaluationCallback =
   Rc<dyn Fn(Vec<EvaluateResultValue>, &mut StateManager) -> Option<Expr> + 'static>;
-pub(crate) type FunctionMapMemberExpression =
+pub type FunctionMapMemberExpression =
   FxHashMap<ImportSources, Box<FxHashMap<Atom, Box<FunctionConfigType>>>>;
-pub(crate) type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>>;
+pub type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>>;
 
 /// The entries a single function-map name carries, standing for a plain JS
 /// object on the reference implementation's side.
@@ -58,15 +58,15 @@ pub(crate) type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>
 /// same surface -- a value that could be in one and not the other is how
 /// `Object.keys` of the namespace came to answer a list its own member reads
 /// contradict.
-pub(crate) type FunctionConfigMap = FxIndexMap<Atom, FunctionConfigType>;
+pub type FunctionConfigMap = FxIndexMap<Atom, FunctionConfigType>;
 
-pub(crate) type StylesObjectMap = IndexMap<String, Rc<FlatCompiledStyles>>;
-pub(crate) type InjectableStylesMap = IndexMap<RuleKey, Rc<InjectableStyleKind>>;
-pub(crate) type ClassPathsMap = IndexMap<String, Rc<ClassPathsInNamespace>>;
+pub type StylesObjectMap = IndexMap<String, Rc<FlatCompiledStyles>>;
+pub type InjectableStylesMap = IndexMap<RuleKey, Rc<InjectableStyleKind>>;
+pub type ClassPathsMap = IndexMap<String, Rc<ClassPathsInNamespace>>;
 pub(crate) type ClassesToOriginalPaths = IndexMap<String, Vec<String>>;
-pub(crate) type ClassNameToOriginalPaths = IndexMap<ClassName, Vec<String>>;
-pub(crate) type ClassPathsInNamespace = ClassesToOriginalPaths;
-pub(crate) type TInlineStyles = IndexMap<String, Box<InlineStyle>>;
+pub type ClassNameToOriginalPaths = IndexMap<ClassName, Vec<String>>;
+pub type ClassPathsInNamespace = ClassesToOriginalPaths;
+pub type TInlineStyles = IndexMap<String, Box<InlineStyle>>;
 
 #[derive(Clone, Debug)]
 pub(crate) struct InjectImportIdents {

@@ -5,11 +5,10 @@ use stylex_macros::stylex_panic;
 use stylex_structures::pre_rule_value::PreRuleValue;
 use stylex_types::structures::style_key::{ClassName, RuleKey};
 
-use crate::shared::{
-  structures::state_manager::StateManager, utils::css::common::transform_value_cached,
-};
+use crate::shared::utils::css::common::transform_value_cached;
 use stylex_constants::constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS};
 use stylex_css::utils::pre_rule::{sort_at_rules, sort_pseudos};
+use stylex_state::state_manager::StateManager;
 use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_utils::{
   hash::create_hash,

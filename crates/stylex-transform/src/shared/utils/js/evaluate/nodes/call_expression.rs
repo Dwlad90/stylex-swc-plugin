@@ -1,8 +1,8 @@
 use super::super::*;
 use super::global_conversion::Conversion;
-use crate::shared::structures::types::EvaluationCallback;
 use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_macros::deopt_unsupported;
+use stylex_state::types::EvaluationCallback;
 use swc_core::ecma::ast::{CallExpr, MemberExpr, MemberProp};
 
 pub(in super::super) fn evaluate(

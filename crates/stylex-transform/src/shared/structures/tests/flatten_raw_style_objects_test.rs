@@ -5,19 +5,15 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   use stylex_structures::pre_rule_value::PreRuleValue;
   use swc_core::ecma::ast::Expr;
 
-  use crate::shared::{
-    structures::{
-      functions::FunctionMap,
-      null_pre_rule::NullPreRule,
-      pre_rule::{PreRules, StylesPreRule},
-      pre_rule_set::PreRuleSet,
-      state::EvaluationState,
-      state_manager::StateManager,
-    },
-    utils::core::flatten_raw_style_object::flatten_raw_style_object,
+  use crate::shared::structures::state::EvaluationState;
+  use crate::{
+    shared::structures::null_pre_rule::NullPreRule, shared::structures::pre_rule::PreRules,
+    shared::structures::pre_rule::StylesPreRule, shared::structures::pre_rule_set::PreRuleSet,
+    shared::utils::core::flatten_raw_style_object::flatten_raw_style_object,
   };
   use stylex_ast::ast::factories::{create_array, create_key_value_prop_ident};
   use stylex_enums::style_resolution::StyleResolution;
+  use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 
   pub(super) fn get_state() -> StateManager {
     let mut state_manager = StateManager::default();
@@ -423,7 +419,7 @@ mod nested_objects {
     create_object_expression,
     create_string_key_value_prop,
   };
-  use crate::shared::structures::functions::FunctionMap;
+  use stylex_state::functions::FunctionMap;
   use crate::shared::structures::state::EvaluationState;
   use crate::shared::structures::tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
     get_state,
@@ -791,7 +787,7 @@ mod multiple_levels_of_nesting {
     create_string_array_prop,
     create_string_key_value_prop,
   };
-  use crate::shared::structures::functions::FunctionMap;
+  use stylex_state::functions::FunctionMap;
   use crate::shared::structures::state::EvaluationState;
   use crate::shared::structures::tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
     get_state,

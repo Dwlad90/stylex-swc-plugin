@@ -34,7 +34,7 @@ use stylex_utils::number::to_js_string;
 
 use super::guard::{Bounds, Callback, Reader, Walk, without_parens};
 use super::{Decline, Depth, as_expr, lists};
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
+use stylex_state::evaluate_result_value::EvaluateResultValue;
 
 /// Methods whose result *string* length is set by an argument, and so are the
 /// only ones a single small argument can blow up into text.

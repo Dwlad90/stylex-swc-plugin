@@ -8,7 +8,7 @@
 //! transform test.
 
 use super::*;
-use crate::shared::structures::{
+use stylex_state::{
   functions::{FunctionConfigType, StylexWhenFn},
   types::FunctionConfigMap,
 };

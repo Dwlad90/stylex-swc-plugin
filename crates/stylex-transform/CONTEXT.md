@@ -1,19 +1,11 @@
 # stylex-transform
 
-The SWC `VisitMut` transform and the state it carries across phases. This is
-where the compiler's JavaScript evaluator lives, and where every `stylex.*` call
-is recognised and rewritten.
+The SWC `VisitMut` transform: where the compiler's JavaScript evaluator lives,
+and where every `stylex.*` call is recognised and rewritten. The state it
+carries across phases is one crate down, in
+[stylex-state](../stylex-state/CONTEXT.md).
 
 ## Language
-
-**State manager**:
-`StateManager` — everything the transform knows about the file it is part-way
-through: imports, declarations, discovered style objects, caches, and the
-current [transformation cycle](../stylex-enums/CONTEXT.md). One per file; passed
-by mutable reference through the whole visitor. The lookup structures it answers
-its position questions from live in
-[stylex-state-index](../stylex-state-index/CONTEXT.md).
-_Avoid_: context, session, environment, state
 
 **Pre-scan**:
 The walk at the start of the `Discover` cycle that records module-wide facts a
@@ -86,16 +78,17 @@ any binding of the spelling is the module's.
 An argument the [transport](#transport) cannot carry hands the call back rather
 than refusing it. Those arguments are this compiler's own values. The
 environment object and the namespace map have no JavaScript form at all, so
-every call over one is handed back. A [theme reference](#theme-reference) does
-cross, as a stand-in the engine reads members off, so both `String(group)` and
-`group.member` fold in the engine — what is handed back is the one answer that
-_is_ the group again, since the group's members live in another file and no
-expression this side writes stands for it. The [conversion behind the
+every call over one is handed back. A [theme
+reference](../stylex-state/CONTEXT.md#theme-reference) does cross, as a stand-in
+the engine reads members off, so both `String(group)` and `group.member` fold in
+the engine — what is handed back is the one answer that _is_ the group again,
+since the group's members live in another file and no expression this side
+writes stands for it. The [conversion behind the
 fold](#conversion-behind-the-fold) answers those instead, through the same
-coercions `+` and an interpolation use, and
-raises the refusal itself where it cannot — so the fold still owns every such
-call and the sentence is still written in one place.
-_Avoid_: callable global, built-in function, global function, wrapper call
+coercions `+` and an interpolation use, and raises the refusal itself where it
+cannot — so the fold still owns every such call and the sentence is still
+written in one place. _Avoid_: callable global, built-in function, global
+function, wrapper call
 
 **Engine fold**:
 Folding a method call by evaluating it in an embedded JavaScript engine instead
@@ -276,19 +269,19 @@ engine
 A value the bridge copies inward: a string, a number, a boolean, `null`,
 `undefined`, an array, or a plain object, nested to any depth of those.
 `undefined` is the one of them the grammar has no literal for, so an author
-spells it as a name — or as `void 0` — and it crosses under that spelling in both
-directions. Everything else the
-evaluator can answer — a function configuration, the environment object, an
-unresolved theme reference, an AST-keyed map — is handed back rather than
-refused, so the dispatch below keeps answering for it. A callback is the
-exception: nothing below the fold carries a function into an evaluation, so a
-name holding one either crosses as its declaration or is refused by a sentence
-naming that binding. A [theme reference](#theme-reference) is the one of this
+spells it as a name — or as `void 0` — and it crosses under that spelling in
+both directions. Everything else the evaluator can answer — a function
+configuration, the environment object, an unresolved theme reference, an
+AST-keyed map — is handed back rather than refused, so the dispatch below keeps
+answering for it. A callback is the exception: nothing below the fold carries a
+function into an evaluation, so a name holding one either crosses as its
+declaration or is refused by a sentence naming that binding. A [theme
+reference](../stylex-state/CONTEXT.md#theme-reference) is the one of this
 compiler's own values that does cross, as a **group stand-in**: a proxy carrying
-the group's identity, which answers a member read with the `var(--…)` that member
-names and the group itself with the variable-group hash. Nothing of the group is
-copied, because a group stores no members — every name is derived from the
-identity as it is read, by the same Rust the evaluator's own lookup calls. A
+the group's identity, which answers a member read with the `var(--…)` that
+member names and the group itself with the variable-group hash. Nothing of the
+group is copied, because a group stores no members — every name is derived from
+the identity as it is read, by the same Rust the evaluator's own lookup calls. A
 dotted path is the one thing the stand-in cannot work out for itself, since
 `colors.brand.primary` is one token rather than a read of a read: the [fold
 guard](#fold-guard) reads those paths off the source and names them, exactly as
@@ -403,13 +396,13 @@ the question is where the call sits. A call _inside_ an expression the fold has
 already claimed is the fold's: handing it back hands back the whole expression
 around it, and the method that would have re-run a callback body moved into the
 engine, so nothing below could answer. The _outermost_ call stays the dispatch
-below the fold, on the same terms an
-[applied StyleX function](#engine-callable-stylex-function) stays there:
-that path resolves a name this compiler's own way — a dynamic style's own
-parameters, the injected function map and a resolved
-[theme reference](#theme-reference) are all answered there — and measured, it
-already folds `inner('a')` to the rule the reference compiler emits, so taking
-the call would replace a working answer with a narrower one.
+below the fold, on the same terms an [applied StyleX
+function](#engine-callable-stylex-function) stays there: that path resolves a
+name this compiler's own way — a dynamic style's own parameters, the injected
+function map and a resolved [theme
+reference](../stylex-state/CONTEXT.md#theme-reference) are all answered there —
+and measured, it already folds `inner('a')` to the rule the reference compiler
+emits, so taking the call would replace a working answer with a narrower one.
 
 What the dispatch does with such a call is _apply_ it, at the call. It used to
 hand back the arrow the name holds and leave the style value position to run it,
@@ -583,16 +576,17 @@ _Avoid_: result, chosen branch, short-circuit value
 The side of `||`, `&&`, `??` or `?:` the language never evaluates, given what
 the side before it holds. Neither the evaluator nor the [fold
 guard](#fold-guard) enters one, and for the guard that is correctness rather
-than a saving: reading a leaf queues a [theme reference](#theme-reference)'s
-compensating import and can refuse the whole call by a rule, and a [speculative
-read](#speculative-read) puts back the evaluation's state but not the module's.
-So a token read behind a compile-time-false guard would leave an import behind
-for a value no stylesheet holds, and a name the module bound a function to would
-fail a build over a branch that cannot run. Which operand is dead is the
-operator's own rule and is read from the one place that states it. Read from the
-module only outside a callback body: inside one the engine binds the names, so a
-guard written on a callback's own parameter holds a different value per element
-and both sides have to carry. The reference implementation is eager here instead
+than a saving: reading a leaf queues a [theme
+reference](../stylex-state/CONTEXT.md#theme-reference)'s compensating import and
+can refuse the whole call by a rule, and a [speculative read](#speculative-read)
+puts back the evaluation's state but not the module's. So a token read behind a
+compile-time-false guard would leave an import behind for a value no stylesheet
+holds, and a name the module bound a function to would fail a build over a
+branch that cannot run. Which operand is dead is the operator's own rule and is
+read from the one place that states it. Read from the module only outside a
+callback body: inside one the engine binds the names, so a guard written on a
+callback's own parameter holds a different value per element and both sides have
+to carry. The reference implementation is eager here instead
 -- it evaluates both sides under forked states so a dead one may fail without
 deopting the whole -- which agrees on every value and differs on the import, and
 on a dead branch that throws rather than refusing.
@@ -640,9 +634,11 @@ citing the line range it mirrors, because both compilers agree on every step's
 verdict and the sequence is the only thing left for them to disagree by. One
 step is deliberately absent and says so at its position rather than being
 missing. The questions the rest ask are an [import specifier
-kind](#import-specifier-kind), a [declared binding](#declared-binding), a
-[binding write](#binding-write) and an [early reference](#early-reference). The
-order, and why it is upstream's rather than this compiler's, is [ADR
+kind](../stylex-state/CONTEXT.md#import-specifier-kind), a [declared
+binding](#declared-binding), a [binding
+write](../stylex-state/CONTEXT.md#binding-write) and an [early
+reference](#early-reference). The order, and why it is upstream's rather than
+this compiler's, is [ADR
 0003](./docs/adr/0003-one-ordered-chain-resolves-a-reference.md). _Avoid_:
 identifier lookup, binding resolver, evaluate fallback
 
@@ -691,72 +687,10 @@ through the same fold a static namespace uses, and what it holds is then decided
 by namespace validation rather than at the value position -- an element that is
 not a string or a number is refused there, with the message the reference
 implementation gives. Every other evaluated shape with no expression form is
-refused rather than materialized, a [theme reference](#theme-reference) among
-them, as is `defaultMarker` -- an index map here, and a bare function upstream.
-_Avoid_: shadowed namespace, identifier map hit, function config fold
-
-**Theme reference**:
-What an import of a `defineVars` group resolves to: the group as a whole, named
-by the hash of the file that declares it. It carries no expression form and
-cannot be materialized the way a [folded function map](#folded-function-map) is,
-because the keys it would need live in the other file -- so the CSS a style
-value needs comes from a _member_ read off it (`zIndex.ten` is
-`var(--x1ew7r74)`), and the group read without one is refused wherever a value
-belongs. Refused, not dropped: answering "no value" there compiled the object as
-if the declaration had not been written.
-
-A chain of two or more names is one member and not a read of a read:
-`colors.brand.primary` names the token `brand.primary`, which is how a group
-whose members are groups is written. A chain that is the callee of a call is not
-one — `colors.brand.toUpperCase()` resolves `colors.brand` and calls a string
-method on it — so which of the two a chain is, is a question about the source.
-Inside a fold it crosses as the [carried value](#carried-value) a group is, with
-the paths the guard read off the source named for it.
-_Avoid_: token group, theme object, vars object, defineVars value
-
-**Import specifier kind**:
-Which of `{ c }`, `c` or `* as c` bound the name a reference reads, answered by
-the same lookup that matched the reference and travelling with the declaration
-it belongs to. The three kinds get three answers from the first two steps of the
-[chain](#reference-resolution-chain). A named specifier resolves to a theme
-reference. A default one is refused outright, because a theme file is read
-through its named exports and a default binding names a value from a file this
-compiler never evaluates. A namespace specifier binds the whole export object
-and so names no export at all, which leaves nothing for a theme reference to be
-built from: it resolves nothing and falls through to the chain's terminal
-refusal. The question is about the specifier and not about the declaration,
-because one declaration carries two kinds at once:
-`import tokens, { colors } from 'colors.stylex.js'` must refuse `tokens` and
-still resolve `colors`. What a specifier is matched by is its **local binding**
-and nothing else: an `import { spacing as sp }` binds `sp`, and the name it was
-aliased away from binds nothing in this module, so no reference resolves through
-it.
-_Avoid_: import kind, import shape
-
-**Binding write**:
-A binding whose value can differ from its declaration initializer, either
-rebound or mutated in place. Both make the initializer an unsound stand-in at
-the use site and both refuse with the same text, but they are recorded apart —
-**reassignment** for a name given a new value, **mutation** for a value changed
-under a name that still points at it — because the
-[chain](#reference-resolution-chain) probes them as the two sequential steps the
-reference implementation probes. One walk fills both, and crossing a member hop
-is what makes a write the second kind. Keyed by full SWC `Id`, so a write to a
-shadowing binding never deopts the one it shadows, and a write to a name this
-module does not declare never deopts a global that spells it. What a write is
-refused against is the _binding_, not a declarator: destructured names,
-parameters, `catch` bindings and hoisted `function` / `class` declarations are
-all bindings a write makes stale, and each is refused for the write rather than
-for whatever a later step would have found.
-
-A third kind sits behind those two. A write more than one member hop from the
-binding — `obj.a.b = 1` — is a **deep mutation**, which the reference
-implementation does not count as a mutation of `obj` at all: it folds the
-initializer and bakes in a value that has since changed. This refuses instead,
-but only for a binding whose initializer the chain would actually inline, so a
-`function`, a `class` or a destructured name keeps the refusal it already had
-rather than being told its value is not constant.
-_Avoid_: dirty binding, stale binding, nested mutation, transitive write
+refused rather than materialized, a [theme
+reference](../stylex-state/CONTEXT.md#theme-reference) among them, as is
+`defaultMarker` -- an index map here, and a bare function upstream. _Avoid_:
+shadowed namespace, identifier map hit, function config fold
 
 **Early reference**:
 A reference that begins before the declarator naming it ends, so the program
@@ -776,28 +710,14 @@ zero sorts before every authored node, so comparing one answers a fact about its
 having been built.
 _Avoid_: generated node, dummy node, fake node
 
-**Seen value**:
-A memoized evaluation, keyed by the
-[structural hash](../stylex-utils/CONTEXT.md) of the expression. `resolved`
-distinguishes a completed evaluation from one
-currently in progress, which is how cyclic references terminate.
-
-The key covers the whole remaining subtree and is taken again at every level, so
-what the memo costs grows about quadratically with depth -- and is nearly all of
-what folding a deep expression costs. Why it stays that way, and what an
-incremental key would take, is
-[docs/adr/0005](./docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md). This
-is also one of the two consumers that acts on a hash hit without confirming
-equality, which is why that key is 128 bits wide. _Avoid_: cache entry, memo
-
 **Evaluation depth**:
-How many levels of the fold are currently standing, counted on the
-[state manager](#state-manager) rather than on the evaluation, because the
-evaluation's confidence forks -- a logical operand and a computed key each get
-their own -- while the stack it is accounting for does not. Crossing the ceiling
-is a [refused fold](#refused-fold), not an abort. The fold also grows its own
-stack, so the ceiling is a policy rather than whatever a 2 MiB thread survived.
-What the growing costs and how it is sized is
+How many levels of the fold are currently standing, counted on the [state
+manager](../stylex-state/CONTEXT.md#state-manager) rather than on the
+evaluation, because the evaluation's confidence forks -- a logical operand and a
+computed key each get their own -- while the stack it is accounting for does
+not. Crossing the ceiling is a [refused fold](#refused-fold), not an abort. The
+fold also grows its own stack, so the ceiling is a policy rather than whatever a
+2 MiB thread survived. What the growing costs and how it is sized is
 [stylex-evaluator](../stylex-evaluator/CONTEXT.md#grown-stack).
 
 The stack the fold claims is not this number, though it is usually the same one.
@@ -826,10 +746,10 @@ character ceiling (`maxFoldedCharacters`, resolved in
 [stylex-structures](../stylex-structures/CONTEXT.md)) is spent in, and it
 travels with the text so a chain of `+` measures each operand once rather than
 re-reading everything already joined at every link -- the link above **adopts**
-the buffer below it, text and count together, instead of copying it into a
-fresh one. A measured string that goes through the [memo](#seen-value) comes
-back as a plain string literal and is measured again, because the tree has
-nowhere to carry a count.
+the buffer below it, text and count together, instead of copying it into a fresh
+one. A measured string that goes through the
+[memo](../stylex-state/CONTEXT.md#seen-value) comes back as a plain string
+literal and is measured again, because the tree has nowhere to carry a count.
 _Avoid_: grown string, sized string, string with a length
 
 **Pre-rule**:

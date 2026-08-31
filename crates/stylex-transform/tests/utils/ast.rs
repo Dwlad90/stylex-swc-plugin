@@ -4,10 +4,9 @@
 //! the same fact repeated at each of them.
 #![allow(dead_code)]
 
-use stylex_transform::shared::{
-  structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
-  utils::ast::convertors::{convert_expr_to_str, expr_to_num},
-};
+use stylex_state::{functions::FunctionMap, state_manager::StateManager};
+use stylex_transform::shared::structures::state::EvaluationState;
+use stylex_transform::shared::utils::ast::convertors::{convert_expr_to_str, expr_to_num};
 use swc_core::ecma::ast::Expr;
 
 pub(crate) fn convert_expr_to_str_wrapper(expr: &Expr) -> Option<String> {

@@ -4,13 +4,8 @@ use stylex_macros::{
 };
 use swc_core::ecma::ast::{BinExpr, Expr, Ident, Lit, Tpl, UnaryExpr, UnaryOp};
 
-use crate::shared::{
-  structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
-  utils::{
-    common::get_var_decl_by_ident,
-    js::evaluate::{binary_expr_to_num_or_str, evaluate_cached},
-  },
-};
+use crate::shared::structures::state::EvaluationState;
+use crate::shared::utils::js::evaluate::{binary_expr_to_num_or_str, evaluate_cached};
 use stylex_ast::ast::convertors::{
   convert_lit_to_number, convert_lit_to_string, get_expr_from_var_decl,
 };
@@ -19,6 +14,9 @@ use stylex_constants::constants::messages::{
 };
 use stylex_enums::misc::BinaryExprType;
 use stylex_js::{coercions, operators::evaluate_bin_expr};
+use stylex_state::{
+  common::get_var_decl_by_ident, functions::FunctionMap, state_manager::StateManager,
+};
 use stylex_structures::raw_value::TRawValue;
 use stylex_utils::swc::get_expr_node_kind;
 

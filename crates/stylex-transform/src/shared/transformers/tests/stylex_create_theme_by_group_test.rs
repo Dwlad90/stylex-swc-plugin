@@ -5,14 +5,14 @@ mod stylex_create_theme {
   use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::PropOrSpread;
 
-  use crate::shared::{
-    enums::data_structures::evaluate_result_value::EvaluateResultValue,
-    structures::{state_manager::StateManager, types::InjectableStylesMap},
-    transformers::stylex_create_theme::stylex_create_theme,
-  };
+  use crate::shared::transformers::stylex_create_theme::stylex_create_theme;
   use stylex_ast::ast::factories::{
     create_key_value_prop, create_nested_object_prop, create_object_expression,
     create_string_key_value_prop,
+  };
+  use stylex_state::{
+    evaluate_result_value::EvaluateResultValue, state_manager::StateManager,
+    types::InjectableStylesMap,
   };
   use stylex_types::structures::injectable_style::InjectableStyle;
 

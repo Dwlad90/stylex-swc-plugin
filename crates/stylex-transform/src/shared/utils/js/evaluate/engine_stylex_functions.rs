@@ -31,12 +31,10 @@ use swc_core::{
 
 use stylex_constants::constants::api_names::STYLEX_FIRST_THAT_WORKS;
 
-use crate::shared::{
-  structures::state_manager::{ImportKind, StateManager},
-  transformers::stylex_first_that_works::{
-    Fallbacks, css_variable_name, fold_fallback_chain, plan_fallbacks,
-  },
+use crate::shared::transformers::stylex_first_that_works::{
+  Fallbacks, css_variable_name, fold_fallback_chain, plan_fallbacks,
 };
+use stylex_state::state_manager::{ImportKind, StateManager};
 
 /// One StyleX function the engine may call: how the module can name it, and what
 /// the engine runs in the compiler's place.

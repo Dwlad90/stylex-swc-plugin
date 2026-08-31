@@ -1,7 +1,7 @@
 use crate::utils::prelude::*;
 use rustc_hash::FxHashMap;
 use stylex_ast::ast::convertors::{create_ident_expr, create_string_expr};
-use stylex_transform::shared::structures::{
+use stylex_state::{
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   state_manager::StateManager,
 };

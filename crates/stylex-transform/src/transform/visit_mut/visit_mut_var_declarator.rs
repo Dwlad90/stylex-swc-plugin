@@ -23,13 +23,7 @@ use stylex_structures::{
   style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
 };
 
-use crate::{
-  StyleXTransform,
-  shared::{
-    structures::state_manager::{DeclId, ImportKind},
-    utils::common::fill_state_declarations,
-  },
-};
+use crate::StyleXTransform;
 use stylex_ast::ast::keys::namespace_name_from_prop_key;
 use stylex_atoms::transform::ATOMS_SOURCE;
 use stylex_constants::constants::{
@@ -37,6 +31,10 @@ use stylex_constants::constants::{
   messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND},
 };
 use stylex_enums::core::TransformationCycle;
+use stylex_state::{
+  common::fill_state_declarations,
+  state_manager::{DeclId, ImportKind},
+};
 use stylex_structures::named_import_source::ImportSources;
 
 impl<C> StyleXTransform<C>
@@ -320,7 +318,7 @@ where
 
 fn get_stylex_require_source(
   call: &CallExpr,
-  state: &crate::shared::structures::state_manager::StateManager,
+  state: &stylex_state::state_manager::StateManager,
 ) -> Option<String> {
   let is_require_call = matches!(
     &call.callee,

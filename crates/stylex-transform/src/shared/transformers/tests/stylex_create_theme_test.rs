@@ -5,17 +5,20 @@ mod stylex_create_theme {
   use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::PropOrSpread;
 
-  use crate::shared::{
-    enums::data_structures::evaluate_result_value::EvaluateResultValue,
-    structures::{state_manager::StateManager, types::InjectableStylesMap},
-    transformers::stylex_create_theme::stylex_create_theme,
-    utils::core::define_vars_utils::{theme_override_priority, var_group_priority},
+  use crate::{
+    shared::transformers::stylex_create_theme::stylex_create_theme,
+    shared::utils::core::define_vars_utils::theme_override_priority,
+    shared::utils::core::define_vars_utils::var_group_priority,
   };
   use stylex_ast::ast::factories::{
     create_key_value_prop, create_nested_object_prop, create_object_expression,
     create_string_key_value_prop,
   };
   use stylex_constants::constants::common::SPLIT_TOKEN;
+  use stylex_state::{
+    evaluate_result_value::EvaluateResultValue, state_manager::StateManager,
+    types::InjectableStylesMap,
+  };
   use stylex_types::{
     enums::data_structures::injectable_style::InjectableStyleKind,
     structures::injectable_style::InjectableStyle,

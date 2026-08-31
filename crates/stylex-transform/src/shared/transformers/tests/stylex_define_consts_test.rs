@@ -3,12 +3,9 @@ mod stylex_define_consts {
   use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::PropOrSpread;
 
-  use crate::shared::{
-    enums::data_structures::evaluate_result_value::EvaluateResultValue,
-    structures::state_manager::StateManager,
-    transformers::stylex_define_consts::stylex_define_consts,
-  };
+  use crate::shared::transformers::stylex_define_consts::stylex_define_consts;
   use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
+  use stylex_state::{evaluate_result_value::EvaluateResultValue, state_manager::StateManager};
   use stylex_structures::stylex_options::StyleXOptions;
   use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
   use stylex_utils::hash::create_hash;

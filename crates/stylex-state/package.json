@@ -1,0 +1,55 @@
+{
+  "name": "@stylexswc/state",
+  "description": "The per-file StyleX compilation state and the value vocabulary it composes",
+  "version": "0.18.6",
+  "private": true,
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "bench": "scripty",
+    "clean": "del-cli dist",
+    "do:nothing": "exit 0",
+    "format": "run-p format:rs format:toml",
+    "format:check": "run-p format:rs:check format:toml:check",
+    "format:rs": "cargo fmt --all",
+    "format:rs:check": "cargo fmt -- --check",
+    "format:toml": "taplo format",
+    "format:toml:check": "taplo format --check",
+    "prepublishOnly": "pnpm run build",
+    "test": "echo \"Skip: tests with workspace tests suite\" || true",
+    "test:coverage": "scripty",
+    "test:flamegraph": "scripty",
+    "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
+  },
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "devDependencies": {
+    "@stylexswc/ast": "catalog:internal",
+    "@stylexswc/constants": "catalog:internal",
+    "@stylexswc/diagnostics": "catalog:internal",
+    "@stylexswc/enums": "catalog:internal",
+    "@stylexswc/macros": "catalog:internal",
+    "@stylexswc/path-resolver": "catalog:internal",
+    "@stylexswc/regex": "catalog:internal",
+    "@stylexswc/state-index": "catalog:internal",
+    "@stylexswc/structures": "catalog:internal",
+    "@stylexswc/stylex-styleq": "catalog:internal",
+    "@stylexswc/types": "catalog:internal",
+    "@stylexswc/utils": "catalog:internal",
+    "@taplo/cli": "catalog:tooling",
+    "npm-run-all2": "catalog:tooling"
+  },
+  "keywords": [
+    "stylex",
+    "swc",
+    "swc-plugin"
+  ]
+}

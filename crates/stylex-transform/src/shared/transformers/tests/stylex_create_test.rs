@@ -6,25 +6,21 @@ mod stylex_create {
   use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::{Expr, ExprOrSpread, KeyValueProp};
 
-  use crate::shared::{
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue,
-    },
-    structures::{
-      functions::FunctionMap,
-      state::EvaluationState,
-      state_manager::StateManager,
-      types::{ClassPathsMap, InjectableStylesMap, StylesObjectMap},
-    },
-    transformers::stylex_create::stylex_create_set,
-  };
+  use crate::shared::structures::state::EvaluationState;
+  use crate::shared::transformers::stylex_create::stylex_create_set;
   use stylex_ast::ast::factories::{
     create_array_expression, create_key_value_prop, create_key_value_prop_ident,
     create_nested_object_prop, create_null_lit, create_object_expression,
     create_string_key_value_prop,
   };
   use stylex_constants::constants::common::COMPILED_KEY;
+  use stylex_state::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue,
+    functions::FunctionMap,
+    state_manager::StateManager,
+    types::{ClassPathsMap, InjectableStylesMap, StylesObjectMap},
+  };
   use stylex_structures::stylex_state_options::StyleXStateOptions;
   use stylex_types::structures::injectable_style::InjectableStyle;
 

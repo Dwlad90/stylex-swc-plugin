@@ -3,13 +3,12 @@ use stylex_ast::ast::convertors::create_number_expr;
 use stylex_ast::ast::factories::{
   create_array_expression, create_key_value_prop, create_object_expression,
 };
-use stylex_transform::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{functions::FunctionMap, state_manager::StateManager},
-  utils::{
-    ast::convertors::convert_expr_to_str,
-    core::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
-  },
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
+};
+use stylex_transform::shared::utils::{
+  ast::convertors::convert_expr_to_str,
+  core::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
 };
 use swc_core::{
   common::DUMMY_SP,

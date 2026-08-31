@@ -3407,6 +3407,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylex_state"
+version = "0.18.6"
+dependencies = [
+ "anyhow",
+ "ctor",
+ "indexmap",
+ "log",
+ "path-clean",
+ "pretty_env_logger",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "stylex_ast",
+ "stylex_constants",
+ "stylex_diagnostics",
+ "stylex_enums",
+ "stylex_macros",
+ "stylex_path_resolver",
+ "stylex_regex",
+ "stylex_state_index",
+ "stylex_structures",
+ "stylex_styleq",
+ "stylex_types",
+ "stylex_utils",
+ "swc_core",
+ "swc_sourcemap",
+]
+
+[[package]]
 name = "stylex_state_index"
 version = "0.18.6"
 dependencies = [
@@ -3494,6 +3523,7 @@ dependencies = [
  "stylex_nested_config",
  "stylex_path_resolver",
  "stylex_regex",
+ "stylex_state",
  "stylex_state_index",
  "stylex_structures",
  "stylex_styleq",

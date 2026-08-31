@@ -1,22 +1,18 @@
-use indexmap::IndexMap;
-use swc_core::ecma::ast::{Expr, KeyValueProp};
+use swc_core::ecma::ast::Expr;
 
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
-
-use super::{
-  functions::FunctionConfig,
-  theme_ref::ThemeRef,
-  types::{DynamicFns, EvaluationCallback, FunctionConfigMap, TInlineStyles},
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue,
+  types::{DynamicFns, TInlineStyles},
 };
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EvaluateResult {
   pub confident: bool,
   pub value: Option<EvaluateResultValue>,
-  pub(crate) deopt: Option<Expr>,
+  pub deopt: Option<Expr>,
   pub reason: Option<String>,
-  pub(crate) inline_styles: Option<TInlineStyles>,
-  pub(crate) fns: Option<DynamicFns>,
+  pub inline_styles: Option<TInlineStyles>,
+  pub fns: Option<DynamicFns>,
 }
 
 impl EvaluateResult {
@@ -26,7 +22,7 @@ impl EvaluateResult {
   /// Named because a refusal is six fields of which four are always the same,
   /// and a site that spelled one of them differently would be a deopt nothing
   /// reported.
-  pub(crate) fn refused(deopt: Option<Expr>, reason: Option<String>) -> Self {
+  pub fn refused(deopt: Option<Expr>, reason: Option<String>) -> Self {
     Self {
       confident: false,
       value: None,
@@ -34,66 +30,6 @@ impl EvaluateResult {
       reason,
       inline_styles: None,
       fns: None,
-    }
-  }
-}
-
-impl EvaluateResultValue {
-  pub fn as_expr(&self) -> Option<&Expr> {
-    match self {
-      EvaluateResultValue::Expr(value) => Some(value),
-      _ => None,
-    }
-  }
-
-  pub fn as_vec(&self) -> Option<&Vec<EvaluateResultValue>> {
-    match self {
-      EvaluateResultValue::Vec(value) => Some(value),
-      _ => None,
-    }
-  }
-
-  pub fn as_map(&self) -> Option<&IndexMap<Expr, Vec<KeyValueProp>>> {
-    match self {
-      EvaluateResultValue::Map(value) => Some(value),
-      _ => None,
-    }
-  }
-
-  pub fn as_function(&self) -> Option<&FunctionConfig> {
-    match self {
-      EvaluateResultValue::FunctionConfig(value) => Some(value),
-      _ => None,
-    }
-  }
-
-  pub fn as_function_map(&self) -> Option<&FunctionConfigMap> {
-    match self {
-      EvaluateResultValue::FunctionConfigMap(value) => Some(value),
-      _ => None,
-    }
-  }
-
-  pub fn as_callback(&self) -> Option<&EvaluationCallback> {
-    match self {
-      EvaluateResultValue::Callback(value) => Some(value),
-      _ => None,
-    }
-  }
-
-  pub fn as_theme_ref(&self) -> Option<&ThemeRef> {
-    match self {
-      EvaluateResultValue::ThemeRef(value) => Some(value),
-      _ => None,
-    }
-  }
-
-  pub fn as_env_object(
-    &self,
-  ) -> Option<&indexmap::IndexMap<String, stylex_structures::stylex_env::EnvEntry>> {
-    match self {
-      EvaluateResultValue::EnvObject(value) => Some(value),
-      _ => None,
     }
   }
 }

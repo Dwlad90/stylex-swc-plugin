@@ -7,9 +7,10 @@ use swc_core::{
   },
 };
 
-use crate::{StyleXTransform, shared::utils::common::fill_state_declarations};
+use crate::StyleXTransform;
 use stylex_enums::core::TransformationCycle;
 use stylex_regex::regex::STYLEX_CONSTS_IMPORT_REGEX;
+use stylex_state::common::fill_state_declarations;
 
 impl<C> StyleXTransform<C>
 where

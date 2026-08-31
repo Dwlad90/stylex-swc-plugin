@@ -4,23 +4,12 @@ use indexmap::IndexMap;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::KeyValueProp;
 
-use crate::shared::{
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
+use crate::shared::utils::{
+  ast::convertors::convert_expr_to_str,
+  core::define_vars_utils::{
+    collect_vars_by_at_rules, theme_override_priority, wrap_with_at_rules,
   },
-  structures::{
-    functions::FunctionMap,
-    state_manager::StateManager,
-    types::{FlatCompiledStyles, InjectableStylesMap},
-  },
-  utils::{
-    ast::convertors::convert_expr_to_str,
-    common::get_css_value,
-    core::define_vars_utils::{
-      collect_vars_by_at_rules, theme_override_priority, wrap_with_at_rules,
-    },
-    validators::validate_theme_variables,
-  },
+  validators::validate_theme_variables,
 };
 use stylex_ast::ast::convertors::{convert_key_value_to_str, get_key_values_from_object};
 use stylex_constants::constants::{
@@ -28,6 +17,14 @@ use stylex_constants::constants::{
   messages::{
     AT_RULE_NOT_FOUND, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING, THEME_VARS_MUST_BE_OBJECT,
   },
+};
+use stylex_state::{
+  common::get_css_value,
+  evaluate_result_value::EvaluateResultValue,
+  flat_compiled_styles_value::FlatCompiledStylesValue,
+  functions::FunctionMap,
+  state_manager::StateManager,
+  types::{FlatCompiledStyles, InjectableStylesMap},
 };
 use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_utils::{collection::find_and_swap_remove, hash::create_hash};

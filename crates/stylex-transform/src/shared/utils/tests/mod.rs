@@ -1,1 +1,1 @@
-mod common_tests;
+mod live_declarations_tests;

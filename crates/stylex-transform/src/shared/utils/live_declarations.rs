@@ -19,10 +19,8 @@ use swc_core::ecma::{
 
 use stylex_ast::ast::keys::namespace_name_from_member_prop;
 
-use crate::shared::{
-  structures::state_manager::{DeclId, StateManager},
-  utils::validators::{is_attrs_call, is_props_call},
-};
+use crate::shared::utils::validators::{is_attrs_call, is_props_call};
+use stylex_state::state_manager::{DeclId, StateManager};
 
 /// Read-only visitor used by [`build_decl_use_graph`] to collect every
 /// `Ident` referenced inside a top-level declarator's initializer (or

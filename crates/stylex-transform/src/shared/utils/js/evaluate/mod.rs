@@ -36,25 +36,8 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{
-    evaluate_result::EvaluateResult,
-    functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-    seen_value::SeenValue,
-    state::EvaluationState,
-    state_manager::{StateManager, add_import_expression},
-    theme_ref::ThemeRef,
-    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-  },
-  utils::{
-    ast::convertors::{convert_expr_to_str, expr_to_num},
-    common::{
-      assign_props, get_import_by_ident, get_var_decl_from, get_var_decl_parts_by_ident,
-      order_own_keys, remove_duplicates,
-    },
-  },
-};
+use crate::shared::structures::{evaluate_result::EvaluateResult, state::EvaluationState};
+use crate::shared::utils::ast::convertors::{convert_expr_to_str, expr_to_num};
 use stylex_ast::ast::convertors::{
   convert_atom_to_str_ref, convert_atom_to_string, convert_key_value_to_str, convert_lit_to_string,
   create_big_int_expr, create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
@@ -89,6 +72,18 @@ use stylex_js::coercions::{global_identifier_to_value, is_global_spelled_as_an_i
 use stylex_js::helpers::{
   get_callee_name, get_method_name, is_id_prop, is_invalid_method, is_mutating_object_method,
   is_mutation_expr, is_valid_callee,
+};
+use stylex_state::{
+  common::{
+    assign_props, get_import_by_ident, get_var_decl_from, get_var_decl_parts_by_ident,
+    order_own_keys, remove_duplicates,
+  },
+  evaluate_result_value::EvaluateResultValue,
+  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+  seen_value::SeenValue,
+  state_manager::{StateManager, add_import_expression},
+  theme_ref::ThemeRef,
+  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 use stylex_structures::{named_import_source::ImportSources, stylex_env::EnvEntry};
 use stylex_utils::string::utf16_length;

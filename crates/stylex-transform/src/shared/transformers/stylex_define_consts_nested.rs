@@ -5,14 +5,16 @@ use stylex_nested_config::nested::{
 };
 
 use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{state_manager::StateManager, types::InjectableStylesMap},
   transformers::stylex_define_consts::stylex_define_consts,
   utils::core::stylex_nested_utils::{
     UnflattenedCompiledStylesValue, expr_map_to_evaluate_result, unflatten_object,
   },
 };
 use stylex_constants::constants::messages::VALUES_MUST_BE_OBJECT;
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue, state_manager::StateManager,
+  types::InjectableStylesMap,
+};
 
 pub(crate) fn stylex_define_consts_nested(
   nested_constants: &EvaluateResultValue,

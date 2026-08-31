@@ -1,9 +1,9 @@
 use super::*;
-use crate::shared::structures::types::{ClassPathsMap, DynamicFns};
 use std::borrow::Cow;
 use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_ast::ast::factories::create_arrow_expression_with_params;
 use stylex_css::utils::pseudo::is_pseudo_selector;
+use stylex_state::types::{ClassPathsMap, DynamicFns};
 
 /// The class-name expression one compiled property contributes, and whether it
 /// stayed static.

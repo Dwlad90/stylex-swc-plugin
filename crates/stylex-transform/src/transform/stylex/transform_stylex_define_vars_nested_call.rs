@@ -15,10 +15,8 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    structures::state_manager::ImportKind,
     transformers::stylex_define_vars_nested::stylex_define_vars_nested,
     utils::{
-      common::gen_file_based_identifier,
       core::stylex_nested_utils::convert_unflattened_object_to_ast, js::evaluate::evaluate,
       validators::validate_define_call,
     },
@@ -26,6 +24,7 @@ use crate::{
   transform::stylex::visitor_utils::{build_eval_config, is_call_to},
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_state::{common::gen_file_based_identifier, state_manager::ImportKind};
 use stylex_structures::top_level_expression::TopLevelExpression;
 
 impl<C> StyleXTransform<C>

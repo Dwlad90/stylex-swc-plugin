@@ -7,11 +7,6 @@ use swc_core::{
 };
 
 use crate::shared::{
-  structures::{
-    functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-    state_manager::{ImportKind, StateManager},
-    types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression},
-  },
   transformers::{
     stylex_keyframes::get_keyframes_fn, stylex_position_try::get_position_try_fn,
     stylex_types::get_types_fn,
@@ -20,6 +15,11 @@ use crate::shared::{
 };
 use stylex_constants::constants::api_names::{
   STYLEX_ENV, STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_TYPES, STYLEX_UNSTABLE_CONDITIONAL,
+};
+use stylex_state::{
+  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+  state_manager::{ImportKind, StateManager},
+  types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 use stylex_structures::named_import_source::ImportSources;
 

@@ -4,10 +4,6 @@ use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, Lit, ObjectLit};
 
-use crate::shared::{
-  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  structures::types::{ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap},
-};
 use stylex_ast::ast::convertors::{
   convert_key_value_to_str, convert_lit_to_string, get_key_values_from_object,
 };
@@ -16,6 +12,10 @@ use stylex_constants::constants::{
   messages::{EXPECTED_CSS_VAR, VALUES_MUST_BE_OBJECT, missing_default_value},
 };
 use stylex_enums::value_with_default::ValueWithDefault;
+use stylex_state::{
+  flat_compiled_styles_value::FlatCompiledStylesValue,
+  types::{ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap},
+};
 use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_utils::hash::create_hash;
 

@@ -2,12 +2,12 @@ use stylex_macros::stylex_panic;
 
 use crate::shared::structures::pre_rule::{CompiledResult, ComputedStyle};
 use stylex_constants::constants::messages::RULE_SET_EMPTY;
+use stylex_state::state_manager::StateManager;
 use stylex_structures::pre_rule_value::PreRuleValue;
 
 use super::{
   null_pre_rule::NullPreRule,
   pre_rule::{PreRule, PreRules},
-  state_manager::StateManager,
 };
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PreRuleSet {

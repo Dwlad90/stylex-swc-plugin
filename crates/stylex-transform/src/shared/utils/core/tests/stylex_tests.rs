@@ -4,16 +4,14 @@ use indexmap::IndexMap;
 use stylex_ast::ast::convertors::convert_lit_to_string;
 use stylex_constants::constants::common::COMPILED_KEY;
 
-use crate::shared::{
-  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  utils::core::{
-    attrs::attrs,
-    js_to_ast::NestedStringObject,
-    parse_nullable_style::{ResolvedArg, StyleObject},
-    props::props,
-    stylex::stylex,
-  },
+use crate::shared::utils::core::{
+  attrs::attrs,
+  js_to_ast::NestedStringObject,
+  parse_nullable_style::{ResolvedArg, StyleObject},
+  props::props,
+  stylex::stylex,
 };
+use stylex_state::flat_compiled_styles_value::FlatCompiledStylesValue;
 
 fn create_style_object_args(args: &[&[(&str, FlatCompiledStylesValue)]]) -> Vec<ResolvedArg> {
   let mut result_args = vec![];

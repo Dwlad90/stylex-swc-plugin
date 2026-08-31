@@ -3,15 +3,15 @@ use std::rc::Rc;
 use rustc_hash::FxHashSet;
 use swc_core::ecma::ast::Expr;
 
-use super::functions::FunctionMap;
+use stylex_state::functions::FunctionMap;
 
 #[derive(Debug, Clone)]
 pub struct EvaluationState {
-  pub(crate) confident: bool,
-  pub(crate) deopt_path: Option<Expr>,
-  pub(crate) added_imports: FxHashSet<String>,
-  pub(crate) functions: Rc<FunctionMap>,
-  pub(crate) deopt_reason: Option<String>,
+  pub confident: bool,
+  pub deopt_path: Option<Expr>,
+  pub added_imports: FxHashSet<String>,
+  pub functions: Rc<FunctionMap>,
+  pub deopt_reason: Option<String>,
 }
 
 impl Default for EvaluationState {
@@ -27,7 +27,7 @@ impl Default for EvaluationState {
 }
 
 impl EvaluationState {
-  pub(crate) fn new() -> Self {
+  pub fn new() -> Self {
     EvaluationState::default()
   }
 }

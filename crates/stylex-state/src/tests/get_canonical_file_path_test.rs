@@ -5,13 +5,13 @@ mod get_canonical_file_path {
   use path_clean::PathClean;
   use rustc_hash::FxHashMap;
 
-  use crate::shared::structures::state_manager::StateManager;
+  use crate::state_manager::StateManager;
   use stylex_structures::stylex_options::CheckModuleResolution;
 
   fn get_fixture_path(test_path: &str) -> PathBuf {
     env::current_dir()
       .unwrap()
-      .join("src/shared/structures/tests/fixtures")
+      .join("src/tests/fixtures")
       .join(test_path)
       .clean()
   }
@@ -95,7 +95,7 @@ mod get_canonical_file_path {
 
     assert_eq!(
       canonical_path,
-      "@stylexswc/transform:src/shared/structures/tests/fixtures/src/components"
+      "@stylexswc/state:src/tests/fixtures/src/components"
     );
   }
 }

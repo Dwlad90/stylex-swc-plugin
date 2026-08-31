@@ -1,6 +1,6 @@
 use swc_core::ecma::ast::ObjectLit;
 
-use crate::shared::structures::types::FlatCompiledStyles;
+use stylex_state::types::FlatCompiledStyles;
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum ObjMapType {

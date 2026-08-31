@@ -12,8 +12,10 @@
 - `StyleXTransform<C: Comments>` in
   `crates/stylex-transform/src/transform/mod.rs` -- main SWC visitor. All
   transform logic lives under `crates/stylex-transform/src/transform/`.
-- `crates/stylex-structures/` -- core data models (`StateManager`,
-  `PluginPass`, `StyleXOptions`, etc.).
+- `crates/stylex-state/` -- the per-file compilation state (`StateManager`) and
+  the value types it composes.
+- `crates/stylex-structures/` -- core data models (`PluginPass`,
+  `StyleXOptions`, etc.).
 - `crates/stylex-rs-compiler/` -- the NAPI entry point: parses, drives the
   transform, prints, and owns source-map and comment plumbing.
 - `crates/stylex-path-resolver/` -- path resolution and package.json parsing.

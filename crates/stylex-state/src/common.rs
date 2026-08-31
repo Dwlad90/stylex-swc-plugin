@@ -16,7 +16,7 @@ use stylex_ast::ast::convertors::{convert_wtf8_to_atom, expand_shorthand_prop};
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
 use stylex_structures::{base_css_type::BaseCSSType, top_level_expression::TopLevelExpression};
 
-use crate::shared::structures::{
+use crate::{
   functions::{FunctionConfigType, FunctionMap, FunctionType},
   state_manager::StateManager,
 };
@@ -35,7 +35,7 @@ use stylex_regex::regex::JSON_REGEX;
 /// Falls through to [`get_var_decl_by_ident`] for the synthesized declarators
 /// the function map builds, rather than repeating its arms: that path has to
 /// construct one anyway, so there is nothing to save there.
-pub(crate) fn get_var_decl_parts_by_ident(
+pub fn get_var_decl_parts_by_ident(
   ident: &Ident,
   traversal_state: &mut StateManager,
   functions: &FunctionMap,
@@ -95,7 +95,7 @@ pub fn get_import_by_ident<'a>(
   state.import_binding(ident)
 }
 
-pub(crate) fn get_var_decl_from<'a>(
+pub fn get_var_decl_from<'a>(
   state: &'a StateManager,
   ident: &'a Ident,
 ) -> Option<&'a VarDeclarator> {
@@ -106,7 +106,7 @@ pub(crate) fn get_var_decl_from<'a>(
 }
 
 #[allow(dead_code)]
-pub(crate) fn type_of<T>(_: T) -> &'static str {
+pub fn type_of<T>(_: T) -> &'static str {
   type_name::<T>()
 }
 
@@ -172,7 +172,7 @@ fn array_index_of(key: &str) -> Option<u32> {
 ///
 /// Stable within each group, so the insertion order of the string keys is
 /// preserved exactly.
-pub(crate) fn order_own_keys(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
+pub fn order_own_keys(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
   let mut indexed: Vec<(u32, PropOrSpread)> = Vec::new();
   let mut named: Vec<PropOrSpread> = Vec::with_capacity(props.len());
 
@@ -196,7 +196,7 @@ pub(crate) fn order_own_keys(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
   ordered
 }
 
-pub(crate) fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
+pub fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
   let mut set = FxHashSet::default();
   let mut result = Vec::with_capacity(props.len());
 
@@ -234,7 +234,7 @@ pub(crate) fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
 /// in the right order and every property inside them in the wrong one, so
 /// `{ ...{ color: 'red', opacity: 1 } }` emitted its two rules back to front.
 /// One property is the common case and hid it.
-pub(crate) fn assign_props(
+pub fn assign_props(
   old_props: Vec<PropOrSpread>,
   new_props: Vec<PropOrSpread>,
 ) -> Vec<PropOrSpread> {
@@ -265,7 +265,7 @@ pub(crate) fn assign_props(
   merged
 }
 
-pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>) {
+pub fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>) {
   let Some(obj) = key_value.value.as_object() else {
     return (key_value.value, None);
   };
@@ -425,17 +425,13 @@ fn get_variable_names(name: &Pat) -> Vec<String> {
   }
 }
 
-pub(crate) fn gen_file_based_identifier(
-  file_name: &str,
-  export_name: &str,
-  key: Option<&str>,
-) -> String {
+pub fn gen_file_based_identifier(file_name: &str, export_name: &str, key: Option<&str>) -> String {
   let key = key.map_or(String::new(), |k| format!(".{}", k));
 
   format!("{}//{}{}", file_name, export_name, key)
 }
 
-pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> String {
+pub fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> String {
   match serde_json::to_string(&value) {
     Ok(json_str) => {
       if json_str.starts_with('"') && json_str.ends_with('"') && json_str.len() > 2 {
@@ -470,9 +466,7 @@ pub(crate) fn js_object_to_json(js_str: &str) -> String {
 /// Utility function to get the `StateManager` from the `StyleOptions` trait.
 /// This is a helper function to get the `StateManager` from the `StyleOptions`
 /// trait.
-pub(crate) fn downcast_style_options_to_state_manager(
-  state: &mut dyn StyleOptions,
-) -> &mut StateManager {
+pub fn downcast_style_options_to_state_manager(state: &mut dyn StyleOptions) -> &mut StateManager {
   state
     .as_any_mut()
     .downcast_mut::<StateManager>()

@@ -6,14 +6,15 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  structures::{functions::FunctionMap, state_manager::StateManager},
-  utils::common::{
+use crate::{
+  common::{
     assign_props, downcast_style_options_to_state_manager, fill_state_declarations,
     fill_top_level_expressions, gen_file_based_identifier, get_css_value, get_import_by_ident,
     get_var_decl_by_ident, js_object_to_json, remove_duplicates, serialize_value_to_json_string,
     type_of,
   },
+  functions::FunctionMap,
+  state_manager::StateManager,
 };
 use stylex_ast::ast::convertors::{
   create_number_expr, create_string_expr, get_expr_from_var_decl, get_key_values_from_object,
@@ -1642,9 +1643,7 @@ mod downcast_style_options_tests {
 
 mod get_var_decl_by_ident_function_map_tests {
   use super::*;
-  use crate::shared::structures::functions::{
-    FunctionConfig, FunctionConfigType, FunctionMap, FunctionType,
-  };
+  use crate::functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType};
   use std::rc::Rc;
 
   #[test]
@@ -1777,7 +1776,7 @@ mod get_key_values_from_object_spread_tests {
 
 mod get_var_decl_from_tests {
   use super::*;
-  use crate::shared::utils::common::get_var_decl_from;
+  use crate::common::get_var_decl_from;
 
   #[test]
   fn finds_matching_declaration() {
@@ -1817,9 +1816,7 @@ mod get_expr_from_var_decl_panic_tests {
 
 mod get_var_decl_by_ident_fn_map_panic_tests {
   use super::*;
-  use crate::shared::structures::functions::{
-    FunctionConfig, FunctionConfigType, FunctionMap, FunctionType,
-  };
+  use crate::functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType};
 
   #[test]
   #[should_panic]
@@ -1829,7 +1826,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
     fn dummy_fn(
       _args: Vec<Expr>,
       _state: &mut dyn stylex_types::traits::StyleOptions,
-      _fns: &crate::shared::structures::functions::FunctionMap,
+      _fns: &crate::functions::FunctionMap,
     ) -> Expr {
       create_number_expr(0.0)
     }

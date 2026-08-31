@@ -98,8 +98,9 @@
 use std::{hint::black_box, rc::Rc, sync::Arc};
 
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+use stylex_state::state_manager::StateManager;
 use stylex_structures::stylex_options::{StyleXOptions, StyleXOptionsParams};
-use stylex_transform::{StyleXTransform, shared::structures::state_manager::StateManager};
+use stylex_transform::StyleXTransform;
 use stylex_utils::hash::stable_hash_unspanned_call;
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, print};
 use swc_core::{

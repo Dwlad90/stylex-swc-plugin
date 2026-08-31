@@ -11,11 +11,6 @@ use swc_core::ecma::{
 
 use crate::shared::{
   enums::data_structures::fn_result::FnResult,
-  structures::{
-    functions::{FunctionConfigType, FunctionMap},
-    state_manager::{ImportKind, StateManager},
-    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-  },
   transformers::stylex_default_marker,
   utils::core::{
     make_string_expression::make_string_expression,
@@ -28,6 +23,11 @@ use stylex_constants::constants::{
   api_names::STYLEX_DEFAULT_MARKER, common::COMPILED_KEY, messages::EXPECTED_COMPILED_STYLES,
 };
 use stylex_enums::style_vars_to_keep::NonNullProps;
+use stylex_state::{
+  functions::{FunctionConfigType, FunctionMap},
+  state_manager::{ImportKind, StateManager},
+  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+};
 
 /// Merges the arguments of a `stylex.props`-family call into one value.
 ///

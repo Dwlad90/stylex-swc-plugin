@@ -6,15 +6,15 @@ use stylex_nested_config::nested::{
 use stylex_structures::nested::flatten_nested_string_config;
 
 use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{
-    state_manager::StateManager,
-    types::{FlatCompiledStyles, InjectableStylesMap},
-  },
   transformers::stylex_create_theme::stylex_create_theme,
   utils::core::stylex_nested_utils::{expr_map_to_evaluate_result, string_map_to_evaluate_result},
 };
 use stylex_constants::constants::messages::{THEME_VARS_MUST_BE_OBJECT, VALUES_MUST_BE_OBJECT};
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue,
+  state_manager::StateManager,
+  types::{FlatCompiledStyles, InjectableStylesMap},
+};
 
 pub(crate) fn stylex_create_theme_nested(
   theme_vars: &mut EvaluateResultValue,

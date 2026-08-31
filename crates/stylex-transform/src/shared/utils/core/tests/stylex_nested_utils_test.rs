@@ -17,12 +17,11 @@ use stylex_structures::nested::{
 };
 use swc_core::ecma::ast::{Expr, Lit};
 
-use crate::shared::{
-  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  structures::types::FlatCompiledStyles,
-  utils::core::stylex_nested_utils::{
-    UnflattenedCompiledStylesValue, convert_unflattened_object_to_ast, unflatten_object,
-  },
+use crate::shared::utils::core::stylex_nested_utils::{
+  UnflattenedCompiledStylesValue, convert_unflattened_object_to_ast, unflatten_object,
+};
+use stylex_state::{
+  flat_compiled_styles_value::FlatCompiledStylesValue, types::FlatCompiledStyles,
 };
 
 fn namespace(entries: Vec<(&str, NestedVarsValue)>) -> NestedVarsValue {

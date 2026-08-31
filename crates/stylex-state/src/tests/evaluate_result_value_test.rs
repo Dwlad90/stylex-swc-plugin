@@ -1,4 +1,4 @@
-use super::evaluate_result_value::EvaluateResultValue;
+use crate::evaluate_result_value::EvaluateResultValue;
 
 #[test]
 fn serializes_null_as_json_null() {

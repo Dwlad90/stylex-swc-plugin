@@ -4,12 +4,12 @@ mod converting_pre_rule_to_css {
   use stylex_structures::pre_rule_value::PreRuleValue;
   use stylex_types::structures::style_key::ClassName;
 
-  use crate::shared::structures::{
-    pre_rule::{CompiledResult, ComputedStyle, PreRule, StylesPreRule},
-    state_manager::StateManager,
-    types::ClassNameToOriginalPaths,
+  use crate::{
+    shared::structures::pre_rule::CompiledResult, shared::structures::pre_rule::ComputedStyle,
+    shared::structures::pre_rule::PreRule, shared::structures::pre_rule::StylesPreRule,
   };
   use stylex_enums::style_resolution::StyleResolution;
+  use stylex_state::{state_manager::StateManager, types::ClassNameToOriginalPaths};
   use stylex_types::structures::injectable_style::InjectableStyle;
 
   pub(super) fn get_state() -> StateManager {

@@ -84,9 +84,9 @@ use stylex_constants::constants::evaluation_errors::{
 use stylex_evaluator::growable_stack;
 
 use super::evaluate_result_vec_to_array_expr;
-use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
+use crate::shared::structures::state::EvaluationState;
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
 };
 
 /// What one fold may allocate, in the two units that cost separately.

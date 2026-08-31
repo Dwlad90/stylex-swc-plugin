@@ -5,8 +5,8 @@ use swc_core::ecma::{
   visit::{Visit, VisitWith},
 };
 
-use crate::shared::structures::state_manager::StateManager;
 use stylex_ast::ast::keys::prop_as_key_value;
+use stylex_state::state_manager::StateManager;
 
 pub(crate) fn is_variable_named_exported(
   TopLevelExpression(kind, _, variable_name): &TopLevelExpression,

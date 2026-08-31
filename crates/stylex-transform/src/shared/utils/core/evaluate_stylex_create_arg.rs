@@ -12,23 +12,14 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{
-    evaluate_result::EvaluateResult,
-    functions::FunctionMap,
-    state_manager::StateManager,
-    types::{DynamicFns, TInlineStyles},
+use crate::shared::structures::evaluate_result::EvaluateResult;
+use crate::shared::utils::{
+  ast::convertors::convert_expr_to_str,
+  js::evaluate::{
+    evaluate, evaluate_obj_key, evaluate_result_vec_to_array_expr, function_fold_to_object,
+    spread_own_properties,
   },
-  utils::{
-    ast::convertors::convert_expr_to_str,
-    common::assign_props,
-    js::evaluate::{
-      evaluate, evaluate_obj_key, evaluate_result_vec_to_array_expr, function_fold_to_object,
-      spread_own_properties,
-    },
-    validators::validate_dynamic_style_params,
-  },
+  validators::validate_dynamic_style_params,
 };
 use stylex_ast::ast::convertors::{
   create_ident_expr, create_null_expr, create_string_expr, expand_shorthand_prop, normalize_expr,
@@ -47,6 +38,13 @@ use stylex_constants::constants::{
 };
 use stylex_css::utils::pseudo::is_pseudo_selector;
 use stylex_diagnostics::code_frame::build_code_frame_error_and_panic_at;
+use stylex_state::{
+  common::assign_props,
+  evaluate_result_value::EvaluateResultValue,
+  functions::FunctionMap,
+  state_manager::StateManager,
+  types::{DynamicFns, TInlineStyles},
+};
 use stylex_structures::inline_style::InlineStyle;
 use stylex_utils::hash::create_hash;
 

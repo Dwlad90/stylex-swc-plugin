@@ -13,13 +13,11 @@ use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
 use stylex_ast::ast::keys::namespace_name_from_member_prop;
 
-use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{
-    functions::FunctionMap,
-    state_manager::{DeclId, StateManager},
-  },
-  utils::js::evaluate::evaluate,
+use crate::shared::utils::js::evaluate::evaluate;
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue,
+  functions::FunctionMap,
+  state_manager::{DeclId, StateManager},
 };
 
 pub(crate) fn member_expression(

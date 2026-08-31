@@ -4,13 +4,11 @@ mod stylex_keyframes {
   use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::PropOrSpread;
 
-  use crate::shared::{
-    enums::data_structures::evaluate_result_value::EvaluateResultValue,
-    structures::state_manager::StateManager, transformers::stylex_keyframes::stylex_keyframes,
-  };
+  use crate::shared::transformers::stylex_keyframes::stylex_keyframes;
   use stylex_ast::ast::factories::{
     create_key_value_prop, create_nested_object_prop, create_object_expression,
   };
+  use stylex_state::{evaluate_result_value::EvaluateResultValue, state_manager::StateManager};
   use stylex_types::{
     enums::data_structures::injectable_style::InjectableStyleKind,
     structures::injectable_style::InjectableStyle,

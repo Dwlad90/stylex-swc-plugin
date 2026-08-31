@@ -4,15 +4,15 @@ use rustc_hash::FxHashMap;
 use stylex_macros::stylex_panic;
 use stylex_utils::hash::create_hash;
 
-use crate::shared::utils::common::gen_file_based_identifier;
+use crate::common::gen_file_based_identifier;
 use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
 use stylex_enums::theme_ref::ThemeRefResult;
 
-use super::state_manager::StateManager;
+use crate::state_manager::StateManager;
 
 /// The key a value answers `true` to when it stands in for a group rather than
 /// holding one, which is how every reader tells the two apart.
-pub(crate) const IS_PROXY_KEY: &str = "__IS_PROXY";
+pub const IS_PROXY_KEY: &str = "__IS_PROXY";
 
 /// The two options that decide how a variable a group names is spelled.
 ///
@@ -21,14 +21,14 @@ pub(crate) const IS_PROXY_KEY: &str = "__IS_PROXY";
 /// per group rather than per member, which is also what lets the compile-time
 /// engine derive a name without a `StateManager` to reach for.
 #[derive(Clone, Copy)]
-pub(crate) struct VarNaming {
+pub struct VarNaming {
   debug: bool,
   readable_names: bool,
 }
 
 impl VarNaming {
   /// How this project spells the variables a group names.
-  pub(crate) fn of(state: &StateManager) -> Self {
+  pub fn of(state: &StateManager) -> Self {
     Self {
       debug: state.options.debug,
       readable_names: state.options.enable_debug_class_names,
@@ -37,12 +37,12 @@ impl VarNaming {
 
   /// The two options as the plain values the engine's traps carry, since nothing
   /// of this compiler's own can live inside the engine.
-  pub(crate) fn as_flags(self) -> (bool, bool) {
+  pub fn as_flags(self) -> (bool, bool) {
     (self.debug, self.readable_names)
   }
 
   /// The same pair read back from the engine's own values.
-  pub(crate) fn from_flags(debug: bool, readable_names: bool) -> Self {
+  pub fn from_flags(debug: bool, readable_names: bool) -> Self {
     Self {
       debug,
       readable_names,
@@ -67,7 +67,7 @@ impl VarNaming {
 /// variable the author named, so it is used as written. The group hash key names
 /// the group as a whole and answers a bare name rather than a `var()`. Every
 /// other key names a variable derived from the group's identity and that key.
-pub(crate) fn var_group_member(
+pub fn var_group_member(
   base_id: &str,
   class_name_prefix: &str,
   key: &str,
@@ -141,7 +141,7 @@ pub struct ThemeRef {
 }
 
 impl ThemeRef {
-  pub(crate) fn new(
+  pub fn new(
     file_name: impl Into<String>,
     export_name: impl Into<String>,
     class_name_prefix: impl Into<String>,
@@ -161,22 +161,22 @@ impl ThemeRef {
   /// and `StateManager` that keyed lookups need. Both constructors seed
   /// `class_name_prefix` from `options.class_name_prefix`, so this is the
   /// same string `get("toString")` returns.
-  pub(crate) fn to_string_value(&self) -> String {
+  pub fn to_string_value(&self) -> String {
     // NOTE: hash the cached base id instead of recomputing the prefix.
     format!("{}{}", self.class_name_prefix, create_hash(&self.base_id))
   }
 
   /// The file-and-export identity every member of this group is named from.
-  pub(crate) fn base_id(&self) -> &str {
+  pub fn base_id(&self) -> &str {
     &self.base_id
   }
 
   /// The prefix every class and variable name this compiler writes begins with.
-  pub(crate) fn class_name_prefix(&self) -> &str {
+  pub fn class_name_prefix(&self) -> &str {
     &self.class_name_prefix
   }
 
-  pub(crate) fn get(&mut self, key: &str, state: &StateManager) -> ThemeRefResult {
+  pub fn get(&mut self, key: &str, state: &StateManager) -> ThemeRefResult {
     if key == IS_PROXY_KEY {
       return ThemeRefResult::Proxy;
     }

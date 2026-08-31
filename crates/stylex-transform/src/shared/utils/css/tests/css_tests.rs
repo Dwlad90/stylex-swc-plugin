@@ -1,9 +1,8 @@
 #[cfg(test)]
 mod common_css_tests {
-  use crate::shared::{
-    structures::state_manager::StateManager, utils::css::common::transform_value_cached,
-  };
+  use crate::shared::utils::css::common::transform_value_cached;
   use stylex_css::css::common::get_number_suffix;
+  use stylex_state::state_manager::StateManager;
   use stylex_structures::raw_value::TRawValue;
 
   #[test]

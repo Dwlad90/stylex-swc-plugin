@@ -1,11 +1,10 @@
-use crate::shared::structures::{
-  functions::FunctionMap, state::EvaluationState, state_manager::StateManager,
-};
+use crate::shared::structures::state::EvaluationState;
 use stylex_ast::ast::convertors::{
   convert_concat_to_tpl_expr, convert_key_value_to_str, convert_simple_tpl_to_str_expr,
   convert_string_to_prop_name, convert_tpl_to_string_lit, create_ident_expr, create_number_expr,
   create_string_expr,
 };
+use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 use swc_core::{
   common::SyntaxContext,
   ecma::ast::{BinExpr, BinaryOp, Expr, Ident, IdentName, Lit, Str},
@@ -510,9 +509,8 @@ mod convert_unary_to_num_tests {
 
 mod convert_ident_to_expr_tests {
   use super::*;
-  use crate::shared::utils::{
-    ast::convertors::convert_ident_to_expr, common::fill_state_declarations,
-  };
+  use crate::shared::utils::ast::convertors::convert_ident_to_expr;
+  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::BindingIdent;
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -658,9 +656,8 @@ mod convert_key_value_to_str_tests {
 
 mod expr_tpl_to_string_tests {
   use super::*;
-  use crate::shared::utils::{
-    ast::convertors::expr_tpl_to_string, common::fill_state_declarations,
-  };
+  use crate::shared::utils::ast::convertors::expr_tpl_to_string;
+  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -798,9 +795,8 @@ mod expr_tpl_to_string_tests {
 
 mod handle_tpl_to_expression_tests {
   use super::*;
-  use crate::shared::utils::{
-    ast::convertors::handle_tpl_to_expression, common::fill_state_declarations,
-  };
+  use crate::shared::utils::ast::convertors::handle_tpl_to_expression;
+  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -904,7 +900,8 @@ mod handle_tpl_to_expression_tests {
 
 mod ident_to_number_tests {
   use super::*;
-  use crate::shared::utils::{ast::convertors::ident_to_number, common::fill_state_declarations};
+  use crate::shared::utils::ast::convertors::ident_to_number;
+  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::BindingIdent;
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -968,7 +965,8 @@ mod ident_to_number_tests {
 
 mod expr_to_num_tests {
   use super::*;
-  use crate::shared::utils::{ast::convertors::expr_to_num, common::fill_state_declarations};
+  use crate::shared::utils::ast::convertors::expr_to_num;
+  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::{BindingIdent, UnaryExpr, UnaryOp};
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -1048,9 +1046,8 @@ mod expr_to_num_tests {
 
 mod convert_expr_to_str_tests {
   use super::*;
-  use crate::shared::utils::{
-    ast::convertors::convert_expr_to_str, common::fill_state_declarations,
-  };
+  use crate::shared::utils::ast::convertors::convert_expr_to_str;
+  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::BindingIdent;
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -1173,7 +1170,8 @@ mod convert_key_value_to_str_bigint_tests {
 
 mod ident_to_number_extended_tests {
   use super::*;
-  use crate::shared::utils::{ast::convertors::ident_to_number, common::fill_state_declarations};
+  use crate::shared::utils::ast::convertors::ident_to_number;
+  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::{BindingIdent, UnaryExpr, UnaryOp};
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -1277,9 +1275,8 @@ mod ident_to_number_extended_tests {
 
 mod handle_tpl_to_expression_extended_tests {
   use super::*;
-  use crate::shared::utils::{
-    ast::convertors::handle_tpl_to_expression, common::fill_state_declarations,
-  };
+  use crate::shared::utils::ast::convertors::handle_tpl_to_expression;
+  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -1361,9 +1358,8 @@ mod handle_tpl_to_expression_extended_tests {
 
 mod expr_tpl_to_string_extended_tests {
   use super::*;
-  use crate::shared::utils::{
-    ast::convertors::expr_tpl_to_string, common::fill_state_declarations,
-  };
+  use crate::shared::utils::ast::convertors::expr_tpl_to_string;
+  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -1517,9 +1513,8 @@ mod transform_bin_expr_to_number_tests {
 
 mod convert_ident_to_expr_extended_tests {
   use super::*;
-  use crate::shared::utils::{
-    ast::convertors::convert_ident_to_expr, common::fill_state_declarations,
-  };
+  use crate::shared::utils::ast::convertors::convert_ident_to_expr;
+  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::BindingIdent;
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -1682,7 +1677,8 @@ mod convert_key_value_to_str_panic_tests {
 
 mod ident_to_number_edge_tests {
   use super::*;
-  use crate::shared::utils::{ast::convertors::ident_to_number, common::fill_state_declarations};
+  use crate::shared::utils::ast::convertors::ident_to_number;
+  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::BindingIdent;
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -1750,9 +1746,8 @@ mod ident_to_number_edge_tests {
 
 mod convert_expr_to_str_ident_chain_tests {
   use super::*;
-  use crate::shared::utils::{
-    ast::convertors::convert_expr_to_str, common::fill_state_declarations,
-  };
+  use crate::shared::utils::ast::convertors::convert_expr_to_str;
+  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::BindingIdent;
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {

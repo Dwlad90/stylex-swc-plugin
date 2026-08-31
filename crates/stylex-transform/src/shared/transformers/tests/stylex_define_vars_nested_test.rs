@@ -1,18 +1,16 @@
 #[cfg(test)]
 mod stylex_define_vars_nested {
-  use crate::shared::{
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue,
-    },
-    structures::state_manager::StateManager,
-    transformers::{
-      stylex_define_vars::stylex_define_vars, stylex_define_vars_nested::stylex_define_vars_nested,
-    },
-    utils::core::stylex_nested_utils::UnflattenedCompiledStylesValue,
+  use crate::{
+    shared::transformers::stylex_define_vars::stylex_define_vars,
+    shared::transformers::stylex_define_vars_nested::stylex_define_vars_nested,
+    shared::utils::core::stylex_nested_utils::UnflattenedCompiledStylesValue,
   };
   use stylex_ast::ast::convertors::create_string_expr;
   use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
+  use stylex_state::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, state_manager::StateManager,
+  };
   use stylex_structures::stylex_options::StyleXOptions;
   use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 

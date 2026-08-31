@@ -6,22 +6,19 @@ mod stylex_define_vars {
   use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::{Expr, PropOrSpread};
 
-  use crate::shared::{
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue,
-    },
-    structures::{
-      functions::FunctionType,
-      state_manager::StateManager,
-      types::{FlatCompiledStyles, InjectableStylesMap},
-    },
-    transformers::{stylex_define_vars::stylex_define_vars, stylex_types::get_types_fn},
+  use crate::{
+    shared::transformers::stylex_define_vars::stylex_define_vars,
+    shared::transformers::stylex_types::get_types_fn,
   };
   use stylex_ast::ast::factories::{
     create_key_value_prop, create_nested_object_prop, create_object_expression,
   };
   use stylex_enums::value_with_default::ValueWithDefault;
+  use stylex_state::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, functions::FunctionType,
+    state_manager::StateManager, types::FlatCompiledStyles, types::InjectableStylesMap,
+  };
   use stylex_structures::{base_css_type::BaseCSSType, stylex_state_options::StyleXStateOptions};
   use stylex_types::structures::injectable_style::InjectableStyle;
   use stylex_utils::hash::create_hash;

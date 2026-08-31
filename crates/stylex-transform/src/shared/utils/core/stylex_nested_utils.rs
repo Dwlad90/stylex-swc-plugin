@@ -12,11 +12,9 @@ use stylex_macros::stylex_unreachable;
 use stylex_structures::nested::SEPARATOR;
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::{
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
-  },
-  structures::types::FlatCompiledStyles,
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
+  types::FlatCompiledStyles,
 };
 
 #[derive(Debug, Clone, PartialEq)]

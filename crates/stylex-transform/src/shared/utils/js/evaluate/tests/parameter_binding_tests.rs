@@ -17,13 +17,11 @@
 use indexmap::IndexMap;
 use swc_core::ecma::ast::ExprOrSpread;
 
-use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{
-    functions::{FunctionConfig, FunctionType},
-    theme_ref::ThemeRef,
-  },
-  utils::js::evaluate::{binds_a_parameter, evaluate_result_as_expr},
+use crate::shared::utils::js::evaluate::{binds_a_parameter, evaluate_result_as_expr};
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue,
+  functions::{FunctionConfig, FunctionType},
+  theme_ref::ThemeRef,
 };
 
 use stylex_ast::ast::{

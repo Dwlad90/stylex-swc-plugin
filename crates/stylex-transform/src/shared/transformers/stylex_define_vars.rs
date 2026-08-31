@@ -5,21 +5,19 @@ use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 use swc_core::ecma::ast::{KeyValueProp, PropName};
 
 use crate::shared::{
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
-  },
-  structures::{
-    state_manager::StateManager,
-    types::{FlatCompiledStyles, InjectableStylesMap},
-  },
-  utils::{
-    common::get_css_value, core::define_vars_utils::construct_css_variables_string, object::obj_map,
-  },
+  enums::data_structures::obj_map_type::ObjMapType,
+  utils::{core::define_vars_utils::construct_css_variables_string, object::obj_map},
 };
 use stylex_constants::constants::{
   common::VAR_GROUP_HASH_KEY,
   messages::{EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT},
+};
+use stylex_state::{
+  common::get_css_value,
+  evaluate_result_value::EvaluateResultValue,
+  flat_compiled_styles_value::FlatCompiledStylesValue,
+  state_manager::StateManager,
+  types::{FlatCompiledStyles, InjectableStylesMap},
 };
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,

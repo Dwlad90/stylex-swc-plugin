@@ -45,6 +45,7 @@
     "@stylexswc/nested-config": "catalog:internal",
     "@stylexswc/path-resolver": "catalog:internal",
     "@stylexswc/regex": "catalog:internal",
+    "@stylexswc/state": "catalog:internal",
     "@stylexswc/state-index": "catalog:internal",
     "@stylexswc/structures": "catalog:internal",
     "@stylexswc/stylex-js": "catalog:internal",

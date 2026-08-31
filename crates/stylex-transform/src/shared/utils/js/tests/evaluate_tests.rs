@@ -1,11 +1,9 @@
-use crate::shared::{
-  structures::{functions::FunctionMap, state_manager::StateManager},
-  utils::js::evaluate::evaluate,
-};
+use crate::shared::utils::js::evaluate::evaluate;
 use stylex_ast::ast::convertors::{
   create_bool_expr, create_ident_expr, create_null_expr, create_number_expr, create_string_expr,
 };
 use stylex_ast::ast::factories::create_ident;
+use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 use stylex_structures::stylex_options::StyleXOptions;
 use swc_core::{
   common::{DUMMY_SP, GLOBALS, Globals, util::take::Take},

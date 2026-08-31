@@ -1,11 +1,9 @@
 use stylex_enums::declaration_type::DeclarationType;
 use swc_core::ecma::ast::{Expr, Ident};
 
-use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{state::EvaluationState, state_manager::StateManager},
-};
+use crate::shared::structures::state::EvaluationState;
 use stylex_constants::constants::evaluation_errors::{UNDEFINED_CONST, unsupported_expression};
+use stylex_state::{evaluate_result_value::EvaluateResultValue, state_manager::StateManager};
 
 use super::evaluate::{deopt, deopt_at_declaration};
 

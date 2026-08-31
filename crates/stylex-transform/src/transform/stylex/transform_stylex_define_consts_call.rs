@@ -17,7 +17,6 @@ use crate::{
   shared::{
     transformers::stylex_define_consts::stylex_define_consts,
     utils::{
-      common::gen_file_based_identifier,
       core::js_to_ast::{NestedStringObject, convert_object_to_ast},
       js::evaluate::evaluate,
       validators::{find_and_validate_stylex_define_consts, is_define_consts_call},
@@ -26,6 +25,7 @@ use crate::{
   transform::stylex::visitor_utils::build_env_only_eval_config,
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_state::common::gen_file_based_identifier;
 use stylex_structures::top_level_expression::TopLevelExpression;
 
 impl<C> StyleXTransform<C>

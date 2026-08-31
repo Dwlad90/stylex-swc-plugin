@@ -10,7 +10,7 @@ use swc_core::{
   },
 };
 
-use crate::{StyleXTransform, shared::structures::state_manager::InsertionSlot};
+use crate::StyleXTransform;
 use stylex_ast::ast::factories::{
   create_arrow_expression, create_ident, create_ident_call_expr, create_ident_name,
   create_import_namespace_decl, create_jsx_spread_attr, create_member_call_expr, create_object_lit,
@@ -18,6 +18,7 @@ use stylex_ast::ast::factories::{
 };
 use stylex_constants::constants::{api_names::STYLEX_PROPS, common::RUNTIME_JSX_CALL_NAMES};
 use stylex_enums::{core::TransformationCycle, counter_mode::CounterMode};
+use stylex_state::state_manager::InsertionSlot;
 use stylex_structures::{named_import_source::ImportSources, uid_generator::UidGenerator};
 
 impl<C> StyleXTransform<C>

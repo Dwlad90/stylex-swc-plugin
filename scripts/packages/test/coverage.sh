@@ -5,8 +5,10 @@ set -euo pipefail
 PATTERNS="#\[test\]|test_transform\(|test!\("
 crate_name="$(basename "$PWD")"
 
+# Kept in step with the two workspace lists in `package.json` and
+# `scripts/coverage-missing.sh`.
 case "$crate_name" in
-  stylex-logs|stylex-rs-compiler|stylex-test-parser|stylex-transform)
+  stylex-logs|stylex-rs-compiler|stylex-state|stylex-test-parser|stylex-transform)
     exit 0
     ;;
 esac

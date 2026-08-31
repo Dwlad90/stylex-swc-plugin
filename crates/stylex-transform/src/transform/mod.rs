@@ -9,11 +9,11 @@ use swc_core::{
   },
 };
 
-use crate::shared::structures::state_manager::StateManager;
 use stylex_enums::{
   property_validation_mode::PropertyValidationMode, style_resolution::StyleResolution,
   sx_prop_name_param::SxPropNameParam,
 };
+use stylex_state::state_manager::StateManager;
 use stylex_structures::{
   named_import_source::{ImportSources, RuntimeInjection},
   plugin_pass::PluginPass,

@@ -22,7 +22,7 @@ use swc_core::{
   },
 };
 
-use crate::shared::structures::types::InjectableStylesMap;
+use crate::types::InjectableStylesMap;
 use stylex_ast::ast::convertors::create_number_expr;
 use stylex_ast::ast::factories::{
   create_binding_ident, create_call_expr, create_expr_or_spread, create_key_value_prop,
@@ -60,7 +60,7 @@ use stylex_utils::hash::{
   stable_hash_unspanned, stable_hash_unspanned_call, stable_hash_unspanned_member,
 };
 
-use super::{
+use crate::{
   seen_value::SeenValue,
   types::{InjectImportIdents, SeenModuleSource, StylesObjectMap},
 };
@@ -86,13 +86,13 @@ type AtomHashSet = FxHashSet<Atom>;
 /// Stable identifier for a top-level declarator. Carries the symbol's
 /// `Atom` together with its `SyntaxContext` so shadowed bindings remain
 /// distinguishable after SWC's `resolver` pass has run.
-pub(crate) type DeclId = swc_core::ecma::ast::Id;
+pub type DeclId = swc_core::ecma::ast::Id;
 
 /// Position in the final emitted module body where a [`PendingInsertion`]
 /// item should land. The enum is deliberately narrow — new variants
 /// land only when a real producer needs them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum InsertionSlot {
+pub enum InsertionSlot {
   /// Value-level namespace imports injected so an `sx` attribute can
   /// reference the `stylex` runtime (`import * as stylex from '...'`).
   /// Emitted after any leading directive prologue, ahead of all other
@@ -129,7 +129,7 @@ pub(crate) struct PendingInsertion {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum ImportKind {
+pub enum ImportKind {
   Props,
   Attrs,
   Create,
@@ -152,7 +152,7 @@ pub(crate) enum ImportKind {
 }
 
 impl ImportKind {
-  pub(crate) fn from_import_name(name: &str) -> Option<ImportKind> {
+  pub fn from_import_name(name: &str) -> Option<ImportKind> {
     match name {
       STYLEX_CREATE => Some(ImportKind::Create),
       STYLEX_PROPS => Some(ImportKind::Props),
@@ -227,15 +227,15 @@ impl ImportState {
 ///
 /// A type rather than four parameters because all four are `FxHashSet<Id>`: see
 /// [`StateManager::adopt_binding_writes`].
-pub(crate) struct BindingWrites {
+pub struct BindingWrites {
   /// See [`StateManager::binding_reassignments`].
-  pub(crate) reassignments: FxHashSet<Id>,
+  pub reassignments: FxHashSet<Id>,
   /// See [`StateManager::binding_mutations`].
-  pub(crate) mutations: FxHashSet<Id>,
+  pub mutations: FxHashSet<Id>,
   /// See [`StateManager::binding_deep_mutations`].
-  pub(crate) deep_mutations: FxHashSet<Id>,
+  pub deep_mutations: FxHashSet<Id>,
   /// See [`StateManager::declared_bindings`].
-  pub(crate) declared: FxHashSet<Id>,
+  pub declared: FxHashSet<Id>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -625,15 +625,15 @@ pub struct StateManager {
 
   /// The source file the compiler parsed, when the host makes it available.
   /// Expression spans in the transformed AST resolve exactly against it.
-  pub(crate) input_source_file: Option<Arc<SourceFile>>,
+  pub input_source_file: Option<Arc<SourceFile>>,
   /// Source map for the compiler's input code, mapping positions back to the
   /// original authored file when earlier tooling (e.g. macro loaders) already
   /// transformed the code.
-  pub(crate) input_source_map: Option<Arc<swc_sourcemap::SourceMap>>,
+  pub input_source_map: Option<Arc<swc_sourcemap::SourceMap>>,
 
   // Imports
   pub(crate) imports: ImportState,
-  pub(crate) export_id: Option<String>,
+  pub export_id: Option<String>,
 
   /// Sources of every import declaration in the module, in body order and
   /// including type-only imports. Captured by a one-time pre-scan at the
@@ -642,13 +642,13 @@ pub struct StateManager {
   /// injecting the `sx` runtime binding (SWC visitors have no parent
   /// pointers, so this pre-scanned list stands in for a walk of the module
   /// body).
-  pub(crate) existing_import_sources: Vec<String>,
+  pub existing_import_sources: Vec<String>,
 
   /// Names of every identifier bound anywhere in the module (import locals,
   /// var/let/const declarators, function/class names, params). Captured by
   /// the same pre-scan and consumed by `get_stylex_runtime_binding` to test
   /// whether a name is already bound in the module.
-  pub(crate) bound_names: FxHashSet<String>,
+  pub bound_names: FxHashSet<String>,
 
   /// For each name bound by a non-import declaration (var/let/const,
   /// function/class names, params), the source spans of the scopes in which
@@ -657,12 +657,12 @@ pub struct StateManager {
   /// expose no scope chain, so the scope span is recorded during the pre-scan
   /// and `is_locally_rebound_at` performs the position-aware shadow check via
   /// span containment against the `sx` site.
-  pub(crate) local_rebinding_scopes: FxHashMap<String, Vec<Span>>,
+  pub local_rebinding_scopes: FxHashMap<String, Vec<Span>>,
 
   pub(crate) module_source: ModuleSourceState,
 
   pub(crate) declarations_state: DeclarationState,
-  pub(crate) declarations: Vec<VarDeclarator>,
+  pub declarations: Vec<VarDeclarator>,
   /// Position in [`Self::declarations`] of the declarator binding each named
   /// `Id`, so a reference resolves with one hash probe instead of a scan of
   /// every declarator in the module.
@@ -709,7 +709,7 @@ pub struct StateManager {
   /// once per invocation. `declared_bindings` alone holds every binding the
   /// module declares, so copying the four of them made a callback's cost scale
   /// with the size of the file it happens to sit in.
-  pub(crate) binding_reassignments: Rc<FxHashSet<Id>>,
+  pub binding_reassignments: Rc<FxHashSet<Id>>,
   /// Bindings whose referenced value is mutated in place — `obj.x = 1`,
   /// `arr.push(…)`, `delete obj.x`, `Object.assign(obj, …)`. The reference
   /// implementation's `isMutated`, probed as the step after
@@ -718,7 +718,7 @@ pub struct StateManager {
   /// refuse with the same text, so the split buys a step-for-step mapping to
   /// the reference implementation rather than a difference in outcome.
   /// Shared rather than copied -- see [`Self::binding_reassignments`].
-  pub(crate) binding_mutations: Rc<FxHashSet<Id>>,
+  pub binding_mutations: Rc<FxHashSet<Id>>,
   /// Bindings whose referenced value is written to further down a member chain
   /// than the reference implementation's `isMutated` looks: `obj.a.b = 1`
   /// records `obj` here where `obj.a = 1` records it in
@@ -730,7 +730,7 @@ pub struct StateManager {
   /// whose initializer would otherwise be inlined at the use site, stale — since
   /// upstream folds these and this compiler deliberately does not.
   /// Shared rather than copied -- see [`Self::binding_reassignments`].
-  pub(crate) binding_deep_mutations: Rc<FxHashSet<Id>>,
+  pub binding_deep_mutations: Rc<FxHashSet<Id>>,
   /// Every **declared binding** in the module, keyed by full `Id` — the crate
   /// glossary defines the term and why the `Id` is what makes it scope-aware.
   /// Read through [`Self::declares_binding`].
@@ -738,7 +738,7 @@ pub struct StateManager {
   /// Populated by the `Discover` pre-scan ([`ModuleBindingsCollector`]) in
   /// either of its modes, in the same walk that fills the two write sets above.
   /// Shared rather than copied -- see [`Self::binding_reassignments`].
-  pub(crate) declared_bindings: Rc<FxHashSet<Id>>,
+  pub declared_bindings: Rc<FxHashSet<Id>>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   /// Positions in [`Self::top_level_expressions`] of the entries that *are* a
   /// given call. Maintained by [`Self::push_top_level_expression`] and
@@ -784,9 +784,9 @@ pub struct StateManager {
   /// [`Self::top_level_expressions`] is keyed by the exported name and so has
   /// no entry for them, but they are still program level, and a transform that
   /// hoists its result out of a nested position must not hoist here.
-  pub(crate) pattern_bound_top_level_calls: FxHashSet<Span>,
+  pub pattern_bound_top_level_calls: FxHashSet<Span>,
   pub(crate) call_expressions: CallExpressionState,
-  pub(crate) seen: FxHashMap<u128, Rc<SeenValue>>,
+  pub seen: FxHashMap<u128, Rc<SeenValue>>,
   /// How many expression levels the evaluator is currently inside.
   ///
   /// Lives here rather than on `EvaluationState` because the evaluator's
@@ -795,7 +795,7 @@ pub struct StateManager {
   /// not. A counter that forked with the confidence would reset while the
   /// frames it is counting are still live, which is precisely the accounting
   /// the budget exists to keep honest.
-  pub(crate) evaluation_depth: usize,
+  pub evaluation_depth: usize,
   /// Whether the fold in progress refused because it ran out of budget.
   ///
   /// Beside `evaluation_depth` for the same reason, and for one more: it guards
@@ -817,7 +817,7 @@ pub struct StateManager {
   /// subtree did, and would record `resolved: false` against subtrees that fold
   /// perfectly well on their own. The flag is not being conservative about the
   /// unwind, it is compensating for a flag that never comes back.
-  pub(crate) depth_refused: bool,
+  pub depth_refused: bool,
   /// Whether a guard is reading a name to decide whether it *could* fold an
   /// expression, rather than folding it.
   ///
@@ -833,7 +833,7 @@ pub struct StateManager {
   ///
   /// A value that resolved is still memoized. Only the refusal is withheld,
   /// because only the refusal is the speculation's own.
-  pub(crate) speculating: bool,
+  pub speculating: bool,
   pub(crate) cache: CacheState,
   /// Maps a JSX spread expression to the JSX attributes that replace it.
   ///
@@ -848,7 +848,7 @@ pub struct StateManager {
   pub(crate) jsx_spread_attr_exprs_map: FxHashMap<u128, Vec<(Expr, Vec<JSXAttrOrSpread>)>>,
 
   // `stylex.create` calls
-  pub(crate) style_map: FxHashMap<String, Rc<StylesObjectMap>>,
+  pub style_map: FxHashMap<String, Rc<StylesObjectMap>>,
   pub(crate) style_vars: FxHashMap<String, VarDeclarator>,
   /// Names in [`Self::style_vars`] whose declarator is initialised by a given
   /// call. Maintained by [`Self::insert_style_var`] and
@@ -861,16 +861,16 @@ pub struct StateManager {
   /// The key includes `SyntaxContext`, so shadowed bindings with the same symbol
   /// text remain distinct after SWC's resolver pass. Namespace/default imports
   /// store `"*"`. Populated during `Discover` and consumed by the atoms pass.
-  pub(crate) atom_imports: FxHashMap<Id, String>,
+  pub atom_imports: FxHashMap<Id, String>,
 
   /// Map of `stylex.create` variable name -> set of namespace names that are
   /// dynamic style functions (e.g. `opacity: (o) => ({ opacity: o })`). Used so
   /// an uncalled dynamic-style member access (`styles.opacity`) bails out to
   /// runtime instead of being inlined.
-  pub(crate) dynamic_style_namespaces: FxHashMap<String, FxHashSet<String>>,
+  pub dynamic_style_namespaces: FxHashMap<String, FxHashSet<String>>,
 
   // results of `stylex.create` calls that should be kept
-  pub(crate) style_vars_to_keep: IndexSet<StyleVarsToKeep>,
+  pub style_vars_to_keep: IndexSet<StyleVarsToKeep>,
 
   /// Reference graph from each top-level declarator to the set of
   /// declarators it directly references in its initializer / body.
@@ -879,24 +879,24 @@ pub struct StateManager {
   /// ([`build_decl_use_graph`]) and consumed by [`compute_live_set`] to
   /// run a forward mark-and-sweep that replaces the legacy count-based
   /// cleanup.
-  pub(crate) decl_uses: FxHashMap<DeclId, FxHashSet<DeclId>>,
+  pub decl_uses: FxHashMap<DeclId, FxHashSet<DeclId>>,
 
   /// Declarators that must always survive cleanup, regardless of
   /// in-graph references. Populated from non-decl top-level usages
   /// (function bodies, JSX, top-level expressions), exported declarators,
   /// and the mark phase's surviving member-expr accesses on style
   /// namespaces.
-  pub(crate) roots: FxHashSet<DeclId>,
+  pub roots: FxHashSet<DeclId>,
 
   /// Transient live-set computed by [`compute_live_set`] at the start
   /// of `finalize_module`. Each `DeclId` in the set must survive the
   /// sweep; declarators absent from `decl_uses` entirely also survive
   /// via the "not-in-graph ⇒ keep by default" fallback.
-  pub(crate) live_set: FxHashSet<DeclId>,
+  pub live_set: FxHashSet<DeclId>,
 
-  pub(crate) in_stylex_create: bool,
+  pub in_stylex_create: bool,
 
-  pub(crate) options: StyleXStateOptions,
+  pub options: StyleXStateOptions,
   pub(crate) injection: StyleInjectionState,
 
   /// Single ordered buffer of slot-tagged items waiting to be merged
@@ -907,7 +907,7 @@ pub struct StateManager {
   /// accumulator vecs above plus the per-decl `styles_to_inject` map.
   pub(crate) pending_module_items: Vec<PendingInsertion>,
 
-  pub(crate) other_injected_css_rules: InjectableStylesMap,
+  pub other_injected_css_rules: InjectableStylesMap,
   pub(crate) top_imports: Vec<ImportDecl>,
   /// Where in [`Self::top_imports`] the specifier binding each imported name
   /// sits, as the import's position and the specifier's within it, so resolving
@@ -920,7 +920,7 @@ pub struct StateManager {
   /// and equality decides.
   /// Shared rather than copied -- see [`Self::declaration_call_index`].
   top_import_index: Rc<CandidateIndex<Id, (usize, usize)>>,
-  pub(crate) named_exports: FxHashSet<NamedExport>,
+  pub named_exports: FxHashSet<NamedExport>,
 
   pub cycle: TransformationCycle,
 }
@@ -1001,8 +1001,11 @@ impl StateManager {
   /// those tests wrote, because that form names every field and so needs every
   /// field visible -- the indexes included, which only the writers beside them
   /// may touch.
-  #[cfg(test)]
-  pub(crate) fn for_test(export_id: Option<&str>, options: StyleXStateOptions) -> Self {
+  ///
+  /// Public and not `#[cfg(test)]`: the tests that call it are in the crates
+  /// above, and a `cfg` set while compiling this crate is not set while
+  /// compiling theirs.
+  pub fn for_test(export_id: Option<&str>, options: StyleXStateOptions) -> Self {
     Self {
       export_id: export_id.map(str::to_string),
       options,
@@ -1024,7 +1027,7 @@ impl StateManager {
   /// a struct-update literal can set to anything. `Ceiling::clamped` is where the
   /// two numbers live, so the three readings below cannot come to disagree about
   /// what a ceiling's bounds are.
-  pub(crate) fn evaluation_ceiling(&self) -> usize {
+  pub fn evaluation_ceiling(&self) -> usize {
     MAX_EVALUATION_DEPTH.clamped(self.options.max_evaluation_depth)
   }
 
@@ -1038,7 +1041,7 @@ impl StateManager {
   /// join where a `ToNumber` reaches through one, on the part of the text that
   /// could still spell a number. One number is what lets an author raise it once,
   /// whichever of them refused.
-  pub(crate) fn character_ceiling(&self) -> usize {
+  pub fn character_ceiling(&self) -> usize {
     MAX_FOLDED_CHARACTERS.clamped(self.options.max_folded_characters)
   }
 
@@ -1048,11 +1051,11 @@ impl StateManager {
   /// way in, and a folded array and a folded object on the way back. Nothing
   /// outside a fold spends it, because the expressions the evaluator grows a
   /// value with itself grow text rather than entries.
-  pub(crate) fn entry_ceiling(&self) -> usize {
+  pub fn entry_ceiling(&self) -> usize {
     MAX_FOLDED_ENTRIES.clamped(self.options.max_folded_entries)
   }
 
-  pub(crate) fn set_plugin_pass(&mut self, plugin_pass: PluginPass) {
+  pub fn set_plugin_pass(&mut self, plugin_pass: PluginPass) {
     self.plugin_pass = plugin_pass;
   }
 
@@ -1064,7 +1067,7 @@ impl StateManager {
     self.call_expressions.add_call_expression(call_expr);
   }
 
-  pub(crate) fn is_member_call_callee(&self, member: &MemberExpr) -> bool {
+  pub fn is_member_call_callee(&self, member: &MemberExpr) -> bool {
     self.call_expressions.is_member_callee(member)
   }
 
@@ -1090,7 +1093,7 @@ impl StateManager {
   /// `self` mutably -- holding a `&[Ident]` across that is what used to be paid
   /// for by cloning both lists on the path every dynamic style's parameter
   /// takes.
-  pub(crate) fn declared_as(&self, ident: &Ident) -> Option<DeclarationType> {
+  pub fn declared_as(&self, ident: &Ident) -> Option<DeclarationType> {
     if self.class_name_declaration(ident).is_some() {
       return Some(DeclarationType::Class);
     }
@@ -1110,7 +1113,7 @@ impl StateManager {
   /// reference silently refused for the wrong reason. Named fields make the
   /// mistake visible where it is written, and the sets travel together anyway --
   /// the reference chain reads them as a group.
-  pub(crate) fn adopt_binding_writes(&mut self, writes: BindingWrites) {
+  pub fn adopt_binding_writes(&mut self, writes: BindingWrites) {
     self.binding_reassignments = Rc::new(writes.reassignments);
     self.binding_mutations = Rc::new(writes.mutations);
     self.binding_deep_mutations = Rc::new(writes.deep_mutations);
@@ -1123,7 +1126,12 @@ impl StateManager {
   /// index beside it cannot fall behind: pushing to the field directly leaves
   /// the binding it added invisible to [`Self::declaration_of`], which is what
   /// the three test builders that did so discovered.
-  pub(crate) fn push_declaration(&mut self, declarator: VarDeclarator) {
+  ///
+  /// The field is public and the index beside it is not, so a crate above can
+  /// still push straight past this. Nothing does. The index stays private
+  /// precisely so that the only way to keep the two in step remains the only
+  /// way anyone can see.
+  pub fn push_declaration(&mut self, declarator: VarDeclarator) {
     let position = self.declarations.len();
 
     if let Pat::Ident(binding) = &declarator.name {
@@ -1187,7 +1195,7 @@ impl StateManager {
   /// is keyed by that initializer: replacing it in place leaves the declarator
   /// findable under the call it no longer holds, and unfindable under the one it
   /// now does.
-  pub(crate) fn set_declaration_init(&mut self, position: usize, init: Expr) {
+  pub fn set_declaration_init(&mut self, position: usize, init: Expr) {
     let Some(declarator) = self.declarations.get_mut(position) else {
       return;
     };
@@ -1208,7 +1216,7 @@ impl StateManager {
   ///
   /// Every caller that grows [`Self::top_imports`] goes through here, for the
   /// reason [`Self::push_declaration`] exists.
-  pub(crate) fn push_top_import(&mut self, import: ImportDecl) {
+  pub fn push_top_import(&mut self, import: ImportDecl) {
     let position = self.top_imports.len();
 
     for (specifier_position, specifier) in import.specifiers.iter().enumerate() {
@@ -1354,7 +1362,7 @@ impl StateManager {
   /// Records the declarator `name` is bound by, and the call it is initialised
   /// by. The one way [`Self::style_vars`] grows, for the reason
   /// [`Self::push_declaration`] is the one way `declarations` does.
-  pub(crate) fn insert_style_var(&mut self, name: String, declarator: VarDeclarator) {
+  pub fn insert_style_var(&mut self, name: String, declarator: VarDeclarator) {
     let recorded = call_key_of(declarator.init.as_deref());
     let replaced = self.style_vars.insert(name.clone(), declarator);
 
@@ -1433,46 +1441,42 @@ impl StateManager {
   /// Shortening a path means reading the package boundaries around it and around
   /// the working directory, and the debug path asks once per style namespace
   /// with the same path every time -- it was half of a `dev` transform.
-  pub(crate) fn cached_short_filename(&self, absolute_path: &str) -> Option<&str> {
+  pub fn cached_short_filename(&self, absolute_path: &str) -> Option<&str> {
     self.cache.cached_short_filename(absolute_path)
   }
 
-  pub(crate) fn insert_cached_short_filename(
-    &mut self,
-    absolute_path: String,
-    short_filename: String,
-  ) {
+  pub fn insert_cached_short_filename(&mut self, absolute_path: String, short_filename: String) {
     self
       .cache
       .insert_short_filename(absolute_path, short_filename);
   }
 
-  pub(crate) fn add_class_name_declaration(&mut self, ident: Ident) {
+  pub fn add_class_name_declaration(&mut self, ident: Ident) {
     self.declarations_state.add_class_name_declaration(ident);
   }
 
-  pub(crate) fn add_function_name_declaration(&mut self, ident: Ident) {
+  pub fn add_function_name_declaration(&mut self, ident: Ident) {
     self.declarations_state.add_function_name_declaration(ident);
   }
 
   /// Where the hoisted `class` binding `ident` names was declared, if one was.
-  pub(crate) fn class_name_declaration(&self, ident: &Ident) -> Option<Span> {
+  pub fn class_name_declaration(&self, ident: &Ident) -> Option<Span> {
     self.declarations_state.class_name_declaration(ident)
   }
 
   /// Where the hoisted `function` binding `ident` names was declared, if one
   /// was.
-  pub(crate) fn function_name_declaration(&self, ident: &Ident) -> Option<Span> {
+  pub fn function_name_declaration(&self, ident: &Ident) -> Option<Span> {
     self.declarations_state.function_name_declaration(ident)
   }
 
-  pub(crate) fn has_import_paths(&self) -> bool {
+  pub fn has_import_paths(&self) -> bool {
     self.imports.has_import_paths()
   }
 
   /// Whether any identifier named `name` is bound anywhere in the module.
   /// Backed by the [`StateManager::bound_names`] pre-scan.
-  pub(crate) fn has_binding(&self, name: &str) -> bool {
+  pub fn has_binding(&self, name: &str) -> bool {
     self.bound_names.contains(name)
   }
 
@@ -1482,7 +1486,7 @@ impl StateManager {
   /// the re-binding actually covers the `sx` site, not merely when it exists
   /// somewhere in the module. Backed by the
   /// [`StateManager::local_rebinding_scopes`] pre-scan.
-  pub(crate) fn is_locally_rebound_at(&self, name: &str, site: Span) -> bool {
+  pub fn is_locally_rebound_at(&self, name: &str, site: Span) -> bool {
     self.local_rebinding_scopes.get(name).is_some_and(|scopes| {
       scopes
         .iter()
@@ -1492,20 +1496,20 @@ impl StateManager {
 
   /// Whether `ident`'s binding is rebound anywhere in the module. See
   /// [`StateManager::binding_reassignments`].
-  pub(crate) fn has_binding_reassignment(&self, ident: &Ident) -> bool {
+  pub fn has_binding_reassignment(&self, ident: &Ident) -> bool {
     self.binding_reassignments.contains(&ident.to_id())
   }
 
   /// Whether the value `ident`'s binding references is mutated in place
   /// anywhere in the module. See [`StateManager::binding_mutations`].
-  pub(crate) fn has_binding_mutation(&self, ident: &Ident) -> bool {
+  pub fn has_binding_mutation(&self, ident: &Ident) -> bool {
     self.binding_mutations.contains(&ident.to_id())
   }
 
   /// Whether the value `ident`'s binding references is written to further down a
   /// member chain than upstream's `isMutated` looks. See
   /// [`StateManager::binding_deep_mutations`].
-  pub(crate) fn has_deep_binding_mutation(&self, ident: &Ident) -> bool {
+  pub fn has_deep_binding_mutation(&self, ident: &Ident) -> bool {
     self.binding_deep_mutations.contains(&ident.to_id())
   }
 
@@ -1513,7 +1517,7 @@ impl StateManager {
   /// reference, not of a name: the `Id` carries the syntax context, so this
   /// answers `false` for a global that some unrelated scope happens to bind the
   /// name of. See [`StateManager::declared_bindings`].
-  pub(crate) fn declares_binding(&self, ident: &Ident) -> bool {
+  pub fn declares_binding(&self, ident: &Ident) -> bool {
     self.declared_bindings.contains(&ident.to_id())
   }
 
@@ -1522,7 +1526,7 @@ impl StateManager {
   /// replacement so later lookups can confirm structural equality and never act
   /// on a bare hash collision. A structurally-identical spread already present
   /// in the bucket is not duplicated.
-  pub(crate) fn seed_jsx_spread_expr(&mut self, expr: &Expr) {
+  pub fn seed_jsx_spread_expr(&mut self, expr: &Expr) {
     let key = stable_hash_unspanned(expr);
     let bucket = self.jsx_spread_attr_exprs_map.entry(key).or_default();
 
@@ -1533,7 +1537,7 @@ impl StateManager {
 
   /// Whether `call` was recorded as a JSX spread expression during discovery,
   /// confirmed by structural (`eq_ignore_span`) match, not just a hash hit.
-  pub(crate) fn has_jsx_spread_call(&self, call: &CallExpr) -> bool {
+  pub fn has_jsx_spread_call(&self, call: &CallExpr) -> bool {
     let key = stable_hash_unspanned_call(call);
     self
       .jsx_spread_attr_exprs_map
@@ -1548,7 +1552,7 @@ impl StateManager {
   /// Records the replacement JSX attributes for a `stylex.props(...)` call
   /// previously seeded as a JSX spread. Returns `true` when a matching entry
   /// (hash + structural match) was found and updated.
-  pub(crate) fn set_jsx_spread_replacement(
+  pub fn set_jsx_spread_replacement(
     &mut self,
     call: &CallExpr,
     attrs: Vec<JSXAttrOrSpread>,
@@ -1572,7 +1576,7 @@ impl StateManager {
   /// confirming structural equality so a hash collision can never return a
   /// different expression's attributes. An entry that exists but has no
   /// recorded replacement yields `Some(&[])`.
-  pub(crate) fn jsx_spread_replacement(&self, expr: &Expr) -> Option<&[JSXAttrOrSpread]> {
+  pub fn jsx_spread_replacement(&self, expr: &Expr) -> Option<&[JSXAttrOrSpread]> {
     let key = stable_hash_unspanned(expr);
     self
       .jsx_spread_attr_exprs_map
@@ -1582,25 +1586,25 @@ impl StateManager {
       .map(|(_, replacement)| replacement.as_slice())
   }
 
-  pub(crate) fn insert_import_path(&mut self, source_path: String) {
+  pub fn insert_import_path(&mut self, source_path: String) {
     self.imports.insert_import_path(source_path);
   }
 
-  pub(crate) fn insert_stylex_import(&mut self, import_source: ImportSources) {
+  pub fn insert_stylex_import(&mut self, import_source: ImportSources) {
     self.imports.insert_stylex_import(import_source);
   }
 
-  pub(crate) fn stylex_imports(&self) -> &IndexSet<ImportSources> {
+  pub fn stylex_imports(&self) -> &IndexSet<ImportSources> {
     self.imports.stylex_imports()
   }
 
-  pub(crate) fn is_regular_stylex_import(&self, ident_sym: &str) -> bool {
+  pub fn is_regular_stylex_import(&self, ident_sym: &str) -> bool {
     self.stylex_imports().iter().any(|import_source| {
       matches!(import_source, ImportSources::Regular(regular) if regular.as_str() == ident_sym)
     })
   }
 
-  pub(crate) fn is_style_var_ident(&self, ident: &Ident) -> bool {
+  pub fn is_style_var_ident(&self, ident: &Ident) -> bool {
     self.style_map.contains_key(ident.sym.as_ref())
       && self
         .style_vars
@@ -1615,23 +1619,23 @@ impl StateManager {
   }
 
   /// Insert a symbol into the import set for the given kind.
-  pub(crate) fn insert_stylex_api_import(&mut self, kind: ImportKind, sym: Atom) {
+  pub fn insert_stylex_api_import(&mut self, kind: ImportKind, sym: Atom) {
     self.imports.insert_stylex_api_import(kind, sym);
   }
 
   /// Get the import set for the given kind, if any entries exist.
-  pub(crate) fn get_stylex_api_import(&self, kind: ImportKind) -> Option<&AtomHashSet> {
+  pub fn get_stylex_api_import(&self, kind: ImportKind) -> Option<&AtomHashSet> {
     self.imports.get_stylex_api_import(kind)
   }
 
   /// Check if any import of the given kinds contains the given symbol.
-  pub(crate) fn any_stylex_api_import_contains(&self, kinds: &[ImportKind], sym: &Atom) -> bool {
+  pub fn any_stylex_api_import_contains(&self, kinds: &[ImportKind], sym: &Atom) -> bool {
     kinds
       .iter()
       .any(|kind| self.has_stylex_api_import(*kind, sym))
   }
 
-  pub(crate) fn is_stylex_namespace_import(&self, ident_sym: &str) -> bool {
+  pub fn is_stylex_namespace_import(&self, ident_sym: &str) -> bool {
     self
       .stylex_imports()
       .iter()
@@ -1641,7 +1645,7 @@ impl StateManager {
       })
   }
 
-  pub(crate) fn is_stylex_import_for_kinds(&self, ident_sym: &str, kinds: &[ImportKind]) -> bool {
+  pub fn is_stylex_import_for_kinds(&self, ident_sym: &str, kinds: &[ImportKind]) -> bool {
     if self.is_stylex_namespace_import(ident_sym) {
       return true;
     }
@@ -1649,7 +1653,7 @@ impl StateManager {
     self.any_stylex_api_import_contains(kinds, &Atom::from(ident_sym))
   }
 
-  pub(crate) fn is_stylex_import_for_current_cycle(&self, ident_sym: &str) -> bool {
+  pub fn is_stylex_import_for_current_cycle(&self, ident_sym: &str) -> bool {
     match self.cycle {
       TransformationCycle::TransformProducers => {
         use ImportKind::*;
@@ -1684,10 +1688,10 @@ impl StateManager {
   /// Applies the `env` configuration to the given identifiers and
   /// member_expressions maps. This is the Rust equivalent of the JavaScript
   /// `applyStylexEnv` method.
-  pub(crate) fn apply_stylex_env(
+  pub fn apply_stylex_env(
     &self,
-    identifiers: &mut super::types::FunctionMapIdentifiers,
-    member_expressions: &mut super::types::FunctionMapMemberExpression,
+    identifiers: &mut crate::types::FunctionMapIdentifiers,
+    member_expressions: &mut crate::types::FunctionMapMemberExpression,
   ) {
     if self.options.env.is_empty() {
       return;
@@ -1701,7 +1705,7 @@ impl StateManager {
       let member_expression = member_expressions.entry(name.clone()).or_default();
       member_expression.insert(
         STYLEX_ENV.into(),
-        Box::new(super::functions::FunctionConfigType::EnvObject(env.clone())),
+        Box::new(crate::functions::FunctionConfigType::EnvObject(env.clone())),
       );
     }
 
@@ -1711,7 +1715,7 @@ impl StateManager {
       for name in env_imports {
         identifiers.insert(
           name.clone(),
-          Box::new(super::functions::FunctionConfigType::EnvObject(env.clone())),
+          Box::new(crate::functions::FunctionConfigType::EnvObject(env.clone())),
         );
       }
     }
@@ -1729,21 +1733,17 @@ impl StateManager {
 
   /// Where the module being transformed starts, for turning a compiled call's
   /// position into a file offset. See [`ModuleSourceState::input_module_base`].
-  pub(crate) fn input_module_base(&self) -> Option<ModuleBase> {
+  pub fn input_module_base(&self) -> Option<ModuleBase> {
     self.module_source.input_module_base
   }
 
   /// Records that base, once, as the module walk begins.
-  pub(crate) fn set_input_module_base(&mut self, base: ModuleBase) {
+  pub fn set_input_module_base(&mut self, base: ModuleBase) {
     self.module_source.input_module_base = Some(base);
   }
 
   /// Sets the source code module (marks as not yet normalized)
-  pub(crate) fn set_seen_module_source_code(
-    &mut self,
-    module: &Module,
-    source_code: Option<String>,
-  ) {
+  pub fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
     self
       .module_source
       .set_seen_module_source_code(module, source_code);
@@ -1777,7 +1777,7 @@ impl StateManager {
 
   /// Borrowing iterator over configured import-source module paths, in order.
   /// Avoids allocating a `Vec<String>` for callers that only scan for a match.
-  pub(crate) fn import_source_names(&self) -> impl Iterator<Item = &str> {
+  pub fn import_source_names(&self) -> impl Iterator<Item = &str> {
     self
       .options
       .import_sources
@@ -1791,7 +1791,7 @@ impl StateManager {
   /// Borrowing iterator over the local names of discovered value-level stylex
   /// namespace/default imports, in discovery order. Avoids allocating a
   /// `Vec<String>` for callers that only scan for a match.
-  pub(crate) fn stylex_import_names(&self) -> impl Iterator<Item = &str> {
+  pub fn stylex_import_names(&self) -> impl Iterator<Item = &str> {
     self
       .stylex_imports()
       .iter()
@@ -1801,18 +1801,18 @@ impl StateManager {
       })
   }
 
-  pub(crate) fn is_test(&self) -> bool {
+  pub fn is_test(&self) -> bool {
     self.options.test
   }
 
-  pub(crate) fn is_dev(&self) -> bool {
+  pub fn is_dev(&self) -> bool {
     self.options.dev
   }
-  pub(crate) fn is_debug(&self) -> bool {
+  pub fn is_debug(&self) -> bool {
     self.options.debug
   }
 
-  pub(crate) fn enable_inlined_conditional_merge(&self) -> bool {
+  pub fn enable_inlined_conditional_merge(&self) -> bool {
     self.options.enable_inlined_conditional_merge
   }
 
@@ -1829,13 +1829,13 @@ impl StateManager {
     self.input_source_map = Some(source_map);
   }
 
-  pub(crate) fn get_short_filename(&self) -> String {
+  pub fn get_short_filename(&self) -> String {
     extract_filename_from_path(&self.plugin_pass.filename)
   }
-  pub(crate) fn get_filename(&self) -> &str {
+  pub fn get_filename(&self) -> &str {
     extract_path(&self.plugin_pass.filename)
   }
-  pub(crate) fn get_filename_for_hashing(
+  pub fn get_filename_for_hashing(
     &self,
     package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
   ) -> Option<String> {
@@ -1869,7 +1869,7 @@ impl StateManager {
       },
     }
   }
-  pub(crate) fn get_package_name_and_path(
+  pub fn get_package_name_and_path(
     filepath: &str,
     package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
   ) -> Option<(Option<String>, String)> {
@@ -1937,7 +1937,7 @@ impl StateManager {
     format!("_unknown_path_:{}", file_name)
   }
 
-  pub(crate) fn import_path_resolver(
+  pub fn import_path_resolver(
     &self,
     import_path: &str,
     package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
@@ -2013,7 +2013,7 @@ impl StateManager {
   /// Answered from [`Self::top_level_call_index`]: the key narrows to the
   /// entries that may be this call and `eq_ignore_span` decides between them,
   /// which is the answer the walk over every recorded expression gave.
-  pub(crate) fn find_top_level_expr(&self, call: &CallExpr) -> Option<&TopLevelExpression> {
+  pub fn find_top_level_expr(&self, call: &CallExpr) -> Option<&TopLevelExpression> {
     let found = self
       .find_top_level_expr_index(call)
       .and_then(|position| self.top_level_expressions.get(position));
@@ -2058,11 +2058,7 @@ impl StateManager {
   /// to do. Every position a name binds is a candidate, because `var` permits
   /// redeclaration, and `eq_ignore_span` still confirms -- so an entry whose
   /// expression has moved on since answers `None` as the walk did.
-  pub(crate) fn find_top_level_expr_named(
-    &self,
-    name: &Atom,
-    expr: &Expr,
-  ) -> Option<&TopLevelExpression> {
+  pub fn find_top_level_expr_named(&self, name: &Atom, expr: &Expr) -> Option<&TopLevelExpression> {
     let position = earliest_confirmed(
       self.top_level_name_index.candidates(|| name.clone()),
       |position| {
@@ -2097,7 +2093,7 @@ impl StateManager {
   /// -- which is what turns the walk of every style variable in the module into
   /// a probe. `eq_ignore_span` still decides, so a name rebound to something
   /// else answers `None` as the walk did.
-  pub(crate) fn matching_style_var(&self, declarator: &VarDeclarator) -> Option<&VarDeclarator> {
+  pub fn matching_style_var(&self, declarator: &VarDeclarator) -> Option<&VarDeclarator> {
     let name = declarator.name.as_ident()?;
 
     self
@@ -2114,7 +2110,7 @@ impl StateManager {
   /// it -- an array literal of styles, a member access on the call -- and no
   /// key can find those, so they stay a walk. It is a cheap one, and it only
   /// runs when the indexed lookup has already missed.
-  pub(crate) fn has_top_level_expr(
+  pub fn has_top_level_expr(
     &self,
     call: &CallExpr,
     binds_call: impl Fn(&TopLevelExpression) -> bool,
@@ -2136,7 +2132,7 @@ impl StateManager {
   /// A span-less call is held by nothing. Such a call is synthesized rather than
   /// parsed, so no recorded array can be where it was written, and a dummy span
   /// would otherwise be read as position zero.
-  pub(crate) fn holds_call_in_top_level_array(&self, call: &CallExpr) -> bool {
+  pub fn holds_call_in_top_level_array(&self, call: &CallExpr) -> bool {
     if call.span.is_dummy() {
       return false;
     }
@@ -2172,7 +2168,7 @@ impl StateManager {
   /// synthesized call is not something the discovery pass can have recorded,
   /// and matching one against a recorded entry would resurrect the very
   /// conflation this lookup exists to avoid.
-  pub(crate) fn find_top_level_expr_by_span(&self, call: &CallExpr) -> Option<&TopLevelExpression> {
+  pub fn find_top_level_expr_by_span(&self, call: &CallExpr) -> Option<&TopLevelExpression> {
     if call.span.is_dummy() {
       return None;
     }
@@ -2197,7 +2193,7 @@ impl StateManager {
   ///
   /// Span-less calls never match, for the reason given on
   /// [`Self::find_top_level_expr_by_span`].
-  pub(crate) fn find_call_declaration_index_by_span(&self, call: &CallExpr) -> Option<usize> {
+  pub fn find_call_declaration_index_by_span(&self, call: &CallExpr) -> Option<usize> {
     if call.span.is_dummy() {
       return None;
     }
@@ -2212,7 +2208,7 @@ impl StateManager {
   /// The declarator initialised by *this* call node, for callers that only read
   /// it. See [`Self::find_call_declaration_index_by_span`], which this defers
   /// to, for how the match is made.
-  pub(crate) fn find_call_declaration_by_span(&self, call: &CallExpr) -> Option<&VarDeclarator> {
+  pub fn find_call_declaration_by_span(&self, call: &CallExpr) -> Option<&VarDeclarator> {
     self
       .declarations
       .get(self.find_call_declaration_index_by_span(call)?)
@@ -2226,7 +2222,7 @@ impl StateManager {
   /// transform of a module of many components -- and the calls it answers `None`
   /// for, every `stylex.props` site among them, were the ones that paid for the
   /// whole of it.
-  pub(crate) fn find_call_declaration(&self, call: &CallExpr) -> Option<&VarDeclarator> {
+  pub fn find_call_declaration(&self, call: &CallExpr) -> Option<&VarDeclarator> {
     let found = self
       .find_call_declaration_index(call)
       .and_then(|position| self.declarations.get(position));
@@ -2286,7 +2282,7 @@ impl StateManager {
     found
   }
 
-  pub(crate) fn register_styles(
+  pub fn register_styles(
     &mut self,
     call: &CallExpr,
     style: &InjectableStylesMap,
@@ -2337,7 +2333,7 @@ impl StateManager {
   /// import block and before the module body that uses them.
   ///
   /// [`register_styles`]: StateManager::register_styles
-  pub(crate) fn register_atom_styles(&mut self, style: &InjectableStylesMap) {
+  pub fn register_atom_styles(&mut self, style: &InjectableStylesMap) {
     if style.is_empty() {
       return;
     }
@@ -2557,14 +2553,14 @@ impl StateManager {
     }
   }
 
-  pub(crate) fn get_treeshake_compensation(&self) -> bool {
+  pub fn get_treeshake_compensation(&self) -> bool {
     self.options.treeshake_compensation
   }
 
   /// Queue a `ModuleItem` for placement in the final module body.
   /// `slot` decides where the linear merge in
   /// [`flush_pending_insertions`] will splice the item.
-  pub(crate) fn queue_insertion(&mut self, slot: InsertionSlot, item: ModuleItem) {
+  pub fn queue_insertion(&mut self, slot: InsertionSlot, item: ModuleItem) {
     self
       .pending_module_items
       .push(PendingInsertion { slot, item });
@@ -2584,7 +2580,7 @@ impl StateManager {
   ///
   /// Named once here so a third reason is a third arm of one question rather than
   /// a third condition every reader has to remember to add.
-  pub(crate) fn owns_its_refusals(&self) -> bool {
+  pub fn owns_its_refusals(&self) -> bool {
     !self.depth_refused && !self.speculating
   }
 
@@ -2598,7 +2594,7 @@ impl StateManager {
   /// `Vec::contains` short-circuits on PartialEq mismatch, which
   /// is significantly cheaper than a full `stable_hash` walk over
   /// the AST in the typical case.
-  pub(crate) fn queue_theme_import_if_absent(&mut self, item: ModuleItem) {
+  pub fn queue_theme_import_if_absent(&mut self, item: ModuleItem) {
     if !self.injection.queued_theme_imports.contains(&item) {
       self.injection.queued_theme_imports.push(item.clone());
       self.queue_insertion(InsertionSlot::ThemeImports, item);
@@ -2636,7 +2632,7 @@ impl StateManager {
 /// `inject_runtime_styles` was simply not invoked.
 /// `AfterImports` always emits — the legacy in-walk hoisted splice
 /// ran regardless of the option.
-pub(crate) fn flush_pending_insertions(
+pub fn flush_pending_insertions(
   state: &mut StateManager,
   module_body: &mut Vec<ModuleItem>,
   runtime_injection: bool,
@@ -2838,7 +2834,7 @@ fn add_inject_default_import_expression(ident: &Ident, inject_path: Option<&str>
   }))
 }
 
-pub(crate) fn add_import_expression(path: &str) -> ModuleItem {
+pub fn add_import_expression(path: &str) -> ModuleItem {
   ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
     span: DUMMY_SP,
     specifiers: vec![],

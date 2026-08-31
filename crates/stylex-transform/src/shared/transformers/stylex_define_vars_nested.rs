@@ -3,8 +3,6 @@ use stylex_macros::stylex_panic;
 use stylex_nested_config::nested::{flatten_nested_vars_config, object_lit_to_nested_vars_config};
 
 use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{state_manager::StateManager, types::InjectableStylesMap},
   transformers::stylex_define_vars::stylex_define_vars,
   utils::core::stylex_nested_utils::{
     UnflattenedCompiledStylesValue, expr_map_to_evaluate_result, unflatten_object,
@@ -13,6 +11,10 @@ use crate::shared::{
 use stylex_constants::constants::{
   common::VAR_GROUP_HASH_KEY,
   messages::{PROPERTY_NOT_FOUND, VALUES_MUST_BE_OBJECT},
+};
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue, state_manager::StateManager,
+  types::InjectableStylesMap,
 };
 
 pub(crate) fn stylex_define_vars_nested(

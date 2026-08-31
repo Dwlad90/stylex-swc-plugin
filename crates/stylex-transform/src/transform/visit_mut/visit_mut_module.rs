@@ -17,18 +17,18 @@ use stylex_state_index::key_span_index::ModuleBase;
 
 use crate::{
   StyleXTransform,
-  shared::{
-    structures::state_manager::{BindingWrites, flush_pending_insertions},
-    utils::{
-      common::fill_top_level_expressions,
-      live_declarations::{build_decl_use_graph, compute_live_set, mark_style_vars_to_keep},
-    },
+  shared::utils::live_declarations::{
+    build_decl_use_graph, compute_live_set, mark_style_vars_to_keep,
   },
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use stylex_ast::ast::imports::local_binding_of;
 use stylex_constants::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS};
 use stylex_enums::core::TransformationCycle;
+use stylex_state::{
+  common::fill_top_level_expressions,
+  state_manager::{BindingWrites, flush_pending_insertions},
+};
 
 /// Span covering the whole source, used for the module-level scope frame so
 /// top-level bindings enclose every `sx` site. The scope stack is seeded with

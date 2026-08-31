@@ -45,8 +45,10 @@ use super::super::engine_stylex_functions::EngineCallable;
 use super::engine::read;
 use super::theme::var_group;
 use super::{Ceilings, Decline, Depth, Totals};
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
-use crate::shared::structures::theme_ref::{ThemeRef, VarNaming};
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue,
+  theme_ref::{ThemeRef, VarNaming},
+};
 /// The one property name that is not a property when it is written as one.
 ///
 /// `{ __proto__: x }` sets the object's prototype, so the object the source

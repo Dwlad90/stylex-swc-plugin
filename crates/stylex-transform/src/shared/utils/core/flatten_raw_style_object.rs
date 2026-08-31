@@ -9,21 +9,16 @@ use swc_core::ecma::{
   utils::quote_str,
 };
 
+use crate::shared::structures::state::EvaluationState;
 use crate::shared::{
   structures::{
-    functions::FunctionMap,
     null_pre_rule::NullPreRule,
     pre_rule::{PreRules, StylesPreRule},
     pre_rule_set::PreRuleSet,
-    state::EvaluationState,
-    state_manager::StateManager,
   },
-  utils::{
-    ast::convertors::{
-      convert_lit_to_raw_value, expr_tpl_to_string, handle_tpl_to_expression,
-      transform_bin_expr_to_number,
-    },
-    common::get_var_decl_by_ident,
+  utils::ast::convertors::{
+    convert_lit_to_raw_value, expr_tpl_to_string, handle_tpl_to_expression,
+    transform_bin_expr_to_number,
   },
 };
 use stylex_ast::ast::convertors::{
@@ -35,6 +30,9 @@ use stylex_constants::constants::messages::{
 };
 use stylex_css::utils::condition::is_conditional_key;
 use stylex_regex::regex::CSS_VALUE_SPLIT_REGEX;
+use stylex_state::{
+  common::get_var_decl_by_ident, functions::FunctionMap, state_manager::StateManager,
+};
 use stylex_structures::{order_pair::OrderPair, raw_value::TRawValue};
 
 use super::flat_map_expanded_shorthands::flat_map_expanded_shorthands;

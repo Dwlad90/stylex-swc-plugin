@@ -50,6 +50,8 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
 - **stylex-state-index**
   ([CONTEXT.md](./crates/stylex-state-index/CONTEXT.md)) -- the lookup indices
   the state manager answers "which declarator, which call, which span" from.
+- **stylex-state** ([CONTEXT.md](./crates/stylex-state/CONTEXT.md)) -- the
+  per-file compilation state, and the value vocabulary it composes.
 - **stylex-diagnostics**
   ([CONTEXT.md](./crates/stylex-diagnostics/CONTEXT.md)) -- code frames and the
   declaration position an error should point at.
@@ -66,7 +68,7 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
   `@stylexjs/atoms` inline syntax, compiled through an injected trait to avoid
   depending on the transform.
 - **stylex-transform** ([CONTEXT.md](./crates/stylex-transform/CONTEXT.md)) --
-  the SWC visitor, the per-file state, and the JavaScript evaluator.
+  the SWC visitor and the JavaScript evaluator.
 - **stylex-rs-compiler**
   ([CONTEXT.md](./crates/stylex-rs-compiler/CONTEXT.md)) -- the NAPI-RS
   boundary and the TypeScript wrapper shipped with it.

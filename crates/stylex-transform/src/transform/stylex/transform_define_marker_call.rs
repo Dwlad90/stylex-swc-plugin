@@ -10,17 +10,16 @@ use swc_core::{
 
 use crate::{
   StyleXTransform,
-  shared::{
-    enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-    utils::{
-      common::gen_file_based_identifier,
-      core::js_to_ast::{NestedStringObject, convert_object_to_ast},
-      validators::{is_define_marker_call, validate_stylex_define_marker_indent},
-    },
+  shared::utils::{
+    core::js_to_ast::{NestedStringObject, convert_object_to_ast},
+    validators::{is_define_marker_call, validate_stylex_define_marker_indent},
   },
 };
 use stylex_constants::constants::{
   api_names::STYLEX_DEFINE_MARKER, common::COMPILED_KEY, messages::cannot_generate_hash,
+};
+use stylex_state::{
+  common::gen_file_based_identifier, flat_compiled_styles_value::FlatCompiledStylesValue,
 };
 use stylex_utils::hash::create_hash;
 

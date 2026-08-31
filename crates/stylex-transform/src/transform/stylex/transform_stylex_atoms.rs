@@ -8,14 +8,10 @@ use swc_core::{
   },
 };
 
+use crate::shared::structures::state::EvaluationState;
 use crate::{
   StyleXTransform,
   shared::{
-    enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-    structures::{
-      state::EvaluationState,
-      types::{FlatCompiledStyles, InjectableStylesMap},
-    },
     transformers::stylex_create::stylex_create_set,
     utils::core::{
       dev_class_name::inject_dev_class_names,
@@ -29,6 +25,10 @@ use stylex_ast::ast::factories::{
 };
 use stylex_atoms::transform::{
   AtomCompileResult, AtomFlatValue, Compile, InjectedAtomStyle, create_utility_styles_visitor,
+};
+use stylex_state::{
+  flat_compiled_styles_value::FlatCompiledStylesValue,
+  types::{FlatCompiledStyles, InjectableStylesMap},
 };
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,

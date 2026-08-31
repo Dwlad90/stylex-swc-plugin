@@ -29,18 +29,9 @@ use swc_core::{
   },
 };
 
+use crate::shared::structures::state::EvaluationState;
 use crate::{
   shared::{
-    enums::data_structures::evaluate_result_value::EvaluateResultValue,
-    structures::{
-      functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType, StylexWhenFn},
-      state::EvaluationState,
-      state_manager::{ImportKind, StateManager},
-      types::{
-        FlatCompiledStyles, FunctionMapIdentifiers, FunctionMapMemberExpression,
-        InjectableStylesMap,
-      },
-    },
     transformers::{
       stylex_create::stylex_create_set, stylex_default_marker,
       stylex_first_that_works::stylex_first_that_works, stylex_keyframes::get_keyframes_fn,
@@ -48,7 +39,6 @@ use crate::{
     },
     utils::{
       ast::convertors::convert_expr_to_str,
-      common::downcast_style_options_to_state_manager,
       core::{
         add_source_map_data::add_source_map_data,
         dev_class_name::{convert_to_test_styles, inject_dev_class_names},
@@ -79,6 +69,15 @@ use stylex_css::utils::{pseudo::is_pseudo_element, when as stylex_when};
 use stylex_diagnostics::code_frame::{build_code_frame_error, build_code_frame_error_and_panic};
 use stylex_enums::{counter_mode::CounterMode, style_resolution::StyleResolution};
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;
+use stylex_state::{
+  common::downcast_style_options_to_state_manager,
+  evaluate_result_value::EvaluateResultValue,
+  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType, StylexWhenFn},
+  state_manager::{ImportKind, StateManager},
+  types::{
+    FlatCompiledStyles, FunctionMapIdentifiers, FunctionMapMemberExpression, InjectableStylesMap,
+  },
+};
 use stylex_structures::{
   dynamic_style::DynamicStyle, order_pair::OrderPair, stylex_state_options::StyleXStateOptions,
   uid_generator::UidGenerator,

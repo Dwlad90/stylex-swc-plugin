@@ -146,7 +146,7 @@ pub(super) fn extract_expr_from_rule(
 /// An identifier referencing the hoisted variable
 pub(crate) fn hoist_expression(
   ast_expression: Expr,
-  state: &mut crate::shared::structures::state_manager::StateManager,
+  state: &mut stylex_state::state_manager::StateManager,
 ) -> Expr {
   let uid_generator = UidGenerator::new("temp", CounterMode::ThreadLocal);
   let hoisted_ident = uid_generator.generate_ident();
@@ -161,7 +161,7 @@ pub(crate) fn hoist_expression(
 
   let module_item = ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(var_decl))));
   state.queue_insertion(
-    crate::shared::structures::state_manager::InsertionSlot::AfterImports,
+    stylex_state::state_manager::InsertionSlot::AfterImports,
     module_item,
   );
 
@@ -171,7 +171,7 @@ pub(crate) fn hoist_expression(
 pub(crate) fn path_replace_hoisted(
   ast_expression: Expr,
   is_program_level: bool,
-  state: &mut crate::shared::structures::state_manager::StateManager,
+  state: &mut stylex_state::state_manager::StateManager,
 ) -> Expr {
   if is_program_level {
     return ast_expression;
@@ -190,7 +190,7 @@ pub(crate) fn path_replace_hoisted(
 
   let module_item = ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(var_decl))));
   state.queue_insertion(
-    crate::shared::structures::state_manager::InsertionSlot::AfterImports,
+    stylex_state::state_manager::InsertionSlot::AfterImports,
     module_item,
   );
 

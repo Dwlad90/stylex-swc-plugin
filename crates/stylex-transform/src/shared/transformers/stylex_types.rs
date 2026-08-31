@@ -1,9 +1,9 @@
-use crate::shared::structures::functions::{FunctionConfig, FunctionType};
 use indexmap::IndexMap;
 use phf::phf_map;
 use std::rc::Rc;
 use stylex_enums::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault};
 use stylex_macros::stylex_panic;
+use stylex_state::functions::{FunctionConfig, FunctionType};
 use stylex_structures::base_css_type::BaseCSSType;
 use swc_core::ecma::ast::Expr;
 

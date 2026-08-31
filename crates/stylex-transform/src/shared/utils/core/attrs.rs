@@ -4,11 +4,9 @@ use indexmap::IndexMap;
 use stylex_css::css::common::inline_style_to_css_string;
 
 use crate::shared::{
-  enums::data_structures::{
-    flat_compiled_styles_value::FlatCompiledStylesValue, fn_result::FnResult,
-  },
-  utils::core::js_to_ast::NestedStringObject,
+  enums::data_structures::fn_result::FnResult, utils::core::js_to_ast::NestedStringObject,
 };
+use stylex_state::flat_compiled_styles_value::FlatCompiledStylesValue;
 
 use super::{parse_nullable_style::ResolvedArg, props::props};
 

@@ -1,10 +1,8 @@
 #[cfg(test)]
 mod convert_style_to_class_name {
-  use crate::shared::{
-    structures::state_manager::StateManager,
-    utils::core::convert_style_to_class_name::convert_style_to_class_name,
-  };
+  use crate::shared::utils::core::convert_style_to_class_name::convert_style_to_class_name;
   use stylex_enums::style_resolution::StyleResolution;
+  use stylex_state::state_manager::StateManager;
   use stylex_structures::pre_rule_value::PreRuleValue;
   use stylex_structures::raw_value::TRawValue;
   use stylex_structures::stylex_state_options::StyleXStateOptions;

@@ -3,11 +3,9 @@ mod stylex_first_that_works {
   use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::{Expr, ExprOrSpread};
 
-  use crate::shared::{
-    structures::{functions::FunctionMap, state_manager::StateManager},
-    transformers::stylex_first_that_works::stylex_first_that_works,
-  };
+  use crate::shared::transformers::stylex_first_that_works::stylex_first_that_works;
   use stylex_ast::ast::factories::{create_array_expression, create_string_expr_or_spread};
+  use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 
   #[test]
   fn reverses_simple_array_of_values() {

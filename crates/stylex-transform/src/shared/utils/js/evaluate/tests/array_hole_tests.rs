@@ -14,8 +14,8 @@
 //! reading that answers what the language says.
 
 use super::source_evaluation::*;
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 use stylex_constants::constants::evaluation_errors::{PATH_WITHOUT_NODE, SPREAD_ELEMENT};
+use stylex_state::evaluate_result_value::EvaluateResultValue;
 
 // ==================== the hole refuses ====================
 

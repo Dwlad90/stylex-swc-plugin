@@ -13,7 +13,7 @@
 //! stored is a proxy, so that is what crosses. The identity travels as the four
 //! plain values a member's name is derived from, and one Rust function derives
 //! it — the same one [`ThemeRef::get`](
-//! crate::shared::structures::theme_ref::ThemeRef::get) calls, so the engine and
+//! stylex_state::theme_ref::ThemeRef::get) calls, so the engine and
 //! the evaluator cannot come to answer the same read differently.
 //!
 //! The traps are written in JavaScript rather than assembled here because the
@@ -40,7 +40,7 @@ use swc_core::atoms::Atom;
 
 use super::Decline;
 use super::engine::read;
-use crate::shared::structures::theme_ref::{IS_PROXY_KEY, ThemeRef, VarNaming, var_group_member};
+use stylex_state::theme_ref::{IS_PROXY_KEY, ThemeRef, VarNaming, var_group_member};
 
 /// Where each value sits in the argument list the traps hand the derivation.
 ///

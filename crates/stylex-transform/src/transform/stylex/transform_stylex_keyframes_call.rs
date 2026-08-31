@@ -13,11 +13,6 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    structures::{
-      functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-      state_manager::ImportKind,
-      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-    },
     transformers::{
       stylex_first_that_works::stylex_first_that_works, stylex_keyframes::stylex_keyframes,
     },
@@ -32,6 +27,11 @@ use stylex_constants::constants::{
   messages::{non_static_value, non_style_object},
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_state::{
+  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+  state_manager::ImportKind,
+  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+};
 
 impl<C> StyleXTransform<C>
 where

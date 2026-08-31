@@ -4,9 +4,10 @@ use swc_core::{
   ecma::ast::{ImportDecl, ImportNamedSpecifier, ImportSpecifier, ModuleExportName},
 };
 
-use crate::{StyleXTransform, shared::structures::state_manager::ImportKind};
+use crate::StyleXTransform;
 use stylex_atoms::transform::ATOMS_SOURCE;
 use stylex_enums::core::TransformationCycle;
+use stylex_state::state_manager::ImportKind;
 use stylex_structures::named_import_source::ImportSources;
 
 impl<C> StyleXTransform<C>

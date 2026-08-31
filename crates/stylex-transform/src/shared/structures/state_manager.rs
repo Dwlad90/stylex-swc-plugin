@@ -43,6 +43,7 @@ use stylex_constants::constants::{
   },
   common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH},
 };
+use stylex_diagnostics::state::DiagnosticState;
 use stylex_enums::{
   core::TransformationCycle, counter_mode::CounterMode, declaration_type::DeclarationType,
   import_path_resolution::ImportPathResolution,
@@ -2965,5 +2966,54 @@ impl stylex_types::traits::StyleOptions for StateManager {
 
   fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
     self
+  }
+}
+
+/// The nine questions a diagnostic asks of the traversal state.
+///
+/// Every answer is the inherent method that already existed for it, so the
+/// diagnostics crate reads exactly what the transform itself reads, and the
+/// state manager's own surface is unchanged.
+///
+/// Each body reads as a call to itself and is not one: an inherent method wins
+/// method resolution over a trait method of the same name. Deleting or renaming
+/// one of the nine inherent methods below therefore turns its body here into
+/// unbounded recursion rather than into a compile error, so rename the pair
+/// together.
+impl DiagnosticState for StateManager {
+  fn get_filename(&self) -> &str {
+    self.get_filename()
+  }
+
+  fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)> {
+    self.get_seen_module_source_code()
+  }
+
+  fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
+    self.set_seen_module_source_code(module, source_code);
+  }
+
+  fn cached_span(&self, cache_key: u128) -> Option<Span> {
+    self.cached_span(cache_key)
+  }
+
+  fn insert_cached_span(&mut self, cache_key: u128, span: Span) {
+    self.insert_cached_span(cache_key, span);
+  }
+
+  fn key_span_index(&self) -> Option<&KeySpanIndex> {
+    self.key_span_index()
+  }
+
+  fn frame_declaration(&mut self, cache_key: u128, name: Atom) {
+    self.frame_declaration(cache_key, name);
+  }
+
+  fn framed_declaration(&self, cache_key: u128) -> Option<&Atom> {
+    self.framed_declaration(cache_key)
+  }
+
+  fn has_framed_declarations(&self) -> bool {
+    self.has_framed_declarations()
   }
 }

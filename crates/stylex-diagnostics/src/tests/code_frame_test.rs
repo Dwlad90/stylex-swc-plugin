@@ -11,19 +11,16 @@ use std::{
 use swc_core::atoms::Atom;
 use swc_core::common::{BytePos, DUMMY_SP, FileName, GLOBALS, Globals, Span, SyntaxContext};
 use swc_core::ecma::ast::{
-  CallExpr, Callee, Expr, ExprOrSpread, Ident, ImportDecl, ImportNamedSpecifier, ImportSpecifier,
-  Module, ModuleDecl, ModuleItem, Str,
+  ArrowExpr, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, Expr, ExprOrSpread, Ident,
+  ImportDecl, ImportNamedSpecifier, ImportSpecifier, Module, ModuleDecl, ModuleItem, Pat, Program,
+  Script, Str,
 };
 
 use stylex_state_index::key_span_index::CallLookup;
 
-use crate::shared::{
-  structures::state_manager::StateManager,
-  utils::log::build_code_frame_error::{
-    CodeFrame, build_code_frame_error_and_panic, frame_declaration_of,
-    get_key_span_from_source_code, get_span_from_source_code, print_module,
-  },
-};
+use super::*;
+
+use crate::state_double::StateDouble;
 use stylex_ast::ast::{
   convertors::create_string_expr,
   factories::{create_key_value_prop, create_nested_object_prop, create_object_expression},
@@ -135,10 +132,8 @@ fn compiled_create_call() -> CallExpr {
   }
 }
 
-fn state_for_fixture(path: &Path) -> StateManager {
-  let mut state = StateManager::default();
-  state.plugin_pass.filename = FileName::Real(path.to_path_buf());
-  state
+fn state_for_fixture(path: &Path) -> StateDouble {
+  StateDouble::for_file(path.to_string_lossy())
 }
 
 /// An expression that does not exist in the fixture, carrying a span from a
@@ -241,13 +236,11 @@ fn print_module_ignores_foreign_spans_over_multibyte_sources() {
 fn key_span_for(
   call_expr: &CallExpr,
   namespace_key: &str,
-  state: &mut StateManager,
+  state: &mut StateDouble,
 ) -> Result<(CodeFrame, Span), anyhow::Error> {
-  get_key_span_from_source_code(
-    &CallLookup::new(call_expr, state.input_module_base()),
-    namespace_key,
-    state,
-  )
+  // The double parses nothing itself, so it records no module base and the
+  // proximity tie-break has nothing to measure against.
+  get_key_span_from_source_code(&CallLookup::new(call_expr, None), namespace_key, state)
 }
 
 /// When an earlier loader rewrites style values (e.g. compile-time macros),
@@ -410,7 +403,7 @@ fn reference(name: &str) -> Expr {
 }
 
 #[track_caller]
-fn framed_line(target: &Expr, state: &mut StateManager) -> Option<usize> {
+fn framed_line(target: &Expr, state: &mut StateDouble) -> Option<usize> {
   let result = GLOBALS.set(&Globals::default(), || {
     get_span_from_source_code(target, target, state)
   });
@@ -565,8 +558,7 @@ fn an_unparseable_source_frames_nothing_and_does_not_abort() {
 /// file nobody read.
 #[test]
 fn a_missing_source_file_falls_back_to_the_expression_it_was_handed() {
-  let mut state = StateManager::default();
-  state.plugin_pass.filename = FileName::Real("/nonexistent/framed_declaration.tsx".into());
+  let mut state = StateDouble::for_file("/nonexistent/framed_declaration.tsx");
   let target = reference("c");
 
   frame_declaration_of(&Atom::from("c"), &target, &mut state);
@@ -703,4 +695,500 @@ export const styles = create({ x: { color: c } });
     "a copy of the identifier does not inherit the record; it frames the read, \
      which is what every refusal framed before any of this"
   );
+}
+
+// ── the entry points and the paths that are only taken when something fails ──
+
+/// The message the caller passed is what it gets back, whether or not a frame
+/// could be drawn for it, so a refusal reads the same either way.
+#[test]
+fn the_error_message_is_returned_whether_or_not_a_frame_is_drawn() {
+  let path = write_fixture("returned_message.tsx", "const c = 'red';\n");
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  let framed = GLOBALS.set(&Globals::default(), || {
+    build_code_frame_error(&target, &target, "A style value must be static", &mut state)
+  });
+
+  assert_eq!(framed, "A style value must be static");
+
+  // A state that forgets the module it is handed cannot produce a frame, and
+  // the message still comes back unchanged.
+  let mut forgetful = StateDouble::forgetful();
+
+  let unframed = GLOBALS.set(&Globals::default(), || {
+    build_code_frame_error(
+      &target,
+      &target,
+      "A style value must be static",
+      &mut forgetful,
+    )
+  });
+
+  assert_eq!(unframed, "A style value must be static");
+}
+
+/// A message carrying a documentation link keeps it in the frame's note, so the
+/// reader is not left to search for the page the message names.
+#[test]
+fn a_link_in_the_message_is_repeated_as_a_note() {
+  let path = write_fixture("linked_message.tsx", "const c = 'red';\n");
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  GLOBALS.set(&Globals::default(), || {
+    build_code_frame_error(
+      &target,
+      &target,
+      "See https://stylexjs.com/docs/api for the supported values",
+      &mut state,
+    )
+  });
+}
+
+/// `build_code_frame_error_and_panic_at` frames one expression as both the
+/// context and the fault, which is the common case.
+#[test]
+fn framing_one_expression_reports_it_as_both_context_and_fault() {
+  let path = write_fixture("panic_at.tsx", "const c = 'red';\n");
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  let panicked = std::panic::catch_unwind(AssertUnwindSafe(|| {
+    GLOBALS.set(&Globals::default(), || {
+      build_code_frame_error_and_panic_at(&target, "A style value must be static", &mut state)
+    })
+  }));
+
+  assert!(panicked.is_err(), "the reporter has to diverge");
+}
+
+/// The read side of `frame_declaration_of`. A build that refused nothing
+/// answers without hashing the expression at all.
+#[test]
+fn the_binding_a_refusal_was_recorded_against_is_read_back() {
+  let mut state = StateDouble::for_file("framed_declaration.tsx");
+  let target = reference("c");
+
+  assert_eq!(framed_declaration_of(&target, &state), None);
+
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  assert_eq!(
+    framed_declaration_of(&target, &state),
+    Some(Atom::from("c"))
+  );
+  assert_eq!(framed_declaration_of(&reference("other"), &state), None);
+}
+
+/// The second lookup of the same expression is answered from the span cache,
+/// which re-registers nothing with the shared source map.
+#[test]
+fn a_second_lookup_of_one_expression_is_answered_from_the_cache() {
+  let path = write_fixture(
+    "cached_lookup.tsx",
+    "const c = 'red';\nexport const styles = create({ x: { color: c } });\n",
+  );
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  assert_eq!(
+    framed_line(&target, &mut state),
+    framed_line(&target, &mut state)
+  );
+}
+
+/// And the same for a namespace key, whose cache key is built from the call
+/// rather than from an expression.
+#[test]
+fn a_second_key_lookup_of_one_namespace_is_answered_from_the_cache() {
+  let source = "\
+export const styles = create({
+  root: {
+    color: 'red',
+  },
+  other: {
+    display: 'flex',
+  },
+});
+";
+  let path = write_fixture("cached_key_lookup.tsx", source);
+  let mut state = state_for_fixture(&path);
+  let call = compiled_create_call();
+
+  let (first, second) = GLOBALS.set(&Globals::default(), || {
+    let first = match key_span_for(&call, "root", &mut state) {
+      Ok((_, span)) => span,
+      Err(error) => panic!("failed to locate the key span: {error}"),
+    };
+    let second = match key_span_for(&call, "root", &mut state) {
+      Ok((_, span)) => span,
+      Err(error) => panic!("failed to locate the key span: {error}"),
+    };
+    (first, second)
+  });
+
+  assert_eq!(first, second);
+  assert!(!first.is_dummy());
+}
+
+/// A state that never remembers the module it parsed cannot be asked where a
+/// key is written, and the lookup says so instead of aborting.
+#[test]
+fn a_state_that_forgets_the_module_reports_no_key_span() {
+  let mut state = StateDouble::forgetful();
+  let call = compiled_create_call();
+
+  let located = GLOBALS.set(&Globals::default(), || {
+    key_span_for(&call, "root", &mut state)
+  });
+
+  assert!(located.is_err());
+}
+
+/// The same for an expression lookup.
+#[test]
+fn a_state_that_forgets_the_module_reports_no_expression_span() {
+  let mut state = StateDouble::forgetful();
+  let target = reference("c");
+
+  let located = GLOBALS.set(&Globals::default(), || {
+    get_span_from_source_code(&target, &target, &mut state)
+  });
+
+  assert!(located.is_err());
+}
+
+/// A module memoized without its text is printed back out to give the frame
+/// something to quote.
+#[test]
+fn a_module_memoized_without_its_text_is_printed_back_out() {
+  let mut state = StateDouble::for_file("printed_back.tsx");
+  let target = reference("c");
+  let module = create_module(&Expr::Ident(Ident::new_no_ctxt(Atom::from("c"), DUMMY_SP)));
+
+  state.set_seen_module_source_code(&module, None);
+
+  assert_eq!(framed_line(&target, &mut state), Some(1));
+}
+
+/// The panic boundary every span lookup sits behind: a panic inside it is an
+/// ordinary "no code frame", never the end of the compilation.
+#[test]
+fn a_panic_while_locating_a_span_becomes_an_ordinary_failure() {
+  let located = locate_span_with_panic_boundary(|| panic!("while locating a span"));
+
+  assert!(located.is_err());
+}
+
+/// The hook the boundary installs suppresses only its own panics. Anything else
+/// panicking in the same process still reaches the hook that was there before.
+#[test]
+fn a_panic_outside_the_boundary_still_reaches_the_previous_hook() {
+  install_diagnostic_panic_hook();
+
+  let panicked = std::panic::catch_unwind(|| panic!("outside the diagnostic boundary"));
+
+  assert!(panicked.is_err());
+}
+
+/// Emitting against a span the registered source cannot place must not replace
+/// the error being reported with a panic about the frame.
+#[test]
+fn emitting_against_an_unplaceable_span_is_survivable() {
+  let code_frame = CodeFrame::new();
+
+  code_frame.emit_error(
+    Span::new(BytePos(1), BytePos(2)),
+    "A style value must be static",
+  );
+}
+
+/// Where the frame reads a file from, for each way a file can be named. Anything
+/// else is not a file this compiler can open.
+#[test]
+fn a_source_file_is_read_from_every_name_that_points_at_one() {
+  let fixture = write_fixture("named_source.tsx", "const c = 'red';\n");
+  let path = fixture.to_string_lossy().to_string();
+
+  assert!(read_source_file(&FileName::Real(fixture.to_path_buf())).is_ok());
+  assert!(read_source_file(&FileName::Custom(path)).is_ok());
+
+  let url = match url::Url::from_file_path(&*fixture) {
+    Ok(url) => url,
+    Err(()) => panic!("the fixture path is not absolute"),
+  };
+  assert!(read_source_file(&FileName::Url(url)).is_ok());
+
+  assert!(read_source_file(&FileName::Anon).is_err());
+}
+
+/// Registering the same file twice registers it once: the shared source map is
+/// never cleared, so a second copy would be a second copy for the life of the
+/// process.
+#[test]
+fn one_file_is_registered_with_the_shared_source_map_only_once() {
+  let code_frame = CodeFrame::new();
+  let file_name = FileName::Custom("registered_once.tsx".to_owned());
+
+  code_frame.register_source_once(&file_name, "const c = 'red';\n");
+
+  // The producing closure is only called on a miss, which is what keeps a
+  // module's text from being cloned once per lookup.
+  let produced = code_frame.register_produced_source_once(&file_name, || {
+    panic!("the source is only produced on a miss")
+  });
+
+  assert!(produced.is_ok());
+}
+
+/// A source that cannot be produced is reported rather than registered, and the
+/// lookup that asked for it degrades to no code frame.
+#[test]
+fn a_source_that_cannot_be_produced_is_reported() {
+  let code_frame = CodeFrame::new();
+  let file_name = FileName::Custom("/nonexistent/unproducible.tsx".to_owned());
+
+  let produced = code_frame
+    .register_produced_source_once(&file_name, || Err(anyhow::anyhow!("no source to give")));
+
+  assert!(produced.is_err());
+}
+
+/// A cached answer still needs the file registered before it can be quoted, so
+/// a file that has since become unreadable turns a cache hit into no frame.
+#[test]
+fn a_cached_answer_for_an_unreadable_file_yields_no_frame() {
+  let mut state = StateDouble::for_file("/nonexistent/cached_unreadable.tsx");
+  let target = reference("c");
+
+  state.insert_cached_span(compute_cache_key(&target), DUMMY_SP);
+
+  let located = GLOBALS.set(&Globals::default(), || {
+    get_span_from_source_code(&target, &target, &mut state)
+  });
+
+  assert!(located.is_err());
+}
+
+/// The same for a cached namespace key.
+#[test]
+fn a_cached_key_answer_for_an_unreadable_file_yields_no_frame() {
+  let mut state = StateDouble::for_file("/nonexistent/cached_key_unreadable.tsx");
+  let call = compiled_create_call();
+  let lookup = CallLookup::new(&call, None);
+
+  state.insert_cached_span(
+    compute_key_span_cache_key(lookup.digest(), &lookup.query("root")),
+    DUMMY_SP,
+  );
+
+  let located = GLOBALS.set(&Globals::default(), || {
+    get_key_span_from_source_code(&lookup, "root", &mut state)
+  });
+
+  assert!(located.is_err());
+}
+
+/// A key lookup against a source that does not parse degrades the same way an
+/// expression lookup does.
+#[test]
+fn a_key_lookup_over_an_unparseable_source_frames_nothing() {
+  let path = write_fixture(
+    "key_lookup_unparseable.tsx",
+    "export const styles = create({ root: { color: 'red' }\n",
+  );
+  let mut state = state_for_fixture(&path);
+  let call = compiled_create_call();
+
+  let located = GLOBALS.set(&Globals::default(), || {
+    key_span_for(&call, "root", &mut state)
+  });
+
+  assert!(located.is_err());
+}
+
+/// The reporting panic still diverges when no frame could be drawn for it, and
+/// reports the file it knows even without a line.
+#[test]
+fn a_reporting_panic_without_a_frame_still_diverges() {
+  let mut state = StateDouble::forgetful();
+  let target = reference("c");
+
+  let panicked = std::panic::catch_unwind(AssertUnwindSafe(|| {
+    GLOBALS.set(&Globals::default(), || {
+      build_code_frame_error_and_panic_at(&target, "A style value must be static", &mut state)
+    })
+  }));
+
+  assert!(panicked.is_err(), "the reporter has to diverge");
+}
+
+/// A target that binds names of its own is normalized before it is searched
+/// for, so a binding written with a type annotation still matches the same
+/// binding written without one.
+#[test]
+fn a_target_that_binds_names_is_matched_across_type_annotations() {
+  let path = write_fixture(
+    "annotated_binding.tsx",
+    "const pick = (value: string) => value;\n",
+  );
+  let mut state = state_for_fixture(&path);
+
+  let target = Expr::Arrow(ArrowExpr {
+    span: DUMMY_SP,
+    ctxt: SyntaxContext::empty(),
+    params: vec![Pat::Ident(BindingIdent {
+      id: Ident::new_no_ctxt(Atom::from("value"), DUMMY_SP),
+      type_ann: None,
+    })],
+    body: Box::new(BlockStmtOrExpr::Expr(Box::new(Expr::Ident(
+      Ident::new_no_ctxt(Atom::from("value"), DUMMY_SP),
+    )))),
+    is_async: false,
+    is_generator: false,
+    type_params: None,
+    return_type: None,
+  });
+
+  assert_eq!(framed_line(&target, &mut state), Some(1));
+}
+
+/// The search stops at the first match rather than walking the rest of the
+/// module, which is what keeps a long file from being walked whole per style.
+#[test]
+fn the_search_stops_at_the_first_match() {
+  let source = "\
+const c = 'red';
+export const styles = create({ x: { color: c } });
+export const more = create({ y: { color: c } });
+";
+  let path = write_fixture("first_match.tsx", source);
+  let mut state = state_for_fixture(&path);
+
+  assert_eq!(framed_line(&reference("c"), &mut state), Some(2));
+}
+
+/// A cached answer about a file the shared source map has not seen is quoted
+/// from the text the state memoized, without re-reading the file.
+///
+/// This is the whole point of memoizing it: the debug path asks once per style,
+/// and reading the file each time was the largest single cost in a `dev` build.
+#[test]
+fn a_cached_answer_is_quoted_from_the_memoized_text() {
+  let id = TEST_FILE_COUNTER.fetch_add(1, Ordering::Relaxed);
+  let source = "const c = 'red';\nexport const styles = create({ x: { color: c } });\n";
+  let mut state = StateDouble::for_file(format!("memoized_only_{}.tsx", id));
+  let target = reference("c");
+
+  state.set_seen_module_source_code(&create_module(&target), Some(source.to_owned()));
+  state.insert_cached_span(compute_cache_key(&target), DUMMY_SP);
+
+  let located = GLOBALS.set(&Globals::default(), || {
+    get_span_from_source_code(&target, &target, &mut state)
+  });
+
+  assert!(
+    located.is_ok(),
+    "the memoized text is enough to build a frame"
+  );
+}
+
+// ── what a failure to build a frame reports ─────────────────────────────────
+
+/// A frame that could not be built is reported, not swallowed. The full
+/// expression is only worth printing to somebody who asked for debug logging;
+/// everyone else gets the file and a pointer to that switch.
+#[test]
+fn a_frame_that_cannot_be_built_is_reported_at_both_log_levels() {
+  let target = reference("c");
+
+  let verbose = crate::capturing_logger::logged_at(log::Level::Debug, || {
+    let mut state = StateDouble::forgetful();
+    GLOBALS.set(&Globals::default(), || {
+      build_code_frame_error(&target, &target, "A style value must be static", &mut state)
+    });
+  });
+
+  assert!(
+    verbose.iter().any(|line| line.contains("Expression:")),
+    "debug logging names the expression: {verbose:?}"
+  );
+
+  let terse = crate::capturing_logger::logged_at(log::Level::Warn, || {
+    let mut state = StateDouble::forgetful();
+    GLOBALS.set(&Globals::default(), || {
+      build_code_frame_error(&target, &target, "A style value must be static", &mut state)
+    });
+  });
+
+  assert!(
+    terse
+      .iter()
+      .any(|line| line.contains("enable debug logging")),
+    "a terse report points at the switch instead: {terse:?}"
+  );
+}
+
+/// The same split for a module whose own source will not parse, which is the
+/// other way a lookup gives up.
+#[test]
+fn an_unparseable_source_is_reported_at_both_log_levels() {
+  let source = "export const styles = create({ x: { color: 'red' }\n";
+  let target = reference("c");
+
+  let verbose = crate::capturing_logger::logged_at(log::Level::Debug, || {
+    let path = write_fixture("logged_unparseable_debug.tsx", source);
+    let mut state = state_for_fixture(&path);
+    GLOBALS.set(&Globals::default(), || {
+      build_code_frame_error(&target, &target, "A style value must be static", &mut state)
+    });
+  });
+
+  assert!(
+    verbose
+      .iter()
+      .any(|line| line.starts_with("Failed to parse program") && line.contains("Expression:")),
+    "debug logging names the expression: {verbose:?}"
+  );
+
+  let terse = crate::capturing_logger::logged_at(log::Level::Warn, || {
+    let path = write_fixture("logged_unparseable_warn.tsx", source);
+    let mut state = state_for_fixture(&path);
+    GLOBALS.set(&Globals::default(), || {
+      build_code_frame_error(&target, &target, "A style value must be static", &mut state)
+    });
+  });
+
+  assert!(
+    terse
+      .iter()
+      .any(|line| line.starts_with("Failed to parse program") && !line.contains("Expression:")),
+    "a terse report names only the file: {terse:?}"
+  );
+}
+
+/// A print that fails leaves an empty quote rather than a half-written one. The
+/// caller is only printing to quote a module back, so there is nothing else it
+/// could usefully say.
+#[test]
+fn a_print_that_fails_leaves_an_empty_quote() {
+  let printed = nothing_printed(anyhow::anyhow!("the printer gave up"));
+
+  assert!(printed.code.is_empty());
+  assert!(printed.map.is_none());
+}
+
+/// The invariant `parse_and_normalize_program` guarantees. It parses with
+/// `IsModule::Bool(true)`, so a successful parse is always a module; anything
+/// else means that call learned a second mode and this is where it should stop.
+#[test]
+#[should_panic(expected = "Expected a module program")]
+fn a_program_that_is_not_a_module_stops_the_memoization() {
+  expect_module(&Program::Script(Script {
+    span: DUMMY_SP,
+    body: Vec::new(),
+    shebang: None,
+  }));
 }

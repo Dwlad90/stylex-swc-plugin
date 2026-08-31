@@ -33,7 +33,6 @@ use crate::{
       common::gen_file_based_identifier,
       core::js_to_ast::{NestedStringObject, convert_object_to_ast},
       js::evaluate::evaluate,
-      log::build_code_frame_error::build_code_frame_error,
       validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
     },
   },
@@ -44,6 +43,7 @@ use stylex_structures::top_level_expression::TopLevelExpression;
 use self::helpers::{
   assert_no_define_vars_cycles, collect_keys_and_dependencies, normalize_define_vars_functions,
 };
+use stylex_diagnostics::code_frame::build_code_frame_error;
 
 impl<C> StyleXTransform<C>
 where

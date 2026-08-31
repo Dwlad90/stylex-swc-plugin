@@ -78,19 +78,23 @@ graph TD
     stylex_state_index["state-index"]
   end
 
-  subgraph L7["Evaluation"]
+  subgraph L7["Diagnostics"]
+    stylex_diagnostics["diagnostics"]
+  end
+
+  subgraph L8["Evaluation"]
     stylex_evaluator["evaluator"]
   end
 
-  subgraph L8["CSS Processing"]
+  subgraph L9["CSS Processing"]
     stylex_css["css"]
   end
 
-  subgraph L9["StyleX Transform"]
+  subgraph L10["StyleX Transform"]
     stylex_transform["transform"]
   end
 
-  subgraph L10["Compilers"]
+  subgraph L11["Compilers"]
     stylex_compiler_rs["rs-compiler"]
   end
 
@@ -123,6 +127,12 @@ graph TD
   stylex_state_index   --> stylex_ast
   stylex_state_index   --> stylex_utils
 
+  stylex_diagnostics   --> stylex_ast
+  stylex_diagnostics   --> stylex_macros
+  stylex_diagnostics   --> stylex_regex
+  stylex_diagnostics   --> stylex_state_index
+  stylex_diagnostics   --> stylex_utils
+
   stylex_evaluator     --> stylex_ast
   stylex_evaluator     --> stylex_constants
   stylex_evaluator     --> stylex_js
@@ -145,6 +155,7 @@ graph TD
   stylex_transform     --> stylex_constants
   stylex_transform     --> stylex_css
   stylex_transform     --> stylex_css_parser
+  stylex_transform     --> stylex_diagnostics
   stylex_transform     --> stylex_enums
   stylex_transform     --> stylex_evaluator
   stylex_transform     --> stylex_logs
@@ -174,10 +185,11 @@ graph TD
   classDef l4 fill:#ffe8dc,stroke:#cc6633,color:#333
   classDef l5 fill:#f5dcff,stroke:#9933cc,color:#333
   classDef l6 fill:#dcecff,stroke:#3388cc,color:#333
-  classDef l7 fill:#dcfff5,stroke:#33aaaa,color:#333
-  classDef l8 fill:#ffdcdc,stroke:#cc3333,color:#333
-  classDef l9 fill:#fffdc0,stroke:#aaaa33,color:#333
-  classDef l10 fill:#ffc0c0,stroke:#cc0000,color:#333
+  classDef l7 fill:#f0e6ff,stroke:#8866cc,color:#333
+  classDef l8 fill:#dcfff5,stroke:#33aaaa,color:#333
+  classDef l9 fill:#ffdcdc,stroke:#cc3333,color:#333
+  classDef l10 fill:#fffdc0,stroke:#aaaa33,color:#333
+  classDef l11 fill:#ffc0c0,stroke:#cc0000,color:#333
 
   class stylex_constants,stylex_regex,stylex_styleq,stylex_utils l0
   class stylex_macros l1
@@ -186,10 +198,11 @@ graph TD
   class stylex_types l4
   class stylex_ast l5
   class stylex_state_index l6
-  class stylex_evaluator l7
-  class stylex_css l8
-  class stylex_transform l9
-  class stylex_compiler_rs l10
+  class stylex_diagnostics l7
+  class stylex_evaluator l8
+  class stylex_css l9
+  class stylex_transform l10
+  class stylex_compiler_rs l11
 ```
 
 </details>

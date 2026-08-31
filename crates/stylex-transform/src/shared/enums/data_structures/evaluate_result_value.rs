@@ -12,15 +12,13 @@ use swc_core::ecma::{
   codegen::Config,
 };
 
-use crate::shared::{
-  structures::{
-    functions::FunctionConfig,
-    theme_ref::ThemeRef,
-    types::{EvaluationCallback, FunctionConfigMap},
-  },
-  utils::log::build_code_frame_error::{create_module, print_module},
+use crate::shared::structures::{
+  functions::FunctionConfig,
+  theme_ref::ThemeRef,
+  types::{EvaluationCallback, FunctionConfigMap},
 };
 use stylex_constants::constants::common::COMPILED_KEY;
+use stylex_diagnostics::code_frame::{create_module, print_module};
 use stylex_structures::stylex_env::EnvEntry;
 use stylex_types::traits::WhenMarkerValue;
 use stylex_utils::number::to_js_string;

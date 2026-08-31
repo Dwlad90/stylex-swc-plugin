@@ -4,7 +4,6 @@ pub mod core;
 pub mod css;
 pub mod js;
 pub(crate) mod live_declarations;
-pub mod log;
 pub mod object;
 pub(crate) mod validators;
 

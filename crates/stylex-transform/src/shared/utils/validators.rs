@@ -12,13 +12,7 @@ use swc_core::{
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::state_manager::{ImportKind, StateManager},
-  utils::{
-    ast::helpers::is_variable_named_exported,
-    common::get_import_by_ident,
-    log::build_code_frame_error::{
-      build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
-    },
-  },
+  utils::{ast::helpers::is_variable_named_exported, common::get_import_by_ident},
 };
 use stylex_ast::ast::convertors::{
   convert_key_value_to_str, convert_lit_to_string, create_string_expr, get_key_values_from_object,
@@ -41,6 +35,9 @@ use stylex_constants::constants::{
   },
 };
 use stylex_css::utils::condition::is_conditional_key;
+use stylex_diagnostics::code_frame::{
+  build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
+};
 
 fn validate_arg_count_for_expr(
   wrapped_expr: &Expr,

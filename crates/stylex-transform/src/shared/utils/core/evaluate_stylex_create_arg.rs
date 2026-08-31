@@ -27,7 +27,6 @@ use crate::shared::{
       evaluate, evaluate_obj_key, evaluate_result_vec_to_array_expr, function_fold_to_object,
       spread_own_properties,
     },
-    log::build_code_frame_error::build_code_frame_error_and_panic_at,
     validators::validate_dynamic_style_params,
   },
 };
@@ -47,6 +46,7 @@ use stylex_constants::constants::{
   time_units::get_time_units,
 };
 use stylex_css::utils::pseudo::is_pseudo_selector;
+use stylex_diagnostics::code_frame::build_code_frame_error_and_panic_at;
 use stylex_structures::inline_style::InlineStyle;
 use stylex_utils::hash::create_hash;
 

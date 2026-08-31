@@ -24,12 +24,11 @@ use swc_core::ecma::ast::{
   ImportSpecifier, ImportStarAsSpecifier, ModuleExportName, Str,
 };
 
-use crate::shared::utils::log::build_code_frame_error::framed_declaration_of;
-
 use stylex_constants::constants::evaluation_errors::{
   IMPORT_FILE_EVAL_ERROR, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, UNDEFINED_CONST,
   UNINITIALIZED_CONST, USED_BEFORE_DECLARATION, unsupported_expression,
 };
+use stylex_diagnostics::code_frame::framed_declaration_of;
 use stylex_structures::stylex_options::StyleXOptions;
 
 /// The three names the globals step asks about. Every case that is about the
@@ -1070,7 +1069,7 @@ fn an_early_reference_to_a_hoisted_declaration_is_early_rather_than_unsupported(
 /// What a refusal carries is still the reference, and that is not an oversight.
 /// The frame re-derives every position from the module it re-parses, so a span
 /// from this compiler's parse would be read against the wrong source map; the
-/// binding's *name* is recorded instead, and `utils::log::declaration_span`
+/// binding's *name* is recorded instead, and `stylex_diagnostics`
 /// turns it back into a position there. This asserts the name, since the
 /// position it becomes belongs to the frame's own suite.
 #[test]

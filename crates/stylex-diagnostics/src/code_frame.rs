@@ -28,14 +28,12 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  structures::state_manager::StateManager, utils::log::declaration_span::find_declaration_span,
-};
+use crate::{declaration_span::find_declaration_span, state::DiagnosticState};
 use stylex_regex::regex::URL_REGEX;
 use stylex_state_index::key_span_index::{CallLookup, NamespaceKeyQuery};
 use stylex_utils::hash::stable_hash_wide;
 
-pub(crate) struct CodeFrame {
+pub struct CodeFrame {
   source_map: Arc<SourceMap>,
   handler: Handler,
 }
@@ -129,7 +127,21 @@ impl CodeFrame {
   /// it replaces. A long-lived process transforming five thousand modules pays
   /// fifty thousand name comparisons where it used to accumulate fifty thousand
   /// source files.
-  fn register_source_once(
+  fn register_source_once(&self, file_name: &FileName, source: &str) {
+    if self.source_map.get_source_file(file_name).is_some() {
+      return;
+    }
+
+    self
+      .source_map
+      .new_source_file(file_name.clone().into(), source.to_owned());
+  }
+
+  /// Same, for a source that has to be produced first and may fail in the
+  /// producing. The closure only runs on a miss, so a caller whose source is
+  /// expensive -- a clone of the module's text, or a read of the file -- pays
+  /// for it once per module rather than once per lookup.
+  fn register_produced_source_once(
     &self,
     file_name: &FileName,
     source: impl FnOnce() -> Result<String, Error>,
@@ -138,9 +150,7 @@ impl CodeFrame {
       return Ok(());
     }
 
-    self
-      .source_map
-      .new_source_file(file_name.clone().into(), source()?);
+    self.register_source_once(file_name, &source()?);
 
     Ok(())
   }
@@ -165,7 +175,7 @@ impl CodeFrame {
 
   /// Like `get_span_line_number`, but behind the same panic boundary as
   /// `emit_error` and `None` for dummy spans ("location unknown").
-  pub(crate) fn try_get_span_line_number(&self, span: Span) -> Option<usize> {
+  pub fn try_get_span_line_number(&self, span: Span) -> Option<usize> {
     if span.is_dummy() {
       return None;
     }
@@ -183,35 +193,38 @@ fn read_source_file(file_name: &FileName) -> Result<String, std::io::Error> {
   }
 }
 
-pub(crate) fn build_code_frame_error<'a>(
+pub fn build_code_frame_error<'a>(
   wrapped_expression: &'a Expr,
   fault_expression: &'a Expr,
   error_message: &'a str,
-  state: &mut StateManager,
+  state: &mut dyn DiagnosticState,
 ) -> &'a str {
   match get_span_from_source_code(wrapped_expression, fault_expression, state) {
     Ok((code_frame, span)) => {
       code_frame.emit_error(span, error_message);
     },
-    Err(error) => {
-      if log::log_enabled!(log::Level::Debug) {
-        debug!(
-          "Failed to generate code frame error: {:?}. File: {}. Expression: {:?}.",
-          error,
-          state.get_filename(),
-          fault_expression,
-        );
-      } else {
-        warn!(
-          "Failed to generate code frame error: {:?}. File: {}. For more information enable debug logging.",
-          error,
-          state.get_filename(),
-        )
-      };
-    },
+    Err(error) => warn_no_code_frame(&error, state.get_filename(), fault_expression),
   }
 
   error_message
+}
+
+/// Reports that the code frame itself could not be built.
+///
+/// The full expression is only worth printing to somebody who turned debug
+/// logging on; everyone else gets the file and a pointer to that switch.
+fn warn_no_code_frame(error: &Error, filename: &str, fault_expression: &Expr) {
+  if log::log_enabled!(log::Level::Debug) {
+    debug!(
+      "Failed to generate code frame error: {:?}. File: {}. Expression: {:?}.",
+      error, filename, fault_expression,
+    );
+  } else {
+    warn!(
+      "Failed to generate code frame error: {:?}. File: {}. For more information enable debug logging.",
+      error, filename,
+    );
+  }
 }
 
 /// Finds the span (source location) of a target expression within the source
@@ -226,10 +239,10 @@ pub(crate) fn build_code_frame_error<'a>(
 /// # Returns
 /// A tuple of (CodeFrame, Span) where CodeFrame contains the source map for
 /// error display
-pub(crate) fn get_span_from_source_code(
+pub fn get_span_from_source_code(
   wrapped_expression: &Expr,
   target_expression: &Expr,
-  state: &mut StateManager,
+  state: &mut dyn DiagnosticState,
 ) -> Result<(CodeFrame, Span), Error> {
   // Panic boundary: locating a span re-reads, re-prints, and re-parses the
   // module purely to improve diagnostics; a panic anywhere in there must
@@ -254,7 +267,7 @@ fn locate_span_with_panic_boundary(
 fn get_span_from_source_code_impl(
   wrapped_expression: &Expr,
   target_expression: &Expr,
-  state: &mut StateManager,
+  state: &mut dyn DiagnosticState,
 ) -> Result<(CodeFrame, Span), Error> {
   // A refusal about a binding is reported against that binding's declaration --
   // see `frame_declaration_of` -- and the two answers for one expression are
@@ -329,7 +342,7 @@ fn get_span_from_source_code_impl(
 /// evaluation state and every caller hands that same value to the frame. A
 /// mismatch is not silent corruption but a silent no-op, and the diagnostic
 /// falls back to naming the read, which is what it named before any of this.
-pub(crate) fn frame_declaration_of(name: &Atom, fault_expression: &Expr, state: &mut StateManager) {
+pub fn frame_declaration_of(name: &Atom, fault_expression: &Expr, state: &mut dyn DiagnosticState) {
   state.frame_declaration(compute_cache_key(fault_expression), name.clone());
 }
 
@@ -343,8 +356,7 @@ pub(crate) fn frame_declaration_of(name: &Atom, fault_expression: &Expr, state: 
 /// two steps, because it needs the expression's key for the cache key as well
 /// and hashing a whole subtree twice to answer one question was the cost
 /// `has_framed_declarations` had been added to avoid.
-#[cfg(test)]
-pub(crate) fn framed_declaration_of(fault_expression: &Expr, state: &StateManager) -> Option<Atom> {
+pub fn framed_declaration_of(fault_expression: &Expr, state: &dyn DiagnosticState) -> Option<Atom> {
   if !state.has_framed_declarations() {
     return None;
   }
@@ -389,10 +401,10 @@ fn compute_declaration_cache_key(expression_key: u128, name: &Atom) -> u128 {
 /// object sharing the most sibling keys with the compiled call wins.
 ///
 /// Returns a dummy span when the key cannot be located.
-pub(crate) fn get_key_span_from_source_code(
+pub fn get_key_span_from_source_code(
   lookup: &CallLookup,
   namespace_key: &str,
-  state: &mut StateManager,
+  state: &mut dyn DiagnosticState,
 ) -> Result<(CodeFrame, Span), Error> {
   // Same panic boundary as `get_span_from_source_code`: locating a span is
   // best-effort and must never abort the compilation.
@@ -404,7 +416,7 @@ pub(crate) fn get_key_span_from_source_code(
 fn get_key_span_from_source_code_impl(
   lookup: &CallLookup,
   namespace_key: &str,
-  state: &mut StateManager,
+  state: &mut dyn DiagnosticState,
 ) -> Result<(CodeFrame, Span), Error> {
   let query = lookup.query(namespace_key);
   let cache_key = compute_key_span_cache_key(lookup.digest(), &query);
@@ -460,7 +472,7 @@ fn compute_key_span_cache_key(siblings_digest: u128, query: &NamespaceKeyQuery) 
 /// Loads a CodeFrame with the source file for error display.
 fn load_code_frame_from_cache_for_state(
   file_name: &FileName,
-  state: &StateManager,
+  state: &dyn DiagnosticState,
 ) -> Result<CodeFrame, Error> {
   let code_frame = CodeFrame::new();
 
@@ -469,7 +481,7 @@ fn load_code_frame_from_cache_for_state(
   // of the module to it on every call -- and the debug-data path calls this once
   // per style. On a 200 KB module with 1 257 styles that was a quarter of a
   // gigabyte of duplicated source and the largest single cost in a `dev` build.
-  code_frame.register_source_once(file_name, || {
+  code_frame.register_produced_source_once(file_name, || {
     state
       .get_seen_module_source_code()
       .and_then(|(_, source_code)| source_code.as_ref().cloned())
@@ -522,7 +534,7 @@ fn find_expression_span(module: &Module, target_expression: &Expr) -> Span {
 fn with_memoized_module<T>(
   wrapped_expression: &Expr,
   target_expression: &Expr,
-  state: &mut StateManager,
+  state: &mut dyn DiagnosticState,
   file_name: &FileName,
   code_frame: &CodeFrame,
   visit: impl FnOnce(&Module) -> T,
@@ -547,7 +559,7 @@ fn with_memoized_module<T>(
 /// either found a memoized module or stored one, so neither is reachable in
 /// practice. It stays an error rather than a panic because the getters' types
 /// cannot say so, and a diagnostic aid must never be the reason a build stops.
-fn missing_memoized_module(state: &StateManager) -> Error {
+fn missing_memoized_module(state: &dyn DiagnosticState) -> Error {
   anyhow::anyhow!("Failed to parse source file: {}", state.get_filename())
 }
 
@@ -561,7 +573,7 @@ fn missing_memoized_module(state: &StateManager) -> Error {
 fn memoize_module(
   wrapped_expression: &Expr,
   target_expression: &Expr,
-  state: &mut StateManager,
+  state: &mut dyn DiagnosticState,
   file_name: &FileName,
   code_frame: &CodeFrame,
 ) -> Result<(), Error> {
@@ -569,10 +581,9 @@ fn memoize_module(
     && let Some(source_code) = source_code
   {
     // Registered once, not once per lookup -- see `register_source_once`.
-    code_frame.register_source_once(file_name, || Ok(source_code.to_owned()))?;
+    code_frame.register_source_once(file_name, source_code);
   } else {
-    let source_code = get_source_code(wrapped_expression, state, file_name)
-      .ok_or_else(|| anyhow::anyhow!("Failed to read source file: {}", state.get_filename()))?;
+    let source_code = get_source_code(wrapped_expression, state, file_name);
 
     // Through the same reuse `register_source_once` applies, rather than around
     // it. `new_source_file` never deduplicates -- it appends -- and this map is
@@ -596,54 +607,58 @@ fn memoize_module(
     )
     .ok_or_else(|| anyhow::anyhow!("Failed to parse source file: {}", state.get_filename()))?;
 
-    state.set_seen_module_source_code(
-      match program.as_module() {
-        Some(module) => module,
-        // Unreachable: `parse_and_normalize_program` parses with
-        // `IsModule::Bool(true)`, so a successful parse is always a module.
-        // Kept as a panic rather than dropped because it guards an invariant of
-        // that call rather than an input, and the day the call learns a second
-        // mode this is where it should stop.
-        None => stylex_panic!("Expected a module program for source code caching."),
-      },
-      Some(source_code),
-    );
+    state.set_seen_module_source_code(expect_module(&program), Some(source_code));
   }
 
   Ok(())
 }
 
-/// Gets the source code with the following priority:
-/// 1. seen_source_code from state (if not yet normalized)
-/// 2. Read from file (original source)
-/// 3. Create synthetic module (fallback)
+/// The module of a program [`parse_and_normalize_program`] returned.
+///
+/// It parses with `IsModule::Bool(true)`, so a successful parse is always a
+/// module. This stays a panic rather than being dropped because it guards an
+/// invariant of that call rather than an input, and the day the call learns a
+/// second mode this is where it should stop.
+fn expect_module(program: &Program) -> &Module {
+  match program.as_module() {
+    Some(module) => module,
+    None => stylex_panic!("Expected a module program for source code caching."),
+  }
+}
+
+/// The text of the module the frame quotes from, in the order it is worth
+/// trying: a module memoized without its text printed back out, then the file
+/// on disk. Failing both, a module synthesized around the expression itself --
+/// which is why there is always an answer.
+///
+/// The memoized *text* is not a case here: the only caller reaches this after
+/// finding there is none.
 fn get_source_code(
   wrapped_expression: &Expr,
-  state: &StateManager,
+  state: &dyn DiagnosticState,
   file_name: &FileName,
-) -> Option<String> {
-  if let Some((module, source_code)) = state.get_seen_module_source_code() {
-    if let Some(source_code) = source_code {
-      return Some(source_code.clone());
-    } else {
-      return Some(print_module(
-        module.clone(),
-        Some(
-          Config::default()
-            .with_minify(false)
-            .with_omit_last_semi(false)
-            .with_reduce_escaped_newline(false)
-            .with_inline_script(false),
-        ),
-      ));
-    }
-  }
-  if let Ok(source) = read_source_file(file_name) {
-    return Some(source);
+) -> String {
+  // Reached only where the caller found no memoized text, so a module memoized
+  // here has none either and has to be printed back out to give the frame
+  // something to quote.
+  if let Some((module, _)) = state.get_seen_module_source_code() {
+    return print_module(
+      module.clone(),
+      Some(
+        Config::default()
+          .with_minify(false)
+          .with_omit_last_semi(false)
+          .with_reduce_escaped_newline(false)
+          .with_inline_script(false),
+      ),
+    );
   }
 
-  let synthetic_module = create_module(wrapped_expression);
-  Some(print_module(synthetic_module, None))
+  if let Ok(source) = read_source_file(file_name) {
+    return source;
+  }
+
+  print_module(create_module(wrapped_expression), None)
 }
 
 /// Parses source code into a Program AST and normalizes it
@@ -677,20 +692,26 @@ fn parse_and_normalize_program(
       Some(normalized)
     },
     Err(error) => {
-      if log::log_enabled!(log::Level::Debug) {
-        debug!(
-          "Failed to parse program: {:?}. File: {}. Expression: {:?}",
-          error, filename, target_expression
-        );
-      } else {
-        warn!("Failed to parse program: {:?}. File: {}", error, filename);
-      }
+      warn_unparseable(&error, filename, target_expression);
       None
     },
   }
 }
 
-pub(crate) fn print_module(module: Module, codegen_config: Option<Config>) -> String {
+/// Reports that the module's own source could not be parsed, so nothing can be
+/// searched for a position. Same split as [`warn_no_code_frame`].
+fn warn_unparseable(error: &Error, filename: &str, target: &Expr) {
+  if log::log_enabled!(log::Level::Debug) {
+    debug!(
+      "Failed to parse program: {:?}. File: {}. Expression: {:?}",
+      error, filename, target
+    );
+  } else {
+    warn!("Failed to parse program: {:?}. File: {}", error, filename);
+  }
+}
+
+pub fn print_module(module: Module, codegen_config: Option<Config>) -> String {
   print_program(Program::Module(module), codegen_config)
 }
 
@@ -711,18 +732,25 @@ pub(crate) fn print_program(mut program: Program, codegen_config: Option<Config>
       ..Default::default()
     },
   )
-  .unwrap_or_else(|_| TransformOutput {
+  .unwrap_or_else(nothing_printed);
+
+  printed_source_code.code
+}
+
+/// What a print that failed leaves behind: no code, and nothing said about why.
+/// The caller is already printing only to *quote* a module back, so an empty
+/// quote is the graceful answer.
+fn nothing_printed(_: Error) -> TransformOutput {
+  TransformOutput {
     code: String::new(),
     map: None,
     output: None,
     diagnostics: Vec::default(),
     extracted_comments: None,
-  });
-
-  printed_source_code.code
+  }
 }
 
-pub(crate) fn create_module(wrapped_expression: &Expr) -> Module {
+pub fn create_module(wrapped_expression: &Expr) -> Module {
   Module {
     span: DUMMY_SP,
     body: vec![ModuleItem::Stmt(Stmt::Expr(ExprStmt {
@@ -822,11 +850,11 @@ impl Visit for ExpressionFinder {
 
 #[track_caller]
 #[cold]
-pub(crate) fn build_code_frame_error_and_panic(
+pub fn build_code_frame_error_and_panic(
   wrapped_expression: &Expr,
   fault_expression: &Expr,
   error_message: &str,
-  state: &mut StateManager,
+  state: &mut dyn DiagnosticState,
 ) -> ! {
   let caller_location = std::panic::Location::caller();
 
@@ -838,20 +866,7 @@ pub(crate) fn build_code_frame_error_and_panic(
       (Some(state.get_filename().to_owned()), line_num)
     },
     Err(error) => {
-      if log::log_enabled!(log::Level::Debug) {
-        debug!(
-          "Failed to generate code frame error: {:?}. File: {}. Expression: {:?}.",
-          error,
-          state.get_filename(),
-          fault_expression,
-        );
-      } else {
-        warn!(
-          "Failed to generate code frame error: {:?}. File: {}. For more information enable debug logging.",
-          error,
-          state.get_filename(),
-        );
-      }
+      warn_no_code_frame(&error, state.get_filename(), fault_expression);
       (Some(state.get_filename().to_owned()), None)
     },
   };
@@ -870,14 +885,14 @@ pub(crate) fn build_code_frame_error_and_panic(
 
 #[track_caller]
 #[cold]
-pub(crate) fn build_code_frame_error_and_panic_at(
+pub fn build_code_frame_error_and_panic_at(
   expr: &Expr,
   error_message: &str,
-  state: &mut StateManager,
+  state: &mut dyn DiagnosticState,
 ) -> ! {
   build_code_frame_error_and_panic(expr, expr, error_message, state)
 }
 
 #[cfg(test)]
-#[path = "tests/build_code_frame_error_tests.rs"]
+#[path = "tests/code_frame_test.rs"]
 mod tests;

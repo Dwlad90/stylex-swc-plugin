@@ -3,7 +3,7 @@
 //!
 //! Reporting a refusal against the *declaration* means the diagnostic path now
 //! searches the module for a name — see
-//! `shared::utils::log::declaration_span` — so a refused build reads the source
+//! `stylex_diagnostics` — so a refused build reads the source
 //! a second time, on a path that only ever runs while something is already going
 //! wrong. Every case here refuses, and what is asserted is that the sentence an
 //! author is handed is still the right one: an input that made the position

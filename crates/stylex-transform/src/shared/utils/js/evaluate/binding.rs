@@ -81,7 +81,7 @@ fn reads_before_its_declaration(reference: &Ident, declaration: Span) -> bool {
 /// 673 — so a refused build sends the reader to the line they have to change
 /// rather than to a read that is correct as written. `deopt_at_declaration`
 /// records the binding's name for the code frame to resolve; the reasoning for
-/// recording a name rather than a span is on `utils::log::declaration_span`. The
+/// recording a name rather than a span is on `stylex_diagnostics`. The
 /// tail refusal at 687 stays on the reference, as upstream's does, because a
 /// reference that resolved to itself has no declaration to name.
 ///

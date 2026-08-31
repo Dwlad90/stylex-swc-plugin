@@ -33,7 +33,7 @@ use stylex_utils::hash::stable_hash_unspanned_call;
 
 use super::Decline;
 use super::theme::compile_var_group;
-use crate::shared::utils::log::build_code_frame_error::print_module;
+use stylex_diagnostics::code_frame::print_module;
 
 /// How many loop iterations an evaluation may run.
 ///

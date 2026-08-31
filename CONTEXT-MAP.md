@@ -49,6 +49,9 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
 - **stylex-state-index**
   ([CONTEXT.md](./crates/stylex-state-index/CONTEXT.md)) -- the lookup indices
   the state manager answers "which declarator, which call, which span" from.
+- **stylex-diagnostics**
+  ([CONTEXT.md](./crates/stylex-diagnostics/CONTEXT.md)) -- code frames and the
+  declaration position an error should point at.
 - **stylex-evaluator** ([CONTEXT.md](./crates/stylex-evaluator/CONTEXT.md)) --
   flattening the nested config objects `defineVars` and friends accept. The
   general JS evaluator is in `stylex-transform`, not here.

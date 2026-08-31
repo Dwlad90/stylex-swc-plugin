@@ -23,10 +23,11 @@ for_, and the vocabulary it defines, is in
 - **4 -- Type system**: `stylex-types`
 - **5 -- AST foundations**: `stylex-ast`
 - **6 -- State lookup**: `stylex-state-index`
-- **7 -- Evaluation and inline syntax**: `stylex-evaluator`, `stylex-atoms`
-- **8 -- CSS processing**: `stylex-css`
-- **9 -- StyleX transform**: `stylex-transform`
-- **10 -- Compilers** (top-level consumers): `stylex-rs-compiler`
+- **7 -- Diagnostics**: `stylex-diagnostics`
+- **8 -- Evaluation and inline syntax**: `stylex-evaluator`, `stylex-atoms`
+- **9 -- CSS processing**: `stylex-css`
+- **10 -- StyleX transform**: `stylex-transform`
+- **11 -- Compilers** (top-level consumers): `stylex-rs-compiler`
 
 `stylex-test-parser` sits outside the DAG: nothing depends on it, and it is a
 developer binary rather than part of the compiler.

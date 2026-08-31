@@ -27,9 +27,10 @@ use crate::shared::{
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
     ast::helpers::prop_contains_arrow, core::define_vars_utils::any_level_needs_a_default,
-    js::evaluate::evaluate, log::build_code_frame_error::build_code_frame_error,
+    js::evaluate::evaluate,
   },
 };
+use stylex_diagnostics::code_frame::build_code_frame_error;
 
 /// Walks the `defineVars` object once and collects:
 /// (1) the set of top-level keys, and

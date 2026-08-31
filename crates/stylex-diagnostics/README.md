@@ -1,4 +1,4 @@
-# `stylex-css`
+# `stylex-diagnostics`
 
 > Part of the
 > [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
@@ -6,48 +6,60 @@
 
 ## Overview
 
-Unified CSS processing crate for the StyleX compiler pipeline. This crate
-consolidates all CSS-related functionality — generation, value parsing, property
-ordering, and utility helpers — into a single, cohesive package.
+How StyleX shows an author _where_ a refusal happened. A code frame quotes the
+offending line back out of the file the author wrote, which means finding that
+line again: what the compiler holds by then is a rewritten tree whose positions
+belong to its own source map, not to the text on disk.
 
-- **Stateless CSS generation** — produces CSS strings from StyleX declarations
-  without requiring a `StateManager`, making every function a pure input →
-  output transform.
-- **Bidirectional (LTR / RTL) output** — dedicated modules generate
-  left-to-right and right-to-left stylesheets, enabling automatic bidirectional
-  support in downstream consumers.
-- **CSS value parsing** — tokenises and parses CSS value strings using the
-  `cssparser` crate, splitting shorthand properties into their individual
-  components (top, right, bottom, left).
-- **Property ordering strategies** — implements three ordering strategies
-  (`ApplicationOrder`, `LegacyExpandShorthandsOrder`,
-  `PropertySpecificityOrder`) for deterministic shorthand expansion and CSS
-  property sorting.
-- **Pseudo-class and selector utilities** — provides `when::ancestor`,
-  `when::descendant`, `when::sibling_*` and other helpers for generating
-  conditional CSS selectors from StyleX state options.
-- **Whitespace normalization** — canonicalises whitespace in generated CSS so
-  output is deterministic and diff-friendly.
-- **Deterministic output** — given identical input declarations and
-  configuration, the crate always produces byte-identical CSS, which simplifies
-  snapshot testing and caching.
+- **Code frame** — `CodeFrame`, the quoted line with a caret under the offending
+  text, built against a process-wide source map of its own. One entry is
+  registered per distinct file _content_, so a watch-mode process does not
+  accumulate a copy of each module per save.
+- **Expression lookup** — `get_span_from_source_code` finds the position of a
+  compiled expression by matching it, structurally, against the module's own
+  re-parsed source.
+- **Namespace key lookup** — `get_key_span_from_source_code` finds a style
+  namespace by its _key_ instead, which survives value-level rewrites an earlier
+  loader may have made.
+- **Declaration lookup** — a refusal about a binding is framed at that binding's
+  declaration, which is the line the author has to go and change.
 
 ## Architecture
 
-- **Layer**: 9 — CSS Processing
-- **Depends on**:
-  [`stylex-ast`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-ast),
-  [`stylex-constants`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-constants),
-  [`stylex-css-parser`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css-parser),
-  [`stylex-enums`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-enums),
-  [`stylex-evaluator`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-evaluator),
-  [`stylex-macros`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-macros),
-  [`stylex-regex`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-regex),
-  [`stylex-structures`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-structures),
-  [`stylex-types`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-types),
+Everything here is best effort. Every lookup sits behind a panic boundary and
+degrades to "no code frame", because a compilation must never stop on account of
+the aid that explains why it stopped. The process panic hook is replaced once, so
+a panic raised inside a boundary is silent while every other panic still reaches
+the hook that was there before.
+
+What a diagnostic needs from the compiler's traversal state is declared here as
+the `DiagnosticState` trait and implemented by the caller — the same injection
+`stylex-atoms` uses — so that building a frame never names the state manager,
+which would make the transform and the diagnostics depend on each other. The
+trait is consulted while a diagnostic is being written, never while a module is
+being evaluated.
+
+A refused binding is recorded by **name**, not by position: a span from the
+compiler's parse indexes the compiler's source map, while the frame's positions
+live in the one it built for the file. The name is resolved against the module
+the frame re-parsed, and a name that module does not declare falls back to
+locating the read.
+
+- **Layer**: 7 — Diagnostics
+- **Depends on**: `swc_core`, `swc_compiler_base`, `anyhow`, `log`,
+  [`stylex-ast`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-ast)
+  for reading expressions back,
+  [`stylex-macros`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-macros)
+  for the error a refusal panics with,
+  [`stylex-regex`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-regex)
+  for the links a message carries,
+  [`stylex-state-index`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-state-index)
+  for the key span index, and
   [`stylex-utils`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-utils)
+  for the stable hash the span cache is keyed by
 - **Depended on by**:
-  [`stylex-transform`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-transform)
+  [`stylex-transform`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-transform),
+  whose state manager implements `DiagnosticState`
 
 ## Dependency Graph
 
@@ -219,6 +231,8 @@ graph TD
 ```
 
 </details>
+
+---
 
 ## License
 

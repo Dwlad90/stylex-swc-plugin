@@ -15,17 +15,14 @@ use stylex_state_index::key_span_index::CallLookup;
 use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::{functions::FunctionMap, state_manager::StateManager, types::StylesObjectMap},
-  utils::{
-    ast::convertors::convert_expr_to_str,
-    js::evaluate::evaluate_obj_key,
-    log::build_code_frame_error::{get_key_span_from_source_code, get_span_from_source_code},
-  },
+  utils::{ast::convertors::convert_expr_to_str, js::evaluate::evaluate_obj_key},
 };
 use stylex_ast::ast::convertors::{create_string_expr, get_key_values_from_object};
 use stylex_constants::constants::{
   common::COMPILED_KEY,
   messages::{EXPECTED_OBJECT_EXPRESSION, INVALID_UTF8, illegal_argument_length},
 };
+use stylex_diagnostics::code_frame::{get_key_span_from_source_code, get_span_from_source_code};
 use stylex_structures::stylex_options::CheckModuleResolution;
 
 static NEXTJS_HYDRATION_WARNING: LazyLock<String> = LazyLock::new(|| {

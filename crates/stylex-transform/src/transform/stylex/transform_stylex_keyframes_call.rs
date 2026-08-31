@@ -23,7 +23,6 @@ use crate::{
     },
     utils::{
       js::evaluate::evaluate,
-      log::build_code_frame_error::build_code_frame_error,
       validators::{assert_valid_keyframes, is_keyframes_call, validate_stylex_keyframes_indent},
     },
   },
@@ -32,6 +31,7 @@ use stylex_constants::constants::{
   api_names::{STYLEX_FIRST_THAT_WORKS, STYLEX_KEYFRAMES},
   messages::{non_static_value, non_style_object},
 };
+use stylex_diagnostics::code_frame::build_code_frame_error;
 
 impl<C> StyleXTransform<C>
 where

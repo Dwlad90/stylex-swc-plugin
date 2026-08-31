@@ -23,7 +23,6 @@ use crate::{
     },
     utils::{
       js::evaluate::evaluate,
-      log::build_code_frame_error::build_code_frame_error,
       validators::{
         assert_valid_position_try, assert_valid_properties, is_position_try_call,
         validate_stylex_position_try_indent,
@@ -36,6 +35,7 @@ use stylex_constants::constants::{
   common::VALID_POSITION_TRY_PROPERTIES,
   messages::{POSITION_TRY_INVALID_PROPERTY, non_static_value, non_style_object},
 };
+use stylex_diagnostics::code_frame::build_code_frame_error;
 
 impl<C> StyleXTransform<C>
 where

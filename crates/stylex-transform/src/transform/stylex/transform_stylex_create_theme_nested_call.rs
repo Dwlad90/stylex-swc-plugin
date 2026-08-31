@@ -25,12 +25,12 @@ use crate::{
         js_to_ast::{NestedStringObject, convert_object_to_ast},
       },
       js::evaluate::evaluate,
-      log::build_code_frame_error::build_code_frame_error,
       validators::validate_define_call,
     },
   },
   transform::stylex::visitor_utils::{build_eval_config, is_call_to},
 };
+use stylex_diagnostics::code_frame::build_code_frame_error;
 
 impl<C> StyleXTransform<C>
 where

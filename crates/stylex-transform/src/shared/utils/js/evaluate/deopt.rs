@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::shared::utils::log::build_code_frame_error::frame_declaration_of;
+use stylex_diagnostics::code_frame::frame_declaration_of;
 
 pub(crate) fn deopt(
   path: &Expr,
@@ -27,7 +27,7 @@ pub(crate) fn deopt(
 ///
 /// The name is recorded rather than the declaration's span, because a span from
 /// this compiler's parse means nothing in the code frame's own source map;
-/// `utils::log::declaration_span` turns the name back into a position in the
+/// `stylex_diagnostics` turns the name back into a position in the
 /// module the frame reads. Only a refusal that takes effect records one, so the
 /// first refusal decides the position exactly as it decides the message.
 pub(crate) fn deopt_at_declaration(

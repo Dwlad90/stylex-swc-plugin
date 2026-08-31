@@ -776,19 +776,6 @@ zero sorts before every authored node, so comparing one answers a fact about its
 having been built.
 _Avoid_: generated node, dummy node, fake node
 
-**Framed declaration**:
-The binding a refusal is _about_, recorded so its code frame names the line that
-binding was declared on rather than the line it was read from — which is what
-`@stylexjs/babel-plugin` frames, and the line an author has to go and change. A
-name is recorded rather than a position: a span from this compiler's parse
-indexes this compiler's source map, while the frame's positions live in the one
-it built for the file, so the name is resolved against the module the frame
-re-parsed. Recorded per refused expression, because a refused dynamic style
-falls through to an inline style instead of stopping the build, and a later
-diagnostic must not inherit an earlier refusal's position. A name that module
-does not declare falls back to locating the read. _Avoid_: deopt span,
-declaration span cache, reported position
-
 **Seen value**:
 A memoized evaluation, keyed by the
 [structural hash](../stylex-utils/CONTEXT.md) of the expression. `resolved`

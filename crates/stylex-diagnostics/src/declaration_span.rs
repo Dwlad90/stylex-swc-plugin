@@ -137,11 +137,10 @@ impl DeclarationFinder<'_> {
     self.found.is_some()
   }
 
-  /// Records `span` as the declaration, if this is the first one.
+  /// Records `span` as the declaration. Every caller asks [`Self::done`] first,
+  /// so the first declaration reached is the one that stays.
   fn record(&mut self, span: Span) {
-    if self.found.is_none() {
-      self.found = Some(span);
-    }
+    self.found = Some(span);
   }
 
   /// Whether `ident` is the name being looked for.
@@ -241,30 +240,6 @@ impl Visit for DeclarationFinder<'_> {
     expression.visit_children_with(self);
   }
 
-  /// `import { token }` / `import { token as alias }` — the specifier, which is
-  /// what upstream's `binding.path` is: one import statement declares several
-  /// names, and only the specifier says which of them was refused. Measured on
-  /// 0.19.0, a refused `alias` carries a caret over `token as alias`.
-  fn visit_import_named_specifier(&mut self, specifier: &ImportNamedSpecifier) {
-    if !self.done() && self.names_it(&specifier.local) {
-      self.record(specifier.span);
-    }
-  }
-
-  /// `import vars from …` — likewise the specifier, which here is the name.
-  fn visit_import_default_specifier(&mut self, specifier: &ImportDefaultSpecifier) {
-    if !self.done() && self.names_it(&specifier.local) {
-      self.record(specifier.span);
-    }
-  }
-
-  /// `import * as vars from …` — likewise the specifier, `* as vars` included.
-  fn visit_import_star_as_specifier(&mut self, specifier: &ImportStarAsSpecifier) {
-    if !self.done() && self.names_it(&specifier.local) {
-      self.record(specifier.span);
-    }
-  }
-
   /// Every other binding position: a parameter, a `catch` binding, a name inside
   /// a destructuring pattern the declarator arm did not claim.
   ///
@@ -312,5 +287,5 @@ fn binds_name(pattern: &Pat, name: &Atom) -> bool {
 }
 
 #[cfg(test)]
-#[path = "tests/declaration_span_tests.rs"]
+#[path = "tests/declaration_span_test.rs"]
 mod tests;

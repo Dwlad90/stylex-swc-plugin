@@ -57,7 +57,6 @@ use crate::{
         js_to_ast::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
       },
       js::evaluate::evaluate_result_is_nullish,
-      log::build_code_frame_error::{build_code_frame_error, build_code_frame_error_and_panic},
       validators::{is_create_call, validate_stylex_create},
     },
   },
@@ -77,6 +76,7 @@ use stylex_constants::constants::{
   messages::{EXPECTED_COMPILED_STYLES, non_static_value},
 };
 use stylex_css::utils::{pseudo::is_pseudo_element, when as stylex_when};
+use stylex_diagnostics::code_frame::{build_code_frame_error, build_code_frame_error_and_panic};
 use stylex_enums::{counter_mode::CounterMode, style_resolution::StyleResolution};
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;
 use stylex_structures::{

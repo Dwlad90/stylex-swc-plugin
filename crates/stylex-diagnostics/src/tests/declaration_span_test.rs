@@ -9,7 +9,7 @@
 use super::*;
 
 use swc_core::{
-  common::{FileName, SourceMap, sync::Lrc},
+  common::{DUMMY_SP, FileName, SourceMap, sync::Lrc},
   ecma::{
     ast::EsVersion,
     parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer},
@@ -557,4 +557,98 @@ function unrelated() {
 ";
 
   assert_eq!(declaration_line(source, "c"), 2);
+}
+
+// ── the shapes the module-level walk hands on to the visitor ────────────────
+
+/// `export default interface` exports a type and binds no value, so there is
+/// nothing to frame even though the name is written right there.
+#[test]
+fn an_exported_default_interface_declares_no_value() {
+  declares_nothing("export default interface c { a: string }\n", "c");
+}
+
+/// Of the TypeScript module forms only a non-`declare` `namespace` emits a
+/// value. The rest bind nothing at run time, so a read of one has no
+/// declaration worth framing.
+#[test]
+fn a_typescript_module_that_emits_nothing_declares_no_value() {
+  declares_nothing("declare namespace c { export const a = 1; }\n", "c");
+  declares_nothing("module c { export const a = 1; }\n", "c");
+  declares_nothing("declare module 'c' { export const a: number; }\n", "c");
+}
+
+/// A `function` written inside another one is still a declaration, and the
+/// module-level walk never sees it.
+#[test]
+fn a_nested_function_declaration_is_framed_whole() {
+  let source = "function outer() {\n  function c() { return 1; }\n}\n";
+
+  assert_eq!(declaration_text(source, "c"), "function c() { return 1; }");
+}
+
+/// The same for a `class`.
+#[test]
+fn a_nested_class_declaration_is_framed_whole() {
+  let source = "function outer() {\n  class c { m() {} }\n}\n";
+
+  assert_eq!(declaration_text(source, "c"), "class c { m() {} }");
+}
+
+/// A named function expression whose name is *not* the one asked about is
+/// walked into rather than claimed, so a declaration inside its body is found.
+#[test]
+fn a_function_expression_of_another_name_is_walked_into() {
+  let source = "const run = function outer() {\n  const c = 'red';\n};\n";
+
+  assert_eq!(declaration_text(source, "c"), "c = 'red'");
+}
+
+/// The same for a named class expression.
+#[test]
+fn a_class_expression_of_another_name_is_walked_into() {
+  let source = "const run = class Outer {\n  m() {\n    const c = 'red';\n  }\n};\n";
+
+  assert_eq!(declaration_text(source, "c"), "c = 'red'");
+}
+
+/// The walk covers the whole module rather than stopping at the first
+/// declaration, so every later shape has to recognise that the answer is
+/// already settled and leave it alone. The parameter is reached before any of
+/// the five shapes that follow it. The last two are written as expression
+/// statements, because a declarator that already knows the answer never walks
+/// into its own initializer.
+#[test]
+fn the_first_declaration_reached_is_kept_over_every_later_shape() {
+  let source = "\
+function outer(c) {
+  const later = 1;
+  function c() {}
+  class c {}
+  (function c() {});
+  (class c {});
+}
+";
+
+  assert_eq!(declaration_text(source, "c"), "c");
+  assert_eq!(declaration_line(source, "c"), 1);
+}
+
+/// The two pattern shapes that are not bindings at all. Neither is reachable
+/// from a parsed declarator -- `[o.x] = pair` is an assignment expression, so
+/// nothing walks a pattern for it -- so they are asked directly.
+#[test]
+fn an_assignment_target_and_an_error_node_bind_nothing() {
+  let name = Atom::from("c");
+
+  let target = Pat::Expr(Box::new(Expr::Ident(Ident::new_no_ctxt(
+    name.clone(),
+    DUMMY_SP,
+  ))));
+
+  assert!(!binds_name(&target, &name));
+  assert!(!binds_name(
+    &Pat::Invalid(Invalid { span: DUMMY_SP }),
+    &name
+  ));
 }

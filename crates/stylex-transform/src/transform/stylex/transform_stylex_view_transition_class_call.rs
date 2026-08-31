@@ -24,7 +24,6 @@ use crate::{
     },
     utils::{
       js::evaluate::evaluate,
-      log::build_code_frame_error::build_code_frame_error,
       validators::{
         assert_valid_properties, assert_valid_view_transition_class, is_view_transition_class_call,
         validate_stylex_view_transition_class_indent,
@@ -37,6 +36,7 @@ use stylex_constants::constants::{
   common::VALID_VIEW_TRANSITION_CLASS_PROPERTIES,
   messages::{VIEW_TRANSITION_CLASS_INVALID_PROPERTY, non_static_value, non_style_object},
 };
+use stylex_diagnostics::code_frame::build_code_frame_error;
 
 impl<C> StyleXTransform<C>
 where

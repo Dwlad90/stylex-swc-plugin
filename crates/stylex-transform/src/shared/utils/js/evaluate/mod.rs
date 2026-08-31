@@ -54,7 +54,6 @@ use crate::shared::{
       assign_props, get_import_by_ident, get_var_decl_from, get_var_decl_parts_by_ident,
       order_own_keys, remove_duplicates,
     },
-    log::build_code_frame_error::build_code_frame_error_and_panic,
   },
 };
 use stylex_ast::ast::convertors::{
@@ -97,6 +96,7 @@ use stylex_utils::string::utf16_length;
 use stylex_utils::{hash::stable_hash_unspanned, swc::get_expr_node_kind};
 
 use super::check_declaration::check_ident_declaration;
+use stylex_diagnostics::code_frame::build_code_frame_error_and_panic;
 
 /// Resolves an `EnvEntry` to an `EvaluateResultValue`.
 ///

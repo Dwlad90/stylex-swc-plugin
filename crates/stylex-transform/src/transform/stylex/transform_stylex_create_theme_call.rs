@@ -25,7 +25,6 @@ use crate::{
         js_to_ast::{NestedStringObject, convert_object_to_ast},
       },
       js::evaluate::evaluate,
-      log::build_code_frame_error::build_code_frame_error,
       validators::{
         is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
       },
@@ -37,6 +36,7 @@ use stylex_constants::constants::{
   api_names::{STYLEX_CREATE_THEME, STYLEX_KEYFRAMES, STYLEX_TYPES},
   messages::{non_static_value, non_style_object},
 };
+use stylex_diagnostics::code_frame::build_code_frame_error;
 
 impl<C> StyleXTransform<C>
 where

@@ -20,11 +20,12 @@ use crate::{
     utils::{
       common::gen_file_based_identifier,
       core::stylex_nested_utils::convert_unflattened_object_to_ast, js::evaluate::evaluate,
-      log::build_code_frame_error::build_code_frame_error, validators::validate_define_call,
+      validators::validate_define_call,
     },
   },
   transform::stylex::visitor_utils::{build_env_only_eval_config, is_call_to},
 };
+use stylex_diagnostics::code_frame::build_code_frame_error;
 use stylex_structures::top_level_expression::TopLevelExpression;
 
 impl<C> StyleXTransform<C>

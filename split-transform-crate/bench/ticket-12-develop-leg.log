@@ -1,0 +1,19 @@
+### concatenation_chain_bench
+### engine_fold_bench
+### evaluate_bench
+### evaluate_depth_bench
+### module_path_bench
+ModuleWalk/calls/1x     time:   [148.86 µs 149.20 µs 149.53 µs]
+ModuleWalk/no-calls/1x  time:   [21.560 µs 21.728 µs 21.807 µs]
+ModuleWalk/imported/1x  time:   [221.33 µs 222.57 µs 223.63 µs]
+ModuleWalk/calls/4x     time:   [585.30 µs 588.32 µs 590.31 µs]
+ModuleWalk/no-calls/4x  time:   [80.532 µs 81.311 µs 81.709 µs]
+ModuleWalk/imported/4x  time:   [810.76 µs 813.84 µs 816.80 µs]
+StateManager/new        time:   [178.62 ns 180.70 ns 182.54 ns]
+FullPipeline/calls/1x   time:   [289.31 µs 289.96 µs 290.56 µs]
+FullPipeline/calls/4x   time:   [1.1392 ms 1.1407 ms 1.1428 ms]
+### transform_consumers_bench
+### transform_debug_bench
+DEVELOP LEG DONE
+
+[exited with code 0]

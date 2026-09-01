@@ -1,0 +1,841 @@
+   Compiling proc-macro2 v1.0.106
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling cfg-if v1.0.4
+   Compiling serde_core v1.0.229
+   Compiling memchr v2.8.0
+   Compiling allocator-api2 v0.2.21
+   Compiling libc v0.2.186
+   Compiling once_cell v1.21.4
+   Compiling serde v1.0.229
+   Compiling stable_deref_trait v1.2.1
+   Compiling foldhash v0.2.0
+   Compiling equivalent v1.0.2
+   Compiling itoa v1.0.18
+   Compiling version_check v0.9.5
+   Compiling smallvec v1.15.1
+   Compiling rustc-hash v2.1.3
+   Compiling writeable v0.6.4
+   Compiling autocfg v1.5.0
+   Compiling hashbrown v0.17.1
+   Compiling siphasher v1.0.2
+   Compiling litemap v0.8.2
+   Compiling pin-project-lite v0.2.17
+   Compiling zmij v1.0.21
+   Compiling zerocopy v0.8.48
+   Compiling num-traits v0.2.19
+   Compiling serde_json v1.0.151
+   Compiling ahash v0.8.12
+   Compiling utf8_iter v1.0.4
+   Compiling icu_properties_data v2.3.0
+   Compiling syn v2.0.117
+   Compiling syn v3.0.4
+   Compiling icu_normalizer_data v2.3.0
+   Compiling write16 v1.0.0
+   Compiling utf16_iter v1.0.5
+   Compiling anyhow v1.0.104
+   Compiling parking_lot_core v0.9.12
+   Compiling either v1.15.0
+   Compiling scopeguard v1.2.0
+   Compiling percent-encoding v2.3.2
+   Compiling lock_api v0.4.14
+   Compiling tracing-core v0.1.36
+   Compiling radium v0.7.0
+   Compiling num-integer v0.1.47
+   Compiling tap v1.0.1
+   Compiling shlex v1.3.0
+   Compiling find-msvc-tools v0.1.9
+   Compiling cc v1.2.61
+   Compiling bitflags v2.13.1
+   Compiling indexmap v2.14.0
+   Compiling wyz v0.5.1
+   Compiling form_urlencoded v1.2.2
+   Compiling uuid v1.23.1
+   Compiling vsimd v0.8.0
+   Compiling bytes v1.11.1
+   Compiling outref v0.5.2
+   Compiling funty v2.0.0
+   Compiling termcolor v1.4.1
+   Compiling new_debug_unreachable v1.0.6
+   Compiling base64-simd v0.8.0
+   Compiling unicode-id-start v1.4.0
+   Compiling bitvec v1.0.1
+   Compiling unicode-width v0.2.2
+   Compiling data-encoding v2.11.0
+   Compiling if_chain v1.0.3
+   Compiling aho-corasick v1.1.4
+   Compiling heck v0.5.0
+   Compiling regex-syntax v0.8.10
+   Compiling scoped-tls v1.0.1
+   Compiling cbor4ii v1.2.2
+   Compiling better_scoped_tls v1.0.1
+   Compiling synstructure v0.13.2
+   Compiling swc_macros_common v1.0.1
+   Compiling swc_visit v2.0.1
+   Compiling parking_lot v0.12.5
+   Compiling static_assertions v1.1.0
+   Compiling siphasher v0.3.11
+   Compiling serde_derive v1.0.229
+   Compiling zerovec-derive v0.11.6
+   Compiling hashbrown v0.14.5
+   Compiling zerofrom-derive v0.1.7
+   Compiling yoke-derive v0.8.2
+   Compiling displaydoc v0.2.5
+   Compiling tracing-attributes v0.1.31
+   Compiling from_variant v3.0.0
+   Compiling swc_eq_ignore_macros v1.0.1
+   Compiling ast_node v6.1.0
+   Compiling regex-automata v0.4.16
+   Compiling crossbeam-utils v0.8.21
+   Compiling zerofrom v0.1.7
+   Compiling rand_core v0.6.4
+   Compiling tracing v0.1.44
+   Compiling yoke v0.8.3
+   Compiling rustversion v1.0.22
+   Compiling zerovec v0.11.8
+   Compiling zerotrie v0.2.5
+   Compiling rand v0.8.6
+   Compiling phf_shared v0.11.3
+   Compiling object v0.37.3
+   Compiling phf_generator v0.11.3
+   Compiling ryu v1.0.23
+   Compiling phf_macros v0.11.3
+   Compiling is-macro v0.3.7
+   Compiling string_enum v1.0.2
+   Compiling tinystr v0.8.4
+   Compiling potential_utf v0.1.5
+   Compiling icu_locale_core v2.3.0
+   Compiling bytes-str v0.2.7
+   Compiling triomphe v0.1.15
+   Compiling debugid v0.8.0
+   Compiling icu_collections v2.3.0
+   Compiling hstr v4.0.0
+   Compiling num-bigint v0.4.6
+   Compiling phf v0.11.3
+   Compiling swc_atoms v10.0.0
+   Compiling castaway v0.2.4
+   Compiling fastrand v2.3.0
+   Compiling hashbrown v0.16.1
+   Compiling typenum v1.19.0
+   Compiling generic-array v0.14.9
+   Compiling dragonbox_ecma v0.1.12
+   Compiling icu_provider v2.3.1
+   Compiling stacker v0.1.24
+   Compiling par-core v2.0.0
+   Compiling regex v1.12.3
+   Compiling icu_properties v2.3.0
+   Compiling icu_normalizer v2.3.0
+   Compiling log v0.4.33
+   Compiling idna_adapter v1.2.2
+   Compiling ar_archive_writer v0.5.1
+   Compiling idna v1.1.0
+   Compiling compact_str v0.7.1
+   Compiling dashmap v6.2.1
+   Compiling url v2.5.8
+   Compiling num_cpus v1.17.0
+   Compiling psm v0.1.31
+   Compiling phf_shared v0.14.0
+   Compiling regress v0.11.1
+   Compiling phf_generator v0.14.0
+   Compiling swc_sourcemap v10.0.2
+   Compiling seq-macro v0.3.6
+   Compiling phf_macros v0.14.0
+   Compiling crypto-common v0.1.6
+   Compiling block-buffer v0.10.4
+   Compiling owo-colors v4.2.2
+   Compiling rustix v1.1.4
+   Compiling swc_common v24.0.0
+   Compiling phf v0.14.0
+   Compiling digest v0.10.7
+   Compiling errno v0.3.14
+   Compiling cpufeatures v0.2.17
+   Compiling bstr v1.12.1
+   Compiling camino v1.1.11
+   Compiling thiserror v1.0.69
+   Compiling unicode-linebreak v0.1.5
+   Compiling textwrap v0.16.2
+   Compiling globset v0.4.18
+   Compiling thiserror-impl v1.0.69
+   Compiling swc_ecma_ast v27.0.0
+   Compiling miette-derive v7.6.0
+   Compiling swc_config_macro v1.0.1
+   Compiling bumpalo v3.20.2
+   Compiling lazy_static v1.5.0
+   Compiling unicode-width v0.1.14
+   Compiling getrandom v0.3.4
+   Compiling swc_allocator v5.0.0
+   Compiling sharded-slab v0.1.7
+   Compiling miette v7.6.0
+   Compiling swc_config v6.0.0
+   Compiling tracing-log v0.2.0
+   Compiling matchers v0.2.0
+   Compiling cargo-platform v0.1.9
+   Compiling swc_ecma_codegen_macros v2.0.2
+   Compiling semver v1.0.28
+   Compiling thread_local v1.1.9
+   Compiling glob v0.3.4
+   Compiling relative-path v1.9.3
+   Compiling yansi v1.0.1
+   Compiling diff v0.1.13
+   Compiling base64 v0.22.1
+   Compiling ascii v1.1.0
+   Compiling nu-ansi-term v0.50.1
+   Compiling tracing-subscriber v0.3.20
+   Compiling pretty_assertions v1.4.1
+   Compiling testing_macros v1.0.1
+   Compiling cargo_metadata v0.18.1
+   Compiling swc_error_reporters v26.0.0
+   Compiling difference v2.0.0
+   Compiling testing v25.0.0
+   Compiling swc_ecma_visit v27.0.0
+   Compiling tempfile v3.21.0
+   Compiling sha1 v0.10.6
+   Compiling sha2 v0.10.9
+   Compiling hex v0.4.3
+   Compiling stylex_constants v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-constants)
+   Compiling swc_ecma_testing v25.0.0
+   Compiling swc_core v75.0.0
+   Compiling ansi_term v0.12.1
+   Compiling swc_plugin_proxy v28.0.0
+   Compiling swc_transform_common v18.0.0
+   Compiling swc_plugin_macro v1.1.1
+   Compiling swc_plugin v1.0.1
+   Compiling colored v3.1.1
+   Compiling swc_ecma_utils v33.0.0
+   Compiling swc_ecma_parser v43.0.0
+   Compiling swc_ecma_hooks v0.11.0
+   Compiling swc_ecma_codegen v30.0.0
+   Compiling radix_fmt v1.0.0
+   Compiling stylex_macros v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-macros)
+   Compiling arrayvec v0.7.8
+   Compiling xxhash-rust v0.8.18
+   Compiling murmur2 v0.1.0
+   Compiling futures-core v0.3.32
+   Compiling unicode-segmentation v1.13.2
+   Compiling futures-io v0.3.32
+   Compiling ryu-js v1.0.3
+   Compiling strsim v0.11.1
+   Compiling ident_case v1.0.1
+   Compiling thiserror v2.0.20
+   Compiling fnv v1.0.7
+   Compiling thiserror-impl v2.0.20
+   Compiling darling_core v0.20.11
+   Compiling futures-sink v0.3.32
+   Compiling fixedbitset v0.5.7
+   Compiling futures-channel v0.3.32
+   Compiling futures-macro v0.3.32
+   Compiling slab v0.4.12
+   Compiling crc32fast v1.5.0
+   Compiling icu_locale_fallback_data v2.3.0
+   Compiling futures-task v0.3.32
+   Compiling bit-vec v0.8.0
+   Compiling libm v0.2.16
+   Compiling bit-set v0.8.0
+   Compiling zlib-rs v0.5.4
+   Compiling futures-util v0.3.32
+   Compiling linktime-proc-macro v0.2.2
+   Compiling link-section v0.19.2
+   Compiling napi-build v2.4.0
+   Compiling pathdiff v0.2.3
+   Compiling napi v3.12.0
+   Compiling fancy-regex v0.19.0
+   Compiling swc_ecma_transforms_base v47.0.0
+   Compiling ctor v1.0.12
+   Compiling petgraph v0.7.1
+   Compiling convert_case v0.11.0
+   Compiling convert_case v0.10.0
+   Compiling darling_macro v0.20.11
+   Compiling halfbrown v0.4.0
+   Compiling synstructure v0.14.0
+   Compiling darling v0.20.11
+   Compiling derive_builder_core v0.20.2
+   Compiling float-cmp v0.10.0
+   Compiling phf_shared v0.13.1
+   Compiling swc_ecma_transforms_react v53.0.0
+   Compiling swc_ecma_transforms_testing v51.0.0
+   Compiling futures-executor v0.3.32
+   Compiling nibble_vec v0.1.0
+   Compiling swc_ecma_transforms_typescript v53.0.0
+   Compiling libz-rs-sys v0.5.4
+   Compiling libloading v0.9.0
+   Compiling endian-type v0.2.0
+   Compiling fast-float2 v0.2.4
+   Compiling parking v2.2.1
+   Compiling cow-utils v0.1.3
+   Compiling unicode-xid v0.2.6
+   Compiling winnow v1.0.4
+   Compiling pastey v0.2.3
+   Compiling boa_string v0.22.0
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling boa_macros v0.22.0
+   Compiling derive_more-impl v2.1.1
+   Compiling radix_trie v0.3.0
+   Compiling napi-sys v3.3.0
+   Compiling flate2 v1.1.5
+   Compiling swc_ecma_transforms_optimization v50.0.0
+   Compiling futures v0.3.32
+   Compiling derive_builder_macro v0.20.2
+   Compiling phf_generator v0.13.1
+   Compiling value-trait v0.12.1
+   Compiling napi-derive-backend v6.1.1
+   Compiling icu_locale_fallback v2.3.0
+   Compiling par-iter v2.0.0
+   Compiling is-terminal v0.4.15
+   Compiling concurrent_lru v0.2.0
+   Compiling nodejs-built-in-modules v1.0.0
+   Compiling nohash-hasher v0.2.0
+   Compiling humantime v2.1.0
+   Compiling icu_calendar_data v2.3.0
+   Compiling thin-vec v0.2.19
+   Compiling simdutf8 v0.1.5
+   Compiling byteorder v1.5.0
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling crossbeam-epoch v0.9.20
+   Compiling pnp v0.12.11
+   Compiling napi-derive v3.6.2
+   Compiling toml_edit v0.25.13+spec-1.1.0
+   Compiling swc_ecma_minifier v59.0.0
+   Compiling boa_gc v0.22.0
+   Compiling simd-json v0.17.0
+   Compiling env_logger v0.10.2
+   Compiling core_maths v0.1.1
+   Compiling stylex_regex v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-regex)
+   Compiling derive_builder v0.20.2
+   Compiling phf_macros v0.13.1
+   Compiling derive_more v2.1.1
+   Compiling rustc_version v0.4.1
+   Compiling fast-glob v1.0.0
+   Compiling compact_str v0.9.0
+   Compiling strum_macros v0.28.0
+   Compiling json-strip-comments v3.1.0
+   Compiling getrandom v0.4.3
+   Compiling rand_core v0.10.1
+   Compiling icu_collator_data v2.3.0
+   Compiling self_cell v1.2.1
+   Compiling dtoa v1.0.10
+   Compiling oxc_resolver v11.24.2
+   Compiling dtoa-short v0.3.5
+   Compiling phf v0.13.1
+   Compiling float16 v0.1.7
+   Compiling package-json v0.5.0
+   Compiling calendrical_calculations v0.2.4
+   Compiling strum v0.28.0
+   Compiling pretty_env_logger v0.5.0
+   Compiling swc_compiler_base v62.0.0
+   Compiling boa_interner v0.22.0
+   Compiling proc-macro-crate v3.5.0
+   Compiling event-listener v5.4.2
+   Compiling num-bigint v0.5.1
+   Compiling equator-macro v0.4.2
+   Compiling pin-project-internal v1.1.13
+   Compiling cssparser-macros v0.7.0
+   Compiling libmimalloc-sys v0.1.49
+   Compiling portable-atomic v1.15.0
+   Compiling rayon-core v1.13.0
+   Compiling time-core v0.1.9
+   Compiling num-conv v0.2.2
+   Compiling path-clean v1.0.1
+   Compiling time-macros v0.2.32
+   Compiling cssparser v0.37.0
+   Compiling pin-project v1.1.13
+   Compiling boa_ast v0.22.0
+   Compiling equator v0.4.2
+   Compiling event-listener-strategy v0.5.4
+   Compiling crossbeam-deque v0.8.6
+   Compiling num_enum_derive v0.7.6
+   Compiling icu_calendar v2.3.0
+   Compiling chacha20 v0.10.2
+   Compiling futures-lite v2.6.1
+   Compiling stylex_styleq v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-styleq)
+   Compiling timezone_provider v0.2.6
+   Compiling concurrent-queue v2.5.0
+   Compiling dynify-macros v0.1.2
+   Compiling bytemuck_derive v1.12.0
+   Compiling alloca v0.4.0
+   Compiling num_threads v0.1.7
+   Compiling regress v0.12.0
+   Compiling half v2.6.0
+   Compiling ciborium-io v0.2.2
+   Compiling anstyle v1.0.14
+   Compiling ixdtf v0.6.6
+   Compiling clap_lex v1.0.0
+   Compiling plotters-backend v0.3.7
+   Compiling deranged v0.5.8
+   Compiling powerfmt v0.2.0
+   Compiling plotters-svg v0.3.7
+   Compiling clap_builder v4.6.6
+   Compiling bytemuck v1.25.2
+   Compiling temporal_rs v0.2.6
+   Compiling time v0.3.55
+   Compiling boa_parser v0.22.0
+   Compiling stylex_path_resolver v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-path-resolver)
+   Compiling ciborium-ll v0.2.2
+   Compiling dynify v0.1.2
+   Compiling async-channel v2.5.0
+   Compiling futures-concurrency v7.7.1
+   Compiling rand v0.10.2
+   Compiling icu_collator v2.3.1
+   Compiling num_enum v0.7.6
+   Compiling aligned-vec v0.6.4
+   Compiling small_btree v0.1.0
+   Compiling itertools v0.13.0
+   Compiling itertools v0.15.0
+   Compiling oneshot v0.2.1
+   Compiling tag_ptr v0.1.0
+   Compiling postcss_value_parser v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/postcss-value-parser)
+   Compiling cast v0.3.0
+   Compiling xsum v0.1.6
+   Compiling intrusive-collections v0.10.3
+   Compiling same-file v1.0.6
+   Compiling walkdir v2.5.0
+   Compiling rayon v1.11.0
+   Compiling mimalloc v0.1.52
+   Compiling ciborium v0.2.2
+   Compiling clap v4.6.6
+   Compiling plotters v0.3.7
+   Compiling criterion-plot v0.8.2
+   Compiling tinytemplate v1.2.1
+   Compiling console v0.16.3
+   Compiling page_size v0.6.0
+   Compiling oorandom v11.1.5
+   Compiling anes v0.1.6
+   Compiling similar v2.7.0
+   Compiling swc_malloc v1.2.5
+   Compiling insta v1.48.0
+   Compiling criterion v0.8.2
+   Compiling boa_engine v0.22.0
+   Compiling stylex_utils v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-utils)
+   Compiling stylex_enums v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-enums)
+   Compiling stylex_ast v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-ast)
+   Compiling stylex_css_parser v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-css-parser)
+   Compiling stylex_js v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-js)
+   Compiling stylex_structures v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-structures)
+   Compiling stylex_state_index v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-state-index)
+   Compiling stylex_atoms v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-atoms)
+   Compiling stylex_types v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-types)
+   Compiling stylex_evaluator v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-evaluator)
+   Compiling stylex_nested_config v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-nested-config)
+   Compiling stylex_css v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-css)
+   Compiling stylex_diagnostics v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-diagnostics)
+   Compiling stylex_state v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-state)
+   Compiling stylex_declarations v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-declarations)
+   Compiling stylex_transform v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-transform)
+    Finished `bench` profile [optimized + debuginfo] target(s) in 7m 36s
+     Running benches/evaluate_bench.rs (target-bench/release/deps/evaluate_bench-8f9af56a1e473d3d)
+Benchmarking EvaluatePerfFixtures/colors.stylex.js
+Benchmarking EvaluatePerfFixtures/colors.stylex.js: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/colors.stylex.js: Collecting 20 samples in estimated 4.0008 s (118k iterations)
+Benchmarking EvaluatePerfFixtures/colors.stylex.js: Analyzing
+EvaluatePerfFixtures/colors.stylex.js
+                        time:   [29.643 µs 29.916 µs 30.210 µs]
+Benchmarking EvaluatePerfFixtures/sizes.stylex.js
+Benchmarking EvaluatePerfFixtures/sizes.stylex.js: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/sizes.stylex.js: Collecting 20 samples in estimated 4.0040 s (200k iterations)
+Benchmarking EvaluatePerfFixtures/sizes.stylex.js: Analyzing
+EvaluatePerfFixtures/sizes.stylex.js
+                        time:   [16.987 µs 17.084 µs 17.199 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+Benchmarking EvaluatePerfFixtures/create-basic.js
+Benchmarking EvaluatePerfFixtures/create-basic.js: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/create-basic.js: Collecting 20 samples in estimated 4.0007 s (351k iterations)
+Benchmarking EvaluatePerfFixtures/create-basic.js: Analyzing
+EvaluatePerfFixtures/create-basic.js
+                        time:   [8.9800 µs 9.0281 µs 9.0706 µs]
+Benchmarking EvaluatePerfFixtures/create-complex.js
+Benchmarking EvaluatePerfFixtures/create-complex.js: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/create-complex.js: Collecting 20 samples in estimated 4.0064 s (108k iterations)
+Benchmarking EvaluatePerfFixtures/create-complex.js: Analyzing
+EvaluatePerfFixtures/create-complex.js
+                        time:   [19.077 µs 19.225 µs 19.332 µs]
+Benchmarking EvaluatePerfFixtures/createTheme-basic.js
+Benchmarking EvaluatePerfFixtures/createTheme-basic.js: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/createTheme-basic.js: Collecting 20 samples in estimated 4.0018 s (127k iterations)
+Benchmarking EvaluatePerfFixtures/createTheme-basic.js: Analyzing
+EvaluatePerfFixtures/createTheme-basic.js
+                        time:   [24.734 µs 24.867 µs 25.030 µs]
+Benchmarking EvaluatePerfFixtures/createTheme-complex.js
+Benchmarking EvaluatePerfFixtures/createTheme-complex.js: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/createTheme-complex.js: Collecting 20 samples in estimated 4.0505 s (1260 iterations)
+Benchmarking EvaluatePerfFixtures/createTheme-complex.js: Analyzing
+EvaluatePerfFixtures/createTheme-complex.js
+                        time:   [3.1010 ms 3.1166 ms 3.1328 ms]
+Found 4 outliers among 20 measurements (20.00%)
+  3 (15.00%) high mild
+  1 (5.00%) high severe
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import: Collecting 20 samples in estimated 4.0000 s (1.1M iterations)
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import: Analyzing
+EvaluatePerfFixtures/dynamic-param-shadows-import
+                        time:   [2.5643 µs 2.5996 µs 2.6262 µs]
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import-edges
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import-edges: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import-edges: Collecting 20 samples in estimated 4.0009 s (284k iterations)
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import-edges: Analyzing
+EvaluatePerfFixtures/dynamic-param-shadows-import-edges
+                        time:   [7.7520 µs 7.8492 µs 7.9185 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) low mild
+
+   Compiling stylex_transform v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-transform)
+    Finished `bench` profile [optimized + debuginfo] target(s) in 7m 19s
+     Running benches/evaluate_depth_bench.rs (target-bench/release/deps/evaluate_depth_bench-afac56535e8840a0)
+Benchmarking EvaluateDepth/arithmetic/30
+Benchmarking EvaluateDepth/arithmetic/30: Warming up for 2.0000 s
+Benchmarking EvaluateDepth/arithmetic/30: Collecting 20 samples in estimated 4.0014 s (213k iterations)
+Benchmarking EvaluateDepth/arithmetic/30: Analyzing
+EvaluateDepth/arithmetic/30
+                        time:   [17.850 µs 18.142 µs 18.518 µs]
+Found 2 outliers among 20 measurements (10.00%)
+  2 (10.00%) high severe
+Benchmarking EvaluateDepth/arithmetic/60
+Benchmarking EvaluateDepth/arithmetic/60: Warming up for 2.0000 s
+Benchmarking EvaluateDepth/arithmetic/60: Collecting 20 samples in estimated 4.0055 s (64k iterations)
+Benchmarking EvaluateDepth/arithmetic/60: Analyzing
+EvaluateDepth/arithmetic/60
+                        time:   [60.472 µs 61.417 µs 62.579 µs]
+Found 2 outliers among 20 measurements (10.00%)
+  1 (5.00%) high mild
+  1 (5.00%) high severe
+Benchmarking EvaluateDepth/arithmetic/120
+Benchmarking EvaluateDepth/arithmetic/120: Warming up for 2.0000 s
+Benchmarking EvaluateDepth/arithmetic/120: Collecting 20 samples in estimated 4.0106 s (19k iterations)
+Benchmarking EvaluateDepth/arithmetic/120: Analyzing
+EvaluateDepth/arithmetic/120
+                        time:   [212.49 µs 213.92 µs 216.24 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+Benchmarking EvaluateDepth/arithmetic/240
+Benchmarking EvaluateDepth/arithmetic/240: Warming up for 2.0000 s
+Benchmarking EvaluateDepth/arithmetic/240: Collecting 20 samples in estimated 4.0142 s (4830 iterations)
+Benchmarking EvaluateDepth/arithmetic/240: Analyzing
+EvaluateDepth/arithmetic/240
+                        time:   [800.13 µs 806.98 µs 817.14 µs]
+Found 2 outliers among 20 measurements (10.00%)
+  1 (5.00%) high mild
+  1 (5.00%) high severe
+
+Benchmarking StructuralKeyDepth/arithmetic/30
+Benchmarking StructuralKeyDepth/arithmetic/30: Warming up for 2.0000 s
+Benchmarking StructuralKeyDepth/arithmetic/30: Collecting 20 samples in estimated 4.0001 s (6.3M iterations)
+Benchmarking StructuralKeyDepth/arithmetic/30: Analyzing
+StructuralKeyDepth/arithmetic/30
+                        time:   [638.78 ns 653.79 ns 668.28 ns]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+Benchmarking StructuralKeyDepth/arithmetic/60
+Benchmarking StructuralKeyDepth/arithmetic/60: Warming up for 2.0000 s
+Benchmarking StructuralKeyDepth/arithmetic/60: Collecting 20 samples in estimated 4.0001 s (2.6M iterations)
+Benchmarking StructuralKeyDepth/arithmetic/60: Analyzing
+StructuralKeyDepth/arithmetic/60
+                        time:   [1.5339 µs 1.5391 µs 1.5459 µs]
+Found 2 outliers among 20 measurements (10.00%)
+  1 (5.00%) high mild
+  1 (5.00%) high severe
+Benchmarking StructuralKeyDepth/arithmetic/120
+Benchmarking StructuralKeyDepth/arithmetic/120: Warming up for 2.0000 s
+Benchmarking StructuralKeyDepth/arithmetic/120: Collecting 20 samples in estimated 4.0005 s (1.3M iterations)
+Benchmarking StructuralKeyDepth/arithmetic/120: Analyzing
+StructuralKeyDepth/arithmetic/120
+                        time:   [3.0815 µs 3.1269 µs 3.2025 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+Benchmarking StructuralKeyDepth/arithmetic/240
+Benchmarking StructuralKeyDepth/arithmetic/240: Warming up for 2.0000 s
+Benchmarking StructuralKeyDepth/arithmetic/240: Collecting 20 samples in estimated 4.0004 s (634k iterations)
+Benchmarking StructuralKeyDepth/arithmetic/240: Analyzing
+StructuralKeyDepth/arithmetic/240
+                        time:   [6.2892 µs 6.3004 µs 6.3136 µs]
+Found 3 outliers among 20 measurements (15.00%)
+  1 (5.00%) high mild
+  2 (10.00%) high severe
+
+Benchmarking StructuralKeyFallback/object/128
+Benchmarking StructuralKeyFallback/object/128: Warming up for 2.0000 s
+Benchmarking StructuralKeyFallback/object/128: Collecting 20 samples in estimated 4.0004 s (1.5M iterations)
+Benchmarking StructuralKeyFallback/object/128: Analyzing
+StructuralKeyFallback/object/128
+                        time:   [2.5665 µs 2.5737 µs 2.5811 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+Benchmarking StructuralKeyFallback/object/129
+Benchmarking StructuralKeyFallback/object/129: Warming up for 2.0000 s
+Benchmarking StructuralKeyFallback/object/129: Collecting 20 samples in estimated 4.0010 s (467k iterations)
+Benchmarking StructuralKeyFallback/object/129: Analyzing
+StructuralKeyFallback/object/129
+                        time:   [8.5652 µs 8.5901 µs 8.6112 µs]
+
+   Compiling stylex_transform v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-transform)
+    Finished `bench` profile [optimized + debuginfo] target(s) in 4m 55s
+     Running benches/engine_fold_bench.rs (target-bench/release/deps/engine_fold_bench-f72214407a7ade6e)
+Benchmarking EngineFoldColdStart/build-and-answer
+Benchmarking EngineFoldColdStart/build-and-answer: Warming up for 2.0000 s
+Benchmarking EngineFoldColdStart/build-and-answer: Collecting 20 samples in estimated 4.0306 s (25k iterations)
+Benchmarking EngineFoldColdStart/build-and-answer: Analyzing
+EngineFoldColdStart/build-and-answer
+                        time:   [163.53 µs 166.13 µs 169.13 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+
+Benchmarking EngineFoldRoundTrip/engine/string
+Benchmarking EngineFoldRoundTrip/engine/string: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/engine/string: Collecting 20 samples in estimated 4.0001 s (1.6M iterations)
+Benchmarking EngineFoldRoundTrip/engine/string: Analyzing
+EngineFoldRoundTrip/engine/string
+                        time:   [2.3528 µs 2.3797 µs 2.4021 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+Benchmarking EngineFoldRoundTrip/fold/string
+Benchmarking EngineFoldRoundTrip/fold/string: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/fold/string: Collecting 20 samples in estimated 4.0001 s (3.8M iterations)
+Benchmarking EngineFoldRoundTrip/fold/string: Analyzing
+EngineFoldRoundTrip/fold/string
+                        time:   [775.36 ns 778.16 ns 780.79 ns]
+Benchmarking EngineFoldRoundTrip/engine/callback
+Benchmarking EngineFoldRoundTrip/engine/callback: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/engine/callback: Collecting 20 samples in estimated 4.0010 s (357k iterations)
+Benchmarking EngineFoldRoundTrip/engine/callback: Analyzing
+EngineFoldRoundTrip/engine/callback
+                        time:   [11.138 µs 11.210 µs 11.281 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+Benchmarking EngineFoldRoundTrip/fold/callback
+Benchmarking EngineFoldRoundTrip/fold/callback: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/fold/callback: Collecting 20 samples in estimated 4.0008 s (755k iterations)
+Benchmarking EngineFoldRoundTrip/fold/callback: Analyzing
+EngineFoldRoundTrip/fold/callback
+                        time:   [5.1169 µs 5.1293 µs 5.1380 µs]
+Benchmarking EngineFoldRoundTrip/engine/chain
+Benchmarking EngineFoldRoundTrip/engine/chain: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/engine/chain: Collecting 20 samples in estimated 4.0002 s (654k iterations)
+Benchmarking EngineFoldRoundTrip/engine/chain: Analyzing
+EngineFoldRoundTrip/engine/chain
+                        time:   [5.9726 µs 6.0345 µs 6.1011 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+Benchmarking EngineFoldRoundTrip/fold/chain
+Benchmarking EngineFoldRoundTrip/fold/chain: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/fold/chain: Collecting 20 samples in estimated 4.0000 s (2.0M iterations)
+Benchmarking EngineFoldRoundTrip/fold/chain: Analyzing
+EngineFoldRoundTrip/fold/chain
+                        time:   [1.8081 µs 1.8175 µs 1.8299 µs]
+Found 2 outliers among 20 measurements (10.00%)
+  1 (5.00%) low mild
+  1 (5.00%) high severe
+Benchmarking EngineFoldRoundTrip/engine/array-answer
+Benchmarking EngineFoldRoundTrip/engine/array-answer: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/engine/array-answer: Collecting 20 samples in estimated 4.0005 s (678k iterations)
+Benchmarking EngineFoldRoundTrip/engine/array-answer: Analyzing
+EngineFoldRoundTrip/engine/array-answer
+                        time:   [5.8639 µs 5.8988 µs 5.9395 µs]
+Benchmarking EngineFoldRoundTrip/fold/array-answer
+Benchmarking EngineFoldRoundTrip/fold/array-answer: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/fold/array-answer: Collecting 20 samples in estimated 4.0004 s (1.6M iterations)
+Benchmarking EngineFoldRoundTrip/fold/array-answer: Analyzing
+EngineFoldRoundTrip/fold/array-answer
+                        time:   [2.3248 µs 2.3420 µs 2.3537 µs]
+Benchmarking EngineFoldRoundTrip/fold-distinct
+Benchmarking EngineFoldRoundTrip/fold-distinct: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/fold-distinct: Collecting 20 samples in estimated 4.0014 s (609k iterations)
+Benchmarking EngineFoldRoundTrip/fold-distinct: Analyzing
+EngineFoldRoundTrip/fold-distinct
+                        time:   [5.6620 µs 5.7642 µs 5.8419 µs]
+
+   Compiling stylex_transform v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-transform)
+    Finished `bench` profile [optimized + debuginfo] target(s) in 4m 38s
+     Running benches/concatenation_chain_bench.rs (target-bench/release/deps/concatenation_chain_bench-87810beb62479547)
+Benchmarking ConcatenationChain/links/2
+Benchmarking ConcatenationChain/links/2: Warming up for 2.0000 s
+Benchmarking ConcatenationChain/links/2: Collecting 20 samples in estimated 4.0281 s (5460 iterations)
+Benchmarking ConcatenationChain/links/2: Analyzing
+ConcatenationChain/links/2
+                        time:   [727.92 µs 735.34 µs 748.49 µs]
+Found 2 outliers among 20 measurements (10.00%)
+  1 (5.00%) low mild
+  1 (5.00%) high severe
+Benchmarking ConcatenationChain/links/5
+Benchmarking ConcatenationChain/links/5: Warming up for 2.0000 s
+Benchmarking ConcatenationChain/links/5: Collecting 20 samples in estimated 4.0021 s (3990 iterations)
+Benchmarking ConcatenationChain/links/5: Analyzing
+ConcatenationChain/links/5
+                        time:   [1.0046 ms 1.0344 ms 1.0826 ms]
+Found 2 outliers among 20 measurements (10.00%)
+  1 (5.00%) high mild
+  1 (5.00%) high severe
+Benchmarking ConcatenationChain/links/10
+Benchmarking ConcatenationChain/links/10: Warming up for 2.0000 s
+Benchmarking ConcatenationChain/links/10: Collecting 20 samples in estimated 4.1195 s (2940 iterations)
+Benchmarking ConcatenationChain/links/10: Analyzing
+ConcatenationChain/links/10
+                        time:   [1.3605 ms 1.3995 ms 1.4462 ms]
+Found 4 outliers among 20 measurements (20.00%)
+  2 (10.00%) high mild
+  2 (10.00%) high severe
+Benchmarking ConcatenationChain/links/20
+Benchmarking ConcatenationChain/links/20: Warming up for 2.0000 s
+Benchmarking ConcatenationChain/links/20: Collecting 20 samples in estimated 4.2706 s (2100 iterations)
+Benchmarking ConcatenationChain/links/20: Analyzing
+ConcatenationChain/links/20
+                        time:   [2.0216 ms 2.0719 ms 2.1984 ms]
+Found 3 outliers among 20 measurements (15.00%)
+  2 (10.00%) high mild
+  1 (5.00%) high severe
+
+   Compiling stylex_transform v0.18.6-rc.1 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bench-parent-13/crates/stylex-transform)
+    Finished `bench` profile [optimized + debuginfo] target(s) in 6m 43s
+     Running benches/module_path_bench.rs (target-bench/release/deps/module_path_bench-a4e0b54900e6a781)
+Benchmarking ModuleWalk/calls/1x
+Benchmarking ModuleWalk/calls/1x: Warming up for 2.0000 s
+Benchmarking ModuleWalk/calls/1x: Collecting 20 samples in estimated 4.0226 s (17k iterations)
+Benchmarking ModuleWalk/calls/1x: Analyzing
+ModuleWalk/calls/1x     time:   [164.87 µs 170.81 µs 179.14 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+Benchmarking ModuleWalk/no-calls/1x
+Benchmarking ModuleWalk/no-calls/1x: Warming up for 2.0000 s
+Benchmarking ModuleWalk/no-calls/1x: Collecting 20 samples in estimated 4.0102 s (58k iterations)
+Benchmarking ModuleWalk/no-calls/1x: Analyzing
+ModuleWalk/no-calls/1x  time:   [23.034 µs 23.491 µs 24.173 µs]
+Found 2 outliers among 20 measurements (10.00%)
+  2 (10.00%) high mild
+Benchmarking ModuleWalk/imported/1x
+Benchmarking ModuleWalk/imported/1x: Warming up for 2.0000 s
+Benchmarking ModuleWalk/imported/1x: Collecting 20 samples in estimated 4.0155 s (13k iterations)
+Benchmarking ModuleWalk/imported/1x: Analyzing
+ModuleWalk/imported/1x  time:   [246.88 µs 261.53 µs 276.35 µs]
+Found 4 outliers among 20 measurements (20.00%)
+  3 (15.00%) high mild
+  1 (5.00%) high severe
+Benchmarking ModuleWalk/calls/4x
+Benchmarking ModuleWalk/calls/4x: Warming up for 2.0000 s
+Benchmarking ModuleWalk/calls/4x: Collecting 20 samples in estimated 4.1125 s (4620 iterations)
+Benchmarking ModuleWalk/calls/4x: Analyzing
+ModuleWalk/calls/4x     time:   [633.88 µs 643.50 µs 659.68 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+Benchmarking ModuleWalk/no-calls/4x
+Benchmarking ModuleWalk/no-calls/4x: Warming up for 2.0000 s
+Benchmarking ModuleWalk/no-calls/4x: Collecting 20 samples in estimated 4.0478 s (15k iterations)
+Benchmarking ModuleWalk/no-calls/4x: Analyzing
+ModuleWalk/no-calls/4x  time:   [87.007 µs 91.165 µs 98.706 µs]
+Found 2 outliers among 20 measurements (10.00%)
+  2 (10.00%) high severe
+Benchmarking ModuleWalk/imported/4x
+Benchmarking ModuleWalk/imported/4x: Warming up for 2.0000 s
+Benchmarking ModuleWalk/imported/4x: Collecting 20 samples in estimated 4.2111 s (3570 iterations)
+Benchmarking ModuleWalk/imported/4x: Analyzing
+ModuleWalk/imported/4x  time:   [895.25 µs 908.81 µs 922.62 µs]
+
+Benchmarking SeenModuleSource/kept/calls/1x
+Benchmarking SeenModuleSource/kept/calls/1x: Warming up for 2.0000 s
+Benchmarking SeenModuleSource/kept/calls/1x: Collecting 20 samples in estimated 4.0595 s (14k iterations)
+Benchmarking SeenModuleSource/kept/calls/1x: Analyzing
+SeenModuleSource/kept/calls/1x
+                        time:   [211.41 µs 215.11 µs 219.09 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+Benchmarking SeenModuleSource/kept/no-calls/1x
+Benchmarking SeenModuleSource/kept/no-calls/1x: Warming up for 2.0000 s
+Benchmarking SeenModuleSource/kept/no-calls/1x: Collecting 20 samples in estimated 4.0049 s (37k iterations)
+Benchmarking SeenModuleSource/kept/no-calls/1x: Analyzing
+SeenModuleSource/kept/no-calls/1x
+                        time:   [62.405 µs 64.054 µs 66.838 µs]
+Found 2 outliers among 20 measurements (10.00%)
+  1 (5.00%) high mild
+  1 (5.00%) high severe
+Benchmarking SeenModuleSource/kept/calls/4x
+Benchmarking SeenModuleSource/kept/calls/4x: Warming up for 2.0000 s
+Benchmarking SeenModuleSource/kept/calls/4x: Collecting 20 samples in estimated 4.2192 s (3990 iterations)
+Benchmarking SeenModuleSource/kept/calls/4x: Analyzing
+SeenModuleSource/kept/calls/4x
+                        time:   [813.39 µs 820.48 µs 827.20 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+Benchmarking SeenModuleSource/kept/no-calls/4x
+Benchmarking SeenModuleSource/kept/no-calls/4x: Warming up for 2.0000 s
+Benchmarking SeenModuleSource/kept/no-calls/4x: Collecting 20 samples in estimated 4.0686 s (9660 iterations)
+Benchmarking SeenModuleSource/kept/no-calls/4x: Analyzing
+SeenModuleSource/kept/no-calls/4x
+                        time:   [242.32 µs 247.86 µs 252.03 µs]
+Found 3 outliers among 20 measurements (15.00%)
+  3 (15.00%) high mild
+
+Benchmarking StructuralKey/call/shallow
+Benchmarking StructuralKey/call/shallow: Warming up for 2.0000 s
+Benchmarking StructuralKey/call/shallow: Collecting 20 samples in estimated 4.0000 s (66M iterations)
+Benchmarking StructuralKey/call/shallow: Analyzing
+StructuralKey/call/shallow
+                        time:   [58.990 ns 59.066 ns 59.143 ns]
+Found 2 outliers among 20 measurements (10.00%)
+  2 (10.00%) high mild
+Benchmarking StructuralKey/call/member
+Benchmarking StructuralKey/call/member: Warming up for 2.0000 s
+Benchmarking StructuralKey/call/member: Collecting 20 samples in estimated 4.0000 s (60M iterations)
+Benchmarking StructuralKey/call/member: Analyzing
+StructuralKey/call/member
+                        time:   [65.321 ns 65.670 ns 66.091 ns]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+Benchmarking StructuralKey/call/nested
+Benchmarking StructuralKey/call/nested: Warming up for 2.0000 s
+Benchmarking StructuralKey/call/nested: Collecting 20 samples in estimated 4.0000 s (32M iterations)
+Benchmarking StructuralKey/call/nested: Analyzing
+StructuralKey/call/nested
+                        time:   [126.31 ns 127.56 ns 129.03 ns]
+Found 2 outliers among 20 measurements (10.00%)
+  1 (5.00%) high mild
+  1 (5.00%) high severe
+
+Benchmarking StateManager/new
+Benchmarking StateManager/new: Warming up for 2.0000 s
+Benchmarking StateManager/new: Collecting 20 samples in estimated 4.0001 s (8.7M iterations)
+Benchmarking StateManager/new: Analyzing
+StateManager/new        time:   [180.28 ns 184.46 ns 187.89 ns]
+
+Benchmarking FullPipeline/calls/1x
+Benchmarking FullPipeline/calls/1x: Warming up for 2.0000 s
+Benchmarking FullPipeline/calls/1x: Collecting 20 samples in estimated 4.0174 s (12k iterations)
+Benchmarking FullPipeline/calls/1x: Analyzing
+FullPipeline/calls/1x   time:   [302.54 µs 303.90 µs 305.55 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+Benchmarking FullPipeline/no-calls/1x
+Benchmarking FullPipeline/no-calls/1x: Warming up for 2.0000 s
+Benchmarking FullPipeline/no-calls/1x: Collecting 20 samples in estimated 4.0242 s (24k iterations)
+Benchmarking FullPipeline/no-calls/1x: Analyzing
+FullPipeline/no-calls/1x
+                        time:   [144.30 µs 144.83 µs 145.31 µs]
+Benchmarking FullPipeline/imported/1x
+Benchmarking FullPipeline/imported/1x: Warming up for 2.0000 s
+Benchmarking FullPipeline/imported/1x: Collecting 20 samples in estimated 4.0598 s (9870 iterations)
+Benchmarking FullPipeline/imported/1x: Analyzing
+FullPipeline/imported/1x
+                        time:   [380.06 µs 386.17 µs 394.73 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+Benchmarking FullPipeline/calls/4x
+Benchmarking FullPipeline/calls/4x: Warming up for 2.0000 s
+Benchmarking FullPipeline/calls/4x: Collecting 20 samples in estimated 4.1633 s (3150 iterations)
+Benchmarking FullPipeline/calls/4x: Analyzing
+FullPipeline/calls/4x   time:   [1.1895 ms 1.2011 ms 1.2216 ms]
+Found 4 outliers among 20 measurements (20.00%)
+  3 (15.00%) high mild
+  1 (5.00%) high severe
+Benchmarking FullPipeline/no-calls/4x
+Benchmarking FullPipeline/no-calls/4x: Warming up for 2.0000 s
+Benchmarking FullPipeline/no-calls/4x: Collecting 20 samples in estimated 4.0160 s (6090 iterations)
+Benchmarking FullPipeline/no-calls/4x: Analyzing
+FullPipeline/no-calls/4x
+                        time:   [560.48 µs 563.50 µs 566.91 µs]
+Found 2 outliers among 20 measurements (10.00%)
+  2 (10.00%) high mild
+Benchmarking FullPipeline/imported/4x
+Benchmarking FullPipeline/imported/4x: Warming up for 2.0000 s
+Benchmarking FullPipeline/imported/4x: Collecting 20 samples in estimated 4.3238 s (2730 iterations)
+Benchmarking FullPipeline/imported/4x: Analyzing
+FullPipeline/imported/4x
+                        time:   [1.4644 ms 1.4735 ms 1.4821 ms]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+

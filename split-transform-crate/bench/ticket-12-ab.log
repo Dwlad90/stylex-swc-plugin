@@ -1,0 +1,183 @@
+### concatenation_chain_bench
+                        time:   [733.76 µs 736.98 µs 740.22 µs]
+                        change: [+0.2107% +0.6214% +1.0952%] (p = 0.01 < 0.05)
+                        time:   [991.39 µs 994.07 µs 996.28 µs]
+                        change: [−1.2090% −0.2629% +0.5846%] (p = 0.61 > 0.05)
+                        time:   [1.3448 ms 1.3619 ms 1.3895 ms]
+                        change: [−0.9078% +1.1247% +3.2128%] (p = 0.32 > 0.05)
+                        time:   [2.0108 ms 2.0174 ms 2.0235 ms]
+                        change: [−0.3626% +0.0987% +0.5755%] (p = 0.70 > 0.05)
+### engine_fold_bench
+                        time:   [161.04 µs 161.33 µs 161.53 µs]
+                        change: [−0.0275% +0.4073% +0.8182%] (p = 0.09 > 0.05)
+                        time:   [2.3235 µs 2.3289 µs 2.3358 µs]
+                        change: [+2.6416% +2.9678% +3.2604%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [759.09 ns 762.57 ns 768.37 ns]
+                        change: [+0.9250% +1.4408% +2.0257%] (p = 0.00 < 0.05)
+                        time:   [10.986 µs 11.033 µs 11.073 µs]
+                        change: [+1.0820% +1.7052% +2.2307%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [4.9869 µs 4.9966 µs 5.0118 µs]
+                        change: [−0.3579% +0.2720% +0.8536%] (p = 0.44 > 0.05)
+                        time:   [5.8405 µs 5.8476 µs 5.8561 µs]
+                        change: [+0.8893% +1.5214% +2.0519%] (p = 0.00 < 0.05)
+                        time:   [1.7602 µs 1.7647 µs 1.7707 µs]
+                        change: [−0.2261% +0.2647% +0.7240%] (p = 0.32 > 0.05)
+                        time:   [5.6080 µs 5.6157 µs 5.6229 µs]
+                        change: [+0.5047% +0.9933% +1.4004%] (p = 0.00 < 0.05)
+                        time:   [2.2479 µs 2.2548 µs 2.2658 µs]
+                        change: [−0.0953% +0.4192% +1.0492%] (p = 0.19 > 0.05)
+                        time:   [5.2176 µs 5.3025 µs 5.4127 µs]
+                        change: [+5.5989% +8.8056% +12.396%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+### evaluate_bench
+                        time:   [28.805 µs 28.962 µs 29.106 µs]
+                        change: [−0.8092% −0.2604% +0.3497%] (p = 0.43 > 0.05)
+                        time:   [16.692 µs 16.778 µs 16.859 µs]
+                        change: [−0.2425% +1.0877% +2.4126%] (p = 0.19 > 0.05)
+                        time:   [8.7784 µs 8.8252 µs 8.8660 µs]
+                        change: [−0.0159% +1.0182% +2.0461%] (p = 0.08 > 0.05)
+                        time:   [18.762 µs 19.107 µs 19.290 µs]
+                        change: [−1.6353% +0.1474% +2.1522%] (p = 0.88 > 0.05)
+                        time:   [24.369 µs 24.520 µs 24.694 µs]
+                        change: [+0.3608% +1.1565% +1.9868%] (p = 0.02 < 0.05)
+                        time:   [3.0891 ms 3.0952 ms 3.1015 ms]
+                        change: [−0.4761% −0.2374% −0.0088%] (p = 0.08 > 0.05)
+                        time:   [2.4637 µs 2.5359 µs 2.5763 µs]
+                        change: [−4.9063% −1.1986% +2.4667%] (p = 0.56 > 0.05)
+                        time:   [7.6929 µs 7.8241 µs 7.8902 µs]
+                        change: [−1.5528% +1.7361% +5.3066%] (p = 0.35 > 0.05)
+### evaluate_depth_bench
+                        time:   [17.133 µs 17.294 µs 17.491 µs]
+                        change: [−1.7762% −0.9910% −0.2479%] (p = 0.03 < 0.05)
+                        time:   [57.702 µs 57.779 µs 57.897 µs]
+                        change: [−1.7448% −1.3754% −1.0056%] (p = 0.00 < 0.05)
+                        Performance has improved.
+                        time:   [206.90 µs 207.24 µs 207.53 µs]
+                        change: [−1.3905% −1.0585% −0.7796%] (p = 0.00 < 0.05)
+                        time:   [785.95 µs 788.84 µs 793.41 µs]
+                        change: [−1.3946% −0.9797% −0.5791%] (p = 0.00 < 0.05)
+                        time:   [621.63 ns 624.61 ns 626.96 ns]
+                        change: [−3.7490% −3.3921% −3.0545%] (p = 0.00 < 0.05)
+                        Performance has improved.
+                        time:   [1.5220 µs 1.5363 µs 1.5447 µs]
+                        change: [−1.5384% −0.8242% −0.2048%] (p = 0.04 < 0.05)
+                        time:   [3.0205 µs 3.0275 µs 3.0324 µs]
+                        change: [−1.8933% −1.5479% −1.2403%] (p = 0.00 < 0.05)
+                        Performance has improved.
+                        time:   [6.2263 µs 6.2446 µs 6.2620 µs]
+                        change: [−1.7687% −1.3870% −1.0576%] (p = 0.00 < 0.05)
+                        Performance has improved.
+                        time:   [2.5350 µs 2.5473 µs 2.5574 µs]
+                        change: [−3.4154% −3.0304% −2.5469%] (p = 0.00 < 0.05)
+                        Performance has improved.
+                        time:   [8.5113 µs 8.5374 µs 8.5669 µs]
+                        change: [+1.4070% +1.8170% +2.2796%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+### module_path_bench
+ModuleWalk/calls/1x     time:   [150.65 µs 152.29 µs 155.33 µs]
+                        change: [+1.8022% +3.8821% +7.7131%] (p = 0.01 < 0.05)
+                        Performance has regressed.
+ModuleWalk/no-calls/1x  time:   [22.178 µs 22.412 µs 22.548 µs]
+                        change: [+2.3363% +3.4491% +4.5784%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+ModuleWalk/imported/1x  time:   [224.93 µs 227.55 µs 230.17 µs]
+                        change: [+1.6091% +2.4536% +3.2449%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+ModuleWalk/calls/4x     time:   [604.84 µs 608.16 µs 610.29 µs]
+                        change: [+2.4599% +3.2315% +3.9837%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+ModuleWalk/no-calls/4x  time:   [82.446 µs 83.253 µs 83.962 µs]
+                        change: [+0.3129% +2.2165% +4.0188%] (p = 0.04 < 0.05)
+ModuleWalk/imported/4x  time:   [840.70 µs 844.95 µs 850.88 µs]
+                        change: [+2.5436% +3.6894% +5.0519%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [204.03 µs 205.44 µs 206.48 µs]
+                        change: [+1.9814% +2.5965% +3.2428%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [61.906 µs 62.075 µs 62.178 µs]
+                        change: [+0.5275% +2.8654% +4.5974%] (p = 0.02 < 0.05)
+                        time:   [812.46 µs 816.29 µs 821.12 µs]
+                        change: [+2.4312% +3.1926% +3.8903%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [236.85 µs 238.47 µs 240.25 µs]
+                        change: [−0.9039% +0.0810% +1.0281%] (p = 0.89 > 0.05)
+                        time:   [58.234 ns 58.798 ns 59.403 ns]
+                        change: [+1.4770% +2.3782% +3.2705%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [65.018 ns 65.473 ns 65.916 ns]
+                        change: [+3.1563% +3.7959% +4.4137%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [124.28 ns 124.96 ns 125.65 ns]
+                        change: [+1.2497% +1.8876% +2.5053%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+StateManager/new        time:   [173.23 ns 176.24 ns 181.29 ns]
+                        change: [−3.9766% −1.1423% +2.0534%] (p = 0.50 > 0.05)
+FullPipeline/calls/1x   time:   [296.23 µs 299.79 µs 303.17 µs]
+                        change: [+2.6731% +3.6254% +4.5309%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [142.43 µs 143.18 µs 143.93 µs]
+                        change: [+1.0667% +2.8991% +5.3713%] (p = 0.02 < 0.05)
+                        Performance has regressed.
+                        time:   [374.32 µs 376.56 µs 378.63 µs]
+                        change: [+3.8270% +4.5376% +5.2382%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+FullPipeline/calls/4x   time:   [1.1671 ms 1.1796 ms 1.1951 ms]
+                        change: [+3.0266% +3.8818% +4.8263%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [553.03 µs 558.12 µs 562.86 µs]
+                        change: [+1.1337% +1.9803% +2.8368%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [1.4063 ms 1.4252 ms 1.4378 ms]
+                        change: [+2.0370% +3.1825% +4.1909%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+### transform_consumers_bench
+                        time:   [1.2526 ms 1.2628 ms 1.2831 ms]
+                        change: [−0.0380% +1.6268% +3.3552%] (p = 0.13 > 0.05)
+                        time:   [4.9204 ms 4.9979 ms 5.0883 ms]
+                        change: [+0.4528% +1.8797% +3.3337%] (p = 0.03 < 0.05)
+                        time:   [21.577 ms 21.713 ms 21.830 ms]
+                        change: [+2.5927% +4.1274% +5.6601%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [1.0999 ms 1.1033 ms 1.1056 ms]
+                        change: [+1.7270% +3.0938% +4.1626%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [4.4137 ms 4.4341 ms 4.4509 ms]
+                        change: [+2.8451% +3.7258% +4.6353%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [18.447 ms 18.697 ms 18.868 ms]
+                        change: [+3.2027% +4.8462% +6.3985%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+### transform_debug_bench
+                        time:   [2.1877 ms 2.1942 ms 2.1996 ms]
+                        change: [−3.9718% −2.2197% −0.6040%] (p = 0.02 < 0.05)
+                        time:   [1.6363 ms 1.6428 ms 1.6525 ms]
+                        change: [+0.1252% +0.7427% +1.4778%] (p = 0.04 < 0.05)
+                        time:   [3.5855 ms 3.6277 ms 3.6586 ms]
+                        change: [−5.1442% −2.7689% −0.4863%] (p = 0.04 < 0.05)
+                        time:   [2.6731 ms 2.6789 ms 2.6827 ms]
+                        change: [−1.8169% −0.7140% +0.2151%] (p = 0.24 > 0.05)
+                        time:   [7.7056 ms 7.7732 ms 7.8784 ms]
+                        change: [+0.6055% +1.6549% +2.6896%] (p = 0.01 < 0.05)
+                        time:   [5.8126 ms 5.8698 ms 5.9933 ms]
+                        change: [−4.7573% −0.5551% +2.6889%] (p = 0.84 > 0.05)
+                        time:   [279.09 µs 281.89 µs 285.47 µs]
+                        change: [+2.6026% +3.4837% +4.5591%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [167.00 µs 168.21 µs 169.31 µs]
+                        change: [+1.0917% +1.5354% +1.9868%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [1.1049 ms 1.1172 ms 1.1335 ms]
+                        change: [+0.4787% +2.3712% +4.0978%] (p = 0.03 < 0.05)
+                        time:   [894.00 µs 897.60 µs 901.70 µs]
+                        change: [+1.9025% +2.5149% +3.1180%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+                        time:   [8.6920 ms 8.7233 ms 8.7736 ms]
+                        change: [−0.0721% +2.3904% +4.1075%] (p = 0.05 < 0.05)
+                        time:   [7.9296 ms 8.1772 ms 8.6442 ms]
+                        change: [+2.4769% +5.3732% +9.9967%] (p = 0.01 < 0.05)
+                        Performance has regressed.
+TICKET12 LEG DONE
+
+[exited with code 0]

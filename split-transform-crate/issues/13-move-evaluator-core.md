@@ -34,24 +34,32 @@ Behaviour must be identical. **Confident** results, **deopt** expressions,
 **applied global** resolution and **declared binding** shadowing all keep
 exactly their current semantics.
 
-- [ ] The dispatcher, all node handlers, the engine fold, deopt, the declaration
+- [x] The dispatcher, all node handlers, the engine fold, deopt, the declaration
       check and the stylex functions live in the evaluator crate.
-- [ ] The fold and the handlers are in the same crate; the mutual recursion
+- [x] The fold and the handlers are in the same crate; the mutual recursion
       stays internal to it.
-- [ ] No trait or callback indirection was introduced on the evaluation path.
-- [ ] The embedded JS engine dependency moved with the fold; the transform no
-      longer declares it.
-- [ ] No function was renamed, split, merged or reordered.
-- [ ] No re-export facade is left in the transform.
-- [ ] The transform's source drops to roughly 15k lines.
-- [ ] Benches diffed; the fold and evaluation benches show no regression outside
-      noise. A/B against `develop`, per decision 4 below.
+- [x] No trait or callback indirection was introduced on the evaluation path.
+- [~] The embedded JS engine dependency moved with the fold; the transform no
+      longer declares it. It left `[dependencies]` and is now a
+      `[dev-dependency]` for `engine_fold_bench`, which ticket 09 moves. The
+      shipped library no longer links it.
+- [x] No function was renamed, split, merged or reordered.
+- [x] No re-export facade is left in the transform.
+- [x] The transform's source drops to roughly 15k lines.
+- [~] Benches diffed; the fold and evaluation benches show no regression outside
+      noise. Measured twice, and the second measurement changed the commit --
+      see [`../bench/ticket-13.md`](../bench/ticket-13.md). The final A/B against
+      the branch as it stands is
+      [ticket 16](./16-measure-the-crate-type-change.md), by decision.
 - [ ] The evaluator crate still reports zero uncovered lines and regions after
-      ~9.5k lines land in it. (Ticket 08 carried a criterion about removing a
+      ~9.5k lines land in it. **Not met**, and not reachable here -- see the
+      second comment below. The crate measures 66.76% of regions against its own
+      tests; closing that is
+      [ticket 15](./15-cover-the-evaluator-crate.md). (Ticket 08 carried a criterion about removing a
       ticket-07 exclusion; there is none -- that crate reached 100% -- so this
       replaces it. The live exclusion is `stylex-state`'s, and removing it is
       [ticket 11](./11-cover-the-state-crate.md).)
-- [ ] The evaluator's `CONTEXT.md` covers the vocabulary that moved with the
+- [x] The evaluator's `CONTEXT.md` covers the vocabulary that moved with the
       code. This is the bulk of the transform's glossary, not a handful of
       entries: of the 36 terms it defines today, roughly 28 are evaluation
       vocabulary -- _confident_, _deopt_, _applied global_, _declared binding_,
@@ -63,15 +71,15 @@ exactly their current semantics.
       _winning operand_, _dead operand_, _coercion bridge_, _string operand_,
       _reference resolution chain_, _folded function map_, _early reference_,
       _evaluation depth_, _measured string_.
-- [ ] What stays in the transform is the visitor's own vocabulary: _pre-scan_,
+- [x] What stays in the transform is the visitor's own vocabulary: _pre-scan_,
       _pre-rule_, _blank value_, _producer / consumer_, _transformer_, _property
       registration_, _runtime binding_. _Synthesized node_ is a judgement call --
       shorthand expansion and the injected function mappers both produce them, so
       it may belong lower than either crate.
-- [ ] ADRs 0005 and 0006 describe the memo key, so they travel with `cache.rs`.
+- [x] ADRs 0005 and 0006 describe the memo key, so they travel with `cache.rs`.
       Fix the inbound links in `stylex-state/CONTEXT.md` and
       `stylex-utils/CONTEXT.md`, which point at the transform's copies.
-- [ ] The full workspace suite is green, with `pnpm format:check`, `lint:check`,
+- [x] The full workspace suite is green, with `pnpm format:check`, `lint:check`,
       `lint:shell`, `typecheck` and `test`.
 
 ## Decisions already taken
@@ -100,4 +108,56 @@ read its caveats before running it.
 
 **Blocked by:** 12 — Extract the declarations crate.
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Comments
+
+### The unit tests move with the core, against ticket 09
+
+Ticket 09 planned to leave the evaluation unit tests with the transform until a
+later step. That is not reachable. Workspace coverage runs
+`cargo llvm-cov nextest --workspace ... --exclude stylex_transform`, so a test
+that lives in the transform never runs under the gate. Tests left behind would
+put the ~11k lines landing here at nearly zero covered, and this ticket asks for
+zero uncovered lines and regions. Reaching in from another crate would also make
+the fold and the node handlers `pub`, which this ticket asks to keep private.
+
+So `evaluate/tests/`, `nodes/tests/`, `engine_fold/tests/`, the convertors tests
+and the `first_that_works` tests travel with their subject. Ticket 09 keeps the
+three criterion benches and the scaffolding de-duplication.
+
+### The one function that was not moved mechanically
+
+`No function was renamed, split, merged or reordered` holds for all 47 moved
+files but one. `evaluate/tests/source_evaluation.rs` lost its copies of five
+test helpers -- the two thread sizes, the nested literal, the thread a case runs
+on and the parser -- and re-exports them from `tests/scaffolding.rs` instead.
+The duplication only existed because the two copies were in different crates,
+and this move put them in the same one. RUST.md permits the re-export as a test
+prelude. Ticket 09 asked for this and now has one box fewer.
+
+### Nineteen crates lost a `cdylib`, on a measurement
+
+Not asked for by this ticket, and in the commit because leaving it out would
+have shipped a regression. The A/B against ticket 12 read +6.64% median on the
+memo-key benches, with the control group -- the benches that cannot reach the
+moved code -- flat to faster. That is the reverse of ticket 12's finding, so
+ticket 12's "layout, not the moved code" argument did not transfer.
+
+The cause was the build, not the code. `stylex-transform` is `rlib` only, by an
+accident a comment recorded: a `cdylib` broke the link there. So the evaluator
+was compiled `rlib` only for as long as it lived in the transform, and
+`stylex-evaluator` declared `crate-type = ["cdylib", "rlib"]`. Dropping it took
+the median to +2.14% and `StructuralKeyDepth` from +6.57% to +0.14%.
+
+Eighteen more crates declared the same thing, nothing linked any of them, and no
+crate here builds as a WASM SWC plugin -- there is no `plugin_transform!` entry
+point in the tree. All nineteen are now `rlib` only, and
+`guidelines/STRUCTURE.md` records the rule.
+
+Two things are owed and are [ticket 16](./16-measure-the-crate-type-change.md):
+the final A/B against the branch as it stands, and whether the +3.65% floor
+ticket 07 measured and the +3.04% median ticket 12 measured were this rather
+than function placement. Both of those moves also went from the `rlib`-only
+transform into a `cdylib` crate.
+

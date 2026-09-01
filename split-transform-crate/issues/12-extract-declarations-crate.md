@@ -32,21 +32,24 @@ its value types and its writers.
 half's tests come here, the cycle half's stay for ticket 13. Around 27 of the
 111 tests in `common_tests.rs` come with the lookups.
 
-- [ ] The nine functions live in `stylex-declarations`; nothing else does.
-- [ ] `stylex-state` no longer holds a declaration lookup.
-- [ ] The crate has `Cargo.toml`, `package.json` with the Cargo deps mirrored, a
+- [x] The nine functions live in `stylex-declarations`; nothing else does.
+- [x] `stylex-state` no longer holds a declaration lookup.
+- [x] The crate has `Cargo.toml`, `package.json` with the Cargo deps mirrored, a
       catalog entry, `turbo.json`, `taplo.toml`, `README.md`, `CONTEXT.md`, a
       context-map row and a layer-list position.
-- [ ] **It reaches the coverage gate with no exemption.** Unlike `stylex-state`,
+- [x] **It reaches the coverage gate with no exemption.** Unlike `stylex-state`,
       its tests travel with it. Expect a small gap:
       `convert_lit_to_raw_value` has no direct test today.
-- [ ] No re-export facade in the transform or in `stylex-state`.
-- [ ] Benches A/B'd against `develop` on one machine in one session; no
+- [x] No re-export facade in the transform or in `stylex-state`.
+- [x] Benches A/B'd against `develop` on one machine in one session; no
       regression outside the layout floor. A new crate shifts function placement
       under `-C lto -C codegen-units=1` even where no executable line changed.
-- [ ] `CONTEXT.md` defines the vocabulary that arrived, and no term is left
+      Also A/B'd against the parent commit, which is what actually attributes
+      this ticket -- see the bench record for why, and for the target-directory
+      trap that invalidated a first attempt.
+- [x] `CONTEXT.md` defines the vocabulary that arrived, and no term is left
       defined in two crates.
-- [ ] The full workspace suite is green, with `pnpm format:check`, `lint:check`,
+- [x] The full workspace suite is green, with `pnpm format:check`, `lint:check`,
       `lint:shell`, `typecheck` and `test`.
 
 ## Decisions already taken
@@ -82,4 +85,36 @@ read its caveats before running it.
 
 **Blocked by:** None — `stylex-state` exists as of `a1baab79e`.
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## What landed
+
+`stylex-declarations` at layer 10, 229 source lines. The four declaration
+lookups left `stylex-state/src/common.rs`; the five pure convertors left
+`crates/stylex-transform/src/shared/utils/ast/convertors.rs`. The cycle half of
+that module stayed for ticket 13, cut on the line the table above draws.
+
+Two `StateManager` methods the lookups read -- `import_binding` and
+`declaration_of` -- widened from `pub(crate)` to `pub`. That is the narrowest
+visibility a cross-crate call has.
+
+**Tests.** 27 of the 111 in `common_tests.rs` moved, and 17 of the 67 in the
+transform's `convertors_tests.rs`, both verbatim. 16 more were written to close
+the gap the ticket predicted: `convert_lit_to_raw_value` and
+`get_var_decl_parts_by_ident` had no direct test, and `handle_tpl_to_expression`
+had no case for a declaration without an initializer. The crate reports **100%**
+lines, regions and functions, with no exemption in `coverage.sh` or in the root
+`test:coverage:workspace` list.
+
+**Benches.** Recorded in [`../bench/ticket-12.md`](../bench/ticket-12.md).
+
+## Left for later, deliberately
+
+- `convert_ident_to_expr` has no caller anywhere outside its own tests, and had
+  none before this move either. It is pre-existing dead code rather than
+  something this ticket created, so it is left alone. Ticket 14 already owns the
+  question of what to do with an uncalled `pub` function.
+- `convertors_tests.rs` carries six copies of the same `make_var_declarator`
+  helper. They arrived that way and moved verbatim. Hoisting one copy means
+  editing six moved test modules, which would cost the property that makes this
+  diff cheap to review: only import lines changed.

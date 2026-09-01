@@ -7,8 +7,9 @@ use stylex_css::utils::{
   pre_rule::{sort_at_rules, sort_pseudos},
   pseudo::is_pseudo_selector,
 };
-use stylex_state::{common::type_of, state_manager::StateManager, types::ClassNameToOriginalPaths};
+use stylex_state::{state_manager::StateManager, types::ClassNameToOriginalPaths};
 use stylex_types::structures::style_key::ClassName;
+use stylex_utils::types::type_of;
 
 use super::{null_pre_rule::NullPreRule, pre_rule_set::PreRuleSet};
 use stylex_structures::pre_rule_value::PreRuleValue;

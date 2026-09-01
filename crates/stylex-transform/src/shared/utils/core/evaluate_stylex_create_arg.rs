@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use stylex_ast::ast::objects::assign_props;
 use stylex_css::css::common::get_number_suffix;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
@@ -37,7 +38,6 @@ use stylex_evaluator::evaluate::{
 };
 use stylex_evaluator::evaluate_result::EvaluateResult;
 use stylex_state::{
-  common::assign_props,
   evaluate_result_value::EvaluateResultValue,
   functions::FunctionMap,
   state_manager::StateManager,

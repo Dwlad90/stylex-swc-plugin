@@ -1,15 +1,17 @@
 use indexmap::IndexMap;
+use std::ops::Deref;
 use stylex_ast::ast::convertors::{
-  convert_key_value_to_str, convert_lit_to_string, get_key_values_from_object,
+  convert_key_value_to_str, convert_lit_to_string, expand_shorthand_prop,
+  get_key_values_from_object,
 };
 use stylex_ast::ast::factories::{
   create_key_value_prop, create_object_expression, create_object_lit, create_string_key_value_prop,
 };
-use stylex_constants::constants::messages::VALUE_MUST_BE_STRING;
+use stylex_constants::constants::messages::{SPREAD_NOT_SUPPORTED, VALUE_MUST_BE_STRING};
 use stylex_enums::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault};
-use stylex_macros::stylex_panic;
+use stylex_macros::{stylex_panic, stylex_unimplemented};
 use stylex_utils::swc::get_expr_node_kind;
-use swc_core::ecma::ast::{Expr, ObjectLit, PropOrSpread};
+use swc_core::ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropOrSpread};
 
 impl From<BaseCSSType> for Expr {
   fn from(instance: BaseCSSType) -> Self {
@@ -63,6 +65,69 @@ impl BaseCSSType {
       },
     }
   }
+}
+
+/// The value a CSS-typed declaration carries, and the type declaration itself
+/// where the value is one.
+///
+/// `defineVars` accepts either a plain value or a `{ syntax, value }` object
+/// that states the value's CSS type. This reads the second shape apart into the
+/// value the stylesheet takes and the type declaration `@property` needs, and
+/// hands a plain value straight back with no type.
+pub fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>) {
+  let Some(obj) = key_value.value.as_object() else {
+    return (key_value.value, None);
+  };
+
+  for prop in obj.props.clone().into_iter() {
+    match prop {
+      PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
+      PropOrSpread::Prop(mut prop) => {
+        expand_shorthand_prop(&mut prop);
+
+        match prop.deref() {
+          Prop::KeyValue(key_value) => {
+            if let Some(ident) = key_value.key.as_ident()
+              && ident.sym == "syntax"
+            {
+              let value = obj.props.iter().find(|prop| {
+                match prop {
+                  PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
+                  PropOrSpread::Prop(prop) => {
+                    let mut prop = prop.clone();
+                    expand_shorthand_prop(&mut prop);
+
+                    match prop.as_ref() {
+                      Prop::KeyValue(key_value) => {
+                        if let Some(ident) = key_value.key.as_ident() {
+                          return ident.sym == "value";
+                        }
+                      },
+                      _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
+                    }
+                  },
+                }
+
+                false
+              });
+
+              if let Some(value) = value {
+                let result_key_value = match value.as_prop().and_then(|prop| prop.as_key_value()) {
+                  Some(kv) => kv,
+                  None => stylex_panic!("Expected key-value property"),
+                };
+
+                return (result_key_value.value.clone(), Some(obj.clone().into()));
+              }
+            }
+          },
+          _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
+        }
+      },
+    }
+  }
+
+  (key_value.value, None)
 }
 
 #[cfg(test)]

@@ -2,13 +2,13 @@ use std::rc::Rc;
 
 use stylex_ast::ast::convertors::{convert_lit_to_string, convert_tpl_to_string_lit};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_types::serialization::serialize_value_to_json_string;
 
 use crate::shared::{enums::data_structures::obj_map_type::ObjMapType, utils::object::obj_map};
 use stylex_constants::constants::messages::{
   EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT,
 };
 use stylex_state::{
-  common::serialize_value_to_json_string,
   evaluate_result_value::EvaluateResultValue,
   flat_compiled_styles_value::FlatCompiledStylesValue,
   state_manager::StateManager,

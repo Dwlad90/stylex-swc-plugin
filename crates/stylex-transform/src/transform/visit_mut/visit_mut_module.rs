@@ -1,4 +1,5 @@
 use stylex_ast::ast::convertors::convert_atom_to_string;
+use stylex_state::state_writers::fill_top_level_expressions;
 use swc_core::{
   common::{BytePos, Span, comments::Comments},
   ecma::{
@@ -25,10 +26,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use stylex_ast::ast::imports::local_binding_of;
 use stylex_constants::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS};
 use stylex_enums::core::TransformationCycle;
-use stylex_state::{
-  common::fill_top_level_expressions,
-  state_manager::{BindingWrites, flush_pending_insertions},
-};
+use stylex_state::state_manager::{BindingWrites, flush_pending_insertions};
 
 /// Span covering the whole source, used for the module-level scope frame so
 /// top-level bindings enclose every `sx` site. The scope stack is seeded with

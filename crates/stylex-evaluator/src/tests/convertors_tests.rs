@@ -4,6 +4,7 @@ use stylex_ast::ast::convertors::{
   convert_string_to_prop_name, convert_tpl_to_string_lit, create_ident_expr, create_number_expr,
   create_string_expr,
 };
+use stylex_state::state_writers::fill_state_declarations;
 use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 use swc_core::{
   common::SyntaxContext,
@@ -568,7 +569,6 @@ mod convert_key_value_to_str_tests {
 mod expr_tpl_to_string_tests {
   use super::*;
   use crate::convertors::expr_tpl_to_string;
-  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -707,7 +707,6 @@ mod expr_tpl_to_string_tests {
 mod ident_to_number_tests {
   use super::*;
   use crate::convertors::ident_to_number;
-  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::BindingIdent;
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -772,7 +771,6 @@ mod ident_to_number_tests {
 mod expr_to_num_tests {
   use super::*;
   use crate::convertors::expr_to_num;
-  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::{BindingIdent, UnaryExpr, UnaryOp};
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -876,7 +874,6 @@ mod convert_key_value_to_str_bigint_tests {
 mod ident_to_number_extended_tests {
   use super::*;
   use crate::convertors::ident_to_number;
-  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::{BindingIdent, UnaryExpr, UnaryOp};
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -981,7 +978,6 @@ mod ident_to_number_extended_tests {
 mod expr_tpl_to_string_extended_tests {
   use super::*;
   use crate::convertors::expr_tpl_to_string;
-  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -1211,7 +1207,6 @@ mod convert_key_value_to_str_panic_tests {
 mod ident_to_number_edge_tests {
   use super::*;
   use crate::convertors::ident_to_number;
-  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::BindingIdent;
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {

@@ -9,7 +9,9 @@ use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread}
 use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
 use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_regex::regex::IS_CSS_VAR;
-use stylex_state::{common::downcast_style_options_to_state_manager, functions::FunctionMap};
+use stylex_state::{
+  functions::FunctionMap, state_manager::downcast_style_options_to_state_manager,
+};
 
 /// The `var(` prefix a CSS variable reference starts with, and whose length is
 /// what the name inside it begins after.

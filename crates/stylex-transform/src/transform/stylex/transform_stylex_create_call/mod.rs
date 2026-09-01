@@ -13,6 +13,7 @@ use std::{
 };
 use stylex_macros::stylex_panic;
 use stylex_path_resolver::package_json::PackageJsonExtended;
+use stylex_state::state_manager::downcast_style_options_to_state_manager;
 
 use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -71,7 +72,6 @@ use stylex_evaluator::{
 };
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;
 use stylex_state::{
-  common::downcast_style_options_to_state_manager,
   evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType, StylexWhenFn},
   state_manager::{ImportKind, StateManager},

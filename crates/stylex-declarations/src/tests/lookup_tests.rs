@@ -6,9 +6,8 @@ use swc_core::{
 use crate::lookup::{get_import_by_ident, get_var_decl_by_ident};
 use stylex_ast::ast::convertors::create_number_expr;
 use stylex_ast::ast::factories::create_ident;
-use stylex_state::{
-  common::fill_state_declarations, functions::FunctionMap, state_manager::StateManager,
-};
+use stylex_state::state_writers::fill_state_declarations;
+use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 
 // ──────────────────────────────────────────────
 // Helpers

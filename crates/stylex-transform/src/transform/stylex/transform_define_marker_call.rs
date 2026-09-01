@@ -3,6 +3,7 @@ use std::rc::Rc;
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use stylex_macros::stylex_panic;
+use stylex_utils::identifier::gen_file_based_identifier;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -18,9 +19,7 @@ use crate::{
 use stylex_constants::constants::{
   api_names::STYLEX_DEFINE_MARKER, common::COMPILED_KEY, messages::cannot_generate_hash,
 };
-use stylex_state::{
-  common::gen_file_based_identifier, flat_compiled_styles_value::FlatCompiledStylesValue,
-};
+use stylex_state::flat_compiled_styles_value::FlatCompiledStylesValue;
 use stylex_utils::hash::create_hash;
 
 impl<C> StyleXTransform<C>

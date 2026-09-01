@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use stylex_ast::ast::convertors::{convert_lit_to_string, create_string_expr};
 use stylex_macros::stylex_panic;
+use stylex_state::state_manager::downcast_style_options_to_state_manager;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
 use crate::shared::{
@@ -14,7 +15,6 @@ use stylex_constants::constants::messages::{
 };
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
 use stylex_state::{
-  common::downcast_style_options_to_state_manager,
   evaluate_result_value::EvaluateResultValue,
   flat_compiled_styles_value::FlatCompiledStylesValue,
   functions::{FunctionConfig, FunctionType},

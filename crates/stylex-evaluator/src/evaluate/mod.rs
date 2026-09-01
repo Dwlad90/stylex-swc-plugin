@@ -47,6 +47,7 @@ use stylex_ast::ast::factories::{
   create_array_expression, create_arrow_expression, create_expr_or_spread,
   create_ident_key_value_prop, create_key_value_prop, create_object_lit, wrap_in_paren_ref,
 };
+use stylex_ast::ast::objects::{assign_props, order_own_keys, remove_duplicates};
 use stylex_constants::constants::{
   evaluation_errors::{
     CONCATENATION, FUNCTION_BODY_WITHOUT_VALUE, IMPORT_FILE_EVAL_ERROR,
@@ -78,7 +79,6 @@ use stylex_js::helpers::{
   is_mutation_expr, is_valid_callee,
 };
 use stylex_state::{
-  common::{assign_props, order_own_keys, remove_duplicates},
   evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   seen_value::SeenValue,

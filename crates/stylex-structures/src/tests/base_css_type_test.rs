@@ -1,10 +1,12 @@
-//! Tests for `BaseCSSType` and its `From` impls.
+//! Tests for `BaseCSSType`, its `From` impls and the CSS-value reader.
 
-use crate::base_css_type::BaseCSSType;
+use crate::base_css_type::{BaseCSSType, get_css_value};
 use indexmap::IndexMap;
+use stylex_ast::ast::convertors::{create_number_expr, create_string_expr};
 use stylex_ast::ast::factories::{create_key_value_prop, create_object_lit, create_string_lit};
 use stylex_enums::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault};
-use swc_core::ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread};
+use swc_core::common::DUMMY_SP;
+use swc_core::ecma::ast::{Expr, KeyValueProp, Number, ObjectLit, Prop, PropName, PropOrSpread};
 
 // ---------- helpers ----------
 
@@ -337,4 +339,286 @@ fn from_object_lit_panics_when_deep_level_value_is_non_lit() {
     ("value", Expr::Object(value_obj)),
   ]);
   let _: BaseCSSType = outer.into();
+}
+
+mod get_css_value_tests {
+  use super::*;
+  use swc_core::ecma::ast::{IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread};
+
+  #[test]
+  fn returns_value_directly_when_not_object() {
+    let kv = KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "color".into(),
+      }),
+      value: Box::new(create_string_expr("red")),
+    };
+    let (expr, css_type) = get_css_value(kv);
+    assert!(css_type.is_none());
+    assert!(expr.is_lit());
+  }
+
+  #[test]
+  fn returns_value_from_syntax_object() {
+    let syntax_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "syntax".into(),
+      }),
+      value: Box::new(create_string_expr("<length>")),
+    })));
+    let value_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "value".into(),
+      }),
+      value: Box::new(create_number_expr(10.0)),
+    })));
+    let obj = ObjectLit {
+      span: DUMMY_SP,
+      props: vec![syntax_prop, value_prop],
+    };
+    let kv = KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "width".into(),
+      }),
+      value: Box::new(Expr::Object(obj)),
+    };
+    let (expr, css_type) = get_css_value(kv);
+    assert!(css_type.is_some());
+    assert!(expr.is_lit());
+  }
+
+  #[test]
+  fn returns_object_when_no_syntax_key() {
+    let some_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "notSyntax".into(),
+      }),
+      value: Box::new(create_string_expr("val")),
+    })));
+    let obj = ObjectLit {
+      span: DUMMY_SP,
+      props: vec![some_prop],
+    };
+    let kv = KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "width".into(),
+      }),
+      value: Box::new(Expr::Object(obj)),
+    };
+    let (expr, css_type) = get_css_value(kv);
+    assert!(css_type.is_none());
+    assert!(expr.is_object());
+  }
+
+  #[test]
+  fn returns_empty_object_unchanged() {
+    let obj = ObjectLit {
+      span: DUMMY_SP,
+      props: vec![],
+    };
+    let kv = KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "width".into(),
+      }),
+      value: Box::new(Expr::Object(obj)),
+    };
+    let (expr, css_type) = get_css_value(kv);
+    assert!(css_type.is_none());
+    assert!(expr.is_object());
+  }
+
+  #[test]
+  fn returns_the_object_when_a_syntax_key_has_no_value_beside_it() {
+    let syntax_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "syntax".into(),
+      }),
+      value: Box::new(create_string_expr("<length>")),
+    })));
+    let other_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "notValue".into(),
+      }),
+      value: Box::new(create_number_expr(10.0)),
+    })));
+    let obj = ObjectLit {
+      span: DUMMY_SP,
+      props: vec![syntax_prop, other_prop],
+    };
+    let kv = KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "width".into(),
+      }),
+      value: Box::new(Expr::Object(obj)),
+    };
+    let (expr, css_type) = get_css_value(kv);
+    assert!(css_type.is_none());
+    assert!(expr.is_object());
+  }
+}
+
+mod get_css_value_panic_tests {
+  use super::*;
+  use swc_core::ecma::ast::{
+    GetterProp, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, SpreadElement,
+  };
+
+  #[test]
+  #[should_panic]
+  fn panics_on_spread_in_css_value_object() {
+    let spread = PropOrSpread::Spread(SpreadElement {
+      dot3_token: DUMMY_SP,
+      expr: Box::new(create_number_expr(1.0)),
+    });
+    let obj = ObjectLit {
+      span: DUMMY_SP,
+      props: vec![spread],
+    };
+    let kv = KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "width".into(),
+      }),
+      value: Box::new(Expr::Object(obj)),
+    };
+    get_css_value(kv);
+  }
+
+  #[test]
+  #[should_panic]
+  fn panics_on_getter_in_css_value_object() {
+    let getter = PropOrSpread::Prop(Box::new(Prop::Getter(GetterProp {
+      span: DUMMY_SP,
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "val".into(),
+      }),
+      type_ann: None,
+      body: None,
+    })));
+    let obj = ObjectLit {
+      span: DUMMY_SP,
+      props: vec![getter],
+    };
+    let kv = KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "width".into(),
+      }),
+      value: Box::new(Expr::Object(obj)),
+    };
+    get_css_value(kv);
+  }
+
+  #[test]
+  #[should_panic]
+  fn syntax_obj_with_num_key_prop_hits_false_branch() {
+    // A syntax obj with a non-ident (Num) key causes the find closure
+    // to fall through to the `false` return path. The conversion to
+    // BaseCSSType then panics for the unsupported numeric key.
+    let syntax_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "syntax".into(),
+      }),
+      value: Box::new(create_string_expr("<length>")),
+    })));
+    let num_key_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key: PropName::Num(Number {
+        span: DUMMY_SP,
+        value: 42.0,
+        raw: None,
+      }),
+      value: Box::new(create_number_expr(10.0)),
+    })));
+    let value_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "value".into(),
+      }),
+      value: Box::new(create_number_expr(10.0)),
+    })));
+    let obj = ObjectLit {
+      span: DUMMY_SP,
+      props: vec![syntax_prop, num_key_prop, value_prop],
+    };
+    let kv = KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "width".into(),
+      }),
+      value: Box::new(Expr::Object(obj)),
+    };
+    get_css_value(kv);
+  }
+
+  #[test]
+  #[should_panic]
+  fn panics_on_spread_inside_syntax_obj_find() {
+    let syntax_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "syntax".into(),
+      }),
+      value: Box::new(create_string_expr("<length>")),
+    })));
+    let spread = PropOrSpread::Spread(SpreadElement {
+      dot3_token: DUMMY_SP,
+      expr: Box::new(create_number_expr(1.0)),
+    });
+    let obj = ObjectLit {
+      span: DUMMY_SP,
+      props: vec![syntax_prop, spread],
+    };
+    let kv = KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "width".into(),
+      }),
+      value: Box::new(Expr::Object(obj)),
+    };
+    get_css_value(kv);
+  }
+  #[test]
+  #[should_panic]
+  fn panics_on_getter_beside_a_syntax_key() {
+    let syntax_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "syntax".into(),
+      }),
+      value: Box::new(create_string_expr("<length>")),
+    })));
+    let getter = PropOrSpread::Prop(Box::new(Prop::Getter(GetterProp {
+      span: DUMMY_SP,
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "value".into(),
+      }),
+      type_ann: None,
+      body: None,
+    })));
+    let obj = ObjectLit {
+      span: DUMMY_SP,
+      props: vec![syntax_prop, getter],
+    };
+    let kv = KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "width".into(),
+      }),
+      value: Box::new(Expr::Object(obj)),
+    };
+    get_css_value(kv);
+  }
 }

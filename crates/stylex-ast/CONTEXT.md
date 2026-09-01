@@ -29,6 +29,21 @@ asked for, not that the crate knows what a namespace is — nothing here reads
 what the name means.
 _Avoid_: key extractor, key convertor, name getter
 
+**Own-key order**:
+The order JavaScript enumerates an object's own properties in, applied by
+`order_own_keys`: every **array-index key** first in ascending numeric order,
+then every other key in insertion order. Not a spelling detail — the order the
+properties come out in is the order their declarations reach the stylesheet, so
+it decides which of two rules at equal specificity wins.
+_Avoid_: sort keys, property order, key ordering
+
+**Array-index key**:
+A key that JavaScript counts as an array index: the canonical decimal spelling
+of an integer below 2^32 - 1. Canonical is what makes `0` one and `00`, `01` and
+`+0` not — those round-trip to a different string, so the language enumerates
+them in insertion order as ordinary string keys.
+_Avoid_: numeric key, index, integer key
+
 **Synthesized node**:
 An AST node this compiler built rather than read, carrying `DUMMY_SP` because no
 source text spells it. Shorthand expansion and injected function mappers both

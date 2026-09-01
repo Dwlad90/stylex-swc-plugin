@@ -2,6 +2,7 @@ use std::collections::hash_map::Entry;
 
 use rustc_hash::FxHashMap;
 use stylex_macros::stylex_panic;
+use stylex_state::state_writers::fill_state_declarations;
 use swc_core::{
   atoms::Atom,
   common::comments::Comments,
@@ -31,10 +32,7 @@ use stylex_constants::constants::{
   messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND},
 };
 use stylex_enums::core::TransformationCycle;
-use stylex_state::{
-  common::fill_state_declarations,
-  state_manager::{DeclId, ImportKind},
-};
+use stylex_state::state_manager::{DeclId, ImportKind};
 use stylex_structures::named_import_source::ImportSources;
 
 impl<C> StyleXTransform<C>

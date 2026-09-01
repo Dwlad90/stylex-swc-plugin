@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
+use stylex_state::state_manager::downcast_style_options_to_state_manager;
 use stylex_structures::pre_rule_value::PreRuleValue;
 use swc_core::ecma::ast::{Expr, Lit};
 
@@ -17,7 +18,6 @@ use stylex_constants::constants::messages::VALUES_MUST_BE_OBJECT;
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
 use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_state::{
-  common::downcast_style_options_to_state_manager,
   evaluate_result_value::EvaluateResultValue,
   flat_compiled_styles_value::FlatCompiledStylesValue,
   functions::{FunctionConfig, FunctionMap, FunctionType},

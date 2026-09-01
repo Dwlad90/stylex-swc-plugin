@@ -6,6 +6,16 @@ crosses into JavaScript, so field names are an interface.
 
 ## Language
 
+**Serialized value**:
+An authored value written back out as the JavaScript source it becomes, via
+`serialize_value_to_json_string`. Not the same as writing it out as JSON: a
+value authored as a string is already the source it has to stay, so the quotes
+JSON adds come back off, a string that spells a number is that number, and a
+string holding a JavaScript object literal is repaired into JSON rather than
+emitted as one long escaped string. The empty string is the one exception and
+keeps its quotes.
+_Avoid_: JSON value, stringified value, dumped value
+
 **Injectable style**:
 One generated rule ready to be injected — `ltr`, an optional `rtl`, and a
 [priority](../stylex-constants/CONTEXT.md). The `Const` variants additionally

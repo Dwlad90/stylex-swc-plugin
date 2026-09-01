@@ -93,6 +93,13 @@ reads act on a hit without confirming it — the code-frame span cache in
 `stylex-transform` is the other one of those.
 _Avoid_: ast hash, expression id
 
+**File-based identifier**:
+`gen_file_based_identifier(file, export, key)` — the `file//export.key` string
+that names one export of one file, so that two files exporting the same name
+never collide. The un-hashed sibling of [Key hash](#key-hash): this one stays
+readable, and is hashed later where a short name is needed.
+_Avoid_: qualified name, export id, var key
+
 **Node kind**:
 `get_expr_node_kind`, the ESTree name of an expression node —
 `"CallExpression"`, `"ArrowFunctionExpression"`, `"BigIntLiteral"`. It is what

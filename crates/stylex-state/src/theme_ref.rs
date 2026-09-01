@@ -3,8 +3,8 @@ use std::{cell::RefCell, rc::Rc, sync::Arc};
 use rustc_hash::FxHashMap;
 use stylex_macros::stylex_panic;
 use stylex_utils::hash::create_hash;
+use stylex_utils::identifier::gen_file_based_identifier;
 
-use crate::common::gen_file_based_identifier;
 use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
 use stylex_enums::theme_ref::ThemeRefResult;
 

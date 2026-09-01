@@ -1,4 +1,5 @@
 use stylex_ast::ast::convertors::convert_atom_to_string;
+use stylex_state::state_writers::fill_state_declarations;
 use swc_core::{
   common::{DUMMY_SP, comments::Comments},
   ecma::{
@@ -10,7 +11,6 @@ use swc_core::{
 use crate::StyleXTransform;
 use stylex_enums::core::TransformationCycle;
 use stylex_regex::regex::STYLEX_CONSTS_IMPORT_REGEX;
-use stylex_state::common::fill_state_declarations;
 
 impl<C> StyleXTransform<C>
 where

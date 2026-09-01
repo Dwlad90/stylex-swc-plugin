@@ -1,4 +1,5 @@
 use stylex_ast::ast::convertors::{create_ident_expr, create_number_expr, create_string_expr};
+use stylex_state::state_writers::fill_state_declarations;
 use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 use swc_core::{
   common::SyntaxContext,
@@ -12,7 +13,6 @@ use swc_core::{
 mod convert_ident_to_expr_tests {
   use super::*;
   use crate::convertors::convert_ident_to_expr;
-  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::BindingIdent;
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -101,7 +101,6 @@ mod convert_ident_to_expr_tests {
 mod handle_tpl_to_expression_tests {
   use super::*;
   use crate::convertors::handle_tpl_to_expression;
-  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -206,7 +205,6 @@ mod handle_tpl_to_expression_tests {
 mod convert_expr_to_str_tests {
   use super::*;
   use crate::convertors::convert_expr_to_str;
-  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::BindingIdent;
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -307,7 +305,6 @@ mod convert_expr_to_str_tests {
 mod handle_tpl_to_expression_extended_tests {
   use super::*;
   use crate::convertors::handle_tpl_to_expression;
-  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -390,7 +387,6 @@ mod handle_tpl_to_expression_extended_tests {
 mod convert_ident_to_expr_extended_tests {
   use super::*;
   use crate::convertors::convert_ident_to_expr;
-  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::BindingIdent;
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -479,7 +475,6 @@ mod convert_expr_to_str_non_string_tests {
 mod convert_expr_to_str_ident_chain_tests {
   use super::*;
   use crate::convertors::convert_expr_to_str;
-  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::BindingIdent;
 
   fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -523,7 +518,6 @@ mod convert_expr_to_str_ident_chain_tests {
 mod handle_tpl_to_expression_no_init_tests {
   use super::*;
   use crate::convertors::handle_tpl_to_expression;
-  use stylex_state::common::fill_state_declarations;
   use swc_core::ecma::ast::{BindingIdent, Pat, Tpl, TplElement, VarDeclarator};
 
   /// A declarator with no initializer -- `let x;` -- which is what the refusal

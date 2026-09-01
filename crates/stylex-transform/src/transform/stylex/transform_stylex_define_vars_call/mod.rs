@@ -11,6 +11,7 @@ use stylex_constants::constants::{
   },
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_utils::identifier::gen_file_based_identifier;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -32,7 +33,6 @@ use crate::{
 };
 use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
-  common::gen_file_based_identifier,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   state_manager::ImportKind,
   theme_ref::ThemeRef,

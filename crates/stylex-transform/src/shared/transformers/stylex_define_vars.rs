@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
+use stylex_structures::base_css_type::get_css_value;
 use swc_core::ecma::ast::{KeyValueProp, PropName};
 
 use crate::shared::{
@@ -13,7 +14,6 @@ use stylex_constants::constants::{
   messages::{EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT},
 };
 use stylex_state::{
-  common::get_css_value,
   evaluate_result_value::EvaluateResultValue,
   flat_compiled_styles_value::FlatCompiledStylesValue,
   state_manager::StateManager,

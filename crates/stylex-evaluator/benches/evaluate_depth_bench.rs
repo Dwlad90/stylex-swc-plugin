@@ -31,9 +31,9 @@ use std::hint::black_box;
 
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use stylex_evaluator::evaluate::evaluate;
+use stylex_state::state_writers::fill_state_declarations;
 use stylex_state::{
-  common::fill_state_declarations, evaluate_result_value::EvaluateResultValue,
-  functions::FunctionMap, state_manager::StateManager,
+  evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
 };
 use stylex_structures::{core_stylex_options::CoreStyleXOptions, stylex_options::StyleXOptions};
 use stylex_utils::hash::{stable_hash_unspanned, stable_hash_wide};

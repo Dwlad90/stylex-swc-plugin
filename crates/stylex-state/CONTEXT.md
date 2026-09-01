@@ -22,6 +22,14 @@ its position questions from live in
 [stylex-state-index](../stylex-state-index/CONTEXT.md).
 _Avoid_: context, session, environment, state
 
+**State writer**:
+A `fill_*` function that records what the visitors walked into the
+[state manager](#state-manager) and answers nothing —
+`fill_top_level_expressions`, `fill_state_declarations`. Nothing a writer
+records is a decision about what a declaration _means_; it only says the state
+has to remember it.
+_Avoid_: collector, populate, scan
+
 **Theme reference**:
 What an import of a `defineVars` group resolves to: the group as a whole, named
 by the hash of the file that declares it. It carries no expression form and

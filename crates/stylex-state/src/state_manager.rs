@@ -2,7 +2,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::cell::OnceCell;
 use std::collections::hash_map::Entry;
 use std::{option::Option, path::Path, rc::Rc, sync::Arc};
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 
 use indexmap::{IndexMap, IndexSet};
 use log::debug;
@@ -3012,4 +3012,19 @@ impl DiagnosticState for StateManager {
   fn has_framed_declarations(&self) -> bool {
     self.has_framed_declarations()
   }
+}
+
+/// The state manager behind a `StyleOptions` handle.
+///
+/// Callers hold the trait so the layers below need not name the state manager,
+/// but every handle the compiler builds is one, so the downcast cannot fail --
+/// a failure here means the trait was implemented by something else, which is a
+/// programming error and not an input the compiler can report on.
+pub fn downcast_style_options_to_state_manager(
+  state: &mut dyn stylex_types::traits::StyleOptions,
+) -> &mut StateManager {
+  state
+    .as_any_mut()
+    .downcast_mut::<StateManager>()
+    .unwrap_or_else(|| stylex_unreachable!("StyleOptions must be StateManager"))
 }

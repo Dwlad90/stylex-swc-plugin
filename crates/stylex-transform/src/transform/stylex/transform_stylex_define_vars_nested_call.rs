@@ -7,6 +7,7 @@ use stylex_constants::constants::{
   },
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_utils::identifier::gen_file_based_identifier;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -25,7 +26,7 @@ use crate::{
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
 use stylex_evaluator::evaluate::evaluate;
-use stylex_state::{common::gen_file_based_identifier, state_manager::ImportKind};
+use stylex_state::state_manager::ImportKind;
 use stylex_structures::top_level_expression::TopLevelExpression;
 
 impl<C> StyleXTransform<C>

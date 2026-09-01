@@ -38,7 +38,6 @@
     "@stylexswc/enums": "catalog:internal",
     "@stylexswc/macros": "catalog:internal",
     "@stylexswc/path-resolver": "catalog:internal",
-    "@stylexswc/regex": "catalog:internal",
     "@stylexswc/state-index": "catalog:internal",
     "@stylexswc/structures": "catalog:internal",
     "@stylexswc/stylex-styleq": "catalog:internal",

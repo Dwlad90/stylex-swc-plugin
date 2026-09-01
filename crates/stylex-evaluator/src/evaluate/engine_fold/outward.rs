@@ -32,7 +32,8 @@ use super::as_expr;
 use super::engine::read;
 use super::theme::{is_a_var_group, var_group_text};
 use super::{Ceilings, Decline, Depth, Totals};
-use stylex_state::{common::order_own_keys, evaluate_result_value::EvaluateResultValue};
+use stylex_ast::ast::objects::order_own_keys;
+use stylex_state::evaluate_result_value::EvaluateResultValue;
 /// What the outward bridge carries as it converts a value back: the method whose
 /// answer it is reading, so a refusal can name it, and how much of the two
 /// allocation ceilings the answer has spent so far.

@@ -2097,9 +2097,42 @@ importers:
 
   crates/stylex-evaluator:
     devDependencies:
+      '@stylexswc/ast':
+        specifier: catalog:internal
+        version: link:../stylex-ast
+      '@stylexswc/constants':
+        specifier: catalog:internal
+        version: link:../stylex-constants
+      '@stylexswc/declarations':
+        specifier: catalog:internal
+        version: link:../stylex-declarations
+      '@stylexswc/diagnostics':
+        specifier: catalog:internal
+        version: link:../stylex-diagnostics
+      '@stylexswc/enums':
+        specifier: catalog:internal
+        version: link:../stylex-enums
+      '@stylexswc/macros':
+        specifier: catalog:internal
+        version: link:../stylex-macros
+      '@stylexswc/regex':
+        specifier: catalog:internal
+        version: link:../stylex-regex
+      '@stylexswc/state':
+        specifier: catalog:internal
+        version: link:../stylex-state
       '@stylexswc/structures':
         specifier: catalog:internal
         version: link:../stylex-structures
+      '@stylexswc/stylex-js':
+        specifier: catalog:internal
+        version: link:../stylex-js
+      '@stylexswc/types':
+        specifier: catalog:internal
+        version: link:../stylex-types
+      '@stylexswc/utils':
+        specifier: catalog:internal
+        version: link:../stylex-utils
       '@taplo/cli':
         specifier: catalog:tooling
         version: 0.7.0
@@ -2293,9 +2326,6 @@ importers:
       '@stylexswc/path-resolver':
         specifier: catalog:internal
         version: link:../stylex-path-resolver
-      '@stylexswc/regex':
-        specifier: catalog:internal
-        version: link:../stylex-regex
       '@stylexswc/state-index':
         specifier: catalog:internal
         version: link:../stylex-state-index
@@ -2449,6 +2479,12 @@ importers:
 
   crates/stylex-types:
     devDependencies:
+      '@stylexswc/macros':
+        specifier: catalog:internal
+        version: link:../stylex-macros
+      '@stylexswc/regex':
+        specifier: catalog:internal
+        version: link:../stylex-regex
       '@stylexswc/structures':
         specifier: catalog:internal
         version: link:../stylex-structures

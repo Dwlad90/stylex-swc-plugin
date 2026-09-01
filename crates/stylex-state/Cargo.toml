@@ -18,7 +18,6 @@ indexmap.workspace = true
 log.workspace = true
 rustc-hash.workspace = true
 serde.workspace = true
-serde_json = { workspace = true, features = ["preserve_order"] }
 swc_core = { workspace = true, features = [
   "common",
   "ecma_ast",
@@ -33,7 +32,6 @@ stylex_diagnostics = { path = "../stylex-diagnostics" }
 stylex_enums = { path = "../stylex-enums" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_path_resolver = { path = "../stylex-path-resolver" }
-stylex_regex = { path = "../stylex-regex" }
 stylex_state_index = { path = "../stylex-state-index" }
 stylex_structures = { path = "../stylex-structures" }
 stylex_styleq = { path = "../stylex-styleq" }
@@ -44,6 +42,7 @@ stylex_utils = { path = "../stylex-utils" }
 ctor.workspace = true
 path-clean.workspace = true
 pretty_env_logger.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"] }
 swc_core = { workspace = true, features = ["ecma_parser"] }
 
 [lints]

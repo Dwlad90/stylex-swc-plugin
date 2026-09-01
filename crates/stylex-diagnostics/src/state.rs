@@ -9,8 +9,9 @@ use stylex_state_index::key_span_index::KeySpanIndex;
 /// depend on each other. The transform implements the trait; this crate only
 /// ever sees these nine questions.
 ///
-/// The trait is consulted while a diagnostic is being written, never while a
-/// module is being evaluated, so the dispatch it costs is not on any hot path.
+/// Every parameter that takes this trait takes it by generic bound, never as
+/// `dyn`. The source-map annotation path asks these questions once per style
+/// namespace, so a vtable here would put an indirect call on a hot loop.
 pub trait DiagnosticState {
   /// The file being transformed, as the frame should name it.
   fn get_filename(&self) -> &str;

@@ -197,7 +197,7 @@ pub fn build_code_frame_error<'a>(
   wrapped_expression: &'a Expr,
   fault_expression: &'a Expr,
   error_message: &'a str,
-  state: &mut dyn DiagnosticState,
+  state: &mut impl DiagnosticState,
 ) -> &'a str {
   match get_span_from_source_code(wrapped_expression, fault_expression, state) {
     Ok((code_frame, span)) => {
@@ -242,7 +242,7 @@ fn warn_no_code_frame(error: &Error, filename: &str, fault_expression: &Expr) {
 pub fn get_span_from_source_code(
   wrapped_expression: &Expr,
   target_expression: &Expr,
-  state: &mut dyn DiagnosticState,
+  state: &mut impl DiagnosticState,
 ) -> Result<(CodeFrame, Span), Error> {
   // Panic boundary: locating a span re-reads, re-prints, and re-parses the
   // module purely to improve diagnostics; a panic anywhere in there must
@@ -267,7 +267,7 @@ fn locate_span_with_panic_boundary(
 fn get_span_from_source_code_impl(
   wrapped_expression: &Expr,
   target_expression: &Expr,
-  state: &mut dyn DiagnosticState,
+  state: &mut impl DiagnosticState,
 ) -> Result<(CodeFrame, Span), Error> {
   // A refusal about a binding is reported against that binding's declaration --
   // see `frame_declaration_of` -- and the two answers for one expression are
@@ -342,7 +342,11 @@ fn get_span_from_source_code_impl(
 /// evaluation state and every caller hands that same value to the frame. A
 /// mismatch is not silent corruption but a silent no-op, and the diagnostic
 /// falls back to naming the read, which is what it named before any of this.
-pub fn frame_declaration_of(name: &Atom, fault_expression: &Expr, state: &mut dyn DiagnosticState) {
+pub fn frame_declaration_of(
+  name: &Atom,
+  fault_expression: &Expr,
+  state: &mut impl DiagnosticState,
+) {
   state.frame_declaration(compute_cache_key(fault_expression), name.clone());
 }
 
@@ -356,7 +360,10 @@ pub fn frame_declaration_of(name: &Atom, fault_expression: &Expr, state: &mut dy
 /// two steps, because it needs the expression's key for the cache key as well
 /// and hashing a whole subtree twice to answer one question was the cost
 /// `has_framed_declarations` had been added to avoid.
-pub fn framed_declaration_of(fault_expression: &Expr, state: &dyn DiagnosticState) -> Option<Atom> {
+pub fn framed_declaration_of(
+  fault_expression: &Expr,
+  state: &impl DiagnosticState,
+) -> Option<Atom> {
   if !state.has_framed_declarations() {
     return None;
   }
@@ -404,7 +411,7 @@ fn compute_declaration_cache_key(expression_key: u128, name: &Atom) -> u128 {
 pub fn get_key_span_from_source_code(
   lookup: &CallLookup,
   namespace_key: &str,
-  state: &mut dyn DiagnosticState,
+  state: &mut impl DiagnosticState,
 ) -> Result<(CodeFrame, Span), Error> {
   // Same panic boundary as `get_span_from_source_code`: locating a span is
   // best-effort and must never abort the compilation.
@@ -416,7 +423,7 @@ pub fn get_key_span_from_source_code(
 fn get_key_span_from_source_code_impl(
   lookup: &CallLookup,
   namespace_key: &str,
-  state: &mut dyn DiagnosticState,
+  state: &mut impl DiagnosticState,
 ) -> Result<(CodeFrame, Span), Error> {
   let query = lookup.query(namespace_key);
   let cache_key = compute_key_span_cache_key(lookup.digest(), &query);
@@ -472,7 +479,7 @@ fn compute_key_span_cache_key(siblings_digest: u128, query: &NamespaceKeyQuery) 
 /// Loads a CodeFrame with the source file for error display.
 fn load_code_frame_from_cache_for_state(
   file_name: &FileName,
-  state: &dyn DiagnosticState,
+  state: &impl DiagnosticState,
 ) -> Result<CodeFrame, Error> {
   let code_frame = CodeFrame::new();
 
@@ -534,7 +541,7 @@ fn find_expression_span(module: &Module, target_expression: &Expr) -> Span {
 fn with_memoized_module<T>(
   wrapped_expression: &Expr,
   target_expression: &Expr,
-  state: &mut dyn DiagnosticState,
+  state: &mut impl DiagnosticState,
   file_name: &FileName,
   code_frame: &CodeFrame,
   visit: impl FnOnce(&Module) -> T,
@@ -559,7 +566,7 @@ fn with_memoized_module<T>(
 /// either found a memoized module or stored one, so neither is reachable in
 /// practice. It stays an error rather than a panic because the getters' types
 /// cannot say so, and a diagnostic aid must never be the reason a build stops.
-fn missing_memoized_module(state: &dyn DiagnosticState) -> Error {
+fn missing_memoized_module(state: &impl DiagnosticState) -> Error {
   anyhow::anyhow!("Failed to parse source file: {}", state.get_filename())
 }
 
@@ -573,7 +580,7 @@ fn missing_memoized_module(state: &dyn DiagnosticState) -> Error {
 fn memoize_module(
   wrapped_expression: &Expr,
   target_expression: &Expr,
-  state: &mut dyn DiagnosticState,
+  state: &mut impl DiagnosticState,
   file_name: &FileName,
   code_frame: &CodeFrame,
 ) -> Result<(), Error> {
@@ -635,7 +642,7 @@ fn expect_module(program: &Program) -> &Module {
 /// finding there is none.
 fn get_source_code(
   wrapped_expression: &Expr,
-  state: &dyn DiagnosticState,
+  state: &impl DiagnosticState,
   file_name: &FileName,
 ) -> String {
   // Reached only where the caller found no memoized text, so a module memoized
@@ -854,7 +861,7 @@ pub fn build_code_frame_error_and_panic(
   wrapped_expression: &Expr,
   fault_expression: &Expr,
   error_message: &str,
-  state: &mut dyn DiagnosticState,
+  state: &mut impl DiagnosticState,
 ) -> ! {
   let caller_location = std::panic::Location::caller();
 
@@ -888,7 +895,7 @@ pub fn build_code_frame_error_and_panic(
 pub fn build_code_frame_error_and_panic_at(
   expr: &Expr,
   error_message: &str,
-  state: &mut dyn DiagnosticState,
+  state: &mut impl DiagnosticState,
 ) -> ! {
   build_code_frame_error_and_panic(expr, expr, error_message, state)
 }

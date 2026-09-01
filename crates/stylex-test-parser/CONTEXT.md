@@ -3,7 +3,7 @@
 A developer binary, not a library and not part of the compiler. It walks the
 upstream JavaScript StyleX checkout, finds its test files and snapshots, strips
 what cannot run here, and writes the result under `./output/__tests__/<package>`
-as fixtures for this port to compare against.
+as fixtures for this project's tests to compare against.
 
 ## Language
 

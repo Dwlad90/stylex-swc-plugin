@@ -1,11 +1,12 @@
-//! The ported value normalization pipeline, asserted against the reference
-//! compiler's own bytes.
+//! The value normalization pipeline, asserted against the reference compiler's
+//! own bytes.
 //!
 //! **Every expectation in this module was produced by running the case through
-//! the reference compiler's normalizers, not by reading the port and writing
-//! down what it ought to say.** That is the only kind of expectation worth
-//! having here: a class name is a hash of this text, so an expectation a human
-//! believed rather than observed is just the divergence written down twice.
+//! the reference compiler's normalizers, not by reading this compiler and
+//! writing down what it ought to say.** That is the only kind of expectation
+//! worth having here: a class name is a hash of this text, so an expectation a
+//! human believed rather than observed is just the divergence written down
+//! twice.
 //!
 //! The seam is the whole pipeline — value in, declaration text out. The nine
 //! normalizers are deliberately *not* asserted one by one. Their contract is
@@ -17,10 +18,11 @@
 //! `normalize_css_property_value`, and that is the point.** The latter adds
 //! three guards the reference compiler has no counterpart for — the unclosed
 //! comment, the nesting budget, the declaration-terminating token — so entering
-//! through it would measure this compiler's additions rather than the port.
-//! Those guards are asserted in `value_normalization_parity_test.rs`, which does
-//! enter there. Two cases below would be rejected outright on that path, and
-//! their being normalized here is the contract this module exists to state.
+//! through it would measure this compiler's additions rather than the
+//! normalizers. Those guards are asserted in
+//! `value_normalization_parity_test.rs`, which does enter there. Two cases
+//! below would be rejected outright on that path, and their being normalized
+//! here is the contract this module exists to state.
 //!
 //! Where the reference compiler does something that reads as a defect —
 //! `ABC` gaining a leading dash, an importance annotation mid-value crashing —
@@ -79,10 +81,10 @@ fn rejects(value: &str, key: &str, expected: &str) {
 // What no normalizer touches
 // ---------------------------------------------------------------------------
 
-/// The heart of the port. No normalizer understands hex colours, letter case,
-/// quote characters or exponent notation, so none of them can alter those —
-/// and a value made only of things nobody has an opinion about comes back byte
-/// for byte.
+/// The heart of the parity contract. No normalizer understands hex colours,
+/// letter case, quote characters or exponent notation, so none of them can
+/// alter those — and a value made only of things nobody has an opinion about
+/// comes back byte for byte.
 #[test]
 fn leaves_spellings_no_normalizer_has_an_opinion_about_alone() {
   check(&[

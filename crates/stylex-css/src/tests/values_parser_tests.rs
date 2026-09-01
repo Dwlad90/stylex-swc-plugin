@@ -564,11 +564,12 @@ fn a_separator_standing_alone_is_a_part_and_not_an_empty_one() {
 /// Every case from the reference compiler's `splitValue` suite, in its order.
 ///
 /// Ported verbatim rather than paraphrased. The cases above were written to
-/// exercise this port's own decisions, which means they were chosen by someone
-/// who already knew where the seams are; these were chosen by whoever wrote the
-/// function, and two of them reach shapes nothing above does — a `div` inside a
-/// function, and an anonymous parenthesised group. That is exactly the node-kind
-/// logic this module cuts on, so they are the cases most worth having.
+/// exercise this compiler's own decisions, which means they were chosen by
+/// someone who already knew where the seams are; these were chosen by whoever
+/// wrote the function, and two of them reach shapes nothing above does — a
+/// `div` inside a function, and an anonymous parenthesised group. That is
+/// exactly the node-kind logic this module cuts on, so they are the cases most
+/// worth having.
 ///
 /// Source: `shared/utils/__tests__/split-css-value-test.js`.
 #[test]

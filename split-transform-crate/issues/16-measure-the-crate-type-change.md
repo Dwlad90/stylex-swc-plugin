@@ -52,6 +52,13 @@ per-fixture numbers also moved by up to 4 points between two runs of identical
 code, so part of it is the group's own spread. Decide from leg 3 whether a real
 cost remains there.
 
+**The criterion measurements from ticket 13 are kept**, so leg 1 need not be
+re-run unless the machine changed: `bench-13-criterion/parent-leg` holds the
+`parent-clean` baselines taken on `f57526ebb`, and `bench-13-criterion/branch-leg`
+holds the branch leg. Both sit beside the worktrees, at the same level as
+`.bare`. The 11 GB of build output behind them was deleted, so every leg builds
+from scratch.
+
 **Blocked by:** None.
 
 **Status:** ready-for-agent

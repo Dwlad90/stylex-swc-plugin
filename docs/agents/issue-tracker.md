@@ -82,6 +82,11 @@ with the link, rather than leaving two trackers.
   single combined tickets file
 - Triage state is recorded as a `Status:` line near the top of each issue file
   (see [triage-labels.md](./triage-labels.md) for the role strings)
+- Acceptance criteria are a checklist. A criterion is `[ ]` when it is not met,
+  `[x]` when it is met, and `[~]` when it is met in part. A `[~]` or a `[ ]`
+  criterion must say on the same lines what remains, and must name the ticket
+  that closes it. The marker alone tells a reader that a criterion moved; the
+  sentence after it tells the reader what to do
 - Comments and conversation history append to the bottom of the file under a
   `## Comments` heading
 

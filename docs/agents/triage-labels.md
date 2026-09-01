@@ -18,9 +18,9 @@ line near the top of an issue file. There is no label API to call.
 
 One label beyond the five is in use:
 
-| Label              | Meaning                                            |
-| ------------------ | -------------------------------------------------- |
-| `not now, backlog` | Accepted and specified, deliberately not scheduled |
+| Label     | Meaning                                            |
+| --------- | -------------------------------------------------- |
+| `backlog` | Accepted and specified, deliberately not scheduled |
 
 It is not one of the canonical roles, so a skill asking for an AFK-ready ticket
 will not pick it up. That is the point: it parks work that is ready to do but

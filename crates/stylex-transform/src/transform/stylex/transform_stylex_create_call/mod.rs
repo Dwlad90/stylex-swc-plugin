@@ -38,7 +38,6 @@ use crate::{
       stylex_position_try::get_position_try_fn,
     },
     utils::{
-      ast::convertors::convert_expr_to_str,
       core::{
         add_source_map_data::add_source_map_data,
         dev_class_name::{convert_to_test_styles, inject_dev_class_names},
@@ -66,6 +65,7 @@ use stylex_constants::constants::{
   messages::{EXPECTED_COMPILED_STYLES, non_static_value},
 };
 use stylex_css::utils::{pseudo::is_pseudo_element, when as stylex_when};
+use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_diagnostics::code_frame::{build_code_frame_error, build_code_frame_error_and_panic};
 use stylex_enums::{counter_mode::CounterMode, style_resolution::StyleResolution};
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;

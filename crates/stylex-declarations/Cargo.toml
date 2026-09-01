@@ -1,0 +1,31 @@
+[package]
+description = "Resolving a name or an expression against the declarations the state recorded"
+edition.workspace = true
+license.workspace = true
+name = "stylex_declarations"
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+swc_core = { workspace = true, features = ["common", "ecma_ast"] }
+
+stylex_ast = { path = "../stylex-ast" }
+stylex_constants = { path = "../stylex-constants" }
+stylex_macros = { path = "../stylex-macros" }
+stylex_state = { path = "../stylex-state" }
+stylex_structures = { path = "../stylex-structures" }
+
+[dev-dependencies]
+ctor.workspace = true
+indexmap.workspace = true
+pretty_env_logger.workspace = true
+stylex_types = { path = "../stylex-types" }
+
+[lints]
+workspace = true

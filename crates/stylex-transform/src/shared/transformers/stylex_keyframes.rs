@@ -8,7 +8,6 @@ use swc_core::ecma::ast::{Expr, Lit};
 use crate::shared::{
   enums::data_structures::obj_map_type::ObjMapType,
   utils::{
-    ast::convertors::convert_expr_to_str,
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
     object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_and_transform_values},
   },
@@ -16,6 +15,7 @@ use crate::shared::{
 use stylex_ast::ast::convertors::{convert_key_value_to_str, create_string_expr, normalize_expr};
 use stylex_constants::constants::messages::VALUES_MUST_BE_OBJECT;
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
+use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_state::{
   common::downcast_style_options_to_state_manager,
   evaluate_result_value::EvaluateResultValue,

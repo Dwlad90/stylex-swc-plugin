@@ -8,14 +8,14 @@ use crate::shared::structures::state::EvaluationState;
 use crate::shared::{
   structures::pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules},
   utils::{
-    ast::convertors::convert_expr_to_str, core::flatten_raw_style_object::flatten_raw_style_object,
-    validators::validate_namespace,
+    core::flatten_raw_style_object::flatten_raw_style_object, validators::validate_namespace,
   },
 };
 use stylex_constants::constants::{
   common::COMPILED_KEY,
   messages::{EXPRESSION_IS_NOT_A_STRING, VALUES_MUST_BE_OBJECT},
 };
+use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   flat_compiled_styles_value::FlatCompiledStylesValue,

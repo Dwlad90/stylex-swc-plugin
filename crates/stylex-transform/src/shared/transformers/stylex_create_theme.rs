@@ -5,7 +5,6 @@ use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::KeyValueProp;
 
 use crate::shared::utils::{
-  ast::convertors::convert_expr_to_str,
   core::define_vars_utils::{
     collect_vars_by_at_rules, theme_override_priority, wrap_with_at_rules,
   },
@@ -18,6 +17,7 @@ use stylex_constants::constants::{
     AT_RULE_NOT_FOUND, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING, THEME_VARS_MUST_BE_OBJECT,
   },
 };
+use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_state::{
   common::get_css_value,
   evaluate_result_value::EvaluateResultValue,

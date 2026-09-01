@@ -37,7 +37,7 @@ use swc_core::{
 };
 
 use crate::shared::structures::{evaluate_result::EvaluateResult, state::EvaluationState};
-use crate::shared::utils::ast::convertors::{convert_expr_to_str, expr_to_num};
+use crate::shared::utils::ast::convertors::expr_to_num;
 use stylex_ast::ast::convertors::{
   convert_atom_to_str_ref, convert_atom_to_string, convert_key_value_to_str, convert_lit_to_string,
   create_big_int_expr, create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
@@ -63,6 +63,10 @@ use stylex_constants::constants::{
     THEME_IMPORT_KEY_AS_OBJECT_KEY, VALUE_MUST_BE_LITERAL,
   },
 };
+use stylex_declarations::convertors::convert_expr_to_str;
+use stylex_declarations::lookup::{
+  get_import_by_ident, get_var_decl_from, get_var_decl_parts_by_ident,
+};
 use stylex_enums::{
   import_path_resolution::ImportPathResolution, misc::BinaryExprType,
   value_with_default::ValueWithDefault,
@@ -74,10 +78,7 @@ use stylex_js::helpers::{
   is_mutation_expr, is_valid_callee,
 };
 use stylex_state::{
-  common::{
-    assign_props, get_import_by_ident, get_var_decl_from, get_var_decl_parts_by_ident,
-    order_own_keys, remove_duplicates,
-  },
+  common::{assign_props, order_own_keys, remove_duplicates},
   evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   seen_value::SeenValue,

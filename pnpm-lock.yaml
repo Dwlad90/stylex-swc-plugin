@@ -197,6 +197,9 @@ catalogs:
     '@stylexswc/css-parser':
       specifier: 0.18.6
       version: 0.18.6
+    '@stylexswc/declarations':
+      specifier: 0.18.6
+      version: 0.18.6
     '@stylexswc/design-system':
       specifier: 0.18.6
       version: 0.18.6
@@ -2029,6 +2032,33 @@ importers:
         specifier: catalog:tooling
         version: 9.0.3
 
+  crates/stylex-declarations:
+    devDependencies:
+      '@stylexswc/ast':
+        specifier: catalog:internal
+        version: link:../stylex-ast
+      '@stylexswc/constants':
+        specifier: catalog:internal
+        version: link:../stylex-constants
+      '@stylexswc/macros':
+        specifier: catalog:internal
+        version: link:../stylex-macros
+      '@stylexswc/state':
+        specifier: catalog:internal
+        version: link:../stylex-state
+      '@stylexswc/structures':
+        specifier: catalog:internal
+        version: link:../stylex-structures
+      '@stylexswc/types':
+        specifier: catalog:internal
+        version: link:../stylex-types
+      '@taplo/cli':
+        specifier: catalog:tooling
+        version: 0.7.0
+      npm-run-all2:
+        specifier: catalog:tooling
+        version: 9.0.3
+
   crates/stylex-diagnostics:
     devDependencies:
       '@stylexswc/ast':
@@ -2365,6 +2395,9 @@ importers:
       '@stylexswc/css-parser':
         specifier: catalog:internal
         version: link:../stylex-css-parser
+      '@stylexswc/declarations':
+        specifier: catalog:internal
+        version: link:../stylex-declarations
       '@stylexswc/diagnostics':
         specifier: catalog:internal
         version: link:../stylex-diagnostics

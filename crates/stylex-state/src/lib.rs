@@ -11,8 +11,8 @@
 //! and not lower down because they name each other and the state manager in a
 //! knot that cannot be cut: a function config carries a theme reference, a theme
 //! reference reads the state manager, and an evaluated value can be a function
-//! config. Nothing here knows how a value is *evaluated*; that is the crate
-//! above.
+//! config. Nothing here knows how a value is *evaluated*, and nothing here
+//! resolves a name against the declarations it records; both are crates above.
 
 pub mod common;
 pub mod evaluate_result_value;

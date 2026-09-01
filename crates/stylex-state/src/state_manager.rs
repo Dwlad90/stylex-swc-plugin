@@ -1256,7 +1256,7 @@ impl StateManager {
   /// confirms it under `EQ_IGNORE_SPAN_IGNORE_CTXT`. A bucket miss is final, so
   /// anything that sets that flag has to key this differently rather than lean
   /// on the confirm. Nothing sets it today.
-  pub(crate) fn import_binding(&self, ident: &Ident) -> Option<(&ImportDecl, &ImportSpecifier)> {
+  pub fn import_binding(&self, ident: &Ident) -> Option<(&ImportDecl, &ImportSpecifier)> {
     let found = self
       .top_import_index
       .candidates(|| ident.to_id())
@@ -1392,7 +1392,7 @@ impl StateManager {
   }
 
   /// The declarator binding `ident`, by hash probe rather than by scan.
-  pub(crate) fn declaration_of(&self, ident: &Ident) -> Option<&VarDeclarator> {
+  pub fn declaration_of(&self, ident: &Ident) -> Option<&VarDeclarator> {
     let found = self
       .declaration_index
       .get(&ident.to_id())

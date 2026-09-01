@@ -3292,6 +3292,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylex_declarations"
+version = "0.18.6"
+dependencies = [
+ "ctor",
+ "indexmap",
+ "pretty_env_logger",
+ "stylex_ast",
+ "stylex_constants",
+ "stylex_macros",
+ "stylex_state",
+ "stylex_structures",
+ "stylex_types",
+ "swc_core",
+]
+
+[[package]]
 name = "stylex_diagnostics"
 version = "0.18.6"
 dependencies = [
@@ -3515,6 +3531,7 @@ dependencies = [
  "stylex_constants",
  "stylex_css",
  "stylex_css_parser",
+ "stylex_declarations",
  "stylex_diagnostics",
  "stylex_enums",
  "stylex_evaluator",

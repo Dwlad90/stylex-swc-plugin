@@ -19,8 +19,10 @@ composes.
 - **Value vocabulary** — the types the state manager holds or hands back: an
   evaluated value, an evaluation result, a function config, a theme reference,
   a compiled style value and the maps built over them.
-- **Common helpers** — the readers that answer a question about a declaration or
-  an object literal against the state manager.
+- **Common helpers** — the writers that fill the state from a module, and the
+  stateless readers over an object literal that the phases above share. What a
+  name _resolves_ to is asked one layer up, of
+  [`stylex-declarations`](../stylex-declarations/README.md).
 
 ## Architecture
 
@@ -29,9 +31,10 @@ other and the state manager in a knot with no cut: a function config carries a
 theme reference, a theme reference reads the state manager, and an evaluated
 value can be a function config.
 
-Nothing here evaluates an expression. The state manager is _what_ an evaluation
-reads and writes; the crate that decides what an expression folds to sits above
-this one and depends on it.
+Nothing here evaluates an expression, and nothing here resolves a name. The
+state manager is _what_ an evaluation reads and writes; the crate that resolves
+a reference against it, and the crate that decides what an expression folds to,
+both sit above this one and depend on it.
 
 ## License
 

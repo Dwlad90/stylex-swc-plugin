@@ -12,12 +12,13 @@ use swc_core::{
 
 use stylex_state_index::key_span_index::CallLookup;
 
-use crate::shared::utils::{ast::convertors::convert_expr_to_str, js::evaluate::evaluate_obj_key};
+use crate::shared::utils::js::evaluate::evaluate_obj_key;
 use stylex_ast::ast::convertors::{create_string_expr, get_key_values_from_object};
 use stylex_constants::constants::{
   common::COMPILED_KEY,
   messages::{EXPECTED_OBJECT_EXPRESSION, INVALID_UTF8, illegal_argument_length},
 };
+use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_diagnostics::code_frame::{get_key_span_from_source_code, get_span_from_source_code};
 use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue, functions::FunctionMap,

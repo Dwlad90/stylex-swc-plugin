@@ -37,10 +37,11 @@ use super::engine::read;
 use super::transport::{Crossing, Transport};
 use super::{Ceilings, Decline, Depth, ESCAPING_PROPERTIES, escaping_property_named, lists};
 use crate::shared::structures::state::EvaluationState;
+use stylex_declarations::lookup::get_var_decl_from;
 use stylex_evaluator::growable_stack::{grown_per_level, nesting_of};
 use stylex_state::{
-  common::get_var_decl_from, evaluate_result_value::EvaluateResultValue, functions::FunctionMap,
-  state_manager::StateManager, theme_ref::VarNaming,
+  evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
+  theme_ref::VarNaming,
 };
 
 use super::super::{

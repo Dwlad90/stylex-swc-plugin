@@ -173,6 +173,7 @@ catalogs:
     '@stylexswc/constants': '0.18.6'
     '@stylexswc/css': '0.18.6'
     '@stylexswc/css-parser': '0.18.6'
+    '@stylexswc/declarations': '0.18.6'
     '@stylexswc/design-system': '0.18.6'
     '@stylexswc/diagnostics': '0.18.6'
     '@stylexswc/enums': '0.18.6'

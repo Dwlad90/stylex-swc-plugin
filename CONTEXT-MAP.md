@@ -58,6 +58,9 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
 - **stylex-nested-config**
   ([CONTEXT.md](./crates/stylex-nested-config/CONTEXT.md)) -- flattening the
   nested config objects `defineVars` and friends accept.
+- **stylex-declarations**
+  ([CONTEXT.md](./crates/stylex-declarations/CONTEXT.md)) -- which declaration
+  binds a name, and what that declaration spells when read literally.
 - **stylex-evaluator**
   ([CONTEXT.md](./crates/stylex-evaluator/CONTEXT.md)) -- what an authored
   expression folds to, or why it cannot; and the stack a fold descends on.

@@ -57,8 +57,9 @@ Workspace dependencies are defined in the root `Cargo.toml`.
 ### Every crate is `rlib` only, except the addon
 
 `crates/stylex-rs-compiler` declares `crate-type = ["cdylib", "rlib"]`, because
-Node loads its `cdylib` as the `.node` addon. Every other crate declares
-`crate-type = ["rlib"]`.
+Node loads its `cdylib` as the `.node` addon. Every other crate that builds a
+library declares `crate-type = ["rlib"]`. `stylex-test-parser` builds only a
+binary, so it has no library target to type and declares no `crate-type`.
 
 This is a throughput rule, not tidiness. A `cdylib` exports its public symbols
 as preemptible, so a caller cannot optimize into them, and Cargo cannot hand the

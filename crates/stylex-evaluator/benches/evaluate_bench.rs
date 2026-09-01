@@ -78,8 +78,14 @@ fn perf_fixtures_dir() -> PathBuf {
   PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../stylex-rs-compiler/benchmark/perf_fixtures")
 }
 
+/// The transform's fixture tree, read across the crate boundary.
+///
+/// A sibling path rather than a copy: the two cases below are transform
+/// fixtures that the transform's own tests already pin, and a second copy here
+/// would drift from them silently. Nothing is compiled across the boundary --
+/// the benchmark only reads the files.
 fn transform_fixtures_dir() -> PathBuf {
-  PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixture")
+  PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../stylex-transform/tests/fixture")
 }
 
 fn perf_fixture_paths() -> Vec<PathBuf> {

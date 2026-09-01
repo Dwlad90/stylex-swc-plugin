@@ -192,7 +192,7 @@ agree on it — the fallback cases in `stylex_utils`' `hash_test.rs` compare
 narrowed to 64 would fail to compile rather than fail to notice.
 
 **The curve is pinned twice, in two units.**
-`stylex-transform/benches/evaluate_depth_bench.rs`
+`stylex-evaluator/benches/evaluate_depth_bench.rs`
 measures the fold and one key across four doublings, and
 `stylex_utils`' `key_cost_scaling_tests` counts the bytes the walk feeds its
 hasher — deterministic, machine-independent, and asserting the ratio rather than

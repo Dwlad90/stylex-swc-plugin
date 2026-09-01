@@ -55,38 +55,28 @@ swc_ecma_parser = { workspace = true, features = ["verify"] }
 swc_sourcemap.workspace = true
 
 [dev-dependencies]
-# The engine-fold bench prints the same expression through the engine directly,
-# to measure the fold against it. Only the bench reaches for the engine now.
-boa_engine.workspace = true
 criterion.workspace = true
 insta = { workspace = true, features = ["yaml"] }
+# One test helper reads the language's truthiness table, which the coercion
+# crate owns. Nothing else here needs the crate, and the engine-fold bench that
+# was the other reason left with the evaluator.
 stylex_js = { path = "../stylex-js" }
 swc_core = { workspace = true, features = [
   "ecma_parser",
   "ecma_utils",
   "testing_transform",
 ] }
-# The benches stand in for the shipped `.node`, which runs mimalloc on every
-# published target but musl. Without this they measure the system allocator, and
-# an allocation-reducing change reads larger there than it does in production.
+# The shipped `.node` runs mimalloc on every published target but musl, so a
+# bench that does not link this measures the system allocator, and an
+# allocation-reducing change reads larger there than it does in production.
+# A bench links this only where it names the crate, and only
+# `transform_consumers_bench` does today.
 swc_malloc.workspace = true
 testing.workspace = true
 
 [[bench]]
 harness = false
 name = "concatenation_chain_bench"
-
-[[bench]]
-harness = false
-name = "engine_fold_bench"
-
-[[bench]]
-harness = false
-name = "evaluate_bench"
-
-[[bench]]
-harness = false
-name = "evaluate_depth_bench"
 
 [[bench]]
 harness = false

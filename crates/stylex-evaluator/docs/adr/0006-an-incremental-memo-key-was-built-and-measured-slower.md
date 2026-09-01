@@ -75,8 +75,8 @@ key does, so most of the tree pays the doubled constant and collects nothing
 back. The deep spine the cache is built for is the shape the ceiling forbids —
 `maxEvaluationDepth` defaults to 32, and the crossover is above it.
 
-`stylex-transform/benches/evaluate_bench.rs`, over the six perf fixtures and the two transform
-fixtures, in µs.
+`stylex-evaluator/benches/evaluate_bench.rs`, over the six perf fixtures and
+the two transform fixtures, in µs.
 
 Two caveats found afterwards, in review, and recorded here rather than in the
 commit that found them. Neither changes the decision — every leg regressed, and

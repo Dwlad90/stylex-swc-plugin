@@ -3343,6 +3343,7 @@ version = "0.18.6"
 dependencies = [
  "anyhow",
  "boa_engine",
+ "criterion",
  "ctor",
  "indexmap",
  "log",
@@ -3529,7 +3530,6 @@ dependencies = [
 name = "stylex_transform"
 version = "0.18.6"
 dependencies = [
- "boa_engine",
  "criterion",
  "ctor",
  "indexmap",

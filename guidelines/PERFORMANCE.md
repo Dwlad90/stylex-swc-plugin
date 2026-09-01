@@ -71,15 +71,15 @@ surface: the code frame is a diagnostic aid behind a panic boundary, so the
 bench still reports a number -- it times a panic and its unwind instead of the
 work, and reports a regression in the swallowed path as an improvement. That
 mistake inflated one attribution of the debug path by 3.6x before it was
-caught. Set it once around the whole benchmark function, as
-`crates/stylex-transform/benches/*` do.
+caught. Set it once around the whole benchmark function, as the benches under
+`crates/stylex-transform` and `crates/stylex-evaluator` do.
 
 Assert what the bench is measuring, in the bench. A refusal, a deopt, a
 swallowed panic and a cache hit are all fast, and a curve that flattens because
 the work stopped happening is indistinguishable from a win. Every bench in
-`crates/stylex-transform/benches` panics unless its subject produced the output
-it exists to time -- a fold that reached the expected value, a `dev` transform
-that resolved one `file:line` per style.
+`crates/stylex-transform/benches` and `crates/stylex-evaluator/benches` panics
+unless its subject produced the output it exists to time -- a fold that reached
+the expected value, a `dev` transform that resolved one `file:line` per style.
 
 Both configurations are worth watching, and they are watched separately. `dev`
 implies `debug`, and `debug` turns on the `file:line` annotation on `$$css`,

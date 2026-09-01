@@ -1,7 +1,6 @@
 pub mod ast;
 pub mod core;
 pub mod css;
-pub mod js;
 pub(crate) mod live_declarations;
 pub mod object;
 pub(crate) mod validators;

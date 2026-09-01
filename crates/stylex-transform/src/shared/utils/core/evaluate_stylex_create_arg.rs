@@ -12,14 +12,7 @@ use swc_core::{
   },
 };
 
-use crate::shared::structures::evaluate_result::EvaluateResult;
-use crate::shared::utils::{
-  js::evaluate::{
-    evaluate, evaluate_obj_key, evaluate_result_vec_to_array_expr, function_fold_to_object,
-    spread_own_properties,
-  },
-  validators::validate_dynamic_style_params,
-};
+use crate::shared::utils::validators::validate_dynamic_style_params;
 use stylex_ast::ast::convertors::{
   create_ident_expr, create_null_expr, create_string_expr, expand_shorthand_prop, normalize_expr,
 };
@@ -38,6 +31,11 @@ use stylex_constants::constants::{
 use stylex_css::utils::pseudo::is_pseudo_selector;
 use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_diagnostics::code_frame::build_code_frame_error_and_panic_at;
+use stylex_evaluator::evaluate::{
+  evaluate, evaluate_obj_key, evaluate_result_vec_to_array_expr, function_fold_to_object,
+  spread_own_properties,
+};
+use stylex_evaluator::evaluate_result::EvaluateResult;
 use stylex_state::{
   common::assign_props,
   evaluate_result_value::EvaluateResultValue,
@@ -120,7 +118,7 @@ fn prepend_key_to_reason(key: &str, reason: Option<String>) -> Option<String> {
 ///
 /// Both refusals report at the value the author wrote, with a code frame:
 /// everything reaching them is author input, and
-/// `docs/adr/0002-a-refusal-and-a-broken-invariant-are-separate-constructs.md`
+/// `stylex-evaluator/docs/adr/0002-a-refusal-and-a-broken-invariant-are-separate-constructs.md`
 /// reserves a bare abort for an invariant this code established itself.
 fn materialize_style_value(
   value: Option<EvaluateResultValue>,

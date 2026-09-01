@@ -8,7 +8,6 @@ use swc_core::{
   },
 };
 
-use crate::shared::structures::state::EvaluationState;
 use crate::{
   StyleXTransform,
   shared::{
@@ -26,6 +25,7 @@ use stylex_ast::ast::factories::{
 use stylex_atoms::transform::{
   AtomCompileResult, AtomFlatValue, Compile, InjectedAtomStyle, create_utility_styles_visitor,
 };
+use stylex_evaluator::state::EvaluationState;
 use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue,
   types::{FlatCompiledStyles, InjectableStylesMap},

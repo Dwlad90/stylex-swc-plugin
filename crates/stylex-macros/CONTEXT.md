@@ -38,7 +38,7 @@ evaluation state and returns `None` from the calling function. A broken
 invariant is `stylex_panic_with_context!` instead, which builds a code frame
 and panics. The two are told apart by their state argument; why they are
 separate constructs is
-[ADR 0002](../stylex-transform/docs/adr/0002-a-refusal-and-a-broken-invariant-are-separate-constructs.md).
+[ADR 0002](../stylex-evaluator/docs/adr/0002-a-refusal-and-a-broken-invariant-are-separate-constructs.md).
 The evaluator senses of _deopt_ and _confident_ are defined in
-[stylex-transform](../stylex-transform/CONTEXT.md).
+[stylex-evaluator](../stylex-evaluator/CONTEXT.md).
 _Avoid_: bail, early return, unsupported error

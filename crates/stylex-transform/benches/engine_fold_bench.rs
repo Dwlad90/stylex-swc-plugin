@@ -54,11 +54,11 @@ use criterion::{
   BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::WallTime,
 };
 use stylex_ast::ast::convertors::convert_atom_to_string;
+use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
 };
 use stylex_structures::stylex_options::StyleXOptions;
-use stylex_transform::shared::utils::js::evaluate::evaluate;
 use swc_core::{
   common::{FileName, GLOBALS, Globals, SourceMap, input::StringInput, sync::Lrc},
   ecma::{

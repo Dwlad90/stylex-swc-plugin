@@ -24,9 +24,9 @@ use stylex_ast::ast::keys::{namespace_name_from_prop_key, prop_as_key_value};
 
 use crate::shared::utils::{
   ast::helpers::prop_contains_arrow, core::define_vars_utils::any_level_needs_a_default,
-  js::evaluate::evaluate,
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
 };

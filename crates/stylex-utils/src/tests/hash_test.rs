@@ -966,10 +966,10 @@ mod unspanned_fast_path_tests {
 /// the tree the walk touched.
 ///
 /// Why the key is a whole-subtree hash is
-/// `stylex-transform/docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md`.
+/// `stylex-evaluator/docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md`.
 /// The incremental key was built against these cases and measured slower on
 /// every real fixture, which is
-/// `stylex-transform/docs/adr/0006-an-incremental-memo-key-was-built-and-measured-slower.md`;
+/// `stylex-evaluator/docs/adr/0006-an-incremental-memo-key-was-built-and-measured-slower.md`;
 /// a reader restating this module in nodes rather than bytes should start from
 /// the patch that ADR points at.
 #[cfg(test)]
@@ -1270,7 +1270,7 @@ mod key_edge_case_tests {
     // objects hands *each* level to the deep clone, which is the one shape
     // where the clone -- rather than the walk -- is the dominant cost of a
     // fold. Nothing in this workspace's fixtures reaches it; how rarely a real
-    // project does is recorded in `docs/adr/0005` in `stylex-transform`.
+    // project does is recorded in `docs/adr/0005` in `stylex-evaluator`.
     let limit = MAX_UNSPANNED_HASH_COLLECTION_LEN;
     let mut chain = object_of(limit + 1);
 

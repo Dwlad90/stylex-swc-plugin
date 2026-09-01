@@ -13,7 +13,7 @@ use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
 use stylex_ast::ast::keys::namespace_name_from_member_prop;
 
-use crate::shared::utils::js::evaluate::evaluate;
+use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::FunctionMap,

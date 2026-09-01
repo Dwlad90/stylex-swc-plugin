@@ -54,6 +54,20 @@ registry dependency like every other.
 
 Workspace dependencies are defined in the root `Cargo.toml`.
 
+### Every crate is `rlib` only, except the addon
+
+`crates/stylex-rs-compiler` declares `crate-type = ["cdylib", "rlib"]`, because
+Node loads its `cdylib` as the `.node` addon. Every other crate declares
+`crate-type = ["rlib"]`.
+
+This is a throughput rule, not tidiness. A `cdylib` exports its public symbols
+as preemptible, so a caller cannot optimize into them, and Cargo cannot hand the
+crate's bitcode to the fat LTO the `bench` and `release` profiles ask for.
+Nineteen crates declared a `cdylib` that nothing ever linked. Moving 11k lines
+of the evaluator into one of them cost between 4% and 18% on the memo-key
+benches, and dropping the `cdylib` recovered it. Adding one back to a crate on
+the compiler's path costs throughput for an artifact no one loads.
+
 ## TS/JS Packages (`packages/`)
 
 How they stack (each package's `dependencies` is the authority):
@@ -128,13 +142,22 @@ file).
 ### Excluded from Coverage
 
 These crates are excluded because they are either integration-level (tested via
-other means) or thin wrappers:
+other means), thin wrappers, or waiting on a ticket to bring them to the gate.
+The list is held in three places that must agree: `test:coverage:workspace` in
+the root `package.json`, `EXCLUDED_CRATES` in `scripts/coverage-missing.sh`, and
+the `case` in `scripts/packages/test/coverage.sh`.
 
 - `stylex_logs` -- logging utilities
 - `stylex_compiler_rs` -- NAPI-RS bindings
 - `stylex_test_parser` -- test fixture parser
-- `stylex_css_parser` -- CSS parser (tested independently)
 - `stylex_transform` -- SWC transform (tested via snapshot tests)
+- `stylex_state` -- extracted from the transform, and covered transitively
+  through it until direct tests exist
+- `stylex_evaluator` -- the same, for the evaluator moved out of the transform
+
+The last two are a holding position rather than a judgement that the code needs
+no tests. `stylex_css_parser` was listed here and is not excluded in any of the
+three lists; the row is removed rather than left to be read as one.
 
 ## Key Config Files
 

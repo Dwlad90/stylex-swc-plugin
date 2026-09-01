@@ -13,12 +13,9 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    transformers::{
-      stylex_first_that_works::stylex_first_that_works, stylex_keyframes::stylex_keyframes,
-    },
-    utils::{
-      js::evaluate::evaluate,
-      validators::{assert_valid_keyframes, is_keyframes_call, validate_stylex_keyframes_indent},
+    transformers::stylex_keyframes::stylex_keyframes,
+    utils::validators::{
+      assert_valid_keyframes, is_keyframes_call, validate_stylex_keyframes_indent,
     },
   },
 };
@@ -27,6 +24,7 @@ use stylex_constants::constants::{
   messages::{non_static_value, non_style_object},
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_evaluator::{evaluate::evaluate, stylex_first_that_works::stylex_first_that_works};
 use stylex_state::{
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   state_manager::ImportKind,

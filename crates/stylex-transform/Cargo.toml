@@ -9,13 +9,10 @@ version.workspace = true
 
 
 [lib]
-## With this config build fails with error: `linking with `cc` failed: exit status: 1`
-# crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 doctest = false
 
 [dependencies]
-anyhow.workspace = true
-boa_engine.workspace = true
 ctor.workspace = true
 indexmap.workspace = true
 log.workspace = true
@@ -25,7 +22,6 @@ pretty_env_logger.workspace = true
 rustc-hash.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
-stacker.workspace = true
 stylex_ast = { path = "../stylex-ast" }
 stylex_atoms = { path = "../stylex-atoms" }
 stylex_constants = { path = "../stylex-constants" }
@@ -35,7 +31,6 @@ stylex_declarations = { path = "../stylex-declarations" }
 stylex_diagnostics = { path = "../stylex-diagnostics" }
 stylex_enums = { path = "../stylex-enums" }
 stylex_evaluator = { path = "../stylex-evaluator" }
-stylex_js = { path = "../stylex-js" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_nested_config = { path = "../stylex-nested-config" }
 stylex_path_resolver = { path = "../stylex-path-resolver" }
@@ -60,8 +55,12 @@ swc_ecma_parser = { workspace = true, features = ["verify"] }
 swc_sourcemap.workspace = true
 
 [dev-dependencies]
+# The engine-fold bench prints the same expression through the engine directly,
+# to measure the fold against it. Only the bench reaches for the engine now.
+boa_engine.workspace = true
 criterion.workspace = true
 insta = { workspace = true, features = ["yaml"] }
+stylex_js = { path = "../stylex-js" }
 swc_core = { workspace = true, features = [
   "ecma_parser",
   "ecma_utils",

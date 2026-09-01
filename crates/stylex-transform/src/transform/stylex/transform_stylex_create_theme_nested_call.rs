@@ -22,13 +22,13 @@ use crate::{
         dev_class_name::{convert_theme_to_dev_styles, convert_theme_to_test_styles},
         js_to_ast::{NestedStringObject, convert_object_to_ast},
       },
-      js::evaluate::evaluate,
       validators::validate_define_call,
     },
   },
   transform::stylex::visitor_utils::{build_eval_config, is_call_to},
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::ImportKind,
 };

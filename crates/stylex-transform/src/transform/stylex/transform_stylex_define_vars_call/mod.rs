@@ -25,12 +25,12 @@ use crate::{
     },
     utils::{
       core::js_to_ast::{NestedStringObject, convert_object_to_ast},
-      js::evaluate::evaluate,
       validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
     },
   },
   transform::stylex::visitor_utils::{apply_unstable_conditional, insert_stylex_identifier_entry},
 };
+use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
   common::gen_file_based_identifier,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},

@@ -63,7 +63,8 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
   binds a name, and what that declaration spells when read literally.
 - **stylex-evaluator**
   ([CONTEXT.md](./crates/stylex-evaluator/CONTEXT.md)) -- what an authored
-  expression folds to, or why it cannot; and the stack a fold descends on.
+  expression folds to, or why it cannot: the dispatcher, the node handlers, the
+  engine fold, and the stack a fold descends on.
 - **stylex-css** ([CONTEXT.md](./crates/stylex-css/CONTEXT.md)) -- a resolved
   property/value pair into injectable CSS: expansion, normalization, direction,
   priority.
@@ -71,7 +72,7 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
   `@stylexjs/atoms` inline syntax, compiled through an injected trait to avoid
   depending on the transform.
 - **stylex-transform** ([CONTEXT.md](./crates/stylex-transform/CONTEXT.md)) --
-  the SWC visitor and the JavaScript evaluator.
+  the SWC visitor: recognising every `stylex.*` call and rewriting it.
 - **stylex-rs-compiler**
   ([CONTEXT.md](./crates/stylex-rs-compiler/CONTEXT.md)) -- the NAPI-RS
   boundary and the TypeScript wrapper shipped with it.

@@ -61,23 +61,27 @@ runtime `styleq` library is not required in production bundles.
 
 #### `shared::structures`
 
-The pre-rule chain the style-semantics layer builds, and the evaluator's own
-result types. The state manager, the function configs and the compiled-style
-value types moved to `stylex-state`.
+The pre-rule chain the style-semantics layer builds. The state manager, the
+function configs and the compiled-style value types moved to `stylex-state`; the
+evaluation state and the evaluation result moved to `stylex-evaluator`.
 
 #### `shared::transformers`
 
-Ten high-level transformer modules that compose lower-level CSS, AST, and
+Twelve high-level transformer modules that compose lower-level CSS, AST, and
 evaluation utilities into complete API call transformations. Each transformer
 corresponds to one StyleX API and is invoked by the `Fold` visitor when the
-matching call expression is encountered.
+matching call expression is encountered. `firstThatWorks` is the exception and
+lives in `stylex-evaluator`: the embedded engine calls it while a fold is
+standing, and no transformer calls it at all.
 
 #### `shared::utils::ast`
 
 AST helper functions that read or write the compilation state. These differ from
 the stateless helpers in
 [`stylex-ast`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-ast)
-because they read or mutate compiler state while manipulating the AST.
+because they read or mutate compiler state while manipulating the AST. The
+convertors that could only answer by evaluating an expression moved to
+[`stylex-evaluator`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-evaluator).
 
 #### `shared::utils::css`
 
@@ -85,12 +89,6 @@ CSS processing utilities and normalizers used during the transform phase.
 Builds on top of
 [`stylex-css`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css)
 with additional state-aware logic.
-
-#### `shared::utils::js`
-
-JavaScript evaluation utilities — `evaluate`, `check_declaration`,
-`native_functions` — that interpret JS expressions at compile time to resolve
-constant values.
 
 #### `shared::utils::core`
 

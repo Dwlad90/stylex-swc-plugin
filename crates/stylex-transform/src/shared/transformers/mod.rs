@@ -6,7 +6,6 @@ pub(crate) mod stylex_define_consts;
 pub(crate) mod stylex_define_consts_nested;
 pub(crate) mod stylex_define_vars;
 pub(crate) mod stylex_define_vars_nested;
-pub(crate) mod stylex_first_that_works;
 pub(crate) mod stylex_keyframes;
 pub(crate) mod stylex_position_try;
 pub(crate) mod stylex_types;

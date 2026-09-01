@@ -22,7 +22,7 @@ kind](../stylex-state/CONTEXT.md#import-specifier-kind) that bound it, and the
 two parts of a declarator -- its span and its initializer -- that a caller
 reading it actually needs. A lookup only _matches_; what the matched declaration
 means is the caller's question. It answers the first steps of the
-[reference resolution chain](../stylex-transform/CONTEXT.md#reference-resolution-chain)
+[reference resolution chain](../stylex-evaluator/CONTEXT.md#reference-resolution-chain)
 without being that chain, which also probes writes and positions this crate
 knows nothing about.
 

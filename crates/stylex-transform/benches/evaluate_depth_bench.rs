@@ -16,7 +16,7 @@
 //! flattened curve; one that keeps the whole-subtree walk reports as the same
 //! one. That comparison has been run: the composed key flattens this curve and
 //! costs 14-42% on every fixture `evaluate_bench` measures, which is
-//! `docs/adr/0006-an-incremental-memo-key-was-built-and-measured-slower.md` and
+//! `stylex-evaluator/docs/adr/0006-an-incremental-memo-key-was-built-and-measured-slower.md` and
 //! is why this group still reports the quadratic.
 //!
 //! The counted, machine-independent half of the same measurement lives in
@@ -30,12 +30,12 @@
 use std::hint::black_box;
 
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
   common::fill_state_declarations, evaluate_result_value::EvaluateResultValue,
   functions::FunctionMap, state_manager::StateManager,
 };
 use stylex_structures::{core_stylex_options::CoreStyleXOptions, stylex_options::StyleXOptions};
-use stylex_transform::shared::utils::js::evaluate::evaluate;
 use stylex_utils::hash::{stable_hash_unspanned, stable_hash_wide};
 use swc_core::{
   common::{FileName, GLOBALS, Globals, SourceMap, input::StringInput, sync::Lrc},
@@ -229,7 +229,7 @@ fn key_benchmarks(c: &mut Criterion) {
 /// object of 129 differ by one property and by which arm they take. The gap
 /// between these two is the arm's price per call -- 8.5 us against 2.7 -- and how
 /// often a real project pays it is recorded in
-/// `docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md`.
+/// `stylex-evaluator/docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md`.
 fn key_fallback_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("StructuralKeyFallback");
 

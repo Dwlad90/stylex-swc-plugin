@@ -19,7 +19,7 @@
 /// and the two are told apart by their state argument: this one takes the
 /// evaluation state it records the refusal on, the panicking one takes the
 /// state manager it builds a code frame from. Why they are separate
-/// constructs at all is ADR 0002, under `crates/stylex-transform/docs/adr/`.
+/// constructs at all is ADR 0002, under `crates/stylex-evaluator/docs/adr/`.
 ///
 /// A refusal is not a silent one: the reason lands on the evaluation state, and
 /// a deopt that reaches a position requiring a static value — inside

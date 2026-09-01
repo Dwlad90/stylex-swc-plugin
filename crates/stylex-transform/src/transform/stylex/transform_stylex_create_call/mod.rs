@@ -29,12 +29,10 @@ use swc_core::{
   },
 };
 
-use crate::shared::structures::state::EvaluationState;
 use crate::{
   shared::{
     transformers::{
-      stylex_create::stylex_create_set, stylex_default_marker,
-      stylex_first_that_works::stylex_first_that_works, stylex_keyframes::get_keyframes_fn,
+      stylex_create::stylex_create_set, stylex_default_marker, stylex_keyframes::get_keyframes_fn,
       stylex_position_try::get_position_try_fn,
     },
     utils::{
@@ -45,7 +43,6 @@ use crate::{
         flat_map_expanded_shorthands::flat_map_expanded_shorthands,
         js_to_ast::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
       },
-      js::evaluate::evaluate_result_is_nullish,
       validators::{is_create_call, validate_stylex_create},
     },
   },
@@ -68,6 +65,10 @@ use stylex_css::utils::{pseudo::is_pseudo_element, when as stylex_when};
 use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_diagnostics::code_frame::{build_code_frame_error, build_code_frame_error_and_panic};
 use stylex_enums::{counter_mode::CounterMode, style_resolution::StyleResolution};
+use stylex_evaluator::{
+  evaluate::evaluate_result_is_nullish, state::EvaluationState,
+  stylex_first_that_works::stylex_first_that_works,
+};
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;
 use stylex_state::{
   common::downcast_style_options_to_state_manager,

@@ -9,14 +9,10 @@ use swc_core::ecma::{
   utils::quote_str,
 };
 
-use crate::shared::structures::state::EvaluationState;
-use crate::shared::{
-  structures::{
-    null_pre_rule::NullPreRule,
-    pre_rule::{PreRules, StylesPreRule},
-    pre_rule_set::PreRuleSet,
-  },
-  utils::ast::convertors::{expr_tpl_to_string, transform_bin_expr_to_number},
+use crate::shared::structures::{
+  null_pre_rule::NullPreRule,
+  pre_rule::{PreRules, StylesPreRule},
+  pre_rule_set::PreRuleSet,
 };
 use stylex_ast::ast::convertors::{
   convert_key_value_to_str, create_number_expr, expand_shorthand_prop, get_expr_from_var_decl,
@@ -28,6 +24,8 @@ use stylex_constants::constants::messages::{
 use stylex_css::utils::condition::is_conditional_key;
 use stylex_declarations::convertors::{convert_lit_to_raw_value, handle_tpl_to_expression};
 use stylex_declarations::lookup::get_var_decl_by_ident;
+use stylex_evaluator::convertors::{expr_tpl_to_string, transform_bin_expr_to_number};
+use stylex_evaluator::state::EvaluationState;
 use stylex_regex::regex::CSS_VALUE_SPLIT_REGEX;
 use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 use stylex_structures::{order_pair::OrderPair, raw_value::TRawValue};

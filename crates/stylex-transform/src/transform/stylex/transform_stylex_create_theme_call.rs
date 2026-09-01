@@ -19,7 +19,6 @@ use crate::{
         dev_class_name::{convert_theme_to_dev_styles, convert_theme_to_test_styles},
         js_to_ast::{NestedStringObject, convert_object_to_ast},
       },
-      js::evaluate::evaluate,
       validators::{
         is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
       },
@@ -32,6 +31,7 @@ use stylex_constants::constants::{
   messages::{non_static_value, non_style_object},
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
   functions::{FunctionConfigType, FunctionMap},
   state_manager::ImportKind,

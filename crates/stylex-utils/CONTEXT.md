@@ -87,7 +87,7 @@ is what makes the algorithm changeable at all. What _is_ observable is the
 collision behaviour of the callers that do not confirm, and the cost: the
 hash walks the whole subtree, and the evaluator takes one per level, which is why
 folding a deep expression is quadratic
-([stylex-transform ADR 0005](../stylex-transform/docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md)).
+([stylex-evaluator ADR 0005](../stylex-evaluator/docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md)).
 `stable_hash_wide` is the same 128 bits over anything `Hash`, for a cache whose
 reads act on a hit without confirming it — the code-frame span cache in
 `stylex-transform` is the other one of those.

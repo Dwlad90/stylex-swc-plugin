@@ -19,7 +19,7 @@
 //! cost -- the key is a hash of the whole remaining subtree and is taken again
 //! at every link -- plus the one copy per link that boxes a folded chain back
 //! into the tree for the memo to hold. Both are
-//! `docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md` rather than
+//! `stylex-evaluator/docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md` rather than
 //! anything this file's subject can remove, and the neighbouring
 //! `evaluate_depth_bench` is where that curve is pinned on its own.
 //!
@@ -34,11 +34,11 @@
 use std::hint::black_box;
 
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
   common::fill_state_declarations, evaluate_result_value::EvaluateResultValue,
   functions::FunctionMap, state_manager::StateManager,
 };
-use stylex_transform::shared::utils::js::evaluate::evaluate;
 use swc_core::{
   common::{FileName, GLOBALS, Globals, SourceMap, input::StringInput, sync::Lrc},
   ecma::{

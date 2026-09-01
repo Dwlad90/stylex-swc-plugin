@@ -17,13 +17,14 @@ use crate::{
   shared::{
     transformers::stylex_define_vars_nested::stylex_define_vars_nested,
     utils::{
-      core::stylex_nested_utils::convert_unflattened_object_to_ast, js::evaluate::evaluate,
+      core::stylex_nested_utils::convert_unflattened_object_to_ast,
       validators::validate_define_call,
     },
   },
   transform::stylex::visitor_utils::{build_eval_config, is_call_to},
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{common::gen_file_based_identifier, state_manager::ImportKind};
 use stylex_structures::top_level_expression::TopLevelExpression;
 

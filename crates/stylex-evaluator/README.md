@@ -12,12 +12,26 @@ fold either answers with a value or refuses. Refusing is a normal answer — a
 value that cannot be known at compile time becomes an inline style instead — so
 nothing on this path may abort the process.
 
-The crate is being filled from the bottom. What is here today is the stack every
-descent of a fold runs on; the dispatcher, the node handlers and the engine fold
-are still with `stylex-transform` and move here as one unit.
-
 ## Architecture
 
+- **Dispatch** — `evaluate`, which reads the shape of an expression and hands it
+  to the handler for that shape. Every handler answers a value or a refusal, and
+  a refusal carries the expression it stopped at and the sentence to report, so
+  the caller can turn it into an inline style or a diagnostic without guessing.
+  `cache` memoizes what a subtree folded to under a hash of that subtree.
+- **Node handlers** — `evaluate::nodes`, one module per expression kind:
+  identifiers, members, calls, objects, arrays, templates, the two operators and
+  the arrow. `binding` resolves what a name stands for, against the declarations
+  the crate below records.
+- **Engine fold** — `evaluate::engine_fold`, which answers a self-contained
+  method call by handing it to a JavaScript engine rather than by matching its
+  name against a table. A table is finite by construction, so the method it does
+  not list is the next bug report. `guard` decides what may cross, `transport`
+  carries the values it resolved inward, `amplification` answers how much a call
+  would build, and `outward` reads the engine's answer back.
+- **Convertors** — `convertors`, which reads an expression back as a number or a
+  string. Above the literal convertors in `stylex-declarations` because it can
+  only answer by evaluating, which is what put this half of the module here.
 - **Growable stack** — `growable_stack`, the room a descent is given rather than
   the room it inherited. Two ways of asking, and one rule that decides which a
   descent gets: a descent that can ask again at the next level does.
@@ -37,6 +51,10 @@ refuses, which is a diagnostic rather than an abort.
 `stylex-structures` supplies the depth limit the deepest carried nesting is
 equal to, so the ceiling a project configures and the claim behind it can never
 disagree.
+
+`stylex_first_that_works` is here rather than with the transformers the visitor
+drives: the engine calls it while a fold is standing, and no transformer calls
+it at all.
 
 ## License
 

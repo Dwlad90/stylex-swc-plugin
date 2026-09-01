@@ -1,13 +1,13 @@
 use rustc_hash::FxHashMap;
 use stylex_ast::ast::convertors::create_number_expr;
 use stylex_enums::core::TransformationCycle;
+use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
   common::{fill_state_declarations, fill_top_level_expressions},
   evaluate_result_value::EvaluateResultValue,
   functions::FunctionMap,
   state_manager::StateManager,
 };
-use stylex_transform::shared::utils::js::evaluate::evaluate;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{

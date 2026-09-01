@@ -28,3 +28,11 @@ carries no static name. The `namespace_name_` prefix says which name is being
 asked for, not that the crate knows what a namespace is — nothing here reads
 what the name means.
 _Avoid_: key extractor, key convertor, name getter
+
+**Synthesized node**:
+An AST node this compiler built rather than read, carrying `DUMMY_SP` because no
+source text spells it. Shorthand expansion and injected function mappers both
+produce them. Every question answered from a position has to exempt them: byte
+zero sorts before every authored node, so comparing one answers a fact about its
+having been built.
+_Avoid_: generated node, dummy node, fake node

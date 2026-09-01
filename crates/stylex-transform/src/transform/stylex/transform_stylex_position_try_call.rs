@@ -13,15 +13,10 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    transformers::{
-      stylex_first_that_works::stylex_first_that_works, stylex_position_try::stylex_position_try,
-    },
-    utils::{
-      js::evaluate::evaluate,
-      validators::{
-        assert_valid_position_try, assert_valid_properties, is_position_try_call,
-        validate_stylex_position_try_indent,
-      },
+    transformers::stylex_position_try::stylex_position_try,
+    utils::validators::{
+      assert_valid_position_try, assert_valid_properties, is_position_try_call,
+      validate_stylex_position_try_indent,
     },
   },
 };
@@ -31,6 +26,7 @@ use stylex_constants::constants::{
   messages::{POSITION_TRY_INVALID_PROPERTY, non_static_value, non_style_object},
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_evaluator::{evaluate::evaluate, stylex_first_that_works::stylex_first_that_works};
 use stylex_state::{
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   state_manager::ImportKind,

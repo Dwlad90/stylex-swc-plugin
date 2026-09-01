@@ -6,8 +6,9 @@
 //! suites need them, and because a case whose subject is a number of bytes must
 //! not also be the place that says how a bracket is spelled.
 //!
-//! The evaluation suites still with the transform carry the same three, and the
-//! two copies converge when those suites join this crate.
+//! The evaluation suites read the same three through
+//! [`source_evaluation`](crate::evaluate::source_evaluation), which re-exports
+//! them beside its own assertions rather than restating them.
 
 use swc_core::{
   common::{FileName, SourceFile, SourceMap, sync::Lrc},
@@ -75,7 +76,7 @@ pub(crate) fn parse_expr(source: &str) -> Expr {
   }
 }
 
-fn anonymous_file(source: &str) -> Lrc<SourceFile> {
+pub(crate) fn anonymous_file(source: &str) -> Lrc<SourceFile> {
   let source_map: Lrc<SourceMap> = Default::default();
 
   source_map.new_source_file(FileName::Anon.into(), source.to_string())
@@ -86,7 +87,7 @@ fn anonymous_file(source: &str) -> Lrc<SourceFile> {
 /// One copy for the same reason the assertions have one: an expression and the
 /// module it was written in have to be read under the same syntax, or a suite
 /// comes to disagree with another about what the author wrote.
-fn parser_for(file: &SourceFile) -> Parser<Lexer<'_>> {
+pub(crate) fn parser_for(file: &SourceFile) -> Parser<Lexer<'_>> {
   Parser::new_from(Lexer::new(
     Syntax::Es(EsSyntax {
       jsx: true,

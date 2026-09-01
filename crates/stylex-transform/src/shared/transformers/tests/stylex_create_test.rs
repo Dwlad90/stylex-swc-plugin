@@ -6,7 +6,6 @@ mod stylex_create {
   use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::{Expr, ExprOrSpread, KeyValueProp};
 
-  use crate::shared::structures::state::EvaluationState;
   use crate::shared::transformers::stylex_create::stylex_create_set;
   use stylex_ast::ast::factories::{
     create_array_expression, create_key_value_prop, create_key_value_prop_ident,
@@ -14,6 +13,7 @@ mod stylex_create {
     create_string_key_value_prop,
   };
   use stylex_constants::constants::common::COMPILED_KEY;
+  use stylex_evaluator::state::EvaluationState;
   use stylex_state::{
     evaluate_result_value::EvaluateResultValue,
     flat_compiled_styles_value::FlatCompiledStylesValue,

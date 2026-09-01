@@ -32,7 +32,18 @@
     }
   },
   "devDependencies": {
+    "@stylexswc/ast": "catalog:internal",
+    "@stylexswc/constants": "catalog:internal",
+    "@stylexswc/declarations": "catalog:internal",
+    "@stylexswc/diagnostics": "catalog:internal",
+    "@stylexswc/enums": "catalog:internal",
+    "@stylexswc/macros": "catalog:internal",
+    "@stylexswc/regex": "catalog:internal",
+    "@stylexswc/state": "catalog:internal",
     "@stylexswc/structures": "catalog:internal",
+    "@stylexswc/stylex-js": "catalog:internal",
+    "@stylexswc/types": "catalog:internal",
+    "@stylexswc/utils": "catalog:internal",
     "@taplo/cli": "catalog:tooling",
     "npm-run-all2": "catalog:tooling"
   },

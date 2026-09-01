@@ -3341,11 +3341,28 @@ dependencies = [
 name = "stylex_evaluator"
 version = "0.18.6"
 dependencies = [
+ "anyhow",
+ "boa_engine",
  "ctor",
+ "indexmap",
+ "log",
  "pretty_env_logger",
+ "rustc-hash",
  "stacker",
+ "stylex_ast",
+ "stylex_constants",
+ "stylex_declarations",
+ "stylex_diagnostics",
+ "stylex_enums",
+ "stylex_js",
+ "stylex_macros",
+ "stylex_regex",
+ "stylex_state",
  "stylex_structures",
+ "stylex_types",
+ "stylex_utils",
  "swc_core",
+ "swc_ecma_parser",
 ]
 
 [[package]]
@@ -3512,7 +3529,6 @@ dependencies = [
 name = "stylex_transform"
 version = "0.18.6"
 dependencies = [
- "anyhow",
  "boa_engine",
  "criterion",
  "ctor",
@@ -3525,7 +3541,6 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
- "stacker",
  "stylex_ast",
  "stylex_atoms",
  "stylex_constants",

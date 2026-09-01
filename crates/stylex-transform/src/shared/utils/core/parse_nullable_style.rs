@@ -7,7 +7,7 @@ use stylex_ast::ast::convertors::{
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::{Expr, Lit, MemberProp, ObjectLit};
 
-use crate::shared::utils::js::evaluate::evaluate;
+use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
   functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles,

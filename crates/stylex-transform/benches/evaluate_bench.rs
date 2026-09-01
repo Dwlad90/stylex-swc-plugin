@@ -6,13 +6,13 @@ use std::{
 };
 
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
   common::{fill_state_declarations, fill_top_level_expressions},
   functions::FunctionMap,
   state_manager::StateManager,
 };
 use stylex_structures::stylex_options::StyleXOptions;
-use stylex_transform::shared::utils::js::evaluate::evaluate;
 use swc_core::{
   common::{FileName, GLOBALS, Globals, SourceMap, input::StringInput},
   ecma::{

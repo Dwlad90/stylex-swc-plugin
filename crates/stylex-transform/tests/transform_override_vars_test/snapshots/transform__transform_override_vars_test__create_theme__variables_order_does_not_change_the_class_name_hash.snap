@@ -1,5 +1,5 @@
 ---
-source: crates/stylex-shared/tests/transform_override_vars_test/create_theme.rs
+source: crates/stylex-transform/tests/transform_override_vars_test/create_theme.rs
 expression: output_v1
 ---
 import stylex from 'stylex';

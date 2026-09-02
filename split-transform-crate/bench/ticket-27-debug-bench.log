@@ -1,0 +1,82 @@
+Benchmarking TransformDebugPath/prod/25: Warming up for 2.0000 s
+Benchmarking TransformDebugPath/prod/25: Collecting 20 samples in estimated 4.1556 s (2520 iterations)
+Benchmarking TransformDebugPath/prod/25: Analyzing
+TransformDebugPath/prod/25
+                        time:   [1.6159 ms 1.6226 ms 1.6289 ms]
+Benchmarking TransformDebugPath/dev/50
+Benchmarking TransformDebugPath/dev/50: Warming up for 2.0000 s
+Benchmarking TransformDebugPath/dev/50: Collecting 20 samples in estimated 4.6109 s (1260 iterations)
+Benchmarking TransformDebugPath/dev/50: Analyzing
+TransformDebugPath/dev/50
+                        time:   [3.5235 ms 3.5348 ms 3.5461 ms]
+Benchmarking TransformDebugPath/prod/50
+Benchmarking TransformDebugPath/prod/50: Warming up for 2.0000 s
+Benchmarking TransformDebugPath/prod/50: Collecting 20 samples in estimated 4.5624 s (1680 iterations)
+Benchmarking TransformDebugPath/prod/50: Analyzing
+TransformDebugPath/prod/50
+                        time:   [2.6383 ms 2.6514 ms 2.6649 ms]
+Benchmarking TransformDebugPath/dev/100
+Benchmarking TransformDebugPath/dev/100: Warming up for 2.0000 s
+Benchmarking TransformDebugPath/dev/100: Collecting 20 samples in estimated 4.9044 s (630 iterations)
+Benchmarking TransformDebugPath/dev/100: Analyzing
+TransformDebugPath/dev/100
+                        time:   [7.5387 ms 7.5778 ms 7.6171 ms]
+Benchmarking TransformDebugPath/prod/100
+Benchmarking TransformDebugPath/prod/100: Warming up for 2.0000 s
+Benchmarking TransformDebugPath/prod/100: Collecting 20 samples in estimated 4.9407 s (840 iterations)
+Benchmarking TransformDebugPath/prod/100: Analyzing
+TransformDebugPath/prod/100
+                        time:   [5.6926 ms 5.7225 ms 5.7565 ms]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+
+Benchmarking TransformDebugNamespacesPerCall/dev/8
+Benchmarking TransformDebugNamespacesPerCall/dev/8: Warming up for 2.0000 s
+Benchmarking TransformDebugNamespacesPerCall/dev/8: Collecting 20 samples in estimated 4.0492 s (14k iterations)
+Benchmarking TransformDebugNamespacesPerCall/dev/8: Analyzing
+TransformDebugNamespacesPerCall/dev/8
+                        time:   [273.77 µs 274.48 µs 275.19 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+Benchmarking TransformDebugNamespacesPerCall/prod/8
+Benchmarking TransformDebugNamespacesPerCall/prod/8: Warming up for 2.0000 s
+Benchmarking TransformDebugNamespacesPerCall/prod/8: Collecting 20 samples in estimated 4.0135 s (24k iterations)
+Benchmarking TransformDebugNamespacesPerCall/prod/8: Analyzing
+TransformDebugNamespacesPerCall/prod/8
+                        time:   [164.49 µs 165.48 µs 166.94 µs]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+Benchmarking TransformDebugNamespacesPerCall/dev/32
+Benchmarking TransformDebugNamespacesPerCall/dev/32: Warming up for 2.0000 s
+Benchmarking TransformDebugNamespacesPerCall/dev/32: Collecting 20 samples in estimated 4.1857 s (3780 iterations)
+Benchmarking TransformDebugNamespacesPerCall/dev/32: Analyzing
+TransformDebugNamespacesPerCall/dev/32
+                        time:   [1.0816 ms 1.0838 ms 1.0862 ms]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+Benchmarking TransformDebugNamespacesPerCall/prod/32
+Benchmarking TransformDebugNamespacesPerCall/prod/32: Warming up for 2.0000 s
+Benchmarking TransformDebugNamespacesPerCall/prod/32: Collecting 20 samples in estimated 4.1540 s (4620 iterations)
+Benchmarking TransformDebugNamespacesPerCall/prod/32: Analyzing
+TransformDebugNamespacesPerCall/prod/32
+                        time:   [876.73 µs 878.59 µs 880.86 µs]
+Found 6 outliers among 20 measurements (30.00%)
+  1 (5.00%) low severe
+  1 (5.00%) low mild
+  2 (10.00%) high mild
+  2 (10.00%) high severe
+Benchmarking TransformDebugNamespacesPerCall/dev/128
+Benchmarking TransformDebugNamespacesPerCall/dev/128: Warming up for 2.0000 s
+Benchmarking TransformDebugNamespacesPerCall/dev/128: Collecting 20 samples in estimated 5.4974 s (630 iterations)
+Benchmarking TransformDebugNamespacesPerCall/dev/128: Analyzing
+TransformDebugNamespacesPerCall/dev/128
+                        time:   [8.4710 ms 8.4967 ms 8.5194 ms]
+Benchmarking TransformDebugNamespacesPerCall/prod/128
+Benchmarking TransformDebugNamespacesPerCall/prod/128: Warming up for 2.0000 s
+Benchmarking TransformDebugNamespacesPerCall/prod/128: Collecting 20 samples in estimated 4.9233 s (630 iterations)
+Benchmarking TransformDebugNamespacesPerCall/prod/128: Analyzing
+TransformDebugNamespacesPerCall/prod/128
+                        time:   [7.6440 ms 7.6586 ms 7.6720 ms]
+
+
+[exited with code 0]

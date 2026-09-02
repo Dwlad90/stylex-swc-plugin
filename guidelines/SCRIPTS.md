@@ -26,8 +26,14 @@ it into dash on Linux, where its bashisms fail.
   workspace in the second leg rather than once per crate.
 - `pnpm test:crates:workspace` -- the Rust suites, through Turbo so that a
   tree with no Rust change hits the cache: `test:crates:workspace:regular`
-  (`cargo nextest run --workspace --all-features --profile ci`) and
+  (`cargo nextest run --workspace --all-features`) and
   `test:crates:workspace:doc` (`cargo test --doc --workspace --all-features`).
+  The regular leg runs nextest's `default` profile, which reports a failure at
+  once. CI sets `NEXTEST_PROFILE=ci` on its own leg to get the two retries that
+  hide an infrastructure flake; a local gate wants the opposite, so the profile
+  is on the CI command rather than in the shared script. The variable is part
+  of the task's cache key, so a run under one profile never replays under the
+  other.
 - `pnpm test:scripts` -- `node --test` over `.github/scripts` and `scripts/git`.
   `pnpm test` runs it first, CI runs it as a `basic-checks` leg, and `pre-push`
   runs it when the push touches those directories.

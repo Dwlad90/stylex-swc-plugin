@@ -178,7 +178,12 @@ jobs:
               --filter="@stylexswc/rs-compiler"
           - id: tests-rust
             name: Tests Rust code
-            command: pnpm exec turbo run test:crates:workspace:regular --filter="//"
+            # The `ci` nextest profile retries a flaky test twice instead of
+            # failing at once. That is what CI wants and the opposite of what a
+            # local gate wants, so the profile is set here rather than in the
+            # script both share.
+            command: |
+              NEXTEST_PROFILE=ci pnpm exec turbo run test:crates:workspace:regular --filter="//"
           - id: tests-rust-doc
             name: Tests Rust doc
             command: pnpm exec turbo run test:crates:workspace:doc --filter="//"

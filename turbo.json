@@ -103,6 +103,7 @@
     },
     "//#test:crates:workspace:regular": {
       "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
+      "env": ["NEXTEST_PROFILE"],
       "outputLogs": "errors-only"
     },
     "//#test:crates:workspace:doc": {

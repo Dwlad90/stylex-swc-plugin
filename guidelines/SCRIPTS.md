@@ -34,6 +34,18 @@ it into dash on Linux, where its bashisms fail.
   is on the CI command rather than in the shared script. The variable is part
   of the task's cache key, so a run under one profile never replays under the
   other.
+
+  Every Rust task -- the two above, the coverage task and the clippy task --
+  hashes `crates/**` plus `Cargo.lock` and `rust-toolchain.toml`, and the test
+  tasks add `.config/nextest.toml`. Each of those is something a run reads:
+  the sources, the fixtures, the resolved dependency versions, the toolchain
+  and the nextest profiles. `Cargo.toml`, `clippy.toml`, `package.json` and
+  `turbo.json` are global dependencies, so no task repeats them. Nothing
+  outside `crates/` holds a `.rs` file, which is why a documentation or
+  TypeScript edit no longer re-runs the Rust suites. Widen this set when a run
+  starts to read something new; a missing input is a cached pass over a change
+  nobody tested.
+
 - `pnpm test:scripts` -- `node --test` over `.github/scripts` and `scripts/git`.
   `pnpm test` runs it first, CI runs it as a `basic-checks` leg, and `pre-push`
   runs it when the push touches those directories.

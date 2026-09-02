@@ -95,23 +95,23 @@
       "outputLogs": "errors-only"
     },
     "//#test:coverage:workspace": {
-      "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
+      "inputs": ["crates/**", "Cargo.lock", "rust-toolchain.toml", ".config/nextest.toml"],
       "outputLogs": "errors-only"
     },
     "//#test:scripts": {
       "outputLogs": "errors-only"
     },
     "//#test:crates:workspace:regular": {
-      "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
+      "inputs": ["crates/**", "Cargo.lock", "rust-toolchain.toml", ".config/nextest.toml"],
       "env": ["NEXTEST_PROFILE"],
       "outputLogs": "errors-only"
     },
     "//#test:crates:workspace:doc": {
-      "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
+      "inputs": ["crates/**", "Cargo.lock", "rust-toolchain.toml", ".config/nextest.toml"],
       "outputLogs": "errors-only"
     },
     "//#lint:crates:workspace": {
-      "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
+      "inputs": ["crates/**", "Cargo.lock", "rust-toolchain.toml"],
       "outputLogs": "errors-only"
     },
     "//#lint:node:type-aware": {

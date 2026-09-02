@@ -9,10 +9,12 @@ version.workspace = true
 
 
 [lib]
-# The only crate that needs a C-ABI library: the `.node` addon Node loads. Every
-# other crate here is `rlib` only -- a `cdylib` nothing links exports its symbols
-# as preemptible, which keeps the caller from optimizing into them.
-crate-type = ["cdylib", "rlib"]
+# `cdylib` only. Node loads this crate as the `.node` addon, and nothing links it
+# as a Rust library. Do not add an `rlib`: LTO runs only on a final artifact, and
+# a crate that also emits a reusable `rlib` is not final, so rustc then receives
+# no `-C lto` and the fat LTO of `profile.release` does not run. See
+# `guidelines/STRUCTURE.md` for what that measured.
+crate-type = ["cdylib"]
 doctest = false
 
 

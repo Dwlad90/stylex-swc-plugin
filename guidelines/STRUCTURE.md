@@ -70,20 +70,32 @@ registry dependency like every other.
 
 Workspace dependencies are defined in the root `Cargo.toml`.
 
-### Every crate is `rlib` only, except the addon
+### Every crate is `rlib` only, and the addon is `cdylib` only
 
-`crates/stylex-rs-compiler` declares `crate-type = ["cdylib", "rlib"]`, because
-Node loads its `cdylib` as the `.node` addon. Every other crate that builds a
-library declares `crate-type = ["rlib"]`. `stylex-test-parser` builds only a
-binary, so it has no library target to type and declares no `crate-type`.
+`crates/stylex-rs-compiler` declares `crate-type = ["cdylib"]`, because Node
+loads its `cdylib` as the `.node` addon. Every other crate that builds a library
+declares `crate-type = ["rlib"]`. `stylex-test-parser` builds only a binary, so
+it has no library target to type and declares no `crate-type`.
 
-This is a throughput rule, not tidiness. A `cdylib` exports its public symbols
-as preemptible, so a caller cannot optimize into them, and Cargo cannot hand the
-crate's bitcode to the fat LTO the `bench` and `release` profiles ask for.
-Nineteen crates declared a `cdylib` that nothing ever linked. Moving 11k lines
-of the evaluator into one of them cost between 4% and 18% on the memo-key
-benches, and dropping the `cdylib` recovered it. Adding one back to a crate on
-the compiler's path costs throughput for an artifact no one loads.
+**Never give the addon an `rlib`.** LTO reaches only a final artifact. A crate
+that must also emit a reusable `rlib` is not final, so it gets no LTO, and cargo
+prints no warning: rustc receives no `-C lto` flag at all. The addon carried an
+unused `rlib`, which held the fat LTO of `profile.release` off the shipped
+`.node`. Measured with `pnpm bench` in `crates/stylex-rs-compiler`, two runs per
+configuration: without the `rlib`, all 64 fixtures are faster, by a median of
+16% and up to 39%, and no two runs overlap. The release build then takes about
+four times as long, because the optimization now runs. For the one crate that
+ships, throughput comes first.
+
+For every other crate the rule is build cost, not throughput. A `cdylib` that
+nothing links is output nobody reads: dropping it from nineteen crates cut the
+workspace-only rebuild by about a quarter, in both the `dev` and `release`
+profiles, and took the dynamic libraries the workspace emits from 20 to 1. Seven
+bench builds found no throughput effect on the whole suite. Two of twelve bench
+groups did separate, and both read about 1 to 2 points _slower_ without the
+`cdylib`, which is the reverse of what an earlier measurement reported. That is
+codegen placement inside one fat-LTO unit, and its sign changes from build to
+build, so it is not a reason to add a `cdylib` back.
 
 ## TS/JS Packages (`packages/`)
 

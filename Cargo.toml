@@ -38,6 +38,9 @@ strip = "none"
 codegen-units = 1
 
 # Fat LTO. Enables cross-crate inlining into SWC's visitor traversal, the hot path.
+# This setting reaches only a final artifact. A crate that also emits a reusable
+# `rlib` is not final, so it gets no LTO, and cargo prints no warning. The addon
+# is `cdylib` only to keep this setting effective.
 lto = true
 
 # Optimize for speed. Never "z"/"s" — they optimize for size by slashing the inliner

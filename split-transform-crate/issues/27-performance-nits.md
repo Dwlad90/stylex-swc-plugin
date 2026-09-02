@@ -38,3 +38,24 @@ collide.
 - [ ] The addon is rebuilt and the JavaScript suite re-run — it exercises the
       built artifact rather than the Rust sources, so a green Rust run is not
       evidence on its own
+
+## Comments
+
+### A rescan the issue-24 tests exposed, measured and not worth changing yet
+
+`CallLookup::query` (`stylex-state-index/src/key_span_index.rs`) resolves a
+namespace's own value keys with a linear `find` over every property of the
+call's object argument, cloning an `Atom` per property it looks at, then builds
+an `FxHashSet`. `query` is called once per namespace, so a call with *n*
+namespaces does *n x n* property visits plus two allocations per namespace —
+and it runs *before* the span-cache check in `code_frame`, so a cache hit pays
+for it too, which is the opposite of what the comment there intends.
+`CallLookup` already hoists the sibling keys and the digest for exactly this
+reason; the per-namespace value keys are the one thing left un-hoisted, and one
+pass at construction time building `FxHashMap<Atom, FxHashSet<Atom>>` removes
+the rescan.
+
+Measured before recording: every fixture in the repository keeps *n* at three
+to five, which puts this at a few hundred nanoseconds. It only pays if a real
+module writes hundreds of namespaces in one `create`, which is the shape
+`code_frame`'s own comment worries about. Left alone on those numbers.

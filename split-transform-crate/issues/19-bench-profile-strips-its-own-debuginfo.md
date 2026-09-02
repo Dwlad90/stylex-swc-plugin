@@ -49,3 +49,19 @@ targets, not bench targets; this fix does not change them. And a bench target
 built under `profile.bench` lands in `target/release/deps/`, not
 `target/bench/`, because cargo names the directory after the profile it
 inherits from.
+
+## Comments
+
+### The gate has no release leg at all, which issue 24 ran into
+
+Closing issue 24 added `a_position_before_its_own_base_clamps_to_zero` in
+`stylex-state-index`, which guards the saturating subtraction a release build
+ships. It is the only `cfg(not(debug_assertions))` case in `crates/`, and
+nothing in this repository selects it: the workspace test tasks and the
+coverage run are debug, deliberately, since the fixture suite only guards
+debug. So the case can rot without anyone hearing about it.
+
+The two questions are the same one — which profiles the gate covers, and what
+each is for. Whatever this ticket settles for the bench profile should say
+whether a release test leg exists, and if it does, that it runs the crate
+suites rather than only the fixtures.

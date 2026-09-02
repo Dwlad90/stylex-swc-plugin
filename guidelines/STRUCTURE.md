@@ -20,11 +20,12 @@ crate depends only on lower layers: it has to sit above the deepest thing it
 reaches. So layer 0 means "no internal dependencies", and the top layer is the
 addon every shipped artifact is built from.
 
-The `[dependencies]` tables decide these numbers, and nothing checks the copy
-below against them, so read a layer as a claim to verify rather than as a fact.
-`cargo tree -p <crate> -e normal` prints the path a number is measured along.
-Dev dependencies are not counted: a test that reaches sideways says nothing
-about what the compiler links.
+The `[dependencies]` tables decide these numbers, and
+`the_documented_ladder_matches_the_manifests`, in the addon's own test module,
+fails when the list below stops matching them. So edit the list by hand and let
+the workspace suite check it; `cargo tree -p <crate> -e normal` prints the path
+a number is measured along. Dev dependencies are not counted: a test that
+reaches sideways says nothing about what the compiler links.
 
 - **0 -- Primitives** (no internal dependencies): `postcss-value-parser`,
   `stylex-constants`, `stylex-regex`, `stylex-utils`
@@ -49,6 +50,8 @@ _below_ evaluation, so it cannot call the evaluator.
 `stylex-test-parser` sits outside the DAG: nothing depends on it, and it is a
 developer binary rather than part of the compiler. It has no internal
 dependencies either, so a rung would put it at 0 and say nothing true about it.
+The check reads the ladder as what the addon links, which is what keeps it out
+without anyone naming it.
 
 `postcss-value-parser` is third-party code rather than this project's own, and
 that is why it is a crate rather than a module. It has no dependencies, not

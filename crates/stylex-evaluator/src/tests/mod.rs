@@ -1,6 +1,8 @@
 use ctor::ctor;
 
+mod check_declaration_test;
 mod convertors_tests;
+mod evaluate_result_test;
 mod evaluate_tests;
 mod growable_stack_test;
 pub(crate) mod scaffolding;

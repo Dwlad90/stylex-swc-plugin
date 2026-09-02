@@ -2,11 +2,12 @@
 //!
 //! Value normalization is asserted from more than one module — the general
 //! coverage in `common_test`, and the harness-verdicted coverage in
-//! `value_normalization_parity_test` and `spacing_repair_parity_test` — and all
-//! of them need the same option objects, the same way of reading a rejection,
-//! and the same way of recording a reference-compiler verdict. Kept here so a
-//! change to how the compiler is configured, how it reports a rejection, or how
-//! a verdict is spelled lands in one place.
+//! `value_normalization_parity_test`, `spacing_repair_parity_test` and
+//! `corpus_normalization_test` — and all of them need the same option objects,
+//! the same way of reading a rejection, and the same way of recording a
+//! reference-compiler verdict. Kept here so a change to how the compiler is
+//! configured, how it reports a rejection, or how a verdict is spelled lands in
+//! one place.
 //!
 //! A case is built by one of two constructors: [`unchanged`] when the value
 //! comes back as written, [`same`] when it is rewritten. Both carry the same

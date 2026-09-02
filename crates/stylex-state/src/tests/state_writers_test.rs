@@ -504,6 +504,35 @@ mod fill_top_level_non_ident_pattern_tests {
     );
   }
 
+  /// The export is not what makes the call program level -- a plain statement
+  /// is at program level too, and the transform must not hoist out of it
+  /// either. The two shapes reach the same arm through different `ModuleItem`
+  /// variants, so a test of the export alone leaves the statement route
+  /// unwalked.
+  #[test]
+  fn statement_with_pattern_records_the_initializing_call_position() {
+    let call_span = Span {
+      lo: BytePos(11),
+      hi: BytePos(30),
+    };
+
+    let mut state = StateManager::default();
+    fill_top_level_expressions(
+      &pattern_bound_statement(Expr::Call(make_call_expr(call_span))),
+      &mut state,
+    );
+
+    assert!(state.top_level_expressions.is_empty());
+    assert_eq!(
+      state
+        .pattern_bound_top_level_calls
+        .iter()
+        .copied()
+        .collect::<Vec<_>>(),
+      vec![call_span]
+    );
+  }
+
   /// A span-less call identifies no position, so there is nothing to record —
   /// see `StateManager::find_top_level_expr_by_span` for why a dummy span is
   /// never a match.
@@ -537,32 +566,46 @@ mod fill_top_level_non_ident_pattern_tests {
     }
   }
 
+  /// `const { a } = <init>;`, the declaration both wrappers below carry.
+  fn pattern_bound_decl(init: Expr) -> Box<VarDecl> {
+    Box::new(VarDecl {
+      span: DUMMY_SP,
+      kind: VarDeclKind::Const,
+      declare: false,
+      decls: vec![VarDeclarator {
+        span: DUMMY_SP,
+        name: Pat::Object(ObjectPat {
+          span: DUMMY_SP,
+          props: vec![],
+          optional: false,
+          type_ann: None,
+        }),
+        init: Some(Box::new(init)),
+        definite: false,
+      }],
+      ctxt: SyntaxContext::empty(),
+    })
+  }
+
   /// `export const { a } = <init>;`
   fn pattern_bound_export(init: Expr) -> Module {
-    let decl = VarDeclarator {
-      span: DUMMY_SP,
-      name: Pat::Object(ObjectPat {
-        span: DUMMY_SP,
-        props: vec![],
-        optional: false,
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    };
-
     Module {
       span: DUMMY_SP,
       body: vec![ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl {
         span: DUMMY_SP,
-        decl: Decl::Var(Box::new(VarDecl {
-          span: DUMMY_SP,
-          kind: VarDeclKind::Const,
-          declare: false,
-          decls: vec![decl],
-          ctxt: SyntaxContext::empty(),
-        })),
+        decl: Decl::Var(pattern_bound_decl(init)),
       }))],
+      shebang: None,
+    }
+  }
+
+  /// `const { a } = <init>;` -- the same declaration without the export.
+  fn pattern_bound_statement(init: Expr) -> Module {
+    Module {
+      span: DUMMY_SP,
+      body: vec![ModuleItem::Stmt(Stmt::Decl(Decl::Var(pattern_bound_decl(
+        init,
+      ))))],
       shebang: None,
     }
   }

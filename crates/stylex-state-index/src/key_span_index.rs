@@ -69,7 +69,12 @@ impl FileOffset {
   /// module's base is a caller error rather than a negative offset, though, so
   /// it is loud in a test build: clamping every candidate to zero is exactly
   /// the "rank by earliest in the file" failure this type exists to prevent.
-  fn of(position: BytePos, base: ModuleBase) -> Self {
+  ///
+  /// Crate-visible rather than private so the suite beside this module can
+  /// reach both paths -- unconditionally, unlike [`Self::at`], because
+  /// production calls it. The invariant is unchanged either way: a caller still
+  /// has to supply a [`ModuleBase`], which is the whole of what the type asks.
+  pub(crate) fn of(position: BytePos, base: ModuleBase) -> Self {
     debug_assert!(
       position >= base.0,
       "a position at {:?} precedes the base of the module holding it, {:?}",

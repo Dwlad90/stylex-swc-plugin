@@ -2,6 +2,12 @@
 mod candidate_index {
   use std::cell::Cell;
 
+  use swc_core::{
+    atoms::Atom,
+    common::{BytePos, DUMMY_SP, Span, SyntaxContext},
+    ecma::ast::Id,
+  };
+
   use crate::candidate_index::CandidateIndex;
 
   /// A key the tests can spell without building an expression, since the index
@@ -176,8 +182,10 @@ mod candidate_index {
     assert_eq!(index.candidates(|| KEY), [String::from("other")]);
   }
 
-  /// A key that is not a hash at all, which is what the declaration and
-  /// top-level-name indexes are keyed by.
+  /// A key that is not a hash at all. It stands for no production index by
+  /// itself -- the three that are keyed by something other than a structural
+  /// hash are a `Span`, an `Atom` and an `Id`, each exercised below -- and is
+  /// kept because a borrowed key has to narrow as an owned one does.
   #[test]
   fn narrows_on_a_key_that_is_not_a_hash() {
     let mut index: CandidateIndex<&str, usize> = CandidateIndex::default();
@@ -285,5 +293,110 @@ mod candidate_index {
     }
 
     assert!(index.candidates(|| KEY).is_empty());
+  }
+
+  // ── The five shapes production instantiates ────────────────────────
+  //
+  // The state manager builds six indexes, in five distinct instantiations --
+  // the declaration and top-level *call* indexes are both
+  // `CandidateIndex<u128, usize>`. Coverage reports the generic as covered as
+  // soon as any one of them runs, so each shape needs a case of its own: a
+  // structural hash over a position and over a name, a `Span`, an `Atom` and
+  // an `Id`. The cases above cover `<u128, usize>` and `<u128, String>`;
+  // these cover the other three.
+
+  /// `declaration_span_index`: where a declarator was written, keyed by the
+  /// span itself.
+  #[test]
+  fn narrows_on_the_span_a_declarator_was_written_at() {
+    let mut index: CandidateIndex<Span, usize> = CandidateIndex::default();
+    let first = span(10, 20);
+    let second = span(30, 40);
+
+    index.record(first, 0);
+    index.record(second, 1);
+
+    assert_eq!(index.candidates(|| first), [0]);
+    assert_eq!(index.candidates(|| second), [1]);
+    assert!(index.candidates(|| span(10, 21)).is_empty());
+  }
+
+  /// Every synthesized node carries the same dummy span, so a span key cannot
+  /// tell two of them apart. The bucket therefore holds both, and the caller's
+  /// `eq_ignore_span` decides -- which is the contract, not a defect.
+  #[test]
+  fn dummy_spans_share_one_bucket() {
+    let mut index: CandidateIndex<Span, usize> = CandidateIndex::default();
+
+    index.record(DUMMY_SP, 0);
+    index.record(DUMMY_SP, 1);
+
+    assert_eq!(index.candidates(|| DUMMY_SP), [0, 1]);
+  }
+
+  /// `top_level_name_index`: the positions a name binds, keyed by the name.
+  #[test]
+  fn narrows_on_the_name_a_top_level_declarator_binds() {
+    let mut index: CandidateIndex<Atom, usize> = CandidateIndex::default();
+    let styles = Atom::from("styles");
+
+    // `var` permits redeclaration, so one name can bind more than one position.
+    index.record(styles.clone(), 0);
+    index.record(styles.clone(), 3);
+    index.record(Atom::from("theme"), 1);
+
+    assert_eq!(index.candidates(|| styles.clone()), [0, 3]);
+    assert_eq!(index.candidates(|| Atom::from("theme")), [1]);
+    assert!(index.candidates(|| Atom::from("absent")).is_empty());
+  }
+
+  /// `top_import_index`: the import declaration and specifier a binding names,
+  /// keyed by the binding rather than by the name.
+  #[test]
+  fn narrows_on_an_import_binding() {
+    let mut index: CandidateIndex<Id, (usize, usize)> = CandidateIndex::default();
+    let stylex = binding("stylex", SyntaxContext::empty());
+
+    index.record(stylex.clone(), (0, 1));
+    index.record(binding("css", SyntaxContext::empty()), (2, 0));
+
+    assert_eq!(index.candidates(|| stylex.clone()), [(0, 1)]);
+    assert!(
+      index
+        .candidates(|| binding("absent", SyntaxContext::empty()))
+        .is_empty()
+    );
+  }
+
+  /// The reason the import index is keyed by a binding: two scopes may both
+  /// declare `styles`, and only the syntax context tells the imports apart. A
+  /// key that was the name alone would hand a reference the other scope's
+  /// import.
+  #[test]
+  fn keeps_one_name_under_two_syntax_contexts_apart() {
+    let mut index: CandidateIndex<Id, (usize, usize)> = CandidateIndex::default();
+    let outer = binding("styles", SyntaxContext::empty());
+    // Spelled from a raw value rather than through a `Mark`, which needs the
+    // global interner a unit test has no reason to install.
+    let inner = binding("styles", SyntaxContext::from_u32(1));
+
+    assert_ne!(outer, inner);
+
+    index.record(outer.clone(), (0, 0));
+    index.record(inner.clone(), (1, 0));
+
+    assert_eq!(index.candidates(|| outer.clone()), [(0, 0)]);
+    assert_eq!(index.candidates(|| inner.clone()), [(1, 0)]);
+  }
+
+  fn span(lo: u32, hi: u32) -> Span {
+    Span {
+      lo: BytePos(lo),
+      hi: BytePos(hi),
+    }
+  }
+
+  fn binding(name: &str, ctxt: SyntaxContext) -> Id {
+    (Atom::from(name), ctxt)
   }
 }

@@ -500,8 +500,11 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
   use super::*;
   use stylex_state::functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType};
 
+  /// The three arms below refuse for three different reasons, so each asserts
+  /// the message it is refused with: a bare `#[should_panic]` passes on any
+  /// panic and cannot tell one arm from another.
   #[test]
-  #[should_panic]
+  #[should_panic(expected = "Function type not supported:")]
   fn panics_for_non_mapper_regular_function() {
     let mut state = StateManager::default();
     let mut fns = FunctionMap::default();
@@ -524,7 +527,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
   }
 
   #[test]
-  #[should_panic]
+  #[should_panic(expected = "Map values are not supported in this context.")]
   fn panics_for_map_function_config() {
     let mut state = StateManager::default();
     let mut fns = FunctionMap::default();
@@ -537,7 +540,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
   }
 
   #[test]
-  #[should_panic]
+  #[should_panic(expected = "IndexMap values are not supported in this context.")]
   fn panics_for_indexmap_function_config() {
     let mut state = StateManager::default();
     let mut fns = FunctionMap::default();

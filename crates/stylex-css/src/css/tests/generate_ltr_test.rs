@@ -188,6 +188,43 @@ mod generate_ltr_tests {
     assert_eq!(result.value, "right center");
   }
 
+  // ── Corpus values the parity harness measured ─────────────────
+  //
+  // Four logical values the corpus holds that were asserted only through a
+  // whole-transform case, where the rewrite can only be inferred from a class
+  // name. Each expectation is what `@stylexjs/babel-plugin` emits for the same
+  // declaration, read from a harness report.
+
+  #[test]
+  fn clear_inline_start_becomes_left() {
+    let pair = Pair::new("clear", "inline-start");
+    let result = generate_ltr(&pair, &default_options());
+    assert_eq!(result.value, "left");
+  }
+
+  #[test]
+  fn clear_inline_end_becomes_right() {
+    let pair = Pair::new("clear", "inline-end");
+    let result = generate_ltr(&pair, &default_options());
+    assert_eq!(result.value, "right");
+  }
+
+  /// A logical keyword in the *second* position of a two-keyword value, which
+  /// the `insetInlineStart center` cases above put in the first.
+  #[test]
+  fn background_position_maps_a_trailing_start() {
+    let pair = Pair::new("background-position", "top start");
+    let result = generate_ltr(&pair, &default_options());
+    assert_eq!(result.value, "top left");
+  }
+
+  #[test]
+  fn background_position_maps_a_trailing_end() {
+    let pair = Pair::new("background-position", "top end");
+    let result = generate_ltr(&pair, &default_options());
+    assert_eq!(result.value, "top right");
+  }
+
   // ── Unknown property not in PROPERTY_TO_LTR ───────────────────
 
   #[test]

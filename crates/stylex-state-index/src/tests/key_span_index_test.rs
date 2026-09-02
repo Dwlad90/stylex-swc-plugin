@@ -755,4 +755,80 @@ const styles = stylex.create({
     // `PartialEq`. What a lookup does with a tie is
     // `two_equally_good_candidates_resolve_to_nothing`.
   }
+
+  /// A module whose first byte is not the first byte of the source map, which
+  /// is the arrangement every file after the first is in.
+  fn module_based_at(base: u32) -> Module {
+    Module {
+      span: Span {
+        lo: BytePos(base),
+        hi: BytePos(base + 1_000),
+      },
+      body: vec![],
+      shebang: None,
+    }
+  }
+
+  /// The subtraction the type exists for: a position is recorded as the
+  /// distance into its own file, not as the raw source-map position.
+  #[test]
+  fn an_offset_measures_from_the_base_of_its_own_module() {
+    let module = module_based_at(4_096);
+
+    assert_eq!(
+      FileOffset::of(BytePos(4_126), ModuleBase::of(&module)),
+      FileOffset::at(30)
+    );
+  }
+
+  /// The base itself is offset zero, and the largest position a `BytePos` can
+  /// hold does not overflow the subtraction.
+  #[test]
+  fn an_offset_holds_at_both_ends_of_the_range() {
+    let module = module_based_at(4_096);
+    let base = ModuleBase::of(&module);
+
+    assert_eq!(FileOffset::of(BytePos(4_096), base), FileOffset::at(0));
+    assert_eq!(
+      FileOffset::of(BytePos(u32::MAX), base),
+      FileOffset::at(u32::MAX - 4_096)
+    );
+  }
+
+  /// A release build clamps a position that precedes its own base instead of
+  /// wrapping, because a code frame must not stop the build.
+  ///
+  /// Only a release build selects this case, and **no command in this
+  /// repository builds the Rust suites in release** -- the workspace test
+  /// tasks and the coverage run are all debug, deliberately, since the fixture
+  /// suite only guards debug. So this is a case a person has to reach for:
+  ///
+  /// ```sh
+  /// cargo test --release -p stylex_state_index --lib
+  /// ```
+  ///
+  /// Kept rather than dropped because the clamp is what a release build ships,
+  /// and the debug assertion below compiles out of it. The two guard the same
+  /// input in the two profiles, and neither can run in the other's.
+  #[test]
+  #[cfg(not(debug_assertions))]
+  fn a_position_before_its_own_base_clamps_to_zero() {
+    let module = module_based_at(4_096);
+
+    assert_eq!(
+      FileOffset::of(BytePos(0), ModuleBase::of(&module)),
+      FileOffset::at(0)
+    );
+  }
+
+  /// And a test build is loud about it, because clamping every candidate to
+  /// zero is the "rank by earliest in the file" failure the type prevents.
+  #[test]
+  #[cfg(debug_assertions)]
+  #[should_panic(expected = "precedes the base of the module holding it")]
+  fn a_position_before_its_own_base_is_loud_in_a_test_build() {
+    let module = module_based_at(4_096);
+
+    let _ = FileOffset::of(BytePos(0), ModuleBase::of(&module));
+  }
 }

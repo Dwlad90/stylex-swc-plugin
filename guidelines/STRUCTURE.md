@@ -187,8 +187,9 @@ three lists; the row is removed rather than left to be read as one.
   `rustfmt --edition 2024` in both scripts when its rows are long enough for
   `cargo fmt` to rewrap them -- otherwise the next `pnpm format` reformats the
   committed fixture and the `:check` fails against a generator that changed
-  nothing. The `:check` runs as part of its own package's `test` script, so a
-  stale fixture fails locally rather than only in review.
+  nothing. The `:check` runs as its own package's `pretest`, ahead of that
+  package's `test` script, so a stale fixture fails locally rather than only in
+  review.
 
   One chain crosses crates and is easy to trip over: `postcss-value-parser`'s
   `src/tests/cases.rs` is generated from the parity corpus in
@@ -205,12 +206,18 @@ three lists; the row is removed rather than left to be read as one.
   ```
 
   `cases.rs` row order is the corpus order, so anything reordering the corpus
-  rewrites the whole file. `parity:harvest:check` is the harvester's `:check`.
-  It is deliberately _not_ in a `test` script: unlike the per-crate generators,
-  which read one fixture's own inputs, the harvester walks every Rust test
-  source in two crates, so running it per package would rescan the same tree
-  and fail in whichever package ran first. Run it after adding tests that carry
-  CSS values.
+  rewrites the whole file. Because the corpus is not one of
+  `postcss-value-parser`'s own files, the root `turbo.json` names it in the
+  `inputs` of that package's `test` task; without it Turbo replays a cached
+  pass and the `pretest` never sees the drift. The entry is at the root because
+  every crate shares one `turbo.json` through a symlink, so a per-crate change
+  would reach all of them.
+
+  `parity:harvest:check` is the harvester's `:check`, and the `pretest` of
+  `stylex-rs-compiler` alone. Unlike the per-crate generators, which read one
+  fixture's own inputs, the harvester walks the Rust test sources of two
+  crates, so putting it on each of them would rescan the same tree and fail in
+  whichever package ran first. Run it after adding tests that carry CSS values.
 
 - `docs/agents/` -- machine-read configuration for the agent skills (issue
   tracker, triage labels, domain docs).

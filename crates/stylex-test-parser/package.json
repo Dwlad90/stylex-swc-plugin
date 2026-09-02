@@ -26,7 +26,7 @@
     "postbuild": "pnpm run check:artifacts",
     "prepublishOnly": "pnpm run build",
     "start": "./dist/test-parser",
-    "test": "echo \"Skip: tests with workspace tests suite\" || true",
+    "test": "echo \"Skip: the root test script runs the workspace suite.\"",
     "test:coverage": "scripty",
     "test:flamegraph": "scripty"
   },

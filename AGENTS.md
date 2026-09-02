@@ -22,6 +22,8 @@ Rust reimplementation of Facebook's `StyleX` CSS-in-JS compiler, built on
 Per package: `pnpm run --filter=@stylexswc/<pkg> <script>` -- `build`, `test`,
 `typecheck`, `format:check`, `test:visual` (playwright visual regression); drop
 `--filter` inside the package. Lint and format are root-only, one process each.
+A crate's own `test` prints a skip line: the Rust suites run once for the whole
+workspace, from the root `pnpm test`.
 
 After writing code run `pnpm typecheck`, `pnpm format:check` (Oxfmt; rustfmt and
 Taplo for Rust and TOML), `pnpm lint:check` (Oxlint over every Node file,

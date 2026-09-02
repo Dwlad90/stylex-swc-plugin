@@ -55,6 +55,11 @@
       "outputs": [],
       "outputLogs": "errors-only"
     },
+    "@stylexswc/postcss-value-parser#test": {
+      "dependsOn": ["^do:nothing"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/crates/stylex-rs-compiler/parity/corpus/*.json"],
+      "outputLogs": "errors-only"
+    },
     "@stylexswc/postcss-plugin#test": {
       "dependsOn": ["^build", "build"],
       "outputLogs": "errors-only"
@@ -91,6 +96,9 @@
     },
     "//#test:coverage:workspace": {
       "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
+      "outputLogs": "errors-only"
+    },
+    "//#test:scripts": {
       "outputLogs": "errors-only"
     },
     "//#test:crates:workspace:regular": {

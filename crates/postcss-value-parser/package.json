@@ -23,7 +23,8 @@
     "generate:value-parser-cases": "node scripts/generate-value-parser-cases.mjs | rustfmt --edition 2024 > src/tests/cases.rs",
     "generate:value-parser-cases:check": "node scripts/generate-value-parser-cases.mjs | rustfmt --edition 2024 | diff -u src/tests/cases.rs -",
     "prepublishOnly": "pnpm run build",
-    "test": "echo \"Skip: tests with workspace tests suite\" || true",
+    "pretest": "pnpm run generate:value-parser-cases:check",
+    "test": "echo \"Skip: the root test script runs the workspace suite.\"",
     "test:coverage": "scripty",
     "test:flamegraph": "scripty",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"

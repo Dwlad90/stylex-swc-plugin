@@ -21,7 +21,7 @@
     "format:toml": "taplo format",
     "format:toml:check": "pnpm run format:toml --check",
     "prepublishOnly": "pnpm run build",
-    "test": "echo \"Skip: tests with workspace tests suite\" || true",
+    "test": "echo \"Skip: the root test script runs the workspace suite.\"",
     "test:coverage": "scripty",
     "test:flamegraph": "scripty",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"

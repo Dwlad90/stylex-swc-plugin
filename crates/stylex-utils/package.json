@@ -23,7 +23,8 @@
     "generate:parse-float-cases": "node scripts/generate-parse-float-cases.mjs > src/tests/number_parse_float_cases.rs",
     "generate:parse-float-cases:check": "node scripts/generate-parse-float-cases.mjs | diff -u src/tests/number_parse_float_cases.rs -",
     "prepublishOnly": "pnpm run build",
-    "test": "echo \"Skip: tests with workspace tests suite\" || true",
+    "pretest": "pnpm run generate:parse-float-cases:check",
+    "test": "echo \"Skip: the root test script runs the workspace suite.\"",
     "test:coverage": "scripty",
     "test:flamegraph": "scripty",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"

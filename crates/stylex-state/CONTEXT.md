@@ -9,7 +9,9 @@ The value types sit beside the state manager rather than one layer down because
 they name each other and it: a function config carries a
 [theme reference](#theme-reference), a theme reference reads the state manager,
 and an evaluated value can be a function config. The knot has no cut that leaves
-a smaller crate on either side.
+a smaller crate on either side, and the one edge that cannot be pointed across a
+crate boundary is named in
+[docs/adr/0001](./docs/adr/0001-the-state-crate-stays-whole-while-a-callback-aliases-it.md).
 
 ## Language
 

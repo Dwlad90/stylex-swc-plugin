@@ -189,9 +189,15 @@ impl EvaluateResultValue {
   /// - `Expr::Lit(BigInt)` → bigint formatted as string
   /// - All other variants → `None`
   ///
+  /// `None` is an answer and not a fault -- a computed key or a value the
+  /// language does not spell as a property name reaches here -- so the caller
+  /// handles it rather than asserting it away.
+  ///
   /// # Example
   /// ```ignore
-  /// let key = property.as_string_key().expect("Property must be a string key");
+  /// let Some(key) = property.as_string_key() else {
+  ///   return None;
+  /// };
   /// ```
   #[inline]
   pub fn as_string_key(&self) -> Option<String> {

@@ -107,6 +107,11 @@ fn declared_by(declaration: &Decl, name: &Atom) -> Option<Span> {
 }
 
 /// The specifier of an `import` statement that binds `name` locally.
+///
+/// The specifier and not the whole statement, which is what upstream's
+/// `binding.path` is: one import statement declares several names, and only the
+/// specifier says which of them was refused. Measured on 0.19.0, a refused
+/// `alias` carries a caret over `token as alias`.
 fn import_specifier_declaring(specifier: &ImportSpecifier, name: &Atom) -> Option<Span> {
   let (local, span) = match specifier {
     ImportSpecifier::Named(named) => (&named.local, named.span),

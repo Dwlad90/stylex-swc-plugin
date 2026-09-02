@@ -14,11 +14,12 @@ doctest = false
 
 [dependencies]
 indexmap.workspace = true
+swc_core = { workspace = true, features = ["ecma_ast"] }
+
 stylex_ast = { path = "../stylex-ast" }
 stylex_enums = { path = "../stylex-enums" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_structures = { path = "../stylex-structures" }
-swc_core = { workspace = true, features = ["ecma_ast"] }
 
 [dev-dependencies]
 ctor.workspace = true

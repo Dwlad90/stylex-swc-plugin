@@ -1,5 +1,5 @@
 [package]
-description = "SWC VisitMut implementation, StateManager and transform orchestration for StyleX"
+description = "The SWC visitor that finds every StyleX call and rewrites the module it is given"
 edition.workspace = true
 license.workspace = true
 name = "stylex_transform"

@@ -14,27 +14,41 @@ The layer decides what a crate may depend on. What each one is _responsible
 for_, and the vocabulary it defines, is in
 [CONTEXT-MAP.md](../CONTEXT-MAP.md).
 
+A crate's layer is the **longest** path from it down to a crate with no
+workspace dependency. Longest rather than shortest, because the rule is that a
+crate depends only on lower layers: it has to sit above the deepest thing it
+reaches. So layer 0 means "no internal dependencies", and the top layer is the
+addon every shipped artifact is built from.
+
+The `[dependencies]` tables decide these numbers, and nothing checks the copy
+below against them, so read a layer as a claim to verify rather than as a fact.
+`cargo tree -p <crate> -e normal` prints the path a number is measured along.
+Dev dependencies are not counted: a test that reaches sideways says nothing
+about what the compiler links.
+
 - **0 -- Primitives** (no internal dependencies): `postcss-value-parser`,
   `stylex-constants`, `stylex-regex`, `stylex-utils`
-- **1 -- Macros**: `stylex-macros`
-- **2 -- Domain leaves**: `stylex-css-parser`, `stylex-enums`, `stylex-js`,
-  `stylex-logs`, `stylex-path-resolver`, `stylex-styleq`
-- **3 -- AST foundations**: `stylex-ast`
-- **4 -- Core data structures**: `stylex-structures`
-- **5 -- Type system**: `stylex-types`
-- **6 -- State lookup**: `stylex-state-index`
-- **7 -- Diagnostics**: `stylex-diagnostics`
-- **8 -- Nested config and inline syntax**: `stylex-atoms`,
-  `stylex-nested-config`
-- **9 -- Compilation state**: `stylex-state`
-- **10 -- Declaration resolution**: `stylex-declarations`
-- **11 -- Evaluation**: `stylex-evaluator`
-- **12 -- CSS processing**: `stylex-css`
-- **13 -- StyleX transform**: `stylex-transform`
-- **14 -- Compilers** (top-level consumers): `stylex-rs-compiler`
+- **1 -- Macros and style merging**: `stylex-macros`, `stylex-styleq`
+- **2 -- Domain leaves**: `stylex-ast`, `stylex-css-parser`, `stylex-enums`,
+  `stylex-js`, `stylex-logs`, `stylex-path-resolver`
+- **3 -- Core data structures and lookup**: `stylex-atoms`,
+  `stylex-state-index`, `stylex-structures`
+- **4 -- Types, diagnostics and nested config**: `stylex-diagnostics`,
+  `stylex-nested-config`, `stylex-types`
+- **5 -- CSS processing and compilation state**: `stylex-css`, `stylex-state`
+- **6 -- Declaration resolution**: `stylex-declarations`
+- **7 -- Evaluation**: `stylex-evaluator`
+- **8 -- StyleX transform**: `stylex-transform`
+- **9 -- Compilers** (top-level consumers): `stylex-rs-compiler`
+
+A layer is a floor and not a ceiling: two crates on one rung never depend on
+each other, and a crate two rungs up may reach any rung below it. `stylex-css`
+and `stylex-evaluator` are the pair to keep straight -- CSS generation sits
+_below_ evaluation, so it cannot call the evaluator.
 
 `stylex-test-parser` sits outside the DAG: nothing depends on it, and it is a
-developer binary rather than part of the compiler.
+developer binary rather than part of the compiler. It has no internal
+dependencies either, so a rung would put it at 0 and say nothing true about it.
 
 `postcss-value-parser` is third-party code rather than this project's own, and
 that is why it is a crate rather than a module. It has no dependencies, not

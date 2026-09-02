@@ -1,17 +1,17 @@
-//! The nine questions a diagnostic asks of the traversal state, asked of the
-//! traversal state.
+//! What a diagnostic asks of the traversal state, asked of the traversal state.
 //!
 //! `stylex_diagnostics` takes its state by generic bound and the only
 //! implementation it can see is its own test double, so its own suite measures
-//! the double. The implementation that ships is here, and every answer of it is
-//! an inherent method of the same name -- so a rename that drops the inherent
-//! one turns the trait body into unbounded recursion rather than into a compile
-//! error. Each case below therefore goes through the trait, never through the
-//! inherent method.
+//! the double. The implementation that ships is here. Each case below goes
+//! through the trait, because the trait is what a diagnostic holds.
+//!
+//! What the diagnostics *remember* is not asserted here: the memo is their own
+//! type, tested in their own crate. What is asserted is that this manager hands
+//! back one memo rather than a fresh one per question.
 
 use swc_core::{
   atoms::Atom,
-  common::{BytePos, DUMMY_SP, FileName, SourceMap, Span, sync::Lrc},
+  common::{BytePos, FileName, SourceMap, Span, sync::Lrc},
   ecma::{
     ast::{CallExpr, EsVersion, Expr, Module, ModuleItem, Stmt},
     parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer},
@@ -127,7 +127,7 @@ fn the_memoized_module_and_its_text_come_back_as_they_went_in() {
   // The whole module, not its statement count: any one-statement module would
   // satisfy a length comparison.
   assert_eq!(seen, &module);
-  assert_eq!(text.as_deref(), Some(source));
+  assert_eq!(text, Some(source));
 }
 
 /// A module may be memoized without its text -- the frame then has a tree to
@@ -142,46 +142,7 @@ fn a_module_can_be_memoized_without_its_source_text() {
   let (_, text) =
     DiagnosticState::get_seen_module_source_code(&state).expect("the module was just memoized");
 
-  assert_eq!(text.as_deref(), None);
-}
-
-/// The span cache answers only for a key something put there.
-#[test]
-fn the_span_cache_answers_for_the_key_it_was_given() {
-  let mut state = StateManager::default();
-  let span = Span {
-    lo: BytePos(11),
-    hi: BytePos(30),
-  };
-
-  assert_eq!(DiagnosticState::cached_span(&state, 7), None);
-
-  DiagnosticState::insert_cached_span(&mut state, 7, span);
-
-  assert_eq!(DiagnosticState::cached_span(&state, 7), Some(span));
-  assert_eq!(DiagnosticState::cached_span(&state, 8), None);
-}
-
-/// A second answer for the same key replaces the first, which is what lets a
-/// re-resolved namespace correct a cached position.
-#[test]
-fn the_span_cache_keeps_the_last_answer_for_a_key() {
-  let mut state = StateManager::default();
-
-  DiagnosticState::insert_cached_span(&mut state, 7, DUMMY_SP);
-  DiagnosticState::insert_cached_span(
-    &mut state,
-    7,
-    Span {
-      lo: BytePos(1),
-      hi: BytePos(2),
-    },
-  );
-
-  assert_eq!(
-    DiagnosticState::cached_span(&state, 7).map(|span| span.lo),
-    Some(BytePos(1))
-  );
+  assert_eq!(text, None);
 }
 
 /// The index is built from the memoized module, on the first question that
@@ -238,45 +199,32 @@ fn replacing_the_memoized_module_drops_the_index_built_from_it() {
   );
 }
 
-/// A build that refuses nothing answers without hashing anything, which is what
-/// `has_framed_declarations` is for.
+/// One memo, not one per question: what a diagnostic writes through the trait
+/// has to be there for the diagnostic that follows it in the same file.
 #[test]
-fn a_state_that_refused_nothing_has_no_framed_declaration() {
+fn the_memo_a_diagnostic_writes_is_the_memo_the_next_one_reads() {
+  let mut state = StateManager::default();
+  let span = Span {
+    lo: BytePos(11),
+    hi: BytePos(30),
+  };
+
+  DiagnosticState::diagnostic_memo_mut(&mut state).insert_cached_span(7, span);
+  DiagnosticState::diagnostic_memo_mut(&mut state).frame_declaration(8, Atom::from("Button"));
+
+  let memo = DiagnosticState::diagnostic_memo(&state);
+
+  assert_eq!(memo.cached_span(7), Some(span));
+  assert_eq!(memo.framed_declaration(8), Some(&Atom::from("Button")));
+}
+
+/// A fresh state remembers nothing, so the annotation path answers without
+/// hashing an expression.
+#[test]
+fn a_fresh_state_remembers_nothing() {
   let state = StateManager::default();
+  let memo = DiagnosticState::diagnostic_memo(&state);
 
-  assert!(!DiagnosticState::has_framed_declarations(&state));
-  assert_eq!(DiagnosticState::framed_declaration(&state, 7), None);
-}
-
-#[test]
-fn a_framed_declaration_comes_back_under_the_key_it_was_recorded_against() {
-  let mut state = StateManager::default();
-
-  DiagnosticState::frame_declaration(&mut state, 7, Atom::from("Button"));
-
-  assert!(DiagnosticState::has_framed_declarations(&state));
-  assert_eq!(
-    DiagnosticState::framed_declaration(&state, 7),
-    Some(&Atom::from("Button"))
-  );
-  assert_eq!(DiagnosticState::framed_declaration(&state, 8), None);
-}
-
-/// Two refusals on different expressions are framed against their own
-/// bindings: the key is the expression, so one must not answer for the other.
-#[test]
-fn two_refusals_keep_their_own_framed_declarations() {
-  let mut state = StateManager::default();
-
-  DiagnosticState::frame_declaration(&mut state, 7, Atom::from("Button"));
-  DiagnosticState::frame_declaration(&mut state, 8, Atom::from("Card"));
-
-  assert_eq!(
-    DiagnosticState::framed_declaration(&state, 7),
-    Some(&Atom::from("Button"))
-  );
-  assert_eq!(
-    DiagnosticState::framed_declaration(&state, 8),
-    Some(&Atom::from("Card"))
-  );
+  assert_eq!(memo.cached_span(7), None);
+  assert!(!memo.has_framed_declarations());
 }

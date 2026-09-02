@@ -1027,7 +1027,9 @@ fn a_cached_answer_for_an_unreadable_file_yields_no_frame() {
   let mut state = StateDouble::for_file("/nonexistent/cached_unreadable.tsx");
   let target = reference("c");
 
-  state.insert_cached_span(compute_cache_key(&target), DUMMY_SP);
+  state
+    .diagnostic_memo_mut()
+    .insert_cached_span(compute_cache_key(&target), DUMMY_SP);
 
   let located = GLOBALS.set(&Globals::default(), || {
     get_span_from_source_code(&target, &target, &mut state)
@@ -1043,7 +1045,7 @@ fn a_cached_key_answer_for_an_unreadable_file_yields_no_frame() {
   let call = compiled_create_call();
   let lookup = CallLookup::new(&call, None);
 
-  state.insert_cached_span(
+  state.diagnostic_memo_mut().insert_cached_span(
     compute_key_span_cache_key(lookup.digest(), &lookup.query("root")),
     DUMMY_SP,
   );
@@ -1147,7 +1149,9 @@ fn a_cached_answer_is_quoted_from_the_memoized_text() {
   let target = reference("c");
 
   state.set_seen_module_source_code(&create_module(&target), Some(source.to_owned()));
-  state.insert_cached_span(compute_cache_key(&target), DUMMY_SP);
+  state
+    .diagnostic_memo_mut()
+    .insert_cached_span(compute_cache_key(&target), DUMMY_SP);
 
   let located = GLOBALS.set(&Globals::default(), || {
     get_span_from_source_code(&target, &target, &mut state)

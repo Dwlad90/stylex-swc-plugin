@@ -29,9 +29,9 @@ belong to its own source map, not to the text on disk.
 Of what this crate reads, `stylex-ast` reads expressions back, `stylex-macros`
 raises the error a refusal panics with, `stylex-regex` builds the links a
 message carries, `stylex-state-index` supplies the key span index, and
-`stylex-utils` supplies the stable hash the span cache is keyed by. `stylex-state`
-implements `DiagnosticState` on its state manager, and the transform and the
-evaluator reach a code frame through it.
+`stylex-utils` supplies the stable hash the diagnostic memo is keyed by.
+`stylex-state` implements `DiagnosticState` on its state manager, and the
+transform and the evaluator reach a code frame through it.
 
 Everything here is best effort. Every lookup sits behind a panic boundary and
 degrades to "no code frame", because a compilation must never stop on account of
@@ -45,6 +45,11 @@ the `DiagnosticState` trait and implemented by the caller — the same injection
 which would make the state crate and the diagnostics depend on each other. The
 trait is consulted while a diagnostic is being written, never while a module is
 being evaluated.
+
+Only what a frame cannot reconstruct is asked through it. What a diagnostic
+remembers — the spans it already resolved and the bindings its refusals are
+about — is a `DiagnosticMemo`, a type of this crate that the state holds as a
+field and never reads itself.
 
 A refused binding is recorded by **name**, not by position: a span from the
 compiler's parse indexes the compiler's source map, while the frame's positions

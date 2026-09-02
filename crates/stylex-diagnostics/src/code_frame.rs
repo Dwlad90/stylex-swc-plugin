@@ -280,20 +280,22 @@ fn get_span_from_source_code_impl(
   // annotation in the module as soon as one refusal has been recorded, which a
   // non-fatal deopt does routinely. A build that recorded none never hashes here
   // at all, which is what `has_framed_declarations` was for.
-  let expression_key = state
+  let memo = state.diagnostic_memo();
+  let expression_key = memo
     .has_framed_declarations()
     .then(|| compute_cache_key(target_expression));
-  let framed_declaration = expression_key.and_then(|key| state.framed_declaration(key).cloned());
+  let framed_declaration = expression_key.and_then(|key| memo.framed_declaration(key).cloned());
   let cache_key = match (expression_key, framed_declaration.as_ref()) {
     (Some(key), Some(name)) => compute_declaration_cache_key(key, name),
     (Some(key), None) => key,
     (None, _) => compute_cache_key(target_expression),
   };
 
+  let cached_span = memo.cached_span(cache_key);
   let file_name = FileName::Custom(state.get_filename().to_owned());
 
-  // Check cache first - avoid expensive AST operations if we've seen this before
-  if let Some(cached_span) = state.cached_span(cache_key) {
+  // Check what a previous lookup remembered first -- it saves the AST work below.
+  if let Some(cached_span) = cached_span {
     let code_frame = load_code_frame_from_cache_for_state(&file_name, state)?;
     return Ok((code_frame, cached_span));
   }
@@ -320,7 +322,9 @@ fn get_span_from_source_code_impl(
   )?;
 
   // Cache the result for future lookups
-  state.insert_cached_span(cache_key, span);
+  state
+    .diagnostic_memo_mut()
+    .insert_cached_span(cache_key, span);
 
   Ok((code_frame, span))
 }
@@ -348,7 +352,9 @@ pub fn frame_declaration_of(
   fault_expression: &Expr,
   state: &mut impl DiagnosticState,
 ) {
-  state.frame_declaration(compute_cache_key(fault_expression), name.clone());
+  state
+    .diagnostic_memo_mut()
+    .frame_declaration(compute_cache_key(fault_expression), name.clone());
 }
 
 /// The binding a refusal on `fault_expression` was recorded against, if one was.
@@ -365,11 +371,13 @@ pub fn framed_declaration_of(
   fault_expression: &Expr,
   state: &impl DiagnosticState,
 ) -> Option<Atom> {
-  if !state.has_framed_declarations() {
+  let memo = state.diagnostic_memo();
+
+  if !memo.has_framed_declarations() {
     return None;
   }
 
-  state
+  memo
     .framed_declaration(compute_cache_key(fault_expression))
     .cloned()
 }
@@ -430,7 +438,7 @@ fn get_key_span_from_source_code_impl(
   let cache_key = compute_key_span_cache_key(lookup.digest(), &query);
   let file_name = FileName::Custom(state.get_filename().to_owned());
 
-  if let Some(cached_span) = state.cached_span(cache_key) {
+  if let Some(cached_span) = state.diagnostic_memo().cached_span(cache_key) {
     let code_frame = load_code_frame_from_cache_for_state(&file_name, state)?;
     return Ok((code_frame, cached_span));
   }
@@ -452,7 +460,9 @@ fn get_key_span_from_source_code_impl(
     None => return Err(missing_memoized_module(state)),
   };
 
-  state.insert_cached_span(cache_key, span);
+  state
+    .diagnostic_memo_mut()
+    .insert_cached_span(cache_key, span);
 
   Ok((code_frame, span))
 }
@@ -518,7 +528,7 @@ fn load_code_frame_from_cache_for_state(
   code_frame.register_produced_source_once(file_name, || {
     state
       .get_seen_module_source_code()
-      .and_then(|(_, source_code)| source_code.as_ref().cloned())
+      .and_then(|(_, source_code)| source_code.map(str::to_owned))
       .map(Ok)
       .unwrap_or_else(|| {
         read_source_file(file_name)
@@ -611,9 +621,7 @@ fn memoize_module(
   file_name: &FileName,
   code_frame: &CodeFrame,
 ) -> Result<(), Error> {
-  if let Some((_, source_code)) = state.get_seen_module_source_code()
-    && let Some(source_code) = source_code
-  {
+  if let Some((_, Some(source_code))) = state.get_seen_module_source_code() {
     // Registered once, not once per lookup -- see `register_source_once`.
     code_frame.register_source_once(file_name, source_code);
   } else {

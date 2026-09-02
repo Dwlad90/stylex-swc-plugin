@@ -43,7 +43,7 @@ use stylex_constants::constants::{
   },
   common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH},
 };
-use stylex_diagnostics::state::DiagnosticState;
+use stylex_diagnostics::{memo::DiagnosticMemo, state::DiagnosticState};
 use stylex_enums::{
   core::TransformationCycle, counter_mode::CounterMode, declaration_type::DeclarationType,
   import_path_resolution::ImportPathResolution,
@@ -270,10 +270,13 @@ impl ModuleSourceState {
     )
   }
 
-  fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)> {
+  fn get_seen_module_source_code(&self) -> Option<(&Module, Option<&str>)> {
     let seen_module_source = self.seen_module_source_code.as_deref()?;
 
-    Some((&seen_module_source.module, &seen_module_source.source_code))
+    Some((
+      &seen_module_source.module,
+      seen_module_source.source_code.as_deref(),
+    ))
   }
 
   fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
@@ -444,39 +447,10 @@ impl CallExpressionState {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct CacheState {
   css_property_seen: FxHashMap<String, String>,
-  span_cache: FxHashMap<u128, Span>,
   short_filename_cache: FxHashMap<String, String>,
-  /// Per refused expression, the binding whose declaration its code frame
-  /// should point at instead of the expression itself.
-  ///
-  /// Keyed by the expression, not held as one slot, because a refusal is not
-  /// always the end of the build: a dynamic style's value falls through to an
-  /// inline style, so a later, unrelated diagnostic must not inherit an earlier
-  /// refusal's declaration.
-  framed_declarations: FxHashMap<u128, Atom>,
 }
 
 impl CacheState {
-  fn cached_span(&self, cache_key: u128) -> Option<Span> {
-    self.span_cache.get(&cache_key).copied()
-  }
-
-  fn insert_span(&mut self, cache_key: u128, span: Span) {
-    self.span_cache.insert(cache_key, span);
-  }
-
-  fn frame_declaration(&mut self, cache_key: u128, name: Atom) {
-    self.framed_declarations.insert(cache_key, name);
-  }
-
-  fn framed_declaration(&self, cache_key: u128) -> Option<&Atom> {
-    self.framed_declarations.get(&cache_key)
-  }
-
-  fn has_framed_declarations(&self) -> bool {
-    !self.framed_declarations.is_empty()
-  }
-
   fn cached_short_filename(&self, absolute_path: &str) -> Option<&str> {
     self
       .short_filename_cache
@@ -835,6 +809,12 @@ pub struct StateManager {
   /// because only the refusal is the speculation's own.
   pub speculating: bool,
   pub(crate) cache: CacheState,
+  /// What the diagnostics remembered about this file: the spans they already
+  /// resolved and the bindings their refusals are about.
+  ///
+  /// Owned by `stylex_diagnostics` and stored here only because the state is
+  /// what lives as long as the file does. Nothing in this crate reads it.
+  diagnostic_memo: DiagnosticMemo,
   /// Maps a JSX spread expression to the JSX attributes that replace it.
   ///
   /// Bucketed by the [`stable_hash_unspanned`] structural hash of the spread
@@ -959,6 +939,7 @@ impl StateManager {
       depth_refused: false,
       speculating: false,
       cache: CacheState::default(),
+      diagnostic_memo: DiagnosticMemo::default(),
       module_source: ModuleSourceState::default(),
 
       top_imports: vec![],
@@ -1069,21 +1050,6 @@ impl StateManager {
 
   pub fn is_member_call_callee(&self, member: &MemberExpr) -> bool {
     self.call_expressions.is_member_callee(member)
-  }
-
-  pub(crate) fn cached_span(&self, cache_key: u128) -> Option<Span> {
-    self.cache.cached_span(cache_key)
-  }
-
-  pub(crate) fn insert_cached_span(&mut self, cache_key: u128, span: Span) {
-    self.cache.insert_span(cache_key, span);
-  }
-
-  /// Records that the refusal raised on the expression behind `cache_key` is
-  /// about the binding `name`, so its code frame is written against that
-  /// binding's declaration rather than against the read.
-  pub(crate) fn frame_declaration(&mut self, cache_key: u128, name: Atom) {
-    self.cache.frame_declaration(cache_key, name);
   }
 
   /// Which kind of declaration binds `ident`, if either does.
@@ -1421,20 +1387,6 @@ impl StateManager {
     found
   }
 
-  /// The binding a refusal on the expression behind `cache_key` is about, if one
-  /// was recorded.
-  pub(crate) fn framed_declaration(&self, cache_key: u128) -> Option<&Atom> {
-    self.cache.framed_declaration(cache_key)
-  }
-
-  /// Whether any refusal recorded a declaration to frame.
-  ///
-  /// False for every build that refuses nothing, which is every successful one,
-  /// so the annotation path answers the question without hashing an expression.
-  pub(crate) fn has_framed_declarations(&self) -> bool {
-    self.cache.has_framed_declarations()
-  }
-
   /// The `file:line` annotation's short filename for `absolute_path`, if a
   /// previous style in this file already asked for it.
   ///
@@ -1719,16 +1671,6 @@ impl StateManager {
         );
       }
     }
-  }
-
-  /// Gets the source code program if it exists and is not yet normalized
-  pub(crate) fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)> {
-    self.module_source.get_seen_module_source_code()
-  }
-
-  /// The memoized module's key span index, built on first use
-  pub(crate) fn key_span_index(&self) -> Option<&KeySpanIndex> {
-    self.module_source.key_span_index()
   }
 
   /// Where the module being transformed starts, for turning a compiled call's
@@ -2965,52 +2907,42 @@ impl stylex_types::traits::StyleOptions for StateManager {
   }
 }
 
-/// The nine questions a diagnostic asks of the traversal state.
+/// What a diagnostic asks of the traversal state.
 ///
-/// Every answer is the inherent method that already existed for it, so the
-/// diagnostics crate reads exactly what the transform itself reads, and the
-/// state manager's own surface is unchanged.
+/// Only the compilation state a code frame cannot reconstruct is answered here.
+/// What the diagnostics remember -- the resolved spans and the bindings their
+/// refusals are about -- is a [`DiagnosticMemo`], which this manager stores as a
+/// field and never reads.
 ///
-/// Each body reads as a call to itself and is not one: an inherent method wins
-/// method resolution over a trait method of the same name. Deleting or renaming
-/// one of the nine inherent methods below therefore turns its body here into
-/// unbounded recursion rather than into a compile error, so rename the pair
-/// together.
+/// Every body reaches a field rather than a method of this manager, by any
+/// spelling: a qualified `StateManager::get_filename(self)` would still fall
+/// back to the trait method if the inherent one were renamed, which is a
+/// recursion warning where a compile error belongs.
 impl DiagnosticState for StateManager {
   fn get_filename(&self) -> &str {
-    self.get_filename()
+    extract_path(&self.plugin_pass.filename)
   }
 
-  fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)> {
-    self.get_seen_module_source_code()
+  fn get_seen_module_source_code(&self) -> Option<(&Module, Option<&str>)> {
+    self.module_source.get_seen_module_source_code()
   }
 
   fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
-    self.set_seen_module_source_code(module, source_code);
-  }
-
-  fn cached_span(&self, cache_key: u128) -> Option<Span> {
-    self.cached_span(cache_key)
-  }
-
-  fn insert_cached_span(&mut self, cache_key: u128, span: Span) {
-    self.insert_cached_span(cache_key, span);
+    self
+      .module_source
+      .set_seen_module_source_code(module, source_code);
   }
 
   fn key_span_index(&self) -> Option<&KeySpanIndex> {
-    self.key_span_index()
+    self.module_source.key_span_index()
   }
 
-  fn frame_declaration(&mut self, cache_key: u128, name: Atom) {
-    self.frame_declaration(cache_key, name);
+  fn diagnostic_memo(&self) -> &DiagnosticMemo {
+    &self.diagnostic_memo
   }
 
-  fn framed_declaration(&self, cache_key: u128) -> Option<&Atom> {
-    self.framed_declaration(cache_key)
-  }
-
-  fn has_framed_declarations(&self) -> bool {
-    self.has_framed_declarations()
+  fn diagnostic_memo_mut(&mut self) -> &mut DiagnosticMemo {
+    &mut self.diagnostic_memo
   }
 }
 

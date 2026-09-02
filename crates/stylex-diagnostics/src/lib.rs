@@ -15,6 +15,7 @@
 
 pub mod code_frame;
 pub(crate) mod declaration_span;
+pub mod memo;
 pub mod state;
 
 /// The state manager stand-in the tests read diagnostics through.

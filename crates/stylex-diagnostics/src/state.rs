@@ -1,13 +1,21 @@
-use swc_core::{atoms::Atom, common::Span, ecma::ast::Module};
+use swc_core::ecma::ast::Module;
 
 use stylex_state_index::key_span_index::KeySpanIndex;
 
+use crate::memo::DiagnosticMemo;
+
 /// Everything a diagnostic has to read off the compiler's traversal state.
 ///
-/// Owned here rather than in the transform so that building a code frame never
-/// names the state manager, which would make the transform and the diagnostics
-/// depend on each other. The transform implements the trait; this crate only
-/// ever sees these nine questions.
+/// Owned here rather than in the state crate so that building a code frame
+/// never names the state manager, which would make the state crate and the
+/// diagnostics depend on each other. `stylex_state` implements the trait on its
+/// state manager; this crate only ever sees these questions.
+///
+/// What a diagnostic remembers is not among them: the span and
+/// framed-declaration maps are the diagnostics' own, so they are a
+/// [`DiagnosticMemo`] the state merely stores. What is left is the compilation
+/// state a frame cannot reconstruct -- the file being transformed and the module
+/// re-parsed from it.
 ///
 /// Every parameter that takes this trait takes it by generic bound, never as
 /// `dyn`. The source-map annotation path asks these questions once per style
@@ -17,31 +25,21 @@ pub trait DiagnosticState {
   fn get_filename(&self) -> &str;
 
   /// The module's own source, re-parsed and memoized by an earlier diagnostic,
-  /// together with the text it was parsed from.
-  fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)>;
+  /// together with the text it was parsed from -- which a module memoized
+  /// without its text does not have.
+  fn get_seen_module_source_code(&self) -> Option<(&Module, Option<&str>)>;
 
   /// Memoizes that re-parsed source, so the next diagnostic in the same file
   /// does not read and parse it again.
   fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>);
 
-  /// Where a previous lookup put the answer for `cache_key`, if it asked.
-  fn cached_span(&self, cache_key: u128) -> Option<Span>;
-
-  /// Records the answer for `cache_key`.
-  fn insert_cached_span(&mut self, cache_key: u128, span: Span);
-
   /// Where every style namespace key of the memoized source is written, built
   /// on first use.
   fn key_span_index(&self) -> Option<&KeySpanIndex>;
 
-  /// Records that the refusal behind `cache_key` is about the binding `name`.
-  fn frame_declaration(&mut self, cache_key: u128, name: Atom);
+  /// What the diagnostics remembered about this file so far.
+  fn diagnostic_memo(&self) -> &DiagnosticMemo;
 
-  /// The binding recorded against `cache_key`, if one was.
-  fn framed_declaration(&self, cache_key: u128) -> Option<&Atom>;
-
-  /// Whether any refusal recorded a declaration to frame. False for every build
-  /// that refuses nothing, which lets the annotation path answer without
-  /// hashing an expression.
-  fn has_framed_declarations(&self) -> bool;
+  /// The same memo, to write the next answer into.
+  fn diagnostic_memo_mut(&mut self) -> &mut DiagnosticMemo;
 }

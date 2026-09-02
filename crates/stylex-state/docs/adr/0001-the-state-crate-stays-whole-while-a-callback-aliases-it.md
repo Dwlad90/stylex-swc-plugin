@@ -39,7 +39,7 @@ value asking for the thing that owns it.
 
 The callback taking, instead of the state manager, the narrow set of writes an
 applied arrow actually performs. That set is a trait the crate below could own,
-the way `stylex-diagnostics` already takes the nine reads a code frame needs as
+the way `stylex-diagnostics` already takes the reads a code frame needs as
 a trait the state manager implements. Once the alias names a trait rather than
 the struct, the value vocabulary can sit under the state manager and the split
 becomes an ordinary move.

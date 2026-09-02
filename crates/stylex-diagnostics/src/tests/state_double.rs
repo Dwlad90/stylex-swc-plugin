@@ -1,17 +1,16 @@
 //! A stand-in for the transform's state manager, so the diagnostics can be
 //! tested without the crate they are extracted from.
 //!
-//! It answers the nine questions of [`DiagnosticState`] the way the state
-//! manager answers them, and nothing else. The one part that carries a rule
-//! rather than a field is the key span index: it is built from the memoized
-//! module, so replacing that module has to drop it.
+//! It answers [`DiagnosticState`] the way the state manager answers it, and
+//! nothing else. The one part that carries a rule rather than a field is the key
+//! span index: it is built from the memoized module, so replacing that module
+//! has to drop it.
 
 use std::cell::OnceCell;
 
-use rustc_hash::FxHashMap;
-use swc_core::{atoms::Atom, common::Span, ecma::ast::Module};
+use swc_core::ecma::ast::Module;
 
-use crate::state::DiagnosticState;
+use crate::{memo::DiagnosticMemo, state::DiagnosticState};
 use stylex_state_index::key_span_index::KeySpanIndex;
 
 #[derive(Default)]
@@ -20,8 +19,7 @@ pub(crate) struct StateDouble {
   seen_module: Option<Module>,
   seen_source_code: Option<String>,
   key_span_index: OnceCell<KeySpanIndex>,
-  span_cache: FxHashMap<u128, Span>,
-  framed_declarations: FxHashMap<u128, Atom>,
+  memo: DiagnosticMemo,
   /// Drops the module as soon as it is stored, so the caller reads back the
   /// nothing a state that failed to memoize would hand it.
   forgets_the_module: bool,
@@ -50,8 +48,8 @@ impl DiagnosticState for StateDouble {
     &self.filename
   }
 
-  fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)> {
-    Some((self.seen_module.as_ref()?, &self.seen_source_code))
+  fn get_seen_module_source_code(&self) -> Option<(&Module, Option<&str>)> {
+    Some((self.seen_module.as_ref()?, self.seen_source_code.as_deref()))
   }
 
   fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
@@ -65,14 +63,6 @@ impl DiagnosticState for StateDouble {
     self.key_span_index = OnceCell::new();
   }
 
-  fn cached_span(&self, cache_key: u128) -> Option<Span> {
-    self.span_cache.get(&cache_key).copied()
-  }
-
-  fn insert_cached_span(&mut self, cache_key: u128, span: Span) {
-    self.span_cache.insert(cache_key, span);
-  }
-
   fn key_span_index(&self) -> Option<&KeySpanIndex> {
     let module = self.seen_module.as_ref()?;
 
@@ -83,15 +73,11 @@ impl DiagnosticState for StateDouble {
     )
   }
 
-  fn frame_declaration(&mut self, cache_key: u128, name: Atom) {
-    self.framed_declarations.insert(cache_key, name);
+  fn diagnostic_memo(&self) -> &DiagnosticMemo {
+    &self.memo
   }
 
-  fn framed_declaration(&self, cache_key: u128) -> Option<&Atom> {
-    self.framed_declarations.get(&cache_key)
-  }
-
-  fn has_framed_declarations(&self) -> bool {
-    !self.framed_declarations.is_empty()
+  fn diagnostic_memo_mut(&mut self) -> &mut DiagnosticMemo {
+    &mut self.memo
   }
 }

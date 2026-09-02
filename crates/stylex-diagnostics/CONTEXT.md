@@ -21,14 +21,24 @@ _content_: registering per lookup is how a watch-mode process accumulated a full
 copy of each module per save. _Avoid_: error frame, source frame, snippet
 
 **Diagnostic state**:
-The nine questions a diagnostic asks of the compiler's traversal state --
-filename, the memoized module and its text, the span cache, the key span index,
-and the three framed-declaration questions. A trait owned here and implemented by
-the caller, so that building a frame never names the state manager, which would
-make the state crate and the diagnostics depend on each other. Consulted while a
-diagnostic is being written, never while a module is being evaluated, so the
-dispatch costs nothing measurable. _Avoid_: state adapter, frame context,
-diagnostic context
+What a diagnostic asks of the compiler's traversal state -- the filename, the
+memoized module and its text, the key span index, and the [diagnostic
+memo](#diagnostic-memo). A trait owned here and implemented by the caller, so
+that building a frame never names the state manager, which would make the state
+crate and the diagnostics depend on each other. Only what a frame cannot
+reconstruct is asked: what the diagnostics remember is their own type, which
+the state merely stores. Consulted while a diagnostic is being written, never
+while a module is being evaluated, so the dispatch costs nothing measurable.
+_Avoid_: state adapter, frame context, diagnostic context
+
+**Diagnostic memo**:
+What the diagnostics remember about one file: the spans they already resolved,
+and the [framed declarations](#framed-declaration) their refusals recorded. A
+type owned here, held as a field by the compilation state because that is what
+lives as long as the file does, and read or written by nothing but the
+diagnostics. Keyed by 128 bits, because the read side acts on a hit alone and a
+collision would annotate one style with another style's line number. _Avoid_:
+span cache, diagnostic cache, frame cache
 
 **Memoized module**:
 The module's own source, re-read and re-parsed into the [code

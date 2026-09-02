@@ -5,6 +5,8 @@
  * corpus keeps covering what the suites cover. The output is checked in: the
  * harness itself must not depend on scanning Rust sources at run time.
  *
+ * Every crate under `crates/` is scanned, apart from generated sources.
+ *
  * This is the first link in a chain that ends in another crate: the corpus
  * generated here is the input to `postcss-value-parser`'s `cases.rs`, whose row
  * order is the corpus order. Adding one Rust test therefore invalidates two

@@ -541,11 +541,19 @@ pnpm run --filter=@stylexswc/rs-compiler parity:harvest
 pnpm run --filter=@stylexswc/rs-compiler parity:harvest -- --check
 ```
 
-`harvest-corpus.ts` scans the test sources of `stylex-css` and
-`stylex-transform` for seven literal shapes that carry a CSS declaration. Each
-entry records the `<path>:<line>` it came from, so an unexpected one can be
-traced back to the test that motivated it. Run this after adding tests that
-carry CSS values.
+`harvest-corpus.ts` scans **every** `.rs` file under `crates/` — `src/` and
+`benches/` included — for seven literal shapes that carry a CSS declaration. Each entry records the
+`<path>:<line>` it came from, so an unexpected one can be traced back to the
+test that motivated it. Run this after adding tests that carry CSS values.
+
+The scan reads the crate names off the tree rather than from a list. It used to
+name `stylex-css` and `stylex-transform`, and when the transform crate was split
+apart and 39 test files moved into new crates, nothing widened the list and
+nothing failed — the values under those crates simply stopped reaching the
+corpus. Two kinds of file are still skipped, both generated: `__swc_snapshots__`
+directories, and any source with `@generated` in its header comment. The second
+is what keeps the chain below from closing into a loop, since `cases.rs` spells
+its inputs as CSS rules and would otherwise harvest the corpus back into itself.
 
 | Shape | Written as                                                      | What is taken                                                  |
 | ----- | --------------------------------------------------------------- | -------------------------------------------------------------- |
@@ -553,7 +561,7 @@ carry CSS values.
 | 2     | a case table looped through one property                        | the first element of each row, or each element of a flat array |
 | 3     | `"* {{ transitionProperty: opacity; }}"`                        | the declaration inside the rule                                |
 | 4     | `"*{color:red}"`                                                | the same, minified                                             |
-| 5     | a `stylex.create` object in a transform fixture                 | every declaration in it                                        |
+| 5     | a `stylex.create` object in a transform fixture                 | every declaration in it, except in a `stylex.env` argument     |
 | 6     | `unchanged("color", "red")`, `same("color", "#ff0000", "#f00")` | the property and the **input** only                            |
 | 6a    | `refuses_with("color", "red {", MESSAGE, OTHER)`                | the same, for a value expected to be refused                   |
 | 7     | `rejects("width", &["*(", "/.5 *("], MESSAGE, &opts)`           | the property and every value in the slice                      |
@@ -586,6 +594,13 @@ arbitrary text that can spell anything:
   but whitespace before the first literal, nothing but a comma between them. A
   call whose value argument is an identifier would otherwise pair its property
   with whatever literal came next, which is usually the expected output.
+- The object handed **directly** to a `stylex.env` function is not read. In
+  `select({ primary: 'red' }, 'primary')` the key names a branch for the
+  environment function to choose between; in `colors({ color: 'yellow' })` it
+  names a property. What a key means there is decided by the function the test
+  supplies, so the source cannot tell the two apart and the whole object is
+  left alone. A branch body sits one brace deeper and is an ordinary style
+  object, so its declarations are still harvested.
 
 ### The generation chain
 

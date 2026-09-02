@@ -177,11 +177,12 @@ Which harness runs where, and why:
   `--font-size-px-to-rem`, `--style-resolution <name>`
   (`application-order|property-specificity|legacy-expand-shorthands`, default
   `property-specificity`).
-- `parity:harvest`: regenerates `parity/corpus/harvested.json` from the Rust
-  test suites. `--check` fails instead of writing when it is out of date, and
-  runs as this package's `pretest`. Regenerating also
-  invalidates `crates/postcss-value-parser/src/tests/cases.rs`, whose row order
-  is the corpus order -- run that package's `generate:value-parser-cases` next.
+- `parity:harvest`: regenerates `parity/corpus/harvested.json` from every Rust
+  source in the workspace, apart from ones marked `@generated`. `--check`
+  fails instead of writing when it is out of date, and runs as this package's
+  `pretest`. Regenerating also invalidates
+  `crates/postcss-value-parser/src/tests/cases.rs`, whose row order is the
+  corpus order -- run that package's `generate:value-parser-cases` next.
 - `parity:positions`: the same comparison for the position corpus -- where in a
   file a declaration sits, rather than what it holds.
 - `fuzz:pseudo-order`: crosses an alphabet of pseudo-class keys and checks the

@@ -195,9 +195,9 @@ three lists; the row is removed rather than left to be read as one.
 
   One chain crosses crates and is easy to trip over: `postcss-value-parser`'s
   `src/tests/cases.rs` is generated from the parity corpus in
-  `stylex-rs-compiler`, which is itself harvested from the Rust test sources of
-  `stylex-css` and `stylex-transform`. Adding a test that carries a CSS value
-  therefore invalidates a fixture in a crate you did not touch:
+  `stylex-rs-compiler`, which is itself harvested from every Rust source in the
+  workspace. Adding a test that carries a CSS value therefore invalidates a
+  fixture in a crate you did not touch:
 
   ```text
   Rust test sources
@@ -217,9 +217,14 @@ three lists; the row is removed rather than left to be read as one.
 
   `parity:harvest:check` is the harvester's `:check`, and the `pretest` of
   `stylex-rs-compiler` alone. Unlike the per-crate generators, which read one
-  fixture's own inputs, the harvester walks the Rust test sources of two
-  crates, so putting it on each of them would rescan the same tree and fail in
-  whichever package ran first. Run it after adding tests that carry CSS values.
+  fixture's own inputs, the harvester walks the Rust sources of the whole
+  workspace, so putting it on each crate would rescan the same tree and fail in
+  whichever package ran first. It reads the crate names off the tree rather
+  than from a list, because a list stopped naming the crates a split had just
+  created and the values under them left the corpus with nothing failing.
+  Sources marked `@generated` in their header are skipped, which is what keeps
+  `cases.rs` from harvesting back into the corpus it is generated from. Run it
+  after adding tests that carry CSS values.
 
 - `docs/agents/` -- machine-read configuration for the agent skills (issue
   tracker, triage labels, domain docs).

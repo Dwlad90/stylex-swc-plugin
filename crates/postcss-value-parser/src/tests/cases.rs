@@ -763,11 +763,6 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"unset\" 0..5",
   },
   ParserCase {
-    input: "16px",
-    output: "16px",
-    ast: "word \"16px\" 0..4",
-  },
-  ParserCase {
     input: "anim 1s",
     output: "anim 1s",
     ast: "word \"anim\" 0..4\nspace \" \" 4..5\nword \"1s\" 5..7",
@@ -2171,6 +2166,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "14px",
     output: "14px",
     ast: "word \"14px\" 0..4",
+  },
+  ParserCase {
+    input: "16px",
+    output: "16px",
+    ast: "word \"16px\" 0..4",
   },
   ParserCase {
     input: "1em",
@@ -5115,7 +5115,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("red;a", None),
   ("#ff0000", None),
   ("unset", None),
-  ("16px", Some(("16", "px"))),
   ("anim", None),
   ("1s", Some(("1", "s"))),
   ("spin", None),
@@ -5286,6 +5285,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("initial", None),
   ("row", None),
   ("wrap", None),
+  ("16px", Some(("16", "px"))),
   ("16", Some(("16", ""))),
   ("Arial", None),
   ("Helvetica", None),

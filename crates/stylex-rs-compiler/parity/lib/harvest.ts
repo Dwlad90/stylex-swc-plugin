@@ -60,6 +60,12 @@ const ARGUMENT_WINDOW = {
 /** How far past the property literal an adjacency guard reads. */
 const ADJACENCY_LOOKAHEAD = 40;
 
+/** The receiver whose call arguments the harvester cannot read. */
+const ENV_RECEIVER = 'stylex.env.';
+
+const WHITESPACE = /\s/;
+const CALLEE_CHARACTER = /[\w$.]/;
+
 export interface HarvestOptions {
   /** Absolute path to the workspace root. */
   workspaceRoot: string;
@@ -323,12 +329,20 @@ function extractStyleObjects(file: ScannedFile): DeclarationEntry[] {
   for (const literal of file.literals) {
     if (!literal.value.includes('stylex.create(')) continue;
 
+    // Only paid for by a fixture that reads `stylex.env`, which is a handful of
+    // the transform tests rather than all of them.
+    const enclosing = literal.value.includes('stylex.env.')
+      ? enclosingBraces(literal.value)
+      : undefined;
+
     const declaration =
       /(--[\w-]+|'[^'\n]+'|"[^"\n]+"|[A-Za-z][A-Za-z0-9]*)\s*:\s*('([^'\\\n]|\\.)*'|"([^"\\\n]|\\.)*")/g;
     for (const match of literal.value.matchAll(declaration)) {
       const property = unquote(match[1]!);
       const value = unquote(match[2]!);
       if (!isCssProperty(property)) continue;
+      if (enclosing !== undefined && isEnvArgumentKey(literal.value, enclosing, match.index))
+        continue;
       // A JavaScript-style interpolation is skipped because the value it stands
       // for is not in the source; a *Rust* format placeholder is not skipped,
       // and deliberately.
@@ -354,6 +368,86 @@ function extractStyleObjects(file: ScannedFile): DeclarationEntry[] {
   }
 
   return entries;
+}
+
+/**
+ * Whether a key belongs to the object a `stylex.env` function is called with.
+ *
+ * ```js
+ * color: stylex.env.select({ primary: 'red', secondary: 'blue' }, 'secondary')
+ * ```
+ *
+ * `primary` and `secondary` name branches for the function to choose between.
+ * The whole object is skipped, not only the selector-shaped keys in it, because
+ * what a key means there is decided by the environment function the test
+ * supplies. `colors({ color: 'yellow' })` spells a property and
+ * `select({ primary: 'red' })` spells a branch name. The source cannot tell the
+ * two apart.
+ *
+ * Only the object handed *directly* to the call is skipped. A branch body such
+ * as `select({ compact: { padding: '4px' } }, 'compact')` sits one brace deeper
+ * and is an ordinary style object, so `padding` is still harvested.
+ */
+function isEnvArgumentKey(js: string, enclosing: Int32Array, at: number): boolean {
+  const brace = enclosing[at] ?? -1;
+  if (brace === -1) return false;
+
+  // Back over the whitespace between the call's `(` and the `{`. A fixture
+  // spreads a long call over several indented lines, so this run has no length
+  // worth guessing at.
+  let paren = brace;
+  while (paren > 0 && WHITESPACE.test(js[paren - 1]!)) paren -= 1;
+  if (js[paren - 1] !== '(') return false;
+
+  // Then back over the callee, which is what says whose object this is. The
+  // dots come with it, so a chain that merely ends in the same name — an
+  // `options.stylex.env.select` — reads as the different receiver it is.
+  let callee = paren - 1;
+  while (callee > 0 && CALLEE_CHARACTER.test(js[callee - 1]!)) callee -= 1;
+
+  // A spread writes three dots in front of the call, and a member chain never
+  // writes two in a row, so a leading run of them belongs to the spread.
+  while (js[callee] === '.') callee += 1;
+
+  return js.slice(callee, paren - 1).startsWith(ENV_RECEIVER);
+}
+
+/**
+ * For every offset in a JavaScript fixture, the offset of the innermost `{`
+ * still open there, or `-1` where none is.
+ *
+ * One forward pass with a stack, skipping quoted text so that a brace inside a
+ * value — `url("a;b{c}d")` is an authored test value — cannot open a block and
+ * put every offset after it out of step. Answering by walking backwards from
+ * each key would re-read the same text once per key.
+ */
+function enclosingBraces(js: string): Int32Array {
+  const enclosing = new Int32Array(js.length);
+  const open: number[] = [];
+  let quote = '';
+  let escaped = false;
+
+  for (let i = 0; i < js.length; i += 1) {
+    const char = js[i]!;
+    // Popped before the offset is recorded, so a `}` reads as being inside the
+    // block that encloses the one it closes.
+    if (quote === '' && char === '}') open.pop();
+    enclosing[i] = open.at(-1) ?? -1;
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (quote !== '') {
+      if (char === '\\') escaped = true;
+      else if (char === quote) quote = '';
+      continue;
+    }
+    if (char === '"' || char === "'" || char === '`') quote = char;
+    else if (char === '{') open.push(i);
+  }
+
+  return enclosing;
 }
 
 function unquote(text: string): string {

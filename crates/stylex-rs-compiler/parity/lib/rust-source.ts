@@ -15,8 +15,12 @@ import path from 'node:path';
 
 import { scanRustLiterals, type RustLiteral } from './rust-literals.js';
 
-/** Crates whose test sources are scanned. */
-const SCANNED_CRATES = ['stylex-css', 'stylex-transform'] as const;
+/**
+ * How far into a source the `@generated` header is looked for.
+ *
+ * A marker further down than this is a mention in a test value, not a header.
+ */
+const GENERATED_HEADER_WINDOW = 512;
 
 /** A Rust source file, scanned once and reused by every extractor. */
 export interface ScannedFile {
@@ -43,21 +47,54 @@ export interface ScannedFile {
  * `origin`.
  */
 export function scanRustTestFiles(workspaceRoot: string): ScannedFile[] {
-  return collectRustTestFiles(workspaceRoot).map(absolute => {
+  const scanned: ScannedFile[] = [];
+
+  for (const absolute of collectRustTestFiles(workspaceRoot)) {
     const source = fs.readFileSync(absolute, 'utf8').replaceAll('\r\n', '\n');
+    if (isGenerated(source)) continue;
+
     const literals = scanRustLiterals(source);
-    return {
+    scanned.push({
       relativePath: path.relative(workspaceRoot, absolute).split(path.sep).join('/'),
       source,
       masked: maskLiterals(source, literals),
       literals,
-    } satisfies ScannedFile;
-  });
+    } satisfies ScannedFile);
+  }
+
+  return scanned;
 }
 
 /**
- * Every `.rs` file under a scanned crate that plausibly holds tests. Snapshot
- * directories are skipped: they hold generated output, not authored values.
+ * Whether a source declares itself generated in its header comment.
+ *
+ * Only the leading comment block counts. A file that spells the marker in a
+ * test value further down is still scanned.
+ *
+ * These are skipped because the chain closes into a loop otherwise. The corpus
+ * generates `postcss-value-parser`'s `cases.rs`, and that file spells its
+ * inputs as CSS rules. A scan of it feeds the corpus its own output back.
+ */
+function isGenerated(source: string): boolean {
+  for (const line of source.slice(0, GENERATED_HEADER_WINDOW).split('\n')) {
+    const text = line.trim();
+    if (text === '') continue;
+    if (!text.startsWith('//')) return false;
+    if (text.includes('@generated')) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Every `.rs` file under `crates/`, `src/` and `benches/` included. A value in
+ * a bench or in an inline `mod tests` counts the same as one under `tests/`,
+ * and telling them apart would need a Rust parser. Snapshot directories are
+ * skipped: they hold generated output, not authored values.
+ *
+ * The crate names come off the tree, not from a list. A list must be widened by
+ * hand, and a list that nobody widens loses values in silence. That happened
+ * once, when a crate was split apart. See `parity/README.md`.
  */
 function collectRustTestFiles(workspaceRoot: string): string[] {
   const found: string[] = [];
@@ -81,9 +118,7 @@ function collectRustTestFiles(workspaceRoot: string): string[] {
     }
   };
 
-  for (const crate of SCANNED_CRATES) {
-    walk(path.join(workspaceRoot, 'crates', crate));
-  }
+  walk(path.join(workspaceRoot, 'crates'));
 
   return found.toSorted();
 }

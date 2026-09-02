@@ -9,7 +9,6 @@ use stylex_css::utils::{
 };
 use stylex_state::{state_manager::StateManager, types::ClassNameToOriginalPaths};
 use stylex_types::structures::style_key::ClassName;
-use stylex_utils::types::type_of;
 
 use super::{null_pre_rule::NullPreRule, pre_rule_set::PreRuleSet};
 use stylex_structures::pre_rule_value::PreRuleValue;
@@ -41,8 +40,14 @@ pub(crate) trait PreRule: Debug {
   #[allow(dead_code)]
   fn get_value(&self) -> Option<PreRuleValue>;
   fn compiled(&mut self, state: &mut StateManager) -> CompiledResult;
+  /// Whether `other` is the same rule.
+  ///
+  /// `other` is the [`PreRules`] enum and not a trait object, so an
+  /// implementation can read the fields of its own kind and answer `false` for
+  /// the other two -- the kind test the reference implementation spells as
+  /// `instanceof`.
   #[allow(dead_code)]
-  fn equals(&self, other: &dyn PreRule) -> bool;
+  fn equals(&self, other: &PreRules) -> bool;
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -50,6 +55,18 @@ pub(crate) enum PreRules {
   PreRuleSet(PreRuleSet),
   StylesPreRule(StylesPreRule),
   NullPreRule(NullPreRule),
+}
+
+impl PreRules {
+  /// [`PreRule::equals`], asked of whichever rule this variant holds.
+  #[allow(dead_code)]
+  pub(crate) fn equals(&self, other: &PreRules) -> bool {
+    match self {
+      PreRules::PreRuleSet(rule_set) => rule_set.equals(other),
+      PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.equals(other),
+      PreRules::NullPreRule(null_pre_rule) => null_pre_rule.equals(other),
+    }
+  }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -161,7 +178,18 @@ impl PreRule for StylesPreRule {
     )])
   }
 
-  fn equals(&self, other: &dyn PreRule) -> bool {
-    type_of(other) == type_of(self)
+  /// The property, the value and the two sorted key-path slices. The key path
+  /// itself and the `var(--…)` rules are not compared, because both are read
+  /// out of the key path the other four already stand for.
+  fn equals(&self, other: &PreRules) -> bool {
+    match other {
+      PreRules::StylesPreRule(other) => {
+        self.property == other.property
+          && self.value == other.value
+          && self.pseudos == other.pseudos
+          && self.at_rules == other.at_rules
+      },
+      _ => false,
+    }
   }
 }

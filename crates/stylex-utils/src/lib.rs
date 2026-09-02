@@ -7,4 +7,3 @@ pub mod nesting;
 pub mod number;
 pub mod string;
 pub mod swc;
-pub mod types;

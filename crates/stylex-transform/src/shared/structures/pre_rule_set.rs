@@ -40,8 +40,16 @@ impl PreRuleSet {
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl PreRule for PreRuleSet {
-  fn equals(&self, _other: &dyn PreRule) -> bool {
-    true
+  /// Two sets are equal when they hold the same rules in the same order, each
+  /// compared by its own `equals` rather than field by field.
+  fn equals(&self, other: &PreRules) -> bool {
+    match other {
+      PreRules::PreRuleSet(other) => {
+        self.rules.len() == other.rules.len()
+          && std::iter::zip(&self.rules, &other.rules).all(|(left, right)| left.equals(right))
+      },
+      _ => false,
+    }
   }
   fn compiled(&mut self, state: &mut StateManager) -> CompiledResult {
     let style_tuple = self

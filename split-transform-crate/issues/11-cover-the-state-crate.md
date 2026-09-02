@@ -38,7 +38,7 @@ is untested.
 
 **Blocked by:** None — the state crate exists as of `a1baab79e`.
 
-**Status:** not now, backlog
+**Status:** backlog
 
 - [ ] `stylex-state` reports zero uncovered lines and zero uncovered regions.
 - [ ] `stylex_state` is removed from all three exemption lists:

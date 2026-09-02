@@ -1,0 +1,18 @@
+### no crate-type dev
+--- cold build
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2m 24s
+real 144.18
+user 917.42
+sys 53.29
+--- target size after cold build (MiB)
+3144
+--- workspace-only rebuild
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.94s
+real 8.00
+user 29.56
+sys 5.71
+--- dynamic libraries emitted (count, then total KiB)
+1
+50148
+--- final target size (MiB)
+3144

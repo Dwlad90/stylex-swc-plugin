@@ -1,0 +1,496 @@
+    Finished `bench` profile [optimized + debuginfo] target(s) in 0.58s
+     Running benches/concatenation_chain_bench.rs (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/target-leg1c/release/deps/concatenation_chain_bench-87810beb62479547)
+Benchmarking ConcatenationChain/links/2
+Benchmarking ConcatenationChain/links/2: Warming up for 2.0000 s
+Benchmarking ConcatenationChain/links/2: Collecting 20 samples in estimated 4.1025 s (5670 iterations)
+Benchmarking ConcatenationChain/links/2: Analyzing
+ConcatenationChain/links/2
+                        time:   [722.40 µs 727.22 µs 731.80 µs]
+                        change: [−2.3103% −1.1699% −0.2731%] (p = 0.02 < 0.05)
+                        Change within noise threshold.
+Benchmarking ConcatenationChain/links/5
+Benchmarking ConcatenationChain/links/5: Warming up for 2.0000 s
+Benchmarking ConcatenationChain/links/5: Collecting 20 samples in estimated 4.0420 s (3990 iterations)
+Benchmarking ConcatenationChain/links/5: Analyzing
+ConcatenationChain/links/5
+                        time:   [972.14 µs 978.63 µs 983.82 µs]
+                        change: [−6.0736% −3.6737% −1.9787%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Benchmarking ConcatenationChain/links/10
+Benchmarking ConcatenationChain/links/10: Warming up for 2.0000 s
+Benchmarking ConcatenationChain/links/10: Collecting 20 samples in estimated 4.2412 s (3150 iterations)
+Benchmarking ConcatenationChain/links/10: Analyzing
+ConcatenationChain/links/10
+                        time:   [1.3291 ms 1.3358 ms 1.3428 ms]
+                        change: [−5.0473% −2.6678% −0.7095%] (p = 0.02 < 0.05)
+                        Change within noise threshold.
+Benchmarking ConcatenationChain/links/20
+Benchmarking ConcatenationChain/links/20: Warming up for 2.0000 s
+Benchmarking ConcatenationChain/links/20: Collecting 20 samples in estimated 4.2361 s (2100 iterations)
+Benchmarking ConcatenationChain/links/20: Analyzing
+ConcatenationChain/links/20
+                        time:   [1.9831 ms 1.9983 ms 2.0212 ms]
+                        change: [−11.888% −4.9269% −0.6855%] (p = 0.17 > 0.05)
+                        No change in performance detected.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+
+    Finished `bench` profile [optimized + debuginfo] target(s) in 0.21s
+     Running benches/engine_fold_bench.rs (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/target-leg1c/release/deps/engine_fold_bench-f72214407a7ade6e)
+Benchmarking EngineFoldColdStart/build-and-answer
+Benchmarking EngineFoldColdStart/build-and-answer: Warming up for 2.0000 s
+Benchmarking EngineFoldColdStart/build-and-answer: Collecting 20 samples in estimated 4.0130 s (24k iterations)
+Benchmarking EngineFoldColdStart/build-and-answer: Analyzing
+EngineFoldColdStart/build-and-answer
+                        time:   [159.26 µs 160.42 µs 161.94 µs]
+                        change: [−2.8645% −1.3041% +0.2937%] (p = 0.14 > 0.05)
+                        No change in performance detected.
+
+Benchmarking EngineFoldRoundTrip/engine/string
+Benchmarking EngineFoldRoundTrip/engine/string: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/engine/string: Collecting 20 samples in estimated 4.0000 s (1.7M iterations)
+Benchmarking EngineFoldRoundTrip/engine/string: Analyzing
+EngineFoldRoundTrip/engine/string
+                        time:   [2.3380 µs 2.3486 µs 2.3629 µs]
+                        change: [−2.1201% −1.0417% −0.0185%] (p = 0.07 > 0.05)
+                        No change in performance detected.
+Benchmarking EngineFoldRoundTrip/fold/string
+Benchmarking EngineFoldRoundTrip/fold/string: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/fold/string: Collecting 20 samples in estimated 4.0000 s (4.0M iterations)
+Benchmarking EngineFoldRoundTrip/fold/string: Analyzing
+EngineFoldRoundTrip/fold/string
+                        time:   [759.71 ns 762.44 ns 765.18 ns]
+                        change: [−2.7041% −2.0320% −1.4218%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) low mild
+Benchmarking EngineFoldRoundTrip/engine/callback
+Benchmarking EngineFoldRoundTrip/engine/callback: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/engine/callback: Collecting 20 samples in estimated 4.0001 s (352k iterations)
+Benchmarking EngineFoldRoundTrip/engine/callback: Analyzing
+EngineFoldRoundTrip/engine/callback
+                        time:   [11.282 µs 11.375 µs 11.473 µs]
+                        change: [+1.9814% +2.9795% +3.9348%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) low mild
+Benchmarking EngineFoldRoundTrip/fold/callback
+Benchmarking EngineFoldRoundTrip/fold/callback: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/fold/callback: Collecting 20 samples in estimated 4.0009 s (744k iterations)
+Benchmarking EngineFoldRoundTrip/fold/callback: Analyzing
+EngineFoldRoundTrip/fold/callback
+                        time:   [5.0894 µs 5.1305 µs 5.1737 µs]
+                        change: [+0.1202% +0.7500% +1.4186%] (p = 0.04 < 0.05)
+                        Change within noise threshold.
+Benchmarking EngineFoldRoundTrip/engine/chain
+Benchmarking EngineFoldRoundTrip/engine/chain: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/engine/chain: Collecting 20 samples in estimated 4.0006 s (680k iterations)
+Benchmarking EngineFoldRoundTrip/engine/chain: Analyzing
+EngineFoldRoundTrip/engine/chain
+                        time:   [5.8534 µs 5.9151 µs 6.0088 µs]
+                        change: [−4.6181% −2.8440% −1.2961%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+Benchmarking EngineFoldRoundTrip/fold/chain
+Benchmarking EngineFoldRoundTrip/fold/chain: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/fold/chain: Collecting 20 samples in estimated 4.0003 s (2.0M iterations)
+Benchmarking EngineFoldRoundTrip/fold/chain: Analyzing
+EngineFoldRoundTrip/fold/chain
+                        time:   [1.7549 µs 1.7611 µs 1.7678 µs]
+                        change: [−3.9431% −3.2057% −2.5008%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) low severe
+Benchmarking EngineFoldRoundTrip/engine/array-answer
+Benchmarking EngineFoldRoundTrip/engine/array-answer: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/engine/array-answer: Collecting 20 samples in estimated 4.0006 s (701k iterations)
+Benchmarking EngineFoldRoundTrip/engine/array-answer: Analyzing
+EngineFoldRoundTrip/engine/array-answer
+                        time:   [5.7818 µs 5.8321 µs 5.8781 µs]
+                        change: [−2.6047% −1.5715% −0.5234%] (p = 0.01 < 0.05)
+                        Change within noise threshold.
+Benchmarking EngineFoldRoundTrip/fold/array-answer
+Benchmarking EngineFoldRoundTrip/fold/array-answer: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/fold/array-answer: Collecting 20 samples in estimated 4.0002 s (1.6M iterations)
+Benchmarking EngineFoldRoundTrip/fold/array-answer: Analyzing
+EngineFoldRoundTrip/fold/array-answer
+                        time:   [2.2678 µs 2.2743 µs 2.2827 µs]
+                        change: [−3.0121% −2.3764% −1.7028%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Benchmarking EngineFoldRoundTrip/fold-distinct
+Benchmarking EngineFoldRoundTrip/fold-distinct: Warming up for 2.0000 s
+Benchmarking EngineFoldRoundTrip/fold-distinct: Collecting 20 samples in estimated 4.0006 s (642k iterations)
+Benchmarking EngineFoldRoundTrip/fold-distinct: Analyzing
+EngineFoldRoundTrip/fold-distinct
+                        time:   [5.5571 µs 5.8022 µs 6.0904 µs]
+                        change: [−5.8652% −1.9774% +2.8932%] (p = 0.37 > 0.05)
+                        No change in performance detected.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+
+    Finished `bench` profile [optimized + debuginfo] target(s) in 0.20s
+     Running benches/evaluate_bench.rs (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/target-leg1c/release/deps/evaluate_bench-8f9af56a1e473d3d)
+Benchmarking EvaluatePerfFixtures/colors.stylex.js
+Benchmarking EvaluatePerfFixtures/colors.stylex.js: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/colors.stylex.js: Collecting 20 samples in estimated 4.0038 s (114k iterations)
+Benchmarking EvaluatePerfFixtures/colors.stylex.js: Analyzing
+EvaluatePerfFixtures/colors.stylex.js
+                        time:   [30.013 µs 30.752 µs 31.329 µs]
+                        change: [+0.3826% +1.8856% +3.4136%] (p = 0.02 < 0.05)
+                        Change within noise threshold.
+Benchmarking EvaluatePerfFixtures/sizes.stylex.js
+Benchmarking EvaluatePerfFixtures/sizes.stylex.js: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/sizes.stylex.js: Collecting 20 samples in estimated 4.0040 s (196k iterations)
+Benchmarking EvaluatePerfFixtures/sizes.stylex.js: Analyzing
+EvaluatePerfFixtures/sizes.stylex.js
+                        time:   [17.226 µs 17.367 µs 17.567 µs]
+                        change: [+0.1315% +1.7279% +3.3309%] (p = 0.05 < 0.05)
+                        Change within noise threshold.
+Found 2 outliers among 20 measurements (10.00%)
+  2 (10.00%) high mild
+Benchmarking EvaluatePerfFixtures/create-basic.js
+Benchmarking EvaluatePerfFixtures/create-basic.js: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/create-basic.js: Collecting 20 samples in estimated 4.0019 s (348k iterations)
+Benchmarking EvaluatePerfFixtures/create-basic.js: Analyzing
+EvaluatePerfFixtures/create-basic.js
+                        time:   [9.0443 µs 9.1066 µs 9.1568 µs]
+                        change: [−0.4088% +0.6362% +1.7320%] (p = 0.27 > 0.05)
+                        No change in performance detected.
+Benchmarking EvaluatePerfFixtures/create-complex.js
+Benchmarking EvaluatePerfFixtures/create-complex.js: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/create-complex.js: Collecting 20 samples in estimated 4.0038 s (108k iterations)
+Benchmarking EvaluatePerfFixtures/create-complex.js: Analyzing
+EvaluatePerfFixtures/create-complex.js
+                        time:   [19.267 µs 19.522 µs 19.831 µs]
+                        change: [−0.6843% +0.9103% +2.6631%] (p = 0.31 > 0.05)
+                        No change in performance detected.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+Benchmarking EvaluatePerfFixtures/createTheme-basic.js
+Benchmarking EvaluatePerfFixtures/createTheme-basic.js: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/createTheme-basic.js: Collecting 20 samples in estimated 4.0002 s (126k iterations)
+Benchmarking EvaluatePerfFixtures/createTheme-basic.js: Analyzing
+EvaluatePerfFixtures/createTheme-basic.js
+                        time:   [24.667 µs 25.123 µs 25.832 µs]
+                        change: [−1.2697% +0.2704% +2.3683%] (p = 0.79 > 0.05)
+                        No change in performance detected.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+Benchmarking EvaluatePerfFixtures/createTheme-complex.js
+Benchmarking EvaluatePerfFixtures/createTheme-complex.js: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/createTheme-complex.js: Collecting 20 samples in estimated 4.6480 s (1470 iterations)
+Benchmarking EvaluatePerfFixtures/createTheme-complex.js: Analyzing
+EvaluatePerfFixtures/createTheme-complex.js
+                        time:   [3.0835 ms 3.0880 ms 3.0921 ms]
+                        change: [−1.0731% −0.6450% −0.2570%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import: Collecting 20 samples in estimated 4.0005 s (1.0M iterations)
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import: Analyzing
+EvaluatePerfFixtures/dynamic-param-shadows-import
+                        time:   [2.6015 µs 2.6305 µs 2.6490 µs]
+                        change: [−0.9956% +1.3349% +3.7558%] (p = 0.28 > 0.05)
+                        No change in performance detected.
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import-edges
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import-edges: Warming up for 2.0000 s
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import-edges: Collecting 20 samples in estimated 4.0030 s (275k iterations)
+Benchmarking EvaluatePerfFixtures/dynamic-param-shadows-import-edges: Analyzing
+EvaluatePerfFixtures/dynamic-param-shadows-import-edges
+                        time:   [7.9130 µs 8.0362 µs 8.2301 µs]
+                        change: [+4.2022% +6.3897% +8.8321%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+
+    Finished `bench` profile [optimized + debuginfo] target(s) in 0.21s
+     Running benches/evaluate_depth_bench.rs (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/target-leg1c/release/deps/evaluate_depth_bench-afac56535e8840a0)
+Benchmarking EvaluateDepth/arithmetic/30
+Benchmarking EvaluateDepth/arithmetic/30: Warming up for 2.0000 s
+Benchmarking EvaluateDepth/arithmetic/30: Collecting 20 samples in estimated 4.0018 s (223k iterations)
+Benchmarking EvaluateDepth/arithmetic/30: Analyzing
+EvaluateDepth/arithmetic/30
+                        time:   [17.310 µs 17.576 µs 17.911 µs]
+                        change: [−5.5968% −3.5030% −1.6207%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 2 outliers among 20 measurements (10.00%)
+  1 (5.00%) high mild
+  1 (5.00%) high severe
+Benchmarking EvaluateDepth/arithmetic/60
+Benchmarking EvaluateDepth/arithmetic/60: Warming up for 2.0000 s
+Benchmarking EvaluateDepth/arithmetic/60: Collecting 20 samples in estimated 4.0056 s (68k iterations)
+Benchmarking EvaluateDepth/arithmetic/60: Analyzing
+EvaluateDepth/arithmetic/60
+                        time:   [58.100 µs 58.393 µs 58.883 µs]
+                        change: [−4.5332% −0.2171% +8.3779%] (p = 0.95 > 0.05)
+                        No change in performance detected.
+Found 2 outliers among 20 measurements (10.00%)
+  1 (5.00%) high mild
+  1 (5.00%) high severe
+Benchmarking EvaluateDepth/arithmetic/120
+Benchmarking EvaluateDepth/arithmetic/120: Warming up for 2.0000 s
+Benchmarking EvaluateDepth/arithmetic/120: Collecting 20 samples in estimated 4.0082 s (19k iterations)
+Benchmarking EvaluateDepth/arithmetic/120: Analyzing
+EvaluateDepth/arithmetic/120
+                        time:   [207.27 µs 207.90 µs 208.63 µs]
+                        change: [−4.6981% −3.2048% −2.2310%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Benchmarking EvaluateDepth/arithmetic/240
+Benchmarking EvaluateDepth/arithmetic/240: Warming up for 2.0000 s
+Benchmarking EvaluateDepth/arithmetic/240: Collecting 20 samples in estimated 4.1552 s (5250 iterations)
+Benchmarking EvaluateDepth/arithmetic/240: Analyzing
+EvaluateDepth/arithmetic/240
+                        time:   [781.89 µs 783.68 µs 785.79 µs]
+                        change: [−3.4937% −2.7176% −2.0482%] (p = 0.00 < 0.05)
+                        Performance has improved.
+
+Benchmarking StructuralKeyDepth/arithmetic/30
+Benchmarking StructuralKeyDepth/arithmetic/30: Warming up for 2.0000 s
+Benchmarking StructuralKeyDepth/arithmetic/30: Collecting 20 samples in estimated 4.0000 s (6.4M iterations)
+Benchmarking StructuralKeyDepth/arithmetic/30: Analyzing
+StructuralKeyDepth/arithmetic/30
+                        time:   [620.69 ns 622.31 ns 623.84 ns]
+                        change: [−4.8262% −3.3216% −1.9502%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Benchmarking StructuralKeyDepth/arithmetic/60
+Benchmarking StructuralKeyDepth/arithmetic/60: Warming up for 2.0000 s
+Benchmarking StructuralKeyDepth/arithmetic/60: Collecting 20 samples in estimated 4.0003 s (2.6M iterations)
+Benchmarking StructuralKeyDepth/arithmetic/60: Analyzing
+StructuralKeyDepth/arithmetic/60
+                        time:   [1.5095 µs 1.5130 µs 1.5176 µs]
+                        change: [−2.6346% −1.5630% −0.7009%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+Benchmarking StructuralKeyDepth/arithmetic/120
+Benchmarking StructuralKeyDepth/arithmetic/120: Warming up for 2.0000 s
+Benchmarking StructuralKeyDepth/arithmetic/120: Collecting 20 samples in estimated 4.0003 s (1.3M iterations)
+Benchmarking StructuralKeyDepth/arithmetic/120: Analyzing
+StructuralKeyDepth/arithmetic/120
+                        time:   [3.0051 µs 3.0107 µs 3.0160 µs]
+                        change: [−5.7075% −3.4537% −2.0173%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 3 outliers among 20 measurements (15.00%)
+  1 (5.00%) high mild
+  2 (10.00%) high severe
+Benchmarking StructuralKeyDepth/arithmetic/240
+Benchmarking StructuralKeyDepth/arithmetic/240: Warming up for 2.0000 s
+Benchmarking StructuralKeyDepth/arithmetic/240: Collecting 20 samples in estimated 4.0002 s (639k iterations)
+Benchmarking StructuralKeyDepth/arithmetic/240: Analyzing
+StructuralKeyDepth/arithmetic/240
+                        time:   [6.2167 µs 6.2325 µs 6.2538 µs]
+                        change: [−1.3566% −0.9899% −0.5904%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+
+Benchmarking StructuralKeyFallback/object/128
+Benchmarking StructuralKeyFallback/object/128: Warming up for 2.0000 s
+Benchmarking StructuralKeyFallback/object/128: Collecting 20 samples in estimated 4.0005 s (1.6M iterations)
+Benchmarking StructuralKeyFallback/object/128: Analyzing
+StructuralKeyFallback/object/128
+                        time:   [2.5273 µs 2.5320 µs 2.5387 µs]
+                        change: [−2.0819% −1.7133% −1.3438%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+Benchmarking StructuralKeyFallback/object/129
+Benchmarking StructuralKeyFallback/object/129: Warming up for 2.0000 s
+Benchmarking StructuralKeyFallback/object/129: Collecting 20 samples in estimated 4.0012 s (467k iterations)
+Benchmarking StructuralKeyFallback/object/129: Analyzing
+StructuralKeyFallback/object/129
+                        time:   [8.4722 µs 8.4950 µs 8.5240 µs]
+                        change: [−1.3546% −0.9958% −0.6272%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 3 outliers among 20 measurements (15.00%)
+  2 (10.00%) high mild
+  1 (5.00%) high severe
+
+    Finished `bench` profile [optimized + debuginfo] target(s) in 0.21s
+     Running benches/module_path_bench.rs (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/target-leg1c/release/deps/module_path_bench-a4e0b54900e6a781)
+Benchmarking ModuleWalk/calls/1x
+Benchmarking ModuleWalk/calls/1x: Warming up for 2.0000 s
+Benchmarking ModuleWalk/calls/1x: Collecting 20 samples in estimated 4.0092 s (20k iterations)
+Benchmarking ModuleWalk/calls/1x: Analyzing
+ModuleWalk/calls/1x     time:   [148.31 µs 148.87 µs 149.49 µs]
+                        change: [−13.191% −10.947% −9.2492%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Benchmarking ModuleWalk/no-calls/1x
+Benchmarking ModuleWalk/no-calls/1x: Warming up for 2.0000 s
+Benchmarking ModuleWalk/no-calls/1x: Collecting 20 samples in estimated 4.0031 s (63k iterations)
+Benchmarking ModuleWalk/no-calls/1x: Analyzing
+ModuleWalk/no-calls/1x  time:   [21.909 µs 22.054 µs 22.162 µs]
+                        change: [−11.655% −8.7160% −6.0813%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Benchmarking ModuleWalk/imported/1x
+Benchmarking ModuleWalk/imported/1x: Warming up for 2.0000 s
+Benchmarking ModuleWalk/imported/1x: Collecting 20 samples in estimated 4.0208 s (14k iterations)
+Benchmarking ModuleWalk/imported/1x: Analyzing
+ModuleWalk/imported/1x  time:   [221.63 µs 222.44 µs 223.14 µs]
+                        change: [−14.119% −10.047% −6.2856%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Benchmarking ModuleWalk/calls/4x
+Benchmarking ModuleWalk/calls/4x: Warming up for 2.0000 s
+Benchmarking ModuleWalk/calls/4x: Collecting 20 samples in estimated 4.0988 s (5040 iterations)
+Benchmarking ModuleWalk/calls/4x: Analyzing
+ModuleWalk/calls/4x     time:   [594.00 µs 599.41 µs 605.02 µs]
+                        change: [−8.8891% −7.4160% −6.2003%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 2 outliers among 20 measurements (10.00%)
+  1 (5.00%) high mild
+  1 (5.00%) high severe
+Benchmarking ModuleWalk/no-calls/4x
+Benchmarking ModuleWalk/no-calls/4x: Warming up for 2.0000 s
+Benchmarking ModuleWalk/no-calls/4x: Collecting 20 samples in estimated 4.0007 s (16k iterations)
+Benchmarking ModuleWalk/no-calls/4x: Analyzing
+ModuleWalk/no-calls/4x  time:   [81.410 µs 81.862 µs 82.114 µs]
+                        change: [−20.929% −13.376% −7.6004%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Benchmarking ModuleWalk/imported/4x
+Benchmarking ModuleWalk/imported/4x: Warming up for 2.0000 s
+Benchmarking ModuleWalk/imported/4x: Collecting 20 samples in estimated 4.1957 s (3990 iterations)
+Benchmarking ModuleWalk/imported/4x: Analyzing
+ModuleWalk/imported/4x  time:   [821.67 µs 825.95 µs 830.95 µs]
+                        change: [−8.6054% −6.5921% −4.5585%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 3 outliers among 20 measurements (15.00%)
+  3 (15.00%) high mild
+
+Benchmarking SeenModuleSource/kept/calls/1x
+Benchmarking SeenModuleSource/kept/calls/1x: Warming up for 2.0000 s
+Benchmarking SeenModuleSource/kept/calls/1x: Collecting 20 samples in estimated 4.0345 s (16k iterations)
+Benchmarking SeenModuleSource/kept/calls/1x: Analyzing
+SeenModuleSource/kept/calls/1x
+                        time:   [199.20 µs 199.90 µs 200.70 µs]
+                        change: [−13.451% −8.7318% −5.4060%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+Benchmarking SeenModuleSource/kept/no-calls/1x
+Benchmarking SeenModuleSource/kept/no-calls/1x: Warming up for 2.0000 s
+Benchmarking SeenModuleSource/kept/no-calls/1x: Collecting 20 samples in estimated 4.0096 s (39k iterations)
+Benchmarking SeenModuleSource/kept/no-calls/1x: Analyzing
+SeenModuleSource/kept/no-calls/1x
+                        time:   [60.402 µs 60.759 µs 61.058 µs]
+                        change: [−6.7066% −4.6579% −3.1386%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Benchmarking SeenModuleSource/kept/calls/4x
+Benchmarking SeenModuleSource/kept/calls/4x: Warming up for 2.0000 s
+Benchmarking SeenModuleSource/kept/calls/4x: Collecting 20 samples in estimated 4.0891 s (3990 iterations)
+Benchmarking SeenModuleSource/kept/calls/4x: Analyzing
+SeenModuleSource/kept/calls/4x
+                        time:   [799.88 µs 814.11 µs 830.46 µs]
+                        change: [−2.9485% −1.8280% −0.4457%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 3 outliers among 20 measurements (15.00%)
+  1 (5.00%) low mild
+  1 (5.00%) high mild
+  1 (5.00%) high severe
+Benchmarking SeenModuleSource/kept/no-calls/4x
+Benchmarking SeenModuleSource/kept/no-calls/4x: Warming up for 2.0000 s
+Benchmarking SeenModuleSource/kept/no-calls/4x: Collecting 20 samples in estimated 4.0241 s (10k iterations)
+Benchmarking SeenModuleSource/kept/no-calls/4x: Analyzing
+SeenModuleSource/kept/no-calls/4x
+                        time:   [234.21 µs 235.43 µs 236.84 µs]
+                        change: [−4.7002% −3.1785% −1.7162%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 2 outliers among 20 measurements (10.00%)
+  1 (5.00%) low mild
+  1 (5.00%) high mild
+
+Benchmarking StructuralKey/call/shallow
+Benchmarking StructuralKey/call/shallow: Warming up for 2.0000 s
+Benchmarking StructuralKey/call/shallow: Collecting 20 samples in estimated 4.0000 s (69M iterations)
+Benchmarking StructuralKey/call/shallow: Analyzing
+StructuralKey/call/shallow
+                        time:   [57.647 ns 57.967 ns 58.623 ns]
+                        change: [−2.4629% −1.5880% −0.0739%] (p = 0.02 < 0.05)
+                        Change within noise threshold.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+Benchmarking StructuralKey/call/member
+Benchmarking StructuralKey/call/member: Warming up for 2.0000 s
+Benchmarking StructuralKey/call/member: Collecting 20 samples in estimated 4.0000 s (63M iterations)
+Benchmarking StructuralKey/call/member: Analyzing
+StructuralKey/call/member
+                        time:   [63.605 ns 63.927 ns 64.541 ns]
+                        change: [−3.0946% −2.0933% −0.3682%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+Benchmarking StructuralKey/call/nested
+Benchmarking StructuralKey/call/nested: Warming up for 2.0000 s
+Benchmarking StructuralKey/call/nested: Collecting 20 samples in estimated 4.0000 s (32M iterations)
+Benchmarking StructuralKey/call/nested: Analyzing
+StructuralKey/call/nested
+                        time:   [123.11 ns 123.48 ns 124.21 ns]
+                        change: [−6.3732% −3.0240% −0.2407%] (p = 0.05 > 0.05)
+                        No change in performance detected.
+Found 3 outliers among 20 measurements (15.00%)
+  1 (5.00%) low severe
+  1 (5.00%) high mild
+  1 (5.00%) high severe
+
+Benchmarking StateManager/new
+Benchmarking StateManager/new: Warming up for 2.0000 s
+Benchmarking StateManager/new: Collecting 20 samples in estimated 4.0000 s (9.0M iterations)
+Benchmarking StateManager/new: Analyzing
+StateManager/new        time:   [175.25 ns 180.44 ns 184.77 ns]
+                        change: [−4.6658% −1.6764% +1.6425%] (p = 0.33 > 0.05)
+                        No change in performance detected.
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high mild
+
+Benchmarking FullPipeline/calls/1x
+Benchmarking FullPipeline/calls/1x: Warming up for 2.0000 s
+Benchmarking FullPipeline/calls/1x: Collecting 20 samples in estimated 4.0097 s (13k iterations)
+Benchmarking FullPipeline/calls/1x: Analyzing
+FullPipeline/calls/1x   time:   [291.21 µs 299.60 µs 307.88 µs]
+                        change: [−4.5693% −1.0884% +5.7467%] (p = 0.74 > 0.05)
+                        No change in performance detected.
+Found 3 outliers among 20 measurements (15.00%)
+  3 (15.00%) high severe
+Benchmarking FullPipeline/no-calls/1x
+Benchmarking FullPipeline/no-calls/1x: Warming up for 2.0000 s
+Benchmarking FullPipeline/no-calls/1x: Collecting 20 samples in estimated 4.0048 s (24k iterations)
+Benchmarking FullPipeline/no-calls/1x: Analyzing
+FullPipeline/no-calls/1x
+                        time:   [141.36 µs 143.24 µs 145.69 µs]
+                        change: [−2.0707% −0.9272% +0.2810%] (p = 0.15 > 0.05)
+                        No change in performance detected.
+Benchmarking FullPipeline/imported/1x
+Benchmarking FullPipeline/imported/1x: Warming up for 2.0000 s
+Benchmarking FullPipeline/imported/1x: Collecting 20 samples in estimated 4.0456 s (9870 iterations)
+Benchmarking FullPipeline/imported/1x: Analyzing
+FullPipeline/imported/1x
+                        time:   [368.77 µs 377.53 µs 388.12 µs]
+                        change: [−2.5313% −0.1586% +1.9502%] (p = 0.89 > 0.05)
+                        No change in performance detected.
+Found 2 outliers among 20 measurements (10.00%)
+  2 (10.00%) high mild
+Benchmarking FullPipeline/calls/4x
+Benchmarking FullPipeline/calls/4x: Warming up for 2.0000 s
+Benchmarking FullPipeline/calls/4x: Collecting 20 samples in estimated 4.2564 s (3360 iterations)
+Benchmarking FullPipeline/calls/4x: Analyzing
+FullPipeline/calls/4x   time:   [1.1598 ms 1.1663 ms 1.1743 ms]
+                        change: [−5.7972% −3.7058% −2.1235%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Benchmarking FullPipeline/no-calls/4x
+Benchmarking FullPipeline/no-calls/4x: Warming up for 2.0000 s
+Benchmarking FullPipeline/no-calls/4x: Collecting 20 samples in estimated 4.1327 s (6510 iterations)
+Benchmarking FullPipeline/no-calls/4x: Analyzing
+FullPipeline/no-calls/4x
+                        time:   [546.42 µs 547.77 µs 549.71 µs]
+                        change: [−3.1534% −2.4927% −1.7648%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 4 outliers among 20 measurements (20.00%)
+  1 (5.00%) low mild
+  3 (15.00%) high severe
+Benchmarking FullPipeline/imported/4x
+Benchmarking FullPipeline/imported/4x: Warming up for 2.0000 s
+Benchmarking FullPipeline/imported/4x: Collecting 20 samples in estimated 4.1654 s (2730 iterations)
+Benchmarking FullPipeline/imported/4x: Analyzing
+FullPipeline/imported/4x
+                        time:   [1.3832 ms 1.3879 ms 1.3939 ms]
+                        change: [−5.6930% −4.8460% −3.8792%] (p = 0.00 < 0.05)
+                        Performance has improved.
+

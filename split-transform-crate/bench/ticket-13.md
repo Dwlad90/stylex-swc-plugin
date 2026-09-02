@@ -3,6 +3,19 @@
 The evaluator core moved from `stylex-transform` into `stylex-evaluator`, and
 nineteen crates lost a `crate-type = ["cdylib", "rlib"]` that nothing linked.
 
+> **Superseded in part by [ticket 16](./ticket-16.md).** The final A/B has since
+> been run: ticket 13's move, with the build held constant, is **+0.37%** median
+> with 48 of 52 measurements inside ±4%, so the move costs nothing. The `cdylib`
+> finding below **did not reproduce**. Ticket 16 rebuilt the baseline commit four
+> times and the `cdylib`-dropped tree three times; the bands overlap, and the two
+> groups that separate move the *opposite* way to leg 2 below. Every leg here is
+> a single build per configuration, which a control shows cannot resolve an
+> effect under about 5 points. The nineteen `cdylib`s are still worth dropping,
+> for a quarter off the workspace rebuild rather than for throughput.
+>
+> Ticket 16 also found the crate type that did matter: the addon's own unused
+> `rlib`, which switched fat LTO off for the published `.node`.
+
 **The final A/B is not in this file.** The `cdylib` change landed after the two
 legs below were measured, so both legs describe a configuration the branch no
 longer has. It is deferred by decision, not forgotten. What is recorded here is
@@ -110,6 +123,10 @@ all nineteen are now `rlib` only.
 LTO. Both moves also went from the `rlib`-only transform into a `cdylib` crate,
 so some of that floor may have been this. That is
 [ticket 16](../issues/16-measure-the-crate-type-change.md).
+
+**Ticket 16's answer: neither.** Both figures sit inside the noise of a single
+build per leg, which a control measures at about ±2 points on the median and
+±10 per measurement. The floor was the method.
 
 Logs: `bench-13-parent-leg.log`, `bench-13-branch-leg.log`,
 `bench-13-nocdylib-probe.log`.

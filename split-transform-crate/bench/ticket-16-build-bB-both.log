@@ -1,0 +1,18 @@
+### addon cdylib+rlib --release
+--- cold build
+    Finished `release` profile [optimized] target(s) in 2m 24s
+real 144.79
+user 543.99
+sys 31.25
+--- target size after cold build (MiB)
+1179
+--- workspace-only rebuild
+    Finished `release` profile [optimized] target(s) in 39.19s
+real 39.25
+user 121.86
+sys 3.61
+--- dynamic libraries emitted (count, then total KiB)
+1
+18288
+--- final target size (MiB)
+1179

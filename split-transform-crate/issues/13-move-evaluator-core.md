@@ -45,7 +45,8 @@ exactly their current semantics.
       shipped library no longer links it.
 - [x] No function was renamed, split, merged or reordered.
 - [x] No re-export facade is left in the transform.
-- [x] The transform's source drops to roughly 15k lines.
+- [x] The transform's source drops to roughly 15k lines. It measures 13.9k
+      lines of non-test source, and 23.7k lines with its tests.
 - [~] Benches diffed; the fold and evaluation benches show no regression outside
       noise. Measured twice, and the second measurement changed the commit --
       see [`../bench/ticket-13.md`](../bench/ticket-13.md). The final A/B against

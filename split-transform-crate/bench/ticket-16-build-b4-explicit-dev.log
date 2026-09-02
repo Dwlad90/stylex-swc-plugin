@@ -1,0 +1,18 @@
+### explicit rlib dev
+--- cold build
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2m 08s
+real 128.29
+user 883.97
+sys 48.89
+--- target size after cold build (MiB)
+3138
+--- workspace-only rebuild
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.59s
+real 8.65
+user 30.43
+sys 6.34
+--- dynamic libraries emitted (count, then total KiB)
+1
+50140
+--- final target size (MiB)
+3136

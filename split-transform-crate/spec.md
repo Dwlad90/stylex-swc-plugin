@@ -431,6 +431,17 @@ hand-edit.
   the excluded surface, not eliminating it.
 - **Any behaviour change, bug fix, performance optimisation or idiomatic cleanup.**
   If a defect is noticed during a move, it is recorded and fixed separately.
+
+  > **Amended.** One behaviour change did travel inside a move. The array-index
+  > test in `stylex-ast`'s own-key reader gained a digits-only guard, so a key
+  > such as `'+0'` is no longer read as an index -- Rust's integer parser
+  > accepts a leading plus that JavaScript does not. That decides own-key
+  > enumeration order, hence declaration order, hence which of two rules at
+  > equal specificity wins. The change is toward the reference implementation
+  > and toward the function's own documented contract, so it stays rather than
+  > being reverted, and it is recorded here because no fixture covered the
+  > former behaviour. See
+  > [ticket 22](./issues/22-settle-the-css-affecting-key-corrections.md).
 - **Publishing the new crates anywhere.** Nothing in this workspace is published
   to a Rust registry.
 

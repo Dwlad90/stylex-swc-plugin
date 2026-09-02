@@ -1,0 +1,17 @@
+### cdylib kept --release
+--- cold build
+    Finished `release` profile [optimized] target(s) in 2m 27s
+real 147.65
+user 530.96
+sys 31.29
+--- target size after cold build (MiB)
+1173
+--- workspace-only rebuild
+    Finished `release` profile [optimized] target(s) in 1m 03s
+real 63.39
+user 114.44
+sys 4.20
+--- dynamic libraries emitted
+20
+--- final target size (MiB)
+1173

@@ -1,0 +1,36 @@
+# The LTO flags rustc receives, by addon crate-type
+
+Source: cargo build -p stylex_compiler_rs --release --all-features -v
+under [profile.release] with lto = true and codegen-units = 1.
+
+LTO runs only on a final artifact. A crate that also emits a reusable rlib
+is not final, so rustc receives no -C lto for it and cargo prints no warning.
+
+## crate-type = ["cdylib", "rlib"] -- the configuration that shipped
+
+Occurrences of the string 'lto' anywhere in the build: 0
+
+LTO-related flag counts across every unit:
+   142  -C embed-bitcode=no
+
+The addon's own rustc invocation:
+  --crate-type cdylib
+  --crate-type rlib
+  -C opt-level=3
+  -C codegen-units=1
+
+## crate-type = ["cdylib"]
+
+Occurrences of the string 'lto' anywhere in the build: 213
+
+LTO-related flag counts across every unit:
+   142  -C embed-bitcode=no
+   212  -C linker-plugin-lto
+     1  -C lto
+
+The addon's own rustc invocation:
+  --crate-type cdylib
+  -C opt-level=3
+  -C lto
+  -C codegen-units=1
+

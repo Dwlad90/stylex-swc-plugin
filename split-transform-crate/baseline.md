@@ -45,6 +45,31 @@ The cold build emits **zero warnings**. `cargo clean` removed 7061 files /
 2.2 GiB, so the on-disk target directory this measurement starts from is the
 build artefacts only, not the coverage and release trees that also live there.
 
+### Against the branch, at ticket 16
+
+Re-measured on the same machine, one target directory per configuration, source
+identical within each pair. Full numbers and logs are in
+[`bench/ticket-16.md`](./bench/ticket-16.md).
+
+| Measurement | Pre-split (`e8887ab8f`) | Branch, at ticket 16 |
+| --- | --- | --- |
+| Cold build, `dev` | 109.88 s | 110.79 s to 113.11 s |
+| Workspace-only rebuild, `dev` | not measured | 8.0 s |
+| Workspace-only rebuild, `release` | not measured | 47.5 s |
+| Dynamic libraries the workspace emits | 20 | **1** |
+| Published `.node` | not measured | **19,538,192 B** |
+
+The cold build is unchanged, because 400-odd third-party crates dominate it. The
+**workspace-only rebuild** is the number the split moves, and it is the one to
+quote from here on: it cleans this workspace's crates and leaves every
+dependency built, so a crate-type or layer change is the whole of the
+difference. Dropping the nineteen unlinked `cdylib`s took about a quarter off
+it, in both profiles.
+
+The `.node` grew from 18,724,368 B when the addon still carried an unused
+`rlib`. That `rlib` switched fat LTO off; removing it made 64 of 64 benchmark
+fixtures faster by a median of 16.5%, and the extra 813 KB is inlined code.
+
 The state manager is the file the split moves code out of, which is why the
 incremental measurement touches it: it is the worst realistic case for rebuild
 fan-out inside `stylex-transform`. Touching it re-checks two crates —

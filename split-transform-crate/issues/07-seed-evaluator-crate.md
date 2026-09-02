@@ -169,6 +169,16 @@ that delta is alignment and nothing else, and it sets the layout floor for the
 run at roughly +4%. Every other measurement sits at or under that floor, the
 worst being +4.30%.
 
+> **[Ticket 16](../bench/ticket-16.md) re-read this floor and it is not a layout
+> floor -- it is the measurement's own spread.** A control that rebuilds the
+> baseline commit and measures it against its own saved baseline reads −2.0% to
+> −3.0% on the median and up to +12.85% on one measurement, with nothing
+> changed at all. So +3.65% on `StructuralKey/call/shallow` says only that one
+> build per leg cannot resolve a few points. The conclusion below -- no
+> regression -- stands; the number under it does not carry the meaning it was
+> given, and it is not a ceiling later tickets can measure against.
+> Ticket 16 also checked whether the `cdylib` explained the floor. It does not.
+
 The mechanism is the one ticket 05 recorded: the bench links one rlib more than
 the baseline binary did, and these targets build `-C lto -C codegen-units=1`, so
 the whole program is a single codegen unit whose function placement shifts when

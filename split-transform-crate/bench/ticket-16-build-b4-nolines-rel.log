@@ -1,0 +1,18 @@
+### no crate-type --release
+--- cold build
+    Finished `release` profile [optimized] target(s) in 2m 30s
+real 150.35
+user 552.79
+sys 32.66
+--- target size after cold build (MiB)
+1179
+--- workspace-only rebuild
+    Finished `release` profile [optimized] target(s) in 42.31s
+real 42.37
+user 129.96
+sys 4.58
+--- dynamic libraries emitted (count, then total KiB)
+1
+18288
+--- final target size (MiB)
+1181

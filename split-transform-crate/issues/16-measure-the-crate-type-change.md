@@ -38,9 +38,21 @@ questions:
    where no code moved.
 3. This branch. Against leg 2 that is ticket 13's move with the build held
    constant, which is the attribution ticket 13 could not take.
+4. All crates without a `crate-type` (like `crates/stylex-transform/Cargo.toml`
+   on branch develop), and `stylex-rs-compiler` is the only crate without changes.
 
 Leg 2 is the one that answers whether ticket 07 and ticket 12 measured layout or
 a `cdylib`.
+
+Build time is preferable than performance, because the crates not using
+in production, only the `stylex-rs-compiler` crate is used in production,
+so the other crates' performance is not relevant. For `stylex-rs-compiler`
+performarce is critical.
+
+**Additional check.**
+
+Check the `stylex-rs-compiler` crate's `crate-type` is still needed and if the
+value is correct for performance, check with nodejs benchmarks.
 
 **Also worth measuring:** cold build time and artifact size. Nineteen crates
 stopped emitting a dynamic library nobody linked, so both should fall, and the
@@ -61,16 +73,37 @@ from scratch.
 
 **Blocked by:** None.
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] Ticket 13's A/B is re-run against the branch as it stands, and
-      `../bench/ticket-13.md` carries the result.
-- [ ] The crate-type change is measured on its own, on a tree where no code
-      moved.
-- [ ] Tickets 07 and 12 carry a note saying whether their floor was layout, the
-      `cdylib`, or both.
-- [ ] Cold build time and published artifact size are recorded against
+- [x] Ticket 13's A/B is re-run against the branch as it stands, and
+      `../bench/ticket-13.md` carries the result: **+0.37%** median, 48 of 52
+      inside +-4%, so the move costs nothing.
+- [x] The crate-type change is measured on its own, on a tree where no code
+      moved. Four control builds against three; the bands overlap.
+- [x] Tickets 07 and 12 carry a note saying whether their floor was layout, the
+      `cdylib`, or both. The answer is neither -- it was the method.
+- [x] Cold build time and published artifact size are recorded against
       `../baseline.md`.
-- [ ] `EvaluatePerfFixtures` is either cleared as spread or filed as a cost.
-- [ ] No crate but `stylex-rs-compiler` declares a `cdylib`, and
-      `guidelines/STRUCTURE.md` still says why.
+- [x] `EvaluatePerfFixtures` is cleared as spread: **+0.69%** once the build is
+      held constant, and no effect across seven builds.
+- [x] No crate but `stylex-rs-compiler` declares a `cdylib`, and
+      `guidelines/STRUCTURE.md` still says why -- rewritten, because the reason
+      it gave was not the reason the measurement supports.
+- [~] Leg 4, "all crates without a `crate-type`", is measured on build cost and
+      artifact size only, and the two are equivalent, so the explicit
+      `["rlib"]` line stays. No criterion leg was run for it, because the
+      configurations produce the same artifact. Nothing remains unless a later
+      ticket wants the criterion run as well.
+
+## Outcome
+
+The ticket asked which of two mechanisms explained an earlier measurement. The
+answer is that neither did, and the measurement itself was the artefact: one
+build per leg cannot resolve an effect under about 5 points per group, and the
+saved `parent-clean` baselines carry a −2% to −3% drift on top.
+
+The crate type that did matter is the addon's own, which no earlier ticket
+examined. `["cdylib", "rlib"]` kept fat LTO off the shipped `.node`. Dropping the
+unused `rlib` makes all 64 benchmark fixtures faster, by a median of 16%.
+
+Full record: [`../bench/ticket-16.md`](../bench/ticket-16.md).

@@ -7,7 +7,7 @@ crate that has a `src/lib.rs` and tests. Write the tests that close the gap.
 
 The shortfall is not new code going untested. It is the same boundary effect
 [ticket 11](./11-cover-the-state-crate.md) records for the state crate: the
-evaluator was covered *transitively*, by compiling whole files through the
+evaluator was covered _transitively_, by compiling whole files through the
 transform's integration suite under `crates/stylex-transform/tests/`, and the
 transform is itself exempt from the gate. Moving the evaluator out made that
 coverage stop counting for it. Ticket 13 moved all 569 unit tests down with the
@@ -18,26 +18,26 @@ meantime. The exemption is the holding position, not the answer.
 
 **Where the gap is**, from `pnpm run test:coverage` in the crate:
 
-| File | Uncovered regions | Cover |
-| --- | --- | --- |
-| `evaluate/nodes/call_expression.rs` | 464 | 31.16% |
-| `evaluate/nodes/member_expression.rs` | 282 | 49.10% |
-| `evaluate/engine_fold/transport.rs` | 268 | 39.09% |
-| `evaluate/engine_fold/guard.rs` | 201 | 81.54% |
-| `evaluate/helpers.rs` | 183 | 61.06% |
-| `evaluate/engine_fold/amplification.rs` | 135 | 74.77% |
-| `evaluate/mod.rs` | 125 | 66.22% |
-| `evaluate/engine_stylex_functions.rs` | 102 | 16.39% |
-| `evaluate/nodes/global_conversion.rs` | 92 | 17.12% |
-| `evaluate/nodes/object_expression.rs` | 82 | 70.61% |
-| `evaluate/nodes/arrow_function.rs` | 73 | 32.41% |
-| `evaluate/nodes/binary_expression.rs` | 59 | 81.27% |
-| `evaluate/nodes/unary_expression.rs` | 49 | 67.33% |
-| `evaluate/engine_fold/outward.rs` | 37 | 82.04% |
-| `evaluate/engine_fold/theme.rs` | 37 | 74.83% |
-| `convertors.rs` | 29 | 86.94% |
-| `evaluate/binding.rs` | 28 | 84.53% |
-| the remaining twelve files | 63 | 68.42%--97.92% |
+| File                                    | Uncovered regions | Cover          |
+| --------------------------------------- | ----------------- | -------------- |
+| `evaluate/nodes/call_expression.rs`     | 464               | 31.16%         |
+| `evaluate/nodes/member_expression.rs`   | 282               | 49.10%         |
+| `evaluate/engine_fold/transport.rs`     | 268               | 39.09%         |
+| `evaluate/engine_fold/guard.rs`         | 201               | 81.54%         |
+| `evaluate/helpers.rs`                   | 183               | 61.06%         |
+| `evaluate/engine_fold/amplification.rs` | 135               | 74.77%         |
+| `evaluate/mod.rs`                       | 125               | 66.22%         |
+| `evaluate/engine_stylex_functions.rs`   | 102               | 16.39%         |
+| `evaluate/nodes/global_conversion.rs`   | 92                | 17.12%         |
+| `evaluate/nodes/object_expression.rs`   | 82                | 70.61%         |
+| `evaluate/nodes/arrow_function.rs`      | 73                | 32.41%         |
+| `evaluate/nodes/binary_expression.rs`   | 59                | 81.27%         |
+| `evaluate/nodes/unary_expression.rs`    | 49                | 67.33%         |
+| `evaluate/engine_fold/outward.rs`       | 37                | 82.04%         |
+| `evaluate/engine_fold/theme.rs`         | 37                | 74.83%         |
+| `convertors.rs`                         | 29                | 86.94%         |
+| `evaluate/binding.rs`                   | 28                | 84.53%         |
+| the remaining twelve files              | 63                | 68.42%--97.92% |
 
 Three groups, in the order they are worth taking:
 
@@ -59,7 +59,7 @@ is untested.
 
 **Blocked by:** None — the evaluator crate is filled as of ticket 13.
 
-**Status:** not now, backlog
+**Status:** backlog
 
 - [ ] `stylex-evaluator` reports zero uncovered lines and zero uncovered
       regions.

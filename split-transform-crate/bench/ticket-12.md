@@ -51,6 +51,15 @@ The median sits below the **+3.65%** floor ticket 07 measured on a bench whose
 crate was byte-identical between legs. Ten measurements are above +4%, and that
 is stated rather than smoothed over.
 
+> **[Ticket 16](./ticket-16.md) prices that floor: it was the method, not
+> layout and not the `cdylib`.** A control -- the baseline commit rebuilt and
+> measured against its own saved baseline -- reads a median of −2.0% to −3.0%
+> and single measurements as far as +12.85%, on code that did not change. This
+> +3.04% median and the ten measurements above +4% are inside that floor, so the
+> A/B neither confirms nor denies a cost. The reasoning below still holds: no
+> executable line of the moved code changed, and the bench that cannot reach it
+> moved more than the one that can.
+
 ## Why this is layout and not the moved code
 
 `ModuleWalk/no-calls/1x` moved **+4.05%**. `ModuleWalk/calls/1x` moved

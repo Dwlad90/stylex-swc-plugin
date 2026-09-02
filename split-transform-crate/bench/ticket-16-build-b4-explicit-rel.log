@@ -1,0 +1,18 @@
+### explicit rlib --release
+--- cold build
+    Finished `release` profile [optimized] target(s) in 2m 39s
+real 159.43
+user 567.31
+sys 33.66
+--- target size after cold build (MiB)
+1181
+--- workspace-only rebuild
+    Finished `release` profile [optimized] target(s) in 43.17s
+real 43.23
+user 128.31
+sys 4.57
+--- dynamic libraries emitted (count, then total KiB)
+1
+18288
+--- final target size (MiB)
+1181

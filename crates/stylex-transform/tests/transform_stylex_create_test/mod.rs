@@ -34,6 +34,7 @@ mod named_string_receivers;
 mod nested_pseudo_ordering;
 mod non_ascii_hash_parity;
 mod number_prototype_receivers;
+mod numeric_and_index_like_keys;
 mod object_method_refusals;
 mod object_own_keys;
 mod operator_interaction;

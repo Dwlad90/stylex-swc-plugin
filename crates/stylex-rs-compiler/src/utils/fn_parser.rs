@@ -9,7 +9,7 @@ use stylex_ast::ast::{
 };
 use stylex_macros::stylex_panic;
 use stylex_structures::stylex_env::{EnvEntry, JSFunction};
-use stylex_utils::swc::get_expr_node_kind;
+use stylex_utils::{number::to_js_string, swc::get_expr_node_kind};
 use swc_core::ecma::ast::{Expr, ExprOrSpread, Lit, PropName, PropOrSpread};
 
 thread_local! {
@@ -64,7 +64,7 @@ fn prop_name_to_string(key: &PropName) -> Option<String> {
   match key {
     PropName::Ident(id) => Some(id.sym.to_string()),
     PropName::Str(s) => Some(s.value.as_str().unwrap_or("").to_string()),
-    PropName::Num(n) => Some(n.value.to_string()),
+    PropName::Num(n) => Some(to_js_string(n.value)),
     _ => None,
   }
 }

@@ -329,7 +329,7 @@ pub fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
   let key = match key {
     PropName::Ident(ident) => ident.sym.to_string(),
     PropName::Str(strng) => convert_str_lit_to_string(strng),
-    PropName::Num(num) => num.value.to_string(),
+    PropName::Num(num) => to_js_string(num.value),
     PropName::BigInt(big_int) => big_int.value.to_string(),
     PropName::Computed(computed) => match computed.expr.as_ref() {
       Expr::Lit(lit) => match convert_lit_to_string(lit) {

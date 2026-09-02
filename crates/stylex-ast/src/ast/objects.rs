@@ -30,7 +30,7 @@ fn prop_key(prop: &PropOrSpread) -> Option<Atom> {
         // A numeric key is a string key spelled as a number: `{ 42: x }` and
         // `{ '42': x }` name one property in the language, so they have to read
         // as one name here. Rendered through `to_js_string` so the spelling is
-        // the language's -- `1e21`, not `1000000000000000000000`.
+        // the language's -- `1e+21`, not `1000000000000000000000`.
         PropName::Num(number) => Some(Atom::from(to_js_string(number.value))),
         // `{ 1n: x }` names the property `"1"`, as every non-computed key that
         // is not already a string does.

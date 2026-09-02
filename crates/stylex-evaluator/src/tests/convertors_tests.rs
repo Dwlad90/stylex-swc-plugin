@@ -551,6 +551,30 @@ mod convert_key_value_to_str_tests {
     assert_eq!(result, "42");
   }
 
+  /// The plain number arm has to spell the number the way JavaScript does, the
+  /// same as the computed arm beside it: `1e21` names the property `1e+21`.
+  #[test]
+  fn num_key_uses_the_javascript_spelling() {
+    let kv = make_kv(PropName::Num(Number {
+      span: Default::default(),
+      value: 1e21,
+      raw: None,
+    }));
+    let result = convert_key_value_to_str(&kv);
+    assert_eq!(result, "1e+21");
+  }
+
+  /// Written as a computed key, the same number reads back the same way.
+  #[test]
+  fn computed_num_key_uses_the_javascript_spelling() {
+    let kv = make_kv(PropName::Computed(ComputedPropName {
+      span: Default::default(),
+      expr: Box::new(create_number_expr(1e21)),
+    }));
+    let result = convert_key_value_to_str(&kv);
+    assert_eq!(result, "1e+21");
+  }
+
   #[test]
   fn computed_string_key_returns_value() {
     let kv = make_kv(PropName::Computed(ComputedPropName {

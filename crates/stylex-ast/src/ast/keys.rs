@@ -5,6 +5,7 @@
 //! property at run time. These readers answer with that name, and answer with
 //! nothing where the shape carries no static name at all.
 
+use stylex_utils::number::to_js_string;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{Expr, KeyValueProp, Lit, MemberProp, ObjectLit, Prop, PropName, PropOrSpread},
@@ -16,7 +17,9 @@ pub fn namespace_name_from_prop_key(key: &PropName) -> Option<Atom> {
   match key {
     PropName::Ident(ident) => Some(ident.sym.clone()),
     PropName::Str(strng) => Some(convert_str_lit_to_atom(strng)),
-    PropName::Num(num) => Some(Atom::from(num.value.to_string())),
+    // A number key names a string property, spelled the way JavaScript spells
+    // the number: `1e21` names `1e+21`, not the digit run Rust prints.
+    PropName::Num(num) => Some(Atom::from(to_js_string(num.value))),
     PropName::BigInt(big_int) => Some(Atom::from(big_int.value.to_string())),
     PropName::Computed(computed) => namespace_name_from_expr(computed.expr.as_ref()),
   }
@@ -33,7 +36,7 @@ pub fn namespace_name_from_member_prop(prop: &MemberProp) -> Option<Atom> {
 fn namespace_name_from_lit(lit: &Lit) -> Option<Atom> {
   match lit {
     Lit::Str(strng) => Some(convert_str_lit_to_atom(strng)),
-    Lit::Num(num) => Some(Atom::from(num.value.to_string())),
+    Lit::Num(num) => Some(Atom::from(to_js_string(num.value))),
     Lit::BigInt(big_int) => Some(Atom::from(big_int.value.to_string())),
     _ => None,
   }

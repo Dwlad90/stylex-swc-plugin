@@ -123,10 +123,71 @@ fn reads_a_string_key() {
 }
 
 #[test]
-fn reads_a_number_key_the_way_javascript_spells_it() {
+fn reads_an_integer_number_key() {
   let key = PropName::Num(number_lit(42.0));
 
   assert_eq!(namespace_name_from_prop_key(&key), Some(Atom::new("42")));
+}
+
+/// `1e21` is where the two spellings part: JavaScript prints `1e+21`, Rust
+/// prints the twenty-two digits. The key names a property, so the spelling
+/// reaches the stylesheet and has to be the language's.
+#[test]
+fn reads_a_number_key_the_way_javascript_spells_it() {
+  let key = PropName::Num(number_lit(1e21));
+
+  assert_eq!(namespace_name_from_prop_key(&key), Some(Atom::new("1e+21")));
+}
+
+/// The same number written as a computed key reads the same way, because it
+/// names the same property.
+#[test]
+fn reads_a_computed_number_key_the_way_javascript_spells_it() {
+  let key = PropName::Computed(computed(Expr::Lit(Lit::Num(number_lit(1e21)))));
+
+  assert_eq!(namespace_name_from_prop_key(&key), Some(Atom::new("1e+21")));
+}
+
+/// A member is read by the same literal reader, so a computed member of that
+/// number gets the JavaScript spelling too.
+#[test]
+fn reads_a_computed_number_member_the_way_javascript_spells_it() {
+  let prop = MemberProp::Computed(computed(Expr::Lit(Lit::Num(number_lit(1e21)))));
+
+  assert_eq!(
+    namespace_name_from_member_prop(&prop),
+    Some(Atom::new("1e+21"))
+  );
+}
+
+/// The far ends of the range, where a spelling mistake is most visible: small
+/// magnitudes take an exponent, `-0` loses its sign as `String(-0)` does, and
+/// the three non-finite values keep their names.
+///
+/// No JavaScript source spells a key `NaN` or `Infinity` as a number literal,
+/// so these reach the reader only from a tree the compiler builds itself. They
+/// are asserted anyway, to hold the reader to one spelling for every `f64`.
+#[test]
+fn spells_every_number_key_the_way_javascript_does() {
+  let cases = [
+    (1e-7, "1e-7"),
+    (-0.0, "0"),
+    (f64::MAX, "1.7976931348623157e+308"),
+    (f64::MIN_POSITIVE, "2.2250738585072014e-308"),
+    (f64::NAN, "NaN"),
+    (f64::INFINITY, "Infinity"),
+    (f64::NEG_INFINITY, "-Infinity"),
+  ];
+
+  for (value, spelling) in cases {
+    let key = PropName::Num(number_lit(value));
+
+    assert_eq!(
+      namespace_name_from_prop_key(&key),
+      Some(Atom::new(spelling)),
+      "number key {value} must spell as {spelling}"
+    );
+  }
 }
 
 #[test]

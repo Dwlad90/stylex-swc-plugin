@@ -192,6 +192,18 @@ fn prop_name_to_string_supports_negative_num() {
   assert_eq!(prop_name_to_string(&num_key), Some("-1.5".to_string()));
 }
 
+/// The key crosses into a real JavaScript object, so it carries the spelling
+/// JavaScript gives the number: `1e21` names the property `1e+21`.
+#[test]
+fn prop_name_to_string_uses_the_javascript_spelling() {
+  let num_key = PropName::Num(Number {
+    span: DUMMY_SP,
+    value: 1e21,
+    raw: None,
+  });
+  assert_eq!(prop_name_to_string(&num_key), Some("1e+21".to_string()));
+}
+
 #[test]
 fn prop_name_to_string_supports_empty_ident() {
   let ident = PropName::Ident(IdentName::new("".into(), DUMMY_SP));

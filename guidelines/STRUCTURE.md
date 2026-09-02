@@ -189,7 +189,9 @@ three lists; the row is removed rather than left to be read as one.
   committed fixture and the `:check` fails against a generator that changed
   nothing. The `:check` runs as its own package's `pretest`, ahead of that
   package's `test` script, so a stale fixture fails locally rather than only in
-  review.
+  review. `scripts/git/generated-fixtures.test.mjs` asserts that wiring: that
+  each generator has a `:check`, that something runs it, and that a generator
+  reading another package has that package declared as a Turbo input.
 
   One chain crosses crates and is easy to trip over: `postcss-value-parser`'s
   `src/tests/cases.rs` is generated from the parity corpus in

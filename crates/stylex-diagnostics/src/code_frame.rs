@@ -1,5 +1,6 @@
 use anyhow::Error;
 use log::{debug, warn};
+use smallvec::SmallVec;
 use std::{
   cell::Cell,
   fs,
@@ -464,16 +465,42 @@ fn get_key_span_from_source_code_impl(
 /// once and the pieces cannot drift out of the key by being added to the
 /// function and forgotten in the digest.
 fn compute_key_span_cache_key(siblings_digest: u128, query: &NamespaceKeyQuery) -> u128 {
-  let mut sorted_value_keys: Vec<&Atom> = query.namespace_value_keys.iter().collect();
-  sorted_value_keys.sort();
-
   stable_hash_wide(&(
     "stylex-key-span:v5",
     siblings_digest,
     query.namespace_key,
-    sorted_value_keys,
+    // The version above still reads v5 because the byte stream did not move:
+    // `SmallVec` hashes as a slice, exactly as the `Vec` it replaced did, over
+    // the same names in the same order.
+    sorted_value_keys(query.namespace_value_keys.iter()),
     query.target_offset,
   ))
+}
+
+/// How many value keys are ordered on the stack before the sort falls back to
+/// the heap.
+///
+/// One namespace's value is a handful of CSS properties, so this covers what a
+/// style object holds while the buffer stays small enough for a function the
+/// debug path calls once per namespace of every call.
+const INLINE_VALUE_KEYS: usize = 16;
+
+/// `keys` in the one order the cache key may hash them in.
+///
+/// Sorted, because the keys arrive from a hash set whose iteration order is not
+/// part of the identity being keyed -- two namespaces spelling the same
+/// properties are the same namespace. Two things keep the ordering off the
+/// heap, and both are load-bearing: the buffer is inline up to
+/// [`INLINE_VALUE_KEYS`], and the sort is the unstable one, because the stable
+/// sort allocates scratch space of its own. Equal elements cannot be told apart
+/// here anyway -- they come from a set, so there are none.
+fn sorted_value_keys<'keys>(
+  keys: impl Iterator<Item = &'keys Atom>,
+) -> SmallVec<[&'keys Atom; INLINE_VALUE_KEYS]> {
+  let mut sorted: SmallVec<[&'keys Atom; INLINE_VALUE_KEYS]> = keys.collect();
+  sorted.sort_unstable();
+
+  sorted
 }
 
 /// Loads a CodeFrame with the source file for error display.

@@ -15,6 +15,7 @@ doctest = false
 [dependencies]
 anyhow.workspace = true
 log.workspace = true
+smallvec.workspace = true
 swc_compiler_base.workspace = true
 swc_config.workspace = true
 swc_core = { workspace = true, features = [

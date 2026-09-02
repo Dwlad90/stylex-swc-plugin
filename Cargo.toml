@@ -19,9 +19,17 @@ opt-level = 1
 [profile.dev.build-override]
 opt-level = 3
 
+# Profile for the criterion benches. Cargo derives it from `release`, so it
+# inherits the settings below unless it states its own.
 [profile.bench]
 debug = true
 lto = true
+
+# Cancels the `strip = "symbols"` this profile inherits from `release`. Without
+# it a bench target generates full debug information and then has it stripped,
+# which leaves a flamegraph over a bench binary with no symbols at all. The
+# `release` strip is for the published `.node`, which nobody profiles.
+strip = "none"
 
 # Profile for the `.node` addons published to npm. Trades build time for transform
 # throughput: CI builds once, consumers pay per file on every build.
@@ -98,6 +106,10 @@ serde = "1.0.228"
 serde_json = "1.0.150"
 serde_plain = "1.0.2"
 serial_test = { version = "4.0.1" }
+# Already in the graph through SWC, which uses it for the same reason: a list
+# that is a handful of items in every real case does not need the heap. Named
+# here so the span cache key can sort its names on the stack.
+smallvec = { version = "1.15.1" }
 # Already in the graph through swc_ecma_parser, which grows the stack for the same
 # reason: a recursive walk over a nested expression must not be bounded by the
 # thread's stack. Named here so the evaluator can depend on it directly.

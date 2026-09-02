@@ -956,6 +956,70 @@ fn a_source_that_cannot_be_produced_is_reported() {
   assert!(produced.is_err());
 }
 
+// ── The order the cache key hashes a namespace's value keys in ─────
+//
+// The keys arrive from a hash set, so the key would otherwise depend on an
+// iteration order that is not part of what a namespace spells.
+
+/// Two namespaces spelling the same properties are the same namespace, so the
+/// order they reached the set in must not reach the key.
+#[test]
+fn the_value_keys_of_a_namespace_are_ordered_before_they_are_hashed() {
+  let written_one_way = [Atom::from("marginTop"), Atom::from("color")];
+  let written_the_other = [Atom::from("color"), Atom::from("marginTop")];
+
+  assert_eq!(
+    sorted_value_keys(written_one_way.iter()),
+    sorted_value_keys(written_the_other.iter())
+  );
+  assert_eq!(
+    stable_hash_wide(&sorted_value_keys(written_one_way.iter())),
+    stable_hash_wide(&sorted_value_keys(written_the_other.iter())),
+    "the hasher the span cache uses has to agree, not just the ordering"
+  );
+}
+
+#[test]
+fn value_keys_are_ordered_by_their_text() {
+  let keys = [
+    Atom::from("marginTop"),
+    Atom::from("color"),
+    Atom::from("--x"),
+  ];
+  let ordered = sorted_value_keys(keys.iter());
+
+  assert_eq!(
+    ordered.iter().map(|key| key.as_ref()).collect::<Vec<_>>(),
+    ["--x", "color", "marginTop"]
+  );
+}
+
+/// A namespace with more properties than the inline buffer holds still orders
+/// them, on the heap. Nothing about the key changes at the boundary.
+#[test]
+fn a_namespace_larger_than_the_inline_buffer_is_still_ordered() {
+  let names: Vec<Atom> = (0..INLINE_VALUE_KEYS * 4)
+    .map(|index| Atom::from(format!("property-{index:03}")))
+    .collect();
+  let mut shuffled = names.clone();
+  shuffled.reverse();
+
+  assert_eq!(
+    sorted_value_keys(shuffled.iter()),
+    sorted_value_keys(names.iter())
+  );
+  assert!(
+    sorted_value_keys(shuffled.iter())
+      .windows(2)
+      .all(|pair| pair[0] <= pair[1])
+  );
+}
+
+#[test]
+fn a_namespace_with_no_value_keys_orders_nothing() {
+  assert!(sorted_value_keys([].iter()).is_empty());
+}
+
 /// A cached answer still needs the file registered before it can be quoted, so
 /// a file that has since become unreadable turns a cache hit into no frame.
 #[test]

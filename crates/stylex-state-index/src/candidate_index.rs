@@ -50,6 +50,18 @@ impl<K: Eq + Hash, H: PartialEq> CandidateIndex<K, H> {
   /// Recording one that is already there is a no-op rather than a second bucket
   /// entry, so a collection filled twice -- which the discovery cycle does --
   /// indexes each entry once.
+  ///
+  /// **The scan that keeps it a no-op is linear in the bucket, so filling one
+  /// key is quadratic in the entries that share it.** Timed once on an
+  /// optimized build, directionally: a record costs about 14 ns at a bucket of
+  /// 100, 62 ns at 1 000, 464 ns at 10 000 and 4.7 us at 100 000, where a
+  /// record under a key of its own stays flat near 20 ns. A bucket only grows
+  /// where two entries are *structurally identical*, so reaching the thousands
+  /// takes a module holding thousands of byte-identical `stylex.create` calls,
+  /// which all compile to the same class names. Left alone on that: one entry
+  /// per bucket is the shape every module in this repository has, and a hash
+  /// set per bucket would cost that shape a second allocation and a hash of
+  /// every handle to buy nothing.
   pub fn record(&mut self, key: K, handle: H) {
     let bucket = self.buckets.entry(key).or_default();
 

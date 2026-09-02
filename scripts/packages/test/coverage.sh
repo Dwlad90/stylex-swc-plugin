@@ -6,7 +6,11 @@ PATTERNS="#\[test\]|test_transform\(|test!\("
 crate_name="$(basename "$PWD")"
 
 # Kept in step with the two workspace lists in `package.json` and
-# `scripts/coverage-missing.sh`.
+# `scripts/coverage-missing.sh`. This list holds crate directory names, so a
+# name can differ from the Cargo package name by more than the hyphens:
+# stylex-rs-compiler is the crate stylex_compiler_rs. Why each crate is off the
+# gate, and which rows a ticket removes, is in "Excluded from Coverage" in
+# guidelines/STRUCTURE.md.
 case "$crate_name" in
   stylex-evaluator|stylex-logs|stylex-rs-compiler|stylex-state|stylex-test-parser|stylex-transform)
     exit 0

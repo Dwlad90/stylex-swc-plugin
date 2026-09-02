@@ -54,15 +54,17 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Crates excluded from workspace coverage, kept in sync with the
-# `test:coverage:workspace` script in the root package.json.
+# Crates excluded from workspace coverage. Three lists must agree: this one, the
+# `test:coverage:workspace` script in the root package.json, and the `case` in
+# scripts/packages/test/coverage.sh. A row is either permanent or names the
+# ticket that removes it -- see "Excluded from Coverage" in guidelines/STRUCTURE.md.
 EXCLUDED_CRATES=(
-  stylex_logs
-  stylex_compiler_rs
-  stylex_test_parser
-  stylex_transform
-  stylex_state
-  stylex_evaluator
+  stylex_logs        # permanent
+  stylex_compiler_rs # permanent
+  stylex_test_parser # permanent
+  stylex_transform   # permanent
+  stylex_state       # temporary, removed by ticket 11
+  stylex_evaluator   # temporary, removed by ticket 15
 )
 WORKSPACE_EXCLUDES=()
 for crate in "${EXCLUDED_CRATES[@]}"; do

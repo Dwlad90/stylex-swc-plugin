@@ -122,17 +122,13 @@ Code coverage uses [`cargo-llvm-cov`](https://github.com/taiki-e/cargo-llvm-cov)
 with LLVM source-based instrumentation. All flags are passed via CLI (no config
 file).
 
-- **Workspace coverage:**
-  ```sh
-  cargo llvm-cov nextest --workspace --all-features \
-    --exclude stylex_logs --exclude stylex_compiler_rs \
-    --exclude stylex_test_parser --exclude stylex_css_parser \
-    --exclude stylex_transform \
-    --fail-uncovered-lines 0 \
-    --fail-uncovered-regions 0 \
-    --fail-under-functions 0 \
-    --ignore-filename-regex '<pattern>'
-  ```
+- **Workspace coverage:** `pnpm test:coverage:workspace`. It runs
+  `cargo llvm-cov nextest --workspace --all-features` with
+  `--fail-uncovered-lines 0`, `--fail-uncovered-regions 0`,
+  `--fail-under-functions 0`, an `--ignore-filename-regex` for test, bench and
+  example paths, and one `--exclude` for each crate below. Run the script rather
+  than a copy of the command: an out-of-date copy gates something other than
+  what CI gates.
 - **100% line coverage is enforced** via `--fail-uncovered-lines 0`.
 - **Coverage exclusion:** Use `#[cfg_attr(coverage_nightly, coverage(off))]` on
   functions/impls that cannot be meaningfully tested (e.g., panic branches,
@@ -142,23 +138,38 @@ file).
 
 ### Excluded from Coverage
 
-These crates are excluded because they are either integration-level (tested via
-other means), thin wrappers, or waiting on a ticket to bring them to the gate.
-The list is held in three places that must agree: `test:coverage:workspace` in
-the root `package.json`, `EXCLUDED_CRATES` in `scripts/coverage-missing.sh`, and
-the `case` in `scripts/packages/test/coverage.sh`.
+The crate names are held in three lists that must agree:
+`test:coverage:workspace` in the root `package.json`, `EXCLUDED_CRATES` in
+`scripts/coverage-missing.sh`, and the `case` in
+`scripts/packages/test/coverage.sh`. All three point here, and this section is
+the one place that says why a crate is off the gate.
+
+Every row is either permanent, with the reason stated, or temporary, with the
+ticket that removes it named. Do not add a row without one or the other. A
+temporary row is an exception, not a deferral: a new crate still joins the gate
+at full coverage when it is created, and a row that waits on a ticket must say
+why the coverage could not travel with the code.
+
+Permanent:
 
 - `stylex_logs` -- logging utilities
 - `stylex_compiler_rs` -- NAPI-RS bindings
 - `stylex_test_parser` -- test fixture parser
-- `stylex_transform` -- SWC transform (tested via snapshot tests)
-- `stylex_state` -- extracted from the transform, and covered transitively
-  through it until direct tests exist
-- `stylex_evaluator` -- the same, for the evaluator moved out of the transform
+- `stylex_transform` -- SWC transform, tested through snapshot tests
 
-The last two are a holding position rather than a judgement that the code needs
-no tests. `stylex_css_parser` was listed here and is not excluded in any of the
-three lists; the row is removed rather than left to be read as one.
+The next two rows are a holding position, not a judgement that the code needs no
+tests. Both crates came out of the transform, which is itself off the gate. The
+transform's own tests had covered them, and the new crate boundary stopped that
+coverage counting for them. No line that was covered became uncovered. Both
+tickets sit in the `split-transform-crate` tracker (see
+[issue-tracker.md](../docs/agents/issue-tracker.md)), which holds their state.
+
+Temporary:
+
+- `stylex_state` -- covered through the transform until direct tests exist.
+  Ticket `11-cover-the-state-crate` removes this row.
+- `stylex_evaluator` -- the same, for the evaluator moved out of the transform.
+  Ticket `15-cover-the-evaluator-crate` removes this row.
 
 ## Key Config Files
 

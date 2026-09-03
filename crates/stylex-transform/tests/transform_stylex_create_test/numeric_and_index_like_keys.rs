@@ -14,6 +14,10 @@
 //! string key, because JavaScript reads no leading sign where Rust's integer
 //! parser does.
 //!
+//! Both readings apply to a namespace name as well as to a style key, because
+//! `create` receives an object too. A namespace that enumerates first is
+//! compiled first, so its rules reach the stylesheet first.
+//!
 //! Every output below was measured against `@stylexjs/babel-plugin@0.19.0`
 //! under the parity harness's options and agrees with it.
 
@@ -81,6 +85,76 @@ stylex_test!(
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
       root: { '+0': 'red', 0: 'blue', color: 'green' },
+    });
+  "#
+);
+
+// ── The order an index-like namespace takes ─────────────────────────
+
+// The same reading applies to the namespace names, because `create` receives an
+// object too. `0` is an index and comes first, and `+0` keeps its written place
+// among the string keys -- so the namespaces reach the emitted object, and their
+// rules the stylesheet, in the order `0`, `+0`, `root`.
+stylex_test!(
+  an_index_namespace_is_declared_before_a_signed_one,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      '+0': { color: 'red' },
+      0: { color: 'blue' },
+      root: { color: 'green' },
+    });
+  "#
+);
+
+// Every rule the index reading makes, over the namespace names: an index sorts
+// numerically rather than by its spelling, `01` and the empty name are ordinary
+// string keys, and `4294967295` is one too because it is the one integer below
+// 2^32 that no array can index.
+stylex_test!(
+  index_like_namespaces_take_the_enumeration_order,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      z: { color: 'red' },
+      2: { color: 'blue' },
+      '01': { color: 'green' },
+      0: { color: 'black' },
+      4294967295: { color: 'white' },
+      4294967294: { color: 'yellow' },
+      '': { color: 'transparent' },
+    });
+  "#
+);
+
+// A dynamic style is ordered by the same reading, and carries its function and
+// its `@property` rule with it. The rules come out in the order the namespaces
+// do, so the width property is declared before the color one.
+stylex_test!(
+  an_index_namespace_orders_its_dynamic_style_too,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      named: (c) => ({ color: c }),
+      0: (w) => ({ width: w }),
+    });
+  "#
+);
+
+// An index sorts by its value, not by its spelling, so `9` comes before `10`
+// and `10` before `100`. A lexicographic sort would give the written order back.
+stylex_test!(
+  index_namespaces_sort_by_value_and_not_by_spelling,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      10: { color: 'red' },
+      9: { color: 'blue' },
+      100: { color: 'green' },
     });
   "#
 );

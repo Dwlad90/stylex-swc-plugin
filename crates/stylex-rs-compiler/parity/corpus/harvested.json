@@ -1254,7 +1254,7 @@
       "id": "a176db1b",
       "property": "color",
       "value": "green",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/numeric_and_index_like_keys.rs:80"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/numeric_and_index_like_keys.rs:84"
     },
     {
       "id": "097486cb",

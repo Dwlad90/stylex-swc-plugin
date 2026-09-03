@@ -2,6 +2,14 @@ import React from 'react';
 import * as sx from '@stylexjs/stylex';
 import { useMediaQuery } from '@hooks/useMediaQuery';
 const c = {
+    "1": {
+        kGuDYH: "xeuu8e4",
+        $$css: true
+    },
+    "2": {
+        kGuDYH: "x1jbhjkf",
+        $$css: true
+    },
     wrapper: {
         k1xSpc: "xjp7ctv",
         $$css: true
@@ -24,14 +32,6 @@ const c = {
     },
     "p+2": {
         kGuDYH: "xd310an",
-        $$css: true
-    },
-    "1": {
-        kGuDYH: "xeuu8e4",
-        $$css: true
-    },
-    "2": {
-        kGuDYH: "x1jbhjkf",
         $$css: true
     },
     "p+3": {

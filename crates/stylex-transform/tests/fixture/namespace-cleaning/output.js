@@ -5,6 +5,14 @@ import * as sx from '@stylexjs/stylex';
 import { useMediaQuery } from '@hooks/useMediaQuery';
 const MULTIPLIER = 5;
 _inject2({
+    ltr: "@media (all) and (max-width: 1067px){.fontSize-xeuu8e4.fontSize-xeuu8e4{font-size:2rem}}",
+    priority: 3200
+});
+_inject2({
+    ltr: "@media (all) and (max-width: 1067px){.fontSize-x1jbhjkf.fontSize-x1jbhjkf{font-size:2.25rem}}",
+    priority: 3200
+});
+_inject2({
     ltr: ".display-xjp7ctv{display:contents}",
     priority: 3000
 });
@@ -29,14 +37,6 @@ _inject2({
     priority: 3200
 });
 _inject2({
-    ltr: "@media (all) and (max-width: 1067px){.fontSize-xeuu8e4.fontSize-xeuu8e4{font-size:2rem}}",
-    priority: 3200
-});
-_inject2({
-    ltr: "@media (all) and (max-width: 1067px){.fontSize-x1jbhjkf.fontSize-x1jbhjkf{font-size:2.25rem}}",
-    priority: 3200
-});
-_inject2({
     ltr: "@media (all) and (max-width: 1067px){.fontSize-x14h6vv3.fontSize-x14h6vv3{font-size:2.5rem}}",
     priority: 3200
 });
@@ -53,6 +53,14 @@ _inject2({
     priority: 3000
 });
 const c = {
+    "1": {
+        fontSize: "fontSize-xeuu8e4",
+        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:39"
+    },
+    "2": {
+        fontSize: "fontSize-x1jbhjkf",
+        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:45"
+    },
     wrapper: {
         display: "display-xjp7ctv",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:6"
@@ -76,14 +84,6 @@ const c = {
     "p+2": {
         fontSize: "fontSize-xd310an",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:33"
-    },
-    "1": {
-        fontSize: "fontSize-xeuu8e4",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:39"
-    },
-    "2": {
-        fontSize: "fontSize-x1jbhjkf",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:45"
     },
     "p+3": {
         fontSize: "fontSize-x14h6vv3",

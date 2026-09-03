@@ -35,6 +35,10 @@ The order JavaScript enumerates an object's own properties in, applied by
 then every other key in insertion order. Not a spelling detail — the order the
 properties come out in is the order their declarations reach the stylesheet, so
 it decides which of two rules at equal specificity wins.
+
+The same order applies to anything else that stands for a JavaScript object,
+whether or not it is a property list. A `create` call's namespace map is one,
+and it reads `array_index_of` directly rather than through `order_own_keys`.
 _Avoid_: sort keys, property order, key ordering
 
 **Array-index key**:

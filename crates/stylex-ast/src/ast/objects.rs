@@ -50,7 +50,12 @@ fn prop_key(prop: &PropOrSpread) -> Option<Atom> {
 /// Canonical is what makes `"0"` one and `"00"`, `"+0"` and `"01"` not — those
 /// round-trip to a different string, so the language treats them as ordinary
 /// string keys and enumerates them in insertion order.
-fn array_index_of(key: &str) -> Option<u32> {
+///
+/// Public because two collections need this reading and only one of them is a
+/// property list. A `create` call's namespace map is an ordered map keyed by
+/// name, and it enumerates the way the language does for the same reason a
+/// style object does.
+pub fn array_index_of(key: &str) -> Option<u32> {
   // Only digits, so a signed spelling such as `+0` stays a string key -- Rust
   // reads the sign that JavaScript does not. This also settles every ordinary
   // property name at its first byte, before any parse runs.

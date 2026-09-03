@@ -20,21 +20,36 @@ returning a nested option where a borrowed string would do.
 **Blocked by:** 24 — the trait needs coverage against the real implementation
 before it is reshaped, so the refactor happens under test cover.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The memoisation cache is owned by the diagnostics crate and held as a
+- [x] The memoisation cache is owned by the diagnostics crate and held as a
       field by compilation state
-- [ ] The trait exposes only the questions diagnostics genuinely must ask
-- [ ] No method body is a same-named self-delegation, so a rename is a compile
+- [x] The trait exposes only the questions diagnostics genuinely must ask
+- [x] No method body is a same-named self-delegation, so a rename is a compile
       error rather than unbounded recursion
-- [ ] The seen-module accessor returns a borrowed string rather than nested
+- [x] The seen-module accessor returns a borrowed string rather than nested
       options
-- [ ] The trait's rationale comment names the crate that actually implements it
-- [ ] The workspace gate is green in **debug** — never `--release`, since the
+- [x] The trait's rationale comment names the crate that actually implements it
+- [x] The workspace gate is green in **debug** — never `--release`, since the
       fixture suite only guards debug: `format:check`, `lint:check`,
       `lint:shell`, `typecheck` and the test suite, each run directly rather
       than piped into a pager, whose exit code would mask a failure. Re-run
       `typecheck` after committing, because the pre-commit hook rewrites code
-- [ ] The addon is rebuilt and the JavaScript suite re-run — it exercises the
+- [x] The addon is rebuilt and the JavaScript suite re-run — it exercises the
       built artifact rather than the Rust sources, so a green Rust run is not
       evidence on its own
+
+**Resolved by:** `516787ecf` — the memo is a `DiagnosticMemo` in
+`stylex-diagnostics`, held as a field by `StateManager`, which never reads it.
+The trait keeps six questions: the filename, the memoized module, its key span
+index, and the memo.
+
+**Worth recording:** a qualified `StateManager::get_filename(self)` in a trait
+body is *not* enough to satisfy the third criterion. The path resolves to the
+inherent method first but falls back to the trait method in scope, so a rename
+still gives a recursion *warning* where a compile error belongs. Every body
+reaches a field instead.
+
+The twelve cases the memo owns live in `crates/stylex-diagnostics/src/tests/`,
+and the state crate keeps one case for what it still answers -- that the manager
+hands back one memo rather than a fresh one per question.

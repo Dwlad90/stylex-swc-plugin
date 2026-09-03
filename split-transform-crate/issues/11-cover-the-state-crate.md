@@ -3,8 +3,7 @@
 **What to build:** The `stylex-state` crate that ticket 08 extracted measures
 41.92% of regions and 40.50% of lines against its own tests. The workspace
 coverage gate demands zero uncovered lines and zero uncovered regions from every
-crate that has a `src/lib.rs` and tests, and `stylex-state` is not on the
-exemption list. Write the tests that close the gap.
+crate that has a `src/lib.rs` and tests. Write the tests that close the gap.
 
 The shortfall is not new code going untested. It is a boundary revealing what
 was already true: the state manager was covered *transitively*, by compiling
@@ -47,3 +46,12 @@ is untested.
 - [ ] Tests cover regular and irregular inputs, and the edge cases each method
       states, rather than only the path that makes the number go up.
 - [ ] The full workspace suite stays green.
+
+## Comments
+
+**2026-09-02, ticket 25.** Re-measured on the tip of
+`feat_split-transform-crate`: 43.71% of regions, 45.00% of functions and 42.38%
+of lines, with 1486 unexercised regions across 5 files. The headline figures
+above were taken at ticket 08 and the file table with them; both are stale by a
+few points but the shape is unchanged. The exclusion stays until this ticket
+lands, and `guidelines/STRUCTURE.md` now names this ticket as its remover.

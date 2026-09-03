@@ -190,8 +190,27 @@ otherwise.
 | --- | --- |
 | candidate index | `stylex-state-index/src/tests/candidate_index_test.rs` |
 | file offset | `stylex-state-index/src/{key_span_index.rs,tests/key_span_index_test.rs}` |
-| panic messages | `stylex-declarations/src/tests/lookup_tests.rs` |
+| panic messages | `stylex-state/src/tests/resolution_lookup_test.rs` |
 | pattern-bound call | `stylex-state/src/tests/state_writers_test.rs` |
 | evaluator refusals | `stylex-evaluator/src/tests/{check_declaration_test,evaluate_result_test}.rs` |
 | diagnostics trait | `stylex-state/src/tests/diagnostic_state_test.rs` |
 | corpus normalization | `stylex-css/src/css/tests/{corpus_normalization_test,generate_ltr_test}.rs`, `stylex-transform/src/shared/utils/css/tests/transform_value_test.rs` |
+
+### Two figures in this ticket went stale after it closed
+
+Recorded rather than edited into the ticked boxes above, which were true when
+they were ticked.
+
+**The trait is six methods, not nine.** Criterion 6 says "the nine diagnostics
+trait methods". `DiagnosticState` at `crates/stylex-diagnostics/src/state.rs`
+now declares six, because ticket 28 moved the memo's own questions onto
+`DiagnosticMemo`, which carries five. Eleven methods, all still exercised
+through `stylex-state/src/tests/diagnostic_state_test.rs`, so the criterion's
+substance holds and only its count moved.
+
+**The panic-message row named a deleted crate.** Ticket 30 folded
+`stylex-declarations` into `stylex-state`, carrying its
+`src/tests/lookup_tests.rs` to
+`stylex-state/src/tests/resolution_lookup_test.rs` at 97% similarity. The
+table above now names the file where it lives; nothing about the coverage
+changed.

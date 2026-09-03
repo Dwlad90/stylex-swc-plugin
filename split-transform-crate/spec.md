@@ -41,7 +41,7 @@ Extract the crate's **Rust-only machinery** — the parts with no counterpart in
 the JavaScript implementation used for behavioural comparison — into focused
 crates that each own exactly one concern and each join the coverage gate at 100%
 region coverage. What remains is the visitor, the state manager and the
-style-semantics layer: still substantial, but roughly a third smaller and
+style-semantics layer: still substantial, but 57% smaller by source line and
 honestly described by its own name.
 
 Four crates change hands:
@@ -77,8 +77,27 @@ unchanged control for the whole exercise.
    and regions, so that the coverage gate covers a larger share of the compiler
    than it does today.
 5. As a compiler maintainer, I want the excluded-from-coverage surface to shrink
-   from ~32k lines to ~20k, so that the exclusion is a bounded exception rather
-   than a hole.
+   from 34,304 lines across four crates to 31,938 across six, so that the
+   exclusion is a bounded exception rather than a hole.
+
+   > **Amended.** This story first asked for ~32k lines down to ~20k, about a
+   > third. That was the *transform's* own shrink read as if it were the whole
+   > excluded surface. The transform did drop that far -- 32,327 source lines to
+   > 13,935, -57% -- but two of the crates it shed, `stylex-state` and
+   > `stylex-evaluator`, took temporary exclusions of their own, so the surface
+   > the gate never measures fell only 7%. The story now reads the measured
+   > numbers. Tickets 11 and 15 remove the two temporary rows; when both land the
+   > surface reaches 15,916 lines across four crates, -54% against the
+   > baseline. Line counts are every `*.rs` under `src/` less any path matching
+   > `(tests?|benches?|examples)/`, which is what the gate can see.
+   >
+   > **Re-measured at the end of the branch.** Ticket 30 flagged that folding
+   > the declarations crate into `stylex-state` moved one number in this set and
+   > left it rather than editing it alone, because one number in a measured set
+   > should be re-measured with the rest. Doing that: the excluded surface is
+   > 31,938, the transform is 13,935, and the post-11-and-15 figure is 15,916.
+   > Every proportion above survives the re-measure -- -7%, -57% and -54% each
+   > still round true -- so only the absolutes moved.
 6. As a contributor, I want a one-line edit to the state manager to rebuild less,
    so that my iteration loop is shorter.
 7. As a contributor, I want the crate DAG to actually forbid an upward
@@ -169,6 +188,20 @@ API funnels through the same flatten → pre-rule → class-name pipeline, so
 vertical crates would either duplicate it or all depend on a shared crate that
 _is_ the layered cut.
 
+> **Amended.** The criterion held, and the sentence it is stated in needs one
+> qualification. No module with a counterpart in the reference implementation was
+> cut: the two readers that ended up split across crates are Rust-only lookup
+> machinery with nothing to compare against, so no translated unit was severed
+> and no behaviour diverged.
+>
+> What did change is where a comparison starts. `utils/evaluate-path.js` is one
+> file on the reference side and three crates here -- `stylex-evaluator`,
+> `stylex-state` and, for where a refusal is reported, `stylex-diagnostics`. A
+> line-for-line reading that opens the evaluator alone concludes that behaviour
+> is missing when it is one layer down. The map is
+> recorded in the evaluator's own glossary, under **Comparing against the
+> reference evaluator**, which is where a parity investigation will be looking.
+
 ### New crates and their responsibilities
 
 - **stylex-state-index** — the candidate index and the key-span index. The
@@ -186,6 +219,24 @@ _is_ the layered cut.
 Everything else stays: the state manager and the remaining structures, the
 style-semantics layer, the AST/CSS/common/object utilities, the validators, the
 enums, and the whole visitor tree.
+
+> **Amended.** Two functions were split inside a move commit, where a move is
+> supposed to change import lines and nothing else. Both are in the diagnostics
+> extraction, both are behaviour-neutral, and both stay.
+>
+> `build_code_frame_error`'s error arm became `warn_no_code_frame`, and
+> `parse_and_normalize_program`'s error arm became `warn_unparseable`. Each arm
+> chooses between a debug message carrying the whole expression and a shorter
+> warning naming the file; the messages, the levels and the order are unchanged,
+> and each half is now a named reporter a unit test can call. Whether a coverage
+> tool may drive a split like this is settled separately, and the answer is that
+> it may not -- see
+> `docs/adr/0003-a-coverage-tool-does-not-decide-a-function-boundary.md` in the
+> repository. These two stand on testability, which that record explains.
+>
+> The state crate is also the one that must not be decomposed further, and the
+> reason is one type alias rather than its module count -- see
+> `crates/stylex-state/docs/adr/0001-the-state-crate-stays-whole-while-a-callback-aliases-it.md`.
 
 > **Amended.** The state manager did not stay. Every unit the evaluator move
 > touches takes `&mut StateManager`, so leaving it here made the evaluator crate
@@ -281,11 +332,12 @@ lifts out of private modules in `utils::js::evaluate` and
 ### The documented DAG is renumbered
 
 New crates need layer assignments and the existing numbering shifts. The
-state-index crate sits above AST foundations; diagnostics sits above state-index;
-the real evaluator sits above diagnostics and below CSS processing and the
-transform. The renamed nested-config crate keeps the layer its predecessor had.
-The layer list, the context map row, and each new crate's `CONTEXT.md` are
-updated as part of the commit that creates the crate — not as a follow-up.
+state-index crate sits above AST foundations; diagnostics sits above
+state-index; the real evaluator sits above diagnostics and above CSS
+processing, below the transform. The renamed nested-config crate keeps the
+layer its predecessor had. The layer list, the context map row, and each new
+crate's `CONTEXT.md` are updated as part of the commit that creates the crate —
+not as a follow-up.
 
 ### Manifest conventions
 
@@ -349,6 +401,26 @@ preserved:
 The only permitted edit to any test file is its **import lines**, forced by the
 no-re-export-facades rule. Assertions, inputs and fixtures are untouched.
 
+> **Amended.** Two edits went past the import lines, and neither weakens a test.
+>
+> `evaluate/tests/source_evaluation.rs` lost five helper definitions -- a parser,
+> a thread of a stated size, a source file, a parser over that file, and a nested
+> literal builder -- to `src/tests/scaffolding.rs` in the evaluator crate. The
+> helpers were duplicated when the crate was seeded, because the test module that
+> held them builds a state manager and therefore could not travel yet; the
+> duplicate is gone and the definitions now sit in one place. The cases that read
+> them are unchanged, so the assertions still exercise the same code through the
+> same entry point.
+>
+> Thirty snapshot files were touched to refresh their headers. The staleness
+> predates this work: every `source:` header still named `crates/stylex-shared`,
+> the crate's name before a rename that landed earlier, and `insta` also drops
+> the `assertion_line` metadata it no longer records. No expected value changed.
+> Two of the thirty were deleted rather than refreshed, because they keyed on a
+> test module name that does not exist and no test ever read them. This is the
+> snapshot path churn the seam list anticipated, quarantined to its own commit as
+> planned.
+
 ### Modules under test
 
 Each new crate is tested by the unit tests that move with it, and must reach zero
@@ -358,13 +430,18 @@ moment it exists**. Each extraction commit either lands at full coverage or ship
 a temporary exclusion that its own immediate follow-up removes. The gate ignores
 test, bench and example directories, so only library source counts.
 
-> **Amended.** `stylex-state` ships an exclusion whose remover,
-> [ticket 11](./issues/11-cover-the-state-crate.md), is backlogged rather than
-> immediate. The rule assumed a new crate's coverage arrives with its code; this
-> crate's did not, because the state manager was covered *transitively* through
-> the transform, which is itself exempt, and the boundary is what stopped that
-> counting. No previously covered line became uncovered. The rule still binds
-> every other extraction -- `stylex-declarations` takes no exclusion.
+> **Amended.** Two crates ship an exclusion whose remover is backlogged rather
+> than immediate: `stylex-state`, removed by
+> [ticket 11](./issues/11-cover-the-state-crate.md), and `stylex-evaluator`,
+> removed by [ticket 15](./issues/15-cover-the-evaluator-crate.md). The rule
+> assumed a new crate's coverage arrives with its code; neither crate's did,
+> because both were covered *transitively* through the transform, which is
+> itself exempt, and the boundary is what stopped that counting. No previously
+> covered line became uncovered. The rule still binds every other extraction --
+> `stylex-declarations` takes no exclusion. Measured against their own tests,
+> `stylex-state` sits at 43.71% of regions with 1486 unexercised, and
+> `stylex-evaluator` at 66.86% with 2347, so neither can come off the list
+> before its ticket lands.
 
 Note that coverage tooling keeps only the best-covered instantiation of a
 generic, so a generic helper can read as fully covered while one instantiation is
@@ -442,6 +519,53 @@ hand-edit.
   > being reverted, and it is recorded here because no fixture covered the
   > former behaviour. See
   > [ticket 22](./issues/22-settle-the-css-affecting-key-corrections.md).
+
+  > **Amended.** Two performance commits landed on this branch, and this rule
+  > excludes both. Neither changes behaviour and neither is reverted; they are
+  > recorded here because the rule says a defect found during a move is fixed
+  > separately, and these were not.
+  >
+  > `perf(stylexswc/transform): stop rebuilding and copying merge inputs` builds
+  > the default marker once per call instead of once per imported name, and moves
+  > the non-null props into and out of the member visitor instead of copying them
+  > at both ends.
+  >
+  > `perf(stylex_diagnostics): take the diagnostic state by generic bound`
+  > replaces `&dyn` / `&mut dyn DiagnosticState` with a generic bound in fourteen
+  > signatures. No trait object was ever stored, so the bound breaks the same
+  > dependency without a vtable. This one is a direct consequence of the split:
+  > the trait exists only because the diagnostics crate may not name the state
+  > manager, and the indirection it introduced was measured on the annotation
+  > path at a median of about 0.7% across twelve paired runs. Reverting it would
+  > leave the split paying for a boundary it created.
+
+  > **Amended.** A third behaviour change landed, after the two blocks above
+  > were written. The namespace map now keeps the order the language gives it
+  > rather than the order a hash map returns, so the declarations of a
+  > `stylex.create` call reach the stylesheet in source order. That decides
+  > which of two rules at equal specificity wins, exactly as the array-index
+  > guard above does. It is a fix toward the reference implementation, and the
+  > fixtures record it: `namespace-cleaning/output.js` and its `output_prod.js`
+  > twin both change. Recorded here rather than reverted, for the same reason
+  > the array-index guard is. See
+  > [ticket 32](./issues/32-namespace-map-keeps-source-order.md).
+
+  > **Amended.** Two further performance commits landed, and this rule excludes
+  > both. Neither changes behaviour.
+  >
+  > `perf(stylexswc): take the allocations off the per-namespace debug path`
+  > stops building the per-namespace debug strings on a path that discards
+  > them. It closes [ticket 27](./issues/27-performance-nits.md), except for
+  > the allocator the moved benches link, which stays with ticket 17.
+  >
+  > `perf(stylex_compiler_rs): drop the rlib that held fat LTO off the addon`
+  > makes the addon `cdylib` only. `lto = true` reaches a final artifact and no
+  > other, so a crate that also emits a reusable `rlib` silently gets no LTO
+  > and cargo prints no warning -- the shipped `.node` had been built without
+  > the setting the profile declares. This one is a consequence of the split
+  > rather than an optimisation found beside it: the crate gained its `rlib`
+  > when it became something other crates could name. See
+  > [ticket 16](./issues/16-measure-the-crate-type-change.md).
 - **Publishing the new crates anywhere.** Nothing in this workspace is published
   to a Rust registry.
 
@@ -461,9 +585,37 @@ hand-edit.
   one place where code shape genuinely changes rather than merely moving. It is
   isolated in its own commit for that reason, and it lands before any crate is
   created so that a failure there stops the work early and cheaply.
-- Expected end state: the transform crate drops from ~32k to ~20k lines of
-  source; three new gated crates hold ~13.8k lines at full region coverage; the
-  workspace's uncovered-by-policy surface shrinks by roughly a third.
+- Expected end state, and what was measured. The transform crate was expected to
+  drop from ~32k to ~20k lines of source; it dropped to 13,935, further than
+  planned. The uncovered-by-policy surface was expected to shrink by roughly a
+  third; it shrank 7%, from 34,304 lines across four crates to 31,938 across
+  six, because `stylex-state` and `stylex-evaluator` left the transform carrying
+  temporary exclusions of their own. See user story 5 for the full reading.
+
+### For the pull request description
+
+One observable output change that no test asserts, and that a reader of the diff
+will not see. The panic macros stamp the caller's file and line into the message
+they print -- `__stylex_panic` and its two siblings are `#[track_caller]` and
+read `Location::caller()` -- so every call site that changed crate now reports a
+different location on stderr. Nothing about the message, the exit or the
+diagnostic changes; only the path printed beside it. It is unavoidable, because
+the location *is* the call site, and the call sites moved. Say so in the pull
+request, since a reader comparing stderr between the two branches will see it
+before anything else.
+
+### The one test removal
+
+Across 408 changed files this branch removed exactly one set of tests, and it
+was deliberate. Two crates each held a near-copy of a Node package resolver
+that nothing in the workspace called; the only callers were their own eight
+tests. Package resolution belongs to `stylex-path-resolver`, which already
+answers the question through `oxc_resolver` and handles export conditions, pnpm
+and Yarn PnP that the deleted copies did not. Both production copies, the eight
+tests and the now-unused `node-resolve` workspace dependency were removed
+together, so nothing is left half-deleted. The record is that this was chosen
+rather than noticed: three answers to one question is the defect, and keeping
+dead copies alive to preserve a test count would have preserved the defect.
 
 ### Tests Coverage
 

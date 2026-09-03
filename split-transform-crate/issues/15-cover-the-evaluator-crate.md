@@ -69,3 +69,13 @@ is untested.
 - [ ] Tests cover regular and irregular inputs, and the edge cases each function
       states, rather than only the path that makes the number go up.
 - [ ] The full workspace suite stays green.
+
+## Comments
+
+**2026-09-02, ticket 25.** Re-measured on the tip of
+`feat_split-transform-crate`: 66.86% of regions, 75.22% of functions and 70.93%
+of lines, with 2347 unexercised regions across 28 files. Ticket 24 added two
+test files here and moved the region figure by 0.1 of a point, which is the
+point that ticket made: the holes it closed were behavioural, not lines. The
+exclusion stays until this ticket lands, and `guidelines/STRUCTURE.md` now names
+this ticket as its remover.

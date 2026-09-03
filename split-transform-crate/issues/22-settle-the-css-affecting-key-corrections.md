@@ -38,7 +38,10 @@ Land both deliberately, under one snapshot review.
 - [~] The pull request description states that property ordering can change
       for keys like `'+0'`, and that numeric key spelling changes — the text
       is drafted in the Comments below; it is copied into the pull request
-      when the branch is opened
+      when the branch is opened. It needs a third paragraph from
+      [ticket 32](./32-namespace-map-keeps-source-order.md), which applies the
+      same ordering to the namespace names and so moves whole rule sets rather
+      than single declarations
 - [x] The snapshot suite is re-run and every diff is either empty or a
       reviewed ordering or key change — no existing snapshot changed; five new
       ones record the two corrections end to end
@@ -102,3 +105,6 @@ At the **namespace** level — `create({ '+0': …, 0: … })` — the reference
 implementation emits `0` first and this compiler keeps source order, because
 own-key ordering is applied to the style object and not to the namespace map.
 This predates the ticket and is untouched by it. Worth its own ticket.
+
+Filed and fixed as [ticket 32](./32-namespace-map-keeps-source-order.md), which
+also corrects the assumption above that no CSS depends on the namespace order.

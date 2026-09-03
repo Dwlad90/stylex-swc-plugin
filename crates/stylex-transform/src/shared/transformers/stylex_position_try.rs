@@ -1,9 +1,10 @@
 use std::rc::Rc;
 
-use stylex_ast::ast::convertors::{convert_lit_to_string, create_string_expr};
+use stylex_ast::ast::convertors::convert_lit_to_string;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
+use crate::shared::transformers::named_rule::fold_to_rule_name;
 use crate::shared::{
   enums::data_structures::obj_map_type::ObjMapType,
   utils::object::{Pipe, obj_map, obj_map_keys_and_transform_values, preprocess_object_properties},
@@ -124,15 +125,8 @@ pub(crate) fn stylex_position_try(
 
 pub(crate) fn get_position_try_fn() -> FunctionConfig {
   FunctionConfig {
-    fn_ptr: FunctionType::StylexExprFn(|expr: Expr, state: &mut StateManager| -> Expr {
-      let (position_try_name, injected_style) =
-        stylex_position_try(&EvaluateResultValue::Expr(expr), state);
-
-      state
-        .other_injected_css_rules
-        .insert(position_try_name.clone().into(), Rc::new(injected_style));
-
-      create_string_expr(position_try_name.as_str())
+    fn_ptr: FunctionType::StylexExprFn(|expr, state| {
+      fold_to_rule_name(expr, state, stylex_position_try)
     }),
     takes_path: false,
   }

@@ -5,6 +5,7 @@ use stylex_macros::stylex_panic;
 use stylex_structures::pre_rule_value::PreRuleValue;
 use swc_core::ecma::ast::{Expr, Lit};
 
+use crate::shared::transformers::named_rule::fold_to_rule_name;
 use crate::shared::{
   enums::data_structures::obj_map_type::ObjMapType,
   utils::{
@@ -12,7 +13,7 @@ use crate::shared::{
     object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_and_transform_values},
   },
 };
-use stylex_ast::ast::convertors::{convert_key_value_to_str, create_string_expr, normalize_expr};
+use stylex_ast::ast::convertors::{convert_key_value_to_str, normalize_expr};
 use stylex_constants::constants::messages::VALUES_MUST_BE_OBJECT;
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
 use stylex_declarations::convertors::convert_expr_to_str;
@@ -210,15 +211,8 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
 
 pub(crate) fn get_keyframes_fn() -> FunctionConfig {
   FunctionConfig {
-    fn_ptr: FunctionType::StylexExprFn(|expr: Expr, state: &mut StateManager| -> Expr {
-      let (animation_name, injected_style) =
-        stylex_keyframes(&EvaluateResultValue::Expr(expr), state);
-
-      state
-        .other_injected_css_rules
-        .insert(animation_name.clone().into(), Rc::new(injected_style));
-
-      create_string_expr(animation_name.as_str())
+    fn_ptr: FunctionType::StylexExprFn(|expr, state| {
+      fold_to_rule_name(expr, state, stylex_keyframes)
     }),
     takes_path: false,
   }

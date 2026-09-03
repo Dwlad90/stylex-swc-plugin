@@ -1,3 +1,4 @@
+mod named_rule_test;
 mod stylex_create_test;
 mod stylex_create_theme_by_group_test;
 mod stylex_create_theme_nested_test;

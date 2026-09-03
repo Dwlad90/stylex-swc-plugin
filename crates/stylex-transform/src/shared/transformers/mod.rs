@@ -1,3 +1,4 @@
+pub(crate) mod named_rule;
 pub(crate) mod stylex_create;
 pub(crate) mod stylex_create_theme;
 pub(crate) mod stylex_create_theme_nested;

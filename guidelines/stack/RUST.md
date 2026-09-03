@@ -5,7 +5,13 @@
 - Edition 2024 or later, toolchain 1.90.0 or later, SWC core v56 or later.
 - WASM target `wasm32-wasip1` is supported (see `rust-toolchain.toml` for all
   targets).
-- Release profile: `opt-level = "z"`, LTO enabled, symbol stripping.
+- Release profile: `opt-level = 3`, fat LTO, symbol stripping. Never `"z"` or
+  `"s"` -- they optimize for size by slashing the inliner budget, and the hot
+  path here is SWC's visitor traversal.
+- `lto = true` reaches only a _final_ artifact. A crate that also emits a
+  reusable `rlib` is not final, so it silently gets no LTO and cargo prints no
+  warning. That is why the addon is `cdylib` only. See `Cargo.toml`, whose
+  `[profile.release]` comments carry the full reasoning.
 
 ## Key Modules
 

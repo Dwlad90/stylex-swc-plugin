@@ -117,12 +117,6 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/non_ascii_hash_parity.rs:50"
     },
     {
-      "id": "a0dd3953",
-      "property": "a",
-      "value": "red",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/global_builtin_calls.rs:1178"
-    },
-    {
       "id": "61902655",
       "property": "all",
       "value": "unset",
@@ -993,12 +987,6 @@
       "origin": "crates/stylex-css/src/css/tests/normalize_value_test.rs:847"
     },
     {
-      "id": "c34b308e",
-      "property": "children",
-      "value": "Hello World",
-      "origin": "crates/stylex-transform/tests/transform_stylex_stylex_props_test/sx_attribute.rs:120"
-    },
-    {
       "id": "21190363",
       "property": "clear",
       "value": "end",
@@ -1266,7 +1254,7 @@
       "id": "a176db1b",
       "property": "color",
       "value": "green",
-      "origin": "crates/stylex-transform/tests/transform_misc_test/react.rs:341"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/numeric_and_index_like_keys.rs:80"
     },
     {
       "id": "097486cb",
@@ -2523,22 +2511,10 @@
       "origin": "crates/stylex-transform/tests/transform_value_normalization_test/transform_font_size_with/enable_font_size_px_to_rem_false.rs:15"
     },
     {
-      "id": "c5ed6eca",
-      "property": "foo",
-      "value": "bar",
-      "origin": "crates/stylex-transform/tests/transform_misc_test/scope.rs:20"
-    },
-    {
       "id": "decf975d",
       "property": "gap",
       "value": "2px",
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/env.rs:701"
-    },
-    {
-      "id": "45177f5b",
-      "property": "gap",
-      "value": "4px",
-      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/refused_binding_edge_cases.rs:114"
     },
     {
       "id": "988fad7f",
@@ -2919,12 +2895,6 @@
       "origin": "crates/stylex-transform/tests/validation_stylex_create_test/invalid_values.rs:88"
     },
     {
-      "id": "121b7739",
-      "property": "insetInlineStart",
-      "value": "0",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/static_styles.rs:919"
-    },
-    {
       "id": "a77ed32a",
       "property": "insetInlineStart",
       "value": "10px",
@@ -2952,13 +2922,7 @@
       "id": "be487320",
       "property": "left",
       "value": "0",
-      "origin": "crates/stylex-transform/tests/transform_stylex_position_try_test/position_try.rs:44"
-    },
-    {
-      "id": "238ad769",
-      "property": "left",
-      "value": "10px",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/static_styles.rs:908"
+      "origin": "crates/stylex-transform/tests/transform_stylex_position_try_test/position_try.rs:64"
     },
     {
       "id": "b4212ffd",
@@ -3447,12 +3411,6 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_position_try_test/position_try.rs:64"
     },
     {
-      "id": "2ff8f68a",
-      "property": "primary",
-      "value": "red",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/logical_operators.rs:57"
-    },
-    {
       "id": "1c020310",
       "property": "quotes",
       "value": "\"\"",
@@ -3519,18 +3477,6 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:426"
     },
     {
-      "id": "3a9d3237",
-      "property": "s",
-      "value": "0.25rem",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/logical_operators.rs:28"
-    },
-    {
-      "id": "bbc6671e",
-      "property": "s",
-      "value": "4px",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/logical_operators.rs:42"
-    },
-    {
       "id": "e8d0b42f",
       "property": "scrollbarWidth",
       "value": "none",
@@ -3594,13 +3540,7 @@
       "id": "ff56a10c",
       "property": "top",
       "value": "0",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/static_styles.rs:908"
-    },
-    {
-      "id": "2f45d49d",
-      "property": "top",
-      "value": "10px",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/static_styles.rs:919"
+      "origin": "crates/stylex-transform/tests/transform_stylex_position_try_test/position_try.rs:64"
     },
     {
       "id": "5ecb393c",

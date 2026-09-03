@@ -555,16 +555,16 @@ directories, and any source with `@generated` in its header comment. The second
 is what keeps the chain below from closing into a loop, since `cases.rs` spells
 its inputs as CSS rules and would otherwise harvest the corpus back into itself.
 
-| Shape | Written as                                                      | What is taken                                                  |
-| ----- | --------------------------------------------------------------- | -------------------------------------------------------------- |
-| 1     | `normalize_css_property_value("color", "red", &opts)`           | both literals                                                  |
-| 2     | a case table looped through one property                        | the first element of each row, or each element of a flat array |
-| 3     | `"* {{ transitionProperty: opacity; }}"`                        | the declaration inside the rule                                |
-| 4     | `"*{color:red}"`                                                | the same, minified                                             |
-| 5     | a `stylex.create` object in a transform fixture                 | every declaration in it, except in a `stylex.env` argument     |
-| 6     | `unchanged("color", "red")`, `same("color", "#ff0000", "#f00")` | the property and the **input** only                            |
-| 6a    | `refuses_with("color", "red {", MESSAGE, OTHER)`                | the same, for a value expected to be refused                   |
-| 7     | `rejects("width", &["*(", "/.5 *("], MESSAGE, &opts)`           | the property and every value in the slice                      |
+| Shape | Written as                                                      | What is taken                                                   |
+| ----- | --------------------------------------------------------------- | --------------------------------------------------------------- |
+| 1     | `normalize_css_property_value("color", "red", &opts)`           | both literals                                                   |
+| 2     | a case table looped through one property                        | the first element of each row, or each element of a flat array  |
+| 3     | `"* {{ transitionProperty: opacity; }}"`                        | the declaration inside the rule                                 |
+| 4     | `"*{color:red}"`                                                | the same, minified                                              |
+| 5     | a `stylex.create` object in a transform fixture                 | every declaration in the call argument, less a `stylex.env` one |
+| 6     | `unchanged("color", "red")`, `same("color", "#ff0000", "#f00")` | the property and the **input** only                             |
+| 6a    | `refuses_with("color", "red {", MESSAGE, OTHER)`                | the same, for a value expected to be refused                    |
+| 7     | `rejects("width", &["*(", "/.5 *("], MESSAGE, &opts)`           | the property and every value in the slice                       |
 
 **What the gate cannot see.** Every shape above takes a `property`/`value`
 declaration, which is the _value_ a test carries and never the _capability_ it
@@ -594,6 +594,15 @@ arbitrary text that can spell anything:
   but whitespace before the first literal, nothing but a comma between them. A
   call whose value argument is an identifier would otherwise pair its property
   with whatever literal came next, which is usually the expected output.
+- Only the **argument of a `stylex.create` call** is read. A fixture holds more
+  than the call — imports, helper constants, a second module — and an ordinary
+  JavaScript object among them spells `key: 'value'` exactly as a style object
+  does. Parentheses are counted from the call, over code only, so a fixture
+  with two calls has both read and an object beside them has neither. Strings,
+  template literals and comments are stepped over, because a parenthesis or a
+  quote written in one is text rather than code. A call the fixture never
+  closes yields nothing: reading to the end of the text would take in every
+  object after it, which is what bounding the scan exists to stop.
 - The object handed **directly** to a `stylex.env` function is not read. In
   `select({ primary: 'red' }, 'primary')` the key names a branch for the
   environment function to choose between; in `colors({ color: 'yellow' })` it

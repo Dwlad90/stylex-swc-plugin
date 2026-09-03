@@ -63,8 +63,20 @@ const ADJACENCY_LOOKAHEAD = 40;
 /** The receiver whose call arguments the harvester cannot read. */
 const ENV_RECEIVER = 'stylex.env.';
 
+/** The call whose argument holds the style objects shape 5 reads. */
+const CREATE_CALLEE = 'stylex.create';
+
 const WHITESPACE = /\s/;
 const CALLEE_CHARACTER = /[\w$.]/;
+
+/** Half-open offsets of one `stylex.create` argument list. */
+interface CallRange {
+  start: number;
+  end: number;
+}
+
+/** The parenthesis depth that says the scan is not inside a call. */
+const OUTSIDE_CALL = -1;
 
 export interface HarvestOptions {
   /** Absolute path to the workspace root. */
@@ -322,12 +334,20 @@ function extractRuleLiterals(file: ScannedFile): DeclarationEntry[] {
  * repo: they are what a user actually writes. Keys that are selectors, media
  * queries, or JavaScript rather than CSS properties are filtered out, and
  * interpolated values are skipped because they are not literal CSS.
+ *
+ * Only the argument of a `stylex.create` call is read. A fixture holds more
+ * than the call — imports, helper constants, a second module — and an ordinary
+ * JavaScript object among them spells `key: 'value'` exactly as a style object
+ * does. Reading the whole fixture makes such an object a source of CSS it
+ * never was.
  */
 function extractStyleObjects(file: ScannedFile): DeclarationEntry[] {
   const entries: DeclarationEntry[] = [];
 
   for (const literal of file.literals) {
-    if (!literal.value.includes('stylex.create(')) continue;
+    if (!literal.value.includes(`${CREATE_CALLEE}(`)) continue;
+    const calls = createCallRanges(literal.value);
+    if (calls.length === 0) continue;
 
     // Only paid for by a fixture that reads `stylex.env`, which is a handful of
     // the transform tests rather than all of them.
@@ -337,7 +357,14 @@ function extractStyleObjects(file: ScannedFile): DeclarationEntry[] {
 
     const declaration =
       /(--[\w-]+|'[^'\n]+'|"[^"\n]+"|[A-Za-z][A-Za-z0-9]*)\s*:\s*('([^'\\\n]|\\.)*'|"([^"\\\n]|\\.)*")/g;
+    let call = 0;
     for (const match of literal.value.matchAll(declaration)) {
+      // The calls and the matches are both in source order, so the window
+      // moves forward once rather than being searched again for every key.
+      while (call < calls.length && calls[call]!.end <= match.index) call += 1;
+      if (call === calls.length) break;
+      if (match.index < calls[call]!.start) continue;
+
       const property = unquote(match[1]!);
       const value = unquote(match[2]!);
       if (!isCssProperty(property)) continue;
@@ -368,6 +395,97 @@ function extractStyleObjects(file: ScannedFile): DeclarationEntry[] {
   }
 
   return entries;
+}
+
+/**
+ * The offset just past the string, template or comment that starts at `i`, or
+ * `-1` where the character there starts none of them.
+ *
+ * Both scans below step over the same text for the same reason: a brace, a
+ * parenthesis or a quote written in a value or a comment is not code, and
+ * counting one puts every offset after it out of step. A regex literal is the
+ * one form still read as code — telling one from a division needs the grammar,
+ * and no fixture writes one.
+ */
+function skipNonCode(js: string, i: number): number {
+  const char = js[i]!;
+
+  if (char === '/' && js[i + 1] === '/') {
+    const end = js.indexOf('\n', i + 2);
+    return end === -1 ? js.length : end;
+  }
+  if (char === '/' && js[i + 1] === '*') {
+    const end = js.indexOf('*/', i + 2);
+    return end === -1 ? js.length : end + 2;
+  }
+  if (char !== '"' && char !== "'" && char !== '`') return -1;
+
+  for (let at = i + 1; at < js.length; at += 1) {
+    if (js[at] === '\\') {
+      at += 1;
+      continue;
+    }
+    if (js[at] === char) return at + 1;
+  }
+  // An unterminated string runs to the end of the fixture.
+  return js.length;
+}
+
+/**
+ * The argument list of every `stylex.create` call in a JavaScript fixture, as
+ * offsets between the call's `(` and the `)` that closes it.
+ *
+ * One forward pass with a parenthesis counter, over code only, so that a
+ * parenthesis in a value or a comment — `url(a.png)` is an authored test value
+ * — cannot close the call early. A fixture with two calls gets two ranges, and
+ * a call nested in another stays inside the outer one.
+ *
+ * A call the fixture never closes yields no range. That loses the declarations
+ * it holds, which is the safe way round: reading to the end of the text would
+ * take in every object after the call, which is what bounding the scan exists
+ * to stop.
+ */
+function createCallRanges(js: string): CallRange[] {
+  const ranges: CallRange[] = [];
+  let depth = OUTSIDE_CALL;
+  let start = 0;
+
+  for (let i = 0; i < js.length; i += 1) {
+    const skipped = skipNonCode(js, i);
+    if (skipped !== -1) {
+      i = skipped - 1;
+      continue;
+    }
+
+    const char = js[i]!;
+    if (char === '(') {
+      if (depth !== OUTSIDE_CALL) depth += 1;
+      else if (isCreateCallee(js, i)) {
+        depth = 0;
+        start = i + 1;
+      }
+    } else if (char === ')' && depth !== OUTSIDE_CALL) {
+      if (depth === 0) {
+        ranges.push({ start, end: i });
+        depth = OUTSIDE_CALL;
+      } else depth -= 1;
+    }
+  }
+
+  return ranges;
+}
+
+/**
+ * Whether the parenthesis at `paren` closes the callee `stylex.create`.
+ *
+ * The name must start the member chain. A chain that merely ends in it — an
+ * `options.stylex.create` — names a different receiver, the same distinction
+ * the environment guard below draws.
+ */
+function isCreateCallee(js: string, paren: number): boolean {
+  if (!js.endsWith(CREATE_CALLEE, paren)) return false;
+  const before = js[paren - CREATE_CALLEE.length - 1];
+  return before === undefined || !CALLEE_CHARACTER.test(before);
 }
 
 /**
@@ -416,35 +534,29 @@ function isEnvArgumentKey(js: string, enclosing: Int32Array, at: number): boolea
  * For every offset in a JavaScript fixture, the offset of the innermost `{`
  * still open there, or `-1` where none is.
  *
- * One forward pass with a stack, skipping quoted text so that a brace inside a
- * value — `url("a;b{c}d")` is an authored test value — cannot open a block and
- * put every offset after it out of step. Answering by walking backwards from
- * each key would re-read the same text once per key.
+ * One forward pass with a stack, over code only, so that a brace in a value or
+ * a comment — `url("a;b{c}d")` is an authored test value — cannot open a block
+ * and put every offset after it out of step. Answering by walking backwards
+ * from each key would re-read the same text once per key.
  */
 function enclosingBraces(js: string): Int32Array {
   const enclosing = new Int32Array(js.length);
   const open: number[] = [];
-  let quote = '';
-  let escaped = false;
 
   for (let i = 0; i < js.length; i += 1) {
-    const char = js[i]!;
+    const skipped = skipNonCode(js, i);
+    if (skipped !== -1) {
+      enclosing.fill(open.at(-1) ?? -1, i, skipped);
+      i = skipped - 1;
+      continue;
+    }
+
     // Popped before the offset is recorded, so a `}` reads as being inside the
     // block that encloses the one it closes.
-    if (quote === '' && char === '}') open.pop();
+    const char = js[i]!;
+    if (char === '}') open.pop();
     enclosing[i] = open.at(-1) ?? -1;
-
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (quote !== '') {
-      if (char === '\\') escaped = true;
-      else if (char === quote) quote = '';
-      continue;
-    }
-    if (char === '"' || char === "'" || char === '`') quote = char;
-    else if (char === '{') open.push(i);
+    if (char === '{') open.push(i);
   }
 
   return enclosing;

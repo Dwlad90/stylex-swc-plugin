@@ -195,6 +195,121 @@ describe('shape 5 — stylex.create objects in transform tests', () => {
   });
 });
 
+describe('shape 5 — the bounds of the call', () => {
+  test('skips an object written before the call', () => {
+    // A helper constant beside the call spells `key: 'value'` exactly as a
+    // style object does, but its keys are not CSS.
+    expect(
+      declarationsOf(`
+        stylex_test!(t, |tr| x, r#"
+          const palette = { primary: 'red' };
+          const styles = stylex.create({ x: { color: 'blue' } });
+        "#);
+      `)
+    ).toEqual([['color', 'blue']]);
+  });
+
+  test('skips an object written after the call', () => {
+    expect(
+      declarationsOf(`
+        stylex_test!(t, |tr| x, r#"
+          const styles = stylex.create({ x: { color: 'blue' } });
+          const palette = { primary: 'red' };
+        "#);
+      `)
+    ).toEqual([['color', 'blue']]);
+  });
+
+  test('reads both calls of a fixture that holds two', () => {
+    expect(
+      declarationsOf(`
+        stylex_test!(t, |tr| x, r#"
+          const one = stylex.create({ x: { color: 'red' } });
+          const between = { primary: 'green' };
+          const two = stylex.create({ y: { marginTop: '1px' } });
+        "#);
+      `)
+    ).toEqual([
+      ['color', 'red'],
+      ['marginTop', '1px'],
+    ]);
+  });
+
+  test('a parenthesis in a value does not close the call early', () => {
+    expect(
+      declarationsOf(`
+        stylex_test!(t, |tr| x, r#"
+          const styles = stylex.create({ x: { backgroundImage: 'url(a.png)', color: 'red' } });
+        "#);
+      `)
+    ).toEqual([
+      ['backgroundImage', 'url(a.png)'],
+      ['color', 'red'],
+    ]);
+  });
+
+  test('a nested call stays inside the outer one', () => {
+    expect(
+      declarationsOf(`
+        stylex_test!(t, |tr| x, r#"
+          const styles = stylex.create({ x: { color: 'red', ...other(1, 2) }, y: { top: '0' } });
+        "#);
+      `)
+    ).toEqual([
+      ['color', 'red'],
+      ['top', '0'],
+    ]);
+  });
+
+  test('a call the fixture never closes is not read', () => {
+    // Reading to the end of the text would take in every object after the
+    // call, which is what bounding the scan exists to stop. Losing the call is
+    // the safe way round.
+    expect(
+      declarationsOf(`
+        stylex_test!(t, |tr| x, r#"
+          const styles = stylex.create({ x: { color: 'blue' }
+          const after = { primary: 'red' };
+        "#);
+      `)
+    ).toEqual([]);
+  });
+
+  test('a quote in a comment does not swallow the call', () => {
+    // An apostrophe outside a string would open one that never closes, and the
+    // whole fixture would go quiet rather than fail.
+    expect(
+      declarationsOf(`
+        stylex_test!(t, |tr| x, r#"
+          // don't read the object below
+          const palette = { primary: 'red' };
+          const styles = stylex.create({ x: { color: 'blue' } });
+        "#);
+      `)
+    ).toEqual([['color', 'blue']]);
+  });
+
+  test('a parenthesis in a comment does not close the call early', () => {
+    expect(
+      declarationsOf(`
+        stylex_test!(t, |tr| x, r#"
+          const styles = stylex.create({ /* one ) here */ x: { color: 'blue' } });
+        "#);
+      `)
+    ).toEqual([['color', 'blue']]);
+  });
+
+  test('a chain that merely ends in the name is a different receiver', () => {
+    expect(
+      declarationsOf(`
+        stylex_test!(t, |tr| x, r#"
+          const styles = options.stylex.create({ x: { color: 'blue' } });
+        "#);
+      `)
+    ).toEqual([]);
+  });
+});
+
 describe('shape 5 — objects a stylex.env function is called with', () => {
   const fixture = (js: string): string => `
     stylex_test!(t, |tr| x, r#"

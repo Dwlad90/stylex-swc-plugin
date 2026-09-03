@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 960 values: the differential harness's whole corpus, plus
+/// 957 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -1223,11 +1223,6 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"width\" 0..5",
   },
   ParserCase {
-    input: "Hello World",
-    output: "Hello World",
-    ast: "word \"Hello\" 0..5\nspace \" \" 5..6\nword \"World\" 6..11",
-  },
-  ParserCase {
     input: "end",
     output: "end",
     ast: "word \"end\" 0..3",
@@ -2208,11 +2203,6 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "function \"clamp\" 0..22 before=\"\" after=\"\" nodes=5\n  word \"1rem\" 6..10\n  div \",\" 10..12 before=\"\" after=\" \"\n  word \"2vw\" 12..15\n  div \",\" 15..17 before=\"\" after=\" \"\n  word \"3rem\" 17..21",
   },
   ParserCase {
-    input: "bar",
-    output: "bar",
-    ast: "word \"bar\" 0..3",
-  },
-  ParserCase {
     input: "2px",
     output: "2px",
     ast: "word \"2px\" 0..3",
@@ -2706,11 +2696,6 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "'a''b'",
     output: "'a''b'",
     ast: "string \"a\" 0..3 quote=\"'\"\nstring \"b\" 3..6 quote=\"'\"",
-  },
-  ParserCase {
-    input: "0.25rem",
-    output: "0.25rem",
-    ast: "word \"0.25rem\" 0..7",
   },
   ParserCase {
     input: "1px solid underline",
@@ -4934,7 +4919,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 683 words paired with their number/unit split, `None` standing for a
+/// 680 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -5174,8 +5159,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("inset", None),
   ("border-box", None),
   ("width", None),
-  ("Hello", None),
-  ("World", None),
   ("inline-end", None),
   ("inline-start", None),
   ("#", None),
@@ -5375,7 +5358,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("box-none", None),
   ("box-only", None),
   ("--anchor", None),
-  ("0.25rem", Some(("0.25", "rem"))),
   ("underline", None),
   ("notfn", None),
   ("0grad", Some(("0", "grad"))),

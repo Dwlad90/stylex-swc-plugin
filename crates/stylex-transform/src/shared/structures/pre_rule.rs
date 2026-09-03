@@ -28,7 +28,12 @@ pub(crate) enum CompiledResult {
 }
 
 impl CompiledResult {
-  pub(crate) fn _as_computed_styles(&self) -> Option<&Vec<ComputedStyle>> {
+  /// Gets the styles in this result. Gives `None` for a null result.
+  // Kept by ticket 31. No production code calls it, because the rest of the
+  // crate reads the enum with a match. The compiler warns without the
+  // attribute.
+  #[allow(dead_code)]
+  pub(crate) fn as_computed_styles(&self) -> Option<&Vec<ComputedStyle>> {
     match self {
       CompiledResult::ComputedStyles(computed_styles) => Some(computed_styles),
       _ => None,
@@ -146,13 +151,30 @@ impl StylesPreRule {
       key_path: key_path.unwrap_or_default(),
     }
   }
-  pub(crate) fn _get_property(&self) -> Option<&str> {
+  // The three functions below read the fields of a rule that is already built.
+  // Kept by ticket 31. No production code calls them, because the crate builds
+  // a rule and then reads it through the `PreRule` trait. The compiler warns
+  // without the attributes.
+  //
+  // Each name shows its field. The two associated functions above already use
+  // the names `get_pseudos` and `get_at_rules`. Those functions take a key
+  // path and select from it, which is a different task.
+
+  /// Gets the CSS property name of this rule.
+  #[allow(dead_code)]
+  pub(crate) fn property(&self) -> Option<&str> {
     Some(&self.property)
   }
-  pub(crate) fn _get_pseudos(&self) -> Option<Vec<String>> {
+
+  /// Gets the pseudo selectors that the key path gave to this rule.
+  #[allow(dead_code)]
+  pub(crate) fn pseudos(&self) -> Option<Vec<String>> {
     Some(self.pseudos.to_owned())
   }
-  pub(crate) fn _get_at_rules(&self) -> Option<Vec<String>> {
+
+  /// Gets the at-rules that the key path gave to this rule.
+  #[allow(dead_code)]
+  pub(crate) fn at_rules(&self) -> Option<Vec<String>> {
     Some(self.at_rules.to_owned())
   }
 }

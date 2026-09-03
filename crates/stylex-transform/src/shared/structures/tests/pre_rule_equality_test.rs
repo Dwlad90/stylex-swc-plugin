@@ -13,33 +13,15 @@ mod pre_rule_equality {
     null_pre_rule::NullPreRule,
     pre_rule::{PreRule, PreRules, StylesPreRule},
     pre_rule_set::PreRuleSet,
+    tests::prelude::{null, set},
   };
 
   fn styles(property: &str, value: &str, key_path: &[&str]) -> StylesPreRule {
-    StylesPreRule::new(
-      property,
-      PreRuleValue::string(value),
-      Some(key_path.iter().map(|key| (*key).to_string()).collect()),
-    )
+    super::super::prelude::styles(property, value, Some(key_path))
   }
 
   fn rule(property: &str, value: &str, key_path: &[&str]) -> PreRules {
     PreRules::StylesPreRule(styles(property, value, key_path))
-  }
-
-  fn null() -> PreRules {
-    PreRules::NullPreRule(NullPreRule::new())
-  }
-
-  /// A set of two or more rules. `create` collapses a shorter list, so a caller
-  /// asking for a set has to hand it at least two.
-  fn set(rules: Vec<PreRules>) -> PreRules {
-    let created = PreRuleSet::create(rules);
-    assert!(
-      matches!(created, PreRules::PreRuleSet(_)),
-      "expected a set, got {created:?}"
-    );
-    created
   }
 
   mod a_styles_rule {

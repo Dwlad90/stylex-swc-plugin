@@ -15,9 +15,17 @@ pub(crate) struct PreRuleSet {
 }
 
 impl PreRuleSet {
-  pub(crate) fn _new() -> Self {
+  /// Makes a set that holds no rules.
+  //
+  // Kept by ticket 31. Only this function can make an empty set, because
+  // `create` builds every other set and collapses an empty list to a null
+  // rule. No production code calls it. The compiler warns without the
+  // attribute.
+  #[allow(dead_code)]
+  pub(crate) fn new() -> Self {
     PreRuleSet { rules: vec![] }
   }
+
   pub(crate) fn create(rules: Vec<PreRules>) -> PreRules {
     let flat_rules = rules
       .into_iter()

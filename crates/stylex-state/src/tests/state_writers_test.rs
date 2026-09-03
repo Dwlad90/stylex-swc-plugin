@@ -9,33 +9,10 @@ use swc_core::{
 use crate::{
   state_manager::StateManager,
   state_writers::{fill_state_declarations, fill_top_level_expressions},
+  tests::prelude::{make_var_declarator, make_var_declarator_no_init},
 };
 use stylex_ast::ast::convertors::{create_number_expr, create_string_expr};
 use stylex_ast::ast::factories::create_ident;
-
-fn make_var_declarator(name: &str, init: Expr) -> VarDeclarator {
-  VarDeclarator {
-    span: DUMMY_SP,
-    name: Pat::Ident(BindingIdent {
-      id: create_ident(name),
-      type_ann: None,
-    }),
-    init: Some(Box::new(init)),
-    definite: false,
-  }
-}
-
-fn make_var_declarator_no_init(name: &str) -> VarDeclarator {
-  VarDeclarator {
-    span: DUMMY_SP,
-    name: Pat::Ident(BindingIdent {
-      id: create_ident(name),
-      type_ann: None,
-    }),
-    init: None,
-    definite: false,
-  }
-}
 
 mod fill_state_declarations_tests {
   use super::*;

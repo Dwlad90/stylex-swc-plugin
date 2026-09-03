@@ -75,9 +75,7 @@ use stylex_js::helpers::{
   is_mutation_expr, is_valid_callee,
 };
 use stylex_state::resolution::convertors::convert_expr_to_str;
-use stylex_state::resolution::lookup::{
-  get_import_by_ident, get_var_decl_from, get_var_decl_parts_by_ident,
-};
+use stylex_state::resolution::lookup::get_var_decl_parts_by_ident;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},

@@ -1,14 +1,16 @@
 //! Which declaration binds a name.
 //!
-//! Four readers over the state's own indices. They answer the first steps of a
-//! reference resolution: the declarator a name is bound by, the import that
-//! declared it, and the two parts of a declarator a caller actually reads.
+//! Two readers over the declarators a module holds, each of which can answer
+//! with a declarator the function map synthesizes where the module declares
+//! none. The lookups that only read the state's indices are methods on the
+//! state itself -- [`StateManager::declaration_of`] and
+//! [`StateManager::import_binding`].
 
 use stylex_ast::ast::factories::create_var_declarator;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   common::Span,
-  ecma::ast::{Expr, Ident, ImportDecl, ImportSpecifier, VarDeclarator},
+  ecma::ast::{Expr, Ident, VarDeclarator},
 };
 
 use crate::{
@@ -32,7 +34,7 @@ pub fn get_var_decl_parts_by_ident(
   traversal_state: &mut StateManager,
   functions: &FunctionMap,
 ) -> Option<(Span, Option<Box<Expr>>)> {
-  if let Some(declarator) = get_var_decl_from(traversal_state, ident) {
+  if let Some(declarator) = traversal_state.declaration_of(ident) {
     return Some((declarator.span, declarator.init.clone()));
   }
 
@@ -45,7 +47,7 @@ pub fn get_var_decl_by_ident<'a>(
   traversal_state: &'a mut StateManager,
   functions: &'a FunctionMap,
 ) -> Option<VarDeclarator> {
-  if let Some(var_decl) = get_var_decl_from(traversal_state, ident) {
+  if let Some(var_decl) = traversal_state.declaration_of(ident) {
     return Some(var_decl.clone());
   }
 
@@ -72,27 +74,4 @@ pub fn get_var_decl_by_ident<'a>(
   }
 
   None
-}
-
-/// The import declaration and the specifier that bind `ident`, or `None` where
-/// no import binds it.
-///
-/// Asked of the state, which indexes the bindings its imports declare -- see
-/// [`StateManager::import_binding`] for what the lookup answers and why it is
-/// the binding rather than the name.
-pub fn get_import_by_ident<'a>(
-  ident: &Ident,
-  state: &'a StateManager,
-) -> Option<(&'a ImportDecl, &'a ImportSpecifier)> {
-  state.import_binding(ident)
-}
-
-pub fn get_var_decl_from<'a>(
-  state: &'a StateManager,
-  ident: &'a Ident,
-) -> Option<&'a VarDeclarator> {
-  // One hash probe rather than a scan of every declarator the module holds. The
-  // `Vec` keeps its source order, which `find_top_level_expr` and the insertion
-  // queue both read; the index only says where in it to look.
-  state.declaration_of(ident)
 }

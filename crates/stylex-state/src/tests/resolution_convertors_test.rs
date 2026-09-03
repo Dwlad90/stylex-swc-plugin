@@ -1,34 +1,11 @@
 use crate::state_writers::fill_state_declarations;
+use crate::tests::prelude::{make_var_declarator, make_var_declarator_no_init};
 use crate::{functions::FunctionMap, state_manager::StateManager};
 use stylex_ast::ast::convertors::{create_ident_expr, create_number_expr, create_string_expr};
 use swc_core::{
   common::SyntaxContext,
-  ecma::ast::{BindingIdent, Expr, Ident, Lit, Pat, VarDeclarator},
+  ecma::ast::{Expr, Ident, Lit},
 };
-
-// ──────────────────────────────────────────────
-// Helpers
-// ──────────────────────────────────────────────
-
-/// One declarator over the initializer handed in. Every case here needs a
-/// declarator for the state to record, and none of them cares about the name
-/// pattern beyond it being an identifier.
-fn make_var_declarator(name: &str, init: Expr) -> VarDeclarator {
-  VarDeclarator {
-    span: Default::default(),
-    name: Pat::Ident(BindingIdent {
-      id: Ident {
-        span: Default::default(),
-        sym: name.into(),
-        optional: false,
-        ctxt: SyntaxContext::empty(),
-      },
-      type_ann: None,
-    }),
-    init: Some(Box::new(init)),
-    definite: false,
-  }
-}
 
 // ──────────────────────────────────────────────
 // convert_ident_to_expr tests
@@ -435,26 +412,7 @@ mod convert_expr_to_str_ident_chain_tests {
 mod handle_tpl_to_expression_no_init_tests {
   use super::*;
   use crate::resolution::convertors::handle_tpl_to_expression;
-  use swc_core::ecma::ast::{BindingIdent, Pat, Tpl, TplElement, VarDeclarator};
-
-  /// A declarator with no initializer -- `let x;` -- which is what the refusal
-  /// arm exists for.
-  fn make_var_declarator_no_init(name: &str) -> VarDeclarator {
-    VarDeclarator {
-      span: Default::default(),
-      name: Pat::Ident(BindingIdent {
-        id: Ident {
-          span: Default::default(),
-          sym: name.into(),
-          optional: false,
-          ctxt: SyntaxContext::empty(),
-        },
-        type_ann: None,
-      }),
-      init: None,
-      definite: false,
-    }
-  }
+  use swc_core::ecma::ast::{Tpl, TplElement};
 
   /// One template of `pre ${ident} post`.
   fn tpl_of(ident: &str) -> Tpl {

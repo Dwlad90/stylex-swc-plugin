@@ -673,7 +673,7 @@ pub(super) fn get_binding<'a>(
   state: &'a StateManager,
 ) -> Option<&'a VarDeclarator> {
   match callee {
-    Expr::Ident(ident) => get_var_decl_from(state, ident),
+    Expr::Ident(ident) => state.declaration_of(ident),
     _ => None,
   }
 }

@@ -34,7 +34,6 @@ use stylex_css::utils::condition::is_conditional_key;
 use stylex_diagnostics::code_frame::{
   build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
 };
-use stylex_state::resolution::lookup::get_import_by_ident;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   state_manager::{ImportKind, StateManager},
@@ -344,7 +343,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   let second_arg = &init.args[1];
 
   let is_valid_second_arg = match second_arg.expr.as_ref() {
-    Expr::Ident(ident) => get_import_by_ident(ident, state).is_none(),
+    Expr::Ident(ident) => state.import_binding(ident).is_none(),
     Expr::Object(_) => true,
     _ => false,
   };

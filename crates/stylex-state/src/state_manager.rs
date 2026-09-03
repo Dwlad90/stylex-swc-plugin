@@ -642,7 +642,7 @@ pub struct StateManager {
   /// every declarator in the module.
   ///
   /// Only `Pat::Ident` declarators appear, because that is the only shape
-  /// `get_var_decl_from` ever matched. First writer wins, which is the same
+  /// `declaration_of` ever matches. First writer wins, which is the same
   /// answer the `find` it replaces gave. Safe as an index rather than a map
   /// because `declarations` is append-only -- nothing removes, reorders or
   /// truncates it, and the in-place edits reach `init` rather than `name`, so a
@@ -1357,7 +1357,10 @@ impl StateManager {
     );
   }
 
-  /// The declarator binding `ident`, by hash probe rather than by scan.
+  /// The declarator binding `ident`, by hash probe rather than by a scan of
+  /// every declarator the module holds. [`Self::declarations`] keeps its source
+  /// order, which `find_top_level_expr` and the insertion queue both read; the
+  /// index only says where in it to look.
   pub fn declaration_of(&self, ident: &Ident) -> Option<&VarDeclarator> {
     let found = self
       .declaration_index

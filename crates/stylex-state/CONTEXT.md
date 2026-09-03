@@ -44,8 +44,11 @@ Which declaration binds a name, asked of the indices the
 one idea: the declarator a name is bound by, the import declaration and
 [import specifier kind](#import-specifier-kind) that bound it, and the two parts
 of a declarator -- its span and its initializer -- that a caller reading it
-actually needs. A lookup only _matches_; what the matched declaration means is
-the caller's question. It answers the first steps of the
+actually needs. The two that only read an index are methods on the state
+manager, because a name and an index are all they need; the two that can also
+answer from the function map are free functions above them. A lookup only
+_matches_; what the matched declaration means is the caller's question. It
+answers the first steps of the
 [reference resolution chain](../stylex-evaluator/CONTEXT.md#reference-resolution-chain)
 without being that chain, which also probes writes and positions a lookup knows
 nothing about.

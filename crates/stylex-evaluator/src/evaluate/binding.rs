@@ -114,7 +114,7 @@ pub(super) fn resolve_reference(
   // 0.19.0 lines 600-605) is the same question steps 2 and this one's own
   // namespace arm answer. The order is upstream's either way — neither of the
   // other two specifier kinds resolves a theme reference here.
-  if let Some((import_path, specifier)) = get_import_by_ident(ident, traversal_state) {
+  if let Some((import_path, specifier)) = traversal_state.import_binding(ident) {
     // Which single export of the imported file this reference names, or `None`
     // where the specifier names no single export and the step therefore does
     // not apply.

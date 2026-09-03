@@ -38,7 +38,6 @@ use super::transport::{Crossing, Transport};
 use super::{Ceilings, Decline, Depth, ESCAPING_PROPERTIES, escaping_property_named, lists};
 use crate::growable_stack::{grown_per_level, nesting_of};
 use crate::state::EvaluationState;
-use stylex_state::resolution::lookup::get_var_decl_from;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
   theme_ref::VarNaming,
@@ -1752,7 +1751,7 @@ pub(in super::super) fn unshadowed_applied_global<'a>(
 fn unshadowed_receiver_global<'a>(expr: &'a Expr, state: &StateManager) -> Option<&'a Atom> {
   let ident = written_global(expr)?;
 
-  match get_var_decl_from(state, ident) {
+  match state.declaration_of(ident) {
     None => Some(&ident.sym),
     Some(_) => None,
   }

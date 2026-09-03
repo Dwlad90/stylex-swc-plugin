@@ -4,14 +4,15 @@ mod state_manager {
     atoms::Atom,
     common::{BytePos, DUMMY_SP, EqIgnoreSpan, Span, SyntaxContext},
     ecma::ast::{
-      ArrayLit, BindingIdent, CallExpr, Callee, Decl, Expr, ExprOrSpread, ExprStmt, Ident,
-      ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase, ImportSpecifier,
+      ArrayLit, CallExpr, Callee, Decl, Expr, ExprOrSpread, ExprStmt, Ident, ImportDecl,
+      ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase, ImportSpecifier,
       ImportStarAsSpecifier, Lit, ModuleDecl, ModuleItem, ObjectLit, ObjectPat, Pat, Stmt, Str,
       VarDecl, VarDeclKind, VarDeclarator,
     },
   };
 
   use crate::state_manager::{InsertionSlot, StateManager, flush_pending_insertions};
+  use crate::tests::prelude::make_var_declarator;
   use stylex_enums::declaration_type::DeclarationType;
   use stylex_enums::top_level_expression::TopLevelExpressionKind;
   use stylex_structures::ceiling::Ceiling;
@@ -20,13 +21,25 @@ mod state_manager {
   use stylex_structures::top_level_expression::TopLevelExpression;
   use stylex_utils::hash::stable_hash_unspanned;
 
-  fn ident(name: &str) -> Ident {
+  /// An identifier at a given syntax context. Zero is the context every ident
+  /// the parser produces before the resolver runs, so it doubles as "context
+  /// does not matter to this test"; anything else is a distinct scope.
+  ///
+  /// `SyntaxContext::from_u32` rather than `apply_mark`, which would need
+  /// `GLOBALS` installed for what is only "some other context than that one".
+  fn ident_at(name: &str, ctxt: u32) -> Ident {
     Ident {
       span: DUMMY_SP,
       sym: name.into(),
       optional: false,
-      ctxt: SyntaxContext::empty(),
+      ctxt: SyntaxContext::from_u32(ctxt),
     }
+  }
+
+  /// The same identifier at the parser's own context, for the cases a scope
+  /// never enters.
+  fn ident(name: &str) -> Ident {
+    ident_at(name, 0)
   }
 
   fn ident_expr(name: &str) -> Expr {
@@ -63,25 +76,13 @@ mod state_manager {
     }))
   }
 
-  fn var_declarator(name: &str, init: Expr) -> VarDeclarator {
-    VarDeclarator {
-      span: DUMMY_SP,
-      name: Pat::Ident(BindingIdent {
-        id: ident(name),
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    }
-  }
-
   fn var_decl_item(name: &str, init: Expr) -> ModuleItem {
     ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
       span: DUMMY_SP,
       ctxt: SyntaxContext::empty(),
       kind: VarDeclKind::Const,
       declare: false,
-      decls: vec![var_declarator(name, init)],
+      decls: vec![make_var_declarator(name, init)],
     }))))
   }
 
@@ -284,13 +285,13 @@ mod state_manager {
 
     state
       .declarations
-      .push(var_declarator("first", Expr::Call(first.clone())));
+      .push(make_var_declarator("first", Expr::Call(first.clone())));
     state
       .declarations
-      .push(var_declarator("second", Expr::Call(second.clone())));
+      .push(make_var_declarator("second", Expr::Call(second.clone())));
     state
       .declarations
-      .push(var_declarator("notACall", ident_expr("other")));
+      .push(make_var_declarator("notACall", ident_expr("other")));
 
     assert_eq!(state.find_call_declaration_index_by_span(&second), Some(1));
     assert_eq!(state.find_call_declaration_index_by_span(&first), Some(0));
@@ -309,10 +310,10 @@ mod state_manager {
 
     state
       .declarations
-      .push(var_declarator("first", Expr::Call(first)));
+      .push(make_var_declarator("first", Expr::Call(first)));
     state
       .declarations
-      .push(var_declarator("second", Expr::Call(second.clone())));
+      .push(make_var_declarator("second", Expr::Call(second.clone())));
 
     assert_eq!(
       bound_name(state.find_call_declaration_by_span(&second)),
@@ -329,9 +330,10 @@ mod state_manager {
   fn find_call_declaration_index_by_span_never_matches_a_spanless_call() {
     let mut state = StateManager::default();
 
-    state
-      .declarations
-      .push(var_declarator("synthesized", Expr::Call(call_at(DUMMY_SP))));
+    state.declarations.push(make_var_declarator(
+      "synthesized",
+      Expr::Call(call_at(DUMMY_SP)),
+    ));
 
     assert_eq!(
       state.find_call_declaration_index_by_span(&call_at(DUMMY_SP)),
@@ -437,7 +439,7 @@ mod state_manager {
   fn declarator_at(name: &str, span: Span, init: Expr) -> VarDeclarator {
     VarDeclarator {
       span,
-      ..var_declarator(name, init)
+      ..make_var_declarator(name, init)
     }
   }
 
@@ -448,9 +450,9 @@ mod state_manager {
     let first = call_of("create", "first");
     let second = call_of("create", "second");
 
-    state.push_declaration(var_declarator("first", Expr::Call(first)));
-    state.push_declaration(var_declarator("second", Expr::Call(second.clone())));
-    state.push_declaration(var_declarator("plain", string_expr("no call here")));
+    state.push_declaration(make_var_declarator("first", Expr::Call(first)));
+    state.push_declaration(make_var_declarator("second", Expr::Call(second.clone())));
+    state.push_declaration(make_var_declarator("plain", string_expr("no call here")));
 
     assert_eq!(
       bound_name(state.find_call_declaration(&second)),
@@ -469,8 +471,8 @@ mod state_manager {
 
     let call = call_of("create", "shared");
 
-    state.push_declaration(var_declarator("earlier", Expr::Call(call.clone())));
-    state.push_declaration(var_declarator("later", Expr::Call(call.clone())));
+    state.push_declaration(make_var_declarator("earlier", Expr::Call(call.clone())));
+    state.push_declaration(make_var_declarator("later", Expr::Call(call.clone())));
 
     // Two declarators can hold structurally equal calls, and the walk this
     // replaced answered with whichever came first in the module.
@@ -495,8 +497,8 @@ mod state_manager {
     let earlier = call_of_at("create", "shared", span_at(1, 10));
     let later = call_of_at("create", "shared", span_at(20, 30));
 
-    state.push_declaration(var_declarator("earlier", Expr::Call(earlier.clone())));
-    state.push_declaration(var_declarator("later", Expr::Call(later.clone())));
+    state.push_declaration(make_var_declarator("earlier", Expr::Call(earlier.clone())));
+    state.push_declaration(make_var_declarator("later", Expr::Call(later.clone())));
 
     for call in [&earlier, &later] {
       assert_eq!(
@@ -532,7 +534,7 @@ mod state_manager {
       .collect();
 
     for (index, call) in calls.iter().enumerate() {
-      state.push_declaration(var_declarator(
+      state.push_declaration(make_var_declarator(
         &format!("styles{index}"),
         Expr::Call(call.clone()),
       ));
@@ -565,7 +567,7 @@ mod state_manager {
 
     state.push_declaration(VarDeclarator {
       init: None,
-      ..var_declarator("bare", string_expr("unused"))
+      ..make_var_declarator("bare", string_expr("unused"))
     });
 
     assert!(
@@ -582,7 +584,7 @@ mod state_manager {
     let original = call_of("create", "original");
     let replacement = call_of("create", "replacement");
 
-    state.push_declaration(var_declarator("styles", Expr::Call(original.clone())));
+    state.push_declaration(make_var_declarator("styles", Expr::Call(original.clone())));
     state.set_declaration_init(0, Expr::Call(replacement.clone()));
 
     // The key the declarator was recorded under stops being true, so the call
@@ -597,7 +599,7 @@ mod state_manager {
 
     let original = call_of("defineMarker", "marker");
 
-    state.push_declaration(var_declarator("marker", Expr::Call(original.clone())));
+    state.push_declaration(make_var_declarator("marker", Expr::Call(original.clone())));
     state.set_declaration_init(0, string_expr("a compiled marker object"));
 
     assert!(state.find_call_declaration(&original).is_none());
@@ -609,7 +611,7 @@ mod state_manager {
 
     let call = call_of("create", "unchanged");
 
-    state.push_declaration(var_declarator("styles", Expr::Call(call.clone())));
+    state.push_declaration(make_var_declarator("styles", Expr::Call(call.clone())));
     state.set_declaration_init(0, Expr::Call(call.clone()));
 
     // Forgetting and recording happen in that order, so a replacement that
@@ -623,7 +625,7 @@ mod state_manager {
 
     let call = call_of("create", "only");
 
-    state.push_declaration(var_declarator("styles", Expr::Call(call.clone())));
+    state.push_declaration(make_var_declarator("styles", Expr::Call(call.clone())));
     state.set_declaration_init(99, string_expr("nowhere"));
 
     assert!(state.find_call_declaration(&call).is_some());
@@ -929,7 +931,7 @@ mod state_manager {
   fn matching_style_var_answers_for_the_name_the_declarator_binds() {
     let mut state = StateManager::default();
 
-    let declarator = var_declarator("styles", Expr::Call(call_of("create", "styles")));
+    let declarator = make_var_declarator("styles", Expr::Call(call_of("create", "styles")));
 
     state.insert_style_var("styles".to_string(), declarator.clone());
 
@@ -937,7 +939,7 @@ mod state_manager {
     // A declarator of another name is another style variable, however it reads.
     assert!(
       state
-        .matching_style_var(&var_declarator(
+        .matching_style_var(&make_var_declarator(
           "other",
           Expr::Call(call_of("create", "styles"))
         ))
@@ -946,7 +948,10 @@ mod state_manager {
     // And the recorded name having moved on is not a match either.
     assert!(
       state
-        .matching_style_var(&var_declarator("styles", string_expr("something else")))
+        .matching_style_var(&make_var_declarator(
+          "styles",
+          string_expr("something else")
+        ))
         .is_none()
     );
   }
@@ -957,7 +962,10 @@ mod state_manager {
 
     let init = Expr::Call(call_of("create", "styles"));
 
-    state.insert_style_var("styles".to_string(), var_declarator("styles", init.clone()));
+    state.insert_style_var(
+      "styles".to_string(),
+      make_var_declarator("styles", init.clone()),
+    );
 
     let pattern_bound = VarDeclarator {
       span: DUMMY_SP,
@@ -983,7 +991,7 @@ mod state_manager {
 
     state.insert_style_var(
       "styles".to_string(),
-      var_declarator("styles", Expr::Call(original)),
+      make_var_declarator("styles", Expr::Call(original)),
     );
     state.set_style_var_init("styles".to_string(), Expr::Call(replacement.clone()));
 
@@ -1006,16 +1014,16 @@ mod state_manager {
 
     state.insert_style_var(
       "styles".to_string(),
-      var_declarator("styles", Expr::Call(first)),
+      make_var_declarator("styles", Expr::Call(first)),
     );
     state.insert_style_var(
       "styles".to_string(),
-      var_declarator("styles", Expr::Call(second.clone())),
+      make_var_declarator("styles", Expr::Call(second.clone())),
     );
 
     assert!(
       state
-        .matching_style_var(&var_declarator("styles", Expr::Call(second)))
+        .matching_style_var(&make_var_declarator("styles", Expr::Call(second)))
         .is_some()
     );
   }
@@ -1090,7 +1098,7 @@ mod state_manager {
     for (index, call) in calls.iter().enumerate() {
       let name = format!("styles{index}");
 
-      state.push_declaration(var_declarator(&name, Expr::Call(call.clone())));
+      state.push_declaration(make_var_declarator(&name, Expr::Call(call.clone())));
       state.push_top_level_expression(TopLevelExpression(
         TopLevelExpressionKind::Stmt,
         Expr::Call(call.clone()),
@@ -1117,32 +1125,6 @@ mod state_manager {
         .find_call_declaration(&call_of("create", "styles10000"))
         .is_none()
     );
-  }
-
-  /// A named import of `names` from `source`.
-  fn named_import(source: &str, names: &[&str]) -> ImportDecl {
-    ImportDecl {
-      span: DUMMY_SP,
-      specifiers: names
-        .iter()
-        .map(|name| {
-          ImportSpecifier::Named(ImportNamedSpecifier {
-            span: DUMMY_SP,
-            local: ident(name),
-            imported: None,
-            is_type_only: false,
-          })
-        })
-        .collect(),
-      src: Box::new(Str {
-        span: DUMMY_SP,
-        value: source.into(),
-        raw: None,
-      }),
-      type_only: false,
-      with: None,
-      phase: ImportPhase::Evaluation,
-    }
   }
 
   #[test]
@@ -1221,7 +1203,7 @@ mod state_manager {
     ));
     state.insert_style_var(
       "styles".to_string(),
-      var_declarator("styles", Expr::Call(call.clone())),
+      make_var_declarator("styles", Expr::Call(call.clone())),
     );
 
     state.set_top_level_expr(99, string_expr("nowhere"));
@@ -1230,121 +1212,447 @@ mod state_manager {
     assert!(state.find_top_level_expr(&call).is_some());
     assert!(
       state
-        .matching_style_var(&var_declarator("styles", Expr::Call(call)))
+        .matching_style_var(&make_var_declarator("styles", Expr::Call(call)))
         .is_some()
     );
   }
 
-  #[test]
-  fn import_binding_answers_for_the_binding_a_specifier_declares() {
-    let mut state = StateManager::default();
+  /// Which declaration binds a name, over the two indices the state keeps for
+  /// it. Every case fixes the records first and then asks, because the answer is
+  /// the index and the list agreeing.
+  ///
+  /// Four narrower cases that used to sit above the pass-through are folded in
+  /// rather than carried: a plain hit and a plain miss, which
+  /// [`answers_for_the_binding_a_specifier_declares`] asserts together, and a
+  /// bare hit for each of the default and namespace arms, which
+  /// [`answers_for_a_default_specifier`] and
+  /// [`answers_for_a_namespace_specifier`] assert with the matching miss beside
+  /// it.
+  mod import_binding {
+    use super::*;
+    use swc_core::ecma::ast::ModuleExportName;
 
-    state.push_top_import(named_import("theme.stylex.js", &["spacing", "colors"]));
-    state.push_top_import(named_import("other.stylex.js", &["radii"]));
-
-    assert_eq!(
-      state
-        .import_binding(&ident("colors"))
-        .and_then(|(import, _)| import.src.value.as_str()),
-      Some("theme.stylex.js")
-    );
-    assert_eq!(
-      state
-        .import_binding(&ident("radii"))
-        .and_then(|(import, _)| import.src.value.as_str()),
-      Some("other.stylex.js")
-    );
-    assert!(state.import_binding(&ident("unbound")).is_none());
-  }
-
-  /// `import * as stylex` binds through another arm of `local_binding_of` than
-  /// the named form the helper above builds, and the namespace form is what
-  /// every StyleX module actually writes.
-  #[test]
-  fn import_binding_answers_for_a_namespace_specifier() {
-    let mut state = StateManager::default();
-
-    state.push_top_import(ImportDecl {
-      specifiers: vec![ImportSpecifier::Namespace(ImportStarAsSpecifier {
+    /// One import declaration over the specifiers handed in. Every case here is
+    /// some choice of source and specifier list, so they share one builder --
+    /// otherwise a case that needs a shape no helper covers grows a fifteen-line
+    /// literal of its own and the shapes stop being comparable at a glance.
+    fn import_from(source: &str, specifiers: Vec<ImportSpecifier>) -> ImportDecl {
+      ImportDecl {
         span: DUMMY_SP,
-        local: ident("stylex"),
-      })],
-      ..named_import("@stylexjs/stylex", &[])
-    });
-
-    assert!(state.import_binding(&ident("stylex")).is_some());
-    assert!(state.import_binding(&ident("other")).is_none());
-  }
-
-  /// `import stylex from` is the third arm, and the only one whose binding is
-  /// the declaration's own default.
-  #[test]
-  fn import_binding_answers_for_a_default_specifier() {
-    let mut state = StateManager::default();
-
-    state.push_top_import(ImportDecl {
-      specifiers: vec![ImportSpecifier::Default(ImportDefaultSpecifier {
-        span: DUMMY_SP,
-        local: ident("stylex"),
-      })],
-      ..named_import("@stylexjs/stylex", &[])
-    });
-
-    assert!(state.import_binding(&ident("stylex")).is_some());
-    assert!(state.import_binding(&ident("other")).is_none());
-  }
-
-  #[test]
-  fn import_binding_refuses_a_reference_from_another_scope() {
-    let mut state = StateManager::default();
-
-    state.push_top_import(named_import("theme.stylex.js", &["spacing"]));
-
-    // A parameter named after an imported theme carries a context of its own,
-    // and resolving it to the import it shadows is the bug this keying avoids.
-    let shadowing = Ident {
-      ctxt: SyntaxContext::from_u32(1),
-      ..ident("spacing")
-    };
-
-    assert!(state.import_binding(&ident("spacing")).is_some());
-    assert!(state.import_binding(&shadowing).is_none());
-  }
-
-  #[test]
-  fn import_binding_answers_with_the_earliest_of_two_imports_of_one_name() {
-    let mut state = StateManager::default();
-
-    state.push_top_import(named_import("first.stylex.js", &["spacing"]));
-    state.push_top_import(named_import("second.stylex.js", &["spacing"]));
-
-    assert_eq!(
-      state
-        .import_binding(&ident("spacing"))
-        .and_then(|(import, _)| import.src.value.as_str()),
-      Some("first.stylex.js")
-    );
-  }
-
-  /// Far past any authored module, to show the lookup answers from a key rather
-  /// than by walking every specifier the module imports.
-  #[test]
-  fn import_binding_stays_exact_across_ten_thousand_specifiers() {
-    let mut state = StateManager::default();
-
-    let names: Vec<String> = (0..10_000).map(|index| format!("token{index}")).collect();
-
-    for chunk in names.chunks(100) {
-      let borrowed: Vec<&str> = chunk.iter().map(String::as_str).collect();
-
-      state.push_top_import(named_import("tokens.stylex.js", &borrowed));
+        specifiers,
+        src: Box::new(Str {
+          span: DUMMY_SP,
+          value: source.into(),
+          raw: None,
+        }),
+        type_only: false,
+        with: None,
+        phase: ImportPhase::Evaluation,
+      }
     }
 
-    for index in [0usize, 1, 4_999, 9_999] {
-      assert!(state.import_binding(&ident(&names[index])).is_some());
+    /// `import { a, b }` at the parser's context, for the cases that only need a
+    /// list of plain names.
+    fn named_import(source: &str, names: &[&str]) -> ImportDecl {
+      import_from(source, names.iter().map(|name| named(name, 0)).collect())
     }
 
-    assert!(state.import_binding(&ident("token10000")).is_none());
+    /// `import { local }` -- the specifier whose comparison #1266 was about.
+    fn named(local: &str, ctxt: u32) -> ImportSpecifier {
+      ImportSpecifier::Named(ImportNamedSpecifier {
+        span: DUMMY_SP,
+        local: ident_at(local, ctxt),
+        imported: None,
+        is_type_only: false,
+      })
+    }
+
+    /// `import { imported as local }`.
+    fn aliased(local: &str, imported: &str, ctxt: u32) -> ImportSpecifier {
+      ImportSpecifier::Named(ImportNamedSpecifier {
+        span: DUMMY_SP,
+        local: ident_at(local, ctxt),
+        imported: Some(ModuleExportName::Ident(ident_at(imported, ctxt))),
+        is_type_only: false,
+      })
+    }
+
+    /// `import { "imported" as local }`, whose imported name need not be a legal
+    /// identifier.
+    fn str_named(local: &str, imported: &str, ctxt: u32) -> ImportSpecifier {
+      ImportSpecifier::Named(ImportNamedSpecifier {
+        span: DUMMY_SP,
+        local: ident_at(local, ctxt),
+        imported: Some(ModuleExportName::Str(Str {
+          span: DUMMY_SP,
+          value: imported.into(),
+          raw: None,
+        })),
+        is_type_only: false,
+      })
+    }
+
+    /// `import local from` and `import * as local from`.
+    fn default_of(local: &str, ctxt: u32) -> ImportSpecifier {
+      ImportSpecifier::Default(ImportDefaultSpecifier {
+        span: DUMMY_SP,
+        local: ident_at(local, ctxt),
+      })
+    }
+
+    fn namespace_of(local: &str, ctxt: u32) -> ImportSpecifier {
+      ImportSpecifier::Namespace(ImportStarAsSpecifier {
+        span: DUMMY_SP,
+        local: ident_at(local, ctxt),
+      })
+    }
+
+    /// The source a lookup answered with, as authored text. Reads the atom
+    /// directly rather than comparing `Debug` renderings, which would pass for
+    /// the wrong reason the moment the atom's formatting changes.
+    fn source_of<'a>(found: Option<(&'a ImportDecl, &ImportSpecifier)>) -> Option<&'a str> {
+      found.and_then(|(import, _)| import.src.value.as_str())
+    }
+
+    #[test]
+    fn answers_for_the_binding_a_specifier_declares() {
+      let mut state = StateManager::default();
+
+      state.push_top_import(named_import("theme.stylex.js", &["spacing", "colors"]));
+      state.push_top_import(named_import("other.stylex.js", &["radii"]));
+
+      assert_eq!(
+        source_of(state.import_binding(&ident_at("colors", 0))),
+        Some("theme.stylex.js")
+      );
+      assert_eq!(
+        source_of(state.import_binding(&ident_at("radii", 0))),
+        Some("other.stylex.js")
+      );
+      assert!(state.import_binding(&ident_at("unbound", 0)).is_none());
+    }
+
+    /// A module that imports nothing has no index to probe, which is a step
+    /// earlier than the miss the case above asks for.
+    #[test]
+    fn answers_for_nothing_where_the_module_imports_nothing() {
+      let state = StateManager::default();
+
+      assert!(state.import_binding(&ident_at("nonexistent", 0)).is_none());
+    }
+
+    /// `import * as stylex` binds through another arm of `local_binding_of` than
+    /// the named form, and the namespace form is what every StyleX module
+    /// actually writes.
+    #[test]
+    fn answers_for_a_namespace_specifier() {
+      let mut state = StateManager::default();
+
+      state.push_top_import(import_from(
+        "@stylexjs/stylex",
+        vec![namespace_of("stylex", 0)],
+      ));
+
+      assert!(state.import_binding(&ident_at("stylex", 0)).is_some());
+      assert!(state.import_binding(&ident_at("other", 0)).is_none());
+    }
+
+    /// `import stylex from` is the third arm, and the only one whose binding is
+    /// the declaration's own default.
+    #[test]
+    fn answers_for_a_default_specifier() {
+      let mut state = StateManager::default();
+
+      state.push_top_import(import_from(
+        "@stylexjs/stylex",
+        vec![default_of("stylex", 0)],
+      ));
+
+      assert!(state.import_binding(&ident_at("stylex", 0)).is_some());
+      assert!(state.import_binding(&ident_at("other", 0)).is_none());
+    }
+
+    #[test]
+    fn does_not_match_a_renamed_import_by_the_name_it_was_aliased_away_from() {
+      let mut state = StateManager::default();
+      state.push_top_import(import_from(
+        "@stylexjs/stylex",
+        vec![aliased("localName", "create", 0)],
+      ));
+
+      // `import { create as localName }` leaves `create` unbound in this module,
+      // so a reference spelled that way names something else or nothing at all.
+      // Answering the import for it resolved a binding no scope holds.
+      assert!(state.import_binding(&ident_at("create", 0)).is_none());
+    }
+
+    #[test]
+    fn finds_a_renamed_import_by_its_local_name() {
+      let mut state = StateManager::default();
+      state.push_top_import(import_from(
+        "@stylexjs/stylex",
+        vec![aliased("localName", "create", 0)],
+      ));
+
+      assert!(state.import_binding(&ident_at("localName", 0)).is_some());
+    }
+
+    #[test]
+    fn does_not_match_a_string_named_specifier_by_its_imported_name() {
+      let mut state = StateManager::default();
+      state.push_top_import(import_from(
+        "module",
+        vec![str_named("localName", "strExport", 0)],
+      ));
+
+      // The same answer for the string-named spelling, and the one that was
+      // reachable in practice: an imported name that *is* a legal identifier
+      // matched a reference to it by symbol alone, across every scope.
+      assert!(state.import_binding(&ident_at("strExport", 0)).is_none());
+
+      // The local binding is what the declaration introduces, and it still
+      // answers -- a lookup that said `None` to everything would pass the
+      // assertion above on its own.
+      assert!(state.import_binding(&ident_at("localName", 0)).is_some());
+    }
+
+    // ──────────────────────────────────────────────
+    // Shadowing: the lookup answers about a binding, not a name (#1266)
+    //
+    // Every case here fixes two references with the same symbol at *different*
+    // syntax contexts, which is what a shadowing binding looks like once the
+    // resolver has run. Written against the lookup rather than the transform
+    // because a context is the whole question and the transform has to build a
+    // whole module to ask it.
+    // ──────────────────────────────────────────────
+
+    #[test]
+    fn refuses_a_reference_to_a_named_import_from_another_scope() {
+      let mut state = StateManager::default();
+
+      state.push_top_import(named_import("theme.stylex.js", &["spacing"]));
+
+      // The arrow parameter in `(spacing) => ({ spacing })`: same symbol, its
+      // own context. Resolving it to the import it shadows is #1266.
+      //
+      // Both halves in one case on purpose: a fix that answered `None` for
+      // everything would pass the refusal on its own.
+      assert!(state.import_binding(&ident_at("spacing", 0)).is_some());
+      assert!(state.import_binding(&ident_at("spacing", 1)).is_none());
+    }
+
+    #[test]
+    fn refuses_a_reference_to_an_aliased_import_from_another_scope() {
+      let mut state = StateManager::default();
+      state.push_top_import(import_from(
+        "zIndex.stylex.js",
+        vec![aliased("zi", "zIndex", 1)],
+      ));
+
+      // `import { zIndex as zi }` shadowed by a parameter `zi`, which failed
+      // identically to the unaliased shape.
+      assert!(state.import_binding(&ident_at("zi", 2)).is_none());
+      assert!(state.import_binding(&ident_at("zi", 1)).is_some());
+    }
+
+    #[test]
+    fn matches_only_the_specifier_whose_context_agrees() {
+      let mut state = StateManager::default();
+      state.push_top_import(import_from("first.stylex.js", vec![named("shadowed", 1)]));
+      state.push_top_import(import_from("second.stylex.js", vec![named("shadowed", 2)]));
+
+      // Two declarations cannot bind one name in valid source, but the lookup
+      // must not answer by position.
+      assert_eq!(
+        source_of(state.import_binding(&ident_at("shadowed", 2))),
+        Some("second.stylex.js")
+      );
+    }
+
+    #[test]
+    fn answers_with_the_earliest_of_two_imports_of_one_name() {
+      let mut state = StateManager::default();
+
+      state.push_top_import(named_import("first.stylex.js", &["spacing"]));
+      state.push_top_import(named_import("second.stylex.js", &["spacing"]));
+
+      assert_eq!(
+        source_of(state.import_binding(&ident_at("spacing", 0))),
+        Some("first.stylex.js")
+      );
+    }
+
+    #[test]
+    fn matches_one_specifier_of_a_declaration_without_matching_its_siblings() {
+      let mut state = StateManager::default();
+      state.push_top_import(import_from(
+        "tokens.stylex.js",
+        vec![named("spacing", 1), named("zIndex", 1)],
+      ));
+
+      // The answer is per declaration, but the match is per specifier: a
+      // declaration that binds a live `spacing` does not thereby answer for a
+      // shadowed `zIndex`. Both are the same declaration, so a lookup that
+      // stopped at "does this declaration mention the name" would say yes to
+      // both.
+      assert!(state.import_binding(&ident_at("spacing", 1)).is_some());
+      assert!(state.import_binding(&ident_at("zIndex", 1)).is_some());
+      assert!(state.import_binding(&ident_at("zIndex", 2)).is_none());
+      assert!(state.import_binding(&ident_at("nothing", 1)).is_none());
+    }
+
+    #[test]
+    fn a_shadowed_default_or_namespace_import_was_already_context_aware() {
+      let mut state = StateManager::default();
+      state.push_top_import(import_from("theme.stylex.js", vec![default_of("theme", 1)]));
+      state.push_top_import(import_from(
+        "tokens.stylex.js",
+        vec![namespace_of("tokens", 1)],
+      ));
+
+      // The two arms the named one now matches. Pinned so a later edit cannot
+      // regress all three to a name match at once.
+      assert!(state.import_binding(&ident_at("theme", 2)).is_none());
+      assert!(state.import_binding(&ident_at("tokens", 2)).is_none());
+      assert!(state.import_binding(&ident_at("theme", 1)).is_some());
+      assert!(state.import_binding(&ident_at("tokens", 1)).is_some());
+    }
+
+    #[test]
+    fn a_string_named_specifier_answers_only_for_its_local_binding() {
+      let mut state = StateManager::default();
+      state.push_top_import(import_from(
+        "tokens.stylex.js",
+        vec![str_named("spacing", "spacing-lg", 1)],
+      ));
+
+      // The imported name is compared against nothing now, at any context.
+      // `spacing-lg` is not a legal identifier, so the only way a reference
+      // could ever have carried that symbol was through the specifier itself.
+      assert!(state.import_binding(&ident_at("spacing-lg", 9)).is_none());
+      assert!(state.import_binding(&ident_at("spacing-lg", 1)).is_none());
+
+      // Its local binding still resolves, and a parameter shadowing that local
+      // binding still does not.
+      assert!(state.import_binding(&ident_at("spacing", 1)).is_some());
+      assert!(state.import_binding(&ident_at("spacing", 2)).is_none());
+    }
+
+    #[test]
+    fn a_non_ascii_local_name_matches_by_binding_too() {
+      let mut state = StateManager::default();
+      // `zÍndex` is a different identifier that merely looks like `zIndex`, and
+      // the lookup compares interned atoms, so it must not match one for the
+      // other. A unicode-escaped spelling needs no case of its own here: the
+      // lexer folds a unicode escape to the atom it spells long before this, so at
+      // this seam the two spellings are one value. The escape is exercised where
+      // it can still differ -- as authored source, in the parity corpus.
+      state.push_top_import(import_from("zIndex.stylex.js", vec![named("zIndex", 1)]));
+      state.push_top_import(import_from("accented.stylex.js", vec![named("zÍndex", 1)]));
+
+      assert!(state.import_binding(&ident_at("zIndex", 1)).is_some());
+      assert!(state.import_binding(&ident_at("zÍndex", 1)).is_some());
+      assert!(state.import_binding(&ident_at("zÍndex", 2)).is_none());
+    }
+
+    #[test]
+    fn answers_with_the_specifier_that_bound_the_name() {
+      let mut state = StateManager::default();
+      state.push_top_import(import_from(
+        "tokens.stylex.js",
+        vec![default_of("theme", 1), named("spacing", 1)],
+      ));
+
+      // One declaration can bind both kinds, and the chain refuses a default
+      // where it resolves a named one. Which specifier answered is therefore
+      // part of the answer, not something the caller can re-derive from the
+      // declaration -- searching it again by name is what could come back empty.
+      let (_, default_specifier) = match state.import_binding(&ident_at("theme", 1)) {
+        Some(found) => found,
+        None => panic!("the default specifier binds `theme`"),
+      };
+      assert!(matches!(default_specifier, ImportSpecifier::Default(_)));
+
+      let (_, named_specifier) = match state.import_binding(&ident_at("spacing", 1)) {
+        Some(found) => found,
+        None => panic!("the named specifier binds `spacing`"),
+      };
+      assert!(matches!(named_specifier, ImportSpecifier::Named(_)));
+    }
+
+    #[test]
+    fn an_empty_import_declaration_answers_for_nothing() {
+      let mut state = StateManager::default();
+      state.push_top_import(import_from("side-effect.css", vec![]));
+
+      // `import './side-effect.css'` binds no name at all. A walk over no
+      // specifiers finds nothing, which is the answer -- pinned because a
+      // refactor to `all` would make it `true` and resolve every reference to
+      // it.
+      assert!(state.import_binding(&ident_at("anything", 0)).is_none());
+    }
+
+    /// Far past any authored module, to show the lookup answers from a key
+    /// rather than by walking every specifier the module imports.
+    #[test]
+    fn stays_exact_across_ten_thousand_specifiers() {
+      let mut state = StateManager::default();
+
+      let names: Vec<String> = (0..10_000).map(|index| format!("token{index}")).collect();
+
+      for chunk in names.chunks(100) {
+        let borrowed: Vec<&str> = chunk.iter().map(String::as_str).collect();
+
+        state.push_top_import(named_import("tokens.stylex.js", &borrowed));
+      }
+
+      for index in [0usize, 1, 4_999, 9_999] {
+        assert!(state.import_binding(&ident_at(&names[index], 0)).is_some());
+      }
+
+      assert!(state.import_binding(&ident_at("token10000", 0)).is_none());
+    }
+  }
+
+  /// The declarator a name is bound by, over the position index
+  /// [`StateManager::push_declaration`] keeps beside the list.
+  mod declaration_of {
+    use super::*;
+
+    #[test]
+    fn finds_the_declarator_that_binds_the_name() {
+      let mut state = StateManager::default();
+
+      state.push_declaration(make_var_declarator("x", string_expr("1")));
+
+      assert!(state.declaration_of(&ident("x")).is_some());
+    }
+
+    #[test]
+    fn answers_for_nothing_where_the_module_declares_nothing() {
+      let state = StateManager::default();
+
+      assert!(state.declaration_of(&ident("nonexistent")).is_none());
+    }
+
+    /// The same claim the import lookup makes, for the other index: far past any
+    /// authored module, and answering from a key rather than by a walk.
+    #[test]
+    fn stays_exact_across_ten_thousand_declarators() {
+      let mut state = StateManager::default();
+
+      let names: Vec<String> = (0..10_000).map(|index| format!("token{index}")).collect();
+
+      for name in &names {
+        state.push_declaration(make_var_declarator(name, string_expr(name)));
+      }
+
+      for index in [0usize, 1, 4_999, 9_999] {
+        assert!(state.declaration_of(&ident(&names[index])).is_some());
+      }
+
+      assert!(state.declaration_of(&ident("token10000")).is_none());
+    }
   }
 
   mod css_property_seen_tests {

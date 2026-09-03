@@ -42,10 +42,15 @@ pub fn get_var_decl_parts_by_ident(
     .map(|declarator| (declarator.span, declarator.init))
 }
 
-pub fn get_var_decl_by_ident<'a>(
-  ident: &'a Ident,
-  traversal_state: &'a mut StateManager,
-  functions: &'a FunctionMap,
+/// Finds the declarator that an identifier names, or builds one from the
+/// function map.
+// The result is owned, so it borrows nothing from the three parameters. The
+// parameters therefore need no shared lifetime, and the function above
+// declares none either.
+pub fn get_var_decl_by_ident(
+  ident: &Ident,
+  traversal_state: &mut StateManager,
+  functions: &FunctionMap,
 ) -> Option<VarDeclarator> {
   if let Some(var_decl) = traversal_state.declaration_of(ident) {
     return Some(var_decl.clone());

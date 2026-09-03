@@ -2,7 +2,6 @@ use stylex_constants::constants::common::{CSS_CONTENT_FUNCTIONS, CSS_CONTENT_KEY
 use stylex_css::css::common::{get_number_suffix, normalize_css_property_value};
 use stylex_state::state_manager::StateManager;
 use stylex_structures::raw_value::TRawValue;
-use stylex_types::traits::StyleOptions;
 use stylex_utils::{math::round_f64, number::to_js_string, string::is_blank_css_text};
 
 /// Converts a CSS value in JS to the final CSS string value.

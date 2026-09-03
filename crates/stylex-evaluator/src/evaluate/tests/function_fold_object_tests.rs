@@ -10,6 +10,7 @@
 use super::*;
 use stylex_state::{
   functions::{FunctionConfigType, StylexWhenFn},
+  state_manager::StateManager,
   types::FunctionConfigMap,
 };
 
@@ -31,7 +32,7 @@ fn marker_config() -> FunctionConfig {
   fn marker(
     _pseudo: EvaluateResultValue,
     _custom: Option<EvaluateResultValue>,
-    _options: &mut dyn stylex_types::traits::StyleOptions,
+    _options: &mut StateManager,
   ) -> Expr {
     create_null_expr()
   }

@@ -38,14 +38,6 @@ _Avoid_: css class, atom, selector
 the same key are the same rule regardless of where they were authored.
 _Avoid_: style key, hash, id
 
-**Style options trait**:
-`StyleOptions` — the interface the CSS layer needs from whatever is holding
-state: the resolved options, the seen-property map, and the injected-rules map.
-It exists so [stylex-css](../stylex-css/CONTEXT.md) can be given
-[stylex-state](../stylex-state/CONTEXT.md)'s `StateManager` without depending on
-it.
-_Avoid_: state trait, context trait
-
 **When marker value**:
 `WhenMarkerValue` — the interface [stylex-css](../stylex-css/CONTEXT.md) needs
 from whatever occupies the second slot of a `when.*` call. That slot holds
@@ -53,7 +45,6 @@ either the options or a marker in one of three shapes: a class-name string, an
 import proxy standing in for a marker defined in another file, or a compiled
 `$$css` style object. Each accessor answers one of those shapes and yields
 nothing when it does not apply, so the marker resolution stays a direct
-translation of its JavaScript original. It exists for the same reason as
-`StyleOptions`: the evaluated values live in the transform crate, which the CSS
-layer sits below.
+translation of its JavaScript original. It exists because the evaluated values
+live above the CSS layer, which therefore cannot name them.
 _Avoid_: marker trait, marker source

@@ -3579,7 +3579,6 @@ dependencies = [
  "derive_more",
  "indexmap",
  "pretty_env_logger",
- "rustc-hash",
  "serde",
  "serde_json",
  "stylex_macros",

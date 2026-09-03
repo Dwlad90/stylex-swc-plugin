@@ -2,7 +2,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::cell::OnceCell;
 use std::collections::hash_map::Entry;
 use std::{option::Option, path::Path, rc::Rc, sync::Arc};
-use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
+use stylex_macros::{stylex_panic, stylex_unimplemented};
 
 use indexmap::{IndexMap, IndexSet};
 use log::debug;
@@ -2881,29 +2881,16 @@ fn file_path_resolver(
   Ok(resolved_path.display().to_string())
 }
 
-impl stylex_types::traits::StyleOptions for StateManager {
-  fn options(&self) -> &StyleXStateOptions {
-    &self.options
-  }
-
-  fn css_property_seen(&self) -> &FxHashMap<String, String> {
+impl StateManager {
+  /// The memo of CSS values already normalized. The map is a private field of
+  /// the cache, so the CSS layer reads it through here.
+  pub fn css_property_seen(&self) -> &FxHashMap<String, String> {
     &self.cache.css_property_seen
   }
 
-  fn css_property_seen_mut(&mut self) -> &mut FxHashMap<String, String> {
+  /// The same memo, to add a value the CSS layer has just normalized.
+  pub fn css_property_seen_mut(&mut self) -> &mut FxHashMap<String, String> {
     &mut self.cache.css_property_seen
-  }
-
-  fn other_injected_css_rules(&self) -> &stylex_types::traits::InjectableStylesMap {
-    &self.other_injected_css_rules
-  }
-
-  fn other_injected_css_rules_mut(&mut self) -> &mut stylex_types::traits::InjectableStylesMap {
-    &mut self.other_injected_css_rules
-  }
-
-  fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-    self
   }
 }
 
@@ -2944,19 +2931,4 @@ impl DiagnosticState for StateManager {
   fn diagnostic_memo_mut(&mut self) -> &mut DiagnosticMemo {
     &mut self.diagnostic_memo
   }
-}
-
-/// The state manager behind a `StyleOptions` handle.
-///
-/// Callers hold the trait so the layers below need not name the state manager,
-/// but every handle the compiler builds is one, so the downcast cannot fail --
-/// a failure here means the trait was implemented by something else, which is a
-/// programming error and not an input the compiler can report on.
-pub fn downcast_style_options_to_state_manager(
-  state: &mut dyn stylex_types::traits::StyleOptions,
-) -> &mut StateManager {
-  state
-    .as_any_mut()
-    .downcast_mut::<StateManager>()
-    .unwrap_or_else(|| stylex_unreachable!("StyleOptions must be StateManager"))
 }

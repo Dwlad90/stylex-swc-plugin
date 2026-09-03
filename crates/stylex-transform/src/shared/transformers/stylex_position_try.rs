@@ -2,7 +2,6 @@ use std::rc::Rc;
 
 use stylex_ast::ast::convertors::{convert_lit_to_string, create_string_expr};
 use stylex_macros::stylex_panic;
-use stylex_state::state_manager::downcast_style_options_to_state_manager;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
 use crate::shared::{
@@ -125,20 +124,16 @@ pub(crate) fn stylex_position_try(
 
 pub(crate) fn get_position_try_fn() -> FunctionConfig {
   FunctionConfig {
-    fn_ptr: FunctionType::StylexExprFn(
-      |expr: Expr, local_state: &mut dyn stylex_types::traits::StyleOptions| -> Expr {
-        let state = downcast_style_options_to_state_manager(local_state);
+    fn_ptr: FunctionType::StylexExprFn(|expr: Expr, state: &mut StateManager| -> Expr {
+      let (position_try_name, injected_style) =
+        stylex_position_try(&EvaluateResultValue::Expr(expr), state);
 
-        let (position_try_name, injected_style) =
-          stylex_position_try(&EvaluateResultValue::Expr(expr), state);
+      state
+        .other_injected_css_rules
+        .insert(position_try_name.clone().into(), Rc::new(injected_style));
 
-        state
-          .other_injected_css_rules
-          .insert(position_try_name.clone().into(), Rc::new(injected_style));
-
-        create_string_expr(position_try_name.as_str())
-      },
-    ),
+      create_string_expr(position_try_name.as_str())
+    }),
     takes_path: false,
   }
 }

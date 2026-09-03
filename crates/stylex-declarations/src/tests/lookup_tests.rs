@@ -510,7 +510,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
     let mut fns = FunctionMap::default();
     fn dummy_fn(
       _args: Vec<Expr>,
-      _state: &mut dyn stylex_types::traits::StyleOptions,
+      _state: &mut StateManager,
       _fns: &stylex_state::functions::FunctionMap,
     ) -> Expr {
       create_number_expr(0.0)

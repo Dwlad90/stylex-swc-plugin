@@ -13,7 +13,6 @@ use std::{
 };
 use stylex_macros::stylex_panic;
 use stylex_path_resolver::package_json::PackageJsonExtended;
-use stylex_state::state_manager::downcast_style_options_to_state_manager;
 
 use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -135,8 +134,7 @@ macro_rules! insert_when_fn {
       $js_name.to_string(),
       (|pseudo: EvaluateResultValue,
         marker: Option<EvaluateResultValue>,
-        state: &mut dyn stylex_types::traits::StyleOptions| {
-        let state = downcast_style_options_to_state_manager(state);
+        state: &mut StateManager| {
         let expr_str = match pseudo
           .as_expr()
           .and_then(|expr| convert_expr_to_str(expr, state, &FunctionMap::default()))

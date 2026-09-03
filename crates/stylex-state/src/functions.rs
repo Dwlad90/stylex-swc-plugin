@@ -4,17 +4,16 @@ use indexmap::IndexMap;
 use swc_core::ecma::ast::Expr;
 
 use crate::{
-  evaluate_result_value::EvaluateResultValue, theme_ref::ThemeRef, types::FlatCompiledStyles,
+  evaluate_result_value::EvaluateResultValue, state_manager::StateManager, theme_ref::ThemeRef,
+  types::FlatCompiledStyles,
 };
 use stylex_enums::value_with_default::ValueWithDefault;
 
 use crate::types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression};
 use stylex_structures::stylex_env::JSFunction;
 
-use stylex_types::traits::StyleOptions;
-
 pub(crate) type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;
-pub(crate) type StylexExprFn = fn(Expr, &mut dyn StyleOptions) -> Expr;
+pub(crate) type StylexExprFn = fn(Expr, &mut StateManager) -> Expr;
 
 /// The `stylex.when.*` functions, which alone among the StyleX helpers take a
 /// second argument: an optional custom marker to observe instead of the
@@ -22,10 +21,10 @@ pub(crate) type StylexExprFn = fn(Expr, &mut dyn StyleOptions) -> Expr;
 /// imported from another file resolves to a `ThemeRef`, which no `Expr` can
 /// represent.
 pub type StylexWhenFn =
-  fn(EvaluateResultValue, Option<EvaluateResultValue>, &mut dyn StyleOptions) -> Expr;
+  fn(EvaluateResultValue, Option<EvaluateResultValue>, &mut StateManager) -> Expr;
 
 pub enum FunctionType {
-  ArrayArgs(fn(Vec<Expr>, &mut dyn StyleOptions, &FunctionMap) -> Expr),
+  ArrayArgs(fn(Vec<Expr>, &mut StateManager, &FunctionMap) -> Expr),
   StylexExprFn(StylexExprFn),
   StylexWhenFn(StylexWhenFn),
   StylexTypeFn(StylexTypeFn),

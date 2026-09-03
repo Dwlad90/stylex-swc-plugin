@@ -3,15 +3,11 @@ use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
 use stylex_ast::ast::convertors::create_string_expr;
-use stylex_types::traits::StyleOptions;
-
 use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
 use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
 use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_regex::regex::IS_CSS_VAR;
-use stylex_state::{
-  functions::FunctionMap, state_manager::downcast_style_options_to_state_manager,
-};
+use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 
 /// The `var(` prefix a CSS variable reference starts with, and whose length is
 /// what the name inside it begins after.
@@ -128,11 +124,9 @@ pub(crate) fn fold_fallback_chain(parts: impl IntoIterator<Item = String>) -> St
 
 pub fn stylex_first_that_works(
   args: Vec<Expr>,
-  state: &mut dyn StyleOptions,
+  state: &mut StateManager,
   functions: &FunctionMap,
 ) -> Expr {
-  let state = downcast_style_options_to_state_manager(state);
-
   // Reading an argument's text is the one thing that can fail here, and it fails
   // the same way wherever it is asked, so the sentence lives in one closure
   // rather than at each of the two sites that needs the text.

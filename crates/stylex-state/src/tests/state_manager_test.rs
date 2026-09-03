@@ -1347,16 +1347,23 @@ mod state_manager {
     assert!(state.import_binding(&ident("token10000")).is_none());
   }
 
-  mod downcast_style_options_tests {
-    use crate::state_manager::{StateManager, downcast_style_options_to_state_manager};
+  mod css_property_seen_tests {
+    use crate::state_manager::StateManager;
 
     #[test]
-    fn downcasts_the_handle_back_to_the_state_manager() {
+    fn reads_back_what_the_mutable_accessor_wrote() {
       let mut state = StateManager::default();
 
-      let downcast = downcast_style_options_to_state_manager(&mut state);
+      assert!(state.css_property_seen().is_empty());
 
-      assert!(downcast.declarations.is_empty());
+      state
+        .css_property_seen_mut()
+        .insert("marginInlineStart".to_string(), "10px".to_string());
+
+      assert_eq!(
+        state.css_property_seen().get("marginInlineStart"),
+        Some(&"10px".to_string())
+      );
     }
   }
 }

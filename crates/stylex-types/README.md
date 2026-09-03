@@ -8,10 +8,11 @@
 
 Injectable style types and metadata structures for the StyleX compiler. This
 crate defines the `InjectableStyle` family of structs and enums, the `MetaData`
-output type, and the `StyleOptions` trait that decouples function-pointer types
-from `StateManager`. It was extracted so that every crate needing compiled-style
-representations can depend on a slim type package without pulling in transform
-logic — six downstream crates import these types directly.
+output type, and the `WhenMarkerValue` trait that lets the layers below the
+evaluator read a `stylex.when` marker. It was extracted so that every crate
+needing compiled-style representations can depend on a slim type package
+without pulling in transform logic — six downstream crates import these types
+directly.
 
 - **Injectable styles** — `InjectableStyle`, `InjectableConstStyle` and their
   `Base` counterparts provide LTR/RTL CSS content with optional priority and
@@ -20,38 +21,42 @@ logic — six downstream crates import these types directly.
   distinguish regular styles from const-referencing styles
 - **Metadata** — `MetaData` pairs a CSS class name with its injectable style and
   priority, supporting custom serialisation
-- **Trait interface** — `StyleOptions` is an object-safe trait that exposes a
-  minimal API for CSS generation without depending on the concrete
-  `StateManager`
+- **Trait interface** — `WhenMarkerValue` is an object-safe trait that reads the
+  second argument of `stylex.when.*` without naming the evaluated-value types
 - **Type alias** — `InjectableStylesMap`
   (`IndexMap<RuleKey, Rc<InjectableStyleKind>>`) provides ordered,
   reference-counted style storage with typed lookup keys
 
 ## Architecture
 
-### `StyleOptions` Trait
+### `WhenMarkerValue` Trait
 
-The `StyleOptions` trait solves a circular-dependency problem: function pointer
-types and `StateManager` live in different crates.
+The `WhenMarkerValue` trait solves a layering problem: `stylex-css` must test
+what the second argument of a `stylex.when.*` call is, but it sits below the
+evaluator and cannot name the evaluated-value types.
 
 ```text
-┌──────────────┐         ┌─────────────────────┐
-│  stylex-css  │──uses──▶│  dyn StyleOptions    │
-│  stylex-ast  │         │  (object-safe trait) │
-└──────────────┘         └──────────┬────────────┘
+┌──────────────┐         ┌──────────────────────┐
+│  stylex-css  │──uses──▶│  dyn WhenMarkerValue │
+└──────────────┘         │  (object-safe trait) │
+                         └──────────┬───────────┘
                                     │ implements
-                         ┌──────────▼────────────┐
-                         │  StateManager          │
-                         │  (stylex-state)        │
-                         └────────────────────────┘
+              ┌─────────────────────┴─────────────────┐
+              │                                       │
+  ┌───────────▼──────────┐            ┌───────────────▼──────────┐
+  │  StyleXStateOptions  │            │  EvaluateResultValue     │
+  │  (here)              │            │  (stylex-state)          │
+  └──────────────────────┘            └──────────────────────────┘
 ```
 
 Key methods on the trait:
 
-- `options(&self) -> &StyleXStateOptions`
-- `css_property_seen(&self)` / `css_property_seen_mut(&mut self)`
-- `other_injected_css_rules(&self)` / `other_injected_css_rules_mut(&mut self)`
-- `as_any_mut(&mut self)` — downcast bridge for controlled migration
+- `as_str_value(&self)` — the marker written as a literal class name
+- `is_proxy(&self)` / `as_proxy_string(&self)` — an import proxy, tested and
+  then resolved
+- `first_css_key(&self)` — the class name a compiled `$$css` marker carries
+- `class_name_prefix(&self)` — present only on the options, so it tells a
+  marker from the options
 
 ## License
 

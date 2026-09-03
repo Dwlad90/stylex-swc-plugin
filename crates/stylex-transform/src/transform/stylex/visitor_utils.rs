@@ -204,6 +204,6 @@ fn get_conditional_fn() -> FunctionConfig {
   }
 }
 
-fn conditional_identity(expr: Expr, _: &mut dyn stylex_types::traits::StyleOptions) -> Expr {
+fn conditional_identity(expr: Expr, _: &mut StateManager) -> Expr {
   expr
 }

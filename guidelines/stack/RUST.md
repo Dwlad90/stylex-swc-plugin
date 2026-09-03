@@ -32,6 +32,28 @@
   `serde_plain` for simple string conversions.
 - Avoid using `unsafe` blocks unless absolutely necessary.
 
+## Items Kept But Not Called
+
+An item that is kept on purpose and has no caller must say so with
+`#[allow(dead_code)]`. Do not say it with a leading underscore in the name.
+
+The dead-code lint skips any name that starts with `_`. So the underscore does
+two jobs at once: it marks the item as deliberate for a reader, and it hides the
+item from the lint for the compiler. The second job is not wanted. An item that
+loses its last caller by accident then stays silent, and no one learns of it.
+
+The attribute marks the item for the reader and keeps the lint able to speak.
+Write next to it why the item is kept, and whether the attribute does work: on a
+public item of a library crate the lint cannot fire at all, so the attribute is
+only a note.
+
+Some underscore-named items from before this rule are still in the repo. Rename
+one when you touch it. To find them all:
+
+```bash
+grep -rn --include='*.rs' -E '\bfn _[a-z]' crates/
+```
+
 ## Re-exports
 
 A `pub use` must make a boundary. It must not copy a path that exists.

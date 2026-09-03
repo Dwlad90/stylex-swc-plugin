@@ -363,9 +363,14 @@ pub fn frame_declaration_of(
 /// two have to agree on, so neither spells the key. A build that refused nothing
 /// answers without hashing at all.
 ///
-/// Only the tests reach it now. `get_span_from_source_code_impl` inlines the same
-/// two steps, because it needs the expression's key for the cache key as well
-/// and hashing a whole subtree twice to answer one question was the cost
+/// Public because the pair is: a crate that lets a caller record a fact and not
+/// read it back has half an interface, and the write side already has a
+/// production caller in the evaluator. What reads this one is that same
+/// evaluator's tests, which assert which binding a refusal framed.
+///
+/// No production caller of its own. `get_span_from_source_code_impl` inlines the
+/// same two steps, because it needs the expression's key for the cache key as
+/// well, and hashing a whole subtree twice to answer one question was the cost
 /// `has_framed_declarations` had been added to avoid.
 pub fn framed_declaration_of(
   fault_expression: &Expr,

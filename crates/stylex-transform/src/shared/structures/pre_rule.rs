@@ -37,6 +37,9 @@ impl CompiledResult {
 }
 
 pub(crate) trait PreRule: Debug {
+  // Load-bearing, measured: the only calls to `get_value` come from
+  // `PreRuleSet::get_value`, which is one of its own three implementations. The
+  // compiler reads that cycle as dead and warns without this line.
   #[allow(dead_code)]
   fn get_value(&self) -> Option<PreRuleValue>;
   fn compiled(&mut self, state: &mut StateManager) -> CompiledResult;
@@ -46,6 +49,8 @@ pub(crate) trait PreRule: Debug {
   /// implementation can read the fields of its own kind and answer `false` for
   /// the other two -- the kind test the reference implementation spells as
   /// `instanceof`.
+  // Load-bearing, measured: `equals` is reached only through `PreRules::equals`,
+  // which the same cycle makes unreachable to the lint.
   #[allow(dead_code)]
   fn equals(&self, other: &PreRules) -> bool;
 }
@@ -59,6 +64,9 @@ pub(crate) enum PreRules {
 
 impl PreRules {
   /// [`PreRule::equals`], asked of whichever rule this variant holds.
+  // Load-bearing, measured: the one caller is `PreRuleSet::equals`, which is an
+  // implementation of the trait method this dispatches to. Neither end of the
+  // cycle has an outside caller, so the lint fires on both without the line.
   #[allow(dead_code)]
   pub(crate) fn equals(&self, other: &PreRules) -> bool {
     match self {

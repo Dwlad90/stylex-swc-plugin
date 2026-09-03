@@ -34,6 +34,13 @@ pub struct CoreStyleXOptions {
   pub enable_media_query_order: bool,
   pub enable_logical_styles_polyfill: bool,
   pub enable_legacy_value_flipping: bool,
+  // Kept because callers configure it: the value flows in from the plugin
+  // options through `StyleXOptions`. The transform does not read it yet, so it
+  // is written and never used.
+  //
+  // The attribute does no work here, measured: the lint does not fire on a
+  // public field of a public struct in a library crate. It is a note for the
+  // reader.
   #[allow(dead_code)]
   pub enable_ltr_rtl_comments: bool,
   pub enable_minified_keys: bool,

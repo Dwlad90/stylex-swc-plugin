@@ -227,8 +227,13 @@ jobs:
       - name: List artifacts
         run: ls -R crates/stylex-rs-compiler/dist
         shell: bash
+      # The package's own suite, not the root `pnpm test`: that one also
+      # runs the script suites and the Rust workspace suite, which need
+      # `git` and `cargo nextest`. A bindings job holds neither -- it tests
+      # a downloaded artifact -- so the root script fails before it reaches
+      # the tests this job exists to run.
       - name: Test bindings
-        run: pnpm run test --filter @stylexswc/rs-compiler --only
+        run: pnpm exec turbo run test --filter @stylexswc/rs-compiler --only
       - name: Save turbo build cache
         if: always()
         uses: ./.github/actions/turbo-save
@@ -272,11 +277,13 @@ jobs:
       - name: List artifacts
         run: ls -R crates/stylex-rs-compiler/dist
         shell: bash
+      # See `test-macOS-windows-binding`: the root `pnpm test` also runs
+      # the script and Rust workspace suites, which this job cannot run.
       - name: Test bindings
         run: |
           docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "
             corepack enable && corepack prepare pnpm@11.20.0 --activate &&
-            pnpm run test --filter @stylexswc/rs-compiler --only
+            pnpm exec turbo run test --filter @stylexswc/rs-compiler --only
           "
       - name: Save turbo build cache
         if: always()
@@ -321,11 +328,13 @@ jobs:
       - name: List artifacts
         run: ls -R crates/stylex-rs-compiler/dist
         shell: bash
+      # See `test-macOS-windows-binding`: the root `pnpm test` also runs
+      # the script and Rust workspace suites, which this job cannot run.
       - name: Test bindings
         run: |
           docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "
             corepack enable && corepack prepare pnpm@11.20.0 --activate &&
-            pnpm run test --filter @stylexswc/rs-compiler --only
+            pnpm exec turbo run test --filter @stylexswc/rs-compiler --only
           "
       - name: Save turbo build cache
         if: always()
@@ -370,12 +379,14 @@ jobs:
       - name: List artifacts
         run: ls -R crates/stylex-rs-compiler/dist
         shell: bash
+      # See `test-macOS-windows-binding`: the root `pnpm test` also runs
+      # the script and Rust workspace suites, which this job cannot run.
       - name: Test bindings
         run: |
           docker run --rm -e CI=true -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c "
             corepack enable && corepack prepare pnpm@11.20.0 --activate &&
             pnpm install --frozen-lockfile &&
-            pnpm run test --filter @stylexswc/rs-compiler --only
+            pnpm exec turbo run test --filter @stylexswc/rs-compiler --only
           "
       - name: Save turbo build cache
         if: always()

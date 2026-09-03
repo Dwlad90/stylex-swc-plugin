@@ -177,7 +177,7 @@ describe('the runs the mask blanks', () => {
   test('holds up over a source of ten thousand runs of each kind', () => {
     const source = Array.from(
       { length: 10_000 },
-      index => `  let a${index} = f("v(${index}", '(', /* ( */ r#"r(${index}"#); // ( \n`
+      (_, index) => `  let a${index} = f("v(${index}", '(', /* ( */ r#"r(${index}"#); // ( \n`
     ).join('');
 
     const { literals, nonCode } = scanRustText(source);

@@ -21,6 +21,7 @@ import {
   enclosingCallees,
   enclosingOpener,
   findCallSites,
+  literalAfter,
   literalsBetween,
   scanRustTestFiles,
   testBlocks,
@@ -156,9 +157,15 @@ export function harvestCorpus(options: HarvestOptions): DeclarationEntry[] {
 
   const collected: DeclarationEntry[] = [];
   for (const file of files) {
-    collected.push(...extractPropertyValueCalls(file));
+    // Found once per file and read by both shapes that need them. Shape 1
+    // reads each call's own arguments and shape 2 reads the property off the
+    // first call in a block, and searching the file again for every block cost
+    // the file length once per block.
+    const subjects = subjectCallSites(file);
+
+    collected.push(...extractPropertyValueCalls(file, subjects));
     collected.push(...extractRejectionTables(file));
-    collected.push(...extractCaseTables(file));
+    collected.push(...extractCaseTables(file, subjects));
     collected.push(...extractRuleLiterals(file));
     collected.push(...extractStyleObjects(file));
   }
@@ -236,25 +243,39 @@ const SUBJECT_CALLS = new Set<string>([...PROPERTY_VALUE_CALLS, 'rejects']);
  * each other. Between them these are the bulk of the value-normalization unit
  * tests.
  */
-function extractPropertyValueCalls(file: ScannedFile): DeclarationEntry[] {
+function extractPropertyValueCalls(file: ScannedFile, subjects: number[]): DeclarationEntry[] {
   const entries: DeclarationEntry[] = [];
 
-  for (const name of PROPERTY_VALUE_CALLS) {
-    const open = `${name}(`;
-    for (const callStart of findCallSites(file.masked, open)) {
-      const argsStart = callStart + open.length;
-      const args = literalsBetween(
-        file,
-        argsStart,
-        argsStart + ARGUMENT_WINDOW.propertyValueCall
-      ).slice(0, 2);
-      if (args.length !== 2) continue;
-      if (!argumentsAreAdjacent(file, argsStart, args[0]!, args[1]!)) continue;
-      entries.push(entry(args[0]!.value, args[1]!.value, `${file.relativePath}:${args[0]!.line}`));
-    }
+  for (const argsStart of subjects) {
+    const args = literalsBetween(
+      file,
+      argsStart,
+      argsStart + ARGUMENT_WINDOW.propertyValueCall
+    ).slice(0, 2);
+    if (args.length !== 2) continue;
+    if (!argumentsAreAdjacent(file, argsStart, args[0]!, args[1]!)) continue;
+    entries.push(entry(args[0]!.value, args[1]!.value, `${file.relativePath}:${args[0]!.line}`));
   }
 
   return entries;
+}
+
+/**
+ * Where the arguments of every call that takes a declaration start, in source
+ * order.
+ *
+ * Located on `masked`, so a call-shaped spelling inside a CSS value literal
+ * cannot be read as a call.
+ */
+function subjectCallSites(file: ScannedFile): number[] {
+  const sites: number[] = [];
+
+  for (const name of PROPERTY_VALUE_CALLS) {
+    const open = `${name}(`;
+    for (const at of findCallSites(file.masked, open)) sites.push(at + open.length);
+  }
+
+  return sites.toSorted((a, b) => a - b);
 }
 
 /**
@@ -345,11 +366,15 @@ function extractRejectionTables(file: ScannedFile): DeclarationEntry[] {
  * array of values; expected outputs are deliberately not harvested, since the
  * point of the harness is to derive them from the reference compiler.
  */
-function extractCaseTables(file: ScannedFile): DeclarationEntry[] {
+function extractCaseTables(file: ScannedFile, subjects: number[]): DeclarationEntry[] {
   const entries: DeclarationEntry[] = [];
 
   for (const block of testBlocks(file.masked)) {
-    const argsStart = firstSubjectCall(file, block);
+    // Any of the calls that take a declaration names the property a looped
+    // table applies to. `refuses_with("color", value, …)` is the shape a table
+    // of degenerate values takes, and reading only the compiler entry point
+    // left every one of those values out of the corpus.
+    const argsStart = subjects.find(site => site > block.start && site < block.end);
     if (argsStart === undefined) continue;
 
     const property = literalsBetween(
@@ -365,8 +390,8 @@ function extractCaseTables(file: ScannedFile): DeclarationEntry[] {
     const afterProperty = file.source.slice(property.end, property.end + ADJACENCY_LOOKAHEAD);
     if (/^\s*,\s*(r#*)?"/.test(afterProperty)) continue;
 
-    for (const literal of file.literals) {
-      if (literal.start < block.start || literal.end > block.end) continue;
+    for (const literal of literalsBetween(file, block.start, block.end)) {
+      if (literal.end > block.end) continue;
       if (isSubjectArgument(file, literal)) continue;
       if (!isValueLiteral(file, literal)) continue;
       if (!isTableInput(file, literal)) continue;
@@ -375,34 +400,6 @@ function extractCaseTables(file: ScannedFile): DeclarationEntry[] {
   }
 
   return entries;
-}
-
-/**
- * Where the arguments of the block's first subject call start, or `undefined`
- * where the block calls none.
- *
- * Any of the calls that take a declaration names the property a looped table
- * applies to. `refuses_with("color", value, …)` is the shape a table of
- * degenerate values takes, and reading only `normalize_css_property_value`
- * left every one of those values out of the corpus.
- *
- * Located on `masked`, so a call-shaped spelling inside a CSS value literal
- * cannot be read as a call.
- */
-function firstSubjectCall(
-  file: ScannedFile,
-  block: { start: number; end: number }
-): number | undefined {
-  let earliest: number | undefined;
-
-  for (const name of PROPERTY_VALUE_CALLS) {
-    const open = `${name}(`;
-    const at = file.masked.indexOf(open, block.start);
-    if (at === -1 || at >= block.end) continue;
-    if (earliest === undefined || at < earliest) earliest = at + open.length;
-  }
-
-  return earliest;
 }
 
 /**
@@ -434,8 +431,7 @@ function isTableInput(file: ScannedFile, literal: RustLiteral): boolean {
   const opener = enclosingOpener(file.masked, literal.start);
   if (opener === -1) return false;
   if (file.masked[opener] === '[') return true;
-  const first = file.literals.find(candidate => candidate.start > opener);
-  return first?.start === literal.start;
+  return literalAfter(file.literals, opener)?.start === literal.start;
 }
 
 /**

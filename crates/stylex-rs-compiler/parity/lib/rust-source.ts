@@ -267,7 +267,39 @@ export function literalsBetween(file: ScannedFile, start: number, end: number): 
 
 /** The same range, over literals a caller scanned rather than a whole file. */
 function literalsWithin(literals: RustLiteral[], start: number, end: number): RustLiteral[] {
-  return literals.filter(literal => literal.start >= start && literal.start < end);
+  const found: RustLiteral[] = [];
+  for (let i = firstFrom(literals, start); i < literals.length; i += 1) {
+    const literal = literals[i]!;
+    if (literal.start >= end) break;
+    found.push(literal);
+  }
+  return found;
+}
+
+/** The first literal that starts after `offset`, or `undefined` where none does. */
+export function literalAfter(literals: RustLiteral[], offset: number): RustLiteral | undefined {
+  return literals[firstFrom(literals, offset + 1)];
+}
+
+/**
+ * Index of the first literal that starts at or after `offset`.
+ *
+ * A binary search, because the literals of a file are in source order and
+ * never overlap. Read from the head instead, every reader of one range costs
+ * the literals in the whole file — and one generated table holds thousands of
+ * them, which is the square of a number that grows with the suites.
+ */
+function firstFrom(literals: RustLiteral[], offset: number): number {
+  let low = 0;
+  let high = literals.length;
+
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if (literals[mid]!.start < offset) low = mid + 1;
+    else high = mid;
+  }
+
+  return low;
 }
 
 /**

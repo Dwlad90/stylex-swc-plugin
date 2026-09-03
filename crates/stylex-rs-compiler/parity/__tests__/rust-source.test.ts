@@ -1,7 +1,12 @@
 import { describe, expect, test } from 'vitest';
 
-import { scanRustText } from '../lib/rust-literals.js';
-import { enclosingCallees, maskNonCode, phfSetMembers } from '../lib/rust-source.js';
+import { scanRustText, type RustLiteral } from '../lib/rust-literals.js';
+import { enclosingCallees, literalAfter, maskNonCode, phfSetMembers } from '../lib/rust-source.js';
+
+/** The string literals of a source, which is the list a range is read from. */
+function literalsOfSource(source: string): RustLiteral[] {
+  return scanRustText(source).literals;
+}
 
 /**
  * The calls enclosing `needle`, which each case marks its offset with.
@@ -265,5 +270,66 @@ describe('reading the calls that enclose an offset', () => {
     const source = `assert!(${'a, '.repeat(400)}NEEDLE);`;
 
     expect(enclosingCallees(source, source.indexOf('NEEDLE'))).toStrictEqual([]);
+  });
+});
+
+/**
+ * Finding the literal after an offset, which every reader of a range starts
+ * from.
+ *
+ * A binary search over a list a scan used to read from the head. The cases
+ * below are the ends a search gets wrong — the offset before the first
+ * literal, on a literal's own start, between two, and past the last — and one
+ * differential case that asks the same question of a naive scan twenty
+ * thousand times over.
+ */
+describe('finding the literal after an offset', () => {
+  test('answers the first literal that starts after the offset', () => {
+    const source = 'f("a", "b", "c")';
+    const literals = literalsOfSource(source);
+
+    expect(literalAfter(literals, 0)?.value).toBe('a');
+    expect(literalAfter(literals, source.indexOf('"a"'))?.value).toBe('b');
+    expect(literalAfter(literals, source.indexOf('"b"'))?.value).toBe('c');
+  });
+
+  test('an offset on a literal start does not answer that literal', () => {
+    // The question is what comes *after*, which is what a tuple row asks: the
+    // literal after the `(` is the row's input, and the `(` may itself be the
+    // offset of something already read.
+    const source = 'f("a", "b")';
+    const literals = literalsOfSource(source);
+
+    expect(literalAfter(literals, literals[0]!.start)?.value).toBe('b');
+  });
+
+  test('answers nothing past the last literal, and nothing for an empty list', () => {
+    const literals = literalsOfSource('f("a")');
+
+    expect(literalAfter(literals, 1_000)).toBeUndefined();
+    expect(literalAfter([], 0)).toBeUndefined();
+    expect(literalAfter(literals, Number.MAX_SAFE_INTEGER)).toBeUndefined();
+  });
+
+  test('a negative offset answers the first literal', () => {
+    expect(literalAfter(literalsOfSource('f("a")'), -1)?.value).toBe('a');
+  });
+
+  test('agrees with a scan at every offset of a twenty-thousand-literal source', () => {
+    // The scan is the independent answer. A binary search over a list that is
+    // not ordered, or an off-by-one at either bound, disagrees here.
+    const source = Array.from({ length: 20_000 }, (_, index) => `f("v${index}");`).join('\n');
+    const literals = literalsOfSource(source);
+    expect(literals).toHaveLength(20_000);
+
+    const scan = (offset: number): RustLiteral | undefined =>
+      literals.find(literal => literal.start > offset);
+
+    for (const literal of literals) {
+      expect(literalAfter(literals, literal.start)).toBe(scan(literal.start));
+      expect(literalAfter(literals, literal.end)).toBe(scan(literal.end));
+    }
+    expect(literalAfter(literals, -1)).toBe(scan(-1));
+    expect(literalAfter(literals, source.length)).toBe(scan(source.length));
   });
 });

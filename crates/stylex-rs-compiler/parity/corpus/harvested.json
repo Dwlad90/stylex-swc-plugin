@@ -4314,7 +4314,7 @@
       "id": "23aca018",
       "property": "width",
       "value": "calc(1px);height:2px",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:641"
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:633"
     },
     {
       "id": "9b5bf623",

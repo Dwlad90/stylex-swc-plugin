@@ -8,7 +8,7 @@ use swc_core::{
 
 use crate::ast::convertors::{convert_wtf8_to_atom, create_number_expr};
 use crate::ast::factories::create_ident;
-use crate::ast::objects::{assign_props, order_own_keys, remove_duplicates};
+use crate::ast::objects::{assign_props, order_own_keys, order_own_map_keys, remove_duplicates};
 
 fn make_kv_prop(key: &str, val: f64) -> PropOrSpread {
   PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
@@ -165,6 +165,32 @@ fn keys_of(props: &[PropOrSpread]) -> Vec<String> {
       },
       PropOrSpread::Spread(_) => String::from("<spread>"),
     })
+    .collect()
+}
+
+/// The number each property holds, in the order the properties come out.
+fn values_of(props: &[PropOrSpread]) -> Vec<f64> {
+  pairs_of(props)
+    .into_iter()
+    .map(|(_, value)| value)
+    .collect()
+}
+
+/// Each property's key beside the number it holds, so a test can prove a value
+/// travelled with the key it was written under.
+fn pairs_of(props: &[PropOrSpread]) -> Vec<(String, f64)> {
+  keys_of(props)
+    .into_iter()
+    .zip(props.iter().map(|prop| match prop {
+      PropOrSpread::Prop(prop) => match prop.as_ref() {
+        Prop::KeyValue(kv) => match kv.value.as_ref() {
+          Expr::Lit(Lit::Num(number)) => number.value,
+          _ => f64::NAN,
+        },
+        _ => f64::NAN,
+      },
+      PropOrSpread::Spread(_) => f64::NAN,
+    }))
     .collect()
 }
 
@@ -513,5 +539,285 @@ mod order_own_keys_tests {
   #[test]
   fn handles_no_properties_at_all() {
     assert!(order_own_keys(vec![]).is_empty());
+  }
+
+  #[test]
+  fn a_number_key_orders_exactly_as_the_name_it_spells() {
+    // The reorder reads a number key as a number rather than rendering it, so
+    // every reading has to agree with the string the language spells. Each pair
+    // below is the number and that string; both lists have to come out the same
+    // way round.
+    let cases: Vec<(f64, &str)> = vec![
+      (0.0, "0"),
+      // `-0` names the property `0`, as `String(-0)` gives.
+      (-0.0, "0"),
+      (1000.0, "1000"),
+      (4294967294.0, "4294967294"),
+      // One past the last index, so a string key.
+      (4294967295.0, "4294967295"),
+      (4294967296.0, "4294967296"),
+      (1.5, "1.5"),
+      (-1.0, "-1"),
+      (1e21, "1e+21"),
+      (f64::NAN, "NaN"),
+      (f64::INFINITY, "Infinity"),
+    ];
+
+    for (number, name) in cases {
+      let by_number = order_own_keys(vec![
+        make_kv_prop("last", 1.0),
+        make_kv_num_key_prop(number, 2.0),
+      ]);
+      let by_name = order_own_keys(vec![
+        make_kv_prop("last", 1.0),
+        make_kv_str_key_prop(name, 2.0),
+      ]);
+
+      // Compared by the value each property carries rather than by its key:
+      // Rust renders the key `-0` as `-0` where the language renders it `0`,
+      // and the question here is where the property lands, not how a test
+      // helper spells it.
+      assert_eq!(
+        values_of(&by_number),
+        values_of(&by_name),
+        "the number {} and the name {} order differently",
+        number,
+        name
+      );
+    }
+  }
+
+  #[test]
+  fn a_big_integer_key_orders_as_the_index_it_spells() {
+    let props = vec![
+      make_kv_prop("color", 1.0),
+      make_bigint_obj_prop(3, vec![]),
+      make_kv_str_key_prop("1", 3.0),
+    ];
+
+    assert_eq!(keys_of(&order_own_keys(props)), vec!["1", "3", "color"]);
+  }
+
+  #[test]
+  fn a_shorthand_property_named_by_digits_is_an_index() {
+    // A shorthand carries its name in the identifier, and the reorder has to
+    // read it there as well as in a key-value key.
+    let props = vec![make_kv_prop("a", 1.0), make_shorthand_prop("0")];
+
+    assert_eq!(keys_of(&order_own_keys(props)), vec!["0", "a"]);
+  }
+
+  #[test]
+  fn keeps_the_value_beside_its_key_when_the_keys_move() {
+    // The reorder moves whole properties. A sort that moved keys without their
+    // values would still pass every key-only assertion above.
+    let props = vec![
+      make_kv_prop("color", 10.0),
+      make_kv_str_key_prop("1", 11.0),
+      make_kv_str_key_prop("0", 12.0),
+    ];
+
+    assert_eq!(
+      pairs_of(&order_own_keys(props)),
+      vec![
+        ("0".to_string(), 12.0),
+        ("1".to_string(), 11.0),
+        ("color".to_string(), 10.0),
+      ]
+    );
+  }
+
+  #[test]
+  fn orders_a_long_run_of_indices_written_backwards() {
+    // Ten thousand index keys in descending order. The result has to be the
+    // ascending run, which also proves the sort reads the value of a key and
+    // not its spelling -- `10` sorts after `9`, where a text sort puts it first.
+    let count = 10_000u32;
+    let props = (0..count)
+      .rev()
+      .map(|index| make_kv_str_key_prop(&index.to_string(), f64::from(index)))
+      .collect::<Vec<_>>();
+
+    let expected = (0..count)
+      .map(|index| index.to_string())
+      .collect::<Vec<_>>();
+
+    assert_eq!(keys_of(&order_own_keys(props)), expected);
+  }
+
+  #[test]
+  fn holds_a_long_run_of_string_keys_in_place() {
+    // The same size with one index key at the end, so the sort does run. Every
+    // other key has to come out in the order it was written.
+    let count = 10_000usize;
+    let mut props = (0..count)
+      .map(|position| make_kv_prop(&format!("k{}", position), position as f64))
+      .collect::<Vec<_>>();
+
+    props.push(make_kv_str_key_prop("7", 7.0));
+
+    let mut expected = vec!["7".to_string()];
+    expected.extend((0..count).map(|position| format!("k{}", position)));
+
+    assert_eq!(keys_of(&order_own_keys(props)), expected);
+  }
+}
+
+mod order_own_map_keys_tests {
+  use indexmap::IndexMap;
+
+  use super::*;
+
+  /// The map the namespace reader hands over: an ordered map keyed by name.
+  fn map_of(names: &[&str]) -> IndexMap<String, usize> {
+    names
+      .iter()
+      .enumerate()
+      .map(|(position, name)| ((*name).to_string(), position))
+      .collect()
+  }
+
+  fn ordered_names(map: &IndexMap<String, usize>) -> Vec<String> {
+    map.keys().cloned().collect()
+  }
+
+  fn order(names: &[&str]) -> Vec<String> {
+    let mut map = map_of(names);
+
+    order_own_map_keys(&mut map, |name| Some(name.as_str()));
+
+    ordered_names(&map)
+  }
+
+  #[test]
+  fn puts_every_array_index_first_in_ascending_order() {
+    assert_eq!(
+      order(&["color", "2", "0", "opacity", "1"]),
+      vec!["0", "1", "2", "color", "opacity"]
+    );
+  }
+
+  #[test]
+  fn keeps_the_insertion_order_of_the_string_keys() {
+    assert_eq!(order(&["z", "a", "m"]), vec!["z", "a", "m"]);
+  }
+
+  #[test]
+  fn a_key_that_is_not_the_canonical_spelling_is_a_string_key() {
+    assert_eq!(order(&["00", "1", "01", "+0"]), vec!["1", "00", "01", "+0"]);
+  }
+
+  #[test]
+  fn the_largest_unsigned_value_is_not_an_index() {
+    assert_eq!(
+      order(&["4294967295", "4294967294"]),
+      vec!["4294967294", "4294967295"]
+    );
+  }
+
+  #[test]
+  fn a_key_too_large_for_an_index_is_a_string_key() {
+    assert_eq!(order(&["4294967296", "0"]), vec!["0", "4294967296"]);
+  }
+
+  #[test]
+  fn the_empty_key_is_a_string_key() {
+    assert_eq!(order(&["", "0"]), vec!["0", ""]);
+  }
+
+  #[test]
+  fn a_key_with_no_readable_name_keeps_its_place_among_the_string_keys() {
+    // `name_of` answers nothing for `hidden`, which is what an unreadable key
+    // gives. It ranks with the string keys rather than with the indices.
+    let mut map = map_of(&["a", "hidden", "0"]);
+
+    order_own_map_keys(&mut map, |name| match name.as_str() {
+      "hidden" => None,
+      readable => Some(readable),
+    });
+
+    assert_eq!(ordered_names(&map), vec!["0", "a", "hidden"]);
+  }
+
+  #[test]
+  fn keeps_the_value_beside_its_key() {
+    let mut map = map_of(&["color", "1", "0"]);
+
+    order_own_map_keys(&mut map, |name| Some(name.as_str()));
+
+    assert_eq!(
+      map.into_iter().collect::<Vec<_>>(),
+      vec![
+        ("0".to_string(), 2),
+        ("1".to_string(), 1),
+        ("color".to_string(), 0),
+      ]
+    );
+  }
+
+  #[test]
+  fn leaves_a_map_with_no_index_key_untouched() {
+    assert_eq!(
+      order(&["root", "other", "bar-baz"]),
+      vec!["root", "other", "bar-baz"]
+    );
+  }
+
+  #[test]
+  fn handles_an_empty_map() {
+    let mut map: IndexMap<String, usize> = IndexMap::new();
+
+    order_own_map_keys(&mut map, |name| Some(name.as_str()));
+
+    assert!(map.is_empty());
+  }
+
+  #[test]
+  fn handles_a_single_entry() {
+    assert_eq!(order(&["0"]), vec!["0"]);
+    assert_eq!(order(&["root"]), vec!["root"]);
+  }
+
+  #[test]
+  fn two_keys_that_read_as_the_same_name_keep_their_order() {
+    // Distinct keys can spell one name once `name_of` trims them. They rank
+    // equal, and a stable sort leaves the first one first.
+    let mut map = map_of(&["a1", "0", "a2"]);
+
+    order_own_map_keys(&mut map, |name| Some(&name[..1]));
+
+    assert_eq!(ordered_names(&map), vec!["0", "a1", "a2"]);
+  }
+
+  #[test]
+  fn orders_a_long_run_of_indices_written_backwards() {
+    let count = 10_000u32;
+    let names = (0..count).rev().map(|index| index.to_string());
+    let mut map: IndexMap<String, usize> = names.enumerate().map(|(at, name)| (name, at)).collect();
+
+    order_own_map_keys(&mut map, |name| Some(name.as_str()));
+
+    let expected = (0..count)
+      .map(|index| index.to_string())
+      .collect::<Vec<_>>();
+
+    assert_eq!(ordered_names(&map), expected);
+  }
+
+  #[test]
+  fn holds_a_long_run_of_string_keys_in_place_around_one_index() {
+    let count = 10_000usize;
+    let mut map: IndexMap<String, usize> = (0..count)
+      .map(|position| (format!("k{}", position), position))
+      .collect();
+
+    map.insert("7".to_string(), count);
+
+    order_own_map_keys(&mut map, |name| Some(name.as_str()));
+
+    let mut expected = vec!["7".to_string()];
+    expected.extend((0..count).map(|position| format!("k{}", position)));
+
+    assert_eq!(ordered_names(&map), expected);
   }
 }

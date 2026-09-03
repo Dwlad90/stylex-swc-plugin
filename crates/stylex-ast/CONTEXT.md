@@ -38,7 +38,9 @@ it decides which of two rules at equal specificity wins.
 
 The same order applies to anything else that stands for a JavaScript object,
 whether or not it is a property list. A `create` call's namespace map is one,
-and it reads `array_index_of` directly rather than through `order_own_keys`.
+and `order_own_map_keys` applies the order to it. The two share the rule and not
+the mechanics: a list is split in one pass, and an ordered map, which cannot be
+split where it stands, is sorted.
 _Avoid_: sort keys, property order, key ordering
 
 **Array-index key**:

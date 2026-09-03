@@ -1,7 +1,5 @@
-use std::cmp::Ordering;
-
 use indexmap::IndexMap;
-use stylex_ast::ast::objects::{array_index_of, assign_props};
+use stylex_ast::ast::objects::{assign_props, order_own_map_keys};
 use stylex_css::css::common::get_number_suffix;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
@@ -72,40 +70,6 @@ fn namespace_key_of(key: &Expr) -> Option<&str> {
     Expr::Lit(Lit::Str(name)) => name.value.as_str(),
     _ => None,
   }
-}
-
-/// Reorders an ordered map the way JavaScript enumerates the own keys of the
-/// object it stands for: every array-index name first in ascending numeric
-/// order, then every other name in the order it was inserted.
-///
-/// A `create` call collects its namespaces here rather than through the object
-/// evaluator, so the ordering the evaluator applies inside a style object has to
-/// be applied to the namespace map as well. The order decides which namespace
-/// reaches the emitted object first, and with it the order the rules reach the
-/// stylesheet -- so it decides which of two rules at equal specificity wins.
-///
-/// `order_own_keys` in `stylex-ast` is the same rule over a property list, and
-/// the two share the reading that matters -- `array_index_of`, which is where a
-/// second opinion about `+0` or `01` could do damage. Only the mechanics differ,
-/// because a list is partitioned and an ordered map is sorted where it stands.
-///
-/// The sort runs only where a name is an index, which no ordinary `create` call
-/// has. The scan that decides this is one pass over the names.
-fn order_own_keys_of<K, V>(map: &mut IndexMap<K, V>, index_of: impl Fn(&K) -> Option<u32>) {
-  if !map.keys().any(|key| index_of(key).is_some()) {
-    return;
-  }
-
-  // Stable, so the names that are not indexes keep the order they were written
-  // in. `IndexMap::sort_by` gives that guarantee.
-  map.sort_by(
-    |left, _, right, _| match (index_of(left), index_of(right)) {
-      (Some(left), Some(right)) => left.cmp(&right),
-      (Some(_), None) => Ordering::Less,
-      (None, Some(_)) => Ordering::Greater,
-      (None, None) => Ordering::Equal,
-    },
-  );
 }
 
 /// Prepends a key name to an existing error reason to provide context
@@ -364,12 +328,15 @@ pub fn evaluate_stylex_create_arg(
         }
       }
 
-      order_own_keys_of(&mut result_value, |key| {
-        namespace_key_of(key).and_then(array_index_of)
-      });
+      // A `create` call collects its namespaces here rather than through the
+      // object evaluator, so the ordering the evaluator applies inside a style
+      // object has to be applied to the namespace map too. It decides which
+      // namespace is compiled first, and with it the order whole rule sets
+      // reach the stylesheet.
+      order_own_map_keys(&mut result_value, namespace_key_of);
       // The dynamic functions are a second map over the same names, and their
-      // `@property` rules are emitted in its order, so it takes the same one.
-      order_own_keys_of(&mut fns, |key| array_index_of(key));
+      // `@property` rules are emitted in its order, so it takes the same order.
+      order_own_map_keys(&mut fns, |key| Some(key.as_str()));
 
       Box::new(EvaluateResult {
         confident: true,

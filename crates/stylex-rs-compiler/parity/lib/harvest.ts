@@ -18,6 +18,7 @@
 import { dedupe, entry } from './declaration.js';
 import type { RustLiteral } from './rust-literals.js';
 import {
+  enclosingCallees,
   enclosingOpener,
   findCallSites,
   literalsBetween,
@@ -57,14 +58,81 @@ const ARGUMENT_WINDOW = {
   caseTableProperty: 200,
 } as const;
 
+/**
+ * Callees whose string arguments are not CSS values.
+ *
+ * An assertion or a panic is handed a *message*, a search is handed a *needle*
+ * looked for in output, and a split or a join is handed a *separator*. All
+ * three read exactly as a declaration does — `"width: limit 64, found 65"` is
+ * an assertion message and `", "` is the separator of a `join` — so the
+ * spelling cannot tell them apart. Where the literal was going can.
+ *
+ * A formatting macro is not listed, and that is the whole of the distinction:
+ * `format!` builds both messages and values. The one that is a message is
+ * handed to an assertion, so the chain catches it there; the one that is a
+ * value — `format!("0px 0px {n}px #000")`, a shadow generated per entry — is
+ * handed to the compiler and stays.
+ */
+const NON_VALUE_CALLEES = new Set([
+  'assert!',
+  'assert_eq!',
+  'assert_ne!',
+  'panic!',
+  'contains',
+  'starts_with',
+  'ends_with',
+  'matches',
+  'join',
+  'split',
+]);
+
 /** How far past the property literal an adjacency guard reads. */
 const ADJACENCY_LOOKAHEAD = 40;
+
+/**
+ * What may stand between the property of a rejection table and its slice: the
+ * comma, a borrow, and the name of a macro that builds one.
+ *
+ * Two helpers in the suites are named `rejects`, and they take their arguments
+ * in opposite orders: one is `(property, values, ...)` and the other is
+ * `(value, property, ...)`. Reading the second as the first pairs a value with
+ * a *property* and reports the pair inside out. What tells them apart is the
+ * slice, since only the table form has one — so the `[` must be the argument
+ * after the property rather than the next one anywhere in the file.
+ */
+const BEFORE_THE_SLICE = /^\s*,\s*(?:&\s*)?(?:\w+!)?$/;
+
+/** The call whose argument holds the style objects shape 5 reads. */
+const CREATE_CALLEE = 'stylex.create';
+
+/** The receiver whose calls are handed style objects. */
+const STYLEX_RECEIVER = 'stylex.';
 
 /** The receiver whose call arguments the harvester cannot read. */
 const ENV_RECEIVER = 'stylex.env.';
 
-/** The call whose argument holds the style objects shape 5 reads. */
-const CREATE_CALLEE = 'stylex.create';
+/**
+ * Reserved words a parenthesis can follow, which are never callees.
+ *
+ * `return ({ color: 'red' })` is the arrow body of a dynamic style written the
+ * long way, and the parenthesis after the word is the language's rather than a
+ * call's. Reading `return` as a receiver would drop the style object inside
+ * it.
+ */
+const RESERVED_BEFORE_PARENTHESIS = new Set([
+  'return',
+  'yield',
+  'await',
+  'typeof',
+  'void',
+  'delete',
+  'new',
+  'in',
+  'of',
+  'case',
+  'do',
+  'else',
+]);
 
 const WHITESPACE = /\s/;
 const CALLEE_CHARACTER = /[\w$.]/;
@@ -96,6 +164,21 @@ export function harvestCorpus(options: HarvestOptions): DeclarationEntry[] {
   }
 
   return dedupe(collected.filter(candidate => isDeclarationKey(candidate.property)));
+}
+
+/**
+ * Whether a literal an extractor swept up is a CSS value at all.
+ *
+ * Shapes 1, 6 and 7 read a literal out of a known argument slot, so they know
+ * what they are holding. The two extractors that sweep — a whole `#[test]`
+ * block for shape 2, a whole file for shapes 3 and 4 — do not, and every
+ * message, needle and separator in that text reads as a declaration to them.
+ * Asking who the literal was handed to settles it.
+ */
+function isValueLiteral(file: ScannedFile, literal: RustLiteral): boolean {
+  return !enclosingCallees(file.masked, literal.start).some(callee =>
+    NON_VALUE_CALLEES.has(callee)
+  );
 }
 
 /**
@@ -221,9 +304,13 @@ function extractRejectionTables(file: ScannedFile): DeclarationEntry[] {
     );
     if (property === undefined) continue;
 
-    // The slice ends at the first `]` after the property, so a literal
-    // belonging to a later argument is never read as one of the values.
-    const sliceEnd = file.masked.indexOf(']', property.end);
+    // The slice is the argument after the property, and it ends at its own
+    // `]`, so a literal belonging to a later argument is never read as one of
+    // the values.
+    const sliceStart = file.masked.indexOf('[', property.end);
+    if (sliceStart === -1) continue;
+    if (!BEFORE_THE_SLICE.test(file.source.slice(property.end, sliceStart))) continue;
+    const sliceEnd = file.masked.indexOf(']', sliceStart);
     if (sliceEnd === -1) continue;
 
     for (const value of rest) {
@@ -278,6 +365,7 @@ function extractCaseTables(file: ScannedFile): DeclarationEntry[] {
     for (const literal of file.literals) {
       if (literal.start < block.start || literal.end > block.end) continue;
       if (literal.start === property.start) continue;
+      if (!isValueLiteral(file, literal)) continue;
       if (!isTableInput(file, literal)) continue;
       entries.push(entry(property.value, literal.value, `${file.relativePath}:${literal.line}`));
     }
@@ -317,10 +405,10 @@ function extractRuleLiterals(file: ScannedFile): DeclarationEntry[] {
     const rule = /^\*\s*\{\{?\s*(--[\w-]+|[\w-]+)\s*:\s*([\s\S]*?)\s*;?\s*\}\}?$/.exec(
       literal.value
     );
-    if (rule !== null) {
-      entries.push(entry(rule[1]!, rule[2]!, `${file.relativePath}:${literal.line}`));
-      continue;
-    }
+    // Asked of the few literals that spell a rule rather than of every literal
+    // in the file, since reading the shape is much the cheaper question.
+    if (rule === null || !isValueLiteral(file, literal)) continue;
+    entries.push(entry(rule[1]!, rule[2]!, `${file.relativePath}:${literal.line}`));
   }
 
   return entries;
@@ -346,14 +434,8 @@ function extractStyleObjects(file: ScannedFile): DeclarationEntry[] {
 
   for (const literal of file.literals) {
     if (!literal.value.includes(`${CREATE_CALLEE}(`)) continue;
-    const calls = createCallRanges(literal.value);
+    const { calls, enclosing, preceding, closers } = scanFixture(literal.value);
     if (calls.length === 0) continue;
-
-    // Only paid for by a fixture that reads `stylex.env`, which is a handful of
-    // the transform tests rather than all of them.
-    const enclosing = literal.value.includes('stylex.env.')
-      ? enclosingBraces(literal.value)
-      : undefined;
 
     const declaration =
       /(--[\w-]+|'[^'\n]+'|"[^"\n]+"|[A-Za-z][A-Za-z0-9]*)\s*:\s*('([^'\\\n]|\\.)*'|"([^"\\\n]|\\.)*")/g;
@@ -368,21 +450,20 @@ function extractStyleObjects(file: ScannedFile): DeclarationEntry[] {
       const property = unquote(match[1]!);
       const value = unquote(match[2]!);
       if (!isCssProperty(property)) continue;
-      if (enclosing !== undefined && isEnvArgumentKey(literal.value, enclosing, match.index))
-        continue;
+      if (!isPropertyKey(literal.value, preceding, match.index)) continue;
+      if (isCallArgumentKey(literal.value, enclosing, match.index)) continue;
+      if (isLookupKey(literal.value, enclosing, closers, match.index)) continue;
       // A JavaScript-style interpolation is skipped because the value it stands
       // for is not in the source; a *Rust* format placeholder is not skipped,
       // and deliberately.
       //
-      // Twelve harvested values carry one -- `calc({deep})`,
-      // `0px 0px {n}px #000`, and message templates such as
-      // ``normalizing `color: {expected}` ``. They read as noise, and it is
-      // tempting to filter them, but ten of the twelve are
-      // `acceptance-divergent` and every one of those is pinned by the
-      // declaration-terminating token family *on its merits*: a `{` in a value
-      // really would close the rule being generated, the guard really does refuse
-      // it, and the reference compiler really does emit it. They are degenerate
-      // subjects and honest members of that family.
+      // A handful of harvested values carry one -- `calc({deep})`,
+      // `0px 0px {n}px #000`, `rgb({channel}, 0, 0)`. They read as noise, and
+      // it is tempting to filter them, but they are `acceptance-divergent` and
+      // pinned by the declaration-terminating token family *on its merits*: a
+      // `{` in a value really would close the rule being generated, the guard
+      // really does refuse it, and the reference compiler really does emit it.
+      // They are degenerate subjects and honest members of that family.
       //
       // Filtering on `{word}` would also drop
       // `url("a;b{c}d: e /* f */")`, which is an authored test value where the
@@ -432,33 +513,78 @@ function skipNonCode(js: string, i: number): number {
 }
 
 /**
- * The argument list of every `stylex.create` call in a JavaScript fixture, as
- * offsets between the call's `(` and the `)` that closes it.
+ * What one pass over a JavaScript fixture tells the key filters.
  *
- * One forward pass with a parenthesis counter, over code only, so that a
- * parenthesis in a value or a comment — `url(a.png)` is an authored test value
- * — cannot close the call early. A fixture with two calls gets two ranges, and
- * a call nested in another stays inside the outer one.
- *
- * A call the fixture never closes yields no range. That loses the declarations
- * it holds, which is the safe way round: reading to the end of the text would
- * take in every object after the call, which is what bounding the scan exists
- * to stop.
+ * Both answers come from the same walk because both need the same thing: a
+ * brace, a parenthesis or a quote written in a value or a comment is not code,
+ * and counting one puts every offset after it out of step. Reading the text
+ * twice to step over it twice would be the only difference.
  */
-function createCallRanges(js: string): CallRange[] {
-  const ranges: CallRange[] = [];
+interface FixtureScan {
+  /**
+   * The argument list of every `stylex.create` call, as offsets between the
+   * call's `(` and the `)` that closes it.
+   *
+   * A fixture with two calls gets two ranges, and a call nested in another
+   * stays inside the outer one. A call the fixture never closes yields no
+   * range. That loses the declarations it holds, which is the safe way round:
+   * reading to the end of the text would take in every object after the call,
+   * which is what bounding the scan exists to stop.
+   */
+  calls: CallRange[];
+  /**
+   * For every offset, the offset of the innermost `{` still open there, or
+   * `-1` where none is. Answering by walking backwards from each key would
+   * re-read the same text once per key.
+   */
+  enclosing: Int32Array;
+  /**
+   * For every offset, the offset of the nearest code character in front of it
+   * that is not whitespace, or `-1` where there is none. This is what says
+   * whether a pair sits where an object writes a key, and it answers over code
+   * so that a comment written between the brace and the key it opens for does
+   * not hide the key.
+   */
+  preceding: Int32Array;
+  /** For each `{` the fixture closes, the offset of the `}` that closes it. */
+  closers: Map<number, number>;
+}
+
+function scanFixture(js: string): FixtureScan {
+  const calls: CallRange[] = [];
+  const enclosing = new Int32Array(js.length);
+  const preceding = new Int32Array(js.length);
+  const closers = new Map<number, number>();
+  const open: number[] = [];
   let depth = OUTSIDE_CALL;
   let start = 0;
+  let last = -1;
 
   for (let i = 0; i < js.length; i += 1) {
     const skipped = skipNonCode(js, i);
     if (skipped !== -1) {
+      enclosing.fill(open.at(-1) ?? -1, i, skipped);
+      // A string, a template and a comment all answer with whatever preceded
+      // them: the delimiters go with the body, so a value does not become the
+      // code character in front of the key after it.
+      preceding.fill(last, i, skipped);
       i = skipped - 1;
       continue;
     }
 
+    // Popped before the offset is recorded, so a `}` reads as being inside the
+    // block that encloses the one it closes.
     const char = js[i]!;
-    if (char === '(') {
+    if (char === '}') {
+      const opened = open.pop();
+      if (opened !== undefined) closers.set(opened, i);
+    }
+    enclosing[i] = open.at(-1) ?? -1;
+    preceding[i] = last;
+    if (!WHITESPACE.test(char)) last = i;
+
+    if (char === '{') open.push(i);
+    else if (char === '(') {
       if (depth !== OUTSIDE_CALL) depth += 1;
       else if (isCreateCallee(js, i)) {
         depth = 0;
@@ -466,13 +592,13 @@ function createCallRanges(js: string): CallRange[] {
       }
     } else if (char === ')' && depth !== OUTSIDE_CALL) {
       if (depth === 0) {
-        ranges.push({ start, end: i });
+        calls.push({ start, end: i });
         depth = OUTSIDE_CALL;
       } else depth -= 1;
     }
   }
 
-  return ranges;
+  return { calls, enclosing, preceding, closers };
 }
 
 /**
@@ -480,7 +606,7 @@ function createCallRanges(js: string): CallRange[] {
  *
  * The name must start the member chain. A chain that merely ends in it — an
  * `options.stylex.create` — names a different receiver, the same distinction
- * the environment guard below draws.
+ * the call-argument guard below draws.
  */
 function isCreateCallee(js: string, paren: number): boolean {
   if (!js.endsWith(CREATE_CALLEE, paren)) return false;
@@ -489,24 +615,82 @@ function isCreateCallee(js: string, paren: number): boolean {
 }
 
 /**
- * Whether a key belongs to the object a `stylex.env` function is called with.
+ * Whether the offset `at` is where an object writes a key.
+ *
+ * A key is preceded by the `{` that opens its object or by the comma after the
+ * key before it. Nothing else in JavaScript puts a `name: value` pair there —
+ * so a ternary, whose alternative reads the same, is not one:
+ *
+ * ```js
+ * backgroundColor: isDark ? 'black' : 'white',
+ * fontFamily: `a${NaN ? 'b' : 'c'}d`,
+ * ```
+ *
+ * `'black': 'white'` and `'b': 'c'` are the branches of a choice, and asking
+ * both compilers what `black: white` means says nothing about CSS. The same
+ * test settles a numeric key: `1e21: 'a'` offers `e21` as a name, and what
+ * precedes it there is the rest of the number rather than a comma.
+ */
+function isPropertyKey(js: string, preceding: Int32Array, at: number): boolean {
+  const char = js[preceding[at] ?? -1];
+  return char === '{' || char === ',';
+}
+
+/**
+ * Whether a key belongs to an object the fixture indexes rather than reads.
+ *
+ * ```js
+ * outline: { true: 'red', false: 'blue' }[String(!!opt?.isPressed)]
+ * ```
+ *
+ * The pairs are the rows of a lookup table and the key is the value being
+ * looked up, so `true: red` is a declaration about nothing. What says so is
+ * the `[` after the closing brace: a style object is read whole, never
+ * subscripted. Reading the shape rather than the spelling is what keeps this
+ * from becoming a list of the words a lookup happens to use as keys.
+ */
+function isLookupKey(
+  js: string,
+  enclosing: Int32Array,
+  closers: Map<number, number>,
+  at: number
+): boolean {
+  const brace = enclosing[at] ?? -1;
+  const close = closers.get(brace);
+  if (close === undefined) return false;
+
+  let after = close + 1;
+  while (after < js.length && WHITESPACE.test(js[after]!)) after += 1;
+  return js[after] === '[';
+}
+
+/**
+ * Whether a key belongs to an object handed straight to a call.
  *
  * ```js
  * color: stylex.env.select({ primary: 'red', secondary: 'blue' }, 'secondary')
+ * root: { color: String({ toString: 'notfn' }) }
  * ```
  *
- * `primary` and `secondary` name branches for the function to choose between.
- * The whole object is skipped, not only the selector-shaped keys in it, because
- * what a key means there is decided by the environment function the test
- * supplies. `colors({ color: 'yellow' })` spells a property and
- * `select({ primary: 'red' })` spells a branch name. The source cannot tell the
- * two apart.
+ * `primary` and `secondary` name branches for the function to choose between,
+ * and `toString` names the method the argument is meant to be missing. Neither
+ * object is a style object, and what says so is the call in front of it.
  *
- * Only the object handed *directly* to the call is skipped. A branch body such
- * as `select({ compact: { padding: '4px' } }, 'compact')` sits one brace deeper
- * and is an ordinary style object, so `padding` is still harvested.
+ * Two callees are handed one and keep their keys. `stylex.positionTry({ top:
+ * '0' })` is the API taking a style object by design, and an arrow body —
+ * `root: () => ({ color: 'red' })`, whose `({` is a parenthesis with no callee
+ * in front of it — is a style object the language merely parenthesizes.
+ * Anything else the fixture calls owns its argument, and `stylex.env` is the
+ * exception inside the API: what a key means there is decided by the
+ * environment function the test supplies, since `colors({ color: 'yellow' })`
+ * spells a property and `select({ primary: 'red' })` spells a branch name, and
+ * the source cannot tell the two apart.
+ *
+ * Only the object handed *directly* to a call is skipped. A branch body such
+ * as `select({ compact: { padding: '4px' } }, 'compact')` sits one brace
+ * deeper and is an ordinary style object, so `padding` is still harvested.
  */
-function isEnvArgumentKey(js: string, enclosing: Int32Array, at: number): boolean {
+function isCallArgumentKey(js: string, enclosing: Int32Array, at: number): boolean {
   const brace = enclosing[at] ?? -1;
   if (brace === -1) return false;
 
@@ -518,48 +702,22 @@ function isEnvArgumentKey(js: string, enclosing: Int32Array, at: number): boolea
   if (js[paren - 1] !== '(') return false;
 
   // Then back over the callee, which is what says whose object this is. The
-  // dots come with it, so a chain that merely ends in the same name — an
-  // `options.stylex.env.select` — reads as the different receiver it is.
-  let callee = paren - 1;
-  while (callee > 0 && CALLEE_CHARACTER.test(js[callee - 1]!)) callee -= 1;
+  // dots come with it, so a chain that merely ends in the API's name — an
+  // `options.stylex.positionTry` — reads as the different receiver it is. The
+  // whitespace in front of the chain comes off first, since a space between a
+  // name and its parenthesis does not stop it being a call.
+  let end = paren - 1;
+  while (end > 0 && WHITESPACE.test(js[end - 1]!)) end -= 1;
+  let start = end;
+  while (start > 0 && CALLEE_CHARACTER.test(js[start - 1]!)) start -= 1;
 
   // A spread writes three dots in front of the call, and a member chain never
   // writes two in a row, so a leading run of them belongs to the spread.
-  while (js[callee] === '.') callee += 1;
+  while (js[start] === '.') start += 1;
 
-  return js.slice(callee, paren - 1).startsWith(ENV_RECEIVER);
-}
-
-/**
- * For every offset in a JavaScript fixture, the offset of the innermost `{`
- * still open there, or `-1` where none is.
- *
- * One forward pass with a stack, over code only, so that a brace in a value or
- * a comment — `url("a;b{c}d")` is an authored test value — cannot open a block
- * and put every offset after it out of step. Answering by walking backwards
- * from each key would re-read the same text once per key.
- */
-function enclosingBraces(js: string): Int32Array {
-  const enclosing = new Int32Array(js.length);
-  const open: number[] = [];
-
-  for (let i = 0; i < js.length; i += 1) {
-    const skipped = skipNonCode(js, i);
-    if (skipped !== -1) {
-      enclosing.fill(open.at(-1) ?? -1, i, skipped);
-      i = skipped - 1;
-      continue;
-    }
-
-    // Popped before the offset is recorded, so a `}` reads as being inside the
-    // block that encloses the one it closes.
-    const char = js[i]!;
-    if (char === '}') open.pop();
-    enclosing[i] = open.at(-1) ?? -1;
-    if (char === '{') open.push(i);
-  }
-
-  return enclosing;
+  const callee = js.slice(start, end);
+  if (callee === '' || RESERVED_BEFORE_PARENTHESIS.has(callee)) return false;
+  return !callee.startsWith(STYLEX_RECEIVER) || callee.startsWith(ENV_RECEIVER);
 }
 
 function unquote(text: string): string {

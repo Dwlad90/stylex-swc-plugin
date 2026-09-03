@@ -555,16 +555,16 @@ directories, and any source with `@generated` in its header comment. The second
 is what keeps the chain below from closing into a loop, since `cases.rs` spells
 its inputs as CSS rules and would otherwise harvest the corpus back into itself.
 
-| Shape | Written as                                                      | What is taken                                                   |
-| ----- | --------------------------------------------------------------- | --------------------------------------------------------------- |
-| 1     | `normalize_css_property_value("color", "red", &opts)`           | both literals                                                   |
-| 2     | a case table looped through one property                        | the first element of each row, or each element of a flat array  |
-| 3     | `"* {{ transitionProperty: opacity; }}"`                        | the declaration inside the rule                                 |
-| 4     | `"*{color:red}"`                                                | the same, minified                                              |
-| 5     | a `stylex.create` object in a transform fixture                 | every declaration in the call argument, less a `stylex.env` one |
-| 6     | `unchanged("color", "red")`, `same("color", "#ff0000", "#f00")` | the property and the **input** only                             |
-| 6a    | `refuses_with("color", "red {", MESSAGE, OTHER)`                | the same, for a value expected to be refused                    |
-| 7     | `rejects("width", &["*(", "/.5 *("], MESSAGE, &opts)`           | the property and every value in the slice                       |
+| Shape | Written as                                                      | What is taken                                                    |
+| ----- | --------------------------------------------------------------- | ---------------------------------------------------------------- |
+| 1     | `normalize_css_property_value("color", "red", &opts)`           | both literals                                                    |
+| 2     | a case table looped through one property                        | the first element of each row, or each element of a flat array   |
+| 3     | `"* {{ transitionProperty: opacity; }}"`                        | the declaration inside the rule                                  |
+| 4     | `"*{color:red}"`                                                | the same, minified                                               |
+| 5     | a `stylex.create` object in a transform fixture                 | every declaration in the call argument that a style object holds |
+| 6     | `unchanged("color", "red")`, `same("color", "#ff0000", "#f00")` | the property and the **input** only                              |
+| 6a    | `refuses_with("color", "red {", MESSAGE, OTHER)`                | the same, for a value expected to be refused                     |
+| 7     | `rejects("width", &["*(", "/.5 *("], MESSAGE, &opts)`           | the property and every value in the slice                        |
 
 **What the gate cannot see.** Every shape above takes a `property`/`value`
 declaration, which is the _value_ a test carries and never the _capability_ it
@@ -603,13 +603,45 @@ arbitrary text that can spell anything:
   quote written in one is text rather than code. A call the fixture never
   closes yields nothing: reading to the end of the text would take in every
   object after it, which is what bounding the scan exists to stop.
-- The object handed **directly** to a `stylex.env` function is not read. In
+- The object handed **directly** to a call is not read, apart from the two
+  that are handed a style object: `stylex.positionTry({ top: '0' })`, which is
+  the API taking one by design, and the parenthesized arrow body of a dynamic
+  style, where a reserved word or nothing stands in front of the `(`.
+  Everything else the fixture calls owns its argument — `String({ toString:
+'notfn' })` names the method the argument is meant to be missing — and
+  `stylex.env` is the exception inside the API: in
   `select({ primary: 'red' }, 'primary')` the key names a branch for the
-  environment function to choose between; in `colors({ color: 'yellow' })` it
-  names a property. What a key means there is decided by the function the test
-  supplies, so the source cannot tell the two apart and the whole object is
-  left alone. A branch body sits one brace deeper and is an ordinary style
-  object, so its declarations are still harvested.
+  environment function to choose between, in `colors({ color: 'yellow' })` it
+  names a property, and the source cannot tell the two apart. A branch body
+  sits one brace deeper and is an ordinary style object, so its declarations
+  are still harvested.
+- An object the fixture **indexes** is a lookup table rather than a style
+  object, since a style object is read whole and never subscripted. In
+  `{ true: 'red', false: 'blue' }[String(!!flag)]` the pairs are rows and the
+  key is the value looked up.
+- A pair is read only where an object **writes a key**, which is after the `{`
+  that opens it or the comma after the key before it. A ternary spells its
+  alternative with the same colon, so `isDark ? 'black' : 'white'` offers
+  `black: white` and a template literal hides one in an interpolated ternary;
+  and a number offers its exponent, `1e21: 'a'` reading as `e21`. The question
+  is answered over code, so a comment in front of a key does not hide it.
+- A literal is read only where it was going to the compiler. The two
+  extractors that sweep — a whole `#[test]` block for shape 2, a whole file for
+  shapes 3 and 4 — see every literal in that text, and an assertion message, a
+  search needle and a list separator all read exactly as a declaration does:
+  `width: limit 64, found 65` is the depth report of the nesting guard and
+  `boxShadow: , ` is the argument of a `join`. So the calls enclosing a literal
+  are read, and an assertion, a panic, a search or a split disqualifies it. A
+  formatting macro does not, because `format!` builds both messages and values;
+  the message it builds reaches an assertion and is caught there. The walk is
+  bounded to the statement and to a window, and it steps over comments and
+  character literals, which masking leaves in place — a `matches('(')` counts
+  a parenthesis that closes nothing.
+- Shape 7 requires the **slice** after the property. Two helpers in the suites
+  are named `rejects` and take their arguments in opposite orders, and reading
+  `rejects(value, property, …)` as the table form reports the pair inside out.
+  The `[` is found structurally, so `&[…]`, `[…]` and `vec![…]` all read as
+  the table they are.
 
 ### The generation chain
 

@@ -74,7 +74,7 @@ export function dedupe(entries: DeclarationEntry[]): DeclarationEntry[] {
   // Keyed on the declaration itself, not on the id derived from it. The id is a
   // 32-bit hash, so keying on it let two *different* declarations collide and
   // one of them vanish from the corpus -- with nothing to show it but a count
-  // nobody checks. At 823 entries the birthday probability is around 1e-4, and
+  // nobody checks. At 798 entries the birthday probability is around 1e-4, and
   // it grows with the square of the harvest.
   //
   // The exact identity was already to hand, and it is the same key the id is

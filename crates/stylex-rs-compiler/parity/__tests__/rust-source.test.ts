@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'vitest';
 
-import { phfSetMembers } from '../lib/rust-source.js';
+import { enclosingCallees, phfSetMembers } from '../lib/rust-source.js';
+
+/** The calls enclosing `needle`, which each case marks its offset with. */
+function calleesAt(source: string, needle: string): string[] {
+  return enclosingCallees(source, source.indexOf(needle));
+}
 
 /**
  * Reading a `phf_set!` out of Rust source, which is how a list the compiler
@@ -157,5 +162,102 @@ ${members.map(member => `  "${member}",`).join('\n')}
 };`;
 
     expect(phfSetMembers(source, 'A')).toStrictEqual(members);
+  });
+});
+
+/**
+ * Reading which calls enclose an offset, which is how an extractor learns
+ * where a literal was going rather than only what it spells.
+ *
+ * The cases are the ways the answer can be plausible and wrong: a call that
+ * closed before the offset, a name that is not a callee at all, and a chain
+ * that reaches past the statement -- the last of which matters because
+ * comments are not masked, so an unclosed bracket written in prose would
+ * otherwise be reported as the caller of everything below it.
+ *
+ * Offsets are taken with `indexOf`, so a case reads as the source does.
+ */
+describe('reading the calls that enclose an offset', () => {
+  test('names the call whose argument list the offset is in', () => {
+    expect(calleesAt('assert!(message.contains(NEEDLE));', 'NEEDLE')).toStrictEqual([
+      'contains',
+      'assert!',
+    ]);
+  });
+
+  test('names a macro with the bang that spells it', () => {
+    expect(calleesAt('assert_eq!(actual, MESSAGE);', 'MESSAGE')).toStrictEqual(['assert_eq!']);
+  });
+
+  test('a call that closed before the offset does not enclose it', () => {
+    expect(calleesAt('assert!(first(a) && second(b) == NEEDLE);', 'NEEDLE')).toStrictEqual([
+      'assert!',
+    ]);
+  });
+
+  test('stops at the statement before, so an earlier call is not a caller', () => {
+    expect(calleesAt('let a = join(x);\nlet b = NEEDLE;', 'NEEDLE')).toStrictEqual([]);
+  });
+
+  test('stops at a block boundary, so a closure body is not the call it sits in', () => {
+    expect(calleesAt('catch_unwind(|| { NEEDLE })', 'NEEDLE')).toStrictEqual([]);
+  });
+
+  test('an unclosed bracket in prose is not reported as a caller', () => {
+    // Comments are not masked, so prose that spells a call must be stepped
+    // over or it reads as the caller of the statement under it.
+    expect(calleesAt('// a value such as calc(1px\nlet a = NEEDLE;', 'NEEDLE')).toStrictEqual([]);
+    expect(calleesAt('let a = /* like contains( */ NEEDLE;', 'NEEDLE')).toStrictEqual([]);
+  });
+
+  test('a semicolon in prose does not end the walk', () => {
+    // The bound is a statement boundary in *code*. A comment that spells one
+    // would otherwise hide the assertion the literal is an argument of.
+    expect(
+      calleesAt('assert!(\n  // the guard names both; see the report\n  x == NEEDLE\n);', 'NEEDLE')
+    ).toStrictEqual(['assert!']);
+  });
+
+  test('a bracket in a character literal counts for nothing', () => {
+    // `'('` survives masking, which blanks string literals only. Counting it
+    // cancels the parenthesis that really does close, and the call around it
+    // is then read as one the offset sits inside.
+    expect(calleesAt("let a = x.matches('(').count() + NEEDLE;", 'NEEDLE')).toStrictEqual([]);
+    expect(calleesAt("let a = f(x, ']', NEEDLE);", 'NEEDLE')).toStrictEqual(['f']);
+  });
+
+  test('a lifetime is an apostrophe that opens nothing', () => {
+    expect(calleesAt("fn f(v: &'static str) -> T { g(NEEDLE) }", 'NEEDLE')).toStrictEqual(['g']);
+  });
+
+  test('a closure body ends the walk, so the call around it is not read', () => {
+    // Deliberate: the suites wrap the call under test in
+    // `catch_unwind(AssertUnwindSafe(|| { … }))`, and reading the assertion
+    // outside would drop the value the compiler was actually given.
+    expect(
+      calleesAt('assert!(catch_unwind(|| { normalize(NEEDLE) }).is_err());', 'NEEDLE')
+    ).toStrictEqual(['normalize']);
+  });
+
+  test('a bracket with no name in front of it names no callee', () => {
+    expect(calleesAt('let a = (1 + NEEDLE);', 'NEEDLE')).toStrictEqual([]);
+    expect(calleesAt('let a = &[NEEDLE];', 'NEEDLE')).toStrictEqual([]);
+  });
+
+  test('reads the chain of a call nested a hundred deep', () => {
+    const source = `assert!(${'w('.repeat(100)}NEEDLE${')'.repeat(100)});`;
+
+    expect(enclosingCallees(source, source.indexOf('NEEDLE'))).toHaveLength(101);
+  });
+
+  test('a call further back than the window does not enclose the offset', () => {
+    // A statement has no bound, and a case table is one statement holding
+    // hundreds of rows. Without the window every literal in it would walk
+    // back to the head of the statement, which is the walk once per row. A
+    // literal that outruns the window is kept rather than dropped, which is
+    // the safe way round for a guard.
+    const source = `assert!(${'a, '.repeat(400)}NEEDLE);`;
+
+    expect(enclosingCallees(source, source.indexOf('NEEDLE'))).toStrictEqual([]);
   });
 });

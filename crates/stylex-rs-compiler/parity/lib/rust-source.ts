@@ -165,6 +165,146 @@ export function enclosingOpener(masked: string, index: number): number {
   return -1;
 }
 
+/** A callee name, or the start of one: `assert_eq!`, `contains`, `vec!`. */
+const CALLEE_NAME = /([A-Za-z_]\w*!?)\s*$/;
+
+/** How far behind a bracket its callee name is looked for. */
+const CALLEE_LOOKBEHIND = 64;
+
+/**
+ * How far behind an offset the calls enclosing it are looked for.
+ *
+ * A window rather than the whole statement, because a statement has no bound.
+ * A case table is one statement holding hundreds of rows, none of which closes
+ * it, so every literal in it would walk back to the `let` — which is the walk
+ * repeated once per row, and four times the work for twice the rows.
+ *
+ * Sized to the widest call in the suites with room to spare: the furthest a
+ * callee that disqualifies a literal sits behind it is about a hundred
+ * characters. A literal that outruns the window is harvested rather than
+ * dropped, which is the safe way round for a guard.
+ */
+const CALL_LOOKBEHIND = 512;
+
+/**
+ * The callees of every call whose argument list encloses `index`, innermost
+ * first.
+ *
+ * This is what says where a literal was *going*, which is the one thing the
+ * spelling of a literal cannot say: `"width: limit 64, found 65"` reads as a
+ * declaration and is an assertion message, and `", "` reads as a value and is
+ * the separator of a `join`. An extractor that sweeps a whole block asks this
+ * before it believes a literal.
+ *
+ * The walk stops at the window above and at a `;` or a brace, whichever comes
+ * first. A brace is the coarser of the two bounds: an argument list does cross
+ * one, in the body of a closure, so a literal there reports none of the calls
+ * outside it. That is deliberate. The suites wrap the call under test in
+ * `catch_unwind(AssertUnwindSafe(|| { … }))`, whose literal is the *value* the
+ * compiler is given, and reading the assertion around it would drop every one
+ * of them. What it costs is a message written inside a closure, which stays.
+ */
+export function enclosingCallees(masked: string, index: number): string[] {
+  const from = Math.max(0, index - CALL_LOOKBEHIND);
+  const code = blankOpaque(masked.slice(from, index), opensInLineComment(masked, from));
+
+  const callees: string[] = [];
+  let depth = 0;
+
+  for (let i = code.length - 1; i >= 0; i -= 1) {
+    const char = code[i];
+    const opens = char === '(' || char === '[';
+    const closes = char === ')' || char === ']';
+
+    if (!opens && !closes) {
+      if (depth === 0 && (char === ';' || char === '{' || char === '}')) break;
+      continue;
+    }
+    if (closes) {
+      depth += 1;
+      continue;
+    }
+    // An opener at depth belongs to a call that closed again before the
+    // offset, so the offset is not inside it.
+    if (depth > 0) {
+      depth -= 1;
+      continue;
+    }
+
+    const callee = CALLEE_NAME.exec(code.slice(Math.max(0, i - CALLEE_LOOKBEHIND), i));
+    if (callee !== null) callees.push(callee[1]!);
+  }
+
+  return callees;
+}
+
+/**
+ * Whether the window opens inside a line comment, which the forward scan below
+ * cannot see for itself: the `//` that starts one may sit in front of the
+ * window.
+ *
+ * Looked for inside the window's own length, so that one very long line cannot
+ * make this the walk it was written to avoid. A `//` further back than that on
+ * the same line is not found, and the prose after it reads as code.
+ */
+function opensInLineComment(masked: string, from: number): boolean {
+  const lineStart = masked.lastIndexOf('\n', from) + 1;
+  return masked.slice(Math.max(lineStart, from - CALL_LOOKBEHIND), from).includes('//');
+}
+
+/**
+ * `text` with every comment and character literal blanked, same length.
+ *
+ * Only string literals are masked, and the rest of what a Rust source writes
+ * that is not code carries brackets of its own: `matches('(')` counts a
+ * parenthesis that closes nothing, and a `calc(` or a `;` written in prose
+ * ends or redirects the walk. Both are the same defect as an unmasked string.
+ *
+ * The one text this cannot place is a block comment that opened before the
+ * window. It is a comment holding a bracket, spanning lines, inside an
+ * argument list — which no suite writes.
+ */
+function blankOpaque(text: string, commented: boolean): string {
+  const parts: string[] = [];
+  // A comment the window opened inside runs to the end of its line.
+  let cursor = commented ? text.indexOf('\n') + 1 || text.length : 0;
+  parts.push(' '.repeat(cursor));
+
+  for (let i = cursor; i < text.length; i += 1) {
+    const end = opaqueEnd(text, i);
+    if (end === -1) continue;
+    parts.push(text.slice(cursor, i), ' '.repeat(end - i));
+    cursor = end;
+    i = end - 1;
+  }
+  parts.push(text.slice(cursor));
+
+  return parts.join('');
+}
+
+/**
+ * The offset just past the comment or character literal starting at `i`, or
+ * `-1` where the character there starts neither. An unterminated one runs to
+ * the end of the text.
+ */
+function opaqueEnd(text: string, i: number): number {
+  const char = text[i];
+
+  if (char === '/' && text[i + 1] === '/') {
+    const newline = text.indexOf('\n', i + 2);
+    return newline === -1 ? text.length : newline;
+  }
+  if (char === '/' && text[i + 1] === '*') {
+    const close = text.indexOf('*/', i + 2);
+    return close === -1 ? text.length : close + 2;
+  }
+  // A lifetime — `&'static str` — is an apostrophe that opens nothing, so a
+  // character literal counts only where a closing quote follows the body.
+  if (char !== "'") return -1;
+  const body = text[i + 1] === '\\' ? i + 3 : i + 2;
+  return text[body] === "'" ? body + 1 : -1;
+}
+
 /**
  * Byte offsets of every `name(` occurrence that is a call, not a definition.
  *

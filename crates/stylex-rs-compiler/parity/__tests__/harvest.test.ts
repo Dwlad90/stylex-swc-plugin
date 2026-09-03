@@ -25,6 +25,17 @@ function harvestOf(
   return harvestCorpus({ workspaceRoot: root });
 }
 
+/** One `stylex.create` fixture holding `js` as its namespace map. */
+function fixture(js: string): string {
+  return `
+    stylex_test!(t, |tr| x, r#"
+      const styles = stylex.create({
+        ${js}
+      });
+    "#);
+  `;
+}
+
 /** Just the declarations, which is all a corpus entry means. */
 function declarationsOf(source: string, filename?: string, crate?: string): [string, string][] {
   return harvestOf(source, filename, crate).map(entry => [entry.property, entry.value]);
@@ -311,14 +322,6 @@ describe('shape 5 — the bounds of the call', () => {
 });
 
 describe('shape 5 — objects a stylex.env function is called with', () => {
-  const fixture = (js: string): string => `
-    stylex_test!(t, |tr| x, r#"
-      const styles = stylex.create({
-        ${js}
-      });
-    "#);
-  `;
-
   test('skips the keys of the object handed to the call', () => {
     // `primary` and `secondary` name branches for the environment function to
     // choose between. Asking both compilers what `primary: red` means says
@@ -409,9 +412,11 @@ describe('shape 5 — objects a stylex.env function is called with', () => {
   });
 
   test('a chain that merely ends in the receiver is a different receiver', () => {
+    // Not the API's call, so its argument is the callee's own object rather
+    // than a style object — which is the same answer for the other reason.
     expect(
       declarationsOf(fixture(`root: options.stylex.env.select({ primary: 'red' }, 'primary'),`))
-    ).toEqual([['primary', 'red']]);
+    ).toEqual([]);
   });
 
   test('a bare stylex.env read is not a call, so nothing is skipped for it', () => {
@@ -565,6 +570,44 @@ describe('shape 7 — rejection tables', () => {
       `)
     ).toEqual([]);
   });
+
+  test('reads the slice however the call spells it', () => {
+    // The `[` is looked for structurally rather than matched against one
+    // spelling, so a macro or a borrow in front of it loses no table.
+    for (const slice of ['&["*("]', '["*("]', 'vec!["*("]']) {
+      expect(
+        declarationsOf(`
+        #[test]
+        fn t() {
+          rejects("width", ${slice}, UNCLOSED_FUNCTION);
+        }
+      `)
+      ).toEqual([['width', '*(']]);
+    }
+  });
+
+  // Two helpers in the suites are named `rejects` and take their arguments in
+  // opposite orders. Reading the second as the first reports the pair inside
+  // out, as `calc("a: width` — a value named as the property of a property.
+  test('a helper of the same name taking the value first is not a table', () => {
+    // The slice of a *later* call is what the scan reaches for when the call
+    // in hand has none, which is how `calc("a` came to be named a property.
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          rejects("calc(\\"a", "width", UNCLOSED_FUNCTION);
+        }
+
+        #[test]
+        fn u() {
+          for value in ["1px"] {
+            rejects(value, "color", UNCLOSED_FUNCTION);
+          }
+        }
+      `)
+    ).toEqual([]);
+  });
 });
 
 describe('what the source cannot fabricate', () => {
@@ -612,5 +655,193 @@ describe('identity', () => {
   test('the key separator cannot be forged out of a property and a value', () => {
     // With a printable separator, `("a b", "c")` and `("a", "b c")` collide.
     expect(declarationKey('a b', 'c')).not.toBe(declarationKey('a', 'b c'));
+  });
+});
+
+/**
+ * What a literal spells and what it was for are different questions, and only
+ * the second one settles whether it is a declaration.
+ *
+ * The two extractors that sweep — a whole `#[test]` block for shape 2, a
+ * whole file for shapes 3 and 4 — see every literal in that text, and an
+ * assertion message, a search needle and a list separator all read exactly as
+ * a declaration does. Each case below is a shape that reached the corpus once,
+ * where the pair was a plausible declaration about which no compiler had
+ * anything to say.
+ */
+describe('where a literal was going', () => {
+  test('an assertion message is not a declaration', () => {
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          for value in ["1px"] {
+            let result = normalize_css_property_value("width", value, &opts);
+            assert!(result.is_err(), "expected \`{value}\` to be rejected");
+          }
+        }
+      `)
+    ).toEqual([['width', '1px']]);
+  });
+
+  test('a needle looked for in the output is not a declaration', () => {
+    // `width: limit 64, found 65` is the depth report of the nesting guard.
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          for value in ["1px"] {
+            normalize_css_property_value("width", value, &opts);
+          }
+          assert!(message.contains("limit 64, found 65"));
+        }
+      `)
+    ).toEqual([['width', '1px']]);
+  });
+
+  test('a separator is not a declaration', () => {
+    // `boxShadow: , ` is the argument of the `join` that builds the value.
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          let value = shadows.join(", ");
+          normalize_css_property_value("boxShadow", &value, &opts);
+        }
+      `)
+    ).toEqual([]);
+  });
+
+  test('a panic message is not a declaration', () => {
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          for value in ["1px"] {
+            normalize_css_property_value("width", value, &opts);
+          }
+          panic!("width: nothing was rejected");
+        }
+      `)
+    ).toEqual([['width', '1px']]);
+  });
+
+  test('a rule quoted in an assertion is not a declaration', () => {
+    // Shapes 3 and 4 read a whole rule off a literal, and a rejection test
+    // quotes the rule it expects to be complained about.
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          assert!(message.contains("* { color: red { }"));
+        }
+      `)
+    ).toEqual([]);
+  });
+
+  test('a value a formatting macro builds is still a declaration', () => {
+    // `format!` builds both messages and values, so it is not on the list. The
+    // message it builds reaches an assertion and is caught there; the value it
+    // builds reaches the compiler and stays.
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          for n in 1..=2 {
+            let value = format!("0px 0px {n}px #000");
+            normalize_css_property_value("boxShadow", &value, &opts);
+          }
+        }
+      `)
+    ).toEqual([['boxShadow', '0px 0px {n}px #000']]);
+  });
+});
+
+/**
+ * A `key: value` pair in an embedded JavaScript fixture is a CSS declaration
+ * only where the object holding it is a style object.
+ *
+ * The pair reads the same wherever it is written, and a fixture writes one in
+ * three places that are not style objects: a ternary, whose alternative is
+ * spelled with the same colon; a number, which offers its exponent as a name;
+ * and the argument of a function that is not the API's.
+ */
+describe('shape 5 — pairs that only look like declarations', () => {
+  test('a ternary is a choice between branches, not a declaration', () => {
+    expect(
+      declarationsOf(fixture(`root: { backgroundColor: isDark ? 'black' : 'white' },`))
+    ).toEqual([]);
+  });
+
+  test('a ternary inside a template literal is one too', () => {
+    expect(declarationsOf(fixture("root: { fontFamily: `a${NaN ? 'b' : 'c'}d` },"))).toEqual([]);
+  });
+
+  test('a computed key holding a ternary is not a pair either', () => {
+    expect(declarationsOf(fixture(`root: { [NaN ? 'height' : 'width']: '1px' },`))).toEqual([]);
+  });
+
+  test('a numeric key does not offer its exponent as a property', () => {
+    // `1e21` named `e21` as a property, since a letter follows a digit there.
+    expect(declarationsOf(fixture(`root: { 1e21: 'a', color: 'red' },`))).toEqual([
+      ['color', 'red'],
+    ]);
+  });
+
+  test('a key of an object the fixture indexes is a row, not a property', () => {
+    // A style object is read whole, never subscripted, so the `[` after the
+    // brace is what says these pairs are the rows of a lookup table.
+    expect(
+      declarationsOf(fixture(`root: { outline: { true: 'red', false: 'blue' }[flag] },`))
+    ).toEqual([]);
+    expect(
+      declarationsOf(fixture(`root: { outline: { color: 'red', width: 'blue' }[flag] },`))
+    ).toEqual([]);
+  });
+
+  test('an object handed to a function of the fixture is not a style object', () => {
+    // `toString` names the method the argument is meant to be missing.
+    expect(declarationsOf(fixture(`root: { color: String({ toString: 'notfn' }) },`))).toEqual([]);
+  });
+
+  test('a space between the name and its parenthesis does not hide the call', () => {
+    expect(declarationsOf(fixture(`root: { color: String ({ toString: 'notfn' }) },`))).toEqual([]);
+  });
+
+  test('an arrow body written the long way keeps its declarations', () => {
+    // `return` is a reserved word, so the parenthesis after it is the
+    // language's rather than a call's.
+    for (const body of ["return ({ color: 'red' });", "return({ color: 'red' });"]) {
+      expect(declarationsOf(fixture(`root: () => { ${body} },`))).toEqual([['color', 'red']]);
+    }
+  });
+
+  test('an object handed to the API is one, because that is what it takes', () => {
+    expect(
+      declarationsOf(fixture(`root: { positionTryFallbacks: stylex.positionTry({ top: '0' }) },`))
+    ).toEqual([['top', '0']]);
+  });
+
+  test('an arrow body is one, its parenthesis having no callee in front of it', () => {
+    expect(
+      declarationsOf(fixture(`root: (color) => ({ color: color, marginTop: '1px' }),`))
+    ).toEqual([['marginTop', '1px']]);
+  });
+
+  test('a key a comment sits in front of is still a key', () => {
+    expect(declarationsOf(fixture(`root: { /* the only one */ color: 'red' },`))).toEqual([
+      ['color', 'red'],
+    ]);
+  });
+
+  test('a key a line comment sits in front of is still a key', () => {
+    expect(
+      declarationsOf(
+        fixture(`root: {
+          // the only one
+          color: 'red',
+        },`)
+      )
+    ).toEqual([['color', 'red']]);
   });
 });

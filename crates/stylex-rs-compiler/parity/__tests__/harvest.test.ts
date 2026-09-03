@@ -933,3 +933,131 @@ describe('shape 5 — pairs that only look like declarations', () => {
     ).toEqual([['color', 'red']]);
   });
 });
+
+/**
+ * The scan reads a fixture as one string, and a fixture is author text. These
+ * cases give it text at and past the sizes a real suite reaches, so that a
+ * fixture nobody expected cannot stop the harvest or corrupt the corpus.
+ */
+describe('shape 5 — fixtures at their limits', () => {
+  test('reads a namespace that holds ten thousand declarations', () => {
+    const keys = Array.from({ length: 10_000 }, (_, index) => `marginTop: '${index}px'`);
+    const declarations = declarationsOf(fixture(`root: { ${keys.join(', ')} },`));
+
+    expect(declarations).toHaveLength(10_000);
+    expect(declarations).toContainEqual(['marginTop', '0px']);
+    expect(declarations).toContainEqual(['marginTop', '9999px']);
+  });
+
+  test('reads a namespace nested one thousand braces deep', () => {
+    const open = '{ a: '.repeat(1_000);
+    const close = '}'.repeat(1_000);
+
+    expect(declarationsOf(fixture(`root: ${open}{ color: 'red' }${close},`))).toEqual([
+      ['color', 'red'],
+    ]);
+  });
+
+  test('reads a value one hundred thousand characters long', () => {
+    const value = 'a'.repeat(100_000);
+
+    expect(declarationsOf(fixture(`root: { content: '${value}' },`))).toEqual([['content', value]]);
+  });
+
+  /**
+   * An unclosed call gives no range, so the fixture adds nothing. This is the
+   * safe result. If the scan read to the end of the text, it would take in
+   * every object that follows the call.
+   */
+  test('gives nothing for a call the fixture never closes', () => {
+    const source = `
+      stylex_test!(t, |tr| x, r#"
+        const styles = stylex.create({
+          root: { color: 'red' },
+      "#);
+    `;
+
+    expect(declarationsOf(source)).toEqual([]);
+  });
+
+  test('gives nothing for a fixture that holds no call', () => {
+    const source = `
+      stylex_test!(t, |tr| x, r#"
+        const theme = { color: 'red' };
+      "#);
+    `;
+
+    expect(declarationsOf(source)).toEqual([]);
+  });
+
+  /**
+   * Each call must be found, so every value differs. A corpus keeps one row per
+   * declaration, and a thousand copies of `color: red` would collapse to one.
+   */
+  test('reads a fixture that holds one thousand separate calls', () => {
+    const calls = Array.from(
+      { length: 1_000 },
+      (_, index) => `stylex.create({ root${index}: { marginTop: '${index}px' } });`
+    ).join('\n');
+    const source = `
+      stylex_test!(t, |tr| x, r#"
+        ${calls}
+      "#);
+    `;
+
+    expect(declarationsOf(source)).toHaveLength(1_000);
+  });
+
+  test('keeps a key that carries a non-ASCII value', () => {
+    expect(declarationsOf(fixture(`root: { content: '日本語 🎨 ← →' },`))).toEqual([
+      ['content', '日本語 🎨 ← →'],
+    ]);
+  });
+
+  /**
+   * A space between the callee and its parenthesis is the one shape that the
+   * scan refuses. The first gate and the callee test refuse it in the same
+   * way. Because the two agree, a fixture written like this adds nothing. It
+   * does not add the wrong rows.
+   */
+  test('gives nothing when a space sits between the callee and its parenthesis', () => {
+    const source = `
+      stylex_test!(t, |tr| x, r#"
+        const styles = stylex.create ({ root: { color: 'red' } });
+      "#);
+    `;
+
+    expect(declarationsOf(source)).toEqual([]);
+  });
+});
+
+/**
+ * What a corpus is, rather than what the scan reads. A corpus is a set of
+ * declarations ordered by property and then by value, because the file it is
+ * written to is checked in and a re-harvest must not churn it.
+ */
+describe('the corpus a harvest builds', () => {
+  test('keeps one row for a declaration the fixture repeats', () => {
+    const repeated = Array.from({ length: 500 }, () => `color: 'red'`).join(', ');
+
+    expect(declarationsOf(fixture(`root: { ${repeated} },`))).toEqual([['color', 'red']]);
+  });
+
+  test('orders the rows by property first and by value second', () => {
+    const pairs = [
+      `marginTop: '2px'`,
+      `color: 'red'`,
+      `marginTop: '10px'`,
+      `color: 'blue'`,
+      `marginTop: '1px'`,
+    ];
+
+    expect(declarationsOf(fixture(`root: { ${pairs.join(', ')} },`))).toEqual([
+      ['color', 'blue'],
+      ['color', 'red'],
+      ['marginTop', '10px'],
+      ['marginTop', '1px'],
+      ['marginTop', '2px'],
+    ]);
+  });
+});

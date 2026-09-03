@@ -477,8 +477,8 @@ function extractStyleObjects(file: ScannedFile): DeclarationEntry[] {
 
   for (const literal of file.literals) {
     if (!literal.value.includes(`${CREATE_CALLEE}(`)) continue;
-    const { calls, enclosing, preceding, closers } = scanFixture(literal.value);
-    if (calls.length === 0) continue;
+    const scan = scanFixture(literal.value);
+    if (scan.calls.length === 0) continue;
 
     const declaration =
       /(--[\w-]+|'[^'\n]+'|"[^"\n]+"|[A-Za-z][A-Za-z0-9]*)\s*:\s*('([^'\\\n]|\\.)*'|"([^"\\\n]|\\.)*")/g;
@@ -486,16 +486,16 @@ function extractStyleObjects(file: ScannedFile): DeclarationEntry[] {
     for (const match of literal.value.matchAll(declaration)) {
       // The calls and the matches are both in source order, so the window
       // moves forward once rather than being searched again for every key.
-      while (call < calls.length && calls[call]!.end <= match.index) call += 1;
-      if (call === calls.length) break;
-      if (match.index < calls[call]!.start) continue;
+      while (call < scan.calls.length && scan.calls[call]!.end <= match.index) call += 1;
+      if (call === scan.calls.length) break;
+      if (match.index < scan.calls[call]!.start) continue;
 
       const property = unquote(match[1]!);
       const value = unquote(match[2]!);
       if (!isCssProperty(property)) continue;
-      if (!isPropertyKey(literal.value, preceding, match.index)) continue;
-      if (isCallArgumentKey(literal.value, enclosing, match.index)) continue;
-      if (isLookupKey(literal.value, enclosing, closers, match.index)) continue;
+      if (!isPropertyKey(scan, match.index)) continue;
+      if (isCallArgumentKey(scan, match.index)) continue;
+      if (isLookupKey(scan, match.index)) continue;
       // A JavaScript-style interpolation is skipped because the value it stands
       // for is not in the source; a *Rust* format placeholder is not skipped,
       // and deliberately.
@@ -564,6 +564,12 @@ function skipNonCode(js: string, i: number): number {
  * twice to step over it twice would be the only difference.
  */
 interface FixtureScan {
+  /**
+   * The source the scan was read from. It travels with the offsets because
+   * every guard below needs both, and a guard that took them apart would let a
+   * caller pass offsets that belong to a different fixture.
+   */
+  js: string;
   /**
    * The argument list of every `stylex.create` call, as offsets between the
    * call's `(` and the `)` that closes it.
@@ -641,7 +647,7 @@ function scanFixture(js: string): FixtureScan {
     }
   }
 
-  return { calls, enclosing, preceding, closers };
+  return { js, calls, enclosing, preceding, closers };
 }
 
 /**
@@ -674,7 +680,7 @@ function isCreateCallee(js: string, paren: number): boolean {
  * test settles a numeric key: `1e21: 'a'` offers `e21` as a name, and what
  * precedes it there is the rest of the number rather than a comma.
  */
-function isPropertyKey(js: string, preceding: Int32Array, at: number): boolean {
+function isPropertyKey({ js, preceding }: FixtureScan, at: number): boolean {
   const char = js[preceding[at] ?? -1];
   return char === '{' || char === ',';
 }
@@ -692,12 +698,7 @@ function isPropertyKey(js: string, preceding: Int32Array, at: number): boolean {
  * subscripted. Reading the shape rather than the spelling is what keeps this
  * from becoming a list of the words a lookup happens to use as keys.
  */
-function isLookupKey(
-  js: string,
-  enclosing: Int32Array,
-  closers: Map<number, number>,
-  at: number
-): boolean {
+function isLookupKey({ js, enclosing, closers }: FixtureScan, at: number): boolean {
   const brace = enclosing[at] ?? -1;
   const close = closers.get(brace);
   if (close === undefined) return false;
@@ -733,7 +734,7 @@ function isLookupKey(
  * as `select({ compact: { padding: '4px' } }, 'compact')` sits one brace
  * deeper and is an ordinary style object, so `padding` is still harvested.
  */
-function isCallArgumentKey(js: string, enclosing: Int32Array, at: number): boolean {
+function isCallArgumentKey({ js, enclosing }: FixtureScan, at: number): boolean {
   const brace = enclosing[at] ?? -1;
   if (brace === -1) return false;
 

@@ -29,9 +29,10 @@ const CHECK = 'node scripts/generate-cases.mjs | diff -u src/tests/cases.rs -';
  *
  * `source` is the generator's own file: a body naming a `../../` path stands
  * for a generator that reads another package, and `null` leaves the file out
- * altogether.
+ * altogether. `sourceFile` says where that file goes, for a generator that
+ * does not sit under `scripts/`.
  *
- * @param {{scripts: object, source?: string|null, name?: string}[]} crates
+ * @param {{scripts: object, source?: string|null, sourceFile?: string, name?: string}[]} crates
  * @param {object} [turbo] contents of the root `turbo.json`
  * @returns {{root: string, manifests: string[]}}
  */
@@ -51,7 +52,8 @@ function createTree(crates, turbo = { tasks: {} }) {
     });
 
     if (crate.source !== null) {
-      writeText(path.join(root, directory, 'scripts/generate-cases.mjs'), crate.source ?? '');
+      const file = crate.sourceFile ?? 'scripts/generate-cases.mjs';
+      writeText(path.join(root, directory, file), crate.source ?? '');
     }
 
     manifests.push(relative);
@@ -68,6 +70,24 @@ const WIRED = {
     pretest: 'pnpm run generate:cases:check',
     test: 'echo "Skip"',
   },
+};
+
+/**
+ * A generator that follows no naming convention: only the `:check` twin over
+ * the same file says what it is -- the shape of the parity harvester.
+ */
+const HARVESTER = 'node --import tsx/esm parity/harvest.ts';
+
+/** The manifest of a crate whose generator is the harvester shape. */
+const HARVESTING = {
+  scripts: {
+    'parity:harvest': HARVESTER,
+    'parity:harvest:check': `${HARVESTER} --check`,
+    pretest: 'pnpm run parity:harvest:check',
+    test: 'vitest run',
+  },
+  sourceFile: 'parity/harvest.ts',
+  source: "fs.writeFileSync(out, body); path.resolve(here, '../../..')",
 };
 
 void test('the real repository keeps every generated fixture behind a check', () => {
@@ -210,4 +230,83 @@ void test('every fault in a large tree is reported, not just the first', () => {
 
   assert.equal(faults.length, size / 2);
   assert.ok(faults.every(fault => fault.includes('has no `generate:cases:check` twin')));
+});
+
+void test('a generator named by no convention still needs its outside input', () => {
+  const { root, manifests } = createTree([HARVESTING]);
+
+  const [fault] = findGateFaults(root, manifests);
+
+  assert.match(fault, /`parity:harvest` reads one/);
+});
+
+void test('the harvester passes once the input is declared', () => {
+  const { root, manifests } = createTree([HARVESTING], {
+    tasks: { '@stylexswc/crate-0#test': { inputs: ['$TURBO_ROOT$/crates/**/*.rs'] } },
+  });
+
+  assert.deepEqual(findGateFaults(root, manifests), []);
+});
+
+void test('a script that writes a report is not read as a generator', () => {
+  const { root, manifests } = createTree([
+    {
+      scripts: { bench: 'node --import tsx/esm benchmark/bench.ts', test: 'vitest run' },
+      sourceFile: 'benchmark/bench.ts',
+      source: "fs.writeFileSync(out, body); path.resolve(here, '../../..')",
+    },
+  ]);
+
+  assert.deepEqual(findGateFaults(root, manifests), []);
+});
+
+void test('a generator started by another runner is read the same way', () => {
+  const { root, manifests } = createTree([
+    {
+      ...HARVESTING,
+      scripts: {
+        'parity:harvest': 'tsx parity/harvest.ts',
+        'parity:harvest:check': 'tsx parity/harvest.ts --check',
+        pretest: 'pnpm run parity:harvest:check',
+        test: 'vitest run',
+      },
+    },
+  ]);
+
+  const [fault] = findGateFaults(root, manifests);
+
+  assert.match(fault, /`parity:harvest` reads one/);
+});
+
+void test('the value behind an option is not read as the script', () => {
+  const { root, manifests } = createTree([
+    {
+      ...HARVESTING,
+      scripts: {
+        'parity:harvest': 'node --import ./register.mjs parity/harvest.ts',
+        'parity:harvest:check': 'node --import ./register.mjs parity/harvest.ts --check',
+        pretest: 'pnpm run parity:harvest:check',
+        test: 'vitest run',
+      },
+    },
+  ]);
+
+  const [fault] = findGateFaults(root, manifests);
+
+  assert.match(fault, /`parity:harvest` reads one/);
+});
+
+void test('a formatting script with a check twin is not a generator', () => {
+  const { root, manifests } = createTree([
+    {
+      scripts: {
+        format: 'run-p format:rs format:toml',
+        'format:check': 'run-p format:rs:check format:toml:check',
+        test: 'echo "Skip"',
+      },
+      source: null,
+    },
+  ]);
+
+  assert.deepEqual(findGateFaults(root, manifests), []);
 });

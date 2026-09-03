@@ -64,6 +64,11 @@
       "dependsOn": ["^build", "build"],
       "outputLogs": "errors-only"
     },
+    "@stylexswc/rs-compiler#test": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/crates/**/*.rs"],
+      "outputs": ["**/__swc_snapshots__", "**/__snapshots__"],
+      "outputLogs": "errors-only"
+    },
     "test": {
       "dependsOn": ["^build", "build"],
       "outputs": ["**/__swc_snapshots__", "**/__snapshots__"],

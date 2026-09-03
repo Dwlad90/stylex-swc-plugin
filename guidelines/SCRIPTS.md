@@ -114,10 +114,11 @@ cargo build --release                                     # release build
 
 Two crates commit a Rust test file that a Node script writes:
 `postcss-value-parser` has `generate:value-parser-cases` and `stylex-utils`
-has `generate:parse-float-cases`. Each generator has a `:check` twin that runs
-as that crate's `pretest`, so a stale file fails the gate. The convention
-behind them, and the chain that crosses crates, are in
-[Structure](./STRUCTURE.md).
+has `generate:parse-float-cases`. A third generator, `parity:harvest` in
+`stylex-rs-compiler`, writes the parity corpus those cases are built from.
+Each generator has a `:check` twin that runs as that crate's `pretest`, so a
+stale file fails the gate. The convention behind them, and the chain that
+crosses crates, are in [Structure](./STRUCTURE.md).
 
 ## Benchmarks
 

@@ -221,7 +221,10 @@ Temporary:
   package's `test` script, so a stale fixture fails locally rather than only in
   review. `scripts/git/generated-fixtures.test.mjs` asserts that wiring: that
   each generator has a `:check`, that something runs it, and that a generator
-  reading another package has that package declared as a Turbo input.
+  reading another package has that package declared as a Turbo input. It finds
+  a generator by what the script does, not by what it is called: the
+  `generate:*` name is one signal, and a `:check` twin that runs the same
+  script file is the other. The harvester below is the second kind.
 
   One chain crosses crates and is easy to trip over: `postcss-value-parser`'s
   `src/tests/cases.rs` is generated from the parity corpus in
@@ -245,16 +248,21 @@ Temporary:
   every crate shares one `turbo.json` through a symlink, so a per-crate change
   would reach all of them.
 
-  `parity:harvest:check` is the harvester's `:check`, and the `pretest` of
-  `stylex-rs-compiler` alone. Unlike the per-crate generators, which read one
-  fixture's own inputs, the harvester walks the Rust sources of the whole
-  workspace, so putting it on each crate would rescan the same tree and fail in
-  whichever package ran first. It reads the crate names off the tree rather
-  than from a list, because a list stopped naming the crates a split had just
-  created and the values under them left the corpus with nothing failing.
+  `parity:harvest` is that harvester. `parity:harvest:check` is its `:check`,
+  and the `pretest` of `stylex-rs-compiler` alone. Unlike the per-crate
+  generators, which read one fixture's own inputs, the harvester walks the Rust
+  sources of the whole workspace, so putting it on each crate would rescan the
+  same tree and fail in whichever package ran first. It reads the crate names
+  off the tree rather than from a list, because a list stopped naming the crates
+  a split had just created and the values under them left the corpus with
+  nothing failing.
   Sources marked `@generated` in their header are skipped, which is what keeps
   `cases.rs` from harvesting back into the corpus it is generated from. Run it
-  after adding tests that carry CSS values.
+  after adding tests that carry CSS values. Because it reads every crate, the
+  root `turbo.json` gives the `stylex-rs-compiler` `test` task an input for the
+  Rust sources of the whole workspace, next to the package's own files: a Rust
+  test edited in any other crate must move that task's hash, or Turbo replays a
+  cached pass and the `pretest` never runs.
 
 - `docs/agents/` -- machine-read configuration for the agent skills (issue
   tracker, triage labels, domain docs).

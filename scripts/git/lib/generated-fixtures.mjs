@@ -1,12 +1,12 @@
 /**
- * Rules for the crates that commit a Rust test file a Node script writes.
+ * Rules for the crates that commit a file a script writes.
  *
- * Each such crate has a `generate:<name>` script that writes the file and a
- * `generate:<name>:check` twin that diffs a fresh run against what is
+ * Each such crate has a script that writes the file and a `<name>:check` twin
+ * that runs the same script to compare a fresh result against what is
  * committed. The pair is only a gate while something calls the twin, and the
  * repository has lost that caller twice: once when every crate's `test` script
  * became a skip line, and once when Turbo replayed a cached pass because the
- * task did not hash the file the generator reads.
+ * task did not hash the files the generator reads.
  *
  * These two failures look identical from outside -- a green run over a stale
  * fixture -- so the rules below assert the wiring rather than the fixture.
@@ -21,8 +21,17 @@ import path from 'node:path';
 /** Marks a path that climbs out of the package holding it. */
 const CLIMBS_OUT = '../../';
 
-/** A generator whose output a `:check` twin must guard. */
-const GENERATOR = /^generate:(?!.*:check$).+$/;
+/** The suffix of the script that verifies a generator. */
+const CHECK_SUFFIX = ':check';
+
+/** One of the two signals of a generator: the naming convention. */
+const GENERATOR_NAME = /^generate:.+/;
+
+/** Extension of a script file the repository runs. */
+const SCRIPT_FILE = /\.(?:mjs|cjs|js|ts)$/;
+
+/** A command-line option, with or without its value attached. */
+const OPTION = /^-/;
 
 /**
  * Reads one manifest, or explains which file could not be read.
@@ -72,19 +81,64 @@ function reachableScripts(scripts, entries) {
 }
 
 /**
+ * The script file a command runs, as the command spells it.
+ *
+ * The first argument that looks like a script file wins. Options and the value
+ * behind an option are stepped over, because `--import ./register.mjs` names a
+ * file that is not the script. Which runner starts the file is not read: the
+ * repository runs one through `node`, `tsx` and `--import tsx/esm`, and a gate
+ * that knew only about `node` would go quiet when the command changed.
+ *
+ * @param {string} command a script body
+ * @returns {string|undefined} the path as written, or nothing when the command
+ *   runs no script file
+ */
+function scriptFile(command) {
+  const words = command.split(/\s+/);
+
+  return words.find(
+    (word, index) => SCRIPT_FILE.test(word) && !OPTION.test(word) && !OPTION.test(words[index - 1])
+  );
+}
+
+/**
+ * The scripts of one package that write a committed file.
+ *
+ * What makes a script a generator is not its name. Two signals say so: the
+ * `generate:*` convention, which is reported even with no twin so that a
+ * half-wired pair cannot hide; and a `:check` twin that runs the same script
+ * file, which is the pair the parity harvester forms under a name of its own.
+ * A script that writes a report rather than a fixture -- a benchmark, a parity
+ * run -- has no twin, and so is neither.
+ *
+ * @param {Record<string, string>} scripts the manifest's `scripts` object
+ * @returns {string[]}
+ */
+function generatorNames(scripts) {
+  return Object.keys(scripts).filter(name => {
+    if (name.endsWith(CHECK_SUFFIX)) return false;
+    if (GENERATOR_NAME.test(name)) return true;
+
+    const source = scriptFile(scripts[name]);
+
+    return source !== undefined && scriptFile(scripts[`${name}${CHECK_SUFFIX}`] ?? '') === source;
+  });
+}
+
+/**
  * True when the generator behind `command` names a path outside its package.
  *
- * The generator for the value-parser cases reads the parity corpus of another
- * crate, so a Turbo task that hashes only its own package replays a cached
- * pass over a stale fixture. Nothing in the manifest says so -- the fact is in
- * the generator's source -- so this reads the file the command runs.
+ * The harvester reads the Rust test sources of every crate, so a Turbo task
+ * that hashes only its own package replays a cached pass over a stale corpus.
+ * Nothing in the manifest says so -- the fact is in the generator's source --
+ * so this reads the file the command runs.
  *
  * @param {string} packageDirectory absolute path to the package
- * @param {string} command the `generate:<name>` script body
+ * @param {string} command the generator's script body
  * @returns {boolean}
  */
 function readsAnotherPackage(packageDirectory, command) {
-  const source = command.match(/(?:node )([\w:@./-]+\.mjs)/)?.[1];
+  const source = scriptFile(command);
 
   if (source === undefined) return false;
 
@@ -124,8 +178,8 @@ export function findGateFaults(root, manifestFiles) {
     const { name, scripts } = readManifest(path.join(root, relative));
     const reached = reachableScripts(scripts, ['test', 'pretest']);
 
-    for (const generator of Object.keys(scripts).filter(script => GENERATOR.test(script))) {
-      const check = `${generator}:check`;
+    for (const generator of generatorNames(scripts)) {
+      const check = `${generator}${CHECK_SUFFIX}`;
 
       if (!(check in scripts)) {
         faults.push(`${relative}: \`${generator}\` has no \`${check}\` twin`);

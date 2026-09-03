@@ -51,16 +51,14 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
   ([CONTEXT.md](./crates/stylex-state-index/CONTEXT.md)) -- the lookup indices
   the state manager answers "which declarator, which call, which span" from.
 - **stylex-state** ([CONTEXT.md](./crates/stylex-state/CONTEXT.md)) -- the
-  per-file compilation state, and the value vocabulary it composes.
+  per-file compilation state, the value vocabulary it composes, and which
+  declaration binds a name against what it recorded.
 - **stylex-diagnostics**
   ([CONTEXT.md](./crates/stylex-diagnostics/CONTEXT.md)) -- code frames and the
   declaration position an error should point at.
 - **stylex-nested-config**
   ([CONTEXT.md](./crates/stylex-nested-config/CONTEXT.md)) -- flattening the
   nested config objects `defineVars` and friends accept.
-- **stylex-declarations**
-  ([CONTEXT.md](./crates/stylex-declarations/CONTEXT.md)) -- which declaration
-  binds a name, and what that declaration spells when read literally.
 - **stylex-evaluator**
   ([CONTEXT.md](./crates/stylex-evaluator/CONTEXT.md)) -- what an authored
   expression folds to, or why it cannot: the dispatcher, the node handlers, the

@@ -16,7 +16,7 @@ use crate::shared::{
 use stylex_ast::ast::convertors::{convert_key_value_to_str, normalize_expr};
 use stylex_constants::constants::messages::VALUES_MUST_BE_OBJECT;
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
-use stylex_declarations::convertors::convert_expr_to_str;
+use stylex_state::resolution::convertors::convert_expr_to_str;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   flat_compiled_styles_value::FlatCompiledStylesValue,

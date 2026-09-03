@@ -4,9 +4,9 @@
 //! the same fact repeated at each of them.
 #![allow(dead_code)]
 
-use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_evaluator::convertors::expr_to_num;
 use stylex_evaluator::state::EvaluationState;
+use stylex_state::resolution::convertors::convert_expr_to_str;
 use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 use swc_core::ecma::ast::Expr;
 

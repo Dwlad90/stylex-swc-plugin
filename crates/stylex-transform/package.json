@@ -38,7 +38,6 @@
     "@stylexswc/constants": "catalog:internal",
     "@stylexswc/css": "catalog:internal",
     "@stylexswc/css-parser": "catalog:internal",
-    "@stylexswc/declarations": "catalog:internal",
     "@stylexswc/diagnostics": "catalog:internal",
     "@stylexswc/enums": "catalog:internal",
     "@stylexswc/evaluator": "catalog:internal",

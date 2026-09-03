@@ -22,11 +22,11 @@ use stylex_constants::constants::messages::{
   ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,
 };
 use stylex_css::utils::condition::is_conditional_key;
-use stylex_declarations::convertors::{convert_lit_to_raw_value, handle_tpl_to_expression};
-use stylex_declarations::lookup::get_var_decl_by_ident;
 use stylex_evaluator::convertors::{expr_tpl_to_string, transform_bin_expr_to_number};
 use stylex_evaluator::state::EvaluationState;
 use stylex_regex::regex::CSS_VALUE_SPLIT_REGEX;
+use stylex_state::resolution::convertors::{convert_lit_to_raw_value, handle_tpl_to_expression};
+use stylex_state::resolution::lookup::get_var_decl_by_ident;
 use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 use stylex_structures::{order_pair::OrderPair, raw_value::TRawValue};
 

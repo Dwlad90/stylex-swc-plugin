@@ -38,7 +38,7 @@ use super::transport::{Crossing, Transport};
 use super::{Ceilings, Decline, Depth, ESCAPING_PROPERTIES, escaping_property_named, lists};
 use crate::growable_stack::{grown_per_level, nesting_of};
 use crate::state::EvaluationState;
-use stylex_declarations::lookup::get_var_decl_from;
+use stylex_state::resolution::lookup::get_var_decl_from;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
   theme_ref::VarNaming,

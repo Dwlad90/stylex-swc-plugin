@@ -62,7 +62,6 @@ use stylex_constants::constants::{
   messages::{EXPECTED_COMPILED_STYLES, non_static_value},
 };
 use stylex_css::utils::{pseudo::is_pseudo_element, when as stylex_when};
-use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_diagnostics::code_frame::{build_code_frame_error, build_code_frame_error_and_panic};
 use stylex_enums::{counter_mode::CounterMode, style_resolution::StyleResolution};
 use stylex_evaluator::{
@@ -70,6 +69,7 @@ use stylex_evaluator::{
   stylex_first_that_works::stylex_first_that_works,
 };
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;
+use stylex_state::resolution::convertors::convert_expr_to_str;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType, StylexWhenFn},

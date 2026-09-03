@@ -18,7 +18,7 @@ use stylex_constants::constants::{
     AT_RULE_NOT_FOUND, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING, THEME_VARS_MUST_BE_OBJECT,
   },
 };
-use stylex_declarations::convertors::convert_expr_to_str;
+use stylex_state::resolution::convertors::convert_expr_to_str;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   flat_compiled_styles_value::FlatCompiledStylesValue,

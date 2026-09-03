@@ -1,10 +1,34 @@
+use crate::state_writers::fill_state_declarations;
+use crate::{functions::FunctionMap, state_manager::StateManager};
 use stylex_ast::ast::convertors::{create_ident_expr, create_number_expr, create_string_expr};
-use stylex_state::state_writers::fill_state_declarations;
-use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 use swc_core::{
   common::SyntaxContext,
-  ecma::ast::{Expr, Ident, Lit},
+  ecma::ast::{BindingIdent, Expr, Ident, Lit, Pat, VarDeclarator},
 };
+
+// ──────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────
+
+/// One declarator over the initializer handed in. Every case here needs a
+/// declarator for the state to record, and none of them cares about the name
+/// pattern beyond it being an identifier.
+fn make_var_declarator(name: &str, init: Expr) -> VarDeclarator {
+  VarDeclarator {
+    span: Default::default(),
+    name: Pat::Ident(BindingIdent {
+      id: Ident {
+        span: Default::default(),
+        sym: name.into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      },
+      type_ann: None,
+    }),
+    init: Some(Box::new(init)),
+    definite: false,
+  }
+}
 
 // ──────────────────────────────────────────────
 // convert_ident_to_expr tests
@@ -12,25 +36,7 @@ use swc_core::{
 
 mod convert_ident_to_expr_tests {
   use super::*;
-  use crate::convertors::convert_ident_to_expr;
-  use swc_core::ecma::ast::BindingIdent;
-
-  fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
-    swc_core::ecma::ast::VarDeclarator {
-      span: Default::default(),
-      name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-        id: Ident {
-          span: Default::default(),
-          sym: name.into(),
-          optional: false,
-          ctxt: SyntaxContext::empty(),
-        },
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    }
-  }
+  use crate::resolution::convertors::convert_ident_to_expr;
 
   #[test]
   fn resolves_ident_to_number_expr() {
@@ -39,7 +45,6 @@ mod convert_ident_to_expr_tests {
 
     let decl = make_var_declarator("myNum", create_number_expr(42.0));
     fill_state_declarations(&mut state, &decl);
-    // Set count so reduce doesn't underflow
 
     let ident = Ident {
       span: Default::default(),
@@ -100,25 +105,8 @@ mod convert_ident_to_expr_tests {
 
 mod handle_tpl_to_expression_tests {
   use super::*;
-  use crate::convertors::handle_tpl_to_expression;
-  use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
-
-  fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
-    swc_core::ecma::ast::VarDeclarator {
-      span: Default::default(),
-      name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-        id: Ident {
-          span: Default::default(),
-          sym: name.into(),
-          optional: false,
-          ctxt: SyntaxContext::empty(),
-        },
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    }
-  }
+  use crate::resolution::convertors::handle_tpl_to_expression;
+  use swc_core::ecma::ast::{Tpl, TplElement};
 
   #[test]
   fn replaces_ident_with_var_decl_init() {
@@ -204,25 +192,7 @@ mod handle_tpl_to_expression_tests {
 
 mod convert_expr_to_str_tests {
   use super::*;
-  use crate::convertors::convert_expr_to_str;
-  use swc_core::ecma::ast::BindingIdent;
-
-  fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
-    swc_core::ecma::ast::VarDeclarator {
-      span: Default::default(),
-      name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-        id: Ident {
-          span: Default::default(),
-          sym: name.into(),
-          optional: false,
-          ctxt: SyntaxContext::empty(),
-        },
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    }
-  }
+  use crate::resolution::convertors::convert_expr_to_str;
 
   #[test]
   fn string_literal_returns_string() {
@@ -304,25 +274,8 @@ mod convert_expr_to_str_tests {
 
 mod handle_tpl_to_expression_extended_tests {
   use super::*;
-  use crate::convertors::handle_tpl_to_expression;
-  use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
-
-  fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
-    swc_core::ecma::ast::VarDeclarator {
-      span: Default::default(),
-      name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-        id: Ident {
-          span: Default::default(),
-          sym: name.into(),
-          optional: false,
-          ctxt: SyntaxContext::empty(),
-        },
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    }
-  }
+  use crate::resolution::convertors::handle_tpl_to_expression;
+  use swc_core::ecma::ast::{Tpl, TplElement};
 
   #[test]
   fn replaces_ident_with_var_decl_init_extended() {
@@ -386,25 +339,7 @@ mod handle_tpl_to_expression_extended_tests {
 
 mod convert_ident_to_expr_extended_tests {
   use super::*;
-  use crate::convertors::convert_ident_to_expr;
-  use swc_core::ecma::ast::BindingIdent;
-
-  fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
-    swc_core::ecma::ast::VarDeclarator {
-      span: Default::default(),
-      name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-        id: Ident {
-          span: Default::default(),
-          sym: name.into(),
-          optional: false,
-          ctxt: SyntaxContext::empty(),
-        },
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    }
-  }
+  use crate::resolution::convertors::convert_ident_to_expr;
 
   #[test]
   fn resolves_ident_to_expr_value() {
@@ -443,7 +378,7 @@ mod convert_ident_to_expr_extended_tests {
 
 mod convert_expr_to_str_non_string_tests {
   use super::*;
-  use crate::convertors::convert_expr_to_str;
+  use crate::resolution::convertors::convert_expr_to_str;
   use swc_core::ecma::ast::{ArrayLit, ObjectLit};
 
   /// An expression that spells no string answers `None` rather than raising, so
@@ -474,25 +409,7 @@ mod convert_expr_to_str_non_string_tests {
 
 mod convert_expr_to_str_ident_chain_tests {
   use super::*;
-  use crate::convertors::convert_expr_to_str;
-  use swc_core::ecma::ast::BindingIdent;
-
-  fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
-    swc_core::ecma::ast::VarDeclarator {
-      span: Default::default(),
-      name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-        id: Ident {
-          span: Default::default(),
-          sym: name.into(),
-          optional: false,
-          ctxt: SyntaxContext::empty(),
-        },
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    }
-  }
+  use crate::resolution::convertors::convert_expr_to_str;
 
   #[test]
   fn ident_resolves_through_chain_to_string() {
@@ -517,7 +434,7 @@ mod convert_expr_to_str_ident_chain_tests {
 
 mod handle_tpl_to_expression_no_init_tests {
   use super::*;
-  use crate::convertors::handle_tpl_to_expression;
+  use crate::resolution::convertors::handle_tpl_to_expression;
   use swc_core::ecma::ast::{BindingIdent, Pat, Tpl, TplElement, VarDeclarator};
 
   /// A declarator with no initializer -- `let x;` -- which is what the refusal
@@ -617,7 +534,7 @@ mod handle_tpl_to_expression_no_init_tests {
 
 mod convert_lit_to_raw_value_tests {
   use super::*;
-  use crate::convertors::convert_lit_to_raw_value;
+  use crate::resolution::convertors::convert_lit_to_raw_value;
   use stylex_structures::raw_value::TRawValue;
   use swc_core::{
     common::DUMMY_SP,

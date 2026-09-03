@@ -64,10 +64,6 @@ use stylex_constants::constants::{
     THEME_IMPORT_KEY_AS_OBJECT_KEY, VALUE_MUST_BE_LITERAL,
   },
 };
-use stylex_declarations::convertors::convert_expr_to_str;
-use stylex_declarations::lookup::{
-  get_import_by_ident, get_var_decl_from, get_var_decl_parts_by_ident,
-};
 use stylex_enums::{
   import_path_resolution::ImportPathResolution, misc::BinaryExprType,
   value_with_default::ValueWithDefault,
@@ -77,6 +73,10 @@ use stylex_js::coercions::{global_identifier_to_value, is_global_spelled_as_an_i
 use stylex_js::helpers::{
   get_callee_name, get_method_name, is_id_prop, is_invalid_method, is_mutating_object_method,
   is_mutation_expr, is_valid_callee,
+};
+use stylex_state::resolution::convertors::convert_expr_to_str;
+use stylex_state::resolution::lookup::{
+  get_import_by_ident, get_var_decl_from, get_var_decl_parts_by_ident,
 };
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,

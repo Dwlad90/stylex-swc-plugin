@@ -3,11 +3,11 @@ use swc_core::{
   ecma::ast::{BindingIdent, Expr, Pat, Str, VarDeclarator},
 };
 
-use crate::lookup::{get_import_by_ident, get_var_decl_by_ident};
+use crate::resolution::lookup::{get_import_by_ident, get_var_decl_by_ident};
+use crate::state_writers::fill_state_declarations;
+use crate::{functions::FunctionMap, state_manager::StateManager};
 use stylex_ast::ast::convertors::create_number_expr;
 use stylex_ast::ast::factories::create_ident;
-use stylex_state::state_writers::fill_state_declarations;
-use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 
 // ──────────────────────────────────────────────
 // Helpers
@@ -432,8 +432,8 @@ mod get_var_decl_by_ident_tests {
 
 mod get_var_decl_by_ident_function_map_tests {
   use super::*;
+  use crate::functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType};
   use std::rc::Rc;
-  use stylex_state::functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType};
 
   #[test]
   fn returns_var_decl_from_mapper_function() {
@@ -473,7 +473,7 @@ mod get_var_decl_by_ident_function_map_tests {
 
 mod get_var_decl_from_tests {
   use super::*;
-  use crate::lookup::get_var_decl_from;
+  use crate::resolution::lookup::get_var_decl_from;
 
   #[test]
   fn finds_matching_declaration() {
@@ -498,7 +498,7 @@ mod get_var_decl_from_tests {
 
 mod get_var_decl_by_ident_fn_map_panic_tests {
   use super::*;
-  use stylex_state::functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType};
+  use crate::functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType};
 
   /// The three arms below refuse for three different reasons, so each asserts
   /// the message it is refused with: a bare `#[should_panic]` passes on any
@@ -511,7 +511,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
     fn dummy_fn(
       _args: Vec<Expr>,
       _state: &mut StateManager,
-      _fns: &stylex_state::functions::FunctionMap,
+      _fns: &crate::functions::FunctionMap,
     ) -> Expr {
       create_number_expr(0.0)
     }
@@ -559,9 +559,9 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
 
 mod get_var_decl_parts_by_ident_tests {
   use super::*;
-  use crate::lookup::get_var_decl_parts_by_ident;
+  use crate::functions::{FunctionConfig, FunctionConfigType, FunctionType};
+  use crate::resolution::lookup::get_var_decl_parts_by_ident;
   use std::rc::Rc;
-  use stylex_state::functions::{FunctionConfig, FunctionConfigType, FunctionType};
   use swc_core::common::{BytePos, Span};
   use swc_core::ecma::ast::Lit;
 

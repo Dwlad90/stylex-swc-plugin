@@ -3,7 +3,7 @@ use stylex_ast::ast::convertors::create_number_expr;
 use stylex_ast::ast::factories::{
   create_array_expression, create_key_value_prop, create_object_expression,
 };
-use stylex_declarations::convertors::convert_expr_to_str;
+use stylex_state::resolution::convertors::convert_expr_to_str;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
 };

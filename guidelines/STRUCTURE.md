@@ -37,10 +37,9 @@ reaches sideways says nothing about what the compiler links.
 - **4 -- Types, diagnostics and nested config**: `stylex-diagnostics`,
   `stylex-nested-config`, `stylex-types`
 - **5 -- CSS processing and compilation state**: `stylex-css`, `stylex-state`
-- **6 -- Declaration resolution**: `stylex-declarations`
-- **7 -- Evaluation**: `stylex-evaluator`
-- **8 -- StyleX transform**: `stylex-transform`
-- **9 -- Compilers** (top-level consumers): `stylex-rs-compiler`
+- **6 -- Evaluation**: `stylex-evaluator`
+- **7 -- StyleX transform**: `stylex-transform`
+- **8 -- Compilers** (top-level consumers): `stylex-rs-compiler`
 
 A layer is a floor and not a ceiling: two crates on one rung never depend on
 each other, and a crate two rungs up may reach any rung below it. `stylex-css`
@@ -184,7 +183,10 @@ tickets sit in the `split-transform-crate` tracker (see
 Temporary:
 
 - `stylex_state` -- covered through the transform until direct tests exist.
-  Ticket `11-cover-the-state-crate` removes this row.
+  Ticket `11-cover-the-state-crate` removes this row. The row also shelters the
+  crate's `resolution` module, which was a crate on the gate before it was
+  folded in and is still at 100%: the ticket that removes the row must keep it
+  there.
 - `stylex_evaluator` -- the same, for the evaluator moved out of the transform.
   Ticket `15-cover-the-evaluator-crate` removes this row.
 

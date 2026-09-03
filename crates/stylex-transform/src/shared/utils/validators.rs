@@ -31,10 +31,10 @@ use stylex_constants::constants::{
   },
 };
 use stylex_css::utils::condition::is_conditional_key;
-use stylex_declarations::lookup::get_import_by_ident;
 use stylex_diagnostics::code_frame::{
   build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
 };
+use stylex_state::resolution::lookup::get_import_by_ident;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   state_manager::{ImportKind, StateManager},

@@ -5,8 +5,8 @@ use swc_core::ecma::ast::Expr;
 use stylex_ast::ast::convertors::create_string_expr;
 use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
 use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
-use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_regex::regex::IS_CSS_VAR;
+use stylex_state::resolution::convertors::convert_expr_to_str;
 use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 
 /// The `var(` prefix a CSS variable reference starts with, and whose length is

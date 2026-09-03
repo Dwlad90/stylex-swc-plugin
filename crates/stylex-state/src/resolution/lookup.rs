@@ -6,13 +6,14 @@
 
 use stylex_ast::ast::factories::create_var_declarator;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
-use stylex_state::{
-  functions::{FunctionConfigType, FunctionMap, FunctionType},
-  state_manager::StateManager,
-};
 use swc_core::{
   common::Span,
   ecma::ast::{Expr, Ident, ImportDecl, ImportSpecifier, VarDeclarator},
+};
+
+use crate::{
+  functions::{FunctionConfigType, FunctionMap, FunctionType},
+  state_manager::StateManager,
 };
 
 /// The two parts of a declarator the reference chain actually reads.

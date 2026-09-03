@@ -30,8 +30,8 @@ nothing on this path may abort the process.
   carries the values it resolved inward, `amplification` answers how much a call
   would build, and `outward` reads the engine's answer back.
 - **Convertors** — `convertors`, which reads an expression back as a number or a
-  string. Above the literal convertors in `stylex-declarations` because it can
-  only answer by evaluating, which is what put this half of the module here.
+  string. Above the literal convertors in `stylex-state` because it can only
+  answer by evaluating, which is what put this half of the module here.
 - **Growable stack** — `growable_stack`, the room a descent is given rather than
   the room it inherited. Two ways of asking, and one rule that decides which a
   descent gets: a descent that can ask again at the next level does.

@@ -5,6 +5,12 @@ composes. Everything the compiler learns about a file while it walks it is
 recorded here; nothing here decides what a style _means_, and nothing here
 evaluates an expression.
 
+The `resolution` module answers the next question after the record: which
+declaration binds a given identifier, and what that declaration says. Both the
+visitor and the evaluator above ask it. It is a module of this crate and not a
+layer of its own because nothing else in the crate depends on it, so no cycle
+forces a boundary, and every index it reads is this crate's own.
+
 The value types sit beside the state manager rather than one layer down because
 they name each other and it: a function config carries a
 [theme reference](#theme-reference), a theme reference reads the state manager,
@@ -31,6 +37,42 @@ A `fill_*` function that records what the visitors walked into the
 records is a decision about what a declaration _means_; it only says the state
 has to remember it.
 _Avoid_: collector, populate, scan
+
+**Declaration lookup**:
+Which declaration binds a name, asked of the indices the
+[state manager](#state-manager) fills while it walks the file. Four readers over
+one idea: the declarator a name is bound by, the import declaration and
+[import specifier kind](#import-specifier-kind) that bound it, and the two parts
+of a declarator -- its span and its initializer -- that a caller reading it
+actually needs. A lookup only _matches_; what the matched declaration means is
+the caller's question. It answers the first steps of the
+[reference resolution chain](../stylex-evaluator/CONTEXT.md#reference-resolution-chain)
+without being that chain, which also probes writes and positions a lookup knows
+nothing about.
+
+The declarator lookup falls through to the injected function map where the state
+recorded nothing, and synthesizes a declarator from a mapper entry. That is one
+reader and not two, because a caller asking "what binds this name" cannot say in
+advance which of the two recorded it.
+_Avoid_: binding resolver, identifier lookup, declaration finder, symbol table
+
+**Spelled value**:
+What an expression says when read literally, with no fold: the string a literal
+or a chain of identifiers spells, the expression a declaration was initialized
+with, a template with each substituted identifier replaced by its initializer.
+Reading stops at the first thing that is neither a literal nor another
+identifier, and answers _nothing_ there rather than refusing -- what a
+non-literal means belongs to the caller, and a step of an animation that
+declares nothing and a namespace name that is a hard error cannot both be
+decided here.
+
+A literal read as an authored style value keeps its JavaScript type: a numeric
+literal stays a number, and everything else with a string form becomes one,
+because that distinction is what decides whether a unit suffix is appended
+later. So `42` and `"42"` are two answers, not one. A conversion that would have
+to _evaluate_ an expression is not here: it lives above this crate, and that
+split is what keeps the state out of the evaluation cycle.
+_Avoid_: literal value, static value, constant folding, resolved value
 
 **Theme reference**:
 What an import of a `defineVars` group resolves to: the group as a whole, named

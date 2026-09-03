@@ -30,13 +30,13 @@ use stylex_constants::constants::{
   time_units::get_time_units,
 };
 use stylex_css::utils::pseudo::is_pseudo_selector;
-use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_diagnostics::code_frame::build_code_frame_error_and_panic_at;
 use stylex_evaluator::evaluate::{
   evaluate, evaluate_obj_key, evaluate_result_vec_to_array_expr, function_fold_to_object,
   spread_own_properties,
 };
 use stylex_evaluator::evaluate_result::EvaluateResult;
+use stylex_state::resolution::convertors::convert_expr_to_str;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::FunctionMap,

@@ -17,9 +17,9 @@ use stylex_constants::constants::{
   common::COMPILED_KEY,
   messages::{EXPECTED_OBJECT_EXPRESSION, INVALID_UTF8, illegal_argument_length},
 };
-use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_diagnostics::code_frame::{get_key_span_from_source_code, get_span_from_source_code};
 use stylex_evaluator::evaluate::evaluate_obj_key;
+use stylex_state::resolution::convertors::convert_expr_to_str;
 use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue, functions::FunctionMap,
   state_manager::StateManager, types::StylesObjectMap,

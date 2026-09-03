@@ -1,6 +1,6 @@
 //! What a declaration spells, read back as a string or an expression.
 //!
-//! Every reader here resolves through [`crate::lookup`] and stops at the first
+//! Every reader here resolves through [`super::lookup`] and stops at the first
 //! thing that is not a literal or another identifier. None of them folds: a
 //! conversion that needs a binary expression evaluated lives above this crate,
 //! and that split is what keeps this half free of the evaluation cycle.
@@ -8,11 +8,12 @@
 use stylex_ast::ast::convertors::{convert_lit_to_string, get_expr_from_var_decl};
 use stylex_constants::constants::messages::{ILLEGAL_PROP_VALUE, VAR_DECL_INIT_REQUIRED};
 use stylex_macros::stylex_panic;
-use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 use stylex_structures::raw_value::TRawValue;
 use swc_core::ecma::ast::{Expr, Ident, Lit, Tpl};
 
-use crate::lookup::get_var_decl_by_ident;
+use crate::{
+  functions::FunctionMap, resolution::lookup::get_var_decl_by_ident, state_manager::StateManager,
+};
 
 /// The string an expression spells, or `None` when it spells no string —
 /// an object, an array, `null`, a boolean.

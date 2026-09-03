@@ -8,10 +8,9 @@ this path may abort the process.
 The dispatcher, every node handler and the [engine fold](#engine-fold) live
 here, over the stack every descent of a fold runs on. Above the crate the
 [transform](../stylex-transform/CONTEXT.md) asks it what a `stylex.*` argument
-comes to; below it [stylex-declarations](../stylex-declarations/CONTEXT.md)
-answers which declaration a name binds, and
-[stylex-state](../stylex-state/CONTEXT.md) holds the per-file state a fold reads
-and writes.
+comes to; below it [stylex-state](../stylex-state/CONTEXT.md) holds the per-file
+state a fold reads and writes, and answers which declaration a name binds
+against it.
 
 Decisions this crate has taken, and the measurements behind them, are in
 [docs/adr](./docs/adr).
@@ -19,27 +18,27 @@ Decisions this crate has taken, and the measurements behind them, are in
 ## Comparing against the reference evaluator
 
 Read this before starting a parity investigation. The reference implementation
-answers all of these questions in one file, `utils/evaluate-path.js`. Four
+answers all of these questions in one file, `utils/evaluate-path.js`. Three
 crates answer them here, so a line-for-line reading that opens this crate alone
 will conclude that behaviour is missing when it is one layer down:
 
 - **this crate** -- the dispatcher, every node handler, the engine fold, the
   memo, and the [chain](#reference-resolution-chain) that decides what a
   reference stands for.
-- **[stylex-declarations](../stylex-declarations/CONTEXT.md)** -- which
-  declaration binds a name, and what that declaration says when it is a
-  literal. The reference asks its scope chain; the first steps of the chain here
-  are that crate's four readers.
 - **[stylex-state](../stylex-state/CONTEXT.md)** -- the evaluated value itself
   and the per-file state a fold reads and writes, including the function map a
-  `stylex.*` call is folded against.
+  `stylex.*` call is folded against. Also
+  [which declaration binds a name](../stylex-state/CONTEXT.md#declaration-lookup)
+  and what that declaration says when it is a literal: the reference asks its
+  scope chain, and the first steps of the chain here are that crate's four
+  readers.
 - **[stylex-diagnostics](../stylex-diagnostics/CONTEXT.md)** -- where a refusal
   is _reported_. The reference deopts on `binding.path`, so the position a
   refusal names is the declaration's and not the read's.
 
 The boundaries follow what the code depends on and not what that file holds:
-the two convertors that call back into evaluation stayed above the declaration
-crate, which is what lets this crate depend on it with no cycle. No unit with a
+the two convertors that call back into evaluation stayed above the state crate,
+which is what lets this crate depend on it with no cycle. No unit with a
 counterpart on the other side was cut in half -- the readers that ended up
 split across crates are Rust-only lookup machinery with nothing to compare
 against -- but the file to read alongside is no longer one crate's worth of

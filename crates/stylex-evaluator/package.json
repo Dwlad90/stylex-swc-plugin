@@ -34,7 +34,6 @@
   "devDependencies": {
     "@stylexswc/ast": "catalog:internal",
     "@stylexswc/constants": "catalog:internal",
-    "@stylexswc/declarations": "catalog:internal",
     "@stylexswc/diagnostics": "catalog:internal",
     "@stylexswc/enums": "catalog:internal",
     "@stylexswc/macros": "catalog:internal",

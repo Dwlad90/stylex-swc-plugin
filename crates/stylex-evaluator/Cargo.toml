@@ -32,7 +32,6 @@ swc_ecma_parser = { workspace = true, features = ["verify"] }
 
 stylex_ast = { path = "../stylex-ast" }
 stylex_constants = { path = "../stylex-constants" }
-stylex_declarations = { path = "../stylex-declarations" }
 stylex_diagnostics = { path = "../stylex-diagnostics" }
 stylex_enums = { path = "../stylex-enums" }
 stylex_js = { path = "../stylex-js" }

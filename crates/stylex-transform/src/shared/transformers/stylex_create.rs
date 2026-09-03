@@ -14,8 +14,8 @@ use stylex_constants::constants::{
   common::COMPILED_KEY,
   messages::{EXPRESSION_IS_NOT_A_STRING, VALUES_MUST_BE_OBJECT},
 };
-use stylex_declarations::convertors::convert_expr_to_str;
 use stylex_evaluator::state::EvaluationState;
+use stylex_state::resolution::convertors::convert_expr_to_str;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   flat_compiled_styles_value::FlatCompiledStylesValue,

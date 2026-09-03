@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { captureEnvironment } from '../lib/env.js';
 import { createTempDirs } from './helpers/temp-dirs.js';
@@ -44,6 +44,16 @@ function commitOf(cwd: string): string | undefined {
 describe('captureEnvironment commit provenance', () => {
   const temp = createTempDirs();
   const tempDir = (prefix: string) => temp.make(prefix);
+
+  // CI runs these tests inside a job that exports a real `GITHUB_SHA`. A case
+  // that names no environment SHA would read the runner's own, so the fallback
+  // order and the no-commit case would pass locally and fail in CI, on a SHA
+  // that has nothing to do with the fixture. Each test declares the variables
+  // it wants; the rest start out absent.
+  beforeEach(() => {
+    vi.stubEnv('GITHUB_SHA', undefined);
+    vi.stubEnv('CI_COMMIT_SHA', undefined);
+  });
 
   afterEach(() => {
     vi.unstubAllEnvs();

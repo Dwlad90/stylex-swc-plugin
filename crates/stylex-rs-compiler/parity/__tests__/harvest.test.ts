@@ -628,6 +628,25 @@ describe('what the source cannot fabricate', () => {
     ).toEqual([['width', '1px']]);
   });
 
+  test('a call spelled in a comment is not a call site', () => {
+    // Prose is masked with the string literals, so a call named in a doc
+    // comment -- which is how a helper is described where it is defined --
+    // carries no arguments to harvest.
+    expect(
+      declarationsOf(`
+        /// Built by \`unchanged("color", "documented")\`.
+        #[test]
+        fn a_documented_helper() {
+          unchanged("width", "1px");
+        }
+      `)
+    ).toEqual([['width', '1px']]);
+  });
+
+  test('a call spelled in a character literal is not a call site', () => {
+    expect(declarationsOf('let open = \'(\'; let x = "*{color:red}";')).toEqual([['color', 'red']]);
+  });
+
   test('an identifier argument does not borrow a literal from further along', () => {
     // Shape 1 takes the first two literals after the parenthesis. When the
     // value argument is an identifier, the next literal is whatever follows —

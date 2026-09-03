@@ -1,10 +1,17 @@
 import { describe, expect, test } from 'vitest';
 
-import { enclosingCallees, phfSetMembers } from '../lib/rust-source.js';
+import { scanRustText } from '../lib/rust-literals.js';
+import { enclosingCallees, maskNonCode, phfSetMembers } from '../lib/rust-source.js';
 
-/** The calls enclosing `needle`, which each case marks its offset with. */
+/**
+ * The calls enclosing `needle`, which each case marks its offset with.
+ *
+ * Masked first, the way the harvester reads a scanned file, so a case can
+ * write the prose and the character literals that the mask exists to remove.
+ */
 function calleesAt(source: string, needle: string): string[] {
-  return enclosingCallees(source, source.indexOf(needle));
+  const { nonCode } = scanRustText(source);
+  return enclosingCallees(maskNonCode(source, nonCode), source.indexOf(needle));
 }
 
 /**
@@ -219,9 +226,8 @@ describe('reading the calls that enclose an offset', () => {
   });
 
   test('a bracket in a character literal counts for nothing', () => {
-    // `'('` survives masking, which blanks string literals only. Counting it
-    // cancels the parenthesis that really does close, and the call around it
-    // is then read as one the offset sits inside.
+    // Counting `'('` cancels the parenthesis that really does close, and the
+    // call around it is then read as one the offset sits inside.
     expect(calleesAt("let a = x.matches('(').count() + NEEDLE;", 'NEEDLE')).toStrictEqual([]);
     expect(calleesAt("let a = f(x, ']', NEEDLE);", 'NEEDLE')).toStrictEqual(['f']);
   });

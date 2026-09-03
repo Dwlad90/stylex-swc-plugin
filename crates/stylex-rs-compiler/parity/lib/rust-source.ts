@@ -13,7 +13,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { scanRustLiterals, type RustLiteral } from './rust-literals.js';
+import { scanRustText, type RustLiteral, type SourceSpan } from './rust-literals.js';
 
 /**
  * How far into a source the `@generated` header is looked for.
@@ -28,9 +28,10 @@ export interface ScannedFile {
   relativePath: string;
   source: string;
   /**
-   * `source` with every string literal blanked out, same length. Bracket
-   * matching runs over this: a value like `"calc(a"` carries brackets of its
-   * own, and counting those as code puts the scan permanently out of step.
+   * `source` with everything that is not code blanked out, same length.
+   * Bracket matching runs over this: a value like `"calc(a"`, a `matches('(')`
+   * and a `calc(` written in prose all carry brackets of their own, and
+   * counting those as code puts the scan permanently out of step.
    */
   masked: string;
   literals: RustLiteral[];
@@ -53,11 +54,11 @@ export function scanRustTestFiles(workspaceRoot: string): ScannedFile[] {
     const source = fs.readFileSync(absolute, 'utf8').replaceAll('\r\n', '\n');
     if (isGenerated(source)) continue;
 
-    const literals = scanRustLiterals(source);
+    const { literals, nonCode } = scanRustText(source);
     scanned.push({
       relativePath: path.relative(workspaceRoot, absolute).split(path.sep).join('/'),
       source,
-      masked: maskLiterals(source, literals),
+      masked: maskNonCode(source, nonCode),
       literals,
     } satisfies ScannedFile);
   }
@@ -124,10 +125,10 @@ function collectRustTestFiles(workspaceRoot: string): string[] {
 }
 
 /**
- * `source` with each literal blanked out, preserving every offset.
+ * `source` with each non-code run blanked out, preserving every offset.
  *
- * Rebuilt by slicing rather than by indexing a character array: the offsets on
- * a `RustLiteral` are UTF-16 indices, and splitting a string into code points
+ * Rebuilt by slicing rather than by indexing a character array: the offsets a
+ * span carries are UTF-16 indices, and splitting a string into code points
  * would shift every offset past the first astral character — of which the
  * corpus has several, since non-ASCII `content` values are exactly what these
  * tests cover.
@@ -136,13 +137,13 @@ function collectRustTestFiles(workspaceRoot: string): string[] {
  * every offset the harvester compares against the mask is an offset into the
  * source. Exported so that invariant can be asserted directly.
  */
-export function maskLiterals(source: string, literals: RustLiteral[]): string {
+export function maskNonCode(source: string, spans: SourceSpan[]): string {
   const parts: string[] = [];
   let cursor = 0;
-  // Literals arrive in source order and never overlap, so one pass suffices.
-  for (const literal of literals) {
-    parts.push(source.slice(cursor, literal.start), ' '.repeat(literal.end - literal.start));
-    cursor = literal.end;
+  // Spans arrive in source order and never overlap, so one pass suffices.
+  for (const span of spans) {
+    parts.push(source.slice(cursor, span.start), ' '.repeat(span.end - span.start));
+    cursor = span.end;
   }
   parts.push(source.slice(cursor));
   return parts.join('');
@@ -196,6 +197,9 @@ const CALL_LOOKBEHIND = 512;
  * the separator of a `join`. An extractor that sweeps a whole block asks this
  * before it believes a literal.
  *
+ * Read over masked source, so prose and a character literal carry no brackets
+ * of their own and cannot name a caller.
+ *
  * The walk stops at the window above and at a `;` or a brace, whichever comes
  * first. A brace is the coarser of the two bounds: an argument list does cross
  * one, in the body of a closure, so a literal there reports none of the calls
@@ -205,14 +209,12 @@ const CALL_LOOKBEHIND = 512;
  * of them. What it costs is a message written inside a closure, which stays.
  */
 export function enclosingCallees(masked: string, index: number): string[] {
-  const from = Math.max(0, index - CALL_LOOKBEHIND);
-  const code = blankOpaque(masked.slice(from, index), opensInLineComment(masked, from));
-
   const callees: string[] = [];
+  const floor = Math.max(0, index - CALL_LOOKBEHIND);
   let depth = 0;
 
-  for (let i = code.length - 1; i >= 0; i -= 1) {
-    const char = code[i];
+  for (let i = index - 1; i >= floor; i -= 1) {
+    const char = masked[i];
     const opens = char === '(' || char === '[';
     const closes = char === ')' || char === ']';
 
@@ -231,78 +233,11 @@ export function enclosingCallees(masked: string, index: number): string[] {
       continue;
     }
 
-    const callee = CALLEE_NAME.exec(code.slice(Math.max(0, i - CALLEE_LOOKBEHIND), i));
+    const callee = CALLEE_NAME.exec(masked.slice(Math.max(0, i - CALLEE_LOOKBEHIND), i));
     if (callee !== null) callees.push(callee[1]!);
   }
 
   return callees;
-}
-
-/**
- * Whether the window opens inside a line comment, which the forward scan below
- * cannot see for itself: the `//` that starts one may sit in front of the
- * window.
- *
- * Looked for inside the window's own length, so that one very long line cannot
- * make this the walk it was written to avoid. A `//` further back than that on
- * the same line is not found, and the prose after it reads as code.
- */
-function opensInLineComment(masked: string, from: number): boolean {
-  const lineStart = masked.lastIndexOf('\n', from) + 1;
-  return masked.slice(Math.max(lineStart, from - CALL_LOOKBEHIND), from).includes('//');
-}
-
-/**
- * `text` with every comment and character literal blanked, same length.
- *
- * Only string literals are masked, and the rest of what a Rust source writes
- * that is not code carries brackets of its own: `matches('(')` counts a
- * parenthesis that closes nothing, and a `calc(` or a `;` written in prose
- * ends or redirects the walk. Both are the same defect as an unmasked string.
- *
- * The one text this cannot place is a block comment that opened before the
- * window. It is a comment holding a bracket, spanning lines, inside an
- * argument list — which no suite writes.
- */
-function blankOpaque(text: string, commented: boolean): string {
-  const parts: string[] = [];
-  // A comment the window opened inside runs to the end of its line.
-  let cursor = commented ? text.indexOf('\n') + 1 || text.length : 0;
-  parts.push(' '.repeat(cursor));
-
-  for (let i = cursor; i < text.length; i += 1) {
-    const end = opaqueEnd(text, i);
-    if (end === -1) continue;
-    parts.push(text.slice(cursor, i), ' '.repeat(end - i));
-    cursor = end;
-    i = end - 1;
-  }
-  parts.push(text.slice(cursor));
-
-  return parts.join('');
-}
-
-/**
- * The offset just past the comment or character literal starting at `i`, or
- * `-1` where the character there starts neither. An unterminated one runs to
- * the end of the text.
- */
-function opaqueEnd(text: string, i: number): number {
-  const char = text[i];
-
-  if (char === '/' && text[i + 1] === '/') {
-    const newline = text.indexOf('\n', i + 2);
-    return newline === -1 ? text.length : newline;
-  }
-  if (char === '/' && text[i + 1] === '*') {
-    const close = text.indexOf('*/', i + 2);
-    return close === -1 ? text.length : close + 2;
-  }
-  // A lifetime — `&'static str` — is an apostrophe that opens nothing, so a
-  // character literal counts only where a closing quote follows the body.
-  if (char !== "'") return -1;
-  const body = text[i + 1] === '\\' ? i + 3 : i + 2;
-  return text[body] === "'" ? body + 1 : -1;
 }
 
 /**
@@ -371,8 +306,8 @@ export function testBlocks(source: string): { start: number; end: number }[] {
  * NAME:`, with `phf_set!` reached before the statement ends.
  */
 export function phfSetMembers(source: string, name: string): string[] | undefined {
-  const literals = scanRustLiterals(source);
-  const masked = maskLiterals(source, literals);
+  const { literals, nonCode } = scanRustText(source);
+  const masked = maskNonCode(source, nonCode);
 
   for (const at of findDeclarations(masked, name)) {
     const macro = masked.indexOf('phf_set!', at);

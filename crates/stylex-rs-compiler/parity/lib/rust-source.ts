@@ -270,18 +270,27 @@ function literalsWithin(literals: RustLiteral[], start: number, end: number): Ru
   return literals.filter(literal => literal.start >= start && literal.start < end);
 }
 
-/** Offset ranges of every `#[test] fn … { … }` body in a source file. */
-export function testBlocks(source: string): { start: number; end: number }[] {
+/**
+ * Offset ranges of every `#[test] fn … { … }` body in a source file.
+ *
+ * Read over masked source, which is what makes a block end where the function
+ * does. A test value spells a brace of its own — `"red {"` and
+ * `"* { color: red { }"` are authored values here — and an unbalanced one
+ * counted as code runs the block on to the end of the file. A block that wide
+ * lends its property to every literal below it, which is how a `boxShadow`
+ * value came to be harvested under `width`.
+ */
+export function testBlocks(masked: string): { start: number; end: number }[] {
   const blocks: { start: number; end: number }[] = [];
   const marker = /#\[test\]/g;
 
-  for (const match of source.matchAll(marker)) {
-    const open = source.indexOf('{', match.index);
+  for (const match of masked.matchAll(marker)) {
+    const open = masked.indexOf('{', match.index);
     if (open === -1) continue;
-    const close = closingBrace(source, open);
+    const close = closingBrace(masked, open);
     // An unclosed body runs to the end of the file, which is what the walk
     // answered before it was named.
-    blocks.push({ start: open, end: close === -1 ? source.length : close });
+    blocks.push({ start: open, end: close === -1 ? masked.length : close });
   }
 
   return blocks;

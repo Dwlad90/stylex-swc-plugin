@@ -223,6 +223,12 @@ const PROPERTY_VALUE_CALLS = [
 ] as const;
 
 /**
+ * The calls that are handed a declaration, so their own arguments are never
+ * the rows of a case table.
+ */
+const SUBJECT_CALLS = new Set<string>([...PROPERTY_VALUE_CALLS, 'rejects']);
+
+/**
  * Shapes 1 and 6 — `normalize_css_property_value("color", "#ff0000", &opts)`,
  * `unchanged("color", "red")` and `same("color", "#ff0000", "#f00")`.
  *
@@ -342,13 +348,10 @@ function extractRejectionTables(file: ScannedFile): DeclarationEntry[] {
 function extractCaseTables(file: ScannedFile): DeclarationEntry[] {
   const entries: DeclarationEntry[] = [];
 
-  for (const block of testBlocks(file.source)) {
-    // Located on `masked`, so a call-shaped spelling inside a CSS value literal
-    // cannot be read as a call.
-    const call = file.masked.indexOf('normalize_css_property_value(', block.start);
-    if (call === -1 || call >= block.end) continue;
+  for (const block of testBlocks(file.masked)) {
+    const argsStart = firstSubjectCall(file, block);
+    if (argsStart === undefined) continue;
 
-    const argsStart = call + 'normalize_css_property_value('.length;
     const property = literalsBetween(
       file,
       argsStart,
@@ -364,7 +367,7 @@ function extractCaseTables(file: ScannedFile): DeclarationEntry[] {
 
     for (const literal of file.literals) {
       if (literal.start < block.start || literal.end > block.end) continue;
-      if (literal.start === property.start) continue;
+      if (isSubjectArgument(file, literal)) continue;
       if (!isValueLiteral(file, literal)) continue;
       if (!isTableInput(file, literal)) continue;
       entries.push(entry(property.value, literal.value, `${file.relativePath}:${literal.line}`));
@@ -372,6 +375,50 @@ function extractCaseTables(file: ScannedFile): DeclarationEntry[] {
   }
 
   return entries;
+}
+
+/**
+ * Where the arguments of the block's first subject call start, or `undefined`
+ * where the block calls none.
+ *
+ * Any of the calls that take a declaration names the property a looped table
+ * applies to. `refuses_with("color", value, …)` is the shape a table of
+ * degenerate values takes, and reading only `normalize_css_property_value`
+ * left every one of those values out of the corpus.
+ *
+ * Located on `masked`, so a call-shaped spelling inside a CSS value literal
+ * cannot be read as a call.
+ */
+function firstSubjectCall(
+  file: ScannedFile,
+  block: { start: number; end: number }
+): number | undefined {
+  let earliest: number | undefined;
+
+  for (const name of PROPERTY_VALUE_CALLS) {
+    const open = `${name}(`;
+    const at = file.masked.indexOf(open, block.start);
+    if (at === -1 || at >= block.end) continue;
+    if (earliest === undefined || at < earliest) earliest = at + open.length;
+  }
+
+  return earliest;
+}
+
+/**
+ * Whether a literal is an argument of the call under test rather than a row of
+ * a table beside it.
+ *
+ * A block names its property in the call and reads its inputs from a table
+ * outside it, so nothing inside the call is an input. The property literal is
+ * the one that matters: a block that calls the compiler twice names the
+ * property twice, and the second one sits first inside its own parenthesis —
+ * which is where a tuple row keeps its input, so the bracket alone cannot tell
+ * the two apart. It read as `backgroundImage: backgroundImage`, a property
+ * named as its own value.
+ */
+function isSubjectArgument(file: ScannedFile, literal: RustLiteral): boolean {
+  return enclosingCallees(file.masked, literal.start).some(callee => SUBJECT_CALLS.has(callee));
 }
 
 /**
@@ -457,9 +504,9 @@ function extractStyleObjects(file: ScannedFile): DeclarationEntry[] {
       // for is not in the source; a *Rust* format placeholder is not skipped,
       // and deliberately.
       //
-      // A handful of harvested values carry one -- `calc({deep})`,
-      // `0px 0px {n}px #000`, `rgb({channel}, 0, 0)`. They read as noise, and
-      // it is tempting to filter them, but they are `acceptance-divergent` and
+      // A handful of harvested values carry one -- `0px 0px {n}px #000`,
+      // `rgb({channel}, 0, 0)`, `url(x{body})`. They read as noise, and it is
+      // tempting to filter them, but they are `acceptance-divergent` and
       // pinned by the declaration-terminating token family *on its merits*: a
       // `{` in a value really would close the rule being generated, the guard
       // really does refuse it, and the reference compiler really does emit it.

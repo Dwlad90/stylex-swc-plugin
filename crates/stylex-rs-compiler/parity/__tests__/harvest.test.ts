@@ -133,6 +133,75 @@ describe('shape 2 — case tables looped through one property', () => {
     ]);
   });
 
+  test('reads the property off any of the calls that take a declaration', () => {
+    // A table of degenerate values is written against `refuses_with`, not
+    // against the compiler entry point, and reading only the entry point left
+    // every one of those values out of the corpus.
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          for value in ["red;calc(1px", "red {calc(1px"] {
+            refuses_with("color", value, UNCLOSED, RULE_BREAKING);
+          }
+        }
+      `)
+    ).toEqual([
+      ['color', 'red {calc(1px'],
+      ['color', 'red;calc(1px'],
+    ]);
+  });
+
+  test('a brace in a test value does not stretch the block past its function', () => {
+    // The block is matched over masked source. An unbalanced `}` in a value
+    // would otherwise close the block early and lose the table under it, and
+    // an unbalanced `{` would run the block on to the end of the file and lend
+    // its property to every literal below.
+    expect(
+      declarationsOf(`
+        #[test]
+        fn early() {
+          for value in ["}", "@ { color: red"] {
+            normalize_css_property_value("height", value, &opts);
+          }
+        }
+
+        #[test]
+        fn later() {
+          for value in ["1px"] {
+            normalize_css_property_value("width", value, &opts);
+          }
+        }
+      `)
+    ).toEqual([
+      ['height', '@ { color: red'],
+      ['height', '}'],
+      ['width', '1px'],
+    ]);
+  });
+
+  test('a property named twice in a block is not one of its own values', () => {
+    // The second call names the property again, and that literal sits first
+    // inside its own parenthesis -- which is where a tuple row keeps its
+    // input, so the bracket alone cannot tell the two apart.
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          for value in ["1px"] {
+            normalize_css_property_value("width", value, &opts);
+          }
+          for value in ["2px"] {
+            normalize_css_property_value("width", value, &opts);
+          }
+        }
+      `)
+    ).toEqual([
+      ['width', '1px'],
+      ['width', '2px'],
+    ]);
+  });
+
   test('leaves a block alone when the call already passed a literal value', () => {
     // Shape 1 covers it; re-reading the block would attribute the expected
     // output to the property as though it were an input.

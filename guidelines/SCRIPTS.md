@@ -92,6 +92,17 @@ See [Git Hooks](./git/HOOKS.md).
 `typecheck`, `format` or `format:check`; `test -- <pattern>` runs matching
 tests. Linting runs once from the workspace root.
 
+A package script whose body is `scripty` runs the matching file under
+`scripts/packages/<script>/`. One of those has no caller:
+`scripts/packages/test/index.sh` runs one crate's Rust suites, and every crate
+prints a skip line for `test` instead, because the Rust suites run once for the
+whole workspace. It is kept for a direct run from a crate directory, and for
+the crate that points `test` back at `scripty`. Its siblings `coverage.sh` and
+`flamegraph.sh` are reached by `test:coverage` and `test:flamegraph`.
+`scripts/git/crate-test-runner.test.mjs` holds it to what it claims to do,
+because a reader that says a crate holds no test drops that crate's suite in
+silence.
+
 ## Dependencies
 
 ```sh

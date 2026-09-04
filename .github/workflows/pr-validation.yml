@@ -173,22 +173,12 @@ jobs:
             command: pnpm run typecheck
           - id: tests-nodejs
             name: Tests Node.js
-            # The JavaScript leg alone, not the root `pnpm test`: that also
-            # runs the script suites and the Rust workspace suite, which are
-            # `ci-script-tests`, `tests-rust` and `tests-rust-doc` in this same
-            # matrix. This job installs no `cargo-nextest`, so the Rust leg
-            # fails here on any turbo cache miss.
             command:
-              pnpm exec turbo run test --continue --filter="{./packages/*}" --filter="{./apps/*}"
+              pnpm run test --filter="{./packages/*}" --filter="{./apps/*}"
               --filter="@stylexswc/rs-compiler"
           - id: tests-rust
             name: Tests Rust code
-            # The `ci` nextest profile retries a flaky test twice instead of
-            # failing at once. That is what CI wants and the opposite of what a
-            # local gate wants, so the profile is set here rather than in the
-            # script both share.
-            command: |
-              NEXTEST_PROFILE=ci pnpm exec turbo run test:crates:workspace:regular --filter="//"
+            command: pnpm exec turbo run test:crates:workspace:regular --filter="//"
           - id: tests-rust-doc
             name: Tests Rust doc
             command: pnpm exec turbo run test:crates:workspace:doc --filter="//"

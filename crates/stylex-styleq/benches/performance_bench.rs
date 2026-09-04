@@ -1,3 +1,8 @@
+// The allocator the published addon links, so a measurement that allocation
+// binds matches what a consumer gets. Rust links a dev-dependency only where a
+// target names it, so this line is what makes the choice real.
+use swc_malloc as _;
+
 use std::{
   hint::black_box,
   sync::{Arc, Mutex},

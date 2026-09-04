@@ -50,6 +50,11 @@
 //! `GLOBALS` scope below, which is the bug. It is recorded as what went wrong,
 //! not as a number to check against.
 
+// The allocator the published addon links, so a measurement that allocation
+// binds matches what a consumer gets. Rust links a dev-dependency only where a
+// target names it, so this line is what makes the choice real.
+use swc_malloc as _;
+
 use std::{
   fs,
   hint::black_box,

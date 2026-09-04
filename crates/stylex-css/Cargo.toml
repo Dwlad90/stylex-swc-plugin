@@ -29,6 +29,7 @@ stylex_utils = { path = "../stylex-utils" }
 criterion.workspace = true
 ctor.workspace = true
 pretty_env_logger.workspace = true
+swc_malloc.workspace = true
 
 [[bench]]
 harness = false

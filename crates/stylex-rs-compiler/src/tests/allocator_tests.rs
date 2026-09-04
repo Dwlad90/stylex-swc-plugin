@@ -458,3 +458,136 @@ mod reading_the_published_targets {
     published_targets("");
   }
 }
+
+/// Every criterion bench states which allocator it measures.
+///
+/// The shipped addon runs mimalloc, and a bench that links nothing measures the
+/// system allocator instead. Rust links a dev-dependency only where a target
+/// names it, so a manifest entry alone does nothing: the one line that makes
+/// the allocator real is `use swc_malloc as _;` in the bench itself.
+///
+/// A bench may measure the system allocator, but it must say so. Write
+/// `ALLOCATOR: system` with the reason in the bench, and this reader accepts
+/// it. Silence is what this refuses.
+#[cfg(test)]
+mod bench_allocator {
+  use std::{fs, path::PathBuf};
+
+  /// The `crates` directory that holds every crate of this workspace.
+  fn crates_dir() -> PathBuf {
+    match super::crate_dir().parent() {
+      Some(parent) => parent.to_path_buf(),
+      None => panic!("the crate directory has no parent"),
+    }
+  }
+
+  /// Every `benches/*.rs` file in the workspace, as (name, source).
+  fn benches() -> Vec<(String, String)> {
+    let mut found = Vec::new();
+
+    let entries = match fs::read_dir(crates_dir()) {
+      Ok(entries) => entries,
+      Err(error) => panic!("the crates directory is not readable: {error}"),
+    };
+
+    for entry in entries.flatten() {
+      let benches = entry.path().join("benches");
+
+      let files = match fs::read_dir(&benches) {
+        Ok(files) => files,
+        // A crate with no bench directory has no bench to answer for.
+        Err(_) => continue,
+      };
+
+      for file in files.flatten() {
+        let path = file.path();
+
+        if path.extension().is_none_or(|extension| extension != "rs") {
+          continue;
+        }
+
+        let name = path
+          .strip_prefix(crates_dir())
+          .unwrap_or(&path)
+          .display()
+          .to_string();
+
+        match fs::read_to_string(&path) {
+          Ok(source) => found.push((name, source)),
+          Err(error) => panic!("{name} is not readable: {error}"),
+        }
+      }
+    }
+
+    found.sort();
+    found
+  }
+
+  /// Whether a bench states the allocator it measures.
+  ///
+  /// The statement must start a line. The comment beside it names the same
+  /// crate, so a bench that copied the comment and dropped the statement would
+  /// answer yes to a plain search of the whole text.
+  fn states_its_allocator(source: &str) -> bool {
+    source
+      .lines()
+      .any(|line| line.trim_start() == "use swc_malloc as _;" || line.contains("ALLOCATOR: system"))
+  }
+
+  /// How many `[[bench]]` tables the crate manifests declare in total.
+  fn declared_bench_count() -> usize {
+    let entries = match fs::read_dir(crates_dir()) {
+      Ok(entries) => entries,
+      Err(error) => panic!("the crates directory is not readable: {error}"),
+    };
+
+    entries
+      .flatten()
+      .map(
+        |entry| match fs::read_to_string(entry.path().join("Cargo.toml")) {
+          Ok(manifest) => manifest.matches("[[bench]]").count(),
+          // A directory with no manifest declares no bench.
+          Err(_) => 0,
+        },
+      )
+      .sum()
+  }
+
+  #[test]
+  fn every_bench_says_which_allocator_it_measures() {
+    let silent: Vec<String> = benches()
+      .into_iter()
+      .filter(|(_, source)| !states_its_allocator(source))
+      .map(|(name, _)| name)
+      .collect();
+
+    assert_eq!(
+      silent,
+      Vec::<String>::new(),
+      "these benches measure the system allocator without saying so; add \
+       `use swc_malloc as _;`, or write `ALLOCATOR: system` with the reason"
+    );
+  }
+
+  #[test]
+  fn the_reader_finds_every_bench_the_manifests_declare() {
+    // A reader that finds nothing agrees with a workspace where every bench is
+    // silent. The manifests say how many there should be, so a bench this
+    // reader cannot reach -- one a `[[bench]]` table points outside `benches`,
+    // for example -- fails here rather than going unchecked.
+    assert_eq!(benches().len(), declared_bench_count());
+  }
+
+  #[test]
+  fn a_bench_that_only_names_the_rule_does_not_state_it() {
+    assert!(!states_its_allocator(
+      "// Read about `use swc_malloc as _;` elsewhere.\n"
+    ));
+    assert!(!states_its_allocator("fn main() {}\n"));
+    assert!(states_its_allocator("use swc_malloc as _;\n"));
+    assert!(states_its_allocator("  use swc_malloc as _;\n"));
+    assert!(states_its_allocator(
+      "// ALLOCATOR: system -- measured on purpose.\n"
+    ));
+  }
+}

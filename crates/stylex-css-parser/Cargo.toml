@@ -31,6 +31,7 @@ stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
 criterion.workspace = true
+swc_malloc.workspace = true
 
 [[bench]]
 harness = false

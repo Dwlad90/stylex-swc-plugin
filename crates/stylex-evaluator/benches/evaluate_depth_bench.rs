@@ -27,6 +27,11 @@
 //! code-frame path and that path calls `Mark::new()`. Why that is not optional
 //! is in `guidelines/PERFORMANCE.md` under "Writing a bench".
 
+// The allocator the published addon links, so a measurement that allocation
+// binds matches what a consumer gets. Rust links a dev-dependency only where a
+// target names it, so this line is what makes the choice real.
+use swc_malloc as _;
+
 use std::hint::black_box;
 
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};

@@ -12,6 +12,32 @@ Only release comparisons block: paired same-runner, same-process
 hosted Linux and ~34% on `x86_64-apple-darwin`, too coarse for a 10-20%
 regression.
 
+## The allocator a bench measures
+
+The published addon runs mimalloc on all seven targets. `swc_malloc` chooses it
+for the six that are not musl, and the addon names it directly for
+`x86_64-unknown-linux-musl`, because `swc_malloc` declines every musl target at
+once.
+
+A criterion bench measures the system allocator unless it links the same crate,
+and Rust links a dev-dependency only where a target names it. A manifest entry
+alone therefore does nothing: the line that makes the choice real is
+`use swc_malloc as _;` in the bench file.
+
+Every bench in the workspace carries that line.
+`every_bench_says_which_allocator_it_measures`, in the addon's own test module,
+fails when a new bench carries neither that line nor an `ALLOCATOR: system`
+note giving the reason.
+
+One gap stays, and it is a small one. A bench built for musl still measures the
+system allocator, because `swc_malloc` declines musl and only the addon names
+mimalloc for that target. No bench runs there today.
+
+**Numbers taken before this rule do not compare with numbers taken after it.**
+The allocator is the axis several benches sit on, so a series that crosses the
+change reads a difference that no code change caused. Re-baseline first, then
+compare.
+
 ## Subjects
 
 - PR base: merge-base with `origin/develop`, built in an isolated worktree.

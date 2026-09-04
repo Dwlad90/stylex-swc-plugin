@@ -47,6 +47,7 @@ criterion.workspace = true
 ctor.workspace = true
 pretty_env_logger.workspace = true
 swc_core = { workspace = true, features = ["ecma_parser"] }
+swc_malloc.workspace = true
 
 [[bench]]
 harness = false

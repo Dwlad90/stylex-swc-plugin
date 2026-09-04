@@ -4,7 +4,7 @@ use swc_core::{
   atoms::Atom,
   ecma::{
     ast::{Expr, Lit, MemberExpr, ObjectLit, Prop, PropOrSpread},
-    visit::{VisitMut, noop_visit_mut_type},
+    visit::{Visit, noop_visit_type},
   },
 };
 
@@ -107,6 +107,11 @@ pub(crate) fn member_expression(
 
 /// Walks the member expressions of a `stylex.props`-family call argument and
 /// records which style variables and namespaces the runtime still needs.
+///
+/// A reader, not a writer: [`member_expression`] takes the node by shared
+/// reference and writes only to the state and to the three counters here. The
+/// walk says so through `Visit`, which is what keeps it independent of the
+/// hoisting walk that runs beside it.
 pub(crate) struct MemberTransform<'a> {
   pub(crate) index: i32,
   pub(crate) bail_out_index: Option<i32>,
@@ -115,10 +120,13 @@ pub(crate) struct MemberTransform<'a> {
   pub(crate) functions: &'a FunctionMap,
 }
 
-impl VisitMut for MemberTransform<'_> {
-  noop_visit_mut_type!();
+impl Visit for MemberTransform<'_> {
+  noop_visit_type!();
 
-  fn visit_mut_member_expr(&mut self, member: &mut MemberExpr) {
+  // Deliberately does not walk the children of a member expression. The index
+  // counts one step per member expression the argument holds, and a nested one
+  // would count twice and move the bail-out point.
+  fn visit_member_expr(&mut self, member: &MemberExpr) {
     member_expression(
       member,
       &mut self.index,

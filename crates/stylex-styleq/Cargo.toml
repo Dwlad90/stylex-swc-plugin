@@ -21,6 +21,7 @@ stylex_constants = { path = "../stylex-constants" }
 [dev-dependencies]
 criterion.workspace = true
 serial_test.workspace = true
+swc_malloc.workspace = true
 
 [[bench]]
 harness = false

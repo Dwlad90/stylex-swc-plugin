@@ -2611,6 +2611,7 @@ name = "postcss_value_parser"
 version = "0.18.6"
 dependencies = [
  "criterion",
+ "swc_malloc",
 ]
 
 [[package]]
@@ -3278,6 +3279,7 @@ dependencies = [
  "stylex_structures",
  "stylex_types",
  "stylex_utils",
+ "swc_malloc",
 ]
 
 [[package]]
@@ -3292,6 +3294,7 @@ dependencies = [
  "stylex_macros",
  "stylex_utils",
  "swc_core",
+ "swc_malloc",
  "thiserror 2.0.20",
 ]
 
@@ -3352,6 +3355,7 @@ dependencies = [
  "stylex_utils",
  "swc_core",
  "swc_ecma_parser",
+ "swc_malloc",
 ]
 
 [[package]]
@@ -3494,6 +3498,7 @@ dependencies = [
  "rustc-hash",
  "serial_test",
  "stylex_constants",
+ "swc_malloc",
 ]
 
 [[package]]

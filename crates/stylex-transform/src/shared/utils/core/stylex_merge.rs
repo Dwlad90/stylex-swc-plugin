@@ -6,7 +6,7 @@ use swc_core::ecma::{
     BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, JSXAttrOrSpread, JSXAttrValue, Lit,
     ObjectLit, Prop, PropName, PropOrSpread,
   },
-  visit::{VisitMut, VisitMutWith},
+  visit::{VisitMut, VisitMutWith, VisitWith},
 };
 
 use crate::shared::{
@@ -233,7 +233,7 @@ pub(crate) fn stylex_merge(
         functions: &evaluate_path_fn_config,
       };
 
-      arg_path.expr.visit_mut_with(&mut member_transform);
+      arg_path.expr.visit_with(&mut member_transform);
 
       index = member_transform.index;
       bail_out_index = member_transform.bail_out_index;
@@ -242,6 +242,11 @@ pub(crate) fn stylex_merge(
       // Hoist any inline compiled-style objects (produced by atoms) to module
       // scope so the runtime `stylex.props` receives a stable reference instead
       // of a re-created object literal.
+      //
+      // A second walk, and it stays one. The reader above stops at a member
+      // expression, because counting a nested one would move the bail-out
+      // point, while this walk must reach an object wherever it sits. One walk
+      // could serve only one of those two rules.
       let mut object_hoister = CompiledStyleObjectHoister {
         state: &mut *state,
         hoist_expression,

@@ -40,7 +40,7 @@ crate_has_tests() {
 
   # Stop before grep runs if the crate has neither directory. This guard is
   # necessary: bash 3.2 stops with an error for an empty array when the script
-  # sets `-u`, which `coverage.sh` does.
+  # sets `-u`, which all three callers do.
   if [ ${#directories[@]} -eq 0 ]; then
     return 1
   fi

@@ -17,74 +17,25 @@
  */
 
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
 import {
-  createWorkspace,
-  hermeticEnvironment,
-  missing,
-  readInvocations,
-  repoRoot,
-  stubPath,
-  writeStubs,
-  writeText,
-} from './lib/test-harness.mjs';
+  A_TEST,
+  NEEDS_BASH,
+  NO_TEST,
+  bashInterpreters,
+  hugeCrateFiles,
+  runCrateScript,
+  valueAfter,
+} from './lib/crate-script-harness.mjs';
+import { repoRoot } from './lib/test-harness.mjs';
 
 const script = path.join(repoRoot, 'scripts/packages/test/index.sh');
 
-const NEEDS_BASH = missing('bash', 'grep');
-
-/** A source file holding the plainest of the four markers the script looks for. */
-const A_TEST = '#[test]\nfn it_holds() {}\n';
-
-/** A source file holding no marker at all. */
-const NO_TEST = 'pub fn add(left: u64, right: u64) -> u64 { left + right }\n';
-
-/**
- * Stands up one crate directory and runs the script inside it.
- *
- * `files` is a map of crate-relative path to contents. `directories` names
- * directories to create empty, for the cases where an empty `src` or `tests`
- * is the thing under test.
- */
-function runInCrate({
-  files = {},
-  directories = [],
-  args = [],
-  name = 'a-crate',
-  cargoBody = '',
-} = {}) {
-  const workspace = createWorkspace('stylex-crate-test-runner-');
-  const crate = path.join(workspace.directory, name);
-
-  fs.mkdirSync(crate, { recursive: true });
-
-  for (const directory of directories) {
-    fs.mkdirSync(path.join(crate, directory), { recursive: true });
-  }
-
-  for (const [file, contents] of Object.entries(files)) {
-    writeText(path.join(crate, file), contents);
-  }
-
-  // A cargo that records its argv and nothing else. The script runs two cargo
-  // calls in a row and does not read their output, so a stub that only logs is
-  // the whole of what it needs.
-  writeStubs(workspace.bin, { cargo: { perArgument: true, body: cargoBody } });
-
-  const result = spawnSync('bash', [script, ...args], {
-    cwd: crate,
-    encoding: 'utf8',
-    env: hermeticEnvironment({
-      [['PA', 'TH'].join('')]: stubPath(workspace.bin),
-      FAKE_COMMAND_LOG: workspace.log,
-    }),
-  });
-
-  return { result, invocations: readInvocations(workspace.log), crate };
+/** Runs the real script inside a throwaway crate. */
+function runInCrate(options = {}) {
+  return runCrateScript({ script, prefix: 'stylex-crate-test-runner-', ...options });
 }
 
 /** The cargo subcommand of one recorded invocation, as the script spells it. */
@@ -220,7 +171,7 @@ void test(
   { skip: NEEDS_BASH },
   () => {
     const { invocations } = runInCrate({ files: { 'src/lib.rs': A_TEST }, name: 'stylex-utils' });
-    const target = invocations[0][invocations[0].indexOf('--target-dir') + 1];
+    const target = valueAfter(invocations[0], '--target-dir');
 
     assert.ok(target.endsWith(path.join('target', 'test-stylex-utils')), target);
   }
@@ -234,7 +185,7 @@ void test(
       files: { 'src/lib.rs': A_TEST },
       name: 'odd name (v2)',
     });
-    const target = invocations[0][invocations[0].indexOf('--target-dir') + 1];
+    const target = valueAfter(invocations[0], '--target-dir');
 
     assert.ok(target.endsWith(path.join('target', 'test-odd_name__v2_')), target);
     assert.equal(invocations[0].filter(argument => argument.includes('test-odd')).length, 1);
@@ -245,15 +196,7 @@ void test(
   'a crate far larger than any in this repository is still read',
   { skip: NEEDS_BASH },
   () => {
-    // Thousands of files, one of them holding the marker on its last line, plus
-    // one file large enough that a reader with a line budget would give up.
-    const files = { 'src/huge.rs': `${NO_TEST.repeat(20_000)}${A_TEST}` };
-
-    for (let index = 0; index < 2_000; index += 1) {
-      files[`src/module_${index}/mod.rs`] = NO_TEST;
-    }
-
-    const { result, invocations } = runInCrate({ files });
+    const { result, invocations } = runInCrate({ files: hugeCrateFiles() });
 
     assert.equal(result.status, 0);
     assert.equal(invocations.length, 2);
@@ -292,12 +235,20 @@ void test('a failing doc run still fails the script', { skip: NEEDS_BASH }, () =
   assert.equal(invocations.length, 2, 'both runs started');
 });
 
-void test('a run with no argument still starts cargo', { skip: NEEDS_BASH }, () => {
+void test('a run with no argument still starts cargo, in every bash', { skip: NEEDS_BASH }, () => {
   // `set -u` and an empty array do not agree in bash 3.2, which macOS ships, so
-  // the arguments stay as "$@" rather than becoming a copy.
-  const { result, invocations } = runInCrate({ files: { 'src/lib.rs': A_TEST }, args: [] });
+  // the arguments stay as "$@" rather than becoming a copy. Only bash 3.2 shows
+  // the fault, and it is rarely the bash the search path finds first, so the
+  // case runs under each bash this machine has.
+  for (const { interpreter, version } of bashInterpreters()) {
+    const { result, invocations } = runInCrate({
+      files: { 'src/lib.rs': A_TEST },
+      args: [],
+      interpreter,
+    });
 
-  assert.equal(result.status, 0);
-  assert.equal(invocations.length, 2);
-  assert.equal(result.stderr, '', 'the script reported an unbound variable');
+    assert.equal(result.stderr, '', `${version} reported an unbound variable`);
+    assert.equal(result.status, 0, version);
+    assert.equal(invocations.length, 2, version);
+  }
 });

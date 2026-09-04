@@ -11,32 +11,21 @@
  */
 
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
 import {
-  createWorkspace,
-  hermeticEnvironment,
-  missing,
-  pathVariable,
-  readInvocations,
-  repoRoot,
-  stubPath,
-  writeStubs,
-  writeText,
-} from './lib/test-harness.mjs';
+  A_TEST,
+  NEEDS_BASH,
+  NO_TEST,
+  bashInterpreters,
+  hugeCrateFiles,
+  runCrateScript,
+  valueAfter,
+} from './lib/crate-script-harness.mjs';
+import { repoRoot } from './lib/test-harness.mjs';
 
 const script = path.join(repoRoot, 'scripts/packages/test/coverage.sh');
-
-const NEEDS_BASH = missing('bash', 'grep');
-
-/** A source file holding the plainest of the three markers the script reads. */
-const A_TEST = '#[test]\nfn it_holds() {}\n';
-
-/** A source file holding no marker at all. */
-const NO_TEST = 'pub fn add(left: u64, right: u64) -> u64 { left + right }\n';
 
 /** The crates that the script must never measure. */
 const EXCLUDED = [
@@ -48,64 +37,13 @@ const EXCLUDED = [
   'stylex-transform',
 ];
 
-/**
- * Stands up one crate directory and runs the script inside it.
- *
- * `files` is a map of crate-relative path to contents. `directories` names
- * directories to create empty. `cargoBody` is shell that the recording cargo
- * runs after it logs, which is how a failing cargo is put under test.
- */
-function runInCrate({
-  files = {},
-  directories = [],
-  args = [],
-  name = 'a-crate',
-  cargoBody = '',
-} = {}) {
-  const workspace = createWorkspace('stylex-crate-coverage-runner-');
-  const crate = path.join(workspace.directory, name);
-
-  fs.mkdirSync(crate, { recursive: true });
-
-  for (const directory of directories) {
-    fs.mkdirSync(path.join(crate, directory), { recursive: true });
-  }
-
-  for (const [file, contents] of Object.entries(files)) {
-    writeText(path.join(crate, file), contents);
-  }
-
-  // The script gives cargo its target directory in the environment, so the
-  // stub writes that value where the test can read it back.
-  const targetDirLog = path.join(workspace.directory, 'target-dir');
-  const recordTargetDir = `printf '%s' "$CARGO_TARGET_DIR" > "$CARGO_TARGET_DIR_LOG"`;
-
-  writeStubs(workspace.bin, {
-    cargo: { perArgument: true, body: `${recordTargetDir}\n${cargoBody}` },
-  });
-
-  const result = spawnSync('bash', [script, ...args], {
-    cwd: crate,
-    encoding: 'utf8',
-    env: hermeticEnvironment({
-      [pathVariable]: stubPath(workspace.bin),
-      FAKE_COMMAND_LOG: workspace.log,
-      CARGO_TARGET_DIR_LOG: targetDirLog,
-    }),
-  });
-
-  const targetDir = fs.existsSync(targetDirLog) ? fs.readFileSync(targetDirLog, 'utf8') : '';
-
-  return { result, invocations: readInvocations(workspace.log), crate, targetDir };
+/** Runs the real script inside a throwaway crate. */
+function runInCrate(options = {}) {
+  return runCrateScript({ script, prefix: 'stylex-crate-coverage-runner-', ...options });
 }
 
 /** A crate that holds a library and one test, which is the measurable shape. */
 const A_MEASURABLE_CRATE = { 'src/lib.rs': A_TEST };
-
-/** The value that follows `flag` in a recorded invocation. */
-function valueAfter(invocation, flag) {
-  return invocation[invocation.indexOf(flag) + 1];
-}
 
 // ── The shape almost every crate has ─────────────────────────────
 
@@ -324,13 +262,7 @@ void test(
   'a crate far larger than any in this repository is still read',
   { skip: NEEDS_BASH },
   () => {
-    const files = { 'src/lib.rs': `${NO_TEST.repeat(20_000)}${A_TEST}` };
-
-    for (let index = 0; index < 2_000; index += 1) {
-      files[`src/module_${index}/mod.rs`] = NO_TEST;
-    }
-
-    const { result, invocations } = runInCrate({ files });
+    const { result, invocations } = runInCrate({ files: hugeCrateFiles() });
 
     assert.equal(result.status, 0);
     assert.equal(invocations.length, 1);
@@ -350,3 +282,21 @@ void test(
     assert.equal(invocations.length, 1);
   }
 );
+
+void test('a run with no argument still starts cargo, in every bash', { skip: NEEDS_BASH }, () => {
+  // `set -u` and an empty array do not agree in bash 3.2, which macOS ships, so
+  // the arguments stay as "$@" rather than becoming a copy. Only bash 3.2 shows
+  // the fault, and it is rarely the bash the search path finds first, so the
+  // case runs under each bash this machine has.
+  for (const { interpreter, version } of bashInterpreters()) {
+    const { result, invocations } = runInCrate({
+      files: { 'src/lib.rs': A_TEST },
+      args: [],
+      interpreter,
+    });
+
+    assert.equal(result.stderr, '', `${version} reported an unbound variable`);
+    assert.equal(result.status, 0, version);
+    assert.equal(invocations.length, 1, version);
+  }
+});

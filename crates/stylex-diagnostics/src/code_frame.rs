@@ -34,6 +34,12 @@ use stylex_regex::regex::URL_REGEX;
 use stylex_state_index::key_span_index::{CallLookup, NamespaceKeyQuery};
 use stylex_utils::hash::stable_hash_wide;
 
+/// One diagnostic's view of a file: the source map that the frame quotes from,
+/// and the handler that draws the caret.
+///
+/// Every frame shares one process-wide source map, which is why a source goes
+/// in through `register_source_once` and not through
+/// `new_source_file`. Read that method for the cost of a second registration.
 pub struct CodeFrame {
   source_map: Arc<SourceMap>,
   handler: Handler,

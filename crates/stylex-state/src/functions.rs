@@ -12,8 +12,8 @@ use stylex_enums::value_with_default::ValueWithDefault;
 use crate::types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression};
 use stylex_structures::stylex_env::JSFunction;
 
-pub(crate) type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;
-pub(crate) type StylexExprFn = fn(Expr, &mut StateManager) -> Expr;
+pub type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;
+pub type StylexExprFn = fn(Expr, &mut StateManager) -> Expr;
 
 /// The `stylex.when.*` functions, which alone among the StyleX helpers take a
 /// second argument: an optional custom marker to observe instead of the

@@ -33,6 +33,11 @@ minimumReleaseAge: 4320
 verifyDepsBeforeRun: false
 engineStrict: true
 
+# The generated-fixture gate finds its checks through a `pretest` script, and
+# `pretest` runs because this setting is on by default. Written down because
+# the repository has lost that caller twice, and a default is not a promise.
+enablePrePostScripts: true
+
 minimumReleaseAgeExclude:
   - '@octokit/*'
   - '@yuku-codegen/*'

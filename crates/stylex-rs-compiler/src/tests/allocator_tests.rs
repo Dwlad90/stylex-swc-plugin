@@ -150,8 +150,12 @@ fn the_manifest_takes_mimalloc_for_the_targets_lib_declares() {
   let manifest = crate_file("Cargo.toml");
 
   for arch in musl_arches_declared_in(&crate_file("src/lib.rs")) {
-    let section = manifest.split("[target.").find(|section| {
-      section.contains(r#"target_env = "musl""#)
+    // Split on the start of a table and not on the text "[target.". A split on
+    // the text gives each part to the end of the file, so a dependency in a
+    // later table would answer for this one.
+    let section = manifest.split("\n[").find(|section| {
+      section.starts_with("target.")
+        && section.contains(r#"target_env = "musl""#)
         && section.contains(&format!(r#"target_arch = "{arch}""#))
     });
 

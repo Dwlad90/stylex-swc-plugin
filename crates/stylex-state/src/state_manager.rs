@@ -985,7 +985,9 @@ impl StateManager {
   ///
   /// Public and not `#[cfg(test)]`: the tests that call it are in the crates
   /// above, and a `cfg` set while compiling this crate is not set while
-  /// compiling theirs.
+  /// compiling theirs. `doc(hidden)` keeps it out of the crate's documented
+  /// interface, because a test helper is not part of what this crate offers.
+  #[doc(hidden)]
   pub fn for_test(export_id: Option<&str>, options: StyleXStateOptions) -> Self {
     Self {
       export_id: export_id.map(str::to_string),

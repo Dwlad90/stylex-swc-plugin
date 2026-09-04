@@ -44,6 +44,14 @@ pub fn get_var_decl_parts_by_ident(
 
 /// Finds the declarator that an identifier names, or builds one from the
 /// function map.
+///
+/// # Panics
+///
+/// A function-map entry that is a map, an index map, or a regular function
+/// that is not a mapper has no declarator to stand for. Such an entry is a
+/// broken invariant and not a shape that a module can write, so it stops the
+/// build with a code frame. An env object answers `None` instead, because an
+/// env read is a value that the caller resolves somewhere else.
 // The result is owned, so it borrows nothing from the three parameters. The
 // parameters therefore need no shared lifetime, and the function above
 // declares none either.

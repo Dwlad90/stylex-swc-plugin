@@ -4,7 +4,7 @@ use swc_core::{
   atoms::Atom,
   ecma::{
     ast::{Expr, Lit, MemberExpr, ObjectLit, Prop, PropOrSpread},
-    visit::{VisitMut, VisitMutWith, noop_visit_mut_type},
+    visit::{VisitMut, noop_visit_mut_type},
   },
 };
 
@@ -117,10 +117,6 @@ pub(crate) struct MemberTransform<'a> {
 
 impl VisitMut for MemberTransform<'_> {
   noop_visit_mut_type!();
-
-  fn visit_mut_expr(&mut self, expr: &mut Expr) {
-    expr.visit_mut_children_with(self);
-  }
 
   fn visit_mut_member_expr(&mut self, member: &mut MemberExpr) {
     member_expression(

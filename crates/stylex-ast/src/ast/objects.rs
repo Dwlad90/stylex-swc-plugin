@@ -14,7 +14,7 @@
 use std::hash::BuildHasher;
 
 use indexmap::IndexMap;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use stylex_utils::number::to_js_string;
 use swc_core::atoms::Atom;
 use swc_core::ecma::ast::{Prop, PropName, PropOrSpread};
@@ -218,22 +218,35 @@ pub fn order_own_map_keys<K, V, S>(
 }
 
 /// Keeps the last property declared under each name, in the position that name
-/// last took, and drops every property that declares no readable name.
+/// **first** took, and drops every property that declares no readable name.
+///
+/// This is what the language does. `Object.entries({ color: 1, opacity: 2,
+/// color: 3 })` gives `[["color", 3], ["opacity", 2]]`: the repeated key takes
+/// the later value and stays where it first appeared.
+///
+/// The function read the properties backwards before, and kept the first one
+/// it then met. That gives the right value in the wrong place, so the two
+/// declarations above came out as `opacity, color`. [`assign_props`] beside
+/// this one states the same rule and already followed it.
 pub fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
-  let mut set = FxHashSet::default();
-  let mut result = Vec::with_capacity(props.len());
+  // The place each key already took, so a repeated key is found by one lookup
+  // instead of a walk of the properties placed so far.
+  let mut positions: FxHashMap<Atom, usize> = FxHashMap::default();
+  let mut result: Vec<PropOrSpread> = Vec::with_capacity(props.len());
 
-  for prop in props.into_iter().rev() {
+  for prop in props {
     let Some(key) = prop_key(&prop) else {
       continue;
     };
 
-    if set.insert(key) {
-      result.push(prop);
+    match positions.get(&key) {
+      Some(&position) => result[position] = prop,
+      None => {
+        positions.insert(key, result.len());
+        result.push(prop);
+      },
     }
   }
-
-  result.reverse();
 
   result
 }

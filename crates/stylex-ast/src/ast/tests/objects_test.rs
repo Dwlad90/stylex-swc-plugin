@@ -234,6 +234,43 @@ fn pairs_of(props: &[PropOrSpread]) -> Vec<(String, f64)> {
 mod remove_duplicates_tests {
   use super::*;
 
+  /// A repeated key keeps the place it first took, and takes the last value.
+  /// `Object.entries({ color: 1, opacity: 2, color: 3 })` gives
+  /// `[["color", 3], ["opacity", 2]]`, so `color` stays first.
+  #[test]
+  fn a_repeated_key_keeps_the_place_it_first_took() {
+    let props = vec![
+      make_kv_prop("color", 1.0),
+      make_kv_prop("opacity", 2.0),
+      make_kv_prop("color", 3.0),
+    ];
+
+    let result = remove_duplicates(props);
+
+    assert_eq!(keys_of(&result), vec!["color", "opacity"]);
+    assert_eq!(number_value_of(&result[0]), Some(3.0));
+    assert_eq!(number_value_of(&result[1]), Some(2.0));
+  }
+
+  /// Two keys that both repeat keep both of their first places.
+  /// `Object.entries({ b: 1, a: 2, b: 3, a: 4 })` gives
+  /// `[["b", 3], ["a", 4]]`.
+  #[test]
+  fn two_repeated_keys_each_keep_their_first_place() {
+    let props = vec![
+      make_kv_prop("b", 1.0),
+      make_kv_prop("a", 2.0),
+      make_kv_prop("b", 3.0),
+      make_kv_prop("a", 4.0),
+    ];
+
+    let result = remove_duplicates(props);
+
+    assert_eq!(keys_of(&result), vec!["b", "a"]);
+    assert_eq!(number_value_of(&result[0]), Some(3.0));
+    assert_eq!(number_value_of(&result[1]), Some(4.0));
+  }
+
   #[test]
   fn keeps_every_key_declared_once() {
     let props = vec![make_kv_prop("a", 1.0), make_kv_prop("b", 2.0)];
@@ -242,7 +279,7 @@ mod remove_duplicates_tests {
   }
 
   #[test]
-  fn keeps_the_last_value_a_repeated_key_takes_in_the_place_it_last_took() {
+  fn keeps_the_last_value_a_repeated_key_takes_in_the_place_it_first_took() {
     let props = vec![
       make_kv_prop("a", 1.0),
       make_kv_prop("b", 2.0),
@@ -251,8 +288,8 @@ mod remove_duplicates_tests {
 
     let result = remove_duplicates(props);
 
-    assert_eq!(keys_of(&result), vec!["b", "a"]);
-    assert_eq!(number_value_of(&result[1]), Some(3.0));
+    assert_eq!(keys_of(&result), vec!["a", "b"]);
+    assert_eq!(number_value_of(&result[0]), Some(3.0));
   }
 
   #[test]
@@ -282,7 +319,7 @@ mod remove_duplicates_tests {
       make_shorthand_prop("a"),
     ];
 
-    assert_eq!(keys_of(&remove_duplicates(props)), vec!["b", "a"]);
+    assert_eq!(keys_of(&remove_duplicates(props)), vec!["a", "b"]);
   }
 
   #[test]

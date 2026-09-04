@@ -85,6 +85,11 @@ stylex_test_transform!(
   "#
 );
 
+// A key that appears more than once keeps the place it first took, and takes
+// the last value. The third line ends as `{ name, age }` in the language, and
+// `node -e` agrees: the repeated `name` stays in front of the `age` that the
+// spread introduced. This test read `{ age, name }` while `remove_duplicates`
+// put a repeated key in its last place instead of its first.
 stylex_test_transform!(
   evaluates_objects_with_spreads,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
@@ -96,7 +101,7 @@ stylex_test_transform!(
   r#"
     ({ name: "Name", hero: true, age: 43 });
     ({ name: "StyleX", age: 43 });
-    ({ age: 43 , name: "StyleX", });
+    ({ name: "StyleX", age: 43 });
   "#
 );
 

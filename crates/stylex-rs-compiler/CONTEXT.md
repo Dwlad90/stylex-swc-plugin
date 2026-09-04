@@ -59,3 +59,14 @@ a dynamic style's parameter shadowing an imported name is not a reference, and
 until the extension began deciding this the name was gone before anything could
 register it. `is_javascript_input` is where the extension decides.
 _Avoid_: tree shaking, dead import removal, pruning
+
+**Target allocator**:
+The `#[global_allocator]` a published `.node` links, which is a property of the
+target rather than of the code. `swc_malloc` chooses one for six of the seven
+targets `napi.targets` lists and declines every musl target, so
+`x86_64-unknown-linux-musl` names its own — the workspace manifest carries the
+measurement, and `src/tests/allocator_tests.rs` holds the declaration to the
+published list. A target with no allocator is not a build detail: the paired
+release gate read the musl artifact 1.13-1.53x slower than the previous release
+while every glibc artifact read faster.
+_Avoid_: memory allocator setting, malloc flag, mimalloc feature

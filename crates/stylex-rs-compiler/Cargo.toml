@@ -49,6 +49,12 @@ stylex_types = { path = "../stylex-types" }
 stylex_utils = { path = "../stylex-utils" }
 
 
+# The allocator for the one published target `swc_malloc` leaves on the system
+# one. Target-gated rather than declared beside the others, so no musl target
+# but this one links it. The workspace manifest carries the reason.
+[target.'cfg(all(target_os = "linux", target_env = "musl", target_arch = "x86_64"))'.dependencies]
+mimalloc.workspace = true
+
 [dev-dependencies]
 
 

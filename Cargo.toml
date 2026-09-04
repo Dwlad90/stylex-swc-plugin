@@ -97,6 +97,38 @@ insta = { version = "1.47.2" }
 lazy_static = "1.5.0"
 log = "0.4.32"
 md5 = { version = "0.8.0" }
+# The allocator for the one published target `swc_malloc` leaves on the system
+# one: `x86_64-unknown-linux-musl`. This entry is where the reason is written
+# down; `crates/stylex-rs-compiler/src/lib.rs` declares it and points here.
+#
+# Named per target rather than through `swc_malloc`, which declines *every* musl
+# target at once: mimalloc segfaults on ARM64 musl (microsoft/mimalloc#556) and
+# some cross toolchains carry no C11 headers to build it with. Neither reason
+# reaches this target. It is x86_64, and `.github/docker/alpine.Dockerfile`
+# builds it natively with clang and musl-dev -- the same C build that already
+# produces mimalloc for the cross-compiled `aarch64-unknown-linux-gnu` leg.
+#
+# What it answers. The paired release gate reads the musl candidate 1.13-1.53x
+# slower than the published baseline while every glibc target reads 0.33-0.82x
+# faster, and the musl-to-glibc ratio is 1.8-1.9x on all 61 fixtures. Both musl
+# sides of that comparison run musl's own malloc -- the published 0.18.6 predates
+# the allocator -- so the slowdown is not an allocator difference between the
+# sides: it is allocation churn that mimalloc absorbs on the other six targets
+# and musl's `mallocng` prices. Measured with both sides on the system
+# allocator, the same fixtures read 0.83-1.11x, so the transform is not
+# uniformly slower.
+#
+# What it does not answer: where the churn came from. This gives the target the
+# allocator the other six already had, and in doing so it takes away the one leg
+# that priced the churn highly enough to see it. Locating the churn stays open.
+#
+# `local_dynamic_tls` because the addon is a `cdylib` that Node opens with
+# `dlopen`, and mimalloc's default initial-exec TLS model has no slot left in a
+# library loaded that late. It is what `swc_malloc` asks for on Linux too.
+#
+# The version requirement is the one `swc_malloc` declares, so both resolve to
+# one mimalloc rather than two in a process.
+mimalloc = { version = "0.1.43", features = ["local_dynamic_tls"] }
 murmur2 = { version = "0.1.0" }
 once_cell = { version = "1.21.4" }
 path-clean = { version = "1.0.1" }
@@ -122,14 +154,12 @@ swc_config = { version = "6.0.0" }
 swc_core = { version = "75.0.0" }
 swc_ecma_parser = { version = "43.0.0" }
 url = "2.5.8"
-# The global allocator for the shipped `.node`. Keeps the system allocator on
-# *every* musl target -- `x86_64-unknown-linux-musl` is the one this repo
-# publishes -- because mimalloc segfaults on ARM64 musl (microsoft/mimalloc#556)
-# and jemalloc misbehaves against musl threads (jemalloc/jemalloc#1443).
-# Depending on `mimalloc` directly would take mimalloc on musl too, which is the
-# configuration SWC found unshippable. It also takes jemalloc rather than
-# mimalloc on `armv7-unknown-linux-gnueabihf`, which this repo does not publish
-# today: adding that target changes the allocator without a change here.
+# The global allocator for the shipped `.node` on the other six published
+# targets. It selects mimalloc on all of them; it keeps the system allocator on
+# musl, which is what the `mimalloc` entry above answers. It also takes jemalloc
+# rather than mimalloc on `armv7-unknown-linux-gnueabihf`, which this repo does
+# not publish today: adding that target changes the allocator without a change
+# here.
 swc_malloc = { version = "1.2.5" }
 swc_sourcemap = { version = "10.0.2" }
 testing = "25.0.0"

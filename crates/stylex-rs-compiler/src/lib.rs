@@ -11,13 +11,29 @@
 //
 // `swc_malloc` rather than `mimalloc` directly: it keeps the system allocator on
 // every musl target, and `.github/workflows/npm.yml` publishes one of them
-// (`x86_64-unknown-linux-musl`). The other six published targets get mimalloc.
-// The workspace manifest records why, and which target takes jemalloc instead.
+// (`x86_64-unknown-linux-musl`), which the declaration below answers for. The
+// other six published targets get mimalloc from here. The workspace manifest
+// records why, and which target takes jemalloc instead.
 //
-// Reached through the `rlib` half of this crate's `crate-type` as well as the
-// `cdylib`, so anything that later depends on `stylex_compiler_rs` inherits
-// mimalloc rather than choosing it. Nothing does today.
+// Reached through the `cdylib` alone, which is the whole of this crate's
+// `crate-type`: nothing links this crate as a Rust library, so nothing inherits
+// the allocator by depending on it.
 use swc_malloc as _;
+
+// The allocator for `x86_64-unknown-linux-musl`, the one published target
+// `swc_malloc` leaves on the system allocator. musl's `mallocng` prices the
+// churn described above far higher than glibc's malloc does, and the paired
+// release gate read it: 1.13-1.53x slower than the previous release on musl
+// while every glibc target read 0.33-0.82x faster. The workspace manifest
+// carries the measurement, why no other musl target is named here, and what the
+// change does not answer.
+//
+// `.github/workflows/npm.yml` loads and exercises this artifact inside Alpine on
+// two Node versions before anything is published, so an allocator that fails
+// there fails the release rather than an install.
+#[cfg(all(target_os = "linux", target_env = "musl", target_arch = "x86_64"))]
+#[global_allocator]
+static MUSL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 mod enums;
 mod structs;
@@ -468,3 +484,7 @@ mod tests;
 #[cfg(test)]
 #[path = "tests/crate_layers_tests.rs"]
 mod crate_layers_tests;
+
+#[cfg(test)]
+#[path = "tests/allocator_tests.rs"]
+mod allocator_tests;

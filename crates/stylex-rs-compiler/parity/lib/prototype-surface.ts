@@ -341,10 +341,10 @@ export interface Shortfall {
  * looser, which nothing would.
  */
 export function floorFor(surface: Surface): number {
-  const allowed =
+  const allowance =
     Number.isInteger(surface.unanswered) && surface.unanswered > 0 ? surface.unanswered : 0;
 
-  return Math.max(1, methodsOf(surface).length - allowed);
+  return Math.max(1, methodsOf(surface).length - allowance);
 }
 
 /**

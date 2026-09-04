@@ -7,6 +7,7 @@ import {
   assertBindingCanLoad,
   bindingPathKey,
   findNativeBindings,
+  holdsBinding,
   isCompilerBinding,
   isDualLoadUnsafe,
   loadedNativeBindings,
@@ -202,7 +203,7 @@ describe('loadedNativeBindings', () => {
     // Both sets are named in the message: a bare `false` here says only that
     // the two readers disagree, and which of them moved is the whole question.
     expect(
-      own.some(binding => loaded.has(binding)),
+      own.some(binding => holdsBinding(loaded, binding)),
       `own: ${own.join(', ')} | loaded: ${[...loaded].join(', ')}`
     ).toBe(true);
   });
@@ -379,9 +380,11 @@ describe('bindingPathKey', () => {
     expect(bindingPathKey(`\\\\?\\D:\\a\\${addon}`, 'win32')).toBe(`d:\\a\\${addon}`);
   });
 
-  test('drops the UNC form of that prefix and keeps the share', () => {
+  test('drops the UNC form of that prefix and keeps the path it names', () => {
+    // `\\?\UNC\host\share` is the long-path spelling of `\\host\share`, so the
+    // key it answers is a path that can be opened rather than a bare share.
     expect(bindingPathKey(`\\\\?\\UNC\\host\\share\\${addon}`, 'win32')).toBe(
-      `host\\share\\${addon}`
+      `\\\\host\\share\\${addon}`
     );
   });
 
@@ -431,14 +434,64 @@ describe('bindingPathKey', () => {
     expect(bindingPathKey('\\\\\\\\', 'win32')).toBe('\\\\\\\\');
   });
 
-  test('the guard permits a binding the process holds under another spelling', () => {
-    // The Windows failure, read through the guard: the same file, spelled by
-    // two readers, must not count as two bindings.
-    const fromFileSystem = bindingPathKey(`D:\\a\\dist\\${addon}`, 'win32');
-    const fromReport = bindingPathKey(`\\\\?\\d:/A/dist/${addon}`, 'win32');
+  test('the UNC form of the prefix keeps the separators the plain form has', () => {
+    expect(bindingPathKey(`\\\\?\\UNC\\host\\share\\${addon}`, 'win32')).toBe(
+      bindingPathKey(`\\\\host\\share\\${addon}`, 'win32')
+    );
+  });
+});
 
-    expect(fromReport).toBe(fromFileSystem);
-    expect(attempt('self', [fromFileSystem], [fromReport], 'darwin')).not.toThrow();
+/**
+ * The one comparison of two binding paths, which is why no caller keys its own.
+ *
+ * A Windows job read the process's own addon as a second binding because the
+ * file system reader and the report reader spelled it differently and the
+ * comparison was a plain `Set.has`. What that broke was the reader, not the
+ * guard -- Windows holds two bindings safely, so the guard returns before it
+ * compares anything there. The predicate is where the spelling is settled, so
+ * both readers and the guard answer one question one way.
+ */
+describe('holdsBinding', () => {
+  const addon = 'rs-compiler.win32-x64-msvc.node';
+
+  test('answers for a path the set spells another way', () => {
+    const loaded = new Set([`\\\\?\\D:\\A\\dist\\${addon}`]);
+
+    expect(holdsBinding(loaded, `d:/a/dist/${addon}`, 'win32')).toBe(true);
+  });
+
+  test('answers for a path the set does not hold at all', () => {
+    const loaded = new Set([`D:\\a\\dist\\${addon}`]);
+
+    expect(holdsBinding(loaded, `D:\\b\\dist\\${addon}`, 'win32')).toBe(false);
+  });
+
+  test('holds a POSIX path to its own case', () => {
+    const loaded = new Set(['/a/rs-compiler.linux-x64-gnu.node']);
+
+    expect(holdsBinding(loaded, '/a/rs-compiler.linux-x64-gnu.node', 'linux')).toBe(true);
+    expect(holdsBinding(loaded, '/A/rs-compiler.linux-x64-gnu.node', 'linux')).toBe(false);
+  });
+
+  test('an empty set holds nothing', () => {
+    expect(holdsBinding(new Set(), `D:\\a\\${addon}`, 'win32')).toBe(false);
+  });
+
+  test('a very large set is searched to its end', () => {
+    const loaded = new Set(Array.from({ length: 5000 }, (_, index) => `D:\\a\\b-${index}.node`));
+
+    expect(holdsBinding(loaded, 'd:/a/b-4999.node', 'win32')).toBe(true);
+    expect(holdsBinding(loaded, 'd:/a/b-5000.node', 'win32')).toBe(false);
+  });
+
+  test('the guard asks this predicate rather than the set itself', () => {
+    // Read on the platform the guard actually refuses on, where a key is the
+    // path: what the case pins is that the guard answers through the predicate,
+    // so a platform whose spellings differ is compared the same way.
+    const held = '/subject/dist/rs-compiler.darwin-arm64.node';
+
+    expect(attempt('self', [held], [held], 'darwin')).not.toThrow();
+    expect(attempt('candidate', ['/other/dist/x.node'], [held], 'darwin')).toThrow(/SIGSEGV/);
   });
 });
 

@@ -73,8 +73,8 @@ export function isCompilerBinding(
   return name.startsWith(`${NATIVE_BINARY_NAME}.`) && name.endsWith(NATIVE_EXTENSION);
 }
 
-/** Long-path prefixes that `realpath` may put in front of a Windows path. */
-const WINDOWS_LONG_PATH = /^\\\\\?\\(?:UNC\\)?/;
+/** The long-path prefix `realpath` may put in front of a Windows path. */
+const WINDOWS_LONG_PATH = /^\\\\\?\\(UNC\\)?/;
 
 /**
  * One spelling of a path, so two readers of the same file agree about it.
@@ -94,20 +94,42 @@ const WINDOWS_LONG_PATH = /^\\\\\?\\(?:UNC\\)?/;
 export function bindingPathKey(file: string, platform: NodeJS.Platform = process.platform): string {
   if (platform !== 'win32') return file;
 
-  return file.replace(WINDOWS_LONG_PATH, '').replaceAll('/', '\\').toLowerCase();
+  // `\\?\UNC\host\share` and `\\host\share` name one file, so the UNC form
+  // keeps the two separators the plain form spells it with.
+  return file
+    .replace(WINDOWS_LONG_PATH, (_, unc: string | undefined) => (unc === undefined ? '' : '\\\\'))
+    .replaceAll('/', '\\')
+    .toLowerCase();
 }
 
 /**
- * The real path of `file`, resolved through the operating system where it can
- * be, so the answer carries the case the file system holds rather than the case
- * a caller typed. `realpathSync.native` is the reader that does that; it is
- * absent on no supported platform, but the plain reader stands in for it rather
- * than letting a missing function fail a load.
+ * Whether `loaded` already holds `binding`, whatever either one calls it.
+ *
+ * The one place a binding path is compared, so no caller has to remember that
+ * two readers spell a Windows path differently -- which is the mistake that put
+ * the process's own addon in neither set.
+ */
+export function holdsBinding(
+  loaded: ReadonlySet<string>,
+  binding: string,
+  platform: NodeJS.Platform = process.platform
+): boolean {
+  const wanted = bindingPathKey(binding, platform);
+
+  for (const held of loaded) {
+    if (bindingPathKey(held, platform) === wanted) return true;
+  }
+
+  return false;
+}
+
+/**
+ * The real path of `file`, resolved through the operating system rather than by
+ * walking the path in JavaScript, so the answer carries the case the file system
+ * holds instead of the case a caller typed.
  */
 function realPathOf(file: string): string {
-  const resolve = fs.realpathSync.native ?? fs.realpathSync;
-
-  return resolve(file);
+  return fs.realpathSync.native(file);
 }
 
 /** Real paths of the addons that lie directly in one directory. */
@@ -123,7 +145,7 @@ function addonsIn(dir: string): string[] {
   for (const entry of entries) {
     if (!entry.endsWith(NATIVE_EXTENSION)) continue;
     try {
-      found.push(bindingPathKey(realPathOf(path.join(dir, entry))));
+      found.push(realPathOf(path.join(dir, entry)));
     } catch {
       // A broken link names no file. Nothing can load it, so skip it.
     }
@@ -157,7 +179,7 @@ export function findNativeBindings(packageDir: string): string[] {
   const override = process.env.NAPI_RS_NATIVE_LIBRARY_PATH;
   if (override) {
     try {
-      found.add(bindingPathKey(realPathOf(override)));
+      found.add(realPathOf(override));
     } catch {
       // The variable names a file that is not there. Nothing can load it.
     }
@@ -217,7 +239,7 @@ export function loadedNativeBindings(): Set<string> {
     // different hands.
     if (!isCompilerBinding(object) && bindingPathKey(object) !== overrideKey) continue;
     try {
-      loaded.add(bindingPathKey(realPathOf(object)));
+      loaded.add(realPathOf(object));
     } catch {
       // The file is gone. It cannot conflict with a load that comes now.
     }
@@ -249,7 +271,9 @@ export function assertBindingCanLoad(request: BindingLoadRequest): void {
   if (!isDualLoadUnsafe(request.platform)) return;
   if (request.loaded.size === 0) return;
 
-  const conflicting = request.bindings.filter(binding => !request.loaded.has(binding));
+  const conflicting = request.bindings.filter(
+    binding => !holdsBinding(request.loaded, binding, request.platform)
+  );
   if (conflicting.length === 0) return;
 
   const platform = request.platform ?? process.platform;

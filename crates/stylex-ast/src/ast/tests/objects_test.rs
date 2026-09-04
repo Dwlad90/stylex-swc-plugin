@@ -1,8 +1,8 @@
 use swc_core::{
-  common::DUMMY_SP,
+  common::{DUMMY_SP, SyntaxContext},
   ecma::ast::{
-    BigInt, ComputedPropName, Expr, GetterProp, IdentName, KeyValueProp, Lit, Number, ObjectLit,
-    Prop, PropName, PropOrSpread, SpreadElement, Str,
+    BigInt, ComputedPropName, Expr, Function, GetterProp, IdentName, KeyValueProp, Lit, MethodProp,
+    Number, ObjectLit, Prop, PropName, PropOrSpread, SpreadElement, Str,
   },
 };
 
@@ -117,6 +117,43 @@ fn make_getter_prop(key: &str) -> PropOrSpread {
     }),
     type_ann: None,
     body: None,
+  })))
+}
+
+/// A property whose key is an expression: `{ [key]: val }`.
+///
+/// The key is a number so a test can write the spelling of an array index and
+/// still get a computed key. Nothing reads it: a computed key has to be
+/// evaluated before it names anything, so every reader here answers "no name"
+/// for it, whatever the expression would evaluate to.
+fn make_computed_key_prop(key: f64, val: f64) -> PropOrSpread {
+  PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+    key: PropName::Computed(ComputedPropName {
+      span: DUMMY_SP,
+      expr: Box::new(create_number_expr(key)),
+    }),
+    value: Box::new(create_number_expr(val)),
+  })))
+}
+
+/// A method property: `{ name() {} }`.
+fn make_method_prop(name: &str) -> PropOrSpread {
+  PropOrSpread::Prop(Box::new(Prop::Method(MethodProp {
+    key: PropName::Ident(IdentName {
+      span: DUMMY_SP,
+      sym: name.into(),
+    }),
+    function: Box::new(Function {
+      params: vec![],
+      decorators: vec![],
+      span: DUMMY_SP,
+      ctxt: SyntaxContext::empty(),
+      body: None,
+      is_generator: false,
+      is_async: false,
+      type_params: None,
+      return_type: None,
+    }),
   })))
 }
 
@@ -288,6 +325,42 @@ mod remove_duplicates_tests {
     // `{ 42: 1 }` vanished from the object it was written in.
     assert_eq!(keys_of(&remove_duplicates(props)), vec!["42"]);
   }
+
+  // A computed key has to be evaluated before it names anything, so the reader
+  // answers "no name" and the property goes the way a spread does.
+  #[test]
+  fn drops_a_computed_key_because_it_names_nothing_readable() {
+    let props = vec![make_kv_prop("a", 1.0), make_computed_key_prop(0.0, 2.0)];
+
+    assert_eq!(keys_of(&remove_duplicates(props)), vec!["a"]);
+  }
+
+  // Two computed keys are two unreadable names, not one repeated name. Both go,
+  // and neither takes a readable property with it.
+  #[test]
+  fn drops_every_computed_key_and_keeps_the_readable_ones() {
+    let props = vec![
+      make_computed_key_prop(0.0, 1.0),
+      make_kv_prop("a", 2.0),
+      make_computed_key_prop(0.0, 3.0),
+      make_kv_str_key_prop("b", 4.0),
+    ];
+
+    assert_eq!(keys_of(&remove_duplicates(props)), vec!["a", "b"]);
+  }
+
+  // A computed key spelled like a real one does not collide with it. The
+  // expression `['a']` would name `a` in the language, and reading it that way
+  // here would drop the property the source actually wrote.
+  #[test]
+  fn a_computed_key_does_not_collide_with_the_name_it_would_spell() {
+    let props = vec![
+      make_kv_num_key_prop(0.0, 1.0),
+      make_computed_key_prop(0.0, 2.0),
+    ];
+
+    assert_eq!(keys_of(&remove_duplicates(props)), vec!["0"]);
+  }
 }
 
 mod assign_props_tests {
@@ -412,6 +485,50 @@ mod assign_props_tests {
 
     assert_eq!(keys_of(&assign_props(old, new)), vec!["shared", "<spread>"]);
   }
+
+  #[test]
+  fn a_computed_key_keeps_its_place_on_either_side() {
+    let old = vec![make_computed_key_prop(0.0, 1.0), make_kv_prop("a", 2.0)];
+    let new = vec![make_computed_key_prop(0.0, 3.0)];
+
+    // Three properties out of three in: neither computed key names anything to
+    // collide with, so neither replaces the other.
+    assert_eq!(
+      keys_of(&assign_props(old, new)),
+      vec!["<computed>", "a", "<computed>"]
+    );
+  }
+
+  // Every property unreadable, on both sides. Nothing collides, nothing is
+  // dropped, and the merge is the two lists end to end.
+  #[test]
+  fn a_merge_of_nothing_readable_keeps_every_property() {
+    let old = vec![make_computed_key_prop(0.0, 1.0), make_spread_prop()];
+    let new = vec![make_getter_prop("val"), make_computed_key_prop(1.0, 2.0)];
+
+    assert_eq!(
+      keys_of(&assign_props(old, new)),
+      vec!["<computed>", "<spread>", "<other>", "<computed>"]
+    );
+  }
+
+  // A large merge where one key repeats through every round: the repeated key
+  // keeps the position it first took, and the unreadable properties keep theirs.
+  #[test]
+  fn a_long_merge_keeps_one_position_for_a_repeated_key() {
+    let old: Vec<PropOrSpread> = (0..500)
+      .map(|step| make_kv_prop("shared", f64::from(step)))
+      .collect();
+    let new = vec![
+      make_computed_key_prop(0.0, 1.0),
+      make_kv_prop("shared", 999.0),
+    ];
+
+    let result = assign_props(old, new);
+
+    assert_eq!(keys_of(&result), vec!["shared", "<computed>"]);
+    assert_eq!(number_value_of(&result[0]), Some(999.0));
+  }
 }
 
 mod order_own_keys_tests {
@@ -514,16 +631,40 @@ mod order_own_keys_tests {
 
   #[test]
   fn a_computed_key_reads_as_no_key_at_all() {
-    let computed = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-      key: PropName::Computed(ComputedPropName {
-        span: DUMMY_SP,
-        expr: Box::new(create_number_expr(0.0)),
-      }),
-      value: Box::new(create_number_expr(1.0)),
-    })));
-    let props = vec![computed, make_kv_str_key_prop("0", 2.0)];
+    let props = vec![
+      make_computed_key_prop(0.0, 1.0),
+      make_kv_str_key_prop("0", 2.0),
+    ];
 
     assert_eq!(keys_of(&order_own_keys(props)), vec!["0", "<computed>"]);
+  }
+
+  // A getter, a setter and a method declare a name that no index reading
+  // reaches: the key is there, but the property is not a key-value pair, so the
+  // ordering answers "no index" at the property rather than at the key. They
+  // stay among the string keys, in the order they were written.
+  #[test]
+  fn an_accessor_or_a_method_keeps_its_place_among_the_string_keys() {
+    let props = vec![
+      make_getter_prop("val"),
+      make_kv_str_key_prop("2", 1.0),
+      make_method_prop("run"),
+      make_kv_str_key_prop("0", 2.0),
+    ];
+
+    assert_eq!(
+      keys_of(&order_own_keys(props)),
+      vec!["0", "2", "<other>", "<other>"]
+    );
+  }
+
+  // The same property with a name that *is* an array index. A getter named `0`
+  // still does not move: the ordering never reads its key.
+  #[test]
+  fn a_getter_named_by_digits_is_not_an_index() {
+    let props = vec![make_getter_prop("0"), make_kv_str_key_prop("1", 1.0)];
+
+    assert_eq!(keys_of(&order_own_keys(props)), vec!["1", "<other>"]);
   }
 
   #[test]

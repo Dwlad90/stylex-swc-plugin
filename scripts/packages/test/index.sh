@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Stop at the first command that fails. Without this the status of the script
+# was the status of the doc run below, and a red `cargo nextest run` before it
+# reported a pass.
+#
+# `-u` needs the arguments to stay as "$@". Bash 3.2, which macOS ships, stops
+# with an error for an empty array, so a copy such as `args=("$@")` breaks
+# every run that gives no argument.
+set -euo pipefail
+
 # The per-crate Rust test runner, reached through `scripty` when a crate points
 # its `test` script at it. No crate does today: every crate prints a skip line
 # because the Rust suites run once for the whole workspace from
@@ -22,11 +31,8 @@ if crate_has_tests "$CRATE_TEST_MARKERS_WITH_GATE"; then
     # into two arguments.
     common_args=(--target-dir "$crate_target_dir" --all-features)
 
-    #Add arguments from call command
-    args=("$@")
-
-    NODE_ENV="test" cargo nextest run "${common_args[@]}" "${args[@]}"
-    NODE_ENV="test" cargo test "${common_args[@]}" --doc "${args[@]}"
+    NODE_ENV="test" cargo nextest run "${common_args[@]}" "$@"
+    NODE_ENV="test" cargo test "${common_args[@]}" --doc "$@"
 else
     exit 0
 fi

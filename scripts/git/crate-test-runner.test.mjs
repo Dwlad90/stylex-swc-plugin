@@ -2,12 +2,15 @@
  * The per-crate Rust test runner, `scripts/packages/test/index.sh`.
  *
  * The script decides whether a crate holds a Rust test before it starts cargo,
- * and that decision is the whole of its behaviour: answer "no" for a crate that
- * does hold one and the crate's suite disappears from the run without a word,
- * which is the failure this suite exists to catch. It once did exactly that.
- * Every crate but one keeps its tests beside the code and has no `tests/`
- * directory, and the reader named `tests` anyway; a missing path is an error to
- * grep, and that error outranks the match found in `src/` beside it.
+ * and it then reports what cargo did. A wrong answer to the first question
+ * drops a crate's suite without a word. A wrong report of the second hides a
+ * red run. This suite holds the script to both.
+ *
+ * Almost every crate keeps its tests with the code and has no `tests`
+ * directory, so the reader gave grep the name of a directory that does not
+ * exist. BSD grep and GNU grep both answer correctly there, because `-q` gives
+ * status 0 for a match even after an error. The reader now names only the
+ * directories that exist, so the answer does not depend on the grep.
  *
  * Runs the real script against throwaway crates with a recording `cargo` on the
  * search path, so what is asserted is what cargo was asked to do.
@@ -47,7 +50,13 @@ const NO_TEST = 'pub fn add(left: u64, right: u64) -> u64 { left + right }\n';
  * directories to create empty, for the cases where an empty `src` or `tests`
  * is the thing under test.
  */
-function runInCrate({ files = {}, directories = [], args = [], name = 'a-crate' } = {}) {
+function runInCrate({
+  files = {},
+  directories = [],
+  args = [],
+  name = 'a-crate',
+  cargoBody = '',
+} = {}) {
   const workspace = createWorkspace('stylex-crate-test-runner-');
   const crate = path.join(workspace.directory, name);
 
@@ -64,7 +73,7 @@ function runInCrate({ files = {}, directories = [], args = [], name = 'a-crate' 
   // A cargo that records its argv and nothing else. The script runs two cargo
   // calls in a row and does not read their output, so a stub that only logs is
   // the whole of what it needs.
-  writeStubs(workspace.bin, { cargo: { perArgument: true } });
+  writeStubs(workspace.bin, { cargo: { perArgument: true, body: cargoBody } });
 
   const result = spawnSync('bash', [script, ...args], {
     cwd: crate,
@@ -250,3 +259,45 @@ void test(
     assert.equal(invocations.length, 2);
   }
 );
+
+// The script runs the regular suite and then the doc suite. Its status was the
+// status of the doc run, so a red regular run reported a pass. Every case above
+// stubs a cargo that always succeeds, so none of them could see it.
+
+void test('a failing cargo fails the script', { skip: NEEDS_BASH }, () => {
+  const { result } = runInCrate({ files: { 'src/lib.rs': A_TEST }, cargoBody: 'exit 101' });
+
+  assert.notEqual(result.status, 0, 'a failing cargo reported a pass');
+});
+
+void test('a failing regular run is not hidden by a passing doc run', { skip: NEEDS_BASH }, () => {
+  // Fails the first call and passes the second, which is the shape that the
+  // missing `set -e` turned into a green run.
+  const { result, invocations } = runInCrate({
+    files: { 'src/lib.rs': A_TEST },
+    cargoBody: 'case " $* " in *" nextest "*) exit 101 ;; esac',
+  });
+
+  assert.notEqual(result.status, 0, 'a failing regular run reported a pass');
+  assert.equal(invocations.length, 1, 'the doc run started after the regular run failed');
+});
+
+void test('a failing doc run still fails the script', { skip: NEEDS_BASH }, () => {
+  const { result, invocations } = runInCrate({
+    files: { 'src/lib.rs': A_TEST },
+    cargoBody: 'case " $* " in *" --doc "*) exit 101 ;; esac',
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.equal(invocations.length, 2, 'both runs started');
+});
+
+void test('a run with no argument still starts cargo', { skip: NEEDS_BASH }, () => {
+  // `set -u` and an empty array do not agree in bash 3.2, which macOS ships, so
+  // the arguments stay as "$@" rather than becoming a copy.
+  const { result, invocations } = runInCrate({ files: { 'src/lib.rs': A_TEST }, args: [] });
+
+  assert.equal(result.status, 0);
+  assert.equal(invocations.length, 2);
+  assert.equal(result.stderr, '', 'the script reported an unbound variable');
+});

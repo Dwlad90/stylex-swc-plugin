@@ -481,17 +481,26 @@ mod bench_allocator {
     }
   }
 
-  /// Every `benches/*.rs` file in the workspace, as (name, source).
-  fn benches() -> Vec<(String, String)> {
-    let mut found = Vec::new();
-
+  /// Every crate directory of this workspace.
+  ///
+  /// Both readers below walk the same directory, and each held its own copy of
+  /// this read. A copy that fails differently from its twin is how one reader
+  /// starts answering for a workspace the other cannot see.
+  fn crate_directories() -> Vec<PathBuf> {
     let entries = match fs::read_dir(crates_dir()) {
       Ok(entries) => entries,
       Err(error) => panic!("the crates directory is not readable: {error}"),
     };
 
-    for entry in entries.flatten() {
-      let benches = entry.path().join("benches");
+    entries.flatten().map(|entry| entry.path()).collect()
+  }
+
+  /// Every `benches/*.rs` file in the workspace, as (name, source).
+  fn benches() -> Vec<(String, String)> {
+    let mut found = Vec::new();
+
+    for crate_directory in crate_directories() {
+      let benches = crate_directory.join("benches");
 
       let files = match fs::read_dir(&benches) {
         Ok(files) => files,
@@ -536,15 +545,10 @@ mod bench_allocator {
 
   /// How many `[[bench]]` tables the crate manifests declare in total.
   fn declared_bench_count() -> usize {
-    let entries = match fs::read_dir(crates_dir()) {
-      Ok(entries) => entries,
-      Err(error) => panic!("the crates directory is not readable: {error}"),
-    };
-
-    entries
-      .flatten()
+    crate_directories()
+      .into_iter()
       .map(
-        |entry| match fs::read_to_string(entry.path().join("Cargo.toml")) {
+        |crate_directory| match fs::read_to_string(crate_directory.join("Cargo.toml")) {
           Ok(manifest) => manifest.matches("[[bench]]").count(),
           // A directory with no manifest declares no bench.
           Err(_) => 0,
@@ -575,7 +579,18 @@ mod bench_allocator {
     // silent. The manifests say how many there should be, so a bench this
     // reader cannot reach -- one a `[[bench]]` table points outside `benches`,
     // for example -- fails here rather than going unchecked.
-    assert_eq!(benches().len(), declared_bench_count());
+    let declared = declared_bench_count();
+
+    // Both readers walk the same directory, so both give zero for a directory
+    // they cannot find, and the comparison below would then pass while nothing
+    // was measured. This holds the pair to a workspace that has benches.
+    assert!(
+      declared > 0,
+      "no crate manifest declares a bench; the reader is looking in the wrong \
+       place"
+    );
+
+    assert_eq!(benches().len(), declared);
   }
 
   #[test]

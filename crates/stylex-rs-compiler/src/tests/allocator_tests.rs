@@ -23,6 +23,8 @@ use std::{
   path::{Path, PathBuf},
 };
 
+use serde_json::Value;
+
 /// This crate's directory, which holds every file the checks below read.
 fn crate_dir() -> PathBuf {
   Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf()
@@ -100,27 +102,23 @@ fn arches_in(predicate: &str) -> Vec<String> {
 
 /// The targets `napi.targets` lists, in the order the manifest writes them.
 ///
-/// Read with a scan rather than a JSON parser, which this crate does not
-/// depend on. The array holds quoted strings and nothing else, and an array
-/// this reader cannot find is a failure rather than an empty answer.
+/// Parsed rather than scanned, so the answer follows the manifest and not the
+/// way the manifest is written. A list this reader cannot find is a failure
+/// rather than an empty answer: an empty answer agrees with a `lib.rs` that
+/// declares nothing, which is the one reading these checks must never give.
 fn published_targets(manifest: &str) -> Vec<String> {
-  let opening = manifest
-    .find(r#""targets""#)
-    .and_then(|start| manifest[start..].find('[').map(|offset| start + offset + 1))
-    .expect("package.json declares napi.targets as an array");
-  let body = &manifest[opening..];
-  let closing = body.find(']').expect("the napi.targets array is closed");
+  let parsed: Value = match serde_json::from_str(manifest) {
+    Ok(value) => value,
+    Err(error) => panic!("package.json is not readable as JSON: {error}"),
+  };
 
-  body[..closing]
-    .split(',')
-    .filter_map(|entry| {
-      let entry = entry.trim();
-      entry
-        .strip_prefix('"')
-        .and_then(|rest| rest.strip_suffix('"'))
-        .map(str::to_string)
-    })
-    .collect()
+  match parsed.pointer("/napi/targets") {
+    Some(Value::Array(targets)) => targets
+      .iter()
+      .filter_map(|target| target.as_str().map(str::to_string))
+      .collect(),
+    _ => panic!("package.json declares napi.targets as an array"),
+  }
 }
 
 /// The `<arch>` of every published `<arch>-unknown-linux-musl` target.
@@ -152,13 +150,15 @@ fn the_manifest_takes_mimalloc_for_the_targets_lib_declares() {
   let manifest = crate_file("Cargo.toml");
 
   for arch in musl_arches_declared_in(&crate_file("src/lib.rs")) {
-    let table = manifest
-      .split("[target.")
-      .find(|section| {
-        section.contains(r#"target_env = "musl""#)
-          && section.contains(&format!(r#"target_arch = "{arch}""#))
-      })
-      .unwrap_or_else(|| panic!("Cargo.toml has no target table for musl {arch}"));
+    let section = manifest.split("[target.").find(|section| {
+      section.contains(r#"target_env = "musl""#)
+        && section.contains(&format!(r#"target_arch = "{arch}""#))
+    });
+
+    let table = match section {
+      Some(table) => table,
+      None => panic!("Cargo.toml has no target table for musl {arch}"),
+    };
 
     assert!(
       table.contains("mimalloc.workspace = true"),
@@ -319,7 +319,8 @@ mod reading_the_published_targets {
 
   #[test]
   fn reads_an_array_written_on_one_line() {
-    let manifest = r#"{ "targets": ["aarch64-apple-darwin", "aarch64-unknown-linux-musl"] }"#;
+    let manifest =
+      r#"{ "napi": { "targets": ["aarch64-apple-darwin", "aarch64-unknown-linux-musl"] } }"#;
 
     assert_eq!(
       published_musl_arches(manifest),
@@ -329,7 +330,8 @@ mod reading_the_published_targets {
 
   #[test]
   fn names_only_the_musl_targets() {
-    let manifest = r#"{ "targets": ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-musl"] }"#;
+    let manifest =
+      r#"{ "napi": { "targets": ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-musl"] } }"#;
 
     assert_eq!(
       published_musl_arches(manifest),
@@ -338,11 +340,86 @@ mod reading_the_published_targets {
   }
 
   #[test]
+  fn a_second_targets_key_elsewhere_in_the_manifest_is_not_the_published_list() {
+    // The reader that scanned for the first `"targets"` answered from whichever
+    // key came first in the file. A pointer names the one key that decides what
+    // is published.
+    let manifest = r#"{
+      "browserslist": { "targets": ["aarch64-unknown-linux-musl"] },
+      "napi": { "targets": ["x86_64-unknown-linux-musl"] }
+    }"#;
+
+    assert_eq!(
+      published_musl_arches(manifest),
+      ["x86_64".to_string()].into()
+    );
+  }
+
+  #[test]
+  fn a_target_name_holding_an_escape_is_read_as_the_name_it_spells() {
+    // JSON may write any character as an escape. The scan compared the raw
+    // bytes, so an escaped hyphen hid a musl target from a check whose whole
+    // job is to find one.
+    let manifest = r#"{ "napi": { "targets": ["x86_64\u002dunknown\u002dlinux\u002dmusl"] } }"#;
+
+    assert_eq!(
+      published_targets(manifest),
+      vec!["x86_64-unknown-linux-musl".to_string()]
+    );
+    assert_eq!(
+      published_musl_arches(manifest),
+      ["x86_64".to_string()].into()
+    );
+  }
+
+  #[test]
+  fn a_comma_inside_a_target_name_does_not_split_it() {
+    // What the scan got wrong: it cut the array on every comma, so a name
+    // holding one became two names and neither was a target.
+    let manifest = r#"{ "napi": { "targets": ["odd,name", "x86_64-unknown-linux-musl"] } }"#;
+
+    assert_eq!(
+      published_targets(manifest),
+      vec![
+        "odd,name".to_string(),
+        "x86_64-unknown-linux-musl".to_string()
+      ]
+    );
+  }
+
+  #[test]
+  fn an_entry_that_is_not_a_string_is_passed_over() {
+    let manifest =
+      r#"{ "napi": { "targets": [null, 7, { "name": "x" }, "x86_64-unknown-linux-musl"] } }"#;
+
+    assert_eq!(
+      published_targets(manifest),
+      vec!["x86_64-unknown-linux-musl".to_string()]
+    );
+  }
+
+  #[test]
   fn an_empty_array_publishes_no_musl_target() {
-    let manifest = r#"{ "targets": [] }"#;
+    let manifest = r#"{ "napi": { "targets": [] } }"#;
 
     assert!(published_targets(manifest).is_empty());
     assert!(published_musl_arches(manifest).is_empty());
+  }
+
+  #[test]
+  fn a_manifest_far_larger_than_this_package_is_still_read() {
+    let filler: Vec<String> = (0..20_000)
+      .map(|index| format!(r#""key-{index}": "value-{index}""#))
+      .collect();
+    let manifest = format!(
+      r#"{{ {}, "napi": {{ "targets": ["x86_64-unknown-linux-musl"] }} }}"#,
+      filler.join(", ")
+    );
+
+    assert_eq!(
+      published_musl_arches(&manifest),
+      ["x86_64".to_string()].into()
+    );
   }
 
   #[test]
@@ -354,8 +431,26 @@ mod reading_the_published_targets {
   }
 
   #[test]
-  #[should_panic(expected = "the napi.targets array is closed")]
+  #[should_panic(expected = "package.json declares napi.targets as an array")]
+  fn a_target_list_that_is_not_an_array_fails_as_well() {
+    published_targets(r#"{ "napi": { "targets": "x86_64-unknown-linux-musl" } }"#);
+  }
+
+  #[test]
+  #[should_panic(expected = "package.json declares napi.targets as an array")]
+  fn a_manifest_with_no_napi_block_fails() {
+    published_targets(r#"{ "name": "@stylexswc/rs-compiler" }"#);
+  }
+
+  #[test]
+  #[should_panic(expected = "package.json is not readable as JSON")]
   fn an_unclosed_array_fails_as_well() {
-    published_targets(r#"{ "targets": ["x86_64-unknown-linux-musl" "#);
+    published_targets(r#"{ "napi": { "targets": ["x86_64-unknown-linux-musl" "#);
+  }
+
+  #[test]
+  #[should_panic(expected = "package.json is not readable as JSON")]
+  fn an_empty_manifest_fails() {
+    published_targets("");
   }
 }

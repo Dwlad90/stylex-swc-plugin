@@ -56,6 +56,9 @@ stylex_utils = { path = "../stylex-utils" }
 mimalloc.workspace = true
 
 [dev-dependencies]
+# The allocator checks read `package.json`. A parser rather than a scan, so the
+# checks answer about the manifest rather than about the way it is written.
+serde_json.workspace = true
 
 
 [build-dependencies]

@@ -752,6 +752,61 @@
       "value": "calc(1px;)",
       "origin": "hand-written: a declaration-terminating token inside a function body",
       "note": "Refused here for the `;`; the reference compiler emits `calc(1px;)` into the stylesheet. Inside a function rather than between two declarations, which is the shape the guard is easiest to believe unnecessary in."
+    },
+    {
+      "id": "edge-style-key-off-object-prototype",
+      "property": "toString",
+      "value": "notfn",
+      "origin": "hand-written: a style key spelled like a name every object inherits",
+      "note": "The row the `style key off Object.prototype` family is measured by. It used to arrive through the harvest, out of `String({ toString: 'notfn' })` in a Rust test -- an argument object the harvester read as a declaration. The harvester stopped reading it, correctly, and the family then accounted for nothing: the refusal was still wanted and no row proved it was still there. Written by hand so the family is reached on purpose."
+    },
+    {
+      "id": "edge-style-key-value-of",
+      "property": "valueOf",
+      "value": "red",
+      "origin": "hand-written: a style key spelled like a name every object inherits",
+      "note": "The same phenomenon as `toString`, in the shape an inherited member that is not a string conversion produces: the reference compiler reads its own `Object.prototype.valueOf`, gets a function rather than a value, and emits nothing at all. This compiler emits the one declaration the key was written as. Recorded rather than left to the family, whose claim is the per-character shape `toString` produces and which a hand-written expectation is more specific than.",
+      "expected": "structurally-divergent"
+    },
+    {
+      "id": "edge-style-key-has-own-property",
+      "property": "hasOwnProperty",
+      "value": "red",
+      "origin": "hand-written: a style key spelled like a name every object inherits",
+      "note": "`valueOf` again under a second name, so the shape is not held by one member alone. The key also reads as a CSS property here -- `has-own-property` -- which is what a style key is, and the reference compiler emits nothing.",
+      "expected": "structurally-divergent"
+    },
+    {
+      "id": "edge-style-key-property-is-enumerable",
+      "property": "propertyIsEnumerable",
+      "value": "red",
+      "origin": "hand-written: a style key spelled like a name every object inherits",
+      "note": "The longest inherited name, so the same divergence is measured on a key the property-name converter has real work to do on: `property-is-enumerable`. The reference compiler emits nothing.",
+      "expected": "structurally-divergent"
+    },
+    {
+      "id": "edge-style-key-dunder-proto",
+      "property": "__proto__",
+      "value": "red",
+      "origin": "hand-written: a style key spelled like a name every object inherits",
+      "note": "The inherited *accessor* rather than an inherited method. Reading it answers the prototype of the object being read, which is an object and not a style value, and the reference compiler emits nothing. This compiler emits `__proto__: red` -- a custom-property-looking name that no browser defines, and a declaration the author wrote all the same.",
+      "expected": "structurally-divergent"
+    },
+    {
+      "id": "edge-style-key-constructor",
+      "property": "constructor",
+      "value": "red",
+      "origin": "hand-written: a style key spelled like a name every object inherits",
+      "note": "The one inherited name whose value makes the reference compiler refuse rather than emit nothing: reading `constructor` answers the `Object` function, and a function is not a namespace, so it reports `A StyleX namespace must be an object.` The refusal is the reference compiler's alone -- this compiler compiles the declaration -- so the cost of the divergence is a build the reference compiler would not complete, never the reverse.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "edge-style-key-is-prototype-of",
+      "property": "isPrototypeOf",
+      "value": "red",
+      "origin": "hand-written: a style key spelled like a name every object inherits",
+      "note": "The same refusal, reached in the reference compiler's own words rather than in a message it wrote on purpose: `pairs is not iterable`, out of a function value where a list of entries was expected. Agreement would mean reproducing a fault, and the sentence is one the reference compiler cannot mean.",
+      "expected": "acceptance-divergent"
     }
   ]
 }

@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 953 values: the differential harness's whole corpus, plus
+/// 954 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -691,6 +691,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "calc(1px;)",
     output: "calc(1px;)",
     ast: "function \"calc\" 0..10 before=\"\" after=\"\" nodes=1\n  word \"1px;\" 5..9",
+  },
+  ParserCase {
+    input: "notfn",
+    output: "notfn",
+    ast: "word \"notfn\" 0..5",
   },
   ParserCase {
     input: "red",
@@ -4899,7 +4904,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 661 words paired with their number/unit split, `None` standing for a
+/// 662 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -5072,6 +5077,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   (" ", None),
   ("1px　2px", Some(("1", "px　2px"))),
   ("1px;", Some(("1", "px;"))),
+  ("notfn", None),
   ("#abcdef", None),
   ("foo", None),
   ("--foo", None),

@@ -21,6 +21,7 @@ import {
   escapeMarkdownCell,
   evaluateRawStats,
   renderVerdictMarkdown,
+  reproducedFailures,
   type VerdictThresholds,
 } from '../lib/verdict.js';
 
@@ -229,6 +230,96 @@ describe('evaluateRawStats — targeted retry', () => {
         retry,
       })
     ).toThrow(/must contain 15 rounds/);
+  });
+});
+
+describe('naming the breach that reproduced', () => {
+  const flat = Array.from({ length: 15 }, () => 1);
+  const slowdown = Array.from({ length: 15 }, () => 1.3);
+
+  test('only the fixture that breached twice is named', () => {
+    // The musl run that started this: five fixtures flagged, one reproduced.
+    // A message built from `flagged` names all five and points at nothing.
+    const primary = rawStats([fixture('real', flat, slowdown), fixture('flake', flat, slowdown)]);
+    const retry = rawStats([fixture('real', flat, slowdown), fixture('flake', flat, flat)]);
+    const report = evaluateRawStats(primary, {
+      thresholds: tightThresholds,
+      bootstrap: BOOTSTRAP,
+      retry,
+    });
+
+    expect(report.flagged).toStrictEqual(['real', 'flake']);
+    expect(reproducedFailures(report)).toStrictEqual(['real']);
+  });
+
+  test('every reproduced breach is named, in the order the fixtures ran', () => {
+    const primary = rawStats([
+      fixture('first', flat, slowdown),
+      fixture('quiet', flat, flat),
+      fixture('second', flat, slowdown),
+    ]);
+    const retry = rawStats([fixture('first', flat, slowdown), fixture('second', flat, slowdown)]);
+    const report = evaluateRawStats(primary, {
+      thresholds: tightThresholds,
+      bootstrap: BOOTSTRAP,
+      retry,
+    });
+
+    expect(reproducedFailures(report)).toStrictEqual(['first', 'second']);
+  });
+
+  test('a suite where every flag cleared names nothing', () => {
+    const primary = rawStats([fixture('flake', flat, slowdown)]);
+    const retry = rawStats([fixture('flake', flat, flat)]);
+    const report = evaluateRawStats(primary, {
+      thresholds: tightThresholds,
+      bootstrap: BOOTSTRAP,
+      retry,
+    });
+
+    expect(report.suiteStatus).toBe('pass');
+    expect(reproducedFailures(report)).toStrictEqual([]);
+  });
+
+  test('a suite with no retry yet names nothing, however many flags it holds', () => {
+    // Before the retry runs the suite is `flagged`, and no fixture has failed
+    // twice. The banner for that state names `flagged` on purpose.
+    const primary = rawStats([fixture('a', flat, slowdown), fixture('b', flat, slowdown)]);
+    const report = evaluateRawStats(primary, {
+      thresholds: tightThresholds,
+      bootstrap: BOOTSTRAP,
+    });
+
+    expect(report.suiteStatus).toBe('flagged');
+    expect(report.flagged).toStrictEqual(['a', 'b']);
+    expect(reproducedFailures(report)).toStrictEqual([]);
+  });
+
+  test('a warn is not a breach, so it is not named either', () => {
+    const warned = Array.from({ length: 15 }, () => 1.15);
+    const primary = rawStats([fixture('warn-only', flat, warned)]);
+    const report = evaluateRawStats(primary, {
+      thresholds: tightThresholds,
+      bootstrap: BOOTSTRAP,
+    });
+
+    expect(report.fixtures[0]?.status).toBe('warn');
+    expect(reproducedFailures(report)).toStrictEqual([]);
+  });
+
+  test('a suite of nothing but breaches names all of them', () => {
+    // Larger than any real suite and entirely red, so the reader is handed
+    // every name rather than a truncated list.
+    const names = Array.from({ length: 200 }, (_, index) => `fixture-${index}`);
+    const primary = rawStats(names.map(name => fixture(name, flat, slowdown)));
+    const retry = rawStats(names.map(name => fixture(name, flat, slowdown)));
+    const report = evaluateRawStats(primary, {
+      thresholds: tightThresholds,
+      bootstrap: BOOTSTRAP,
+      retry,
+    });
+
+    expect(reproducedFailures(report)).toStrictEqual(names);
   });
 });
 

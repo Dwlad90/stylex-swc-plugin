@@ -50,6 +50,7 @@ import {
   DEFAULT_THRESHOLDS,
   evaluateRawStats,
   renderVerdictMarkdown,
+  reproducedFailures,
   VERDICT_SCHEMA_VERSION,
   type SuiteStatus,
   type VerdictReport,
@@ -294,7 +295,9 @@ function printSummary(report: VerdictReport): void {
   console.log('');
   if (report.suiteStatus === 'failed') {
     console.log(
-      chalk.red.bold(`Suite FAILED — reproduced breach in: ${report.flagged.join(', ')}`)
+      chalk.red.bold(
+        `Suite FAILED — reproduced breach in: ${reproducedFailures(report).join(', ')}`
+      )
     );
   } else if (report.suiteStatus === 'flagged') {
     console.log(

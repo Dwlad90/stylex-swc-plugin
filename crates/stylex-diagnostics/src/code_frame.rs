@@ -144,10 +144,13 @@ impl CodeFrame {
       .new_source_file(file_name.clone().into(), source.to_owned());
   }
 
-  /// Same, for a source that has to be produced first and may fail in the
-  /// producing. The closure only runs on a miss, so a caller whose source is
-  /// expensive -- a clone of the module's text, or a read of the file -- pays
-  /// for it once per module rather than once per lookup.
+  /// Same as [`Self::register_source_once`], for a source that has to be made
+  /// first and can fail in the making. Returns `Err` only when the making
+  /// failed.
+  ///
+  /// The guard here is the only guard. It registers the file itself rather
+  /// than calling `register_source_once`, which would scan the same list a
+  /// second time on the path that has already paid for one scan.
   fn register_produced_source_once(
     &self,
     file_name: &FileName,
@@ -157,7 +160,9 @@ impl CodeFrame {
       return Ok(());
     }
 
-    self.register_source_once(file_name, &source()?);
+    self
+      .source_map
+      .new_source_file(file_name.clone().into(), source()?);
 
     Ok(())
   }

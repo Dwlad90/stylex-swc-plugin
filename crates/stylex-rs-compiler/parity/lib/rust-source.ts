@@ -98,6 +98,21 @@ function isGenerated(source: string): boolean {
  * hand, and a list that nobody widens loses values in silence. That happened
  * once, when a crate was split apart. See `parity/README.md`.
  */
+/**
+ * Directories that hold no Rust source the harvest must read.
+ *
+ * `node_modules` is the addition that matters: pnpm makes one beside this
+ * crate, the walk read all of it, and the harvest runs before every test.
+ */
+const SKIPPED_DIRECTORIES = new Set([
+  'target',
+  '__swc_snapshots__',
+  'node_modules',
+  'dist',
+  '.turbo',
+  '.git',
+]);
+
 function collectRustTestFiles(workspaceRoot: string): string[] {
   const found: string[] = [];
 
@@ -111,7 +126,7 @@ function collectRustTestFiles(workspaceRoot: string): string[] {
     for (const dirent of dirents) {
       const absolute = path.join(dir, dirent.name);
       if (dirent.isDirectory()) {
-        if (dirent.name === 'target' || dirent.name === '__swc_snapshots__') continue;
+        if (SKIPPED_DIRECTORIES.has(dirent.name)) continue;
         walk(absolute);
         continue;
       }

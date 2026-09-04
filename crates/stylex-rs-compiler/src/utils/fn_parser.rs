@@ -318,29 +318,39 @@ fn read_napi_string(raw_env: napi::sys::napi_env, value: napi::sys::napi_value) 
   utf8_string_from_written_buffer(buf, written)
 }
 
+/// Reads a JavaScript value below the top of `env` into an expression.
+///
+/// `parse_env_value` reads a value at the top of `env`, and this function reads
+/// the values inside an object or an array below it. Both ask
+/// [`env_value_kind`] what a value is, so that the two levels keep the same
+/// rule. They gave different answers before: the top level made a null
+/// expression for a value it had no rule for, and this function called
+/// `panic!`. That panic left the option parser before the compiler installed
+/// its panic guard, so it ended the Node process instead of raising an error
+/// that JavaScript can catch.
 fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value) -> Expr {
   let mut val_type: napi::sys::napi_valuetype = napi::sys::ValueType::napi_undefined;
   unsafe {
     napi::sys::napi_typeof(raw_env, value, &mut val_type);
   }
 
-  match val_type {
-    napi::sys::ValueType::napi_string => create_string_expr(&read_napi_string(raw_env, value)),
-    napi::sys::ValueType::napi_number => {
+  match env_value_kind(ValueType::from(val_type as i32)) {
+    EnvValueKind::String => create_string_expr(&read_napi_string(raw_env, value)),
+    EnvValueKind::Number => {
       let mut n: f64 = 0.0;
       unsafe {
         napi::sys::napi_get_value_double(raw_env, value, &mut n);
       }
       create_number_expr(n)
     },
-    napi::sys::ValueType::napi_boolean => {
+    EnvValueKind::Boolean => {
       let mut b = false;
       unsafe {
         napi::sys::napi_get_value_bool(raw_env, value, &mut b);
       }
       create_bool_expr(b)
     },
-    napi::sys::ValueType::napi_object => {
+    EnvValueKind::Object => {
       let mut is_array = false;
       unsafe {
         napi::sys::napi_is_array(raw_env, value, &mut is_array);
@@ -400,13 +410,13 @@ fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value
         create_object_expression(props)
       }
     },
-    _ => {
-      debug!("Unsupported napi value type: {:#?}.", val_type);
+    // A value with no expression of its own becomes null, which is the answer
+    // that `parse_env_value` gives at the top of `env`. A function is included:
+    // only a function at the top keeps a reference that the compiler can call.
+    EnvValueKind::Nullish | EnvValueKind::Function | EnvValueKind::Unsupported => {
+      debug!("Read a napi value of type {:#?} in env as null.", val_type);
 
-      panic!(
-        "Unsupported napi value type: {:?}. If its not enough, please run in debug mode to see more details",
-        val_type
-      );
+      create_null_expr()
     },
   }
 }

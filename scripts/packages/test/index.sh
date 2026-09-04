@@ -10,12 +10,12 @@
 set -euo pipefail
 
 # The per-crate Rust test runner, reached through `scripty` when a crate points
-# its `test` script at it. No crate does today: every crate prints a skip line
+# its `test` script at it. No crate does today: 23 of the 24 print a skip line
 # because the Rust suites run once for the whole workspace from
-# `pnpm test:crates:workspace`. The script is kept for a direct run from a crate
-# directory, and for the crate that points `test` back at `scripty`. Its
-# siblings `coverage.sh` and `flamegraph.sh` are reached by `test:coverage` and
-# `test:flamegraph`.
+# `pnpm test:crates:workspace`, and `stylex-rs-compiler` runs `vitest` for its
+# JavaScript suite. The script is kept for a direct run from a crate directory.
+# Its siblings `coverage.sh` and `flamegraph.sh` are reached by `test:coverage`
+# and `test:flamegraph`.
 
 script_dir="$(cd -P "$(dirname "$0")" && pwd -P)"
 # shellcheck source=scripts/packages/test/lib/crate.sh

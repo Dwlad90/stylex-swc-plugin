@@ -18,33 +18,28 @@ it into dash on Linux, where its bashisms fail.
 `pnpm build`, `test`, `lint`, `lint:check` (JSON report), `format`,
 `format:check` (oxfmt plus Rust/TOML), `test:visual`, `typecheck`.
 
-- `pnpm test` is `turbo run test --continue`, so it is the JavaScript half:
-  every package's own runner, and a skip line from every crate. Arguments after
-  the script name reach Turbo, which is how CI runs it --
-  `pnpm run test --filter=<pkg>` in the `tests-nodejs` and `Test bindings`
-  jobs. Keep it that way: a leg the script gains is a leg every one of those
-  jobs inherits, and a bindings job holds neither `git` nor `cargo-nextest`.
-- `pnpm test:crates:workspace` is the Rust half, and the only thing that runs
-  it. Two whole-workspace runs rather than one per crate, through Turbo so
-  that a tree with no Rust change hits the cache:
-  `test:crates:workspace:regular`
+- `pnpm test` is `turbo run test --continue` -- the JavaScript half. Each
+  package runs its own tests; almost every crate prints a skip line. Arguments
+  reach Turbo, so CI runs `pnpm run test --filter=<pkg>` in the `tests-nodejs`
+  and `Test bindings` jobs. Keep the script a plain Turbo passthrough: those
+  jobs inherit each leg it gains, and a bindings job has neither `git` nor
+  `cargo-nextest`.
+- `pnpm test:crates:workspace` is the Rust half, and nothing else runs it. It
+  runs two whole-workspace legs through Turbo, so a tree with no Rust change
+  hits the cache: `test:crates:workspace:regular`
   (`cargo nextest run --workspace --all-features --profile ci`) and
   `test:crates:workspace:doc` (`cargo test --doc --workspace --all-features`).
-  CI runs each as its own leg, `tests-rust` and `tests-rust-doc`, the two legs
-  that install `cargo-nextest`. The `ci` nextest profile retries a failing test
-  twice, which hides an infrastructure flake in CI and costs a local run two
-  attempts before it reports.
+  CI runs them as `tests-rust` and `tests-rust-doc`. The `ci` nextest profile
+  sets `retries = 2`, so a failing test makes three attempts. The retries hide
+  an infrastructure flake in CI, and cost a local run two extra attempts.
 
-  Every Rust task -- the two above, the coverage task and the clippy task --
-  hashes `crates/**` plus `Cargo.lock` and `rust-toolchain.toml`, and the test
-  tasks add `.config/nextest.toml`. Each of those is something a run reads:
-  the sources, the fixtures, the resolved dependency versions, the toolchain
-  and the nextest profiles. `Cargo.toml`, `clippy.toml`, `package.json` and
-  `turbo.json` are global dependencies, so no task repeats them. Nothing
-  outside `crates/` holds a `.rs` file, which is why a documentation or
-  TypeScript edit no longer re-runs the Rust suites. Widen this set when a run
-  starts to read something new; a missing input is a cached pass over a change
-  nobody tested.
+  Every Rust task -- these two, coverage and clippy -- hashes `crates/**`,
+  `Cargo.lock` and `rust-toolchain.toml`. The two test tasks and the coverage
+  task add `.config/nextest.toml`; clippy does not read it. `Cargo.toml`,
+  `clippy.toml`, `package.json` and `turbo.json` are global dependencies. Only
+  `crates/` holds `.rs` files, so a documentation or TypeScript edit does not
+  re-run the Rust suites. Widen this set when a run reads something new: a
+  missing input gives a cached pass over untested code.
 
 - `pnpm test:scripts` -- `node --test` over `.github/scripts` and `scripts/git`.
   It runs outside Turbo: CI runs it as the `ci-script-tests` leg of
@@ -93,32 +88,26 @@ See [Git Hooks](./git/HOOKS.md).
 tests. Linting runs once from the workspace root.
 
 A package script whose body is `scripty` runs the matching file under
-`scripts/packages/<script>/`. One of those has no caller:
-`scripts/packages/test/index.sh` runs one crate's Rust suites, and every crate
-prints a skip line for `test` instead, because the Rust suites run once for the
-whole workspace. It is kept for a direct run from a crate directory, and for
-the crate that points `test` back at `scripty`. Its siblings `coverage.sh` and
-`flamegraph.sh` are reached by `test:coverage` and `test:flamegraph`.
-`scripts/git/crate-test-runner.test.mjs` holds it to what it claims to do,
-because a reader that says a crate holds no test drops that crate's suite in
-silence. `crate-coverage-runner.test.mjs` and `crate-flamegraph-runner.test.mjs`
-do the same for the other two.
+`scripts/packages/<script>/`. `test/index.sh` runs one crate's Rust suites, but
+almost every crate prints a skip line for `test` instead, because the Rust
+suites run once for the whole workspace. Keep it for a direct run from a crate
+directory. `coverage.sh` and `flamegraph.sh` serve `test:coverage` and
+`test:flamegraph`. Each of the three has a suite in `scripts/git/`
+(`crate-test-runner.test.mjs`, `crate-coverage-runner.test.mjs`,
+`crate-flamegraph-runner.test.mjs`), because a script that finds no test
+drops that crate's suite in silence.
 
-The three scripts share `scripts/packages/test/lib/crate.sh`, which holds the
-test markers, the directory search and the target-directory name. Each script
-held its own copy before, the copies diverged, and a correction reached one of
-them only. Change the library, and all three change together.
+The three scripts share `scripts/packages/test/lib/crate.sh` for the test
+markers, the directory search and the target-directory name. Change the
+library, and all three change. The suites share
+`scripts/git/lib/crate-script-harness.mjs`. It runs the real script inside a
+throwaway crate, with a recording `cargo` on the search path.
 
-The three suites share `scripts/git/lib/crate-script-harness.mjs` for the same
-reason. It stands up a throwaway crate, puts a recording `cargo` on the search
-path, and runs the real script inside it.
-
-All three scripts set `set -euo pipefail`, and none copies its arguments into
-an array. `-u` and an empty array do not agree in bash 3.2, which macOS ships
-at `/bin/bash`, so a copy such as `args=("$@")` stops a run that gives no
-argument. The harness runs that case under every bash on the machine, because
-the fault does not appear in the newer bash that a search path usually finds
-first.
+All three scripts set `set -euo pipefail`, and pass their arguments on as
+`"$@"`. Bash 3.2 at macOS `/bin/bash` fails `-u` on an empty array, so a copy
+such as `args=("$@")` stops a run that gives no argument. The harness runs that
+case under both `bash` and `/bin/bash`, because the newer bash that the search
+path finds first does not show the fault.
 
 ## Dependencies
 
@@ -142,19 +131,19 @@ cargo build --release                                     # release build
 ```
 
 Two crates commit a Rust test file that a Node script writes:
-`postcss-value-parser` has `generate:value-parser-cases` and `stylex-utils`
-has `generate:parse-float-cases`. A third generator, `parity:harvest` in
-`stylex-rs-compiler`, writes the parity corpus those cases are built from.
-Each generator has a `:check` twin that runs as that crate's `pretest`, so a
-stale file fails the gate. The convention behind them, and the chain that
-crosses crates, are in [Structure](./STRUCTURE.md).
+`generate:value-parser-cases` in `postcss-value-parser` and
+`generate:parse-float-cases` in `stylex-utils`. `parity:harvest` in
+`stylex-rs-compiler` writes the parity corpus those cases use. Each generator
+has a `:check` twin that runs as that crate's `pretest`, so a stale file fails
+the gate. See [Structure](./STRUCTURE.md).
 
 ## Benchmarks
 
 In `crates/stylex-rs-compiler`; run `build` first (they use `dist/*.node`). All
 accept `--help`. Policy: [Performance](./PERFORMANCE.md).
 
-- `bench`: single-subject run over 22 fixtures; writes output and raw stats.
+- `bench`: single-subject run over every fixture in `fixtures.v1.json`; writes
+  output and raw stats.
 - `bench:compare`: compares Rust against Babel; writes `compare-output.txt`.
 - `bench:revisions`: paired measurement; writes revision raw stats.
 - `bench:verdict`: bootstrap verdict and retry; writes JSON and Markdown.

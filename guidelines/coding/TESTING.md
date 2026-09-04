@@ -17,12 +17,12 @@ Follow these steps in order when testing code for a task:
   verify interactions with dependencies.
 - If improvements are requested by the user, implement them using the steps
   above.
-- Run `pnpm test` before considering any task complete. It is
-  `turbo run test --continue`, so it covers the JavaScript suites; a crate
-  prints a skip line for its own `test`.
-- Run `pnpm test:crates:workspace` for the Rust half. It is the two
-  whole-workspace runs -- nextest and doc tests -- and it is what the
-  `tests-rust` and `tests-rust-doc` legs of `pr-validation` run.
+- Run `pnpm test` before considering any task complete. It runs
+  `turbo run test --continue` over the JavaScript suites. A crate prints a skip
+  line for its own `test`.
+- Run `pnpm test:crates:workspace` for the Rust half. It runs nextest and doc
+  tests over the whole workspace, as the `tests-rust` and `tests-rust-doc` legs
+  of `pr-validation` do.
 
 ## Testing across the NAPI boundary
 

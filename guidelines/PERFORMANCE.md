@@ -14,29 +14,23 @@ regression.
 
 ## The allocator a bench measures
 
-The published addon runs mimalloc on all seven targets. `swc_malloc` chooses it
-for the six that are not musl, and the addon names it directly for
-`x86_64-unknown-linux-musl`, because `swc_malloc` declines every musl target at
-once.
+The published addon runs mimalloc on all seven targets. `swc_malloc` selects it
+for the six targets that are not musl. The addon names mimalloc directly for
+`x86_64-unknown-linux-musl`, because `swc_malloc` declines every musl target.
 
-A criterion bench measures the system allocator unless it links the same crate,
-and Rust links a dev-dependency only where a target names it. A manifest entry
-alone therefore does nothing: the line that makes the choice real is
-`use swc_malloc as _;` in the bench file.
+A criterion bench measures the system allocator unless it links the same crate.
+A manifest entry is not enough. Add `use swc_malloc as _;` to the bench file.
 
-Every bench in the workspace carries that line.
+Every bench in the workspace has that line.
 `every_bench_says_which_allocator_it_measures`, in the addon's own test module,
-fails when a new bench carries neither that line nor an `ALLOCATOR: system`
-note giving the reason.
+fails when a new bench has neither that line nor an `ALLOCATOR: system` note
+that gives the reason.
 
-One gap stays, and it is a small one. A bench built for musl still measures the
-system allocator, because `swc_malloc` declines musl and only the addon names
-mimalloc for that target. No bench runs there today.
+A bench built for musl still measures the system allocator. No bench runs on
+musl today.
 
 **Numbers taken before this rule do not compare with numbers taken after it.**
-The allocator is the axis several benches sit on, so a series that crosses the
-change reads a difference that no code change caused. Re-baseline first, then
-compare.
+Re-baseline first, then compare.
 
 ## Subjects
 
@@ -175,25 +169,21 @@ before timing anything. A shape that only a fix makes compilable is a
 correctness question, so it belongs to `crates/stylex-transform/tests/fixture`
 and stays there; `perf_fixtures/dynamic-styles.js` states this rule in its own
 header and leaves that shape out while still pricing the inline-style path.
-`selectMeasurableFixtures` names the fixture and the subject that refused it, so
-the next one reads as the manifest question it is rather than as a bare compiler
-stack.
+`selectMeasurableFixtures` names the fixture and the subject that refused it.
 
-**The release leg reads a base refusal differently, and says so on the command
-line.** The two legs that pair subjects do not share a base. The pull-request
-leg builds the merge base, where the rule above holds and every refusal stops
-the run. The release leg installs the _last published version_, which is behind
-this build by every feature landed since, so a fixture that prices one of those
-features has no second side to compare against -- one `.trim()` in
-`perf_fixtures/engine-fold.js` cost the whole publish benchmark that way. That
-leg passes `--allow-base-refusals`: such a fixture is reported under
-`Not compared`, written into the raw stats beside the numbers, and left out of
-the run, and it returns on its own once the published baseline carries the
-feature. The flag is off by default, so the strict reading is what a caller gets
-without asking. The gate the flag never lifts is the candidate: a fixture _it_
-refuses, or compiles to no rules, is a regression in the code under measurement
-and fails the leg. A run where no fixture survives fails as well, since a base
-that refuses everything is a broken subject rather than a manifest question.
+**Only the release leg allows a base refusal, and it passes a flag to get
+it.** The pull-request leg builds the merge base, where the rule above holds
+and every refusal stops the run. The release leg installs the _last published
+version_, which does not have the features that landed since. A fixture that
+prices one of those features then has no base to compare against. One `.trim()`
+in `perf_fixtures/engine-fold.js` stopped the whole publish benchmark that way.
+That leg passes `--allow-base-refusals`. The run then reports the fixture under
+`Not compared`, writes it into the raw stats beside the numbers, and leaves it
+out of the comparison. The fixture returns once the published baseline has the
+feature. The flag is off by default, and it never lifts the gate on the
+candidate: a fixture _it_ refuses, or compiles to no rules, is a regression and
+fails the leg. A run where no fixture survives also fails, because a base that
+refuses everything is a broken subject.
 
 **Register a feature fixture in pairs.** One number for a development shape says
 nothing about what the feature costs; the pair does. A `Feature - x` entry and a

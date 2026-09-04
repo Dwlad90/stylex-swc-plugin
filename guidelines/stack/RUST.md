@@ -6,20 +6,20 @@
 - WASM target `wasm32-wasip1` is supported (see `rust-toolchain.toml` for all
   targets).
 - Release profile: `opt-level = 3`, fat LTO, symbol stripping. Never `"z"` or
-  `"s"` -- they optimize for size by slashing the inliner budget, and the hot
-  path here is SWC's visitor traversal.
-- `lto = true` reaches only a _final_ artifact. A crate that also emits a
-  reusable `rlib` is not final, so it silently gets no LTO and cargo prints no
-  warning. That is why the addon is `cdylib` only. See `Cargo.toml`, whose
-  `[profile.release]` comments carry the full reasoning.
+  `"s"` -- they cut the inliner budget, and the hot path is SWC's visitor
+  traversal.
+- `lto = true` applies only to a final artifact, so the addon is `cdylib`
+  only: a crate that also emits an `rlib` gets no LTO, and cargo gives no
+  warning. The measurements are in [Project Structure](../STRUCTURE.md), and
+  the reasoning in the `[profile.release]` comments of `Cargo.toml`.
 
 ## Key Modules
 
 - `StyleXTransform<C: Comments>` in
   `crates/stylex-transform/src/transform/mod.rs` -- main SWC visitor. All
   transform logic lives under `crates/stylex-transform/src/transform/`.
-- `crates/stylex-state/` -- the per-file compilation state (`StateManager`) and
-  the value types it composes.
+- `crates/stylex-state/` -- per-file compilation state (`StateManager`) and its
+  value types.
 - `crates/stylex-structures/` -- core data models (`PluginPass`,
   `StyleXOptions`, etc.).
 - `crates/stylex-rs-compiler/` -- the NAPI entry point: parses, drives the
@@ -40,21 +40,18 @@
 
 ## Items Kept But Not Called
 
-An item that is kept on purpose and has no caller must say so with
-`#[allow(dead_code)]`. Do not say it with a leading underscore in the name.
+Mark an item that is kept on purpose and has no caller with
+`#[allow(dead_code)]`. Do not mark it with a leading underscore in the name.
 
-The dead-code lint skips any name that starts with `_`. So the underscore does
-two jobs at once: it marks the item as deliberate for a reader, and it hides the
-item from the lint for the compiler. The second job is not wanted. An item that
-loses its last caller by accident then stays silent, and no one learns of it.
+The dead-code lint skips any name that starts with `_`. The underscore therefore
+hides the item from the lint. An item that loses its last caller then stays
+silent. The attribute lets the lint fire.
 
-The attribute marks the item for the reader and keeps the lint able to speak.
-Write next to it why the item is kept, and whether the attribute does work: on a
-public item of a library crate the lint cannot fire at all, so the attribute is
-only a note.
+Write next to the attribute why the item is kept. On a public item of a library
+crate the lint cannot fire, so the attribute is only a note.
 
-Some underscore-named items from before this rule are still in the repo. Rename
-one when you touch it. To find them all:
+Rename underscore-named items from before this rule when you touch them. To find
+them:
 
 ```bash
 grep -rn --include='*.rs' -E '\bfn _[a-z]' crates/
@@ -69,7 +66,7 @@ Permitted:
 - `lib.rs` publishes what the crate defines. The module tree stays free to
   change.
 - A parent publishes an item from a private `mod`. That module has no path of
-  its own, so this is the only route to it.
+  its own, so this is the only route to the item.
 - A crate publishes a dependency type that its own API shows. Callers then do
   not add that dependency again and get a second version of it.
 - A test prelude. Test code is not part of the crate graph.
@@ -80,8 +77,8 @@ Not permitted:
 - A shorter path to a module that is already public.
 - A glob, such as `pub use foo::*`. A new item upstream then changes this API.
 
-Import from the crate that defines the item. A crate boundary here shows the
-layer, so a republished item hides the true graph.
+Import from the crate that defines the item. A republished item hides the true
+crate graph.
 
 ## SWC Pitfalls
 

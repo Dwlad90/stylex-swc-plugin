@@ -8,35 +8,38 @@ through one of these, which is what makes the `[StyleX]` prefix universal.
 
 **StyleX panic**:
 `stylex_panic!` and its siblings (`stylex_unimplemented!`,
-`stylex_panic_with_file!`) — a panic whose message is prefixed `[StyleX]` so a
-compiler bug is distinguishable from a panic in SWC or a dependency.
+`stylex_unreachable!`, `stylex_panic_with_file!`) — a panic whose message
+carries the `[StyleX]` prefix, so a compiler bug is distinguishable from a panic
+in SWC. `unwrap_or_panic!` is the sanctioned replacement for the `.unwrap()`
+[RUST.md](../../guidelines/stack/RUST.md) bans. `SuppressPanicStderr` is the
+thread-local guard that silences the hook, read by
+[stylex-logs](../stylex-logs/CONTEXT.md).
 _Avoid_: assert, abort, hard error
 
 **StyleX error**:
-A `StyleXError` — the recoverable counterpart, carrying a message plus optional
-file, key path and source location. Built by the `stylex_err` /
-`stylex_err_with_file` functions or raised by `stylex_bail!` / `stylex_anyhow!`.
-Errors propagate; panics do not.
+A `StyleXError` — the recoverable counterpart, carrying a message plus an
+optional file, key path, line and column. Built by `stylex_err` /
+`stylex_err_with_file`, or raised by `stylex_bail!` / `stylex_anyhow!`. Errors
+propagate; panics do not.
 _Avoid_: diagnostic, compile error
 
 **Key path**:
 The chain of object keys leading to the offending value, carried on a
-`StyleXError` so a message can name `colors.primary` rather than the whole
-`stylex.create` call.
+`StyleXError` so a message can name the key rather than the whole
+`stylex.create` call. It prints as `colors > primary`, not dotted.
 _Avoid_: breadcrumb, path, trace
 
 **Confident collection**:
 `collect_confident!` — pushes an evaluation result's value into a collection
 while it stays confident, and returns `None` from the calling function at the
-first result that is not. The evaluator sense of _confident_ is defined in
-[stylex-transform](../stylex-transform/CONTEXT.md).
+first result that is not.
 _Avoid_: try_collect, safe collect
 
 **Refusal macro**:
 `deopt_unsupported!` and `expr_to_str_or_deopt!` — each records a deopt on the
 evaluation state and returns `None` from the calling function. A broken
-invariant is `stylex_panic_with_context!` instead, which builds a code frame
-and panics. The two are told apart by their state argument; why they are
+invariant is `stylex_panic_with_context!` instead, which builds a code frame and
+panics. The two are told apart by their state argument, and why they are
 separate constructs is
 [ADR 0002](../stylex-evaluator/docs/adr/0002-a-refusal-and-a-broken-invariant-are-separate-constructs.md).
 The evaluator senses of _deopt_ and _confident_ are defined in

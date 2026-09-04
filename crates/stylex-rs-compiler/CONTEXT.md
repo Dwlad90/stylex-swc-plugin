@@ -8,24 +8,25 @@ boundary live here, and the vocabulary is where they have to agree.
 
 **Transform result**:
 `StyleXTransformResult` — `{ code, metadata, map }`. The single return shape
-every bundler plugin in `packages/` consumes; a plugin that needs something else
-adapts, rather than the boundary growing a variant.
+every bundler plugin in `packages/` consumes.
 _Avoid_: output, compile result, artifact
 
 **Metadata tuple**:
 The serialized form of a
-[MetaData](../stylex-types/CONTEXT.md) — `[className, { ltr, rtl? }, priority]`.
-An array, not an object, because it is what the JavaScript StyleX ecosystem
-already emits.
+[MetaData](../stylex-types/CONTEXT.md) — a three-element array
+`[className, { ltr, rtl }, priority]`. `rtl` is always set, and is `null` where
+the rule has no mirrored counterpart. A `Const` entry carries `constKey` and
+`constVal` as well. An array rather than an object, for parity with the
+JavaScript StyleX ecosystem.
 _Avoid_: rule, style entry, injected style
 
 **Native binding**:
-Two artifacts, not one. `napi build` emits the addon itself as
-`dist/rs-compiler.<triple>.node`, plus a generated loader `dist/transform.js`
-and its `dist/transform.d.ts`; the loader is what picks the right addon for the
-host platform. `src/index.ts` imports the loader — never a `.node` directly —
-and re-exports its types, so a change to a `#[napi]` struct changes the
-published types with no TypeScript edit, and a stale addon makes the JS test
+Three build artifacts, not one. `napi build` emits the addon as
+`dist/rs-compiler.<platform>-<arch>.node`, plus a generated loader
+`dist/transform.js` and its `.d.ts`, which picks the right addon for the host.
+`build:ts` then emits the wrapper `dist/index.js`, the package `main`.
+`src/index.ts` imports the loader, never a `.node` directly, and the JS test
+suite imports `dist/index.js` — so a stale addon or a stale wrapper makes that
 suite meaningless.
 _Avoid_: addon, dll, wasm
 
@@ -39,9 +40,12 @@ _Avoid_: input map, source map, remapping
 
 **Const enum shim**:
 The frozen objects `index.ts` exports for `SourceMaps` and
-`PropertyValidationMode`. TypeScript erases `const enum`s, so ESM consumers get
-no runtime values without them; they are typed as the native enum rather than as
-string literals so passing one still typechecks.
+`PropertyValidationMode`, because TypeScript erases `const enum`s and ESM
+consumers would get no runtime values. Both are `Object.freeze`d and keyed
+`Throw` / `Warn` / `Silent` style, but they differ in what they hold:
+`SourceMaps` is typed as the native enum, so passing one still typechecks, and
+its values are `'True'`, `'False'` and `'Inline'`; `PropertyValidationMode` is
+`as const` over the lowercase `'throw'`, `'warn'` and `'silent'`.
 _Avoid_: constants, enum export
 
 **File filter**:
@@ -50,23 +54,20 @@ the native call, so a file outside the pattern never crosses the boundary.
 _Avoid_: matcher, glob check, guard
 
 **Import elision**:
-The type-stripping pass dropping an import specifier nothing in the module
-references as a _value_. TypeScript's own rule — such a binding may name a type,
-and a type has no module to import at runtime — and wrong for a JavaScript
-input, which has no type-only imports to remove. The pass runs between the
-resolver and the StyleX transform, so what it elides the transform never sees:
-a dynamic style's parameter shadowing an imported name is not a reference, and
-until the extension began deciding this the name was gone before anything could
-register it. `is_javascript_input` is where the extension decides.
+The type-stripping pass that drops an import specifier nothing in the module
+references as a _value_. It is TypeScript's own rule and wrong for a JavaScript
+input, which has no type-only imports to remove, so `is_javascript_input`
+decides. The pass runs between the resolver and the StyleX transform, so what it
+elides the transform never sees. See
+[ADR 0001](./docs/adr/0001-a-typescript-module-reads-an-unreferenced-import-as-a-type.md).
 _Avoid_: tree shaking, dead import removal, pruning
 
 **Target allocator**:
 The `#[global_allocator]` a published `.node` links, which is a property of the
 target rather than of the code. `swc_malloc` chooses one for six of the seven
 targets `napi.targets` lists and declines every musl target, so
-`x86_64-unknown-linux-musl` names its own — the workspace manifest carries the
-measurement, and `src/tests/allocator_tests.rs` holds the declaration to the
-published list. A target with no allocator is not a build detail: the paired
-release gate read the musl artifact 1.13-1.53x slower than the previous release
-while every glibc artifact read faster.
+`x86_64-unknown-linux-musl` names its own. `src/tests/allocator_tests.rs` holds
+the declaration to the published list, and the workspace manifest carries the
+measurement. Adding a musl target is a decision, not a copied line: mimalloc
+does not work on ARM64 musl.
 _Avoid_: memory allocator setting, malloc flag, mimalloc feature

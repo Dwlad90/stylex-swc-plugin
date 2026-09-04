@@ -1,12 +1,11 @@
 # @stylexswc/typescript-config
 
-The shared `tsconfig` bases every package and app extends. Config only — no
-source, no build.
+The shared `tsconfig` bases. Config only — no source, no build.
 
 ## Language
 
 **Base**:
-`base.json`, the settings everything inherits. `nextjs.json` and
-`react-library.json` extend it; nothing extends those two in turn, so the
-hierarchy is exactly two levels deep on purpose.
+`base.json`, which every package that uses this package extends directly.
+`nextjs.json` and `react-library.json` extend it in turn, and nothing in this
+repo extends those two.
 _Avoid_: preset, profile, default config

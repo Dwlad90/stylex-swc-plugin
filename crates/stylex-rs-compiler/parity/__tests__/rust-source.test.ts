@@ -1,7 +1,17 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
 import { describe, expect, test } from 'vitest';
 
 import { scanRustText, type RustLiteral } from '../lib/rust-literals.js';
-import { enclosingCallees, literalAfter, maskNonCode, phfSetMembers } from '../lib/rust-source.js';
+import {
+  enclosingCallees,
+  literalAfter,
+  maskNonCode,
+  phfSetMembers,
+  scanRustTestFiles,
+} from '../lib/rust-source.js';
 
 /** The string literals of a source, which is the list a range is read from. */
 function literalsOfSource(source: string): RustLiteral[] {
@@ -331,5 +341,73 @@ describe('finding the literal after an offset', () => {
     }
     expect(literalAfter(literals, -1)).toBe(scan(-1));
     expect(literalAfter(literals, source.length)).toBe(scan(source.length));
+  });
+});
+
+/**
+ * A scan of a Windows checkout says what a scan of a Linux one says.
+ *
+ * The corpus is generated from these sources and committed, so a scan that
+ * read a CRLF checkout differently would put a `\r` inside every multi-line
+ * value, change the id derived from it, and call the committed corpus out of
+ * date on Windows alone. That is what happened, and it is what these cases
+ * hold shut.
+ */
+describe('scanning a checkout whatever its line endings', () => {
+  /** A workspace of one crate holding `source`, scanned and thrown away. */
+  function scanOf(source: string): ReturnType<typeof scanRustTestFiles> {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'parity-scan-'));
+    try {
+      const dir = path.join(root, 'crates/one/src');
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, 'lib.rs'), source, 'utf8');
+
+      return scanRustTestFiles(root);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  const lf = [
+    '#[test]',
+    'fn covers() {',
+    '  let css = "grid-template-areas: \\"a b\\"";',
+    '  assert_eq!(transform(css), css);',
+    '}',
+    '',
+  ].join('\n');
+
+  test('a CRLF source is scanned as its LF self', () => {
+    const [fromLf] = scanOf(lf);
+    const [fromCrlf] = scanOf(lf.replaceAll('\n', '\r\n'));
+
+    expect(fromCrlf?.source).toBe(fromLf?.source);
+    expect(fromCrlf?.literals).toStrictEqual(fromLf?.literals);
+    expect(fromCrlf?.masked).toStrictEqual(fromLf?.masked);
+  });
+
+  test('the path an entry is attributed to uses forward slashes', () => {
+    const [scanned] = scanOf(lf);
+
+    expect(scanned?.relativePath).toBe('crates/one/src/lib.rs');
+  });
+
+  test('a multi-line value keeps no carriage return of the checkout', () => {
+    // The value the CRLF checkout used to change: an ending inside a literal.
+    const multiline = 'fn f() {\n  let css = "content: \\"a\nb\\"";\n}\n';
+    const [scanned] = scanOf(multiline.replaceAll('\n', '\r\n'));
+
+    expect(scanned?.source).not.toContain('\r');
+    expect(scanned?.masked.length).toBe(scanned?.source.length);
+  });
+
+  test('a mask is exactly as long as the source it masks', () => {
+    // The contract every offset in the harvester rests on, asserted on the
+    // shape a checkout can change.
+    for (const source of [lf, lf.replaceAll('\n', '\r\n')]) {
+      const [scanned] = scanOf(source);
+
+      expect(scanned?.masked.length).toBe(scanned?.source.length);
+    }
   });
 });

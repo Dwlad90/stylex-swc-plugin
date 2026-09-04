@@ -636,7 +636,7 @@ pub struct StateManager {
   pub(crate) module_source: ModuleSourceState,
 
   pub(crate) declarations_state: DeclarationState,
-  pub declarations: Vec<VarDeclarator>,
+  pub(crate) declarations: Vec<VarDeclarator>,
   /// Position in [`Self::declarations`] of the declarator binding each named
   /// `Id`, so a reference resolves with one hash probe instead of a scan of
   /// every declarator in the module.
@@ -1095,10 +1095,17 @@ impl StateManager {
   /// the binding it added invisible to [`Self::declaration_of`], which is what
   /// the three test builders that did so discovered.
   ///
-  /// The field is public and the index beside it is not, so a crate above can
-  /// still push straight past this. Nothing does. The index stays private
-  /// precisely so that the only way to keep the two in step remains the only
-  /// way anyone can see.
+  /// The field and the index beside it are both `pub(crate)`, so a crate above
+  /// cannot grow the list past this writer. A crate above reads the list
+  /// through [`Self::declarations`].
+  /// The declarators that the top level of the module binds, in source order.
+  ///
+  /// Read-only, because [`Self::declaration_index`] holds a position into this
+  /// list. [`Self::push_declaration`] is the only writer.
+  pub fn declarations(&self) -> &[VarDeclarator] {
+    &self.declarations
+  }
+
   pub fn push_declaration(&mut self, declarator: VarDeclarator) {
     let position = self.declarations.len();
 
@@ -1371,7 +1378,7 @@ impl StateManager {
 
     // The index and the list have to agree, and only [`Self::push_declaration`]
     // keeps them agreeing. The index is private, so nothing can write it without
-    // the writer, but the list beside it is `pub(crate)`: nothing in the type
+    // the writer, and the list beside it is `pub(crate)`: nothing in the type
     // system stops a future caller pushing straight to that and leaving the
     // binding it added invisible here -- which is what three test builders did
     // the day the index was added. Checking the answer against the scan it

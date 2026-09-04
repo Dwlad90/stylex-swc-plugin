@@ -47,7 +47,7 @@ where
     // it as a `String` would buy nothing.
     let export_name = self
       .state
-      .declarations
+      .declarations()
       .get(parent_var_decl_index)?
       .name
       .as_ident()?

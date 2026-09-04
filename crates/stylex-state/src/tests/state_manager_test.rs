@@ -276,6 +276,29 @@ mod state_manager {
     );
   }
 
+  /// A crate above reads the list through the accessor, and the accessor gives
+  /// back what `push_declaration` wrote, in source order. The field itself is
+  /// `pub(crate)`, so a crate above cannot grow the list past the writer that
+  /// keeps `declaration_index` in step with it.
+  #[test]
+  fn declarations_gives_back_what_push_declaration_wrote() {
+    let mut state = StateManager::default();
+
+    assert!(state.declarations().is_empty());
+
+    state.push_declaration(make_var_declarator("first", ident_expr("a")));
+    state.push_declaration(make_var_declarator("second", ident_expr("b")));
+
+    let names: Vec<String> = state
+      .declarations()
+      .iter()
+      .filter_map(|declarator| declarator.name.as_ident())
+      .map(|binding| binding.id.sym.to_string())
+      .collect();
+
+    assert_eq!(names, vec!["first", "second"]);
+  }
+
   #[test]
   fn find_call_declaration_index_by_span_pins_the_declarator_that_call_initialises() {
     let mut state = StateManager::default();

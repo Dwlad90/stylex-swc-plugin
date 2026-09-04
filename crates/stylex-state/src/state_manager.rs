@@ -1103,8 +1103,8 @@ impl StateManager {
   /// the binding it added invisible to [`Self::declaration_of`], which is what
   /// the three test builders that did so discovered.
   ///
-  /// The field and the index beside it are both `pub(crate)`, so a crate above
-  /// cannot grow the list past this writer. A crate above reads the list
+  /// The list is `pub(crate)` and the index beside it is private, so a crate
+  /// above cannot grow the list past this writer. A crate above reads the list
   /// through [`Self::declarations`].
   pub fn push_declaration(&mut self, declarator: VarDeclarator) {
     let position = self.declarations.len();

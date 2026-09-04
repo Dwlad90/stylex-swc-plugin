@@ -486,13 +486,21 @@ mod bench_allocator {
   /// Both readers below walk the same directory, and each held its own copy of
   /// this read. A copy that fails differently from its twin is how one reader
   /// starts answering for a workspace the other cannot see.
+  ///
+  /// A file beside the crates, such as a README, is dropped here. Both readers
+  /// would ignore it anyway, but the count below leans on this answer, so the
+  /// list holds what its name says it holds.
   fn crate_directories() -> Vec<PathBuf> {
     let entries = match fs::read_dir(crates_dir()) {
       Ok(entries) => entries,
       Err(error) => panic!("the crates directory is not readable: {error}"),
     };
 
-    entries.flatten().map(|entry| entry.path()).collect()
+    entries
+      .flatten()
+      .map(|entry| entry.path())
+      .filter(|path| path.is_dir())
+      .collect()
   }
 
   /// Every `benches/*.rs` file in the workspace, as (name, source).

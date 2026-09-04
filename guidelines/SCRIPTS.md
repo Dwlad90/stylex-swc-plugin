@@ -101,13 +101,24 @@ the crate that points `test` back at `scripty`. Its siblings `coverage.sh` and
 `flamegraph.sh` are reached by `test:coverage` and `test:flamegraph`.
 `scripts/git/crate-test-runner.test.mjs` holds it to what it claims to do,
 because a reader that says a crate holds no test drops that crate's suite in
-silence. `scripts/git/crate-coverage-runner.test.mjs` does the same for
-`coverage.sh`.
+silence. `crate-coverage-runner.test.mjs` and `crate-flamegraph-runner.test.mjs`
+do the same for the other two.
 
 The three scripts share `scripts/packages/test/lib/crate.sh`, which holds the
 test markers, the directory search and the target-directory name. Each script
 held its own copy before, the copies diverged, and a correction reached one of
 them only. Change the library, and all three change together.
+
+The three suites share `scripts/git/lib/crate-script-harness.mjs` for the same
+reason. It stands up a throwaway crate, puts a recording `cargo` on the search
+path, and runs the real script inside it.
+
+All three scripts set `set -euo pipefail`, and none copies its arguments into
+an array. `-u` and an empty array do not agree in bash 3.2, which macOS ships
+at `/bin/bash`, so a copy such as `args=("$@")` stops a run that gives no
+argument. The harness runs that case under every bash on the machine, because
+the fault does not appear in the newer bash that a search path usually finds
+first.
 
 ## Dependencies
 

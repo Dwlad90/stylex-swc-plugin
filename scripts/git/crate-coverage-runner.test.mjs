@@ -18,7 +18,7 @@ import {
   A_TEST,
   NEEDS_BASH,
   NO_TEST,
-  bashInterpreters,
+  checkRunWithNoArgument,
   hugeCrateFiles,
   runCrateScript,
   valueAfter,
@@ -284,19 +284,5 @@ void test(
 );
 
 void test('a run with no argument still starts cargo, in every bash', { skip: NEEDS_BASH }, () => {
-  // `set -u` and an empty array do not agree in bash 3.2, which macOS ships, so
-  // the arguments stay as "$@" rather than becoming a copy. Only bash 3.2 shows
-  // the fault, and it is rarely the bash the search path finds first, so the
-  // case runs under each bash this machine has.
-  for (const { interpreter, version } of bashInterpreters()) {
-    const { result, invocations } = runInCrate({
-      files: { 'src/lib.rs': A_TEST },
-      args: [],
-      interpreter,
-    });
-
-    assert.equal(result.stderr, '', `${version} reported an unbound variable`);
-    assert.equal(result.status, 0, version);
-    assert.equal(invocations.length, 1, version);
-  }
+  checkRunWithNoArgument(runInCrate, 1);
 });

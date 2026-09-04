@@ -15,6 +15,7 @@
  * Not a `*.test.mjs` file, so the test runners do not try to run it as a suite.
  */
 
+import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -86,8 +87,9 @@ export function bashInterpreters() {
  * names the bash to start the script with; see `bashInterpreters`.
  *
  * The stub always writes `CARGO_TARGET_DIR` where the caller can read it back.
- * Only the coverage script gives cargo its target directory that way; for the
- * other two the value is empty, which costs nothing and keeps one code path.
+ * Only the coverage script gives cargo its target directory that way, and only
+ * that suite reads the value. The other two record it and ignore it, which
+ * costs nothing and keeps one code path.
  */
 export function runCrateScript({
   script,
@@ -144,15 +146,47 @@ export function valueAfter(invocation, flag) {
  * file far larger than any in this repository.
  *
  * A reader with a line budget gives the wrong answer here, and a wrong answer
- * turns a whole suite off in silence. The large file is `src/lib.rs`, because
- * the coverage script measures a library only.
+ * turns a whole suite off in silence.
+ *
+ * The marker sits in `src/huge.rs` and not in `src/lib.rs`, so the case also
+ * shows that a reader looks past the entry file. `src/lib.rs` is present but
+ * empty of markers, because the coverage script measures a library only and
+ * stops before cargo without one.
  */
 export function hugeCrateFiles() {
-  const files = { 'src/lib.rs': `${NO_TEST.repeat(20_000)}${A_TEST}` };
+  const files = {
+    'src/lib.rs': NO_TEST,
+    'src/huge.rs': `${NO_TEST.repeat(20_000)}${A_TEST}`,
+  };
 
   for (let index = 0; index < 2_000; index += 1) {
     files[`src/module_${index}/mod.rs`] = NO_TEST;
   }
 
   return files;
+}
+
+/**
+ * Holds one script to the empty-argument rule under every bash on the machine.
+ *
+ * `set -u` and an empty array do not agree in bash 3.2, which macOS ships, so a
+ * script must keep its arguments as "$@" rather than copying them into an
+ * array. Only bash 3.2 shows the fault, and it is rarely the bash that the
+ * search path finds first, so one run proves nothing on its own.
+ *
+ * `runInCrate` is the suite's own runner and `cargoCalls` is how many times the
+ * script starts cargo when it runs.
+ */
+export function checkRunWithNoArgument(runInCrate, cargoCalls) {
+  for (const { interpreter, version } of bashInterpreters()) {
+    const { result, invocations } = runInCrate({
+      files: { 'src/lib.rs': A_TEST },
+      args: [],
+      interpreter,
+    });
+
+    assert.equal(result.stderr, '', `${version} reported an unbound variable`);
+    assert.equal(result.status, 0, version);
+    assert.equal(invocations.length, cargoCalls, version);
+  }
 }

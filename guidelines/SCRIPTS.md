@@ -101,7 +101,13 @@ the crate that points `test` back at `scripty`. Its siblings `coverage.sh` and
 `flamegraph.sh` are reached by `test:coverage` and `test:flamegraph`.
 `scripts/git/crate-test-runner.test.mjs` holds it to what it claims to do,
 because a reader that says a crate holds no test drops that crate's suite in
-silence.
+silence. `scripts/git/crate-coverage-runner.test.mjs` does the same for
+`coverage.sh`.
+
+The three scripts share `scripts/packages/test/lib/crate.sh`, which holds the
+test markers, the directory search and the target-directory name. Each script
+held its own copy before, the copies diverged, and a correction reached one of
+them only. Change the library, and all three change together.
 
 ## Dependencies
 

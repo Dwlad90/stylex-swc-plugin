@@ -2,8 +2,11 @@
 
 set -euo pipefail
 
-PATTERNS="#\[test\]|test_transform\(|test!\("
-crate_name="$(basename "$PWD")"
+script_dir="$(cd -P "$(dirname "$0")" && pwd -P)"
+# shellcheck source=scripts/packages/test/lib/crate.sh
+. "$script_dir/lib/crate.sh"
+
+crate_name="${PWD##*/}"
 
 # Kept in step with the two workspace lists in `package.json` and
 # `scripts/coverage-missing.sh`. This list holds crate directory names, so a
@@ -17,15 +20,13 @@ case "$crate_name" in
     ;;
 esac
 
-if grep -qRE --include="*.rs" "$PATTERNS" src tests; then
+if crate_has_tests "$CRATE_TEST_MARKERS"; then
   if [ ! -f "src/lib.rs" ]; then
     exit 0
   fi
 
-  script_dir="$(cd "$(dirname "$0")" && pwd)"
-  workspace_root="$(cd "$script_dir/../../.." && pwd)"
-  crate_slug="$(basename "$PWD" | tr -c '[:alnum:]_-' '_')"
-  crate_target_dir="${workspace_root}/target/coverage-${crate_slug}"
+  workspace_root="$(crate_workspace_root)"
+  crate_target_dir="${workspace_root}/target/coverage-$(crate_slug)"
 
   IGNORE_REGEX="(tests?|benches?|examples)/"
 

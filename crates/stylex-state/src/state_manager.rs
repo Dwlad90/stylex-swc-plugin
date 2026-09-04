@@ -1088,6 +1088,14 @@ impl StateManager {
     self.declared_bindings = Rc::new(writes.declared);
   }
 
+  /// The declarators that the top level of the module binds, in source order.
+  ///
+  /// Read-only, because [`Self::declaration_index`] holds a position into this
+  /// list. [`Self::push_declaration`] is the only writer.
+  pub fn declarations(&self) -> &[VarDeclarator] {
+    &self.declarations
+  }
+
   /// Appends a declarator and records where it went.
   ///
   /// Every caller that grows [`Self::declarations`] goes through here, so the
@@ -1098,14 +1106,6 @@ impl StateManager {
   /// The field and the index beside it are both `pub(crate)`, so a crate above
   /// cannot grow the list past this writer. A crate above reads the list
   /// through [`Self::declarations`].
-  /// The declarators that the top level of the module binds, in source order.
-  ///
-  /// Read-only, because [`Self::declaration_index`] holds a position into this
-  /// list. [`Self::push_declaration`] is the only writer.
-  pub fn declarations(&self) -> &[VarDeclarator] {
-    &self.declarations
-  }
-
   pub fn push_declaration(&mut self, declarator: VarDeclarator) {
     let position = self.declarations.len();
 

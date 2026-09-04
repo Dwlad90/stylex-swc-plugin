@@ -89,20 +89,17 @@ function isGenerated(source: string): boolean {
 }
 
 /**
- * Every `.rs` file under `crates/`, `src/` and `benches/` included. A value in
- * a bench or in an inline `mod tests` counts the same as one under `tests/`,
- * and telling them apart would need a Rust parser. Snapshot directories are
- * skipped: they hold generated output, not authored values.
- *
- * The crate names come off the tree, not from a list. A list must be widened by
- * hand, and a list that nobody widens loses values in silence. That happened
- * once, when a crate was split apart. See `parity/README.md`.
- */
-/**
  * Directories that hold no Rust source the harvest must read.
  *
- * `node_modules` is the addition that matters: pnpm makes one beside this
- * crate, the walk read all of it, and the harvest runs before every test.
+ * Each name is a directory a tool writes, not one a person authors in. Skipping
+ * them keeps the walk off generated output and off installed packages:
+ *
+ * - `target` and `dist` hold build output.
+ * - `__swc_snapshots__` holds generated output, not authored values.
+ * - `node_modules` is the addition that matters. pnpm makes one beside this
+ *   crate, the walk read all of it, and the harvest runs before every test.
+ * - `.turbo` holds task logs and `.git` holds object storage. Neither carries
+ *   `.rs` files, and both are large.
  */
 const SKIPPED_DIRECTORIES = new Set([
   'target',
@@ -113,6 +110,16 @@ const SKIPPED_DIRECTORIES = new Set([
   '.git',
 ]);
 
+/**
+ * Every `.rs` file under `crates/`, `src/` and `benches/` included. A value in
+ * a bench or in an inline `mod tests` counts the same as one under `tests/`,
+ * and telling them apart would need a Rust parser. Snapshot directories are
+ * skipped: they hold generated output, not authored values.
+ *
+ * The crate names come off the tree, not from a list. A list must be widened by
+ * hand, and a list that nobody widens loses values in silence. That happened
+ * once, when a crate was split apart. See `parity/README.md`.
+ */
 function collectRustTestFiles(workspaceRoot: string): string[] {
   const found: string[] = [];
 

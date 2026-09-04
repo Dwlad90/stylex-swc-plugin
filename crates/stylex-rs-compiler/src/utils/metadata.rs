@@ -38,7 +38,17 @@ pub(crate) fn extract_stylex_metadata<C: Comments>(
   env: Env,
   stylex: &StyleXTransform<C>,
 ) -> Result<Vec<JsObject>, Error> {
-  let mut stylex_metadata = Vec::with_capacity(stylex.state.metadata().len());
+  // Count the rules and not the groups. `len` gave the number of keys in the
+  // map, and the loop below pushes one entry for each rule inside a key, so
+  // every file with more than one rule made the vector grow again.
+  let mut stylex_metadata = Vec::with_capacity(
+    stylex
+      .state
+      .metadata()
+      .values()
+      .map(|rules| rules.len())
+      .sum(),
+  );
 
   for value in stylex.state.metadata().values() {
     for meta in value {

@@ -25,9 +25,13 @@ pub(crate) fn fold_to_rule_name(
 ) -> Expr {
   let (name, rule) = transformer(&EvaluateResultValue::Expr(expr), state);
 
+  // Make the expression first, so that the name can move into the key. A copy
+  // of the name stood here only to keep it alive for this line.
+  let folded = create_string_expr(&name);
+
   state
     .other_injected_css_rules
-    .insert(name.clone().into(), Rc::new(rule));
+    .insert(name.into(), Rc::new(rule));
 
-  create_string_expr(name.as_str())
+  folded
 }

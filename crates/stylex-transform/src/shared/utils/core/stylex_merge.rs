@@ -64,21 +64,20 @@ pub(crate) fn stylex_merge(
     }
   }
 
+  // Build the marker once, as the loop above does. It made two strings, an
+  // index map and two counted pointers for each import before.
+  let marker = stylex_default_marker::stylex_default_marker(&state.options);
+  let marker_values = match marker.as_values() {
+    Some(values) => values,
+    None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
+  };
+
   for name in state.stylex_imports() {
-    member_expressions.entry(name.clone()).or_default();
-
-    let member_expression = match member_expressions.get_mut(name) {
-      Some(m) => m,
-      None => stylex_panic!("Could not resolve the member expression for the import."),
-    };
-
-    let values = match stylex_default_marker::stylex_default_marker(&state.options).as_values() {
-      Some(v) => v.clone(),
-      None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
-    };
-    member_expression.insert(
+    // `or_default` gives back the entry it made, so the second look-up that
+    // stood here, and the refusal that could never run, are both unnecessary.
+    member_expressions.entry(name.clone()).or_default().insert(
       STYLEX_DEFAULT_MARKER.into(),
-      Box::new(FunctionConfigType::IndexMap(values)),
+      Box::new(FunctionConfigType::IndexMap(marker_values.clone())),
     );
   }
 

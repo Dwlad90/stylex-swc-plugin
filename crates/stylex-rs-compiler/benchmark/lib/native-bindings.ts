@@ -49,30 +49,6 @@ export function isDualLoadUnsafe(platform: NodeJS.Platform = process.platform): 
   return DUAL_LOAD_UNSAFE_PLATFORMS.has(platform);
 }
 
-/**
- * Whether a file is an addon that this compiler builds.
- *
- * Reads the name, because the loaded list holds every addon in the process and
- * most of them belong to other packages. A watcher such as `fsevents` must not
- * count as a second compiler binding, or the guard stops a run that is safe.
- */
-export function isCompilerBinding(
-  file: string,
-  platform: NodeJS.Platform = process.platform
-): boolean {
-  // Split with the parser of the platform named rather than of the host, since
-  // the platform is an argument here: a backslash is a separator on Windows and
-  // an ordinary character everywhere else.
-  //
-  // Read case-insensitively where the file system is: Windows names the module
-  // in whatever case the loader recorded, and a name this rule dropped would
-  // leave the guard blind to a binding the process holds.
-  const parser = platform === 'win32' ? path.win32 : path.posix;
-  const name = platform === 'win32' ? parser.basename(file).toLowerCase() : parser.basename(file);
-
-  return name.startsWith(`${NATIVE_BINARY_NAME}.`) && name.endsWith(NATIVE_EXTENSION);
-}
-
 /** The long-path prefix `realpath` may put in front of a Windows path. */
 const WINDOWS_LONG_PATH = /^\\\\\?\\(UNC\\)?/;
 
@@ -100,6 +76,30 @@ export function bindingPathKey(file: string, platform: NodeJS.Platform = process
     .replace(WINDOWS_LONG_PATH, (_, unc: string | undefined) => (unc === undefined ? '' : '\\\\'))
     .replaceAll('/', '\\')
     .toLowerCase();
+}
+
+/**
+ * Whether a file is an addon that this compiler builds.
+ *
+ * Reads the name, because the loaded list holds every addon in the process and
+ * most of them belong to other packages. A watcher such as `fsevents` must not
+ * count as a second compiler binding, or the guard stops a run that is safe.
+ *
+ * Named from the one spelling rather than from the path as written, so the rule
+ * that folds a Windows name lives in `bindingPathKey` alone. A name this reader
+ * dropped for its case would leave the guard blind to a binding the process
+ * holds. The basename is taken with the parser of the platform named rather
+ * than of the host, because the platform is an argument here: a backslash is a
+ * separator on Windows and an ordinary character everywhere else.
+ */
+export function isCompilerBinding(
+  file: string,
+  platform: NodeJS.Platform = process.platform
+): boolean {
+  const parser = platform === 'win32' ? path.win32 : path.posix;
+  const name = parser.basename(bindingPathKey(file, platform));
+
+  return name.startsWith(`${NATIVE_BINARY_NAME}.`) && name.endsWith(NATIVE_EXTENSION);
 }
 
 /**

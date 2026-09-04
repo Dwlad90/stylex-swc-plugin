@@ -262,6 +262,64 @@ describe('isCompilerBinding', () => {
   test('rejects a file that is not an addon', () => {
     expect(isCompilerBinding('/pkg/dist/rs-compiler.darwin-arm64.js')).toBe(false);
   });
+
+  // The name is taken from `bindingPathKey`, so every spelling that function
+  // settles reaches this rule too. Windows names the module in whatever case
+  // the loader recorded, and a name dropped for its case leaves the guard blind
+  // to a binding the process holds.
+  test('accepts a Windows addon whatever case the loader recorded', () => {
+    expect(isCompilerBinding(`D:\\Build\\dist\\RS-Compiler.WIN32-X64-MSVC.NODE`, 'win32')).toBe(
+      true
+    );
+  });
+
+  test('accepts a Windows addon behind a long-path prefix', () => {
+    expect(isCompilerBinding(`\\\\?\\D:\\a\\dist\\rs-compiler.win32-x64-msvc.node`, 'win32')).toBe(
+      true
+    );
+    expect(
+      isCompilerBinding(`\\\\?\\UNC\\host\\share\\rs-compiler.win32-x64-msvc.node`, 'win32')
+    ).toBe(true);
+  });
+
+  test('accepts a Windows addon written with forward separators', () => {
+    expect(isCompilerBinding('D:/a/dist/rs-compiler.win32-x64-msvc.node', 'win32')).toBe(true);
+  });
+
+  test('still rejects another package on Windows', () => {
+    expect(isCompilerBinding(`D:\\a\\node_modules\\FSEvents\\FSEvents.node`, 'win32')).toBe(false);
+  });
+
+  // A POSIX file system holds `A.node` and `a.node` apart, so folding case
+  // there would accept a file that is not this compiler's addon.
+  test('keeps case on a POSIX platform', () => {
+    expect(isCompilerBinding('/pkg/dist/RS-Compiler.linux-x64-gnu.node', 'linux')).toBe(false);
+    expect(isCompilerBinding('/pkg/dist/rs-compiler.linux-x64-gnu.node', 'linux')).toBe(true);
+  });
+
+  // A backslash is an ordinary character on POSIX, so the whole string is one
+  // name and it does not start with the binary name.
+  test('reads a backslash as an ordinary character on a POSIX platform', () => {
+    expect(isCompilerBinding('/a/b\\rs-compiler.linux-x64-gnu.node', 'linux')).toBe(false);
+  });
+
+  // A trailing separator names the same entry, which is what `basename`
+  // answers. An empty path names nothing.
+  test('reads a path that ends in a separator as the name before it', () => {
+    expect(isCompilerBinding('/pkg/rs-compiler.linux-x64-gnu.node/', 'linux')).toBe(true);
+  });
+
+  test('answers no for a path that names nothing', () => {
+    expect(isCompilerBinding('', 'linux')).toBe(false);
+    expect(isCompilerBinding('/', 'linux')).toBe(false);
+    expect(isCompilerBinding('', 'win32')).toBe(false);
+  });
+
+  test('reads a path far deeper than any this repository builds', () => {
+    const deep = `${'/level'.repeat(2_000)}/dist/rs-compiler.linux-x64-gnu.node`;
+
+    expect(isCompilerBinding(deep, 'linux')).toBe(true);
+  });
 });
 
 describe('findNativeBindings resolution paths', () => {

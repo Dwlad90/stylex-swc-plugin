@@ -21,6 +21,28 @@ function git(repo: string, ...args: string[]): string {
   }).trim();
 }
 
+/**
+ * Whether this machine holds a `git` binary.
+ *
+ * The published binding is tested inside container images that carry Node and
+ * nothing else, so `git` is absent there and every case that builds a
+ * repository failed with `spawnSync git ENOENT` -- a missing tool reported as
+ * eight broken assertions. What the recorder does without a checkout is the
+ * half those images can still measure, so the cases that need a repository are
+ * skipped and the fallback cases keep running.
+ */
+const hasGit = ((): boolean => {
+  try {
+    execFileSync('git', ['--version'], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
+/** A case that builds a real repository, and so needs the binary. */
+const gitTest = test.skipIf(!hasGit);
+
 /** Starts a git repository in a directory and returns the directory. */
 function initRepo(repo: string): string {
   git(repo, 'init', '--initial-branch', 'main');
@@ -65,7 +87,7 @@ describe('captureEnvironment commit provenance', () => {
   // merge commit that the checkout replaced. If the recorder keeps that SHA, it
   // gives the numbers to a tree that no job measured. Two runs of one commit
   // then look like two commits, and runner noise looks like a regression.
-  test('records the checked-out HEAD, not a stale GITHUB_SHA', () => {
+  gitTest('records the checked-out HEAD, not a stale GITHUB_SHA', () => {
     const repo = initRepo(tempDir('bench-env-'));
     const head = commit(repo, 'the tree that gets benchmarked', 'measured\n');
     vi.stubEnv('GITHUB_SHA', STALE_SHA);
@@ -73,7 +95,7 @@ describe('captureEnvironment commit provenance', () => {
     expect(commitOf(repo)).toBe(head);
   });
 
-  test('prefers HEAD over both environment variables at once', () => {
+  gitTest('prefers HEAD over both environment variables at once', () => {
     const repo = initRepo(tempDir('bench-env-both-'));
     const head = commit(repo, 'measured', 'measured\n');
     vi.stubEnv('GITHUB_SHA', STALE_SHA);
@@ -82,7 +104,7 @@ describe('captureEnvironment commit provenance', () => {
     expect(commitOf(repo)).toBe(head);
   });
 
-  test('follows HEAD when a later commit moves it', () => {
+  gitTest('follows HEAD when a later commit moves it', () => {
     const repo = initRepo(tempDir('bench-env-moved-'));
     const first = commit(repo, 'first', 'one\n');
     const second = commit(repo, 'second', 'two\n');
@@ -93,7 +115,7 @@ describe('captureEnvironment commit provenance', () => {
 
   // A CI checkout of `refs/pull/N/merge` has no branch. The SHA must still come
   // from the tree that the job holds.
-  test('reads a detached HEAD', () => {
+  gitTest('reads a detached HEAD', () => {
     const repo = initRepo(tempDir('bench-env-detached-'));
     const head = commit(repo, 'measured', 'measured\n');
     git(repo, 'checkout', '--detach', head);
@@ -133,14 +155,14 @@ describe('captureEnvironment commit provenance', () => {
 
   // `git init` with no commit makes `rev-parse HEAD` fail. The recorder must
   // fall back and must not stop the benchmark.
-  test('falls back when the repository has no commit yet', () => {
+  gitTest('falls back when the repository has no commit yet', () => {
     const repo = initRepo(tempDir('bench-env-unborn-'));
     vi.stubEnv('GITHUB_SHA', STALE_SHA);
 
     expect(commitOf(repo)).toBe(STALE_SHA);
   });
 
-  test('reads HEAD through a deep history and a very large commit message', () => {
+  gitTest('reads HEAD through a deep history and a very large commit message', () => {
     const repo = initRepo(tempDir('bench-env-deep-'));
     let head = '';
     for (let index = 0; index < 40; index += 1) {
@@ -150,7 +172,7 @@ describe('captureEnvironment commit provenance', () => {
     expect(commitOf(repo)).toBe(head);
   });
 
-  test('reads HEAD from a path that holds spaces and unicode', () => {
+  gitTest('reads HEAD from a path that holds spaces and unicode', () => {
     const parent = tempDir('bench-env-odd-');
     const repo = path.join(parent, 'rüna path — ok');
     fs.mkdirSync(repo);
@@ -160,10 +182,22 @@ describe('captureEnvironment commit provenance', () => {
     expect(commitOf(repo)).toBe(head);
   });
 
-  test('always returns a trimmed 40-character SHA from a checkout', () => {
+  gitTest('always returns a trimmed 40-character SHA from a checkout', () => {
     const repo = initRepo(tempDir('bench-env-shape-'));
     commit(repo, 'measured', 'measured\n');
 
     expect(commitOf(repo)).toMatch(/^[0-9a-f]{40}$/);
+  });
+
+  // The image that tests the published binding carries Node and nothing else.
+  // A checkout with no reachable `git` must fall back rather than stop the
+  // benchmark, so the tool is taken off the search path while the repository
+  // metadata stays in place.
+  test('falls back when git is not on the search path', () => {
+    const withoutGit = tempDir('bench-env-nopath-');
+    vi.stubEnv('PATH', withoutGit);
+    vi.stubEnv('GITHUB_SHA', STALE_SHA);
+
+    expect(commitOf(workspaceRoot)).toBe(STALE_SHA);
   });
 });

@@ -252,23 +252,69 @@ mod remove_duplicates_tests {
     assert_eq!(number_value_of(&result[1]), Some(2.0));
   }
 
-  /// Two keys that both repeat keep both of their first places.
-  /// `Object.entries({ b: 1, a: 2, b: 3, a: 4 })` gives
-  /// `[["b", 3], ["a", 4]]`.
+  /// Two keys that both repeat keep both of their first places, and a key
+  /// declared after them stays behind them.
+  /// `Object.entries({ b: 1, a: 2, b: 3, c: 4, a: 5 })` gives
+  /// `[["b", 3], ["a", 5], ["c", 4]]`.
+  ///
+  /// The third key is what makes this case tell the two rules apart. With
+  /// `b, a, b, a` alone, each key takes its last place in the same order as
+  /// its first, so both rules give the same answer.
   #[test]
   fn two_repeated_keys_each_keep_their_first_place() {
     let props = vec![
       make_kv_prop("b", 1.0),
       make_kv_prop("a", 2.0),
       make_kv_prop("b", 3.0),
-      make_kv_prop("a", 4.0),
+      make_kv_prop("c", 4.0),
+      make_kv_prop("a", 5.0),
     ];
 
     let result = remove_duplicates(props);
 
-    assert_eq!(keys_of(&result), vec!["b", "a"]);
+    assert_eq!(keys_of(&result), vec!["b", "a", "c"]);
     assert_eq!(number_value_of(&result[0]), Some(3.0));
-    assert_eq!(number_value_of(&result[1]), Some(4.0));
+    assert_eq!(number_value_of(&result[1]), Some(5.0));
+    assert_eq!(number_value_of(&result[2]), Some(4.0));
+  }
+
+  /// A key that repeats three times is replaced twice, and the second
+  /// replacement still lands in the place the key first took.
+  /// `Object.entries({ a: 1, b: 2, a: 3, c: 4, a: 5 })` gives
+  /// `[["a", 5], ["b", 2], ["c", 4]]`.
+  #[test]
+  fn a_key_declared_three_times_keeps_its_first_place() {
+    let props = vec![
+      make_kv_prop("a", 1.0),
+      make_kv_prop("b", 2.0),
+      make_kv_prop("a", 3.0),
+      make_kv_prop("c", 4.0),
+      make_kv_prop("a", 5.0),
+    ];
+
+    let result = remove_duplicates(props);
+
+    assert_eq!(keys_of(&result), vec!["a", "b", "c"]);
+    assert_eq!(number_value_of(&result[0]), Some(5.0));
+  }
+
+  /// A dropped property between two declarations of one key does not move the
+  /// key. The place comes from the properties kept so far, and not from the
+  /// place the property had in the input.
+  #[test]
+  fn a_dropped_property_between_two_declarations_does_not_move_the_key() {
+    let props = vec![
+      make_kv_prop("a", 1.0),
+      make_computed_key_prop(0.0, 9.0),
+      make_kv_prop("b", 2.0),
+      make_kv_prop("a", 3.0),
+    ];
+
+    let result = remove_duplicates(props);
+
+    assert_eq!(keys_of(&result), vec!["a", "b"]);
+    assert_eq!(number_value_of(&result[0]), Some(3.0));
+    assert_eq!(number_value_of(&result[1]), Some(2.0));
   }
 
   #[test]

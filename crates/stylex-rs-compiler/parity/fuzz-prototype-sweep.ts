@@ -44,7 +44,7 @@ import { countFlag } from './lib/flags.js';
 import { answerOf, selectedOrExit, writeJsonReport } from './lib/harness-cli.js';
 import { ACCOUNTS, accountOf, unrecorded } from './lib/prototype-accounts.js';
 import type { Standing } from './lib/prototype-accounts.js';
-import { SURFACES, methodsOf, shortfalls, sweep } from './lib/prototype-surface.js';
+import { SURFACES, floorFor, methodsOf, shortfalls, sweep } from './lib/prototype-surface.js';
 import type { Asked, Rejection, Surface } from './lib/prototype-surface.js';
 import { REFUSAL_FAMILIES, familyOf } from './lib/refusal-families.js';
 import { AGREED } from './lib/report.js';
@@ -198,7 +198,7 @@ function counted(total: number, surface: Surface): number {
 }
 
 function recorded(total: number, surface: Surface): number {
-  return total + surface.floor;
+  return total + floorFor(surface);
 }
 
 console.log(chalk.bold('\nCoverage'));
@@ -366,9 +366,10 @@ if (missed.length > 0) {
   console.error(
     chalk.gray(
       '\nA method that stops answering leaves no row to disagree about, so a coverage number is\n' +
-        'the only place it shows. Either the argument pool in parity/lib/prototype-surface.ts no\n' +
-        'longer answers for those methods, or the language stopped carrying them — and if the\n' +
-        'smaller number is the right one, record it as the floor beside the surface.'
+        'the only place it shows. The floor moves with the language, so a method this engine\n' +
+        'does not carry is not what fell: the argument pool in parity/lib/prototype-surface.ts\n' +
+        'no longer answers for a method that is there. If the smaller number is the right one,\n' +
+        'raise the `unanswered` allowance beside the surface.'
     )
   );
   process.exitCode = 1;

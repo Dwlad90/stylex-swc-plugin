@@ -10,6 +10,7 @@ import {
   SWEEP_SET,
   arityOrder,
   chooseArguments,
+  floorFor,
   labelFor,
   methodsOf,
   renderingFor,
@@ -70,7 +71,7 @@ describe('reading the surface off the language', () => {
     const hostile: Surface = {
       kind: 'namespace',
       name: 'Hostile',
-      floor: 1,
+      unanswered: 0,
       target: Object.defineProperties(
         {},
         {
@@ -271,34 +272,102 @@ describe('the recorded coverage floor', () => {
     expect(shortfalls(sweep())).toStrictEqual([]);
   });
 
-  test('a floor is a number a run has to clear, never zero', () => {
+  test('a floor is what the engine carries here, less what the surface may miss', () => {
+    // The two halves the record is split into, read back. The right-hand side
+    // is measured on the engine running the test, which is why the same record
+    // holds on a Node that carries `Math.f16round` and on one that does not.
     for (const surface of SURFACES) {
-      expect(surface.floor, surface.name).toBeGreaterThan(0);
+      expect(floorFor(surface), surface.name).toBe(methodsOf(surface).length - surface.unanswered);
+      expect(floorFor(surface), surface.name).toBeGreaterThan(0);
     }
   });
 
-  test('a surface that asks about less than its floor is reported with both counts', () => {
-    const raised: Surface = { ...stringPrototype, floor: 10_000 };
+  test('an allowance is a count of methods the surface really has', () => {
+    for (const surface of SURFACES) {
+      expect(Number.isInteger(surface.unanswered), surface.name).toBe(true);
+      expect(surface.unanswered, surface.name).toBeGreaterThanOrEqual(0);
+      // Below the count, so no surface is on record as missing all of itself.
+      expect(surface.unanswered, surface.name).toBeLessThan(methodsOf(surface).length);
+    }
+  });
 
-    expect(shortfalls(sweep([raised]))).toStrictEqual([
-      { surface: 'String.prototype', exercised: methodsOfExercised(raised), floor: 10_000 },
+  test('a surface the engine grew is held to the wider count', () => {
+    // The Node 22 against Node 24 case, in miniature: the allowance stays put
+    // and the floor moves with the methods the surface carries.
+    const target: Record<string, () => string> = { one: () => 'a' };
+    const growing: Surface = { kind: 'namespace', name: 'Growing', target, unanswered: 0 };
+
+    expect(floorFor(growing)).toBe(1);
+
+    target.two = () => 'b';
+
+    expect(floorFor(growing)).toBe(2);
+  });
+
+  test('a surface that asks about less than its floor is reported with both counts', () => {
+    // The claim that every method answers, made about a prototype where one
+    // does not. The report names the two numbers a reader needs to judge it.
+    const strict: Surface = { ...stringPrototype, unanswered: 0 };
+
+    expect(shortfalls(sweep([strict]))).toStrictEqual([
+      {
+        surface: 'String.prototype',
+        exercised: methodsOfExercised(strict),
+        floor: methodsOf(strict).length,
+      },
     ]);
   });
 
   test('a surface that exactly meets its floor is not a shortfall', () => {
-    const met: Surface = { ...stringPrototype, floor: methodsOfExercised(stringPrototype) };
+    const met: Surface = {
+      ...stringPrototype,
+      unanswered: methodsOf(stringPrototype).length - methodsOfExercised(stringPrototype),
+    };
 
     expect(shortfalls(sweep([met]))).toStrictEqual([]);
   });
 
   test('a surface that answers for nothing at all is a shortfall, not a silent pass', () => {
-    // The failure a generated harness is most prone to: the surface changes
-    // shape, no candidate answers, and the run agrees about no method at all.
-    const empty: Surface = { kind: 'namespace', name: 'Empty', target: {}, floor: 1 };
+    // The failure a generated harness is most prone to: the surface keeps its
+    // methods, no candidate answers, and the run agrees about no method at all.
+    const silent: Surface = {
+      kind: 'namespace',
+      name: 'Silent',
+      target: { nothing: () => undefined },
+      unanswered: 0,
+    };
 
-    expect(shortfalls(sweep([empty]))).toStrictEqual([
-      { surface: 'Empty', exercised: 0, floor: 1 },
+    expect(shortfalls(sweep([silent]))).toStrictEqual([
+      { surface: 'Silent', exercised: 0, floor: 1 },
     ]);
+  });
+
+  test('a surface that lost its methods is a shortfall rather than a vacuous pass', () => {
+    // A `target` that stops resolving to the object it names enumerates
+    // nothing, and a floor derived straight from that count would be zero.
+    const gone: Surface = { kind: 'namespace', name: 'Gone', target: {}, unanswered: 0 };
+
+    expect(floorFor(gone)).toBe(1);
+    expect(shortfalls(sweep([gone]))).toStrictEqual([{ surface: 'Gone', exercised: 0, floor: 1 }]);
+  });
+
+  test('an allowance past the end of the surface cannot lower the floor below one', () => {
+    const excused: Surface = { ...mathNamespace, unanswered: Number.MAX_SAFE_INTEGER };
+
+    expect(floorFor(excused)).toBe(1);
+    expect(shortfalls(sweep([excused]))).toStrictEqual([]);
+  });
+
+  test('an allowance that is not a count is read as no allowance at all', () => {
+    // A mistyped record makes the gate stricter, which a failing run says out
+    // loud, rather than looser, which nothing would.
+    const methods = methodsOf(mathNamespace).length;
+
+    for (const unanswered of [-1, -Number.MAX_SAFE_INTEGER, 1.5, Infinity, -Infinity, NaN]) {
+      const mistyped: Surface = { ...mathNamespace, unanswered };
+
+      expect(floorFor(mistyped), String(unanswered)).toBe(methods);
+    }
   });
 
   test('a narrower selection is judged on the surfaces it swept, not on the rest', () => {
@@ -308,12 +377,12 @@ describe('the recorded coverage floor', () => {
   });
 
   test('every shortfall is named, rather than the first one standing for the rest', () => {
-    const raised: Surface[] = [
-      { ...stringPrototype, floor: 10_000 },
-      { ...mathNamespace, floor: 10_000 },
+    const strict: Surface[] = [
+      { ...stringPrototype, unanswered: 0 },
+      { ...mathNamespace, unanswered: 0 },
     ];
 
-    expect(shortfalls(sweep(raised)).map(one => one.surface)).toStrictEqual([
+    expect(shortfalls(sweep(strict)).map(one => one.surface)).toStrictEqual([
       'String.prototype',
       'Math',
     ]);

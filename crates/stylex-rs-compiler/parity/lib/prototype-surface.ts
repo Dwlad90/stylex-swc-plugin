@@ -95,27 +95,35 @@ type Reach =
 /**
  * A surface, with the coverage it is on record as reaching.
  *
- * The floor is written beside the surface rather than in a table of its own,
- * because the two are one statement: this surface, and how much of it the sweep
- * was last seen to ask about.
+ * The allowance is written beside the surface rather than in a table of its
+ * own, because the two are one statement: this surface, and how much of it the
+ * sweep is on record as *not* reaching.
  */
 export type Surface = Reach & {
   /**
-   * The fewest methods this surface may exercise before the run fails.
+   * How many of this surface's own methods may answer nothing usable.
    *
    * Recorded from a run rather than derived, and that is the point of it. The
    * count of methods is read off the language, but how many of them the sweep
    * can actually *ask* depends on this file — the argument pool, the arities
    * tried, what `renderingFor` accepts — so a change here that stopped half a
    * prototype from answering would leave the sweep reporting agreement about
-   * the half that was left. A floor is the number a reader agreed to, and
+   * the half that was left. The allowance is the number a reader agreed to, and
    * moving it is an edit somebody has to make on purpose.
    *
-   * Raising one is ordinary: a wider pool reaches more methods, and the new
-   * count is the new floor. Lowering one is the claim that needs an argument in
-   * the commit that does it.
+   * What is recorded is the *shortfall* rather than the reached count, because
+   * the reached count is not a property of this file alone: `Math.f16round`
+   * exists on Node 24 and not on Node 22, so a reached count recorded on one
+   * engine fails on the other while nothing about the sweep has changed. A
+   * method the engine does not carry is neither asked nor missed, so the
+   * allowance holds across engines and the floor moves with the language. See
+   * `floorFor`.
+   *
+   * Lowering one is ordinary: a wider pool reaches more methods, so fewer are
+   * left over. Raising one is the claim that needs an argument in the commit
+   * that does it.
    */
-  readonly floor: number;
+  readonly unanswered: number;
 };
 
 /**
@@ -148,7 +156,7 @@ export const SURFACES: readonly Surface[] = [
     target: String.prototype,
     receiver: "'AbC dEf'",
     binding: 'text',
-    floor: 50,
+    unanswered: 1,
   },
   {
     kind: 'prototype',
@@ -156,7 +164,7 @@ export const SURFACES: readonly Surface[] = [
     target: Array.prototype,
     receiver: "['b', 'a']",
     binding: 'list',
-    floor: 35,
+    unanswered: 4,
   },
   {
     kind: 'prototype',
@@ -164,7 +172,7 @@ export const SURFACES: readonly Surface[] = [
     target: Object.prototype,
     receiver: "({ b: '1', a: '2' })",
     binding: 'config',
-    floor: 7,
+    unanswered: 4,
   },
   {
     kind: 'prototype',
@@ -172,7 +180,7 @@ export const SURFACES: readonly Surface[] = [
     target: Number.prototype,
     receiver: '(255)',
     binding: 'count',
-    floor: 7,
+    unanswered: 0,
   },
   {
     kind: 'prototype',
@@ -180,13 +188,13 @@ export const SURFACES: readonly Surface[] = [
     target: Boolean.prototype,
     receiver: '(true)',
     binding: 'enabled',
-    floor: 3,
+    unanswered: 0,
   },
-  { kind: 'namespace', name: 'Math', target: Math, floor: 35 },
-  { kind: 'namespace', name: 'Object', target: Object, floor: 18 },
-  { kind: 'namespace', name: 'Number', target: Number, floor: 6 },
-  { kind: 'namespace', name: 'String', target: String, floor: 2 },
-  { kind: 'namespace', name: 'Array', target: Array, floor: 3 },
+  { kind: 'namespace', name: 'Math', target: Math, unanswered: 1 },
+  { kind: 'namespace', name: 'Object', target: Object, unanswered: 5 },
+  { kind: 'namespace', name: 'Number', target: Number, unanswered: 0 },
+  { kind: 'namespace', name: 'String', target: String, unanswered: 1 },
+  { kind: 'namespace', name: 'Array', target: Array, unanswered: 1 },
 ];
 
 /**
@@ -309,7 +317,34 @@ export interface Sweep {
 export interface Shortfall {
   readonly surface: string;
   readonly exercised: number;
+  /** The floor this engine holds the surface to, as `floorFor` derives it. */
   readonly floor: number;
+}
+
+/**
+ * The fewest methods a surface must exercise on the engine that is running.
+ *
+ * Derived rather than recorded, from the two halves of the statement: the
+ * methods the language carries here, less the ones the sweep is on record as
+ * not reaching. So a Node release that adds a method raises the floor with it,
+ * and one that does not carry it yet lowers the floor by exactly that method
+ * instead of failing a run — while the allowance, which is the part this file
+ * is answerable for, stays the number a reader agreed to.
+ *
+ * Never below one, which is the case a derived floor would otherwise let
+ * through: a surface whose `target` stops resolving to the object it names
+ * enumerates no methods at all, and a floor of zero would read that as a pass.
+ *
+ * An allowance that is not a count of methods — negative, fractional, infinite,
+ * `NaN` — is read as no allowance at all rather than as licence. A mistyped
+ * record then makes the gate stricter, which a run says out loud, instead of
+ * looser, which nothing would.
+ */
+export function floorFor(surface: Surface): number {
+  const allowed =
+    Number.isInteger(surface.unanswered) && surface.unanswered > 0 ? surface.unanswered : 0;
+
+  return Math.max(1, methodsOf(surface).length - allowed);
 }
 
 /**
@@ -337,7 +372,7 @@ export function shortfalls(swept: Sweep): Shortfall[] {
     .map(surface => ({
       surface: surface.name,
       exercised: asked.get(surface.name) ?? 0,
-      floor: surface.floor,
+      floor: floorFor(surface),
     }))
     .filter(one => one.exercised < one.floor);
 }

@@ -841,13 +841,25 @@ The last is the failure mode a generated harness is most prone to, and the one
 no other gate reaches: a method that stops answering leaves no row to disagree
 about, so a change to the argument pool or to `renderingFor` that silenced half
 a prototype would print a smaller coverage number beside a green run. So each
-surface carries a **floor** — the count it was last seen to reach — and the run
-fails below it. The floors are per surface rather than over the total, because a
-total hides exactly the case worth catching: one prototype falling silent while
-the rest carry the sum. The summary prints their sum beside the count on every
-run, so a reader sees the gate without waiting for it to fail, and a failing run
-names each surface with both of its numbers. Raising a floor is ordinary;
-lowering one is the claim that needs an argument in the commit that makes it.
+surface carries an **allowance** — how many of its methods are on record as
+answering nothing the sweep can use — and the **floor** a run must clear is the
+methods the engine carries there, less that allowance. The run fails below it.
+
+The record is the allowance rather than the reached count because the reached
+count is not a property of this directory alone: `Math.f16round` exists on Node
+24 and not on Node 22, so a reached count recorded on one engine fails on the
+other while nothing about the sweep has changed. A method the engine does not
+carry is neither asked nor missed, so the allowance holds across engines and the
+floor moves with the language. A floor is never below one, so a surface whose
+`target` stops resolving to the object it names is a shortfall rather than a
+vacuous pass.
+
+The floors are per surface rather than over the total, because a total hides
+exactly the case worth catching: one prototype falling silent while the rest
+carry the sum. The summary prints their sum beside the count on every run, so a
+reader sees the gate without waiting for it to fail, and a failing run names
+each surface with both of its numbers. Lowering an allowance is ordinary;
+raising one is the claim that needs an argument in the commit that makes it.
 
 A failing row names the surface, the method, the receiver shape, what JavaScript
 itself answers for the expression, and what both compilers answered — so the

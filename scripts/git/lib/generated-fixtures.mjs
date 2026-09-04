@@ -36,10 +36,12 @@ const OPTION = /^-/;
 /**
  * A `diff` call at the head of a command or of one of its pipeline stages.
  *
- * Anchored so that a file or a flag whose name ends in `diff` is not read as
+ * A stage starts at the beginning of the command, after a pipe, after `&&` or
+ * `||`, after a semicolon, on a new line, or inside a subshell. Anchored to one
+ * of those, so `git diff` and a file whose name ends in `diff` are not read as
  * the program.
  */
-const DIFF_CALL = /(?:^|[|&;]\s*)diff\s/;
+const DIFF_CALL = /(?:^|[|&;(\n])\s*diff\s/;
 
 /**
  * The option that makes `diff` read a checkout as its content rather than as

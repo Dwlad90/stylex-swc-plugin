@@ -234,6 +234,46 @@ void test('a name that merely ends in diff is not read as the program', () => {
   assert.deepEqual(findGateFaults(root, manifests), []);
 });
 
+void test('a diff is found wherever a command may start one', () => {
+  const stages = {
+    'after a pipe': 'node scripts/generate-cases.mjs | diff -u a.rs -',
+    'after and': 'node scripts/generate-cases.mjs > a && diff -u a.rs b.rs',
+    'after a semicolon': 'node scripts/generate-cases.mjs > a; diff -u a.rs b.rs',
+    'on a new line': 'node scripts/generate-cases.mjs > a\ndiff -u a.rs b.rs',
+    'inside a subshell': '(diff -u a.rs b.rs)',
+    'at the head': 'diff -u a.rs b.rs',
+  };
+
+  for (const [where, check] of Object.entries(stages)) {
+    const { root, manifests } = createTree([
+      { ...WIRED, scripts: { ...WIRED.scripts, 'generate:cases:check': check } },
+    ]);
+
+    assert.match(
+      findGateFaults(root, manifests).join('\n'),
+      /needs `--strip-trailing-cr`/,
+      `a diff ${where} was not read`
+    );
+  }
+});
+
+void test('a word merely containing diff is not read as the program', () => {
+  const notDiff = {
+    'the git subcommand': 'git diff --exit-code src/tests/cases.rs',
+    'a file name': 'node scripts/generate-cases.mjs --out src/cases.diff src/x.rs',
+    'a longer program': 'node scripts/generate-cases.mjs | diffstat -u a.rs -',
+    'a bare word': 'node scripts/generate-cases.mjs | diff',
+  };
+
+  for (const [what, check] of Object.entries(notDiff)) {
+    const { root, manifests } = createTree([
+      { ...WIRED, scripts: { ...WIRED.scripts, 'generate:cases:check': check } },
+    ]);
+
+    assert.deepEqual(findGateFaults(root, manifests), [], what);
+  }
+});
+
 void test('a diff in a later stage of the pipeline is still read', () => {
   const { root, manifests } = createTree([
     {

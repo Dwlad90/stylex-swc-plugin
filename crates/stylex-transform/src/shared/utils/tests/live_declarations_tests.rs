@@ -179,3 +179,161 @@ mod live_declarations {
     assert!(state.roots.contains(&id("b")));
   }
 }
+
+/// The mark step of the finalize phase, and the JSX spread substitution that
+/// rides with it. The fixtures reach this walk, but no unit test did.
+#[cfg(test)]
+mod mark_style_vars_to_keep {
+  use swc_core::{
+    common::{DUMMY_SP, SyntaxContext},
+    ecma::ast::{
+      CallExpr, Callee, Expr, Ident, IdentName, JSXAttr, JSXAttrName, JSXAttrOrSpread, JSXElement,
+      JSXElementName, JSXOpeningElement, Module, ModuleItem, Stmt,
+    },
+  };
+
+  use crate::shared::utils::live_declarations::mark_style_vars_to_keep;
+  use stylex_ast::ast::factories::{create_jsx_attr_or_spread, create_jsx_spread_attr};
+  use stylex_state::state_manager::StateManager;
+
+  fn ident(name: &str) -> Ident {
+    Ident {
+      span: DUMMY_SP,
+      sym: name.into(),
+      optional: false,
+      ctxt: SyntaxContext::empty(),
+    }
+  }
+
+  /// A call the state can record a spread replacement against.
+  fn call(name: &str) -> CallExpr {
+    CallExpr {
+      span: DUMMY_SP,
+      ctxt: SyntaxContext::empty(),
+      callee: Callee::Expr(Box::new(Expr::Ident(ident(name)))),
+      args: vec![],
+      type_args: None,
+    }
+  }
+
+  fn attr(name: &str) -> JSXAttrOrSpread {
+    create_jsx_attr_or_spread(JSXAttr {
+      span: DUMMY_SP,
+      name: JSXAttrName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: name.into(),
+      }),
+      value: None,
+    })
+  }
+
+  /// One JSX element holding `attrs`, as the only statement of a module.
+  fn module_with_attrs(attrs: Vec<JSXAttrOrSpread>) -> Module {
+    let element = JSXElement {
+      span: DUMMY_SP,
+      opening: JSXOpeningElement {
+        span: DUMMY_SP,
+        name: JSXElementName::Ident(ident("div")),
+        attrs,
+        self_closing: true,
+        type_args: None,
+      },
+      children: vec![],
+      closing: None,
+    };
+
+    Module {
+      span: DUMMY_SP,
+      shebang: None,
+      body: vec![ModuleItem::Stmt(Stmt::Expr(
+        swc_core::ecma::ast::ExprStmt {
+          span: DUMMY_SP,
+          expr: Box::new(Expr::JSXElement(Box::new(element))),
+        },
+      ))],
+    }
+  }
+
+  /// The attribute names an element carries, with a spread written as `...`.
+  fn attr_names(module: &Module) -> Vec<String> {
+    let ModuleItem::Stmt(Stmt::Expr(statement)) = &module.body[0] else {
+      return vec![];
+    };
+    let Expr::JSXElement(element) = statement.expr.as_ref() else {
+      return vec![];
+    };
+
+    element
+      .opening
+      .attrs
+      .iter()
+      .map(|entry| match entry {
+        JSXAttrOrSpread::SpreadElement(_) => "...".to_string(),
+        JSXAttrOrSpread::JSXAttr(attr) => match &attr.name {
+          JSXAttrName::Ident(name) => name.sym.to_string(),
+          JSXAttrName::JSXNamespacedName(_) => "namespaced".to_string(),
+        },
+      })
+      .collect()
+  }
+
+  #[test]
+  fn a_spread_the_state_never_recorded_stays_a_spread() {
+    let mut state = StateManager::default();
+    let mut module = module_with_attrs(vec![
+      attr("id"),
+      create_jsx_spread_attr(Expr::Call(call("unrecorded"))),
+    ]);
+
+    mark_style_vars_to_keep(&mut module, &mut state);
+
+    assert_eq!(attr_names(&module), vec!["id", "..."]);
+  }
+
+  #[test]
+  fn a_recorded_spread_becomes_the_attributes_recorded_for_it() {
+    let mut state = StateManager::default();
+    let spread_call = call("props");
+    let spread = Expr::Call(spread_call.clone());
+
+    state.seed_jsx_spread_expr(&spread);
+    assert!(state.set_jsx_spread_replacement(&spread_call, vec![attr("className"), attr("style")]));
+
+    let mut module = module_with_attrs(vec![attr("id"), create_jsx_spread_attr(spread)]);
+
+    mark_style_vars_to_keep(&mut module, &mut state);
+
+    assert_eq!(attr_names(&module), vec!["id", "className", "style"]);
+  }
+
+  /// A spread the state recorded but never gave attributes to keeps the spread
+  /// the author wrote. Dropping it would lose whatever the call gives back.
+  #[test]
+  fn a_recorded_spread_with_no_attributes_keeps_the_spread() {
+    let mut state = StateManager::default();
+    let spread = Expr::Call(call("props"));
+
+    state.seed_jsx_spread_expr(&spread);
+
+    let mut module = module_with_attrs(vec![create_jsx_spread_attr(spread)]);
+
+    mark_style_vars_to_keep(&mut module, &mut state);
+
+    assert_eq!(attr_names(&module), vec!["..."]);
+  }
+
+  #[test]
+  fn a_module_with_no_jsx_is_left_alone() {
+    let mut state = StateManager::default();
+    let mut module = Module {
+      span: DUMMY_SP,
+      shebang: None,
+      body: vec![],
+    };
+
+    mark_style_vars_to_keep(&mut module, &mut state);
+
+    assert!(module.body.is_empty());
+    assert!(state.style_vars_to_keep.is_empty());
+  }
+}

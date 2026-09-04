@@ -179,8 +179,10 @@ impl StylesPreRule {
   }
 }
 
-#[cfg_attr(coverage_nightly, coverage(off))]
 impl PreRule for StylesPreRule {
+  // Reached only through the trait object, which the transform builds and
+  // nothing else asks for a value from.
+  #[cfg_attr(coverage_nightly, coverage(off))]
   fn get_value(&self) -> Option<PreRuleValue> {
     Some(self.value.to_owned())
   }

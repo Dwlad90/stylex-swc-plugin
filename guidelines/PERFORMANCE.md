@@ -142,19 +142,32 @@ cannot measure it however many debug options it names.
 `perf_fixtures/props-and-attrs.js` is that call site, and a test asserts the
 entries named for the data prop actually emit one.
 
-**A fixture must compile on the revision before the change, too.**
+**A fixture must compile on the merge base, too.**
 `bench:revisions` runs the manifest against two subjects -- this branch's build
 and one built from the merge base -- and sanity-checks every fixture on both
-before timing anything. A fixture whose shape only the fix compiles therefore
-throws on the base subject and takes the whole benchmark leg down before a
-single measurement, which is what registering the two
-`dynamic-param-shadows-import` fixtures did. A shape that only a fix makes
-compilable is a correctness question, so it belongs to
-`crates/stylex-transform/tests/fixture` and stays there;
-`perf_fixtures/dynamic-styles.js` states this rule in its own header and leaves
-that shape out while still pricing the inline-style path. `sanityCheck` names
-the fixture and the subject that refused it, so the next one reads as the
-manifest question it is rather than as a bare compiler stack.
+before timing anything. A shape that only a fix makes compilable is a
+correctness question, so it belongs to `crates/stylex-transform/tests/fixture`
+and stays there; `perf_fixtures/dynamic-styles.js` states this rule in its own
+header and leaves that shape out while still pricing the inline-style path.
+`selectMeasurableFixtures` names the fixture and the subject that refused it, so
+the next one reads as the manifest question it is rather than as a bare compiler
+stack.
+
+**The release leg reads a base refusal differently, and says so on the command
+line.** The two legs that pair subjects do not share a base. The pull-request
+leg builds the merge base, where the rule above holds and every refusal stops
+the run. The release leg installs the _last published version_, which is behind
+this build by every feature landed since, so a fixture that prices one of those
+features has no second side to compare against -- one `.trim()` in
+`perf_fixtures/engine-fold.js` cost the whole publish benchmark that way. That
+leg passes `--allow-base-refusals`: such a fixture is reported under
+`Not compared`, written into the raw stats beside the numbers, and left out of
+the run, and it returns on its own once the published baseline carries the
+feature. The flag is off by default, so the strict reading is what a caller gets
+without asking. The gate the flag never lifts is the candidate: a fixture _it_
+refuses, or compiles to no rules, is a regression in the code under measurement
+and fails the leg. A run where no fixture survives fails as well, since a base
+that refuses everything is a broken subject rather than a manifest question.
 
 **Register a feature fixture in pairs.** One number for a development shape says
 nothing about what the feature costs; the pair does. A `Feature - x` entry and a

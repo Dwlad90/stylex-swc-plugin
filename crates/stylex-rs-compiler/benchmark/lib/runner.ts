@@ -12,6 +12,15 @@
  * are responsible for intentional output differences — this guard only
  * stops a broken no-op subject from appearing fast.
  *
+ * `requiredSubject` names the one subject the check is a gate for — the
+ * revision under measurement. A fixture the *other* subject cannot compile is
+ * dropped from the run instead of stopping it, because a comparison needs both
+ * sides and the release leg compares against the last published version, which
+ * can be several features behind. A fixture the required subject refuses is
+ * still a hard failure: that one is a regression in the code under test. A
+ * caller that names no required subject keeps the older behaviour, where any
+ * refusal stops the run.
+ *
  * A fixture may override `dev` for itself (`FixtureDescriptor.dev`). The
  * override is resolved in one place, `fixtureStylexOptions`, and used by
  * both the sanity check and the timed run, so a fixture can never be
@@ -56,10 +65,39 @@ export interface RunOptions {
    * `FixtureRawStats.paired`. Ignored otherwise.
    */
   bootstrap?: BootstrapConfig;
+  /**
+   * Label of the subject the sanity check is a gate for. A fixture any other
+   * subject cannot measure leaves the run rather than stopping it. Absent, no
+   * subject is privileged and every refusal stops the run.
+   */
+  requiredSubject?: string;
+}
+
+/** One fixture that left a run, and the subject whose answer removed it. */
+export interface ExcludedFixture {
+  readonly fixture: string;
+  readonly subject: string;
+  /** What that subject did: a refusal sentence, or the rule count it emitted. */
+  readonly reason: string;
+}
+
+/**
+ * What one subject answered about a fixture it cannot measure.
+ *
+ * Both readings of the same answer, because which one is wanted depends on who
+ * the subject is: the run stops with `failure` where the subject is the one
+ * under measurement, and reports `excluded` where it is not.
+ */
+interface SubjectRefusal {
+  readonly subject: string;
+  readonly failure: Error;
+  readonly excluded: ExcludedFixture;
 }
 
 export interface RunResult {
   fixtures: FixtureRawStats[];
+  /** Empty on a run where every subject measured every fixture. */
+  excluded: ExcludedFixture[];
 }
 
 export async function runRounds(options: RunOptions): Promise<RunResult> {
@@ -70,12 +108,12 @@ export async function runRounds(options: RunOptions): Promise<RunResult> {
     throw new Error('runRounds requires rounds >= 1');
   }
 
-  sanityCheck(options.subjects, options.fixtures, options.stylexOptions);
+  const { measurable, excluded } = selectMeasurableFixtures(options);
 
   const rng = makeSeededRng(options.seed);
   const fixtures: FixtureRawStats[] = [];
 
-  for (const fixture of options.fixtures) {
+  for (const fixture of measurable) {
     const roundStats: FixtureRoundStats[] = [];
     const schedule = createBalancedSchedule(options.subjects, options.rounds, rng);
     for (const [round, order] of schedule.entries()) {
@@ -96,33 +134,100 @@ export async function runRounds(options: RunOptions): Promise<RunResult> {
     });
   }
 
-  return { fixtures };
+  return { fixtures, excluded };
 }
 
-function sanityCheck(
-  subjects: readonly LoadedSubject[],
-  fixtures: readonly FixtureDescriptor[],
-  stylexOptions: StyleXOptions
-): void {
-  for (const fixture of fixtures) {
-    for (const subject of subjects) {
-      const label = subject.descriptor.label;
-      let rules: number;
-      try {
-        rules = subject.run(fixture, fixtureStylexOptions(fixture, stylexOptions));
-      } catch (error) {
-        // A compiler error carries no fixture name, and the CI log for a paired
-        // run showed only a stack ending inside the base subject's `transform`.
-        // Which fixture and which subject is the whole of the answer here: the
-        // base is an older build, so what it cannot compile is a question about
-        // the manifest rather than about the change under measurement.
-        throw new Error(refusal(label, fixture, 'could not compile'), { cause: error });
-      }
-      if (!Number.isFinite(rules) || rules <= 0) {
-        throw new Error(refusal(label, fixture, `produced ${String(rules)} StyleX rules for`));
-      }
+interface FixtureSelection {
+  /** The fixtures every subject answered for, in manifest order. */
+  measurable: FixtureDescriptor[];
+  excluded: ExcludedFixture[];
+}
+
+function selectMeasurableFixtures(options: RunOptions): FixtureSelection {
+  const measurable: FixtureDescriptor[] = [];
+  const excluded: ExcludedFixture[] = [];
+
+  for (const fixture of options.fixtures) {
+    const refusals = subjectRefusals(fixture, options);
+    if (refusals.length === 0) {
+      measurable.push(fixture);
+      continue;
+    }
+    // A refusal by the subject under measurement stops the run: whatever the
+    // other subject answered, this one is the code the numbers are about. Where
+    // the caller named no subject, no refusal is a manifest question and the
+    // first one stops the run.
+    const gating =
+      options.requiredSubject === undefined
+        ? refusals[0]
+        : refusals.find(entry => entry.subject === options.requiredSubject);
+    if (gating !== undefined) throw gating.failure;
+    // Only the first refusal is reported. A second subject saying the same
+    // thing about the same fixture adds a line and no information, and the
+    // fixture leaves the run either way.
+    excluded.push(refusals[0]!.excluded);
+  }
+
+  if (measurable.length === 0) {
+    throw new Error(
+      'Sanity check failed: no fixture is measurable by every subject — ' +
+        excluded.map(entry => `"${entry.fixture}" (${entry.subject}: ${entry.reason})`).join(', ')
+    );
+  }
+
+  return { measurable, excluded };
+}
+
+/** What each subject that cannot measure `fixture` said, in subject order. */
+function subjectRefusals(fixture: FixtureDescriptor, options: RunOptions): SubjectRefusal[] {
+  const refusals: SubjectRefusal[] = [];
+
+  for (const subject of options.subjects) {
+    const label = subject.descriptor.label;
+    let rules: number;
+    try {
+      rules = subject.run(fixture, fixtureStylexOptions(fixture, options.stylexOptions));
+    } catch (error) {
+      // A compiler error carries no fixture name, and the CI log for a paired
+      // run showed only a stack ending inside the base subject's `transform`.
+      // Which fixture and which subject is the whole of the answer here: the
+      // base is an older build, so what it cannot compile is a question about
+      // the manifest rather than about the change under measurement.
+      refusals.push({
+        subject: label,
+        failure: new Error(refusal(label, fixture, 'could not compile'), { cause: error }),
+        excluded: { fixture: fixture.name, subject: label, reason: sentenceOf(error) },
+      });
+      continue;
+    }
+    if (!Number.isFinite(rules) || rules <= 0) {
+      const predicate = `produced ${String(rules)} StyleX rules for`;
+      refusals.push({
+        subject: label,
+        failure: new Error(refusal(label, fixture, predicate)),
+        excluded: {
+          fixture: fixture.name,
+          subject: label,
+          reason: `emitted ${String(rules)} StyleX rules`,
+        },
+      });
     }
   }
+
+  return refusals;
+}
+
+/**
+ * The first line of what a compiler said, or a stand-in when it said nothing.
+ *
+ * One line, because a compiler refusal carries a code frame under its sentence
+ * and the sentence is the whole of what a reader needs to see beside a dropped
+ * fixture. The full error stays on the hard-failure path, where it is the
+ * `cause`.
+ */
+function sentenceOf(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.split('\n')[0]?.trim() || 'refused without a message';
 }
 
 /**

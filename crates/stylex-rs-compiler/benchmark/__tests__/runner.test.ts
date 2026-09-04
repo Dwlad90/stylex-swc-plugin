@@ -29,6 +29,39 @@ const FIXTURE: FixtureDescriptor = {
   batchSize: 1,
 };
 
+/**
+ * A second fixture, so a run that loses one still has something to measure.
+ *
+ * A run whose every fixture leaves it is its own failure, and a test that
+ * cannot tell the two apart would pass on either.
+ */
+const OTHER_FIXTURE: FixtureDescriptor = { ...FIXTURE, name: 'counter' };
+
+/**
+ * Throws `value`, whatever it is.
+ *
+ * A native binding can reject with something that is not an `Error`, and the
+ * report has to read as a sentence either way. Written as a call because a
+ * thrown literal is a lint error, and what is under test is the shape the value
+ * has when it arrives rather than how the test spelled it.
+ */
+function raise(value: unknown): never {
+  throw value;
+}
+
+/** A subject run that refuses every fixture with `message`. */
+function refusingWith(message: string): SubjectRun {
+  return () => raise(new Error(message));
+}
+
+/** A subject that answers `rules` for one named fixture and 1 for the rest. */
+function subjectRefusing(label: string, name: string, rules: SubjectRun) {
+  return createSubject(
+    { label, version: '1.0.0', resolvedFrom: `/${label}` },
+    (fixture, options) => (fixture.name === name ? rules(fixture, options) : 1)
+  );
+}
+
 // One iteration per task keeps the suite fast; the assertions are about
 // the shape of the emitted stats, not the timings.
 const BENCH = { retainSamples: true, warmup: false, time: 0, iterations: 1 } as const;
@@ -48,15 +81,40 @@ function subject(label: string) {
   return createSubject({ label, version: '1.0.0', resolvedFrom: `/${label}` }, () => 1);
 }
 
-async function run(subjects: ReturnType<typeof subject>[], rounds = 1, seed = 1) {
+async function run(
+  subjects: ReturnType<typeof subject>[],
+  rounds = 1,
+  seed = 1,
+  extra: { fixtures?: FixtureDescriptor[]; requiredSubject?: string } = {}
+) {
   return runRounds({
     subjects,
-    fixtures: [FIXTURE],
+    fixtures: extra.fixtures ?? [FIXTURE],
     stylexOptions: {},
     rounds,
     seed,
     standardBench: BENCH,
     heavyBench: BENCH,
+    ...(extra.requiredSubject === undefined ? {} : { requiredSubject: extra.requiredSubject }),
+  });
+}
+
+/**
+ * A run of both fixtures where only the candidate is a gate.
+ *
+ * Every exclusion test is that run, so the fixture pair and the gate label are
+ * stated once. `subjects` defaults to one healthy candidate behind the base
+ * given, which is the paired shape; a test that needs a third subject passes
+ * the whole list.
+ */
+async function pairedRun(...subjects: ReturnType<typeof subject>[]) {
+  const named = subjects.some(entry => entry.descriptor.label === 'candidate')
+    ? subjects
+    : [...subjects, subject('candidate')];
+
+  return run(named, 1, 1, {
+    fixtures: [FIXTURE, OTHER_FIXTURE],
+    requiredSubject: 'candidate',
   });
 }
 
@@ -166,5 +224,183 @@ describe('runRounds paired roles', () => {
 
     const parsed = parseRawStats(JSON.parse(JSON.stringify(file)), 'raw', { subjects: 'any' });
     expect(parsed.fixtures[0]?.paired?.candidate).toBe('candidate');
+  });
+});
+
+/**
+ * What a paired run does with a fixture only one of its subjects can measure.
+ *
+ * The release leg compares this build against the last published version, so
+ * the base is behind by every feature landed since. A fixture that prices such
+ * a feature has no second side, and stopping the leg for it threw away every
+ * other measurement -- which is what one `.trim()` in `engine-fold.js` did to
+ * the whole publish benchmark. The gate that matters is the candidate: a
+ * fixture *it* refuses is a regression in the code under measurement.
+ */
+describe('runRounds fixture exclusion', () => {
+  test('a healthy run excludes nothing', async () => {
+    const { fixtures, excluded } = await pairedRun(subject('base'));
+
+    expect(excluded).toEqual([]);
+    expect(fixtures.map(fixture => fixture.name)).toEqual(['card', 'counter']);
+  });
+
+  test('drops a fixture the base cannot compile and keeps the rest', async () => {
+    const base = subjectRefusing(
+      'base',
+      'card',
+      refusingWith("[StyleX] The method 'trim' is not yet supported in static evaluation.")
+    );
+
+    const { fixtures, excluded } = await pairedRun(base);
+
+    expect(fixtures.map(fixture => fixture.name)).toEqual(['counter']);
+    expect(excluded).toEqual([
+      {
+        fixture: 'card',
+        subject: 'base',
+        reason: "[StyleX] The method 'trim' is not yet supported in static evaluation.",
+      },
+    ]);
+  });
+
+  // A compiler refusal carries a code frame under its sentence. Beside a
+  // dropped fixture the sentence is the whole of what a reader needs, and the
+  // frame would bury the fixture names the report is made of.
+  test('reports only the first line of what the base said', async () => {
+    const base = subjectRefusing(
+      'base',
+      'card',
+      refusingWith('  refused\n  --> file.js:1:1\n   |\n 1 | code\n')
+    );
+
+    const { excluded } = await pairedRun(base);
+
+    expect(excluded[0]?.reason).toBe('refused');
+  });
+
+  test('names the refusal when the base threw something that is not an Error', async () => {
+    const base = subjectRefusing('base', 'card', () => raise('plain string'));
+
+    const { excluded } = await pairedRun(base);
+
+    expect(excluded[0]?.reason).toBe('plain string');
+  });
+
+  test('stands in for a refusal that carries no message at all', async () => {
+    const base = subjectRefusing('base', 'card', refusingWith(''));
+
+    const { excluded } = await pairedRun(base);
+
+    expect(excluded[0]?.reason).toBe('refused without a message');
+  });
+
+  // A base that compiles a fixture to nothing cannot measure it either: the
+  // zero-rule guard reads the same either way, and reporting the count keeps
+  // the two apart for whoever has to read the line.
+  test('drops a fixture the base compiles to no rules', async () => {
+    const { fixtures, excluded } = await pairedRun(subjectRefusing('base', 'card', () => 0));
+
+    expect(fixtures.map(fixture => fixture.name)).toEqual(['counter']);
+    expect(excluded[0]?.reason).toBe('emitted 0 StyleX rules');
+  });
+
+  test('drops a fixture whose base rule count is not a number at all', async () => {
+    const { excluded } = await pairedRun(subjectRefusing('base', 'card', () => Number.NaN));
+
+    expect(excluded[0]?.reason).toBe('emitted NaN StyleX rules');
+  });
+
+  // The one refusal that must still stop the run. Reported against the
+  // candidate even though the base refused the same fixture first, because the
+  // subject under measurement is the one a reader has to act on.
+  test('fails when the subject under measurement cannot compile a fixture', async () => {
+    const refuse = refusingWith('[StyleX] Style value must evaluate to a static expression.');
+    const failure = await pairedRun(
+      subjectRefusing('base', 'card', refuse),
+      subjectRefusing('candidate', 'card', refuse)
+    ).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).toBe(
+      'Sanity check failed: subject "candidate" could not compile fixture "card"'
+    );
+  });
+
+  test('fails when the subject under measurement emits no rules', async () => {
+    const failure = await pairedRun(
+      subject('base'),
+      subjectRefusing('candidate', 'card', () => 0)
+    ).catch((error: unknown) => error);
+
+    expect((failure as Error).message).toBe(
+      'Sanity check failed: subject "candidate" produced 0 StyleX rules for fixture "card"'
+    );
+  });
+
+  // A base that refuses everything is a broken base, not a manifest question,
+  // and a run that measured nothing must not report as a clean comparison.
+  test('fails when no fixture survives, naming every one that left', async () => {
+    const base = createSubject(
+      { label: 'base', version: '1.0.0', resolvedFrom: '/base' },
+      refusingWith('dist/index.js is not a StyleX compiler')
+    );
+
+    const failure = await pairedRun(base).catch((error: unknown) => error);
+
+    expect((failure as Error).message).toBe(
+      'Sanity check failed: no fixture is measurable by every subject — ' +
+        '"card" (base: dist/index.js is not a StyleX compiler), ' +
+        '"counter" (base: dist/index.js is not a StyleX compiler)'
+    );
+  });
+
+  // Without a required subject nothing is privileged, so the older behaviour
+  // holds and any refusal stops the run. Both legs that pair subjects name
+  // one; a caller that does not gets the stricter reading.
+  test('keeps stopping the run when no subject is named as the gate', async () => {
+    const base = subjectRefusing('base', 'card', refusingWith('refused'));
+    const failure = await run([base, subject('candidate')], 1, 1, {
+      fixtures: [FIXTURE, OTHER_FIXTURE],
+    }).catch((error: unknown) => error);
+
+    expect((failure as Error).message).toBe(
+      'Sanity check failed: subject "base" could not compile fixture "card"'
+    );
+  });
+
+  // A large manifest where one entry leaves: the report must name that entry
+  // and nothing else, and the surviving fixtures must keep manifest order.
+  test('keeps manifest order across a large manifest with one exclusion', async () => {
+    const many = Array.from({ length: 60 }, (_index, position) => ({
+      ...FIXTURE,
+      name: `fixture-${String(position).padStart(2, '0')}`,
+    }));
+    const base = subjectRefusing('base', 'fixture-31', refusingWith('refused'));
+
+    const { fixtures, excluded } = await run([base, subject('candidate')], 1, 1, {
+      fixtures: many,
+      requiredSubject: 'candidate',
+    });
+
+    expect(excluded).toHaveLength(1);
+    expect(excluded[0]?.fixture).toBe('fixture-31');
+    expect(fixtures).toHaveLength(59);
+    expect(fixtures.map(fixture => fixture.name)).toEqual(
+      many.map(fixture => fixture.name).filter(name => name !== 'fixture-31')
+    );
+  });
+
+  // Two subjects refusing the same fixture is one exclusion. A second line
+  // saying the same thing adds no information, and the fixture is gone either
+  // way -- so the count is what a reader can trust.
+  test('reports one exclusion when every non-gate subject refuses the same fixture', async () => {
+    const refuse = refusingWith('refused');
+    const { excluded } = await pairedRun(
+      subjectRefusing('base-a', 'card', refuse),
+      subjectRefusing('base-b', 'card', refuse)
+    );
+
+    expect(excluded).toEqual([{ fixture: 'card', subject: 'base-a', reason: 'refused' }]);
   });
 });

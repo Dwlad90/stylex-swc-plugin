@@ -492,13 +492,18 @@ jobs:
         if: ${{ !matrix.settings.container }}
         shell: bash
         run: |
+          # The base is the last published release, which is behind this build by
+          # every feature landed since, so a fixture that prices one of those has
+          # no second side to compare against. It is dropped with a line saying
+          # so; a fixture the candidate refuses still fails the leg.
           pnpm run --filter=@stylexswc/rs-compiler bench:revisions -- \
             --base "$BASE_PACKAGE_DIR" \
             --candidate "$GITHUB_WORKSPACE/crates/stylex-rs-compiler" \
             --base-label "npm@${PREVIOUS_VERSION}" \
             --candidate-label "candidate@${CANDIDATE_VERSION}" \
             --rounds 10 \
-            --seed 1
+            --seed 1 \
+            --allow-base-refusals
       - name: Evaluate paired verdict (native runner)
         if: ${{ !matrix.settings.container }}
         shell: bash
@@ -575,13 +580,16 @@ jobs:
                 exit 1
               fi
               cd /build
+              # Same published base as the native runner, so the same reading of
+              # a fixture it cannot measure.
               pnpm run --filter=@stylexswc/rs-compiler bench:revisions -- \
                 --base "$pkg_dir" \
                 --candidate /build/crates/stylex-rs-compiler \
                 --base-label "npm@${PREVIOUS_VERSION}" \
                 --candidate-label "candidate@${CANDIDATE_VERSION}" \
                 --rounds 10 \
-                --seed 1
+                --seed 1 \
+                --allow-base-refusals
               pnpm run --filter=@stylexswc/rs-compiler bench:verdict -- \
                 --primary benchmark/results/revisions-raw-stats.v1.json \
                 --output-json benchmark/results/compare-revisions.verdict.v1.json \

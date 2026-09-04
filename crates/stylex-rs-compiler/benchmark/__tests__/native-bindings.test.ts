@@ -5,6 +5,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
   assertBindingCanLoad,
+  bindingPathKey,
   findNativeBindings,
   isCompilerBinding,
   isDualLoadUnsafe,
@@ -198,7 +199,12 @@ describe('loadedNativeBindings', () => {
     const own = findNativeBindings(packageDir);
     const loaded = loadedNativeBindings();
 
-    expect(own.some(binding => loaded.has(binding))).toBe(true);
+    // Both sets are named in the message: a bare `false` here says only that
+    // the two readers disagree, and which of them moved is the whole question.
+    expect(
+      own.some(binding => loaded.has(binding)),
+      `own: ${own.join(', ')} | loaded: ${[...loaded].join(', ')}`
+    ).toBe(true);
   });
 
   test('gives the same answer when it is called again', () => {
@@ -337,5 +343,117 @@ describe('NATIVE_BINARY_NAME', () => {
     const napi = (manifest as { napi?: { binaryName?: string } }).napi;
 
     expect(napi?.binaryName).toBe(NATIVE_BINARY_NAME);
+  });
+});
+
+/**
+ * One spelling of a path, which is what lets the two readers agree.
+ *
+ * The guard reads the bindings a subject holds from the file system and the
+ * bindings the process holds from the runtime's report. On Windows those two
+ * need not spell the same file the same way, and a Windows job read its own
+ * addon as a second binding for exactly that reason. The platform is an
+ * argument, so every case runs on every host.
+ */
+describe('bindingPathKey', () => {
+  const addon = 'rs-compiler.win32-x64-msvc.node';
+
+  test('folds the case a Windows file system does not keep', () => {
+    expect(bindingPathKey(`D:\\Build\\dist\\${addon}`, 'win32')).toBe(`d:\\build\\dist\\${addon}`);
+  });
+
+  test('reads the two spellings of a drive letter as one path', () => {
+    // The difference a module loader and a file URL actually produce.
+    expect(bindingPathKey(`D:\\a\\dist\\${addon}`, 'win32')).toBe(
+      bindingPathKey(`d:\\a\\dist\\${addon}`, 'win32')
+    );
+  });
+
+  test('reads a forward slash as the separator it is on Windows', () => {
+    expect(bindingPathKey(`D:/a/dist/${addon}`, 'win32')).toBe(
+      bindingPathKey(`D:\\a\\dist\\${addon}`, 'win32')
+    );
+  });
+
+  test('drops a long-path prefix that realpath may answer with', () => {
+    expect(bindingPathKey(`\\\\?\\D:\\a\\${addon}`, 'win32')).toBe(`d:\\a\\${addon}`);
+  });
+
+  test('drops the UNC form of that prefix and keeps the share', () => {
+    expect(bindingPathKey(`\\\\?\\UNC\\host\\share\\${addon}`, 'win32')).toBe(
+      `host\\share\\${addon}`
+    );
+  });
+
+  test('a plain UNC path keeps both of its leading separators', () => {
+    expect(bindingPathKey(`\\\\host\\share\\${addon}`, 'win32')).toBe(`\\\\host\\share\\${addon}`);
+  });
+
+  test('a path that is already one spelling is answered unchanged', () => {
+    expect(bindingPathKey(`d:\\a\\${addon}`, 'win32')).toBe(`d:\\a\\${addon}`);
+  });
+
+  test('reading a key twice says what reading it once said', () => {
+    const once = bindingPathKey(`\\\\?\\D:/A/${addon}`, 'win32');
+
+    expect(bindingPathKey(once, 'win32')).toBe(once);
+  });
+
+  test('a POSIX path is answered verbatim, case and all', () => {
+    // Two files, not one: a POSIX file system holds them apart, and folding
+    // the case would merge a real pair.
+    expect(bindingPathKey('/A/rs-compiler.linux-x64-gnu.node', 'linux')).toBe(
+      '/A/rs-compiler.linux-x64-gnu.node'
+    );
+    expect(bindingPathKey('/a/x.node', 'linux')).not.toBe(bindingPathKey('/A/x.node', 'linux'));
+  });
+
+  test('a backslash in a POSIX name is a character, not a separator', () => {
+    expect(bindingPathKey('/a/od\\d.node', 'darwin')).toBe('/a/od\\d.node');
+  });
+
+  test('nothing at all is nothing at all, on either platform', () => {
+    expect(bindingPathKey('', 'win32')).toBe('');
+    expect(bindingPathKey('', 'linux')).toBe('');
+  });
+
+  test('a unicode path keeps every character it came with', () => {
+    expect(bindingPathKey(`D:\\стиль\\🎉\\${addon}`, 'win32')).toBe(`d:\\стиль\\🎉\\${addon}`);
+  });
+
+  test('a path far longer than any file system takes is still keyed', () => {
+    const deep = `D:\\${'Directory\\'.repeat(4000)}${addon}`;
+
+    expect(bindingPathKey(deep, 'win32')).toBe(deep.toLowerCase());
+  });
+
+  test('a path of nothing but separators is left as it is', () => {
+    expect(bindingPathKey('\\\\\\\\', 'win32')).toBe('\\\\\\\\');
+  });
+
+  test('the guard permits a binding the process holds under another spelling', () => {
+    // The Windows failure, read through the guard: the same file, spelled by
+    // two readers, must not count as two bindings.
+    const fromFileSystem = bindingPathKey(`D:\\a\\dist\\${addon}`, 'win32');
+    const fromReport = bindingPathKey(`\\\\?\\d:/A/dist/${addon}`, 'win32');
+
+    expect(fromReport).toBe(fromFileSystem);
+    expect(attempt('self', [fromFileSystem], [fromReport], 'darwin')).not.toThrow();
+  });
+});
+
+describe('isCompilerBinding across the platforms', () => {
+  test('accepts the addon however Windows spells its name', () => {
+    expect(isCompilerBinding('D:\\a\\RS-COMPILER.WIN32-X64-MSVC.NODE', 'win32')).toBe(true);
+  });
+
+  test('keeps a POSIX name exact, because the file system does', () => {
+    expect(isCompilerBinding('/a/RS-COMPILER.linux-x64-gnu.NODE', 'linux')).toBe(false);
+    expect(isCompilerBinding('/a/rs-compiler.linux-x64-gnu.node', 'linux')).toBe(true);
+  });
+
+  test('another package addon is not this compiler on either platform', () => {
+    expect(isCompilerBinding('D:\\a\\FSEVENTS.NODE', 'win32')).toBe(false);
+    expect(isCompilerBinding('/a/fsevents.node', 'linux')).toBe(false);
   });
 });

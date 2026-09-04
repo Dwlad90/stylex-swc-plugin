@@ -56,9 +56,58 @@ export function isDualLoadUnsafe(platform: NodeJS.Platform = process.platform): 
  * most of them belong to other packages. A watcher such as `fsevents` must not
  * count as a second compiler binding, or the guard stops a run that is safe.
  */
-export function isCompilerBinding(file: string): boolean {
-  const name = path.basename(file);
+export function isCompilerBinding(
+  file: string,
+  platform: NodeJS.Platform = process.platform
+): boolean {
+  // Split with the parser of the platform named rather than of the host, since
+  // the platform is an argument here: a backslash is a separator on Windows and
+  // an ordinary character everywhere else.
+  //
+  // Read case-insensitively where the file system is: Windows names the module
+  // in whatever case the loader recorded, and a name this rule dropped would
+  // leave the guard blind to a binding the process holds.
+  const parser = platform === 'win32' ? path.win32 : path.posix;
+  const name = platform === 'win32' ? parser.basename(file).toLowerCase() : parser.basename(file);
+
   return name.startsWith(`${NATIVE_BINARY_NAME}.`) && name.endsWith(NATIVE_EXTENSION);
+}
+
+/** Long-path prefixes that `realpath` may put in front of a Windows path. */
+const WINDOWS_LONG_PATH = /^\\\\\?\\(?:UNC\\)?/;
+
+/**
+ * One spelling of a path, so two readers of the same file agree about it.
+ *
+ * The guard compares the bindings a subject would load against the bindings the
+ * process holds, and the two come from different readers: one from the file
+ * system, one from the diagnostic report the runtime writes. On Linux and macOS
+ * both answer the same string. On Windows they need not: the file system is
+ * case-insensitive, the loader records the case it was handed, `realpath` may
+ * answer with a `\\?\` long-path prefix, and either may spell a separator the
+ * other way. Compared as plain strings, the process's own binding then reads as
+ * a second one -- which is exactly the reading the guard exists to prevent.
+ *
+ * Case is folded on Windows only. A POSIX file system holds `A.node` and
+ * `a.node` apart, so folding there would merge two real files.
+ */
+export function bindingPathKey(file: string, platform: NodeJS.Platform = process.platform): string {
+  if (platform !== 'win32') return file;
+
+  return file.replace(WINDOWS_LONG_PATH, '').replaceAll('/', '\\').toLowerCase();
+}
+
+/**
+ * The real path of `file`, resolved through the operating system where it can
+ * be, so the answer carries the case the file system holds rather than the case
+ * a caller typed. `realpathSync.native` is the reader that does that; it is
+ * absent on no supported platform, but the plain reader stands in for it rather
+ * than letting a missing function fail a load.
+ */
+function realPathOf(file: string): string {
+  const resolve = fs.realpathSync.native ?? fs.realpathSync;
+
+  return resolve(file);
 }
 
 /** Real paths of the addons that lie directly in one directory. */
@@ -74,7 +123,7 @@ function addonsIn(dir: string): string[] {
   for (const entry of entries) {
     if (!entry.endsWith(NATIVE_EXTENSION)) continue;
     try {
-      found.push(fs.realpathSync(path.join(dir, entry)));
+      found.push(bindingPathKey(realPathOf(path.join(dir, entry))));
     } catch {
       // A broken link names no file. Nothing can load it, so skip it.
     }
@@ -108,7 +157,7 @@ export function findNativeBindings(packageDir: string): string[] {
   const override = process.env.NAPI_RS_NATIVE_LIBRARY_PATH;
   if (override) {
     try {
-      found.add(fs.realpathSync(override));
+      found.add(bindingPathKey(realPathOf(override)));
     } catch {
       // The variable names a file that is not there. Nothing can load it.
     }
@@ -158,14 +207,17 @@ export function loadedNativeBindings(): Set<string> {
   }
 
   const override = process.env.NAPI_RS_NATIVE_LIBRARY_PATH;
+  const overrideKey = override === undefined ? undefined : bindingPathKey(override);
   const loaded = new Set<string>();
   for (const object of sharedObjects) {
     if (typeof object !== 'string') continue;
     // The override can name a file that the compiler naming rule does not
-    // match, so accept it as well as a file with the standard name.
-    if (!isCompilerBinding(object) && object !== override) continue;
+    // match, so accept it as well as a file with the standard name. Matched on
+    // the one spelling, because the report and the variable are written by
+    // different hands.
+    if (!isCompilerBinding(object) && bindingPathKey(object) !== overrideKey) continue;
     try {
-      loaded.add(fs.realpathSync(object));
+      loaded.add(bindingPathKey(realPathOf(object)));
     } catch {
       // The file is gone. It cannot conflict with a load that comes now.
     }

@@ -34,6 +34,27 @@ const SCRIPT_FILE = /\.(?:mjs|cjs|js|ts)$/;
 const OPTION = /^-/;
 
 /**
+ * A `diff` call at the head of a command or of one of its pipeline stages.
+ *
+ * Anchored so that a file or a flag whose name ends in `diff` is not read as
+ * the program.
+ */
+const DIFF_CALL = /(?:^|[|&;]\s*)diff\s/;
+
+/**
+ * The option that makes `diff` read a checkout as its content rather than as
+ * its bytes.
+ *
+ * Git for Windows checks text out as CRLF by default, so a generator writing LF
+ * and a `diff` reading bytes disagree about a file the repository holds exactly
+ * as the generator writes it. Two of the three checks here reported every line
+ * as changed for that reason. `.gitattributes` asks for LF in every working
+ * tree, and this is the second half: a tree that arrived before the rule, or a
+ * file the rule does not cover, must not be able to turn the gate red.
+ */
+const STRIP_TRAILING_CR = '--strip-trailing-cr';
+
+/**
  * Reads one manifest, or explains which file could not be read.
  *
  * @param {string} file absolute path to a `package.json`
@@ -188,6 +209,13 @@ export function findGateFaults(root, manifestFiles) {
 
       if (!reached.has(check)) {
         faults.push(`${relative}: nothing in \`test\` or \`pretest\` runs \`${check}\``);
+      }
+
+      if (DIFF_CALL.test(scripts[check]) && !scripts[check].includes(STRIP_TRAILING_CR)) {
+        faults.push(
+          `${relative}: \`${check}\` compares with \`diff\` and needs ` +
+            `\`${STRIP_TRAILING_CR}\`, or a CRLF checkout reports every line as changed`
+        );
       }
 
       if (

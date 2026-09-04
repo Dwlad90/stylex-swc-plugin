@@ -22,7 +22,10 @@ import { findGateFaults } from './lib/generated-fixtures.mjs';
 import { makeTemporaryDirectory, repoRoot, writeJson, writeText } from './lib/test-harness.mjs';
 
 const GENERATOR = 'node scripts/generate-cases.mjs > src/tests/cases.rs';
-const CHECK = 'node scripts/generate-cases.mjs | diff -u src/tests/cases.rs -';
+const CHECK = 'node scripts/generate-cases.mjs | diff -u --strip-trailing-cr src/tests/cases.rs -';
+
+/** The same check reading bytes, which a CRLF checkout turns red on its own. */
+const CHECK_READING_BYTES = 'node scripts/generate-cases.mjs | diff -u src/tests/cases.rs -';
 
 /**
  * A throwaway tree holding one crate per entry of `crates`.
@@ -177,6 +180,74 @@ void test('a script that names itself does not hang the walk', () => {
   ]);
 
   assert.deepEqual(findGateFaults(root, manifests), []);
+});
+
+void test('a check comparing bytes rather than content is reported', () => {
+  // Git for Windows checks text out as CRLF, so a diff reading bytes calls a
+  // file stale while the repository holds exactly what the generator writes.
+  const { root, manifests } = createTree([
+    { ...WIRED, scripts: { ...WIRED.scripts, 'generate:cases:check': CHECK_READING_BYTES } },
+  ]);
+
+  const [fault] = findGateFaults(root, manifests);
+
+  assert.match(fault, /`generate:cases:check` compares with `diff` and needs/);
+});
+
+void test('the flag is accepted wherever the command spells it', () => {
+  const spellings = [
+    'node scripts/generate-cases.mjs | diff --strip-trailing-cr -u src/tests/cases.rs -',
+    'node scripts/generate-cases.mjs | diff -u src/tests/cases.rs - --strip-trailing-cr',
+  ];
+
+  for (const check of spellings) {
+    const { root, manifests } = createTree([
+      { ...WIRED, scripts: { ...WIRED.scripts, 'generate:cases:check': check } },
+    ]);
+
+    assert.deepEqual(findGateFaults(root, manifests), [], check);
+  }
+});
+
+void test('a check that runs no diff at all is not asked for the flag', () => {
+  // The parity harvest compares in the script it runs, not with `diff`. It
+  // reads another package, so it is asked for a Turbo input and nothing else.
+  const { root, manifests } = createTree([HARVESTING]);
+
+  assert.deepEqual(
+    findGateFaults(root, manifests).filter(fault => fault.includes('strip-trailing-cr')),
+    []
+  );
+});
+
+void test('a name that merely ends in diff is not read as the program', () => {
+  const { root, manifests } = createTree([
+    {
+      ...WIRED,
+      scripts: {
+        ...WIRED.scripts,
+        'generate:cases:check': 'node scripts/generate-cases.mjs --out src/cases.diff src/x.rs',
+      },
+    },
+  ]);
+
+  assert.deepEqual(findGateFaults(root, manifests), []);
+});
+
+void test('a diff in a later stage of the pipeline is still read', () => {
+  const { root, manifests } = createTree([
+    {
+      ...WIRED,
+      scripts: {
+        ...WIRED.scripts,
+        'generate:cases:check': 'node scripts/generate-cases.mjs | rustfmt | diff -u a.rs -',
+      },
+    },
+  ]);
+
+  const [fault] = findGateFaults(root, manifests);
+
+  assert.match(fault, /needs `--strip-trailing-cr`/);
 });
 
 void test('a generator reading another package needs a Turbo input of its own', () => {

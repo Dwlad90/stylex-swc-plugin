@@ -269,6 +269,13 @@ describe('the recorded coverage floor', () => {
     // The gate itself, run over the real surfaces. A change to the argument
     // pool, the arities or `renderingFor` that stops a prototype answering
     // fails here rather than printing a smaller number beside a green sweep.
+    //
+    // A newer Node can also fail this without any change here. The floor is
+    // the methods the engine carries, less the `unanswered` count the surface
+    // records, so a release that adds a method the argument pool cannot reach
+    // raises the floor. Read the shortfall against `unanswered` in
+    // `parity/lib/prototype-surface.ts` before changing the pool: the new
+    // method may simply be one more that this sweep cannot answer.
     expect(shortfalls(sweep())).toStrictEqual([]);
   });
 

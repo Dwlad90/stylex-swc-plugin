@@ -94,13 +94,76 @@ const HARVESTING = {
 };
 
 void test('the real repository keeps every generated fixture behind a check', () => {
-  const manifests = fs
-    .readdirSync(path.join(repoRoot, 'crates'))
-    .map(entry => `crates/${entry}/package.json`)
+  // Every workspace directory, and not `crates` alone. A generator added under
+  // `packages` or `apps` is the same fault, and the gate could not see it.
+  const manifests = ['crates', 'packages', 'apps']
+    .flatMap(group => {
+      const directory = path.join(repoRoot, group);
+
+      return fs.existsSync(directory)
+        ? fs.readdirSync(directory).map(entry => `${group}/${entry}/package.json`)
+        : [];
+    })
     .filter(relative => fs.existsSync(path.join(repoRoot, relative)));
 
-  assert.notEqual(manifests.length, 0, 'found no crate manifests to check');
+  assert.notEqual(manifests.length, 0, 'found no manifests to check');
+  assert.ok(
+    manifests.some(relative => relative.startsWith('packages/')),
+    'the sweep no longer reaches packages'
+  );
   assert.deepEqual(findGateFaults(repoRoot, manifests), []);
+});
+
+void test('a check reached only through run-s counts as reached', () => {
+  // The repository runs `format` this way. Reading `pnpm run` alone reported a
+  // check that something does run as a check that nothing runs.
+  const { root, manifests } = createTree([
+    {
+      scripts: {
+        'generate:cases': GENERATOR,
+        'generate:cases:check': `${GENERATOR} --check`,
+        verify: 'run-s generate:cases:check lint',
+        lint: 'echo "lint"',
+        pretest: 'pnpm run verify',
+        test: 'echo "Skip"',
+      },
+    },
+  ]);
+
+  assert.deepEqual(findGateFaults(root, manifests), []);
+});
+
+void test('a check reached only through run-p counts as reached', () => {
+  const { root, manifests } = createTree([
+    {
+      scripts: {
+        'generate:cases': GENERATOR,
+        'generate:cases:check': `${GENERATOR} --check`,
+        pretest: 'run-p generate:cases:check lint',
+        lint: 'echo "lint"',
+        test: 'echo "Skip"',
+      },
+    },
+  ]);
+
+  assert.deepEqual(findGateFaults(root, manifests), []);
+});
+
+void test('an argument to pnpm run is not read as a script', () => {
+  // `pnpm run x y` names one script and gives it arguments. Reading the second
+  // word as a script would hide a check that nothing runs.
+  const { root, manifests } = createTree([
+    {
+      scripts: {
+        'generate:cases': GENERATOR,
+        'generate:cases:check': `${GENERATOR} --check`,
+        test: 'pnpm run lint generate:cases:check',
+        lint: 'echo "lint"',
+      },
+    },
+  ]);
+
+  assert.notDeepEqual(findGateFaults(root, manifests), []);
 });
 
 void test('a crate with no generator has nothing to guard', () => {

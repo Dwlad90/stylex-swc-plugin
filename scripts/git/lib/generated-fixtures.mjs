@@ -95,8 +95,19 @@ function reachableScripts(scripts, entries) {
     if (seen.has(name)) continue;
     seen.add(name);
 
+    // `pnpm run x` names one script and then gives it arguments, so only the
+    // first word can be a script.
     for (const match of scripts[name].matchAll(/pnpm (?:run )?([\w:@./-]+)/g)) {
       if (match[1] in scripts && !seen.has(match[1])) pending.push(match[1]);
+    }
+
+    // `run-p` and `run-s` name several scripts at once, which this repository
+    // uses for `format`. Reading only the form above reports a check that
+    // something does run as a check that nothing runs.
+    for (const match of scripts[name].matchAll(/(?:run-[ps]|npm-run-all)((?: [\w:@./-]+)+)/g)) {
+      for (const candidate of match[1].split(/\s+/).filter(Boolean)) {
+        if (candidate in scripts && !seen.has(candidate)) pending.push(candidate);
+      }
     }
   }
 

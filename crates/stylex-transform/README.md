@@ -6,12 +6,12 @@
 
 ## Overview
 
-Main SWC transform orchestration crate for the StyleX compiler, and still the
-largest in the workspace (185 files, ~47,000 lines including tests). It owns the
-`StyleXTransform` entry point struct, the SWC `Fold` visitor implementation, the
-StyleX API transformers and the style-semantics layer.
+Main SWC transform orchestration crate for the StyleX compiler, and the largest
+in the workspace. It owns the `StyleXTransform` entry point struct, the SWC
+`Fold` visitor implementation, the StyleX API transformers and the
+style-semantics layer.
 
-The per-file compiler state it threads through all of that is **not** here: the
+The per-file compiler state it threads through all of that is **not** here. The
 `StateManager` and the value types it composes live one layer down, in
 [`stylex-state`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-state).
 
@@ -62,17 +62,17 @@ runtime `styleq` library is not required in production bundles.
 #### `shared::structures`
 
 The pre-rule chain the style-semantics layer builds. The state manager, the
-function configs and the compiled-style value types moved to `stylex-state`; the
-evaluation state and the evaluation result moved to `stylex-evaluator`.
+function configs and the compiled-style value types are in `stylex-state`. The
+evaluation state and the evaluation result are in `stylex-evaluator`.
 
 #### `shared::transformers`
 
 Twelve high-level transformer modules that compose lower-level CSS, AST, and
 evaluation utilities into complete API call transformations. Each transformer
 corresponds to one StyleX API and is invoked by the `Fold` visitor when the
-matching call expression is encountered. `firstThatWorks` is the exception and
-lives in `stylex-evaluator`: the embedded engine calls it while a fold is
-standing, and no transformer calls it at all.
+matching call expression is encountered. `firstThatWorks` is the exception: it
+lives in `stylex-evaluator`, because the embedded engine calls it while a fold
+is standing and no transformer calls it.
 
 #### `shared::utils::ast`
 
@@ -80,7 +80,7 @@ AST helper functions that read or write the compilation state. These differ from
 the stateless helpers in
 [`stylex-ast`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-ast)
 because they read or mutate compiler state while manipulating the AST. The
-convertors that could only answer by evaluating an expression moved to
+convertors that can only answer by evaluating an expression are in
 [`stylex-evaluator`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-evaluator).
 
 #### `shared::utils::css`
@@ -98,7 +98,7 @@ declarations, and generating deterministic class names.
 #### `shared::enums::data_structures`
 
 The two intermediate enums used only inside the transform pipeline. The
-evaluated-value and compiled-style enums moved to `stylex-state`.
+evaluated-value and compiled-style enums are in `stylex-state`.
 
 ## License
 

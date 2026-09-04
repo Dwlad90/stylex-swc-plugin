@@ -541,19 +541,20 @@ pnpm run --filter=@stylexswc/rs-compiler parity:harvest
 pnpm run --filter=@stylexswc/rs-compiler parity:harvest -- --check
 ```
 
-`harvest-corpus.ts` scans **every** `.rs` file under `crates/` — `src/` and
-`benches/` included — for seven literal shapes that carry a CSS declaration. Each entry records the
-`<path>:<line>` it came from, so an unexpected one can be traced back to the
-test that motivated it. Run this after adding tests that carry CSS values.
+`harvest-corpus.ts` scans **every** `.rs` file under `crates/`, `src/` and
+`benches/` included, for seven literal shapes that carry a CSS declaration. Each
+entry records the `<path>:<line>` it came from, so an unexpected one can be
+traced back to the test that motivated it. Run this after adding tests that
+carry CSS values.
 
-The scan reads the crate names off the tree rather than from a list. It used to
-name `stylex-css` and `stylex-transform`, and when the transform crate was split
-apart and 39 test files moved into new crates, nothing widened the list and
-nothing failed — the values under those crates simply stopped reaching the
-corpus. Two kinds of file are still skipped, both generated: `__swc_snapshots__`
-directories, and any source with `@generated` in its header comment. The second
-is what keeps the chain below from closing into a loop, since `cases.rs` spells
-its inputs as CSS rules and would otherwise harvest the corpus back into itself.
+The scan reads the crate names off the tree rather than from a list. A fixed
+list went stale silently: when the transform crate was split and 39 test files
+moved into new crates, the values under those crates stopped reaching the corpus
+and nothing failed. Two kinds of generated file are still skipped:
+`__swc_snapshots__` directories, and any source with `@generated` in its header
+comment. The second keeps the chain below from closing into a loop, because
+`cases.rs` spells its inputs as CSS rules and would otherwise harvest the corpus
+back into itself.
 
 | Shape | Written as                                                      | What is taken                                                    |
 | ----- | --------------------------------------------------------------- | ---------------------------------------------------------------- |
@@ -594,51 +595,40 @@ arbitrary text that can spell anything:
   but whitespace before the first literal, nothing but a comma between them. A
   call whose value argument is an identifier would otherwise pair its property
   with whatever literal came next, which is usually the expected output.
-- Only the **argument of a `stylex.create` call** is read. A fixture holds more
-  than the call — imports, helper constants, a second module — and an ordinary
-  JavaScript object among them spells `key: 'value'` exactly as a style object
-  does. Parentheses are counted from the call, over code only, so a fixture
-  with two calls has both read and an object beside them has neither. Strings,
-  template literals and comments are stepped over, because a parenthesis or a
-  quote written in one is text rather than code. A call the fixture never
-  closes yields nothing: reading to the end of the text would take in every
-  object after it, which is what bounding the scan exists to stop.
-- The object handed **directly** to a call is not read, apart from the two
-  that are handed a style object: `stylex.positionTry({ top: '0' })`, which is
-  the API taking one by design, and the parenthesized arrow body of a dynamic
-  style, where a reserved word or nothing stands in front of the `(`.
-  Everything else the fixture calls owns its argument — `String({ toString:
-'notfn' })` names the method the argument is meant to be missing — and
-  `stylex.env` is the exception inside the API: in
-  `select({ primary: 'red' }, 'primary')` the key names a branch for the
-  environment function to choose between, in `colors({ color: 'yellow' })` it
-  names a property, and the source cannot tell the two apart. A branch body
-  sits one brace deeper and is an ordinary style object, so its declarations
-  are still harvested.
+- Only the **argument of a `stylex.create` call** is read. A fixture also holds
+  imports, helper constants and ordinary JavaScript objects, and such an object
+  spells `key: 'value'` exactly as a style object does. Parentheses are counted
+  from the call over code only, so strings, template literals and comments are
+  stepped over. A call the fixture never closes yields nothing, because reading
+  to the end of the text would take in every object after it.
+- The object handed **directly** to a call is not read, apart from the two calls
+  that do take a style object: `stylex.positionTry({ top: '0' })`, and the
+  parenthesized arrow body of a dynamic style. Every other call owns its
+  argument. `stylex.env` stays ambiguous: in
+  `select({ primary: 'red' }, 'primary')` the key names a branch, in
+  `colors({ color: 'yellow' })` it names a property, and the source cannot tell
+  the two apart. A branch body sits one brace deeper and is harvested as an
+  ordinary style object.
 - An object the fixture **indexes** is a lookup table rather than a style
-  object, since a style object is read whole and never subscripted. In
-  `{ true: 'red', false: 'blue' }[String(!!flag)]` the pairs are rows and the
-  key is the value looked up.
-- A pair is read only where an object **writes a key**, which is after the `{`
-  that opens it or the comma after the key before it. A ternary spells its
-  alternative with the same colon, so `isDark ? 'black' : 'white'` offers
-  `black: white` and a template literal hides one in an interpolated ternary;
-  and a number offers its exponent, `1e21: 'a'` reading as `e21`. The question
-  is answered over code, so a comment in front of a key does not hide it.
-- A literal is read only where it was going to the compiler. The two
-  extractors that sweep — a whole `#[test]` block for shape 2, a whole file for
-  shapes 3 and 4 — see every literal in that text, and an assertion message, a
-  search needle and a list separator all read exactly as a declaration does:
-  `width: limit 64, found 65` is the depth report of the nesting guard and
-  `boxShadow: , ` is the argument of a `join`. So the calls enclosing a literal
-  are read, and an assertion, a panic, a search or a split disqualifies it. A
-  formatting macro does not, because `format!` builds both messages and values;
-  the message it builds reaches an assertion and is caught there. The walk is
-  bounded to the statement and to a window, and it steps over comments and
-  character literals, which masking leaves in place — a `matches('(')` counts
-  a parenthesis that closes nothing.
+  object, because a style object is read whole and never subscripted. In
+  `{ true: 'red', false: 'blue' }[String(!!flag)]` the pairs are rows.
+- A pair is read only where an object **writes a key**: after the `{` that opens
+  it, or after the comma that follows the key before it. A ternary spells its
+  alternative with the same colon, so `isDark ? 'black' : 'white'` would offer
+  `black: white`, and a number would offer its exponent, `1e21: 'a'` reading as
+  `e21`. The question is answered over code, so a comment in front of a key does
+  not hide it.
+- A literal is read only where it was going to the compiler. The two extractors
+  that sweep — a whole `#[test]` block for shape 2, a whole file for shapes 3
+  and 4 — see every literal in that text, and an assertion message, a search
+  needle or a list separator reads exactly as a declaration does. So the calls
+  enclosing a literal are read, and an assertion, a panic, a search or a split
+  disqualifies it. A formatting macro does not, because `format!` builds both
+  messages and values, and the message it builds is caught at the assertion it
+  reaches. The walk is bounded to the statement and to a window, and steps over
+  comments and character literals.
 - Shape 7 requires the **slice** after the property. Two helpers in the suites
-  are named `rejects` and take their arguments in opposite orders, and reading
+  are named `rejects` and take their arguments in opposite orders, so reading
   `rejects(value, property, …)` as the table form reports the pair inside out.
   The `[` is found structurally, so `&[…]`, `[…]` and `vec![…]` all read as
   the table they are.
@@ -841,25 +831,24 @@ The last is the failure mode a generated harness is most prone to, and the one
 no other gate reaches: a method that stops answering leaves no row to disagree
 about, so a change to the argument pool or to `renderingFor` that silenced half
 a prototype would print a smaller coverage number beside a green run. So each
-surface carries an **allowance** — how many of its methods are on record as
-answering nothing the sweep can use — and the **floor** a run must clear is the
+surface carries an **allowance**: how many of its methods are on record as
+answering nothing the sweep can use. The **floor** a run must clear is the
 methods the engine carries there, less that allowance. The run fails below it.
 
-The record is the allowance rather than the reached count because the reached
-count is not a property of this directory alone: `Math.f16round` exists on Node
-24 and not on Node 22, so a reached count recorded on one engine fails on the
-other while nothing about the sweep has changed. A method the engine does not
-carry is neither asked nor missed, so the allowance holds across engines and the
-floor moves with the language. A floor is never below one, so a surface whose
-`target` stops resolving to the object it names is a shortfall rather than a
-vacuous pass.
+The record is the allowance and not the reached count, because the reached count
+is not a property of this directory alone. `Math.f16round` exists on Node 24 and
+not on Node 22, so a count recorded on one engine fails on the other while
+nothing about the sweep has changed. A method the engine does not carry is
+neither asked nor missed, so the allowance holds across engines and the floor
+moves with the language. A floor is never below one, so a surface whose `target`
+stops resolving to the object it names is a shortfall rather than a vacuous
+pass.
 
-The floors are per surface rather than over the total, because a total hides
-exactly the case worth catching: one prototype falling silent while the rest
-carry the sum. The summary prints their sum beside the count on every run, so a
-reader sees the gate without waiting for it to fail, and a failing run names
-each surface with both of its numbers. Lowering an allowance is ordinary;
-raising one is the claim that needs an argument in the commit that makes it.
+The floors are per surface rather than over the total, because a total hides the
+case worth catching: one prototype falls silent while the rest carry the sum.
+The summary prints their sum beside the count on every run, and a failing run
+names each surface with both of its numbers. Lowering an allowance is ordinary;
+raising one is a claim that needs an argument in the commit that makes it.
 
 A failing row names the surface, the method, the receiver shape, what JavaScript
 itself answers for the expression, and what both compilers answered — so the

@@ -6,9 +6,9 @@
 
 ## Overview
 
-What ECMAScript says, asked while the compiler decides whether an expression is
-safe to fold and what it folds to. Extracted into its own crate so the evaluator
-can ask those questions without pulling in the full transformation pipeline.
+The ECMAScript semantics the compiler consults when it decides whether an
+expression is safe to fold, and what it folds to. It is a separate crate so the
+evaluator can ask these questions without the full transformation pipeline.
 
 - Compile-time guards such as `is_valid_callee`, `is_mutation_expr` and
   `is_invalid_method`, which keep the evaluator to side-effect-free expressions

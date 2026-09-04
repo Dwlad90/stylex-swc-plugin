@@ -9,10 +9,9 @@
 Injectable style types and metadata structures for the StyleX compiler. This
 crate defines the `InjectableStyle` family of structs and enums, the `MetaData`
 output type, and the `WhenMarkerValue` trait that lets the layers below the
-evaluator read a `stylex.when` marker. It was extracted so that every crate
-needing compiled-style representations can depend on a slim type package
-without pulling in transform logic — six downstream crates import these types
-directly.
+evaluator read a `stylex.when` marker. It is a separate crate so that the six
+crates that need compiled-style representations do not depend on transform
+logic.
 
 - **Injectable styles** — `InjectableStyle`, `InjectableConstStyle` and their
   `Base` counterparts provide LTR/RTL CSS content with optional priority and

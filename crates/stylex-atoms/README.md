@@ -39,9 +39,8 @@ were authored locally, enabling the same optimizations as normal StyleX styles.
 ## Architecture
 
 `stylex-constants` is read only for the shared `$$css` compiled-key constant.
-The transform is the one consumer: it implements `Compile` for its
-`StyleXTransform` and runs the visitor between the `stylex.create` and
-`stylex.props` passes.
+The transform is the one consumer: it implements `Compile` for `StyleXTransform`
+and runs the visitor between the `stylex.create` and `stylex.props` passes.
 
 The heavy style-compilation utilities (`styleXCreateSet`, `convertObjectToAST`,
 `hoistExpression`, `injectDevClassNames`, and the needed `StateManager` access)

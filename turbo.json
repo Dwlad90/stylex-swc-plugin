@@ -103,12 +103,8 @@
       "inputs": ["crates/**", "Cargo.lock", "rust-toolchain.toml", ".config/nextest.toml"],
       "outputLogs": "errors-only"
     },
-    "//#test:scripts": {
-      "outputLogs": "errors-only"
-    },
     "//#test:crates:workspace:regular": {
       "inputs": ["crates/**", "Cargo.lock", "rust-toolchain.toml", ".config/nextest.toml"],
-      "env": ["NEXTEST_PROFILE"],
       "outputLogs": "errors-only"
     },
     "//#test:crates:workspace:doc": {

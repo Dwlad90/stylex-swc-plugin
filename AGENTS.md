@@ -23,11 +23,12 @@ Per package: `pnpm run --filter=@stylexswc/<pkg> <script>` -- `build`, `test`,
 `typecheck`, `format:check`, `test:visual` (playwright visual regression); drop
 `--filter` inside the package. Lint and format are root-only, one process each.
 A crate's own `test` prints a skip line: the Rust suites run once for the whole
-workspace, from the root `pnpm test`.
+workspace, from `pnpm test:crates:workspace`.
 
 After writing code run `pnpm typecheck`, `pnpm format:check` (Oxfmt; rustfmt and
 Taplo for Rust and TOML), `pnpm lint:check` (Oxlint over every Node file,
-shellcheck via `pnpm lint:shell`) and `pnpm test`. TypeScript changes also need
+shellcheck via `pnpm lint:shell`), `pnpm test` and, for the Rust half,
+`pnpm test:crates:workspace`. TypeScript changes also need
 `pnpm lint:type-aware`: it builds first and reports errors `lint:check` never
 does, so it gates calling that work done. `pnpm lint:all` runs both linters.
 

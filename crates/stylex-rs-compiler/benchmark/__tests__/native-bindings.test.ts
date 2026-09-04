@@ -13,12 +13,16 @@ import {
   loadedNativeBindings,
   NATIVE_BINARY_NAME,
 } from '../lib/native-bindings.js';
+import { realPathOf, settledPathOf } from '../lib/paths.js';
 import { createTempDirs } from './helpers/temp-dirs.js';
 
 const temp = createTempDirs();
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  // A case that stands in for the runtime report must not leave it stood in
+  // for: the cases that read the real report run after it.
+  vi.restoreAllMocks();
   temp.removeAll();
 });
 
@@ -208,6 +212,41 @@ describe('loadedNativeBindings', () => {
     ).toBe(true);
   });
 
+  // The report and the variable are written by different hands, and only one of
+  // them is settled. A temp directory is reached through a symbolic link on
+  // macOS -- `/var` names `/private/var` -- which is the platform where a
+  // second binding ends the process, so the two spellings must key alike. When
+  // they did not, the override was dropped, the set read empty, and the guard
+  // returned early on a load it exists to stop. The addon is given a name the
+  // compiler rule does not match, so the override branch is the only way in.
+  test.skipIf(!canSymlink)('reads an override that names the file through a link', () => {
+    const real = temp.make('bench-override-real-');
+    const addon = path.join(real, 'custom-name.node');
+    fs.writeFileSync(addon, '');
+
+    const link = path.join(temp.make('bench-override-link-'), 'to-real');
+    fs.symlinkSync(real, link);
+    const throughLink = path.join(link, 'custom-name.node');
+
+    expect(throughLink).not.toBe(realPathOf(throughLink));
+    vi.stubEnv('NAPI_RS_NATIVE_LIBRARY_PATH', throughLink);
+    vi.spyOn(process.report, 'getReport').mockReturnValue({
+      sharedObjects: [realPathOf(addon)],
+    });
+
+    expect([...loadedNativeBindings()]).toEqual([realPathOf(addon)]);
+  });
+
+  test('drops an override that names nothing rather than matching everything', () => {
+    const absent = path.join(temp.make('bench-override-absent-'), 'gone.node');
+    vi.stubEnv('NAPI_RS_NATIVE_LIBRARY_PATH', absent);
+    vi.spyOn(process.report, 'getReport').mockReturnValue({
+      sharedObjects: ['/n/fsevents/fsevents.node'],
+    });
+
+    expect([...loadedNativeBindings()]).toEqual([]);
+  });
+
   test('gives the same answer when it is called again', () => {
     expect([...loadedNativeBindings()].toSorted()).toEqual([...loadedNativeBindings()].toSorted());
   });
@@ -239,7 +278,7 @@ function addPlatformPackage(packageDir: string, target: string): string {
   fs.mkdirSync(dir, { recursive: true });
   const addon = path.join(dir, `${NATIVE_BINARY_NAME}.${target}.node`);
   fs.writeFileSync(addon, '');
-  return fs.realpathSync(addon);
+  return realPathOf(addon);
 }
 
 describe('isCompilerBinding', () => {
@@ -322,6 +361,55 @@ describe('isCompilerBinding', () => {
   });
 });
 
+/**
+ * Whether this runner can make a symbolic link. Windows refuses one without a
+ * privilege the CI account does not hold, and a case about a resolver has
+ * nothing to say about a platform that cannot set one up.
+ */
+const canSymlink = (() => {
+  const dir = temp.make('bench-symlink-probe-');
+  try {
+    fs.symlinkSync(path.join(dir, 'target'), path.join(dir, 'link'));
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
+describe('settling a path', () => {
+  // The rule the Windows runner broke: a test settles a path with the same
+  // function the code does. `fs.realpathSync` is the other one, and it differs
+  // from this one only on Windows, where it leaves an 8.3 short name as it
+  // found it. A machine with no short names cannot show that, so what is
+  // asserted here is the agreement itself.
+  test('a directory the temp helper made needs no further settling', () => {
+    const dir = temp.make('bench-realpath-');
+
+    expect(realPathOf(dir)).toBe(dir);
+    expect(realPathOf(path.join(dir, '..'))).toBe(path.dirname(dir));
+  });
+
+  test('refuses a path that names nothing', () => {
+    expect(() => realPathOf(path.join(temp.make('bench-realpath-gone-'), 'absent.node'))).toThrow();
+  });
+
+  test('the settled form answers the path itself when it names nothing', () => {
+    const absent = path.join(temp.make('bench-settled-gone-'), 'absent.node');
+
+    expect(settledPathOf(absent)).toBe(absent);
+  });
+
+  test.skipIf(!canSymlink)('follows a link to the file it names', () => {
+    const dir = makePackage('rs-compiler.darwin-arm64.node');
+    const target = path.join(dir, 'dist', 'rs-compiler.darwin-arm64.node');
+    const link = path.join(dir, 'dist', 'rs-compiler.linux-x64-gnu.node');
+    fs.symlinkSync(target, link);
+
+    expect(realPathOf(link)).toBe(realPathOf(target));
+    expect(settledPathOf(link)).toBe(realPathOf(target));
+  });
+});
+
 describe('findNativeBindings resolution paths', () => {
   // `files` in the manifest ships no addon, so a subject unpacked from the
   // registry keeps its addon in a platform package. A search of `dist` alone
@@ -365,7 +453,7 @@ describe('findNativeBindings resolution paths', () => {
     fs.writeFileSync(addon, '');
     vi.stubEnv('NAPI_RS_NATIVE_LIBRARY_PATH', addon);
 
-    expect(findNativeBindings(dir)).toEqual([fs.realpathSync(addon)]);
+    expect(findNativeBindings(dir)).toEqual([realPathOf(addon)]);
   });
 
   test('ignores an override that names a file which is not there', () => {
@@ -380,7 +468,7 @@ describe('findNativeBindings resolution paths', () => {
     const addon = path.join(dir, 'dist', `${NATIVE_BINARY_NAME}.darwin-arm64.node`);
     vi.stubEnv('NAPI_RS_NATIVE_LIBRARY_PATH', addon);
 
-    expect(findNativeBindings(dir)).toEqual([fs.realpathSync(addon)]);
+    expect(findNativeBindings(dir)).toEqual([realPathOf(addon)]);
   });
 
   test('reads a package that holds very many platform packages', () => {

@@ -20,6 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { isRecord } from './json.js';
+import { realPathOf, settledPathOf } from './paths.js';
 
 /** File extension of a Node native addon. */
 const NATIVE_EXTENSION = '.node';
@@ -123,15 +124,6 @@ export function holdsBinding(
   return false;
 }
 
-/**
- * The real path of `file`, resolved through the operating system rather than by
- * walking the path in JavaScript, so the answer carries the case the file system
- * holds instead of the case a caller typed.
- */
-function realPathOf(file: string): string {
-  return fs.realpathSync.native(file);
-}
-
 /** Real paths of the addons that lie directly in one directory. */
 function addonsIn(dir: string): string[] {
   let entries: string[];
@@ -228,16 +220,24 @@ export function loadedNativeBindings(): Set<string> {
     return new Set();
   }
 
+  // Settled before it is keyed, because the report and the variable are not
+  // written by the same hand. The runtime reports a path the operating system
+  // resolved; the variable holds whatever the caller typed. `bindingPathKey`
+  // folds case and separators but cannot follow a link or expand a short name,
+  // so an override under a symlinked temp directory -- which is every temp
+  // directory on macOS -- would key differently from the same file in the
+  // report. The binding would then be dropped, the set would read empty, and
+  // the guard would permit the dual load it exists to stop, on the one platform
+  // where that load ends the process.
   const override = process.env.NAPI_RS_NATIVE_LIBRARY_PATH;
-  const overrideKey = override === undefined ? undefined : bindingPathKey(override);
+  const overrideKey = override === undefined ? undefined : bindingPathKey(settledPathOf(override));
   const loaded = new Set<string>();
   for (const object of sharedObjects) {
     if (typeof object !== 'string') continue;
     // The override can name a file that the compiler naming rule does not
-    // match, so accept it as well as a file with the standard name. Matched on
-    // the one spelling, because the report and the variable are written by
-    // different hands.
-    if (!isCompilerBinding(object) && bindingPathKey(object) !== overrideKey) continue;
+    // match, so accept it as well as a file with the standard name.
+    if (!isCompilerBinding(object) && bindingPathKey(settledPathOf(object)) !== overrideKey)
+      continue;
     try {
       loaded.add(realPathOf(object));
     } catch {

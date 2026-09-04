@@ -28,6 +28,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { harvestCorpus } from './lib/harvest.js';
+import { withLfEndings } from './lib/text.js';
 import type { CorpusFile } from './lib/types.js';
 
 const parityDir = path.dirname(fileURLToPath(import.meta.url));
@@ -49,7 +50,13 @@ const corpus: CorpusFile = {
 const serialized = `${JSON.stringify(corpus, null, 2)}\n`;
 
 if (cliOptions.check) {
-  const current = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : '';
+  // Compared with the line endings collapsed, because the committed corpus is
+  // content rather than bytes: Git for Windows checks a text file out as CRLF
+  // by default, and a check that read that as a difference would fail every
+  // Windows run while the repository holds what this script would write.
+  const current = fs.existsSync(outputPath)
+    ? withLfEndings(fs.readFileSync(outputPath, 'utf8'))
+    : '';
   if (current !== serialized) {
     // Says where the corpus comes from, not only what to run. This check gates
     // this package's `test` script, and it harvests from the Rust suites of the

@@ -1,3 +1,11 @@
+# Every text file is LF in the working tree, on Windows as well. Two checks in
+# this repository compare a generated file with the copy that is committed --
+# crates/stylex-rs-compiler/parity/corpus/harvested.json and
+# crates/postcss-value-parser/src/tests/cases.rs -- and Git for Windows checks
+# text out as CRLF by default, which fails both while the content is identical.
+# Git decides what is text by content, so binary files are untouched.
+* text=auto eol=lf
+
 apps/rollup-large-example/lotsOfStyles.js linguist-vendored
 apps/rollup-large-example/lotsOfStylesDynamic.js linguist-vendored
 crates/stylex-test-parser/output/__tests__/** linguist-vendored

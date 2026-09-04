@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { scanRustText, type RustLiteral, type SourceSpan } from './rust-literals.js';
+import { withLfEndings } from './text.js';
 
 /**
  * How far into a source the `@generated` header is looked for.
@@ -51,7 +52,7 @@ export function scanRustTestFiles(workspaceRoot: string): ScannedFile[] {
   const scanned: ScannedFile[] = [];
 
   for (const absolute of collectRustTestFiles(workspaceRoot)) {
-    const source = fs.readFileSync(absolute, 'utf8').replaceAll('\r\n', '\n');
+    const source = withLfEndings(fs.readFileSync(absolute, 'utf8'));
     if (isGenerated(source)) continue;
 
     const { literals, nonCode } = scanRustText(source);

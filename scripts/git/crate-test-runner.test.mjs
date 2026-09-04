@@ -83,7 +83,7 @@ function subcommandOf(invocation) {
   return invocation.slice(1, 3).join(' ');
 }
 
-test(
+void test(
   'a crate that keeps its tests in src and has no tests directory still runs',
   { skip: NEEDS_BASH },
   () => {
@@ -94,7 +94,7 @@ test(
   }
 );
 
-test('the two cargo calls are the regular run and the doc run', { skip: NEEDS_BASH }, () => {
+void test('the two cargo calls are the regular run and the doc run', { skip: NEEDS_BASH }, () => {
   const { invocations } = runInCrate({ files: { 'src/lib.rs': A_TEST } });
 
   assert.equal(invocations.length, 2);
@@ -103,7 +103,7 @@ test('the two cargo calls are the regular run and the doc run', { skip: NEEDS_BA
   assert.ok(invocations[1].includes('--doc'), 'the second call is the doc run');
 });
 
-test('a crate that keeps its tests in a tests directory runs', { skip: NEEDS_BASH }, () => {
+void test('a crate that keeps its tests in a tests directory runs', { skip: NEEDS_BASH }, () => {
   const { result, invocations } = runInCrate({
     files: { 'src/lib.rs': NO_TEST, 'tests/integration.rs': A_TEST },
   });
@@ -112,7 +112,7 @@ test('a crate that keeps its tests in a tests directory runs', { skip: NEEDS_BAS
   assert.equal(invocations.length, 2);
 });
 
-test('a crate holding both directories runs the suite once', { skip: NEEDS_BASH }, () => {
+void test('a crate holding both directories runs the suite once', { skip: NEEDS_BASH }, () => {
   const { invocations } = runInCrate({
     files: { 'src/lib.rs': A_TEST, 'tests/integration.rs': A_TEST },
   });
@@ -120,14 +120,14 @@ test('a crate holding both directories runs the suite once', { skip: NEEDS_BASH 
   assert.equal(invocations.length, 2);
 });
 
-test('a crate with no test marker starts no cargo', { skip: NEEDS_BASH }, () => {
+void test('a crate with no test marker starts no cargo', { skip: NEEDS_BASH }, () => {
   const { result, invocations } = runInCrate({ files: { 'src/lib.rs': NO_TEST } });
 
   assert.equal(result.status, 0);
   assert.deepEqual(invocations, []);
 });
 
-test('a crate with neither directory starts no cargo', { skip: NEEDS_BASH }, () => {
+void test('a crate with neither directory starts no cargo', { skip: NEEDS_BASH }, () => {
   const { result, invocations } = runInCrate({ files: { 'Cargo.toml': '[package]\n' } });
 
   assert.equal(result.status, 0);
@@ -135,14 +135,14 @@ test('a crate with neither directory starts no cargo', { skip: NEEDS_BASH }, () 
   assert.equal(result.stderr, '', 'a crate with no source says nothing');
 });
 
-test('an empty src directory starts no cargo', { skip: NEEDS_BASH }, () => {
+void test('an empty src directory starts no cargo', { skip: NEEDS_BASH }, () => {
   const { result, invocations } = runInCrate({ directories: ['src'] });
 
   assert.equal(result.status, 0);
   assert.deepEqual(invocations, []);
 });
 
-test('a file named tests is not read as the tests directory', { skip: NEEDS_BASH }, () => {
+void test('a file named tests is not read as the tests directory', { skip: NEEDS_BASH }, () => {
   // The guard tests for a directory rather than for existence, so a crate that
   // happens to hold a file of that name cannot hand grep a path it rejects.
   const { result, invocations } = runInCrate({
@@ -154,7 +154,7 @@ test('a file named tests is not read as the tests directory', { skip: NEEDS_BASH
   assert.equal(result.stderr, '');
 });
 
-test('every marker the script names is recognised', { skip: NEEDS_BASH }, () => {
+void test('every marker the script names is recognised', { skip: NEEDS_BASH }, () => {
   const markers = {
     'the attribute': '#[test]\nfn a() {}\n',
     'the module gate': '#[cfg(test)]\nmod tests {}\n',
@@ -169,7 +169,7 @@ test('every marker the script names is recognised', { skip: NEEDS_BASH }, () => 
   }
 });
 
-test('a marker in a file that is not Rust does not count', { skip: NEEDS_BASH }, () => {
+void test('a marker in a file that is not Rust does not count', { skip: NEEDS_BASH }, () => {
   const { invocations } = runInCrate({
     files: { 'src/lib.rs': NO_TEST, 'src/notes.md': A_TEST, 'src/build.py': A_TEST },
   });
@@ -177,7 +177,7 @@ test('a marker in a file that is not Rust does not count', { skip: NEEDS_BASH },
   assert.deepEqual(invocations, []);
 });
 
-test('a marker nested deep under src counts', { skip: NEEDS_BASH }, () => {
+void test('a marker nested deep under src counts', { skip: NEEDS_BASH }, () => {
   const { invocations } = runInCrate({
     files: { 'src/lib.rs': NO_TEST, 'src/a/b/c/d/e/deep.rs': A_TEST },
   });
@@ -185,7 +185,7 @@ test('a marker nested deep under src counts', { skip: NEEDS_BASH }, () => {
   assert.equal(invocations.length, 2);
 });
 
-test('extra arguments reach both cargo calls', { skip: NEEDS_BASH }, () => {
+void test('extra arguments reach both cargo calls', { skip: NEEDS_BASH }, () => {
   const { invocations } = runInCrate({
     files: { 'src/lib.rs': A_TEST },
     args: ['--no-capture', 'some_test_name'],
@@ -197,7 +197,7 @@ test('extra arguments reach both cargo calls', { skip: NEEDS_BASH }, () => {
   }
 });
 
-test('an argument holding a space stays one argument', { skip: NEEDS_BASH }, () => {
+void test('an argument holding a space stays one argument', { skip: NEEDS_BASH }, () => {
   const { invocations } = runInCrate({
     files: { 'src/lib.rs': A_TEST },
     args: ['--filter-expr', 'test(a) + test(b)'],
@@ -206,7 +206,7 @@ test('an argument holding a space stays one argument', { skip: NEEDS_BASH }, () 
   assert.ok(invocations[0].includes('test(a) + test(b)'));
 });
 
-test(
+void test(
   'the target directory is named for the crate and is one argument',
   { skip: NEEDS_BASH },
   () => {
@@ -217,7 +217,7 @@ test(
   }
 );
 
-test(
+void test(
   'a crate directory holding characters a path cannot carry is folded',
   { skip: NEEDS_BASH },
   () => {
@@ -232,17 +232,21 @@ test(
   }
 );
 
-test('a crate far larger than any in this repository is still read', { skip: NEEDS_BASH }, () => {
-  // Thousands of files, one of them holding the marker on its last line, plus
-  // one file large enough that a reader with a line budget would give up.
-  const files = { 'src/huge.rs': `${NO_TEST.repeat(20_000)}${A_TEST}` };
+void test(
+  'a crate far larger than any in this repository is still read',
+  { skip: NEEDS_BASH },
+  () => {
+    // Thousands of files, one of them holding the marker on its last line, plus
+    // one file large enough that a reader with a line budget would give up.
+    const files = { 'src/huge.rs': `${NO_TEST.repeat(20_000)}${A_TEST}` };
 
-  for (let index = 0; index < 2_000; index += 1) {
-    files[`src/module_${index}/mod.rs`] = NO_TEST;
+    for (let index = 0; index < 2_000; index += 1) {
+      files[`src/module_${index}/mod.rs`] = NO_TEST;
+    }
+
+    const { result, invocations } = runInCrate({ files });
+
+    assert.equal(result.status, 0);
+    assert.equal(invocations.length, 2);
   }
-
-  const { result, invocations } = runInCrate({ files });
-
-  assert.equal(result.status, 0);
-  assert.equal(invocations.length, 2);
-});
+);

@@ -5,9 +5,9 @@
  *
  * The script edits a lockfile, so what the assertions watch is what it leaves
  * behind: the pins for a split package gone, every other line of the file
- * untouched. A repair that rewrites more than it was asked to is worse than no
- * repair, because the lockfile of a repository that ships native bindings is
- * not something a reviewer can read for accidental damage.
+ * untouched. This repository ships native bindings, and a reviewer cannot read
+ * a lockfile diff for accidental damage, so the writer must touch only what it
+ * was asked to.
  */
 
 import assert from 'node:assert/strict';
@@ -61,6 +61,7 @@ importers:
 `;
 
 const SCRIPT = path.join(repoRoot, 'scripts/git/dedupe-catalog-pins.mjs');
+const INTEGRITY = path.join(repoRoot, 'scripts/git/catalog-integrity.mjs');
 
 function createFixture(lockYaml = SPLIT_LOCK) {
   const root = makeTemporaryDirectory('stylex-dedupe-catalog-pins-');
@@ -206,4 +207,50 @@ void test('the blank line between catalogs survives dropping the entry above it'
 
   assert.match(after, /version: 1\.15\.43\n\n {2}peers:/);
   assert.match(after, /version: 1\.15\.43\n\n {2}testing:/);
+});
+
+/**
+ * A catalog whose only recorded entry is split loses every child, and what is
+ * left is a bare `<catalog>:` key. The install that follows fills it again, so
+ * nothing downstream should read the file in that state -- but a writer that
+ * corrupts a lockfile no one can review by diff is worth pinning, and the
+ * reader in `lib/catalogs.mjs` has to survive the shape as well.
+ */
+void test('a catalog stripped of its only entry is left readable', () => {
+  const lone = `lockfileVersion: '9.0'
+
+catalogs:
+  bundlers:
+    webpack:
+      specifier: ^5.110.3
+      version: 5.110.3
+
+  peers:
+    webpack:
+      specifier: '>=5.0.0'
+      version: 5.109.2
+
+importers:
+  .: {}
+`;
+  const { root, lockfile } = createFixture(lone);
+
+  assert.equal(run(root).status, 0);
+
+  const after = read(lockfile);
+
+  assert.match(after, /^ {2}peers:$/m);
+  assert.match(after, /^ {2}bundlers:$/m);
+  assert.doesNotMatch(after, /webpack:/);
+  assert.match(after, /^importers:$/m);
+
+  // The repository's own reader must not throw on the empty catalog, or the
+  // assertion that runs straight after the repair would fail for the wrong
+  // reason.
+  const gate = spawnSync('node', [INTEGRITY, 'duplicates', '--root', root], {
+    encoding: 'utf8',
+    env: hermeticEnvironment(),
+  });
+
+  assert.equal(gate.status, 0, gate.stderr);
 });

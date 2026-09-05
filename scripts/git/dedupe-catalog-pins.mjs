@@ -6,26 +6,23 @@
  *
  * Usage: `node scripts/git/dedupe-catalog-pins.mjs [--root <dir>]`
  *
- * A package this workspace catalogues twice -- narrowly in a semantic catalog,
- * widely in `peers` -- must resolve to one version. Dependabot bumps the
- * narrow range only. A catalog entry in the lockfile is a pin, so the wide
- * range keeps the version it had, and `pnpm dedupe` will not collapse the two:
- * obeying the pin is what a catalog is for.
- *
- * Deleting the pin is what lets the install resolve it again. pnpm resolves an
- * entry it cannot find, keeps it inside the range `pnpm-workspace.yaml`
- * declares, and writes the `catalogs:` block back whole. Nothing here selects
- * a version, because the two ranges must keep differing and only pnpm knows
- * what satisfies both.
+ * A package catalogued twice must resolve to one version. A catalog entry in
+ * the lockfile is a pin, so `pnpm dedupe` cannot collapse a split: to obey the
+ * pin is what a catalog is for. To delete the pin is what lets the install
+ * resolve the entry again, inside the range `pnpm-workspace.yaml` declares.
+ * `guidelines/SCRIPTS.md` explains why the two ranges differ and what the
+ * split costs.
  *
  * Every pin for the package goes, not only the stale one. To tell which is
  * stale needs a version comparison this repository has no semver dependency to
- * make, and a range resolved again inside its own declared bounds cannot leave
- * them.
+ * make, and a range resolved again inside its own bounds cannot leave them.
  *
  * This repairs; it does not assert. `catalog-integrity.mjs duplicates` is the
- * gate, and it runs from `version-mismatch-check.sh` in pre-commit and in CI.
- * A check that runs after its own repair only confirms the repair.
+ * gate, and `version-mismatch-check.sh` runs it in pre-commit and in
+ * `pr-validation`. `sync-deps.yml` runs that mode, and `lockfile` mode,
+ * straight after this repair -- not a check confirming its own repair, because
+ * this script selects no version and puts nothing back, so what those two read
+ * is the result of the install.
  */
 
 import fs from 'node:fs';

@@ -250,15 +250,19 @@ function checkManifests({ root }) {
  * likely put it back, and that is the problem: "most likely, as a side effect"
  * is not a guard for the lockfile of a repository that ships native bindings.
  *
- * Which two files those are is the caller's business, and it matters: comparing
- * a *reinstalled* lockfile against anything mostly asserts that the accidental
- * repair worked. `--current` exists so the caller can name the lockfile as it
- * arrived rather than as some later step left it.
+ * Which two files those are is the caller's business, and it matters.
+ * `sync-deps.yml` asks two questions with this one mode. Before the sync it
+ * names both lockfiles out of git, so that a reinstall cannot repair the thing
+ * it is asking about; `--current` exists for that call, to name the lockfile as
+ * it arrived rather than as a later step left it. After the sync it reads the
+ * repaired file on disk, where running after a reinstall is the point:
+ * `dedupe-catalog-pins.mjs` deletes entries deliberately, and this is the only
+ * check that sees one stay deleted.
  *
- * The comparison is presence only. A specifier that moved is what a dependency
- * update is *for*, and a version that moved with it is the point; an entry that
- * stopped existing is not something any update legitimately does here, because
- * the only caller is a bot that bumps ranges and never removes a dependency.
+ * The comparison is presence only, which is what lets one mode serve both. A
+ * specifier that moved is what a dependency update is *for*, and a version the
+ * repair moved is the repair working; an entry that stopped existing is what
+ * neither a bumping bot nor a completed repair legitimately leaves behind.
  *
  * @param {{root: string, baseline: string, current?: string}} options
  */
@@ -286,17 +290,12 @@ function checkLockfile({ root, baseline, current }) {
 /**
  * Every package catalogued more than once resolves to a single version.
  *
- * A package sits in two catalogs on purpose: a narrow range to develop
- * against, and the wide one in `peers` that consumers are allowed to satisfy.
- * The ranges differ by design, so the declaration cannot show a drift -- only
- * what they resolved to can, which is why this reads the lockfile.
+ * The two ranges differ on purpose, so the declaration cannot show a drift.
+ * Only what they resolved to can, and that is in the lockfile.
  *
- * The drift is invisible until it is expensive. A wide range never
- * re-resolves on its own, so a bump of the narrow one leaves the wide one on
- * the old version; `pnpm dedupe` cannot collapse them, because a catalog entry
- * is a pin and obeying it is the point. What surfaces instead is a type error
- * in a file nobody touched, naming two structurally identical types as
- * unrelated. Reported here it is one line naming the package and both pins.
+ * Left alone, the drift reads as a type error in a file nobody touched.
+ * Reported here it is one line naming the package and both pins.
+ * `guidelines/SCRIPTS.md` explains the mechanism.
  *
  * @param {{root: string}} options
  */
@@ -333,11 +332,12 @@ const MODES = {
     epilogue:
       `A package this workspace catalogues twice must resolve to one version.\n` +
       `Two versions mean two copies of everything that depends on them, whose\n` +
-      `types are then nominally unrelated. Drop the stale entry from the\n` +
-      `\`catalogs:\` block of ${LOCKFILE} and run\n` +
-      `\`pnpm install --no-frozen-lockfile\`, which re-resolves it in step with\n` +
-      `the other catalog. Do not narrow the \`peers\` range to force it --\n` +
-      `that range is published to consumers.\n`,
+      `types are then nominally unrelated. To repair it, run\n` +
+      `\`node scripts/git/dedupe-catalog-pins.mjs\`, which drops the pins from\n` +
+      `the \`catalogs:\` block of ${LOCKFILE}, and then\n` +
+      `\`pnpm install --no-frozen-lockfile\`, which resolves them again in step\n` +
+      `with each other. Do not narrow the \`peers\` range to force it -- that\n` +
+      `range is published to consumers.\n`,
   },
   lockfile: {
     check: checkLockfile,

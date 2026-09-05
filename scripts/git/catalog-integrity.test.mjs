@@ -652,6 +652,7 @@ void test('the failure names the repair and warns off narrowing the peer range',
   );
 
   assert.equal(result.status, 1);
+  assert.match(result.stderr, /dedupe-catalog-pins\.mjs/);
   assert.match(result.stderr, /pnpm install --no-frozen-lockfile/);
   assert.match(result.stderr, /Do not narrow the `peers` range/);
 });

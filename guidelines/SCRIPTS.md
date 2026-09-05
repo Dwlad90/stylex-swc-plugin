@@ -83,25 +83,42 @@ nobody touched: with two copies of `esbuild` installed, pnpm builds two copies
 of `vite`, and `Plugin` from one is not assignable to `Plugin` from the other.
 
 `scripts/git/dedupe-catalog-pins.mjs` is the repair. It drops the pins of a
-split package from the lockfile so that the next
-`pnpm install --no-frozen-lockfile` resolves them again, and it selects no
-version itself. The `Sync Dependencies` workflow runs it before `pnpm dedupe`,
-because dedupe cannot repair what a pin still holds, and runs `duplicates`
-after, because dropping a pin cannot promise the two ranges come back
-together. Never narrow the `peers` range to force them: that range is
+split package from the lockfile and selects no version itself, so it repairs
+nothing on its own -- the following `pnpm install --no-frozen-lockfile` is
+what resolves the entries again. The `Sync Dependencies` workflow runs it
+before that install for the same reason, and before `pnpm dedupe` because
+dedupe cannot collapse what a pin still holds.
+
+The workflow then asserts twice, because the repair can fail in two ways. Two
+ranges that no longer overlap come back split, which `duplicates` reads. A pin
+the install did not put back reads as no conflict at all -- one entry cannot
+disagree with itself -- so `lockfile` mode catches that instead, against the
+head commit's lockfile the job already wrote out. Both read the repaired file,
+unlike the `lockfile` run before the sync, which must read what dependabot
+wrote.
+
+Never narrow the `peers` range to force the two together: that range is
 published.
 
 `catalog-integrity.mjs` has a third mode,
 `lockfile --baseline <file> [--current <file>]`, which asserts that every
 catalog entry a baseline `pnpm-lock.yaml` resolved is still resolved by the
 current one.
-Nothing local runs it: its caller is the `Sync Dependencies` workflow, which
-reads both lockfiles out of git -- the head commit's as dependabot wrote it
-against the base commit's from before the update -- and runs this before the
-sync reinstalls anything. It exists because a dependabot update can drop a
-catalog entry from the lockfile, and because the reinstall that would most
-likely repair that is not a guard; run after the reinstall it would only
-confirm the repair.
+Nothing local runs it. The `Sync Dependencies` workflow calls it twice, for
+two different questions.
+
+Before the sync, it reads both lockfiles out of git -- the head commit's as
+dependabot wrote it, against the base commit's from before the update -- and
+asks whether the update dropped an entry. That call must come first, because
+the reinstall would most likely put the entry back, and "most likely, as a
+side effect" is not a guard for the lockfile of a repository that ships native
+bindings.
+
+After the sync, it reads the repaired file on disk against the head commit's,
+and asks whether the repair put back every pin it dropped. Running after a
+reinstall is the point here rather than a flaw: the repair deletes entries on
+purpose, and this is the only check that sees one stay deleted. The comparison
+is presence only, so the versions the repair moved cannot make it fail.
 
 See [Git Hooks](./git/HOOKS.md).
 

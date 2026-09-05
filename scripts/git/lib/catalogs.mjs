@@ -43,7 +43,8 @@ const BLOCK = /^(?:'([^']*)'|"([^"]*)"|([^\s#][^:]*?))\s*:$/;
  * `ENTRY` for a writer: the whole `<key>: <value>` line, with indentation,
  * quoting and trailing comment each captured intact so the value can be
  * replaced and the rest put back exactly as found. Still only grammar --
- * nothing in this module writes; `bump-version.mjs` is the one that does.
+ * nothing in this module writes. `bump-version.mjs` writes with `ENTRY_LINE`,
+ * and `dedupe-catalog-pins.mjs` writes with `blockKey` and `indentOf`.
  */
 export const ENTRY_LINE =
   /^(\s+)('[^']*'|"[^"]*"|[^\s#][^:]*)(:\s*)('[^']*'|"[^"]*"|\S+)(\s*(?:#.*)?)$/;
@@ -68,8 +69,8 @@ function keyOf(match) {
  *
  * Exported so that a caller which walks the same block does not restate the
  * quoting rules. A scoped package name is always quoted and a plain one never
- * is, so a caller matching the bare name silently skips every scoped package
- * -- the kind of miss that looks like a clean run.
+ * is, so a caller that matches the bare name skips every scoped package and
+ * still reports success.
  *
  * @param {string} line
  * @returns {string | null}
@@ -179,11 +180,11 @@ function readCatalogsBlock(file, depth, label) {
 
     const parent = openBlocks.at(-1).value;
     const text = line.trim();
-    const block = text.match(BLOCK);
+    const key = blockKey(line);
 
-    if (block) {
+    if (key !== null) {
       const child = {};
-      parent[keyOf(block)] = child;
+      parent[key] = child;
       openBlocks.push({ indent, value: child });
       continue;
     }
@@ -267,18 +268,15 @@ export function catalogsDeclaring(catalogs, name) {
  * Packages a lockfile pins to more than one version across its catalogs.
  *
  * A package is catalogued twice on purpose -- a narrow range to develop
- * against in a semantic catalog, a wide one to accept from consumers in
- * `peers` -- but the two ranges are meant to *resolve to the same version*.
- * When they drift apart pnpm installs both, and with `autoInstallPeers` it
- * then builds one copy of every peer-dependent package per distinct peer set.
- * Two copies of the same version give nominally unrelated types, so the error
- * surfaces as `Plugin` from `vite@8.2.2(esbuild@0.28.1)` not being assignable
- * to `Plugin` from `vite@8.2.2(esbuild@0.28.2)` -- in a source file that did
- * nothing wrong.
+ * against, a wide one to accept from consumers in `peers` -- but the two must
+ * resolve to the same version. When they drift apart pnpm installs both, and
+ * builds one copy of every peer-dependent package per peer set. Two copies of
+ * the same version give nominally unrelated types: `Plugin` from
+ * `vite@8.2.2(esbuild@0.28.1)` is not assignable to `Plugin` from
+ * `vite@8.2.2(esbuild@0.28.2)`.
  *
- * Reads the lockfile's record rather than the declaration, because the
- * declaration cannot show the problem: the two ranges legitimately differ, and
- * only what they resolved to says whether they agree.
+ * Reads the lockfile rather than the declaration. The two ranges differ on
+ * purpose, so only what they resolved to says whether they agree.
  *
  * @param {Record<string, Record<string, {specifier?: string, version?: string}>>} catalogs
  * @returns {{name: string, pins: {catalog: string, version: string}[]}[]} sorted by package name

@@ -12,11 +12,9 @@
 
 use swc_core::{
   common::{FileName, SourceFile, SourceMap, sync::Lrc},
-  ecma::{
-    ast::Expr,
-    parser::{EsSyntax, Parser, StringInput, Syntax, lexer::Lexer},
-  },
+  ecma::ast::Expr,
 };
+use swc_ecma_parser::{EsSyntax, Parser, StringInput, Syntax, lexer::Lexer, parse_file_as_expr};
 
 /// A thread small enough that a case has to be given room it did not start with.
 ///
@@ -67,13 +65,41 @@ pub(crate) fn on_a_thread_of<R: Send + 'static>(
 }
 
 /// Parses one expression out of source.
+///
+/// This calls `parse_file_as_expr` and not a parser that this file builds.
+/// `parse_file_as_expr` is the module-capable entry point, and only that
+/// grammar reads `await` as an await expression. A parser assembled by hand
+/// reads the same word as a plain identifier. A module needs no such opt-in,
+/// so [`parser_for`] stays as it is.
+///
+/// The `stylex_utils` crate has the same helper. A `#[cfg(test)]` helper is
+/// not part of the crate graph, so neither crate can call the other one.
 pub(crate) fn parse_expr(source: &str) -> Expr {
   let file = anonymous_file(source);
+  let mut recovered_errors = Vec::new();
 
-  match parser_for(&file).parse_expr() {
+  let expr = match parse_file_as_expr(
+    &file,
+    syntax(),
+    Default::default(),
+    None,
+    &mut recovered_errors,
+  ) {
     Ok(expr) => *expr,
     Err(error) => panic!("failed to parse `{}`: {:?}", source, error),
-  }
+  };
+
+  // The parser repairs what it can. It reports the repair here instead of a
+  // failure. A case that reads a repaired tree does not read the source it
+  // names, so a repair is also a broken case.
+  assert!(
+    recovered_errors.is_empty(),
+    "parsed `{}` only after repair: {:?}",
+    source,
+    recovered_errors
+  );
+
+  expr
 }
 
 pub(crate) fn anonymous_file(source: &str) -> Lrc<SourceFile> {
@@ -82,19 +108,37 @@ pub(crate) fn anonymous_file(source: &str) -> Lrc<SourceFile> {
   source_map.new_source_file(FileName::Anon.into(), source.to_string())
 }
 
-/// A parser over one file, in the syntax every suite here reads.
+/// The syntax every suite here reads.
 ///
 /// One copy for the same reason the assertions have one: an expression and the
 /// module it was written in have to be read under the same syntax, or a suite
 /// comes to disagree with another about what the author wrote.
+fn syntax() -> Syntax {
+  Syntax::Es(EsSyntax {
+    jsx: true,
+    ..Default::default()
+  })
+}
+
+/// A parser over one file, in the syntax every suite here reads.
 pub(crate) fn parser_for(file: &SourceFile) -> Parser<Lexer<'_>> {
   Parser::new_from(Lexer::new(
-    Syntax::Es(EsSyntax {
-      jsx: true,
-      ..Default::default()
-    }),
+    syntax(),
     Default::default(),
     StringInput::from(file),
     None,
   ))
+}
+
+mod tests {
+  use super::parse_expr;
+  use swc_core::ecma::ast::Expr;
+
+  /// `await` tells the two grammars apart. A parser without module context
+  /// reads it as a name, and every case that parses source then reads a tree
+  /// the author did not write. This guards the entry point the helper calls.
+  #[test]
+  fn reads_a_top_level_await_as_an_await_expression() {
+    assert!(matches!(parse_expr("await p"), Expr::Await(_)));
+  }
 }

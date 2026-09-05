@@ -9,12 +9,12 @@
 use std::hash::Hasher;
 
 #[cfg(test)]
+use crate::test_support;
+#[cfg(test)]
 use swc_core::{
-  common::{DUMMY_SP, FileName, SourceMap, SyntaxContext, sync::Lrc},
+  common::{DUMMY_SP, SyntaxContext},
   ecma::ast::{BinExpr, BinaryOp, Expr, Ident, Lit, Number},
 };
-#[cfg(test)]
-use swc_ecma_parser::{EsSyntax, Parser, StringInput, Syntax, lexer::Lexer};
 
 /// A [`Hasher`] that records how much the walk fed it and hashes nothing.
 ///
@@ -106,25 +106,12 @@ fn arithmetic_tower(depth: usize) -> Expr {
   expr
 }
 
+/// Parses one expression out of source, in the grammar the compiler reads.
+///
+/// Every case here reads the same grammar, so the syntax is supplied once.
 #[cfg(test)]
 fn parse_expr(source: &str) -> Expr {
-  let cm: Lrc<SourceMap> = Default::default();
-  let fm = cm.new_source_file(FileName::Anon.into(), source.to_string());
-  let lexer = Lexer::new(
-    Syntax::Es(EsSyntax {
-      jsx: true,
-      ..Default::default()
-    }),
-    Default::default(),
-    StringInput::from(&*fm),
-    None,
-  );
-  let mut parser = Parser::new_from(lexer);
-
-  match parser.parse_expr() {
-    Ok(expr) => *expr,
-    Err(error) => panic!("failed to parse expression `{source}`: {error:?}"),
-  }
+  test_support::parse_expr(source, test_support::es_jsx())
 }
 
 #[cfg(test)]

@@ -787,10 +787,18 @@ jobs:
 
   dependabot:
     runs-on: ubuntu-24.04-arm
+    # `parity-sweep` runs only on the nightly schedule. GitHub skips it on
+    # every pull request. After `parity-sweep` became a dependency of
+    # `pr-validation`, GitHub also skipped this job on every pull request.
+    # `pr-validation` reported `success` on those same runs. We do not know
+    # the exact cause. `!cancelled()` makes this job run again. This guard
+    # does not let a cancelled run approve a pull request. The result check
+    # keeps the gate that the default `needs` rule gave before.
     needs: [pr-validation]
-    if:
-      github.event_name != 'schedule' && github.event.pull_request.number != null &&
-      github.event.pull_request.user.login == 'dependabot[bot]'
+    if: >-
+      ${{ !cancelled() && needs.pr-validation.result == 'success' && github.event_name != 'schedule'
+      && github.event.pull_request.number != null && github.event.pull_request.user.login ==
+      'dependabot[bot]' }}
     permissions:
       contents: write
       issues: write

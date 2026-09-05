@@ -408,6 +408,9 @@ catalogs:
     '@arethetypeswrong/core':
       specifier: ^0.18.5
       version: 0.18.5
+    '@commitlint/cli':
+      specifier: ^21.2.2
+      version: 21.2.2
     '@emnapi/runtime':
       specifier: 2.0.0-alpha.4
       version: 2.0.0-alpha.4
@@ -567,7 +570,7 @@ importers:
         specifier: catalog:bundlers
         version: 8.0.1
       '@commitlint/cli':
-        specifier: 21.2.2
+        specifier: catalog:tooling
         version: 21.2.2(@types/node@26.1.2)(conventional-commits-parser@7.1.2)(typescript@7.0.2)
       '@stylexjs/eslint-plugin':
         specifier: catalog:runtime

@@ -63,11 +63,35 @@ arguments by the pre-commit `version-mismatch` job, the `pr-validation` matrix
 and the docs-validation format job. It is `syncpack lint` plus
 `node scripts/git/catalog-integrity.mjs manifests`, which asserts that every
 dependency version is declared once, by name, in `pnpm-workspace.yaml` -- and
-names the file, the dependency and a suggested catalog when one is not. Both
-halves run on every invocation, so a failing commit reports everything it got
-wrong at once.
+names the file, the dependency and a suggested catalog when one is not -- plus
+`node scripts/git/catalog-integrity.mjs duplicates`, below. All three run on
+every invocation, so a failing commit reports everything it got wrong at
+once.
 
-`catalog-integrity.mjs` has a second mode,
+`catalog-integrity.mjs` has a second mode, `duplicates`, which asserts that a
+package this workspace catalogues twice resolves to one version. The two
+ranges differ on purpose -- a narrow one to develop against, and the wide one
+in `peers` that ships to consumers as a `peerDependencies` range -- so only
+what they resolved to can show a drift, and the mode reads the lockfile rather
+than the declaration.
+
+The drift is expensive and looks like something else. A wide range never
+resolves again on its own, so a bump of the narrow one leaves the wide one
+behind, and `pnpm dedupe` cannot collapse the two because a catalog entry in
+the lockfile is a pin. What a contributor sees is a type error in a file
+nobody touched: with two copies of `esbuild` installed, pnpm builds two copies
+of `vite`, and `Plugin` from one is not assignable to `Plugin` from the other.
+
+`scripts/git/dedupe-catalog-pins.mjs` is the repair. It drops the pins of a
+split package from the lockfile so that the next
+`pnpm install --no-frozen-lockfile` resolves them again, and it selects no
+version itself. The `Sync Dependencies` workflow runs it before `pnpm dedupe`,
+because dedupe cannot repair what a pin still holds, and runs `duplicates`
+after, because dropping a pin cannot promise the two ranges come back
+together. Never narrow the `peers` range to force them: that range is
+published.
+
+`catalog-integrity.mjs` has a third mode,
 `lockfile --baseline <file> [--current <file>]`, which asserts that every
 catalog entry a baseline `pnpm-lock.yaml` resolved is still resolved by the
 current one.

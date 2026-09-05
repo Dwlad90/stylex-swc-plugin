@@ -35,10 +35,27 @@ catalogs:
     webpack: '^5.109.2'
 `;
 
+/**
+ * The lockfile's record of the catalog above. The script now also asserts that
+ * a package catalogued twice resolves to one version, and that assertion reads
+ * this file -- a fixture without one is not shaped like the repository.
+ */
+const LOCK_YAML = `lockfileVersion: '9.0'
+
+catalogs:
+  bundlers:
+    webpack:
+      specifier: '^5.109.2'
+      version: 5.109.2
+
+importers:
+  .: {}
+`;
+
 const SYNCPACK = { source: ['**/package.json', '!**/node_modules/**'] };
 
 /**
- * @param {{syncpackExit?: number, webpack?: string}} [overrides]
+ * @param {{syncpackExit?: number, webpack?: string, lockYaml?: string}} [overrides]
  */
 function createFixture(overrides = {}) {
   const root = makeTemporaryDirectory('stylex-version-mismatch-');
@@ -51,6 +68,7 @@ function createFixture(overrides = {}) {
   });
 
   fs.writeFileSync(path.join(root, 'pnpm-workspace.yaml'), WORKSPACE_YAML);
+  fs.writeFileSync(path.join(root, 'pnpm-lock.yaml'), overrides.lockYaml ?? LOCK_YAML);
   writeJson(path.join(root, '.syncpackrc'), SYNCPACK);
   writeJson(path.join(root, 'package.json'), { name: 'root' });
   writeJson(path.join(root, 'packages/app/package.json'), {
@@ -105,4 +123,36 @@ void test('a syncpack failure alone fails the check', () => {
 
   assert.equal(result.status, 1);
   assert.match(result.stdout, /catalog-integrity: manifests ok/);
+});
+
+/**
+ * The third assertion, reached through the script rather than directly: a
+ * package catalogued twice that the lockfile pins to two versions. Both other
+ * assertions pass here, so a failure can only come from this one -- which is
+ * the point, since the split is invisible in the manifests they read.
+ */
+void test('a package pinned to two versions fails the check', () => {
+  const { root, log } = createFixture({
+    lockYaml: `lockfileVersion: '9.0'
+
+catalogs:
+  bundlers:
+    webpack:
+      specifier: '^5.109.2'
+      version: 5.109.2
+
+  peers:
+    webpack:
+      specifier: '>=5.0.0'
+      version: 5.110.3
+
+importers:
+  .: {}
+`,
+  });
+  const result = run(root, log);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /`webpack` resolves to/);
+  assert.match(result.stdout, /manifests ok/);
 });

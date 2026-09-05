@@ -75,6 +75,16 @@ jobs:
           # no longer asserts anything about versions -- the catalogs do that --
           # so what it fixes here is formatting and field order.
           pnpm syncpack fix
+          # A package this workspace catalogues twice -- narrowly in a semantic
+          # catalog, widely in `peers` -- must resolve to one version. A
+          # dependabot PR bumps the narrow range only, and a catalog entry in
+          # the lockfile is a *pin*, so the wide range keeps the version it
+          # had. `pnpm dedupe` below cannot collapse that: obeying the pin is
+          # what a catalog is for. To drop the pins lets the install resolve
+          # the two together, and it must come first for the same reason --
+          # dedupe cannot repair what a pin still holds.
+          node ./scripts/git/dedupe-catalog-pins.mjs
+          pnpm install --no-frozen-lockfile
           # `dedupe` collapses the resolutions in the lockfile. A dependabot PR
           # only re-resolves the package it bumps, so open ranges elsewhere keep
           # their stale versions. For peer-dependent packages (vite, webpack,
@@ -83,6 +93,14 @@ jobs:
           # e.g. `Plugin` from vite@8.1.5(@types/node@26.1.0) is not assignable
           # to `Plugin` from vite@8.1.5(@types/node@26.1.2).
           pnpm dedupe
+          # That the repair converged is not something the drop above can
+          # promise. It selects no version -- each range resolves again on its
+          # own -- so two ranges that no longer overlap would come back split.
+          # This is not the "check after its own repair" the step above warns
+          # off: that one must read the lockfile as dependabot wrote it, while
+          # this one exists to read the repaired file, and it is cheaper to
+          # fail here than to push a split and find it in `pr-validation`.
+          node ./scripts/git/catalog-integrity.mjs duplicates
 
       - name: Commit changes if needed
         id: commit-changes

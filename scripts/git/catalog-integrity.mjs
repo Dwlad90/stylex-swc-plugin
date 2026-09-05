@@ -14,10 +14,12 @@
  *   - `lockfile --baseline <file> [--current <file>]` -- every catalog entry the
  *     baseline lockfile resolved is still resolved by the current one, which
  *     defaults to `<root>/pnpm-lock.yaml`.
+ *   - `duplicates [--root <dir>]` -- every package catalogued more than once
+ *     resolves to a single version in `<root>/pnpm-lock.yaml`.
  *
- * Two assertions over the same data, so one script with one suite rather than
- * two scripts with two sets of wiring -- and the lockfile half is testable at
- * all only because it is here: inline workflow YAML has no seam.
+ * Three assertions over the same data, so one script with one suite rather
+ * than three scripts with three sets of wiring -- and the lockfile half is
+ * testable at all only because it is here: inline workflow YAML has no seam.
  *
  * The catalogs made drift impossible to *express*; this is what stops a
  * manifest opting back out of them. `catalogMode: prefer` was chosen over
@@ -42,6 +44,8 @@ import path from 'node:path';
 import {
   catalogEntries,
   catalogsDeclaring,
+  conflictingPins,
+  describePins,
   LOCKFILE,
   readCatalogs,
   readLockfileCatalogs,
@@ -280,9 +284,41 @@ function checkLockfile({ root, baseline, current }) {
 }
 
 /**
+ * Every package catalogued more than once resolves to a single version.
+ *
+ * A package sits in two catalogs on purpose: a narrow range to develop
+ * against, and the wide one in `peers` that consumers are allowed to satisfy.
+ * The ranges differ by design, so the declaration cannot show a drift -- only
+ * what they resolved to can, which is why this reads the lockfile.
+ *
+ * The drift is invisible until it is expensive. A wide range never
+ * re-resolves on its own, so a bump of the narrow one leaves the wide one on
+ * the old version; `pnpm dedupe` cannot collapse them, because a catalog entry
+ * is a pin and obeying it is the point. What surfaces instead is a type error
+ * in a file nobody touched, naming two structurally identical types as
+ * unrelated. Reported here it is one line naming the package and both pins.
+ *
+ * @param {{root: string}} options
+ */
+function checkDuplicates({ root }) {
+  const file = path.join(root, LOCKFILE);
+
+  // Naming the absent file beats the raw ENOENT the reader would throw. A
+  // lockfile this check cannot read is a check that asserts nothing, which the
+  // reader's header calls worse than one that fails -- so it fails.
+  if (!fs.existsSync(file)) {
+    throw new Error(`no ${LOCKFILE} under ${root} to check`);
+  }
+
+  const conflicts = conflictingPins(readLockfileCatalogs(file));
+
+  return conflicts.map(({ name, pins }) => `\`${name}\` resolves to ${describePins(pins)}`);
+}
+
+/**
  * Each mode's check, and what to say after its problems. The closing paragraph
- * is per mode because the two failures ask for different things: one is a
- * manifest to edit, the other a lockfile to regenerate.
+ * is per mode because the three failures ask for different things: a manifest
+ * to edit, a lockfile to regenerate, and a pin to drop.
  */
 const MODES = {
   manifests: {
@@ -291,6 +327,17 @@ const MODES = {
       `Every dependency version in this workspace is declared once, by name,\n` +
       `in ${WORKSPACE_FILE}. Reference it with \`${REFERENCE}<name>\`\n` +
       `instead of repeating the range.\n`,
+  },
+  duplicates: {
+    check: checkDuplicates,
+    epilogue:
+      `A package this workspace catalogues twice must resolve to one version.\n` +
+      `Two versions mean two copies of everything that depends on them, whose\n` +
+      `types are then nominally unrelated. Drop the stale entry from the\n` +
+      `\`catalogs:\` block of ${LOCKFILE} and run\n` +
+      `\`pnpm install --no-frozen-lockfile\`, which re-resolves it in step with\n` +
+      `the other catalog. Do not narrow the \`peers\` range to force it --\n` +
+      `that range is published to consumers.\n`,
   },
   lockfile: {
     check: checkLockfile,

@@ -378,7 +378,7 @@ void test('no mode at all is a usage error, not a default', () => {
   const result = run(root);
 
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /usage: catalog-integrity\.mjs <manifests\|lockfile>/);
+  assert.match(result.stderr, /usage: catalog-integrity\.mjs <manifests\|duplicates\|lockfile>/);
 });
 
 void test('a workspace file with no catalogs fails loudly', () => {
@@ -593,4 +593,122 @@ void test('a catalog nested deeper than an entry goes is rejected', () => {
     result.stderr,
     /`catalogs\.bundlers\.webpack` nests deeper than a catalog entry goes/
   );
+});
+
+/**
+ * `duplicates` mode -- the two catalogs that declare the same package drifting
+ * apart. The fixture pins `webpack` to one version in both `bundlers` and
+ * `peers`, which is the state every one of these starts from.
+ *
+ * The drift is worth a mode of its own because of how it presents: a wide
+ * `peers` range never re-resolves on its own, `pnpm dedupe` will not collapse
+ * a pin, and what a contributor sees is a type error in a file they did not
+ * touch. Every assertion below is on the message for that reason.
+ */
+
+/** `duplicates` mode against a lockfile written to `<root>/pnpm-lock.yaml`. */
+function checkDuplicates(root, lockYaml) {
+  if (lockYaml !== undefined) {
+    writeText(path.join(root, 'pnpm-lock.yaml'), lockYaml);
+  }
+
+  return run(root, 'duplicates');
+}
+
+void test('catalogs agreeing on one version pass', () => {
+  const { root } = createFixture();
+  const result = checkDuplicates(root);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /duplicates ok/);
+});
+
+void test('a package pinned to two versions fails, naming both catalogs', () => {
+  const { root } = createFixture();
+  const result = checkDuplicates(
+    root,
+    LOCK_YAML.replace('version: 5.109.2\n', 'version: 5.110.3\n')
+  );
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /`webpack` resolves to/);
+  assert.match(result.stderr, /`bundlers`/);
+  assert.match(result.stderr, /`peers`/);
+  assert.match(result.stderr, /5\.110\.3/);
+  assert.match(result.stderr, /5\.109\.2/);
+});
+
+/**
+ * The remedy has to be in the message. Narrowing the `peers` range is the
+ * obvious way to force the two together and the one that must not be taken --
+ * that range is published to consumers -- so the output says so rather than
+ * leaving it to be rediscovered.
+ */
+void test('the failure names the repair and warns off narrowing the peer range', () => {
+  const { root } = createFixture();
+  const result = checkDuplicates(
+    root,
+    LOCK_YAML.replace('version: 5.109.2\n', 'version: 5.110.3\n')
+  );
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /pnpm install --no-frozen-lockfile/);
+  assert.match(result.stderr, /Do not narrow the `peers` range/);
+});
+
+/**
+ * A package in one catalog cannot conflict with itself, and neither can two
+ * catalogs that happen to agree. Both are the common case, so a mode that
+ * flagged either would be turned off within a day.
+ */
+void test('a package catalogued once is never a conflict', () => {
+  const { root } = createFixture();
+  const result = checkDuplicates(
+    root,
+    LOCK_YAML.replace(
+      "  peers:\n    webpack:\n      specifier: '>=5.0.0'\n      version: 5.109.2\n\n",
+      ''
+    )
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+/** A lockfile with no `catalogs:` block asserts nothing rather than throwing. */
+void test('a lockfile with no catalogs block reports no conflicts', () => {
+  const { root } = createFixture();
+  const result = checkDuplicates(root, "lockfileVersion: '9.0'\n\nimporters:\n  .: {}\n");
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+void test('duplicates mode rejects the lockfile options', () => {
+  const { root } = createFixture();
+  const result = run(root, 'duplicates', '--baseline', path.join(root, 'pnpm-lock.yaml'));
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /`--baseline` means nothing to duplicates mode/);
+});
+
+/**
+ * A lockfile that is not there asserts nothing, which the reader's header
+ * calls worse than a failure. The message has to name the file, because the
+ * raw ENOENT names a path the caller never wrote.
+ */
+void test('a missing lockfile fails loudly rather than passing silently', () => {
+  const { root } = createFixture();
+
+  fs.rmSync(path.join(root, 'pnpm-lock.yaml'));
+
+  const result = run(root, 'duplicates');
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /no pnpm-lock\.yaml under/);
+});
+
+/** The repository's own lockfile, which is the state this mode defends. */
+void test('the real lockfile pins every catalogued package to one version', () => {
+  const result = run(repoRoot, 'duplicates');
+
+  assert.equal(result.status, 0, result.stderr);
 });

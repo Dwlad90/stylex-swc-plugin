@@ -62,6 +62,24 @@ function keyOf(match) {
   return match[1] ?? match[2] ?? match[3];
 }
 
+/**
+ * The key of a `<key>:` line that opens a nested block, or `null` when the
+ * line is something else.
+ *
+ * Exported so that a caller which walks the same block does not restate the
+ * quoting rules. A scoped package name is always quoted and a plain one never
+ * is, so a caller matching the bare name silently skips every scoped package
+ * -- the kind of miss that looks like a clean run.
+ *
+ * @param {string} line
+ * @returns {string | null}
+ */
+export function blockKey(line) {
+  const match = line.trim().match(BLOCK);
+
+  return match ? keyOf(match) : null;
+}
+
 function valueOf(match) {
   return match[4] ?? match[5] ?? match[6];
 }
@@ -243,4 +261,60 @@ export function catalogEntries(catalogs) {
  */
 export function catalogsDeclaring(catalogs, name) {
   return Object.keys(catalogs).filter(catalog => name in catalogs[catalog]);
+}
+
+/**
+ * Packages a lockfile pins to more than one version across its catalogs.
+ *
+ * A package is catalogued twice on purpose -- a narrow range to develop
+ * against in a semantic catalog, a wide one to accept from consumers in
+ * `peers` -- but the two ranges are meant to *resolve to the same version*.
+ * When they drift apart pnpm installs both, and with `autoInstallPeers` it
+ * then builds one copy of every peer-dependent package per distinct peer set.
+ * Two copies of the same version give nominally unrelated types, so the error
+ * surfaces as `Plugin` from `vite@8.2.2(esbuild@0.28.1)` not being assignable
+ * to `Plugin` from `vite@8.2.2(esbuild@0.28.2)` -- in a source file that did
+ * nothing wrong.
+ *
+ * Reads the lockfile's record rather than the declaration, because the
+ * declaration cannot show the problem: the two ranges legitimately differ, and
+ * only what they resolved to says whether they agree.
+ *
+ * @param {Record<string, Record<string, {specifier?: string, version?: string}>>} catalogs
+ * @returns {{name: string, pins: {catalog: string, version: string}[]}[]} sorted by package name
+ */
+export function conflictingPins(catalogs) {
+  /** @type {Map<string, {catalog: string, version: string}[]>} */
+  const byPackage = new Map();
+
+  for (const [catalog, entries] of Object.entries(catalogs)) {
+    for (const [name, leaf] of Object.entries(entries)) {
+      const version = leaf?.version;
+
+      // A leaf with no `version` is a lockfile mid-write or a shape this
+      // reader does not understand. Comparing `undefined` against a real
+      // version would report a conflict that is not one.
+      if (typeof version !== 'string') {
+        continue;
+      }
+
+      byPackage.set(name, [...(byPackage.get(name) ?? []), { catalog, version }]);
+    }
+  }
+
+  return [...byPackage]
+    .filter(([, pins]) => new Set(pins.map(pin => pin.version)).size > 1)
+    .map(([name, pins]) => ({ name, pins }))
+    .toSorted((left, right) => left.name.localeCompare(right.name));
+}
+
+/**
+ * The one-line reading of a conflict, as both the gate and the repair report
+ * it. Here rather than in either caller so that the two never drift into
+ * describing the same lockfile differently.
+ *
+ * @param {{catalog: string, version: string}[]} pins
+ */
+export function describePins(pins) {
+  return pins.map(pin => `${pin.version} in \`${pin.catalog}\``).join(' and ');
 }

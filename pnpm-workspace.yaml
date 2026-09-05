@@ -365,6 +365,7 @@ allowBuilds:
   # `minimumReleaseAge` and the supply-chain gate. If a binding ever does go
   # missing, a loud failure at `require` beats a silent swap to wasm in a repo
   # that exists to be fast -- see `guidelines/PERFORMANCE.md`.
+  '@parcel/watcher': set this to true or false
   '@swc/core': false
   # Banner, not build. Both postinstalls are the same 62-line OpenCollective
   # funding notice -- one `writeFileSync` into `os.tmpdir()` to avoid repeating

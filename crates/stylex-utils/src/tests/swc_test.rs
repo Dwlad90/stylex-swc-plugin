@@ -7,57 +7,15 @@
 
 mod node_kind {
   use crate::swc::get_expr_node_kind;
+  use crate::test_support::{es_jsx, parse_expr};
   use swc_core::{
-    common::{DUMMY_SP, FileName, SourceMap, sync::Lrc},
+    common::DUMMY_SP,
     ecma::ast::{
       Expr, Ident, IdentName, Invalid, JSXEmptyExpr, JSXMemberExpr, JSXNamespacedName, JSXObject,
       JSXText, Lit, PrivateName, Super, SuperProp, SuperPropExpr, YieldExpr,
     },
   };
-  use swc_ecma_parser::{EsSyntax, Syntax, TsSyntax, parse_file_as_expr};
-
-  /// Parses one expression under `syntax`, or reports why it could not be
-  /// parsed. A test that names syntax the parser rejects is a broken test, not
-  /// a failing assertion, so the two are told apart.
-  fn parse_expr(source: &str, syntax: Syntax) -> Expr {
-    let source_map: Lrc<SourceMap> = Default::default();
-    let source_file = source_map.new_source_file(FileName::Anon.into(), source.to_string());
-
-    // `parse_file_as_expr` is the module-capable entry point, so `await` and
-    // `import.meta` parse as the nodes they name. A parser assembled by hand
-    // has no module context and reads `await` as a plain identifier.
-    let mut recovered_errors = Vec::new();
-
-    let expr = match parse_file_as_expr(
-      &source_file,
-      syntax,
-      Default::default(),
-      None,
-      &mut recovered_errors,
-    ) {
-      Ok(expr) => *expr,
-      Err(error) => panic!("failed to parse `{}`: {:?}", source, error),
-    };
-
-    // The parser repairs what it can and reports the repair here instead of
-    // failing. An assertion on a repaired tree tells you nothing about the
-    // syntax the test names, so a repair is a broken test too.
-    assert!(
-      recovered_errors.is_empty(),
-      "parsed `{}` only after repair: {:?}",
-      source,
-      recovered_errors
-    );
-
-    expr
-  }
-
-  fn es() -> Syntax {
-    Syntax::Es(EsSyntax {
-      jsx: true,
-      ..Default::default()
-    })
-  }
+  use swc_ecma_parser::{Syntax, TsSyntax};
 
   fn ts() -> Syntax {
     Syntax::Typescript(TsSyntax::default())
@@ -121,7 +79,7 @@ mod node_kind {
     ];
 
     for (source, expected) in cases {
-      assert_kind(source, es(), expected);
+      assert_kind(source, es_jsx(), expected);
     }
   }
 
@@ -133,11 +91,11 @@ mod node_kind {
   #[test]
   fn separates_a_logical_operator_from_an_arithmetic_one() {
     for source in ["a && b", "a || b", "a ?? b"] {
-      assert_kind(source, es(), "LogicalExpression");
+      assert_kind(source, es_jsx(), "LogicalExpression");
     }
 
     for source in ["a + b", "a & b", "a | b", "a === b", "a >> b"] {
-      assert_kind(source, es(), "BinaryExpression");
+      assert_kind(source, es_jsx(), "BinaryExpression");
     }
   }
 
@@ -146,9 +104,9 @@ mod node_kind {
   /// calls one. SWC wraps both in one variant.
   #[test]
   fn names_an_optional_chain_by_its_base() {
-    assert_kind("a?.b.c", es(), "OptionalMemberExpression");
-    assert_kind("a?.b.c()", es(), "OptionalCallExpression");
-    assert_kind("a?.b().c", es(), "OptionalMemberExpression");
+    assert_kind("a?.b.c", es_jsx(), "OptionalMemberExpression");
+    assert_kind("a?.b.c()", es_jsx(), "OptionalCallExpression");
+    assert_kind("a?.b().c", es_jsx(), "OptionalMemberExpression");
   }
 
   /// `TsConstAssertion` is the one SWC variant with two ESTree spellings —
@@ -248,17 +206,17 @@ mod node_kind {
   /// about the value.
   #[test]
   fn describes_the_node_and_not_its_value() {
-    assert_kind("'abc'.length", es(), "MemberExpression");
-    assert_kind("unknowable.length", es(), "MemberExpression");
-    assert_kind("[1, 2].filter(f)", es(), "CallExpression");
-    assert_kind("(() => 1)()", es(), "CallExpression");
+    assert_kind("'abc'.length", es_jsx(), "MemberExpression");
+    assert_kind("unknowable.length", es_jsx(), "MemberExpression");
+    assert_kind("[1, 2].filter(f)", es_jsx(), "CallExpression");
+    assert_kind("(() => 1)()", es_jsx(), "CallExpression");
   }
 
   /// Two calls agree, and the answer borrows nothing from the expression, so a
   /// label can be held past the node it describes.
   #[test]
   fn is_a_static_label() {
-    let expr = parse_expr("a.b", es());
+    let expr = parse_expr("a.b", es_jsx());
     let first: &'static str = get_expr_node_kind(&expr);
     let second: &'static str = get_expr_node_kind(&expr);
 
@@ -276,15 +234,15 @@ mod node_kind {
   fn names_only_the_outermost_node_of_deep_syntax() {
     let parens = format!("{}a{}", "(".repeat(500), ")".repeat(500));
 
-    assert_kind(&parens, es(), "ParenthesizedExpression");
+    assert_kind(&parens, es_jsx(), "ParenthesizedExpression");
 
     let calls = format!("a{}", "()".repeat(500));
 
-    assert_kind(&calls, es(), "CallExpression");
+    assert_kind(&calls, es_jsx(), "CallExpression");
 
     let members = format!("a{}", ".b".repeat(500));
 
-    assert_kind(&members, es(), "MemberExpression");
+    assert_kind(&members, es_jsx(), "MemberExpression");
   }
 
   /// Non-ASCII and escaped identifiers are ordinary identifiers. The label is
@@ -292,10 +250,10 @@ mod node_kind {
   /// source text it describes.
   #[test]
   fn names_unicode_and_escaped_syntax() {
-    assert_kind("\u{4f60}\u{597d}", es(), "Identifier");
-    assert_kind("\\u0061bc", es(), "Identifier");
-    assert_kind("'\\u{1F600}'", es(), "StringLiteral");
-    assert_kind("`\\u{1F600}${a}`", es(), "TemplateLiteral");
+    assert_kind("\u{4f60}\u{597d}", es_jsx(), "Identifier");
+    assert_kind("\\u0061bc", es_jsx(), "Identifier");
+    assert_kind("'\\u{1F600}'", es_jsx(), "StringLiteral");
+    assert_kind("`\\u{1F600}${a}`", es_jsx(), "TemplateLiteral");
   }
 }
 

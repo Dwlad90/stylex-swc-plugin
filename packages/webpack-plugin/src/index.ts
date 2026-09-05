@@ -130,7 +130,7 @@ export default class StyleXPlugin extends StyleXPluginCore {
   }
 }
 
-export { StyleXPlugin, VIRTUAL_CSS_PATTERN, DEFAULT_STYLEX_PACKAGES, buildVirtualCssPattern };
+export { VIRTUAL_CSS_PATTERN, DEFAULT_STYLEX_PACKAGES, buildVirtualCssPattern };
 
 // ESM exports keep the loader paths reachable in environments where the guarded
 // CJS block below is skipped (e.g. tooling that evaluates this file as ESM)
@@ -143,8 +143,8 @@ export type {
 } from '@stylexswc/plugin-shared';
 
 // Skipped when this file is read as an ES module, where a write to
-// `module.exports` cannot succeed. The ESM exports above give the same surface
-// there.
+// `module.exports` cannot succeed. The ESM exports above and the default export
+// give the same surface there.
 exportAsCommonJs(typeof module === 'undefined' ? undefined : module, StyleXPlugin, {
   StyleXPlugin,
   loader: stylexLoaderPath,

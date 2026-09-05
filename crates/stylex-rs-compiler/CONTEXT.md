@@ -81,3 +81,11 @@ budget is stated because the stack it must fit is not: the main thread gets 8 MB
 on macOS and 1 MB on Windows. A cycle in the object is the same case with no
 bottom at all.
 _Avoid_: recursion limit, max depth, stack guard
+
+**Child script harness**:
+`__test__/nodeScript.ts` — runs a generated script in a child Node process from
+a file on disk. A test that must observe an abort of a process cannot make the
+assertion inside that process. The file matters as much as the child: Windows
+caps a command line at 32767 characters, and Node gives `-e` source to its
+TypeScript parser, which needs more stack than a Windows main thread has.
+_Avoid_: spawn helper, subprocess runner, eval harness

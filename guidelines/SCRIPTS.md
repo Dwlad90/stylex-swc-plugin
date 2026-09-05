@@ -100,6 +100,21 @@ wrote.
 Never narrow the `peers` range to force the two together: that range is
 published.
 
+Every `peers` package currently has a narrow-catalog dependency in the
+manifest that names it as a peer, so nothing installs from the wide range,
+pnpm writes no `peers:` block into the lockfile, and `duplicates` has no pair
+to compare. Keeping the twin is the prevention; the check is what catches the
+day the pairing stops holding.
+
+It is dormant rather than dead, and two things re-arm it. A peer left without
+a narrow twin brings its pin back. So does a twin bumped past the upper bound
+of its `peers` range, because the twin then stops satisfying the peer and pnpm
+installs the peer again -- only `@farmfe/core` (`<2.0.0`) and `@swc/core`
+(`^1`) have such a bound, and every other `peers` range is an open `>=` that
+no bump can fall outside. `lockfile` mode does not cover the second case: it
+counts installs by name and cannot compare ranges, which
+`catalog-integrity.mjs` records beside `INSTALL_FIELDS` and a test pins.
+
 `catalog-integrity.mjs` has a third mode,
 `lockfile --baseline <file> [--current <file>]`, which asserts that every
 catalog entry a baseline `pnpm-lock.yaml` resolved is still resolved by the
@@ -119,6 +134,13 @@ and asks whether the repair put back every pin it dropped. Running after a
 reinstall is the point here rather than a flaw: the repair deletes entries on
 purpose, and this is the only check that sees one stay deleted. The comparison
 is presence only, so the versions the repair moved cannot make it fail.
+
+Both calls report a missing entry only when an install still needs it. A
+catalog entry exists because something installs from it, so one that nothing
+installs from any more is a manifest edit finishing. Giving a lone peer a
+narrow-catalog `devDependencies` entry retires its `peers` pin on purpose, and
+a check that counted entries rather than installs would refuse to let that
+edit be committed.
 
 See [Git Hooks](./git/HOOKS.md).
 

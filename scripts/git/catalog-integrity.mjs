@@ -208,6 +208,55 @@ function danglingReferenceProblem(catalogs, site) {
   return null;
 }
 
+/**
+ * The fields whose entries an install must resolve. `peerDependencies` is not
+ * one of them by itself: `autoInstallPeers` installs a peer only when nothing
+ * else in the same manifest already provides the package, so a peer beside a
+ * `devDependencies` entry for the same name needs no catalog entry of its own.
+ * That pairing is what stops the wide range resolving on its own, which is the
+ * split `duplicates` mode exists to catch.
+ *
+ * Known limit: pnpm skips the peer when the sibling *satisfies* the peer
+ * range, and this compares names only. Evaluating a range needs a semver
+ * library, which these scripts deliberately do without -- they parse YAML by
+ * hand for the same reason. The gap opens only for a `peers` range with an
+ * upper bound the narrow twin can outgrow, which today is `@farmfe/core`
+ * (`<2.0.0`) and `@swc/core` (`^1`); every other `peers` range is an open
+ * `>=`, which no bump of the twin can fall outside. If a twin does outgrow
+ * one, pnpm writes the peer pin back and `duplicates` reads it again; what
+ * this misses is a later silent drop of that pin.
+ */
+const INSTALL_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies'];
+
+/**
+ * The `<catalog>.<package>` entries an install still has to resolve.
+ *
+ * @param {string} root repository root
+ * @returns {Set<string>}
+ */
+function requiredEntries(root) {
+  const required = new Set();
+
+  for (const file of findSourceManifests(root)) {
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
+    const provided = new Set(INSTALL_FIELDS.flatMap(field => Object.keys(manifest[field] ?? {})));
+
+    for (const field of DEPENDENCY_FIELDS) {
+      for (const [name, specifier] of Object.entries(manifest[field] ?? {})) {
+        if (typeof specifier !== 'string' || !specifier.startsWith(REFERENCE)) {
+          continue;
+        }
+
+        if (field !== 'peerDependencies' || !provided.has(name)) {
+          required.add(`${specifier.slice(REFERENCE.length)}.${name}`);
+        }
+      }
+    }
+  }
+
+  return required;
+}
+
 /** @param {{root: string}} options */
 function checkManifests({ root }) {
   const catalogs = readCatalogs(root);
@@ -261,8 +310,13 @@ function checkManifests({ root }) {
  *
  * The comparison is presence only, which is what lets one mode serve both. A
  * specifier that moved is what a dependency update is *for*, and a version the
- * repair moved is the repair working; an entry that stopped existing is what
- * neither a bumping bot nor a completed repair legitimately leaves behind.
+ * repair moved is the repair working.
+ *
+ * An entry that stopped existing is reported only when an install still needs
+ * it, which `requiredEntries` decides. A catalog entry exists because something
+ * installs from it, so one that nothing installs from any more is a manifest
+ * edit finishing, not a lockfile losing a resolution -- and reporting it would
+ * make the honest half of that edit impossible to commit.
  *
  * @param {{root: string, baseline: string, current?: string}} options
  */
@@ -280,10 +334,11 @@ function checkLockfile({ root, baseline, current }) {
   }
 
   const after = new Set(catalogEntries(readLockfileCatalogs(resolved)));
+  const required = requiredEntries(root);
   const name = path.basename(resolved);
 
   return before
-    .filter(entry => !after.has(entry))
+    .filter(entry => !after.has(entry) && required.has(entry))
     .map(entry => `${name} no longer records \`${entry}\`, which the baseline resolved`);
 }
 
@@ -342,9 +397,11 @@ const MODES = {
   lockfile: {
     check: checkLockfile,
     epilogue:
-      `An entry a manifest still references but ${LOCKFILE} no longer resolves\n` +
-      `is an unresolved dependency in a repository that ships native bindings.\n` +
-      `Run \`pnpm install --no-frozen-lockfile\` and commit the result.\n`,
+      `An entry an install still needs but ${LOCKFILE} no longer resolves is an\n` +
+      `unresolved dependency in a repository that ships native bindings.\n` +
+      `Run \`pnpm install --no-frozen-lockfile\` and commit the result. An entry\n` +
+      `nothing installs from any more is not reported, so a manifest edit that\n` +
+      `retires one does not have to fight this check.\n`,
   },
 };
 

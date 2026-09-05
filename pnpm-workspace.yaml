@@ -209,6 +209,28 @@ catalogs:
     '@stylexswc/utils': '0.18.6'
     '@stylexswc/webpack-plugin': '0.18.6'
 
+  # The wide half of every package catalogued twice. These ranges are
+  # published as `peerDependencies`, so they say what a consumer may install,
+  # not what we develop against -- never narrow one to make a version problem
+  # here go away.
+  #
+  # A package listed here must still resolve to the same version as its narrow
+  # twin. The ranges differ on purpose, so only the lockfile shows a drift.
+  # `catalog-integrity.mjs duplicates` reads it. Two versions mean two copies
+  # of everything that depends on them, whose types are then unrelated.
+  #
+  # A package that appears only in `peerDependencies` drifts, because
+  # `autoInstallPeers` installs it from this range alone with nothing to keep
+  # it in step. Every package here also has a narrow-catalog dependency in the
+  # manifest that names it as a peer, so one resolution governs both and pnpm
+  # writes no `peers:` block into the lockfile at all.
+  #
+  # That leaves `duplicates` with nothing to compare, which is the point rather
+  # than a gap. Two things bring a pin back and give the check something to
+  # read again: a peer left without a narrow twin, and a twin bumped past the
+  # upper bound of the range here, which stops it satisfying the peer. Only
+  # `@farmfe/core` and `@swc/core` have such a bound; the rest are open `>=`.
+  # See `guidelines/SCRIPTS.md`.
   peers:
     '@farmfe/core': '>=1.7.11 <2.0.0'
     '@nuxt/kit': '>=3.0.0'

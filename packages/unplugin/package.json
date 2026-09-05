@@ -143,17 +143,20 @@
   },
   "devDependencies": {
     "@arethetypeswrong/core": "catalog:tooling",
+    "@farmfe/core": "catalog:bundlers",
     "@nuxt/kit": "catalog:frameworks",
     "@nuxt/schema": "catalog:frameworks",
     "@rollup/plugin-commonjs": "catalog:bundlers",
     "@rollup/plugin-node-resolve": "catalog:bundlers",
     "@types/node": "catalog:types",
+    "esbuild": "catalog:bundlers",
     "esno": "catalog:tooling",
     "publint": "catalog:tooling",
     "rollup": "catalog:bundlers",
     "tsdown": "catalog:bundlers",
     "typescript": "catalog:types",
-    "vitest": "catalog:testing"
+    "vitest": "catalog:testing",
+    "webpack": "catalog:bundlers"
   },
   "peerDependencies": {
     "@farmfe/core": "catalog:peers",

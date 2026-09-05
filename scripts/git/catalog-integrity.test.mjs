@@ -461,20 +461,63 @@ void test('a whole catalog dropped reports every entry it carried, not just one'
   assert.match(result.stderr, /no longer records `bundlers\.webpack`/);
 });
 
-void test('a lockfile with no catalogs block at all names every baseline entry', () => {
+void test('a lockfile with no catalogs block at all names every entry an install needs', () => {
   const { root } = createFixture({ lockYaml: "lockfileVersion: '9.0'\n\nimporters:\n  .: {}\n" });
   const result = checkLockfile(root, LOCK_YAML);
 
   assert.equal(result.status, 1);
 
-  for (const entry of [
-    'bundlers.@swc/core',
-    'bundlers.webpack',
-    'peers.webpack',
-    'testing.vitest',
-  ]) {
+  for (const entry of ['bundlers.@swc/core', 'bundlers.webpack', 'testing.vitest']) {
     assert.ok(result.stderr.includes(`\`${entry}\``), `expected \`${entry}\` in: ${result.stderr}`);
   }
+
+  // The fixture declares `webpack` in `devDependencies` as well, so nothing
+  // installs it from `peers` and that entry is not one an install needs.
+  assert.doesNotMatch(result.stderr, /`peers\.webpack`/);
+});
+
+/**
+ * A peer with no other declaration beside it is the one `autoInstallPeers`
+ * resolves on its own, so its catalog entry is load-bearing and losing it is
+ * a real unresolved dependency.
+ */
+void test('a peer nothing else provides still needs its entry', () => {
+  const { root } = createFixture({
+    manifests: {
+      'packages/lonely/package.json': {
+        name: '@stylexswc/lonely',
+        peerDependencies: { webpack: 'catalog:peers' },
+      },
+    },
+    lockYaml: LOCK_YAML.replace(
+      "  peers:\n    webpack:\n      specifier: '>=5.0.0'\n      version: 5.109.2\n\n",
+      ''
+    ),
+  });
+
+  const result = checkLockfile(root, LOCK_YAML);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /no longer records `peers\.webpack`/);
+});
+
+/**
+ * The mirror image, and the reason this check counts installs rather than
+ * entries: giving a lone peer a narrow-catalog `devDependencies` entry retires
+ * its `peers` pin on purpose. A check that read entries alone would refuse to
+ * let that edit be committed.
+ */
+void test('a peer that gained a devDependency may lose its entry', () => {
+  const { root } = createFixture({
+    lockYaml: LOCK_YAML.replace(
+      "  peers:\n    webpack:\n      specifier: '>=5.0.0'\n      version: 5.109.2\n\n",
+      ''
+    ),
+  });
+
+  const result = checkLockfile(root, LOCK_YAML);
+
+  assert.equal(result.status, 0, result.stderr);
 });
 
 /**
@@ -711,5 +754,43 @@ void test('a missing lockfile fails loudly rather than passing silently', () => 
 void test('the real lockfile pins every catalogued package to one version', () => {
   const result = run(repoRoot, 'duplicates');
 
+  assert.equal(result.status, 0, result.stderr);
+});
+
+/**
+ * The known limit of counting installs by name. pnpm skips an auto-installed
+ * peer when the sibling *satisfies* the peer range, and `requiredEntries`
+ * cannot evaluate a range without a semver library these scripts do without.
+ * So a peer whose narrow twin has outgrown its upper bound is load-bearing
+ * again, and a later drop of it goes unreported.
+ *
+ * Pinned rather than fixed, because the failure needs a `peers` range with an
+ * upper bound and a major bump of the twin past it. Change this test when the
+ * scripts gain a way to compare ranges -- not to match new behaviour, but
+ * because the limit it records has gone.
+ */
+void test('a peer whose twin outgrew the peer range is not reported when dropped', () => {
+  const workspaceYaml = WORKSPACE_YAML.replace("webpack: '>=5.0.0'", "webpack: '>=5.0.0 <6.0.0'");
+  const { root } = createFixture({
+    workspaceYaml,
+    manifests: {
+      'packages/plugin/package.json': {
+        name: '@stylexswc/plugin',
+        // The twin has gone major, so it no longer satisfies the peer range
+        // and pnpm would install the peer again.
+        devDependencies: { '@swc/core': 'catalog:bundlers', webpack: 'catalog:bundlers' },
+        peerDependencies: { '@swc/core': 'catalog:peers', webpack: 'catalog:peers' },
+      },
+    },
+    lockYaml: LOCK_YAML.replace(
+      "  peers:\n    webpack:\n      specifier: '>=5.0.0'\n      version: 5.109.2\n\n",
+      ''
+    ),
+  });
+
+  const result = checkLockfile(root, LOCK_YAML);
+
+  // Documents the gap: the name is in `devDependencies`, so the entry is
+  // exempt even though a real install could still need it.
   assert.equal(result.status, 0, result.stderr);
 });

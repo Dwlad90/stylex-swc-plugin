@@ -31,22 +31,21 @@ describe('runNodeScript', () => {
     expect(outcome.stdout).toBe('long');
   });
 
-  test('runs a script that holds a deeply nested literal', () => {
-    // A literal, not a loop: a parser descends one frame for each level, and
-    // this is the shape that ended the child under `node -e`. A `.js` file
-    // reaches V8 alone, which holds a much deeper source than the TypeScript
-    // stripper does on the small stack that Windows gives the main thread.
-    const nested = `${'{ a: '.repeat(1000)}null${' }'.repeat(1000)}`;
-    const outcome = runNodeScript(`
-      const value = ${nested};
-      let depth = 0;
-      for (let node = value; node !== null; node = node.a) depth++;
-      process.stdout.write(String(depth));
-    `);
+  test('gives the script to the JavaScript parser, not to the TypeScript one', () => {
+    // The guard for the second limit. Node strips types from `-e` source, and
+    // that parser needs more stack than a Windows main thread has. A `.js`
+    // file never reaches it, so TypeScript syntax must fail here. This test
+    // goes red if the helper ever passes a script as an argument again.
+    //
+    // The depth a literal may reach is deliberately not asserted: it belongs
+    // to the stack of the host, which is 8 MB on macOS and 1 MB on Windows,
+    // and any fixed number is a guess about a limit that no test can measure
+    // from another platform.
+    const outcome = runNodeScript('const value: number = 1; process.stdout.write(String(value));');
 
     expect(outcome.error).toBeUndefined();
-    expect(outcome.status).toBe(0);
-    expect(outcome.stdout).toBe('1000');
+    expect(outcome.status).not.toBe(0);
+    expect(outcome.stderr).toContain('SyntaxError');
   });
 
   test('runs a script that builds a shape larger than any parser sees', () => {

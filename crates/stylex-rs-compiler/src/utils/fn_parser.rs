@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use log::debug;
+use log::{debug, warn};
 use napi::{JsNumber, JsObject, JsString, JsValue, Unknown, ValueType};
 use stylex_ast::ast::{
   convertors::{create_bool_expr, create_null_expr, create_number_expr, create_string_expr},
@@ -16,6 +16,32 @@ thread_local! {
   static NAPI_ENV_RAW: std::cell::Cell<Option<napi::sys::napi_env>> =
     const { std::cell::Cell::new(None) };
 }
+
+/// How deeply the reader descends into an `env` value before it stops.
+///
+/// [`napi_value_to_expr`] recurses once for each object or array below the top
+/// of `env`. Past the point where the stack runs out the process **aborts**
+/// rather than panicking -- a stack overflow is not unwindable, so the
+/// `catch_unwind` around compilation never sees it and JavaScript gets no error
+/// to catch. A cycle, such as `const o = {}; o.self = o`, has no bottom at all
+/// and reaches that point every time.
+///
+/// The limit is stated rather than left to whatever stack the host provides, so
+/// that the same `env` reads the same way everywhere. The stacks in play differ
+/// by a large factor: the main thread gets 8 MB on macOS but only 1 MB on
+/// Windows, and the measured cliff moves with it -- about 4600 levels on the
+/// first, near 560 on the second. Sixty-four is set well below the tighter of
+/// the two, and far above real configuration, where an `env` object nests two
+/// or three levels.
+///
+/// A value below the limit reads as null, which is the answer this reader
+/// already gives for a value that has no expression of its own.
+///
+/// The same argument for CSS syntax lives in
+/// [`stylex_utils::nesting::MAX_NESTING_DEPTH`]. The budgets are kept apart on
+/// purpose: that one guards syntax the parser reads, this one guards a value
+/// graph that JavaScript hands across the NAPI boundary.
+const MAX_ENV_NESTING_DEPTH: usize = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum EnvValueKind {
@@ -131,7 +157,11 @@ fn parse_env_value(env: &napi::Env, value: Unknown) -> napi::Result<EnvEntry> {
     },
     EnvValueKind::Nullish => Ok(EnvEntry::Expr(create_null_expr())),
     EnvValueKind::Function => parse_env_function(env, value.raw()),
-    EnvValueKind::Object => Ok(EnvEntry::Expr(napi_value_to_expr(env.raw(), value.raw()))),
+    EnvValueKind::Object => Ok(EnvEntry::Expr(napi_value_to_expr(
+      env.raw(),
+      value.raw(),
+      0,
+    ))),
     EnvValueKind::Unsupported => Ok(EnvEntry::Expr(create_null_expr())),
   }
 }
@@ -183,7 +213,7 @@ fn parse_env_function(env: &napi::Env, js_fn_raw: napi::sys::napi_value) -> napi
         );
       }
 
-      napi_value_to_expr(raw_env, result)
+      napi_value_to_expr(raw_env, result, 0)
     },
   )))
 }
@@ -328,7 +358,25 @@ fn read_napi_string(raw_env: napi::sys::napi_env, value: napi::sys::napi_value) 
 /// `panic!`. That panic left the option parser before the compiler installed
 /// its panic guard, so it ended the Node process instead of raising an error
 /// that JavaScript can catch.
-fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value) -> Expr {
+///
+/// `depth` counts how many objects and arrays the reader has entered. It stops
+/// at [`MAX_ENV_NESTING_DEPTH`], because descending further overflows the stack
+/// and a stack overflow ends the process in the same way.
+fn napi_value_to_expr(
+  raw_env: napi::sys::napi_env,
+  value: napi::sys::napi_value,
+  depth: usize,
+) -> Expr {
+  if depth >= MAX_ENV_NESTING_DEPTH {
+    warn!(
+      "[StyleX] An env value nests deeper than {} levels. The compiler reads the levels below as \
+       null. A cycle in the object has this effect as well.",
+      MAX_ENV_NESTING_DEPTH
+    );
+
+    return create_null_expr();
+  }
+
   let mut val_type: napi::sys::napi_valuetype = napi::sys::ValueType::napi_undefined;
   unsafe {
     napi::sys::napi_typeof(raw_env, value, &mut val_type);
@@ -370,7 +418,7 @@ fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value
             }
             Some(ExprOrSpread {
               spread: None,
-              expr: Box::new(napi_value_to_expr(raw_env, elem_val)),
+              expr: Box::new(napi_value_to_expr(raw_env, elem_val, depth + 1)),
             })
           })
           .collect();
@@ -403,7 +451,7 @@ fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value
 
           props.push(create_key_value_prop(
             &key,
-            napi_value_to_expr(raw_env, prop_val),
+            napi_value_to_expr(raw_env, prop_val, depth + 1),
           ));
         }
 

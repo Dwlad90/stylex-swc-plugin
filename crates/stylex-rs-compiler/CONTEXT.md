@@ -71,3 +71,13 @@ the declaration to the published list, and the workspace manifest carries the
 measurement. Adding a musl target is a decision, not a copied line: mimalloc
 does not work on ARM64 musl.
 _Avoid_: memory allocator setting, malloc flag, mimalloc feature
+
+**Env nesting budget**:
+`MAX_ENV_NESTING_DEPTH` — how far `napi_value_to_expr` descends into the
+`stylex.env` object before it reads a value as null. The reader recurses once
+per object or array, and a stack overflow aborts the process rather than
+panicking, so `catch_unwind` never sees it and JavaScript gets no error. The
+budget is stated because the stack it must fit is not: the main thread gets 8 MB
+on macOS and 1 MB on Windows. A cycle in the object is the same case with no
+bottom at all.
+_Avoid_: recursion limit, max depth, stack guard

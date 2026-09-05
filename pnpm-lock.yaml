@@ -105,6 +105,9 @@ catalogs:
     tsdown:
       specifier: ^0.22.14
       version: 0.22.14
+    turbo:
+      specifier: ^2.10.12
+      version: 2.10.12
     unplugin:
       specifier: ^3.3.0
       version: 3.3.0
@@ -621,7 +624,7 @@ importers:
         specifier: catalog:tooling
         version: 15.3.2
       turbo:
-        specifier: 2.10.12
+        specifier: catalog:bundlers
         version: 2.10.12
       typescript:
         specifier: catalog:types
@@ -19431,7 +19434,7 @@ snapshots:
       he: 1.2.0
       param-case: 3.0.4
       relateurl: 0.2.7
-      terser: 5.49.0
+      terser: 5.51.2
 
   html-webpack-plugin@5.6.8(@rspack/core@2.2.2(@swc/helpers@0.5.23))(webpack@5.110.3):
     dependencies:

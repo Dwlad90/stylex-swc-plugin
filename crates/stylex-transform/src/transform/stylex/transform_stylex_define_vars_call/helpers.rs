@@ -13,7 +13,7 @@ use swc_core::{
   atoms::Atom,
   ecma::{
     ast::{
-      ArrowExpr, BlockStmtOrExpr, CallExpr, Expr, KeyValueProp, Lit, MemberExpr, MemberProp,
+      ArrowExpr, ArrowFunctionBody, CallExpr, Expr, KeyValueProp, Lit, MemberExpr, MemberProp,
       ObjectLit, Pat, Prop, PropOrSpread,
     },
     visit::{Visit, VisitWith},
@@ -78,7 +78,7 @@ pub(super) fn collect_keys_and_dependencies(
         stylex_panic!("{}", invalid_define_vars_function_value());
       }
       // Validate: expression body only (no block statements).
-      if let BlockStmtOrExpr::BlockStmt(_) = arrow.body.as_ref() {
+      if let ArrowFunctionBody::FunctionBody(_) = arrow.body.as_ref() {
         stylex_panic!("{}", invalid_define_vars_function_value());
       }
       arrow_props.push((key, arrow));
@@ -86,7 +86,7 @@ pub(super) fn collect_keys_and_dependencies(
   }
 
   for (key, arrow) in arrow_props {
-    let BlockStmtOrExpr::Expr(body_expr) = arrow.body.as_ref() else {
+    let ArrowFunctionBody::Expr(body_expr) = arrow.body.as_ref() else {
       continue; // Already validated above.
     };
 
@@ -250,8 +250,8 @@ pub(super) fn normalize_define_vars_functions(
     let new_value_expr: Expr = match kv.value.as_ref() {
       Expr::Arrow(arrow) if arrow.params.is_empty() => {
         let body_expr = match arrow.body.as_ref() {
-          BlockStmtOrExpr::Expr(e) => e.as_ref(),
-          BlockStmtOrExpr::BlockStmt(_) => {
+          ArrowFunctionBody::Expr(e) => e.as_ref(),
+          ArrowFunctionBody::FunctionBody(_) => {
             stylex_panic!("{}", invalid_define_vars_function_value());
           },
         };

@@ -2,7 +2,7 @@ use stylex_macros::stylex_panic;
 use swc_core::{
   common::{DUMMY_SP, Span, SyntaxContext},
   ecma::ast::{
-    ArrayLit, ArrowExpr, BigInt, BinExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, CallExpr,
+    ArrayLit, ArrowExpr, ArrowFunctionBody, BigInt, BinExpr, BinaryOp, BindingIdent, CallExpr,
     Callee, ComputedPropName, CondExpr, Expr, ExprOrSpread, Ident, IdentName, ImportDecl,
     ImportPhase, ImportSpecifier, ImportStarAsSpecifier, JSXAttr, JSXAttrName, JSXAttrOrSpread,
     JSXAttrValue, KeyValueProp, Lit, MemberExpr, MemberProp, ModuleDecl, ModuleItem, Null,
@@ -625,7 +625,7 @@ pub fn create_arrow_expression_with_params(params: Vec<Pat>, body_expr: Expr) ->
   Expr::Arrow(ArrowExpr {
     span: DUMMY_SP,
     params,
-    body: Box::new(BlockStmtOrExpr::Expr(Box::new(body_expr))),
+    body: Box::new(ArrowFunctionBody::Expr(Box::new(body_expr))),
     is_async: false,
     is_generator: false,
     type_params: None,

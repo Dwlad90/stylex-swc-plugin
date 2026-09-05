@@ -8,9 +8,9 @@ use swc_core::{
   atoms::Atom,
   common::DUMMY_SP,
   ecma::ast::{
-    ArrowExpr, BigInt, BigIntValue, BindingIdent, BlockStmtOrExpr, ComputedPropName, Expr,
-    GetterProp, Ident, IdentName, KeyValueProp, Lit, MemberProp, MethodProp, Number, ObjectLit,
-    Pat, PrivateName, Prop, PropName, PropOrSpread, SpreadElement, Str, Tpl, TplElement,
+    ArrowExpr, ArrowFunctionBody, BigInt, BigIntValue, BindingIdent, ComputedPropName, Expr,
+    Function, GetterProp, Ident, IdentName, KeyValueProp, Lit, MemberProp, MethodProp, Number,
+    ObjectLit, Pat, PrivateName, Prop, PropName, PropOrSpread, SpreadElement, Str, Tpl, TplElement,
   },
 };
 
@@ -323,8 +323,7 @@ fn refuses_a_getter() {
   let prop = PropOrSpread::Prop(Box::new(Prop::Getter(GetterProp {
     span: DUMMY_SP,
     key: PropName::Ident(ident_name("root")),
-    type_ann: None,
-    body: None,
+    function: Box::new(Function::default()),
   })));
 
   assert!(prop_as_key_value(&prop).is_none());
@@ -449,7 +448,7 @@ fn reads_a_key_whose_value_is_a_function() {
         id: Ident::new_no_ctxt(Atom::new("value"), DUMMY_SP),
         type_ann: None,
       })],
-      body: Box::new(BlockStmtOrExpr::Expr(Box::new(Expr::Ident(
+      body: Box::new(ArrowFunctionBody::Expr(Box::new(Expr::Ident(
         Ident::new_no_ctxt(Atom::new("value"), DUMMY_SP),
       )))),
       is_async: false,

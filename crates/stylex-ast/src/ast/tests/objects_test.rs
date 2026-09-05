@@ -115,8 +115,7 @@ fn make_getter_prop(key: &str) -> PropOrSpread {
       span: DUMMY_SP,
       sym: key.into(),
     }),
-    type_ann: None,
-    body: None,
+    function: Box::new(Function::default()),
   })))
 }
 
@@ -144,6 +143,7 @@ fn make_method_prop(name: &str) -> PropOrSpread {
       sym: name.into(),
     }),
     function: Box::new(Function {
+      this_param: None,
       params: vec![],
       decorators: vec![],
       span: DUMMY_SP,

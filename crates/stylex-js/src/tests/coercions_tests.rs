@@ -13,10 +13,10 @@ use swc_core::{
   },
   common::DUMMY_SP,
   ecma::ast::{
-    ArrayLit, ArrowExpr, AssignProp, BigInt, BindingIdent, BlockStmt, BlockStmtOrExpr, Bool,
-    ComputedPropName, ExprOrSpread, GetterProp, Ident, IdentName, KeyValueProp, MethodProp, Null,
-    Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Regex, SetterProp, SpreadElement, Str,
-    ThisExpr, UnaryExpr,
+    ArrayLit, ArrowExpr, ArrowFunctionBody, AssignProp, BigInt, BindingIdent, Bool,
+    ComputedPropName, ExprOrSpread, Function, FunctionBody, GetterProp, Ident, IdentName,
+    KeyValueProp, MethodProp, Null, Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Regex,
+    SetterProp, SpreadElement, Str, ThisExpr, UnaryExpr,
   },
 };
 
@@ -107,7 +107,7 @@ fn arrow_expr() -> Expr {
   Expr::Arrow(ArrowExpr {
     span: DUMMY_SP,
     params: vec![],
-    body: Box::new(BlockStmtOrExpr::Expr(Box::new(num_expr(1.0)))),
+    body: Box::new(ArrowFunctionBody::Expr(Box::new(num_expr(1.0)))),
     is_async: false,
     is_generator: false,
     type_params: None,
@@ -279,7 +279,7 @@ fn returning_arrow(body: Expr) -> Expr {
   Expr::Arrow(ArrowExpr {
     span: DUMMY_SP,
     params: vec![],
-    body: Box::new(BlockStmtOrExpr::Expr(Box::new(body))),
+    body: Box::new(ArrowFunctionBody::Expr(Box::new(body))),
     is_async: false,
     is_generator: false,
     type_params: None,
@@ -679,7 +679,7 @@ fn parameterised_arrow(body: Expr) -> Expr {
   Expr::Arrow(ArrowExpr {
     span: DUMMY_SP,
     params: vec![binding_pat("x")],
-    body: Box::new(BlockStmtOrExpr::Expr(Box::new(body))),
+    body: Box::new(ArrowFunctionBody::Expr(Box::new(body))),
     is_async: false,
     is_generator: false,
     type_params: None,
@@ -693,7 +693,7 @@ fn block_bodied_arrow() -> Expr {
   Expr::Arrow(ArrowExpr {
     span: DUMMY_SP,
     params: vec![],
-    body: Box::new(BlockStmtOrExpr::BlockStmt(BlockStmt::default())),
+    body: Box::new(ArrowFunctionBody::FunctionBody(FunctionBody::default())),
     is_async: false,
     is_generator: false,
     type_params: None,
@@ -712,7 +712,10 @@ fn getter_prop(name: &str) -> PropOrSpread {
 fn setter_prop(name: &str) -> PropOrSpread {
   PropOrSpread::Prop(Box::new(Prop::Setter(SetterProp {
     key: ident_key(name),
-    param: Box::new(binding_pat("value")),
+    function: Box::new(Function {
+      params: vec![binding_pat("value").into()],
+      ..Default::default()
+    }),
     ..Default::default()
   })))
 }

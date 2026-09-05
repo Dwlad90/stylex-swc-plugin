@@ -15,7 +15,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
   ecma::ast::{
-    ArrayLit, ArrowExpr, BinExpr, BlockStmtOrExpr, CallExpr, Callee, CondExpr, Decl, Expr,
+    ArrayLit, ArrowExpr, ArrowFunctionBody, BinExpr, CallExpr, Callee, CondExpr, Decl, Expr,
     ExprOrSpread, ExprStmt, Ident, IdentName, KeyValueProp, Lit, MemberExpr, MemberProp, ObjectLit,
     ObjectPatProp, Pat, Prop, PropName, PropOrSpread, ReturnStmt, Stmt, Tpl,
   },
@@ -1530,8 +1530,8 @@ impl<'r> Walk<'_, 'r> {
     let inner = bindings.enter(&outer, elements, repeats, self.reader)?;
 
     match arrow.body.as_ref() {
-      BlockStmtOrExpr::Expr(body) => self.under(inner).admit_value(body),
-      BlockStmtOrExpr::BlockStmt(body) => self.under(inner).admit_block(&body.stmts),
+      ArrowFunctionBody::Expr(body) => self.under(inner).admit_value(body),
+      ArrowFunctionBody::FunctionBody(body) => self.under(inner).admit_block(&body.stmts),
     }
   }
 

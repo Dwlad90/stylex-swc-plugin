@@ -470,7 +470,8 @@ mod get_css_value_tests {
 mod get_css_value_panic_tests {
   use super::*;
   use swc_core::ecma::ast::{
-    GetterProp, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, SpreadElement,
+    Function, GetterProp, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread,
+    SpreadElement,
   };
 
   #[test]
@@ -503,8 +504,7 @@ mod get_css_value_panic_tests {
         span: DUMMY_SP,
         sym: "val".into(),
       }),
-      type_ann: None,
-      body: None,
+      function: Box::new(Function::default()),
     })));
     let obj = ObjectLit {
       span: DUMMY_SP,
@@ -605,8 +605,7 @@ mod get_css_value_panic_tests {
         span: DUMMY_SP,
         sym: "value".into(),
       }),
-      type_ann: None,
-      body: None,
+      function: Box::new(Function::default()),
     })));
     let obj = ObjectLit {
       span: DUMMY_SP,

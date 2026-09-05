@@ -439,7 +439,7 @@ mod unspanned_fast_path_tests {
     common::{DUMMY_SP, SyntaxContext},
     ecma::{
       ast::{
-        ArrayLit, ArrowExpr, AssignProp, AwaitExpr, BigInt, BinExpr, BinaryOp, BlockStmtOrExpr,
+        ArrayLit, ArrowExpr, ArrowFunctionBody, AssignProp, AwaitExpr, BigInt, BinExpr, BinaryOp,
         Bool, Callee, ComputedPropName, CondExpr, Expr, ExprOrSpread, Ident, IdentName, Import,
         ImportPhase, JSXText, KeyValueProp, Lit, MemberExpr, MemberProp, MetaPropExpr,
         MetaPropKind, NewExpr, Null, Number, ObjectLit, OptCall, OptChainBase, OptChainExpr,
@@ -651,7 +651,7 @@ mod unspanned_fast_path_tests {
         span: DUMMY_SP,
         ctxt: SyntaxContext::empty(),
         params: vec![Pat::Ident(ident_pat("arg").into())],
-        body: Box::new(BlockStmtOrExpr::Expr(Box::new(ident("arg")))),
+        body: Box::new(ArrowFunctionBody::Expr(Box::new(ident("arg")))),
         is_async: false,
         is_generator: false,
         type_params: None,
@@ -661,7 +661,7 @@ mod unspanned_fast_path_tests {
         span: DUMMY_SP,
         ctxt: SyntaxContext::empty(),
         params: vec![Pat::Expr(Box::new(ident("expr_pat")))],
-        body: Box::new(BlockStmtOrExpr::Expr(Box::new(ident("expr_pat")))),
+        body: Box::new(ArrowFunctionBody::Expr(Box::new(ident("expr_pat")))),
         is_async: false,
         is_generator: false,
         type_params: None,

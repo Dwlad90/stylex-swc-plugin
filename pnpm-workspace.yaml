@@ -238,25 +238,25 @@ catalogs:
     'prop-types': '^15.8.1'
 
   testing:
-    '@jest/globals': '^30.4.1'
-    '@jest/transform': '^30.4.1'
-    '@jest/types': '^30.4.1'
+    '@jest/globals': '^30.5.1'
+    '@jest/transform': '^30.5.1'
+    '@jest/types': '^30.5.1'
     '@playwright/test': '^1.62.1'
     '@swc/jest': '^0.2.39'
-    '@testing-library/jest-dom': '^7.0.0'
-    '@testing-library/react': '^16.3.2'
-    '@vitest/browser': '^4.1.10'
-    '@vitest/browser-playwright': '^4.1.10'
-    '@vitest/coverage-v8': '^4.1.10'
-    'jest': '^30.4.2'
+    '@testing-library/jest-dom': '^7.0.1'
+    '@testing-library/react': '^16.3.3'
+    '@vitest/browser': '^4.1.11'
+    '@vitest/browser-playwright': '^4.1.11'
+    '@vitest/coverage-v8': '^4.1.11'
+    'jest': '^30.5.1'
     'jest-chain-transform': '^0.0.8'
-    'jest-environment-jsdom': '30.4.1'
+    'jest-environment-jsdom': '30.5.1'
     'jsdom': '^30.0.1'
-    'memfs': '^4.68.0'
+    'memfs': '^4.69.1'
     'playwright': '^1.62.1'
     'serve': '^14.2.6'
-    'tinybench': '^6.1.2'
-    'vitest': '^4.1.10'
+    'tinybench': '^6.1.4'
+    'vitest': '^4.1.11'
 
   tooling:
     '@arethetypeswrong/cli': '^0.18.5'
@@ -356,6 +356,13 @@ patchedDependencies:
 # phones home gets `false`: the entry is the audit trail, so silence is not the
 # same as approval.
 allowBuilds:
+  # No-op unless asked. The `install` script is `scripts/build-from-source.js`,
+  # whose whole body is guarded by `npm_config_build_from_source === 'true'`;
+  # left alone it spawns nothing. The binding arrives prebuilt through the
+  # twelve `@parcel/watcher-<platform>` optional deps, so there is nothing for
+  # an approval to produce. Reached as a hard dependency of `jest-haste-map`
+  # since jest 30.5.
+  '@parcel/watcher': false
   # Validates the native binding; on failure it shells out to
   # `npm install --no-save @swc/wasm` and swaps the Rust binding for wasm. Three
   # reasons that fallback is not worth having: prebuilt bindings exist for all

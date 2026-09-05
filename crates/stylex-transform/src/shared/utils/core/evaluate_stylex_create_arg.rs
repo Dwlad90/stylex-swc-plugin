@@ -6,7 +6,7 @@ use swc_core::{
   common::DUMMY_SP,
   ecma::{
     ast::{
-      BinaryOp, BindingIdent, BlockStmtOrExpr, Expr, KeyValueProp, Lit, ObjectLit, Pat, Prop,
+      ArrowFunctionBody, BinaryOp, BindingIdent, Expr, KeyValueProp, Lit, ObjectLit, Pat, Prop,
       PropOrSpread, UnaryExpr, UnaryOp,
     },
     utils::quote_ident,
@@ -206,7 +206,7 @@ pub fn evaluate_stylex_create_arg(
                       .collect::<Vec<BindingIdent>>();
 
                     match fn_path.body.as_ref() {
-                      BlockStmtOrExpr::Expr(expr) => {
+                      ArrowFunctionBody::Expr(expr) => {
                         if let Expr::Object(fn_body_object) = normalize_expr(expr) {
                           let eval_result = evaluate_partial_object_recursively(
                             fn_body_object,

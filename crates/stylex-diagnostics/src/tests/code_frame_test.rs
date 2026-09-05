@@ -11,7 +11,7 @@ use std::{
 use swc_core::atoms::Atom;
 use swc_core::common::{BytePos, DUMMY_SP, FileName, GLOBALS, Globals, Span, SyntaxContext};
 use swc_core::ecma::ast::{
-  ArrowExpr, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, Expr, ExprOrSpread, Ident,
+  ArrowExpr, ArrowFunctionBody, BindingIdent, CallExpr, Callee, Expr, ExprOrSpread, Ident,
   ImportDecl, ImportNamedSpecifier, ImportSpecifier, Module, ModuleDecl, ModuleItem, Pat, Program,
   Script, Str,
 };
@@ -1109,7 +1109,7 @@ fn a_target_that_binds_names_is_matched_across_type_annotations() {
       id: Ident::new_no_ctxt(Atom::from("value"), DUMMY_SP),
       type_ann: None,
     })],
-    body: Box::new(BlockStmtOrExpr::Expr(Box::new(Expr::Ident(
+    body: Box::new(ArrowFunctionBody::Expr(Box::new(Expr::Ident(
       Ident::new_no_ctxt(Atom::from("value"), DUMMY_SP),
     )))),
     is_async: false,

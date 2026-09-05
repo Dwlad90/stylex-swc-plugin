@@ -11,7 +11,7 @@ use swc_core::{
   common::{DUMMY_SP, SyntaxContext},
   ecma::{
     ast::{
-      ArrayLit, ArrowExpr, AwaitExpr, BigInt, BinExpr, BlockStmtOrExpr, Bool, CallExpr, Callee,
+      ArrayLit, ArrowExpr, ArrowFunctionBody, AwaitExpr, BigInt, BinExpr, Bool, CallExpr, Callee,
       ComputedPropName, CondExpr, Expr, ExprOrSpread, Ident, IdentName, Import, Invalid, Lit,
       MemberExpr, MemberProp, MetaPropExpr, NewExpr, Null, Number, ObjectLit, OptCall,
       OptChainBase, OptChainExpr, ParenExpr, Pat, PrivateName, Prop, PropName, PropOrSpread, Regex,
@@ -498,7 +498,7 @@ fn hash_arrow_expr_unspanned<H: Hasher>(arrow: &ArrowExpr, state: &mut H) -> boo
   arrow.is_generator.hash(state);
 
   hash_slice_with(&arrow.params, state, hash_pat_unspanned)
-    && hash_block_stmt_or_expr_unspanned(&arrow.body, state)
+    && hash_arrow_function_body_unspanned(&arrow.body, state)
     && hash_none(&arrow.type_params, state)
     && hash_none(&arrow.return_type, state)
 }
@@ -672,15 +672,15 @@ fn hash_import_unspanned<H: Hasher>(import: &Import, state: &mut H) -> bool {
   true
 }
 
-fn hash_block_stmt_or_expr_unspanned<H: Hasher>(
-  block_stmt_or_expr: &BlockStmtOrExpr,
+fn hash_arrow_function_body_unspanned<H: Hasher>(
+  arrow_function_body: &ArrowFunctionBody,
   state: &mut H,
 ) -> bool {
-  discriminant(block_stmt_or_expr).hash(state);
+  discriminant(arrow_function_body).hash(state);
 
-  match block_stmt_or_expr {
-    BlockStmtOrExpr::Expr(expr) => hash_expr_unspanned(expr, state),
-    BlockStmtOrExpr::BlockStmt(_) => false,
+  match arrow_function_body {
+    ArrowFunctionBody::Expr(expr) => hash_expr_unspanned(expr, state),
+    ArrowFunctionBody::FunctionBody(_) => false,
   }
 }
 

@@ -167,7 +167,7 @@ mod get_key_values_from_object_tests {
   #[test]
   #[should_panic]
   fn panics_on_getter_prop() {
-    use swc_core::ecma::ast::GetterProp;
+    use swc_core::ecma::ast::{Function, GetterProp};
     let obj = ObjectLit {
       span: DUMMY_SP,
       props: vec![PropOrSpread::Prop(Box::new(Prop::Getter(GetterProp {
@@ -176,8 +176,7 @@ mod get_key_values_from_object_tests {
           span: DUMMY_SP,
           sym: "val".into(),
         }),
-        type_ann: None,
-        body: None,
+        function: Box::new(Function::default()),
       })))],
     };
     get_key_values_from_object(&obj);

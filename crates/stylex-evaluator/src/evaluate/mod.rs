@@ -28,7 +28,7 @@ use swc_core::{
   atoms::Atom,
   ecma::{
     ast::{
-      ArrayLit, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
+      ArrayLit, ArrowFunctionBody, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
       ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, ObjectLit, OptChainBase,
       Pat, Prop, PropName, PropOrSpread, TplElement, VarDeclarator,
     },

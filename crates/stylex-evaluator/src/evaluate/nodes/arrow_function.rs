@@ -20,7 +20,7 @@ pub(in super::super) fn evaluate(
     .collect::<Vec<Atom>>();
 
   match body.as_ref() {
-    BlockStmtOrExpr::Expr(body_expr) => {
+    ArrowFunctionBody::Expr(body_expr) => {
       if ident_params.len() == params.len() {
         let arrow_closure_fabric =
           |identifiers: FunctionMapIdentifiers, ident_params: Vec<Atom>, body_expr: Box<Expr>| {
@@ -118,6 +118,6 @@ pub(in super::super) fn evaluate(
 
       None
     },
-    BlockStmtOrExpr::BlockStmt(_) => None,
+    ArrowFunctionBody::FunctionBody(_) => None,
   }
 }

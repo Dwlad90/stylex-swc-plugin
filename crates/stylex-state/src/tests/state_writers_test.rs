@@ -358,6 +358,7 @@ mod fill_top_level_expressions_extra_tests {
       ident: create_ident("myFn"),
       declare: false,
       function: Box::new(Function {
+        this_param: None,
         params: vec![],
         decorators: vec![],
         span: DUMMY_SP,

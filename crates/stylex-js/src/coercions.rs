@@ -11,8 +11,8 @@ use std::convert::Infallible;
 use stylex_utils::number;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{
-  BigIntValue, BlockStmtOrExpr, Expr, Ident, Lit, Number, ObjectLit, Prop, PropName, PropOrSpread,
-  UnaryOp,
+  ArrowFunctionBody, BigIntValue, Expr, Ident, Lit, Number, ObjectLit, Prop, PropName,
+  PropOrSpread, UnaryOp,
 };
 
 /// What `ToString` produces for an object that still takes the
@@ -800,7 +800,7 @@ fn own_conversion_method<'a>(object: &'a ObjectLit, name: &str) -> Option<Option
     return Some(None);
   }
 
-  let BlockStmtOrExpr::Expr(body) = arrow.body.as_ref() else {
+  let ArrowFunctionBody::Expr(body) = arrow.body.as_ref() else {
     return Some(None);
   };
 

@@ -14,7 +14,7 @@ mod node_kind {
       JSXText, Lit, PrivateName, Super, SuperProp, SuperPropExpr, YieldExpr,
     },
   };
-  use swc_ecma_parser::{EsSyntax, Parser, StringInput, Syntax, TsSyntax, lexer::Lexer};
+  use swc_ecma_parser::{EsSyntax, Syntax, TsSyntax, parse_file_as_expr};
 
   /// Parses one expression under `syntax`, or reports why it could not be
   /// parsed. A test that names syntax the parser rejects is a broken test, not
@@ -23,17 +23,33 @@ mod node_kind {
     let source_map: Lrc<SourceMap> = Default::default();
     let source_file = source_map.new_source_file(FileName::Anon.into(), source.to_string());
 
-    let lexer = Lexer::new(
+    // `parse_file_as_expr` is the module-capable entry point, so `await` and
+    // `import.meta` parse as the nodes they name. A parser assembled by hand
+    // has no module context and reads `await` as a plain identifier.
+    let mut recovered_errors = Vec::new();
+
+    let expr = match parse_file_as_expr(
+      &source_file,
       syntax,
       Default::default(),
-      StringInput::from(&*source_file),
       None,
-    );
-
-    match Parser::new_from(lexer).parse_expr() {
+      &mut recovered_errors,
+    ) {
       Ok(expr) => *expr,
       Err(error) => panic!("failed to parse `{}`: {:?}", source, error),
-    }
+    };
+
+    // The parser repairs what it can and reports the repair here instead of
+    // failing. An assertion on a repaired tree tells you nothing about the
+    // syntax the test names, so a repair is a broken test too.
+    assert!(
+      recovered_errors.is_empty(),
+      "parsed `{}` only after repair: {:?}",
+      source,
+      recovered_errors
+    );
+
+    expr
   }
 
   fn es() -> Syntax {

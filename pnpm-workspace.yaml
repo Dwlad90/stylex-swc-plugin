@@ -356,6 +356,13 @@ patchedDependencies:
 # phones home gets `false`: the entry is the audit trail, so silence is not the
 # same as approval.
 allowBuilds:
+  # No-op unless asked. The `install` script is `scripts/build-from-source.js`,
+  # whose whole body is guarded by `npm_config_build_from_source === 'true'`;
+  # left alone it spawns nothing. The binding arrives prebuilt through the
+  # twelve `@parcel/watcher-<platform>` optional deps, so there is nothing for
+  # an approval to produce. Reached as a hard dependency of `jest-haste-map`
+  # since jest 30.5.
+  '@parcel/watcher': false
   # Validates the native binding; on failure it shells out to
   # `npm install --no-save @swc/wasm` and swaps the Rust binding for wasm. Three
   # reasons that fallback is not worth having: prebuilt bindings exist for all
@@ -365,7 +372,6 @@ allowBuilds:
   # `minimumReleaseAge` and the supply-chain gate. If a binding ever does go
   # missing, a loud failure at `require` beats a silent swap to wasm in a repo
   # that exists to be fast -- see `guidelines/PERFORMANCE.md`.
-  '@parcel/watcher': set this to true or false
   '@swc/core': false
   # Banner, not build. Both postinstalls are the same 62-line OpenCollective
   # funding notice -- one `writeFileSync` into `os.tmpdir()` to avoid repeating

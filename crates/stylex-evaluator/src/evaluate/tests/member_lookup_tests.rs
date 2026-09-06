@@ -275,3 +275,29 @@ fn namespace_holding_the_env_object() -> FunctionConfigType {
 
   FunctionConfigType::Map(entries)
 }
+
+// ==================== an array a fold produced ====================
+//
+// An array the evaluator answered is its own list; an array a *fold* answered
+// is a literal. Both are arrays to the author, so both answer the same three
+// ways -- and the literal is read by a separate arm, because a hole has no
+// value to evaluate and only the syntax says how many slots were written.
+
+/// The three answers a fold's own array gives, which are the three the
+/// evaluator's own list gives.
+#[test]
+fn an_array_a_fold_produced_answers_the_same_three_ways() {
+  assert_folds_to_string("Object.keys({ a: 1, b: 2 })[1]", "b");
+  assert_folds_to_undefined("Object.keys({ a: 1 }).foo");
+  assert_folds_to_undefined("Object.keys({ a: 1 })[7]");
+}
+
+/// A hole occupies a slot and carries no key, so an index past the hole names
+/// the element the source wrote there -- and the count is the written slots
+/// rather than the keys.
+#[test]
+fn a_hole_occupies_a_slot_without_carrying_a_key() {
+  assert_folds_to_string("Object.keys([, 'a'])[0]", "1");
+  assert_folds_to_number("[, 'a'].length", 2.0);
+  assert_folds_to_number("['a', , 'b'].length", 3.0);
+}

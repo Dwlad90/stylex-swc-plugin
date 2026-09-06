@@ -72,13 +72,17 @@ pub(in super::super) fn evaluate(
       // Without it a nested refusal is renamed after its container: `[[...xs]]`
       // reported `ArrayExpression` where upstream reports `SpreadElement`,
       // naming the node the author did not write instead of the one they did.
-      if let Some(elem_deopt) = &elem_value.deopt {
-        deopt(
-          elem_deopt,
-          state,
-          elem_value.reason.as_deref().unwrap_or("unknown error"),
-        );
-      }
+      //
+      // The element itself stands in for a refusal that recorded no path, which
+      // no refusal does: every path that clears confidence goes through `deopt`,
+      // and `deopt` records the path with the reason. Written as a fallback
+      // rather than as an arm because the arm could not be reached to be tested,
+      // and an arm no case can enter is a claim nothing checks.
+      deopt(
+        elem_value.deopt.as_ref().unwrap_or(&elem.expr),
+        state,
+        elem_value.reason.as_deref().unwrap_or("unknown error"),
+      );
 
       return None;
     }

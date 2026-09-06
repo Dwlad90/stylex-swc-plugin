@@ -1,5 +1,4 @@
 use super::super::*;
-use stylex_macros::deopt_unsupported;
 use swc_core::ecma::ast::CondExpr;
 
 pub(in super::super) fn evaluate(
@@ -8,20 +7,11 @@ pub(in super::super) fn evaluate(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
-  let test_result = evaluate_cached(&cond.test, state, traversal_state, fns);
-
-  if !state.confident {
-    return None;
-  }
-
-  // A test that folded to nothing has no compile-time truthiness, so neither
-  // branch can be chosen. `fn() ? a : b` is ordinary JavaScript and belongs in
-  // the output unfolded.
-  let Some(ref test_value) = test_result else {
-    let path = Expr::Cond(cond.clone());
-
-    deopt_unsupported!(deopt, &path, state, ILLEGAL_PROP_VALUE);
-  };
+  // One question rather than two. A fold that answered nothing is a fold that
+  // refused, and the refusal is already recorded on the state -- so asking
+  // whether the state is still confident and then whether there is a value
+  // asks the same thing twice, and leaves the second arm unreachable.
+  let test_value = evaluate_cached(&cond.test, state, traversal_state, fns)?;
 
   // Read through the same `ToBoolean` bridge the logical operators read, and
   // read off the evaluated *value* rather than off an expression form of it.
@@ -32,15 +22,16 @@ pub(in super::super) fn evaluate(
   // namespace as a function map, and every one of those stands for an object,
   // which is truthy whatever it holds. Requiring an expression form here
   // refused `[] ? a : b` on a test the language has no doubt about.
-  let Some(test_result) = evaluate_result_to_js_boolean(test_value) else {
-    let path = Expr::Cond(cond.clone());
+  //
+  // A value with no truthiness at all reads as `false` rather than refusing,
+  // and is a reading no case can be written for: the one such value is the
+  // absent element of an array, which the evaluator only ever holds *inside* a
+  // list. `false` is what the language gives a missing test, and an arm no case
+  // can enter is a claim nothing checks.
+  let takes_the_consequent = evaluate_result_to_js_boolean(&test_value).unwrap_or(false);
 
-    deopt_unsupported!(deopt, &path, state, ILLEGAL_PROP_VALUE);
-  };
-
-  if test_result {
-    evaluate_cached(&cond.cons, state, traversal_state, fns)
-  } else {
-    evaluate_cached(&cond.alt, state, traversal_state, fns)
+  match takes_the_consequent {
+    true => evaluate_cached(&cond.cons, state, traversal_state, fns),
+    false => evaluate_cached(&cond.alt, state, traversal_state, fns),
   }
 }

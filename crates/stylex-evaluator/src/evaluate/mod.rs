@@ -439,7 +439,6 @@ fn _evaluate(
       normalized_path,
       &tpl.exprs,
       &tpl.quasis,
-      false,
       state,
       traversal_state,
       fns,
@@ -455,7 +454,6 @@ fn _evaluate(
       // nodes::template_literal::evaluate_quasis(
       //   &Expr::TaggedTpl(_tagged_tpl.clone()),
       //   &_tagged_tpl.tpl.quasis,
-      //   false,
       //   state,
       // )
     },
@@ -573,6 +571,18 @@ mod group_in_the_engine_tests;
 #[cfg(test)]
 #[path = "tests/amplified_call_tests.rs"]
 mod amplified_call_tests;
+
+#[cfg(test)]
+#[path = "tests/declined_call_dispatch_tests.rs"]
+mod declined_call_dispatch_tests;
+
+#[cfg(test)]
+#[path = "tests/object_shape_tests.rs"]
+mod object_shape_tests;
+
+#[cfg(test)]
+#[path = "tests/object_key_tests.rs"]
+mod object_key_tests;
 
 #[cfg(test)]
 #[path = "tests/engine_stylex_function_tests.rs"]

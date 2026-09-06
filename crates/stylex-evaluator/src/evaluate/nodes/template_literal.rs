@@ -1,23 +1,23 @@
 use super::super::*;
 
+/// The string a template literal writes, or nothing where it has none.
+///
+/// The *cooked* text of each quasi rather than the raw one: an escape stands
+/// for the character it names, which is what a browser reads. The raw text is
+/// what a tagged template hands its tag, and this evaluator folds no tagged
+/// template -- so there is no reading to choose between here, and no parameter
+/// saying which.
 pub(in super::super) fn evaluate_quasis(
   path: &Expr,
   exprs: &[Box<Expr>],
   quasis: &[TplElement],
-  raw: bool,
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
   let quasi_len = quasis
     .iter()
-    .map(|elem| {
-      if raw {
-        elem.raw.len()
-      } else {
-        extract_tpl_cooked_value(elem).len()
-      }
-    })
+    .map(|elem| extract_tpl_cooked_value(elem).len())
     .sum::<usize>();
   // Grown through a buffer that measures every append against the character
   // ceiling, rather than measured once at the end: a template that interpolates a
@@ -25,16 +25,12 @@ pub(in super::super) fn evaluate_quasis(
   // the last one is copied in.
   let mut strng = GrownString::with_capacity(quasi_len, TEMPLATE_LITERAL);
 
+  // No confidence check at the top of the turn: every way this loop can lose
+  // confidence returns out of it below, so a check here would be an arm no case
+  // could enter. What the loop must not do is carry on past a piece it could
+  // not write, which is what those returns are for.
   for (i, elem) in quasis.iter().enumerate() {
-    if !state.confident {
-      return None;
-    }
-
-    let quasi = if raw {
-      &*elem.raw
-    } else {
-      extract_tpl_cooked_value(elem)
-    };
+    let quasi = extract_tpl_cooked_value(elem);
 
     strng
       .push(quasi, || path.clone(), state, traversal_state)
@@ -85,10 +81,6 @@ pub(in super::super) fn evaluate_quasis(
       // template.
       Err(StringAppend::TooLarge(_)) => return None,
     }
-  }
-
-  if !state.confident {
-    return None;
   }
 
   Some(EvaluateResultValue::Expr(create_string_expr(

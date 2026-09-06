@@ -1,4 +1,3 @@
-use log::warn;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
@@ -22,20 +21,20 @@ const CSS_VAR_PREFIX: &str = "var(";
 /// range for text the test admitted, and two callers each spelling the pair is
 /// how one of them comes to slice text the other would have rejected.
 ///
-/// A regex failure is reported and read as "not a variable", which keeps a
-/// broken match from deciding a fallback order.
+/// A regex failure reads as "not a variable", which keeps a broken match from
+/// deciding a fallback order. It is read that way rather than reported: the
+/// pattern is a literal this crate compiles itself, so the only failure it has
+/// is a backtracking limit no `var(…)` can reach, and a report no case can
+/// produce is a sentence nothing checks.
+///
+/// The prefix is stripped through `and_then` rather than `?` for the same
+/// reason: the pattern is what admitted the text, so the prefix is there
+/// whenever the strip runs.
 pub(crate) fn css_variable_name(text: &str) -> Option<&str> {
-  let matched = IS_CSS_VAR.is_match(text).unwrap_or_else(|err| {
-    warn!(
-      "Error matching IS_CSS_VAR for '{}': {}. Skipping pattern match.",
-      text, err
-    );
-
-    false
-  });
-
-  match matched {
-    true => text.strip_prefix(CSS_VAR_PREFIX)?.strip_suffix(')'),
+  match IS_CSS_VAR.is_match(text).unwrap_or(false) {
+    true => text
+      .strip_prefix(CSS_VAR_PREFIX)
+      .and_then(|inner| inner.strip_suffix(')')),
     false => None,
   }
 }

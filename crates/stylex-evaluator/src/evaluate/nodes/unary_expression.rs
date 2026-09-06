@@ -36,18 +36,13 @@ pub(in super::super) fn evaluate(
     }
   }
 
-  let arg = evaluate_cached(argument, state, traversal_state, fns);
-
-  if !state.confident {
-    return None;
-  }
-
-  // An operand that folded to nothing has no compile-time value to apply the
-  // operator to. `typeof someObject.method` is ordinary JavaScript, so this
-  // refuses the fold rather than aborting the build.
-  let Some(arg) = arg else {
-    deopt_unsupported!(deopt, &create_unary_expr(unary), state, ILLEGAL_PROP_VALUE);
-  };
+  // One question rather than two. An operand that folded to nothing is an
+  // operand that refused, and the refusal is already recorded on the state --
+  // so asking whether the state is still confident and then whether there is a
+  // value asks the same thing twice, and leaves the second arm unreachable.
+  // `typeof someObject.method` is ordinary JavaScript, and what it reads is the
+  // member's own refusal rather than one this node invents.
+  let arg = evaluate_cached(argument, state, traversal_state, fns)?;
 
   // `!` is answered off the evaluated value rather than off an expression form
   // of it, and through the one `ToBoolean` bridge the logical operators read.

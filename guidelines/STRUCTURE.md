@@ -157,8 +157,14 @@ Four lists hold the crate names and must agree: `test:coverage:workspace` in the
 root `package.json`, `EXCLUDED_CRATES` in `scripts/coverage-missing.sh`, the
 `case` in `scripts/packages/test/coverage.sh`, and `EXCLUDED` in
 `scripts/git/crate-coverage-runner.test.mjs`, which asserts that `case` starts
-no cargo for a name it holds. Nothing compares the four, so a row taken off
-three of them fails in the pre-push hook rather than where it was edited.
+no cargo for a name it holds. The first two spell a crate by its Cargo package
+name and the last two by its directory name, which differ by more than the
+hyphens: `stylex-rs-compiler` is the crate `stylex_compiler_rs`.
+
+`scripts/git/coverage-exclusions.test.mjs` compares the four and names the list
+that disagrees, so a row taken off three of them fails where it was edited. It
+also refuses a row for a crate this workspace does not hold, which is what a
+rename or a deletion leaves behind. Edit the four together.
 
 This section says why a crate is off the gate. Each row is permanent, with the
 reason stated, or temporary, with the ticket that removes it named. Do not add a

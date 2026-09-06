@@ -57,9 +57,10 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Crates excluded from workspace coverage. Four lists must agree: this one, the
 # `test:coverage:workspace` script in the root package.json, the `case` in
 # scripts/packages/test/coverage.sh, and `EXCLUDED` in
-# scripts/git/crate-coverage-runner.test.mjs, which asserts that `case`. A row is
-# either permanent or names the ticket that removes it -- see "Excluded from
-# Coverage" in guidelines/STRUCTURE.md.
+# scripts/git/crate-coverage-runner.test.mjs, which asserts that `case`.
+# scripts/git/coverage-exclusions.test.mjs compares all four and names the one
+# that disagrees. A row is either permanent or names the ticket that removes it
+# -- see "Excluded from Coverage" in guidelines/STRUCTURE.md.
 EXCLUDED_CRATES=(
   stylex_logs        # permanent
   stylex_compiler_rs # permanent

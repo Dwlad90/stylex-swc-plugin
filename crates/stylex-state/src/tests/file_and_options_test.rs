@@ -430,6 +430,17 @@ fn the_host_s_source_file_and_map_are_taken_as_handed_in() {
     Vec::new(),
     None,
   )));
+
+  let Some(source_file) = state.input_source_file.as_ref() else {
+    panic!("the source file the host handed in was not kept");
+  };
+
+  assert_eq!(source_file.src.as_str(), "const a = 1;");
+  assert_eq!(source_file.start_pos, BytePos(1));
+  assert!(
+    state.input_source_map.is_some(),
+    "the source map the host handed in was not kept"
+  );
 }
 
 /// An import of a module by path, which is what a theme side effect is written
@@ -455,11 +466,18 @@ fn an_import_of_a_module_is_written_as_a_bare_path() {
 /// same name whichever scope asked.
 #[test]
 fn a_file_name_does_not_depend_on_a_scope() {
-  let _ = SyntaxContext::empty();
-
   let state = state_for(real("/repo/src/app.js"), common_js(Some("/repo"), None));
 
-  assert_eq!(state.get_filename(), "/repo/src/app.js");
+  // Asked from the root scope and from one that is not it: the name is a
+  // property of the file, so neither answer may depend on which scope asked.
+  for ctxt in [SyntaxContext::empty(), SyntaxContext::from_u32(2)] {
+    assert_eq!(
+      state.get_filename(),
+      "/repo/src/app.js",
+      "the file name changed under `{:?}`",
+      ctxt
+    );
+  }
 }
 
 /// Under CommonJs an import of a variable file resolves to the name the file is
@@ -595,4 +613,76 @@ fn an_import_from_a_file_outside_every_package_is_refused() {
   let state = state_for(real("/vars.stylex.js"), common_js(None, None));
 
   state.import_path_resolver("./other.stylex.js", &mut FxHashMap::default());
+}
+
+/// What [`matches_file_suffix`] answers, which is what decides whether a file
+/// is a variable file and whether an import names one.
+///
+/// The suffix is carried at the end of a name or in front of a module
+/// extension, which is the shape Babel's
+/// `['', ...EXTENSIONS].some(e => filename.endsWith(`${suffix}${e}`))` spells.
+mod file_suffix {
+  use stylex_path_resolver::resolvers::EXTENSIONS;
+
+  use crate::state_manager::matches_file_suffix;
+
+  /// A file carries a suffix at its end, and in front of every extension the
+  /// resolver knows.
+  #[test]
+  fn a_suffix_is_carried_at_the_end_or_in_front_of_any_module_extension() {
+    assert!(matches_file_suffix(".stylex", "vars.stylex"));
+
+    for extension in EXTENSIONS {
+      let filename = format!("vars.stylex{}", extension);
+
+      assert!(
+        matches_file_suffix(".stylex", &filename),
+        "`{}` did not carry `.stylex`",
+        filename
+      );
+    }
+  }
+
+  /// The suffix has to sit where the name ends or where the extension begins:
+  /// an extension the resolver does not know, and a suffix read anywhere else
+  /// in the name, are both refused.
+  #[test]
+  fn a_suffix_elsewhere_in_the_name_is_not_carried() {
+    assert!(!matches_file_suffix(".stylex", "vars.js"));
+    assert!(!matches_file_suffix(".stylex", "vars.stylex.json"));
+    assert!(!matches_file_suffix(".stylex", "stylex.vars.js"));
+    assert!(!matches_file_suffix(".stylex", ".js"));
+  }
+
+  /// A name that is nothing but the suffix carries it, and a name that is
+  /// nothing but an extension has an empty stem, which carries only the empty
+  /// suffix.
+  #[test]
+  fn a_name_that_is_only_the_suffix_or_only_an_extension() {
+    assert!(matches_file_suffix(".stylex", ".stylex"));
+    assert!(matches_file_suffix("", ".js"));
+  }
+
+  /// A suffix that already names an extension is matched whole, so it is not
+  /// matched again in front of a second one.
+  #[test]
+  fn a_suffix_that_already_names_an_extension_is_matched_whole() {
+    assert!(matches_file_suffix(".stylex.js", "vars.stylex.js"));
+    assert!(!matches_file_suffix(".stylex.js", "vars.stylex.ts"));
+    assert!(!matches_file_suffix(".stylex.js", "vars.stylex.js.map"));
+  }
+
+  /// A project that spells the suffix as nothing marks every file, not every
+  /// module file: the empty suffix is carried by any name at all, so the first
+  /// check answers before the extension list is ever consulted. This is what
+  /// Babel answers -- its `''` entry makes `filename.endsWith('')` the first
+  /// question -- and the extension list is dead weight for this case in both.
+  #[test]
+  fn an_empty_suffix_is_carried_by_every_name_at_all() {
+    assert!(matches_file_suffix("", "vars.js"));
+    assert!(matches_file_suffix("", "vars.tsx"));
+    assert!(matches_file_suffix("", "vars.json"));
+    assert!(matches_file_suffix("", "vars"));
+    assert!(matches_file_suffix("", ""));
+  }
 }

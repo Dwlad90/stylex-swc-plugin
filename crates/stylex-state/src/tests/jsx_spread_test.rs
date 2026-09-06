@@ -168,7 +168,7 @@ fn seeding_one_spread_twice_records_it_once() {
 
   state.seed_jsx_spread_expr(&expr);
   state.seed_jsx_spread_expr(&expr);
-  state.set_jsx_spread_replacement(&call, class_name_attr("x1e2nbdu"));
+  assert!(state.set_jsx_spread_replacement(&call, class_name_attr("x1e2nbdu")));
 
   assert_eq!(
     state.jsx_spread_replacement(&expr).map(class_names),

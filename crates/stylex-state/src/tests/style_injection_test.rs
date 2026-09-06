@@ -132,8 +132,9 @@ fn var_item(name: &str, init: Expr) -> ModuleItem {
   }))))
 }
 
-/// A style with nothing in it registers nothing, and the two ways a map can be
-/// empty -- no entry at all -- reach the same answer.
+/// A style map with no entry in it registers nothing, through either entry --
+/// the one that always sets up injection and the one that asks the options
+/// first both answer before they reach it.
 #[test]
 fn an_empty_style_map_registers_nothing() {
   let mut state = state_with(Some(RuntimeInjectionState::Boolean(true)));

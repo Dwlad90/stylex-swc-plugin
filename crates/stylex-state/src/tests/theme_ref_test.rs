@@ -296,14 +296,16 @@ mod theme_reference {
   #[test]
   fn the_to_string_key_answers_the_group_s_own_name() {
     let mut reference = theme_ref();
-    let expected = reference.to_string_value();
 
     let ThemeRefResult::ToString(name) = reference.get("toString", &plain_state()) else {
       panic!("`toString` did not answer the group's own name");
     };
 
-    assert_eq!(name, expected);
-    assert!(name.starts_with('x'), "got `{}`", name);
+    // The literal is the group hash of `BASE` under `PREFIX`, pinned at the top
+    // of this file against Babel. Reading `to_string_value` for the expectation
+    // would let both halves be wrong together.
+    assert_eq!(name, "xop34xu");
+    assert_eq!(name, reference.to_string_value());
   }
 
   /// The marker key answers that the value stands in for a group rather than
@@ -325,17 +327,16 @@ mod theme_reference {
     let mut reference = theme_ref();
     let state = plain_state();
 
+    // The literal is what `var_group_member` is pinned to against Babel at the
+    // top of this file. Re-deriving it here would only prove the reference
+    // calls the derivation, not that either one is right.
     assert_eq!(
       reference.get("primary", &state).as_css_var(),
-      Some(
-        var_group_member(
-          "vars.stylex.js//vars",
-          "x",
-          "primary",
-          VarNaming::of(&state)
-        )
-        .as_str()
-      )
+      Some("var(--x1ineb92)")
+    );
+    assert_eq!(
+      reference.get("primary", &state).as_css_var(),
+      Some(var_group_member(super::BASE, super::PREFIX, "primary", VarNaming::of(&state)).as_str())
     );
   }
 
@@ -377,6 +378,7 @@ mod theme_reference {
     };
 
     assert!(!name.starts_with("var("), "got `{}`", name);
+    assert_eq!(name, "xop34xu");
     assert_eq!(name, reference.to_string_value());
   }
 

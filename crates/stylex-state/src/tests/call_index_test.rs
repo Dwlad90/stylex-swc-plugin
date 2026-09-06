@@ -260,3 +260,48 @@ fn a_call_on_super_records_no_member() {
 
   assert!(!state.is_member_call_callee(&member("stylex", "create")));
 }
+
+/// Releasing one callee leaves every other one alone. The index buckets by
+/// member, and `release_member` walks the whole bucket rather than stopping at
+/// the first match, so nothing may fall out of a bucket it was not asked about.
+#[test]
+fn releasing_one_callee_leaves_every_other_one_alone() {
+  let mut state = state();
+  let created = member_call("stylex", "create", vec![number_arg(1.0)]);
+  let spent = member_call("stylex", "props", vec![number_arg(2.0)]);
+
+  state.add_call_expression(&created);
+  state.add_call_expression(&spent);
+
+  replace(&mut state, &created, &object_expr());
+
+  assert!(!state.is_member_call_callee(&member("stylex", "create")));
+  assert!(
+    state.is_member_call_callee(&member("stylex", "props")),
+    "releasing one callee forgot another"
+  );
+}
+
+/// A callee released a second time stays forgotten, and the bucket it left is
+/// gone rather than held at a count the next call cannot raise. The release
+/// walks a bucket the key has no entry in, which is the miss the index has to
+/// leave exactly as it found it.
+#[test]
+fn a_callee_released_a_second_time_stays_forgotten() {
+  let mut state = state();
+  let call = member_call("stylex", "create", vec![]);
+
+  state.add_call_expression(&call);
+
+  replace(&mut state, &call, &object_expr());
+  replace(&mut state, &call, &object_expr());
+
+  assert!(!state.is_member_call_callee(&member("stylex", "create")));
+
+  state.add_call_expression(&call);
+
+  assert!(
+    state.is_member_call_callee(&member("stylex", "create")),
+    "a second release left a count the next call could not raise"
+  );
+}

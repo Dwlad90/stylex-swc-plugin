@@ -90,4 +90,43 @@ mod get_canonical_file_path {
       "@stylexswc/state:src/tests/fixtures/src/components"
     );
   }
+
+  fn rooted(root_dir: &str) -> StateManager {
+    let mut state = StateManager::default();
+
+    state.options =
+      state
+        .options
+        .with_unstable_module_resolution(CheckModuleResolution::CommonJs {
+          root_dir: Some(root_dir.to_string()),
+          theme_file_extension: None,
+        });
+
+    state
+  }
+
+  /// Separators are normalized, so a path written the Windows way answers the
+  /// name a POSIX one does. The backslash is data rather than a separator off
+  /// Windows, which is what lets one assertion stand on every platform.
+  #[test]
+  fn a_backslash_in_a_path_is_answered_as_a_forward_slash() {
+    let state = rooted("/root");
+
+    assert_eq!(
+      state.get_canonical_file_path("/root/src\\components\\app.js", &mut FxHashMap::default()),
+      "src/components/app.js"
+    );
+  }
+
+  /// A file the root dir does not enclose is named by climbing out of it rather
+  /// than refused, which is what a relative path with no common prefix reads as.
+  #[test]
+  fn a_file_beside_the_root_dir_is_named_by_climbing_out_of_it() {
+    let state = rooted("/root/src");
+
+    assert_eq!(
+      state.get_canonical_file_path("/root/lib/app.js", &mut FxHashMap::default()),
+      "../lib/app.js"
+    );
+  }
 }

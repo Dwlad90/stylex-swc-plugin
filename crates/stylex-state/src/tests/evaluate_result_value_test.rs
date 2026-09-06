@@ -174,12 +174,13 @@ mod accessors {
 
   #[test]
   fn a_theme_reference_answers_itself_and_nothing_else_does() {
-    let theme_ref = ThemeRef::new("vars.stylex.js", "vars", "x");
-    let value = EvaluateResultValue::ThemeRef(theme_ref.clone());
+    let value = EvaluateResultValue::ThemeRef(ThemeRef::new("vars.stylex.js", "vars", "x"));
 
+    // The identity is pinned as text rather than re-read off `theme_ref`, so
+    // an accessor that answered the wrong reference still fails here.
     assert_eq!(
       value.as_theme_ref().map(ThemeRef::base_id),
-      Some(theme_ref.base_id())
+      Some("vars.stylex.js//vars")
     );
     assert_eq!(count_answering(|value| value.as_theme_ref().is_some()), 1);
   }
@@ -247,6 +248,10 @@ mod when_marker {
     let value = EvaluateResultValue::ThemeRef(theme_ref.clone());
 
     assert!(value.is_proxy());
+    // The group's own name, spelled out rather than re-derived: comparing
+    // against `theme_ref.to_string_value()` would pass on any two wrong halves
+    // that agree.
+    assert_eq!(value.as_proxy_string(), Some("x3hqbbp".to_string()));
     assert_eq!(value.as_proxy_string(), Some(theme_ref.to_string_value()));
   }
 

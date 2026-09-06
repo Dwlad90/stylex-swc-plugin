@@ -9,12 +9,13 @@ script_dir="$(cd -P "$(dirname "$0")" && pwd -P)"
 crate_name="${PWD##*/}"
 
 # Kept in step with the two workspace lists in `package.json` and
-# `scripts/coverage-missing.sh`, and with `EXCLUDED` in
+# `scripts/coverage-missing.sh`, with `EXCLUDED` in
 # `scripts/git/crate-coverage-runner.test.mjs`, which asserts this `case` starts
-# no cargo for a name it holds. `scripts/git/coverage-exclusions.test.mjs`
-# compares all four and names the one that disagrees. This list holds crate
-# directory names, so a
-# name can differ from the Cargo package name by more than the hyphens:
+# no cargo for a name it holds, and with the rows under "Excluded from Coverage"
+# in `guidelines/STRUCTURE.md`. `scripts/git/coverage-exclusions.test.mjs`
+# compares all five and names the one that disagrees. This list holds crate
+# directory names, so a name can differ from the Cargo package name by more
+# than the hyphens:
 # stylex-rs-compiler is the crate stylex_compiler_rs. Why each crate is off the
 # gate, and which rows a ticket removes, is in "Excluded from Coverage" in
 # guidelines/STRUCTURE.md.

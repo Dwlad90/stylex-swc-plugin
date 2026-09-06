@@ -54,11 +54,12 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Crates excluded from workspace coverage. Four lists must agree: this one, the
+# Crates excluded from workspace coverage. Five lists must agree: this one, the
 # `test:coverage:workspace` script in the root package.json, the `case` in
-# scripts/packages/test/coverage.sh, and `EXCLUDED` in
-# scripts/git/crate-coverage-runner.test.mjs, which asserts that `case`.
-# scripts/git/coverage-exclusions.test.mjs compares all four and names the one
+# scripts/packages/test/coverage.sh, `EXCLUDED` in
+# scripts/git/crate-coverage-runner.test.mjs, which asserts that `case`, and the
+# rows under "Excluded from Coverage" in guidelines/STRUCTURE.md.
+# scripts/git/coverage-exclusions.test.mjs compares all five and names the one
 # that disagrees. A row is either permanent or names the ticket that removes it
 # -- see "Excluded from Coverage" in guidelines/STRUCTURE.md.
 EXCLUDED_CRATES=(
@@ -141,7 +142,10 @@ if [ -n "$package" ]; then
   scope_value="${package//_/-}"
   echo "==> Coverage for crate: $package"
 else
-  scope=(--workspace "${WORKSPACE_EXCLUDES[@]}")
+  # `${a[@]}` on an empty array is an unbound variable under bash 3.2 with
+  # `set -u`, and this list only ever shrinks -- ticket 15 takes the last
+  # temporary row off it.
+  scope=(--workspace ${WORKSPACE_EXCLUDES[@]+"${WORKSPACE_EXCLUDES[@]}"})
   scope_mode="workspace"
   scope_value=""
   for crate in "${EXCLUDED_CRATES[@]}"; do

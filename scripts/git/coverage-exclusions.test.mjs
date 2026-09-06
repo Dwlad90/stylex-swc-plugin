@@ -18,6 +18,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  SOURCES,
   findExclusionFaults,
   readCratePackageNames,
   readExclusionLists,
@@ -39,8 +40,9 @@ const CRATES = [
 /**
  * A tree holding the four lists, each given the names it should carry.
  *
- * @param {{workspace?: string[], missing?: string[], runner?: string[], suite?: string[]}} lists
- *   package names for the first two, directory names for the last two
+ * @param {{workspace?: string[], missing?: string[], runner?: string[], suite?: string[],
+ *   guidelines?: string[]}} lists package names for all but `runner` and `suite`,
+ *   which hold directory names
  * @returns {string} the tree's root
  */
 function createTree(lists = {}) {
@@ -49,6 +51,7 @@ function createTree(lists = {}) {
     missing = ['stylex_logs'],
     runner = ['stylex-logs'],
     suite = ['stylex-logs'],
+    guidelines = ['stylex_logs'],
   } = lists;
 
   const root = makeTemporaryDirectory('stylex-coverage-exclusions-');
@@ -82,12 +85,26 @@ function createTree(lists = {}) {
     `const EXCLUDED = [\n${suite.map(name => `  '${name}',\n`).join('')}];\n`
   );
 
+  writeText(
+    path.join(root, 'guidelines/STRUCTURE.md'),
+    [
+      '### Excluded from Coverage',
+      '',
+      'Permanent:',
+      '',
+      ...guidelines.map(name => `- \`${name}\` -- permanent`),
+      '',
+      '## Key Config Files',
+      '',
+    ].join('\n')
+  );
+
   return root;
 }
 
 // ── The rule ─────────────────────────────────────────────────────────────────
 
-void test('four lists naming one crate agree', () => {
+void test('five lists naming one crate agree', () => {
   assert.deepEqual(findExclusionFaults(createTree()), []);
 });
 
@@ -100,14 +117,15 @@ void test('the two spellings of one crate are read as one crate', () => {
     missing: ['stylex_compiler_rs'],
     runner: ['stylex-rs-compiler'],
     suite: ['stylex-rs-compiler'],
+    guidelines: ['stylex_compiler_rs'],
   });
 
   assert.deepEqual(findExclusionFaults(root), []);
 });
 
 void test('a row taken off one list is a fault naming that list', () => {
-  // The regression this suite exists for, in the direction it happened: three
-  // lists lost the row and the fourth kept it.
+  // The regression this suite exists for, in the direction it happened: four
+  // lists lost the row and the fifth kept it.
   const root = createTree({
     workspace: ['stylex_logs'],
     missing: ['stylex_logs'],
@@ -134,6 +152,7 @@ void test('a row missing from one list is a fault naming that list', () => {
     missing: ['stylex_logs', 'stylex_state'],
     runner: ['stylex-logs', 'stylex-state'],
     suite: ['stylex-logs'],
+    guidelines: ['stylex_logs', 'stylex_state'],
   });
 
   assert.deepEqual(findExclusionFaults(root), [
@@ -149,6 +168,7 @@ void test('a row for a crate the workspace does not hold is a fault', () => {
     missing: ['stylex_departed'],
     runner: ['stylex-departed'],
     suite: ['stylex-departed'],
+    guidelines: ['stylex_departed'],
   });
 
   assert.deepEqual(findExclusionFaults(root), [
@@ -156,6 +176,7 @@ void test('a row for a crate the workspace does not hold is a fault', () => {
     'scripts/coverage-missing.sh excludes `stylex_departed`, which is no crate in this workspace',
     'scripts/packages/test/coverage.sh excludes `stylex-departed`, which is no crate directory',
     'scripts/git/crate-coverage-runner.test.mjs excludes `stylex-departed`, which is no crate directory',
+    'guidelines/STRUCTURE.md excludes `stylex_departed`, which is no crate in this workspace',
   ]);
 });
 
@@ -167,6 +188,29 @@ void test('a list written in the wrong spelling is a fault', () => {
   assert.deepEqual(findExclusionFaults(root), [
     'scripts/packages/test/coverage.sh excludes `stylex_logs`, which is no crate directory',
     'scripts/packages/test/coverage.sh does not exclude `stylex_logs`, which package.json does',
+  ]);
+});
+
+void test('a row left behind in the guidelines is a fault naming the guidelines', () => {
+  // The drift this module's own commit performed by hand: the four machine
+  // lists lost the row and the prose that explains it kept it.
+  const root = createTree({ guidelines: ['stylex_logs', 'stylex_state'] });
+
+  assert.deepEqual(findExclusionFaults(root), [
+    'guidelines/STRUCTURE.md excludes `stylex_state`, which package.json does not',
+  ]);
+});
+
+void test('a guidelines section that names no crate is a fault, never an empty list', () => {
+  const root = createTree();
+
+  writeText(
+    path.join(root, 'guidelines/STRUCTURE.md'),
+    '### Excluded from Coverage\n\nThe rows moved elsewhere.\n\n## Key Config Files\n'
+  );
+
+  assert.deepEqual(findExclusionFaults(root), [
+    'guidelines/STRUCTURE.md has an `Excluded from Coverage` section that names no crate',
   ]);
 });
 
@@ -188,8 +232,99 @@ void test('a list whose file is gone is a fault', () => {
   const root = makeTemporaryDirectory('stylex-coverage-exclusions-empty-');
   const faults = findExclusionFaults(root);
 
-  assert.equal(faults.length, 4);
+  assert.equal(faults.length, SOURCES.length);
   assert.ok(faults.every(fault => fault.endsWith('is missing')));
+});
+
+// ── What a wrap of a list past the line width leaves behind ─────────────
+
+void test('a name in a second arm of the case is read', () => {
+  const root = createTree();
+
+  // The `case` is at 86 columns with five names on it. One more wraps it, and
+  // a second arm is the natural way to wrap. Reading only the first arm made
+  // the row invisible and reported four agreeing lists.
+  writeText(
+    path.join(root, 'scripts/packages/test/coverage.sh'),
+    'case "$crate_name" in\n' +
+      '  stylex-logs)\n    exit 0\n    ;;\n' +
+      '  stylex-state)\n    exit 0\n    ;;\n' +
+      'esac\n'
+  );
+
+  assert.deepEqual(findExclusionFaults(root), [
+    'scripts/packages/test/coverage.sh excludes `stylex_state`, which package.json does not',
+  ]);
+});
+
+void test('a case arm continued with a backslash is read', () => {
+  const root = createTree({
+    workspace: ['stylex_logs', 'stylex_state'],
+    missing: ['stylex_logs', 'stylex_state'],
+    guidelines: ['stylex_logs', 'stylex_state'],
+  });
+
+  writeText(
+    path.join(root, 'scripts/packages/test/coverage.sh'),
+    'case "${crate_name}" in\n  stylex-logs|\\\n    stylex-state)\n    exit 0\n    ;;\nesac\n'
+  );
+
+  // The `case` and `package.json` now agree; the two lists left behind are the
+  // fault, which is what a reader has to be told to edit.
+  assert.deepEqual(findExclusionFaults(root), [
+    'scripts/git/crate-coverage-runner.test.mjs does not exclude `stylex_state`, ' +
+      'which package.json does',
+  ]);
+});
+
+void test('two names on one row of the shell array are two rows', () => {
+  const root = createTree({
+    workspace: ['stylex_logs', 'stylex_state'],
+    guidelines: ['stylex_logs', 'stylex_state'],
+  });
+
+  writeText(
+    path.join(root, 'scripts/coverage-missing.sh'),
+    'EXCLUDED_CRATES=(\n  stylex_logs stylex_state\n)\n'
+  );
+
+  assert.deepEqual(findExclusionFaults(root), [
+    'scripts/packages/test/coverage.sh does not exclude `stylex_state`, which package.json does',
+    'scripts/git/crate-coverage-runner.test.mjs does not exclude `stylex_state`, ' +
+      'which package.json does',
+  ]);
+});
+
+void test('an exclude written with an equals sign is a row', () => {
+  const root = createTree();
+
+  writeJson(path.join(root, 'package.json'), {
+    scripts: {
+      'test:coverage:workspace':
+        'cargo +nightly llvm-cov nextest --workspace --exclude=stylex_logs',
+    },
+  });
+
+  assert.deepEqual(findExclusionFaults(root), []);
+});
+
+void test('a manifest that will not parse is a named fault, not a crash', () => {
+  const root = createTree();
+
+  writeText(path.join(root, 'package.json'), '{ "scripts": ');
+
+  assert.deepEqual(findExclusionFaults(root), ['package.json is not readable JSON']);
+});
+
+void test('an apostrophe in a comment is not a crate name', () => {
+  const root = createTree();
+
+  writeText(
+    path.join(root, 'scripts/git/crate-coverage-runner.test.mjs'),
+    "const EXCLUDED = [\n  // the transform's own crates stay off\n  'stylex-logs',\n];\n"
+  );
+
+  assert.deepEqual(findExclusionFaults(root), []);
 });
 
 // ── Against the real repository ───────────────────────────────────────────────
@@ -210,6 +345,6 @@ void test('every crate in this repository declares a package name', () => {
   assert.ok(names.has('stylex-state'), '`stylex-state` was not read');
 });
 
-void test("this repository's four lists agree", () => {
+void test("this repository's five lists agree", () => {
   assert.deepEqual(findExclusionFaults(repoRoot), []);
 });

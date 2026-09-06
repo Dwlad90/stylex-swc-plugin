@@ -1,14 +1,19 @@
 /**
- * Reads the four lists of crates excluded from coverage, and says where they
+ * Reads the five lists of crates excluded from coverage, and says where they
  * disagree.
  *
- * The lists are hand-kept copies of one decision, in two spellings. Two of them
- * hold Cargo package names -- the root `test:coverage:workspace` script and
+ * The lists are hand-kept copies of one decision, in two spellings. Three of
+ * them hold Cargo package names -- the root `test:coverage:workspace` script,
  * `EXCLUDED_CRATES` in `scripts/coverage-missing.sh`, because both hand the
- * names to cargo. The other two hold crate directory names -- the `case` in
- * `scripts/packages/test/coverage.sh`, which reads the name off `PWD`, and
+ * names to cargo, and the rows under "Excluded from Coverage" in
+ * `guidelines/STRUCTURE.md`, which is where a reader is sent to find out why a
+ * crate is off the gate. The other two hold crate directory names -- the `case`
+ * in `scripts/packages/test/coverage.sh`, which reads the name off `PWD`, and
  * `EXCLUDED` in the suite that asserts that `case`. The two spellings are not
  * the same string: `stylex-rs-compiler` is the crate `stylex_compiler_rs`.
+ *
+ * The docs count as a list because they drift the same way: this module's own
+ * commit edited those rows by hand, and nothing would have said so.
  *
  * Nothing compared them until now. Taking one row off three of the four left
  * every check green and failed in the pre-push hook, which is the shape this
@@ -46,6 +51,12 @@ export const SOURCES = [
     spelling: 'directory',
     read: readJsArray,
   },
+  {
+    name: 'guidelines/STRUCTURE.md',
+    file: 'guidelines/STRUCTURE.md',
+    spelling: 'package',
+    read: readGuidelineRows,
+  },
 ];
 
 /**
@@ -67,13 +78,26 @@ function firstMatch(contents, pattern, description) {
 
 /** Every `--exclude <name>` the root coverage script passes to cargo. */
 function readWorkspaceScript(contents) {
-  const script = JSON.parse(contents).scripts?.['test:coverage:workspace'];
+  let manifest;
+
+  // A manifest that will not parse is a list that cannot be read, not a crash:
+  // `readExclusionLists` rethrows anything that is not an `UnreadableList`, so
+  // without this the suite dies with a parser stack instead of a named fault.
+  try {
+    manifest = JSON.parse(contents);
+  } catch {
+    throw new UnreadableList('is not readable JSON');
+  }
+
+  const script = manifest.scripts?.['test:coverage:workspace'];
 
   if (typeof script !== 'string') {
     throw new UnreadableList('has no `test:coverage:workspace` script to read');
   }
 
-  const names = [...script.matchAll(/--exclude\s+(\S+)/g)].map(match => match[1]);
+  // `--exclude name` and `--exclude=name` are the same flag to cargo, so a row
+  // written the second way has to count as a row here too.
+  const names = [...script.matchAll(/--exclude[\s=]+(\S+)/g)].map(match => match[1]);
 
   if (names.length === 0) {
     throw new UnreadableList('has a `test:coverage:workspace` that excludes nothing');
@@ -82,35 +106,91 @@ function readWorkspaceScript(contents) {
   return names;
 }
 
-/** The `EXCLUDED_CRATES=( … )` array, without the comment on each row. */
+/**
+ * The `EXCLUDED_CRATES=( … )` array, without the comment on each row.
+ *
+ * Split on whitespace rather than on newlines, because the shell does: two
+ * names on one row are two rows to bash, and reading them as one produced a
+ * fault naming a crate spelled `stylex_logs stylex_evaluator`. The body is
+ * taken up to the first `)` that stands at the end of a line, so a `(` inside a
+ * row comment cannot end the array early.
+ */
 function readShellArray(contents) {
-  const body = firstMatch(contents, /EXCLUDED_CRATES=\(([^)]*)\)/, '`EXCLUDED_CRATES` array');
+  const body = firstMatch(
+    contents,
+    /EXCLUDED_CRATES=\(([\s\S]*?)\n?\)\s*$/m,
+    '`EXCLUDED_CRATES` array'
+  );
 
   return body
     .split('\n')
-    .map(line => line.replace(/#.*$/, '').trim())
-    .filter(line => line.length > 0);
+    .flatMap(line => line.replace(/#.*$/, '').trim().split(/\s+/))
+    .map(name => name.replace(/^["']|["']$/g, ''))
+    .filter(name => name.length > 0);
 }
 
-/** The one alternation of the `case` that exits before measuring. */
+/**
+ * Every alternation of the `case` that exits before measuring.
+ *
+ * Every arm, not the first one: reading only the first made a name in a second
+ * arm invisible, so a crate genuinely off the per-crate gate could sit on the
+ * other three lists and the comparison would still report agreement. That is
+ * the one answer this module must never give, and a wrap of the arm past the
+ * 100-column line width is the likeliest way to reach it.
+ */
 function readShellCase(contents) {
-  const alternation = firstMatch(
+  const body = firstMatch(
     contents,
-    /case\s+"\$crate_name"\s+in\s*\n\s*([^)\n]+)\)/,
+    /case\s+"\$\{?crate_name\}?"\s+in\s*\n([\s\S]*?)\nesac/,
     '`case` over the crate name'
   );
 
-  return alternation
-    .split('|')
+  // A row continued with a trailing `\` is one row to the shell, so it is
+  // joined back before the arms are read -- otherwise the half in front of the
+  // break is dropped, which is the same invisible row by another spelling.
+  const names = [...body.replace(/\\\n\s*/g, '').matchAll(/^([^\n()]+?)\)\s*$/gm)]
+    .flatMap(match => match[1].split('|'))
     .map(name => name.trim())
-    .filter(name => name.length > 0);
+    .filter(name => name.length > 0 && name !== '*');
+
+  if (names.length === 0) {
+    throw new UnreadableList('has a `case` over the crate name that names no crate');
+  }
+
+  return names;
 }
 
 /** The `const EXCLUDED = [ … ]` array the runner suite asserts that `case` with. */
 function readJsArray(contents) {
   const body = firstMatch(contents, /const EXCLUDED = \[([^\]]*)\]/, '`EXCLUDED` array');
 
-  return [...body.matchAll(/'([^']+)'/g)].map(match => match[1]);
+  // Either quote style, and never through a comment: a `//` note holding an
+  // apostrophe used to be read back as a crate name.
+  return [...body.replace(/\/\/[^\n]*/g, '').matchAll(/['"]([^'"]+)['"]/g)].map(match => match[1]);
+}
+
+/**
+ * The `` - `name` -- reason `` rows under "Excluded from Coverage", across both
+ * the permanent and the temporary heading.
+ *
+ * Anchored at the start of a line, so the crate names spelled inline in the
+ * prose above the rows -- which are examples, not decisions -- are not read as
+ * rows.
+ */
+function readGuidelineRows(contents) {
+  const section = firstMatch(
+    contents,
+    /### Excluded from Coverage\n([\s\S]*?)\n## /,
+    '`Excluded from Coverage` section'
+  );
+
+  const names = [...section.matchAll(/^- `([A-Za-z0-9_]+)`/gm)].map(match => match[1]);
+
+  if (names.length === 0) {
+    throw new UnreadableList('has an `Excluded from Coverage` section that names no crate');
+  }
+
+  return names;
 }
 
 /**
@@ -148,7 +228,7 @@ export function readCratePackageNames(root) {
 }
 
 /**
- * The four lists as they are written, each with the faults reading it raised.
+ * The five lists as they are written, each with the faults reading it raised.
  *
  * @param {string} root
  * @returns {{name: string, spelling: string, names: string[], fault: string|null}[]}
@@ -179,7 +259,7 @@ export function readExclusionLists(root) {
 }
 
 /**
- * Everything wrong with the four lists, one sentence each: a list that cannot
+ * Everything wrong with the five lists, one sentence each: a list that cannot
  * be read, a name that no crate answers to, and any pair that disagrees once
  * both are read as package names.
  *
@@ -222,8 +302,8 @@ export function findExclusionFaults(root) {
   }
 
   // Compared against the first readable list rather than pairwise, so a row
-  // taken off three of four reads as three faults naming the one that kept it,
-  // instead of six naming each other.
+  // taken off four of five reads as four faults naming the one that kept it,
+  // instead of twenty naming each other.
   const [reference, ...rest] = asPackageNames;
 
   if (reference === undefined) {

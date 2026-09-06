@@ -31,6 +31,10 @@ const script = path.join(repoRoot, 'scripts/packages/test/coverage.sh');
  * The crates that the script must never measure. A fourth copy of the list the
  * `case` in the script holds -- see "Excluded from Coverage" in
  * guidelines/STRUCTURE.md for what each row is and which ticket removes it.
+ *
+ * `scripts/git/coverage-exclusions.test.mjs` compares this list with the other
+ * four and names the one that disagrees, so a row edited here alone fails
+ * there rather than in the pre-push hook.
  */
 const EXCLUDED = [
   'stylex-evaluator',

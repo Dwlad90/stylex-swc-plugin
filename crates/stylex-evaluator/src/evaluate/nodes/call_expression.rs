@@ -559,10 +559,9 @@ fn member_callee(
             fn_ptr: FunctionType::EnvFunction(env_fn.clone()),
             takes_path: false,
           }))),
-          None => match resolve_env_entry_to_result(env_val, &env_map) {
-            Some(result) => Some(MemberCallee::Value(result)),
-            None => Some(MemberCallee::Unnamed),
-          },
+          None => Some(MemberCallee::Value(resolve_env_entry_to_result(
+            env_val, &env_map,
+          ))),
         }
       },
       // A receiver the evaluator carries in a representation with no methods of

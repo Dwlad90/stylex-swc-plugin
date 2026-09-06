@@ -708,6 +708,37 @@ pub(crate) fn evaluated_against(fns: &FunctionMap, source: &str) -> Box<Evaluate
   evaluated_in_a_state(|_| {}, fns, source)
 }
 
+/// An expression that leaves the memo holding "no value" for `(() => 1) + 1`.
+///
+/// A `+` whose left side is another `+` folds that side through the memo, and a
+/// `+` over a function refuses with an error rather than a recorded refusal --
+/// so the answer stored for the inner `+` is "nothing", written while the walk
+/// was still confident. Every case about a value that is not there warms the
+/// memo with this and then reads `(() => 1) + 1` again.
+pub(crate) const UNRESOLVED_MEMO_WARM: &str = "(() => 1) + 1 + 2";
+
+/// Evaluates `warm` and then `source` against one state, and answers what the
+/// second one came to.
+///
+/// The memo lives on the state manager and outlives a single evaluation, which
+/// is the one way a fold answers nothing while staying confident: a binary
+/// expression that refused without recording a path stores that answer, and a
+/// later read of the same subtree is handed it back rather than folding it
+/// again. Nothing an expression writes on its own reaches that, so a case about
+/// it has to warm the memo first.
+pub(crate) fn evaluated_after(warm: &str, source: &str) -> Box<EvaluateResult> {
+  let globals = Globals::new();
+
+  GLOBALS.set(&globals, || {
+    let mut traversal_state = StateManager::new(StyleXOptions::default());
+    let fns = FunctionMap::default();
+
+    evaluate(&parse_expr(warm), &mut traversal_state, &fns);
+
+    evaluate(&parse_expr(source), &mut traversal_state, &fns)
+  })
+}
+
 /// Options carrying the character ceiling `limit`.
 ///
 /// One spelling of it, because two ways to set the same option is how one case

@@ -306,14 +306,25 @@ fn a_hole_occupies_a_slot_without_carrying_a_key() {
 
 /// An array read out of an object arrives as the literal it was written as
 /// rather than as the evaluator's own list, and every lookup answers the same
-/// there: an index reads its slot, `length` counts the slots, a key the array
-/// does not carry is `undefined`, and a key with no spelling refuses.
+/// there: an index reads its slot, an index past the end reads `undefined`,
+/// `length` counts the slots, a key the array does not carry is `undefined`,
+/// and a key with no spelling refuses.
 #[test]
 fn an_array_read_out_of_an_object_answers_every_lookup() {
   assert_folds_to_number("({ a: [1, 2] }).a[0]", 1.0);
   assert_folds_to_number("({ a: [1, 2] }).a.length", 2.0);
+  assert_folds_to_undefined("({ a: [1, 2] }).a[5]");
   assert_folds_to_undefined("({ a: [1, 2] }).a.foo");
   assert_deopt_reason_contains("({ a: [1, 2] }).a[{}]", UNEXPECTED_MEMBER_LOOKUP);
+}
+
+/// A private name is a key only the class that declares it can read, so no
+/// member read outside one names a property at all. Written out because the
+/// grammar accepts it anywhere a member read is written, so an author can reach
+/// this without ever writing a class.
+#[test]
+fn a_private_name_names_no_property() {
+  assert_deopt_reason_contains("({ a: 1 }).#b", UNEXPECTED_MEMBER_LOOKUP);
 }
 
 /// A key written as a literal with no string form names no property, so the
@@ -335,5 +346,48 @@ fn an_env_lookup_with_no_key_refuses() {
     &evaluated_against(&fns, source),
     source,
     UNEXPECTED_MEMBER_LOOKUP,
+  );
+}
+
+/// A member read that is the callee of a call is left to the call, and the
+/// receiver is not evaluated for it. A method has no value of its own to
+/// answer with -- the call node resolves the receiver and the method together
+/// -- so the read taken on its own has nothing to give and refuses.
+///
+/// Which reads are a callee is state the module-wide collector records, so a
+/// case about one has to record the call it would have recorded. In a build the
+/// call reaches the evaluator first and this read is never asked alone.
+#[test]
+fn a_member_that_is_a_call_callee_is_left_to_the_call() {
+  let calls = call_expressions("'ab'.slice(1)");
+
+  let Some(call) = calls.first().and_then(|call| call.as_call()).cloned() else {
+    panic!("expected `'ab'.slice(1)` to hold one call expression");
+  };
+
+  assert_refused_with(
+    &evaluated_in_a_state(
+      |state| state.add_call_expression(&call),
+      &FunctionMap::default(),
+      "'ab'.slice",
+    ),
+    "'ab'.slice",
+    &unsupported_expression("MemberExpression"),
+  );
+}
+
+/// A computed key that answered nothing while the walk stayed confident names
+/// itself, rather than leaving the whole member expression to be reported.
+///
+/// The memo is what produces such a key. A binary expression over a value with
+/// no expression form refuses without recording a path, and the answer is
+/// remembered -- so a later read of the same subtree is handed nothing back
+/// with nothing said about it. Warming the memo is the only way to write one.
+#[test]
+fn a_computed_key_that_answered_nothing_names_itself() {
+  assert_refused_with(
+    &evaluated_after(UNRESOLVED_MEMO_WARM, "({ a: 1 })[(() => 1) + 1]"),
+    "a key the memo answers nothing for",
+    PROPERTY_NOT_FOUND,
   );
 }

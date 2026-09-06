@@ -419,10 +419,7 @@ fn evaluate_partial_object_recursively(
         // value and keeping the position it first took. Both are the semantics
         // the language fixes, so spelling them again here would be a second
         // answer to a question asked once.
-        let Some(new_props) = result
-          .value
-          .and_then(|value| spread_own_properties(value, &spread.expr))
-        else {
+        let Some(new_props) = result.value.and_then(spread_own_properties) else {
           // A value with no own-properties reading: a number, a boolean, a
           // callback. Nothing to enumerate, so the refusal stands.
           stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED);

@@ -11,9 +11,18 @@
 //! declines the name it cannot carry, and the object behind the `??` is what
 //! this evaluator then folds.
 
+use std::rc::Rc;
+
 use super::source_evaluation::*;
+use stylex_constants::constants::evaluation_errors::PATH_WITHOUT_NODE;
 use stylex_constants::constants::evaluation_errors::UNDEFINED_CONST;
-use stylex_constants::constants::messages::{ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE};
+use stylex_constants::constants::messages::{
+  ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, SPREAD_PROPERTIES_UNREADABLE,
+};
+use stylex_state::{
+  functions::{FunctionMap, FunctionType},
+  theme_ref::ThemeRef,
+};
 
 /// The keys `object` folds to, joined, read past a declined fold.
 #[track_caller]
@@ -183,4 +192,101 @@ fn parentheses_around_a_function_value_are_not_part_of_it() {
       source
     );
   }
+}
+
+/// An array written with a hole does not fold, so a spread of one refuses
+/// rather than dropping the hole and shifting every key after it: `{ ...[, 1] }`
+/// names the property `1`, where an array read one element short would name
+/// `0`. The refusal is the array's own and travels out through the spread,
+/// which is what makes a second check here unnecessary.
+#[test]
+fn a_spread_of_an_array_with_a_hole_refuses() {
+  assert_object_refuses("{ ...[, 1] }", PATH_WITHOUT_NODE);
+}
+
+/// A string spreads as its characters, one key per UTF-16 code unit. A string
+/// holding a lone surrogate has a unit no Rust string can carry, so the spread
+/// refuses rather than writing a replacement character the source never had.
+#[test]
+fn a_spread_of_a_string_the_evaluator_cannot_carry_refuses() {
+  assert_object_refuses(r"{ ...'\uD800' }", SPREAD_PROPERTIES_UNREADABLE);
+}
+
+/// A `defineVars` group has no keys this compiler can name -- its members live
+/// in another file -- so a spread of one is refused rather than answered empty.
+/// Answering empty would spread nothing and compile an object the author did
+/// not write.
+#[test]
+fn a_spread_of_a_group_refuses_rather_than_contributing_nothing() {
+  let source = "Object.keys(sx.missing ?? ({ ...colors })).length";
+
+  assert_refused_with(
+    &evaluated_against(&a_fold_and_a_group(), source),
+    source,
+    SPREAD_PROPERTIES_UNREADABLE,
+  );
+}
+
+/// A group written as a style value is not a style value: it stands for the
+/// whole group rather than for one of its tokens, and a member read is what
+/// names a token. Refused rather than dropped, because a property that vanished
+/// would compile a rule the source does not describe.
+#[test]
+fn a_group_written_as_a_style_value_refuses() {
+  let source = "Object.keys(sx.missing ?? ({ a: colors })).length";
+
+  assert_refused_with(
+    &evaluated_against(&a_fold_and_a_group(), source),
+    source,
+    ILLEGAL_PROP_VALUE,
+  );
+}
+
+/// A dynamic style's function is kept only where the value *is* the arrow. One
+/// reached through anything else -- a conditional choosing between two of them
+/// -- folds to a function this compiler cannot write back down, so the property
+/// refuses rather than compiling a value the source does not describe.
+#[test]
+fn a_function_reached_through_another_expression_is_not_kept() {
+  assert_object_refuses("{ a: true ? () => 1 : () => 2 }", ILLEGAL_PROP_VALUE);
+}
+
+/// The fold's own namespace and a group under one map, for the two cases that
+/// need both: the namespace makes the engine decline, and the group is the
+/// value being written.
+fn a_fold_and_a_group() -> FunctionMap {
+  let theme = ThemeRef::new("vars.stylex.js", "vars", "x");
+  let mut fns = a_function_fold();
+
+  fns.identifiers.insert(
+    "colors".into(),
+    Box::new(folded_entry(
+      FunctionType::ThemeRefMapper(Rc::new(move || theme.clone())),
+      false,
+    )),
+  );
+
+  fns
+}
+
+/// A property value that answered nothing while the walk stayed confident is
+/// named by its key and its shape. Neither the value nor the state has a
+/// sentence of its own there, so a reader would otherwise be told only that
+/// something went wrong.
+///
+/// The memo is what produces such a value, by the route the computed-key case
+/// in `member_lookup_tests` describes.
+#[test]
+fn a_property_value_that_answered_nothing_names_its_key_and_shape() {
+  let result = evaluated_after(UNRESOLVED_MEMO_WARM, "({ k: (() => 1) + 1 })");
+
+  assert_refused(&result, "a value the memo answers nothing for");
+
+  let reason = result.reason.unwrap_or_default();
+
+  assert!(
+    reason.contains("Value of key 'k' has no compile-time value"),
+    "expected the key and the shape to be named, got {:?}",
+    reason
+  );
 }

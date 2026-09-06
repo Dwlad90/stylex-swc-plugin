@@ -21,8 +21,7 @@ use indexmap::IndexMap;
 use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
 use stylex_macros::{
-  deopt_unsupported, expr_to_str_or_deopt, stylex_panic, stylex_panic_with_context,
-  stylex_unreachable,
+  deopt_unsupported, expr_to_str_or_deopt, stylex_panic_with_context, stylex_unreachable,
 };
 use swc_core::{
   atoms::Atom,
@@ -60,8 +59,8 @@ use stylex_constants::constants::{
     ARGUMENT_NOT_EXPRESSION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
     ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, KEY_VALUE_EXPECTED, MEMBER_NOT_RESOLVED,
     MEMBER_OBJ_NOT_IDENT, NULLISH_TO_OBJECT, OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND,
-    SPREAD_HIDES_OBJECT_KEYS, SPREAD_NOT_SUPPORTED, SPREAD_PROPERTIES_UNREADABLE,
-    THEME_IMPORT_KEY_AS_OBJECT_KEY, VALUE_MUST_BE_LITERAL,
+    SPREAD_NOT_SUPPORTED, SPREAD_PROPERTIES_UNREADABLE, THEME_IMPORT_KEY_AS_OBJECT_KEY,
+    VALUE_MUST_BE_LITERAL,
   },
 };
 use stylex_enums::{
@@ -100,10 +99,12 @@ use stylex_diagnostics::code_frame::build_code_frame_error_and_panic;
 fn resolve_env_entry_to_result(
   entry: &EnvEntry,
   parent_map: &Rc<IndexMap<String, EnvEntry>>,
-) -> Option<EvaluateResultValue> {
+) -> EvaluateResultValue {
   match entry {
-    EnvEntry::Expr(expr) => Some(EvaluateResultValue::Expr(expr.clone())),
-    EnvEntry::Function(_) => Some(EvaluateResultValue::EnvObject(Rc::clone(parent_map))),
+    EnvEntry::Expr(expr) => EvaluateResultValue::Expr(expr.clone()),
+    // A function entry answers the object it was read off, so the call site
+    // below resolves the function rather than the read.
+    EnvEntry::Function(_) => EvaluateResultValue::EnvObject(Rc::clone(parent_map)),
   }
 }
 

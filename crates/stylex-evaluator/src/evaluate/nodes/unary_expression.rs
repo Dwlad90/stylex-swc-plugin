@@ -64,18 +64,12 @@ pub(in super::super) fn evaluate(
   // `!` is, and before the expression-form guard below.
   if unary.op == UnaryOp::TypeOf {
     let Some(arg_type) = type_of(&arg) else {
-      deopt_unsupported!(
-        deopt,
-        &create_unary_expr(unary),
-        state,
-        // A kind this evaluator has no reading of. Named as the expression it
-        // could not read where there is one to name, so the message says which
-        // shape stopped it rather than only that something did.
-        &match &arg {
-          EvaluateResultValue::Expr(expr) => unsupported_expression(get_expr_node_kind(expr)),
-          _ => ILLEGAL_PROP_VALUE.to_string(),
-        }
-      );
+      // A value with no kind to read. What reaches this is a value that is not
+      // there: a fold answered nothing for it while staying confident, and the
+      // array it sat in kept the slot. The sentence is the one `!` gives for
+      // the same value, because it is the same complaint -- the operand has no
+      // reading at all, rather than a shape that could be named.
+      deopt_unsupported!(deopt, &create_unary_expr(unary), state, ILLEGAL_PROP_VALUE);
     };
 
     return Some(EvaluateResultValue::Expr(create_string_expr(arg_type)));
@@ -108,6 +102,10 @@ pub(in super::super) fn evaluate(
 /// restated.
 fn type_of(value: &EvaluateResultValue) -> Option<&'static str> {
   let EvaluateResultValue::Expr(expr) = value else {
+    // Every value the evaluator has of its own stands for an object or a
+    // function upstream, and the one `ToObject` bridge decides which. It
+    // refuses the absent element of an array, whose meaning that bridge
+    // deliberately leaves undecided, and the refusal travels out from here.
     return match evaluate_result_to_js_object(value)? {
       coercions::ObjectCoercion::Function => Some("function"),
       _ => Some("object"),
@@ -118,17 +116,20 @@ fn type_of(value: &EvaluateResultValue) -> Option<&'static str> {
     Expr::Lit(Lit::Str(_)) => Some("string"),
     Expr::Lit(Lit::Bool(_)) => Some("boolean"),
     Expr::Lit(Lit::Num(_)) => Some("number"),
-    Expr::Lit(Lit::Null(_)) => Some("object"),
-    Expr::Fn(_) => Some("function"),
-    Expr::Class(_) => Some("function"),
-    Expr::Arrow(_) => Some("function"),
     Expr::Ident(ident) if is_js_undefined(ident) => Some("undefined"),
-    Expr::Object(_) => Some("object"),
-    Expr::Array(_) => Some("object"),
-    // Every other expression kind is one `typeof` would answer for at runtime
-    // and this evaluator has no reading of, so it refuses rather than guessing
-    // a type name.
-    _ => None,
+    // Every other kind an evaluated value holds is an object or a function
+    // upstream, and the same bridge decides which: `null` is the object
+    // `typeof` names, an array and an object literal are objects, and the three
+    // function spellings are functions.
+    //
+    // `None` is a kind this evaluator has no reading of. It cannot arrive from
+    // a fold -- the dispatch refuses every expression kind the table above and
+    // the bridge do not cover -- so what it guards is a caller asking about a
+    // value the evaluator never made.
+    _ => match coercions::to_object(expr)? {
+      coercions::ObjectCoercion::Function => Some("function"),
+      _ => Some("object"),
+    },
   }
 }
 
@@ -190,3 +191,7 @@ fn evaluate_unary_numeric_of(
     value,
   ))))
 }
+
+#[cfg(test)]
+#[path = "tests/type_of_tests.rs"]
+mod type_of_tests;

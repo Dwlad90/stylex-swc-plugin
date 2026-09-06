@@ -15,6 +15,7 @@ use stylex_ast::ast::convertors::create_number_expr;
 use stylex_constants::constants::evaluation_errors::{
   NUMERIC_CONVERSION, grown_string_too_large, unsupported_expression, unsupported_operator,
 };
+use stylex_constants::constants::messages::ILLEGAL_PROP_VALUE;
 use stylex_state::{evaluate_result_value::EvaluateResultValue, functions::FunctionMap};
 
 /// The text `source` folds to against the compiler's own function fold, for the
@@ -205,5 +206,35 @@ fn a_numeric_operator_refuses_a_text_past_the_ceiling() {
     ),
     "-digits",
     &grown_string_too_large(NUMERIC_CONVERSION, 4),
+  );
+}
+
+/// A value that is not there has no truthiness, no kind and no number, and each
+/// operator refuses rather than guessing one. Read as "absent" it would be
+/// falsy, `"undefined"` and `NaN`; read as "a value nothing resolved" it has
+/// none of the three -- and the evaluator does not know which it is, so a guess
+/// would put a value in the stylesheet that the source does not describe.
+///
+/// `??` is the exception, and answers: absence is exactly what it asks about.
+#[test]
+fn an_operator_over_a_value_that_is_not_there_refuses() {
+  for source in [
+    "![(() => 1) + 1][0]",
+    "typeof [(() => 1) + 1][0]",
+    "-[(() => 1) + 1][0]",
+  ] {
+    assert_refused_with(
+      &evaluated_after(UNRESOLVED_MEMO_WARM, source),
+      source,
+      ILLEGAL_PROP_VALUE,
+    );
+  }
+
+  assert_eq!(
+    folded_text_of(
+      evaluated_after(UNRESOLVED_MEMO_WARM, "[(() => 1) + 1][0] ?? 'red'"),
+      "a fallback beside a value that is not there"
+    ),
+    "red"
   );
 }

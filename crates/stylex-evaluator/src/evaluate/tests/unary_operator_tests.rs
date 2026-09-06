@@ -1,0 +1,162 @@
+//! What the prefix operators answer.
+//!
+//! `void`, `typeof`, `!`, `+`, `-` and `~` each read their operand a different
+//! way, and three of them read it without folding it at all. Every answer here
+//! is the language's own, so a declaration written with one folds to what a
+//! browser would have computed.
+//!
+//! The values the evaluator holds of its own -- an array as its own list, the
+//! compiler's function fold -- have no expression form, and each operator has
+//! to read one anyway: they all stand for an object or a function upstream, so
+//! `typeof` and `!` answer for them rather than refusing.
+
+use super::source_evaluation::*;
+use stylex_ast::ast::convertors::create_number_expr;
+use stylex_constants::constants::evaluation_errors::{
+  unsupported_expression, unsupported_operator,
+};
+use stylex_state::{evaluate_result_value::EvaluateResultValue, functions::FunctionMap};
+
+/// The text `source` folds to against the compiler's own function fold, for the
+/// cases whose operand is one of the values with no expression form.
+#[track_caller]
+fn folded_against_the_fold(fns: &FunctionMap, source: &str) -> String {
+  folded_text_of(evaluated_against(fns, source), source)
+}
+
+/// `void x` is `undefined` whatever `x` is, and the operand is never folded --
+/// so one that would have refused does not refuse this.
+#[test]
+fn void_answers_undefined_without_folding_its_operand() {
+  assert_folds_to_undefined("void 0");
+  assert_folds_to_undefined("void 'red'");
+  assert_folds_to_undefined("void unknownName");
+  assert_folds_to_undefined("void 'x'.constructor");
+}
+
+/// `typeof` of a function is `"function"` in all three spellings, and is
+/// answered without folding the operand: folding one would answer for its body
+/// rather than for its kind.
+#[test]
+fn typeof_a_function_is_function_in_every_spelling() {
+  for source in [
+    "typeof (() => 1)",
+    "typeof (function named() { return 1; })",
+    "typeof (class Named {})",
+  ] {
+    assert_folds_to_string(source, "function");
+  }
+}
+
+/// The primitive table, at every kind the evaluator can hold.
+#[test]
+fn typeof_reads_the_kind_of_every_primitive() {
+  assert_folds_to_string("typeof 'red'", "string");
+  assert_folds_to_string("typeof 1", "number");
+  assert_folds_to_string("typeof true", "boolean");
+  assert_folds_to_string("typeof null", "object");
+  assert_folds_to_string("typeof undefined", "undefined");
+  assert_folds_to_string("typeof ({ color: 'red' })", "object");
+  assert_folds_to_string("typeof [1, 2]", "object");
+}
+
+/// A value with no expression form is classified the way the object bridge
+/// classifies it: the namespace is an object and one of its entries is a
+/// function, exactly as they are upstream.
+#[test]
+fn typeof_reads_the_kind_of_a_value_with_no_expression_form() {
+  let fns = a_function_fold();
+
+  assert_eq!(
+    folded_against_the_fold(&fns, &format!("typeof {FOLD_NAMESPACE}")),
+    "object"
+  );
+  assert_eq!(
+    folded_against_the_fold(&fns, &format!("typeof {FOLD_FUNCTION}")),
+    "function"
+  );
+}
+
+/// An operand whose kind this evaluator has no reading of refuses rather than
+/// guessing a type name. `typeof` is answered off the value, so what stops it
+/// is the operand's own refusal to fold, and that is the sentence an author
+/// reads.
+#[test]
+fn typeof_an_unreadable_kind_refuses() {
+  assert_deopt_reason_contains("typeof 1n", &unsupported_expression("BigIntLiteral"));
+}
+
+/// `!` reads the one truthiness table the logical operators read, so a value
+/// with no expression form still answers -- every one of them stands for an
+/// object, which is truthy.
+#[test]
+fn the_negation_reads_the_truthiness_of_every_value() {
+  assert_folds_to_boolean("!''", true);
+  assert_folds_to_boolean("!0", true);
+  assert_folds_to_boolean("!null", true);
+  assert_folds_to_boolean("!undefined", true);
+  assert_folds_to_boolean("!'red'", false);
+  assert_folds_to_boolean("![]", false);
+  assert_folds_to_boolean("!({})", false);
+  assert_folds_to_boolean("!!''", false);
+}
+
+/// The three numeric operators, over the operands each of the two readings
+/// reaches: a name and a folded expression through the first, an object or an
+/// array through the second.
+#[test]
+fn the_numeric_operators_read_both_ways() {
+  assert_folds_to_number("+'5'", 5.0);
+  assert_folds_to_number("-'5'", -5.0);
+  assert_folds_to_number("-(2 + 3)", -5.0);
+  assert_folds_to_number("+[]", 0.0);
+  assert_folds_to_number("-[5]", -5.0);
+  assert_folds_to_number("~5", -6.0);
+  assert_folds_to_number("~[4294967296]", -1.0);
+}
+
+/// `~` applies `ToInt32` before it negates, so the wrap happens in 32 bits.
+/// A 64-bit negation would answer `-4294967297` where the language answers
+/// `-1`.
+#[test]
+fn the_bitwise_negation_wraps_in_thirty_two_bits() {
+  assert_folds_to_number("~4294967296", -1.0);
+  assert_folds_to_number("~-1", 0.0);
+}
+
+/// A function has no numeric form, and the language answers `NaN` for one
+/// rather than throwing -- so the operators answer it too, and the value flows
+/// into the declaration exactly as it does upstream.
+#[test]
+fn a_numeric_operator_over_a_function_answers_not_a_number() {
+  let fns = a_function_fold();
+
+  for source in [
+    format!("-{FOLD_FUNCTION}"),
+    format!("+{FOLD_FUNCTION}"),
+    format!("-{FOLD_NAMESPACE}"),
+    format!("+{FOLD_NAMESPACE}"),
+  ] {
+    assert_result_folds_to_nan(evaluated_against(&fns, &source), &source);
+  }
+}
+
+/// `~` is the exception, and the language's own: it applies `ToInt32` first,
+/// which reads `NaN` as zero, so `~fn` is `-1` rather than `NaN`.
+#[test]
+fn the_bitwise_negation_of_a_function_is_minus_one() {
+  let fns = a_function_fold();
+  let source = format!("~{FOLD_FUNCTION}");
+
+  assert_eq!(
+    folded_value_of(evaluated_against(&fns, &source), &source),
+    EvaluateResultValue::Expr(create_number_expr(-1.0))
+  );
+}
+
+/// The operators that mutate or that only a statement can use are not folded at
+/// all, and the refusal names the operator so an author can see which one.
+#[test]
+fn an_operator_the_evaluator_does_not_fold_names_itself() {
+  assert_deopt_reason_contains("delete ({ a: 1 }).a", &unsupported_operator("delete"));
+}

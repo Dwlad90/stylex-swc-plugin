@@ -527,6 +527,50 @@ fn _evaluate(
 pub(crate) mod source_evaluation;
 
 #[cfg(test)]
+#[path = "tests/typescript_expression_tests.rs"]
+mod typescript_expression_tests;
+
+#[cfg(test)]
+#[path = "tests/optional_chain_tests.rs"]
+mod optional_chain_tests;
+
+#[cfg(test)]
+#[path = "tests/own_arrow_tests.rs"]
+mod own_arrow_tests;
+
+#[cfg(test)]
+#[path = "tests/injected_function_map_tests.rs"]
+mod injected_function_map_tests;
+
+#[cfg(test)]
+#[path = "tests/global_conversion_tests.rs"]
+mod global_conversion_tests;
+
+#[cfg(test)]
+#[path = "tests/folded_function_callee_tests.rs"]
+mod folded_function_callee_tests;
+
+#[cfg(test)]
+#[path = "tests/folded_member_read_tests.rs"]
+mod folded_member_read_tests;
+
+#[cfg(test)]
+#[path = "tests/engine_stylex_function_tests.rs"]
+mod engine_stylex_function_tests;
+
+#[cfg(test)]
+#[path = "tests/unary_operator_tests.rs"]
+mod unary_operator_tests;
+
+#[cfg(test)]
+#[path = "tests/template_interpolation_tests.rs"]
+mod template_interpolation_tests;
+
+#[cfg(test)]
+#[path = "tests/object_statics_over_a_declined_receiver_tests.rs"]
+mod object_statics_over_a_declined_receiver_tests;
+
+#[cfg(test)]
 #[path = "tests/array_hole_tests.rs"]
 mod array_hole_tests;
 

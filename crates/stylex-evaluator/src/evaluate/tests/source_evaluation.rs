@@ -19,9 +19,13 @@
 
 use super::*;
 pub(crate) use crate::tests::scaffolding::{
-  LARGE_THREAD, SMALL_THREAD, nested_literal, on_a_thread_of, parse_expr,
+  LARGE_THREAD, SMALL_THREAD, nested_literal, on_a_thread_of, parse_expr, parse_ts_expr,
 };
 use crate::tests::scaffolding::{anonymous_file, parser_for};
+use stylex_state::{
+  functions::{FunctionConfig, FunctionConfigType, FunctionType},
+  types::FunctionConfigMap,
+};
 use stylex_structures::stylex_options::StyleXOptions;
 use swc_core::{
   common::{DUMMY_SP, GLOBALS, Globals, SyntaxContext},
@@ -251,6 +255,52 @@ pub(crate) fn assert_deopt_names_property(source: &str, property: &str) {
   }
 }
 
+/// Asserts a TypeScript-only expression folds to a string.
+///
+/// The six wrappers a type system writes carry no value of their own: each one
+/// answers what the expression inside it answers. So the case for one is always
+/// a comparison against the same expression without the wrapper, and that
+/// needs the TypeScript grammar rather than the one every other case reads.
+#[track_caller]
+pub(crate) fn assert_ts_folds_to_string(source: &str, expected: &str) {
+  assert_string(
+    assert_folds_result(*evaluate_expr(&parse_ts_expr(source)), source),
+    source,
+    expected,
+  );
+}
+
+/// Asserts a TypeScript-only expression refuses to fold, and says why.
+#[track_caller]
+pub(crate) fn assert_ts_deopt_reason_contains(source: &str, expected: &str) {
+  assert_deopt_reason(*evaluate_expr(&parse_ts_expr(source)), source, expected);
+}
+
+/// The text a TypeScript-only expression folds to against a module binding.
+///
+/// A type argument list is the one wrapper whose inner expression has to be a
+/// reference, so it has nothing to fold to unless a module bound the name --
+/// which makes this the only way to say what it answers rather than only what
+/// it refuses for.
+#[track_caller]
+pub(crate) fn ts_folded_in_a_module_binding(name: &str, init: &str, source: &str) -> String {
+  let globals = Globals::new();
+
+  let result = GLOBALS.set(&globals, || {
+    let mut traversal_state = StateManager::new(StyleXOptions::default());
+
+    traversal_state.push_declaration(declarator_of(name, parse_expr(init)));
+
+    evaluate(
+      &parse_ts_expr(source),
+      &mut traversal_state,
+      &FunctionMap::default(),
+    )
+  });
+
+  folded_text_of(result, &binding_case(name, init, source))
+}
+
 /// Asserts the source folds to a value. Guards the refusals above from being
 /// satisfied by an evaluator that folds nothing at all.
 #[track_caller]
@@ -320,7 +370,15 @@ fn assert_folds_result(result: EvaluateResult, source: &str) -> Expr {
 
 #[track_caller]
 pub(crate) fn assert_folds_to_string(source: &str, expected: &str) {
-  match assert_folds(source) {
+  assert_string(assert_folds(source), source, expected);
+}
+
+/// The string comparison every "folds to this text" assertion makes, in one
+/// place so the sentence a failure prints is the same whichever grammar the
+/// source was written in.
+#[track_caller]
+fn assert_string(folded: Expr, source: &str, expected: &str) {
+  match folded {
     Expr::Lit(Lit::Str(strng)) => assert_eq!(
       convert_atom_to_string(&strng.value),
       expected,
@@ -449,7 +507,22 @@ pub(crate) fn assert_folds_to_number(source: &str, expected: f64) {
 /// [`assert_folds_to_number`] makes can never hold for it.
 #[track_caller]
 pub(crate) fn assert_folds_to_nan(source: &str) {
-  match assert_folds(source) {
+  assert_nan(assert_folds(source), source);
+}
+
+/// The same, for a result a case evaluated itself -- one folded against a
+/// function map or a state of its own, which no plain source reaches.
+#[track_caller]
+pub(crate) fn assert_result_folds_to_nan(result: Box<EvaluateResult>, source: &str) {
+  match folded_value_of(result, source) {
+    EvaluateResultValue::Expr(expr) => assert_nan(expr, source),
+    other => panic!("expected `{}` to fold to a number, got {:?}", source, other),
+  }
+}
+
+#[track_caller]
+fn assert_nan(folded: Expr, source: &str) {
+  match folded {
     Expr::Lit(Lit::Num(num)) => {
       assert!(
         num.value.is_nan(),
@@ -506,6 +579,158 @@ pub(crate) fn folded_text(value: &EvaluateResultValue) -> String {
   }
 }
 
+/// The namespace name every case against the function fold reads: the object
+/// `import * as stylex` binds, holding one of the compiler's own functions.
+pub(crate) const FOLD_NAMESPACE: &str = "sx";
+
+/// The one entry that namespace holds.
+pub(crate) const FOLD_ENTRY: &str = "create";
+
+/// The name of one such function on its own, which is a function where the
+/// namespace is an object -- the distinction every coercion turns on.
+pub(crate) const FOLD_FUNCTION: &str = "own";
+
+/// Evaluates `source` against the compiler's own function fold, under the two
+/// names above.
+///
+/// A fold of a function map is not a JavaScript value: its entries are this
+/// compiler's own Rust functions. So nothing about it crosses into the engine,
+/// the engine declines every call written over one, and the call is handed back
+/// to the evaluator. That is the one route to the conversions and the callee
+/// shapes still written out in Rust, and no source alone reaches it -- the
+/// binding is the compiler's own and no module spells it.
+pub(crate) fn a_function_fold() -> FunctionMap {
+  let mut entries = FunctionConfigMap::default();
+
+  entries.insert(FOLD_ENTRY.into(), a_folded_function());
+
+  let mut fns = FunctionMap::default();
+
+  fns.identifiers.insert(
+    FOLD_NAMESPACE.into(),
+    Box::new(FunctionConfigType::Map(entries)),
+  );
+  fns
+    .identifiers
+    .insert(FOLD_FUNCTION.into(), Box::new(a_folded_function()));
+
+  fns
+}
+
+/// Evaluates one source against [`a_function_fold`], for a case that makes one
+/// assertion. A case that makes several builds the map itself, because the map
+/// does not change and building one per assertion is work the suite pays for
+/// nothing.
+pub(crate) fn evaluated_against_a_function_fold(source: &str) -> Box<EvaluateResult> {
+  evaluated_against(&a_function_fold(), source)
+}
+
+/// One entry of the fold: a function of the compiler's own, which answers its
+/// argument so a case reading its result reads something it wrote itself.
+pub(crate) fn a_folded_function() -> FunctionConfigType {
+  folded_entry(FunctionType::StylexExprFn(|expr, _| expr), false)
+}
+
+/// One `FunctionConfigType::Regular` entry, which is the shape every callable
+/// the compiler registers has. One constructor rather than one per suite,
+/// because `takes_path` decides which arguments a call hands the function and a
+/// suite spelling it for itself could come to disagree with the one next door.
+pub(crate) fn folded_entry(fn_ptr: FunctionType, takes_path: bool) -> FunctionConfigType {
+  FunctionConfigType::Regular(FunctionConfig { fn_ptr, takes_path })
+}
+
+/// The value `result` folded to, or a failure naming what refused instead.
+///
+/// The one reading of a result every suite here needs. Copies of it drifted
+/// into a sentence each for the same failure, which is a suite telling a reader
+/// less than it knows.
+#[track_caller]
+pub(crate) fn folded_value_of(result: Box<EvaluateResult>, source: &str) -> EvaluateResultValue {
+  assert!(
+    result.confident,
+    "expected `{}` to fold, got a deopt: {:?}",
+    source, result.reason
+  );
+
+  match result.value {
+    Some(value) => value,
+    None => panic!("expected `{}` to fold to a value, got none", source),
+  }
+}
+
+/// The text `result` folded to, for a case whose subject is what was written
+/// rather than which value carried it.
+#[track_caller]
+pub(crate) fn folded_text_of(result: Box<EvaluateResult>, source: &str) -> String {
+  folded_text(&folded_value_of(result, source))
+}
+
+/// Asserts `result` refuses, and that the sentence is the one `expected`.
+///
+/// The sentence rather than only the refusal, because a refusal naming the
+/// wrong rule reads to an author exactly like the right one.
+#[track_caller]
+pub(crate) fn assert_refused_with(result: &EvaluateResult, source: &str, expected: &str) {
+  assert_refused(result, source);
+
+  assert_eq!(
+    result.reason.as_deref(),
+    Some(expected),
+    "wrong refusal for `{}`",
+    source
+  );
+}
+
+/// Asserts `result` refuses and says something, for a case whose subject is
+/// that the shape is not folded rather than which rule declined it.
+#[track_caller]
+pub(crate) fn assert_refused(result: &EvaluateResult, source: &str) {
+  assert!(
+    !result.confident,
+    "expected `{}` to refuse, got {:?}",
+    source, result.value
+  );
+
+  assert!(
+    result.reason.is_some(),
+    "expected `{}` to record a deopt reason",
+    source
+  );
+}
+
+/// Evaluates `source` against a function map the case built itself.
+///
+/// The general form of the two helpers above, for a case whose subject *is* the
+/// registration -- which entry shape a name holds, and what a call or a member
+/// read then does with it. Nothing about the map is written in any source, so a
+/// case about one has to build it.
+pub(crate) fn evaluated_against(fns: &FunctionMap, source: &str) -> Box<EvaluateResult> {
+  evaluated_in_a_state(|_| {}, fns, source)
+}
+
+/// The same, against a state the case set up itself.
+///
+/// What a module *imported* is state rather than a function map, and two things
+/// the evaluator does turn on it: which name the compiler's own
+/// `firstThatWorks` is reachable under, and which name is the StyleX
+/// namespace. Neither is written in the expression, so a case about either has
+/// to record the import the collector would have recorded.
+pub(crate) fn evaluated_in_a_state(
+  prepare: impl FnOnce(&mut StateManager),
+  fns: &FunctionMap,
+  source: &str,
+) -> Box<EvaluateResult> {
+  let globals = Globals::new();
+
+  GLOBALS.set(&globals, || {
+    let mut traversal_state = StateManager::new(StyleXOptions::default());
+
+    prepare(&mut traversal_state);
+
+    evaluate(&parse_expr(source), &mut traversal_state, fns)
+  })
+}
+
 /// `const <name> = <init>`, as the module-wide collector would have recorded it.
 fn declarator_of(name: &str, init: Expr) -> VarDeclarator {
   let id = Ident {
@@ -527,6 +752,46 @@ fn declarator_of(name: &str, init: Expr) -> VarDeclarator {
 /// way to reach a printed parameter: an expression that resolves no name is
 /// printed with none.
 pub(crate) fn folded_in_a_module_binding(name: &str, init: &str, source: &str) -> String {
+  folded_text_of(
+    evaluated_in_a_module_binding(name, init, source),
+    &binding_case(name, init, source),
+  )
+}
+
+/// How a case against a module binding is named in a failure, so a reader sees
+/// the declaration the source was folded against and not only the source.
+fn binding_case(name: &str, init: &str, source: &str) -> String {
+  format!("{source}` against `const {name} = {init}")
+}
+
+/// Asserts `source` refuses to fold against a module binding `name` to `init`,
+/// and that the refusal is the one `expected`.
+///
+/// The refusing half of [`folded_in_a_module_binding`]. A shape that reaches
+/// the evaluator only through a name -- an arrow the author wrote, applied
+/// where it was named -- has no other spelling to be refused in.
+#[track_caller]
+pub(crate) fn assert_refused_in_a_module_binding(
+  name: &str,
+  init: &str,
+  source: &str,
+  expected: &str,
+) {
+  assert_refused_with(
+    &evaluated_in_a_module_binding(name, init, source),
+    &binding_case(name, init, source),
+    expected,
+  );
+}
+
+/// Evaluates `source` against a module holding the one declaration
+/// `const <name> = <init>`, which is how a value an expression cannot write
+/// down -- an arrow, above all -- reaches the fold at all.
+pub(crate) fn evaluated_in_a_module_binding(
+  name: &str,
+  init: &str,
+  source: &str,
+) -> Box<EvaluateResult> {
   let globals = Globals::new();
 
   GLOBALS.set(&globals, || {
@@ -534,20 +799,10 @@ pub(crate) fn folded_in_a_module_binding(name: &str, init: &str, source: &str) -
 
     traversal_state.push_declaration(declarator_of(name, parse_expr(init)));
 
-    let result = evaluate(
+    evaluate(
       &parse_expr(source),
       &mut traversal_state,
       &FunctionMap::default(),
-    );
-
-    assert!(
-      result.confident,
-      "`{source}` refused with `{init}` bound to `{name}`"
-    );
-
-    match result.value.as_ref() {
-      Some(value) => folded_text(value),
-      None => panic!("`{source}` answered no value with `{init}` bound to `{name}`"),
-    }
+    )
   })
 }

@@ -1,0 +1,288 @@
+/**
+ * Rules about how many native bindings one process can hold.
+ *
+ * The paired benchmark loads a base subject and a candidate subject together,
+ * so it can measure both on one runner in one process. This works on Linux,
+ * which is where CI runs the gate. It does not work on macOS: the second
+ * binding stops the process with SIGSEGV.
+ *
+ * A SIGSEGV gives no message and no exit code that names a cause. A benchmark
+ * that dies without a message is the failure that the performance policy warns
+ * about, because a run that stopped and a run that was fast look the same. The
+ * checks here find the unsafe load before it happens and stop the run with a
+ * message that says what to do.
+ *
+ * `assertBindingCanLoad` takes the platform and the loaded set as arguments. It
+ * reads no global state, so a test can supply any platform.
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+
+import { isRecord } from './json.js';
+import { realPathOf, settledPathOf } from './paths.js';
+
+/** File extension of a Node native addon. */
+const NATIVE_EXTENSION = '.node';
+
+/**
+ * Name that NAPI gives the addon file, from `napi.binaryName` in the package
+ * manifest. Every build writes `rs-compiler.<target>.node`, in the package
+ * `dist` and in each platform package. `native-bindings.test.ts` compares this
+ * against the manifest, so the two cannot drift apart.
+ */
+export const NATIVE_BINARY_NAME = 'rs-compiler';
+
+/** Scope that holds the per-platform packages, such as `@stylexswc/rs-compiler-darwin-arm64`. */
+const PLATFORM_PACKAGE_SCOPE = '@stylexswc';
+
+/**
+ * Platforms that cannot hold two different native bindings in one process.
+ *
+ * macOS is the only one that is known to fail. Measured on `darwin` arm64 with
+ * Node 24: one binding does 4,000 transforms and survives, and two bindings
+ * stop the process. `require`, dynamic `import`, and `process.dlopen` with
+ * `RTLD_LOCAL` all fail.
+ */
+const DUAL_LOAD_UNSAFE_PLATFORMS: ReadonlySet<NodeJS.Platform> = new Set(['darwin']);
+
+export function isDualLoadUnsafe(platform: NodeJS.Platform = process.platform): boolean {
+  return DUAL_LOAD_UNSAFE_PLATFORMS.has(platform);
+}
+
+/** The long-path prefix `realpath` may put in front of a Windows path. */
+const WINDOWS_LONG_PATH = /^\\\\\?\\(UNC\\)?/;
+
+/**
+ * One spelling of a path, so two readers of the same file agree about it.
+ *
+ * The guard compares the bindings a subject would load against the bindings the
+ * process holds, and the two come from different readers: one from the file
+ * system, one from the diagnostic report the runtime writes. On Linux and macOS
+ * both answer the same string. On Windows they need not: the file system is
+ * case-insensitive, the loader records the case it was handed, `realpath` may
+ * answer with a `\\?\` long-path prefix, and either may spell a separator the
+ * other way. Compared as plain strings, the process's own binding then reads as
+ * a second one -- which is exactly the reading the guard exists to prevent.
+ *
+ * Case is folded on Windows only. A POSIX file system holds `A.node` and
+ * `a.node` apart, so folding there would merge two real files.
+ */
+export function bindingPathKey(file: string, platform: NodeJS.Platform = process.platform): string {
+  if (platform !== 'win32') return file;
+
+  // `\\?\UNC\host\share` and `\\host\share` name one file, so the UNC form
+  // keeps the two separators the plain form spells it with.
+  return file
+    .replace(WINDOWS_LONG_PATH, (_, unc: string | undefined) => (unc === undefined ? '' : '\\\\'))
+    .replaceAll('/', '\\')
+    .toLowerCase();
+}
+
+/**
+ * Whether a file is an addon that this compiler builds.
+ *
+ * Reads the name, because the loaded list holds every addon in the process and
+ * most of them belong to other packages. A watcher such as `fsevents` must not
+ * count as a second compiler binding, or the guard stops a run that is safe.
+ *
+ * Named from the one spelling rather than from the path as written, so the rule
+ * that folds a Windows name lives in `bindingPathKey` alone. A name this reader
+ * dropped for its case would leave the guard blind to a binding the process
+ * holds. The basename is taken with the parser of the platform named rather
+ * than of the host, because the platform is an argument here: a backslash is a
+ * separator on Windows and an ordinary character everywhere else.
+ */
+export function isCompilerBinding(
+  file: string,
+  platform: NodeJS.Platform = process.platform
+): boolean {
+  const parser = platform === 'win32' ? path.win32 : path.posix;
+  const name = parser.basename(bindingPathKey(file, platform));
+
+  return name.startsWith(`${NATIVE_BINARY_NAME}.`) && name.endsWith(NATIVE_EXTENSION);
+}
+
+/**
+ * Whether `loaded` already holds `binding`, whatever either one calls it.
+ *
+ * The one place a binding path is compared, so no caller has to remember that
+ * two readers spell a Windows path differently -- which is the mistake that put
+ * the process's own addon in neither set.
+ */
+export function holdsBinding(
+  loaded: ReadonlySet<string>,
+  binding: string,
+  platform: NodeJS.Platform = process.platform
+): boolean {
+  const wanted = bindingPathKey(binding, platform);
+
+  for (const held of loaded) {
+    if (bindingPathKey(held, platform) === wanted) return true;
+  }
+
+  return false;
+}
+
+/** Real paths of the addons that lie directly in one directory. */
+function addonsIn(dir: string): string[] {
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(dir);
+  } catch {
+    return [];
+  }
+
+  const found: string[] = [];
+  for (const entry of entries) {
+    if (!entry.endsWith(NATIVE_EXTENSION)) continue;
+    try {
+      found.push(realPathOf(path.join(dir, entry)));
+    } catch {
+      // A broken link names no file. Nothing can load it, so skip it.
+    }
+  }
+
+  return found;
+}
+
+/**
+ * Lists the native bindings that a subject package can load.
+ *
+ * `dist/transform.js` looks for the addon in three places, and this function
+ * reads all three. A published package is the reason: `files` in the manifest
+ * ships `dist/index.js` and `dist/transform.js` but no addon, so a subject
+ * unpacked from the registry keeps its addon in a platform package under
+ * `node_modules`. A search of `dist` alone finds nothing there, and the guard
+ * would then permit the load that stops the process.
+ *
+ * The three places, in the order that `transform.js` tries them:
+ *   1. the file that `NAPI_RS_NATIVE_LIBRARY_PATH` names;
+ *   2. `<packageDir>/dist`;
+ *   3. each `<packageDir>/node_modules/@stylexswc/rs-compiler-*` package.
+ *
+ * Returns an empty list when the package holds no addon. A caller must not fail
+ * for that reason: the entry point decides whether the subject can run, and it
+ * gives a better message than this function can.
+ */
+export function findNativeBindings(packageDir: string): string[] {
+  const found = new Set<string>();
+
+  const override = process.env.NAPI_RS_NATIVE_LIBRARY_PATH;
+  if (override) {
+    try {
+      found.add(realPathOf(override));
+    } catch {
+      // The variable names a file that is not there. Nothing can load it.
+    }
+  }
+
+  for (const addon of addonsIn(path.join(packageDir, 'dist'))) found.add(addon);
+
+  const scopeDir = path.join(packageDir, 'node_modules', PLATFORM_PACKAGE_SCOPE);
+  let platformPackages: string[];
+  try {
+    platformPackages = fs.readdirSync(scopeDir);
+  } catch {
+    platformPackages = [];
+  }
+
+  for (const name of platformPackages) {
+    if (!name.startsWith(`${NATIVE_BINARY_NAME}-`)) continue;
+    for (const addon of addonsIn(path.join(scopeDir, name))) found.add(addon);
+  }
+
+  return [...found].toSorted();
+}
+
+/**
+ * Lists the compiler bindings that the process holds now.
+ *
+ * Reads the Node diagnostic report, which names every shared object that the
+ * process loaded. This finds a binding that any module pulled in, not only one
+ * that `loadSubject` asked for. `benchmark/lib/types.ts` reads an enum off the
+ * package's own build, so the harness holds a binding before the first subject
+ * arrives, and a list that counted only subjects would miss it.
+ *
+ * Keeps the addons of this compiler and drops the rest, because the process
+ * holds addons of other packages that cannot conflict with a subject.
+ *
+ * Returns an empty set when the runtime gives no report. The guard then permits
+ * the load, because a guard must not stop a run on a fact it cannot read.
+ */
+export function loadedNativeBindings(): Set<string> {
+  let sharedObjects: readonly unknown[];
+  try {
+    const report: unknown = process.report?.getReport();
+    sharedObjects =
+      isRecord(report) && Array.isArray(report.sharedObjects) ? report.sharedObjects : [];
+  } catch {
+    return new Set();
+  }
+
+  // Settled before it is keyed, because the report and the variable are not
+  // written by the same hand. The runtime reports a path the operating system
+  // resolved; the variable holds whatever the caller typed. `bindingPathKey`
+  // folds case and separators but cannot follow a link or expand a short name,
+  // so an override under a symlinked temp directory -- which is every temp
+  // directory on macOS -- would key differently from the same file in the
+  // report. The binding would then be dropped, the set would read empty, and
+  // the guard would permit the dual load it exists to stop, on the one platform
+  // where that load ends the process.
+  const override = process.env.NAPI_RS_NATIVE_LIBRARY_PATH;
+  const overrideKey = override === undefined ? undefined : bindingPathKey(settledPathOf(override));
+  const loaded = new Set<string>();
+  for (const object of sharedObjects) {
+    if (typeof object !== 'string') continue;
+    // The override can name a file that the compiler naming rule does not
+    // match, so accept it as well as a file with the standard name.
+    if (!isCompilerBinding(object) && bindingPathKey(settledPathOf(object)) !== overrideKey)
+      continue;
+    try {
+      loaded.add(realPathOf(object));
+    } catch {
+      // The file is gone. It cannot conflict with a load that comes now.
+    }
+  }
+
+  return loaded;
+}
+
+export interface BindingLoadRequest {
+  /** Name of the subject, for the message. */
+  label: string;
+  /** Bindings that this subject brings in. */
+  bindings: readonly string[];
+  /** Bindings that the process already holds. */
+  loaded: ReadonlySet<string>;
+  platform?: NodeJS.Platform;
+}
+
+/**
+ * Stops a load that would put a second native binding in the process.
+ *
+ * A subject that brings in a binding which is already loaded is safe, because
+ * the runtime gives back the same instance. Only a new and different binding
+ * is a risk.
+ *
+ * @throws Error when the platform cannot hold the new binding.
+ */
+export function assertBindingCanLoad(request: BindingLoadRequest): void {
+  if (!isDualLoadUnsafe(request.platform)) return;
+  if (request.loaded.size === 0) return;
+
+  const conflicting = request.bindings.filter(
+    binding => !holdsBinding(request.loaded, binding, request.platform)
+  );
+  if (conflicting.length === 0) return;
+
+  const platform = request.platform ?? process.platform;
+  throw new Error(
+    `Cannot load subject "${request.label}": ${platform} cannot hold two ` +
+      'different native bindings in one process, and the process already ' +
+      `holds ${[...request.loaded].join(', ')}. Loading ${conflicting.join(', ')} ` +
+      'stops the process with SIGSEGV and reports no result. Run the paired ' +
+      'benchmark on Linux, or measure each revision in its own process and ' +
+      'compare the two reports.'
+  );
+}

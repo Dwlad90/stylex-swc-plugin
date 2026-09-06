@@ -74,6 +74,14 @@ pub static ILLEGAL_PROP_ARRAY_VALUE: &str =
 
 pub static ILLEGAL_NAMESPACE_VALUE: &str = "A StyleX namespace must be an object.";
 
+/// `ToObject` of `null` or `undefined`, which the language has no answer for.
+///
+/// Word for word the `TypeError` the language raises, because the reference
+/// implementation reaches this by calling `Object.keys` on the value and
+/// letting the runtime throw -- so the sentence an author sees is the same one
+/// on both sides only if this is the runtime's, not one of ours.
+pub static NULLISH_TO_OBJECT: &str = "Cannot convert undefined or null to object";
+
 pub static INVALID_PSEUDO: &str = "Invalid pseudo selector, not on the whitelist.";
 
 pub static INVALID_PSEUDO_OR_AT_RULE: &str = "Invalid pseudo or at-rule.";
@@ -123,8 +131,6 @@ pub static UNPREFIXED_CUSTOM_PROPERTIES: &str = "Unprefixed custom properties";
 pub static NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE: &str =
   "createTheme() can only accept an object as the second argument.";
 
-pub static BUILT_IN_FUNCTION: &str = "Evaluation built-in functions not supported";
-
 pub static THEME_IMPORT_KEY_AS_OBJECT_KEY: &str =
   "Theme import keys cannot be used as object keys. Please use a valid object key.";
 
@@ -137,7 +143,29 @@ pub static INVALID_MEDIA_QUERY_SYNTAX: &str = "Invalid media query syntax.";
 pub static SPREAD_NOT_SUPPORTED: &str =
   "The spread operator (...) is not supported in this context. Declare each property explicitly.";
 
-pub static SPREAD_MUST_BE_OBJECT: &str = "The spread argument must be a static object expression.";
+/// A spread whose operand the evaluator cannot read the own properties of.
+///
+/// Not "must be an object": spreading a non-object is ordinary JavaScript and
+/// folds, contributing the own enumerable properties the value has -- none for a
+/// number, its indices for a string or an array. What is refused is narrower and
+/// is what this says: an operand whose properties cannot be read at compile
+/// time, which is an astral string (its code units are lone surrogates no Rust
+/// string holds) and a value the evaluator holds in a representation of its own.
+/// An array carrying a hole is refused for the hole, before the spread reads it,
+/// and reads the reference implementation's own words for one.
+pub static SPREAD_PROPERTIES_UNREADABLE: &str =
+  "The spread argument's properties could not be read at compile time.";
+
+/// A property was looked up on an object literal carrying a spread.
+///
+/// A separate complaint from [`SPREAD_PROPERTIES_UNREADABLE`], and the reason
+/// the two are not one constant: nothing here failed to read a value. The
+/// spread's own keys are simply unknown, so a key that is not among the
+/// literal ones cannot be called absent -- and answering `undefined` for it,
+/// which is what this lookup does for a key an object genuinely lacks, would be
+/// answering a question the object has not settled.
+pub static SPREAD_HIDES_OBJECT_KEYS: &str =
+  "A spread in this object leaves its keys unknown at compile time.";
 
 pub static EXPRESSION_IS_NOT_A_STRING: &str =
   "Expected a string value but received a non-string expression.";
@@ -190,8 +218,6 @@ pub static VALUE_NOT_EXPRESSION: &str = "Style value must evaluate to a static e
 
 pub static EVAL_RESULT_EXPECTED: &str = "Expected a value from evaluation result.";
 
-pub static VAR_DECL_NAME_NOT_IDENT: &str = "Variable declarator name must be an identifier.";
-
 pub static VAR_DECL_INIT_REQUIRED: &str = "Variable declaration must have an initializer.";
 
 pub static KEY_VALUE_EXPECTED: &str = "Expected a key-value property in the object.";
@@ -212,6 +238,21 @@ pub fn expected_call_expression(fn_name: &str) -> String {
     "{}(): Expected a call expression. Ensure the value is a direct function call.",
     fn_name
   )
+}
+
+/// The same rule where the variable has no name to read -- a computed key the
+/// evaluator cannot name. The reference implementation's second reader of this
+/// rule words it without a name too.
+pub static MISSING_DEFAULT_VALUE_UNNAMED: &str = "Default value is not defined for variable.";
+
+/// A variable whose value is an object carrying no `default` key.
+///
+/// Byte-identical to the reference implementation's, which names the top-level
+/// variable and not the nested key the recursion is standing on. The name used
+/// to be quoted here, which is the whole of what a build error read differently
+/// between the two compilers for this input.
+pub fn missing_default_value(key: &str) -> String {
+  format!("Default value is not defined for {} variable.", key)
 }
 
 pub fn invalid_define_vars_function_value() -> String {

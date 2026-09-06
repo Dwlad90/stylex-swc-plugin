@@ -3,15 +3,13 @@ use std::{path::Path, rc::Rc};
 use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
 
-use crate::shared::{
-  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  structures::{
-    state_manager::StateManager,
-    types::{FlatCompiledStyles, StylesObjectMap},
-  },
-};
 use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_regex::regex::SANITIZE_CLASS_NAME_REGEX;
+use stylex_state::{
+  flat_compiled_styles_value::FlatCompiledStylesValue,
+  state_manager::StateManager,
+  types::{FlatCompiledStyles, StylesObjectMap},
+};
 
 pub(crate) fn inject_dev_class_names(
   obj: &StylesObjectMap,

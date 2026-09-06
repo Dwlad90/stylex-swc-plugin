@@ -1322,7 +1322,7 @@ function getProcessedFileName(
   return template ? replaceFileName(template, collectedCSS || '') : null;
 }
 
-export const unplugin: UnpluginInstance<UnpluginStylexRSOptions | undefined> =
+const unplugin: UnpluginInstance<UnpluginStylexRSOptions | undefined> =
   createUnplugin(unpluginFactory);
 
 export * from './types';

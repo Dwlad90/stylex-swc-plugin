@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::css::{
-  generate_ltr::generate_ltr, generate_rtl::generate_rtl, normalize_value::normalize_value,
+  generate_ltr::generate_ltr, generate_rtl::generate_rtl, normalize_value::normalize_value_guarded,
 };
 use crate::utils::pseudo::{is_pseudo_class, is_pseudo_element, is_pseudo_selector};
 use stylex_constants::constants::{
@@ -211,6 +211,16 @@ pub fn generate_css_rule(
 
 /// Calculates priority for compound pseudo selectors (e.g. `:hover::after`).
 fn get_compound_pseudo_priority(key: &str) -> Option<f64> {
+  // Both alternations in `PSEUDO_PART_REGEX` open with a colon, so a key
+  // without one cannot hold a pseudo part and the scan below can only come
+  // back empty. Asked first because the overwhelming majority of keys reaching
+  // here are plain property names -- `color`, `paddingBottom` -- and running a
+  // backtracking regex over each of them to learn nothing made this the
+  // single hottest leaf in a sampled profile of a large module.
+  if !key.contains(':') {
+    return None;
+  }
+
   let parts: Vec<&str> = PSEUDO_PART_REGEX
     .find_iter(key)
     .flatten()
@@ -478,6 +488,13 @@ struct ValueStructure {
   /// semicolons are common enough in hand-written style objects that rejecting
   /// them would fail programs the reference compiler accepts, over a character
   /// that cannot do any harm.
+  ///
+  /// Nor does an *escaped* one, for the same reason a quoted one does not:
+  /// `\;`, `\{` and `\}` are part of the identifier they sit in, so they close
+  /// nothing and splice nothing. The reference compiler emits `A\;B` for
+  /// `fontFamily`, and refusing it here failed a program that compiles there —
+  /// over the one reading of those bytes the guard's own sentence excludes,
+  /// since an escape is neither a string nor a comment.
   has_rule_breaking_token: bool,
   /// The deepest the value nests functions, counted outside strings and
   /// comments. Parsing and normalizing recurse once per level, so this is what
@@ -486,33 +503,27 @@ struct ValueStructure {
   max_nesting_depth: usize,
 }
 
-impl ValueStructure {
-  /// Returns `true` when the value can be spelled into the generated stylesheet
-  /// without being able to escape its own declaration.
-  ///
-  /// Every accepted value now reaches the stylesheet as the author's own bytes,
-  /// rewritten only where a value pass names them, so this is asked of all of
-  /// them rather than of a bypass.
-  fn is_inert(&self) -> bool {
-    !self.has_rule_breaking_token && !self.has_unclosed_comment
-  }
-}
-
 /// How deeply a value may nest functions before it is rejected.
 ///
-/// Parsing and normalizing a value each recurse once per nesting level, and
-/// neither carries a depth limit of its own. Past the point where the stack
-/// runs out the process **aborts** rather than panicking — a stack overflow is
-/// not unwindable, so the `catch_unwind` around compilation never sees it and
-/// no diagnostic is ever produced.
+/// The number and the reasoning behind it are
+/// [`stylex_utils::nesting::MAX_NESTING_DEPTH`], shared with the media query
+/// guard in `stylex-css-parser` because both enforce one decision about this
+/// compiler's stack. What is local to values is where the depth comes from: the
+/// scan below steps over comments and `url()` bodies before it counts a
+/// parenthesis.
+pub(crate) const MAX_VALUE_NESTING_DEPTH: usize = stylex_utils::nesting::MAX_NESTING_DEPTH;
+
+/// Whether `css_property_value` nests deeper than the compiler's budget.
 ///
-/// The limit is stated here rather than left to whatever stack the host
-/// happens to provide, so that the same source compiles the same way
-/// everywhere instead of depending on which thread the compiler runs on. It is
-/// set well below the observed cliff — a 2 MiB thread, the smallest in play,
-/// survives past a hundred levels — and far above real CSS, where the deepest
-/// value in the project's own corpus nests eight.
-pub(crate) const MAX_VALUE_NESTING_DEPTH: usize = 64;
+/// Asked by the two places that would otherwise abort on the same value, so
+/// that both read one answer: normalization, which turns a `true` here into the
+/// diagnostic authors see, and the shorthand splitter, which runs *earlier* and
+/// so cannot leave the question to normalization. Reading the depth twice from
+/// the same scan is what keeps the splitter from bailing out on a value
+/// normalization would have accepted, or from handing on one it will not.
+pub(crate) fn nests_too_deeply(css_property_value: &str) -> bool {
+  scan_value_structure(css_property_value).max_nesting_depth > MAX_VALUE_NESTING_DEPTH
+}
 
 fn scan_value_structure(css_property_value: &str) -> ValueStructure {
   let value = css_property_value.as_bytes();
@@ -582,10 +593,10 @@ fn scan_value_structure(css_property_value: &str) -> ValueStructure {
       None if byte == b')' => {
         paren_depth = paren_depth.saturating_sub(1);
       },
-      None if matches!(byte, b'{' | b'}') => {
+      None if matches!(byte, b'{' | b'}') && !is_escaped(value, index) => {
         structure.has_rule_breaking_token = true;
       },
-      None if byte == b';' => {
+      None if byte == b';' && !is_escaped(value, index) => {
         open_semicolon = true;
       },
       _ => {},
@@ -666,21 +677,32 @@ pub(crate) fn build_error_css_rule(css_property: &str, css_property_value: &str)
 /// Rewrites a declaration value into the canonical text the class name is
 /// hashed from.
 ///
-/// Two structural guards stand in front of [`normalize_value`], and they are
-/// the only things here that are not normalization. Both reject a value that
-/// could not be spelled into the generated stylesheet whatever it normalized
-/// to: one that would terminate its own rule, and one nested deeper than the
-/// compiler's recursion budget. The unclosed function, the unclosed string and
-/// the unprefixed custom property are *not* among them — they are the first
-/// three passes of [`normalize_value`], and reporting them from here as well
-/// would give the same input two different diagnostics depending on which check
-/// happened to be spelled first.
+/// Three structural guards stand around [`normalize_value_guarded`], and they
+/// are the only things here that are not normalization. All three reject a
+/// value that could not be spelled into the generated stylesheet whatever it
+/// normalized to: one that never closed a comment, one nested deeper than the
+/// compiler's recursion budget, and one that would terminate its own rule. The
+/// unclosed function, the unclosed string and the unprefixed custom property
+/// are *not* among them — they are passes of [`normalize_value_guarded`], and
+/// reporting them from here as well would give the same input two different
+/// diagnostics depending on which check happened to be spelled first.
 ///
-/// Everything else is [`normalize_value`], for every value, with no second
-/// path. A value using syntax the compiler has never heard of takes exactly the
-/// same route as `color: red`, which is what makes the absence of an opinion
-/// about hex spelling, letter case, quote characters and whitespace positions
-/// observable in the output.
+/// Two of the three fire here and the third does not, which is the ordering
+/// this function exists to state. The comment and the nesting guards read the
+/// raw bytes and must run before the value is parsed at all — parsing recurses
+/// once per level, and past the budget it aborts the process rather than
+/// failing. The declaration-terminating token has no such constraint, so it is
+/// handed to [`normalize_value_guarded`] to fire *after* the two rejections the
+/// reference compiler also makes: a value that is both unclosed and
+/// rule-breaking then stops both compilers with the same complaint, and an
+/// author whose build was refused reads the same sentence whichever compiler
+/// refused it.
+///
+/// Everything else is [`normalize_value_guarded`], for every value, with no
+/// second path. A value using syntax the compiler has never heard of takes
+/// exactly the same route as `color: red`, which is what makes the absence of
+/// an opinion about hex spelling, letter case, quote characters and whitespace
+/// positions observable in the output.
 pub fn normalize_css_property_value(
   css_property: &str,
   css_property_value: &str,
@@ -688,22 +710,11 @@ pub fn normalize_css_property_value(
 ) -> String {
   let structure = scan_value_structure(css_property_value);
 
-  // A comment left open swallows every rule emitted after this declaration, and
-  // a stray `{`, `}` or `;` splices arbitrary CSS into the stylesheet: the value
-  // reaches the output verbatim, so `height: "1px solid } color: red"` would
-  // escape its own declaration.
-  if !structure.is_inert() {
-    if structure.has_unclosed_comment {
-      stylex_panic!("{}", LINT_UNCLOSED_COMMENT);
-    }
-
-    stylex_panic!(
-      "{}, css rule: {}",
-      LINT_RULE_BREAKING_TOKEN,
-      build_reported_css_rule(css_property, css_property_value)
-    );
-  }
-
+  // The one guard that cannot wait for a pass. Parsing and normalizing each
+  // recurse once per nesting level, and past the budget the process *aborts*
+  // rather than panicking — a stack overflow is not unwindable, so the
+  // `catch_unwind` around compilation never sees it and no diagnostic is ever
+  // produced. There is nothing to defer to, so it speaks first.
   if structure.max_nesting_depth > MAX_VALUE_NESTING_DEPTH {
     stylex_panic!(
       "{} (limit {}, found {}), css rule: {}",
@@ -714,7 +725,39 @@ pub fn normalize_css_property_value(
     );
   }
 
-  normalize_value(css_property_value, css_property, options)
+  // Both of the others are handed to the fold, to fire *after* the two
+  // rejections the reference compiler also makes. See the header for why the
+  // token waits; the unclosed comment waits for the same reason and used not to.
+  //
+  // An unclosed comment does not overrun the stack — `postcss_value_parser`
+  // reads it as a comment node carrying `unclosed: true`, which is what
+  // `an_unterminated_comment_contributes_an_empty_part` relies on — so it has no
+  // more claim to preempt those two than the token does. Speaking first meant
+  // `calc(1px /*` was refused here for the comment where the reference compiler
+  // refuses it for the unclosed function: the same accept-or-refuse decision,
+  // reported as a different fault.
+  //
+  // A stray `{`, `}` or `;` splices arbitrary CSS into the stylesheet: the value
+  // reaches the output verbatim, so `height: "1px solid } color: red"` would
+  // escape its own declaration.
+  let deferred_refusal = if structure.has_unclosed_comment {
+    Some(Cow::Borrowed(LINT_UNCLOSED_COMMENT))
+  } else if structure.has_rule_breaking_token {
+    Some(Cow::Owned(format!(
+      "{}, css rule: {}",
+      LINT_RULE_BREAKING_TOKEN,
+      build_reported_css_rule(css_property, css_property_value)
+    )))
+  } else {
+    None
+  };
+
+  normalize_value_guarded(
+    css_property_value,
+    css_property,
+    options,
+    deferred_refusal.as_deref(),
+  )
 }
 
 /// Returns the numeric suffix for a CSS property (`"px"`, `"ms"`, `""`, etc.).

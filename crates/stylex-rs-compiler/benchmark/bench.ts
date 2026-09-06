@@ -6,6 +6,13 @@
  * trend series over time. Base-vs-candidate comparison lives in
  * `bench-revisions.ts`.
  *
+ * Every fixture in `fixtures.v1.json` is measured, under the option shape that
+ * entry declares — production by default, and a development or compatibility
+ * feature where the entry asks for one. The `Feature - …` entries come in
+ * production/`(dev)` pairs on purpose: one number for a development shape prices
+ * nothing, and the pair prices the feature. `guidelines/PERFORMANCE.md` carries
+ * the rule.
+ *
  * Emits three observable artifacts, kept stable for downstream consumers:
  *  - `results/output.json`         — `customSmallerIsBetter` entries used
  *                                    by `github-action-benchmark`.

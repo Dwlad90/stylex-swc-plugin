@@ -9,6 +9,11 @@
 //! reasons -- `parse` once per token it cuts, `stringify` once for the buffer
 //! it fills -- and a change to one has no reason to move the other.
 
+// The allocator the published addon links, so a measurement that allocation
+// binds matches what a consumer gets. Rust links a dev-dependency only where a
+// target names it, so this line is what makes the choice real.
+use swc_malloc as _;
+
 use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};

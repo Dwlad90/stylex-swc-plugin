@@ -2,19 +2,22 @@ use stylex_constants::constants::messages::{OBJECT_KEY_MUST_BE_IDENT, SPREAD_NOT
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{Expr, Lit, MemberExpr, ObjectLit, Prop, PropOrSpread},
+  ecma::{
+    ast::{Expr, Lit, MemberExpr, ObjectLit, Prop, PropOrSpread},
+    visit::{Visit, noop_visit_type},
+  },
 };
 
 use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
 use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
-use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{
-    functions::FunctionMap,
-    state_manager::{DeclId, StateManager},
-  },
-  utils::{ast::helpers::namespace_name_from_member_prop, js::evaluate::evaluate},
+use stylex_ast::ast::keys::namespace_name_from_member_prop;
+
+use stylex_evaluator::evaluate::evaluate;
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue,
+  functions::FunctionMap,
+  state_manager::{DeclId, StateManager},
 };
 
 pub(crate) fn member_expression(
@@ -99,5 +102,38 @@ pub(crate) fn member_expression(
     );
 
     state.style_vars_to_keep.insert(style_var_to_keep);
+  }
+}
+
+/// Walks the member expressions of a `stylex.props`-family call argument and
+/// records which style variables and namespaces the runtime still needs.
+///
+/// A reader, not a writer: [`member_expression`] takes the node by shared
+/// reference and writes only to the state and to the three counters here. The
+/// walk says so through `Visit`, which is what keeps it independent of the
+/// hoisting walk that runs beside it.
+pub(crate) struct MemberTransform<'a> {
+  pub(crate) index: i32,
+  pub(crate) bail_out_index: Option<i32>,
+  pub(crate) non_null_props: NonNullProps,
+  pub(crate) state: &'a mut StateManager,
+  pub(crate) functions: &'a FunctionMap,
+}
+
+impl Visit for MemberTransform<'_> {
+  noop_visit_type!();
+
+  // Deliberately does not walk the children of a member expression. The index
+  // counts one step per member expression the argument holds, and a nested one
+  // would count twice and move the bail-out point.
+  fn visit_member_expr(&mut self, member: &MemberExpr) {
+    member_expression(
+      member,
+      &mut self.index,
+      &mut self.bail_out_index,
+      &mut self.non_null_props,
+      &mut *self.state,
+      self.functions,
+    );
   }
 }

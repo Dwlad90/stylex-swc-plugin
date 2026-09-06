@@ -139,13 +139,17 @@ async function buildSubjects(): Promise<LoadedSubject[]> {
           version: getPackageVersion(babelPluginPkg),
           resolvedFrom: require.resolve('@stylexjs/babel-plugin'),
         },
-        fixture => {
+        // The options the runner hands in, not the shared ones this module
+        // closed over: a fixture may override `dev` for itself, and a
+        // comparison where only one side honours the override is not a
+        // comparison.
+        (fixture, options) => {
           const result = babel.transformSync(fixture.code, {
             filename: fixture.filePath,
             babelrc: false,
             configFile: false,
             parserOpts: { sourceType: 'module', plugins: ['jsx'] },
-            plugins: [[stylexBabelPlugin, stylexOptions]],
+            plugins: [[stylexBabelPlugin, options]],
           });
           return stylexRuleCount(result?.metadata);
         }

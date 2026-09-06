@@ -3,19 +3,21 @@ use std::rc::Rc;
 use indexmap::IndexMap;
 
 use stylex_macros::stylex_panic;
+use stylex_structures::pre_rule_value::PreRuleValue;
 use swc_core::ecma::ast::{Expr, KeyValueProp};
 
 use crate::shared::{
-  enums::data_structures::{
-    flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
-  },
-  structures::{pre_rule::PreRuleValue, state_manager::StateManager, types::FlatCompiledStyles},
+  enums::data_structures::obj_map_type::ObjMapType,
   utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
 };
-use stylex_ast::ast::convertors::get_key_values_from_object;
+use stylex_ast::ast::convertors::{convert_key_value_to_str, get_key_values_from_object};
+use stylex_state::{
+  flat_compiled_styles_value::FlatCompiledStylesValue, state_manager::StateManager,
+  types::FlatCompiledStyles,
+};
 use stylex_structures::{order_pair::OrderPair, pair::Pair, raw_value::TRawValue};
 
-use super::{ast::convertors::convert_key_value_to_str, css::common::transform_value_cached};
+use super::css::common::transform_value_cached;
 
 pub(crate) fn obj_map<F>(
   prop_values: ObjMapType,

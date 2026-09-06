@@ -10,8 +10,8 @@ use swc_core::{
   atoms::Atom,
   common::DUMMY_SP,
   ecma::ast::{
-    BigInt, BigIntValue, ComputedPropName, Expr, IdentName, KeyValueProp, Number, Prop, PropName,
-    PropOrSpread, SpreadElement, Str, Tpl, TplElement,
+    BigInt, BigIntValue, ComputedPropName, Expr, Function, IdentName, KeyValueProp, Number, Prop,
+    PropName, PropOrSpread, SpreadElement, Str, Tpl, TplElement,
   },
 };
 
@@ -199,8 +199,7 @@ fn non_key_value_prop_panics() {
       span: DUMMY_SP,
       sym: Atom::new("g"),
     }),
-    type_ann: None,
-    body: None,
+    function: Box::new(Function::default()),
   });
   let obj = create_object_lit(vec![PropOrSpread::Prop(Box::new(getter))]);
   let _ = get_key_values_from_object(&obj);

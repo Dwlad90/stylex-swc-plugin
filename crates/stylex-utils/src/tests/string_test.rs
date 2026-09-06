@@ -25,6 +25,14 @@ mod dashify_tests {
     assert_eq!(dashify("a"), "a");
   }
 
+  /// The lowercasing has to see the finished string. `char::to_lowercase` is
+  /// context-free, so fusing it into the hyphen scan would spell a trailing
+  /// Greek sigma in its medial form.
+  #[test]
+  fn lowercases_a_trailing_sigma_to_its_final_form() {
+    assert_eq!(dashify("aBΣ"), "a-bς");
+  }
+
   #[test]
   fn handles_empty_string() {
     assert_eq!(dashify(""), "");
@@ -79,6 +87,25 @@ mod dashify_tests {
   fn handles_single_uppercase() {
     assert_eq!(dashify("A"), "-a");
   }
+
+  /// The hyphen tracks a preceding *lowercase* letter, not merely a
+  /// non-uppercase one, so only the first of a run takes one -- which is what
+  /// `(?<=^|[a-z])` spelled, and what the hand-rolled scan that replaced it has
+  /// to reproduce. Expectations produced by running
+  /// `str.replace(/(^|[a-z])([A-Z])/g, '$1-$2').toLowerCase()`.
+  #[test]
+  fn only_the_first_of_a_run_of_uppercase_takes_a_hyphen() {
+    assert_eq!(dashify("aBC"), "a-bc");
+    assert_eq!(dashify("msTransformXY"), "ms-transform-xy");
+    assert_eq!(dashify("ABC"), "-abc");
+  }
+
+  /// A digit is not a lowercase letter, so an uppercase letter after one takes
+  /// no hyphen -- the other half of the class the lookbehind named.
+  #[test]
+  fn a_digit_before_an_uppercase_letter_takes_no_hyphen() {
+    assert_eq!(dashify("grid2Column"), "grid2column");
+  }
 }
 
 #[cfg(test)]
@@ -132,67 +159,98 @@ mod wrap_key_in_quotes_tests {
 }
 
 #[cfg(test)]
-mod char_code_at_tests {
-  use crate::string::char_code_at;
+mod utf16_length_tests {
+  use crate::string::utf16_length;
 
   #[test]
-  fn returns_code_unit_at_index() {
-    assert_eq!(char_code_at("abc", 0), Some(97)); // 'a'
-    assert_eq!(char_code_at("abc", 1), Some(98)); // 'b'
-    assert_eq!(char_code_at("abc", 2), Some(99)); // 'c'
+  fn counts_ascii_characters() {
+    assert_eq!(utf16_length("abc"), 3);
+    assert_eq!(utf16_length(""), 0);
   }
 
+  /// A scalar outside the basic plane is two code units, so a byte count or a
+  /// scalar count would both answer something JavaScript does not.
   #[test]
-  fn returns_none_for_out_of_bounds() {
-    assert_eq!(char_code_at("abc", 3), None);
-    assert_eq!(char_code_at("", 0), None);
+  fn counts_an_astral_scalar_as_two_code_units() {
+    assert_eq!(utf16_length("\u{1F600}a"), 3);
+    assert_eq!(utf16_length("\u{1F389}"), 2);
   }
 
+  /// Neither a byte count nor a scalar count agrees with the language here:
+  /// `"é"` is two bytes and one code unit, and `"日本語"` is nine bytes and
+  /// three.
   #[test]
-  fn handles_unicode() {
-    assert_eq!(char_code_at("é", 0), Some(0xe9));
-    // `"日本語".charCodeAt(i)` — one code unit per scalar in the BMP.
-    assert_eq!(char_code_at("日本語", 0), Some(26085));
-    assert_eq!(char_code_at("日本語", 1), Some(26412));
-    assert_eq!(char_code_at("日本語", 2), Some(35486));
+  fn counts_code_units_rather_than_bytes_or_scalars() {
+    assert_eq!(utf16_length("é"), 1);
+    assert_eq!(utf16_length("日本語"), 3);
   }
 
+  /// A combining sequence is as many code units as it has scalars — the
+  /// language does not normalize before counting, so `"e\u{301}"` is `2` even
+  /// though it renders as one character.
   #[test]
-  fn indexes_astral_scalars_by_code_unit() {
-    // `"🎉".length === 2`, and the two indices read back as the surrogate
-    // halves rather than the `0x1F389` scalar.
-    assert_eq!(char_code_at("🎉", 0), Some(55356)); // 0xD83C
-    assert_eq!(char_code_at("🎉", 1), Some(57225)); // 0xDF89
-    assert_eq!(char_code_at("🎉", 2), None);
+  fn does_not_normalize_a_combining_sequence() {
+    assert_eq!(utf16_length("e\u{301}"), 2);
   }
 
-  /// `charCodeAt` coerces its argument with `ToIntegerOrInfinity`, which a bare
-  /// `as usize` does not reproduce: the cast saturates, so `-1.0` would land on
-  /// index 0.
+  /// A NUL and the other C0 controls are ordinary characters to `length`.
   #[test]
-  fn coerces_a_numeric_index_like_to_integer_or_infinity() {
-    use crate::string::char_code_at_f64;
-
-    // `NaN` coerces to 0, so `"abc".charCodeAt(NaN) === 97`.
-    assert_eq!(char_code_at_f64("abc", f64::NAN), Some(97));
-    // Fractional indices truncate toward zero.
-    assert_eq!(char_code_at_f64("abc", 1.9), Some(98));
-    assert_eq!(char_code_at_f64("abc", 0.0), Some(97));
-    // Negative and infinite indices are out of range — `NaN` in JS — rather
-    // than index 0 or a saturated `usize`.
-    assert_eq!(char_code_at_f64("abc", -1.0), None);
-    assert_eq!(char_code_at_f64("abc", -0.5), None);
-    assert_eq!(char_code_at_f64("abc", f64::NEG_INFINITY), None);
-    assert_eq!(char_code_at_f64("abc", f64::INFINITY), None);
-    assert_eq!(char_code_at_f64("abc", 3.0), None);
+  fn counts_control_characters() {
+    assert_eq!(utf16_length("a\u{0}b"), 3);
+    assert_eq!(utf16_length("\u{1}\u{2}"), 2);
   }
 
+  /// ASCII is answered from the byte length rather than from the encoder, so the
+  /// two readings are compared directly -- across the boundary, since a string
+  /// with one non-ASCII scalar in it must leave the fast path whichever end that
+  /// scalar sits at.
   #[test]
-  fn astral_scalars_shift_following_indices() {
-    // `"a🎉b".charCodeAt(3) === 98` — the surrogate pair consumes indices 1
-    // and 2, so `'b'` lands at 3, not at 2.
-    assert_eq!(char_code_at("a🎉b", 0), Some(97));
-    assert_eq!(char_code_at("a🎉b", 3), Some(98));
+  fn the_ascii_shortcut_answers_what_the_encoder_answers() {
+    for source in [
+      "",
+      "a",
+      "abc",
+      "a b\tc\n",
+      "\u{7f}",
+      "\u{80}",
+      "é",
+      "aé",
+      "éa",
+      "日本語",
+      "\u{1F600}",
+      "a\u{1F600}",
+      "\u{1F600}a",
+      "a\u{0}b",
+    ] {
+      assert_eq!(
+        utf16_length(source),
+        source.encode_utf16().count(),
+        "the two readings of {:?} disagree",
+        source
+      );
+    }
+  }
+
+  /// The property that makes this the language's view of a length: the last
+  /// index that reads a code unit is one below it, and the length itself reads
+  /// nothing. Read off the code units directly, so the claim does not rest on a
+  /// second helper agreeing with this one.
+  #[test]
+  fn counts_one_past_the_last_readable_index() {
+    for source in ["abc", "", "\u{1F600}a", "é", "e\u{301}", "a\u{0}b"] {
+      let length = utf16_length(source);
+      let unit = |index: usize| source.encode_utf16().nth(index);
+
+      assert_eq!(unit(length), None, "past the end of {:?}", source);
+
+      if length > 0 {
+        assert!(
+          unit(length - 1).is_some(),
+          "at the last index of {:?}",
+          source
+        );
+      }
+    }
   }
 }
 
@@ -249,5 +307,100 @@ mod is_blank_css_text_tests {
     // Code 32 is the boundary; 33 is the first character that spells a value.
     assert!(is_blank_css_text("\u{20}"));
     assert!(!is_blank_css_text("\u{21}"));
+  }
+}
+
+#[cfg(test)]
+mod json_stringify_tests {
+  use crate::string::json_stringify;
+
+  /// The plain case: quotes added, nothing else touched. Every rejection
+  /// message that names a value spends most of its life here.
+  #[test]
+  fn wraps_a_plain_string_in_double_quotes() {
+    assert_eq!(json_stringify("none inherit"), "\"none inherit\"");
+  }
+
+  #[test]
+  fn quotes_the_empty_string() {
+    assert_eq!(json_stringify(""), "\"\"");
+  }
+
+  /// A quote inside the value is what would otherwise end the quoted run, so
+  /// this is the escape that keeps the message parseable at all.
+  #[test]
+  fn escapes_an_embedded_double_quote() {
+    assert_eq!(json_stringify("a\"b"), "\"a\\\"b\"");
+  }
+
+  #[test]
+  fn escapes_a_backslash() {
+    assert_eq!(json_stringify("a\\b"), "\"a\\\\b\"");
+  }
+
+  /// A backslash immediately before a quote must escape as two independent
+  /// escapes and not collapse into one — `\\` then `\"`, never `\\"`.
+  #[test]
+  fn escapes_a_backslash_followed_by_a_quote_separately() {
+    assert_eq!(json_stringify("\\\""), "\"\\\\\\\"\"");
+  }
+
+  /// The five controls JSON gives a single-letter escape. Anything else below
+  /// U+0020 takes the `\uXXXX` form instead, which the next test pins.
+  #[test]
+  fn uses_the_single_letter_escapes() {
+    assert_eq!(json_stringify("\u{8}"), "\"\\b\"");
+    assert_eq!(json_stringify("\u{c}"), "\"\\f\"");
+    assert_eq!(json_stringify("\n"), "\"\\n\"");
+    assert_eq!(json_stringify("\r"), "\"\\r\"");
+    assert_eq!(json_stringify("\t"), "\"\\t\"");
+  }
+
+  /// Lowercase hex, four digits, zero-padded. `{:04X}` would read as valid JSON
+  /// and still not be the text upstream emits.
+  #[test]
+  fn escapes_remaining_c0_controls_as_lowercase_four_digit_hex() {
+    assert_eq!(json_stringify("\u{0}"), "\"\\u0000\"");
+    assert_eq!(json_stringify("\u{1}"), "\"\\u0001\"");
+    assert_eq!(json_stringify("\u{b}"), "\"\\u000b\"");
+    assert_eq!(json_stringify("\u{e}"), "\"\\u000e\"");
+    assert_eq!(json_stringify("\u{1a}"), "\"\\u001a\"");
+    assert_eq!(json_stringify("\u{1f}"), "\"\\u001f\"");
+  }
+
+  /// U+0020 is the boundary: the space is the first code point written through
+  /// rather than escaped.
+  #[test]
+  fn writes_the_space_through_unescaped() {
+    assert_eq!(json_stringify(" "), "\" \"");
+  }
+
+  /// DEL and the two line separators are the tempting exceptions. A JS source
+  /// literal could not carry them, but `JSON.stringify` is not building source
+  /// and leaves all three raw.
+  #[test]
+  fn writes_del_and_the_line_separators_through_raw() {
+    assert_eq!(json_stringify("\u{7f}"), "\"\u{7f}\"");
+    assert_eq!(json_stringify("\u{2028}"), "\"\u{2028}\"");
+    assert_eq!(json_stringify("\u{2029}"), "\"\u{2029}\"");
+  }
+
+  /// Non-ASCII is not escaped, whether it fits one UTF-16 code unit or two.
+  /// Escaping it would be valid JSON and the wrong text.
+  #[test]
+  fn writes_non_ascii_through_unescaped() {
+    assert_eq!(json_stringify("éé"), "\"éé\"");
+    assert_eq!(json_stringify("日本"), "\"日本\"");
+    assert_eq!(json_stringify("🎉"), "\"🎉\"");
+    assert_eq!(json_stringify("\u{feff}"), "\"\u{feff}\"");
+  }
+
+  /// A value can be long without being special. Nothing here scales with
+  /// nesting or with the number of escapes, and this says so.
+  #[test]
+  fn handles_a_long_value_of_only_escapes() {
+    let input = "\"".repeat(10_000);
+    let expected = format!("\"{}\"", "\\\"".repeat(10_000));
+    assert_eq!(json_stringify(&input), expected);
   }
 }

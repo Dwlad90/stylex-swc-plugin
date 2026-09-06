@@ -2,24 +2,31 @@
 
 set -euo pipefail
 
-PATTERNS="#\[test\]|test_transform\(|test!\("
-crate_name="$(basename "$PWD")"
+script_dir="$(cd -P "$(dirname "$0")" && pwd -P)"
+# shellcheck source=scripts/packages/test/lib/crate.sh
+. "$script_dir/lib/crate.sh"
 
+crate_name="${PWD##*/}"
+
+# Kept in step with the two workspace lists in `package.json` and
+# `scripts/coverage-missing.sh`. This list holds crate directory names, so a
+# name can differ from the Cargo package name by more than the hyphens:
+# stylex-rs-compiler is the crate stylex_compiler_rs. Why each crate is off the
+# gate, and which rows a ticket removes, is in "Excluded from Coverage" in
+# guidelines/STRUCTURE.md.
 case "$crate_name" in
-  stylex-logs|stylex-rs-compiler|stylex-test-parser|stylex-transform|stylex-css-parser)
+  stylex-evaluator|stylex-logs|stylex-rs-compiler|stylex-state|stylex-test-parser|stylex-transform)
     exit 0
     ;;
 esac
 
-if grep -qRE --include="*.rs" "$PATTERNS" src tests; then
+if crate_has_tests "$CRATE_TEST_MARKERS"; then
   if [ ! -f "src/lib.rs" ]; then
     exit 0
   fi
 
-  script_dir="$(cd "$(dirname "$0")" && pwd)"
-  workspace_root="$(cd "$script_dir/../../.." && pwd)"
-  crate_slug="$(basename "$PWD" | tr -c '[:alnum:]_-' '_')"
-  crate_target_dir="${workspace_root}/target/coverage-${crate_slug}"
+  workspace_root="$(crate_workspace_root)"
+  crate_target_dir="${workspace_root}/target/coverage-$(crate_slug)"
 
   IGNORE_REGEX="(tests?|benches?|examples)/"
 
@@ -27,7 +34,6 @@ if grep -qRE --include="*.rs" "$PATTERNS" src tests; then
     --all-features \
     --fail-uncovered-lines 0 \
     --fail-uncovered-regions 0 \
-    --fail-under-functions 0 \
     --ignore-filename-regex "$IGNORE_REGEX" \
     "$@"
 else

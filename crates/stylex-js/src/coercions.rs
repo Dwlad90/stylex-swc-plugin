@@ -6,9 +6,13 @@
 //! compile-time form of that type — the caller deopts rather than inventing
 //! one.
 
+use std::convert::Infallible;
+
 use stylex_utils::number;
+use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{
-  BigIntValue, BlockStmtOrExpr, Expr, Ident, Lit, ObjectLit, Prop, PropName, PropOrSpread, UnaryOp,
+  ArrowFunctionBody, BigIntValue, Expr, Ident, Lit, Number, ObjectLit, Prop, PropName,
+  PropOrSpread, UnaryOp,
 };
 
 /// What `ToString` produces for an object that still takes the
@@ -57,27 +61,87 @@ impl FunctionForm {
   /// The string a function renders as under this form. Exported because the
   /// evaluator's own function values never take the shape of a function
   /// expression and so reach the same decision by their own route.
-  pub fn render(self) -> Option<String> {
+  pub fn render(self) -> Option<&'static str> {
     match self {
       FunctionForm::Refuse => None,
-      FunctionForm::NotANumber => Some(FUNCTION_TO_NUMBER.to_string()),
+      FunctionForm::NotANumber => Some(FUNCTION_TO_NUMBER),
     }
   }
 }
 
-/// `Array.prototype.join(',')` over elements each rendered by `render`, which
-/// answers `None` for an element with no string form and so refuses the whole
-/// join. Exported because the evaluator's own array representation joins by the
-/// same rule as an array literal's, and the two must not drift.
-pub fn join_js_elements<T>(
+/// The separator `Array.prototype.join` uses when it is given none, and which an
+/// array's `ToString` therefore joins with.
+///
+/// Written once, here, because [`write_js_join`] is the only thing allowed to
+/// spell it: the evaluator's own array representation joins by the same rule as
+/// an array literal's, and a second copy of the rule is what lets the two drift.
+const ARRAY_SEPARATOR: &str = ",";
+
+/// Why a streamed `ToString` stopped short of a whole string.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub enum StringRefusal<R> {
+  /// The value has no compile-time string form at all: a function, whose
+  /// `ToString` is its source text and this compiler retains none, or a string
+  /// holding a lone surrogate, which Rust has no `str` for.
+  NoStringForm,
+  /// The sink would not take a piece, and says why in its own terms.
+  Sink(R),
+}
+
+/// Where a `ToString` writes the string it is building, one piece at a time.
+///
+/// A sink may refuse a piece, and its refusal ends the coercion. That is what
+/// lets a caller measure a string against a ceiling *as* it grows: an array's
+/// `ToString` renders every element and joins them, so a coercion that answered
+/// one finished string had already charged the caller for the whole join before
+/// any bound could look at it.
+pub trait StringSink {
+  /// What this sink reports a refused piece as.
+  type Refusal;
+
+  /// Appends `piece`, or refuses it. The one method an implementer writes.
+  fn write(&mut self, piece: &str) -> Result<(), Self::Refusal>;
+
+  /// The same, with the refusal lifted into the coercion's own two endings --
+  /// which is what every writer of a streamed `ToString` calls, so the lifting
+  /// is written once here rather than once per crate that streams into a sink.
+  fn write_piece(&mut self, piece: &str) -> Result<(), StringRefusal<Self::Refusal>> {
+    self.write(piece).map_err(StringRefusal::Sink)
+  }
+}
+
+/// A plain buffer, which refuses nothing -- what a caller that collects the whole
+/// string rather than measuring it needs.
+impl StringSink for String {
+  type Refusal = Infallible;
+
+  fn write(&mut self, piece: &str) -> Result<(), Infallible> {
+    self.push_str(piece);
+
+    Ok(())
+  }
+}
+
+/// `Array.prototype.join(',')` over `elements`, written into `sink` as it goes
+/// rather than collected and handed back.
+///
+/// The one place the join rule lives: every element `write_element` renders, the
+/// separator between two of them, and a refusal ending the whole join. Exported
+/// because the evaluator's own array representation joins by this rule too.
+pub fn write_js_join<T, S: StringSink>(
   elements: impl IntoIterator<Item = T>,
-  render: impl FnMut(T) -> Option<String>,
-) -> Option<String> {
-  elements
-    .into_iter()
-    .map(render)
-    .collect::<Option<Vec<_>>>()
-    .map(|parts| parts.join(","))
+  sink: &mut S,
+  mut write_element: impl FnMut(T, &mut S) -> Result<(), StringRefusal<S::Refusal>>,
+) -> Result<(), StringRefusal<S::Refusal>> {
+  for (index, element) in elements.into_iter().enumerate() {
+    if index > 0 {
+      sink.write_piece(ARRAY_SEPARATOR)?;
+    }
+
+    write_element(element, sink)?;
+  }
+
+  Ok(())
 }
 
 /// A value the language spells as an identifier rather than as a literal, and
@@ -105,6 +169,80 @@ fn surviving_global(ident: &Ident) -> Option<SurvivingGlobal> {
   }
 }
 
+/// Whether `ident` names one of the three globals above — the only values the
+/// language spells as an identifier rather than as a literal.
+///
+/// Exported for the callers that need the *set* rather than a coercion of it:
+/// the evaluator's reference-resolution chain, which decides whether such a
+/// name is the global or a binding that took it over, and its object coercion,
+/// which answers that all three carry no own properties. They ask here for the
+/// same reason the coercions do — so the set is written down once and a fourth
+/// name would be added in one place.
+pub fn is_global_spelled_as_an_identifier(ident: &Ident) -> bool {
+  surviving_global(ident).is_some()
+}
+
+/// The value one of the three globals *is*, written the way the language would
+/// write it if it could.
+///
+/// `NaN` and `Infinity` are numbers that the grammar has no literal for, so
+/// they are authored as identifiers and reach the evaluator as identifiers —
+/// but a consumer that asks what a value *is* rather than what it coerces to
+/// has to be told a number, or it reads the name as an unresolved reference and
+/// refuses. `undefined` has no other spelling, so it answers itself and the
+/// caller is no worse off than before.
+///
+/// The distinction matters exactly where a consumer inspects the expression's
+/// shape instead of coercing it. Style-value validation is the one that does:
+/// it admits a number and refuses an identifier, so `height: [NaN, '2px']`
+/// refused an array the reference implementation accepts — while `height:
+/// [0/0, '2px']`, the same value reached by arithmetic, folded and agreed.
+///
+/// `None` for every other name, so a caller can use this as the set as well.
+pub fn global_identifier_to_value(ident: &Ident) -> Option<Expr> {
+  match surviving_global(ident)? {
+    // No literal spells it, so the name stands. Every coercion above reads the
+    // identifier form, so nothing downstream is worse off for it.
+    SurvivingGlobal::Undefined => Some(Expr::Ident(ident.clone())),
+    SurvivingGlobal::NaN => Some(js_number_expr(f64::NAN)),
+    SurvivingGlobal::Infinity => Some(js_number_expr(f64::INFINITY)),
+  }
+}
+
+/// A number as the expression that writes it, carrying its authored text where
+/// the grammar has no literal for it.
+///
+/// `NaN` and the two infinities have none: asked to write a `Number` node
+/// holding `NaN`, the emitter falls back to `0 / 0`, and an infinity to a
+/// numeral no author wrote. Both evaluate to the right value, so this is about
+/// the text rather than the semantics -- but the text is what a reader diffs,
+/// what the reference implementation prints, and what a class name is a hash of.
+///
+/// Every finite number spells itself, so this is safe to reach for wherever a
+/// number becomes an expression rather than being asked about first.
+///
+/// A negative infinity spells itself with the minus sign in the text. That is a
+/// unary expression rather than a numeric literal, and it is the right text all
+/// the same: nothing re-parses the raw form, every reader of the node takes its
+/// value, and the alternative is the numeral the emitter invents.
+pub fn js_number_expr(value: f64) -> Expr {
+  let raw = if value.is_nan() {
+    Some("NaN")
+  } else if value == f64::INFINITY {
+    Some("Infinity")
+  } else if value == f64::NEG_INFINITY {
+    Some("-Infinity")
+  } else {
+    None
+  };
+
+  Expr::Lit(Lit::Num(Number {
+    span: DUMMY_SP,
+    value,
+    raw: raw.map(Into::into),
+  }))
+}
+
 /// ECMA-262 `ToString`, over an already-evaluated expression.
 ///
 /// Returns `None` for values with no compile-time string form — a function,
@@ -117,44 +255,79 @@ pub fn to_js_string(expr: &Expr) -> Option<String> {
 /// own value representation walks the same values and has to walk them the same
 /// way.
 pub fn to_js_string_with(expr: &Expr, function_form: FunctionForm) -> Option<String> {
+  let mut text = String::new();
+
+  match write_js_string_of(expr, function_form, &mut text) {
+    Ok(()) => Some(text),
+    // A `String` sink refuses nothing, so the only way here is a value with no
+    // compile-time string form.
+    Err(_) => None,
+  }
+}
+
+/// `ToString` under a chosen [`FunctionForm`], written into `sink` as it goes.
+///
+/// Streaming rather than answering a `String` is what puts an array's join under
+/// the caller's own bound: each element is written straight through, so a caller
+/// measuring the result refuses at the element that passes its ceiling instead of
+/// paying for every element and the join between them first. It also spares every
+/// value a copy, since a piece reaches the sink as the `str` the value already
+/// holds.
+pub fn write_js_string_of<S: StringSink>(
+  expr: &Expr,
+  function_form: FunctionForm,
+  sink: &mut S,
+) -> Result<(), StringRefusal<S::Refusal>> {
   match expr {
     // A string that is not valid UTF-8 holds a lone surrogate, which Rust has
     // no `str` for. Refusing hands the caller the same deopt every other
     // unreadable value gets, which names the property the value sits on --
     // where panicking here would report the coercion's own source location and
     // lose that key path.
-    Expr::Lit(Lit::Str(strng)) => strng.value.as_str().map(ToString::to_string),
-    Expr::Lit(Lit::Num(num)) => Some(number::to_js_string(num.value)),
-    Expr::Lit(Lit::Bool(bool_lit)) => Some(bool_lit.value.to_string()),
-    Expr::Lit(Lit::Null(_)) => Some("null".to_string()),
+    Expr::Lit(Lit::Str(strng)) => match strng.value.as_str() {
+      Some(text) => sink.write_piece(text),
+      None => Err(StringRefusal::NoStringForm),
+    },
+    Expr::Lit(Lit::Num(num)) => sink.write_piece(&number::to_js_string(num.value)),
+    Expr::Lit(Lit::Bool(bool_lit)) => {
+      sink.write_piece(if bool_lit.value { "true" } else { "false" })
+    },
+    Expr::Lit(Lit::Null(_)) => sink.write_piece("null"),
     // A big integer renders as its digits with no `n` suffix, which is the one
     // place its string and its source text part company.
-    Expr::Lit(Lit::BigInt(big_int)) => Some(format!("{}", big_int.value)),
+    Expr::Lit(Lit::BigInt(big_int)) => sink.write_piece(&format!("{}", big_int.value)),
     // A regular expression is the one object whose `ToString` is not the
     // `Object.prototype` default: it answers its own source text, which unlike
     // a function's the evaluator does retain.
-    Expr::Lit(Lit::Regex(regex)) => Some(format!("/{}/{}", regex.exp, regex.flags)),
-    Expr::Ident(ident) => match surviving_global(ident)? {
-      SurvivingGlobal::Undefined => Some("undefined".to_string()),
-      SurvivingGlobal::NaN => Some(number::to_js_string(f64::NAN)),
-      SurvivingGlobal::Infinity => Some(number::to_js_string(f64::INFINITY)),
+    Expr::Lit(Lit::Regex(regex)) => sink.write_piece(&format!("/{}/{}", regex.exp, regex.flags)),
+    Expr::Ident(ident) => match surviving_global(ident) {
+      Some(SurvivingGlobal::Undefined) => sink.write_piece("undefined"),
+      Some(SurvivingGlobal::NaN) => sink.write_piece(&number::to_js_string(f64::NAN)),
+      Some(SurvivingGlobal::Infinity) => sink.write_piece(&number::to_js_string(f64::INFINITY)),
+      None => Err(StringRefusal::NoStringForm),
     },
-    Expr::Array(array) => join_js_elements(&array.elems, |elem| match elem {
+    Expr::Array(array) => write_js_join(&array.elems, sink, |elem, sink| match elem {
       // A hole joins as nothing, the same as the `null` and `undefined` that
       // can occupy the slot.
-      None => Some(String::new()),
-      Some(elem) if elem.spread.is_some() => None,
-      Some(elem) => js_array_element_to_string(&elem.expr, function_form),
+      None => Ok(()),
+      Some(elem) if elem.spread.is_some() => Err(StringRefusal::NoStringForm),
+      Some(elem) => write_js_array_element(&elem.expr, function_form, sink),
     }),
     // An object converts through the method pair a string prefers: its own
     // `toString` where it has one, and the `Object.prototype` default where it
     // does not.
-    Expr::Object(object) => match object_to_primitive(object, ToPrimitiveHint::String)? {
-      ObjectPrimitive::Default => Some(OBJECT_TO_STRING.to_string()),
-      ObjectPrimitive::Returned(returned) => to_js_string_with(returned, function_form),
+    Expr::Object(object) => match object_to_primitive(object, ToPrimitiveHint::String) {
+      Some(ObjectPrimitive::Default) => sink.write_piece(OBJECT_TO_STRING),
+      Some(ObjectPrimitive::Returned(returned)) => {
+        write_js_string_of(returned, function_form, sink)
+      },
+      None => Err(StringRefusal::NoStringForm),
     },
-    Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => function_form.render(),
-    _ => None,
+    Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => match function_form.render() {
+      Some(text) => sink.write_piece(text),
+      None => Err(StringRefusal::NoStringForm),
+    },
+    _ => Err(StringRefusal::NoStringForm),
   }
 }
 
@@ -165,26 +338,87 @@ pub fn to_js_string_with(expr: &Expr, function_form: FunctionForm) -> Option<Str
 /// source text. `NaN` is a value, not a refusal — `Number('10px')` is `NaN` in
 /// JavaScript and lands in the stylesheet as `NaN`.
 pub fn to_js_number(expr: &Expr) -> Option<f64> {
+  let mut text = String::new();
+
+  match write_js_number_of(expr, &mut text) {
+    Ok(NumberOf::Value(value)) => Some(value),
+    Ok(NumberOf::Text) => Some(string_to_js_number(&text)),
+    // A `String` sink refuses nothing, so the only way here is a value with no
+    // compile-time number at all.
+    Err(_) => None,
+  }
+}
+
+/// Where a value's number comes from, once [`write_js_number_of`] has looked at
+/// it.
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum NumberOf {
+  /// The value carries its own number, and nothing was written to the sink.
+  Value(f64),
+  /// The number is [`string_to_js_number`] of the text the sink was given.
+  Text,
+}
+
+/// `ToNumber` under a sink, which is handed the text the coercion reads its
+/// number *through*.
+///
+/// Streaming rather than answering a `String` is what puts an array's join under
+/// the caller's own bound, exactly as it does for [`write_js_string_of`]: a
+/// caller measuring the text refuses at the element that passes its ceiling, and
+/// a caller that can already tell the text is not a numeric literal stops
+/// keeping it.
+pub fn write_js_number_of<S: StringSink>(
+  expr: &Expr,
+  sink: &mut S,
+) -> Result<NumberOf, StringRefusal<S::Refusal>> {
   match expr {
-    Expr::Lit(Lit::Num(num)) => Some(num.value),
-    Expr::Lit(Lit::Bool(bool_lit)) => Some(if bool_lit.value { 1.0 } else { 0.0 }),
+    Expr::Lit(Lit::Num(num)) => Ok(NumberOf::Value(num.value)),
+    Expr::Lit(Lit::Bool(bool_lit)) => Ok(NumberOf::Value(if bool_lit.value { 1.0 } else { 0.0 })),
     // `null` is zero and `undefined` is `NaN` — the one place the two part
     // company, since `ToString` spells both out. `undefined` needs no arm of
     // its own: it stringifies to `"undefined"`, which is not a numeric
     // literal.
-    Expr::Lit(Lit::Null(_)) => Some(0.0),
+    Expr::Lit(Lit::Null(_)) => Ok(NumberOf::Value(0.0)),
     // An object converts through the method pair a number prefers, which is
     // the reverse of the string one: an own `valueOf` answers ahead of an own
     // `toString`, so `Number({ valueOf: () => 2, toString: () => '1' })` is
     // `2`. An array owns neither and so still reaches its join below.
-    Expr::Object(object) => match object_to_primitive(object, ToPrimitiveHint::Number)? {
-      ObjectPrimitive::Default => Some(string_to_js_number(OBJECT_TO_STRING)),
-      ObjectPrimitive::Returned(returned) => to_js_number(returned),
+    Expr::Object(object) => match object_to_primitive(object, ToPrimitiveHint::Number) {
+      Some(ObjectPrimitive::Default) => {
+        sink.write_piece(OBJECT_TO_STRING)?;
+
+        Ok(NumberOf::Text)
+      },
+      Some(ObjectPrimitive::Returned(returned)) => write_js_number_of(returned, sink),
+      None => Err(StringRefusal::NoStringForm),
     },
     // Everything else takes `ToNumber` of its primitive value, which for a
     // string is itself and for an array is its join.
-    _ => to_js_string_with(expr, FunctionForm::NotANumber).map(|strng| string_to_js_number(&strng)),
+    _ => {
+      write_js_string_of(expr, FunctionForm::NotANumber, sink)?;
+
+      Ok(NumberOf::Text)
+    },
   }
+}
+
+/// Whether a character can appear in the text `ToNumber` reads as a number.
+///
+/// Sound rather than exact: every character a numeric literal holds answers
+/// `true`, so a `false` settles the whole text as `NaN` however it continues.
+/// That is what lets a caller stop reading — and the character it stops on is
+/// usually a comma, since an array of two or more elements joins with one and no
+/// numeric literal holds it.
+///
+/// The set is the surrounding whitespace, the signs, the decimal point, the
+/// digits of every radix with their `0x`/`0o`/`0b` prefixes and the exponent
+/// marker, and the letters of `Infinity`.
+pub fn can_appear_in_a_number(character: char) -> bool {
+  matches!(
+    character,
+    '0'..='9' | 'a'..='f' | 'A'..='F' | 'x' | 'X' | 'o' | 'O' | '+' | '-' | '.'
+  ) || matches!(character, 'I' | 'n' | 'i' | 't' | 'y')
+    || is_js_whitespace(character)
 }
 
 /// ECMA-262 `ToBoolean`, over an already-evaluated expression.
@@ -409,98 +643,62 @@ pub fn joins_as_empty(expr: &Expr) -> bool {
   }
 }
 
-/// The number an expression *is*, as opposed to what it would coerce to.
+/// `ToInt32` over a number, the coercion the bitwise operators apply to their
+/// operands before operating on them.
 ///
-/// `Array(3)` is a length where `Array('3')` is an element, so a caller that
-/// has to tell a number from a numeric string asks this rather than
-/// [`to_js_number`]. `NaN` and `Infinity` survive evaluation as the global
-/// identifiers they were written as and are numbers all the same; `undefined`
-/// arrives the same way and is not one.
-pub fn js_number_value(expr: &Expr) -> Option<f64> {
-  match expr {
-    Expr::Lit(Lit::Num(num)) => Some(num.value),
-    Expr::Ident(ident) => match surviving_global(ident)? {
-      SurvivingGlobal::NaN => Some(f64::NAN),
-      SurvivingGlobal::Infinity => Some(f64::INFINITY),
-      SurvivingGlobal::Undefined => None,
-    },
-    _ => None,
+/// Truncates toward zero, then wraps into the signed 32-bit range -- so `~` and
+/// friends see the same operand JavaScript gives them, and a value past 2^31
+/// wraps rather than growing. `~[4294967296]` is `-1` and not `-4294967297`,
+/// which is what a 64-bit negation answers.
+///
+/// Total, because `ToInt32` is: a `NaN`, an infinity and a zero of either sign
+/// all answer `0`, as the specification says, rather than refusing.
+pub fn to_int32(value: f64) -> i32 {
+  const WRAP: f64 = 4_294_967_296.0;
+  const SIGN_BOUNDARY: f64 = 2_147_483_648.0;
+
+  if !value.is_finite() || value == 0.0 {
+    return 0;
+  }
+
+  let wrapped = value.trunc().rem_euclid(WRAP);
+
+  if wrapped >= SIGN_BOUNDARY {
+    (wrapped - WRAP) as i32
+  } else {
+    wrapped as i32
   }
 }
 
-/// The most holes a folded `Array(n)` will materialise.
+/// What kind of object `ToObject` answers with over a value.
 ///
-/// A length is only a count until the array exists, and every hole costs the
-/// width of an evaluated value, so `Array(2 ** 32 - 1)` — a length JavaScript
-/// accepts — is an allocation the compiler does not survive. Bounded at a count
-/// no stylesheet reaches: a counted array used as a style value is refused
-/// whatever its length, and the one shape that folds to something usable, the
-/// join `String(Array(n))`, is `n - 1` commas.
-///
-/// A budget rather than a rule of the language, which is why it sits beside
-/// [`to_array_length`] rather than inside it: the coercion answers what
-/// JavaScript says, and the caller decides what it can afford.
-pub const MAX_FOLDED_ARRAY_LENGTH: usize = 65_536;
-
-/// ECMA-262 `ArrayCreate`'s length check: a length is an integer in
-/// `0..2 ** 32`.
-///
-/// `None` is every count JavaScript answers with a `RangeError` — a fraction,
-/// a negative, `NaN`, an infinity, or a value at or past the limit — for which
-/// no array exists.
-pub fn to_array_length(count: f64) -> Option<usize> {
-  const LENGTH_LIMIT: f64 = 4_294_967_296.0;
-
-  (count.is_finite() && count.fract() == 0.0 && (0.0..LENGTH_LIMIT).contains(&count))
-    .then_some(count as usize)
-}
-
-/// Which outcome `ToObject` takes over a value.
-///
-/// Reported rather than carried out, because not every outcome produces a value
-/// a caller can hold: naming the wrapper keeps a boxed primitive out of the
-/// caller's value type.
+/// Reported rather than carried out, and now only as coarsely as its one caller
+/// asks: `typeof` tells a function from everything else and nothing else does.
+/// `Object(x)` is folded by the engine, which answers with a real object rather
+/// than a name for one, so the outcomes it needed apart — a fresh empty object,
+/// the value itself, a boxed primitive — are the language's business again.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum ObjectCoercion {
-  /// `null` and `undefined`, which `ToObject` answers with a fresh empty
-  /// object rather than a wrapper around anything.
-  EmptyObject,
-  /// A value that already is an object — an array among them — which
-  /// `ToObject` returns unchanged.
-  Identity,
-  /// A function, which is an object and which `ToObject` also returns
-  /// unchanged.
-  ///
-  /// Reported apart from [`ObjectCoercion::Identity`] even though the
-  /// coercion treats the two alike, and apart from
-  /// [`ObjectCoercion::Wrapper`] even though the only caller refuses both:
-  /// what it separates is the *identity*, because an evaluator that reduces a
-  /// function to its return value folds `Object(() => 'red')` to `red` if the
-  /// two ever merge. Wrong output, not a lost distinction, is what the variant
-  /// prevents — see the transform crate's ADR
-  /// `0001-a-refused-fold-borrows-a-later-diagnostic`.
+  /// A function, which is an object whose `typeof` is nonetheless `function`.
   Function,
-  /// A primitive, which `ToObject` boxes in a wrapper object.
-  Wrapper,
+  /// Every other object `ToObject` can answer with — one the value already is,
+  /// a wrapper around a primitive, or the fresh object the nullish values take.
+  Object,
 }
 
-/// ECMA-262 `ToObject`, reported as which outcome it takes rather than as a
-/// value.
+/// ECMA-262 `ToObject`, reported as which kind of object it answers with rather
+/// than as a value.
 ///
 /// `None` is a value whose kind cannot be read off the expression, so the
-/// caller deopts instead of guessing which outcome applies.
+/// caller deopts instead of guessing.
 pub fn to_object(expr: &Expr) -> Option<ObjectCoercion> {
   match expr {
-    Expr::Lit(Lit::Null(_)) => Some(ObjectCoercion::EmptyObject),
-    // `NaN` and `Infinity` are numbers, so they box like one.
-    Expr::Ident(ident) => match surviving_global(ident)? {
-      SurvivingGlobal::Undefined => Some(ObjectCoercion::EmptyObject),
-      SurvivingGlobal::NaN | SurvivingGlobal::Infinity => Some(ObjectCoercion::Wrapper),
-    },
     Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => Some(ObjectCoercion::Function),
-    // A regular expression is an object, so it passes through as one.
-    Expr::Object(_) | Expr::Array(_) | Expr::Lit(Lit::Regex(_)) => Some(ObjectCoercion::Identity),
-    Expr::Lit(_) => Some(ObjectCoercion::Wrapper),
+    // Every remaining readable value is an object or boxes into one: the two
+    // nullish spellings take a fresh one, an array, an object and a regular
+    // expression already are one, and a primitive is wrapped in one.
+    Expr::Ident(ident) => surviving_global(ident).map(|_| ObjectCoercion::Object),
+    Expr::Object(_) | Expr::Array(_) | Expr::Lit(_) => Some(ObjectCoercion::Object),
     _ => None,
   }
 }
@@ -602,7 +800,7 @@ fn own_conversion_method<'a>(object: &'a ObjectLit, name: &str) -> Option<Option
     return Some(None);
   }
 
-  let BlockStmtOrExpr::Expr(body) = arrow.body.as_ref() else {
+  let ArrowFunctionBody::Expr(body) = arrow.body.as_ref() else {
     return Some(None);
   };
 
@@ -655,12 +853,18 @@ fn prop_name(prop: &Prop) -> Option<&str> {
   }
 }
 
-fn js_array_element_to_string(expr: &Expr, function_form: FunctionForm) -> Option<String> {
+/// An element as an array's join renders it, which parts from `ToString` on the
+/// two values that join as nothing rather than as their own spelling.
+fn write_js_array_element<S: StringSink>(
+  expr: &Expr,
+  function_form: FunctionForm,
+  sink: &mut S,
+) -> Result<(), StringRefusal<S::Refusal>> {
   if joins_as_empty(expr) {
-    return Some(String::new());
+    return Ok(());
   }
 
-  to_js_string_with(expr, function_form)
+  write_js_string_of(expr, function_form, sink)
 }
 
 #[cfg(test)]

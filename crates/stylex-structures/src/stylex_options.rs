@@ -45,6 +45,19 @@ pub struct StyleXOptionsParams {
   #[serde(rename = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<ModuleResolution>,
   pub sx_prop_name: Option<SxPropNameParam>,
+  /// How many levels the evaluator may descend before refusing to fold, as
+  /// `maxEvaluationDepth`. Absent means the environment decides, and failing
+  /// that the built-in default -- see
+  /// [`crate::evaluation_depth`].
+  pub max_evaluation_depth: Option<usize>,
+  /// How many UTF-16 code units of string one fold may build or carry, as
+  /// `maxFoldedCharacters`. Absent resolves the same way -- see
+  /// [`crate::fold_ceilings`].
+  pub max_folded_characters: Option<usize>,
+  /// How many array elements and object properties one fold may build or carry,
+  /// as `maxFoldedEntries`. Absent resolves the same way -- see
+  /// [`crate::fold_ceilings`].
+  pub max_folded_entries: Option<usize>,
   #[serde(skip)]
   pub env: Option<IndexMap<String, EnvEntry>>,
   #[serde(skip)]
@@ -79,6 +92,9 @@ impl Default for StyleXOptionsParams {
       aliases: None,
       unstable_module_resolution: None,
       sx_prop_name: None,
+      max_evaluation_depth: None,
+      max_folded_characters: None,
+      max_folded_entries: None,
       env: None,
       debug_file_path: None,
     }
@@ -352,7 +368,10 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       .maybe_enable_logical_styles_polyfill(options.enable_logical_styles_polyfill)
       .maybe_enable_legacy_value_flipping(options.enable_legacy_value_flipping)
       .maybe_enable_ltr_rtl_comments(options.enable_ltr_rtl_comments)
-      .maybe_use_real_file_for_source(options.use_real_file_for_source);
+      .maybe_use_real_file_for_source(options.use_real_file_for_source)
+      .maybe_max_evaluation_depth(options.max_evaluation_depth)
+      .maybe_max_folded_characters(options.max_folded_characters)
+      .maybe_max_folded_entries(options.max_folded_entries);
 
     StyleXOptions {
       core,

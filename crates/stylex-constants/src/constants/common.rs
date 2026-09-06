@@ -10,6 +10,17 @@ pub static VALID_CALLEES: phf::Set<&'static str> = phf_set! {
   "String", "Number", "Math", "Object", "Array"
 };
 
+/// The globals the fold recognises only where their *name* is written.
+///
+/// `Boolean` is never a callee — the reference implementation does not fold
+/// `Boolean(x)` — but `[…].filter(Boolean)` is how an author reaches for it, so
+/// it has to be recognised somewhere or it reads as a constant nothing
+/// declared. Beside [`VALID_CALLEES`] because a value position claims both sets
+/// and a reader looking for one will find the other.
+pub static VALUE_ONLY_GLOBALS: phf::Set<&'static str> = phf_set! {
+  "Boolean"
+};
+
 pub static MUTATING_ARRAY_METHODS: phf::Set<&'static str> = phf_set! {
   "push",
   "pop",

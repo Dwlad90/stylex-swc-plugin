@@ -6,16 +6,29 @@
  * runs a corpus of CSS declarations through both and reports, per declaration,
  * whether they agree byte for byte.
  *
- * It is a developer tool, not a test: it lives outside the Rust test suite so
- * `cargo test` never needs a Node toolchain, and it is not wired into CI.
+ * A few entries carry a whole module rather than a declaration, for questions
+ * a declaration cannot ask — see `ModuleEntry` in `lib/types.ts`.
+ *
+ * It lives outside the Rust test suite so `cargo test` never needs a Node
+ * toolchain, and runs in CI's `checks` matrix on every pull request rather than
+ * in a hook -- it needs that built `dist/`, which the matrix already has and a
+ * pre-commit hook would have to pay for. Reading a verdict is still a person's
+ * job — a divergence is information, not a failure — with the exceptions `fails`
+ * in `lib/report.ts` names, each of which is a report that has stopped being
+ * read: an entry whose recorded `expected` verdict no longer holds, a refusal
+ * family no row reaches, a divergence nothing accounts for, and a refusal of a
+ * build the reference compiler completes with no reason written down. Any of
+ * them exits non-zero, so a pinned divergence cannot change unnoticed by whoever
+ * runs this.
  *
  * Usage:
  *   pnpm parity                              # full corpus, human report
  *   pnpm parity --only-mismatches            # just the divergences
  *   pnpm parity --set reported               # one corpus set; repeatable
- *   pnpm parity --filter calc                # entries whose value contains it
+ *   pnpm parity --filter calc                # entries whose subject contains it
  *   pnpm parity --json parity/results/x.json # machine-readable report
  *   pnpm parity --font-size-px-to-rem        # both compilers with the option on
+ *   pnpm parity --style-resolution <name>    # which resolution both run under
  */
 
 import fs from 'node:fs';
@@ -25,13 +38,41 @@ import { parseArgs } from 'node:util';
 
 import chalk from 'chalk';
 
-import { createComparer } from './lib/compare.js';
+import type { StyleXOptions } from '../dist/index.js';
+import { createComparer, styleObjectsAgree } from './lib/compare.js';
+import { subjectBlock } from './lib/compilers.js';
 import { loadCorpus } from './lib/corpus.js';
+import { REFUSAL_FAMILIES } from './lib/refusal-families.js';
+import { AGREED, conclude, fails } from './lib/report.js';
+import type { Stance } from './lib/report.js';
+import { subjectLabel, subjectText } from './lib/subject.js';
 import type { Report, ReportEntry, Verdict } from './lib/types.js';
 
 const parityDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.resolve(parityDir, '..');
 const workspaceRoot = path.resolve(packageDir, '../..');
+
+/**
+ * The resolutions a consumer can pick, and the one a run uses when the flag is
+ * absent.
+ *
+ * `property-specificity` is not an arbitrary default: it is what both compilers
+ * fall back to on their own, so every verdict recorded in the corpus was taken
+ * under it. Naming it here rather than leaving the option out makes a report say
+ * which resolution it measured without moving a single expectation — the option
+ * object now carries the value both compilers were already using.
+ *
+ * What differs between the three is which longhands a shorthand becomes and what
+ * order they land in, which a class name depends on. That is a different failure
+ * surface from value spelling, and `--style-resolution` is how it gets measured.
+ */
+const STYLE_RESOLUTIONS = [
+  'application-order',
+  'property-specificity',
+  'legacy-expand-shorthands',
+] as const satisfies readonly NonNullable<StyleXOptions['styleResolution']>[];
+
+const DEFAULT_STYLE_RESOLUTION: (typeof STYLE_RESOLUTIONS)[number] = 'property-specificity';
 
 const { values: cliOptions } = parseArgs({
   args: process.argv.slice(2).filter(arg => arg !== '--'),
@@ -41,6 +82,10 @@ const { values: cliOptions } = parseArgs({
     filter: { type: 'string' },
     json: { type: 'string' },
     'font-size-px-to-rem': { type: 'boolean', default: false },
+    // No `default` here: `styleResolutionFrom` below applies it. Spelling it in
+    // both places leaves the validator with an arm nothing reaches, and a third
+    // copy at the print site.
+    'style-resolution': { type: 'string' },
     help: { type: 'boolean', short: 'h', default: false },
   },
 });
@@ -51,11 +96,15 @@ ${chalk.bold('StyleX CSS value parity harness')}
 
 Options:
       --only-mismatches         report only divergent declarations
-      --set <name>              limit to a corpus set (reported|edge|harvested);
-                                repeatable
-      --filter <substring>      limit to declarations whose value contains it
+      --set <name>              limit to a corpus set
+                                (reported|modules|edge|harvested); repeatable
+      --filter <substring>      limit to entries whose subject text contains it
       --json <path>             also write the full machine-readable report
       --font-size-px-to-rem     enable the font-size conversion in both compilers
+      --style-resolution <name>
+                                which resolution both compilers run under
+                                (${STYLE_RESOLUTIONS.join('|')});
+                                default ${DEFAULT_STYLE_RESOLUTION}
   -h, --help                    show this help
 `);
   process.exit(0);
@@ -67,37 +116,50 @@ const VERDICT_LABELS: Record<Verdict, string> = {
   divergent: chalk.red('divergent'),
   'structurally-divergent': chalk.magenta('structurally divergent'),
   'both-reject': chalk.gray('both reject'),
+  'both-reject-divergent': chalk.cyan('both reject (diverged)'),
   'acceptance-divergent': chalk.yellow('acceptance divergent'),
 };
 
 /**
- * The verdicts where the two compilers agreed, whatever they agreed about.
+ * The resolution a run was asked for: the default when the flag is absent, and a
+ * refusal when it names something that is not one of the three.
  *
- * One set rather than two spellings of the same list: `--only-mismatches`
- * filters on it and the per-entry printer skips its side-by-side detail on it,
- * and a verdict added to one place but not the other is either hidden from the
- * filter or printed as two empty lines.
- *
- * `identical-empty` belongs here. Both compilers accepted and emitted nothing,
- * which is agreement — that it measures nothing is a fact about the corpus
- * rather than about parity, and the summary reports it on its own line where a
- * count is the useful form. Listing it as a mismatch would overload the word
- * for the one verdict that is not a disagreement.
+ * A misspelled name silently falling back would report a run under the default
+ * while the reader believed it was under something else — and the whole point of
+ * the flag is that a report says which resolution produced it. This is also the
+ * one place the default is applied, so a reader has one line to read rather than
+ * a `parseArgs` entry and a fallback to reconcile.
  */
-const AGREED: ReadonlySet<Verdict> = new Set<Verdict>([
-  'identical',
-  'identical-empty',
-  'both-reject',
-]);
+function styleResolutionFrom(named: string | undefined): (typeof STYLE_RESOLUTIONS)[number] {
+  if (named === undefined) return DEFAULT_STYLE_RESOLUTION;
 
-function isMismatch(verdict: Verdict): boolean {
-  return !AGREED.has(verdict);
+  const found = STYLE_RESOLUTIONS.find(candidate => candidate === named);
+  if (found === undefined) {
+    console.error(
+      chalk.red(
+        `Unknown style resolution: ${named} — expected one of ${STYLE_RESOLUTIONS.join(', ')}.`
+      )
+    );
+    process.exit(1);
+  }
+
+  return found;
 }
 
 function describe(entry: ReportEntry, side: 'rust' | 'babel'): string {
   const outcome = entry[side];
-  if (outcome.status === 'error') return chalk.gray(`rejected: ${outcome.message}`);
-  return outcome.declarations.map(declaration => `{${declaration}}`).join(' ');
+  // The normalized sentence rather than the raw message: the raw one carries a
+  // code frame on one side and a repaired rule on the other, which is many
+  // lines of where-it-happened around the one line that says what the compiler
+  // objected to. The raw message is in `--json` for whoever needs it.
+  if (outcome.status === 'error') return chalk.gray(`rejected: ${outcome.sentence}`);
+  const declarations = outcome.declarations.map(declaration => `{${declaration}}`).join(' ');
+  // The style objects are printed only when they are what differ. On a value
+  // divergence they are noise, and on a divergence that shows in the CSS the
+  // declarations above already say it.
+  if (styleObjectsAgree(entry.rust, entry.babel)) return declarations;
+  const objects = chalk.gray(`style objects: ${outcome.styleObjects.join(' ')}`);
+  return declarations === '' ? objects : `${declarations}   ${objects}`;
 }
 
 async function run(): Promise<void> {
@@ -109,7 +171,7 @@ async function run(): Promise<void> {
   }
   if (cliOptions.filter !== undefined) {
     const needle = cliOptions.filter;
-    corpus = corpus.filter(entry => entry.value.includes(needle));
+    corpus = corpus.filter(entry => subjectText(entry).includes(needle));
   }
   if (corpus.length === 0) {
     console.error(chalk.red('No corpus entries match the given filters.'));
@@ -119,36 +181,57 @@ async function run(): Promise<void> {
   const comparer = await createComparer({
     packageDir,
     enableFontSizePxToRem: cliOptions['font-size-px-to-rem'],
+    styleResolution: styleResolutionFrom(cliOptions['style-resolution']),
   });
 
   console.log(
     `${chalk.bold('Subjects')}\n` +
-      `  @stylexswc/rs-compiler   v${comparer.versions.rust.version}\n` +
-      `  @stylexjs/babel-plugin   v${comparer.versions.babel.version}\n` +
-      `  @babel/core              v${comparer.versions.babelCore}\n` +
-      `  options                  ${JSON.stringify(comparer.options)}\n`
+      `${subjectBlock(comparer.versions, [
+        // Read off the option object both compilers were handed rather than off
+        // the flag, so the line cannot come to disagree with what ran.
+        ['style resolution', String(comparer.options.styleResolution)],
+        ['options', JSON.stringify(comparer.options)],
+      ])}\n`
   );
 
   const entries = corpus.map(entry => comparer.compare(entry));
 
-  const summary = {
-    total: entries.length,
-    identical: 0,
-    'identical-empty': 0,
-    divergent: 0,
-    'structurally-divergent': 0,
-    'both-reject': 0,
-    'acceptance-divergent': 0,
-  } satisfies Report['summary'];
-  for (const entry of entries) summary[entry.verdict]++;
+  // Every conclusion the run reaches, decided in `lib/report.ts` and only
+  // printed here. The unreached-family check is asked of a whole corpus only: a
+  // `--set` or `--filter` reaches a handful of families by construction, and
+  // reporting the rest as unreached there would train a reader to ignore the
+  // line.
+  const whole =
+    !(cliOptions.set !== undefined && cliOptions.set.length > 0) && cliOptions.filter === undefined;
+  const verdicts = conclude(entries, { whole });
+  const { summary, byFamily, changed, unreached, unreasoned } = verdicts;
+  const stanceOfEntry = (entry: ReportEntry): Stance => verdicts.stances.get(entry)!;
 
+  // A mismatch that is already accounted for — by the entry's own expectation
+  // or by a refusal family — is not one to chase, so `--only-mismatches` leaves
+  // it out. A changed verdict is shown whatever it reads, because that is the
+  // entry someone has to look at.
   const shown = cliOptions['only-mismatches']
-    ? entries.filter(entry => isMismatch(entry.verdict))
+    ? entries.filter(entry => {
+        const kind = stanceOfEntry(entry).kind;
+        return kind === 'changed' || kind === 'unexpected';
+      })
     : entries;
 
   for (const entry of shown) {
+    const stance = stanceOfEntry(entry);
+    const stanceLabel =
+      stance.kind === 'expected'
+        ? chalk.gray(' (expected)')
+        : stance.kind === 'configured'
+          ? chalk.gray(` (configured: ${stance.option})`)
+          : stance.kind === 'pinned'
+            ? chalk.gray(` (pinned: ${stance.family.name})`)
+            : stance.kind === 'changed'
+              ? chalk.red(` (expected ${entry.expected})`)
+              : '';
     console.log(
-      `${VERDICT_LABELS[entry.verdict]}  ${chalk.bold(entry.property)}: ${JSON.stringify(entry.value)}  ${chalk.gray(`[${entry.set}] ${entry.origin}`)}`
+      `${VERDICT_LABELS[entry.verdict]}${stanceLabel}  ${chalk.bold(subjectLabel(entry))}  ${chalk.gray(`[${entry.set}] ${entry.origin}`)}`
     );
     if (AGREED.has(entry.verdict)) continue;
     console.log(`    rust   ${describe(entry, 'rust')}`);
@@ -157,14 +240,100 @@ async function run(): Promise<void> {
   }
 
   console.log(
-    `\n${chalk.bold('Summary')} over ${summary.total} declarations\n` +
+    `\n${chalk.bold('Summary')} over ${summary.total} subjects\n` +
       `  identical              ${summary.identical}\n` +
       `  identical (empty)      ${summary['identical-empty']}   ${chalk.gray('(both emitted nothing; measures nothing)')}\n` +
       `  divergent              ${summary.divergent}   ${chalk.gray('(value normalization)')}\n` +
       `  structurally divergent ${summary['structurally-divergent']}   ${chalk.gray('(different properties emitted; out of scope)')}\n` +
       `  acceptance divergent   ${summary['acceptance-divergent']}   ${chalk.gray('(one compiler rejected)')}\n` +
-      `  both reject            ${summary['both-reject']}`
+      `  both reject            ${summary['both-reject']}\n` +
+      `  both reject (diverged) ${summary['both-reject-divergent']}   ${chalk.gray('(both refused, for reasons worded differently)')}\n` +
+      // Not "divergences already looked at": most of these are pinned
+      // *agreements*. Of the 220 entries carrying an `expected` verdict, 197 are
+      // `identical`, `identical-empty` or `both-reject` -- recorded so a
+      // regression on them reads as `changed` rather than going quiet, which is
+      // the field's other and larger use.
+      `  expected               ${summary.expected}   ${chalk.gray('(the verdict the entry recorded, agreement or divergence)')}\n` +
+      `  pinned                 ${summary.pinned}   ${chalk.gray('(a refusal family accounts for them)')}\n` +
+      `  configured             ${summary.configured}   ${chalk.gray('(a ceiling an author can raise, not a divergence)')}\n` +
+      `  changed                ${summary.changed}   ${chalk.gray('(no longer the recorded verdict)')}\n` +
+      `  ${chalk.bold('unexpected')}             ${summary.unexpected}   ${chalk.gray('(neither agreement nor accounted for — the number to act on)')}`
   );
+
+  if (byFamily.size > 0) {
+    console.log(
+      `\n${chalk.bold('Pinned refusal families')}  ${chalk.gray('— divergences this compiler produces on purpose')}`
+    );
+    // Iterated over the canonical list rather than over the map, so the order
+    // is the one `lib/refusal-families.ts` declares and not the order the
+    // corpus happens to reach them in.
+    for (const family of REFUSAL_FAMILIES) {
+      const claimed = byFamily.get(family);
+      if (claimed === undefined) continue;
+      const rows = claimed.length === 1 ? '1 row' : `${claimed.length} rows`;
+      console.log(`  ${chalk.bold(family.name)}  ${chalk.gray(rows)}`);
+      console.log(chalk.gray(`    ${family.reason}`));
+    }
+  }
+
+  // Paired with the option as they are collected, rather than filtered and then
+  // re-narrowed: the option is the whole point of the section, and asking the
+  // stance a second time inside the loop leaves an arm nothing can reach.
+  const configured = entries.flatMap(entry => {
+    const stance = stanceOfEntry(entry);
+    return stance.kind === 'configured' ? [{ entry, option: stance.option }] : [];
+  });
+  if (configured.length > 0) {
+    console.log(
+      `\n${chalk.bold('Configured ceilings')}  ${chalk.gray('— refused here because a setting says so, not because the two compilers disagree')}`
+    );
+    for (const { entry, option } of configured) {
+      console.log(`  ${chalk.bold(subjectLabel(entry))}  ${chalk.gray(option)}`);
+    }
+    console.log(
+      chalk.gray('\nRaise the option past what the subject needs and the same source folds.')
+    );
+  }
+
+  if (unreached.length > 0) {
+    console.log(
+      `\n${chalk.red.bold('Refusal families no row reached')}  ${chalk.gray('— each measures nothing as it stands')}`
+    );
+    for (const family of unreached) console.log(`  ${family.name}`);
+    console.log(
+      chalk.gray(
+        '\nEither the refusal is gone — which is worth reading — or the corpus stopped reaching it.'
+      )
+    );
+  }
+
+  if (changed.length > 0) {
+    console.log(
+      `\n${chalk.red.bold('Verdicts that changed')}  ${chalk.gray('— each entry recorded a different one')}`
+    );
+    for (const entry of changed) {
+      console.log(
+        `  ${chalk.bold(subjectLabel(entry))}  expected ${entry.expected}, read ${entry.verdict}`
+      );
+    }
+    console.log(
+      chalk.gray(
+        '\nUpdate the entry — or its `expected` — in the corpus once you know which of the two moved.'
+      )
+    );
+  }
+
+  if (unreasoned.length > 0) {
+    console.log(
+      `\n${chalk.red.bold('Refusals with no reason written down')}  ${chalk.gray('— the reference compiler builds each of these')}`
+    );
+    for (const entry of unreasoned) console.log(`  ${chalk.bold(subjectLabel(entry))}`);
+    console.log(
+      chalk.gray(
+        '\nGive the entry a `note` saying why the refusal is wanted, or write the refusal family that accounts for it.'
+      )
+    );
+  }
 
   if (cliOptions.json !== undefined) {
     const report: Report = {
@@ -184,6 +353,12 @@ async function run(): Promise<void> {
     fs.writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
     console.log(chalk.green(`\nReport written to ${path.relative(workspaceRoot, outputPath)}`));
   }
+
+  // Set after the report is written rather than by returning early: a failing
+  // run is exactly when someone wants the machine-readable output, and an exit
+  // code that skipped writing it would hide the evidence for what it reports.
+  // What counts as failing is `fails`, in `lib/report.ts`.
+  if (fails(verdicts)) process.exitCode = 1;
 }
 
 run().catch((error: unknown) => {

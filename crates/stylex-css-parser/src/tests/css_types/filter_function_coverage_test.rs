@@ -11,6 +11,7 @@ fn make_token_list(tokens: Vec<SimpleToken>) -> TokenList {
   TokenList {
     tokens,
     current_index: 0,
+    depth: 0,
   }
 }
 
@@ -59,7 +60,7 @@ fn blur_parse_tokens_whitespace_before_length() {
     SimpleToken::RightParen,
   ]);
   let result = (BlurFilterFunction::parse().run)(&mut tl).unwrap();
-  assert_eq!(result.radius.value, 5.0_f32);
+  assert_eq!(result.radius.value, 5.0_f64);
 }
 
 #[test]
@@ -76,7 +77,7 @@ fn blur_parse_tokens_whitespace_after_length() {
     SimpleToken::RightParen,
   ]);
   let result = (BlurFilterFunction::parse().run)(&mut tl).unwrap();
-  assert_eq!(result.radius.value, 3.0_f32);
+  assert_eq!(result.radius.value, 3.0_f64);
 }
 
 #[test]
@@ -146,7 +147,7 @@ fn blur_parse_public_happy_path() {
   let result = BlurFilterFunction::parse()
     .parse_to_end("blur(5px)")
     .unwrap();
-  assert_eq!(result.radius.value, 5.0_f32);
+  assert_eq!(result.radius.value, 5.0_f64);
   assert_eq!(format!("{}", result), "blur(5px)");
 }
 
@@ -198,7 +199,7 @@ fn brightness_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn brightness_parse_tokens_number_variant() {
-  // Exercises the `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Exercises the `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("brightness".to_string()),
     SimpleToken::Number(0.75),
@@ -211,12 +212,11 @@ fn brightness_parse_tokens_number_variant() {
 #[test]
 fn brightness_parse_tokens_percentage_variant() {
   // Exercises the `NumberOrPercentage::Percentage(p) => ...` arm.
-  // SimpleToken::Percentage stores unit_value: 1.5 means 150% (cssparser convention).
-  // token_to_percentage does (unit_value * 100) as f32 → 150.0, then
-  // the filter parser does p.value as f64 / 100.0 → 1.5.
+  // A Percentage token carries the authored percent, so 150 means 150%. The
+  // filter parser wants a fraction and divides by 100 → 1.5.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("brightness".to_string()),
-    SimpleToken::Percentage(1.5),
+    SimpleToken::Percentage(150.0),
     SimpleToken::RightParen,
   ]);
   let result = (BrightnessFilterFunction::parse().run)(&mut tl).unwrap();
@@ -345,7 +345,7 @@ fn contrast_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn contrast_parse_tokens_number_variant() {
-  // Covers `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Covers `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("contrast".to_string()),
     SimpleToken::Number(1.5),
@@ -358,10 +358,10 @@ fn contrast_parse_tokens_number_variant() {
 #[test]
 fn contrast_parse_tokens_percentage_variant() {
   // Covers `NumberOrPercentage::Percentage(p) => ...` arm.
-  // SimpleToken::Percentage(2.0) = 200% (unit_value convention).
+  // A Percentage token carries the authored percent: 200 means 200%.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("contrast".to_string()),
-    SimpleToken::Percentage(2.0),
+    SimpleToken::Percentage(200.0),
     SimpleToken::RightParen,
   ]);
   let result = (ContrastFilterFunction::parse().run)(&mut tl).unwrap();
@@ -433,7 +433,7 @@ fn contrast_parse_public_error_eof() {
 
 #[test]
 fn contrast_parse_public_happy_path() {
-  // Use 0.5 (exact in f32/f64) to avoid display imprecision.
+  // Use 0.5, which a double holds exactly, to avoid display imprecision.
   let result = ContrastFilterFunction::parse()
     .parse_to_end("contrast(0.5)")
     .unwrap();
@@ -488,7 +488,7 @@ fn grayscale_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn grayscale_parse_tokens_number_variant() {
-  // Covers `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Covers `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("grayscale".to_string()),
     SimpleToken::Number(0.75),
@@ -500,10 +500,10 @@ fn grayscale_parse_tokens_number_variant() {
 
 #[test]
 fn grayscale_parse_tokens_percentage_variant() {
-  // SimpleToken::Percentage(0.5) = 50% (unit_value convention).
+  // SimpleToken::Percentage(50.0) is the authored percent, not a fraction.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("grayscale".to_string()),
-    SimpleToken::Percentage(0.5),
+    SimpleToken::Percentage(50.0),
     SimpleToken::RightParen,
   ]);
   let result = (GrayscaleFilterFunction::parse().run)(&mut tl).unwrap();
@@ -628,7 +628,7 @@ fn hue_rotate_parse_tokens_whitespace_before_angle() {
     SimpleToken::RightParen,
   ]);
   let result = (HueRotateFilterFunction::parse().run)(&mut tl).unwrap();
-  assert_eq!(result.angle.value, 90.0_f32);
+  assert_eq!(result.angle.value, 90.0_f64);
 }
 
 #[test]
@@ -644,7 +644,7 @@ fn hue_rotate_parse_tokens_whitespace_after_angle() {
     SimpleToken::RightParen,
   ]);
   let result = (HueRotateFilterFunction::parse().run)(&mut tl).unwrap();
-  assert_eq!(result.angle.value, 45.0_f32);
+  assert_eq!(result.angle.value, 45.0_f64);
 }
 
 #[test]
@@ -710,7 +710,7 @@ fn hue_rotate_parse_public_happy_path() {
   let result = HueRotateFilterFunction::parse()
     .parse_to_end("hue-rotate(180deg)")
     .unwrap();
-  assert_eq!(result.angle.value, 180.0_f32);
+  assert_eq!(result.angle.value, 180.0_f64);
   assert_eq!(format!("{}", result), "hue-rotate(180deg)");
 }
 
@@ -756,7 +756,7 @@ fn invert_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn invert_parse_tokens_number_variant() {
-  // Covers `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Covers `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("invert".to_string()),
     SimpleToken::Number(0.5),
@@ -768,10 +768,10 @@ fn invert_parse_tokens_number_variant() {
 
 #[test]
 fn invert_parse_tokens_percentage_variant() {
-  // SimpleToken::Percentage(1.0) = 100% (unit_value convention).
+  // SimpleToken::Percentage(100.0) is the authored percent, not a fraction.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("invert".to_string()),
-    SimpleToken::Percentage(1.0),
+    SimpleToken::Percentage(100.0),
     SimpleToken::RightParen,
   ]);
   let result = (InvertFilterFunction::parse().run)(&mut tl).unwrap();
@@ -892,7 +892,7 @@ fn opacity_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn opacity_parse_tokens_number_variant() {
-  // Covers `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Covers `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("opacity".to_string()),
     SimpleToken::Number(0.25),
@@ -904,10 +904,10 @@ fn opacity_parse_tokens_number_variant() {
 
 #[test]
 fn opacity_parse_tokens_percentage_variant() {
-  // SimpleToken::Percentage(0.75) = 75% (unit_value convention).
+  // SimpleToken::Percentage(75.0) is the authored percent, not a fraction.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("opacity".to_string()),
-    SimpleToken::Percentage(0.75),
+    SimpleToken::Percentage(75.0),
     SimpleToken::RightParen,
   ]);
   let result = (OpacityFilterFunction::parse().run)(&mut tl).unwrap();
@@ -1033,7 +1033,7 @@ fn saturate_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn saturate_parse_tokens_number_variant() {
-  // Covers `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Covers `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("saturate".to_string()),
     SimpleToken::Number(1.5),
@@ -1045,10 +1045,10 @@ fn saturate_parse_tokens_number_variant() {
 
 #[test]
 fn saturate_parse_tokens_percentage_variant() {
-  // SimpleToken::Percentage(1.5) = 150% (unit_value convention).
+  // SimpleToken::Percentage(150.0) is the authored percent, not a fraction.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("saturate".to_string()),
-    SimpleToken::Percentage(1.5),
+    SimpleToken::Percentage(150.0),
     SimpleToken::RightParen,
   ]);
   let result = (SaturateFilterFunction::parse().run)(&mut tl).unwrap();
@@ -1169,7 +1169,7 @@ fn sepia_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn sepia_parse_tokens_number_variant() {
-  // Covers `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Covers `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("sepia".to_string()),
     SimpleToken::Number(0.8),
@@ -1181,11 +1181,11 @@ fn sepia_parse_tokens_number_variant() {
 
 #[test]
 fn sepia_parse_tokens_percentage_variant() {
-  // Covers `NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0` arm.
-  // SimpleToken::Percentage(0.5) = 50% (unit_value convention).
+  // Covers `NumberOrPercentage::Percentage(p) => p.value / 100.0` arm.
+  // SimpleToken::Percentage(50.0) is the authored percent, not a fraction.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("sepia".to_string()),
-    SimpleToken::Percentage(0.5),
+    SimpleToken::Percentage(50.0),
     SimpleToken::RightParen,
   ]);
   let result = (SepiaFilterFunction::parse().run)(&mut tl).unwrap();
@@ -1272,7 +1272,7 @@ fn sepia_parse_public_error_eof() {
 
 #[test]
 fn sepia_parse_public_happy_path() {
-  // Use 0.5 (exact in f32) to avoid display imprecision from f32→f64 conversion.
+  // Use 0.5, which a double holds exactly, to avoid display imprecision.
   let result = SepiaFilterFunction::parse()
     .parse_to_end("sepia(0.5)")
     .unwrap();

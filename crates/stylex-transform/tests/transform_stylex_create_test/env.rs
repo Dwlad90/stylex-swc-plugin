@@ -1,10 +1,8 @@
 use crate::utils::prelude::*;
+use stylex_ast::ast::convertors::{create_null_expr, create_number_expr, create_string_expr};
 use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
 use stylex_structures::stylex_env::JSFunction;
-use stylex_transform::shared::utils::ast::{
-  convertors::{create_null_expr, create_number_expr, create_string_expr},
-  helpers::get_property_by_key,
-};
+use stylex_transform::shared::utils::ast::helpers::get_property_by_key;
 use swc_core::ecma::ast::Expr;
 
 use crate::utils::ast::{

@@ -1,5 +1,5 @@
 mod flatten_raw_style_objects_test;
 mod gen_css_test;
-mod get_canonical_file_path_test;
-mod get_package_name_and_path_test;
-mod state_manager_test;
+mod pre_rule_accessors_test;
+mod pre_rule_equality_test;
+mod prelude;

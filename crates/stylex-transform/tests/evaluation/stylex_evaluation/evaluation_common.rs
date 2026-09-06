@@ -1,11 +1,9 @@
 use crate::utils::prelude::*;
 use rustc_hash::FxHashMap;
-use stylex_transform::shared::{
-  structures::{
-    functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-    state_manager::StateManager,
-  },
-  utils::ast::convertors::{create_ident_expr, create_string_expr},
+use stylex_ast::ast::convertors::{create_ident_expr, create_string_expr};
+use stylex_state::{
+  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+  state_manager::StateManager,
 };
 use swc_core::{
   atoms::Atom,
@@ -87,6 +85,11 @@ stylex_test_transform!(
   "#
 );
 
+// A key that appears more than once keeps the place it first took, and takes
+// the last value. The third line ends as `{ name, age }` in the language, and
+// `node -e` agrees: the repeated `name` stays in front of the `age` that the
+// spread introduced. This test read `{ age, name }` while `remove_duplicates`
+// put a repeated key in its last place instead of its first.
 stylex_test_transform!(
   evaluates_objects_with_spreads,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
@@ -98,16 +101,30 @@ stylex_test_transform!(
   r#"
     ({ name: "Name", hero: true, age: 43 });
     ({ name: "StyleX", age: 43 });
-    ({ age: 43 , name: "StyleX", });
+    ({ name: "StyleX", age: 43 });
   "#
 );
 
-stylex_test_panic!(
+// A static that was outside the evaluator's list of names now folds, because
+// there is no list: `Object` and `Math` are evaluated as JavaScript, and the
+// reference implementation folds this one to the same list.
+//
+// A built-in that still does not fold refuses rather than aborting, so the call
+// survives into the output unchanged. Refusing had to stop being an abort
+// because the operand of a `&&` is evaluated speculatively; see
+// `deopt_unsupported!`.
+stylex_test_transform!(
   evaluates_built_in_functions,
-  "Evaluation built-in functions not supported",
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
     const x = Object.getOwnPropertyNames({a: 2});
+    const y = Symbol.for("a");
+  "#,
+  r#"
+    [
+        "a"
+    ];
+    Symbol.for("a");
   "#
 );
 
@@ -362,13 +379,18 @@ stylex_test_transform!(
   "#
 );
 
-stylex_test_panic!(
+// `delete` has no compile-time value — it is a mutation, and its result
+// depends on the object it runs against — so the evaluator refuses and the
+// expression survives verbatim. The refusal itself is unchanged; what changed
+// is that it is a deopt rather than an abort.
+stylex_test_transform!(
   evaluates_delete_unary_value_expressions,
-  "Failed to evaluate expression",
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
     delete a.b;
-
+  "#,
+  r#"
+    delete a.b;
   "#
 );
 

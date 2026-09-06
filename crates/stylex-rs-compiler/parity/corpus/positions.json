@@ -1,0 +1,132 @@
+{
+  "set": "positions",
+  "description": "Refusals whose reported position is the thing under test: one per branch of the reference-resolution chain, plus the tail refusal that points at the read. Every one of these is refused by both compilers with the same sentence, so the only thing left to disagree about is where each sends the reader. The unresolvable-import branch is deliberately absent: under the `haste` resolution this harness hands both compilers, neither reaches it -- both refuse the value for its shape instead, and upstream's refusal there carries no code frame at all. That branch is measured in the Rust suite rather than here. Five CSS refusals sit below the reference-resolution chain, and they answer a question the chain cannot: where a *value* refusal points. All five read `neither-position` -- neither compiler frames a CSS refusal at all -- which is why they are worth carrying even though nothing about them can diverge today. Three of the five CSS guards are deliberately absent: the declaration-terminating token, the unclosed comment and the nesting budget are refusals the reference compiler does not make, so it emits the value and there is no second position to compare. Those three are pinned by refusal family in the value harness, and asking them here would only ever read `not-refused`.",
+  "entries": [
+    {
+      "id": "positions-reassigned-binding",
+      "label": "a reassigned binding",
+      "source": "import * as stylex from '@stylexjs/stylex';\nlet c = 'red';\nc = 'blue';\nexport const styles = stylex.create({ x: { color: c } });\n",
+      "origin": "evaluate-path.js:657 — deopt(binding.path, NON_CONSTANT)",
+      "note": "The caret covers the declarator, `c = 'red'`, not the `let`."
+    },
+    {
+      "id": "positions-mutated-binding",
+      "label": "a binding mutated in place",
+      "source": "import * as stylex from '@stylexjs/stylex';\nconst o = { c: 'red' };\no.c = 'blue';\nexport const styles = stylex.create({ x: { color: o.c } });\n",
+      "origin": "evaluate-path.js:661 — deopt(binding.path, NON_CONSTANT)"
+    },
+    {
+      "id": "positions-read-above-its-declaration",
+      "label": "a read above its own declaration",
+      "source": "import * as stylex from '@stylexjs/stylex';\nexport const styles = stylex.create({ x: { color: c } });\nconst c = 'red';\n",
+      "origin": "evaluate-path.js:665 — deopt(binding.path, USED_BEFORE_DECLARATION)",
+      "note": "The declaration is below the read, so the two positions cannot be confused for one another."
+    },
+    {
+      "id": "positions-default-theme-import",
+      "label": "a default import of a theme file",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport vars from './vars.stylex.js';\nexport const styles = stylex.create({ x: { color: vars } });\n",
+      "origin": "evaluate-path.js:653 — deopt(binding.path, IMPORT_FILE_EVAL_ERROR)"
+    },
+    {
+      "id": "positions-uninitialized-global-name",
+      "label": "a module binding that took a global's name",
+      "source": "import * as stylex from '@stylexjs/stylex';\nlet NaN;\nexport const styles = stylex.create({ x: { zIndex: NaN } });\n",
+      "origin": "evaluate-path.js:673 — deopt(binding.path, UNINITIALIZED_CONST)"
+    },
+    {
+      "id": "positions-function-declaration-as-a-value",
+      "label": "a hoisted function read as a value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nfunction f() {}\nexport const styles = stylex.create({ x: { color: f } });\n",
+      "origin": "evaluate-path.js:687 — evaluateCached(path.resolve()), whose argument is the declaration",
+      "note": "The caret covers the whole `function f() {}` on both sides."
+    },
+    {
+      "id": "positions-class-declaration-as-a-value",
+      "label": "a hoisted class read as a value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nclass K {}\nexport const styles = stylex.create({ x: { color: K } });\n",
+      "origin": "evaluate-path.js:687 — evaluateCached(path.resolve()), whose argument is the declaration"
+    },
+    {
+      "id": "positions-namespace-theme-import",
+      "label": "a namespace-imported token, which points at the read",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport * as vars from './vars.stylex.js';\nexport const styles = stylex.create({ x: { color: vars.token } });\n",
+      "origin": "evaluate-path.js:687 — deopt(path, UNDEFINED_CONST), the one refusal on the reference",
+      "note": "The reference resolved to itself, so there is no declaration to name and both compilers frame the read."
+    },
+    {
+      "id": "positions-destructured-reassigned-binding",
+      "label": "a reassigned binding declared by destructuring",
+      "source": "import * as stylex from '@stylexjs/stylex';\nlet { a, c } = theme;\nc = 'blue';\nexport const styles = stylex.create({ x: { color: c } });\n",
+      "origin": "evaluate-path.js:657 — deopt(binding.path, NON_CONSTANT), reached through a binding with no declarator",
+      "note": "The shape that showed the write probes were guarded by a declarator lookup rather than by upstream's `binding &&`: a destructured binding had no declarator, so a write to it fell past both probes to the tail refusal, which framed the read and called the constant undefined. Both compilers now refuse for the write and frame the declarator."
+    },
+    {
+      "id": "positions-reassigned-function-declaration",
+      "label": "a reassigned function declaration",
+      "source": "import * as stylex from '@stylexjs/stylex';\nfunction paint() { return 'red'; }\npaint = 'blue';\nexport const styles = stylex.create({ x: { color: paint } });\n",
+      "origin": "evaluate-path.js:657 — deopt(binding.path, NON_CONSTANT), ahead of the kind refusals at 685-690",
+      "note": "The write is asked about before the declaration kind is, so this is refused for the write on both sides rather than for being a function."
+    },
+    {
+      "id": "positions-deep-member-write-on-a-function",
+      "label": "a function declaration written to two hops down",
+      "source": "import * as stylex from '@stylexjs/stylex';\nfunction paint() { return 'red'; }\npaint.a.b = 1;\nexport const styles = stylex.create({ x: { color: paint } });\n",
+      "origin": "evaluate-path.js:687 — the kind refusal, because `isMutated` does not count a write below the first member hop",
+      "note": "The guard on the write steps decides which refusal this is. Widening it to the binding once made this say the value was not constant, where upstream says it is a function; the deep-write kind is what keeps the two agreeing, here on the message and on the line."
+    },
+    {
+      "id": "positions-mutated-destructured-binding",
+      "label": "a destructured binding whose value is mutated in place",
+      "source": "import * as stylex from '@stylexjs/stylex';\nconst { theme } = { theme: { color: 'red' } };\ntheme.color = 'blue';\nexport const styles = stylex.create({ x: { color: theme.color } });\n",
+      "origin": "evaluate-path.js:661 — deopt(binding.path, NON_CONSTANT)"
+    },
+    {
+      "id": "positions-astral-plane-before-the-declaration",
+      "label": "an astral-plane character before the framed declaration",
+      "source": "import * as stylex from '@stylexjs/stylex';\nconst pad = '🎨'; let c = 'red';\nc = 'blue';\nexport const styles = stylex.create({ x: { color: c } });\n",
+      "origin": "evaluate-path.js:657 — deopt(binding.path, NON_CONSTANT)",
+      "note": "Measured rather than assumed, and the answer is that they agree. Babel's loc.column counts UTF-16 code units, and a code frame column could have counted Unicode scalar values instead -- one astral character before the framed declaration is exactly where the two would part company, and they do not. Kept so the agreement is a fixture rather than a memory. The character sits in a string because it is not a valid identifier and both compilers refuse it as one."
+    },
+    {
+      "id": "positions-css-unclosed-function",
+      "label": "a value whose function is never closed",
+      "source": "import * as stylex from '@stylexjs/stylex';\nexport const styles = stylex.create({\n  x: { color: 'calc(100% - 20px' },\n});\n",
+      "origin": "normalize_value.rs — the first value pass, LINT_UNCLOSED_FUNCTION",
+      "note": "One of the two value guards both compilers reach with the same sentence, which is what makes the position the only thing left to disagree about -- and the answer is that there is nothing to disagree about: neither compiler says where. This one throws the sentence with the repaired rule text appended and writes no code frame to stderr, unlike every evaluator refusal above; the reference compiler prefixes the filename and attaches no code frame either. Pinned at `neither-position` so the day either side starts framing a value refusal reports as a changed verdict.",
+      "expected": "neither-position"
+    },
+    {
+      "id": "positions-css-unclosed-string",
+      "label": "a value whose string is never closed",
+      "source": "import * as stylex from '@stylexjs/stylex';\nexport const styles = stylex.create({\n  x: { color: '\"abc var(foo)' },\n});\n",
+      "origin": "normalize_value.rs — the second value pass, LINT_UNCLOSED_STRING",
+      "note": "The other of the two, written with the quote first so the unclosed string is reached before the function inside it, which is the pass order the sentence names. Silent on both sides, same as its neighbour: the hole is in the guard layer rather than in one guard.",
+      "expected": "neither-position"
+    },
+    {
+      "id": "positions-css-two-faults-token-then-unclosed-function",
+      "label": "a value that is both rule-breaking and unclosed at a function",
+      "source": "import * as stylex from '@stylexjs/stylex';\nexport const styles = stylex.create({\n  x: { color: 'red;calc(1px' },\n});\n",
+      "origin": "common.rs — the declaration-terminating token guard, now running after the two passes the reference compiler also refuses",
+      "note": "The case the two compilers are most likely to name different places in: they arrive at the same sentence from different passes, because the guard order here was changed to buy that agreement rather than because both compilers check in the same order. Nothing would have reported it if the position moved with that reorder, which is why this subject exists -- and what it reports is that there is no position on either side to move.",
+      "expected": "neither-position"
+    },
+    {
+      "id": "positions-css-two-faults-token-then-unclosed-string",
+      "label": "a value that is both rule-breaking and unclosed at a string",
+      "source": "import * as stylex from '@stylexjs/stylex';\nexport const styles = stylex.create({\n  x: { color: 'red;\"a' },\n});\n",
+      "origin": "common.rs — the same guard, reached past the unclosed-string pass",
+      "note": "The second of the pair, because the two faults are settled by different passes and a reorder could move one and not the other.",
+      "expected": "neither-position"
+    },
+    {
+      "id": "positions-css-invalid-condition-key",
+      "label": "a condition key that is neither a pseudo nor an at-rule",
+      "source": "import * as stylex from '@stylexjs/stylex';\nexport const styles = stylex.create({\n  x: { color: { default: 'red', 'hover': 'blue' } },\n});\n",
+      "origin": "the condition-key guard, INVALID_PSEUDO_OR_AT_RULE",
+      "note": "The one CSS refusal in the set that is about a key rather than a value, reached from the style walk rather than from a value pass -- so it is a different way of arriving at a position, and it arrives at the same nothing. Which is the useful half of the answer: the silence is not a property of the value passes but of every CSS refusal either compiler makes.",
+      "expected": "neither-position"
+    }
+  ]
+}

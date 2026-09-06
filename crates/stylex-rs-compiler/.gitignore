@@ -1,3 +1,6 @@
 **/results/output*.txt
 **/benchmark/results/*
 **/parity/results/*
+# Written by `parity:positions`: this compiler locates a refusal in the file it
+# names, so the subject has to exist on disk while the harness runs.
+**/parity/__fixture__/*

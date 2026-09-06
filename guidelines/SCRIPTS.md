@@ -18,9 +18,33 @@ it into dash on Linux, where its bashisms fail.
 `pnpm build`, `test`, `lint`, `lint:check` (JSON report), `format`,
 `format:check` (oxfmt plus Rust/TOML), `test:visual`, `typecheck`.
 
+- `pnpm test` is `turbo run test --continue` -- the JavaScript half. Each
+  package runs its own tests; almost every crate prints a skip line. Arguments
+  reach Turbo, so CI runs `pnpm run test --filter=<pkg>` in the `tests-nodejs`
+  and `Test bindings` jobs. Keep the script a plain Turbo passthrough: those
+  jobs inherit each leg it gains, and a bindings job has neither `git` nor
+  `cargo-nextest`.
+- `pnpm test:crates:workspace` is the Rust half, and nothing else runs it. It
+  runs two whole-workspace legs through Turbo, so a tree with no Rust change
+  hits the cache: `test:crates:workspace:regular`
+  (`cargo nextest run --workspace --all-features --profile ci`) and
+  `test:crates:workspace:doc` (`cargo test --doc --workspace --all-features`).
+  CI runs them as `tests-rust` and `tests-rust-doc`. The `ci` nextest profile
+  sets `retries = 2`, so a failing test makes three attempts. The retries hide
+  an infrastructure flake in CI, and cost a local run two extra attempts.
+
+  Every Rust task -- these two, coverage and clippy -- hashes `crates/**`,
+  `Cargo.lock` and `rust-toolchain.toml`. The two test tasks and the coverage
+  task add `.config/nextest.toml`; clippy does not read it. `Cargo.toml`,
+  `clippy.toml`, `package.json` and `turbo.json` are global dependencies. Only
+  `crates/` holds `.rs` files, so a documentation or TypeScript edit does not
+  re-run the Rust suites. Widen this set when a run reads something new: a
+  missing input gives a cached pass over untested code.
+
 - `pnpm test:scripts` -- `node --test` over `.github/scripts` and `scripts/git`.
-  `pnpm test` runs it first, CI runs it as a `basic-checks` leg, and `pre-push`
-  runs it when the push touches those directories.
+  It runs outside Turbo: CI runs it as the `ci-script-tests` leg of
+  `basic-checks`, and `pre-push` runs it when the push touches those
+  directories.
 - `pnpm lint:shell` -- shellchecks every tracked `*.sh`; the CI counterpart of
   the pre-commit `shell` job. Folded into `lint` and `lint:check` but
   deliberately not `lint:node` -- CI runs it as its own build-free
@@ -39,21 +63,84 @@ arguments by the pre-commit `version-mismatch` job, the `pr-validation` matrix
 and the docs-validation format job. It is `syncpack lint` plus
 `node scripts/git/catalog-integrity.mjs manifests`, which asserts that every
 dependency version is declared once, by name, in `pnpm-workspace.yaml` -- and
-names the file, the dependency and a suggested catalog when one is not. Both
-halves run on every invocation, so a failing commit reports everything it got
-wrong at once.
+names the file, the dependency and a suggested catalog when one is not -- plus
+`node scripts/git/catalog-integrity.mjs duplicates`, below. All three run on
+every invocation, so a failing commit reports everything it got wrong at
+once.
 
-`catalog-integrity.mjs` has a second mode,
+`catalog-integrity.mjs` has a second mode, `duplicates`, which asserts that a
+package this workspace catalogues twice resolves to one version. The two
+ranges differ on purpose -- a narrow one to develop against, and the wide one
+in `peers` that ships to consumers as a `peerDependencies` range -- so only
+what they resolved to can show a drift, and the mode reads the lockfile rather
+than the declaration.
+
+The drift is expensive and looks like something else. A wide range never
+resolves again on its own, so a bump of the narrow one leaves the wide one
+behind, and `pnpm dedupe` cannot collapse the two because a catalog entry in
+the lockfile is a pin. What a contributor sees is a type error in a file
+nobody touched: with two copies of `esbuild` installed, pnpm builds two copies
+of `vite`, and `Plugin` from one is not assignable to `Plugin` from the other.
+
+`scripts/git/dedupe-catalog-pins.mjs` is the repair. It drops the pins of a
+split package from the lockfile and selects no version itself, so it repairs
+nothing on its own -- the following `pnpm install --no-frozen-lockfile` is
+what resolves the entries again. The `Sync Dependencies` workflow runs it
+before that install for the same reason, and before `pnpm dedupe` because
+dedupe cannot collapse what a pin still holds.
+
+The workflow then asserts twice, because the repair can fail in two ways. Two
+ranges that no longer overlap come back split, which `duplicates` reads. A pin
+the install did not put back reads as no conflict at all -- one entry cannot
+disagree with itself -- so `lockfile` mode catches that instead, against the
+head commit's lockfile the job already wrote out. Both read the repaired file,
+unlike the `lockfile` run before the sync, which must read what dependabot
+wrote.
+
+Never narrow the `peers` range to force the two together: that range is
+published.
+
+Every `peers` package currently has a narrow-catalog dependency in the
+manifest that names it as a peer, so nothing installs from the wide range,
+pnpm writes no `peers:` block into the lockfile, and `duplicates` has no pair
+to compare. Keeping the twin is the prevention; the check is what catches the
+day the pairing stops holding.
+
+It is dormant rather than dead, and two things re-arm it. A peer left without
+a narrow twin brings its pin back. So does a twin bumped past the upper bound
+of its `peers` range, because the twin then stops satisfying the peer and pnpm
+installs the peer again -- only `@farmfe/core` (`<2.0.0`) and `@swc/core`
+(`^1`) have such a bound, and every other `peers` range is an open `>=` that
+no bump can fall outside. `lockfile` mode does not cover the second case: it
+counts installs by name and cannot compare ranges, which
+`catalog-integrity.mjs` records beside `INSTALL_FIELDS` and a test pins.
+
+`catalog-integrity.mjs` has a third mode,
 `lockfile --baseline <file> [--current <file>]`, which asserts that every
 catalog entry a baseline `pnpm-lock.yaml` resolved is still resolved by the
 current one.
-Nothing local runs it: its caller is the `Sync Dependencies` workflow, which
-reads both lockfiles out of git -- the head commit's as dependabot wrote it
-against the base commit's from before the update -- and runs this before the
-sync reinstalls anything. It exists because a dependabot update can drop a
-catalog entry from the lockfile, and because the reinstall that would most
-likely repair that is not a guard; run after the reinstall it would only
-confirm the repair.
+Nothing local runs it. The `Sync Dependencies` workflow calls it twice, for
+two different questions.
+
+Before the sync, it reads both lockfiles out of git -- the head commit's as
+dependabot wrote it, against the base commit's from before the update -- and
+asks whether the update dropped an entry. That call must come first, because
+the reinstall would most likely put the entry back, and "most likely, as a
+side effect" is not a guard for the lockfile of a repository that ships native
+bindings.
+
+After the sync, it reads the repaired file on disk against the head commit's,
+and asks whether the repair put back every pin it dropped. Running after a
+reinstall is the point here rather than a flaw: the repair deletes entries on
+purpose, and this is the only check that sees one stay deleted. The comparison
+is presence only, so the versions the repair moved cannot make it fail.
+
+Both calls report a missing entry only when an install still needs it. A
+catalog entry exists because something installs from it, so one that nothing
+installs from any more is a manifest edit finishing. Giving a lone peer a
+narrow-catalog `devDependencies` entry retires its `peers` pin on purpose, and
+a check that counted entries rather than installs would refuse to let that
+edit be committed.
 
 See [Git Hooks](./git/HOOKS.md).
 
@@ -62,6 +149,28 @@ See [Git Hooks](./git/HOOKS.md).
 `pnpm --filter=@stylexswc/<pkg> <script>`, where `<script>` is `build`, `test`,
 `typecheck`, `format` or `format:check`; `test -- <pattern>` runs matching
 tests. Linting runs once from the workspace root.
+
+A package script whose body is `scripty` runs the matching file under
+`scripts/packages/<script>/`. `test/index.sh` runs one crate's Rust suites, but
+almost every crate prints a skip line for `test` instead, because the Rust
+suites run once for the whole workspace. Keep it for a direct run from a crate
+directory. `coverage.sh` and `flamegraph.sh` serve `test:coverage` and
+`test:flamegraph`. Each of the three has a suite in `scripts/git/`
+(`crate-test-runner.test.mjs`, `crate-coverage-runner.test.mjs`,
+`crate-flamegraph-runner.test.mjs`), because a script that finds no test
+drops that crate's suite in silence.
+
+The three scripts share `scripts/packages/test/lib/crate.sh` for the test
+markers, the directory search and the target-directory name. Change the
+library, and all three change. The suites share
+`scripts/git/lib/crate-script-harness.mjs`. It runs the real script inside a
+throwaway crate, with a recording `cargo` on the search path.
+
+All three scripts set `set -euo pipefail`, and pass their arguments on as
+`"$@"`. Bash 3.2 at macOS `/bin/bash` fails `-u` on an empty array, so a copy
+such as `args=("$@")` stops a run that gives no argument. The harness runs that
+case under both `bash` and `/bin/bash`, because the newer bash that the search
+path finds first does not show the fault.
 
 ## Dependencies
 
@@ -84,12 +193,20 @@ cargo clippy --all-targets --all-features -- -D warnings  # lint
 cargo build --release                                     # release build
 ```
 
+Two crates commit a Rust test file that a Node script writes:
+`generate:value-parser-cases` in `postcss-value-parser` and
+`generate:parse-float-cases` in `stylex-utils`. `parity:harvest` in
+`stylex-rs-compiler` writes the parity corpus those cases use. Each generator
+has a `:check` twin that runs as that crate's `pretest`, so a stale file fails
+the gate. See [Structure](./STRUCTURE.md).
+
 ## Benchmarks
 
 In `crates/stylex-rs-compiler`; run `build` first (they use `dist/*.node`). All
 accept `--help`. Policy: [Performance](./PERFORMANCE.md).
 
-- `bench`: single-subject run over 22 fixtures; writes output and raw stats.
+- `bench`: single-subject run over every fixture in `fixtures.v1.json`; writes
+  output and raw stats.
 - `bench:compare`: compares Rust against Babel; writes `compare-output.txt`.
 - `bench:revisions`: paired measurement; writes revision raw stats.
 - `bench:verdict`: bootstrap verdict and retry; writes JSON and Markdown.
@@ -111,16 +228,56 @@ repeatable `--category` (`transform|perf|rollup`) and `--fixture` substring.
 ## Parity harness
 
 Also in `crates/stylex-rs-compiler`; run `build` first (it reads `dist/`).
-Not a test and not wired into CI. Full docs:
+Not a test, but wired into CI. Full docs:
 `crates/stylex-rs-compiler/parity/README.md`.
+
+Which harness runs where, and why:
+
+- `parity`, `parity:positions` and `fuzz:pseudo-order` run per pull request, in
+  the `checks` matrix's `parity` leg, after a `build`. They are the oracle every
+  expectation in the CSS-value corpus was derived from, and each is seconds
+  long. `fuzz:pseudo-order` is there rather than nightly because it is the one
+  that guards a class name.
+- `fuzz:shorthand` runs on the nightly schedule only, in the `parity-sweep`
+  job. It crosses an alphabet with itself -- around forty times the cost of
+  `parity` -- and a value-splitter defect shows up when a value pass or the
+  alphabet changes, which a nightly sweep catches as surely as a per-commit one.
+- `parity:harvest:check` needs neither `dist/` nor either compiler, since it
+  only scans Rust sources, so it runs ahead of this package's `vitest` suite as
+  its `pretest` -- a corpus that has fallen behind the Rust tests fails rather
+  than waiting to be noticed. It is a `pretest` rather than the first half of
+  `test` so that `test` means "run this package's tests": the check harvests
+  from Rust suites across the whole workspace, so it can fail for a declaration
+  added in another crate, and that reads better as a gate in front of the suite
+  than as part of it. The gate is unchanged -- a stale corpus still exits
+  non-zero and `vitest` still does not run.
 
 - `parity`: runs a corpus of CSS declarations through this compiler and through
   a pinned `@stylexjs/babel-plugin`, and reports which ones disagree on class
   name or rule text. Flags: `--only-mismatches`, repeatable `--set`
-  (`reported|edge|harvested`), `--filter <substring>`, `--json <path>`,
-  `--font-size-px-to-rem`.
-- `parity:harvest`: regenerates `parity/corpus/harvested.json` from the Rust
-  test suites. `--check` fails instead of writing when it is out of date.
+  (`reported|modules|edge|harvested`), `--filter <substring>`, `--json <path>`,
+  `--font-size-px-to-rem`, `--style-resolution <name>`
+  (`application-order|property-specificity|legacy-expand-shorthands`, default
+  `property-specificity`).
+- `parity:harvest`: regenerates `parity/corpus/harvested.json` from every Rust
+  source in the workspace, apart from ones marked `@generated`. `--check`
+  fails instead of writing when it is out of date, and runs as this package's
+  `pretest`. Regenerating also invalidates
+  `crates/postcss-value-parser/src/tests/cases.rs`, whose row order is the
+  corpus order -- run that package's `generate:value-parser-cases` next.
+- `parity:positions`: the same comparison for the position corpus -- where in a
+  file a declaration sits, rather than what it holds.
+- `fuzz:pseudo-order`: crosses an alphabet of pseudo-class keys and checks the
+  order this compiler sorts them in against the reference compiler's, both by
+  class name and by reading the order off the emitted selector. Flags:
+  `--pairs <n>` (1000), `--seed <hex>` (`0x2545f4914f6cdd1d`), `--show <n>`
+  (20). The run prints its seed and the Node ICU version, so a disagreement one
+  machine reports can be re-run on another.
+- `fuzz:shorthand`: generates shorthand values from an alphabet of token classes
+  and joiners and compares how each splits. Every divergence it reports must
+  belong to a refusal family in `parity/lib/refusal-families.ts`; a divergence
+  no family accounts for fails the run. Flags: `--show <n>`, `--json <path>`,
+  repeatable `--property <name>`.
 
 ## Coverage
 

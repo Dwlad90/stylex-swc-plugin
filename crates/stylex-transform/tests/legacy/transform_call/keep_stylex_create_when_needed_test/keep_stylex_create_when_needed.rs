@@ -1,7 +1,15 @@
 use crate::utils::prelude::*;
 
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  crate::legacy::transform_call::legacy_call_transform(comments, customize)
+}
+
 stylex_test!(
   stylex_call_with_computed_key_access,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -18,6 +26,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_keeps_spaces_around_operators,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({
@@ -31,6 +40,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_composition_of_external_styles,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -44,6 +54,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_using_exported_styles_with_pseudo_selectors_and_queries,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -62,6 +73,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_using_exported_styles_with_pseudo_selectors_and_queries_within_props,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -80,6 +92,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_export_default,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
 
@@ -109,6 +122,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_inline_export_default,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
 
@@ -136,6 +150,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_named_export,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
 
@@ -165,6 +180,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_inline_named_export,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
 

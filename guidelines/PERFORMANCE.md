@@ -12,6 +12,26 @@ Only release comparisons block: paired same-runner, same-process
 hosted Linux and ~34% on `x86_64-apple-darwin`, too coarse for a 10-20%
 regression.
 
+## The allocator a bench measures
+
+The published addon runs mimalloc on all seven targets. `swc_malloc` selects it
+for the six targets that are not musl. The addon names mimalloc directly for
+`x86_64-unknown-linux-musl`, because `swc_malloc` declines every musl target.
+
+A criterion bench measures the system allocator unless it links the same crate.
+A manifest entry is not enough. Add `use swc_malloc as _;` to the bench file.
+
+Every bench in the workspace has that line.
+`every_bench_says_which_allocator_it_measures`, in the addon's own test module,
+fails when a new bench has neither that line nor an `ALLOCATOR: system` note
+that gives the reason.
+
+A bench built for musl still measures the system allocator. No bench runs on
+musl today.
+
+**Numbers taken before this rule do not compare with numbers taken after it.**
+Re-baseline first, then compare.
+
 ## Subjects
 
 - PR base: merge-base with `origin/develop`, built in an isolated worktree.
@@ -61,6 +81,118 @@ rounds, never with per-round time.** Fast fixtures get batching -- 0.10 ms to
 Measured on one machine at these values: 0/22 false positives same-vs-same,
 18/20 warned on a 1.08-1.19x regression (the 2 misses were truly under 1.10),
 20/20 flagged at 1.5-2.3x.
+
+## Writing a bench
+
+**A bench that touches the transform must run inside `GLOBALS.set`.**
+`parse_and_normalize_program` and `StyleXTransformBuilder::into_pass` both call
+`Mark::new()`, which panics outside a `GLOBALS` scope. The panic does not
+surface: the code frame is a diagnostic aid behind a panic boundary, so the
+bench still reports a number -- it times a panic and its unwind instead of the
+work, and reports a regression in the swallowed path as an improvement. That
+mistake inflated one attribution of the debug path by 3.6x before it was
+caught. Set it once around the whole benchmark function, as the benches under
+`crates/stylex-transform` and `crates/stylex-evaluator` do.
+
+Assert what the bench is measuring, in the bench. A refusal, a deopt, a
+swallowed panic and a cache hit are all fast, and a curve that flattens because
+the work stopped happening is indistinguishable from a win. Every bench in
+`crates/stylex-transform/benches` and `crates/stylex-evaluator/benches` panics
+unless its subject produced the output it exists to time -- a fold that reached
+the expected value, a `dev` transform that resolved one `file:line` per style.
+
+Both configurations are worth watching, and they are watched separately. `dev`
+implies `debug`, and `debug` turns on the `file:line` annotation on `$$css`,
+which costs several times the whole production transform; the two cannot be
+compared against each other. `benchmark/lib/config.ts` therefore keeps
+`dev: false` as the shared shape, and a fixture opts into the other one with
+`"dev": true` in `benchmark/fixtures.v1.json`. Never flip the shared option: it
+moves every trend series in the repo at once.
+
+Every other development or compatibility feature is priced the same way, through
+an `"options"` map on the fixture that asks for it -- the debug data prop and
+debug class names, unminified keys, reading the source off disk, legacy
+shorthand expansion, the logical-property polyfill and RTL comments,
+`px`-to-`rem`, media query ordering, and the two enum-valued options. The keys
+are an allowlist in `benchmark/lib/types.ts`; a manifest naming anything else
+fails to load rather than being measured under the shared shape while claiming
+otherwise.
+
+**Every key in a fixture's option map must change what the compiler emits.** The
+per-entry check below is not enough: an entry passes it as soon as _one_ key
+moves the output, which let an entry named for a chained input source map price
+`dev: true` while carrying a map that made no difference at all — nor did a
+garbage one. `fixtures.test.ts` therefore varies one key at a time.
+
+A boolean key is **flipped**, not dropped, and that is the whole of what the
+check asks. Dropping would reject a key that restates a default —
+`enableDebugDataProp` is already on under `debug`, `useRealFileForSource` under
+`dev` — and an entry is entitled to name the option it exists to measure rather
+than leave a reader to know the defaults. What must not pass is an option the
+compiler does not react to at all, which is what flipping catches. A key whose
+value is not a boolean has no flip and is dropped instead, which is how the
+inert input source map was found.
+
+Of `enableLogicalStylesPolyfill`, `enableLegacyValueFlipping` and
+`enableLTRRTLComments`, only the middle one changes anything on the RTL fixture,
+so it is the only one registered. The chained-input-map path is left unmeasured
+rather than faked: a map generated from the fixture itself maps to the same
+positions, so the transform emits the same module, and pricing it needs a map
+from an earlier tool that really moved the code.
+
+**A fixture's options must change what the compiler emits.** `fixtures.test.ts`
+fails an entry whose emitted module, metadata and source map are identical to
+its production run, and that test found seven entries measuring nothing:
+`enableMediaQueryOrder`, `legacyDisableLayers`, `propertyValidationMode: throw`
+and `treeshakeCompensation: false` changed not one byte on any fixture in the
+corpus; `sourceMap: True` changed nothing, because this compiler emits a map in
+its production shape already; a `(dev)` twin of a token file emitted the same
+module as its production run; and `enableFontSizePxToRem` was pointed at a
+fixture whose only font size was already in `rem`. Each of them reported a
+development feature and measured the production shape. The allowlist in
+`benchmark/lib/types.ts` therefore holds only keys a fixture uses, and
+`aliases`, `definedStylexCssVariables` and `importSources` are absent for the
+same reason — the last one because it made the transform _faster_ by emitting
+less, which is the "fast because the work stopped happening" trap this file
+opens with.
+
+**The data prop is emitted where styles are read.** `data-style-src` needs a
+`stylex.props` or `stylex.attrs` call site; a fixture that only calls `create`
+cannot measure it however many debug options it names.
+`perf_fixtures/props-and-attrs.js` is that call site, and a test asserts the
+entries named for the data prop actually emit one.
+
+**A fixture must compile on the merge base, too.**
+`bench:revisions` runs the manifest against two subjects -- this branch's build
+and one built from the merge base -- and sanity-checks every fixture on both
+before timing anything. A shape that only a fix makes compilable is a
+correctness question, so it belongs to `crates/stylex-transform/tests/fixture`
+and stays there; `perf_fixtures/dynamic-styles.js` states this rule in its own
+header and leaves that shape out while still pricing the inline-style path.
+`selectMeasurableFixtures` names the fixture and the subject that refused it.
+
+**Only the release leg allows a base refusal, and it passes a flag to get
+it.** The pull-request leg builds the merge base, where the rule above holds
+and every refusal stops the run. The release leg installs the _last published
+version_, which does not have the features that landed since. A fixture that
+prices one of those features then has no base to compare against. One `.trim()`
+in `perf_fixtures/engine-fold.js` stopped the whole publish benchmark that way.
+That leg passes `--allow-base-refusals`. The run then reports the fixture under
+`Not compared`, writes it into the raw stats beside the numbers, and leaves it
+out of the comparison. The fixture returns once the published baseline has the
+feature. The flag is off by default, and it never lifts the gate on the
+candidate: a fixture _it_ refuses, or compiles to no rules, is a regression and
+fails the leg. A run where no fixture survives also fails, because a base that
+refuses everything is a broken subject.
+
+**Register a feature fixture in pairs.** One number for a development shape says
+nothing about what the feature costs; the pair does. A `Feature - x` entry and a
+`Feature - x (dev)` entry point at the same file and differ only in the option
+map, and `fixtures.test.ts` fails a `(dev)` entry with no production twin. Size
+is not a feature: `apps/rollup-large-example/lotsOfStyles.js` is one `create`
+call repeated thousands of times, so it prices throughput and nothing else. A
+new fixture earns its place by exercising a capability none of the others
+reach.
 
 ## Budget
 

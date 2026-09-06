@@ -1,6 +1,10 @@
 use anyhow::anyhow;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
-use stylex_utils::{number::to_js_string, string::wrap_key_in_quotes, swc::get_default_expr_ctx};
+use stylex_utils::{
+  number::to_js_string,
+  string::{utf16_length, wrap_key_in_quotes},
+  swc::get_expr_node_kind,
+};
 use swc_core::{
   atoms::{Atom, Wtf8Atom},
   ecma::{
@@ -9,7 +13,7 @@ use swc_core::{
       PropName, PropOrSpread, Str, Tpl, TplElement, VarDeclarator,
     },
     parser::Context,
-    utils::{ExprExt, quote_ident, quote_str},
+    utils::{quote_ident, quote_str},
   },
 };
 
@@ -84,8 +88,8 @@ pub fn convert_lit_to_number(lit_num: &Lit) -> Result<f64, anyhow::Error> {
       }
     },
     _ => Err(anyhow!(
-      "Value in not a number: {:?}",
-      Expr::from(lit_num.clone()).get_type(get_default_expr_ctx())
+      "Value in not a number: {}",
+      get_expr_node_kind(&Expr::from(lit_num.clone()))
     )),
   }
 }
@@ -187,6 +191,21 @@ pub fn create_bool_expr(value: bool) -> Expr {
   Expr::Lit(create_boolean_lit(value))
 }
 
+/// Whether an identifier is the language's `undefined`.
+///
+/// One predicate, because `undefined` is a *value* here rather than a name that
+/// failed to resolve -- `js_undefined()` is what a key an object does not carry,
+/// an index past the end of an array and a member read off a fold all answer, so
+/// several steps have to recognise it on the way back out. Four private copies
+/// of this test is how they could come to disagree about which of them is
+/// looking at a value and which at an unresolved reference.
+///
+/// A binding named `undefined` that shadows the global never arrives: the
+/// evaluator refuses a shadowed `undefined` ahead of any of these readers.
+pub fn is_js_undefined(ident: &Ident) -> bool {
+  ident.sym.as_ref() == "undefined"
+}
+
 pub fn create_ident_expr(value: &str) -> Expr {
   Expr::Ident(create_ident(value))
 }
@@ -217,6 +236,25 @@ pub fn expand_shorthand_prop(prop: &mut Box<Prop>) {
       key: convert_string_to_prop_name(ident.sym.as_ref()),
       value: Box::new(Expr::Ident(ident.clone())),
     });
+  }
+}
+
+/// The length of a string literal's value as JavaScript reports it: its count
+/// of UTF-16 code units.
+///
+/// Reads the atom rather than a `String`, because a JavaScript string literal
+/// can hold an unpaired surrogate and no `String` can. `"\uD83D"` is a legal
+/// string of length 1, so `convert_atom_to_string` would abort the build on an
+/// input whose length is the one thing that needs no valid scalar to answer —
+/// and it would abort from inside an evaluation that is allowed to fail.
+///
+/// The valid-UTF-8 path goes through `utf16_length` rather than counting again
+/// here, so a string and its literal cannot end up measured by two conventions
+/// that drifted apart.
+pub fn atom_utf16_length(atom: &Wtf8Atom) -> usize {
+  match atom.as_str() {
+    Some(value) => utf16_length(value),
+    None => atom.to_ill_formed_utf16().count(),
   }
 }
 
@@ -291,7 +329,7 @@ pub fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
   let key = match key {
     PropName::Ident(ident) => ident.sym.to_string(),
     PropName::Str(strng) => convert_str_lit_to_string(strng),
-    PropName::Num(num) => num.value.to_string(),
+    PropName::Num(num) => to_js_string(num.value),
     PropName::BigInt(big_int) => big_int.value.to_string(),
     PropName::Computed(computed) => match computed.expr.as_ref() {
       Expr::Lit(lit) => match convert_lit_to_string(lit) {

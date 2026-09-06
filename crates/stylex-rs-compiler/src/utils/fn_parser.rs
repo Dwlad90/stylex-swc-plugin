@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use log::debug;
+use log::{debug, warn};
 use napi::{JsNumber, JsObject, JsString, JsValue, Unknown, ValueType};
 use stylex_ast::ast::{
   convertors::{create_bool_expr, create_null_expr, create_number_expr, create_string_expr},
@@ -9,16 +9,39 @@ use stylex_ast::ast::{
 };
 use stylex_macros::stylex_panic;
 use stylex_structures::stylex_env::{EnvEntry, JSFunction};
-use stylex_utils::swc::get_default_expr_ctx;
-use swc_core::ecma::{
-  ast::{Expr, ExprOrSpread, Lit, PropName, PropOrSpread},
-  utils::ExprExt,
-};
+use stylex_utils::{number::to_js_string, swc::get_expr_node_kind};
+use swc_core::ecma::ast::{Expr, ExprOrSpread, Lit, PropName, PropOrSpread};
 
 thread_local! {
   static NAPI_ENV_RAW: std::cell::Cell<Option<napi::sys::napi_env>> =
     const { std::cell::Cell::new(None) };
 }
+
+/// How deeply the reader descends into an `env` value before it stops.
+///
+/// [`napi_value_to_expr`] recurses once for each object or array below the top
+/// of `env`. Past the point where the stack runs out the process **aborts**
+/// rather than panicking -- a stack overflow is not unwindable, so the
+/// `catch_unwind` around compilation never sees it and JavaScript gets no error
+/// to catch. A cycle, such as `const o = {}; o.self = o`, has no bottom at all
+/// and reaches that point every time.
+///
+/// The limit is stated rather than left to whatever stack the host provides, so
+/// that the same `env` reads the same way everywhere. The stacks in play differ
+/// by a large factor: the main thread gets 8 MB on macOS but only 1 MB on
+/// Windows, and the measured cliff moves with it -- about 4600 levels on the
+/// first, near 560 on the second. Sixty-four is set well below the tighter of
+/// the two, and far above real configuration, where an `env` object nests two
+/// or three levels.
+///
+/// A value below the limit reads as null, which is the answer this reader
+/// already gives for a value that has no expression of its own.
+///
+/// The same argument for CSS syntax lives in
+/// [`stylex_utils::nesting::MAX_NESTING_DEPTH`]. The budgets are kept apart on
+/// purpose: that one guards syntax the parser reads, this one guards a value
+/// graph that JavaScript hands across the NAPI boundary.
+const MAX_ENV_NESTING_DEPTH: usize = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum EnvValueKind {
@@ -67,7 +90,7 @@ fn prop_name_to_string(key: &PropName) -> Option<String> {
   match key {
     PropName::Ident(id) => Some(id.sym.to_string()),
     PropName::Str(s) => Some(s.value.as_str().unwrap_or("").to_string()),
-    PropName::Num(n) => Some(n.value.to_string()),
+    PropName::Num(n) => Some(to_js_string(n.value)),
     _ => None,
   }
 }
@@ -134,7 +157,11 @@ fn parse_env_value(env: &napi::Env, value: Unknown) -> napi::Result<EnvEntry> {
     },
     EnvValueKind::Nullish => Ok(EnvEntry::Expr(create_null_expr())),
     EnvValueKind::Function => parse_env_function(env, value.raw()),
-    EnvValueKind::Object => Ok(EnvEntry::Expr(napi_value_to_expr(env.raw(), value.raw()))),
+    EnvValueKind::Object => Ok(EnvEntry::Expr(napi_value_to_expr(
+      env.raw(),
+      value.raw(),
+      0,
+    ))),
     EnvValueKind::Unsupported => Ok(EnvEntry::Expr(create_null_expr())),
   }
 }
@@ -186,7 +213,7 @@ fn parse_env_function(env: &napi::Env, js_fn_raw: napi::sys::napi_value) -> napi
         );
       }
 
-      napi_value_to_expr(raw_env, result)
+      napi_value_to_expr(raw_env, result, 0)
     },
   )))
 }
@@ -250,8 +277,8 @@ fn expr_to_napi_value(raw_env: napi::sys::napi_env, expr: &Expr) -> napi::sys::n
       debug!("Unsupported napi value type: {:#?}.", expr);
 
       panic!(
-        "Unsupported napi value type: {:?}. If its not enough, please run in debug mode to see more details",
-        expr.get_type(get_default_expr_ctx())
+        "Unsupported napi value type: {}. If its not enough, please run in debug mode to see more details",
+        get_expr_node_kind(expr)
       );
     },
   }
@@ -321,29 +348,57 @@ fn read_napi_string(raw_env: napi::sys::napi_env, value: napi::sys::napi_value) 
   utf8_string_from_written_buffer(buf, written)
 }
 
-fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value) -> Expr {
+/// Reads a JavaScript value below the top of `env` into an expression.
+///
+/// `parse_env_value` reads a value at the top of `env`, and this function reads
+/// the values inside an object or an array below it. Both ask
+/// [`env_value_kind`] what a value is, so that the two levels keep the same
+/// rule. They gave different answers before: the top level made a null
+/// expression for a value it had no rule for, and this function called
+/// `panic!`. That panic left the option parser before the compiler installed
+/// its panic guard, so it ended the Node process instead of raising an error
+/// that JavaScript can catch.
+///
+/// `depth` counts how many objects and arrays the reader has entered. It stops
+/// at [`MAX_ENV_NESTING_DEPTH`], because descending further overflows the stack
+/// and a stack overflow ends the process in the same way.
+fn napi_value_to_expr(
+  raw_env: napi::sys::napi_env,
+  value: napi::sys::napi_value,
+  depth: usize,
+) -> Expr {
+  if depth >= MAX_ENV_NESTING_DEPTH {
+    warn!(
+      "[StyleX] An env value nests deeper than {} levels. The compiler reads the levels below as \
+       null. A cycle in the object has this effect as well.",
+      MAX_ENV_NESTING_DEPTH
+    );
+
+    return create_null_expr();
+  }
+
   let mut val_type: napi::sys::napi_valuetype = napi::sys::ValueType::napi_undefined;
   unsafe {
     napi::sys::napi_typeof(raw_env, value, &mut val_type);
   }
 
-  match val_type {
-    napi::sys::ValueType::napi_string => create_string_expr(&read_napi_string(raw_env, value)),
-    napi::sys::ValueType::napi_number => {
+  match env_value_kind(ValueType::from(val_type as i32)) {
+    EnvValueKind::String => create_string_expr(&read_napi_string(raw_env, value)),
+    EnvValueKind::Number => {
       let mut n: f64 = 0.0;
       unsafe {
         napi::sys::napi_get_value_double(raw_env, value, &mut n);
       }
       create_number_expr(n)
     },
-    napi::sys::ValueType::napi_boolean => {
+    EnvValueKind::Boolean => {
       let mut b = false;
       unsafe {
         napi::sys::napi_get_value_bool(raw_env, value, &mut b);
       }
       create_bool_expr(b)
     },
-    napi::sys::ValueType::napi_object => {
+    EnvValueKind::Object => {
       let mut is_array = false;
       unsafe {
         napi::sys::napi_is_array(raw_env, value, &mut is_array);
@@ -363,7 +418,7 @@ fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value
             }
             Some(ExprOrSpread {
               spread: None,
-              expr: Box::new(napi_value_to_expr(raw_env, elem_val)),
+              expr: Box::new(napi_value_to_expr(raw_env, elem_val, depth + 1)),
             })
           })
           .collect();
@@ -396,20 +451,20 @@ fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value
 
           props.push(create_key_value_prop(
             &key,
-            napi_value_to_expr(raw_env, prop_val),
+            napi_value_to_expr(raw_env, prop_val, depth + 1),
           ));
         }
 
         create_object_expression(props)
       }
     },
-    _ => {
-      debug!("Unsupported napi value type: {:#?}.", val_type);
+    // A value with no expression of its own becomes null, which is the answer
+    // that `parse_env_value` gives at the top of `env`. A function is included:
+    // only a function at the top keeps a reference that the compiler can call.
+    EnvValueKind::Nullish | EnvValueKind::Function | EnvValueKind::Unsupported => {
+      debug!("Read a napi value of type {:#?} in env as null.", val_type);
 
-      panic!(
-        "Unsupported napi value type: {:?}. If its not enough, please run in debug mode to see more details",
-        val_type
-      );
+      create_null_expr()
     },
   }
 }

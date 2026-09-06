@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod convert_style_to_class_name {
-  use crate::shared::{
-    structures::{pre_rule::PreRuleValue, state_manager::StateManager, types::ClassName},
-    utils::core::convert_style_to_class_name::convert_style_to_class_name,
-  };
+  use crate::shared::utils::core::convert_style_to_class_name::convert_style_to_class_name;
   use stylex_enums::style_resolution::StyleResolution;
+  use stylex_state::state_manager::StateManager;
+  use stylex_structures::pre_rule_value::PreRuleValue;
   use stylex_structures::raw_value::TRawValue;
   use stylex_structures::stylex_state_options::StyleXStateOptions;
+  use stylex_types::structures::style_key::ClassName;
   /// The declaration text, for a pair that compiles to one.
   fn convert(styles: (&str, &PreRuleValue)) -> String {
     match try_convert(styles) {
@@ -53,16 +53,16 @@ mod convert_style_to_class_name {
   fn prefixes_classname_with_property_name_when_options_debug_is_true() {
     let class_name = class_name_of(
       ("margin", &PreRuleValue::number(10.0)),
-      &mut StateManager {
-        options: StyleXStateOptions::default()
+      &mut StateManager::for_test(
+        None,
+        StyleXStateOptions::default()
           .with_class_name_prefix("x")
           .with_style_resolution(StyleResolution::PropertySpecificity)
           .with_dev(false)
           .with_test(false)
           .with_debug(true)
           .with_enable_debug_class_names(true),
-        ..Default::default()
-      },
+      ),
     );
     assert!(class_name.as_str().starts_with("margin-"))
   }
@@ -71,16 +71,16 @@ mod convert_style_to_class_name {
   fn prefixes_classname_with_prefix_only_when_options_enable_debug_class_names_is_false() {
     let class_name = class_name_of(
       ("margin", &PreRuleValue::number(10.0)),
-      &mut StateManager {
-        options: StyleXStateOptions::default()
+      &mut StateManager::for_test(
+        None,
+        StyleXStateOptions::default()
           .with_class_name_prefix("x")
           .with_style_resolution(StyleResolution::PropertySpecificity)
           .with_dev(false)
           .with_test(false)
           .with_debug(true)
           .with_enable_debug_class_names(false),
-        ..Default::default()
-      },
+      ),
     );
     assert!(class_name.as_str().starts_with("x"));
     assert!(!class_name.as_str().starts_with("margin-x"));
@@ -90,15 +90,15 @@ mod convert_style_to_class_name {
   fn prefixes_classname_with_prefix_only_when_options_debug_is_false() {
     let class_name = class_name_of(
       ("margin", &PreRuleValue::number(10.0)),
-      &mut StateManager {
-        options: StyleXStateOptions::default()
+      &mut StateManager::for_test(
+        None,
+        StyleXStateOptions::default()
           .with_class_name_prefix("x")
           .with_style_resolution(StyleResolution::PropertySpecificity)
           .with_dev(false)
           .with_test(false)
           .with_debug(false),
-        ..Default::default()
-      },
+      ),
     );
     assert!(!class_name.as_str().starts_with("margin-"));
     assert!(class_name.as_str().starts_with("x"));

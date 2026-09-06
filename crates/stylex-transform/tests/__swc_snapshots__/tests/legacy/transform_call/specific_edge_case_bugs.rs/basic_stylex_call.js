@@ -53,10 +53,22 @@ export const styles = {
     sidebar: {
         "boxSizing-kB7OPa": "boxSizing-x9f619",
         "gridArea-kJuA4N": "gridArea-x1yc5d2u",
+        "gridRow-kbNqZ1": null,
+        "gridRowStart-k1lYIM": null,
+        "gridRowEnd-kpJH7q": null,
+        "gridColumn-kBCFzs": null,
+        "gridColumnStart-kEXP64": null,
+        "gridColumnEnd-kWZpDQ": null,
         $$css: "src/js/components/Foo.react.js:3"
     },
     content: {
         "gridArea-kJuA4N": "gridArea-x1fdo2jl",
+        "gridRow-kbNqZ1": null,
+        "gridRowStart-k1lYIM": null,
+        "gridRowEnd-kpJH7q": null,
+        "gridColumn-kBCFzs": null,
+        "gridColumnStart-kEXP64": null,
+        "gridColumnEnd-kWZpDQ": null,
         $$css: "src/js/components/Foo.react.js:7"
     },
     root: {

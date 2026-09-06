@@ -44,8 +44,11 @@ jobs:
       # nothing. The sync below reinstalls and would most likely put it back,
       # which is exactly why this runs first: "most likely, as a side effect" is
       # not a guard for the lockfile of a repository that ships native bindings,
-      # and a check placed after the repair would only ever confirm that the
-      # repair worked.
+      # and this question cannot be asked once the reinstall has answered it.
+      #
+      # The sync step runs the same mode again at its end. That one asks a
+      # different question -- whether the repair put back the pins it dropped
+      # on purpose -- so it has to read the repaired file rather than git.
       #
       # Both sides come out of git rather than off disk, so no later step can
       # move them: the head commit's lockfile as dependabot wrote it, against
@@ -75,6 +78,13 @@ jobs:
           # no longer asserts anything about versions -- the catalogs do that --
           # so what it fixes here is formatting and field order.
           pnpm syncpack fix
+          # A dependabot PR bumps the narrow range of a package catalogued
+          # twice, and the wide `peers` range keeps the version it had. Neither
+          # `pnpm dedupe` below nor the install can collapse that while the
+          # lockfile still pins it, so the pins go first and the install
+          # resolves the entries again. `guidelines/SCRIPTS.md` has the why.
+          node ./scripts/git/dedupe-catalog-pins.mjs
+          pnpm install --no-frozen-lockfile
           # `dedupe` collapses the resolutions in the lockfile. A dependabot PR
           # only re-resolves the package it bumps, so open ranges elsewhere keep
           # their stale versions. For peer-dependent packages (vite, webpack,
@@ -83,6 +93,16 @@ jobs:
           # e.g. `Plugin` from vite@8.1.5(@types/node@26.1.0) is not assignable
           # to `Plugin` from vite@8.1.5(@types/node@26.1.2).
           pnpm dedupe
+          # The repair can fail in two ways, so it is asserted twice. Ranges
+          # that no longer overlap come back split, which `duplicates` reads. A
+          # pin the install did not put back reads as no conflict at all, so
+          # `lockfile` mode catches that instead, against the head commit's
+          # lockfile written out above. Both read the repaired file, unlike the
+          # `lockfile` run before the sync, which must read what dependabot
+          # wrote. Failing here is cheaper than failing in `pr-validation`.
+          node ./scripts/git/catalog-integrity.mjs duplicates
+          node ./scripts/git/catalog-integrity.mjs lockfile \
+            --baseline "$RUNNER_TEMP/head-lock.yaml"
 
       - name: Commit changes if needed
         id: commit-changes
@@ -91,8 +111,10 @@ jobs:
             echo "No dependency changes detected"
             echo "changes_pushed=false" >> $GITHUB_OUTPUT
           else
-            pnpm install --no-frozen-lockfile
-
+            # No install here. The sync step above already installed, and the
+            # two checks at the end of it read what that install produced. An
+            # install after them could change the lockfile again and commit the
+            # result without either check ever seeing it.
             git add .
             git commit -m "fix(deps): sync dependencies" --no-verify
             git push

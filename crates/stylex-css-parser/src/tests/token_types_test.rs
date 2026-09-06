@@ -213,6 +213,50 @@ mod test_token_types {
     assert_eq!(SimpleToken::RightBrace.extract_value(), None);
   }
 
+  /// The numeric arms spell a number the way JavaScript spells it, which is the
+  /// rule the rest of the crate follows and this one did not.
+  ///
+  /// `f64`'s own `Display` never switches to exponential form, so `1e21` came
+  /// back as twenty-two digits and `1e-7` as `0.0000001` -- neither of which
+  /// JavaScript writes, and neither reachable through any other path here.
+  /// Widening the field to a double made the gap wider rather than introducing
+  /// it. Nothing in the plugin calls this method, so no CSS moved; it is `pub`,
+  /// and a reader would reasonably have trusted it.
+  #[test]
+  fn extract_value_spells_a_number_the_way_javascript_does() {
+    assert_eq!(
+      SimpleToken::Number(1e21).extract_value(),
+      Some("1e+21".to_string())
+    );
+    assert_eq!(
+      SimpleToken::Number(1e-7).extract_value(),
+      Some("1e-7".to_string())
+    );
+    assert_eq!(
+      SimpleToken::Percentage(1e21).extract_value(),
+      Some("1e+21".to_string())
+    );
+    assert_eq!(
+      SimpleToken::Dimension {
+        value: 1e21,
+        unit: "px".to_string()
+      }
+      .extract_value(),
+      Some("1e+21px".to_string())
+    );
+
+    // A negative zero loses its sign, as `String(-0)` does, and an infinity is
+    // spelled rather than rendered as `inf`.
+    assert_eq!(
+      SimpleToken::Number(-0.0).extract_value(),
+      Some("0".to_string())
+    );
+    assert_eq!(
+      SimpleToken::Number(f64::INFINITY).extract_value(),
+      Some("Infinity".to_string())
+    );
+  }
+
   #[test]
   fn test_extract_number() {
     assert_eq!(SimpleToken::Number(42.0).extract_number(), Some(42.0));

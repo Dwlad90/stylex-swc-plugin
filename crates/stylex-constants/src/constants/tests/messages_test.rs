@@ -120,3 +120,36 @@ fn test_unknown_define_vars_reference() {
     "Unknown same-group reference \"missing\" found while resolving \"textMuted\" in defineVars()."
   );
 }
+
+/// The refusal a `defineVars()` variable gets when its object carries no
+/// `default` key.
+///
+/// Byte-identical to `'Default value is not defined for ' + key + ' variable.'`,
+/// which upstream builds at `shared/stylex-vars-utils.js:45` and again at
+/// `visitors/stylex-define-vars.js:313` (0.19.0). Two details are load-bearing
+/// and both used to be wrong here. The name is *unquoted*, which is the whole of
+/// what a build error read differently between the two compilers for this input;
+/// and the key is the top-level variable rather than the nested key the
+/// recursion is standing on, which is why a nested case answers the root name.
+#[test]
+fn test_missing_default_value_names_the_variable_unquoted() {
+  assert_eq!(
+    missing_default_value("--my-var"),
+    "Default value is not defined for --my-var variable."
+  );
+  assert_eq!(
+    missing_default_value("primaryColor"),
+    "Default value is not defined for primaryColor variable."
+  );
+
+  // No quoting, whatever the key looks like.
+  assert!(!missing_default_value("k").contains('"'));
+  assert!(!missing_default_value("k").contains('\''));
+
+  // The unnamed sibling is upstream's other spelling, for the recursion that
+  // has no key to name. Kept beside this one so the pair cannot drift.
+  assert_eq!(
+    MISSING_DEFAULT_VALUE_UNNAMED,
+    "Default value is not defined for variable."
+  );
+}

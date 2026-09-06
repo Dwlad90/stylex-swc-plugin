@@ -26,10 +26,10 @@ impl Shorthands {
       OrderPair("animationDirection".into(), None),
       OrderPair("animationFillMode".into(), None),
       OrderPair("animationPlayState".into(), None),
-      OrderPair("animationTimeline".into(), None),
     ];
 
     result.extend(Self::infallible(Shorthands::animation_range(None)));
+    result.push(OrderPair("animationTimeline".into(), None));
 
     Ok(result)
   }
@@ -52,11 +52,11 @@ impl Shorthands {
       OrderPair("backgroundColor".into(), None),
       OrderPair("backgroundImage".into(), None),
       OrderPair("backgroundOrigin".into(), None),
-      OrderPair("backgroundRepeat".into(), None),
-      OrderPair("backgroundSize".into(), None),
     ];
 
     result.extend(Self::infallible(Shorthands::background_position(None)));
+    result.push(OrderPair("backgroundRepeat".into(), None));
+    result.push(OrderPair("backgroundSize".into(), None));
 
     Ok(result)
   }
@@ -628,11 +628,11 @@ impl Shorthands {
       OrderPair("fontSize".into(), None),
       OrderPair("fontStretch".into(), None),
       OrderPair("fontStyle".into(), None),
-      OrderPair("fontWeight".into(), None),
-      OrderPair("lineHeight".into(), None),
     ];
 
     result.extend(Self::infallible(Shorthands::font_variant(None)));
+    result.push(OrderPair("fontWeight".into(), None));
+    result.push(OrderPair("lineHeight".into(), None));
 
     Ok(result)
   }
@@ -660,14 +660,12 @@ impl Shorthands {
     Ok(result)
   }
   fn grid(value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
-    let mut result = vec![
-      OrderPair("grid".into(), value),
-      OrderPair("gridAutoRows".into(), None),
-      OrderPair("gridAutoColumns".into(), None),
-      OrderPair("gridAutoFlow".into(), None),
-    ];
+    let mut result = vec![OrderPair("grid".into(), value)];
 
     result.extend(Self::infallible(Shorthands::grid_template(None)));
+    result.push(OrderPair("gridAutoRows".into(), None));
+    result.push(OrderPair("gridAutoColumns".into(), None));
+    result.push(OrderPair("gridAutoFlow".into(), None));
 
     Ok(result)
   }
@@ -1013,8 +1011,8 @@ impl Shorthands {
   fn scroll_margin(value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("scrollMargin".into(), value)];
 
-    result.extend(Self::infallible(Shorthands::scroll_margin_inline(None)));
     result.extend(Self::infallible(Shorthands::scroll_margin_block(None)));
+    result.extend(Self::infallible(Shorthands::scroll_margin_inline(None)));
 
     Ok(result)
   }
@@ -1440,17 +1438,17 @@ impl Aliases {
   pub fn get(name: &str) -> Option<fn(Option<TRawValue>) -> Result<Vec<OrderPair>, String>> {
     match name {
       // @Deprecated
-      "borderHorizontal" => Shorthands::get("borderInline"),
+      "borderHorizontal" => Some(Shorthands::border_inline),
       // @Deprecated
-      "borderVertical" => Shorthands::get("borderBlock"),
+      "borderVertical" => Some(Shorthands::border_block),
       // @Deprecated
-      "borderBlockStart" => Shorthands::get("borderTop"),
+      "borderBlockStart" => Some(Shorthands::border_top),
       // @Deprecated
-      "borderEnd" => Shorthands::get("borderInlineEnd"),
+      "borderEnd" => Some(Shorthands::border_inline_end),
       // @Deprecated
-      "borderBlockEnd" => Shorthands::get("borderBottom"),
+      "borderBlockEnd" => Some(Shorthands::border_bottom),
       // @Deprecated
-      "borderStart" => Shorthands::get("borderInlineStart"),
+      "borderStart" => Some(Shorthands::border_inline_start),
 
       "blockSize" => Some(Aliases::height),
       "inlineSize" => Some(Aliases::width),
@@ -1459,12 +1457,12 @@ impl Aliases {
       "maxBlockSize" => Some(Aliases::max_height),
       "maxInlineSize" => Some(Aliases::max_width),
 
-      "borderHorizontalWidth" => Shorthands::get("borderInlineWidth"),
-      "borderHorizontalStyle" => Shorthands::get("borderInlineStyle"),
-      "borderHorizontalColor" => Shorthands::get("borderInlineColor"),
-      "borderVerticalWidth" => Shorthands::get("borderBlockWidth"),
-      "borderVerticalStyle" => Shorthands::get("borderBlockStyle"),
-      "borderVerticalColor" => Shorthands::get("borderBlockColor"),
+      "borderHorizontalWidth" => Some(Shorthands::border_inline_width),
+      "borderHorizontalStyle" => Some(Shorthands::border_inline_style),
+      "borderHorizontalColor" => Some(Shorthands::border_inline_color),
+      "borderVerticalWidth" => Some(Shorthands::border_block_width),
+      "borderVerticalStyle" => Some(Shorthands::border_block_style),
+      "borderVerticalColor" => Some(Shorthands::border_block_color),
 
       "borderBlockStartColor" => Some(Aliases::border_top_color),
       "borderBlockEndColor" => Some(Aliases::border_bottom_color),
@@ -1472,12 +1470,12 @@ impl Aliases {
       "borderBlockEndStyle" => Some(Aliases::border_bottom_style),
       "borderBlockStartWidth" => Some(Aliases::border_top_width),
       "borderBlockEndWidth" => Some(Aliases::border_bottom_width),
-      "borderStartColor" => Shorthands::get("borderInlineStartColor"),
-      "borderEndColor" => Shorthands::get("borderInlineEndColor"),
-      "borderStartStyle" => Shorthands::get("borderInlineStartStyle"),
-      "borderEndStyle" => Shorthands::get("borderInlineEndStyle"),
-      "borderStartWidth" => Shorthands::get("borderInlineStartWidth"),
-      "borderEndWidth" => Shorthands::get("borderInlineEndWidth"),
+      "borderStartColor" => Some(Shorthands::border_inline_start_color),
+      "borderEndColor" => Some(Shorthands::border_inline_end_color),
+      "borderStartStyle" => Some(Shorthands::border_inline_start_style),
+      "borderEndStyle" => Some(Shorthands::border_inline_end_style),
+      "borderStartWidth" => Some(Shorthands::border_inline_start_width),
+      "borderEndWidth" => Some(Shorthands::border_inline_end_width),
 
       "borderTopStartRadius" => Some(Aliases::border_start_start_radius),
       "borderTopEndRadius" => Some(Aliases::border_start_end_radius),
@@ -1487,34 +1485,34 @@ impl Aliases {
       "containIntrinsicBlockSize" => Some(Aliases::contain_intrinsic_height),
       "containIntrinsicInlineSize" => Some(Aliases::contain_intrinsic_width),
 
-      "gridGap" => Shorthands::get("gap"),
+      "gridGap" => Some(Shorthands::gap),
       "gridRowGap" => Some(Aliases::row_gap),
       "gridColumnGap" => Some(Aliases::column_gap),
 
       "marginBlockStart" => Some(Aliases::margin_top),
       "marginBlockEnd" => Some(Aliases::margin_bottom),
-      "marginStart" => Shorthands::get("marginInlineStart"),
-      "marginEnd" => Shorthands::get("marginInlineEnd"),
-      "marginHorizontal" => Shorthands::get("marginInline"),
-      "marginVertical" => Shorthands::get("marginBlock"),
+      "marginStart" => Some(Shorthands::margin_inline_start),
+      "marginEnd" => Some(Shorthands::margin_inline_end),
+      "marginHorizontal" => Some(Shorthands::margin_inline),
+      "marginVertical" => Some(Shorthands::margin_block),
 
       "overflowBlock" => Some(Aliases::overflow_y),
       "overflowInline" => Some(Aliases::overflow_x),
 
       "paddingBlockStart" => Some(Aliases::padding_top),
       "paddingBlockEnd" => Some(Aliases::padding_bottom),
-      "paddingStart" => Shorthands::get("paddingInlineStart"),
-      "paddingEnd" => Shorthands::get("paddingInlineEnd"),
-      "paddingHorizontal" => Shorthands::get("paddingInline"),
-      "paddingVertical" => Shorthands::get("paddingBlock"),
+      "paddingStart" => Some(Shorthands::padding_inline_start),
+      "paddingEnd" => Some(Shorthands::padding_inline_end),
+      "paddingHorizontal" => Some(Shorthands::padding_inline),
+      "paddingVertical" => Some(Shorthands::padding_block),
 
       "scrollMarginBlockStart" => Some(Aliases::scroll_margin_top),
       "scrollMarginBlockEnd" => Some(Aliases::scroll_margin_bottom),
 
       "insetBlockStart" => Some(Aliases::top),
       "insetBlockEnd" => Some(Aliases::bottom),
-      "start" => Shorthands::get("insetInlineStart"),
-      "end" => Shorthands::get("insetInlineEnd"),
+      "start" => Some(Shorthands::inset_inline_start),
+      "end" => Some(Shorthands::inset_inline_end),
       _ => None,
     }
   }
@@ -1528,5 +1526,186 @@ mod coverage_tests {
   #[should_panic(expected = "infallible shorthand returned Err")]
   fn infallible_panics_on_unexpected_error() {
     Shorthands::infallible(Err("boom".to_string()));
+  }
+}
+
+/// Where a nested expansion sits inside the one that spreads it.
+///
+/// The pairs a shorthand expands to are emitted in this order, and a style
+/// object's key order is that order: a shorthand emits its own class and a
+/// `null` for every longhand it subsumes, so the whole expansion is written down
+/// verbatim. Five shorthands here spread another shorthand's expansion into the
+/// middle of their own list, and each of those five had the spread appended
+/// instead — the same keys, in the wrong places, which is invisible to any test
+/// that only reads the CSS.
+///
+/// Each expectation below is the order the official compiler emits, read from a
+/// run over the same declaration rather than reasoned about. The remaining
+/// hundred-odd shorthands already agreed and are covered by the corpus.
+#[cfg(test)]
+mod nested_expansion_position_tests {
+  use super::Shorthands;
+
+  /// The property names a shorthand expands to, in emission order.
+  ///
+  /// The `Ok`/`Err` split goes through [`Shorthands::infallible`] rather than a
+  /// second copy of it here. That is the one place this crate decides what a
+  /// shorthand returning `Err` means, it already has its own test, and `all` --
+  /// which really does return `Err` -- reaches it, so the arm is not a formality.
+  fn expansion_of(name: &str) -> Vec<String> {
+    let Some(expand) = Shorthands::get(name) else {
+      panic!("{name} is not a shorthand");
+    };
+
+    Shorthands::infallible(expand(None))
+      .into_iter()
+      .map(|pair| pair.0.to_string())
+      .collect()
+  }
+
+  /// A name that is not a shorthand fails loudly rather than reading as one that
+  /// expands to nothing.
+  ///
+  /// The guard above is the only thing standing between a typo in an expectation
+  /// and a test that passes by comparing two empty lists.
+  #[test]
+  #[should_panic(expected = "notAShorthand is not a shorthand")]
+  fn expansion_of_refuses_a_name_that_is_not_a_shorthand() {
+    let _ = expansion_of("notAShorthand");
+  }
+
+  /// `all` is a registered shorthand that refuses its own expansion, which is
+  /// what makes the `Err` side of `infallible` reachable from here rather than a
+  /// shape of the shared function-pointer type.
+  #[test]
+  #[should_panic(expected = "infallible shorthand returned Err")]
+  fn expansion_of_a_shorthand_that_refuses_reaches_the_infallible_guard() {
+    let _ = expansion_of("all");
+  }
+
+  #[test]
+  fn animation_spreads_its_range_before_the_timeline() {
+    assert_eq!(
+      expansion_of("animation"),
+      [
+        "animation",
+        "animationComposition",
+        "animationName",
+        "animationDuration",
+        "animationTimingFunction",
+        "animationDelay",
+        "animationIterationCount",
+        "animationDirection",
+        "animationFillMode",
+        "animationPlayState",
+        "animationRange",
+        // End before start, which is the order upstream spells `animationRange`
+        // in and this compiler already matched.
+        "animationRangeEnd",
+        "animationRangeStart",
+        "animationTimeline",
+      ]
+    );
+  }
+
+  #[test]
+  fn background_spreads_its_position_between_origin_and_repeat() {
+    assert_eq!(
+      expansion_of("background"),
+      [
+        "background",
+        "backgroundAttachment",
+        "backgroundClip",
+        "backgroundColor",
+        "backgroundImage",
+        "backgroundOrigin",
+        "backgroundPosition",
+        "backgroundPositionX",
+        "backgroundPositionY",
+        "backgroundRepeat",
+        "backgroundSize",
+      ]
+    );
+  }
+
+  #[test]
+  fn font_spreads_its_variants_between_style_and_weight() {
+    assert_eq!(
+      expansion_of("font"),
+      [
+        "font",
+        "fontFamily",
+        "fontSize",
+        "fontStretch",
+        "fontStyle",
+        "fontVariant",
+        "fontVariantAlternates",
+        "fontVariantCaps",
+        "fontVariantEastAsian",
+        "fontVariantEmoji",
+        "fontVariantLigatures",
+        "fontVariantNumeric",
+        "fontVariantPosition",
+        "fontWeight",
+        "lineHeight",
+      ]
+    );
+  }
+
+  #[test]
+  fn grid_spreads_its_template_ahead_of_the_auto_axes() {
+    assert_eq!(
+      expansion_of("grid"),
+      [
+        "grid",
+        "gridTemplate",
+        "gridTemplateAreas",
+        "gridTemplateColumns",
+        "gridTemplateRows",
+        "gridAutoRows",
+        "gridAutoColumns",
+        "gridAutoFlow",
+      ]
+    );
+  }
+
+  /// The one whose two spreads were simply the wrong way round. `scrollPadding`
+  /// next door spells the same pair block-then-inline and always did, which is
+  /// what makes this a transposition rather than a rule.
+  #[test]
+  fn scroll_margin_spreads_block_before_inline() {
+    assert_eq!(
+      expansion_of("scrollMargin"),
+      [
+        "scrollMargin",
+        "scrollMarginBlock",
+        "scrollMarginTop",
+        "scrollMarginBottom",
+        "scrollMarginInline",
+        "scrollMarginInlineStart",
+        "scrollMarginInlineEnd",
+        "scrollMarginLeft",
+        "scrollMarginRight",
+      ]
+    );
+  }
+
+  /// The pair that says the transposition above is not the house style.
+  #[test]
+  fn scroll_padding_spreads_block_before_inline_too() {
+    assert_eq!(
+      expansion_of("scrollPadding"),
+      [
+        "scrollPadding",
+        "scrollPaddingBlock",
+        "scrollPaddingTop",
+        "scrollPaddingBottom",
+        "scrollPaddingInline",
+        "scrollPaddingInlineStart",
+        "scrollPaddingInlineEnd",
+        "scrollPaddingLeft",
+        "scrollPaddingRight",
+      ]
+    );
   }
 }

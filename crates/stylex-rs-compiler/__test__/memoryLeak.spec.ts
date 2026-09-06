@@ -1,18 +1,23 @@
-import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { expect, test } from 'vitest';
 
+import { runNodeScript } from './nodeScript';
+
 const LEAK_STRING = 'ObjectRef is not unref';
 
 const distEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist/index.js');
 
-function runNodeScript(script: string) {
-  const result = spawnSync(process.execPath, ['-e', script], {
-    encoding: 'utf8',
-    env: { ...process.env, NODE_ENV: 'production' },
-  });
+function runProductionScript(script: string) {
+  const result = runNodeScript(script, { env: { ...process.env, NODE_ENV: 'production' } });
+
+  // A child that never starts has no exit code. Name that cause, because an
+  // exit code of null on its own reads as a crash of the script.
+  if (result.error) {
+    throw new Error(`subprocess did not start: ${result.error.message}`);
+  }
+
   if (result.status !== 0) {
     throw new Error(
       `subprocess failed (exit ${result.status}):\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`
@@ -22,7 +27,7 @@ function runNodeScript(script: string) {
 }
 
 test('normalizeRsOptions does not emit napi leak warnings across many calls', () => {
-  const result = runNodeScript(`
+  const result = runProductionScript(`
     const { normalizeRsOptions } = require(${JSON.stringify(distEntry)});
     for (let i = 0; i < 100; i++) {
       normalizeRsOptions({
@@ -40,7 +45,7 @@ test('normalizeRsOptions does not emit napi leak warnings across many calls', ()
 });
 
 test('transform does not emit napi leak warnings across many calls', () => {
-  const result = runNodeScript(`
+  const result = runProductionScript(`
     const { transform, normalizeRsOptions } = require(${JSON.stringify(distEntry)});
     const opts = normalizeRsOptions({
       include: ['**/*.ts'],
@@ -58,7 +63,7 @@ test('transform does not emit napi leak warnings across many calls', () => {
 });
 
 test('shouldTransformFile does not emit napi leak warnings across many calls', () => {
-  const result = runNodeScript(`
+  const result = runProductionScript(`
     const { shouldTransformFile } = require(${JSON.stringify(distEntry)});
     const include = ['src/**/*.ts', 'packages/*/src/**/*.tsx'];
     const exclude = [/\\.test\\./, /node_modules/];
@@ -73,7 +78,7 @@ test('shouldTransformFile does not emit napi leak warnings across many calls', (
 });
 
 test('transform with debugFilePath function returning prefix does not leak', () => {
-  const result = runNodeScript(`
+  const result = runProductionScript(`
     const { transform, normalizeRsOptions } = require(${JSON.stringify(distEntry)});
     const opts = normalizeRsOptions({
       debugFilePath: (p) => 'custom-prefix/' + p,
@@ -89,7 +94,7 @@ test('transform with debugFilePath function returning prefix does not leak', () 
 });
 
 test('transform with env object does not emit napi leak warnings', () => {
-  const result = runNodeScript(`
+  const result = runProductionScript(`
     const { transform, normalizeRsOptions } = require(${JSON.stringify(distEntry)});
     const opts = normalizeRsOptions({});
     // Transform with env passed to native
@@ -108,7 +113,7 @@ test('transform with env object does not emit napi leak warnings', () => {
 });
 
 test('transform with stylex code does not emit napi leak warnings', () => {
-  const result = runNodeScript(`
+  const result = runProductionScript(`
     const { transform, normalizeRsOptions } = require(${JSON.stringify(distEntry)});
     const opts = normalizeRsOptions({
       treeshakeCompensation: true,
@@ -129,7 +134,7 @@ test('transform with stylex code does not emit napi leak warnings', () => {
 });
 
 test('normalizeRsOptions with various input shapes does not leak', () => {
-  const result = runNodeScript(`
+  const result = runProductionScript(`
     const { normalizeRsOptions } = require(${JSON.stringify(distEntry)});
     for (let i = 0; i < 100; i++) {
       normalizeRsOptions({});

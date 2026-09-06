@@ -99,3 +99,70 @@ stylex_test!(
     });
   "#
 );
+
+// --- The shapes a coerced token group has to survive ------------------------
+//
+// The conversions above are the plain positions. These pin the ones that
+// compose, because a token group crossing back unchanged is what every one of
+// them rests on, and a narrowing of that would show here first.
+
+// Wrapping the group over and over changes nothing: each `Object()` hands back
+// what it was given, so the member read at the end still resolves to its
+// `var(…)`. Measured against upstream, which folds it the same way.
+stylex_test!(
+  a_repeatedly_wrapped_token_group_still_reads_its_member,
+  |tr| stylex_transform(tr.comments.clone(), "src/components/Card.js"),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from '@design-system/tokens/src/colors.stylex';
+    export const styles = stylex.create({
+      root: { color: Object(Object(Object(colors))).primary },
+    });
+  "#
+);
+
+// A group and one of its members inside one array, so the join renders each
+// through its own `toString` rather than through the array's: the group answers
+// the variable-group hash and the member the `var(…)` it names.
+stylex_test!(
+  an_array_of_a_token_group_and_its_member_joins_both,
+  |tr| stylex_transform(tr.comments.clone(), "src/components/Card.js"),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from '@design-system/tokens/src/colors.stylex';
+    export const styles = stylex.create({
+      root: { color: String([colors, colors.primary]) },
+    });
+  "#
+);
+
+// Surplus arguments are ignored and a number conversion answers `NaN` rather
+// than refusing — both the language's answers, and both upstream's.
+stylex_test!(
+  a_coerced_token_group_reads_only_its_first_argument,
+  |tr| stylex_transform(tr.comments.clone(), "src/components/Card.js"),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from '@design-system/tokens/src/colors.stylex';
+    export const styles = stylex.create({
+      surplus: { color: String(colors, 1) },
+      notANumber: { color: String(Number(colors)) },
+    });
+  "#
+);
+
+// A group inside an array the conversion is applied to, which is the one shape
+// where the value the bridge cannot carry is nested rather than the argument
+// itself. The array's own `ToString` joins it, so the group still answers its
+// hash.
+stylex_test!(
+  a_token_group_nested_in_a_converted_array,
+  |tr| stylex_transform(tr.comments.clone(), "src/components/Card.js"),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from '@design-system/tokens/src/colors.stylex';
+    export const styles = stylex.create({
+      root: { color: String(Array(colors)) },
+    });
+  "#
+);

@@ -1,27 +1,23 @@
 #[cfg(test)]
 mod stylex_create_theme_nested {
   use indexmap::IndexMap;
+  use stylex_ast::ast::convertors::create_string_expr;
   use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
   use stylex_structures::stylex_options::StyleXOptions;
   use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 
-  use crate::shared::{
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue,
-    },
-    structures::{state_manager::StateManager, types::FlatCompiledStyles},
-    transformers::{
-      stylex_create_theme::stylex_create_theme,
-      stylex_create_theme_nested::stylex_create_theme_nested,
-      stylex_define_vars::stylex_define_vars, stylex_define_vars_nested::stylex_define_vars_nested,
-    },
-    utils::{
-      ast::convertors::create_string_expr,
-      core::stylex_nested_utils::{
-        UnflattenedCompiledStylesValue, convert_unflattened_object_to_ast,
-      },
-    },
+  use crate::{
+    shared::transformers::stylex_create_theme::stylex_create_theme,
+    shared::transformers::stylex_create_theme_nested::stylex_create_theme_nested,
+    shared::transformers::stylex_define_vars::stylex_define_vars,
+    shared::transformers::stylex_define_vars_nested::stylex_define_vars_nested,
+    shared::utils::core::stylex_nested_utils::UnflattenedCompiledStylesValue,
+    shared::utils::core::stylex_nested_utils::convert_unflattened_object_to_ast,
+  };
+  use stylex_state::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, state_manager::StateManager,
+    types::FlatCompiledStyles,
   };
 
   fn create_test_state_manager() -> StateManager {

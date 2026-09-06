@@ -1,47 +1,18 @@
 use std::fmt::Debug;
 
 use indexmap::IndexMap;
-use swc_core::ecma::ast::Expr;
 
-use crate::shared::utils::{
-  common::type_of, core::convert_style_to_class_name::convert_style_to_class_name,
-};
+use crate::shared::utils::core::convert_style_to_class_name::convert_style_to_class_name;
 use stylex_css::utils::{
   pre_rule::{sort_at_rules, sort_pseudos},
   pseudo::is_pseudo_selector,
 };
+use stylex_state::{state_manager::StateManager, types::ClassNameToOriginalPaths};
+use stylex_types::structures::style_key::ClassName;
 
-use super::{
-  null_pre_rule::NullPreRule,
-  pre_rule_set::PreRuleSet,
-  state_manager::StateManager,
-  types::{ClassName, ClassNameToOriginalPaths},
-};
-use stylex_structures::raw_value::TRawValue;
+use super::{null_pre_rule::NullPreRule, pre_rule_set::PreRuleSet};
+use stylex_structures::pre_rule_value::PreRuleValue;
 use stylex_types::structures::injectable_style::InjectableStyle;
-
-/// A style value on its way to becoming a CSS declaration:
-/// `string | number | Array<string | number>`.
-///
-/// `Raw` keeps the authored JS type, which decides whether a unit suffix is
-/// appended: `width: 1` compiles to `1px`, `width: '1'` to `1`.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) enum PreRuleValue {
-  Expr(Expr),
-  Raw(TRawValue),
-  Vec(Vec<TRawValue>),
-  Null,
-}
-
-impl PreRuleValue {
-  pub(crate) fn string(value: impl Into<String>) -> Self {
-    PreRuleValue::Raw(TRawValue::String(value.into()))
-  }
-
-  pub(crate) fn number(value: f64) -> Self {
-    PreRuleValue::Raw(TRawValue::Number(value))
-  }
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ComputedStyle(
@@ -57,7 +28,12 @@ pub(crate) enum CompiledResult {
 }
 
 impl CompiledResult {
-  pub(crate) fn _as_computed_styles(&self) -> Option<&Vec<ComputedStyle>> {
+  /// Gets the styles in this result. Gives `None` for a null result.
+  // Kept by ticket 31. No production code calls it, because the rest of the
+  // crate reads the enum with a match. The compiler warns without the
+  // attribute.
+  #[allow(dead_code)]
+  pub(crate) fn as_computed_styles(&self) -> Option<&Vec<ComputedStyle>> {
     match self {
       CompiledResult::ComputedStyles(computed_styles) => Some(computed_styles),
       _ => None,
@@ -66,11 +42,22 @@ impl CompiledResult {
 }
 
 pub(crate) trait PreRule: Debug {
+  // Load-bearing, measured: the only calls to `get_value` come from
+  // `PreRuleSet::get_value`, which is one of its own three implementations. The
+  // compiler reads that cycle as dead and warns without this line.
   #[allow(dead_code)]
   fn get_value(&self) -> Option<PreRuleValue>;
   fn compiled(&mut self, state: &mut StateManager) -> CompiledResult;
+  /// Whether `other` is the same rule.
+  ///
+  /// `other` is the [`PreRules`] enum and not a trait object, so an
+  /// implementation can read the fields of its own kind and answer `false` for
+  /// the other two -- the kind test the reference implementation spells as
+  /// `instanceof`.
+  // Load-bearing, measured: `equals` is reached only through `PreRules::equals`,
+  // which the same cycle makes unreachable to the lint.
   #[allow(dead_code)]
-  fn equals(&self, other: &dyn PreRule) -> bool;
+  fn equals(&self, other: &PreRules) -> bool;
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -78,6 +65,21 @@ pub(crate) enum PreRules {
   PreRuleSet(PreRuleSet),
   StylesPreRule(StylesPreRule),
   NullPreRule(NullPreRule),
+}
+
+impl PreRules {
+  /// [`PreRule::equals`], asked of whichever rule this variant holds.
+  // Load-bearing, measured: the one caller is `PreRuleSet::equals`, which is an
+  // implementation of the trait method this dispatches to. Neither end of the
+  // cycle has an outside caller, so the lint fires on both without the line.
+  #[allow(dead_code)]
+  pub(crate) fn equals(&self, other: &PreRules) -> bool {
+    match self {
+      PreRules::PreRuleSet(rule_set) => rule_set.equals(other),
+      PreRules::StylesPreRule(styles_pre_rule) => styles_pre_rule.equals(other),
+      PreRules::NullPreRule(null_pre_rule) => null_pre_rule.equals(other),
+    }
+  }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -121,6 +123,17 @@ impl StylesPreRule {
     sort_at_rules(&unsorted_at_rules)
   }
 
+  /// The `var(--…)` keys of a key path.
+  ///
+  /// Sorted here, which is a divergence and predates this file's current shape:
+  /// upstream's `get constRules()` returns the filtered path **unsorted**, and
+  /// only `convertStyleToClassName` sorts, for the hash. `generateCSSRule`
+  /// receives the unsorted list and nests the declaration in that order, so two
+  /// `var(--…)` keys written out of alphabetical order nest one way here and the
+  /// other way in Babel. The class name is unaffected — both sides re-sort the
+  /// combined list before hashing — so the emitted rule differs in nesting order
+  /// alone. Left as it is rather than changed alongside unrelated work; the sort
+  /// is also redundant with the one the caller does.
   fn get_const_rules(key_path: &Option<Vec<String>>) -> Vec<String> {
     let unsorted_const_rules = Self::select_key_path(key_path, |key| key.starts_with("var(--"));
 
@@ -138,19 +151,38 @@ impl StylesPreRule {
       key_path: key_path.unwrap_or_default(),
     }
   }
-  pub(crate) fn _get_property(&self) -> Option<&str> {
+  // The three functions below read the fields of a rule that is already built.
+  // Kept by ticket 31. No production code calls them, because the crate builds
+  // a rule and then reads it through the `PreRule` trait. The compiler warns
+  // without the attributes.
+  //
+  // Each name shows its field. The two associated functions above already use
+  // the names `get_pseudos` and `get_at_rules`. Those functions take a key
+  // path and select from it, which is a different task.
+
+  /// Gets the CSS property name of this rule.
+  #[allow(dead_code)]
+  pub(crate) fn property(&self) -> Option<&str> {
     Some(&self.property)
   }
-  pub(crate) fn _get_pseudos(&self) -> Option<Vec<String>> {
+
+  /// Gets the pseudo selectors that the key path gave to this rule.
+  #[allow(dead_code)]
+  pub(crate) fn pseudos(&self) -> Option<Vec<String>> {
     Some(self.pseudos.to_owned())
   }
-  pub(crate) fn _get_at_rules(&self) -> Option<Vec<String>> {
+
+  /// Gets the at-rules that the key path gave to this rule.
+  #[allow(dead_code)]
+  pub(crate) fn at_rules(&self) -> Option<Vec<String>> {
     Some(self.at_rules.to_owned())
   }
 }
 
-#[cfg_attr(coverage_nightly, coverage(off))]
 impl PreRule for StylesPreRule {
+  // Reached only through the trait object, which the transform builds and
+  // nothing else asks for a value from.
+  #[cfg_attr(coverage_nightly, coverage(off))]
   fn get_value(&self) -> Option<PreRuleValue> {
     Some(self.value.to_owned())
   }
@@ -178,7 +210,18 @@ impl PreRule for StylesPreRule {
     )])
   }
 
-  fn equals(&self, other: &dyn PreRule) -> bool {
-    type_of(other) == type_of(self)
+  /// The property, the value and the two sorted key-path slices. The key path
+  /// itself and the `var(--…)` rules are not compared, because both are read
+  /// out of the key path the other four already stand for.
+  fn equals(&self, other: &PreRules) -> bool {
+    match other {
+      PreRules::StylesPreRule(other) => {
+        self.property == other.property
+          && self.value == other.value
+          && self.pseudos == other.pseudos
+          && self.at_rules == other.at_rules
+      },
+      _ => false,
+    }
   }
 }

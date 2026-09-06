@@ -74,3 +74,126 @@ stylex_test!(
   }),
   INPUT_CODE
 );
+
+/// The reproduction from issue #1268, verbatim: a ladder of exclusive
+/// `min-width`/`max-width` breakpoints ending in a `max-width`-only rung, whose
+/// values are variables defined in a separate module.
+///
+/// Every rung is disjoint from the next, so the negation chain
+/// last-media-query-wins builds distributes into branches that all contradict.
+/// A contradiction is kept rather than dropped: it prints as `not all`, and the
+/// disjunction nesting around it stays in the key. The key text is what the
+/// class name hashes, so the wrapper is not cosmetic — two of the seven class
+/// names below depend on it.
+///
+/// The expected output is quoted from row `r01` of the ticket 02 divergence
+/// table, a recorded run of `@stylexjs/babel-plugin@0.19.0`.
+const LADDER_CODE: &str = r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from 'colors.stylex.js';
+    export const styles = stylex.create({
+      root: {
+        color: {
+          default: colors.base,
+          '@media (min-width: 1440px)': colors.xl,
+          '@media (min-width: 1200px) and (max-width: 1439px)': colors.lg,
+          '@media (min-width: 1024px) and (max-width: 1199px)': colors.md,
+          '@media (min-width: 768px) and (max-width: 1023px)': colors.sm,
+          '@media (min-width: 480px) and (max-width: 767px)': colors.xs,
+          '@media (max-width: 479px)': colors.xxs,
+        },
+      },
+    });
+  "#;
+
+// The same ladder with ordering turned off, which is the documented way out of
+// all of this: no rung is rewritten, so no contradictory branch is built and
+// no wrapper appears. The authored spelling is what gets hashed.
+//
+// Asserted over the reported ladder rather than a two-query input, because
+// opting out is only worth anything on the shape that would otherwise grow a
+// wrapper -- a small input cannot tell a working opt-out from a rewrite that
+// happened to be a no-op.
+stylex_test!(
+  a_disjoint_breakpoint_ladder_opted_out_hashes_the_authored_spelling,
+  |tr| theme_import_transform_with(tr.comments.clone(), |b| {
+    b.with_enable_media_query_order(false)
+  }),
+  LADDER_CODE
+);
+
+stylex_test!(
+  a_disjoint_breakpoint_ladder_keeps_its_contradictory_branches,
+  |tr| theme_import_transform(tr.comments.clone()),
+  LADDER_CODE
+);
+
+// Two entries of one conditional value map that canonicalize to the same query
+// text, which retained contradictory branches are what make possible.
+//
+// The rewritten keys are written into a map rather than appended to a list, so
+// the second entry to reach a key replaces the first entry's value and keeps
+// that entry's position. One authored declaration is therefore absent from the
+// output entirely — `red` here — and the rule count is four rather than five.
+// That loss is faithful rather than incidental, and no diagnostic accompanies
+// it, because the official compiler prints none.
+//
+// The ladder is chosen so the collision straddles a third key: `min-width:
+// 200px` and `min-width: 300px` both contradict the trailing
+// `min-width: 100px` and collapse to `not all`, while the `min-height` key
+// between them survives on its own. That is what makes the surviving position
+// observable — a collision between neighbours would land in the same place
+// either way.
+//
+// Expectations are quoted from a run of `@stylexjs/babel-plugin@0.19.0`.
+stylex_test!(
+  colliding_rewritten_keys_drop_a_declaration,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: {
+        color: {
+          default: 'black',
+          '@media (min-width: 200px)': 'red',
+          '@media (min-height: 100px)': 'green',
+          '@media (min-width: 300px)': 'blue',
+          '@media (min-width: 100px)': 'purple',
+        },
+      },
+    });
+  "#
+);
+
+// A rewritten media key beside other at-rules, and beside plain properties.
+//
+// At-rule sorting compares the final key text, and a rewritten key is much
+// longer than the one an author wrote -- long enough that it could sort to a
+// different place among its siblings than the authored spelling did. It does
+// not. `@media not all` here is what `(min-width: 200px)` becomes once the
+// later `(min-width: 100px)` is negated out of it, which is about as far from
+// the authored text as a rewrite gets, and it still lands where it was.
+//
+// Plain properties on both sides pin the other half: a value map holding media
+// keys does not migrate past the declarations around it.
+//
+// Quoted from a run of `@stylexjs/babel-plugin@0.19.0`, whose emitted order is
+// identical rule for rule.
+stylex_test!(
+  a_rewritten_media_key_sorts_where_the_authored_one_did,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: {
+        padding: '10px',
+        color: {
+          default: 'black',
+          '@supports (display: grid)': 'green',
+          '@media (min-width: 200px)': 'red',
+          '@container (min-width: 400px)': 'teal',
+          '@media (min-width: 100px)': 'blue',
+        },
+        margin: '2px',
+      },
+    });
+  "#
+);

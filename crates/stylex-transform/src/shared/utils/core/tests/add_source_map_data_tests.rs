@@ -5,7 +5,7 @@ use swc_core::ecma::ast::{Expr, IdentName, KeyValueProp, Lit, PropName, Str};
 use swc_sourcemap::SourceMapBuilder;
 
 use super::original_position_from_input_source_map;
-use crate::shared::structures::state_manager::StateManager;
+use stylex_state::state_manager::StateManager;
 
 const INPUT_CODE: &str = "\
 const styles = create({

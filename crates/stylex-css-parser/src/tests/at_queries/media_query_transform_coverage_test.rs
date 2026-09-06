@@ -55,40 +55,40 @@ fn num_kv(key: f64, value: &str) -> KeyValueProp {
 }
 
 // ---------------------------------------------------------------------------
-// key_value_to_str — (PropName::Ident) and (_ arm)
+// key_value_str — (PropName::Ident) and (_ arm)
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
-mod key_value_to_str_coverage {
+mod key_value_str_coverage {
   use super::*;
 
-  /// Covers PropName::Ident branch of key_value_to_str.
+  /// Covers PropName::Ident branch of key_value_str.
   #[test]
   fn ident_key_returns_sym_string() {
     let kv = ident_kv("gridColumn", "1 / 2");
-    let result = key_value_to_str(&kv);
-    assert_eq!(result, "gridColumn");
+    assert_eq!(key_value_str(&kv), Some("gridColumn"));
   }
 
-  /// Covers _ arm of key_value_to_str (PropName::Num, which is neither Str nor Ident).
+  /// Covers the `_` arm of key_value_str (PropName::Num, which is neither Str
+  /// nor Ident). `None` rather than the empty string it used to stand for: the
+  /// caller maps both onto a positional key, so nothing downstream can tell the
+  /// two apart, and a name this pass cannot read now says so in its type.
   #[test]
-  fn numeric_key_returns_empty_string() {
+  fn numeric_key_returns_no_name() {
     let kv = num_kv(42.0, "value");
-    let result = key_value_to_str(&kv);
-    assert_eq!(result, "");
+    assert_eq!(key_value_str(&kv), None);
   }
 
   /// Covers the existing Str arm — ensures Str still works after the coverage tests run.
   #[test]
   fn str_key_returns_value_string() {
     let kv = str_kv("color", "red");
-    let result = key_value_to_str(&kv);
-    assert_eq!(result, "color");
+    assert_eq!(key_value_str(&kv), Some("color"));
   }
 }
 
 // ---------------------------------------------------------------------------
-// dfs_process_queries_with_depth
+// dfs_process_queries
 // (ObjectLit with non-KeyValue prop, hitting else of let-chain condition)
 // ---------------------------------------------------------------------------
 
@@ -97,7 +97,7 @@ mod dfs_coverage {
   use super::*;
 
   /// Covers Expr::Array arm: when a top-level prop's value is an Array expression,
-  /// dfs_process_queries_with_depth passes it through unchanged.
+  /// dfs_process_queries passes it through unchanged.
   #[test]
   fn array_valued_prop_passes_through_unchanged() {
     let array_expr = Expr::Array(ArrayLit {
@@ -114,7 +114,7 @@ mod dfs_coverage {
       value: Box::new(array_expr),
     };
 
-    // Call last_media_query_wins_transform which delegates to dfs_process_queries_with_depth
+    // Call last_media_query_wins_transform which delegates to dfs_process_queries
     let result = last_media_query_wins_transform(&[prop]);
 
     assert_eq!(result.len(), 1);
@@ -388,6 +388,45 @@ mod ident_key_integration {
       assert_eq!(inner.props.len(), 2);
     } else {
       panic!("Expected Object value");
+    }
+  }
+
+  /// Two numeric keys are two properties, even though neither has a name the
+  /// renderer can spell.
+  ///
+  /// The rewritten keys live in a map now, so a name that comes back empty
+  /// needs a key of its own — sharing one would silently merge the pair, which
+  /// is what a list never did and what a JavaScript object does not do either.
+  #[test]
+  fn two_unrenderable_keys_stay_two_properties() {
+    let inner_obj = ObjectLit {
+      span: DUMMY_SP,
+      props: vec![
+        PropOrSpread::Prop(Box::new(Prop::KeyValue(str_kv("default", "1 / 2")))),
+        PropOrSpread::Prop(Box::new(Prop::KeyValue(num_kv(0.0, "zero")))),
+        PropOrSpread::Prop(Box::new(Prop::KeyValue(num_kv(1.0, "one")))),
+        // A media key, so the rewrite runs at all rather than returning early.
+        PropOrSpread::Prop(Box::new(Prop::KeyValue(str_kv(
+          "@media (min-width: 100px)",
+          "1 / 3",
+        )))),
+      ],
+    };
+
+    let outer_prop = KeyValueProp {
+      key: PropName::Str(Str {
+        span: DUMMY_SP,
+        value: Wtf8Atom::from("gridColumn"),
+        raw: None,
+      }),
+      value: Box::new(Expr::Object(inner_obj)),
+    };
+
+    let result = last_media_query_wins_transform(&[outer_prop]);
+
+    match &*result[0].value {
+      Expr::Object(inner) => assert_eq!(inner.props.len(), 4),
+      other => panic!("Expected Object value, got {other:?}"),
     }
   }
 }

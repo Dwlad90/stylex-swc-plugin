@@ -3,25 +3,22 @@ mod stylex_define_vars {
   use std::rc::Rc;
 
   use indexmap::IndexMap;
+  use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::{Expr, PropOrSpread};
 
-  use crate::shared::{
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue,
-    },
-    structures::{
-      functions::FunctionType,
-      state_manager::StateManager,
-      types::{FlatCompiledStyles, InjectableStylesMap},
-    },
-    transformers::{stylex_define_vars::stylex_define_vars, stylex_types::get_types_fn},
-    utils::ast::convertors::create_string_expr,
+  use crate::{
+    shared::transformers::stylex_define_vars::stylex_define_vars,
+    shared::transformers::stylex_types::get_types_fn,
   };
   use stylex_ast::ast::factories::{
     create_key_value_prop, create_nested_object_prop, create_object_expression,
   };
   use stylex_enums::value_with_default::ValueWithDefault;
+  use stylex_state::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, functions::FunctionType,
+    state_manager::StateManager, types::FlatCompiledStyles, types::InjectableStylesMap,
+  };
   use stylex_structures::{base_css_type::BaseCSSType, stylex_state_options::StyleXStateOptions};
   use stylex_types::structures::injectable_style::InjectableStyle;
   use stylex_utils::hash::create_hash;
@@ -145,10 +142,10 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      ..StateManager::default()
-    });
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default(),
+    ));
 
     let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -262,10 +259,10 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      ..StateManager::default()
-    });
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default(),
+    ));
 
     let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -361,10 +358,10 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      ..StateManager::default()
-    });
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default(),
+    ));
 
     let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -507,13 +504,12 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      options: StyleXStateOptions::default()
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default()
         .with_debug(true)
         .with_enable_debug_class_names(true),
-      ..StateManager::default()
-    });
+    ));
 
     let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -659,13 +655,12 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      options: StyleXStateOptions::default()
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default()
         .with_debug(false)
         .with_enable_debug_class_names(false),
-      ..StateManager::default()
-    });
+    ));
 
     let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -879,15 +874,10 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let state = Box::<StateManager>::default();
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      options: state
-        .options
-        .clone()
-        .with_class_name_prefix(class_name_prefix),
-      ..*state
-    });
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default().with_class_name_prefix(class_name_prefix),
+    ));
 
     let (_, css_output) = stylex_define_vars(&default_vars, &mut state);
 
@@ -1122,15 +1112,10 @@ mod stylex_define_vars {
       ),
     ]);
 
-    let state = Box::<StateManager>::default();
-    let mut state = Box::new(StateManager {
-      export_id: Some(export_id.to_string()),
-      options: state
-        .options
-        .clone()
-        .with_class_name_prefix(class_name_prefix),
-      ..*state
-    });
+    let mut state = Box::new(StateManager::for_test(
+      Some(export_id),
+      StyleXStateOptions::default().with_class_name_prefix(class_name_prefix),
+    ));
 
     let (_, css_output) = stylex_define_vars(&default_vars, &mut state);
 

@@ -10,11 +10,6 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    structures::{
-      functions::{FunctionConfigType, FunctionMap},
-      state_manager::ImportKind,
-      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-    },
     transformers::{
       stylex_create_theme::stylex_create_theme, stylex_keyframes::get_keyframes_fn,
       stylex_position_try::get_position_try_fn, stylex_types::get_types_fn,
@@ -24,18 +19,23 @@ use crate::{
         dev_class_name::{convert_theme_to_dev_styles, convert_theme_to_test_styles},
         js_to_ast::{NestedStringObject, convert_object_to_ast},
       },
-      js::evaluate::evaluate,
-      log::build_code_frame_error::build_code_frame_error,
       validators::{
         is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
       },
     },
   },
-  transform::stylex::visitor_utils::apply_unstable_conditional,
+  transform::stylex::visitor_utils::{apply_unstable_conditional, insert_stylex_identifier_entry},
 };
 use stylex_constants::constants::{
   api_names::{STYLEX_CREATE_THEME, STYLEX_KEYFRAMES, STYLEX_TYPES},
   messages::{non_static_value, non_style_object},
+};
+use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_evaluator::evaluate::evaluate;
+use stylex_state::{
+  functions::{FunctionConfigType, FunctionMap},
+  state_manager::ImportKind,
+  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 
 impl<C> StyleXTransform<C>
@@ -105,13 +105,12 @@ where
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
 
-        let identifier = identifiers
-          .entry(name.get_import_str().into())
-          .or_insert_with(|| Box::new(FunctionConfigType::Map(FxHashMap::default())));
-
-        if let Some(identifier_map) = identifier.as_map_mut() {
-          identifier_map.insert(STYLEX_TYPES.into(), types_fn.clone());
-        }
+        insert_stylex_identifier_entry(
+          &mut identifiers,
+          name,
+          STYLEX_TYPES.into(),
+          FunctionConfigType::Regular(types_fn.clone()),
+        );
       }
 
       apply_unstable_conditional(&self.state, &mut identifiers, &mut member_expressions);

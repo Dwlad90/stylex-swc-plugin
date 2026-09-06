@@ -205,3 +205,68 @@ stylex_test!(
     });
   "#
 );
+
+// The shorthand expansion path echoes a numeric value from the source rather
+// than reprinting it, and this is the seam where that reaches a stylesheet.
+// Reprinting respelled everything the authored spelling and the shortest
+// round-trip spelling disagree on, and each respelling was a different class
+// name: `1E2px` became `100px`, `1.50px` became `1.5px`, `1e21px` became
+// twenty-two digits, and `-0px` became `+-0px`, which is not a CSS value.
+//
+// Confirmed against `@stylexjs/babel-plugin@0.19.0` run over the same source
+// with the same `styleResolution` — it emits these values and these class
+// names.
+//
+// Two of the rows below cannot show the echo on their own, and are here for the
+// case either side of them: `stylex-css`'s `normalizers::leading_zero` re-spells
+// through `to_js_string`, which strips the leading zero and drops a negative
+// zero's sign in one pass, so `0.5px` and `000.5px` both arrive as `.5px`, and
+// `-0px` as `0px`. That last one is still worth pinning — it is where `+-0px` used to
+// appear.
+stylex_test!(
+  legacy_expanded_shorthands_echo_the_authored_number,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_style_resolution(StyleResolution::LegacyExpandShorthands)
+  }),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      spellings: { margin: '1E2px 1.50px' },
+      negativeZero: { padding: '-0px 1e21px' },
+      atTheDoubleLimit: { margin: '1.7976931348623157e308px' },
+      authoredSigns: { padding: '+1px +2% 0.5px 000.5px' },
+      fullPrecision: { margin: '1.2345678901234567px 7%' },
+    });
+  "#
+);
+
+// The four legacy radius spellings resolve to the logical properties, which is
+// the direction the reference compiler resolves them and the direction
+// `borderRadius` next door always expanded to.
+//
+// The constants test asserts the mapping; this asserts the stylesheet, and the
+// difference is the whole reason it exists. Resolving an alias to itself emitted
+// `border-top-start-radius`, which is not a CSS property: every browser drops
+// the declaration, so the corner stayed square and nothing reported a fault.
+// Only a fixture that carries the emitted rule can see that.
+//
+// `borderRadius` is included so the two paths are read side by side — the bug
+// was that they disagreed, and a reader should be able to see them agree.
+stylex_test!(
+  legacy_radius_aliases_resolve_to_the_logical_properties,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_style_resolution(StyleResolution::LegacyExpandShorthands)
+  }),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      corners: {
+        borderTopStartRadius: '4px',
+        borderTopEndRadius: '5px',
+        borderBottomStartRadius: '6px',
+        borderBottomEndRadius: '7px',
+      },
+      shorthand: { borderRadius: '8px' },
+    });
+  "#
+);

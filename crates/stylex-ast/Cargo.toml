@@ -9,11 +9,13 @@ version.workspace = true
 
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 doctest = false
 
 [dependencies]
 anyhow.workspace = true
+indexmap.workspace = true
+rustc-hash.workspace = true
 swc_core = { workspace = true, features = [
   "common",
   "ecma_codegen",

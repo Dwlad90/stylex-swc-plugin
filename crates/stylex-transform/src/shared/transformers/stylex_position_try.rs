@@ -1,29 +1,26 @@
 use std::rc::Rc;
 
+use stylex_ast::ast::convertors::convert_lit_to_string;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
+use crate::shared::transformers::named_rule::fold_to_rule_name;
 use crate::shared::{
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
-  },
-  structures::{
-    functions::{FunctionConfig, FunctionType},
-    state_manager::StateManager,
-    types::FlatCompiledStyles,
-  },
-  utils::{
-    ast::convertors::{convert_lit_to_string, create_string_expr},
-    common::downcast_style_options_to_state_manager,
-    object::{Pipe, obj_map, obj_map_keys_and_transform_values, preprocess_object_properties},
-  },
+  enums::data_structures::obj_map_type::ObjMapType,
+  utils::object::{Pipe, obj_map, obj_map_keys_and_transform_values, preprocess_object_properties},
 };
 use stylex_ast::ast::factories::{create_object_lit, create_string_key_value_prop};
 use stylex_constants::constants::messages::{
   THEME_VAR_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
 };
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue,
+  flat_compiled_styles_value::FlatCompiledStylesValue,
+  functions::{FunctionConfig, FunctionType},
+  state_manager::StateManager,
+  types::FlatCompiledStyles,
+};
 use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
@@ -128,20 +125,9 @@ pub(crate) fn stylex_position_try(
 
 pub(crate) fn get_position_try_fn() -> FunctionConfig {
   FunctionConfig {
-    fn_ptr: FunctionType::StylexExprFn(
-      |expr: Expr, local_state: &mut dyn stylex_types::traits::StyleOptions| -> Expr {
-        let state = downcast_style_options_to_state_manager(local_state);
-
-        let (position_try_name, injected_style) =
-          stylex_position_try(&EvaluateResultValue::Expr(expr), state);
-
-        state
-          .other_injected_css_rules
-          .insert(position_try_name.clone().into(), Rc::new(injected_style));
-
-        create_string_expr(position_try_name.as_str())
-      },
-    ),
+    fn_ptr: FunctionType::StylexExprFn(|expr, state| {
+      fold_to_rule_name(expr, state, stylex_position_try)
+    }),
     takes_path: false,
   }
 }

@@ -3,7 +3,8 @@ use stylex_ast::ast::convertors::normalize_expr;
 use stylex_constants::constants::{
   api_names::STYLEX_DEFINE_VARS,
   messages::{
-    cyclic_define_vars_reference, invalid_define_vars_function_value, non_static_value,
+    MISSING_DEFAULT_VALUE_UNNAMED, cyclic_define_vars_reference,
+    invalid_define_vars_function_value, missing_default_value, non_static_value,
     unknown_define_vars_reference,
   },
 };
@@ -12,21 +13,22 @@ use swc_core::{
   atoms::Atom,
   ecma::{
     ast::{
-      ArrowExpr, BlockStmtOrExpr, CallExpr, Expr, KeyValueProp, Lit, MemberExpr, MemberProp,
+      ArrowExpr, ArrowFunctionBody, CallExpr, Expr, KeyValueProp, Lit, MemberExpr, MemberProp,
       ObjectLit, Pat, Prop, PropOrSpread,
     },
     visit::{Visit, VisitWith},
   },
 };
 
-use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{functions::FunctionMap, state_manager::StateManager},
-  utils::{
-    ast::helpers::{namespace_name_from_prop_key, prop_as_key_value, prop_contains_arrow},
-    js::evaluate::evaluate,
-    log::build_code_frame_error::build_code_frame_error,
-  },
+use stylex_ast::ast::keys::{namespace_name_from_prop_key, prop_as_key_value};
+
+use crate::shared::utils::{
+  ast::helpers::prop_contains_arrow, core::define_vars_utils::any_level_needs_a_default,
+};
+use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_evaluator::evaluate::evaluate;
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
 };
 
 /// Walks the `defineVars` object once and collects:
@@ -76,7 +78,7 @@ pub(super) fn collect_keys_and_dependencies(
         stylex_panic!("{}", invalid_define_vars_function_value());
       }
       // Validate: expression body only (no block statements).
-      if let BlockStmtOrExpr::BlockStmt(_) = arrow.body.as_ref() {
+      if let ArrowFunctionBody::FunctionBody(_) = arrow.body.as_ref() {
         stylex_panic!("{}", invalid_define_vars_function_value());
       }
       arrow_props.push((key, arrow));
@@ -84,7 +86,7 @@ pub(super) fn collect_keys_and_dependencies(
   }
 
   for (key, arrow) in arrow_props {
-    let BlockStmtOrExpr::Expr(body_expr) = arrow.body.as_ref() else {
+    let ArrowFunctionBody::Expr(body_expr) = arrow.body.as_ref() else {
       continue; // Already validated above.
     };
 
@@ -248,8 +250,8 @@ pub(super) fn normalize_define_vars_functions(
     let new_value_expr: Expr = match kv.value.as_ref() {
       Expr::Arrow(arrow) if arrow.params.is_empty() => {
         let body_expr = match arrow.body.as_ref() {
-          BlockStmtOrExpr::Expr(e) => e.as_ref(),
-          BlockStmtOrExpr::BlockStmt(_) => {
+          ArrowFunctionBody::Expr(e) => e.as_ref(),
+          ArrowFunctionBody::FunctionBody(_) => {
             stylex_panic!("{}", invalid_define_vars_function_value());
           },
         };
@@ -281,6 +283,24 @@ pub(super) fn normalize_define_vars_functions(
         stylex_panic!("{}", invalid_define_vars_function_value());
       },
       other => {
+        // An object with no `default` key is refused for the shape it is,
+        // before anything looks at what it holds -- the order the reference
+        // implementation checks in, and the one that decides which sentence an
+        // author reads. Looking at the values first answered a folded function
+        // map, which materializes as `{ fn: … }`, with a sentence about
+        // zero-argument functions where they wrote a name.
+        if any_level_needs_a_default(other) {
+          // A key with no name to read is refused all the same, on the sentence
+          // that names no variable -- which is the one the reference
+          // implementation's second reader of this rule gives. Falling through
+          // to the value check instead would put the shape back behind the
+          // contents for exactly the keys nothing can name.
+          match namespace_name_from_prop_key(&kv.key) {
+            Some(key) => stylex_panic!("{}", missing_default_value(&key)),
+            None => stylex_panic!("{}", MISSING_DEFAULT_VALUE_UNNAMED),
+          }
+        }
+
         // Reject nested arrows that appear inside non-arrow top-level values.
         assert_no_nested_arrows(other);
         other.clone()

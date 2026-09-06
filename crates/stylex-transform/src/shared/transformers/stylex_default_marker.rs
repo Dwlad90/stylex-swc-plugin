@@ -2,11 +2,9 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 
-use crate::shared::{
-  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  utils::core::js_to_ast::NestedStringObject,
-};
+use crate::shared::utils::core::js_to_ast::NestedStringObject;
 use stylex_constants::constants::common::COMPILED_KEY;
+use stylex_state::flat_compiled_styles_value::FlatCompiledStylesValue;
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 
 /// Creates a default marker object that can be used with stylex.props()

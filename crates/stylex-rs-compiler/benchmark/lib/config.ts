@@ -9,9 +9,22 @@
 import type { BenchOptions } from 'tinybench';
 
 import type { StyleXOptions } from '../../dist/index.js';
+import type { FixtureDescriptor } from './types.js';
 
 export const DEFAULT_PAIRED_TIME_BUDGET_MS = 300;
 
+/**
+ * The shared, production-shaped options every fixture is measured under
+ * unless it says otherwise.
+ *
+ * `dev: false` stays the default here rather than becoming a variant of this
+ * function. A `dev` build costs 3-4x a production one on the same file, so
+ * flipping it here would move every trend series in the repo onto a shape
+ * nobody had been watching, and the two cannot be compared against each other
+ * afterwards -- see `guidelines/PERFORMANCE.md`. A fixture that wants the
+ * `dev` shape asks for it with `"dev": true` in `fixtures.v1.json`, arriving
+ * here through `fixtureStylexOptions`.
+ */
 export function createStylexOptions(packageDir: string): StyleXOptions {
   return {
     dev: false,
@@ -20,6 +33,34 @@ export function createStylexOptions(packageDir: string): StyleXOptions {
       type: 'haste',
       rootDir: packageDir,
     },
+  };
+}
+
+/**
+ * `options` as one fixture is measured under, with whatever the fixture itself
+ * declares applied over them.
+ *
+ * Used by the runner for both the sanity check and the timed run, so a
+ * fixture cannot be validated under one configuration and timed under
+ * another.
+ *
+ * A fixture's `options` map carries every other condition it asks for — the
+ * development and compatibility features a production build does not pay for.
+ * Applied over `dev` so one fixture's shape is read in one place.
+ */
+export function fixtureStylexOptions(
+  fixture: Pick<FixtureDescriptor, 'dev' | 'options'>,
+  options: StyleXOptions
+): StyleXOptions {
+  if (fixture.dev === undefined && fixture.options === undefined) return options;
+
+  // `options` last, so a fixture that names `dev` in both places is measured
+  // under the one it spelled out in its option map. The two cannot disagree
+  // silently: `fixture-manifest.test.ts` asserts no entry does that.
+  return {
+    ...options,
+    ...(fixture.dev === undefined ? {} : { dev: fixture.dev }),
+    ...fixture.options,
   };
 }
 

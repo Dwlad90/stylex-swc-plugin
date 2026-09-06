@@ -11,6 +11,7 @@ use stylex_constants::constants::{
   },
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_utils::identifier::gen_file_based_identifier;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -19,31 +20,30 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    structures::{
-      functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-      state_manager::ImportKind,
-      theme_ref::ThemeRef,
-      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-    },
     transformers::{
       stylex_define_vars::stylex_define_vars, stylex_keyframes::get_keyframes_fn,
       stylex_position_try::get_position_try_fn, stylex_types::get_types_fn,
     },
     utils::{
-      common::gen_file_based_identifier,
       core::js_to_ast::{NestedStringObject, convert_object_to_ast},
-      js::evaluate::evaluate,
-      log::build_code_frame_error::build_code_frame_error,
       validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
     },
   },
-  transform::stylex::visitor_utils::apply_unstable_conditional,
+  transform::stylex::visitor_utils::{apply_unstable_conditional, insert_stylex_identifier_entry},
+};
+use stylex_evaluator::evaluate::evaluate;
+use stylex_state::{
+  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+  state_manager::ImportKind,
+  theme_ref::ThemeRef,
+  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 use stylex_structures::top_level_expression::TopLevelExpression;
 
 use self::helpers::{
   assert_no_define_vars_cycles, collect_keys_and_dependencies, normalize_define_vars_functions,
 };
+use stylex_diagnostics::code_frame::build_code_frame_error;
 
 impl<C> StyleXTransform<C>
 where
@@ -113,13 +113,12 @@ where
           Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
         );
 
-        let identifier = identifiers
-          .entry(name.get_import_str().into())
-          .or_insert_with(|| Box::new(FunctionConfigType::Map(FxHashMap::default())));
-
-        if let Some(identifier_map) = identifier.as_map_mut() {
-          identifier_map.insert(STYLEX_TYPES.into(), types_fn.clone());
-        }
+        insert_stylex_identifier_entry(
+          &mut identifiers,
+          name,
+          STYLEX_TYPES.into(),
+          FunctionConfigType::Regular(types_fn.clone()),
+        );
       }
 
       apply_unstable_conditional(&self.state, &mut identifiers, &mut member_expressions);

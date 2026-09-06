@@ -1,5 +1,5 @@
 /**
- * A minimal scanner for Rust string literals.
+ * A minimal scanner for the parts of a Rust source that are not code.
  *
  * The corpus harvester reads CSS values out of Rust test sources. Doing that
  * with a bare regex over the file text goes wrong immediately: the tests use
@@ -8,10 +8,32 @@
  * literals are scanned properly, escapes are decoded for cooked strings, and
  * raw strings are taken verbatim.
  *
- * This is not a Rust parser. It skips line and block comments and character
- * literals, which is enough to keep it from mistaking a comment for code, and
- * it does not need to understand anything else.
+ * The walk must step over comments and character literals to find the string
+ * literals at all, so it reports where they are as well. Everything the
+ * harvester then does over brackets needs that: a `matches('(')` counts a
+ * parenthesis that closes nothing, and a `calc(` written in prose leaves one
+ * open for the rest of the file.
+ *
+ * This is not a Rust parser, and it does not need to be.
  */
+
+/** Half-open offsets of a run of text in a source file. */
+export interface SourceSpan {
+  start: number;
+  end: number;
+}
+
+/** What one walk of a Rust source finds. */
+export interface RustText {
+  /** Every string literal, in source order. */
+  literals: RustLiteral[];
+  /**
+   * Every run that is not code, in source order and never overlapping: the
+   * string literals above, and the comments and character literals between
+   * them. This is what the mask blanks.
+   */
+  nonCode: SourceSpan[];
+}
 
 export interface RustLiteral {
   /** The decoded string value. */
@@ -86,9 +108,14 @@ function decodeEscapes(body: string): string {
   return out;
 }
 
-/** Every string literal in a Rust source file, in source order. */
-export function scanRustLiterals(source: string): RustLiteral[] {
+/** Scan a Rust source for its string literals and its non-code runs. */
+export function scanRustText(source: string): RustText {
   const literals: RustLiteral[] = [];
+  const nonCode: SourceSpan[] = [];
+  // Called for each run in source order, so the list needs no sorting.
+  const opaque = (start: number, end: number): void => {
+    nonCode.push({ start, end: Math.min(end, source.length) });
+  };
   const lineStarts = [0];
   for (let i = 0; i < source.length; i++) {
     if (source[i] === '\n') lineStarts.push(i + 1);
@@ -110,11 +137,14 @@ export function scanRustLiterals(source: string): RustLiteral[] {
 
     if (char === '/' && source[i + 1] === '/') {
       const nl = source.indexOf('\n', i);
+      // The newline itself stays code, so a masked comment still ends its line.
+      opaque(i, nl === -1 ? source.length : nl);
       i = nl === -1 ? source.length : nl + 1;
       continue;
     }
 
     if (char === '/' && source[i + 1] === '*') {
+      const start = i;
       let depth = 1;
       i += 2;
       while (i < source.length && depth > 0) {
@@ -126,6 +156,7 @@ export function scanRustLiterals(source: string): RustLiteral[] {
           i += 2;
         } else i++;
       }
+      opaque(start, i);
       continue;
     }
 
@@ -145,6 +176,7 @@ export function scanRustLiterals(source: string): RustLiteral[] {
             line: lineOf(i),
             raw: true,
           });
+          opaque(i, close + terminator.length);
           i = close + terminator.length;
           continue;
         }
@@ -170,27 +202,36 @@ export function scanRustLiterals(source: string): RustLiteral[] {
         line: lineOf(i),
         raw: false,
       });
+      opaque(i, j + 1);
       i = j + 1;
       continue;
     }
 
-    // A char literal such as `'"'` would otherwise open a phantom string.
-    if (char === "'" && source[i + 2] === "'") {
-      i += 3;
-      continue;
-    }
+    // A char literal such as `'"'` would otherwise open a phantom string. A
+    // lifetime — `&'static str` — is an apostrophe that opens nothing, and it
+    // matches neither form below.
+    //
+    // The escaped form is tested first because it is the narrower of the two:
+    // `'\\''` spells an apostrophe, and the plain form would read the escaped
+    // quote as the closing one and leave the real one behind as code.
     if (char === "'" && source[i + 1] === '\\') {
-      const close = source.indexOf("'", i + 2);
+      const close = source.indexOf("'", i + 3);
       if (close !== -1) {
+        opaque(i, close + 1);
         i = close + 1;
         continue;
       }
+    }
+    if (char === "'" && source[i + 2] === "'") {
+      opaque(i, i + 3);
+      i += 3;
+      continue;
     }
 
     i++;
   }
 
-  return literals;
+  return { literals, nonCode };
 }
 
 function isIdentChar(char: string | undefined): boolean {

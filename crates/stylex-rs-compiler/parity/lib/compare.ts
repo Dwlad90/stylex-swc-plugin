@@ -1,5 +1,5 @@
 /**
- * Runs one CSS declaration through both compilers and decides a verdict.
+ * Runs one corpus subject through both compilers and decides a verdict.
  *
  * Both compilers see the same module text and the same option object — option
  * drift would show up as a normalization divergence and send the reader
@@ -7,32 +7,25 @@
  * rather than spelled out per subject.
  */
 
-import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 import * as babel from '@babel/core';
-import stylexBabelPluginModule from '@stylexjs/babel-plugin';
 
 import type { StyleXOptions } from '../../dist/index.js';
-import { arrayAt, isRecord, stringAt } from './guards.js';
+import {
+  baseStyleXOptions,
+  loadBabelPlugin,
+  loadRustCompiler,
+  messageOf,
+  resolveVersions,
+} from './compilers.js';
+import type { SubjectVersions } from './compilers.js';
+import { arrayAt, stringAt } from './guards.js';
+import { refusalSentence } from './refusal.js';
 import { SEPARATOR } from './separator.js';
+import { styleObjectsOf } from './style-object.js';
+import { moduleFor } from './subject.js';
 import type { CompilerOutcome, LoadedCorpusEntry, ReportEntry, Verdict } from './types.js';
-
-const require = createRequire(import.meta.url);
-
-type TransformFn = (
-  filename: string,
-  code: string,
-  options: StyleXOptions
-) => { metadata: { stylex: unknown[] }; code: string };
-
-export interface SubjectVersions {
-  rust: { version: string; resolvedFrom: string };
-  babel: { version: string; resolvedFrom: string };
-  babelCore: string;
-}
 
 export interface Comparer {
   options: StyleXOptions;
@@ -40,43 +33,48 @@ export interface Comparer {
   compare: (entry: LoadedCorpusEntry) => ReportEntry;
 }
 
+/**
+ * What one compiler run produced: the style metadata it collected, and the
+ * module it printed. Both halves are needed because they answer different
+ * questions -- the metadata carries the CSS, and only the printed module carries
+ * the style objects, where an absent value shows.
+ */
+interface CompilerRun {
+  rules: unknown[];
+  emitted: string;
+}
+
 export interface CreateComparerOptions {
   /** Absolute path to the `@stylexswc/rs-compiler` package directory. */
   packageDir: string;
   /** Passed identically to both compilers. */
   enableFontSizePxToRem: boolean;
+  /**
+   * Which style resolution both compilers run under. Omitted leaves each
+   * compiler on its own default, which both spell `property-specificity`.
+   *
+   * Both harnesses pass it, for the same reason stated two ways. The generated
+   * one pins `legacy-expand-shorthands` because that is the only resolution
+   * shorthand value splitting is reached under, and a run left on the default
+   * would compare two compilers that both never called it and report agreement.
+   * The value harness takes it as a flag, because which longhands a shorthand
+   * becomes and what order they land in differ between all three — a class name
+   * depends on that, and a report that does not say which resolution it measured
+   * cannot be compared with another one.
+   */
+  styleResolution?: StyleXOptions['styleResolution'];
 }
 
 export async function createComparer(options: CreateComparerOptions): Promise<Comparer> {
   const { packageDir } = options;
 
-  const distEntry = path.join(packageDir, 'dist/index.js');
-  const loaded: unknown = await import(pathToFileURL(distEntry).href);
-  const transform = isRecord(loaded) ? loaded.transform : undefined;
-  if (!isTransform(transform)) {
-    throw new Error(
-      `${distEntry} does not export a transform function — run \`pnpm build\` in this package first.`
-    );
-  }
+  const { transform, distEntry } = await loadRustCompiler(packageDir);
+  const { plugin: stylexBabelPlugin, pluginEntry: babelPluginEntry } = loadBabelPlugin();
 
-  // The plugin is published both as a default export and as the module object
-  // itself, depending on how the consumer resolves it; either is accepted.
-  const pluginModule: unknown = stylexBabelPluginModule;
-  const stylexBabelPlugin =
-    (isRecord(pluginModule) ? pluginModule.default : undefined) ?? pluginModule;
-  if (!isPluginTarget(stylexBabelPlugin)) {
-    throw new Error('@stylexjs/babel-plugin did not export a Babel plugin function');
-  }
-
-  const babelPluginEntry = require.resolve('@stylexjs/babel-plugin');
-
-  // `haste` module resolution keeps both compilers from needing a real
-  // node_modules layout for the fixture, and `dev: false` keeps debug class
-  // names — which encode a file path — out of the comparison.
   const stylexOptions: StyleXOptions = {
-    dev: false,
+    ...baseStyleXOptions(packageDir),
     enableFontSizePxToRem: options.enableFontSizePxToRem,
-    unstable_moduleResolution: { type: 'haste', rootDir: packageDir },
+    ...(options.styleResolution != null ? { styleResolution: options.styleResolution } : {}),
   };
 
   // A fixed filename: `haste` resolution and class hashing both read it, so
@@ -85,10 +83,13 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
   const filename = path.join(packageDir, 'parity/__fixture__/value.js');
 
   const runRust = (code: string): CompilerOutcome =>
-    outcomeOf(() => transform(filename, code, stylexOptions).metadata.stylex);
+    outcomeOf(filename, (): CompilerRun => {
+      const result = transform(filename, code, stylexOptions);
+      return { rules: result.metadata.stylex, emitted: result.code };
+    });
 
   const runBabel = (code: string): CompilerOutcome =>
-    outcomeOf(() => {
+    outcomeOf(filename, (): CompilerRun => {
       const result = babel.transformSync(code, {
         filename,
         babelrc: false,
@@ -96,56 +97,35 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
         parserOpts: { sourceType: 'module', plugins: ['jsx'] },
         plugins: [[stylexBabelPlugin, stylexOptions]],
       });
-      return arrayAt(result?.metadata, 'stylex') ?? [];
+      return { rules: arrayAt(result?.metadata, 'stylex') ?? [], emitted: result?.code ?? '' };
     });
 
   return {
     options: stylexOptions,
-    versions: {
-      rust: {
-        version: readVersion(path.join(packageDir, 'package.json')),
-        resolvedFrom: distEntry,
-      },
-      babel: {
-        version: readVersion(resolveManifest('@stylexjs/babel-plugin')),
-        resolvedFrom: babelPluginEntry,
-      },
-      babelCore: babel.version,
-    },
+    versions: resolveVersions(packageDir, distEntry, babelPluginEntry),
     compare(entry) {
       const code = moduleFor(entry);
       const rust = runRust(code);
       const babelOutcome = runBabel(code);
-      return {
-        id: entry.id,
-        set: entry.set,
-        property: entry.property,
-        value: entry.value,
-        origin: entry.origin,
-        ...(entry.note === undefined ? {} : { note: entry.note }),
-        verdict: verdictFor(rust, babelOutcome),
-        rust,
-        babel: babelOutcome,
-      };
+      return { ...entry, verdict: verdictFor(rust, babelOutcome), rust, babel: babelOutcome };
     },
   };
 }
 
-/** The module both compilers are handed for one declaration. */
-export function moduleFor(entry: Pick<LoadedCorpusEntry, 'property' | 'value'>): string {
-  return [
-    "import * as stylex from '@stylexjs/stylex';",
-    `export const styles = stylex.create({ x: { ${JSON.stringify(entry.property)}: ${JSON.stringify(entry.value)} } });`,
-    '',
-  ].join('\n');
-}
-
-function outcomeOf(run: () => unknown[]): CompilerOutcome {
+/**
+ * `filename` is the one both compilers were handed, and it is here because a
+ * refusal is normalized where it is caught: `refusalSentence` derives the
+ * reference implementation's message prefix from that path, and a caller that
+ * normalized later would have to be trusted to pass the same one.
+ */
+function outcomeOf(filename: string, run: () => CompilerRun): CompilerOutcome {
   let rules: unknown[];
+  let emitted: string;
   try {
-    rules = run();
+    ({ rules, emitted } = run());
   } catch (error: unknown) {
-    return { status: 'error', message: messageOf(error) };
+    const message = messageOf(error);
+    return { status: 'error', message, sentence: refusalSentence(message, filename) };
   }
 
   const classNames: string[] = [];
@@ -166,7 +146,36 @@ function outcomeOf(run: () => unknown[]): CompilerOutcome {
     declarations.push(declarationOf(ltr));
   }
 
-  return { status: 'ok', classNames, rules: ruleTexts, rtlRules: rtlRuleTexts, declarations };
+  let parsedStyleObjects: string[] | undefined;
+
+  return {
+    status: 'ok',
+    classNames,
+    rules: ruleTexts,
+    rtlRules: rtlRuleTexts,
+    declarations,
+    /**
+     * Parsed on the first read rather than on the way out, and kept.
+     *
+     * This is the most expensive thing in the file -- a full `babel.parseSync`
+     * plus a traversal of the emitted module -- and `styleObjectsAgree` returns
+     * `false` outright whenever either side refused, without reading it. So on
+     * every row where one compiler accepted and the other did not, the
+     * accepting side was parsed for an answer nothing consulted: 187 of the
+     * 1085 curated subjects, and 2631 of 19203 per property in the generated
+     * sweep.
+     *
+     * A getter rather than a changed field type, so nothing that builds an
+     * outcome by hand -- the unit tests do, with a literal array -- has to know
+     * this is lazy. Memoized because the report reads it again when the shapes
+     * are what differ.
+     */
+    get styleObjects(): string[] {
+      parsedStyleObjects ??= styleObjectsOf(emitted);
+
+      return parsedStyleObjects;
+    },
+  };
 }
 
 /** One direction's rule text from a style-metadata payload, or `''` if absent. */
@@ -187,35 +196,72 @@ function declarationOf(rule: string): string {
   return rule.slice(open + 1, close);
 }
 
-function messageOf(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
-}
-
 function verdictFor(rust: CompilerOutcome, babelOutcome: CompilerOutcome): Verdict {
-  if (rust.status === 'error' && babelOutcome.status === 'error') return 'both-reject';
+  // Two refusals are compared by what they complain about, not only by the
+  // fact of refusing: an author whose build stops reads the message, so two
+  // compilers stopping it for reasons they word differently have diverged in
+  // the half of the behaviour a refused input has. `lib/refusal.ts` carries
+  // the normalization the comparison rests on.
+  if (rust.status === 'error' && babelOutcome.status === 'error') {
+    // A sentence that reduced to nothing is not something two refusals can be
+    // agreed to share -- a messageless throw on both sides would otherwise read
+    // as agreement about a complaint neither made. There the raw messages are
+    // the only evidence left, so they are what is compared.
+    const comparable = rust.sentence !== '' && babelOutcome.sentence !== '';
+    const agreed = comparable
+      ? rust.sentence === babelOutcome.sentence
+      : rust.message === babelOutcome.message;
+
+    return agreed ? 'both-reject' : 'both-reject-divergent';
+  }
   if (rust.status === 'error' || babelOutcome.status === 'error') return 'acceptance-divergent';
-  const same =
+  const sameCss =
     rust.classNames.join(SEPARATOR) === babelOutcome.classNames.join(SEPARATOR) &&
     rust.rules.join(SEPARATOR) === babelOutcome.rules.join(SEPARATOR) &&
     rust.rtlRules.join(SEPARATOR) === babelOutcome.rtlRules.join(SEPARATOR);
-  if (same) {
+  // The style objects are the other half of the answer: a property carrying
+  // `null` emits no CSS, so without this two compilers that disagree about
+  // whether the property exists at all read as identical. See
+  // `lib/style-object.ts`.
+  const sameStyleObjects = styleObjectsAgree(rust, babelOutcome);
+
+  if (sameCss && sameStyleObjects) {
     // Agreement about nothing is not evidence of parity — see `identical-empty`
     // in `types.ts`. Reported separately so a corpus that stops carrying its
     // values shows up as a count rather than as a clean run.
     const emitted =
       rust.classNames.length + rust.rules.length + rust.rtlRules.length > 0 ||
-      babelOutcome.classNames.length + babelOutcome.rules.length + babelOutcome.rtlRules.length > 0;
+      babelOutcome.classNames.length + babelOutcome.rules.length + babelOutcome.rtlRules.length >
+        0 ||
+      rust.styleObjects.some(object => object !== '{}') ||
+      babelOutcome.styleObjects.some(object => object !== '{}');
     return emitted ? 'identical' : 'identical-empty';
   }
+
+  // The same CSS out of a different set of properties is a disagreement about
+  // which declarations exist, not about how a value is spelled.
+  if (sameCss) return 'structurally-divergent';
 
   // A declaration that expanded into different properties, or into a different
   // number of them, diverged before value normalization ever saw it —
   // shorthand expansion and property validation both do that. Separating those
   // keeps the divergence count an answer about values.
-  return propertyNamesOf(rust) === propertyNamesOf(babelOutcome)
+  return propertyNamesOf(rust) === propertyNamesOf(babelOutcome) && sameStyleObjects
     ? 'divergent'
     : 'structurally-divergent';
+}
+
+/**
+ * Whether two outcomes emitted the same style objects.
+ *
+ * Exported because the report needs the same answer the verdict does: it prints
+ * the shapes only when they are what differ, and asking that question a second
+ * way in the printer is how the two would come to disagree. An outcome that
+ * rejected has no shape, so it cannot agree with one that does.
+ */
+export function styleObjectsAgree(left: CompilerOutcome, right: CompilerOutcome): boolean {
+  if (left.status === 'error' || right.status === 'error') return false;
+  return left.styleObjects.join(SEPARATOR) === right.styleObjects.join(SEPARATOR);
 }
 
 /** The emitted property names, sorted, as a comparable key. */
@@ -225,41 +271,4 @@ function propertyNamesOf(outcome: CompilerOutcome): string {
     .map(declaration => declaration.slice(0, declaration.indexOf(':')).trim())
     .toSorted()
     .join(SEPARATOR);
-}
-
-/**
- * Where a package's manifest is, resolved as a package export rather than
- * guessed at as `dirname(entry)/../package.json` — that guess is right only
- * while the entry point sits exactly one directory below the manifest, and
- * `readVersion` answers `unknown` rather than complaining when it is wrong, so
- * a report would quietly stop naming which upstream it was measured against.
- *
- * Falls back to that guess rather than propagating. A package whose `exports`
- * map omits `./package.json` raises `ERR_PACKAGE_PATH_NOT_EXPORTED` here, and
- * a version string the report prints for the reader is not worth failing a
- * measurement run over — `readVersion` degrades a wrong path to `unknown`,
- * which is the outcome this is trying to make rare, not one it must prevent.
- */
-function resolveManifest(packageName: string): string {
-  try {
-    return require.resolve(`${packageName}/package.json`);
-  } catch {
-    return path.join(path.dirname(require.resolve(packageName)), '../package.json');
-  }
-}
-
-function readVersion(manifestPath: string): string {
-  try {
-    return stringAt(JSON.parse(fs.readFileSync(manifestPath, 'utf8')), 'version') ?? 'unknown';
-  } catch {
-    return 'unknown';
-  }
-}
-
-function isTransform(value: unknown): value is TransformFn {
-  return typeof value === 'function';
-}
-
-function isPluginTarget(value: unknown): value is babel.PluginTarget {
-  return typeof value === 'function';
 }

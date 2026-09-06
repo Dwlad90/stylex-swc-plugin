@@ -8,10 +8,78 @@
  * Bump `RAW_STATS_SCHEMA_VERSION` on any breaking change to the shape below.
  */
 
+import { SourceMaps, type StyleXOptions } from '../../dist/index.js';
+
+/**
+ * The settings `sourceMap` accepts, read off the package's own export.
+ *
+ * The generated typings declare `SourceMaps` as an ambient `const enum`, which
+ * `isolatedModules` forbids naming a member of — so `dist/index.js` re-exports it
+ * as a frozen object typed as that enum, for exactly this. Taking the values
+ * from there means a manifest string is turned into an option value by a lookup
+ * whose result is already the right type, rather than by a predicate asserting a
+ * type no runtime check can establish.
+ */
+export const SOURCE_MAP_SETTINGS = SourceMaps;
+
+export type SourceMapSetting = keyof typeof SOURCE_MAP_SETTINGS;
+
 export const RAW_STATS_SCHEMA_VERSION = 1 as const;
 
 export type FixtureWeight = 'standard' | 'heavy';
 export type FixtureCategory = 'transform' | 'perf' | 'rollup';
+
+/**
+ * The StyleX option keys a fixture may override, each carrying a boolean.
+ *
+ * An allowlist rather than `Partial<StyleXOptions>`, because a manifest is data
+ * from a file: a key nobody validated would be a silently ignored measurement
+ * condition, and two fixtures could then differ in a way no reader can see. Add
+ * a key here when a fixture needs it, and the loader will start accepting it.
+ *
+ * Everything here is a *development or compatibility* feature — the work a
+ * production build does not do — and every key is used by a fixture. Both halves
+ * are load-bearing: a key nothing uses is an option nobody has shown this
+ * compiler even reacts to, and four of them turned out not to change a byte of
+ * output on any fixture in the corpus. `fixtures.test.ts` fails an entry whose
+ * options leave the emitted module identical to its production run, which is how
+ * that was found.
+ */
+export const BOOLEAN_OPTION_KEYS = [
+  'dev',
+  'debug',
+  'enableDebugClassNames',
+  'enableDebugDataProp',
+  'enableDevClassNames',
+  'enableMinifiedKeys',
+  'enableFontSizePxToRem',
+  'enableInlinedConditionalMerge',
+  'enableLegacyValueFlipping',
+  'enableMediaQueryOrder',
+  'useRealFileForSource',
+  'runtimeInjection',
+  'injectStylexSideEffects',
+  'test',
+  'inlineSourcesContent',
+  'emitSourceMapColumns',
+] as const;
+
+export type BooleanOptionKey = (typeof BOOLEAN_OPTION_KEYS)[number];
+
+export const STYLE_RESOLUTIONS = [
+  'application-order',
+  'property-specificity',
+  'legacy-expand-shorthands',
+] as const;
+
+/** A fixture's own measurement conditions, as the manifest declares them. */
+export type FixtureOptionOverrides = Partial<
+  Record<BooleanOptionKey, boolean> & {
+    styleResolution: (typeof STYLE_RESOLUTIONS)[number];
+    sourceMap: NonNullable<StyleXOptions['sourceMap']>;
+    classNamePrefix: string;
+  }
+>;
 
 export interface FixtureDescriptor {
   /** Stable identifier used across runs (never derived from mutable paths). */
@@ -28,6 +96,24 @@ export interface FixtureDescriptor {
    * fixture to lift sub-millisecond work above timer noise; 1 by default.
    */
   batchSize: number;
+  /**
+   * Overrides `dev` for this fixture alone. Absent means the shared
+   * production shape from `createStylexOptions`, which is what all but one
+   * fixture wants; `guidelines/PERFORMANCE.md` says why the two shapes are
+   * watched separately rather than switched between.
+   *
+   * Kept beside [`FixtureDescriptor.options`] rather than folded into it: the
+   * fixtures that predate the option map spell `dev` this way, and their trend
+   * series are named after those entries.
+   */
+  dev?: boolean;
+  /**
+   * Every other measurement condition this fixture asks for, applied over the
+   * shared options and after `dev`. A fixture measuring a development feature
+   * names it here, so the option shape and the trend series it feeds are one
+   * entry in one file.
+   */
+  options?: FixtureOptionOverrides;
 }
 
 export interface SubjectDescriptor {

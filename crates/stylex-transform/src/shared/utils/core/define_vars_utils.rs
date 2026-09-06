@@ -2,19 +2,20 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
-use swc_core::ecma::ast::{Expr, Lit};
+use swc_core::ecma::ast::{Expr, Lit, ObjectLit};
 
-use crate::shared::{
-  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  structures::types::{ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap},
-  utils::ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
+use stylex_ast::ast::convertors::{
+  convert_key_value_to_str, convert_lit_to_string, get_key_values_from_object,
 };
-use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_constants::constants::{
   common::SPLIT_TOKEN,
-  messages::{EXPECTED_CSS_VAR, VALUES_MUST_BE_OBJECT},
+  messages::{EXPECTED_CSS_VAR, VALUES_MUST_BE_OBJECT, missing_default_value},
 };
 use stylex_enums::value_with_default::ValueWithDefault;
+use stylex_state::{
+  flat_compiled_styles_value::FlatCompiledStylesValue,
+  types::{ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap},
+};
 use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_utils::hash::create_hash;
 
@@ -112,15 +113,11 @@ pub(crate) fn collect_vars_by_at_rules(
         .push(format!("--{}:{};", hash_name, val));
     },
     Expr::Object(obj) => {
-      let key_values = get_key_values_from_object(obj);
-
-      if !key_values.iter().any(|key_value| {
-        let key = convert_key_value_to_str(key_value);
-
-        key == "default"
-      }) {
-        stylex_panic!(r#"Default value is not defined for "{}" variable."#, key);
+      if object_needs_a_default(obj) {
+        stylex_panic!("{}", missing_default_value(key));
       }
+
+      let key_values = get_key_values_from_object(obj);
 
       for key_value in key_values.iter() {
         let at_rule = convert_key_value_to_str(key_value);
@@ -135,8 +132,12 @@ pub(crate) fn collect_vars_by_at_rules(
 
         let value = key_value.value.clone();
 
+        // The variable's own name travels down the recursion, not the at-rule
+        // the level is standing on: an author looking for `cornerRadius` is
+        // told about `cornerRadius` however deep the object nests, which is
+        // the name the reference implementation carries down here too.
         collect_vars_by_at_rules(
-          &at_rule,
+          key,
           &FlatCompiledStylesValue::Tuple(hash_name.clone(), value, None),
           collection,
           &extended_at_rules,
@@ -146,6 +147,107 @@ pub(crate) fn collect_vars_by_at_rules(
     },
     _ => {},
   }
+}
+
+/// Whether an object written as a variable's value is refused for having no
+/// `default`.
+///
+/// Two questions, answered off one walk of the object's keys because the caller
+/// always asks both and `get_key_values_from_object` allocates the list it
+/// returns:
+///
+/// - A **CSS type** carries its own `value` under a `syntax`, so it is not a map
+///   of at-rules and has no `default` of its own to look for. The reference
+///   implementation tests for one ahead of the missing-default check for the
+///   same reason. The pair of keys is the test, because either alone appears on
+///   ordinary value maps. `get_css_value` in `utils/common.rs` owns pulling the
+///   pair back apart; this only has to recognise that it is one, which is why
+///   the test is here and not a second extraction.
+/// - Anything else is refused unless it carries `default`.
+///
+/// Shared with the step that expands a variable's value, which asks the same
+/// question one stage earlier: an object with no `default` is refused for the
+/// shape it is before anything looks at what it holds, which is the order the
+/// reference implementation checks in. Asked through one function so the two
+/// stages cannot come to disagree about what carrying a default means.
+/// The variable's value, and every object nested inside it, asked the question
+/// above.
+///
+/// The reference implementation recurses: `normalizeDefineVarsValue` checks a
+/// level for `default` and then walks into every branch of it, so a fold buried
+/// under an at-rule is refused for the same missing key the top level would be.
+/// Checking only the top level left that one level down still reading the
+/// sentence about zero-argument functions, which is the whole defect.
+///
+/// Stops at the first level that needs one, because that is the level the
+/// refusal is about -- and stops descending into a CSS type, whose `value` is
+/// its own shape and not a map of at-rules.
+pub(crate) fn any_level_needs_a_default(value: &Expr) -> bool {
+  let Some(obj) = value.as_object() else {
+    return false;
+  };
+
+  if object_needs_a_default(obj) {
+    return true;
+  }
+
+  // A CSS type's `value` is its own shape rather than a map of at-rules, so the
+  // descent stops here. The doc above said so before the code did: the `.any`
+  // below used to walk every key of a `syntax`/`value` pair, `syntax` included.
+  if is_css_type_object(obj) {
+    return false;
+  }
+
+  get_key_values_from_object(obj)
+    .iter()
+    .any(|key_value| any_level_needs_a_default(&key_value.value))
+}
+
+/// Which of the three keys that decide these two questions `obj` carries.
+///
+/// One walk answering both, so the two cannot drift into disagreeing about what
+/// a CSS type looks like.
+struct DefaultBearingKeys {
+  syntax: bool,
+  value: bool,
+  default: bool,
+}
+
+impl DefaultBearingKeys {
+  fn of(obj: &ObjectLit) -> Self {
+    let mut found = Self {
+      syntax: false,
+      value: false,
+      default: false,
+    };
+
+    for key_value in get_key_values_from_object(obj).iter() {
+      match convert_key_value_to_str(key_value).as_str() {
+        "syntax" => found.syntax = true,
+        "value" => found.value = true,
+        "default" => found.default = true,
+        _ => {},
+      }
+    }
+
+    found
+  }
+
+  /// A CSS type is the `syntax` and `value` pair.
+  fn is_css_type(&self) -> bool {
+    self.syntax && self.value
+  }
+}
+
+/// Whether `obj` is a CSS type — the `syntax` and `value` pair.
+fn is_css_type_object(obj: &ObjectLit) -> bool {
+  DefaultBearingKeys::of(obj).is_css_type()
+}
+
+pub(crate) fn object_needs_a_default(obj: &ObjectLit) -> bool {
+  let found = DefaultBearingKeys::of(obj);
+
+  !(found.default || found.is_css_type())
 }
 
 fn get_nitial_value_of_css_type(values: &IndexMap<String, ValueWithDefault>) -> String {

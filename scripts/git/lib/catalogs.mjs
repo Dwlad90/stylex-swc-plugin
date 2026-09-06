@@ -43,7 +43,8 @@ const BLOCK = /^(?:'([^']*)'|"([^"]*)"|([^\s#][^:]*?))\s*:$/;
  * `ENTRY` for a writer: the whole `<key>: <value>` line, with indentation,
  * quoting and trailing comment each captured intact so the value can be
  * replaced and the rest put back exactly as found. Still only grammar --
- * nothing in this module writes; `bump-version.mjs` is the one that does.
+ * nothing in this module writes. `bump-version.mjs` writes with `ENTRY_LINE`,
+ * and `dedupe-catalog-pins.mjs` writes with `blockKey` and `indentOf`.
  */
 export const ENTRY_LINE =
   /^(\s+)('[^']*'|"[^"]*"|[^\s#][^:]*)(:\s*)('[^']*'|"[^"]*"|\S+)(\s*(?:#.*)?)$/;
@@ -60,6 +61,24 @@ export function indentOf(line) {
 
 function keyOf(match) {
   return match[1] ?? match[2] ?? match[3];
+}
+
+/**
+ * The key of a `<key>:` line that opens a nested block, or `null` when the
+ * line is something else.
+ *
+ * Exported so that a caller which walks the same block does not restate the
+ * quoting rules. A scoped package name is always quoted and a plain one never
+ * is, so a caller that matches the bare name skips every scoped package and
+ * still reports success.
+ *
+ * @param {string} line
+ * @returns {string | null}
+ */
+export function blockKey(line) {
+  const match = line.trim().match(BLOCK);
+
+  return match ? keyOf(match) : null;
 }
 
 function valueOf(match) {
@@ -113,7 +132,36 @@ function assertDepth(value, depth, label, keys = []) {
 }
 
 /**
- * The `catalogs:` block of `file`, or `null` when the file has no such block.
+ * The contents of `file`, with the file named in every failure rather than
+ * left as a raw errno.
+ *
+ * The open is the only test that the file exists. To ask first and read after
+ * is to answer about a file that can be gone, or replaced, by the time the
+ * read happens.
+ *
+ * A directory in the file's place, or a mode that forbids the open, is as
+ * fatal as an absent file and is reported the same way: the errno stays in the
+ * message, because it says what to repair.
+ *
+ * @param {string} file
+ * @returns {string}
+ */
+export function readTextFile(file) {
+  try {
+    return fs.readFileSync(file, 'utf8');
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      throw new Error(`no ${path.basename(file)} under ${path.dirname(file)}`, { cause: error });
+    }
+
+    const reason = error instanceof Error ? error.message : String(error);
+
+    throw new Error(`cannot read ${file}: ${reason}`, { cause: error });
+  }
+}
+
+/**
+ * The `catalogs:` block of `contents`, or `null` when it has no such block.
  * Keys keep their declaration order.
  *
  * `depth` says how many mappings sit between the block and its leaves, because
@@ -123,13 +171,17 @@ function assertDepth(value, depth, label, keys = []) {
  * rules by hand, and `depth` is what keeps that sharing from costing either of
  * them a shape check.
  *
- * @param {string} file
+ * Text rather than a path, so that a caller which also rewrites the file reads
+ * it exactly once. Two reads are two different files when something else edits
+ * between them, and the second one silently wins.
+ *
+ * @param {string} contents file contents
  * @param {number} depth
  * @param {string} label how to name the file in an error
  * @returns {Record<string, unknown> | null}
  */
-function readCatalogsBlock(file, depth, label) {
-  const lines = fs.readFileSync(file, 'utf8').split('\n');
+function parseCatalogsBlock(contents, depth, label) {
+  const lines = contents.split('\n');
   const start = lines.findIndex(line => line.startsWith('catalogs:'));
 
   if (start === -1) {
@@ -161,11 +213,11 @@ function readCatalogsBlock(file, depth, label) {
 
     const parent = openBlocks.at(-1).value;
     const text = line.trim();
-    const block = text.match(BLOCK);
+    const key = blockKey(line);
 
-    if (block) {
+    if (key !== null) {
       const child = {};
-      parent[keyOf(block)] = child;
+      parent[key] = child;
       openBlocks.push({ indent, value: child });
       continue;
     }
@@ -191,7 +243,11 @@ function readCatalogsBlock(file, depth, label) {
  * @returns {Record<string, Record<string, string>>}
  */
 export function readCatalogs(root) {
-  const catalogs = readCatalogsBlock(path.join(root, WORKSPACE_FILE), 2, WORKSPACE_FILE);
+  const catalogs = parseCatalogsBlock(
+    readTextFile(path.join(root, WORKSPACE_FILE)),
+    2,
+    WORKSPACE_FILE
+  );
 
   if (catalogs === null) {
     throw new Error(`${WORKSPACE_FILE} declares no \`catalogs:\` block`);
@@ -212,13 +268,24 @@ export function readCatalogs(root) {
  * exactly the corruption the caller is looking for, and it reports it far
  * better naming the entries than this could naming the block.
  *
+ * @param {string} text lockfile contents
+ * @param {string} label how to name the file in an error
+ * @returns {Record<string, Record<string, {specifier?: string, version?: string}>>}
+ */
+export function parseLockfileCatalogs(text, label) {
+  const catalogs = parseCatalogsBlock(text, 3, label);
+
+  return /** @type {Record<string, Record<string, object>>} */ (catalogs ?? {});
+}
+
+/**
+ * The same, for a caller that only reads: the file is opened once and parsed.
+ *
  * @param {string} file path to a lockfile
  * @returns {Record<string, Record<string, {specifier?: string, version?: string}>>}
  */
 export function readLockfileCatalogs(file) {
-  const catalogs = readCatalogsBlock(file, 3, path.basename(file));
-
-  return /** @type {Record<string, Record<string, object>>} */ (catalogs ?? {});
+  return parseLockfileCatalogs(readTextFile(file), path.basename(file));
 }
 
 /**
@@ -243,4 +310,57 @@ export function catalogEntries(catalogs) {
  */
 export function catalogsDeclaring(catalogs, name) {
   return Object.keys(catalogs).filter(catalog => name in catalogs[catalog]);
+}
+
+/**
+ * Packages a lockfile pins to more than one version across its catalogs.
+ *
+ * A package is catalogued twice on purpose -- a narrow range to develop
+ * against, a wide one to accept from consumers in `peers` -- but the two must
+ * resolve to the same version. When they drift apart pnpm installs both, and
+ * builds one copy of every peer-dependent package per peer set. Two copies of
+ * the same version give nominally unrelated types: `Plugin` from
+ * `vite@8.2.2(esbuild@0.28.1)` is not assignable to `Plugin` from
+ * `vite@8.2.2(esbuild@0.28.2)`.
+ *
+ * Reads the lockfile rather than the declaration. The two ranges differ on
+ * purpose, so only what they resolved to says whether they agree.
+ *
+ * @param {Record<string, Record<string, {specifier?: string, version?: string}>>} catalogs
+ * @returns {{name: string, pins: {catalog: string, version: string}[]}[]} sorted by package name
+ */
+export function conflictingPins(catalogs) {
+  /** @type {Map<string, {catalog: string, version: string}[]>} */
+  const byPackage = new Map();
+
+  for (const [catalog, entries] of Object.entries(catalogs)) {
+    for (const [name, leaf] of Object.entries(entries)) {
+      const version = leaf?.version;
+
+      // A leaf with no `version` is a lockfile mid-write or a shape this
+      // reader does not understand. Comparing `undefined` against a real
+      // version would report a conflict that is not one.
+      if (typeof version !== 'string') {
+        continue;
+      }
+
+      byPackage.set(name, [...(byPackage.get(name) ?? []), { catalog, version }]);
+    }
+  }
+
+  return [...byPackage]
+    .filter(([, pins]) => new Set(pins.map(pin => pin.version)).size > 1)
+    .map(([name, pins]) => ({ name, pins }))
+    .toSorted((left, right) => left.name.localeCompare(right.name));
+}
+
+/**
+ * The one-line reading of a conflict, as both the gate and the repair report
+ * it. Here rather than in either caller so that the two never drift into
+ * describing the same lockfile differently.
+ *
+ * @param {{catalog: string, version: string}[]} pins
+ */
+export function describePins(pins) {
+  return pins.map(pin => `${pin.version} in \`${pin.catalog}\``).join(' and ');
 }

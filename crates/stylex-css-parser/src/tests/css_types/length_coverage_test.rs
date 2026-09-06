@@ -11,7 +11,7 @@ fn extract_length_token_returns_some_for_dimension() {
   let result = Length::extract_length_token(token);
   assert!(result.is_some());
   let (value, unit) = result.unwrap();
-  assert_eq!(value, 16.0_f32);
+  assert_eq!(value, 16.0_f64);
   assert_eq!(unit, "px");
 }
 
@@ -27,14 +27,14 @@ fn extract_length_token_returns_none_for_non_dimension_token() {
 #[test]
 fn is_valid_length_opt_returns_true_for_valid_unit() {
   // Happy path: Some with a recognised length unit returns true.
-  let opt = Some((10.0_f32, "px".to_string()));
+  let opt = Some((10.0_f64, "px".to_string()));
   assert!(Length::is_valid_length_opt(&opt));
 }
 
 #[test]
 fn is_valid_length_opt_returns_false_for_invalid_unit() {
   // Some with an unrecognised unit returns false (inner branch, unit check fails).
-  let opt = Some((10.0_f32, "unknown".to_string()));
+  let opt = Some((10.0_f64, "unknown".to_string()));
   assert!(!Length::is_valid_length_opt(&opt));
 }
 
@@ -43,7 +43,7 @@ fn is_valid_length_opt_returns_false_for_none() {
   // The else-branch returns false when opt is None. This is unreachable through
   // the public parser (extract_length_token only returns None for non-Dimension
   // tokens, which the combinator excludes) but is coverable via direct call.
-  let opt: Option<(f32, String)> = None;
+  let opt: Option<(f64, String)> = None;
   assert!(!Length::is_valid_length_opt(&opt));
 }
 

@@ -5,6 +5,8 @@
  * corpus keeps covering what the suites cover. The output is checked in: the
  * harness itself must not depend on scanning Rust sources at run time.
  *
+ * Every crate under `crates/` is scanned, apart from generated sources.
+ *
  * This is the first link in a chain that ends in another crate: the corpus
  * generated here is the input to `postcss-value-parser`'s `cases.rs`, whose row
  * order is the corpus order. Adding one Rust test therefore invalidates two
@@ -26,6 +28,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { harvestCorpus } from './lib/harvest.js';
+import { withLfEndings } from './lib/text.js';
 import type { CorpusFile } from './lib/types.js';
 
 const parityDir = path.dirname(fileURLToPath(import.meta.url));
@@ -47,10 +50,25 @@ const corpus: CorpusFile = {
 const serialized = `${JSON.stringify(corpus, null, 2)}\n`;
 
 if (cliOptions.check) {
-  const current = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : '';
+  // Compared with the line endings collapsed, because the committed corpus is
+  // content rather than bytes: Git for Windows checks a text file out as CRLF
+  // by default, and a check that read that as a difference would fail every
+  // Windows run while the repository holds what this script would write.
+  const current = fs.existsSync(outputPath)
+    ? withLfEndings(fs.readFileSync(outputPath, 'utf8'))
+    : '';
   if (current !== serialized) {
+    // Says where the corpus comes from, not only what to run. This check gates
+    // this package's `test` script, and it harvests from the Rust suites of the
+    // *whole* workspace -- so editing a CSS value test in `stylex-css` fails
+    // `pnpm --filter=@stylexswc/rs-compiler test` before a single vitest case
+    // runs, which reads as unrelated to what was just changed unless the message
+    // says otherwise. It is also the only place the check runs.
     console.error(
-      `${path.relative(workspaceRoot, outputPath)} is out of date; run \`pnpm parity:harvest\`.`
+      `${path.relative(workspaceRoot, outputPath)} is out of date; run \`pnpm parity:harvest\`.\n` +
+        'It is harvested from the Rust test suites across the workspace, so a ' +
+        'declaration added to or removed from any of them moves it. This is not a ' +
+        'failure of the tests that were about to run.'
     );
     process.exit(1);
   }

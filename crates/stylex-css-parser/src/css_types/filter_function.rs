@@ -2,12 +2,11 @@
 CSS filter function parser.
 */
 
+use stylex_utils::number::to_js_string;
+
 use crate::{
   CssParseError,
-  css_types::{
-    Angle, Length,
-    common_types::{NumberOrPercentage, number_or_percentage_parser},
-  },
+  css_types::{Angle, Length, common_types::number_or_percentage_parser},
   token_parser::TokenParser,
   token_types::SimpleToken,
 };
@@ -175,10 +174,7 @@ impl BrightnessFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         if value < 0.0 {
           return Err(CssParseError::ParseError {
@@ -243,10 +239,7 @@ impl ContrastFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
@@ -305,10 +298,7 @@ impl GrayscaleFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
@@ -425,10 +415,7 @@ impl InvertFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
@@ -487,10 +474,7 @@ impl OpacityFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
@@ -549,10 +533,7 @@ impl SaturateFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
@@ -611,10 +592,7 @@ impl SepiaFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
@@ -670,21 +648,21 @@ impl Display for BlurFilterFunction {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for BrightnessFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "brightness({})", self.percentage)
+    write!(f, "brightness({})", to_js_string(self.percentage))
   }
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for ContrastFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "contrast({})", self.amount)
+    write!(f, "contrast({})", to_js_string(self.amount))
   }
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for GrayscaleFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "grayscale({})", self.amount)
+    write!(f, "grayscale({})", to_js_string(self.amount))
   }
 }
 
@@ -698,28 +676,28 @@ impl Display for HueRotateFilterFunction {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for InvertFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "invert({})", self.amount)
+    write!(f, "invert({})", to_js_string(self.amount))
   }
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for OpacityFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "opacity({})", self.amount)
+    write!(f, "opacity({})", to_js_string(self.amount))
   }
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for SaturateFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "saturate({})", self.amount)
+    write!(f, "saturate({})", to_js_string(self.amount))
   }
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for SepiaFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "sepia({})", self.amount)
+    write!(f, "sepia({})", to_js_string(self.amount))
   }
 }
 

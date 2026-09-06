@@ -39,7 +39,7 @@ mod rule_assertions {
   }
 
   /// A `pair` whose value is a length, such as `(min-width: 576px)`.
-  pub(super) fn assert_length_pair(rule: &MediaQueryRule, key: &str, value: f32, unit: &str) {
+  pub(super) fn assert_length_pair(rule: &MediaQueryRule, key: &str, value: f64, unit: &str) {
     match rule {
       MediaQueryRule::Pair(pair) => {
         assert_eq!(pair.r#type, "pair");
@@ -286,11 +286,48 @@ mod style_value_parser_at_queries {
         assert_eq!(parsed.to_string(), "@media not screen");
       }
 
+      /// `not only <type>` is accepted, and the `only` is not printed.
+      ///
+      /// The reference implementation's `mediaKeywordParser` takes both
+      /// modifiers as independently optional, so the pair parses, and its
+      /// serializer reads `not` first and never reaches the `only`. Measured on
+      /// 0.19.0: `@media not only screen` prints `@media not screen`, and
+      /// `@media not only print` prints `@media not print`.
       #[test]
-      fn media_rejects_combined_not_and_only_modifiers() {
+      fn media_accepts_not_only_and_drops_the_only() {
+        let parsed = MediaQuery::parser()
+          .parse_to_end("@media not only screen")
+          .expect("`not only screen` is a query the reference implementation compiles");
+
+        assert_eq!(parsed.to_string(), "@media not screen");
+
+        let with_condition = MediaQuery::parser()
+          .parse_to_end("@media not only screen and (min-width: 100px)")
+          .expect("the modifiers do not stop a condition following them");
+
+        assert_eq!(
+          with_condition.to_string(),
+          "@media not screen and (min-width: 100px)"
+        );
+      }
+
+      /// The two spellings the reference implementation *does* refuse.
+      ///
+      /// Both are `No parser matched` there: a media type is not a
+      /// `<media-in-parens>`, and `only` cannot precede `not`. Only the
+      /// unparenthesized `not only <type>` above is accepted, so the refusal
+      /// stays where upstream puts it rather than being widened along with it.
+      #[test]
+      fn media_rejects_the_modifier_spellings_upstream_rejects() {
         assert!(
           MediaQuery::parser()
-            .parse_to_end("@media not only screen")
+            .parse_to_end("@media (not only screen)")
+            .is_err()
+        );
+
+        assert!(
+          MediaQuery::parser()
+            .parse_to_end("@media only not screen")
             .is_err()
         );
       }
@@ -779,8 +816,8 @@ mod style_value_parser_at_queries {
             assert_eq!(pair.key, "aspect-ratio");
             match &pair.value {
               crate::at_queries::media_query::MediaRuleValue::Fraction(fraction) => {
-                assert_eq!(fraction.numerator, 16);
-                assert_eq!(fraction.denominator, 9);
+                assert_eq!(fraction.numerator, 16.0);
+                assert_eq!(fraction.denominator, 9.0);
               },
               _ => stylex_panic!("Expected Fraction value"),
             }
@@ -802,8 +839,8 @@ mod style_value_parser_at_queries {
             assert_eq!(pair.key, "device-aspect-ratio");
             match &pair.value {
               crate::at_queries::media_query::MediaRuleValue::Fraction(fraction) => {
-                assert_eq!(fraction.numerator, 16);
-                assert_eq!(fraction.denominator, 9);
+                assert_eq!(fraction.numerator, 16.0);
+                assert_eq!(fraction.denominator, 9.0);
               },
               _ => stylex_panic!("Expected Fraction value"),
             }
@@ -1517,8 +1554,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "device-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(fraction) => {
-                    assert_eq!(fraction.numerator, 16);
-                    assert_eq!(fraction.denominator, 9);
+                    assert_eq!(fraction.numerator, 16.0);
+                    assert_eq!(fraction.denominator, 9.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -1551,8 +1588,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "min-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(fraction) => {
-                    assert_eq!(fraction.numerator, 3);
-                    assert_eq!(fraction.denominator, 2);
+                    assert_eq!(fraction.numerator, 3.0);
+                    assert_eq!(fraction.denominator, 2.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -1566,8 +1603,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "max-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(fraction) => {
-                    assert_eq!(fraction.numerator, 16);
-                    assert_eq!(fraction.denominator, 9);
+                    assert_eq!(fraction.numerator, 16.0);
+                    assert_eq!(fraction.denominator, 9.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -2023,8 +2060,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "device-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(frac) => {
-                    assert_eq!(frac.numerator, 16);
-                    assert_eq!(frac.denominator, 9);
+                    assert_eq!(frac.numerator, 16.0);
+                    assert_eq!(frac.denominator, 9.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -2057,8 +2094,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "min-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(frac) => {
-                    assert_eq!(frac.numerator, 3);
-                    assert_eq!(frac.denominator, 2);
+                    assert_eq!(frac.numerator, 3.0);
+                    assert_eq!(frac.denominator, 2.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -2072,8 +2109,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "max-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(frac) => {
-                    assert_eq!(frac.numerator, 16);
-                    assert_eq!(frac.denominator, 9);
+                    assert_eq!(frac.numerator, 16.0);
+                    assert_eq!(frac.denominator, 9.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -3629,8 +3666,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "min-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(frac) => {
-                    assert_eq!(frac.numerator, 3);
-                    assert_eq!(frac.denominator, 2);
+                    assert_eq!(frac.numerator, 3.0);
+                    assert_eq!(frac.denominator, 2.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }
@@ -3644,8 +3681,8 @@ mod style_value_parser_at_queries {
                 assert_eq!(pair.key, "max-aspect-ratio");
                 match &pair.value {
                   crate::at_queries::media_query::MediaRuleValue::Fraction(frac) => {
-                    assert_eq!(frac.numerator, 16);
-                    assert_eq!(frac.denominator, 9);
+                    assert_eq!(frac.numerator, 16.0);
+                    assert_eq!(frac.denominator, 9.0);
                   },
                   _ => stylex_panic!("Expected Fraction value"),
                 }

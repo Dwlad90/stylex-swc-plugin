@@ -9,6 +9,9 @@
  * lifted above sub-millisecond noise by batching; do not add an
  * absolute-delta floor as a shortcut.
  *
+ * A fixture may opt into a `dev` build with `"dev": true`. That is per
+ * fixture, never a switch in the shared options -- see `FixtureDescriptor.dev`.
+ *
  * Only fixtures that actually produce StyleX rules belong here. The
  * transform test corpus also contains negative fixtures that compile to
  * zero rules (`button-props`, which never imports `stylex`); registering
@@ -19,7 +22,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { FixtureCategory, FixtureDescriptor, FixtureWeight } from './types.js';
+import {
+  BOOLEAN_OPTION_KEYS,
+  SOURCE_MAP_SETTINGS,
+  STYLE_RESOLUTIONS,
+  type SourceMapSetting,
+  type BooleanOptionKey,
+  type FixtureCategory,
+  type FixtureDescriptor,
+  type FixtureOptionOverrides,
+  type FixtureWeight,
+} from './types.js';
 
 export interface FixtureRegistryPaths {
   packageDir: string;
@@ -39,6 +52,8 @@ interface FixtureManifestEntry {
   category: FixtureCategory;
   weight: FixtureWeight;
   batchSize: number;
+  dev?: boolean;
+  options?: FixtureOptionOverrides;
 }
 
 export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor[] {
@@ -52,7 +67,7 @@ export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor
     .filter(fixture => requested.has(fixture.category))
     .map(fixture => {
       const filePath = path.join(options.workspaceRoot, fixture.file);
-      return {
+      const descriptor: FixtureDescriptor = {
         name: fixture.name,
         filePath,
         code: fs.readFileSync(filePath, 'utf-8'),
@@ -60,6 +75,14 @@ export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor
         category: fixture.category,
         batchSize: fixture.batchSize,
       };
+      // Assigned only when the manifest declared it, so an undeclared `dev`
+      // stays absent rather than becoming an own `dev: undefined` property:
+      // "the manifest did not say" and "the manifest said nothing in
+      // particular" must not read the same to a consumer. Same shape as
+      // `parseManifestEntry`.
+      if (fixture.dev !== undefined) descriptor.dev = fixture.dev;
+      if (fixture.options !== undefined) descriptor.options = fixture.options;
+      return descriptor;
     });
 
   if (!options.filter || options.filter.length === 0) return all;
@@ -106,13 +129,125 @@ function parseManifestEntry(input: unknown, index: number): FixtureManifestEntry
   if (!Number.isSafeInteger(input.batchSize) || Number(input.batchSize) <= 0) {
     throw new Error(`${context}.batchSize must be a positive integer`);
   }
-  return {
+  // Rejected rather than coerced: `"false"` and `0` are both truthy-adjacent
+  // mistakes that would silently benchmark the wrong configuration, and a
+  // fixture's shape is not something to guess at.
+  if (input.dev !== undefined && typeof input.dev !== 'boolean') {
+    throw new Error(`${context}.dev must be a boolean when present`);
+  }
+  const entry: FixtureManifestEntry = {
     name: input.name,
     file: input.file,
     category: input.category,
     weight: input.weight,
     batchSize: Number(input.batchSize),
   };
+
+  // Copied the same way `loadAllFixtures` copies it onto the descriptor, and
+  // for the same reason: an undeclared `dev` must stay absent rather than
+  // become an own `dev: undefined` property.
+  if (input.dev !== undefined) entry.dev = input.dev;
+  if (input.options !== undefined) {
+    entry.options = parseOptionOverrides(input.options, `${context}.options`);
+  }
+
+  return entry;
+}
+
+/**
+ * One fixture's option overrides, narrowed key by key.
+ *
+ * An unknown key is an error rather than a key dropped: a manifest that names
+ * `enableDebugDataProps` would otherwise be measured under the production shape
+ * while claiming to price the debug one, and the number it reports would look
+ * entirely reasonable.
+ */
+function parseOptionOverrides(input: unknown, context: string): FixtureOptionOverrides {
+  if (!isRecord(input)) throw new Error(`${context} must be an object`);
+
+  const overrides: FixtureOptionOverrides = {};
+
+  for (const [key, value] of Object.entries(input)) {
+    if (isBooleanOptionKey(key)) {
+      if (typeof value !== 'boolean') {
+        throw new Error(`${context}.${key} must be a boolean`);
+      }
+      overrides[key] = value;
+      continue;
+    }
+
+    // The keys whose value is not a boolean are spelled out rather than
+    // tabulated, because a table would have to hold each one's accepted values
+    // against a key whose value type differs from every other key's.
+    if (key === 'styleResolution') {
+      overrides.styleResolution = requireOneOf(value, STYLE_RESOLUTIONS, `${context}.${key}`);
+      continue;
+    }
+    if (key === 'sourceMap') {
+      overrides.sourceMap = requireSourceMapSetting(value, `${context}.${key}`);
+      continue;
+    }
+    if (key === 'classNamePrefix') {
+      if (typeof value !== 'string' || value.length === 0) {
+        throw new Error(`${context}.${key} must be a non-empty string`);
+      }
+      overrides.classNamePrefix = value;
+      continue;
+    }
+
+    throw new Error(
+      `${context}.${key} is not a benchmarkable option — the accepted keys are ` +
+        `${BOOLEAN_OPTION_KEYS.join(', ')}, styleResolution, sourceMap, ` +
+        `classNamePrefix`
+    );
+  }
+
+  return overrides;
+}
+
+function isBooleanOptionKey(key: string): key is BooleanOptionKey {
+  // Widened to compare, not asserted: the predicate is what narrows, and the
+  // caller only ever indexes with a key this returned true for.
+  const keys: readonly string[] = BOOLEAN_OPTION_KEYS;
+  return keys.includes(key);
+}
+
+/**
+ * The `sourceMap` value a manifest string names, or an error.
+ *
+ * A lookup into the package's own `SourceMaps` export, so what comes back is
+ * already the type the option takes: the *key* is what gets narrowed, and a key
+ * of a real object is something a runtime check can actually establish.
+ */
+function requireSourceMapSetting(
+  value: unknown,
+  context: string
+): NonNullable<FixtureOptionOverrides['sourceMap']> {
+  const settings = Object.keys(SOURCE_MAP_SETTINGS);
+  const named = settings.find(setting => setting === value);
+  if (named === undefined || !isSourceMapSetting(named)) {
+    throw new Error(`${context} must be one of ${settings.join(', ')}`);
+  }
+
+  return SOURCE_MAP_SETTINGS[named];
+}
+
+function isSourceMapSetting(key: string): key is SourceMapSetting {
+  return Object.hasOwn(SOURCE_MAP_SETTINGS, key);
+}
+
+/** `value` when it is one of `accepted`, else an error naming what was allowed. */
+function requireOneOf<T extends string>(
+  value: unknown,
+  accepted: readonly T[],
+  context: string
+): T {
+  const found = accepted.find(candidate => candidate === value);
+  if (found === undefined) {
+    throw new Error(`${context} must be one of ${accepted.join(', ')}`);
+  }
+
+  return found;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

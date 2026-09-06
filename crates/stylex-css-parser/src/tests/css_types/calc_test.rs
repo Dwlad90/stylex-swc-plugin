@@ -24,7 +24,10 @@ mod test_css_type_calc {
     let calc2 = Calc::parser().parse_to_end("calc(3.1415927)").unwrap();
     match &calc2.value {
       CalcValue::Number(num) => {
-        assert_eq!(*num, std::f32::consts::PI);
+        // The authored digits, not pi: `3.1415927` is what the source says and
+        // what a double holds. It used to read as `f32::consts::PI` only
+        // because that constant is spelled the same way.
+        assert_eq!(num.to_string(), "3.1415927");
       },
       _ => stylex_panic!("Expected Number value"),
     }

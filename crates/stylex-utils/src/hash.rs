@@ -1,19 +1,22 @@
 use std::{
   collections::hash_map::DefaultHasher,
   hash::{Hash, Hasher},
-  mem::discriminant,
+  mem::{Discriminant, discriminant},
+  sync::LazyLock,
 };
+
+use xxhash_rust::xxh3::Xxh3Default;
 
 use swc_core::{
   common::{DUMMY_SP, SyntaxContext},
   ecma::{
     ast::{
-      ArrayLit, ArrowExpr, AwaitExpr, BigInt, BinExpr, BlockStmtOrExpr, Bool, CallExpr, Callee,
-      ComputedPropName, CondExpr, Expr, ExprOrSpread, Ident, IdentName, Import, Lit, MemberExpr,
-      MemberProp, MetaPropExpr, NewExpr, Null, Number, ObjectLit, OptCall, OptChainBase,
-      OptChainExpr, ParenExpr, Pat, PrivateName, Prop, PropName, PropOrSpread, Regex, SeqExpr, Str,
-      Super, SuperProp, SuperPropExpr, TaggedTpl, ThisExpr, Tpl, TplElement, UnaryExpr, UpdateExpr,
-      YieldExpr,
+      ArrayLit, ArrowExpr, ArrowFunctionBody, AwaitExpr, BigInt, BinExpr, Bool, CallExpr, Callee,
+      ComputedPropName, CondExpr, Expr, ExprOrSpread, Ident, IdentName, Import, Invalid, Lit,
+      MemberExpr, MemberProp, MetaPropExpr, NewExpr, Null, Number, ObjectLit, OptCall,
+      OptChainBase, OptChainExpr, ParenExpr, Pat, PrivateName, Prop, PropName, PropOrSpread, Regex,
+      SeqExpr, Str, Super, SuperProp, SuperPropExpr, TaggedTpl, ThisExpr, Tpl, TplElement,
+      UnaryExpr, UpdateExpr, YieldExpr,
     },
     utils::drop_span,
   },
@@ -160,6 +163,85 @@ pub fn stable_hash<T: Hash>(t: &T) -> u64 {
   hasher.finish()
 }
 
+/// The structural key's hasher: xxh3, taken 128 bits wide.
+///
+/// Two properties are needed at once, and the pairing of a width with a speed is
+/// the whole reason this is not `DefaultHasher`.
+///
+/// **128 bits, because two consumers do not confirm a hit.** The evaluator's memo
+/// returns a cached fold, and the before-declaration injection slot splices
+/// metadata, on the strength of the key alone. At 64 bits and ten thousand
+/// distinct expressions in a file that is a collision every `1e-12` files -- a
+/// wrong folded value or a misplaced injection, silently, with no diagnostic. At
+/// 128 it is past `1e-31`.
+///
+/// **In one pass, because the obvious way to get 128 bits costs two.** Two
+/// salted `DefaultHasher` states fed by the same walk were measured at +49% on
+/// the key and +5.8% on a whole production transform of a 400-`create` file --
+/// paying that forever to remove a failure that arrives once per `1e4` years is
+/// the wrong trade. xxh3 emits 128 bits from a single pass, and is enough faster
+/// than SipHash that the wider key is also the cheaper one.
+///
+/// Nothing depends on the values. No consumer persists a key, none derives a
+/// class name from one, and output order comes from source order -- which is what
+/// makes changing the algorithm a contained decision rather than a rename of
+/// every class in every project. `DefaultHasher` was never stable across Rust
+/// releases either, so nothing could have depended on it and been correct.
+///
+/// `Xxh3Default` rather than `Xxh3`: the latter carries a seed and a 192-byte
+/// custom secret, and copies the secret into every instance. One instance is
+/// built per key, which makes that copy the largest fixed cost of a small key.
+/// The two digest identically at the default seed and secret, and no consumer
+/// needs a seed.
+///
+/// Only `write` is implemented. Every typed `Hasher` method defaults to routing
+/// through it, so the stream is identical whatever a `Hash` implementation calls.
+struct WideHasher {
+  state: Xxh3Default,
+}
+
+impl WideHasher {
+  fn new() -> Self {
+    Self {
+      state: Xxh3Default::new(),
+    }
+  }
+
+  fn finish_wide(&self) -> u128 {
+    self.state.digest128()
+  }
+}
+
+impl Hasher for WideHasher {
+  fn write(&mut self, bytes: &[u8]) {
+    self.state.update(bytes);
+  }
+
+  /// xxh3's 64-bit digest, present only because `Hasher` requires it.
+  ///
+  /// It is **not** the low half of [`WideHasher::finish_wide`]: xxh3's 64-bit and
+  /// 128-bit digests are separate constructions over the same stream, so the two
+  /// answers are unrelated numbers. Nothing here reads this, and a caller that
+  /// reached for the familiar `finish` would get a different, narrower key
+  /// without being told -- which is the whole hazard the width exists to remove.
+  /// Pinned in `wide_hasher_tests`.
+  fn finish(&self) -> u64 {
+    self.state.digest()
+  }
+}
+
+/// [`stable_hash`] over 128 bits.
+///
+/// For the fallback arms of the structural key, and for any other cache whose
+/// reads act on a hash hit without confirming it -- the span cache in
+/// `stylex-transform`'s code-frame lookup is the other one, and a collision
+/// there is a wrong `file:line` in the output rather than a slow path.
+pub fn stable_hash_wide<T: Hash>(t: &T) -> u128 {
+  let mut hasher = WideHasher::new();
+  t.hash(&mut hasher);
+  hasher.finish_wide()
+}
+
 /// Hashes an expression into a stable structural key for the evaluator cache,
 /// treating spans as insignificant for the common expression shapes.
 ///
@@ -169,14 +251,17 @@ pub fn stable_hash<T: Hash>(t: &T) -> u64 {
 /// unsupported shapes (functions, classes, JSX, TS-only nodes, oversized
 /// collections) fall back to hashing a span-stripped clone so the public
 /// contract stays span-insensitive for every expression shape.
+///
+/// 128 bits wide, because two of its consumers act on a hit without confirming
+/// it -- see [`WideHasher`] for what that buys and why it is not two hashes.
 #[inline]
-pub fn stable_hash_unspanned(path: &Expr) -> u64 {
-  let mut hasher = DefaultHasher::new();
+pub fn stable_hash_unspanned(path: &Expr) -> u128 {
+  let mut hasher = WideHasher::new();
 
   if hash_expr_unspanned(path, &mut hasher) {
-    hasher.finish()
+    hasher.finish_wide()
   } else {
-    stable_hash(&drop_span(path.clone()))
+    stable_hash_wide(&drop_span(path.clone()))
   }
 }
 
@@ -191,8 +276,8 @@ pub fn stable_hash_unspanned(path: &Expr) -> u64 {
 /// argument has a shape the in-place hasher does not cover), keeping the key
 /// identical in every case.
 #[inline]
-pub fn stable_hash_unspanned_call(call: &CallExpr) -> u64 {
-  let mut hasher = DefaultHasher::new();
+pub fn stable_hash_unspanned_call(call: &CallExpr) -> u128 {
+  let mut hasher = WideHasher::new();
 
   // `discriminant` over the `Expr::Call` variant is independent of the call's
   // contents, so a throwaway stack value (no heap allocation) yields the same
@@ -207,9 +292,52 @@ pub fn stable_hash_unspanned_call(call: &CallExpr) -> u64 {
   discriminant(&call_variant).hash(&mut hasher);
 
   if hash_call_expr_unspanned(call, &mut hasher) {
-    hasher.finish()
+    hasher.finish_wide()
   } else {
-    stable_hash(&drop_span(Expr::Call(call.clone())))
+    stable_hash_wide(&drop_span(Expr::Call(call.clone())))
+  }
+}
+
+/// Hashes a [`MemberExpr`] producing the exact same key as
+/// `stable_hash_unspanned(&Expr::Member(member.clone()))`, without cloning it
+/// into an owned `Expr` on the common, fully hashable path.
+///
+/// Nothing relies on that parity today: `callee_members` is the only map keyed
+/// this way, and it is written and read through this function alone. Kept
+/// identical anyway so a future consumer keyed by whole-`Expr` hashes can probe
+/// it without a special case, and pinned by the tests beside it.
+///
+/// The counterpart of [`stable_hash_unspanned_call`], and it exists for the
+/// same reason: the caller holds a borrowed node and the question it asks runs
+/// on a hot path, so materializing an owned `Expr` per lookup is the cost the
+/// helper removes.
+///
+/// Unlike the call variant, the `Expr::Member` discriminant cannot be taken
+/// from a throwaway stack value: `MemberExpr::obj` is a `Box`, so building one
+/// would allocate on every call. It is computed once into a `LazyLock`
+/// instead. `Discriminant<T>` is `Send + Sync` for every `T` and depends only
+/// on the variant, never on the contents.
+#[inline]
+pub fn stable_hash_unspanned_member(member: &MemberExpr) -> u128 {
+  static MEMBER_DISCRIMINANT: LazyLock<Discriminant<Expr>> = LazyLock::new(|| {
+    discriminant(&Expr::Member(MemberExpr {
+      span: DUMMY_SP,
+      obj: Box::new(Expr::Invalid(Invalid { span: DUMMY_SP })),
+      prop: MemberProp::PrivateName(PrivateName {
+        span: DUMMY_SP,
+        name: "".into(),
+      }),
+    }))
+  });
+
+  let mut hasher = WideHasher::new();
+
+  MEMBER_DISCRIMINANT.hash(&mut hasher);
+
+  if hash_member_expr_unspanned(member, &mut hasher) {
+    hasher.finish_wide()
+  } else {
+    stable_hash_wide(&drop_span(Expr::Member(member.clone())))
   }
 }
 
@@ -370,7 +498,7 @@ fn hash_arrow_expr_unspanned<H: Hasher>(arrow: &ArrowExpr, state: &mut H) -> boo
   arrow.is_generator.hash(state);
 
   hash_slice_with(&arrow.params, state, hash_pat_unspanned)
-    && hash_block_stmt_or_expr_unspanned(&arrow.body, state)
+    && hash_arrow_function_body_unspanned(&arrow.body, state)
     && hash_none(&arrow.type_params, state)
     && hash_none(&arrow.return_type, state)
 }
@@ -544,15 +672,15 @@ fn hash_import_unspanned<H: Hasher>(import: &Import, state: &mut H) -> bool {
   true
 }
 
-fn hash_block_stmt_or_expr_unspanned<H: Hasher>(
-  block_stmt_or_expr: &BlockStmtOrExpr,
+fn hash_arrow_function_body_unspanned<H: Hasher>(
+  arrow_function_body: &ArrowFunctionBody,
   state: &mut H,
 ) -> bool {
-  discriminant(block_stmt_or_expr).hash(state);
+  discriminant(arrow_function_body).hash(state);
 
-  match block_stmt_or_expr {
-    BlockStmtOrExpr::Expr(expr) => hash_expr_unspanned(expr, state),
-    BlockStmtOrExpr::BlockStmt(_) => false,
+  match arrow_function_body {
+    ArrowFunctionBody::Expr(expr) => hash_expr_unspanned(expr, state),
+    ArrowFunctionBody::FunctionBody(_) => false,
   }
 }
 

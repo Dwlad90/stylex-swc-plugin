@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs';
 
 import commonjs from '@rollup/plugin-commonjs';
 import html, { makeHtmlAttributes } from '@rollup/plugin-html';
-import nodeResolve from '@rollup/plugin-node-resolve';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
-import swc from '@rollup/plugin-swc';
+import { swc } from '@rollup/plugin-swc';
 import styleXRSPlugin from '@stylexswc/rollup-plugin';
 import serve from 'rollup-plugin-serve';
 

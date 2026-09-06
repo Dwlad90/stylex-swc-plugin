@@ -1,9 +1,16 @@
 use crate::utils::prelude::*;
 use swc_core::common::FileName;
 
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  crate::legacy::transform_call::legacy_call_transform(comments, customize)
+}
+
 stylex_test!(
   stylex_call_produces_dev_class_names_and_enable_inlined_conditional_merge_false,
-  |tr| build_test_transform(tr.comments.clone(), |b| {
+  |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
       .with_dev(true)
       .with_enable_debug_class_names(true)
@@ -25,7 +32,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_produces_dev_class_name_with_conditions,
-  |tr| build_test_transform(tr.comments.clone(), |b| {
+  |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
       .with_dev(true)
       .with_enable_debug_class_names(true)
@@ -50,7 +57,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_produces_dev_class_name_with_conditions_skip_conditional,
-  |tr| build_test_transform(tr.comments.clone(), |b| {
+  |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
       .with_dev(true)
       .with_enable_debug_class_names(true)
@@ -75,7 +82,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_produces_dev_class_name_with_collisions,
-  |tr| build_test_transform(tr.comments.clone(), |b| {
+  |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
       .with_dev(true)
       .with_enable_debug_class_names(true)
@@ -97,7 +104,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_produces_dev_class_name_with_collisions_skip_conditional,
-  |tr| build_test_transform(tr.comments.clone(), |b| {
+  |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
       .with_dev(true)
       .with_enable_inlined_conditional_merge(false)

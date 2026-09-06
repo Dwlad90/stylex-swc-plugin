@@ -1,4 +1,7 @@
 use super::*;
+use crate::transform::stylex::visitor_utils::{
+  insert_stylex_identifier_entry, register_env_in_namespace_fold,
+};
 
 pub(crate) fn build_runtime_function_map<C>(transform: &mut StyleXTransform<C>) -> Box<FunctionMap>
 where
@@ -110,35 +113,22 @@ where
       )),
     );
 
-    identifiers
-      .entry(name.get_import_str().into())
-      .and_modify(|func_type| {
-        if let Some(map) = func_type.as_map_mut() {
-          map.insert(
-            STYLEX_WHEN.into(),
-            FunctionConfig {
-              fn_ptr: FunctionType::DefaultMarker(Arc::clone(LazyLock::force(&STYLEX_WHEN_MAP))),
-              takes_path: false,
-            },
-          );
-        }
-      })
-      .or_insert_with(|| {
-        let mut map = FxHashMap::default();
-        map.insert(
-          STYLEX_WHEN.into(),
-          FunctionConfig {
-            fn_ptr: FunctionType::DefaultMarker(Arc::clone(LazyLock::force(&STYLEX_WHEN_MAP))),
-            takes_path: false,
-          },
-        );
-        Box::new(FunctionConfigType::Map(map))
-      });
+    insert_stylex_identifier_entry(
+      &mut identifiers,
+      name,
+      STYLEX_WHEN.into(),
+      FunctionConfigType::Regular(FunctionConfig {
+        fn_ptr: FunctionType::DefaultMarker(Arc::clone(LazyLock::force(&STYLEX_WHEN_MAP))),
+        takes_path: false,
+      }),
+    );
   }
 
   transform
     .state
     .apply_stylex_env(&mut identifiers, &mut member_expressions);
+
+  register_env_in_namespace_fold(&transform.state, &mut identifiers);
 
   Box::new(FunctionMap {
     identifiers,

@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import rspack from '@rspack/core';
+import { rspack } from '@rspack/core';
 import styleXRSPlugin from '@stylexswc/unplugin/rspack';
 
 const isDev = process.env.NODE_ENV === 'development';

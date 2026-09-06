@@ -10,19 +10,19 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr, KeyValueProp},
 };
 
-use crate::shared::{
-  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  structures::{functions::FunctionMap, state_manager::StateManager, types::StylesObjectMap},
-  utils::{
-    ast::convertors::{convert_expr_to_str, create_string_expr},
-    js::evaluate::evaluate_obj_key,
-    log::build_code_frame_error::{get_key_span_from_source_code, get_span_from_source_code},
-  },
-};
-use stylex_ast::ast::convertors::get_key_values_from_object;
+use stylex_state_index::key_span_index::CallLookup;
+
+use stylex_ast::ast::convertors::{create_string_expr, get_key_values_from_object};
 use stylex_constants::constants::{
   common::COMPILED_KEY,
   messages::{EXPECTED_OBJECT_EXPRESSION, INVALID_UTF8, illegal_argument_length},
+};
+use stylex_diagnostics::code_frame::{get_key_span_from_source_code, get_span_from_source_code};
+use stylex_evaluator::evaluate::evaluate_obj_key;
+use stylex_state::resolution::convertors::convert_expr_to_str;
+use stylex_state::{
+  flat_compiled_styles_value::FlatCompiledStylesValue, functions::FunctionMap,
+  state_manager::StateManager, types::StylesObjectMap,
 };
 use stylex_structures::stylex_options::CheckModuleResolution;
 
@@ -68,9 +68,14 @@ pub(crate) fn add_source_map_data(
     },
   };
 
-  // The value-matching fallback wraps the same call for every namespace key,
-  // so build it once instead of deep-cloning the call per key.
-  let wrapped_call_expr = Expr::Call(call_expr.clone());
+  // Everything a namespace lookup needs that belongs to the *call*, built once.
+  // The loop below runs per namespace, and each of these was being rebuilt
+  // inside it -- which made a `create` call quadratic in its own namespace count.
+  // The wrapped expression it carries is a deep clone of the call, so it is
+  // built on the first namespace that actually needs one and not at all for a
+  // call whose namespaces all resolve through the input source map or the span
+  // cache.
+  let lookup = CallLookup::new(call_expr, state.input_module_base());
 
   for (key, value) in obj {
     let mut inner_map = IndexMap::new();
@@ -104,10 +109,9 @@ pub(crate) fn add_source_map_data(
         // when the compiled values no longer match the file content. Fall
         // back to matching the value expression when the key cannot be
         // located (e.g. computed keys).
-        let source_code_frame_and_span = match get_key_span_from_source_code(call_expr, key, state)
-        {
+        let source_code_frame_and_span = match get_key_span_from_source_code(&lookup, key, state) {
           Ok((code_frame, span)) if !span.eq(&DUMMY_SP) => Ok((code_frame, span)),
-          _ => get_span_from_source_code(&wrapped_call_expr, &style_node_path.value, state),
+          _ => get_span_from_source_code(lookup.wrapped(), &style_node_path.value, state),
         };
 
         match source_code_frame_and_span {
@@ -190,7 +194,18 @@ fn insert_compiled_entry(
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
   functions: &FunctionMap,
 ) {
-  let raw_short_filename = create_short_filename(filename, state, package_json_seen);
+  // Cached per path: the debug path asks for the same filename once per style
+  // namespace, and shortening one reads the package boundaries around it.
+  let raw_short_filename = match state.cached_short_filename(filename) {
+    Some(short_filename) => short_filename.to_owned(),
+    None => {
+      let short_filename = create_short_filename(filename, state, package_json_seen);
+
+      state.insert_cached_short_filename(filename.to_owned(), short_filename.clone());
+
+      short_filename
+    },
+  };
   let short_filename_expr = if let Some(ref f) = state.options.debug_file_path {
     f.call(vec![create_string_expr(&raw_short_filename)])
   } else {

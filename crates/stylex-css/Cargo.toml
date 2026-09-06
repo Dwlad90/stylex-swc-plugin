@@ -9,10 +9,11 @@ version.workspace = true
 
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 doctest = false
 
 [dependencies]
+icu_collator.workspace = true
 log.workspace = true
 postcss_value_parser = { path = "../postcss-value-parser" }
 stylex_constants = { path = "../stylex-constants" }
@@ -28,6 +29,7 @@ stylex_utils = { path = "../stylex-utils" }
 criterion.workspace = true
 ctor.workspace = true
 pretty_env_logger.workspace = true
+swc_malloc.workspace = true
 
 [[bench]]
 harness = false

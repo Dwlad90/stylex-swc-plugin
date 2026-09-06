@@ -9,15 +9,16 @@ version.workspace = true
 
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 doctest = false
 
 [dependencies]
 derive_more.workspace = true
 indexmap.workspace = true
-rustc-hash.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
+stylex_macros = { path = "../stylex-macros" }
+stylex_regex = { path = "../stylex-regex" }
 stylex_structures = { path = "../stylex-structures" }
 stylex_utils = { path = "../stylex-utils" }
 

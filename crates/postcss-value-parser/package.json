@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/postcss-value-parser",
   "description": "Loose CSS declaration-value scanner that preserves the author's own characters",
-  "version": "0.18.4",
+  "version": "0.19.0-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -21,9 +21,10 @@
     "format:toml": "taplo format",
     "format:toml:check": "taplo format --check",
     "generate:value-parser-cases": "node scripts/generate-value-parser-cases.mjs | rustfmt --edition 2024 > src/tests/cases.rs",
-    "generate:value-parser-cases:check": "node scripts/generate-value-parser-cases.mjs | rustfmt --edition 2024 | diff -u src/tests/cases.rs -",
+    "generate:value-parser-cases:check": "node scripts/generate-value-parser-cases.mjs | rustfmt --edition 2024 | diff -u --strip-trailing-cr src/tests/cases.rs -",
     "prepublishOnly": "pnpm run build",
-    "test": "pnpm run generate:value-parser-cases:check && scripty",
+    "pretest": "pnpm run generate:value-parser-cases:check",
+    "test": "echo \"Skip: the root test script runs the workspace suite.\"",
     "test:coverage": "scripty",
     "test:flamegraph": "scripty",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"

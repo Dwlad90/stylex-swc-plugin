@@ -10,6 +10,7 @@ fn make_token_list(tokens: Vec<SimpleToken>) -> TokenList {
   TokenList {
     tokens,
     current_index: 0,
+    depth: 0,
   }
 }
 
@@ -67,7 +68,7 @@ fn consume_right_paren_errors_on_eof() {
   assert!(result.is_err());
 }
 
-// ── number_or_percentage_to_f64 — Percentage arm ─────────────────────────
+// ── NumberOrPercentage::as_fraction — Percentage arm ─────────────────────
 
 // The Percentage arm is exercised by scale(50%) or any parser that
 // accepts a percentage.
@@ -918,19 +919,19 @@ fn scale3d_parse_error_wrong_close_token() {
   assert!(result.unwrap_err().to_string().contains("')'"));
 }
 
-// Scale3d with percentage values (covers number_or_percentage_to_f64 Percentage arm).
+// Scale3d with percentage values (covers as_fraction's Percentage arm).
 #[test]
 fn scale3d_parse_percentage_values() {
-  // cssparser stores percentage as unit_value: 50% = 0.5 in SimpleToken::Percentage.
-  // token_to_percentage does (value * 100.0) as f32 → 50.0 stored in Percentage::value.
-  // number_or_percentage_to_f64 then does p.value / 100.0 → 0.5.
+  // SimpleToken::Percentage carries the authored percent, so 50% is 50, and
+  // Percentage::value holds it unscaled. as_fraction then divides by 100 where
+  // a fraction is wanted → 0.5.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("scale3d".to_string()),
-    SimpleToken::Percentage(0.5), // 50% → stored as 0.5 unit_value → result 0.5
+    SimpleToken::Percentage(50.0), // 50% → stored as 50 → fraction 0.5
     SimpleToken::Comma,
-    SimpleToken::Percentage(1.0), // 100% → 1.0
+    SimpleToken::Percentage(100.0), // 100%
     SimpleToken::Comma,
-    SimpleToken::Percentage(0.25), // 25% → 0.25
+    SimpleToken::Percentage(25.0), // 25%
     SimpleToken::RightParen,
   ]);
   let result = (Scale3d::parse().run)(&mut tl).unwrap();
@@ -984,13 +985,13 @@ fn scale_axis_z_exercises_flat_map_closures() {
   }
 }
 
-// ScaleAxis with percentage value (covers number_or_percentage_to_f64 Percentage arm).
+// ScaleAxis with percentage value (covers as_fraction's Percentage arm).
 #[test]
 fn scale_axis_x_percentage_value() {
-  // cssparser unit_value: 75% = 0.75, stored → Percentage::value = 75.0, / 100 = 0.75.
+  // 75% → Percentage::value = 75.0, and as_fraction divides → 0.75.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("scaleX".to_string()),
-    SimpleToken::Percentage(0.75), // 75% as unit_value
+    SimpleToken::Percentage(75.0), // 75%
     SimpleToken::RightParen,
   ]);
   let result = (ScaleAxis::parse().run)(&mut tl).unwrap();

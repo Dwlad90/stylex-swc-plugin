@@ -1,15 +1,13 @@
 use rustc_hash::FxHashMap;
+use stylex_ast::ast::convertors::create_number_expr;
 use stylex_ast::ast::factories::{
   create_array_expression, create_key_value_prop, create_object_expression,
 };
-use stylex_transform::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{functions::FunctionMap, state_manager::StateManager},
-  utils::{
-    ast::convertors::{convert_expr_to_str, create_number_expr},
-    core::evaluate_stylex_create_arg::evaluate_stylex_create_arg,
-  },
+use stylex_state::resolution::convertors::convert_expr_to_str;
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
 };
+use stylex_transform::shared::utils::core::evaluate_stylex_create_arg::evaluate_stylex_create_arg;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
@@ -85,13 +83,18 @@ impl Fold for ArgsStyleXTransform {
             })
             .collect(),
         ),
-        EvaluateResultValue::Callback(func) => func(
+        // A callback that could not fold its body answers nothing, which for a
+        // harness that renders one value means the input under test was wrong.
+        EvaluateResultValue::Callback(func) => match func(
           vec![
             EvaluateResultValue::Expr(create_number_expr(2.0)),
             EvaluateResultValue::Expr(create_number_expr(7.0)),
           ],
           &mut self.state,
-        ),
+        ) {
+          Some(expr) => expr,
+          None => panic!("the callback folded no value"),
+        },
         EvaluateResultValue::Map(map) => {
           let mut props = vec![];
 

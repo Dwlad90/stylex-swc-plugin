@@ -5,15 +5,23 @@
 - Edition 2024 or later, toolchain 1.90.0 or later, SWC core v56 or later.
 - WASM target `wasm32-wasip1` is supported (see `rust-toolchain.toml` for all
   targets).
-- Release profile: `opt-level = "z"`, LTO enabled, symbol stripping.
+- Release profile: `opt-level = 3`, fat LTO, symbol stripping. Never `"z"` or
+  `"s"` -- they cut the inliner budget, and the hot path is SWC's visitor
+  traversal.
+- `lto = true` applies only to a final artifact, so the addon is `cdylib`
+  only: a crate that also emits an `rlib` gets no LTO, and cargo gives no
+  warning. The measurements are in [Project Structure](../STRUCTURE.md), and
+  the reasoning in the `[profile.release]` comments of `Cargo.toml`.
 
 ## Key Modules
 
 - `StyleXTransform<C: Comments>` in
   `crates/stylex-transform/src/transform/mod.rs` -- main SWC visitor. All
   transform logic lives under `crates/stylex-transform/src/transform/`.
-- `crates/stylex-structures/` -- core data models (`StateManager`,
-  `PluginPass`, `StyleXOptions`, etc.).
+- `crates/stylex-state/` -- per-file compilation state (`StateManager`) and its
+  value types.
+- `crates/stylex-structures/` -- core data models (`PluginPass`,
+  `StyleXOptions`, etc.).
 - `crates/stylex-rs-compiler/` -- the NAPI entry point: parses, drives the
   transform, prints, and owns source-map and comment plumbing.
 - `crates/stylex-path-resolver/` -- path resolution and package.json parsing.
@@ -29,6 +37,48 @@
 - Use `serde` / `serde_json` for serialization. The compiler crate also uses
   `serde_plain` for simple string conversions.
 - Avoid using `unsafe` blocks unless absolutely necessary.
+
+## Items Kept But Not Called
+
+Mark an item that is kept on purpose and has no caller with
+`#[allow(dead_code)]`. Do not mark it with a leading underscore in the name.
+
+The dead-code lint skips any name that starts with `_`. The underscore therefore
+hides the item from the lint. An item that loses its last caller then stays
+silent. The attribute lets the lint fire.
+
+Write next to the attribute why the item is kept. On a public item of a library
+crate the lint cannot fire, so the attribute is only a note.
+
+Rename underscore-named items from before this rule when you touch them. To find
+them:
+
+```bash
+grep -rn --include='*.rs' -E '\bfn _[a-z]' crates/
+```
+
+## Re-exports
+
+A `pub use` must make a boundary. It must not copy a path that exists.
+
+Permitted:
+
+- `lib.rs` publishes what the crate defines. The module tree stays free to
+  change.
+- A parent publishes an item from a private `mod`. That module has no path of
+  its own, so this is the only route to the item.
+- A crate publishes a dependency type that its own API shows. Callers then do
+  not add that dependency again and get a second version of it.
+- A test prelude. Test code is not part of the crate graph.
+
+Not permitted:
+
+- A shim that keeps an old path alive after a move. Update the callers.
+- A shorter path to a module that is already public.
+- A glob, such as `pub use foo::*`. A new item upstream then changes this API.
+
+Import from the crate that defines the item. A republished item hides the true
+crate graph.
 
 ## SWC Pitfalls
 

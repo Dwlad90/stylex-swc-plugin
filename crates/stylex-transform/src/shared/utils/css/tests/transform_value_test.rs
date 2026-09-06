@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod transform_value_content_property_tests {
-  use crate::shared::{
-    structures::state_manager::StateManager, utils::css::common::transform_value,
-  };
+  use crate::shared::utils::css::common::transform_value;
+  use stylex_state::state_manager::StateManager;
   use stylex_structures::raw_value::TRawValue;
   use stylex_structures::stylex_options::StyleXOptions;
 
@@ -87,6 +86,38 @@ mod transform_value_content_property_tests {
     for (input, expected) in strings {
       let output = transform_value("content", &TRawValue::from(input), &state_manager);
       assert_eq!(output, expected);
+    }
+  }
+
+  /// The corpus values whose only rewrite is this quoting, which reached the
+  /// pass through a whole-transform case alone -- a class name and a rule, from
+  /// which the quoting can only be inferred.
+  ///
+  /// Every expectation is what `@stylexjs/babel-plugin` emits for the same
+  /// declaration, read from a report the parity harness in
+  /// `crates/stylex-rs-compiler/parity` wrote.
+  #[test]
+  fn quotes_the_corpus_content_values() {
+    let cases = vec![
+      ("a", "\"a\""),
+      ("abc", "\"abc\""),
+      ("next", "\"next\""),
+      ("x", "\"x\""),
+      // Non-ASCII text is quoted as it stands, which is what the class-name
+      // hash is then taken over.
+      ("\u{2022}", "\"\u{2022}\""),
+      ("\u{1F389}", "\"\u{1F389}\""),
+      // One quote character is not a pair, so the value is quoted whole rather
+      // than read as an already-quoted string.
+      ("\"unterminated", "\"\"unterminated\""),
+    ];
+
+    let state_manager = StateManager::new(StyleXOptions::default());
+
+    for (input, expected) in cases {
+      let output = transform_value("content", &TRawValue::from(input), &state_manager);
+
+      assert_eq!(output, expected, "quoting `content: {}`", input);
     }
   }
 

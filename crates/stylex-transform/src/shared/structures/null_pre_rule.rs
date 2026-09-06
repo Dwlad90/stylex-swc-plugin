@@ -1,7 +1,6 @@
-use super::{
-  pre_rule::{CompiledResult, PreRule, PreRuleValue},
-  state_manager::StateManager,
-};
+use super::pre_rule::{CompiledResult, PreRule, PreRules};
+use stylex_state::state_manager::StateManager;
+use stylex_structures::pre_rule_value::PreRuleValue;
 
 #[derive(Debug, Clone, PartialEq, Copy, Default)]
 pub(crate) struct NullPreRule {}
@@ -21,7 +20,8 @@ impl PreRule for NullPreRule {
   fn compiled(&mut self, _: &mut StateManager) -> CompiledResult {
     CompiledResult::Null
   }
-  fn equals(&self, _other: &dyn PreRule) -> bool {
-    false
+  /// Every null rule stands for the same absence, so any two of them are equal.
+  fn equals(&self, other: &PreRules) -> bool {
+    matches!(other, PreRules::NullPreRule(_))
   }
 }

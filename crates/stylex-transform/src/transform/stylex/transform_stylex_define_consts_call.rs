@@ -7,6 +7,7 @@ use stylex_constants::constants::{
   },
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_utils::identifier::gen_file_based_identifier;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -17,15 +18,14 @@ use crate::{
   shared::{
     transformers::stylex_define_consts::stylex_define_consts,
     utils::{
-      common::gen_file_based_identifier,
       core::js_to_ast::{NestedStringObject, convert_object_to_ast},
-      js::evaluate::evaluate,
-      log::build_code_frame_error::build_code_frame_error,
       validators::{find_and_validate_stylex_define_consts, is_define_consts_call},
     },
   },
   transform::stylex::visitor_utils::build_env_only_eval_config,
 };
+use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_evaluator::evaluate::evaluate;
 use stylex_structures::top_level_expression::TopLevelExpression;
 
 impl<C> StyleXTransform<C>

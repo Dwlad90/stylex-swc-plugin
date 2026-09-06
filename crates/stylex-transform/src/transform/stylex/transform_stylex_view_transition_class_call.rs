@@ -3,6 +3,7 @@ use stylex_constants::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
+use stylex_ast::ast::convertors::create_string_expr;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   common::comments::Comments,
@@ -12,23 +13,13 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    structures::{
-      functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-      state_manager::ImportKind,
-      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-    },
     transformers::{
-      stylex_first_that_works::stylex_first_that_works, stylex_keyframes::get_keyframes_fn,
+      stylex_keyframes::get_keyframes_fn,
       stylex_view_transition_class::stylex_view_transition_class,
     },
-    utils::{
-      ast::convertors::create_string_expr,
-      js::evaluate::evaluate,
-      log::build_code_frame_error::build_code_frame_error,
-      validators::{
-        assert_valid_properties, assert_valid_view_transition_class, is_view_transition_class_call,
-        validate_stylex_view_transition_class_indent,
-      },
+    utils::validators::{
+      assert_valid_properties, assert_valid_view_transition_class, is_view_transition_class_call,
+      validate_stylex_view_transition_class_indent,
     },
   },
 };
@@ -36,6 +27,13 @@ use stylex_constants::constants::{
   api_names::{STYLEX_FIRST_THAT_WORKS, STYLEX_KEYFRAMES, STYLEX_VIEW_TRANSITION_CLASS},
   common::VALID_VIEW_TRANSITION_CLASS_PROPERTIES,
   messages::{VIEW_TRANSITION_CLASS_INVALID_PROPERTY, non_static_value, non_style_object},
+};
+use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_evaluator::{evaluate::evaluate, stylex_first_that_works::stylex_first_that_works};
+use stylex_state::{
+  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+  state_manager::ImportKind,
+  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 
 impl<C> StyleXTransform<C>

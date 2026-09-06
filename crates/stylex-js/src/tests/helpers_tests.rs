@@ -65,14 +65,11 @@ fn method_sets_detect_expected_members() {
 
   assert!(is_invalid_method(&assign));
   assert!(is_mutating_object_method(&assign));
-  assert!(!is_mutating_array_method(&assign));
 
-  assert!(is_mutating_array_method(&push));
   assert!(!is_invalid_method(&push));
   assert!(!is_mutating_object_method(&push));
 
   assert!(!is_invalid_method(&map));
-  assert!(!is_mutating_array_method(&map));
   assert!(!is_mutating_object_method(&map));
 }
 
@@ -88,7 +85,6 @@ fn computed_props_are_not_classified_as_identifier_methods() {
   });
 
   assert!(!is_invalid_method(&computed));
-  assert!(!is_mutating_array_method(&computed));
   assert!(!is_mutating_object_method(&computed));
 }
 

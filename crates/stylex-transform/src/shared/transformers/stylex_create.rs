@@ -2,29 +2,28 @@ use std::{collections::VecDeque, rc::Rc};
 
 use indexmap::{IndexMap, IndexSet};
 use stylex_macros::stylex_panic;
+use stylex_types::structures::style_key::RuleKey;
 
 use crate::shared::{
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
-  },
-  structures::{
-    functions::FunctionMap,
-    pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules},
-    state::EvaluationState,
-    state_manager::StateManager,
-    types::{
-      ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap, RuleKey,
-      StylesObjectMap,
-    },
-  },
+  structures::pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRules},
   utils::{
-    ast::convertors::convert_expr_to_str, core::flatten_raw_style_object::flatten_raw_style_object,
-    validators::validate_namespace,
+    core::flatten_raw_style_object::flatten_raw_style_object, validators::validate_namespace,
   },
 };
 use stylex_constants::constants::{
   common::COMPILED_KEY,
   messages::{EXPRESSION_IS_NOT_A_STRING, VALUES_MUST_BE_OBJECT},
+};
+use stylex_evaluator::state::EvaluationState;
+use stylex_state::resolution::convertors::convert_expr_to_str;
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue,
+  flat_compiled_styles_value::FlatCompiledStylesValue,
+  functions::FunctionMap,
+  state_manager::StateManager,
+  types::{
+    ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap, StylesObjectMap,
+  },
 };
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_utils::hash::create_short_hash;

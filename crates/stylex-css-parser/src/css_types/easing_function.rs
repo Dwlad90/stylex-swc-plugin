@@ -3,13 +3,14 @@ CSS easing function parser.
 */
 
 use stylex_macros::stylex_unreachable;
+use stylex_utils::number::{to_js_string, write_js_number_list};
 
 use crate::{
   CssParseError,
   token_parser::TokenParser,
   token_types::{SimpleToken, TokenList},
 };
-use std::fmt::{self, Display};
+use std::fmt::{self, Display, Write as _};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum EasingFunction {
@@ -536,52 +537,22 @@ impl Display for EasingFunction {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for LinearEasingFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    // Format numbers to avoid floating point precision issues
-    let format_number = |n: f64| -> String {
-      // Round to 6 decimal places to avoid floating point precision issues
-      let rounded = (n * 1_000_000.0).round() / 1_000_000.0;
-      if rounded.fract() == 0.0 {
-        format!("{}", rounded as i64)
-      } else {
-        // Remove trailing zeros and format cleanly
-        let s = format!("{:.6}", rounded);
-        s.trim_end_matches('0').trim_end_matches('.').to_string()
-      }
-    };
-
-    let points_str = self
-      .points
-      .iter()
-      .map(|p| format_number(*p))
-      .collect::<Vec<_>>()
-      .join(", ");
-    write!(f, "linear({})", points_str)
+    f.write_str("linear(")?;
+    write_js_number_list(f, self.points.iter().copied())?;
+    f.write_char(')')
   }
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for CubicBezierEasingFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    // Format numbers to avoid floating point precision issues
-    let format_number = |n: f64| -> String {
-      // Round to 6 decimal places to avoid floating point precision issues
-      let rounded = (n * 1_000_000.0).round() / 1_000_000.0;
-      if rounded.fract() == 0.0 {
-        format!("{}", rounded as i64)
-      } else {
-        // Remove trailing zeros and format cleanly
-        let s = format!("{:.6}", rounded);
-        s.trim_end_matches('0').trim_end_matches('.').to_string()
-      }
-    };
-
     write!(
       f,
       "cubic-bezier({}, {}, {}, {})",
-      format_number(self.points[0]),
-      format_number(self.points[1]),
-      format_number(self.points[2]),
-      format_number(self.points[3])
+      to_js_string(self.points[0]),
+      to_js_string(self.points[1]),
+      to_js_string(self.points[2]),
+      to_js_string(self.points[3])
     )
   }
 }
@@ -628,3 +599,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/css_types/easing_function_coverage_test.rs"]
 mod easing_function_coverage_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/easing_function_precision_test.rs"]
+mod easing_function_precision_test;

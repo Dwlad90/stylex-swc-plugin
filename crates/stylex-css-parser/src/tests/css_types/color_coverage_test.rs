@@ -8,7 +8,7 @@ fn advanced_rgb_comma_full_parses_valid() {
   let result = AdvancedColorParsers::rgb_comma_full()
     .parse_to_end("rgb(255,0,128)")
     .unwrap();
-  assert_eq!(result, (255, 0, 128));
+  assert_eq!(result, (255.0, 0.0, 128.0));
 }
 
 #[test]
@@ -37,7 +37,7 @@ fn advanced_rgb_space_full_parses_valid() {
   let result = AdvancedColorParsers::rgb_space_full()
     .parse_to_end("rgb(10 20 30)")
     .unwrap();
-  assert_eq!(result, (10, 20, 30));
+  assert_eq!(result, (10.0, 20.0, 30.0));
 }
 
 #[test]
@@ -66,7 +66,7 @@ fn advanced_rgba_comma_full_parses_valid() {
   let result = AdvancedColorParsers::rgba_comma_full()
     .parse_to_end("rgba(255,0,128,0.5)")
     .unwrap();
-  assert_eq!(result, (255, 0, 128, 0.5));
+  assert_eq!(result, (255.0, 0.0, 128.0, 0.5));
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn advanced_rgba_space_slash_full_parses_valid() {
   let result = AdvancedColorParsers::rgba_space_slash_full()
     .parse_to_end("rgb(255 0 128 / 0.5)")
     .unwrap();
-  assert_eq!(result, (255, 0, 128, 0.5));
+  assert_eq!(result, (255.0, 0.0, 128.0, 0.5));
 }
 
 #[test]
@@ -193,9 +193,61 @@ fn hash_color_r_g_b_for_8_digit_hex() {
   assert_eq!(c.r(), 0x12);
   assert_eq!(c.g(), 0x34);
   assert_eq!(c.b(), 0x56);
-  // alpha is 0x78 / 255
-  let expected_a = 0x78_u8 as f32 / 255.0;
-  assert!((c.a() - expected_a).abs() < 0.001);
+  // The channel holds a double, so the quotient is exact rather than near.
+  assert_eq!(c.a(), f64::from(0x78_u8) / 255.0);
+}
+
+// ── HashColor: a value whose bytes are not its characters ───────────────────
+
+// `is_valid_hex` measures `len()`, which counts bytes, and the accessors read
+// `chars()` and two-byte slices. `HashColor::new` is `pub`, so the guard is not
+// on the path -- and every one of these was an abort rather than a fallback.
+//
+// An abort and not a panic, which is why they are worth pinning: this crate runs
+// inside a NAPI addon, and the `catch_unwind` there turns a panic into a thrown
+// JS error but cannot see a slice panic in a way the author ever reads. The
+// process goes down with no diagnostic.
+
+/// Byte length 3, two characters. `chars().nth(2)` has nothing to return.
+#[test]
+fn hash_color_short_value_of_three_bytes_but_two_characters() {
+  let c = HashColor::new("éx");
+
+  assert_eq!(c.value.len(), 3, "the guard's own measure is bytes");
+  assert_eq!(c.r(), 0);
+  assert_eq!(c.g(), 0);
+  assert_eq!(c.b(), 0);
+  assert_eq!(c.a(), 1.0);
+}
+
+/// Byte length 6, with `é` straddling the first two pairs.
+///
+/// Only the pairs that actually straddle fall back. `aébcd` is
+/// `a`, `é` at bytes 1..3, then `b`, `c`, `d` -- so `r` (0..2) and `g` (2..4)
+/// both land mid-character and yield the fallback, while `b` (4..6) is a clean
+/// `cd` and reads as one. Asserted that way round rather than all-zero: the fix
+/// is a fallback for the unreadable pair, not a refusal of the whole value.
+#[test]
+fn hash_color_six_byte_value_split_through_a_character() {
+  let c = HashColor::new("aébcd");
+
+  assert_eq!(c.value.len(), 6);
+  assert_eq!(c.r(), 0);
+  assert_eq!(c.g(), 0);
+  assert_eq!(c.b(), 0xcd);
+}
+
+/// Byte length 8, and the *alpha* slice is the one that lands mid-character --
+/// the three colour channels read clean hex before it.
+#[test]
+fn hash_color_eight_byte_value_split_through_the_alpha_pair() {
+  let c = HashColor::new("abcdefé");
+
+  assert_eq!(c.value.len(), 8);
+  assert_eq!(c.r(), 0xab);
+  assert_eq!(c.g(), 0xcd);
+  assert_eq!(c.b(), 0xef);
+  assert_eq!(c.a(), 1.0, "an unreadable alpha pair falls back to opaque");
 }
 
 // ── Rgb parser error branches ─────────────────────────────────────────────────
@@ -276,15 +328,22 @@ fn rgba_comma_parser_rejects_out_of_range_rgb() {
 }
 
 #[test]
-fn rgba_comma_parser_rejects_out_of_range_alpha() {
-  // alpha > 1.0
-  assert!(Rgba::parse().parse_to_end("rgba(255, 0, 0, 1.5)").is_err());
+fn rgba_comma_parser_carries_an_out_of_range_alpha() {
+  // The reference compiler bounds the channels and not the alpha, so an alpha
+  // above 1 is carried through rather than refused.
+  match Rgba::parse().parse_to_end("rgba(255, 0, 0, 1.5)") {
+    Ok(rgba) => assert_eq!(rgba.to_string(), "rgba(255,0,0,1.5)"),
+    Err(error) => panic!("expected the alpha to be carried: {error:?}"),
+  }
 }
 
 #[test]
-fn rgba_comma_parser_rejects_out_of_range_alpha_percentage() {
-  // alpha percentage > 100% (stored as > 1.0)
-  assert!(Rgba::parse().parse_to_end("rgba(255, 0, 0, 150%)").is_err());
+fn rgba_comma_parser_carries_an_out_of_range_alpha_percentage() {
+  // Divided down to the fraction it denotes, then carried: 150% is 1.5.
+  match Rgba::parse().parse_to_end("rgba(255, 0, 0, 150%)") {
+    Ok(rgba) => assert_eq!(rgba.to_string(), "rgba(255,0,0,1.5)"),
+    Err(error) => panic!("expected the alpha to be carried: {error:?}"),
+  }
 }
 
 #[test]
@@ -477,21 +536,19 @@ fn hsla_comma_parser_rejects_non_comma_separator() {
 }
 
 #[test]
-fn hsla_comma_parser_rejects_invalid_alpha_out_of_range() {
-  assert!(
-    Hsla::parse()
-      .parse_to_end("hsla(180, 50%, 50%, 2.0)")
-      .is_err()
-  );
+fn hsla_comma_parser_carries_an_out_of_range_alpha() {
+  match Hsla::parse().parse_to_end("hsla(180, 50%, 50%, 2.0)") {
+    Ok(hsla) => assert_eq!(hsla.to_string(), "hsla(180deg,50%,50%,2)"),
+    Err(error) => panic!("expected the alpha to be carried: {error:?}"),
+  }
 }
 
 #[test]
-fn hsla_comma_parser_rejects_invalid_alpha_percentage_out_of_range() {
-  assert!(
-    Hsla::parse()
-      .parse_to_end("hsla(180, 50%, 50%, 200%)")
-      .is_err()
-  );
+fn hsla_comma_parser_carries_an_out_of_range_alpha_percentage() {
+  match Hsla::parse().parse_to_end("hsla(180, 50%, 50%, 200%)") {
+    Ok(hsla) => assert_eq!(hsla.to_string(), "hsla(180deg,50%,50%,2)"),
+    Err(error) => panic!("expected the alpha to be carried: {error:?}"),
+  }
 }
 
 #[test]
@@ -1042,8 +1099,7 @@ fn hash_color_8_digit_via_color_parser() {
     assert_eq!(h.r(), 0xFF);
     assert_eq!(h.g(), 0x00);
     assert_eq!(h.b(), 0x00);
-    let expected = 0x80_u8 as f32 / 255.0;
-    assert!((h.a() - expected).abs() < 0.005);
+    assert_eq!(h.a(), f64::from(0x80_u8) / 255.0);
   } else {
     panic!("Expected HashColor");
   }
@@ -1070,19 +1126,19 @@ fn hash_color_7_digit_is_invalid_and_rejected() {
 #[test]
 fn rgb_comma_parser_parses_zero_values() {
   let c = Color::parse().parse_to_end("rgb(0, 0, 0)").unwrap();
-  assert!(matches!(c, Color::Rgb(ref r) if r.r == 0 && r.g == 0 && r.b == 0));
+  assert!(matches!(c, Color::Rgb(ref r) if r.r == 0.0 && r.g == 0.0 && r.b == 0.0));
 }
 
 #[test]
 fn rgb_comma_parser_parses_max_values() {
   let c = Color::parse().parse_to_end("rgb(255, 255, 255)").unwrap();
-  assert!(matches!(c, Color::Rgb(ref r) if r.r == 255 && r.g == 255 && r.b == 255));
+  assert!(matches!(c, Color::Rgb(ref r) if r.r == 255.0 && r.g == 255.0 && r.b == 255.0));
 }
 
 #[test]
 fn rgb_space_parser_parses_valid() {
   let c = Color::parse().parse_to_end("rgb(100 150 200)").unwrap();
-  assert!(matches!(c, Color::Rgb(ref r) if r.r == 100 && r.g == 150 && r.b == 200));
+  assert!(matches!(c, Color::Rgb(ref r) if r.r == 100.0 && r.g == 150.0 && r.b == 200.0));
 }
 
 // ── Rgba additional valid forms ───────────────────────────────────────────────
@@ -1186,8 +1242,8 @@ fn color_enum_display_all_variants_not_empty() {
   let variants: Vec<Color> = vec![
     Color::Named(NamedColor::new("red")),
     Color::Hash(HashColor::new("FF0000")),
-    Color::Rgb(Rgb::new(255, 0, 0)),
-    Color::Rgba(Rgba::new(255, 0, 0, 0.5)),
+    Color::Rgb(Rgb::new(255.0, 0.0, 0.0)),
+    Color::Rgba(Rgba::new(255.0, 0.0, 0.0, 0.5)),
     Color::Hsl(Hsl::from_primitives(120.0, 100.0, 50.0)),
     Color::Hsla(Hsla::from_primitives(120.0, 100.0, 50.0, 0.8)),
     Color::Lch(Lch::new_with_number(50.0, 100.0, 180.0, None)),
@@ -1209,7 +1265,7 @@ fn color_enum_display_all_variants_not_empty() {
 #[test]
 fn hsl_display_format() {
   let hsl = Hsl::from_primitives(360.0, 100.0, 50.0);
-  assert_eq!(format!("{}", hsl), "hsl(360deg, 100%, 50%)");
+  assert_eq!(format!("{}", hsl), "hsl(360deg,100%,50%)");
 }
 
 // ── Hsla Display ─────────────────────────────────────────────────────────────
@@ -1217,23 +1273,23 @@ fn hsl_display_format() {
 #[test]
 fn hsla_display_format() {
   let hsla = Hsla::from_primitives(240.0, 100.0, 50.0, 0.5);
-  assert_eq!(format!("{}", hsla), "hsla(240deg, 100%, 50%, 0.5)");
+  assert_eq!(format!("{}", hsla), "hsla(240deg,100%,50%,0.5)");
 }
 
 // ── Rgb Display ──────────────────────────────────────────────────────────────
 
 #[test]
 fn rgb_display_format() {
-  let rgb = Rgb::new(0, 128, 255);
-  assert_eq!(format!("{}", rgb), "rgb(0, 128, 255)");
+  let rgb = Rgb::new(0.0, 128.0, 255.0);
+  assert_eq!(format!("{}", rgb), "rgb(0,128,255)");
 }
 
 // ── Rgba Display ─────────────────────────────────────────────────────────────
 
 #[test]
 fn rgba_display_format() {
-  let rgba = Rgba::new(0, 128, 255, 0.75);
-  assert_eq!(format!("{}", rgba), "rgba(0, 128, 255, 0.75)");
+  let rgba = Rgba::new(0.0, 128.0, 255.0, 0.75);
+  assert_eq!(format!("{}", rgba), "rgba(0,128,255,0.75)");
 }
 
 // ── NamedColor Display ────────────────────────────────────────────────────────
@@ -1508,13 +1564,13 @@ fn oklab_parser_rejects_empty() {
 
 #[test]
 fn rgb_comma_parser_rejects_out_of_range_g() {
-  // valid r, but g is out of range -> fails at parse_rgb_number_token for g
+  // valid r, but g is out of range -> fails at parse_rgb_channel_token for g
   assert!(Rgb::parse().parse_to_end("rgb(0, 300, 0)").is_err());
 }
 
 #[test]
 fn rgb_comma_parser_rejects_out_of_range_b() {
-  // valid r and g, but b is out of range -> fails at parse_rgb_number_token for b
+  // valid r and g, but b is out of range -> fails at parse_rgb_channel_token for b
   assert!(Rgb::parse().parse_to_end("rgb(0, 0, 300)").is_err());
 }
 
@@ -1639,7 +1695,7 @@ fn rgba_comma_parser_with_leading_whitespace() {
     .parse_to_end("rgba( 255, 0, 0, 0.5)")
     .unwrap();
   if let Color::Rgba(rgba) = c {
-    assert_eq!(rgba.r, 255);
+    assert_eq!(rgba.r, 255.0);
     assert_eq!(rgba.a, 0.5);
   } else {
     panic!("Expected Rgba");
@@ -1653,7 +1709,7 @@ fn rgba_comma_parser_with_trailing_whitespace_before_close() {
     .parse_to_end("rgba(255, 0, 0, 0.5 )")
     .unwrap();
   if let Color::Rgba(rgba) = c {
-    assert_eq!(rgba.r, 255);
+    assert_eq!(rgba.r, 255.0);
     assert_eq!(rgba.a, 0.5);
   } else {
     panic!("Expected Rgba");
@@ -1800,7 +1856,7 @@ fn oklab_parser_non_whitespace_between_a_b() {
 
 #[test]
 fn rgb_space_parser_rejects_out_of_range_g() {
-  // valid r but g is out of range -> fails at space parser parse_rgb_number_token for g
+  // valid r but g is out of range -> fails at space parser parse_rgb_channel_token for g
   // Note: rgb(0 300 0) may not parse correctly as CSS because of how tokenizer handles
   // negative or large numbers, but the error path IS exercised
   assert!(Rgb::parse().parse_to_end("rgb(0 300 0)").is_err());
@@ -1890,22 +1946,27 @@ fn oklab_invalid_alpha_after_slash() {
 // the `ok_or()?.` Err branches that fire when the TokenList is empty (EOF),
 // and also the wrong-type branches.
 
+// One reader serves `rgb()` and `rgba()` alike, as `rgbNumberParser` does
+// upstream, so it is tested once rather than once per colour type.
+
 #[test]
-fn rgb_parse_rgb_number_token_eof_returns_error() {
+fn parse_rgb_channel_token_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
-  assert!(Rgb::parse_rgb_number_token(&mut tl).is_err());
+  assert!(parse_rgb_channel_token(&mut tl).is_err());
 }
 
 #[test]
-fn rgb_parse_rgb_number_token_non_number_returns_error() {
+fn parse_rgb_channel_token_non_number_returns_error() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Ident("red".to_string())],
     current_index: 0,
+    depth: 0,
   };
-  assert!(Rgb::parse_rgb_number_token(&mut tl).is_err());
+  assert!(parse_rgb_channel_token(&mut tl).is_err());
 }
 
 #[test]
@@ -1913,6 +1974,7 @@ fn rgb_consume_comma_with_optional_whitespace_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Rgb::consume_comma_with_optional_whitespace(&mut tl).is_err());
 }
@@ -1922,35 +1984,9 @@ fn rgb_consume_comma_with_optional_whitespace_non_comma_returns_error() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Delim('/')],
     current_index: 0,
+    depth: 0,
   };
   assert!(Rgb::consume_comma_with_optional_whitespace(&mut tl).is_err());
-}
-
-#[test]
-fn rgba_parse_rgba_number_token_eof_returns_error() {
-  let mut tl = TokenList {
-    tokens: vec![],
-    current_index: 0,
-  };
-  assert!(Rgba::parse_rgba_number_token(&mut tl).is_err());
-}
-
-#[test]
-fn rgba_parse_rgba_number_token_non_number_returns_error() {
-  let mut tl = TokenList {
-    tokens: vec![SimpleToken::Ident("none".to_string())],
-    current_index: 0,
-  };
-  assert!(Rgba::parse_rgba_number_token(&mut tl).is_err());
-}
-
-#[test]
-fn rgba_parse_alpha_value_token_eof_returns_error() {
-  let mut tl = TokenList {
-    tokens: vec![],
-    current_index: 0,
-  };
-  assert!(Rgba::parse_alpha_value_token(&mut tl).is_err());
 }
 
 #[test]
@@ -1958,6 +1994,7 @@ fn rgba_consume_comma_with_optional_whitespace_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Rgba::consume_comma_with_optional_whitespace(&mut tl).is_err());
 }
@@ -1967,6 +2004,7 @@ fn rgba_consume_comma_with_optional_whitespace_non_comma_returns_error() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Delim('/')],
     current_index: 0,
+    depth: 0,
   };
   assert!(Rgba::consume_comma_with_optional_whitespace(&mut tl).is_err());
 }
@@ -1976,6 +2014,7 @@ fn hsl_parse_hsl_hue_token_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsl::parse_hsl_hue_token(&mut tl).is_err());
 }
@@ -1988,6 +2027,7 @@ fn hsl_parse_hsl_hue_token_invalid_unit() {
       unit: "px".to_string(),
     }],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsl::parse_hsl_hue_token(&mut tl).is_err());
 }
@@ -1997,6 +2037,7 @@ fn hsl_parse_hsl_hue_token_non_angle_token() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Ident("none".to_string())],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsl::parse_hsl_hue_token(&mut tl).is_err());
 }
@@ -2006,6 +2047,7 @@ fn hsl_parse_hsl_percentage_token_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsl::parse_hsl_percentage_token(&mut tl).is_err());
 }
@@ -2015,6 +2057,7 @@ fn hsl_parse_hsl_percentage_token_non_percentage() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Number(50.0)],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsl::parse_hsl_percentage_token(&mut tl).is_err());
 }
@@ -2024,6 +2067,7 @@ fn hsl_consume_comma_with_optional_whitespace_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsl::consume_comma_with_optional_whitespace(&mut tl).is_err());
 }
@@ -2033,6 +2077,7 @@ fn hsl_consume_comma_with_optional_whitespace_non_comma() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Delim('/')],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsl::consume_comma_with_optional_whitespace(&mut tl).is_err());
 }
@@ -2042,6 +2087,7 @@ fn hsla_parse_hsla_hue_token_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsla::parse_hsla_hue_token(&mut tl).is_err());
 }
@@ -2054,6 +2100,7 @@ fn hsla_parse_hsla_hue_token_invalid_unit() {
       unit: "em".to_string(),
     }],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsla::parse_hsla_hue_token(&mut tl).is_err());
 }
@@ -2063,6 +2110,7 @@ fn hsla_parse_hsla_hue_token_non_angle_token() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Ident("none".to_string())],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsla::parse_hsla_hue_token(&mut tl).is_err());
 }
@@ -2072,6 +2120,7 @@ fn hsla_parse_hsla_percentage_token_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsla::parse_hsla_percentage_token(&mut tl).is_err());
 }
@@ -2081,44 +2130,9 @@ fn hsla_parse_hsla_percentage_token_non_percentage() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Number(50.0)],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsla::parse_hsla_percentage_token(&mut tl).is_err());
-}
-
-#[test]
-fn hsla_parse_hsla_alpha_token_eof_returns_error() {
-  let mut tl = TokenList {
-    tokens: vec![],
-    current_index: 0,
-  };
-  assert!(Hsla::parse_hsla_alpha_token(&mut tl).is_err());
-}
-
-#[test]
-fn hsla_parse_hsla_alpha_token_out_of_range() {
-  let mut tl = TokenList {
-    tokens: vec![SimpleToken::Number(2.0)],
-    current_index: 0,
-  };
-  assert!(Hsla::parse_hsla_alpha_token(&mut tl).is_err());
-}
-
-#[test]
-fn hsla_parse_hsla_alpha_token_out_of_range_percentage() {
-  let mut tl = TokenList {
-    tokens: vec![SimpleToken::Percentage(2.0)],
-    current_index: 0,
-  };
-  assert!(Hsla::parse_hsla_alpha_token(&mut tl).is_err());
-}
-
-#[test]
-fn hsla_parse_hsla_alpha_token_invalid_type() {
-  let mut tl = TokenList {
-    tokens: vec![SimpleToken::Ident("none".to_string())],
-    current_index: 0,
-  };
-  assert!(Hsla::parse_hsla_alpha_token(&mut tl).is_err());
 }
 
 #[test]
@@ -2126,6 +2140,7 @@ fn hsla_consume_comma_with_optional_whitespace_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsla::consume_comma_with_optional_whitespace(&mut tl).is_err());
 }
@@ -2135,6 +2150,7 @@ fn hsla_consume_comma_with_optional_whitespace_non_comma() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Delim('/')],
     current_index: 0,
+    depth: 0,
   };
   assert!(Hsla::consume_comma_with_optional_whitespace(&mut tl).is_err());
 }
@@ -2144,6 +2160,7 @@ fn lch_parse_lch_lightness_token_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Lch::parse_lch_lightness_token(&mut tl).is_err());
 }
@@ -2153,6 +2170,7 @@ fn lch_parse_lch_lightness_token_invalid_type() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Ident("none".to_string())],
     current_index: 0,
+    depth: 0,
   };
   assert!(Lch::parse_lch_lightness_token(&mut tl).is_err());
 }
@@ -2162,6 +2180,7 @@ fn lch_parse_lch_chroma_token_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Lch::parse_lch_chroma_token(&mut tl).is_err());
 }
@@ -2169,8 +2188,9 @@ fn lch_parse_lch_chroma_token_eof_returns_error() {
 #[test]
 fn lch_parse_lch_chroma_token_invalid_type() {
   let mut tl = TokenList {
-    tokens: vec![SimpleToken::Percentage(50.0)],
+    tokens: vec![SimpleToken::Percentage(5000.0)],
     current_index: 0,
+    depth: 0,
   };
   assert!(Lch::parse_lch_chroma_token(&mut tl).is_err());
 }
@@ -2180,6 +2200,7 @@ fn lch_parse_lch_hue_token_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Lch::parse_lch_hue_token(&mut tl).is_err());
 }
@@ -2192,6 +2213,7 @@ fn lch_parse_lch_hue_token_invalid_unit() {
       unit: "px".to_string(),
     }],
     current_index: 0,
+    depth: 0,
   };
   assert!(Lch::parse_lch_hue_token(&mut tl).is_err());
 }
@@ -2199,8 +2221,9 @@ fn lch_parse_lch_hue_token_invalid_unit() {
 #[test]
 fn lch_parse_lch_hue_token_invalid_type() {
   let mut tl = TokenList {
-    tokens: vec![SimpleToken::Percentage(50.0)],
+    tokens: vec![SimpleToken::Percentage(5000.0)],
     current_index: 0,
+    depth: 0,
   };
   assert!(Lch::parse_lch_hue_token(&mut tl).is_err());
 }
@@ -2210,6 +2233,7 @@ fn oklch_parse_oklch_lc_value_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Oklch::parse_oklch_lc_value(&mut tl).is_err());
 }
@@ -2217,8 +2241,9 @@ fn oklch_parse_oklch_lc_value_eof_returns_error() {
 #[test]
 fn oklch_parse_oklch_lc_value_invalid_type() {
   let mut tl = TokenList {
-    tokens: vec![SimpleToken::Percentage(50.0)],
+    tokens: vec![SimpleToken::Percentage(5000.0)],
     current_index: 0,
+    depth: 0,
   };
   assert!(Oklch::parse_oklch_lc_value(&mut tl).is_err());
 }
@@ -2228,6 +2253,7 @@ fn oklch_parse_oklch_hue_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Oklch::parse_oklch_hue(&mut tl).is_err());
 }
@@ -2240,6 +2266,7 @@ fn oklch_parse_oklch_hue_invalid_unit() {
       unit: "em".to_string(),
     }],
     current_index: 0,
+    depth: 0,
   };
   assert!(Oklch::parse_oklch_hue(&mut tl).is_err());
 }
@@ -2247,8 +2274,9 @@ fn oklch_parse_oklch_hue_invalid_unit() {
 #[test]
 fn oklch_parse_oklch_hue_invalid_type() {
   let mut tl = TokenList {
-    tokens: vec![SimpleToken::Percentage(50.0)],
+    tokens: vec![SimpleToken::Percentage(5000.0)],
     current_index: 0,
+    depth: 0,
   };
   assert!(Oklch::parse_oklch_hue(&mut tl).is_err());
 }
@@ -2258,6 +2286,7 @@ fn oklab_parse_oklab_lab_value_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
+    depth: 0,
   };
   assert!(Oklab::parse_oklab_lab_value(&mut tl).is_err());
 }
@@ -2265,17 +2294,21 @@ fn oklab_parse_oklab_lab_value_eof_returns_error() {
 #[test]
 fn oklab_parse_oklab_lab_value_invalid_type() {
   let mut tl = TokenList {
-    tokens: vec![SimpleToken::Percentage(50.0)],
+    tokens: vec![SimpleToken::Percentage(5000.0)],
     current_index: 0,
+    depth: 0,
   };
   assert!(Oklab::parse_oklab_lab_value(&mut tl).is_err());
 }
 
-// ── Lch::parse_optional_alpha direct call variants ───────────────────────────
+// ── parse_optional_slash_alpha direct call variants ──────────────────────────
+
+// `lch`, `oklch`, and `oklab` each carried a byte-identical copy of this
+// reader, so these two tests used to be six -- one pair per type. One function
+// needs one pair; the per-type behaviour is covered end to end below.
 
 #[test]
-fn lch_parse_optional_alpha_with_whitespace_before_slash() {
-  // Whitespace before slash in token list
+fn parse_optional_slash_alpha_reads_an_alpha_after_whitespace_and_a_slash() {
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Whitespace,
@@ -2284,72 +2317,29 @@ fn lch_parse_optional_alpha_with_whitespace_before_slash() {
       SimpleToken::Number(0.5),
     ],
     current_index: 0,
+    depth: 0,
   };
-  // The alpha_as_number parser runs on the remaining tokens
-  let result = Lch::parse_optional_alpha(&mut tl);
-  // It may succeed or fail depending on alpha_as_number implementation details,
-  // but we exercise the whitespace-consuming path
-  let _ = result;
+
+  match parse_optional_slash_alpha(&mut tl) {
+    Ok(alpha) => assert_eq!(alpha, Some(0.5)),
+    Err(error) => panic!("expected the alpha to be read: {error:?}"),
+  }
 }
 
 #[test]
-fn lch_parse_optional_alpha_no_slash_returns_none() {
+fn parse_optional_slash_alpha_rewinds_when_there_is_no_slash() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Number(0.5)],
     current_index: 0,
+    depth: 0,
   };
-  let result = Lch::parse_optional_alpha(&mut tl).unwrap();
-  assert_eq!(result, None);
-}
 
-// ── Oklch::parse_optional_alpha variants ─────────────────────────────────────
-
-#[test]
-fn oklch_parse_optional_alpha_with_whitespace_before_slash() {
-  let mut tl = TokenList {
-    tokens: vec![
-      SimpleToken::Whitespace,
-      SimpleToken::Delim('/'),
-      SimpleToken::Whitespace,
-      SimpleToken::Number(0.8),
-    ],
-    current_index: 0,
-  };
-  let _ = Oklch::parse_optional_alpha(&mut tl);
-}
-
-#[test]
-fn oklch_parse_optional_alpha_no_slash_returns_none() {
-  let mut tl = TokenList {
-    tokens: vec![SimpleToken::Number(0.5)],
-    current_index: 0,
-  };
-  assert_eq!(Oklch::parse_optional_alpha(&mut tl).unwrap(), None);
-}
-
-// ── Oklab::parse_optional_alpha variants ─────────────────────────────────────
-
-#[test]
-fn oklab_parse_optional_alpha_with_whitespace_before_slash() {
-  let mut tl = TokenList {
-    tokens: vec![
-      SimpleToken::Whitespace,
-      SimpleToken::Delim('/'),
-      SimpleToken::Whitespace,
-      SimpleToken::Number(0.3),
-    ],
-    current_index: 0,
-  };
-  let _ = Oklab::parse_optional_alpha(&mut tl);
-}
-
-#[test]
-fn oklab_parse_optional_alpha_no_slash_returns_none() {
-  let mut tl = TokenList {
-    tokens: vec![SimpleToken::Number(0.5)],
-    current_index: 0,
-  };
-  assert_eq!(Oklab::parse_optional_alpha(&mut tl).unwrap(), None);
+  match parse_optional_slash_alpha(&mut tl) {
+    Ok(alpha) => assert_eq!(alpha, None),
+    Err(error) => panic!("expected no alpha rather than an error: {error:?}"),
+  }
+  // The token it looked at is still there for the caller.
+  assert_eq!(tl.current_index, 0);
 }
 
 // ── Hsla space_slash_parser: whitespace before/after slash ───────────────────
@@ -2409,9 +2399,9 @@ fn hsla_comma_parser_whitespace_before_comma() {
 fn rgb_comma_parser_whitespace_before_comma() {
   let c = Color::parse().parse_to_end("rgb(255 , 0 , 128)").unwrap();
   if let Color::Rgb(rgb) = c {
-    assert_eq!(rgb.r, 255);
-    assert_eq!(rgb.g, 0);
-    assert_eq!(rgb.b, 128);
+    assert_eq!(rgb.r, 255.0);
+    assert_eq!(rgb.g, 0.0);
+    assert_eq!(rgb.b, 128.0);
   } else {
     panic!("Expected Rgb");
   }
@@ -2423,7 +2413,7 @@ fn rgba_comma_parser_whitespace_before_comma() {
     .parse_to_end("rgba(255 , 0 , 128 , 0.5)")
     .unwrap();
   if let Color::Rgba(rgba) = c {
-    assert_eq!(rgba.r, 255);
+    assert_eq!(rgba.r, 255.0);
     assert!((rgba.a - 0.5).abs() < 0.001);
   } else {
     panic!("Expected Rgba");
@@ -2433,10 +2423,11 @@ fn rgba_comma_parser_whitespace_before_comma() {
 // ── Additional coverage for specific error paths still uncovered ──────────────
 
 #[test]
-fn rgba_space_slash_parser_out_of_range_alpha() {
-  // Exercises parse_alpha_value_token failure in space_slash_parser
-  // alpha > 1.0 is out of range
-  assert!(Rgba::parse().parse_to_end("rgba(255 0 0 / 1.5)").is_err());
+fn rgba_space_slash_parser_carries_an_out_of_range_alpha() {
+  match Rgba::parse().parse_to_end("rgba(255 0 0 / 1.5)") {
+    Ok(rgba) => assert_eq!(rgba.to_string(), "rgba(255,0,0,1.5)"),
+    Err(error) => panic!("expected the alpha to be carried: {error:?}"),
+  }
 }
 
 #[test]
@@ -2444,7 +2435,7 @@ fn rgba_space_slash_parser_no_whitespace_before_slash() {
   // No whitespace before '/' exercises the "else path" of the if-let
   let c = Color::parse().parse_to_end("rgba(255 0 0/0.5)").unwrap();
   if let Color::Rgba(rgba) = c {
-    assert_eq!(rgba.r, 255);
+    assert_eq!(rgba.r, 255.0);
     assert!((rgba.a - 0.5).abs() < 0.001);
   } else {
     panic!("Expected Rgba");
@@ -2456,7 +2447,7 @@ fn rgba_space_slash_parser_no_whitespace_after_slash() {
   // No whitespace after '/' exercises the "else path" of if-let
   let c = Color::parse().parse_to_end("rgba(255 0 0 /0.5)").unwrap();
   if let Color::Rgba(rgba) = c {
-    assert_eq!(rgba.r, 255);
+    assert_eq!(rgba.r, 255.0);
     assert!((rgba.a - 0.5).abs() < 0.001);
   } else {
     panic!("Expected Rgba");
@@ -2475,13 +2466,11 @@ fn hsla_comma_parser_missing_second_comma_between_s_and_l() {
 }
 
 #[test]
-fn hsla_space_slash_parser_out_of_range_alpha() {
-  // Exercises parse_hsla_alpha_token failure in space_slash_parser
-  assert!(
-    Hsla::parse()
-      .parse_to_end("hsl(180deg 50% 50% / 1.5)")
-      .is_err()
-  );
+fn hsla_space_slash_parser_carries_an_out_of_range_alpha() {
+  match Hsla::parse().parse_to_end("hsl(180deg 50% 50% / 1.5)") {
+    Ok(hsla) => assert_eq!(hsla.to_string(), "hsla(180deg,50%,50%,1.5)"),
+    Err(error) => panic!("expected the alpha to be carried: {error:?}"),
+  }
 }
 
 #[test]
@@ -2646,6 +2635,7 @@ fn rgb_comma_parser_eof_before_close_paren() {
       // No RightParen!
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Rgb::comma_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2661,6 +2651,7 @@ fn rgb_space_parser_eof_before_whitespace_after_r() {
       // No whitespace, no g, no b, no RightParen
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Rgb::space_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2678,6 +2669,7 @@ fn rgb_space_parser_eof_before_whitespace_after_g() {
       // No second whitespace, no b, no RightParen
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Rgb::space_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2697,6 +2689,7 @@ fn rgb_space_parser_eof_before_close_paren() {
       // No RightParen!
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Rgb::space_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2718,6 +2711,7 @@ fn rgba_comma_parser_eof_before_close_paren() {
       // No RightParen!
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Rgba::comma_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2733,6 +2727,7 @@ fn rgba_space_slash_parser_eof_before_whitespace_after_r() {
       // No whitespace
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Rgba::space_slash_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2750,6 +2745,7 @@ fn rgba_space_slash_parser_eof_before_whitespace_after_g() {
       // No second whitespace
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Rgba::space_slash_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2769,6 +2765,7 @@ fn rgba_space_slash_parser_eof_before_slash() {
       // No slash!
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Rgba::space_slash_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2790,6 +2787,7 @@ fn rgba_space_slash_parser_eof_before_close_paren() {
       // No RightParen!
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Rgba::space_slash_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2803,12 +2801,13 @@ fn hsl_comma_parser_eof_before_close_paren() {
       SimpleToken::Function("hsl".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Comma,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Comma,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       // No RightParen!
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Hsl::comma_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2824,6 +2823,7 @@ fn hsl_space_parser_eof_before_whitespace_after_h() {
       // No whitespace
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Hsl::space_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2837,10 +2837,11 @@ fn hsl_space_parser_eof_before_whitespace_after_s() {
       SimpleToken::Function("hsl".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       // No second whitespace
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Hsl::space_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2854,12 +2855,13 @@ fn hsl_space_parser_eof_before_close_paren() {
       SimpleToken::Function("hsl".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       // No RightParen!
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Hsl::space_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2873,14 +2875,15 @@ fn hsla_comma_parser_eof_before_close_paren() {
       SimpleToken::Function("hsla".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Comma,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Comma,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Comma,
       SimpleToken::Number(0.5),
       // No RightParen!
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Hsla::comma_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2896,6 +2899,7 @@ fn hsla_space_slash_parser_eof_before_whitespace_after_h() {
       // No whitespace
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Hsla::space_slash_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2909,10 +2913,11 @@ fn hsla_space_slash_parser_eof_before_whitespace_after_s() {
       SimpleToken::Function("hsl".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       // No second whitespace
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Hsla::space_slash_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2926,12 +2931,13 @@ fn hsla_space_slash_parser_eof_before_slash() {
       SimpleToken::Function("hsl".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       // No slash!
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Hsla::space_slash_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2945,14 +2951,15 @@ fn hsla_space_slash_parser_eof_before_close_paren() {
       SimpleToken::Function("hsl".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Delim('/'),
       SimpleToken::Number(0.5),
       // No RightParen!
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Hsla::space_slash_parser();
   assert!((parser.run)(&mut tl).is_err());
@@ -2968,6 +2975,7 @@ fn lch_parse_eof_before_whitespace_after_l() {
       // No whitespace
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Lch::parse();
   assert!((parser.run)(&mut tl).is_err());
@@ -2985,6 +2993,7 @@ fn lch_parse_eof_before_whitespace_after_c() {
       // No second whitespace
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Lch::parse();
   assert!((parser.run)(&mut tl).is_err());
@@ -3004,6 +3013,7 @@ fn lch_parse_eof_before_close_paren() {
       // No RightParen!
     ],
     current_index: 0,
+    depth: 0,
   };
   let parser = Lch::parse();
   assert!((parser.run)(&mut tl).is_err());
@@ -3033,5 +3043,29 @@ fn hsla_consume_comma_whitespace_before_and_after() {
     assert_eq!(hsla.h.value, 180.0);
   } else {
     panic!("Expected Hsla");
+  }
+}
+
+// ── Rgba::space_slash_parser: the alpha after the slash fails to parse ───────
+
+/// The slash form reads its alpha with the same parser the comma form uses, and
+/// that parser refuses anything that is not a number or a percentage. The three
+/// channels here are well formed, so the only thing that can fail is the alpha
+/// -- which is the point: this pins the failure to the alpha read rather than
+/// to a malformed colour that would have been refused earlier anyway.
+#[test]
+fn rgb_with_a_slash_refuses_a_non_numeric_alpha() {
+  assert!(Color::parse().parse_to_end("rgb(255 0 0 / red)").is_err());
+  assert!(Color::parse().parse_to_end("rgba(255 0 0 / red)").is_err());
+}
+
+/// The same read, succeeding, so the refusal above is known to be the alpha's
+/// and not the slash form failing to parse at all.
+#[test]
+fn rgb_with_a_slash_accepts_a_percentage_alpha() {
+  let color = Color::parse().parse_to_end("rgb(255 0 0 / 50%)").unwrap();
+  match color {
+    Color::Rgba(rgba) => assert_eq!(rgba.a, 0.5),
+    other => panic!("Expected Rgba, got {other:?}"),
   }
 }

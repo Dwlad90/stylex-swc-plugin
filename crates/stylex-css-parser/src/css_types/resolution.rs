@@ -5,6 +5,7 @@ Handles resolution values with 'dpi' (dots per inch), 'dpcm' (dots per cm), and 
 */
 
 use stylex_macros::stylex_unreachable;
+use stylex_utils::number::to_js_string;
 
 use crate::{token_parser::TokenParser, token_types::SimpleToken};
 use std::fmt::{self, Display};
@@ -15,13 +16,13 @@ pub const RESOLUTION_UNITS: &[&str] = &["dpi", "dpcm", "dppx"];
 /// CSS Resolution value with unit
 #[derive(Debug, Clone, PartialEq)]
 pub struct Resolution {
-  pub value: f32,
+  pub value: f64,
   pub unit: String, // "dpi", "dpcm", or "dppx"
 }
 
 impl Resolution {
   /// Create a new Resolution value
-  pub fn new(value: f32, unit: impl Into<String>) -> Self {
+  pub fn new(value: f64, unit: impl Into<String>) -> Self {
     Self {
       value,
       unit: unit.into(),
@@ -58,7 +59,7 @@ impl Resolution {
   /// branch reachable from coverage tests.
   pub(crate) fn extract_dimension_token(token: SimpleToken) -> Resolution {
     if let SimpleToken::Dimension { value, unit } = token {
-      Resolution::new(value as f32, unit)
+      Resolution::new(value, unit)
     } else {
       stylex_unreachable!()
     }
@@ -84,7 +85,7 @@ impl Resolution {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Resolution {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}{}", self.value, self.unit)
+    write!(f, "{}{}", to_js_string(self.value), self.unit)
   }
 }
 

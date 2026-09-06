@@ -2,8 +2,14 @@
 
 - Follow the commit message convention: `<type>(<scope>): <description>`, where
   `type` is one of `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`,
-  and `scope` is the area of the codebase affected (e.g. `stylex_transform`,
-  `stylexswc/nextjs-plugin`, `apps`, etc.).
+  and `scope` is the area of the codebase affected.
+- Spell the scope as **the name the package declares**, so there is nothing to
+  remember and nothing to choose: the Cargo `name` for a crate
+  (`stylex_transform`, `stylex_css_parser`), the npm name without its `@` for a
+  Node package (`stylexswc/rs-compiler`, `stylexswc/nextjs-plugin`). Anything
+  that is not a package keeps a plain word — `ci`, `deps`, `docs`, `agents`.
+  History carries other spellings of the same crate (`stylex-transform`,
+  `transform`, `stylexswc/transform`); none of them is the one to copy.
 - Write a descriptive commit messages, with a title conforming to the convention
   above, and a description of what you did and why. For example, "Setup initial
   repo infrastructure for linting, formatting and testing". Don't include

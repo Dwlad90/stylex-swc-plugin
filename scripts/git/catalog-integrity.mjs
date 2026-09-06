@@ -14,10 +14,12 @@
  *   - `lockfile --baseline <file> [--current <file>]` -- every catalog entry the
  *     baseline lockfile resolved is still resolved by the current one, which
  *     defaults to `<root>/pnpm-lock.yaml`.
+ *   - `duplicates [--root <dir>]` -- every package catalogued more than once
+ *     resolves to a single version in `<root>/pnpm-lock.yaml`.
  *
- * Two assertions over the same data, so one script with one suite rather than
- * two scripts with two sets of wiring -- and the lockfile half is testable at
- * all only because it is here: inline workflow YAML has no seam.
+ * Three assertions over the same data, so one script with one suite rather
+ * than three scripts with three sets of wiring -- and the lockfile half is
+ * testable at all only because it is here: inline workflow YAML has no seam.
  *
  * The catalogs made drift impossible to *express*; this is what stops a
  * manifest opting back out of them. `catalogMode: prefer` was chosen over
@@ -42,6 +44,8 @@ import path from 'node:path';
 import {
   catalogEntries,
   catalogsDeclaring,
+  conflictingPins,
+  describePins,
   LOCKFILE,
   readCatalogs,
   readLockfileCatalogs,
@@ -204,6 +208,55 @@ function danglingReferenceProblem(catalogs, site) {
   return null;
 }
 
+/**
+ * The fields whose entries an install must resolve. `peerDependencies` is not
+ * one of them by itself: `autoInstallPeers` installs a peer only when nothing
+ * else in the same manifest already provides the package, so a peer beside a
+ * `devDependencies` entry for the same name needs no catalog entry of its own.
+ * That pairing is what stops the wide range resolving on its own, which is the
+ * split `duplicates` mode exists to catch.
+ *
+ * Known limit: pnpm skips the peer when the sibling *satisfies* the peer
+ * range, and this compares names only. Evaluating a range needs a semver
+ * library, which these scripts deliberately do without -- they parse YAML by
+ * hand for the same reason. The gap opens only for a `peers` range with an
+ * upper bound the narrow twin can outgrow, which today is `@farmfe/core`
+ * (`<2.0.0`) and `@swc/core` (`^1`); every other `peers` range is an open
+ * `>=`, which no bump of the twin can fall outside. If a twin does outgrow
+ * one, pnpm writes the peer pin back and `duplicates` reads it again; what
+ * this misses is a later silent drop of that pin.
+ */
+const INSTALL_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies'];
+
+/**
+ * The `<catalog>.<package>` entries an install still has to resolve.
+ *
+ * @param {string} root repository root
+ * @returns {Set<string>}
+ */
+function requiredEntries(root) {
+  const required = new Set();
+
+  for (const file of findSourceManifests(root)) {
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
+    const provided = new Set(INSTALL_FIELDS.flatMap(field => Object.keys(manifest[field] ?? {})));
+
+    for (const field of DEPENDENCY_FIELDS) {
+      for (const [name, specifier] of Object.entries(manifest[field] ?? {})) {
+        if (typeof specifier !== 'string' || !specifier.startsWith(REFERENCE)) {
+          continue;
+        }
+
+        if (field !== 'peerDependencies' || !provided.has(name)) {
+          required.add(`${specifier.slice(REFERENCE.length)}.${name}`);
+        }
+      }
+    }
+  }
+
+  return required;
+}
+
 /** @param {{root: string}} options */
 function checkManifests({ root }) {
   const catalogs = readCatalogs(root);
@@ -246,15 +299,24 @@ function checkManifests({ root }) {
  * likely put it back, and that is the problem: "most likely, as a side effect"
  * is not a guard for the lockfile of a repository that ships native bindings.
  *
- * Which two files those are is the caller's business, and it matters: comparing
- * a *reinstalled* lockfile against anything mostly asserts that the accidental
- * repair worked. `--current` exists so the caller can name the lockfile as it
- * arrived rather than as some later step left it.
+ * Which two files those are is the caller's business, and it matters.
+ * `sync-deps.yml` asks two questions with this one mode. Before the sync it
+ * names both lockfiles out of git, so that a reinstall cannot repair the thing
+ * it is asking about; `--current` exists for that call, to name the lockfile as
+ * it arrived rather than as a later step left it. After the sync it reads the
+ * repaired file on disk, where running after a reinstall is the point:
+ * `dedupe-catalog-pins.mjs` deletes entries deliberately, and this is the only
+ * check that sees one stay deleted.
  *
- * The comparison is presence only. A specifier that moved is what a dependency
- * update is *for*, and a version that moved with it is the point; an entry that
- * stopped existing is not something any update legitimately does here, because
- * the only caller is a bot that bumps ranges and never removes a dependency.
+ * The comparison is presence only, which is what lets one mode serve both. A
+ * specifier that moved is what a dependency update is *for*, and a version the
+ * repair moved is the repair working.
+ *
+ * An entry that stopped existing is reported only when an install still needs
+ * it, which `requiredEntries` decides. A catalog entry exists because something
+ * installs from it, so one that nothing installs from any more is a manifest
+ * edit finishing, not a lockfile losing a resolution -- and reporting it would
+ * make the honest half of that edit impossible to commit.
  *
  * @param {{root: string, baseline: string, current?: string}} options
  */
@@ -272,17 +334,39 @@ function checkLockfile({ root, baseline, current }) {
   }
 
   const after = new Set(catalogEntries(readLockfileCatalogs(resolved)));
+  const required = requiredEntries(root);
   const name = path.basename(resolved);
 
   return before
-    .filter(entry => !after.has(entry))
+    .filter(entry => !after.has(entry) && required.has(entry))
     .map(entry => `${name} no longer records \`${entry}\`, which the baseline resolved`);
 }
 
 /**
+ * Every package catalogued more than once resolves to a single version.
+ *
+ * The two ranges differ on purpose, so the declaration cannot show a drift.
+ * Only what they resolved to can, and that is in the lockfile.
+ *
+ * Left alone, the drift reads as a type error in a file nobody touched.
+ * Reported here it is one line naming the package and both pins.
+ * `guidelines/SCRIPTS.md` explains the mechanism.
+ *
+ * @param {{root: string}} options
+ */
+function checkDuplicates({ root }) {
+  // A lockfile this check cannot read is a check that asserts nothing, which
+  // the reader's header calls worse than one that fails -- so the read is left
+  // to throw.
+  const conflicts = conflictingPins(readLockfileCatalogs(path.join(root, LOCKFILE)));
+
+  return conflicts.map(({ name, pins }) => `\`${name}\` resolves to ${describePins(pins)}`);
+}
+
+/**
  * Each mode's check, and what to say after its problems. The closing paragraph
- * is per mode because the two failures ask for different things: one is a
- * manifest to edit, the other a lockfile to regenerate.
+ * is per mode because the three failures ask for different things: a manifest
+ * to edit, a lockfile to regenerate, and a pin to drop.
  */
 const MODES = {
   manifests: {
@@ -292,12 +376,26 @@ const MODES = {
       `in ${WORKSPACE_FILE}. Reference it with \`${REFERENCE}<name>\`\n` +
       `instead of repeating the range.\n`,
   },
+  duplicates: {
+    check: checkDuplicates,
+    epilogue:
+      `A package this workspace catalogues twice must resolve to one version.\n` +
+      `Two versions mean two copies of everything that depends on them, whose\n` +
+      `types are then nominally unrelated. To repair it, run\n` +
+      `\`node scripts/git/dedupe-catalog-pins.mjs\`, which drops the pins from\n` +
+      `the \`catalogs:\` block of ${LOCKFILE}, and then\n` +
+      `\`pnpm install --no-frozen-lockfile\`, which resolves them again in step\n` +
+      `with each other. Do not narrow the \`peers\` range to force it -- that\n` +
+      `range is published to consumers.\n`,
+  },
   lockfile: {
     check: checkLockfile,
     epilogue:
-      `An entry a manifest still references but ${LOCKFILE} no longer resolves\n` +
-      `is an unresolved dependency in a repository that ships native bindings.\n` +
-      `Run \`pnpm install --no-frozen-lockfile\` and commit the result.\n`,
+      `An entry an install still needs but ${LOCKFILE} no longer resolves is an\n` +
+      `unresolved dependency in a repository that ships native bindings.\n` +
+      `Run \`pnpm install --no-frozen-lockfile\` and commit the result. An entry\n` +
+      `nothing installs from any more is not reported, so a manifest edit that\n` +
+      `retires one does not have to fight this check.\n`,
   },
 };
 

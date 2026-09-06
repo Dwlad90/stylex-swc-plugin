@@ -110,6 +110,17 @@ stylex_test_transform!(
   "#
 );
 
+// `null` and `undefined` are not "no own keys" -- they have no `ToObject` at
+// all, so the language throws where every other receiver here answers `[]`.
+// Neither folds, and both stay in the output as written: this evaluator refuses
+// rather than aborting, and a call left standing is a call that throws at
+// runtime exactly where the source said it would. The reference implementation
+// stops the build with `Cannot convert undefined or null to object`, so the two
+// agree that nothing is emitted and differ only in when the author hears about
+// it.
+//
+// `NaN`, `true`, `false`, `""` and `1` are primitives with an object wrapper
+// carrying no own keys, and those do fold to `[]`.
 stylex_test_transform!(
   object_keys_with_illegal_non_object_args,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
@@ -124,15 +135,23 @@ stylex_test_transform!(
   "#,
   r#"
     [];
+    Object.keys(null);
     [];
-    [];
-    [];
+    Object.keys(undefined);
     [];
     [];
     [];
   "#
 );
 
+// An array holding an arrow is where the three statics stop agreeing with each
+// other, and each answer is the language's. `Object.keys` reads names and never
+// reaches the function, so it counts every element; `values` and `entries` carry
+// the element itself, and a function has no compile-time value — so the fold
+// declines and the call is left standing to run at runtime. Both used to answer
+// by silently dropping the element the arrow sat in, which was a shorter list
+// than the language produces. The reference implementation refuses all three
+// outright, so nothing of its output disagrees with these.
 stylex_test_transform!(
   object_keys_with_legal_non_object_args,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
@@ -147,12 +166,23 @@ stylex_test_transform!(
 
     ["0", "1", "2"];
     ["0", "1", "2"];
-    ["0", "2"];
+    ["0", "1", "2"];
     ["0", "1", "2"];
     ["0", "1", "2", "3", "4"];
   "#
 );
 
+// `null` and `undefined` are not "no own keys" -- they have no `ToObject` at
+// all, so the language throws where every other receiver here answers `[]`.
+// Neither folds, and both stay in the output as written: this evaluator refuses
+// rather than aborting, and a call left standing is a call that throws at
+// runtime exactly where the source said it would. The reference implementation
+// stops the build with `Cannot convert undefined or null to object`, so the two
+// agree that nothing is emitted and differ only in when the author hears about
+// it.
+//
+// `NaN`, `true`, `false`, `""` and `1` are primitives with an object wrapper
+// carrying no own keys, and those do fold to `[]`.
 stylex_test_transform!(
   object_values_with_illegal_non_object_args,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
@@ -167,9 +197,9 @@ stylex_test_transform!(
   "#,
   r#"
     [];
+    Object.values(null);
     [];
-    [];
-    [];
+    Object.values(undefined);
     [];
     [];
     [];
@@ -190,12 +220,23 @@ stylex_test_transform!(
 
     [1, 2, 3];
     [[1], [2], [3]];
-    [[1], [NaN]];
+    Object.values([[1], [()=>{}], [NaN]]);
     ["1", "2", "3"];
     [null, undefined, NaN, "1", 1]
   "#
 );
 
+// `null` and `undefined` are not "no own keys" -- they have no `ToObject` at
+// all, so the language throws where every other receiver here answers `[]`.
+// Neither folds, and both stay in the output as written: this evaluator refuses
+// rather than aborting, and a call left standing is a call that throws at
+// runtime exactly where the source said it would. The reference implementation
+// stops the build with `Cannot convert undefined or null to object`, so the two
+// agree that nothing is emitted and differ only in when the author hears about
+// it.
+//
+// `NaN`, `true`, `false`, `""` and `1` are primitives with an object wrapper
+// carrying no own keys, and those do fold to `[]`.
 stylex_test_transform!(
   object_entries_with_illegal_non_object_args,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
@@ -210,9 +251,9 @@ stylex_test_transform!(
   "#,
   r#"
     [];
+    Object.entries(null);
     [];
-    [];
-    [];
+    Object.entries(undefined);
     [];
     [];
     [];
@@ -233,7 +274,7 @@ stylex_test_transform!(
 
     [["0", 1], ["1", 2], ["2", 3]];
     [["0", [1]], ["1", [2]], ["2", [3]]];
-    [["0", [1]], ["2", [NaN]]];
+    Object.entries([[1], [()=>{}], [NaN]]);
     [["0", "1"], ["1", "2"], ["2", "3"]];
     [["0", null], ["1", undefined], ["2", NaN], ["3", "1"], ["4", 1]];
   "#
@@ -375,7 +416,7 @@ stylex_test_transform!(
     2;
     1;
     0.5;
-    0.1;
+    Math.min(3, 1, 2, ...[0.5, 0.1, 0.3]);
   "#
 );
 
@@ -392,7 +433,7 @@ stylex_test_transform!(
     2;
     3;
     5;
-    5;
+    Math.max(3, 1, 2, ...[5, 0.1, 0.3], 4);
   "#
 );
 

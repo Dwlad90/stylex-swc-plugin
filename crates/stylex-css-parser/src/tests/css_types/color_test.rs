@@ -79,35 +79,35 @@ mod test_css_type_color {
     let color1 = Color::parse().parse_to_end("rgb(255, 0, 0)").unwrap();
     match color1 {
       Color::Rgb(ref rgb) => {
-        assert_eq!(rgb.r, 255);
-        assert_eq!(rgb.g, 0);
-        assert_eq!(rgb.b, 0);
+        assert_eq!(rgb.r, 255.0);
+        assert_eq!(rgb.g, 0.0);
+        assert_eq!(rgb.b, 0.0);
       },
       _ => stylex_panic!("Expected Rgb"),
     }
-    assert_eq!(color1.to_string(), "rgb(255, 0, 0)");
+    assert_eq!(color1.to_string(), "rgb(255,0,0)");
 
     let color2 = Color::parse().parse_to_end("rgb(0, 255, 0)").unwrap();
     match color2 {
       Color::Rgb(ref rgb) => {
-        assert_eq!(rgb.r, 0);
-        assert_eq!(rgb.g, 255);
-        assert_eq!(rgb.b, 0);
+        assert_eq!(rgb.r, 0.0);
+        assert_eq!(rgb.g, 255.0);
+        assert_eq!(rgb.b, 0.0);
       },
       _ => stylex_panic!("Expected Rgb"),
     }
-    assert_eq!(color2.to_string(), "rgb(0, 255, 0)");
+    assert_eq!(color2.to_string(), "rgb(0,255,0)");
 
     let color3 = Color::parse().parse_to_end("rgb(128, 128, 128)").unwrap();
     match color3 {
       Color::Rgb(ref rgb) => {
-        assert_eq!(rgb.r, 128);
-        assert_eq!(rgb.g, 128);
-        assert_eq!(rgb.b, 128);
+        assert_eq!(rgb.r, 128.0);
+        assert_eq!(rgb.g, 128.0);
+        assert_eq!(rgb.b, 128.0);
       },
       _ => stylex_panic!("Expected Rgb"),
     }
-    assert_eq!(color3.to_string(), "rgb(128, 128, 128)");
+    assert_eq!(color3.to_string(), "rgb(128,128,128)");
   }
 
   #[test]
@@ -115,42 +115,42 @@ mod test_css_type_color {
     let color1 = Color::parse().parse_to_end("rgba(255, 0, 0, 0.5)").unwrap();
     match color1 {
       Color::Rgba(ref rgba) => {
-        assert_eq!(rgba.r, 255);
-        assert_eq!(rgba.g, 0);
-        assert_eq!(rgba.b, 0);
+        assert_eq!(rgba.r, 255.0);
+        assert_eq!(rgba.g, 0.0);
+        assert_eq!(rgba.b, 0.0);
         assert_eq!(rgba.a, 0.5);
       },
       _ => stylex_panic!("Expected Rgba"),
     }
-    assert_eq!(color1.to_string(), "rgba(255, 0, 0, 0.5)");
+    assert_eq!(color1.to_string(), "rgba(255,0,0,0.5)");
 
     let color2 = Color::parse()
       .parse_to_end("rgba(0, 128, 255, 1.0)")
       .unwrap();
     match color2 {
       Color::Rgba(ref rgba) => {
-        assert_eq!(rgba.r, 0);
-        assert_eq!(rgba.g, 128);
-        assert_eq!(rgba.b, 255);
+        assert_eq!(rgba.r, 0.0);
+        assert_eq!(rgba.g, 128.0);
+        assert_eq!(rgba.b, 255.0);
         assert_eq!(rgba.a, 1.0);
       },
       _ => stylex_panic!("Expected Rgba"),
     }
-    assert_eq!(color2.to_string(), "rgba(0, 128, 255, 1)");
+    assert_eq!(color2.to_string(), "rgba(0,128,255,1)");
 
     let color3 = Color::parse()
       .parse_to_end("rgba(255, 255, 255, 0)")
       .unwrap();
     match color3 {
       Color::Rgba(ref rgba) => {
-        assert_eq!(rgba.r, 255);
-        assert_eq!(rgba.g, 255);
-        assert_eq!(rgba.b, 255);
+        assert_eq!(rgba.r, 255.0);
+        assert_eq!(rgba.g, 255.0);
+        assert_eq!(rgba.b, 255.0);
         assert_eq!(rgba.a, 0.0);
       },
       _ => stylex_panic!("Expected Rgba"),
     }
-    assert_eq!(color3.to_string(), "rgba(255, 255, 255, 0)");
+    assert_eq!(color3.to_string(), "rgba(255,255,255,0)");
   }
 
   #[test]
@@ -158,9 +158,9 @@ mod test_css_type_color {
     let color1 = Color::parse().parse_to_end("rgb(255 0 0)").unwrap();
     match color1 {
       Color::Rgb(ref rgb) => {
-        assert_eq!(rgb.r, 255);
-        assert_eq!(rgb.g, 0);
-        assert_eq!(rgb.b, 0);
+        assert_eq!(rgb.r, 255.0);
+        assert_eq!(rgb.g, 0.0);
+        assert_eq!(rgb.b, 0.0);
       },
       _ => stylex_panic!("Expected Rgb"),
     }
@@ -168,9 +168,9 @@ mod test_css_type_color {
     let color2 = Color::parse().parse_to_end("rgb(0 255 0)").unwrap();
     match color2 {
       Color::Rgb(ref rgb) => {
-        assert_eq!(rgb.r, 0);
-        assert_eq!(rgb.g, 255);
-        assert_eq!(rgb.b, 0);
+        assert_eq!(rgb.r, 0.0);
+        assert_eq!(rgb.g, 255.0);
+        assert_eq!(rgb.b, 0.0);
       },
       _ => stylex_panic!("Expected Rgb"),
     }
@@ -178,9 +178,9 @@ mod test_css_type_color {
     let color3 = Color::parse().parse_to_end("rgb(0 0 255)").unwrap();
     match color3 {
       Color::Rgb(ref rgb) => {
-        assert_eq!(rgb.r, 0);
-        assert_eq!(rgb.g, 0);
-        assert_eq!(rgb.b, 255);
+        assert_eq!(rgb.r, 0.0);
+        assert_eq!(rgb.g, 0.0);
+        assert_eq!(rgb.b, 255.0);
       },
       _ => stylex_panic!("Expected Rgb"),
     }
@@ -191,9 +191,9 @@ mod test_css_type_color {
     let color1 = Color::parse().parse_to_end("rgba(255 0 0 / 0.5)").unwrap();
     match color1 {
       Color::Rgba(ref rgba) => {
-        assert_eq!(rgba.r, 255);
-        assert_eq!(rgba.g, 0);
-        assert_eq!(rgba.b, 0);
+        assert_eq!(rgba.r, 255.0);
+        assert_eq!(rgba.g, 0.0);
+        assert_eq!(rgba.b, 0.0);
         assert_eq!(rgba.a, 0.5);
       },
       _ => stylex_panic!("Expected Rgba"),
@@ -202,9 +202,9 @@ mod test_css_type_color {
     let color2 = Color::parse().parse_to_end("rgba(0 255 0 / 0.8)").unwrap();
     match color2 {
       Color::Rgba(ref rgba) => {
-        assert_eq!(rgba.r, 0);
-        assert_eq!(rgba.g, 255);
-        assert_eq!(rgba.b, 0);
+        assert_eq!(rgba.r, 0.0);
+        assert_eq!(rgba.g, 255.0);
+        assert_eq!(rgba.b, 0.0);
         assert_eq!(rgba.a, 0.8);
       },
       _ => stylex_panic!("Expected Rgba"),
@@ -213,9 +213,9 @@ mod test_css_type_color {
     let color3 = Color::parse().parse_to_end("rgba(0 0 255 / 50%)").unwrap();
     match color3 {
       Color::Rgba(ref rgba) => {
-        assert_eq!(rgba.r, 0);
-        assert_eq!(rgba.g, 0);
-        assert_eq!(rgba.b, 255);
+        assert_eq!(rgba.r, 0.0);
+        assert_eq!(rgba.g, 0.0);
+        assert_eq!(rgba.b, 255.0);
         assert_eq!(rgba.a, 0.5);
       },
       _ => stylex_panic!("Expected Rgba"),
@@ -233,7 +233,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Hsl"),
     }
-    assert_eq!(color1.to_string(), "hsl(120deg, 100%, 50%)");
+    assert_eq!(color1.to_string(), "hsl(120deg,100%,50%)");
 
     let color2 = Color::parse().parse_to_end("hsl(0, 100%, 50%)").unwrap();
     match color2 {
@@ -244,7 +244,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Hsl"),
     }
-    assert_eq!(color2.to_string(), "hsl(0deg, 100%, 50%)");
+    assert_eq!(color2.to_string(), "hsl(0deg,100%,50%)");
 
     let color3 = Color::parse().parse_to_end("hsl(240, 100%, 50%)").unwrap();
     match color3 {
@@ -255,7 +255,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Hsl"),
     }
-    assert_eq!(color3.to_string(), "hsl(240deg, 100%, 50%)");
+    assert_eq!(color3.to_string(), "hsl(240deg,100%,50%)");
   }
 
   #[test]
@@ -272,7 +272,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Hsla"),
     }
-    assert_eq!(color1.to_string(), "hsla(240deg, 100%, 50%, 0.8)");
+    assert_eq!(color1.to_string(), "hsla(240deg,100%,50%,0.8)");
 
     let color2 = Color::parse()
       .parse_to_end("hsla(120, 50%, 75%, 0.3)")
@@ -286,7 +286,7 @@ mod test_css_type_color {
       },
       _ => stylex_panic!("Expected Hsla"),
     }
-    assert_eq!(color2.to_string(), "hsla(120deg, 50%, 75%, 0.3)");
+    assert_eq!(color2.to_string(), "hsla(120deg,50%,75%,0.3)");
   }
 
   #[test]
@@ -486,8 +486,8 @@ mod test_css_type_color {
       ("RED", "red"),
       ("Blue", "blue"),
       ("TRANSPARENT", "transparent"),
-      ("RGB(255, 0, 0)", "rgb(255, 0, 0)"),
-      ("HSL(120, 100%, 50%)", "hsl(120deg, 100%, 50%)"),
+      ("RGB(255, 0, 0)", "rgb(255,0,0)"),
+      ("HSL(120, 100%, 50%)", "hsl(120deg,100%,50%)"),
     ];
 
     for (input, expected_normalized) in test_cases {
@@ -577,9 +577,9 @@ mod test_css_type_color {
     let color = Color::parse().parse_to_end("rgb(255 0 0)").unwrap();
     match color {
       Color::Rgb(ref rgb) => {
-        assert_eq!(rgb.r, 255);
-        assert_eq!(rgb.g, 0);
-        assert_eq!(rgb.b, 0);
+        assert_eq!(rgb.r, 255.0);
+        assert_eq!(rgb.g, 0.0);
+        assert_eq!(rgb.b, 0.0);
       },
       _ => stylex_panic!("Expected Rgb"),
     }
@@ -587,9 +587,9 @@ mod test_css_type_color {
     let color2 = Color::parse().parse_to_end("rgb(128 64 32)").unwrap();
     match color2 {
       Color::Rgb(ref rgb) => {
-        assert_eq!(rgb.r, 128);
-        assert_eq!(rgb.g, 64);
-        assert_eq!(rgb.b, 32);
+        assert_eq!(rgb.r, 128.0);
+        assert_eq!(rgb.g, 64.0);
+        assert_eq!(rgb.b, 32.0);
       },
       _ => stylex_panic!("Expected Rgb"),
     }
@@ -600,9 +600,9 @@ mod test_css_type_color {
     let color = Color::parse().parse_to_end("rgba(255, 0, 0, 0.5)").unwrap();
     match color {
       Color::Rgba(ref rgba) => {
-        assert_eq!(rgba.r, 255);
-        assert_eq!(rgba.g, 0);
-        assert_eq!(rgba.b, 0);
+        assert_eq!(rgba.r, 255.0);
+        assert_eq!(rgba.g, 0.0);
+        assert_eq!(rgba.b, 0.0);
         assert_eq!(rgba.a, 0.5);
       },
       _ => stylex_panic!("Expected Rgba"),
@@ -613,9 +613,9 @@ mod test_css_type_color {
       .unwrap();
     match color2 {
       Color::Rgba(ref rgba) => {
-        assert_eq!(rgba.r, 128);
-        assert_eq!(rgba.g, 64);
-        assert_eq!(rgba.b, 32);
+        assert_eq!(rgba.r, 128.0);
+        assert_eq!(rgba.g, 64.0);
+        assert_eq!(rgba.b, 32.0);
         assert_eq!(rgba.a, 0.8);
       },
       _ => stylex_panic!("Expected Rgba"),
@@ -627,9 +627,9 @@ mod test_css_type_color {
     let color = Color::parse().parse_to_end("rgb(255 0 0 / 0.5)").unwrap();
     match color {
       Color::Rgba(ref rgba) => {
-        assert_eq!(rgba.r, 255);
-        assert_eq!(rgba.g, 0);
-        assert_eq!(rgba.b, 0);
+        assert_eq!(rgba.r, 255.0);
+        assert_eq!(rgba.g, 0.0);
+        assert_eq!(rgba.b, 0.0);
         assert_eq!(rgba.a, 0.5);
       },
       _ => stylex_panic!("Expected Rgba"),
@@ -640,9 +640,9 @@ mod test_css_type_color {
       .unwrap();
     match color2 {
       Color::Rgba(ref rgba) => {
-        assert_eq!(rgba.r, 128);
-        assert_eq!(rgba.g, 64);
-        assert_eq!(rgba.b, 32);
+        assert_eq!(rgba.r, 128.0);
+        assert_eq!(rgba.g, 64.0);
+        assert_eq!(rgba.b, 32.0);
         assert_eq!(rgba.a, 0.8);
       },
       _ => stylex_panic!("Expected Rgba"),
@@ -829,6 +829,69 @@ mod test_css_type_color {
         assert_eq!(oklab.alpha, Some(0.5));
       },
       _ => stylex_panic!("Expected Oklab"),
+    }
+  }
+}
+
+#[cfg(test)]
+mod the_optional_alpha_rewind {
+  use super::*;
+
+  /// The reader for the `/ <alpha-value>` tail rewinds when it finds no slash,
+  /// which puts back the whitespace it skipped looking for one. The closing
+  /// paren check that follows does not skip whitespace itself, so a space
+  /// before the paren is refused. Pinned because the rewind is otherwise
+  /// unobservable, and because a reader that stopped rewinding would change
+  /// this without any other test noticing.
+  #[test]
+  fn a_space_before_the_closing_paren_is_refused_after_a_rewind() {
+    for input in [
+      "lch(50 100 180 )",
+      "oklch(0.7 0.1 200deg )",
+      "oklab(0.5 0.1 0.1 )",
+    ] {
+      assert!(
+        Color::parse().parse_to_end(input).is_err(),
+        "{input:?} should be refused"
+      );
+    }
+  }
+
+  /// With a slash present the whitespace is consumed rather than put back, so
+  /// the same shape parses -- which is what shows the refusal above belongs to
+  /// the rewind and not to the paren check alone.
+  #[test]
+  fn the_same_space_is_accepted_when_an_alpha_follows_it() {
+    match Color::parse().parse_to_end("lch(50 100 180 / 0.5)") {
+      // An `lch` hue with no unit stays a bare number, where `oklch` reads one
+      // as degrees.
+      Ok(color) => assert_eq!(color.to_string(), "lch(50 100 180 / 0.5)"),
+      Err(error) => panic!("expected the alpha form to parse: {error:?}"),
+    }
+  }
+  /// The reference compiler's own `lch(50% 100 270deg)` case, ported -- but as
+  /// characterization rather than parity, because this type is an
+  /// [unreachable port](../../CONTEXT.md).
+  ///
+  /// Two different answers, and neither is a defect in the other:
+  ///
+  /// - `Lch` stores the authored percent as a number and prints it back without
+  ///   the sign, so the round trip is `lch(50 100 270deg)`. That is what this
+  ///   test pins, and it is this crate's behaviour.
+  /// - The plugin emits `lch(50% 100 270deg)`, the percent echoed. It never runs
+  ///   this code: a colour is normalized as text and is not rebuilt from parsed
+  ///   channels.
+  ///
+  /// So the case is worth having for the parser's own consistency, and worth
+  /// labelling so nobody reads it as a statement about what the compiler emits.
+  /// Anyone putting these types on an emission path has to close that gap first.
+  ///
+  /// Source: `style-value-parser/src/css-types/__tests__/color-test.js`.
+  #[test]
+  fn the_reference_compilers_own_percentage_lightness_case() {
+    match Color::parse().parse_to_end("lch(50% 100 270deg)") {
+      Ok(color) => assert_eq!(color.to_string(), "lch(50 100 270deg)"),
+      Err(error) => panic!("expected a percentage lightness to parse: {error:?}"),
     }
   }
 }

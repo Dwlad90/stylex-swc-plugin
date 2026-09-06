@@ -2,11 +2,12 @@ use stylex_macros::stylex_panic;
 use swc_core::{
   common::{DUMMY_SP, Span, SyntaxContext},
   ecma::ast::{
-    ArrayLit, ArrowExpr, BigInt, BinExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, CallExpr,
+    ArrayLit, ArrowExpr, ArrowFunctionBody, BigInt, BinExpr, BinaryOp, BindingIdent, CallExpr,
     Callee, ComputedPropName, CondExpr, Expr, ExprOrSpread, Ident, IdentName, ImportDecl,
     ImportPhase, ImportSpecifier, ImportStarAsSpecifier, JSXAttr, JSXAttrName, JSXAttrOrSpread,
     JSXAttrValue, KeyValueProp, Lit, MemberExpr, MemberProp, ModuleDecl, ModuleItem, Null,
-    ObjectLit, ParenExpr, Pat, Prop, PropName, PropOrSpread, SpreadElement, Str, VarDeclarator,
+    ObjectLit, ParenExpr, Pat, Prop, PropName, PropOrSpread, SpreadElement, Str, UnaryExpr,
+    VarDeclarator,
   },
 };
 
@@ -624,7 +625,7 @@ pub fn create_arrow_expression_with_params(params: Vec<Pat>, body_expr: Expr) ->
   Expr::Arrow(ArrowExpr {
     span: DUMMY_SP,
     params,
-    body: Box::new(BlockStmtOrExpr::Expr(Box::new(body_expr))),
+    body: Box::new(ArrowFunctionBody::Expr(Box::new(body_expr))),
     is_async: false,
     is_generator: false,
     type_params: None,
@@ -763,4 +764,27 @@ pub fn create_import_namespace_decl(local: &str, source: &str) -> ModuleItem {
     with: None,
     phase: ImportPhase::Evaluation,
   }))
+}
+
+/// Rebuilds a unary expression as an owned `Expr`, for a caller that holds only
+/// the borrowed node.
+///
+/// # Why a factory rather than an inline `Expr::Unary(unary.clone())`
+///
+/// A `UnaryExpr` owns its operand, so cloning one deep-copies the whole operand
+/// subtree. Naming the clone keeps that cost visible at the call site and keeps
+/// it where it belongs: an evaluator builds this only to report the expression a
+/// refusal happened on, so it is built at the refusal and never on the path
+/// where the fold succeeds.
+///
+/// # Arguments
+/// * `unary` - The unary expression to rebuild
+///
+/// # Example
+/// ```ignore
+/// let path = create_unary_expr(unary);
+/// ```
+#[inline]
+pub fn create_unary_expr(unary: &UnaryExpr) -> Expr {
+  Expr::Unary(unary.clone())
 }

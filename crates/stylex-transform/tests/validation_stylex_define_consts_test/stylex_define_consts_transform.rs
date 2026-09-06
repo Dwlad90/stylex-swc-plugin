@@ -238,3 +238,38 @@ stylex_test_transform!(
     });
   "#
 );
+
+// A theme reference read as a constant's value. Refused by both compilers, and
+// here by the check that owns the position rather than by the value arm -- a
+// constant is inlined at its use sites, so nothing it holds may be a reference
+// to resolve later. Recorded as
+// `modules-1266-a-theme-object-as-a-define-consts-value`.
+stylex_test_panic!(
+  a_theme_reference_read_as_a_constant_value_is_refused,
+  "Only static values are allowed inside of a defineConsts() call.",
+  |tr| theme_module_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const constants = stylex.defineConsts({ a: zIndex });
+  "#
+);
+
+// A folded function map read as a constant's value. The reference implementation
+// folds the same reference to a plain object and accepts it, emitting nothing
+// for the constant; refused here, for the reason every shape with no value form
+// is refused in this position. A decided divergence, measured here rather than
+// in the parity corpus: `defineConsts` hashes the file that declares it, and
+// every corpus subject is handed the same filename, so such a subject refuses
+// for the filename before the value under test is read.
+stylex_test_panic!(
+  a_folded_function_map_read_as_a_constant_value_is_refused,
+  "Only static values are allowed inside of a defineConsts() call.",
+  |tr| file_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const constants = stylex.defineConsts({ a: stylex });
+  "#
+);

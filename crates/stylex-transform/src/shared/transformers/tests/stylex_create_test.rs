@@ -3,28 +3,24 @@ mod stylex_create {
   use std::rc::Rc;
 
   use indexmap::IndexMap;
+  use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::{Expr, ExprOrSpread, KeyValueProp};
 
-  use crate::shared::{
-    enums::data_structures::{
-      evaluate_result_value::EvaluateResultValue,
-      flat_compiled_styles_value::FlatCompiledStylesValue,
-    },
-    structures::{
-      functions::FunctionMap,
-      state::EvaluationState,
-      state_manager::StateManager,
-      types::{ClassPathsMap, InjectableStylesMap, StylesObjectMap},
-    },
-    transformers::stylex_create::stylex_create_set,
-    utils::ast::convertors::create_string_expr,
-  };
+  use crate::shared::transformers::stylex_create::stylex_create_set;
   use stylex_ast::ast::factories::{
     create_array_expression, create_key_value_prop, create_key_value_prop_ident,
     create_nested_object_prop, create_null_lit, create_object_expression,
     create_string_key_value_prop,
   };
   use stylex_constants::constants::common::COMPILED_KEY;
+  use stylex_evaluator::state::EvaluationState;
+  use stylex_state::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue,
+    functions::FunctionMap,
+    state_manager::StateManager,
+    types::{ClassPathsMap, InjectableStylesMap, StylesObjectMap},
+  };
   use stylex_structures::stylex_state_options::StyleXStateOptions;
   use stylex_types::structures::injectable_style::InjectableStyle;
 
@@ -271,12 +267,12 @@ mod stylex_create {
     stylex_create_set(
       &EvaluateResultValue::Map(style_object),
       &mut EvaluationState::default(),
-      &mut StateManager {
-        options: StyleXStateOptions::default()
+      &mut StateManager::for_test(
+        None,
+        StyleXStateOptions::default()
           .with_debug(true)
           .with_enable_debug_class_names(true),
-        ..Default::default()
-      },
+      ),
       &FunctionMap::default(),
     )
   }

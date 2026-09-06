@@ -1,17 +1,14 @@
 use std::borrow::Cow;
 
+use stylex_css::css::common::generate_css_rule;
 use stylex_macros::stylex_panic;
+use stylex_structures::pre_rule_value::PreRuleValue;
+use stylex_types::structures::style_key::{ClassName, RuleKey};
 
-use crate::shared::{
-  structures::{
-    pre_rule::PreRuleValue,
-    state_manager::StateManager,
-    types::{ClassName, RuleKey},
-  },
-  utils::css::common::{generate_css_rule, transform_value_cached},
-};
+use crate::shared::utils::css::common::transform_value_cached;
 use stylex_constants::constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS};
 use stylex_css::utils::pre_rule::{sort_at_rules, sort_pseudos};
+use stylex_state::state_manager::StateManager;
 use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_utils::{
   hash::create_hash,
@@ -44,8 +41,10 @@ pub(crate) fn convert_style_to_class_name(
     dashify(key)
   };
 
-  let unsorted_pseudos = &mut pseudos.to_vec();
-  let sorted_pseudos = sort_pseudos(unsorted_pseudos);
+  // `sort_pseudos` takes a slice and copies what it needs; copying into a
+  // binding it never mutates first was a second copy of the list, per property
+  // per namespace per call.
+  let sorted_pseudos = sort_pseudos(pseudos);
 
   let mut combined_at_rules = Vec::with_capacity(at_rules.len() + const_rules.len());
 

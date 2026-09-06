@@ -2,11 +2,12 @@ use stylex_macros::stylex_panic;
 
 use crate::shared::structures::pre_rule::{CompiledResult, ComputedStyle};
 use stylex_constants::constants::messages::RULE_SET_EMPTY;
+use stylex_state::state_manager::StateManager;
+use stylex_structures::pre_rule_value::PreRuleValue;
 
 use super::{
   null_pre_rule::NullPreRule,
-  pre_rule::{PreRule, PreRuleValue, PreRules},
-  state_manager::StateManager,
+  pre_rule::{PreRule, PreRules},
 };
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PreRuleSet {
@@ -14,9 +15,17 @@ pub(crate) struct PreRuleSet {
 }
 
 impl PreRuleSet {
-  pub(crate) fn _new() -> Self {
+  /// Makes a set that holds no rules.
+  //
+  // Kept by ticket 31. Only this function can make an empty set, because
+  // `create` builds every other set and collapses an empty list to a null
+  // rule. No production code calls it. The compiler warns without the
+  // attribute.
+  #[allow(dead_code)]
+  pub(crate) fn new() -> Self {
     PreRuleSet { rules: vec![] }
   }
+
   pub(crate) fn create(rules: Vec<PreRules>) -> PreRules {
     let flat_rules = rules
       .into_iter()
@@ -39,8 +48,16 @@ impl PreRuleSet {
 
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl PreRule for PreRuleSet {
-  fn equals(&self, _other: &dyn PreRule) -> bool {
-    true
+  /// Two sets are equal when they hold the same rules in the same order, each
+  /// compared by its own `equals` rather than field by field.
+  fn equals(&self, other: &PreRules) -> bool {
+    match other {
+      PreRules::PreRuleSet(other) => {
+        self.rules.len() == other.rules.len()
+          && std::iter::zip(&self.rules, &other.rules).all(|(left, right)| left.equals(right))
+      },
+      _ => false,
+    }
   }
   fn compiled(&mut self, state: &mut StateManager) -> CompiledResult {
     let style_tuple = self

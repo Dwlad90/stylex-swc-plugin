@@ -195,6 +195,7 @@ mod build_nested_css_rule_tests {
 #[cfg(test)]
 mod get_priority_tests {
   use crate::css::common::get_priority;
+  use stylex_regex::regex::PSEUDO_PART_REGEX;
 
   #[test]
   fn shorthand_of_shorthands_gets_1000() {
@@ -249,6 +250,39 @@ mod get_priority_tests {
   fn pseudo_class_focus() {
     let p = get_priority(":focus");
     assert!(p > 0.0);
+  }
+
+  /// The `contains(':')` guard in `get_compound_pseudo_priority` skips the scan
+  /// for a key that holds no colon, which is only sound while every alternation
+  /// of `PSEUDO_PART_REGEX` opens with one. An alternation added later that does
+  /// not -- an attribute selector, say -- would make the guard answer `None` for
+  /// keys it matches, and the generated CSS would reorder with nothing else
+  /// failing.
+  #[test]
+  fn every_pseudo_part_the_regex_matches_carries_a_colon() {
+    for key in [
+      ":hover:active",
+      "::before",
+      ":not(:hover)",
+      "::-webkit-scrollbar",
+      ":nth-child(2)::after",
+    ] {
+      for part in PSEUDO_PART_REGEX.find_iter(key).flatten() {
+        assert!(
+          part.as_str().starts_with(':'),
+          "{part:?} has no colon to guard on"
+        );
+      }
+    }
+  }
+
+  /// The other half of the premise: a key the guard refuses holds nothing the
+  /// scan would have found.
+  #[test]
+  fn a_key_without_a_colon_matches_no_pseudo_part() {
+    for key in ["color", "paddingBottom", "--custom-prop", "margin-top"] {
+      assert_eq!(PSEUDO_PART_REGEX.find_iter(key).flatten().count(), 0);
+    }
   }
 }
 

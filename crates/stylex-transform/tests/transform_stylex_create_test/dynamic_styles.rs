@@ -502,3 +502,320 @@ stylex_test!(
       });
   "#
 );
+
+// ──────────────────────────────────────────────
+// A dynamic parameter that shadows an imported binding (#1266)
+//
+// Every case below aborted the build before the import lookup compared the
+// binding rather than the name: the parameter resolved to the theme it shadows,
+// evaluation answered a confident theme reference, and a theme reference has no
+// expression form for the style-value consumer to emit.
+//
+// These run under `haste` resolution and a real filename because a theme import
+// has to resolve for the case to be about the shadowing rather than about the
+// path.
+// ──────────────────────────────────────────────
+
+stylex_test!(
+  dynamic_param_shadows_a_named_theme_import,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: { zIndex: zIndex._10 },
+      zIndex: (zIndex) => ({ zIndex }),
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_an_aliased_theme_import,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex as zi } from 'zIndex.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: { zIndex: zi._10 },
+      dyn: (zi) => ({ zIndex: zi }),
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_a_theme_import_referenced_nowhere_else,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const styles = stylex.create({
+      dyn: (zIndex) => ({ zIndex }),
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_a_theme_import_used_only_outside_create,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const raised = zIndex._10;
+
+    export const styles = stylex.create({
+      dyn: (zIndex) => ({ zIndex }),
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_a_theme_import_read_by_a_sibling_key,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const styles = stylex.create({
+      dyn: (zIndex) => ({
+        zIndex,
+        ':hover': { zIndex: 1 },
+      }),
+      raised: { zIndex: zIndex._10 },
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_a_theme_import_inside_nested_conditions,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: { zIndex: zIndex._10 },
+      dyn: (zIndex) => ({
+        zIndex: {
+          default: zIndex,
+          ':hover': {
+            default: zIndex,
+            '@media (min-width: 600px)': {
+              default: zIndex,
+              ':focus': zIndex,
+            },
+          },
+        },
+      }),
+    });
+  "#
+);
+
+stylex_test!(
+  a_theme_import_read_as_a_computed_key_beside_a_dynamic_param,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { vars } from 'vars.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: { [vars.color]: 'red' },
+      dyn: (color) => ({ [vars.color]: color }),
+    });
+  "#
+);
+
+// The next two shadow a namespace and a default import rather than a named one.
+// Their arms of the import lookup already compared the binding, so the shadowing
+// half of each was never broken -- they are here so a later edit cannot regress
+// all three arms to a name match at once.
+//
+// Neither import kind resolves anything now, so each has to be asked without the
+// import being read: the parameter is the only reference to the name, and it
+// compiles to an inline style. A regression to a name match would resolve the
+// parameter to the import instead and refuse, which is a louder guard than the
+// accepting snapshots these replace -- those refused nothing either way.
+//
+// The unshadowed halves both moved to
+// `validation_stylex_create_test::invalid_values`, where the refusals they now
+// read belong.
+stylex_test!(
+  dynamic_param_shadows_a_namespace_theme_import,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as tokens from 'tokens.stylex.js';
+
+    export const styles = stylex.create({
+      dyn: (tokens) => ({ color: tokens }),
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_a_default_theme_import,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import tokens from 'tokens.stylex.js';
+
+    export const styles = stylex.create({
+      dyn: (tokens) => ({ color: tokens }),
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_a_module_level_const,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const gap = '10px';
+
+    export const styles = stylex.create({
+      wrapper: { rowGap: gap },
+      dyn: (gap) => ({ rowGap: gap }),
+    });
+  "#
+);
+
+stylex_test!(
+  a_theme_import_read_beside_an_unshadowed_dynamic_param,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: { zIndex: zIndex._10 },
+      dyn: (level) => ({ zIndex: level }),
+    });
+  "#
+);
+
+// ──────────────────────────────────────────────
+// A dynamic parameter named `undefined`, `NaN` or `Infinity`
+//
+// The three are ordinary binding names to the language, and the evaluator asks
+// which of the two a reference is -- the global, or the parameter that took the
+// name over. A parameter refuses, and the refusal is what sends the value down
+// the inline-style path a dynamic parameter is emitted through; before it, the
+// global folded in and CSS generation rejected the static `NaN` downstream.
+//
+// Measured against `@stylexjs/babel-plugin` 0.19.0: all four compile to the
+// same rules there. Recorded in the parity corpus as
+// `modules-1266-dynamic-param-named-*`.
+// ──────────────────────────────────────────────
+
+stylex_test!(
+  dynamic_param_named_nan,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ a: (NaN) => ({ width: NaN }) });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_named_infinity,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ a: (Infinity) => ({ width: Infinity }) });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_named_undefined,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ a: (undefined) => ({ width: undefined }) });
+  "#
+);
+
+// The parameter is read through an operator rather than emitted straight, so the
+// refusal has to travel out of the arithmetic rather than being the value the
+// property receives.
+stylex_test!(
+  dynamic_param_named_nan_inside_arithmetic,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ a: (NaN) => ({ width: NaN + 1 }) });
+  "#
+);
+
+// And nested under conditions, where the inline style's custom property is named
+// from the key path rather than from the property.
+stylex_test!(
+  dynamic_param_named_undefined_inside_nested_conditions,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      a: (undefined) => ({
+        color: {
+          default: undefined,
+          ':hover': 'red',
+        },
+      }),
+    });
+  "#
+);
+
+// ── A static spread inside a dynamic body ────────────────────────────
+
+// A spread whose operand folds contributes that value's keys and the fold
+// carries on, which is `Object.assign(obj, result.value)` upstream
+// (`visitors/parse-stylex-create-arg.js:140-147`, 0.19.0). It used to abort with
+// `The spread operator (...) is not supported in this context`, so a program the
+// reference compiler compiles did not build here.
+//
+// The refusal is *not* gone. A spread whose operand cannot fold -- a shadowing
+// parameter, say -- still refuses, because there are no keys to enumerate;
+// `a_shadowing_param_spread_into_the_style` holds that. What changed is the case
+// where the operand did fold and the keys were sitting there.
+stylex_test!(
+  a_static_spread_folds_into_a_dynamic_body,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const base = { color: 'red', opacity: 1 };
+    export const styles = stylex.create({
+      dyn: (w) => ({ ...base, width: w }),
+    });
+  "#
+);
+
+// Last-wins, both ways round, which is the half of `Object.assign` a fixture has
+// to carry: a repeated key takes the *later* value and keeps the position it
+// first took. So `color` is spelled once in each namespace below, blue in the
+// first and red in the second, and in the second it still sits where the
+// authored `color` put it rather than where the spread did.
+stylex_test!(
+  a_spread_and_an_authored_key_resolve_last_wins,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const base = { color: 'red' };
+    export const styles = stylex.create({
+      spreadFirst: (w) => ({ ...base, color: 'blue', width: w }),
+      spreadLast: (w) => ({ color: 'blue', ...base, width: w }),
+    });
+  "#
+);
+
+// One level down, where the fold recurses. A pseudo is the shape a style object
+// is mostly made of, so a spread that worked only at the top would be the more
+// misleading half-fix.
+stylex_test!(
+  a_static_spread_folds_inside_a_nested_condition,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const base = { color: 'red' };
+    export const styles = stylex.create({
+      dyn: (w) => ({ width: w, ':hover': { ...base } }),
+    });
+  "#
+);

@@ -302,6 +302,21 @@ function sameSubject(actual: SubjectDescriptor | undefined, expected: SubjectDes
   );
 }
 
+/**
+ * The fixtures that breached on the primary run and breached again on retry.
+ *
+ * Read off the fixture statuses rather than from `flagged`, which is the list
+ * the *primary* run raised: every flagged fixture is retried, and a retry that
+ * clears the fixture turns it back to `pass`. A failure named from `flagged`
+ * therefore names the flakes beside the breach, and a reader shown five names
+ * for one breach cannot tell which subject to look at.
+ */
+export function reproducedFailures(report: VerdictReport): string[] {
+  return report.fixtures
+    .filter(fixture => fixture.status === 'failed')
+    .map(fixture => fixture.name);
+}
+
 export { escapeMarkdownCell } from './format.js';
 
 const STATUS_LABEL: Record<FixtureStatus, string> = {

@@ -3,17 +3,17 @@ use std::{fmt::Write, rc::Rc};
 use stylex_macros::stylex_panic;
 
 use crate::shared::{
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue,
-    flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
-  },
-  structures::{state_manager::StateManager, types::FlatCompiledStyles},
+  enums::data_structures::obj_map_type::ObjMapType,
   utils::object::{
     Pipe, obj_map, obj_map_keys_and_transform_values, obj_map_keys_key_value,
     preprocess_object_properties,
   },
 };
 use stylex_constants::constants::messages::{VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT};
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
+  state_manager::StateManager, types::FlatCompiledStyles,
+};
 use stylex_structures::pair::Pair;
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,

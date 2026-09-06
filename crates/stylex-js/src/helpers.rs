@@ -1,5 +1,5 @@
 use stylex_constants::constants::{
-  common::{INVALID_METHODS, MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS, VALID_CALLEES},
+  common::{INVALID_METHODS, MUTATING_OBJECT_METHODS, VALID_CALLEES},
   messages::INVALID_UTF8,
 };
 use stylex_macros::stylex_panic;
@@ -35,16 +35,6 @@ pub fn is_invalid_method(prop: &MemberProp) -> bool {
 pub fn is_mutating_object_method(prop: &MemberProp) -> bool {
   if let MemberProp::Ident(ident_prop) = prop {
     MUTATING_OBJECT_METHODS.contains(&*ident_prop.sym)
-  } else {
-    false
-  }
-}
-
-/// Checks if a member property represents a mutating array method (push, pop,
-/// splice, etc.)
-pub fn is_mutating_array_method(prop: &MemberProp) -> bool {
-  if let MemberProp::Ident(ident_prop) = prop {
-    MUTATING_ARRAY_METHODS.contains(&*ident_prop.sym)
   } else {
     false
   }

@@ -12,7 +12,7 @@
 //!   (CSS rule emission, debug snapshots, etc.). Document the reason with a
 //!   `// JS-parity:` comment citing the JS source line.
 
-pub use indexmap::{IndexMap, IndexSet};
+pub use indexmap::{IndexMap, IndexSet, map::Entry as IndexMapEntry};
 pub use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet, FxHasher};
 
 /// `IndexMap` keyed by an `Fx` hasher — matches the workspace default

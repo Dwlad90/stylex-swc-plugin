@@ -21,11 +21,6 @@ pub static LENGTH_UNIT_TESTER_REGEX: Lazy<Regex> = Lazy::new(|| {
 pub static IS_CSS_VAR: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"^var\(--[a-zA-Z0-9-_]+\)$"#).expect("Is CSS var regex is valid"));
 
-// Improved: Using positive lookbehind to avoid capturing the prefix
-// This simplifies replacement from "$1-$2" to "-$1"
-pub static DASHIFY_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(?<=^|[a-z])([A-Z])").expect("Dashify regex is valid"));
-
 pub static URL_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(
         r"https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)"

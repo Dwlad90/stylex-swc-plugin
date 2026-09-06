@@ -3,10 +3,9 @@
 //! initialization.
 
 use crate::regex::{
-  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CSS_VALUE_SPLIT_REGEX, DASHIFY_REGEX,
-  DESCENDANT_SELECTOR, IS_CSS_VAR, JSON_REGEX, LENGTH_UNIT_TESTER_REGEX, PSEUDO_PART_REGEX,
-  SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR, STYLEX_CONSTS_IMPORT_REGEX, URL_REGEX,
-  VAR_EXTRACTION_REGEX,
+  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CSS_VALUE_SPLIT_REGEX, DESCENDANT_SELECTOR, IS_CSS_VAR,
+  JSON_REGEX, LENGTH_UNIT_TESTER_REGEX, PSEUDO_PART_REGEX, SIBLING_AFTER_SELECTOR,
+  SIBLING_BEFORE_SELECTOR, STYLEX_CONSTS_IMPORT_REGEX, URL_REGEX, VAR_EXTRACTION_REGEX,
 };
 
 /// Value-splitting parsers should detect adjacency patterns.
@@ -34,7 +33,6 @@ fn core_cleanup_patterns_match() {
   assert!(!IS_CSS_VAR.is_match("var(--a:b)").unwrap());
   assert!(!IS_CSS_VAR.is_match("var(--a.b)").unwrap());
   assert!(!IS_CSS_VAR.is_match("var(--a[b)").unwrap());
-  assert!(DASHIFY_REGEX.is_match("fooBar").unwrap());
 }
 
 /// URL and JSON helper patterns should match their canonical content.

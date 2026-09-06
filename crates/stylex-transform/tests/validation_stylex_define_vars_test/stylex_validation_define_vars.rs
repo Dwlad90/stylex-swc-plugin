@@ -326,3 +326,139 @@ stylex_test_panic!(
     });
   "#
 );
+
+// A folded function map read where a variable's value belongs. `keyframes` is
+// registered for a `defineVars` call too, so the identifier step folds a
+// reference to it, and the static object evaluator materializes the fold as the
+// object it stands for -- which reaches this consumer as an object with no
+// `default` key, and is refused for that.
+//
+// The sentence is the reference implementation's, byte for byte: an object with
+// no `default` key is refused for the shape it is, before anything looks at
+// what it holds. Looking at the values first answered a name the author wrote
+// with a sentence about zero-argument functions, because the object a folded
+// function map materializes to carries one in every value slot.
+// The plain shape of the same rule, with no fold involved: an object value
+// carrying at-rules and no `default`. The sentence names the top-level variable
+// and not the nested key the recursion is standing on, which is what upstream
+// names too.
+stylex_test_panic!(
+  an_object_value_with_no_default_key_is_refused,
+  "Default value is not defined for cornerRadius variable.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      cornerRadius: { '@media (min-width: 600px)': '8px' },
+    });
+  "#
+);
+
+// The same object one level down. The top-level key is what is named, because
+// that is the variable an author would go looking for.
+stylex_test_panic!(
+  a_nested_object_value_with_no_default_key_names_the_top_level_variable,
+  "Default value is not defined for cornerRadius variable.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      cornerRadius: {
+        default: '4px',
+        '@media (min-width: 600px)': { '@supports (display: grid)': '8px' },
+      },
+    });
+  "#
+);
+
+// A fold buried under an at-rule, rather than written at the top level. The
+// reference implementation recurses through every branch of a value, so the
+// level that lacks a `default` is refused wherever it sits; checking only the
+// top level left this one reading the sentence about zero-argument functions,
+// which is the defect the reorder is for.
+stylex_test_panic!(
+  a_nested_folded_function_map_is_refused_for_its_missing_default,
+  "Default value is not defined for a variable.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b
+    .with_filename(swc_core::common::FileName::Real("vars.stylex.js".into()))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))),
+  r#"
+    import { defineVars, keyframes } from '@stylexjs/stylex';
+
+    export const vars = defineVars({
+      a: { default: '1px', '@media (min-width: 600px)': keyframes },
+    });
+  "#
+);
+
+// An empty object carries no `default` either, and is refused for that rather
+// than compiling to a variable with no value.
+stylex_test_panic!(
+  an_empty_object_value_is_refused_for_its_missing_default,
+  "Default value is not defined for cornerRadius variable.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({ cornerRadius: {} });
+  "#
+);
+
+// A zero-argument arrow is still expanded and still refused for its parameters
+// where it has them, so the reorder did not move the function check off the
+// shapes it owns.
+stylex_test_panic!(
+  a_parameterized_arrow_beside_an_object_value_still_reads_the_function_sentence,
+  "Function values in defineVars() must be zero-argument and return a static value supported by defineVars().",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      cornerRadius: { default: '4px' },
+      other: (value) => value,
+    });
+  "#
+);
+
+stylex_test_panic!(
+  a_folded_function_map_read_as_a_variable_value_is_refused_for_its_missing_default,
+  "Default value is not defined for a variable.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b
+    .with_filename(swc_core::common::FileName::Real("vars.stylex.js".into()))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))),
+  r#"
+    import { defineVars, keyframes } from '@stylexjs/stylex';
+
+    export const vars = defineVars({ a: keyframes });
+  "#
+);
+
+// A theme reference read as a variable's value. `defineVars` evaluates its
+// object through the same evaluator a `create` namespace goes through, so the
+// refusal that stopped the silent drop reaches here too -- and both compilers
+// refuse, with their own words: upstream reads `Default value is not defined for
+// a variable.` because the group folds to an object with no `default` key.
+// Recorded as `modules-1266-a-theme-object-as-a-define-vars-value`.
+stylex_test_panic!(
+  a_theme_reference_read_as_a_variable_value_is_refused,
+  "Only static values are allowed inside of a defineVars() call.",
+  |tr| theme_module_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const vars = stylex.defineVars({ a: zIndex });
+  "#
+);
+
+// The member read beside it, which is how one theme is meant to build on
+// another, and agrees with the reference implementation on the rule text.
+stylex_test!(
+  a_member_read_off_a_theme_import_is_a_valid_variable_value,
+  |tr| theme_module_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const vars = stylex.defineVars({ a: zIndex.ten });
+  "#
+);

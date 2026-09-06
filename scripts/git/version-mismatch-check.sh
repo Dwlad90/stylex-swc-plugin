@@ -10,8 +10,12 @@
 #      pnpm-workspace.yaml for why those groups are ignored.
 #   2. `catalog-integrity.mjs manifests` -- the assertion syncpack gave up:
 #      every dependency version is declared once, by name, in the catalogs.
+#   3. `catalog-integrity.mjs duplicates` -- a package catalogued twice, once
+#      narrowly and once wide in `peers`, still resolves to one version. The
+#      two drift apart on any bump of the narrow range, and the drift reads as
+#      a type error in an untouched file rather than as a dependency problem.
 #
-# Both run on every invocation rather than short-circuiting on the first
+# All three run on every invocation rather than short-circuiting on the first
 # failure. A manifest that is unformatted is usually also the manifest that
 # reintroduced a literal range, and fixing one at a time costs a commit cycle
 # per problem.
@@ -32,6 +36,10 @@ if ! ./node_modules/.bin/syncpack lint; then
 fi
 
 if ! node ./scripts/git/catalog-integrity.mjs manifests; then
+    status=1
+fi
+
+if ! node ./scripts/git/catalog-integrity.mjs duplicates; then
     status=1
 fi
 

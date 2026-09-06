@@ -29,7 +29,7 @@ impl Dimension {
   }
 
   /// Create a Dimension from value and unit
-  fn from_value_and_unit(value: f32, unit: impl Into<String>) -> Option<Dimension> {
+  fn from_value_and_unit(value: f64, unit: impl Into<String>) -> Option<Dimension> {
     let unit = unit.into();
 
     if Length::is_valid_unit(&unit) {
@@ -54,7 +54,7 @@ impl Dimension {
   /// without modifying existing tests.
   pub(crate) fn extract_dimension_token(token: SimpleToken) -> Option<Dimension> {
     if let SimpleToken::Dimension { value, unit } = token {
-      Self::from_value_and_unit(value as f32, unit)
+      Self::from_value_and_unit(value, unit)
     } else {
       None
     }

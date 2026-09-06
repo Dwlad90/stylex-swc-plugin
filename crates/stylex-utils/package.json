@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/utils",
   "description": "Miscellaneous SWC utilities for StyleX plugin",
-  "version": "0.18.6",
+  "version": "0.19.0-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -21,9 +21,10 @@
     "format:toml": "taplo format",
     "format:toml:check": "taplo format --check",
     "generate:parse-float-cases": "node scripts/generate-parse-float-cases.mjs > src/tests/number_parse_float_cases.rs",
-    "generate:parse-float-cases:check": "node scripts/generate-parse-float-cases.mjs | diff -u src/tests/number_parse_float_cases.rs -",
+    "generate:parse-float-cases:check": "node scripts/generate-parse-float-cases.mjs | diff -u --strip-trailing-cr src/tests/number_parse_float_cases.rs -",
     "prepublishOnly": "pnpm run build",
-    "test": "pnpm run generate:parse-float-cases:check && scripty",
+    "pretest": "pnpm run generate:parse-float-cases:check",
+    "test": "echo \"Skip: the root test script runs the workspace suite.\"",
     "test:coverage": "scripty",
     "test:flamegraph": "scripty",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"

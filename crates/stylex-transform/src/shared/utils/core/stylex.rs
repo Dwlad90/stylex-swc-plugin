@@ -1,6 +1,5 @@
-use crate::shared::{
-  enums::data_structures::fn_result::FnResult, utils::ast::convertors::create_string_expr,
-};
+use crate::shared::enums::data_structures::fn_result::FnResult;
+use stylex_ast::ast::convertors::create_string_expr;
 
 use super::{parse_nullable_style::ResolvedArg, styleq::styleq};
 

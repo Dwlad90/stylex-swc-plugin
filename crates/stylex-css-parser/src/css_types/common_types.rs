@@ -6,6 +6,7 @@ providing essential shared utilities for CSS processing.
 */
 
 use stylex_macros::stylex_unreachable;
+use stylex_utils::number::{to_js_string, write_js_number};
 
 use crate::{
   token_parser::{TokenParser, tokens},
@@ -160,18 +161,18 @@ impl Display for CssVariable {
 /// CSS percentage value
 #[derive(Debug, Clone, PartialEq)]
 pub struct Percentage {
-  pub value: f32,
+  pub value: f64,
 }
 
 impl Percentage {
-  pub fn new(value: f32) -> Self {
+  pub fn new(value: f64) -> Self {
     Self { value }
   }
 
   fn token_to_percentage(token: SimpleToken) -> Percentage {
     if let SimpleToken::Percentage(value) = token {
-      // cssparser stores percentage as unit_value (already converted: 50% = 0.50)
-      Percentage::new((value * 100.0) as f32)
+      // The token already carries the authored percent: `50%` is `50`.
+      Percentage::new(value)
     } else {
       stylex_unreachable!()
     }
@@ -186,24 +187,24 @@ impl Percentage {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Percentage {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}%", self.value)
+    write!(f, "{}%", to_js_string(self.value))
   }
 }
 
 /// CSS number value
 #[derive(Debug, Clone, PartialEq)]
 pub struct Number {
-  pub value: f32,
+  pub value: f64,
 }
 
 impl Number {
-  pub fn new(value: f32) -> Self {
+  pub fn new(value: f64) -> Self {
     Self { value }
   }
 
   fn token_to_number(token: SimpleToken) -> Number {
     if let SimpleToken::Number(value) = token {
-      Number::new(value as f32)
+      Number::new(value)
     } else {
       stylex_unreachable!()
     }
@@ -218,7 +219,7 @@ impl Number {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Number {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.value)
+    write_js_number(f, self.value)
   }
 }
 
@@ -227,6 +228,29 @@ impl Display for Number {
 pub enum NumberOrPercentage {
   Number(Number),
   Percentage(Percentage),
+}
+
+impl NumberOrPercentage {
+  /// This value as a fraction: a bare number as itself, a percentage divided
+  /// by 100.
+  ///
+  /// A percentage token carries the percent that was authored, so every caller
+  /// that wants a fraction has to divide -- and eight of them were writing the
+  /// same two-arm match to do it.
+  ///
+  /// Parity on the percentage arm, and *not* on the number arm, for the reason
+  /// [`crate::css_types::alpha_value::parse_alpha_token`] sets out at length: the
+  /// reference compiler's `numberOrPercentage` multiplies an already-signed token
+  /// value by its sign character and so negates twice, answering `+2` for `-2`.
+  /// A negative number stays negative here. No caller in the plugin reaches
+  /// either, so nothing emitted differs -- but it is a divergence rather than a
+  /// port, and saying so is cheaper than the next person measuring it again.
+  pub fn as_fraction(&self) -> f64 {
+    match self {
+      NumberOrPercentage::Number(number) => number.value,
+      NumberOrPercentage::Percentage(percentage) => percentage.value / 100.0,
+    }
+  }
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]

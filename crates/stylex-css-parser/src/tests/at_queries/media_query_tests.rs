@@ -21,16 +21,16 @@ fn test_media_query_display() {
 
 #[test]
 fn test_has_balanced_parens() {
-  assert!(has_balanced_parens("(min-width: 768px)"));
-  assert!(has_balanced_parens(
+  assert!(MediaQuery::has_balanced_parens("(min-width: 768px)"));
+  assert!(MediaQuery::has_balanced_parens(
     "(min-width: 768px) and (max-width: 1200px)"
   ));
-  assert!(has_balanced_parens("screen"));
-  assert!(has_balanced_parens(""));
+  assert!(MediaQuery::has_balanced_parens("screen"));
+  assert!(MediaQuery::has_balanced_parens(""));
 
-  assert!(!has_balanced_parens("(min-width: 768px"));
-  assert!(!has_balanced_parens("min-width: 768px)"));
-  assert!(!has_balanced_parens("((min-width: 768px)"));
+  assert!(!MediaQuery::has_balanced_parens("(min-width: 768px"));
+  assert!(!MediaQuery::has_balanced_parens("min-width: 768px)"));
+  assert!(!MediaQuery::has_balanced_parens("((min-width: 768px)"));
 }
 
 #[test]

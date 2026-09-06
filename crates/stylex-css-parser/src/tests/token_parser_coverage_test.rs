@@ -10,6 +10,7 @@ fn tl(tokens: Vec<SimpleToken>) -> TokenList {
   TokenList {
     tokens,
     current_index: 0,
+    depth: 0,
   }
 }
 

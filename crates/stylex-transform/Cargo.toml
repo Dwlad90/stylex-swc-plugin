@@ -1,5 +1,5 @@
 [package]
-description = "SWC VisitMut implementation, StateManager and transform orchestration for StyleX"
+description = "The SWC visitor that finds every StyleX call and rewrites the module it is given"
 edition.workspace = true
 license.workspace = true
 name = "stylex_transform"
@@ -9,16 +9,13 @@ version.workspace = true
 
 
 [lib]
-## With this config build fails with error: `linking with `cc` failed: exit status: 1`
-# crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 doctest = false
 
 [dependencies]
-anyhow.workspace = true
 ctor.workspace = true
 indexmap.workspace = true
 log.workspace = true
-node-resolve.workspace = true
 path-clean.workspace = true
 phf = { workspace = true, features = ["macros"] }
 pretty_env_logger.workspace = true
@@ -30,12 +27,15 @@ stylex_atoms = { path = "../stylex-atoms" }
 stylex_constants = { path = "../stylex-constants" }
 stylex_css = { path = "../stylex-css" }
 stylex_css_parser = { path = "../stylex-css-parser" }
+stylex_diagnostics = { path = "../stylex-diagnostics" }
 stylex_enums = { path = "../stylex-enums" }
 stylex_evaluator = { path = "../stylex-evaluator" }
-stylex_js = { path = "../stylex-js" }
 stylex_macros = { path = "../stylex-macros" }
+stylex_nested_config = { path = "../stylex-nested-config" }
 stylex_path_resolver = { path = "../stylex-path-resolver" }
 stylex_regex = { path = "../stylex-regex" }
+stylex_state = { path = "../stylex-state" }
+stylex_state_index = { path = "../stylex-state-index" }
 stylex_structures = { path = "../stylex-structures" }
 stylex_styleq = { path = "../stylex-styleq" }
 stylex_types = { path = "../stylex-types" }
@@ -56,16 +56,38 @@ swc_sourcemap.workspace = true
 [dev-dependencies]
 criterion.workspace = true
 insta = { workspace = true, features = ["yaml"] }
+# One test helper reads the language's truthiness table, which the coercion
+# crate owns. Nothing else here needs the crate, and the engine-fold bench that
+# was the other reason left with the evaluator.
+stylex_js = { path = "../stylex-js" }
 swc_core = { workspace = true, features = [
   "ecma_parser",
   "ecma_utils",
   "testing_transform",
 ] }
+# The shipped `.node` runs mimalloc on every published target, so a bench that
+# does not link this measures the system allocator, and a change that reduces
+# allocation reads larger there than it does in production. Rust links a
+# dev-dependency only where a target names it, so each bench in this crate
+# writes `use swc_malloc as _;`.
+swc_malloc.workspace = true
 testing.workspace = true
 
 [[bench]]
 harness = false
-name = "evaluate_bench"
+name = "concatenation_chain_bench"
+
+[[bench]]
+harness = false
+name = "module_path_bench"
+
+[[bench]]
+harness = false
+name = "transform_consumers_bench"
+
+[[bench]]
+harness = false
+name = "transform_debug_bench"
 
 [lints]
 workspace = true

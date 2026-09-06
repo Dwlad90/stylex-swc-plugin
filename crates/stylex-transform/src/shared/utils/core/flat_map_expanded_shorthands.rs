@@ -1,10 +1,5 @@
 use log::warn;
-use stylex_macros::stylex_panic;
-use swc_core::ecma::ast::{Expr, Lit};
-
-use crate::shared::{
-  structures::pre_rule::PreRuleValue, utils::ast::convertors::convert_lit_to_string,
-};
+use stylex_ast::ast::convertors::convert_lit_to_string;
 use stylex_css::order::structures::{
   application_order::ApplicationOrder, legacy_expand_shorthands_order::LegacyExpandShorthandsOrder,
   property_specificity_order::PropertySpecificityOrder,
@@ -12,10 +7,13 @@ use stylex_css::order::structures::{
 use stylex_enums::{
   property_validation_mode::PropertyValidationMode, style_resolution::StyleResolution,
 };
+use stylex_macros::stylex_panic;
+use stylex_structures::pre_rule_value::PreRuleValue;
 use stylex_structures::{
   order::Order, order_pair::OrderPair, raw_value::TRawValue,
   stylex_state_options::StyleXStateOptions,
 };
+use swc_core::ecma::ast::{Expr, Lit};
 
 pub(crate) fn flat_map_expanded_shorthands(
   obj_entry: (String, PreRuleValue),
@@ -44,12 +42,21 @@ pub(crate) fn flat_map_expanded_shorthands(
       // A numeric literal stays a number: the unit suffix is decided later, per
       // expanded property, by `transform_value`.
       Expr::Lit(Lit::Num(num)) => Some(TRawValue::Number(num.value)),
-      // `null` and a boolean are values with nothing to declare -- both are
-      // dropped by the reference implementation, and both reach here the same
-      // answer `PreRuleValue::Null` gives below, so the expansion yields a
-      // property callers drop as they already drop a null.
+      // Two literals reach here with nothing to declare, for two different
+      // reasons.
       //
-      // Every other literal that spells no string is a different thing: a
+      // `null` is an absent value everywhere: it declares nothing, and the
+      // property it expands to survives carrying that absence, which is how a
+      // later declaration of the same property gets unset rather than
+      // shadowed.
+      //
+      // A boolean only reaches here from the calls that have no value
+      // validator in front of them -- `keyframes`, `positionTry` and
+      // `viewTransitionClass` -- where it is dropped. Inside `create` the
+      // validator refuses it first, so this arm is not the decision about a
+      // boolean; `is_style_value_literal` in `validators.rs` is.
+      //
+      // Every other literal that spells no string is a different thing again: a
       // regular expression is not an absent value, it is an unusable one, and
       // saying nothing about it would drop a declaration the author meant to
       // write.

@@ -168,9 +168,9 @@ mod test_css_property_box_shadow {
       assert_eq!(result.spread_radius.unit, "vh");
 
       if let Color::Rgba(rgba) = &result.color {
-        assert_eq!(rgba.r, 0);
-        assert_eq!(rgba.g, 0);
-        assert_eq!(rgba.b, 0);
+        assert_eq!(rgba.r, 0.0);
+        assert_eq!(rgba.g, 0.0);
+        assert_eq!(rgba.b, 0.0);
         assert_eq!(rgba.a, 0.5);
       } else {
         stylex_panic!("Expected Rgba color");
@@ -197,9 +197,9 @@ mod test_css_property_box_shadow {
       assert_eq!(result.spread_radius.unit, "px");
 
       if let Color::Rgba(rgba) = &result.color {
-        assert_eq!(rgba.r, 255);
-        assert_eq!(rgba.g, 0);
-        assert_eq!(rgba.b, 0);
+        assert_eq!(rgba.r, 255.0);
+        assert_eq!(rgba.g, 0.0);
+        assert_eq!(rgba.b, 0.0);
         assert_eq!(rgba.a, 0.5);
       } else {
         stylex_panic!("Expected Rgba color");
@@ -317,9 +317,9 @@ mod test_css_property_box_shadow {
       assert_eq!(shadow3.blur_radius.value, 15.0);
       assert_eq!(shadow3.spread_radius.value, 5.0);
       if let Color::Rgba(rgba) = &shadow3.color {
-        assert_eq!(rgba.r, 0);
-        assert_eq!(rgba.g, 0);
-        assert_eq!(rgba.b, 255);
+        assert_eq!(rgba.r, 0.0);
+        assert_eq!(rgba.g, 0.0);
+        assert_eq!(rgba.b, 255.0);
         assert_eq!(rgba.a, 0.5);
       }
       assert!(shadow3.inset);

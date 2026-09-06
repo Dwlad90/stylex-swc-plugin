@@ -9,7 +9,12 @@ version.workspace = true
 
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+# `cdylib` only. Node loads this crate as the `.node` addon, and nothing links it
+# as a Rust library. Do not add an `rlib`: LTO runs only on a final artifact, and
+# a crate that also emits a reusable `rlib` is not final, so rustc then receives
+# no `-C lto` and the fat LTO of `profile.release` does not run. See
+# `guidelines/STRUCTURE.md` for what that measured.
+crate-type = ["cdylib"]
 doctest = false
 
 
@@ -27,6 +32,7 @@ swc_core = { workspace = true, features = [
   "ecma_utils",
 ] }
 swc_ecma_parser = { workspace = true, features = ["verify"] }
+swc_malloc.workspace = true
 swc_sourcemap.workspace = true
 
 indexmap.workspace = true
@@ -43,7 +49,16 @@ stylex_types = { path = "../stylex-types" }
 stylex_utils = { path = "../stylex-utils" }
 
 
+# The allocator for the one published target `swc_malloc` leaves on the system
+# one. Target-gated rather than declared beside the others, so no musl target
+# but this one links it. The workspace manifest carries the reason.
+[target.'cfg(all(target_os = "linux", target_env = "musl", target_arch = "x86_64"))'.dependencies]
+mimalloc.workspace = true
+
 [dev-dependencies]
+# The allocator checks read `package.json`. A parser rather than a scan, so the
+# checks answer about the manifest rather than about the way it is written.
+serde_json.workspace = true
 
 
 [build-dependencies]

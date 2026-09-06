@@ -1,5 +1,12 @@
+//! Not every test binary uses every helper here, so an item unused by the
+//! one being compiled is expected rather than dead. Said once for the
+//! module: this is a shared helper library, and per-item attributes were
+//! the same fact repeated at each of them.
+#![allow(dead_code)]
+
 use std::{rc::Rc, sync::Arc};
 
+use stylex_structures::stylex_options::ModuleResolution;
 use stylex_transform::StyleXTransform;
 
 use swc_core::{
@@ -118,7 +125,6 @@ impl VisitMut for RegeneratorHandler {
   }
 }
 
-#[allow(dead_code)]
 pub(crate) fn stringify_js<F, P>(input: &str, syntax: Syntax, tr: F) -> String
 where
   F: for<'a> FnOnce(&mut Tester<'a>) -> P,
@@ -180,7 +186,6 @@ pub(crate) type TestBuilder = StyleXTransformBuilder<TestComments>;
 /// // Inline in a macro:
 /// stylex_test!(name, |tr| build_test_transform(tr.comments.clone(), |b| b), code);
 /// ```
-#[allow(dead_code)]
 pub(crate) fn build_test_transform<F>(
   comments: Rc<SingleThreadedComments>,
   customize: F,
@@ -189,4 +194,213 @@ where
   F: FnOnce(TestBuilder) -> TestBuilder,
 {
   customize(StyleXTransform::test(comments)).into_pass()
+}
+
+/// A transform for the cases where a theme import must *resolve*.
+///
+/// Resolving one takes both a real filename and `haste` resolution, and every
+/// case that reads a theme -- a name shadowed by a dynamic parameter, a theme
+/// reference read where a style value belongs -- needs it for the same reason:
+/// otherwise the case is about the path rather than about what it asks. One
+/// function rather than a name per caller, so the files asking cannot drift into
+/// asking under different options.
+pub(crate) fn theme_import_transform(comments: TestComments) -> impl Pass {
+  theme_import_transform_with(comments, |b| b)
+}
+
+/// The theme-import transform with one further option applied.
+///
+/// For a case that needs the same module resolution and runtime injection but
+/// differs in one setting -- media query ordering, say -- so that the shared
+/// half stays in one place and the difference is the only thing the test says.
+pub(crate) fn theme_import_transform_with<F>(comments: TestComments, customize: F) -> impl Pass
+where
+  F: FnOnce(TestBuilder) -> TestBuilder,
+{
+  build_test_transform(comments, move |b| {
+    customize(
+      b.with_filename(FileName::Real("MyComponent.js".into()))
+        .with_unstable_module_resolution(ModuleResolution::haste(None))
+        .with_runtime_injection(),
+    )
+  })
+}
+
+/// The theme-import transform with the evaluator's ceiling raised.
+///
+/// For the cases that measure how deep a fold can go: the shipped default is
+/// sized for hand-written styles, and a test that walks hundreds of levels has
+/// to say so rather than quietly depend on the default being generous.
+pub(crate) fn deep_theme_import_transform(comments: TestComments, depth: usize) -> impl Pass {
+  build_test_transform(comments, move |b| {
+    b.with_filename(FileName::Real("MyComponent.js".into()))
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_max_evaluation_depth(depth)
+      .with_runtime_injection()
+  })
+}
+
+/// The same, for a module that *declares* a theme rather than importing one.
+///
+/// A `defineVars` call hashes its own filename, so a file not named
+/// `*.stylex.js` refuses for the filename before the value under test is ever
+/// read -- which is how a value question comes to be measured as a path
+/// question.
+pub(crate) fn theme_module_transform(comments: TestComments) -> impl Pass {
+  build_test_transform(comments, |b| {
+    b.with_filename(FileName::Real("vars.stylex.js".into()))
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_runtime_injection()
+  })
+}
+
+/// Compile one module under the theme-import transform and hand back what it
+/// printed, rules included.
+///
+/// The four files whose subject is what the evaluator folds each need exactly
+/// this — compile a whole module, then assert on the class names and rule text
+/// upstream was measured to produce. Kept here rather than copied per file so
+/// they cannot drift into compiling under different options and reporting the
+/// difference as a divergence in the value under test.
+pub(crate) fn fold_module(input: &str) -> String {
+  stringify_js(input, ts_syntax(), |tr| {
+    theme_import_transform(tr.comments.clone())
+  })
+}
+
+/// The rule a `stylex.create` module of one style is expected to emit,
+/// asserted on what it printed.
+///
+/// The three things a fold case is — the bindings, the declaration, the measured
+/// rule — read once here rather than per file, so two files whose subject is the
+/// same fold cannot come to assert it differently.
+#[track_caller]
+pub(crate) fn assert_folds(decls: &str, body: &str, rule: &str) {
+  assert_folds_with(decls, body, rule, "", fold_module);
+}
+
+/// The same, with the compile step handed in and what it changed named.
+///
+/// `under` says which option the case was compiled at, so a failure reads the
+/// same as the one the default transform raises plus that clause. Everything
+/// else about a fold case is the same, which is why this is one function rather
+/// than a second copy of it.
+#[track_caller]
+pub(crate) fn assert_folds_with(
+  decls: &str,
+  body: &str,
+  rule: &str,
+  under: &str,
+  compile: impl FnOnce(&str) -> String,
+) {
+  let output = compile(&base_style_module(decls, body));
+
+  assert!(
+    output.contains(rule),
+    "expected `{}` with `{}` to emit `{}`{}, got:\n{}",
+    body,
+    decls,
+    rule,
+    under,
+    output
+  );
+}
+
+/// The sentence a refusal has to carry, so a case cannot be satisfied by a
+/// refusal for some later, wrong reason.
+///
+/// A `should_panic` attribute answers one case per function and says nothing
+/// about which rule fired when a file has several; this reads the panic's own
+/// message, so a list of refusals stays a list.
+#[track_caller]
+pub(crate) fn assert_refuses(decls: &str, body: &str, sentence: &str) {
+  assert_refuses_under(decls, body, sentence, fold_module);
+}
+
+/// The same, with the compile step handed in.
+///
+/// A file whose subject is an *option* has to compile under that option, so the
+/// reading of the refusal cannot be tied to the default transform. Everything
+/// else about a refusal case is the same, which is why this is one function
+/// rather than a second copy of it.
+#[track_caller]
+pub(crate) fn assert_refuses_under(
+  decls: &str,
+  body: &str,
+  sentence: &str,
+  compile: impl FnOnce(&str) -> String + std::panic::UnwindSafe,
+) {
+  let module = base_style_module(decls, body);
+  let refusal = std::panic::catch_unwind(|| compile(&module));
+
+  let Err(payload) = refusal else {
+    panic!("expected `{}` with `{}` to refuse", body, decls);
+  };
+
+  // A panic payload is whichever of the two string types the caller raised, and
+  // both reach here: `panic!("{}", …)` carries a `String` and a literal message
+  // a `&str`.
+  let said = match payload.downcast_ref::<String>() {
+    Some(message) => message.clone(),
+    None => match payload.downcast_ref::<&str>() {
+      Some(message) => (*message).to_string(),
+      None => panic!("the refusal of `{}` carried no message", body),
+    },
+  };
+
+  assert!(
+    said.contains(sentence),
+    "expected `{}` with `{}` to refuse with `{}`, got `{}`",
+    body,
+    decls,
+    sentence,
+    said
+  );
+}
+
+/// Compile one module with the character ceiling set to `characters`, the way an
+/// author moves it.
+///
+/// A file whose subject is that ceiling has to move it through the option rather
+/// than assert the default from the inside, and two files now have that subject --
+/// a string the evaluator grows and the join an array's `ToString` performs -- so
+/// the compile step lives here rather than once per file.
+pub(crate) fn fold_module_under(input: &str, characters: usize) -> String {
+  stringify_js(input, ts_syntax(), move |tr| {
+    theme_import_transform_with(tr.comments.clone(), move |builder| {
+      builder.with_max_folded_characters(characters)
+    })
+  })
+}
+
+/// The rule `body` is expected to emit under a character ceiling of `characters`.
+#[track_caller]
+pub(crate) fn assert_folds_under(decls: &str, body: &str, rule: &str, characters: usize) {
+  assert_folds_with(
+    decls,
+    body,
+    rule,
+    &format!(" under a ceiling of {}", characters),
+    |module| fold_module_under(module, characters),
+  );
+}
+
+/// One `stylex.create` module of a single `base` style: `decls` above it,
+/// `body` as that style's declarations.
+///
+/// `decls` is where a case that needs a binding puts it, and empty where the
+/// case is about a value written out. A file whose subject is the *shape* of
+/// the create call rather than one style's value writes its own, since this
+/// one fixes the style name.
+pub(crate) fn base_style_module(decls: &str, body: &str) -> String {
+  format!(
+    r#"
+      import * as stylex from '@stylexjs/stylex';
+      {}
+      export const styles = stylex.create({{
+        base: {{ {} }},
+      }});
+    "#,
+    decls, body
+  )
 }

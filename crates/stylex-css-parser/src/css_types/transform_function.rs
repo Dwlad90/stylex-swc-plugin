@@ -2,19 +2,18 @@
 CSS transform function parser.
 */
 
+use stylex_utils::number::{to_js_string, write_js_number_list};
+
 use crate::{
   CssParseError,
   css_types::{
-    angle::Angle,
-    common_types::{NumberOrPercentage, number_or_percentage_parser},
-    length::Length,
-    length_percentage::LengthPercentage,
-    length_percentage_parser,
+    angle::Angle, common_types::number_or_percentage_parser, length::Length,
+    length_percentage::LengthPercentage, length_percentage_parser,
   },
   token_parser::TokenParser,
   token_types::{SimpleToken, TokenList},
 };
-use std::fmt::{self, Display};
+use std::fmt::{self, Display, Write as _};
 
 /// A CSS transform function
 #[derive(Debug, Clone, PartialEq)]
@@ -151,14 +150,6 @@ pub enum Axis {
 pub enum SkewAxis2D {
   X,
   Y,
-}
-
-// Helper to convert NumberOrPercentage to f64 (percentage becomes 0-1 range)
-fn number_or_percentage_to_f64(n: NumberOrPercentage) -> f64 {
-  match n {
-    NumberOrPercentage::Number(n) => n.value.into(),
-    NumberOrPercentage::Percentage(p) => (p.value / 100.0).into(),
-  }
 }
 
 // Helper function to create a number parser
@@ -697,8 +688,8 @@ impl Scale {
           });
         }
 
-        let sx_f64 = number_or_percentage_to_f64(sx);
-        let sy_f64 = sy.map(number_or_percentage_to_f64);
+        let sx_f64 = sx.as_fraction();
+        let sy_f64 = sy.map(|value| value.as_fraction());
 
         Ok(Scale::new(sx_f64, sy_f64))
       },
@@ -800,9 +791,9 @@ impl Scale3d {
         }
 
         // Convert to f64 values
-        let sx_f64 = number_or_percentage_to_f64(sx);
-        let sy_f64 = number_or_percentage_to_f64(sy);
-        let sz_f64 = number_or_percentage_to_f64(sz);
+        let sx_f64 = sx.as_fraction();
+        let sy_f64 = sy.as_fraction();
+        let sz_f64 = sz.as_fraction();
 
         Ok(Scale3d::new(sx_f64, sy_f64, sz_f64))
       },
@@ -834,7 +825,7 @@ impl ScaleAxis {
       )
       .flat_map(
         move |(axis, s)| {
-          let s_f64 = number_or_percentage_to_f64(s);
+          let s_f64 = s.as_fraction();
           close.clone().map(
             move |_| ScaleAxis::new(s_f64, axis.clone()),
             Some("to_scaleaxis"),
@@ -1100,33 +1091,19 @@ impl TransformFunction {
   }
 }
 
-fn format_number(n: f64) -> String {
-  let rounded = (n * 1_000_000.0).round() / 1_000_000.0;
-  if rounded.fract() == 0.0 {
-    format!("{}", rounded as i64)
-  } else {
-    let s = format!("{:.6}", rounded);
-    s.trim_end_matches('0').trim_end_matches('.').to_string()
-  }
-}
-
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for TransformFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      TransformFunction::Matrix(m) => write!(
-        f,
-        "matrix({}, {}, {}, {}, {}, {})",
-        format_number(m.a),
-        format_number(m.b),
-        format_number(m.c),
-        format_number(m.d),
-        format_number(m.tx),
-        format_number(m.ty)
-      ),
+      TransformFunction::Matrix(m) => {
+        f.write_str("matrix(")?;
+        write_js_number_list(f, [m.a, m.b, m.c, m.d, m.tx, m.ty])?;
+        f.write_char(')')
+      },
       TransformFunction::Matrix3d(m) => {
-        let args: Vec<String> = m.args.iter().map(|x| format_number(*x)).collect();
-        write!(f, "matrix3d({})", args.join(", "))
+        f.write_str("matrix3d(")?;
+        write_js_number_list(f, m.args.iter().copied())?;
+        f.write_char(')')
       },
       TransformFunction::Perspective(p) => write!(f, "perspective({})", p.length),
       TransformFunction::Rotate(r) => write!(f, "rotate({})", r.angle),
@@ -1147,22 +1124,22 @@ impl Display for TransformFunction {
         _ => write!(
           f,
           "rotate3d({}, {}, {}, {})",
-          format_number(r.x),
-          format_number(r.y),
-          format_number(r.z),
+          to_js_string(r.x),
+          to_js_string(r.y),
+          to_js_string(r.z),
           r.angle
         ),
       },
       TransformFunction::Scale(s) => match &s.sy {
-        Some(sy) => write!(f, "scale({}, {})", format_number(s.sx), format_number(*sy)),
-        None => write!(f, "scale({})", format_number(s.sx)),
+        Some(sy) => write!(f, "scale({}, {})", to_js_string(s.sx), to_js_string(*sy)),
+        None => write!(f, "scale({})", to_js_string(s.sx)),
       },
       TransformFunction::Scale3d(s) => write!(
         f,
         "scale3d({}, {}, {})",
-        format_number(s.sx),
-        format_number(s.sy),
-        format_number(s.sz)
+        to_js_string(s.sx),
+        to_js_string(s.sy),
+        to_js_string(s.sz)
       ),
       TransformFunction::ScaleAxis(s) => write!(
         f,
@@ -1172,7 +1149,7 @@ impl Display for TransformFunction {
           Axis::Y => "Y",
           Axis::Z => "Z",
         },
-        format_number(s.s)
+        to_js_string(s.s)
       ),
       TransformFunction::Skew(s) => match &s.ay {
         Some(ay) => write!(f, "skew({}, {})", s.ax, ay),
@@ -1213,3 +1190,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/css_types/transform_function_coverage_test.rs"]
 mod transform_function_coverage_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/transform_function_precision_test.rs"]
+mod transform_function_precision_test;

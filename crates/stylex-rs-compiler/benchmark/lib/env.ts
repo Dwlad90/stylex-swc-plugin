@@ -19,12 +19,17 @@ export interface CaptureEnvironmentOptions {
   packageDir: string;
   workspaceRoot: string;
   target?: string;
+  /**
+   * Directory that supplies the git HEAD. Defaults to the current directory.
+   * Callers give it so a test does not have to change the process directory.
+   */
+  cwd?: string;
 }
 
 export function captureEnvironment(options: CaptureEnvironmentOptions): RawStatsEnvironment {
   const packageVersion = readJsonField(path.join(options.packageDir, 'package.json'), 'version');
   const rust = detectRustToolchain();
-  const commit = detectCommit();
+  const commit = detectCommit(options.cwd);
   // GitHub exposes the image family as `ImageOS` (e.g. `ubuntu24`) and the
   // exact build as `ImageVersion` (e.g. `20260803.1.0`). `RUNNER_IMAGE` is
   // an optional override for self-hosted or containerised runs.
@@ -77,18 +82,37 @@ function detectRustToolchain(): string | undefined {
   }
 }
 
-function detectCommit(): string | undefined {
-  const fromEnv = process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA;
-  if (fromEnv) return fromEnv;
+/**
+ * Finds the commit that names the tree these numbers came from.
+ *
+ * The checked-out HEAD is that commit, so read it first.
+ *
+ * `GITHUB_SHA` is not that commit on a `pull_request` event. It holds the
+ * merge SHA from the event payload. GitHub makes the test-merge again in the
+ * background, and the checkout can replace that merge commit before the job
+ * starts. The workflow warns when this occurs, and it measures the ref as
+ * checked out.
+ *
+ * A run that records the payload SHA gives its numbers to a tree that no job
+ * measured. Two runs of one commit then look like two commits, and runner
+ * noise looks like a regression.
+ *
+ * The environment variables stay as the fallback. A checkout that holds no git
+ * metadata has no HEAD to read.
+ */
+function detectCommit(cwd?: string): string | undefined {
   try {
     const out = execSync('git rev-parse HEAD', {
+      cwd,
       stdio: ['ignore', 'pipe', 'ignore'],
       encoding: 'utf-8',
     });
-    return out.trim() || undefined;
+    const head = out.trim();
+    if (head) return head;
   } catch {
-    return undefined;
+    // Not a git checkout, or git is unavailable -- fall through to the env.
   }
+  return process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA || undefined;
 }
 
 function detectTarget(): string {

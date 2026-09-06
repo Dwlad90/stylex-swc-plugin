@@ -124,8 +124,8 @@ enum ImportantPlan {
 /// the walk survives having done so.
 ///
 /// Three details of the original are load-bearing here, and none of them is an
-/// accident this port gets to correct — each one moves bytes into the class-name
-/// hash or decides whether a value compiles at all.
+/// accident this compiler gets to correct — each one moves bytes into the
+/// class-name hash or decides whether a value compiles at all.
 ///
 /// The walk reads the list's length once, before it starts. Removing an element
 /// shortens the list without shortening the walk, so every iteration still to

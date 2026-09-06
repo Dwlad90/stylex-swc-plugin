@@ -1,23 +1,19 @@
 #[cfg(test)]
 mod flatten_style_object_with_legacy_shorthand_expansion {
   use indexmap::IndexMap;
+  use stylex_ast::ast::convertors::create_string_expr;
+  use stylex_structures::pre_rule_value::PreRuleValue;
   use swc_core::ecma::ast::Expr;
 
-  use crate::shared::{
-    structures::{
-      functions::FunctionMap,
-      null_pre_rule::NullPreRule,
-      pre_rule::{PreRuleValue, PreRules, StylesPreRule},
-      pre_rule_set::PreRuleSet,
-      state::EvaluationState,
-      state_manager::StateManager,
-    },
-    utils::{
-      ast::convertors::create_string_expr, core::flatten_raw_style_object::flatten_raw_style_object,
-    },
+  use crate::{
+    shared::structures::null_pre_rule::NullPreRule, shared::structures::pre_rule::PreRules,
+    shared::structures::pre_rule::StylesPreRule, shared::structures::pre_rule_set::PreRuleSet,
+    shared::utils::core::flatten_raw_style_object::flatten_raw_style_object,
   };
   use stylex_ast::ast::factories::{create_array, create_key_value_prop_ident};
   use stylex_enums::style_resolution::StyleResolution;
+  use stylex_evaluator::state::EvaluationState;
+  use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 
   pub(super) fn get_state() -> StateManager {
     let mut state_manager = StateManager::default();
@@ -423,16 +419,16 @@ mod nested_objects {
     create_object_expression,
     create_string_key_value_prop,
   };
-  use crate::shared::structures::functions::FunctionMap;
-  use crate::shared::structures::state::EvaluationState;
+  use stylex_state::functions::FunctionMap;
+  use stylex_evaluator::state::EvaluationState;
   use crate::shared::structures::tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
     get_state,
     null_rule_factory,
     pre_rule_factory,
     pre_rule_set_factory,
   };
-  use crate::shared::utils::ast::convertors::create_string_expr;
   use crate::shared::utils::core::flatten_raw_style_object::flatten_raw_style_object;
+  use stylex_ast::ast::convertors::create_string_expr;
 
   #[test]
   fn legacy_pseudo_classes() {
@@ -791,8 +787,8 @@ mod multiple_levels_of_nesting {
     create_string_array_prop,
     create_string_key_value_prop,
   };
-  use crate::shared::structures::functions::FunctionMap;
-  use crate::shared::structures::state::EvaluationState;
+  use stylex_state::functions::FunctionMap;
+  use stylex_evaluator::state::EvaluationState;
   use crate::shared::structures::tests::flatten_raw_style_objects_test::flatten_style_object_with_legacy_shorthand_expansion::{
     get_state,
     pre_rule_factory,

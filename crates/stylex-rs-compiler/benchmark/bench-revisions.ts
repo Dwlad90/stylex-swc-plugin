@@ -11,6 +11,16 @@
  * Verdict statistics (ratios, bootstrap CI) are deliberately not computed
  * here: they belong to the verdict layer.
  *
+ * Both legs that call this share one manifest while their bases differ: the
+ * pull-request leg builds the merge base, and the release leg installs the last
+ * published version. So they need different readings of a base that refuses a
+ * fixture, and `--allow-base-refusals` is which one the caller wants. Under the
+ * flag such a fixture is reported under `Not compared` and left out of the run,
+ * because stopping the whole leg for a fixture that prices a feature the
+ * published version does not carry gave up every other measurement for a fact
+ * the manifest already states. Without it every refusal stops the run, which is
+ * what keeps a fixture only this branch compiles out of the manifest.
+ *
  * Usage:
  *   pnpm bench:revisions --base <base-pkg-dir> --candidate <candidate-pkg-dir>
  *
@@ -49,6 +59,14 @@ interface RevisionInput {
 interface PairedRunOptions {
   base: RevisionInput;
   candidate: RevisionInput;
+  /**
+   * Whether a fixture the base subject cannot measure leaves the run instead of
+   * stopping it. Off by default, so the strict reading is what a caller gets
+   * without asking: the pull-request leg builds its base from the merge base,
+   * where a fixture only this branch compiles is a manifest question and the
+   * refusal is the guard that catches it.
+   */
+  allowBaseRefusals: boolean;
   rounds: number;
   seed: number;
   timeBudgetMs: number;
@@ -99,7 +117,7 @@ async function main(): Promise<void> {
 
   const benchConfigs = createPairedBenchConfigs(options.timeBudgetMs);
 
-  const { fixtures: rawFixtures } = await runRounds({
+  const { fixtures: rawFixtures, excluded } = await runRounds({
     subjects: [baseSubject, candidateSubject],
     fixtures,
     stylexOptions: createStylexOptions(packageDir),
@@ -107,7 +125,21 @@ async function main(): Promise<void> {
     seed: options.seed,
     standardBench: benchConfigs.standard,
     heavyBench: benchConfigs.heavy,
+    // Under `--allow-base-refusals` the candidate is the only gate: it is the
+    // code the numbers are about, so a fixture it refuses still stops the leg,
+    // while one only the base refuses leaves the run with a line saying so.
+    // Without the flag no subject is privileged and any refusal stops the run,
+    // which is the reading the merge-base leg needs.
+    ...(options.allowBaseRefusals ? { requiredSubject: options.candidate.label } : {}),
   });
+
+  if (excluded.length > 0) {
+    console.log(chalk.yellow.bold('Not compared'));
+    for (const entry of excluded) {
+      console.log(`  ${entry.fixture} — ${entry.subject}: ${entry.reason}`);
+    }
+    console.log('');
+  }
 
   for (const fixture of rawFixtures) {
     console.log(chalk.bold(fixture.name));
@@ -129,6 +161,11 @@ async function main(): Promise<void> {
     environment: env,
     subjects: [baseSubject.descriptor, candidateSubject.descriptor],
     fixtures: rawFixtures,
+    // Written beside the numbers rather than only to the log, so a comparison
+    // that measured fewer fixtures than the manifest holds says so in the file
+    // a reviewer downloads. Read by nobody: the schema does not carry it, and
+    // the parser keeps the keys it knows.
+    ...(excluded.length > 0 ? { excluded } : {}),
   };
 
   const resultsDir = path.join(benchmarkDir, 'results');
@@ -153,6 +190,7 @@ function parseCli(argv: readonly string[]): PairedRunOptions {
       time: { type: 'string', default: String(DEFAULT_PAIRED_TIME_BUDGET_MS) },
       fixture: { type: 'string', multiple: true },
       category: { type: 'string', multiple: true },
+      'allow-base-refusals': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
     },
   });
@@ -181,6 +219,7 @@ function parseCli(argv: readonly string[]): PairedRunOptions {
     timeBudgetMs: parsePositiveInt('time', values.time),
     categories: parseCategories(values.category),
     fixtureFilter: values.fixture,
+    allowBaseRefusals: values['allow-base-refusals'],
   };
 }
 
@@ -205,6 +244,10 @@ Options:
                             (transform | perf | rollup)
   --fixture <substring>     only fixtures whose name contains substring;
                             repeatable
+  --allow-base-refusals     drop a fixture the base subject cannot measure
+                            instead of stopping the run; for a base that is
+                            behind by whole features, such as a published
+                            release
   -h, --help                show this help
 `);
 }

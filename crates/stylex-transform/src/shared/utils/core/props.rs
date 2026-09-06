@@ -2,19 +2,17 @@ use std::rc::Rc;
 use stylex_structures::pair::Pair;
 
 use indexmap::IndexMap;
+use stylex_css::css::common::normalize_css_property_name;
 
 use crate::shared::{
-  enums::data_structures::{
-    flat_compiled_styles_value::FlatCompiledStylesValue, fn_result::FnResult,
+  enums::data_structures::fn_result::FnResult,
+  utils::core::{
+    js_to_ast::NestedStringObject,
+    styleq::{StyleQResult, styleq},
   },
-  structures::types::FlatCompiledStyles,
-  utils::{
-    core::{
-      js_to_ast::NestedStringObject,
-      styleq::{StyleQResult, styleq},
-    },
-    css::common::normalize_css_property_name,
-  },
+};
+use stylex_state::{
+  flat_compiled_styles_value::FlatCompiledStylesValue, types::FlatCompiledStyles,
 };
 
 use super::parse_nullable_style::ResolvedArg;

@@ -1,7 +1,11 @@
 //! Tests for AST convertor functions that transform between node types.
 
 use crate::ast::{convertors::*, factories::*};
-use swc_core::{atoms::Wtf8Atom, common::DUMMY_SP, ecma::ast::*};
+use swc_core::{
+  atoms::{Wtf8Atom, wtf8::Wtf8Buf},
+  common::DUMMY_SP,
+  ecma::ast::*,
+};
 
 #[test]
 fn convert_lit_to_number_bool_true() {
@@ -43,6 +47,48 @@ fn convert_lit_to_number_str_invalid() {
 fn convert_lit_to_number_null_returns_err() {
   let lit = Lit::Null(swc_core::ecma::ast::Null { span: DUMMY_SP });
   assert!(convert_lit_to_number(&lit).is_err());
+}
+
+/// The error names the literal kind it could not read. It used to report
+/// `Expr::get_type`, which answers the value an expression would produce and is
+/// `Unknown` for every literal that reaches this arm — so the label said
+/// nothing. Which literal was passed is the only thing a caller can act on.
+#[test]
+fn convert_lit_to_number_names_the_literal_kind_it_refused() {
+  let cases = [
+    (
+      Lit::Null(swc_core::ecma::ast::Null { span: DUMMY_SP }),
+      "NullLiteral",
+    ),
+    (
+      Lit::Regex(Regex {
+        span: DUMMY_SP,
+        exp: "a".into(),
+        flags: "".into(),
+      }),
+      "RegExpLiteral",
+    ),
+    (
+      Lit::JSXText(JSXText {
+        span: DUMMY_SP,
+        value: "t".into(),
+        raw: "t".into(),
+      }),
+      "JSXText",
+    ),
+  ];
+
+  for (lit, kind) in cases {
+    match convert_lit_to_number(&lit) {
+      Ok(number) => panic!("expected {:?} to refuse, got {}", lit, number),
+      Err(error) => assert_eq!(
+        error.to_string(),
+        format!("Value in not a number: {}", kind),
+        "wrong label for {:?}",
+        lit
+      ),
+    }
+  }
 }
 
 #[test]
@@ -133,6 +179,45 @@ fn convert_string_to_prop_name_needs_quoting() {
 fn convert_atom_to_string_valid() {
   let atom: Wtf8Atom = "hello".into();
   assert_eq!(convert_atom_to_string(&atom), "hello");
+}
+
+#[test]
+fn atom_utf16_length_counts_code_units() {
+  assert_eq!(atom_utf16_length(&Wtf8Atom::from("abc")), 3);
+  assert_eq!(atom_utf16_length(&Wtf8Atom::from("")), 0);
+  assert_eq!(atom_utf16_length(&Wtf8Atom::from("é")), 1);
+  assert_eq!(atom_utf16_length(&Wtf8Atom::from("日本語")), 3);
+  assert_eq!(atom_utf16_length(&Wtf8Atom::from("\u{1F600}a")), 3);
+}
+
+/// The case that rules out reading the atom as a `String` first. An unpaired
+/// surrogate is a legal JavaScript string literal and has no UTF-8 form, so
+/// `convert_atom_to_string` aborts on it — from inside an evaluation that is
+/// allowed to fail. Its length needs no valid scalar to answer.
+#[test]
+fn atom_utf16_length_counts_an_unpaired_surrogate() {
+  let lone = Wtf8Atom::from(Wtf8Buf::from_ill_formed_utf16(&[0xD83D]));
+
+  assert!(
+    lone.as_str().is_none(),
+    "expected an atom with no UTF-8 form to test against"
+  );
+  assert_eq!(atom_utf16_length(&lone), 1);
+
+  let around = Wtf8Atom::from(Wtf8Buf::from_ill_formed_utf16(&[0x0061, 0xD83D, 0x0062]));
+
+  assert_eq!(atom_utf16_length(&around), 3);
+}
+
+/// A paired surrogate is the same two code units whether it arrives as a scalar
+/// or as its halves, so the two readings inside `atom_utf16_length` agree where
+/// they overlap.
+#[test]
+fn atom_utf16_length_agrees_across_both_readings() {
+  let paired = Wtf8Atom::from(Wtf8Buf::from_ill_formed_utf16(&[0xD83D, 0xDE00]));
+
+  assert_eq!(atom_utf16_length(&paired), 2);
+  assert_eq!(atom_utf16_length(&Wtf8Atom::from("\u{1F600}")), 2);
 }
 
 #[test]
@@ -595,4 +680,71 @@ fn get_expr_from_var_decl_panics_without_initializer() {
     definite: false,
   };
   get_expr_from_var_decl(&decl);
+}
+
+// ── is_js_undefined ─────────────────────────────────────────────────
+
+/// The one predicate several evaluator steps share for "this is the *value*
+/// `undefined`", rather than a name that failed to resolve. A key an object does
+/// not carry, an index past the end of an array and a member read off a fold all
+/// answer with it, and each of those readers has to recognise it on the way back
+/// out — so the test is here, beside the predicate, rather than in whichever
+/// caller happens to exist.
+#[test]
+fn is_js_undefined_recognises_only_the_exact_name() {
+  assert!(is_js_undefined(&create_ident("undefined")));
+
+  for other in [
+    "undefined_",
+    "_undefined",
+    "Undefined",
+    "UNDEFINED",
+    "undef",
+    "void",
+    "null",
+    "NaN",
+    "",
+  ] {
+    assert!(
+      !is_js_undefined(&create_ident(other)),
+      "`{}` is not the value `undefined`",
+      other
+    );
+  }
+}
+
+/// The predicate reads the name and nothing else, so the ident a caller hands it
+/// answers the same whatever span or syntax context it carries. That is what
+/// makes it safe to share between readers that got their ident from different
+/// places -- one from the source, one synthesized, one out of a resolved module
+/// where every binding carries a mark.
+#[test]
+fn is_js_undefined_ignores_span_and_context() {
+  use swc_core::common::{BytePos, GLOBALS, Globals, Mark, Span, SyntaxContext};
+
+  // A `Mark` can only be minted inside a `GLOBALS` scope, so the resolved-ident
+  // half of this case has to run in one.
+  GLOBALS.set(&Globals::new(), || {
+    let synthesized = create_ident("undefined");
+
+    let mut relocated = create_ident("undefined");
+    relocated.span = Span::new(BytePos(10), BytePos(19));
+
+    let mut marked = create_ident("undefined");
+    marked.ctxt = SyntaxContext::empty().apply_mark(Mark::new());
+
+    for candidate in [&synthesized, &relocated, &marked] {
+      assert!(
+        is_js_undefined(candidate),
+        "the name is all that is read: {:?}",
+        candidate
+      );
+    }
+
+    // And a shadowing binding is still not the value, however it is spelled --
+    // the chain refuses one before any of these readers is asked.
+    let mut shadowing = create_ident("undefined2");
+    shadowing.ctxt = SyntaxContext::empty().apply_mark(Mark::new());
+    assert!(!is_js_undefined(&shadowing));
+  });
 }

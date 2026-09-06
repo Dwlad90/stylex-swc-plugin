@@ -9,7 +9,7 @@ version.workspace = true
 
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 doctest = false
 
 [dependencies]
@@ -17,9 +17,9 @@ indexmap.workspace = true
 murmur2.workspace = true
 radix_fmt.workspace = true
 rustc-hash.workspace = true
+serde_json.workspace = true
 swc_core = { workspace = true, features = ["common", "ecma_ast", "ecma_utils"] }
-
-stylex_regex = { path = "../stylex-regex" }
+xxhash-rust.workspace = true
 
 [dev-dependencies]
 swc_ecma_parser.workspace = true

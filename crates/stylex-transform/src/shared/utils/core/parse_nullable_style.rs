@@ -1,18 +1,16 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
+use stylex_ast::ast::convertors::{
+  convert_key_value_to_str, convert_lit_to_string, is_js_undefined,
+};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::{Expr, Lit, MemberProp, ObjectLit};
 
-use crate::shared::{
-  enums::data_structures::{
-    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
-  },
-  structures::{functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles},
-  utils::{
-    ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
-    js::evaluate::evaluate,
-  },
+use stylex_evaluator::evaluate::evaluate;
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
+  functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -86,7 +84,7 @@ pub(crate) fn parse_nullable_style(
       }
     },
     Expr::Ident(ident) => {
-      if ident.sym == "undefined" {
+      if is_js_undefined(ident) {
         StyleObject::Nullable
       } else {
         StyleObject::Other

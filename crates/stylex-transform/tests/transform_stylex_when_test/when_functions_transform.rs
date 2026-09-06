@@ -99,6 +99,35 @@ stylex_test!(
   "#
 );
 
+// A member read off the namespace fold resolves the entry the map carries, in
+// the map's own form -- which is what makes `when` callable at all. Guarded
+// because a miss on that map now materializes the object the fold stands for
+// and reads `undefined` off it: a hit that took the same route would answer a
+// placeholder function the call step cannot call.
+//
+// Both spellings, because they name one property in the language and the map
+// lookup is what decides whether they agree. `stylex["when"]` used to skip the
+// map entirely, so the two answered different values for the same read.
+stylex_test!(
+  when_read_off_the_namespace_resolves_through_either_spelling,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      container: {
+        backgroundColor: {
+          default: 'blue',
+          [stylex.when.ancestor(':hover')]: 'red',
+          [stylex['when'].siblingBefore(':focus')]: 'green',
+        },
+      },
+    });
+
+    console.log(styles.container);
+  "#
+);
+
 stylex_test!(
   when_functions_aliased_imports,
   |tr| stylex_transform(tr.comments.clone(), |b| b),

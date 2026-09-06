@@ -16,6 +16,34 @@ pub enum InjectableStyleBaseKind {
   Const(InjectableStyleConstBase),
 }
 
+impl InjectableStyleKind {
+  /// The rule text this style contributes, whichever direction carries it.
+  ///
+  /// Both kinds hold an `ltr` and an optional `rtl`, and a directional rule is
+  /// spelled with an empty `ltr` — so a reader wanting "the rule" has to pick,
+  /// and picking is the same two lines at every site. Answered here so the kinds
+  /// stay this module's business.
+  ///
+  /// The empty-`ltr` arm is this compiler's spelling of a directional rule, not
+  /// a fallback the reference implementation has: upstream takes `ltr` whenever
+  /// it is a string, and `generateCSSRule` always produces a non-empty one, so
+  /// it never reads `rtl` here. Faithful to the code this was lifted out of, and
+  /// unreachable from `generate_css_rule` output — but a new caller should not
+  /// read it as upstream behaviour.
+  pub fn rule_text(&self) -> &str {
+    let (ltr, rtl) = match self {
+      Self::Regular(style) => (style.ltr.as_str(), style.rtl.as_deref()),
+      Self::Const(style) => (style.ltr.as_str(), style.rtl.as_deref()),
+    };
+
+    if ltr.is_empty() {
+      rtl.unwrap_or_default()
+    } else {
+      ltr
+    }
+  }
+}
+
 impl From<InjectableStyleKind> for InjectableStyleBaseKind {
   fn from(style: InjectableStyleKind) -> Self {
     match style {

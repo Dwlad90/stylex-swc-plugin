@@ -8,6 +8,7 @@ fn make_token_list(tokens: Vec<SimpleToken>) -> TokenList {
   TokenList {
     tokens,
     current_index: 0,
+    depth: 0,
   }
 }
 
@@ -29,13 +30,13 @@ impl fmt::Write for FailAfter {
 
 // ── LengthPercentage helpers ─────────────────────────────────────────────────
 
-fn px(v: f32) -> crate::css_types::length_percentage::LengthPercentage {
+fn px(v: f64) -> crate::css_types::length_percentage::LengthPercentage {
   use crate::css_types::length::Length;
   use crate::css_types::length_percentage::LengthPercentage;
   LengthPercentage::Length(Length::new(v, "px".to_string()))
 }
 
-fn pct(v: f32) -> crate::css_types::length_percentage::LengthPercentage {
+fn pct(v: f64) -> crate::css_types::length_percentage::LengthPercentage {
   use crate::css_types::common_types::Percentage;
   use crate::css_types::length_percentage::LengthPercentage;
   LengthPercentage::Percentage(Percentage::new(v))

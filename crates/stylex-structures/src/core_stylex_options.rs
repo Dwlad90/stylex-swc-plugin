@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use indexmap::{IndexMap, IndexSet};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
@@ -7,6 +9,8 @@ use stylex_enums::{
 };
 
 use crate::{
+  evaluation_depth::MAX_EVALUATION_DEPTH,
+  fold_ceilings::{MAX_FOLDED_CHARACTERS, MAX_FOLDED_ENTRIES},
   named_import_source::ImportSources,
   stylex_env::{EnvEntry, JSFunction},
   stylex_options::CheckModuleResolution,
@@ -30,6 +34,13 @@ pub struct CoreStyleXOptions {
   pub enable_media_query_order: bool,
   pub enable_logical_styles_polyfill: bool,
   pub enable_legacy_value_flipping: bool,
+  // Kept because callers configure it: the value flows in from the plugin
+  // options through `StyleXOptions`. The transform does not read it yet, so it
+  // is written and never used.
+  //
+  // The attribute does no work here, measured: the lint does not fire on a
+  // public field of a public struct in a library crate. It is a note for the
+  // reader.
   #[allow(dead_code)]
   pub enable_ltr_rtl_comments: bool,
   pub enable_minified_keys: bool,
@@ -47,8 +58,32 @@ pub struct CoreStyleXOptions {
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   pub unstable_module_resolution: CheckModuleResolution,
   pub sx_prop_name: Option<String>,
+  /// How many levels the evaluator will descend before refusing to fold.
+  ///
+  /// Resolved once, from the configured value, then the environment, then the
+  /// built-in default -- see
+  /// [`crate::evaluation_depth`]. Held as a plain number here because by the
+  /// time options exist the question of where it came from is settled.
+  pub max_evaluation_depth: usize,
+  /// How many UTF-16 code units of string one fold may build or carry.
+  ///
+  /// Resolved the same way, from [`crate::fold_ceilings`], and held as a plain
+  /// number for the same reason.
+  pub max_folded_characters: usize,
+  /// How many array elements and object properties one fold may build or carry.
+  ///
+  /// Resolved the same way, from [`crate::fold_ceilings`], and held as a plain
+  /// number for the same reason.
+  pub max_folded_entries: usize,
+  /// The `env` option's object, shared rather than copied.
+  ///
+  /// Registered per `stylex` import name per `create` call, from three places,
+  /// so a copy per registration made a configured `env` cost its own size once
+  /// per style object. It is read-only once options are built, which is what
+  /// makes one shared handle sound -- and holding the handle here rather than
+  /// snapshotting it elsewhere is what keeps there being one of it.
   #[serde(skip)]
-  pub env: IndexMap<String, EnvEntry>,
+  pub env: Rc<IndexMap<String, EnvEntry>>,
   #[serde(skip)]
   pub debug_file_path: Option<JSFunction>,
 }
@@ -79,7 +114,10 @@ impl Default for CoreStyleXOptions {
       aliases: None,
       unstable_module_resolution: CheckModuleResolution::default(),
       sx_prop_name: Some("sx".to_string()),
-      env: IndexMap::new(),
+      max_evaluation_depth: MAX_EVALUATION_DEPTH.resolve(None),
+      max_folded_characters: MAX_FOLDED_CHARACTERS.resolve(None),
+      max_folded_entries: MAX_FOLDED_ENTRIES.resolve(None),
+      env: Rc::new(IndexMap::new()),
       debug_file_path: None,
     }
   }
@@ -152,6 +190,25 @@ impl CoreStyleXOptions {
     self
   }
 
+  /// Set the evaluator's ceiling, resolving an absent value the same way the
+  /// default does: environment, then the built-in default.
+  pub fn maybe_max_evaluation_depth(mut self, depth: Option<usize>) -> Self {
+    self.max_evaluation_depth = MAX_EVALUATION_DEPTH.resolve(depth);
+    self
+  }
+
+  /// Set the fold's string ceiling, resolved the same way.
+  pub fn maybe_max_folded_characters(mut self, characters: Option<usize>) -> Self {
+    self.max_folded_characters = MAX_FOLDED_CHARACTERS.resolve(characters);
+    self
+  }
+
+  /// Set the fold's entry ceiling, resolved the same way.
+  pub fn maybe_max_folded_entries(mut self, entries: Option<usize>) -> Self {
+    self.max_folded_entries = MAX_FOLDED_ENTRIES.resolve(entries);
+    self
+  }
+
   pub fn with_enable_minified_keys(mut self, enabled: bool) -> Self {
     self.enable_minified_keys = enabled;
     self
@@ -208,7 +265,7 @@ impl CoreStyleXOptions {
   }
 
   pub fn with_env(mut self, env: IndexMap<String, EnvEntry>) -> Self {
-    self.env = env;
+    self.env = Rc::new(env);
     self
   }
 

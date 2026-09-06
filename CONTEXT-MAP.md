@@ -28,8 +28,9 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
   error and panic vocabulary every crate raises failures through.
 - **stylex-enums** ([CONTEXT.md](./crates/stylex-enums/CONTEXT.md)) -- the
   compiler's closed sets, most of them user-facing options.
-- **stylex-js** ([CONTEXT.md](./crates/stylex-js/CONTEXT.md)) -- predicates
-  about JavaScript semantics, asked before trusting an expression.
+- **stylex-js** ([CONTEXT.md](./crates/stylex-js/CONTEXT.md)) -- predicates,
+  coercions and numeric operators over JavaScript semantics, asked before
+  trusting an expression and while folding one.
 - **stylex-logs** ([CONTEXT.md](./crates/stylex-logs/CONTEXT.md)) -- the logging
   backend and message format the Node host sees.
 - **stylex-path-resolver**
@@ -44,10 +45,24 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
 - **stylex-types** ([CONTEXT.md](./crates/stylex-types/CONTEXT.md)) -- the
   output types that get serialized into JavaScript.
 - **stylex-ast** ([CONTEXT.md](./crates/stylex-ast/CONTEXT.md)) -- factories
-  that build SWC nodes and convertors that read them back.
-- **stylex-evaluator** ([CONTEXT.md](./crates/stylex-evaluator/CONTEXT.md)) --
-  flattening the nested config objects `defineVars` and friends accept. The
-  general JS evaluator is in `stylex-transform`, not here.
+  that build SWC nodes, convertors that read them back, and the readers that
+  answer what a key is written as.
+- **stylex-state-index**
+  ([CONTEXT.md](./crates/stylex-state-index/CONTEXT.md)) -- the lookup indices
+  the state manager answers "which declarator, which call, which span" from.
+- **stylex-state** ([CONTEXT.md](./crates/stylex-state/CONTEXT.md)) -- the
+  per-file compilation state, the value vocabulary it composes, and which
+  declaration binds a name against what it recorded.
+- **stylex-diagnostics**
+  ([CONTEXT.md](./crates/stylex-diagnostics/CONTEXT.md)) -- code frames and the
+  declaration position an error should point at.
+- **stylex-nested-config**
+  ([CONTEXT.md](./crates/stylex-nested-config/CONTEXT.md)) -- flattening the
+  nested config objects `defineVars` and friends accept.
+- **stylex-evaluator**
+  ([CONTEXT.md](./crates/stylex-evaluator/CONTEXT.md)) -- what an authored
+  expression folds to, or why it cannot: the dispatcher, the node handlers, the
+  engine fold, and the stack a fold descends on.
 - **stylex-css** ([CONTEXT.md](./crates/stylex-css/CONTEXT.md)) -- a resolved
   property/value pair into injectable CSS: expansion, normalization, direction,
   priority.
@@ -55,7 +70,7 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
   `@stylexjs/atoms` inline syntax, compiled through an injected trait to avoid
   depending on the transform.
 - **stylex-transform** ([CONTEXT.md](./crates/stylex-transform/CONTEXT.md)) --
-  the SWC visitor, the per-file state, and the JavaScript evaluator.
+  the SWC visitor: recognising every `stylex.*` call and rewriting it.
 - **stylex-rs-compiler**
   ([CONTEXT.md](./crates/stylex-rs-compiler/CONTEXT.md)) -- the NAPI-RS
   boundary and the TypeScript wrapper shipped with it.

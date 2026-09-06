@@ -27,6 +27,11 @@ const styles = {
         $$css: true
     }
 };
-({
-    className: "x1prwzq3 x1t391ir"
-});
+const stylesArr = [
+    styles.red,
+    styles.blue,
+    ...[
+        styles.green
+    ]
+];
+stylex.props(...stylesArr);

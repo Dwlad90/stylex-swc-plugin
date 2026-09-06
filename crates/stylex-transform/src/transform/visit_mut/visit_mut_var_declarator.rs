@@ -2,9 +2,10 @@ use std::collections::hash_map::Entry;
 
 use rustc_hash::FxHashMap;
 use stylex_macros::stylex_panic;
+use stylex_state::state_writers::fill_state_declarations;
 use swc_core::{
   atoms::Atom,
-  common::{EqIgnoreSpan, comments::Comments},
+  common::comments::Comments,
   ecma::{
     ast::{
       CallExpr, Callee, Expr, KeyValueProp, Lit, ObjectLit, ObjectPatProp, Pat, Prop, PropName,
@@ -14,6 +15,7 @@ use swc_core::{
   },
 };
 
+use stylex_ast::ast::convertors::{convert_str_lit_to_string, expand_shorthand_prop};
 use stylex_enums::{
   style_vars_to_keep::{NonNullProp, NonNullProps},
   top_level_expression::TopLevelExpressionKind,
@@ -22,25 +24,15 @@ use stylex_structures::{
   style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
 };
 
-use crate::{
-  StyleXTransform,
-  shared::{
-    structures::state_manager::{DeclId, ImportKind},
-    utils::{
-      ast::{
-        convertors::{convert_str_lit_to_string, expand_shorthand_prop},
-        helpers::namespace_name_from_prop_key,
-      },
-      common::fill_state_declarations,
-    },
-  },
-};
+use crate::StyleXTransform;
+use stylex_ast::ast::keys::namespace_name_from_prop_key;
 use stylex_atoms::transform::ATOMS_SOURCE;
 use stylex_constants::constants::{
   api_names::STYLEX_CREATE,
-  messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND, VAR_DECL_NAME_NOT_IDENT},
+  messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND},
 };
 use stylex_enums::core::TransformationCycle;
+use stylex_state::state_manager::{DeclId, ImportKind};
 use stylex_structures::named_import_source::ImportSources;
 
 impl<C> StyleXTransform<C>
@@ -102,21 +94,28 @@ where
           }
         }
 
-        for var_name in self.state.style_vars.values() {
-          if !var_declarator.eq_ignore_span(var_name) {
-            continue;
+        // The style variable this declarator is, and the top-level expression
+        // it was declared as -- both found by the name they are bound to rather
+        // than by a walk of every style variable and every recorded expression
+        // in the module, which ran once per declarator the finalize cycle
+        // visits.
+        // A style variable is bound to a name -- `matching_style_var` answers
+        // only for a declarator that is -- so the binding is read once here and
+        // both the lookup and the namespace set are asked with it.
+        if let Some((binding, var_name)) = self
+          .state
+          .matching_style_var(var_declarator)
+          .and_then(|var_name| Some((var_name.name.as_ident()?, var_name)))
+        {
+          let Some(init) = var_name.init.as_deref() else {
+            // A style variable is only ever recorded from a declarator its own
+            // initializer identified, so this cannot happen. Skipping keeps an
+            // unreachable shape from becoming an abort -- and from becoming a
+            // region no test can cover.
+            return;
           };
 
-          let top_level_expression = self.state.top_level_expressions.iter().find(
-            |TopLevelExpression(_, expr, _)| match var_name.init.as_ref() {
-              Some(init) => init.as_ref().eq_ignore_span(expr),
-              None => {
-                stylex_panic!(
-                  "Variable declaration must have an initializer for top-level expression lookup."
-                )
-              },
-            },
-          );
+          let top_level_expression = self.state.find_top_level_expr_named(&binding.sym, init);
 
           if let Some(TopLevelExpression(kind, _, _)) = top_level_expression
             && *kind == TopLevelExpressionKind::Stmt
@@ -125,10 +124,7 @@ where
               .as_mut()
               .and_then(|var_decl| var_decl.as_mut_object())
           {
-            let var_id = match var_name.name.as_ident() {
-              Some(i) => i.id.to_id(),
-              None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
-            };
+            let var_id = binding.id.to_id();
 
             let namespaces_to_keep = match vars_to_keep.get(&var_id) {
               Some(NonNullProps::Vec(vec)) => vec.clone(),
@@ -320,7 +316,7 @@ where
 
 fn get_stylex_require_source(
   call: &CallExpr,
-  state: &crate::shared::structures::state_manager::StateManager,
+  state: &stylex_state::state_manager::StateManager,
 ) -> Option<String> {
   let is_require_call = matches!(
     &call.callee,

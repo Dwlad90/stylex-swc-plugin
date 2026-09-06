@@ -460,6 +460,80 @@ depend on this option.
 > provide an [`inputSourceMap`](#inputsourcemap) when the incoming code was
 > already transformed by earlier tooling.
 
+### `maxEvaluationDepth`
+
+How many levels the compiler descends into a nested expression before it refuses
+to evaluate it. Defaults to `32`.
+
+The ceiling exists because the evaluator walks a nested expression recursively:
+without it, a file nested deeply enough exhausts the stack and aborts the
+process, which gives a bundler no message and no file to report. Past the
+ceiling you get an ordinary StyleX error instead, naming the file and the key
+path:
+
+```bash
+[StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+At most 32 levels of nested evaluation are supported.
+```
+
+Nesting this deep is not something a person writes, so the default is sized for
+hand-written styles. If generated code needs more, raise it:
+
+```js
+const options = { maxEvaluationDepth: 256 };
+```
+
+> [!IMPORTANT]
+> The number counts **evaluation steps**, not levels of nesting in your source.
+> Reading a member spends two (the object, then the value under the key), an
+> array element spends one for the array as well, and a parenthesis spends none
+> because it is unwrapped before evaluation. So raise it by measuring the input
+> that was refused, not by counting brackets in it.
+
+You can also set this ceiling with the `STYLEX_MAX_EVALUATION_DEPTH`
+environment variable. See [the three
+ceilings](#the-three-ceilings-share-a-precedence).
+
+The maximum value is `8192`. The compiler refuses a larger value, and does not
+clamp it. The compiler reserves stack memory for the depth that you ask for.
+
+### `maxFoldedCharacters`
+
+The maximum length of a string that the compiler builds or carries during
+evaluation, in UTF-16 code units. Defaults to `1000000`.
+
+The ceiling applies to a string from a method call, a concatenation, an
+interpolation, and a conversion of an array to a string. In a callback, the
+compiler compares the ceiling with the product of the length and the number of
+elements. The compiler refuses a call for all lengths if it cannot read the
+count.
+
+```js
+const options = { maxFoldedCharacters: 4000000 };
+```
+
+A string costs approximately 19 bytes of peak memory for each code unit. Thus
+the default is approximately 20 MB for one fold. The maximum value is
+`40000000`. The compiler refuses a larger value, and does not clamp it.
+
+### `maxFoldedEntries`
+
+The maximum number of array elements and object properties that one
+compile-time fold builds or carries. Defaults to `10000`. In a callback, the
+ceiling applies to a product, as for
+[`maxFoldedCharacters`](#maxfoldedcharacters).
+
+This ceiling is separate, because an element as a syntax node costs much more
+than a code unit as text.
+
+```js
+const options = { maxFoldedEntries: 50000 };
+```
+
+An entry costs approximately 190 bytes of peak memory. Thus the default is
+approximately 2 MB. The maximum value is `1000000`. The compiler refuses a
+larger value, and does not clamp it.
+
 ## Debug Logging
 
 Enable debug logging with the `STYLEX_DEBUG` environment variable. Available
@@ -507,26 +581,6 @@ Errors are color-coded for readability:
 | Unimplemented feature      | `[UNIMPLEMENTED]` | Magenta label |
 | Internal unreachable state | `[UNREACHABLE]`   | Blue label    |
 
-## Deliberate divergences from `@stylexjs/babel-plugin`
-
-Four values that upstream accepts are rejected here. Each rejection changes only
-_which programs compile_, never the bytes of an accepted one — so none of them
-can move a class name, which is the compatibility contract that matters. They
-are listed here because until now they lived only in module docstrings, and a
-build that fails on a value the reference compiler accepts is the kind of
-surprise worth being able to look up.
-
-| Rejected                                                                 | Upstream              | Why                                                                                                                                                                                                 |
-| ------------------------------------------------------------------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `var(foo)` — a custom-property reference with no `--` prefix             | emits it verbatim     | It resolves to nothing in a browser, with no diagnostic from anywhere. The rejection names the reference. Only top-level references are checked.                                                    |
-| A value carrying an unterminated `/*` comment                            | emits it              | The scanner invents the missing terminator, so the declaration would silently swallow whatever followed.                                                                                            |
-| A `{`, `}` or `;` outside a string or comment in a custom-property value | emits it              | The same swallowing problem, one level up: the declaration would absorb the rest of the rule.                                                                                                       |
-| A value nested more than 64 levels deep                                  | throws a `RangeError` | Spelling and dropping a token tree recurse, so past some depth the process aborts with no diagnostic at all. 64 is far above any real value and the failure is a named message rather than a crash. |
-
-Everything else is parity, and the parity harness under
-[`parity/`](./parity/README.md) is what keeps that claim honest — it runs a
-corpus of declarations through both compilers and reports any that disagree.
-
 ## FAQ
 
 ### Is this a drop-in replacement for `@stylexjs/babel-plugin`?
@@ -535,10 +589,6 @@ Yes, by design. It implements the same transform, is validated against the
 official StyleX test suite, and produces compatible output. It also adds
 compiler-only capabilities: `include`/`exclude` filtering, SWC WASM plugin
 chaining, `inputSourceMap` chaining, and structured metadata output.
-
-Four values are deliberately rejected where upstream accepts them; see
-[Deliberate divergences](#deliberate-divergences-from-stylexjsbabel-plugin).
-None of them changes the output of a value that compiles.
 
 ### Do I need Rust installed to use it?
 

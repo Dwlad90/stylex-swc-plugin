@@ -1,21 +1,16 @@
 #[cfg(test)]
 mod stylex_define_consts_nested {
+  use stylex_ast::ast::convertors::{create_number_expr, create_string_expr};
   use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
   use stylex_structures::stylex_options::StyleXOptions;
   use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 
-  use crate::shared::{
-    enums::data_structures::evaluate_result_value::EvaluateResultValue,
-    structures::state_manager::StateManager,
-    transformers::{
-      stylex_define_consts::stylex_define_consts,
-      stylex_define_consts_nested::stylex_define_consts_nested,
-    },
-    utils::{
-      ast::convertors::{create_number_expr, create_string_expr},
-      core::stylex_nested_utils::UnflattenedCompiledStylesValue,
-    },
+  use crate::{
+    shared::transformers::stylex_define_consts::stylex_define_consts,
+    shared::transformers::stylex_define_consts_nested::stylex_define_consts_nested,
+    shared::utils::core::stylex_nested_utils::UnflattenedCompiledStylesValue,
   };
+  use stylex_state::{evaluate_result_value::EvaluateResultValue, state_manager::StateManager};
 
   fn create_test_state_manager() -> StateManager {
     let options = StyleXOptions::default()

@@ -237,3 +237,129 @@ fn backfill_handles_a_map_with_no_sources() {
 
   assert!(contents_of(&map).is_empty());
 }
+
+/// Whether `path` names a JavaScript module, and so keeps every import
+/// specifier. See `is_javascript_input`.
+fn keeps(path: &str) -> bool {
+  is_javascript_input(Path::new(path))
+}
+
+#[test]
+fn javascript_extensions_keep_every_import_specifier() {
+  for path in ["page.js", "page.jsx", "page.mjs", "page.cjs"] {
+    assert!(keeps(path), "{path} is JavaScript and must not be elided");
+  }
+}
+
+#[test]
+fn typescript_extensions_keep_the_elision() {
+  for path in ["page.ts", "page.tsx", "page.mts", "page.cts"] {
+    assert!(!keeps(path), "{path} is TypeScript and keeps tsc's rule");
+  }
+}
+
+#[test]
+fn a_declaration_file_keeps_the_elision() {
+  // `.d.ts` reads as extension `ts`, which is the answer it wants anyway.
+  assert!(!keeps("types.d.ts"));
+  assert!(keeps("types.d.js"));
+}
+
+#[test]
+fn the_extension_is_matched_without_regard_to_case() {
+  // macOS and Windows both hand back the name as authored, so `Page.JSX` is a
+  // file that reaches this compiler.
+  for path in ["Page.JS", "page.JSX", "page.Mjs", "PAGE.CJS"] {
+    assert!(keeps(path), "{path} names JavaScript in another case");
+  }
+
+  for path in ["Page.TS", "page.TSX", "page.Mts", "PAGE.CTS"] {
+    assert!(!keeps(path), "{path} names TypeScript in another case");
+  }
+}
+
+#[test]
+fn an_unrecognised_extension_keeps_the_elision() {
+  // The conservative half: an elision only ever removes, so a name no
+  // toolchain agrees on is answered the way today's pipeline answers it.
+  for path in [
+    "page",
+    "page.",
+    "page.vue",
+    "page.svelte",
+    "page.json",
+    "page.jsonc",
+    "page.mdx",
+    "page.jsx.txt",
+    "page.js.map",
+    "page.tsbuildinfo",
+  ] {
+    assert!(!keeps(path), "{path} is not a JavaScript extension");
+  }
+}
+
+#[test]
+fn a_name_that_is_only_an_extension_is_not_one() {
+  // `Path::extension` reads a leading dot as the whole file name, so a
+  // dotfile called `.js` has no extension at all.
+  assert!(!keeps(".js"));
+  assert!(!keeps(".jsx"));
+  assert!(!keeps("/src/.js"));
+}
+
+#[test]
+fn a_dotfile_carrying_an_extension_is_read_by_it() {
+  assert!(keeps(".eslintrc.js"));
+  assert!(!keeps(".eslintrc.ts"));
+}
+
+#[test]
+fn only_the_last_extension_decides() {
+  assert!(keeps("page.ts.js"));
+  assert!(!keeps("page.js.ts"));
+  assert!(keeps("a.b.c.d.e.mjs"));
+}
+
+#[test]
+fn the_directory_path_never_decides() {
+  // A directory that spells an extension must not be read as one.
+  assert!(!keeps("/src/app.js/page.ts"));
+  assert!(keeps("/src/app.ts/page.js"));
+  assert!(!keeps("/a.js/b.js/c.js/page"));
+}
+
+#[test]
+fn a_non_ascii_extension_is_not_javascript() {
+  // `eq_ignore_ascii_case` leaves non-ASCII bytes alone, so nothing here can
+  // fold into `js` by accident.
+  for path in ["страница.жс", "页面.js文件", "page.ｊｓ", "page.js\u{200b}"] {
+    assert!(!keeps(path), "{path} does not name a JavaScript extension");
+  }
+
+  // A non-ASCII *stem* is beside the point; the extension is what is read.
+  assert!(keeps("страница.js"));
+  assert!(keeps("页面.jsx"));
+  assert!(keeps("🎨.mjs"));
+}
+
+#[test]
+fn an_empty_or_relative_path_keeps_the_elision() {
+  for path in ["", ".", "..", "/", "./", "../"] {
+    assert!(
+      !keeps(path),
+      "{path:?} names no file to read an extension of"
+    );
+  }
+}
+
+#[test]
+fn a_path_that_is_all_separators_or_very_long_still_answers() {
+  // No panic and no allocation blow-up on a pathological name.
+  let deep = format!("{}page.js", "a/".repeat(10_000));
+  assert!(keeps(&deep));
+
+  let long_extension = format!("page.{}", "j".repeat(100_000));
+  assert!(!keeps(&long_extension));
+
+  assert!(!keeps(&"/".repeat(10_000)));
+}

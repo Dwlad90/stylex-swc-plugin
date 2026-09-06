@@ -1,11 +1,14 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
+use stylex_ast::ast::convertors::{
+  convert_lit_to_number, convert_lit_to_string, create_string_expr,
+};
 use stylex_ast::ast::{
   convertors::get_key_values_from_object,
   factories::{create_key_value_prop, create_object_expression},
 };
-use stylex_evaluator::nested::{
+use stylex_nested_config::nested::{
   NestedVarsValue, flatten_nested_consts_config, flatten_nested_overrides_config,
   flatten_nested_vars_config, object_lit_to_nested_vars_config,
 };
@@ -14,15 +17,11 @@ use stylex_structures::nested::{
 };
 use swc_core::ecma::ast::{Expr, Lit};
 
-use crate::shared::{
-  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  structures::types::FlatCompiledStyles,
-  utils::{
-    ast::convertors::{convert_lit_to_number, convert_lit_to_string, create_string_expr},
-    core::stylex_nested_utils::{
-      UnflattenedCompiledStylesValue, convert_unflattened_object_to_ast, unflatten_object,
-    },
-  },
+use crate::shared::utils::core::stylex_nested_utils::{
+  UnflattenedCompiledStylesValue, convert_unflattened_object_to_ast, unflatten_object,
+};
+use stylex_state::{
+  flat_compiled_styles_value::FlatCompiledStylesValue, types::FlatCompiledStyles,
 };
 
 fn namespace(entries: Vec<(&str, NestedVarsValue)>) -> NestedVarsValue {
@@ -83,7 +82,7 @@ fn object_prop(expr: &Expr, name: &str) -> Expr {
   };
 
   for key_value in get_key_values_from_object(obj) {
-    if crate::shared::utils::ast::convertors::convert_key_value_to_str(&key_value) == name {
+    if stylex_ast::ast::convertors::convert_key_value_to_str(&key_value) == name {
       return key_value.value.as_ref().clone();
     }
   }

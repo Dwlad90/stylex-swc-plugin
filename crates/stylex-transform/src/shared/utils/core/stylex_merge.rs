@@ -1,40 +1,42 @@
 use rustc_hash::FxHashMap;
+use stylex_ast::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
 use stylex_macros::{stylex_panic, stylex_unreachable};
 use swc_core::ecma::{
   ast::{
     BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, JSXAttrOrSpread, JSXAttrValue, Lit,
     ObjectLit, Prop, PropName, PropOrSpread,
   },
-  visit::{VisitMut, VisitMutWith},
+  visit::{VisitMut, VisitMutWith, VisitWith},
 };
 
 use crate::shared::{
   enums::data_structures::fn_result::FnResult,
-  structures::{
-    functions::{FunctionConfigType, FunctionMap},
-    member_transform::MemberTransform,
-    state_manager::{ImportKind, StateManager},
-    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-  },
   transformers::stylex_default_marker,
-  utils::{
-    ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
-    core::{
-      make_string_expression::make_string_expression,
-      parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
-    },
+  utils::core::{
+    make_string_expression::make_string_expression,
+    member_expression::MemberTransform,
+    parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
   },
 };
-use crate::transform::stylex::transform_stylex_create_call::hoist_expression;
 use stylex_ast::ast::factories::{create_jsx_attr, create_jsx_attr_or_spread};
 use stylex_constants::constants::{
   api_names::STYLEX_DEFAULT_MARKER, common::COMPILED_KEY, messages::EXPECTED_COMPILED_STYLES,
 };
 use stylex_enums::style_vars_to_keep::NonNullProps;
+use stylex_state::{
+  functions::{FunctionConfigType, FunctionMap},
+  state_manager::{ImportKind, StateManager},
+  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+};
 
+/// Merges the arguments of a `stylex.props`-family call into one value.
+///
+/// The caller supplies `hoist_expression`, which lifts an expression into a
+/// module-scoped `const` and returns a reference to it.
 pub(crate) fn stylex_merge(
   call: &mut CallExpr,
   transform: fn(&[ResolvedArg]) -> Option<FnResult>,
+  hoist_expression: fn(Expr, &mut StateManager) -> Expr,
   state: &mut StateManager,
 ) -> Option<Expr> {
   let mut bail_out = false;
@@ -45,12 +47,16 @@ pub(crate) fn stylex_merge(
   let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
   let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
-  if let Some(set) = state.get_stylex_api_import(ImportKind::DefaultMarker) {
+  if let Some(set) = state.get_stylex_api_import(ImportKind::DefaultMarker)
+    && !set.is_empty()
+  {
+    let marker = stylex_default_marker::stylex_default_marker(&state.options);
+    let values = match marker.as_values() {
+      Some(v) => v,
+      None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
+    };
+
     for name in set {
-      let values = match stylex_default_marker::stylex_default_marker(&state.options).as_values() {
-        Some(v) => v.clone(),
-        None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
-      };
       identifiers.insert(
         name.clone(),
         Box::new(FunctionConfigType::IndexMap(values.clone())),
@@ -58,21 +64,20 @@ pub(crate) fn stylex_merge(
     }
   }
 
+  // Build the marker once, as the loop above does. It made two strings, an
+  // index map and two counted pointers for each import before.
+  let marker = stylex_default_marker::stylex_default_marker(&state.options);
+  let marker_values = match marker.as_values() {
+    Some(values) => values,
+    None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
+  };
+
   for name in state.stylex_imports() {
-    member_expressions.entry(name.clone()).or_default();
-
-    let member_expression = match member_expressions.get_mut(name) {
-      Some(m) => m,
-      None => stylex_panic!("Could not resolve the member expression for the import."),
-    };
-
-    let values = match stylex_default_marker::stylex_default_marker(&state.options).as_values() {
-      Some(v) => v.clone(),
-      None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
-    };
-    member_expression.insert(
+    // `or_default` gives back the entry it made, so the second look-up that
+    // stood here, and the refusal that could never run, are both unnecessary.
+    member_expressions.entry(name.clone()).or_default().insert(
       STYLEX_DEFAULT_MARKER.into(),
-      Box::new(FunctionConfigType::IndexMap(values)),
+      Box::new(FunctionConfigType::IndexMap(marker_values.clone())),
     );
   }
 
@@ -223,21 +228,29 @@ pub(crate) fn stylex_merge(
       let mut member_transform = MemberTransform {
         index,
         bail_out_index,
-        non_null_props: non_null_props.clone(),
+        non_null_props,
         state: &mut *state,
         functions: &evaluate_path_fn_config,
       };
 
-      arg_path.expr.visit_mut_with(&mut member_transform);
+      arg_path.expr.visit_with(&mut member_transform);
 
       index = member_transform.index;
       bail_out_index = member_transform.bail_out_index;
-      non_null_props = member_transform.non_null_props.clone();
+      non_null_props = member_transform.non_null_props;
 
       // Hoist any inline compiled-style objects (produced by atoms) to module
       // scope so the runtime `stylex.props` receives a stable reference instead
       // of a re-created object literal.
-      let mut object_hoister = CompiledStyleObjectHoister { state: &mut *state };
+      //
+      // A second walk, and it stays one. The reader above stops at a member
+      // expression, because counting a nested one would move the bail-out
+      // point, while this walk must reach an object wherever it sits. One walk
+      // could serve only one of those two rules.
+      let mut object_hoister = CompiledStyleObjectHoister {
+        state: &mut *state,
+        hoist_expression,
+      };
       arg_path.expr.visit_mut_with(&mut object_hoister);
     }
   } else {
@@ -297,6 +310,7 @@ fn static_jsx_attr_from_prop(prop: &PropOrSpread) -> Option<JSXAttrOrSpread> {
 /// reference to it.
 struct CompiledStyleObjectHoister<'a> {
   state: &'a mut StateManager,
+  hoist_expression: fn(Expr, &mut StateManager) -> Expr,
 }
 
 impl VisitMut for CompiledStyleObjectHoister<'_> {
@@ -306,7 +320,7 @@ impl VisitMut for CompiledStyleObjectHoister<'_> {
     if let Expr::Object(object) = expr
       && object_has_css_marker(object)
     {
-      let hoisted = hoist_expression(expr.clone(), self.state);
+      let hoisted = (self.hoist_expression)(expr.clone(), self.state);
       *expr = hoisted;
     }
   }

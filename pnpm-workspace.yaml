@@ -33,6 +33,11 @@ minimumReleaseAge: 4320
 verifyDepsBeforeRun: false
 engineStrict: true
 
+# The generated-fixture gate finds its checks through a `pretest` script, and
+# `pretest` runs because this setting is on by default. Written down because
+# the repository has lost that caller twice, and a default is not a promise.
+enablePrePostScripts: true
+
 minimumReleaseAgeExclude:
   - '@octokit/*'
   - '@yuku-codegen/*'
@@ -110,94 +115,122 @@ catalogs:
     '@farmfe/cli': '^1.0.5'
     '@farmfe/core': '^1.7.11'
     '@farmfe/plugin-react': '^1.2.6'
-    '@pmmmwh/react-refresh-webpack-plugin': '^0.6.2'
+    '@pmmmwh/react-refresh-webpack-plugin': '^0.6.3'
     '@rollup/plugin-commonjs': '^29.0.3'
     '@rollup/plugin-html': '^2.0.0'
     '@rollup/plugin-node-resolve': '^16.0.3'
     '@rollup/plugin-replace': '^6.0.3'
     '@rollup/plugin-swc': '^0.4.1'
-    '@rsbuild/core': '^2.1.10'
+    '@rsbuild/core': '^2.2.2'
     '@rsbuild/plugin-react': '^2.1.0'
-    '@rspack/cli': '^2.1.8'
-    '@rspack/core': '^2.1.8'
-    '@rspack/dev-server': '^2.2.0'
-    '@swc/core': '^1.15.43'
-    '@vitejs/plugin-react': '^6.0.5'
+    '@rspack/cli': '^2.2.2'
+    '@rspack/core': '^2.2.2'
+    '@rspack/dev-server': '^2.2.1'
+    '@swc/core': '^1.16.1'
+    '@vitejs/plugin-react': '^6.1.1'
     '@vitejs/plugin-react-swc': '^4.3.3'
     '@vitejs/plugin-vue': '^6.0.8'
-    'css-loader': '^7.1.4'
+    'css-loader': '^7.1.5'
     'css-minimizer-webpack-plugin': '^8.0.0'
-    'esbuild': '^0.28.1'
+    'esbuild': '^0.28.2'
     'file-loader': '^6.2.0'
     'html-webpack-plugin': '^5.6.8'
     'loader-utils': '^3.3.1'
     'mini-css-extract-plugin': '^2.10.2'
     'postcss-loader': '^8.2.1'
-    'rollup': '^4.62.4'
+    'rollup': '^4.63.1'
     'rollup-plugin-jsx-remove-attributes': '^3.1.2'
     'rollup-plugin-node-externals': '^9.0.1'
     'rollup-plugin-serve': '^3.0.0'
     'swc-loader': '^0.2.7'
     'tsdown': '^0.22.14'
-    'turbo': '^2.10.9'
+    'turbo': '^2.10.12'
     'unplugin': '^3.3.0'
-    'vite': '^8.2.1'
+    'vite': '^8.2.2'
     'vite-plugin-inspect': '^12.0.2'
     'vite-plugin-solid': '^2.11.14'
-    'webpack': '^5.109.2'
-    'webpack-cli': '^7.2.2'
+    'webpack': '^5.110.3'
+    'webpack-cli': '^7.2.3'
     'webpack-dev-server': '^6.0.0'
 
   frameworks:
-    '@chromatic-com/storybook': '^5.3.0'
+    '@chromatic-com/storybook': '^5.3.1'
     '@nuxt/kit': '^4.5.2'
     '@nuxt/schema': '^4.5.2'
-    '@storybook/addon-a11y': '^10.5.7'
-    '@storybook/addon-docs': '^10.5.7'
-    '@storybook/addon-links': '^10.5.7'
-    '@storybook/addon-vitest': '^10.5.7'
-    '@storybook/react': '^10.5.7'
-    '@storybook/react-vite': '^10.5.7'
-    'next': '^16.3.0'
-    'next-rspack': '^16.3.0'
+    '@storybook/addon-a11y': '^10.6.0'
+    '@storybook/addon-docs': '^10.6.0'
+    '@storybook/addon-links': '^10.6.0'
+    '@storybook/addon-vitest': '^10.6.0'
+    '@storybook/react': '^10.6.0'
+    '@storybook/react-vite': '^10.6.0'
+    'next': '^16.3.4'
+    'next-rspack': '^16.3.4'
     'react': '^19.2.8'
     'react-dom': '^19.2.8'
     'react-refresh': '^0.18.0'
-    'solid-js': '^1.9.14'
-    'storybook': '^10.5.7'
-    'vue': '^3.5.41'
+    'solid-js': '^1.9.15'
+    'storybook': '^10.6.0'
+    'vue': '^3.5.42'
 
   internal:
-    '@stylexswc/ast': '0.18.6'
-    '@stylexswc/atoms': '0.18.6'
-    '@stylexswc/constants': '0.18.6'
-    '@stylexswc/css': '0.18.6'
-    '@stylexswc/css-parser': '0.18.6'
-    '@stylexswc/design-system': '0.18.6'
-    '@stylexswc/enums': '0.18.6'
-    '@stylexswc/evaluator': '0.18.6'
-    '@stylexswc/jest': '0.18.6'
-    '@stylexswc/logs': '0.18.6'
-    '@stylexswc/macros': '0.18.6'
-    '@stylexswc/nextjs-plugin': '0.18.6'
-    '@stylexswc/path-resolver': '0.18.6'
-    '@stylexswc/playwright': '0.18.6'
-    '@stylexswc/plugin-shared': '0.18.6'
-    '@stylexswc/postcss-plugin': '0.18.6'
-    '@stylexswc/regex': '0.18.6'
-    '@stylexswc/rollup-plugin': '0.18.6'
-    '@stylexswc/rs-compiler': '0.18.6'
-    '@stylexswc/rspack-plugin': '0.18.6'
-    '@stylexswc/structures': '0.18.6'
-    '@stylexswc/stylex-js': '0.18.6'
-    '@stylexswc/transform': '0.18.6'
-    '@stylexswc/turbopack-plugin': '0.18.6'
-    '@stylexswc/types': '0.18.6'
-    '@stylexswc/typescript-config': '0.18.6'
-    '@stylexswc/unplugin': '0.18.6'
-    '@stylexswc/utils': '0.18.6'
-    '@stylexswc/webpack-plugin': '0.18.6'
+    '@stylexswc/ast': '0.19.0-rc.1'
+    '@stylexswc/atoms': '0.19.0-rc.1'
+    '@stylexswc/constants': '0.19.0-rc.1'
+    '@stylexswc/css': '0.19.0-rc.1'
+    '@stylexswc/css-parser': '0.19.0-rc.1'
+    '@stylexswc/design-system': '0.19.0-rc.1'
+    '@stylexswc/diagnostics': '0.19.0-rc.1'
+    '@stylexswc/enums': '0.19.0-rc.1'
+    '@stylexswc/evaluator': '0.19.0-rc.1'
+    '@stylexswc/jest': '0.19.0-rc.1'
+    '@stylexswc/logs': '0.19.0-rc.1'
+    '@stylexswc/macros': '0.19.0-rc.1'
+    '@stylexswc/nested-config': '0.19.0-rc.1'
+    '@stylexswc/nextjs-plugin': '0.19.0-rc.1'
+    '@stylexswc/path-resolver': '0.19.0-rc.1'
+    '@stylexswc/playwright': '0.19.0-rc.1'
+    '@stylexswc/plugin-shared': '0.19.0-rc.1'
+    '@stylexswc/postcss-plugin': '0.19.0-rc.1'
+    '@stylexswc/postcss-value-parser': '0.19.0-rc.1'
+    '@stylexswc/regex': '0.19.0-rc.1'
+    '@stylexswc/rollup-plugin': '0.19.0-rc.1'
+    '@stylexswc/rs-compiler': '0.19.0-rc.1'
+    '@stylexswc/rspack-plugin': '0.19.0-rc.1'
+    '@stylexswc/state': '0.19.0-rc.1'
+    '@stylexswc/state-index': '0.19.0-rc.1'
+    '@stylexswc/structures': '0.19.0-rc.1'
+    '@stylexswc/stylex-js': '0.19.0-rc.1'
+    '@stylexswc/stylex-styleq': '0.19.0-rc.1'
+    '@stylexswc/transform': '0.19.0-rc.1'
+    '@stylexswc/turbopack-plugin': '0.19.0-rc.1'
+    '@stylexswc/types': '0.19.0-rc.1'
+    '@stylexswc/typescript-config': '0.19.0-rc.1'
+    '@stylexswc/unplugin': '0.19.0-rc.1'
+    '@stylexswc/utils': '0.19.0-rc.1'
+    '@stylexswc/webpack-plugin': '0.19.0-rc.1'
 
+  # The wide half of every package catalogued twice. These ranges are
+  # published as `peerDependencies`, so they say what a consumer may install,
+  # not what we develop against -- never narrow one to make a version problem
+  # here go away.
+  #
+  # A package listed here must still resolve to the same version as its narrow
+  # twin. The ranges differ on purpose, so only the lockfile shows a drift.
+  # `catalog-integrity.mjs duplicates` reads it. Two versions mean two copies
+  # of everything that depends on them, whose types are then unrelated.
+  #
+  # A package that appears only in `peerDependencies` drifts, because
+  # `autoInstallPeers` installs it from this range alone with nothing to keep
+  # it in step. Every package here also has a narrow-catalog dependency in the
+  # manifest that names it as a peer, so one resolution governs both and pnpm
+  # writes no `peers:` block into the lockfile at all.
+  #
+  # That leaves `duplicates` with nothing to compare, which is the point rather
+  # than a gap. Two things bring a pin back and give the check something to
+  # read again: a peer left without a narrow twin, and a twin bumped past the
+  # upper bound of the range here, which stops it satisfying the peer. Only
+  # `@farmfe/core` and `@swc/core` have such a bound; the rest are open `>=`.
+  # See `guidelines/SCRIPTS.md`.
   peers:
     '@farmfe/core': '>=1.7.11 <2.0.0'
     '@nuxt/kit': '>=3.0.0'
@@ -215,79 +248,79 @@ catalogs:
     '@stylexjs/open-props': '^0.11.1'
     '@stylexjs/stylex': '^0.19.0'
     'autoprefixer': '^10.5.4'
-    'browserslist': '^4.28.4'
+    'browserslist': '^4.28.8'
     'chalk': '^6.0.0'
     'fast-glob': '^3.3.3'
     'glob-parent': '^6.0.2'
     'is-glob': '^4.0.3'
     'lightningcss': '^1.32.0'
-    'picomatch': '^4.0.4'
+    'picomatch': '^4.0.7'
     'postcss': '^8.5.26'
     'postcss-nesting': '^14.0.1'
     'prop-types': '^15.8.1'
 
   testing:
-    '@jest/globals': '^30.4.1'
-    '@jest/transform': '^30.4.1'
-    '@jest/types': '^30.4.1'
+    '@jest/globals': '^30.5.1'
+    '@jest/transform': '^30.5.1'
+    '@jest/types': '^30.5.1'
     '@playwright/test': '^1.62.1'
     '@swc/jest': '^0.2.39'
-    '@testing-library/jest-dom': '^7.0.0'
-    '@testing-library/react': '^16.3.2'
-    '@vitest/browser': '^4.1.10'
-    '@vitest/browser-playwright': '^4.1.10'
-    '@vitest/coverage-v8': '^4.1.10'
-    'jest': '^30.4.2'
+    '@testing-library/jest-dom': '^7.0.1'
+    '@testing-library/react': '^16.3.3'
+    '@vitest/browser': '^4.1.11'
+    '@vitest/browser-playwright': '^4.1.11'
+    '@vitest/coverage-v8': '^4.1.11'
+    'jest': '^30.5.1'
     'jest-chain-transform': '^0.0.8'
-    'jest-environment-jsdom': '30.4.1'
+    'jest-environment-jsdom': '30.5.1'
     'jsdom': '^30.0.1'
-    'memfs': '^4.68.0'
+    'memfs': '^4.69.1'
     'playwright': '^1.62.1'
     'serve': '^14.2.6'
-    'tinybench': '^6.1.2'
-    'vitest': '^4.1.10'
+    'tinybench': '^6.1.4'
+    'vitest': '^4.1.11'
 
   tooling:
     '@arethetypeswrong/cli': '^0.18.5'
     '@arethetypeswrong/core': '^0.18.5'
-    '@commitlint/cli': '^21.2.1'
+    '@commitlint/cli': '^21.2.2'
     # `tooling` rather than `runtime`, despite the name: no code we ship
     # imports this. It exists only because `@napi-rs/cli` pins it as an
     # *exact* optional peer, so it belongs beside the CLI that pins it, and
     # its range is exact for the same reason -- a caret here would not
     # satisfy the pin.
-    '@emnapi/runtime': '2.0.0-alpha.3'
-    '@napi-rs/cli': '^3.8.2'
+    '@emnapi/runtime': '2.0.0-alpha.4'
+    '@napi-rs/cli': '^3.9.0'
     '@taplo/cli': '^0.7.0'
     'commitizen': '^4.3.2'
     'cz-conventional-changelog': '^3.3.0'
     'del-cli': '^7.0.0'
     'eslint-plugin-react-hooks': '^7.1.1'
-    'eslint-plugin-storybook': '^10.5.7'
-    'eslint-plugin-turbo': '^2.10.9'
+    'eslint-plugin-storybook': '^10.6.0'
+    'eslint-plugin-turbo': '^2.10.12'
     'esno': '^4.7.0'
-    'knip': '^6.32.0'
-    'lefthook': '^2.1.10'
+    'knip': '^6.34.0'
+    'lefthook': '^2.1.12'
     'npm-run-all2': '^9.0.3'
-    'oxfmt': '^0.62.0'
-    'oxlint': '^1.77.0'
+    'oxfmt': '^0.66.0'
+    'oxlint': '^1.81.0'
     'postcss-value-parser': '^4.2.0'
-    'publint': '^0.3.23'
+    'publint': '^0.3.24'
     'rimraf': '^6.1.3'
     'scripty': '3.0.0'
     'shellcheck': '^4.1.0'
-    'syncpack': '^15.3.2'
-    'tsx': '^4.23.11'
+    'syncpack': '^15.3.3'
+    'tsx': '^4.23.13'
 
   types:
     '@types/babel__core': '^7.20.5'
     '@types/glob-parent': '^5.1.3'
     '@types/is-glob': '^4.0.4'
     '@types/loader-utils': '^3.0.0'
-    '@types/node': '^26.1.2'
+    '@types/node': '^26.4.1'
     '@types/picomatch': '^4.0.3'
     '@types/react': '^19.2.18'
-    '@types/react-dom': '^19.2.4'
+    '@types/react-dom': '^19.2.5'
     'oxlint-tsgolint': '7.0.2001'
     'typescript': '7.0.2'
 
@@ -345,6 +378,13 @@ patchedDependencies:
 # phones home gets `false`: the entry is the audit trail, so silence is not the
 # same as approval.
 allowBuilds:
+  # No-op unless asked. The `install` script is `scripts/build-from-source.js`,
+  # whose whole body is guarded by `npm_config_build_from_source === 'true'`;
+  # left alone it spawns nothing. The binding arrives prebuilt through the
+  # twelve `@parcel/watcher-<platform>` optional deps, so there is nothing for
+  # an approval to produce. Reached as a hard dependency of `jest-haste-map`
+  # since jest 30.5.
+  '@parcel/watcher': false
   # Validates the native binding; on failure it shells out to
   # `npm install --no-save @swc/wasm` and swaps the Rust binding for wasm. Three
   # reasons that fallback is not worth having: prebuilt bindings exist for all

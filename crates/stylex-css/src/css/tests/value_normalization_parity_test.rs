@@ -26,6 +26,10 @@
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
+use stylex_constants::constants::messages::{
+  LINT_RULE_BREAKING_TOKEN, LINT_UNCLOSED_COMMENT, LINT_UNCLOSED_FUNCTION, LINT_UNCLOSED_STRING,
+};
+
 use super::support::{check, default_options, panic_message, rem_enabled_options, same, unchanged};
 use crate::css::common::{MAX_VALUE_NESTING_DEPTH, normalize_css_property_value};
 
@@ -527,6 +531,265 @@ fn rejects_a_value_carrying_an_opening_brace() {
   assert!(
     message.contains("* { color: red { }"),
     "expected the rejection to quote the generated rule, got: {message}"
+  );
+}
+
+// ── Which of two true complaints an author is handed ─────────────────
+
+/// The complaint `property: value` is refused with.
+///
+/// Every case below refuses, and what each one asserts is *which* sentence came
+/// back — so a helper that only caught the panic would pass on all of them
+/// whatever the order became.
+fn refusal_of(property: &str, value: &str) -> String {
+  let options = default_options();
+  let result = catch_unwind(AssertUnwindSafe(|| {
+    normalize_css_property_value(property, value, &options)
+  }));
+
+  panic_message(result)
+}
+
+/// Asserts that `property: value` is refused with a message containing
+/// `expected` and not one containing `instead_of`.
+///
+/// Both halves matter here: the point of the ordering is that one true
+/// complaint is handed over rather than another, and an assertion that only
+/// checked the winner would pass on a message carrying both.
+fn refuses_with(property: &str, value: &str, expected: &str, instead_of: &str) {
+  let message = refusal_of(property, value);
+
+  assert!(
+    message.contains(expected),
+    "expected `{property}: {value}` to be refused with `{expected}`, got: {message}"
+  );
+  assert!(
+    !message.contains(instead_of),
+    "expected `{property}: {value}` not to be refused with `{instead_of}`, got: {message}"
+  );
+}
+
+/// A value that is both rule-breaking and unclosed is refused for being
+/// unclosed, because that is the complaint the reference compiler writes.
+///
+/// The build stops either way and no emitted value depends on which sentence
+/// fires, so the whole of what this buys is the sentence an author whose build
+/// was refused reads: the same one from both compilers. The harness verdict for
+/// all of these moves from `both reject (diverged)` to `both reject`.
+#[test]
+fn hands_over_the_complaint_the_reference_compiler_also_writes() {
+  for value in [
+    "red;calc(1px",
+    "red;background:blue;calc(",
+    "red {calc(1px",
+    "red }calc(1px",
+    "calc(;a",
+  ] {
+    refuses_with(
+      "color",
+      value,
+      LINT_UNCLOSED_FUNCTION,
+      LINT_RULE_BREAKING_TOKEN,
+    );
+  }
+
+  for value in [r#"red;"a"#, "red;'a", r#"red {"a"#] {
+    refuses_with(
+      "color",
+      value,
+      LINT_UNCLOSED_STRING,
+      LINT_RULE_BREAKING_TOKEN,
+    );
+  }
+}
+
+/// A value whose *only* fault is the token still reads the token complaint,
+/// which is the half of the reorder that must not have been traded away.
+///
+/// Every `;`, `{` and `}` below is bare. An escaped one is not a fault at all
+/// and is accepted — `an_escaped_terminator_is_not_a_terminator` holds those.
+///
+/// The rule text the message quotes is asserted too: it is built from the raw
+/// value before anything parses it, and moving where the guard fires must not
+/// have moved what it quotes.
+#[test]
+fn still_refuses_a_value_whose_only_fault_is_the_token() {
+  // Spelled out rather than looped over a table of pairs: the parity corpus is
+  // harvested from these sources by recognizing a property literal next to a
+  // value literal, and a pair inside a table is a shape the scan does not read
+  // — so a table here would keep these values out of the corpus that measures
+  // them.
+  let token = LINT_RULE_BREAKING_TOKEN;
+  refuses_with("color", "red; margin: 10px", token, LINT_UNCLOSED_FUNCTION);
+  refuses_with(
+    "color",
+    "red;background:blue",
+    token,
+    LINT_UNCLOSED_FUNCTION,
+  );
+  refuses_with("color", "red {", token, LINT_UNCLOSED_FUNCTION);
+  refuses_with("color", "red }", token, LINT_UNCLOSED_FUNCTION);
+  refuses_with(
+    "width",
+    "calc(1px);height:2px",
+    token,
+    LINT_UNCLOSED_FUNCTION,
+  );
+  refuses_with("--x", "red;a", token, LINT_UNCLOSED_FUNCTION);
+
+  assert!(
+    refusal_of("width", "calc(1px);height:2px").contains("* { width: calc(1px);height:2px }"),
+    "expected the rejection to quote the generated rule unchanged"
+  );
+}
+
+/// An escaped terminator is not a terminator, and is not refused.
+///
+/// The guard exists because emitting a value verbatim must not close the rule
+/// being generated and splice arbitrary CSS after it. A backslash in front of
+/// the character is the one reading of those bytes where that cannot happen:
+/// `\;`, `\{` and `\}` are part of the identifier they sit in, so the browser
+/// reads them as text and the rule stays open exactly as long as it should.
+/// The guard's own sentence says "outside of a string or comment", and an
+/// escape is neither — the exclusion was simply missing from the scan, where
+/// the quote arms beside it already had it.
+///
+/// Measured against the reference compiler rather than reasoned about: it emits
+/// `font-family:A\;B`, `font-family:a\{b`, `font-family:a\}b` and
+/// `color:red\;blue` for these four, each on its own class. Refusing them here
+/// failed four programs that compile there.
+///
+/// This is *not* a claim that the guard is too strict in general. The reference
+/// compiler emits a **bare** `;` too — `font-family:A;B` really does come back
+/// from it, spliced rule and all — and this compiler still refuses that, which
+/// `still_refuses_a_value_whose_only_fault_is_the_token` holds. The divergence
+/// closed here is only over the characters that cannot break anything.
+#[test]
+fn an_escaped_terminator_is_not_a_terminator() {
+  // Raw strings: the backslash is the whole of what these cases are about, and
+  // a `"A\\;B"` would leave a reader counting them.
+  check(
+    &[
+      unchanged("fontFamily", r"A\;B"),
+      unchanged("fontFamily", r"a\{b"),
+      unchanged("fontFamily", r"a\}b"),
+      unchanged("color", r"red\;blue"),
+    ],
+    &default_options(),
+  );
+}
+
+/// The token still outranks the unprefixed custom property, which is this
+/// compiler's own rejection and has no second opinion to agree with.
+///
+/// The reference compiler accepts `var(x)`, so nothing is gained by letting it
+/// speak first and a curated row that reads `declaration-terminating token`
+/// would stop reading it.
+#[test]
+fn keeps_the_token_ahead_of_a_rejection_the_reference_compiler_does_not_make() {
+  refuses_with("color", "var(x);a", LINT_RULE_BREAKING_TOKEN, "Unprefixed");
+}
+
+/// The two guards that read the raw bytes still speak before the token, and
+/// they have to: both exist because the value cannot safely be parsed at all.
+///
+/// A value nested past the recursion budget takes the process down without a
+/// diagnostic rather than panicking, so that one cannot wait for a pass that runs
+/// on a parsed value. The unclosed comment *can*, and now does — see
+/// `hands_an_unclosed_comment_to_the_rejections_the_reference_makes_too`. It is
+/// still ahead of the token, which is what the first case below says.
+#[test]
+fn keeps_the_guards_that_run_before_parsing_ahead_of_the_token() {
+  refuses_with(
+    "color",
+    "red;/* x",
+    LINT_UNCLOSED_COMMENT,
+    LINT_UNCLOSED_FUNCTION,
+  );
+
+  let mut deep = String::from("1px");
+  for _ in 0..=MAX_VALUE_NESTING_DEPTH {
+    deep = format!("calc({deep})");
+  }
+  refuses_with(
+    "width",
+    &format!("{deep};a"),
+    "nested more deeply",
+    LINT_RULE_BREAKING_TOKEN,
+  );
+}
+
+/// An unclosed comment waits for the two rejections the reference compiler also
+/// makes, the same way the token does.
+///
+/// It used to speak first, on the grounds that it "runs before parsing". That is
+/// true of the nesting guard, whose alternative is an abort — but not of this
+/// one: `postcss_value_parser` reads an unterminated comment as a comment node
+/// carrying `unclosed: true`, which is what
+/// `an_unterminated_comment_contributes_an_empty_part` relies on. So it had no
+/// more claim to preempt them than the token did.
+///
+/// The cost of speaking first was a value refused for the wrong fault.
+/// `calc(1px /*` carries an unclosed function *and* an unclosed comment; the
+/// reference compiler names the function, and this compiler named the comment.
+/// Same accept-or-refuse decision, different sentence — which is the whole thing
+/// the reorder that moved the token was for.
+#[test]
+fn hands_an_unclosed_comment_to_the_rejections_the_reference_makes_too() {
+  refuses_with(
+    "width",
+    "calc(1px /*",
+    LINT_UNCLOSED_FUNCTION,
+    LINT_UNCLOSED_COMMENT,
+  );
+
+  // A comment with no unclosed function or string beside it still reads the
+  // comment: the rejections it now defers to simply have nothing to say.
+  refuses_with(
+    "color",
+    "red /* x",
+    LINT_UNCLOSED_COMMENT,
+    LINT_UNCLOSED_FUNCTION,
+  );
+}
+
+/// A token inside a string or a comment was never a fault, and moving the guard
+/// did not make it one — the scan that answers the question is the same one.
+#[test]
+fn still_accepts_a_token_that_cannot_escape_its_declaration() {
+  check(
+    &[
+      unchanged("content", "\";\""),
+      unchanged("content", "\"{}\""),
+      unchanged("color", "red /* ; */"),
+      unchanged("backgroundImage", "url(data:image/svg+xml;base64,AA)"),
+      unchanged("color", "red;;"),
+    ],
+    &default_options(),
+  );
+}
+
+/// Non-ASCII and escaped text around the two faults changes neither which
+/// complaint fires nor the bytes it quotes back.
+#[test]
+fn orders_the_guards_the_same_way_around_unicode_and_escapes() {
+  refuses_with(
+    "fontFamily",
+    "日本語;calc(1px",
+    LINT_UNCLOSED_FUNCTION,
+    LINT_RULE_BREAKING_TOKEN,
+  );
+  refuses_with(
+    "fontFamily",
+    r"\2014;calc(",
+    LINT_UNCLOSED_FUNCTION,
+    LINT_RULE_BREAKING_TOKEN,
+  );
+  refuses_with(
+    "fontFamily",
+    "🙂;sans-serif",
+    LINT_RULE_BREAKING_TOKEN,
+    LINT_UNCLOSED_FUNCTION,
   );
 }
 

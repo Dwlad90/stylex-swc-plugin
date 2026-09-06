@@ -16,6 +16,11 @@ use stylex_path_resolver::package_json::PackageJsonExtended;
 
 use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
+use stylex_ast::ast::convertors::{
+  convert_atom_to_string, convert_key_value_to_str, convert_lit_to_string, create_null_expr,
+  create_string_expr,
+};
+use stylex_structures::pre_rule_value::PreRuleValue;
 use swc_core::{
   common::{DUMMY_SP, comments::Comments},
   ecma::ast::{
@@ -26,28 +31,11 @@ use swc_core::{
 
 use crate::{
   shared::{
-    enums::data_structures::evaluate_result_value::EvaluateResultValue,
-    structures::{
-      functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType, StylexWhenFn},
-      pre_rule::PreRuleValue,
-      state::EvaluationState,
-      state_manager::{ImportKind, StateManager},
-      types::{
-        FlatCompiledStyles, FunctionMapIdentifiers, FunctionMapMemberExpression,
-        InjectableStylesMap,
-      },
-    },
     transformers::{
-      stylex_create::stylex_create_set, stylex_default_marker,
-      stylex_first_that_works::stylex_first_that_works, stylex_keyframes::get_keyframes_fn,
+      stylex_create::stylex_create_set, stylex_default_marker, stylex_keyframes::get_keyframes_fn,
       stylex_position_try::get_position_try_fn,
     },
     utils::{
-      ast::convertors::{
-        convert_atom_to_string, convert_expr_to_str, convert_key_value_to_str,
-        convert_lit_to_string, create_null_expr, create_string_expr,
-      },
-      common::downcast_style_options_to_state_manager,
       core::{
         add_source_map_data::add_source_map_data,
         dev_class_name::{convert_to_test_styles, inject_dev_class_names},
@@ -55,8 +43,6 @@ use crate::{
         flat_map_expanded_shorthands::flat_map_expanded_shorthands,
         js_to_ast::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
       },
-      js::evaluate::evaluate_result_is_nullish,
-      log::build_code_frame_error::{build_code_frame_error, build_code_frame_error_and_panic},
       validators::{is_create_call, validate_stylex_create},
     },
   },
@@ -76,17 +62,28 @@ use stylex_constants::constants::{
   messages::{EXPECTED_COMPILED_STYLES, non_static_value},
 };
 use stylex_css::utils::{pseudo::is_pseudo_element, when as stylex_when};
+use stylex_diagnostics::code_frame::{build_code_frame_error, build_code_frame_error_and_panic};
 use stylex_enums::{counter_mode::CounterMode, style_resolution::StyleResolution};
+use stylex_evaluator::{
+  evaluate::evaluate_result_is_nullish, state::EvaluationState,
+  stylex_first_that_works::stylex_first_that_works,
+};
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;
+use stylex_state::resolution::convertors::convert_expr_to_str;
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue,
+  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType, StylexWhenFn},
+  state_manager::{ImportKind, StateManager},
+  types::{
+    FlatCompiledStyles, FunctionMapIdentifiers, FunctionMapMemberExpression, InjectableStylesMap,
+  },
+};
 use stylex_structures::{
   dynamic_style::DynamicStyle, order_pair::OrderPair, stylex_state_options::StyleXStateOptions,
-  top_level_expression::TopLevelExpression, uid_generator::UidGenerator,
+  uid_generator::UidGenerator,
 };
+use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_types::traits::WhenMarkerValue;
-use stylex_types::{
-  enums::data_structures::injectable_style::InjectableStyleKind,
-  structures::injectable_style::InjectableStyle,
-};
 
 /// Resolves the value that occupies the second slot of a `when` call: the
 /// custom marker when one was passed, and the StyleX options otherwise.
@@ -137,8 +134,7 @@ macro_rules! insert_when_fn {
       $js_name.to_string(),
       (|pseudo: EvaluateResultValue,
         marker: Option<EvaluateResultValue>,
-        state: &mut dyn stylex_types::traits::StyleOptions| {
-        let state = downcast_style_options_to_state_manager(state);
+        state: &mut StateManager| {
         let expr_str = match pseudo
           .as_expr()
           .and_then(|expr| convert_expr_to_str(expr, state, &FunctionMap::default()))
@@ -196,18 +192,18 @@ where
       // Asked first: it is a hash lookup on two integers, where
       // `find_top_level_expr` compares this call against every recorded one
       // with `eq_ignore_span` — a deep walk of the whole style object.
+      //
+      // A call inside a top-level array is program level too, and the entry
+      // recorded for it is the array. Asked of the arrays alone rather than of
+      // every recorded expression, and answered by containment: a call written
+      // inside a function is not at program level because the module holds an
+      // array elsewhere.
       let is_program_level = self
         .state
         .pattern_bound_top_level_calls
         .contains(&call.span)
-        || self
-          .state
-          .find_top_level_expr(
-            call,
-            |tpe: &TopLevelExpression| matches!(tpe.1, Expr::Array(_)),
-            None,
-          )
-          .is_some();
+        || self.state.find_top_level_expr(call).is_some()
+        || self.state.holds_call_in_top_level_array(call);
 
       let mut first_arg = call.args.first()?.expr.clone();
 
@@ -338,8 +334,7 @@ where
         if let Some(parent_var_decl) = parent_var_decl {
           self
             .state
-            .style_vars
-            .insert(var_name.clone(), parent_var_decl);
+            .insert_style_var(var_name.clone(), parent_var_decl);
         } else {
           let call_expr = Expr::Call(call.clone());
 

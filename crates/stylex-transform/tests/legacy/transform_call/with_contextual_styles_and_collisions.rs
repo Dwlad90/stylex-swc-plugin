@@ -1,7 +1,15 @@
 use crate::utils::prelude::*;
 
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  crate::legacy::transform_call::legacy_call_transform(comments, customize)
+}
+
 stylex_test!(
   stylex_call_with_conditions,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -18,7 +26,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_conditions_skip_conditional,
-  |tr| build_test_transform(tr.comments.clone(), |b| {
+  |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_enable_inlined_conditional_merge(false)
       .with_runtime_injection()
   }),
@@ -38,6 +46,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_property_collisions,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -55,6 +64,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_short_form_property_collisions,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -74,6 +84,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_short_form_property_collisions_with_null,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -93,6 +104,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_conditions_and_collisions,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -109,7 +121,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_conditions_and_collisions_skip_conditional,
-  |tr| build_test_transform(tr.comments.clone(), |b| {
+  |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_enable_inlined_conditional_merge(false)
       .with_runtime_injection()
   }),
@@ -129,6 +141,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_conditions_and_null_collisions,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -145,7 +158,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_conditions_and_null_collisions_skip_conditional,
-  |tr| build_test_transform(tr.comments.clone(), |b| {
+  |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_enable_inlined_conditional_merge(false)
       .with_runtime_injection()
   }),

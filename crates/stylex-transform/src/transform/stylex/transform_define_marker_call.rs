@@ -3,6 +3,7 @@ use std::rc::Rc;
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use stylex_macros::stylex_panic;
+use stylex_utils::identifier::gen_file_based_identifier;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -10,18 +11,15 @@ use swc_core::{
 
 use crate::{
   StyleXTransform,
-  shared::{
-    enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-    utils::{
-      common::gen_file_based_identifier,
-      core::js_to_ast::{NestedStringObject, convert_object_to_ast},
-      validators::{is_define_marker_call, validate_stylex_define_marker_indent},
-    },
+  shared::utils::{
+    core::js_to_ast::{NestedStringObject, convert_object_to_ast},
+    validators::{is_define_marker_call, validate_stylex_define_marker_indent},
   },
 };
 use stylex_constants::constants::{
   api_names::STYLEX_DEFINE_MARKER, common::COMPILED_KEY, messages::cannot_generate_hash,
 };
+use stylex_state::flat_compiled_styles_value::FlatCompiledStylesValue;
 use stylex_utils::hash::create_hash;
 
 impl<C> StyleXTransform<C>
@@ -49,7 +47,7 @@ where
     // it as a `String` would buy nothing.
     let export_name = self
       .state
-      .declarations
+      .declarations()
       .get(parent_var_decl_index)?
       .name
       .as_ident()?
@@ -91,9 +89,9 @@ where
     // here and there takes `&mut self.state` — `get_filename_for_hashing`
     // borrows it shared, and the rest only reads `options` — so the vector
     // cannot have been pushed to or reordered.
-    if let Some(declaration) = self.state.declarations.get_mut(parent_var_decl_index) {
-      declaration.init = Some(Box::new(marker_obj_ast.clone()));
-    }
+    self
+      .state
+      .set_declaration_init(parent_var_decl_index, marker_obj_ast.clone());
 
     Some(marker_obj_ast)
   }

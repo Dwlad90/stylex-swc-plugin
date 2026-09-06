@@ -48,7 +48,7 @@ fn extract_dimension_token_returns_flex_for_fr_dimension() {
     unit: "fr".to_string(),
   };
   let result = Flex::extract_dimension_token(token);
-  assert_eq!(result.fraction, 3.0_f32);
+  assert_eq!(result.fraction, 3.0_f64);
 }
 
 #[test]

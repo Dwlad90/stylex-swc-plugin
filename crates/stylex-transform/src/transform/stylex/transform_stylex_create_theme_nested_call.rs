@@ -16,20 +16,21 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    enums::data_structures::evaluate_result_value::EvaluateResultValue,
-    structures::{functions::FunctionMap, state_manager::ImportKind},
     transformers::stylex_create_theme_nested::stylex_create_theme_nested,
     utils::{
       core::{
         dev_class_name::{convert_theme_to_dev_styles, convert_theme_to_test_styles},
         js_to_ast::{NestedStringObject, convert_object_to_ast},
       },
-      js::evaluate::evaluate,
-      log::build_code_frame_error::build_code_frame_error,
       validators::validate_define_call,
     },
   },
   transform::stylex::visitor_utils::{build_eval_config, is_call_to},
+};
+use stylex_diagnostics::code_frame::build_code_frame_error;
+use stylex_evaluator::evaluate::evaluate;
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::ImportKind,
 };
 
 impl<C> StyleXTransform<C>
@@ -180,7 +181,7 @@ where
 
 fn validate_nested_theme_variables(
   value: &EvaluateResultValue,
-  state: &crate::shared::structures::state_manager::StateManager,
+  state: &stylex_state::state_manager::StateManager,
 ) {
   match value {
     EvaluateResultValue::ThemeRef(theme_ref) => {

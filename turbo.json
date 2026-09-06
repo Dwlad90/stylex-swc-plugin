@@ -18,6 +18,7 @@
     "ImageOS",
     "ImageVersion",
     "LEFTHOOK",
+    "NAPI_RS_NATIVE_LIBRARY_PATH",
     "RUNNER_IMAGE"
   ],
   "futureFlags": {
@@ -54,12 +55,22 @@
       "outputs": [],
       "outputLogs": "errors-only"
     },
+    "@stylexswc/postcss-value-parser#test": {
+      "dependsOn": ["^do:nothing"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/crates/stylex-rs-compiler/parity/corpus/*.json"],
+      "outputLogs": "errors-only"
+    },
     "@stylexswc/postcss-plugin#test": {
       "dependsOn": ["^build", "build"],
       "outputLogs": "errors-only"
     },
+    "@stylexswc/rs-compiler#test": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/crates/**/*.rs"],
+      "outputs": ["**/__swc_snapshots__", "**/__snapshots__"],
+      "outputLogs": "errors-only"
+    },
     "test": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "build"],
       "outputs": ["**/__swc_snapshots__", "**/__snapshots__"],
       "outputLogs": "errors-only"
     },
@@ -89,19 +100,19 @@
       "outputLogs": "errors-only"
     },
     "//#test:coverage:workspace": {
-      "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
+      "inputs": ["crates/**", "Cargo.lock", "rust-toolchain.toml", ".config/nextest.toml"],
       "outputLogs": "errors-only"
     },
     "//#test:crates:workspace:regular": {
-      "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
+      "inputs": ["crates/**", "Cargo.lock", "rust-toolchain.toml", ".config/nextest.toml"],
       "outputLogs": "errors-only"
     },
     "//#test:crates:workspace:doc": {
-      "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
+      "inputs": ["crates/**", "Cargo.lock", "rust-toolchain.toml", ".config/nextest.toml"],
       "outputLogs": "errors-only"
     },
     "//#lint:crates:workspace": {
-      "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
+      "inputs": ["crates/**", "Cargo.lock", "rust-toolchain.toml"],
       "outputLogs": "errors-only"
     },
     "//#lint:node:type-aware": {

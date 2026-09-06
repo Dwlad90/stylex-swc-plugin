@@ -1,7 +1,7 @@
 use indexmap::{IndexMap, IndexSet};
 use rustc_hash::FxHashMap;
 use swc_core::{
-  common::{EqIgnoreSpan, Mark, comments::Comments},
+  common::{Mark, comments::Comments},
   ecma::{
     ast::{CallExpr, Callee, Expr, Id, MemberProp, Pass, VarDeclarator},
     transforms::{base::resolver, typescript::strip},
@@ -9,11 +9,11 @@ use swc_core::{
   },
 };
 
-use crate::shared::structures::state_manager::StateManager;
 use stylex_enums::{
   property_validation_mode::PropertyValidationMode, style_resolution::StyleResolution,
   sx_prop_name_param::SxPropNameParam,
 };
+use stylex_state::state_manager::StateManager;
 use stylex_structures::{
   named_import_source::{ImportSources, RuntimeInjection},
   plugin_pass::PluginPass,
@@ -131,6 +131,35 @@ where
 
   pub fn with_unstable_module_resolution(mut self, val: ModuleResolution) -> Self {
     self.ensure_config().unstable_module_resolution = Some(val);
+    self
+  }
+
+  /// How many levels the evaluator may descend before refusing to fold.
+  ///
+  /// Counted in evaluation steps rather than in levels of source nesting, so
+  /// a value is worth arriving at by measuring an input rather than by counting
+  /// brackets in it.
+  pub fn with_max_evaluation_depth(mut self, val: usize) -> Self {
+    self.ensure_config().max_evaluation_depth = Some(val);
+    self
+  }
+
+  /// How many UTF-16 code units of string one fold may build or carry.
+  ///
+  /// The engine bounds loops, recursion and stack but not allocation, so this
+  /// is what turns a mistyped repeat count into a diagnostic rather than into
+  /// the machine.
+  pub fn with_max_folded_characters(mut self, val: usize) -> Self {
+    self.ensure_config().max_folded_characters = Some(val);
+    self
+  }
+
+  /// How many array elements and object properties one fold may build or carry.
+  ///
+  /// Separate from the string ceiling because a bounded string can still become
+  /// one element per code unit, which costs far more as a tree than as text.
+  pub fn with_max_folded_entries(mut self, val: usize) -> Self {
+    self.ensure_config().max_folded_entries = Some(val);
     self
   }
 
@@ -325,21 +354,7 @@ where
   ) -> (Option<String>, Option<VarDeclarator>) {
     let mut var_name: Option<String> = None;
 
-    let parent_var_decl = self
-      .state
-      .declarations
-      .iter()
-      .find(|decl| match &decl.init {
-        Some(init) => {
-          if let Expr::Call(init_call) = init.as_ref() {
-            init_call.eq_ignore_span(call)
-          } else {
-            false
-          }
-        },
-        _ => false,
-      })
-      .cloned();
+    let parent_var_decl = self.state.find_call_declaration(call).cloned();
 
     if let Some(ref parent_var_decl) = parent_var_decl
       && let Some(ident) = parent_var_decl.name.as_ident()

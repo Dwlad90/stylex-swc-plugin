@@ -8,7 +8,7 @@ edition = "2024"
 license = "MIT"
 repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
 rust-version = "1.97.0"
-version = "0.18.6"
+version = "0.19.0-rc.1"
 
 
 # Set the options for dependencies (not crates in the workspace), this mostly impacts cold builds
@@ -19,9 +19,17 @@ opt-level = 1
 [profile.dev.build-override]
 opt-level = 3
 
+# Profile for the criterion benches. Cargo derives it from `release`, so it
+# inherits the settings below unless it states its own.
 [profile.bench]
 debug = true
 lto = true
+
+# Cancels the `strip = "symbols"` this profile inherits from `release`. Without
+# it a bench target generates full debug information and then has it stripped,
+# which leaves a flamegraph over a bench binary with no symbols at all. The
+# `release` strip is for the published `.node`, which nobody profiles.
+strip = "none"
 
 # Profile for the `.node` addons published to npm. Trades build time for transform
 # throughput: CI builds once, consumers pay per file on every build.
@@ -30,6 +38,9 @@ lto = true
 codegen-units = 1
 
 # Fat LTO. Enables cross-crate inlining into SWC's visitor traversal, the hot path.
+# This setting reaches only a final artifact. A crate that also emits a reusable
+# `rlib` is not final, so it gets no LTO, and cargo prints no warning. The addon
+# is `cdylib` only to keep this setting effective.
 lto = true
 
 # Optimize for speed. Never "z"/"s" — they optimize for size by slashing the inliner
@@ -54,6 +65,7 @@ strip = "symbols"
 
 [workspace.dependencies]
 anyhow = "1.0.102"
+boa_engine = { version = "0.22.0", features = ["annex-b"] }
 color-backtrace = { version = "0.7.2" }
 colored = { version = "3.1.1" }
 criterion = { version = "0.8", features = ["html_reports"] }
@@ -63,13 +75,61 @@ derive_more = { version = "2.1.1", features = ["display"] }
 env_logger = "0.11.10"
 fancy-regex = "0.19.0"
 glob = { version = "0.3.3" }
+# Root collation for the pseudo-key comparator. Six of its crates are new to
+# this workspace; the other 26 in its tree already arrive through SWC's
+# `idna_adapter`. `crates/stylex-css/src/utils/pre_rule.rs` costs the choice
+# against the alternative it was measured against.
+# `unstable` is an empty marker feature -- it pulls no extra crates -- and it
+# gates `CollatorBorrowed::new_root`, the only constructor for root collation
+# that cannot fail. `Collator::try_new` returns a `Result` whose `Err` means the
+# compiled CLDR data this crate carries is absent, which is a build-time
+# dependency rather than a runtime state: unreachable, untestable, and therefore
+# an uncoverable region in a workspace that excludes nothing from coverage.
+# `new_root` has no such arm. See `crates/stylex-css/src/utils/pre_rule.rs`.
+#
+# The cost is an API the crate reserves the right to change in a minor release.
+# `Cargo.lock` is committed, so that can only surface on a deliberate
+# `cargo update`, and the failure is a compile error naming this line rather than
+# anything silent.
+icu_collator = { version = "2.3.1", features = ["unstable"] }
 indexmap = { version = "2.14.0", features = ["serde"] }
 insta = { version = "1.47.2" }
 lazy_static = "1.5.0"
 log = "0.4.32"
 md5 = { version = "0.8.0" }
+# The allocator for the one published target `swc_malloc` leaves on the system
+# one: `x86_64-unknown-linux-musl`. This entry is where the reason is written
+# down; `crates/stylex-rs-compiler/src/lib.rs` declares it and points here.
+#
+# Named per target rather than through `swc_malloc`, which declines *every* musl
+# target at once: mimalloc segfaults on ARM64 musl (microsoft/mimalloc#556) and
+# some cross toolchains carry no C11 headers to build it with. Neither reason
+# reaches this target. It is x86_64, and `.github/docker/alpine.Dockerfile`
+# builds it natively with clang and musl-dev -- the same C build that already
+# produces mimalloc for the cross-compiled `aarch64-unknown-linux-gnu` leg.
+#
+# What it answers. The paired release gate reads the musl candidate 1.13-1.53x
+# slower than the published baseline while every glibc target reads 0.33-0.82x
+# faster, and the musl-to-glibc ratio is 1.8-1.9x on all 61 fixtures. Both musl
+# sides of that comparison run musl's own malloc -- the published 0.18.6 predates
+# the allocator -- so the slowdown is not an allocator difference between the
+# sides: it is allocation churn that mimalloc absorbs on the other six targets
+# and musl's `mallocng` prices. Measured with both sides on the system
+# allocator, the same fixtures read 0.83-1.11x, so the transform is not
+# uniformly slower.
+#
+# What it does not answer: where the churn came from. This gives the target the
+# allocator the other six already had, and in doing so it takes away the one leg
+# that priced the churn highly enough to see it. Locating the churn stays open.
+#
+# `local_dynamic_tls` because the addon is a `cdylib` that Node opens with
+# `dlopen`, and mimalloc's default initial-exec TLS model has no slot left in a
+# library loaded that late. It is what `swc_malloc` asks for on Linux too.
+#
+# The version requirement is the one `swc_malloc` declares, so both resolve to
+# one mimalloc rather than two in a process.
+mimalloc = { version = "0.1.43", features = ["local_dynamic_tls"] }
 murmur2 = { version = "0.1.0" }
-node-resolve = { version = "2.2.0" }
 once_cell = { version = "1.21.4" }
 path-clean = { version = "1.0.1" }
 phf = { version = "0.14.0" }
@@ -81,13 +141,32 @@ serde = "1.0.228"
 serde_json = "1.0.150"
 serde_plain = "1.0.2"
 serial_test = { version = "4.0.1" }
-swc_compiler_base = { version = "62.0.0" }
+# Already in the graph through SWC, which uses it for the same reason: a list
+# that is a handful of items in every real case does not need the heap. Named
+# here so the span cache key can sort its names on the stack.
+smallvec = { version = "1.15.1" }
+# Already in the graph through swc_ecma_parser, which grows the stack for the same
+# reason: a recursive walk over a nested expression must not be bounded by the
+# thread's stack. Named here so the evaluator can depend on it directly.
+stacker = "0.1.24"
+swc_compiler_base = { version = "64.0.0" }
 swc_config = { version = "6.0.0" }
-swc_core = { version = "75.0.0" }
-swc_ecma_parser = { version = "43.0.0" }
+swc_core = { version = "77.1.2" }
+swc_ecma_parser = { version = "45.1.1" }
+url = "2.5.8"
+# The global allocator for the shipped `.node` on the other six published
+# targets. It selects mimalloc on all of them; it keeps the system allocator on
+# musl, which is what the `mimalloc` entry above answers. It also takes jemalloc
+# rather than mimalloc on `armv7-unknown-linux-gnueabihf`, which this repo does
+# not publish today: adding that target changes the allocator without a change
+# here.
+swc_malloc = { version = "1.2.5" }
 swc_sourcemap = { version = "10.0.2" }
 testing = "25.0.0"
 thiserror = "2.0.18"
+# The structural key's hasher. 128-bit output in one pass, where two salted
+# `DefaultHasher` states cost two -- see `stylex-utils/src/hash.rs`.
+xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
 # convert_case = { version = "0.11.0" }
 # .cargo/config defines few alias to build plugin.
 # cargo build-wasi generates wasm-wasi32 binary

@@ -22,6 +22,15 @@
 //! appended only when its option is on — so that the number it produces keeps
 //! its leading zero.
 //!
+//! The caller's own injection guard runs *between* the first two detectors and
+//! the third, which is where the sequence stops being an internal ordering and
+//! becomes a compatibility one. An unclosed function and an unclosed string are
+//! the two rejections the reference compiler also makes, so a value carrying
+//! one of them and a declaration-terminating token is refused by both compilers
+//! for the same reason rather than for whichever guard each spelled first. The
+//! token guard still outranks the unprefixed custom property, which is this
+//! compiler's rejection alone and has no second opinion to agree with.
+//!
 //! ## What is not here
 //!
 //! No pass understands hex colours, letter case or quote characters, so none of
@@ -34,6 +43,7 @@
 //! what the reference compiler produces too.
 
 use postcss_value_parser::{ValueParser, stringify};
+use stylex_macros::stylex_panic;
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 
 use crate::css::normalizers::{
@@ -59,10 +69,16 @@ use crate::css::normalizers::{
 /// sites.
 type Pass = fn(&mut ValueParser, &str);
 
-/// The passes that always run, in the order they run in.
-const PASSES: [Pass; 9] = [
-  detect_unclosed_fns,
-  detect_unclosed_strings,
+/// The rejections the reference compiler also makes, in the order they run in.
+///
+/// Held apart from the rest so the caller's injection guard has a named place
+/// to run: after these, before everything below. Both are rejections and
+/// neither rewrites a token, so the split costs the sequence nothing but the
+/// ability to say where the boundary is.
+const SHARED_REJECTIONS: [Pass; 2] = [detect_unclosed_fns, detect_unclosed_strings];
+
+/// The passes that always run once the shared rejections have had their say.
+const PASSES: [Pass; 7] = [
   detect_unprefixed_custom_properties,
   normalize_whitespace,
   normalize_timings,
@@ -77,8 +93,61 @@ const PASSES: [Pass; 9] = [
 /// Fails — as a panic the compiler catches and reports — on an unclosed
 /// function, an unclosed string, an unprefixed custom-property reference, and
 /// on a value that scans to no tokens at all.
+///
+/// **This is the fold without the structural guards, and it is a seam rather
+/// than a leftover.** The compiler itself enters at
+/// [`crate::css::common::normalize_css_property_value`], which reads the raw
+/// bytes for an unclosed comment, a nesting depth past the budget, and a
+/// declaration-terminating token before handing the value here. Those three are
+/// local additions the reference compiler does not make, so a caller that wants
+/// only the ported pipeline — every pass the reference compiler runs, and
+/// nothing this one adds — wants this function.
+///
+/// `css/tests/normalize_value_test.rs` is that caller, deliberately: it pins
+/// what the fold does with `{`, `}` and `;`, which is to normalize them like any
+/// other token, so that the division of labour is written down. If a value able
+/// to break out of its own rule ever reaches a stylesheet, that suite says the
+/// missing guard is the defect rather than the fold. The guards have their own
+/// suite in `css/tests/value_normalization_parity_test.rs`, which enters through
+/// `normalize_css_property_value`.
+///
+/// `pub` because `benches/normalize_value_bench.rs` is a separate target and
+/// cannot reach a `pub(crate)` item -- a requirement, not an invitation. This
+/// function will normalize a `}` straight into a stylesheet, which is the whole
+/// reason the guarded entry point exists; production code wants
+/// `normalize_css_property_value`.
 pub fn normalize_value(value: &str, key: &str, options: &StyleXStateOptions) -> String {
+  normalize_value_guarded(value, key, options, None)
+}
+
+/// Normalizes `value`, with the caller's injection guard folded into the
+/// sequence at the position the module header describes.
+///
+/// `deferred_refusal` is the complaint a structural guard has already built, or
+/// `None` where the value tripped none of them. The whole sentence rather than
+/// its parts, because building it is the caller's vocabulary — the guards read
+/// the raw bytes, which nothing here has kept — and because a `Some` is then the
+/// whole of the condition this function has to test.
+///
+/// One seam for two guards rather than one each. Both the declaration-terminating
+/// token and the unclosed comment belong *after* `SHARED_REJECTIONS` for the same
+/// reason, and giving each its own parameter was how the second came to be left
+/// in front of them.
+pub(crate) fn normalize_value_guarded(
+  value: &str,
+  key: &str,
+  options: &StyleXStateOptions,
+  deferred_refusal: Option<&str>,
+) -> String {
   let mut ast = ValueParser::new(value);
+
+  for pass in SHARED_REJECTIONS {
+    pass(&mut ast, key);
+  }
+
+  if let Some(complaint) = deferred_refusal {
+    stylex_panic!("{}", complaint);
+  }
 
   for pass in PASSES {
     pass(&mut ast, key);

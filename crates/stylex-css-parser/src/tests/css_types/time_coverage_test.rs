@@ -11,7 +11,7 @@ fn extract_time_token_returns_some_for_valid_s() {
   let result = Time::extract_time_token(token);
   assert!(result.is_some());
   let (value, unit) = result.unwrap();
-  assert_eq!(value, 1.5_f32);
+  assert_eq!(value, 1.5_f64);
   assert_eq!(unit, "s");
 }
 
@@ -25,7 +25,7 @@ fn extract_time_token_returns_some_for_valid_ms() {
   let result = Time::extract_time_token(token);
   assert!(result.is_some());
   let (value, unit) = result.unwrap();
-  assert_eq!(value, 500.0_f32);
+  assert_eq!(value, 500.0_f64);
   assert_eq!(unit, "ms");
 }
 

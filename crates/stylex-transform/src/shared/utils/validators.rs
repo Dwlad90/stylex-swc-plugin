@@ -4,20 +4,15 @@ use stylex_structures::top_level_expression::TopLevelExpression;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{
-    ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, OptChainBase, Pat, PropOrSpread, VarDeclarator,
+    ArrayLit, ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, OptChainBase, Pat, PropOrSpread,
+    VarDeclarator,
   },
 };
 
-use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::state_manager::{ImportKind, StateManager},
-  utils::{
-    ast::{convertors::create_string_expr, helpers::is_variable_named_exported},
-    common::get_import_from,
-    log::build_code_frame_error::{
-      build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
-    },
-  },
+use crate::shared::utils::ast::helpers::is_variable_named_exported;
+use stylex_ast::ast::convertors::{
+  convert_key_value_to_str, convert_lit_to_string, create_string_expr, get_key_values_from_object,
+  normalize_expr,
 };
 use stylex_ast::ast::factories::{create_expr_or_spread, create_key_value_prop_ident};
 use stylex_constants::constants::{
@@ -36,9 +31,13 @@ use stylex_constants::constants::{
   },
 };
 use stylex_css::utils::condition::is_conditional_key;
-
-use super::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
-use stylex_ast::ast::convertors::{get_key_values_from_object, normalize_expr};
+use stylex_diagnostics::code_frame::{
+  build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
+};
+use stylex_state::{
+  evaluate_result_value::EvaluateResultValue,
+  state_manager::{ImportKind, StateManager},
+};
 
 fn validate_arg_count_for_expr(
   wrapped_expr: &Expr,
@@ -88,10 +87,7 @@ fn validate_single_object_arg_indent(
     build_code_frame_error_and_panic_at(init_expr, &non_static_value(fn_name), state);
   });
 
-  if state
-    .find_top_level_expr(init_call, |_| false, None)
-    .is_none()
-  {
+  if state.find_top_level_expr(init_call).is_none() {
     build_code_frame_error_and_panic_at(init_expr, &unbound_call_value(fn_name), state);
   }
 
@@ -199,13 +195,9 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
   // `Expr::Call(call.clone())` deep-clones the whole style object, so it is
   // built lazily — only on the paths that are about to panic anyway.
   if state.find_call_declaration(call).is_none()
-    && state
-      .find_top_level_expr(
-        call,
-        |tpe: &TopLevelExpression| is_bound_create_expr(&tpe.1, call),
-        None,
-      )
-      .is_none()
+    && !state.has_top_level_expr(call, |tpe: &TopLevelExpression| {
+      is_bound_create_expr(&tpe.1, call)
+    })
   {
     build_code_frame_error_and_panic_at(
       &Expr::Call(call.clone()),
@@ -329,7 +321,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
     );
   });
 
-  match state.find_top_level_expr(call, |_| false, None) {
+  match state.find_top_level_expr(call) {
     Some(_) => {},
     None => build_code_frame_error_and_panic(
       init_expr,
@@ -351,7 +343,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   let second_arg = &init.args[1];
 
   let is_valid_second_arg = match second_arg.expr.as_ref() {
-    Expr::Ident(ident) => get_import_from(state, ident).is_none(),
+    Expr::Ident(ident) => state.import_binding(ident).is_none(),
     Expr::Object(_) => true,
     _ => false,
   };
@@ -376,7 +368,7 @@ pub(crate) fn find_and_validate_stylex_define_vars(
 
   let call_expr = Expr::from(call.clone());
 
-  let stylex_create_theme_top_level_expr = match state.find_top_level_expr(call, |_| false, None) {
+  let stylex_create_theme_top_level_expr = match state.find_top_level_expr(call) {
     Some(stylex_create_theme_top_level_expr) => stylex_create_theme_top_level_expr,
     None => build_code_frame_error_and_panic(
       &call_expr,
@@ -486,7 +478,7 @@ pub(crate) fn find_and_validate_stylex_define_consts(
 
   let call_expr = Expr::from(call.clone());
 
-  let define_consts_top_level_expr = match state.find_top_level_expr(call, |_| false, None) {
+  let define_consts_top_level_expr = match state.find_top_level_expr(call) {
     Some(define_consts_top_level_expr) => define_consts_top_level_expr,
     None => build_code_frame_error_and_panic(
       &call_expr,
@@ -607,12 +599,9 @@ pub(crate) fn validate_define_call(
   state: &mut StateManager,
 ) -> TopLevelExpression {
   let call_expr = Expr::Call(call.clone());
-  let top_level_expr = state
-    .find_top_level_expr(call, |_| false, None)
-    .cloned()
-    .unwrap_or_else(|| {
-      build_code_frame_error_and_panic_at(&call_expr, &unbound_call_value(api_name), state)
-    });
+  let top_level_expr = state.find_top_level_expr(call).cloned().unwrap_or_else(|| {
+    build_code_frame_error_and_panic_at(&call_expr, &unbound_call_value(api_name), state)
+  });
 
   if require_export && !is_variable_named_exported(&top_level_expr, state) {
     build_code_frame_error_and_panic_at(&call_expr, &non_export_named_declaration(api_name), state);
@@ -629,6 +618,62 @@ pub(crate) fn validate_define_call(
   top_level_expr
 }
 
+/// Whether a literal is one a style value is allowed to be.
+///
+/// A string and a number declare something, and `null` declares nothing --
+/// which is an answer, not a failure, so it is accepted here and dropped later.
+/// Every other literal is refused: a boolean, a big integer and a regular
+/// expression are not absent values, they are unusable ones, and accepting them
+/// would silently drop a declaration the author wrote.
+///
+/// The set is exactly the reference implementation's `val === null ||
+/// typeof val === 'string' || typeof val === 'number'`. A big integer is on the
+/// refused side for that reason rather than because anything reaches here with
+/// one -- evaluation deopts on `BigIntLiteral` first, in every position. Listing
+/// it as allowed would leave this function, which is now the single answer to
+/// what a style value may be, naming a set upstream does not.
+fn is_style_value_literal(lit: &Lit) -> bool {
+  matches!(lit, Lit::Str(_) | Lit::Null(_) | Lit::Num(_))
+}
+
+/// Refuse a literal that is not a style value, reported at the literal itself.
+///
+/// Both positions that carry a value directly -- written on a property, and
+/// written under a condition -- refuse the same set for the same reason, so they
+/// refuse through the same function. Restating the rejection beside each copy of
+/// the set is how the two came to disagree in the first place.
+fn reject_unless_style_value_literal(lit: &Lit, state: &mut StateManager) {
+  if !is_style_value_literal(lit) {
+    let lit_expr = Expr::Lit(lit.clone());
+    build_code_frame_error_and_panic_at(&lit_expr, ILLEGAL_PROP_VALUE, state);
+  }
+}
+
+/// Refuse a fallback array holding an entry that is not a style value, reported
+/// at the array rather than at the entry -- a fallback chain is one value, and
+/// the code frame the author needs is the whole of it.
+///
+/// The two positions that can carry a chain hold its entries to the same rule
+/// and differ only in which message they report: upstream gives the
+/// array-specific one for a chain written on a property and the plain one for a
+/// chain written under a condition (`basic-validation.js:31` and `:86`). That is
+/// upstream's choice of wording, not a second rule, so the message is the
+/// parameter and the rule is written once.
+///
+/// A spread entry needs no case of its own. This runs on an evaluated namespace,
+/// where the evaluator has already resolved every spread it can into the value
+/// spread -- which is an array, not a literal, and so is refused here -- and
+/// deopted on every spread it cannot. Both outcomes are pinned in
+/// `validation_stylex_create_test::invalid_values`.
+fn reject_unless_style_value_array(array: &ArrayLit, message: &str, state: &mut StateManager) {
+  for elem in array.elems.iter().flatten() {
+    if !matches!(elem.expr.as_ref(), Expr::Lit(lit) if is_style_value_literal(lit)) {
+      let array_expr = Expr::Array(array.clone());
+      build_code_frame_error_and_panic_at(&array_expr, message, state);
+    }
+  }
+}
+
 pub(crate) fn validate_namespace(
   namespaces: &[KeyValueProp],
   conditions: &[String],
@@ -636,31 +681,9 @@ pub(crate) fn validate_namespace(
 ) {
   for namespace in namespaces {
     match namespace.value.as_ref() {
-      Expr::Lit(lit)
-        if !matches!(
-          lit,
-          Lit::Str(_) | Lit::Null(_) | Lit::Num(_) | Lit::BigInt(_)
-        ) =>
-      {
-        let lit_expr = Expr::Lit(lit.clone());
-        build_code_frame_error_and_panic_at(&lit_expr, ILLEGAL_PROP_VALUE, state);
-      },
+      Expr::Lit(lit) => reject_unless_style_value_literal(lit, state),
       Expr::Array(array) => {
-        for elem in array.elems.iter().flatten() {
-          if elem.spread.is_some() {
-            let array_expr = Expr::Array(array.clone());
-            build_code_frame_error_and_panic_at(
-              &array_expr,
-              "Spread operator not implemented",
-              state,
-            );
-          }
-
-          if !matches!(elem.expr.as_ref(), Expr::Lit(_)) {
-            let array_expr = Expr::Array(array.clone());
-            build_code_frame_error_and_panic_at(&array_expr, ILLEGAL_PROP_ARRAY_VALUE, state);
-          }
-        }
+        reject_unless_style_value_array(array, ILLEGAL_PROP_ARRAY_VALUE, state);
       },
       Expr::Object(object) => {
         let key = convert_key_value_to_str(namespace);
@@ -730,18 +753,15 @@ pub(crate) fn validate_conditional_styles(
     }
   }
 
+  // A value under a condition is the same kind of value as one written
+  // directly, so it is held to the same literal set -- reached through
+  // `is_style_value_literal` rather than restated, because two spellings of
+  // "what a style value may be" are what let a boolean compile in one position
+  // and fail in the other.
   match inner_value.as_ref() {
-    Expr::Lit(_) => {},
+    Expr::Lit(lit) => reject_unless_style_value_literal(lit, state),
     Expr::Array(array) => {
-      for elem in array.elems.iter().flatten() {
-        match elem.expr.as_ref() {
-          Expr::Lit(_) => {},
-          _ => {
-            let array_expr = Expr::Array(array.clone());
-            build_code_frame_error_and_panic_at(&array_expr, ILLEGAL_PROP_VALUE, state);
-          },
-        }
-      }
+      reject_unless_style_value_array(array, ILLEGAL_PROP_VALUE, state);
     },
     Expr::Object(object) => {
       let nested_key_values = get_key_values_from_object(object);

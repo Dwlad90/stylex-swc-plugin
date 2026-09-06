@@ -19,7 +19,7 @@ pub(in super::super) fn evaluate(
     return logical_expression::evaluate(op, bin, state, traversal_state, fns);
   }
 
-  match fold_binary_expr(bin, state, traversal_state, fns)? {
+  match fold_binary_expr(bin, state, traversal_state, fns) {
     BinaryExprType::Number(num) => Some(EvaluateResultValue::Expr(create_number_expr(num))),
     BinaryExprType::String { text, .. } => {
       Some(EvaluateResultValue::Expr(create_string_expr(&text)))
@@ -59,9 +59,12 @@ const RIGHT_NOT_A_STRING: &str = "Right expression is not a string";
 const LEFT_HAS_NO_VALUE: &str = "Left expression could not be evaluated";
 const RIGHT_HAS_NO_VALUE: &str = "Right expression could not be evaluated";
 
-/// One side of the expression, evaluated. An operand that resolves to nothing
-/// while the evaluator is still confident is this path's own bug rather than an
-/// expression it cannot fold, which is why the two answers differ.
+/// One side of the expression, evaluated.
+///
+/// An operand that answered nothing is one that refused, and the refusal is
+/// already recorded on the state: `evaluate_cached` records it before it
+/// answers nothing. So there is one answer here rather than two, and no arm for
+/// a confident absence -- which is a shape no case can produce.
 fn evaluate_operand(
   operand: &Expr,
   reason: &str,
@@ -69,11 +72,7 @@ fn evaluate_operand(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Result<EvaluateResultValue, anyhow::Error> {
-  match evaluate_cached(operand, state, traversal_state, fns) {
-    Some(value) => Result::Ok(value),
-    None if !state.confident => Result::Err(anyhow!("{}", reason)),
-    None => stylex_panic!("{}", reason),
-  }
+  evaluate_cached(operand, state, traversal_state, fns).ok_or_else(|| anyhow!("{}", reason))
 }
 
 /// The left operand of a binary expression, as much of it as the level above
@@ -164,7 +163,7 @@ fn evaluate_left_operand(
       &binary_expr.left,
       state,
       traversal_state,
-      |state, traversal_state| match fold_binary_expr(inner, state, traversal_state, fns)? {
+      |state, traversal_state| match fold_binary_expr(inner, state, traversal_state, fns) {
         BinaryExprType::String { text, units } => Some(LeftOperand::Measured { text, units }),
         BinaryExprType::Number(number) => Some(LeftOperand::Value(EvaluateResultValue::Expr(
           create_number_expr(number),
@@ -175,11 +174,7 @@ fn evaluate_left_operand(
 
     // Reported on the same terms an operand resolving to nothing is reported on
     // anywhere else, which is `evaluate_operand`'s below.
-    return match folded {
-      Some(left) => Result::Ok(left),
-      None if !state.confident => Result::Err(anyhow!("{}", reason)),
-      None => stylex_panic!("{}", reason),
-    };
+    return folded.ok_or_else(|| anyhow!("{}", reason));
   }
 
   evaluate_operand(&binary_expr.left, reason, state, traversal_state, fns).map(LeftOperand::Value)
@@ -196,25 +191,18 @@ fn fold_binary_expr(
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
-) -> Option<BinaryExprType> {
-  if !state.confident {
-    return None;
-  }
+) -> BinaryExprType {
+  // No confidence guard: this is only ever entered from a fold that is still
+  // confident, and `Null` is what it answers for a chain that refused -- so a
+  // guard would be an arm no case can enter.
+  binary_expr_to_num_or_str(binary_expr, state, traversal_state, fns).unwrap_or_else(|num_error| {
+    binary_expr_to_string(binary_expr, state, traversal_state, fns).unwrap_or_else(|str_error| {
+      debug!("Binary expression to string error: {}", str_error);
+      debug!("Binary expression to number error: {}", num_error);
 
-  Some(
-    binary_expr_to_num_or_str(binary_expr, state, traversal_state, fns).unwrap_or_else(
-      |num_error| {
-        binary_expr_to_string(binary_expr, state, traversal_state, fns).unwrap_or_else(
-          |str_error| {
-            debug!("Binary expression to string error: {}", str_error);
-            debug!("Binary expression to number error: {}", num_error);
-
-            BinaryExprType::Null
-          },
-        )
-      },
-    ),
-  )
+      BinaryExprType::Null
+    })
+  })
 }
 
 /// Every binary operator but the three logical ones, folded to whichever of a

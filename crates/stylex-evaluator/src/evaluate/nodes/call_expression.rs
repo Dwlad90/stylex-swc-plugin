@@ -135,10 +135,9 @@ pub(in super::super) fn evaluate(
         | FunctionType::EnvFunction(_) => deopt_unsupported!(deopt, path, state, NON_CONSTANT),
       }
     } else {
-      if !state.confident {
-        return None;
-      }
-
+      // No confidence re-check here: every path above that could have cleared
+      // it returned rather than reaching this arm, so a check would be one no
+      // case can enter.
       match func.fn_ptr {
         FunctionType::ArrayArgs(func) => {
           let args = evaluate_func_call_args(call, state, traversal_state, fns)?;

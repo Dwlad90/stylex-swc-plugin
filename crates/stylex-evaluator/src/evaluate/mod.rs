@@ -585,6 +585,10 @@ mod object_shape_tests;
 mod object_key_tests;
 
 #[cfg(test)]
+#[path = "tests/concatenation_chain_tests.rs"]
+mod concatenation_chain_tests;
+
+#[cfg(test)]
 #[path = "tests/engine_stylex_function_tests.rs"]
 mod engine_stylex_function_tests;
 

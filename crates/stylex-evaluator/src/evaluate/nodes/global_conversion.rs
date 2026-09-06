@@ -83,11 +83,10 @@ impl Conversion {
     traversal_state: &mut StateManager,
     fns: &FunctionMap,
   ) -> Option<EvaluateResultValue> {
+    // The argument walk answers nothing where it refused, so the `?` above is
+    // the whole of the question: a confidence re-check beside it would be one
+    // no case can enter.
     let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
-
-    if !state.confident {
-      return None;
-    }
 
     // An argument that evaluated to nothing while staying confident was dropped
     // rather than deopted, so the remaining arguments no longer line up with

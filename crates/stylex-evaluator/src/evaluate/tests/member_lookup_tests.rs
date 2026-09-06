@@ -301,3 +301,39 @@ fn a_hole_occupies_a_slot_without_carrying_a_key() {
   assert_folds_to_number("[, 'a'].length", 2.0);
   assert_folds_to_number("['a', , 'b'].length", 3.0);
 }
+
+// ==================== an array a fold handed back ====================
+
+/// An array read out of an object arrives as the literal it was written as
+/// rather than as the evaluator's own list, and every lookup answers the same
+/// there: an index reads its slot, `length` counts the slots, a key the array
+/// does not carry is `undefined`, and a key with no spelling refuses.
+#[test]
+fn an_array_read_out_of_an_object_answers_every_lookup() {
+  assert_folds_to_number("({ a: [1, 2] }).a[0]", 1.0);
+  assert_folds_to_number("({ a: [1, 2] }).a.length", 2.0);
+  assert_folds_to_undefined("({ a: [1, 2] }).a.foo");
+  assert_deopt_reason_contains("({ a: [1, 2] }).a[{}]", UNEXPECTED_MEMBER_LOOKUP);
+}
+
+/// A key written as a literal with no string form names no property, so the
+/// read refuses rather than picking one. `true` is such a literal: the reader
+/// answers the three literals that spell a value and nothing else.
+#[test]
+fn a_key_written_as_a_literal_with_no_string_form_refuses() {
+  assert_deopt_reason_contains("({ a: { b: 1 } }).a[true]", UNEXPECTED_MEMBER_LOOKUP);
+}
+
+/// The `env` object is read by a key like any other receiver, so a lookup with
+/// no key at all refuses rather than naming a property nobody wrote.
+#[test]
+fn an_env_lookup_with_no_key_refuses() {
+  let fns = map_binding("sx", namespace_holding_the_env_object());
+  let source = "sx.env[{}]";
+
+  assert_refused_with(
+    &evaluated_against(&fns, source),
+    source,
+    UNEXPECTED_MEMBER_LOOKUP,
+  );
+}

@@ -9,7 +9,7 @@
 
 use super::*;
 
-use boa_engine::{Context, JsValue, Source};
+use boa_engine::{Context, JsObject, JsValue, Source};
 
 use stylex_state::theme_ref::{ThemeRef, VarNaming};
 
@@ -212,4 +212,43 @@ fn an_enormous_key_still_answers_one_variable() {
     asked("(g) => g['k'.repeat(100000)].length < 32", &[]),
     "true"
   );
+}
+
+/// The text a group hands back to the bridge is the one it answers for itself,
+/// read off the group rather than derived a second time -- so a group inside a
+/// folded array carries exactly what the same group printed on its own carries.
+#[test]
+fn a_group_hands_the_bridge_its_own_text() {
+  let mut context = Context::default();
+  let group = group(&mut context, &[]);
+
+  let Some(object) = group.as_object() else {
+    panic!("the group is not an object");
+  };
+
+  match var_group_text(&object, &Atom::from("map"), &mut context) {
+    Ok(text) => assert_eq!(text.to_std_string_lossy(), "xop34xu"),
+    Err(_) => panic!("the group would not say what it is"),
+  }
+}
+
+/// An object that is not a group holds no text of its own, so the bridge
+/// refuses it rather than carrying a value it cannot name.
+#[test]
+fn an_object_with_no_text_of_its_own_is_refused() {
+  let mut context = Context::default();
+  let plain = JsObject::with_object_proto(context.intrinsics());
+
+  assert!(var_group_text(&plain, &Atom::from("map"), &mut context).is_err());
+}
+
+/// The derivation is reached only from the traps, which hand it the identity
+/// the group was built with. A call without one is a broken invariant, and it
+/// throws rather than asserting: this runs inside an evaluation whose whole
+/// contract is that it may fail.
+#[test]
+fn a_derivation_without_an_identity_throws() {
+  let mut context = Context::default();
+
+  assert!(derive(&JsValue::undefined(), &[], &mut context).is_err());
 }

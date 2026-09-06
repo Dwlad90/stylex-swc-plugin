@@ -15,7 +15,7 @@
 
 use super::source_evaluation::*;
 use stylex_constants::constants::evaluation_errors::{
-  SPREAD_ELEMENT, global_as_a_value, unsupported_expression,
+  NON_CONSTANT, SPREAD_ELEMENT, global_as_a_value, unsupported_expression,
 };
 
 // ==================== the reported input ====================
@@ -787,4 +787,15 @@ fn the_shapes_beside_each_label_still_fold() {
   assert_folds_to_number("1 > 0 && 2 ? 3 : 4", 3.0);
   assert_folds_to_string("({ a: 'b' }).a", "b");
   assert_folds_to_string("[1, 2].join('-')", "1-2");
+}
+
+/// A write to a member is not a value to fold: the receiver would have to be
+/// mutated for the expression to mean anything, and neither compiler mutates
+/// anything at build time. Every spelling of a write is refused ahead of
+/// the walk, so the receiver is never evaluated for one.
+#[test]
+fn a_write_to_a_member_is_not_a_constant() {
+  for source in ["a.x = 1", "a.x++", "--a.x", "delete a.x"] {
+    assert_deopt_reason_contains(source, NON_CONSTANT);
+  }
 }

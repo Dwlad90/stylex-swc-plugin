@@ -708,6 +708,55 @@ pub(crate) fn evaluated_against(fns: &FunctionMap, source: &str) -> Box<Evaluate
   evaluated_in_a_state(|_| {}, fns, source)
 }
 
+/// Options carrying the character ceiling `limit`.
+///
+/// One spelling of it, because two ways to set the same option is how one case
+/// comes to measure something the case next door does not.
+pub(crate) fn a_character_ceiling_of(limit: usize) -> StyleXOptions {
+  let mut options = StyleXOptions::default();
+
+  options.core.max_folded_characters = limit;
+
+  options
+}
+
+/// Evaluates `source` against `fns` under the character ceiling `limit`.
+///
+/// The ceiling is what every case about a text the evaluator grows is written
+/// with: a case names the number it is about rather than building an input
+/// large enough to pass the shipped one.
+pub(crate) fn evaluated_at_a_character_ceiling(
+  limit: usize,
+  fns: &FunctionMap,
+  source: &str,
+) -> Box<EvaluateResult> {
+  evaluated_in_a_state(
+    |state| state.options.core.max_folded_characters = limit,
+    fns,
+    source,
+  )
+}
+
+/// Asserts `source` refuses at the character ceiling `limit`, in the words the
+/// text it was growing is named by.
+///
+/// The sentence rather than only the refusal: a ceiling refusal that named the
+/// wrong text reads to an author exactly like the right one, and each of these
+/// texts is a different thing to shorten.
+#[track_caller]
+pub(crate) fn assert_refused_at_the_character_ceiling(
+  limit: usize,
+  fns: &FunctionMap,
+  grown: &str,
+  source: &str,
+) {
+  assert_refused_with(
+    &evaluated_at_a_character_ceiling(limit, fns, source),
+    source,
+    &grown_string_too_large(grown, limit as u64),
+  );
+}
+
 /// The same, against a state the case set up itself.
 ///
 /// What a module *imported* is state rather than a function map, and two things

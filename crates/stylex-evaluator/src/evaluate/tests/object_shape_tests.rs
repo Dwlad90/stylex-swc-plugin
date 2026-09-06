@@ -135,6 +135,33 @@ fn a_spread_contributes_the_operands_own_keys() {
   assert_eq!(key_count_of("{ ...1 }"), 0.0);
 }
 
+/// An array reaches the spread in either of the two shapes an array can have --
+/// the evaluator's own list, and the literal a fold or a property read hands
+/// back -- and both contribute the same indices.
+#[test]
+fn a_spread_reads_an_array_in_both_of_its_shapes() {
+  assert_eq!(key_count_of("{ ...[[1, 2], [3]] }"), 2.0);
+  assert_eq!(key_count_of("{ ...({ a: [1, 2] }).a }"), 2.0);
+}
+
+/// An array of arrays keeps its nesting when it is written into a property, so
+/// a value the author wrote two levels deep reaches the stylesheet two levels
+/// deep. Read back through both levels, because a flattened array and an empty
+/// one both carry the same one key.
+#[test]
+fn an_array_value_keeps_the_arrays_inside_it() {
+  assert_eq!(key_count_of("{ a: [[1, 2]] }"), 1.0);
+  assert_folds_to_number("({ a: [[1, 2]] }).a[0][1]", 2.0);
+}
+
+/// An array holding a value with no element form refuses the whole property,
+/// rather than writing a shorter array than the source describes. An arrow is
+/// such a value: it folds to a callback, which no array element can spell.
+#[test]
+fn an_array_value_holding_a_shape_with_no_element_form_refuses() {
+  assert_object_refuses("{ a: [() => 1] }", ILLEGAL_PROP_ARRAY_VALUE);
+}
+
 /// A dynamic style's function is kept as the arrow it was written as, and the
 /// parentheses an author may put around it are not part of it: the reference
 /// implementation's tree has no node for them, so both spellings have to fold

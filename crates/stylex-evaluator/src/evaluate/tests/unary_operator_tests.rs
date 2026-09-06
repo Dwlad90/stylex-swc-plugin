@@ -13,7 +13,7 @@
 use super::source_evaluation::*;
 use stylex_ast::ast::convertors::create_number_expr;
 use stylex_constants::constants::evaluation_errors::{
-  unsupported_expression, unsupported_operator,
+  NUMERIC_CONVERSION, grown_string_too_large, unsupported_expression, unsupported_operator,
 };
 use stylex_state::{evaluate_result_value::EvaluateResultValue, functions::FunctionMap};
 
@@ -159,4 +159,51 @@ fn the_bitwise_negation_of_a_function_is_minus_one() {
 #[test]
 fn an_operator_the_evaluator_does_not_fold_names_itself() {
   assert_deopt_reason_contains("delete ({ a: 1 }).a", &unsupported_operator("delete"));
+}
+
+/// A value the fold carries out of a property is read for its kind like any
+/// other. The two shapes that reach `typeof` only this way are an arrow and an
+/// array literal: written directly, the first is answered before the operand is
+/// folded at all and the second folds to the evaluator's own list.
+#[test]
+fn typeof_reads_the_kind_of_a_value_read_out_of_an_object() {
+  assert_folds_to_string("typeof ({ a: () => 1 }).a", "function");
+  assert_folds_to_string("typeof ({ a: [1, 2] }).a", "object");
+}
+
+/// An operand with no numeric reading refuses, and the sentence is the first
+/// reading's own -- the coercion has nothing to add about a shape the evaluator
+/// could not read at all.
+///
+/// `{ toString: 1 }` is such a shape, at all three operators. Its own
+/// `toString` is not callable and `Object.prototype.valueOf` answers the object
+/// rather than a primitive, so the language itself throws `Cannot convert
+/// object to primitive value` where a number was wanted. A refusal is the
+/// answer a value no runtime can produce deserves.
+#[test]
+fn a_numeric_operator_over_an_object_with_no_conversion_names_the_shape() {
+  for source in [
+    "-({ toString: 1 })",
+    "+({ toString: 1 })",
+    "~({ toString: 1 })",
+  ] {
+    assert_deopt_reason_contains(source, "ObjectExpression");
+  }
+}
+
+/// The operand's number is read off a string, and that string is measured
+/// against the character ceiling as it grows. The refusal names the conversion
+/// the author wrote rather than the join inside it.
+#[test]
+fn a_numeric_operator_refuses_a_text_past_the_ceiling() {
+  assert_refused_with(
+    &evaluated_in_a_module_binding_under(
+      a_character_ceiling_of(4),
+      "digits",
+      "['1234567890']",
+      "-digits",
+    ),
+    "-digits",
+    &grown_string_too_large(NUMERIC_CONVERSION, 4),
+  );
 }

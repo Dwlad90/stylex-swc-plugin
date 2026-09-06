@@ -17,6 +17,7 @@
 //! as the value the reference implementation writes.
 
 use super::source_evaluation::*;
+use stylex_constants::constants::evaluation_errors::uncoercible_value;
 use stylex_state::{
   functions::FunctionMap,
   state_manager::{ImportKind, StateManager},
@@ -119,4 +120,32 @@ fn a_name_the_module_did_not_import_is_not_the_function() {
       &source,
     );
   }
+}
+
+/// The namespace's property has to be written as a name. A computed property is
+/// text the engine would have to resolve before it knew which function was
+/// meant, so it names no callable and the call is not run by the engine.
+#[test]
+fn a_computed_property_of_the_namespace_names_no_callable() {
+  let source = format!("[{NAMESPACE}['{IMPORTED}']('var(--a)', 'blue')].join('')");
+
+  assert_refused(
+    &evaluated_in_a_state(importing_both, &FunctionMap::default(), &source),
+    &source,
+  );
+}
+
+/// An argument with no compile-time value refuses inside a callback, and the
+/// sentence names the function the author wrote rather than the array method
+/// that was running it: nothing below the fold can answer there, because the
+/// method that would have run the body is the engine's.
+#[test]
+fn an_argument_with_no_value_refuses_by_the_functions_own_name() {
+  let source = format!("['var(--a)'].map((name) => {IMPORTED}(name, {FOLD_FUNCTION})).join('')");
+
+  assert_refused_with(
+    &evaluated_in_a_state(importing_both, &a_function_fold(), &source),
+    &source,
+    &uncoercible_value(IMPORTED),
+  );
 }

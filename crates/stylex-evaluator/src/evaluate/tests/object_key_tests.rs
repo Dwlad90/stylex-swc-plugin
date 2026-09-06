@@ -11,7 +11,7 @@
 
 use super::source_evaluation::*;
 use crate::evaluate::evaluate_obj_key;
-use stylex_constants::constants::messages::ILLEGAL_PROP_VALUE;
+use stylex_constants::constants::messages::{EXPRESSION_IS_NOT_A_STRING, ILLEGAL_PROP_VALUE};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
 };
@@ -109,4 +109,12 @@ fn a_computed_key_with_no_expression_form_refuses() {
     key_of(computed(parse_expr("[1, 2]"))),
     Err(Some(ILLEGAL_PROP_VALUE.to_string()))
   );
+}
+
+/// A computed key is the string its expression names, so an expression with no
+/// string form names no key and the object refuses. An object literal is such
+/// an expression: it evaluates, and then has no key spelling to give.
+#[test]
+fn a_computed_key_with_no_string_form_refuses() {
+  assert_deopt_reason_contains("({ [{}]: 'x' })", EXPRESSION_IS_NOT_A_STRING);
 }

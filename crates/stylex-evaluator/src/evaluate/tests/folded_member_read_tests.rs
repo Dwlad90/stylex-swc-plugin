@@ -19,7 +19,7 @@ use crate::evaluate::fold_placeholder_function;
 use stylex_ast::ast::convertors::create_ident_expr;
 use stylex_constants::constants::api_names::FUNCTION_CONFIG_FN_KEY;
 use stylex_constants::constants::evaluation_errors::UNEXPECTED_MEMBER_LOOKUP;
-use stylex_constants::constants::messages::EXPECTED_CSS_VAR;
+use stylex_constants::constants::messages::{EXPECTED_CSS_VAR, MEMBER_NOT_RESOLVED};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
@@ -195,4 +195,16 @@ fn a_member_of_a_group_that_is_not_a_token_refuses() {
   let fns = map_holding_a_group();
 
   assert_refuses(&fns, &format!("{GROUP}.toString"), EXPECTED_CSS_VAR);
+}
+
+/// A group is read by the name a key spells, so a key with no spelling names no
+/// token. A literal with no string form and a value that is no literal at all
+/// are the two shapes, and each refuses in its own words: one could not be
+/// read, the other never resolved.
+#[test]
+fn a_group_read_by_a_key_with_no_name_refuses() {
+  let fns = map_holding_a_group();
+
+  assert_refuses(&fns, &format!("{GROUP}[true]"), UNEXPECTED_MEMBER_LOOKUP);
+  assert_refuses(&fns, &format!("{GROUP}[{{}}]"), MEMBER_NOT_RESOLVED);
 }

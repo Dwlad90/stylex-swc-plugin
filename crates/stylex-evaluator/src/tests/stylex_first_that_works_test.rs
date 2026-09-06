@@ -4,7 +4,9 @@ mod stylex_first_that_works {
   use swc_core::ecma::ast::{Expr, ExprOrSpread};
 
   use crate::stylex_first_that_works::stylex_first_that_works;
-  use stylex_ast::ast::factories::{create_array_expression, create_string_expr_or_spread};
+  use stylex_ast::ast::factories::{
+    create_array_expression, create_object_lit, create_string_expr_or_spread,
+  };
   use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 
   #[test]
@@ -106,6 +108,19 @@ mod stylex_first_that_works {
     let result = stylex_first_that_works(args.into_iter().collect(), state, functions);
 
     assert_eq!(result, create_string_expr(expected_value));
+  }
+
+  /// Every fallback is a piece of CSS text, so an argument with no string at
+  /// compile time stops the build rather than being written into the rule as
+  /// something else. An object literal is such an argument.
+  #[test]
+  #[should_panic(expected = "Expected a string value but received a non-string expression.")]
+  fn panics_for_an_argument_with_no_string() {
+    stylex_first_that_works(
+      vec![create_string_expr("red"), create_object_lit(vec![]).into()],
+      &mut StateManager::default(),
+      &FunctionMap::default(),
+    );
   }
 }
 

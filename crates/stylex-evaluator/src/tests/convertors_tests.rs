@@ -9,7 +9,7 @@ use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 use swc_core::{
   common::SyntaxContext,
   ecma::ast::{
-    BinExpr, BinaryOp, BindingIdent, Expr, Ident, IdentName, Lit, Pat, Str, VarDeclarator,
+    BinExpr, BinaryOp, BindingIdent, Bool, Expr, Ident, IdentName, Lit, Pat, Str, VarDeclarator,
   },
 };
 
@@ -727,6 +727,49 @@ mod expr_tpl_to_string_tests {
 
     let result = expr_tpl_to_string(&tpl, &mut state, &mut traversal_state, &fns);
     assert_eq!(result, "hello world");
+  }
+
+  /// A name bound to a literal with no string form stops the build rather than
+  /// writing a text no runtime would produce. `true` is such a literal: this
+  /// reader answers the three that spell a value -- a string, a number and a
+  /// big integer -- and nothing else.
+  #[test]
+  #[should_panic(expected = "A style value can only contain an array, string or number.")]
+  fn panics_for_an_ident_bound_to_a_literal_with_no_string_form() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+
+    let decl = make_var_declarator(
+      "flag",
+      Expr::Lit(Lit::Bool(Bool {
+        span: Default::default(),
+        value: true,
+      })),
+    );
+
+    fill_state_declarations(&mut traversal_state, &decl);
+
+    let tpl = Tpl {
+      span: Default::default(),
+      exprs: vec![Box::new(create_ident_expr("flag"))],
+      quasis: vec![
+        TplElement {
+          span: Default::default(),
+          tail: false,
+          cooked: Some("is ".into()),
+          raw: "is ".into(),
+        },
+        TplElement {
+          span: Default::default(),
+          tail: true,
+          cooked: Some("".into()),
+          raw: "".into(),
+        },
+      ],
+    };
+
+    expr_tpl_to_string(&tpl, &mut state, &mut traversal_state, &fns);
   }
 }
 

@@ -20,11 +20,7 @@ fn bin_expr(op: BinaryOp, left: Expr, right: Expr) -> BinExpr {
 
 /// The number-or-string path, against state of its own.
 fn num_or_str_path(bin: &BinExpr) -> Result<BinaryExprType, anyhow::Error> {
-  let mut state = EvaluationState::new();
-  let mut traversal_state = StateManager::default();
-  let fns = FunctionMap::default();
-
-  binary_expr_to_num_or_str(bin, &mut state, &mut traversal_state, &fns)
+  num_or_str_path_with_fns(bin, &FunctionMap::default())
 }
 
 /// The string path, against state of its own.
@@ -34,6 +30,47 @@ fn string_path(bin: &BinExpr) -> Result<BinaryExprType, anyhow::Error> {
   let fns = FunctionMap::default();
 
   binary_expr_to_string(bin, &mut state, &mut traversal_state, &fns)
+}
+
+/// The name a function of the compiler's own is bound to below.
+const OWN_FUNCTION: &str = "own";
+
+/// A map binding [`OWN_FUNCTION`] to a function of the compiler's own.
+///
+/// The one value that has neither a string nor a number: its only string would
+/// be its source text, and this evaluator keeps none. Nothing an author writes
+/// spells it, so a case about an operand with no reading at all has to build
+/// it.
+fn a_map_holding_a_function() -> FunctionMap {
+  let mut fns = FunctionMap::default();
+
+  fns.identifiers.insert(
+    OWN_FUNCTION.into(),
+    Box::new(FunctionConfigType::Regular(FunctionConfig {
+      fn_ptr: FunctionType::StylexExprFn(|expr, _| expr),
+      takes_path: false,
+    })),
+  );
+
+  fns
+}
+
+/// The number-or-string path, against a map the case built.
+///
+/// The map goes on the state as well as beside it. A name resolves through
+/// `state.functions`, so a map handed only as the argument would leave the name
+/// unresolved and the case would read the operand walk's refusal rather than
+/// the coercion's.
+fn num_or_str_path_with_fns(
+  bin: &BinExpr,
+  fns: &FunctionMap,
+) -> Result<BinaryExprType, anyhow::Error> {
+  let mut state = EvaluationState::new();
+  let mut traversal_state = StateManager::default();
+
+  state.functions = std::rc::Rc::new(fns.clone());
+
+  binary_expr_to_num_or_str(bin, &mut state, &mut traversal_state, fns)
 }
 
 /// The number a path folded to, or a failure naming what it answered instead.
@@ -320,5 +357,73 @@ mod the_string_path {
     );
 
     assert!(string_path(&bin).is_err());
+  }
+}
+
+/// An operand with no number refuses on the numeric path, and the refusal is
+/// the coercion's own rather than the operand walk's: the side evaluated, and
+/// then had no number to give. `{ toString: 1 }` is such a value -- neither
+/// conversion method is callable, so the language itself throws where a number
+/// was wanted.
+#[test]
+fn a_left_operand_that_evaluated_but_has_no_number_is_refused() {
+  let bin = bin_expr(
+    BinaryOp::Mul,
+    create_object_lit(vec![create_key_value_prop(
+      "toString",
+      create_number_expr(1.0),
+    )])
+    .into(),
+    create_number_expr(2.0),
+  );
+
+  assert_refuses_with(num_or_str_path(&bin), "is not a number");
+}
+
+/// A `+` concatenates as soon as either side is a string, and a side with no
+/// string at all refuses there. A function is the value with none: its only
+/// string is its source text, which neither compiler keeps.
+#[test]
+fn a_concatenation_over_a_value_with_no_string_is_refused() {
+  let fns = a_map_holding_a_function();
+
+  for (left, right, expected) in [
+    (
+      create_ident_expr(OWN_FUNCTION),
+      create_string_expr("x"),
+      LEFT_NOT_A_STRING,
+    ),
+    (
+      create_string_expr("x"),
+      create_ident_expr(OWN_FUNCTION),
+      RIGHT_NOT_A_STRING,
+    ),
+  ] {
+    let bin = bin_expr(BinaryOp::Add, left, right);
+
+    assert_refuses_with(num_or_str_path_with_fns(&bin, &fns), expected);
+  }
+}
+
+/// Asserts a path refused, and that the sentence is the one `expected`.
+///
+/// The sentence rather than only the refusal: which side had no reading, and
+/// which of the two readings asked for it, are the whole of what these cases
+/// are about -- and a refusal from the other side reads to a caller exactly
+/// like the right one.
+#[track_caller]
+fn assert_refuses_with(result: Result<BinaryExprType, anyhow::Error>, expected: &str) {
+  match result {
+    Result::Ok(folded) => panic!("expected a refusal, folded to {:?}", folded),
+    Result::Err(error) => {
+      let sentence = error.to_string();
+
+      assert!(
+        sentence.contains(expected),
+        "expected the refusal to say `{}`, got `{}`",
+        expected,
+        sentence
+      );
+    },
   }
 }

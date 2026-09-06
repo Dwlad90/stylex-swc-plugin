@@ -114,3 +114,20 @@ fn a_group_handed_back_by_a_conversion_is_still_the_group() {
     "var(--x1ineb92)"
   );
 }
+
+/// A group that comes back *inside* an answer converts to the text it answers
+/// for itself, rather than being handed back as the reference. Its members live
+/// in another file and no expression this side writes stands for them, so the
+/// array carries the same text the language would have read off the group the
+/// moment anything joined or printed it.
+///
+/// A group standing alone as the answer is handed back instead, which is what
+/// the conversion case above asserts -- there the dispatch still holds the
+/// reference and can resolve a member off it.
+#[test]
+fn a_group_inside_a_folded_answer_carries_its_own_text() {
+  assert_eq!(
+    folded_reading_the_group(&format!("[{GROUP}].map((group) => group).join('')")),
+    "xop34xu"
+  );
+}

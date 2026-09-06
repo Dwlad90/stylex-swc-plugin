@@ -165,3 +165,41 @@ fn a_value_inside_the_ceilings_still_crosses() {
     "a-b"
   );
 }
+
+/// A key crosses as the string the language reads it as, whichever of the three
+/// spellings the author wrote it in. The same reader names the property on both
+/// sides, so a spelling read one way here and another there is how one property
+/// comes to be two.
+#[test]
+fn a_key_crosses_as_the_name_the_language_reads_it_as() {
+  assert_eq!(folded_carrying("{ ab: 1 }", "carried.ab + ''"), "1");
+  assert_eq!(folded_carrying("{ 'a-b': 1 }", "carried['a-b'] + ''"), "1");
+  assert_eq!(folded_carrying("{ 2: 3 }", "carried[2] + ''"), "3");
+}
+
+/// A key the bridge carries no form of stops the whole crossing, so the call is
+/// handed back rather than folded against an object missing a property the
+/// source wrote. A big integer is such a key: it is not a value this bridge
+/// carries in any position.
+#[test]
+fn a_key_with_no_carried_form_is_handed_back() {
+  let source = "[{ 1n: 1 }].map((entry) => entry)";
+
+  assert_refused(&evaluate_source(source), source);
+}
+
+/// A value of the compiler's own has no JavaScript form at all, so it crosses
+/// as nothing and the call around it is handed back to the evaluator. That
+/// hand-back is what makes the conversions and the callee shapes written out in
+/// Rust reachable in the first place.
+#[test]
+fn a_value_with_no_javascript_form_is_handed_back() {
+  let fns = a_function_fold();
+
+  for source in [
+    format!("[{FOLD_FUNCTION}].map((entry) => entry)"),
+    format!("[{FOLD_NAMESPACE}].map((entry) => entry)"),
+  ] {
+    assert_refused(&evaluated_against(&fns, &source), &source);
+  }
+}

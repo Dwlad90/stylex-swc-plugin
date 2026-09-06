@@ -13,6 +13,7 @@
 //! stylesheet.
 
 use super::source_evaluation::*;
+use stylex_constants::constants::evaluation_errors::TEMPLATE_LITERAL;
 use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
 
 /// The values whose string form is not their literal spelling. Each was
@@ -77,4 +78,18 @@ fn a_namespace_interpolated_into_a_template_writes_the_object_default() {
 fn an_interpolation_that_folds_to_nothing_refuses_the_whole_template() {
   assert_deopts("`a${unknownName}b`");
   assert_deopts("`a${'x'.constructor}b`");
+}
+
+/// The text a template grows is measured against the character ceiling as it
+/// grows, so an interpolation that passes it refuses with the ceiling's own
+/// sentence -- which names the template rather than the value inside it,
+/// because it is the whole literal that became too large.
+#[test]
+fn an_interpolation_past_the_ceiling_refuses_the_whole_template() {
+  assert_refused_at_the_character_ceiling(
+    4,
+    &a_function_fold(),
+    TEMPLATE_LITERAL,
+    &format!("`${{['1234567890']}}${{{FOLD_FUNCTION}}}`"),
+  );
 }

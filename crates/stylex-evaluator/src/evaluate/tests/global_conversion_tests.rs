@@ -13,9 +13,14 @@
 //! wrote rather than the shape this compiler holds.
 
 use super::source_evaluation::*;
-use stylex_ast::ast::convertors::convert_atom_to_string;
-use stylex_constants::constants::evaluation_errors::uncoercible_value;
+use stylex_ast::ast::convertors::{
+  convert_atom_to_string, convert_key_value_to_str, create_number_expr,
+};
+use stylex_constants::constants::evaluation_errors::{
+  NUMERIC_CONVERSION, STRING_CONVERSION, unbounded_declared_length, uncoercible_value,
+};
 use stylex_state::evaluate_result_value::EvaluateResultValue;
+use swc_core::ecma::ast::Expr;
 
 /// The refusal a conversion gives, so a case can say which global it names.
 #[track_caller]
@@ -134,4 +139,82 @@ fn a_global_that_names_no_conversion_is_not_converted() {
     Some(uncoercible_value("Math").as_str()),
     "`Math` is not a conversion and must not be refused as one"
   );
+}
+
+/// `Array` of a lone number is a declared length rather than an element, and
+/// this compiler refuses it: the number reaching here was never measured
+/// against the fold's own ceiling, so building the array would allocate on a
+/// count nothing bounded. The usual spelling is folded by the engine, which
+/// applies that ceiling; one reaches here only when the rest of the call
+/// declined.
+#[test]
+fn the_array_conversion_refuses_a_length_it_cannot_bound() {
+  let source = "Array(String(sx).length)";
+
+  assert_refused_with(
+    &evaluated_against_a_function_fold(source),
+    source,
+    &unbounded_declared_length("Array"),
+  );
+}
+
+/// The numeric conversion refuses a value with no number at all, and names the
+/// global the author wrote. `{ toString: 1 }` is such a value: neither
+/// conversion method is callable, so the language throws where a number was
+/// wanted rather than answering one.
+#[test]
+fn the_number_conversion_refuses_a_value_with_no_numeric_form() {
+  assert_refuses_naming("Number({ toString: 1 }, own)", "Number");
+}
+
+/// The string conversion grows its answer against the character ceiling, so an
+/// argument whose text passes it refuses with the ceiling's own sentence rather
+/// than with the uncoercible one.
+#[test]
+fn the_string_conversion_refuses_a_text_past_the_ceiling() {
+  assert_refused_at_the_character_ceiling(
+    4,
+    &a_function_fold(),
+    STRING_CONVERSION,
+    "String(['1234567890'], own)",
+  );
+}
+
+/// The numeric conversion reads its number off a text, and that text is
+/// measured against the character ceiling as it grows -- so an argument past it
+/// refuses with the ceiling's own sentence rather than with the uncoercible
+/// one.
+#[test]
+fn the_number_conversion_refuses_a_text_past_the_ceiling() {
+  assert_refused_at_the_character_ceiling(
+    4,
+    &a_function_fold(),
+    NUMERIC_CONVERSION,
+    "Number(['1234567890'], own)",
+  );
+}
+
+/// The two conversions that read an ordinary value answer it the way the
+/// language does, on the path this compiler owns as well as in the engine: a
+/// number is its own number, and `Object` of an object is that object.
+#[test]
+fn the_conversions_answer_an_ordinary_value_on_this_path_too() {
+  assert_eq!(
+    folded_value("Number(1, own)"),
+    EvaluateResultValue::Expr(create_number_expr(1.0))
+  );
+
+  match folded_value("Object({ a: 1 }, own)") {
+    EvaluateResultValue::Expr(Expr::Object(object)) => assert_eq!(
+      object
+        .props
+        .iter()
+        .filter_map(|prop| prop.as_prop())
+        .filter_map(|prop| prop.as_key_value())
+        .map(convert_key_value_to_str)
+        .collect::<Vec<String>>(),
+      vec![String::from("a")]
+    ),
+    other => panic!("expected the object itself, got {:?}", other),
+  }
 }

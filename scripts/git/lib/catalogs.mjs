@@ -132,7 +132,36 @@ function assertDepth(value, depth, label, keys = []) {
 }
 
 /**
- * The `catalogs:` block of `file`, or `null` when the file has no such block.
+ * The contents of `file`, with the file named in every failure rather than
+ * left as a raw errno.
+ *
+ * The open is the only test that the file exists. To ask first and read after
+ * is to answer about a file that can be gone, or replaced, by the time the
+ * read happens.
+ *
+ * A directory in the file's place, or a mode that forbids the open, is as
+ * fatal as an absent file and is reported the same way: the errno stays in the
+ * message, because it says what to repair.
+ *
+ * @param {string} file
+ * @returns {string}
+ */
+export function readTextFile(file) {
+  try {
+    return fs.readFileSync(file, 'utf8');
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      throw new Error(`no ${path.basename(file)} under ${path.dirname(file)}`, { cause: error });
+    }
+
+    const reason = error instanceof Error ? error.message : String(error);
+
+    throw new Error(`cannot read ${file}: ${reason}`, { cause: error });
+  }
+}
+
+/**
+ * The `catalogs:` block of `contents`, or `null` when it has no such block.
  * Keys keep their declaration order.
  *
  * `depth` says how many mappings sit between the block and its leaves, because
@@ -142,13 +171,17 @@ function assertDepth(value, depth, label, keys = []) {
  * rules by hand, and `depth` is what keeps that sharing from costing either of
  * them a shape check.
  *
- * @param {string} file
+ * Text rather than a path, so that a caller which also rewrites the file reads
+ * it exactly once. Two reads are two different files when something else edits
+ * between them, and the second one silently wins.
+ *
+ * @param {string} contents file contents
  * @param {number} depth
  * @param {string} label how to name the file in an error
  * @returns {Record<string, unknown> | null}
  */
-function readCatalogsBlock(file, depth, label) {
-  const lines = fs.readFileSync(file, 'utf8').split('\n');
+function parseCatalogsBlock(contents, depth, label) {
+  const lines = contents.split('\n');
   const start = lines.findIndex(line => line.startsWith('catalogs:'));
 
   if (start === -1) {
@@ -210,7 +243,11 @@ function readCatalogsBlock(file, depth, label) {
  * @returns {Record<string, Record<string, string>>}
  */
 export function readCatalogs(root) {
-  const catalogs = readCatalogsBlock(path.join(root, WORKSPACE_FILE), 2, WORKSPACE_FILE);
+  const catalogs = parseCatalogsBlock(
+    readTextFile(path.join(root, WORKSPACE_FILE)),
+    2,
+    WORKSPACE_FILE
+  );
 
   if (catalogs === null) {
     throw new Error(`${WORKSPACE_FILE} declares no \`catalogs:\` block`);
@@ -231,13 +268,24 @@ export function readCatalogs(root) {
  * exactly the corruption the caller is looking for, and it reports it far
  * better naming the entries than this could naming the block.
  *
+ * @param {string} text lockfile contents
+ * @param {string} label how to name the file in an error
+ * @returns {Record<string, Record<string, {specifier?: string, version?: string}>>}
+ */
+export function parseLockfileCatalogs(text, label) {
+  const catalogs = parseCatalogsBlock(text, 3, label);
+
+  return /** @type {Record<string, Record<string, object>>} */ (catalogs ?? {});
+}
+
+/**
+ * The same, for a caller that only reads: the file is opened once and parsed.
+ *
  * @param {string} file path to a lockfile
  * @returns {Record<string, Record<string, {specifier?: string, version?: string}>>}
  */
 export function readLockfileCatalogs(file) {
-  const catalogs = readCatalogsBlock(file, 3, path.basename(file));
-
-  return /** @type {Record<string, Record<string, object>>} */ (catalogs ?? {});
+  return parseLockfileCatalogs(readTextFile(file), path.basename(file));
 }
 
 /**

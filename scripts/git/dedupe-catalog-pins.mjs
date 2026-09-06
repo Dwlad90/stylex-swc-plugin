@@ -35,9 +35,11 @@ import {
   ignorable,
   indentOf,
   LOCKFILE,
-  readLockfileCatalogs,
+  parseLockfileCatalogs,
+  readTextFile,
 } from './lib/catalogs.mjs';
 
+/** @returns {never} */
 function fail(message) {
   process.stderr.write(`dedupe-catalog-pins: ${message}\n`);
   process.exit(1);
@@ -118,14 +120,30 @@ function withoutPins(text, names) {
   return { text: [...kept, ...lines.slice(index)].join('\n'), dropped };
 }
 
+/**
+ * The lockfile, or a named failure when it cannot be read.
+ *
+ * @param {string} file
+ * @returns {string}
+ */
+function readLockfile(file) {
+  try {
+    return readTextFile(file);
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error));
+  }
+}
+
 const root = parseArguments(process.argv.slice(2));
 const file = path.join(root, LOCKFILE);
 
-if (!fs.existsSync(file)) {
-  fail(`no ${LOCKFILE} under ${root}`);
-}
-
-const conflicts = conflictingPins(readLockfileCatalogs(file));
+// One read serves both the report and the rewrite. A second read is a second
+// file, if an install or another copy of this script writes between them, and
+// the rewrite would then drop pins from a lockfile nobody examined. The write
+// that follows is still not atomic; what this removes is the window inside
+// this script.
+const lockfile = readLockfile(file);
+const conflicts = conflictingPins(parseLockfileCatalogs(lockfile, LOCKFILE));
 
 if (conflicts.length === 0) {
   process.stdout.write('dedupe-catalog-pins: every catalogued package resolves to one version\n');
@@ -136,10 +154,7 @@ for (const { name, pins } of conflicts) {
   process.stdout.write(`dedupe-catalog-pins: \`${name}\` resolves to ${describePins(pins)}\n`);
 }
 
-const { text, dropped } = withoutPins(
-  fs.readFileSync(file, 'utf8'),
-  new Set(conflicts.map(conflict => conflict.name))
-);
+const { text, dropped } = withoutPins(lockfile, new Set(conflicts.map(conflict => conflict.name)));
 
 fs.writeFileSync(file, text);
 

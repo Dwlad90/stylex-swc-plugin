@@ -355,16 +355,10 @@ function checkLockfile({ root, baseline, current }) {
  * @param {{root: string}} options
  */
 function checkDuplicates({ root }) {
-  const file = path.join(root, LOCKFILE);
-
-  // Naming the absent file beats the raw ENOENT the reader would throw. A
-  // lockfile this check cannot read is a check that asserts nothing, which the
-  // reader's header calls worse than one that fails -- so it fails.
-  if (!fs.existsSync(file)) {
-    throw new Error(`no ${LOCKFILE} under ${root} to check`);
-  }
-
-  const conflicts = conflictingPins(readLockfileCatalogs(file));
+  // A lockfile this check cannot read is a check that asserts nothing, which
+  // the reader's header calls worse than one that fails -- so the read is left
+  // to throw.
+  const conflicts = conflictingPins(readLockfileCatalogs(path.join(root, LOCKFILE)));
 
   return conflicts.map(({ name, pins }) => `\`${name}\` resolves to ${describePins(pins)}`);
 }

@@ -80,6 +80,24 @@ function run(root, ...args) {
 
 const read = lockfile => fs.readFileSync(lockfile, 'utf8');
 
+/** A `webpack` entry pinned to `5.<minor>.0`, as a lockfile records one. */
+const webpackPin = minor =>
+  `    webpack:\n      specifier: ^5.110.3\n      version: 5.${minor}.0\n`;
+
+/**
+ * The permission case needs a mode the platform enforces against this process.
+ * Windows does not carry one, and root is exempt from the one Unix carries.
+ */
+const needsPermissions = () => {
+  if (process.platform === 'win32') {
+    return 'requires POSIX permission bits';
+  }
+
+  return typeof process.getuid === 'function' && process.getuid() === 0
+    ? 'the permission bits do not apply to root'
+    : false;
+};
+
 void test('a lockfile with no split leaves the file alone', () => {
   const agreed = SPLIT_LOCK.replace('version: 5.109.2', 'version: 5.110.3');
   const { root, lockfile } = createFixture(agreed);
@@ -253,4 +271,79 @@ importers:
   });
 
   assert.equal(gate.status, 0, gate.stderr);
+});
+
+/**
+ * The script reads the lockfile once and rewrites that same text. A read that
+ * cannot happen must therefore stop it before the write, whatever the cause --
+ * an absent file is only the common one. A directory in its place is the case
+ * that used to slip through: `existsSync` says yes, and the read that follows
+ * throws a raw errno at a caller that already decided the file was there.
+ */
+void test('a directory where the lockfile belongs fails without writing', () => {
+  const root = makeTemporaryDirectory('stylex-dedupe-catalog-pins-');
+  const lockfile = path.join(root, 'pnpm-lock.yaml');
+
+  fs.mkdirSync(lockfile);
+
+  const result = run(root);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /cannot read .*pnpm-lock\.yaml: E[A-Z]+/);
+  assert.equal(fs.statSync(lockfile).isDirectory(), true);
+});
+
+/** Same contract for a file the process may not open. Root may open anything. */
+void test(
+  'a lockfile that cannot be read fails without writing',
+  { skip: needsPermissions() },
+  () => {
+    const { root, lockfile } = createFixture();
+
+    fs.chmodSync(lockfile, 0o000);
+
+    try {
+      const result = run(root);
+
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /cannot read .*pnpm-lock\.yaml: E(ACCES|PERM)/);
+    } finally {
+      fs.chmodSync(lockfile, 0o600);
+    }
+
+    // Nothing was written, so the split is still there to repair.
+    assert.match(read(lockfile), /version: 5\.109\.2/);
+  }
+);
+
+/**
+ * A real lockfile of this workspace is thousands of lines. The walk is
+ * line-based, so the size it is asked to carry is worth pinning: the split
+ * found among many entries, and every other line back exactly as found.
+ */
+void test('a lockfile with thousands of entries keeps everything but the split', () => {
+  const entries = Array.from(
+    { length: 5000 },
+    (_unused, index) =>
+      `    package-${index}:\n      specifier: ^1.0.0\n      version: 1.0.${index}\n`
+  ).join('');
+  const lockOf = (bundlers, peers) => `lockfileVersion: '9.0'
+
+catalogs:
+  bundlers:
+${entries}${bundlers}
+  peers:
+${entries}${peers}
+importers:
+  .: {}
+`;
+  const { root, lockfile } = createFixture(lockOf(webpackPin(110), webpackPin(109)));
+  const result = run(root);
+
+  assert.equal(result.status, 0, result.stderr);
+
+  // The expected file comes from the same template with no `webpack` entry.
+  // To derive it from the input instead would repeat the walk under test, and
+  // a walk that agrees with itself proves nothing.
+  assert.equal(read(lockfile), lockOf('', ''));
 });

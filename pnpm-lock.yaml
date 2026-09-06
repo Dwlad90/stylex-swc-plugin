@@ -183,110 +183,110 @@ catalogs:
       version: 3.5.42
   internal:
     '@stylexswc/ast':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/atoms':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/constants':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/css':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/css-parser':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/design-system':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/diagnostics':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/enums':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/evaluator':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/jest':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/logs':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/macros':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/nested-config':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/nextjs-plugin':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/path-resolver':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/playwright':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/plugin-shared':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/postcss-plugin':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/postcss-value-parser':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/regex':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/rollup-plugin':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/rs-compiler':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/rspack-plugin':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/state':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/state-index':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/structures':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/stylex-js':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/stylex-styleq':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/transform':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/turbopack-plugin':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/types':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/typescript-config':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/unplugin':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/utils':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
     '@stylexswc/webpack-plugin':
-      specifier: 0.18.6
-      version: 0.18.6
+      specifier: 0.19.0-rc.1
+      version: 0.19.0-rc.1
   runtime:
     '@stylexjs/babel-plugin':
       specifier: ^0.19.0
@@ -12157,11 +12157,6 @@ packages:
     resolution: {integrity: sha512-wK0Ri4fOGjv/XPy8SBHZChl8CM7uMc5VML7SqiQ0zG7+J5Vr+RMQDoHa2CNT6KHUnTGIXH34UDMkPzAUyapBZg==}
     engines: {node: '>=8'}
 
-  terser@5.49.0:
-    resolution: {integrity: sha512-SNiDnXyHSrxVcIOtVbULzcTmniUiwcV7Nwdyj1twVubeTmbjoa8p69KKDpfkdoOavuM4/GRm1+ykI8qqnavHoA==}
-    engines: {node: '>=10'}
-    hasBin: true
-
   terser@5.51.2:
     resolution: {integrity: sha512-bWnjSNscmuI+GJze6ZupnHP8G/cTcsJF+bXCeQknk2SHQsgbNJnLrqiH9jZ2W4STPVXH2mDKKRX3iwPhc9Cn/Q==}
     engines: {node: '>=10'}
@@ -19326,7 +19321,7 @@ snapshots:
       he: 1.2.0
       param-case: 3.0.4
       relateurl: 0.2.7
-      terser: 5.49.0
+      terser: 5.51.2
 
   html-webpack-plugin@5.6.8(@rspack/core@2.2.2(@swc/helpers@0.5.23))(webpack@5.110.3):
     dependencies:
@@ -22196,13 +22191,6 @@ snapshots:
 
   term-size@2.2.1: {}
 
-  terser@5.49.0:
-    dependencies:
-      '@jridgewell/source-map': 0.3.11
-      acorn: 8.18.0
-      commander: 2.20.3
-      source-map-support: 0.5.21
-
   terser@5.51.2:
     dependencies:
       '@jridgewell/source-map': 0.3.11
@@ -22365,7 +22353,7 @@ snapshots:
 
   tsx@4.23.13:
     dependencies:
-      esbuild: 0.28.1
+      esbuild: 0.28.2
     optionalDependencies:
       fsevents: 2.3.3
 

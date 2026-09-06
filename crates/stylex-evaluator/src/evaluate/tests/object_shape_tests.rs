@@ -44,6 +44,26 @@ fn assert_object_refuses(object: &str, reason: &str) {
   assert_refused_with(&evaluated_against_a_function_fold(&source), &source, reason);
 }
 
+/// The one property `source` folds to, as the expression it carries.
+#[track_caller]
+fn function_value_of(source: &str) -> swc_core::ecma::ast::Expr {
+  let value = assert_folds_to_a_value(source);
+
+  match value.as_expr().and_then(|expr| expr.as_object()) {
+    Some(object) => match object.props.first().and_then(|prop| prop.as_prop()) {
+      Some(prop) => match prop.as_key_value() {
+        Some(key_value) => *key_value.value.clone(),
+        None => panic!("expected `{}` to fold to one key and a value", source),
+      },
+      None => panic!("expected `{}` to fold to one property", source),
+    },
+    None => panic!(
+      "expected `{}` to fold to an object, got {:?}",
+      source, value
+    ),
+  }
+}
+
 /// A number key is rendered as JavaScript spells a number. Rust's own
 /// formatting would name `1e21` as its full digits, which is a different
 /// property from the one the source wrote.
@@ -113,4 +133,27 @@ fn a_spread_contributes_the_operands_own_keys() {
   assert_eq!(key_count_of("{ ...'ab' }"), 2.0);
   assert_eq!(key_count_of("{ ...[1, 2] }"), 2.0);
   assert_eq!(key_count_of("{ ...1 }"), 0.0);
+}
+
+/// A dynamic style's function is kept as the arrow it was written as, and the
+/// parentheses an author may put around it are not part of it: the reference
+/// implementation's tree has no node for them, so both spellings have to fold
+/// to the same value. Reading the bare node refused the parenthesized one,
+/// where the same function written without parentheses folded.
+#[test]
+fn parentheses_around_a_function_value_are_not_part_of_it() {
+  for source in [
+    "({ a: () => 1 })",
+    "({ a: (() => 1) })",
+    "({ a: ((() => 1)) })",
+  ] {
+    assert!(
+      matches!(
+        function_value_of(source),
+        swc_core::ecma::ast::Expr::Arrow(_)
+      ),
+      "expected `{}` to keep its arrow",
+      source
+    );
+  }
 }

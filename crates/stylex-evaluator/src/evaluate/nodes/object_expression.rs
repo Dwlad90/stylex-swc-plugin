@@ -339,7 +339,13 @@ pub(in super::super) fn evaluate(
               // used to be this arm's second job, and doing it beside the
               // dispatch is what made the same call fold in a style value and
               // refuse one argument deeper.
-              EvaluateResultValue::Callback(_) => match path_key_value.value.as_ref() {
+              //
+              // Read through the parentheses an author may have written around
+              // the arrow. They are a node in this tree and none in the
+              // reference implementation's, so matching the bare node refused
+              // `{ transform: (() => '') }` where `{ transform: () => '' }`
+              // folded -- the same function, written two ways.
+              EvaluateResultValue::Callback(_) => match normalize_expr(&path_key_value.value) {
                 Expr::Arrow(arrow_func_expr) => Expr::Arrow(arrow_func_expr.clone()),
                 _ => deopt_unsupported!(deopt, &refusal_path(), state, ILLEGAL_PROP_VALUE),
               },

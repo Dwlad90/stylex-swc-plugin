@@ -195,7 +195,14 @@ pub fn evaluate_stylex_create_arg(
                 };
                 let value_path = &mut key_value_prop.value;
 
-                match value_path.as_mut() {
+                // Read through the parentheses an author may have written
+                // around the function. They are a node in this tree and none in
+                // the reference implementation's, so matching the bare node
+                // sent `root: ((color) => ({ color }))` down the plain-value
+                // path, where a dynamic style has no object form and the build
+                // stopped -- while the same function without parentheses
+                // compiled.
+                match normalize_expr(value_path) {
                   Expr::Arrow(fn_path) => {
                     let all_params = fn_path.params.clone();
                     validate_dynamic_style_params(fn_path, &all_params, traversal_state);

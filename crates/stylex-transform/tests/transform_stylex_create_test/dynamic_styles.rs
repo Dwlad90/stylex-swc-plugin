@@ -964,3 +964,21 @@ stylex_test!(
     }
   "#
 );
+
+// Parentheses around the function are a node in this tree and none in the
+// reference implementation's, so this has to compile to exactly what
+// `style_function` above compiles to. The body is written the same for that
+// reason: the two snapshots read side by side, and a difference between them is
+// the defect.
+stylex_test!(
+  style_function_written_inside_parentheses,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: ((color) => ({
+        backgroundColor: 'red',
+        color,
+      }))
+    });
+  "#
+);

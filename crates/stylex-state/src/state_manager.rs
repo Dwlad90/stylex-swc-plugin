@@ -1,6 +1,5 @@
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cell::OnceCell;
-use std::collections::hash_map::Entry;
 use std::{option::Option, path::Path, rc::Rc, sync::Arc};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
@@ -55,7 +54,6 @@ use stylex_state_index::{
 use stylex_structures::{
   style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
 };
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_utils::hash::{
   stable_hash_unspanned, stable_hash_unspanned_call, stable_hash_unspanned_member,
 };
@@ -413,33 +411,33 @@ impl CallExpressionState {
 
   /// Drops one occurrence of `member` from its bucket, forgetting the bucket
   /// once nothing holds it.
+  ///
+  /// One pass rather than a search and a shift, and no arm of its own for a
+  /// member the bucket does not hold: the last call that holds a member drops
+  /// it, any other one only decrements the count that keeps it alive for the
+  /// calls left, and a member nothing counts leaves every count as it was.
+  ///
+  /// At most one entry can match, because [`Self::add_call_expression`] counts a
+  /// second occurrence of a member onto the entry it finds rather than pushing a
+  /// second one -- so one release drops one occurrence, as the name says. A
+  /// count starts at one and is only ever raised, so the decrement below cannot
+  /// take one past zero.
+  ///
+  /// The lookup makes a bucket for a key that has none, which the emptiness
+  /// check drops again, so a miss leaves the index as it found it. Nothing pays
+  /// for that: every caller hands back a callee taken out of the call map, and
+  /// every member that map holds was bucketed when its call was recorded.
   fn release_member(&mut self, member: &MemberExpr) {
-    let Entry::Occupied(mut occupied) = self
-      .callee_members
-      .entry(stable_hash_unspanned_member(member))
-    else {
-      return;
-    };
+    let key = stable_hash_unspanned_member(member);
+    let bucket = self.callee_members.entry(key).or_default();
 
-    let bucket = occupied.get_mut();
-
-    if let Some(position) = bucket
-      .iter()
-      .position(|(candidate, _)| candidate.eq_ignore_span(member))
-    {
-      // The last call that holds a member drops it from the bucket. Any other
-      // one only decrements the count that keeps it alive for the calls left.
-      match bucket.get_mut(position) {
-        Some((_, 1)) => {
-          bucket.remove(position);
-        },
-        Some((_, count)) => *count -= 1,
-        None => {},
-      }
-    }
+    bucket.retain_mut(|(candidate, count)| {
+      *count -= u32::from(candidate.eq_ignore_span(member));
+      *count > 0
+    });
 
     if bucket.is_empty() {
-      occupied.remove();
+      self.callee_members.remove(&key);
     }
   }
 }
@@ -1242,11 +1240,13 @@ impl StateManager {
           .is_some_and(|specifier| local_binding_of(specifier).eq_ignore_span(ident))
       })
       .min()
+      // The filter above already read the specifier at this pair, so both halves
+      // are there to pair up.
       .and_then(|(import, specifier)| {
-        Some((
-          self.top_imports.get(*import)?,
-          self.specifier_at(*import, *specifier)?,
-        ))
+        self
+          .top_imports
+          .get(*import)
+          .zip(self.specifier_at(*import, *specifier))
       });
 
     debug_assert_eq!(
@@ -1266,7 +1266,10 @@ impl StateManager {
   }
 
   fn specifier_at(&self, import: usize, specifier: usize) -> Option<&ImportSpecifier> {
-    self.top_imports.get(import)?.specifiers.get(specifier)
+    self
+      .top_imports
+      .get(import)
+      .and_then(|import| import.specifiers.get(specifier))
   }
 
   /// Appends a top-level expression and records the call it is, if it is one.
@@ -1522,18 +1525,22 @@ impl StateManager {
     attrs: Vec<JSXAttrOrSpread>,
   ) -> bool {
     let key = stable_hash_unspanned_call(call);
-    let Some(bucket) = self.jsx_spread_attr_exprs_map.get_mut(&key) else {
+
+    let Some((_, replacement)) = self
+      .jsx_spread_attr_exprs_map
+      .get_mut(&key)
+      .and_then(|bucket| {
+        bucket
+          .iter_mut()
+          .find(|(seen, _)| matches!(seen, Expr::Call(seen_call) if seen_call.eq_ignore_span(call)))
+      })
+    else {
       return false;
     };
 
-    for (seen, replacement) in bucket.iter_mut() {
-      if matches!(seen, Expr::Call(seen_call) if seen_call.eq_ignore_span(call)) {
-        *replacement = attrs;
-        return true;
-      }
-    }
+    *replacement = attrs;
 
-    false
+    true
   }
 
   /// Looks up the replacement JSX attributes recorded for a spread expression,
@@ -1859,29 +1866,26 @@ impl StateManager {
 
       let package_dir_path = Path::new(&package_dir);
       let file_path = Path::new(file_path);
-      let relative_package_path = relative_path(file_path, package_dir_path);
 
-      if let Some(package_dir) = relative_package_path.to_str() {
-        // Normalize path separators to forward slashes for consistency across platforms
-        let normalized_path = package_dir.replace('\\', "/");
-        return format!(
-          "{}:{}",
-          package_name.unwrap_or_else(|| "_unknown_name_".to_string()),
-          normalized_path
-        );
-      }
+      // Separators are normalized to forward slashes so one file answers the
+      // same name on every platform. Both halves of the relative path come from
+      // `&str`, so reading it back as text loses nothing.
+      let normalized_path = relative_path(file_path, package_dir_path)
+        .to_string_lossy()
+        .replace('\\', "/");
+
+      return format!(
+        "{}:{}",
+        package_name.unwrap_or_else(|| "_unknown_name_".to_string()),
+        normalized_path
+      );
     }
 
     if let Some(root_dir) = self.options.unstable_module_resolution.root_dir() {
-      let file_path = Path::new(file_path);
-      let root_dir = Path::new(root_dir);
-
-      if let Some(rel_path) = relative_path(file_path, root_dir).to_str() {
-        // Normalize path separators to forward slashes for consistency across platforms
-        let normalized_path = rel_path.replace('\\', "/");
-        return normalized_path;
-      }
-    };
+      return relative_path(Path::new(file_path), Path::new(root_dir))
+        .to_string_lossy()
+        .replace('\\', "/");
+    }
 
     let file_name = Path::new(file_path)
       .file_name()
@@ -2248,30 +2252,13 @@ impl StateManager {
       return;
     }
 
+    // One metadata per rule, so a style map that holds rules yields metadata.
     let metadatas = MetaData::convert_from_injected_styles_map(style);
-    if metadatas.is_empty() {
-      return;
-    }
-
-    let needs_runtime_injection = style.values().any(|value| {
-      matches!(
-        value.as_ref(),
-        InjectableStyleKind::Regular(_) | InjectableStyleKind::Const(_)
-      )
-    });
-
-    let inject_var_ident = if needs_runtime_injection {
-      Some(self.setup_injection_imports())
-    } else {
-      None
-    };
+    let inject_var_ident = self.setup_injection_imports();
 
     for metadata in metadatas {
       self.add_style(&metadata);
-
-      if let Some(ref inject_var_ident) = inject_var_ident {
-        self.add_style_to_inject(&metadata, inject_var_ident, ast, fallback_ast);
-      }
+      self.add_style_to_inject(&metadata, &inject_var_ident, ast, fallback_ast);
     }
 
     // Update all references to this call expression with the new AST
@@ -2293,9 +2280,6 @@ impl StateManager {
     }
 
     let metadatas = MetaData::convert_from_injected_styles_map(style);
-    if metadatas.is_empty() {
-      return;
-    }
 
     let inject_var_ident = if self.options.runtime_injection.is_some() {
       Some(self.setup_injection_imports())
@@ -2329,31 +2313,31 @@ impl StateManager {
       .cloned()
       .unwrap_or(RuntimeInjectionState::Boolean(true));
 
-    let (inject_module_ident, inject_var_ident) = match self.injection.inject_import_inserted.take()
-    {
-      Some(idents) => (idents.module, idents.var),
-      None => {
-        let module_ident = uid_generator.generate_ident();
+    // The early return above answers for every state that already holds the
+    // identifiers, so reaching here means there are none to read yet.
+    let module_ident = uid_generator.generate_ident();
 
-        let var_ident = match &runtime_injection {
-          RuntimeInjectionState::Regular(_) | RuntimeInjectionState::Boolean(_) => {
-            uid_generator.generate_ident()
-          },
-          RuntimeInjectionState::Named(NamedImportSource { r#as, .. }) => {
-            uid_generator = UidGenerator::new(r#as, CounterMode::Local);
-            uid_generator.generate_ident()
-          },
-        };
-
-        let idents = InjectImportIdents {
-          module: module_ident,
-          var: var_ident,
-        };
-        self.injection.inject_import_inserted = Some(idents.clone());
-
-        (idents.module, idents.var)
+    let var_ident = match &runtime_injection {
+      RuntimeInjectionState::Regular(_) | RuntimeInjectionState::Boolean(_) => {
+        uid_generator.generate_ident()
+      },
+      RuntimeInjectionState::Named(NamedImportSource { r#as, .. }) => {
+        uid_generator = UidGenerator::new(r#as, CounterMode::Local);
+        uid_generator.generate_ident()
       },
     };
+
+    let idents = InjectImportIdents {
+      module: module_ident,
+      var: var_ident,
+    };
+
+    self.injection.inject_import_inserted = Some(idents.clone());
+
+    let InjectImportIdents {
+      module: inject_module_ident,
+      var: inject_var_ident,
+    } = idents;
 
     let module_items = match &runtime_injection {
       RuntimeInjectionState::Boolean(_) => vec![
@@ -2651,11 +2635,9 @@ pub fn flush_pending_insertions(
       .unwrap_or(original.len());
     let mut merged = Vec::with_capacity(original.len() + after_imports.len());
     let mut iter = original.into_iter();
-    for _ in 0..import_end {
-      if let Some(item) = iter.next() {
-        merged.push(item);
-      }
-    }
+
+    // `import_end` is an index into `original`, so the take never runs short.
+    merged.extend(iter.by_ref().take(import_end));
     merged.extend(after_imports);
     merged.extend(iter);
     merged
@@ -2838,18 +2820,24 @@ fn add_inject_var_decl_expression(decl_ident: &Ident, value_ident: &Ident) -> Mo
   }))))
 }
 
+/// Whether `filename` carries `allowed_suffix`, either at its end or in front
+/// of a module extension -- `vars.stylex` and `vars.stylex.js` both carry
+/// `.stylex`.
+///
+/// The two halves are matched apart rather than joined: the extension is
+/// stripped and what is left is asked for the suffix. Joining them meant one
+/// `format!` per extension per ask, which the import resolver pays on every
+/// import a module makes. Fewer allocations, counted rather than timed -- this
+/// is not on a path the benches measure.
 pub(crate) fn matches_file_suffix(allowed_suffix: &str, filename: &str) -> bool {
   if filename.ends_with(allowed_suffix) {
     return true;
   }
 
-  EXTENSIONS.iter().any(|&suffix| {
-    let suffix = if allowed_suffix.is_empty() {
-      suffix
-    } else {
-      &format!("{}{}", allowed_suffix, suffix)[..]
-    };
-    filename.ends_with(suffix)
+  EXTENSIONS.iter().any(|extension| {
+    filename
+      .strip_suffix(extension)
+      .is_some_and(|stem| stem.ends_with(allowed_suffix))
   })
 }
 

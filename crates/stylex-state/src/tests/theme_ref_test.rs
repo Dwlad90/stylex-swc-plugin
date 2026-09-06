@@ -212,3 +212,232 @@ fn a_non_ascii_key_is_hashed_as_written_and_made_safe_to_read() {
     readable
   );
 }
+
+/// The two options as one value, and the two ways it is read.
+mod var_naming {
+  use stylex_structures::stylex_state_options::StyleXStateOptions;
+
+  use crate::state_manager::StateManager;
+  use crate::theme_ref::VarNaming;
+
+  fn state(debug: bool, readable_names: bool) -> StateManager {
+    StateManager::for_test(
+      None,
+      StyleXStateOptions::default()
+        .with_debug(debug)
+        .with_enable_debug_class_names(readable_names),
+    )
+  }
+
+  /// The pair is read off the project once, and it is the two options as the
+  /// project set them.
+  #[test]
+  fn the_pair_is_read_off_the_project_options() {
+    for debug in [false, true] {
+      for readable_names in [false, true] {
+        assert_eq!(
+          VarNaming::of(&state(debug, readable_names)).as_flags(),
+          (debug, readable_names)
+        );
+      }
+    }
+  }
+
+  /// The pair the engine carries reads back as the pair it was handed, which is
+  /// what keeps the engine and the evaluator naming a member the same way.
+  #[test]
+  fn the_pair_survives_the_trip_through_the_engine() {
+    for debug in [false, true] {
+      for readable_names in [false, true] {
+        assert_eq!(
+          VarNaming::from_flags(debug, readable_names).as_flags(),
+          (debug, readable_names)
+        );
+      }
+    }
+  }
+}
+
+/// A reference to a `defineVars` group, as the evaluator holds one.
+mod theme_reference {
+  use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
+  use stylex_enums::theme_ref::ThemeRefResult;
+  use stylex_structures::stylex_state_options::StyleXStateOptions;
+
+  use crate::state_manager::StateManager;
+  use crate::theme_ref::{IS_PROXY_KEY, ThemeRef, VarNaming, var_group_member};
+
+  fn plain_state() -> StateManager {
+    StateManager::for_test(None, StyleXStateOptions::default())
+  }
+
+  fn theme_ref() -> ThemeRef {
+    ThemeRef::new("vars.stylex.js", "vars", "x")
+  }
+
+  /// The identity is the file and the export joined the way every name derived
+  /// from the group is derived.
+  #[test]
+  fn the_identity_is_the_file_and_the_export() {
+    assert_eq!(theme_ref().base_id(), "vars.stylex.js//vars");
+  }
+
+  #[test]
+  fn the_prefix_is_kept_as_handed_in() {
+    assert_eq!(theme_ref().class_name_prefix(), "x");
+    assert_eq!(
+      ThemeRef::new("vars.stylex.js", "vars", "").class_name_prefix(),
+      ""
+    );
+  }
+
+  /// `toString` is the one key that answers a bare name rather than a `var()`,
+  /// and it is the same name `to_string_value` answers.
+  #[test]
+  fn the_to_string_key_answers_the_group_s_own_name() {
+    let mut reference = theme_ref();
+    let expected = reference.to_string_value();
+
+    let ThemeRefResult::ToString(name) = reference.get("toString", &plain_state()) else {
+      panic!("`toString` did not answer the group's own name");
+    };
+
+    assert_eq!(name, expected);
+    assert!(name.starts_with('x'), "got `{}`", name);
+  }
+
+  /// The marker key answers that the value stands in for a group rather than
+  /// holding one, which is how every reader tells a reference from an object.
+  #[test]
+  fn the_proxy_key_answers_that_this_stands_in_for_a_group() {
+    let mut reference = theme_ref();
+
+    assert!(matches!(
+      reference.get(IS_PROXY_KEY, &plain_state()),
+      ThemeRefResult::Proxy
+    ));
+  }
+
+  /// Every other key answers the variable the derivation names, so a read
+  /// through the reference and a read through the derivation agree.
+  #[test]
+  fn a_member_read_answers_the_variable_the_derivation_names() {
+    let mut reference = theme_ref();
+    let state = plain_state();
+
+    assert_eq!(
+      reference.get("primary", &state).as_css_var(),
+      Some(
+        var_group_member(
+          "vars.stylex.js//vars",
+          "x",
+          "primary",
+          VarNaming::of(&state)
+        )
+        .as_str()
+      )
+    );
+  }
+
+  /// The second read of one key answers the first read's own value: the name is
+  /// derived once and kept.
+  #[test]
+  fn a_second_read_of_one_key_answers_the_first_read_s_value() {
+    let mut reference = theme_ref();
+    let state = plain_state();
+
+    let Some(first) = reference
+      .get("primary", &state)
+      .as_css_var()
+      .map(str::to_string)
+    else {
+      panic!("the first read named no variable");
+    };
+    let Some(second) = reference
+      .get("primary", &state)
+      .as_css_var()
+      .map(str::to_string)
+    else {
+      panic!("the second read named no variable");
+    };
+
+    assert_eq!(first, second);
+  }
+
+  /// The group's hash key answers a bare name rather than a `var()`, because it
+  /// names the group and not a variable of it.
+  #[test]
+  fn the_group_hash_key_answers_a_bare_name() {
+    let mut reference = theme_ref();
+    let state = plain_state();
+
+    let answer = reference.get(VAR_GROUP_HASH_KEY, &state);
+    let Some(name) = answer.as_css_var() else {
+      panic!("the group hash key named nothing");
+    };
+
+    assert!(!name.starts_with("var("), "got `{}`", name);
+    assert_eq!(name, reference.to_string_value());
+  }
+
+  /// A variable the author named is used as written, and reading it twice
+  /// answers the same text -- it is derived from nothing, so there is nothing to
+  /// keep between the reads.
+  #[test]
+  fn an_author_named_variable_is_used_as_written() {
+    let mut reference = theme_ref();
+    let state = plain_state();
+
+    assert_eq!(
+      reference.get("--brand-color", &state).as_css_var(),
+      Some("var(--brand-color)")
+    );
+    assert_eq!(
+      reference.get("--brand-color", &state).as_css_var(),
+      Some("var(--brand-color)")
+    );
+  }
+
+  /// A clone shares the derived names with the value it was cloned from, which
+  /// is what makes the factory that hands out references cheap.
+  #[test]
+  fn a_clone_shares_the_names_already_derived() {
+    let mut reference = theme_ref();
+    let state = plain_state();
+
+    let Some(original) = reference
+      .get("primary", &state)
+      .as_css_var()
+      .map(str::to_string)
+    else {
+      panic!("the read named no variable");
+    };
+
+    let mut clone = reference.clone();
+
+    assert_eq!(
+      clone.get("primary", &state).as_css_var(),
+      Some(original.as_str())
+    );
+  }
+
+  /// The debug options reach the derivation through the state, so the same key
+  /// under a debug project names a readable variable.
+  #[test]
+  fn the_project_options_reach_the_derivation() {
+    let mut reference = theme_ref();
+    let debug_state = StateManager::for_test(
+      None,
+      StyleXStateOptions::default()
+        .with_debug(true)
+        .with_enable_debug_class_names(true),
+    );
+
+    let answer = reference.get("primary", &debug_state);
+    let Some(name) = answer.as_css_var() else {
+      panic!("the read named no variable");
+    };
+
+    assert!(name.starts_with("var(--primary-x"), "got `{}`", name);
+  }
+}

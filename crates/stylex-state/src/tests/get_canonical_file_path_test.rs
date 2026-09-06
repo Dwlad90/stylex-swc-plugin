@@ -1,24 +1,16 @@
 #[cfg(test)]
 mod get_canonical_file_path {
-  use std::{env, path::PathBuf};
+  use std::path::PathBuf;
 
-  use path_clean::PathClean;
   use rustc_hash::FxHashMap;
 
   use crate::state_manager::StateManager;
+  use crate::tests::prelude::fixture_path;
   use stylex_structures::stylex_options::CheckModuleResolution;
-
-  fn get_fixture_path(test_path: &str) -> PathBuf {
-    env::current_dir()
-      .unwrap()
-      .join("src/tests/fixtures")
-      .join(test_path)
-      .clean()
-  }
 
   #[test]
   fn get_canonical_file_path_with_name() {
-    let fixture_path = get_fixture_path("package_json_with_name");
+    let fixture_path = fixture_path("package_json_with_name");
 
     let stage_manager = StateManager::default();
 
@@ -30,7 +22,7 @@ mod get_canonical_file_path {
 
   #[test]
   fn get_canonical_file_path_without_name() {
-    let fixture_path = get_fixture_path("package_json_without_name");
+    let fixture_path = fixture_path("package_json_without_name");
 
     let stage_manager = StateManager::default();
 
@@ -74,7 +66,7 @@ mod get_canonical_file_path {
 
   #[test]
   fn get_canonical_file_from_root_dir() {
-    let fixture_path = get_fixture_path("package_json_with_name");
+    let fixture_path = fixture_path("package_json_with_name");
 
     let root_dir = fixture_path.parent().unwrap();
 

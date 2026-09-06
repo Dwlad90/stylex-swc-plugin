@@ -153,13 +153,18 @@ file).
 
 ### Excluded from Coverage
 
-Three lists hold the crate names and must agree: `test:coverage:workspace` in
-the root `package.json`, `EXCLUDED_CRATES` in `scripts/coverage-missing.sh`, and
-the `case` in `scripts/packages/test/coverage.sh`. This section says why a crate
-is off the gate. Each row is permanent, with the reason stated, or temporary,
-with the ticket that removes it named. Do not add a row without one of the two.
-A new crate joins the gate at full coverage when it is created. A temporary row
-must say why the coverage could not travel with the code.
+Four lists hold the crate names and must agree: `test:coverage:workspace` in the
+root `package.json`, `EXCLUDED_CRATES` in `scripts/coverage-missing.sh`, the
+`case` in `scripts/packages/test/coverage.sh`, and `EXCLUDED` in
+`scripts/git/crate-coverage-runner.test.mjs`, which asserts that `case` starts
+no cargo for a name it holds. Nothing compares the four, so a row taken off
+three of them fails in the pre-push hook rather than where it was edited.
+
+This section says why a crate is off the gate. Each row is permanent, with the
+reason stated, or temporary, with the ticket that removes it named. Do not add a
+row without one of the two. A new crate joins the gate at full coverage when it
+is created. A temporary row must say why the coverage could not travel with the
+code.
 
 Permanent:
 
@@ -168,18 +173,14 @@ Permanent:
 - `stylex_test_parser` -- test fixture parser
 - `stylex_transform` -- SWC transform, tested through snapshot tests
 
-Both temporary crates came out of the transform, which is itself off the gate.
-The transform's tests had covered them, and the new crate boundary stopped that
-coverage counting for them. Both tickets sit in the `split-transform-crate`
-tracker (see [issue-tracker.md](../docs/agents/issue-tracker.md)).
+The temporary crate came out of the transform, which is itself off the gate.
+The transform's tests had covered it, and the new crate boundary stopped that
+coverage counting for it. Its ticket sits in the `split-transform-crate` tracker
+(see [issue-tracker.md](../docs/agents/issue-tracker.md)).
 
 Temporary:
 
-- `stylex_state` -- covered through the transform until direct tests exist.
-  Ticket `11-cover-the-state-crate` removes this row. The row also excludes
-  the crate's `resolution` module, which was a crate on the gate and is still
-  at 100%: the ticket that removes the row must keep it there.
-- `stylex_evaluator` -- the same, for the evaluator moved out of the transform.
+- `stylex_evaluator` -- covered through the transform until direct tests exist.
   Ticket `15-cover-the-evaluator-crate` removes this row.
 
 ## Key Config Files

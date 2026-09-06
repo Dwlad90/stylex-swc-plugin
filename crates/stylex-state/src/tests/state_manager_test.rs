@@ -12,7 +12,7 @@ mod state_manager {
   };
 
   use crate::state_manager::{InsertionSlot, StateManager, flush_pending_insertions};
-  use crate::tests::prelude::make_var_declarator;
+  use crate::tests::prelude::{ident, ident_at, make_var_declarator, string_expr};
   use stylex_enums::declaration_type::DeclarationType;
   use stylex_enums::top_level_expression::TopLevelExpressionKind;
   use stylex_structures::ceiling::Ceiling;
@@ -21,37 +21,8 @@ mod state_manager {
   use stylex_structures::top_level_expression::TopLevelExpression;
   use stylex_utils::hash::stable_hash_unspanned;
 
-  /// An identifier at a given syntax context. Zero is the context every ident
-  /// the parser produces before the resolver runs, so it doubles as "context
-  /// does not matter to this test"; anything else is a distinct scope.
-  ///
-  /// `SyntaxContext::from_u32` rather than `apply_mark`, which would need
-  /// `GLOBALS` installed for what is only "some other context than that one".
-  fn ident_at(name: &str, ctxt: u32) -> Ident {
-    Ident {
-      span: DUMMY_SP,
-      sym: name.into(),
-      optional: false,
-      ctxt: SyntaxContext::from_u32(ctxt),
-    }
-  }
-
-  /// The same identifier at the parser's own context, for the cases a scope
-  /// never enters.
-  fn ident(name: &str) -> Ident {
-    ident_at(name, 0)
-  }
-
   fn ident_expr(name: &str) -> Expr {
     Expr::Ident(ident(name))
-  }
-
-  fn string_expr(value: &str) -> Expr {
-    Expr::Lit(Lit::Str(Str {
-      span: DUMMY_SP,
-      value: value.into(),
-      raw: None,
-    }))
   }
 
   fn expr_stmt(value: &str) -> ModuleItem {

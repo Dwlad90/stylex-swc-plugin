@@ -23,11 +23,14 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 
 use super::source_evaluation::*;
-use stylex_constants::constants::evaluation_errors::NON_CONSTANT;
+use stylex_constants::constants::evaluation_errors::{NON_CONSTANT, unsupported_expression};
+use stylex_constants::constants::messages::{
+  ARGUMENT_NOT_EXPRESSION, PROPERTY_NOT_FOUND, VALUE_MUST_BE_LITERAL,
+};
 use stylex_enums::value_with_default::ValueWithDefault;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
-  functions::{FunctionConfigType, FunctionMap, FunctionType},
+  functions::{FunctionConfigType, FunctionMap, FunctionType, StylexWhenFn},
   types::{FunctionConfigMap, FunctionMapIdentifiers},
 };
 use stylex_structures::{
@@ -329,4 +332,286 @@ fn describe_value_with_default(value: &ValueWithDefault) -> String {
     ValueWithDefault::String(text) => text.clone(),
     ValueWithDefault::Number(number) => number.to_string(),
   }
+}
+
+// ==================== the receiver a member callee is read off ====================
+//
+// A `receiver.method()` callee is looked up twice, in order: the injected map
+// by the receiver's own name, and then the receiver's *value*. What the second
+// lookup finds decides which of three answers the callee is -- a function, a
+// value, or nothing at all -- and each shape of receiver is answered by an arm
+// of its own.
+
+/// The `env` option's object holds both values and functions, and which one a
+/// name holds decides whether the member is called or read. A function is
+/// applied to the call's arguments; a value is the answer itself, and the call
+/// around it is what the position above then refuses.
+#[test]
+fn an_env_member_is_called_where_it_holds_a_function_and_read_where_it_holds_a_value() {
+  let fns = map_holding_an_env_object();
+
+  assert_eq!(folded_call(&fns, "env.spacing('a', 'b')"), "a-b");
+
+  // The value entry answers itself. The call is not what produced it, so the
+  // answer is the same object the read alone would have given.
+  let read = evaluated_against(&fns, "env.breakpoint()");
+
+  assert!(
+    read.confident,
+    "expected the value entry to answer, got a deopt: {:?}",
+    read.reason
+  );
+}
+
+/// A name the `env` object does not carry names no callee. The refusal says so
+/// in the author's own terms -- the property and the option it is missing from.
+#[test]
+fn an_env_member_the_option_does_not_carry_refuses() {
+  assert_refused_with(
+    &evaluated_against(&map_holding_an_env_object(), "env.missing()"),
+    "env.missing()",
+    "The property 'missing' was not found in the stylex.env configuration.",
+  );
+}
+
+/// A factory entry answers a type function per property, so `types.length(…)`
+/// is the factory applied to the property name and then to the argument.
+#[test]
+fn a_factory_member_answers_a_type_function_for_the_property() {
+  let mut fns = FunctionMap::default();
+
+  fns.identifiers.insert(
+    "types".into(),
+    Box::new(folded_entry(
+      FunctionType::StylexFnsFactory(|property| {
+        Rc::new(move |value| {
+          create_string_expr(&format!(
+            "{property}:{}",
+            describe_value_with_default(&value)
+          ))
+        })
+      }),
+      false,
+    )),
+  );
+
+  assert_eq!(
+    folded_call(&fns, "types.length('1px')"),
+    "length:default=1px"
+  );
+}
+
+/// A marker map answers a `when` function per marker name, and a name it does
+/// not carry names no callee at all -- so the terminal refusal names the call
+/// rather than the marker.
+#[test]
+fn a_marker_member_answers_a_when_function_for_the_marker_it_names() {
+  let mut markers: IndexMap<String, StylexWhenFn> = IndexMap::default();
+
+  markers.insert("hover".to_string(), |pseudo, _, _| {
+    create_string_expr(&folded_or(&pseudo, "?"))
+  });
+
+  let mut fns = FunctionMap::default();
+
+  fns.identifiers.insert(
+    "when".into(),
+    Box::new(folded_entry(
+      FunctionType::DefaultMarker(Arc::new(markers)),
+      false,
+    )),
+  );
+
+  assert_eq!(folded_call(&fns, "when.hover(':hover')"), ":hover");
+
+  assert_refused_with(
+    &evaluated_against(&fns, "when.missing(':hover')"),
+    "when.missing(':hover')",
+    &unsupported_expression("CallExpression"),
+  );
+}
+
+/// A method on an object the author wrote is the arrow under that key, applied
+/// where the call is. A key the object does not carry names no method, and the
+/// refusal says which property was looked for.
+#[test]
+fn a_method_on_an_object_is_the_arrow_under_that_key() {
+  let fns = FunctionMap::default();
+
+  assert_eq!(
+    folded_call(&fns, "({ join: (a, b) => a + b }).join('re', 'd')"),
+    "red"
+  );
+
+  // The argument is a name nothing binds, so the engine declines the call and
+  // the dispatch below is what answers -- which is the only way to reach this
+  // refusal, since a call the engine folds throws there instead.
+  let source = "({ join: (a) => a }).missing(unknownName)";
+
+  assert_refused_with(&evaluated_against(&fns, source), source, PROPERTY_NOT_FOUND);
+}
+
+/// A mutating method is refused before the receiver is even read, because no
+/// receiver could make one safe to fold.
+#[test]
+fn a_mutating_method_is_refused_whatever_the_receiver_is() {
+  let fns = map_holding_an_env_object();
+
+  for source in [
+    "env.assign('a')",
+    "env.defineProperty('a')",
+    "env.setPrototypeOf('a')",
+  ] {
+    assert_refused_with(&evaluated_against(&fns, source), source, NON_CONSTANT);
+  }
+}
+
+/// A namespace reached through a computed key is not applied. The map is looked
+/// up by the key the author wrote, and a call on what it holds is a call this
+/// dispatch does not make.
+#[test]
+fn a_namespace_member_reached_through_a_computed_key_refuses() {
+  let fns = map_holding(a_folded_function());
+  let source = format!("{NAMESPACE}['{CALLED}']('a')");
+
+  assert_refused_with(&evaluated_against(&fns, &source), &source, NON_CONSTANT);
+}
+
+/// An `env` object holding one function and one value, which is what the option
+/// is configured with.
+fn map_holding_an_env_object() -> FunctionMap {
+  let mut env: IndexMap<String, EnvEntry> = IndexMap::default();
+
+  env.insert(
+    "spacing".to_string(),
+    EnvEntry::Function(JSFunction::new(joined)),
+  );
+  env.insert(
+    "breakpoint".to_string(),
+    EnvEntry::Expr(create_string_expr("40rem")),
+  );
+
+  let mut fns = FunctionMap::default();
+
+  fns.identifiers.insert(
+    "env".into(),
+    Box::new(FunctionConfigType::EnvObject(Rc::new(env))),
+  );
+
+  fns
+}
+
+// ==================== the argument shapes each kind reads ====================
+
+/// A type function reads a map out of the object it was handed, and the object
+/// it reads is the *evaluated* one -- which carries every key as an identifier
+/// however the author spelled it. So the spelling of a key changes nothing
+/// here, which is the reason there is no arm refusing one.
+#[test]
+fn a_type_function_reads_a_key_however_it_was_spelled() {
+  for written in [
+    "{ default: '1px' }",
+    "{ 'default': '1px' }",
+    "{ 'font-size': '1px' }",
+  ] {
+    assert!(
+      folded_both_ways(a_type_function(), written).ends_with("=1px"),
+      "`{}` reads as one entry",
+      written
+    );
+  }
+}
+
+/// A value that is not a literal has no string to put in the map, and is
+/// refused rather than written as the empty string.
+#[test]
+fn a_type_function_refuses_a_value_that_is_not_a_literal() {
+  assert_refuses_both_ways(
+    a_type_function(),
+    "{ default: [1, 2] }",
+    VALUE_MUST_BE_LITERAL,
+  );
+}
+
+/// An argument that is an expression but neither an object nor a literal
+/// contributes no entries at all, which is the empty map -- not a refusal,
+/// because a call with nothing in it is a call the reference implementation
+/// answers too.
+#[test]
+fn a_type_function_reads_no_entries_out_of_any_other_expression() {
+  assert_eq!(folded_both_ways(a_type_function(), "undefined"), "");
+}
+
+/// Every kind that takes evaluated arguments refuses one with no expression
+/// form. The compiler's own function fold is that argument: it stands for an
+/// object upstream, but there is no expression this side that writes it down.
+#[test]
+fn every_kind_refuses_an_argument_with_no_expression_form() {
+  for (entry, reason) in [
+    (
+      folded_entry(FunctionType::ArrayArgs(|args, _, _| joined(args)), false),
+      ARGUMENT_NOT_EXPRESSION,
+    ),
+    (
+      folded_entry(FunctionType::EnvFunction(JSFunction::new(joined)), false),
+      ARGUMENT_NOT_EXPRESSION,
+    ),
+    (a_type_function(), ARGUMENT_NOT_EXPRESSION),
+    (
+      folded_entry(FunctionType::StylexExprFn(|expr, _| expr), false),
+      "StyleX expression function requires an expression argument.",
+    ),
+  ] {
+    let mut fns = map_holding(entry);
+
+    fns
+      .identifiers
+      .insert(FOLD_NAMESPACE.into(), Box::new(a_namespace()));
+
+    let source = format!("{CALLED}({FOLD_NAMESPACE})");
+
+    assert_refused_with(&evaluated_against(&fns, &source), &source, reason);
+  }
+}
+
+/// A marker map reached as a bare name is a value rather than a call: the
+/// reference implementation registers it as a function, so a reference to it
+/// folds to the function itself and the call around it answers that.
+#[test]
+fn a_marker_map_called_as_a_bare_name_answers_the_marker_map() {
+  let fns = map_holding(folded_entry(
+    FunctionType::DefaultMarker(Arc::new(IndexMap::default())),
+    false,
+  ));
+  let source = format!("{CALLED}()");
+  let result = evaluated_against(&fns, &source);
+
+  assert!(
+    matches!(
+      folded_value_of(result, &source),
+      EvaluateResultValue::FunctionConfig(_)
+    ),
+    "expected the marker map itself"
+  );
+}
+
+/// A type function that writes out the map it was handed, so a case can read
+/// what the argument became.
+fn a_type_function() -> FunctionConfigType {
+  folded_entry(
+    FunctionType::StylexTypeFn(Rc::new(|value| {
+      create_string_expr(&describe_value_with_default(&value))
+    })),
+    false,
+  )
+}
+
+/// The namespace the fold binds, for the cases whose argument is a value with
+/// no expression form.
+fn a_namespace() -> FunctionConfigType {
+  let mut entries = FunctionConfigMap::default();
+
+  entries.insert(FOLD_ENTRY.into(), a_folded_function());
+
+  FunctionConfigType::Map(entries)
 }

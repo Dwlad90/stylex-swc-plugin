@@ -8,8 +8,31 @@ use stylex_state::state_writers::fill_state_declarations;
 use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 use swc_core::{
   common::SyntaxContext,
-  ecma::ast::{BinExpr, BinaryOp, Expr, Ident, IdentName, Lit, Str},
+  ecma::ast::{
+    BinExpr, BinaryOp, BindingIdent, Expr, Ident, IdentName, Lit, Pat, Str, VarDeclarator,
+  },
 };
+
+/// `const <name> = <init>`, as the module-wide collector would have recorded
+/// it. One copy for every module below, because they all resolve a name
+/// through the same declaration table and a copy that spelled the binding
+/// differently would be resolving something else.
+fn make_var_declarator(name: &str, init: Expr) -> VarDeclarator {
+  VarDeclarator {
+    span: Default::default(),
+    name: Pat::Ident(BindingIdent {
+      id: Ident {
+        span: Default::default(),
+        sym: name.into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      },
+      type_ann: None,
+    }),
+    init: Some(Box::new(init)),
+    definite: false,
+  }
+}
 
 #[test]
 fn string_to_prop_name_with_quotes() {
@@ -593,24 +616,7 @@ mod convert_key_value_to_str_tests {
 mod expr_tpl_to_string_tests {
   use super::*;
   use crate::convertors::expr_tpl_to_string;
-  use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
-
-  fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
-    swc_core::ecma::ast::VarDeclarator {
-      span: Default::default(),
-      name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-        id: Ident {
-          span: Default::default(),
-          sym: name.into(),
-          optional: false,
-          ctxt: SyntaxContext::empty(),
-        },
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    }
-  }
+  use swc_core::ecma::ast::{Tpl, TplElement};
 
   #[test]
   fn simple_template_without_expressions() {
@@ -731,24 +737,6 @@ mod expr_tpl_to_string_tests {
 mod ident_to_number_tests {
   use super::*;
   use crate::convertors::ident_to_number;
-  use swc_core::ecma::ast::BindingIdent;
-
-  fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
-    swc_core::ecma::ast::VarDeclarator {
-      span: Default::default(),
-      name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-        id: Ident {
-          span: Default::default(),
-          sym: name.into(),
-          optional: false,
-          ctxt: SyntaxContext::empty(),
-        },
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    }
-  }
 
   #[test]
   fn resolves_numeric_literal() {
@@ -795,24 +783,7 @@ mod ident_to_number_tests {
 mod expr_to_num_tests {
   use super::*;
   use crate::convertors::expr_to_num;
-  use swc_core::ecma::ast::{BindingIdent, UnaryExpr, UnaryOp};
-
-  fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
-    swc_core::ecma::ast::VarDeclarator {
-      span: Default::default(),
-      name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-        id: Ident {
-          span: Default::default(),
-          sym: name.into(),
-          optional: false,
-          ctxt: SyntaxContext::empty(),
-        },
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    }
-  }
+  use swc_core::ecma::ast::{UnaryExpr, UnaryOp};
 
   #[test]
   fn literal_number_returns_value() {
@@ -898,24 +869,7 @@ mod convert_key_value_to_str_bigint_tests {
 mod ident_to_number_extended_tests {
   use super::*;
   use crate::convertors::ident_to_number;
-  use swc_core::ecma::ast::{BindingIdent, UnaryExpr, UnaryOp};
-
-  fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
-    swc_core::ecma::ast::VarDeclarator {
-      span: Default::default(),
-      name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-        id: Ident {
-          span: Default::default(),
-          sym: name.into(),
-          optional: false,
-          ctxt: SyntaxContext::empty(),
-        },
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    }
-  }
+  use swc_core::ecma::ast::{UnaryExpr, UnaryOp};
 
   #[test]
   fn resolves_ident_with_bin_expr_decl() {
@@ -1002,24 +956,7 @@ mod ident_to_number_extended_tests {
 mod expr_tpl_to_string_extended_tests {
   use super::*;
   use crate::convertors::expr_tpl_to_string;
-  use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
-
-  fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
-    swc_core::ecma::ast::VarDeclarator {
-      span: Default::default(),
-      name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-        id: Ident {
-          span: Default::default(),
-          sym: name.into(),
-          optional: false,
-          ctxt: SyntaxContext::empty(),
-        },
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    }
-  }
+  use swc_core::ecma::ast::{Tpl, TplElement};
 
   #[test]
   fn template_with_bin_expr() {
@@ -1231,24 +1168,6 @@ mod convert_key_value_to_str_panic_tests {
 mod ident_to_number_edge_tests {
   use super::*;
   use crate::convertors::ident_to_number;
-  use swc_core::ecma::ast::BindingIdent;
-
-  fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
-    swc_core::ecma::ast::VarDeclarator {
-      span: Default::default(),
-      name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-        id: Ident {
-          span: Default::default(),
-          sym: name.into(),
-          optional: false,
-          ctxt: SyntaxContext::empty(),
-        },
-        type_ann: None,
-      }),
-      init: Some(Box::new(init)),
-      definite: false,
-    }
-  }
 
   #[test]
   fn resolves_ident_with_literal_string_number() {
@@ -1327,5 +1246,295 @@ mod convert_unary_to_num_error_tests {
     };
     let result = convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
     assert_eq!(result, 5.0);
+  }
+}
+
+// ──────────────────────────────────────────────
+// what each conversion does with an input it cannot read
+// ──────────────────────────────────────────────
+//
+// These four conversions are older than the evaluator's own refusal path and
+// abort the build rather than deopting. Every arm is pinned here so a reader
+// can see which inputs still stop a build, and so that moving one onto the
+// deopt path is a visible change rather than a silent one.
+
+mod refusals {
+  use super::*;
+  use crate::convertors::{
+    convert_unary_to_num, expr_to_num, expr_tpl_to_string, ident_to_number,
+    transform_bin_expr_to_number,
+  };
+  use stylex_ast::ast::convertors::create_bool_expr;
+  use swc_core::ecma::ast::{Tpl, TplElement, UnaryExpr, UnaryOp};
+
+  /// A template of one quasi and one interpolation, which is the shape every
+  /// case below reads.
+  fn interpolating(expr: Expr) -> Tpl {
+    Tpl {
+      span: Default::default(),
+      exprs: vec![Box::new(expr)],
+      quasis: vec![quasi("a", false), quasi("b", true)],
+    }
+  }
+
+  fn quasi(text: &str, tail: bool) -> TplElement {
+    TplElement {
+      span: Default::default(),
+      tail,
+      cooked: Some(text.into()),
+      raw: text.into(),
+    }
+  }
+
+  fn unary(op: UnaryOp, arg: Expr) -> UnaryExpr {
+    UnaryExpr {
+      span: Default::default(),
+      op,
+      arg: Box::new(arg),
+    }
+  }
+
+  fn bin(op: BinaryOp, left: Expr, right: Expr) -> BinExpr {
+    BinExpr {
+      span: Default::default(),
+      op,
+      left: Box::new(left),
+      right: Box::new(right),
+    }
+  }
+
+  /// A binary expression whose operands are strings, so it concatenates rather
+  /// than adding -- the one shape that reads as a binary expression and answers
+  /// something that is not a number.
+  fn a_concatenation() -> Expr {
+    Expr::Bin(bin(
+      BinaryOp::Add,
+      create_string_expr("a"),
+      create_string_expr("b"),
+    ))
+  }
+
+  /// The three global names that are identifiers rather than literals. The
+  /// numeric conversion answers them from the language's own table, before it
+  /// asks the module for a declaration -- which it has none of.
+  #[test]
+  fn the_numeric_globals_are_read_without_a_declaration() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+
+    let infinity = expr_to_num(
+      &create_ident_expr("Infinity"),
+      &mut state,
+      &mut traversal_state,
+      &fns,
+    );
+
+    assert_eq!(infinity.ok(), Some(f64::INFINITY));
+
+    for name in ["NaN", "undefined"] {
+      let answered = expr_to_num(
+        &create_ident_expr(name),
+        &mut state,
+        &mut traversal_state,
+        &fns,
+      );
+
+      match answered {
+        Ok(number) => assert!(number.is_nan(), "`{}` reads as NaN", name),
+        Err(error) => panic!("`{}` answered no number: {}", name, error),
+      }
+    }
+  }
+
+  /// A binary expression that concatenates is reported rather than fatal: the
+  /// conversion answers a `Result` precisely so the evaluator can refuse to
+  /// fold instead of stopping the build.
+  #[test]
+  fn a_binary_expression_that_is_not_a_number_is_reported() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+
+    assert!(
+      expr_to_num(&a_concatenation(), &mut state, &mut traversal_state, &fns).is_err(),
+      "a concatenation has no numeric reading"
+    );
+  }
+
+  /// The unary conversion has no `Result` to answer with, so an operand with no
+  /// number stops the build. Both signs, because each reads the operand through
+  /// a call of its own.
+  #[test]
+  #[should_panic(expected = "is not a number")]
+  fn a_negation_of_something_that_is_not_a_number_stops_the_build() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+
+    convert_unary_to_num(
+      &unary(UnaryOp::Minus, a_concatenation()),
+      &mut state,
+      &mut traversal_state,
+      &fns,
+    );
+  }
+
+  #[test]
+  #[should_panic(expected = "is not a number")]
+  fn a_plus_of_something_that_is_not_a_number_stops_the_build() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+
+    convert_unary_to_num(
+      &unary(UnaryOp::Plus, a_concatenation()),
+      &mut state,
+      &mut traversal_state,
+      &fns,
+    );
+  }
+
+  /// A name declared as a concatenation reads as a binary expression and
+  /// answers no number, which the numeric reading of a name cannot report.
+  #[test]
+  #[should_panic(expected = "Binary expression is not a number")]
+  fn a_name_declared_as_a_concatenation_stops_the_build() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+
+    fill_state_declarations(
+      &mut traversal_state,
+      &make_var_declarator("joined", a_concatenation()),
+    );
+
+    ident_to_number(
+      &Ident {
+        span: Default::default(),
+        sym: "joined".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      },
+      &mut state,
+      &mut traversal_state,
+      &fns,
+    );
+  }
+
+  /// An interpolated name the module never declared has nothing to write, and
+  /// the sentence names the conversion so a reader can see which one stopped.
+  #[test]
+  #[should_panic(expected = "expr_tpl_to_string")]
+  fn an_interpolated_name_that_is_not_declared_stops_the_build() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+
+    expr_tpl_to_string(
+      &interpolating(create_ident_expr("missing")),
+      &mut state,
+      &mut traversal_state,
+      &fns,
+    );
+  }
+
+  /// An interpolated name declared as something with no string form stops the
+  /// build too, and says a style value is what was wanted.
+  #[test]
+  #[should_panic(expected = "A style value can only contain")]
+  fn an_interpolated_name_with_no_string_form_stops_the_build() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+
+    fill_state_declarations(
+      &mut traversal_state,
+      &make_var_declarator("shape", Expr::Object(Default::default())),
+    );
+
+    expr_tpl_to_string(
+      &interpolating(create_ident_expr("shape")),
+      &mut state,
+      &mut traversal_state,
+      &fns,
+    );
+  }
+
+  /// An interpolation of a kind this conversion has no reading of at all --
+  /// neither a name, a binary expression nor a literal.
+  #[test]
+  #[should_panic(expected = "TPL expression")]
+  fn an_interpolation_of_an_unread_kind_stops_the_build() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+
+    expr_tpl_to_string(
+      &interpolating(Expr::Object(Default::default())),
+      &mut state,
+      &mut traversal_state,
+      &fns,
+    );
+  }
+
+  /// A literal the conversion has no string for stops the build in the literal
+  /// arm, as a name declared as one does in the arm above it. A boolean is such
+  /// a literal here: this conversion predates the coercion bridge the evaluator
+  /// interpolates through, where `${true}` writes `true`.
+  #[test]
+  #[should_panic(expected = "A style value can only contain")]
+  fn an_interpolated_literal_with_no_string_stops_the_build() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+
+    expr_tpl_to_string(
+      &interpolating(create_bool_expr(true)),
+      &mut state,
+      &mut traversal_state,
+      &fns,
+    );
+  }
+
+  /// The numeric fold of a binary expression evaluates each side first, so a
+  /// side that folds to nothing stops the build -- naming the side rather than
+  /// the operator.
+  #[test]
+  #[should_panic(expected = "is not a number")]
+  fn a_left_side_that_folds_to_nothing_stops_the_build() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+
+    transform_bin_expr_to_number(
+      &bin(
+        BinaryOp::Add,
+        create_ident_expr("missing"),
+        create_number_expr(1.0),
+      ),
+      &mut state,
+      &mut traversal_state,
+      &fns,
+    );
+  }
+
+  #[test]
+  #[should_panic(expected = "is not a number")]
+  fn a_right_side_that_folds_to_nothing_stops_the_build() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+
+    transform_bin_expr_to_number(
+      &bin(
+        BinaryOp::Add,
+        create_number_expr(1.0),
+        create_ident_expr("missing"),
+      ),
+      &mut state,
+      &mut traversal_state,
+      &fns,
+    );
   }
 }

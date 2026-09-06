@@ -15,11 +15,17 @@
 //! of statements rather than one expression. Both are ordinary JavaScript, so
 //! both belong in the output unfolded.
 
+use std::rc::Rc;
+
 use super::source_evaluation::*;
 use stylex_constants::constants::evaluation_errors::{
   FUNCTION_BODY_WITHOUT_VALUE, unsupported_expression,
 };
 use stylex_constants::constants::messages::ARGUMENT_NOT_EXPRESSION;
+use stylex_state::{
+  functions::{FunctionMap, FunctionType},
+  theme_ref::ThemeRef,
+};
 
 /// The ordinary application, at the three arities that differ: none, one, and
 /// more than one -- so an argument arriving in the wrong slot is visible.
@@ -154,4 +160,60 @@ fn a_block_bodied_arrow_is_not_applied() {
     "pick('red')",
     &unsupported_expression("ArrowFunctionExpression"),
   );
+}
+
+// ==================== the argument with no expression form ====================
+
+/// A `defineVars` group binds through the factory a module's own token import
+/// binds through, rather than through an expression form it does not have. So a
+/// parameter holding one resolves a member exactly as the imported name does,
+/// and the body folds the token.
+#[test]
+fn a_group_argument_binds_through_its_own_factory() {
+  let fns = a_function_map_holding_a_group();
+  let source = format!("pick({GROUP})");
+
+  assert_eq!(
+    folded_text_of(
+      evaluated_in_a_state(
+        |state| state.push_declaration(a_declaration_of("pick", "(group) => group.primary")),
+        &fns,
+        &source,
+      ),
+      &source,
+    ),
+    "var(--x1ineb92)"
+  );
+}
+
+/// A body that folds to an array answers the array itself, written back as a
+/// literal -- not the empty answer a reader that knew only expressions would
+/// give it. The caller then reads the same array whichever side of the call it
+/// is on.
+#[test]
+fn a_body_that_folds_to_an_array_answers_it_as_a_literal() {
+  assert_eq!(
+    folded_in_a_module_binding("twice", "(color) => [color, color]", "twice('red')[1]"),
+    "red"
+  );
+}
+
+/// The name a group is bound under in the two cases above.
+const GROUP: &str = "colors";
+
+/// A map binding that name to a `defineVars` group, which is what a token
+/// import registers.
+fn a_function_map_holding_a_group() -> FunctionMap {
+  let theme = ThemeRef::new("vars.stylex.js", "vars", "x");
+  let mut fns = FunctionMap::default();
+
+  fns.identifiers.insert(
+    GROUP.into(),
+    Box::new(folded_entry(
+      FunctionType::ThemeRefMapper(Rc::new(move || theme.clone())),
+      false,
+    )),
+  );
+
+  fns
 }

@@ -555,6 +555,26 @@ mod folded_function_callee_tests;
 mod folded_member_read_tests;
 
 #[cfg(test)]
+#[path = "tests/member_lookup_tests.rs"]
+mod member_lookup_tests;
+
+#[cfg(test)]
+#[path = "tests/carried_value_tests.rs"]
+mod carried_value_tests;
+
+#[cfg(test)]
+#[path = "tests/callback_parameter_tests.rs"]
+mod callback_parameter_tests;
+
+#[cfg(test)]
+#[path = "tests/group_in_the_engine_tests.rs"]
+mod group_in_the_engine_tests;
+
+#[cfg(test)]
+#[path = "tests/amplified_call_tests.rs"]
+mod amplified_call_tests;
+
+#[cfg(test)]
 #[path = "tests/engine_stylex_function_tests.rs"]
 mod engine_stylex_function_tests;
 

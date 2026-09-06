@@ -14,7 +14,8 @@
 //! the sentence the reference implementation gives.
 
 use super::source_evaluation::*;
-use stylex_constants::constants::messages::NULLISH_TO_OBJECT;
+use stylex_constants::constants::evaluation_errors::OBJECT_METHOD;
+use stylex_constants::constants::messages::{ILLEGAL_PROP_ARRAY_VALUE, NULLISH_TO_OBJECT};
 
 /// The three spellings of the same question, so every case asks all three and a
 /// walk that answered one of them differently is visible.
@@ -126,5 +127,89 @@ fn a_value_with_no_own_keys_answers_the_empty_list() {
 fn a_nullish_receiver_refuses() {
   for question in QUESTIONS {
     assert_refuses(question, "sx.missing", NULLISH_TO_OBJECT);
+  }
+}
+
+// ==================== a receiver reached past a declined fold ====================
+//
+// A receiver the engine can read is folded there, so a case about this walk has
+// to put one behind something the engine declines. `sx.missing ?? <value>` is
+// that shape: the fold declines the whole expression for the name it cannot
+// carry, and the value behind the `??` is what the walk then reads.
+
+/// The list `Object.<question>` answers for a value reached past a declined
+/// fold, as its length.
+#[track_caller]
+fn counted_past_the_fold(question: &str, receiver: &str) -> f64 {
+  counted(question, &format!("sx.missing ?? {receiver}"))
+}
+
+/// A string's own properties are its indices, and an array's are its own --
+/// both read out of the evaluated value rather than out of the syntax, because
+/// a value reached this way has no literal left to read.
+#[test]
+fn an_evaluated_string_or_array_is_read_from_the_value() {
+  for question in QUESTIONS {
+    assert_eq!(counted_past_the_fold(question, "'abc'"), 3.0);
+    assert_eq!(counted_past_the_fold(question, "['a', 'b']"), 2.0);
+    assert_eq!(counted_past_the_fold(question, "[['a'], ['b']]"), 2.0);
+    assert_eq!(counted_past_the_fold(question, "[['a', null]]"), 1.0);
+  }
+}
+
+/// `null` written as an element is a value rather than an absence, so it keeps
+/// its own key -- unlike the hole above it, which occupies a slot and carries
+/// none.
+#[test]
+fn a_written_null_element_keeps_its_key() {
+  for question in QUESTIONS {
+    assert_eq!(counted_past_the_fold(question, "[null, 'a']"), 2.0);
+  }
+}
+
+/// A value with no own enumerable properties answers the empty list, and an
+/// array holding an element the walk cannot write down answers it too --
+/// because a receiver it cannot read whole is a receiver with nothing to read.
+#[test]
+fn a_receiver_the_walk_cannot_read_answers_the_empty_list() {
+  for question in QUESTIONS {
+    assert_eq!(counted_past_the_fold(question, "1"), 0.0);
+    assert_eq!(counted_past_the_fold(question, "[own]"), 0.0);
+    assert_eq!(counted_past_the_fold(question, "[[own]]"), 0.0);
+  }
+}
+
+/// A property carried by a getter has no value the walk can read, so the whole
+/// receiver refuses rather than answering a list with the property missing.
+#[test]
+fn a_property_that_is_not_a_value_refuses_the_receiver() {
+  for question in QUESTIONS {
+    assert_refuses(
+      question,
+      "sx.missing ?? ({ get a() { return 1; } })",
+      OBJECT_METHOD,
+    );
+  }
+}
+
+// ==================== an array literal the fold will not print ====================
+
+/// An array written where it is read is taken from the syntax, because a hole
+/// has no value to evaluate. An element with no compile-time form makes the
+/// whole array unreadable, and the refusal says what a style array may hold.
+#[test]
+fn an_array_literal_with_an_unreadable_element_refuses() {
+  for question in QUESTIONS {
+    assert_refuses(question, "[own, 'a']", ILLEGAL_PROP_ARRAY_VALUE);
+    assert_refuses(question, "[[own]]", ILLEGAL_PROP_ARRAY_VALUE);
+  }
+}
+
+/// A nested array of readable elements is written down as a nested array, which
+/// is the one key the outer array carries.
+#[test]
+fn a_nested_array_literal_is_one_readable_key() {
+  for question in QUESTIONS {
+    assert_eq!(counted(question, "[['a']]"), 1.0);
   }
 }

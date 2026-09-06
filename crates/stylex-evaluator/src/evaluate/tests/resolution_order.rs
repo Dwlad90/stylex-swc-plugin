@@ -24,12 +24,22 @@ use swc_core::ecma::ast::{
   ImportSpecifier, ImportStarAsSpecifier, ModuleExportName, Str,
 };
 
+use std::path::PathBuf;
 use stylex_constants::constants::evaluation_errors::{
   IMPORT_FILE_EVAL_ERROR, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, UNDEFINED_CONST,
   UNINITIALIZED_CONST, USED_BEFORE_DECLARATION, unsupported_expression,
 };
+
 use stylex_diagnostics::code_frame::framed_declaration_of;
-use stylex_structures::stylex_options::StyleXOptions;
+use stylex_state::state_manager::flush_pending_insertions;
+use stylex_structures::plugin_pass::PluginPass;
+use stylex_structures::stylex_options::{CheckModuleResolution, StyleXOptions};
+use swc_core::common::FileName;
+use swc_core::ecma::ast::ModuleItem;
+
+/// The file every case about a resolved import is compiled as. Its extension is
+/// what Haste resolution gives the import, so the two are read together.
+const IMPORTING_FILE: &str = "/repo/src/app.js";
 
 /// The three names the globals step asks about. Every case that is about the
 /// step runs over all three rather than picking one, because the step answers
@@ -293,6 +303,16 @@ struct ModuleState {
   /// case can say how far into the declaration list the match sits.
   padding: usize,
   disable_imports: bool,
+  /// Whether the module has a file for a relative import to be relative to.
+  ///
+  /// Every other case here runs under a state with no filename, so the import
+  /// step is *reached* and never *taken*. The cases about a resolved import
+  /// turn this on, which is the whole of the difference between the two.
+  resolves_imports: bool,
+  /// Whether the build compensates for tree-shaking by re-importing the
+  /// variable file for its side effects. Off by default, as it is in the
+  /// options.
+  treeshake_compensation: bool,
   reference_context: Option<SyntaxContext>,
   /// Where a binding that leaves no declarator behind sits, when the case has
   /// one — a function parameter or a catch binding.
@@ -389,10 +409,56 @@ impl ModuleState {
   }
 
   /// Reads the reference from a context of its own, the way the resolver marks
+  /// Gives the module a file of its own, so an import of a variable file
+  /// resolves instead of reporting that the path could not be resolved.
+  ///
+  /// Haste resolution rather than CommonJs, because Haste names a file by its
+  /// own name and needs no file on disk -- which keeps a case about *what a
+  /// resolved import answers* from also being a case about a fixture tree.
+  fn resolves_its_imports(mut self) -> Self {
+    self.resolves_imports = true;
+    self
+  }
+
+  /// Turns on the side-effect import a resolved theme import then leaves
+  /// behind.
+  fn compensates_for_treeshaking(mut self) -> Self {
+    self.treeshake_compensation = true;
+    self
+  }
+
   /// a binding that shadows the module-level one.
   fn read_from_a_shadowing_scope(mut self) -> Self {
     self.reference_context = Some(shadowing_context());
     self
+  }
+
+  /// The state every case is evaluated against: no file and no resolution by
+  /// default, and a file where the case says the import resolves.
+  fn state_manager(&self) -> StateManager {
+    let mut options = StyleXOptions::default();
+
+    if self.resolves_imports {
+      options.core.unstable_module_resolution = CheckModuleResolution::Haste {
+        root_dir: None,
+        theme_file_extension: None,
+      };
+    }
+
+    if self.treeshake_compensation {
+      options.core.treeshake_compensation = true;
+    }
+
+    let mut traversal_state = StateManager::new(options);
+
+    if self.resolves_imports {
+      traversal_state.set_plugin_pass(PluginPass {
+        cwd: None,
+        filename: FileName::Real(PathBuf::from(IMPORTING_FILE)),
+      });
+    }
+
+    traversal_state
   }
 
   /// Evaluates a bare reference to `name` at `reference_span` against this
@@ -413,7 +479,7 @@ impl ModuleState {
     reference_span: Span,
   ) -> (Box<EvaluateResult>, StateManager) {
     GLOBALS.set(&Globals::new(), || {
-      let mut traversal_state = StateManager::new(StyleXOptions::default());
+      let mut traversal_state = self.state_manager();
       let reference = ident_in(
         name,
         reference_span,
@@ -1571,4 +1637,91 @@ fn a_write_to_a_name_the_module_does_not_declare_refuses_nothing() {
     .evaluate("Infinity", LATER_REFERENCE_SPAN);
 
   assert_folded_to_the_global(&result, "Infinity");
+}
+
+// ==================== a resolved import ====================
+
+/// A named import of a variable file resolves to the group the file exports,
+/// which is what makes a token read off it name a CSS variable rather than
+/// refuse.
+///
+/// Every other case here reads the import step's refusal as the marker for
+/// "step 1 answered". This is the step actually taken.
+#[test]
+fn a_named_import_of_a_variable_file_resolves_to_the_group_it_exports() {
+  let result = ModuleState::default()
+    .imported()
+    .resolves_its_imports()
+    .evaluate_a_later_reference();
+
+  assert!(
+    result.confident,
+    "expected the import to resolve, got a deopt: {:?}",
+    result.reason
+  );
+  assert!(
+    matches!(result.value, Some(EvaluateResultValue::ThemeRef(_))),
+    "expected the group, got {:?}",
+    result.value
+  );
+}
+
+/// An imported name spelled as a string resolves the same way. Its own case
+/// because the two spellings are read by separate arms: a reader that had only
+/// the identifier one would find no name to build the group from, and refuse an
+/// import the language accepts.
+#[test]
+fn an_imported_name_spelled_as_a_string_resolves_a_group_too() {
+  let result = ModuleState::default()
+    .imported_as(ImportedAs::StringNamedAwayFrom)
+    .resolves_its_imports()
+    .evaluate(ALIAS_LOCAL, LATER_REFERENCE_SPAN);
+
+  assert!(
+    matches!(result.value, Some(EvaluateResultValue::ThemeRef(_))),
+    "expected the group, got {:?}",
+    result.value
+  );
+}
+
+/// A resolved theme import leaves a side-effect import of the variable file
+/// behind, because tree-shaking would otherwise drop the file whose variables
+/// the stylesheet now names. One import however many tokens are read, since a
+/// second copy is a second evaluation of the same module.
+#[test]
+fn a_resolved_theme_import_is_re_imported_for_its_side_effects() {
+  let (_, mut state) = ModuleState::default()
+    .imported()
+    .resolves_its_imports()
+    .compensates_for_treeshaking()
+    .evaluate_against_the_module("c", LATER_REFERENCE_SPAN);
+
+  assert_eq!(queued_imports(&mut state), 1);
+}
+
+/// With the compensation off, nothing is left behind: the build says it will
+/// not shake the file out, so re-importing it would be an import the source
+/// does not describe.
+#[test]
+fn no_side_effect_import_is_left_where_the_build_does_not_shake() {
+  let (result, mut state) = ModuleState::default()
+    .imported()
+    .resolves_its_imports()
+    .evaluate_against_the_module("c", LATER_REFERENCE_SPAN);
+
+  assert!(
+    matches!(result.value, Some(EvaluateResultValue::ThemeRef(_))),
+    "the group still resolves"
+  );
+  assert_eq!(queued_imports(&mut state), 0);
+}
+
+/// How many module items the evaluation queued, read by flushing them into a
+/// module body -- which is what the transform above does with them.
+fn queued_imports(state: &mut StateManager) -> usize {
+  let mut module_body: Vec<ModuleItem> = Vec::new();
+
+  flush_pending_insertions(state, &mut module_body, true);
+
+  module_body.len()
 }

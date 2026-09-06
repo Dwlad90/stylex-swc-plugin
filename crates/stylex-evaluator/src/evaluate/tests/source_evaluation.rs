@@ -731,6 +731,13 @@ pub(crate) fn evaluated_in_a_state(
   })
 }
 
+/// `const <name> = <init>` written as source, for a case that needs both a
+/// declaration and a function map -- which no single helper above gives it,
+/// because one takes a state and the other takes a map.
+pub(crate) fn a_declaration_of(name: &str, init: &str) -> VarDeclarator {
+  declarator_of(name, parse_expr(init))
+}
+
 /// `const <name> = <init>`, as the module-wide collector would have recorded it.
 fn declarator_of(name: &str, init: Expr) -> VarDeclarator {
   let id = Ident {
@@ -792,10 +799,22 @@ pub(crate) fn evaluated_in_a_module_binding(
   init: &str,
   source: &str,
 ) -> Box<EvaluateResult> {
+  evaluated_in_a_module_binding_under(StyleXOptions::default(), name, init, source)
+}
+
+/// The same, under options the case chose -- which is how a case about a
+/// ceiling names the number it is about rather than building an input large
+/// enough to pass the shipped one.
+pub(crate) fn evaluated_in_a_module_binding_under(
+  options: StyleXOptions,
+  name: &str,
+  init: &str,
+  source: &str,
+) -> Box<EvaluateResult> {
   let globals = Globals::new();
 
   GLOBALS.set(&globals, || {
-    let mut traversal_state = StateManager::new(StyleXOptions::default());
+    let mut traversal_state = StateManager::new(options);
 
     traversal_state.push_declaration(declarator_of(name, parse_expr(init)));
 

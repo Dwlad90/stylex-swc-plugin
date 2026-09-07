@@ -662,3 +662,7 @@ mod guarded_walk_tests;
 #[cfg(test)]
 #[path = "tests/folded_answer_tests.rs"]
 mod folded_answer_tests;
+
+#[cfg(test)]
+#[path = "tests/evaluated_array_form_tests.rs"]
+mod evaluated_array_form_tests;

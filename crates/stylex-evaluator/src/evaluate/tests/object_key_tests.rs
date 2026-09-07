@@ -11,14 +11,16 @@
 
 use super::source_evaluation::*;
 use crate::evaluate::evaluate_obj_key;
-use stylex_constants::constants::messages::{EXPRESSION_IS_NOT_A_STRING, ILLEGAL_PROP_VALUE};
+use stylex_constants::constants::messages::{
+  EXPRESSION_IS_NOT_A_STRING, ILLEGAL_PROP_VALUE, KEY_IS_NOT_A_STRING,
+};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
 };
 use stylex_structures::stylex_options::StyleXOptions;
 use swc_core::{
   common::{DUMMY_SP, GLOBALS, Globals},
-  ecma::ast::{ComputedPropName, Expr, IdentName, KeyValueProp, PropName},
+  ecma::ast::{BigInt, ComputedPropName, Expr, IdentName, KeyValueProp, PropName},
 };
 
 use stylex_ast::ast::convertors::{convert_atom_to_string, create_number_expr, create_string_expr};
@@ -46,6 +48,15 @@ fn key_of(name: PropName) -> Result<String, Option<String>> {
       (true, other) => panic!("expected a string key, got {:?}", other),
       (false, _) => Err(result.reason),
     }
+  })
+}
+
+/// A key written as a big-integer literal, which has no other spelling.
+fn big_int_key(digits: u64) -> PropName {
+  PropName::BigInt(BigInt {
+    span: DUMMY_SP,
+    value: Box::new(digits.into()),
+    raw: None,
   })
 }
 
@@ -117,4 +128,62 @@ fn a_computed_key_with_no_expression_form_refuses() {
 #[test]
 fn a_computed_key_with_no_string_form_refuses() {
   assert_deopt_reason_contains("({ [{}]: 'x' })", EXPRESSION_IS_NOT_A_STRING);
+}
+
+/// A key written as a big-integer literal names its digits, which is what the
+/// language names the property: `1n` and `1` are the same key. Pinned against
+/// the reference implementation, which declares `1: red` for `{ 1n: 'red' }`.
+#[test]
+fn a_big_integer_key_names_its_digits() {
+  assert_eq!(key_of(big_int_key(1)), Ok(String::from("1")));
+  assert_eq!(key_of(big_int_key(0)), Ok(String::from("0")));
+  assert_eq!(
+    key_of(big_int_key(u64::MAX)),
+    Ok(String::from("18446744073709551615")),
+    "a value past what a number holds is still written out in full"
+  );
+}
+
+/// The same key written in source, so the spelling and the entry point agree.
+#[test]
+fn a_big_integer_key_written_in_source_names_the_same_string() {
+  assert_folds_to_object_keys("({ 1n: 'x' })", &["1"]);
+  // An integer key is ordered ahead of a written one, which is the order the
+  // language gives own keys and the order the reference implementation emits
+  // the two rules in.
+  assert_folds_to_object_keys("({ color: 'red', 2n: 'blue' })", &["2", "color"]);
+}
+
+/// A computed key that folds to a value this compiler writes no string for
+/// refuses. It says so as a key rather than as a value, because the key is the
+/// half the author changes.
+///
+/// Five spellings, and each of them is a boolean, `null` or an object. The
+/// reference implementation names the property `String(key)` instead, so
+/// `{ [true]: 'red' }` declares `true: red` there. Recorded rather than changed
+/// here: the coercion decides a CSS property name.
+#[test]
+fn a_computed_key_that_names_no_string_refuses_as_a_key() {
+  for source in ["true", "false", "null", "({})", "!1"] {
+    assert_eq!(
+      key_of(computed(parse_expr(source))),
+      Err(Some(KEY_IS_NOT_A_STRING.to_string())),
+      "wrong refusal for the computed key `{}`",
+      source
+    );
+  }
+}
+
+/// A comparison read as a key names `0` here and `false` in the language, so
+/// the two compilers write two different property names for one source, with no
+/// error either side.
+///
+/// Recorded rather than endorsed. A comparison is folded through the numeric
+/// reading of a binary expression before the key is asked for a string, which
+/// is where the `0` comes from. Pinned so the answer changes visibly when the
+/// key coercion is settled.
+#[test]
+fn a_comparison_read_as_a_key_names_the_number_it_folded_through() {
+  assert_eq!(key_of(computed(parse_expr("1 > 2"))), Ok(String::from("0")));
+  assert_eq!(key_of(computed(parse_expr("2 > 1"))), Ok(String::from("1")));
 }

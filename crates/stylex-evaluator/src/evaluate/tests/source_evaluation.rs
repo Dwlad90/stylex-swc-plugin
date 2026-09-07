@@ -342,6 +342,20 @@ fn assert_folds_to_a_value_result(result: EvaluateResult, source: &str) -> Evalu
   }
 }
 
+/// The list a source folds to.
+///
+/// An array folds to the evaluator's own list rather than to an array literal.
+/// Two suites count what that list holds -- one counts the slots the source
+/// wrote, the other counts the elements its literal form keeps -- so both need
+/// the same reading of "it folded to a list".
+#[track_caller]
+pub(crate) fn folds_to_a_list(source: &str) -> Vec<EvaluateResultValue> {
+  match assert_folds_to_a_value(source) {
+    EvaluateResultValue::Vec(items) => items,
+    other => panic!("expected `{}` to fold to a list, got {:?}", source, other),
+  }
+}
+
 /// The same, with the depth ceiling raised for a source whose subject is depth.
 #[track_caller]
 pub(crate) fn assert_folds_with_ceiling(source: &str, max_evaluation_depth: usize) -> Expr {

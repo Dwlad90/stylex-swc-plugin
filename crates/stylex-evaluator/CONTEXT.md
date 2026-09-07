@@ -324,6 +324,7 @@ from a name instead — `function_fold_to_object`, from an entry name, and the
 through `create_key_value_prop`, which quotes a name no identifier can spell.
 Such a key names no method and no entry: the method lookup passes over it and
 reports the property as not found, and the type function refuses it by name. The
+own-keys walk answers it as it is spelled, which is what the language does. The
 other class is an [evaluator-written array](#evaluator-written-array).
 _Avoid_: folded object, internal object, rebuilt object
 

@@ -662,28 +662,6 @@ fn own_keys_callee(
   }
 }
 
-/// The key-value properties of an object the evaluator wrote.
-///
-/// Every property of such an object is one, so this passes over nothing that can
-/// arrive. `object_expression` refuses a method, a getter, a setter and an
-/// assignment pattern; it expands a shorthand into a pair; and it merges a
-/// spread out of a value it has already evaluated.
-///
-/// The term "Evaluator-written object" in the crate's `CONTEXT.md` names the
-/// producers that uphold this, and says a key may still be quoted. Only the
-/// type function answers for such a key, by refusing it. The method lookup
-/// passes one over and could not do otherwise, because the name it compares
-/// against comes from a dot and no quoted key can equal one.
-///
-/// One reading for the two of them, because they ask the same question of the
-/// same value class and differ only in what they do with the answer.
-fn written_key_values(object: &ObjectLit) -> impl Iterator<Item = &KeyValueProp> {
-  object
-    .props
-    .iter()
-    .filter_map(|prop| prop.as_prop().and_then(|prop| prop.as_key_value()))
-}
-
 /// What one of the injected maps holds under a name.
 enum MapEntry {
   /// A function, which is the one entry shape a call can apply.

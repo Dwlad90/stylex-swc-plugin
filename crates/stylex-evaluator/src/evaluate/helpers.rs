@@ -76,6 +76,26 @@ pub(super) fn normalize_js_object_method_args(
   })
 }
 
+/// The key-value properties of an object the evaluator wrote.
+///
+/// Every property of such an object is one, so this passes over nothing that can
+/// arrive. `object_expression` refuses a method, a getter, a setter and an
+/// assignment pattern, expands a shorthand into a pair, and merges a spread out
+/// of a value it has already evaluated.
+///
+/// This promises the kind of every property and not the spelling of a key. A
+/// key may still be quoted, and each reader answers for that itself. See
+/// "Evaluator-written object" in the crate's `CONTEXT.md`.
+///
+/// One reading for every position that asks, because they ask the same question
+/// of the same value class.
+pub(super) fn written_key_values(object: &ObjectLit) -> impl Iterator<Item = &KeyValueProp> {
+  object
+    .props
+    .iter()
+    .filter_map(|prop| prop.as_prop().and_then(|prop| prop.as_key_value()))
+}
+
 /// What an `Object.keys`/`values`/`entries` receiver reads as.
 ///
 /// Four answers, because "no own keys" and the two ways of having no list at
@@ -138,15 +158,11 @@ impl ObjectMethodReceiver {
 
     let mut list = Vec::with_capacity(object.props.len());
 
-    for prop in &object.props {
-      let Some(prop) = prop.as_prop() else {
-        return Err(SPREAD_NOT_SUPPORTED);
-      };
-
-      let Some(key_value) = prop.as_key_value() else {
-        return Err(OBJECT_METHOD);
-      };
-
+    // Every property of an object this reader is handed is a key and a value.
+    // All three of its receivers are an evaluated value or are built from one,
+    // so the invariant below holds of each. A getter is refused by the object
+    // walk, which is where that sentence comes from.
+    for key_value in written_key_values(&object) {
       let key = convert_key_value_to_str(key_value);
 
       list.push(Some(create_expr_or_spread(
@@ -278,6 +294,10 @@ fn normalize_js_object_method_array_arg(
         Some(expr) => expr,
         None => return ObjectMethodReceiver::Unreadable,
       },
+      // An evaluation does answer the absent value, and an index read is how:
+      // it clones the slot it found out of the array it read, and an array
+      // holds the absent value where an element folded to nothing. Absent
+      // rather than unreadable, as the guards above are.
       EvaluateResultValue::Null => continue,
       _ => return ObjectMethodReceiver::Unreadable,
     };
@@ -296,11 +316,11 @@ fn normalize_js_object_method_array_arg(
 fn normalize_js_object_method_nested_vector_arg(vec: &[EvaluateResultValue]) -> Option<Expr> {
   let mut elems = Vec::with_capacity(vec.len());
 
+  // An entry that is absent has no reading here, because the one caller passes
+  // over a nested array holding one before it calls -- see the array arm of
+  // [`normalize_js_object_method_args`]. A level below that is decided in the
+  // inner walk.
   for entry in vec {
-    if matches!(entry, EvaluateResultValue::Null) {
-      continue;
-    }
-
     let expr = match entry.as_vec() {
       Some(nested_vec) => {
         let mut nested_elems = Vec::with_capacity(nested_vec.len());
@@ -665,16 +685,6 @@ fn write_string_of<S: coercions::StringSink>(
     // refused on the same terms. The `Vec` arm above is where a `Null` that
     // reaches this bridge is actually decided.
     EvaluateResultValue::Null => Err(coercions::StringRefusal::NoStringForm),
-  }
-}
-
-pub(super) fn get_binding<'a>(
-  callee: &'a Expr,
-  state: &'a StateManager,
-) -> Option<&'a VarDeclarator> {
-  match callee {
-    Expr::Ident(ident) => state.declaration_of(ident),
-    _ => None,
   }
 }
 

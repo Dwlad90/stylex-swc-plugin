@@ -27,7 +27,7 @@ use swc_core::{
     ast::{
       ArrayLit, ArrowFunctionBody, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
       ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, ObjectLit, OptChainBase,
-      Pat, Prop, PropName, PropOrSpread, TplElement, VarDeclarator,
+      Pat, Prop, PropName, PropOrSpread, TplElement,
     },
     utils::ident::IdentLike,
   },
@@ -56,8 +56,8 @@ use stylex_constants::constants::{
   messages::{
     ARGUMENT_NOT_EXPRESSION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
     ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, MEMBER_NOT_RESOLVED, NULLISH_TO_OBJECT,
-    OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND, SPREAD_NOT_SUPPORTED,
-    SPREAD_PROPERTIES_UNREADABLE, THEME_IMPORT_KEY_AS_OBJECT_KEY, VALUE_MUST_BE_LITERAL,
+    OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND, SPREAD_PROPERTIES_UNREADABLE,
+    THEME_IMPORT_KEY_AS_OBJECT_KEY, VALUE_MUST_BE_LITERAL,
   },
 };
 use stylex_enums::{

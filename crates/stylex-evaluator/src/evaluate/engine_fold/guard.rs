@@ -46,7 +46,7 @@ use stylex_state::{
 use super::super::{
   engine_stylex_functions::{EngineCallable, Reached, engine_callable},
   evaluate_cached,
-  helpers::{evaluate_result_to_js_boolean, get_binding},
+  helpers::evaluate_result_to_js_boolean,
   nodes::logical_expression::{LogicalOp, evaluates_its_right_operand},
   nodes::member_expression::{get_full_member_path, theme_ref_base},
 };
@@ -773,7 +773,7 @@ impl<'r> Walk<'_, 'r> {
         // reason. Only where the module bound nothing of the name, in which case
         // the binding is resolved like any other below.
         if is_global_spelled_as_an_identifier(ident)
-          && get_binding(expr, self.reader.traversal_state).is_none()
+          && self.reader.traversal_state.declaration_of(ident).is_none()
         {
           return Ok(());
         }
@@ -821,7 +821,7 @@ impl<'r> Walk<'_, 'r> {
             // without a declaration falls to the reading below, which finds no
             // function either and hands the call back.
             let declaration = match carries_a_function {
-              true => initializer_of(expr, self.reader).cloned(),
+              true => initializer_of(ident, self.reader).cloned(),
               false => None,
             };
 
@@ -831,7 +831,7 @@ impl<'r> Walk<'_, 'r> {
               // business — the dispatch below owns the call and answers for it. A
               // function is the exception: nothing below the fold carries one
               // into an evaluation.
-              None => match the_module_declares_a_function(ident, expr, self.reader) {
+              None => match the_module_declares_a_function(ident, self.reader) {
                 true => Err(Decline::rule(unfoldable_function(&ident.sym))),
                 false => Err(Decline::NotACandidate),
               },
@@ -1815,8 +1815,15 @@ fn a_global_written_as_a_value(ident: &Ident, state: &StateManager) -> bool {
 /// with it: what a function crosses as, and whether a name the guard could not
 /// resolve was a function at all. Two spellings of the same three links would
 /// have been two chances to disagree about which link is optional.
-fn initializer_of<'a>(expr: &'a Expr, reader: &'a Reader) -> Option<&'a Expr> {
-  get_binding(expr, reader.traversal_state).and_then(|declarator| declarator.init.as_deref())
+///
+/// Asked of the name rather than of the expression around it, for the reason
+/// [`a_global_written_as_a_value`] is: the walk unwraps a parenthesis before it
+/// dispatches, so every caller already holds the name it would have read.
+fn initializer_of<'a>(ident: &Ident, reader: &'a Reader) -> Option<&'a Expr> {
+  reader
+    .traversal_state
+    .declaration_of(ident)
+    .and_then(|declarator| declarator.init.as_deref())
 }
 
 /// Whether the module declares `ident` as a function, which is what makes a name
@@ -1830,11 +1837,12 @@ fn initializer_of<'a>(expr: &'a Expr, reader: &'a Reader) -> Option<&'a Expr> {
 ///
 /// A `function` declaration is asked of the declaration list rather than of a
 /// declarator, because it is hoisted and has no initializer to read.
-fn the_module_declares_a_function(ident: &Ident, expr: &Expr, reader: &Reader) -> bool {
+fn the_module_declares_a_function(ident: &Ident, reader: &Reader) -> bool {
   matches!(
     reader.traversal_state.declared_as(ident),
     Some(DeclarationType::Function)
-  ) || initializer_of(expr, reader).is_some_and(|init| matches!(init, Expr::Arrow(_) | Expr::Fn(_)))
+  ) || initializer_of(ident, reader)
+    .is_some_and(|init| matches!(init, Expr::Arrow(_) | Expr::Fn(_)))
 }
 
 /// The refusals a method call can answer from its own text.

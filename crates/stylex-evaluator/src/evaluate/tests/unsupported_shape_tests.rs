@@ -252,15 +252,25 @@ fn a_static_that_changes_its_argument_refuses_by_name() {
 /// A static the language itself throws on refuses under the engine's own
 /// complaint, which is the sentence the reference compiler stops on too.
 ///
-/// Each names what was thrown. The first two are what says the engine answers an
-/// own-keys call with no readable receiver: the dispatch below it reads the first
-/// argument of such a call and has no reading for one with none, so a case that
-/// only asked *whether* it refused would not tell the two apart.
+/// Each case names what was thrown. The first three also show that the engine
+/// answers an own-keys call with no argument, in all three spellings of the
+/// question. That is what the dispatch below the engine relies on: it reads the
+/// first argument of such a call, and it has no reading for a call with none. A
+/// case that asked only whether the call refused could not tell the engine's
+/// answer from that dispatch's.
 #[test]
 fn a_static_the_language_throws_on_refuses_with_what_it_threw() {
   for (source, thrown) in [
     (
       "Object.keys()",
+      "TypeError: cannot convert 'null' or 'undefined' to object",
+    ),
+    (
+      "Object.values()",
+      "TypeError: cannot convert 'null' or 'undefined' to object",
+    ),
+    (
+      "Object.entries()",
       "TypeError: cannot convert 'null' or 'undefined' to object",
     ),
     (

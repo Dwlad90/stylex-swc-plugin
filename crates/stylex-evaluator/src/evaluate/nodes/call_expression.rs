@@ -394,9 +394,15 @@ fn member_callee(
   // its own, so the reason has to be carried over deliberately or it is lost
   // with that state.
   //
-  // The reason stands for the refusal, because the two arrive together: `deopt`
-  // is the one thing in this crate that clears confidence, and it writes the
-  // reason as it does so.
+  // The reason stands for the refusal, because for this reader the two arrive
+  // together. `evaluate_with_functions` gives the receiver a state of its own
+  // with no reason in it, and `deopt` is the only thing that records one -- which
+  // it does as it clears the confidence the result then reports. A speculative
+  // read puts both back together, so it cannot part them either. Neither half is
+  // a guarantee of the types: `EvaluateResult::refused` builds a refusal that
+  // carries no reason, and a forked state keeps its parent's reason while
+  // holding confidence. Both belong to other producers, and neither reaches
+  // here.
   if let Some(reason) = parsed_obj.reason {
     deopt_unsupported!(deopt, path, state, &reason);
   }
@@ -460,9 +466,13 @@ fn member_callee(
     return match value {
       EvaluateResultValue::Expr(expr) => match expr {
         Expr::Object(object) => {
-          // A quoted key names no method, which is the language's answer too:
-          // no such key can be written after a dot. Scanned in place, and only
-          // the property found is copied.
+          // The name comes from a dot, so it is always an identifier, and a
+          // quoted key can never equal it however the key is read. Reading the
+          // key as an identifier is therefore the cheap way to get a comparable
+          // name rather than a rule of its own: it needs no string built from a
+          // quoted key that could not match anyway.
+          //
+          // Scanned in place, and only the property found is copied.
           let key_value = written_key_values(&object).find(|key_value| {
             key_value
               .key
@@ -599,11 +609,20 @@ fn global_static_callee(
     deopt_unsupported!(deopt, path, state, &unfoldable_call(method_name));
   };
 
-  // The language reads the first argument and ignores the rest. Wherever this
-  // dispatch runs that argument is there and is not a spread: the engine answers
-  // an own-keys call with no argument, which holds no value it could decline
-  // over, and it refuses a spread where the spread is written. So the
-  // fall-through names no callee, and the terminal refusal names the call.
+  // The language reads the first argument and ignores the rest, and wherever this
+  // dispatch runs that argument is there and is not a spread.
+  //
+  // A call with no argument does not reach here, because its receiver is the
+  // global itself and the engine has an answer for that either way. Unshadowed,
+  // it answers the language's own `TypeError`, which
+  // `a_static_the_language_throws_on_refuses_with_what_it_threw` pins in all
+  // three spellings. Shadowed by a declarator, it refuses to carry the global,
+  // which `shadowed_names_tests` pins. Only a *decline* hands a call to this
+  // dispatch, and neither of those is one. A spread is refused where it is
+  // written, by the walk the engine makes over every call's arguments.
+  //
+  // So the fall-through names no callee, and the terminal refusal names the
+  // call.
   call
     .args
     .first()
@@ -645,11 +664,16 @@ fn own_keys_callee(
 
 /// The key-value properties of an object the evaluator wrote.
 ///
-/// Every property of such an object is one, so what this passes over cannot
-/// arrive: a spread, a method, a getter, a shorthand. The term
-/// "Evaluator-written object" in the crate's `CONTEXT.md` names the producers
-/// that uphold it, and says that a key may still be quoted -- which is the half
-/// both readers here do have to answer for.
+/// Every property of such an object is one, so this passes over nothing that can
+/// arrive. `object_expression` refuses a method, a getter, a setter and an
+/// assignment pattern; it expands a shorthand into a pair; and it merges a
+/// spread out of a value it has already evaluated.
+///
+/// The term "Evaluator-written object" in the crate's `CONTEXT.md` names the
+/// producers that uphold this, and says a key may still be quoted. Only the
+/// type function answers for such a key, by refusing it. The method lookup
+/// passes one over and could not do otherwise, because the name it compares
+/// against comes from a dot and no quoted key can equal one.
 ///
 /// One reading for the two of them, because they ask the same question of the
 /// same value class and differ only in what they do with the answer.

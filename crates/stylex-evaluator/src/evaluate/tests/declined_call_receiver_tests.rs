@@ -27,7 +27,12 @@ use stylex_state::types::FunctionConfigMap;
 /// bridge, which reads entry names, can hand one over that needs quotes.
 const QUOTED_ENTRY: &str = "a-b";
 
-/// A map under the name `sx`, holding [`QUOTED_ENTRY`] alone.
+/// A namespace holding [`QUOTED_ENTRY`] alone.
+///
+/// Keyed on [`FOLD_NAMESPACE`], like every namespace the suites here build, so
+/// the name the map holds and the name a source spreads cannot come apart. It is
+/// not [`a_function_fold`]: that one holds the entry under a name an identifier
+/// can spell, which is the whole difference a case here turns on.
 fn a_namespace_with_a_quoted_entry() -> FunctionMap {
   let mut entries = FunctionConfigMap::default();
 
@@ -35,9 +40,10 @@ fn a_namespace_with_a_quoted_entry() -> FunctionMap {
 
   let mut fns = FunctionMap::default();
 
-  fns
-    .identifiers
-    .insert("sx".into(), Box::new(FunctionConfigType::Map(entries)));
+  fns.identifiers.insert(
+    FOLD_NAMESPACE.into(),
+    Box::new(FunctionConfigType::Map(entries)),
+  );
 
   fns
 }
@@ -51,17 +57,6 @@ fn a_namespace_with_a_quoted_entry() -> FunctionMap {
 /// arrow the author wrote.
 #[test]
 fn a_name_bound_to_one_of_the_compilers_functions_is_applied_where_it_is_named() {
-  let mut entries = FunctionConfigMap::default();
-
-  entries.insert(FOLD_ENTRY.into(), a_folded_function());
-
-  let mut fns = FunctionMap::default();
-
-  fns.identifiers.insert(
-    FOLD_NAMESPACE.into(),
-    Box::new(FunctionConfigType::Map(entries)),
-  );
-
   let source = "named('red')";
   let result = evaluated_in_a_state(
     |state| {
@@ -70,7 +65,7 @@ fn a_name_bound_to_one_of_the_compilers_functions_is_applied_where_it_is_named()
         &format!("{FOLD_NAMESPACE}.{FOLD_ENTRY}"),
       ))
     },
-    &fns,
+    &a_function_fold(),
     source,
   );
 
@@ -151,19 +146,37 @@ fn a_method_the_receiver_carries_is_the_arrow_under_that_key() {
   );
 }
 
-/// A key the receiver spells with quotes is not the method that was called,
-/// whatever the call named.
+/// A key the receiver spells with quotes does not hide the keys beside it.
 ///
-/// Read as a match it would make the first property the callee: the value under
-/// it is the function fold's own object, which no call applies, so the refusal
-/// would name a non-constant instead of the property that was not found.
+/// The first assertion is the whole of what this pins, and what it pins is the
+/// walk: a method beside the quoted key is still found, and the case fails when
+/// the walk drops a property it should keep. Proved by making the walk yield
+/// nothing and watching the case fail.
+///
+/// The second assertion says the quoted key is there at all, which is what makes
+/// the first one mean anything. What it does *not* do is pin how the key is
+/// read, and no case can. The name comes from a dot, so it is always an
+/// identifier, and a quoted key can never equal one however the key is read --
+/// reading the key as an identifier and comparing its text give the same answer
+/// for every input. Where a quoted key is an answer of its own is the type
+/// function, which refuses one by name, and
+/// `a_type_function_refuses_a_key_that_is_not_an_identifier` is the case for it.
 #[test]
-fn a_key_the_receiver_spells_with_quotes_is_not_the_method_called() {
-  let source = "({ ...sx }).missing(unknownName)";
+fn a_key_the_receiver_spells_with_quotes_does_not_hide_the_keys_beside_it() {
+  let fns = a_namespace_with_a_quoted_entry();
+  let beside_a_method =
+    format!("({{ ...{FOLD_NAMESPACE}, paint: (color) => color }}).paint('red')");
+
+  assert_eq!(
+    folded_text_of(evaluated_against(&fns, &beside_a_method), &beside_a_method),
+    "red"
+  );
+
+  let source = format!("({{ ...{FOLD_NAMESPACE} }}).missing(unknownName)");
 
   assert_refused_with(
-    &evaluated_against(&a_namespace_with_a_quoted_entry(), source),
-    source,
+    &evaluated_against(&fns, &source),
+    &source,
     PROPERTY_NOT_FOUND,
   );
 }

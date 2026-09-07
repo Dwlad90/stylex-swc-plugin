@@ -44,6 +44,10 @@ pub trait DiagnosticState {
   /// Whether the frame may read the file on disk, as `useRealFileForSource`
   /// asks. When the option is off, the frame quotes what the compiler holds in
   /// memory and opens no file.
+  ///
+  /// The flag gates [`DiagnosticState::input_source_text`] as well, not the
+  /// disk read alone: with the option off, the module the compiler memoized is
+  /// the one source the frame is allowed to name.
   fn reads_source_from_disk(&self) -> bool;
 
   /// Where every style namespace key of the memoized source is written, built

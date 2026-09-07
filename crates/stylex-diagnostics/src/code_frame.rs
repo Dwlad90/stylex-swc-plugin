@@ -691,9 +691,8 @@ fn expect_module(program: &Program) -> &Module {
 /// Both keep the authored layout, which is the only one a `file:line` may be
 /// measured against. When the option is off, no file is opened and a module
 /// memoized without its text is printed back out, as the option documents.
-/// Failing all of that, a
-/// module synthesized around the expression itself -- which is why there is
-/// always an answer.
+/// Failing all of that, the frame quotes a module synthesized around the
+/// expression itself. There is always an answer.
 ///
 /// The memoized *text* is not a case here: the only caller reaches this after
 /// finding there is none.

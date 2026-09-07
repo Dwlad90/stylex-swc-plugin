@@ -663,3 +663,7 @@ mod amplification_reading_tests;
 #[cfg(test)]
 #[path = "tests/declined_call_receiver_tests.rs"]
 mod declined_call_receiver_tests;
+
+#[cfg(test)]
+#[path = "tests/guarded_walk_tests.rs"]
+mod guarded_walk_tests;

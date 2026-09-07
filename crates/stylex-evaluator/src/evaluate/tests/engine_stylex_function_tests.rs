@@ -17,7 +17,7 @@
 //! as the value the reference implementation writes.
 
 use super::source_evaluation::*;
-use stylex_constants::constants::evaluation_errors::uncoercible_value;
+use stylex_constants::constants::evaluation_errors::{UNDEFINED_CONST, uncoercible_value};
 use stylex_state::{
   functions::FunctionMap,
   state_manager::{ImportKind, StateManager},
@@ -148,4 +148,48 @@ fn an_argument_with_no_value_refuses_by_the_functions_own_name() {
     &source,
     &uncoercible_value(IMPORTED),
   );
+}
+
+/// The same argument written *outside* a callback is handed back rather than
+/// named, which is the other half of the rule above.
+///
+/// The dispatch below still owns the call around this one, so a rule raised
+/// here would take a fold away from it. What the author reads is the outer
+/// call's own refusal.
+#[test]
+fn an_argument_with_no_value_outside_a_callback_is_handed_back() {
+  let source = format!("[{IMPORTED}('var(--a)', {FOLD_FUNCTION})].join('')");
+
+  assert_refused_with(
+    &evaluated_in_a_state(importing_both, &a_function_fold(), &source),
+    &source,
+    UNDEFINED_CONST,
+  );
+}
+
+/// A name a callback binds is the callback's, whatever the module imported
+/// under the same spelling.
+///
+/// So the engine runs what the parameter holds rather than this function, and
+/// a string is not callable -- which is what the refusal says. Without the rule
+/// the guard would carry the compiler's own function under a name the engine
+/// had already bound to something else.
+#[test]
+fn a_callback_parameter_shadowing_the_name_is_the_engines_own_binding() {
+  let source = format!("['var(--a)'].map(({IMPORTED}) => {IMPORTED}('x', 'y')).join('')");
+
+  let refused = evaluated_in_a_state(importing_both, &FunctionMap::default(), &source);
+
+  assert_refused(&refused, &source);
+
+  match refused.reason {
+    Some(reason) => assert!(
+      reason.contains("not a callable function"),
+      "expected `{}` to read the engine's own throw over the string the \
+       parameter holds, got {:?}",
+      source,
+      reason
+    ),
+    None => panic!("expected `{}` to record a deopt reason", source),
+  }
 }

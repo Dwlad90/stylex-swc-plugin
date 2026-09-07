@@ -652,3 +652,7 @@ mod short_circuited_walk_tests;
 #[cfg(test)]
 #[path = "tests/thread_isolation_tests.rs"]
 mod thread_isolation_tests;
+
+#[cfg(test)]
+#[path = "tests/amplification_reading_tests.rs"]
+mod amplification_reading_tests;

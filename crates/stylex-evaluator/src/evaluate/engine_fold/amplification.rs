@@ -18,10 +18,7 @@
 
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{
-    ArrayLit, BinExpr, BinaryOp, Expr, ExprOrSpread, KeyValueProp, Lit, Prop, PropName,
-    PropOrSpread,
-  },
+  ecma::ast::{ArrayLit, BinExpr, BinaryOp, Expr, ExprOrSpread, KeyValueProp, Lit, Prop, PropName},
 };
 
 use stylex_ast::ast::convertors::{atom_utf16_length, is_js_undefined};
@@ -244,6 +241,13 @@ impl Walk<'_, '_> {
     // The evaluator answers an array either as a list of its own or as the literal
     // it was written as, and both are one array here — the same two shapes the
     // inward conversion reads, for the same reason.
+    //
+    // The literal arm is answered by written length alone, which is sound
+    // because **the literal is one the evaluator wrote**: every array it hands
+    // back is built by `evaluate_result_vec_to_array_expr`, which writes one
+    // present element per item and no spread. So the written length is the count,
+    // and there is no hole whose width would go unread. See the same reading in
+    // `nodes/member_expression.rs`.
     let (elements, element) = match &countable_value_of(receiver, self.reader)? {
       EvaluateResultValue::Vec(items) => (
         items.len(),
@@ -252,23 +256,13 @@ impl Walk<'_, '_> {
           magnitude: greatest_of(items.iter().map(number_held_by)),
         },
       ),
-      EvaluateResultValue::Expr(Expr::Array(ArrayLit { elems, .. })) => {
-        // A spread stands for however many elements its operand holds, so the
-        // written length is not the count — and a count read short is the one
-        // reading that would admit a call nothing bounded. The literal arm is
-        // answered by written length alone, so a spread has to leave it.
-        if elems.iter().flatten().any(|elem| elem.spread.is_some()) {
-          return None;
-        }
-
-        (
-          elems.len(),
-          Bounds {
-            characters: greatest_of(elems.iter().map(|elem| rendered_element(elem, depth))),
-            magnitude: greatest_of(elems.iter().map(number_written_as)),
-          },
-        )
-      },
+      EvaluateResultValue::Expr(Expr::Array(ArrayLit { elems, .. })) => (
+        elems.len(),
+        Bounds {
+          characters: greatest_of(written_elements(elems).map(|expr| rendered_expr(expr, depth))),
+          magnitude: greatest_of(written_elements(elems).map(number_of)),
+        },
+      ),
       _ => return None,
     };
 
@@ -588,28 +582,29 @@ fn hands_over_a_function(args: &[ExprOrSpread]) -> bool {
   })
 }
 
-/// One written array element's rendered width.
+/// The expressions a written array's elements are, in order.
 ///
-/// A hole is `undefined`, so its width is that value's and not nothing: a
-/// callback handed the element renders it as the name. A spread stands for a
-/// count the source does not state, so it has no width. Read from one place
-/// because both the receiver's own elements and a nested array's are the same
-/// question.
+/// Every element of an array the evaluator hands back is present and is not a
+/// spread — `evaluate_result_vec_to_array_expr` builds them that way and is the
+/// only producer — so the list is as long as the literal and each entry is the
+/// element itself. Read from one place because both the receiver's own elements
+/// and a nested array's are the same question, and both are measured in two
+/// units off the same reading.
 ///
-/// No input reaches the hole arm today. The evaluator refuses an array carrying
-/// one at any depth, so nothing this resolves can hold a hole — see
-/// `tests/array_hole_tests.rs`, which is the rule rather than an accident of
-/// ordering. It answers the value's width all the same, because the reading a
-/// dead arm holds is what the branch would be admitting on the day that rule is
-/// relaxed, and nothing would then flag it. Nothing renders as zero characters,
-/// which is what it used to claim: a width read short admits a call no ceiling
-/// bounded, where reading it long only refuses sooner.
-fn rendered_element(elem: &Option<ExprOrSpread>, depth: Depth) -> Option<u64> {
-  match elem {
-    Some(ExprOrSpread { spread: None, expr }) => rendered_expr(expr, depth),
-    Some(_) => None,
-    None => Some(UNDEFINED_WIDTH),
-  }
+/// **The invariant is what makes this reading safe, and nothing here re-checks
+/// it.** A hole would be stepped over rather than read as `undefined`, and a
+/// spread would be measured as its operand while the count still counted it as
+/// one element — either would read a bound short, which is the reading that
+/// admits a call no ceiling bounded. So the producer is the place to hold the
+/// line: an array reaching here that carries one of the two is a bug in
+/// `evaluate_result_vec_to_array_expr`, not a shape to answer for.
+///
+/// `engine_fold/guard.rs` does admit a hole and a spread where it walks an
+/// object or an array the *author* wrote. That is a different value class and
+/// not an inconsistency: written syntax carries both, and an evaluated answer
+/// carries neither.
+fn written_elements(elems: &[Option<ExprOrSpread>]) -> impl Iterator<Item = &Expr> {
+  elems.iter().flatten().map(|elem| &*elem.expr)
 }
 
 /// The largest of a receiver's elements read one way, or `None` where one of them
@@ -633,17 +628,6 @@ fn greatest_of(mut readings: impl Iterator<Item = Option<u64>>) -> Option<u64> {
 fn number_held_by(value: &EvaluateResultValue) -> Option<u64> {
   match value {
     EvaluateResultValue::Expr(expr) => number_of(expr),
-    _ => None,
-  }
-}
-
-/// The same for one element as the source wrote it.
-///
-/// A hole is `undefined`, whose `ToNumber` is `NaN` and which no arithmetic
-/// recovers a number from, so it reads as no number rather than as zero.
-fn number_written_as(elem: &Option<ExprOrSpread>) -> Option<u64> {
-  match elem {
-    Some(ExprOrSpread { spread: None, expr }) => number_of(expr),
     _ => None,
   }
 }
@@ -714,7 +698,7 @@ fn rendered_expr(expr: &Expr, depth: Depth) -> Option<u64> {
     Expr::Ident(ident) if is_js_undefined(ident) => Some(UNDEFINED_WIDTH),
     Expr::Array(ArrayLit { elems, .. }) => joined(
       elems.len(),
-      elems.iter().map(|elem| rendered_element(elem, inner)),
+      written_elements(elems).map(|expr| rendered_expr(expr, inner)),
     ),
     _ => None,
   }
@@ -906,13 +890,17 @@ fn declared_length_of(resolved: &EvaluateResultValue) -> Declared {
     return Declared::Nothing;
   };
 
-  let length = object.props.iter().rev().find_map(|prop| match prop {
-    PropOrSpread::Prop(prop) => match prop.as_ref() {
-      Prop::KeyValue(KeyValueProp { key, value }) if is_a_length_key(key) => Some(value),
+  let length = object
+    .props
+    .iter()
+    .rev()
+    .find_map(|prop| match prop.as_prop().map(Box::as_ref) {
+      Some(Prop::KeyValue(KeyValueProp { key, value })) if is_a_length_key(key) => Some(value),
+      // Not the `length` key. A spread, a getter and a shorthand answer the same
+      // way rather than each having an arm of its own, because an object the
+      // evaluator hands back holds none of them — see [`is_a_length_key`].
       _ => None,
-    },
-    PropOrSpread::Spread(_) => None,
-  });
+    });
 
   // An object with no own `length` is the empty array, and one whose length the
   // language will not accept is a throw it raises itself. Both declare nothing
@@ -929,15 +917,14 @@ fn declared_length_of(resolved: &EvaluateResultValue) -> Declared {
 
 /// Whether a property name is the `length` an array-like declares.
 ///
-/// Both spellings of the one key, because `{ 'length': n }` declares what
-/// `{ length: n }` does. A computed key is not read: the evaluator answers a
-/// resolved object, whose keys are settled by the time this sees them.
+/// One spelling, because the object this reads is one the evaluator wrote: it
+/// rebuilds every key as an identifier, so `{ 'length': n }` arrives here spelled
+/// the way `{ length: n }` is and a computed key arrives already settled. The
+/// quoted spelling is the case that says so —
+/// `the_quoted_spelling_of_the_length_key_is_the_same_key` fails the day that
+/// rebuilding stops.
 fn is_a_length_key(key: &PropName) -> bool {
-  match key {
-    PropName::Ident(name) => name.sym == "length",
-    PropName::Str(name) => name.value.as_str() == Some("length"),
-    _ => false,
-  }
+  matches!(key, PropName::Ident(name) if name.sym == "length")
 }
 
 /// One number as the array length the language would make of it, or `None` where

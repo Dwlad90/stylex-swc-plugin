@@ -12,6 +12,7 @@ import type { Connect } from 'vite';
 import type { HotPayload, ModuleNode, ViteDevServer } from 'vite';
 
 import type { UnpluginStylexRSOptions } from './types';
+import createBundledDevCss from './utils/bundledDevCss';
 import {
   BUILD_CSS_PLACEHOLDER,
   injectIntoCssTargets,
@@ -159,10 +160,12 @@ async function invalidateAndCollectCssModules(
     return cssModules;
   }
 
-  // `mod.id` is `string | null`, so the guard both filters non-CSS modules and
-  // narrows the type for the read below.
+  // `mod.file` is the id without its query, so a stylesheet the browser
+  // fetched through `<link>` (registered as `style.css?direct`) is matched
+  // along with one imported from JavaScript. It is `string | null`, so the
+  // guard both filters non-CSS modules and narrows the type for the read.
   const allCssModules = Array.from(server.moduleGraph.urlToModuleMap.values()).filter(
-    mod => mod.id?.endsWith('.css') ?? false
+    mod => mod.file?.endsWith('.css') ?? false
   );
 
   // Check each CSS module for the placeholder
@@ -171,17 +174,17 @@ async function invalidateAndCollectCssModules(
   await Promise.all(
     allCssModules.map(async mod => {
       try {
-        // Skip modules without a valid id
-        if (!mod.id) return;
+        // Skip modules without a valid file
+        if (!mod.file) return;
 
         // Whether a stylesheet holds the marker only changes when the file
         // does, and the watcher already reports that, so this is read once
         // rather than on every refresh.
-        let holdsMarker = carriesMarker.get(mod.id);
+        let holdsMarker = carriesMarker.get(mod.file);
 
         if (holdsMarker === undefined) {
-          holdsMarker = (await promises.readFile(mod.id, 'utf8')).includes(placeholder);
-          carriesMarker.set(mod.id, holdsMarker);
+          holdsMarker = (await promises.readFile(mod.file, 'utf8')).includes(placeholder);
+          carriesMarker.set(mod.file, holdsMarker);
         }
 
         if (holdsMarker) {
@@ -190,7 +193,7 @@ async function invalidateAndCollectCssModules(
         }
       } catch (e) {
         // Log read errors for debugging HMR issues
-        console.debug(`[stylex-unplugin] Failed to read CSS file "${mod.id}":`, e);
+        console.debug(`[stylex-unplugin] Failed to read CSS file "${mod.file}":`, e);
       }
     })
   );
@@ -413,6 +416,22 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   // same process (e.g. Next.js client/server, or several Vite dev servers)
   // don't clobber each other's dev-server reference or invalidation flag.
   let viteDevServer: ViteDevServer | null = null;
+  // The rules as the dev server puts them at the marker. Rules that still
+  // carry an unresolved `defineConsts` at-rule cannot be served; a comment
+  // stands in until a later transform resolves them and refreshes the sheet.
+  async function renderDevRules(collectedCSS: string | null | undefined, id: string) {
+    if (!collectedCSS?.trim() || hasUnresolvedDefineConstAtRule(collectedCSS)) {
+      return '/* StyleX styles will load after transformation */';
+    }
+    return transformStyleXCSS(collectedCSS, id, normalizedOptions);
+  }
+
+  // Vite's bundled dev server, where the marker stylesheet is served by the
+  // plugin rather than bundled. Renders the rules collected so far for one
+  // stylesheet; no-op everywhere else.
+  const bundledDevCss = createBundledDevCss(normalizedOptions.useCssPlaceholder, file =>
+    renderDevRules(getStyleXRules(stylexRules, transformedOptions), file)
+  );
   // Counts the transforms that contributed StyleX rules. A refresh is owed
   // whenever this moves past the revision the last one covered, which is what
   // makes late modules -- anything behind a dynamic import -- reach the browser.
@@ -449,24 +468,38 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       // `unhandledRejection` and take the dev server down over a failed CSS
       // refresh. `void` alone would silence the lint without handling anything.
       void (async () => {
-        // Find all CSS modules that actually contain the placeholder
-        const cssModules = await invalidateAndCollectCssModules(
-          server,
-          normalizedOptions.useCssPlaceholder,
-          cssMarkerCache
-        );
+        if (bundledDevCss.enabled) {
+          // No module graph to invalidate under bundled serve: the browser is
+          // told to refetch the served stylesheet instead.
+          bundledDevCss.refresh();
+        } else {
+          // Find all CSS modules that actually contain the placeholder
+          const cssModules = await invalidateAndCollectCssModules(
+            server,
+            normalizedOptions.useCssPlaceholder,
+            cssMarkerCache
+          );
 
-        // Send update to trigger HMR
-        if (cssModules.length > 0) {
-          server.ws.send({
-            type: 'update',
-            updates: cssModules.map(mod => ({
-              type: 'css-update' as const,
-              acceptedPath: mod.url,
-              path: mod.url,
-              timestamp: Date.now(),
-            })),
-          });
+          // Send update to trigger HMR. Both kinds go out for each stylesheet:
+          // one reached through `<link>` is swapped in place by a `css-update`,
+          // while one imported from JavaScript lives in a `<style>` element
+          // that only a `js-update` of its module re-injects. The graph does
+          // not tell the two apart (a linked stylesheet is registered as a
+          // `js` node too), and the client ignores the kind with no target.
+          if (cssModules.length > 0) {
+            const timestamp = Date.now();
+            server.ws.send({
+              type: 'update',
+              updates: cssModules.flatMap(mod =>
+                (['css-update', 'js-update'] as const).map(type => ({
+                  type,
+                  acceptedPath: mod.url,
+                  path: mod.url,
+                  timestamp,
+                }))
+              ),
+            });
+          }
         }
 
         // Only now is the revision genuinely covered. Recording it before the
@@ -513,6 +546,9 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   const placeholderGenerateBundle = {
     order: 'post' as const,
     async handler(this: PlaceholderBundleContext, _options: unknown, bundle: OutputBundleLike) {
+      // Bundled serve emits no stylesheet asset to inject into; the marker
+      // stylesheet is served outside the bundle there.
+      if (bundledDevCss.enabled) return;
       await injectPlaceholderIntoBundle(
         this,
         bundle,
@@ -679,6 +715,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       },
 
       configResolved(config) {
+        bundledDevCss.configure(config);
         // An SSR bundle emits no stylesheet of its own, so a missing injection
         // target there is expected rather than a misconfiguration.
         viteIsSsrBuild = !!config.build.ssr;
@@ -695,16 +732,39 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         config.optimizeDeps.exclude.push('@stylexjs/open-props');
       },
 
+      // `pre` because Vite's own resolver answers relative imports first in
+      // the default order, and the marker stylesheet has to be claimed before
+      // that under bundled serve.
+      resolveId: {
+        order: 'pre',
+        handler(id, importer) {
+          // Gated synchronously: this runs for every import in every mode.
+          if (!bundledDevCss.enabled) return null;
+          return bundledDevCss.resolveId.call(this, id, importer);
+        },
+      },
+
       // Load CSS files to replace placeholder before Vite's CSS processing
       async load(id) {
+        // The runtime that links a served stylesheet under bundled serve. Any
+        // other id, including the stylesheet as another environment sees it,
+        // takes the regular path below.
+        const runtime = bundledDevCss.load(id);
+        if (runtime) return runtime;
         // Only handle CSS files with useCssPlaceholder
         if (!normalizedOptions.useCssPlaceholder) return null;
-        if (!id.endsWith('.css')) return null;
+        // A stylesheet the browser fetched through `<link>` arrives with the
+        // `?direct` query the dev server adds; every other query (`?inline`,
+        // `?url`, `?raw`) asks for something other than the stylesheet.
+        const [cssFile = id, query] = id.split('?');
+        if (!cssFile.endsWith('.css') || (query !== undefined && query !== 'direct')) {
+          return null;
+        }
 
         // Read the CSS file
         let cssContent: string;
         try {
-          cssContent = await promises.readFile(id, 'utf-8');
+          cssContent = await promises.readFile(cssFile, 'utf-8');
         } catch {
           return null;
         }
@@ -735,15 +795,11 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           collectedCSS = getStyleXRules(stylexRules, transformedOptions);
         }
 
-        // Determine replacement CSS based on whether usable CSS exists yet
-        let replacementCSS: string;
-        if (!collectedCSS?.trim() || hasUnresolvedDefineConstAtRule(collectedCSS)) {
-          replacementCSS = '/* StyleX styles will load after transformation */';
-        } else {
-          replacementCSS = await transformStyleXCSS(collectedCSS, id, normalizedOptions);
-        }
-
-        return replaceFirstMarker(cssContent, normalizedOptions.useCssPlaceholder, replacementCSS);
+        return replaceFirstMarker(
+          cssContent,
+          normalizedOptions.useCssPlaceholder,
+          await renderDevRules(collectedCSS, id)
+        );
       },
 
       generateBundle: placeholderGenerateBundle,
@@ -788,6 +844,8 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         refreshedRulesRevision = rulesRevision;
         cssRefreshFailures = 0;
         cssMarkerCache.clear();
+
+        bundledDevCss.configureServer(server);
 
         // Editing a stylesheet is the only thing that can add or remove its
         // marker, so the cached answer is dropped for exactly that file.

@@ -53,6 +53,16 @@ development a third form applies: the served path, base-less, because that is
 what HMR payloads carry.
 _Avoid_: css url, link path, asset url
 
+**Served stylesheet**:
+The marker stylesheet under Vite's bundled dev server, where imported CSS is
+compiled into JavaScript and never requested on its own. The import is
+redirected to a runtime module that links the stylesheet from the dev server,
+and a middleware renders it from the file and the current rules on each
+request; one hot event asks the browser to refetch it. Only exists when
+`experimental.bundledDev` is on; every other Vite path keeps the stylesheet in
+the module graph.
+_Avoid_: virtual stylesheet, external CSS, link mode
+
 **Bundler source**:
 An asset's content object. webpack and Rspack each declare their own
 incompatible `Source`, so the shared injection helper is generic over it: under

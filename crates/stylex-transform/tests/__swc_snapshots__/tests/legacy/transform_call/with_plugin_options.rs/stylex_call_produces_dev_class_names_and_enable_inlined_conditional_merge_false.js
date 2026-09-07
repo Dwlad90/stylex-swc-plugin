@@ -5,4 +5,4 @@ _inject2({
     ltr: ".color-x1e2nbdu{color:red}",
     priority: 3000
 });
-"color-x1e2nbdu";
+"FooBar__styles.default color-x1e2nbdu";

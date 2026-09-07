@@ -24,28 +24,33 @@ _inject2({
 });
 const styles = {
     base: {
+        "__styles.base": "__styles.base",
         backgroundColor: "backgroundColor-x1t391ir",
         $$css: true
     },
     active: {
+        "__styles.active": "__styles.active",
         right: "right-x3m8u43",
         insetInlineStart: null,
         insetInlineEnd: null,
         $$css: true
     },
     inactive: {
+        "__styles.inactive": "__styles.inactive",
         left: "left-xu96u03",
         insetInlineStart: null,
         insetInlineEnd: null,
         $$css: true
     },
     answered: {
+        "__styles.answered": "__styles.answered",
         right: "right-x131sewu",
         insetInlineStart: null,
         insetInlineEnd: null,
         $$css: true
     },
     unanswered: {
+        "__styles.unanswered": "__styles.unanswered",
         left: "left-x12lbrt0",
         insetInlineStart: null,
         insetInlineEnd: null,

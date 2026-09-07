@@ -51,21 +51,25 @@ _inject2({
 });
 export const styles = {
     sidebar: {
+        "__styles.sidebar": "__styles.sidebar",
         "boxSizing-kB7OPa": "x9f619",
         "gridArea-kJuA4N": "x1yc5d2u",
         $$css: true
     },
     content: {
+        "__styles.content": "__styles.content",
         "gridArea-kJuA4N": "x1fdo2jl",
         $$css: true
     },
     root: {
+        "__styles.root": "__styles.root",
         "display-k1xSpc": "xrvj5dj",
         "gridTemplateRows-k9llMU": "x7k18q3",
         "gridTemplateAreas-kC13JO": "x5gp9wm",
         $$css: true
     },
     withSidebar: {
+        "__styles.withSidebar": "__styles.withSidebar",
         "gridTemplateColumns-kumcoG": "x1rkzygb",
         "gridTemplateRows-k9llMU": "x7k18q3",
         "gridTemplateAreas-kC13JO": "x17lh93j",
@@ -75,15 +79,16 @@ export const styles = {
         $$css: true
     },
     noSidebar: {
+        "__styles.noSidebar": "__styles.noSidebar",
         "gridTemplateColumns-kumcoG": "x1mkdm3x",
         $$css: true
     }
 };
 ({
     0: {
-        class: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4"
+        class: "__styles.root xrvj5dj __styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4"
     },
     1: {
-        class: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x"
+        class: "__styles.root xrvj5dj x7k18q3 x5gp9wm __styles.noSidebar x1mkdm3x"
     }
 })[!!(sidebar == null) << 0];

@@ -6,6 +6,6 @@ _inject2({
     priority: 3000
 });
 ({
-    className: "color-x1e2nbdu",
+    className: "FooBar__styles.default color-x1e2nbdu",
     "data-style-src": "js/FooBar.react.js:3"
 });

@@ -11,7 +11,7 @@ _inject2({
 });
 function App() {
     _$spread(_el$, _$mergeProps(()=>({
-            className: "borderRadius-x12oqio5 backgroundColor-x1t391ir",
+            className: "Foo__styles.card borderRadius-x12oqio5 Foo__styles.blueBg backgroundColor-x1t391ir",
             "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3; npm-package:node_modules/npm-package/dist/components/Foo.react.js:6"
         })), false, true);
 }

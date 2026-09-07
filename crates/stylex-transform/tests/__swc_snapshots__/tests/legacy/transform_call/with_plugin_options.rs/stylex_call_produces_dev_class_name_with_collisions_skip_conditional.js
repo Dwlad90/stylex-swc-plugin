@@ -11,10 +11,12 @@ _inject2({
 });
 const styles = {
     default: {
+        "FooBar__styles.default": "FooBar__styles.default",
         "color-kMwMTN": "color-x1e2nbdu",
         $$css: "js/FooBar.react.js:3"
     },
     active: {
+        "FooBar__styles.active": "FooBar__styles.active",
         "color-kMwMTN": "color-xju2f9n",
         $$css: "js/FooBar.react.js:6"
     }

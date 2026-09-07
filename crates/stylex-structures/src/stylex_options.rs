@@ -85,7 +85,8 @@ impl Default for StyleXOptionsParams {
       debug: None,
       enable_debug_class_names: Some(false),
       enable_debug_data_prop: Some(true),
-      enable_dev_class_names: Some(false),
+      // Absent on purpose: the option follows `dev` when it is not set.
+      enable_dev_class_names: None,
       enable_minified_keys: Some(true),
       inject_stylex_side_effects: Some(false),
       use_real_file_for_source: Some(true),
@@ -359,7 +360,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       .maybe_test(options.test)
       .maybe_enable_debug_class_names(options.enable_debug_class_names)
       .maybe_enable_debug_data_prop(options.enable_debug_data_prop)
-      .maybe_enable_dev_class_names(options.enable_dev_class_names)
+      .maybe_enable_dev_class_names(options.enable_dev_class_names.or(options.dev))
       .maybe_enable_minified_keys(options.enable_minified_keys)
       .maybe_inject_stylex_side_effects(options.inject_stylex_side_effects)
       .maybe_treeshake_compensation(options.treeshake_compensation)

@@ -54,50 +54,62 @@ _inject2({
 });
 const c = {
     "1": {
+        "input__c.1": "input__c.1",
         fontSize: "fontSize-xeuu8e4",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:41"
     },
     "2": {
+        "input__c.2": "input__c.2",
         fontSize: "fontSize-x1jbhjkf",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:47"
     },
     wrapper: {
+        "input__c.wrapper": "input__c.wrapper",
         display: "display-xjp7ctv",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:8"
     },
     "p-2": {
+        "input__c.p-2": "input__c.p-2",
         fontSize: "fontSize-x1f3yvym",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:11"
     },
     "p-1": {
+        "input__c.p-1": "input__c.p-1",
         fontSize: "fontSize-x17vjwcc",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:17"
     },
     p: {
+        "input__c.p": "input__c.p",
         fontSize: "fontSize-x19ppoyo",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:23"
     },
     "p+1": {
+        "input__c.p 1": "input__c.p 1",
         fontSize: "fontSize-x3gzoht",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:29"
     },
     "p+2": {
+        "input__c.p 2": "input__c.p 2",
         fontSize: "fontSize-xd310an",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:35"
     },
     "p+3": {
+        "input__c.p 3": "input__c.p 3",
         fontSize: "fontSize-x14h6vv3",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:53"
     },
     "p+4": {
+        "input__c.p 4": "input__c.p 4",
         fontSize: "fontSize-x1eh3tls",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:59"
     },
     "p+5": {
+        "input__c.p 5": "input__c.p 5",
         fontSize: "fontSize-x8rl4l3",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:65"
     },
     unused: {
+        "input__c.unused": "input__c.unused",
         color: "color-x1e2nbdu",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:71"
     }

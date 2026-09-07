@@ -50,12 +50,12 @@ _inject2({
     priority: 3000
 });
 export const complex = {
-    0: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4",
-    4: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x",
-    2: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 boxSizing-x9f619 gridArea-x1yc5d2u",
-    6: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x boxSizing-x9f619 gridArea-x1yc5d2u",
-    1: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 gridArea-x1fdo2jl",
-    5: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x gridArea-x1fdo2jl",
-    3: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 boxSizing-x9f619 gridArea-x1fdo2jl",
-    7: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x boxSizing-x9f619 gridArea-x1fdo2jl"
+    0: "__styles.root display-xrvj5dj __styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4",
+    4: "__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm __styles.noSidebar gridTemplateColumns-x1mkdm3x",
+    2: "__styles.root display-xrvj5dj __styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 __styles.sidebar boxSizing-x9f619 gridArea-x1yc5d2u",
+    6: "__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm __styles.noSidebar gridTemplateColumns-x1mkdm3x __styles.sidebar boxSizing-x9f619 gridArea-x1yc5d2u",
+    1: "__styles.root display-xrvj5dj __styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 __styles.content gridArea-x1fdo2jl",
+    5: "__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm __styles.noSidebar gridTemplateColumns-x1mkdm3x __styles.content gridArea-x1fdo2jl",
+    3: "__styles.root display-xrvj5dj __styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 __styles.sidebar boxSizing-x9f619 __styles.content gridArea-x1fdo2jl",
+    7: "__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm __styles.noSidebar gridTemplateColumns-x1mkdm3x __styles.sidebar boxSizing-x9f619 __styles.content gridArea-x1fdo2jl"
 }[!!(sidebar == null && !isSidebar) << 2 | !!isSidebar << 1 | !!isContent << 0];

@@ -116,6 +116,7 @@ _inject2({
 });
 const styles = {
     root: {
+        "input__styles.root": "input__styles.root",
         display: "display-xrvj5dj",
         gridAutoFlow: "gridAutoFlow-x1mt1orb",
         gridTemplateColumns: "gridTemplateColumns-xernuvs",
@@ -125,6 +126,7 @@ const styles = {
         $$css: "tests/fixture/spot-loader/input.stylex.js:15"
     },
     rect: {
+        "input__styles.rect": "input__styles.rect",
         backgroundColor: "backgroundColor-x1mdjlir",
         borderRadius: "borderRadius-x12oqio5",
         zIndex: "zIndex-x11uqc5h",
@@ -135,46 +137,55 @@ const styles = {
         $$css: "tests/fixture/spot-loader/input.stylex.js:23"
     },
     rect1: {
+        "input__styles.rect1": "input__styles.rect1",
         height: "height-x10buj8t",
         $$css: "tests/fixture/spot-loader/input.stylex.js:32"
     },
     rect2: {
+        "input__styles.rect2": "input__styles.rect2",
         animationDelay: "animationDelay-x1qdon1m",
         height: "height-x1lnynta",
         $$css: "tests/fixture/spot-loader/input.stylex.js:35"
     },
     rect3: {
+        "input__styles.rect3": "input__styles.rect3",
         animationDelay: "animationDelay-x123bg45",
         height: "height-x5yr21d",
         $$css: "tests/fixture/spot-loader/input.stylex.js:39"
     },
     rect4: {
+        "input__styles.rect4": "input__styles.rect4",
         animationDelay: "animationDelay-x1ba7lo8",
         backgroundColor: "backgroundColor-xb4ade6",
         height: "height-x1lnynta",
         $$css: "tests/fixture/spot-loader/input.stylex.js:43"
     },
     rect5: {
+        "input__styles.rect5": "input__styles.rect5",
         animationDelay: "animationDelay-xdwblqi",
         height: "height-x10buj8t",
         $$css: "tests/fixture/spot-loader/input.stylex.js:48"
     },
     sizeSmall: {
+        "input__styles.sizeSmall": "input__styles.sizeSmall",
         height: "height-xettwda",
         width: "width-xs5h3dt",
         $$css: "tests/fixture/spot-loader/input.stylex.js:52"
     },
     size_small: {
+        "input__styles.size_small": "input__styles.size_small",
         height: "height-xettwda",
         width: "width-xs5h3dt",
         $$css: "tests/fixture/spot-loader/input.stylex.js:56"
     },
     size_normal: {
+        "input__styles.size_normal": "input__styles.size_normal",
         height: "height-x1sh0tsm",
         width: "width-xekueh",
         $$css: "tests/fixture/spot-loader/input.stylex.js:60"
     },
     size_large: {
+        "input__styles.size_large": "input__styles.size_large",
         height: "height-x17frcva",
         width: "width-xdvn7xf",
         $$css: "tests/fixture/spot-loader/input.stylex.js:64"
@@ -183,7 +194,7 @@ const styles = {
 const SpotLoader = ({ isLoading = true, style, size = COMMON_SIZES.normal })=>{
     return isLoading && <>
         <div {...stylex.props(styles[size])}>{size}</div>
-        <div className="display-xrvj5dj gridAutoFlow-x1mt1orb gridTemplateColumns-xernuvs alignItems-x6s0dn4 justifyContent-xl56j7k gap-xmjcfx9 height-xettwda width-xs5h3dt" data-style-src="tests/fixture/spot-loader/input.stylex.js:15; tests/fixture/spot-loader/input.stylex.js:52">styles.sizeSmall</div>
+        <div className="input__styles.root display-xrvj5dj gridAutoFlow-x1mt1orb gridTemplateColumns-xernuvs alignItems-x6s0dn4 justifyContent-xl56j7k gap-xmjcfx9 input__styles.sizeSmall height-xettwda width-xs5h3dt" data-style-src="tests/fixture/spot-loader/input.stylex.js:15; tests/fixture/spot-loader/input.stylex.js:52">styles.sizeSmall</div>
         <div {...stylex.props(styles.root, styles.sizeSmall, style)}>styles.sizeSmall with styles</div>
       </>;
 };

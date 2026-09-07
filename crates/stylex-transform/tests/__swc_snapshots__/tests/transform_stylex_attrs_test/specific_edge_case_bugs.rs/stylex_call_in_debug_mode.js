@@ -51,27 +51,27 @@ _inject2({
 });
 export const complex = {
     0: {
-        class: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4"
+        class: "__styles.root xrvj5dj __styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4"
     },
     4: {
-        class: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x"
+        class: "__styles.root xrvj5dj x7k18q3 x5gp9wm __styles.noSidebar x1mkdm3x"
     },
     2: {
-        class: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 x9f619 x1yc5d2u"
+        class: "__styles.root xrvj5dj __styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 __styles.sidebar x9f619 x1yc5d2u"
     },
     6: {
-        class: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x x9f619 x1yc5d2u"
+        class: "__styles.root xrvj5dj x7k18q3 x5gp9wm __styles.noSidebar x1mkdm3x __styles.sidebar x9f619 x1yc5d2u"
     },
     1: {
-        class: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 x1fdo2jl"
+        class: "__styles.root xrvj5dj __styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 __styles.content x1fdo2jl"
     },
     5: {
-        class: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x x1fdo2jl"
+        class: "__styles.root xrvj5dj x7k18q3 x5gp9wm __styles.noSidebar x1mkdm3x __styles.content x1fdo2jl"
     },
     3: {
-        class: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 x9f619 x1fdo2jl"
+        class: "__styles.root xrvj5dj __styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 __styles.sidebar x9f619 __styles.content x1fdo2jl"
     },
     7: {
-        class: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x x9f619 x1fdo2jl"
+        class: "__styles.root xrvj5dj x7k18q3 x5gp9wm __styles.noSidebar x1mkdm3x __styles.sidebar x9f619 __styles.content x1fdo2jl"
     }
 }[!!(sidebar == null && !isSidebar) << 2 | !!isSidebar << 1 | !!isContent << 0];

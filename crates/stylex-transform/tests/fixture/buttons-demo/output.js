@@ -85,6 +85,7 @@ _inject2({
 });
 const styles = {
     container: {
+        "input__styles.container": "input__styles.container",
         display: "display-x78zum5",
         flexDirection: "flexDirection-xdt5ytf",
         alignItems: "alignItems-x6s0dn4",
@@ -94,12 +95,14 @@ const styles = {
         $$css: "tests/fixture/buttons-demo/input.stylex.js:49"
     },
     bordered: {
+        "input__styles.bordered": "input__styles.bordered",
         borderWidth: "borderWidth-xdh2fpr",
         borderStyle: "borderStyle-x1y0btm7",
         borderColor: "borderColor-x71xlcl",
         $$css: "tests/fixture/buttons-demo/input.stylex.js:57"
     },
     greenBorder: {
+        "input__styles.greenBorder": "input__styles.greenBorder",
         borderColor: "borderColor-x1bg2uv5",
         $$css: "tests/fixture/buttons-demo/input.stylex.js:62"
     }

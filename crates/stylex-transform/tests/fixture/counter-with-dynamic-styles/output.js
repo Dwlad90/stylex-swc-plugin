@@ -8,19 +8,20 @@ import { spacing, text, globalTokens as $ } from './globalTokens.stylex';
 import { colors } from '@stylexjs/open-props/lib/colors.stylex';
 import { useState } from 'react';
 const _temp = {
+    "input__styles.size": "input__styles.size",
     fontSize: "fontSize-xdmh292",
     $$css: "tests/fixture/counter-with-dynamic-styles/input.stylex.js:41"
 };
 export default function Counter() {
     const [count, setCount] = useState(0);
-    return <div className="display-x78zum5 alignItems-x6s0dn4 justifyContent-xl56j7k flexDirection-x1q0g3np borderRadius-x18tt229 borderWidth-xmkeg23 borderStyle-x1y0btm7 borderColor-x1nasx6d padding-x1l67flk fontFamily-x1o4itb0 gap-x1mm2g2v" data-style-src="tests/fixture/counter-with-dynamic-styles/input.stylex.js:42">
-      <button className="display-x78zum5 alignItems-x6s0dn4 justifyContent-xl56j7k height-x17frcva aspectRatio-x1plog1 color-x194xsre backgroundColor-x1a2lmyf backgroundColor-x1oi2zhp backgroundColor-xseld47 backgroundColor-xjbufok borderWidth-xc342km borderStyle-xng3xce borderRadius-x1nklt0o padding-x1t29n93 margin-x4kdmvg cursor-x1ypdohk fontSize-xt4rhuc transform-x1u4xmye transform-xglsxx3" data-style-src="tests/fixture/counter-with-dynamic-styles/input.stylex.js:55" onClick={()=>setCount((c)=>c - 1)}>
+    return <div className="input__styles.container display-x78zum5 alignItems-x6s0dn4 justifyContent-xl56j7k flexDirection-x1q0g3np borderRadius-x18tt229 borderWidth-xmkeg23 borderStyle-x1y0btm7 borderColor-x1nasx6d padding-x1l67flk fontFamily-x1o4itb0 gap-x1mm2g2v" data-style-src="tests/fixture/counter-with-dynamic-styles/input.stylex.js:42">
+      <button className="input__styles.button display-x78zum5 alignItems-x6s0dn4 justifyContent-xl56j7k height-x17frcva aspectRatio-x1plog1 color-x194xsre backgroundColor-x1a2lmyf backgroundColor-x1oi2zhp backgroundColor-xseld47 backgroundColor-xjbufok borderWidth-xc342km borderStyle-xng3xce borderRadius-x1nklt0o padding-x1t29n93 margin-x4kdmvg cursor-x1ypdohk fontSize-xt4rhuc transform-x1u4xmye transform-xglsxx3" data-style-src="tests/fixture/counter-with-dynamic-styles/input.stylex.js:55" onClick={()=>setCount((c)=>c - 1)}>
         -
       </button>
       <div {...stylex.props(styles.count, styles.size(count), Math.abs(count) > 99 && styles.largeNumber)}>
         {count}
       </div>
-      <button className="display-x78zum5 alignItems-x6s0dn4 justifyContent-xl56j7k height-x17frcva aspectRatio-x1plog1 color-x194xsre backgroundColor-x1a2lmyf backgroundColor-x1oi2zhp backgroundColor-xseld47 backgroundColor-xjbufok borderWidth-xc342km borderStyle-xng3xce borderRadius-x1nklt0o padding-x1t29n93 margin-x4kdmvg cursor-x1ypdohk fontSize-xt4rhuc transform-x1u4xmye transform-xglsxx3" data-style-src="tests/fixture/counter-with-dynamic-styles/input.stylex.js:55" onClick={()=>setCount((c)=>c + 1)}>
+      <button className="input__styles.button display-x78zum5 alignItems-x6s0dn4 justifyContent-xl56j7k height-x17frcva aspectRatio-x1plog1 color-x194xsre backgroundColor-x1a2lmyf backgroundColor-x1oi2zhp backgroundColor-xseld47 backgroundColor-xjbufok borderWidth-xc342km borderStyle-xng3xce borderRadius-x1nklt0o padding-x1t29n93 margin-x4kdmvg cursor-x1ypdohk fontSize-xt4rhuc transform-x1u4xmye transform-xglsxx3" data-style-src="tests/fixture/counter-with-dynamic-styles/input.stylex.js:55" onClick={()=>setCount((c)=>c + 1)}>
         +
       </button>
     </div>;
@@ -173,6 +174,7 @@ const styles = {
             }
         ],
     count: {
+        "input__styles.count": "input__styles.count",
         fontSize: "fontSize-xt4rhuc",
         fontWeight: "fontWeight-x3stwaq",
         color: "color-xnu1ptm",
@@ -182,6 +184,7 @@ const styles = {
         $$css: "tests/fixture/counter-with-dynamic-styles/input.stylex.js:83"
     },
     largeNumber: {
+        "input__styles.largeNumber": "input__styles.largeNumber",
         fontSize: "fontSize-x1bb9vi5",
         $$css: "tests/fixture/counter-with-dynamic-styles/input.stylex.js:91"
     }

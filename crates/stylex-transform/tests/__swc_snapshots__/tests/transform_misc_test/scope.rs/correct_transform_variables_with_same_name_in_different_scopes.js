@@ -53,6 +53,7 @@ _inject2({
 });
 const s = {
     div: {
+        "__s.div": "__s.div",
         "backgroundColor-kWkggS": "backgroundColor-xvto61e",
         $$css: true
     }

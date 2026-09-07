@@ -25,6 +25,7 @@ _inject2({
 });
 export const styles = {
     label: {
+        "input__styles.label": "input__styles.label",
         color: "color-xkn7p67 color-xomp1nr color-x1wgracu color-x1uatm7",
         $$css: "tests/fixture/markers/input.stylex.js:8"
     }

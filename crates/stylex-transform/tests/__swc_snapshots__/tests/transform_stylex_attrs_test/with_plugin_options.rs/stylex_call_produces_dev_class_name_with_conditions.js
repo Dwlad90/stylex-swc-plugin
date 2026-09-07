@@ -11,11 +11,11 @@ _inject2({
 });
 ({
     0: {
-        class: "x1e2nbdu",
+        class: "FooBar__styles.default x1e2nbdu",
         "data-style-src": "js/FooBar.react.js:3"
     },
     1: {
-        class: "x1e2nbdu x1t391ir",
+        class: "FooBar__styles.default x1e2nbdu FooBar__otherStyles.default x1t391ir",
         "data-style-src": "js/FooBar.react.js:3; js/FooBar.react.js:8"
     }
 })[!!isActive << 0];

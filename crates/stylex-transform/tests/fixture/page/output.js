@@ -49,7 +49,7 @@ const { foo, ...a } = {
 };
 export default function Home() {
     const { className, style } = {
-        className: "color-x1e2nbdu display-x78zum5 flexDirection-xdt5ytf alignItems-x6s0dn4 justifyContent-x1qughib minHeight-xg6iff7 padding-x1lmef92 lineHeight-x1swossr fontSize-xif65rj",
+        className: "input__s.main color-x1e2nbdu display-x78zum5 flexDirection-xdt5ytf alignItems-x6s0dn4 justifyContent-x1qughib minHeight-xg6iff7 padding-x1lmef92 input__s.title lineHeight-x1swossr fontSize-xif65rj",
         "data-style-src": "tests/fixture/page/input.stylex.js:5; tests/fixture/page/input.stylex.js:19"
     };
     return <main className={className} style={style}>

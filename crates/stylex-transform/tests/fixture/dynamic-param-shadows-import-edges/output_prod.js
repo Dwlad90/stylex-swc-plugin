@@ -3,7 +3,7 @@ import { zIndex } from './vars/zIndex.stylex.js';
 import { spacing as ünïcödé } from './vars/spacing.stylex.js';
 import { firstThatWorks } from './vars/legacy.stylex.js';
 import { grid } from './vars/grid.stylex.js';
-const _temp2 = {
+const _temp10 = {
     kY2c9j: "xr3buco",
     kah6P1: "x1p70blb",
     kzqmXN: "x5lhr3w",
@@ -91,7 +91,7 @@ export const styles = {
             }
         ],
     computedFromParam: (zIndex)=>[
-            _temp2,
+            _temp10,
             {
                 "--x-zIndex": zIndex + 1 != null ? zIndex + 1 : undefined,
                 "--x-content": `"${zIndex}"` != null ? `"${zIndex}"` : undefined,

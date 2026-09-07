@@ -64,11 +64,13 @@ _inject2({
 });
 const styles = {
     primary: {
+        "input__styles.primary": "input__styles.primary",
         backgroundColor: "backgroundColor-xrkmrrc",
         color: "color-x1awj2ng",
         $$css: "tests/fixture/use-memo/input.stylex.js:33"
     },
     root: {
+        "input__styles.root": "input__styles.root",
         display: "display-x1lliihq",
         fontSize: "fontSize-x1j61zf2",
         paddingBottom: "paddingBottom-xsag5q8",

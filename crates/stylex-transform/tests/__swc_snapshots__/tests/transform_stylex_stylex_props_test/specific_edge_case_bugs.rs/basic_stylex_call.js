@@ -51,21 +51,25 @@ _inject2({
 });
 export const styles = {
     sidebar: {
+        "__styles.sidebar": "__styles.sidebar",
         "boxSizing-kB7OPa": "boxSizing-x9f619",
         "gridArea-kJuA4N": "gridArea-x1yc5d2u",
         $$css: true
     },
     content: {
+        "__styles.content": "__styles.content",
         "gridArea-kJuA4N": "gridArea-x1fdo2jl",
         $$css: true
     },
     root: {
+        "__styles.root": "__styles.root",
         "display-k1xSpc": "display-xrvj5dj",
         "gridTemplateRows-k9llMU": "gridTemplateRows-x7k18q3",
         "gridTemplateAreas-kC13JO": "gridTemplateAreas-x5gp9wm",
         $$css: true
     },
     withSidebar: {
+        "__styles.withSidebar": "__styles.withSidebar",
         "gridTemplateColumns-kumcoG": "gridTemplateColumns-x1rkzygb",
         "gridTemplateRows-k9llMU": "gridTemplateRows-x7k18q3",
         "gridTemplateAreas-kC13JO": "gridTemplateAreas-x17lh93j",
@@ -75,15 +79,16 @@ export const styles = {
         $$css: true
     },
     noSidebar: {
+        "__styles.noSidebar": "__styles.noSidebar",
         "gridTemplateColumns-kumcoG": "gridTemplateColumns-x1mkdm3x",
         $$css: true
     }
 };
 ({
     0: {
-        className: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4"
+        className: "__styles.root display-xrvj5dj __styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4"
     },
     1: {
-        className: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x"
+        className: "__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm __styles.noSidebar gridTemplateColumns-x1mkdm3x"
     }
 })[!!(sidebar == null) << 0];

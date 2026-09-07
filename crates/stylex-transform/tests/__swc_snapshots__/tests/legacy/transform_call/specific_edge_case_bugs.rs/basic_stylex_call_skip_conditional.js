@@ -51,6 +51,7 @@ _inject2({
 });
 export const styles = {
     sidebar: {
+        "__styles.sidebar": "__styles.sidebar",
         "boxSizing-kB7OPa": "boxSizing-x9f619",
         "gridArea-kJuA4N": "gridArea-x1yc5d2u",
         "gridRow-kbNqZ1": null,
@@ -62,6 +63,7 @@ export const styles = {
         $$css: true
     },
     content: {
+        "__styles.content": "__styles.content",
         "gridArea-kJuA4N": "gridArea-x1fdo2jl",
         "gridRow-kbNqZ1": null,
         "gridRowStart-k1lYIM": null,
@@ -72,12 +74,14 @@ export const styles = {
         $$css: true
     },
     root: {
+        "__styles.root": "__styles.root",
         "display-k1xSpc": "display-xrvj5dj",
         "gridTemplateRows-k9llMU": "gridTemplateRows-x7k18q3",
         "gridTemplateAreas-kC13JO": "gridTemplateAreas-x5gp9wm",
         $$css: true
     },
     withSidebar: {
+        "__styles.withSidebar": "__styles.withSidebar",
         "gridTemplateColumns-kumcoG": "gridTemplateColumns-x1rkzygb",
         "gridTemplateRows-k9llMU": "gridTemplateRows-x7k18q3",
         "gridTemplateAreas-kC13JO": "gridTemplateAreas-x17lh93j",
@@ -87,6 +91,7 @@ export const styles = {
         $$css: true
     },
     noSidebar: {
+        "__styles.noSidebar": "__styles.noSidebar",
         "gridTemplateColumns-kumcoG": "gridTemplateColumns-x1mkdm3x",
         $$css: true
     }

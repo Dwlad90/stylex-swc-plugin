@@ -7,6 +7,7 @@ _inject2({
 });
 const styles = {
     red: {
+        "Foo__styles.red": "Foo__styles.red",
         "color-kMwMTN": "color-x1e2nbdu",
         $$css: "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
     }

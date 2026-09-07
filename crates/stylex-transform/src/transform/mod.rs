@@ -74,6 +74,7 @@ where
   ///
   /// The tester registers the file after the pass is built, so the lookup waits
   /// for the program.
+  #[doc(hidden)]
   pub fn with_source_map(mut self, source_map: Lrc<SourceMap>) -> Self {
     self.source_map = Some(source_map);
     self
@@ -282,6 +283,9 @@ where
     }
   }
 
+  /// The tester builds its pass through this. Production drives the transform
+  /// directly, so it is here for the test harness and the benches alone.
+  #[doc(hidden)]
   pub fn into_pass(self) -> impl Pass + use<C> {
     let unresolved_mark = Mark::new();
     let top_level_mark = Mark::new();
@@ -314,8 +318,14 @@ where
   fn process(&mut self, program: &mut Program) {
     // A program with no span, or one this map did not parse, has no text to
     // give. The transform then falls back to the printed module, as before.
+    //
+    // The lookup searches on the start of each file alone, so a position past
+    // the end of the last file answers with that last file. Only a position the
+    // file really holds names its text, or a program parsed by another map
+    // would be quoted as this one.
     if let Some(source_map) = &self.source_map
       && let Ok(Some(source_file)) = source_map.try_lookup_source_file(program.span_lo())
+      && (source_file.start_pos..source_file.end_pos).contains(&program.span_lo())
     {
       self.transform.state.set_input_source_file(source_file);
     }

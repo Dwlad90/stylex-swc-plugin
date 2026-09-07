@@ -30,7 +30,7 @@ use stylex_structures::stylex_options::StyleXOptions;
 use swc_core::{
   common::{DUMMY_SP, GLOBALS, Globals, SyntaxContext},
   ecma::{
-    ast::{BindingIdent, Module},
+    ast::{BindingIdent, Module, VarDeclarator},
     visit::{Visit, VisitWith},
   },
 };
@@ -727,15 +727,28 @@ pub(crate) const UNRESOLVED_MEMO_WARM: &str = "(() => 1) + 1 + 2";
 /// again. Nothing an expression writes on its own reaches that, so a case about
 /// it has to warm the memo first.
 pub(crate) fn evaluated_after(warm: &str, source: &str) -> Box<EvaluateResult> {
+  evaluated_after_against(warm, &FunctionMap::default(), source)
+}
+
+/// The same, against a function map the case built.
+///
+/// Some shapes need two doors open at once. The engine declines a call written
+/// over the compiler's own function fold, and only the memo answers nothing
+/// while the walk stays confident -- so this is the one way a value that
+/// resolved to nothing reaches a declined call.
+pub(crate) fn evaluated_after_against(
+  warm: &str,
+  fns: &FunctionMap,
+  source: &str,
+) -> Box<EvaluateResult> {
   let globals = Globals::new();
 
   GLOBALS.set(&globals, || {
     let mut traversal_state = StateManager::new(StyleXOptions::default());
-    let fns = FunctionMap::default();
 
-    evaluate(&parse_expr(warm), &mut traversal_state, &fns);
+    evaluate(&parse_expr(warm), &mut traversal_state, fns);
 
-    evaluate(&parse_expr(source), &mut traversal_state, &fns)
+    evaluate(&parse_expr(source), &mut traversal_state, fns)
   })
 }
 

@@ -1,7 +1,7 @@
 use super::*;
 use std::rc::Rc;
 use stylex_ast::ast::convertors::{create_ident_expr, create_null_expr, create_string_expr};
-use stylex_state::types::FunctionConfigMap;
+use stylex_state::{theme_ref::ThemeRef, types::FunctionConfigMap};
 use stylex_structures::fold_ceilings::MAX_FOLDED_CHARACTERS_LIMIT;
 use swc_core::{
   common::DUMMY_SP,
@@ -123,6 +123,60 @@ fn the_two_bridges_agree_a_callback_is_a_function() {
     ),
     "the object bridge must read a callback as a function"
   );
+}
+
+/// A `defineVars` group carries a `toString` of its own, so its string is the
+/// var group hash rather than the object default. The reference
+/// implementation's proxy answers the same hash from the same trap -- and the
+/// hash pinned below is that compiler's own answer for the same two names, read
+/// out of it rather than recomputed here.
+///
+/// Its *object* coercion is an object all the same, which is the one place the
+/// two bridges answer differently on purpose: the language reads
+/// `String(group)` through the trap and `typeof group` through the kind.
+#[test]
+fn a_var_group_answers_its_hash_as_a_string_and_an_object_as_a_kind() {
+  let group = EvaluateResultValue::ThemeRef(ThemeRef::new("vars.stylex.js", "vars", "x"));
+
+  assert_eq!(
+    string_of(&group, coercions::FunctionForm::Refuse).as_deref(),
+    Some("xop34xu"),
+    "a group's string is the hash of the file and export it names"
+  );
+
+  assert!(
+    matches!(
+      evaluate_result_to_js_object(&group),
+      Some(coercions::ObjectCoercion::Object)
+    ),
+    "the object bridge must read a group as an object"
+  );
+}
+
+/// The two values that stand for a plain object take the `Object.prototype`
+/// default, which is what the language answers for one.
+#[test]
+fn the_values_that_stand_for_a_plain_object_take_the_object_default() {
+  for value in [
+    EvaluateResultValue::Map(IndexMap::default()),
+    EvaluateResultValue::EnvObject(IndexMap::default().into()),
+  ] {
+    assert_eq!(
+      string_of(&value, coercions::FunctionForm::Refuse).as_deref(),
+      Some(coercions::OBJECT_TO_STRING),
+      "the string bridge must give {:?} the object default",
+      value
+    );
+
+    assert!(
+      matches!(
+        evaluate_result_to_js_object(&value),
+        Some(coercions::ObjectCoercion::Object)
+      ),
+      "the object bridge must read {:?} as an object",
+      value
+    );
+  }
 }
 
 /// The whole of the character ceiling's arithmetic, tested without a compile:

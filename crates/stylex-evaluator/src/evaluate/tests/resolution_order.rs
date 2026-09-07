@@ -21,7 +21,7 @@ use swc_core::atoms::Atom;
 use swc_core::common::{BytePos, DUMMY_SP, GLOBALS, Globals, Span, SyntaxContext};
 use swc_core::ecma::ast::{
   BindingIdent, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
-  ImportSpecifier, ImportStarAsSpecifier, ModuleExportName, Str,
+  ImportSpecifier, ImportStarAsSpecifier, ModuleExportName, Str, VarDeclarator,
 };
 
 use std::path::PathBuf;

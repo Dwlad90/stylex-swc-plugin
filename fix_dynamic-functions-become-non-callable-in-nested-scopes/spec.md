@@ -1,6 +1,6 @@
 # Dynamic style functions in nested scopes
 
-Status: ready-for-agent
+Status: done
 
 Tracks GitHub issue
 [#1303](https://github.com/Dwlad90/stylex-swc-plugin/issues/1303). Spec only --
@@ -60,12 +60,20 @@ entry are hoisted from inside the `fns` branch.
 
 ## Acceptance criteria
 
-- [ ] Snapshot tests in `transform_stylex_create_test/dynamic_styles.rs` for
+- [x] Snapshot tests in `transform_stylex_create_test/dynamic_styles.rs` for
       a namespace, a function, an IIFE and a block scope, with a static
       sibling and a runtime-injection variant, match the reference output.
-- [ ] A vitest spec in `crates/stylex-rs-compiler/__test__/` compiles the
+- [x] A vitest spec in `crates/stylex-rs-compiler/__test__/` compiles the
       namespace and IIFE cases, executes the output, and asserts that the
       dynamic entry is callable, returns per-argument values, and leaves the
       static sibling intact.
-- [ ] `pnpm test:crates:workspace`, `pnpm test`, `pnpm typecheck`,
+- [x] `pnpm test:crates:workspace`, `pnpm test`, `pnpm typecheck`,
       `pnpm lint:all` and `pnpm format:check` pass.
+
+## Comments
+
+- 2026-09-07: Done in 2789cf914 (fix) and dc229267c (execution spec). Two
+  pre-existing follow-ups are recorded in ticket 01: the nested-scope `$$css`
+  debug line number, and the loop-invariant hashes in `register_styles`.
+- 2026-09-08: Follow-ups closed in 4bcfa0ec0, ca89d1313, c00bb72d1,
+  37dca4ce6 and 197f446bd. See the comments in tickets 01 and 02.

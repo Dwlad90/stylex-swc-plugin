@@ -12,13 +12,35 @@ against the spec is completed, with findings fixed.
 
 **Blocked by:** 01 — Reorder the hoist so a nested dynamic entry stays callable.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The spec fails on the binding built from `develop` and passes on the
+- [x] The spec fails on the binding built from `develop` and passes on the
       binding built from this branch.
-- [ ] Namespace and IIFE cases are executed, not only compiled.
-- [ ] `pnpm typecheck`, `pnpm lint:all`, `pnpm lint:type-aware`,
+- [x] Namespace and IIFE cases are executed, not only compiled.
+- [x] `pnpm typecheck`, `pnpm lint:all`, `pnpm lint:type-aware`,
       `pnpm format:check`, `pnpm test` and `pnpm test:crates:workspace` pass.
-- [ ] `/code-review` run over the branch; findings addressed.
-- [ ] Spec acceptance criteria in `spec.md` ticked.
-- [ ] One conventional commit: `test(rs-compiler): ...`.
+- [x] `/code-review` run over the branch; findings addressed.
+- [x] Spec acceptance criteria in `spec.md` ticked.
+- [x] One conventional commit: `test(rs-compiler): ...` (dc229267c).
+
+## Comments
+
+- 2026-09-07: Done in dc229267c. The suite failed on the binding built before
+  2789cf914 with `TypeError: styles.color is not a function` in all three
+  tests, and passes on the binding rebuilt from this branch.
+- 2026-09-07: `@stylexjs/stylex` is not resolvable from the rs-compiler
+  package, so the child runs the compiled module with a `stylex.props` stub
+  that returns its arguments. The dynamic call is an argument expression, so
+  the stub cannot hide the reported failure. SWC lowers the compiled
+  TypeScript to CommonJS first, because a namespace is not erasable syntax.
+- 2026-09-07: Review notes not acted on: the outcome check after
+  `runNodeScript` now exists in three specs with different wording, and a
+  shared `runNodeScriptOrThrow` in `nodeScript.ts` would end the drift. The
+  reported failure is a catchable `TypeError`, so an in-process run would
+  also do; the child process stays because this ticket asks for it.
+- 2026-09-07: A third case with many dynamic entries beside static siblings
+  in one function body guards the per-entry rewrite. The count is only
+  "many"; no threshold is known.
+- 2026-09-08: The outcome check is shared now: `runNodeScriptOrThrow` in
+  `nodeScript.ts` (ca89d1313). The env value suite keeps its own assertion
+  on purpose.

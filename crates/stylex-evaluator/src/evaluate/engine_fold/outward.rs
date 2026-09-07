@@ -146,6 +146,10 @@ impl<'a> Outward<'a> {
   /// carrying no object at all — a symbol or a big integer, neither of which the
   /// guard admits into a fold — falls to the same refusal, because it is the
   /// same sentence for the same reason.
+  ///
+  /// The depth is spent before the kind is read, so such a value at an exhausted
+  /// budget is refused for the depth rather than for its kind. Nothing can see
+  /// that: the value the two answers differ over is the one that cannot arrive.
   fn nested_object(
     &mut self,
     value: &JsValue,
@@ -162,7 +166,7 @@ impl<'a> Outward<'a> {
     match value.as_object() {
       Some(object) if object.is_array() => self.array_value(&object, engine, inner),
       Some(object) if object.is_ordinary() => self.plain_object_value(&object, engine, inner),
-      _ => self.exotic_value(value, engine),
+      object => self.exotic_value(value, object.as_ref(), engine),
     }
   }
 
@@ -277,15 +281,20 @@ impl<'a> Outward<'a> {
   /// Everything else is named by `typeof` rather than by a word list of this
   /// module's own: the engine already answers that question exhaustively, and
   /// its answer is the one an author would use for the value they wrote.
+  ///
+  /// The object is passed in rather than read again: the dispatch above has
+  /// already asked, and a value with no object at all is the `None` it hands
+  /// over.
   fn exotic_value(
     &mut self,
     value: &JsValue,
+    object: Option<&JsObject>,
     engine: &mut Context,
   ) -> Result<EvaluateResultValue, Decline> {
-    if let Some(object) = value.as_object()
+    if let Some(object) = object
       && is_a_var_group(value, self.method, engine)?
     {
-      let hash = var_group_text(&object, self.method, engine)?;
+      let hash = var_group_text(object, self.method, engine)?;
 
       return Ok(EvaluateResultValue::Expr(Expr::Lit(Lit::Str(
         hash.to_std_string_lossy().into(),
@@ -304,10 +313,11 @@ impl<'a> Outward<'a> {
   /// read, and is refused as one.
   ///
   /// Only the first is reachable: this is asked of an array exotic object alone,
-  /// whose `length` is a data property the language keeps inside `u32`. The
-  /// second is answered rather than asserted for the reason every refusal here
-  /// is — a fold may fail, and a panic would end a build a refusal only leaves
-  /// to the runtime.
+  /// whose `length` is a data property the language keeps inside `u32`. Proved
+  /// by making the second panic and running the whole workspace suite. It stays
+  /// all the same, because there is no total reading of the property to put in
+  /// its place — and a panic would end a build that a refusal only leaves to the
+  /// runtime, which is what every refusal in this module is answered for.
   ///
   /// Counted before the elements are read, so an array past the bound refuses
   /// without first converting a single element of it.

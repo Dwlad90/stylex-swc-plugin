@@ -246,6 +246,11 @@ fn a_property_whose_getter_throws_refuses_in_the_engines_words() {
 
   match result.reason.as_deref() {
     Some(reason) => {
+      // The method the author wrote, and then what the language threw. The
+      // sentence is read down to the throw itself rather than to the word
+      // `TypeError`, because a refusal naming the wrong throw reads to an author
+      // exactly like the right one. What is left out is only the source position
+      // the engine appends, which names the printed text rather than the file.
       assert!(
         reason.starts_with("Cannot fold 'create' at compile time."),
         "expected the refusal of `{}` to name the method, got {:?}",
@@ -254,8 +259,8 @@ fn a_property_whose_getter_throws_refuses_in_the_engines_words() {
       );
 
       assert!(
-        reason.contains("TypeError"),
-        "expected the refusal of `{}` to carry the throw, got {:?}",
+        reason.contains("TypeError: cannot convert 'null' or 'undefined' to object"),
+        "expected the refusal of `{}` to carry what was thrown, got {:?}",
         source,
         reason
       );

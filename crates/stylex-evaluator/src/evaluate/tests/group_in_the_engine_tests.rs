@@ -131,3 +131,28 @@ fn a_group_inside_a_folded_answer_carries_its_own_text() {
     "xop34xu"
   );
 }
+
+/// A group that comes back *inside* an answer converts to its own text there
+/// too, rather than only where something in the engine joined or printed it.
+///
+/// The case above joins inside the engine, so what crosses back is one string
+/// the language wrote. Here the array crosses, and the group is read as the
+/// group on this side -- which is the one exotic object a fold can hand over.
+#[test]
+fn a_group_carried_out_inside_an_array_answers_its_own_text() {
+  assert_eq!(
+    folded_reading_the_group(&format!("[{GROUP}].map((group) => group)[0]")),
+    "xop34xu"
+  );
+}
+
+/// The same under a key, which is the other position an answer carries a value
+/// in. One reader answers both, and a group read one way here and another there
+/// would put two custom properties in the stylesheet.
+#[test]
+fn a_group_carried_out_under_a_key_answers_its_own_text() {
+  assert_eq!(
+    folded_reading_the_group(&format!("Object.fromEntries([['a', {GROUP}]]).a")),
+    "xop34xu"
+  );
+}

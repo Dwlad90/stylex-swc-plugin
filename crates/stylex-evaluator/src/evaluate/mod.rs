@@ -667,3 +667,7 @@ mod declined_call_receiver_tests;
 #[cfg(test)]
 #[path = "tests/guarded_walk_tests.rs"]
 mod guarded_walk_tests;
+
+#[cfg(test)]
+#[path = "tests/folded_answer_tests.rs"]
+mod folded_answer_tests;

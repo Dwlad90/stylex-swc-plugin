@@ -781,6 +781,25 @@ pub(crate) fn evaluated_at_a_character_ceiling(
   )
 }
 
+/// Evaluates `source` against `fns` under the entry ceiling `limit`.
+///
+/// The entry ceiling's opposite number to
+/// [`evaluated_at_a_character_ceiling`]. A case about how many elements or
+/// properties one answer may hold names the number it is about, for the reason
+/// a case about text does: building an input past the shipped ten thousand
+/// costs a suite far more than saying which bound it is reading.
+pub(crate) fn evaluated_at_an_entry_ceiling(
+  limit: usize,
+  fns: &FunctionMap,
+  source: &str,
+) -> Box<EvaluateResult> {
+  evaluated_in_a_state(
+    |state| state.options.core.max_folded_entries = limit,
+    fns,
+    source,
+  )
+}
+
 /// Asserts `source` refuses at the character ceiling `limit`, in the words the
 /// text it was growing is named by.
 ///

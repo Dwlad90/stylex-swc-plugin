@@ -251,15 +251,32 @@ fn a_static_that_changes_its_argument_refuses_by_name() {
 
 /// A static the language itself throws on refuses under the engine's own
 /// complaint, which is the sentence the reference compiler stops on too.
+///
+/// Each names what was thrown. The first two are what says the engine answers an
+/// own-keys call with no readable receiver: the dispatch below it reads the first
+/// argument of such a call and has no reading for one with none, so a case that
+/// only asked *whether* it refused would not tell the two apart.
 #[test]
 fn a_static_the_language_throws_on_refuses_with_what_it_threw() {
-  for source in [
-    "Object.keys()",
-    "Object.keys(null)",
-    "Object.fromEntries(1)",
-    "Object.fromEntries([1])",
+  for (source, thrown) in [
+    (
+      "Object.keys()",
+      "TypeError: cannot convert 'null' or 'undefined' to object",
+    ),
+    (
+      "Object.keys(null)",
+      "TypeError: cannot convert 'null' or 'undefined' to object",
+    ),
+    (
+      "Object.fromEntries(1)",
+      "TypeError: value with type `number` is not iterable",
+    ),
+    (
+      "Object.fromEntries([1])",
+      "TypeError: cannot get key and value from primitive item of `iterable`",
+    ),
   ] {
-    assert_deopts(source);
+    assert_deopt_reason_contains(source, thrown);
   }
 }
 

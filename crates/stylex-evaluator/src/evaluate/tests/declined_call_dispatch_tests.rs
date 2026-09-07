@@ -162,8 +162,10 @@ fn a_method_key_the_receiver_does_not_carry_refuses() {
   );
 }
 
-/// A regular expression carries methods that only a runtime can answer, so a
-/// call on one is left to the runtime.
+/// A regular expression carries methods that only a runtime can answer, and the
+/// refusal comes from the literal rather than from the call: the dispatch folds
+/// no `RegExpLiteral` in any position, so the receiver has no value for a method
+/// lookup to read and the sentence names the kind the author wrote.
 #[test]
 fn a_regular_expression_method_refuses() {
   assert_declined_with(
@@ -189,6 +191,25 @@ fn a_global_static_that_is_not_the_own_keys_question_names_itself() {
 #[test]
 fn a_spread_argument_to_the_own_keys_question_refuses() {
   assert_declined_with("Object.keys(...[[1]])", SPREAD_ELEMENT);
+}
+
+/// A spread argument to an arrow the module bound reads the spread's own
+/// sentence. The arrow is applied where the call is, so its arguments are
+/// evaluated by this dispatch rather than by the engine, and that evaluation is
+/// what owns the sentence.
+///
+/// A *method* is no good for the case: the engine walks the arguments of every
+/// call it looks at and refuses a spread there, whether or not it goes on to
+/// read the method. So an applied arrow is the one callee whose spread this
+/// dispatch ever sees.
+#[test]
+fn a_spread_argument_to_an_applied_arrow_refuses() {
+  assert_refused_in_a_module_binding(
+    "paint",
+    "(color) => color",
+    "paint(...['red'])",
+    SPREAD_ELEMENT,
+  );
 }
 
 /// A name the module declared as something that is not a function is not

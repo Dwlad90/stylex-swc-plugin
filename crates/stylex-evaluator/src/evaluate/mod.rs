@@ -662,3 +662,7 @@ mod thread_isolation_tests;
 #[cfg(test)]
 #[path = "tests/amplification_reading_tests.rs"]
 mod amplification_reading_tests;
+
+#[cfg(test)]
+#[path = "tests/declined_call_receiver_tests.rs"]
+mod declined_call_receiver_tests;

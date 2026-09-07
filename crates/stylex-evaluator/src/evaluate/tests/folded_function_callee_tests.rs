@@ -23,7 +23,9 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 
 use super::source_evaluation::*;
-use stylex_constants::constants::evaluation_errors::{NON_CONSTANT, unsupported_expression};
+use stylex_constants::constants::evaluation_errors::{
+  NON_CONSTANT, SPREAD_ELEMENT, unsupported_expression,
+};
 use stylex_constants::constants::messages::{
   ARGUMENT_NOT_EXPRESSION, PROPERTY_NOT_FOUND, VALUE_MUST_BE_LITERAL,
 };
@@ -571,6 +573,36 @@ fn every_kind_refuses_an_argument_with_no_expression_form() {
     let source = format!("{CALLED}({FOLD_NAMESPACE})");
 
     assert_refused_with(&evaluated_against(&fns, &source), &source, reason);
+  }
+}
+
+/// Every kind that takes evaluated arguments refuses a spread, and each reads
+/// the same sentence: the argument evaluation is shared, so a spread is refused
+/// there rather than once per kind. One element standing for however many the
+/// spread value holds is a count no walk here can make.
+#[test]
+fn every_kind_refuses_a_spread_argument() {
+  for entry in [
+    folded_entry(FunctionType::ArrayArgs(|args, _, _| joined(args)), false),
+    folded_entry(FunctionType::EnvFunction(JSFunction::new(joined)), false),
+    a_type_function(),
+    folded_entry(FunctionType::StylexExprFn(|expr, _| expr), false),
+    folded_entry(
+      FunctionType::StylexWhenFn(|pseudo, _, _| match pseudo.as_expr() {
+        Some(expr) => expr.clone(),
+        None => create_string_expr("no selector"),
+      }),
+      false,
+    ),
+    folded_entry(
+      FunctionType::Callback(Box::new(parse_expr("(part) => part"))),
+      false,
+    ),
+  ] {
+    let fns = map_holding(entry);
+    let source = format!("{CALLED}(...['a'])");
+
+    assert_refused_with(&evaluated_against(&fns, &source), &source, SPREAD_ELEMENT);
   }
 }
 

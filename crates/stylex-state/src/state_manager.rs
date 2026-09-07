@@ -2256,9 +2256,14 @@ impl StateManager {
     let metadatas = MetaData::convert_from_injected_styles_map(style);
     let inject_var_ident = self.setup_injection_imports();
 
+    // The hashes key the injection slots and do not change per rule, so they
+    // are computed once here and not once per metadata in the loop.
+    let ast_hash = stable_hash_unspanned(ast);
+    let fallback_ast_hash = fallback_ast.map(stable_hash_unspanned);
+
     for metadata in metadatas {
       self.add_style(&metadata);
-      self.add_style_to_inject(&metadata, &inject_var_ident, ast, fallback_ast);
+      self.add_style_to_inject(&metadata, &inject_var_ident, ast_hash, fallback_ast_hash);
     }
 
     // Update all references to this call expression with the new AST
@@ -2391,12 +2396,19 @@ impl StateManager {
     }
   }
 
+  /// Queues the injection call for one rule before each declaration it belongs
+  /// to, once per declaration.
+  ///
+  /// `ast_hash` names the declaration the styles land in, and
+  /// `fallback_ast_hash` the object a hoisted call site was replaced by. Both
+  /// are the stable hashes of the expressions `register_styles` receives, and
+  /// it computes them once for all the rules of one call.
   fn add_style_to_inject(
     &mut self,
     metadata: &MetaData,
     inject_var_ident: &Ident,
-    ast: &Expr,
-    fallback_ast: Option<&Expr>,
+    ast_hash: u128,
+    fallback_ast_hash: Option<u128>,
   ) {
     let priority = metadata.get_priority();
     let css_ltr = metadata.get_css();
@@ -2439,7 +2451,6 @@ impl StateManager {
       expr: Box::new(stylex_call),
     }));
 
-    let ast_hash = stable_hash_unspanned(ast);
     let normalized_module = module;
 
     // Per-decl dedup: keying by `ast_hash` keeps the per-bucket
@@ -2460,8 +2471,7 @@ impl StateManager {
       bucket.push(normalized_module.clone());
     }
 
-    if let Some(fallback_ast) = fallback_ast {
-      let fallback_ast_hash = stable_hash_unspanned(fallback_ast);
+    if let Some(fallback_ast_hash) = fallback_ast_hash {
       let fallback_bucket = self
         .injection
         .queued_decl_items

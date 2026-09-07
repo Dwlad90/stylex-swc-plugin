@@ -311,6 +311,21 @@ wrote is the other value class and is counted as a [written
 slot](#written-slot) instead, where a hole does occupy one.
 _Avoid_: folded array, internal array, rebuilt array
 
+**Evaluator-written object**:
+An object that reaches a reader as an evaluated value rather than as source.
+Every property of one is a key-value pair: `object_expression` writes its own
+that way, refuses a method, a getter and a setter, and merges a spread out of a
+value that is itself already evaluated. So a reader may pass over whatever is
+not a key-value pair rather than refuse it. What the class does _not_ promise is
+the spelling of a key. The object writes its own keys as identifiers, but two
+things build one from a name instead — `function_fold_to_object`, from an entry
+name, and the `env` option's napi bridge, from a JavaScript property name — and
+both go through `create_key_value_prop`, which quotes a name no identifier can
+spell. Such a key names no method and no entry: the method lookup passes over it
+and reports the property as not found, and the type function refuses it by name.
+The other class is an [evaluator-written array](#evaluator-written-array).
+_Avoid_: folded object, internal object, rebuilt object
+
 **Declared length**:
 A length a call states in an argument and does not pay for — `Array(n)`, whose
 array is sparse, and `Array.from({ length: n })`, which is one property saying

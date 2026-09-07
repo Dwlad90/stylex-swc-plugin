@@ -20,9 +20,7 @@ use stylex_constants::constants::api_names::FUNCTION_CONFIG_FN_KEY;
 use indexmap::IndexMap;
 use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
-use stylex_macros::{
-  deopt_unsupported, expr_to_str_or_deopt, stylex_panic_with_context, stylex_unreachable,
-};
+use stylex_macros::{deopt_unsupported, expr_to_str_or_deopt, stylex_panic_with_context};
 use swc_core::{
   atoms::Atom,
   ecma::{
@@ -51,16 +49,15 @@ use stylex_constants::constants::{
   evaluation_errors::{
     CONCATENATION, FUNCTION_BODY_WITHOUT_VALUE, IMPORT_FILE_EVAL_ERROR,
     IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, NUMERIC_CONVERSION, OBJECT_METHOD,
-    PATH_WITHOUT_NODE, SPREAD_ELEMENT, TEMPLATE_LITERAL, UNDEFINED_CONST, UNEXPECTED_MEMBER_LOOKUP,
+    PATH_WITHOUT_NODE, SPREAD_ELEMENT, TEMPLATE_LITERAL, UNEXPECTED_MEMBER_LOOKUP,
     UNINITIALIZED_CONST, USED_BEFORE_DECLARATION, grown_string_too_large, unfoldable_call,
     unsupported_expression, unsupported_operator,
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
-    ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, KEY_VALUE_EXPECTED, MEMBER_NOT_RESOLVED,
-    MEMBER_OBJ_NOT_IDENT, NULLISH_TO_OBJECT, OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND,
-    SPREAD_NOT_SUPPORTED, SPREAD_PROPERTIES_UNREADABLE, THEME_IMPORT_KEY_AS_OBJECT_KEY,
-    VALUE_MUST_BE_LITERAL,
+    ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, MEMBER_NOT_RESOLVED, NULLISH_TO_OBJECT,
+    OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND, SPREAD_NOT_SUPPORTED,
+    SPREAD_PROPERTIES_UNREADABLE, THEME_IMPORT_KEY_AS_OBJECT_KEY, VALUE_MUST_BE_LITERAL,
   },
 };
 use stylex_enums::{

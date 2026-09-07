@@ -20,7 +20,7 @@ use stylex_constants::constants::api_names::FUNCTION_CONFIG_FN_KEY;
 use indexmap::IndexMap;
 use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
-use stylex_macros::{deopt_unsupported, expr_to_str_or_deopt, stylex_panic_with_context};
+use stylex_macros::{deopt_unsupported, expr_to_str_or_deopt};
 use swc_core::{
   atoms::Atom,
   ecma::{
@@ -42,7 +42,7 @@ use stylex_ast::ast::convertors::{
 };
 use stylex_ast::ast::factories::{
   create_array_expression, create_arrow_expression, create_expr_or_spread,
-  create_ident_key_value_prop, create_key_value_prop, create_object_lit, wrap_in_paren_ref,
+  create_ident_key_value_prop, create_key_value_prop, create_object_lit,
 };
 use stylex_ast::ast::objects::{assign_props, order_own_keys, remove_duplicates};
 use stylex_constants::constants::{
@@ -55,8 +55,8 @@ use stylex_constants::constants::{
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
-    ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, MEMBER_NOT_RESOLVED, NULLISH_TO_OBJECT,
-    OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND, SPREAD_PROPERTIES_UNREADABLE,
+    ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, KEY_IS_NOT_A_STRING, MEMBER_NOT_RESOLVED,
+    NULLISH_TO_OBJECT, OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND, SPREAD_PROPERTIES_UNREADABLE,
     THEME_IMPORT_KEY_AS_OBJECT_KEY, VALUE_MUST_BE_LITERAL,
   },
 };
@@ -85,7 +85,6 @@ use stylex_utils::string::utf16_length;
 use stylex_utils::{hash::stable_hash_unspanned, swc::get_expr_node_kind};
 
 use crate::check_declaration::check_ident_declaration;
-use stylex_diagnostics::code_frame::build_code_frame_error_and_panic;
 
 /// Resolves an `EnvEntry` to an `EvaluateResultValue`.
 ///
@@ -327,7 +326,7 @@ pub fn evaluate_obj_key(
 
   let key_expr = match convert_expr_to_str(&key, state, functions) {
     Some(ref s) => create_string_expr(s),
-    None => return EvaluateResult::refused(Some(key), Some("Key is not a string".to_string())),
+    None => return EvaluateResult::refused(Some(key), Some(KEY_IS_NOT_A_STRING.to_string())),
   };
 
   EvaluateResult {
@@ -387,6 +386,9 @@ fn _evaluate(
     return None;
   }
 
+  // `normalize_expr` unwraps every layer of parentheses. No arm below reads
+  // one, so `Expr::Paren` needs no arm of its own. The original `path` is kept
+  // beside it: a diagnostic must point at what the author wrote.
   let normalized_path = normalize_expr(path);
 
   if is_mutation_expr(normalized_path) {
@@ -462,13 +464,6 @@ fn _evaluate(
       // )
     },
     Expr::Cond(cond) => nodes::conditional_expression::evaluate(cond, state, traversal_state, fns),
-    Expr::Paren(_) => stylex_panic_with_context!(
-      wrap_in_paren_ref,
-      build_code_frame_error_and_panic,
-      path,
-      traversal_state,
-      "Parenthesized expressions should be unwrapped before evaluation."
-    ),
     Expr::Member(member) => nodes::member_expression::evaluate(member, state, traversal_state, fns),
     Expr::Unary(unary) => nodes::unary_expression::evaluate(unary, state, traversal_state, fns),
     Expr::Array(arr_path) => nodes::array_expression::evaluate(arr_path, state, traversal_state),
@@ -484,32 +479,28 @@ fn _evaluate(
       nodes::optional_chain::evaluate(opt_chain, state, traversal_state, fns)
     },
     _ => {
+      // The kind is read once. The log and the sentence the author reads use
+      // the same reading. `warn!` reads its argument only when a logger asked
+      // for that level, so the second call ran on a refusal logged at `warn`
+      // and nowhere else.
+      let kind = get_expr_node_kind(normalized_path);
+
       warn!(
-        "Unsupported type of expression: {}. If its not enough, please run in debug mode to see more details",
-        get_expr_node_kind(normalized_path)
+        "Unsupported type of expression: {kind}. For additional details, please recompile using debug mode."
       );
 
       debug!("Unsupported type of expression: {:?}", normalized_path);
 
-      return deopt(
-        normalized_path,
-        state,
-        &unsupported_expression(get_expr_node_kind(normalized_path)),
-      );
+      return deopt(normalized_path, state, &unsupported_expression(kind));
     },
   };
 
-  if result.is_none() && normalized_path.is_ident() {
-    let Some(ident) = normalized_path.as_ident() else {
-      stylex_panic_with_context!(
-        wrap_in_paren_ref,
-        build_code_frame_error_and_panic,
-        path,
-        traversal_state,
-        "Could not resolve the identifier. Ensure it is defined and in scope."
-      )
-    };
-
+  // A name that no arm above answered is resolved against the module. One
+  // question is asked here. Asking "is it a name" and then "give me the name"
+  // had a second answer that could not occur.
+  if result.is_none()
+    && let Some(ident) = normalized_path.as_ident()
+  {
     return binding::resolve_reference(ident, path, normalized_path, state, traversal_state, fns);
   }
 

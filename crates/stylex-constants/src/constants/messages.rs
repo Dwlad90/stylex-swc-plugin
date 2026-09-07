@@ -159,6 +159,10 @@ pub static SPREAD_PROPERTIES_UNREADABLE: &str =
 pub static EXPRESSION_IS_NOT_A_STRING: &str =
   "Expected a string value but received a non-string expression.";
 
+/// The refusal for a computed key that folds to no string. Said of the key
+/// rather than of the value, because the key is the half the author changes.
+pub static KEY_IS_NOT_A_STRING: &str = "Key is not a string";
+
 pub static VALUES_MUST_BE_OBJECT: &str = "The values argument must be a plain object.";
 
 pub static INJECTABLE_STYLE_NOT_SUPPORTED: &str =

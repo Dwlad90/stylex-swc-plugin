@@ -443,7 +443,8 @@ depend on this option.
 
 - **`true` (default)**: the compiler reads the actual source file from disk when
   generating error messages and source maps. This provides accurate line numbers
-  and source context that match what you see in your editor. Style namespaces
+  and source context that match what you see in your editor. When the file is
+  not on disk, the source text given to the compiler is used. Style namespaces
   are located **by their key**, so positions resolve correctly even when the
   incoming code was already rewritten by earlier tooling (keys survive
   value-level transforms such as macro expansion).

@@ -91,17 +91,17 @@ const styles = {
         justifyContent: "justifyContent-xl56j7k",
         gap: "gap-xou54vl",
         paddingBottom: "paddingBottom-xzk7aed",
-        $$css: "tests/fixture/buttons-demo/input.stylex.js:42"
+        $$css: "tests/fixture/buttons-demo/input.stylex.js:49"
     },
     bordered: {
         borderWidth: "borderWidth-xdh2fpr",
         borderStyle: "borderStyle-x1y0btm7",
         borderColor: "borderColor-x71xlcl",
-        $$css: "tests/fixture/buttons-demo/input.stylex.js:50"
+        $$css: "tests/fixture/buttons-demo/input.stylex.js:57"
     },
     greenBorder: {
         borderColor: "borderColor-x1bg2uv5",
-        $$css: "tests/fixture/buttons-demo/input.stylex.js:55"
+        $$css: "tests/fixture/buttons-demo/input.stylex.js:62"
     }
 };
 _inject2({

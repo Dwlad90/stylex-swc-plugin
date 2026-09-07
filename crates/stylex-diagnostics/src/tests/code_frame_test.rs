@@ -873,6 +873,23 @@ fn a_module_memoized_without_its_text_is_printed_back_out() {
   assert_eq!(framed_line(&target, &mut state), Some(1));
 }
 
+/// Memoizes `source` the way a debug build does at module entry: parsed, and
+/// without its text. Must run inside the globals, because the parse mints
+/// marks.
+fn memoize_without_text(state: &mut StateDouble, source: &str) {
+  let frame = CodeFrame::new();
+  let source_file = frame
+    .source_map
+    .new_source_file(Arc::new(FileName::Anon), source.to_owned());
+  let program =
+    match parse_and_normalize_program(&source_file, &frame, "memoized.tsx", &reference("c")) {
+      Some(program) => program,
+      None => panic!("the fixture must parse"),
+    };
+
+  state.set_seen_module_source_code(expect_module(&program), None);
+}
+
 /// The authored text wins over a module printed back out. A debug build
 /// memoizes the module without its text at module entry, and the printer lays a
 /// one-line namespace out over three lines, so every key after it moved to a
@@ -889,19 +906,8 @@ export const styles = create({
   let mut state = StateDouble::for_file("/nonexistent/authored.tsx").with_input_source(source);
   let call = compiled_create_call();
 
-  // The parse and the lookup both mint marks, so both run inside the globals.
   let line = GLOBALS.set(&Globals::default(), || {
-    let frame = CodeFrame::new();
-    let source_file = frame
-      .source_map
-      .new_source_file(Arc::new(FileName::Anon), source.to_owned());
-    let program =
-      match parse_and_normalize_program(&source_file, &frame, "authored.tsx", &reference("c")) {
-        Some(program) => program,
-        None => panic!("the fixture must parse"),
-      };
-
-    state.set_seen_module_source_code(expect_module(&program), None);
+    memoize_without_text(&mut state, source);
 
     match key_span_for(&call, "other", &mut state) {
       Ok((code_frame, span)) => code_frame.try_get_span_line_number(span),
@@ -910,6 +916,64 @@ export const styles = create({
   });
 
   assert_eq!(line, Some(3));
+}
+
+/// The file on disk wins over the given text while `useRealFileForSource` is
+/// on, which is what the option promises: the text a bundler hands in may have
+/// been rewritten by an earlier loader, and the file is what the author sees.
+#[test]
+fn the_file_on_disk_is_quoted_before_the_given_text_when_the_option_is_on() {
+  // The same module, with a comment line before it on disk only.
+  let given = "\
+export const styles = create({
+  root: { color: 'red' },
+  other: { display: 'flex' },
+});
+";
+  let path = write_fixture("disk_first.tsx", &format!("// authored\n{given}"));
+  let mut state = state_for_fixture(&path).with_input_source(given);
+  let call = compiled_create_call();
+
+  let line = GLOBALS.set(&Globals::default(), || {
+    match key_span_for(&call, "other", &mut state) {
+      Ok((code_frame, span)) => code_frame.try_get_span_line_number(span),
+      Err(error) => panic!("failed to get the key span: {error}"),
+    }
+  });
+
+  assert_eq!(line, Some(4));
+}
+
+/// With `useRealFileForSource` off, the frame opens no file and quotes the
+/// module it holds, printed back out, as the option documents. The three
+/// sources put the key on three different lines, so the answer names the one
+/// that was read: the file on disk says 4, the given text 3, the printed module
+/// 5.
+#[test]
+fn a_memoized_module_is_printed_when_the_option_is_off() {
+  let source = "\
+export const styles = create({
+  root: { color: 'red' },
+  other: { display: 'flex' },
+});
+";
+  let path = write_fixture("printed.tsx", &format!("// authored\n{source}"));
+  let mut state = state_for_fixture(&path)
+    .with_input_source(source)
+    .with_disk_reads_off();
+  let call = compiled_create_call();
+
+  let line = GLOBALS.set(&Globals::default(), || {
+    memoize_without_text(&mut state, source);
+
+    match key_span_for(&call, "other", &mut state) {
+      Ok((code_frame, span)) => code_frame.try_get_span_line_number(span),
+      Err(error) => panic!("failed to get the key span: {error}"),
+    }
+  });
+
+  // The printer lays `root` out over three lines, so `other` moves to line 5.
+  assert_eq!(line, Some(5));
 }
 
 /// The panic boundary every span lookup sits behind: a panic inside it is an

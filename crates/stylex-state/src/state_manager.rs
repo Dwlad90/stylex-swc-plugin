@@ -2931,6 +2931,10 @@ impl DiagnosticState for StateManager {
       .map(|file| file.src.as_str())
   }
 
+  fn reads_source_from_disk(&self) -> bool {
+    self.options.use_real_file_for_source
+  }
+
   fn diagnostic_memo(&self) -> &DiagnosticMemo {
     &self.diagnostic_memo
   }

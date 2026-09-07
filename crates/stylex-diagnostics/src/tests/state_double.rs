@@ -19,6 +19,9 @@ pub(crate) struct StateDouble {
   seen_module: Option<Module>,
   seen_source_code: Option<String>,
   input_source: Option<String>,
+  /// False by default, as `useRealFileForSource` defaults to on. A case sets
+  /// it to keep the frame away from the disk.
+  disk_reads_off: bool,
   key_span_index: OnceCell<KeySpanIndex>,
   memo: DiagnosticMemo,
   /// Drops the module as soon as it is stored, so the caller reads back the
@@ -39,6 +42,14 @@ impl StateDouble {
   pub(crate) fn with_input_source(self, source: impl Into<String>) -> Self {
     Self {
       input_source: Some(source.into()),
+      ..self
+    }
+  }
+
+  /// The same state with `useRealFileForSource` off, so the frame opens no file.
+  pub(crate) fn with_disk_reads_off(self) -> Self {
+    Self {
+      disk_reads_off: true,
       ..self
     }
   }
@@ -84,6 +95,10 @@ impl DiagnosticState for StateDouble {
 
   fn input_source_text(&self) -> Option<&str> {
     self.input_source.as_deref()
+  }
+
+  fn reads_source_from_disk(&self) -> bool {
+    !self.disk_reads_off
   }
 
   fn diagnostic_memo(&self) -> &DiagnosticMemo {

@@ -18,12 +18,12 @@ _inject2({
 export const styles = {
     wrapper: {
         zIndex: "zIndex-x1bsllxr",
-        $$css: "tests/fixture/dynamic-param-shadows-import/input.stylex.js:4"
+        $$css: "tests/fixture/dynamic-param-shadows-import/input.stylex.js:5"
     },
     zIndex: (zIndex)=>[
             {
                 zIndex: zIndex != null ? "zIndex-xr3buco" : zIndex,
-                $$css: "tests/fixture/dynamic-param-shadows-import/input.stylex.js:7"
+                $$css: "tests/fixture/dynamic-param-shadows-import/input.stylex.js:6"
             },
             {
                 "--x-zIndex": zIndex != null ? zIndex : undefined

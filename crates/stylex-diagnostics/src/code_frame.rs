@@ -684,11 +684,16 @@ fn expect_module(program: &Program) -> &Module {
   }
 }
 
-/// The text of the module the frame quotes from, in the order it is worth
-/// trying: the text the compiler was given, then a module memoized without its
-/// text printed back out, then the file on disk. Failing all three, a module
-/// synthesized around the expression itself -- which is why there is always an
-/// answer.
+/// The text of the module the frame quotes from.
+///
+/// While `useRealFileForSource` is on, the file on disk comes first and the
+/// text the compiler was given is the fallback for a file that is not there.
+/// Both keep the authored layout, which is the only one a `file:line` may be
+/// measured against. When the option is off, no file is opened and a module
+/// memoized without its text is printed back out, as the option documents.
+/// Failing all of that, a
+/// module synthesized around the expression itself -- which is why there is
+/// always an answer.
 ///
 /// The memoized *text* is not a case here: the only caller reaches this after
 /// finding there is none.
@@ -697,17 +702,18 @@ fn get_source_code(
   state: &impl DiagnosticState,
   file_name: &FileName,
 ) -> String {
-  // The text the compiler was given is the layout the author sees, so it is
-  // the first choice: a module printed back out from its AST lays its lines
-  // out differently, and a `file:line` measured against it names the wrong
-  // line for every key after the first one the printer reflowed.
-  if let Some(text) = state.input_source_text() {
-    return text.to_owned();
+  if state.reads_source_from_disk() {
+    if let Ok(source) = read_source_file(file_name) {
+      return source;
+    }
+
+    if let Some(text) = state.input_source_text() {
+      return text.to_owned();
+    }
   }
 
-  // Reached only where the caller found no memoized text, so a module memoized
-  // here has none either and has to be printed back out to give the frame
-  // something to quote.
+  // A module printed back out from its AST lays its lines out differently from
+  // the authored file, so it is quoted only when no authored text is allowed.
   if let Some((module, _)) = state.get_seen_module_source_code() {
     return print_module(
       module.clone(),
@@ -719,10 +725,6 @@ fn get_source_code(
           .with_inline_script(false),
       ),
     );
-  }
-
-  if let Ok(source) = read_source_file(file_name) {
-    return source;
   }
 
   print_module(create_module(wrapped_expression), None)

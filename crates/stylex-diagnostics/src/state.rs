@@ -36,11 +36,15 @@ pub trait DiagnosticState {
   /// The text the compiler was given for this file, when the entry point
   /// recorded it.
   ///
-  /// The authored layout is the only one a `file:line` may be measured
-  /// against. A module printed back out from its AST lays its lines out
-  /// differently, and a file read from disk can be older than the text a
-  /// bundler handed in.
+  /// It keeps the authored layout, which a module printed back out from its
+  /// AST does not, so it is what a `file:line` is measured against when the
+  /// file itself is not on disk.
   fn input_source_text(&self) -> Option<&str>;
+
+  /// Whether the frame may read the file on disk, as `useRealFileForSource`
+  /// asks. When the option is off, the frame quotes what the compiler holds in
+  /// memory and opens no file.
+  fn reads_source_from_disk(&self) -> bool;
 
   /// Where every style namespace key of the memoized source is written, built
   /// on first use.

@@ -13,7 +13,7 @@ use crate::{
   shared::{
     transformers::stylex_create::stylex_create_set,
     utils::core::{
-      dev_class_name::inject_dev_class_names,
+      dev_class_name::inject_sx_dev_class_name,
       evaluate_stylex_create_arg::evaluate_stylex_create_arg,
       js_to_ast::{NestedStringObject, convert_object_to_ast},
     },
@@ -99,7 +99,7 @@ where
     );
 
     if self.state.is_dev() && self.state.options.enable_dev_class_names {
-      compiled = inject_dev_class_names(&compiled, &None, &self.state);
+      compiled = inject_sx_dev_class_name(&compiled, &self.state);
     }
     self.state.in_stylex_create = prev_in_stylex_create;
 

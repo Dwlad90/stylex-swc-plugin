@@ -84,27 +84,27 @@ const c = {
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:23"
     },
     "p+1": {
-        "input__c.p 1": "input__c.p 1",
+        "input__c.p1": "input__c.p1",
         fontSize: "fontSize-x3gzoht",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:29"
     },
     "p+2": {
-        "input__c.p 2": "input__c.p 2",
+        "input__c.p2": "input__c.p2",
         fontSize: "fontSize-xd310an",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:35"
     },
     "p+3": {
-        "input__c.p 3": "input__c.p 3",
+        "input__c.p3": "input__c.p3",
         fontSize: "fontSize-x14h6vv3",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:53"
     },
     "p+4": {
-        "input__c.p 4": "input__c.p 4",
+        "input__c.p4": "input__c.p4",
         fontSize: "fontSize-x1eh3tls",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:59"
     },
     "p+5": {
-        "input__c.p 5": "input__c.p 5",
+        "input__c.p5": "input__c.p5",
         fontSize: "fontSize-x8rl4l3",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:65"
     },

@@ -24,33 +24,33 @@ _inject2({
 });
 const styles = {
     base: {
-        "__styles.base": "__styles.base",
+        "UnknownFile__styles.base": "UnknownFile__styles.base",
         backgroundColor: "backgroundColor-x1t391ir",
         $$css: true
     },
     active: {
-        "__styles.active": "__styles.active",
+        "UnknownFile__styles.active": "UnknownFile__styles.active",
         right: "right-x3m8u43",
         insetInlineStart: null,
         insetInlineEnd: null,
         $$css: true
     },
     inactive: {
-        "__styles.inactive": "__styles.inactive",
+        "UnknownFile__styles.inactive": "UnknownFile__styles.inactive",
         left: "left-xu96u03",
         insetInlineStart: null,
         insetInlineEnd: null,
         $$css: true
     },
     answered: {
-        "__styles.answered": "__styles.answered",
+        "UnknownFile__styles.answered": "UnknownFile__styles.answered",
         right: "right-x131sewu",
         insetInlineStart: null,
         insetInlineEnd: null,
         $$css: true
     },
     unanswered: {
-        "__styles.unanswered": "__styles.unanswered",
+        "UnknownFile__styles.unanswered": "UnknownFile__styles.unanswered",
         left: "left-x12lbrt0",
         insetInlineStart: null,
         insetInlineEnd: null,

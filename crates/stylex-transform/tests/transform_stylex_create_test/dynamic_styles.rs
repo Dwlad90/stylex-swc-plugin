@@ -900,12 +900,19 @@ stylex_test!(
 // order of the hoisted declarations and the injection calls is visible.
 stylex_test!(
   a_dynamic_entry_inside_a_namespace_in_dev_with_runtime_injection,
-  |tr| stylex_transform(tr.comments.clone(), |b| {
-    b.with_dev(true)
-      .with_enable_dev_class_names(true)
-      .with_filename(swc_core::common::FileName::Real("MyComponent.tsx".into()))
-      .with_runtime_injection()
-  }),
+  |tr| {
+    // Cloned here rather than in the builder closure, which must not borrow the
+    // tester: the pass it builds outlives the call.
+    let source_map = tr.cm.clone();
+
+    stylex_transform(tr.comments.clone(), move |b| {
+      b.with_source_map(source_map)
+        .with_dev(true)
+        .with_enable_dev_class_names(true)
+        .with_filename(swc_core::common::FileName::Real("MyComponent.tsx".into()))
+        .with_runtime_injection()
+    })
+  },
   r#"
     import * as stylex from '@stylexjs/stylex';
     export namespace Demo {

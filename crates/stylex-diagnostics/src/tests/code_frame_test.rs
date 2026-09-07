@@ -873,6 +873,45 @@ fn a_module_memoized_without_its_text_is_printed_back_out() {
   assert_eq!(framed_line(&target, &mut state), Some(1));
 }
 
+/// The authored text wins over a module printed back out. A debug build
+/// memoizes the module without its text at module entry, and the printer lays a
+/// one-line namespace out over three lines, so every key after it moved to a
+/// later line than the one the author wrote it on. The compiler was given the
+/// text, and that text is what a `file:line` has to be measured against.
+#[test]
+fn a_key_is_framed_on_the_authored_line_when_the_module_is_memoized_without_text() {
+  let source = "\
+export const styles = create({
+  root: { color: 'red' },
+  other: { display: 'flex' },
+});
+";
+  let mut state = StateDouble::for_file("/nonexistent/authored.tsx").with_input_source(source);
+  let call = compiled_create_call();
+
+  // The parse and the lookup both mint marks, so both run inside the globals.
+  let line = GLOBALS.set(&Globals::default(), || {
+    let frame = CodeFrame::new();
+    let source_file = frame
+      .source_map
+      .new_source_file(Arc::new(FileName::Anon), source.to_owned());
+    let program =
+      match parse_and_normalize_program(&source_file, &frame, "authored.tsx", &reference("c")) {
+        Some(program) => program,
+        None => panic!("the fixture must parse"),
+      };
+
+    state.set_seen_module_source_code(expect_module(&program), None);
+
+    match key_span_for(&call, "other", &mut state) {
+      Ok((code_frame, span)) => code_frame.try_get_span_line_number(span),
+      Err(error) => panic!("failed to get the key span: {error}"),
+    }
+  });
+
+  assert_eq!(line, Some(3));
+}
+
 /// The panic boundary every span lookup sits behind: a panic inside it is an
 /// ordinary "no code frame", never the end of the compilation.
 #[test]

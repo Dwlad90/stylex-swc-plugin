@@ -2924,6 +2924,13 @@ impl DiagnosticState for StateManager {
     self.module_source.key_span_index()
   }
 
+  fn input_source_text(&self) -> Option<&str> {
+    self
+      .input_source_file
+      .as_ref()
+      .map(|file| file.src.as_str())
+  }
+
   fn diagnostic_memo(&self) -> &DiagnosticMemo {
     &self.diagnostic_memo
   }

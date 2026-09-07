@@ -685,9 +685,10 @@ fn expect_module(program: &Program) -> &Module {
 }
 
 /// The text of the module the frame quotes from, in the order it is worth
-/// trying: a module memoized without its text printed back out, then the file
-/// on disk. Failing both, a module synthesized around the expression itself --
-/// which is why there is always an answer.
+/// trying: the text the compiler was given, then a module memoized without its
+/// text printed back out, then the file on disk. Failing all three, a module
+/// synthesized around the expression itself -- which is why there is always an
+/// answer.
 ///
 /// The memoized *text* is not a case here: the only caller reaches this after
 /// finding there is none.
@@ -696,6 +697,14 @@ fn get_source_code(
   state: &impl DiagnosticState,
   file_name: &FileName,
 ) -> String {
+  // The text the compiler was given is the layout the author sees, so it is
+  // the first choice: a module printed back out from its AST lays its lines
+  // out differently, and a `file:line` measured against it names the wrong
+  // line for every key after the first one the printer reflowed.
+  if let Some(text) = state.input_source_text() {
+    return text.to_owned();
+  }
+
   // Reached only where the caller found no memoized text, so a module memoized
   // here has none either and has to be printed back out to give the frame
   // something to quote.

@@ -157,6 +157,27 @@ const styles = stylex.create({
   }
 
   #[test]
+  fn resolves_a_key_written_inside_a_typescript_namespace() {
+    let source = "\
+import * as stylex from '@stylexjs/stylex';
+export namespace Demo {
+  const styles = stylex.create({
+    color: (value: string) => ({ color: value }),
+    base: { display: 'flex' },
+  });
+  export function render() {
+    return stylex.props(styles.base, styles.color('red'));
+  }
+}
+";
+
+    assert_eq!(
+      resolved_line(source, "base", &["color", "base"], &["display"]),
+      line_of(source, "base:")
+    );
+  }
+
+  #[test]
   fn a_key_no_object_argument_spells_resolves_to_nothing() {
     let module = parse("const styles = stylex.create({ root: { color: 'red' } });");
 

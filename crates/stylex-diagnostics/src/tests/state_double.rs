@@ -18,6 +18,7 @@ pub(crate) struct StateDouble {
   filename: String,
   seen_module: Option<Module>,
   seen_source_code: Option<String>,
+  input_source: Option<String>,
   key_span_index: OnceCell<KeySpanIndex>,
   memo: DiagnosticMemo,
   /// Drops the module as soon as it is stored, so the caller reads back the
@@ -31,6 +32,14 @@ impl StateDouble {
     Self {
       filename: filename.into(),
       ..Self::default()
+    }
+  }
+
+  /// The same state, holding the text the compiler was given for the file.
+  pub(crate) fn with_input_source(self, source: impl Into<String>) -> Self {
+    Self {
+      input_source: Some(source.into()),
+      ..self
     }
   }
 
@@ -71,6 +80,10 @@ impl DiagnosticState for StateDouble {
         .key_span_index
         .get_or_init(|| KeySpanIndex::build(module)),
     )
+  }
+
+  fn input_source_text(&self) -> Option<&str> {
+    self.input_source.as_deref()
   }
 
   fn diagnostic_memo(&self) -> &DiagnosticMemo {

@@ -33,6 +33,15 @@ pub trait DiagnosticState {
   /// does not read and parse it again.
   fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>);
 
+  /// The text the compiler was given for this file, when the entry point
+  /// recorded it.
+  ///
+  /// The authored layout is the only one a `file:line` may be measured
+  /// against. A module printed back out from its AST lays its lines out
+  /// differently, and a file read from disk can be older than the text a
+  /// bundler handed in.
+  fn input_source_text(&self) -> Option<&str>;
+
   /// Where every style namespace key of the memoized source is written, built
   /// on first use.
   fn key_span_index(&self) -> Option<&KeySpanIndex>;

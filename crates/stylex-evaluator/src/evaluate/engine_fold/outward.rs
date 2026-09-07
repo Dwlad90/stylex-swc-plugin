@@ -140,19 +140,18 @@ impl<'a> Outward<'a> {
   /// One object or array, on the room [`object_value`](Outward::object_value)
   /// asked for, and reached only through it — a direct call would descend on no
   /// room at all.
+  ///
+  /// The two kinds this side writes an expression for are read one way each, and
+  /// everything else is refused by the kind the language names it with. A value
+  /// carrying no object at all — a symbol or a big integer, neither of which the
+  /// guard admits into a fold — falls to the same refusal, because it is the
+  /// same sentence for the same reason.
   fn nested_object(
     &mut self,
     value: &JsValue,
     engine: &mut Context,
     depth: Depth,
   ) -> Result<EvaluateResultValue, Decline> {
-    // `typeof` names the kind rather than a word list of this module's own: the
-    // engine already answers this question, exhaustively, and its answer is the
-    // one an author would use for the value they wrote.
-    let Some(object) = value.as_object() else {
-      return Err(Decline::rule(unfoldable_fold_result(value.type_of())));
-    };
-
     // A value nested deeper than the guard admits on the way in can still be
     // built on the way out, by a loop the engine ran rather than by syntax the
     // author wrote. Bounded for the reason the input is bounded, and against the
@@ -160,40 +159,38 @@ impl<'a> Outward<'a> {
     // claimed for that many levels and no more.
     let inner = depth.descend()?;
 
-    if object.is_array() {
-      let length = self.length_of(&object, engine)?;
-      let mut items = Vec::with_capacity(length as usize);
+    match value.as_object() {
+      Some(object) if object.is_array() => self.array_value(&object, engine, inner),
+      Some(object) if object.is_ordinary() => self.plain_object_value(&object, engine, inner),
+      _ => self.exotic_value(value, engine),
+    }
+  }
 
-      for index in 0..length {
-        let element = read(self.method, || object.get(index, engine))?;
+  /// Every element of an array answer, in order.
+  fn array_value(
+    &mut self,
+    object: &JsObject,
+    engine: &mut Context,
+    inner: Depth,
+  ) -> Result<EvaluateResultValue, Decline> {
+    let length = self.length_of(object, engine)?;
+    let mut items = Vec::with_capacity(length as usize);
 
-        items.push(self.value(&element, engine, inner)?);
-      }
-
-      return Ok(EvaluateResultValue::Vec(items));
+    for index in 0..length {
+      items.push(self.entry(object, index.into(), engine, inner)?);
     }
 
-    if !object.is_ordinary() {
-      // A theme group inside an answer, which is the one exotic object a fold can
-      // produce. It converts to the text it answers for itself — the same text
-      // the language would have read off it the moment anything joined or printed
-      // the array holding it — because the group's own members live in another
-      // file and no expression this side writes stands for them.
-      //
-      // A group standing *alone* as the answer is handed back instead, one step
-      // above this: there the dispatch still holds the reference and can resolve
-      // a member off it, where here the whole expression around it has folded.
-      if is_a_var_group(value, self.method, engine)? {
-        let hash = var_group_text(&object, self.method, engine)?;
+    Ok(EvaluateResultValue::Vec(items))
+  }
 
-        return Ok(EvaluateResultValue::Expr(Expr::Lit(Lit::Str(
-          hash.to_std_string_lossy().into(),
-        ))));
-      }
-
-      return Err(Decline::rule(unfoldable_fold_result(value.type_of())));
-    }
-
+  /// Every own property of a plain object answer, as the object literal it
+  /// spells.
+  fn plain_object_value(
+    &mut self,
+    object: &JsObject,
+    engine: &mut Context,
+    inner: Depth,
+  ) -> Result<EvaluateResultValue, Decline> {
     let keys = read(self.method, || object.own_property_keys(engine))?;
 
     self
@@ -232,8 +229,7 @@ impl<'a> Outward<'a> {
         .count_characters(utf16_length(&name) as u64)
         .map_err(|ceiling| Decline::rule(folded_string_too_large(ceiling)))?;
 
-      let element = read(self.method, || object.get(key.clone(), engine))?;
-      let expr = as_property_value(self.value(&element, engine, inner)?)?;
+      let expr = as_property_value(self.entry(object, key, engine, inner)?)?;
 
       props.push(create_ident_key_value_prop(&name, expr));
     }
@@ -248,6 +244,57 @@ impl<'a> Outward<'a> {
     ))))
   }
 
+  /// One element of an array answer or one property of an object answer, as the
+  /// value the evaluator carries.
+  ///
+  /// Both positions read the same way and both read through the engine, which is
+  /// what makes the read a throw: a property can carry a getter, and the getter
+  /// runs here rather than where the call was written.
+  fn entry(
+    &mut self,
+    object: &JsObject,
+    key: PropertyKey,
+    engine: &mut Context,
+    inner: Depth,
+  ) -> Result<EvaluateResultValue, Decline> {
+    let element = read(self.method, || object.get(key, engine))?;
+
+    self.value(&element, engine, inner)
+  }
+
+  /// An object of a kind this side writes no expression for, and the one such
+  /// object a fold can produce.
+  ///
+  /// A theme group converts to the text it answers for itself — the same text
+  /// the language would have read off it the moment anything joined or printed
+  /// the array holding it — because the group's own members live in another file
+  /// and no expression this side writes stands for them.
+  ///
+  /// A group standing *alone* as the answer is handed back instead, one step
+  /// above this: there the dispatch still holds the reference and can resolve a
+  /// member off it, where here the whole expression around it has folded.
+  ///
+  /// Everything else is named by `typeof` rather than by a word list of this
+  /// module's own: the engine already answers that question exhaustively, and
+  /// its answer is the one an author would use for the value they wrote.
+  fn exotic_value(
+    &mut self,
+    value: &JsValue,
+    engine: &mut Context,
+  ) -> Result<EvaluateResultValue, Decline> {
+    if let Some(object) = value.as_object()
+      && is_a_var_group(value, self.method, engine)?
+    {
+      let hash = var_group_text(&object, self.method, engine)?;
+
+      return Ok(EvaluateResultValue::Expr(Expr::Lit(Lit::Str(
+        hash.to_std_string_lossy().into(),
+      ))));
+    }
+
+    Err(Decline::rule(unfoldable_fold_result(value.type_of())))
+  }
+
   /// An array's `length`, bounded: the count the conversion loop reads.
   ///
   /// The two ways it can fail say different things, because they are different
@@ -255,6 +302,12 @@ impl<'a> Outward<'a> {
   /// names it. A `length` that is not a count at all — not a number, or negative
   /// — is not the bound and must not claim to be; it is a value the bridge cannot
   /// read, and is refused as one.
+  ///
+  /// Only the first is reachable: this is asked of an array exotic object alone,
+  /// whose `length` is a data property the language keeps inside `u32`. The
+  /// second is answered rather than asserted for the reason every refusal here
+  /// is — a fold may fail, and a panic would end a build a refusal only leaves
+  /// to the runtime.
   ///
   /// Counted before the elements are read, so an array past the bound refuses
   /// without first converting a single element of it.
@@ -281,7 +334,6 @@ impl<'a> Outward<'a> {
 
 /// One folded value as the expression an object property carries.
 ///
-///
 /// An array is the one case that has to be rebuilt rather than moved: a `Vec`
 /// is the shape the evaluator wants at the top of a value, and an object
 /// literal wants a nested array literal in the same position. Rebuilt by the
@@ -289,9 +341,14 @@ impl<'a> Outward<'a> {
 /// folded property and an evaluated one cannot come to disagree about what an
 /// array element may be.
 fn as_property_value(value: EvaluateResultValue) -> Result<Expr, Decline> {
-  // Every arm of `Outward::value` answers one of the two shapes `as_expr` reads,
-  // so nothing else is reachable by construction — and a refusal is answered
-  // rather than a panic if that ever stops holding.
-  as_expr(&value)
-    .ok_or_else(|| Decline::rule(unfoldable_fold_result("value of an unreadable kind")))
+  match value {
+    // Moved rather than copied: the conversion above owns the expression it has
+    // just built, and this runs once per property of every folded object.
+    EvaluateResultValue::Expr(expr) => Ok(expr),
+    // Every other arm of `Outward::value` answers the one shape left that
+    // `as_expr` reads, so nothing else is reachable by construction — and a
+    // refusal is answered rather than a panic if that ever stops holding.
+    other => as_expr(&other)
+      .ok_or_else(|| Decline::rule(unfoldable_fold_result("value of an unreadable kind"))),
+  }
 }

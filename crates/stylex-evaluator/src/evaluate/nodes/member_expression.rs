@@ -710,13 +710,22 @@ pub(in crate::evaluate) fn get_full_member_path(
   }
 }
 
-/// Returns `true` when `base` is a plain identifier — the only shape that can
+/// The name a member chain's base is, where it is one — the only shape that can
 /// resolve to a `ThemeRef` in our evaluator (either via `fns.identifiers` for
 /// in-file `defineVars` exports, or via cross-file `*.stylex.js` imports
 /// handled in `evaluate::mod`). Any other expression kind (`Member`, `Call`,
 /// `Object`, `Array`, …) is guaranteed not to produce a `ThemeRef`, so we
 /// skip the fast-path eval to avoid the speculative work the Copilot review
 /// flagged.
+///
+/// The name rather than a `bool`, because the guard's own reading of the same
+/// source needs it — see `Walk::record_a_dotted_theme_read`. One reading of the
+/// rule for both, so widening it here cannot leave the guard behind.
+pub(in crate::evaluate) fn theme_ref_base(base: &Expr) -> Option<&Ident> {
+  base.as_ident()
+}
+
+/// Whether `base` is one, for a caller that reads no name off it.
 pub(in crate::evaluate) fn is_theme_ref_base(base: &Expr) -> bool {
-  matches!(base, Expr::Ident(_))
+  theme_ref_base(base).is_some()
 }

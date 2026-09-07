@@ -9,11 +9,20 @@ use swc_core::{
 };
 
 pub fn is_valid_callee(callee: &Expr) -> bool {
-  if let Expr::Ident(ident) = callee {
-    VALID_CALLEES.contains(ident.sym.as_ref())
-  } else {
-    false
+  match callee {
+    Expr::Ident(ident) => is_a_valid_callee_name(&ident.sym),
+    _ => false,
   }
+}
+
+/// Whether a *name* is one of the callees the fold owns.
+///
+/// The set membership on its own, for a caller that already holds the name and
+/// so has no expression to ask about. One reading of the set rather than two,
+/// which is what keeps the callee rule and a rule that reads the same set from
+/// coming apart.
+pub fn is_a_valid_callee_name(name: &str) -> bool {
+  VALID_CALLEES.contains(name)
 }
 
 pub fn get_callee_name(callee: &Expr) -> &str {

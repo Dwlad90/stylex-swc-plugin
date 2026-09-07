@@ -92,7 +92,7 @@ fn assert_applied_global(expr: &Expr, state: &StateManager, expected: Option<&st
 #[track_caller]
 fn assert_global_as_a_value(name: &str, state: &StateManager, expected: bool) {
   assert_eq!(
-    a_global_written_as_a_value(&reference(name), state),
+    a_global_written_as_a_value(&ident_in(name, MODULE_CONTEXT), state),
     expected
   );
 }
@@ -161,6 +161,10 @@ fn a_declarator_shadows_both_positions() {
 // ──────────────────────────────────────────────
 
 // Parentheses change nothing about which name is written, in either position.
+//
+// The value rule below is not among them: it is asked of the name rather than
+// of the expression around it, because the walk unwraps a parenthesis before it
+// dispatches on a name at all.
 #[test]
 fn parentheses_are_read_through_however_many_deep() {
   let state = a_module();
@@ -174,7 +178,6 @@ fn parentheses_are_read_through_however_many_deep() {
 
   assert_applied_global(&wrapped, &state, Some("Math"));
   assert_receiver_global(&wrapped, &state, Some("Math"));
-  assert!(a_global_written_as_a_value(&wrapped, &state));
 }
 
 // A name that is not one of the globals the fold owns is not one either rule

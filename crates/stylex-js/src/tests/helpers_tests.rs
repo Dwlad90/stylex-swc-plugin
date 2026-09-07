@@ -42,6 +42,21 @@ fn valid_callee_detection() {
   }))));
 }
 
+/// The name-taking half answers the same set, which is what makes it safe for a
+/// caller that already holds a name to read the set through it rather than to
+/// spell the membership again.
+#[test]
+fn the_name_taking_callee_rule_answers_the_expression_taking_one() {
+  for name in ["Math", "console"] {
+    assert_eq!(
+      is_a_valid_callee_name(name),
+      is_valid_callee(&ident_expr(name)),
+      "the two readings of `{}` disagree",
+      name
+    );
+  }
+}
+
 #[test]
 fn get_callee_name_for_identifier() {
   assert_eq!(get_callee_name(&ident_expr("Array")), "Array");

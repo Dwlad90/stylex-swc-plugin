@@ -58,7 +58,7 @@ mod theme;
 mod transport;
 
 use engine::{ENGINE, Engine, FoldKey, print_fold, threw};
-use guard::{Admitted, Guard, Position, Reader, Repeats, Scope, Walk, admit_an_applied_global};
+use guard::{AdmittedKind, Guard, Position, Reader, Repeats, Scope, Walk, admit_an_applied_global};
 use outward::Outward;
 use theme::is_a_var_group;
 
@@ -394,7 +394,7 @@ pub(crate) fn try_fold(
 fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline> {
   let admitted = walk.admit_call(call, Position::Outermost)?;
 
-  let method = admitted.name();
+  let method = admitted.name;
 
   // How deep the source below is about to nest, which is not how deep the walk
   // above went: an operand a short circuit never reaches is printed and parsed
@@ -442,9 +442,9 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
       let depth = walk.guard.depth.restart();
       let mut outward = Outward::new(method, walk.guard.ceilings);
 
-      let applied = match admitted {
-        Admitted::Global(global) => admit_an_applied_global(global, &mut engine.context),
-        Admitted::Method(_) | Admitted::Named(_) => Ok(()),
+      let applied = match admitted.kind {
+        AdmittedKind::Global => admit_an_applied_global(method, &mut engine.context),
+        AdmittedKind::Method | AdmittedKind::Named => Ok(()),
       };
 
       let folded = applied

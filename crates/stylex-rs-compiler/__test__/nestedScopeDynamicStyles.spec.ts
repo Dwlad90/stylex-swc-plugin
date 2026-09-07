@@ -11,7 +11,7 @@ import { transformSync } from '@swc/core';
 import { describe, expect, test } from 'vitest';
 
 import { transform } from '../dist/index.js';
-import { runNodeScript } from './nodeScript';
+import { runNodeScriptOrThrow } from './nodeScript';
 
 /** The compiled class name object for `color: var(--x-color)`. */
 const COLOR_CLASS = { kMwMTN: 'x14rh7hd', $$css: true } as const;
@@ -143,16 +143,7 @@ function renderInChild({ render, source }: Case, values: readonly string[]): unk
     const results = ${JSON.stringify(values)}.map((value) => module.exports.${render}(value));
     process.stdout.write(JSON.stringify(results));
   `;
-  const outcome = runNodeScript(script);
-
-  if (outcome.error) {
-    throw new Error(`The child process did not start: ${outcome.error.message}`);
-  }
-
-  if (outcome.status !== 0) {
-    throw new Error(`The compiled output failed (exit ${outcome.status}):\n${outcome.stderr}`);
-  }
-
+  const outcome = runNodeScriptOrThrow(script);
   const results: unknown = JSON.parse(outcome.stdout);
 
   if (!Array.isArray(results)) {

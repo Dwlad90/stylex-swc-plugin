@@ -84,3 +84,32 @@ export function runNodeScript(source: string, options: NodeScriptOptions = {}): 
     rmSync(directory, { force: true, recursive: true });
   }
 }
+
+/**
+ * Runs one JavaScript source in a child Node process and returns the outcome
+ * only when the child ran to a clean exit.
+ *
+ * A child that never started, or that ended with a signal or an exit code other
+ * than zero, throws with the cause named. An exit code of null on its own reads
+ * as a crash of the script, and a suite that asserts on the output of a
+ * healthy child should not have to tell the two apart itself.
+ */
+export function runNodeScriptOrThrow(
+  source: string,
+  options: NodeScriptOptions = {}
+): NodeScriptOutcome {
+  const outcome = runNodeScript(source, options);
+
+  if (outcome.error) {
+    throw new Error(`The child process did not start: ${outcome.error.message}`);
+  }
+
+  if (outcome.status !== 0) {
+    throw new Error(
+      `The child process failed (exit ${outcome.status}, signal ${outcome.signal}):\n` +
+        `stdout:\n${outcome.stdout}\nstderr:\n${outcome.stderr}`
+    );
+  }
+
+  return outcome;
+}

@@ -3,27 +3,14 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from 'vitest';
 
-import { runNodeScript } from './nodeScript';
+import { runNodeScriptOrThrow } from './nodeScript';
 
 const LEAK_STRING = 'ObjectRef is not unref';
 
 const distEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist/index.js');
 
 function runProductionScript(script: string) {
-  const result = runNodeScript(script, { env: { ...process.env, NODE_ENV: 'production' } });
-
-  // A child that never starts has no exit code. Name that cause, because an
-  // exit code of null on its own reads as a crash of the script.
-  if (result.error) {
-    throw new Error(`subprocess did not start: ${result.error.message}`);
-  }
-
-  if (result.status !== 0) {
-    throw new Error(
-      `subprocess failed (exit ${result.status}):\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`
-    );
-  }
-  return result;
+  return runNodeScriptOrThrow(script, { env: { ...process.env, NODE_ENV: 'production' } });
 }
 
 test('normalizeRsOptions does not emit napi leak warnings across many calls', () => {

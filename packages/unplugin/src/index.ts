@@ -60,6 +60,8 @@ function shouldTransformStyleXFile(id: string, normalizedOptions: NormalizedOpti
 const { writeFile, mkdir, readFile, readdir } = promises;
 
 const PLUGIN_NAME = 'unplugin-stylex-rs';
+const DIRECT_REQUEST_RE = /(?:\?|&)direct(?:&|$)/;
+const SPECIAL_CSS_QUERY_RE = /(?:\?|&)(?:inline|url|raw)(?:[=&]|$)/;
 
 /**
  * How many times in a row a dev CSS refresh may fail before the plugin stops
@@ -754,10 +756,15 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         // Only handle CSS files with useCssPlaceholder
         if (!normalizedOptions.useCssPlaceholder) return null;
         // A stylesheet the browser fetched through `<link>` arrives with the
-        // `?direct` query the dev server adds; every other query (`?inline`,
-        // `?url`, `?raw`) asks for something other than the stylesheet.
-        const [cssFile = id, query] = id.split('?');
-        if (!cssFile.endsWith('.css') || (query !== undefined && query !== 'direct')) {
+        // `direct` flag Vite adds alongside any existing cache-busting query.
+        // Alternate imports (`inline`, `url`, `raw`) keep their own semantics.
+        const queryStart = id.indexOf('?');
+        const cssFile = queryStart === -1 ? id : id.slice(0, queryStart);
+        if (
+          !cssFile.endsWith('.css') ||
+          SPECIAL_CSS_QUERY_RE.test(id) ||
+          (queryStart !== -1 && !DIRECT_REQUEST_RE.test(id))
+        ) {
           return null;
         }
 

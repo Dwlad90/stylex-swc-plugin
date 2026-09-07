@@ -361,34 +361,26 @@ The plugin replaces the marker with the generated StyleX CSS during the build.
 > such as PostCSS or Lightning CSS transpilation never run over them. Use
 > [`transformCss`](#transformcss) to run your own processing over the rules.
 > In development the rules are put into the stylesheet before the pipeline
-> runs, so there it sees everything: the regular dev server inlines them at the
-> marker, and Vite's bundled dev server serves the whole stylesheet itself, as
-> described next.
+> runs, so there it sees everything. The bundled mode below uses Vite's
+> built-in CSS preprocessing, not other plugins' CSS transform hooks.
 
 > [!NOTE]
 > **Vite's bundled dev server** (`experimental.bundledDev`)
 >
-> Bundled serve hands the module graph to Rolldown and turns every imported
-> stylesheet into JavaScript, so there is no CSS request for the plugin to
-> answer and no module graph to invalidate. In that mode the stylesheet that
-> carries the marker is taken out of the bundle: its import becomes a small
-> runtime module that links the stylesheet from the dev server at the same
-> position in the cascade, and the server renders it from the current file
-> contents and the current rules on every request. PostCSS, Lightning CSS and
-> `@import` run over it as usual. Edits to StyleX modules, to shared variables
-> and themes, to the stylesheet itself and to anything it `@import`s refetch
-> the stylesheet over HMR. Whether the edit itself stays a hot update is
-> Rolldown's call, as for any module: one with no accepting boundary, such as
-> a plain module outside a framework's refresh runtime, reloads the page.
+> The plugin serves the marker stylesheet with current rules and Vite's
+> built-in CSS preprocessing (PostCSS, Lightning CSS and `@import`). Edits to
+> StyleX modules, shared variables and themes, the stylesheet and its imports
+> refetch the stylesheet over HMR. Rolldown decides whether the module edit
+> itself is a hot update or a reload.
 >
-> Two things stay fixed for the life of the server: which stylesheets carry the
-> marker, since Rolldown resolves an import once, and where the stylesheet sits
-> in the cascade, so adding or removing the marker or the import needs a
-> restart. The marker has to sit in a plain stylesheet imported from
-> JavaScript: a CSS module or a stylesheet used as a build entry is left to
-> Rolldown and only gets the rules known when it is bundled. Assets referenced
-> with `url()` from the marker stylesheet are not rewritten or served in this
-> mode; keep them in `public/` or in a stylesheet without the marker.
+> Limits in this mode:
+>
+> - The marker must be in a plain stylesheet that JavaScript imports. A CSS
+>   module or a build entry gets only the rules known at bundle time.
+> - Restart after adding or removing a marker or its stylesheet import.
+> - Other Vite plugins' CSS transform hooks do not run over this stylesheet.
+> - `url()` references are not rewritten or served. Keep those assets in
+>   `public/` or in a stylesheet without the marker.
 
 > [!WARNING]
 > Farm does not support `useCssPlaceholder` yet. Its plugin adapter never

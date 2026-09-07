@@ -443,6 +443,37 @@ async function measureFailedRefreshRetries(): Promise<{
 }
 
 describe('Vite', () => {
+  test.each(['direct', 'direct&v=1', 'v=1&direct'])(
+    'injects rules into a linked stylesheet with query %s',
+    async query => {
+      const server = await createPlaceholderDevServer('.stylex-vite-direct-');
+      try {
+        await server.transformRequest('/main.js');
+        const result = await server.transformRequest(`/global.css?${query}`);
+        expect(result?.code).toContain('color:red');
+        expect(result?.code).not.toContain(placeholder);
+      } finally {
+        await server.close();
+      }
+    }
+  );
+
+  test.each(['inline', 'url', 'raw', 'direct&inline', 'url&direct', 'direct&raw', 'direct=value'])(
+    'does not inject rules into a stylesheet with alternate query %s',
+    async query => {
+      const server = await createPlaceholderDevServer('.stylex-vite-query-');
+      try {
+        await server.transformRequest('/main.js');
+        const result = await server.transformRequest(`/global.css?${query}`);
+        expect(result).not.toBeNull();
+        expect(result?.code).not.toContain('color:red');
+        expect(result?.code.includes(placeholder)).toBe(!query.includes('url'));
+      } finally {
+        await server.close();
+      }
+    }
+  );
+
   test('resolves imported defineConsts at-rules before transforming placeholder CSS', async () => {
     const transformCss = vi.fn<(css: string) => string>(rejectUnresolvedAtRules);
 

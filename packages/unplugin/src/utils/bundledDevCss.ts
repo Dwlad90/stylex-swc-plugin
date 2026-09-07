@@ -13,6 +13,7 @@ const RUNTIME_ID_SUFFIX = '.js';
 // for the same path, and the hot event that asks the browser to refetch it.
 const STYLESHEET_QUERY = 'stylex-css';
 const REFRESH_EVENT = 'stylex:css-refresh';
+const LOG_PREFIX = '[stylex-unplugin]';
 
 // A CSS module exports its class map; turning one into the runtime would
 // leave that import undefined.
@@ -126,25 +127,35 @@ export default function createBundledDevCss(
   // Whether a stylesheet carries the marker, by absolute path. Both answers
   // are kept and an edit drops the entry, so a file is read once per version.
   const carriesMarker = new Map<string, boolean>();
+  // Only marker detection is shared; stylesheet rendering must stay fresh.
+  const pendingReads = new Map<string, Promise<boolean>>();
   // Served marker files by absolute path, with the href each is served under,
   // and the reverse lookup the middleware needs.
   const hrefByFile = new Map<string, string>();
   const fileByPathname = new Map<string, string>();
   // Files the stylesheets `@import`, as Vite's CSS pipeline reports them.
-  const imported = new Set<string>();
+  const importsByFile = new Map<string, Set<string>>();
+  const latestRender = new Map<string, symbol>();
 
   function refresh(): void {
     server?.ws.send({ type: 'custom', event: REFRESH_EVENT });
   }
 
-  // The dev server watcher does not cover the project root under bundled
-  // serve, Rolldown watches the graph instead, so every file whose contents
-  // matter here is added by hand. Rolldown never sees them: the stylesheet
-  // is not in its graph, which is the point.
-  function watchImported(file: string): void {
-    if (imported.has(file)) return;
-    imported.add(file);
-    server?.watcher.add(file);
+  function isImported(file: string): boolean {
+    for (const imports of importsByFile.values()) {
+      if (imports.has(file)) return true;
+    }
+    return false;
+  }
+
+  // Bundled serve delegates graph watching to Rolldown. These stylesheets
+  // are outside that graph, so register all known inputs with Vite's watcher.
+  function watchedFiles(): string[] {
+    const files = new Set([...hrefByFile.keys(), ...carriesMarker.keys(), ...pendingReads.keys()]);
+    for (const imports of importsByFile.values()) {
+      for (const file of imports) files.add(file);
+    }
+    return [...files];
   }
 
   // A deleted file loses what was learned from its contents. Its href stays:
@@ -152,7 +163,9 @@ export default function createBundledDevCss(
   // path is served again as if nothing happened.
   function forget(file: string): void {
     carriesMarker.delete(file);
-    imported.delete(file);
+    pendingReads.delete(file);
+    importsByFile.delete(file);
+    latestRender.delete(file);
   }
 
   function hrefFor(root: string, base: string, file: string): string {
@@ -178,24 +191,34 @@ export default function createBundledDevCss(
     res: Parameters<Connect.NextHandleFunction>[1],
     next: Connect.NextFunction
   ): void {
+    // Most requests do not belong to us. Avoid URL parsing and href scanning
+    // until the cheap gate passes, then validate the actual query parameter.
+    if (!config || !marker || !req.url?.includes(STYLESHEET_QUERY)) {
+      next();
+      return;
+    }
     // The base is still on the URL here: this runs ahead of Vite's own base
     // middleware, and the hrefs were built with the base for that reason.
-    const url = new URL(req.url ?? '/', 'http://localhost');
+    const url = new URL(req.url, 'http://localhost');
     // A parent router in middleware mode strips its mount path before this
     // runs, so an href is also matched by its tail.
     const file =
       fileByPathname.get(url.pathname) ??
       [...fileByPathname].find(([href]) => href.endsWith(url.pathname))?.[1];
-    if (!file || !config || !marker || !url.searchParams.has(STYLESHEET_QUERY)) {
+    if (!file || !url.searchParams.has(STYLESHEET_QUERY)) {
       next();
       return;
     }
 
     const resolvedConfig = config;
     const resolvedMarker = marker;
+    const render = Symbol('stylesheet render');
+    latestRender.set(file, render);
 
     // Connect does not forward async rejections, hence the explicit catch.
     void (async () => {
+      // Never cache or share this render: a later request may need rules or
+      // source recorded after an earlier request started.
       // Vite is imported on demand: this module is bundled into the chunk
       // every host entry shares, and a static import would make webpack,
       // Rspack and esbuild users load Vite (ESM-only since Vite 8) at plugin
@@ -207,7 +230,16 @@ export default function createBundledDevCss(
       ]);
       const stylesheet = replaceFirstMarker(source, resolvedMarker, rules);
       const result = await preprocessCSS(stylesheet, file, resolvedConfig);
-      for (const dependency of result.deps ?? []) watchImported(normalizePath(dependency));
+      // A slow older response must not restore imports removed by a newer one.
+      if (latestRender.get(file) === render) {
+        const imports = new Set<string>();
+        for (const dependency of result.deps ?? []) {
+          const imported = normalizePath(dependency);
+          imports.add(imported);
+          server?.watcher.add(imported);
+        }
+        importsByFile.set(file, imports);
+      }
 
       // Vite's own responder: content type, ETag with `304` on a match, and
       // `HEAD` handling.
@@ -233,6 +265,11 @@ export default function createBundledDevCss(
         !!marker &&
         resolved.command === 'serve' &&
         resolved.environments?.client?.isBundled === true;
+      if (enabled) {
+        resolved.logger.info(
+          `${LOG_PREFIX} bundled dev server: marker stylesheets are served outside the bundle`
+        );
+      }
     },
 
     configureServer(devServer) {
@@ -241,7 +278,7 @@ export default function createBundledDevCss(
 
       // A restarted server brings a fresh watcher, so everything learned on
       // the previous one is registered again.
-      const known = [...carriesMarker.keys(), ...imported];
+      const known = watchedFiles();
       if (known.length > 0) devServer.watcher.add(known);
 
       devServer.watcher.on('change', changed => {
@@ -249,11 +286,17 @@ export default function createBundledDevCss(
         // An edit is the one thing that can change whether a file carries
         // the marker, so the cached answer goes; a served file is refetched.
         carriesMarker.delete(file);
-        if (hrefByFile.has(file) || imported.has(file)) refresh();
+        pendingReads.delete(file);
+        if (hrefByFile.has(file) || isImported(file)) refresh();
       });
-      devServer.watcher.on('unlink', changed => forget(normalizePath(changed)));
+      devServer.watcher.on('unlink', changed => {
+        const file = normalizePath(changed);
+        if (hrefByFile.has(file) || isImported(file)) refresh();
+        forget(file);
+      });
       devServer.watcher.on('add', added => {
-        if (hrefByFile.has(normalizePath(added))) refresh();
+        const file = normalizePath(added);
+        if (hrefByFile.has(file) || isImported(file)) refresh();
       });
       devServer.middlewares.use(serveStylesheet);
     },
@@ -281,15 +324,29 @@ export default function createBundledDevCss(
 
       const file = normalizePath(resolved.id);
       let holdsMarker = carriesMarker.get(file);
-      if (holdsMarker === undefined) {
+      while (holdsMarker === undefined) {
+        let pending = pendingReads.get(file);
+        if (!pending) {
+          // Watch before reading, so an edit during the read invalidates it.
+          server?.watcher.add(file);
+          const read = readFile(file, 'utf8').then(source => {
+            const answer = source.includes(marker);
+            if (pendingReads.get(file) === read) carriesMarker.set(file, answer);
+            return answer;
+          });
+          pendingReads.set(file, read);
+          pending = read;
+        }
         try {
-          holdsMarker = (await readFile(file, 'utf8')).includes(marker);
+          await pending;
         } catch {
           return null;
+        } finally {
+          if (pendingReads.get(file) === pending) pendingReads.delete(file);
         }
-        carriesMarker.set(file, holdsMarker);
-        // Watched either way: only an edit can change the answer.
-        server?.watcher.add(file);
+        // An invalidated read cannot publish its answer; retry or use the
+        // answer of the newer read instead of resurrecting stale cache state.
+        holdsMarker = carriesMarker.get(file);
       }
       if (!holdsMarker) return null;
 
@@ -297,6 +354,7 @@ export default function createBundledDevCss(
         const href = hrefFor(config.root, config.base, file);
         hrefByFile.set(file, href);
         fileByPathname.set(href, file);
+        config.logger.info(`${LOG_PREFIX} serving ${href} outside the bundle`);
       }
 
       return { id: RUNTIME_ID_PREFIX + file + RUNTIME_ID_SUFFIX, moduleSideEffects: true };

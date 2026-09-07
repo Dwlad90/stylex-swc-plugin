@@ -243,11 +243,13 @@ impl Walk<'_, '_> {
     // inward conversion reads, for the same reason.
     //
     // The literal arm is answered by written length alone, which is sound
-    // because **the literal is one the evaluator wrote**: every array it hands
-    // back is built by `evaluate_result_vec_to_array_expr`, which writes one
-    // present element per item and no spread. So the written length is the count,
-    // and there is no hole whose width would go unread. See the same reading in
-    // `nodes/member_expression.rs`.
+    // because **the literal is one the evaluator wrote**. An array an author
+    // wrote folds to the list arm above, and one carrying a hole or a spread
+    // refuses before it gets here. What reaches this arm is built by
+    // `evaluate_result_vec_to_array_expr` or by the `env` option's own bridge,
+    // and both write one present element per item and no spread. So the written
+    // length is the count, and there is no hole whose width would go unread. See
+    // the same reading in `nodes/member_expression.rs`.
     let (elements, element) = match &countable_value_of(receiver, self.reader)? {
       EvaluateResultValue::Vec(items) => (
         items.len(),
@@ -585,9 +587,9 @@ fn hands_over_a_function(args: &[ExprOrSpread]) -> bool {
 /// The expressions a written array's elements are, in order.
 ///
 /// Every element of an array the evaluator hands back is present and is not a
-/// spread — `evaluate_result_vec_to_array_expr` builds them that way and is the
-/// only producer — so the list is as long as the literal and each entry is the
-/// element itself. Read from one place because both the receiver's own elements
+/// spread — `evaluate_result_vec_to_array_expr` and the `env` option's bridge
+/// are the two producers and both build them that way — so the list is as long
+/// as the literal and each entry is the element itself. Read from one place because both the receiver's own elements
 /// and a nested array's are the same question, and both are measured in two
 /// units off the same reading.
 ///
@@ -917,12 +919,21 @@ fn declared_length_of(resolved: &EvaluateResultValue) -> Declared {
 
 /// Whether a property name is the `length` an array-like declares.
 ///
-/// One spelling, because the object this reads is one the evaluator wrote: it
-/// rebuilds every key as an identifier, so `{ 'length': n }` arrives here spelled
-/// the way `{ length: n }` is and a computed key arrives already settled. The
-/// quoted spelling is the case that says so —
+/// One spelling, because `length` is a valid identifier and every factory in this
+/// compiler spells such a key as one — `convert_string_to_prop_name` answers an
+/// `Ident` for any name `Ident::verify_symbol` accepts. So `{ 'length': n }`
+/// arrives here spelled the way `{ length: n }` is, and a computed key arrives
+/// already settled.
+///
+/// Not "every key is an identifier", which is not true of this reader's input: a
+/// spread hands its source's props over as written, and the function-fold and
+/// `env` bridges build theirs with `create_key_value_prop`. A key like
+/// `"max-width"` therefore does reach here as a `PropName::Str`. It is only
+/// `length` itself that cannot.
+///
+/// The quoted spelling is the case that says so —
 /// `the_quoted_spelling_of_the_length_key_is_the_same_key` fails the day that
-/// rebuilding stops.
+/// spelling changes.
 fn is_a_length_key(key: &PropName) -> bool {
   matches!(key, PropName::Ident(name) if name.sym == "length")
 }

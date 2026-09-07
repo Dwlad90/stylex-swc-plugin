@@ -134,21 +134,17 @@ pub(super) fn extract_expr_from_rule(
   None
 }
 
-/// Hoists an expression to the program level by creating a const variable
-/// declaration. This is the Rust equivalent of the JavaScript `hoistExpression`
-/// function.
+/// Hoist an expression to the module level as a `const` declaration.
 ///
-/// # Arguments
-/// * `ast_expression` - The expression to hoist
-/// * `state` - The state manager to add the hoisted declaration to
-///
-/// # Returns
-/// An identifier referencing the hoisted variable
-pub(crate) fn hoist_expression(
+/// The declaration is queued after the imports and the returned identifier
+/// stands for the expression at the call site. `prefix` is the stem of the
+/// generated identifier.
+fn hoist_to_module_level(
+  prefix: &str,
   ast_expression: Expr,
   state: &mut stylex_state::state_manager::StateManager,
 ) -> Expr {
-  let uid_generator = UidGenerator::new("temp", CounterMode::ThreadLocal);
+  let uid_generator = UidGenerator::new(prefix, CounterMode::ThreadLocal);
   let hoisted_ident = uid_generator.generate_ident();
 
   let var_decl = VarDecl {
@@ -168,31 +164,19 @@ pub(crate) fn hoist_expression(
   Expr::Ident(hoisted_ident)
 }
 
-pub(crate) fn path_replace_hoisted(
+/// Hoist a static fragment of a style value to a `_temp` constant.
+pub(crate) fn hoist_expression(
   ast_expression: Expr,
-  is_program_level: bool,
   state: &mut stylex_state::state_manager::StateManager,
 ) -> Expr {
-  if is_program_level {
-    return ast_expression;
-  }
+  hoist_to_module_level("temp", ast_expression, state)
+}
 
-  let uid_generator = UidGenerator::new("styles", CounterMode::ThreadLocal);
-  let name_ident = uid_generator.generate_ident();
-
-  let var_decl = VarDecl {
-    span: DUMMY_SP,
-    kind: VarDeclKind::Const,
-    declare: false,
-    decls: vec![create_var_declarator(name_ident.clone(), ast_expression)],
-    ctxt: swc_core::common::SyntaxContext::empty(),
-  };
-
-  let module_item = ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(var_decl))));
-  state.queue_insertion(
-    stylex_state::state_manager::InsertionSlot::AfterImports,
-    module_item,
-  );
-
-  Expr::Ident(name_ident)
+/// Hoist the compiled styles object of a `stylex.create` call that is not a
+/// module-level statement to a `_styles` constant.
+pub(crate) fn hoist_styles_object(
+  ast_expression: Expr,
+  state: &mut stylex_state::state_manager::StateManager,
+) -> Expr {
+  hoist_to_module_level("styles", ast_expression, state)
 }

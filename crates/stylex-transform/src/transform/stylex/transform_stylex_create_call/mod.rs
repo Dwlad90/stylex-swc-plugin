@@ -350,25 +350,31 @@ where
       let styles_ast =
         convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(compiled_styles));
 
-      let mut result_ast =
-        path_replace_hoisted(styles_ast.clone(), is_program_level, &mut self.state);
-
-      result_ast = apply_dynamic_style_functions(
+      // The rewrite of the dynamic entries needs the object, not the hoisted
+      // identifier, so it runs before the hoist.
+      let styles_ast = apply_dynamic_style_functions(
         self,
         call,
-        result_ast,
+        styles_ast,
         evaluated_arg.fns,
         &class_paths_per_namespace,
         &injected_styles,
-        is_program_level,
       );
 
-      self.state.register_styles(
-        call,
-        &injected_styles,
-        &result_ast,
-        (!result_ast.eq(&styles_ast)).then_some(&styles_ast),
-      );
+      // A call that is not a module-level statement is hoisted to one and the
+      // call site becomes a reference. The object stays as the fallback, so the
+      // runtime injection calls still know the styles they belong to.
+      let (result_ast, fallback_ast) = if is_program_level {
+        (styles_ast, None)
+      } else {
+        let hoisted_ident = hoist_styles_object(styles_ast.clone(), &mut self.state);
+
+        (hoisted_ident, Some(styles_ast))
+      };
+
+      self
+        .state
+        .register_styles(call, &injected_styles, &result_ast, fallback_ast.as_ref());
 
       Some(result_ast)
     } else {

@@ -819,3 +819,103 @@ stylex_test!(
     });
   "#
 );
+
+// ──────────────────────────────────────────────
+// A dynamic entry declared in a nested scope (#1303)
+//
+// A `stylex.create` call that is not a module-level statement is hoisted to a
+// module-level `const` and the call site becomes a reference to it. The dynamic
+// rewrite has to see the compiled object before that hoist. Otherwise the entry
+// it would turn into an arrow function is already an identifier and it keeps
+// its static shape, and the call site fails at run time with
+// `styles.color is not a function`. Each case below keeps a static sibling so
+// the snapshot also shows that the sibling is left as it was.
+// ──────────────────────────────────────────────
+stylex_test!(
+  a_dynamic_entry_inside_a_namespace_stays_callable,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export namespace Demo {
+      const styles = stylex.create({
+        color: (value: string) => ({ color: value }),
+        base: { display: 'flex' },
+      });
+      export function render() {
+        return stylex.props(styles.base, styles.color('red'));
+      }
+    }
+  "#
+);
+
+stylex_test!(
+  a_dynamic_entry_inside_a_function_body_stays_callable,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export function render(value) {
+      const styles = stylex.create({
+        color: (value) => ({ color: value }),
+        base: { display: 'flex' },
+      });
+      return stylex.props(styles.base, styles.color(value));
+    }
+  "#
+);
+
+stylex_test!(
+  a_dynamic_entry_inside_an_iife_stays_callable,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const render = (() => {
+      const styles = stylex.create({
+        color: (value) => ({ color: value }),
+        base: { display: 'flex' },
+      });
+      return (value) => stylex.props(styles.base, styles.color(value));
+    })();
+  "#
+);
+
+stylex_test!(
+  a_dynamic_entry_inside_a_block_stays_callable,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export let render;
+    {
+      const styles = stylex.create({
+        color: (value) => ({ color: value }),
+        base: { display: 'flex' },
+      });
+      render = (value) => stylex.props(styles.base, styles.color(value));
+    }
+  "#
+);
+
+// Dev mode gives the dynamic entry a static fragment -- the debug class name --
+// that is hoisted from inside the rewrite, and runtime injection adds the
+// `_inject2` calls. Both are anchored at module level, so this is where the
+// order of the hoisted declarations and the injection calls is visible.
+stylex_test!(
+  a_dynamic_entry_inside_a_namespace_in_dev_with_runtime_injection,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_dev(true)
+      .with_enable_dev_class_names(true)
+      .with_filename(swc_core::common::FileName::Real("MyComponent.tsx".into()))
+      .with_runtime_injection()
+  }),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export namespace Demo {
+      const styles = stylex.create({
+        color: (value: string) => ({ color: value }),
+        base: { display: 'flex' },
+      });
+      export function render() {
+        return stylex.props(styles.base, styles.color('red'));
+      }
+    }
+  "#
+);

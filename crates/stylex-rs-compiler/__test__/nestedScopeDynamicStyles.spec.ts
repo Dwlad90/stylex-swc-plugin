@@ -153,6 +153,41 @@ function renderInChild({ render, source }: Case, values: readonly string[]): unk
   return results;
 }
 
+/** A module whose nested `stylex.create` gets hoisted to a generated name. */
+function hoistingSource(namespace: string): string {
+  return `
+    import * as stylex from '@stylexjs/stylex';
+    export function render(value: string) {
+      const styles = stylex.create({
+        ${namespace}: (v: string) => ({ color: v }),
+      });
+      return stylex.props(styles.${namespace}(value));
+    }
+  `;
+}
+
+describe('the name of a hoisted styles object', () => {
+  // The generated name is counted per file. A count shared between files would
+  // make the name depend on how many files the compiler saw first, so the same
+  // input would compile two ways and no output could be cached by its content.
+  test('does not depend on what was compiled before it', () => {
+    const first = compile(hoistingSource('color'));
+
+    // Another file, which takes a generated name of its own.
+    compile(hoistingSource('background'));
+
+    expect(compile(hoistingSource('color'))).toBe(first);
+  });
+
+  test('is the first free name however many files came before', () => {
+    for (let index = 0; index < 5; index += 1) {
+      compile(hoistingSource(`entry${index}`));
+    }
+
+    expect(compile(hoistingSource('color'))).toContain('const _styles = {');
+  });
+});
+
 describe('a dynamic entry in a nested scope', () => {
   test.each(Object.entries(CASES))(
     '%s: the entry is callable and the sibling is intact',

@@ -63,7 +63,7 @@ use stylex_constants::constants::{
 };
 use stylex_css::utils::{pseudo::is_pseudo_element, when as stylex_when};
 use stylex_diagnostics::code_frame::{build_code_frame_error, build_code_frame_error_and_panic};
-use stylex_enums::{counter_mode::CounterMode, style_resolution::StyleResolution};
+use stylex_enums::style_resolution::StyleResolution;
 use stylex_evaluator::{
   evaluate::evaluate_result_is_nullish, state::EvaluationState,
   stylex_first_that_works::stylex_first_that_works,
@@ -80,10 +80,10 @@ use stylex_state::{
 };
 use stylex_structures::{
   dynamic_style::DynamicStyle, order_pair::OrderPair, stylex_state_options::StyleXStateOptions,
-  uid_generator::UidGenerator,
 };
 use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_types::traits::WhenMarkerValue;
+use stylex_utils::hash::stable_hash_unspanned;
 
 /// Resolves the value that occupies the second slot of a `when` call: the
 /// custom marker when one was passed, and the StyleX options otherwise.
@@ -232,20 +232,6 @@ where
         None => stylex_panic!("{}", non_static_value(STYLEX_CREATE)),
       };
 
-      assert!(
-        evaluated_arg.confident,
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          evaluated_arg
-            .reason
-            .as_deref()
-            .unwrap_or(&non_static_value(STYLEX_CREATE)),
-          &mut self.state,
-        )
-      );
-
       let mut injected_inherit_styles: InjectableStylesMap = IndexMap::default();
 
       if let Some(fns) = &evaluated_arg.fns {
@@ -362,19 +348,22 @@ where
       );
 
       // A call that is not a module-level statement is hoisted to one and the
-      // call site becomes a reference. The object stays as the fallback, so the
-      // runtime injection calls still know the styles they belong to.
-      let (result_ast, fallback_ast) = if is_program_level {
+      // call site becomes a reference. The hash of the object goes on, so the
+      // runtime injection calls still find the declaration they belong to.
+      let (result_ast, fallback_ast_hash) = if is_program_level {
         (styles_ast, None)
       } else {
-        let hoisted_ident = hoist_styles_object(styles_ast.clone(), &mut self.state);
+        let fallback_ast_hash = stable_hash_unspanned(&styles_ast);
 
-        (hoisted_ident, Some(styles_ast))
+        (
+          hoist_styles_object(styles_ast, &mut self.state),
+          Some(fallback_ast_hash),
+        )
       };
 
       self
         .state
-        .register_styles(call, &injected_styles, &result_ast, fallback_ast.as_ref());
+        .register_styles(call, &injected_styles, &result_ast, fallback_ast_hash);
 
       Some(result_ast)
     } else {

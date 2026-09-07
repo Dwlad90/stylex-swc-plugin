@@ -24,6 +24,7 @@ use stylex_structures::named_import_source::{NamedImportSource, RuntimeInjection
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_types::structures::injectable_style::{InjectableConstStyle, InjectableStyle};
+use stylex_utils::hash::stable_hash_unspanned;
 
 use crate::state_manager::{InsertionSlot, StateManager, flush_pending_insertions};
 use crate::tests::prelude::{make_var_declarator, object_expr, string_expr};
@@ -379,7 +380,7 @@ fn a_fallback_shape_is_injected_in_front_of_too() {
     &call_expr("create"),
     &regular_style("x1e2nbdu", ".x1e2nbdu{color:red}", None),
     &ast,
-    Some(&fallback),
+    Some(stable_hash_unspanned(&fallback)),
   );
 
   flush_pending_insertions(&mut state, &mut body, true);
@@ -396,8 +397,18 @@ fn one_shape_is_injected_in_front_of_once() {
   let styles = regular_style("x1e2nbdu", ".x1e2nbdu{color:red}", None);
   let mut body = vec![var_item("styles", ast.clone())];
 
-  state.register_styles(&call_expr("create"), &styles, &ast, Some(&ast));
-  state.register_styles(&call_expr("create"), &styles, &ast, Some(&ast));
+  state.register_styles(
+    &call_expr("create"),
+    &styles,
+    &ast,
+    Some(stable_hash_unspanned(&ast)),
+  );
+  state.register_styles(
+    &call_expr("create"),
+    &styles,
+    &ast,
+    Some(stable_hash_unspanned(&ast)),
+  );
 
   flush_pending_insertions(&mut state, &mut body, true);
 

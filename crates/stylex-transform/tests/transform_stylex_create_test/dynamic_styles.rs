@@ -926,3 +926,41 @@ stylex_test!(
     }
   "#
 );
+
+// A dynamic entry can name a constant of the scope it was written in. The
+// compiler cannot fold that name, so it keeps it as it is written and the hoist
+// carries it to the module level, where it is not declared. The module loads,
+// because the body of the entry runs only when it is called; the call is what
+// fails. This snapshot records the output as it is, so the day the behaviour
+// changes the change is visible here.
+stylex_test!(
+  a_nested_dynamic_entry_keeps_a_reference_to_the_scope_it_left,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export function render(gap) {
+      const styles = stylex.create({
+        box: (value) => ({ width: value, margin: gap }),
+      });
+      return stylex.props(styles.box(1));
+    }
+  "#
+);
+
+// The hoisted declaration sits beside the author's own declarations, so its
+// name has to be one the module does not already use. A module that declares
+// `_styles` itself gets the next free name.
+stylex_test!(
+  a_hoisted_styles_object_passes_over_a_name_the_module_already_uses,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const _styles = 1;
+    export function render(value) {
+      const styles = stylex.create({
+        color: (v) => ({ color: v }),
+      });
+      return stylex.props(styles.color(value));
+    }
+  "#
+);

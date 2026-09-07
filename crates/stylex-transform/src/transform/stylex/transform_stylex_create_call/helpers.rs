@@ -137,15 +137,14 @@ pub(super) fn extract_expr_from_rule(
 /// Hoist an expression to the module level as a `const` declaration.
 ///
 /// The declaration is queued after the imports and the returned identifier
-/// stands for the expression at the call site. `prefix` is the stem of the
-/// generated identifier.
+/// stands for the expression at the call site. `stem` is what the generated
+/// name is built on.
 fn hoist_to_module_level(
-  prefix: &str,
+  stem: &'static str,
   ast_expression: Expr,
   state: &mut stylex_state::state_manager::StateManager,
 ) -> Expr {
-  let uid_generator = UidGenerator::new(prefix, CounterMode::ThreadLocal);
-  let hoisted_ident = uid_generator.generate_ident();
+  let hoisted_ident = state.next_hoisted_ident(stem);
 
   let var_decl = VarDecl {
     span: DUMMY_SP,
@@ -174,6 +173,28 @@ pub(crate) fn hoist_expression(
 
 /// Hoist the compiled styles object of a `stylex.create` call that is not a
 /// module-level statement to a `_styles` constant.
+///
+/// # A dynamic entry can hold a reference the module level does not
+///
+/// A value the compiler cannot fold becomes an inline style that holds the
+/// authored expression as it is written, and no rule says that expression may
+/// name only the parameters of the entry. So an entry that reads a constant of
+/// the enclosing scope carries that name to the module level, where it is not
+/// declared:
+///
+/// ```js
+/// export function render() {
+///   const gap = compute();
+///   const styles = stylex.create({ box: (v) => ({ width: v, margin: gap }) });
+///   return stylex.props(styles.box(1));
+/// }
+/// ```
+///
+/// The module still loads, because the body of the entry runs only when it is
+/// called. The call is what fails, which puts the fault a long way from its
+/// cause. The snapshot
+/// `a_nested_dynamic_entry_keeps_a_reference_to_the_scope_it_left` records the
+/// output as it is.
 pub(crate) fn hoist_styles_object(
   ast_expression: Expr,
   state: &mut stylex_state::state_manager::StateManager,

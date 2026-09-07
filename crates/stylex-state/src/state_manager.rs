@@ -622,6 +622,13 @@ pub struct StateManager {
   /// whether a name is already bound in the module.
   pub bound_names: FxHashSet<String>,
 
+  /// How many module-level names each stem has given out, for
+  /// [`StateManager::next_hoisted_ident`].
+  ///
+  /// One count per file. A count shared between files would make the name of a
+  /// hoisted expression depend on how many files came before it.
+  hoisted_ident_counts: FxHashMap<&'static str, usize>,
+
   /// For each name bound by a non-import declaration (var/let/const,
   /// function/class names, params), the source spans of the scopes in which
   /// it is bound. Consumed by `get_stylex_runtime_binding` to avoid reusing
@@ -920,6 +927,7 @@ impl StateManager {
       imports: ImportState::default(),
       existing_import_sources: vec![],
       bound_names: FxHashSet::default(),
+      hoisted_ident_counts: FxHashMap::default(),
       local_rebinding_scopes: FxHashMap::default(),
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
@@ -1445,6 +1453,38 @@ impl StateManager {
   /// Backed by the [`StateManager::bound_names`] pre-scan.
   pub fn has_binding(&self, name: &str) -> bool {
     self.bound_names.contains(name)
+  }
+
+  /// The next free module-level name built on `stem`, for an expression the
+  /// compiler lifts to the top of the file.
+  ///
+  /// The first name of a stem carries no number, so `temp` gives `_temp` and
+  /// then `_temp2`. A name the module already binds is passed over: the
+  /// generated declaration sits beside the author's own, and the two would
+  /// print as one name.
+  pub fn next_hoisted_ident(&mut self, stem: &'static str) -> Ident {
+    loop {
+      let count = self.hoisted_ident_counts.entry(stem).or_insert(1);
+      let ordinal = *count;
+
+      *count += 1;
+
+      let name = if ordinal < 2 {
+        format!("_{stem}")
+      } else {
+        format!("_{stem}{ordinal}")
+      };
+
+      if !self.has_binding(&name) {
+        // The declaration this name goes on is a binding of the module like any
+        // other, so anything that asks `has_binding` later reads it too.
+        let ident = Ident::from(name.as_str());
+
+        self.bound_names.insert(name);
+
+        return ident;
+      }
+    }
   }
 
   /// Whether `name` is bound by a non-import declaration whose scope encloses
@@ -2240,12 +2280,17 @@ impl StateManager {
     found
   }
 
+  /// Files the styles of one call and points the call site at `ast`.
+  ///
+  /// `fallback_ast_hash` names the object a hoisted call site was replaced by.
+  /// The caller holds that object only to hash it, so it hands over the hash
+  /// and keeps the object out of a clone the size of the whole style map.
   pub fn register_styles(
     &mut self,
     call: &CallExpr,
     style: &InjectableStylesMap,
     ast: &Expr,
-    fallback_ast: Option<&Expr>,
+    fallback_ast_hash: Option<u128>,
   ) {
     // Early return if there are no styles to process
     if style.is_empty() {
@@ -2256,10 +2301,9 @@ impl StateManager {
     let metadatas = MetaData::convert_from_injected_styles_map(style);
     let inject_var_ident = self.setup_injection_imports();
 
-    // The hashes key the injection slots and do not change per rule, so they
-    // are computed once here and not once per metadata in the loop.
+    // The hash keys the injection slots and does not change per rule, so it is
+    // computed once here and not once per metadata in the loop.
     let ast_hash = stable_hash_unspanned(ast);
-    let fallback_ast_hash = fallback_ast.map(stable_hash_unspanned);
 
     for metadata in metadatas {
       self.add_style(&metadata);
@@ -2267,7 +2311,7 @@ impl StateManager {
     }
 
     // Update all references to this call expression with the new AST
-    self.update_references(call, ast, fallback_ast);
+    self.update_references(call, ast);
   }
 
   /// Registers injected styles produced by the atoms transform.
@@ -2367,7 +2411,7 @@ impl StateManager {
     inject_var_ident
   }
 
-  fn update_references(&mut self, call: &CallExpr, ast: &Expr, _fallback_ast: Option<&Expr>) {
+  fn update_references(&mut self, call: &CallExpr, ast: &Expr) {
     if let Some(position) = self.find_call_declaration_index(call) {
       self.set_declaration_init(position, ast.clone());
     }
@@ -2400,9 +2444,9 @@ impl StateManager {
   /// to, once per declaration.
   ///
   /// `ast_hash` names the declaration the styles land in, and
-  /// `fallback_ast_hash` the object a hoisted call site was replaced by. Both
-  /// are the stable hashes of the expressions `register_styles` receives, and
-  /// it computes them once for all the rules of one call.
+  /// `fallback_ast_hash` the object a hoisted call site was replaced by.
+  /// `register_styles` hashes the first once for all the rules of one call, and
+  /// the second reaches it already hashed by its own caller.
   fn add_style_to_inject(
     &mut self,
     metadata: &MetaData,

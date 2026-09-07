@@ -9,6 +9,7 @@ mod flat_compiled_styles_value_test;
 mod functions_test;
 mod get_canonical_file_path_test;
 mod get_package_name_and_path_test;
+mod hoisted_ident_test;
 mod import_kind_test;
 mod import_queries_test;
 mod jsx_spread_test;

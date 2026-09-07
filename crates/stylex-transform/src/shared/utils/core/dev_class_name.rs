@@ -13,7 +13,7 @@ use stylex_state::{
 
 /// The debug name of each namespace, in front of the styles of that namespace.
 pub(crate) fn inject_dev_class_names(
-  obj: &StylesObjectMap,
+  obj: StylesObjectMap,
   var_name: &Option<String>,
   state: &StateManager,
 ) -> StylesObjectMap {
@@ -28,7 +28,7 @@ pub(crate) fn inject_dev_class_names(
 /// name the compiler keys on rather than one the author wrote. So the name
 /// says `sx`, which is what the author reads in the source.
 pub(crate) fn inject_sx_dev_class_name(
-  obj: &StylesObjectMap,
+  obj: StylesObjectMap,
   state: &StateManager,
 ) -> StylesObjectMap {
   let prefix = dev_class_name_prefix(&None, state.get_short_filename().as_str());
@@ -39,38 +39,44 @@ pub(crate) fn inject_sx_dev_class_name(
 
 /// Puts the name `label` gives each namespace in front of the styles of that
 /// namespace, keyed by itself.
-fn with_dev_class_names(obj: &StylesObjectMap, label: impl Fn(&str) -> String) -> StylesObjectMap {
+///
+/// Takes the styles rather than borrowing them, so the properties of a
+/// namespace move into the new map. Copying them allocated one string for
+/// every property of every namespace, and a development build names every
+/// namespace of every `stylex.create` call.
+fn with_dev_class_names(obj: StylesObjectMap, label: impl Fn(&str) -> String) -> StylesObjectMap {
   let mut result: StylesObjectMap = IndexMap::with_capacity(obj.len());
 
-  for (key, value) in obj.iter() {
-    let dev_class_name = label(key);
+  for (key, value) in obj {
+    let dev_class_name = label(&key);
+    let styles = Rc::unwrap_or_clone(value);
 
     // The debug name and the styles it belongs to, so the map is sized once.
-    let mut dev_class = IndexMap::with_capacity(value.len() + 1);
+    let mut dev_class = IndexMap::with_capacity(styles.len() + 1);
 
     dev_class.insert(
       dev_class_name.clone(),
       Rc::new(FlatCompiledStylesValue::String(dev_class_name)),
     );
 
-    dev_class.extend((**value).clone());
+    dev_class.extend(styles);
 
-    result.insert(key.clone(), Rc::new(dev_class));
+    result.insert(key, Rc::new(dev_class));
   }
 
   result
 }
 
 pub(crate) fn convert_to_test_styles(
-  obj: &StylesObjectMap,
+  obj: StylesObjectMap,
   var_name: &Option<String>,
   state: &StateManager,
 ) -> StylesObjectMap {
   let prefix = dev_class_name_prefix(var_name, state.get_short_filename().as_str());
   let mut result: StylesObjectMap = IndexMap::with_capacity(obj.len());
 
-  for (key, _value) in obj.iter() {
-    let dev_class_name = dev_class_name(&prefix, key);
+  for (key, _value) in obj {
+    let dev_class_name = dev_class_name(&prefix, &key);
 
     // The debug name and the compiled marker, and nothing else.
     let mut dev_class = IndexMap::with_capacity(2);
@@ -85,7 +91,7 @@ pub(crate) fn convert_to_test_styles(
       Rc::new(FlatCompiledStylesValue::Bool(true)),
     );
 
-    result.insert(key.clone(), Rc::new(dev_class));
+    result.insert(key, Rc::new(dev_class));
   }
 
   result

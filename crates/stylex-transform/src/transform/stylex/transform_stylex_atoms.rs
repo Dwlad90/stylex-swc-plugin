@@ -99,7 +99,7 @@ where
     );
 
     if self.state.is_dev() && self.state.options.enable_dev_class_names {
-      compiled = inject_sx_dev_class_name(&compiled, &self.state);
+      compiled = inject_sx_dev_class_name(compiled, &self.state);
     }
     self.state.in_stylex_create = prev_in_stylex_create;
 

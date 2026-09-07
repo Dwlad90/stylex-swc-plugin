@@ -279,7 +279,7 @@ where
 
       if self.state.is_debug() && self.state.options.enable_debug_data_prop {
         compiled_styles = add_source_map_data(
-          &compiled_styles,
+          compiled_styles,
           call,
           &mut self.state,
           &mut package_json_seen,
@@ -288,11 +288,11 @@ where
       }
 
       if self.state.is_dev() && self.state.options.enable_dev_class_names {
-        compiled_styles = inject_dev_class_names(&compiled_styles, &var_name, &self.state);
+        compiled_styles = inject_dev_class_names(compiled_styles, &var_name, &self.state);
       }
 
       if self.state.is_test() {
-        compiled_styles = convert_to_test_styles(&compiled_styles, &var_name, &self.state);
+        compiled_styles = convert_to_test_styles(compiled_styles, &var_name, &self.state);
       }
 
       if is_program_level && let Some(var_name) = var_name.as_ref() {

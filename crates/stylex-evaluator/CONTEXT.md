@@ -300,6 +300,17 @@ spread never reaches the count, being refused first. The receiver is unwrapped
 before it is read, because a parenthesis is not a different receiver.
 _Avoid_: array length, element count, size
 
+**Evaluator-written array**:
+An array that reaches a reader as an evaluated value rather than as source. Two
+things build one — `evaluate_result_vec_to_array_expr`, and the `env` option's
+napi bridge — and both write one present element per slot and no spread. So its
+written length is its element count, and every slot holds the element itself.
+Readers rely on this and none re-checks it, which makes an array arriving with
+a hole or a spread a fault in whichever producer built it. An array an _author_
+wrote is the other value class and is counted as a [written
+slot](#written-slot) instead, where a hole does occupy one.
+_Avoid_: folded array, internal array, rebuilt array
+
 **Declared length**:
 A length a call states in an argument and does not pay for — `Array(n)`, whose
 array is sparse, and `Array.from({ length: n })`, which is one property saying

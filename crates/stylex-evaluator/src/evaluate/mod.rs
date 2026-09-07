@@ -124,6 +124,12 @@ fn resolve_env_entry_to_result(
 /// way to a deopt, because a silently dropped element writes a value the
 /// source does not describe — which is worse than a declaration that falls to
 /// the runtime.
+///
+/// Every element this writes is present and is not a spread, which is what its
+/// readers rely on and none of them re-checks. So a hole or a spread written
+/// here is a fault they inherit rather than answer for. The `env` option's napi
+/// bridge is the other producer and writes them the same way — see
+/// "Evaluator-written array" in the crate's `CONTEXT.md`.
 pub fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -> Option<Expr> {
   let mut elems = Vec::with_capacity(items.len());
 

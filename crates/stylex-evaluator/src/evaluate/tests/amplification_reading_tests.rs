@@ -216,18 +216,30 @@ fn a_length_declared_before_another_key_is_still_read() {
   assert_folds_to_number("Array.from({ length: 1, length: 2 }).length", 2.0);
 }
 
-/// `{ 'length': n }` declares what `{ length: n }` declares, because both spell
-/// the one property name.
+/// `{ 'length': n }` declares what `{ length: n }` declares, because the one
+/// spelling this reads is what both arrive as.
 #[test]
 fn the_quoted_spelling_of_the_length_key_is_the_same_key() {
   assert_folds_to_number("Array.from({ 'length': 3 }).length", 3.0);
 }
 
-/// A key that is neither spelling of `length` declares nothing, whatever number
-/// it holds.
+/// A key that is not `length` declares nothing, whatever it holds, so
+/// `Array.from` of such an object is the empty array.
+///
+/// Read against a count past the entry ceiling, which is what makes the pair
+/// tell the two readings apart: a key wrongly read as `length` would declare
+/// two million elements and be refused, where the same count under a key that
+/// is not `length` declares nothing and folds. A smaller count would fold
+/// either way and pin nothing.
 #[test]
 fn a_key_that_is_not_length_declares_nothing() {
-  assert_folds_to_number("Array.from({ length: 2, 0: 'x' }).length", 2.0);
+  assert_folds_to_number("Array.from({ len: 2000000 }).length", 0.0);
+  assert_folds_to_number("Array.from({ 0: 2000000 }).length", 0.0);
+
+  assert_deopt_reason_contains(
+    "Array.from({ length: 2000000 })",
+    "It declares a length of 2000000 elements",
+  );
 }
 
 /// A declared length the language will not accept declares nothing this guard

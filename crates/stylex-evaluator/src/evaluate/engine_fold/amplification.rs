@@ -242,14 +242,10 @@ impl Walk<'_, '_> {
     // it was written as, and both are one array here — the same two shapes the
     // inward conversion reads, for the same reason.
     //
-    // The literal arm is answered by written length alone, which is sound
-    // because **the literal is one the evaluator wrote**. An array an author
-    // wrote folds to the list arm above, and one carrying a hole or a spread
-    // refuses before it gets here. What reaches this arm is built by
-    // `evaluate_result_vec_to_array_expr` or by the `env` option's own bridge,
-    // and both write one present element per item and no spread. So the written
-    // length is the count, and there is no hole whose width would go unread. See
-    // the same reading in `nodes/member_expression.rs`.
+    // The literal arm is answered by written length alone, because the literal
+    // is an evaluator-written array: an array an author wrote folds to the list
+    // arm above. So the length is the count, and no slot holds a hole whose
+    // width would go unread. See "Evaluator-written array" in CONTEXT.md.
     let (elements, element) = match &countable_value_of(receiver, self.reader)? {
       EvaluateResultValue::Vec(items) => (
         items.len(),
@@ -258,13 +254,17 @@ impl Walk<'_, '_> {
           magnitude: greatest_of(items.iter().map(number_held_by)),
         },
       ),
-      EvaluateResultValue::Expr(Expr::Array(ArrayLit { elems, .. })) => (
-        elems.len(),
-        Bounds {
-          characters: greatest_of(written_elements(elems).map(|expr| rendered_expr(expr, depth))),
-          magnitude: greatest_of(written_elements(elems).map(number_of)),
-        },
-      ),
+      EvaluateResultValue::Expr(Expr::Array(ArrayLit { elems, .. })) => {
+        let written = WrittenArray(elems);
+
+        (
+          written.slots(),
+          Bounds {
+            characters: greatest_of(written.each().map(|expr| rendered_expr(expr, depth))),
+            magnitude: greatest_of(written.each().map(number_of)),
+          },
+        )
+      },
       _ => return None,
     };
 
@@ -584,29 +584,33 @@ fn hands_over_a_function(args: &[ExprOrSpread]) -> bool {
   })
 }
 
-/// The expressions a written array's elements are, in order.
+/// One evaluator-written array, read for the two units its elements are measured
+/// in.
 ///
-/// Every element of an array the evaluator hands back is present and is not a
-/// spread — `evaluate_result_vec_to_array_expr` and the `env` option's bridge
-/// are the two producers and both build them that way — so the list is as long
-/// as the literal and each entry is the element itself. Read from one place because both the receiver's own elements
-/// and a nested array's are the same question, and both are measured in two
-/// units off the same reading.
+/// The count and the elements come off one value, because they have to agree and
+/// nothing checks that they do. The count is the slot count, which is the safe
+/// reading: a count taken from the elements would read short for a hole and so
+/// admit a call no ceiling bounded.
 ///
-/// **The invariant is what makes this reading safe, and nothing here re-checks
-/// it.** A hole would be stepped over rather than read as `undefined`, and a
-/// spread would be measured as its operand while the count still counted it as
-/// one element — either would read a bound short, which is the reading that
-/// admits a call no ceiling bounded. So the producer is the place to hold the
-/// line: an array reaching here that carries one of the two is a bug in
-/// `evaluate_result_vec_to_array_expr`, not a shape to answer for.
-///
-/// `engine_fold/guard.rs` does admit a hole and a spread where it walks an
-/// object or an array the *author* wrote. That is a different value class and
-/// not an inconsistency: written syntax carries both, and an evaluated answer
-/// carries neither.
-fn written_elements(elems: &[Option<ExprOrSpread>]) -> impl Iterator<Item = &Expr> {
-  elems.iter().flatten().map(|elem| &*elem.expr)
+/// The elements are total only under the invariant in "Evaluator-written array"
+/// — a hole would be stepped over and a spread measured as its operand, and both
+/// read a bound short. `engine_fold/guard.rs` admits both where it walks what an
+/// author wrote, which is the other value class rather than a disagreement.
+/// Copied rather than borrowed, because it is one shared slice and both units
+/// read the whole of it — so neither reading holds the other up.
+#[derive(Clone, Copy)]
+struct WrittenArray<'a>(&'a [Option<ExprOrSpread>]);
+
+impl<'a> WrittenArray<'a> {
+  /// How many slots the language reports.
+  fn slots(self) -> usize {
+    self.0.len()
+  }
+
+  /// The expression each slot holds, in order.
+  fn each(self) -> impl Iterator<Item = &'a Expr> {
+    self.0.iter().flatten().map(|elem| &*elem.expr)
+  }
 }
 
 /// The largest of a receiver's elements read one way, or `None` where one of them
@@ -698,10 +702,14 @@ fn rendered_expr(expr: &Expr, depth: Depth) -> Option<u64> {
     // The value the grammar has no literal for, which a callback parameter can
     // hold like any other element.
     Expr::Ident(ident) if is_js_undefined(ident) => Some(UNDEFINED_WIDTH),
-    Expr::Array(ArrayLit { elems, .. }) => joined(
-      elems.len(),
-      written_elements(elems).map(|expr| rendered_expr(expr, inner)),
-    ),
+    Expr::Array(ArrayLit { elems, .. }) => {
+      let written = WrittenArray(elems);
+
+      joined(
+        written.slots(),
+        written.each().map(|expr| rendered_expr(expr, inner)),
+      )
+    },
     _ => None,
   }
 }
@@ -919,21 +927,14 @@ fn declared_length_of(resolved: &EvaluateResultValue) -> Declared {
 
 /// Whether a property name is the `length` an array-like declares.
 ///
-/// One spelling, because `length` is a valid identifier and every factory in this
-/// compiler spells such a key as one — `convert_string_to_prop_name` answers an
-/// `Ident` for any name `Ident::verify_symbol` accepts. So `{ 'length': n }`
-/// arrives here spelled the way `{ length: n }` is, and a computed key arrives
-/// already settled.
+/// One spelling, because `length` is a valid identifier and
+/// `convert_string_to_prop_name` spells any such name as one. So `{ 'length': n }`
+/// arrives here spelled the way `{ length: n }` is.
 ///
-/// Not "every key is an identifier", which is not true of this reader's input: a
-/// spread hands its source's props over as written, and the function-fold and
-/// `env` bridges build theirs with `create_key_value_prop`. A key like
-/// `"max-width"` therefore does reach here as a `PropName::Str`. It is only
-/// `length` itself that cannot.
-///
-/// The quoted spelling is the case that says so —
-/// `the_quoted_spelling_of_the_length_key_is_the_same_key` fails the day that
-/// spelling changes.
+/// Not because every key is an identifier, which is untrue of this reader's
+/// input: a key like `"max-width"` does reach it quoted. It is `length` alone
+/// that cannot. `a_key_that_is_not_length_declares_nothing` is what fails the
+/// day this widens, and the quoted case the day the spelling changes.
 fn is_a_length_key(key: &PropName) -> bool {
   matches!(key, PropName::Ident(name) if name.sym == "length")
 }

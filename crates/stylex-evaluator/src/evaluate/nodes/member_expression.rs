@@ -392,13 +392,12 @@ pub(in super::super) fn evaluate(
 
       match object {
         EvaluateResultValue::Expr(expr) => match &expr {
-          // An array the evaluator itself wrote, which is what a fold hands
-          // back and what a property read plucks out of an object. It carries
-          // no hole and no spread: `evaluate_result_vec_to_array_expr` is the
-          // one thing that builds it, and it writes a plain element per slot.
-          // So the slots are counted and read straight off the list, where the
-          // receiver an *author* wrote is read through `written_slot_count`
-          // above, which answers for both.
+          // An evaluator-written array, which is what a fold hands back and
+          // what a property read plucks out of an object. It carries no hole
+          // and no spread — see the term in CONTEXT.md — so the slots are
+          // counted and read straight off the list. The receiver an author
+          // wrote is read through `written_slot_count` above, which answers for
+          // both.
           Expr::Array(ArrayLit { elems, .. }) => {
             let slot = match classify_lookup(&property) {
               // The count of slots the language reports.

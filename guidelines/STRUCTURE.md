@@ -185,15 +185,13 @@ Permanent:
 - `stylex_test_parser` -- test fixture parser
 - `stylex_transform` -- SWC transform, tested through snapshot tests
 
-The temporary crate came out of the transform, which is itself off the gate.
-The transform's tests had covered it, and the new crate boundary stopped that
-coverage counting for it. Its ticket sits in the `split-transform-crate` tracker
-(see [issue-tracker.md](../docs/agents/issue-tracker.md)).
-
 Temporary:
 
-- `stylex_evaluator` -- covered through the transform until direct tests exist.
-  Ticket `15-cover-the-evaluator-crate` removes this row.
+- None. `stylex_evaluator` held the last row: it came out of the transform,
+  which is itself off the gate, and the new crate boundary stopped the
+  transform's coverage counting for it. Ticket `15-cover-the-evaluator-crate`
+  wrote the tests that closed it, and the crate is on the gate at full
+  coverage.
 
 ## Key Config Files
 

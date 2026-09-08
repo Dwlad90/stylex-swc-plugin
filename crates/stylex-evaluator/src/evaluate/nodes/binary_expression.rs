@@ -89,28 +89,6 @@ enum LeftOperand {
   Value(EvaluateResultValue),
 }
 
-impl LeftOperand {
-  /// Whether this side makes a `+` a concatenation rather than an addition.
-  fn is_string(&self) -> bool {
-    match self {
-      Self::Measured { .. } => true,
-      Self::Value(value) => value.as_expr().is_some_and(is_string),
-    }
-  }
-
-  /// The expression behind an operand that is not a folded concatenation.
-  ///
-  /// `None` for a measured one, which the numeric path never sees: a folded
-  /// concatenation is a string, and a string on either side sends the `+` to
-  /// the concatenation path before any coercion to a number is asked for.
-  fn as_expr(&self) -> Option<&Expr> {
-    match self {
-      Self::Measured { .. } => None,
-      Self::Value(value) => value.as_expr(),
-    }
-  }
-}
-
 /// A measured left side is remembered as the string literal it spells, which is
 /// all the tree can hold, and read back as an ordinary value -- so a chain
 /// answered from the memo is measured where it lands, exactly as it was before
@@ -221,17 +199,6 @@ pub(crate) fn binary_expr_to_num_or_str(
 ) -> Result<BinaryExprType, anyhow::Error> {
   let op = binary_expr.op;
 
-  let left = evaluate_left_operand(
-    binary_expr,
-    match op {
-      BinaryOp::Add => LEFT_HAS_NO_VALUE,
-      _ => LEFT_NOT_A_NUMBER,
-    },
-    state,
-    traversal_state,
-    fns,
-  )?;
-
   // `+` is the one operator whose result type its operands decide rather than
   // the path that claimed it: JavaScript concatenates as soon as either side is
   // a string, and only adds when neither is. Asked after the numeric coercion
@@ -243,23 +210,54 @@ pub(crate) fn binary_expr_to_num_or_str(
   // left side with no numeric form goes on refusing there rather than deopting
   // on a right side the refusal never needed. `evaluate_cached` memoises, so
   // the second look below costs nothing.
-  if matches!(op, BinaryOp::Add) {
-    let right = evaluate_operand(
-      &binary_expr.right,
-      RIGHT_HAS_NO_VALUE,
+  //
+  // It is also the only operator whose left side can arrive measured, so the
+  // two shapes part here and the numeric path below holds a plain value.
+  let left = match op {
+    BinaryOp::Add => {
+      let left =
+        evaluate_left_operand(binary_expr, LEFT_HAS_NO_VALUE, state, traversal_state, fns)?;
+
+      let right = evaluate_operand(
+        &binary_expr.right,
+        RIGHT_HAS_NO_VALUE,
+        state,
+        traversal_state,
+        fns,
+      )?;
+
+      // Concatenated here rather than by handing the expression back to the
+      // string path, which would evaluate both operands a second time -- and
+      // would drop the left side's measurement on the way, since only a value
+      // can carry one.
+      match left {
+        // A measured side is a string, which is the whole of what makes the `+`
+        // a concatenation whatever the right side holds.
+        measured @ LeftOperand::Measured { .. } => {
+          return concatenate(binary_expr, measured, &right, state, traversal_state);
+        },
+        LeftOperand::Value(value)
+          if value.as_expr().is_some_and(is_string) || right.as_expr().is_some_and(is_string) =>
+        {
+          return concatenate(
+            binary_expr,
+            LeftOperand::Value(value),
+            &right,
+            state,
+            traversal_state,
+          );
+        },
+        LeftOperand::Value(value) => value,
+      }
+    },
+    _ => evaluate_operand(
+      &binary_expr.left,
+      LEFT_NOT_A_NUMBER,
       state,
       traversal_state,
       fns,
-    )?;
-
-    // Concatenated here rather than by handing the expression back to the
-    // string path, which would evaluate both operands a second time -- and
-    // would drop the left side's measurement on the way, since only a value can
-    // carry one.
-    if left.is_string() || right.as_expr().is_some_and(is_string) {
-      return concatenate(binary_expr, left, &right, state, traversal_state);
-    }
-  }
+    )?,
+  };
 
   let left_expr = as_expr_or_err!(left, "Left argument not expression");
   let left_num = expr_to_num(left_expr, state, traversal_state, fns)?;

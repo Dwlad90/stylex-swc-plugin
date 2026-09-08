@@ -85,7 +85,7 @@ const IDENTITY_ARITY: usize = 5;
 /// Written out rather than assembled from pieces, because it is JavaScript and
 /// reads as JavaScript. The two keys it compares against are the compiler's own
 /// constants, so a rename reaches this source rather than passing it by.
-fn var_group_traps() -> String {
+pub(super) fn var_group_traps() -> String {
   format!(
     r#"(member) => (baseId, prefix, debug, readableNames, paths) => {{
       const identity = [baseId, prefix, debug, readableNames];
@@ -128,16 +128,6 @@ fn unbuilt(reason: &str) -> Decline {
 /// Evaluated rather than assembled, and kept rather than re-evaluated: a group
 /// crossing is a parse of the traps above otherwise, paid per group per fold.
 ///
-/// Answers a refusal rather than asserting, for the reason the engine's own
-/// construction does — this runs inside an evaluation whose whole contract is
-/// that it may fail.
-pub(super) fn compile_var_group(context: &mut Context) -> Result<JsFunction, Decline> {
-  compile_traps(&var_group_traps(), context)
-}
-
-/// The builder a written source of traps compiles to, or the refusal that names
-/// the step which would not answer.
-///
 /// Four steps, and each has a refusal of its own: the text has to parse, to a
 /// function, which is called once, and has to answer a function. None of the
 /// four can fire for [`var_group_traps`], which is the one source shipped — so
@@ -145,7 +135,11 @@ pub(super) fn compile_var_group(context: &mut Context) -> Result<JsFunction, Dec
 /// it is about. The refusals stay because the shipped source is assembled from
 /// two of the compiler's constants, and a rename that breaks it is declined
 /// here rather than folded past.
-fn compile_traps(source: &str, context: &mut Context) -> Result<JsFunction, Decline> {
+///
+/// Answers a refusal rather than asserting, for the reason the engine's own
+/// construction does — this runs inside an evaluation whose whole contract is
+/// that it may fail.
+pub(super) fn compile_traps(source: &str, context: &mut Context) -> Result<JsFunction, Decline> {
   let refused = |error: JsError| unbuilt(&error.to_string());
 
   let traps = context

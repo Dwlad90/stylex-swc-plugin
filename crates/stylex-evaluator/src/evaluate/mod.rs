@@ -666,3 +666,10 @@ mod folded_answer_tests;
 #[cfg(test)]
 #[path = "tests/evaluated_array_form_tests.rs"]
 mod evaluated_array_form_tests;
+
+// What the evaluator writes to the log when it declines to fold something. A
+// `log` macro skips its arguments until a logger asks for that level, so these
+// messages are covered by an assertion here rather than by an exclusion.
+#[cfg(test)]
+#[path = "tests/reported_message_tests.rs"]
+mod reported_message_tests;

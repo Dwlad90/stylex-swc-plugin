@@ -405,6 +405,52 @@ fn a_concatenation_over_a_value_with_no_string_is_refused() {
   }
 }
 
+/// The right side of an operator that is not `+` is read after the left has
+/// coerced, and each of the three ways it can fail is answered where it fails.
+///
+/// The left side's three are pinned above. These are the right's, and they are
+/// a different order of events: `+` asks its right side before either coerces,
+/// so only the other operators reach a right side with the left already read.
+#[test]
+fn a_right_operand_with_no_number_is_refused_where_it_fails() {
+  let fns = a_map_holding_a_function();
+
+  for (right, expected) in [
+    // Evaluated, and then no number: neither conversion method is callable, so
+    // the language itself throws where a number was wanted.
+    (
+      Expr::from(create_object_lit(vec![create_key_value_prop(
+        "toString",
+        create_number_expr(1.0),
+      )])),
+      "is not a number",
+    ),
+    // A value the module holds that is not an expression at all, which is what
+    // a name bound to one of this compiler's own functions resolves to.
+    (
+      create_ident_expr(OWN_FUNCTION),
+      "Right argument not expression",
+    ),
+  ] {
+    let bin = bin_expr(BinaryOp::Sub, create_number_expr(1.0), right);
+
+    assert_refuses_with(num_or_str_path_with_fns(&bin, &fns), expected);
+  }
+}
+
+/// A right side that answered nothing at all refuses before any coercion, which
+/// is the third way and the one that names the side rather than the reading.
+#[test]
+fn a_right_operand_that_answered_nothing_is_refused() {
+  let bin = bin_expr(
+    BinaryOp::Sub,
+    create_number_expr(1.0),
+    create_ident_expr("missing"),
+  );
+
+  assert_refuses_with(num_or_str_path(&bin), RIGHT_NOT_A_NUMBER);
+}
+
 /// Asserts a path refused, and that the sentence is the one `expected`.
 ///
 /// The sentence rather than only the refusal: which side had no reading, and

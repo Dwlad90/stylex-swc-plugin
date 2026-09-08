@@ -337,3 +337,40 @@ fn one_nested_element_with_no_width_leaves_its_join_unread() {
     "xx-xx",
   );
 }
+
+/// A name a callback binds but nothing measured bounds nothing, and the count
+/// is refused rather than read off the module.
+///
+/// The array a callback is handed as its third parameter is such a name: the
+/// call measured the receiver's elements and the receiver's indexes, and the
+/// receiver itself is neither. Reading the module for it would answer whatever
+/// the same spelling holds outside the callback, which is a different value.
+#[test]
+fn a_name_the_callback_binds_to_nothing_measured_bounds_nothing() {
+  assert_deopt_reason_contains(
+    "['a'].map((each, index, all) => 'y'.repeat(all))",
+    UNBOUNDED_STRING,
+  );
+}
+
+/// A name nothing at all answers for bounds nothing either, which is the other
+/// half of the same reading: one name is bound and unmeasured, the other is not
+/// bound anywhere.
+#[test]
+fn a_name_nothing_answers_for_bounds_nothing() {
+  assert_deopt_reason_contains("['a'].map((each) => 'x'.repeat(missing))", UNBOUNDED_STRING);
+}
+
+/// A length written inside a callback the call did not measure is refused, even
+/// where the length itself is a written number.
+///
+/// A parameter with a default may be handed something else entirely, so the
+/// call measures neither the width nor the count for it — and one bounded
+/// length repeated an unknown number of times is not bounded at all.
+#[test]
+fn a_declared_length_inside_an_unmeasured_callback_is_refused() {
+  assert_deopt_reason_contains(
+    "['a'].map((each = 1) => Array(3).fill(each))",
+    "Cannot bound the array 'Array' would build inside a callback.",
+  );
+}

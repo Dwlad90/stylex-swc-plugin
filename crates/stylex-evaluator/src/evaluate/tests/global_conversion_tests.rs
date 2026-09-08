@@ -17,7 +17,8 @@ use stylex_ast::ast::convertors::{
   convert_atom_to_string, convert_key_value_to_str, create_number_expr,
 };
 use stylex_constants::constants::evaluation_errors::{
-  NUMERIC_CONVERSION, STRING_CONVERSION, unbounded_declared_length, uncoercible_value,
+  NUMERIC_CONVERSION, SPREAD_ELEMENT, STRING_CONVERSION, unbounded_declared_length,
+  uncoercible_value,
 };
 use stylex_state::evaluate_result_value::EvaluateResultValue;
 use swc_core::ecma::ast::Expr;
@@ -217,4 +218,52 @@ fn the_conversions_answer_an_ordinary_value_on_this_path_too() {
     ),
     other => panic!("expected the object itself, got {:?}", other),
   }
+}
+
+/// An argument the walk cannot read stops the conversion before it is applied,
+/// and the sentence is the argument's rather than the conversion's.
+///
+/// A spread is the one shape the walk refuses outright: one written element
+/// stands for however many the spread holds, so the list the conversion would
+/// read is not the list the author wrote. Every conversion answers the same
+/// way, because none of them is what refused.
+#[test]
+fn a_spread_argument_stops_every_conversion() {
+  for source in [
+    "String(...own)",
+    "Number(...own)",
+    "Object(...own)",
+    "Array(...own)",
+  ] {
+    let result = evaluated_against_a_function_fold(source);
+
+    assert_refused(&result, source);
+
+    assert_eq!(
+      result.reason.as_deref(),
+      Some(SPREAD_ELEMENT),
+      "a spread must refuse as a spread rather than as a conversion"
+    );
+  }
+}
+
+/// An argument that refuses while it is being evaluated leaves the list shorter
+/// than the author wrote, and the conversion refuses rather than converting a
+/// list that no longer lines up.
+///
+/// The sentence stays the argument's: the first refusal is the one an author
+/// can act on, and naming `String` over it would report the brackets for a
+/// mistake inside them.
+#[test]
+fn an_argument_that_refuses_stops_the_conversion() {
+  let source = "String(own())";
+  let result = evaluated_against_a_function_fold(source);
+
+  assert_refused(&result, source);
+
+  assert_ne!(
+    result.reason.as_deref(),
+    Some(uncoercible_value("String").as_str()),
+    "the refusal must be the argument's rather than the conversion's"
+  );
 }

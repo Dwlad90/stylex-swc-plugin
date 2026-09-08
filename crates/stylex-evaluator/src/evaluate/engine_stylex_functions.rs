@@ -214,3 +214,9 @@ fn first_that_works(_this: &JsValue, args: &[JsValue], engine: &mut Context) -> 
     },
   }
 }
+
+// What the call answers for a fallback that throws when it is read, which no
+// transported value can be.
+#[cfg(test)]
+#[path = "tests/throwing_fallback_tests.rs"]
+mod throwing_fallback_tests;

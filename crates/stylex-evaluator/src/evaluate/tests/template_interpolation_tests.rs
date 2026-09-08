@@ -93,3 +93,20 @@ fn an_interpolation_past_the_ceiling_refuses_the_whole_template() {
     &format!("`${{['1234567890']}}${{{FOLD_FUNCTION}}}`"),
   );
 }
+
+/// The written text is measured on the same terms as the interpolations, so a
+/// template whose own literal passes the ceiling refuses before anything is
+/// interpolated into it.
+///
+/// The two halves of a template grow one buffer, and only one of them was
+/// written by the author. Measuring the interpolations alone would let a
+/// literal of any size through, which is the declaration this refusal is about.
+#[test]
+fn a_written_quasi_past_the_ceiling_refuses_the_whole_template() {
+  assert_refused_at_the_character_ceiling(
+    4,
+    &a_function_fold(),
+    TEMPLATE_LITERAL,
+    "`1234567890${1}`",
+  );
+}

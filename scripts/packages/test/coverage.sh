@@ -20,7 +20,7 @@ crate_name="${PWD##*/}"
 # gate, and which rows a ticket removes, is in "Excluded from Coverage" in
 # guidelines/STRUCTURE.md.
 case "$crate_name" in
-  stylex-evaluator|stylex-logs|stylex-rs-compiler|stylex-test-parser|stylex-transform)
+  stylex-logs|stylex-rs-compiler|stylex-test-parser|stylex-transform)
     exit 0
     ;;
 esac

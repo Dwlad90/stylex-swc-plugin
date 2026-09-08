@@ -199,41 +199,36 @@ pub(super) fn resolve_reference(
         },
       };
 
-      if state.confident {
-        let import_path_src = convert_atom_to_string(&import_path.src.value);
+      // No confidence check around what follows. Upstream gives
+      // `IMPORT_FILE_EVAL_ERROR` a second time where a resolution came back
+      // *unconfident* (0.19.0 line 647), and it reaches that branch only out of
+      // `evaluateImportedFile`, which parses the imported module and folds the
+      // named export out of it. This compiler has no such arm —
+      // `ImportPathResolution` resolves to a path or to nothing — and
+      // `evaluate_theme_ref` is a constructor over `&StateManager` that cannot
+      // clear confidence. So a resolution reached from here always leaves the
+      // evaluation confident, and a check would be a question with one answer.
+      //
+      // It comes back the day this compiler evaluates an imported file in its
+      // own right, which is the same capability the globals step's cross-file
+      // gap waits on.
+      let import_path_src = convert_atom_to_string(&import_path.src.value);
 
-        if !state.added_imports.contains(&import_path_src)
-          && traversal_state.get_treeshake_compensation()
-        {
-          let prepend_import_module_item = add_import_expression(&import_path_src);
-          // Theme side-effect imports go under ThemeImports — the slot
-          // whose flush position matches the legacy
-          // `prepend_import_module_items` placement (between the
-          // runtime helpers and the existing import block,
-          // regardless of producer queue order). Dedup is by stable
-          // hash on the StateManager so it survives across
-          // evaluations.
-          traversal_state.queue_theme_import_if_absent(prepend_import_module_item);
+      if !state.added_imports.contains(&import_path_src)
+        && traversal_state.get_treeshake_compensation()
+      {
+        let prepend_import_module_item = add_import_expression(&import_path_src);
+        // Theme side-effect imports go under ThemeImports — the slot whose
+        // flush position matches the legacy `prepend_import_module_items`
+        // placement (between the runtime helpers and the existing import block,
+        // regardless of producer queue order). Dedup is by stable hash on the
+        // StateManager so it survives across evaluations.
+        traversal_state.queue_theme_import_if_absent(prepend_import_module_item);
 
-          state.added_imports.insert(import_path_src);
-        }
-
-        return Some(EvaluateResultValue::ThemeRef(return_value));
+        state.added_imports.insert(import_path_src);
       }
 
-      // Upstream gives `IMPORT_FILE_EVAL_ERROR` a second time here, where a
-      // resolution came back *unconfident* (0.19.0 line 647). Deliberately
-      // absent, and unreachable rather than skipped: upstream reaches that
-      // branch only out of `evaluateImportedFile`, which parses the imported
-      // module and folds the named export out of it. This compiler has no such
-      // arm — `ImportPathResolution` resolves to a path or to nothing — and
-      // `evaluate_theme_ref` is a constructor over `&StateManager` that cannot
-      // clear confidence. So no resolution reached from here can leave the
-      // evaluation unconfident, and there is no input for the branch to answer.
-      //
-      // It becomes reachable the day this compiler evaluates an imported file in
-      // its own right, which is the same capability the globals step's
-      // cross-file gap waits on.
+      return Some(EvaluateResultValue::ThemeRef(return_value));
     }
   }
 

@@ -12,8 +12,6 @@
 
 use std::{cell::RefCell, mem::ManuallyDrop};
 
-#[cfg(test)]
-use boa_engine::JsString;
 use boa_engine::{
   Context, JsError, JsResult, JsValue, Script, Source, object::builtins::JsFunction,
 };
@@ -32,7 +30,7 @@ use stylex_constants::constants::evaluation_errors::{engine_did_not_start, engin
 use stylex_utils::hash::stable_hash_unspanned_call;
 
 use super::Decline;
-use super::theme::compile_var_group;
+use super::theme::{compile_traps, var_group_traps};
 use stylex_diagnostics::code_frame::print_module;
 
 /// How many loop iterations an evaluation may run.
@@ -205,71 +203,6 @@ pub(super) struct Engine {
   pub(super) var_group: JsFunction,
 }
 
-/// Whether this thread is holding an engine — the observable half of "built on
-/// first use and never before".
-///
-/// Test-only, and reading the slot rather than counting constructions, because
-/// what the claim is about is whether an engine exists after an input the fold
-/// declined. Paired with [`forget_engine`], since a test asserting an engine was
-/// *not* built has to start from a thread that has none.
-#[cfg(test)]
-pub(in crate::evaluate) fn holds_an_engine() -> bool {
-  ENGINE.with_borrow(|slot| slot.is_some())
-}
-
-/// How many distinct expressions this thread's engine has compiled, or none
-/// where it holds no engine.
-///
-/// Test-only, and the observable half of "compiled once and reused after": the
-/// answer alone cannot tell a memo hit from a fresh compile, because both
-/// produce the same value — which is the whole point of the memo and also why it
-/// needs a witness of its own.
-#[cfg(test)]
-pub(in crate::evaluate) fn compiled_expressions() -> Option<usize> {
-  ENGINE.with_borrow(|slot| slot.as_ref().map(|engine| engine.memo.len()))
-}
-
-/// Whether this thread's engine has `name` bound on its global object, or none
-/// where it holds no engine.
-///
-/// Test-only, and the direct reading of the claim the transport was chosen for:
-/// a resolved name crosses as an argument to a printed arrow rather than as a
-/// property written onto the engine, so a fold leaves the global object exactly
-/// as it found it. Nothing a fold answers can show that on its own — a leaked
-/// name and a name that was never written produce the same value — so the object
-/// has to be asked.
-///
-/// Own properties rather than the whole prototype chain, because what is being
-/// asked is whether a *fold* wrote something, and the names the language brings
-/// with it are not that.
-#[cfg(test)]
-pub(in crate::evaluate) fn holds_a_global(name: &str) -> Option<bool> {
-  ENGINE.with_borrow_mut(|slot| {
-    slot.as_mut().map(|engine| {
-      let global = engine.context.global_object();
-
-      match global.has_own_property(JsString::from(name), &mut engine.context) {
-        Ok(held) => held,
-        // A global object that will not answer whether it holds a name is a
-        // broken invariant rather than a fold refusing, and this only runs
-        // under a test.
-        Err(error) => panic!("the engine would not say whether `{name}` is bound: {error}"),
-      }
-    })
-  })
-}
-
-/// Drops this thread's engine reference without dropping the engine, which is
-/// what the slot's `ManuallyDrop` already does at thread exit and for the same
-/// reason: the collector lives in a thread-local of its own and the drop order
-/// between the two is not defined.
-#[cfg(test)]
-pub(in crate::evaluate) fn forget_engine() {
-  ENGINE.with_borrow_mut(|slot| {
-    slot.take();
-  });
-}
-
 impl Engine {
   /// A context with the one runtime limit its default leaves open, without the
   /// one thing the language provides that this compiler cannot — function source
@@ -280,6 +213,18 @@ impl Engine {
   /// engine that kept function source would fold a spelling no other build
   /// produces, which is worse than declining the fold.
   pub(super) fn new() -> Result<ManuallyDrop<Self>, Decline> {
+    Self::started_on(NO_FUNCTION_SOURCE, &var_group_traps())
+  }
+
+  /// The same engine, built from two written sources rather than from the two
+  /// that are shipped.
+  ///
+  /// Both steps refuse, and neither can fail for the sources [`Engine::new`]
+  /// hands in — one is a constant and the other is assembled from two of the
+  /// compiler's own constants. So the sources are parameters, and a case hands
+  /// in one that fails the step it is about. The refusals stay because a rename
+  /// that breaks either source is declined here rather than folded past.
+  fn started_on(prelude: &str, traps: &str) -> Result<ManuallyDrop<Self>, Decline> {
     let mut context = Context::default();
 
     context
@@ -287,10 +232,10 @@ impl Engine {
       .set_loop_iteration_limit(MAX_LOOP_ITERATIONS);
 
     context
-      .eval(Source::from_bytes(NO_FUNCTION_SOURCE))
+      .eval(Source::from_bytes(prelude))
       .map_err(|error| Decline::rule(engine_did_not_start(&error.to_string())))?;
 
-    let var_group = compile_var_group(&mut context)?;
+    let var_group = compile_traps(traps, &mut context)?;
 
     Ok(ManuallyDrop::new(Self {
       context,
@@ -428,3 +373,19 @@ pub(super) fn print_fold(call: &CallExpr, params: Vec<Pat>) -> String {
     ),
   )
 }
+
+// The readings a case makes of the thread's engine, and the suite whose subject
+// is the engine itself. Both sit beside the other suites of this fold rather
+// than in this file, because both are scaffolding.
+#[cfg(test)]
+#[path = "tests/engine_state.rs"]
+mod engine_state;
+
+#[cfg(test)]
+pub(in crate::evaluate) use engine_state::{
+  compiled_expressions, forget_engine, holds_a_global, holds_an_engine,
+};
+
+#[cfg(test)]
+#[path = "tests/engine_lifetime_tests.rs"]
+mod engine_lifetime_tests;

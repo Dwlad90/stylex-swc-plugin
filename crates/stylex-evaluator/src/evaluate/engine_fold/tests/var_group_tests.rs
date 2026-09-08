@@ -23,7 +23,7 @@ use stylex_state::theme_ref::{ThemeRef, VarNaming};
 /// The group every case below reads, under the identity the transform tests use
 /// and under the naming the case names.
 fn group_named(context: &mut Context, prefixes: &[&str], naming: VarNaming) -> JsValue {
-  let builder = match compile_var_group(context) {
+  let builder = match compile_traps(&var_group_traps(), context) {
     Ok(builder) => builder,
     Err(_) => panic!("the theme group traps did not compile"),
   };

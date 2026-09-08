@@ -411,56 +411,67 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
       // abandoned mid-frame. Taking it means an unwind leaves the slot empty and
       // the next fold builds a fresh engine; the abandoned one leaks, which is
       // what `ManuallyDrop` already makes it do at thread exit.
-      let mut engine = match slot.take() {
-        Some(engine) => engine,
-        None => Engine::new()?,
+      let taken = match slot.take() {
+        Some(engine) => Ok(engine),
+        None => Engine::new(),
       };
 
-      // Cloned rather than borrowed: it is a handle the engine's own collector
-      // owns, and the build below needs the engine's context borrowed at the
-      // same time.
-      let var_group = engine.var_group.clone();
+      // Read through the answer rather than out of it, so the engine's own
+      // refusal is the fold's refusal without a second place that carries it.
+      taken.and_then(|mut engine| {
+        // Cloned rather than borrowed: it is a handle the engine's own collector
+        // owns, and the build below needs the engine's context borrowed at the
+        // same time.
+        let var_group = engine.var_group.clone();
 
-      let depth = walk.guard.depth.restart();
-      let mut outward = Outward::new(method, walk.guard.ceilings);
+        let depth = walk.guard.depth.restart();
+        let mut outward = Outward::new(method, walk.guard.ceilings);
 
-      let applied = match admitted.kind {
-        AdmittedKind::Global => admit_an_applied_global(method, &mut engine.context),
-        AdmittedKind::Method | AdmittedKind::Named => Ok(()),
-      };
+        let applied = match admitted.kind {
+          AdmittedKind::Global => admit_an_applied_global(method, &mut engine.context),
+          AdmittedKind::Method | AdmittedKind::Named => Ok(()),
+        };
 
-      let folded = applied
-        .and_then(|()| walk.arguments(&mut engine.context, method, &var_group))
-        .and_then(|arguments| {
-          apply(
-            key,
-            || print_fold(call, walk.parameters()),
-            &arguments,
-            &mut engine,
-            method,
-          )
-        })
-        .and_then(|value| {
-          // An answer that is the theme group itself — `Object(colors)` hands its
-          // argument straight back — is handed back rather than converted: the
-          // group's members live in another file and nothing this side can write
-          // stands for it, where the dispatch below holds the reference and
-          // answers for it. A refusal here would fail a build it can compile.
-          //
-          // Asked only where a group crossed, so an ordinary answer pays nothing
-          // for a question that could not be true of it.
-          if walk.carried_a_theme_reference()
-            && is_a_var_group(&value, method, &mut engine.context)?
-          {
-            return Err(Decline::NotACandidate);
-          }
+        let folded = applied
+          .and_then(|()| walk.arguments(&mut engine.context, method, &var_group))
+          .and_then(|arguments| {
+            apply(
+              key,
+              || print_fold(call, walk.parameters()),
+              &arguments,
+              &mut engine,
+              method,
+            )
+          })
+          .and_then(|value| {
+            // An answer that is the theme group itself — `Object(colors)` hands its
+            // argument straight back — is handed back rather than converted: the
+            // group's members live in another file and nothing this side can write
+            // stands for it, where the dispatch below holds the reference and
+            // answers for it. A refusal here would fail a build it can compile.
+            //
+            // Asked only where a group crossed, so an ordinary answer pays nothing
+            // for a question that could not be true of it.
+            //
+            // A read that throws is read as "not a group" rather than carried:
+            // every group the engine holds answers the mark from a trap that
+            // cannot throw, and the walk out below reads the same value a moment
+            // later and carries the throw in the engine's own words. Carrying it
+            // here would be the same sentence from a step that was only asking
+            // what the value is.
+            if walk.carried_a_theme_reference()
+              && is_a_var_group(&value, method, &mut engine.context).unwrap_or(false)
+            {
+              return Err(Decline::NotACandidate);
+            }
 
-          outward.value(&value, &mut engine.context, depth)
-        });
+            outward.value(&value, &mut engine.context, depth)
+          });
 
-      *slot = Some(engine);
+        *slot = Some(engine);
 
-      folded
+        folded
+      })
     })
   })
 }
@@ -524,3 +535,14 @@ mod engine_reads;
 #[cfg(test)]
 #[path = "tests/escaping_property_tests.rs"]
 mod escaping_property_tests;
+
+// What the printed expression comes to once the carried values are passed to
+// it, asked directly because both refusals are shapes no source prints.
+#[cfg(test)]
+#[path = "tests/applied_fold_tests.rs"]
+mod applied_fold_tests;
+
+// The two callback parameters that bind nothing, which no source writes.
+#[cfg(test)]
+#[path = "tests/unwritable_pattern_tests.rs"]
+mod unwritable_pattern_tests;

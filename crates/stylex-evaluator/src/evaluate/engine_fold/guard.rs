@@ -113,25 +113,29 @@ impl Scope<'_> {
     matches!(self, Scope::Names { .. })
   }
 
-  /// What `name` holds, where it is a value a call measured for the callback
-  /// around it — and `None` for every other name, whose value nothing here
-  /// bounded.
+  /// What a scope here binds `name` to: the bounds of the value a call measured
+  /// for the callback around it, `Some(None)` where a scope binds the name and
+  /// nothing measured what it holds, and `None` where no scope here binds it at
+  /// all — in which case the name is the module's.
   ///
   /// The innermost scope binding the name answers, so a name shadowing a
   /// measured one is read as itself rather than borrowing its bounds.
-  pub(super) fn bounds_of(&self, name: &Atom) -> Option<Bounds> {
-    let Scope::Names {
-      names,
-      elements,
-      outer,
-    } = self
-    else {
-      return None;
-    };
-
-    match names.iter().position(|bound| bound == name) {
-      Some(at) => elements.holding(at),
-      None => outer.bounds_of(name),
+  ///
+  /// One walk of the chain rather than two. Every reader asked [`Scope::binds`]
+  /// and then what the name was bound to, and the second answer already carries
+  /// the first — while keeping the two apart, which is what stops a parameter
+  /// from being read as the module name it shadows.
+  pub(super) fn bound(&self, name: &Atom) -> Option<Option<Bounds>> {
+    match self {
+      Scope::Module => None,
+      Scope::Names {
+        names,
+        elements,
+        outer,
+      } => match names.iter().position(|bound| bound == name) {
+        Some(at) => Some(elements.holding(at)),
+        None => outer.bound(name),
+      },
     }
   }
 }

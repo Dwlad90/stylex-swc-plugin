@@ -959,6 +959,32 @@ mod ident_to_number_extended_tests {
     assert_eq!(result, -5.0);
   }
 
+  /// A declaration whose binary expression reads as neither a number nor a
+  /// string is a broken read rather than a value, and this path has no refusal
+  /// to answer with — its callers take a number.
+  ///
+  /// `{} - 1` is such an expression: an object has no numeric form, so the
+  /// subtraction has nothing to work out.
+  #[test]
+  #[should_panic(expected = "Expression is not a number")]
+  fn panics_for_a_declaration_whose_binary_expression_has_no_number() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+    let decl = make_var_declarator("broken", an_object_minus_one());
+
+    fill_state_declarations(&mut traversal_state, &decl);
+
+    let ident = Ident {
+      span: Default::default(),
+      sym: "broken".into(),
+      optional: false,
+      ctxt: SyntaxContext::empty(),
+    };
+
+    ident_to_number(&ident, &mut state, &mut traversal_state, &fns);
+  }
+
   #[test]
   #[should_panic]
   fn panics_for_undeclared_ident() {
@@ -1579,5 +1605,50 @@ mod refusals {
       &mut traversal_state,
       &fns,
     );
+  }
+}
+
+/// `{} - 1`, the smallest binary expression with no numeric reading: an object
+/// has no number, so the subtraction has nothing to work out.
+///
+/// One spelling for the two readings below, which are the same expression asked
+/// of the two paths that read one — the one that answers a `Result` and the one
+/// that has no refusal to answer with.
+fn an_object_minus_one() -> Expr {
+  Expr::Bin(BinExpr {
+    span: Default::default(),
+    op: BinaryOp::Sub,
+    left: Box::new(Expr::Object(swc_core::ecma::ast::ObjectLit {
+      span: Default::default(),
+      props: vec![],
+    })),
+    right: Box::new(create_number_expr(1.0)),
+  })
+}
+
+/// A binary expression with no numeric reading is reported rather than fatal,
+/// because the evaluator is allowed to refuse where it cannot fold.
+#[test]
+fn a_binary_expression_with_no_number_is_reported_rather_than_fatal() {
+  use crate::convertors::expr_to_num;
+
+  let mut state = EvaluationState::new();
+  let mut traversal_state = StateManager::default();
+  let fns = FunctionMap::default();
+
+  let refused = expr_to_num(
+    &an_object_minus_one(),
+    &mut state,
+    &mut traversal_state,
+    &fns,
+  );
+
+  match refused {
+    Ok(number) => panic!("`{{}} - 1` answered {}", number),
+    Err(error) => assert!(
+      error.to_string().contains("is not a number"),
+      "the refusal must say the expression is not a number, and it said `{}`",
+      error
+    ),
   }
 }

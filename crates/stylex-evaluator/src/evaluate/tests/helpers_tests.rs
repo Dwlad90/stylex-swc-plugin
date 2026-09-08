@@ -116,6 +116,15 @@ fn the_two_bridges_agree_a_callback_is_a_function() {
     "a function has no compile-time string under the refusing form"
   );
 
+  // The other form stands the function in with text that is not a numeric
+  // literal, so one function inside an array does not make the whole array's
+  // number unknowable.
+  assert_eq!(
+    string_of(&callback, coercions::FunctionForm::NotANumber).as_deref(),
+    coercions::FunctionForm::NotANumber.render(),
+    "a function under the standing-in form reads as the text that form renders"
+  );
+
   assert!(
     matches!(
       evaluate_result_to_js_object(&callback),
@@ -526,4 +535,28 @@ fn an_adopted_count_agrees_with_a_fresh_reading() {
       text
     );
   }
+}
+
+/// The absent value has no string of its own at the top of a coercion, which is
+/// not the same answer it gets inside an array.
+///
+/// Inside one it joins as nothing, because that is what `undefined` does in a
+/// join. Alone it is a value the caller could not read, and inventing an empty
+/// string for it would write a declaration the source does not describe.
+#[test]
+fn the_absent_value_has_no_string_of_its_own() {
+  assert_eq!(
+    string_of(&EvaluateResultValue::Null, coercions::FunctionForm::Refuse),
+    None,
+    "the absent value has no string alone"
+  );
+
+  assert_eq!(
+    string_of(
+      &EvaluateResultValue::Null,
+      coercions::FunctionForm::NotANumber
+    ),
+    None,
+    "the standing-in form is about functions and answers nothing for it either"
+  );
 }

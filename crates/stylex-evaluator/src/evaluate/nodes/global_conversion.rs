@@ -83,10 +83,12 @@ impl Conversion {
     traversal_state: &mut StateManager,
     fns: &FunctionMap,
   ) -> Option<EvaluateResultValue> {
-    // The argument walk answers nothing where it refused, so the `?` above is
-    // the whole of the question: a confidence re-check beside it would be one
-    // no case can enter.
-    let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
+    // The walk answers nothing only for a spread, which the guard refuses
+    // before a conversion is reached — and a spread would leave the list
+    // shorter than the author wrote either way, which is the question below.
+    // So the two answers are read as one: an empty list against a call that
+    // wrote arguments is a shifted list, and refuses as one.
+    let args = evaluate_func_call_args(call, state, traversal_state, fns).unwrap_or_default();
 
     // An argument that evaluated to nothing while staying confident was dropped
     // rather than deopted, so the remaining arguments no longer line up with
@@ -195,3 +197,9 @@ impl Conversion {
     }
   }
 }
+
+// What each conversion answers with no argument, which no source reaches: the
+// engine folds a call that keeps nothing on this side.
+#[cfg(test)]
+#[path = "tests/empty_conversion_tests.rs"]
+mod empty_conversion_tests;

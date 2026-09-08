@@ -349,11 +349,11 @@ impl Walk<'_, '_> {
   /// were, and a ceiling is all a bound ever needed.
   fn count_bound(&mut self, expr: &Expr) -> Option<u64> {
     if let Expr::Lit(_) = expr {
-      return count_of(to_js_number(expr)?);
+      return count_written(expr);
     }
 
     match self.reader.resolve(expr) {
-      Some(value) => count_of(to_js_number(&evaluate_result_as_expr(&value)?)?),
+      Some(value) => count_resolved(&value),
       None => self.numeric_bound(expr),
     }
   }
@@ -368,13 +368,20 @@ impl Walk<'_, '_> {
   /// a bound on their result. A leaf that is anything else stops the reading,
   /// which costs a fold rather than admitting one nothing measured.
   fn numeric_bound(&mut self, expr: &Expr) -> Option<u64> {
-    match without_parens(expr) {
+    let read = without_parens(expr);
+
+    // A name the callback binds is the element the receiver was measured for, or
+    // that element's index — and one it binds to neither is bounded by nothing,
+    // which stops the reading here rather than sending it to the module, whose
+    // value for the same spelling the parameter shadows.
+    if let Expr::Ident(ident) = read
+      && let Some(bounds) = self.guard.scope.bound(&ident.sym)
+    {
+      return bounds?.magnitude;
+    }
+
+    match read {
       Expr::Lit(_) => number_of(expr),
-      // A name the callback binds is the element the receiver was measured for,
-      // or that element's index.
-      Expr::Ident(ident) if self.guard.scope.binds(&ident.sym) => {
-        self.guard.scope.bounds_of(&ident.sym)?.magnitude
-      },
       Expr::Bin(BinExpr {
         op: op @ (BinaryOp::Add | BinaryOp::Mul),
         left,
@@ -391,7 +398,7 @@ impl Walk<'_, '_> {
       },
       // A name the module holds, which is a leaf like a written number once the
       // evaluator has answered for it.
-      other => number_of(&evaluate_result_as_expr(&self.reader.resolve(other)?)?),
+      other => number_resolved(&self.reader.resolve(other)?),
     }
   }
 
@@ -407,16 +414,21 @@ impl Walk<'_, '_> {
   /// holds is an element of a receiver the call around the callback measured — so
   /// that element's width is the length, and a name nothing measured has none.
   fn receiver_length(&mut self, receiver: &Expr) -> Option<u64> {
-    let text = match without_parens(receiver) {
+    let read = without_parens(receiver);
+
+    // A name the callback binds is answered from the element it was handed, and
+    // this is what makes `['a','b'].map(x => x.repeat(3))` fold at all: the
+    // module has no value for `x`, so without it there is no length to read.
+    // Asked before the resolution rather than left to it — see
+    // [`module_value_of`] for why the module could not answer for it anyway.
+    if let Expr::Ident(ident) = read
+      && let Some(bounds) = self.guard.scope.bound(&ident.sym)
+    {
+      return bounds?.characters;
+    }
+
+    let text = match read {
       Expr::Lit(Lit::Str(text)) => text.value.clone(),
-      // A name the callback binds is answered from the element it was handed, and
-      // this arm is what makes `['a','b'].map(x => x.repeat(3))` fold at all: the
-      // module has no value for `x`, so without it there is no length to read.
-      // Asked before the resolution rather than left to it — see
-      // [`module_value_of`] for why the module could not answer for it anyway.
-      Expr::Ident(ident) if self.guard.scope.binds(&ident.sym) => {
-        return self.guard.scope.bounds_of(&ident.sym)?.characters;
-      },
       _ => match module_value_of(receiver, self.reader)? {
         EvaluateResultValue::Expr(Expr::Lit(Lit::Str(text))) => text.value,
         _ => return None,
@@ -662,6 +674,43 @@ fn number_of(expr: &Expr) -> Option<u64> {
     true => Some(number.value.ceil() as u64),
     false => None,
   }
+}
+
+/// The count a written expression bounds a call at, or `None` where it has no
+/// compile-time number.
+///
+/// `ToNumber` is what the language does to the argument, so `'x'.repeat('3')`
+/// repeats three times and `'x'.repeat('lots')` repeats none. A value with no
+/// number at all is not the same answer: it bounds the call at nothing rather
+/// than at zero, and the call is refused instead of folded.
+///
+/// A literal always has one, because every literal has a text and a text always
+/// reads as a number or as `NaN` — a regular expression reads as its own source
+/// and a big integer through its digits. What has none is a value with no string
+/// form at all, which only [`count_resolved`] can be handed, so the refusal is
+/// reached by the case that asks this directly.
+fn count_written(expr: &Expr) -> Option<u64> {
+  count_of(to_js_number(expr)?)
+}
+
+/// The same for a value the module answered with, which reaches its number
+/// through the expression it writes down.
+///
+/// `None` for a value this compiler holds of its own — a theme reference, a
+/// function map, the environment object — which writes no expression at all.
+fn count_resolved(value: &EvaluateResultValue) -> Option<u64> {
+  count_written(&evaluate_result_as_expr(value)?)
+}
+
+/// The written number a value the module answered with holds, which is narrower
+/// than [`count_resolved`] on purpose: the arithmetic above it is sound only
+/// over numbers the guard has seen written, so a value that merely coerces to
+/// one stops the reading.
+///
+/// `None` for a value that writes no expression down, on the same terms as
+/// [`count_resolved`].
+fn number_resolved(value: &EvaluateResultValue) -> Option<u64> {
+  number_of(&evaluate_result_as_expr(value)?)
 }
 
 /// How many characters one resolved value renders to under the language's own
@@ -960,3 +1009,8 @@ fn valid_array_length(number: f64) -> Option<u64> {
     false => None,
   }
 }
+
+// The readings that answer nothing for a value or a budget no walk hands them.
+#[cfg(test)]
+#[path = "tests/unmeasurable_value_tests.rs"]
+mod unmeasurable_value_tests;

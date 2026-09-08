@@ -35,6 +35,14 @@ fn state_for_file(filename: &str) -> StateManager {
   state
 }
 
+/// The source file the frame hands the state: the text, registered in a map of
+/// its own, exactly as a diagnostic registers it before it parses.
+fn source_file_of(source: &str) -> Arc<SourceFile> {
+  let source_map: Lrc<SourceMap> = Default::default();
+
+  source_map.new_source_file(FileName::Anon.into(), source.to_owned())
+}
+
 /// Parses a module into a source map of its own, so its first byte is
 /// `BytePos(1)` -- the one arrangement where an offset into the file and a
 /// `BytePos` are interchangeable. Every case here resolves a key against the
@@ -121,7 +129,7 @@ fn the_memoized_module_and_its_text_come_back_as_they_went_in() {
   let module = parse(source);
   let mut state = StateManager::default();
 
-  DiagnosticState::set_seen_module_source_code(&mut state, &module, Some(String::from(source)));
+  DiagnosticState::set_seen_module_source_code(&mut state, &module, Some(source_file_of(source)));
 
   let (seen, text) =
     DiagnosticState::get_seen_module_source_code(&state).expect("the module was just memoized");
@@ -156,7 +164,7 @@ fn the_key_span_index_places_a_namespace_of_the_memoized_module() {
   let call = first_call(&module);
   let mut state = StateManager::default();
 
-  DiagnosticState::set_seen_module_source_code(&mut state, &module, Some(String::from(source)));
+  DiagnosticState::set_seen_module_source_code(&mut state, &module, Some(source_file_of(source)));
 
   assert!(!resolve_key(&state, &module, &call, "root").is_dummy());
   assert!(resolve_key(&state, &module, &call, "absent").is_dummy());
@@ -180,7 +188,7 @@ fn replacing_the_memoized_module_drops_the_index_built_from_it() {
   DiagnosticState::set_seen_module_source_code(
     &mut state,
     &first,
-    Some(String::from(first_source)),
+    Some(source_file_of(first_source)),
   );
   // Built here, so the replacement below has something to drop.
   assert!(!resolve_key(&state, &first, &first_call_expr, "root").is_dummy());
@@ -188,7 +196,7 @@ fn replacing_the_memoized_module_drops_the_index_built_from_it() {
   DiagnosticState::set_seen_module_source_code(
     &mut state,
     &second,
-    Some(String::from(second_source)),
+    Some(source_file_of(second_source)),
   );
 
   assert!(

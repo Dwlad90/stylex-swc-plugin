@@ -1,11 +1,13 @@
 use std::cell::OnceCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use stylex_utils::collections::FxIndexMap;
 use swc_core::{
   atoms::Atom,
+  common::SourceFile,
   ecma::ast::{BindingIdent, Expr, Ident, Module},
 };
 
@@ -80,7 +82,9 @@ pub(crate) struct SeenModuleSource {
   /// the source being memoized here is always parsed as one and every reader
   /// wants it as one.
   pub(crate) module: Module,
-  pub(crate) source_code: Option<String>,
+  /// The file the module was parsed from, kept whole so its text costs
+  /// nothing to hand back. `None` for a module memoized without its text.
+  pub(crate) source_file: Option<Arc<SourceFile>>,
   /// Where every namespace key of `module` is written, built on the first
   /// debug-path lookup that needs it and dropped with the module it indexes.
   ///

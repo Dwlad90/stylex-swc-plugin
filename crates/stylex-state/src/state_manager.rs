@@ -273,14 +273,17 @@ impl ModuleSourceState {
 
     Some((
       &seen_module_source.module,
-      seen_module_source.source_code.as_deref(),
+      seen_module_source
+        .source_file
+        .as_ref()
+        .map(|file| file.src.as_str()),
     ))
   }
 
-  fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
+  fn set_seen_module_source_code(&mut self, module: &Module, source_file: Option<Arc<SourceFile>>) {
     self.seen_module_source_code = Some(Rc::new(SeenModuleSource {
       module: module.clone(),
-      source_code,
+      source_file,
       // Built from the module above, so it cannot outlive it.
       key_span_index: OnceCell::new(),
     }));
@@ -1744,10 +1747,14 @@ impl StateManager {
   }
 
   /// Sets the source code module (marks as not yet normalized)
-  pub fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
+  pub fn set_seen_module_source_code(
+    &mut self,
+    module: &Module,
+    source_file: Option<Arc<SourceFile>>,
+  ) {
     self
       .module_source
-      .set_seen_module_source_code(module, source_code);
+      .set_seen_module_source_code(module, source_file);
   }
 
   pub fn import_as(&self, import: &str) -> Option<&str> {
@@ -2968,10 +2975,10 @@ impl DiagnosticState for StateManager {
     self.module_source.get_seen_module_source_code()
   }
 
-  fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
+  fn set_seen_module_source_code(&mut self, module: &Module, source_file: Option<Arc<SourceFile>>) {
     self
       .module_source
-      .set_seen_module_source_code(module, source_code);
+      .set_seen_module_source_code(module, source_file);
   }
 
   fn key_span_index(&self) -> Option<&KeySpanIndex> {

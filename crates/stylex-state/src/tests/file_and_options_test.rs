@@ -6,9 +6,10 @@
 //! every question below answers empty rather than refusing.
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use rustc_hash::FxHashMap;
-use swc_core::common::{DUMMY_SP, FileName, Span, SyntaxContext};
+use swc_core::common::{DUMMY_SP, FileName, SourceMap, Span, SyntaxContext, sync::Lrc};
 use swc_core::ecma::ast::Module;
 
 use stylex_enums::import_path_resolution::ImportPathResolution;
@@ -320,7 +321,11 @@ fn the_parsed_module_is_kept_for_a_diagnostic_to_quote() {
     shebang: None,
   };
 
-  StateManager::set_seen_module_source_code(&mut state, &module, Some("const a = 1;".to_string()));
+  let source_map: Lrc<SourceMap> = Default::default();
+  let source_file: Arc<_> =
+    source_map.new_source_file(FileName::Anon.into(), "const a = 1;".to_string());
+
+  StateManager::set_seen_module_source_code(&mut state, &module, Some(source_file));
 
   let Some((seen, source)) = state.get_seen_module_source_code() else {
     panic!("the parsed module was not kept");

@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use swc_core::common::SourceFile;
 use swc_core::ecma::ast::Module;
 
 use stylex_state_index::key_span_index::KeySpanIndex;
@@ -31,7 +34,12 @@ pub trait DiagnosticState {
 
   /// Memoizes that re-parsed source, so the next diagnostic in the same file
   /// does not read and parse it again.
-  fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>);
+  ///
+  /// The text comes as the source file it was parsed from, which the frame has
+  /// already registered. Holding that file rather than a `String` keeps the
+  /// module text to one allocation per file: the state and the source map share
+  /// it. A module memoized without its text passes `None`.
+  fn set_seen_module_source_code(&mut self, module: &Module, source_file: Option<Arc<SourceFile>>);
 
   /// The text the compiler was given for this file, when the entry point
   /// recorded it.

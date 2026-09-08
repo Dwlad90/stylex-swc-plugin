@@ -9,7 +9,9 @@ use std::{
 };
 
 use swc_core::atoms::Atom;
-use swc_core::common::{BytePos, DUMMY_SP, FileName, GLOBALS, Globals, Span, SyntaxContext};
+use swc_core::common::{
+  BytePos, DUMMY_SP, FileName, GLOBALS, Globals, SourceFile, SourceMap, Span, SyntaxContext,
+};
 use swc_core::ecma::ast::{
   ArrowExpr, ArrowFunctionBody, BindingIdent, CallExpr, Callee, Expr, ExprOrSpread, Ident,
   ImportDecl, ImportNamedSpecifier, ImportSpecifier, Module, ModuleDecl, ModuleItem, Pat, Program,
@@ -102,6 +104,15 @@ fn write_fixture(name: &str, source: &str) -> TempFixture {
   }
 
   TempFixture { dir, path }
+}
+
+/// The text a state memoizes, as the source file the frame hands it. Registered
+/// in a map of its own, so a case can memoize a text the shared map has never
+/// seen.
+fn memoized_source_file(source: &str) -> Arc<SourceFile> {
+  let source_map = SourceMap::default();
+
+  source_map.new_source_file(Arc::new(FileName::Anon), source.to_owned())
 }
 
 fn compiled_create_call() -> CallExpr {
@@ -1251,7 +1262,7 @@ fn a_cached_answer_is_quoted_from_the_memoized_text() {
   let mut state = StateDouble::for_file(format!("memoized_only_{}.tsx", id));
   let target = reference("c");
 
-  state.set_seen_module_source_code(&create_module(&target), Some(source.to_owned()));
+  state.set_seen_module_source_code(&create_module(&target), Some(memoized_source_file(source)));
   state
     .diagnostic_memo_mut()
     .insert_cached_span(compute_cache_key(&target), DUMMY_SP);
@@ -1362,4 +1373,33 @@ fn a_program_that_is_not_a_module_stops_the_memoization() {
     body: Vec::new(),
     shebang: None,
   }));
+}
+
+/// A `filename` that names a host file whose content is not the JavaScript the
+/// compiler was fed -- a single-file component, an `.mdx`, a stale watch-mode
+/// read. The disk text is preferred but does not parse, so the frame keeps the
+/// text the compiler was given instead of losing the frame completely.
+#[test]
+fn a_file_that_does_not_parse_falls_back_to_the_given_text() {
+  let given = "\
+export const styles = create({
+  root: { color: 'red' },
+  other: { display: 'flex' },
+});
+";
+  let path = write_fixture(
+    "not_javascript.mdx",
+    "# A document\n\nThis is prose, and 1 + = is not an expression.\n",
+  );
+  let mut state = state_for_fixture(&path).with_input_source(given);
+  let call = compiled_create_call();
+
+  let line = GLOBALS.set(&Globals::default(), || {
+    match key_span_for(&call, "other", &mut state) {
+      Ok((code_frame, span)) => code_frame.try_get_span_line_number(span),
+      Err(error) => panic!("failed to get the key span: {error}"),
+    }
+  });
+
+  assert_eq!(line, Some(3));
 }

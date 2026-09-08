@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/transform",
   "description": "The SWC visitor that finds every StyleX call and rewrites the module it is given",
-  "version": "0.19.0-rc.1",
+  "version": "0.19.0-rc.2",
   "private": true,
   "sideEffects": false,
   "files": [

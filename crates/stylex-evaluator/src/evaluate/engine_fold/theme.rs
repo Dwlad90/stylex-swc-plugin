@@ -132,10 +132,24 @@ fn unbuilt(reason: &str) -> Decline {
 /// construction does — this runs inside an evaluation whose whole contract is
 /// that it may fail.
 pub(super) fn compile_var_group(context: &mut Context) -> Result<JsFunction, Decline> {
+  compile_traps(&var_group_traps(), context)
+}
+
+/// The builder a written source of traps compiles to, or the refusal that names
+/// the step which would not answer.
+///
+/// Four steps, and each has a refusal of its own: the text has to parse, to a
+/// function, which is called once, and has to answer a function. None of the
+/// four can fire for [`var_group_traps`], which is the one source shipped — so
+/// the source is a parameter, and a case hands in a source that fails the step
+/// it is about. The refusals stay because the shipped source is assembled from
+/// two of the compiler's constants, and a rename that breaks it is declined
+/// here rather than folded past.
+fn compile_traps(source: &str, context: &mut Context) -> Result<JsFunction, Decline> {
   let refused = |error: JsError| unbuilt(&error.to_string());
 
   let traps = context
-    .eval(Source::from_bytes(var_group_traps().as_bytes()))
+    .eval(Source::from_bytes(source.as_bytes()))
     .map_err(refused)?;
 
   let Some(traps) = traps.as_callable() else {

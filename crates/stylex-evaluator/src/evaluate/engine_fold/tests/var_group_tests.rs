@@ -6,17 +6,23 @@
 //! guard said it does. Each is asked the way the printed source would ask it —
 //! by running JavaScript against the value — rather than through an accessor of
 //! this module's own.
+//!
+//! Below them are the cases about the module rather than the group: what a
+//! source of traps has to be before it can build one, and what each reading
+//! answers for a value that is not a group at all. Neither has a stylesheet to
+//! be written in, so each asks the function directly.
 
 use super::*;
 
-use boa_engine::{Context, JsObject, JsValue};
+use boa_engine::{Context, JsObject, JsValue, Source};
 
-use super::super::engine_reads::answered_by;
+use super::super::engine_reads::{answered_by, assert_refused_by_rule, assert_refused_saying};
 
 use stylex_state::theme_ref::{ThemeRef, VarNaming};
 
-/// The group every case below reads, under the identity the transform tests use.
-fn group(context: &mut Context, prefixes: &[&str]) -> JsValue {
+/// The group every case below reads, under the identity the transform tests use
+/// and under the naming the case names.
+fn group_named(context: &mut Context, prefixes: &[&str], naming: VarNaming) -> JsValue {
   let builder = match compile_var_group(context) {
     Ok(builder) => builder,
     Err(_) => panic!("the theme group traps did not compile"),
@@ -24,13 +30,40 @@ fn group(context: &mut Context, prefixes: &[&str]) -> JsValue {
 
   let prefixes = prefixes.iter().map(|name| Atom::from(*name)).collect();
 
-  let naming = VarNaming::from_flags(false, false);
-
   let theme = ThemeRef::new("vars.stylex.js", "vars", "x");
 
   match var_group(&builder, &theme, naming, Some(&prefixes), context) {
     Ok(value) => value,
     Err(error) => panic!("the group would not build: {}", error),
+  }
+}
+
+/// The same group under the naming a project takes by default, which is what
+/// every case that is not about the naming reads.
+fn group(context: &mut Context, prefixes: &[&str]) -> JsValue {
+  group_named(context, prefixes, VarNaming::from_flags(false, false))
+}
+
+/// An object whose one key throws when it is read.
+///
+/// A reader of a group asks the value a question, and a value is free to answer
+/// with a throw — so the two readings below have a failure of their own to
+/// report, which no group this compiler builds can show them.
+#[track_caller]
+fn throws_when_read(context: &mut Context, key: &str) -> JsObject {
+  let source = format!(
+    "({{ get [\"{}\"]() {{ throw new TypeError('this key cannot be read'); }} }})",
+    key
+  );
+
+  let value = match context.eval(Source::from_bytes(source.as_bytes())) {
+    Ok(value) => value,
+    Err(error) => panic!("the object would not compile: {}", error),
+  };
+
+  match value.as_object() {
+    Some(object) => object,
+    None => panic!("the source did not answer an object"),
   }
 }
 
@@ -225,7 +258,11 @@ fn an_object_with_no_text_of_its_own_is_refused() {
   let mut context = Context::default();
   let plain = JsObject::with_object_proto(context.intrinsics());
 
-  assert!(var_group_text(&plain, &Atom::from("map"), &mut context).is_err());
+  assert_refused_by_rule(
+    var_group_text(&plain, &Atom::from("map"), &mut context),
+    "a plain object",
+    &unfoldable_fold_result("theme group with no text of its own"),
+  );
 }
 
 /// The derivation is reached only from the traps, which hand it the identity
@@ -236,5 +273,178 @@ fn an_object_with_no_text_of_its_own_is_refused() {
 fn a_derivation_without_an_identity_throws() {
   let mut context = Context::default();
 
-  assert!(derive(&JsValue::undefined(), &[], &mut context).is_err());
+  match derive(&JsValue::undefined(), &[], &mut context) {
+    Err(thrown) => assert!(
+      thrown.to_string().contains(READ_WITHOUT_AN_IDENTITY),
+      "expected the derivation's own sentence, and it said `{}`",
+      thrown
+    ),
+    Ok(named) => panic!(
+      "expected an empty list to throw, and it derived {:?}",
+      named
+    ),
+  }
+}
+
+/// The naming reaches the derivation as the flags the identity carries, so a
+/// group built under debug answers the spelling debug names.
+///
+/// One case and not a table: which spelling each pair of options answers is one
+/// function's answer, and `theme_ref_test` in the state crate asserts it there
+/// against the reference implementation. What is this module's own is that the
+/// two booleans cross the bridge and come back to the derivation unchanged, and
+/// the readable spelling is the one answer that shows they both did.
+#[test]
+fn the_naming_crosses_the_bridge_and_reaches_the_derivation() {
+  let mut context = Context::default();
+  let group = group_named(&mut context, &[], VarNaming::from_flags(true, true));
+
+  assert_eq!(
+    answered_by(&mut context, "(g) => g.primary", &[group]),
+    "var(--primary-x1ineb92)"
+  );
+}
+
+/// A source that is not JavaScript at all is declined in the engine's own words,
+/// under the sentence its construction refuses with.
+#[test]
+fn traps_that_do_not_parse_are_refused() {
+  let mut context = Context::default();
+
+  // `Syntax` is Boa's own word for the failure rather than this compiler's, so
+  // the case names that much of the sentence and no more. The half this compiler
+  // does write is asserted whole by the two cases below.
+  assert_refused_saying(compile_traps("(", &mut context), "(", "Syntax");
+}
+
+/// A source that parses to something other than a function is declined before it
+/// is called, since there is nothing to hand the derivation to.
+#[test]
+fn traps_that_are_not_a_function_are_refused() {
+  let mut context = Context::default();
+
+  assert_refused_by_rule(
+    compile_traps("42", &mut context),
+    "42",
+    &engine_did_not_start("the theme group traps did not compile to a function"),
+  );
+}
+
+/// A source that throws while it is being built is declined in the words it
+/// threw with, rather than in words of this compiler's own.
+#[test]
+fn traps_that_throw_while_they_are_built_are_refused() {
+  let mut context = Context::default();
+  let source = "() => { throw new TypeError('no builder here'); }";
+
+  assert_refused_saying(
+    compile_traps(source, &mut context),
+    source,
+    "no builder here",
+  );
+}
+
+/// A source that is a function and answers something other than one is declined
+/// too: the fold calls the answer once per group, so it has to be callable.
+#[test]
+fn traps_that_answer_something_other_than_a_builder_are_refused() {
+  let mut context = Context::default();
+
+  assert_refused_by_rule(
+    compile_traps("() => 42", &mut context),
+    "() => 42",
+    &engine_did_not_start("the theme group traps did not answer a builder"),
+  );
+}
+
+/// A value that throws when it is asked what it is refuses under the method the
+/// fold is running, rather than being read as something that is not a group.
+#[test]
+fn a_value_whose_marker_cannot_be_read_is_refused() {
+  let mut context = Context::default();
+  let object = throws_when_read(&mut context, IS_PROXY_KEY);
+
+  assert_refused_saying(
+    is_a_var_group(&object.into(), &Atom::from("map"), &mut context),
+    IS_PROXY_KEY,
+    "this key cannot be read",
+  );
+}
+
+/// The same for the text a group answers for itself, which is the second
+/// question this module asks a value it did not build.
+#[test]
+fn a_value_whose_text_cannot_be_read_is_refused() {
+  let mut context = Context::default();
+  let object = throws_when_read(&mut context, VAR_GROUP_HASH_KEY);
+
+  assert_refused_saying(
+    var_group_text(&object, &Atom::from("map"), &mut context),
+    VAR_GROUP_HASH_KEY,
+    "this key cannot be read",
+  );
+}
+
+/// Each of the three texts the derivation needs is a broken invariant when it is
+/// not text, and each throws the one sentence this module writes for it.
+#[test]
+fn a_derivation_whose_identity_is_not_text_throws() {
+  let text = JsValue::from(JsString::from("x"));
+
+  // The derivation reads no context, so one realm serves every value below.
+  let mut context = Context::default();
+
+  // The base id, the class name prefix and the key, at the places the traps
+  // write them. The two between them are the flags, and any value reads as one.
+  for index in [0, 1, 4] {
+    let mut identity = [
+      text.clone(),
+      text.clone(),
+      JsValue::from(false),
+      JsValue::from(false),
+      text.clone(),
+    ];
+
+    // A number, which no spelling of a name is.
+    identity[index] = JsValue::from(1);
+
+    match derive(&JsValue::undefined(), &identity, &mut context) {
+      Err(thrown) => assert!(
+        thrown.to_string().contains(READ_WITHOUT_AN_IDENTITY),
+        "expected the derivation's own sentence for value {}, and it said `{}`",
+        index,
+        thrown
+      ),
+      Ok(named) => panic!(
+        "expected value {} to throw, and it derived {:?}",
+        index, named
+      ),
+    }
+  }
+}
+
+/// A list longer than the derivation reads is the traps of a later version, and
+/// is read as the identity it begins with rather than refused.
+#[test]
+fn a_derivation_reads_the_identity_a_longer_list_begins_with() {
+  let theme = ThemeRef::new("vars.stylex.js", "vars", "x");
+
+  let identity = [
+    JsValue::from(JsString::from(theme.base_id())),
+    JsValue::from(JsString::from(theme.class_name_prefix())),
+    JsValue::from(false),
+    JsValue::from(false),
+    JsValue::from(JsString::from("primary")),
+    JsValue::from(JsString::from("one more")),
+  ];
+
+  let mut context = Context::default();
+
+  match derive(&JsValue::undefined(), &identity, &mut context) {
+    Ok(named) => assert_eq!(
+      named.as_string().map(|named| named.to_std_string_lossy()),
+      Some("var(--x1ineb92)".to_string())
+    ),
+    Err(error) => panic!("the derivation would not read a longer list: {}", error),
+  }
 }

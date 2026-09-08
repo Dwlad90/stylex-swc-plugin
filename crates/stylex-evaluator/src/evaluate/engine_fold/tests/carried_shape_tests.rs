@@ -25,7 +25,7 @@ use indexmap::IndexMap;
 use boa_engine::Source;
 use swc_core::common::{GLOBALS, Globals};
 
-use super::super::engine_reads::answered_by;
+use super::super::engine_reads::{answered_by, assert_refused_by_rule};
 use crate::tests::scaffolding::parse_expr;
 use stylex_constants::constants::evaluation_errors::expression_too_deep;
 
@@ -89,16 +89,6 @@ fn assert_handed_back(answer: Result<(), Decline>, case: &str) {
       case, reason
     ),
     Ok(()) => panic!("expected `{}` to be handed back, and it crossed", case),
-  }
-}
-
-/// Asserts `answer` is the rule `expected`, in the words an author reads.
-#[track_caller]
-fn assert_refused_by_rule(answer: Result<(), Decline>, case: &str, expected: &str) {
-  match answer {
-    Err(Decline::Rule(reason)) => assert_eq!(reason, expected, "the refusal for `{}`", case),
-    Err(Decline::NotACandidate) => panic!("expected `{}` to refuse, and it was handed back", case),
-    Ok(()) => panic!("expected `{}` to refuse, and it crossed", case),
   }
 }
 

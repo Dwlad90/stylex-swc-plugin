@@ -22,6 +22,7 @@ use boa_engine::{
   Context, JsObject, JsString, JsValue, NativeFunction,
   native_function::NativeFunctionPointer,
   object::builtins::{JsArray, JsFunction},
+  property::PropertyDescriptor,
 };
 use swc_core::{
   atoms::{Atom, Wtf8Atom},
@@ -272,7 +273,7 @@ impl Transport {
         // would tie a value's lifetime to the engine's, which is the arrangement
         // the memo beside it already had to be written around.
         Crossing::Function(call) => native_function(*call, engine),
-        Crossing::Namespace => namespace(engine, method)?,
+        Crossing::Namespace => namespace(engine),
         // A function travels in the printed source as the parameter's default,
         // so passing nothing for it is what makes the default the value.
         Crossing::Source(_) => JsValue::undefined(),
@@ -374,12 +375,11 @@ trait Carriage {
   fn list(&mut self, items: Vec<Self::Value>) -> Self::Value;
 
   fn object(&mut self) -> Self::Object;
-  fn property(
-    &mut self,
-    object: &mut Self::Object,
-    key: &Wtf8Atom,
-    value: Self::Value,
-  ) -> Result<(), Decline>;
+  /// Records one own property on the object under assembly.
+  ///
+  /// Total in both directions: the measuring walk has nothing to record, and the
+  /// building walk writes into an object it has just made.
+  fn property(&mut self, object: &mut Self::Object, key: &Wtf8Atom, value: Self::Value);
   fn built(&mut self, object: Self::Object) -> Self::Value;
 }
 
@@ -433,9 +433,7 @@ impl Carriage for Measure<'_> {
   fn list(&mut self, _: Vec<()>) {}
 
   fn object(&mut self) {}
-  fn property(&mut self, _: &mut (), _: &Wtf8Atom, _: ()) -> Result<(), Decline> {
-    Ok(())
-  }
+  fn property(&mut self, _: &mut (), _: &Wtf8Atom, _: ()) {}
   fn built(&mut self, _: ()) {}
 }
 
@@ -508,13 +506,8 @@ impl Carriage for Build<'_> {
     JsObject::with_object_proto(self.engine.intrinsics())
   }
 
-  fn property(
-    &mut self,
-    object: &mut JsObject,
-    key: &Wtf8Atom,
-    value: JsValue,
-  ) -> Result<(), Decline> {
-    define(object, carry_string(key), value, self.engine, self.method)
+  fn property(&mut self, object: &mut JsObject, key: &Wtf8Atom, value: JsValue) {
+    define(object, carry_string(key), value);
   }
 
   fn built(&mut self, object: JsObject) -> JsValue {
@@ -662,7 +655,7 @@ fn nested_expr<C: Carriage>(
 
         let value = cross_expr(carriage, value, inner)?;
 
-        carriage.property(&mut object, &key, value)?;
+        carriage.property(&mut object, &key, value);
       }
 
       Ok(carriage.built(object))
@@ -698,36 +691,41 @@ fn native_function(call: NativeFunctionPointer, engine: &mut Context) -> JsValue
 /// Every callable function of the namespace rather than the one this call named,
 /// so a fold naming two of them carries one object holding both — see
 /// [`Reached::AsAProperty`](super::super::engine_stylex_functions::Reached).
-fn namespace(engine: &mut Context, method: &Atom) -> Result<JsValue, Decline> {
+fn namespace(engine: &mut Context) -> JsValue {
   let object = JsObject::with_object_proto(engine.intrinsics());
 
   for (property, call) in EngineCallable::namespace_properties() {
     let value = native_function(call, engine);
 
-    define(&object, JsString::from(property), value, engine, method)?;
+    define(&object, JsString::from(property), value);
   }
 
-  Ok(JsValue::from(object))
+  JsValue::from(object)
 }
 
 /// One own property on an object this module just made.
 ///
-/// A fresh ordinary object takes a data property without complaint, so the throw
-/// is unreachable — and answered rather than asserted, because this runs inside
-/// an evaluation whose whole contract is that it may fail. Written once because
-/// both objects the bridge builds are fresh and ordinary for the same reason.
-fn define(
-  object: &JsObject,
-  key: JsString,
-  value: JsValue,
-  engine: &mut Context,
-  method: &Atom,
-) -> Result<(), Decline> {
-  read(method, || {
-    object.create_data_property_or_throw(key, value, engine)
-  })?;
-
-  Ok(())
+/// Written into the object's own properties rather than defined through the
+/// language's own step. Both objects the bridge builds are fresh and ordinary,
+/// so the two agree on every question that step asks: the object is extensible,
+/// and every property written here is writable and configurable, so a key
+/// written a second time replaces the value in the slot the first writing made.
+/// What the direct write removes is the answer to a question with one answer —
+/// a throw that cannot happen, asked on every property of every object that
+/// crosses.
+///
+/// A key written twice therefore keeps the place of its first writing and the
+/// value of its last, which is what the language says and what the reference
+/// implementation writes.
+fn define(object: &JsObject, key: JsString, value: JsValue) {
+  object.insert_property(
+    key,
+    PropertyDescriptor::builder()
+      .value(value)
+      .writable(true)
+      .enumerable(true)
+      .configurable(true),
+  );
 }
 
 /// One resolved string as the engine's own string type.

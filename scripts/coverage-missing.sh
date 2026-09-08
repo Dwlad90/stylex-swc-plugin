@@ -24,7 +24,13 @@
 #      counts as uncovered even though the source line *is* exercised by another
 #      instantiation. A region is reported only when no instantiation runs it;
 #      the delta from llvm-cov's raw count is explained in a note.
-#   3. Scope filtering — cargo-llvm-cov's target dir is stateful: a `-p <crate>`
+#   3. Toolchain drift — the nightly compiler decides how regions are counted,
+#      and continuous integration installs the newest nightly on every run. An
+#      older local nightly measures fewer regions, so this report can read clean
+#      while the same gate fails in continuous integration. The version in use is
+#      printed, and an available update is a warning (`--skip-toolchain-check`
+#      turns the network lookup off).
+#   4. Scope filtering — cargo-llvm-cov's target dir is stateful: a `-p <crate>`
 #      run can fold in leftover instrumented object files from an earlier
 #      full-workspace run (e.g. dependency crates), producing a noisy,
 #      non-deterministic file list. The report is filtered to the requested
@@ -41,6 +47,7 @@
 #   scripts/coverage-missing.sh -p stylex_css   # same, explicit flag
 #   scripts/coverage-missing.sh --show-phantoms # also print generic per-instantiation gaps
 #   scripts/coverage-missing.sh --strict-phantoms # deprecated alias for --show-phantoms
+#   scripts/coverage-missing.sh --skip-toolchain-check # do not look for a newer nightly
 #   scripts/coverage-missing.sh --html          # also write an HTML report (second run)
 #   scripts/coverage-missing.sh --open          # write + open the HTML report in a browser
 #   scripts/coverage-missing.sh -h | --help
@@ -87,6 +94,7 @@ USAGE
   scripts/coverage-missing.sh -p stylex_css   # same, explicit flag
   scripts/coverage-missing.sh --show-phantoms # also print generic per-instantiation gaps
   scripts/coverage-missing.sh --strict-phantoms # deprecated alias for --show-phantoms
+  scripts/coverage-missing.sh --skip-toolchain-check # do not look for a newer nightly
   scripts/coverage-missing.sh --html          # also write an HTML report (second run)
   scripts/coverage-missing.sh --open          # write + open the HTML report in a browser
   scripts/coverage-missing.sh -h | --help
@@ -103,12 +111,14 @@ package=""
 html=0
 open=0
 show_phantoms=0
+toolchain_check=1
 
 while [ $# -gt 0 ]; do
   case "$1" in
     -h | --help) usage 0 ;;
     --show-phantoms) show_phantoms=1 ;;
     --strict-phantoms) show_phantoms=1 ;;
+    --skip-toolchain-check) toolchain_check=0 ;;
     --html) html=1 ;;
     --open)
       html=1
@@ -130,6 +140,42 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+
+# Name the compiler that measures this run, and say when a newer one exists.
+#
+# Region counting is a property of the nightly compiler, and continuous
+# integration installs the newest nightly every time. An older local nightly can
+# merge regions that the newer one counts apart, which reads here as full
+# coverage while the same gate fails in continuous integration. The version is
+# always printed, so a report can be compared with the one in the job log.
+report_toolchain() {
+  local version
+  version="$(rustc +nightly --version 2>/dev/null || true)"
+
+  if [ -z "$version" ]; then
+    echo "warning: no nightly toolchain found -- run 'rustup toolchain install nightly'" >&2
+    return 0
+  fi
+
+  echo "==> Toolchain: $version"
+
+  # The lookup needs the network, so it is skippable and never fatal.
+  [ "$toolchain_check" -eq 1 ] || return 0
+
+  local status
+  status="$(rustup check 2>/dev/null | grep '^nightly' || true)"
+
+  case "$status" in
+    *"update available"*)
+      echo "warning: a newer nightly is available -- $status" >&2
+      echo "         Continuous integration builds with the newest nightly, and the" >&2
+      echo "         region count depends on the compiler, so this report can disagree" >&2
+      echo "         with it. Run 'rustup update nightly' to compare like with like." >&2
+      ;;
+  esac
+}
+
+report_toolchain
 
 # Select scope: a single crate (fast) or the whole workspace (CI parity).
 # `scope_*` is handed to the Python reporter so its file list matches exactly the

@@ -291,6 +291,13 @@ scripts/coverage-missing.sh                     # whole workspace
 scripts/coverage-missing.sh stylex_css          # one crate (or -p stylex_css)
 scripts/coverage-missing.sh stylex_css --html   # add an HTML report
 scripts/coverage-missing.sh stylex_css --open   # ...and open it
+scripts/coverage-missing.sh --skip-toolchain-check  # do not look for a newer nightly
 ```
 
 Requires nightly plus `cargo install cargo-llvm-cov cargo-nextest --locked`.
+
+The script names the nightly it measured with, and warns when a newer one is
+available. Region counting is a property of the compiler and continuous
+integration installs the newest nightly every run, so an old local nightly can
+report full coverage against a gate that fails there. Run `rustup update
+nightly` before you trust a clean report.

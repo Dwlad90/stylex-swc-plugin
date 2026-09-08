@@ -9,7 +9,9 @@
 
 use super::*;
 
-use boa_engine::{Context, JsObject, JsValue, Source};
+use boa_engine::{Context, JsObject, JsValue};
+
+use super::super::engine_reads::answered_by;
 
 use stylex_state::theme_ref::{ThemeRef, VarNaming};
 
@@ -34,28 +36,12 @@ fn group(context: &mut Context, prefixes: &[&str]) -> JsValue {
 
 /// What `source` — an arrow of one parameter — answers when it is handed the
 /// group, as a string.
+#[track_caller]
 fn asked(source: &str, prefixes: &[&str]) -> String {
   let mut context = Context::default();
   let group = group(&mut context, prefixes);
 
-  let asked = match context.eval(Source::from_bytes(source)) {
-    Ok(asked) => asked,
-    Err(error) => panic!("`{}` did not compile: {}", source, error),
-  };
-
-  let Some(asked) = asked.as_callable() else {
-    panic!("`{}` is not a function", source);
-  };
-
-  let answered = match asked.call(&JsValue::undefined(), &[group], &mut context) {
-    Ok(answered) => answered,
-    Err(error) => panic!("`{}` threw: {}", source, error),
-  };
-
-  match answered.to_string(&mut context) {
-    Ok(text) => text.to_std_string_escaped(),
-    Err(error) => panic!("`{}` answered something unreadable: {}", source, error),
-  }
+  answered_by(&mut context, source, &[group])
 }
 
 /// A name nobody declared answers a variable all the same, which is what makes a

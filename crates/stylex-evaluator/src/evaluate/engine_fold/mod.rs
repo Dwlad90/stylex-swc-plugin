@@ -533,6 +533,12 @@ fn apply(
     .map_err(|error| threw(method, &error))
 }
 
+// Read by the two suites that ask the engine what a value they built behaves
+// like, which sit one level down beside the modules that build them.
+#[cfg(test)]
+#[path = "tests/engine_reads.rs"]
+mod engine_reads;
+
 #[cfg(test)]
 #[path = "tests/escaping_property_tests.rs"]
 mod escaping_property_tests;

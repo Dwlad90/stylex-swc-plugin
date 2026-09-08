@@ -742,3 +742,7 @@ fn carry_string(value: &Wtf8Atom) -> JsString {
     None => JsString::from(&value.to_ill_formed_utf16().collect::<Vec<u16>>()[..]),
   }
 }
+
+#[cfg(test)]
+#[path = "tests/carried_shape_tests.rs"]
+mod carried_shape_tests;

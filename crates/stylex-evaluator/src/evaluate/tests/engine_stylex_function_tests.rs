@@ -193,3 +193,28 @@ fn a_callback_parameter_shadowing_the_name_is_the_engines_own_binding() {
     None => panic!("expected `{}` to record a deopt reason", source),
   }
 }
+
+/// One StyleX function crosses once, however often the expression calls it. The
+/// value under a name is a function of the name, so the second call reads the
+/// same object -- and a second parameter of the same name would not print.
+///
+/// Both spellings are asked, because a named import carries the function itself
+/// and a namespace import carries the object the call is read off, which are two
+/// crossings rather than one. A function the *module* declared crosses by a
+/// third route, which `guarded_walk_tests` reads.
+#[test]
+fn a_stylex_function_called_twice_crosses_once() {
+  assert_eq!(
+    folded(&format!(
+      "[{IMPORTED}('var(--a)', 'blue'), {IMPORTED}('var(--b)', 'red')].join('|')"
+    )),
+    "var(--a, blue)|var(--b, red)"
+  );
+  assert_eq!(
+    folded(&format!(
+      "[{NAMESPACE}.{IMPORTED}('var(--a)', 'blue'), \
+       {NAMESPACE}.{IMPORTED}('var(--b)', 'red')].join('|')"
+    )),
+    "var(--a, blue)|var(--b, red)"
+  );
+}

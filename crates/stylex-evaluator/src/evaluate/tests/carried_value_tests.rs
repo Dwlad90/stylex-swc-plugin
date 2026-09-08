@@ -203,3 +203,29 @@ fn a_value_with_no_javascript_form_is_handed_back() {
     assert_refused(&evaluated_against(&fns, &source), &source);
   }
 }
+
+/// A name the expression reads twice crosses once. One parameter per name is
+/// what the printed arrow needs -- a repeated parameter is a syntax error --
+/// and the second reading answers the same value, so dropping it loses nothing.
+#[test]
+fn a_name_read_twice_crosses_once() {
+  assert_eq!(
+    folded_carrying("['a', 'b']", "carried.concat(carried).join('-')"),
+    "a-b-a-b"
+  );
+}
+
+/// A string the language admits and Rust does not crosses exactly. A JavaScript
+/// string literal can hold an unpaired surrogate, so the value is carried as the
+/// code units it is written from rather than through a Rust string it has no
+/// valid reading as.
+#[test]
+fn an_unpaired_surrogate_crosses_as_the_code_unit_it_is() {
+  assert_eq!(
+    folded_carrying(
+      "'\\u{D800}b'",
+      "carried.charCodeAt(0).toString(16) + carried.length"
+    ),
+    "d8002"
+  );
+}

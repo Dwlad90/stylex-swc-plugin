@@ -20,7 +20,9 @@ use stylex_structures::stylex_options::CheckModuleResolution;
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 
 use crate::state_manager::StateManager;
+use crate::tests::capturing_logger::logged_at;
 use crate::tests::prelude::fixture_path as fixture;
+use log::Level;
 
 fn state_for(filename: FileName, resolution: CheckModuleResolution) -> StateManager {
   let mut state = StateManager::for_test(
@@ -500,6 +502,69 @@ fn common_js_resolves_an_import_to_the_name_the_file_is_hashed_under() {
     ImportPathResolution::Resolved { path }
       if path == "package_json_with_name:vars.stylex.js"
   ));
+}
+
+/// The resolution is written as well as returned, because the name a file is
+/// hashed under is what a reader of the log matches against the CSS. The
+/// message is built from the resolved path, which a `log` macro does not build
+/// while no logger admits the level.
+#[test]
+fn common_js_writes_the_name_it_resolved_an_import_to() {
+  let state = state_for(
+    real(&fixture("package_json_with_name/app.js").to_string_lossy()),
+    common_js(None, None),
+  );
+
+  let messages = logged_at(Level::Debug, || {
+    state.import_path_resolver("./vars.stylex.js", &mut FxHashMap::default())
+  });
+
+  assert!(
+    messages.iter().any(|message| {
+      message.starts_with("Resolved import path: ")
+        && message.ends_with("package_json_with_name/vars.stylex.js")
+    }),
+    "the path that was resolved must be written, got {messages:?}"
+  );
+}
+
+/// An import that is not on disk is left alone, and the reason is only in what
+/// was written: the import, and the error behind it.
+#[test]
+fn common_js_writes_why_an_import_stayed_unresolved() {
+  let state = state_for(
+    real(&fixture("package_json_with_name/app.js").to_string_lossy()),
+    common_js(None, None),
+  );
+  let mut resolution = None;
+
+  let messages = logged_at(Level::Debug, || {
+    resolution = Some(state.import_path_resolver("./missing.stylex.js", &mut FxHashMap::default()));
+  });
+
+  assert!(matches!(resolution, Some(ImportPathResolution::Unresolved)));
+  assert!(
+    messages
+      .iter()
+      .any(|message| message.starts_with("Could not resolve import path ./missing.stylex.js: ")),
+    "the import and the error must both be written, got {messages:?}"
+  );
+}
+
+/// A build that does not ask for debug messages is written nothing, which is
+/// what keeps the resolver's cost off every other build.
+#[test]
+fn an_import_resolution_writes_nothing_at_a_higher_level() {
+  let state = state_for(
+    real(&fixture("package_json_with_name/app.js").to_string_lossy()),
+    common_js(None, None),
+  );
+
+  let messages = logged_at(Level::Warn, || {
+    state.import_path_resolver("./vars.stylex.js", &mut FxHashMap::default())
+  });
+
+  assert!(messages.is_empty());
 }
 
 /// Reading variables out of the file that imports them is not supported, and

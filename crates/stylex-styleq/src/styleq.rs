@@ -344,6 +344,8 @@ mod tests {
   use super::*;
   use std::panic::{AssertUnwindSafe, catch_unwind};
 
+  use crate::capturing_logger::logged_at;
+
   /// Calling the `_assert_cache_send_sync` helper covers its body in tests
   /// while still serving its compile-time purpose of asserting `Send`+`Sync`
   /// for `CacheEntry`/`CacheKey` (relevant when StyleX is invoked from
@@ -406,6 +408,10 @@ mod tests {
   /// The `poison_warned` latch must flip exactly once: the first poisoned
   /// recovery is logged at `error!` (actionable), every later one falls back
   /// to `debug!` so a single panicked writer can't flood the log under load.
+  ///
+  /// The messages are read back, because the latch is only observable in what
+  /// was written: the flag alone cannot tell a second `error!` from the
+  /// `debug!` that has to replace it.
   #[test]
   fn poison_warning_latches_after_first_recovery() {
     let styleq = create_styleq::<crate::StyleValue>(StyleqOptions::default());
@@ -420,20 +426,51 @@ mod tests {
       panic!("poison cache rwlock for latch test");
     }));
 
-    // First recovery: latches the flag and emits `error!`.
-    drop(styleq.cache_read());
-    assert!(
-      styleq.poison_warned.load(Ordering::Relaxed),
-      "first recovery must latch the poison-warned flag"
-    );
+    let messages = logged_at(log::Level::Debug, || {
+      // First recovery: latches the flag and emits `error!`.
+      drop(styleq.cache_read());
+      assert!(
+        styleq.poison_warned.load(Ordering::Relaxed),
+        "first recovery must latch the poison-warned flag"
+      );
 
-    // Second recovery: same path, no re-latch (still true). This call is
-    // what would previously have produced a second `error!` log line; now
-    // it's demoted to `debug!` and the flag stays unchanged.
-    drop(styleq.cache_read());
-    assert!(
-      styleq.poison_warned.load(Ordering::Relaxed),
-      "subsequent recoveries must keep the flag set without flipping it back"
+      // Second recovery: same path, no re-latch (still true). This call is
+      // what would previously have produced a second `error!` log line; now
+      // it's demoted to `debug!` and the flag stays unchanged.
+      drop(styleq.cache_read());
+      assert!(
+        styleq.poison_warned.load(Ordering::Relaxed),
+        "subsequent recoveries must keep the flag set without flipping it back"
+      );
+    });
+
+    assert_eq!(
+      messages,
+      vec![
+        "styleq: cache RwLock was poisoned (read); continuing with inner cache.".to_string(),
+        "styleq: cache RwLock still poisoned (read); recovered transparently.".to_string(),
+      ],
+      "the first recovery is the loud one and every later one is quiet"
+    );
+  }
+
+  /// The write path names itself, so a reader of the log can tell which guard
+  /// was recovered. The kind is an argument of the message, which is built only
+  /// while a logger admits the level.
+  #[test]
+  fn a_recovered_write_guard_names_itself() {
+    let styleq = create_styleq::<crate::StyleValue>(StyleqOptions::default());
+
+    let _ = catch_unwind(AssertUnwindSafe(|| {
+      let _guard = styleq.cache.write();
+      panic!("poison cache rwlock for the write path");
+    }));
+
+    let messages = logged_at(log::Level::Error, || drop(styleq.cache_write()));
+
+    assert_eq!(
+      messages,
+      vec!["styleq: cache RwLock was poisoned (write); continuing with inner cache.".to_string()]
     );
   }
 }

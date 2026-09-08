@@ -1,3 +1,4 @@
+mod capturing_logger;
 mod prelude;
 
 mod binding_queries_test;

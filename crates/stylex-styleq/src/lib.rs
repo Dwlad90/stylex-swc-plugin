@@ -16,6 +16,11 @@
 mod styleq;
 mod types;
 
+/// The logger the cache cases read messages back from.
+#[cfg(test)]
+#[path = "tests/capturing_logger.rs"]
+mod capturing_logger;
+
 pub use styleq::{Styleq, create_styleq, styleq};
 pub use types::{
   StyleMap, StyleValue, StyleqArgument, StyleqInput, StyleqOptions, StyleqResult, StyleqValue,

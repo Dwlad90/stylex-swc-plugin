@@ -153,13 +153,30 @@ file).
 
 ### Excluded from Coverage
 
-Three lists hold the crate names and must agree: `test:coverage:workspace` in
-the root `package.json`, `EXCLUDED_CRATES` in `scripts/coverage-missing.sh`, and
-the `case` in `scripts/packages/test/coverage.sh`. This section says why a crate
-is off the gate. Each row is permanent, with the reason stated, or temporary,
-with the ticket that removes it named. Do not add a row without one of the two.
-A new crate joins the gate at full coverage when it is created. A temporary row
-must say why the coverage could not travel with the code.
+Five lists hold the crate names and must agree: `test:coverage:workspace` in the
+root `package.json`, `EXCLUDED_CRATES` in `scripts/coverage-missing.sh`, the
+`case` in `scripts/packages/test/coverage.sh`, `EXCLUDED` in
+`scripts/git/crate-coverage-runner.test.mjs`, which asserts that `case` starts
+no cargo for a name it holds, and the rows below. `case` and `EXCLUDED` spell a
+crate by its directory name and the other three by its Cargo package name, which
+differ by more than the hyphens: `stylex-rs-compiler` is the crate
+`stylex_compiler_rs`.
+
+`scripts/git/coverage-exclusions.test.mjs` compares the five and names the list
+that disagrees, so a row taken off four of them fails where it was edited. It
+also refuses a row for a crate this workspace does not hold, which is what a
+rename or a deletion leaves behind. Edit the five together.
+
+A crate can also fall off the gate without a row anywhere:
+`scripts/packages/test/coverage.sh` measures nothing for a crate that has no
+tests and nothing for one with no `src/lib.rs`. The five lists are the
+_declared_ exclusions, not the whole of what goes unmeasured.
+
+This section says why a crate is off the gate. Each row is permanent, with the
+reason stated, or temporary, with the ticket that removes it named. Do not add a
+row without one of the two. A new crate joins the gate at full coverage when it
+is created. A temporary row must say why the coverage could not travel with the
+code.
 
 Permanent:
 
@@ -168,18 +185,14 @@ Permanent:
 - `stylex_test_parser` -- test fixture parser
 - `stylex_transform` -- SWC transform, tested through snapshot tests
 
-Both temporary crates came out of the transform, which is itself off the gate.
-The transform's tests had covered them, and the new crate boundary stopped that
-coverage counting for them. Both tickets sit in the `split-transform-crate`
-tracker (see [issue-tracker.md](../docs/agents/issue-tracker.md)).
+The temporary crate came out of the transform, which is itself off the gate.
+The transform's tests had covered it, and the new crate boundary stopped that
+coverage counting for it. Its ticket sits in the `split-transform-crate` tracker
+(see [issue-tracker.md](../docs/agents/issue-tracker.md)).
 
 Temporary:
 
-- `stylex_state` -- covered through the transform until direct tests exist.
-  Ticket `11-cover-the-state-crate` removes this row. The row also excludes
-  the crate's `resolution` module, which was a crate on the gate and is still
-  at 100%: the ticket that removes the row must keep it there.
-- `stylex_evaluator` -- the same, for the evaluator moved out of the transform.
+- `stylex_evaluator` -- covered through the transform until direct tests exist.
   Ticket `15-cover-the-evaluator-crate` removes this row.
 
 ## Key Config Files

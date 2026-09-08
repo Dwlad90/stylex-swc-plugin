@@ -431,6 +431,31 @@ const { map } = transform(filename, inputCode, {
 > first. To get line-granularity output from a chain, emit the _input_ map
 > without columns.
 
+### `enableDevClassNames`
+
+**Type:** `boolean` **Default:** the value of `dev`
+
+Adds a readable name to each style namespace, so an element in the browser
+inspector says where its styles were written.
+
+The name is built from the file, the variable the `stylex.create` call is bound
+to, and the namespace: a `root` namespace of a `styles` variable in
+`MyComponent.tsx` gets `MyComponent__styles.root`. An `sx` value has no variable
+and no namespace of its own, so it gets `MyComponent__sx`. The name is added
+beside the generated class names and never replaces them.
+
+- **unset (default)**: follows `dev`. A development build names each
+  namespace; a production build adds nothing.
+- **`true`**: names each namespace, but only in a development build. `dev` must
+  also be on, because a production build never carries debug names.
+- **`false`**: adds no names, even in a development build.
+
+> [!NOTE]
+> A character that a class name cannot hold is removed from the name. So two
+> namespaces whose names differ only in such a character, `p+1` and `p1`, get
+> the same debug name. The name is a label to read and not a selector, so a
+> duplicate is harmless.
+
 ### `useRealFileForSource`
 
 **Type:** `boolean` **Default:** `true`
@@ -443,7 +468,8 @@ depend on this option.
 
 - **`true` (default)**: the compiler reads the actual source file from disk when
   generating error messages and source maps. This provides accurate line numbers
-  and source context that match what you see in your editor. Style namespaces
+  and source context that match what you see in your editor. When the file is
+  not on disk, the source text given to the compiler is used. Style namespaces
   are located **by their key**, so positions resolve correctly even when the
   incoming code was already rewritten by earlier tooling (keys survive
   value-level transforms such as macro expansion).

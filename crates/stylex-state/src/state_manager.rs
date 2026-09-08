@@ -1,6 +1,5 @@
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cell::OnceCell;
-use std::collections::hash_map::Entry;
 use std::{option::Option, path::Path, rc::Rc, sync::Arc};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
@@ -55,7 +54,6 @@ use stylex_state_index::{
 use stylex_structures::{
   style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
 };
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_utils::hash::{
   stable_hash_unspanned, stable_hash_unspanned_call, stable_hash_unspanned_member,
 };
@@ -275,14 +273,17 @@ impl ModuleSourceState {
 
     Some((
       &seen_module_source.module,
-      seen_module_source.source_code.as_deref(),
+      seen_module_source
+        .source_file
+        .as_ref()
+        .map(|file| file.src.as_str()),
     ))
   }
 
-  fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
+  fn set_seen_module_source_code(&mut self, module: &Module, source_file: Option<Arc<SourceFile>>) {
     self.seen_module_source_code = Some(Rc::new(SeenModuleSource {
       module: module.clone(),
-      source_code,
+      source_file,
       // Built from the module above, so it cannot outlive it.
       key_span_index: OnceCell::new(),
     }));
@@ -413,33 +414,33 @@ impl CallExpressionState {
 
   /// Drops one occurrence of `member` from its bucket, forgetting the bucket
   /// once nothing holds it.
+  ///
+  /// One pass rather than a search and a shift, and no arm of its own for a
+  /// member the bucket does not hold: the last call that holds a member drops
+  /// it, any other one only decrements the count that keeps it alive for the
+  /// calls left, and a member nothing counts leaves every count as it was.
+  ///
+  /// At most one entry can match, because [`Self::add_call_expression`] counts a
+  /// second occurrence of a member onto the entry it finds rather than pushing a
+  /// second one -- so one release drops one occurrence, as the name says. A
+  /// count starts at one and is only ever raised, so the decrement below cannot
+  /// take one past zero.
+  ///
+  /// The lookup makes a bucket for a key that has none, which the emptiness
+  /// check drops again, so a miss leaves the index as it found it. Nothing pays
+  /// for that: every caller hands back a callee taken out of the call map, and
+  /// every member that map holds was bucketed when its call was recorded.
   fn release_member(&mut self, member: &MemberExpr) {
-    let Entry::Occupied(mut occupied) = self
-      .callee_members
-      .entry(stable_hash_unspanned_member(member))
-    else {
-      return;
-    };
+    let key = stable_hash_unspanned_member(member);
+    let bucket = self.callee_members.entry(key).or_default();
 
-    let bucket = occupied.get_mut();
-
-    if let Some(position) = bucket
-      .iter()
-      .position(|(candidate, _)| candidate.eq_ignore_span(member))
-    {
-      // The last call that holds a member drops it from the bucket. Any other
-      // one only decrements the count that keeps it alive for the calls left.
-      match bucket.get_mut(position) {
-        Some((_, 1)) => {
-          bucket.remove(position);
-        },
-        Some((_, count)) => *count -= 1,
-        None => {},
-      }
-    }
+    bucket.retain_mut(|(candidate, count)| {
+      *count -= u32::from(candidate.eq_ignore_span(member));
+      *count > 0
+    });
 
     if bucket.is_empty() {
-      occupied.remove();
+      self.callee_members.remove(&key);
     }
   }
 }
@@ -623,6 +624,13 @@ pub struct StateManager {
   /// the same pre-scan and consumed by `get_stylex_runtime_binding` to test
   /// whether a name is already bound in the module.
   pub bound_names: FxHashSet<String>,
+
+  /// How many module-level names each stem has given out, for
+  /// [`StateManager::next_hoisted_ident`].
+  ///
+  /// One count per file. A count shared between files would make the name of a
+  /// hoisted expression depend on how many files came before it.
+  hoisted_ident_counts: FxHashMap<&'static str, usize>,
 
   /// For each name bound by a non-import declaration (var/let/const,
   /// function/class names, params), the source spans of the scopes in which
@@ -922,6 +930,7 @@ impl StateManager {
       imports: ImportState::default(),
       existing_import_sources: vec![],
       bound_names: FxHashSet::default(),
+      hoisted_ident_counts: FxHashMap::default(),
       local_rebinding_scopes: FxHashMap::default(),
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
@@ -1242,11 +1251,13 @@ impl StateManager {
           .is_some_and(|specifier| local_binding_of(specifier).eq_ignore_span(ident))
       })
       .min()
+      // The filter above already read the specifier at this pair, so both halves
+      // are there to pair up.
       .and_then(|(import, specifier)| {
-        Some((
-          self.top_imports.get(*import)?,
-          self.specifier_at(*import, *specifier)?,
-        ))
+        self
+          .top_imports
+          .get(*import)
+          .zip(self.specifier_at(*import, *specifier))
       });
 
     debug_assert_eq!(
@@ -1266,7 +1277,10 @@ impl StateManager {
   }
 
   fn specifier_at(&self, import: usize, specifier: usize) -> Option<&ImportSpecifier> {
-    self.top_imports.get(import)?.specifiers.get(specifier)
+    self
+      .top_imports
+      .get(import)
+      .and_then(|import| import.specifiers.get(specifier))
   }
 
   /// Appends a top-level expression and records the call it is, if it is one.
@@ -1444,6 +1458,38 @@ impl StateManager {
     self.bound_names.contains(name)
   }
 
+  /// The next free module-level name built on `stem`, for an expression the
+  /// compiler lifts to the top of the file.
+  ///
+  /// The first name of a stem carries no number, so `temp` gives `_temp` and
+  /// then `_temp2`. A name the module already binds is passed over: the
+  /// generated declaration sits beside the author's own, and the two would
+  /// print as one name.
+  pub fn next_hoisted_ident(&mut self, stem: &'static str) -> Ident {
+    loop {
+      let count = self.hoisted_ident_counts.entry(stem).or_insert(1);
+      let ordinal = *count;
+
+      *count += 1;
+
+      let name = if ordinal < 2 {
+        format!("_{stem}")
+      } else {
+        format!("_{stem}{ordinal}")
+      };
+
+      if !self.has_binding(&name) {
+        // The declaration this name goes on is a binding of the module like any
+        // other, so anything that asks `has_binding` later reads it too.
+        let ident = Ident::from(name.as_str());
+
+        self.bound_names.insert(name);
+
+        return ident;
+      }
+    }
+  }
+
   /// Whether `name` is bound by a non-import declaration whose scope encloses
   /// `site` — i.e. a local binding that shadows an imported `stylex` name at
   /// that `sx` site. The check is position-aware: reuse is blocked only when
@@ -1522,18 +1568,22 @@ impl StateManager {
     attrs: Vec<JSXAttrOrSpread>,
   ) -> bool {
     let key = stable_hash_unspanned_call(call);
-    let Some(bucket) = self.jsx_spread_attr_exprs_map.get_mut(&key) else {
+
+    let Some((_, replacement)) = self
+      .jsx_spread_attr_exprs_map
+      .get_mut(&key)
+      .and_then(|bucket| {
+        bucket
+          .iter_mut()
+          .find(|(seen, _)| matches!(seen, Expr::Call(seen_call) if seen_call.eq_ignore_span(call)))
+      })
+    else {
       return false;
     };
 
-    for (seen, replacement) in bucket.iter_mut() {
-      if matches!(seen, Expr::Call(seen_call) if seen_call.eq_ignore_span(call)) {
-        *replacement = attrs;
-        return true;
-      }
-    }
+    *replacement = attrs;
 
-    false
+    true
   }
 
   /// Looks up the replacement JSX attributes recorded for a spread expression,
@@ -1697,10 +1747,14 @@ impl StateManager {
   }
 
   /// Sets the source code module (marks as not yet normalized)
-  pub fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
+  pub fn set_seen_module_source_code(
+    &mut self,
+    module: &Module,
+    source_file: Option<Arc<SourceFile>>,
+  ) {
     self
       .module_source
-      .set_seen_module_source_code(module, source_code);
+      .set_seen_module_source_code(module, source_file);
   }
 
   pub fn import_as(&self, import: &str) -> Option<&str> {
@@ -1859,29 +1913,26 @@ impl StateManager {
 
       let package_dir_path = Path::new(&package_dir);
       let file_path = Path::new(file_path);
-      let relative_package_path = relative_path(file_path, package_dir_path);
 
-      if let Some(package_dir) = relative_package_path.to_str() {
-        // Normalize path separators to forward slashes for consistency across platforms
-        let normalized_path = package_dir.replace('\\', "/");
-        return format!(
-          "{}:{}",
-          package_name.unwrap_or_else(|| "_unknown_name_".to_string()),
-          normalized_path
-        );
-      }
+      // Separators are normalized to forward slashes so one file answers the
+      // same name on every platform. Both halves of the relative path come from
+      // `&str`, so reading it back as text loses nothing.
+      let normalized_path = relative_path(file_path, package_dir_path)
+        .to_string_lossy()
+        .replace('\\', "/");
+
+      return format!(
+        "{}:{}",
+        package_name.unwrap_or_else(|| "_unknown_name_".to_string()),
+        normalized_path
+      );
     }
 
     if let Some(root_dir) = self.options.unstable_module_resolution.root_dir() {
-      let file_path = Path::new(file_path);
-      let root_dir = Path::new(root_dir);
-
-      if let Some(rel_path) = relative_path(file_path, root_dir).to_str() {
-        // Normalize path separators to forward slashes for consistency across platforms
-        let normalized_path = rel_path.replace('\\', "/");
-        return normalized_path;
-      }
-    };
+      return relative_path(Path::new(file_path), Path::new(root_dir))
+        .to_string_lossy()
+        .replace('\\', "/");
+    }
 
     let file_name = Path::new(file_path)
       .file_name()
@@ -2236,46 +2287,38 @@ impl StateManager {
     found
   }
 
+  /// Files the styles of one call and points the call site at `ast`.
+  ///
+  /// `fallback_ast_hash` names the object a hoisted call site was replaced by.
+  /// The caller holds that object only to hash it, so it hands over the hash
+  /// and keeps the object out of a clone the size of the whole style map.
   pub fn register_styles(
     &mut self,
     call: &CallExpr,
     style: &InjectableStylesMap,
     ast: &Expr,
-    fallback_ast: Option<&Expr>,
+    fallback_ast_hash: Option<u128>,
   ) {
     // Early return if there are no styles to process
     if style.is_empty() {
       return;
     }
 
+    // One metadata per rule, so a style map that holds rules yields metadata.
     let metadatas = MetaData::convert_from_injected_styles_map(style);
-    if metadatas.is_empty() {
-      return;
-    }
+    let inject_var_ident = self.setup_injection_imports();
 
-    let needs_runtime_injection = style.values().any(|value| {
-      matches!(
-        value.as_ref(),
-        InjectableStyleKind::Regular(_) | InjectableStyleKind::Const(_)
-      )
-    });
-
-    let inject_var_ident = if needs_runtime_injection {
-      Some(self.setup_injection_imports())
-    } else {
-      None
-    };
+    // The hash keys the injection slots and does not change per rule, so it is
+    // computed once here and not once per metadata in the loop.
+    let ast_hash = stable_hash_unspanned(ast);
 
     for metadata in metadatas {
       self.add_style(&metadata);
-
-      if let Some(ref inject_var_ident) = inject_var_ident {
-        self.add_style_to_inject(&metadata, inject_var_ident, ast, fallback_ast);
-      }
+      self.add_style_to_inject(&metadata, &inject_var_ident, ast_hash, fallback_ast_hash);
     }
 
     // Update all references to this call expression with the new AST
-    self.update_references(call, ast, fallback_ast);
+    self.update_references(call, ast);
   }
 
   /// Registers injected styles produced by the atoms transform.
@@ -2293,9 +2336,6 @@ impl StateManager {
     }
 
     let metadatas = MetaData::convert_from_injected_styles_map(style);
-    if metadatas.is_empty() {
-      return;
-    }
 
     let inject_var_ident = if self.options.runtime_injection.is_some() {
       Some(self.setup_injection_imports())
@@ -2329,31 +2369,31 @@ impl StateManager {
       .cloned()
       .unwrap_or(RuntimeInjectionState::Boolean(true));
 
-    let (inject_module_ident, inject_var_ident) = match self.injection.inject_import_inserted.take()
-    {
-      Some(idents) => (idents.module, idents.var),
-      None => {
-        let module_ident = uid_generator.generate_ident();
+    // The early return above answers for every state that already holds the
+    // identifiers, so reaching here means there are none to read yet.
+    let module_ident = uid_generator.generate_ident();
 
-        let var_ident = match &runtime_injection {
-          RuntimeInjectionState::Regular(_) | RuntimeInjectionState::Boolean(_) => {
-            uid_generator.generate_ident()
-          },
-          RuntimeInjectionState::Named(NamedImportSource { r#as, .. }) => {
-            uid_generator = UidGenerator::new(r#as, CounterMode::Local);
-            uid_generator.generate_ident()
-          },
-        };
-
-        let idents = InjectImportIdents {
-          module: module_ident,
-          var: var_ident,
-        };
-        self.injection.inject_import_inserted = Some(idents.clone());
-
-        (idents.module, idents.var)
+    let var_ident = match &runtime_injection {
+      RuntimeInjectionState::Regular(_) | RuntimeInjectionState::Boolean(_) => {
+        uid_generator.generate_ident()
+      },
+      RuntimeInjectionState::Named(NamedImportSource { r#as, .. }) => {
+        uid_generator = UidGenerator::new(r#as, CounterMode::Local);
+        uid_generator.generate_ident()
       },
     };
+
+    let idents = InjectImportIdents {
+      module: module_ident,
+      var: var_ident,
+    };
+
+    self.injection.inject_import_inserted = Some(idents.clone());
+
+    let InjectImportIdents {
+      module: inject_module_ident,
+      var: inject_var_ident,
+    } = idents;
 
     let module_items = match &runtime_injection {
       RuntimeInjectionState::Boolean(_) => vec![
@@ -2378,7 +2418,7 @@ impl StateManager {
     inject_var_ident
   }
 
-  fn update_references(&mut self, call: &CallExpr, ast: &Expr, _fallback_ast: Option<&Expr>) {
+  fn update_references(&mut self, call: &CallExpr, ast: &Expr) {
     if let Some(position) = self.find_call_declaration_index(call) {
       self.set_declaration_init(position, ast.clone());
     }
@@ -2407,12 +2447,19 @@ impl StateManager {
     }
   }
 
+  /// Queues the injection call for one rule before each declaration it belongs
+  /// to, once per declaration.
+  ///
+  /// `ast_hash` names the declaration the styles land in, and
+  /// `fallback_ast_hash` the object a hoisted call site was replaced by.
+  /// `register_styles` hashes the first once for all the rules of one call, and
+  /// the second reaches it already hashed by its own caller.
   fn add_style_to_inject(
     &mut self,
     metadata: &MetaData,
     inject_var_ident: &Ident,
-    ast: &Expr,
-    fallback_ast: Option<&Expr>,
+    ast_hash: u128,
+    fallback_ast_hash: Option<u128>,
   ) {
     let priority = metadata.get_priority();
     let css_ltr = metadata.get_css();
@@ -2455,7 +2502,6 @@ impl StateManager {
       expr: Box::new(stylex_call),
     }));
 
-    let ast_hash = stable_hash_unspanned(ast);
     let normalized_module = module;
 
     // Per-decl dedup: keying by `ast_hash` keeps the per-bucket
@@ -2476,8 +2522,7 @@ impl StateManager {
       bucket.push(normalized_module.clone());
     }
 
-    if let Some(fallback_ast) = fallback_ast {
-      let fallback_ast_hash = stable_hash_unspanned(fallback_ast);
+    if let Some(fallback_ast_hash) = fallback_ast_hash {
       let fallback_bucket = self
         .injection
         .queued_decl_items
@@ -2651,11 +2696,9 @@ pub fn flush_pending_insertions(
       .unwrap_or(original.len());
     let mut merged = Vec::with_capacity(original.len() + after_imports.len());
     let mut iter = original.into_iter();
-    for _ in 0..import_end {
-      if let Some(item) = iter.next() {
-        merged.push(item);
-      }
-    }
+
+    // `import_end` is an index into `original`, so the take never runs short.
+    merged.extend(iter.by_ref().take(import_end));
     merged.extend(after_imports);
     merged.extend(iter);
     merged
@@ -2838,18 +2881,24 @@ fn add_inject_var_decl_expression(decl_ident: &Ident, value_ident: &Ident) -> Mo
   }))))
 }
 
+/// Whether `filename` carries `allowed_suffix`, either at its end or in front
+/// of a module extension -- `vars.stylex` and `vars.stylex.js` both carry
+/// `.stylex`.
+///
+/// The two halves are matched apart rather than joined: the extension is
+/// stripped and what is left is asked for the suffix. Joining them meant one
+/// `format!` per extension per ask, which the import resolver pays on every
+/// import a module makes. Fewer allocations, counted rather than timed -- this
+/// is not on a path the benches measure.
 pub(crate) fn matches_file_suffix(allowed_suffix: &str, filename: &str) -> bool {
   if filename.ends_with(allowed_suffix) {
     return true;
   }
 
-  EXTENSIONS.iter().any(|&suffix| {
-    let suffix = if allowed_suffix.is_empty() {
-      suffix
-    } else {
-      &format!("{}{}", allowed_suffix, suffix)[..]
-    };
-    filename.ends_with(suffix)
+  EXTENSIONS.iter().any(|extension| {
+    filename
+      .strip_suffix(extension)
+      .is_some_and(|stem| stem.ends_with(allowed_suffix))
   })
 }
 
@@ -2926,14 +2975,25 @@ impl DiagnosticState for StateManager {
     self.module_source.get_seen_module_source_code()
   }
 
-  fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
+  fn set_seen_module_source_code(&mut self, module: &Module, source_file: Option<Arc<SourceFile>>) {
     self
       .module_source
-      .set_seen_module_source_code(module, source_code);
+      .set_seen_module_source_code(module, source_file);
   }
 
   fn key_span_index(&self) -> Option<&KeySpanIndex> {
     self.module_source.key_span_index()
+  }
+
+  fn input_source_text(&self) -> Option<&str> {
+    self
+      .input_source_file
+      .as_ref()
+      .map(|file| file.src.as_str())
+  }
+
+  fn reads_source_from_disk(&self) -> bool {
+    self.options.use_real_file_for_source
   }
 
   fn diagnostic_memo(&self) -> &DiagnosticMemo {

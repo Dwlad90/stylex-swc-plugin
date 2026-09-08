@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs';
 
 import { describe, expect, test } from 'vitest';
 
-import { runNodeScript } from './nodeScript';
+import { runNodeScript, runNodeScriptOrThrow } from './nodeScript';
 
 /** The longest command line that Windows accepts. */
 const WINDOWS_COMMAND_LINE_LIMIT = 32_767;
@@ -112,5 +112,20 @@ describe('runNodeScript', () => {
     expect(outcome.error).toBeUndefined();
     expect(outcome.status).toBe(0);
     expect(outcome.stdout).toHaveLength(size);
+  });
+});
+
+describe('runNodeScriptOrThrow', () => {
+  test('returns the outcome of a script that exits cleanly', () => {
+    const outcome = runNodeScriptOrThrow('process.stdout.write("clean");');
+
+    expect(outcome.status).toBe(0);
+    expect(outcome.stdout).toBe('clean');
+  });
+
+  test('throws with the exit code and what the script wrote when it fails', () => {
+    expect(() =>
+      runNodeScriptOrThrow('console.error("expected failure"); process.exit(3);')
+    ).toThrow(/exit 3[\s\S]*expected failure/);
   });
 });

@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use swc_core::common::SourceFile;
 use swc_core::ecma::ast::Module;
 
 use stylex_state_index::key_span_index::KeySpanIndex;
@@ -31,7 +34,29 @@ pub trait DiagnosticState {
 
   /// Memoizes that re-parsed source, so the next diagnostic in the same file
   /// does not read and parse it again.
-  fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>);
+  ///
+  /// The text comes as the source file it was parsed from, which the frame has
+  /// already registered. Holding that file rather than a `String` keeps the
+  /// module text to one allocation per file: the state and the source map share
+  /// it. A module memoized without its text passes `None`.
+  fn set_seen_module_source_code(&mut self, module: &Module, source_file: Option<Arc<SourceFile>>);
+
+  /// The text the compiler was given for this file, when the entry point
+  /// recorded it.
+  ///
+  /// It keeps the authored layout, which a module printed back out from its
+  /// AST does not, so it is what a `file:line` is measured against when the
+  /// file itself is not on disk.
+  fn input_source_text(&self) -> Option<&str>;
+
+  /// Whether the frame may read the file on disk, as `useRealFileForSource`
+  /// asks. When the option is off, the frame quotes what the compiler holds in
+  /// memory and opens no file.
+  ///
+  /// The flag gates [`DiagnosticState::input_source_text`] as well, not the
+  /// disk read alone: with the option off, the module the compiler memoized is
+  /// the one source the frame is allowed to name.
+  fn reads_source_from_disk(&self) -> bool;
 
   /// Where every style namespace key of the memoized source is written, built
   /// on first use.

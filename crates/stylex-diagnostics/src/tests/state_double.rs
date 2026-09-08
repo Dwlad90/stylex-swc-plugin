@@ -6,8 +6,9 @@
 //! span index: it is built from the memoized module, so replacing that module
 //! has to drop it.
 
-use std::cell::OnceCell;
+use std::{cell::OnceCell, sync::Arc};
 
+use swc_core::common::SourceFile;
 use swc_core::ecma::ast::Module;
 
 use crate::{memo::DiagnosticMemo, state::DiagnosticState};
@@ -17,7 +18,11 @@ use stylex_state_index::key_span_index::KeySpanIndex;
 pub(crate) struct StateDouble {
   filename: String,
   seen_module: Option<Module>,
-  seen_source_code: Option<String>,
+  seen_source_file: Option<Arc<SourceFile>>,
+  input_source: Option<String>,
+  /// False by default, as `useRealFileForSource` defaults to on. A case sets
+  /// it to keep the frame away from the disk.
+  disk_reads_off: bool,
   key_span_index: OnceCell<KeySpanIndex>,
   memo: DiagnosticMemo,
   /// Drops the module as soon as it is stored, so the caller reads back the
@@ -31,6 +36,22 @@ impl StateDouble {
     Self {
       filename: filename.into(),
       ..Self::default()
+    }
+  }
+
+  /// The same state, holding the text the compiler was given for the file.
+  pub(crate) fn with_input_source(self, source: impl Into<String>) -> Self {
+    Self {
+      input_source: Some(source.into()),
+      ..self
+    }
+  }
+
+  /// The same state with `useRealFileForSource` off, so the frame opens no file.
+  pub(crate) fn with_disk_reads_off(self) -> Self {
+    Self {
+      disk_reads_off: true,
+      ..self
     }
   }
 
@@ -49,16 +70,19 @@ impl DiagnosticState for StateDouble {
   }
 
   fn get_seen_module_source_code(&self) -> Option<(&Module, Option<&str>)> {
-    Some((self.seen_module.as_ref()?, self.seen_source_code.as_deref()))
+    Some((
+      self.seen_module.as_ref()?,
+      self.seen_source_file.as_ref().map(|file| file.src.as_str()),
+    ))
   }
 
-  fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
+  fn set_seen_module_source_code(&mut self, module: &Module, source_file: Option<Arc<SourceFile>>) {
     if self.forgets_the_module {
       return;
     }
 
     self.seen_module = Some(module.clone());
-    self.seen_source_code = source_code;
+    self.seen_source_file = source_file;
     // Built from the module above, so a new module invalidates it.
     self.key_span_index = OnceCell::new();
   }
@@ -71,6 +95,14 @@ impl DiagnosticState for StateDouble {
         .key_span_index
         .get_or_init(|| KeySpanIndex::build(module)),
     )
+  }
+
+  fn input_source_text(&self) -> Option<&str> {
+    self.input_source.as_deref()
+  }
+
+  fn reads_source_from_disk(&self) -> bool {
+    !self.disk_reads_off
   }
 
   fn diagnostic_memo(&self) -> &DiagnosticMemo {

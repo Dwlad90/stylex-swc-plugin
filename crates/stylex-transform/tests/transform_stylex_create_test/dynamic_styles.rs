@@ -819,3 +819,148 @@ stylex_test!(
     });
   "#
 );
+
+// ──────────────────────────────────────────────
+// A dynamic entry declared in a nested scope (#1303)
+//
+// A `stylex.create` call that is not a module-level statement is hoisted to a
+// module-level `const` and the call site becomes a reference to it. The dynamic
+// rewrite has to see the compiled object before that hoist. Otherwise the entry
+// it would turn into an arrow function is already an identifier and it keeps
+// its static shape, and the call site fails at run time with
+// `styles.color is not a function`. Each case below keeps a static sibling so
+// the snapshot also shows that the sibling is left as it was.
+// ──────────────────────────────────────────────
+stylex_test!(
+  a_dynamic_entry_inside_a_namespace_stays_callable,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export namespace Demo {
+      const styles = stylex.create({
+        color: (value: string) => ({ color: value }),
+        base: { display: 'flex' },
+      });
+      export function render() {
+        return stylex.props(styles.base, styles.color('red'));
+      }
+    }
+  "#
+);
+
+stylex_test!(
+  a_dynamic_entry_inside_a_function_body_stays_callable,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export function render(value) {
+      const styles = stylex.create({
+        color: (value) => ({ color: value }),
+        base: { display: 'flex' },
+      });
+      return stylex.props(styles.base, styles.color(value));
+    }
+  "#
+);
+
+stylex_test!(
+  a_dynamic_entry_inside_an_iife_stays_callable,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const render = (() => {
+      const styles = stylex.create({
+        color: (value) => ({ color: value }),
+        base: { display: 'flex' },
+      });
+      return (value) => stylex.props(styles.base, styles.color(value));
+    })();
+  "#
+);
+
+stylex_test!(
+  a_dynamic_entry_inside_a_block_stays_callable,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export let render;
+    {
+      const styles = stylex.create({
+        color: (value) => ({ color: value }),
+        base: { display: 'flex' },
+      });
+      render = (value) => stylex.props(styles.base, styles.color(value));
+    }
+  "#
+);
+
+// Dev mode gives the dynamic entry a static fragment -- the debug class name --
+// that is hoisted from inside the rewrite, and runtime injection adds the
+// `_inject2` calls. Both are anchored at module level, so this is where the
+// order of the hoisted declarations and the injection calls is visible.
+stylex_test!(
+  a_dynamic_entry_inside_a_namespace_in_dev_with_runtime_injection,
+  |tr| {
+    // Cloned here rather than in the builder closure, which must not borrow the
+    // tester: the pass it builds outlives the call.
+    let source_map = tr.cm.clone();
+
+    stylex_transform(tr.comments.clone(), move |b| {
+      b.with_source_map(source_map)
+        .with_dev(true)
+        .with_enable_dev_class_names(true)
+        .with_filename(swc_core::common::FileName::Real("MyComponent.tsx".into()))
+        .with_runtime_injection()
+    })
+  },
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export namespace Demo {
+      const styles = stylex.create({
+        color: (value: string) => ({ color: value }),
+        base: { display: 'flex' },
+      });
+      export function render() {
+        return stylex.props(styles.base, styles.color('red'));
+      }
+    }
+  "#
+);
+
+// A dynamic entry can name a constant of the scope it was written in. The
+// compiler cannot fold that name, so it keeps it as it is written and the hoist
+// carries it to the module level, where it is not declared. The module loads,
+// because the body of the entry runs only when it is called; the call is what
+// fails. This snapshot records the output as it is, so the day the behaviour
+// changes the change is visible here.
+stylex_test!(
+  a_nested_dynamic_entry_keeps_a_reference_to_the_scope_it_left,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export function render(gap) {
+      const styles = stylex.create({
+        box: (value) => ({ width: value, margin: gap }),
+      });
+      return stylex.props(styles.box(1));
+    }
+  "#
+);
+
+// The hoisted declaration sits beside the author's own declarations, so its
+// name has to be one the module does not already use. A module that declares
+// `_styles` itself gets the next free name.
+stylex_test!(
+  a_hoisted_styles_object_passes_over_a_name_the_module_already_uses,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const _styles = 1;
+    export function render(value) {
+      const styles = stylex.create({
+        color: (v) => ({ color: v }),
+      });
+      return stylex.props(styles.color(value));
+    }
+  "#
+);

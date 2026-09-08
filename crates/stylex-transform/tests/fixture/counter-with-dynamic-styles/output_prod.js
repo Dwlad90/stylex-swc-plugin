@@ -3,7 +3,7 @@ import * as stylex from '@stylexjs/stylex';
 import { spacing, text, globalTokens as $ } from './globalTokens.stylex';
 import { colors } from '@stylexjs/open-props/lib/colors.stylex';
 import { useState } from 'react';
-const _temp2 = {
+const _temp = {
     kGuDYH: "xdmh292",
     $$css: true
 };
@@ -23,7 +23,7 @@ export default function Counter() {
 }
 const styles = {
     size: (size)=>[
-            _temp2,
+            _temp,
             {
                 "--x-fontSize": ((val)=>typeof val === "number" ? val + "px" : val != null ? val : undefined)(8 * size + 'px')
             }

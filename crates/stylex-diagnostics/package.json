@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/diagnostics",
   "description": "Code frames and declaration positions for the errors StyleX raises",
-  "version": "0.19.0-rc.1",
+  "version": "0.19.0-rc.2",
   "private": true,
   "sideEffects": false,
   "files": [

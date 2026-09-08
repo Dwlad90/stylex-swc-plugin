@@ -6,6 +6,6 @@ _inject2({
     priority: 3000
 });
 ({
-    class: "x1e2nbdu",
+    class: "FooBar__styles.default x1e2nbdu",
     "data-style-src": "js/FooBar.react.js:3"
 });

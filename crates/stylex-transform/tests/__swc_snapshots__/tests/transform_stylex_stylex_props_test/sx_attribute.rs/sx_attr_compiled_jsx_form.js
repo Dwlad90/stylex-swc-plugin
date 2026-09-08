@@ -8,7 +8,7 @@ _inject2({
 function App() {
     return _jsx("div", {
         ...{
-            className: "color-x1e2nbdu",
+            className: "Foo__styles.main color-x1e2nbdu",
             "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
         },
         children: "Hello World"

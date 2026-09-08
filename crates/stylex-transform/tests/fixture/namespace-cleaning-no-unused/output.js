@@ -49,44 +49,54 @@ _inject2({
 });
 const c = {
     "1": {
+        "input__c.1": "input__c.1",
         fontSize: "fontSize-xeuu8e4",
-        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:39"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:41"
     },
     "2": {
+        "input__c.2": "input__c.2",
         fontSize: "fontSize-x1jbhjkf",
-        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:45"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:47"
     },
     wrapper: {
+        "input__c.wrapper": "input__c.wrapper",
         display: "display-xjp7ctv",
-        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:6"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:8"
     },
     "p-2": {
+        "input__c.p-2": "input__c.p-2",
         fontSize: "fontSize-x1f3yvym",
-        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:9"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:11"
     },
     "p-1": {
+        "input__c.p-1": "input__c.p-1",
         fontSize: "fontSize-x17vjwcc",
-        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:15"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:17"
     },
     p: {
+        "input__c.p": "input__c.p",
         fontSize: "fontSize-x19ppoyo",
-        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:21"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:23"
     },
     "p+1": {
+        "input__c.p1": "input__c.p1",
         fontSize: "fontSize-x3gzoht",
-        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:27"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:29"
     },
     "p+2": {
+        "input__c.p2": "input__c.p2",
         fontSize: "fontSize-xd310an",
-        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:33"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:35"
     },
     "p+3": {
+        "input__c.p3": "input__c.p3",
         fontSize: "fontSize-x14h6vv3",
-        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:51"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:53"
     },
     "p+4": {
+        "input__c.p4": "input__c.p4",
         fontSize: "fontSize-x1eh3tls",
-        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:57"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:59"
     }
 };
 const pClasses = [

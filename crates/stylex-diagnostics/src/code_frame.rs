@@ -15,7 +15,7 @@ use swc_config::is_module::IsModule;
 use swc_core::{
   atoms::Atom,
   common::{
-    DUMMY_SP, EqIgnoreSpan, FileName, Mark, SourceMap, Span, Spanned, SyntaxContext,
+    DUMMY_SP, EqIgnoreSpan, FileName, Mark, SourceFile, SourceMap, Span, Spanned, SyntaxContext,
     errors::{Handler, *},
     util::take::Take,
   },
@@ -134,6 +134,23 @@ impl CodeFrame {
   /// it replaces. A long-lived process transforming five thousand modules pays
   /// fifty thousand name comparisons where it used to accumulate fifty thousand
   /// source files.
+  /// The file already registered for `file_name` whose text is `source`, if the
+  /// shared map holds one.
+  ///
+  /// `get_source_file` answers with the first file registered under the name,
+  /// which after a candidate failed to parse is a text nothing quotes. Asking
+  /// for the content as well is what keeps a watch-mode process from appending
+  /// one copy of such a file per save. The scan is the same one
+  /// `get_source_file` makes, with a content compare on the names that match.
+  fn registered_source_file(&self, file_name: &FileName, source: &str) -> Option<Arc<SourceFile>> {
+    self
+      .source_map
+      .files()
+      .iter()
+      .find(|file| *file.name == *file_name && file.src.as_str() == source)
+      .cloned()
+  }
+
   fn register_source_once(&self, file_name: &FileName, source: &str) {
     if self.source_map.get_source_file(file_name).is_some() {
       return;
@@ -473,7 +490,7 @@ fn get_key_span_from_source_code_impl(
   // `dev` build quadratic in the size of a file that is one long list of them.
   let span = match state.key_span_index() {
     Some(index) => index.resolve(&query),
-    None => return Err(missing_memoized_module(state)),
+    None => return Err(no_module_to_quote(state)),
   };
 
   state
@@ -609,17 +626,19 @@ fn with_memoized_module<T>(
 
   match state.get_seen_module_source_code() {
     Some((module, _)) => Ok(visit(module)),
-    None => Err(missing_memoized_module(state)),
+    None => Err(no_module_to_quote(state)),
   }
 }
 
-/// The error for "the module should have been memoized by now".
+/// The answer when the frame has no module to quote, named by the file it was
+/// looking for.
 ///
-/// Both callers reach it only after [`memoize_module`] returned `Ok`, which
-/// either found a memoized module or stored one, so neither is reachable in
-/// practice. It stays an error rather than a panic because the getters' types
-/// cannot say so, and a diagnostic aid must never be the reason a build stops.
-fn missing_memoized_module(state: &impl DiagnosticState) -> Error {
+/// Raised where no candidate text parsed, and again where a memoized module is
+/// asked for after [`memoize_module`] returned `Ok`. That second case is not
+/// reachable in practice -- the call either found a memoized module or stored
+/// one -- but it stays an error rather than a panic, because the getters' types
+/// cannot say so and a diagnostic aid must never be the reason a build stops.
+fn no_module_to_quote(state: &impl DiagnosticState) -> Error {
   anyhow::anyhow!("Failed to parse source file: {}", state.get_filename())
 }
 
@@ -640,35 +659,85 @@ fn memoize_module(
   if let Some((_, Some(source_code))) = state.get_seen_module_source_code() {
     // Registered once, not once per lookup -- see `register_source_once`.
     code_frame.register_source_once(file_name, source_code);
-  } else {
-    let source_code = get_source_code(wrapped_expression, state, file_name);
 
-    // Through the same reuse `register_source_once` applies, rather than around
-    // it. `new_source_file` never deduplicates -- it appends -- and this map is
-    // a process-global `OnceLock` that is never cleared, so registering here on
-    // every compile is how a watch-mode process accumulated one full copy of
-    // each module per save. Comparing the content is the load-bearing part: an
-    // edited file still gets a fresh registration, and only an unchanged one is
-    // reused.
-    let source_file = match code_frame.source_map.get_source_file(file_name) {
-      Some(existing) if existing.src.as_str() == source_code => existing,
-      _ => code_frame
-        .source_map
-        .new_source_file(Arc::new(file_name.clone()), source_code.clone()),
-    };
-
-    let program = parse_and_normalize_program(
-      &source_file,
-      code_frame,
-      state.get_filename(),
-      target_expression,
-    )
-    .ok_or_else(|| anyhow::anyhow!("Failed to parse source file: {}", state.get_filename()))?;
-
-    state.set_seen_module_source_code(expect_module(&program), Some(source_code));
+    return Ok(());
   }
 
+  let mut authored_text_found = false;
+
+  for candidate in source_code_candidates(state) {
+    // Made here rather than in the list, so a text that a better candidate
+    // makes unnecessary is never built. Printing the memoized module is a deep
+    // clone of it, which a file read before it usually makes unnecessary.
+    let Some(source_code) = candidate.source_code(state, file_name) else {
+      continue;
+    };
+
+    authored_text_found = true;
+
+    if try_memoize_source(source_code, target_expression, state, file_name, code_frame) {
+      return Ok(());
+    }
+  }
+
+  if authored_text_found {
+    return Err(no_module_to_quote(state));
+  }
+
+  // No authored text can be read, so the frame quotes a module made of the
+  // expression alone. Such a module always parses, which is what keeps an
+  // answer available. The outcome is not examined for that reason: a state that
+  // kept nothing is reported by the caller that asks for the module back.
+  let synthesized = print_module(create_module(wrapped_expression), None);
+
+  let _ = try_memoize_source(synthesized, target_expression, state, file_name, code_frame);
+
   Ok(())
+}
+
+/// Registers `source_code` with `code_frame`, parses it and memoizes the module
+/// on `state`. `false` when the text does not parse, so the caller can go on to
+/// the next candidate.
+fn try_memoize_source(
+  source_code: String,
+  target_expression: &Expr,
+  state: &mut impl DiagnosticState,
+  file_name: &FileName,
+  code_frame: &CodeFrame,
+) -> bool {
+  // Through the same reuse `register_source_once` applies, rather than around
+  // it. `new_source_file` never deduplicates -- it appends -- and this map is
+  // a process-global `OnceLock` that is never cleared, so registering here on
+  // every compile is how a watch-mode process accumulated one full copy of
+  // each module per save. Comparing the content is the load-bearing part: an
+  // edited file still gets a fresh registration, and only an unchanged one is
+  // reused.
+  let source_file = match code_frame.registered_source_file(file_name, &source_code) {
+    Some(existing) => existing,
+    None => code_frame
+      .source_map
+      .new_source_file(Arc::new(file_name.clone()), source_code),
+  };
+
+  let program = parse_and_normalize_program(
+    &source_file,
+    code_frame,
+    state.get_filename(),
+    target_expression,
+  );
+
+  // A candidate that does not parse stays in the map, and the next one is
+  // registered beside it. A span is resolved by position, so the file that did
+  // parse is still the one a frame is quoted from.
+  let Some(program) = program else {
+    return false;
+  };
+
+  // The state keeps the file the frame registered, so the text it hands back
+  // later is that same allocation and not a copy of it.
+  state.set_seen_module_source_code(expect_module(&program), Some(source_file));
+
+  true
 }
 
 /// The module of a program [`parse_and_normalize_program`] returned.
@@ -684,39 +753,73 @@ fn expect_module(program: &Program) -> &Module {
   }
 }
 
-/// The text of the module the frame quotes from, in the order it is worth
-/// trying: a module memoized without its text printed back out, then the file
-/// on disk. Failing both, a module synthesized around the expression itself --
-/// which is why there is always an answer.
+/// Where the text of the module the frame quotes may come from.
+enum SourceCandidate {
+  /// The file on disk, as `useRealFileForSource` permits.
+  Disk,
+  /// The text the compiler was given for the file.
+  Given,
+  /// The memoized module, printed back out from its AST.
+  PrintedModule,
+}
+
+impl SourceCandidate {
+  /// The text, or `None` where this source cannot supply one -- a file that is
+  /// not there, or a name no file can be read from.
+  fn source_code(&self, state: &impl DiagnosticState, file_name: &FileName) -> Option<String> {
+    match self {
+      Self::Disk => read_source_file(file_name).ok(),
+      Self::Given => state.input_source_text().map(str::to_owned),
+      Self::PrintedModule => {
+        let (module, _) = state.get_seen_module_source_code()?;
+
+        Some(print_module(
+          module.clone(),
+          Some(
+            Config::default()
+              .with_minify(false)
+              .with_omit_last_semi(false)
+              .with_reduce_escaped_newline(false)
+              .with_inline_script(false),
+          ),
+        ))
+      },
+    }
+  }
+}
+
+/// The sources the module the frame quotes may come from, best first.
 ///
-/// The memoized *text* is not a case here: the only caller reaches this after
-/// finding there is none.
-fn get_source_code(
-  wrapped_expression: &Expr,
-  state: &impl DiagnosticState,
-  file_name: &FileName,
-) -> String {
-  // Reached only where the caller found no memoized text, so a module memoized
-  // here has none either and has to be printed back out to give the frame
-  // something to quote.
-  if let Some((module, _)) = state.get_seen_module_source_code() {
-    return print_module(
-      module.clone(),
-      Some(
-        Config::default()
-          .with_minify(false)
-          .with_omit_last_semi(false)
-          .with_reduce_escaped_newline(false)
-          .with_inline_script(false),
-      ),
-    );
+/// While `useRealFileForSource` is on, the file on disk comes first and the
+/// text the compiler was given is the fallback for a file that is not there.
+/// Both keep the authored layout, which is the only one a `file:line` may be
+/// measured against. When the option is off, no file is opened and a module
+/// memoized without its text is printed back out, as the option documents.
+///
+/// A list rather than one source because `filename` can name a host file whose
+/// content is not the JavaScript the compiler was fed -- a single-file
+/// component, an `.mdx`, a `?query`-suffixed name that still resolves on disk,
+/// or a file edited since the read. [`memoize_module`] takes the first
+/// candidate that parses, so such a file degrades to the text the compiler
+/// holds instead of leaving the diagnostic with no frame. Where no candidate
+/// supplies a text at all, that caller synthesizes a module from the expression
+/// itself, which is how an answer stays available.
+///
+/// The memoized *text* is not a candidate here: the only caller reaches this
+/// after finding there is none.
+fn source_code_candidates(state: &impl DiagnosticState) -> SmallVec<[SourceCandidate; 3]> {
+  let mut candidates = SmallVec::new();
+
+  if state.reads_source_from_disk() {
+    candidates.push(SourceCandidate::Disk);
+    candidates.push(SourceCandidate::Given);
   }
 
-  if let Ok(source) = read_source_file(file_name) {
-    return source;
-  }
+  // A module printed back out from its AST lays its lines out differently from
+  // the authored file, so it is quoted only after every authored text.
+  candidates.push(SourceCandidate::PrintedModule);
 
-  print_module(create_module(wrapped_expression), None)
+  candidates
 }
 
 /// Parses source code into a Program AST and normalizes it

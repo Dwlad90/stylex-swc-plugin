@@ -9,9 +9,11 @@
 //! type, tested in their own crate. What is asserted is that this manager hands
 //! back one memo rather than a fresh one per question.
 
+use std::{path::PathBuf, sync::Arc};
+
 use swc_core::{
   atoms::Atom,
-  common::{BytePos, FileName, SourceMap, Span, sync::Lrc},
+  common::{BytePos, FileName, SourceFile, SourceMap, Span, sync::Lrc},
   ecma::{
     ast::{CallExpr, EsVersion, Expr, Module, ModuleItem, Stmt},
     parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer},
@@ -31,6 +33,14 @@ fn state_for_file(filename: &str) -> StateManager {
   state.set_plugin_pass(PluginPass::new(None, Some(FileName::Real(filename.into()))));
 
   state
+}
+
+/// The source file the frame hands the state: the text, registered in a map of
+/// its own, exactly as a diagnostic registers it before it parses.
+fn source_file_of(source: &str) -> Arc<SourceFile> {
+  let source_map: Lrc<SourceMap> = Default::default();
+
+  source_map.new_source_file(FileName::Anon.into(), source.to_owned())
 }
 
 /// Parses a module into a source map of its own, so its first byte is
@@ -119,7 +129,7 @@ fn the_memoized_module_and_its_text_come_back_as_they_went_in() {
   let module = parse(source);
   let mut state = StateManager::default();
 
-  DiagnosticState::set_seen_module_source_code(&mut state, &module, Some(String::from(source)));
+  DiagnosticState::set_seen_module_source_code(&mut state, &module, Some(source_file_of(source)));
 
   let (seen, text) =
     DiagnosticState::get_seen_module_source_code(&state).expect("the module was just memoized");
@@ -154,7 +164,7 @@ fn the_key_span_index_places_a_namespace_of_the_memoized_module() {
   let call = first_call(&module);
   let mut state = StateManager::default();
 
-  DiagnosticState::set_seen_module_source_code(&mut state, &module, Some(String::from(source)));
+  DiagnosticState::set_seen_module_source_code(&mut state, &module, Some(source_file_of(source)));
 
   assert!(!resolve_key(&state, &module, &call, "root").is_dummy());
   assert!(resolve_key(&state, &module, &call, "absent").is_dummy());
@@ -178,7 +188,7 @@ fn replacing_the_memoized_module_drops_the_index_built_from_it() {
   DiagnosticState::set_seen_module_source_code(
     &mut state,
     &first,
-    Some(String::from(first_source)),
+    Some(source_file_of(first_source)),
   );
   // Built here, so the replacement below has something to drop.
   assert!(!resolve_key(&state, &first, &first_call_expr, "root").is_dummy());
@@ -186,7 +196,7 @@ fn replacing_the_memoized_module_drops_the_index_built_from_it() {
   DiagnosticState::set_seen_module_source_code(
     &mut state,
     &second,
-    Some(String::from(second_source)),
+    Some(source_file_of(second_source)),
   );
 
   assert!(
@@ -227,4 +237,135 @@ fn a_fresh_state_remembers_nothing() {
 
   assert_eq!(memo.cached_span(7), None);
   assert!(!memo.has_framed_declarations());
+}
+
+/// A state whose host recorded `source_text` as the text the compiler was given
+/// for the file.
+///
+/// [`SourceFile::new`] rather than `SourceMap::new_source_file`, which
+/// normalizes what it is given -- a BOM is dropped, a lone `\r` is rewritten.
+/// The cases below are about what the state hands back, so the text has to
+/// reach it unaltered.
+fn state_with_input_source_text(source_text: &str) -> StateManager {
+  let mut state = StateManager::default();
+  let name = Arc::new(FileName::Real(PathBuf::from("/app/components/Button.tsx")));
+
+  state.set_input_source_file(Arc::new(SourceFile::new(
+    name.clone(),
+    false,
+    name,
+    source_text.to_owned().into(),
+    BytePos(1),
+  )));
+
+  state
+}
+
+/// The text the host recorded, for a case that has just recorded one. Absence
+/// is a failure of the case rather than an outcome it asserts, so it stops
+/// here instead of at a comparison against `None`.
+fn recorded_text(state: &StateManager) -> &str {
+  match DiagnosticState::input_source_text(state) {
+    Some(text) => text,
+    None => panic!("the text the host handed in was not kept"),
+  }
+}
+
+/// The host records the input text; a state no host has spoken to has none, and
+/// says so rather than answering with an empty file.
+#[test]
+fn a_fresh_state_was_handed_no_input_source_text() {
+  let state = StateManager::default();
+
+  assert_eq!(DiagnosticState::input_source_text(&state), None);
+}
+
+/// The authored layout is the whole reason the text is kept: a `file:line` is
+/// measured against it precisely where a module printed back out from its AST
+/// would put the line somewhere else. So the assertion is byte-for-byte, on a
+/// source whose comment, tabs, blank line and trailing spaces a printer removes.
+#[test]
+fn the_input_source_text_keeps_the_authored_layout() {
+  let source = "// a comment a printer drops\n\n\
+                const styles = create({\n\troot: {   \n\
+                \t\tcolor: 'red',\n\t},\n});\n";
+  let state = state_with_input_source_text(source);
+
+  assert_eq!(DiagnosticState::input_source_text(&state), Some(source));
+}
+
+/// An empty file is a file the host recorded, not a file it did not: the two
+/// answers are `Some("")` and `None`, and a frame that confuses them quotes the
+/// wrong source.
+#[test]
+fn an_empty_input_source_is_recorded_rather_than_absent() {
+  let state = state_with_input_source_text("");
+
+  assert_eq!(DiagnosticState::input_source_text(&state), Some(""));
+}
+
+/// Nothing in the path is a `str` operation that could split a character or
+/// rewrite a line ending, so the bytes come back as they went in -- multi-byte
+/// characters, CRLF, a lone CR and an embedded NUL alike.
+#[test]
+fn the_input_source_text_keeps_every_byte_it_was_given() {
+  let source = "const \u{e8}\u{6f22}\u{1f680} = '\u{0}\u{feff}';\r\nconst b = 2;\rconst c = 3;\n";
+  let state = state_with_input_source_text(source);
+
+  let text = recorded_text(&state);
+
+  // Byte length as well as equality: a normalizing copy that happened to
+  // round-trip the characters would still change the offsets a frame counts.
+  assert_eq!(text, source);
+  assert_eq!(text.len(), source.len());
+}
+
+/// A file far larger than any a human writes -- a generated module of a hundred
+/// thousand declarations -- is handed back whole rather than truncated at some
+/// buffer boundary. The state borrows the host's text, so the cost of the case
+/// is the one allocation the host already made.
+#[test]
+fn a_very_large_input_source_is_handed_back_whole() {
+  let mut source = String::with_capacity(4 * 1024 * 1024);
+  for index in 0..100_000 {
+    source.push_str("const value");
+    source.push_str(&index.to_string());
+    source.push_str(" = 'x';\n");
+  }
+
+  let state = state_with_input_source_text(&source);
+
+  let text = recorded_text(&state);
+
+  assert_eq!(text.len(), source.len());
+  assert!(text.ends_with("const value99999 = 'x';\n"));
+}
+
+/// The flag a frame consults before it opens a file is the option the project
+/// set, read straight through.
+#[test]
+fn reads_source_from_disk_follows_use_real_file_for_source() {
+  let mut state = StateManager::default();
+
+  state.options.use_real_file_for_source = true;
+  assert!(DiagnosticState::reads_source_from_disk(&state));
+
+  state.options.use_real_file_for_source = false;
+  assert!(!DiagnosticState::reads_source_from_disk(&state));
+}
+
+/// The flag gates the frame, not the state. `get_source_code` reads the text
+/// only inside its `reads_source_from_disk` branch and prints the memoized
+/// module otherwise, so the choice belongs to the frame; this accessor answers
+/// the same either way, and a state that withheld the text would move that
+/// decision somewhere the frame cannot see.
+#[test]
+fn the_input_source_text_is_kept_even_when_no_file_may_be_read() {
+  let source = "const styles = create({ root: {} });\n";
+  let mut state = state_with_input_source_text(source);
+
+  state.options.use_real_file_for_source = false;
+
+  assert!(!DiagnosticState::reads_source_from_disk(&state));
+  assert_eq!(DiagnosticState::input_source_text(&state), Some(source));
 }

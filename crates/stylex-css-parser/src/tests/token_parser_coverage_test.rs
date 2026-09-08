@@ -1,8 +1,10 @@
 use super::*;
 use crate::{
+  capturing_logger::logged_at,
   css_types::{Scale, TransformFunction},
   token_types::{SimpleToken, TokenList},
 };
+use log::Level;
 
 // ── helper: build a TokenList directly (bypasses the CSS tokenizer) ──────────
 
@@ -379,21 +381,51 @@ fn label_method_returns_label() {
 // debug() method
 // ═══════════════════════════════════════════════════════════════════════════
 
+/// `debug` writes what it parsed and how it ended. Both messages are built from
+/// the parse, and a `log` macro builds nothing while no logger admits the level,
+/// so the case reads the two messages back.
 #[test]
 fn debug_method_success() {
-  // debug on a successful parse
   let parser = tokens::ident();
-  let result = parser.debug("foo");
-  assert!(result.is_ok());
-  assert!(matches!(result.unwrap(), SimpleToken::Ident(_)));
+  let label = parser.label().to_string();
+  let mut result = None;
+
+  let messages = logged_at(Level::Debug, || result = Some(parser.debug("foo")));
+
+  assert!(matches!(result, Some(Ok(SimpleToken::Ident(_)))));
+  // The label is in every assertion, so the case answers for its own parse.
+  assert!(
+    messages
+      .iter()
+      .any(|message| message == &format!("Parsing 'foo' with parser '{label}'")),
+    "the input and the parser must be named, got {messages:?}"
+  );
+  assert!(
+    messages
+      .iter()
+      .any(|message| message.starts_with(&format!("✅ SUCCESS: Parser '{label}' matched."))),
+    "a parse that succeeded must say so, got {messages:?}"
+  );
 }
 
+/// The same for a parse that fails: the message carries the position it stopped
+/// at and the error it stopped with.
 #[test]
 fn debug_method_failure() {
-  // the Err arm of the match inside debug
   let parser = tokens::colon();
-  let result = parser.debug("foo"); // ident is not a colon
-  assert!(result.is_err());
+  let label = parser.label().to_string();
+  let mut result = None;
+
+  // An ident is not a colon.
+  let messages = logged_at(Level::Debug, || result = Some(parser.debug("foo")));
+
+  assert!(matches!(result, Some(Err(_))));
+  assert!(
+    messages
+      .iter()
+      .any(|message| message.starts_with(&format!("❌ FAILED: Parser '{label}' failed at token "))),
+    "a parse that failed must say so, got {messages:?}"
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1801,19 +1833,59 @@ fn always_make_label_non_unit_type_returns_always_fmt() {
 }
 
 // ── debug_log_result ─────────────────────────────────────────────────────────
-// debug_log_result only calls log::debug!, so we just ensure both branches
-// are reachable (both arms call debug! which is a no-op without a logger).
+// Both arms build a message out of their arguments, and a `log` macro builds
+// nothing while no logger admits the level. The cases below read the message
+// back, so they measure the arguments and not only the arm that was taken.
 
 #[test]
 fn debug_log_result_success_branch() {
-  // success = true → logs SUCCESS message; must not panic
-  debug_log_result(true, "TestParser", 3, "");
+  let messages = logged_at(Level::Debug, || debug_log_result(true, "TestParser", 3, ""));
+
+  assert_eq!(
+    messages,
+    vec!["✅ SUCCESS: Parser 'TestParser' matched. Consumed 3 tokens.".to_string()]
+  );
 }
 
 #[test]
 fn debug_log_result_failure_branch() {
-  // success = false → logs FAILED message; must not panic
-  debug_log_result(false, "TestParser", 0, "some error");
+  let messages = logged_at(Level::Debug, || {
+    debug_log_result(false, "TestParser", 0, "some error")
+  });
+
+  assert_eq!(
+    messages,
+    vec!["❌ FAILED: Parser 'TestParser' failed at token 0. Error: some error".to_string()]
+  );
+}
+
+/// Nothing is written while the level does not admit a debug message, which is
+/// every build that does not ask for one.
+#[test]
+fn debug_log_result_writes_nothing_at_a_higher_level() {
+  let messages = logged_at(Level::Warn, || debug_log_result(true, "TestParser", 1, ""));
+
+  assert!(messages.is_empty());
+}
+
+/// A label and an error far larger than any real one, and a token count at the
+/// top of its type: the message is built from whatever it is handed.
+#[test]
+fn debug_log_result_carries_an_enormous_label_and_error() {
+  let label = "L".repeat(100_000);
+  let error = "E".repeat(100_000);
+
+  let messages = logged_at(Level::Debug, || {
+    debug_log_result(false, &label, usize::MAX, &error)
+  });
+
+  assert_eq!(
+    messages,
+    vec![format!(
+      "❌ FAILED: Parser '{label}' failed at token {}. Error: {error}",
+      usize::MAX
+    )]
+  );
 }
 
 // ── build_parse_with_context_error ───────────────────────────────────────────

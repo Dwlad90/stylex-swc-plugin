@@ -9,7 +9,9 @@ use std::{
 };
 
 use swc_core::atoms::Atom;
-use swc_core::common::{BytePos, DUMMY_SP, FileName, GLOBALS, Globals, Span, SyntaxContext};
+use swc_core::common::{
+  BytePos, DUMMY_SP, FileName, GLOBALS, Globals, SourceFile, SourceMap, Span, SyntaxContext,
+};
 use swc_core::ecma::ast::{
   ArrowExpr, ArrowFunctionBody, BindingIdent, CallExpr, Callee, Expr, ExprOrSpread, Ident,
   ImportDecl, ImportNamedSpecifier, ImportSpecifier, Module, ModuleDecl, ModuleItem, Pat, Program,
@@ -102,6 +104,15 @@ fn write_fixture(name: &str, source: &str) -> TempFixture {
   }
 
   TempFixture { dir, path }
+}
+
+/// The text a state memoizes, as the source file the frame hands it. Registered
+/// in a map of its own, so a case can memoize a text the shared map has never
+/// seen.
+fn memoized_source_file(source: &str) -> Arc<SourceFile> {
+  let source_map = SourceMap::default();
+
+  source_map.new_source_file(Arc::new(FileName::Anon), source.to_owned())
 }
 
 fn compiled_create_call() -> CallExpr {
@@ -873,6 +884,109 @@ fn a_module_memoized_without_its_text_is_printed_back_out() {
   assert_eq!(framed_line(&target, &mut state), Some(1));
 }
 
+/// Memoizes `source` the way a debug build does at module entry: parsed, and
+/// without its text. Must run inside the globals, because the parse mints
+/// marks.
+fn memoize_without_text(state: &mut StateDouble, source: &str) {
+  let frame = CodeFrame::new();
+  let source_file = frame
+    .source_map
+    .new_source_file(Arc::new(FileName::Anon), source.to_owned());
+  let program =
+    match parse_and_normalize_program(&source_file, &frame, "memoized.tsx", &reference("c")) {
+      Some(program) => program,
+      None => panic!("the fixture must parse"),
+    };
+
+  state.set_seen_module_source_code(expect_module(&program), None);
+}
+
+/// The authored text wins over a module printed back out. A debug build
+/// memoizes the module without its text at module entry, and the printer lays a
+/// one-line namespace out over three lines, so every key after it moved to a
+/// later line than the one the author wrote it on. The compiler was given the
+/// text, and that text is what a `file:line` has to be measured against.
+#[test]
+fn a_key_is_framed_on_the_authored_line_when_the_module_is_memoized_without_text() {
+  let source = "\
+export const styles = create({
+  root: { color: 'red' },
+  other: { display: 'flex' },
+});
+";
+  let mut state = StateDouble::for_file("/nonexistent/authored.tsx").with_input_source(source);
+  let call = compiled_create_call();
+
+  let line = GLOBALS.set(&Globals::default(), || {
+    memoize_without_text(&mut state, source);
+
+    match key_span_for(&call, "other", &mut state) {
+      Ok((code_frame, span)) => code_frame.try_get_span_line_number(span),
+      Err(error) => panic!("failed to get the key span: {error}"),
+    }
+  });
+
+  assert_eq!(line, Some(3));
+}
+
+/// The file on disk wins over the given text while `useRealFileForSource` is
+/// on, which is what the option promises: the text a bundler hands in may have
+/// been rewritten by an earlier loader, and the file is what the author sees.
+#[test]
+fn the_file_on_disk_is_quoted_before_the_given_text_when_the_option_is_on() {
+  // The same module, with a comment line before it on disk only.
+  let given = "\
+export const styles = create({
+  root: { color: 'red' },
+  other: { display: 'flex' },
+});
+";
+  let path = write_fixture("disk_first.tsx", &format!("// authored\n{given}"));
+  let mut state = state_for_fixture(&path).with_input_source(given);
+  let call = compiled_create_call();
+
+  let line = GLOBALS.set(&Globals::default(), || {
+    match key_span_for(&call, "other", &mut state) {
+      Ok((code_frame, span)) => code_frame.try_get_span_line_number(span),
+      Err(error) => panic!("failed to get the key span: {error}"),
+    }
+  });
+
+  assert_eq!(line, Some(4));
+}
+
+/// With `useRealFileForSource` off, the frame opens no file and quotes the
+/// module it holds, printed back out, as the option documents. The three
+/// sources put the key on three different lines, so the answer names the one
+/// that was read: the file on disk says 4, the given text 3, the printed module
+/// 5.
+#[test]
+fn a_memoized_module_is_printed_when_the_option_is_off() {
+  let source = "\
+export const styles = create({
+  root: { color: 'red' },
+  other: { display: 'flex' },
+});
+";
+  let path = write_fixture("printed.tsx", &format!("// authored\n{source}"));
+  let mut state = state_for_fixture(&path)
+    .with_input_source(source)
+    .with_disk_reads_off();
+  let call = compiled_create_call();
+
+  let line = GLOBALS.set(&Globals::default(), || {
+    memoize_without_text(&mut state, source);
+
+    match key_span_for(&call, "other", &mut state) {
+      Ok((code_frame, span)) => code_frame.try_get_span_line_number(span),
+      Err(error) => panic!("failed to get the key span: {error}"),
+    }
+  });
+
+  // The printer lays `root` out over three lines, so `other` moves to line 5.
+  assert_eq!(line, Some(5));
+}
+
 /// The panic boundary every span lookup sits behind: a panic inside it is an
 /// ordinary "no code frame", never the end of the compilation.
 #[test]
@@ -1148,7 +1262,7 @@ fn a_cached_answer_is_quoted_from_the_memoized_text() {
   let mut state = StateDouble::for_file(format!("memoized_only_{}.tsx", id));
   let target = reference("c");
 
-  state.set_seen_module_source_code(&create_module(&target), Some(source.to_owned()));
+  state.set_seen_module_source_code(&create_module(&target), Some(memoized_source_file(source)));
   state
     .diagnostic_memo_mut()
     .insert_cached_span(compute_cache_key(&target), DUMMY_SP);
@@ -1259,4 +1373,33 @@ fn a_program_that_is_not_a_module_stops_the_memoization() {
     body: Vec::new(),
     shebang: None,
   }));
+}
+
+/// A `filename` that names a host file whose content is not the JavaScript the
+/// compiler was fed -- a single-file component, an `.mdx`, a stale watch-mode
+/// read. The disk text is preferred but does not parse, so the frame keeps the
+/// text the compiler was given instead of losing the frame completely.
+#[test]
+fn a_file_that_does_not_parse_falls_back_to_the_given_text() {
+  let given = "\
+export const styles = create({
+  root: { color: 'red' },
+  other: { display: 'flex' },
+});
+";
+  let path = write_fixture(
+    "not_javascript.mdx",
+    "# A document\n\nThis is prose, and 1 + = is not an expression.\n",
+  );
+  let mut state = state_for_fixture(&path).with_input_source(given);
+  let call = compiled_create_call();
+
+  let line = GLOBALS.set(&Globals::default(), || {
+    match key_span_for(&call, "other", &mut state) {
+      Ok((code_frame, span)) => code_frame.try_get_span_line_number(span),
+      Err(error) => panic!("failed to get the key span: {error}"),
+    }
+  });
+
+  assert_eq!(line, Some(3));
 }

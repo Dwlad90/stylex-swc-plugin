@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/test-parser",
   "description": "Parse origin jest stylex test files",
-  "version": "0.19.0-rc.1",
+  "version": "0.19.0-rc.2",
   "private": true,
   "license": "MIT",
   "sideEffects": false,
@@ -14,7 +14,7 @@
   "scripts": {
     "bench": "scripty",
     "build": "scripty --rust",
-    "check:artifacts": "scripty ./dist/stylex_test_parser",
+    "check:artifacts": "scripty ./dist/stylex-test-parser",
     "clean": "del-cli dist",
     "do:nothing": "exit 0",
     "format": "run-p format:rs format:toml",
@@ -25,7 +25,7 @@
     "format:toml:check": "taplo format --check",
     "postbuild": "pnpm run check:artifacts",
     "prepublishOnly": "pnpm run build",
-    "start": "./dist/test-parser",
+    "start": "./dist/stylex-test-parser",
     "test": "echo \"Skip: the root test script runs the workspace suite.\"",
     "test:coverage": "scripty",
     "test:flamegraph": "scripty"
@@ -42,5 +42,5 @@
   "keywords": [
     "swc-plugin"
   ],
-  "main": "./dist/test-parser"
+  "main": "./dist/stylex-test-parser"
 }

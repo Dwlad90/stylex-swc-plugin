@@ -10,6 +10,7 @@ macro_rules! stylex_test {
     test!(
       $crate::utils::transform::ts_syntax(),
       |tr| StyleXTransform::test(tr.comments.clone())
+        .with_source_map(tr.cm.clone())
         .with_runtime_injection()
         .into_pass(),
       $name,
@@ -32,6 +33,7 @@ macro_rules! stylex_test {
     test!(
       $crate::utils::transform::ts_syntax(),
       |tr| StyleXTransform::test(tr.comments.clone())
+        .with_source_map(tr.cm.clone())
         .with_options($options)
         .with_runtime_injection()
         .into_pass(),
@@ -63,6 +65,7 @@ macro_rules! stylex_test_transform {
         Option::None,
         |tr| {
           StyleXTransform::test(tr.comments.clone())
+            .with_source_map(tr.cm.clone())
             .with_runtime_injection()
             .into_pass()
         },
@@ -96,6 +99,7 @@ macro_rules! stylex_test_transform {
         Option::None,
         |tr| {
           StyleXTransform::test(tr.comments.clone())
+            .with_source_map(tr.cm.clone())
             .with_options($options)
             .with_runtime_injection()
             .into_pass()
@@ -139,6 +143,7 @@ macro_rules! stylex_test_panic {
         Option::None,
         |tr| {
           StyleXTransform::test(tr.comments.clone())
+            .with_source_map(tr.cm.clone())
             .with_runtime_injection()
             .into_pass()
         },
@@ -174,6 +179,7 @@ macro_rules! stylex_test_panic {
         Option::None,
         |tr| {
           StyleXTransform::test(tr.comments.clone())
+            .with_source_map(tr.cm.clone())
             .with_options($options)
             .with_runtime_injection()
             .into_pass()

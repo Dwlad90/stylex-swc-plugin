@@ -297,7 +297,14 @@ fn try_resolve_as_module_returns_none_for_non_utf8_path() {
 }
 
 /// No-op `log` sink whose only purpose is to let `debug!` calls fire so their
-/// (lazily-evaluated) arguments are exercised. Installed once per test binary.
+/// (lazily-evaluated) arguments are exercised.
+///
+/// The message itself cannot be read back here: `src/tests.rs` installs
+/// `pretty_env_logger` from a constructor before any case runs, and `log` takes
+/// one logger per process, so a capturing logger can never be the one in place.
+/// What a case controls is the level, and the level is what decides whether the
+/// arguments run: the macro builds its `format_args!` -- and with it every
+/// argument expression -- as soon as `log::max_level()` admits the level.
 struct DebugSink;
 
 impl log::Log for DebugSink {
@@ -310,6 +317,17 @@ impl log::Log for DebugSink {
 
 static DEBUG_SINK: DebugSink = DebugSink;
 
+/// Turns debug logging on, and answers the level that was in force so the case
+/// can put it back.
+fn enable_debug_logging() -> log::LevelFilter {
+  let previous_level = log::max_level();
+
+  let _ = log::set_logger(&DEBUG_SINK);
+  log::set_max_level(log::LevelFilter::Debug);
+
+  previous_level
+}
+
 /// Same successful `/ROOT/` rewrite as above, but with debug logging enabled so
 /// the `debug!("rewrote /ROOT/ aliased path …")` in `try_resolve_aliased_path`
 /// actually formats its arguments. `debug!` is lazy — its argument expressions
@@ -318,9 +336,7 @@ static DEBUG_SINK: DebugSink = DebugSink;
 #[test]
 #[serial_test::serial]
 fn resolve_file_path_root_placeholder_rewrite_logs_at_debug() {
-  let previous_level = log::max_level();
-  let _ = log::set_logger(&DEBUG_SINK);
-  log::set_max_level(log::LevelFilter::Debug);
+  let previous_level = enable_debug_logging();
 
   let root = fixture_root("application-pnpm");
 
@@ -366,6 +382,36 @@ fn resolve_file_path_root_placeholder_without_root_dir_is_not_found() {
 
   assert_eq!(err.kind(), std::io::ErrorKind::NotFound);
   assert!(err.to_string().contains("@consts/colors.stylex"));
+}
+
+/// The same unrewritable placeholder as above, with debug logging on, so the
+/// `debug!("skipping /ROOT/ aliased path ...")` that explains the failure
+/// formats its arguments. Without a logger the message is never built, and a
+/// resolution that fails for this reason gives the reader nothing to go on.
+#[test]
+#[serial_test::serial]
+fn resolve_file_path_root_placeholder_without_root_dir_says_why_at_debug() {
+  let previous_level = enable_debug_logging();
+
+  let root = fixture_root("application-pnpm");
+
+  let mut package_json_seen = FxHashMap::<String, PackageJsonExtended>::default();
+  let mut aliases = FxHashMap::<String, Vec<String>>::default();
+  aliases.insert("@consts/*".to_string(), vec!["/ROOT/src/*".to_string()]);
+
+  let err = resolve_file_path(
+    "@consts/colors.stylex",
+    root.join("src/pages/home.js").to_str().unwrap(),
+    root.to_str().unwrap(),
+    &aliases,
+    None,
+    &mut package_json_seen,
+  )
+  .unwrap_err();
+
+  log::set_max_level(previous_level);
+
+  assert_eq!(err.kind(), std::io::ErrorKind::NotFound);
 }
 
 /// When a `/ROOT/` alias is rewritten against a configured `root_dir` but the

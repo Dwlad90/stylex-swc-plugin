@@ -6,5 +6,5 @@ _inject2({
     priority: 3000
 });
 function Foo() {
-    return <div className="color-x1e2nbdu" data-style-src="npm-package:node_modules/npm-package/dist/components/Foo.react.js:3">Hello World</div>;
+    return <div className="Foo__styles.red color-x1e2nbdu" data-style-src="npm-package:node_modules/npm-package/dist/components/Foo.react.js:3">Hello World</div>;
 }

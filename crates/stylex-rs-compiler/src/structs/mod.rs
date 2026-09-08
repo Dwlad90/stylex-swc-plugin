@@ -43,6 +43,7 @@ pub struct StyleXOptions {
   pub debug: Option<bool>,
   pub enable_debug_class_names: Option<bool>,
   pub enable_debug_data_prop: Option<bool>,
+  /// Defaults to the value of `dev`.
   pub enable_dev_class_names: Option<bool>,
   pub enable_minified_keys: Option<bool>,
   pub inject_stylex_side_effects: Option<bool>,

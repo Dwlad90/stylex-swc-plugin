@@ -23,8 +23,8 @@ _inject2({
 });
 export default function Card() {
     const { className, style } = {
-        className: "color-x1e2nbdu borderColor-x15hxx75 padding-x7z7khe",
-        "data-style-src": "tests/fixture/card/input.stylex.js:3; tests/fixture/card/input.stylex.js:7"
+        className: "input__c.base color-x1e2nbdu input__c.test borderColor-x15hxx75 padding-x7z7khe",
+        "data-style-src": "tests/fixture/card/input.stylex.js:4; tests/fixture/card/input.stylex.js:8"
     };
     return <article className={className} style={style}>Card</article>;
 }

@@ -51,21 +51,25 @@ _inject2({
 });
 export const styles = {
     sidebar: {
+        "UnknownFile__styles.sidebar": "UnknownFile__styles.sidebar",
         "boxSizing-kB7OPa": "x9f619",
         "gridArea-kJuA4N": "x1yc5d2u",
         $$css: true
     },
     content: {
+        "UnknownFile__styles.content": "UnknownFile__styles.content",
         "gridArea-kJuA4N": "x1fdo2jl",
         $$css: true
     },
     root: {
+        "UnknownFile__styles.root": "UnknownFile__styles.root",
         "display-k1xSpc": "xrvj5dj",
         "gridTemplateRows-k9llMU": "x7k18q3",
         "gridTemplateAreas-kC13JO": "x5gp9wm",
         $$css: true
     },
     withSidebar: {
+        "UnknownFile__styles.withSidebar": "UnknownFile__styles.withSidebar",
         "gridTemplateColumns-kumcoG": "x1rkzygb",
         "gridTemplateRows-k9llMU": "x7k18q3",
         "gridTemplateAreas-kC13JO": "x17lh93j",
@@ -75,15 +79,16 @@ export const styles = {
         $$css: true
     },
     noSidebar: {
+        "UnknownFile__styles.noSidebar": "UnknownFile__styles.noSidebar",
         "gridTemplateColumns-kumcoG": "x1mkdm3x",
         $$css: true
     }
 };
 ({
     0: {
-        class: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4"
+        class: "UnknownFile__styles.root xrvj5dj UnknownFile__styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4"
     },
     1: {
-        class: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x"
+        class: "UnknownFile__styles.root xrvj5dj x7k18q3 x5gp9wm UnknownFile__styles.noSidebar x1mkdm3x"
     }
 })[!!(sidebar == null) << 0];

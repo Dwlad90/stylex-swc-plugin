@@ -330,6 +330,55 @@ fn parse_nested_or_panic_panics_when_nested_parse_errors() {
   });
 }
 
+/// The guard writes the error before it stops the build, and that message is
+/// the only account of what went wrong. It is built from the error, which a
+/// `log` macro does not build while no logger admits the level.
+///
+/// `catch_unwind` rather than `should_panic`: the message has to be asserted
+/// after the panic, which a `should_panic` case never reaches.
+#[test]
+fn a_nested_parse_error_is_written_before_it_stops_the_build() {
+  use cssparser::{ParseError, ParseErrorKind, SourceLocation};
+  use log::Level;
+
+  use crate::capturing_logger::logged_at;
+
+  let mut stopped = None;
+
+  let messages = logged_at(Level::Error, || {
+    stopped = Some(std::panic::catch_unwind(|| {
+      super::handle_nested_block_result(Err(ParseError {
+        kind: ParseErrorKind::Custom(()),
+        location: SourceLocation { line: 2, column: 7 },
+      }))
+    }));
+  });
+
+  assert!(
+    matches!(stopped, Some(Err(_))),
+    "a nested parse error must stop the build"
+  );
+  assert!(
+    messages
+      .iter()
+      .any(|message| message.starts_with("Error parsing nested content: ")),
+    "the error must be written before the build stops, got {messages:?}"
+  );
+}
+
+/// The same guard on the answer it is given almost every time. Nothing is
+/// written and nothing stops.
+#[test]
+fn a_nested_block_that_parsed_writes_nothing() {
+  use log::Level;
+
+  use crate::capturing_logger::logged_at;
+
+  let messages = logged_at(Level::Error, || super::handle_nested_block_result(Ok(())));
+
+  assert!(messages.is_empty());
+}
+
 // ---------------------------------------------------------------------------
 // leading_f64(): the paths where there is no number to read
 // ---------------------------------------------------------------------------

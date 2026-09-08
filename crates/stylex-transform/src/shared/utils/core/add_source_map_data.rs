@@ -34,14 +34,21 @@ static NEXTJS_HYDRATION_WARNING: LazyLock<String> = LazyLock::new(|| {
     Please verify the expression that caused this error.".to_string()
 });
 
+/// The `$$css` entry of each namespace, carrying the `file:line` the namespace
+/// was written on.
+///
+/// Takes the styles rather than borrowing them, so the properties of a
+/// namespace move into the new map. Copying them allocated one string for
+/// every property of every namespace, and a debug build annotates every
+/// namespace of every `stylex.create` call.
 pub(crate) fn add_source_map_data(
-  obj: &StylesObjectMap,
+  obj: StylesObjectMap,
   call_expr: &CallExpr,
   state: &mut StateManager,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
   functions: &FunctionMap,
 ) -> StylesObjectMap {
-  let mut result: StylesObjectMap = IndexMap::new();
+  let mut result: StylesObjectMap = IndexMap::with_capacity(obj.len());
   let mut style_node_paths: FxHashMap<String, KeyValueProp> = FxHashMap::default();
 
   match call_expr.args.first() {
@@ -78,11 +85,12 @@ pub(crate) fn add_source_map_data(
   let lookup = CallLookup::new(call_expr, state.input_module_base());
 
   for (key, value) in obj {
-    let mut inner_map = IndexMap::new();
+    let styles = Rc::unwrap_or_clone(value);
+    let mut inner_map = IndexMap::with_capacity(styles.len() + 1);
 
-    inner_map.extend((**value).clone());
+    inner_map.extend(styles);
 
-    match style_node_paths.remove(key) {
+    match style_node_paths.remove(&key) {
       Some(style_node_path) => {
         // Highest fidelity: resolve the key's own span against the compiler's
         // input and map it through the host-provided input source map back to
@@ -99,7 +107,7 @@ pub(crate) fn add_source_map_data(
             package_json_seen,
             functions,
           );
-          result.insert(key.clone(), Rc::new(inner_map));
+          result.insert(key, Rc::new(inner_map));
           continue;
         }
 
@@ -109,7 +117,7 @@ pub(crate) fn add_source_map_data(
         // when the compiled values no longer match the file content. Fall
         // back to matching the value expression when the key cannot be
         // located (e.g. computed keys).
-        let source_code_frame_and_span = match get_key_span_from_source_code(&lookup, key, state) {
+        let source_code_frame_and_span = match get_key_span_from_source_code(&lookup, &key, state) {
           Ok((code_frame, span)) if !span.eq(&DUMMY_SP) => Ok((code_frame, span)),
           _ => get_span_from_source_code(lookup.wrapped(), &style_node_path.value, state),
         };
@@ -172,11 +180,11 @@ pub(crate) fn add_source_map_data(
           );
         }
 
-        result.insert(key.clone(), Rc::new(inner_map));
+        result.insert(key, Rc::new(inner_map));
       },
       _ => {
         // Fallback in case no sourcemap data is found
-        result.insert(key.clone(), Rc::new(inner_map));
+        result.insert(key, Rc::new(inner_map));
       },
     };
   }

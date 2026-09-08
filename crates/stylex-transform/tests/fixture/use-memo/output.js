@@ -64,18 +64,20 @@ _inject2({
 });
 const styles = {
     primary: {
+        "input__styles.primary": "input__styles.primary",
         backgroundColor: "backgroundColor-xrkmrrc",
         color: "color-x1awj2ng",
-        $$css: "tests/fixture/use-memo/input.stylex.js:32"
+        $$css: "tests/fixture/use-memo/input.stylex.js:33"
     },
     root: {
+        "input__styles.root": "input__styles.root",
         display: "display-x1lliihq",
         fontSize: "fontSize-x1j61zf2",
         paddingBottom: "paddingBottom-xsag5q8",
         paddingLeft: "paddingLeft-x5tiur9",
         paddingRight: "paddingRight-x1s7jvk7",
         paddingTop: "paddingTop-xz9dl7a",
-        $$css: "tests/fixture/use-memo/input.stylex.js:36"
+        $$css: "tests/fixture/use-memo/input.stylex.js:37"
     }
 };
 var _c;

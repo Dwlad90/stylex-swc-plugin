@@ -19,7 +19,28 @@ if [ "$build_rust" = true ]; then
     verbose_flag=""
   fi
 
-  cargo_name=$(grep '^name' Cargo.toml | sed 's/name = "\(.*\)"/\1/')
+  # The `name` key of one manifest section. Both `[package]` and `[[bin]]` hold
+  # one, so each is read inside its own section: a plain `grep '^name'` would
+  # match either, and both where a manifest declares both.
+  manifest_name() {
+    awk -v want="$1" '
+      /^\[/ { section = $0 }
+      section == want && /^name[[:space:]]*=/ {
+        sub(/^name[[:space:]]*=[[:space:]]*"/, "")
+        sub(/".*$/, "")
+        print
+        exit
+      }
+    ' Cargo.toml
+  }
+
+  cargo_name=$(manifest_name "[package]")
+
+  # Cargo names a binary after its `[[bin]]` entry when the manifest declares
+  # one, and after the package otherwise. A library always uses the package
+  # name, so only the binary branch below consults this.
+  bin_name=$(manifest_name "[[bin]]")
+  : "${bin_name:=$cargo_name}"
 
   mkdir -p ./dist || handle_error "Failed to create the dist directory"
 
@@ -28,7 +49,7 @@ if [ "$build_rust" = true ]; then
     # Build the Rust application if there is no src/lib.rs file
     cargo build --release $verbose_flag || handle_error "Failed to build the Rust project"
 
-    built_path="$(find ../../target/release/"${cargo_name}" -type f | tail -1)"
+    built_path="$(find ../../target/release/"${bin_name}" -type f | tail -1)"
 
     if [ -z "$built_path" ]; then
       handle_error "Could not find a built file"

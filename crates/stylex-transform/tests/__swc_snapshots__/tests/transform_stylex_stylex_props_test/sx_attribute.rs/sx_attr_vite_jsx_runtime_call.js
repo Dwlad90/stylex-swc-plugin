@@ -16,13 +16,13 @@ _inject2({
 function App() {
     return jsx("div", {
         ...{
-            className: "color-x1e2nbdu",
+            className: "Foo__styles.main color-x1e2nbdu",
             "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
         }
     }, [
         jsx("div", {
             ...{
-                className: "borderRadius-x12oqio5",
+                className: "Foo__styles.card borderRadius-x12oqio5",
                 "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:6"
             }
         }, "Hello World")

@@ -63,7 +63,7 @@ use stylex_constants::constants::{
 };
 use stylex_css::utils::{pseudo::is_pseudo_element, when as stylex_when};
 use stylex_diagnostics::code_frame::{build_code_frame_error, build_code_frame_error_and_panic};
-use stylex_enums::{counter_mode::CounterMode, style_resolution::StyleResolution};
+use stylex_enums::style_resolution::StyleResolution;
 use stylex_evaluator::{
   evaluate::evaluate_result_is_nullish, state::EvaluationState,
   stylex_first_that_works::stylex_first_that_works,
@@ -80,10 +80,10 @@ use stylex_state::{
 };
 use stylex_structures::{
   dynamic_style::DynamicStyle, order_pair::OrderPair, stylex_state_options::StyleXStateOptions,
-  uid_generator::UidGenerator,
 };
 use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_types::traits::WhenMarkerValue;
+use stylex_utils::hash::stable_hash_unspanned;
 
 /// Resolves the value that occupies the second slot of a `when` call: the
 /// custom marker when one was passed, and the StyleX options otherwise.
@@ -232,20 +232,6 @@ where
         None => stylex_panic!("{}", non_static_value(STYLEX_CREATE)),
       };
 
-      assert!(
-        evaluated_arg.confident,
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          evaluated_arg
-            .reason
-            .as_deref()
-            .unwrap_or(&non_static_value(STYLEX_CREATE)),
-          &mut self.state,
-        )
-      );
-
       let mut injected_inherit_styles: InjectableStylesMap = IndexMap::default();
 
       if let Some(fns) = &evaluated_arg.fns {
@@ -293,7 +279,7 @@ where
 
       if self.state.is_debug() && self.state.options.enable_debug_data_prop {
         compiled_styles = add_source_map_data(
-          &compiled_styles,
+          compiled_styles,
           call,
           &mut self.state,
           &mut package_json_seen,
@@ -302,11 +288,11 @@ where
       }
 
       if self.state.is_dev() && self.state.options.enable_dev_class_names {
-        compiled_styles = inject_dev_class_names(&compiled_styles, &var_name, &self.state);
+        compiled_styles = inject_dev_class_names(compiled_styles, &var_name, &self.state);
       }
 
       if self.state.is_test() {
-        compiled_styles = convert_to_test_styles(&compiled_styles, &var_name, &self.state);
+        compiled_styles = convert_to_test_styles(compiled_styles, &var_name, &self.state);
       }
 
       if is_program_level && let Some(var_name) = var_name.as_ref() {
@@ -350,25 +336,34 @@ where
       let styles_ast =
         convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(compiled_styles));
 
-      let mut result_ast =
-        path_replace_hoisted(styles_ast.clone(), is_program_level, &mut self.state);
-
-      result_ast = apply_dynamic_style_functions(
+      // The rewrite of the dynamic entries needs the object, not the hoisted
+      // identifier, so it runs before the hoist.
+      let styles_ast = apply_dynamic_style_functions(
         self,
         call,
-        result_ast,
+        styles_ast,
         evaluated_arg.fns,
         &class_paths_per_namespace,
         &injected_styles,
-        is_program_level,
       );
 
-      self.state.register_styles(
-        call,
-        &injected_styles,
-        &result_ast,
-        (!result_ast.eq(&styles_ast)).then_some(&styles_ast),
-      );
+      // A call that is not a module-level statement is hoisted to one and the
+      // call site becomes a reference. The hash of the object goes on, so the
+      // runtime injection calls still find the declaration they belong to.
+      let (result_ast, fallback_ast_hash) = if is_program_level {
+        (styles_ast, None)
+      } else {
+        let fallback_ast_hash = stable_hash_unspanned(&styles_ast);
+
+        (
+          hoist_styles_object(styles_ast, &mut self.state),
+          Some(fallback_ast_hash),
+        )
+      };
+
+      self
+        .state
+        .register_styles(call, &injected_styles, &result_ast, fallback_ast_hash);
 
       Some(result_ast)
     } else {

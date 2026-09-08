@@ -360,8 +360,27 @@ The plugin replaces the marker with the generated StyleX CSS during the build.
 > So the rules are minified along with everything else, but per-module steps
 > such as PostCSS or Lightning CSS transpilation never run over them. Use
 > [`transformCss`](#transformcss) to run your own processing over the rules.
-> The dev server has no bundle step and inlines the rules in the stylesheet, so
-> there the pipeline sees everything.
+> In development the rules are put into the stylesheet before the pipeline
+> runs, so there it sees everything. The bundled mode below uses Vite's
+> built-in CSS preprocessing, not other plugins' CSS transform hooks.
+
+> [!NOTE]
+> **Vite's bundled dev server** (`experimental.bundledDev`)
+>
+> The plugin serves the marker stylesheet with current rules and Vite's
+> built-in CSS preprocessing (PostCSS, Lightning CSS and `@import`). Edits to
+> StyleX modules, shared variables and themes, the stylesheet and its imports
+> refetch the stylesheet over HMR. Rolldown decides whether the module edit
+> itself is a hot update or a reload.
+>
+> Limits in this mode:
+>
+> - The marker must be in a plain stylesheet that JavaScript imports. A CSS
+>   module or a build entry gets only the rules known at bundle time.
+> - Restart after adding or removing a marker or its stylesheet import.
+> - Other Vite plugins' CSS transform hooks do not run over this stylesheet.
+> - `url()` references are not rewritten or served. Keep those assets in
+>   `public/` or in a stylesheet without the marker.
 
 > [!WARNING]
 > Farm does not support `useCssPlaceholder` yet. Its plugin adapter never

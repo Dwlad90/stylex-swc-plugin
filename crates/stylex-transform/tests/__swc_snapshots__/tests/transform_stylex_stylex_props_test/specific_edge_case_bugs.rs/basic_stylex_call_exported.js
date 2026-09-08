@@ -51,27 +51,27 @@ _inject2({
 });
 export const complex = {
     0: {
-        className: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4"
+        className: "UnknownFile__styles.root display-xrvj5dj UnknownFile__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4"
     },
     4: {
-        className: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x"
+        className: "UnknownFile__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm UnknownFile__styles.noSidebar gridTemplateColumns-x1mkdm3x"
     },
     2: {
-        className: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 boxSizing-x9f619 gridArea-x1yc5d2u"
+        className: "UnknownFile__styles.root display-xrvj5dj UnknownFile__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 UnknownFile__styles.sidebar boxSizing-x9f619 gridArea-x1yc5d2u"
     },
     6: {
-        className: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x boxSizing-x9f619 gridArea-x1yc5d2u"
+        className: "UnknownFile__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm UnknownFile__styles.noSidebar gridTemplateColumns-x1mkdm3x UnknownFile__styles.sidebar boxSizing-x9f619 gridArea-x1yc5d2u"
     },
     1: {
-        className: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 gridArea-x1fdo2jl"
+        className: "UnknownFile__styles.root display-xrvj5dj UnknownFile__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 UnknownFile__styles.content gridArea-x1fdo2jl"
     },
     5: {
-        className: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x gridArea-x1fdo2jl"
+        className: "UnknownFile__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm UnknownFile__styles.noSidebar gridTemplateColumns-x1mkdm3x UnknownFile__styles.content gridArea-x1fdo2jl"
     },
     3: {
-        className: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 boxSizing-x9f619 gridArea-x1fdo2jl"
+        className: "UnknownFile__styles.root display-xrvj5dj UnknownFile__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 UnknownFile__styles.sidebar boxSizing-x9f619 UnknownFile__styles.content gridArea-x1fdo2jl"
     },
     7: {
-        className: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x boxSizing-x9f619 gridArea-x1fdo2jl"
+        className: "UnknownFile__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm UnknownFile__styles.noSidebar gridTemplateColumns-x1mkdm3x UnknownFile__styles.sidebar boxSizing-x9f619 UnknownFile__styles.content gridArea-x1fdo2jl"
     }
 }[!!(sidebar == null && !isSidebar) << 2 | !!isSidebar << 1 | !!isContent << 0];

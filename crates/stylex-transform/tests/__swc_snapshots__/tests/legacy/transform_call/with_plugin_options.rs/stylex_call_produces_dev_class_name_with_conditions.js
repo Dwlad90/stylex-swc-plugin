@@ -10,6 +10,6 @@ _inject2({
     priority: 3000
 });
 ({
-    0: "color-x1e2nbdu",
-    1: "color-x1e2nbdu backgroundColor-x1t391ir"
+    0: "FooBar__styles.default color-x1e2nbdu",
+    1: "FooBar__styles.default color-x1e2nbdu FooBar__otherStyles.default backgroundColor-x1t391ir"
 })[!!isActive << 0];

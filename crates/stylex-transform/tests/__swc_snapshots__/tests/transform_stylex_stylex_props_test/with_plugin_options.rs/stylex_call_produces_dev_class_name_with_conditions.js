@@ -11,11 +11,11 @@ _inject2({
 });
 ({
     0: {
-        className: "color-x1e2nbdu",
+        className: "FooBar__styles.default color-x1e2nbdu",
         "data-style-src": "js/FooBar.react.js:3"
     },
     1: {
-        className: "color-x1e2nbdu backgroundColor-x1t391ir",
+        className: "FooBar__styles.default color-x1e2nbdu FooBar__otherStyles.default backgroundColor-x1t391ir",
         "data-style-src": "js/FooBar.react.js:3; js/FooBar.react.js:8"
     }
 })[!!isActive << 0];

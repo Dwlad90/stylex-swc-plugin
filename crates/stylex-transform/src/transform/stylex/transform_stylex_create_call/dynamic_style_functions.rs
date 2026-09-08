@@ -87,7 +87,6 @@ pub(super) fn apply_dynamic_style_functions<C>(
   fns: Option<DynamicFns>,
   class_paths_per_namespace: &ClassPathsMap,
   injected_styles: &InjectableStylesMap,
-  is_program_level: bool,
 ) -> Expr
 where
   C: Comments,
@@ -329,11 +328,7 @@ where
             })
             .collect();
 
-    result_ast = path_replace_hoisted(
-      create_object_expression(props),
-      is_program_level,
-      &mut transform.state,
-    );
+    result_ast = create_object_expression(props);
   };
 
   result_ast

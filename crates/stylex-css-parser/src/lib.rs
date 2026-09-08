@@ -87,6 +87,12 @@ pub enum CssParseError {
 /// Result type for CSS parsing operations
 pub type CssResult<T> = std::result::Result<T, CssParseError>;
 
+/// The logger the suites read messages back from. Shared, because the whole
+/// crate's unit tests run in one process and `log` takes one logger per process.
+#[cfg(test)]
+#[path = "tests/capturing_logger.rs"]
+mod capturing_logger;
+
 #[cfg(test)]
 mod lib_tests {
   use super::*;

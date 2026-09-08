@@ -361,11 +361,30 @@ fn parse(file_name: &FileName, source: &str) -> Program {
 /// lookup. Everything else matches the fixture suite's `dev` leg so a number
 /// here and a snapshot there describe the same transform.
 fn transform(path: &Path, program: Program, dev: bool) -> Program {
+  transform_with_dev_class_names(path, program, dev, dev)
+}
+
+/// The same transform with the debug names of the namespaces set apart from
+/// `dev`.
+///
+/// `enable_dev_class_names` follows `dev`, so a development build names every
+/// namespace of every call. That naming is the one part of the `dev` shape that
+/// can be turned off on its own, and the pair of legs below prices it. Both
+/// legs run in one process off one build, so the answer holds no cross-build
+/// term -- which matters, because cross-run noise on this platform is far
+/// wider than the cost being measured.
+fn transform_with_dev_class_names(
+  path: &Path,
+  program: Program,
+  dev: bool,
+  dev_class_names: bool,
+) -> Program {
   let comments = Rc::new(SingleThreadedComments::default());
 
   let pass = StyleXTransform::test(comments)
     .with_filename(FileName::Real(path.to_path_buf()))
     .with_dev(dev)
+    .with_enable_dev_class_names(dev_class_names)
     .with_treeshake_compensation(true)
     .with_unstable_module_resolution(ModuleResolution::haste(None))
     .with_enable_minified_keys(false)
@@ -429,6 +448,72 @@ fn count_resolved_annotations(program: &Program) -> usize {
   counter.resolved
 }
 
+/// Counts the debug names of the namespaces: a property whose key and whose
+/// string value are the same word, which is how such a name is emitted.
+#[derive(Default)]
+struct DevClassNameCounter {
+  named: usize,
+}
+
+impl Visit for DevClassNameCounter {
+  fn visit_key_value_prop(&mut self, prop: &KeyValueProp) {
+    let key = match &prop.key {
+      PropName::Ident(ident) => Some(ident.sym.as_ref()),
+      PropName::Str(value) => value.value.as_str(),
+      _ => None,
+    };
+
+    if let Some(key) = key
+      && let Expr::Lit(Lit::Str(value)) = prop.value.as_ref()
+      && value.value.as_str() == Some(key)
+    {
+      self.named += 1;
+    }
+
+    prop.visit_children_with(self);
+  }
+}
+
+fn count_dev_class_names(program: &Program) -> usize {
+  let mut counter = DevClassNameCounter::default();
+  program.visit_with(&mut counter);
+  counter.named
+}
+
+/// Panics unless the two development legs differ by the debug names alone.
+///
+/// The pair exists to price the naming, and the cheaper leg has to be cheaper
+/// because it stopped naming and not because it stopped working. A leg that
+/// names nothing while the other names every namespace is the only shape that
+/// prices anything.
+fn assert_prices_the_debug_names(slice: &Slice) {
+  let named = count_dev_class_names(&transform_with_dev_class_names(
+    &slice.path,
+    slice.program.clone(),
+    /* dev */ true,
+    /* dev_class_names */ true,
+  ));
+  let unnamed = count_dev_class_names(&transform_with_dev_class_names(
+    &slice.path,
+    slice.program.clone(),
+    /* dev */ true,
+    /* dev_class_names */ false,
+  ));
+
+  assert!(
+    named >= slice.creates,
+    "a {}-create slice named {named} namespaces, fewer than one per create -- the pair below \
+     would price something other than the naming",
+    slice.creates
+  );
+  assert_eq!(
+    unnamed, 0,
+    "a {}-create slice named {unnamed} namespaces with the option off, so the two legs below \
+     do not differ by the naming alone",
+    slice.creates
+  );
+}
+
 /// Panics unless transforming `slice` with `dev` on annotated every namespace it
 /// compiled with a resolved `file:line`.
 ///
@@ -477,18 +562,32 @@ fn debug_path_benchmarks(c: &mut Criterion) {
 
     for slice in &slices {
       assert_annotates_every_namespace(slice);
+      assert_prices_the_debug_names(slice);
     }
 
     let mut group = c.benchmark_group("TransformDebugPath");
 
     for slice in &slices {
-      for (label, dev) in [("dev", true), ("prod", false)] {
+      // `dev` and `dev-no-names` differ by the debug names alone, so the two
+      // together say what the naming costs a development build.
+      for (label, dev, dev_class_names) in [
+        ("dev", true, true),
+        ("dev-no-names", true, false),
+        ("prod", false, false),
+      ] {
         // Batched because `apply` consumes the program: the clone is setup, not
         // work under measurement.
         group.bench_function(format!("{label}/{}", slice.creates), |b| {
           b.iter_batched(
             || slice.program.clone(),
-            |program| black_box(transform(black_box(&slice.path), program, black_box(dev))),
+            |program| {
+              black_box(transform_with_dev_class_names(
+                black_box(&slice.path),
+                program,
+                black_box(dev),
+                black_box(dev_class_names),
+              ))
+            },
             BatchSize::SmallInput,
           )
         });
@@ -534,6 +633,7 @@ fn namespace_count_benchmarks(c: &mut Criterion) {
 
     for slice in &slices {
       assert_annotates_every_namespace(slice);
+      assert_prices_the_debug_names(slice);
     }
 
     let mut group = c.benchmark_group("TransformDebugNamespacesPerCall");

@@ -51,35 +51,35 @@ _inject2({
 });
 export const complex = {
     0: {
-        className: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4",
+        className: "FooBar__styles.root display-xrvj5dj FooBar__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:15"
     },
     4: {
-        className: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x",
+        className: "FooBar__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm FooBar__styles.noSidebar gridTemplateColumns-x1mkdm3x",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:25"
     },
     2: {
-        className: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 boxSizing-x9f619 gridArea-x1yc5d2u",
+        className: "FooBar__styles.root display-xrvj5dj FooBar__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 FooBar__styles.sidebar boxSizing-x9f619 gridArea-x1yc5d2u",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:15; js/FooBar.react.js:3"
     },
     6: {
-        className: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x boxSizing-x9f619 gridArea-x1yc5d2u",
+        className: "FooBar__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm FooBar__styles.noSidebar gridTemplateColumns-x1mkdm3x FooBar__styles.sidebar boxSizing-x9f619 gridArea-x1yc5d2u",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:25; js/FooBar.react.js:3"
     },
     1: {
-        className: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 gridArea-x1fdo2jl",
+        className: "FooBar__styles.root display-xrvj5dj FooBar__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 FooBar__styles.content gridArea-x1fdo2jl",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:15; js/FooBar.react.js:7"
     },
     5: {
-        className: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x gridArea-x1fdo2jl",
+        className: "FooBar__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm FooBar__styles.noSidebar gridTemplateColumns-x1mkdm3x FooBar__styles.content gridArea-x1fdo2jl",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:25; js/FooBar.react.js:7"
     },
     3: {
-        className: "display-xrvj5dj gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 boxSizing-x9f619 gridArea-x1fdo2jl",
+        className: "FooBar__styles.root display-xrvj5dj FooBar__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 FooBar__styles.sidebar boxSizing-x9f619 FooBar__styles.content gridArea-x1fdo2jl",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:15; js/FooBar.react.js:3; js/FooBar.react.js:7"
     },
     7: {
-        className: "display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm gridTemplateColumns-x1mkdm3x boxSizing-x9f619 gridArea-x1fdo2jl",
+        className: "FooBar__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm FooBar__styles.noSidebar gridTemplateColumns-x1mkdm3x FooBar__styles.sidebar boxSizing-x9f619 FooBar__styles.content gridArea-x1fdo2jl",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:25; js/FooBar.react.js:3; js/FooBar.react.js:7"
     }
 }[!!(sidebar == null && !isSidebar) << 2 | !!isSidebar << 1 | !!isContent << 0];

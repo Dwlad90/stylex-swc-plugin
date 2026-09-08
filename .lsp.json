@@ -1,0 +1,10 @@
+{
+  "rust": {
+    "command": "rust-analyzer",
+    "args": [],
+    "extensionToLanguage": {
+      ".rs": "rust"
+    },
+    "transport": "stdio"
+  }
+}

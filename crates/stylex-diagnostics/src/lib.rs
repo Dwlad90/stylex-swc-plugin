@@ -1,5 +1,3 @@
-#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
-
 //! How StyleX shows an author where a refusal happened.
 //!
 //! A code frame quotes the offending line back out of the file the author

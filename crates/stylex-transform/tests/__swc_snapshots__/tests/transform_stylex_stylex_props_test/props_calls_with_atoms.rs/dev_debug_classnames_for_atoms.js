@@ -7,5 +7,5 @@ _inject2({
     priority: 3000
 });
 ({
-    className: "Foo____inline__ display-x78zum5"
+    className: "Foo__sx display-x78zum5"
 });

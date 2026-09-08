@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/state-index",
   "description": "Lookup indices the StyleX state manager answers its position questions from",
-  "version": "0.19.0-rc.1",
+  "version": "0.19.0-rc.2",
   "private": true,
   "sideEffects": false,
   "files": [

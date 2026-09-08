@@ -8,7 +8,7 @@ edition = "2024"
 license = "MIT"
 repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
 rust-version = "1.97.0"
-version = "0.19.0-rc.1"
+version = "0.19.0-rc.2"
 
 
 # Set the options for dependencies (not crates in the workspace), this mostly impacts cold builds
@@ -74,7 +74,6 @@ ctor = "1.0.7"
 derive_more = { version = "2.1.1", features = ["display"] }
 env_logger = "0.11.10"
 fancy-regex = "0.19.0"
-glob = { version = "0.3.3" }
 # Root collation for the pseudo-key comparator. Six of its crates are new to
 # this workspace; the other 26 in its tree already arrive through SWC's
 # `idna_adapter`. `crates/stylex-css/src/utils/pre_rule.rs` costs the choice
@@ -94,9 +93,7 @@ glob = { version = "0.3.3" }
 icu_collator = { version = "2.3.1", features = ["unstable"] }
 indexmap = { version = "2.14.0", features = ["serde"] }
 insta = { version = "1.47.2" }
-lazy_static = "1.5.0"
 log = "0.4.32"
-md5 = { version = "0.8.0" }
 # The allocator for the one published target `swc_malloc` leaves on the system
 # one: `x86_64-unknown-linux-musl`. This entry is where the reason is written
 # down; `crates/stylex-rs-compiler/src/lib.rs` declares it and points here.
@@ -135,7 +132,6 @@ path-clean = { version = "1.0.1" }
 phf = { version = "0.14.0" }
 pretty_env_logger = "0.5.0"
 radix_fmt = { version = "1.0.0" }
-rust_decimal = { version = "1.42.0", features = ["serde"] }
 rustc-hash = "2.1.2"
 serde = "1.0.228"
 serde_json = "1.0.150"

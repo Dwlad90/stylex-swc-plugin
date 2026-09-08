@@ -27,12 +27,19 @@ import { repoRoot } from './lib/test-harness.mjs';
 
 const script = path.join(repoRoot, 'scripts/packages/test/coverage.sh');
 
-/** The crates that the script must never measure. */
+/**
+ * The crates that the script must never measure. A fourth copy of the list the
+ * `case` in the script holds -- see "Excluded from Coverage" in
+ * guidelines/STRUCTURE.md for what each row is and which ticket removes it.
+ *
+ * `scripts/git/coverage-exclusions.test.mjs` compares this list with the other
+ * four and names the one that disagrees, so a row edited here alone fails
+ * there rather than in the pre-push hook.
+ */
 const EXCLUDED = [
   'stylex-evaluator',
   'stylex-logs',
   'stylex-rs-compiler',
-  'stylex-state',
   'stylex-test-parser',
   'stylex-transform',
 ];
@@ -130,9 +137,14 @@ void test(
   'a crate whose name only contains an excluded name is measured',
   { skip: NEEDS_BASH },
   () => {
-    // The list matches a whole name. A crate called `stylex-state-index` is not
-    // `stylex-state`, and it is on the gate.
-    const { invocations } = runInCrate({ files: A_MEASURABLE_CRATE, name: 'stylex-state-index' });
+    // The list matches a whole name. A crate whose name only begins with an
+    // excluded one is a different crate, and it stays on the gate. The pair that
+    // made this matter was `stylex-state` and `stylex-state-index`, until ticket
+    // 11 took the first of them off the list.
+    const { invocations } = runInCrate({
+      files: A_MEASURABLE_CRATE,
+      name: 'stylex-transform-index',
+    });
 
     assert.equal(invocations.length, 1);
   }

@@ -48,6 +48,16 @@ can be matched against it by structure; syntax contexts are normalized on the
 query side instead.
 _Avoid_: seen module, cached source, parsed source
 
+**Source candidate**:
+One place the text of the **memoized module** may come from: the file on disk,
+the text the compiler was given, or the module printed back out from its AST.
+Tried in that order, and the first that parses is the one memoized. A file whose
+content is not the JavaScript the compiler was fed -- a single-file component,
+an `.mdx`, a name edited since the read -- therefore degrades to the next
+candidate rather than leaving the diagnostic with no frame. Where no candidate
+supplies a text, a module made of the refused expression alone is the answer.
+_Avoid_: source fallback, source chain, text source
+
 **Framed declaration**:
 The binding a refusal is _about_, recorded so its frame names the line that
 binding was declared on rather than the line it was read from — the line an

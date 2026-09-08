@@ -128,6 +128,30 @@ fn a_count_a_name_holds_is_worked_out() {
   );
 }
 
+/// A count a name holds as a *list* is read as the array it stands for, which
+/// the language turns into a number the same way it turns any other value into
+/// one: through the text the array joins to.
+///
+/// The evaluator carries an array as its own list rather than as a node, so this
+/// is the one reading the count takes through the array spelling. All three
+/// lengths are the language's own arithmetic: one element is that element, no
+/// element is the empty text and so zero, and two elements join to text that is
+/// no number at all, which counts as zero rather than as no count.
+#[test]
+fn a_count_a_name_holds_as_a_list_is_read_as_the_array_it_stands_for() {
+  assert_eq!(
+    folded_in_a_module_binding("count", "[3]", "'ab'.repeat(count)"),
+    "ababab"
+  );
+
+  for empty in ["[]", "[1, 2]"] {
+    assert_eq!(
+      folded_in_a_module_binding("count", empty, "'ab'.repeat(count)"),
+      ""
+    );
+  }
+}
+
 /// A receiver a name holds is measured like the string it was given the name
 /// of.
 #[test]

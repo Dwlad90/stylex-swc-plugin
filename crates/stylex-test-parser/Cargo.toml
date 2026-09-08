@@ -31,3 +31,9 @@ walkdir = { version = "2.5.0" }
 
 [lints]
 workspace = true
+
+# The package keeps the workspace's snake_case naming, but Cargo wants a
+# kebab-case binary. Naming the target explicitly satisfies both.
+[[bin]]
+name = "stylex-test-parser"
+path = "src/main.rs"

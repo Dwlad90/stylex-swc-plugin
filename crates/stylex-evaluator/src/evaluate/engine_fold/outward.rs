@@ -20,15 +20,16 @@ use swc_core::{
 };
 
 use crate::growable_stack::grown_per_level;
-use stylex_ast::ast::factories::{create_ident_key_value_prop, create_object_lit};
+use stylex_ast::ast::factories::{
+  create_array_expression, create_expr_or_spread, create_ident_key_value_prop, create_object_lit,
+};
 use stylex_constants::constants::evaluation_errors::{
   array_length_too_large, folded_string_too_large, object_size_too_large, unfoldable_fold_result,
 };
 use stylex_js::coercions;
 use stylex_utils::string::utf16_length;
 
-use super::super::helpers::js_undefined;
-use super::as_expr;
+use super::super::helpers::undefined_expr;
 use super::engine::read;
 use super::theme::{is_a_var_group, var_group_text};
 use super::{Ceilings, Decline, Depth, Totals};
@@ -76,6 +77,20 @@ impl<'a> Outward<'a> {
     engine: &mut Context,
     depth: Depth,
   ) -> Result<EvaluateResultValue, Decline> {
+    Ok(self.built(value, engine, depth)?.into_value())
+  }
+
+  /// The same conversion, as the two shapes this side writes an expression for.
+  ///
+  /// The walk answers [`Built`] rather than the evaluator's value because an
+  /// array is spelled one way at the top of an answer and another under an
+  /// object key, and both spellings are read off this one tree.
+  fn built(
+    &mut self,
+    value: &JsValue,
+    engine: &mut Context,
+    depth: Depth,
+  ) -> Result<Built, Decline> {
     // The one value with no literal at all, so it crosses back as the name the
     // language spells it with. An array hole is the same value and arrives here
     // the same way, as does a member read that found nothing and a callback that
@@ -83,7 +98,7 @@ impl<'a> Outward<'a> {
     // style-value check to be the one an author hears from, on both compilers --
     // a refusal here would refuse the whole array rather than the holes in it.
     if value.is_undefined() {
-      return Ok(js_undefined());
+      return Ok(Built::Value(undefined_expr()));
     }
 
     // Read through the accessors rather than matching variants: the engine's
@@ -94,7 +109,7 @@ impl<'a> Outward<'a> {
       // infinities have no numeric literal, so the emitter would write `0 / 0` and
       // a numeral no author wrote. A class name is a hash of the declaration text,
       // so the spelling is the value.
-      return Ok(EvaluateResultValue::Expr(coercions::js_number_expr(number)));
+      return Ok(Built::Value(coercions::js_number_expr(number)));
     }
 
     let literal = if let Some(truth) = value.as_boolean() {
@@ -120,17 +135,17 @@ impl<'a> Outward<'a> {
       return self.object_value(value, engine, depth);
     };
 
-    Ok(EvaluateResultValue::Expr(Expr::Lit(literal)))
+    Ok(Built::Value(Expr::Lit(literal)))
   }
 
-  /// The half of [`value`](Outward::value) that needs the engine to read the
+  /// The half of [`built`](Outward::built) that needs the engine to read the
   /// value back: arrays and plain objects, and the refusal for everything else.
   fn object_value(
     &mut self,
     value: &JsValue,
     engine: &mut Context,
     depth: Depth,
-  ) -> Result<EvaluateResultValue, Decline> {
+  ) -> Result<Built, Decline> {
     // Room for the next level asked for at this one, as every walk this module
     // owns does — the engine builds by looping, so what comes back can be
     // nested deeper than anything the guard admitted. See `growable_stack`.
@@ -155,7 +170,7 @@ impl<'a> Outward<'a> {
     value: &JsValue,
     engine: &mut Context,
     depth: Depth,
-  ) -> Result<EvaluateResultValue, Decline> {
+  ) -> Result<Built, Decline> {
     // A value nested deeper than the guard admits on the way in can still be
     // built on the way out, by a loop the engine ran rather than by syntax the
     // author wrote. Bounded for the reason the input is bounded, and against the
@@ -176,7 +191,7 @@ impl<'a> Outward<'a> {
     object: &JsObject,
     engine: &mut Context,
     inner: Depth,
-  ) -> Result<EvaluateResultValue, Decline> {
+  ) -> Result<Built, Decline> {
     let length = self.length_of(object, engine)?;
     let mut items = Vec::with_capacity(length as usize);
 
@@ -184,17 +199,22 @@ impl<'a> Outward<'a> {
       items.push(self.entry(object, index.into(), engine, inner)?);
     }
 
-    Ok(EvaluateResultValue::Vec(items))
+    Ok(Built::List(items))
   }
 
   /// Every own property of a plain object answer, as the object literal it
   /// spells.
+  ///
+  /// The own-key list is read through the engine and so can throw, while the
+  /// ordinary objects this is asked of always answer it. The refusal stays
+  /// because the read is the language's, and a case hands in the one kind of
+  /// object that refuses the question.
   fn plain_object_value(
     &mut self,
     object: &JsObject,
     engine: &mut Context,
     inner: Depth,
-  ) -> Result<EvaluateResultValue, Decline> {
+  ) -> Result<Built, Decline> {
     let keys = read(self.method, || object.own_property_keys(engine))?;
 
     self
@@ -217,7 +237,8 @@ impl<'a> Outward<'a> {
         // needs a symbol, and the only spellings that produce one are a `Symbol`
         // the guard does not admit as a global and a computed key it refuses
         // outright — in a callback body as much as at the top of an expression,
-        // since a free name there resolves through the same walk.
+        // since a free name there resolves through the same walk. A case reaches
+        // it by handing the walk such an object rather than by folding one.
         PropertyKey::Symbol(_) => {
           return Err(Decline::rule(unfoldable_fold_result(
             "object with a symbol key",
@@ -233,7 +254,7 @@ impl<'a> Outward<'a> {
         .count_characters(utf16_length(&name) as u64)
         .map_err(|ceiling| Decline::rule(folded_string_too_large(ceiling)))?;
 
-      let expr = as_property_value(self.entry(object, key, engine, inner)?)?;
+      let expr = self.entry(object, key, engine, inner)?.into_expr();
 
       props.push(create_ident_key_value_prop(&name, expr));
     }
@@ -243,7 +264,7 @@ impl<'a> Outward<'a> {
     // answers its own keys in that order already, so this re-states it rather
     // than changing it — which is exactly why it is here: the day the two stop
     // agreeing is the day a declaration silently changes which rule wins.
-    Ok(EvaluateResultValue::Expr(Expr::Object(create_object_lit(
+    Ok(Built::Value(Expr::Object(create_object_lit(
       order_own_keys(props),
     ))))
   }
@@ -260,10 +281,10 @@ impl<'a> Outward<'a> {
     key: PropertyKey,
     engine: &mut Context,
     inner: Depth,
-  ) -> Result<EvaluateResultValue, Decline> {
+  ) -> Result<Built, Decline> {
     let element = read(self.method, || object.get(key, engine))?;
 
-    self.value(&element, engine, inner)
+    self.built(&element, engine, inner)
   }
 
   /// An object of a kind this side writes no expression for, and the one such
@@ -290,13 +311,13 @@ impl<'a> Outward<'a> {
     value: &JsValue,
     object: Option<&JsObject>,
     engine: &mut Context,
-  ) -> Result<EvaluateResultValue, Decline> {
+  ) -> Result<Built, Decline> {
     if let Some(object) = object
       && is_a_var_group(value, self.method, engine)?
     {
       let hash = var_group_text(object, self.method, engine)?;
 
-      return Ok(EvaluateResultValue::Expr(Expr::Lit(Lit::Str(
+      return Ok(Built::Value(Expr::Lit(Lit::Str(
         hash.to_std_string_lossy().into(),
       ))));
     }
@@ -312,12 +333,13 @@ impl<'a> Outward<'a> {
   /// — is not the bound and must not claim to be; it is a value the bridge cannot
   /// read, and is refused as one.
   ///
-  /// Only the first is reachable: this is asked of an array exotic object alone,
-  /// whose `length` is a data property the language keeps inside `u32`. Proved
-  /// by making the second panic and running the whole workspace suite. It stays
-  /// all the same, because there is no total reading of the property to put in
-  /// its place — and a panic would end a build that a refusal only leaves to the
-  /// runtime, which is what every refusal in this module is answered for.
+  /// Only the first is reachable from an answer: this is asked of an array
+  /// exotic object alone, whose `length` is a data property the language keeps
+  /// inside `u32`, and which answers rather than throwing. Both refusals stay
+  /// because there is no total reading of the property to put in their place,
+  /// and a panic would end a build that a refusal only leaves to the runtime.
+  /// Each is asked of an object the case hands in, which is what says the
+  /// reading is total over the object it is given.
   ///
   /// Counted before the elements are read, so an array past the bound refuses
   /// without first converting a single element of it.
@@ -342,23 +364,65 @@ impl<'a> Outward<'a> {
   }
 }
 
-/// One folded value as the expression an object property carries.
+/// What the walk out builds, which is only ever one of two shapes.
 ///
-/// An array is the one case that has to be rebuilt rather than moved: a `Vec`
-/// is the shape the evaluator wants at the top of a value, and an object
-/// literal wants a nested array literal in the same position. Rebuilt by the
-/// evaluator's own conversion rather than by a second copy of it here, so a
-/// folded property and an evaluated one cannot come to disagree about what an
-/// array element may be.
-fn as_property_value(value: EvaluateResultValue) -> Result<Expr, Decline> {
-  match value {
-    // Moved rather than copied: the conversion above owns the expression it has
-    // just built, and this runs once per property of every folded object.
-    EvaluateResultValue::Expr(expr) => Ok(expr),
-    // Every other arm of `Outward::value` answers the one shape left that
-    // `as_expr` reads, so nothing else is reachable by construction — and a
-    // refusal is answered rather than a panic if that ever stops holding.
-    other => as_expr(&other)
-      .ok_or_else(|| Decline::rule(unfoldable_fold_result("value of an unreadable kind"))),
+/// A type of the walk's own rather than the evaluator's value, because an array
+/// is spelled two ways and which one is right is a question about the position
+/// rather than about the array: the evaluator's own list at the top of an answer
+/// and inside another list, and the array literal under an object key. Both
+/// readings below are total, where a reading of the evaluator's value — which
+/// holds shapes no fold can answer — needs a refusal for values that never
+/// arrive.
+///
+/// What that totality costs is one more list per array level: a list is built
+/// here and read into the shape its position asks for. What it saves is the
+/// copy the object position used to make, where the shared reader cloned every
+/// element of a folded array into the literal. An answer of arrays pays the
+/// list; an answer of objects holding arrays is copied no more.
+enum Built {
+  /// A value the expression form spells on its own.
+  ///
+  /// One of four kinds, and the walk above writes no other: the name
+  /// `undefined`, a literal, an object literal, and — through
+  /// [`into_expr`](Built::into_expr) — an array literal. That is the same set
+  /// the evaluator's own reader admits as an array element, which is what keeps
+  /// a folded array and an evaluated one carrying the same values.
+  Value(Expr),
+  /// An array, as what it holds.
+  List(Vec<Built>),
+}
+
+impl Built {
+  /// The value the evaluator carries.
+  ///
+  /// Room asked for at each level, as every walk across this bridge asks: the
+  /// tree is as deep as the answer the engine built, and it is read here on the
+  /// stack the fold was called on rather than on the grown one the walk ran on.
+  fn into_value(self) -> EvaluateResultValue {
+    match self {
+      Self::Value(expr) => EvaluateResultValue::Expr(expr),
+      Self::List(items) => grown_per_level(|| {
+        EvaluateResultValue::Vec(items.into_iter().map(Self::into_value).collect())
+      }),
+    }
+  }
+
+  /// The expression an object property carries, where an array is the literal
+  /// it is written as.
+  ///
+  /// Moved rather than copied at every level: the walk owns what it has just
+  /// built, and this runs once per property of every folded object.
+  fn into_expr(self) -> Expr {
+    match self {
+      Self::Value(expr) => expr,
+      Self::List(items) => grown_per_level(|| {
+        create_array_expression(
+          items
+            .into_iter()
+            .map(|item| Some(create_expr_or_spread(item.into_expr())))
+            .collect(),
+        )
+      }),
+    }
   }
 }

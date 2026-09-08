@@ -83,7 +83,6 @@ use stylex_constants::constants::evaluation_errors::{
   expression_too_deep, nesting_too_deep_to_carry, uncallable_printed_fold,
 };
 
-use super::evaluate_result_vec_to_array_expr;
 use crate::state::EvaluationState;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
@@ -252,23 +251,6 @@ pub(super) fn escaping_property_named(prop: &MemberProp) -> Option<&str> {
 /// Borrowed where the rule has one fixed sentence and owned where it names the
 /// method or the limit it refused on, so the common path allocates nothing.
 pub(crate) type Refusal = Cow<'static, str>;
-
-/// One evaluated value as the expression it spells, where it spells one.
-///
-/// An array is the one case that has to be rebuilt rather than cloned, by the
-/// evaluator's own conversion rather than by a second copy of it here. Shared
-/// between the two positions that ask — a folded property on the way out, and a
-/// resolved amplification count on the way in — so the two cannot come to
-/// disagree about which values have an expression form. It sits here for the
-/// reason [`lists`] does: neither direction owns it, and the one that held it
-/// would be imported by the other.
-fn as_expr(value: &EvaluateResultValue) -> Option<Expr> {
-  match value {
-    EvaluateResultValue::Expr(expr) => Some(expr.clone()),
-    EvaluateResultValue::Vec(items) => evaluate_result_vec_to_array_expr(items),
-    _ => None,
-  }
-}
 
 /// Why the guard did not hand a call to the engine — the outcome, where
 /// [`Refusal`] is the half of it an author reads.

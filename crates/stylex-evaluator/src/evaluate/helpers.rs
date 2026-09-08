@@ -17,7 +17,16 @@ use stylex_ast::ast::convertors::create_ident_expr;
 /// the same nullish bridge, and a site that answered differently would fold
 /// differently for no reason an author could see.
 pub(super) fn js_undefined() -> EvaluateResultValue {
-  EvaluateResultValue::Expr(create_ident_expr("undefined"))
+  EvaluateResultValue::Expr(undefined_expr())
+}
+
+/// The same `undefined`, as the expression alone.
+///
+/// The engine fold builds a tree of expressions and wraps it in a value once,
+/// at the top, so it reads the spelling rather than the value — through this
+/// rather than by writing the name a second time.
+pub(super) fn undefined_expr() -> Expr {
+  create_ident_expr("undefined")
 }
 
 /// Normalizes different argument types into an ObjectLit for JavaScript object

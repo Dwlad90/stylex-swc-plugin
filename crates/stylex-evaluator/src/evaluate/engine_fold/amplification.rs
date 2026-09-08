@@ -29,8 +29,9 @@ use stylex_constants::constants::evaluation_errors::{
 use stylex_js::coercions::to_js_number;
 use stylex_utils::number::to_js_string;
 
+use super::super::evaluate_result_as_expr;
 use super::guard::{Bounds, Callback, Reader, Walk, without_parens};
-use super::{Decline, Depth, as_expr, lists};
+use super::{Decline, Depth, lists};
 use stylex_state::evaluate_result_value::EvaluateResultValue;
 
 /// Methods whose result *string* length is set by an argument, and so are the
@@ -352,7 +353,7 @@ impl Walk<'_, '_> {
     }
 
     match self.reader.resolve(expr) {
-      Some(value) => count_of(to_js_number(&as_expr(&value)?)?),
+      Some(value) => count_of(to_js_number(&evaluate_result_as_expr(&value)?)?),
       None => self.numeric_bound(expr),
     }
   }
@@ -390,7 +391,7 @@ impl Walk<'_, '_> {
       },
       // A name the module holds, which is a leaf like a written number once the
       // evaluator has answered for it.
-      other => number_of(&as_expr(&self.reader.resolve(other)?)?),
+      other => number_of(&evaluate_result_as_expr(&self.reader.resolve(other)?)?),
     }
   }
 

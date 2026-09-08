@@ -106,9 +106,12 @@ impl Memoized for LeftOperand {
   }
 }
 
-/// One side of a binary expression, evaluated -- folding the left side of a `+`
-/// chain here rather than through the evaluator's own dispatch, so a
-/// concatenation keeps the count it was measured to.
+/// The left side of a `+`, evaluated -- folding a `+` chain here rather than
+/// through the evaluator's own dispatch, so a concatenation keeps the count it
+/// was measured to.
+///
+/// Only `+` reaches this. Every other operator calls [`evaluate_operand`]
+/// directly, because only `+` can arrive with a measured left side.
 ///
 /// The dispatch hands a folded `+` back as a plain string literal, which has
 /// nowhere to carry a length. Measured again one level up, and copied into a
@@ -128,13 +131,11 @@ impl Memoized for LeftOperand {
 /// binary expression.
 fn evaluate_left_operand(
   binary_expr: &BinExpr,
-  reason: &str,
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Result<LeftOperand, anyhow::Error> {
-  if matches!(binary_expr.op, BinaryOp::Add)
-    && let Expr::Bin(inner) = normalize_expr(&binary_expr.left)
+  if let Expr::Bin(inner) = normalize_expr(&binary_expr.left)
     && matches!(inner.op, BinaryOp::Add)
   {
     let folded = folded_once(
@@ -150,12 +151,19 @@ fn evaluate_left_operand(
       },
     );
 
-    // Reported on the same terms an operand resolving to nothing is reported on
-    // anywhere else, which is `evaluate_operand`'s below.
-    return folded.ok_or_else(|| anyhow!("{}", reason));
+    // The same sentence the plain reading below records, because both answers
+    // are the same thing: the left side of a `+` had no value.
+    return folded.ok_or_else(|| anyhow!("{}", LEFT_HAS_NO_VALUE));
   }
 
-  evaluate_operand(&binary_expr.left, reason, state, traversal_state, fns).map(LeftOperand::Value)
+  evaluate_operand(
+    &binary_expr.left,
+    LEFT_HAS_NO_VALUE,
+    state,
+    traversal_state,
+    fns,
+  )
+  .map(LeftOperand::Value)
 }
 
 /// A binary expression folded to its value rather than to an expression: the
@@ -215,8 +223,7 @@ pub(crate) fn binary_expr_to_num_or_str(
   // two shapes part here and the numeric path below holds a plain value.
   let left = match op {
     BinaryOp::Add => {
-      let left =
-        evaluate_left_operand(binary_expr, LEFT_HAS_NO_VALUE, state, traversal_state, fns)?;
+      let left = evaluate_left_operand(binary_expr, state, traversal_state, fns)?;
 
       let right = evaluate_operand(
         &binary_expr.right,

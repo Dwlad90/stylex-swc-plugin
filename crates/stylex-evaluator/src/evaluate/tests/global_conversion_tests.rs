@@ -220,15 +220,16 @@ fn the_conversions_answer_an_ordinary_value_on_this_path_too() {
   }
 }
 
-/// An argument the walk cannot read stops the conversion before it is applied,
-/// and the sentence is the argument's rather than the conversion's.
+/// A spread argument refuses before any conversion is reached, and the sentence
+/// is the spread's rather than the conversion's.
 ///
-/// A spread is the one shape the walk refuses outright: one written element
-/// stands for however many the spread holds, so the list the conversion would
-/// read is not the list the author wrote. Every conversion answers the same
-/// way, because none of them is what refused.
+/// One written element stands for however many the spread holds, so the list a
+/// conversion would read is not the list the author wrote. The guard walks the
+/// arguments of a call it owns before the conversion is applied, and a
+/// conversion name is a global it owns — so all four names refuse identically,
+/// at the same step, for a reason that is not the conversion's at all.
 #[test]
-fn a_spread_argument_stops_every_conversion() {
+fn a_spread_argument_refuses_before_any_conversion() {
   for source in [
     "String(...own)",
     "Number(...own)",
@@ -248,12 +249,13 @@ fn a_spread_argument_stops_every_conversion() {
 }
 
 /// An argument that refuses while it is being evaluated leaves the list shorter
-/// than the author wrote, and the conversion refuses rather than converting a
-/// list that no longer lines up.
+/// than the author wrote, and the conversion reaches its own refusal for the
+/// shifted list rather than converting one that no longer lines up.
 ///
-/// The sentence stays the argument's: the first refusal is the one an author
-/// can act on, and naming `String` over it would report the brackets for a
-/// mistake inside them.
+/// The sentence stays the argument's: the argument refused first, so the
+/// conversion's own refusal is a no-op over it. That is the order worth
+/// pinning — naming `String` here would report the brackets for a mistake
+/// inside them.
 #[test]
 fn an_argument_that_refuses_stops_the_conversion() {
   let source = "String(own())";
@@ -261,9 +263,9 @@ fn an_argument_that_refuses_stops_the_conversion() {
 
   assert_refused(&result, source);
 
-  assert_ne!(
+  assert_eq!(
     result.reason.as_deref(),
-    Some(uncoercible_value("String").as_str()),
-    "the refusal must be the argument's rather than the conversion's"
+    Some("StyleX expression function requires an expression argument."),
+    "the sentence must be the argument's own"
   );
 }

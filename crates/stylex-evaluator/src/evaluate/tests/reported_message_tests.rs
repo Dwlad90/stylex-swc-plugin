@@ -1,10 +1,12 @@
 //! What the evaluator writes to the log when it declines to fold something.
 //!
-//! A `log` macro reads its arguments only when a logger asked for that level,
-//! so every message below is unexecuted code in an ordinary build and in every
-//! other suite here — the refusal is asserted, and the sentence the author is
-//! meant to read beside it is not. These cases install a logger, run the same
-//! shapes those suites run, and read the messages back.
+//! A `log` macro reads its arguments only while `log::max_level` admits their
+//! level, so every message below is unexecuted code in an ordinary build,
+//! where nothing installs a logger and the level stays `Off`. This test binary
+//! opens the level for the whole process, which is what makes the arguments
+//! run; every other suite here then runs them without reading them, asserting
+//! the refusal and not the sentence the author is meant to read beside it.
+//! These cases run the same shapes and read the messages back.
 //!
 //! Each case names the words it expects rather than only counting the
 //! messages. A message that said nothing about the expression would satisfy a

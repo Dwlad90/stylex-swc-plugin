@@ -83,21 +83,30 @@ impl Conversion {
     traversal_state: &mut StateManager,
     fns: &FunctionMap,
   ) -> Option<EvaluateResultValue> {
-    // The walk answers nothing only for a spread, which the guard refuses
-    // before a conversion is reached — and a spread would leave the list
-    // shorter than the author wrote either way, which is the question below.
-    // So the two answers are read as one: an empty list against a call that
-    // wrote arguments is a shifted list, and refuses as one.
+    // The walk answers nothing only for a spread, and the guard refuses a
+    // spread before a conversion is reached — `String` is a global the fold
+    // owns, so the argument walk inside the guard sees the spread first. The
+    // refusal is therefore read through the line below rather than propagated
+    // with `?`: an empty list against a call that wrote arguments is a shifted
+    // list, and a shifted list already refuses. Two answers, read as one.
+    //
+    // Written this way for the coverage gate as much as for the reading. A `?`
+    // here leaves a region no case in the repository can enter, and the empty
+    // list it substitutes cannot fold anything the author did not write,
+    // because the length check owns that.
     let args = evaluate_func_call_args(call, state, traversal_state, fns).unwrap_or_default();
 
-    // An argument that evaluated to nothing while staying confident was dropped
-    // rather than deopted, so the remaining arguments no longer line up with
-    // what was written. Refuse rather than convert a shifted argument list.
+    // An argument that evaluated to nothing was dropped rather than deopted, so
+    // the remaining arguments no longer line up with what was written. Refuse
+    // rather than convert a shifted argument list.
     //
-    // Unreachable from any module an author can write, and kept for the day the
-    // invariant behind that changes: `evaluate_func_call_args` drops an argument
-    // only where `evaluate_cached` answers nothing, which it does only after
-    // deopting -- and the confidence check above has already returned by then.
+    // Reached by any module whose argument refuses — `String(own())` is one —
+    // and in every reading the argument's own refusal already stands, so this
+    // `deopt` is a no-op and the author reads the sentence for the mistake
+    // inside the brackets. No case in this repository's suites drops an
+    // argument while the evaluation stays confident. The refusal is kept for
+    // the day one does: a list shorter than the author wrote must never reach a
+    // conversion, whatever left it short.
     if args.len() != call.args.len() {
       return deopt(path, state, &uncoercible_value(self.name()));
     }

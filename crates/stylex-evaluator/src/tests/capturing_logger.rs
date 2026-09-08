@@ -1,20 +1,24 @@
-//! A logger the tests can read back, so a reporting path is covered by an
-//! assertion rather than by a coverage exclusion.
+//! A logger the tests can read back, so a reporting path is run and asserted
+//! rather than left out of the coverage measurement.
 //!
 //! A `log` macro builds its message only when `log::max_level` admits it, so
-//! every argument of every message is unexecuted code until a logger is in
-//! place. Reading the message back then makes the message itself the subject of
-//! a case.
+//! every argument of every message is unexecuted code until a logger opens the
+//! level. Installing this one opens it for the whole binary, which is what runs
+//! those arguments; reading a message back is what makes the words in it the
+//! subject of a case.
 //!
-//! The same helper as `stylex_state`'s, with one addition: this test binary
-//! already printed its messages for whoever set `RUST_LOG`, and `log` takes one
-//! logger for the whole process — so this one wraps that one rather than
-//! replacing it. Printing stays that logger's decision and is unchanged.
+//! `stylex_state`'s helper wraps nothing, because nothing else in that binary
+//! logs. This one wraps: this test binary already installed a printing logger
+//! of its own from a `ctor`, and `log` takes one logger for the whole process.
+//! What prints stays the wrapped logger's decision, taken against the level it
+//! was built with, and is unchanged.
 //!
-//! Both the level and the messages are per thread, because the harness runs
-//! tests in parallel and one global level would let one case decide what
-//! another one sees. `log::max_level` stays wide open; the per-thread level is
-//! what [`Log::enabled`] answers from.
+//! Both the level and the messages are per thread, because one global level
+//! would let one case decide what another one sees. `log::max_level` stays wide
+//! open, and the per-thread level is what [`Log::log`] keeps a message by —
+//! [`Log::enabled`] is not on that path at all, because a `log` macro asks
+//! `max_level` and then calls `log` directly. `enabled` answers for
+//! `log_enabled!`, which is the one caller that does ask it.
 
 use std::cell::RefCell;
 
@@ -57,8 +61,17 @@ impl Log for CapturingLogger {
 /// Installs the logger, wrapping the one this binary prints with.
 ///
 /// Called once before any case runs. `max_level` is opened all the way because
-/// it is what decides whether a message is built at all, and the two `enabled`
-/// answers above are what decide where a built one goes.
+/// it is what decides whether a message is built at all. Where a built one goes
+/// is decided in [`Log::log`] above: `kept` says whether this thread keeps a
+/// copy, and the wrapped logger's own filter says whether it prints.
+///
+/// Opened for the whole binary rather than around each case, because this runs
+/// from a `ctor` and there is no per-case moment to close it in. `nextest`
+/// gives each case a process of its own, so a narrower level would be safe
+/// there — but `cargo test` runs the cases of one binary as parallel threads,
+/// and `max_level` is process-wide, so opening and closing it around one case
+/// would decide what another one sees. The four other crates that read their
+/// messages back hold the same shape.
 pub(crate) fn install(prints: impl Log + 'static) {
   if log::set_boxed_logger(Box::new(CapturingLogger(Box::new(prints)))).is_ok() {
     log::set_max_level(LevelFilter::Trace);

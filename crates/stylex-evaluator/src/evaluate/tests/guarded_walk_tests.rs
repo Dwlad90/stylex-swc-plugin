@@ -349,3 +349,47 @@ fn a_conditional_over_a_value_with_no_truthiness_is_not_claimed() {
 
   assert_refused(&evaluated_after(UNRESOLVED_MEMO_WARM, source), source);
 }
+
+/// A marker read that throws refuses, rather than folding the answer as though
+/// it were an ordinary object.
+///
+/// The marker sits on the *prototype* of the answer, so the own-key walk that
+/// writes the object back out never reads it and never meets the throw a second
+/// time. Read as "not a group", the answer folded to an empty object and the
+/// declaration was dropped with nothing said.
+///
+/// A module reaches this. A callback body is not analysed — the engine parses
+/// it — so the body can build the shape even though the walk would refuse it
+/// written out. The getter throws without a `throw` statement, which a body may
+/// not use: a member read on `null` is the shortest spelling of one.
+///
+/// The tail matters. It has to leave the object itself as the answer, because
+/// that is where the marker is read; a tail that answers the array holding it
+/// reads the marker off the array instead.
+#[test]
+fn a_marker_read_that_throws_refuses_rather_than_folding_an_empty_object() {
+  let fns = a_module_importing_a_group();
+  let built = format!(
+    "[{GROUP}.primary].map(() => Object.create(Object.create(null, {{ __IS_PROXY: {{ get: () => null.x }} }})))"
+  );
+
+  for tail in ["at(0)", "find(() => true)", "pop()"] {
+    let source = format!("{built}.{tail}");
+    let result = evaluated_against(&fns, &source);
+
+    assert!(
+      !result.confident,
+      "`{}` must refuse rather than fold: {:?}",
+      source, result.value
+    );
+
+    let reason = result.reason.unwrap_or_default();
+
+    assert!(
+      reason.contains("TypeError"),
+      "`{}` must refuse in the engine's own words, got {:?}",
+      source,
+      reason
+    );
+  }
+}

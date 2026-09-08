@@ -684,11 +684,18 @@ fn number_of(expr: &Expr) -> Option<u64> {
 /// number at all is not the same answer: it bounds the call at nothing rather
 /// than at zero, and the call is refused instead of folded.
 ///
-/// A literal always has one, because every literal has a text and a text always
-/// reads as a number or as `NaN` — a regular expression reads as its own source
-/// and a big integer through its digits. What has none is a value with no string
-/// form at all, which only [`count_resolved`] can be handed, so the refusal is
-/// reached by the case that asks this directly.
+/// The two lines below refuse for different reasons, and both are reached.
+///
+/// The `?` refuses a value with no string form at all. A literal always has
+/// one — every literal has a text, and a text reads as a number or as `NaN`; a
+/// regular expression reads as its own source and a big integer through its
+/// digits — so the `?` cannot fire for the literal [`Walk::count_bound`] hands
+/// it, and every refusal it answers arrives through [`count_resolved`].
+///
+/// [`count_of`] refuses a count that is not finite, and a literal does reach
+/// that: `'x'.repeat(1e999)` and `'x'.repeat('Infinity')` both read as
+/// infinity. A count nothing bounds is refused rather than folded, which is the
+/// rule this whole module is.
 fn count_written(expr: &Expr) -> Option<u64> {
   count_of(to_js_number(expr)?)
 }

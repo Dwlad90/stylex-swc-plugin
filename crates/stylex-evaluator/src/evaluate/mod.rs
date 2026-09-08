@@ -479,10 +479,8 @@ fn _evaluate(
       nodes::optional_chain::evaluate(opt_chain, state, traversal_state, fns)
     },
     _ => {
-      // The kind is read once. The log and the sentence the author reads use
-      // the same reading. `warn!` reads its argument only when a logger asked
-      // for that level, so the second call ran on a refusal logged at `warn`
-      // and nowhere else.
+      // The kind is read once, and both the log below and the sentence the
+      // author reads use that one reading.
       let kind = get_expr_node_kind(normalized_path);
 
       warn!(
@@ -668,8 +666,9 @@ mod folded_answer_tests;
 mod evaluated_array_form_tests;
 
 // What the evaluator writes to the log when it declines to fold something. A
-// `log` macro skips its arguments until a logger asks for that level, so these
-// messages are covered by an assertion here rather than by an exclusion.
+// `log` macro skips its arguments while `log::max_level` is below their level,
+// so the open level this test binary installs is what runs them, and these
+// cases assert the words they build.
 #[cfg(test)]
 #[path = "tests/reported_message_tests.rs"]
 mod reported_message_tests;

@@ -418,6 +418,14 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
 
       // Read through the answer rather than out of it, so the engine's own
       // refusal is the fold's refusal without a second place that carries it.
+      //
+      // Written this way for the coverage gate. `Engine::new` builds from the
+      // prelude and the trap source this compiler ships, so it cannot fail from
+      // anything a module reaches it with, and a `?` here leaves a region no
+      // case can enter. A step that *can* fail is asked of
+      // [`Engine::started_on`] instead, which takes both sources so a case can
+      // hand in one that fails. Nothing is swallowed: the failure still leaves
+      // through this closure's `Result`.
       taken.and_then(|mut engine| {
         // Cloned rather than borrowed: it is a handle the engine's own collector
         // owns, and the build below needs the engine's context borrowed at the
@@ -453,14 +461,17 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
             // Asked only where a group crossed, so an ordinary answer pays nothing
             // for a question that could not be true of it.
             //
-            // A read that throws is read as "not a group" rather than carried:
-            // every group the engine holds answers the mark from a trap that
-            // cannot throw, and the walk out below reads the same value a moment
-            // later and carries the throw in the engine's own words. Carrying it
-            // here would be the same sentence from a step that was only asking
-            // what the value is.
+            // The read carries its refusal rather than reading a throw as "not
+            // a group". Reading it as "not a group" was wrong: the walk out
+            // below reads *own* keys, so a marker on the answer's prototype is
+            // never read again and the throw is never met a second time. The
+            // answer would fold to an empty object and the declaration would be
+            // dropped with nothing said. A module reaches that — a callback body
+            // is not analysed, so it can hand back
+            // `Object.create(Object.create(null, { __IS_PROXY: { get: () => null.x } }))`
+            // — which is the case `guarded_walk_tests` pins.
             if walk.carried_a_theme_reference()
-              && is_a_var_group(&value, method, &mut engine.context).unwrap_or(false)
+              && is_a_var_group(&value, method, &mut engine.context)?
             {
               return Err(Decline::NotACandidate);
             }

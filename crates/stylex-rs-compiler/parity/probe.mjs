@@ -1,5 +1,18 @@
-// Ad-hoc probe: one source through both compilers, printing CSS and refusal.
-// Lives beside the parity harness so it resolves the same two compilers.
+// One source through both compilers, printed side by side.
+//
+// The value harness compares a corpus and reports a verdict; this answers the
+// question a corpus cannot, which is "what does each compiler do with *this*".
+// It lives beside the harness so it resolves the same two compilers from the
+// same lockfile, and it is what a divergence is measured with before a row is
+// added to the corpus or a ticket is written.
+//
+// Usage, from `crates/stylex-rs-compiler`:
+//
+//   node parity/probe.mjs '{"a label": "<module source>"}'
+//
+// The argument is a JSON object of label to module source. `dist/` has to be
+// built first.
+
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -13,22 +26,24 @@ const { transform } = await import(pathToFileURL(path.join(packageDir, 'dist/ind
 
 const filename = path.join(packageDir, 'probe.js');
 
-function runRust(source) {
+/** The first three lines of whatever a compiler threw, on one line. */
+const refusalOf = error =>
+  String(error instanceof Error ? error.message : error)
+    .split('\n')
+    .slice(0, 3)
+    .join(' | ');
+
+const runRust = source => {
   try {
     const out = transform(filename, source, options);
-    return { ok: true, css: out.metadata.stylex, code: out.code };
-  } catch (error) {
-    return {
-      ok: false,
-      message: String(error.message ?? error)
-        .split('\n')
-        .slice(0, 3)
-        .join(' | '),
-    };
-  }
-}
 
-function runBabel(source) {
+    return { css: JSON.stringify(out.metadata.stylex), code: String(out.code) };
+  } catch (error) {
+    return { refusal: refusalOf(error) };
+  }
+};
+
+const runBabel = source => {
   try {
     const out = babel.transformSync(source, {
       filename,
@@ -36,34 +51,32 @@ function runBabel(source) {
       configFile: false,
       plugins: [[plugin, options]],
     });
-    return { ok: true, css: out.metadata.stylex, code: out.code };
-  } catch (error) {
-    return {
-      ok: false,
-      message: String(error.message ?? error)
-        .split('\n')
-        .slice(0, 3)
-        .join(' | '),
-    };
-  }
-}
 
-const sources = JSON.parse(process.argv[2]);
+    return { css: JSON.stringify(out?.metadata?.stylex), code: String(out?.code) };
+  } catch (error) {
+    return { refusal: refusalOf(error) };
+  }
+};
+
+const sources = JSON.parse(process.argv[2] ?? '{}');
 
 for (const [label, source] of Object.entries(sources)) {
   console.log('='.repeat(70));
   console.log(label);
-  console.log('-- source:', source.replace(/\n/g, ' ⏎ '));
-  for (const [name, run] of [
-    ['rust ', runRust],
-    ['babel', runBabel],
-  ]) {
-    const result = run(source);
-    if (!result.ok) {
-      console.log(`  ${name} REFUSED: ${result.message}`);
-    } else {
-      console.log(`  ${name} css: ${JSON.stringify(result.css)}`);
-      console.log(`  ${name} out: ${result.code.replace(/\s+/g, ' ').slice(0, 300)}`);
-    }
+  console.log('-- source:', String(source).replace(/\n/g, ' ⏎ '));
+
+  report('rust ', runRust(String(source)));
+  report('babel', runBabel(String(source)));
+}
+
+/** One compiler's answer, as two lines or as the sentence it refused with. */
+function report(name, result) {
+  if (result.refusal !== undefined) {
+    console.log(`  ${name} REFUSED: ${result.refusal}`);
+
+    return;
   }
+
+  console.log(`  ${name} css: ${result.css ?? ''}`);
+  console.log(`  ${name} out: ${(result.code ?? '').replace(/\s+/g, ' ').slice(0, 300)}`);
 }

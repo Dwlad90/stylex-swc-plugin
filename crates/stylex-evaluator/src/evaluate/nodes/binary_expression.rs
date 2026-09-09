@@ -388,11 +388,11 @@ pub(crate) fn binary_expr_to_num_or_str(
     },
     // Unreachable, on two grounds. The three logical operators are dispatched to
     // their own node before this path can run, and there they return an operand
-    // rather than a number. The four equality operators are answered by
-    // `compare_operands` above for every side that is a primitive -- and a side
-    // that is not one has no number either, so it refuses at the coercion
-    // above and never arrives here. Both are refused on the same terms as any
-    // other operator this path has no answer for, rather than coerced to one.
+    // rather than a number. The four equality operators are answered by the
+    // comparison above for every side that is a primitive -- and a side that is
+    // not one has no number either, so it refuses at the coercion above and
+    // never arrives here. Both are refused on the same terms as any other
+    // operator this path has no answer for, rather than coerced to one.
     BinaryOp::LogicalOr
     | BinaryOp::LogicalAnd
     | BinaryOp::NullishCoalescing

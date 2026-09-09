@@ -272,14 +272,16 @@ pub(super) fn normalize_object_method_receiver(
 /// read instead.
 ///
 /// The indices are the string's UTF-16 code units, which is what the language
-/// counts: `Object.keys('\u{1F600}')` is `['0', '1']` for one character.
-/// Counted in Rust characters instead, an astral character answered one key and
-/// shifted every index after it.
+/// counts. For every string this answers, that is the same list the Rust
+/// characters gave, because the two readings part company only on a character
+/// outside the Basic Multilingual Plane -- and such a character is two code
+/// units, each of them a lone surrogate that no Rust string holds.
 ///
-/// A code unit that is half an astral character is a lone surrogate, which no
-/// Rust string holds, so the whole receiver is refused rather than answered
-/// with a key list that is short or a character that was never written. That is
-/// the reading a spread of the same string already takes.
+/// So the unit is what makes the refusal below possible rather than what
+/// changes an answer: read as characters, `Object.keys('\u{1F600}')` answered
+/// one key where the language answers two, and every index after it came out
+/// shifted. Read as code units, the receiver is refused whole. That is the
+/// reading a spread of the same string already takes.
 fn string_receiver(value: Option<&EvaluateResultValue>) -> Option<ObjectMethodReceiver> {
   let EvaluateResultValue::Expr(Expr::Lit(Lit::Str(strng))) = value? else {
     return None;
@@ -566,18 +568,16 @@ pub(super) fn evaluate_result_to_js_object(
   match value {
     EvaluateResultValue::Expr(expr) => coercions::to_object(expr),
 
-    // Unreachable, and refused rather than answered for that reason.
+    // A bare `Null` arrives here, and refusing is the answer rather than a
+    // placeholder for one. An index read hands the variant back standalone --
+    // `[<nothing>][0]`, where the element folded to nothing while the walk
+    // stayed confident -- and `typeof` of that read is what reaches this.
     //
-    // `Null` stands for a confidently evaluated value that is absent, which is
-    // `undefined` -- whose `ToObject` is a fresh empty object. But no caller
-    // can hand one over: every `Null` the evaluator builds is placed inside a
-    // `Vec`, and an argument list is collected from `evaluate_cached`, which
-    // answers `None` rather than `Some(Null)` for a value that is absent. A
-    // bare `Null` therefore only becomes reachable if that changes, and on the
-    // day it does the meaning may be "absent" or may be "unknown" -- so this
-    // refuses, which deopts under either, where answering an object would tell
-    // `typeof` a value is an object under the second. The nested case, which
-    // *is* reachable, is decided in `write_string_of` below.
+    // The variant has two readings and the evaluator does not know which it
+    // holds. Read as "absent" it is `undefined`, whose `ToObject` is a fresh
+    // empty object; read as "nothing resolved this" it has no kind at all. A
+    // refusal deopts under either, where answering an object would tell
+    // `typeof` the value is one under the second.
     EvaluateResultValue::Null => None,
 
     EvaluateResultValue::Vec(_)
@@ -606,11 +606,12 @@ pub(super) fn evaluate_result_to_js_boolean(value: &EvaluateResultValue) -> Opti
   match value {
     EvaluateResultValue::Expr(expr) => coercions::to_js_boolean(expr),
 
-    // Unreachable for the reason given on `evaluate_result_to_js_object`, and
-    // refused on the same terms: read as "absent" a bare `Null` is falsy, read
-    // as "unknown" it has no truthiness at all, and a refusal deopts under
-    // either where `false` would let `x && y` fold to the wrong operand under
-    // the second.
+    // Refused on the terms given on `evaluate_result_to_js_object`, and
+    // reached the same way -- `[<nothing>][0] ? a : b` is the source. Read as
+    // "absent" a bare `Null` is falsy, read as "nothing resolved this" it has
+    // no truthiness at all, and a refusal deopts under either. `false` would
+    // pick an arm under the second, which is the reading that folded a
+    // conditional to a colour the source does not describe.
     EvaluateResultValue::Null => None,
 
     EvaluateResultValue::Vec(_)
@@ -638,13 +639,12 @@ pub(super) fn evaluate_result_to_js_boolean(value: &EvaluateResultValue) -> Opti
 /// the reading the marker slot of a `when` call needs — an absent marker and a
 /// marker that evaluated to nothing hand the slot to the options alike.
 ///
-/// The other reading, "unknown", would want a refusal, and its absence costs
-/// nothing only because the variant cannot arrive at either caller: every
-/// `Null` the evaluator builds is placed inside a `Vec`, and both callers take
-/// their value from `evaluate_cached`, which answers `None` rather than
-/// `Some(Null)` for a value that is absent. Should that change, `??` is the
-/// caller to revisit — it would fold to its right side under a reading that
-/// meant "no idea", where the `ToBoolean` bridge's refusal deopts.
+/// The other reading, "nothing resolved this", would want a refusal, and this
+/// question has none to give. The variant does arrive: `[<nothing>][0] ?? 'red'`
+/// folds to `'red'`, which is the marker reading applied to a value an index
+/// read handed back standalone. That is the answer `??` asks for — absence is
+/// exactly what it is about — and it is why the parting from the `ToBoolean`
+/// bridge beside it is deliberate rather than an oversight.
 pub fn evaluate_result_is_nullish(value: &EvaluateResultValue) -> bool {
   match value {
     EvaluateResultValue::Expr(expr) => coercions::is_nullish(expr),
@@ -726,9 +726,10 @@ fn write_string_of<S: coercions::StringSink>(
       }
     },
 
-    // Unreachable for the reason given on `evaluate_result_to_js_object`, and
-    // refused on the same terms. The `Vec` arm above is where a `Null` that
-    // reaches this bridge is actually decided.
+    // Refused on the terms given on `evaluate_result_to_js_object`, and reached
+    // the same way -- `-[<nothing>][0]` is the source. A `Null` *inside* a list
+    // is decided by the `Vec` arm above instead, which renders it as the
+    // nothing a join writes for an absent element.
     EvaluateResultValue::Null => Err(coercions::StringRefusal::NoStringForm),
   }
 }

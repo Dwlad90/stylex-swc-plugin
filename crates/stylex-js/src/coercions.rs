@@ -769,6 +769,42 @@ pub fn loose_equals(left: &Primitive, right: &Primitive) -> bool {
   }
 }
 
+/// ECMA-262 `IsLessThan` over two primitives, plus the third answer the
+/// specification calls `undefined` -- which is what makes all four relational
+/// operators false when either side is `NaN`.
+///
+/// Two strings compare by code unit and every other pair compares as two
+/// numbers, which is the whole of the rule. The outer `None` is a text this
+/// crate cannot read, so the caller deopts rather than ordering two strings it
+/// cannot see; the inner `None` is the `undefined` answer.
+pub fn js_less_than(left: &Primitive, right: &Primitive) -> Option<Option<bool>> {
+  if let (Primitive::String(left), Primitive::String(right)) = (left, right) {
+    let (left, right) = (left.as_str()?, right.as_str()?);
+
+    return Some(Some(left.encode_utf16().lt(right.encode_utf16())));
+  }
+
+  let left = number_of_a_primitive(left);
+  let right = number_of_a_primitive(right);
+
+  match left.is_nan() || right.is_nan() {
+    true => Some(None),
+    false => Some(Some(left < right)),
+  }
+}
+
+/// `ToNumber` over a primitive, the coercion every pair the string rule does
+/// not claim is read through.
+fn number_of_a_primitive(value: &Primitive) -> f64 {
+  match value {
+    Primitive::String(text) => number_of_a_string(text),
+    Primitive::Number(number) => *number,
+    Primitive::Boolean(value) => number_of_a_boolean(*value),
+    Primitive::Null => 0.0,
+    Primitive::Undefined => f64::NAN,
+  }
+}
+
 fn number_of_a_boolean(value: bool) -> f64 {
   if value { 1.0 } else { 0.0 }
 }
@@ -780,6 +816,24 @@ fn number_of_a_string(text: &Wtf8Atom) -> f64 {
   match text.as_str() {
     Some(text) => string_to_js_number(text),
     None => f64::NAN,
+  }
+}
+
+/// ECMA-262 `ToPrimitive` with no hint -- the reduction `+` applies before it
+/// decides whether it is addition or concatenation. An object answers through
+/// its own `valueOf` first, then its own `toString`.
+///
+/// `None` is an object that keeps the `Object.prototype` pair, whose primitive
+/// is [`OBJECT_TO_STRING`] and which the caller's string path already writes,
+/// and an object this crate cannot convert at all. A value that is already a
+/// primitive answers itself.
+pub fn to_js_default_primitive(expr: &Expr) -> Option<&Expr> {
+  match expr {
+    Expr::Object(object) => match object_to_primitive(object, ToPrimitiveHint::Number)? {
+      ObjectPrimitive::Default => None,
+      ObjectPrimitive::Returned(returned) => to_js_default_primitive(returned),
+    },
+    _ => Some(expr),
   }
 }
 

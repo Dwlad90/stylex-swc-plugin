@@ -2522,6 +2522,54 @@
       "origin": "ticket 15, the fourteenth instalment: the pair the numeric reading refused before",
       "expected": "acceptance-divergent",
       "note": "The same divergence as `modules-comparison-as-a-whole-value-numbers`, which carries the reasoning. This row is the pair the numeric reading refused before the equality operators were made to compare two primitives, so it is what says the divergence widened rather than moved."
+    },
+    {
+      "id": "modules-relational-two-strings-by-code-unit",
+      "label": "two strings compared by code unit",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { color: ('10' < '9') ? 'red' : 'blue' },\n});\n",
+      "origin": "ticket 15, the fifteenth instalment: read as two numbers the comparison answered the other arm"
+    },
+    {
+      "id": "modules-relational-two-strings-greater-or-equal",
+      "label": "two strings compared with the negated reading",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { color: ('2' >= '10') ? 'red' : 'blue' },\n});\n",
+      "origin": "ticket 15, the fifteenth instalment: the negated half of the relational reading"
+    },
+    {
+      "id": "modules-relational-against-not-a-number",
+      "label": "a relational operator against a value with no number",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { color: ('10px' < 1) ? 'red' : 'blue' },\n});\n",
+      "origin": "ticket 15, the fifteenth instalment: every relational operator is false against NaN"
+    },
+    {
+      "id": "modules-relational-null-is-nought",
+      "label": "null ordered against a number",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { color: (null < 1) ? 'red' : 'blue' },\n});\n",
+      "origin": "ticket 15, the fifteenth instalment: the literal grammar had no reading of null at all"
+    },
+    {
+      "id": "modules-string-number-a-radix-prefix",
+      "label": "a string operand spelling a hexadecimal literal",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { width: '0x10' * 1 },\n});\n",
+      "origin": "ticket 15, the fifteenth instalment: Rust's float grammar rejects the radix prefixes the language reads"
+    },
+    {
+      "id": "modules-string-number-surrounding-whitespace",
+      "label": "a string operand with whitespace around its digits",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { width: ' 10 ' * 1 },\n});\n",
+      "origin": "ticket 15, the fifteenth instalment: the language trims the text before it reads the literal"
+    },
+    {
+      "id": "modules-string-number-infinity-is-not-a-literal",
+      "label": "a string operand spelling Rust's infinity",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { width: 'inf' * 1 },\n});\n",
+      "origin": "ticket 15, the fifteenth instalment: Rust reads `inf` as a number and the language reads none"
+    },
+    {
+      "id": "modules-string-number-the-empty-string-is-nought",
+      "label": "an empty string operand",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { width: ('' - 0) + 'px' },\n});\n",
+      "origin": "ticket 15, the fifteenth instalment: the empty string is nought, which the float grammar refuses"
     }
   ]
 }

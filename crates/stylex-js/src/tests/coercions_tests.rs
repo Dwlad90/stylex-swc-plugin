@@ -1359,6 +1359,195 @@ fn two_lone_surrogates_are_not_the_same_string() {
   assert!(!loose_equals(&high_value, &zero));
 }
 
+/// Read out of `node -e "console.log(a < b)"`. Two strings compare by code
+/// unit and every other pair compares as two numbers.
+#[test]
+fn js_less_than_orders_two_strings_by_code_unit_and_everything_else_by_number() {
+  let cases: [(Expr, Expr, bool); 12] = [
+    // The rows a numeric reading gets wrong, because both sides are strings.
+    (str_expr("10"), str_expr("9"), true),
+    (str_expr("2"), str_expr("10"), false),
+    (str_expr("a"), str_expr("b"), true),
+    (str_expr(""), str_expr("a"), true),
+    (str_expr("a"), str_expr(""), false),
+    // One string and one number is the numeric reading, so the text is read
+    // through `StringToNumber` rather than by code unit.
+    (str_expr("10"), num_expr(9.0), false),
+    (num_expr(9.0), str_expr("10"), true),
+    // The nullish pair: `null` is nought and `undefined` is `NaN`.
+    (null_expr(), num_expr(1.0), true),
+    (num_expr(1.0), null_expr(), false),
+    // A boolean is its number, on whichever side it is.
+    (bool_expr(false), num_expr(1.0), true),
+    (num_expr(1.0), bool_expr(true), false),
+    // The two zeroes are neither less than nor greater than each other.
+    (num_expr(0.0), num_expr(-0.0), false),
+  ];
+
+  for (left, right, expected) in cases {
+    let (left_value, right_value) = primitive_pair(&left, &right);
+
+    assert_eq!(
+      js_less_than(&left_value, &right_value),
+      Some(Some(expected)),
+      "{:?} < {:?}",
+      left,
+      right
+    );
+  }
+}
+
+/// A `NaN` on either side has no ordering at all, which is the `undefined` the
+/// specification names -- and what makes all four relational operators false.
+#[test]
+fn js_less_than_has_no_answer_for_a_not_a_number_operand() {
+  let not_a_number = ident_expr("NaN");
+  let one = num_expr(1.0);
+
+  let (left, right) = primitive_pair(&not_a_number, &one);
+  assert_eq!(js_less_than(&left, &right), Some(None));
+
+  let (left, right) = primitive_pair(&one, &not_a_number);
+  assert_eq!(js_less_than(&left, &right), Some(None));
+
+  // A text with no numeric literal in it is `NaN` too, so it has no ordering
+  // against a number -- but it still orders against another string.
+  let text = str_expr("10px");
+  let (left, right) = primitive_pair(&text, &one);
+  assert_eq!(js_less_than(&left, &right), Some(None));
+
+  // `undefined` is the third spelling of `NaN` here, and the one that separates
+  // it from `null`: `null < 1` is true and `undefined < 1` is false.
+  let absent = ident_expr("undefined");
+  let (left, right) = primitive_pair(&absent, &one);
+  assert_eq!(js_less_than(&left, &right), Some(None));
+
+  let (left, right) = primitive_pair(&one, &absent);
+  assert_eq!(js_less_than(&left, &right), Some(None));
+}
+
+/// A string this crate cannot read has no ordering, and the refusal travels out
+/// rather than being answered as `false`: `'\u{D83D}' < 'a'` is a question with
+/// a real answer, and guessing it would put the wrong arm of a conditional in
+/// the stylesheet.
+///
+/// It refuses only where the code-unit rule claims the pair. Against a number
+/// the same text is read as `NaN`, which every text with no numeric literal in
+/// it already is.
+#[test]
+fn js_less_than_refuses_a_string_it_cannot_read() {
+  let surrogate = lone_surrogate_expr(0xD83D);
+  let text = str_expr("a");
+  let one = num_expr(1.0);
+
+  let (left, right) = primitive_pair(&surrogate, &text);
+  assert_eq!(js_less_than(&left, &right), None);
+
+  let (left, right) = primitive_pair(&text, &surrogate);
+  assert_eq!(js_less_than(&left, &right), None);
+
+  let (left, right) = primitive_pair(&surrogate, &one);
+  assert_eq!(js_less_than(&left, &right), Some(None));
+}
+
+/// Code unit rather than code point, which is the one row the two orderings
+/// disagree on: an astral character is a surrogate pair whose first unit is
+/// below `U+E000`, so it sorts *before* a character the code-point order puts
+/// first.
+#[test]
+fn js_less_than_orders_an_astral_character_by_its_first_code_unit() {
+  let astral = str_expr("\u{1F600}");
+  let private_use = str_expr("\u{E000}");
+
+  let (left, right) = primitive_pair(&astral, &private_use);
+  assert_eq!(js_less_than(&left, &right), Some(Some(true)));
+}
+
+/// `ToPrimitive` with no hint asks an object for its own `valueOf` first, which
+/// is the reduction `+` applies before it decides whether it is addition or
+/// concatenation.
+#[test]
+fn to_js_default_primitive_prefers_an_own_value_of() {
+  let both = object_expr(vec![
+    key_value_prop(ident_key("valueOf"), returning_arrow(num_expr(2.0))),
+    key_value_prop(ident_key("toString"), returning_arrow(str_expr("9"))),
+  ]);
+
+  assert_eq!(
+    to_js_default_primitive(&both)
+      .and_then(to_js_string)
+      .as_deref(),
+    Some("2")
+  );
+
+  // `toString` alone still answers, because the order is a preference rather
+  // than a requirement.
+  let to_string_only = object_expr(vec![key_value_prop(
+    ident_key("toString"),
+    returning_arrow(str_expr("5")),
+  )]);
+
+  assert_eq!(
+    to_js_default_primitive(&to_string_only)
+      .and_then(to_js_string)
+      .as_deref(),
+    Some("5")
+  );
+}
+
+/// A value that is already a primitive answers itself, whatever it is. So does
+/// every value that is not an object at all, which is what keeps the reduction
+/// a no-op for every side but the one it was written for.
+#[test]
+fn to_js_default_primitive_answers_a_primitive_with_itself() {
+  for expr in [
+    str_expr("a"),
+    num_expr(1.0),
+    bool_expr(true),
+    null_expr(),
+    ident_expr("undefined"),
+  ] {
+    match to_js_default_primitive(&expr) {
+      Some(answered) => assert!(std::ptr::eq(answered, &expr), "{:?}", expr),
+      None => panic!("{:?} is already a primitive", expr),
+    }
+  }
+}
+
+/// An object that keeps the `Object.prototype` pair reduces to nothing: its
+/// primitive is the default text, which the caller's string path already
+/// writes.
+#[test]
+fn to_js_default_primitive_leaves_the_default_pair_to_the_string_path() {
+  assert!(to_js_default_primitive(&object_expr(vec![])).is_none());
+
+  // A method answering an object has answered no primitive, and the other
+  // method is the default one -- so there is no value to fold.
+  let answers_an_object = object_expr(vec![key_value_prop(
+    ident_key("valueOf"),
+    returning_arrow(object_expr(vec![])),
+  )]);
+
+  assert!(to_js_default_primitive(&answers_an_object).is_none());
+}
+
+/// A method answering another object keeps reducing, because the value a
+/// conversion hands back is itself read through `ToPrimitive`.
+#[test]
+fn to_js_default_primitive_reduces_what_a_conversion_answers() {
+  let nested = object_expr(vec![key_value_prop(
+    ident_key("valueOf"),
+    returning_arrow(str_expr("inner")),
+  )]);
+
+  assert_eq!(
+    to_js_default_primitive(&nested)
+      .and_then(to_js_string)
+      .as_deref(),
+    Some("inner")
+  );
+}
+
 /// Both sides of a comparison, for a case that spells them as expressions.
 #[track_caller]
 fn primitive_pair<'a>(left: &'a Expr, right: &'a Expr) -> (Primitive<'a>, Primitive<'a>) {

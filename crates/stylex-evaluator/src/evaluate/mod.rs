@@ -361,6 +361,10 @@ mod declined_call_dispatch_tests;
 mod concatenation_chain_tests;
 
 #[cfg(test)]
+#[path = "tests/addend_reduction_tests.rs"]
+mod addend_reduction_tests;
+
+#[cfg(test)]
 #[path = "tests/engine_stylex_function_tests.rs"]
 mod engine_stylex_function_tests;
 

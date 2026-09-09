@@ -2452,6 +2452,60 @@
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { Math } from './helpers';\n\nexport const styles = stylex.create({\n  s0: { width: Math.trunc(1.5) },\n});\n",
       "origin": "issue 31, the receiver rule read on a binding with no declarator",
       "note": "Agreement. The receiver rule reads a declarator and nothing else, so an import -- which binds the name without leaving one -- does not shadow a static, and the language's `Math.trunc` answers whatever the imported file holds. The reference compiler folds it for the same reason, since it never resolves a static's receiver at all. Measured beside the callee rule one row up, where the identical import *does* shadow and both compilers refuse: the difference is the position, and it is the ruling `ADR 0008` records."
+    },
+    {
+      "id": "modules-bitwise-zero-fill-right-shift-negative",
+      "label": "a zero-fill right shift over a negative number",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { width: (-1 >>> 0) },\n});\n",
+      "origin": "ticket 15, the fourteenth instalment: `>>>` was written as the signed `>>`, so this answered -1px"
+    },
+    {
+      "id": "modules-bitwise-zero-fill-right-shift-by-sixteen",
+      "label": "a zero-fill right shift that keeps sixteen bits",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { width: (-1 >>> 16) },\n});\n",
+      "origin": "ticket 15, the fourteenth instalment: the same signed reading, with the count on it"
+    },
+    {
+      "id": "modules-bitwise-or-past-the-signed-range",
+      "label": "a bitwise operand past the signed 32-bit range",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { width: (4294967296 | 0) },\n});\n",
+      "origin": "ticket 15, the fourteenth instalment: a Rust cast saturates where `ToInt32` wraps, so this answered 2147483647px"
+    },
+    {
+      "id": "modules-bitwise-left-shift-by-the-word-width",
+      "label": "a left shift by the word width",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { width: (1 << 32) },\n});\n",
+      "origin": "ticket 15, the fourteenth instalment: the count was not masked to five bits, so a debug build panicked"
+    },
+    {
+      "id": "modules-bitwise-right-shift-keeps-the-sign",
+      "label": "a right shift that keeps the sign",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { width: (-8 >> 1) },\n});\n",
+      "origin": "ticket 15, the fourteenth instalment: the row that parts `>>` from `>>>`"
+    },
+    {
+      "id": "modules-equality-loose-inequality-across-types",
+      "label": "a loose inequality across two types",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { color: (1 != '1') ? 'red' : 'blue' },\n});\n",
+      "origin": "ticket 15, the fourteenth instalment: both sides were coerced to numbers, so this answered blue"
+    },
+    {
+      "id": "modules-equality-strict-inequality-across-types",
+      "label": "a strict inequality across two types",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { color: (1 !== '1') ? 'red' : 'blue' },\n});\n",
+      "origin": "ticket 15, the fourteenth instalment: the same coercion, under the operator the language reads strictly"
+    },
+    {
+      "id": "modules-equality-two-strings",
+      "label": "two strings compared for equality",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { color: ('a' == 'a') ? 'red' : 'blue' },\n});\n",
+      "origin": "ticket 15, the fourteenth instalment: neither side has a number, so the numeric reading refused"
+    },
+    {
+      "id": "modules-equality-null-and-undefined",
+      "label": "null compared with undefined",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { color: (null == undefined) ? 'red' : 'blue' },\n});\n",
+      "origin": "ticket 15, the fourteenth instalment: the one pair loose equality answers true for and neither side has a number"
     }
   ]
 }

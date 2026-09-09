@@ -88,9 +88,49 @@ const report = (name: string, answer: Answer): void => {
   console.log(`  ${name} out: ${(answer.code ?? '').replace(/\s+/g, ' ').slice(0, 300)}`);
 };
 
-const sources: Record<string, string> = JSON.parse(process.argv[2] ?? '{}');
+/**
+ * The labelled sources the argument names, in the order it names them.
+ *
+ * Narrowed rather than cast, and read into a `Map`, which keeps its insertion
+ * order. Three shapes are refused because each would make the listing say
+ * something the argument does not:
+ *
+ * - anything but an object, since `Object.entries` over an array or a string
+ *   yields indices and would print one line per element or character;
+ * - a source that is not a string, since it would reach a compiler as
+ *   `undefined` and be reported as that compiler's answer;
+ * - an integer-like label, which JavaScript sorts to the front of an object
+ *   whatever order it was written in. `{"1": …, "0": …}` is already reordered
+ *   by the time the object exists, so the order can only be kept by refusing
+ *   the labels that lose it.
+ */
+const readSources = (argument: string): Map<string, string> => {
+  const parsed: unknown = JSON.parse(argument);
 
-for (const [label, source] of Object.entries(sources)) {
+  if (!isRecord(parsed)) {
+    throw new TypeError('the probe takes a JSON object of label to module source');
+  }
+
+  const sources = new Map<string, string>();
+
+  for (const [label, source] of Object.entries(parsed)) {
+    if (typeof source !== 'string') {
+      throw new TypeError(`the source for "${label}" is not a string`);
+    }
+
+    if (String(Number(label)) === label) {
+      throw new TypeError(`the label "${label}" reads as an array index, so it would be reordered`);
+    }
+
+    sources.set(label, source);
+  }
+
+  return sources;
+};
+
+const sources = readSources(process.argv[2] ?? '{}');
+
+for (const [label, source] of sources) {
   console.log('='.repeat(70));
   console.log(label);
   console.log('-- source:', source.replace(/\n/g, ' ⏎ '));

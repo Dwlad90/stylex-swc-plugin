@@ -17,6 +17,7 @@
 
 use super::source_evaluation::*;
 use super::*;
+use stylex_ast::ast::convertors::create_null_expr;
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_ARRAY_VALUE, SPREAD_PROPERTIES_UNREADABLE,
 };

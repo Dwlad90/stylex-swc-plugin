@@ -5,6 +5,8 @@
 
 use super::*;
 use stylex_ast::ast::convertors::create_ident_expr;
+use stylex_ast::ast::convertors::create_null_expr;
+use stylex_ast::ast::factories::create_key_value_prop;
 use stylex_utils::string::utf16_length;
 
 /// The expression under test. Built here rather than at each case so a case

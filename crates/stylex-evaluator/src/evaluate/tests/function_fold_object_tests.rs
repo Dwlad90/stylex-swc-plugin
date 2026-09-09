@@ -8,6 +8,7 @@
 //! transform test.
 
 use super::*;
+use stylex_ast::ast::convertors::create_null_expr;
 use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue,
   functions::{FunctionConfigType, StylexWhenFn},

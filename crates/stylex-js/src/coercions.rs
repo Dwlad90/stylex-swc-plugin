@@ -296,11 +296,18 @@ pub fn write_js_string_of<S: StringSink>(
     Expr::Lit(Lit::Null(_)) => sink.write_piece("null"),
     // A big integer renders as its digits with no `n` suffix, which is the one
     // place its string and its source text part company.
-    Expr::Lit(Lit::BigInt(big_int)) => sink.write_piece(&format!("{}", big_int.value)),
+    Expr::Lit(Lit::BigInt(big_int)) => sink.write_piece(&big_int.value.to_string()),
     // A regular expression is the one object whose `ToString` is not the
     // `Object.prototype` default: it answers its own source text, which unlike
     // a function's the evaluator does retain.
-    Expr::Lit(Lit::Regex(regex)) => sink.write_piece(&format!("/{}/{}", regex.exp, regex.flags)),
+    //
+    // Written piece by piece rather than joined first, so a caller measuring
+    // against a ceiling refuses at the piece that passes it -- which is the
+    // invariant the rest of this module holds -- and the two parts the value
+    // already spells reach the sink as themselves.
+    Expr::Lit(Lit::Regex(regex)) => ["/", &regex.exp, "/", &regex.flags]
+      .into_iter()
+      .try_for_each(|piece| sink.write_piece(piece)),
     Expr::Ident(ident) => match surviving_global(ident) {
       Some(SurvivingGlobal::Undefined) => sink.write_piece("undefined"),
       Some(SurvivingGlobal::NaN) => sink.write_piece(&number::to_js_string(f64::NAN)),

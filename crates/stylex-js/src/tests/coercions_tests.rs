@@ -2106,6 +2106,37 @@ fn an_object_default_text_can_be_refused_by_the_sink() {
   assert!(string_to_js_number(&exact.text).is_nan());
 }
 
+/// A regular expression reaches the sink as the four pieces it spells rather
+/// than as one joined text, so a caller measuring against a ceiling refuses at
+/// the piece that passes it -- and what it has already taken is what stands.
+#[test]
+fn a_regular_expression_is_written_piece_by_piece() {
+  // One ceiling per piece, so each of the four is the one that refuses: the
+  // opening delimiter, the source, the closing delimiter and the flags.
+  for (ceiling, kept) in [(0, ""), (1, "/"), (4, "/a+b"), (5, "/a+b/")] {
+    let mut narrow = Bounded::new(ceiling);
+
+    assert!(
+      matches!(
+        write_js_string_of(&regex_expr("a+b", "gi"), FunctionForm::Refuse, &mut narrow),
+        Err(StringRefusal::Sink(_))
+      ),
+      "a ceiling of {} took the whole text",
+      ceiling
+    );
+    assert_eq!(narrow.text, kept);
+  }
+
+  // The whole text still reaches a sink wide enough for it.
+  let mut wide = Bounded::new(7);
+
+  assert_eq!(
+    write_js_string_of(&regex_expr("a+b", "gi"), FunctionForm::Refuse, &mut wide),
+    Ok(())
+  );
+  assert_eq!(wide.text, "/a+b/gi");
+}
+
 /// Every ending the number form has, reached through a sink that can refuse --
 /// the recursion into an own method's answer, the value with no string form at
 /// all, and the sink's own refusal on the text a non-object renders.

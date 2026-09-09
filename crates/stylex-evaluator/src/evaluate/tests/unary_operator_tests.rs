@@ -222,6 +222,10 @@ fn an_operator_over_a_value_that_is_not_there_refuses() {
     "![(() => 1) + 1][0]",
     "typeof [(() => 1) + 1][0]",
     "-[(() => 1) + 1][0]",
+    // A conditional asks the same truthiness question the negation asks, so it
+    // answers the same way. Read as `false` instead, this folded to the
+    // alternate arm and wrote a value the source does not describe.
+    "[(() => 1) + 1][0] ? 'red' : 'blue'",
   ] {
     assert_refused_with(
       &evaluated_after(UNRESOLVED_MEMO_WARM, source),

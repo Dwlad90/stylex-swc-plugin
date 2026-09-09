@@ -1,4 +1,5 @@
 use super::super::*;
+use stylex_macros::deopt_unsupported;
 use swc_core::ecma::ast::CondExpr;
 
 pub(in super::super) fn evaluate(
@@ -7,10 +8,13 @@ pub(in super::super) fn evaluate(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
-  // One question rather than two. A fold that answered nothing is a fold that
-  // refused, and the refusal is already recorded on the state -- so asking
-  // whether the state is still confident and then whether there is a value
-  // asks the same thing twice, and leaves the second arm unreachable.
+  // One question rather than two, for a shape no source reaches. A test that
+  // answers nothing while the walk stays confident could only come out of the
+  // memo, and a warmed memo was probed: the test refuses before this line
+  // every time, because the subtree the memo holds records its own refusal.
+  //
+  // The reading below is the other half, and it is not the same question: a
+  // value that *is* there and has no truthiness refuses there rather than here.
   let test_value = evaluate_cached(&cond.test, state, traversal_state, fns)?;
 
   // Read through the same `ToBoolean` bridge the logical operators read, and
@@ -23,12 +27,17 @@ pub(in super::super) fn evaluate(
   // which is truthy whatever it holds. Requiring an expression form here
   // refused `[] ? a : b` on a test the language has no doubt about.
   //
-  // A value with no truthiness at all reads as `false` rather than refusing,
-  // and is a reading no case can be written for: the one such value is the
-  // absent element of an array, which the evaluator only ever holds *inside* a
-  // list. `false` is what the language gives a missing test, and an arm no case
-  // can enter is a claim nothing checks.
-  let takes_the_consequent = evaluate_result_to_js_boolean(&test_value).unwrap_or(false);
+  // A value with no truthiness at all refuses, as it does under `!`, `typeof`
+  // and the numeric operators. It is the value an array holds where an element
+  // folded to nothing, and an index read hands it back on its own -- so this
+  // arm is entered from a source rather than argued about.
+  //
+  // Read as `false` instead, `[<nothing>][0] ? 'red' : 'blue'` folded to the
+  // alternate arm and wrote a colour the source does not describe. The value
+  // means "nothing resolved this", which has no arm to name.
+  let Some(takes_the_consequent) = evaluate_result_to_js_boolean(&test_value) else {
+    deopt_unsupported!(deopt, &Expr::Cond(cond.clone()), state, ILLEGAL_PROP_VALUE);
+  };
 
   match takes_the_consequent {
     true => evaluate_cached(&cond.cons, state, traversal_state, fns),

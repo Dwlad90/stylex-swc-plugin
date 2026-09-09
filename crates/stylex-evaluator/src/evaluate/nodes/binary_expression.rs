@@ -61,10 +61,13 @@ const RIGHT_HAS_NO_VALUE: &str = "Right expression could not be evaluated";
 
 /// One side of the expression, evaluated.
 ///
-/// An operand that answered nothing is one that refused, and the refusal is
-/// already recorded on the state: `evaluate_cached` records it before it
-/// answers nothing. So there is one answer here rather than two, and no arm for
-/// a confident absence -- which is a shape no case can produce.
+/// An operand that answered nothing refuses here, whether or not the walk is
+/// still confident, and the reason names the side.
+///
+/// One answer rather than two, because the two would be the same answer: an
+/// operand that recorded its own refusal and one that came back empty out of
+/// the memo both leave this path with nothing to coerce. Before this the second
+/// stopped the build with a panic, where the first deopted.
 fn evaluate_operand(
   operand: &Expr,
   reason: &str,
@@ -233,9 +236,11 @@ fn fold_binary_expr(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> BinaryExprType {
-  // No confidence guard: this is only ever entered from a fold that is still
-  // confident, and `Null` is what it answers for a chain that refused -- so a
-  // guard would be an arm no case can enter.
+  // No confidence guard. Every caller folds from a walk that is still
+  // confident, and `Null` is what this answers for a chain that refused, so a
+  // guard would answer the same thing one step earlier. What it would buy is a
+  // short circuit rather than a different answer, and no measurement asks for
+  // one.
   binary_expr_to_num_or_str(binary_expr, state, traversal_state, fns).unwrap_or_else(|num_error| {
     binary_expr_to_string(binary_expr, state, traversal_state, fns).unwrap_or_else(|str_error| {
       debug!("Binary expression to string error: {}", str_error);

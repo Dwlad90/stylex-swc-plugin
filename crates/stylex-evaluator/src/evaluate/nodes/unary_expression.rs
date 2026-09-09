@@ -36,12 +36,15 @@ pub(in super::super) fn evaluate(
     }
   }
 
-  // One question rather than two. An operand that folded to nothing is an
-  // operand that refused, and the refusal is already recorded on the state --
-  // so asking whether the state is still confident and then whether there is a
-  // value asks the same thing twice, and leaves the second arm unreachable.
-  // `typeof someObject.method` is ordinary JavaScript, and what it reads is the
-  // member's own refusal rather than one this node invents.
+  // One question rather than two, for a shape no source reaches twice.
+  //
+  // The memo is the one thing that answers nothing while the walk stays
+  // confident, and a warmed memo was probed here: every operator over the
+  // subtree it holds refuses before this line, because the operand itself
+  // records the refusal. So the second arm is entered from no source, and
+  // there is one answer rather than two. `typeof someObject.method` is
+  // ordinary JavaScript, and what it reads is the member's own refusal rather
+  // than one this node invents.
   let arg = evaluate_cached(argument, state, traversal_state, fns)?;
 
   // `!` is answered off the evaluated value rather than off an expression form

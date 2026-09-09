@@ -47,7 +47,9 @@ const compileWithEnv = (envLiteral: string, source = 'export const a = 1;') => {
     status: child.status,
     error: child.error,
     stderr: child.stderr,
-    result: child.stdout ? (JSON.parse(child.stdout) as { ok: boolean; message?: string }) : null,
+    result: child.stdout
+      ? (JSON.parse(child.stdout) as { ok: boolean; message?: string; code?: string })
+      : null,
   };
 };
 

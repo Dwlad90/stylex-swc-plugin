@@ -24,6 +24,43 @@ use stylex_state::{
   theme_ref::ThemeRef,
 };
 
+/// Every object this fold writes carries key-value properties and nothing
+/// else, and so does every value below it.
+///
+/// The readers of an evaluator-written object rely on that and none of them
+/// re-checks it: a reader passes over whatever is not a pair rather than
+/// refusing it, so a spread or a getter written here becomes a property the
+/// reader silently drops. That is why it is asserted of the fold.
+///
+/// Both routes, because two things write one: the engine writes the answer it
+/// carries out, and this evaluator writes the object it folded itself, which
+/// is what a declined fold leaves.
+#[test]
+fn every_written_object_carries_key_value_properties_only() {
+  for object in [
+    "{ a: 1, b: 'x' }",
+    "{ a: [1, [2]], b: { c: 3 } }",
+    // The three shapes that would write something else, each folded away
+    // before the object is written: a spread is merged, a shorthand becomes a
+    // pair, and a computed key becomes a name.
+    "{ a: 1, ...{ b: 2 } }",
+    "{ ...{ a: [1] } }",
+    "{ ['a']: 1 }",
+  ] {
+    for source in [format!("({object})"), format!("sx.missing ?? ({object})")] {
+      let value = match evaluated_against_a_function_fold(&source).value {
+        Some(value) => value,
+        None => panic!("expected `{}` to fold", source),
+      };
+
+      match value.as_expr() {
+        Some(expr) => assert_written_form(expr, &source),
+        None => panic!("expected `{}` to fold to an expression", source),
+      }
+    }
+  }
+}
+
 /// The keys `object` folds to, joined, read past a declined fold.
 #[track_caller]
 fn keys_of(object: &str) -> String {

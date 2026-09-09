@@ -22,6 +22,7 @@ pub(crate) use crate::tests::scaffolding::{
   LARGE_THREAD, SMALL_THREAD, nested_literal, on_a_thread_of, parse_expr, parse_ts_expr,
 };
 use crate::tests::scaffolding::{anonymous_file, parser_for};
+use stylex_diagnostics::code_frame::{create_module, print_module};
 use stylex_state::{
   functions::{FunctionConfig, FunctionConfigType, FunctionType},
   types::FunctionConfigMap,
@@ -950,4 +951,50 @@ pub(crate) fn evaluated_in_a_module_binding_under(
       &FunctionMap::default(),
     )
   })
+}
+
+/// Asserts an evaluator-written value carries one present element per slot, no
+/// spread, and only key-value properties -- at every level below it too.
+#[track_caller]
+pub(crate) fn assert_written_form(expr: &Expr, source: &str) {
+  match expr {
+    Expr::Array(array) => {
+      for elem in &array.elems {
+        match elem {
+          Some(elem) => {
+            assert!(elem.spread.is_none(), "`{}` wrote a spread", source);
+
+            assert_written_form(&elem.expr, source);
+          },
+          None => panic!("`{}` wrote a hole", source),
+        }
+      }
+    },
+    Expr::Object(object) => {
+      for prop in &object.props {
+        match prop.as_prop().map(Box::as_ref) {
+          Some(Prop::KeyValue(key_value)) => assert_written_form(&key_value.value, source),
+          other => panic!(
+            "`{}` wrote a property that is not a pair: {:?}",
+            source, other
+          ),
+        }
+      }
+    },
+    _ => {},
+  }
+}
+
+/// One expression as its source text, for a case whose subject is the form it
+/// was written in rather than the value it holds.
+///
+/// Printed on one line with no spaces, so a case spells `[[2]]` for a nested
+/// array rather than the printer's own indentation.
+pub(crate) fn printed(expr: &Expr) -> String {
+  print_module(create_module(expr), None)
+    .chars()
+    .filter(|character| !character.is_whitespace())
+    .collect::<String>()
+    .trim_end_matches(';')
+    .to_string()
 }

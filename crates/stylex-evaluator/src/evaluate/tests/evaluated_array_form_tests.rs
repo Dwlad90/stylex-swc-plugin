@@ -23,13 +23,45 @@ use stylex_constants::constants::messages::{
 
 /// The four expressions that can stand as an element value, one written array
 /// each. This is the pair the refusals below are measured against.
+///
+/// Each row says what it wrote rather than how many things it wrote. A form
+/// that kept the count and lost the nesting -- an array of arrays flattened to
+/// one -- passes a count and is a value the source does not describe.
 #[test]
 fn the_four_element_shapes_keep_their_literal_form() {
-  assert_element_shapes("[1, 'a', true, null]", 4);
-  assert_element_shapes("[[1], [[2]]]", 2);
-  assert_element_shapes("[{ a: 1 }]", 1);
-  assert_element_shapes("[undefined]", 1);
-  assert_element_shapes("[]", 0);
+  assert_element_shapes("[1, 'a', true, null]", &["1", "'a'", "true", "null"]);
+  assert_element_shapes("[[1], [[2]]]", &["[1]", "[[2]]"]);
+  assert_element_shapes("[{ a: 1 }]", &["{a:1}"]);
+  assert_element_shapes("[undefined]", &["undefined"]);
+  assert_element_shapes("[]", &[]);
+}
+
+/// Every array this producer writes carries one present element per slot and
+/// no spread, at every level.
+///
+/// The readers of an evaluator-written array rely on that and none of them
+/// re-checks it: the count of slots is the element count, and a reader takes
+/// the element out of the slot without asking whether one is there. So a hole
+/// or a spread written here is a fault they inherit rather than answer for --
+/// which is why it is asserted of the producer.
+#[test]
+fn every_written_array_carries_one_present_element_per_slot() {
+  for source in [
+    "[1, 'a', true, null]",
+    "[[1], [[2]]]",
+    "[{ a: 1 }, { b: [2] }]",
+    "[undefined]",
+    "[]",
+    // The two shapes that would write one, refused before they become a value.
+    "[...['a']]",
+    "[, 'a']",
+  ] {
+    let Some(form) = evaluate_result_vec_to_array_expr(&folds_to_a_list_or_nothing(source)) else {
+      continue;
+    };
+
+    assert_written_form(&form, source);
+  }
 }
 
 /// A value the evaluator holds and writes no expression for has no element
@@ -115,21 +147,40 @@ fn a_style_value_and_a_spread_keep_a_nested_list_of_values() {
 
 // ==================== helpers ====================
 
-/// Asserts the source folds to a list whose literal form holds this many
-/// elements. Spelled as a count because a form one element short is what this
-/// file is about, and "it has a form" passes through that.
+/// Asserts the source folds to a list whose literal form spells these
+/// elements, in order.
+///
+/// The elements rather than their count, because a form that keeps the count
+/// and changes what is in it is the answer this file is about.
 #[track_caller]
-fn assert_element_shapes(source: &str, expected: usize) {
+fn assert_element_shapes(source: &str, expected: &[&str]) {
   match evaluate_result_vec_to_array_expr(&folds_to_a_list(source)) {
-    Some(Expr::Array(array)) => assert_eq!(
-      array.elems.len(),
-      expected,
-      "wrong element count for `{}`",
-      source
-    ),
+    Some(Expr::Array(array)) => {
+      let written = array
+        .elems
+        .iter()
+        .map(|elem| match elem {
+          Some(elem) => printed(&elem.expr),
+          None => panic!("expected `{}` to write no hole", source),
+        })
+        .collect::<Vec<String>>();
+
+      assert_eq!(written, expected, "wrong element form for `{}`", source);
+    },
     other => panic!(
       "expected `{}` to have an array literal form, got {:?}",
       source, other
     ),
+  }
+}
+
+/// The list the source folds to, or the empty list where it refused.
+///
+/// The refusing sources are in the invariant case above for what they must
+/// *not* write, and a refusal is that answer rather than a failure.
+fn folds_to_a_list_or_nothing(source: &str) -> Vec<EvaluateResultValue> {
+  match evaluate_source(source).value {
+    Some(EvaluateResultValue::Vec(items)) => items,
+    _ => Vec::new(),
   }
 }

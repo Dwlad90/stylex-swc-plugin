@@ -215,9 +215,22 @@ fn a_named_function_is_refused_for_what_its_declaration_and_its_arguments_read()
     ("(a) => a + unbound", "[\"a\"].map(f).join(\"\")"),
     ("(a) => a", "[\"a\"].map(x => f(unbound)).join(\"\")"),
   ] {
-    assert_refused(
-      &evaluated_in_a_module_binding("f", init, source),
-      &format!("{source}` against `const f = {init}"),
+    let described = format!("{source}` against `const f = {init}");
+    let result = evaluated_in_a_module_binding("f", init, source);
+
+    assert_refused(&result, &described);
+
+    // The refusal names the call the walk declined rather than the name inside
+    // the declaration that stopped it. The author's `map` is what is not
+    // folded; which name the walk tripped on is a `debug!` line.
+    assert!(
+      result
+        .reason
+        .as_deref()
+        .is_some_and(|reason| reason.contains("Cannot fold 'map' at compile time.")),
+      "expected the refusal for `{}` to name the call, got {:?}",
+      described,
+      result.reason
     );
   }
 }

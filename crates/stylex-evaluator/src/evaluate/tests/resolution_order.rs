@@ -32,6 +32,7 @@ use stylex_constants::constants::evaluation_errors::{
 
 use stylex_diagnostics::code_frame::framed_declaration_of;
 use stylex_state::state_manager::flush_pending_insertions;
+use stylex_state::theme_ref::ThemeRef;
 use stylex_structures::plugin_pass::PluginPass;
 use stylex_structures::stylex_options::{CheckModuleResolution, StyleXOptions};
 use swc_core::common::FileName;
@@ -40,6 +41,11 @@ use swc_core::ecma::ast::ModuleItem;
 /// The file every case about a resolved import is compiled as. Its extension is
 /// what Haste resolution gives the import, so the two are read together.
 const IMPORTING_FILE: &str = "/repo/src/app.js";
+
+/// The variable file every import here names. One spelling, because the group
+/// a resolved import answers is identified by this path, so a case that spelled
+/// it a second time could compare a group against a file nobody imported.
+const THEME_FILE: &str = "./tokens.stylex.js";
 
 /// The three names the globals step asks about. Every case that is about the
 /// step runs over all three rather than picking one, because the step answers
@@ -168,7 +174,7 @@ fn theme_import_with(specifiers: Vec<ImportSpecifier>) -> ImportDecl {
     specifiers,
     src: Box::new(Str {
       span: DUMMY_SP,
-      value: "./tokens.stylex.js".into(),
+      value: THEME_FILE.into(),
       raw: None,
     }),
     type_only: false,
@@ -1659,11 +1665,7 @@ fn a_named_import_of_a_variable_file_resolves_to_the_group_it_exports() {
     "expected the import to resolve, got a deopt: {:?}",
     result.reason
   );
-  assert!(
-    matches!(result.value, Some(EvaluateResultValue::ThemeRef(_))),
-    "expected the group, got {:?}",
-    result.value
-  );
+  assert_group_of(result, "c");
 }
 
 /// An imported name spelled as a string resolves the same way. Its own case
@@ -1677,11 +1679,26 @@ fn an_imported_name_spelled_as_a_string_resolves_a_group_too() {
     .resolves_its_imports()
     .evaluate(ALIAS_LOCAL, LATER_REFERENCE_SPAN);
 
-  assert!(
-    matches!(result.value, Some(EvaluateResultValue::ThemeRef(_))),
-    "expected the group, got {:?}",
-    result.value
-  );
+  assert_group_of(result, ALIAS_LOCAL);
+}
+
+/// Asserts the evaluation answered the group the variable file exports under
+/// `export_name`.
+///
+/// Which group rather than that there is one: a reader that built the group
+/// from the local binding instead of the imported name answers a `ThemeRef`
+/// too, and names a different CSS variable. The identity is compared as the
+/// group's own `toString`, which is what a stylesheet would carry.
+#[track_caller]
+fn assert_group_of(result: Box<EvaluateResult>, export_name: &str) {
+  let expected = ThemeRef::new(THEME_FILE, export_name, "x").to_string_value();
+
+  match result.value {
+    Some(EvaluateResultValue::ThemeRef(group)) => {
+      assert_eq!(group.to_string_value(), expected, "wrong group")
+    },
+    other => panic!("expected the group, got {:?}", other),
+  }
 }
 
 /// A resolved theme import leaves a side-effect import of the variable file

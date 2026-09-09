@@ -17,6 +17,7 @@ use stylex_constants::constants::evaluation_errors::{
 };
 use stylex_constants::constants::messages::ILLEGAL_PROP_VALUE;
 use stylex_state::{evaluate_result_value::EvaluateResultValue, functions::FunctionMap};
+use swc_core::ecma::ast::{Expr, Lit};
 
 /// The text `source` folds to against the compiler's own function fold, for the
 /// cases whose operand is one of the values with no expression form.
@@ -100,6 +101,27 @@ fn the_negation_reads_the_truthiness_of_every_value() {
   assert_folds_to_boolean("![]", false);
   assert_folds_to_boolean("!({})", false);
   assert_folds_to_boolean("!!''", false);
+
+  // The values the evaluator holds of its own, which is the half the doc is
+  // about: an expression operand alone never reaches the arm that answers for
+  // them. Each stands for an object or a function upstream, so each is truthy.
+  let fns = a_function_fold();
+
+  for source in [
+    format!("!{FOLD_NAMESPACE}"),
+    format!("!{FOLD_FUNCTION}"),
+    "!['a'].map((entry) => entry)".to_string(),
+  ] {
+    match folded_value_of(evaluated_against(&fns, &source), &source).as_expr() {
+      Some(Expr::Lit(Lit::Bool(answer))) => {
+        assert!(!answer.value, "expected `{}` to read as truthy", source)
+      },
+      other => panic!(
+        "expected `{}` to fold to a boolean, got {:?}",
+        source, other
+      ),
+    }
+  }
 }
 
 /// The three numeric operators, over the operands each of the two readings

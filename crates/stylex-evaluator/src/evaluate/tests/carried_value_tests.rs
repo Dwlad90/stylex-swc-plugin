@@ -181,11 +181,17 @@ fn a_key_crosses_as_the_name_the_language_reads_it_as() {
 /// handed back rather than folded against an object missing a property the
 /// source wrote. A big integer is such a key: it is not a value this bridge
 /// carries in any position.
+///
+/// Handed back is not the same as refused, and only the pair says which
+/// happened: the same call over a key the bridge does carry folds, so the
+/// refusal below belongs to the key rather than to the shape of the call.
 #[test]
 fn a_key_with_no_carried_form_is_handed_back() {
   let source = "[{ 1n: 1 }].map((entry) => entry)";
 
   assert_refused(&evaluate_source(source), source);
+
+  assert_folds_to_number("[{ 1: 1 }].map((entry) => entry)[0][1]", 1.0);
 }
 
 /// A value of the compiler's own has no JavaScript form at all, so it crosses
@@ -202,6 +208,12 @@ fn a_value_with_no_javascript_form_is_handed_back() {
   ] {
     assert_refused(&evaluated_against(&fns, &source), &source);
   }
+
+  // The same call over a value the bridge does carry folds, so what stopped
+  // the two above is the value rather than the call around it.
+  let source = "['a'].map((entry) => entry).join('')";
+
+  assert_eq!(folded_text_of(evaluated_against(&fns, source), source), "a");
 }
 
 /// A name the expression reads twice crosses once. One parameter per name is

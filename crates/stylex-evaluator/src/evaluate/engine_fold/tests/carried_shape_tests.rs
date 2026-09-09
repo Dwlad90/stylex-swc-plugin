@@ -141,6 +141,10 @@ fn a_value_nested_past_the_depth_ceiling_refuses() {
 #[test]
 fn a_value_inside_the_depth_ceiling_crosses() {
   assert!(measured_under(ROOM, 2, &value_of("['a']")).is_ok());
+
+  // What crossed, read back through the engine: the measurement answers `()`,
+  // so a walk that crossed nothing at all would pass the line above.
+  assert_eq!(built_and_read("['a']", "(v) => v[0]"), "a");
 }
 
 /// One element that does not cross stops the whole value. Half an array is a
@@ -197,6 +201,7 @@ fn an_array_past_the_entry_ceiling_refuses_by_name() {
     &bound_value_has_too_many_entries(&Atom::from(CARRIED), 2),
   );
   assert!(measured_under(ceilings, LEVELS, &value_of("[1, 2]")).is_ok());
+  assert_eq!(built_and_read("[1, 2]", "(v) => v.join('|')"), "1|2");
 }
 
 /// A key counts against the character ceiling as a value does. A key is text
@@ -215,6 +220,7 @@ fn a_key_past_the_character_ceiling_refuses_by_name() {
     &bound_value_too_large(&Atom::from(CARRIED), 4),
   );
   assert!(measured_under(ceilings, LEVELS, &value_of("{ abcd: 1 }")).is_ok());
+  assert_eq!(built_and_read("{ abcd: 1 }", "(v) => v.abcd"), "1");
 }
 
 /// What `read` — an arrow of one parameter — answers when it is handed the

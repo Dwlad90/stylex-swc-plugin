@@ -53,16 +53,19 @@ fn every_written_array_carries_one_present_element_per_slot() {
     "[{ a: 1 }, { b: [2] }]",
     "[undefined]",
     "[]",
-    // The two shapes that would write one, refused before they become a value.
-    "[...['a']]",
-    "[, 'a']",
   ] {
-    let Some(form) = evaluate_result_vec_to_array_expr(&folds_to_a_list_or_nothing(source)) else {
-      continue;
-    };
-
-    assert_written_form(&form, source);
+    match evaluate_result_vec_to_array_expr(&folds_to_a_list(source)) {
+      Some(form) => assert_written_form(&form, source),
+      None => panic!("expected `{}` to have an array literal form", source),
+    }
   }
+
+  // The two shapes that would write a hole or a spread never become a value at
+  // all, which is the other half of the invariant: it holds because the walk
+  // refuses them, not because the writer skips them. Read through the deopt
+  // rather than through the writer, which is never handed either.
+  assert_deopts("[...['a']]");
+  assert_deopts("[, 'a']");
 }
 
 /// A value the evaluator holds and writes no expression for has no element
@@ -172,16 +175,5 @@ fn assert_element_shapes(source: &str, expected: &[&str]) {
       "expected `{}` to have an array literal form, got {:?}",
       source, other
     ),
-  }
-}
-
-/// The list the source folds to, or the empty list where it refused.
-///
-/// The refusing sources are in the invariant case above for what they must
-/// *not* write, and a refusal is that answer rather than a failure.
-fn folds_to_a_list_or_nothing(source: &str) -> Vec<EvaluateResultValue> {
-  match evaluate_source(source).value {
-    Some(EvaluateResultValue::Vec(items)) => items,
-    _ => Vec::new(),
   }
 }

@@ -222,3 +222,7 @@ fn memoized_fold<T: Memoized>(
     },
   }
 }
+
+#[cfg(test)]
+#[path = "tests/memo_tests.rs"]
+mod memo_tests;

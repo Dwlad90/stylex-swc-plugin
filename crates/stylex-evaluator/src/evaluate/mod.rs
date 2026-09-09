@@ -15,8 +15,12 @@ pub use helpers::evaluate_result_is_nullish;
 use helpers::*;
 pub(crate) use nodes::binary_expression::binary_expr_to_num_or_str;
 pub use nodes::object_expression::spread_own_properties;
+// Named one by one rather than through a glob. The rebuild is a private module,
+// so this is the only route to its items, and a glob would publish whatever is
+// added there next.
 use rebuild::resolve_env_entry_to_result;
-pub use rebuild::*;
+pub(crate) use rebuild::{binds_a_parameter, evaluate_result_as_expr, fold_placeholder_function};
+pub use rebuild::{evaluate_result_vec_to_array_expr, function_fold_to_object};
 
 use indexmap::IndexMap;
 use log::{debug, warn};
@@ -311,10 +315,6 @@ fn _evaluate(
 #[cfg(test)]
 #[path = "tests/source_evaluation.rs"]
 pub(crate) mod source_evaluation;
-
-#[cfg(test)]
-#[path = "tests/memo_tests.rs"]
-mod memo_tests;
 
 #[cfg(test)]
 #[path = "tests/typescript_expression_tests.rs"]

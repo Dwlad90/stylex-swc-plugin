@@ -2521,7 +2521,7 @@
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { content: ('a' === 'a') },\n});\n",
       "origin": "ticket 15, the fourteenth instalment: the pair the numeric reading refused before",
       "expected": "acceptance-divergent",
-      "note": "A comparison folds to a number here and to a boolean there, so this compiler writes `content: \"1px\"` where the reference implementation refuses the declaration -- a style value may be an array, a string or a number, and a boolean is none of them. The reading is this compiler's own and pre-dates ticket 15: `1 === 1` and `1 < 2` answered a number before the equality operators were made to compare two primitives. What that work changed is the set of comparisons that reach the reading, which now holds the pairs neither side has a number for. Recorded rather than defended, as ticket 50 of `.scratch/split-transform-crate`."
+      "note": "The same divergence as `modules-comparison-as-a-whole-value-numbers`, which carries the reasoning. This row is the pair the numeric reading refused before the equality operators were made to compare two primitives, so it is what says the divergence widened rather than moved."
     }
   ]
 }

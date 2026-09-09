@@ -32,6 +32,11 @@ declarations behind without anyone noticing.
 | `fuzz:prototypes`      | the same job                           | ~2s   |
 | `parity:harvest:check` | ahead of this package's `vitest` suite | <1s   |
 
+`parity:probe` is the odd one out and runs nowhere. It takes a JSON object of
+label to module source on the command line, and prints what each compiler
+answers for each one. Use it to measure a divergence before a corpus row or a
+ticket states it.
+
 Timings are wall clock on an Apple Silicon laptop with a warm build.
 
 **Why CI and not a hook.** Both comparison harnesses need a built `dist/` and a

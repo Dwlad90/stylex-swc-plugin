@@ -140,9 +140,12 @@ region. Four answers exist, and they are ranked. Take the first that fits.
    holds the invariant instead. Assert the invariant where it is created --
    a producer test costs no region.
 
-Never reshape a _signature_ to move a region: a parameter a shipped caller
-always fills with the same constant, or a substitution such as `unwrap_or` that
-charges the region to `library/core`, both leave a reader with production code
-whose shape answers to the tool rather than to a caller. A substitution is only
-safe where the answer it puts in cannot fold something the source does not
-describe; where it can, it launders a refusal.
+Never reshape a signature to move a region. Two shapes do this. The first is a
+parameter that every shipped caller fills with the same constant. The second is
+a substitution such as `unwrap_or`, which charges the region to `library/core`.
+Each one gives the reader production code whose shape serves the coverage tool
+and not the caller.
+
+A substitution is safe only if the value it puts in cannot become part of a
+folded answer. If it can, the refusal is hidden and the compiler emits a value
+that the source does not state.

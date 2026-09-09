@@ -1672,6 +1672,10 @@ fn a_named_import_of_a_variable_file_resolves_to_the_group_it_exports() {
 /// because the two spellings are read by separate arms: a reader that had only
 /// the identifier one would find no name to build the group from, and refuse an
 /// import the language accepts.
+///
+/// The local name and the imported name are one string in this shape, so the
+/// group's identity says the file and the prefix are right and nothing about
+/// which of the two names built it. The case below is where they differ.
 #[test]
 fn an_imported_name_spelled_as_a_string_resolves_a_group_too() {
   let result = ModuleState::default()
@@ -1680,6 +1684,24 @@ fn an_imported_name_spelled_as_a_string_resolves_a_group_too() {
     .evaluate(ALIAS_LOCAL, LATER_REFERENCE_SPAN);
 
   assert_group_of(result, ALIAS_LOCAL);
+}
+
+/// The group an alias resolves to is named by the *imported* name, not by the
+/// local one the reference is written with.
+///
+/// `import { other as local }` read through `local` answers the group the other
+/// module exports as `other`, because that name is half of what a variable is
+/// derived from. A reader that took the local name would answer a `ThemeRef`
+/// too, and every CSS variable read off it would name something no stylesheet
+/// declares.
+#[test]
+fn an_alias_resolves_the_group_its_imported_name_exports() {
+  let result = ModuleState::default()
+    .imported_as(ImportedAs::AliasedTo)
+    .resolves_its_imports()
+    .evaluate(ALIAS_LOCAL, LATER_REFERENCE_SPAN);
+
+  assert_group_of(result, SIBLING_IMPORT);
 }
 
 /// Asserts the evaluation answered the group the variable file exports under

@@ -221,29 +221,16 @@ mod the_number_path {
     );
   }
 
-  /// A side past the signed 32-bit range wraps rather than saturating, and a
-  /// count of the word width or more shifts by nothing.
+  /// Two rows the 32-bit reading answers and a 64-bit one does not, which is
+  /// what says this node reaches that reading rather than one of its own.
   ///
-  /// Both are what a Rust cast does not do: `4294967296 | 0` answered
-  /// 2147483647, and `1 << 32` stopped a debug build with a shift overflow.
+  /// Short on purpose. The values every operand shape answers are asserted
+  /// where the reading lives, in `stylex-js`'s own suite, and a second copy of
+  /// the table here would be one more place to edit and one more to forget.
   #[test]
-  fn the_bitwise_operators_wrap_into_thirty_two_bits() {
+  fn the_bitwise_operators_are_read_in_thirty_two_bits() {
     assert_eq!(fold_numbers(BinaryOp::BitOr, 4_294_967_296.0, 0.0), 0.0);
-    assert_eq!(
-      fold_numbers(BinaryOp::BitOr, 3_000_000_000.0, 0.0),
-      -1_294_967_296.0
-    );
-    assert_eq!(fold_numbers(BinaryOp::BitAnd, 1e21, -1.0), -559_939_584.0);
     assert_eq!(fold_numbers(BinaryOp::LShift, 1.0, 32.0), 1.0);
-    assert_eq!(fold_numbers(BinaryOp::LShift, 1.0, 33.0), 2.0);
-    assert_eq!(fold_numbers(BinaryOp::LShift, 1.0, -1.0), -2_147_483_648.0);
-    assert_eq!(fold_numbers(BinaryOp::ZeroFillRShift, 5.0, -1.0), 0.0);
-
-    // A side with no integer answers zero rather than refusing, which is what
-    // `ToInt32` says of a `NaN` and of either infinity.
-    assert_eq!(fold_numbers(BinaryOp::BitOr, f64::NAN, 0.0), 0.0);
-    assert_eq!(fold_numbers(BinaryOp::BitOr, f64::INFINITY, 0.0), 0.0);
-    assert_eq!(fold_numbers(BinaryOp::BitOr, f64::NEG_INFINITY, 0.0), 0.0);
   }
 
   /// The three numbers with no digits, as operands of the arithmetic. Each is a
@@ -492,6 +479,20 @@ mod the_number_path {
     );
 
     assert_refuses_with(num_or_str_path(&bin), LEFT_HAS_NO_VALUE);
+  }
+
+  /// The right side of a `+` names itself, which is the sentence the left one
+  /// above does not prove: `+` is the one operator that reads both sides before
+  /// either is coerced, so each side has a refusal of its own.
+  #[test]
+  fn an_unresolvable_right_operand_of_an_addition_is_refused() {
+    let bin = bin_expr(
+      BinaryOp::Add,
+      create_number_expr(1.0),
+      create_ident_expr("missing"),
+    );
+
+    assert_refuses_with(num_or_str_path(&bin), RIGHT_HAS_NO_VALUE);
   }
 }
 

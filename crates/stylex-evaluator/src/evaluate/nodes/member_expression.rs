@@ -86,19 +86,17 @@ fn index_slot(key: &str) -> Option<usize> {
     .flatten()
 }
 
-/// What an array answers for a slot it was asked for.
+/// What an array answers for a slot that holds no element.
 ///
 /// One function, because "past the end is `undefined`" is a rule about the
 /// language and not about either receiver -- an array literal a fold produced
-/// and an array the evaluator holds as its own value must give the same answer,
-/// and two copies of the bounds check agree only by inspection.
+/// and an array the evaluator holds as its own value must give the same answer.
 ///
-/// The slot is looked up by the caller rather than here, because the two
-/// receivers hold their elements differently: one holds the element and the
-/// other holds a slot that could carry a hole. Neither ever does carry one --
-/// both are [evaluator-written
-/// arrays](../../../CONTEXT.md#evaluator-written-array) -- so each caller reads
-/// its own shape down to an element and hands the same question here.
+/// The caller finds the element and this answers for its absence. The two
+/// receivers hold their elements differently -- one holds the element, and the
+/// other a slot that a hole could occupy -- so each reads its own shape down to
+/// an element first. Neither ever carries a hole, because both are
+/// [evaluator-written arrays](../../../CONTEXT.md#evaluator-written-array).
 fn index_answer<T>(
   element: Option<&T>,
   read: impl FnOnce(&T) -> EvaluateResultValue,
@@ -416,8 +414,9 @@ pub(in super::super) fn evaluate(
               ArrayLikeLookup::Index(slot) => slot,
             };
 
-            // Through the one bounds check, which is what keeps this receiver
-            // and the evaluator's own list answering alike.
+            // A slot the array does not hold answers through the one reading
+            // of absence, which is what keeps this receiver and the
+            // evaluator's own list answering alike.
             Some(index_answer(
               elems.get(slot).and_then(Option::as_ref),
               |element| EvaluateResultValue::Expr(*element.expr.clone()),

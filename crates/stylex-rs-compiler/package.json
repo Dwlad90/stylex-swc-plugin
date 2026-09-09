@@ -40,6 +40,7 @@
     "parity:harvest": "node --import tsx/esm parity/harvest-corpus.ts",
     "parity:harvest:check": "node --import tsx/esm parity/harvest-corpus.ts --check",
     "parity:positions": "node --import tsx/esm parity/parity-positions.ts",
+    "parity:probe": "node --import tsx/esm parity/probe.ts",
     "postbuild": "pnpm run build:ts && pnpm run check:artifacts",
     "prepublishOnly": "napi prepublish --no-gh-release",
     "pretest": "pnpm run parity:harvest:check",

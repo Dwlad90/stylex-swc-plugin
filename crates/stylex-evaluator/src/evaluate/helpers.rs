@@ -736,7 +736,7 @@ fn write_string_of<S: coercions::StringSink>(
 
 pub(super) fn evaluate_theme_ref(
   file_name: &str,
-  export_name: impl Into<String>,
+  export_name: String,
   state: &StateManager,
 ) -> ThemeRef {
   ThemeRef::new(

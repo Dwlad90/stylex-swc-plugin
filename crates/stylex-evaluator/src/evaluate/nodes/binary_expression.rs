@@ -1,6 +1,7 @@
 use super::super::*;
 use super::logical_expression;
 use anyhow::anyhow;
+use stylex_js::operators::evaluate_bin_expr;
 use stylex_macros::as_expr_or_err;
 use swc_core::ecma::ast::{BinExpr, BinaryOp};
 
@@ -169,20 +170,41 @@ fn evaluate_left_operand(
   .map(LeftOperand::Value)
 }
 
-/// Which reading one of the four equality operators takes, and whether it
-/// answers the negation of it. `None` is every other operator.
+/// How one of the four equality operators compares its two sides.
 ///
-/// `!=` sits with the strict pair rather than beside `==`, which is the one row
-/// the reference implementation writes differently from the language: it reads
-/// `!=` as `!==`, and the two part company on exactly the comparisons `==`
-/// coerces. This follows the compiler an author's stylesheet is compared
-/// against rather than the specification.
-fn equality_reading(op: BinaryOp) -> Option<(bool, bool)> {
-  match op {
-    BinaryOp::EqEq => Some((false, false)),
-    BinaryOp::EqEqEq => Some((true, false)),
-    BinaryOp::NotEq | BinaryOp::NotEqEq => Some((true, true)),
-    _ => None,
+/// Three readings for four operators, because `!=` and `!==` take the same one.
+/// That is the one row the reference implementation writes differently from the
+/// language: it reads `!=` as `!==`, so the two answers differ on exactly the
+/// comparisons `==` coerces. This compiler follows the compiler an author's
+/// stylesheet is compared against rather than the specification.
+#[derive(Clone, Copy)]
+enum EqualityReading {
+  /// `==`, which coerces before it compares.
+  Loose,
+  /// `===`, which compares the type before the value.
+  Strict,
+  /// `!=` and `!==`, which answer the negation of `===`.
+  NotStrict,
+}
+
+impl EqualityReading {
+  /// The reading `op` takes, or `None` for every other operator.
+  fn of(op: BinaryOp) -> Option<Self> {
+    match op {
+      BinaryOp::EqEq => Some(Self::Loose),
+      BinaryOp::EqEqEq => Some(Self::Strict),
+      BinaryOp::NotEq | BinaryOp::NotEqEq => Some(Self::NotStrict),
+      _ => None,
+    }
+  }
+
+  /// What the operator answers for these two primitives.
+  fn answers(self, left: &coercions::Primitive, right: &coercions::Primitive) -> bool {
+    match self {
+      Self::Loose => coercions::loose_equals(left, right),
+      Self::Strict => coercions::strict_equals(left, right),
+      Self::NotStrict => !coercions::strict_equals(left, right),
+    }
   }
 }
 
@@ -310,7 +332,7 @@ pub(crate) fn binary_expr_to_num_or_str(
   // hash of the whole subtree and a deep clone of what it remembered.
   let mut compared_right = None;
 
-  if let Some((strict, negated)) = equality_reading(op)
+  if let Some(reading) = EqualityReading::of(op)
     && let Some(left_value) = coercions::to_js_primitive(left_expr)
   {
     let right = evaluate_operand(
@@ -322,14 +344,9 @@ pub(crate) fn binary_expr_to_num_or_str(
     )?;
 
     if let Some(right_value) = primitive_of(&right) {
-      let equal = match strict {
-        true => coercions::strict_equals(&left_value, &right_value),
-        false => coercions::loose_equals(&left_value, &right_value),
-      };
+      let answer = reading.answers(&left_value, &right_value);
 
-      return Result::Ok(BinaryExprType::Number(convert_bool_to_number(
-        equal != negated,
-      )));
+      return Result::Ok(BinaryExprType::Number(convert_bool_to_number(answer)));
     }
 
     compared_right = Some(right);
@@ -351,26 +368,22 @@ pub(crate) fn binary_expr_to_num_or_str(
   let right_num = expr_to_num(right_expr, state, traversal_state, fns)?;
 
   let result = match &op {
-    BinaryOp::Add => left_num + right_num,
-    BinaryOp::Sub => left_num - right_num,
-    BinaryOp::Mul => left_num * right_num,
-    BinaryOp::Div => left_num / right_num,
-    BinaryOp::Mod => left_num % right_num,
-    BinaryOp::Exp => left_num.powf(right_num),
-    // Every bitwise operator reads its sides through `ToInt32` and its count
-    // through `ToShiftCount`, rather than through a Rust cast: a cast saturates
-    // where the language wraps, so `4294967296 | 0` answered 2147483647 where
-    // JavaScript answers 0, and a count of 32 panicked in a debug build where
-    // JavaScript shifts by nothing.
-    BinaryOp::RShift => {
-      f64::from(coercions::to_int32(left_num) >> coercions::to_shift_count(right_num))
-    },
-    BinaryOp::LShift => {
-      f64::from(coercions::to_int32(left_num) << coercions::to_shift_count(right_num))
-    },
-    BinaryOp::BitAnd => f64::from(coercions::to_int32(left_num) & coercions::to_int32(right_num)),
-    BinaryOp::BitOr => f64::from(coercions::to_int32(left_num) | coercions::to_int32(right_num)),
-    BinaryOp::BitXor => f64::from(coercions::to_int32(left_num) ^ coercions::to_int32(right_num)),
+    // An operator whose result is a number is read in `stylex-js`, beside the
+    // coercions it applies -- the arithmetic and the six bitwise ones. One home
+    // for them, because the transform reads a binary expression through the
+    // same function and the two readings have to answer alike.
+    BinaryOp::Add
+    | BinaryOp::Sub
+    | BinaryOp::Mul
+    | BinaryOp::Div
+    | BinaryOp::Mod
+    | BinaryOp::Exp
+    | BinaryOp::RShift
+    | BinaryOp::LShift
+    | BinaryOp::BitAnd
+    | BinaryOp::BitOr
+    | BinaryOp::BitXor
+    | BinaryOp::ZeroFillRShift => evaluate_bin_expr(op, left_num, right_num),
     // `in` and `instanceof` ask a question about an object, which this path has
     // already coerced away to a number. What they answer here is therefore not
     // the operator's meaning; it is left as found, because nothing real StyleX
@@ -381,11 +394,6 @@ pub(crate) fn binary_expr_to_num_or_str(
     BinaryOp::LtEq => convert_bool_to_number(left_num <= right_num),
     BinaryOp::Gt => convert_bool_to_number(left_num > right_num),
     BinaryOp::GtEq => convert_bool_to_number(left_num >= right_num),
-    // `>>>` is the one shift that reads its left side as unsigned, which is the
-    // whole of what parts it from `>>`: `-1 >>> 0` is 4294967295.
-    BinaryOp::ZeroFillRShift => {
-      f64::from(coercions::to_uint32(left_num) >> coercions::to_shift_count(right_num))
-    },
     // Unreachable, on two grounds. The three logical operators are dispatched to
     // their own node before this path can run, and there they return an operand
     // rather than a number. The four equality operators are answered by the

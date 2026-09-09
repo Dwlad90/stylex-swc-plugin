@@ -411,14 +411,13 @@ pub(in super::super) fn evaluate(
               ArrayLikeLookup::Index(slot) => slot,
             };
 
-            // Past the end is `undefined` in the language, and so is a hole.
-            // The two share the answer here because this array has no hole to
-            // tell apart -- what the reading answers in practice is the slot
-            // an author asked for past the last one.
-            Some(match elems.get(slot).and_then(Option::as_ref) {
+            // Through the one bounds check, which is what keeps this receiver
+            // and the evaluator's own list answering alike. A hole reads as
+            // `undefined` here, exactly as a slot past the end does.
+            Some(index_answer(elems, slot, |element| match element {
               Some(element) => EvaluateResultValue::Expr(*element.expr.clone()),
               None => js_undefined(),
-            })
+            }))
           },
           Expr::Object(object) => {
             let ident = match &property {

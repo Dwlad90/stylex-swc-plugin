@@ -241,3 +241,28 @@ fn an_unpaired_surrogate_crosses_as_the_code_unit_it_is() {
     "d8002"
   );
 }
+
+/// A bare primitive crosses on its own, not only as an element of a list.
+///
+/// Every case above carries a *container* -- an array or an object -- so the
+/// bridge reached each primitive through one. A name bound straight to a
+/// number, a boolean or either absent value is the other half, and it is the
+/// half a method called on the name itself reads.
+#[test]
+fn a_bare_primitive_crosses_on_its_own() {
+  for (init, source, expected) in [
+    ("2", "'ab'.repeat(carried)", "abab"),
+    ("true", "String(carried)", "true"),
+    ("false", "carried.toString()", "false"),
+    ("null", "String(carried)", "null"),
+    ("undefined", "String(carried)", "undefined"),
+  ] {
+    assert_eq!(
+      folded_carrying(init, source),
+      expected,
+      "wrong answer for `{}` carrying `{}`",
+      source,
+      init
+    );
+  }
+}

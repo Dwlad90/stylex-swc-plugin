@@ -6,6 +6,13 @@
 //! question mark would be read. Both halves are pinned here, in both the
 //! member and the call spelling, because a chain that stopped early on a base
 //! that *is* there would silently drop a declaration the author wrote.
+//!
+//! **This compiler folds a chain the reference implementation refuses.**
+//! `@stylexjs/babel-plugin` 0.19.0 has no `Optional` handling at all and
+//! answers `Unsupported expression: OptionalMemberExpression` for every base,
+//! so `({ color: 'red' })?.color` gives CSS here and stops a build there. A
+//! deliberate parting rather than the specification, recorded as ticket 50 of
+//! `.scratch/split-transform-crate`.
 
 use super::source_evaluation::*;
 use stylex_constants::constants::evaluation_errors::unsupported_expression;

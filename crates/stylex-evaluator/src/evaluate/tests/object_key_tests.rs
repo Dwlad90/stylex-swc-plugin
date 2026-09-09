@@ -161,7 +161,8 @@ fn a_big_integer_key_written_in_source_names_the_same_string() {
 /// Five spellings, and each of them is a boolean, `null` or an object. The
 /// reference implementation names the property `String(key)` instead, so
 /// `{ [true]: 'red' }` declares `true: red` there. Recorded rather than changed
-/// here: the coercion decides a CSS property name.
+/// here, because the coercion decides a CSS property name -- ticket 49 of
+/// `.scratch/split-transform-crate` settles which answer each key gets.
 #[test]
 fn a_computed_key_that_names_no_string_refuses_as_a_key() {
   for source in ["true", "false", "null", "({})", "!1"] {
@@ -181,7 +182,7 @@ fn a_computed_key_that_names_no_string_refuses_as_a_key() {
 /// Recorded rather than endorsed. A comparison is folded through the numeric
 /// reading of a binary expression before the key is asked for a string, which
 /// is where the `0` comes from. Pinned so the answer changes visibly when the
-/// key coercion is settled.
+/// key coercion is settled by ticket 49 of `.scratch/split-transform-crate`.
 #[test]
 fn a_comparison_read_as_a_key_names_the_number_it_folded_through() {
   assert_eq!(key_of(computed(parse_expr("1 > 2"))), Ok(String::from("0")));

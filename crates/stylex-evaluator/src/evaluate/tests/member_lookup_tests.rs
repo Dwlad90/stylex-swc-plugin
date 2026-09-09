@@ -62,6 +62,11 @@ fn a_read_off_an_absent_key_refuses_rather_than_answering_undefined_twice() {
 /// An index into a string is a single UTF-16 code unit, which can be an
 /// unpaired surrogate that no Rust string holds. Refused rather than
 /// approximated, and the refusal names the index that was asked for.
+///
+/// The reference implementation answers `'abc'[0]` with `a`, so this refuses a
+/// read it folds. Recorded as ticket 50 of `.scratch/split-transform-crate`,
+/// which decides whether to index the code units and refuse only the read that
+/// lands on half an astral character.
 #[test]
 fn an_index_into_a_string_is_refused_by_the_index_it_names() {
   assert_deopt_reason_contains("'abc'[0]", &unreadable_index("0"));
@@ -330,6 +335,12 @@ fn a_private_name_names_no_property() {
 /// A key written as a literal with no string form names no property, so the
 /// read refuses rather than picking one. `true` is such a literal: the reader
 /// answers the three literals that spell a value and nothing else.
+///
+/// The language names the property `String(key)`, so the reference
+/// implementation reads `true` and answers `undefined` -- which lets
+/// `... ?? 'red'` fold there and refuse here. Recorded as ticket 50 of
+/// `.scratch/split-transform-crate`, beside ticket 49, which asks the same
+/// question of a key being written.
 #[test]
 fn a_key_written_as_a_literal_with_no_string_form_refuses() {
   assert_deopt_reason_contains("({ a: { b: 1 } }).a[true]", UNEXPECTED_MEMBER_LOOKUP);

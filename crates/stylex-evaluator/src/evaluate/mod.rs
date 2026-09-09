@@ -313,6 +313,10 @@ fn _evaluate(
 pub(crate) mod source_evaluation;
 
 #[cfg(test)]
+#[path = "tests/memo_tests.rs"]
+mod memo_tests;
+
+#[cfg(test)]
 #[path = "tests/typescript_expression_tests.rs"]
 mod typescript_expression_tests;
 

@@ -246,6 +246,34 @@ mod the_number_path {
     assert_eq!(fold_numbers(BinaryOp::BitOr, f64::NEG_INFINITY, 0.0), 0.0);
   }
 
+  /// The three numbers with no digits, as operands of the arithmetic. Each is a
+  /// value the language answers with rather than a refusal, and `NaN` is the
+  /// one that equals nothing -- including itself.
+  #[test]
+  fn the_numbers_with_no_digits_are_operands_like_any_other() {
+    assert!(fold_numbers(BinaryOp::Add, f64::NAN, 1.0).is_nan());
+    assert!(fold_numbers(BinaryOp::Sub, f64::INFINITY, f64::INFINITY).is_nan());
+    assert_eq!(
+      fold_numbers(BinaryOp::Add, f64::INFINITY, 1.0),
+      f64::INFINITY
+    );
+    assert_eq!(fold_numbers(BinaryOp::Div, 1.0, 0.0), f64::INFINITY);
+
+    // `-0` is what `0 * -1` answers, and `assert_eq!` against `0.0` cannot see
+    // it: the two zeroes compare equal. The sign is what parts `1 / -0` from
+    // `1 / 0`.
+    let negative_zero = fold_numbers(BinaryOp::Mul, 0.0, -1.0);
+
+    assert_eq!(negative_zero, 0.0);
+    assert!(negative_zero.is_sign_negative());
+
+    // Every comparison against `NaN` is false, and the inequality is the one
+    // that is true.
+    assert_eq!(fold_numbers(BinaryOp::EqEqEq, f64::NAN, f64::NAN), 0.0);
+    assert_eq!(fold_numbers(BinaryOp::NotEqEq, f64::NAN, f64::NAN), 1.0);
+    assert_eq!(fold_numbers(BinaryOp::Lt, f64::NAN, 1.0), 0.0);
+  }
+
   #[test]
   fn loose_equality_answers_one_when_equal() {
     assert_eq!(fold_numbers(BinaryOp::EqEq, 5.0, 5.0), 1.0);

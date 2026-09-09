@@ -14,6 +14,7 @@
 use std::rc::Rc;
 
 use crate::evaluate::source_evaluation::*;
+use stylex_constants::constants::evaluation_errors::OBJECT_METHOD;
 use stylex_constants::constants::evaluation_errors::PATH_WITHOUT_NODE;
 use stylex_constants::constants::evaluation_errors::UNDEFINED_CONST;
 use stylex_constants::constants::messages::{
@@ -326,4 +327,24 @@ fn a_property_value_that_answered_nothing_names_its_key_and_shape() {
     "expected the key and the shape to be named, got {:?}",
     reason
   );
+}
+
+/// A shorthand method and an accessor are both refused, and the two are refused
+/// by different arms of the fold.
+///
+/// A method is a property whose value is not one, and it is read off the
+/// property's own kind before the key is asked for; an accessor falls through
+/// to the arm below every readable shape. Every case beside this uses an
+/// accessor, so the first arm was entered by nothing.
+#[test]
+fn a_method_and_an_accessor_are_both_refused() {
+  for object in [
+    "{ a() { return 1; } }",
+    "{ *a() { return 1; } }",
+    "{ async a() { return 1; } }",
+    "{ get a() { return 1; } }",
+    "{ set a(value) {} }",
+  ] {
+    assert_object_refuses(object, OBJECT_METHOD);
+  }
 }

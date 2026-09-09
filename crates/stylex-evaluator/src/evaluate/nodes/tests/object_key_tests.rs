@@ -99,6 +99,31 @@ fn a_computed_key_is_what_it_folds_to() {
   );
 }
 
+/// The three numbers with no digits of their own name themselves, and negative
+/// zero names the same property positive zero does.
+///
+/// Each is a number `f64::to_string` spells differently from the language:
+/// `NaN` and `inf` rather than `NaN` and `Infinity`, and `-0` rather than `0`.
+/// A key is a CSS property name, so a spelling of the compiler's own would
+/// declare a property no browser was asked for.
+#[test]
+fn the_numbers_with_no_digits_name_themselves() {
+  for (value, expected) in [
+    (f64::NAN, "NaN"),
+    (f64::INFINITY, "Infinity"),
+    (f64::NEG_INFINITY, "-Infinity"),
+    (-0.0, "0"),
+    (0.0, "0"),
+  ] {
+    assert_eq!(
+      key_of(computed(create_number_expr(value))),
+      Ok(String::from(expected)),
+      "wrong key for the number {}",
+      expected
+    );
+  }
+}
+
 /// A computed key whose expression resolves to nothing carries that
 /// expression's own refusal, so the sentence names what the author wrote.
 #[test]
@@ -187,4 +212,38 @@ fn a_computed_key_that_names_no_string_refuses_as_a_key() {
 fn a_comparison_read_as_a_key_names_the_number_it_folded_through() {
   assert_eq!(key_of(computed(parse_expr("1 > 2"))), Ok(String::from("0")));
   assert_eq!(key_of(computed(parse_expr("2 > 1"))), Ok(String::from("1")));
+}
+
+// ==================== a key written twice ====================
+
+/// A key written twice is one property carrying the later value, however the
+/// second spelling arrived.
+///
+/// Three routes reach the same set -- a second literal property, a spread that
+/// carries the key, and a computed key that folds to it -- and the fold reads
+/// them at three different moments. The language answers all three the same
+/// way, so a route that kept both would write a property the source does not
+/// describe, and a route that kept the first value would write the wrong one.
+#[test]
+fn a_key_written_twice_keeps_one_property_and_the_later_value() {
+  for source in [
+    "({ a: 1, a: 2 })",
+    "({ a: 1, ...{ a: 2 } })",
+    "({ a: 1, ['a']: 2 })",
+  ] {
+    assert_folds_to_object_keys(source, &["a"]);
+    assert_folds_to_number(&format!("({source}).a"), 2.0);
+  }
+}
+
+/// The empty string is a key like any other, and an array-index key sorts ahead
+/// of it -- which is the order the language answers and the order a class name
+/// is hashed from.
+#[test]
+fn the_empty_string_is_a_key_and_an_index_sorts_ahead_of_it() {
+  assert_folds_to_object_keys("({ '': 1, 0: 2 })", &["0", ""]);
+  assert_folds_to_object_keys("({ 0: 1, '': 2, a: 3 })", &["0", "", "a"]);
+
+  assert_folds_to_number("({ '': 1, 0: 2 })['']", 1.0);
+  assert_folds_to_number("({ '': 1, 0: 2 })[0]", 2.0);
 }

@@ -297,24 +297,20 @@ pub(crate) fn binary_expr_to_num_or_str(
       // string path, which would evaluate both operands a second time -- and
       // would drop the left side's measurement on the way, since only a value
       // can carry one.
+      //
+      // One arm rather than two for the concatenation, so the side is handed on
+      // as it arrived. A measured side is always a string, which is the whole
+      // of what makes the `+` a concatenation whatever the right side holds; an
+      // ordinary side concatenates when either side is one.
       match left {
-        // A measured side is a string, which is the whole of what makes the `+`
-        // a concatenation whatever the right side holds.
-        measured @ LeftOperand::Measured { .. } => {
-          return concatenate(binary_expr, measured, &right, state, traversal_state);
-        },
         LeftOperand::Value(value)
-          if value.as_expr().is_some_and(is_string) || right.as_expr().is_some_and(is_string) =>
+          if !value.as_expr().is_some_and(is_string) && !right.as_expr().is_some_and(is_string) =>
         {
-          return concatenate(
-            binary_expr,
-            LeftOperand::Value(value),
-            &right,
-            state,
-            traversal_state,
-          );
+          value
         },
-        LeftOperand::Value(value) => value,
+        concatenating => {
+          return concatenate(binary_expr, concatenating, &right, state, traversal_state);
+        },
       }
     },
     _ => evaluate_operand(

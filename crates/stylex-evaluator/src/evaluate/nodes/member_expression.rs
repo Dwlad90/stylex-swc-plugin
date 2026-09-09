@@ -111,19 +111,13 @@ fn index_answer<T>(
 /// spread, getter, setter or computed key can appear in it, so there is no
 /// shape here that has to refuse.
 fn fold_entry_value(object: &ObjectLit, key: &str) -> Option<Expr> {
-  object
-    .props
-    .iter()
-    .find_map(|prop| match prop.as_prop().map(Box::as_ref) {
-      Some(Prop::KeyValue(key_value)) if convert_key_value_to_str(key_value) == key => {
-        Some(*key_value.value.clone())
-      },
-      // Not the key this read asks for. A spread and a shape that is not a
-      // key-value pair answer the same way rather than each having an arm,
-      // because this object holds neither and the walk already has a "keep
-      // looking" answer to give.
-      _ => None,
-    })
+  // Read through the one walk of an evaluator-written object, which passes
+  // over whatever is not a key-value pair. This object holds nothing else, so
+  // what the walk skips is a shape that cannot arrive rather than one this read
+  // decides about.
+  written_key_values(object)
+    .find(|key_value| convert_key_value_to_str(key_value) == key)
+    .map(|key_value| *key_value.value.clone())
 }
 
 /// A member read off a value whose only form is the object a fold stands for.
@@ -335,7 +329,7 @@ pub(in super::super) fn evaluate(
     // ThemeRef and may early-deopt via `state.confident` for unrelated deep
     // member accesses.
     if let Some((base_path, parts)) = get_full_member_path(member)
-      && is_theme_ref_base(&base_path)
+      && theme_ref_base(&base_path).is_some()
     {
       let base_object = evaluate_cached(&base_path, state, traversal_state, fns);
 
@@ -426,7 +420,7 @@ pub(in super::super) fn evaluate(
               None => js_undefined(),
             })
           },
-          Expr::Object(ObjectLit { props, .. }) => {
+          Expr::Object(object) => {
             let ident = match &property {
               EvaluateResultValue::Expr(ident) => ident,
               EvaluateResultValue::ThemeRef(theme) => {
@@ -474,16 +468,9 @@ pub(in super::super) fn evaluate(
             // spread, a getter or a shorthand cannot survive into one. So the
             // key is looked up rather than walked with a refusal beside it,
             // and no property is copied to be read.
-            let found = props
-              .iter()
-              .find_map(|prop| match prop.as_prop().map(Box::as_ref) {
-                Some(Prop::KeyValue(key_value))
-                  if ident_string_name == convert_key_value_to_str(key_value) =>
-                {
-                  Some(key_value.value.clone())
-                },
-                _ => None,
-              });
+            let found = written_key_values(object)
+              .find(|key_value| ident_string_name == convert_key_value_to_str(key_value))
+              .map(|key_value| key_value.value.clone());
 
             // A key the object does not carry reads as `undefined`, which is a
             // value the evaluator is confident about rather than one it failed
@@ -710,22 +697,18 @@ pub(in crate::evaluate) fn get_full_member_path(
   }
 }
 
-/// The name a member chain's base is, where it is one — the only shape that can
-/// resolve to a `ThemeRef` in our evaluator (either via `fns.identifiers` for
-/// in-file `defineVars` exports, or via cross-file `*.stylex.js` imports
-/// handled in `evaluate::mod`). Any other expression kind (`Member`, `Call`,
-/// `Object`, `Array`, …) is guaranteed not to produce a `ThemeRef`, so we
-/// skip the fast-path eval to avoid the speculative work the Copilot review
-/// flagged.
+/// The name a member chain's base is, where it is one.
+///
+/// A name is the only base that resolves to a theme group: either through
+/// `fns.identifiers`, for a `defineVars` export in the same file, or through a
+/// `*.stylex.js` import, which `evaluate::mod` reads. Every other kind of
+/// expression -- a member read, a call, an object, an array -- resolves to
+/// something else, so a base that is not a name skips the speculative
+/// evaluation the group read would need.
 ///
 /// The name rather than a `bool`, because the guard's own reading of the same
-/// source needs it — see `Walk::record_a_dotted_theme_read`. One reading of the
-/// rule for both, so widening it here cannot leave the guard behind.
+/// source needs it -- see `Walk::record_a_dotted_theme_read`. One reading of
+/// the rule for both, so widening it here cannot leave the guard behind.
 pub(in crate::evaluate) fn theme_ref_base(base: &Expr) -> Option<&Ident> {
   base.as_ident()
-}
-
-/// Whether `base` is one, for a caller that reads no name off it.
-pub(in crate::evaluate) fn is_theme_ref_base(base: &Expr) -> bool {
-  theme_ref_base(base).is_some()
 }

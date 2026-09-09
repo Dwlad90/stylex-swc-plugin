@@ -84,7 +84,9 @@ pub(super) fn normalize_js_object_method_args(
 ///
 /// One reading for every position that asks, because they ask the same question
 /// of the same value class.
-pub(super) fn written_key_values(object: &ObjectLit) -> impl Iterator<Item = &KeyValueProp> {
+pub(super) fn written_key_values(
+  object: &ObjectLit,
+) -> impl DoubleEndedIterator<Item = &KeyValueProp> {
   object
     .props
     .iter()

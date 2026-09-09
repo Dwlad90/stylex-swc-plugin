@@ -113,10 +113,7 @@ impl Scope<'_> {
     matches!(self, Scope::Names { .. })
   }
 
-  /// What a scope here binds `name` to: the bounds of the value a call measured
-  /// for the callback around it, `Some(None)` where a scope binds the name and
-  /// nothing measured what it holds, and `None` where no scope here binds it at
-  /// all — in which case the name is the module's.
+  /// What a scope here binds `name` to.
   ///
   /// The innermost scope binding the name answers, so a name shadowing a
   /// measured one is read as itself rather than borrowing its bounds.
@@ -125,19 +122,39 @@ impl Scope<'_> {
   /// and then what the name was bound to, and the second answer already carries
   /// the first — while keeping the two apart, which is what stops a parameter
   /// from being read as the module name it shadows.
-  pub(super) fn bound(&self, name: &Atom) -> Option<Option<Bounds>> {
+  pub(super) fn bound(&self, name: &Atom) -> Bound {
     match self {
-      Scope::Module => None,
+      Scope::Module => Bound::NotInScope,
       Scope::Names {
         names,
         elements,
         outer,
       } => match names.iter().position(|bound| bound == name) {
-        Some(at) => Some(elements.holding(at)),
+        Some(at) => match elements.holding(at) {
+          Some(bounds) => Bound::Measured(bounds),
+          None => Bound::Unmeasured,
+        },
         None => outer.bound(name),
       },
     }
   }
+}
+
+/// What a callback scope binds a name to.
+///
+/// Three answers rather than two, and the difference between the last two is
+/// load-bearing: a name no scope binds is the module's to resolve, and a name a
+/// scope binds but nothing measured is bounded by nothing -- which stops the
+/// reading rather than sending it to the module, whose value for the same
+/// spelling the parameter shadows.
+#[derive(Clone, Copy)]
+pub(super) enum Bound {
+  /// No scope here binds the name, so it is the module's.
+  NotInScope,
+  /// A scope binds it and nothing measured what it holds.
+  Unmeasured,
+  /// A scope binds it to a value a call measured for the callback around it.
+  Measured(Bounds),
 }
 
 /// What the guard read about a value it cannot see, because the engine is what

@@ -18,7 +18,7 @@
 
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{ArrayLit, BinExpr, BinaryOp, Expr, ExprOrSpread, KeyValueProp, Lit, Prop, PropName},
+  ecma::ast::{ArrayLit, BinExpr, BinaryOp, Expr, ExprOrSpread, Lit, PropName},
 };
 
 use stylex_ast::ast::convertors::{atom_utf16_length, is_js_undefined};
@@ -30,7 +30,8 @@ use stylex_js::coercions::to_js_number;
 use stylex_utils::number::to_js_string;
 
 use super::super::evaluate_result_as_expr;
-use super::guard::{Bounds, Callback, Reader, Walk, without_parens};
+use super::super::helpers::written_key_values;
+use super::guard::{Bound, Bounds, Callback, Reader, Walk, without_parens};
 use super::{Decline, Depth, lists};
 use stylex_state::evaluate_result_value::EvaluateResultValue;
 
@@ -374,10 +375,12 @@ impl Walk<'_, '_> {
     // that element's index — and one it binds to neither is bounded by nothing,
     // which stops the reading here rather than sending it to the module, whose
     // value for the same spelling the parameter shadows.
-    if let Expr::Ident(ident) = read
-      && let Some(bounds) = self.guard.scope.bound(&ident.sym)
-    {
-      return bounds?.magnitude;
+    if let Expr::Ident(ident) = read {
+      match self.guard.scope.bound(&ident.sym) {
+        Bound::Measured(bounds) => return bounds.magnitude,
+        Bound::Unmeasured => return None,
+        Bound::NotInScope => {},
+      }
     }
 
     match read {
@@ -421,10 +424,12 @@ impl Walk<'_, '_> {
     // module has no value for `x`, so without it there is no length to read.
     // Asked before the resolution rather than left to it — see
     // [`module_value_of`] for why the module could not answer for it anyway.
-    if let Expr::Ident(ident) = read
-      && let Some(bounds) = self.guard.scope.bound(&ident.sym)
-    {
-      return bounds?.characters;
+    if let Expr::Ident(ident) = read {
+      match self.guard.scope.bound(&ident.sym) {
+        Bound::Measured(bounds) => return bounds.characters,
+        Bound::Unmeasured => return None,
+        Bound::NotInScope => {},
+      }
     }
 
     let text = match read {
@@ -957,17 +962,14 @@ fn declared_length_of(resolved: &EvaluateResultValue) -> Declared {
     return Declared::Nothing;
   };
 
-  let length = object
-    .props
-    .iter()
+  // Read through the one walk of an evaluator-written object, which passes over
+  // whatever is not a key-value pair. Such an object holds nothing else -- see
+  // [`is_a_length_key`] -- so what the walk skips is a shape that cannot
+  // arrive. The last such key wins, which is the property the language keeps.
+  let length = written_key_values(object)
     .rev()
-    .find_map(|prop| match prop.as_prop().map(Box::as_ref) {
-      Some(Prop::KeyValue(KeyValueProp { key, value })) if is_a_length_key(key) => Some(value),
-      // Not the `length` key. A spread, a getter and a shorthand answer the same
-      // way rather than each having an arm of its own, because an object the
-      // evaluator hands back holds none of them — see [`is_a_length_key`].
-      _ => None,
-    });
+    .find(|key_value| is_a_length_key(&key_value.key))
+    .map(|key_value| &key_value.value);
 
   // An object with no own `length` is the empty array, and one whose length the
   // language will not accept is a throw it raises itself. Both declare nothing

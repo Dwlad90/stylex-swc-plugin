@@ -91,14 +91,19 @@ fn index_slot(key: &str) -> Option<usize> {
 /// One function, because "past the end is `undefined`" is a rule about the
 /// language and not about either receiver -- an array literal a fold produced
 /// and an array the evaluator holds as its own value must give the same answer,
-/// and two copies of the bounds check agree only by inspection. How an element
-/// is read back is what does differ between them, so each supplies that.
+/// and two copies of the bounds check agree only by inspection.
+///
+/// The slot is looked up by the caller rather than here, because the two
+/// receivers hold their elements differently: one holds the element and the
+/// other holds a slot that could carry a hole. Neither ever does carry one --
+/// both are [evaluator-written
+/// arrays](../../../CONTEXT.md#evaluator-written-array) -- so each caller reads
+/// its own shape down to an element and hands the same question here.
 fn index_answer<T>(
-  elements: &[T],
-  slot: usize,
+  element: Option<&T>,
   read: impl FnOnce(&T) -> EvaluateResultValue,
 ) -> EvaluateResultValue {
-  match elements.get(slot) {
+  match element {
     Some(element) => read(element),
     None => js_undefined(),
   }
@@ -412,12 +417,11 @@ pub(in super::super) fn evaluate(
             };
 
             // Through the one bounds check, which is what keeps this receiver
-            // and the evaluator's own list answering alike. A hole reads as
-            // `undefined` here, exactly as a slot past the end does.
-            Some(index_answer(elems, slot, |element| match element {
-              Some(element) => EvaluateResultValue::Expr(*element.expr.clone()),
-              None => js_undefined(),
-            }))
+            // and the evaluator's own list answering alike.
+            Some(index_answer(
+              elems.get(slot).and_then(Option::as_ref),
+              |element| EvaluateResultValue::Expr(*element.expr.clone()),
+            ))
           },
           Expr::Object(object) => {
             let ident = match &property {
@@ -617,7 +621,7 @@ pub(in super::super) fn evaluate(
           ))),
           // An index reads the element it names, and answers `undefined` past
           // the end.
-          ArrayLikeLookup::Index(slot) => Some(index_answer(&items, slot, Clone::clone)),
+          ArrayLikeLookup::Index(slot) => Some(index_answer(items.get(slot), Clone::clone)),
           ArrayLikeLookup::Missing => Some(js_undefined()),
           lookup @ ArrayLikeLookup::Unreadable => refuse_lookup(path, state, &lookup),
         },

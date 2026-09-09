@@ -359,15 +359,55 @@ mod the_number_path {
   /// A side with no primitive refuses, and names what it could not read rather
   /// than the comparison. The language compares two objects by reference, which
   /// this evaluator does not hold.
+  ///
+  /// Either side, because each is read at its own step: the left before the
+  /// right is evaluated at all, and the right after.
   #[test]
   fn a_side_with_no_primitive_is_refused() {
-    let refused = num_or_str_path(&bin_expr(
-      BinaryOp::EqEq,
-      Expr::Object(create_object_lit(vec![])),
-      create_number_expr(0.0),
-    ));
+    for (left, right) in [
+      (
+        Expr::Object(create_object_lit(vec![])),
+        create_number_expr(0.0),
+      ),
+      (
+        create_number_expr(0.0),
+        Expr::Object(create_object_lit(vec![])),
+      ),
+    ] {
+      assert_refuses_with(
+        num_or_str_path(&bin_expr(BinaryOp::EqEq, left, right)),
+        "is not a number",
+      );
+    }
+  }
 
-    assert_refuses_with(refused, "is not a number");
+  /// A right side that answered nothing at all refuses before either value is
+  /// compared, and the refusal names the side rather than the comparison.
+  #[test]
+  fn an_equality_over_a_right_side_that_answered_nothing_is_refused() {
+    let bin = bin_expr(
+      BinaryOp::EqEqEq,
+      create_number_expr(1.0),
+      create_ident_expr("missing"),
+    );
+
+    assert_refuses_with(num_or_str_path(&bin), RIGHT_NOT_A_NUMBER);
+  }
+
+  /// A right side that answered a value with no expression form is refused
+  /// where it is read, rather than compared as whatever it stands for.
+  ///
+  /// An array is one: the evaluator holds it as its own list, so there is no
+  /// expression to ask for a primitive.
+  #[test]
+  fn an_equality_over_a_right_side_with_no_expression_is_refused() {
+    let bin = bin_expr(
+      BinaryOp::EqEq,
+      create_number_expr(1.0),
+      create_array_expression(vec![]),
+    );
+
+    assert_refuses_with(num_or_str_path(&bin), "Right argument not expression");
   }
 
   #[test]

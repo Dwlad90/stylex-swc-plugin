@@ -221,8 +221,9 @@ fn a_string_receiver_is_read_by_code_unit() {
 
     // The astral character alone, and one with a character after it -- where a
     // character count answered two keys and named the second one `1`, which
-    // the language calls `2`.
-    for receiver in ["'\\u{1F600}'", "'\\u{1F600}a'"] {
+    // the language calls `2`. The third is the half of an astral character
+    // written on its own, which the text holds before any index is read off it.
+    for receiver in ["'\\u{1F600}'", "'\\u{1F600}a'", "'\\ud83d'"] {
       let source = format!("Object.{question}(sx.missing ?? {receiver}).length");
 
       assert_refused_with(

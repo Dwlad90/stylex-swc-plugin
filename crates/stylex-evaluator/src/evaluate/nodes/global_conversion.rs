@@ -212,3 +212,7 @@ impl Conversion {
 #[cfg(test)]
 #[path = "tests/empty_conversion_tests.rs"]
 mod empty_conversion_tests;
+
+#[cfg(test)]
+#[path = "tests/global_conversion_tests.rs"]
+mod global_conversion_tests;

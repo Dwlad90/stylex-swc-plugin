@@ -10,7 +10,7 @@
 //! to read one anyway: they all stand for an object or a function upstream, so
 //! `typeof` and `!` answer for them rather than refusing.
 
-use super::source_evaluation::*;
+use crate::evaluate::source_evaluation::*;
 use stylex_ast::ast::convertors::create_number_expr;
 use stylex_constants::constants::evaluation_errors::{
   NUMERIC_CONVERSION, grown_string_too_large, unsupported_expression, unsupported_operator,

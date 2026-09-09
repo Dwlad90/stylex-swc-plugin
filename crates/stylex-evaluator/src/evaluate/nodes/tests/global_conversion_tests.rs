@@ -12,7 +12,7 @@
 //! refuse in both compilers, and the sentence has to name the global the author
 //! wrote rather than the shape this compiler holds.
 
-use super::source_evaluation::*;
+use crate::evaluate::source_evaluation::*;
 use stylex_ast::ast::convertors::{
   convert_atom_to_string, convert_key_value_to_str, create_number_expr,
 };

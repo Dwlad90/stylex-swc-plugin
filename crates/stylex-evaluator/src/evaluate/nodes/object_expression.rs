@@ -362,3 +362,11 @@ pub(in super::super) fn evaluate(
     order_own_keys(remove_duplicates(props)),
   ))))
 }
+
+#[cfg(test)]
+#[path = "tests/object_shape_tests.rs"]
+mod object_shape_tests;
+
+#[cfg(test)]
+#[path = "tests/object_key_tests.rs"]
+mod object_key_tests;

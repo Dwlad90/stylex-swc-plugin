@@ -14,7 +14,7 @@
 
 use std::rc::Rc;
 
-use super::source_evaluation::*;
+use crate::evaluate::source_evaluation::*;
 use indexmap::IndexMap;
 use stylex_ast::ast::convertors::create_string_expr;
 use stylex_constants::constants::evaluation_errors::{

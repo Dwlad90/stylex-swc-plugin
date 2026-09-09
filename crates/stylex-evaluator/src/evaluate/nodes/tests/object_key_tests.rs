@@ -9,8 +9,8 @@
 //! entry point the transform calls and its refusals are answers rather than
 //! deopts recorded on a state.
 
-use super::source_evaluation::*;
 use crate::evaluate::evaluate_obj_key;
+use crate::evaluate::source_evaluation::*;
 use stylex_constants::constants::messages::{
   EXPRESSION_IS_NOT_A_STRING, ILLEGAL_PROP_VALUE, KEY_IS_NOT_A_STRING,
 };

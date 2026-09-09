@@ -198,3 +198,7 @@ fn evaluate_unary_numeric_of(
 #[cfg(test)]
 #[path = "tests/type_of_tests.rs"]
 mod type_of_tests;
+
+#[cfg(test)]
+#[path = "tests/unary_operator_tests.rs"]
+mod unary_operator_tests;

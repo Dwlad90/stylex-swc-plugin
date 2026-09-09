@@ -24,6 +24,24 @@ Follow these steps in order when testing code for a task:
   tests over the whole workspace, as the `tests-rust` and `tests-rust-doc` legs
   of `pr-validation` do.
 
+## Where a Rust test module lives
+
+A crate keeps its test modules in a `tests/` directory beside the sources they
+read, registered from the source file itself:
+
+```rust
+#[cfg(test)]
+#[path = "tests/type_of_tests.rs"]
+mod type_of_tests;
+```
+
+The `#[path]` is relative to the **registering** file, so which directory a
+suite lands in is decided by which file registers it. One rule: a suite for
+`nodes/X.rs` lives in `nodes/tests/` and is registered by `X.rs`. A suite
+registered from a parent module lands in the parent's `tests/` directory
+instead, which puts two suites for one source module in two places and leaves a
+reader searching both.
+
 ## Testing across the NAPI boundary
 
 The JS suites import `@stylexswc/rs-compiler`, which loads the prebuilt

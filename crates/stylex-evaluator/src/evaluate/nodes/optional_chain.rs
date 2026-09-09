@@ -43,3 +43,7 @@ pub(in super::super) fn evaluate(
     }
   }
 }
+
+#[cfg(test)]
+#[path = "tests/optional_chain_tests.rs"]
+mod optional_chain_tests;

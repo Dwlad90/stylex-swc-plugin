@@ -13,7 +13,7 @@
 
 use std::rc::Rc;
 
-use super::source_evaluation::*;
+use crate::evaluate::source_evaluation::*;
 use stylex_constants::constants::evaluation_errors::PATH_WITHOUT_NODE;
 use stylex_constants::constants::evaluation_errors::UNDEFINED_CONST;
 use stylex_constants::constants::messages::{

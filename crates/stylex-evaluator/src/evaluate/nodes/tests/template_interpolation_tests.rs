@@ -12,7 +12,7 @@
 //! evaluator closure there, which is an internal artifact with no business in a
 //! stylesheet.
 
-use super::source_evaluation::*;
+use crate::evaluate::source_evaluation::*;
 use stylex_constants::constants::evaluation_errors::TEMPLATE_LITERAL;
 use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
 

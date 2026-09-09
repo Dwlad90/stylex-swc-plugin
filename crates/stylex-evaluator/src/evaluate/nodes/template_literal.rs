@@ -87,3 +87,7 @@ pub(in super::super) fn evaluate_quasis(
     &strng.into_text(),
   )))
 }
+
+#[cfg(test)]
+#[path = "tests/template_interpolation_tests.rs"]
+mod template_interpolation_tests;

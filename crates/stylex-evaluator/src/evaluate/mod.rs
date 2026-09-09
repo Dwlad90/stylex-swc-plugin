@@ -317,10 +317,6 @@ pub(crate) mod source_evaluation;
 mod typescript_expression_tests;
 
 #[cfg(test)]
-#[path = "tests/optional_chain_tests.rs"]
-mod optional_chain_tests;
-
-#[cfg(test)]
 #[path = "tests/own_arrow_tests.rs"]
 mod own_arrow_tests;
 
@@ -329,20 +325,12 @@ mod own_arrow_tests;
 mod injected_function_map_tests;
 
 #[cfg(test)]
-#[path = "tests/global_conversion_tests.rs"]
-mod global_conversion_tests;
-
-#[cfg(test)]
 #[path = "tests/folded_function_callee_tests.rs"]
 mod folded_function_callee_tests;
 
 #[cfg(test)]
 #[path = "tests/folded_member_read_tests.rs"]
 mod folded_member_read_tests;
-
-#[cfg(test)]
-#[path = "tests/member_lookup_tests.rs"]
-mod member_lookup_tests;
 
 #[cfg(test)]
 #[path = "tests/carried_value_tests.rs"]
@@ -365,28 +353,12 @@ mod amplified_call_tests;
 mod declined_call_dispatch_tests;
 
 #[cfg(test)]
-#[path = "tests/object_shape_tests.rs"]
-mod object_shape_tests;
-
-#[cfg(test)]
-#[path = "tests/object_key_tests.rs"]
-mod object_key_tests;
-
-#[cfg(test)]
 #[path = "tests/concatenation_chain_tests.rs"]
 mod concatenation_chain_tests;
 
 #[cfg(test)]
 #[path = "tests/engine_stylex_function_tests.rs"]
 mod engine_stylex_function_tests;
-
-#[cfg(test)]
-#[path = "tests/unary_operator_tests.rs"]
-mod unary_operator_tests;
-
-#[cfg(test)]
-#[path = "tests/template_interpolation_tests.rs"]
-mod template_interpolation_tests;
 
 #[cfg(test)]
 #[path = "tests/object_statics_over_a_declined_receiver_tests.rs"]

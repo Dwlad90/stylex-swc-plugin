@@ -14,7 +14,7 @@
 //! deliberate parting rather than the specification, recorded as ticket 50 of
 //! `.scratch/split-transform-crate`.
 
-use super::source_evaluation::*;
+use crate::evaluate::source_evaluation::*;
 use stylex_constants::constants::evaluation_errors::unsupported_expression;
 
 /// A base the evaluator holds as one of its own values -- an array is its own

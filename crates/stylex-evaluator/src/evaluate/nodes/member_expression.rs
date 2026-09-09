@@ -712,3 +712,7 @@ pub(in crate::evaluate) fn get_full_member_path(
 pub(in crate::evaluate) fn theme_ref_base(base: &Expr) -> Option<&Ident> {
   base.as_ident()
 }
+
+#[cfg(test)]
+#[path = "tests/member_lookup_tests.rs"]
+mod member_lookup_tests;

@@ -195,7 +195,7 @@ pub fn transform_bin_expr_to_number(
   let Some(right) = evaluate_cached(&bin.right, state, traversal_state, fns) else {
     {
       stylex_panic!(
-        "Left expression is not a number: {}",
+        "Right expression is not a number: {}",
         get_expr_node_kind(&bin.right)
       )
     }

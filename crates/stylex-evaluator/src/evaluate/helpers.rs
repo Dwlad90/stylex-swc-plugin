@@ -35,21 +35,7 @@ pub(super) fn normalize_js_object_method_args(
   cached_arg: Option<EvaluateResultValue>,
 ) -> Option<ObjectLit> {
   cached_arg.and_then(|arg| match arg {
-    EvaluateResultValue::Expr(expr) => expr.as_object().cloned().or_else(|| {
-      if let Expr::Lit(Lit::Str(ref strng)) = expr {
-        let keys = convert_atom_to_string(&strng.value)
-          .chars()
-          .enumerate()
-          .map(|(i, c)| {
-            create_ident_key_value_prop(&i.to_string(), create_string_expr(&c.to_string()))
-          })
-          .collect::<Vec<PropOrSpread>>();
-
-        Some(create_object_lit(keys))
-      } else {
-        None
-      }
-    }),
+    EvaluateResultValue::Expr(expr) => expr.as_object().cloned(),
 
     EvaluateResultValue::Vec(arr) => {
       let mut props = Vec::with_capacity(arr.len());
@@ -261,6 +247,12 @@ pub(super) fn normalize_object_method_receiver(
     return ObjectMethodReceiver::Object(object);
   }
 
+  // A string carries its own keys -- its indices -- and is read ahead of the
+  // object arm below, which has no answer for one.
+  if let Some(receiver) = string_receiver(cached_arg.as_ref()) {
+    return receiver;
+  }
+
   if let Some(object) = normalize_js_object_method_args(cached_arg) {
     return ObjectMethodReceiver::Object(object);
   }
@@ -269,6 +261,48 @@ pub(super) fn normalize_object_method_receiver(
     Some(array) => normalize_js_object_method_array_arg(array, traversal_state, functions),
     None => ObjectMethodReceiver::NoOwnKeys,
   }
+}
+
+/// The own keys of a string receiver -- its indices -- and the character each
+/// one holds.
+///
+/// `None` is a receiver that is not a string, which the arms beside the call
+/// read instead.
+///
+/// The indices are the string's UTF-16 code units, which is what the language
+/// counts: `Object.keys('\u{1F600}')` is `['0', '1']` for one character.
+/// Counted in Rust characters instead, an astral character answered one key and
+/// shifted every index after it.
+///
+/// A code unit that is half an astral character is a lone surrogate, which no
+/// Rust string holds, so the whole receiver is refused rather than answered
+/// with a key list that is short or a character that was never written. That is
+/// the reading a spread of the same string already takes.
+fn string_receiver(value: Option<&EvaluateResultValue>) -> Option<ObjectMethodReceiver> {
+  let EvaluateResultValue::Expr(Expr::Lit(Lit::Str(strng))) = value? else {
+    return None;
+  };
+
+  // A text with no `str` already holds a lone surrogate, before any index is
+  // read off it.
+  let Some(text) = strng.value.as_str() else {
+    return Some(ObjectMethodReceiver::Unreadable);
+  };
+
+  let mut props = Vec::with_capacity(text.len());
+
+  for (index, unit) in text.encode_utf16().enumerate() {
+    let Some(character) = char::from_u32(u32::from(unit)) else {
+      return Some(ObjectMethodReceiver::Unreadable);
+    };
+
+    props.push(create_ident_key_value_prop(
+      &index.to_string(),
+      create_string_expr(&character.to_string()),
+    ));
+  }
+
+  Some(ObjectMethodReceiver::Object(create_object_lit(props)))
 }
 
 fn normalize_js_object_method_array_arg(

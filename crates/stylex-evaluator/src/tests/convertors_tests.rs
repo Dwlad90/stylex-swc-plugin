@@ -1570,7 +1570,7 @@ mod refusals {
   /// side that folds to nothing stops the build -- naming the side rather than
   /// the operator.
   #[test]
-  #[should_panic(expected = "is not a number")]
+  #[should_panic(expected = "Left expression is not a number: Identifier")]
   fn a_left_side_that_folds_to_nothing_stops_the_build() {
     let mut state = EvaluationState::new();
     let mut traversal_state = StateManager::default();
@@ -1588,8 +1588,10 @@ mod refusals {
     );
   }
 
+  /// The right side names itself, which is the half a substring assertion
+  /// cannot see: this sentence read `Left` while reporting on the right side.
   #[test]
-  #[should_panic(expected = "is not a number")]
+  #[should_panic(expected = "Right expression is not a number: Identifier")]
   fn a_right_side_that_folds_to_nothing_stops_the_build() {
     let mut state = EvaluationState::new();
     let mut traversal_state = StateManager::default();

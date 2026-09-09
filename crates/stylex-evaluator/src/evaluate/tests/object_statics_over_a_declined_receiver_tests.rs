@@ -202,6 +202,38 @@ fn an_evaluated_string_or_array_is_read_from_the_value() {
   }
 }
 
+/// A string is indexed by UTF-16 code unit, which is what the language counts.
+///
+/// The two readings agree for every string inside the Basic Multilingual Plane
+/// and part company on an astral character: it is two code units and one Rust
+/// character, so a character count answered one key where the language answers
+/// two, and shifted every index after it.
+///
+/// Each code unit of an astral character is a lone surrogate, which no Rust
+/// string holds, so the receiver is refused rather than answered with a key
+/// list that is short or a character nobody wrote. A spread of the same string
+/// already reads it that way.
+#[test]
+fn a_string_receiver_is_read_by_code_unit() {
+  for question in QUESTIONS {
+    assert_eq!(counted_past_the_fold(question, "''"), 0.0);
+    assert_eq!(counted_past_the_fold(question, "'\\u00e9'"), 1.0);
+
+    // The astral character alone, and one with a character after it -- where a
+    // character count answered two keys and named the second one `1`, which
+    // the language calls `2`.
+    for receiver in ["'\\u{1F600}'", "'\\u{1F600}a'"] {
+      let source = format!("Object.{question}(sx.missing ?? {receiver}).length");
+
+      assert_refused_with(
+        &evaluated_against_a_function_fold(&source),
+        &source,
+        ILLEGAL_PROP_ARRAY_VALUE,
+      );
+    }
+  }
+}
+
 /// `null` written as an element is a value rather than an absence, so it keeps
 /// its own key -- unlike the hole above it, which occupies a slot and carries
 /// none.

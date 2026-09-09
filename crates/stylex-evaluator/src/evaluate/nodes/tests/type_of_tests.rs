@@ -12,7 +12,7 @@ use super::*;
 use stylex_ast::ast::convertors::{create_bool_expr, create_null_expr, create_string_expr};
 use stylex_ast::ast::factories::{create_array_expression, create_object_lit};
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::ThisExpr;
+use swc_core::ecma::ast::{BigInt, ThisExpr};
 
 /// The kind `value` reads as, for a case that asserts one.
 #[track_caller]
@@ -39,6 +39,22 @@ fn every_primitive_reads_as_its_own_kind() {
     "boolean"
   );
   assert_eq!(kind_of(js_undefined()), "undefined");
+}
+
+/// A big integer is a primitive of its own, which the `ToObject` bridge would
+/// have named `object`. No source hands one over -- both compilers refuse a
+/// big-integer literal before it can become a value -- but the reading is asked
+/// about an expression rather than about a list of kinds, and naming this one
+/// wrongly is the one way it can be wrong rather than absent.
+#[test]
+fn a_big_integer_reads_as_its_own_kind() {
+  let big_integer = Expr::Lit(Lit::BigInt(BigInt {
+    span: DUMMY_SP,
+    value: Box::new(1.into()),
+    raw: None,
+  }));
+
+  assert_eq!(kind_of(EvaluateResultValue::Expr(big_integer)), "bigint");
 }
 
 /// `null` is an object, and so is every other expression an evaluated value

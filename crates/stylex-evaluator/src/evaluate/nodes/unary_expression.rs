@@ -119,6 +119,13 @@ fn type_of(value: &EvaluateResultValue) -> Option<&'static str> {
     Expr::Lit(Lit::Str(_)) => Some("string"),
     Expr::Lit(Lit::Bool(_)) => Some("boolean"),
     Expr::Lit(Lit::Num(_)) => Some("number"),
+    // A big integer is a primitive of its own, and the only value whose kind
+    // the `ToObject` bridge below would name `object` wrongly -- every other
+    // literal it reads really is one. No source reaches it, because both
+    // compilers refuse a big-integer literal before the value walk sees it; the
+    // arm starts to matter the day the dispatch admits one, which is the same
+    // day the bridge would begin answering `object` for it.
+    Expr::Lit(Lit::BigInt(_)) => Some("bigint"),
     Expr::Ident(ident) if is_js_undefined(ident) => Some("undefined"),
     // Every other kind an evaluated value holds is an object or a function
     // upstream, and the same bridge decides which: `null` is the object

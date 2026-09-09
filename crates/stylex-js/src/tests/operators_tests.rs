@@ -205,6 +205,51 @@ mod evaluate_bin_expr_tests {
     assert_eq!(evaluate_bin_expr(BinaryOp::Exp, 2.0, -1.0), 0.5);
   }
 
+  /// The three rows where IEEE `pow` and `Number::exponentiate` disagree.
+  /// `pow` answers `1` for a base of 1 whatever the exponent, and for a base of
+  /// magnitude 1 under an infinite exponent; the language answers `NaN`.
+  #[test]
+  fn exponentiation_answers_not_a_number_where_the_language_does() {
+    let cases: [(f64, f64); 4] = [
+      (1.0, f64::NAN),
+      (-1.0, f64::INFINITY),
+      (1.0, f64::INFINITY),
+      (-1.0, f64::NEG_INFINITY),
+    ];
+
+    for (base, exponent) in cases {
+      assert!(
+        evaluate_bin_expr(BinaryOp::Exp, base, exponent).is_nan(),
+        "{} ** {}",
+        base,
+        exponent
+      );
+    }
+  }
+
+  /// A zero exponent answers `1` whatever the base, `NaN` included -- which is
+  /// why it is read before the `NaN` rule above.
+  #[test]
+  fn exponentiation_by_nought_is_one_whatever_the_base() {
+    assert_eq!(evaluate_bin_expr(BinaryOp::Exp, f64::NAN, 0.0), 1.0);
+    assert_eq!(evaluate_bin_expr(BinaryOp::Exp, f64::INFINITY, 0.0), 1.0);
+    assert_eq!(evaluate_bin_expr(BinaryOp::Exp, 2.0, -0.0), 1.0);
+  }
+
+  /// The rows IEEE `pow` and the language agree on, kept beside the three they
+  /// do not: an overflow is infinite, and a fractional exponent over a negative
+  /// base has no real answer.
+  #[test]
+  fn exponentiation_keeps_the_rows_the_two_readings_share() {
+    assert_eq!(evaluate_bin_expr(BinaryOp::Exp, 2.0, 1024.0), f64::INFINITY);
+    assert!(evaluate_bin_expr(BinaryOp::Exp, -8.0, 1.0 / 3.0).is_nan());
+    assert_eq!(
+      evaluate_bin_expr(BinaryOp::Exp, 2.0, f64::INFINITY),
+      f64::INFINITY
+    );
+    assert_eq!(evaluate_bin_expr(BinaryOp::Exp, 0.5, f64::INFINITY), 0.0);
+  }
+
   #[test]
   fn right_shift_negative_number() {
     // -16 >> 2 == -4 in two's complement

@@ -8,10 +8,12 @@ pub(in super::super) fn evaluate(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
-  // One question rather than two, for a shape no source reaches. A test that
-  // answers nothing while the walk stays confident could only come out of the
-  // memo, and a warmed memo was probed: the test refuses before this line
-  // every time, because the subtree the memo holds records its own refusal.
+  // One question rather than two. A test that answers nothing is a test with no
+  // value to read the truthiness of, whether it recorded its own refusal or came
+  // back empty out of the memo -- a memo answers `None` confidently, so the `?`
+  // is not standing in for a value guard here. The absence is carried up and the
+  // dispatch above names the node, which is where every arm that answers nothing
+  // is named.
   //
   // The reading below is the other half, and it is not the same question: a
   // value that *is* there and has no truthiness refuses there rather than here.

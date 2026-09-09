@@ -11,7 +11,7 @@ const DEFAULT_DEOPT_REASON: &str = "unknown error";
 /// SWC has no such node — `||`, `&&` and `??` arrive as binary expressions
 /// alongside `+` and `>>` — so the binary-expression node asks for this before
 /// doing anything else, and hands the three it names over here.
-#[derive(Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub(in super::super) enum LogicalOp {
   Or,
   And,

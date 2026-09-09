@@ -198,11 +198,18 @@ fn an_unresolvable_right_side_deopts_an_undecided_or() {
 
 /// Only the three the reference implementation puts on a node of their own are
 /// recognised; every other binary operator belongs to the paths that coerce.
+///
+/// Each is named against the reading it takes rather than against "some
+/// reading", because a mapping that sent `||` to `And` would satisfy the weaker
+/// assertion and fold the wrong operand.
 #[test]
 fn only_the_three_logical_operators_are_recognised() {
-  assert!(LogicalOp::of(BinaryOp::LogicalOr).is_some());
-  assert!(LogicalOp::of(BinaryOp::LogicalAnd).is_some());
-  assert!(LogicalOp::of(BinaryOp::NullishCoalescing).is_some());
+  assert_eq!(LogicalOp::of(BinaryOp::LogicalOr), Some(LogicalOp::Or));
+  assert_eq!(LogicalOp::of(BinaryOp::LogicalAnd), Some(LogicalOp::And));
+  assert_eq!(
+    LogicalOp::of(BinaryOp::NullishCoalescing),
+    Some(LogicalOp::Nullish)
+  );
 
   for op in [BinaryOp::Add, BinaryOp::Sub, BinaryOp::EqEqEq, BinaryOp::In] {
     assert!(

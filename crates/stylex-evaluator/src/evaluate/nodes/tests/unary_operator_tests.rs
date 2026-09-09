@@ -231,6 +231,33 @@ fn a_numeric_operator_refuses_a_text_past_the_ceiling() {
   );
 }
 
+/// An operand that *answers* nothing refuses, which is the other half of the
+/// case below: there the operand is a value that is not there, and here it is a
+/// subtree that resolved to nothing at all.
+///
+/// The two are told apart by where the refusal comes from. A warmed memo answers
+/// `None` confidently for the subtree below, so the `?` in each node fires
+/// without the operand having refused first, and the sentence is the one the
+/// dispatch's own tail records for the operand's kind -- not the one the node
+/// invents for a value it cannot read. Both spellings have to refuse, and the
+/// reason each node asks one question rather than two is that the two absences
+/// are the same absence.
+#[test]
+fn an_operator_over_an_operand_that_answered_nothing_refuses() {
+  for source in [
+    "typeof ((() => 1) + 1)",
+    "!((() => 1) + 1)",
+    "-((() => 1) + 1)",
+    "((() => 1) + 1) ? 'red' : 'blue'",
+  ] {
+    assert_refused_with(
+      &evaluated_after(UNRESOLVED_MEMO_WARM, source),
+      source,
+      &unsupported_expression("BinaryExpression"),
+    );
+  }
+}
+
 /// A value that is not there has no truthiness, no kind and no number, and each
 /// operator refuses rather than guessing one. Read as "absent" it would be
 /// falsy, `"undefined"` and `NaN`; read as "a value nothing resolved" it has

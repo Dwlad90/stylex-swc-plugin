@@ -75,9 +75,11 @@ pub(in super::super) fn evaluate(
       //
       // The element itself stands in for a refusal that recorded no path, which
       // no refusal does: every path that clears confidence goes through `deopt`,
-      // and `deopt` records the path with the reason. Written as a fallback
-      // rather than as an arm because the arm could not be reached to be tested,
-      // and an arm no case can enter is a claim nothing checks.
+      // and `deopt` records the path with the reason. Written as a substitution
+      // rather than as an arm because what is substituted is a report *position*
+      // and never part of a folded answer -- the escape clause
+      // `guidelines/stack/RUST.md` names for exactly this shape -- and an arm no
+      // case can enter is a claim nothing checks.
       deopt(
         elem_value.deopt.as_ref().unwrap_or(&elem.expr),
         state,

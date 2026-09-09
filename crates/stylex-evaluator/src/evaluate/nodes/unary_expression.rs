@@ -36,15 +36,14 @@ pub(in super::super) fn evaluate(
     }
   }
 
-  // One question rather than two, for a shape no source reaches twice.
+  // One question rather than two. An operand that answers nothing is an operand
+  // with no value to read a kind or a number off, whether it recorded its own
+  // refusal or came back empty out of the memo -- a memo answers `None`
+  // confidently, so the `?` is not standing in for a value guard here. The
+  // absence is carried up and the dispatch above names the node.
   //
-  // The memo is the one thing that answers nothing while the walk stays
-  // confident, and a warmed memo was probed here: every operator over the
-  // subtree it holds refuses before this line, because the operand itself
-  // records the refusal. So the second arm is entered from no source, and
-  // there is one answer rather than two. `typeof someObject.method` is
-  // ordinary JavaScript, and what it reads is the member's own refusal rather
-  // than one this node invents.
+  // `typeof someObject.method` is ordinary JavaScript, and what it reads is the
+  // member's own refusal rather than one this node invents.
   let arg = evaluate_cached(argument, state, traversal_state, fns)?;
 
   // `!` is answered off the evaluated value rather than off an expression form

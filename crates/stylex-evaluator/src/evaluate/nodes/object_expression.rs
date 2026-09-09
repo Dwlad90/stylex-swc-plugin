@@ -223,7 +223,10 @@ pub(in super::super) fn evaluate(
                   // Every refusal records the expression it happened at, so the
                   // key's own path stands in only for a refusal that recorded
                   // none -- which no refusal does, since they all go through
-                  // `deopt` and `deopt` writes the path with the reason.
+                  // `deopt` and `deopt` writes the path with the reason. Safe
+                  // as a substitution because what it substitutes is a report
+                  // position and never part of a folded answer, which is the
+                  // escape clause `guidelines/stack/RUST.md` names for it.
                   let deopt_path = evaluated_result.deopt.unwrap_or_else(refusal_path);
 
                   return deopt(&deopt_path, state, &deopt_reason);
@@ -279,7 +282,10 @@ pub(in super::super) fn evaluate(
               // divergence is kept rather than closed.
               // Every refusal records the expression it happened at, so the
               // object's own path stands in only for a refusal that recorded
-              // none -- which no refusal does.
+              // none -- which no refusal does. Safe as a substitution because
+              // what it substitutes is a report position and never part of a
+              // folded answer, which is the escape clause
+              // `guidelines/stack/RUST.md` names for it.
               let deopt_path = eval_value.deopt.unwrap_or_else(refusal_path);
 
               return deopt(&deopt_path, state, &format!("{} > {}", key, base_reason));

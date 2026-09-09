@@ -18,7 +18,47 @@ use boa_engine::{Context, JsObject, JsValue, Source};
 
 use super::super::engine_reads::{answered_by, assert_refused_by_rule, assert_refused_saying};
 
-use stylex_state::theme_ref::{ThemeRef, VarNaming};
+use stylex_state::theme_ref::{ThemeRef, VarNaming, var_group_member};
+use stylex_utils::identifier::gen_file_based_identifier;
+
+/// The identity every group below is built from. One spelling, because the
+/// variables a case reads are derived from it -- a second spelling would let a
+/// case compare an answer against a group nobody built.
+const THEME_FILE: &str = "vars.stylex.js";
+const THEME_EXPORT: &str = "vars";
+const THEME_PREFIX: &str = "x";
+
+/// The identity itself.
+fn theme_ref() -> ThemeRef {
+  ThemeRef::new(THEME_FILE, THEME_EXPORT, THEME_PREFIX)
+}
+
+/// The text a group answers when it is asked what it is.
+///
+/// Derived rather than written down: a hash spelled out in a case reads to the
+/// next person as a fact about the group, and it is a fact about the hashing --
+/// so a change of either looks the same, and only one of them is a defect.
+fn group_hash() -> String {
+  theme_ref().to_string_value()
+}
+
+/// The variable a group answers for one member, under `naming`.
+///
+/// Derived for the reason [`group_hash`] is: a variable written down in a case
+/// says nothing about which half of the derivation it came from.
+fn variable_of(key: &str, naming: VarNaming) -> String {
+  var_group_member(
+    &gen_file_based_identifier(THEME_FILE, THEME_EXPORT, None),
+    THEME_PREFIX,
+    key,
+    naming,
+  )
+}
+
+/// The naming a project takes by default, which every case but one reads.
+fn default_naming() -> VarNaming {
+  VarNaming::from_flags(false, false)
+}
 
 /// The group every case below reads, under the identity the transform tests use
 /// and under the naming the case names.
@@ -30,7 +70,7 @@ fn group_named(context: &mut Context, prefixes: &[&str], naming: VarNaming) -> J
 
   let prefixes = prefixes.iter().map(|name| Atom::from(*name)).collect();
 
-  let theme = ThemeRef::new("vars.stylex.js", "vars", "x");
+  let theme = theme_ref();
 
   match var_group(&builder, &theme, naming, Some(&prefixes), context) {
     Ok(value) => value,
@@ -41,7 +81,7 @@ fn group_named(context: &mut Context, prefixes: &[&str], naming: VarNaming) -> J
 /// The same group under the naming a project takes by default, which is what
 /// every case that is not about the naming reads.
 fn group(context: &mut Context, prefixes: &[&str]) -> JsValue {
-  group_named(context, prefixes, VarNaming::from_flags(false, false))
+  group_named(context, prefixes, default_naming())
 }
 
 /// An object whose one key throws when it is read.
@@ -81,12 +121,15 @@ fn asked(source: &str, prefixes: &[&str]) -> String {
 /// group a proxy rather than an object.
 #[test]
 fn a_member_nobody_declared_answers_a_variable() {
-  assert_eq!(asked("(g) => g.primary", &[]), "var(--x1ineb92)");
+  assert_eq!(
+    asked("(g) => g.primary", &[]),
+    variable_of("primary", default_naming())
+  );
 
   let unwritten = asked("(g) => g.anythingAtAll", &[]);
 
   assert!(
-    unwritten.starts_with("var(--x") && unwritten != "var(--x1ineb92)",
+    unwritten.starts_with("var(--x") && unwritten != variable_of("primary", default_naming()),
     "expected a variable of its own for a name nobody declared, got `{}`",
     unwritten
   );
@@ -116,7 +159,7 @@ fn a_group_answers_its_own_hash_however_it_is_asked() {
     "(g) => [g].join('')",
     "(g) => g + ''",
   ] {
-    assert_eq!(asked(source, &[]), "xop34xu", "asked by `{}`", source);
+    assert_eq!(asked(source, &[]), group_hash(), "asked by `{}`", source);
   }
 }
 
@@ -246,7 +289,7 @@ fn a_group_hands_the_bridge_its_own_text() {
   };
 
   match var_group_text(&object, &Atom::from("map"), &mut context) {
-    Ok(text) => assert_eq!(text.to_std_string_lossy(), "xop34xu"),
+    Ok(text) => assert_eq!(text.to_std_string_lossy(), group_hash()),
     Err(_) => panic!("the group would not say what it is"),
   }
 }
@@ -301,7 +344,7 @@ fn the_naming_crosses_the_bridge_and_reaches_the_derivation() {
 
   assert_eq!(
     answered_by(&mut context, "(g) => g.primary", &[group]),
-    "var(--primary-x1ineb92)"
+    variable_of("primary", VarNaming::from_flags(true, true))
   );
 }
 
@@ -427,7 +470,7 @@ fn a_derivation_whose_identity_is_not_text_throws() {
 /// is read as the identity it begins with rather than refused.
 #[test]
 fn a_derivation_reads_the_identity_a_longer_list_begins_with() {
-  let theme = ThemeRef::new("vars.stylex.js", "vars", "x");
+  let theme = theme_ref();
 
   let identity = [
     JsValue::from(JsString::from(theme.base_id())),
@@ -443,7 +486,7 @@ fn a_derivation_reads_the_identity_a_longer_list_begins_with() {
   match derive(&JsValue::undefined(), &identity, &mut context) {
     Ok(named) => assert_eq!(
       named.as_string().map(|named| named.to_std_string_lossy()),
-      Some("var(--x1ineb92)".to_string())
+      Some(variable_of("primary", default_naming()))
     ),
     Err(error) => panic!("the derivation would not read a longer list: {}", error),
   }

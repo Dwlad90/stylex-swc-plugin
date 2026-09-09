@@ -169,59 +169,34 @@ fn evaluate_left_operand(
   .map(LeftOperand::Value)
 }
 
-/// The answer of one of the four equality operators over two primitives, or
-/// `None` for every other operator and for a side that is not a primitive.
+/// Which reading one of the four equality operators takes, and whether it
+/// answers the negation of it. `None` is every other operator.
 ///
-/// `None` rather than a refusal for a side that is not a primitive, so the
-/// numeric coercion below goes on naming what it could not read -- `Expression
-/// is not a number: ObjectExpression` rather than a sentence about equality.
-/// The language compares two objects by reference, and this evaluator holds a
-/// copy rather than a reference, so there is nothing else to answer.
+/// `!=` sits with the strict pair rather than beside `==`, which is the one row
+/// the reference implementation writes differently from the language: it reads
+/// `!=` as `!==`, and the two part company on exactly the comparisons `==`
+/// coerces. This follows the compiler an author's stylesheet is compared
+/// against rather than the specification.
+fn equality_reading(op: BinaryOp) -> Option<(bool, bool)> {
+  match op {
+    BinaryOp::EqEq => Some((false, false)),
+    BinaryOp::EqEqEq => Some((true, false)),
+    BinaryOp::NotEq | BinaryOp::NotEqEq => Some((true, true)),
+    _ => None,
+  }
+}
+
+/// The primitive an already-evaluated operand is, where it is one.
 ///
-/// `!=` is strict here, as the reference implementation writes it. The language
-/// reads it as the negation of `==`, and the two part company on exactly the
-/// comparisons `==` coerces -- so this follows the compiler an author's
-/// stylesheet is compared against rather than the specification.
-fn compare_operands(
-  binary_expr: &BinExpr,
-  left_expr: &Expr,
-  state: &mut EvaluationState,
-  traversal_state: &mut StateManager,
-  fns: &FunctionMap,
-) -> Result<Option<bool>, anyhow::Error> {
-  // Which reading each operator takes, and whether it answers the negation of
-  // it. `!=` sits with the strict pair rather than beside `==`, which is the
-  // one row the reference implementation writes differently from the language.
-  let (strict, negated) = match binary_expr.op {
-    BinaryOp::EqEq => (false, false),
-    BinaryOp::EqEqEq => (true, false),
-    BinaryOp::NotEq | BinaryOp::NotEqEq => (true, true),
-    _ => return Result::Ok(None),
-  };
-
-  let Some(left_value) = coercions::to_js_primitive(left_expr) else {
-    return Result::Ok(None);
-  };
-
-  let right = evaluate_operand(
-    &binary_expr.right,
-    RIGHT_NOT_A_NUMBER,
-    state,
-    traversal_state,
-    fns,
-  )?;
-  let right_expr = as_expr_or_err!(right, "Right argument not expression");
-
-  let Some(right_value) = coercions::to_js_primitive(right_expr) else {
-    return Result::Ok(None);
-  };
-
-  let equal = match strict {
-    true => coercions::strict_equals(&left_value, &right_value),
-    false => coercions::loose_equals(&left_value, &right_value),
-  };
-
-  Result::Ok(Some(equal != negated))
+/// `None` covers both ways a side can fail to be one: a value with no
+/// expression form at all, and an expression the language compares by
+/// reference. Neither has an answer this evaluator can give, and both fall to
+/// the numeric coercion, which names what it could not read.
+fn primitive_of(value: &EvaluateResultValue) -> Option<coercions::Primitive<'_>> {
+  match value.as_expr() {
+    Some(expr) => coercions::to_js_primitive(expr),
+    None => None,
+  }
 }
 
 /// A binary expression folded to its value rather than to an expression: the
@@ -329,19 +304,49 @@ pub(crate) fn binary_expr_to_num_or_str(
   // coercion instead, `1 != '1'` answered `false` where the language and the
   // reference implementation both answer `true`, and `'a' == 'a'` refused
   // because neither side has a number.
-  if let Some(answer) = compare_operands(binary_expr, left_expr, state, traversal_state, fns)? {
-    return Result::Ok(BinaryExprType::Number(convert_bool_to_number(answer)));
+  //
+  // The right side each of them evaluates is kept rather than dropped: a second
+  // read would be a memo hit rather than a fold, but a hit costs a structural
+  // hash of the whole subtree and a deep clone of what it remembered.
+  let mut compared_right = None;
+
+  if let Some((strict, negated)) = equality_reading(op)
+    && let Some(left_value) = coercions::to_js_primitive(left_expr)
+  {
+    let right = evaluate_operand(
+      &binary_expr.right,
+      RIGHT_NOT_A_NUMBER,
+      state,
+      traversal_state,
+      fns,
+    )?;
+
+    if let Some(right_value) = primitive_of(&right) {
+      let equal = match strict {
+        true => coercions::strict_equals(&left_value, &right_value),
+        false => coercions::loose_equals(&left_value, &right_value),
+      };
+
+      return Result::Ok(BinaryExprType::Number(convert_bool_to_number(
+        equal != negated,
+      )));
+    }
+
+    compared_right = Some(right);
   }
 
   let left_num = expr_to_num(left_expr, state, traversal_state, fns)?;
 
-  let right = evaluate_operand(
-    &binary_expr.right,
-    RIGHT_NOT_A_NUMBER,
-    state,
-    traversal_state,
-    fns,
-  )?;
+  let right = match compared_right {
+    Some(right) => right,
+    None => evaluate_operand(
+      &binary_expr.right,
+      RIGHT_NOT_A_NUMBER,
+      state,
+      traversal_state,
+      fns,
+    )?,
+  };
   let right_expr = as_expr_or_err!(right, "Right argument not expression");
   let right_num = expr_to_num(right_expr, state, traversal_state, fns)?;
 

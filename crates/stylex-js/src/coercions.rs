@@ -9,6 +9,7 @@
 use std::convert::Infallible;
 
 use stylex_utils::number;
+use swc_core::atoms::Wtf8Atom;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{
   ArrowFunctionBody, BigIntValue, Expr, Ident, Lit, Number, ObjectLit, Prop, PropName,
@@ -667,6 +668,118 @@ pub fn to_int32(value: f64) -> i32 {
     (wrapped - WRAP) as i32
   } else {
     wrapped as i32
+  }
+}
+
+/// `ToUint32` over a number, the coercion `>>>` applies to the side it shifts.
+///
+/// The same wrap as [`to_int32`], read as unsigned rather than as signed --
+/// which is the whole of what parts `>>>` from `>>`: `-1 >>> 0` is 4294967295
+/// where `-1 >> 0` is `-1`.
+pub fn to_uint32(value: f64) -> u32 {
+  to_int32(value) as u32
+}
+
+/// How far a shift operator moves its left side, out of the number on its
+/// right.
+///
+/// The language keeps only the low five bits of the count, so a count of 32
+/// shifts nothing and `1 << 32` is `1`. Rust panics on a count of 32 in a debug
+/// build instead, which is why the mask is read here rather than left to the
+/// shift.
+pub fn to_shift_count(value: f64) -> u32 {
+  to_uint32(value) & 31
+}
+
+/// A value the equality operators compare directly, with nothing to read off an
+/// object first.
+///
+/// The five the language calls primitive, minus the two this evaluator never
+/// holds: a big integer and a symbol are both refused before a value is built
+/// from them.
+#[derive(Debug, Clone, Copy)]
+pub enum Primitive<'a> {
+  /// Held as the atom rather than as text, so two strings that hold different
+  /// lone surrogates stay different -- `as_str` reads both as one replacement
+  /// character.
+  String(&'a Wtf8Atom),
+  Number(f64),
+  Boolean(bool),
+  Null,
+  Undefined,
+}
+
+/// The primitive an already-evaluated expression *is*, for a caller that
+/// compares two values rather than coercing one.
+///
+/// `None` is every other value -- an object, an array, a function -- for which
+/// the language compares references. This evaluator holds a copy rather than a
+/// reference, so it has no answer to give and the caller refuses.
+pub fn to_js_primitive(expr: &Expr) -> Option<Primitive<'_>> {
+  match expr {
+    Expr::Lit(Lit::Str(strng)) => Some(Primitive::String(&strng.value)),
+    Expr::Lit(Lit::Num(num)) => Some(Primitive::Number(num.value)),
+    Expr::Lit(Lit::Bool(bool_lit)) => Some(Primitive::Boolean(bool_lit.value)),
+    Expr::Lit(Lit::Null(_)) => Some(Primitive::Null),
+    Expr::Ident(ident) => match surviving_global(ident)? {
+      SurvivingGlobal::Undefined => Some(Primitive::Undefined),
+      SurvivingGlobal::NaN => Some(Primitive::Number(f64::NAN)),
+      SurvivingGlobal::Infinity => Some(Primitive::Number(f64::INFINITY)),
+    },
+    // `void x` is `undefined`, the third spelling [`is_nullish`] reads.
+    Expr::Unary(unary) if unary.op == UnaryOp::Void => Some(Primitive::Undefined),
+    _ => None,
+  }
+}
+
+/// ECMA-262 `IsStrictlyEqual` over two primitives.
+///
+/// Two values of different types are unequal without any coercion, `NaN` equals
+/// nothing including itself, and the two zeroes are equal.
+pub fn strict_equals(left: &Primitive, right: &Primitive) -> bool {
+  match (left, right) {
+    (Primitive::String(left), Primitive::String(right)) => left == right,
+    (Primitive::Number(left), Primitive::Number(right)) => left == right,
+    (Primitive::Boolean(left), Primitive::Boolean(right)) => left == right,
+    (Primitive::Null, Primitive::Null) | (Primitive::Undefined, Primitive::Undefined) => true,
+    _ => false,
+  }
+}
+
+/// ECMA-262 `IsLooselyEqual` over two primitives.
+///
+/// The three coercions the algorithm applies, and nothing else: `null` and
+/// `undefined` equal each other and nothing more, a boolean becomes its number
+/// on whichever side it is, and a string meeting a number becomes its number.
+pub fn loose_equals(left: &Primitive, right: &Primitive) -> bool {
+  match (left, right) {
+    (Primitive::Null | Primitive::Undefined, Primitive::Null | Primitive::Undefined) => true,
+    (Primitive::Null | Primitive::Undefined, _) | (_, Primitive::Null | Primitive::Undefined) => {
+      false
+    },
+    (Primitive::Boolean(value), other) => {
+      loose_equals(&Primitive::Number(number_of_a_boolean(*value)), other)
+    },
+    (other, Primitive::Boolean(value)) => {
+      loose_equals(other, &Primitive::Number(number_of_a_boolean(*value)))
+    },
+    (Primitive::Number(number), Primitive::String(text)) => *number == number_of_a_string(text),
+    (Primitive::String(text), Primitive::Number(number)) => number_of_a_string(text) == *number,
+    (left, right) => strict_equals(left, right),
+  }
+}
+
+fn number_of_a_boolean(value: bool) -> f64 {
+  if value { 1.0 } else { 0.0 }
+}
+
+/// `ToNumber` of a string that may hold a lone surrogate, which no numeric
+/// literal does -- so a text Rust cannot read is `NaN`, as every other
+/// non-literal text is.
+fn number_of_a_string(text: &Wtf8Atom) -> f64 {
+  match text.as_str() {
+    Some(text) => string_to_js_number(text),
+    None => f64::NAN,
   }
 }
 

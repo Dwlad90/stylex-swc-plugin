@@ -1145,6 +1145,245 @@ fn to_int32_wraps_into_the_signed_32_bit_range() {
   assert_eq!(to_int32(-1.0), -1);
 }
 
+/// Every value here was read out of `node -e 'console.log(x >>> 0)'`, which is
+/// `ToUint32` spelled the shortest way.
+#[test]
+fn to_uint32_wraps_into_the_unsigned_32_bit_range() {
+  // The reason this function exists: `>>>` reads its left side as unsigned, so
+  // a negative number becomes the large one the language answers with.
+  assert_eq!(to_uint32(-1.0), 4_294_967_295);
+  assert_eq!(to_uint32(-9.0), 4_294_967_287);
+  assert_eq!(to_uint32(-2_147_483_648.0), 2_147_483_648);
+
+  // Above the range it wraps, exactly as `to_int32` does.
+  assert_eq!(to_uint32(4_294_967_296.0), 0);
+  assert_eq!(to_uint32(4_294_967_297.0), 1);
+  assert_eq!(to_uint32(3_000_000_000.0), 3_000_000_000);
+
+  // The values with no integer to wrap all answer zero rather than refusing.
+  assert_eq!(to_uint32(f64::NAN), 0);
+  assert_eq!(to_uint32(f64::INFINITY), 0);
+  assert_eq!(to_uint32(f64::NEG_INFINITY), 0);
+  assert_eq!(to_uint32(-0.0), 0);
+
+  // Truncation is toward zero here too.
+  assert_eq!(to_uint32(1.9), 1);
+  assert_eq!(to_uint32(-1.9), 4_294_967_295);
+}
+
+/// Read out of `node -e 'console.log(1 << x)'`: the language keeps the low five
+/// bits of a shift count and nothing else.
+#[test]
+fn to_shift_count_keeps_the_low_five_bits() {
+  assert_eq!(to_shift_count(0.0), 0);
+  assert_eq!(to_shift_count(31.0), 31);
+
+  // A count of the word width shifts by nothing, which is where a Rust shift
+  // panics in a debug build instead.
+  assert_eq!(to_shift_count(32.0), 0);
+  assert_eq!(to_shift_count(33.0), 1);
+  assert_eq!(to_shift_count(64.0), 0);
+
+  // A negative count wraps through `ToUint32` first, so `-1` is a shift of 31.
+  assert_eq!(to_shift_count(-1.0), 31);
+  assert_eq!(to_shift_count(-32.0), 0);
+
+  // The values with no integer answer a shift of nothing.
+  assert_eq!(to_shift_count(f64::NAN), 0);
+  assert_eq!(to_shift_count(f64::INFINITY), 0);
+  assert_eq!(to_shift_count(2.9), 2);
+}
+
+// ── the equality readings ────────────────────────────────────────────
+
+/// The five primitives this evaluator holds, read off the expressions that
+/// spell them -- including the three globals the language spells as a name.
+#[test]
+fn to_js_primitive_reads_every_primitive_spelling() {
+  assert!(matches!(
+    to_js_primitive(&str_expr("a")),
+    Some(Primitive::String(_))
+  ));
+  assert!(matches!(
+    to_js_primitive(&num_expr(1.0)),
+    Some(Primitive::Number(value)) if value == 1.0
+  ));
+  assert!(matches!(
+    to_js_primitive(&bool_expr(true)),
+    Some(Primitive::Boolean(true))
+  ));
+  assert!(matches!(
+    to_js_primitive(&null_expr()),
+    Some(Primitive::Null)
+  ));
+  assert!(matches!(
+    to_js_primitive(&ident_expr("undefined")),
+    Some(Primitive::Undefined)
+  ));
+  assert!(matches!(
+    to_js_primitive(&ident_expr("NaN")),
+    Some(Primitive::Number(value)) if value.is_nan()
+  ));
+  assert!(matches!(
+    to_js_primitive(&ident_expr("Infinity")),
+    Some(Primitive::Number(value)) if value.is_infinite()
+  ));
+  assert!(matches!(
+    to_js_primitive(&void_expr(num_expr(1.0))),
+    Some(Primitive::Undefined)
+  ));
+}
+
+/// Everything else has no primitive to compare: the language compares two
+/// objects by reference, and this evaluator holds a copy rather than a
+/// reference.
+#[test]
+fn to_js_primitive_refuses_every_value_that_is_not_one() {
+  for expr in [
+    Expr::Object(ObjectLit {
+      span: DUMMY_SP,
+      props: vec![],
+    }),
+    Expr::Array(ArrayLit {
+      span: DUMMY_SP,
+      elems: vec![],
+    }),
+    arrow_expr(),
+    ident_expr("someBinding"),
+    Expr::Lit(Lit::BigInt(BigInt {
+      span: DUMMY_SP,
+      value: Box::new(1.into()),
+      raw: None,
+    })),
+    Expr::Lit(Lit::Regex(Regex {
+      span: DUMMY_SP,
+      exp: "a".into(),
+      flags: "".into(),
+    })),
+  ] {
+    assert!(to_js_primitive(&expr).is_none(), "{:?}", expr);
+  }
+}
+
+/// Read out of `node -e "console.log(a === b)"`. Two values of different types
+/// are unequal with no coercion at all, and `NaN` equals nothing.
+#[test]
+fn strict_equals_compares_the_type_before_the_value() {
+  let cases: [(Expr, Expr, bool); 12] = [
+    (num_expr(1.0), num_expr(1.0), true),
+    (num_expr(1.0), num_expr(2.0), false),
+    (num_expr(0.0), num_expr(-0.0), true),
+    (ident_expr("NaN"), ident_expr("NaN"), false),
+    (str_expr("a"), str_expr("a"), true),
+    (str_expr("a"), str_expr("b"), false),
+    (bool_expr(true), bool_expr(true), true),
+    (null_expr(), null_expr(), true),
+    (ident_expr("undefined"), ident_expr("undefined"), true),
+    // The four rows a coercion would have folded together.
+    (num_expr(1.0), str_expr("1"), false),
+    (null_expr(), ident_expr("undefined"), false),
+    (bool_expr(true), num_expr(1.0), false),
+  ];
+
+  for (left, right, expected) in cases {
+    let (left_value, right_value) = primitive_pair(&left, &right);
+
+    assert_eq!(
+      strict_equals(&left_value, &right_value),
+      expected,
+      "{:?} === {:?}",
+      left,
+      right
+    );
+  }
+}
+
+/// Read out of `node -e "console.log(a == b)"`. The three coercions the
+/// algorithm applies, and the rows where it applies none.
+#[test]
+fn loose_equals_applies_the_three_coercions_and_no_others() {
+  let cases: [(Expr, Expr, bool); 14] = [
+    // A string meeting a number becomes its number.
+    (num_expr(1.0), str_expr("1"), true),
+    (str_expr("1"), num_expr(1.0), true),
+    (num_expr(1.0), str_expr("1px"), false),
+    (num_expr(0.0), str_expr(""), true),
+    (num_expr(0.0), str_expr("  "), true),
+    // A boolean becomes its number on whichever side it is.
+    (bool_expr(true), num_expr(1.0), true),
+    (num_expr(0.0), bool_expr(false), true),
+    (bool_expr(true), str_expr("1"), true),
+    // The two nullish values equal each other and nothing else.
+    (null_expr(), ident_expr("undefined"), true),
+    (null_expr(), num_expr(0.0), false),
+    (ident_expr("undefined"), str_expr(""), false),
+    (null_expr(), bool_expr(false), false),
+    // Same type is the strict reading, `NaN` included.
+    (str_expr("a"), str_expr("a"), true),
+    (ident_expr("NaN"), ident_expr("NaN"), false),
+  ];
+
+  for (left, right, expected) in cases {
+    let (left_value, right_value) = primitive_pair(&left, &right);
+
+    assert_eq!(
+      loose_equals(&left_value, &right_value),
+      expected,
+      "{:?} == {:?}",
+      left,
+      right
+    );
+  }
+}
+
+/// Two strings that hold different lone surrogates are different strings, which
+/// is why the reading holds the atom rather than the text: `as_str` reads both
+/// as one replacement character.
+#[test]
+fn two_lone_surrogates_are_not_the_same_string() {
+  let high = lone_surrogate_expr(0xD83D);
+  let low = lone_surrogate_expr(0xDE00);
+
+  let (high_value, low_value) = primitive_pair(&high, &low);
+  assert!(!strict_equals(&high_value, &low_value));
+  assert!(!loose_equals(&high_value, &low_value));
+
+  let same_high = lone_surrogate_expr(0xD83D);
+  let (high_value, same) = primitive_pair(&high, &same_high);
+  assert!(strict_equals(&high_value, &same));
+
+  // A text with no `str` is not a numeric literal, so it meets a number as
+  // `NaN` rather than refusing.
+  let zero_expr = num_expr(0.0);
+  let (high_value, zero) = primitive_pair(&high, &zero_expr);
+  assert!(!loose_equals(&high_value, &zero));
+}
+
+/// Both sides of a comparison, for a case that spells them as expressions.
+#[track_caller]
+fn primitive_pair<'a>(left: &'a Expr, right: &'a Expr) -> (Primitive<'a>, Primitive<'a>) {
+  match (to_js_primitive(left), to_js_primitive(right)) {
+    (Some(left), Some(right)) => (left, right),
+    _ => panic!("both sides of a case have to be primitives"),
+  }
+}
+
+/// A string literal holding one lone surrogate, which no Rust `str` can spell.
+fn lone_surrogate_expr(code_unit: u16) -> Expr {
+  let mut buffer = Wtf8Buf::new();
+
+  match CodePoint::from_u32(u32::from(code_unit)) {
+    Some(point) => buffer.push(point),
+    None => panic!("{} is not a code point", code_unit),
+  }
+
+  Expr::Lit(Lit::Str(Str {
+    span: DUMMY_SP,
+    value: Wtf8Atom::from(buffer),
+    raw: None,
+  }))
+}
+
 // ── global_identifier_to_value ───────────────────────────────────────
 
 /// The two numeric globals answer with the numbers they *are*, and `undefined`

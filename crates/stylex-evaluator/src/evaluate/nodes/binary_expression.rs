@@ -166,6 +166,61 @@ fn evaluate_left_operand(
   .map(LeftOperand::Value)
 }
 
+/// The answer of one of the four equality operators over two primitives, or
+/// `None` for every other operator and for a side that is not a primitive.
+///
+/// `None` rather than a refusal for a side that is not a primitive, so the
+/// numeric coercion below goes on naming what it could not read -- `Expression
+/// is not a number: ObjectExpression` rather than a sentence about equality.
+/// The language compares two objects by reference, and this evaluator holds a
+/// copy rather than a reference, so there is nothing else to answer.
+///
+/// `!=` is strict here, as the reference implementation writes it. The language
+/// reads it as the negation of `==`, and the two part company on exactly the
+/// comparisons `==` coerces -- so this follows the compiler an author's
+/// stylesheet is compared against rather than the specification.
+fn compare_operands(
+  binary_expr: &BinExpr,
+  left_expr: &Expr,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> Result<Option<bool>, anyhow::Error> {
+  // Which reading each operator takes, and whether it answers the negation of
+  // it. `!=` sits with the strict pair rather than beside `==`, which is the
+  // one row the reference implementation writes differently from the language.
+  let (strict, negated) = match binary_expr.op {
+    BinaryOp::EqEq => (false, false),
+    BinaryOp::EqEqEq => (true, false),
+    BinaryOp::NotEq | BinaryOp::NotEqEq => (true, true),
+    _ => return Result::Ok(None),
+  };
+
+  let Some(left_value) = coercions::to_js_primitive(left_expr) else {
+    return Result::Ok(None);
+  };
+
+  let right = evaluate_operand(
+    &binary_expr.right,
+    RIGHT_NOT_A_NUMBER,
+    state,
+    traversal_state,
+    fns,
+  )?;
+  let right_expr = as_expr_or_err!(right, "Right argument not expression");
+
+  let Some(right_value) = coercions::to_js_primitive(right_expr) else {
+    return Result::Ok(None);
+  };
+
+  let equal = match strict {
+    true => coercions::strict_equals(&left_value, &right_value),
+    false => coercions::loose_equals(&left_value, &right_value),
+  };
+
+  Result::Ok(Some(equal != negated))
+}
+
 /// A binary expression folded to its value rather than to an expression: the
 /// number-or-string path, falling back to the string path.
 ///
@@ -267,6 +322,16 @@ pub(crate) fn binary_expr_to_num_or_str(
   };
 
   let left_expr = as_expr_or_err!(left, "Left argument not expression");
+
+  // The four equality operators compare two values, and only fall to the
+  // numeric coercion below when one of them is not a primitive. Asked after the
+  // coercion instead, `1 != '1'` answered `false` where the language and the
+  // reference implementation both answer `true`, and `'a' == 'a'` refused
+  // because neither side has a number.
+  if let Some(answer) = compare_operands(binary_expr, left_expr, state, traversal_state, fns)? {
+    return Result::Ok(BinaryExprType::Number(convert_bool_to_number(answer)));
+  }
+
   let left_num = expr_to_num(left_expr, state, traversal_state, fns)?;
 
   let right = evaluate_operand(
@@ -286,31 +351,49 @@ pub(crate) fn binary_expr_to_num_or_str(
     BinaryOp::Div => left_num / right_num,
     BinaryOp::Mod => left_num % right_num,
     BinaryOp::Exp => left_num.powf(right_num),
-    BinaryOp::RShift => ((left_num as i32) >> right_num as i32) as f64,
-    BinaryOp::LShift => ((left_num as i32) << right_num as i32) as f64,
-    BinaryOp::BitAnd => ((left_num as i32) & right_num as i32) as f64,
-    BinaryOp::BitOr => ((left_num as i32) | right_num as i32) as f64,
-    BinaryOp::BitXor => ((left_num as i32) ^ right_num as i32) as f64,
+    // Every bitwise operator reads its sides through `ToInt32` and its count
+    // through `ToShiftCount`, rather than through a Rust cast: a cast saturates
+    // where the language wraps, so `4294967296 | 0` answered 2147483647 where
+    // JavaScript answers 0, and a count of 32 panicked in a debug build where
+    // JavaScript shifts by nothing.
+    BinaryOp::RShift => {
+      f64::from(coercions::to_int32(left_num) >> coercions::to_shift_count(right_num))
+    },
+    BinaryOp::LShift => {
+      f64::from(coercions::to_int32(left_num) << coercions::to_shift_count(right_num))
+    },
+    BinaryOp::BitAnd => f64::from(coercions::to_int32(left_num) & coercions::to_int32(right_num)),
+    BinaryOp::BitOr => f64::from(coercions::to_int32(left_num) | coercions::to_int32(right_num)),
+    BinaryOp::BitXor => f64::from(coercions::to_int32(left_num) ^ coercions::to_int32(right_num)),
     // `in` and `instanceof` ask a question about an object, which this path has
     // already coerced away to a number. What they answer here is therefore not
     // the operator's meaning; it is left as found, because nothing real StyleX
     // source can write reaches either arm.
     BinaryOp::In => convert_bool_to_number(right_num == 0.0),
     BinaryOp::InstanceOf => convert_bool_to_number(right_num == 0.0),
-    BinaryOp::EqEq => convert_bool_to_number(left_num == right_num),
-    BinaryOp::NotEq => convert_bool_to_number(left_num != right_num),
-    BinaryOp::EqEqEq => convert_bool_to_number(left_num == right_num),
-    BinaryOp::NotEqEq => convert_bool_to_number(left_num != right_num),
     BinaryOp::Lt => convert_bool_to_number(left_num < right_num),
     BinaryOp::LtEq => convert_bool_to_number(left_num <= right_num),
     BinaryOp::Gt => convert_bool_to_number(left_num > right_num),
     BinaryOp::GtEq => convert_bool_to_number(left_num >= right_num),
-    BinaryOp::ZeroFillRShift => ((left_num as i32) >> right_num as i32) as f64,
-    // Unreachable: the three logical operators are dispatched to their own node
-    // before this path can run, and there they return an operand rather than a
-    // number. Refused on the same terms as any other operator this path has no
-    // answer for, rather than coerced to one.
-    BinaryOp::LogicalOr | BinaryOp::LogicalAnd | BinaryOp::NullishCoalescing => {
+    // `>>>` is the one shift that reads its left side as unsigned, which is the
+    // whole of what parts it from `>>`: `-1 >>> 0` is 4294967295.
+    BinaryOp::ZeroFillRShift => {
+      f64::from(coercions::to_uint32(left_num) >> coercions::to_shift_count(right_num))
+    },
+    // Unreachable, on two grounds. The three logical operators are dispatched to
+    // their own node before this path can run, and there they return an operand
+    // rather than a number. The four equality operators are answered by
+    // `compare_operands` above for every side that is a primitive -- and a side
+    // that is not one has no number either, so it refuses at the coercion
+    // above and never arrives here. Both are refused on the same terms as any
+    // other operator this path has no answer for, rather than coerced to one.
+    BinaryOp::LogicalOr
+    | BinaryOp::LogicalAnd
+    | BinaryOp::NullishCoalescing
+    | BinaryOp::EqEq
+    | BinaryOp::NotEq
+    | BinaryOp::EqEqEq
+    | BinaryOp::NotEqEq => {
       return Result::Err(anyhow!(unsupported_operator(op.as_str())));
     },
   };

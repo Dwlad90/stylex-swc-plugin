@@ -121,6 +121,15 @@ fn fold_numbers(op: BinaryOp, left: f64, right: f64) -> f64 {
   )))
 }
 
+/// One equality operator over two operands, through the number-or-string path.
+///
+/// Two expressions rather than two numbers, because which reading each operator
+/// takes is decided by what the sides *are* rather than by what they coerce to.
+#[track_caller]
+fn fold_equality(op: BinaryOp, left: Expr, right: Expr) -> f64 {
+  expect_number(num_or_str_path(&bin_expr(op, left, right)))
+}
+
 /// `+` over two operands, through the string path.
 #[track_caller]
 fn concatenate(left: Expr, right: Expr) -> String {
@@ -177,20 +186,62 @@ mod the_number_path {
     assert_eq!(fold_numbers(BinaryOp::BitXor, 6.0, 3.0), 5.0);
   }
 
+  /// Operands on which the signed and the unsigned readings part company, so
+  /// the case fails against either one written for the other. Every value was
+  /// read out of `node -e 'console.log(x)'`.
   #[test]
-  fn right_shift_shifts_right() {
+  fn right_shift_shifts_right_and_keeps_the_sign() {
     assert_eq!(fold_numbers(BinaryOp::RShift, 6.0, 3.0), 0.0);
+    assert_eq!(fold_numbers(BinaryOp::RShift, -8.0, 1.0), -4.0);
+    assert_eq!(fold_numbers(BinaryOp::RShift, -1.0, 16.0), -1.0);
   }
 
   #[test]
   fn left_shift_shifts_left() {
     assert_eq!(fold_numbers(BinaryOp::LShift, 6.0, 3.0), 48.0);
+    assert_eq!(fold_numbers(BinaryOp::LShift, 1.0, 31.0), -2_147_483_648.0);
   }
 
+  /// `>>>` reads its left side as unsigned, so a negative operand answers the
+  /// large number rather than itself. Read as signed, `-1 >>> 0` answered `-1`.
   #[test]
-  fn zero_fill_right_shift_shifts_right() {
+  fn zero_fill_right_shift_reads_its_left_side_as_unsigned() {
     assert_eq!(fold_numbers(BinaryOp::ZeroFillRShift, 6.0, 3.0), 0.0);
     assert_eq!(fold_numbers(BinaryOp::ZeroFillRShift, 8.0, 1.0), 4.0);
+    assert_eq!(
+      fold_numbers(BinaryOp::ZeroFillRShift, -1.0, 0.0),
+      4_294_967_295.0
+    );
+    assert_eq!(fold_numbers(BinaryOp::ZeroFillRShift, -1.0, 16.0), 65535.0);
+    assert_eq!(
+      fold_numbers(BinaryOp::ZeroFillRShift, -8.0, 1.0),
+      2_147_483_644.0
+    );
+  }
+
+  /// A side past the signed 32-bit range wraps rather than saturating, and a
+  /// count of the word width or more shifts by nothing.
+  ///
+  /// Both are what a Rust cast does not do: `4294967296 | 0` answered
+  /// 2147483647, and `1 << 32` stopped a debug build with a shift overflow.
+  #[test]
+  fn the_bitwise_operators_wrap_into_thirty_two_bits() {
+    assert_eq!(fold_numbers(BinaryOp::BitOr, 4_294_967_296.0, 0.0), 0.0);
+    assert_eq!(
+      fold_numbers(BinaryOp::BitOr, 3_000_000_000.0, 0.0),
+      -1_294_967_296.0
+    );
+    assert_eq!(fold_numbers(BinaryOp::BitAnd, 1e21, -1.0), -559_939_584.0);
+    assert_eq!(fold_numbers(BinaryOp::LShift, 1.0, 32.0), 1.0);
+    assert_eq!(fold_numbers(BinaryOp::LShift, 1.0, 33.0), 2.0);
+    assert_eq!(fold_numbers(BinaryOp::LShift, 1.0, -1.0), -2_147_483_648.0);
+    assert_eq!(fold_numbers(BinaryOp::ZeroFillRShift, 5.0, -1.0), 0.0);
+
+    // A side with no integer answers zero rather than refusing, which is what
+    // `ToInt32` says of a `NaN` and of either infinity.
+    assert_eq!(fold_numbers(BinaryOp::BitOr, f64::NAN, 0.0), 0.0);
+    assert_eq!(fold_numbers(BinaryOp::BitOr, f64::INFINITY, 0.0), 0.0);
+    assert_eq!(fold_numbers(BinaryOp::BitOr, f64::NEG_INFINITY, 0.0), 0.0);
   }
 
   #[test]
@@ -215,6 +266,78 @@ mod the_number_path {
   fn strict_inequality_answers_one_when_different() {
     assert_eq!(fold_numbers(BinaryOp::NotEqEq, 5.0, 3.0), 1.0);
     assert_eq!(fold_numbers(BinaryOp::NotEqEq, 5.0, 5.0), 0.0);
+  }
+
+  /// Which reading each of the four operators takes, over the pairs where the
+  /// two readings part company.
+  ///
+  /// `!=` sits with the strict pair, which is how the reference implementation
+  /// writes it rather than how the language reads it. Compared as two numbers,
+  /// as this path did before, `1 != '1'` answered `false` and put the other arm
+  /// of a conditional into the stylesheet.
+  #[test]
+  fn the_four_equality_operators_compare_two_primitives() {
+    let one = create_number_expr(1.0);
+    let one_as_text = create_string_expr("1");
+
+    assert_eq!(
+      fold_equality(BinaryOp::EqEq, one.clone(), one_as_text.clone()),
+      1.0
+    );
+    assert_eq!(
+      fold_equality(BinaryOp::NotEq, one.clone(), one_as_text.clone()),
+      1.0
+    );
+    assert_eq!(
+      fold_equality(BinaryOp::EqEqEq, one.clone(), one_as_text.clone()),
+      0.0
+    );
+    assert_eq!(fold_equality(BinaryOp::NotEqEq, one, one_as_text), 1.0);
+  }
+
+  /// Two pairs a numeric reading has no answer for: two strings that are not
+  /// numeric literals, and the two nullish spellings. Both refused before, and
+  /// the language answers `true` for both under `==`.
+  #[test]
+  fn two_values_with_no_number_still_compare() {
+    assert_eq!(
+      fold_equality(
+        BinaryOp::EqEq,
+        create_string_expr("red"),
+        create_string_expr("red")
+      ),
+      1.0
+    );
+    assert_eq!(
+      fold_equality(
+        BinaryOp::EqEqEq,
+        create_string_expr("red"),
+        create_string_expr("blue")
+      ),
+      0.0
+    );
+    assert_eq!(
+      fold_equality(BinaryOp::EqEq, create_null_expr(), undefined_expr()),
+      1.0
+    );
+    assert_eq!(
+      fold_equality(BinaryOp::EqEqEq, create_null_expr(), undefined_expr()),
+      0.0
+    );
+  }
+
+  /// A side with no primitive refuses, and names what it could not read rather
+  /// than the comparison. The language compares two objects by reference, which
+  /// this evaluator does not hold.
+  #[test]
+  fn a_side_with_no_primitive_is_refused() {
+    let refused = num_or_str_path(&bin_expr(
+      BinaryOp::EqEq,
+      Expr::Object(create_object_lit(vec![])),
+      create_number_expr(0.0),
+    ));
+
+    assert_refuses_with(refused, "is not a number");
   }
 
   #[test]

@@ -1,3 +1,4 @@
+use crate::coercions::{to_int32, to_shift_count, to_uint32};
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::BinaryOp;
 
@@ -14,12 +15,16 @@ pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
     BinaryOp::Mul => left * right,
     BinaryOp::Mod => left % right,
     BinaryOp::Exp => left.powf(right),
-    BinaryOp::BitOr => (left as i64 | right as i64) as f64,
-    BinaryOp::BitXor => (left as i64 ^ right as i64) as f64,
-    BinaryOp::BitAnd => (left as i64 & right as i64) as f64,
-    BinaryOp::LShift => ((left as i64) << (right as u64)) as f64,
-    BinaryOp::RShift => ((left as i64) >> (right as u64)) as f64,
-    BinaryOp::ZeroFillRShift => ((left as u64) >> (right as u64)) as f64,
+    // Every bitwise operator reads its sides through `ToInt32` and its count
+    // through `ToShiftCount`, which is what makes them 32-bit: a 64-bit cast
+    // saturates where the language wraps, and it answered `0` for `-1 >>> 0`
+    // where JavaScript answers 4294967295.
+    BinaryOp::BitOr => f64::from(to_int32(left) | to_int32(right)),
+    BinaryOp::BitXor => f64::from(to_int32(left) ^ to_int32(right)),
+    BinaryOp::BitAnd => f64::from(to_int32(left) & to_int32(right)),
+    BinaryOp::LShift => f64::from(to_int32(left) << to_shift_count(right)),
+    BinaryOp::RShift => f64::from(to_int32(left) >> to_shift_count(right)),
+    BinaryOp::ZeroFillRShift => f64::from(to_uint32(left) >> to_shift_count(right)),
     _ => stylex_panic!("Unsupported binary operator: {:?}", op),
   }
 }

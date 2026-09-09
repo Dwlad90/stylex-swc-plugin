@@ -465,6 +465,8 @@ mod convert_unary_to_num_tests {
     assert_eq!(result, 3.0);
   }
 
+  /// `-0` keeps its sign, which `assert_eq!` against `0.0` cannot see: the two
+  /// zeroes compare equal. The sign is what parts `1 / -0` from `1 / 0`.
   #[test]
   fn minus_zero() {
     let unary = make_unary(UnaryOp::Minus, 0.0);
@@ -472,8 +474,9 @@ mod convert_unary_to_num_tests {
     let mut traversal_state = StateManager::default();
     let fns = FunctionMap::default();
     let result = convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
-    // -0.0 == 0.0 in f64
+
     assert_eq!(result, 0.0);
+    assert!(result.is_sign_negative(), "expected -0, got {}", result);
   }
 
   #[test]
@@ -516,8 +519,10 @@ mod convert_unary_to_num_tests {
     assert_eq!(result, -0.5);
   }
 
+  /// An operator the numeric reading has no answer for stops the build, and
+  /// says which expression it could not read.
   #[test]
-  #[should_panic]
+  #[should_panic(expected = "Union operation 'UnaryExpression' is invalid")]
   fn unsupported_op_panics() {
     let unary = make_unary(UnaryOp::TypeOf, 5.0);
     let mut state = EvaluationState::new();
@@ -985,8 +990,9 @@ mod ident_to_number_extended_tests {
     ident_to_number(&ident, &mut state, &mut traversal_state, &fns);
   }
 
+  /// A name nothing declares has no number, and the refusal names the name.
   #[test]
-  #[should_panic]
+  #[should_panic(expected = "is not declared")]
   fn panics_for_undeclared_ident() {
     let mut state = EvaluationState::new();
     let mut traversal_state = StateManager::default();
@@ -1000,8 +1006,10 @@ mod ident_to_number_extended_tests {
     ident_to_number(&ident, &mut state, &mut traversal_state, &fns);
   }
 
+  /// A name declared as a text that is not a numeric literal names the text,
+  /// rather than the name.
   #[test]
-  #[should_panic]
+  #[should_panic(expected = "Value is not a number: hello")]
   fn panics_for_non_number_decl() {
     let mut state = EvaluationState::new();
     let mut traversal_state = StateManager::default();
@@ -1216,8 +1224,10 @@ mod convert_key_value_to_str_panic_tests {
   use super::*;
   use swc_core::ecma::ast::{ComputedPropName, KeyValueProp, PropName};
 
+  /// A computed key that is still an expression names no property, and the
+  /// refusal says which half it could not read.
   #[test]
-  #[should_panic]
+  #[should_panic(expected = "Computed key is not a literal")]
   fn panics_for_computed_non_literal_key() {
     let kv = KeyValueProp {
       key: PropName::Computed(ComputedPropName {
@@ -1256,8 +1266,9 @@ mod ident_to_number_edge_tests {
     assert_eq!(result, 42.0);
   }
 
+  /// A name declared as an object names the kind of expression it holds.
   #[test]
-  #[should_panic]
+  #[should_panic(expected = "Variable ObjectExpression is not a number")]
   fn panics_for_object_expr_decl() {
     use swc_core::ecma::ast::ObjectLit;
     let mut state = EvaluationState::new();

@@ -235,7 +235,7 @@ fn a_chain_off_a_static_folds_end_to_end() {
 /// A filter whose callback answers a truthy *string* rather than a number.
 ///
 /// The deleted implementation decided a callback's truthiness by converting its
-/// result to a number, so this reported `Value in not a number` — a panic
+/// result to a number, so this reported `Value is not a number` — a panic
 /// carrying an internal sentence, on input both compilers otherwise fold. The
 /// language decides truthiness now, and the shape is pinned in both spellings so
 /// a later change cannot bring the old rule back on one of them.

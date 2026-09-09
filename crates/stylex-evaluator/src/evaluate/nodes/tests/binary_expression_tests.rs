@@ -394,11 +394,7 @@ mod the_number_path {
     ] {
       let bin = bin_expr(op, create_number_expr(5.0), create_number_expr(3.0));
 
-      assert!(
-        num_or_str_path(&bin).is_err(),
-        "expected {:?} to be refused by the number path",
-        op
-      );
+      assert_refuses_with(num_or_str_path(&bin), &unsupported_operator(op.as_str()));
     }
   }
 
@@ -412,7 +408,9 @@ mod the_number_path {
       create_number_expr(5.0),
     );
 
-    assert!(num_or_str_path(&bin).is_err());
+    // The coercion's own sentence rather than the side's: the operand *is*
+    // there, and what has no reading is its text.
+    assert_refuses_with(num_or_str_path(&bin), "Value is not a number: hello");
   }
 
   /// An operand that cannot be resolved at compile time takes its confidence
@@ -425,7 +423,7 @@ mod the_number_path {
       create_number_expr(1.0),
     );
 
-    assert!(num_or_str_path(&bin).is_err());
+    assert_refuses_with(num_or_str_path(&bin), LEFT_HAS_NO_VALUE);
   }
 }
 
@@ -468,7 +466,7 @@ mod the_string_path {
       create_string_expr("world"),
     );
 
-    assert!(string_path(&bin).is_err());
+    assert_refuses_with(string_path(&bin), "only addition is supported");
   }
 
   /// An operand with no compile-time value refuses here too, so a `+` whose
@@ -481,7 +479,7 @@ mod the_string_path {
       create_ident_expr("bar"),
     );
 
-    assert!(string_path(&bin).is_err());
+    assert_refuses_with(string_path(&bin), RIGHT_NOT_A_STRING);
   }
 }
 

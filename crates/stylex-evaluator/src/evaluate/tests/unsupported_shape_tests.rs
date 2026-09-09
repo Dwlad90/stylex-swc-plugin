@@ -402,9 +402,10 @@ fn a_spread_of_a_value_with_no_own_properties_folds_to_nothing() {
     "({ ...\"\" })",
     "({ ...[] })",
   ] {
-    let result = evaluate_source(source);
-
-    assert!(result.confident, "expected `{}` to fold", source);
+    // The empty object rather than "it folded": a spread that contributed a
+    // key would fold too, and the point of the row is that it contributes
+    // none.
+    assert_folds_to_object_keys(source, &[]);
   }
 
   assert_deopts("({ ...[, 1] })");
@@ -414,11 +415,18 @@ fn a_spread_of_a_value_with_no_own_properties_folds_to_nothing() {
 /// spread to the object the language builds from them.
 #[test]
 fn a_spread_of_a_string_or_an_array_contributes_its_indices() {
-  for source in ["({ ...\"ab\" })", "({ ...[1, 2] })", "({ ...[\"a\"] })"] {
-    let result = evaluate_source(source);
-
-    assert!(result.confident, "expected `{}` to fold", source);
+  // The keys and the values, because an index list of the right length and
+  // the wrong values is what a reading by the wrong unit writes.
+  for (source, keys) in [
+    ("({ ...\"ab\" })", &["0", "1"][..]),
+    ("({ ...[1, 2] })", &["0", "1"][..]),
+    ("({ ...[\"a\"] })", &["0"][..]),
+  ] {
+    assert_folds_to_object_keys(source, keys);
   }
+
+  assert_folds_to_string("Object.values({ ...\"ab\" }).join(\",\")", "a,b");
+  assert_folds_to_string("Object.values({ ...[1, 2] }).join(\",\")", "1,2");
 
   // An astral character is two code units and each is a lone surrogate, which
   // no Rust string holds. Refused rather than approximated.

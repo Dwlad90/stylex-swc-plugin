@@ -2206,7 +2206,7 @@
       "label": "`filter` on a named array",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nconst names = ['color', '', 'opacity'];\n\nexport const styles = stylex.create({\n  named: { transitionProperty: names.filter(name => name).join(', ') },\n  written: { willChange: ['inset', '', 'margin'].filter(name => name).join(', ') },\n});\n",
       "origin": "issue 14, the array-binding half of the measured gap",
-      "note": "The row for the one shape that was wrong rather than refused. A truthy filter reported `Value in not a number`, because the callback decided truthiness by converting its result to a number; the callback is real JavaScript now and the language's own truthiness answers it. Both halves drop the empty string and keep the two names."
+      "note": "The row for the one shape that was wrong rather than refused. A truthy filter reported `Value is not a number`, because the callback decided truthiness by converting its result to a number; the callback is real JavaScript now and the language's own truthiness answers it. Both halves drop the empty string and keep the two names."
     },
     {
       "id": "modules-to-lower-case-on-a-named-string",

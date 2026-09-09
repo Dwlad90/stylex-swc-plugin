@@ -114,7 +114,7 @@ pub fn ident_to_number(
           convert_lit_to_number(lit).unwrap_or_else(|error| stylex_panic!("{}", error))
         },
         _ => stylex_panic!(
-          "Varable {} is not a number",
+          "Variable {} is not a number",
           get_expr_node_kind(var_decl_expr)
         ),
       }

@@ -262,8 +262,8 @@ impl Walk<'_, '_> {
         (
           written.slots(),
           Bounds {
-            characters: greatest_of(written.each().map(|expr| rendered_expr(expr, depth))),
-            magnitude: greatest_of(written.each().map(number_of)),
+            characters: greatest_of(written.each_rendered(depth)),
+            magnitude: greatest_of(written.each().map(|slot| slot.and_then(number_of))),
           },
         )
       },
@@ -610,10 +610,14 @@ fn hands_over_a_function(args: &[ExprOrSpread]) -> bool {
 /// reading: a count taken from the elements would read short for a hole and so
 /// admit a call no ceiling bounded.
 ///
-/// The elements are total only under the invariant in "Evaluator-written array"
-/// — a hole would be stepped over and a spread measured as its operand, and both
-/// read a bound short. `engine_fold/guard.rs` admits both where it walks what an
-/// author wrote, which is the other value class rather than a disagreement.
+/// The elements are total under the invariant in "Evaluator-written array", and
+/// the reading below does not rest on it. A hole stepped over, and a spread
+/// measured as its operand, both read a bound short — and this is the one guard
+/// whose being wrong costs unbounded memory rather than one wrong declaration,
+/// so it refuses a slot it cannot measure instead of trusting the producer.
+/// `engine_fold/guard.rs` admits both where it walks what an author wrote, which
+/// is the other value class rather than a disagreement.
+///
 /// Copied rather than borrowed, because it is one shared slice and both units
 /// read the whole of it — so neither reading holds the other up.
 #[derive(Clone, Copy)]
@@ -625,9 +629,28 @@ impl<'a> WrittenArray<'a> {
     self.0.len()
   }
 
-  /// The expression each slot holds, in order.
-  fn each(self) -> impl Iterator<Item = &'a Expr> {
-    self.0.iter().flatten().map(|elem| &*elem.expr)
+  /// The expression each slot holds, or `None` where a slot holds no expression
+  /// the guard can measure -- a hole, or a spread standing for a count the
+  /// source does not state. Both read a bound short, so both stop the reading
+  /// rather than being stepped over.
+  ///
+  /// Every reader below carries the absence on with `and_then`, so a slot with
+  /// nothing to measure reaches `greatest_of` and `joined` as the refusal they
+  /// already answer for a value they cannot read.
+  fn each(self) -> impl Iterator<Item = Option<&'a Expr>> {
+    self.0.iter().map(|slot| match slot {
+      Some(ExprOrSpread { spread: None, expr }) => Some(&**expr),
+      Some(_) | None => None,
+    })
+  }
+
+  /// The characters each slot renders to at `depth`, which is the one reading
+  /// the two callers below share -- the bound a receiver puts on a callback,
+  /// and the width of an array nested inside one.
+  fn each_rendered(self, depth: Depth) -> impl Iterator<Item = Option<u64>> {
+    self
+      .each()
+      .map(move |slot| slot.and_then(|expr| rendered_expr(expr, depth)))
   }
 }
 
@@ -767,10 +790,7 @@ fn rendered_expr(expr: &Expr, depth: Depth) -> Option<u64> {
     Expr::Array(ArrayLit { elems, .. }) => {
       let written = WrittenArray(elems);
 
-      joined(
-        written.slots(),
-        written.each().map(|expr| rendered_expr(expr, inner)),
-      )
+      joined(written.slots(), written.each_rendered(inner))
     },
     _ => None,
   }

@@ -135,6 +135,36 @@ fn both_shapes_of_an_array_measure_the_same_width() {
   assert_eq!(rendered_expr(&written, room), Some(4));
 }
 
+/// A slot with no expression to measure stops the width walk rather than being
+/// stepped over.
+///
+/// A hole and a spread both read a bound short -- a hole would be skipped and a
+/// spread measured as its operand, where it stands for a count the source does
+/// not state -- and this is the one guard whose being wrong costs unbounded
+/// memory rather than a wrong declaration. No producer writes either into an
+/// [evaluator-written array](../../../../CONTEXT.md#evaluator-written-array), so
+/// the reading is asked here rather than through a source.
+#[test]
+fn a_slot_with_no_expression_stops_the_width_walk() {
+  let room = Depth::full(8);
+
+  let with_a_hole = create_array_expression(vec![
+    Some(ExprOrSpread {
+      spread: None,
+      expr: Box::new(create_string_expr("ab")),
+    }),
+    None,
+  ]);
+
+  let with_a_spread = create_array_expression(vec![Some(ExprOrSpread {
+    spread: Some(DUMMY_SP),
+    expr: Box::new(create_array_expression(vec![])),
+  })]);
+
+  assert_eq!(rendered_expr(&with_a_hole, room), None);
+  assert_eq!(rendered_expr(&with_a_spread, room), None);
+}
+
 /// An array literal holding `texts`, which is the shape an author writes.
 fn an_array_of(texts: &[&str]) -> Expr {
   create_array_expression(

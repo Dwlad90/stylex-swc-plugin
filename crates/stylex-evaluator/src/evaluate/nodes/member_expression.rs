@@ -94,9 +94,11 @@ fn index_slot(key: &str) -> Option<usize> {
 ///
 /// The caller finds the element and this answers for its absence. The two
 /// receivers hold their elements differently -- one holds the element, and the
-/// other a slot that a hole could occupy -- so each reads its own shape down to
-/// an element first. Neither ever carries a hole, because both are
-/// [evaluator-written arrays](../../../CONTEXT.md#evaluator-written-array).
+/// other a slot that a hole or a spread could occupy -- so each reads its own
+/// shape down to an element first. Neither ever carries either, because both are
+/// [evaluator-written arrays](../../../CONTEXT.md#evaluator-written-array); the
+/// slot reader stops trusting that rather than resting on it, because the answer
+/// a hole or a spread would be read as is a value and not a refusal.
 fn index_answer<T>(
   element: Option<&T>,
   read: impl FnOnce(&T) -> EvaluateResultValue,
@@ -416,9 +418,14 @@ pub(in super::super) fn evaluate(
 
             // A slot the array does not hold answers through the one reading
             // of absence, which is what keeps this receiver and the
-            // evaluator's own list answering alike.
+            // evaluator's own list answering alike. A spread stands for a
+            // count the source does not state, so the slot it occupies is read
+            // as holding no element rather than as holding the operand.
             Some(index_answer(
-              elems.get(slot).and_then(Option::as_ref),
+              elems
+                .get(slot)
+                .and_then(Option::as_ref)
+                .filter(|element| element.spread.is_none()),
               |element| EvaluateResultValue::Expr(*element.expr.clone()),
             ))
           },

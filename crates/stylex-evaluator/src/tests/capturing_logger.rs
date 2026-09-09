@@ -80,12 +80,34 @@ pub(crate) fn install(prints: impl Log + 'static) {
 
 /// Runs `body` with this thread keeping messages at `level`, and hands back
 /// everything it wrote.
+///
+/// The level is closed however the body leaves, a panic included. `cargo test`
+/// runs the cases of one binary on a pool of threads and reuses them, so a
+/// level left open by a failing case would have the next case on that thread
+/// keep messages nothing asked for. The panic itself still travels out, because
+/// a case that fails unexpectedly has to say so rather than go on to an
+/// assertion about a log.
+///
+/// Both the level and the messages belong to the calling thread, so a body that
+/// does its work on a thread of its own writes nothing here. A case pairing
+/// this with `scaffolding::on_a_thread_of` would read an empty capture and name
+/// the wrong cause for it.
 pub(crate) fn logged_at<T>(level: Level, body: impl FnOnce() -> T) -> Vec<String> {
+  /// Closes the level again however the body left.
+  struct Closed;
+
+  impl Drop for Closed {
+    fn drop(&mut self) {
+      LEVEL.with_borrow_mut(|current| *current = LevelFilter::Off);
+    }
+  }
+
   LEVEL.with_borrow_mut(|current| *current = level.to_level_filter());
   MESSAGES.with_borrow_mut(Vec::clear);
 
+  let _closed = Closed;
+
   body();
 
-  LEVEL.with_borrow_mut(|current| *current = LevelFilter::Off);
   MESSAGES.with_borrow(Clone::clone)
 }

@@ -47,7 +47,9 @@ fn valid_callee_detection() {
 /// spell the membership again.
 #[test]
 fn the_name_taking_callee_rule_answers_the_expression_taking_one() {
-  for name in ["Math", "console"] {
+  // Two names in the set and two outside it. A loop over members alone passes
+  // on a reading that answers `true` for everything.
+  for name in ["Math", "console", "Object", "window", "myHelper"] {
     assert_eq!(
       is_a_valid_callee_name(name),
       is_valid_callee(&ident_expr(name)),

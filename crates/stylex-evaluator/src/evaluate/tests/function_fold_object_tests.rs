@@ -189,8 +189,9 @@ fn the_values_that_are_not_folds_of_a_function_have_no_object_form() {
 }
 
 /// The `env` option's object, which the transform registers as an entry of the
-/// namespace's own fold, beside the functions. Its values are the option's own -- a string, a number, a
-/// function -- and none of them reaches the object form: what a reader asks of
+/// namespace's own fold, beside the functions. Its values are the option's own
+/// -- a string, a number, a function -- and none reaches the object form: what
+/// a reader asks of
 /// it is which keys it has, so every key stands for a function like every other
 /// entry's does.
 #[test]

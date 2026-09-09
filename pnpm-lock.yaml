@@ -2084,9 +2084,6 @@ importers:
       '@stylexswc/stylex-js':
         specifier: catalog:internal
         version: link:../stylex-js
-      '@stylexswc/types':
-        specifier: catalog:internal
-        version: link:../stylex-types
       '@stylexswc/utils':
         specifier: catalog:internal
         version: link:../stylex-utils

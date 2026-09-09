@@ -8,7 +8,7 @@
 
 use std::convert::Infallible;
 
-use stylex_utils::number;
+use stylex_utils::number::{self, is_js_whitespace};
 use swc_core::atoms::Wtf8Atom;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{
@@ -19,8 +19,8 @@ use swc_core::ecma::ast::{
 /// What `ToString` produces for an object that still takes the
 /// `Object.prototype` default.
 ///
-/// Not every object does, which is why [`keeps_default_primitive`] is asked
-/// before this is answered.
+/// Not every object does, which is why `object_to_primitive` is asked before
+/// this is answered.
 pub const OBJECT_TO_STRING: &str = "[object Object]";
 
 /// The two methods `OrdinaryToPrimitive` asks an object for, which an object
@@ -510,34 +510,6 @@ pub fn string_to_js_number(value: &str) -> f64 {
   }
 }
 
-/// Whether the language counts this as whitespace around a numeric literal.
-///
-/// Not `char::is_whitespace`, which follows Unicode rather than the language:
-/// it admits U+0085, which JavaScript does not, and omits U+FEFF, which
-/// JavaScript does.
-fn is_js_whitespace(c: char) -> bool {
-  // The tab family and the space, the two line terminators, and the rest of
-  // the Unicode space separators.
-  matches!(c, '\u{2000}'..='\u{200A}')
-    || matches!(
-      c,
-      '\u{0009}'
-        | '\u{000A}'
-        | '\u{000B}'
-        | '\u{000C}'
-        | '\u{000D}'
-        | '\u{0020}'
-        | '\u{00A0}'
-        | '\u{1680}'
-        | '\u{2028}'
-        | '\u{2029}'
-        | '\u{202F}'
-        | '\u{205F}'
-        | '\u{3000}'
-        | '\u{FEFF}'
-    )
-}
-
 /// The radix and digits of a `NonDecimalIntegerLiteral`, which takes no sign —
 /// which is why it is recognised ahead of the signed decimal grammar, and why
 /// `-0x1f` reaches that grammar and is not a number at all.
@@ -868,24 +840,18 @@ pub enum ObjectCoercion {
 pub fn to_object(expr: &Expr) -> Option<ObjectCoercion> {
   match expr {
     Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => Some(ObjectCoercion::Function),
-    // Every remaining readable value is an object or boxes into one: the two
-    // nullish spellings take a fresh one, an array, an object and a regular
-    // expression already are one, and a primitive is wrapped in one.
+    // Every remaining readable value is an object or boxes into one: an array,
+    // an object and a regular expression already are one, and a primitive is
+    // wrapped in one. The two nullish spellings are the exception the one
+    // caller wants: `ToObject` throws a `TypeError` over both, and `typeof`
+    // never asks it -- it names `null` an object on its own account, which is
+    // what this answers for them.
     Expr::Ident(ident) => surviving_global(ident).map(|_| ObjectCoercion::Object),
     Expr::Object(_) | Expr::Array(_) | Expr::Lit(_) => Some(ObjectCoercion::Object),
     _ => None,
   }
 }
 
-/// Whether an object literal's primitive conversion is still the
-/// `Object.prototype` default, and so is [`OBJECT_TO_STRING`].
-///
-/// An own `toString` or `valueOf` replaces that default and `Symbol.toPrimitive`
-/// precedes it, so an object carrying any of them coerces to a value this crate
-/// cannot compute -- `String({ toString: () => 'red' })` is `red`, not
-/// `[object Object]`. Answering the default for one of those would put a
-/// confidently wrong value in the stylesheet, which is the one outcome a
-/// refused fold exists to prevent.
 /// ECMA-262 `OrdinaryToPrimitive` over an object literal: the value the first
 /// of the object's two conversion methods to answer a primitive returns.
 ///

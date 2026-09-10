@@ -548,10 +548,9 @@ jobs:
             --retry-output benchmark/results/revisions-retry-raw-stats.v1.json \
             --retry-seed 2
       # Absolute p95 ceilings are only valid on the canonical target, so the
-      # budget runs on x86_64-unknown-linux-gnu alone. While budget.json is
-      # pending calibration this reports observations and never blocks; once
-      # ceilings are committed a breach fails this leg and, through the
-      # publish job's dependency on `benchmark`, blocks publication.
+      # budget runs on x86_64-unknown-linux-gnu alone. budget.json is
+      # enforced, so a breach fails this leg and, through the dependency of
+      # the publish job on `benchmark`, stops publication.
       - name: Check absolute p95 budget (canonical target)
         if:
           ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' && !matrix.settings.container }}

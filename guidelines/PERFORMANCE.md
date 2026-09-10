@@ -197,21 +197,30 @@ reach.
 ## Budget
 
 `benchmark/budget.json` is `enforced`. It holds one ceiling for each of the 65
-benchmark fixtures, seeded on 2026-09-10 from ten clean release runs: the
-largest median-of-round p95 that any run gave, times a headroom of 1.25. The
-worst of those runs sits at 80% of its ceiling. A breach fails the leg and,
+benchmark fixtures, seeded on 2026-09-10: the largest median-of-round p95 that
+any seeding run gave, times a headroom of 1.25. Sixty-one ceilings come from
+ten runs and four from three runs, because the four fold fixtures could not be
+measured until the published base could fold. A breach fails the leg and,
 through the publish job, blocks the release. While the file is
 `pending-calibration` instead, it holds no ceilings, `bench:budget` reports
 `unseeded`, and the leg passes.
 
 Ceilings are valid only on the canonical environment
 (`x86_64-unknown-linux-gnu`, Node 24.18.0, `ubuntu24` image family). Drift in
-any of those three fails as recalibration rather than comparing. The exact
-image build and the CPU model are recorded but reported as diagnostics,
-because GitHub chooses the machine and rebuilds the image more often than the
-project releases; the headroom covers that variation.
+any of those three is a recalibration failure rather than a comparison. Two
+properties of the machine cannot be pinned and neither stops a release: the
+report prints the CPU model in its environment line, and it reports an image
+build the ceilings do not name as a diagnostic. GitHub rebuilds the image
+about every week and the project releases less often than that, so a failure
+there would stop nearly every release for a cause no change here can answer;
+the headroom covers the difference. A run that records no image build at all
+stays a failure, because that is a defect in the measurement file.
 
-Nothing may write this file automatically. A breach is fixed by optimization or
-rollback. An increase needs a reviewed change stating old/new ceilings, repeated
-measurements, cause and user impact, alternatives, and why rollback is not
-appropriate. Decreases may ratchet in proven improvements.
+No task, script, or workflow in this repository may write this file. A seeding
+or recalibration change may compute the entries with a one-off script from
+archived run reports, because every value stays checkable: `evidence` names the
+runs and `parseEntry` re-derives each `ceilingMs` from `observedUpperMs` times
+`headroom`. A breach is fixed by optimization or rollback. An increase needs a
+reviewed change stating old/new ceilings, repeated measurements, cause and user
+impact, alternatives, and why rollback is not appropriate. Decreases may ratchet
+in proven improvements.

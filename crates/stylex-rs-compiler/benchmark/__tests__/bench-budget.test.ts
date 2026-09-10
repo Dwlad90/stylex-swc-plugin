@@ -248,16 +248,16 @@ describe('evaluateBudget — canonical environment', () => {
     expect(report.problems[0]?.severity).toBe('diagnostic');
   });
 
-  test('a missing image version reports a diagnostic, not a failure', () => {
+  test('a missing image version still fails, because no machine can be named', () => {
     const environment = { ...CANONICAL_ENV };
     delete environment.runnerImageVersion;
     const report = evaluateBudget(
       rawStats([fixture('card', [1])], environment),
       budget([entry('card', 2)])
     );
-    expect(report.status).toBe('pass');
-    expect(report.problems[0]?.kind).toBe('environment-runner-image-version');
-    expect(report.problems[0]?.severity).toBe('diagnostic');
+    expect(report.status).toBe('failed');
+    expect(report.problems[0]?.kind).toBe('environment-runner-image-version-missing');
+    expect(report.problems[0]?.severity).toBe('failure');
   });
 
   test('a rebuilt image does not hide a breach', () => {

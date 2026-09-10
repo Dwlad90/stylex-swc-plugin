@@ -13,10 +13,11 @@
  *
  * Two properties of the machine cannot be pinned on a hosted runner: the
  * CPU model, and the exact image build inside one family, which GitHub
- * rebuilds about one time each week. The report records both as
- * diagnostics, the headroom above `observedUpperMs` covers the variation
- * they cause, and the seeding runs must be spread across the models that
- * appear.
+ * rebuilds about one time each week. Neither stops a release. The report
+ * prints the CPU model in its environment line, and it reports an image
+ * build that the ceilings do not name as a diagnostic. The headroom above
+ * `observedUpperMs` covers the variation that both cause, and the seeding
+ * runs must be spread across the CPU models that appear.
  *
  * Statistic: the median of per-round p95 values for the selected subject.
  * Per-round p95 is already normalised to latency per transform by the
@@ -142,18 +143,40 @@ export type BudgetProblemKind =
   | 'environment-node'
   | 'environment-runner-image'
   | 'environment-runner-image-version'
+  | 'environment-runner-image-version-missing'
   | 'missing-entry'
   | 'extra-entry'
   | 'breach';
 
 /**
- * Whether a problem blocks the release.
+ * Whether a problem stops the release.
  *
- * `failure` is a finding about the code or about a comparison that cannot
- * be made. `diagnostic` is a finding about the machine the run landed on,
- * which nobody chooses and no change to this repo can fix.
+ * A `failure` is a finding about the code, or about a comparison that the
+ * check cannot make. A `diagnostic` is a finding about the machine that
+ * the run received, which the run does not choose.
  */
 export type BudgetProblemSeverity = 'failure' | 'diagnostic';
+
+/**
+ * The severity of each kind of problem.
+ *
+ * One map decides this, and the type makes each kind necessary, so a new
+ * kind cannot get its severity by accident at the line that raises it.
+ * Only one kind is a diagnostic: the run got an image build that the
+ * ceilings were not seeded on. An *absent* build is a different kind and
+ * stays a failure, because that is a defect in the file that records the
+ * measurement, not a machine that GitHub rebuilt.
+ */
+const PROBLEM_SEVERITY: Record<BudgetProblemKind, BudgetProblemSeverity> = {
+  'environment-target': 'failure',
+  'environment-node': 'failure',
+  'environment-runner-image': 'failure',
+  'environment-runner-image-version': 'diagnostic',
+  'environment-runner-image-version-missing': 'failure',
+  'missing-entry': 'failure',
+  'extra-entry': 'failure',
+  breach: 'failure',
+};
 
 export interface BudgetProblem {
   kind: BudgetProblemKind;
@@ -161,12 +184,8 @@ export interface BudgetProblem {
   severity: BudgetProblemSeverity;
 }
 
-function failure(kind: BudgetProblemKind, message: string): BudgetProblem {
-  return { kind, message, severity: 'failure' };
-}
-
-function diagnostic(kind: BudgetProblemKind, message: string): BudgetProblem {
-  return { kind, message, severity: 'diagnostic' };
+function makeProblem(kind: BudgetProblemKind, message: string): BudgetProblem {
+  return { kind, message, severity: PROBLEM_SEVERITY[kind] };
 }
 
 export type BudgetFixtureStatus = 'pass' | 'breach' | 'unbudgeted' | 'unseeded';
@@ -220,7 +239,7 @@ export function evaluateBudget(rawStatsInput: unknown, budgetInput: unknown): Bu
     const report = measureFixture(fixture, subject.label, budget.state, ceilings.get(fixture.name));
     if (report.status === 'breach' && report.ceilingMs !== undefined) {
       problems.push(
-        failure(
+        makeProblem(
           'breach',
           `${fixture.name}: p95 ${formatMs(report.observedP95Ms)} exceeds ceiling ` +
             formatMs(report.ceilingMs)
@@ -301,7 +320,7 @@ function checkEnvironment(
   const problems: BudgetProblem[] = [];
   if (environment.target !== canonical.target) {
     problems.push(
-      failure(
+      makeProblem(
         'environment-target',
         `budget applies to target ${canonical.target}, measured ${environment.target}`
       )
@@ -309,7 +328,7 @@ function checkEnvironment(
   }
   if (environment.node !== canonical.node) {
     problems.push(
-      failure(
+      makeProblem(
         'environment-node',
         `budget applies to Node ${canonical.node}, measured ${environment.node}`
       )
@@ -317,7 +336,7 @@ function checkEnvironment(
   }
   if (environment.runnerImage === undefined) {
     problems.push(
-      failure(
+      makeProblem(
         'environment-runner-image',
         'raw stats records no runner image; ceilings seeded on ' +
           `${canonical.runnerImages.join(', ')} cannot be compared`
@@ -325,7 +344,7 @@ function checkEnvironment(
     );
   } else if (!canonical.runnerImages.includes(environment.runnerImage)) {
     problems.push(
-      failure(
+      makeProblem(
         'environment-runner-image',
         `runner image drifted to ${environment.runnerImage} ` +
           `(seeded on ${canonical.runnerImages.join(', ')}) — recalibration required`
@@ -333,26 +352,32 @@ function checkEnvironment(
     );
   }
 
-  // The image family stays `ubuntu24` across rebuilds that can move
-  // timings, so the seeded builds are recorded and every other build is
-  // reported. The report is a diagnostic, not a failure, for the same
-  // reason the CPU model is one: GitHub chooses the machine, it rebuilds
-  // the image about every week, and a release is less frequent than that.
-  // A hard failure here would stop almost every release for a reason that
-  // no change to this repo can answer. The ceilings carry the headroom for
-  // it instead.
+  // The image family stays `ubuntu24` when GitHub rebuilds the image, and
+  // a rebuild can move the timings, so the builds that the ceilings came
+  // from are recorded here.
+  //
+  // A run on another build is only reported. GitHub rebuilds about one
+  // time each week and the project releases less often than that, so a
+  // failure would stop almost every release, and no change in this
+  // repository could make it pass. The headroom above `observedUpperMs`
+  // covers the difference instead.
+  //
+  // A run with no build recorded is different, and it stays a failure.
+  // GitHub always gives the value, so its absence is a defect in the file
+  // that records the measurement, and that file is the one thing here
+  // this repository does control.
   if (canonical.runnerImageVersions.length > 0) {
     if (environment.runnerImageVersion === undefined) {
       problems.push(
-        diagnostic(
-          'environment-runner-image-version',
-          'raw stats records no runner image version; ceilings were seeded on ' +
+        makeProblem(
+          'environment-runner-image-version-missing',
+          'raw stats records no runner image version; the ceilings were seeded on ' +
             canonical.runnerImageVersions.join(', ')
         )
       );
     } else if (!canonical.runnerImageVersions.includes(environment.runnerImageVersion)) {
       problems.push(
-        diagnostic(
+        makeProblem(
           'environment-runner-image-version',
           `runner image rebuilt to ${environment.runnerImageVersion} ` +
             `(seeded on ${canonical.runnerImageVersions.join(', ')})`
@@ -373,12 +398,14 @@ function checkCoverage(
 
   for (const name of measured) {
     if (!budgeted.has(name)) {
-      problems.push(failure('missing-entry', `no committed ceiling for "${name}"`));
+      problems.push(makeProblem('missing-entry', `no committed ceiling for "${name}"`));
     }
   }
   for (const name of budgeted) {
     if (!measured.has(name)) {
-      problems.push(failure('extra-entry', `budget entry "${name}" was not measured in this run`));
+      problems.push(
+        makeProblem('extra-entry', `budget entry "${name}" was not measured in this run`)
+      );
     }
   }
   return problems;

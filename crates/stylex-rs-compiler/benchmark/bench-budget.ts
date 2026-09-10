@@ -113,8 +113,8 @@ function printSummary(report: BudgetReport): void {
 
   for (const problem of report.problems) {
     const line = `  ${problem.kind}: ${problem.message}`;
-    // A diagnostic describes the machine, not the code, so it must not
-    // read like the thing that stopped the release.
+    // A diagnostic describes the machine and not the code. Show it more
+    // quietly than a failure, which is what stops the release.
     console.log(problem.severity === 'diagnostic' ? chalk.dim(line) : chalk.yellow(line));
   }
 

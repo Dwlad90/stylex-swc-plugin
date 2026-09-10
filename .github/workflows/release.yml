@@ -43,10 +43,25 @@ concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: true
 
+# Every job has a time limit. The GitHub default is six hours.
+#
+# Each job here only does control work: it tags, it drafts, it merges, or it
+# waits for an approval. In ten runs the slowest job was `pre-release`, at
+# 2.3 min, and no other job reached 0.5 min. Ten minutes is thus more than
+# four times the slowest run in that sample.
+#
+# The time that a job waits for an approval is not part of the limit. The
+# job `changelog-approval` waits for an approval, and it records 0.03 to
+# 0.07 min.
+#
+# The job `upload-npm` has no limit, because GitHub does not permit
+# `timeout-minutes` on a job that calls another workflow with `uses:`. The
+# workflow that it calls sets the limits for its own jobs.
 jobs:
   inputs-validation:
     name: Validate inputs
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: 🧪 Validate inputs
         id: validate
@@ -76,6 +91,7 @@ jobs:
   calculate-version:
     name: Calculate version
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: inputs-validation
     outputs:
       new_version: ${{ steps.calculate.outputs.new_version }}
@@ -155,6 +171,7 @@ jobs:
     env:
       LEFTHOOK: '0'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: 🛠️ Checkout code
         uses: actions/checkout@v7.0.1
@@ -235,6 +252,7 @@ jobs:
     name: Draft release ${{ needs.calculate-version.outputs.new_version }}
     needs: [pre-release, calculate-version]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: 🛠️ Checkout code
         uses: actions/checkout@v7.0.1
@@ -265,6 +283,7 @@ jobs:
     name: Approve changelog before publishing ${{ needs.calculate-version.outputs.new_version }}
     needs: [release-draft, calculate-version]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: changlog-approval
     steps:
@@ -292,6 +311,7 @@ jobs:
     needs: [upload-npm, calculate-version]
     if: ${{ github.event.inputs.dry-run != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: 🛠️ Checkout code
         uses: actions/checkout@v7.0.1
@@ -320,6 +340,7 @@ jobs:
     name: Merge to develop branch
     needs: [release, calculate-version]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: 🛠️ Checkout code
         uses: actions/checkout@v7.0.1
@@ -340,6 +361,7 @@ jobs:
     name: Merge to master branch
     needs: [merge-develop, calculate-version]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: 🛠️ Checkout code
         uses: actions/checkout@v7.0.1
@@ -359,6 +381,7 @@ jobs:
     name: Deploy docs to GitHub Pages
     needs: [release, calculate-version]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: github.event.inputs.prerelease == 'false'
     steps:
       - name: 📚 Deploy docs

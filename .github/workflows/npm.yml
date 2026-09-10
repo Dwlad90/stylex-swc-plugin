@@ -58,6 +58,33 @@ concurrency:
   group: stylex-release-publish
   cancel-in-progress: false
 
+# Every job has a time limit. The GitHub default is six hours. In this
+# workflow a job that stops also keeps the `stylex-release-publish`
+# concurrency group for those six hours, because the group does not cancel
+# a run that is in progress.
+#
+# The limits below come from seven complete runs of this workflow, between
+# 2026-09-04 and 2026-09-08. These were the first runs with fat LTO in the
+# addon. Each limit is approximately two times the slowest run in that
+# sample. A job that takes less than three minutes gets ten minutes,
+# because a smaller limit can stop a correct run on a slow runner.
+#
+#   build                40 min   slowest 18.3 (aarch64-pc-windows-msvc)
+#   test macOS/Windows   15 min   slowest  6.0 (x86_64-apple-darwin)
+#   test linux x64 gnu   10 min   slowest  2.0
+#   test linux arm64 gnu 10 min   slowest  1.6
+#   test linux x64 musl  10 min   slowest  2.5
+#   benchmark            50 min   slowest 27.6 (x86_64-apple-darwin)
+#   aggregate            10 min   slowest  0.2
+#   publish              15 min   slowest  3.6
+#   cleanup              10 min   disabled by `if: false`
+#
+# All the jobs in all seven runs completed. Thus the runners have
+# sufficient memory for fat LTO with `codegen-units = 1`.
+#
+# A time limit cannot make a partial release. The publish job needs each
+# build job, each test job and each benchmark job. If GitHub cancels one of
+# them, GitHub also skips the publish job.
 jobs:
   build:
     strategy:
@@ -102,6 +129,7 @@ jobs:
           - '24.18.0'
     name: 🛠️ Build - ${{ matrix.settings.target }} - node@${{ matrix.node }}
     runs-on: ${{ matrix.settings.host }}
+    timeout-minutes: 40
     steps:
       - name: Enable long path support
         run: git config --system core.longpaths true
@@ -198,6 +226,7 @@ jobs:
           - '22.22.1'
           - '24.18.0'
     runs-on: ${{ matrix.settings.host }}
+    timeout-minutes: 15
     steps:
       - name: Enable long path support
         run: git config --system core.longpaths true
@@ -247,6 +276,7 @@ jobs:
           - '22.22.1'
           - '24.18.0'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -296,6 +326,7 @@ jobs:
           - '22.22.1'
           - '24.18.0'
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -345,6 +376,7 @@ jobs:
           - '22.22.1'
           - '24.18.0'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -422,6 +454,7 @@ jobs:
         node:
           - '24.18.0'
     runs-on: ${{ matrix.settings.host }}
+    timeout-minutes: 50
     permissions:
       contents: read
     env:
@@ -683,6 +716,7 @@ jobs:
     needs:
       - benchmark
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     env:
@@ -757,6 +791,7 @@ jobs:
   publish:
     name: 📦 Publish
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       id-token: write
@@ -835,6 +870,7 @@ jobs:
     needs: [publish]
     runs-on: ubuntu-latest
     if: false
+    timeout-minutes: 10
     steps:
       - name: 🧹 Cleanup Caches
         run: |

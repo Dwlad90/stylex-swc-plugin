@@ -5,9 +5,9 @@ right of a colon, and the prelude of an at-rule such as `@media` — never a
 stylesheet, a selector or a whole rule.
 
 Only one item is reachable from the rest of the workspace:
-`last_media_query_wins_transform`. Every CSS type and property parser here is a
-port with no caller outside the crate, which is what
-**unreachable port** below is about.
+`last_media_query_wins_transform`. No plugin run enters any other parser here,
+so nothing the plugin emits is evidence about one, which is what
+**unwitnessed parser** below is about.
 
 ## Language
 
@@ -58,16 +58,23 @@ crate over, on the shorthand expansion path, where the unit is a
 formatter _there_ causes a divergence; reaching for it here closes one.
 _Avoid_: passthrough, verbatim, raw
 
-**Unreachable port**:
-A type in this crate whose reference counterpart the plugin never runs, so its
-behaviour cannot be settled by comparing output. The rule is about evidence: a
-claim that some colour grammar matches the reference compiler cannot be checked,
-because the plugin normalizes a colour as _text_ and never rebuilds it from
-parsed channels — `lch(50 50% 180)` comes out unchanged, the percentage echoed
-rather than scaled. Where a colour _does_ reach emitted text — the comma
-spelling, an unbounded alpha, a fractional `rgb()` channel — the plugin can be
-run end to end, and was.
-_Avoid_: dead code, unused type, aspirational port
+**Unwitnessed parser**:
+A parser that no plugin run enters — a CSS type, a property parser, or a reader
+one of them is built from. No output is evidence about it, so its behaviour
+cannot be settled by comparing output. The colour types are the case that
+matters, for two reasons. The plugin normalizes a colour as _text_ and never
+rebuilds it from parsed channels — `lch(50 50% 180)` comes out unchanged, the
+percentage echoed rather than scaled. The reference compiler's
+`Oklch.parser`/`Oklab.parser` also refuse every input: an optional whitespace
+separator consumes the space that the same sequence then demands as an element.
+A claim that some colour grammar here matches the reference compiler is
+therefore uncheckable.
+
+The rule is about evidence, not about reach. Some colour behaviour _does_ show
+in emitted text, because the text path carries it — the comma spelling, an
+unbounded alpha, a fractional `rgb()` channel. Those claims were settled end to
+end, and are parity. The parsers below them stay unwitnessed.
+_Avoid_: dead code, unused type, unreachable port, aspirational port
 
 **Precision suite**:
 A test file named for what it pins rather than for an upstream test file, with

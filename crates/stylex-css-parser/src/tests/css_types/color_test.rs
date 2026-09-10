@@ -870,8 +870,8 @@ mod the_optional_alpha_rewind {
     }
   }
   /// The reference compiler's own `lch(50% 100 270deg)` case, ported -- but as
-  /// characterization rather than parity, because this type is an
-  /// [unreachable port](../../CONTEXT.md).
+  /// characterization rather than parity, because this is an
+  /// [unwitnessed parser](../../../CONTEXT.md).
   ///
   /// Two different answers, and neither is a defect in the other:
   ///

@@ -104,12 +104,12 @@ pub fn alpha_as_number() -> TokenParser<f64> {
 /// the source: `-0.5` arrives as `value: -0.5` *and* `signCharacter: '-'`, so
 /// the parser answers `+0.5`, and `-50%` likewise answers `+0.5`.
 ///
-/// This reader keeps a negative alpha negative. Nothing in the plugin reaches it
-/// -- see the *Unreachable port* entry in `CONTEXT.md` -- so no emitted CSS
-/// differs, and reproducing a sign bug in a type with no caller would be the
-/// wrong way to close the gap. What is fixed here is the claim: this is a
-/// divergence, and the next person to add a caller needs to know that rather
-/// than trust a comment that said "parity".
+/// This reader keeps a negative alpha negative. No plugin run enters it, so no
+/// emitted CSS differs and no output is evidence about it -- see the
+/// *Unwitnessed parser* entry in `CONTEXT.md`. Reproducing a sign bug in a
+/// reader with no caller would be the wrong way to close the gap. What is fixed
+/// here is the claim: this is a divergence, and the next person to add a caller
+/// needs to know that rather than trust a comment that said "parity".
 ///
 /// [`crate::css_types::common_types::NumberOrPercentage`] inherits the same gap
 /// through its number arm, and says so.

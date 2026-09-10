@@ -329,6 +329,39 @@ export function linksMimalloc(file: string): boolean {
   }
 }
 
+/**
+ * Whether two subjects can be timed in one process.
+ *
+ * The question `assertBindingCanLoad` answers after the fact, asked before
+ * either subject is loaded. A caller that gets `false` must time each subject
+ * in a process of its own; a caller that ignores the answer gets the SIGSEGV
+ * the guard describes.
+ *
+ * Answers `false` for everything the two guards refuse, and for the case they
+ * refuse without naming a binding: a subject whose binding was not found.
+ * `findNativeBindings` reads the layouts npm and pnpm write, and a third layout
+ * would give an empty list, which cannot be read as "brings nothing" here any
+ * more than it can there. A pair this function cannot clear is measured in two
+ * processes, which is always safe and only costs the start-up of a second one.
+ */
+export function subjectsCanShareProcess(
+  first: readonly string[],
+  second: readonly string[],
+  platform: NodeJS.Platform = process.platform
+): boolean {
+  if (!isDualLoadRestricted(platform)) return true;
+  if (first.length === 0 || second.length === 0) return false;
+
+  const shared = new Set(first.map(binding => bindingPathKey(binding, platform)));
+  const arriving = second.filter(binding => !shared.has(bindingPathKey(binding, platform)));
+  if (arriving.length === 0) return true;
+
+  return (
+    !arriving.some(binding => linksMimalloc(binding)) ||
+    !first.some(binding => linksMimalloc(binding))
+  );
+}
+
 export interface BindingLoadRequest {
   /** Name of the subject, for the message. */
   label: string;

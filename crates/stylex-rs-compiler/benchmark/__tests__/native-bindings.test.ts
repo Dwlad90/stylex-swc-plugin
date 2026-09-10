@@ -14,6 +14,7 @@ import {
   linksMimalloc,
   loadedNativeBindings,
   NATIVE_BINARY_NAME,
+  subjectsCanShareProcess,
 } from '../lib/native-bindings.js';
 import { realPathOf, settledPathOf } from '../lib/paths.js';
 import { createTempDirs } from './helpers/temp-dirs.js';
@@ -275,6 +276,73 @@ describe('assertBindingIsVisible', () => {
     const held = writeAddon(dir, 'held.node', 'mimalloc');
 
     expect(visible([], [held], 'darwin')).toThrow(/base[\s\S]*NAPI_RS_NATIVE_LIBRARY_PATH/);
+  });
+});
+
+describe('subjectsCanShareProcess', () => {
+  // The question the paired entry point asks before it loads anything. It must
+  // refuse everything the guards refuse, or a run takes the single-process path
+  // and stops inside it.
+  test('lets any pair share a process on an unrestricted platform', () => {
+    const dir = temp.make('bench-allocator-');
+    const first = [writeAddon(dir, 'first.node', 'mimalloc')];
+    const second = [writeAddon(dir, 'second.node', 'mimalloc')];
+
+    expect(subjectsCanShareProcess(first, second, 'linux')).toBe(true);
+  });
+
+  test('refuses a pair that both link mimalloc', () => {
+    const dir = temp.make('bench-allocator-');
+    const first = [writeAddon(dir, 'first.node', 'mimalloc')];
+    const second = [writeAddon(dir, 'second.node', 'mimalloc')];
+
+    expect(subjectsCanShareProcess(first, second, 'darwin')).toBe(false);
+  });
+
+  test('lets a pair share when only one links mimalloc', () => {
+    const dir = temp.make('bench-allocator-');
+    const first = [writeAddon(dir, 'first.node', 'system')];
+    const second = [writeAddon(dir, 'second.node', 'mimalloc')];
+
+    expect(subjectsCanShareProcess(first, second, 'darwin')).toBe(true);
+    expect(subjectsCanShareProcess(second, first, 'darwin')).toBe(true);
+  });
+
+  test('lets one binding share a process with itself', () => {
+    const dir = temp.make('bench-allocator-');
+    const only = [writeAddon(dir, 'only.node', 'mimalloc')];
+
+    expect(subjectsCanShareProcess(only, only, 'darwin')).toBe(true);
+  });
+
+  // A layout nobody has read yet gives an empty list, and an empty list is
+  // what `assertBindingIsVisible` refuses. The two must agree, or a run takes
+  // the path that stops.
+  test('refuses a pair whose binding was not found', () => {
+    const dir = temp.make('bench-allocator-');
+    const found = [writeAddon(dir, 'found.node', 'mimalloc')];
+
+    expect(subjectsCanShareProcess([], found, 'darwin')).toBe(false);
+    expect(subjectsCanShareProcess(found, [], 'darwin')).toBe(false);
+  });
+
+  // Whatever this refuses, the guard that runs after it must refuse too.
+  test('agrees with the guard on the pair it refuses', () => {
+    const dir = temp.make('bench-allocator-');
+    const first = [writeAddon(dir, 'first.node', 'mimalloc')];
+    const second = [writeAddon(dir, 'second.node', 'mimalloc')];
+
+    expect(subjectsCanShareProcess(first, second, 'darwin')).toBe(false);
+    expect(attempt('second', second, first, 'darwin')).toThrow(/mimalloc/);
+  });
+
+  test('agrees with the guard on the pair it clears', () => {
+    const dir = temp.make('bench-allocator-');
+    const first = [writeAddon(dir, 'first.node', 'system')];
+    const second = [writeAddon(dir, 'second.node', 'mimalloc')];
+
+    expect(subjectsCanShareProcess(first, second, 'darwin')).toBe(true);
+    expect(attempt('second', second, first, 'darwin')).not.toThrow();
   });
 });
 

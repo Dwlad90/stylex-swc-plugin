@@ -47,6 +47,19 @@ import type {
   RawLatencySamples,
 } from './types.js';
 
+/**
+ * How a subject's rule count for one fixture is obtained.
+ *
+ * @throws Error carrying what the subject said when it cannot compile it.
+ */
+export type RuleCounter = (subject: LoadedSubject, fixture: FixtureDescriptor) => number;
+
+/** How one round of one fixture is timed, for the subjects in the order given. */
+export type RoundMeasurer = (
+  fixture: FixtureDescriptor,
+  order: readonly LoadedSubject[]
+) => Promise<Record<string, RawLatencySamples>>;
+
 export interface RunOptions {
   subjects: readonly LoadedSubject[];
   fixtures: readonly FixtureDescriptor[];
@@ -71,6 +84,17 @@ export interface RunOptions {
    * subject is privileged and every refusal stops the run.
    */
   requiredSubject?: string;
+  /**
+   * Where the work happens. Both default to this process, which is what every
+   * platform but one uses.
+   *
+   * macOS cannot hold two bindings that both link mimalloc, so the paired entry
+   * point hands in a pair that runs each subject in a process of its own. The
+   * schedule, the sanity check and the statistics below are the same either
+   * way: only the two steps that touch a subject move.
+   */
+  countRules?: RuleCounter;
+  measureRound?: RoundMeasurer;
 }
 
 /** One fixture that left a run, and the subject whose answer removed it. */
@@ -116,8 +140,12 @@ export async function runRounds(options: RunOptions): Promise<RunResult> {
   for (const fixture of measurable) {
     const roundStats: FixtureRoundStats[] = [];
     const schedule = createBalancedSchedule(options.subjects, options.rounds, rng);
+    const measure = options.measureRound ?? ((one, order) => runSingleRound(one, order, options));
     for (const [round, order] of schedule.entries()) {
-      const perSubject = await runSingleRound(fixture, order, options);
+      // Normalised here rather than in either measurer, so a fixture that
+      // batches cannot be reported per batch by one of them and per transform
+      // by the other.
+      const perSubject = normaliseRound(await measure(fixture, order), fixture.batchSize);
       roundStats.push({
         round,
         subjectOrder: order.map(subject => subject.descriptor.label),
@@ -182,11 +210,15 @@ function selectMeasurableFixtures(options: RunOptions): FixtureSelection {
 function subjectRefusals(fixture: FixtureDescriptor, options: RunOptions): SubjectRefusal[] {
   const refusals: SubjectRefusal[] = [];
 
+  const count =
+    options.countRules ??
+    ((subject, entry) => subject.run(entry, fixtureStylexOptions(entry, options.stylexOptions)));
+
   for (const subject of options.subjects) {
     const label = subject.descriptor.label;
     let rules: number;
     try {
-      rules = subject.run(fixture, fixtureStylexOptions(fixture, options.stylexOptions));
+      rules = count(subject, fixture);
     } catch (error) {
       // A compiler error carries no fixture name, and the CI log for a paired
       // run showed only a stack ending inside the base subject's `transform`.
@@ -269,11 +301,24 @@ async function runSingleRound(
   await bench.run();
 
   const perSubject: Record<string, RawLatencySamples> = {};
-  for (const task of bench.tasks) {
-    const samples = extractLatencySamples(task);
-    perSubject[task.name] = normaliseBatchedSamples(samples, fixture.batchSize);
-  }
+  for (const task of bench.tasks) perSubject[task.name] = extractLatencySamples(task);
+
   return perSubject;
+}
+
+/** Every subject's samples for one round, as latency per transform. */
+function normaliseRound(
+  perSubject: Record<string, RawLatencySamples>,
+  batchSize: number
+): Record<string, RawLatencySamples> {
+  if (batchSize <= 1) return perSubject;
+
+  const scaled: Record<string, RawLatencySamples> = {};
+  for (const [label, samples] of Object.entries(perSubject)) {
+    scaled[label] = normaliseBatchedSamples(samples, batchSize);
+  }
+
+  return scaled;
 }
 
 /**

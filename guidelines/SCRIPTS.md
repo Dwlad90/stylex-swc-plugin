@@ -219,8 +219,17 @@ Subject dirs need `package.json`, `dist/index.js` exporting `transform`, and one
 `*.node`. Passing the same dir as base and candidate (with differing
 `--base-label`/`--candidate-label`) is a same-vs-same calibration run.
 
+One process holds both subjects wherever it can. macOS cannot hold two bindings
+that both link mimalloc, so `bench:revisions` times each subject in a child
+process there, and says so as it starts. The schedule and the output file do not
+change; the run pays about 0.18 s for each child.
+`--separate-processes` asks for that path anywhere, which is how it is tested on
+the other platforms. `NAPI_RS_NATIVE_LIBRARY_PATH` stops a paired run: it names
+one binding, so both subjects would be the same binary.
+
 Flags -- `bench:revisions`: `--rounds` (10), `--seed` (1), `--time` (300 ms),
-repeatable `--category` (`transform|perf|rollup`) and `--fixture` substring.
+repeatable `--category` (`transform|perf|rollup`) and `--fixture` substring,
+`--allow-base-refusals`, `--separate-processes`.
 `bench:verdict`: `--warn` (1.10), `--fail` (1.20), `--improvement-warn` (0.50),
 `--seed` (1), `--resamples` (10000), `--confidence` (0.95), `--retry <path>`.
 `bench:budget`: `--report-only`.

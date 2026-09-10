@@ -45,7 +45,10 @@
       "ignoreDependencies": ["react-refresh", "@swc/jest"]
     },
     "packages/*": {},
-    "crates/*": {}
+    "crates/*": {},
+    "crates/stylex-rs-compiler": {
+      "entry": ["benchmark/bench-worker.ts"]
+    }
   },
   "ignoreBinaries": ["lint-prepush", "cargo", "rustup", "scripty", "python3"],
   "ignoreDependencies": ["@stylexswc/.*"]

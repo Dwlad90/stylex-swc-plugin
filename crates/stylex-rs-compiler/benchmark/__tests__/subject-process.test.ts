@@ -1,0 +1,282 @@
+/**
+ * The contract between the parent that asks for a measurement and the child
+ * that makes it.
+ *
+ * The end-to-end case at the bottom is the one that matters most. The split
+ * path is taken on its own only on macOS, and only against a base that links
+ * mimalloc, which no leg has yet -- so without a case that asks for it the code
+ * would ship untested everywhere it runs.
+ */
+
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+
+import { afterAll, afterEach, describe, expect, test } from 'vitest';
+
+import { findNativeBindings } from '../lib/native-bindings.js';
+import {
+  callWorker,
+  closeWorkerRuns,
+  isWorkerRefusal,
+  openWorkerRuns,
+  workerExecArgv,
+  WORKER_PROTOCOL_VERSION,
+  type WorkerRequest,
+} from '../lib/subject-process.js';
+import type { FixtureDescriptor } from '../lib/types.js';
+import { createTempDirs } from './helpers/temp-dirs.js';
+
+const packageDir = path.resolve(import.meta.dirname, '..', '..');
+const benchmarkDir = path.join(packageDir, 'benchmark');
+// Every case needs a subject to load, and a clean checkout has no build. A
+// missing build is not a fault in this module, so skip rather than fail.
+const built = findNativeBindings(packageDir).length > 0;
+
+const temp = createTempDirs();
+const runs = openWorkerRuns();
+
+afterEach(() => {
+  temp.removeAll();
+});
+
+afterAll(() => {
+  closeWorkerRuns(runs);
+});
+
+/** A fixture the compiler answers for, small enough to time in milliseconds. */
+function fixture(overrides: Partial<FixtureDescriptor> = {}): FixtureDescriptor {
+  const file = path.join(benchmarkDir, 'perf_fixtures', 'create-basic.js');
+
+  return {
+    name: 'probe',
+    filePath: file,
+    code: fs.readFileSync(file, 'utf8'),
+    weight: 'standard',
+    category: 'perf',
+    batchSize: 1,
+    ...overrides,
+  };
+}
+
+function request(overrides: Partial<WorkerRequest> = {}): WorkerRequest {
+  return {
+    protocol: WORKER_PROTOCOL_VERSION,
+    packageDir,
+    label: 'subject',
+    fixtures: [fixture()],
+    stylexOptions: {
+      dev: false,
+      treeshakeCompensation: true,
+      unstable_moduleResolution: { type: 'haste', rootDir: packageDir },
+    },
+    // The smallest budget tinybench accepts. These cases prove the two sides
+    // agree, not how fast anything is.
+    timeBudgetMs: 20,
+    ...overrides,
+  };
+}
+
+describe('callWorker', () => {
+  test.runIf(built)('answers the rule count of every fixture it is given', () => {
+    const report = callWorker(
+      runs,
+      request({ fixtures: [fixture(), fixture({ name: 'second' })] })
+    );
+    const counts = report.counts ?? {};
+
+    expect(Object.keys(counts).toSorted()).toEqual(['probe', 'second']);
+    for (const count of Object.values(counts)) {
+      expect(isWorkerRefusal(count)).toBe(false);
+      expect(count).toBeGreaterThan(0);
+    }
+  });
+
+  test.runIf(built)('times the fixture the request names', () => {
+    const report = callWorker(runs, request({ measure: 'probe' }));
+
+    expect(report.samples?.p50).toBeGreaterThan(0);
+    expect(report.samples?.samplesCount).toBeGreaterThan(0);
+    expect(report.counts).toBeUndefined();
+  });
+
+  // A base that is behind by whole features cannot compile every fixture. The
+  // child reports what it said rather than stopping, so the parent decides.
+  test.runIf(built)('reports a refusal as a sentence rather than stopping', () => {
+    const report = callWorker(runs, request({ fixtures: [fixture({ code: 'const broken = ;' })] }));
+    const count = report.counts?.probe;
+
+    expect(count !== undefined && isWorkerRefusal(count)).toBe(true);
+  });
+
+  // Its own directory, because a call that throws leaves its two files for
+  // `closeWorkerRuns` to sweep, and the shared one holds those.
+  test.runIf(built)('leaves no file behind for a call that answered', () => {
+    const own = openWorkerRuns();
+    try {
+      callWorker(own, request({ measure: 'probe' }));
+
+      expect(fs.readdirSync(own.directory)).toEqual([]);
+    } finally {
+      closeWorkerRuns(own);
+    }
+  });
+
+  test('names the subject and what the child said when it cannot load it', () => {
+    const absent = path.join(temp.make('bench-worker-'), 'no-such-package');
+
+    expect(() => callWorker(runs, request({ packageDir: absent, label: 'gone' }))).toThrow(
+      /gone[\s\S]*entry does not exist/
+    );
+  });
+
+  // The case the split exists for. A child that ends without a report gives no
+  // sentence of its own, so the parent must name how it ended -- and a signal
+  // is what a second mimalloc binding would look like here.
+  //
+  // A directory standing where the report file goes is how the child is left
+  // unable to write one. The first call of a run writes `report-1.json`, so
+  // making that name a directory takes the report away without touching the
+  // request the parent writes beside it.
+  test.runIf(built)('names how the process ended when the child writes no report', () => {
+    const own = openWorkerRuns();
+    try {
+      fs.mkdirSync(path.join(own.directory, 'report-1.json'));
+
+      expect(() => callWorker(own, request({ measure: 'probe', label: 'quiet' }))).toThrow(
+        /quiet[\s\S]*wrote no measurement[\s\S]*(exit|signal)/
+      );
+    } finally {
+      closeWorkerRuns(own);
+    }
+  });
+
+  test.runIf(built)('refuses a fixture name the request does not carry', () => {
+    expect(() => callWorker(runs, request({ measure: 'absent' }))).toThrow(/absent/);
+  });
+});
+
+describe('bench-worker', () => {
+  // The property the whole split rests on. `lib/types.ts` reads a value off
+  // `dist/index.js`, and importing that loads this package's binding. A child
+  // that reached it would hold the candidate binding before it loaded the
+  // subject it was asked about, and macOS would end it exactly as the single
+  // process ends. An import added without this case would be silent until a
+  // release.
+  test.runIf(built)('loads no binding of its own before a subject is asked for', () => {
+    const reader =
+      `const worker = await import(${JSON.stringify(path.join(benchmarkDir, 'lib/subject-process.js'))});` +
+      `const bindings = await import(${JSON.stringify(path.join(benchmarkDir, 'lib/native-bindings.js'))});` +
+      'console.log(JSON.stringify([...bindings.loadedNativeBindings()]));' +
+      'void worker;';
+
+    const result = spawnSync(
+      process.execPath,
+      [...workerExecArgv(), '--input-type=module', '-e', reader],
+      {
+        encoding: 'utf8',
+      }
+    );
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual([]);
+  });
+
+  test('refuses a request whose protocol it does not read', () => {
+    const dir = temp.make('bench-worker-protocol-');
+    const requestPath = path.join(dir, 'request.json');
+    const reportPath = path.join(dir, 'report.json');
+    fs.writeFileSync(requestPath, JSON.stringify({ ...request(), protocol: 99 }), 'utf8');
+
+    const result = spawnSync(
+      process.execPath,
+      [...workerExecArgv(), path.join(benchmarkDir, 'bench-worker.ts'), requestPath, reportPath],
+      { encoding: 'utf8' }
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/protocol/);
+  });
+
+  test('refuses to run without both file names', () => {
+    const result = spawnSync(
+      process.execPath,
+      [...workerExecArgv(), path.join(benchmarkDir, 'bench-worker.ts')],
+      { encoding: 'utf8' }
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/request file/);
+  });
+});
+
+/**
+ * The whole path, as the release gate runs it.
+ *
+ * One package stands in for both subjects. What is proved is the split itself:
+ * that two children are asked in the order the schedule gives, that both answer,
+ * and that the file the verdict engine reads holds a round for each.
+ */
+describe('paired run in separate processes', () => {
+  test.runIf(built)(
+    'measures both subjects and writes the file the verdict engine reads',
+    () => {
+      const output = path.join(benchmarkDir, 'results', 'revisions-raw-stats.v1.json');
+      const before = fs.existsSync(output) ? fs.readFileSync(output, 'utf8') : undefined;
+
+      const result = spawnSync(
+        process.execPath,
+        [
+          ...workerExecArgv(),
+          path.join(benchmarkDir, 'bench-revisions.ts'),
+          '--base',
+          packageDir,
+          '--candidate',
+          packageDir,
+          '--base-label',
+          'first',
+          '--candidate-label',
+          'second',
+          '--rounds',
+          '2',
+          '--time',
+          '20',
+          '--fixture',
+          'Basic create',
+          '--separate-processes',
+        ],
+        { encoding: 'utf8' }
+      );
+
+      try {
+        expect(result.status, result.stderr).toBe(0);
+        expect(result.stdout).toMatch(/process of its own/);
+
+        const raw: unknown = JSON.parse(fs.readFileSync(output, 'utf8'));
+        const stats = raw as {
+          subjects: { label: string }[];
+          fixtures: { rounds: { subjectOrder: string[]; perSubject: Record<string, unknown> }[] }[];
+        };
+
+        expect(stats.subjects.map(subject => subject.label)).toEqual(['first', 'second']);
+        expect(stats.fixtures.length).toBeGreaterThan(0);
+        for (const entry of stats.fixtures) {
+          expect(entry.rounds).toHaveLength(2);
+          for (const round of entry.rounds) {
+            expect(Object.keys(round.perSubject).toSorted()).toEqual(['first', 'second']);
+            expect(round.subjectOrder.toSorted()).toEqual(['first', 'second']);
+          }
+        }
+        // Counterbalancing is the reason the split keeps a round boundary at
+        // all: a subject that always went first would carry the drift.
+        const orders = stats.fixtures[0]?.rounds.map(round => round.subjectOrder.join('>')) ?? [];
+        expect(new Set(orders).size).toBe(2);
+      } finally {
+        // The results file belongs to whoever ran the benchmark last.
+        if (before === undefined) fs.rmSync(output, { force: true });
+        else fs.writeFileSync(output, before, 'utf8');
+      }
+    },
+    120_000
+  );
+});

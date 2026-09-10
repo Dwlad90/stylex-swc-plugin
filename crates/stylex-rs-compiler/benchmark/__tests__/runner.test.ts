@@ -77,6 +77,18 @@ const ENVIRONMENT: RawStatsEnvironment = {
   toolchain: {},
 };
 
+/** Latency samples that all read `value`, so a division shows up plainly. */
+function samplesOf(value: number) {
+  return {
+    samples: [value, value],
+    p50: value,
+    p95: value,
+    rme: 0,
+    samplesCount: 2,
+    opsPerSec: 1000 / value,
+  };
+}
+
 function subject(label: string) {
   return createSubject({ label, version: '1.0.0', resolvedFrom: `/${label}` }, () => 1);
 }
@@ -144,6 +156,84 @@ async function refused(subjectRun: SubjectRun): Promise<Error> {
 
   return failure;
 }
+
+describe('runRounds strategies', () => {
+  // The two steps that touch a subject are handed in, so the split runner can
+  // measure in another process while everything else stays this code.
+  test('counts rules and times a round through the strategies it is given', async () => {
+    const counted: string[] = [];
+    const timed: string[] = [];
+
+    const result = await runRounds({
+      subjects: [subject('base'), subject('candidate')],
+      fixtures: [FIXTURE],
+      stylexOptions: {},
+      rounds: 1,
+      seed: 1,
+      standardBench: BENCH,
+      heavyBench: BENCH,
+      countRules(one, fixture) {
+        counted.push(`${one.descriptor.label}:${fixture.name}`);
+        return 7;
+      },
+      measureRound(fixture, order) {
+        timed.push(order.map(one => one.descriptor.label).join('>'));
+        return Promise.resolve(
+          Object.fromEntries(order.map(one => [one.descriptor.label, samplesOf(4)]))
+        );
+      },
+    });
+
+    expect(counted).toEqual(['base:card', 'candidate:card']);
+    expect(timed).toHaveLength(1);
+    expect(result.fixtures[0]?.rounds[0]?.perSubject.base?.p50).toBe(4);
+  });
+
+  // A fixture that batches N transforms per timed operation reports latency per
+  // transform. The division moved out of the in-process measurer so both share
+  // it; a measurer that did its own would divide twice.
+  test('divides a batched round once, whichever measurer took it', async () => {
+    const batched: FixtureDescriptor = { ...FIXTURE, batchSize: 4 };
+
+    const result = await runRounds({
+      subjects: [subject('base')],
+      fixtures: [batched],
+      stylexOptions: {},
+      rounds: 1,
+      seed: 1,
+      standardBench: BENCH,
+      heavyBench: BENCH,
+      countRules: () => 1,
+      measureRound: (fixture, order) =>
+        Promise.resolve(Object.fromEntries(order.map(one => [one.descriptor.label, samplesOf(8)]))),
+    });
+
+    const samples = result.fixtures[0]?.rounds[0]?.perSubject.base;
+    expect(samples?.p50).toBe(2);
+    expect(samples?.p95).toBe(2);
+    expect(samples?.samples).toEqual([2, 2]);
+    // Throughput rises by the same factor the latency falls by: the samples
+    // timed four transforms each, and the report is about one.
+    expect(samples?.opsPerSec).toBe(500);
+  });
+
+  test('leaves an unbatched round as the measurer reported it', async () => {
+    const result = await runRounds({
+      subjects: [subject('base')],
+      fixtures: [FIXTURE],
+      stylexOptions: {},
+      rounds: 1,
+      seed: 1,
+      standardBench: BENCH,
+      heavyBench: BENCH,
+      countRules: () => 1,
+      measureRound: (fixture, order) =>
+        Promise.resolve(Object.fromEntries(order.map(one => [one.descriptor.label, samplesOf(8)]))),
+    });
+
+    expect(result.fixtures[0]?.rounds[0]?.perSubject.base?.p50).toBe(8);
+  });
+});
 
 describe('runRounds paired roles', () => {
   test('a two-subject run records roles even without bootstrap statistics', async () => {

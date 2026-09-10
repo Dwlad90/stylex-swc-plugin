@@ -40,6 +40,11 @@ function attempt(label: string, bindings: string[], loaded: string[], platform: 
   return () => assertBindingCanLoad({ label, bindings, loaded: new Set(loaded), platform });
 }
 
+function visible(bindings: string[], loaded: string[], platform: NodeJS.Platform) {
+  return () =>
+    assertBindingIsVisible({ label: 'base', bindings, loaded: new Set(loaded), platform });
+}
+
 describe('isDualLoadRestricted', () => {
   test('reports macOS as restricted', () => {
     expect(isDualLoadRestricted('darwin')).toBe(true);
@@ -229,11 +234,6 @@ describe('assertBindingCanLoad', () => {
 });
 
 describe('assertBindingIsVisible', () => {
-  function visible(bindings: string[], loaded: string[], platform: NodeJS.Platform) {
-    return () =>
-      assertBindingIsVisible({ label: 'base', bindings, loaded: new Set(loaded), platform });
-  }
-
   test('allows a subject whose binding was found', () => {
     const dir = temp.make('bench-allocator-');
     const held = writeAddon(dir, 'held.node', 'mimalloc');

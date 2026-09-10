@@ -196,15 +196,20 @@ reach.
 
 ## Budget
 
-While `benchmark/budget.json` is `pending-calibration` it holds no ceilings:
-`bench:budget` reports `unseeded` and the leg passes. Once ceilings are seeded
-from repeated clean runs (robust upper bound plus headroom), a breach fails the
-leg and, through the publish job, blocks the release. Ceilings are valid only on
-the canonical environment (`x86_64-unknown-linux-gnu`, Node 24.18.0, `ubuntu24`
-image family); drift in any of those three fails as recalibration rather than
-comparing. The exact image build and the CPU model are recorded but reported as
-diagnostics, because GitHub chooses the machine and rebuilds the image more
-often than the project releases; the headroom covers that variation.
+`benchmark/budget.json` is `enforced`. It holds one ceiling for each of the 65
+benchmark fixtures, seeded on 2026-09-10 from ten clean release runs: the
+largest median-of-round p95 that any run gave, times a headroom of 1.25. The
+worst of those runs sits at 80% of its ceiling. A breach fails the leg and,
+through the publish job, blocks the release. While the file is
+`pending-calibration` instead, it holds no ceilings, `bench:budget` reports
+`unseeded`, and the leg passes.
+
+Ceilings are valid only on the canonical environment
+(`x86_64-unknown-linux-gnu`, Node 24.18.0, `ubuntu24` image family). Drift in
+any of those three fails as recalibration rather than comparing. The exact
+image build and the CPU model are recorded but reported as diagnostics,
+because GitHub chooses the machine and rebuilds the image more often than the
+project releases; the headroom covers that variation.
 
 Nothing may write this file automatically. A breach is fixed by optimization or
 rollback. An increase needs a reviewed change stating old/new ceilings, repeated

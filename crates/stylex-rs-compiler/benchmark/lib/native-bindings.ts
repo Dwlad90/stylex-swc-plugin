@@ -45,9 +45,10 @@ const PLATFORM_PACKAGE_SCOPE = '@stylexswc';
  * no mimalloc, measured both subjects and left with exit 0, while a base of
  * `0.19.0-rc.1` and one of `0.19.0-rc.2`, which both link it, each stopped the
  * process with SIGSEGV. All three version strings differ from the candidate, so
- * the cause is not a shared version: it is the second mimalloc. Each binding
- * brings its own copy of the allocator, and a block one copy hands out is given
- * back to the other. `require`, dynamic `import`, and `process.dlopen` with
+ * the cause is not a shared version: it is the second mimalloc. What the second
+ * copy does to the first is not known -- the addon references no macOS zone
+ * call, so it holds the allocator as a plain Rust global one -- and the guard
+ * does not need to know. `require`, dynamic `import`, and `process.dlopen` with
  * `RTLD_LOCAL` all fail the same way.
  *
  * The name says restricted and not unsafe because the platform alone does not
@@ -299,7 +300,9 @@ export function loadedNativeBindings(): Set<string> {
  * is in the binary whenever the allocator is linked into it. Read from the
  * shipped files rather than from the build settings: `0.18.6` holds the bytes
  * nowhere, and `0.19.0-rc.1`, `0.19.0-rc.2` and the current build each hold
- * them six times.
+ * them six times. Every target this package publishes holds them, musl
+ * included: `swc_malloc` leaves musl on the system allocator, and this package
+ * names mimalloc for `x86_64-unknown-linux-musl` itself, in its own manifest.
  *
  * The rule holds for the two artifacts a paired run compares -- a build of this
  * package and a published release of it -- because `napi build` writes both and

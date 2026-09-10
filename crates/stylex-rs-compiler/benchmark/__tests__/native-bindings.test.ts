@@ -679,6 +679,16 @@ describe('findNativeBindings resolution paths', () => {
     expect(findNativeBindings(link)).toEqual([addon]);
   });
 
+  // Node appends `node_modules` to every ancestor except one already named
+  // that, so `node_modules/node_modules` is a path it never asks about. A
+  // search that asked would read a directory the subject cannot load from.
+  test('ignores a scope directory under a second node_modules', () => {
+    const { root, packageDir } = makeInstalledPackage();
+    addPlatformPackage(path.join(root, 'node_modules'), 'darwin-arm64');
+
+    expect(findNativeBindings(packageDir)).toEqual([]);
+  });
+
   test('ignores a hoisted package of another scope', () => {
     const { root, packageDir } = makeInstalledPackage();
     const other = path.join(root, 'node_modules', '@other', `${NATIVE_BINARY_NAME}-darwin-arm64`);

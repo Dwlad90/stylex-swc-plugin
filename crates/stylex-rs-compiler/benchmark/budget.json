@@ -15,7 +15,7 @@
     "increases": "A budget increase requires a dedicated reviewed change recording the affected benchmark, old and new ceilings, the repeated raw measurements, the cause and user impact, the alternatives considered, and why optimization or rollback is not appropriate.",
     "decreases": "Ceilings may ratchet down to lock in a proven improvement once repeated measurements support the lower value.",
     "automation": "No task, script, or workflow may write this file. A breach blocks the release; it never updates the budget.",
-    "environment": "Ceilings are only valid on the canonical target, Node version, runner image family, and — once enforced — the pinned ImageVersion builds recorded in runnerImageVersions. Any drift is an explicit recalibration failure, not a comparison. Record the ImageVersion of every seeding run here before switching state to enforced. CPU model varies on hosted runners and is reported as a diagnostic — spread the seeding runs across the models that appear."
+    "environment": "Ceilings are only valid on the canonical target, Node version and runner image family. Drift in any of those three is a recalibration failure, not a comparison. runnerImageVersions records the exact image builds the ceilings were seeded on. A run on a different build is reported as a diagnostic and does not block, for the same reason the CPU model does not block: GitHub chooses the machine, it rebuilds the image about every week, and releases are less frequent than that. The headroom over observedUpperMs covers that variation. CPU model is reported as a diagnostic too \u2014 spread the seeding runs across the models that appear."
   },
   "entries": []
 }

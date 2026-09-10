@@ -200,8 +200,11 @@ While `benchmark/budget.json` is `pending-calibration` it holds no ceilings:
 `bench:budget` reports `unseeded` and the leg passes. Once ceilings are seeded
 from repeated clean runs (robust upper bound plus headroom), a breach fails the
 leg and, through the publish job, blocks the release. Ceilings are valid only on
-the canonical environment (`x86_64-unknown-linux-gnu`, Node 24.18.0, recorded
-runner image); drift fails as recalibration rather than comparing.
+the canonical environment (`x86_64-unknown-linux-gnu`, Node 24.18.0, `ubuntu24`
+image family); drift in any of those three fails as recalibration rather than
+comparing. The exact image build and the CPU model are recorded but reported as
+diagnostics, because GitHub chooses the machine and rebuilds the image more
+often than the project releases; the headroom covers that variation.
 
 Nothing may write this file automatically. A breach is fixed by optimization or
 rollback. An increase needs a reviewed change stating old/new ceilings, repeated

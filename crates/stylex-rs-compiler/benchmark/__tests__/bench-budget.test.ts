@@ -180,6 +180,7 @@ describe('evaluateBudget — coverage', () => {
     expect(report.problems).toContainEqual({
       kind: 'missing-entry',
       message: 'no committed ceiling for "page"',
+      severity: 'failure',
     });
     expect(report.fixtures[1]?.status).toBe('unbudgeted');
   });
@@ -193,6 +194,7 @@ describe('evaluateBudget — coverage', () => {
     expect(report.problems).toContainEqual({
       kind: 'extra-entry',
       message: 'budget entry "removed" was not measured in this run',
+      severity: 'failure',
     });
   });
 });
@@ -236,24 +238,58 @@ describe('evaluateBudget — canonical environment', () => {
     expect(report.problems[0]?.kind).toBe('environment-runner-image');
   });
 
-  test('a rebuilt image within the same family fails once builds are pinned', () => {
+  test('a rebuilt image within the same family reports a diagnostic, not a failure', () => {
     const report = evaluateBudget(
       rawStats([fixture('card', [1])], { ...CANONICAL_ENV, runnerImageVersion: '20260901.2.0' }),
       budget([entry('card', 2)])
     );
-    expect(report.status).toBe('failed');
+    expect(report.status).toBe('pass');
     expect(report.problems[0]?.kind).toBe('environment-runner-image-version');
-    expect(report.problems[0]?.message).toContain('recalibration required');
+    expect(report.problems[0]?.severity).toBe('diagnostic');
   });
 
-  test('a missing image version fails once builds are pinned', () => {
+  test('a missing image version reports a diagnostic, not a failure', () => {
     const environment = { ...CANONICAL_ENV };
     delete environment.runnerImageVersion;
     const report = evaluateBudget(
       rawStats([fixture('card', [1])], environment),
       budget([entry('card', 2)])
     );
+    expect(report.status).toBe('pass');
     expect(report.problems[0]?.kind).toBe('environment-runner-image-version');
+    expect(report.problems[0]?.severity).toBe('diagnostic');
+  });
+
+  test('a rebuilt image does not hide a breach', () => {
+    const report = evaluateBudget(
+      rawStats([fixture('card', [5])], { ...CANONICAL_ENV, runnerImageVersion: '20260901.2.0' }),
+      budget([entry('card', 2)])
+    );
+    expect(report.status).toBe('failed');
+    expect(report.problems.map(problem => problem.kind)).toContain('breach');
+    expect(report.problems.filter(problem => problem.severity === 'failure')).toHaveLength(1);
+  });
+
+  test('the image family stays a failure when only the build is tolerated', () => {
+    const report = evaluateBudget(
+      rawStats([fixture('card', [1])], { ...CANONICAL_ENV, runnerImage: 'ubuntu26' }),
+      budget([entry('card', 2)])
+    );
+    expect(report.status).toBe('failed');
+    expect(report.problems[0]?.kind).toBe('environment-runner-image');
+    expect(report.problems[0]?.severity).toBe('failure');
+  });
+
+  test('every problem carries a severity', () => {
+    const environment = { ...CANONICAL_ENV, target: 'aarch64-apple-darwin' };
+    const report = evaluateBudget(
+      rawStats([fixture('card', [5])], environment),
+      budget([entry('card', 2)])
+    );
+    expect(report.problems.length).toBeGreaterThan(0);
+    for (const problem of report.problems) {
+      expect(['failure', 'diagnostic']).toContain(problem.severity);
+    }
   });
 
   test('an unpinned budget ignores the image version', () => {

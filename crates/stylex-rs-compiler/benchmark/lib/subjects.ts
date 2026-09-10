@@ -15,6 +15,7 @@ import { pathToFileURL } from 'node:url';
 import type { StyleXOptions } from '../../dist/index.js';
 import {
   assertBindingCanLoad,
+  assertBindingIsVisible,
   findNativeBindings,
   loadedNativeBindings,
 } from './native-bindings.js';
@@ -50,8 +51,11 @@ type TransformFn = (
  * it exactly like `import`, and each subject keeps its own resolution scope.
  *
  * Two separately built NAPI bindings can share a process on Linux, where CI
- * runs the paired gate. They cannot share one on macOS. The guard below stops
- * that load and explains it, because the runtime answers it with SIGSEGV.
+ * runs the paired gate. On macOS they can share one only while at most one of
+ * them links mimalloc. The guards below stop the pair that cannot, and stop a
+ * subject whose binding they could not find at all, because the runtime answers
+ * either load with SIGSEGV. A subject here is always a compiler package, which
+ * is what makes an unfound binding a fault rather than an absent one.
  */
 export async function loadSubject(options: LoadSubjectOptions): Promise<LoadedSubject> {
   const entry = path.join(options.packageDir, 'dist/index.js');
@@ -59,11 +63,13 @@ export async function loadSubject(options: LoadSubjectOptions): Promise<LoadedSu
     throw new Error(`Subject "${options.label}" entry does not exist: ${entry}`);
   }
 
-  assertBindingCanLoad({
+  const request = {
     label: options.label,
     bindings: findNativeBindings(options.packageDir),
     loaded: loadedNativeBindings(),
-  });
+  };
+  assertBindingIsVisible(request);
+  assertBindingCanLoad(request);
 
   const loaded = (await import(pathToFileURL(entry).href)) as { transform?: TransformFn };
   const transform = loaded.transform;

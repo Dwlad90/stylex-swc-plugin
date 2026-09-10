@@ -5,11 +5,13 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
   assertBindingCanLoad,
+  assertBindingIsVisible,
   bindingPathKey,
   findNativeBindings,
   holdsBinding,
   isCompilerBinding,
-  isDualLoadUnsafe,
+  isDualLoadRestricted,
+  linksMimalloc,
   loadedNativeBindings,
   NATIVE_BINARY_NAME,
 } from '../lib/native-bindings.js';
@@ -38,20 +40,20 @@ function attempt(label: string, bindings: string[], loaded: string[], platform: 
   return () => assertBindingCanLoad({ label, bindings, loaded: new Set(loaded), platform });
 }
 
-describe('isDualLoadUnsafe', () => {
-  test('reports macOS as unsafe', () => {
-    expect(isDualLoadUnsafe('darwin')).toBe(true);
+describe('isDualLoadRestricted', () => {
+  test('reports macOS as restricted', () => {
+    expect(isDualLoadRestricted('darwin')).toBe(true);
   });
 
   // CI runs the paired gate on Linux. A guard that blocked there would stop
   // the only comparison that can gate.
-  test('reports the CI platforms as safe', () => {
-    expect(isDualLoadUnsafe('linux')).toBe(false);
-    expect(isDualLoadUnsafe('win32')).toBe(false);
+  test('reports the CI platforms as unrestricted', () => {
+    expect(isDualLoadRestricted('linux')).toBe(false);
+    expect(isDualLoadRestricted('win32')).toBe(false);
   });
 
-  test('reports an unknown platform as safe', () => {
-    expect(isDualLoadUnsafe('haiku')).toBe(false);
+  test('reports an unknown platform as unrestricted', () => {
+    expect(isDualLoadRestricted('haiku')).toBe(false);
   });
 });
 
@@ -178,6 +180,144 @@ describe('assertBindingCanLoad', () => {
 
     expect(attempt('candidate', loaded, loaded, 'darwin')).not.toThrow();
   });
+
+  // Measured on darwin arm64: a published base without mimalloc and a
+  // candidate with it ran the paired benchmark to the end. Refusing that pair
+  // would stop a release that works.
+  test('allows a second binding when only one of the two links mimalloc', () => {
+    const dir = temp.make('bench-allocator-');
+    const held = writeAddon(dir, 'held.node', 'system');
+    const incoming = writeAddon(dir, 'incoming.node', 'mimalloc');
+
+    expect(attempt('candidate', [incoming], [held], 'darwin')).not.toThrow();
+  });
+
+  test('allows a second binding when neither links mimalloc', () => {
+    const dir = temp.make('bench-allocator-');
+    const held = writeAddon(dir, 'held.node', 'system');
+    const incoming = writeAddon(dir, 'incoming.node', 'system');
+
+    expect(attempt('candidate', [incoming], [held], 'darwin')).not.toThrow();
+  });
+
+  test('stops a second binding when both link mimalloc', () => {
+    const dir = temp.make('bench-allocator-');
+    const held = writeAddon(dir, 'held.node', 'mimalloc');
+    const incoming = writeAddon(dir, 'incoming.node', 'mimalloc');
+
+    expect(attempt('candidate', [incoming], [held], 'darwin')).toThrow(/mimalloc/);
+  });
+
+  // One safe binding among the held ones does not make the pair safe: the
+  // process still holds a second mimalloc heap once the new one arrives.
+  test('stops a load when one held binding of several links mimalloc', () => {
+    const dir = temp.make('bench-allocator-');
+    const safe = writeAddon(dir, 'safe.node', 'system');
+    const held = writeAddon(dir, 'held.node', 'mimalloc');
+    const incoming = writeAddon(dir, 'incoming.node', 'mimalloc');
+
+    expect(attempt('candidate', [incoming], [safe, held], 'darwin')).toThrow(/mimalloc/);
+  });
+
+  test('allows a mimalloc binding on Linux', () => {
+    const dir = temp.make('bench-allocator-');
+    const held = writeAddon(dir, 'held.node', 'mimalloc');
+    const incoming = writeAddon(dir, 'incoming.node', 'mimalloc');
+
+    expect(attempt('candidate', [incoming], [held], 'linux')).not.toThrow();
+  });
+});
+
+describe('assertBindingIsVisible', () => {
+  function visible(bindings: string[], loaded: string[], platform: NodeJS.Platform) {
+    return () =>
+      assertBindingIsVisible({ label: 'base', bindings, loaded: new Set(loaded), platform });
+  }
+
+  test('allows a subject whose binding was found', () => {
+    const dir = temp.make('bench-allocator-');
+    const held = writeAddon(dir, 'held.node', 'mimalloc');
+    const found = writeAddon(dir, 'found.node', 'system');
+
+    expect(visible([found], [held], 'darwin')).not.toThrow();
+  });
+
+  test('allows the first subject, which meets no held binding', () => {
+    expect(visible([], [], 'darwin')).not.toThrow();
+  });
+
+  test('allows a subject when nothing held links mimalloc', () => {
+    const dir = temp.make('bench-allocator-');
+    const held = writeAddon(dir, 'held.node', 'system');
+
+    expect(visible([], [held], 'darwin')).not.toThrow();
+  });
+
+  test('allows an unfound binding on Linux', () => {
+    const dir = temp.make('bench-allocator-');
+    const held = writeAddon(dir, 'held.node', 'mimalloc');
+
+    expect(visible([], [held], 'linux')).not.toThrow();
+  });
+
+  // The layout an installer writes is the thing that changed under this guard
+  // once already. A layout nobody listed must stop the run with a sentence
+  // rather than let the process die without one.
+  test('stops a subject whose binding was not found', () => {
+    const dir = temp.make('bench-allocator-');
+    const held = writeAddon(dir, 'held.node', 'mimalloc');
+
+    expect(visible([], [held], 'darwin')).toThrow(/no native binding was found/);
+  });
+
+  test('names the subject and what to do', () => {
+    const dir = temp.make('bench-allocator-');
+    const held = writeAddon(dir, 'held.node', 'mimalloc');
+
+    expect(visible([], [held], 'darwin')).toThrow(/base[\s\S]*NAPI_RS_NATIVE_LIBRARY_PATH/);
+  });
+});
+
+describe('linksMimalloc', () => {
+  // The rule is about the shipped binaries, so the shipped binary is the case
+  // that proves the marker is the right one to look for. A clean checkout has
+  // no build, and a missing build is not a fault in this module.
+  const ownBindings = addonsInDist(path.resolve(import.meta.dirname, '..', '..'));
+
+  test('reads the marker that a build with mimalloc holds', () => {
+    const dir = temp.make('bench-allocator-');
+
+    expect(linksMimalloc(writeAddon(dir, 'with.node', 'mimalloc'))).toBe(true);
+  });
+
+  test('reads a build without mimalloc', () => {
+    const dir = temp.make('bench-allocator-');
+
+    expect(linksMimalloc(writeAddon(dir, 'without.node', 'system'))).toBe(false);
+  });
+
+  test('reads an empty file as a build without mimalloc', () => {
+    const dir = temp.make('bench-allocator-');
+    const addon = path.join(dir, 'empty.node');
+    fs.writeFileSync(addon, '');
+
+    expect(linksMimalloc(addon)).toBe(false);
+  });
+
+  // A file nobody can read gives no evidence, and the guard must not permit
+  // the load it cannot rule out. Reading it as a mimalloc build keeps the
+  // older, stricter answer for a binding this module cannot measure.
+  test('reads a file that is not there as a mimalloc build', () => {
+    expect(linksMimalloc('/no/such/addon.node')).toBe(true);
+  });
+
+  test('reads a directory as a mimalloc build', () => {
+    expect(linksMimalloc(temp.make('bench-allocator-'))).toBe(true);
+  });
+
+  test.runIf(ownBindings.length > 0)('reads the build of this package', () => {
+    for (const binding of ownBindings) expect(linksMimalloc(binding)).toBe(true);
+  });
 });
 
 describe('loadedNativeBindings', () => {
@@ -278,6 +418,44 @@ function addPlatformPackage(packageDir: string, target: string): string {
   fs.mkdirSync(dir, { recursive: true });
   const addon = path.join(dir, `${NATIVE_BINARY_NAME}.${target}.node`);
   fs.writeFileSync(addon, '');
+  return realPathOf(addon);
+}
+
+/**
+ * Writes `<root>/node_modules/@stylexswc/rs-compiler` the way an install does.
+ *
+ * The platform package is hoisted beside it rather than nested under it, which
+ * is what npm does and what pnpm does through a link. Answers both directories,
+ * because the addon of such an install is found from the root and not from the
+ * package.
+ */
+function makeInstalledPackage(): { root: string; packageDir: string } {
+  const root = temp.make('bench-install-');
+  const packageDir = path.join(root, 'node_modules', '@stylexswc', NATIVE_BINARY_NAME);
+  fs.mkdirSync(path.join(packageDir, 'dist'), { recursive: true });
+  return { root, packageDir };
+}
+
+/**
+ * The addons that this package built, and none that an ancestor directory
+ * holds. A case about the build on disk must read the build on disk.
+ */
+function addonsInDist(packageDir: string): string[] {
+  const dist = path.join(packageDir, 'dist');
+  if (!fs.existsSync(dist)) return [];
+
+  return fs
+    .readdirSync(dist)
+    .filter(entry => entry.endsWith('.node'))
+    .map(entry => path.join(dist, entry));
+}
+
+/** An addon file that holds the marker of the allocator, or one that does not. */
+function writeAddon(dir: string, name: string, allocator: 'mimalloc' | 'system'): string {
+  const addon = path.join(dir, name);
+  const body =
+    allocator === 'mimalloc' ? 'ELF\u0000mimalloc: option\u0000' : 'ELF\u0000malloc\u0000';
+  fs.writeFileSync(addon, body, 'binary');
   return realPathOf(addon);
 }
 
@@ -476,6 +654,38 @@ describe('findNativeBindings resolution paths', () => {
     for (let index = 0; index < 300; index += 1) addPlatformPackage(dir, `target-${index}`);
 
     expect(findNativeBindings(dir)).toHaveLength(300);
+  });
+
+  // An install hoists the platform package beside the compiler package instead
+  // of nesting it under it, and the installed package ships no addon of its
+  // own. A search that reads only the package finds nothing there, and the
+  // guard then permits the load it exists to stop.
+  test('finds the addon of a package whose platform package is hoisted', () => {
+    const { root, packageDir } = makeInstalledPackage();
+    const addon = addPlatformPackage(root, 'darwin-arm64');
+
+    expect(findNativeBindings(packageDir)).toEqual([addon]);
+  });
+
+  // pnpm puts the compiler package deep under `node_modules/.pnpm` and links
+  // the platform package beside it there. Node resolves a module through its
+  // real path, so the search must start from the real path too.
+  test.skipIf(!canSymlink)('finds the addon of a package reached through a link', () => {
+    const { root, packageDir } = makeInstalledPackage();
+    const addon = addPlatformPackage(root, 'darwin-arm64');
+    const link = path.join(temp.make('bench-link-'), 'rs-compiler');
+    fs.symlinkSync(packageDir, link);
+
+    expect(findNativeBindings(link)).toEqual([addon]);
+  });
+
+  test('ignores a hoisted package of another scope', () => {
+    const { root, packageDir } = makeInstalledPackage();
+    const other = path.join(root, 'node_modules', '@other', `${NATIVE_BINARY_NAME}-darwin-arm64`);
+    fs.mkdirSync(other, { recursive: true });
+    fs.writeFileSync(path.join(other, `${NATIVE_BINARY_NAME}.darwin-arm64.node`), '');
+
+    expect(findNativeBindings(packageDir)).toEqual([]);
   });
 });
 

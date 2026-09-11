@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788896340456,
+  "lastUpdate": 1789162488843,
   "repoUrl": "https://github.com/Dwlad90/stylex-swc-plugin",
   "entries": {
     "Benchmark": [
@@ -5604,6 +5604,491 @@ window.BENCHMARK_DATA = {
           "previousVersion": "0.18.6",
           "target": "x86_64-unknown-linux-musl",
           "nativeSha256": "62638f0b797921f5824f8cca8a2569f03367a12401a0853d2530bc0ccfba4a54"
+        }
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Dwlad90",
+            "email": "dwlad90@gmail.com",
+            "username": "Dwlad90"
+          },
+          "committer": {
+            "name": "Dwlad90",
+            "email": "dwlad90@gmail.com",
+            "username": "Dwlad90"
+          },
+          "id": "bcd300ba56c2db6213f13a243b305e1007235d3b",
+          "message": "feat(rs-compiler/benchmark): measure each subject in its own process",
+          "timestamp": "2026-09-11T01:27:20+03:00",
+          "tree_id": "9bacb7c6612c08e161f541e130bb83fddc0f8775",
+          "url": "https://github.com/Dwlad90/stylex-swc-plugin/commit/bcd300ba56c2db6213f13a243b305e1007235d3b"
+        },
+        "date": 1789162488843,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "buttons-demo",
+            "value": 0.750428,
+            "unit": "ms",
+            "range": "±1.35%",
+            "extra": "p95 817.87 µs | 1,322.39 ops/sec | 1313 samples"
+          },
+          {
+            "name": "card",
+            "value": 0.314656,
+            "unit": "ms",
+            "range": "±0.26%",
+            "extra": "p95 372.6 µs | 3,112.86 ops/sec | 3099 samples"
+          },
+          {
+            "name": "consts",
+            "value": 0.193691,
+            "unit": "ms",
+            "range": "±0.27%",
+            "extra": "p95 236.65 µs | 4,977.98 ops/sec | 4946 samples"
+          },
+          {
+            "name": "counter",
+            "value": 0.874739,
+            "unit": "ms",
+            "range": "±0.20%",
+            "extra": "p95 913.76 µs | 1,139.3 ops/sec | 1139 samples"
+          },
+          {
+            "name": "counter-with-dynamic-styles",
+            "value": 1.004491,
+            "unit": "ms",
+            "range": "±0.18%",
+            "extra": "p95 1.04 ms | 991.23 ops/sec | 991 samples"
+          },
+          {
+            "name": "global-tokens",
+            "value": 2.382008,
+            "unit": "ms",
+            "range": "±0.81%",
+            "extra": "p95 2.6 ms | 414.97 ops/sec | 413 samples"
+          },
+          {
+            "name": "global-tokens-xs",
+            "value": 0.570828,
+            "unit": "ms",
+            "range": "±0.31%",
+            "extra": "p95 607.14 µs | 1,746.07 ops/sec | 1742 samples"
+          },
+          {
+            "name": "namespace-cleaning",
+            "value": 1.174488,
+            "unit": "ms",
+            "range": "±0.20%",
+            "extra": "p95 1.25 ms | 844.86 ops/sec | 845 samples"
+          },
+          {
+            "name": "namespace-cleaning-no-unused",
+            "value": 1.085863,
+            "unit": "ms",
+            "range": "±0.24%",
+            "extra": "p95 1.16 ms | 912.89 ops/sec | 912 samples"
+          },
+          {
+            "name": "page",
+            "value": 0.325626,
+            "unit": "ms",
+            "range": "±0.25%",
+            "extra": "p95 372.51 µs | 3,014.52 ops/sec | 3005 samples"
+          },
+          {
+            "name": "page-tsx",
+            "value": 2.027743,
+            "unit": "ms",
+            "range": "±0.17%",
+            "extra": "p95 2.11 ms | 491.34 ops/sec | 492 samples"
+          },
+          {
+            "name": "page-with-keyframes",
+            "value": 1.978952,
+            "unit": "ms",
+            "range": "±0.18%",
+            "extra": "p95 2.04 ms | 503.35 ops/sec | 504 samples"
+          },
+          {
+            "name": "spot-loader",
+            "value": 0.995003,
+            "unit": "ms",
+            "range": "±0.20%",
+            "extra": "p95 1.07 ms | 995.6 ops/sec | 995 samples"
+          },
+          {
+            "name": "typography",
+            "value": 1.555186,
+            "unit": "ms",
+            "range": "±0.27%",
+            "extra": "p95 1.65 ms | 637.5 ops/sec | 637 samples"
+          },
+          {
+            "name": "use-memo",
+            "value": 0.420213,
+            "unit": "ms",
+            "range": "±0.22%",
+            "extra": "p95 473.14 µs | 2,351.98 ops/sec | 2346 samples"
+          },
+          {
+            "name": "Performance - Colors StyleX transformation",
+            "value": 0.340383,
+            "unit": "ms",
+            "range": "±0.20%",
+            "extra": "p95 377.18 µs | 2,879.76 ops/sec | 2873 samples"
+          },
+          {
+            "name": "Performance - Basic theme transformation",
+            "value": 0.344186,
+            "unit": "ms",
+            "range": "±0.25%",
+            "extra": "p95 390.97 µs | 2,849.6 ops/sec | 2840 samples"
+          },
+          {
+            "name": "Performance - Complex theme transformation",
+            "value": 4.426674,
+            "unit": "ms",
+            "range": "±0.26%",
+            "extra": "p95 4.54 ms | 225.18 ops/sec | 226 samples"
+          },
+          {
+            "name": "Performance - Basic create transformation",
+            "value": 0.268169,
+            "unit": "ms",
+            "range": "±0.21%",
+            "extra": "p95 311.38 µs | 3,618.71 ops/sec | 3606 samples"
+          },
+          {
+            "name": "Performance - Complex create transformation",
+            "value": 2.314646,
+            "unit": "ms",
+            "range": "±0.84%",
+            "extra": "p95 2.45 ms | 427.36 ops/sec | 426 samples"
+          },
+          {
+            "name": "Debug data - lotsOfStyles.js (100 creates, dev)",
+            "value": 22.842015,
+            "unit": "ms",
+            "range": "±0.59%",
+            "extra": "p95 23.22 ms | 43.59 ops/sec | 64 samples"
+          },
+          {
+            "name": "Rollup plugin - lotsOfStyles.js",
+            "value": 4134.764584,
+            "unit": "ms",
+            "range": "±0.59%",
+            "extra": "p95 4.2 s | 0.24 ops/sec | 10 samples"
+          },
+          {
+            "name": "Rollup plugin - lotsOfStylesDynamic.js",
+            "value": 16.401903,
+            "unit": "ms",
+            "range": "±0.74%",
+            "extra": "p95 16.86 ms | 60.8 ops/sec | 31 samples"
+          },
+          {
+            "name": "Feature - dynamic styles",
+            "value": 1.377496,
+            "unit": "ms",
+            "range": "±0.32%",
+            "extra": "p95 1.48 ms | 718.56 ops/sec | 718 samples"
+          },
+          {
+            "name": "Feature - dynamic styles (dev)",
+            "value": 1.642604,
+            "unit": "ms",
+            "range": "±0.26%",
+            "extra": "p95 1.73 ms | 604.29 ops/sec | 604 samples"
+          },
+          {
+            "name": "Feature - nested conditions",
+            "value": 0.730761,
+            "unit": "ms",
+            "range": "±0.28%",
+            "extra": "p95 776.55 µs | 1,360.31 ops/sec | 1358 samples"
+          },
+          {
+            "name": "Feature - nested conditions (dev)",
+            "value": 0.915159,
+            "unit": "ms",
+            "range": "±0.21%",
+            "extra": "p95 955.27 µs | 1,088.19 ops/sec | 1088 samples"
+          },
+          {
+            "name": "Feature - media queries",
+            "value": 0.675283,
+            "unit": "ms",
+            "range": "±0.22%",
+            "extra": "p95 711.67 µs | 1,475.78 ops/sec | 1474 samples"
+          },
+          {
+            "name": "Feature - media queries (dev)",
+            "value": 0.804728,
+            "unit": "ms",
+            "range": "±0.20%",
+            "extra": "p95 832.55 µs | 1,239.42 ops/sec | 1239 samples"
+          },
+          {
+            "name": "Feature - media query order",
+            "value": 1.903335,
+            "unit": "ms",
+            "range": "±0.29%",
+            "extra": "p95 1.95 ms | 523.22 ops/sec | 523 samples"
+          },
+          {
+            "name": "Feature - media query order off",
+            "value": 0.853179,
+            "unit": "ms",
+            "range": "±0.34%",
+            "extra": "p95 897.31 µs | 1,163.93 ops/sec | 1162 samples"
+          },
+          {
+            "name": "Feature - keyframes and animations",
+            "value": 0.63339,
+            "unit": "ms",
+            "range": "±0.27%",
+            "extra": "p95 695.14 µs | 1,567.96 ops/sec | 1565 samples"
+          },
+          {
+            "name": "Feature - keyframes and animations (dev)",
+            "value": 0.80807,
+            "unit": "ms",
+            "range": "±0.23%",
+            "extra": "p95 864.15 µs | 1,229.44 ops/sec | 1228 samples"
+          },
+          {
+            "name": "Feature - theme tokens",
+            "value": 0.440365,
+            "unit": "ms",
+            "range": "±0.27%",
+            "extra": "p95 502.38 µs | 2,247.14 ops/sec | 2240 samples"
+          },
+          {
+            "name": "Feature - theme tokens (dev)",
+            "value": 0.582445,
+            "unit": "ms",
+            "range": "±0.24%",
+            "extra": "p95 633.39 µs | 1,708.68 ops/sec | 1705 samples"
+          },
+          {
+            "name": "Feature - logical and RTL",
+            "value": 0.516136,
+            "unit": "ms",
+            "range": "±0.27%",
+            "extra": "p95 565.01 µs | 1,925.33 ops/sec | 1920 samples"
+          },
+          {
+            "name": "Feature - logical and RTL (dev)",
+            "value": 0.688857,
+            "unit": "ms",
+            "range": "±0.24%",
+            "extra": "p95 735.79 µs | 1,444.07 ops/sec | 1442 samples"
+          },
+          {
+            "name": "Feature - CSS value normalization",
+            "value": 0.572296,
+            "unit": "ms",
+            "range": "±0.29%",
+            "extra": "p95 645.57 µs | 1,726.08 ops/sec | 1721 samples"
+          },
+          {
+            "name": "Feature - CSS value normalization (dev)",
+            "value": 0.7493,
+            "unit": "ms",
+            "range": "±0.30%",
+            "extra": "p95 794.62 µs | 1,326.64 ops/sec | 1324 samples"
+          },
+          {
+            "name": "Feature - view transitions",
+            "value": 0.469294,
+            "unit": "ms",
+            "range": "±0.27%",
+            "extra": "p95 538.78 µs | 2,107.66 ops/sec | 2101 samples"
+          },
+          {
+            "name": "Feature - view transitions (dev)",
+            "value": 0.623791,
+            "unit": "ms",
+            "range": "±0.25%",
+            "extra": "p95 683.88 µs | 1,594.37 ops/sec | 1591 samples"
+          },
+          {
+            "name": "Feature - token definitions",
+            "value": 0.262128,
+            "unit": "ms",
+            "range": "±0.27%",
+            "extra": "p95 310.11 µs | 3,704.62 ops/sec | 3687 samples"
+          },
+          {
+            "name": "Feature - debug class names over many namespaces",
+            "value": 0.901965,
+            "unit": "ms",
+            "range": "±0.25%",
+            "extra": "p95 951.14 µs | 1,100.98 ops/sec | 1100 samples"
+          },
+          {
+            "name": "Feature - unminified debug keys",
+            "value": 0.579153,
+            "unit": "ms",
+            "range": "±0.25%",
+            "extra": "p95 635.86 µs | 1,715.37 ops/sec | 1712 samples"
+          },
+          {
+            "name": "Feature - source text read from disk",
+            "value": 0.754705,
+            "unit": "ms",
+            "range": "±0.26%",
+            "extra": "p95 807.69 µs | 1,316.67 ops/sec | 1315 samples"
+          },
+          {
+            "name": "Feature - legacy shorthand expansion",
+            "value": 0.677757,
+            "unit": "ms",
+            "range": "±0.54%",
+            "extra": "p95 747.81 µs | 1,454.22 ops/sec | 1444 samples"
+          },
+          {
+            "name": "Feature - legacy value flipping",
+            "value": 0.522663,
+            "unit": "ms",
+            "range": "±0.30%",
+            "extra": "p95 582.59 µs | 1,894.41 ops/sec | 1888 samples"
+          },
+          {
+            "name": "Feature - font size px to rem",
+            "value": 0.570282,
+            "unit": "ms",
+            "range": "±0.28%",
+            "extra": "p95 621.62 µs | 1,743.04 ops/sec | 1739 samples"
+          },
+          {
+            "name": "Feature - props and attrs",
+            "value": 0.804679,
+            "unit": "ms",
+            "range": "±0.28%",
+            "extra": "p95 887.77 µs | 1,230.78 ops/sec | 1229 samples"
+          },
+          {
+            "name": "Feature - props and attrs (dev)",
+            "value": 1.061517,
+            "unit": "ms",
+            "range": "±0.22%",
+            "extra": "p95 1.14 ms | 933.45 ops/sec | 933 samples"
+          },
+          {
+            "name": "Feature - debug data prop",
+            "value": 1.016884,
+            "unit": "ms",
+            "range": "±0.24%",
+            "extra": "p95 1.09 ms | 973.44 ops/sec | 973 samples"
+          },
+          {
+            "name": "Feature - debug without the data prop",
+            "value": 0.81102,
+            "unit": "ms",
+            "range": "±0.50%",
+            "extra": "p95 900.05 µs | 1,218.25 ops/sec | 1214 samples"
+          },
+          {
+            "name": "Feature - debug and dev class names",
+            "value": 1.05784,
+            "unit": "ms",
+            "range": "±0.26%",
+            "extra": "p95 1.13 ms | 935.4 ops/sec | 935 samples"
+          },
+          {
+            "name": "Feature - inlined conditional merge off",
+            "value": 0.880279,
+            "unit": "ms",
+            "range": "±0.28%",
+            "extra": "p95 980.82 µs | 1,123.49 ops/sec | 1122 samples"
+          },
+          {
+            "name": "Feature - runtime injection",
+            "value": 0.820664,
+            "unit": "ms",
+            "range": "±0.31%",
+            "extra": "p95 899.53 µs | 1,206.34 ops/sec | 1204 samples"
+          },
+          {
+            "name": "Feature - readable test class names",
+            "value": 0.726363,
+            "unit": "ms",
+            "range": "±0.23%",
+            "extra": "p95 776.74 µs | 1,368.83 ops/sec | 1367 samples"
+          },
+          {
+            "name": "Feature - stylex side effects injected",
+            "value": 0.444423,
+            "unit": "ms",
+            "range": "±0.29%",
+            "extra": "p95 508.62 µs | 2,227.93 ops/sec | 2220 samples"
+          },
+          {
+            "name": "Feature - source maps inline",
+            "value": 0.80563,
+            "unit": "ms",
+            "range": "±0.32%",
+            "extra": "p95 886.1 µs | 1,227.94 ops/sec | 1225 samples"
+          },
+          {
+            "name": "Feature - source maps without columns",
+            "value": 0.799549,
+            "unit": "ms",
+            "range": "±0.27%",
+            "extra": "p95 882.37 µs | 1,239.17 ops/sec | 1237 samples"
+          },
+          {
+            "name": "Feature - source maps without source text",
+            "value": 0.791945,
+            "unit": "ms",
+            "range": "±0.27%",
+            "extra": "p95 870.86 µs | 1,251.23 ops/sec | 1249 samples"
+          },
+          {
+            "name": "Feature - engine fold",
+            "value": 0.712041,
+            "unit": "ms",
+            "range": "±0.64%",
+            "extra": "p95 765.76 µs | 1,392.54 ops/sec | 1384 samples"
+          },
+          {
+            "name": "Feature - engine fold (dev)",
+            "value": 0.938919,
+            "unit": "ms",
+            "range": "±0.57%",
+            "extra": "p95 984.91 µs | 1,057.64 ops/sec | 1054 samples"
+          },
+          {
+            "name": "Feature - calls that do not fold",
+            "value": 4.908762,
+            "unit": "ms",
+            "range": "±0.43%",
+            "extra": "p95 5.13 ms | 202.88 ops/sec | 203 samples"
+          },
+          {
+            "name": "Feature - calls that do not fold (dev)",
+            "value": 5.661864,
+            "unit": "ms",
+            "range": "±0.38%",
+            "extra": "p95 5.89 ms | 176.22 ops/sec | 177 samples"
+          },
+          {
+            "name": "Feature - class name prefix",
+            "value": 0.734528,
+            "unit": "ms",
+            "range": "±0.23%",
+            "extra": "p95 782.41 µs | 1,354.31 ops/sec | 1353 samples"
+          }
+        ],
+        "release": {
+          "ref": "fix_reprice-the-addon-ci-and-budget",
+          "candidateVersion": "0.19.0-rc.2",
+          "previousVersion": "0.19.0-rc.2",
+          "target": "x86_64-unknown-linux-musl",
+          "nativeSha256": "fb6bfd38938501995957297e0bc5ea03860fbe96baf03917f9a4419ace126f56"
         }
       }
     ]

@@ -11,6 +11,7 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { afterAll, afterEach, describe, expect, test } from 'vitest';
 
@@ -157,6 +158,30 @@ describe('callWorker', () => {
 });
 
 describe('bench-worker', () => {
+  /** The modules the reader child below loads, in the order it loads them. */
+  const readerModules = ['lib/subject-process.js', 'lib/native-bindings.js'];
+
+  /**
+   * A path becomes an import specifier only as a `file://` URL. A bare absolute
+   * path reads as a path on POSIX, but on Windows its drive letter reads as a
+   * URL scheme, and the child stops before it runs.
+   */
+  function importUrl(file: string): string {
+    return pathToFileURL(path.join(benchmarkDir, file)).href;
+  }
+
+  /** Source for a child that reports the bindings it holds after it loads the worker. */
+  function bindingReaderSource(): string {
+    const [worker, bindings] = readerModules.map(file => JSON.stringify(importUrl(file)));
+
+    return (
+      `const worker = await import(${worker});` +
+      `const bindings = await import(${bindings});` +
+      'console.log(JSON.stringify([...bindings.loadedNativeBindings()]));' +
+      'void worker;'
+    );
+  }
+
   // The property the whole split rests on. `lib/types.ts` reads a value off
   // `dist/index.js`, and importing that loads this package's binding. A child
   // that reached it would hold the candidate binding before it loaded the
@@ -164,11 +189,7 @@ describe('bench-worker', () => {
   // process ends. An import added without this case would be silent until a
   // release.
   test.runIf(built)('loads no binding of its own before a subject is asked for', () => {
-    const reader =
-      `const worker = await import(${JSON.stringify(path.join(benchmarkDir, 'lib/subject-process.js'))});` +
-      `const bindings = await import(${JSON.stringify(path.join(benchmarkDir, 'lib/native-bindings.js'))});` +
-      'console.log(JSON.stringify([...bindings.loadedNativeBindings()]));' +
-      'void worker;';
+    const reader = bindingReaderSource();
 
     const result = spawnSync(
       process.execPath,
@@ -180,6 +201,17 @@ describe('bench-worker', () => {
 
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout)).toEqual([]);
+  });
+
+  // The case above gives the child its source on the command line, where a bad
+  // specifier stops it on Windows only. This one holds the rule everywhere.
+  test('gives the child a file URL for each module it loads', () => {
+    const source = bindingReaderSource();
+
+    for (const file of readerModules) {
+      expect(URL.parse(importUrl(file))?.protocol).toBe('file:');
+      expect(source).toContain(JSON.stringify(importUrl(file)));
+    }
   });
 
   test('refuses a request whose protocol it does not read', () => {

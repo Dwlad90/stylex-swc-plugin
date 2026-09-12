@@ -869,3 +869,70 @@ stylex_test!(
     }
   "#
 );
+
+// The spread of the props call takes the place the prop held, so a later
+// property of the same name wins. A `className` after the prop therefore
+// replaces the class the spread just supplied, and one before it does not.
+// The order is the author's to control; these snapshots pin both directions.
+stylex_test!(
+  sx_attr_compiled_jsx_class_name_order,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsxs("div", {
+          children: [
+            _jsx("div", { className: "before", sx: styles.main }),
+            _jsx("div", { sx: styles.main, className: "after" })
+          ]
+        });
+      }
+  "#
+);
+
+// A name that is not a plain identifier reaches the prop only as a quoted or
+// computed key. The compiler compares the name as text, so any name works.
+stylex_test!(
+  sx_attr_compiled_jsx_non_identifier_prop_name,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_sx_prop_name(SxPropNameParam::Enabled("data-sx".to_string()))
+  }),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          "data-sx": styles.main,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// An empty prop name disables nothing on its own, so no property can match it.
+stylex_test!(
+  sx_attr_compiled_jsx_blank_prop_name_unchanged,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_sx_prop_name(SxPropNameParam::Enabled(String::new()))
+  }),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsx("div", { sx: styles.main, children: "Hello World" });
+    }
+  "#
+);

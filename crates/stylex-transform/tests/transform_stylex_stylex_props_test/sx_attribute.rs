@@ -254,11 +254,29 @@ stylex_test!(
   "#
 );
 
+// A call inside parentheses. The scan looks through them, so the prop is
+// transformed there as anywhere else.
+stylex_test!(
+  sx_attr_compiled_jsx_parenthesised_call,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return (_jsx("div", { sx: styles.main, children: "Hello World" }));
+    }
+  "#
+);
+
 // A key that holds a lone surrogate is a legal JavaScript key, but it has no
 // readable name. The scan reads every key of every host element, so such a key
 // must be skipped rather than refused: it is simply not the prop asked about.
 stylex_test!(
-  sx_attr_compiled_jsx_lossy_string_key_unchanged,
+  sx_attr_compiled_jsx_lossy_string_key_is_passed_over,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';

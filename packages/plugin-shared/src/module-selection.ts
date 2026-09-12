@@ -180,7 +180,7 @@ const sxPropPatterns = new Map<string, RegExp>();
 function sxPropPattern(name: string): RegExp {
   const cached = sxPropPatterns.get(name);
 
-  if (cached) {
+  if (cached !== undefined) {
     return cached;
   }
 

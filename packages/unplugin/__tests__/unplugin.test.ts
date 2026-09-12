@@ -159,11 +159,6 @@ async function runWebpackLikeCssInjection(
   return { assets, compilation, transformCss };
 }
 
-/**
- * Drives the plugin's `transform` hook once and reports what it returned.
- *
- * A null result means the module was skipped before the compiler was reached.
- */
 /** The code a `transform` hook returned, whatever shape it answered with. */
 function transformedCode(result: unknown): string {
   if (typeof result === 'string') {
@@ -171,7 +166,7 @@ function transformedCode(result: unknown): string {
   }
 
   if (typeof result === 'object' && result !== null && 'code' in result) {
-    const { code } = result as { code?: unknown };
+    const { code } = result;
 
     if (typeof code === 'string') {
       return code;
@@ -181,6 +176,11 @@ function transformedCode(result: unknown): string {
   throw new Error('The transform returned no code.');
 }
 
+/**
+ * Drives the plugin's `transform` hook once and reports what it returned.
+ *
+ * A null result means the module was skipped before the compiler was reached.
+ */
 async function runTransform(
   options: UnpluginStylexRSOptions,
   sourceCode: string

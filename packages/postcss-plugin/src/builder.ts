@@ -265,6 +265,17 @@ function createBuilder() {
       filesToTransform.push(file);
     }
 
+    // Copy rather than mutate. `rsOptions` comes from `getConfig()`, so it is
+    // shared by every file in this build and by every rebuild in watch mode —
+    // stripping the patterns in place made the change permanent and invisible.
+    // (Same defect class as the one fixed in `@stylexswc/jest`.) The patterns
+    // are dropped for the compiler because `getFiles()` above has already
+    // applied them; re-applying them here would only repeat the work. The
+    // copy is the same for every file, so it is made once.
+    const compilerOptions = { ...rsOptions };
+    delete (compilerOptions as { include?: unknown }).include;
+    delete (compilerOptions as { exclude?: unknown }).exclude;
+
     filesToTransform.forEach(file => {
       const filePath = path.resolve(cwd || '/', file);
       const contents = fs.readFileSync(filePath, 'utf-8');
@@ -272,17 +283,6 @@ function createBuilder() {
       if (!shouldProcessSource(contents, rsOptions)) {
         return;
       }
-
-      // Copy rather than mutate. `rsOptions` comes from `getConfig()`, so it is
-      // shared by every file in this build and by every rebuild in watch mode —
-      // stripping the patterns in place made the change permanent and
-      // invisible. (Same defect class as the one fixed in `@stylexswc/jest`.)
-      // The patterns are dropped for the compiler because
-      // `getFiles()` above has already applied them; re-applying them here
-      // would only repeat the work.
-      const compilerOptions = { ...rsOptions };
-      delete (compilerOptions as { include?: unknown }).include;
-      delete (compilerOptions as { exclude?: unknown }).exclude;
 
       // `forEach` discards return values; the transform is called for its
       // side effect of registering rules on the bundler.

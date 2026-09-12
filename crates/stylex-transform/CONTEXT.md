@@ -74,8 +74,10 @@ literal, or a shorthand — and rewrites that one property to
 `...stylex.props(value)`. A key it cannot read at compile time, a spread, a
 getter, a setter and a method are all passed over. The JS module-selection scan
 (see [plugin-shared](../../packages/plugin-shared/CONTEXT.md), **Module
-selection scan**) must match every form this accepts, or the module never
-reaches the compiler. The first matching property wins, as upstream does: an
+selection scan**) must match every form a build step writes, or the module
+never reaches the compiler. It cannot match every form this accepts: a text
+scan reads no numeric or big-integer key, which only a prop name spelled as
+digits could name, and no tool writes one. The first matching property wins, as upstream does: an
 object that names the prop twice keeps the second property, which then reaches
 the DOM as an unknown attribute. That is the upstream answer, so leave it.
 _Avoid_: runtime jsx prop, minified prop, props-object attribute

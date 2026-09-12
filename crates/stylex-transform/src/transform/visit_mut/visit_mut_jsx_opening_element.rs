@@ -160,7 +160,8 @@ where
 
     // Phase two writes. The shapes phase one matched are re-read rather than
     // remembered, because a borrow cannot outlive the `&mut self` call between
-    // them; the `else` arm is unreachable for that reason, not a fallback.
+    // them. Nothing changes the node in between, so the read answers as it did;
+    // `None` says only that this reader cannot prove it, and reports no match.
     let stylex_local_name = self.get_stylex_runtime_binding(span);
     let props_call = Expr::Call(build_stylex_props_call(
       stylex_local_name,

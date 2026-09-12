@@ -10,6 +10,7 @@ import {
   VIRTUAL_CSS_PATTERN,
   VIRTUAL_STYLEX_CSS_DUMMY_IMPORT_PATTERN,
 } from './constants';
+import { escapeRegExp } from './regexp';
 import { resolveSourceMapOptions } from './source-map-options';
 import type { SourceMap } from './types';
 
@@ -118,10 +119,6 @@ export function parseStylexRulesFromIdentifier(identifier: string): StyleXRule[]
   } catch {
     return null;
   }
-}
-
-export function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**

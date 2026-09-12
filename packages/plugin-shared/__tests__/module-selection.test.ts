@@ -135,4 +135,106 @@ describe('shouldProcessSource', () => {
       ).toBe(true);
     });
   });
+
+  describe('the sx prop', () => {
+    // A leaf component that only forwards the prop has nothing to import, so
+    // the import scan alone would drop it and leave the element unstyled.
+    const NO_IMPORT = { importSources: ['@stylexjs/stylex'] };
+
+    describe('each prop-like position', () => {
+      test.each([
+        ['a JSX attribute', 'export const Box = props => <div sx={props.sx} />;'],
+        ['an explicit property', 'export const box = { sx: props.sx };'],
+        ['the object shorthand', 'export const box = ({ sx }) => sx;'],
+        ['the shorthand before more properties', 'export const box = ({ sx, id }) => id;'],
+        ['the name spaced from its separator', 'export const box = { sx : props.sx };'],
+      ])('processes a module using %s', (_position, sourceCode) => {
+        expect(shouldProcessSource(sourceCode, NO_IMPORT)).toBe(true);
+      });
+    });
+
+    test('skips a module that uses neither the prop nor an import', () => {
+      expect(shouldProcessSource('export const noop = 1;', NO_IMPORT)).toBe(false);
+    });
+
+    test('a mention with no prop-like separator is not enough', () => {
+      expect(shouldProcessSource('export function sx() {}', NO_IMPORT)).toBe(false);
+    });
+
+    test('an assignment to the name is a match', () => {
+      // Text cannot tell `sx = 1` from a formatted attribute. The cost is one
+      // compile that changes nothing, against a silently unstyled element.
+      expect(shouldProcessSource('export const sx = 1;', NO_IMPORT)).toBe(true);
+    });
+
+    describe('the name must start a word', () => {
+      // Without this, the default name matches every module a build step has
+      // already compiled, through the `jsx` import of the JSX runtime.
+      test.each([
+        ['the JSX runtime import', 'import { jsx } from "react/jsx-runtime";'],
+        ['its renamed form', 'import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";'],
+        ['a longer identifier', 'const boxsx = 1;'],
+        ['a minified property', 'function a(e){return{esx:1}}'],
+        ['an underscore prefix', 'const _sx = 1;'],
+        ['a dollar prefix', 'const $sx = 1;'],
+        ['a digit prefix', 'const a1sx = 1;'],
+      ])('skips a module whose only mention is %s', (_form, sourceCode) => {
+        expect(shouldProcessSource(sourceCode, NO_IMPORT)).toBe(false);
+      });
+
+      test('still matches the name at the very start of the module', () => {
+        expect(shouldProcessSource('sx: 1', NO_IMPORT)).toBe(true);
+      });
+
+      test('still matches a member named after the prop', () => {
+        // A dot is not part of an identifier, so `props.sx` still reads as the
+        // prop. The scan is text, so this cannot be told from the real thing.
+        expect(shouldProcessSource('const a = { ...props.sx };', NO_IMPORT)).toBe(true);
+      });
+    });
+
+    test('uses a renamed prop', () => {
+      expect(shouldProcessSource('<div css={styles} />', { ...NO_IMPORT, sxPropName: 'css' })).toBe(
+        true
+      );
+    });
+
+    test('skips the default name once the prop is renamed', () => {
+      expect(shouldProcessSource('<div sx={styles} />', { ...NO_IMPORT, sxPropName: 'css' })).toBe(
+        false
+      );
+    });
+
+    test('escapes a name carrying pattern metacharacters', () => {
+      // `s.` must match the two characters, not "s" and any character.
+      expect(shouldProcessSource('<div s.={styles} />', { ...NO_IMPORT, sxPropName: 's.' })).toBe(
+        true
+      );
+      expect(shouldProcessSource('<div sx={styles} />', { ...NO_IMPORT, sxPropName: 's.' })).toBe(
+        false
+      );
+    });
+
+    test('skips the prop scan when the prop is disabled', () => {
+      expect(shouldProcessSource('<div sx={styles} />', { ...NO_IMPORT, sxPropName: false })).toBe(
+        false
+      );
+    });
+
+    test('still reads the import scan when the prop is disabled', () => {
+      expect(shouldProcessSource(IMPORTING_MODULE, { ...NO_IMPORT, sxPropName: false })).toBe(true);
+    });
+
+    test('skips the prop scan when the name is blank', () => {
+      expect(shouldProcessSource('<div sx={styles} />', { ...NO_IMPORT, sxPropName: '  ' })).toBe(
+        false
+      );
+    });
+
+    test('processes the module with no import source to look for', () => {
+      // The prop transform does not read the import sources, so an empty list
+      // does not decide this module.
+      expect(shouldProcessSource('<div sx={styles} />', { importSources: [] })).toBe(true);
+    });
+  });
 });

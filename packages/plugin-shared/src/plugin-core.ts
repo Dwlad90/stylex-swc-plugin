@@ -12,18 +12,14 @@ import {
 } from './constants';
 import { mergeStyleXRulesInto, publishStyleXRules } from './nextjs-registry';
 import type { StyleXRulesMap } from './nextjs-registry';
+import { escapeRegExp } from './regexp';
 import type {
   CSSTransformer,
   CacheGroupOptions,
   StyleXLoaderOptions,
   StyleXPluginOption,
 } from './types';
-import {
-  buildVirtualCssPattern,
-  escapeRegExp,
-  parseStylexRulesFromIdentifier,
-  shouldProcessFile,
-} from './utils';
+import { buildVirtualCssPattern, parseStylexRulesFromIdentifier, shouldProcessFile } from './utils';
 
 export type RegisterStyleXRules = (_resourcePath: string, _stylexRules: StyleXRule[]) => void;
 

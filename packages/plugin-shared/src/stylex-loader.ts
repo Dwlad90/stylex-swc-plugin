@@ -45,8 +45,14 @@ export default async function stylexLoader(
     return callback(null, stringifiedInputCode, inputSourceMap);
   }
 
-  // bail out early if the input doesn't contain stylex imports
-  if (!shouldProcessSource(stringifiedInputCode, { importSources: stylexImports })) {
+  // bail out early when the module mentions neither a StyleX import nor the
+  // sx prop
+  if (
+    !shouldProcessSource(stringifiedInputCode, {
+      importSources: stylexImports,
+      sxPropName: rsOptions?.sxPropName,
+    })
+  ) {
     return callback(null, stringifiedInputCode, inputSourceMap);
   }
 

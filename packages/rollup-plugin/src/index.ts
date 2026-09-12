@@ -94,7 +94,12 @@ export default function stylexPlugin({
 
       const normalizedRsOptions = normalizeRsOptions(rsOptions ?? {});
 
-      if (!shouldProcessSource(inputCode, { importSources: normalizedRsOptions.importSources })) {
+      if (
+        !shouldProcessSource(inputCode, {
+          importSources: normalizedRsOptions.importSources,
+          sxPropName: normalizedRsOptions.sxPropName,
+        })
+      ) {
         // In rollup, returning null from any plugin phase means
         // "no changes made".
         return null;

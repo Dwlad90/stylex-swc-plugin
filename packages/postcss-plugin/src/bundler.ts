@@ -9,12 +9,16 @@ import type { TransformOptions, StyleXPluginOption } from './types';
 export default function createBundler() {
   const styleXRulesMap = new Map();
 
-  // Determines if the source code should be transformed based on the presence of StyleX imports.
+  // Determines if the source code should be transformed, based on the presence
+  // of a StyleX import or of the sx prop.
   function shouldTransform(
     sourceCode: string,
     rsOptions?: StyleXPluginOption['rsOptions']
   ): boolean {
-    return shouldProcessSource(sourceCode, { importSources: rsOptions?.importSources });
+    return shouldProcessSource(sourceCode, {
+      importSources: rsOptions?.importSources,
+      sxPropName: rsOptions?.sxPropName,
+    });
   }
 
   // Transforms the source code using Babel, extracting StyleX rules and storing them.

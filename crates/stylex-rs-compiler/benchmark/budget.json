@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "state": "pending-calibration",
+  "state": "enforced",
   "subject": "candidate",
   "statistic": "median-of-round-p95",
   "canonical": {
@@ -8,14 +8,600 @@
     "node": "v24.18.0",
     "runner": "ubuntu-latest",
     "runnerImages": ["ubuntu24"],
-    "runnerImageVersions": []
+    "runnerImageVersions": ["20260831.293.1", "20260907.300.1"]
   },
   "policy": {
     "seeding": "Seed every ceiling from at least 3 clean release-style runs on fresh hosted runners. Take a robust upper bound over the per-run median-of-round p95 values and multiply by a justified headroom factor. Never seed from a single run plus an arbitrary percentage.",
     "increases": "A budget increase requires a dedicated reviewed change recording the affected benchmark, old and new ceilings, the repeated raw measurements, the cause and user impact, the alternatives considered, and why optimization or rollback is not appropriate.",
     "decreases": "Ceilings may ratchet down to lock in a proven improvement once repeated measurements support the lower value.",
-    "automation": "No task, script, or workflow may write this file. A breach blocks the release; it never updates the budget.",
-    "environment": "Ceilings are only valid on the canonical target, Node version, runner image family, and — once enforced — the pinned ImageVersion builds recorded in runnerImageVersions. Any drift is an explicit recalibration failure, not a comparison. Record the ImageVersion of every seeding run here before switching state to enforced. CPU model varies on hosted runners and is reported as a diagnostic — spread the seeding runs across the models that appear."
+    "automation": "No task, script, or workflow in this repository may write this file. A breach never updates the budget: it blocks the release. A seeding or recalibration change may compute the entries with a one-off script from archived run reports, because every value is checkable afterwards: evidence names the runs and parseEntry re-derives each ceilingMs from observedUpperMs times headroom.",
+    "environment": "Ceilings are only valid on the canonical target, Node version and runner image family. Drift in any of those three is a recalibration failure, not a comparison. runnerImageVersions records the exact image builds the ceilings were seeded on. A run on another build is reported as a diagnostic and does not stop the release, because GitHub rebuilds the image about every week and the project releases less often than that; the headroom over observedUpperMs covers the difference. A run that records no build at all stays a failure, because that is a defect in the measurement file. The CPU model cannot be pinned either: the report prints it in the environment line and it never stops a release, so spread the seeding runs across the models that appear."
   },
-  "entries": []
+  "entries": [
+    {
+      "name": "Debug data - lotsOfStyles.js (100 creates, dev)",
+      "ceilingMs": 23.1,
+      "observedUpperMs": 18.48,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - CSS value normalization",
+      "ceilingMs": 0.6409,
+      "observedUpperMs": 0.5127,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - CSS value normalization (dev)",
+      "ceilingMs": 0.8434,
+      "observedUpperMs": 0.6747,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - calls that do not fold",
+      "ceilingMs": 6.193,
+      "observedUpperMs": 4.954,
+      "headroom": 1.25,
+      "runs": 3,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - calls that do not fold (dev)",
+      "ceilingMs": 7.366,
+      "observedUpperMs": 5.893,
+      "headroom": 1.25,
+      "runs": 3,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - class name prefix",
+      "ceilingMs": 0.8175,
+      "observedUpperMs": 0.654,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - debug and dev class names",
+      "ceilingMs": 1.024,
+      "observedUpperMs": 0.8194,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - debug class names over many namespaces",
+      "ceilingMs": 1.021,
+      "observedUpperMs": 0.8172,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - debug data prop",
+      "ceilingMs": 0.9406,
+      "observedUpperMs": 0.7525,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - debug without the data prop",
+      "ceilingMs": 0.7015,
+      "observedUpperMs": 0.5612,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - dynamic styles",
+      "ceilingMs": 1.694,
+      "observedUpperMs": 1.355,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - dynamic styles (dev)",
+      "ceilingMs": 1.962,
+      "observedUpperMs": 1.569,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - engine fold",
+      "ceilingMs": 0.8007,
+      "observedUpperMs": 0.6406,
+      "headroom": 1.25,
+      "runs": 3,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - engine fold (dev)",
+      "ceilingMs": 1.068,
+      "observedUpperMs": 0.8548,
+      "headroom": 1.25,
+      "runs": 3,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - font size px to rem",
+      "ceilingMs": 0.6331,
+      "observedUpperMs": 0.5065,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - inlined conditional merge off",
+      "ceilingMs": 0.7141,
+      "observedUpperMs": 0.5713,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - keyframes and animations",
+      "ceilingMs": 0.5838,
+      "observedUpperMs": 0.467,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - keyframes and animations (dev)",
+      "ceilingMs": 0.7965,
+      "observedUpperMs": 0.6372,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - legacy shorthand expansion",
+      "ceilingMs": 0.8249,
+      "observedUpperMs": 0.6599,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - legacy value flipping",
+      "ceilingMs": 0.5791,
+      "observedUpperMs": 0.4633,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - logical and RTL",
+      "ceilingMs": 0.5731,
+      "observedUpperMs": 0.4585,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - logical and RTL (dev)",
+      "ceilingMs": 0.7696,
+      "observedUpperMs": 0.6157,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - media queries",
+      "ceilingMs": 0.803,
+      "observedUpperMs": 0.6424,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - media queries (dev)",
+      "ceilingMs": 0.9426,
+      "observedUpperMs": 0.7541,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - media query order",
+      "ceilingMs": 2.176,
+      "observedUpperMs": 1.741,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - media query order off",
+      "ceilingMs": 0.9525,
+      "observedUpperMs": 0.762,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - nested conditions",
+      "ceilingMs": 0.8233,
+      "observedUpperMs": 0.6586,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - nested conditions (dev)",
+      "ceilingMs": 1.031,
+      "observedUpperMs": 0.8247,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - props and attrs",
+      "ceilingMs": 0.69,
+      "observedUpperMs": 0.552,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - props and attrs (dev)",
+      "ceilingMs": 0.9686,
+      "observedUpperMs": 0.7749,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - readable test class names",
+      "ceilingMs": 0.8332,
+      "observedUpperMs": 0.6666,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - runtime injection",
+      "ceilingMs": 0.7227,
+      "observedUpperMs": 0.5782,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - source maps inline",
+      "ceilingMs": 0.7047,
+      "observedUpperMs": 0.5638,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - source maps without columns",
+      "ceilingMs": 0.6962,
+      "observedUpperMs": 0.557,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - source maps without source text",
+      "ceilingMs": 0.7022,
+      "observedUpperMs": 0.5618,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - source text read from disk",
+      "ceilingMs": 0.8343,
+      "observedUpperMs": 0.6675,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - stylex side effects injected",
+      "ceilingMs": 0.4464,
+      "observedUpperMs": 0.3571,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - theme tokens",
+      "ceilingMs": 0.4219,
+      "observedUpperMs": 0.3375,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - theme tokens (dev)",
+      "ceilingMs": 0.5934,
+      "observedUpperMs": 0.4748,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - token definitions",
+      "ceilingMs": 0.2834,
+      "observedUpperMs": 0.2267,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - unminified debug keys",
+      "ceilingMs": 0.5877,
+      "observedUpperMs": 0.4702,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - view transitions",
+      "ceilingMs": 0.4113,
+      "observedUpperMs": 0.3291,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Feature - view transitions (dev)",
+      "ceilingMs": 0.593,
+      "observedUpperMs": 0.4744,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Performance - Basic create transformation",
+      "ceilingMs": 0.3297,
+      "observedUpperMs": 0.2637,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Performance - Basic theme transformation",
+      "ceilingMs": 0.3881,
+      "observedUpperMs": 0.3105,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Performance - Colors StyleX transformation",
+      "ceilingMs": 0.4101,
+      "observedUpperMs": 0.3281,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Performance - Complex create transformation",
+      "ceilingMs": 3.994,
+      "observedUpperMs": 3.195,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Performance - Complex theme transformation",
+      "ceilingMs": 6.955,
+      "observedUpperMs": 5.564,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Rollup plugin - lotsOfStyles.js",
+      "ceilingMs": 3833.0,
+      "observedUpperMs": 3067.0,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "Rollup plugin - lotsOfStylesDynamic.js",
+      "ceilingMs": 20.49,
+      "observedUpperMs": 16.39,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "buttons-demo",
+      "ceilingMs": 0.6182,
+      "observedUpperMs": 0.4946,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "card",
+      "ceilingMs": 0.3133,
+      "observedUpperMs": 0.2506,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "consts",
+      "ceilingMs": 0.1948,
+      "observedUpperMs": 0.1559,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "counter",
+      "ceilingMs": 0.9506,
+      "observedUpperMs": 0.7605,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "counter-with-dynamic-styles",
+      "ceilingMs": 1.203,
+      "observedUpperMs": 0.9627,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "global-tokens",
+      "ceilingMs": 3.385,
+      "observedUpperMs": 2.708,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "global-tokens-xs",
+      "ceilingMs": 0.6259,
+      "observedUpperMs": 0.5007,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "namespace-cleaning",
+      "ceilingMs": 1.032,
+      "observedUpperMs": 0.8257,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "namespace-cleaning-no-unused",
+      "ceilingMs": 0.9601,
+      "observedUpperMs": 0.7681,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "page",
+      "ceilingMs": 0.3935,
+      "observedUpperMs": 0.3148,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "page-tsx",
+      "ceilingMs": 2.44,
+      "observedUpperMs": 1.952,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "page-with-keyframes",
+      "ceilingMs": 2.373,
+      "observedUpperMs": 1.898,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "spot-loader",
+      "ceilingMs": 0.8615,
+      "observedUpperMs": 0.6892,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "typography",
+      "ceilingMs": 1.282,
+      "observedUpperMs": 1.026,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    },
+    {
+      "name": "use-memo",
+      "ceilingMs": 0.4243,
+      "observedUpperMs": 0.3394,
+      "headroom": 1.25,
+      "runs": 10,
+      "reviewedAt": "2026-09-10",
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+    }
+  ]
 }

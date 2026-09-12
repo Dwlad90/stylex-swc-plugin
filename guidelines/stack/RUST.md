@@ -121,3 +121,31 @@ Run from within a crate directory:
 - Do NOT add new coverage exclusions without justification.
 - 100% line coverage is enforced via
   `--fail-uncovered-lines 0 --fail-uncovered-regions 0 --fail-under-functions 0`.
+
+### A step the gate cannot cover
+
+A guard no input can enter has no test, and the gate reads it as an uncovered
+region. Four answers exist, and they are ranked. Take the first that fits.
+
+1. **Prove the claim against a source, and keep the guard.** "No case can enter
+   this" has to be measured, not argued from the call site. Write the source
+   that reaches it; where one exists, the region is coverable and the question
+   is closed.
+2. **Make the shape unrepresentable.** Give the step a type with exactly the
+   states its caller can build, so the refusal has nowhere to live. This is the
+   only answer that removes the region without hiding anything.
+3. **Mark the step with `#[cfg_attr(coverage_nightly, coverage(off))]`**, and
+   say in the same place why the step is total.
+4. **Delete the guard**, and record what now goes unchecked and which producer
+   holds the invariant instead. Assert the invariant where it is created --
+   a producer test costs no region.
+
+Never reshape a signature to move a region. Two shapes do this. The first is a
+parameter that every shipped caller fills with the same constant. The second is
+a substitution such as `unwrap_or`, which charges the region to `library/core`.
+Each one gives the reader production code whose shape serves the coverage tool
+and not the caller.
+
+A substitution is safe only if the value it puts in cannot become part of a
+folded answer. If it can, the refusal is hidden and the compiler emits a value
+that the source does not state.

@@ -3,8 +3,9 @@
  *
  * The paired benchmark loads a base subject and a candidate subject together,
  * so it can measure both on one runner in one process. This works on Linux,
- * which is where CI runs the gate. It does not work on macOS: the second
- * binding stops the process with SIGSEGV.
+ * which is where CI runs the gate. On macOS it works only while at most one of
+ * the two bindings links mimalloc. Two mimalloc bindings stop the process with
+ * SIGSEGV.
  *
  * A SIGSEGV gives no message and no exit code that names a cause. A benchmark
  * that dies without a message is the failure that the performance policy warns
@@ -37,17 +38,28 @@ export const NATIVE_BINARY_NAME = 'rs-compiler';
 const PLATFORM_PACKAGE_SCOPE = '@stylexswc';
 
 /**
- * Platforms that cannot hold two different native bindings in one process.
+ * Platforms that hold two native bindings together only under a condition.
  *
- * macOS is the only one that is known to fail. Measured on `darwin` arm64 with
- * Node 24: one binding does 4,000 transforms and survives, and two bindings
- * stop the process. `require`, dynamic `import`, and `process.dlopen` with
- * `RTLD_LOCAL` all fail.
+ * macOS is the only one that is known to. Measured on `darwin` arm64 with Node
+ * 24, one fixture and one round for each pair: a base of `0.18.6`, which links
+ * no mimalloc, measured both subjects and left with exit 0, while a base of
+ * `0.19.0-rc.1` and one of `0.19.0-rc.2`, which both link it, each stopped the
+ * process with SIGSEGV. All three version strings differ from the candidate, so
+ * the cause is not a shared version: it is the second mimalloc. What the second
+ * copy does to the first is not known -- the addon references no macOS zone
+ * call, so it holds the allocator as a plain Rust global one -- and the guard
+ * does not need to know. `require`, dynamic `import`, and `process.dlopen` with
+ * `RTLD_LOCAL` all fail the same way.
+ *
+ * The name says restricted and not unsafe because the platform alone does not
+ * decide. It is one of the two conditions, and `assertBindingCanLoad` reads the
+ * allocator for the other, so only the pair that was measured to fail is
+ * refused.
  */
-const DUAL_LOAD_UNSAFE_PLATFORMS: ReadonlySet<NodeJS.Platform> = new Set(['darwin']);
+const DUAL_LOAD_RESTRICTED_PLATFORMS: ReadonlySet<NodeJS.Platform> = new Set(['darwin']);
 
-export function isDualLoadUnsafe(platform: NodeJS.Platform = process.platform): boolean {
-  return DUAL_LOAD_UNSAFE_PLATFORMS.has(platform);
+export function isDualLoadRestricted(platform: NodeJS.Platform = process.platform): boolean {
+  return DUAL_LOAD_RESTRICTED_PLATFORMS.has(platform);
 }
 
 /** The long-path prefix `realpath` may put in front of a Windows path. */
@@ -124,17 +136,19 @@ export function holdsBinding(
   return false;
 }
 
-/** Real paths of the addons that lie directly in one directory. */
-function addonsIn(dir: string): string[] {
-  let entries: string[];
+/** Names in one directory, or nothing when there is no such directory. */
+function entriesIn(dir: string): string[] {
   try {
-    entries = fs.readdirSync(dir);
+    return fs.readdirSync(dir);
   } catch {
     return [];
   }
+}
 
+/** Real paths of the addons that lie directly in one directory. */
+function addonsIn(dir: string): string[] {
   const found: string[] = [];
-  for (const entry of entries) {
+  for (const entry of entriesIn(dir)) {
     if (!entry.endsWith(NATIVE_EXTENSION)) continue;
     try {
       found.push(realPathOf(path.join(dir, entry)));
@@ -147,23 +161,59 @@ function addonsIn(dir: string): string[] {
 }
 
 /**
+ * The directories that Node searches for a package name required from `from`.
+ *
+ * `dist/transform.js` asks for the platform package by name, so where that name
+ * resolves is Node's rule and not this module's. The rule is every ancestor of
+ * the asking file with `node_modules` appended, nearest first, and an ancestor
+ * that is itself a `node_modules` directory contributes nothing.
+ */
+function nodeModulesChain(from: string): string[] {
+  const chain: string[] = [];
+
+  let dir = from;
+  for (;;) {
+    if (path.basename(dir) !== 'node_modules') chain.push(path.join(dir, 'node_modules'));
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  return chain;
+}
+
+/**
  * Lists the native bindings that a subject package can load.
  *
  * `dist/transform.js` looks for the addon in three places, and this function
  * reads all three. A published package is the reason: `files` in the manifest
  * ships `dist/index.js` and `dist/transform.js` but no addon, so a subject
- * unpacked from the registry keeps its addon in a platform package under
- * `node_modules`. A search of `dist` alone finds nothing there, and the guard
- * would then permit the load that stops the process.
+ * unpacked from the registry keeps its addon in a platform package.
  *
  * The three places, in the order that `transform.js` tries them:
  *   1. the file that `NAPI_RS_NATIVE_LIBRARY_PATH` names;
  *   2. `<packageDir>/dist`;
- *   3. each `<packageDir>/node_modules/@stylexswc/rs-compiler-*` package.
+ *   3. the `@stylexswc/rs-compiler-*` package that the name resolves to.
  *
- * Returns an empty list when the package holds no addon. A caller must not fail
- * for that reason: the entry point decides whether the subject can run, and it
- * gives a better message than this function can.
+ * The third one is a search and not a single directory. An installer is free to
+ * put the platform package where it likes, and both of the ones this repository
+ * uses put it somewhere other than under the compiler package: npm hoists it to
+ * a sibling, and pnpm links it beside the copy under `node_modules/.pnpm`. A
+ * search of `<packageDir>/node_modules` alone found nothing for either layout,
+ * so the guard read an installed base as holding no binding and permitted the
+ * load that stops the process. The whole chain is read instead, from the real
+ * path, which is where Node resolves a linked module from.
+ *
+ * The answer is a superset of what the subject loads: it holds every platform
+ * package the chain reaches, and the subject loads one addon. That is the side
+ * to err on. A binding too many makes the guard refuse a pair that would have
+ * run, which costs a run and says why; a binding too few makes it permit the
+ * pair that ends the process without a word.
+ *
+ * Returns an empty list when the package holds no addon, and when it holds one
+ * in a layout nobody has read yet. This function cannot tell those two apart,
+ * so it fails for neither. `assertBindingIsVisible` decides what an empty list
+ * means for the caller that asked.
  */
 export function findNativeBindings(packageDir: string): string[] {
   const found = new Set<string>();
@@ -179,17 +229,12 @@ export function findNativeBindings(packageDir: string): string[] {
 
   for (const addon of addonsIn(path.join(packageDir, 'dist'))) found.add(addon);
 
-  const scopeDir = path.join(packageDir, 'node_modules', PLATFORM_PACKAGE_SCOPE);
-  let platformPackages: string[];
-  try {
-    platformPackages = fs.readdirSync(scopeDir);
-  } catch {
-    platformPackages = [];
-  }
-
-  for (const name of platformPackages) {
-    if (!name.startsWith(`${NATIVE_BINARY_NAME}-`)) continue;
-    for (const addon of addonsIn(path.join(scopeDir, name))) found.add(addon);
+  for (const modulesDir of nodeModulesChain(settledPathOf(packageDir))) {
+    const scopeDir = path.join(modulesDir, PLATFORM_PACKAGE_SCOPE);
+    for (const name of entriesIn(scopeDir)) {
+      if (!name.startsWith(`${NATIVE_BINARY_NAME}-`)) continue;
+      for (const addon of addonsIn(path.join(scopeDir, name))) found.add(addon);
+    }
   }
 
   return [...found].toSorted();
@@ -248,6 +293,99 @@ export function loadedNativeBindings(): Set<string> {
   return loaded;
 }
 
+/**
+ * Bytes that a build with mimalloc holds and a build without it does not.
+ *
+ * The allocator writes its own name into the messages it can print, so the name
+ * is in the binary whenever the allocator is linked into it. Read from the
+ * shipped files rather than from the build settings: `0.18.6` holds the bytes
+ * nowhere, and `0.19.0-rc.1`, `0.19.0-rc.2` and the current build each hold
+ * them six times. Every target this package publishes holds them, musl
+ * included: `swc_malloc` leaves musl on the system allocator, and this package
+ * names mimalloc for `x86_64-unknown-linux-musl` itself, in its own manifest.
+ *
+ * The rule holds for the two artifacts a paired run compares -- a build of this
+ * package and a published release of it -- because `napi build` writes both and
+ * strips neither. It is not a rule about any binary: a build that links the
+ * allocator and keeps none of its messages would read as one that does not.
+ * `native-bindings.test.ts` reads the build on disk, so a pipeline that begins
+ * to strip the name fails there rather than at a release.
+ */
+const MIMALLOC_MARKER = Buffer.from('mimalloc', 'utf8');
+
+/**
+ * Whether an addon file brings its own copy of mimalloc.
+ *
+ * A file this function cannot read counts as one that does, because a guard
+ * must not permit a load it has no evidence about. That answer is the older and
+ * stricter one, which refused every second binding on the platform, so nothing
+ * that ran before can start failing for this reason.
+ */
+export function linksMimalloc(file: string): boolean {
+  try {
+    return fs.readFileSync(file).includes(MIMALLOC_MARKER);
+  } catch {
+    return true;
+  }
+}
+
+/** The bindings of a list that bring their own copy of mimalloc. */
+function mimallocBindings(bindings: Iterable<string>): string[] {
+  return [...bindings].filter(binding => linksMimalloc(binding));
+}
+
+/**
+ * Whether any binding of a list brings mimalloc.
+ *
+ * Stops at the first one that does, because each answer is read off a file and
+ * the question is only whether there is one.
+ */
+function anyLinksMimalloc(bindings: Iterable<string>): boolean {
+  for (const binding of bindings) {
+    if (linksMimalloc(binding)) return true;
+  }
+
+  return false;
+}
+
+/** The bindings a subject brings that the process does not hold already. */
+function arrivingBindings(
+  bindings: readonly string[],
+  loaded: ReadonlySet<string>,
+  platform?: NodeJS.Platform
+): string[] {
+  return bindings.filter(binding => !holdsBinding(loaded, binding, platform));
+}
+
+/**
+ * Whether two subjects can be timed in one process.
+ *
+ * The question `assertBindingCanLoad` answers after the fact, asked before
+ * either subject is loaded. A caller that gets `false` must time each subject
+ * in a process of its own; a caller that ignores the answer gets the SIGSEGV
+ * the guard describes.
+ *
+ * Answers `false` for everything the two guards refuse, and for the case they
+ * refuse without naming a binding: a subject whose binding was not found.
+ * `findNativeBindings` reads the layouts npm and pnpm write, and a third layout
+ * would give an empty list, which cannot be read as "brings nothing" here any
+ * more than it can there. A pair this function cannot clear is measured in two
+ * processes, which is always safe and only costs the start-up of a second one.
+ */
+export function subjectsCanShareProcess(
+  first: readonly string[],
+  second: readonly string[],
+  platform: NodeJS.Platform = process.platform
+): boolean {
+  if (!isDualLoadRestricted(platform)) return true;
+  if (first.length === 0 || second.length === 0) return false;
+
+  const arriving = arrivingBindings(second, new Set(first), platform);
+  if (arriving.length === 0) return true;
+
+  return !anyLinksMimalloc(arriving) || !anyLinksMimalloc(first);
+}
+
 export interface BindingLoadRequest {
   /** Name of the subject, for the message. */
   label: string;
@@ -259,30 +397,69 @@ export interface BindingLoadRequest {
 }
 
 /**
- * Stops a load that would put a second native binding in the process.
+ * Stops a subject whose binding this module could not find.
+ *
+ * `findNativeBindings` reads the layouts that npm and pnpm write. An installer
+ * that writes another one gives an empty list, and an empty list is what the
+ * rest of this module reads as "brings nothing to conflict with" -- which is
+ * how a base installed for a release passed a guard that exists to stop it.
+ *
+ * A subject that `loadSubject` loads is a compiler package, so it has an addon
+ * whether or not this module found it. Where the process already holds a
+ * mimalloc binding on a restricted platform, an unfound one cannot be ruled
+ * out, and a sentence is a better answer than a SIGSEGV. Everywhere else the
+ * question does not arise and the subject loads.
+ *
+ * @throws Error when the subject must hold a binding and none was found.
+ */
+export function assertBindingIsVisible(request: BindingLoadRequest): void {
+  if (!isDualLoadRestricted(request.platform)) return;
+  if (request.bindings.length > 0) return;
+  const held = mimallocBindings(request.loaded);
+  if (held.length === 0) return;
+
+  throw new Error(
+    `Cannot load subject "${request.label}": the process holds ${held.join(', ')}, ` +
+      'which links mimalloc, and no native binding was found for this subject. ' +
+      'A second mimalloc binding stops the process with SIGSEGV and reports no ' +
+      'result, and this one cannot be read to say whether it is one. Measure ' +
+      'each revision in its own process, which `bench:revisions` does on this ' +
+      'platform and `--separate-processes` asks for anywhere.'
+  );
+}
+
+/**
+ * Stops a load that would put a second mimalloc binding in the process.
  *
  * A subject that brings in a binding which is already loaded is safe, because
- * the runtime gives back the same instance. Only a new and different binding
- * is a risk.
+ * the runtime gives back the same instance. Only a new and different binding is
+ * a risk, and only while both it and one the process holds link mimalloc.
+ *
+ * The allocator is read last, because it is the only step that reads a file and
+ * the two cheap steps answer most calls: a subject whose bindings are all held
+ * already, and every platform but the one.
  *
  * @throws Error when the platform cannot hold the new binding.
  */
 export function assertBindingCanLoad(request: BindingLoadRequest): void {
-  if (!isDualLoadUnsafe(request.platform)) return;
+  if (!isDualLoadRestricted(request.platform)) return;
   if (request.loaded.size === 0) return;
 
-  const conflicting = request.bindings.filter(
-    binding => !holdsBinding(request.loaded, binding, request.platform)
-  );
+  const conflicting = arrivingBindings(request.bindings, request.loaded, request.platform);
   if (conflicting.length === 0) return;
+
+  const arriving = mimallocBindings(conflicting);
+  if (arriving.length === 0) return;
+  const held = mimallocBindings(request.loaded);
+  if (held.length === 0) return;
 
   const platform = request.platform ?? process.platform;
   throw new Error(
     `Cannot load subject "${request.label}": ${platform} cannot hold two ` +
-      'different native bindings in one process, and the process already ' +
-      `holds ${[...request.loaded].join(', ')}. Loading ${conflicting.join(', ')} ` +
-      'stops the process with SIGSEGV and reports no result. Run the paired ' +
-      'benchmark on Linux, or measure each revision in its own process and ' +
-      'compare the two reports.'
+      'native bindings that both link mimalloc, and the process already holds ' +
+      `${held.join(', ')}. Loading ${arriving.join(', ')} stops the process ` +
+      'with SIGSEGV and reports no result. Run the paired benchmark on Linux, ' +
+      'or measure each revision in its own process, which `bench:revisions` ' +
+      'does on this platform and `--separate-processes` asks for anywhere.'
   );
 }

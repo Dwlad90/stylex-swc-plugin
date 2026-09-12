@@ -2,7 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { normalize, resolve } from 'path';
 
-import { shouldTransformFile, TransformedOptions } from '@stylexswc/rs-compiler';
+import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
+import {
+  normalizeRsOptions,
+  shouldTransformFile,
+  StyleXOptions,
+  TransformedOptions,
+} from '@stylexswc/rs-compiler';
 import { globSync } from 'fast-glob';
 import globParent from 'glob-parent';
 import isGlob from 'is-glob';
@@ -112,9 +118,16 @@ function nestedNodeModulesExcludeFor(includePattern: string): string | null {
   return `${baseDir.split(path.sep).join('/')}/node_modules/**`;
 }
 
+/**
+ * The options as the builder holds them: what the caller passed, with
+ * `rsOptions` resolved. Every use then reads one settled set, rather than
+ * each deciding for itself what an absent option means.
+ */
+type BuilderConfig = Omit<StyleXPluginOption, 'rsOptions'> & { rsOptions: StyleXOptions };
+
 // Creates a builder for transforming files and bundling StyleX CSS.
 function createBuilder() {
-  let config: StyleXPluginOption | null = null;
+  let config: BuilderConfig | null = null;
 
   const bundler = createBundler();
 
@@ -122,11 +135,14 @@ function createBuilder() {
 
   // Configures the builder with the provided options.
   function configure(options: StyleXPluginOption) {
-    config = options;
+    // Normalised here rather than at each use, so the module-selection scan and
+    // the compiler are answered from the same options. `normalizeRsOptions` is
+    // idempotent, so `bundler.transform` normalising again is harmless.
+    config = { ...options, rsOptions: normalizeRsOptions(options.rsOptions ?? {}) };
   }
 
   /// Retrieves the current configuration.
-  function getConfig() {
+  function getConfig(): BuilderConfig {
     if (config == null) {
       throw new Error('Builder not configured');
     }
@@ -249,23 +265,24 @@ function createBuilder() {
       filesToTransform.push(file);
     }
 
+    // Copy rather than mutate. `rsOptions` comes from `getConfig()`, so it is
+    // shared by every file in this build and by every rebuild in watch mode —
+    // stripping the patterns in place made the change permanent and invisible.
+    // (Same defect class as the one fixed in `@stylexswc/jest`.) The patterns
+    // are dropped for the compiler because `getFiles()` above has already
+    // applied them; re-applying them here would only repeat the work. The
+    // copy is the same for every file, so it is made once.
+    const compilerOptions = { ...rsOptions };
+    delete (compilerOptions as { include?: unknown }).include;
+    delete (compilerOptions as { exclude?: unknown }).exclude;
+
     filesToTransform.forEach(file => {
       const filePath = path.resolve(cwd || '/', file);
       const contents = fs.readFileSync(filePath, 'utf-8');
-      if (!bundler.shouldTransform(contents, rsOptions)) {
+      // Skip a file that mentions neither a StyleX import nor the sx prop.
+      if (!shouldProcessSource(contents, rsOptions)) {
         return;
       }
-
-      // Copy rather than mutate. `rsOptions` comes from `getConfig()`, so it is
-      // the caller's own object, shared by every file in this build and by
-      // every rebuild in watch mode — stripping the patterns in place made the
-      // change permanent and invisible. (Same defect class as the one fixed in
-      // `@stylexswc/jest`.) The patterns are dropped for the compiler because
-      // `getFiles()` above has already applied them; re-applying them here
-      // would only repeat the work.
-      const compilerOptions = { ...rsOptions };
-      delete (compilerOptions as { include?: unknown }).include;
-      delete (compilerOptions as { exclude?: unknown }).exclude;
 
       // `forEach` discards return values; the transform is called for its
       // side effect of registering rules on the bundler.

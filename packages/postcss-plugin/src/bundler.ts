@@ -2,55 +2,11 @@ import stylexBabelPlugin from '@stylexjs/babel-plugin';
 import { transform as stylexTransform, normalizeRsOptions } from '@stylexswc/rs-compiler';
 import type { StyleXOptions, TransformedOptions } from '@stylexswc/rs-compiler';
 
-import type { TransformOptions, StyleXPluginOption } from './types';
+import type { TransformOptions } from './types';
 
 // Creates a stateful bundler for processing StyleX rules using Babel.
 export default function createBundler() {
   const styleXRulesMap = new Map();
-
-  // Determines if the source code should be transformed based on the presence of StyleX imports.
-  function shouldTransform(
-    sourceCode: string,
-    rsOptions?: StyleXPluginOption['rsOptions']
-  ): boolean {
-    const importSources = rsOptions?.importSources;
-
-    if (!importSources) return false;
-
-    return importSources.some(importSource => {
-      // Already an object (e.g., { from: '@stylexjs/stylex' })
-      if (typeof importSource !== 'string') {
-        const fromTrimmed = importSource.from?.trim();
-
-        if (!fromTrimmed) return false;
-
-        return sourceCode.includes(importSource.from);
-      }
-
-      const importSourceTrimmed = importSource.trimStart();
-
-      if (!importSourceTrimmed) return false;
-
-      // JSON string edge-case: only attempt parse if it looks like a JSON object
-      if (importSourceTrimmed[0] === '{') {
-        try {
-          const parsed = JSON.parse(importSourceTrimmed);
-          if (typeof parsed.from === 'string') {
-            const fromTrimmed = parsed.from.trim();
-
-            if (!fromTrimmed) return false;
-
-            return sourceCode.includes(fromTrimmed);
-          }
-        } catch {
-          // Not valid JSON — fall through to plain string check
-        }
-      }
-
-      // Standard string case, e.g. '@stylexjs/stylex'
-      return sourceCode.includes(importSource);
-    });
-  }
 
   // Transforms the source code using Babel, extracting StyleX rules and storing them.
   function transform(
@@ -107,7 +63,6 @@ export default function createBundler() {
   }
 
   return {
-    shouldTransform,
     transform,
     remove,
     bundle,

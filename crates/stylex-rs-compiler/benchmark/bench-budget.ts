@@ -112,12 +112,16 @@ function printSummary(report: BudgetReport): void {
   }
 
   for (const problem of report.problems) {
-    console.log(chalk.yellow(`  ${problem.kind}: ${problem.message}`));
+    const line = `  ${problem.kind}: ${problem.message}`;
+    // A diagnostic describes the machine and not the code. Show it more
+    // quietly than a failure, which is what stops the release.
+    console.log(problem.severity === 'diagnostic' ? chalk.dim(line) : chalk.yellow(line));
   }
 
   console.log('');
   if (report.status === 'failed') {
-    const message = `Budget FAILED — ${String(report.problems.length)} problem(s)`;
+    const failures = report.problems.filter(problem => problem.severity === 'failure');
+    const message = `Budget FAILED — ${String(failures.length)} problem(s)`;
     console.log(
       report.reportOnly ? chalk.yellow.bold(`${message} (report-only)`) : chalk.red.bold(message)
     );

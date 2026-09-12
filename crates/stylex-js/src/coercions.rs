@@ -8,7 +8,8 @@
 
 use std::convert::Infallible;
 
-use stylex_utils::number;
+use stylex_utils::number::{self, is_js_whitespace};
+use swc_core::atoms::Wtf8Atom;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{
   ArrowFunctionBody, BigIntValue, Expr, Ident, Lit, Number, ObjectLit, Prop, PropName,
@@ -18,8 +19,8 @@ use swc_core::ecma::ast::{
 /// What `ToString` produces for an object that still takes the
 /// `Object.prototype` default.
 ///
-/// Not every object does, which is why [`keeps_default_primitive`] is asked
-/// before this is answered.
+/// Not every object does, which is why `object_to_primitive` is asked before
+/// this is answered.
 pub const OBJECT_TO_STRING: &str = "[object Object]";
 
 /// The two methods `OrdinaryToPrimitive` asks an object for, which an object
@@ -295,11 +296,18 @@ pub fn write_js_string_of<S: StringSink>(
     Expr::Lit(Lit::Null(_)) => sink.write_piece("null"),
     // A big integer renders as its digits with no `n` suffix, which is the one
     // place its string and its source text part company.
-    Expr::Lit(Lit::BigInt(big_int)) => sink.write_piece(&format!("{}", big_int.value)),
+    Expr::Lit(Lit::BigInt(big_int)) => sink.write_piece(&big_int.value.to_string()),
     // A regular expression is the one object whose `ToString` is not the
     // `Object.prototype` default: it answers its own source text, which unlike
     // a function's the evaluator does retain.
-    Expr::Lit(Lit::Regex(regex)) => sink.write_piece(&format!("/{}/{}", regex.exp, regex.flags)),
+    //
+    // Written piece by piece rather than joined first, so a caller measuring
+    // against a ceiling refuses at the piece that passes it -- which is the
+    // invariant the rest of this module holds -- and the two parts the value
+    // already spells reach the sink as themselves.
+    Expr::Lit(Lit::Regex(regex)) => ["/", &regex.exp, "/", &regex.flags]
+      .into_iter()
+      .try_for_each(|piece| sink.write_piece(piece)),
     Expr::Ident(ident) => match surviving_global(ident) {
       Some(SurvivingGlobal::Undefined) => sink.write_piece("undefined"),
       Some(SurvivingGlobal::NaN) => sink.write_piece(&number::to_js_string(f64::NAN)),
@@ -502,34 +510,6 @@ pub fn string_to_js_number(value: &str) -> f64 {
   }
 }
 
-/// Whether the language counts this as whitespace around a numeric literal.
-///
-/// Not `char::is_whitespace`, which follows Unicode rather than the language:
-/// it admits U+0085, which JavaScript does not, and omits U+FEFF, which
-/// JavaScript does.
-fn is_js_whitespace(c: char) -> bool {
-  // The tab family and the space, the two line terminators, and the rest of
-  // the Unicode space separators.
-  matches!(c, '\u{2000}'..='\u{200A}')
-    || matches!(
-      c,
-      '\u{0009}'
-        | '\u{000A}'
-        | '\u{000B}'
-        | '\u{000C}'
-        | '\u{000D}'
-        | '\u{0020}'
-        | '\u{00A0}'
-        | '\u{1680}'
-        | '\u{2028}'
-        | '\u{2029}'
-        | '\u{202F}'
-        | '\u{205F}'
-        | '\u{3000}'
-        | '\u{FEFF}'
-    )
-}
-
 /// The radix and digits of a `NonDecimalIntegerLiteral`, which takes no sign —
 /// which is why it is recognised ahead of the signed decimal grammar, and why
 /// `-0x1f` reaches that grammar and is not a number at all.
@@ -670,6 +650,172 @@ pub fn to_int32(value: f64) -> i32 {
   }
 }
 
+/// `ToUint32` over a number, the coercion `>>>` applies to the side it shifts.
+///
+/// The same wrap as [`to_int32`], read as unsigned rather than as signed --
+/// which is the whole of what parts `>>>` from `>>`: `-1 >>> 0` is 4294967295
+/// where `-1 >> 0` is `-1`.
+pub fn to_uint32(value: f64) -> u32 {
+  to_int32(value) as u32
+}
+
+/// How far a shift operator moves its left side, out of the number on its
+/// right.
+///
+/// The language keeps only the low five bits of the count, so a count of 32
+/// shifts nothing and `1 << 32` is `1`. Rust panics on a count of 32 in a debug
+/// build instead, which is why the mask is read here rather than left to the
+/// shift.
+pub fn to_shift_count(value: f64) -> u32 {
+  to_uint32(value) & 31
+}
+
+/// A value the equality operators compare directly, with nothing to read off an
+/// object first.
+///
+/// The five the language calls primitive, minus the two this evaluator never
+/// holds: a big integer and a symbol are both refused before a value is built
+/// from them.
+#[derive(Debug, Clone, Copy)]
+pub enum Primitive<'a> {
+  /// Held as the atom rather than as text, so two strings that hold different
+  /// lone surrogates stay different -- `as_str` reads both as one replacement
+  /// character.
+  String(&'a Wtf8Atom),
+  Number(f64),
+  Boolean(bool),
+  Null,
+  Undefined,
+}
+
+/// The primitive an already-evaluated expression *is*, for a caller that
+/// compares two values rather than coercing one.
+///
+/// `None` is every other value -- an object, an array, a function -- for which
+/// the language compares references. This evaluator holds a copy rather than a
+/// reference, so it has no answer to give and the caller refuses.
+pub fn to_js_primitive(expr: &Expr) -> Option<Primitive<'_>> {
+  match expr {
+    Expr::Lit(Lit::Str(strng)) => Some(Primitive::String(&strng.value)),
+    Expr::Lit(Lit::Num(num)) => Some(Primitive::Number(num.value)),
+    Expr::Lit(Lit::Bool(bool_lit)) => Some(Primitive::Boolean(bool_lit.value)),
+    Expr::Lit(Lit::Null(_)) => Some(Primitive::Null),
+    Expr::Ident(ident) => match surviving_global(ident)? {
+      SurvivingGlobal::Undefined => Some(Primitive::Undefined),
+      SurvivingGlobal::NaN => Some(Primitive::Number(f64::NAN)),
+      SurvivingGlobal::Infinity => Some(Primitive::Number(f64::INFINITY)),
+    },
+    // `void x` is `undefined`, the third spelling [`is_nullish`] reads.
+    Expr::Unary(unary) if unary.op == UnaryOp::Void => Some(Primitive::Undefined),
+    _ => None,
+  }
+}
+
+/// ECMA-262 `IsStrictlyEqual` over two primitives.
+///
+/// Two values of different types are unequal without any coercion, `NaN` equals
+/// nothing including itself, and the two zeroes are equal.
+pub fn strict_equals(left: &Primitive, right: &Primitive) -> bool {
+  match (left, right) {
+    (Primitive::String(left), Primitive::String(right)) => left == right,
+    (Primitive::Number(left), Primitive::Number(right)) => left == right,
+    (Primitive::Boolean(left), Primitive::Boolean(right)) => left == right,
+    (Primitive::Null, Primitive::Null) | (Primitive::Undefined, Primitive::Undefined) => true,
+    _ => false,
+  }
+}
+
+/// ECMA-262 `IsLooselyEqual` over two primitives.
+///
+/// The three coercions the algorithm applies, and nothing else: `null` and
+/// `undefined` equal each other and nothing more, a boolean becomes its number
+/// on whichever side it is, and a string meeting a number becomes its number.
+pub fn loose_equals(left: &Primitive, right: &Primitive) -> bool {
+  match (left, right) {
+    (Primitive::Null | Primitive::Undefined, Primitive::Null | Primitive::Undefined) => true,
+    (Primitive::Null | Primitive::Undefined, _) | (_, Primitive::Null | Primitive::Undefined) => {
+      false
+    },
+    (Primitive::Boolean(value), other) => {
+      loose_equals(&Primitive::Number(number_of_a_boolean(*value)), other)
+    },
+    (other, Primitive::Boolean(value)) => {
+      loose_equals(other, &Primitive::Number(number_of_a_boolean(*value)))
+    },
+    (Primitive::Number(number), Primitive::String(text)) => *number == number_of_a_string(text),
+    (Primitive::String(text), Primitive::Number(number)) => number_of_a_string(text) == *number,
+    (left, right) => strict_equals(left, right),
+  }
+}
+
+/// ECMA-262 `IsLessThan` over two primitives, plus the third answer the
+/// specification calls `undefined` -- which is what makes all four relational
+/// operators false when either side is `NaN`.
+///
+/// Two strings compare by code unit and every other pair compares as two
+/// numbers, which is the whole of the rule. The outer `None` is a text this
+/// crate cannot read, so the caller deopts rather than ordering two strings it
+/// cannot see; the inner `None` is the `undefined` answer.
+pub fn js_less_than(left: &Primitive, right: &Primitive) -> Option<Option<bool>> {
+  if let (Primitive::String(left), Primitive::String(right)) = (left, right) {
+    let (left, right) = (left.as_str()?, right.as_str()?);
+
+    return Some(Some(left.encode_utf16().lt(right.encode_utf16())));
+  }
+
+  let left = number_of_a_primitive(left);
+  let right = number_of_a_primitive(right);
+
+  match left.is_nan() || right.is_nan() {
+    true => Some(None),
+    false => Some(Some(left < right)),
+  }
+}
+
+/// `ToNumber` over a primitive, the coercion every pair the string rule does
+/// not claim is read through.
+fn number_of_a_primitive(value: &Primitive) -> f64 {
+  match value {
+    Primitive::String(text) => number_of_a_string(text),
+    Primitive::Number(number) => *number,
+    Primitive::Boolean(value) => number_of_a_boolean(*value),
+    Primitive::Null => 0.0,
+    Primitive::Undefined => f64::NAN,
+  }
+}
+
+fn number_of_a_boolean(value: bool) -> f64 {
+  if value { 1.0 } else { 0.0 }
+}
+
+/// `ToNumber` of a string that may hold a lone surrogate, which no numeric
+/// literal does -- so a text Rust cannot read is `NaN`, as every other
+/// non-literal text is.
+fn number_of_a_string(text: &Wtf8Atom) -> f64 {
+  match text.as_str() {
+    Some(text) => string_to_js_number(text),
+    None => f64::NAN,
+  }
+}
+
+/// ECMA-262 `ToPrimitive` with no hint -- the reduction `+` applies before it
+/// decides whether it is addition or concatenation. An object answers through
+/// its own `valueOf` first, then its own `toString`.
+///
+/// `None` is an object that keeps the `Object.prototype` pair, whose primitive
+/// is [`OBJECT_TO_STRING`] and which the caller's string path already writes,
+/// and an object this crate cannot convert at all. A value that is already a
+/// primitive answers itself.
+pub fn to_js_default_primitive(expr: &Expr) -> Option<&Expr> {
+  match expr {
+    Expr::Object(object) => match object_to_primitive(object, ToPrimitiveHint::Number)? {
+      ObjectPrimitive::Default => None,
+      ObjectPrimitive::Returned(returned) => to_js_default_primitive(returned),
+    },
+    _ => Some(expr),
+  }
+}
+
 /// What kind of object `ToObject` answers with over a value.
 ///
 /// Reported rather than carried out, and now only as coarsely as its one caller
@@ -694,24 +840,18 @@ pub enum ObjectCoercion {
 pub fn to_object(expr: &Expr) -> Option<ObjectCoercion> {
   match expr {
     Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => Some(ObjectCoercion::Function),
-    // Every remaining readable value is an object or boxes into one: the two
-    // nullish spellings take a fresh one, an array, an object and a regular
-    // expression already are one, and a primitive is wrapped in one.
+    // Every remaining readable value is an object or boxes into one: an array,
+    // an object and a regular expression already are one, and a primitive is
+    // wrapped in one. The two nullish spellings are the exception the one
+    // caller wants: `ToObject` throws a `TypeError` over both, and `typeof`
+    // never asks it -- it names `null` an object on its own account, which is
+    // what this answers for them.
     Expr::Ident(ident) => surviving_global(ident).map(|_| ObjectCoercion::Object),
     Expr::Object(_) | Expr::Array(_) | Expr::Lit(_) => Some(ObjectCoercion::Object),
     _ => None,
   }
 }
 
-/// Whether an object literal's primitive conversion is still the
-/// `Object.prototype` default, and so is [`OBJECT_TO_STRING`].
-///
-/// An own `toString` or `valueOf` replaces that default and `Symbol.toPrimitive`
-/// precedes it, so an object carrying any of them coerces to a value this crate
-/// cannot compute -- `String({ toString: () => 'red' })` is `red`, not
-/// `[object Object]`. Answering the default for one of those would put a
-/// confidently wrong value in the stylesheet, which is the one outcome a
-/// refused fold exists to prevent.
 /// ECMA-262 `OrdinaryToPrimitive` over an object literal: the value the first
 /// of the object's two conversion methods to answer a primitive returns.
 ///

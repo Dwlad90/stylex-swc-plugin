@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/evaluator",
   "description": "The JavaScript evaluator the StyleX compiler folds authored expressions with",
-  "version": "0.19.0-rc.2",
+  "version": "0.19.0-rc.3",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -41,7 +41,6 @@
     "@stylexswc/state": "catalog:internal",
     "@stylexswc/structures": "catalog:internal",
     "@stylexswc/stylex-js": "catalog:internal",
-    "@stylexswc/types": "catalog:internal",
     "@stylexswc/utils": "catalog:internal",
     "@taplo/cli": "catalog:tooling",
     "npm-run-all2": "catalog:tooling"

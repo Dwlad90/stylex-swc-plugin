@@ -3,8 +3,7 @@ use swc_core::{
   ecma::{
     ast::{
       Bool, CallExpr, Callee, Expr, ExprOrSpread, JSXAttrName, JSXAttrOrSpread, JSXAttrValue,
-      JSXElementName, JSXExpr, JSXOpeningElement, Lit, MemberExpr, MemberProp, Prop, PropName,
-      PropOrSpread,
+      JSXElementName, JSXExpr, JSXOpeningElement, Lit, MemberExpr, MemberProp, Prop, PropOrSpread,
     },
     visit::VisitMutWith,
   },
@@ -13,9 +12,10 @@ use swc_core::{
 use crate::StyleXTransform;
 use stylex_ast::ast::factories::{
   create_arrow_expression, create_ident, create_ident_call_expr, create_ident_name,
-  create_import_namespace_decl, create_jsx_spread_attr, create_member_call_expr, create_object_lit,
+  create_import_namespace_decl, create_jsx_spread_attr, create_member_call_expr,
   create_spread_prop,
 };
+use stylex_ast::ast::keys::try_namespace_name_from_prop_key;
 use stylex_constants::constants::{api_names::STYLEX_PROPS, common::RUNTIME_JSX_CALL_NAMES};
 use stylex_enums::{core::TransformationCycle, counter_mode::CounterMode};
 use stylex_state::state_manager::InsertionSlot;
@@ -105,70 +105,78 @@ where
     jsx_opening_element.visit_mut_children_with(self);
   }
 
-  /// Transform compiled JSX/VDOM calls with an `sx` prop during the
-  /// Initializing cycle.
+  /// Transform a compiled JSX/VDOM call that carries an `sx` prop, in place.
   ///
   /// Handles:
   /// - React: `_jsx("div", { sx: expr })` / `_jsxs("div", { sx: expr })`
   /// - React classic: `React.createElement("div", { sx: expr })`
-  /// - Vue: `_createElementBlock("div", { sx: expr })` /
-  ///   `_createElementVNode("div", { sx: expr })`
+  /// - Vue: `_createElementBlock("div", …)` / `_createElementVNode("div", …)`
   ///
-  /// Transforms to: `fn("div", { ...stylex.props(expr), ... })`
-  pub(crate) fn transform_sx_in_compiled_jsx(&mut self, expr: &Expr) -> Option<Expr> {
-    let sx_prop_name = self.state.options.sx_prop_name.as_deref()?;
+  /// Rewrites the one prop to `...stylex.props(expr)` and leaves every other
+  /// prop, and every other argument, untouched. Returns whether it matched.
+  ///
+  /// Runs in the `Discover` cycle.
+  pub(crate) fn transform_sx_in_compiled_jsx(&mut self, expr: &mut Expr) -> bool {
+    // Read first, because it is the cheapest way out and it settles the whole
+    // feature. The borrow ends at the search below, well before the runtime
+    // binding is resolved.
+    let Some(sx_prop_name) = self.state.options.sx_prop_name.as_deref() else {
+      return false;
+    };
 
-    let call = expr.as_call()?;
+    let Some(call) = expr.as_mut_call() else {
+      return false;
+    };
 
     if !is_jsx_runtime_call(call) {
-      return None;
+      return false;
     }
 
-    // First arg must be a lowercase string literal (HTML element)
-    let first_arg = call.args.first()?;
-    let element_name = match first_arg.expr.as_ref() {
-      Expr::Lit(Lit::Str(s)) => s.value.as_str().unwrap_or(""),
-      _ => return None,
+    let span = call.span;
+
+    // The first arg must be a lowercase string literal: a host element.
+    let Some(Expr::Lit(Lit::Str(element))) = call.args.first().map(|arg| arg.expr.as_ref()) else {
+      return false;
     };
-    if !element_name
-      .chars()
-      .next()
-      .map(|c: char| c.is_lowercase())
-      .unwrap_or(false)
+
+    if !element
+      .value
+      .as_str()
+      .and_then(|name| name.chars().next())
+      .is_some_and(char::is_lowercase)
     {
-      return None;
+      return false;
     }
 
-    // Second arg must be an object literal
-    let second_arg = call.args.get(1)?;
-    let obj_lit = match second_arg.expr.as_ref() {
-      Expr::Object(o) => o.clone(),
-      _ => return None,
+    // The props object holds the element's whole subtree, so it is reached by
+    // borrow. A call the scan passes over costs no copy of it.
+    let Some(obj_lit) = call
+      .args
+      .get_mut(1)
+      .and_then(|arg| arg.expr.as_mut_object())
+    else {
+      return false;
     };
 
-    // Find the sx prop index
-    let sx_prop_idx = find_sx_prop_idx(&obj_lit.props, sx_prop_name)?;
-
-    // Extract the sx value and build args
-    let sx_value = extract_prop_value(&obj_lit.props[sx_prop_idx])?;
-    let stylex_local_name = self.get_stylex_runtime_binding(call.span);
-    let args = sx_value_to_props_args(sx_value);
-
-    // Replace the sx prop with: ...stylex.props(...args)
-    let mut new_props = obj_lit.props;
-    let call_expr = Expr::Call(build_stylex_props_call(stylex_local_name, args));
-    new_props[sx_prop_idx] = create_spread_prop(call_expr);
-
-    let mut new_call = call.clone();
-    new_call.args[1] = ExprOrSpread {
-      spread: None,
-      expr: Box::new(Expr::Object(create_object_lit(new_props))),
+    let Some((sx_prop_idx, sx_value)) = find_sx_prop(&obj_lit.props, sx_prop_name) else {
+      return false;
     };
 
-    Some(Expr::Call(new_call))
+    // The props object stays borrowed across this call, because it belongs to
+    // the expression the caller owns and not to `self`. The runtime binding is
+    // resolved only now, because resolving it injects an import that a call
+    // with no `sx` prop must not get.
+    let stylex_local_name = self.get_stylex_runtime_binding(span);
+
+    obj_lit.props[sx_prop_idx] = create_spread_prop(Expr::Call(build_stylex_props_call(
+      stylex_local_name,
+      sx_value_to_props_args(sx_value),
+    )));
+
+    true
   }
 
-  /// Transform Solid.js compiled `sx` attribute during the Initializing cycle.
+  /// Transform a Solid.js compiled `sx` attribute, in the `Discover` cycle.
   ///
   /// Solid.js compiles `<div sx={styles.main}>` to:
   /// `_$setAttribute(_el$, "sx", styles.main)`
@@ -364,30 +372,42 @@ fn build_stylex_props_call(stylex_local_name: String, args: Vec<ExprOrSpread>) -
   create_member_call_expr(member, args)
 }
 
-/// Find the index of the prop with key matching `sx_prop_name` in a props list.
-fn find_sx_prop_idx(props: &[PropOrSpread], sx_prop_name: &str) -> Option<usize> {
-  props.iter().position(|prop| {
-    if let PropOrSpread::Prop(p) = prop
-      && let Prop::KeyValue(kv) = p.as_ref()
-    {
-      return match &kv.key {
-        PropName::Ident(ident) => ident.sym.as_str() == sx_prop_name,
-        PropName::Str(s) => s.value.as_str().unwrap_or("") == sx_prop_name,
-        _ => false,
-      };
-    }
-    false
-  })
-}
+/// Find the first prop that names `sx_prop_name`, with the value it forwards.
+///
+/// A key-value prop gives its value, whatever shape its key is written in, as
+/// long as the text of that key is known at compile time. A shorthand gives
+/// the identifier it names, because `{ sx }` and `{ sx: sx }` name the same
+/// prop.
+///
+/// Every other shape is skipped. A getter, a setter and a method carry no
+/// value expression to forward, like an attribute whose value is not an
+/// expression container. A spread is not inspected at all, like a spread
+/// attribute, and its keys are not knowable at compile time anyway. A key
+/// whose text cannot be read -- a lone surrogate, say -- is simply not the
+/// prop asked about, so the scan passes over it rather than refusing it.
+///
+/// The first match wins, like the raw markup path, which stops at the first
+/// matching attribute. Where the two paths cannot correspond they do not: a
+/// shorthand has no markup spelling, and a numeric or computed key is not a
+/// shape JSX can write.
+fn find_sx_prop(props: &[PropOrSpread], sx_prop_name: &str) -> Option<(usize, Expr)> {
+  props.iter().enumerate().find_map(|(idx, prop)| {
+    let PropOrSpread::Prop(prop) = prop else {
+      return None;
+    };
 
-/// Extract the value from a `KeyValue` prop entry.
-fn extract_prop_value(prop: &PropOrSpread) -> Option<Expr> {
-  if let PropOrSpread::Prop(p) = prop
-    && let Prop::KeyValue(kv) = p.as_ref()
-  {
-    return Some(kv.value.as_ref().clone());
-  }
-  None
+    let value = match prop.as_ref() {
+      Prop::KeyValue(key_value) => (try_namespace_name_from_prop_key(&key_value.key)?
+        == sx_prop_name)
+        .then(|| key_value.value.as_ref().clone()),
+      Prop::Shorthand(ident) => {
+        (ident.sym.as_str() == sx_prop_name).then(|| Expr::Ident(ident.clone()))
+      },
+      _ => None,
+    }?;
+
+    Some((idx, value))
+  })
 }
 
 /// Check if a `CallExpr` is a JSX/VDOM runtime call that takes `(elementName,

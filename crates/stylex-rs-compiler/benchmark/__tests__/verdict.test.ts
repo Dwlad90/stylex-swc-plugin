@@ -24,6 +24,7 @@ import {
   reproducedFailures,
   type VerdictThresholds,
 } from '../lib/verdict.js';
+import { fixtureMeasuredByOne } from './helpers/raw-fixtures.js';
 
 const BASE: SubjectDescriptor = { label: 'base', version: '1.0.0', resolvedFrom: '/base' };
 const CANDIDATE: SubjectDescriptor = {
@@ -89,6 +90,16 @@ function rawStats(
     subjects,
     fixtures,
   };
+}
+
+/** The same fixture as `fixture`, measured by the candidate alone. */
+function candidateOnlyFixture(name: string, candidatePerRound: readonly number[]): FixtureRawStats {
+  return fixtureMeasuredByOne({
+    name,
+    label: CANDIDATE.label,
+    perRound: candidatePerRound,
+    samplesOf: samplesFor,
+  });
 }
 
 const tightThresholds: VerdictThresholds = {
@@ -429,6 +440,82 @@ describe('evaluateRawStats — validation', () => {
     ).toThrow(/perSubject\["candidate"\] must be an object/);
   });
 
+  // The round names who was measured, so these are the ways it can lie about
+  // that: a name the file never declared, a name given two times, and no name
+  // at all. Each would leave a reader unable to say what the samples describe.
+  test('rejects a round that names a subject the file does not declare', () => {
+    const valid = fixture('x', [1], [1]);
+    const file = rawStats([
+      {
+        ...valid,
+        rounds: [
+          {
+            round: 0,
+            subjectOrder: [BASE.label, 'ghost'],
+            perSubject: valid.rounds[0]!.perSubject,
+          },
+        ],
+      },
+    ]);
+
+    expect(() => evaluateRawStats(file, { bootstrap: BOOTSTRAP })).toThrow(
+      /names "ghost", which is not a subject of this file/
+    );
+  });
+
+  test('rejects a round that names one subject two times', () => {
+    const valid = fixture('x', [1], [1]);
+    const file = rawStats([
+      {
+        ...valid,
+        rounds: [
+          {
+            round: 0,
+            subjectOrder: [BASE.label, BASE.label],
+            perSubject: valid.rounds[0]!.perSubject,
+          },
+        ],
+      },
+    ]);
+
+    expect(() => evaluateRawStats(file, { bootstrap: BOOTSTRAP })).toThrow(
+      /subjectOrder must name each subject at most one time/
+    );
+  });
+
+  test('rejects a round that names no subject at all', () => {
+    const valid = fixture('x', [1], [1]);
+    const file = rawStats([{ ...valid, rounds: [{ round: 0, subjectOrder: [], perSubject: {} }] }]);
+
+    expect(() => evaluateRawStats(file, { bootstrap: BOOTSTRAP })).toThrow(
+      /subjectOrder must name at least one subject/
+    );
+  });
+
+  // A fixture half of which was measured against something else. No reader of
+  // the file could say which half, so the file is refused rather than read.
+  test('rejects a fixture whose rounds name different subjects', () => {
+    const valid = fixture('x', [1, 1], [1, 1]);
+    const file = rawStats([
+      fixture('paired', [1, 1], [1, 1]),
+      {
+        ...valid,
+        rounds: [
+          valid.rounds[0]!,
+          {
+            round: 1,
+            subjectOrder: [CANDIDATE.label],
+            perSubject: { [CANDIDATE.label]: samplesFor(1) },
+          },
+        ],
+      },
+    ]);
+
+    expect(() => evaluateRawStats(file, { bootstrap: BOOTSTRAP })).toThrow(
+      /rounds must name the same subjects in every round/
+    );
+  });
+
   test('rejects malformed nested latency values', () => {
     const validFixture = fixture('x', [1], [1]);
     const firstRound = validFixture.rounds[0];
@@ -473,6 +560,39 @@ describe('evaluateRawStats — validation', () => {
   });
 });
 
+/**
+ * A fixture the base could not compile.
+ *
+ * The release leg measures it for the candidate alone, so the absolute p95
+ * budget keeps the number it holds a ceiling for. A ratio has no second side
+ * to take, so the fixture is named here rather than scored.
+ */
+describe('evaluateRawStats — a fixture measured by one subject', () => {
+  test('names the fixture and scores the rest', () => {
+    const rounds = Array.from({ length: 10 }, () => 1);
+    const report = evaluateRawStats(
+      rawStats([fixture('flat', rounds, rounds), candidateOnlyFixture('engine-fold', rounds)]),
+      { thresholds: tightThresholds, bootstrap: BOOTSTRAP }
+    );
+
+    expect(report.suiteStatus).toBe('pass');
+    expect(report.fixtures.map(entry => entry.name)).toStrictEqual(['flat']);
+    expect(report.uncompared).toStrictEqual(['engine-fold']);
+  });
+
+  // A run where no fixture has two sides compared nothing, whatever its
+  // fixtures say. Reported here rather than as a clean pass over zero rows.
+  test('refuses a file where no fixture has both subjects', () => {
+    const rounds = Array.from({ length: 10 }, () => 1);
+
+    expect(() =>
+      evaluateRawStats(rawStats([candidateOnlyFixture('engine-fold', rounds)]), {
+        bootstrap: BOOTSTRAP,
+      })
+    ).toThrow('Raw stats has no fixture both subjects measured');
+  });
+});
+
 describe('evaluateRawStats — determinism', () => {
   test('same inputs yield identical bootstrap intervals', () => {
     const base = Array.from({ length: 12 }, () => 1);
@@ -506,6 +626,30 @@ describe('renderVerdictMarkdown', () => {
 
   test('escapeMarkdownCell handles backslashes before pipes', () => {
     expect(escapeMarkdownCell('a\\|b')).toBe('a\\\\\\|b');
+  });
+
+  // A reader who counts the rows must be able to see that the suite compared
+  // fewer fixtures than the manifest holds, and which ones it could not.
+  test('names the fixtures it could not compare under the table', () => {
+    const rounds = Array.from({ length: 8 }, () => 1);
+    const report = evaluateRawStats(
+      rawStats([fixture('flat', rounds, rounds), candidateOnlyFixture('engine-fold', rounds)]),
+      { thresholds: tightThresholds, bootstrap: BOOTSTRAP }
+    );
+
+    expect(renderVerdictMarkdown(report)).toContain(
+      'Not compared (measured for candidate only): engine-fold'
+    );
+  });
+
+  test('says nothing about comparisons a run made in full', () => {
+    const rounds = Array.from({ length: 8 }, () => 1);
+    const report = evaluateRawStats(rawStats([fixture('flat', rounds, rounds)]), {
+      thresholds: tightThresholds,
+      bootstrap: BOOTSTRAP,
+    });
+
+    expect(renderVerdictMarkdown(report)).not.toContain('Not compared');
   });
 });
 

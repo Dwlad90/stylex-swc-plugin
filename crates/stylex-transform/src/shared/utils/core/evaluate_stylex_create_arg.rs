@@ -195,7 +195,14 @@ pub fn evaluate_stylex_create_arg(
                 };
                 let value_path = &mut key_value_prop.value;
 
-                match value_path.as_mut() {
+                // Read through the parentheses an author may have written
+                // around the function. They are a node in this tree and none in
+                // the reference implementation's, so matching the bare node
+                // sent `root: ((color) => ({ color }))` down the plain-value
+                // path, where a dynamic style has no object form and the build
+                // stopped -- while the same function without parentheses
+                // compiled.
+                match normalize_expr(value_path) {
                   Expr::Arrow(fn_path) => {
                     let all_params = fn_path.params.clone();
                     validate_dynamic_style_params(fn_path, &all_params, traversal_state);
@@ -412,10 +419,7 @@ fn evaluate_partial_object_recursively(
         // value and keeping the position it first took. Both are the semantics
         // the language fixes, so spelling them again here would be a second
         // answer to a question asked once.
-        let Some(new_props) = result
-          .value
-          .and_then(|value| spread_own_properties(value, &spread.expr))
-        else {
+        let Some(new_props) = result.value.and_then(spread_own_properties) else {
           // A value with no own-properties reading: a number, a boolean, a
           // callback. Nothing to enumerate, so the refusal stands.
           stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED);

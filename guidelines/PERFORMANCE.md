@@ -169,7 +169,7 @@ before timing anything. A shape that only a fix makes compilable is a
 correctness question, so it belongs to `crates/stylex-transform/tests/fixture`
 and stays there; `perf_fixtures/dynamic-styles.js` states this rule in its own
 header and leaves that shape out while still pricing the inline-style path.
-`selectMeasurableFixtures` names the fixture and the subject that refused it.
+`planFixtures` names the fixture and the subject that refused it.
 
 **Only the release leg allows a base refusal, and it passes a flag to get
 it.** The pull-request leg builds the merge base, where the rule above holds
@@ -178,12 +178,26 @@ version_, which does not have the features that landed since. A fixture that
 prices one of those features then has no base to compare against. One `.trim()`
 in `perf_fixtures/engine-fold.js` stopped the whole publish benchmark that way.
 That leg passes `--allow-base-refusals`. The run then reports the fixture under
-`Not compared`, writes it into the raw stats beside the numbers, and leaves it
-out of the comparison. The fixture returns once the published baseline has the
-feature. The flag is off by default, and it never lifts the gate on the
-candidate: a fixture _it_ refuses, or compiles to no rules, is a regression and
-fails the leg. A run where no fixture survives also fails, because a base that
-refuses everything is a broken subject.
+`Not compared` and writes it into the raw stats as `uncompared`, beside the
+numbers.
+
+What the fixture loses is the comparison, not the run. The candidate is still
+timed for it, because the absolute budget describes the candidate alone and
+holds a ceiling for every fixture in the manifest. A fixture dropped from the
+run reached that check as an entry nothing measured, and failed the release a
+second way. The verdict engine names such a fixture under its table and takes
+no ratio for it, because a ratio needs both sides.
+
+The flag is off by default, and it never lifts the gate on the candidate: a
+fixture _it_ refuses, or compiles to no rules, is a regression and fails the
+leg. A run where no fixture at all is comparable by every subject also fails,
+because a base that refuses everything is a broken subject.
+
+Under the flag the base is asked for its rule counts in a child process. The
+compiler draws a code frame on stderr before it refuses, and that stream is the
+release log, so a refusal this leg expects made a good run read as a failed
+one. Only the sanity check moves; the base is timed in the process that holds
+it.
 
 **Register a feature fixture in pairs.** One number for a development shape says
 nothing about what the feature costs; the pair does. A `Feature - x` entry and a
@@ -196,14 +210,41 @@ reach.
 
 ## Budget
 
-While `benchmark/budget.json` is `pending-calibration` it holds no ceilings:
-`bench:budget` reports `unseeded` and the leg passes. Once ceilings are seeded
-from repeated clean runs (robust upper bound plus headroom), a breach fails the
-leg and, through the publish job, blocks the release. Ceilings are valid only on
-the canonical environment (`x86_64-unknown-linux-gnu`, Node 24.18.0, recorded
-runner image); drift fails as recalibration rather than comparing.
+`benchmark/budget.json` is `enforced`. It holds one ceiling for each of the 65
+benchmark fixtures, seeded on 2026-09-10: the largest median-of-round p95 that
+any seeding run gave, times a headroom of 1.25. Sixty-one ceilings come from
+ten runs and four from three runs, because the four fold fixtures had no
+seeding run before the release leg could measure them. A breach fails the leg and,
+through the publish job, blocks the release. While the file is
+`pending-calibration` instead, it holds no ceilings, `bench:budget` reports
+`unseeded`, and the leg passes.
 
-Nothing may write this file automatically. A breach is fixed by optimization or
-rollback. An increase needs a reviewed change stating old/new ceilings, repeated
-measurements, cause and user impact, alternatives, and why rollback is not
-appropriate. Decreases may ratchet in proven improvements.
+The headroom of 1.25 is for the machine, not for the noise. GitHub hands out
+several CPU models, and the seeding runs show one class about 15% slower than
+the other. Taking the largest value of every run already puts each ceiling on
+the slowest class that appeared, so the run-to-run spread is inside
+`observedUpperMs` and the headroom covers a class slower than any seen yet.
+Both `observedUpperMs` and `ceilingMs` are rounded for a reader, so a ceiling
+can stand a fraction of a percent on either side of `observedUpperMs` times
+`headroom`. `parseEntry` permits 1% for that, which still refuses a headroom
+that was not applied.
+
+Ceilings are valid only on the canonical environment
+(`x86_64-unknown-linux-gnu`, Node 24.18.0, `ubuntu24` image family). Drift in
+any of those three is a recalibration failure rather than a comparison. Two
+properties of the machine cannot be pinned and neither stops a release: the
+report prints the CPU model in its environment line, and it reports an image
+build the ceilings do not name as a diagnostic. GitHub rebuilds the image
+about every week and the project releases less often than that, so a failure
+there would stop nearly every release for a cause no change here can answer;
+the headroom covers the difference. A run that records no image build at all
+stays a failure, because that is a defect in the measurement file.
+
+No task, script, or workflow in this repository may write this file. A seeding
+or recalibration change may compute the entries with a one-off script from
+archived run reports, because every value stays checkable: `evidence` names the
+runs and `parseEntry` re-derives each `ceilingMs` from `observedUpperMs` times
+`headroom`. A breach is fixed by optimization or rollback. An increase needs a
+reviewed change stating old/new ceilings, repeated measurements, cause and user
+impact, alternatives, and why rollback is not appropriate. Decreases may ratchet
+in proven improvements.

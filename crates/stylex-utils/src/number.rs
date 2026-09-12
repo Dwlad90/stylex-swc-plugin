@@ -66,12 +66,16 @@ pub fn parse_js_float(input: &str) -> Option<f64> {
   rest[..end].parse::<f64>().ok()
 }
 
-/// The whitespace `parseFloat` skips: ECMA-262's `StrWhiteSpace`, which is the
-/// Unicode space separators plus the line terminators and the byte-order mark.
+/// The whitespace the language skips around a numeric literal: ECMA-262's
+/// `StrWhiteSpace`, which is the Unicode space separators plus the line
+/// terminators and the byte-order mark.
 ///
 /// Hand-rolled rather than `char::is_whitespace`, which disagrees at both ends:
 /// it admits U+0085, which JS does not skip, and omits U+FEFF, which JS does.
-fn is_js_whitespace(ch: char) -> bool {
+///
+/// One home for the set, because `parseFloat` and `StringToNumber` skip the
+/// same characters and two copies of one reading are what let the two drift.
+pub fn is_js_whitespace(ch: char) -> bool {
   match ch {
     // Space separators (Unicode `Zs`).
     '\u{20}' | '\u{a0}' | '\u{1680}' | '\u{202f}' | '\u{205f}' | '\u{3000}' => true,

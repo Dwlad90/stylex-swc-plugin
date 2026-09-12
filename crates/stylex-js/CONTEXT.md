@@ -64,6 +64,34 @@ a function, or every other object. Reported this coarsely because its one caller
 is `typeof`, which tells a function from everything else and nothing else does.
 _Avoid_: boxing, object conversion, wrapping
 
+**32-bit reading**:
+What a bitwise operator sees of its operands. `ToInt32` truncates toward zero
+and wraps into the signed 32-bit range, `ToUint32` reads the same wrap as
+unsigned, and a shift count keeps the low five bits of `ToUint32`. All three are
+total: a `NaN`, an infinity and a zero of either sign all answer zero. A Rust
+cast is not a substitute — it saturates where the language wraps, and a shift by
+the word width panics in a debug build where the language shifts by nothing.
+_Avoid_: int cast, truncation, bit width
+
+**Equality reading**:
+How one of the four equality operators compares two
+[primitives](#primitive) — loose for `==`, strict for `===`, and the negation of
+strict for both `!=` and `!==`. Three readings for four operators, because the
+reference implementation writes `!=` as `!==`; the language reads it as the
+negation of `==`, and the two answers differ on exactly the comparisons `==`
+coerces. This crate follows the reference implementation, because a stylesheet
+is compared against what that compiler emits.
+_Avoid_: comparison, equality check, sameness
+
+**Primitive**:
+A value the equality reading compares without reading anything off an object —
+a string, a number, a boolean, `null` or `undefined`. A big integer and a symbol
+are the two the language calls primitive that this evaluator never holds, both
+being refused before a value is built from them. Every other value is compared
+by reference upstream, and this compiler holds a copy rather than a reference,
+so it has no answer to give for one.
+_Avoid_: scalar, simple value, literal
+
 **Nullish**:
 `null`, `undefined` and `void x` — the values `??` takes its right side for. A
 plain question about an expression rather than a coercion. Answered as a plain

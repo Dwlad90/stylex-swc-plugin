@@ -46,27 +46,7 @@ fn indexed_props(
 /// transform above — and the reference compiler reaches the same `Object.assign`
 /// from both, so a second reader here would be a second answer to a question the
 /// language only asks once.
-pub fn spread_own_properties(
-  value: EvaluateResultValue,
-  operand: &Expr,
-) -> Option<Vec<PropOrSpread>> {
-  // An array hole has no key of its own, so an operand carrying one would answer
-  // `{ 0: 1 }` where the language says `{ 1: 1 }` if the hole were dropped
-  // rather than kept. Read off the operand's own literal, where it has one, so
-  // the wrong key is refused rather than written. A trailing comma is not a
-  // hole: `[1, ]` has one element.
-  //
-  // A guard rather than a live path, since `array_expression` refuses a holey
-  // array outright and the spread operand is evaluated before it reaches here.
-  // Both refusals read the same sentence upstream gives, so which one fires is
-  // invisible to an author — and the check is a bounds test against a wrong key,
-  // which is worth keeping if that order ever changes.
-  if let Expr::Array(array) = normalize_expr(operand)
-    && array.elems.iter().any(|elem| elem.is_none())
-  {
-    return None;
-  }
-
+pub fn spread_own_properties(value: EvaluateResultValue) -> Option<Vec<PropOrSpread>> {
   match value {
     EvaluateResultValue::Expr(Expr::Object(object)) => Some(object.props),
 
@@ -99,14 +79,17 @@ pub fn spread_own_properties(
       EvaluateResultValue::Vec(nested) => evaluate_result_vec_to_array_expr(nested),
       _ => item.as_expr().cloned(),
     })),
-    EvaluateResultValue::Expr(Expr::Array(array)) => {
-      indexed_props(array.elems.iter().map(|elem| match elem {
-        // A hole written as one in a fold's own output means what it means
-        // above, and a spread there is no more countable than anywhere else.
-        Some(elem) if elem.spread.is_none() => Some(*elem.expr.clone()),
-        _ => None,
-      }))
-    },
+    // An array a fold answered with, which carries a plain element per slot:
+    // an array an author wrote with a hole does not fold at all, and one with a
+    // spread does not either, so neither reaches this reading. A slot that were
+    // absent all the same has no key of its own and leaves the whole spread
+    // unreadable, which is what the reading below answers.
+    EvaluateResultValue::Expr(Expr::Array(array)) => indexed_props(
+      array
+        .elems
+        .iter()
+        .map(|elem| elem.as_ref().map(|elem| *elem.expr.clone())),
+    ),
 
     // Everything with no own enumerable properties. A number, a boolean and
     // `null` have none, and neither does a function: `Object.assign({}, () =>
@@ -181,9 +164,7 @@ pub(in super::super) fn evaluate(
           return deopt(&refusal_path(), state, &reason);
         }
 
-        let Some(new_props) =
-          spread_expression.and_then(|value| spread_own_properties(value, &prop.expr))
-        else {
+        let Some(new_props) = spread_expression.and_then(spread_own_properties) else {
           deopt_unsupported!(deopt, &refusal_path(), state, SPREAD_PROPERTIES_UNREADABLE);
         };
 
@@ -212,14 +193,14 @@ pub(in super::super) fn evaluate(
         match prop.as_ref() {
           Prop::KeyValue(path_key_value) => {
             let key = match &path_key_value.key {
-              PropName::Ident(ident) => Some(ident.sym.to_string()),
-              PropName::Str(strng) => Some(convert_atom_to_string(&strng.value)),
+              PropName::Ident(ident) => ident.sym.to_string(),
+              PropName::Str(strng) => convert_atom_to_string(&strng.value),
               // Rendered as JavaScript spells a number, not as Rust does:
               // `{ 1e21: x }` names the property `"1e+21"`, where
               // `f64::to_string` would name it `"1000000000000000000000"`. The
               // same reader decides whether two keys collide, so two spellings
               // here is how one key comes to be two.
-              PropName::Num(num) => Some(to_js_string(num.value)),
+              PropName::Num(num) => to_js_string(num.value),
               PropName::Computed(computed) => {
                 let evaluated_result = evaluate_with_functions(
                   &computed.expr,
@@ -228,22 +209,27 @@ pub(in super::super) fn evaluate(
                 );
 
                 if !evaluated_result.confident {
-                  if let Some(deopt_val) = evaluated_result.deopt {
-                    let deopt_reason = state
-                      .deopt_reason
-                      .as_deref()
-                      .unwrap_or(
-                        evaluated_result
-                          .reason
-                          .as_deref()
-                          .unwrap_or("unknown error"),
-                      )
-                      .to_string();
+                  let deopt_reason = state
+                    .deopt_reason
+                    .as_deref()
+                    .unwrap_or(
+                      evaluated_result
+                        .reason
+                        .as_deref()
+                        .unwrap_or("unknown error"),
+                    )
+                    .to_string();
 
-                    deopt(&deopt_val, state, &deopt_reason);
-                  }
+                  // Every refusal records the expression it happened at, so the
+                  // key's own path stands in only for a refusal that recorded
+                  // none -- which no refusal does, since they all go through
+                  // `deopt` and `deopt` writes the path with the reason. Safe
+                  // as a substitution because what it substitutes is a report
+                  // position and never part of a folded answer, which is the
+                  // escape clause `guidelines/stack/RUST.md` names for it.
+                  let deopt_path = evaluated_result.deopt.unwrap_or_else(refusal_path);
 
-                  return None;
+                  return deopt(&deopt_path, state, &deopt_reason);
                 }
 
                 if let Some(expr) = evaluated_result
@@ -251,7 +237,7 @@ pub(in super::super) fn evaluate(
                   .as_ref()
                   .and_then(|value| value.as_expr())
                 {
-                  Some(expr_to_str_or_deopt!(
+                  expr_to_str_or_deopt!(
                     convert_expr_to_str,
                     deopt,
                     expr,
@@ -259,12 +245,12 @@ pub(in super::super) fn evaluate(
                     traversal_state,
                     &state.functions,
                     EXPRESSION_IS_NOT_A_STRING
-                  ))
+                  )
                 } else {
                   deopt_unsupported!(deopt, &refusal_path(), state, ILLEGAL_PROP_VALUE);
                 }
               },
-              PropName::BigInt(big_int) => Some(big_int.value.to_string()),
+              PropName::BigInt(big_int) => big_int.value.to_string(),
             };
 
             let eval_value = evaluate_with_functions(
@@ -274,39 +260,43 @@ pub(in super::super) fn evaluate(
             );
 
             if !eval_value.confident {
-              if let Some(deopt_val) = eval_value.deopt {
-                let base_reason = state
-                  .deopt_reason
-                  .as_deref()
-                  .unwrap_or(eval_value.reason.as_deref().unwrap_or("unknown error"))
-                  .to_string();
+              let base_reason = state
+                .deopt_reason
+                .as_deref()
+                .unwrap_or(eval_value.reason.as_deref().unwrap_or("unknown error"))
+                .to_string();
 
-                // The key path is this compiler's own, and deliberately so --
-                // the reference compiler's counterpart here is
-                // `deopt(value.deopt, state, value.reason ?? 'unknown error')`
-                // (`utils/evaluate-path.js:804-806`, 0.19.0), with no key in it.
-                //
-                // Cited precisely because the expression this used to name --
-                // `deopt(prop, state, state.deoptReason ?? 'unknown error')` --
-                // occurs once in that file, at `:762`, and it is the *spread*
-                // branch rather than this one. The substantive claim was right
-                // and the line was not, which on a file whose standard is
-                // "measured by running both compilers" is worth a line number
-                // that lands. See `prepend_key_to_reason` in
-                // `utils::core::evaluate_stylex_create_arg` for why the
-                // divergence is kept rather than closed.
-                let deopt_reason = if let Some(ref k) = key {
-                  format!("{} > {}", k, base_reason)
-                } else {
-                  base_reason
-                };
+              // The key path is this compiler's own, and deliberately so --
+              // the reference compiler's counterpart here is
+              // `deopt(value.deopt, state, value.reason ?? 'unknown error')`
+              // (`utils/evaluate-path.js:804-806`, 0.19.0), with no key in it.
+              //
+              // Cited precisely because the expression this used to name --
+              // `deopt(prop, state, state.deoptReason ?? 'unknown error')` --
+              // occurs once in that file, at `:762`, and it is the *spread*
+              // branch rather than this one. The substantive claim was right
+              // and the line was not, which on a file whose standard is
+              // "measured by running both compilers" is worth a line number
+              // that lands. See `prepend_key_to_reason` in
+              // `utils::core::evaluate_stylex_create_arg` for why the
+              // divergence is kept rather than closed.
+              // Every refusal records the expression it happened at, so the
+              // object's own path stands in only for a refusal that recorded
+              // none -- which no refusal does. Safe as a substitution because
+              // what it substitutes is a report position and never part of a
+              // folded answer, which is the escape clause
+              // `guidelines/stack/RUST.md` names for it.
+              let deopt_path = eval_value.deopt.unwrap_or_else(refusal_path);
 
-                deopt(&deopt_val, state, &deopt_reason);
-              }
-
-              return None;
+              return deopt(&deopt_path, state, &format!("{} > {}", key, base_reason));
             }
 
+            // A value that answered nothing while the walk stayed confident,
+            // which the memo is what produces: it remembers a fold that refused
+            // without recording a path, so a second read of that subtree is
+            // handed nothing back with nothing said about it. Named with the
+            // key and the shape, because neither the value nor the state has a
+            // sentence of its own to give here.
             let Some(value) = eval_value.value else {
               deopt_unsupported!(
                 deopt,
@@ -314,7 +304,7 @@ pub(in super::super) fn evaluate(
                 state,
                 format!(
                   "Value of key '{}' has no compile-time value, but got {}",
-                  key.clone().unwrap_or_else(|| "Unknown".to_string()),
+                  key,
                   get_expr_node_kind(&path_key_value.value)
                 )
                 .as_ref()
@@ -339,7 +329,13 @@ pub(in super::super) fn evaluate(
               // used to be this arm's second job, and doing it beside the
               // dispatch is what made the same call fold in a style value and
               // refuse one argument deeper.
-              EvaluateResultValue::Callback(_) => match path_key_value.value.as_ref() {
+              //
+              // Read through the parentheses an author may have written around
+              // the arrow. They are a node in this tree and none in the
+              // reference implementation's, so matching the bare node refused
+              // `{ transform: (() => '') }` where `{ transform: () => '' }`
+              // folded -- the same function, written two ways.
+              EvaluateResultValue::Callback(_) => match normalize_expr(&path_key_value.value) {
                 Expr::Arrow(arrow_func_expr) => Expr::Arrow(arrow_func_expr.clone()),
                 _ => deopt_unsupported!(deopt, &refusal_path(), state, ILLEGAL_PROP_VALUE),
               },
@@ -354,13 +350,7 @@ pub(in super::super) fn evaluate(
               },
             };
 
-            props.push(create_ident_key_value_prop(
-              &match key {
-                Some(k) => k,
-                None => stylex_panic!("Property key must be present in the style object."),
-              },
-              value,
-            ));
+            props.push(create_ident_key_value_prop(&key, value));
           },
           // A getter, a setter or an assignment pattern: object properties
           // with no compile-time value of their own.
@@ -378,3 +368,11 @@ pub(in super::super) fn evaluate(
     order_own_keys(remove_duplicates(props)),
   ))))
 }
+
+#[cfg(test)]
+#[path = "tests/object_shape_tests.rs"]
+mod object_shape_tests;
+
+#[cfg(test)]
+#[path = "tests/object_key_tests.rs"]
+mod object_key_tests;

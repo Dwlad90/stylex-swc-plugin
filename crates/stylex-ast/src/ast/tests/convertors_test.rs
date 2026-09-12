@@ -83,7 +83,7 @@ fn convert_lit_to_number_names_the_literal_kind_it_refused() {
       Ok(number) => panic!("expected {:?} to refuse, got {}", lit, number),
       Err(error) => assert_eq!(
         error.to_string(),
-        format!("Value in not a number: {}", kind),
+        format!("Value is not a number: {}", kind),
         "wrong label for {:?}",
         lit
       ),

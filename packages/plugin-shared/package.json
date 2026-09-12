@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/plugin-shared",
   "description": "Shared core for StyleX webpack and Rspack plugins powered by a Rust NAPI-RS/SWC compiler: loaders, plugin core, and CSS extraction logic.",
-  "version": "0.19.0-rc.2",
+  "version": "0.19.0-rc.3",
   "private": false,
   "license": "MIT",
   "sideEffects": [
@@ -22,6 +22,11 @@
       "types": "./dist/constants.d.ts",
       "import": "./dist/constants.js",
       "require": "./dist/constants.js"
+    },
+    "./module-selection": {
+      "types": "./dist/module-selection.d.ts",
+      "import": "./dist/module-selection.js",
+      "require": "./dist/module-selection.js"
     },
     "./source-map-options": {
       "types": "./dist/source-map-options.d.ts",

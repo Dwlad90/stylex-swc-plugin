@@ -1145,6 +1145,434 @@ fn to_int32_wraps_into_the_signed_32_bit_range() {
   assert_eq!(to_int32(-1.0), -1);
 }
 
+/// Every value here was read out of `node -e 'console.log(x >>> 0)'`, which is
+/// `ToUint32` spelled the shortest way.
+#[test]
+fn to_uint32_wraps_into_the_unsigned_32_bit_range() {
+  // The reason this function exists: `>>>` reads its left side as unsigned, so
+  // a negative number becomes the large one the language answers with.
+  assert_eq!(to_uint32(-1.0), 4_294_967_295);
+  assert_eq!(to_uint32(-9.0), 4_294_967_287);
+  assert_eq!(to_uint32(-2_147_483_648.0), 2_147_483_648);
+
+  // Above the range it wraps, exactly as `to_int32` does.
+  assert_eq!(to_uint32(4_294_967_296.0), 0);
+  assert_eq!(to_uint32(4_294_967_297.0), 1);
+  assert_eq!(to_uint32(3_000_000_000.0), 3_000_000_000);
+
+  // The values with no integer to wrap all answer zero rather than refusing.
+  assert_eq!(to_uint32(f64::NAN), 0);
+  assert_eq!(to_uint32(f64::INFINITY), 0);
+  assert_eq!(to_uint32(f64::NEG_INFINITY), 0);
+  assert_eq!(to_uint32(-0.0), 0);
+
+  // Truncation is toward zero here too.
+  assert_eq!(to_uint32(1.9), 1);
+  assert_eq!(to_uint32(-1.9), 4_294_967_295);
+}
+
+/// Read out of `node -e 'console.log(1 << x)'`: the language keeps the low five
+/// bits of a shift count and nothing else.
+#[test]
+fn to_shift_count_keeps_the_low_five_bits() {
+  assert_eq!(to_shift_count(0.0), 0);
+  assert_eq!(to_shift_count(31.0), 31);
+
+  // A count of the word width shifts by nothing, which is where a Rust shift
+  // panics in a debug build instead.
+  assert_eq!(to_shift_count(32.0), 0);
+  assert_eq!(to_shift_count(33.0), 1);
+  assert_eq!(to_shift_count(64.0), 0);
+
+  // A negative count wraps through `ToUint32` first, so `-1` is a shift of 31.
+  assert_eq!(to_shift_count(-1.0), 31);
+  assert_eq!(to_shift_count(-32.0), 0);
+
+  // The values with no integer answer a shift of nothing.
+  assert_eq!(to_shift_count(f64::NAN), 0);
+  assert_eq!(to_shift_count(f64::INFINITY), 0);
+  assert_eq!(to_shift_count(2.9), 2);
+}
+
+// ── the equality readings ────────────────────────────────────────────
+
+/// The five primitives this evaluator holds, read off the expressions that
+/// spell them -- including the three globals the language spells as a name.
+#[test]
+fn to_js_primitive_reads_every_primitive_spelling() {
+  assert!(matches!(
+    to_js_primitive(&str_expr("a")),
+    Some(Primitive::String(_))
+  ));
+  assert!(matches!(
+    to_js_primitive(&num_expr(1.0)),
+    Some(Primitive::Number(value)) if value == 1.0
+  ));
+  assert!(matches!(
+    to_js_primitive(&bool_expr(true)),
+    Some(Primitive::Boolean(true))
+  ));
+  assert!(matches!(
+    to_js_primitive(&null_expr()),
+    Some(Primitive::Null)
+  ));
+  assert!(matches!(
+    to_js_primitive(&ident_expr("undefined")),
+    Some(Primitive::Undefined)
+  ));
+  assert!(matches!(
+    to_js_primitive(&ident_expr("NaN")),
+    Some(Primitive::Number(value)) if value.is_nan()
+  ));
+  assert!(matches!(
+    to_js_primitive(&ident_expr("Infinity")),
+    Some(Primitive::Number(value)) if value.is_infinite()
+  ));
+  assert!(matches!(
+    to_js_primitive(&void_expr(num_expr(1.0))),
+    Some(Primitive::Undefined)
+  ));
+}
+
+/// Everything else has no primitive to compare: the language compares two
+/// objects by reference, and this evaluator holds a copy rather than a
+/// reference.
+#[test]
+fn to_js_primitive_refuses_every_value_that_is_not_one() {
+  for expr in [
+    Expr::Object(ObjectLit {
+      span: DUMMY_SP,
+      props: vec![],
+    }),
+    Expr::Array(ArrayLit {
+      span: DUMMY_SP,
+      elems: vec![],
+    }),
+    arrow_expr(),
+    ident_expr("someBinding"),
+    Expr::Lit(Lit::BigInt(BigInt {
+      span: DUMMY_SP,
+      value: Box::new(1.into()),
+      raw: None,
+    })),
+    Expr::Lit(Lit::Regex(Regex {
+      span: DUMMY_SP,
+      exp: "a".into(),
+      flags: "".into(),
+    })),
+  ] {
+    assert!(to_js_primitive(&expr).is_none(), "{:?}", expr);
+  }
+}
+
+/// Read out of `node -e "console.log(a === b)"`. Two values of different types
+/// are unequal with no coercion at all, and `NaN` equals nothing.
+#[test]
+fn strict_equals_compares_the_type_before_the_value() {
+  let cases: [(Expr, Expr, bool); 12] = [
+    (num_expr(1.0), num_expr(1.0), true),
+    (num_expr(1.0), num_expr(2.0), false),
+    (num_expr(0.0), num_expr(-0.0), true),
+    (ident_expr("NaN"), ident_expr("NaN"), false),
+    (str_expr("a"), str_expr("a"), true),
+    (str_expr("a"), str_expr("b"), false),
+    (bool_expr(true), bool_expr(true), true),
+    (null_expr(), null_expr(), true),
+    (ident_expr("undefined"), ident_expr("undefined"), true),
+    // The four rows a coercion would have folded together.
+    (num_expr(1.0), str_expr("1"), false),
+    (null_expr(), ident_expr("undefined"), false),
+    (bool_expr(true), num_expr(1.0), false),
+  ];
+
+  for (left, right, expected) in cases {
+    let (left_value, right_value) = primitive_pair(&left, &right);
+
+    assert_eq!(
+      strict_equals(&left_value, &right_value),
+      expected,
+      "{:?} === {:?}",
+      left,
+      right
+    );
+  }
+}
+
+/// Read out of `node -e "console.log(a == b)"`. The three coercions the
+/// algorithm applies, and the rows where it applies none.
+#[test]
+fn loose_equals_applies_the_three_coercions_and_no_others() {
+  let cases: [(Expr, Expr, bool); 14] = [
+    // A string meeting a number becomes its number.
+    (num_expr(1.0), str_expr("1"), true),
+    (str_expr("1"), num_expr(1.0), true),
+    (num_expr(1.0), str_expr("1px"), false),
+    (num_expr(0.0), str_expr(""), true),
+    (num_expr(0.0), str_expr("  "), true),
+    // A boolean becomes its number on whichever side it is.
+    (bool_expr(true), num_expr(1.0), true),
+    (num_expr(0.0), bool_expr(false), true),
+    (bool_expr(true), str_expr("1"), true),
+    // The two nullish values equal each other and nothing else.
+    (null_expr(), ident_expr("undefined"), true),
+    (null_expr(), num_expr(0.0), false),
+    (ident_expr("undefined"), str_expr(""), false),
+    (null_expr(), bool_expr(false), false),
+    // Same type is the strict reading, `NaN` included.
+    (str_expr("a"), str_expr("a"), true),
+    (ident_expr("NaN"), ident_expr("NaN"), false),
+  ];
+
+  for (left, right, expected) in cases {
+    let (left_value, right_value) = primitive_pair(&left, &right);
+
+    assert_eq!(
+      loose_equals(&left_value, &right_value),
+      expected,
+      "{:?} == {:?}",
+      left,
+      right
+    );
+  }
+}
+
+/// Two strings that hold different lone surrogates are different strings, which
+/// is why the reading holds the atom rather than the text: `as_str` reads both
+/// as one replacement character.
+#[test]
+fn two_lone_surrogates_are_not_the_same_string() {
+  let high = lone_surrogate_expr(0xD83D);
+  let low = lone_surrogate_expr(0xDE00);
+
+  let (high_value, low_value) = primitive_pair(&high, &low);
+  assert!(!strict_equals(&high_value, &low_value));
+  assert!(!loose_equals(&high_value, &low_value));
+
+  let same_high = lone_surrogate_expr(0xD83D);
+  let (high_value, same) = primitive_pair(&high, &same_high);
+  assert!(strict_equals(&high_value, &same));
+
+  // A text with no `str` is not a numeric literal, so it meets a number as
+  // `NaN` rather than refusing.
+  let zero_expr = num_expr(0.0);
+  let (high_value, zero) = primitive_pair(&high, &zero_expr);
+  assert!(!loose_equals(&high_value, &zero));
+}
+
+/// Read out of `node -e "console.log(a < b)"`. Two strings compare by code
+/// unit and every other pair compares as two numbers.
+#[test]
+fn js_less_than_orders_two_strings_by_code_unit_and_everything_else_by_number() {
+  let cases: [(Expr, Expr, bool); 12] = [
+    // The rows a numeric reading gets wrong, because both sides are strings.
+    (str_expr("10"), str_expr("9"), true),
+    (str_expr("2"), str_expr("10"), false),
+    (str_expr("a"), str_expr("b"), true),
+    (str_expr(""), str_expr("a"), true),
+    (str_expr("a"), str_expr(""), false),
+    // One string and one number is the numeric reading, so the text is read
+    // through `StringToNumber` rather than by code unit.
+    (str_expr("10"), num_expr(9.0), false),
+    (num_expr(9.0), str_expr("10"), true),
+    // The nullish pair: `null` is nought and `undefined` is `NaN`.
+    (null_expr(), num_expr(1.0), true),
+    (num_expr(1.0), null_expr(), false),
+    // A boolean is its number, on whichever side it is.
+    (bool_expr(false), num_expr(1.0), true),
+    (num_expr(1.0), bool_expr(true), false),
+    // The two zeroes are neither less than nor greater than each other.
+    (num_expr(0.0), num_expr(-0.0), false),
+  ];
+
+  for (left, right, expected) in cases {
+    let (left_value, right_value) = primitive_pair(&left, &right);
+
+    assert_eq!(
+      js_less_than(&left_value, &right_value),
+      Some(Some(expected)),
+      "{:?} < {:?}",
+      left,
+      right
+    );
+  }
+}
+
+/// A `NaN` on either side has no ordering at all, which is the `undefined` the
+/// specification names -- and what makes all four relational operators false.
+#[test]
+fn js_less_than_has_no_answer_for_a_not_a_number_operand() {
+  let not_a_number = ident_expr("NaN");
+  let one = num_expr(1.0);
+
+  let (left, right) = primitive_pair(&not_a_number, &one);
+  assert_eq!(js_less_than(&left, &right), Some(None));
+
+  let (left, right) = primitive_pair(&one, &not_a_number);
+  assert_eq!(js_less_than(&left, &right), Some(None));
+
+  // A text with no numeric literal in it is `NaN` too, so it has no ordering
+  // against a number -- but it still orders against another string.
+  let text = str_expr("10px");
+  let (left, right) = primitive_pair(&text, &one);
+  assert_eq!(js_less_than(&left, &right), Some(None));
+
+  // `undefined` is the third spelling of `NaN` here, and the one that separates
+  // it from `null`: `null < 1` is true and `undefined < 1` is false.
+  let absent = ident_expr("undefined");
+  let (left, right) = primitive_pair(&absent, &one);
+  assert_eq!(js_less_than(&left, &right), Some(None));
+
+  let (left, right) = primitive_pair(&one, &absent);
+  assert_eq!(js_less_than(&left, &right), Some(None));
+}
+
+/// A string this crate cannot read has no ordering, and the refusal travels out
+/// rather than being answered as `false`: `'\u{D83D}' < 'a'` is a question with
+/// a real answer, and guessing it would put the wrong arm of a conditional in
+/// the stylesheet.
+///
+/// It refuses only where the code-unit rule claims the pair. Against a number
+/// the same text is read as `NaN`, which every text with no numeric literal in
+/// it already is.
+#[test]
+fn js_less_than_refuses_a_string_it_cannot_read() {
+  let surrogate = lone_surrogate_expr(0xD83D);
+  let text = str_expr("a");
+  let one = num_expr(1.0);
+
+  let (left, right) = primitive_pair(&surrogate, &text);
+  assert_eq!(js_less_than(&left, &right), None);
+
+  let (left, right) = primitive_pair(&text, &surrogate);
+  assert_eq!(js_less_than(&left, &right), None);
+
+  let (left, right) = primitive_pair(&surrogate, &one);
+  assert_eq!(js_less_than(&left, &right), Some(None));
+}
+
+/// Code unit rather than code point, which is the one row the two orderings
+/// disagree on: an astral character is a surrogate pair whose first unit is
+/// below `U+E000`, so it sorts *before* a character the code-point order puts
+/// first.
+#[test]
+fn js_less_than_orders_an_astral_character_by_its_first_code_unit() {
+  let astral = str_expr("\u{1F600}");
+  let private_use = str_expr("\u{E000}");
+
+  let (left, right) = primitive_pair(&astral, &private_use);
+  assert_eq!(js_less_than(&left, &right), Some(Some(true)));
+}
+
+/// `ToPrimitive` with no hint asks an object for its own `valueOf` first, which
+/// is the reduction `+` applies before it decides whether it is addition or
+/// concatenation.
+#[test]
+fn to_js_default_primitive_prefers_an_own_value_of() {
+  let both = object_expr(vec![
+    key_value_prop(ident_key("valueOf"), returning_arrow(num_expr(2.0))),
+    key_value_prop(ident_key("toString"), returning_arrow(str_expr("9"))),
+  ]);
+
+  assert_eq!(
+    to_js_default_primitive(&both)
+      .and_then(to_js_string)
+      .as_deref(),
+    Some("2")
+  );
+
+  // `toString` alone still answers, because the order is a preference rather
+  // than a requirement.
+  let to_string_only = object_expr(vec![key_value_prop(
+    ident_key("toString"),
+    returning_arrow(str_expr("5")),
+  )]);
+
+  assert_eq!(
+    to_js_default_primitive(&to_string_only)
+      .and_then(to_js_string)
+      .as_deref(),
+    Some("5")
+  );
+}
+
+/// A value that is already a primitive answers itself, whatever it is. So does
+/// every value that is not an object at all, which is what keeps the reduction
+/// a no-op for every side but the one it was written for.
+#[test]
+fn to_js_default_primitive_answers_a_primitive_with_itself() {
+  for expr in [
+    str_expr("a"),
+    num_expr(1.0),
+    bool_expr(true),
+    null_expr(),
+    ident_expr("undefined"),
+  ] {
+    match to_js_default_primitive(&expr) {
+      Some(answered) => assert!(std::ptr::eq(answered, &expr), "{:?}", expr),
+      None => panic!("{:?} is already a primitive", expr),
+    }
+  }
+}
+
+/// An object that keeps the `Object.prototype` pair reduces to nothing: its
+/// primitive is the default text, which the caller's string path already
+/// writes.
+#[test]
+fn to_js_default_primitive_leaves_the_default_pair_to_the_string_path() {
+  assert!(to_js_default_primitive(&object_expr(vec![])).is_none());
+
+  // A method answering an object has answered no primitive, and the other
+  // method is the default one -- so there is no value to fold.
+  let answers_an_object = object_expr(vec![key_value_prop(
+    ident_key("valueOf"),
+    returning_arrow(object_expr(vec![])),
+  )]);
+
+  assert!(to_js_default_primitive(&answers_an_object).is_none());
+}
+
+/// A method answering another object keeps reducing, because the value a
+/// conversion hands back is itself read through `ToPrimitive`.
+#[test]
+fn to_js_default_primitive_reduces_what_a_conversion_answers() {
+  let nested = object_expr(vec![key_value_prop(
+    ident_key("valueOf"),
+    returning_arrow(str_expr("inner")),
+  )]);
+
+  assert_eq!(
+    to_js_default_primitive(&nested)
+      .and_then(to_js_string)
+      .as_deref(),
+    Some("inner")
+  );
+}
+
+/// Both sides of a comparison, for a case that spells them as expressions.
+#[track_caller]
+fn primitive_pair<'a>(left: &'a Expr, right: &'a Expr) -> (Primitive<'a>, Primitive<'a>) {
+  match (to_js_primitive(left), to_js_primitive(right)) {
+    (Some(left), Some(right)) => (left, right),
+    _ => panic!("both sides of a case have to be primitives"),
+  }
+}
+
+/// A string literal holding one lone surrogate, which no Rust `str` can spell.
+fn lone_surrogate_expr(code_unit: u16) -> Expr {
+  let mut buffer = Wtf8Buf::new();
+
+  match CodePoint::from_u32(u32::from(code_unit)) {
+    Some(point) => buffer.push(point),
+    None => panic!("{} is not a code point", code_unit),
+  }
+
+  Expr::Lit(Lit::Str(Str {
+    span: DUMMY_SP,
+    value: Wtf8Atom::from(buffer),
+    raw: None,
+  }))
+}
+
 // ── global_identifier_to_value ───────────────────────────────────────
 
 /// The two numeric globals answer with the numbers they *are*, and `undefined`
@@ -1676,6 +2104,37 @@ fn an_object_default_text_can_be_refused_by_the_sink() {
   assert_eq!(write_js_number_of(&object, &mut exact), Ok(NumberOf::Text));
   assert_eq!(exact.text, OBJECT_TO_STRING);
   assert!(string_to_js_number(&exact.text).is_nan());
+}
+
+/// A regular expression reaches the sink as the four pieces it spells rather
+/// than as one joined text, so a caller measuring against a ceiling refuses at
+/// the piece that passes it -- and what it has already taken is what stands.
+#[test]
+fn a_regular_expression_is_written_piece_by_piece() {
+  // One ceiling per piece, so each of the four is the one that refuses: the
+  // opening delimiter, the source, the closing delimiter and the flags.
+  for (ceiling, kept) in [(0, ""), (1, "/"), (4, "/a+b"), (5, "/a+b/")] {
+    let mut narrow = Bounded::new(ceiling);
+
+    assert!(
+      matches!(
+        write_js_string_of(&regex_expr("a+b", "gi"), FunctionForm::Refuse, &mut narrow),
+        Err(StringRefusal::Sink(_))
+      ),
+      "a ceiling of {} took the whole text",
+      ceiling
+    );
+    assert_eq!(narrow.text, kept);
+  }
+
+  // The whole text still reaches a sink wide enough for it.
+  let mut wide = Bounded::new(7);
+
+  assert_eq!(
+    write_js_string_of(&regex_expr("a+b", "gi"), FunctionForm::Refuse, &mut wide),
+    Ok(())
+  );
+  assert_eq!(wide.text, "/a+b/gi");
 }
 
 /// Every ending the number form has, reached through a sink that can refuse --

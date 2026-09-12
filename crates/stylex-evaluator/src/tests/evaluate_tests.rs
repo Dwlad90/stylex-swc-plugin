@@ -3,6 +3,7 @@ use stylex_ast::ast::convertors::{
   create_bool_expr, create_ident_expr, create_null_expr, create_number_expr, create_string_expr,
 };
 use stylex_ast::ast::factories::create_ident;
+use stylex_constants::constants::evaluation_errors::unsupported_expression;
 use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 use stylex_structures::stylex_options::StyleXOptions;
 use swc_core::{
@@ -637,12 +638,30 @@ fn test_regex_literal_refuses_to_fold() {
     ("\\p{Emoji}", "u"),
   ] {
     let regex_expr = make_regex_expr(pattern, flags);
-    let (confident, _has_value) = evaluate_expr(&regex_expr);
+    let mut state_manager = StateManager::new(StyleXOptions::default());
+    let result = evaluate(&regex_expr, &mut state_manager, &FunctionMap::default());
 
     assert!(
-      !confident,
+      !result.confident,
       "regex /{}/{} should refuse to fold",
       pattern, flags
+    );
+
+    // No value beside the refusal, and the sentence names the literal. A
+    // refusal that still carried a value is what let a downstream reader write
+    // the regular expression into the stylesheet.
+    assert!(
+      result.value.is_none(),
+      "regex /{}/{} refused and still answered a value",
+      pattern,
+      flags
+    );
+    assert_eq!(
+      result.reason.as_deref(),
+      Some(unsupported_expression("RegExpLiteral").as_str()),
+      "wrong refusal for regex /{}/{}",
+      pattern,
+      flags
     );
   }
 }

@@ -7,12 +7,17 @@
  * against committed ceilings on one canonical target.
  *
  * Canonical environment: `x86_64-unknown-linux-gnu` on Node 24.18.0. The
- * runner stays `ubuntu-latest` by decision, so the comparison is only
- * valid while the runner image matches the image the ceilings were seeded
- * on. An image change is an explicit recalibration failure, never a silent
- * comparison against numbers from a different machine class. CPU model
- * variation cannot be pinned on hosted runners; it is recorded in the
- * report as a diagnostic and must be spread across the seeding runs.
+ * runner stays `ubuntu-latest` by decision. A different target, Node
+ * version or runner image family is a recalibration failure, never a
+ * silent comparison against numbers from a different class of machine.
+ *
+ * Two properties of the machine cannot be pinned on a hosted runner: the
+ * CPU model, and the exact image build inside one family, which GitHub
+ * rebuilds about one time each week. Neither stops a release. The report
+ * prints the CPU model in its environment line, and it reports an image
+ * build that the ceilings do not name as a diagnostic. The headroom above
+ * `observedUpperMs` covers the variation that both cause, and the seeding
+ * runs must be spread across the CPU models that appear.
  *
  * Statistic: the median of per-round p95 values for the selected subject.
  * Per-round p95 is already normalised to latency per transform by the
@@ -33,7 +38,7 @@ import {
   requireRecord,
   requireString,
 } from './json.js';
-import { parseRawStats } from './raw-stats.js';
+import { measuredBy, parseRawStats } from './raw-stats.js';
 import { median } from './stats.js';
 import type {
   FixtureRawStats,
@@ -76,11 +81,12 @@ export interface BudgetCanonicalEnvironment {
    */
   runnerImages: readonly string[];
   /**
-   * Accepted exact image builds (`ImageVersion`, e.g. `20260803.1.0`).
-   * GitHub rebuilds an image family in place, so the family alone cannot
-   * tell whether the machine still matches the one the ceilings came from.
-   * Empty while ceilings are pending calibration; an enforced budget must
-   * pin at least one build.
+   * The exact image builds (`ImageVersion`, e.g. `20260803.1.0`) that the
+   * ceilings were seeded on. GitHub rebuilds a family in place, so this is
+   * the only record of which machine gave the numbers. Another build is
+   * reported as a diagnostic and does not block, because GitHub rebuilds
+   * more often than the project releases. Empty while ceilings are pending
+   * calibration; an enforced budget must record at least one build.
    */
   runnerImageVersions: readonly string[];
 }
@@ -137,13 +143,49 @@ export type BudgetProblemKind =
   | 'environment-node'
   | 'environment-runner-image'
   | 'environment-runner-image-version'
+  | 'environment-runner-image-version-missing'
   | 'missing-entry'
   | 'extra-entry'
   | 'breach';
 
+/**
+ * Whether a problem stops the release.
+ *
+ * A `failure` is a finding about the code, or about a comparison that the
+ * check cannot make. A `diagnostic` is a finding about the machine that
+ * the run received, which the run does not choose.
+ */
+export type BudgetProblemSeverity = 'failure' | 'diagnostic';
+
+/**
+ * The severity of each kind of problem.
+ *
+ * One map decides this, and the type makes each kind necessary, so a new
+ * kind cannot get its severity by accident at the line that raises it.
+ * Only one kind is a diagnostic: the run got an image build that the
+ * ceilings were not seeded on. An *absent* build is a different kind and
+ * stays a failure, because that is a defect in the file that records the
+ * measurement, not a machine that GitHub rebuilt.
+ */
+const PROBLEM_SEVERITY: Record<BudgetProblemKind, BudgetProblemSeverity> = {
+  'environment-target': 'failure',
+  'environment-node': 'failure',
+  'environment-runner-image': 'failure',
+  'environment-runner-image-version': 'diagnostic',
+  'environment-runner-image-version-missing': 'failure',
+  'missing-entry': 'failure',
+  'extra-entry': 'failure',
+  breach: 'failure',
+};
+
 export interface BudgetProblem {
   kind: BudgetProblemKind;
   message: string;
+  severity: BudgetProblemSeverity;
+}
+
+function makeProblem(kind: BudgetProblemKind, message: string): BudgetProblem {
+  return { kind, message, severity: PROBLEM_SEVERITY[kind] };
 }
 
 export type BudgetFixtureStatus = 'pass' | 'breach' | 'unbudgeted' | 'unseeded';
@@ -187,31 +229,47 @@ export function evaluateBudget(rawStatsInput: unknown, budgetInput: unknown): Bu
   const budget = parseBudget(budgetInput, 'budget');
   const subject = selectSubject(raw, budget);
 
+  // A paired run can hold a fixture only one of its subjects measured, because
+  // the release leg compares against a published version that is behind by
+  // whole features. The ceilings describe one subject, so the fixtures this
+  // check is about are the ones that subject measured.
+  //
+  // Coverage keeps both of its questions over that set. A ceiling for a fixture
+  // the subject did not measure is still reported as an entry nothing measured,
+  // because nothing held it. A fixture the subject did not measure and has no
+  // ceiling for asks nothing: a ceiling can only describe a number, and there
+  // is none.
+  const measured = raw.fixtures.filter(fixture => measuredBy(fixture, subject.label));
+
   const problems: BudgetProblem[] = [
     ...checkEnvironment(raw.environment, budget.canonical),
-    ...(budget.state === 'enforced' ? checkCoverage(raw.fixtures, budget.entries) : []),
+    ...(budget.state === 'enforced' ? checkCoverage(measured, budget.entries) : []),
   ];
 
   const ceilings = new Map(budget.entries.map(entry => [entry.name, entry.ceilingMs]));
-  const fixtures = raw.fixtures.map(fixture => {
+  const fixtures = measured.map(fixture => {
     const report = measureFixture(fixture, subject.label, budget.state, ceilings.get(fixture.name));
     if (report.status === 'breach' && report.ceilingMs !== undefined) {
-      problems.push({
-        kind: 'breach',
-        message:
+      problems.push(
+        makeProblem(
+          'breach',
           `${fixture.name}: p95 ${formatMs(report.observedP95Ms)} exceeds ceiling ` +
-          formatMs(report.ceilingMs),
-      });
+            formatMs(report.ceilingMs)
+        )
+      );
     }
     return report;
   });
 
   // Environment drift fails in either state: a run on the wrong target,
-  // Node version, or runner image is neither a valid comparison nor a
-  // valid seeding observation. Only the absence of ceilings is excused
-  // while calibration is pending.
-  const status: BudgetStatus =
-    problems.length > 0 ? 'failed' : budget.state === 'pending-calibration' ? 'unseeded' : 'pass';
+  // Node version, or runner image family is neither a valid comparison nor
+  // a valid seeding observation. Only the absence of ceilings is excused
+  // while calibration is pending. A diagnostic never decides the status.
+  const status: BudgetStatus = problems.some(problem => problem.severity === 'failure')
+    ? 'failed'
+    : budget.state === 'pending-calibration'
+      ? 'unseeded'
+      : 'pass';
 
   return {
     schemaVersion: BUDGET_REPORT_SCHEMA_VERSION,
@@ -273,50 +331,70 @@ function checkEnvironment(
 ): BudgetProblem[] {
   const problems: BudgetProblem[] = [];
   if (environment.target !== canonical.target) {
-    problems.push({
-      kind: 'environment-target',
-      message: `budget applies to target ${canonical.target}, measured ${environment.target}`,
-    });
+    problems.push(
+      makeProblem(
+        'environment-target',
+        `budget applies to target ${canonical.target}, measured ${environment.target}`
+      )
+    );
   }
   if (environment.node !== canonical.node) {
-    problems.push({
-      kind: 'environment-node',
-      message: `budget applies to Node ${canonical.node}, measured ${environment.node}`,
-    });
+    problems.push(
+      makeProblem(
+        'environment-node',
+        `budget applies to Node ${canonical.node}, measured ${environment.node}`
+      )
+    );
   }
   if (environment.runnerImage === undefined) {
-    problems.push({
-      kind: 'environment-runner-image',
-      message:
+    problems.push(
+      makeProblem(
+        'environment-runner-image',
         'raw stats records no runner image; ceilings seeded on ' +
-        `${canonical.runnerImages.join(', ')} cannot be compared`,
-    });
+          `${canonical.runnerImages.join(', ')} cannot be compared`
+      )
+    );
   } else if (!canonical.runnerImages.includes(environment.runnerImage)) {
-    problems.push({
-      kind: 'environment-runner-image',
-      message:
+    problems.push(
+      makeProblem(
+        'environment-runner-image',
         `runner image drifted to ${environment.runnerImage} ` +
-        `(seeded on ${canonical.runnerImages.join(', ')}) — recalibration required`,
-    });
+          `(seeded on ${canonical.runnerImages.join(', ')}) — recalibration required`
+      )
+    );
   }
 
-  // The image family stays `ubuntu24` across rebuilds that can move
-  // timings, so an enforced budget also pins the exact build.
+  // The image family stays `ubuntu24` when GitHub rebuilds the image, and
+  // a rebuild can move the timings, so the builds that the ceilings came
+  // from are recorded here.
+  //
+  // A run on another build is only reported. GitHub rebuilds about one
+  // time each week and the project releases less often than that, so a
+  // failure would stop almost every release, and no change in this
+  // repository could make it pass. The headroom above `observedUpperMs`
+  // covers the difference instead.
+  //
+  // A run with no build recorded is different, and it stays a failure.
+  // GitHub always gives the value, so its absence is a defect in the file
+  // that records the measurement, and that file is the one thing here
+  // this repository does control.
   if (canonical.runnerImageVersions.length > 0) {
     if (environment.runnerImageVersion === undefined) {
-      problems.push({
-        kind: 'environment-runner-image-version',
-        message:
-          'raw stats records no runner image version; ceilings seeded on ' +
-          `${canonical.runnerImageVersions.join(', ')} cannot be compared`,
-      });
+      problems.push(
+        makeProblem(
+          'environment-runner-image-version-missing',
+          'raw stats records no runner image version; the ceilings were seeded on ' +
+            canonical.runnerImageVersions.join(', ')
+        )
+      );
     } else if (!canonical.runnerImageVersions.includes(environment.runnerImageVersion)) {
-      problems.push({
-        kind: 'environment-runner-image-version',
-        message:
+      problems.push(
+        makeProblem(
+          'environment-runner-image-version',
           `runner image rebuilt to ${environment.runnerImageVersion} ` +
-          `(seeded on ${canonical.runnerImageVersions.join(', ')}) — recalibration required`,
-      });
+            `(seeded on ${canonical.runnerImageVersions.join(', ')})`
+        )
+      );
     }
   }
   return problems;
@@ -332,15 +410,14 @@ function checkCoverage(
 
   for (const name of measured) {
     if (!budgeted.has(name)) {
-      problems.push({ kind: 'missing-entry', message: `no committed ceiling for "${name}"` });
+      problems.push(makeProblem('missing-entry', `no committed ceiling for "${name}"`));
     }
   }
   for (const name of budgeted) {
     if (!measured.has(name)) {
-      problems.push({
-        kind: 'extra-entry',
-        message: `budget entry "${name}" was not measured in this run`,
-      });
+      problems.push(
+        makeProblem('extra-entry', `budget entry "${name}" was not measured in this run`)
+      );
     }
   }
   return problems;
@@ -541,6 +618,16 @@ const STATUS_LABEL: Record<BudgetStatus, string> = {
   unseeded: 'not enforced (pending calibration)',
 };
 
+/** Heading for each severity, in the order the report shows them. */
+const PROBLEM_SECTIONS: readonly (readonly [string, BudgetProblemSeverity])[] = [
+  ['Problems', 'failure'],
+  ['Diagnostics', 'diagnostic'],
+];
+
+function renderProblem(problem: BudgetProblem): string {
+  return `- \`${escapeMarkdownCell(problem.kind)}\`: ${escapeMarkdownCell(problem.message)}`;
+}
+
 /** Render the budget report as Markdown suitable for `GITHUB_STEP_SUMMARY`. */
 export function renderBudgetMarkdown(report: BudgetReport): string {
   const canonicalRunner =
@@ -583,13 +670,10 @@ export function renderBudgetMarkdown(report: BudgetReport): string {
     );
   }
 
-  if (report.problems.length > 0) {
-    lines.push('', '### Problems', '');
-    for (const problem of report.problems) {
-      lines.push(
-        `- \`${escapeMarkdownCell(problem.kind)}\`: ${escapeMarkdownCell(problem.message)}`
-      );
-    }
+  for (const [heading, severity] of PROBLEM_SECTIONS) {
+    const listed = report.problems.filter(problem => problem.severity === severity);
+    if (listed.length === 0) continue;
+    lines.push('', `### ${heading}`, '', ...listed.map(renderProblem));
   }
 
   return `${lines.join('\n')}\n`;

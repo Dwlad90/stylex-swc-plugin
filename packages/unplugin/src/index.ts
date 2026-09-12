@@ -3,6 +3,7 @@ import { promises } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import * as path from 'node:path';
 
+import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
 import { shouldTransformFile, transform as stylexTransform } from '@stylexswc/rs-compiler';
 import type { StyleXMetadata, TransformedOptions } from '@stylexswc/rs-compiler';
 import type { OnEndResult } from 'esbuild';
@@ -1313,11 +1314,7 @@ async function transformStyleXCSS(
 }
 
 function hasStyleXCode(normalizedOptions: NormalizedOptions, inputCode: string) {
-  return normalizedOptions.rsOptions.importSources?.some((importName: string | { from: string }) =>
-    typeof importName === 'string'
-      ? inputCode.includes(importName)
-      : inputCode.includes(importName.from)
-  );
+  return shouldProcessSource(inputCode, normalizedOptions.rsOptions);
 }
 
 /**

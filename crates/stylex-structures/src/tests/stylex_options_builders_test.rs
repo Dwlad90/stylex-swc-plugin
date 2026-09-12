@@ -78,6 +78,24 @@ fn from_params_handles_disabled_sx_prop_name() {
   assert_eq!(opts.sx_prop_name, None);
 }
 
+/// A name that is blank, or only spaces, names no prop. Upstream compares the
+/// name against a JSX attribute name, which is never empty, so a blank name is
+/// enabled there and simply never matches. Resolving it to disabled reaches
+/// the same outcome on every path, the compiled one included.
+#[test]
+fn from_params_handles_a_blank_sx_prop_name_as_disabled() {
+  for name in ["", " ", "\t\n"] {
+    let params = StyleXOptionsParams {
+      sx_prop_name: Some(SxPropNameParam::Enabled(name.to_string())),
+      ..StyleXOptionsParams::default()
+    };
+
+    let opts: StyleXOptions = params.into();
+
+    assert_eq!(opts.sx_prop_name, None, "a name of {name:?} names no prop");
+  }
+}
+
 /// Module resolution helper constructors should set the correct discriminator.
 #[test]
 fn module_resolution_helper_builders_have_expected_type() {

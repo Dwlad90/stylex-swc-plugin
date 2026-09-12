@@ -41,6 +41,26 @@ permissions:
   contents: read
   pull-requests: read
 
+# Every job has a time limit. The GitHub default is six hours.
+#
+# The limits below come from the 21 most recent runs of this workflow. Each
+# limit is a minimum of two times the slowest run in that sample. A job that
+# builds or tests gets more, because a cold Turbo cache adds some minutes to
+# a correct run. A job that takes less than two minutes gets ten minutes.
+#
+#   build-public-packages  25 min   slowest  8.9
+#   basic-checks           10 min   slowest  1.6
+#   checks                 25 min   slowest  7.5 (Tests Rust code)
+#   parity-sweep           20 min   slowest  4.4
+#   playwright-image       10 min   slowest  0.1
+#   visual-tests           15 min   slowest  3.2
+#   benchmark              45 min   slowest 21.4
+#   pr-validation          10 min   slowest  0.1
+#   dependabot             10 min   slowest  0.2
+#
+# A time limit cannot let an incomplete run pass. GitHub gives a cancelled
+# job the result `cancelled`. That result is not `success` and not
+# `skipped`, and the `pr-validation` job refuses it.
 jobs:
   build-public-packages:
     name: Build all public packages
@@ -48,6 +68,7 @@ jobs:
       (github.event_name != 'schedule' || github.ref_name == 'develop') &&
       (github.event.pull_request.number == null || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 25
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
@@ -84,6 +105,7 @@ jobs:
       (github.event_name != 'schedule' || github.ref_name == 'develop') &&
       (github.event.pull_request.number == null || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
     strategy:
       matrix:
         check:
@@ -152,6 +174,7 @@ jobs:
       (github.event_name != 'schedule' || github.ref_name == 'develop') &&
       (github.event.pull_request.number == null || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 25
     needs:
       - build-public-packages
       - basic-checks
@@ -274,11 +297,12 @@ jobs:
     name: Generated parity sweeps
     if: github.event_name == 'schedule' && github.ref_name == 'develop'
     runs-on: ubuntu-24.04-arm
-    # The only job here that bounds itself, because it is the only one whose
-    # work is a cross product rather than a fixed list: widen the alphabet and
-    # the subject count grows with its square. Measured at ~97s, so 20 minutes
-    # is roughly twelve times headroom and still an order of magnitude below
-    # the 360-minute default a runaway would otherwise sit on overnight.
+    # This job keeps 20 minutes, which is more than the table above gives to
+    # work of this length. The work of this job is a cross product, not a
+    # fixed list: if the alphabet becomes larger, the number of subjects
+    # increases with the square of its size. The sweep step measures
+    # approximately 97 s and the full job measures 4.4 min. The additional
+    # time is for a sweep that becomes larger.
     timeout-minutes: 20
     needs:
       - build-public-packages
@@ -329,6 +353,7 @@ jobs:
       (github.event_name != 'schedule' || github.ref_name == 'develop') &&
       (github.event.pull_request.number == null || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
     outputs:
       image: ${{ steps.detect.outputs.image }}
       version: ${{ steps.detect.outputs.version }}
@@ -354,6 +379,7 @@ jobs:
       (github.event_name != 'schedule' || github.ref_name == 'develop') &&
       (github.event.pull_request.number == null || !github.event.pull_request.draft)
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
     needs:
       - build-public-packages
       - basic-checks
@@ -415,6 +441,7 @@ jobs:
       - build-public-packages
       - basic-checks
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
     permissions:
       contents: read
     env:
@@ -765,6 +792,7 @@ jobs:
       # generated sweeps for that reason: one job to list rather than two.
       - parity-sweep
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
     steps:
       - name: Verify validation jobs
         env:
@@ -787,6 +815,7 @@ jobs:
 
   dependabot:
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
     # `parity-sweep` runs only on the nightly schedule. GitHub skips it on
     # every pull request. After `parity-sweep` became a dependency of
     # `pr-validation`, GitHub also skipped this job on every pull request.

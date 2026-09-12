@@ -1,6 +1,5 @@
 use super::super::*;
 use super::global_conversion::Conversion;
-use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_macros::deopt_unsupported;
 use stylex_state::types::EvaluationCallback;
 use swc_core::ecma::ast::{CallExpr, MemberExpr, MemberProp};
@@ -135,10 +134,9 @@ pub(in super::super) fn evaluate(
         | FunctionType::EnvFunction(_) => deopt_unsupported!(deopt, path, state, NON_CONSTANT),
       }
     } else {
-      if !state.confident {
-        return None;
-      }
-
+      // No confidence re-check here: every path above that could have cleared
+      // it returned rather than reaching this arm, so a check would be one no
+      // case can enter.
       match func.fn_ptr {
         FunctionType::ArrayArgs(func) => {
           let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
@@ -192,15 +190,7 @@ pub(in super::super) fn evaluate(
 
           match expr {
             Expr::Object(obj) => {
-              for prop in &obj.props {
-                let Some(prop) = prop.as_prop() else {
-                  deopt_unsupported!(deopt, path, state, SPREAD_NOT_SUPPORTED);
-                };
-
-                let Some(key_value) = prop.as_key_value() else {
-                  deopt_unsupported!(deopt, path, state, KEY_VALUE_EXPECTED);
-                };
-
+              for key_value in written_key_values(obj) {
                 let Some(key) = key_value.key.as_ident().map(|ident| ident.sym.to_string()) else {
                   deopt_unsupported!(deopt, path, state, OBJECT_KEY_MUST_BE_IDENT);
                 };
@@ -347,13 +337,10 @@ fn member_callee(
   let object = &member.obj;
   let property = &member.prop;
 
-  if object.is_ident() {
-    // `object.is_ident()` was just asked, so this cannot answer `None`.
-    let Some(obj_ident) = object.as_ident() else {
-      stylex_unreachable!("{}", MEMBER_OBJ_NOT_IDENT)
-    };
-
-    if property.is_ident() {
+  // A member read this dispatch answers by name, at both levels: the receiver's
+  // own name, and the property's.
+  if let Some(obj_ident) = object.as_ident() {
+    if let Some(prop_ident) = property.as_ident() {
       if is_mutating_object_method(property) {
         deopt_unsupported!(deopt, path, state, NON_CONSTANT);
       }
@@ -361,14 +348,6 @@ fn member_callee(
       if is_valid_callee(object) && !is_invalid_method(property) {
         return global_static_callee(object, property, call, path, state, traversal_state, fns);
       }
-
-      // Unreachable: `property.is_ident()` was asked one branch up, so the
-      // destructuring cannot fail. Refused rather than asserted, because a
-      // broken invariant is worth a sentence an author can report and not an
-      // aborted build.
-      let Some(prop_ident) = property.as_ident() else {
-        deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
-      };
 
       let obj_name = obj_ident.sym.to_string();
       let prop_id = prop_ident.sym.to_id();
@@ -407,27 +386,28 @@ fn member_callee(
 
   let parsed_obj = evaluate_with_functions(object, traversal_state, Rc::clone(&state.functions));
 
-  if !parsed_obj.confident {
-    // The receiver has no compile-time value, and the evaluation that found that
-    // out said why. Its sentence is raised here rather than discarded: falling
-    // through to the terminal refusal named the node the author wrote —
-    // `CallExpression` — where the reason is that the receiver is not defined, or
-    // was reassigned, or was mutated. The receiver is evaluated under a state of
-    // its own, so the reason has to be carried over deliberately or it is lost
-    // with that state.
-    match parsed_obj.reason {
-      Some(reason) => deopt_unsupported!(deopt, path, state, &reason),
-      None => deopt_unsupported!(deopt, path, state, UNDEFINED_CONST),
-    }
+  // The receiver has no compile-time value, and the evaluation that found that
+  // out said why. Its sentence is raised here rather than discarded: falling
+  // through to the terminal refusal named the node the author wrote —
+  // `CallExpression` — where the reason is that the receiver is not defined, or
+  // was reassigned, or was mutated. The receiver is evaluated under a state of
+  // its own, so the reason has to be carried over deliberately or it is lost
+  // with that state.
+  //
+  // The reason stands for the refusal, because for this reader the two arrive
+  // together. `evaluate_with_functions` gives the receiver a state of its own
+  // with no reason in it, and `deopt` is the only thing that records one -- which
+  // it does as it clears the confidence the result then reports. A speculative
+  // read puts both back together, so it cannot part them either. Neither half is
+  // a guarantee of the types: `EvaluateResult::refused` builds a refusal that
+  // carries no reason, and a forked state keeps its parent's reason while
+  // holding confidence. Both belong to other producers, and neither reaches
+  // here.
+  if let Some(reason) = parsed_obj.reason {
+    deopt_unsupported!(deopt, path, state, &reason);
   }
 
-  if property.is_ident() {
-    // Unreachable for the reason the same destructuring above is: the question
-    // was asked on the line before.
-    let Some(prop_ident) = property.as_ident() else {
-      deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
-    };
-
+  if let Some(prop_ident) = property.as_ident() {
     let prop_name = prop_ident.sym.to_string();
 
     let Some(value) = parsed_obj.value else {
@@ -457,9 +437,11 @@ fn member_callee(
     // `n.toFixed(undefined)` named the receiver's node kind instead of the rule
     // that declined it, which tells an author only that they wrote a number.
     //
-    // The arguments are evaluated first because a spread reads the same sentence
-    // whatever the callee, and the shared argument evaluation is what owns that
-    // sentence.
+    // The arguments are evaluated before that rule is named, so an argument with
+    // no compile-time value is named for itself rather than for the callee that
+    // could not read it. A spread is not among what it can answer here: the
+    // engine walks the arguments of every call it looks at and refuses a spread
+    // there, so one never reaches this dispatch.
     //
     // An object receiver is deliberately not among them, though the fold carries
     // one inward: this is a claim about which prototypes the fold owns whole, and
@@ -472,50 +454,48 @@ fn member_callee(
           Expr::Array(_) | Expr::Lit(Lit::Str(_) | Lit::Num(_) | Lit::Bool(_))
         )
     ) {
-      evaluate_func_call_args(call, state, traversal_state, fns)?;
+      // Evaluated for the refusal it may record, and its values are dropped: a
+      // call this rule declines is not applied. Whichever of the two refusals
+      // comes first is the one an author reads, since a refusal already in the
+      // state is not written over.
+      let _ = evaluate_func_call_args(call, state, traversal_state, fns);
 
       deopt_unsupported!(deopt, path, state, &unfoldable_call(&prop_name))
     }
 
     return match value {
-      EvaluateResultValue::Map(map) => {
-        map_method(map.get(&Expr::from(prop_ident.clone())), path, state)
-      },
       EvaluateResultValue::Expr(expr) => match expr {
         Expr::Object(object) => {
-          let key_values = get_key_values_from_object(&object);
-
-          let key_value = key_values
-            .into_iter()
-            .find(|key_value| match key_value.key.as_ident() {
-              Some(key_ident) => key_ident.sym == prop_name,
-              _ => false,
-            });
+          // The name comes from a dot, so it is always an identifier, and a
+          // quoted key can never equal it however the key is read. Reading the
+          // key as an identifier is therefore the cheap way to get a comparable
+          // name rather than a rule of its own: it needs no string built from a
+          // quoted key that could not match anyway.
+          //
+          // Scanned in place, and only the property found is copied.
+          let key_value = written_key_values(&object).find(|key_value| {
+            key_value
+              .key
+              .as_ident()
+              .is_some_and(|key_ident| key_ident.sym == prop_name)
+          });
 
           let Some(key_value) = key_value else {
             deopt_unsupported!(deopt, path, state, PROPERTY_NOT_FOUND);
           };
 
           Some(MemberCallee::Function(Box::new(FunctionConfig {
-            fn_ptr: FunctionType::Callback(key_value.value),
+            fn_ptr: FunctionType::Callback(key_value.value.clone()),
             takes_path: false,
           })))
         },
-        // Regex methods like .test(), .exec(), etc. require runtime evaluation
-        // We can't statically evaluate them, so we deopt
-        Expr::Lit(Lit::Regex(_)) => {
-          deopt_unsupported!(
-            deopt,
-            path,
-            state,
-            "Regex methods cannot be statically evaluated"
-          );
-        },
         // A method call on a receiver whose kind carries no methods this
-        // evaluator folds — a `null`, a template literal, a name that resolved to
+        // evaluator folds — a `null`, an `undefined`, a name that resolved to
         // something with no prototype here. The primitives whose prototypes do
         // fold are answered above, by the rule that declined them rather than by
-        // their node kind.
+        // their node kind. A regular expression is not among the kinds that
+        // reach here at all: the dispatch refuses one wherever it is written, so
+        // it has no value for a receiver to hold.
         _ => deopt_unsupported!(
           deopt,
           path,
@@ -560,10 +540,9 @@ fn member_callee(
             fn_ptr: FunctionType::EnvFunction(env_fn.clone()),
             takes_path: false,
           }))),
-          None => match resolve_env_entry_to_result(env_val, &env_map) {
-            Some(result) => Some(MemberCallee::Value(result)),
-            None => Some(MemberCallee::Unnamed),
-          },
+          None => Some(MemberCallee::Value(resolve_env_entry_to_result(
+            env_val, &env_map,
+          ))),
         }
       },
       // A receiver the evaluator carries in a representation with no methods of
@@ -573,26 +552,24 @@ fn member_callee(
   }
 
   if let Some(prop_id) = is_id_prop(property) {
-    let prop_id_owned = prop_id.to_string();
-
-    let Some(value) = parsed_obj.value else {
+    if parsed_obj.value.is_none() {
       deopt_unsupported!(
         deopt,
         path,
         state,
         format!(
           "The receiver of the computed call '[{}]()' has no compile-time value.",
-          prop_id_owned
+          prop_id
         )
         .as_str()
       );
-    };
+    }
 
-    let Some(map) = value.as_map() else {
-      deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
-    };
-
-    return map_method(map.get(&create_string_expr(&prop_id_owned)), path, state);
+    // A computed key names no method this dispatch applies. Every value the
+    // evaluator resolves a receiver to answers its own methods under a name read
+    // from the syntax, so a name assembled at compile time is a lookup with
+    // nothing behind it.
+    deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
   }
 
   Some(MemberCallee::Unnamed)
@@ -632,14 +609,38 @@ fn global_static_callee(
     deopt_unsupported!(deopt, path, state, &unfoldable_call(method_name));
   };
 
-  let Some(arg) = call.args.first() else {
-    deopt_unsupported!(deopt, path, state, &unfoldable_call(method_name));
-  };
+  // The language reads the first argument and ignores the rest, and wherever this
+  // dispatch runs that argument is there and is not a spread.
+  //
+  // A call with no argument does not reach here, because its receiver is the
+  // global itself and the engine has an answer for that either way. Unshadowed,
+  // it answers the language's own `TypeError`, which
+  // `a_static_the_language_throws_on_refuses_with_what_it_threw` pins in all
+  // three spellings. Shadowed by a declarator, it refuses to carry the global,
+  // which `shadowed_names_tests` pins. Only a *decline* hands a call to this
+  // dispatch, and neither of those is one. A spread is refused where it is
+  // written, by the walk the engine makes over every call's arguments.
+  //
+  // So the fall-through names no callee, and the terminal refusal names the
+  // call.
+  call
+    .args
+    .first()
+    .filter(|arg| arg.spread.is_none())
+    .map_or(Some(MemberCallee::Unnamed), |arg| {
+      own_keys_callee(question, arg, path, state, traversal_state, fns)
+    })
+}
 
-  if arg.spread.is_some() {
-    deopt_unsupported!(deopt, path, state, SPREAD_ELEMENT);
-  }
-
+/// The own keys of one argument, as the question asked of it.
+fn own_keys_callee(
+  question: OwnKeysQuestion,
+  arg: &ExprOrSpread,
+  path: &Expr,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> Option<MemberCallee> {
   // An array literal is read from the syntax rather than from its evaluated
   // form, because a hole has no value to evaluate and the receiver reader is
   // what knows a hole carries no key.
@@ -687,25 +688,4 @@ fn applied_entry(entry: &FunctionConfigType) -> MapEntry {
     | FunctionConfigType::IndexMap(_)
     | FunctionConfigType::EnvObject(_) => MapEntry::NotAFunction,
   }
-}
-
-/// The answer for a method looked up on a folded function map.
-///
-/// An entry under that name means the receiver holds one of this compiler's own
-/// functions, reached as a method rather than applied — which this dispatch does
-/// not do, so it refuses. No entry names no callee, and the terminal refusal
-/// names the call.
-///
-/// One reading for the two spellings a member can have, because the map is the
-/// same map and only the key differs.
-fn map_method(
-  entry: Option<&Vec<KeyValueProp>>,
-  path: &Expr,
-  state: &mut EvaluationState,
-) -> Option<MemberCallee> {
-  if entry.is_some() {
-    deopt_unsupported!(deopt, path, state, NON_CONSTANT);
-  }
-
-  Some(MemberCallee::Unnamed)
 }

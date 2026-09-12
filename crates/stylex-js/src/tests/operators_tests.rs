@@ -88,12 +88,60 @@ mod evaluate_bin_expr_tests {
     assert_eq!(evaluate_bin_expr(BinaryOp::ZeroFillRShift, 16.0, 2.0), 4.0);
   }
 
+  /// `>>>` reads its left side as unsigned, which is the whole of what parts it
+  /// from `>>`. Every value below was read out of `node -e 'console.log(x)'`.
   #[test]
-  fn zero_fill_right_shift_negative() {
-    // In Rust 2024, `-1.0f64 as u64` saturates to 0 (not wrapping like JS).
-    // So `-1.0 >>> 0` evaluates to `0.0` rather than JS's `4294967295`.
-    let result = evaluate_bin_expr(BinaryOp::ZeroFillRShift, -1.0, 0.0);
-    assert_eq!(result, 0.0);
+  fn zero_fill_right_shift_reads_its_left_side_as_unsigned() {
+    assert_eq!(
+      evaluate_bin_expr(BinaryOp::ZeroFillRShift, -1.0, 0.0),
+      4_294_967_295.0
+    );
+    assert_eq!(
+      evaluate_bin_expr(BinaryOp::ZeroFillRShift, -1.0, 16.0),
+      65535.0
+    );
+    assert_eq!(
+      evaluate_bin_expr(BinaryOp::ZeroFillRShift, -9.0, 0.0),
+      4_294_967_287.0
+    );
+    assert_eq!(
+      evaluate_bin_expr(BinaryOp::ZeroFillRShift, -8.0, 1.0),
+      2_147_483_644.0
+    );
+  }
+
+  /// `>>` keeps the sign, which is the reading `>>>` above does not take.
+  #[test]
+  fn right_shift_keeps_the_sign() {
+    assert_eq!(evaluate_bin_expr(BinaryOp::RShift, -8.0, 1.0), -4.0);
+    assert_eq!(evaluate_bin_expr(BinaryOp::RShift, -1.0, 16.0), -1.0);
+  }
+
+  /// A side past the signed 32-bit range wraps rather than saturating, and a
+  /// count of the word width or more shifts by nothing. A 64-bit cast answered
+  /// 2147483647 for the first row, and a Rust shift panicked on the third.
+  #[test]
+  fn the_bitwise_operators_wrap_into_thirty_two_bits() {
+    assert_eq!(
+      evaluate_bin_expr(BinaryOp::BitOr, 4_294_967_296.0, 0.0),
+      0.0
+    );
+    assert_eq!(
+      evaluate_bin_expr(BinaryOp::BitOr, 3_000_000_000.0, 0.0),
+      -1_294_967_296.0
+    );
+    assert_eq!(evaluate_bin_expr(BinaryOp::LShift, 1.0, 32.0), 1.0);
+    assert_eq!(evaluate_bin_expr(BinaryOp::LShift, 1.0, 33.0), 2.0);
+    assert_eq!(
+      evaluate_bin_expr(BinaryOp::LShift, 1.0, 31.0),
+      -2_147_483_648.0
+    );
+    assert_eq!(evaluate_bin_expr(BinaryOp::BitOr, f64::NAN, 0.0), 0.0);
+    assert_eq!(evaluate_bin_expr(BinaryOp::BitOr, f64::INFINITY, 0.0), 0.0);
+    assert_eq!(
+      evaluate_bin_expr(BinaryOp::BitAnd, 1e21, -1.0),
+      -559_939_584.0
+    );
   }
 
   // --- Edge cases ---
@@ -155,6 +203,51 @@ mod evaluate_bin_expr_tests {
   #[test]
   fn exponentiation_negative_exponent() {
     assert_eq!(evaluate_bin_expr(BinaryOp::Exp, 2.0, -1.0), 0.5);
+  }
+
+  /// The three rows where IEEE `pow` and `Number::exponentiate` disagree.
+  /// `pow` answers `1` for a base of 1 whatever the exponent, and for a base of
+  /// magnitude 1 under an infinite exponent; the language answers `NaN`.
+  #[test]
+  fn exponentiation_answers_not_a_number_where_the_language_does() {
+    let cases: [(f64, f64); 4] = [
+      (1.0, f64::NAN),
+      (-1.0, f64::INFINITY),
+      (1.0, f64::INFINITY),
+      (-1.0, f64::NEG_INFINITY),
+    ];
+
+    for (base, exponent) in cases {
+      assert!(
+        evaluate_bin_expr(BinaryOp::Exp, base, exponent).is_nan(),
+        "{} ** {}",
+        base,
+        exponent
+      );
+    }
+  }
+
+  /// A zero exponent answers `1` whatever the base, `NaN` included -- which is
+  /// why it is read before the `NaN` rule above.
+  #[test]
+  fn exponentiation_by_nought_is_one_whatever_the_base() {
+    assert_eq!(evaluate_bin_expr(BinaryOp::Exp, f64::NAN, 0.0), 1.0);
+    assert_eq!(evaluate_bin_expr(BinaryOp::Exp, f64::INFINITY, 0.0), 1.0);
+    assert_eq!(evaluate_bin_expr(BinaryOp::Exp, 2.0, -0.0), 1.0);
+  }
+
+  /// The rows IEEE `pow` and the language agree on, kept beside the three they
+  /// do not: an overflow is infinite, and a fractional exponent over a negative
+  /// base has no real answer.
+  #[test]
+  fn exponentiation_keeps_the_rows_the_two_readings_share() {
+    assert_eq!(evaluate_bin_expr(BinaryOp::Exp, 2.0, 1024.0), f64::INFINITY);
+    assert!(evaluate_bin_expr(BinaryOp::Exp, -8.0, 1.0 / 3.0).is_nan());
+    assert_eq!(
+      evaluate_bin_expr(BinaryOp::Exp, 2.0, f64::INFINITY),
+      f64::INFINITY
+    );
+    assert_eq!(evaluate_bin_expr(BinaryOp::Exp, 0.5, f64::INFINITY), 0.0);
   }
 
   #[test]

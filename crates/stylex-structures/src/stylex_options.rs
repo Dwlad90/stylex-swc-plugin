@@ -348,6 +348,13 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       .with_sx_prop_name(match options.sx_prop_name {
         None => Some("sx".to_string()),
         Some(SxPropNameParam::Disabled) => None,
+        // A blank name names no prop. The raw markup path cannot match one --
+        // a JSX attribute name is never empty -- so accepting it verbatim
+        // would let the compiled path rewrite `{ "": value }`, which no author
+        // wrote as an `sx` prop. The module-selection scan refuses a blank
+        // name for the same reason, so this keeps the two sides answering
+        // alike.
+        Some(SxPropNameParam::Enabled(name)) if name.trim().is_empty() => None,
         Some(SxPropNameParam::Enabled(name)) => Some(name),
       })
       .with_env(options.env.unwrap_or_default())

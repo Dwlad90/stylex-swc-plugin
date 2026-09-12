@@ -23,14 +23,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
-  BOOLEAN_OPTION_KEYS,
+  parseOptionOverrides,
+  SOURCE_MAP_SPELLINGS,
+  type FixtureOptionOverrides,
+  type SourceMapValue,
+} from './fixture-schema.js';
+import { isRecord, requireOneOf } from './json.js';
+import {
   SOURCE_MAP_SETTINGS,
-  STYLE_RESOLUTIONS,
-  type SourceMapSetting,
-  type BooleanOptionKey,
   type FixtureCategory,
   type FixtureDescriptor,
-  type FixtureOptionOverrides,
   type FixtureWeight,
 } from './types.js';
 
@@ -148,108 +150,23 @@ function parseManifestEntry(input: unknown, index: number): FixtureManifestEntry
   // become an own `dev: undefined` property.
   if (input.dev !== undefined) entry.dev = input.dev;
   if (input.options !== undefined) {
-    entry.options = parseOptionOverrides(input.options, `${context}.options`);
+    entry.options = parseOptionOverrides(
+      input.options,
+      `${context}.options`,
+      requireSourceMapSetting
+    );
   }
 
   return entry;
 }
 
 /**
- * One fixture's option overrides, narrowed key by key.
+ * The setting a manifest spelling names, taken from the package's own export.
  *
- * An unknown key is an error rather than a key dropped: a manifest that names
- * `enableDebugDataProps` would otherwise be measured under the production shape
- * while claiming to price the debug one, and the number it reports would look
- * entirely reasonable.
+ * A lookup rather than a predicate: the result already carries the type the
+ * compiler takes, so nothing here asserts a type a runtime check cannot
+ * establish.
  */
-function parseOptionOverrides(input: unknown, context: string): FixtureOptionOverrides {
-  if (!isRecord(input)) throw new Error(`${context} must be an object`);
-
-  const overrides: FixtureOptionOverrides = {};
-
-  for (const [key, value] of Object.entries(input)) {
-    if (isBooleanOptionKey(key)) {
-      if (typeof value !== 'boolean') {
-        throw new Error(`${context}.${key} must be a boolean`);
-      }
-      overrides[key] = value;
-      continue;
-    }
-
-    // The keys whose value is not a boolean are spelled out rather than
-    // tabulated, because a table would have to hold each one's accepted values
-    // against a key whose value type differs from every other key's.
-    if (key === 'styleResolution') {
-      overrides.styleResolution = requireOneOf(value, STYLE_RESOLUTIONS, `${context}.${key}`);
-      continue;
-    }
-    if (key === 'sourceMap') {
-      overrides.sourceMap = requireSourceMapSetting(value, `${context}.${key}`);
-      continue;
-    }
-    if (key === 'classNamePrefix') {
-      if (typeof value !== 'string' || value.length === 0) {
-        throw new Error(`${context}.${key} must be a non-empty string`);
-      }
-      overrides.classNamePrefix = value;
-      continue;
-    }
-
-    throw new Error(
-      `${context}.${key} is not a benchmarkable option — the accepted keys are ` +
-        `${BOOLEAN_OPTION_KEYS.join(', ')}, styleResolution, sourceMap, ` +
-        `classNamePrefix`
-    );
-  }
-
-  return overrides;
-}
-
-function isBooleanOptionKey(key: string): key is BooleanOptionKey {
-  // Widened to compare, not asserted: the predicate is what narrows, and the
-  // caller only ever indexes with a key this returned true for.
-  const keys: readonly string[] = BOOLEAN_OPTION_KEYS;
-  return keys.includes(key);
-}
-
-/**
- * The `sourceMap` value a manifest string names, or an error.
- *
- * A lookup into the package's own `SourceMaps` export, so what comes back is
- * already the type the option takes: the *key* is what gets narrowed, and a key
- * of a real object is something a runtime check can actually establish.
- */
-function requireSourceMapSetting(
-  value: unknown,
-  context: string
-): NonNullable<FixtureOptionOverrides['sourceMap']> {
-  const settings = Object.keys(SOURCE_MAP_SETTINGS);
-  const named = settings.find(setting => setting === value);
-  if (named === undefined || !isSourceMapSetting(named)) {
-    throw new Error(`${context} must be one of ${settings.join(', ')}`);
-  }
-
-  return SOURCE_MAP_SETTINGS[named];
-}
-
-function isSourceMapSetting(key: string): key is SourceMapSetting {
-  return Object.hasOwn(SOURCE_MAP_SETTINGS, key);
-}
-
-/** `value` when it is one of `accepted`, else an error naming what was allowed. */
-function requireOneOf<T extends string>(
-  value: unknown,
-  accepted: readonly T[],
-  context: string
-): T {
-  const found = accepted.find(candidate => candidate === value);
-  if (found === undefined) {
-    throw new Error(`${context} must be one of ${accepted.join(', ')}`);
-  }
-
-  return found;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
+function requireSourceMapSetting(value: unknown, context: string): SourceMapValue {
+  return SOURCE_MAP_SETTINGS[requireOneOf(value, SOURCE_MAP_SPELLINGS, context)];
 }

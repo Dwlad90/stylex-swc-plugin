@@ -14,7 +14,9 @@ use swc_core::{
   common::{FileName, SourceFile, SourceMap, sync::Lrc},
   ecma::ast::Expr,
 };
-use swc_ecma_parser::{EsSyntax, Parser, StringInput, Syntax, lexer::Lexer, parse_file_as_expr};
+use swc_ecma_parser::{
+  EsSyntax, Parser, StringInput, Syntax, TsSyntax, lexer::Lexer, parse_file_as_expr,
+};
 
 /// A thread small enough that a case has to be given room it did not start with.
 ///
@@ -75,12 +77,27 @@ pub(crate) fn on_a_thread_of<R: Send + 'static>(
 /// The `stylex_utils` crate has the same helper. A `#[cfg(test)]` helper is
 /// not part of the crate graph, so neither crate can call the other one.
 pub(crate) fn parse_expr(source: &str) -> Expr {
+  parse_expr_under(source, syntax())
+}
+
+/// Parses one expression written in TypeScript.
+///
+/// The suites read ES syntax, in which a type annotation is a syntax error.
+/// The six expressions only a type system writes -- `as`, `as const`,
+/// `satisfies`, `!`, `<T>x` and `f<T>` -- have no other spelling, so a case
+/// about what the evaluator does with one has to say which grammar it was
+/// written in.
+pub(crate) fn parse_ts_expr(source: &str) -> Expr {
+  parse_expr_under(source, ts_syntax())
+}
+
+fn parse_expr_under(source: &str, syntax: Syntax) -> Expr {
   let file = anonymous_file(source);
   let mut recovered_errors = Vec::new();
 
   let expr = match parse_file_as_expr(
     &file,
-    syntax(),
+    syntax,
     Default::default(),
     None,
     &mut recovered_errors,
@@ -118,6 +135,11 @@ fn syntax() -> Syntax {
     jsx: true,
     ..Default::default()
   })
+}
+
+/// The syntax the six type-only expressions are written in.
+fn ts_syntax() -> Syntax {
+  Syntax::Typescript(TsSyntax::default())
 }
 
 /// A parser over one file, in the syntax every suite here reads.

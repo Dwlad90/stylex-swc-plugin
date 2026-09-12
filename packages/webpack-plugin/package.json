@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/webpack-plugin",
   "description": "StyleX plugin for webpack powered by a Rust NAPI-RS/SWC compiler. Fast StyleX transforms and CSS extraction without Babel.",
-  "version": "0.19.0-rc.2",
+  "version": "0.19.0-rc.3",
   "private": false,
   "license": "MIT",
   "sideEffects": [

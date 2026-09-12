@@ -29,7 +29,7 @@ use stylex_constants::constants::evaluation_errors::{
 };
 use stylex_enums::declaration_type::DeclarationType;
 use stylex_js::coercions::is_global_spelled_as_an_identifier;
-use stylex_js::helpers::is_valid_callee;
+use stylex_js::helpers::{is_a_valid_callee_name, is_valid_callee};
 use stylex_utils::swc::get_stmt_node_kind;
 
 use super::amplification::EntryAmplifier;
@@ -46,9 +46,9 @@ use stylex_state::{
 use super::super::{
   engine_stylex_functions::{EngineCallable, Reached, engine_callable},
   evaluate_cached,
-  helpers::{evaluate_result_to_js_boolean, get_binding},
+  helpers::evaluate_result_to_js_boolean,
   nodes::logical_expression::{LogicalOp, evaluates_its_right_operand},
-  nodes::member_expression::{get_full_member_path, is_theme_ref_base},
+  nodes::member_expression::{get_full_member_path, theme_ref_base},
 };
 
 /// Methods whose answer depends on locale data the engine does not carry.
@@ -113,27 +113,48 @@ impl Scope<'_> {
     matches!(self, Scope::Names { .. })
   }
 
-  /// What `name` holds, where it is a value a call measured for the callback
-  /// around it — and `None` for every other name, whose value nothing here
-  /// bounded.
+  /// What a scope here binds `name` to.
   ///
   /// The innermost scope binding the name answers, so a name shadowing a
   /// measured one is read as itself rather than borrowing its bounds.
-  pub(super) fn bounds_of(&self, name: &Atom) -> Option<Bounds> {
-    let Scope::Names {
-      names,
-      elements,
-      outer,
-    } = self
-    else {
-      return None;
-    };
-
-    match names.iter().position(|bound| bound == name) {
-      Some(at) => elements.holding(at),
-      None => outer.bounds_of(name),
+  ///
+  /// One walk of the chain rather than two. Every reader asked [`Scope::binds`]
+  /// and then what the name was bound to, and the second answer already carries
+  /// the first — while keeping the two apart, which is what stops a parameter
+  /// from being read as the module name it shadows.
+  pub(super) fn bound(&self, name: &Atom) -> Bound {
+    match self {
+      Scope::Module => Bound::NotInScope,
+      Scope::Names {
+        names,
+        elements,
+        outer,
+      } => match names.iter().position(|bound| bound == name) {
+        Some(at) => match elements.holding(at) {
+          Some(bounds) => Bound::Measured(bounds),
+          None => Bound::Unmeasured,
+        },
+        None => outer.bound(name),
+      },
     }
   }
+}
+
+/// What a callback scope binds a name to.
+///
+/// Three answers rather than two, and the difference between the last two is
+/// load-bearing: a name no scope binds is the module's to resolve, and a name a
+/// scope binds but nothing measured is bounded by nothing -- which stops the
+/// reading rather than sending it to the module, whose value for the same
+/// spelling the parameter shadows.
+#[derive(Clone, Copy)]
+pub(super) enum Bound {
+  /// No scope here binds the name, so it is the module's.
+  NotInScope,
+  /// A scope binds it and nothing measured what it holds.
+  Unmeasured,
+  /// A scope binds it to a value a call measured for the callback around it.
+  Measured(Bounds),
 }
 
 /// What the guard read about a value it cannot see, because the engine is what
@@ -457,33 +478,56 @@ fn speculate(
   value
 }
 
-/// What the guard admitted, and the name a refusal or a throw is reported
-/// under.
+/// What the guard admitted: the name a refusal or a throw is reported under,
+/// beside the shape the call reached its function through.
 ///
-/// The first two arms are the two ways a *native* function is reached: a method
-/// on a receiver, and a global applied as a function. They are told apart
-/// because only the second can name something that is not a function at all —
-/// `Math` is a valid callee because its methods fold, which says nothing about
-/// whether the name itself can be applied. The third is the author's own
-/// function, reached through the name the module bound it under, which the
-/// engine holds because its declaration crossed as one.
-///
-/// Only the first two are ever *read*. What reads one is the outermost call, and
-/// [`Position`] is why a named callee never reaches that: the arm exists so the
-/// admission answers with the binding it admitted rather than with a method it
-/// did not, and a chain link's answer is discarded either way.
+/// A name and a kind rather than a kind carrying a name, because all three
+/// kinds carry one and only [`AdmittedKind::Global`] is ever told from the
+/// others — so a reader that wants the name cannot be made to answer for a
+/// kind it does not care about.
 #[derive(Clone, Copy)]
-pub(super) enum Admitted<'a> {
-  Method(&'a Atom),
-  Global(&'a Atom),
-  Named(&'a Atom),
+pub(super) struct Admitted<'a> {
+  /// The method, global or binding the call names.
+  pub(super) name: &'a Atom,
+  /// How the call reached the function it applies.
+  pub(super) kind: AdmittedKind,
+}
+
+/// How a call reached the function it applies.
+///
+/// The first two are the ways a *native* function is reached: a method on a
+/// receiver, and a global applied as a function. They are told apart because
+/// only the second can name something that is not a function at all — `Math` is
+/// a valid callee because its methods fold, which says nothing about whether the
+/// name itself can be applied. The third is the author's own function, reached
+/// through the name the module bound it under, which the engine holds because
+/// its declaration crossed as one.
+#[derive(Clone, Copy)]
+pub(super) enum AdmittedKind {
+  Method,
+  Global,
+  Named,
 }
 
 impl<'a> Admitted<'a> {
-  /// The method, global or binding the call names.
-  pub(super) fn name(self) -> &'a Atom {
-    match self {
-      Admitted::Method(name) | Admitted::Global(name) | Admitted::Named(name) => name,
+  fn method(name: &'a Atom) -> Self {
+    Self {
+      name,
+      kind: AdmittedKind::Method,
+    }
+  }
+
+  fn global(name: &'a Atom) -> Self {
+    Self {
+      name,
+      kind: AdmittedKind::Global,
+    }
+  }
+
+  fn named(name: &'a Atom) -> Self {
+    Self {
+      name,
+      kind: AdmittedKind::Named,
     }
   }
 }
@@ -750,7 +794,7 @@ impl<'r> Walk<'_, 'r> {
         // reason. Only where the module bound nothing of the name, in which case
         // the binding is resolved like any other below.
         if is_global_spelled_as_an_identifier(ident)
-          && get_binding(expr, self.reader.traversal_state).is_none()
+          && self.reader.traversal_state.declaration_of(ident).is_none()
         {
           return Ok(());
         }
@@ -765,7 +809,7 @@ impl<'r> Walk<'_, 'r> {
         // call, resolves the name to nothing and reports a constant the author
         // never wrote, which is a sentence about something else. Both compilers
         // refuse the input either way, so only the wording changes.
-        if a_global_written_as_a_value(expr, self.reader.traversal_state) {
+        if a_global_written_as_a_value(ident, self.reader.traversal_state) {
           return Err(Decline::rule(global_as_a_value(&ident.sym)));
         }
 
@@ -775,18 +819,44 @@ impl<'r> Walk<'_, 'r> {
           Some(value) if is_a_carryable_receiver(&value) => {
             self.reader.transport.bind(&ident.sym, value, depth)
           },
-          // A name holding a function, which is what the evaluator answers a
-          // callback with. There is no value form to carry, so the declaration it
-          // came from crosses instead.
-          Some(EvaluateResultValue::Callback(_)) => {
-            self.under(inner).admit_a_named_function(ident, expr)
-          },
-          // A name that resolved to nothing is usually not this module's business
-          // — the dispatch below owns the call and answers for it. A function is
-          // the exception: nothing below the fold carries one into an evaluation.
-          _ => match the_module_declares_a_function(ident, expr, self.reader) {
-            true => Err(Decline::rule(unfoldable_function(&ident.sym))),
-            false => Err(Decline::NotACandidate),
+          // Everything left is a function, or is nothing this module answers for.
+          resolved => {
+            // A name holding a function, which is what the evaluator answers a
+            // callback with. There is no value form to carry, so the declaration
+            // it came from crosses instead.
+            let carries_a_function = matches!(resolved, Some(EvaluateResultValue::Callback(_)));
+
+            // Asked before the declaration is read, which is what keeps a name
+            // written twice from owning its declaration twice: the transport
+            // holds one value per name, so the crossing already happened.
+            if carries_a_function && self.reader.transport.holds(&ident.sym) {
+              return Ok(());
+            }
+
+            // Owned because the walk below takes the evaluator mutably and the
+            // declaration is borrowed out of it. One subtree per name per fold,
+            // and the printer would have wanted an owned tree anyway.
+            //
+            // Read for a function alone. The evaluator answered one by reading
+            // this very declaration, so there is always one to read — a function
+            // without a declaration falls to the reading below, which finds no
+            // function either and hands the call back.
+            let declaration = match carries_a_function {
+              true => initializer_of(ident, self.reader).cloned(),
+              false => None,
+            };
+
+            match declaration {
+              Some(declaration) => self.under(inner).admit_a_named_function(ident, declaration),
+              // A name that resolved to nothing is usually not this module's
+              // business — the dispatch below owns the call and answers for it. A
+              // function is the exception: nothing below the fold carries one
+              // into an evaluation.
+              None => match the_module_declares_a_function(ident, self.reader) {
+                true => Err(Decline::rule(unfoldable_function(&ident.sym))),
+                false => Err(Decline::NotACandidate),
+              },
+            }
           },
         }
       },
@@ -851,21 +921,18 @@ impl<'r> Walk<'_, 'r> {
           return Err(Decline::rule(escaping_property(escaping)));
         }
 
-        match prop {
-          // A named read has nothing left to walk: the name is the whole of it,
-          // and the rule above is what reads it.
-          MemberProp::Ident(_) => {},
-          // A computed key is a value in its own right, so it is walked as one.
-          //
-          // A key whose value the guard cannot read is still admitted, and that
-          // is a boundary rather than a hole: what such a read can reach is a
-          // function, which is refused on the way out and cannot be applied on
-          // the way in — a call whose method name is computed is not a candidate
-          // at all, so there is no step from the function to its result.
-          MemberProp::Computed(key) => self.under(inner).admit_value(&key.expr)?,
-          // A private name belongs to a class body, which no value a fold carries
-          // has.
-          MemberProp::PrivateName(_) => return Err(Decline::NotACandidate),
+        // A computed key is a value in its own right, so it is walked as one. A
+        // named read has nothing left to walk — the name is the whole of it, and
+        // the rule above is what reads it — and a private name is written only
+        // inside a class body, which no expression the walk reaches has.
+        //
+        // A key whose value the guard cannot read is still admitted, and that is
+        // a boundary rather than a hole: what such a read can reach is a
+        // function, which is refused on the way out and cannot be applied on the
+        // way in — a call whose method name is computed is not a candidate at
+        // all, so there is no step from the function to its result.
+        if let MemberProp::Computed(key) = prop {
+          self.under(inner).admit_value(&key.expr)?;
         }
 
         // A chain of two or more names read off a theme group is one token
@@ -900,17 +967,16 @@ impl<'r> Walk<'_, 'r> {
       // it.
       Expr::Object(ObjectLit { props, .. }) => {
         for prop in props {
-          let PropOrSpread::Prop(prop) = prop else {
+          let prop = match prop {
+            PropOrSpread::Prop(prop) => prop,
             // A spread is a value in its own right and the language does the
             // spreading, so the operand is walked and the printed source keeps the
             // spread exactly as it was written.
-            let PropOrSpread::Spread(spread) = prop else {
-              return Err(Decline::NotACandidate);
-            };
+            PropOrSpread::Spread(spread) => {
+              self.under(inner).admit_value(&spread.expr)?;
 
-            self.under(inner).admit_value(&spread.expr)?;
-
-            continue;
+              continue;
+            },
           };
 
           let Prop::KeyValue(KeyValueProp { key, value }) = prop.as_ref() else {
@@ -975,14 +1041,12 @@ impl<'r> Walk<'_, 'r> {
     };
 
     // The base of a chain that reads a group is the name the group is carried
-    // under, which is the name the paths below belong to.
-    let Expr::Ident(name) = &base else {
+    // under, which is the name the paths below belong to — and being a name is
+    // also what makes a base able to hold a group at all. Both come off the one
+    // reading the dispatch below asks of the same source.
+    let Some(name) = theme_ref_base(&base) else {
       return;
     };
-
-    if !is_theme_ref_base(&base) {
-      return;
-    }
 
     // A name a callback binds is the callback's, whatever the module binds it to
     // — so a parameter shadowing a group reads properties off whatever it was
@@ -1085,21 +1149,9 @@ impl<'r> Walk<'_, 'r> {
   /// admits is therefore the same set of shapes an arrow written in place gets,
   /// and nothing about being named is asked separately.
   ///
-  /// A name the walk cannot reach a declaration for is refused rather than handed
-  /// back. The evaluator answered a function, so the fold is the only thing that
-  /// could have carried it and there is nothing below to hand it to.
-  fn admit_a_named_function(&mut self, ident: &Ident, expr: &Expr) -> Result<(), Decline> {
-    if self.reader.transport.holds(&ident.sym) {
-      return Ok(());
-    }
-
-    // Cloned because the walk below takes the evaluator mutably and the
-    // declaration is borrowed out of it. One subtree per name per fold, and the
-    // printer would have wanted an owned tree anyway.
-    let Some(declaration) = initializer_of(expr, self.reader).cloned() else {
-      return Err(Decline::rule(unfoldable_function(&ident.sym)));
-    };
-
+  /// Reached only for a name the transport does not already carry, which the
+  /// caller answers because it is what saves reading the declaration at all.
+  fn admit_a_named_function(&mut self, ident: &Ident, declaration: Expr) -> Result<(), Decline> {
     // Walked in the scope the declaration was written in, which is the module. A
     // name the declaration reads is a module name however deep inside a callback
     // the reading of *this* name was, and the default it prints into stands in the
@@ -1362,7 +1414,7 @@ impl<'r> Walk<'_, 'r> {
       return Err(Decline::rule(escaping_property(&method.sym)));
     }
 
-    Ok(Admitted::Method(&method.sym))
+    Ok(Admitted::method(&method.sym))
   }
 
   /// Whether a call applying a global is one the engine can answer.
@@ -1396,7 +1448,7 @@ impl<'r> Walk<'_, 'r> {
 
     self.admit_arguments(&call.args)?;
 
-    Ok(Admitted::Global(global))
+    Ok(Admitted::global(global))
   }
 
   /// Whether a call whose callee is a bare name is one the engine can answer.
@@ -1454,7 +1506,7 @@ impl<'r> Walk<'_, 'r> {
     // measured.
     self.admit_arguments(&call.args)?;
 
-    Ok(Admitted::Named(&name.sym))
+    Ok(Admitted::named(&name.sym))
   }
 
   /// An argument is admitted when it is a value the walk carries — an arrow among
@@ -1760,24 +1812,19 @@ fn unshadowed_receiver_global<'a>(expr: &'a Expr, state: &StateManager) -> Optio
 /// Whether a name is one of the globals the fold recognises, standing where a
 /// value belongs rather than being called or read from.
 ///
-/// The callees the fold already owns, read through the same predicate the callee
-/// rule reads, plus the ones it recognises without ever calling — see
+/// The callees the fold already owns, read through the same set membership the
+/// callee rule reads, plus the ones it recognises without ever calling — see
 /// [`VALUE_ONLY_GLOBALS`].
 ///
 /// Every binding shadows, exactly as it does for a callee: a module that bound
 /// the spelling owns it, whatever it bound it to, and the rules above answer for
 /// what it holds.
 ///
-/// Read through parentheses like the two rules above, so all three answer for
-/// the same written name.
-fn a_global_written_as_a_value(expr: &Expr, state: &StateManager) -> bool {
-  let expr = without_parens(expr);
-
-  let Some(ident) = expr.as_ident() else {
-    return false;
-  };
-
-  let named = is_valid_callee(expr) || VALUE_ONLY_GLOBALS.contains(ident.sym.as_ref());
+/// Asked of the name rather than of the expression around it, unlike the two
+/// rules above: the walk unwraps a parenthesis before it dispatches, so the one
+/// caller already holds the name it would have read.
+fn a_global_written_as_a_value(ident: &Ident, state: &StateManager) -> bool {
+  let named = is_a_valid_callee_name(&ident.sym) || VALUE_ONLY_GLOBALS.contains(ident.sym.as_ref());
 
   named && !state.declares_binding(ident)
 }
@@ -1789,8 +1836,15 @@ fn a_global_written_as_a_value(expr: &Expr, state: &StateManager) -> bool {
 /// with it: what a function crosses as, and whether a name the guard could not
 /// resolve was a function at all. Two spellings of the same three links would
 /// have been two chances to disagree about which link is optional.
-fn initializer_of<'a>(expr: &'a Expr, reader: &'a Reader) -> Option<&'a Expr> {
-  get_binding(expr, reader.traversal_state).and_then(|declarator| declarator.init.as_deref())
+///
+/// Asked of the name rather than of the expression around it, for the reason
+/// [`a_global_written_as_a_value`] is: the walk unwraps a parenthesis before it
+/// dispatches, so every caller already holds the name it would have read.
+fn initializer_of<'a>(ident: &Ident, reader: &'a Reader) -> Option<&'a Expr> {
+  reader
+    .traversal_state
+    .declaration_of(ident)
+    .and_then(|declarator| declarator.init.as_deref())
 }
 
 /// Whether the module declares `ident` as a function, which is what makes a name
@@ -1804,11 +1858,12 @@ fn initializer_of<'a>(expr: &'a Expr, reader: &'a Reader) -> Option<&'a Expr> {
 ///
 /// A `function` declaration is asked of the declaration list rather than of a
 /// declarator, because it is hoisted and has no initializer to read.
-fn the_module_declares_a_function(ident: &Ident, expr: &Expr, reader: &Reader) -> bool {
+fn the_module_declares_a_function(ident: &Ident, reader: &Reader) -> bool {
   matches!(
     reader.traversal_state.declared_as(ident),
     Some(DeclarationType::Function)
-  ) || initializer_of(expr, reader).is_some_and(|init| matches!(init, Expr::Arrow(_) | Expr::Fn(_)))
+  ) || initializer_of(ident, reader)
+    .is_some_and(|init| matches!(init, Expr::Arrow(_) | Expr::Fn(_)))
 }
 
 /// The refusals a method call can answer from its own text.

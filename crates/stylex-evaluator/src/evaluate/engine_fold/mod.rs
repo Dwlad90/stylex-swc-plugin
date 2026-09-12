@@ -58,7 +58,7 @@ mod theme;
 mod transport;
 
 use engine::{ENGINE, Engine, FoldKey, print_fold, threw};
-use guard::{Admitted, Guard, Position, Reader, Repeats, Scope, Walk, admit_an_applied_global};
+use guard::{AdmittedKind, Guard, Position, Reader, Repeats, Scope, Walk, admit_an_applied_global};
 use outward::Outward;
 use theme::is_a_var_group;
 
@@ -83,7 +83,6 @@ use stylex_constants::constants::evaluation_errors::{
   expression_too_deep, nesting_too_deep_to_carry, uncallable_printed_fold,
 };
 
-use super::evaluate_result_vec_to_array_expr;
 use crate::state::EvaluationState;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
@@ -253,23 +252,6 @@ pub(super) fn escaping_property_named(prop: &MemberProp) -> Option<&str> {
 /// method or the limit it refused on, so the common path allocates nothing.
 pub(crate) type Refusal = Cow<'static, str>;
 
-/// One evaluated value as the expression it spells, where it spells one.
-///
-/// An array is the one case that has to be rebuilt rather than cloned, by the
-/// evaluator's own conversion rather than by a second copy of it here. Shared
-/// between the two positions that ask — a folded property on the way out, and a
-/// resolved amplification count on the way in — so the two cannot come to
-/// disagree about which values have an expression form. It sits here for the
-/// reason [`lists`] does: neither direction owns it, and the one that held it
-/// would be imported by the other.
-fn as_expr(value: &EvaluateResultValue) -> Option<Expr> {
-  match value {
-    EvaluateResultValue::Expr(expr) => Some(expr.clone()),
-    EvaluateResultValue::Vec(items) => evaluate_result_vec_to_array_expr(items),
-    _ => None,
-  }
-}
-
 /// Why the guard did not hand a call to the engine — the outcome, where
 /// [`Refusal`] is the half of it an author reads.
 ///
@@ -394,7 +376,7 @@ pub(crate) fn try_fold(
 fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline> {
   let admitted = walk.admit_call(call, Position::Outermost)?;
 
-  let method = admitted.name();
+  let method = admitted.name;
 
   // How deep the source below is about to nest, which is not how deep the walk
   // above went: an operand a short circuit never reaches is printed and parsed
@@ -429,56 +411,78 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
       // abandoned mid-frame. Taking it means an unwind leaves the slot empty and
       // the next fold builds a fresh engine; the abandoned one leaks, which is
       // what `ManuallyDrop` already makes it do at thread exit.
-      let mut engine = match slot.take() {
-        Some(engine) => engine,
-        None => Engine::new()?,
+      let taken = match slot.take() {
+        Some(engine) => Ok(engine),
+        None => Engine::new(),
       };
 
-      // Cloned rather than borrowed: it is a handle the engine's own collector
-      // owns, and the build below needs the engine's context borrowed at the
-      // same time.
-      let var_group = engine.var_group.clone();
+      // Read through the answer rather than out of it, so the engine's own
+      // refusal is the fold's refusal without a second place that carries it.
+      //
+      // Written this way for the coverage gate. `Engine::new` builds from the
+      // prelude and the trap source this compiler ships, so it cannot fail from
+      // anything a module reaches it with, and a `?` here leaves a region no
+      // case can enter. A step that *can* fail is asked of
+      // [`Engine::started_on`] instead, which takes both sources so a case can
+      // hand in one that fails. Nothing is swallowed: the failure still leaves
+      // through this closure's `Result`.
+      taken.and_then(|mut engine| {
+        // Cloned rather than borrowed: it is a handle the engine's own collector
+        // owns, and the build below needs the engine's context borrowed at the
+        // same time.
+        let var_group = engine.var_group.clone();
 
-      let depth = walk.guard.depth.restart();
-      let mut outward = Outward::new(method, walk.guard.ceilings);
+        let depth = walk.guard.depth.restart();
+        let mut outward = Outward::new(method, walk.guard.ceilings);
 
-      let applied = match admitted {
-        Admitted::Global(global) => admit_an_applied_global(global, &mut engine.context),
-        Admitted::Method(_) | Admitted::Named(_) => Ok(()),
-      };
+        let applied = match admitted.kind {
+          AdmittedKind::Global => admit_an_applied_global(method, &mut engine.context),
+          AdmittedKind::Method | AdmittedKind::Named => Ok(()),
+        };
 
-      let folded = applied
-        .and_then(|()| walk.arguments(&mut engine.context, method, &var_group))
-        .and_then(|arguments| {
-          apply(
-            key,
-            || print_fold(call, walk.parameters()),
-            &arguments,
-            &mut engine,
-            method,
-          )
-        })
-        .and_then(|value| {
-          // An answer that is the theme group itself — `Object(colors)` hands its
-          // argument straight back — is handed back rather than converted: the
-          // group's members live in another file and nothing this side can write
-          // stands for it, where the dispatch below holds the reference and
-          // answers for it. A refusal here would fail a build it can compile.
-          //
-          // Asked only where a group crossed, so an ordinary answer pays nothing
-          // for a question that could not be true of it.
-          if walk.carried_a_theme_reference()
-            && is_a_var_group(&value, method, &mut engine.context)?
-          {
-            return Err(Decline::NotACandidate);
-          }
+        let folded = applied
+          .and_then(|()| walk.arguments(&mut engine.context, method, &var_group))
+          .and_then(|arguments| {
+            apply(
+              key,
+              || print_fold(call, walk.parameters()),
+              &arguments,
+              &mut engine,
+              method,
+            )
+          })
+          .and_then(|value| {
+            // An answer that is the theme group itself — `Object(colors)` hands its
+            // argument straight back — is handed back rather than converted: the
+            // group's members live in another file and nothing this side can write
+            // stands for it, where the dispatch below holds the reference and
+            // answers for it. A refusal here would fail a build it can compile.
+            //
+            // Asked only where a group crossed, so an ordinary answer pays nothing
+            // for a question that could not be true of it.
+            //
+            // The read carries its refusal rather than reading a throw as "not
+            // a group". Reading it as "not a group" was wrong: the walk out
+            // below reads *own* keys, so a marker on the answer's prototype is
+            // never read again and the throw is never met a second time. The
+            // answer would fold to an empty object and the declaration would be
+            // dropped with nothing said. A module reaches that — a callback body
+            // is not analysed, so it can hand back
+            // `Object.create(Object.create(null, { __IS_PROXY: { get: () => null.x } }))`
+            // — which is the case `guarded_walk_tests` pins.
+            if walk.carried_a_theme_reference()
+              && is_a_var_group(&value, method, &mut engine.context)?
+            {
+              return Err(Decline::NotACandidate);
+            }
 
-          outward.value(&value, &mut engine.context, depth)
-        });
+            outward.value(&value, &mut engine.context, depth)
+          });
 
-      *slot = Some(engine);
+        *slot = Some(engine);
 
-      folded
+        folded
+      })
     })
   })
 }
@@ -533,6 +537,23 @@ fn apply(
     .map_err(|error| threw(method, &error))
 }
 
+// Read by the two suites that ask the engine what a value they built behaves
+// like, which sit one level down beside the modules that build them.
+#[cfg(test)]
+#[path = "tests/engine_reads.rs"]
+mod engine_reads;
+
 #[cfg(test)]
 #[path = "tests/escaping_property_tests.rs"]
 mod escaping_property_tests;
+
+// What the printed expression comes to once the carried values are passed to
+// it, asked directly because both refusals are shapes no source prints.
+#[cfg(test)]
+#[path = "tests/applied_fold_tests.rs"]
+mod applied_fold_tests;
+
+// The two callback parameters that bind nothing, which no source writes.
+#[cfg(test)]
+#[path = "tests/unwritable_pattern_tests.rs"]
+mod unwritable_pattern_tests;

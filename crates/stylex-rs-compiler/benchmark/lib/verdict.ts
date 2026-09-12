@@ -15,7 +15,7 @@
  */
 
 import { escapeMarkdownCell, markdownTableRow } from './format.js';
-import { parseRawStats } from './raw-stats.js';
+import { measuredBy, parseRawStats } from './raw-stats.js';
 import { bootstrapMedianRatio, ensureFinitePositive, median, roundRatios } from './stats.js';
 import type {
   BootstrapConfig,
@@ -78,6 +78,14 @@ export interface VerdictReport {
     candidate: SubjectDescriptor;
   };
   fixtures: readonly FixtureVerdict[];
+  /**
+   * Fixtures the run measured for one subject only, in the order they appear.
+   *
+   * A ratio needs both sides, so these carry no verdict. They are named here
+   * because a reader who counts the rows must be able to see that the suite
+   * compared fewer fixtures than the manifest holds, and why.
+   */
+  uncompared: readonly string[];
   /** Fixture names flagged by the primary evaluation. */
   flagged: readonly string[];
   /** True when at least one flagged fixture reproduces the failure. */
@@ -108,13 +116,24 @@ export function evaluateRawStats(primaryInput: unknown, options: EvaluateOptions
   validateThresholds(thresholds);
   const fixtures: FixtureVerdict[] = [];
   const flagged: string[] = [];
+  const uncompared: string[] = [];
 
   for (const rawFixture of primary.fixtures) {
+    // A fixture the base could not compile is measured for the candidate alone,
+    // so the absolute budget still has a number for it. A ratio does not: there
+    // is no base side to divide by. It is named, not evaluated.
+    if (!measuredBy(rawFixture, base.label) || !measuredBy(rawFixture, candidate.label)) {
+      uncompared.push(rawFixture.name);
+      continue;
+    }
     const verdict = evaluateFixture(rawFixture, base, candidate, thresholds, options.bootstrap);
     if (verdict.status === 'flagged') {
       flagged.push(verdict.name);
     }
     fixtures.push(verdict);
+  }
+  if (fixtures.length === 0) {
+    throw new Error('Raw stats has no fixture both subjects measured');
   }
 
   let hasReproducedFailure = false;
@@ -168,6 +187,7 @@ export function evaluateRawStats(primaryInput: unknown, options: EvaluateOptions
     bootstrap: options.bootstrap,
     subjects: { base, candidate },
     fixtures,
+    uncompared,
     flagged,
     hasReproducedFailure,
   };
@@ -359,5 +379,16 @@ export function renderVerdictMarkdown(report: VerdictReport): string {
     ]);
   });
 
-  return [...header, ...rows, ''].join('\n');
+  // Named under the table rather than left out of it: a reader who counts the
+  // rows must be able to see which fixtures the suite could not compare.
+  const uncompared =
+    report.uncompared.length === 0
+      ? []
+      : [
+          '',
+          `Not compared (measured for ${candidate} only): ` +
+            report.uncompared.map(name => escapeMarkdownCell(name)).join(', '),
+        ];
+
+  return [...header, ...rows, ...uncompared, ''].join('\n');
 }

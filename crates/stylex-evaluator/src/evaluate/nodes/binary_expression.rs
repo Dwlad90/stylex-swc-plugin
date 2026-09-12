@@ -1,6 +1,7 @@
 use super::super::*;
 use super::logical_expression;
 use anyhow::anyhow;
+use stylex_js::operators::evaluate_bin_expr;
 use stylex_macros::as_expr_or_err;
 use swc_core::ecma::ast::{BinExpr, BinaryOp};
 
@@ -19,7 +20,7 @@ pub(in super::super) fn evaluate(
     return logical_expression::evaluate(op, bin, state, traversal_state, fns);
   }
 
-  match fold_binary_expr(bin, state, traversal_state, fns)? {
+  match fold_binary_expr(bin, state, traversal_state, fns) {
     BinaryExprType::Number(num) => Some(EvaluateResultValue::Expr(create_number_expr(num))),
     BinaryExprType::String { text, .. } => {
       Some(EvaluateResultValue::Expr(create_string_expr(&text)))
@@ -44,6 +45,37 @@ fn is_string(expr: &Expr) -> bool {
   matches!(expr, Expr::Lit(Lit::Str(_)))
 }
 
+/// One side of a `+`, reduced the way the operator reads it: its own value
+/// where it is already a primitive, and the value its own conversion method
+/// answers where it is an object.
+///
+/// `+` is the one operator that applies `ToPrimitive` with no hint, which asks
+/// an object for its `valueOf` before its `toString` -- so
+/// `({ valueOf: () => 2 }) + 1` is `3` rather than the concatenation of the
+/// default text. Every other operator either compares the two values as they
+/// stand, where reducing would make `({ valueOf: () => 1 }) === 1` true, or
+/// coerces each side to a number through a bridge that applies the same
+/// reduction itself.
+///
+/// An object that keeps the `Object.prototype` pair reduces to itself here and
+/// reaches the string path, which writes the default text it converts to.
+///
+/// Rebuilt rather than borrowed, because the reduction borrows from the value
+/// it reduces -- and only for an object, which is the one value the two
+/// readings can part company over. Every other value is handed back exactly as
+/// it arrived.
+fn reduced_addend(value: EvaluateResultValue) -> EvaluateResultValue {
+  let reduced = match value.as_expr() {
+    Some(object @ Expr::Object(_)) => coercions::to_js_default_primitive(object).cloned(),
+    _ => None,
+  };
+
+  match reduced {
+    Some(primitive) => EvaluateResultValue::Expr(primitive),
+    None => value,
+  }
+}
+
 /// The reason each side records when it cannot be read as what the path it is
 /// on needs. Named rather than built at the call site so the operand helpers
 /// stay at one argument per thing they actually need.
@@ -59,9 +91,15 @@ const RIGHT_NOT_A_STRING: &str = "Right expression is not a string";
 const LEFT_HAS_NO_VALUE: &str = "Left expression could not be evaluated";
 const RIGHT_HAS_NO_VALUE: &str = "Right expression could not be evaluated";
 
-/// One side of the expression, evaluated. An operand that resolves to nothing
-/// while the evaluator is still confident is this path's own bug rather than an
-/// expression it cannot fold, which is why the two answers differ.
+/// One side of the expression, evaluated.
+///
+/// An operand that answered nothing refuses here, whether or not the walk is
+/// still confident, and the reason names the side.
+///
+/// One answer rather than two, because the two would be the same answer: an
+/// operand that recorded its own refusal and one that came back empty out of
+/// the memo both leave this path with nothing to coerce. Before this the second
+/// stopped the build with a panic, where the first deopted.
 fn evaluate_operand(
   operand: &Expr,
   reason: &str,
@@ -69,11 +107,7 @@ fn evaluate_operand(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Result<EvaluateResultValue, anyhow::Error> {
-  match evaluate_cached(operand, state, traversal_state, fns) {
-    Some(value) => Result::Ok(value),
-    None if !state.confident => Result::Err(anyhow!("{}", reason)),
-    None => stylex_panic!("{}", reason),
-  }
+  evaluate_cached(operand, state, traversal_state, fns).ok_or_else(|| anyhow!("{}", reason))
 }
 
 /// The left operand of a binary expression, as much of it as the level above
@@ -88,28 +122,6 @@ enum LeftOperand {
   Measured { text: String, units: usize },
   /// Every other operand.
   Value(EvaluateResultValue),
-}
-
-impl LeftOperand {
-  /// Whether this side makes a `+` a concatenation rather than an addition.
-  fn is_string(&self) -> bool {
-    match self {
-      Self::Measured { .. } => true,
-      Self::Value(value) => value.as_expr().is_some_and(is_string),
-    }
-  }
-
-  /// The expression behind an operand that is not a folded concatenation.
-  ///
-  /// `None` for a measured one, which the numeric path never sees: a folded
-  /// concatenation is a string, and a string on either side sends the `+` to
-  /// the concatenation path before any coercion to a number is asked for.
-  fn as_expr(&self) -> Option<&Expr> {
-    match self {
-      Self::Measured { .. } => None,
-      Self::Value(value) => value.as_expr(),
-    }
-  }
 }
 
 /// A measured left side is remembered as the string literal it spells, which is
@@ -129,9 +141,12 @@ impl Memoized for LeftOperand {
   }
 }
 
-/// One side of a binary expression, evaluated -- folding the left side of a `+`
-/// chain here rather than through the evaluator's own dispatch, so a
-/// concatenation keeps the count it was measured to.
+/// The left side of a `+`, evaluated -- folding a `+` chain here rather than
+/// through the evaluator's own dispatch, so a concatenation keeps the count it
+/// was measured to.
+///
+/// Only `+` reaches this. Every other operator calls [`evaluate_operand`]
+/// directly, because only `+` can arrive with a measured left side.
 ///
 /// The dispatch hands a folded `+` back as a plain string literal, which has
 /// nowhere to carry a length. Measured again one level up, and copied into a
@@ -151,20 +166,18 @@ impl Memoized for LeftOperand {
 /// binary expression.
 fn evaluate_left_operand(
   binary_expr: &BinExpr,
-  reason: &str,
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Result<LeftOperand, anyhow::Error> {
-  if matches!(binary_expr.op, BinaryOp::Add)
-    && let Expr::Bin(inner) = normalize_expr(&binary_expr.left)
+  if let Expr::Bin(inner) = normalize_expr(&binary_expr.left)
     && matches!(inner.op, BinaryOp::Add)
   {
     let folded = folded_once(
       &binary_expr.left,
       state,
       traversal_state,
-      |state, traversal_state| match fold_binary_expr(inner, state, traversal_state, fns)? {
+      |state, traversal_state| match fold_binary_expr(inner, state, traversal_state, fns) {
         BinaryExprType::String { text, units } => Some(LeftOperand::Measured { text, units }),
         BinaryExprType::Number(number) => Some(LeftOperand::Value(EvaluateResultValue::Expr(
           create_number_expr(number),
@@ -173,16 +186,128 @@ fn evaluate_left_operand(
       },
     );
 
-    // Reported on the same terms an operand resolving to nothing is reported on
-    // anywhere else, which is `evaluate_operand`'s below.
-    return match folded {
-      Some(left) => Result::Ok(left),
-      None if !state.confident => Result::Err(anyhow!("{}", reason)),
-      None => stylex_panic!("{}", reason),
-    };
+    // The same sentence the plain reading below records, because both answers
+    // are the same thing: the left side of a `+` had no value.
+    return folded.ok_or_else(|| anyhow!("{}", LEFT_HAS_NO_VALUE));
   }
 
-  evaluate_operand(&binary_expr.left, reason, state, traversal_state, fns).map(LeftOperand::Value)
+  evaluate_operand(
+    &binary_expr.left,
+    LEFT_HAS_NO_VALUE,
+    state,
+    traversal_state,
+    fns,
+  )
+  .map(LeftOperand::Value)
+}
+
+/// How one of the four equality operators compares its two sides.
+///
+/// Three readings for four operators, because `!=` and `!==` take the same one.
+/// That is the one row the reference implementation writes differently from the
+/// language: it reads `!=` as `!==`, so the two answers differ on exactly the
+/// comparisons `==` coerces. This compiler follows the compiler an author's
+/// stylesheet is compared against rather than the specification.
+#[derive(Clone, Copy)]
+enum EqualityReading {
+  /// `==`, which coerces before it compares.
+  Loose,
+  /// `===`, which compares the type before the value.
+  Strict,
+  /// `!=` and `!==`, which answer the negation of `===`.
+  NotStrict,
+}
+
+impl EqualityReading {
+  /// What the operator answers for these two primitives.
+  fn answers(self, left: &coercions::Primitive, right: &coercions::Primitive) -> bool {
+    match self {
+      Self::Loose => coercions::loose_equals(left, right),
+      Self::Strict => coercions::strict_equals(left, right),
+      Self::NotStrict => !coercions::strict_equals(left, right),
+    }
+  }
+}
+
+/// How each of the four relational operators reads `IsLessThan`.
+///
+/// Three degrees of freedom rather than four cases: which side goes first, and
+/// whether the answer is negated. `x <= y` is `!(y < x)`, and the `undefined`
+/// a `NaN` operand produces is false under all four -- negation included.
+#[derive(Clone, Copy)]
+enum RelationalReading {
+  Lt,
+  LtEq,
+  Gt,
+  GtEq,
+}
+
+impl RelationalReading {
+  /// What the operator answers for these two primitives, or `None` for a text
+  /// this compiler cannot read and so cannot order.
+  fn answers(self, left: &coercions::Primitive, right: &coercions::Primitive) -> Option<bool> {
+    let (first, second, negated) = match self {
+      Self::Lt => (left, right, false),
+      Self::Gt => (right, left, false),
+      Self::LtEq => (right, left, true),
+      Self::GtEq => (left, right, true),
+    };
+
+    match coercions::js_less_than(first, second)? {
+      Some(less) => Some(less != negated),
+      // The `undefined` a `NaN` operand produces, which is false under all four
+      // operators -- so the negation does not reach it.
+      None => Some(false),
+    }
+  }
+}
+
+/// How one of the eight comparison operators reads its two sides.
+///
+/// One reading rather than two, because both halves want the same thing of the
+/// operands: two primitives, compared as the language compares them rather than
+/// as two numbers. Read as two numbers instead, `'10' < '9'` answered `false`
+/// where the language answers `true`, exactly as `1 != '1'` did before the
+/// equality pair was moved here.
+#[derive(Clone, Copy)]
+enum ComparisonReading {
+  Equality(EqualityReading),
+  Relational(RelationalReading),
+}
+
+impl ComparisonReading {
+  /// The reading `op` takes, or `None` for every other operator.
+  fn of(op: BinaryOp) -> Option<Self> {
+    match op {
+      BinaryOp::EqEq => Some(Self::Equality(EqualityReading::Loose)),
+      BinaryOp::EqEqEq => Some(Self::Equality(EqualityReading::Strict)),
+      BinaryOp::NotEq | BinaryOp::NotEqEq => Some(Self::Equality(EqualityReading::NotStrict)),
+      BinaryOp::Lt => Some(Self::Relational(RelationalReading::Lt)),
+      BinaryOp::LtEq => Some(Self::Relational(RelationalReading::LtEq)),
+      BinaryOp::Gt => Some(Self::Relational(RelationalReading::Gt)),
+      BinaryOp::GtEq => Some(Self::Relational(RelationalReading::GtEq)),
+      _ => None,
+    }
+  }
+
+  /// What the operator answers for these two primitives, or `None` where the
+  /// pair has no answer this compiler can give.
+  fn answers(self, left: &coercions::Primitive, right: &coercions::Primitive) -> Option<bool> {
+    match self {
+      Self::Equality(reading) => Some(reading.answers(left, right)),
+      Self::Relational(reading) => reading.answers(left, right),
+    }
+  }
+}
+
+/// The primitive an already-evaluated operand is, where it is one.
+///
+/// `None` covers both ways a side can fail to be one: a value with no
+/// expression form at all, and an expression the language compares by
+/// reference. Neither has an answer this evaluator can give, and both fall to
+/// the numeric coercion, which names what it could not read.
+fn primitive_of(value: &EvaluateResultValue) -> Option<coercions::Primitive<'_>> {
+  value.as_expr().and_then(coercions::to_js_primitive)
 }
 
 /// A binary expression folded to its value rather than to an expression: the
@@ -196,25 +321,20 @@ fn fold_binary_expr(
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
-) -> Option<BinaryExprType> {
-  if !state.confident {
-    return None;
-  }
+) -> BinaryExprType {
+  // No confidence guard. Every caller folds from a walk that is still
+  // confident, and `Null` is what this answers for a chain that refused, so a
+  // guard would answer the same thing one step earlier. What it would buy is a
+  // short circuit rather than a different answer, and no measurement asks for
+  // one.
+  binary_expr_to_num_or_str(binary_expr, state, traversal_state, fns).unwrap_or_else(|num_error| {
+    binary_expr_to_string(binary_expr, state, traversal_state, fns).unwrap_or_else(|str_error| {
+      debug!("Binary expression to string error: {}", str_error);
+      debug!("Binary expression to number error: {}", num_error);
 
-  Some(
-    binary_expr_to_num_or_str(binary_expr, state, traversal_state, fns).unwrap_or_else(
-      |num_error| {
-        binary_expr_to_string(binary_expr, state, traversal_state, fns).unwrap_or_else(
-          |str_error| {
-            debug!("Binary expression to string error: {}", str_error);
-            debug!("Binary expression to number error: {}", num_error);
-
-            BinaryExprType::Null
-          },
-        )
-      },
-    ),
-  )
+      BinaryExprType::Null
+    })
+  })
 }
 
 /// Every binary operator but the three logical ones, folded to whichever of a
@@ -233,17 +353,6 @@ pub(crate) fn binary_expr_to_num_or_str(
 ) -> Result<BinaryExprType, anyhow::Error> {
   let op = binary_expr.op;
 
-  let left = evaluate_left_operand(
-    binary_expr,
-    match op {
-      BinaryOp::Add => LEFT_HAS_NO_VALUE,
-      _ => LEFT_NOT_A_NUMBER,
-    },
-    state,
-    traversal_state,
-    fns,
-  )?;
-
   // `+` is the one operator whose result type its operands decide rather than
   // the path that claimed it: JavaScript concatenates as soon as either side is
   // a string, and only adds when neither is. Asked after the numeric coercion
@@ -253,71 +362,157 @@ pub(crate) fn binary_expr_to_num_or_str(
   // It is therefore also the only operator that asks anything of its right side
   // before its left has coerced. The rest are left in the order they had, so a
   // left side with no numeric form goes on refusing there rather than deopting
-  // on a right side the refusal never needed. `evaluate_cached` memoises, so
-  // the second look below costs nothing.
-  if matches!(op, BinaryOp::Add) {
+  // on a right side the refusal never needed.
+  //
+  // It is also the only operator whose left side can arrive measured, so the
+  // two shapes part here and the numeric path below holds a plain value.
+
+  // The right side of a `+` that adds, and the right side of a comparison the
+  // reading had no answer for, are the same slot: a side this path has already
+  // evaluated and the numeric read below would otherwise ask for a second
+  // time. A second read would be a memo hit rather than a fold, but a hit
+  // costs a structural hash of the whole subtree and a deep clone of what it
+  // remembered -- and for a `+` it would hand back the object unreduced.
+  let mut evaluated_right = None;
+
+  let left = match op {
+    BinaryOp::Add => {
+      let left = evaluate_left_operand(binary_expr, state, traversal_state, fns)?;
+
+      let right = reduced_addend(evaluate_operand(
+        &binary_expr.right,
+        RIGHT_HAS_NO_VALUE,
+        state,
+        traversal_state,
+        fns,
+      )?);
+
+      // Concatenated here rather than by handing the expression back to the
+      // string path, which would evaluate both operands a second time -- and
+      // would drop the left side's measurement on the way, since only a value
+      // can carry one.
+      //
+      // One arm rather than two for the concatenation, so the side is handed on
+      // as it arrived. A measured side is always a string, which is the whole
+      // of what makes the `+` a concatenation whatever the right side holds; an
+      // ordinary side concatenates when either side is one.
+      //
+      // Each side is read through its own conversion before the question is
+      // asked, because that is the order the operator applies: an object whose
+      // own `toString` answers a string concatenates, and one whose own
+      // `valueOf` answers a number adds. A measured side is already a string
+      // and has nothing to reduce.
+      let left = match left {
+        LeftOperand::Value(value) => LeftOperand::Value(reduced_addend(value)),
+        measured => measured,
+      };
+
+      match left {
+        LeftOperand::Value(value)
+          if !value.as_expr().is_some_and(is_string) && !right.as_expr().is_some_and(is_string) =>
+        {
+          evaluated_right = Some(right);
+
+          value
+        },
+        concatenating => {
+          return concatenate(binary_expr, concatenating, &right, state, traversal_state);
+        },
+      }
+    },
+    _ => evaluate_operand(
+      &binary_expr.left,
+      LEFT_NOT_A_NUMBER,
+      state,
+      traversal_state,
+      fns,
+    )?,
+  };
+
+  let left_expr = as_expr_or_err!(left, "Left argument not expression");
+
+  // The eight comparison operators compare two values, and only fall to the
+  // numeric coercion below when one of them is not a primitive. Asked after the
+  // coercion instead, `1 != '1'` answered `false` and `'10' < '9'` answered
+  // `false` where the language and the reference implementation both answer
+  // `true`, and `'a' == 'a'` refused because neither side has a number.
+  //
+  if let Some(reading) = ComparisonReading::of(op)
+    && let Some(left_value) = coercions::to_js_primitive(left_expr)
+  {
     let right = evaluate_operand(
       &binary_expr.right,
-      RIGHT_HAS_NO_VALUE,
+      RIGHT_NOT_A_NUMBER,
       state,
       traversal_state,
       fns,
     )?;
 
-    // Concatenated here rather than by handing the expression back to the
-    // string path, which would evaluate both operands a second time -- and
-    // would drop the left side's measurement on the way, since only a value can
-    // carry one.
-    if left.is_string() || right.as_expr().is_some_and(is_string) {
-      return concatenate(binary_expr, left, &right, state, traversal_state);
+    if let Some(right_value) = primitive_of(&right)
+      && let Some(answer) = reading.answers(&left_value, &right_value)
+    {
+      return Result::Ok(BinaryExprType::Number(convert_bool_to_number(answer)));
     }
+
+    evaluated_right = Some(right);
   }
 
-  let left_expr = as_expr_or_err!(left, "Left argument not expression");
   let left_num = expr_to_num(left_expr, state, traversal_state, fns)?;
 
-  let right = evaluate_operand(
-    &binary_expr.right,
-    RIGHT_NOT_A_NUMBER,
-    state,
-    traversal_state,
-    fns,
-  )?;
+  let right = match evaluated_right {
+    Some(right) => right,
+    None => evaluate_operand(
+      &binary_expr.right,
+      RIGHT_NOT_A_NUMBER,
+      state,
+      traversal_state,
+      fns,
+    )?,
+  };
   let right_expr = as_expr_or_err!(right, "Right argument not expression");
   let right_num = expr_to_num(right_expr, state, traversal_state, fns)?;
 
   let result = match &op {
-    BinaryOp::Add => left_num + right_num,
-    BinaryOp::Sub => left_num - right_num,
-    BinaryOp::Mul => left_num * right_num,
-    BinaryOp::Div => left_num / right_num,
-    BinaryOp::Mod => left_num % right_num,
-    BinaryOp::Exp => left_num.powf(right_num),
-    BinaryOp::RShift => ((left_num as i32) >> right_num as i32) as f64,
-    BinaryOp::LShift => ((left_num as i32) << right_num as i32) as f64,
-    BinaryOp::BitAnd => ((left_num as i32) & right_num as i32) as f64,
-    BinaryOp::BitOr => ((left_num as i32) | right_num as i32) as f64,
-    BinaryOp::BitXor => ((left_num as i32) ^ right_num as i32) as f64,
+    // An operator whose result is a number is read in `stylex-js`, beside the
+    // coercions it applies -- the arithmetic and the six bitwise ones. One home
+    // for them, because the transform reads a binary expression through the
+    // same function and the two readings have to answer alike.
+    BinaryOp::Add
+    | BinaryOp::Sub
+    | BinaryOp::Mul
+    | BinaryOp::Div
+    | BinaryOp::Mod
+    | BinaryOp::Exp
+    | BinaryOp::RShift
+    | BinaryOp::LShift
+    | BinaryOp::BitAnd
+    | BinaryOp::BitOr
+    | BinaryOp::BitXor
+    | BinaryOp::ZeroFillRShift => evaluate_bin_expr(op, left_num, right_num),
     // `in` and `instanceof` ask a question about an object, which this path has
     // already coerced away to a number. What they answer here is therefore not
     // the operator's meaning; it is left as found, because nothing real StyleX
     // source can write reaches either arm.
     BinaryOp::In => convert_bool_to_number(right_num == 0.0),
     BinaryOp::InstanceOf => convert_bool_to_number(right_num == 0.0),
-    BinaryOp::EqEq => convert_bool_to_number(left_num == right_num),
-    BinaryOp::NotEq => convert_bool_to_number(left_num != right_num),
-    BinaryOp::EqEqEq => convert_bool_to_number(left_num == right_num),
-    BinaryOp::NotEqEq => convert_bool_to_number(left_num != right_num),
-    BinaryOp::Lt => convert_bool_to_number(left_num < right_num),
-    BinaryOp::LtEq => convert_bool_to_number(left_num <= right_num),
-    BinaryOp::Gt => convert_bool_to_number(left_num > right_num),
-    BinaryOp::GtEq => convert_bool_to_number(left_num >= right_num),
-    BinaryOp::ZeroFillRShift => ((left_num as i32) >> right_num as i32) as f64,
-    // Unreachable: the three logical operators are dispatched to their own node
-    // before this path can run, and there they return an operand rather than a
-    // number. Refused on the same terms as any other operator this path has no
-    // answer for, rather than coerced to one.
-    BinaryOp::LogicalOr | BinaryOp::LogicalAnd | BinaryOp::NullishCoalescing => {
+    // Unreachable, on two grounds. The three logical operators are dispatched to
+    // their own node before this path can run, and there they return an operand
+    // rather than a number. The eight comparison operators are answered by the
+    // reading above for every side that is a primitive -- and a side that is
+    // not one has no number either, so it refuses at the coercion above and
+    // never arrives here. Both are refused on the same terms as any other
+    // operator this path has no answer for, rather than coerced to one.
+    BinaryOp::LogicalOr
+    | BinaryOp::LogicalAnd
+    | BinaryOp::NullishCoalescing
+    | BinaryOp::EqEq
+    | BinaryOp::NotEq
+    | BinaryOp::EqEqEq
+    | BinaryOp::NotEqEq
+    | BinaryOp::Lt
+    | BinaryOp::LtEq
+    | BinaryOp::Gt
+    | BinaryOp::GtEq => {
       return Result::Err(anyhow!(unsupported_operator(op.as_str())));
     },
   };

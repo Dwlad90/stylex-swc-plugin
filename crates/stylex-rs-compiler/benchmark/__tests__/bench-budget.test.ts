@@ -21,6 +21,7 @@ import {
   type RawStatsFile,
   type SubjectDescriptor,
 } from '../lib/types.js';
+import { fixtureMeasuredByOne } from './helpers/raw-fixtures.js';
 
 const BASE: SubjectDescriptor = { label: 'base', version: '0.18.2', resolvedFrom: '/base' };
 const CANDIDATE: SubjectDescriptor = {
@@ -77,6 +78,19 @@ function fixture(name: string, candidateP95PerRound: readonly number[]): Fixture
       confidence: { point: 0.5, lower: 0.45, upper: 0.55 },
     },
   };
+}
+
+/** The same fixture, measured by the candidate alone. */
+function candidateOnlyFixture(
+  name: string,
+  candidateP95PerRound: readonly number[]
+): FixtureRawStats {
+  return fixtureMeasuredByOne({
+    name,
+    label: CANDIDATE.label,
+    perRound: candidateP95PerRound,
+    samplesOf: samples,
+  });
 }
 
 function rawStats(
@@ -180,6 +194,7 @@ describe('evaluateBudget — coverage', () => {
     expect(report.problems).toContainEqual({
       kind: 'missing-entry',
       message: 'no committed ceiling for "page"',
+      severity: 'failure',
     });
     expect(report.fixtures[1]?.status).toBe('unbudgeted');
   });
@@ -193,6 +208,56 @@ describe('evaluateBudget — coverage', () => {
     expect(report.problems).toContainEqual({
       kind: 'extra-entry',
       message: 'budget entry "removed" was not measured in this run',
+      severity: 'failure',
+    });
+  });
+
+  // The release leg compares against the last published version, which cannot
+  // compile a fixture that prices a feature it does not carry. That fixture is
+  // measured for the candidate alone, and the ceilings describe the candidate,
+  // so it is checked like any other.
+  test('a fixture only the candidate measured is held to its ceiling', () => {
+    const report = evaluateBudget(
+      rawStats([fixture('card', [1]), candidateOnlyFixture('engine-fold', [1])]),
+      budget([entry('card', 2), entry('engine-fold', 2)])
+    );
+
+    expect(report.problems).toStrictEqual([]);
+    expect(report.status).toBe('pass');
+    expect(report.fixtures[1]?.name).toBe('engine-fold');
+    expect(report.fixtures[1]?.status).toBe('pass');
+  });
+
+  test('the same fixture breaches its ceiling like any other', () => {
+    const report = evaluateBudget(
+      rawStats([fixture('card', [1]), candidateOnlyFixture('engine-fold', [9])]),
+      budget([entry('card', 2), entry('engine-fold', 2)])
+    );
+
+    expect(report.status).toBe('failed');
+    expect(report.problems).toContainEqual({
+      kind: 'breach',
+      message: 'engine-fold: p95 9.0000 ms exceeds ceiling 2.0000 ms',
+      severity: 'failure',
+    });
+  });
+
+  // Ceilings that describe the base cannot be checked against a fixture the
+  // base did not measure. The entry is reported as one nothing measured, which
+  // is the reading that stops the release rather than one that reads a number
+  // off the wrong subject.
+  test('a base budget reports a candidate-only fixture as unmeasured', () => {
+    const report = evaluateBudget(
+      rawStats([fixture('card', [1]), candidateOnlyFixture('engine-fold', [1])]),
+      { ...budget([entry('card', 4), entry('engine-fold', 4)]), subject: 'base' }
+    );
+
+    expect(report.subject.label).toBe(BASE.label);
+    expect(report.fixtures.map(measured => measured.name)).toStrictEqual(['card']);
+    expect(report.problems).toContainEqual({
+      kind: 'extra-entry',
+      message: 'budget entry "engine-fold" was not measured in this run',
+      severity: 'failure',
     });
   });
 });
@@ -236,24 +301,58 @@ describe('evaluateBudget — canonical environment', () => {
     expect(report.problems[0]?.kind).toBe('environment-runner-image');
   });
 
-  test('a rebuilt image within the same family fails once builds are pinned', () => {
+  test('a rebuilt image within the same family reports a diagnostic, not a failure', () => {
     const report = evaluateBudget(
       rawStats([fixture('card', [1])], { ...CANONICAL_ENV, runnerImageVersion: '20260901.2.0' }),
       budget([entry('card', 2)])
     );
-    expect(report.status).toBe('failed');
+    expect(report.status).toBe('pass');
     expect(report.problems[0]?.kind).toBe('environment-runner-image-version');
-    expect(report.problems[0]?.message).toContain('recalibration required');
+    expect(report.problems[0]?.severity).toBe('diagnostic');
   });
 
-  test('a missing image version fails once builds are pinned', () => {
+  test('a missing image version still fails, because no machine can be named', () => {
     const environment = { ...CANONICAL_ENV };
     delete environment.runnerImageVersion;
     const report = evaluateBudget(
       rawStats([fixture('card', [1])], environment),
       budget([entry('card', 2)])
     );
-    expect(report.problems[0]?.kind).toBe('environment-runner-image-version');
+    expect(report.status).toBe('failed');
+    expect(report.problems[0]?.kind).toBe('environment-runner-image-version-missing');
+    expect(report.problems[0]?.severity).toBe('failure');
+  });
+
+  test('a rebuilt image does not hide a breach', () => {
+    const report = evaluateBudget(
+      rawStats([fixture('card', [5])], { ...CANONICAL_ENV, runnerImageVersion: '20260901.2.0' }),
+      budget([entry('card', 2)])
+    );
+    expect(report.status).toBe('failed');
+    expect(report.problems.map(problem => problem.kind)).toContain('breach');
+    expect(report.problems.filter(problem => problem.severity === 'failure')).toHaveLength(1);
+  });
+
+  test('the image family stays a failure when only the build is tolerated', () => {
+    const report = evaluateBudget(
+      rawStats([fixture('card', [1])], { ...CANONICAL_ENV, runnerImage: 'ubuntu26' }),
+      budget([entry('card', 2)])
+    );
+    expect(report.status).toBe('failed');
+    expect(report.problems[0]?.kind).toBe('environment-runner-image');
+    expect(report.problems[0]?.severity).toBe('failure');
+  });
+
+  test('every problem carries a severity', () => {
+    const environment = { ...CANONICAL_ENV, target: 'aarch64-apple-darwin' };
+    const report = evaluateBudget(
+      rawStats([fixture('card', [5])], environment),
+      budget([entry('card', 2)])
+    );
+    expect(report.problems.length).toBeGreaterThan(0);
+    for (const problem of report.problems) {
+      expect(['failure', 'diagnostic']).toContain(problem.severity);
+    }
   });
 
   test('an unpinned budget ignores the image version', () => {

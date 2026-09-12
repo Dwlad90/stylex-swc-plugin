@@ -2094,7 +2094,7 @@
       "id": "255b43d2",
       "property": "flexGrow",
       "value": "a",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/string_coercion.rs:146"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/string_coercion.rs:150"
     },
     {
       "id": "c11f774c",

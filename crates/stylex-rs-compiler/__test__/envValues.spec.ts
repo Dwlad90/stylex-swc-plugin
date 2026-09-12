@@ -47,7 +47,9 @@ const compileWithEnv = (envLiteral: string, source = 'export const a = 1;') => {
     status: child.status,
     error: child.error,
     stderr: child.stderr,
-    result: child.stdout ? (JSON.parse(child.stdout) as { ok: boolean; message?: string }) : null,
+    result: child.stdout
+      ? (JSON.parse(child.stdout) as { ok: boolean; message?: string; code?: string })
+      : null,
   };
 };
 
@@ -161,6 +163,35 @@ describe('shapes that a reader can descend into too far', () => {
 
     expectNoAbort(outcome, 'empty containers');
     expect(outcome.result?.ok).toBe(true);
+  });
+});
+
+// The reader writes one present element per slot and never a spread, which is
+// the contract the compiler's own readers of such an array rely on and none of
+// them re-checks. A hole is where a reader that wrote a shorter array would
+// show: an array of three with a hole in the middle would read as two, and
+// every index after the hole would name the wrong element.
+describe('an array the reader writes', () => {
+  /** The module `read` compiles to, under one `env` object. */
+  const compiledRead = (envLiteral: string, read: string) =>
+    compileWithEnv(
+      envLiteral,
+      `import * as stylex from '@stylexjs/stylex';
+       export const styles = stylex.create({ x: { width: ${read} } });`
+    );
+
+  test('a hole keeps its slot, so every index after it names its own element', () => {
+    const throughTheHole = compiledRead('{ sizes: [1, , 3] }', 'stylex.env.sizes[2]');
+    const written = compiledRead('{ sizes: [3] }', 'stylex.env.sizes[0]');
+
+    expectNoAbort(throughTheHole, 'an env array with a hole');
+    expectNoAbort(written, 'an env array with no hole');
+
+    // The same value read two ways is the same class name, because a class
+    // name is a hash of the declaration. A reader that dropped the hole would
+    // read index 2 as absent and name a different class, or none.
+    expect(throughTheHole.result?.ok).toBe(true);
+    expect(throughTheHole.result?.code).toBe(written.result?.code);
   });
 });
 

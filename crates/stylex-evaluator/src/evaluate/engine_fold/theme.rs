@@ -42,16 +42,20 @@ use super::Decline;
 use super::engine::read;
 use stylex_state::theme_ref::{IS_PROXY_KEY, ThemeRef, VarNaming, var_group_member};
 
-/// Where each value sits in the argument list the traps hand the derivation.
+/// What the derivation throws when the traps did not hand it an identity.
 ///
-/// The traps build that list from named locals and this reads it back by
-/// position, so the two orders have to agree — which is why they are spelled out
-/// rather than counted. `KEY` is also the arity of the identity in front of it.
-const BASE_ID: usize = 0;
-const CLASS_NAME_PREFIX: usize = 1;
-const DEBUG: usize = 2;
-const READABLE_NAMES: usize = 3;
-const KEY: usize = 4;
+/// Named rather than written where it is thrown, so the case that asserts it
+/// reads the same words the throw does. An author never meets this sentence: it
+/// says the traps and the derivation disagree, which is a fault of this
+/// compiler and not of any source.
+const READ_WITHOUT_AN_IDENTITY: &str = "A theme group was read without its own identity.";
+
+/// How many values the traps hand the derivation.
+///
+/// The traps build that list from named locals and the derivation reads it back
+/// as one slice pattern, so the two orders agree by the order each is written
+/// in. The engine is told this number as the derivation's arity.
+const IDENTITY_ARITY: usize = 5;
 
 /// The traps a `defineVars` group answers reads through.
 ///
@@ -81,7 +85,7 @@ const KEY: usize = 4;
 /// Written out rather than assembled from pieces, because it is JavaScript and
 /// reads as JavaScript. The two keys it compares against are the compiler's own
 /// constants, so a rename reaches this source rather than passing it by.
-fn var_group_traps() -> String {
+pub(super) fn var_group_traps() -> String {
   format!(
     r#"(member) => (baseId, prefix, debug, readableNames, paths) => {{
       const identity = [baseId, prefix, debug, readableNames];
@@ -124,14 +128,22 @@ fn unbuilt(reason: &str) -> Decline {
 /// Evaluated rather than assembled, and kept rather than re-evaluated: a group
 /// crossing is a parse of the traps above otherwise, paid per group per fold.
 ///
+/// Four steps, and each has a refusal of its own: the text has to parse, to a
+/// function, which is called once, and has to answer a function. None of the
+/// four can fire for [`var_group_traps`], which is the one source shipped — so
+/// the source is a parameter, and a case hands in a source that fails the step
+/// it is about. The refusals stay because the shipped source is assembled from
+/// two of the compiler's constants, and a rename that breaks it is declined
+/// here rather than folded past.
+///
 /// Answers a refusal rather than asserting, for the reason the engine's own
 /// construction does — this runs inside an evaluation whose whole contract is
 /// that it may fail.
-pub(super) fn compile_var_group(context: &mut Context) -> Result<JsFunction, Decline> {
+pub(super) fn compile_traps(source: &str, context: &mut Context) -> Result<JsFunction, Decline> {
   let refused = |error: JsError| unbuilt(&error.to_string());
 
   let traps = context
-    .eval(Source::from_bytes(var_group_traps().as_bytes()))
+    .eval(Source::from_bytes(source.as_bytes()))
     .map_err(refused)?;
 
   let Some(traps) = traps.as_callable() else {
@@ -142,7 +154,7 @@ pub(super) fn compile_var_group(context: &mut Context) -> Result<JsFunction, Dec
 
   let derive = FunctionObjectBuilder::new(context.realm(), NativeFunction::from_fn_ptr(derive))
     .name(js_string!("member"))
-    .length(KEY + 1)
+    .length(IDENTITY_ARITY)
     .build();
 
   let built = traps
@@ -251,24 +263,28 @@ pub(super) fn var_group_text(
 /// anything an author can write. It throws all the same: this runs inside an
 /// evaluation whose whole contract is that it may fail, where an assertion would
 /// abort a build a refusal would only decline.
+///
+/// The list is read as one pattern rather than one index at a time. That is what
+/// says the two flags are there whenever the key is, so neither has a missing
+/// case of its own to answer, and it asks the length once for the whole read.
+/// A longer list is the traps of a later version and is read as this one.
 fn derive(_: &JsValue, arguments: &[JsValue], _: &mut Context) -> JsResult<JsValue> {
-  let text = |index: usize| match arguments.get(index).and_then(JsValue::as_string) {
-    Some(text) => Ok(text.to_std_string_escaped()),
-    None => Err(JsError::from_native(
-      JsNativeError::typ().with_message("A theme group was read without its own identity."),
-    )),
+  let broken = || JsError::from_native(JsNativeError::typ().with_message(READ_WITHOUT_AN_IDENTITY));
+
+  let [base_id, class_name_prefix, debug, readable_names, key, ..] = arguments else {
+    return Err(broken());
   };
 
-  let truth = |index: usize| match arguments.get(index) {
-    Some(value) => value.to_boolean(),
-    None => false,
+  let text = |value: &JsValue| match value.as_string() {
+    Some(text) => Ok(text.to_std_string_escaped()),
+    None => Err(broken()),
   };
 
   let named = var_group_member(
-    &text(BASE_ID)?,
-    &text(CLASS_NAME_PREFIX)?,
-    &text(KEY)?,
-    VarNaming::from_flags(truth(DEBUG), truth(READABLE_NAMES)),
+    &text(base_id)?,
+    &text(class_name_prefix)?,
+    &text(key)?,
+    VarNaming::from_flags(debug.to_boolean(), readable_names.to_boolean()),
   );
 
   Ok(JsString::from(named).into())

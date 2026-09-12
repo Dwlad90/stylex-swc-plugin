@@ -18,10 +18,7 @@
 
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{
-    ArrayLit, BinExpr, BinaryOp, Expr, ExprOrSpread, KeyValueProp, Lit, Prop, PropName,
-    PropOrSpread,
-  },
+  ecma::ast::{ArrayLit, BinExpr, BinaryOp, Expr, ExprOrSpread, Lit, PropName},
 };
 
 use stylex_ast::ast::convertors::{atom_utf16_length, is_js_undefined};
@@ -32,8 +29,10 @@ use stylex_constants::constants::evaluation_errors::{
 use stylex_js::coercions::to_js_number;
 use stylex_utils::number::to_js_string;
 
-use super::guard::{Bounds, Callback, Reader, Walk, without_parens};
-use super::{Decline, Depth, as_expr, lists};
+use super::super::evaluate_result_as_expr;
+use super::super::helpers::written_key_values;
+use super::guard::{Bound, Bounds, Callback, Reader, Walk, without_parens};
+use super::{Decline, Depth, lists};
 use stylex_state::evaluate_result_value::EvaluateResultValue;
 
 /// Methods whose result *string* length is set by an argument, and so are the
@@ -244,6 +243,11 @@ impl Walk<'_, '_> {
     // The evaluator answers an array either as a list of its own or as the literal
     // it was written as, and both are one array here — the same two shapes the
     // inward conversion reads, for the same reason.
+    //
+    // The literal arm is answered by written length alone, because the literal
+    // is an evaluator-written array: an array an author wrote folds to the list
+    // arm above. So the length is the count, and no slot holds a hole whose
+    // width would go unread. See "Evaluator-written array" in CONTEXT.md.
     let (elements, element) = match &countable_value_of(receiver, self.reader)? {
       EvaluateResultValue::Vec(items) => (
         items.len(),
@@ -253,19 +257,13 @@ impl Walk<'_, '_> {
         },
       ),
       EvaluateResultValue::Expr(Expr::Array(ArrayLit { elems, .. })) => {
-        // A spread stands for however many elements its operand holds, so the
-        // written length is not the count — and a count read short is the one
-        // reading that would admit a call nothing bounded. The literal arm is
-        // answered by written length alone, so a spread has to leave it.
-        if elems.iter().flatten().any(|elem| elem.spread.is_some()) {
-          return None;
-        }
+        let written = WrittenArray(elems);
 
         (
-          elems.len(),
+          written.slots(),
           Bounds {
-            characters: greatest_of(elems.iter().map(|elem| rendered_element(elem, depth))),
-            magnitude: greatest_of(elems.iter().map(number_written_as)),
+            characters: greatest_of(written.each_rendered(depth)),
+            magnitude: greatest_of(written.each().map(|slot| slot.and_then(number_of))),
           },
         )
       },
@@ -352,11 +350,11 @@ impl Walk<'_, '_> {
   /// were, and a ceiling is all a bound ever needed.
   fn count_bound(&mut self, expr: &Expr) -> Option<u64> {
     if let Expr::Lit(_) = expr {
-      return count_of(to_js_number(expr)?);
+      return count_written(expr);
     }
 
     match self.reader.resolve(expr) {
-      Some(value) => count_of(to_js_number(&as_expr(&value)?)?),
+      Some(value) => count_resolved(&value),
       None => self.numeric_bound(expr),
     }
   }
@@ -371,13 +369,22 @@ impl Walk<'_, '_> {
   /// a bound on their result. A leaf that is anything else stops the reading,
   /// which costs a fold rather than admitting one nothing measured.
   fn numeric_bound(&mut self, expr: &Expr) -> Option<u64> {
-    match without_parens(expr) {
+    let read = without_parens(expr);
+
+    // A name the callback binds is the element the receiver was measured for, or
+    // that element's index — and one it binds to neither is bounded by nothing,
+    // which stops the reading here rather than sending it to the module, whose
+    // value for the same spelling the parameter shadows.
+    if let Expr::Ident(ident) = read {
+      match self.guard.scope.bound(&ident.sym) {
+        Bound::Measured(bounds) => return bounds.magnitude,
+        Bound::Unmeasured => return None,
+        Bound::NotInScope => {},
+      }
+    }
+
+    match read {
       Expr::Lit(_) => number_of(expr),
-      // A name the callback binds is the element the receiver was measured for,
-      // or that element's index.
-      Expr::Ident(ident) if self.guard.scope.binds(&ident.sym) => {
-        self.guard.scope.bounds_of(&ident.sym)?.magnitude
-      },
       Expr::Bin(BinExpr {
         op: op @ (BinaryOp::Add | BinaryOp::Mul),
         left,
@@ -394,7 +401,7 @@ impl Walk<'_, '_> {
       },
       // A name the module holds, which is a leaf like a written number once the
       // evaluator has answered for it.
-      other => number_of(&as_expr(&self.reader.resolve(other)?)?),
+      other => number_resolved(&self.reader.resolve(other)?),
     }
   }
 
@@ -410,16 +417,23 @@ impl Walk<'_, '_> {
   /// holds is an element of a receiver the call around the callback measured — so
   /// that element's width is the length, and a name nothing measured has none.
   fn receiver_length(&mut self, receiver: &Expr) -> Option<u64> {
-    let text = match without_parens(receiver) {
+    let read = without_parens(receiver);
+
+    // A name the callback binds is answered from the element it was handed, and
+    // this is what makes `['a','b'].map(x => x.repeat(3))` fold at all: the
+    // module has no value for `x`, so without it there is no length to read.
+    // Asked before the resolution rather than left to it — see
+    // [`module_value_of`] for why the module could not answer for it anyway.
+    if let Expr::Ident(ident) = read {
+      match self.guard.scope.bound(&ident.sym) {
+        Bound::Measured(bounds) => return bounds.characters,
+        Bound::Unmeasured => return None,
+        Bound::NotInScope => {},
+      }
+    }
+
+    let text = match read {
       Expr::Lit(Lit::Str(text)) => text.value.clone(),
-      // A name the callback binds is answered from the element it was handed, and
-      // this arm is what makes `['a','b'].map(x => x.repeat(3))` fold at all: the
-      // module has no value for `x`, so without it there is no length to read.
-      // Asked before the resolution rather than left to it — see
-      // [`module_value_of`] for why the module could not answer for it anyway.
-      Expr::Ident(ident) if self.guard.scope.binds(&ident.sym) => {
-        return self.guard.scope.bounds_of(&ident.sym)?.characters;
-      },
       _ => match module_value_of(receiver, self.reader)? {
         EvaluateResultValue::Expr(Expr::Lit(Lit::Str(text))) => text.value,
         _ => return None,
@@ -588,27 +602,55 @@ fn hands_over_a_function(args: &[ExprOrSpread]) -> bool {
   })
 }
 
-/// One written array element's rendered width.
+/// One evaluator-written array, read for the two units its elements are measured
+/// in.
 ///
-/// A hole is `undefined`, so its width is that value's and not nothing: a
-/// callback handed the element renders it as the name. A spread stands for a
-/// count the source does not state, so it has no width. Read from one place
-/// because both the receiver's own elements and a nested array's are the same
-/// question.
+/// The count and the elements come off one value, because they have to agree and
+/// nothing checks that they do. The count is the slot count, which is the safe
+/// reading: a count taken from the elements would read short for a hole and so
+/// admit a call no ceiling bounded.
 ///
-/// No input reaches the hole arm today. The evaluator refuses an array carrying
-/// one at any depth, so nothing this resolves can hold a hole — see
-/// `tests/array_hole_tests.rs`, which is the rule rather than an accident of
-/// ordering. It answers the value's width all the same, because the reading a
-/// dead arm holds is what the branch would be admitting on the day that rule is
-/// relaxed, and nothing would then flag it. Nothing renders as zero characters,
-/// which is what it used to claim: a width read short admits a call no ceiling
-/// bounded, where reading it long only refuses sooner.
-fn rendered_element(elem: &Option<ExprOrSpread>, depth: Depth) -> Option<u64> {
-  match elem {
-    Some(ExprOrSpread { spread: None, expr }) => rendered_expr(expr, depth),
-    Some(_) => None,
-    None => Some(UNDEFINED_WIDTH),
+/// The elements are total under the invariant in "Evaluator-written array", and
+/// the reading below does not rest on it. A hole stepped over, and a spread
+/// measured as its operand, both read a bound short — and this is the one guard
+/// whose being wrong costs unbounded memory rather than one wrong declaration,
+/// so it refuses a slot it cannot measure instead of trusting the producer.
+/// `engine_fold/guard.rs` admits both where it walks what an author wrote, which
+/// is the other value class rather than a disagreement.
+///
+/// Copied rather than borrowed, because it is one shared slice and both units
+/// read the whole of it — so neither reading holds the other up.
+#[derive(Clone, Copy)]
+struct WrittenArray<'a>(&'a [Option<ExprOrSpread>]);
+
+impl<'a> WrittenArray<'a> {
+  /// How many slots the language reports.
+  fn slots(self) -> usize {
+    self.0.len()
+  }
+
+  /// The expression each slot holds, or `None` where a slot holds no expression
+  /// the guard can measure -- a hole, or a spread standing for a count the
+  /// source does not state. Both read a bound short, so both stop the reading
+  /// rather than being stepped over.
+  ///
+  /// Every reader below carries the absence on with `and_then`, so a slot with
+  /// nothing to measure reaches `greatest_of` and `joined` as the refusal they
+  /// already answer for a value they cannot read.
+  fn each(self) -> impl Iterator<Item = Option<&'a Expr>> {
+    self.0.iter().map(|slot| match slot {
+      Some(ExprOrSpread { spread: None, expr }) => Some(&**expr),
+      Some(_) | None => None,
+    })
+  }
+
+  /// The characters each slot renders to at `depth`, which is the one reading
+  /// the two callers below share -- the bound a receiver puts on a callback,
+  /// and the width of an array nested inside one.
+  fn each_rendered(self, depth: Depth) -> impl Iterator<Item = Option<u64>> {
+    self
+      .each()
+      .map(move |slot| slot.and_then(|expr| rendered_expr(expr, depth)))
   }
 }
 
@@ -637,17 +679,6 @@ fn number_held_by(value: &EvaluateResultValue) -> Option<u64> {
   }
 }
 
-/// The same for one element as the source wrote it.
-///
-/// A hole is `undefined`, whose `ToNumber` is `NaN` and which no arithmetic
-/// recovers a number from, so it reads as no number rather than as zero.
-fn number_written_as(elem: &Option<ExprOrSpread>) -> Option<u64> {
-  match elem {
-    Some(ExprOrSpread { spread: None, expr }) => number_of(expr),
-    _ => None,
-  }
-}
-
 /// One written number as the largest count it can stand for, or `None` where it
 /// is not a number, or is one no count can be taken from.
 ///
@@ -671,6 +702,50 @@ fn number_of(expr: &Expr) -> Option<u64> {
     true => Some(number.value.ceil() as u64),
     false => None,
   }
+}
+
+/// The count a written expression bounds a call at, or `None` where it has no
+/// compile-time number.
+///
+/// `ToNumber` is what the language does to the argument, so `'x'.repeat('3')`
+/// repeats three times and `'x'.repeat('lots')` repeats none. A value with no
+/// number at all is not the same answer: it bounds the call at nothing rather
+/// than at zero, and the call is refused instead of folded.
+///
+/// The two lines below refuse for different reasons, and both are reached.
+///
+/// The `?` refuses a value with no string form at all. A literal always has
+/// one — every literal has a text, and a text reads as a number or as `NaN`; a
+/// regular expression reads as its own source and a big integer through its
+/// digits — so the `?` cannot fire for the literal [`Walk::count_bound`] hands
+/// it, and every refusal it answers arrives through [`count_resolved`].
+///
+/// [`count_of`] refuses a count that is not finite, and a literal does reach
+/// that: `'x'.repeat(1e999)` and `'x'.repeat('Infinity')` both read as
+/// infinity. A count nothing bounds is refused rather than folded, which is the
+/// rule this whole module is.
+fn count_written(expr: &Expr) -> Option<u64> {
+  count_of(to_js_number(expr)?)
+}
+
+/// The same for a value the module answered with, which reaches its number
+/// through the expression it writes down.
+///
+/// `None` for a value this compiler holds of its own — a theme reference, a
+/// function map, the environment object — which writes no expression at all.
+fn count_resolved(value: &EvaluateResultValue) -> Option<u64> {
+  count_written(&evaluate_result_as_expr(value)?)
+}
+
+/// The written number a value the module answered with holds, which is narrower
+/// than [`count_resolved`] on purpose: the arithmetic above it is sound only
+/// over numbers the guard has seen written, so a value that merely coerces to
+/// one stops the reading.
+///
+/// `None` for a value that writes no expression down, on the same terms as
+/// [`count_resolved`].
+fn number_resolved(value: &EvaluateResultValue) -> Option<u64> {
+  number_of(&evaluate_result_as_expr(value)?)
 }
 
 /// How many characters one resolved value renders to under the language's own
@@ -712,10 +787,11 @@ fn rendered_expr(expr: &Expr, depth: Depth) -> Option<u64> {
     // The value the grammar has no literal for, which a callback parameter can
     // hold like any other element.
     Expr::Ident(ident) if is_js_undefined(ident) => Some(UNDEFINED_WIDTH),
-    Expr::Array(ArrayLit { elems, .. }) => joined(
-      elems.len(),
-      elems.iter().map(|elem| rendered_element(elem, inner)),
-    ),
+    Expr::Array(ArrayLit { elems, .. }) => {
+      let written = WrittenArray(elems);
+
+      joined(written.slots(), written.each_rendered(inner))
+    },
     _ => None,
   }
 }
@@ -906,13 +982,14 @@ fn declared_length_of(resolved: &EvaluateResultValue) -> Declared {
     return Declared::Nothing;
   };
 
-  let length = object.props.iter().rev().find_map(|prop| match prop {
-    PropOrSpread::Prop(prop) => match prop.as_ref() {
-      Prop::KeyValue(KeyValueProp { key, value }) if is_a_length_key(key) => Some(value),
-      _ => None,
-    },
-    PropOrSpread::Spread(_) => None,
-  });
+  // Read through the one walk of an evaluator-written object, which passes over
+  // whatever is not a key-value pair. Such an object holds nothing else -- see
+  // [`is_a_length_key`] -- so what the walk skips is a shape that cannot
+  // arrive. The last such key wins, which is the property the language keeps.
+  let length = written_key_values(object)
+    .rev()
+    .find(|key_value| is_a_length_key(&key_value.key))
+    .map(|key_value| &key_value.value);
 
   // An object with no own `length` is the empty array, and one whose length the
   // language will not accept is a throw it raises itself. Both declare nothing
@@ -929,15 +1006,16 @@ fn declared_length_of(resolved: &EvaluateResultValue) -> Declared {
 
 /// Whether a property name is the `length` an array-like declares.
 ///
-/// Both spellings of the one key, because `{ 'length': n }` declares what
-/// `{ length: n }` does. A computed key is not read: the evaluator answers a
-/// resolved object, whose keys are settled by the time this sees them.
+/// One spelling, because `length` is a valid identifier and
+/// `convert_string_to_prop_name` spells any such name as one. So `{ 'length': n }`
+/// arrives here spelled the way `{ length: n }` is.
+///
+/// Not because every key is an identifier, which is untrue of this reader's
+/// input: a key like `"max-width"` does reach it quoted. It is `length` alone
+/// that cannot. `a_key_that_is_not_length_declares_nothing` is what fails the
+/// day this widens, and the quoted case the day the spelling changes.
 fn is_a_length_key(key: &PropName) -> bool {
-  match key {
-    PropName::Ident(name) => name.sym == "length",
-    PropName::Str(name) => name.value.as_str() == Some("length"),
-    _ => false,
-  }
+  matches!(key, PropName::Ident(name) if name.sym == "length")
 }
 
 /// One number as the array length the language would make of it, or `None` where
@@ -960,3 +1038,8 @@ fn valid_array_length(number: f64) -> Option<u64> {
     false => None,
   }
 }
+
+// The readings that answer nothing for a value or a budget no walk hands them.
+#[cfg(test)]
+#[path = "tests/unmeasurable_value_tests.rs"]
+mod unmeasurable_value_tests;

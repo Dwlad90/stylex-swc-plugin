@@ -84,11 +84,11 @@ pub fn convert_lit_to_number(lit_num: &Lit) -> Result<f64, anyhow::Error> {
       let string_value = convert_atom_to_string(&strng.value);
       match string_value.parse::<f64>() {
         Ok(num) => Ok(num),
-        Err(_) => Err(anyhow!("Value in not a number: {}", string_value)),
+        Err(_) => Err(anyhow!("Value is not a number: {}", string_value)),
       }
     },
     _ => Err(anyhow!(
-      "Value in not a number: {}",
+      "Value is not a number: {}",
       get_expr_node_kind(&Expr::from(lit_num.clone()))
     )),
   }

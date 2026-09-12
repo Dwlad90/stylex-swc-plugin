@@ -13,7 +13,7 @@
 use super::*;
 
 use swc_core::common::{BytePos, DUMMY_SP, GLOBALS, Globals, Span, SyntaxContext};
-use swc_core::ecma::ast::BindingIdent;
+use swc_core::ecma::ast::{BindingIdent, VarDeclarator};
 
 use stylex_constants::constants::evaluation_errors::USED_BEFORE_DECLARATION;
 use stylex_structures::stylex_options::StyleXOptions;

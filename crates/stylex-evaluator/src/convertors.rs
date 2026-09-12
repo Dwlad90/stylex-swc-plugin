@@ -2,7 +2,7 @@
 use stylex_macros::{
   as_expr_or_panic, stylex_bail, stylex_panic, stylex_unimplemented, unwrap_or_panic,
 };
-use swc_core::ecma::ast::{BinExpr, Expr, Ident, Tpl, UnaryExpr, UnaryOp};
+use swc_core::ecma::ast::{BinExpr, Expr, Ident, Lit, Tpl, UnaryExpr, UnaryOp};
 
 use crate::evaluate::{binary_expr_to_num_or_str, evaluate_cached};
 use crate::state::EvaluationState;
@@ -33,6 +33,16 @@ pub fn expr_to_num(
     Expr::Ident(ident) => match coercions::to_js_number(expr_num) {
       Some(number) => number,
       None => ident_to_number(ident, state, traversal_state, &FunctionMap::default()),
+    },
+    // A string's number is `StringToNumber`, not Rust's float grammar: Rust
+    // accepts `inf` and `nan`, which the language does not, and rejects the
+    // radix prefixes and the surrounding whitespace, which it does. The first
+    // disagreement puts a wrong number in a stylesheet and the second refuses a
+    // fold the reference implementation makes. `null` is nought for the same
+    // reason: the literal grammar has no reading of it and the language does.
+    Expr::Lit(Lit::Str(_) | Lit::Null(_)) => match coercions::to_js_number(expr_num) {
+      Some(number) => number,
+      None => stylex_bail!("{}", ILLEGAL_PROP_VALUE),
     },
     Expr::Lit(lit) => return convert_lit_to_number(lit),
     Expr::Unary(unary) => convert_unary_to_num(unary, state, traversal_state, fns),
@@ -114,7 +124,7 @@ pub fn ident_to_number(
           convert_lit_to_number(lit).unwrap_or_else(|error| stylex_panic!("{}", error))
         },
         _ => stylex_panic!(
-          "Varable {} is not a number",
+          "Variable {} is not a number",
           get_expr_node_kind(var_decl_expr)
         ),
       }
@@ -195,7 +205,7 @@ pub fn transform_bin_expr_to_number(
   let Some(right) = evaluate_cached(&bin.right, state, traversal_state, fns) else {
     {
       stylex_panic!(
-        "Left expression is not a number: {}",
+        "Right expression is not a number: {}",
         get_expr_node_kind(&bin.right)
       )
     }

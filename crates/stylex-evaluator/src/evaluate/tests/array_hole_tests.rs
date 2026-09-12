@@ -15,7 +15,6 @@
 
 use super::source_evaluation::*;
 use stylex_constants::constants::evaluation_errors::{PATH_WITHOUT_NODE, SPREAD_ELEMENT};
-use stylex_state::evaluate_result_value::EvaluateResultValue;
 
 // ==================== the hole refuses ====================
 
@@ -225,21 +224,10 @@ fn assert_deopt_reason_is_in(
 /// about, and "it folded" passes through that.
 #[track_caller]
 fn assert_folds_to_slots(source: &str, expected: usize) {
-  let result = evaluate_source(source);
-
-  assert!(
-    result.confident,
-    "expected `{}` to fold, got a deopt: {:?}",
-    source, result.reason
+  assert_eq!(
+    folds_to_a_list(source).len(),
+    expected,
+    "wrong element count for `{}`",
+    source
   );
-
-  match result.value {
-    Some(EvaluateResultValue::Vec(items)) => assert_eq!(
-      items.len(),
-      expected,
-      "wrong element count for `{}`",
-      source
-    ),
-    other => panic!("expected `{}` to fold to an array, got {:?}", source, other),
-  }
 }

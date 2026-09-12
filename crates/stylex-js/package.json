@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/stylex-js",
   "description": "JavaScript evaluation helpers for the StyleX system",
-  "version": "0.19.0-rc.2",
+  "version": "0.19.0-rc.3",
   "private": true,
   "sideEffects": false,
   "files": [

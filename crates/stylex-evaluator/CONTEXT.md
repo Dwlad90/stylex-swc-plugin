@@ -300,6 +300,41 @@ spread never reaches the count, being refused first. The receiver is unwrapped
 before it is read, because a parenthesis is not a different receiver.
 _Avoid_: array length, element count, size
 
+**Evaluator-written array**:
+An array that reaches a reader as an evaluated value rather than as source. Two
+things build one — `evaluate_result_vec_to_array_expr`, and the `env` option's
+NAPI-RS bridge — and both write one present element per slot and no spread. So
+its written length is its element count, and every slot holds the element
+itself. Readers rely on this and none re-checks it, which makes an array
+arriving with a hole or a spread a fault in whichever producer built it. Each
+producer is asserted rather than trusted. The first is asserted by
+`every_written_array_carries_one_present_element_per_slot` in
+`evaluate/tests/evaluated_array_form_tests.rs`, and the second by `a hole keeps
+its slot` in `crates/stylex-rs-compiler/__test__/envValues.spec.ts`. An array an
+_author_ wrote is the other value class and is counted as a [written
+slot](#written-slot) instead, where a hole does occupy one.
+_Avoid_: folded array, internal array, rebuilt array
+
+**Evaluator-written object**:
+An object that reaches a reader as an evaluated value rather than as source.
+Every property of one is a key-value pair. `object_expression` writes its own
+that way, refuses a method, a getter, a setter and an assignment pattern,
+expands a shorthand into a pair, and merges a spread out of a value that is
+itself already evaluated. So a reader may pass over whatever is not a key-value
+pair rather than refuse it.
+`every_written_object_carries_key_value_properties_only` in
+`evaluate/nodes/tests/object_shape_tests.rs` asserts that of both routes that
+write one. What the class does _not_ promise is the spelling of a key. The
+object writes its own keys as identifiers, but two things build one from a name
+instead — `function_fold_to_object`, from an entry name, and the
+`env` option's NAPI-RS bridge, from a JavaScript property name — and both go
+through `create_key_value_prop`, which quotes a name no identifier can spell.
+Such a key names no method and no entry: the method lookup passes over it and
+reports the property as not found, and the type function refuses it by name. The
+own-keys walk answers it as it is spelled, which is what the language does. The
+other class is an [evaluator-written array](#evaluator-written-array).
+_Avoid_: folded object, internal object, rebuilt object
+
 **Declared length**:
 A length a call states in an argument and does not pay for — `Array(n)`, whose
 array is sparse, and `Array.from({ length: n })`, which is one property saying

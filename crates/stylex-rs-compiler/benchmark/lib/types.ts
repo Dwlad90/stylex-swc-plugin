@@ -8,7 +8,7 @@
  * Bump `RAW_STATS_SCHEMA_VERSION` on any breaking change to the shape below.
  */
 
-import { SourceMaps, type StyleXOptions } from '../../dist/index.js';
+import { SourceMaps } from '../../dist/index.js';
 
 /**
  * The settings `sourceMap` accepts, read off the package's own export.
@@ -26,60 +26,28 @@ export type SourceMapSetting = keyof typeof SOURCE_MAP_SETTINGS;
 
 export const RAW_STATS_SCHEMA_VERSION = 1 as const;
 
-export type FixtureWeight = 'standard' | 'heavy';
-export type FixtureCategory = 'transform' | 'perf' | 'rollup';
-
 /**
- * The StyleX option keys a fixture may override, each carrying a boolean.
+ * The vocabulary a fixture is described with, passed on from `fixture-schema`.
  *
- * An allowlist rather than `Partial<StyleXOptions>`, because a manifest is data
- * from a file: a key nobody validated would be a silently ignored measurement
- * condition, and two fixtures could then differ in a way no reader can see. Add
- * a key here when a fixture needs it, and the loader will start accepting it.
- *
- * Everything here is a *development or compatibility* feature — the work a
- * production build does not do — and every key is used by a fixture. Both halves
- * are load-bearing: a key nothing uses is an option nobody has shown this
- * compiler even reacts to, and four of them turned out not to change a byte of
- * output on any fixture in the corpus. `fixtures.test.ts` fails an entry whose
- * options leave the emitted module identical to its production run, which is how
- * that was found.
+ * It is defined there rather than here because a process that reads a fixture
+ * need not be a process that holds the addon, and this module holds one: the
+ * import above loads the binding. Everything that already asks this module for
+ * these names keeps asking it.
  */
-export const BOOLEAN_OPTION_KEYS = [
-  'dev',
-  'debug',
-  'enableDebugClassNames',
-  'enableDebugDataProp',
-  'enableDevClassNames',
-  'enableMinifiedKeys',
-  'enableFontSizePxToRem',
-  'enableInlinedConditionalMerge',
-  'enableLegacyValueFlipping',
-  'enableMediaQueryOrder',
-  'useRealFileForSource',
-  'runtimeInjection',
-  'injectStylexSideEffects',
-  'test',
-  'inlineSourcesContent',
-  'emitSourceMapColumns',
-] as const;
+import type { FixtureCategory, FixtureOptionOverrides, FixtureWeight } from './fixture-schema.js';
 
-export type BooleanOptionKey = (typeof BOOLEAN_OPTION_KEYS)[number];
-
-export const STYLE_RESOLUTIONS = [
-  'application-order',
-  'property-specificity',
-  'legacy-expand-shorthands',
-] as const;
-
-/** A fixture's own measurement conditions, as the manifest declares them. */
-export type FixtureOptionOverrides = Partial<
-  Record<BooleanOptionKey, boolean> & {
-    styleResolution: (typeof STYLE_RESOLUTIONS)[number];
-    sourceMap: NonNullable<StyleXOptions['sourceMap']>;
-    classNamePrefix: string;
-  }
->;
+export {
+  BOOLEAN_OPTION_KEYS,
+  FIXTURE_CATEGORIES,
+  FIXTURE_WEIGHTS,
+  SOURCE_MAP_SPELLINGS,
+  STYLE_RESOLUTIONS,
+  type BooleanOptionKey,
+  type FixtureCategory,
+  type FixtureOptionOverrides,
+  type FixtureWeight,
+  type SourceMapValue,
+} from './fixture-schema.js';
 
 export interface FixtureDescriptor {
   /** Stable identifier used across runs (never derived from mutable paths). */

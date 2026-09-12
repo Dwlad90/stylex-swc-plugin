@@ -185,15 +185,16 @@ Permanent:
 - `stylex_test_parser` -- test fixture parser
 - `stylex_transform` -- SWC transform, tested through snapshot tests
 
-The temporary crate came out of the transform, which is itself off the gate.
-The transform's tests had covered it, and the new crate boundary stopped that
-coverage counting for it. Its ticket sits in the `split-transform-crate` tracker
-(see [issue-tracker.md](../docs/agents/issue-tracker.md)).
+There is no temporary row. `stylex_evaluator` was the last crate with one: it
+came out of the transform, which is itself off the gate, and the new crate
+boundary stopped the transform's coverage from counting for it. Ticket
+`15-cover-the-evaluator-crate` added the tests that closed the gap, and the
+crate is on the gate at full coverage.
 
-Temporary:
-
-- `stylex_evaluator` -- covered through the transform until direct tests exist.
-  Ticket `15-cover-the-evaluator-crate` removes this row.
+Write a temporary row as a `- ` bullet under a `Temporary:` heading, the way the
+permanent rows are written. The reader of these lists is a regular expression
+that matches a line starting with `` - ` `` and a crate name, so a paragraph
+above the rows is prose and a bullet that starts with a crate name is a row.
 
 ## Key Config Files
 

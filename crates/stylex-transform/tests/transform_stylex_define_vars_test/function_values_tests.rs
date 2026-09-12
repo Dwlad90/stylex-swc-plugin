@@ -14,6 +14,44 @@ fn stylex_transform(
   })
 }
 
+// A function value written bare, which is the spelling the parenthesized pair
+// below has to compile to exactly.
+stylex_test!(
+  a_function_value,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      text: 'black',
+      size: () => '1px',
+      textMuted: () => `color-mix(${colors.text}, transparent 50%)`,
+    });
+  "#
+);
+
+// Parentheses around the function are a node in this tree and none in the
+// reference implementation's, so this has to compile to exactly what
+// `a_function_value` above compiles to. The two snapshots read side by side,
+// and a difference between them is the defect.
+//
+// It compiles today because both readers of this object see the one the
+// evaluator rebuilt, which carries no parentheses at all -- not because either
+// reader unwraps them. That is what makes the pair worth keeping: it is the
+// producer that holds the property, and a change there would break this case
+// rather than a stylesheet.
+stylex_test!(
+  a_function_value_written_inside_parentheses,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      text: 'black',
+      size: (() => '1px'),
+      textMuted: (() => `color-mix(${colors.text}, transparent 50%)`),
+    });
+  "#
+);
+
 stylex_test!(
   same_group_references_inside_function_values,
   |tr| stylex_transform(tr.comments.clone(), |b| b),

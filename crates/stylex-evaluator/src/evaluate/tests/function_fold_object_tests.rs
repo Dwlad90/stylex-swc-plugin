@@ -8,11 +8,14 @@
 //! transform test.
 
 use super::*;
+use stylex_ast::ast::convertors::create_null_expr;
 use stylex_state::{
+  flat_compiled_styles_value::FlatCompiledStylesValue,
   functions::{FunctionConfigType, StylexWhenFn},
   state_manager::StateManager,
-  types::FunctionConfigMap,
+  types::{FlatCompiledStyles, FunctionConfigMap},
 };
+use stylex_structures::stylex_env::EnvEntry;
 
 /// A config that is a plain function upstream, standing for `keyframes`,
 /// `firstThatWorks` or `positionTry`. Which function it holds never reaches the
@@ -184,4 +187,87 @@ fn the_values_that_are_not_folds_of_a_function_have_no_object_form() {
   assert!(function_fold_to_object(&EvaluateResultValue::Map(IndexMap::default())).is_none());
   assert!(function_fold_to_object(&EvaluateResultValue::Null).is_none());
   assert!(function_fold_to_object(&EvaluateResultValue::Expr(create_null_expr())).is_none());
+}
+
+/// The `env` option's object, which the transform registers as an entry of the
+/// namespace's own fold, beside the functions. Its values are the option's own
+/// -- a string, a number, a function -- and none reaches the object form: what
+/// a reader asks of
+/// it is which keys it has, so every key stands for a function like every other
+/// entry's does.
+#[test]
+fn an_env_object_carries_the_names_it_was_configured_with() {
+  let mut env: IndexMap<String, EnvEntry> = IndexMap::default();
+  env.insert("darkMode".to_string(), EnvEntry::Expr(create_null_expr()));
+  env.insert("scale".to_string(), EnvEntry::Expr(create_number_expr(2.0)));
+
+  let mut map = FunctionConfigMap::default();
+  map.insert("env".into(), FunctionConfigType::EnvObject(Rc::new(env)));
+
+  let object = function_fold_to_object(&EvaluateResultValue::FunctionConfigMap(map))
+    .expect("a function map holding the env object has an object form");
+
+  assert_eq!(
+    entry_of(&object, 0),
+    vec![("darkMode".to_string(), true), ("scale".to_string(), true)],
+    "the configured names are the keys, in the order they were configured"
+  );
+}
+
+/// A map nested inside a map, which the API surface does not have today. Its
+/// keys are the inner map's, which is the answer that stays true if it ever
+/// does.
+#[test]
+fn a_map_nested_in_a_map_carries_the_inner_maps_keys() {
+  let mut nested = FunctionConfigMap::default();
+  nested.insert(
+    "keyframes".into(),
+    FunctionConfigType::Regular(plain_config()),
+  );
+  nested.insert(
+    "positionTry".into(),
+    FunctionConfigType::Regular(plain_config()),
+  );
+
+  let mut map = FunctionConfigMap::default();
+  map.insert("stylex".into(), FunctionConfigType::Map(nested));
+
+  let object = function_fold_to_object(&EvaluateResultValue::FunctionConfigMap(map))
+    .expect("a function map holding a nested map has an object form");
+
+  assert_eq!(
+    entry_of(&object, 0),
+    vec![
+      ("keyframes".to_string(), true),
+      ("positionTry".to_string(), true)
+    ]
+  );
+}
+
+/// A compiled style map. The transform registers one under a name of its own,
+/// never as an entry of a map, so no written source reaches this arm. The arm
+/// keeps the match exhaustive, and this is the answer it gives: the namespace
+/// names are the keys, and what each one carries is not read here either.
+#[test]
+fn a_compiled_style_map_carries_its_namespace_names() {
+  let mut styles: FlatCompiledStyles = IndexMap::default();
+  styles.insert(
+    "base".to_string(),
+    Rc::new(FlatCompiledStylesValue::String("x1a2b3c".to_string())),
+  );
+  styles.insert(
+    "$$css".to_string(),
+    Rc::new(FlatCompiledStylesValue::Bool(true)),
+  );
+
+  let mut map = FunctionConfigMap::default();
+  map.insert("styles".into(), FunctionConfigType::IndexMap(styles));
+
+  let object = function_fold_to_object(&EvaluateResultValue::FunctionConfigMap(map))
+    .expect("a function map holding a compiled style map has an object form");
+
+  assert_eq!(
+    entry_of(&object, 0),
+    vec![("base".to_string(), true), ("$$css".to_string(), true)]
+  );
 }

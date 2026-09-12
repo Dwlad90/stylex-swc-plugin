@@ -128,18 +128,22 @@ stylex_test!(
 );
 
 // An operator with no string result reaches this path only after the number
-// path has already refused, and is refused again rather than coerced, so the
-// declaration deopts and falls to the runtime as `"a" * "b"` and `null - 1`.
+// path has already refused, and is refused again rather than coerced -- so a
+// declaration it cannot fold deopts and falls to the runtime instead of failing
+// the build. `[1, 2] * 2` is the row that still does, because an array has no
+// number the literal grammar reads.
+//
+// The two rows above it fold, and to what the language answers: a string is
+// read through `StringToNumber`, so `'a' * 'b'` is `NaN`, and `null` is nought,
+// so `null - 1` is `-1`. Both were refusals here before, and both are what the
+// reference compiler writes.
 //
 // Dynamic styles, because that is where the refusal shape is observable: in a
 // static position an unfoldable value is a refused fold either way, so the two
 // shapes differ only in which diagnostic is printed.
 //
 // The refusal used to be a build failure carrying a diagnostic the language
-// does not agree with — `'a' * 'b'` is `NaN`, not an error. Left as a failure,
-// the widened coercion would have widened it too: `null` and an array both have
-// a string now, so these three would have started failing builds where they
-// previously reached the runtime.
+// does not agree with — `'a' * 'b'` is `NaN`, not an error.
 stylex_test!(
   an_operator_with_no_string_result_deopts_rather_than_failing,
   |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),

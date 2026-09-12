@@ -20,8 +20,7 @@ where
     // Solid.js:  _$setAttribute(el, "sx", expr) → _$spread(el, _$mergeProps(() =>
     // stylex.props(expr)), false, true)
     if self.state.cycle == TransformationCycle::Discover {
-      if let Some(transformed) = self.transform_sx_in_compiled_jsx(normalized_expr) {
-        *expr = transformed;
+      if self.transform_sx_in_compiled_jsx(normalized_expr) {
         expr.visit_mut_children_with(self);
         return;
       }

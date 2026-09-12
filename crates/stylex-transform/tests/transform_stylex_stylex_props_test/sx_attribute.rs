@@ -1,4 +1,5 @@
 use crate::utils::prelude::*;
+use crate::utils::transform::stringify_js;
 use stylex_enums::sx_prop_name_param::SxPropNameParam;
 use swc_core::common::FileName;
 
@@ -172,6 +173,335 @@ stylex_test!(
       return _jsx(MyComponent, {
           sx: styles.main,
           children: "Hello World"
+        });
+      }
+  "#
+);
+
+// Compiled JSX, object shorthand: `_jsx("div", { sx })`. A JSX-compiling pass
+// collapses `sx={sx}` to this form, which names the same prop. A shorthand
+// that names something else is passed over, on a host element that is scanned.
+stylex_test!(
+  sx_attr_compiled_jsx_shorthand,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export function Leaf({ id, sx }) {
+      return _jsx("div", {
+          id,
+          sx,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// A host element whose only shorthand names something else keeps every prop.
+stylex_test!(
+  sx_attr_compiled_jsx_other_shorthand_unchanged,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export function Leaf({ id }) {
+      return _jsx("div", {
+          id,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// The shorthand follows the configured prop name, like every other form.
+stylex_test!(
+  sx_attr_compiled_jsx_shorthand_with_custom_sx_prop_name,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_sx_prop_name(SxPropNameParam::Enabled("css".to_string()))
+  }),
+  r#"
+    import stylex from 'stylex';
+    export function Leaf({ css }) {
+      return _jsx("div", {
+          css,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// A plain string key is the shape a minifier writes most often. Both quote
+// characters name the same prop, because the compiler compares the text.
+stylex_test!(
+  sx_attr_compiled_jsx_string_key,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      },
+      card: {
+        borderRadius: 4,
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          "sx": styles.main,
+          children: _jsx("span", {
+              'sx': styles.card
+            })
+        });
+      }
+  "#
+);
+
+// A call inside parentheses. The scan looks through them, so the prop is
+// transformed there as anywhere else.
+stylex_test!(
+  sx_attr_compiled_jsx_parenthesised_call,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return (_jsx("div", { sx: styles.main, children: "Hello World" }));
+    }
+  "#
+);
+
+// A key that holds a lone surrogate is a legal JavaScript key, but it has no
+// readable name. The scan reads every key of every host element, so such a key
+// must be skipped rather than refused: it is simply not the prop asked about.
+stylex_test!(
+  sx_attr_compiled_jsx_lossy_string_key_is_passed_over,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          "\ud800": marker,
+          sx: styles.main,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// The module this feature exists for: a compiled leaf that forwards the prop
+// and imports nothing. The runtime binding has to be injected, because there
+// is no import to reuse.
+stylex_test!(
+  sx_attr_compiled_jsx_shorthand_without_a_stylex_import,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    export function Leaf({ id, sx }) {
+      return _jsx("div", {
+          id,
+          sx,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// A computed key whose text is known at compile time names the prop, whether
+// it is written as a string literal or as a template literal with no
+// expressions.
+stylex_test!(
+  sx_attr_compiled_jsx_computed_key,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      },
+      card: {
+        borderRadius: 4,
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          ["sx"]: styles.main,
+          children: _jsx("span", {
+              [`sx`]: styles.card
+            })
+        });
+      }
+  "#
+);
+
+// A computed key that is only known at run time names no prop at compile time,
+// so it is left alone.
+stylex_test!(
+  sx_attr_compiled_jsx_dynamic_computed_key_unchanged,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App(key) {
+      return _jsx("div", {
+          [key]: styles.main,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// A getter, a setter or a method carries no value expression to forward, so it
+// is left alone — the same way raw markup skips an attribute that is not an
+// expression container.
+stylex_test!(
+  sx_attr_compiled_jsx_accessor_and_method_unchanged,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          get sx() {
+            return styles.main;
+          },
+          children: [
+            _jsx("span", {
+                sx() {
+                  return styles.main;
+                }
+              }),
+            _jsx("b", {
+                set sx(value) {
+                  this.value = value;
+                }
+              })
+          ]
+        });
+      }
+  "#
+);
+
+// A spread names no key at compile time, so it is not inspected — the same way
+// a spread attribute in raw markup is not inspected. A spread of an object
+// that does name the prop is left alone too, which is what tells the two
+// apart: were the spread inspected, this one would transform.
+stylex_test!(
+  sx_attr_compiled_jsx_spread_unchanged,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App(rest) {
+      return _jsx("div", {
+          ...{
+            sx: styles.main
+          },
+          children: _jsx("span", {
+              ...rest
+            })
+        });
+      }
+  "#
+);
+
+// Only a host element carries the prop: the shorthand on a component is left
+// alone, like the explicit property.
+stylex_test!(
+  sx_attr_compiled_jsx_shorthand_not_applied_to_components,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export function Leaf({ sx }) {
+      return _jsx(MyComponent, {
+          sx,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// The prop written twice: the first occurrence wins, matching raw markup,
+// which stops at the first matching attribute.
+stylex_test!(
+  sx_attr_compiled_jsx_duplicate_prop_takes_the_first,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      },
+      card: {
+        borderRadius: 4,
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          sx: styles.main,
+          ["sx"]: styles.card,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// A deep tree of compiled calls, mixing every matched and every skipped form
+// at once. The props object of a call holds the whole subtree below it, so
+// this is also where a scan that copies before it matches would cost the most.
+stylex_test!(
+  sx_attr_compiled_jsx_deeply_nested_mixed_forms,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      a: { color: 'red' },
+      b: { borderRadius: 4 },
+      c: { backgroundColor: 'blue' },
+      d: { display: 'flex' }
+    });
+    function App({ sx, rest }) {
+      return _jsx("section", {
+          sx,
+          id: "outer",
+          children: _jsxs("div", {
+              "sx": styles.a,
+              className: "middle",
+              children: [
+                _jsx("span", {
+                    ["sx"]: [styles.b, styles.c],
+                    children: _jsx("em", {
+                        ...rest,
+                        [`sx`]: styles.d,
+                        children: _jsx(MyComponent, {
+                            sx: styles.a
+                          })
+                      })
+                  }),
+                _jsx("p", {
+                    get sx() {
+                      return styles.b;
+                    }
+                  })
+              ]
+            })
         });
       }
   "#
@@ -624,3 +954,142 @@ stylex_test!(
     }
   "#
 );
+
+// The spread of the props call takes the place the prop held, so a later
+// property of the same name wins. A `className` after the prop therefore
+// replaces the class the spread just supplied, and one before it does not.
+// The order is the author's to control; these snapshots pin both directions.
+stylex_test!(
+  sx_attr_compiled_jsx_class_name_order,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsxs("div", {
+          children: [
+            _jsx("div", { className: "before", sx: styles.main }),
+            _jsx("div", { sx: styles.main, className: "after" })
+          ]
+        });
+      }
+  "#
+);
+
+// A name that is not a plain identifier reaches the prop only as a quoted or
+// computed key. The compiler compares the name as text, so any name works.
+stylex_test!(
+  sx_attr_compiled_jsx_non_identifier_prop_name,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_sx_prop_name(SxPropNameParam::Enabled("data-sx".to_string()))
+  }),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          "data-sx": styles.main,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// An empty prop name is resolved to disabled, because no property an author
+// wrote is named by it and the raw markup path cannot express one. Neither a
+// prop called `sx` nor a prop with an empty name is touched.
+stylex_test!(
+  sx_attr_compiled_jsx_blank_prop_name_unchanged,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_sx_prop_name(SxPropNameParam::Enabled(String::new()))
+  }),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          sx: styles.main,
+          "": styles.main,
+          [""]: styles.main,
+          children: "Hello World"
+        });
+    }
+  "#
+);
+
+// The Solid.js path compares the attribute name as text, so a blank configured
+// name would otherwise match `_$setAttribute(el, "", value)`. Upstream gives
+// no guidance here; resolving a blank name to disabled settles it.
+stylex_test!(
+  sx_attr_solid_js_blank_prop_name_unchanged,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_sx_prop_name(SxPropNameParam::Enabled(String::new()))
+  }),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      const _el$ = _$createElement("div");
+      _$setAttribute(_el$, "", styles.main);
+      return _el$;
+    }
+  "#
+);
+
+/// A compiled tree where every level carries the prop. The props object of a
+/// call holds the whole subtree below it, so a scan that rebuilt the object
+/// would copy that subtree once per level; this shows the answer stays right
+/// at a depth where that cost is visible.
+///
+/// The cost itself is not asserted. A time budget would measure the machine,
+/// not the code -- what a regression would break is the count below. The depth
+/// is held where a debug test thread can still walk the tree: parsing and
+/// visiting are both recursive, so a much deeper one overflows the stack
+/// before it reaches the transform.
+#[test]
+fn sx_attr_compiled_jsx_transforms_every_level_of_a_deep_tree() {
+  const DEPTH: usize = 100;
+
+  let mut element = String::from(r#""leaf""#);
+  for _ in 0..DEPTH {
+    element = format!(r#"_jsx("div", {{ sx: styles.main, children: {element} }})"#);
+  }
+
+  let source = format!(
+    r#"
+      import stylex from 'stylex';
+      const styles = stylex.create({{ main: {{ color: 'red' }} }});
+      function App() {{ return {element}; }}
+    "#
+  );
+
+  let output = stringify_js(&source, ts_syntax(), |tr| {
+    stylex_transform(tr.comments.clone(), |b| b)
+  });
+
+  assert_eq!(
+    output.matches("className:").count(),
+    DEPTH,
+    "every level must carry a generated class name"
+  );
+  assert!(
+    !output.contains("sx:"),
+    "no level may keep the prop the transform consumed"
+  );
+}

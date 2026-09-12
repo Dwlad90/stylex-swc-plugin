@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rs-compiler",
   "description": "High-performance Rust/NAPI-RS/SWC compiler for StyleX CSS-in-JS with compile-time atomic CSS extraction, metadata, source maps, and Babel-plugin replacement APIs for Node.js.",
-  "version": "0.19.0-rc.2",
+  "version": "0.19.0-rc.3",
   "private": false,
   "license": "MIT",
   "files": [
@@ -40,6 +40,7 @@
     "parity:harvest": "node --import tsx/esm parity/harvest-corpus.ts",
     "parity:harvest:check": "node --import tsx/esm parity/harvest-corpus.ts --check",
     "parity:positions": "node --import tsx/esm parity/parity-positions.ts",
+    "parity:probe": "node --import tsx/esm parity/probe.ts",
     "postbuild": "pnpm run build:ts && pnpm run check:artifacts",
     "prepublishOnly": "napi prepublish --no-gh-release",
     "pretest": "pnpm run parity:harvest:check",

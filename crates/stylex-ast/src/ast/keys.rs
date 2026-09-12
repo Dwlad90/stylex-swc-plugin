@@ -25,6 +25,48 @@ pub fn namespace_name_from_prop_key(key: &PropName) -> Option<Atom> {
   }
 }
 
+/// The authored name of a key, or nothing where the shape carries no static
+/// name -- unreadable text included.
+///
+/// [`namespace_name_from_prop_key`] refuses text that is not valid UTF-8,
+/// because a namespace key that cannot be spelled is a mistake worth
+/// reporting. A caller that only asks whether a key names one particular prop
+/// has no such stake: every other key in the object is none of its business,
+/// so an unreadable one is simply not the key it asked about. This reader
+/// answers that question and never panics.
+pub fn try_namespace_name_from_prop_key(key: &PropName) -> Option<Atom> {
+  match key {
+    PropName::Ident(ident) => Some(ident.sym.clone()),
+    PropName::Str(strng) => strng.value.as_atom().cloned(),
+    PropName::Num(num) => Some(Atom::from(to_js_string(num.value))),
+    PropName::BigInt(big_int) => Some(Atom::from(big_int.value.to_string())),
+    PropName::Computed(computed) => try_namespace_name_from_expr(computed.expr.as_ref()),
+  }
+}
+
+fn try_namespace_name_from_lit(lit: &Lit) -> Option<Atom> {
+  match lit {
+    Lit::Str(strng) => strng.value.as_atom().cloned(),
+    Lit::Num(num) => Some(Atom::from(to_js_string(num.value))),
+    Lit::BigInt(big_int) => Some(Atom::from(big_int.value.to_string())),
+    _ => None,
+  }
+}
+
+fn try_namespace_name_from_expr(expr: &Expr) -> Option<Atom> {
+  match expr {
+    Expr::Lit(lit) => try_namespace_name_from_lit(lit),
+    // A template with one quasi and no interpolation names the text of that
+    // quasi. The shape is read here rather than through the convertor, which
+    // refuses the two cases this reader answers `None` for.
+    Expr::Tpl(tpl) if tpl.exprs.is_empty() && tpl.quasis.len() == 1 => tpl.quasis[0]
+      .cooked
+      .as_ref()
+      .and_then(|cooked| cooked.as_atom().cloned()),
+    _ => None,
+  }
+}
+
 pub fn namespace_name_from_member_prop(prop: &MemberProp) -> Option<Atom> {
   match prop {
     MemberProp::Ident(ident) => Some(ident.sym.clone()),

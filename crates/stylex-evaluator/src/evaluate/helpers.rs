@@ -17,7 +17,16 @@ use stylex_ast::ast::convertors::create_ident_expr;
 /// the same nullish bridge, and a site that answered differently would fold
 /// differently for no reason an author could see.
 pub(super) fn js_undefined() -> EvaluateResultValue {
-  EvaluateResultValue::Expr(create_ident_expr("undefined"))
+  EvaluateResultValue::Expr(undefined_expr())
+}
+
+/// The same `undefined`, as the expression alone.
+///
+/// The engine fold builds a tree of expressions and wraps it in a value once,
+/// at the top, so it reads the spelling rather than the value — through this
+/// rather than by writing the name a second time.
+pub(super) fn undefined_expr() -> Expr {
+  create_ident_expr("undefined")
 }
 
 /// Normalizes different argument types into an ObjectLit for JavaScript object
@@ -26,21 +35,7 @@ pub(super) fn normalize_js_object_method_args(
   cached_arg: Option<EvaluateResultValue>,
 ) -> Option<ObjectLit> {
   cached_arg.and_then(|arg| match arg {
-    EvaluateResultValue::Expr(expr) => expr.as_object().cloned().or_else(|| {
-      if let Expr::Lit(Lit::Str(ref strng)) = expr {
-        let keys = convert_atom_to_string(&strng.value)
-          .chars()
-          .enumerate()
-          .map(|(i, c)| {
-            create_ident_key_value_prop(&i.to_string(), create_string_expr(&c.to_string()))
-          })
-          .collect::<Vec<PropOrSpread>>();
-
-        Some(create_object_lit(keys))
-      } else {
-        None
-      }
-    }),
+    EvaluateResultValue::Expr(expr) => expr.as_object().cloned(),
 
     EvaluateResultValue::Vec(arr) => {
       let mut props = Vec::with_capacity(arr.len());
@@ -74,6 +69,28 @@ pub(super) fn normalize_js_object_method_args(
 
     _ => None,
   })
+}
+
+/// The key-value properties of an object the evaluator wrote.
+///
+/// Every property of such an object is one, so this passes over nothing that can
+/// arrive. `object_expression` refuses a method, a getter, a setter and an
+/// assignment pattern, expands a shorthand into a pair, and merges a spread out
+/// of a value it has already evaluated.
+///
+/// This promises the kind of every property and not the spelling of a key. A
+/// key may still be quoted, and each reader answers for that itself. See
+/// "Evaluator-written object" in the crate's `CONTEXT.md`.
+///
+/// One reading for every position that asks, because they ask the same question
+/// of the same value class.
+pub(super) fn written_key_values(
+  object: &ObjectLit,
+) -> impl DoubleEndedIterator<Item = &KeyValueProp> {
+  object
+    .props
+    .iter()
+    .filter_map(|prop| prop.as_prop().and_then(|prop| prop.as_key_value()))
 }
 
 /// What an `Object.keys`/`values`/`entries` receiver reads as.
@@ -138,15 +155,11 @@ impl ObjectMethodReceiver {
 
     let mut list = Vec::with_capacity(object.props.len());
 
-    for prop in &object.props {
-      let Some(prop) = prop.as_prop() else {
-        return Err(SPREAD_NOT_SUPPORTED);
-      };
-
-      let Some(key_value) = prop.as_key_value() else {
-        return Err(OBJECT_METHOD);
-      };
-
+    // Every property of an object this reader is handed is a key and a value.
+    // All three of its receivers are an evaluated value or are built from one,
+    // so the invariant below holds of each. A getter is refused by the object
+    // walk, which is where that sentence comes from.
+    for key_value in written_key_values(&object) {
       let key = convert_key_value_to_str(key_value);
 
       list.push(Some(create_expr_or_spread(
@@ -236,6 +249,12 @@ pub(super) fn normalize_object_method_receiver(
     return ObjectMethodReceiver::Object(object);
   }
 
+  // A string carries its own keys -- its indices -- and is read ahead of the
+  // object arm below, which has no answer for one.
+  if let Some(receiver) = string_receiver(cached_arg.as_ref()) {
+    return receiver;
+  }
+
   if let Some(object) = normalize_js_object_method_args(cached_arg) {
     return ObjectMethodReceiver::Object(object);
   }
@@ -244,6 +263,50 @@ pub(super) fn normalize_object_method_receiver(
     Some(array) => normalize_js_object_method_array_arg(array, traversal_state, functions),
     None => ObjectMethodReceiver::NoOwnKeys,
   }
+}
+
+/// The own keys of a string receiver -- its indices -- and the character each
+/// one holds.
+///
+/// `None` is a receiver that is not a string, which the arms beside the call
+/// read instead.
+///
+/// The indices are the string's UTF-16 code units, which is what the language
+/// counts. For every string this answers, that is the same list the Rust
+/// characters gave, because the two readings part company only on a character
+/// outside the Basic Multilingual Plane -- and such a character is two code
+/// units, each of them a lone surrogate that no Rust string holds.
+///
+/// So the unit is what makes the refusal below possible rather than what
+/// changes an answer: read as characters, `Object.keys('\u{1F600}')` answered
+/// one key where the language answers two, and every index after it came out
+/// shifted. Read as code units, the receiver is refused whole. That is the
+/// reading a spread of the same string already takes.
+fn string_receiver(value: Option<&EvaluateResultValue>) -> Option<ObjectMethodReceiver> {
+  let EvaluateResultValue::Expr(Expr::Lit(Lit::Str(strng))) = value? else {
+    return None;
+  };
+
+  // A text with no `str` already holds a lone surrogate, before any index is
+  // read off it.
+  let Some(text) = strng.value.as_str() else {
+    return Some(ObjectMethodReceiver::Unreadable);
+  };
+
+  let mut props = Vec::with_capacity(text.len());
+
+  for (index, unit) in text.encode_utf16().enumerate() {
+    let Some(character) = char::from_u32(u32::from(unit)) else {
+      return Some(ObjectMethodReceiver::Unreadable);
+    };
+
+    props.push(create_ident_key_value_prop(
+      &index.to_string(),
+      create_string_expr(&character.to_string()),
+    ));
+  }
+
+  Some(ObjectMethodReceiver::Object(create_object_lit(props)))
 }
 
 fn normalize_js_object_method_array_arg(
@@ -278,6 +341,10 @@ fn normalize_js_object_method_array_arg(
         Some(expr) => expr,
         None => return ObjectMethodReceiver::Unreadable,
       },
+      // An evaluation does answer the absent value, and an index read is how:
+      // it clones the slot it found out of the array it read, and an array
+      // holds the absent value where an element folded to nothing. Absent
+      // rather than unreadable, as the guards above are.
       EvaluateResultValue::Null => continue,
       _ => return ObjectMethodReceiver::Unreadable,
     };
@@ -296,11 +363,11 @@ fn normalize_js_object_method_array_arg(
 fn normalize_js_object_method_nested_vector_arg(vec: &[EvaluateResultValue]) -> Option<Expr> {
   let mut elems = Vec::with_capacity(vec.len());
 
+  // An entry that is absent has no reading here, because the one caller passes
+  // over a nested array holding one before it calls -- see the array arm of
+  // [`normalize_js_object_method_args`]. A level below that is decided in the
+  // inner walk.
   for entry in vec {
-    if matches!(entry, EvaluateResultValue::Null) {
-      continue;
-    }
-
     let expr = match entry.as_vec() {
       Some(nested_vec) => {
         let mut nested_elems = Vec::with_capacity(nested_vec.len());
@@ -501,18 +568,16 @@ pub(super) fn evaluate_result_to_js_object(
   match value {
     EvaluateResultValue::Expr(expr) => coercions::to_object(expr),
 
-    // Unreachable, and refused rather than answered for that reason.
+    // A bare `Null` arrives here, and refusing is the answer rather than a
+    // placeholder for one. An index read hands the variant back standalone --
+    // `[<nothing>][0]`, where the element folded to nothing while the walk
+    // stayed confident -- and `typeof` of that read is what reaches this.
     //
-    // `Null` stands for a confidently evaluated value that is absent, which is
-    // `undefined` -- whose `ToObject` is a fresh empty object. But no caller
-    // can hand one over: every `Null` the evaluator builds is placed inside a
-    // `Vec`, and an argument list is collected from `evaluate_cached`, which
-    // answers `None` rather than `Some(Null)` for a value that is absent. A
-    // bare `Null` therefore only becomes reachable if that changes, and on the
-    // day it does the meaning may be "absent" or may be "unknown" -- so this
-    // refuses, which deopts under either, where answering an object would tell
-    // `typeof` a value is an object under the second. The nested case, which
-    // *is* reachable, is decided in `write_string_of` below.
+    // The variant has two readings and the evaluator does not know which it
+    // holds. Read as "absent" it is `undefined`, whose `ToObject` is a fresh
+    // empty object; read as "nothing resolved this" it has no kind at all. A
+    // refusal deopts under either, where answering an object would tell
+    // `typeof` the value is one under the second.
     EvaluateResultValue::Null => None,
 
     EvaluateResultValue::Vec(_)
@@ -541,11 +606,12 @@ pub(super) fn evaluate_result_to_js_boolean(value: &EvaluateResultValue) -> Opti
   match value {
     EvaluateResultValue::Expr(expr) => coercions::to_js_boolean(expr),
 
-    // Unreachable for the reason given on `evaluate_result_to_js_object`, and
-    // refused on the same terms: read as "absent" a bare `Null` is falsy, read
-    // as "unknown" it has no truthiness at all, and a refusal deopts under
-    // either where `false` would let `x && y` fold to the wrong operand under
-    // the second.
+    // Refused on the terms given on `evaluate_result_to_js_object`, and
+    // reached the same way -- `[<nothing>][0] ? a : b` is the source. Read as
+    // "absent" a bare `Null` is falsy, read as "nothing resolved this" it has
+    // no truthiness at all, and a refusal deopts under either. `false` would
+    // pick an arm under the second, which is the reading that folded a
+    // conditional to a colour the source does not describe.
     EvaluateResultValue::Null => None,
 
     EvaluateResultValue::Vec(_)
@@ -573,13 +639,12 @@ pub(super) fn evaluate_result_to_js_boolean(value: &EvaluateResultValue) -> Opti
 /// the reading the marker slot of a `when` call needs — an absent marker and a
 /// marker that evaluated to nothing hand the slot to the options alike.
 ///
-/// The other reading, "unknown", would want a refusal, and its absence costs
-/// nothing only because the variant cannot arrive at either caller: every
-/// `Null` the evaluator builds is placed inside a `Vec`, and both callers take
-/// their value from `evaluate_cached`, which answers `None` rather than
-/// `Some(Null)` for a value that is absent. Should that change, `??` is the
-/// caller to revisit — it would fold to its right side under a reading that
-/// meant "no idea", where the `ToBoolean` bridge's refusal deopts.
+/// The other reading, "nothing resolved this", would want a refusal, and this
+/// question has none to give. The variant does arrive: `[<nothing>][0] ?? 'red'`
+/// folds to `'red'`, which is the marker reading applied to a value an index
+/// read handed back standalone. That is the answer `??` asks for — absence is
+/// exactly what it is about — and it is why the parting from the `ToBoolean`
+/// bridge beside it is deliberate rather than an oversight.
 pub fn evaluate_result_is_nullish(value: &EvaluateResultValue) -> bool {
   match value {
     EvaluateResultValue::Expr(expr) => coercions::is_nullish(expr),
@@ -661,26 +726,17 @@ fn write_string_of<S: coercions::StringSink>(
       }
     },
 
-    // Unreachable for the reason given on `evaluate_result_to_js_object`, and
-    // refused on the same terms. The `Vec` arm above is where a `Null` that
-    // reaches this bridge is actually decided.
+    // Refused on the terms given on `evaluate_result_to_js_object`, and reached
+    // the same way -- `-[<nothing>][0]` is the source. A `Null` *inside* a list
+    // is decided by the `Vec` arm above instead, which renders it as the
+    // nothing a join writes for an absent element.
     EvaluateResultValue::Null => Err(coercions::StringRefusal::NoStringForm),
-  }
-}
-
-pub(super) fn get_binding<'a>(
-  callee: &'a Expr,
-  state: &'a StateManager,
-) -> Option<&'a VarDeclarator> {
-  match callee {
-    Expr::Ident(ident) => state.declaration_of(ident),
-    _ => None,
   }
 }
 
 pub(super) fn evaluate_theme_ref(
   file_name: &str,
-  export_name: impl Into<String>,
+  export_name: String,
   state: &StateManager,
 ) -> ThemeRef {
   ThemeRef::new(

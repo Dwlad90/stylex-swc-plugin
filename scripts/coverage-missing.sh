@@ -74,7 +74,6 @@ EXCLUDED_CRATES=(
   stylex_compiler_rs # permanent
   stylex_test_parser # permanent
   stylex_transform   # permanent
-  stylex_evaluator   # temporary, removed by ticket 15
 )
 WORKSPACE_EXCLUDES=()
 for crate in "${EXCLUDED_CRATES[@]}"; do
@@ -189,8 +188,7 @@ if [ -n "$package" ]; then
   echo "==> Coverage for crate: $package"
 else
   # `${a[@]}` on an empty array is an unbound variable under bash 3.2 with
-  # `set -u`, and this list only ever shrinks -- ticket 15 takes the last
-  # temporary row off it.
+  # `set -u`, and this list holds no temporary row now, so it can be empty.
   scope=(--workspace ${WORKSPACE_EXCLUDES[@]+"${WORKSPACE_EXCLUDES[@]}"})
   scope_mode="workspace"
   scope_value=""

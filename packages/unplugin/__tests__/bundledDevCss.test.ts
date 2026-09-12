@@ -1,5 +1,5 @@
 import { once } from 'node:events';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
 import { createServer as createHttpServer } from 'node:http';
 import path from 'node:path';
 
@@ -19,6 +19,21 @@ const errorHandler: Connect.ErrorHandleFunction = (error: unknown, _req, res, _n
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0).toReversed()) await cleanup();
 });
+
+/**
+ * Replaces the contents of a file in one step.
+ *
+ * A plain write empties the file before it fills it. A request that reads the
+ * same file at that moment reads nothing, and the test then fails on a body it
+ * never asked about. A rename swaps the whole file at once, so a reader gets
+ * the old contents or the new ones.
+ */
+async function replaceFile(file: string, source: string): Promise<void> {
+  const pending = `${file}.pending`;
+
+  await writeFile(pending, source);
+  await rename(pending, file);
+}
 
 async function fixture(
   files: Record<string, string>,
@@ -337,7 +352,8 @@ test('renders concurrent requests independently without restoring stale import d
 
   try {
     await started.promise;
-    await writeFile(path.join(root, 'global.css'), `@import './new.css';\n${marker}`);
+    // The earlier request is still reading this file, so it is swapped whole.
+    await replaceFile(path.join(root, 'global.css'), `@import './new.css';\n${marker}`);
     // The earlier request remains blocked; a fresh request must not share its render.
     const latest = await fetch(url, { signal: AbortSignal.timeout(2000) });
     const body = await latest.text();

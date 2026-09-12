@@ -58,6 +58,39 @@ concurrency:
   group: stylex-release-publish
   cancel-in-progress: false
 
+# Every job has a time limit. The GitHub default is six hours. In this
+# workflow a job that stops also keeps the `stylex-release-publish`
+# concurrency group for those six hours, because the group does not cancel
+# a run that is in progress.
+#
+# The limits below come from seven complete runs of this workflow, between
+# 2026-09-04 and 2026-09-08. These were the first runs with fat LTO in the
+# addon. Each limit is a round number that gives the slowest run in that
+# sample at least 1.8 times its cost, and no limit is below ten minutes,
+# because a smaller one can stop a correct run on a slow runner. Each limit
+# stands beside the run it comes from, so its margin is visible.
+#
+#   build                40 min   slowest 18.3 (aarch64-pc-windows-msvc)
+#   test macOS/Windows   15 min   slowest  6.0 (x86_64-apple-darwin)
+#   test linux x64 gnu   10 min   slowest  2.0
+#   test linux arm64 gnu 10 min   slowest  1.6
+#   test linux x64 musl  10 min   slowest  2.5
+#   benchmark            50 min   slowest 27.6 (x86_64-apple-darwin)
+#   aggregate            10 min   slowest  0.2
+#   publish              15 min   slowest  3.6
+#   cleanup              10 min   disabled by `if: false`
+#
+# The sample is older than one change that costs time. The macOS benchmark
+# legs now time each subject in a child process of its own, which adds about
+# 3.6 min to a leg of 27.6. The limit of 50 min holds that at about 1.6
+# times, and no other job pays for the change.
+#
+# All the jobs in all seven runs completed. Thus the runners have
+# sufficient memory for fat LTO with `codegen-units = 1`.
+#
+# A time limit cannot make a partial release. The publish job needs each
+# build job, each test job and each benchmark job. If GitHub cancels one of
+# them, GitHub also skips the publish job.
 jobs:
   build:
     strategy:
@@ -102,6 +135,7 @@ jobs:
           - '24.18.0'
     name: 🛠️ Build - ${{ matrix.settings.target }} - node@${{ matrix.node }}
     runs-on: ${{ matrix.settings.host }}
+    timeout-minutes: 40
     steps:
       - name: Enable long path support
         run: git config --system core.longpaths true
@@ -198,6 +232,7 @@ jobs:
           - '22.22.1'
           - '24.18.0'
     runs-on: ${{ matrix.settings.host }}
+    timeout-minutes: 15
     steps:
       - name: Enable long path support
         run: git config --system core.longpaths true
@@ -247,6 +282,7 @@ jobs:
           - '22.22.1'
           - '24.18.0'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -296,6 +332,7 @@ jobs:
           - '22.22.1'
           - '24.18.0'
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -345,6 +382,7 @@ jobs:
           - '22.22.1'
           - '24.18.0'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -422,6 +460,7 @@ jobs:
         node:
           - '24.18.0'
     runs-on: ${{ matrix.settings.host }}
+    timeout-minutes: 50
     permissions:
       contents: read
     env:
@@ -515,10 +554,9 @@ jobs:
             --retry-output benchmark/results/revisions-retry-raw-stats.v1.json \
             --retry-seed 2
       # Absolute p95 ceilings are only valid on the canonical target, so the
-      # budget runs on x86_64-unknown-linux-gnu alone. While budget.json is
-      # pending calibration this reports observations and never blocks; once
-      # ceilings are committed a breach fails this leg and, through the
-      # publish job's dependency on `benchmark`, blocks publication.
+      # budget runs on x86_64-unknown-linux-gnu alone. budget.json is
+      # enforced, so a breach fails this leg and, through the dependency of
+      # the publish job on `benchmark`, stops publication.
       - name: Check absolute p95 budget (canonical target)
         if:
           ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' && !matrix.settings.container }}
@@ -683,6 +721,7 @@ jobs:
     needs:
       - benchmark
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     env:
@@ -757,6 +796,7 @@ jobs:
   publish:
     name: 📦 Publish
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       id-token: write
@@ -835,6 +875,7 @@ jobs:
     needs: [publish]
     runs-on: ubuntu-latest
     if: false
+    timeout-minutes: 10
     steps:
       - name: 🧹 Cleanup Caches
         run: |

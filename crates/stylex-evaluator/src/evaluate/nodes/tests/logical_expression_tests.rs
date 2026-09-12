@@ -198,11 +198,18 @@ fn an_unresolvable_right_side_deopts_an_undecided_or() {
 
 /// Only the three the reference implementation puts on a node of their own are
 /// recognised; every other binary operator belongs to the paths that coerce.
+///
+/// Each is named against the reading it takes rather than against "some
+/// reading", because a mapping that sent `||` to `And` would satisfy the weaker
+/// assertion and fold the wrong operand.
 #[test]
 fn only_the_three_logical_operators_are_recognised() {
-  assert!(LogicalOp::of(BinaryOp::LogicalOr).is_some());
-  assert!(LogicalOp::of(BinaryOp::LogicalAnd).is_some());
-  assert!(LogicalOp::of(BinaryOp::NullishCoalescing).is_some());
+  assert_eq!(LogicalOp::of(BinaryOp::LogicalOr), Some(LogicalOp::Or));
+  assert_eq!(LogicalOp::of(BinaryOp::LogicalAnd), Some(LogicalOp::And));
+  assert_eq!(
+    LogicalOp::of(BinaryOp::NullishCoalescing),
+    Some(LogicalOp::Nullish)
+  );
 
   for op in [BinaryOp::Add, BinaryOp::Sub, BinaryOp::EqEqEq, BinaryOp::In] {
     assert!(
@@ -286,4 +293,63 @@ fn an_undefined_left_side_is_read_as_the_falsy_nullish_value_it_is() {
   assert!(!evaluates_its_right_operand(LogicalOp::And, &undefined));
   assert!(evaluates_its_right_operand(LogicalOp::Or, &undefined));
   assert!(evaluates_its_right_operand(LogicalOp::Nullish, &undefined));
+}
+
+// ==================== the two operands no source can write ====================
+
+/// A left side that evaluated confidently to *no value at all* is `undefined`,
+/// and reads as falsy on all three operators.
+///
+/// Asked of the decision directly, because no source reaches it: every path
+/// that answers no value deopts first, so the reading exists for the day one
+/// stops doing so. It is the reading the language gives a missing value, and
+/// the alternative -- refusing -- would leave a declaration to the runtime that
+/// both compilers fold.
+#[test]
+fn a_left_side_with_no_value_at_all_reads_as_undefined() {
+  assert_eq!(truthiness(None), Some(false), "no value is falsy");
+  assert!(is_nullish(None), "no value is nullish");
+
+  assert!(
+    matches!(decide(LogicalOp::And, None), Decision::Left),
+    "`&& y` keeps the falsy left side"
+  );
+  assert!(
+    matches!(decide(LogicalOp::Or, None), Decision::Right),
+    "`|| y` reaches y past a falsy left side"
+  );
+  assert!(
+    matches!(decide(LogicalOp::Nullish, None), Decision::Right),
+    "`?? y` reaches y past a nullish left side"
+  );
+}
+
+/// A left side whose truthiness cannot be read settles nothing, so `||` and
+/// `&&` refuse rather than guessing which operand belongs in the stylesheet.
+///
+/// The absent element of an array is the value with no truthiness: read as
+/// "absent" it is falsy and read as "unknown" it has none, and a guess between
+/// the two puts the wrong operand in the output. `??` is not among them --
+/// absence is exactly what it asks about, so it answers.
+#[test]
+fn a_left_side_with_no_truthiness_refuses_the_two_operators_that_need_one() {
+  let unreadable = EvaluateResultValue::Null;
+
+  assert_eq!(truthiness(Some(&unreadable)), None, "it has no truthiness");
+
+  assert!(
+    matches!(decide(LogicalOp::Or, Some(&unreadable)), Decision::Refuse),
+    "`|| y` cannot choose"
+  );
+  assert!(
+    matches!(decide(LogicalOp::And, Some(&unreadable)), Decision::Refuse),
+    "`&& y` cannot choose"
+  );
+  assert!(
+    matches!(
+      decide(LogicalOp::Nullish, Some(&unreadable)),
+      Decision::Right
+    ),
+    "`?? y` reaches y, because absence is what it asks about"
+  );
 }

@@ -2619,7 +2619,7 @@ dependencies = [
 
 [[package]]
 name = "postcss_value_parser"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "criterion",
  "swc_malloc",
@@ -3206,7 +3206,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_ast"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "anyhow",
  "ctor",
@@ -3221,7 +3221,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_atoms"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "ctor",
  "pretty_env_logger",
@@ -3233,7 +3233,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_compiler_rs"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "indexmap",
  "log",
@@ -3263,7 +3263,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_constants"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "ctor",
  "once_cell",
@@ -3274,7 +3274,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_css"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "criterion",
  "ctor",
@@ -3295,7 +3295,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_css_parser"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "criterion",
  "cssparser",
@@ -3311,7 +3311,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_diagnostics"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "anyhow",
  "ctor",
@@ -3331,7 +3331,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_enums"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "indexmap",
  "rustc-hash",
@@ -3342,7 +3342,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_evaluator"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "anyhow",
  "boa_engine",
@@ -3362,7 +3362,6 @@ dependencies = [
  "stylex_regex",
  "stylex_state",
  "stylex_structures",
- "stylex_types",
  "stylex_utils",
  "swc_core",
  "swc_ecma_parser",
@@ -3371,7 +3370,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_js"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "stylex_constants",
  "stylex_macros",
@@ -3381,7 +3380,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_logs"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "colored",
  "ctor",
@@ -3393,7 +3392,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_macros"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "colored",
  "log",
@@ -3402,7 +3401,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_nested_config"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "ctor",
  "indexmap",
@@ -3416,7 +3415,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_path_resolver"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "ctor",
  "fancy-regex",
@@ -3437,7 +3436,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_regex"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "fancy-regex",
  "once_cell",
@@ -3445,7 +3444,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_state"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "anyhow",
  "ctor",
@@ -3473,7 +3472,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_state_index"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "ctor",
  "pretty_env_logger",
@@ -3485,7 +3484,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_structures"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "indexmap",
  "once_cell",
@@ -3501,7 +3500,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_styleq"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "criterion",
  "indexmap",
@@ -3514,7 +3513,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_test_parser"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "clap",
  "color-backtrace",
@@ -3531,7 +3530,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_transform"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "criterion",
  "ctor",
@@ -3574,7 +3573,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_types"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "ctor",
  "derive_more",
@@ -3590,7 +3589,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_utils"
-version = "0.19.0-rc.2"
+version = "0.19.0-rc.3"
 dependencies = [
  "indexmap",
  "murmur2",

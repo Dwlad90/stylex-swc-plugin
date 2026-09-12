@@ -65,6 +65,23 @@ the variable's authored path is a pseudo _element_ (a `::` prefix), and `false`
 otherwise, pseudo _classes_ such as `:hover` included.
 _Avoid_: at-property, var declaration, custom property rule
 
+**Compiled `sx` prop**:
+The `sx` prop as a build step already compiled it: a property of the props
+object of a `_jsx` / `React.createElement` / Vue call, not a markup attribute.
+The transform reads a property whose key names the prop and whose text is known
+at compile time — an identifier, a string, a number, a big integer, a computed
+literal, or a shorthand — and rewrites that one property to
+`...stylex.props(value)`. A key it cannot read at compile time, a spread, a
+getter, a setter and a method are all passed over. The JS module-selection scan
+(see [plugin-shared](../../packages/plugin-shared/CONTEXT.md), **Module
+selection scan**) must match every form a build step writes, or the module
+never reaches the compiler. It cannot match every form this accepts: a text
+scan reads no numeric or big-integer key, which only a prop name spelled as
+digits could name, and no tool writes one. The first matching property wins, as upstream does: an
+object that names the prop twice keeps the second property, which then reaches
+the DOM as an unknown attribute. That is the upstream answer, so leave it.
+_Avoid_: runtime jsx prop, minified prop, props-object attribute
+
 **Runtime binding**:
 The value-level `stylex` namespace binding an `sx` runtime call is written
 against, resolved by `get_stylex_runtime_binding`. It reuses an existing

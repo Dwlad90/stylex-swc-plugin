@@ -156,19 +156,12 @@ pub static SPREAD_NOT_SUPPORTED: &str =
 pub static SPREAD_PROPERTIES_UNREADABLE: &str =
   "The spread argument's properties could not be read at compile time.";
 
-/// A property was looked up on an object literal carrying a spread.
-///
-/// A separate complaint from [`SPREAD_PROPERTIES_UNREADABLE`], and the reason
-/// the two are not one constant: nothing here failed to read a value. The
-/// spread's own keys are simply unknown, so a key that is not among the
-/// literal ones cannot be called absent -- and answering `undefined` for it,
-/// which is what this lookup does for a key an object genuinely lacks, would be
-/// answering a question the object has not settled.
-pub static SPREAD_HIDES_OBJECT_KEYS: &str =
-  "A spread in this object leaves its keys unknown at compile time.";
-
 pub static EXPRESSION_IS_NOT_A_STRING: &str =
   "Expected a string value but received a non-string expression.";
+
+/// The refusal for a computed key that folds to no string. Said of the key
+/// rather than of the value, because the key is the half the author changes.
+pub static KEY_IS_NOT_A_STRING: &str = "The key is not a string.";
 
 pub static VALUES_MUST_BE_OBJECT: &str = "The values argument must be a plain object.";
 

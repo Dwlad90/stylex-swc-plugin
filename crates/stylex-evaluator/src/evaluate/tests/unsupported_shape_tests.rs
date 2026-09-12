@@ -14,9 +14,12 @@
 //! broken.
 
 use super::source_evaluation::*;
+use stylex_ast::ast::convertors::convert_atom_to_string;
 use stylex_constants::constants::evaluation_errors::{
-  SPREAD_ELEMENT, global_as_a_value, unsupported_expression,
+  NON_CONSTANT, SPREAD_ELEMENT, global_as_a_value, unsupported_expression,
 };
+use stylex_state::evaluate_result_value::EvaluateResultValue;
+use swc_core::ecma::ast::{Expr, Lit};
 
 // ==================== the reported input ====================
 
@@ -251,15 +254,42 @@ fn a_static_that_changes_its_argument_refuses_by_name() {
 
 /// A static the language itself throws on refuses under the engine's own
 /// complaint, which is the sentence the reference compiler stops on too.
+///
+/// Each case names what was thrown. The first three also show that the engine
+/// answers an own-keys call with no argument, in all three spellings of the
+/// question. That is what the dispatch below the engine relies on: it reads the
+/// first argument of such a call, and it has no reading for a call with none. A
+/// case that asked only whether the call refused could not tell the engine's
+/// answer from that dispatch's.
 #[test]
 fn a_static_the_language_throws_on_refuses_with_what_it_threw() {
-  for source in [
-    "Object.keys()",
-    "Object.keys(null)",
-    "Object.fromEntries(1)",
-    "Object.fromEntries([1])",
+  for (source, thrown) in [
+    (
+      "Object.keys()",
+      "TypeError: cannot convert 'null' or 'undefined' to object",
+    ),
+    (
+      "Object.values()",
+      "TypeError: cannot convert 'null' or 'undefined' to object",
+    ),
+    (
+      "Object.entries()",
+      "TypeError: cannot convert 'null' or 'undefined' to object",
+    ),
+    (
+      "Object.keys(null)",
+      "TypeError: cannot convert 'null' or 'undefined' to object",
+    ),
+    (
+      "Object.fromEntries(1)",
+      "TypeError: value with type `number` is not iterable",
+    ),
+    (
+      "Object.fromEntries([1])",
+      "TypeError: cannot get key and value from primitive item of `iterable`",
+    ),
   ] {
-    assert_deopts(source);
+    assert_deopt_reason_contains(source, thrown);
   }
 }
 
@@ -372,9 +402,10 @@ fn a_spread_of_a_value_with_no_own_properties_folds_to_nothing() {
     "({ ...\"\" })",
     "({ ...[] })",
   ] {
-    let result = evaluate_source(source);
-
-    assert!(result.confident, "expected `{}` to fold", source);
+    // The empty object rather than "it folded": a spread that contributed a
+    // key would fold too, and the point of the row is that it contributes
+    // none.
+    assert_folds_to_object_keys(source, &[]);
   }
 
   assert_deopts("({ ...[, 1] })");
@@ -384,11 +415,18 @@ fn a_spread_of_a_value_with_no_own_properties_folds_to_nothing() {
 /// spread to the object the language builds from them.
 #[test]
 fn a_spread_of_a_string_or_an_array_contributes_its_indices() {
-  for source in ["({ ...\"ab\" })", "({ ...[1, 2] })", "({ ...[\"a\"] })"] {
-    let result = evaluate_source(source);
-
-    assert!(result.confident, "expected `{}` to fold", source);
+  // The keys and the values, because an index list of the right length and
+  // the wrong values is what a reading by the wrong unit writes.
+  for (source, keys) in [
+    ("({ ...\"ab\" })", &["0", "1"][..]),
+    ("({ ...[1, 2] })", &["0", "1"][..]),
+    ("({ ...[\"a\"] })", &["0"][..]),
+  ] {
+    assert_folds_to_object_keys(source, keys);
   }
+
+  assert_folds_to_string("Object.values({ ...\"ab\" }).join(\",\")", "a,b");
+  assert_folds_to_string("Object.values({ ...[1, 2] }).join(\",\")", "1,2");
 
   // An astral character is two code units and each is a lone surrogate, which
   // no Rust string holds. Refused rather than approximated.
@@ -564,21 +602,68 @@ fn a_receiver_holding_a_function_answers_its_keys_and_refuses_its_values() {
 /// opposite reasons: a hole has no own key, and a non-object has none either —
 /// `Object.keys(5)` is `[]` in JavaScript and must not be mistaken for the
 /// refusal above.
+///
+/// Each row says what it folded to. A key list of the right length and the
+/// wrong keys is the answer this reading gets wrong, and "it folded" cannot
+/// see it.
 #[test]
 fn a_readable_object_method_receiver_still_folds() {
-  // Read through the value rather than the expression: a key list is the
-  // evaluator's own list where the engine answered it, and an array literal
-  // where the receiver had a hole and the older path did.
-  for source in [
-    "Object.keys([1, 2])",
-    "Object.values([1, 2])",
-    "Object.entries([1, 2])",
-    "Object.keys([, 1])",
-    "Object.keys([[1, 2]])",
-    "Object.keys(5)",
-    "Object.keys(\"ab\")",
+  for (source, expected) in [
+    ("Object.keys([1, 2])", &["0", "1"][..]),
+    // A hole occupies a slot the language counts and owns no key, so index
+    // zero is missing from the list rather than answering `undefined`.
+    ("Object.keys([, 1])", &["1"][..]),
+    ("Object.keys([[1, 2]])", &["0"][..]),
+    // A number has no own key, which is the empty list rather than a refusal.
+    ("Object.keys(5)", &[][..]),
+    ("Object.keys(\"ab\")", &["0", "1"][..]),
+    ("Object.values(\"ab\")", &["a", "b"][..]),
   ] {
-    assert_folds_to_a_value(source);
+    assert_own_keys_are(source, expected);
+  }
+
+  // A value list and an entry list hold something other than a string, so both
+  // are read through their own join.
+  assert_folds_to_string("Object.values([1, 2]).join(\",\")", "1,2");
+  assert_folds_to_string("Object.entries([1, 2]).join(\";\")", "0,1;1,2");
+}
+
+/// Asserts an own-keys call folds to the strings `expected`, in order.
+///
+/// Either spelling of a list, because the two paths that answer one write
+/// different ones: the engine answers the evaluator's own list, and the reading
+/// written out in Rust -- which is what a hole or a declined engine leaves --
+/// answers an array literal.
+#[track_caller]
+fn assert_own_keys_are(source: &str, expected: &[&str]) {
+  let folded = match assert_folds_to_a_value(source) {
+    EvaluateResultValue::Vec(items) => items
+      .iter()
+      .map(|item| match item.as_expr() {
+        Some(expr) => string_of(expr, source),
+        None => panic!("expected `{}` to hold strings, got {:?}", source, item),
+      })
+      .collect::<Vec<String>>(),
+    EvaluateResultValue::Expr(Expr::Array(array)) => array
+      .elems
+      .iter()
+      .map(|elem| match elem {
+        Some(elem) => string_of(&elem.expr, source),
+        None => panic!("expected `{}` to hold no hole", source),
+      })
+      .collect::<Vec<String>>(),
+    other => panic!("expected `{}` to fold to a list, got {:?}", source, other),
+  };
+
+  assert_eq!(folded, expected, "wrong key list for `{}`", source);
+}
+
+/// The text of one element of a folded list.
+#[track_caller]
+fn string_of(expr: &Expr, source: &str) -> String {
+  match expr {
+    Expr::Lit(Lit::Str(strng)) => convert_atom_to_string(&strng.value),
+    other => panic!("expected `{}` to hold strings, got {:?}", source, other),
   }
 }
 
@@ -787,4 +872,15 @@ fn the_shapes_beside_each_label_still_fold() {
   assert_folds_to_number("1 > 0 && 2 ? 3 : 4", 3.0);
   assert_folds_to_string("({ a: 'b' }).a", "b");
   assert_folds_to_string("[1, 2].join('-')", "1-2");
+}
+
+/// A write to a member is not a value to fold: the receiver would have to be
+/// mutated for the expression to mean anything, and neither compiler mutates
+/// anything at build time. Every spelling of a write is refused ahead of
+/// the walk, so the receiver is never evaluated for one.
+#[test]
+fn a_write_to_a_member_is_not_a_constant() {
+  for source in ["a.x = 1", "a.x++", "--a.x", "delete a.x"] {
+    assert_deopt_reason_contains(source, NON_CONSTANT);
+  }
 }

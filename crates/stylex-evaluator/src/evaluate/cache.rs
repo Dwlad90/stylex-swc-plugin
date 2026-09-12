@@ -189,14 +189,16 @@ fn memoized_fold<T: Memoized>(
       let val = fold(state, traversal_state);
 
       if state.confident {
-        let remembered = val.as_ref().map(T::to_memo);
-
+        // The memo copy is built inside the closure, so an entry that is
+        // already there costs nothing. `to_memo` deep-clones the value, and
+        // this walk reaches a path it has already folded often enough for the
+        // copy to be worth not making.
         traversal_state
           .seen
           .entry(cleaned_path_hash)
           .or_insert_with(|| {
             Rc::new(SeenValue {
-              value: remembered,
+              value: val.as_ref().map(T::to_memo),
               resolved: true,
             })
           });
@@ -220,3 +222,7 @@ fn memoized_fold<T: Memoized>(
     },
   }
 }
+
+#[cfg(test)]
+#[path = "tests/memo_tests.rs"]
+mod memo_tests;

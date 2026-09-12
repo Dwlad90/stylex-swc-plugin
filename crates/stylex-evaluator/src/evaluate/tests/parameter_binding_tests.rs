@@ -24,10 +24,12 @@ use stylex_state::{
   theme_ref::ThemeRef,
 };
 
+use super::source_evaluation::printed;
 use stylex_ast::ast::{
   convertors::{create_null_expr, create_number_expr, create_string_expr},
-  factories::create_array_expression,
+  factories::{create_array_expression, create_expr_or_spread},
 };
+use swc_core::ecma::ast::Expr;
 
 fn theme_ref() -> ThemeRef {
   ThemeRef::new("vars.stylex.js", "vars", "x")
@@ -43,8 +45,32 @@ fn a_value_that_writes_itself_down_has_an_expression_form() {
     EvaluateResultValue::Vec(vec![EvaluateResultValue::Expr(create_string_expr("a"))]),
     EvaluateResultValue::Vec(vec![]),
   ] {
-    assert!(evaluate_result_as_expr(&value).is_some());
+    // The expression form rather than "there is one": a form that answered
+    // some other value would bind the parameter to something the source does
+    // not describe.
+    let expected = printed(&expression_of(&value));
+
+    match evaluate_result_as_expr(&value) {
+      Some(form) => assert_eq!(printed(&form), expected, "wrong form for {:?}", value),
+      None => panic!("expected {:?} to have an expression form", value),
+    }
+
     assert!(binds_a_parameter(&value));
+  }
+}
+
+/// The expression a value of this case *is*, spelled without going through the
+/// reading under test.
+fn expression_of(value: &EvaluateResultValue) -> Expr {
+  match value {
+    EvaluateResultValue::Expr(expr) => expr.clone(),
+    EvaluateResultValue::Vec(items) => create_array_expression(
+      items
+        .iter()
+        .map(|item| Some(create_expr_or_spread(expression_of(item))))
+        .collect(),
+    ),
+    other => panic!("no case builds {:?}", other),
   }
 }
 

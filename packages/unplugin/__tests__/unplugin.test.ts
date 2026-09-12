@@ -159,41 +159,79 @@ async function runWebpackLikeCssInjection(
   return { assets, compilation, transformCss };
 }
 
+/** The code a `transform` hook returned, whatever shape it answered with. */
+function transformedCode(result: unknown): string {
+  if (typeof result === 'string') {
+    return result;
+  }
+
+  if (typeof result === 'object' && result !== null && 'code' in result) {
+    const { code } = result;
+
+    if (typeof code === 'string') {
+      return code;
+    }
+  }
+
+  throw new Error('The transform returned no code.');
+}
+
+/**
+ * Drives the plugin's `transform` hook once and reports what it returned.
+ *
+ * A null result means the module was skipped before the compiler was reached.
+ */
+async function runTransform(
+  options: UnpluginStylexRSOptions,
+  sourceCode: string
+): Promise<unknown> {
+  const plugin = unplugin.raw(options, { framework: 'rollup', versions: {} });
+  const pluginInstance = Array.isArray(plugin) ? plugin[0] : plugin;
+
+  if (!pluginInstance) {
+    throw new Error('Plugin instance is undefined');
+  }
+
+  const mockContext = createMockContext();
+
+  if (typeof pluginInstance.buildStart === 'function') {
+    await pluginInstance.buildStart.call(mockContext as UnpluginBuildContext);
+  }
+
+  if (typeof pluginInstance.transform !== 'function') {
+    throw new Error('Transform is not a function');
+  }
+
+  return pluginInstance.transform.call(
+    mockContext as UnpluginBuildContext & UnpluginContext,
+    sourceCode,
+    '/virtual/foo.js'
+  );
+}
+
 describe('@stylexswc/unplugin', () => {
-  test('ignores files without StyleX imports', async () => {
-    const plugin = unplugin.raw({}, { framework: 'rollup', versions: {} });
-    const pluginInstance = Array.isArray(plugin) ? plugin[0] : plugin;
+  describe('deciding which modules reach the compiler', () => {
+    // A leaf component that only forwards the prop has nothing to import, so
+    // the import scan alone would drop it and leave the element unstyled.
+    const FORWARDS_THE_SX_PROP = 'export const Box = props => <div sx={props.sx} />;';
 
-    if (!pluginInstance) {
-      throw new Error('Plugin instance is undefined');
-    }
+    test('ignores files without StyleX imports', async () => {
+      await expect(runTransform({}, 'const noop = 1;')).resolves.toBeNull();
+    });
 
-    const mockContext: Partial<UnpluginBuildContext & UnpluginContext> = {
-      addWatchFile: () => {},
-      emitFile: () => '',
-      getWatchFiles: () => [],
-      parse: () => ({}) as ReturnType<UnpluginBuildContext['parse']>,
-      error: () => {},
-      warn: () => {},
-    };
+    test('transforms a file that uses the sx prop without importing', async () => {
+      const result = await runTransform({}, FORWARDS_THE_SX_PROP);
 
-    if (typeof pluginInstance.buildStart === 'function') {
-      await pluginInstance.buildStart.call(mockContext as UnpluginBuildContext);
-    }
+      // Not merely "the module reached the compiler": the prop has to have
+      // become a props call, which is the half the module scan exists to reach.
+      expect(transformedCode(result)).toContain('props(');
+    });
 
-    expect(typeof pluginInstance.transform).toBe('function');
-
-    const transform = pluginInstance.transform as Extract<
-      typeof pluginInstance.transform,
-      (...args: never[]) => unknown
-    >;
-    const result = await transform.call(
-      mockContext as UnpluginBuildContext & UnpluginContext,
-      'const noop = 1;',
-      '/virtual/foo.js'
-    );
-
-    expect(result).toBeNull();
+    test('ignores a file using the sx prop once the prop is disabled', async () => {
+      await expect(
+        runTransform({ rsOptions: { sxPropName: false } }, FORWARDS_THE_SX_PROP)
+      ).resolves.toBeNull();
+    });
   });
 
   test('writes fallback CSS asset when no CSS bundle entry exists', async () => {

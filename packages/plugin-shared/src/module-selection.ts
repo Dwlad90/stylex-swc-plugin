@@ -29,12 +29,18 @@ export type SxPropNameOption = string | false;
 /** What the scan needs to know about the resolved plugin options. */
 export interface ModuleSelectionOptions {
   /** The import sources the compiler is configured to recognise. */
-  importSources?: readonly ModuleImportSource[];
+  readonly importSources?: readonly ModuleImportSource[];
   /** The `sx` shorthand prop name, as the user configured it. */
-  sxPropName?: SxPropNameOption;
+  readonly sxPropName?: SxPropNameOption;
 }
 
-/** The prop name the compiler uses when the option is left out. */
+/**
+ * The prop name the compiler uses when the option is left out.
+ *
+ * The scan runs before the compiler sees the module, so it must resolve the
+ * absent option itself. Keep this value equal to the compiler default: if the
+ * two disagree, the scan drops modules the compiler would have transformed.
+ */
 const DEFAULT_SX_PROP_NAME = 'sx';
 
 /**
@@ -47,7 +53,15 @@ const DEFAULT_SX_PROP_NAME = 'sx';
  * on a smaller scale.
  */
 function mentions(sourceCode: string, name: string | undefined): boolean {
-  return typeof name === 'string' && name.trim() !== '' && sourceCode.includes(name);
+  if (typeof name !== 'string') {
+    return false;
+  }
+
+  // Searched trimmed, because a padded specifier names the same module. The
+  // blank check reads the same value, so the two cannot disagree.
+  const trimmed = name.trim();
+
+  return trimmed !== '' && sourceCode.includes(trimmed);
 }
 
 /**
@@ -64,8 +78,8 @@ function readSerializedFrom(text: string): string | undefined {
   try {
     const parsed: unknown = JSON.parse(text);
 
-    if (typeof parsed === 'object' && parsed !== null) {
-      const { from } = parsed as { from?: unknown };
+    if (typeof parsed === 'object' && parsed !== null && 'from' in parsed) {
+      const { from } = parsed;
 
       if (typeof from === 'string') {
         return from.trim();
@@ -102,23 +116,36 @@ function mentionsImportSource(sourceCode: string, importSource: ModuleImportSour
  *
  * The scan runs once per module, so a project with thousands of modules would
  * otherwise recompile the same pattern thousands of times. The keys come from
- * the plugin options, so the map holds one entry per configured name.
+ * the plugin options, so the map holds one entry per configured name. A build
+ * can run two plugins with two different names, which is why this keeps an
+ * entry for each rather than only the last.
  */
 const sxPropPatterns = new Map<string, RegExp>();
 
 /**
- * A pattern matching the prop name in a prop-like position: followed by `=`,
- * `:`, `,` or `}`, with optional whitespace between the two. That covers the
- * attribute `sx={...}`, the property `sx: ...`, the shorthand `{ sx }` and the
- * shorthand before further properties, `{ sx, ... }`.
+ * A pattern matching the prop name in a prop-like position.
  *
- * The name must also start a word. Without that, every identifier that ends
+ * The name occurs in two shapes, and the compiler transforms both. Bare, the
+ * name is followed by `=`, `:`, `,` or `}`: the attribute `sx={...}`, the
+ * property `sx: ...`, the shorthand `{ sx }` and the shorthand before further
+ * properties, `{ sx, ... }`. Quoted, the name is wrapped in matching quotes and
+ * followed by `:` or `,`, with an optional `]` between: the string key
+ * `"sx": ...`, the computed key `["sx"]: ...` that a minifier writes, and the
+ * Solid.js attribute call `_$setAttribute(el, "sx", ...)`.
+ *
+ * A bare name must also start a word. Without that, every identifier that ends
  * with the name matches too: with the default name, `import { jsx } from
  * "react/jsx-runtime"` matches on `jsx }`, which selects almost every module
- * a build step has already compiled.
+ * a build step has already compiled. A quoted name needs no such guard, because
+ * the opening quote already ends the identifier before it.
  *
  * The name is escaped, so a name carrying pattern metacharacters matches
  * itself instead of corrupting the pattern.
+ *
+ * One known limit: the compiler reads a key after the escape sequences in it
+ * are decoded, while this reads the text as written. A key spelled `"\x73x"`
+ * is therefore transformed but not matched. No common tool writes a key that
+ * way, and a pattern cannot decode text, so the gap is accepted.
  */
 function sxPropPattern(name: string): RegExp {
   const cached = sxPropPatterns.get(name);
@@ -127,7 +154,15 @@ function sxPropPattern(name: string): RegExp {
     return cached;
   }
 
-  const pattern = new RegExp(`(?<![\\p{ID_Continue}$])${escapeRegExp(name)}\\s*[=:,}]`, 'u');
+  const escaped = escapeRegExp(name);
+  const bare = `(?<![\\p{ID_Continue}$])${escaped}\\s*[=:,}]`;
+  // The closing quote must match the opening one, so `"sx\`` is not a mention.
+  // The `]` sits inside the optional group with the space run that follows it,
+  // so no two space runs are ever adjacent. Written as `\s*\]?\s*`, a long run
+  // of spaces could be split between the two in as many ways as it is long,
+  // and the scan would take minutes on one large module.
+  const quoted = `(?<quote>["'\`])${escaped}\\k<quote>\\s*(?:\\]\\s*)?[:,]`;
+  const pattern = new RegExp(`${bare}|${quoted}`, 'u');
 
   sxPropPatterns.set(name, pattern);
 

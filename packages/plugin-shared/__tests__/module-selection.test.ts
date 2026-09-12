@@ -6,6 +6,24 @@ import { shouldProcessSource } from '../src/module-selection';
 
 const IMPORTING_MODULE = "import * as stylex from '@stylexjs/stylex';";
 
+// A leaf component that only forwards the prop has nothing to import, so the
+// import scan alone would drop it and leave the element unstyled.
+const NO_IMPORT = { importSources: ['@stylexjs/stylex'] };
+
+// Every plugin runs the scan on every module, so a slow answer is felt on each
+// build. The large cases below measure near one millisecond, so this budget
+// leaves about fifty times the room. That is enough for a cold or loaded
+// machine, and still fails long before a pattern that backtracks: the shape
+// these cases catch took sixty seconds.
+const BUDGET_MS = 50;
+
+function timedScan(sourceCode: string): [boolean, number] {
+  const startedAt = performance.now();
+  const answer = shouldProcessSource(sourceCode, NO_IMPORT);
+
+  return [answer, performance.now() - startedAt];
+}
+
 describe('shouldProcessSource', () => {
   describe('no import source to look for', () => {
     test('skips the module when the option is missing', () => {
@@ -137,10 +155,6 @@ describe('shouldProcessSource', () => {
   });
 
   describe('the sx prop', () => {
-    // A leaf component that only forwards the prop has nothing to import, so
-    // the import scan alone would drop it and leave the element unstyled.
-    const NO_IMPORT = { importSources: ['@stylexjs/stylex'] };
-
     describe('each prop-like position', () => {
       test.each([
         ['a JSX attribute', 'export const Box = props => <div sx={props.sx} />;'],
@@ -150,6 +164,30 @@ describe('shouldProcessSource', () => {
         ['the name spaced from its separator', 'export const box = { sx : props.sx };'],
       ])('processes a module using %s', (_position, sourceCode) => {
         expect(shouldProcessSource(sourceCode, NO_IMPORT)).toBe(true);
+      });
+    });
+
+    describe('each quoted position the compiler transforms', () => {
+      // The compiler reads the prop from a quoted or computed key as well. A
+      // module that reaches the plugin already compiled carries these forms,
+      // and it is the one most likely to have no import to find.
+      test.each([
+        ['a string key', '_jsx("div", { "sx": styles.a });'],
+        ['a single-quoted key', "_jsx('div', { 'sx': styles.a });"],
+        ['a computed string key', '_jsx("div", { ["sx"]: styles.a });'],
+        ['a computed template key', '_jsx("div", { [`sx`]: styles.a });'],
+        ['a spaced computed key', '_jsx("div", { [ "sx" ] : styles.a });'],
+        ['the Solid.js attribute call', '_$setAttribute(_el$, "sx", styles.main);'],
+      ])('processes a module using %s', (_position, sourceCode) => {
+        expect(shouldProcessSource(sourceCode, NO_IMPORT)).toBe(true);
+      });
+
+      test.each([
+        ['a quoted name with no separator after it', 'el.getAttribute("sx");'],
+        ['a quoted name inside a longer string', 'const help = "pass sx to style it";'],
+        ['quotes that do not match', 'const a = String.raw`"sx`;'],
+      ])('skips a module whose only mention is %s', (_form, sourceCode) => {
+        expect(shouldProcessSource(sourceCode, NO_IMPORT)).toBe(false);
       });
     });
 
@@ -235,6 +273,74 @@ describe('shouldProcessSource', () => {
       // The prop transform does not read the import sources, so an empty list
       // does not decide this module.
       expect(shouldProcessSource('<div sx={styles} />', { importSources: [] })).toBe(true);
+    });
+  });
+
+  describe('large and hostile input', () => {
+    test('finds the prop at the end of a very large module', () => {
+      const padding = 'const value = compute(argument, other);\n'.repeat(40_000);
+      const [answer, elapsedMs] = timedScan(`${padding}export const Box = ({ sx }) => sx;`);
+
+      expect(answer).toBe(true);
+      expect(elapsedMs).toBeLessThan(BUDGET_MS);
+    });
+
+    test('answers quickly for a very large module that never mentions either', () => {
+      const [answer, elapsedMs] = timedScan('const value = compute(a, b);\n'.repeat(40_000));
+
+      expect(answer).toBe(false);
+      expect(elapsedMs).toBeLessThan(BUDGET_MS);
+    });
+
+    test('does not backtrack on a long run of quotes and separators', () => {
+      // The quoted half reads an opening quote, the name and a closing quote.
+      // A run that offers many openings and never completes one is the shape
+      // that would expose a pattern able to backtrack.
+      const [answer, elapsedMs] = timedScan(`const a = '${'"sx'.repeat(50_000)}';`);
+
+      expect(answer).toBe(false);
+      expect(elapsedMs).toBeLessThan(BUDGET_MS);
+    });
+
+    test('does not backtrack on a long run of whitespace before no separator', () => {
+      const [answer, elapsedMs] = timedScan(`"sx"${' '.repeat(200_000)}end`);
+
+      expect(answer).toBe(false);
+      expect(elapsedMs).toBeLessThan(BUDGET_MS);
+    });
+
+    test('handles a module that is a single very long line', () => {
+      const [answer, elapsedMs] = timedScan(`${'a'.repeat(500_000)};_jsx("div",{"sx":s});`);
+
+      expect(answer).toBe(true);
+      expect(elapsedMs).toBeLessThan(BUDGET_MS);
+    });
+
+    test('handles empty source', () => {
+      expect(shouldProcessSource('', NO_IMPORT)).toBe(false);
+    });
+
+    test('handles a name as long as the module', () => {
+      const name = 'a'.repeat(10_000);
+
+      expect(shouldProcessSource(`{ ${name}: 1 }`, { ...NO_IMPORT, sxPropName: name })).toBe(true);
+    });
+
+    test('reads a name whose characters are outside the Latin alphabet', () => {
+      // The name is compared as text, so any character works. The word-start
+      // guard must not treat a non-Latin letter as the end of an identifier.
+      expect(shouldProcessSource('<div стиль={s} />', { ...NO_IMPORT, sxPropName: 'стиль' })).toBe(
+        true
+      );
+      expect(
+        shouldProcessSource('const мойстиль = 1;', { ...NO_IMPORT, sxPropName: 'стиль' })
+      ).toBe(false);
+    });
+
+    test('reads a name that is an emoji', () => {
+      expect(
+        shouldProcessSource('{ "\u{1F600}": s }', { ...NO_IMPORT, sxPropName: '\u{1F600}' })
+      ).toBe(true);
     });
   });
 });

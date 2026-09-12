@@ -56,3 +56,15 @@ requires `experimental.webpackBuildWorker` off, which
 [nextjs-plugin](../nextjs-plugin/CONTEXT.md) enforces, and in development the
 merged CSS can lag one invalidation behind.
 _Avoid_: global cache, shared state, singleton
+
+**Module selection scan**:
+The text scan that decides which modules a bundler plugin hands to the compiler.
+Every plugin asks `shouldProcessSource` and gets the same answer. It reads the
+module source as text, so a mention in a string or a comment counts; a false
+positive costs one compile that changes nothing, while a false negative leaves
+an element silently unstyled. It has two halves, because a module can need the
+compiler for either reason: it names one of the configured import sources, or it
+uses the `sx` prop. A leaf component that only forwards the prop has nothing to
+import, so the prop half must stand on its own. The scan must match every prop
+form the compiler transforms, bare and quoted alike.
+_Avoid_: filter, matcher, include, import check

@@ -13,10 +13,7 @@ const styles = {
     }
 };
 function App() {
-    return _jsx("div", {
-        sx: styles.main,
-        "": styles.main,
-        [""]: styles.main,
-        children: "Hello World"
-    });
+    const _el$ = _$createElement("div");
+    _$setAttribute(_el$, "", styles.main);
+    return _el$;
 }

@@ -984,7 +984,9 @@ stylex_test!(
   "#
 );
 
-// An empty prop name disables nothing on its own, so no property can match it.
+// An empty prop name is resolved to disabled, because no property an author
+// wrote is named by it and the raw markup path cannot express one. Neither a
+// prop called `sx` nor a prop with an empty name is touched.
 stylex_test!(
   sx_attr_compiled_jsx_blank_prop_name_unchanged,
   |tr| stylex_transform(tr.comments.clone(), |b| {
@@ -998,7 +1000,35 @@ stylex_test!(
       }
     });
     function App() {
-      return _jsx("div", { sx: styles.main, children: "Hello World" });
+      return _jsx("div", {
+          sx: styles.main,
+          "": styles.main,
+          [""]: styles.main,
+          children: "Hello World"
+        });
+    }
+  "#
+);
+
+// The Solid.js path compares the attribute name as text, so a blank configured
+// name would otherwise match `_$setAttribute(el, "", value)`. Upstream gives
+// no guidance here; resolving a blank name to disabled settles it.
+stylex_test!(
+  sx_attr_solid_js_blank_prop_name_unchanged,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_sx_prop_name(SxPropNameParam::Enabled(String::new()))
+  }),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      const _el$ = _$createElement("div");
+      _$setAttribute(_el$, "", styles.main);
+      return _el$;
     }
   "#
 );

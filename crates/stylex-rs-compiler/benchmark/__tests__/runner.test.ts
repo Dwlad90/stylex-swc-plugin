@@ -157,6 +157,16 @@ async function refused(subjectRun: SubjectRun): Promise<Error> {
   return failure;
 }
 
+describe('runRounds preconditions', () => {
+  // Stated by the runner rather than left to the plan, whose own failure is
+  // about a base that refuses every fixture and would name none here.
+  test('refuses a run with no fixture to measure', async () => {
+    await expect(run([subject('base')], 1, 1, { fixtures: [] })).rejects.toThrow(
+      'runRounds requires at least one fixture'
+    );
+  });
+});
+
 describe('runRounds strategies', () => {
   // The two steps that touch a subject are handed in, so the split runner can
   // measure in another process while everything else stays this code.
@@ -326,26 +336,31 @@ describe('runRounds paired roles', () => {
  * other measurement -- which is what one `.trim()` in `engine-fold.js` did to
  * the whole publish benchmark. The gate that matters is the candidate: a
  * fixture *it* refuses is a regression in the code under measurement.
+ *
+ * What the fixture loses is the comparison, not the run. The absolute p95
+ * budget holds a ceiling for every fixture in the manifest and reads the
+ * candidate alone, so a fixture dropped from the run reached that check as an
+ * entry nothing measured and failed the release a second way.
  */
 describe('runRounds fixture exclusion', () => {
-  test('a healthy run excludes nothing', async () => {
-    const { fixtures, excluded } = await pairedRun(subject('base'));
+  test('a healthy run compares every fixture', async () => {
+    const { fixtures, uncompared } = await pairedRun(subject('base'));
 
-    expect(excluded).toEqual([]);
+    expect(uncompared).toEqual([]);
     expect(fixtures.map(fixture => fixture.name)).toEqual(['card', 'counter']);
   });
 
-  test('drops a fixture the base cannot compile and keeps the rest', async () => {
+  test('keeps a fixture the base cannot compile, for the candidate alone', async () => {
     const base = subjectRefusing(
       'base',
       'card',
       refusingWith("[StyleX] The method 'trim' is not yet supported in static evaluation.")
     );
 
-    const { fixtures, excluded } = await pairedRun(base);
+    const { fixtures, uncompared } = await pairedRun(base);
 
-    expect(fixtures.map(fixture => fixture.name)).toEqual(['counter']);
-    expect(excluded).toEqual([
+    expect(fixtures.map(fixture => fixture.name)).toEqual(['card', 'counter']);
+    expect(uncompared).toEqual([
       {
         fixture: 'card',
         subject: 'base',
@@ -354,9 +369,25 @@ describe('runRounds fixture exclusion', () => {
     ]);
   });
 
-  // A compiler refusal carries a code frame under its sentence. Beside a
-  // dropped fixture the sentence is the whole of what a reader needs, and the
-  // frame would bury the fixture names the report is made of.
+  // The candidate's samples are what the absolute budget reads, and the absent
+  // base is what tells the verdict engine there is no ratio to take.
+  test('records the candidate and nothing else for a fixture the base refused', async () => {
+    const base = subjectRefusing('base', 'card', refusingWith('refused'));
+
+    const { fixtures } = await pairedRun(base);
+    const card = fixtures.find(fixture => fixture.name === 'card');
+
+    expect(card?.rounds[0]?.subjectOrder).toEqual(['candidate']);
+    expect(card?.rounds[0]?.perSubject.candidate).toBeDefined();
+    expect(card?.rounds[0]?.perSubject.base).toBeUndefined();
+    // No roles, because there is no pair. The budget resolves its subject from
+    // the fixtures that do carry them.
+    expect(card?.paired).toBeUndefined();
+  });
+
+  // A compiler refusal carries a code frame under its sentence. Beside an
+  // uncompared fixture the sentence is the whole of what a reader needs, and
+  // the frame would bury the fixture names the report is made of.
   test('reports only the first line of what the base said', async () => {
     const base = subjectRefusing(
       'base',
@@ -364,41 +395,41 @@ describe('runRounds fixture exclusion', () => {
       refusingWith('  refused\n  --> file.js:1:1\n   |\n 1 | code\n')
     );
 
-    const { excluded } = await pairedRun(base);
+    const { uncompared } = await pairedRun(base);
 
-    expect(excluded[0]?.reason).toBe('refused');
+    expect(uncompared[0]?.reason).toBe('refused');
   });
 
   test('names the refusal when the base threw something that is not an Error', async () => {
     const base = subjectRefusing('base', 'card', () => raise('plain string'));
 
-    const { excluded } = await pairedRun(base);
+    const { uncompared } = await pairedRun(base);
 
-    expect(excluded[0]?.reason).toBe('plain string');
+    expect(uncompared[0]?.reason).toBe('plain string');
   });
 
   test('stands in for a refusal that carries no message at all', async () => {
     const base = subjectRefusing('base', 'card', refusingWith(''));
 
-    const { excluded } = await pairedRun(base);
+    const { uncompared } = await pairedRun(base);
 
-    expect(excluded[0]?.reason).toBe('refused without a message');
+    expect(uncompared[0]?.reason).toBe('refused without a message');
   });
 
   // A base that compiles a fixture to nothing cannot measure it either: the
   // zero-rule guard reads the same either way, and reporting the count keeps
   // the two apart for whoever has to read the line.
-  test('drops a fixture the base compiles to no rules', async () => {
-    const { fixtures, excluded } = await pairedRun(subjectRefusing('base', 'card', () => 0));
+  test('leaves the comparison of a fixture the base compiles to no rules', async () => {
+    const { fixtures, uncompared } = await pairedRun(subjectRefusing('base', 'card', () => 0));
 
-    expect(fixtures.map(fixture => fixture.name)).toEqual(['counter']);
-    expect(excluded[0]?.reason).toBe('emitted 0 StyleX rules');
+    expect(fixtures.map(fixture => fixture.name)).toEqual(['card', 'counter']);
+    expect(uncompared[0]?.reason).toBe('emitted 0 StyleX rules');
   });
 
-  test('drops a fixture whose base rule count is not a number at all', async () => {
-    const { excluded } = await pairedRun(subjectRefusing('base', 'card', () => Number.NaN));
+  test('leaves the comparison when the base rule count is not a number at all', async () => {
+    const { uncompared } = await pairedRun(subjectRefusing('base', 'card', () => Number.NaN));
 
-    expect(excluded[0]?.reason).toBe('emitted NaN StyleX rules');
+    expect(uncompared[0]?.reason).toBe('emitted NaN StyleX rules');
   });
 
   // The one refusal that must still stop the run. Reported against the
@@ -459,8 +490,8 @@ describe('runRounds fixture exclusion', () => {
     );
   });
 
-  // A large manifest where one entry leaves: the report must name that entry
-  // and nothing else, and the surviving fixtures must keep manifest order.
+  // A large manifest where one entry loses its base: the report must name that
+  // entry and nothing else, and every fixture must keep manifest order.
   test('keeps manifest order across a large manifest with one exclusion', async () => {
     const many = Array.from({ length: 60 }, (_index, position) => ({
       ...FIXTURE,
@@ -468,29 +499,31 @@ describe('runRounds fixture exclusion', () => {
     }));
     const base = subjectRefusing('base', 'fixture-31', refusingWith('refused'));
 
-    const { fixtures, excluded } = await run([base, subject('candidate')], 1, 1, {
+    const { fixtures, uncompared } = await run([base, subject('candidate')], 1, 1, {
       fixtures: many,
       requiredSubject: 'candidate',
     });
 
-    expect(excluded).toHaveLength(1);
-    expect(excluded[0]?.fixture).toBe('fixture-31');
-    expect(fixtures).toHaveLength(59);
-    expect(fixtures.map(fixture => fixture.name)).toEqual(
-      many.map(fixture => fixture.name).filter(name => name !== 'fixture-31')
-    );
+    expect(uncompared).toHaveLength(1);
+    expect(uncompared[0]?.fixture).toBe('fixture-31');
+    expect(fixtures).toHaveLength(60);
+    expect(fixtures.map(fixture => fixture.name)).toEqual(many.map(fixture => fixture.name));
   });
 
-  // Two subjects refusing the same fixture is one exclusion. A second line
-  // saying the same thing adds no information, and the fixture is gone either
-  // way -- so the count is what a reader can trust.
+  // Two subjects refusing the same fixture is one report. A second line saying
+  // the same thing adds no information, and the fixture loses its comparison
+  // either way -- so the count is what a reader can trust. Both refusing
+  // subjects still leave the fixture, which is what the round names.
   test('reports one exclusion when every non-gate subject refuses the same fixture', async () => {
     const refuse = refusingWith('refused');
-    const { excluded } = await pairedRun(
+    const { fixtures, uncompared } = await pairedRun(
       subjectRefusing('base-a', 'card', refuse),
       subjectRefusing('base-b', 'card', refuse)
     );
 
-    expect(excluded).toEqual([{ fixture: 'card', subject: 'base-a', reason: 'refused' }]);
+    expect(uncompared).toEqual([{ fixture: 'card', subject: 'base-a', reason: 'refused' }]);
+    expect(fixtures.find(fixture => fixture.name === 'card')?.rounds[0]?.subjectOrder).toEqual([
+      'candidate',
+    ]);
   });
 });

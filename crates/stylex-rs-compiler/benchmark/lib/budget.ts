@@ -38,7 +38,7 @@ import {
   requireRecord,
   requireString,
 } from './json.js';
-import { parseRawStats } from './raw-stats.js';
+import { measuredBy, parseRawStats } from './raw-stats.js';
 import { median } from './stats.js';
 import type {
   FixtureRawStats,
@@ -229,13 +229,25 @@ export function evaluateBudget(rawStatsInput: unknown, budgetInput: unknown): Bu
   const budget = parseBudget(budgetInput, 'budget');
   const subject = selectSubject(raw, budget);
 
+  // A paired run can hold a fixture only one of its subjects measured, because
+  // the release leg compares against a published version that is behind by
+  // whole features. The ceilings describe one subject, so the fixtures this
+  // check is about are the ones that subject measured.
+  //
+  // Coverage keeps both of its questions over that set. A ceiling for a fixture
+  // the subject did not measure is still reported as an entry nothing measured,
+  // because nothing held it. A fixture the subject did not measure and has no
+  // ceiling for asks nothing: a ceiling can only describe a number, and there
+  // is none.
+  const measured = raw.fixtures.filter(fixture => measuredBy(fixture, subject.label));
+
   const problems: BudgetProblem[] = [
     ...checkEnvironment(raw.environment, budget.canonical),
-    ...(budget.state === 'enforced' ? checkCoverage(raw.fixtures, budget.entries) : []),
+    ...(budget.state === 'enforced' ? checkCoverage(measured, budget.entries) : []),
   ];
 
   const ceilings = new Map(budget.entries.map(entry => [entry.name, entry.ceilingMs]));
-  const fixtures = raw.fixtures.map(fixture => {
+  const fixtures = measured.map(fixture => {
     const report = measureFixture(fixture, subject.label, budget.state, ceilings.get(fixture.name));
     if (report.status === 'breach' && report.ceilingMs !== undefined) {
       problems.push(

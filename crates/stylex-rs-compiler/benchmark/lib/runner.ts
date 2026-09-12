@@ -13,13 +13,26 @@
  * stops a broken no-op subject from appearing fast.
  *
  * `requiredSubject` names the one subject the check is a gate for — the
- * revision under measurement. A fixture the *other* subject cannot compile is
- * dropped from the run instead of stopping it, because a comparison needs both
- * sides and the release leg compares against the last published version, which
- * can be several features behind. A fixture the required subject refuses is
- * still a hard failure: that one is a regression in the code under test. A
- * caller that names no required subject keeps the older behaviour, where any
- * refusal stops the run.
+ * revision under measurement. A fixture the *other* subject cannot compile
+ * leaves the comparison instead of stopping the run, because a comparison
+ * needs both sides and the release leg compares against the last published
+ * version, which can be several features behind. It does not leave the run:
+ * the subjects that did answer for it are still timed, because the absolute
+ * budget is about one subject and a fixture that prices a new feature is
+ * exactly the one a published base cannot compile. A fixture the required
+ * subject refuses is still a hard failure: that one is a regression in the
+ * code under test. A caller that names no required subject keeps the older
+ * behaviour, where any refusal stops the run.
+ *
+ * A run where no fixture at all is comparable by every subject still fails.
+ * That is a broken base rather than a manifest question, and a release must
+ * not read as a clean comparison when it compared nothing.
+ *
+ * A fixture that kept one subject is timed alone, so its rounds do not
+ * alternate two bindings the way a compared fixture's rounds do. Read its
+ * number against an absolute ceiling, not against the paired fixtures around
+ * it: a subject that shares no cache with a second binding is, if anything,
+ * a little faster, so the ceiling keeps its margin.
  *
  * A fixture may override `dev` for itself (`FixtureDescriptor.dev`). The
  * override is resolved in one place, `fixtureStylexOptions`, and used by
@@ -49,6 +62,18 @@ import type {
  * @throws Error carrying what the subject said when it cannot compile it.
  */
 export type RuleCounter = (subject: LoadedSubject, fixture: FixtureDescriptor) => number;
+
+/**
+ * The counter a run uses unless the caller hands in another one: ask the
+ * subject in this process.
+ *
+ * Exported because a caller that answers for one subject in a child process
+ * must answer for the others the way the runner would, and two spellings of
+ * that would be two configurations a fixture could be validated under.
+ */
+export function countRulesInProcess(stylexOptions: StyleXOptions): RuleCounter {
+  return (subject, fixture) => subject.run(fixture, fixtureStylexOptions(fixture, stylexOptions));
+}
 
 /** How one round of one fixture is timed, for the subjects in the order given. */
 export type RoundMeasurer = (
@@ -93,8 +118,13 @@ export interface RunOptions {
   measureRound?: RoundMeasurer;
 }
 
-/** One fixture that left a run, and the subject whose answer removed it. */
-export interface ExcludedFixture {
+/**
+ * One fixture that lost a subject, and the answer that removed it.
+ *
+ * The fixture stays in the run and the remaining subjects are timed for it.
+ * What it lost is the comparison: a ratio needs both sides.
+ */
+export interface UncomparedFixture {
   readonly fixture: string;
   readonly subject: string;
   /** What that subject did: a refusal sentence, or the rule count it emitted. */
@@ -106,18 +136,18 @@ export interface ExcludedFixture {
  *
  * Both readings of the same answer, because which one is wanted depends on who
  * the subject is: the run stops with `failure` where the subject is the one
- * under measurement, and reports `excluded` where it is not.
+ * under measurement, and reports `uncompared` where it is not.
  */
 interface SubjectRefusal {
   readonly subject: string;
   readonly failure: Error;
-  readonly excluded: ExcludedFixture;
+  readonly uncompared: UncomparedFixture;
 }
 
 export interface RunResult {
   fixtures: FixtureRawStats[];
   /** Empty on a run where every subject measured every fixture. */
-  excluded: ExcludedFixture[];
+  uncompared: UncomparedFixture[];
 }
 
 export async function runRounds(options: RunOptions): Promise<RunResult> {
@@ -127,15 +157,20 @@ export async function runRounds(options: RunOptions): Promise<RunResult> {
   if (options.rounds < 1) {
     throw new Error('runRounds requires rounds >= 1');
   }
+  // Stated here rather than left to the plan below, whose own failure is about
+  // a base that refuses every fixture and would name none in that message.
+  if (options.fixtures.length === 0) {
+    throw new Error('runRounds requires at least one fixture');
+  }
 
-  const { measurable, excluded } = selectMeasurableFixtures(options);
+  const { planned, uncompared } = planFixtures(options);
 
   const rng = makeSeededRng(options.seed);
   const fixtures: FixtureRawStats[] = [];
 
-  for (const fixture of measurable) {
+  for (const { fixture, subjects } of planned) {
     const roundStats: FixtureRoundStats[] = [];
-    const schedule = createBalancedSchedule(options.subjects, options.rounds, rng);
+    const schedule = createBalancedSchedule(subjects, options.rounds, rng);
     const measure = options.measureRound ?? ((one, order) => runSingleRound(one, order, options));
     for (const [round, order] of schedule.entries()) {
       // Normalised here rather than in either measurer, so a fixture that
@@ -154,27 +189,36 @@ export async function runRounds(options: RunOptions): Promise<RunResult> {
       category: fixture.category,
       batchSize: fixture.batchSize,
       rounds: roundStats,
-      paired: computePairedStats(options.subjects, roundStats, options.bootstrap),
+      paired: computePairedStats(subjects, roundStats, options.bootstrap),
     });
   }
 
-  return { fixtures, excluded };
+  return { fixtures, uncompared };
 }
 
-interface FixtureSelection {
-  /** The fixtures every subject answered for, in manifest order. */
-  measurable: FixtureDescriptor[];
-  excluded: ExcludedFixture[];
+/** One fixture of a run, and the subjects that answered for it. */
+interface FixturePlan {
+  fixture: FixtureDescriptor;
+  /** A non-empty subset of the run's subjects, in the run's own order. */
+  subjects: readonly LoadedSubject[];
 }
 
-function selectMeasurableFixtures(options: RunOptions): FixtureSelection {
-  const measurable: FixtureDescriptor[] = [];
-  const excluded: ExcludedFixture[] = [];
+interface RunPlan {
+  /** Every fixture that at least one subject answered for, in manifest order. */
+  planned: FixturePlan[];
+  uncompared: UncomparedFixture[];
+}
+
+function planFixtures(options: RunOptions): RunPlan {
+  const planned: FixturePlan[] = [];
+  const uncompared: UncomparedFixture[] = [];
+  let anyCompared = false;
 
   for (const fixture of options.fixtures) {
     const refusals = subjectRefusals(fixture, options);
     if (refusals.length === 0) {
-      measurable.push(fixture);
+      planned.push({ fixture, subjects: options.subjects });
+      anyCompared = true;
       continue;
     }
     // A refusal by the subject under measurement stops the run: whatever the
@@ -184,31 +228,40 @@ function selectMeasurableFixtures(options: RunOptions): FixtureSelection {
     const gating =
       options.requiredSubject === undefined
         ? refusals[0]
-        : refusals.find(entry => entry.subject === options.requiredSubject);
+        : refusals.find(answer => answer.subject === options.requiredSubject);
     if (gating !== undefined) throw gating.failure;
     // Only the first refusal is reported. A second subject saying the same
     // thing about the same fixture adds a line and no information, and the
-    // fixture leaves the run either way.
-    excluded.push(refusals[0]!.excluded);
+    // fixture loses its comparison either way.
+    uncompared.push(refusals[0]!.uncompared);
+
+    // The subjects that did answer are still timed. The required subject is
+    // among them, because a refusal by that one threw above, so the absolute
+    // budget still receives a measurement for this fixture.
+    const refused = new Set(refusals.map(answer => answer.subject));
+    planned.push({
+      fixture,
+      subjects: options.subjects.filter(subject => !refused.has(subject.descriptor.label)),
+    });
   }
 
-  if (measurable.length === 0) {
+  if (!anyCompared) {
     throw new Error(
       'Sanity check failed: no fixture is measurable by every subject — ' +
-        excluded.map(entry => `"${entry.fixture}" (${entry.subject}: ${entry.reason})`).join(', ')
+        uncompared
+          .map(fixture => `"${fixture.fixture}" (${fixture.subject}: ${fixture.reason})`)
+          .join(', ')
     );
   }
 
-  return { measurable, excluded };
+  return { planned, uncompared };
 }
 
 /** What each subject that cannot measure `fixture` said, in subject order. */
 function subjectRefusals(fixture: FixtureDescriptor, options: RunOptions): SubjectRefusal[] {
   const refusals: SubjectRefusal[] = [];
 
-  const count =
-    options.countRules ??
-    ((subject, entry) => subject.run(entry, fixtureStylexOptions(entry, options.stylexOptions)));
+  const count = options.countRules ?? countRulesInProcess(options.stylexOptions);
 
   for (const subject of options.subjects) {
     const label = subject.descriptor.label;
@@ -224,7 +277,7 @@ function subjectRefusals(fixture: FixtureDescriptor, options: RunOptions): Subje
       refusals.push({
         subject: label,
         failure: new Error(refusal(label, fixture, 'could not compile'), { cause: error }),
-        excluded: { fixture: fixture.name, subject: label, reason: sentenceOf(error) },
+        uncompared: { fixture: fixture.name, subject: label, reason: sentenceOf(error) },
       });
       continue;
     }
@@ -233,7 +286,7 @@ function subjectRefusals(fixture: FixtureDescriptor, options: RunOptions): Subje
       refusals.push({
         subject: label,
         failure: new Error(refusal(label, fixture, predicate)),
-        excluded: {
+        uncompared: {
           fixture: fixture.name,
           subject: label,
           reason: `emitted ${String(rules)} StyleX rules`,
@@ -359,8 +412,11 @@ function createBalancedSchedule<T>(
 }
 
 /**
- * Roles are recorded for every two-subject run; the bootstrap statistics
- * only when a config asks for them.
+ * Roles are recorded for every fixture two subjects measured; the bootstrap
+ * statistics only when a config asks for them.
+ *
+ * A fixture one subject refused carries no roles, because it carries no
+ * comparison. The budget resolves its subject from the fixtures that do.
  *
  * The two are separable on purpose. `base`/`candidate` are identity — the
  * budget check resolves which subject its ceilings describe from them, and

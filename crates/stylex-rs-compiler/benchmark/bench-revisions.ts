@@ -20,11 +20,19 @@
  * pull-request leg builds the merge base, and the release leg installs the last
  * published version. So they need different readings of a base that refuses a
  * fixture, and `--allow-base-refusals` is which one the caller wants. Under the
- * flag such a fixture is reported under `Not compared` and left out of the run,
- * because stopping the whole leg for a fixture that prices a feature the
- * published version does not carry gave up every other measurement for a fact
- * the manifest already states. Without it every refusal stops the run, which is
- * what keeps a fixture only this branch compiles out of the manifest.
+ * flag such a fixture is reported under `Not compared` and measured for the
+ * candidate alone.
+ *
+ * It leaves the comparison, not the run. Stopping the whole leg gave up every
+ * other measurement for a fact the manifest already states. Dropping the
+ * fixture gave up the candidate's own number, and the absolute p95 budget holds
+ * a ceiling for it. Without the flag every refusal stops the run, which is what
+ * keeps a fixture only this branch compiles out of the manifest.
+ *
+ * Under the flag the base is asked for its rule counts in a child process. The
+ * addon draws a compiler error on stderr before it refuses, and that stream is
+ * the release log, so a refusal this leg expects made a good run read as a
+ * failed one. Only the sanity check moves; the base is timed here.
  *
  * Usage:
  *   pnpm bench:revisions --base <base-pkg-dir> --candidate <candidate-pkg-dir>
@@ -52,8 +60,13 @@ import { captureEnvironment } from './lib/env.js';
 import { loadAllFixtures } from './lib/fixtures.js';
 import { formatLatency } from './lib/format.js';
 import { findNativeBindings, subjectsCanShareProcess } from './lib/native-bindings.js';
-import { runRounds, type RunOptions, type RunResult } from './lib/runner.js';
-import { startSplitRun, type SplitRun } from './lib/subject-process.js';
+import { countRulesInProcess, runRounds, type RunOptions, type RunResult } from './lib/runner.js';
+import {
+  countRulesInChild,
+  readReportedCount,
+  startSplitRun,
+  type SplitRun,
+} from './lib/subject-process.js';
 import { loadSubject, type LoadedSubject } from './lib/subjects.js';
 import {
   RAW_STATS_SCHEMA_VERSION,
@@ -73,11 +86,12 @@ interface PairedRunOptions {
   base: RevisionInput;
   candidate: RevisionInput;
   /**
-   * Whether a fixture the base subject cannot measure leaves the run instead of
-   * stopping it. Off by default, so the strict reading is what a caller gets
-   * without asking: the pull-request leg builds its base from the merge base,
-   * where a fixture only this branch compiles is a manifest question and the
-   * refusal is the guard that catches it.
+   * Whether a fixture the base subject cannot measure leaves the comparison
+   * instead of stopping the run. The candidate is still timed for it, so the
+   * absolute budget keeps its number. Off by default, so the strict reading is
+   * what a caller gets without asking: the pull-request leg builds its base
+   * from the merge base, where a fixture only this branch compiles is a
+   * manifest question and the refusal is the guard that catches it.
    */
   allowBaseRefusals: boolean;
   /**
@@ -186,7 +200,8 @@ async function main(): Promise<void> {
       ...placement.strategies,
       // Under `--allow-base-refusals` the candidate is the only gate: it is the
       // code the numbers are about, so a fixture it refuses still stops the leg,
-      // while one only the base refuses leaves the run with a line saying so.
+      // while one only the base refuses leaves the comparison with a line saying
+      // so, and is measured for the candidate alone.
       // Without the flag no subject is privileged and any refusal stops the run,
       // which is the reading the merge-base leg needs.
       ...(options.allowBaseRefusals ? { requiredSubject: options.candidate.label } : {}),
@@ -194,11 +209,14 @@ async function main(): Promise<void> {
   } finally {
     placement.close();
   }
-  const { fixtures: rawFixtures, excluded } = result;
+  const { fixtures: rawFixtures, uncompared } = result;
 
-  if (excluded.length > 0) {
+  if (uncompared.length > 0) {
     console.log(chalk.yellow.bold('Not compared'));
-    for (const entry of excluded) {
+    // Says what this run did, and no more. Whether the number then meets a
+    // ceiling is the budget step, which only one leg of the release runs.
+    console.log(chalk.dim(`  measured for ${options.candidate.label} alone`));
+    for (const entry of uncompared) {
       console.log(`  ${entry.fixture} — ${entry.subject}: ${entry.reason}`);
     }
     console.log('');
@@ -225,10 +243,10 @@ async function main(): Promise<void> {
     subjects: placement.subjects.map(subject => subject.descriptor),
     fixtures: rawFixtures,
     // Written beside the numbers rather than only to the log, so a comparison
-    // that measured fewer fixtures than the manifest holds says so in the file
+    // that compared fewer fixtures than the manifest holds says so in the file
     // a reviewer downloads. Read by nobody: the schema does not carry it, and
     // the parser keeps the keys it knows.
-    ...(excluded.length > 0 ? { excluded } : {}),
+    ...(uncompared.length > 0 ? { uncompared } : {}),
   };
 
   const resultsDir = path.join(benchmarkDir, 'results');
@@ -247,6 +265,10 @@ interface SubjectPlacement {
 
 /**
  * Loads both subjects, or arranges for each to be measured on its own.
+ *
+ * Where the base may refuse, its rule counts are read in a child process even
+ * though both subjects share this one. The answer is the same; what changes is
+ * that the compiler error beside it does not reach this run's stderr.
  *
  * The single process is the path every platform but macOS takes, and the one
  * every release has gated on. The split path exists because two bindings that
@@ -282,7 +304,35 @@ async function placeSubjects(input: {
     subjects.push(await loadSubject({ label: revision.label, packageDir: revision.packageDir }));
   }
 
-  return { subjects, strategies: {}, close: () => undefined };
+  if (!input.options.allowBaseRefusals) {
+    return { subjects, strategies: {}, close: () => undefined };
+  }
+
+  // The base is a published version that is behind this build, so a fixture it
+  // cannot compile is expected and is reported under `Not compared`. Asked in
+  // this process, the addon draws a compiler error on this run's stderr before
+  // it refuses, and a leg that did nothing wrong reads as a failed one. Asked
+  // in a child, the same refusal arrives as a value. Only the sanity check
+  // moves: the base is timed here, for the fixtures it accepted.
+  const base = input.options.base;
+  const reported = countRulesInChild({
+    subject: { label: base.label, packageDir: base.packageDir },
+    fixtures: input.fixtures,
+    stylexOptions: input.stylexOptions,
+    timeBudgetMs: input.options.timeBudgetMs,
+  });
+  const inProcess = countRulesInProcess(input.stylexOptions);
+
+  return {
+    subjects,
+    strategies: {
+      countRules: (subject, fixture) =>
+        subject.descriptor.label === base.label
+          ? readReportedCount(reported, base.label, fixture)
+          : inProcess(subject, fixture),
+    },
+    close: () => undefined,
+  };
 }
 
 function parseCli(argv: readonly string[]): PairedRunOptions {

@@ -169,7 +169,7 @@ before timing anything. A shape that only a fix makes compilable is a
 correctness question, so it belongs to `crates/stylex-transform/tests/fixture`
 and stays there; `perf_fixtures/dynamic-styles.js` states this rule in its own
 header and leaves that shape out while still pricing the inline-style path.
-`selectMeasurableFixtures` names the fixture and the subject that refused it.
+`planFixtures` names the fixture and the subject that refused it.
 
 **Only the release leg allows a base refusal, and it passes a flag to get
 it.** The pull-request leg builds the merge base, where the rule above holds
@@ -178,12 +178,26 @@ version_, which does not have the features that landed since. A fixture that
 prices one of those features then has no base to compare against. One `.trim()`
 in `perf_fixtures/engine-fold.js` stopped the whole publish benchmark that way.
 That leg passes `--allow-base-refusals`. The run then reports the fixture under
-`Not compared`, writes it into the raw stats beside the numbers, and leaves it
-out of the comparison. The fixture returns once the published baseline has the
-feature. The flag is off by default, and it never lifts the gate on the
-candidate: a fixture _it_ refuses, or compiles to no rules, is a regression and
-fails the leg. A run where no fixture survives also fails, because a base that
-refuses everything is a broken subject.
+`Not compared` and writes it into the raw stats as `uncompared`, beside the
+numbers.
+
+What the fixture loses is the comparison, not the run. The candidate is still
+timed for it, because the absolute budget describes the candidate alone and
+holds a ceiling for every fixture in the manifest. A fixture dropped from the
+run reached that check as an entry nothing measured, and failed the release a
+second way. The verdict engine names such a fixture under its table and takes
+no ratio for it, because a ratio needs both sides.
+
+The flag is off by default, and it never lifts the gate on the candidate: a
+fixture _it_ refuses, or compiles to no rules, is a regression and fails the
+leg. A run where no fixture at all is comparable by every subject also fails,
+because a base that refuses everything is a broken subject.
+
+Under the flag the base is asked for its rule counts in a child process. The
+compiler draws a code frame on stderr before it refuses, and that stream is the
+release log, so a refusal this leg expects made a good run read as a failed
+one. Only the sanity check moves; the base is timed in the process that holds
+it.
 
 **Register a feature fixture in pairs.** One number for a development shape says
 nothing about what the feature costs; the pair does. A `Feature - x` entry and a
@@ -199,8 +213,8 @@ reach.
 `benchmark/budget.json` is `enforced`. It holds one ceiling for each of the 65
 benchmark fixtures, seeded on 2026-09-10: the largest median-of-round p95 that
 any seeding run gave, times a headroom of 1.25. Sixty-one ceilings come from
-ten runs and four from three runs, because the four fold fixtures could not be
-measured until the published base could fold. A breach fails the leg and,
+ten runs and four from three runs, because the four fold fixtures had no
+seeding run before the release leg could measure them. A breach fails the leg and,
 through the publish job, blocks the release. While the file is
 `pending-calibration` instead, it holds no ceilings, `bench:budget` reports
 `unseeded`, and the leg passes.

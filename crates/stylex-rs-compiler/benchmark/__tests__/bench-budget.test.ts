@@ -21,6 +21,7 @@ import {
   type RawStatsFile,
   type SubjectDescriptor,
 } from '../lib/types.js';
+import { fixtureMeasuredByOne } from './helpers/raw-fixtures.js';
 
 const BASE: SubjectDescriptor = { label: 'base', version: '0.18.2', resolvedFrom: '/base' };
 const CANDIDATE: SubjectDescriptor = {
@@ -77,6 +78,19 @@ function fixture(name: string, candidateP95PerRound: readonly number[]): Fixture
       confidence: { point: 0.5, lower: 0.45, upper: 0.55 },
     },
   };
+}
+
+/** The same fixture, measured by the candidate alone. */
+function candidateOnlyFixture(
+  name: string,
+  candidateP95PerRound: readonly number[]
+): FixtureRawStats {
+  return fixtureMeasuredByOne({
+    name,
+    label: CANDIDATE.label,
+    perRound: candidateP95PerRound,
+    samplesOf: samples,
+  });
 }
 
 function rawStats(
@@ -194,6 +208,55 @@ describe('evaluateBudget — coverage', () => {
     expect(report.problems).toContainEqual({
       kind: 'extra-entry',
       message: 'budget entry "removed" was not measured in this run',
+      severity: 'failure',
+    });
+  });
+
+  // The release leg compares against the last published version, which cannot
+  // compile a fixture that prices a feature it does not carry. That fixture is
+  // measured for the candidate alone, and the ceilings describe the candidate,
+  // so it is checked like any other.
+  test('a fixture only the candidate measured is held to its ceiling', () => {
+    const report = evaluateBudget(
+      rawStats([fixture('card', [1]), candidateOnlyFixture('engine-fold', [1])]),
+      budget([entry('card', 2), entry('engine-fold', 2)])
+    );
+
+    expect(report.problems).toStrictEqual([]);
+    expect(report.status).toBe('pass');
+    expect(report.fixtures[1]?.name).toBe('engine-fold');
+    expect(report.fixtures[1]?.status).toBe('pass');
+  });
+
+  test('the same fixture breaches its ceiling like any other', () => {
+    const report = evaluateBudget(
+      rawStats([fixture('card', [1]), candidateOnlyFixture('engine-fold', [9])]),
+      budget([entry('card', 2), entry('engine-fold', 2)])
+    );
+
+    expect(report.status).toBe('failed');
+    expect(report.problems).toContainEqual({
+      kind: 'breach',
+      message: 'engine-fold: p95 9.0000 ms exceeds ceiling 2.0000 ms',
+      severity: 'failure',
+    });
+  });
+
+  // Ceilings that describe the base cannot be checked against a fixture the
+  // base did not measure. The entry is reported as one nothing measured, which
+  // is the reading that stops the release rather than one that reads a number
+  // off the wrong subject.
+  test('a base budget reports a candidate-only fixture as unmeasured', () => {
+    const report = evaluateBudget(
+      rawStats([fixture('card', [1]), candidateOnlyFixture('engine-fold', [1])]),
+      { ...budget([entry('card', 4), entry('engine-fold', 4)]), subject: 'base' }
+    );
+
+    expect(report.subject.label).toBe(BASE.label);
+    expect(report.fixtures.map(measured => measured.name)).toStrictEqual(['card']);
+    expect(report.problems).toContainEqual({
+      kind: 'extra-entry',
+      message: 'budget entry "engine-fold" was not measured in this run',
       severity: 'failure',
     });
   });

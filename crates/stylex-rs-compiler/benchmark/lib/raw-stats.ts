@@ -78,6 +78,19 @@ export function parseRawStats(
   };
 }
 
+/**
+ * Whether `label` measured every round of `fixture`.
+ *
+ * A paired run can hold a fixture only one of its subjects measured, because
+ * the release leg compares against a published version that is behind by whole
+ * features. Both readers of the file ask this question. The verdict engine asks
+ * it to find the fixtures it can take a ratio for, and the budget asks it to
+ * find the ones its ceilings describe. One answer, so the two cannot disagree.
+ */
+export function measuredBy(fixture: FixtureRawStats, label: string): boolean {
+  return fixture.rounds.every(round => round.perSubject[label] !== undefined);
+}
+
 function parseSubject(value: unknown, context: string): SubjectDescriptor {
   const subject = requireRecord(value, context);
   return {
@@ -158,6 +171,20 @@ function parseFixture(
       throw new Error(`${context}.rounds must use contiguous zero-based indices`);
     }
   }
+  // A fixture a subject refused is measured by the subjects that answered, and
+  // by those same subjects in every round of it. Rounds that disagree describe
+  // a fixture half of which was measured against something else, and no reader
+  // of this file could tell which half.
+  const firstOrder = [...rounds[0]!.subjectOrder].toSorted();
+  for (const round of rounds) {
+    const order = [...round.subjectOrder].toSorted();
+    if (
+      order.length !== firstOrder.length ||
+      order.some((label, index) => label !== firstOrder[index])
+    ) {
+      throw new Error(`${context}.rounds must name the same subjects in every round`);
+    }
+  }
 
   return {
     name: requireString(fixture.name, `${context}.name`),
@@ -180,20 +207,31 @@ function parseRound(
   const subjectOrder = requireArray(round.subjectOrder, `${context}.subjectOrder`).map(
     (label, index) => requireString(label, `${context}.subjectOrder[${index}]`)
   );
-  const expectedLabels = subjects.map(subject => subject.label).toSorted();
-  if (
-    subjectOrder.length !== expectedLabels.length ||
-    subjectOrder.toSorted().some((label, index) => label !== expectedLabels[index])
-  ) {
-    throw new Error(`${context}.subjectOrder must contain each subject label exactly once`);
+  // A subset rather than the whole set: the release leg compares against the
+  // last published version, and a fixture that prices a feature that version
+  // does not carry is measured by the candidate alone. What the round may not
+  // do is name a subject the file does not declare, or name one two times.
+  const declared = new Set(subjects.map(subject => subject.label));
+  if (subjectOrder.length === 0) {
+    throw new Error(`${context}.subjectOrder must name at least one subject`);
+  }
+  if (new Set(subjectOrder).size !== subjectOrder.length) {
+    throw new Error(`${context}.subjectOrder must name each subject at most one time`);
+  }
+  for (const label of subjectOrder) {
+    if (!declared.has(label)) {
+      throw new Error(
+        `${context}.subjectOrder names ${JSON.stringify(label)}, which is not a subject of this file`
+      );
+    }
   }
 
   const rawPerSubject = requireRecord(round.perSubject, `${context}.perSubject`);
   const perSubject: Record<string, RawLatencySamples> = {};
-  for (const subject of subjects) {
-    perSubject[subject.label] = parseSamples(
-      rawPerSubject[subject.label],
-      `${context}.perSubject[${JSON.stringify(subject.label)}]`
+  for (const label of subjectOrder) {
+    perSubject[label] = parseSamples(
+      rawPerSubject[label],
+      `${context}.perSubject[${JSON.stringify(label)}]`
     );
   }
 

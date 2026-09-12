@@ -255,6 +255,58 @@ describe('callWorker', () => {
   });
 });
 
+/**
+ * Where the compiler error beside a refusal goes.
+ *
+ * The addon draws a code frame on the process stderr before it refuses, and
+ * that stream is the release log. A leg that expects the refusal -- the base is
+ * a published version behind this build -- printed a compiler error for a
+ * fixture it went on to report under `Not compared`, so a run that did nothing
+ * wrong read as a failed one.
+ *
+ * Measured from a process of this suite's own, because the addon writes to the
+ * file descriptor and not through anything this process can replace.
+ */
+describe('countRulesInChild', () => {
+  /** The module the compiler refuses, and the sentence it refuses it with. */
+  const REFUSED_CODE =
+    "import * as stylex from '@stylexjs/stylex';\n" +
+    'export const s = stylex.create({ a: { width: someUnknown.value } });\n';
+  const REFUSAL = '[StyleX] a > width > Referenced constant is not defined.';
+
+  const PROBE = path.join(import.meta.dirname, 'helpers', 'count-rules-probe.mjs');
+
+  function askForTheCount(mode: 'child' | 'in-process'): { count: unknown; stderr: string } {
+    const result = spawnSync(
+      process.execPath,
+      [...workerExecArgv(), PROBE, packageDir, mode, REFUSED_CODE],
+      { encoding: 'utf8' }
+    );
+
+    if (result.stdout.trim() === '') {
+      throw new Error(`the probe printed no answer:\n${result.stderr}`);
+    }
+
+    return { count: JSON.parse(result.stdout) as unknown, stderr: result.stderr };
+  }
+
+  // The control. Without it a probe that answered nothing at all would pass the
+  // case below, because it too writes no compiler error.
+  test.runIf(built)('the same count taken in this process prints the error', () => {
+    const asked = askForTheCount('in-process');
+
+    expect(asked.count).toStrictEqual({ refusal: REFUSAL });
+    expect(asked.stderr).toContain('error: [StyleX]');
+  });
+
+  test.runIf(built)('answers the refusal and writes nothing to the caller stderr', () => {
+    const asked = askForTheCount('child');
+
+    expect(asked.count).toStrictEqual({ refusal: REFUSAL });
+    expect(asked.stderr).toBe('');
+  });
+});
+
 describe('bench-worker', () => {
   /** The modules the reader child below loads, in the order it loads them. */
   const readerModules = ['lib/subject-process.js', 'lib/native-bindings.js'];

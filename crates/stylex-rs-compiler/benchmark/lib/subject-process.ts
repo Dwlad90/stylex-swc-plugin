@@ -497,6 +497,64 @@ export interface SplitSubject {
   packageDir: string;
 }
 
+/**
+ * One subject's rule count for every fixture, read in a child process.
+ *
+ * A fixture the subject cannot compile is the reason this exists. In this
+ * process the addon draws a code frame on stderr before it throws. That stream
+ * is the release log. So a leg that expects the refusal printed a compiler
+ * error for a fixture it then reported under `Not compared`, and a good run
+ * read as a failed one. The child writes its report to a file, and its stderr
+ * is read only when it fails. The refusal then arrives as a value.
+ *
+ * @throws Error when the child stops without writing a report.
+ */
+export function countRulesInChild(input: {
+  subject: SplitSubject;
+  fixtures: readonly FixtureDescriptor[];
+  stylexOptions: StyleXOptions;
+  timeBudgetMs: number;
+}): Record<string, WorkerCount> {
+  const run = openWorkerRuns();
+  try {
+    const report = callWorker(run, {
+      protocol: WORKER_PROTOCOL_VERSION,
+      packageDir: input.subject.packageDir,
+      label: input.subject.label,
+      fixtures: input.fixtures,
+      stylexOptions: input.stylexOptions,
+      timeBudgetMs: input.timeBudgetMs,
+      task: { kind: 'count-rules' },
+    });
+
+    return report.counts ?? {};
+  } finally {
+    closeWorkerRuns(run);
+  }
+}
+
+/**
+ * What a child reported about one fixture, as the sanity check needs it.
+ *
+ * A refusal comes back as the sentence the subject said, thrown here, so the
+ * runner cannot tell a child's answer from an answer this process took.
+ *
+ * @throws Error when the subject refused the fixture, or said nothing about it.
+ */
+export function readReportedCount(
+  counts: Record<string, WorkerCount>,
+  label: string,
+  fixture: FixtureDescriptor
+): number {
+  const count = counts[fixture.name];
+  if (count === undefined) {
+    throw new Error(`Subject "${label}" said nothing about fixture "${fixture.name}"`);
+  }
+  if (isWorkerRefusal(count)) throw new Error(count.refusal);
+
+  return count;
+}
+
 export interface SplitRun {
   /** Descriptors for the runner. Their `run` is never called. */
   subjects: LoadedSubject[];
@@ -533,16 +591,15 @@ export function startSplitRun(input: {
   // refuses, because the caller has nothing to close until this returns.
   try {
     for (const subject of input.subjects) {
-      const report = callWorker(run, {
-        protocol: WORKER_PROTOCOL_VERSION,
-        packageDir: subject.packageDir,
-        label: subject.label,
-        fixtures: input.fixtures,
-        stylexOptions: input.stylexOptions,
-        timeBudgetMs: input.timeBudgetMs,
-        task: { kind: 'count-rules' },
-      });
-      counts.set(subject.label, report.counts ?? {});
+      counts.set(
+        subject.label,
+        countRulesInChild({
+          subject,
+          fixtures: input.fixtures,
+          stylexOptions: input.stylexOptions,
+          timeBudgetMs: input.timeBudgetMs,
+        })
+      );
     }
   } catch (error) {
     closeWorkerRuns(run);
@@ -568,13 +625,7 @@ export function startSplitRun(input: {
 
     countRules(subject, fixture) {
       const label = subject.descriptor.label;
-      const count = counts.get(label)?.[fixture.name];
-      if (count === undefined) {
-        throw new Error(`Subject "${label}" said nothing about fixture "${fixture.name}"`);
-      }
-      if (isWorkerRefusal(count)) throw new Error(count.refusal);
-
-      return count;
+      return readReportedCount(counts.get(label) ?? {}, label, fixture);
     },
 
     async measureRound(fixture, order) {

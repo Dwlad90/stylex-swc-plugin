@@ -15,7 +15,7 @@ use stylex_ast::ast::factories::{
   create_import_namespace_decl, create_jsx_spread_attr, create_member_call_expr, create_object_lit,
   create_spread_prop,
 };
-use stylex_ast::ast::keys::namespace_name_from_prop_key;
+use stylex_ast::ast::keys::try_namespace_name_from_prop_key;
 use stylex_constants::constants::{api_names::STYLEX_PROPS, common::RUNTIME_JSX_CALL_NAMES};
 use stylex_enums::{core::TransformationCycle, counter_mode::CounterMode};
 use stylex_state::state_manager::InsertionSlot;
@@ -380,14 +380,17 @@ fn build_stylex_props_call(stylex_local_name: String, args: Vec<ExprOrSpread>) -
 /// the identifier it names, because `{ sx }` and `{ sx: sx }` name the same
 /// prop.
 ///
-/// Every other shape is skipped, matching what the raw markup path does with
-/// the construct it corresponds to. A getter, a setter and a method carry no
+/// Every other shape is skipped. A getter, a setter and a method carry no
 /// value expression to forward, like an attribute whose value is not an
 /// expression container. A spread is not inspected at all, like a spread
-/// attribute, and its keys are not knowable at compile time anyway.
+/// attribute, and its keys are not knowable at compile time anyway. A key
+/// whose text cannot be read -- a lone surrogate, say -- is simply not the
+/// prop asked about, so the scan passes over it rather than refusing it.
 ///
-/// The first match wins, again like the raw markup path, which stops at the
-/// first matching attribute.
+/// The first match wins, like the raw markup path, which stops at the first
+/// matching attribute. Where the two paths cannot correspond they do not: a
+/// shorthand has no markup spelling, and a numeric or computed key is not a
+/// shape JSX can write.
 fn find_sx_prop(props: &[PropOrSpread], sx_prop_name: &str) -> Option<(usize, Expr)> {
   props.iter().enumerate().find_map(|(idx, prop)| {
     let PropOrSpread::Prop(prop) = prop else {
@@ -395,7 +398,8 @@ fn find_sx_prop(props: &[PropOrSpread], sx_prop_name: &str) -> Option<(usize, Ex
     };
 
     let value = match prop.as_ref() {
-      Prop::KeyValue(key_value) => (namespace_name_from_prop_key(&key_value.key)? == sx_prop_name)
+      Prop::KeyValue(key_value) => (try_namespace_name_from_prop_key(&key_value.key)?
+        == sx_prop_name)
         .then(|| key_value.value.as_ref().clone()),
       Prop::Shorthand(ident) => {
         (ident.sym.as_str() == sx_prop_name).then(|| Expr::Ident(ident.clone()))

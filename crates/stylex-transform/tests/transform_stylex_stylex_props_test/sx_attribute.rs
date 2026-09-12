@@ -227,6 +227,72 @@ stylex_test!(
   "#
 );
 
+// A plain string key is the shape a minifier writes most often. Both quote
+// characters name the same prop, because the compiler compares the text.
+stylex_test!(
+  sx_attr_compiled_jsx_string_key,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      },
+      card: {
+        borderRadius: 4,
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          "sx": styles.main,
+          children: _jsx("span", {
+              'sx': styles.card
+            })
+        });
+      }
+  "#
+);
+
+// A key that holds a lone surrogate is a legal JavaScript key, but it has no
+// readable name. The scan reads every key of every host element, so such a key
+// must be skipped rather than refused: it is simply not the prop asked about.
+stylex_test!(
+  sx_attr_compiled_jsx_lossy_string_key_unchanged,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          "\ud800": marker,
+          sx: styles.main,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// The module this feature exists for: a compiled leaf that forwards the prop
+// and imports nothing. The runtime binding has to be injected, because there
+// is no import to reuse.
+stylex_test!(
+  sx_attr_compiled_jsx_shorthand_without_a_stylex_import,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    export function Leaf({ id, sx }) {
+      return _jsx("div", {
+          id,
+          sx,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
 // A computed key whose text is known at compile time names the prop, whether
 // it is written as a string literal or as a template literal with no
 // expressions.

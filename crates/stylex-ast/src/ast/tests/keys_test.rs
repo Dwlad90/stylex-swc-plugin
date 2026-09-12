@@ -2,10 +2,10 @@
 
 use crate::ast::keys::{
   collect_object_lit_keys, namespace_name_from_member_prop, namespace_name_from_prop_key,
-  prop_as_key_value,
+  prop_as_key_value, try_namespace_name_from_prop_key,
 };
 use swc_core::{
-  atoms::Atom,
+  atoms::{Atom, Wtf8Atom},
   common::DUMMY_SP,
   ecma::ast::{
     ArrowExpr, ArrowFunctionBody, BigInt, BigIntValue, BindingIdent, ComputedPropName, Expr,
@@ -252,6 +252,111 @@ fn refuses_a_computed_key_that_is_not_a_literal() {
   ))));
 
   assert_eq!(namespace_name_from_prop_key(&key), None);
+}
+
+// ---------- try_namespace_name_from_prop_key ----------
+
+/// Storage that is valid WTF-8 but not valid UTF-8: a lone surrogate, which a
+/// JavaScript source can spell as `"\ud800"`.
+fn lossy_wtf8_atom() -> Wtf8Atom {
+  unsafe { Wtf8Atom::from_bytes_unchecked(&[0xed, 0xa0, 0x80]) }
+}
+
+fn lossy_string_lit() -> Str {
+  Str {
+    span: DUMMY_SP,
+    value: lossy_wtf8_atom(),
+    raw: None,
+  }
+}
+
+/// The two readers must answer alike on every shape that carries a readable
+/// name, so a caller can pick either one on the strength of what it wants done
+/// with unreadable text alone.
+#[test]
+fn both_readers_agree_on_every_readable_shape() {
+  let keys = [
+    PropName::Ident(ident_name("root")),
+    PropName::Str(string_lit("a key")),
+    PropName::Num(number_lit(1e21)),
+    PropName::BigInt(big_int_lit(12)),
+    PropName::Computed(computed(Expr::Lit(Lit::Str(string_lit("root"))))),
+    PropName::Computed(computed(Expr::Lit(Lit::Num(number_lit(7.0))))),
+    PropName::Computed(computed(Expr::Lit(Lit::BigInt(big_int_lit(12))))),
+    PropName::Computed(computed(Expr::Tpl(static_tpl("root")))),
+    PropName::Computed(computed(Expr::Tpl(dynamic_tpl()))),
+    PropName::Computed(computed(Expr::Lit(Lit::Null(swc_core::ecma::ast::Null {
+      span: DUMMY_SP,
+    })))),
+    PropName::Computed(computed(Expr::Ident(Ident::new_no_ctxt(
+      Atom::new("name"),
+      DUMMY_SP,
+    )))),
+  ];
+
+  for key in keys {
+    assert_eq!(
+      try_namespace_name_from_prop_key(&key),
+      namespace_name_from_prop_key(&key),
+      "the two readers disagree on {key:?}"
+    );
+  }
+}
+
+#[test]
+fn skips_a_string_key_that_cannot_be_read() {
+  let key = PropName::Str(lossy_string_lit());
+
+  assert_eq!(try_namespace_name_from_prop_key(&key), None);
+}
+
+#[test]
+fn skips_a_computed_string_key_that_cannot_be_read() {
+  let key = PropName::Computed(computed(Expr::Lit(Lit::Str(lossy_string_lit()))));
+
+  assert_eq!(try_namespace_name_from_prop_key(&key), None);
+}
+
+/// A template element keeps its cooked text as the same storage a string
+/// literal does, so the same unreadable text reaches the reader through it.
+#[test]
+fn skips_a_computed_template_key_that_cannot_be_read() {
+  let tpl = Tpl {
+    span: DUMMY_SP,
+    exprs: vec![],
+    quasis: vec![TplElement {
+      span: DUMMY_SP,
+      tail: true,
+      cooked: Some(lossy_wtf8_atom()),
+      raw: Atom::new(""),
+    }],
+  };
+
+  assert_eq!(
+    try_namespace_name_from_prop_key(&PropName::Computed(computed(Expr::Tpl(tpl)))),
+    None
+  );
+}
+
+/// A template element with no cooked text spells an invalid escape sequence.
+/// It names no property, and the reader says so rather than refusing.
+#[test]
+fn skips_a_computed_template_key_with_no_cooked_text() {
+  let tpl = Tpl {
+    span: DUMMY_SP,
+    exprs: vec![],
+    quasis: vec![TplElement {
+      span: DUMMY_SP,
+      tail: true,
+      cooked: None,
+      raw: Atom::new("\\u{}"),
+    }],
+  };
+
+  assert_eq!(
+    try_namespace_name_from_prop_key(&PropName::Computed(computed(Expr::Tpl(tpl)))),
+    None
+  );
 }
 
 // ---------- namespace_name_from_member_prop ----------

@@ -26,6 +26,7 @@ import {
   RAW_STATS_SCHEMA_VERSION,
   type BootstrapConfig,
   type FixtureDescriptor,
+  type RawLatencySamples,
   type RawStatsEnvironment,
   type RawStatsFile,
 } from '../lib/types.js';
@@ -94,6 +95,26 @@ const BUDGET: BudgetFile = {
 
 const BOOTSTRAP: BootstrapConfig = { seed: 42, resamples: 200, confidence: 0.95 };
 
+/**
+ * Latency samples that all read `value`.
+ *
+ * The rounds below are handed in rather than timed. What this file is about is
+ * which fixtures a run plans, and for which subjects -- not how fast they are.
+ * A real timing of two subjects that both answer `1` is the noise of the clock,
+ * so a ratio taken from it crosses the fail threshold on some machines and not
+ * on others, and the suite status would say nothing about this code.
+ */
+function samplesOf(value: number): RawLatencySamples {
+  return {
+    samples: [value, value, value],
+    p50: value,
+    p95: value,
+    rme: 0,
+    samplesCount: 3,
+    opsPerSec: 1000 / value,
+  };
+}
+
 interface ReleaseRun {
   rawStats: RawStatsFile;
   uncompared: readonly UncomparedFixture[];
@@ -124,6 +145,13 @@ async function releaseRun(): Promise<ReleaseRun> {
     standardBench: BENCH,
     heavyBench: BENCH,
     requiredSubject: candidate.descriptor.label,
+    // The rule counts stay real, because the refusal they carry is what this
+    // file is about. Only the timing is stated, so every number below is the
+    // same on every machine.
+    measureRound: (fixture, order) =>
+      Promise.resolve(
+        Object.fromEntries(order.map(subject => [subject.descriptor.label, samplesOf(0.5)]))
+      ),
   });
 
   return {

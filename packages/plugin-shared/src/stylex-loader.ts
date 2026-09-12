@@ -8,6 +8,7 @@ import {
   PLUGIN_NAME,
   VIRTUAL_STYLEX_CSS_DUMMY_IMPORT_PATH,
 } from './constants';
+import { shouldProcessSource } from './module-selection';
 import type { InputCode, SourceMap, StyleXLoaderOptions } from './types';
 import { generateStyleXOutput, stringifyRequest } from './utils';
 
@@ -45,14 +46,7 @@ export default async function stylexLoader(
   }
 
   // bail out early if the input doesn't contain stylex imports
-  if (
-    !stylexImports?.some(importName =>
-      typeof importName === 'string'
-        ? stringifiedInputCode.includes(importName)
-        : stringifiedInputCode.includes(importName.as) ||
-          stringifiedInputCode.includes(importName.from)
-    )
-  ) {
+  if (!shouldProcessSource(stringifiedInputCode, { importSources: stylexImports })) {
     return callback(null, stringifiedInputCode, inputSourceMap);
   }
 

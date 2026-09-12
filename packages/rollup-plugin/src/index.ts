@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 
 import type { Rule } from '@stylexjs/babel-plugin';
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
+import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
 import {
   normalizeRsOptions,
   shouldTransformFile,
@@ -93,13 +94,7 @@ export default function stylexPlugin({
 
       const normalizedRsOptions = normalizeRsOptions(rsOptions ?? {});
 
-      if (
-        !normalizedRsOptions.importSources?.some(importName =>
-          typeof importName === 'string'
-            ? inputCode.includes(importName)
-            : inputCode.includes(importName.from)
-        )
-      ) {
+      if (!shouldProcessSource(inputCode, { importSources: normalizedRsOptions.importSources })) {
         // In rollup, returning null from any plugin phase means
         // "no changes made".
         return null;

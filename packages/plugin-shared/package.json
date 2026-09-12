@@ -23,6 +23,11 @@
       "import": "./dist/constants.js",
       "require": "./dist/constants.js"
     },
+    "./module-selection": {
+      "types": "./dist/module-selection.d.ts",
+      "import": "./dist/module-selection.js",
+      "require": "./dist/module-selection.js"
+    },
     "./source-map-options": {
       "types": "./dist/source-map-options.d.ts",
       "import": "./dist/source-map-options.js",

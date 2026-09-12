@@ -827,7 +827,13 @@ export const styles = stylex.create({
         const deadline = Date.now() + 10_000;
         let previous = -1;
 
-        for (let steady = 0; steady < 2 && Date.now() < deadline;) {
+        for (let steady = 0; steady < 2;) {
+          if (Date.now() >= deadline) {
+            // Returning here would compare whatever counts happened to be
+            // current, so the test could pass on a server that never settles.
+            throw new Error('The dev server never stopped reading global.css within 10s.');
+          }
+
           await settle();
 
           const count = globalCssReads();

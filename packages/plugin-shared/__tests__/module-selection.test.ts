@@ -10,12 +10,12 @@ const IMPORTING_MODULE = "import * as stylex from '@stylexjs/stylex';";
 // import scan alone would drop it and leave the element unstyled.
 const NO_IMPORT = { importSources: ['@stylexjs/stylex'] };
 
-// Every plugin runs the scan on every module, so a slow answer is felt on each
-// build. The large cases below measure near one millisecond, so this budget
-// leaves about fifty times the room. That is enough for a cold or loaded
-// machine, and still fails long before a pattern that backtracks: the shape
-// these cases catch took sixty seconds.
-const BUDGET_MS = 50;
+// Every plugin runs the scan on every module, so a pattern that backtracks is
+// felt on each build. These cases measure near one millisecond; the shape they
+// catch took sixty seconds. The budget sits between the two, far enough above
+// the measurement that a cold or loaded machine cannot reach it. It is a check
+// for backtracking, not for the speed of the machine.
+const BUDGET_MS = 2_000;
 
 function timedScan(sourceCode: string): [boolean, number] {
   const startedAt = performance.now();
@@ -240,6 +240,20 @@ describe('shouldProcessSource', () => {
         ['a digit prefix', 'const a1sx = 1;'],
       ])('skips a module whose only mention is %s', (_form, sourceCode) => {
         expect(shouldProcessSource(sourceCode, NO_IMPORT)).toBe(false);
+      });
+
+      // A JSX attribute value always opens with `{` or a quote, so a `=` that
+      // carries on into `=>` or `==` names no attribute.
+      test.each([
+        ['an arrow parameter', 'const render = sx => sx;'],
+        ['a comparison', 'if (sx === other) return;'],
+        ['a loose comparison', 'if (sx == other) return;'],
+      ])('skips a module whose only mention is %s', (_form, sourceCode) => {
+        expect(shouldProcessSource(sourceCode, NO_IMPORT)).toBe(false);
+      });
+
+      test('still matches an assignment, which a shorthand cannot be told from', () => {
+        expect(shouldProcessSource('export const sx = 1;', NO_IMPORT)).toBe(true);
       });
 
       test('still matches the name at the very start of the module', () => {

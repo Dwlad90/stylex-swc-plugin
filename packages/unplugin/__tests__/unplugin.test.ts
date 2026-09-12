@@ -164,6 +164,23 @@ async function runWebpackLikeCssInjection(
  *
  * A null result means the module was skipped before the compiler was reached.
  */
+/** The code a `transform` hook returned, whatever shape it answered with. */
+function transformedCode(result: unknown): string {
+  if (typeof result === 'string') {
+    return result;
+  }
+
+  if (typeof result === 'object' && result !== null && 'code' in result) {
+    const { code } = result as { code?: unknown };
+
+    if (typeof code === 'string') {
+      return code;
+    }
+  }
+
+  throw new Error('The transform returned no code.');
+}
+
 async function runTransform(
   options: UnpluginStylexRSOptions,
   sourceCode: string
@@ -203,7 +220,11 @@ describe('@stylexswc/unplugin', () => {
     });
 
     test('transforms a file that uses the sx prop without importing', async () => {
-      await expect(runTransform({}, FORWARDS_THE_SX_PROP)).resolves.not.toBeNull();
+      const result = await runTransform({}, FORWARDS_THE_SX_PROP);
+
+      // Not merely "the module reached the compiler": the prop has to have
+      // become a props call, which is the half the module scan exists to reach.
+      expect(transformedCode(result)).toContain('props(');
     });
 
     test('ignores a file using the sx prop once the prop is disabled', async () => {

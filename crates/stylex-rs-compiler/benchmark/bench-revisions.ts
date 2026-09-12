@@ -52,7 +52,7 @@ import { captureEnvironment } from './lib/env.js';
 import { loadAllFixtures } from './lib/fixtures.js';
 import { formatLatency } from './lib/format.js';
 import { findNativeBindings, subjectsCanShareProcess } from './lib/native-bindings.js';
-import { runRounds, type RunOptions } from './lib/runner.js';
+import { runRounds, type RunOptions, type RunResult } from './lib/runner.js';
 import { startSplitRun, type SplitRun } from './lib/subject-process.js';
 import { loadSubject, type LoadedSubject } from './lib/subjects.js';
 import {
@@ -173,10 +173,9 @@ async function main(): Promise<void> {
         }\n`
   );
 
-  let rawFixtures;
-  let excluded;
+  let result: RunResult;
   try {
-    ({ fixtures: rawFixtures, excluded } = await runRounds({
+    result = await runRounds({
       subjects: placement.subjects,
       fixtures,
       stylexOptions,
@@ -191,10 +190,11 @@ async function main(): Promise<void> {
       // Without the flag no subject is privileged and any refusal stops the run,
       // which is the reading the merge-base leg needs.
       ...(options.allowBaseRefusals ? { requiredSubject: options.candidate.label } : {}),
-    }));
+    });
   } finally {
     placement.close();
   }
+  const { fixtures: rawFixtures, excluded } = result;
 
   if (excluded.length > 0) {
     console.log(chalk.yellow.bold('Not compared'));

@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/rsbuild-unplugin-example",
   "description": "A simple rsbuild unplugin example to test @stylexswc/unplugin/rspack",
-  "version": "0.19.0-rc.2",
+  "version": "0.19.0-rc.3",
   "private": true,
   "license": "MIT",
   "scripts": {

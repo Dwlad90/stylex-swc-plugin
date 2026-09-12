@@ -101,8 +101,12 @@ function readSerializedFrom(text: string): string | undefined {
  *
  * Reading a specifier costs a parse when it arrived as JSON text, and the scan
  * runs once for every module in the project. What the specifier resolves to
- * does not depend on the module, so each one is read once. The keys come from
- * the plugin options, so the map holds one entry per configured source.
+ * does not depend on the module, so each one is read once.
+ *
+ * Bounded by the caller: the keys are plugin options, so a build holds one
+ * entry per configured source. A caller of the published `shouldProcessSource`
+ * that derived a specifier per module would grow this without bound; no plugin
+ * here does.
  */
 const importSourceTexts = new Map<string, string>();
 
@@ -134,10 +138,14 @@ function mentionsImportSource(sourceCode: string, importSource: ModuleImportSour
  * Patterns already built, keyed by prop name.
  *
  * The scan runs once per module, so a project with thousands of modules would
- * otherwise recompile the same pattern thousands of times. The keys come from
- * the plugin options, so the map holds one entry per configured name. A build
- * can run two plugins with two different names, which is why this keeps an
- * entry for each rather than only the last.
+ * otherwise recompile the same pattern thousands of times. A build can run two
+ * plugins with two different names, which is why this keeps an entry for each
+ * rather than only the last.
+ *
+ * Bounded by the caller: the keys are plugin options, so a build holds one
+ * entry per configured name. A caller of the published `shouldProcessSource`
+ * that derived a name per module would grow this without bound; no plugin here
+ * does.
  */
 const sxPropPatterns = new Map<string, RegExp>();
 
@@ -147,7 +155,10 @@ const sxPropPatterns = new Map<string, RegExp>();
  * The name occurs in two shapes, and the compiler transforms both. Bare, the
  * name is followed by `=`, `:`, `,` or `}`: the attribute `sx={...}`, the
  * property `sx: ...`, the shorthand `{ sx }` and the shorthand before further
- * properties, `{ sx, ... }`. Quoted, the name is wrapped in matching quotes and
+ * properties, `{ sx, ... }`. A single `=` is required, because a JSX attribute
+ * value always opens with `{` or a quote: that drops the arrow `sx => ...` and
+ * the comparison `sx === other`, which any module with a variable of that name
+ * holds. Quoted, the name is wrapped in matching quotes and
  * followed by `:` or `,`, with an optional `]` between: the string key
  * `"sx": ...`, the computed key `["sx"]: ...` that a minifier writes, and the
  * Solid.js attribute call `_$setAttribute(el, "sx", ...)`.
@@ -174,7 +185,7 @@ function sxPropPattern(name: string): RegExp {
   }
 
   const escaped = escapeRegExp(name);
-  const bare = `(?<![\\p{ID_Continue}$])${escaped}\\s*[=:,}]`;
+  const bare = `(?<![\\p{ID_Continue}$])${escaped}\\s*(?:=(?![=>])|[:,}])`;
   // The closing quote must match the opening one, so `"sx\`` is not a mention.
   // The `]` sits inside the optional group with the space run that follows it,
   // so no two space runs are ever adjacent. Written as `\s*\]?\s*`, a long run

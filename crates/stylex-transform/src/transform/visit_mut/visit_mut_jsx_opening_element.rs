@@ -117,22 +117,15 @@ where
   ///
   /// Runs in the `Discover` cycle.
   pub(crate) fn transform_sx_in_compiled_jsx(&mut self, expr: &mut Expr) -> bool {
-    // Phase one reads. It holds a shared borrow of `expr` and of `self`, so it
-    // can neither resolve the runtime binding nor write, and it must not: a
-    // call with no `sx` prop has to leave both untouched. Nothing is copied
-    // here except the `sx` value, so a call the scan passes over costs no copy
-    // of the props object -- which holds the element's whole subtree.
-    let Some(sx_prop_name) = self.state.options.sx_prop_name.as_deref() else {
-      return false;
-    };
-
-    let Some(call) = expr.as_call() else {
+    let Some(call) = expr.as_mut_call() else {
       return false;
     };
 
     if !is_jsx_runtime_call(call) {
       return false;
     }
+
+    let span = call.span;
 
     // The first arg must be a lowercase string literal: a host element.
     let Some(Expr::Lit(Lit::Str(element))) = call.args.first().map(|arg| arg.expr.as_ref()) else {
@@ -148,7 +141,17 @@ where
       return false;
     }
 
-    let Some(obj_lit) = call.args.get(1).and_then(|arg| arg.expr.as_object()) else {
+    // The props object holds the element's whole subtree, so it is reached by
+    // borrow. A call the scan passes over costs no copy of it.
+    let Some(obj_lit) = call
+      .args
+      .get_mut(1)
+      .and_then(|arg| arg.expr.as_mut_object())
+    else {
+      return false;
+    };
+
+    let Some(sx_prop_name) = self.state.options.sx_prop_name.as_deref() else {
       return false;
     };
 
@@ -156,29 +159,18 @@ where
       return false;
     };
 
-    let span = call.span;
-
-    // Phase two writes. The shapes phase one matched are re-read rather than
-    // remembered, because a borrow cannot outlive the `&mut self` call between
-    // them. Nothing changes the node in between, so the read answers as it did;
-    // `None` says only that this reader cannot prove it, and reports no match.
+    // The props object stays borrowed across this call, because it belongs to
+    // the expression the caller owns and not to `self`. The runtime binding is
+    // resolved only now, because resolving it injects an import that a call
+    // with no `sx` prop must not get.
     let stylex_local_name = self.get_stylex_runtime_binding(span);
-    let props_call = Expr::Call(build_stylex_props_call(
+
+    obj_lit.props[sx_prop_idx] = create_spread_prop(Expr::Call(build_stylex_props_call(
       stylex_local_name,
       sx_value_to_props_args(sx_value),
-    ));
+    )));
 
-    match expr
-      .as_mut_call()
-      .and_then(|call| call.args.get_mut(1))
-      .and_then(|arg| arg.expr.as_mut_object())
-    {
-      Some(obj_lit) => {
-        obj_lit.props[sx_prop_idx] = create_spread_prop(props_call);
-        true
-      },
-      None => false,
-    }
+    true
   }
 
   /// Transform a Solid.js compiled `sx` attribute, in the `Discover` cycle.

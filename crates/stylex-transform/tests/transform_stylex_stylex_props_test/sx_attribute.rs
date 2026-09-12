@@ -177,6 +177,251 @@ stylex_test!(
   "#
 );
 
+// Compiled JSX, object shorthand: `_jsx("div", { sx })`. A JSX-compiling pass
+// collapses `sx={sx}` to this form, which names the same prop. A shorthand
+// that names something else is passed over, on a host element that is scanned.
+stylex_test!(
+  sx_attr_compiled_jsx_shorthand,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export function Leaf({ id, sx }) {
+      return _jsx("div", {
+          id,
+          sx,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// A host element whose only shorthand names something else keeps every prop.
+stylex_test!(
+  sx_attr_compiled_jsx_other_shorthand_unchanged,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export function Leaf({ id }) {
+      return _jsx("div", {
+          id,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// The shorthand follows the configured prop name, like every other form.
+stylex_test!(
+  sx_attr_compiled_jsx_shorthand_with_custom_sx_prop_name,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_sx_prop_name(SxPropNameParam::Enabled("css".to_string()))
+  }),
+  r#"
+    import stylex from 'stylex';
+    export function Leaf({ css }) {
+      return _jsx("div", {
+          css,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// A computed key whose text is known at compile time names the prop, whether
+// it is written as a string literal or as a template literal with no
+// expressions.
+stylex_test!(
+  sx_attr_compiled_jsx_computed_key,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      },
+      card: {
+        borderRadius: 4,
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          ["sx"]: styles.main,
+          children: _jsx("span", {
+              [`sx`]: styles.card
+            })
+        });
+      }
+  "#
+);
+
+// A computed key that is only known at run time names no prop at compile time,
+// so it is left alone.
+stylex_test!(
+  sx_attr_compiled_jsx_dynamic_computed_key_unchanged,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App(key) {
+      return _jsx("div", {
+          [key]: styles.main,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// A getter, a setter or a method carries no value expression to forward, so it
+// is left alone — the same way raw markup skips an attribute that is not an
+// expression container.
+stylex_test!(
+  sx_attr_compiled_jsx_accessor_and_method_unchanged,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          get sx() {
+            return styles.main;
+          },
+          children: [
+            _jsx("span", {
+                sx() {
+                  return styles.main;
+                }
+              }),
+            _jsx("b", {
+                set sx(value) {
+                  this.value = value;
+                }
+              })
+          ]
+        });
+      }
+  "#
+);
+
+// A spread names no key at compile time, so it is not inspected — the same way
+// a spread attribute in raw markup is not inspected. A spread of an object
+// that does name the prop is left alone too, which is what tells the two
+// apart: were the spread inspected, this one would transform.
+stylex_test!(
+  sx_attr_compiled_jsx_spread_unchanged,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App(rest) {
+      return _jsx("div", {
+          ...{
+            sx: styles.main
+          },
+          children: _jsx("span", {
+              ...rest
+            })
+        });
+      }
+  "#
+);
+
+// Only a host element carries the prop: the shorthand on a component is left
+// alone, like the explicit property.
+stylex_test!(
+  sx_attr_compiled_jsx_shorthand_not_applied_to_components,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export function Leaf({ sx }) {
+      return _jsx(MyComponent, {
+          sx,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// The prop written twice: the first occurrence wins, matching raw markup,
+// which stops at the first matching attribute.
+stylex_test!(
+  sx_attr_compiled_jsx_duplicate_prop_takes_the_first,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      },
+      card: {
+        borderRadius: 4,
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          sx: styles.main,
+          ["sx"]: styles.card,
+          children: "Hello World"
+        });
+      }
+  "#
+);
+
+// A deep tree of compiled calls, mixing every matched and every skipped form
+// at once. The props object of a call holds the whole subtree below it, so
+// this is also where a scan that copies before it matches would cost the most.
+stylex_test!(
+  sx_attr_compiled_jsx_deeply_nested_mixed_forms,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      a: { color: 'red' },
+      b: { borderRadius: 4 },
+      c: { backgroundColor: 'blue' },
+      d: { display: 'flex' }
+    });
+    function App({ sx, rest }) {
+      return _jsx("section", {
+          sx,
+          id: "outer",
+          children: _jsxs("div", {
+              "sx": styles.a,
+              className: "middle",
+              children: [
+                _jsx("span", {
+                    ["sx"]: [styles.b, styles.c],
+                    children: _jsx("em", {
+                        ...rest,
+                        [`sx`]: styles.d,
+                        children: _jsx(MyComponent, {
+                            sx: styles.a
+                          })
+                      })
+                  }),
+                _jsx("p", {
+                    get sx() {
+                      return styles.b;
+                    }
+                  })
+              ]
+            })
+        });
+      }
+  "#
+);
+
 // Vue: _createElementBlock / _createElementVNode with sx prop
 stylex_test!(
   sx_attr_vue_create_element_block,

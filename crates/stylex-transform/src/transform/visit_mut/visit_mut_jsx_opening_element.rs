@@ -3,8 +3,7 @@ use swc_core::{
   ecma::{
     ast::{
       Bool, CallExpr, Callee, Expr, ExprOrSpread, JSXAttrName, JSXAttrOrSpread, JSXAttrValue,
-      JSXElementName, JSXExpr, JSXOpeningElement, Lit, MemberExpr, MemberProp, Prop, PropName,
-      PropOrSpread,
+      JSXElementName, JSXExpr, JSXOpeningElement, Lit, MemberExpr, MemberProp, Prop, PropOrSpread,
     },
     visit::VisitMutWith,
   },
@@ -16,6 +15,7 @@ use stylex_ast::ast::factories::{
   create_import_namespace_decl, create_jsx_spread_attr, create_member_call_expr, create_object_lit,
   create_spread_prop,
 };
+use stylex_ast::ast::keys::namespace_name_from_prop_key;
 use stylex_constants::constants::{api_names::STYLEX_PROPS, common::RUNTIME_JSX_CALL_NAMES};
 use stylex_enums::{core::TransformationCycle, counter_mode::CounterMode};
 use stylex_state::state_manager::InsertionSlot;
@@ -139,33 +139,42 @@ where
       return None;
     }
 
-    // Second arg must be an object literal
+    // The second arg must be an object literal. It is read through a borrow:
+    // the props object holds the element's whole subtree, so a call with no
+    // such prop must cost no copy of it.
     let second_arg = call.args.get(1)?;
-    let obj_lit = match second_arg.expr.as_ref() {
-      Expr::Object(o) => o.clone(),
-      _ => return None,
-    };
+    let obj_lit = second_arg.expr.as_object()?;
 
-    // Find the sx prop index
-    let sx_prop_idx = find_sx_prop_idx(&obj_lit.props, sx_prop_name)?;
+    // Find the sx prop and the value it forwards
+    let (sx_prop_idx, sx_value) = find_sx_prop(&obj_lit.props, sx_prop_name)?;
 
-    // Extract the sx value and build args
-    let sx_value = extract_prop_value(&obj_lit.props[sx_prop_idx])?;
     let stylex_local_name = self.get_stylex_runtime_binding(call.span);
     let args = sx_value_to_props_args(sx_value);
 
     // Replace the sx prop with: ...stylex.props(...args)
-    let mut new_props = obj_lit.props;
+    let mut new_props = obj_lit.props.clone();
     let call_expr = Expr::Call(build_stylex_props_call(stylex_local_name, args));
     new_props[sx_prop_idx] = create_spread_prop(call_expr);
 
-    let mut new_call = call.clone();
-    new_call.args[1] = ExprOrSpread {
+    // Built argument by argument rather than from a copy of the whole call.
+    // Copying the call would copy the props object a second time, only for the
+    // new one to replace it.
+    let mut new_args = Vec::with_capacity(call.args.len());
+
+    new_args.push(first_arg.clone());
+    new_args.push(ExprOrSpread {
       spread: None,
       expr: Box::new(Expr::Object(create_object_lit(new_props))),
-    };
+    });
+    new_args.extend(call.args.iter().skip(2).cloned());
 
-    Some(Expr::Call(new_call))
+    Some(Expr::Call(CallExpr {
+      span: call.span,
+      ctxt: call.ctxt,
+      callee: call.callee.clone(),
+      args: new_args,
+      type_args: call.type_args.clone(),
+    }))
   }
 
   /// Transform Solid.js compiled `sx` attribute during the Initializing cycle.
@@ -364,30 +373,38 @@ fn build_stylex_props_call(stylex_local_name: String, args: Vec<ExprOrSpread>) -
   create_member_call_expr(member, args)
 }
 
-/// Find the index of the prop with key matching `sx_prop_name` in a props list.
-fn find_sx_prop_idx(props: &[PropOrSpread], sx_prop_name: &str) -> Option<usize> {
-  props.iter().position(|prop| {
-    if let PropOrSpread::Prop(p) = prop
-      && let Prop::KeyValue(kv) = p.as_ref()
-    {
-      return match &kv.key {
-        PropName::Ident(ident) => ident.sym.as_str() == sx_prop_name,
-        PropName::Str(s) => s.value.as_str().unwrap_or("") == sx_prop_name,
-        _ => false,
-      };
-    }
-    false
-  })
-}
+/// Find the first prop that names `sx_prop_name`, with the value it forwards.
+///
+/// A key-value prop gives its value, whatever shape its key is written in, as
+/// long as the text of that key is known at compile time. A shorthand gives
+/// the identifier it names, because `{ sx }` and `{ sx: sx }` name the same
+/// prop.
+///
+/// Every other shape is skipped, matching what the raw markup path does with
+/// the construct it corresponds to. A getter, a setter and a method carry no
+/// value expression to forward, like an attribute whose value is not an
+/// expression container. A spread is not inspected at all, like a spread
+/// attribute, and its keys are not knowable at compile time anyway.
+///
+/// The first match wins, again like the raw markup path, which stops at the
+/// first matching attribute.
+fn find_sx_prop(props: &[PropOrSpread], sx_prop_name: &str) -> Option<(usize, Expr)> {
+  props.iter().enumerate().find_map(|(idx, prop)| {
+    let PropOrSpread::Prop(prop) = prop else {
+      return None;
+    };
 
-/// Extract the value from a `KeyValue` prop entry.
-fn extract_prop_value(prop: &PropOrSpread) -> Option<Expr> {
-  if let PropOrSpread::Prop(p) = prop
-    && let Prop::KeyValue(kv) = p.as_ref()
-  {
-    return Some(kv.value.as_ref().clone());
-  }
-  None
+    let value = match prop.as_ref() {
+      Prop::KeyValue(key_value) => (namespace_name_from_prop_key(&key_value.key)? == sx_prop_name)
+        .then(|| key_value.value.as_ref().clone()),
+      Prop::Shorthand(ident) => {
+        (ident.sym.as_str() == sx_prop_name).then(|| Expr::Ident(ident.clone()))
+      },
+      _ => None,
+    }?;
+
+    Some((idx, value))
+  })
 }
 
 /// Check if a `CallExpr` is a JSX/VDOM runtime call that takes `(elementName,

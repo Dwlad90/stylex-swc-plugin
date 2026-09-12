@@ -65,9 +65,10 @@ concurrency:
 #
 # The limits below come from seven complete runs of this workflow, between
 # 2026-09-04 and 2026-09-08. These were the first runs with fat LTO in the
-# addon. Each limit is approximately two times the slowest run in that
-# sample. A job that takes less than three minutes gets ten minutes,
-# because a smaller limit can stop a correct run on a slow runner.
+# addon. Each limit is a round number that gives the slowest run in that
+# sample at least 1.8 times its cost, and no limit is below ten minutes,
+# because a smaller one can stop a correct run on a slow runner. Each limit
+# stands beside the run it comes from, so its margin is visible.
 #
 #   build                40 min   slowest 18.3 (aarch64-pc-windows-msvc)
 #   test macOS/Windows   15 min   slowest  6.0 (x86_64-apple-darwin)
@@ -78,6 +79,11 @@ concurrency:
 #   aggregate            10 min   slowest  0.2
 #   publish              15 min   slowest  3.6
 #   cleanup              10 min   disabled by `if: false`
+#
+# The sample is older than one change that costs time. The macOS benchmark
+# legs now time each subject in a child process of its own, which adds about
+# 3.6 min to a leg of 27.6. The limit of 50 min holds that at about 1.6
+# times, and no other job pays for the change.
 #
 # All the jobs in all seven runs completed. Thus the runners have
 # sufficient memory for fat LTO with `codegen-units = 1`.

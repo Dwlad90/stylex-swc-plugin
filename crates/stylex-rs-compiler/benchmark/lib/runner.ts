@@ -27,16 +27,12 @@
  * validated under one configuration and timed under another.
  */
 
-import { Bench, type BenchOptions } from 'tinybench';
+import type { BenchOptions } from 'tinybench';
 
 import type { StyleXOptions } from '../../dist/index.js';
 import { fixtureStylexOptions } from './config.js';
-import {
-  bootstrapMedianRatio,
-  extractLatencySamples,
-  makeSeededRng,
-  roundRatios,
-} from './stats.js';
+import { timeRound } from './round.js';
+import { bootstrapMedianRatio, makeSeededRng, roundRatios } from './stats.js';
 import type { LoadedSubject } from './subjects.js';
 import type {
   BootstrapConfig,
@@ -279,31 +275,18 @@ async function runSingleRound(
   order: readonly LoadedSubject[],
   options: RunOptions
 ): Promise<Record<string, RawLatencySamples>> {
-  const benchOptions = fixture.weight === 'heavy' ? options.heavyBench : options.standardBench;
   // Resolved once per round rather than per iteration: a fixture's `dev`
   // override must not put an object allocation inside the timed loop.
   const stylexOptions = fixtureStylexOptions(fixture, options.stylexOptions);
-  const bench = new Bench({
-    name: `${fixture.name} (round)`,
-    ...benchOptions,
-  });
 
-  for (const subject of order) {
-    const label = subject.descriptor.label;
-    bench.add(label, () => {
-      // Batching lifts sub-millisecond fixtures above timer noise.
-      for (let i = 0; i < fixture.batchSize; i++) {
-        subject.run(fixture, stylexOptions);
-      }
-    });
-  }
-
-  await bench.run();
-
-  const perSubject: Record<string, RawLatencySamples> = {};
-  for (const task of bench.tasks) perSubject[task.name] = extractLatencySamples(task);
-
-  return perSubject;
+  return timeRound(
+    fixture,
+    { standard: options.standardBench, heavy: options.heavyBench },
+    order.map(subject => ({
+      label: subject.descriptor.label,
+      transform: () => subject.run(fixture, stylexOptions),
+    }))
+  );
 }
 
 /** Every subject's samples for one round, as latency per transform. */

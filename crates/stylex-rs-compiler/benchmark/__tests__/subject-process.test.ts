@@ -21,6 +21,7 @@ import {
   closeWorkerRuns,
   isWorkerRefusal,
   openWorkerRuns,
+  readWorkerRequest,
   workerExecArgv,
   WORKER_PROTOCOL_VERSION,
   type WorkerRequest,
@@ -74,9 +75,101 @@ function request(overrides: Partial<WorkerRequest> = {}): WorkerRequest {
     // The smallest budget tinybench accepts. These cases prove the two sides
     // agree, not how fast anything is.
     timeBudgetMs: 20,
+    task: { kind: 'count-rules' },
     ...overrides,
   };
 }
+
+/**
+ * The child reads a request the way the parent reads a report: field by field.
+ *
+ * A request is written by this repository, so a wrong shape means a file the
+ * child was not meant to read. What it must never do is measure such a file:
+ * an empty fixture compiles to nothing and reads as a very fast subject.
+ */
+describe('readWorkerRequest', () => {
+  /** The request as it arrives: through the file the two sides pass. */
+  function overTheWire(overrides: Record<string, unknown> = {}): unknown {
+    return JSON.parse(JSON.stringify({ ...request(), ...overrides }));
+  }
+
+  /** A request whose one fixture carries the overrides given, valid or not. */
+  function withOptions(options: Record<string, unknown>): unknown {
+    return overTheWire({ fixtures: [{ ...fixture(), options }] });
+  }
+
+  test('answers the request the parent wrote', () => {
+    const written = request({ task: { kind: 'time-fixture', fixture: 'probe' } });
+
+    expect(readWorkerRequest(JSON.parse(JSON.stringify(written)))).toEqual(written);
+  });
+
+  test('refuses a request of another protocol', () => {
+    expect(() => readWorkerRequest(overTheWire({ protocol: 99 }))).toThrow(/protocol/);
+  });
+
+  test('refuses a task it cannot do', () => {
+    expect(() => readWorkerRequest(overTheWire({ task: { kind: 'guess' } }))).toThrow(
+      /task.kind is unsupported/
+    );
+    expect(() => readWorkerRequest(overTheWire({ task: { kind: 'time-fixture' } }))).toThrow(
+      /task.fixture/
+    );
+  });
+
+  test('names the field of a fixture that is not what the protocol says', () => {
+    expect(() => readWorkerRequest(overTheWire({ fixtures: [{ ...fixture(), code: 7 }] }))).toThrow(
+      /fixtures\[0\].code/
+    );
+    expect(() =>
+      readWorkerRequest(overTheWire({ fixtures: [{ ...fixture(), weight: 'quick' }] }))
+    ).toThrow(/fixtures\[0\].weight must be one of standard, heavy/);
+    expect(() =>
+      readWorkerRequest(overTheWire({ fixtures: [{ ...fixture(), batchSize: 0 }] }))
+    ).toThrow(/fixtures\[0\].batchSize/);
+  });
+
+  test('refuses shared options of another shape', () => {
+    expect(() => readWorkerRequest(overTheWire({ stylexOptions: { dev: false } }))).toThrow(
+      /unstable_moduleResolution/
+    );
+    expect(() =>
+      readWorkerRequest(overTheWire({ stylexOptions: { ...request().stylexOptions, dev: 'no' } }))
+    ).toThrow(/stylexOptions.dev must be a boolean/);
+  });
+
+  // A fixture keeps the overrides it declares, and an absent one stays absent:
+  // an own `dev: undefined` would answer for the shared options that decide the
+  // shape where the fixture says nothing.
+  // `sourceMap` is the override whose value is not a boolean, and the one the
+  // child reads differently from the manifest reader.
+  test('keeps a string override and refuses a spelling the compiler has not', () => {
+    const declared = { ...fixture(), options: { sourceMap: 'Inline', classNamePrefix: 'x-' } };
+    const read = readWorkerRequest(overTheWire({ fixtures: [declared] }));
+
+    expect(read.fixtures[0]?.options).toEqual({ sourceMap: 'Inline', classNamePrefix: 'x-' });
+    expect(() => readWorkerRequest(withOptions({ sourceMap: 'inline' }))).toThrow(
+      /options.sourceMap must be one of True, False, Inline/
+    );
+  });
+
+  test('refuses an option no fixture may name', () => {
+    expect(() => readWorkerRequest(withOptions({ enableDebugClassNames: 'yes' }))).toThrow(
+      /options.enableDebugClassNames must be a boolean/
+    );
+    expect(() => readWorkerRequest(withOptions({ frobnicate: true }))).toThrow(
+      /is not a benchmarkable option/
+    );
+  });
+
+  test('keeps the overrides a fixture declares and adds none', () => {
+    const declared = fixture({ dev: true, options: { enableDebugClassNames: true } });
+    const read = readWorkerRequest(overTheWire({ fixtures: [declared] }));
+
+    expect(read.fixtures[0]).toEqual(declared);
+    expect(Object.keys(readWorkerRequest(overTheWire()).fixtures[0] ?? {})).not.toContain('dev');
+  });
+});
 
 describe('callWorker', () => {
   test.runIf(built)('answers the rule count of every fixture it is given', () => {
@@ -94,7 +187,7 @@ describe('callWorker', () => {
   });
 
   test.runIf(built)('times the fixture the request names', () => {
-    const report = callWorker(runs, request({ measure: 'probe' }));
+    const report = callWorker(runs, request({ task: { kind: 'time-fixture', fixture: 'probe' } }));
 
     expect(report.samples?.p50).toBeGreaterThan(0);
     expect(report.samples?.samplesCount).toBeGreaterThan(0);
@@ -115,7 +208,7 @@ describe('callWorker', () => {
   test.runIf(built)('leaves no file behind for a call that answered', () => {
     const own = openWorkerRuns();
     try {
-      callWorker(own, request({ measure: 'probe' }));
+      callWorker(own, request({ task: { kind: 'time-fixture', fixture: 'probe' } }));
 
       expect(fs.readdirSync(own.directory)).toEqual([]);
     } finally {
@@ -144,16 +237,21 @@ describe('callWorker', () => {
     try {
       fs.mkdirSync(path.join(own.directory, 'report-1.json'));
 
-      expect(() => callWorker(own, request({ measure: 'probe', label: 'quiet' }))).toThrow(
-        /quiet[\s\S]*wrote no measurement[\s\S]*(exit|signal)/
-      );
+      expect(() =>
+        callWorker(
+          own,
+          request({ task: { kind: 'time-fixture', fixture: 'probe' }, label: 'quiet' })
+        )
+      ).toThrow(/quiet[\s\S]*wrote no measurement[\s\S]*(exit|signal)/);
     } finally {
       closeWorkerRuns(own);
     }
   });
 
   test.runIf(built)('refuses a fixture name the request does not carry', () => {
-    expect(() => callWorker(runs, request({ measure: 'absent' }))).toThrow(/absent/);
+    expect(() =>
+      callWorker(runs, request({ task: { kind: 'time-fixture', fixture: 'absent' } }))
+    ).toThrow(/absent/);
   });
 });
 
@@ -228,6 +326,28 @@ describe('bench-worker', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/protocol/);
+  });
+
+  // The wiring, not the reader: a case that drives a malformed request through
+  // a real child fails if `bench-worker.ts` goes back to trusting the file.
+  test('refuses a request whose fields are not what the protocol says', () => {
+    const dir = temp.make('bench-worker-fields-');
+    const requestPath = path.join(dir, 'request.json');
+    const reportPath = path.join(dir, 'report.json');
+    const broken = { ...request(), fixtures: [{ ...fixture(), code: 7 }] };
+    fs.writeFileSync(requestPath, JSON.stringify(broken), 'utf8');
+
+    const result = spawnSync(
+      process.execPath,
+      [...workerExecArgv(), path.join(benchmarkDir, 'bench-worker.ts'), requestPath, reportPath],
+      { encoding: 'utf8' }
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/fixtures\[0\].code/);
+    // The child says so in the report as well, which is where the parent looks.
+    const report: unknown = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+    expect(report).toMatchObject({ failure: expect.stringContaining('code') as unknown });
   });
 
   test('refuses to run without both file names', () => {

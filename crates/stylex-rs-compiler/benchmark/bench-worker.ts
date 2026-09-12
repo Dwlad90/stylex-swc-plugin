@@ -14,9 +14,9 @@
 import fs from 'node:fs';
 
 import {
+  readWorkerRequest,
   runWorkerRequest,
   WORKER_PROTOCOL_VERSION,
-  type WorkerRequest,
 } from './lib/subject-process.js';
 
 async function main(): Promise<void> {
@@ -25,14 +25,10 @@ async function main(): Promise<void> {
     throw new Error('bench-worker takes a request file and a report file');
   }
 
-  const request = JSON.parse(fs.readFileSync(requestPath, 'utf8')) as WorkerRequest;
-  if (request.protocol !== WORKER_PROTOCOL_VERSION) {
-    throw new Error(
-      `bench-worker reads protocol ${String(WORKER_PROTOCOL_VERSION)}, ` +
-        `and the request names ${String(request.protocol)}`
-    );
-  }
-
+  // Read field by field, the way the parent reads the report this writes. A
+  // file that is not a request of this protocol is then refused with the name
+  // of the field that is wrong, rather than measured as whatever it holds.
+  const request = readWorkerRequest(JSON.parse(fs.readFileSync(requestPath, 'utf8')));
   const report = await runWorkerRequest(request);
   fs.writeFileSync(reportPath, JSON.stringify(report), 'utf8');
 }

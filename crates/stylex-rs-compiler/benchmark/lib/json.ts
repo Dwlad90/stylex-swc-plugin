@@ -29,6 +29,25 @@ export function requireArray(value: unknown, context: string): unknown[] {
   return value;
 }
 
+export function requireBoolean(value: unknown, context: string): boolean {
+  if (typeof value !== 'boolean') throw new Error(`${context} must be a boolean`);
+  return value;
+}
+
+/** One of a closed set of names, or an error naming the whole set. */
+export function requireOneOf<T extends string>(
+  value: unknown,
+  accepted: readonly T[],
+  context: string
+): T {
+  const found = accepted.find(candidate => candidate === value);
+  if (found === undefined) {
+    throw new Error(`${context} must be one of ${accepted.join(', ')}`);
+  }
+
+  return found;
+}
+
 export function requireString(value: unknown, context: string): string {
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error(`${context} must be a non-empty string`);

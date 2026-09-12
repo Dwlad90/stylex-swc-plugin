@@ -1,5 +1,6 @@
 // Shared by all five bundler plugins, so it is tested here directly rather
 // than through any one of them.
+import { transform } from '@stylexswc/rs-compiler';
 import { describe, expect, test, vi } from 'vitest';
 
 import { shouldProcessSource } from '../src/module-selection';
@@ -309,6 +310,21 @@ describe('shouldProcessSource', () => {
       // The prop transform does not read the import sources, so an empty list
       // does not decide this module.
       expect(shouldProcessSource('<div sx={styles} />', { importSources: [] })).toBe(true);
+    });
+  });
+
+  describe('the default prop name', () => {
+    // The scan answers before the compiler sees the module, so it resolves an
+    // absent `sxPropName` itself. Were its default to part from the compiler's,
+    // the scan would drop modules the compiler was going to transform, and the
+    // element would render unstyled with nothing to show for it. This holds the
+    // two ends together: one module, no import, no configured name.
+    const FORWARDS_THE_DEFAULT_NAME =
+      'export const Box = ({ sx }) => _jsx("div", { sx, children: null });';
+
+    test('is the name the compiler transforms', () => {
+      expect(shouldProcessSource(FORWARDS_THE_DEFAULT_NAME, { importSources: [] })).toBe(true);
+      expect(transform('/js/Box.js', FORWARDS_THE_DEFAULT_NAME, {}).code).toContain('props(sx)');
     });
   });
 

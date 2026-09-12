@@ -97,32 +97,55 @@ function readSerializedFrom(text: string): string | undefined {
 }
 
 /**
- * Search texts already read, keyed by the specifier they came from.
+ * Reads `key` from `memo`. If the memo does not hold it, works the answer out
+ * and stores it.
  *
- * Reading a specifier costs a parse when it arrived as JSON text, and the scan
- * runs once for every module in the project. What the specifier resolves to
- * does not depend on the module, so each one is read once.
+ * The scan runs once for every module in the project, while what it reads out
+ * of the plugin options does not depend on the module. Each answer is
+ * therefore worked out once.
  *
  * Bounded by the caller: the keys are plugin options, so a build holds one
- * entry per configured source. A caller of the published `shouldProcessSource`
- * that derived a specifier per module would grow this without bound; no plugin
+ * entry per configured value. A caller of the published `shouldProcessSource`
+ * that derived a key per module would grow the map without bound; no plugin
  * here does.
+ *
+ * `T` holds no nullish value, because a stored `undefined` reads the same as a
+ * key the memo does not hold, and the answer would be worked out every time.
  */
-const importSourceTexts = new Map<string, string>();
-
-/** The text to search a module for, given one specifier. */
-function importSourceText(importSource: string): string {
-  const cached = importSourceTexts.get(importSource);
+function memoized<T extends NonNullable<unknown>>(
+  memo: Map<string, T>,
+  key: string,
+  answer: (key: string) => T
+): T {
+  const cached = memo.get(key);
 
   if (cached !== undefined) {
     return cached;
   }
 
-  const text = readSerializedFrom(importSource) ?? importSource.trim();
+  const value = answer(key);
 
-  importSourceTexts.set(importSource, text);
+  memo.set(key, value);
 
-  return text;
+  return value;
+}
+
+/** Search texts already read, keyed by the specifier they came from. */
+const importSourceTexts = new Map<string, string>();
+
+/** The text to search a module for, given one specifier. */
+function importSourceText(importSource: string): string {
+  return memoized(importSourceTexts, importSource, readImportSourceText);
+}
+
+/**
+ * Reads one specifier into the text to search a module for.
+ *
+ * This costs a parse when the specifier arrived as JSON text, which is why the
+ * answer is kept.
+ */
+function readImportSourceText(importSource: string): string {
+  return readSerializedFrom(importSource) ?? importSource.trim();
 }
 
 /** True when the source text mentions either half of one import source. */
@@ -137,17 +160,15 @@ function mentionsImportSource(sourceCode: string, importSource: ModuleImportSour
 /**
  * Patterns already built, keyed by prop name.
  *
- * The scan runs once per module, so a project with thousands of modules would
- * otherwise recompile the same pattern thousands of times. A build can run two
- * plugins with two different names, which is why this keeps an entry for each
- * rather than only the last.
- *
- * Bounded by the caller: the keys are plugin options, so a build holds one
- * entry per configured name. A caller of the published `shouldProcessSource`
- * that derived a name per module would grow this without bound; no plugin here
- * does.
+ * A build can run two plugins with two different names, which is why this
+ * keeps an entry for each rather than only the last.
  */
 const sxPropPatterns = new Map<string, RegExp>();
+
+/** A pattern matching the prop name, built once per configured name. */
+function sxPropPattern(name: string): RegExp {
+  return memoized(sxPropPatterns, name, buildSxPropPattern);
+}
 
 /**
  * A pattern matching the prop name in a prop-like position.
@@ -158,10 +179,10 @@ const sxPropPatterns = new Map<string, RegExp>();
  * properties, `{ sx, ... }`. A single `=` is required, because a JSX attribute
  * value always opens with `{` or a quote: that drops the arrow `sx => ...` and
  * the comparison `sx === other`, which any module with a variable of that name
- * holds. Quoted, the name is wrapped in matching quotes and
- * followed by `:` or `,`, with an optional `]` between: the string key
- * `"sx": ...`, the computed key `["sx"]: ...` that a minifier writes, and the
- * Solid.js attribute call `_$setAttribute(el, "sx", ...)`.
+ * holds. Quoted, the name is wrapped in matching quotes and followed by `:` or
+ * `,`, with an optional `]` between: the string key `"sx": ...`, the computed
+ * key `["sx"]: ...` that a minifier writes, and the Solid.js attribute call
+ * `_$setAttribute(el, "sx", ...)`.
  *
  * A bare name must also start a word. Without that, every identifier that ends
  * with the name matches too: with the default name, `import { jsx } from
@@ -177,13 +198,7 @@ const sxPropPatterns = new Map<string, RegExp>();
  * is therefore transformed but not matched. No common tool writes a key that
  * way, and a pattern cannot decode text, so the gap is accepted.
  */
-function sxPropPattern(name: string): RegExp {
-  const cached = sxPropPatterns.get(name);
-
-  if (cached !== undefined) {
-    return cached;
-  }
-
+function buildSxPropPattern(name: string): RegExp {
   const escaped = escapeRegExp(name);
   const bare = `(?<![\\p{ID_Continue}$])${escaped}\\s*(?:=(?![=>])|[:,}])`;
   // The closing quote must match the opening one, so `"sx\`` is not a mention.
@@ -192,11 +207,8 @@ function sxPropPattern(name: string): RegExp {
   // of spaces could be split between the two in as many ways as it is long,
   // and the scan would take minutes on one large module.
   const quoted = `(?<quote>["'\`])${escaped}\\k<quote>\\s*(?:\\]\\s*)?[:,]`;
-  const pattern = new RegExp(`${bare}|${quoted}`, 'u');
 
-  sxPropPatterns.set(name, pattern);
-
-  return pattern;
+  return new RegExp(`${bare}|${quoted}`, 'u');
 }
 
 /**

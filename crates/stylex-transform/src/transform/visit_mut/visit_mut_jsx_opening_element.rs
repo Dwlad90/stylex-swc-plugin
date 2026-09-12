@@ -117,6 +117,13 @@ where
   ///
   /// Runs in the `Discover` cycle.
   pub(crate) fn transform_sx_in_compiled_jsx(&mut self, expr: &mut Expr) -> bool {
+    // Read first, because it is the cheapest way out and it settles the whole
+    // feature. The borrow ends at the search below, well before the runtime
+    // binding is resolved.
+    let Some(sx_prop_name) = self.state.options.sx_prop_name.as_deref() else {
+      return false;
+    };
+
     let Some(call) = expr.as_mut_call() else {
       return false;
     };
@@ -148,10 +155,6 @@ where
       .get_mut(1)
       .and_then(|arg| arg.expr.as_mut_object())
     else {
-      return false;
-    };
-
-    let Some(sx_prop_name) = self.state.options.sx_prop_name.as_deref() else {
       return false;
     };
 

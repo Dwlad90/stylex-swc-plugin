@@ -12,7 +12,7 @@ use swc_core::{
 use crate::StyleXTransform;
 use stylex_ast::ast::factories::{
   create_arrow_expression, create_ident, create_ident_call_expr, create_ident_name,
-  create_import_namespace_decl, create_jsx_spread_attr, create_member_call_expr, create_object_lit,
+  create_import_namespace_decl, create_jsx_spread_attr, create_member_call_expr,
   create_spread_prop,
 };
 use stylex_ast::ast::keys::try_namespace_name_from_prop_key;
@@ -105,79 +105,82 @@ where
     jsx_opening_element.visit_mut_children_with(self);
   }
 
-  /// Transform compiled JSX/VDOM calls with an `sx` prop during the
-  /// Initializing cycle.
+  /// Transform a compiled JSX/VDOM call that carries an `sx` prop, in place.
   ///
   /// Handles:
   /// - React: `_jsx("div", { sx: expr })` / `_jsxs("div", { sx: expr })`
   /// - React classic: `React.createElement("div", { sx: expr })`
-  /// - Vue: `_createElementBlock("div", { sx: expr })` /
-  ///   `_createElementVNode("div", { sx: expr })`
+  /// - Vue: `_createElementBlock("div", …)` / `_createElementVNode("div", …)`
   ///
-  /// Transforms to: `fn("div", { ...stylex.props(expr), ... })`
-  pub(crate) fn transform_sx_in_compiled_jsx(&mut self, expr: &Expr) -> Option<Expr> {
-    let sx_prop_name = self.state.options.sx_prop_name.as_deref()?;
+  /// Rewrites the one prop to `...stylex.props(expr)` and leaves every other
+  /// prop, and every other argument, untouched. Returns whether it matched.
+  ///
+  /// Runs in the `Discover` cycle.
+  pub(crate) fn transform_sx_in_compiled_jsx(&mut self, expr: &mut Expr) -> bool {
+    // Phase one reads. It holds a shared borrow of `expr` and of `self`, so it
+    // can neither resolve the runtime binding nor write, and it must not: a
+    // call with no `sx` prop has to leave both untouched. Nothing is copied
+    // here except the `sx` value, so a call the scan passes over costs no copy
+    // of the props object -- which holds the element's whole subtree.
+    let Some(sx_prop_name) = self.state.options.sx_prop_name.as_deref() else {
+      return false;
+    };
 
-    let call = expr.as_call()?;
+    let Some(call) = expr.as_call() else {
+      return false;
+    };
 
     if !is_jsx_runtime_call(call) {
-      return None;
+      return false;
     }
 
-    // First arg must be a lowercase string literal (HTML element)
-    let first_arg = call.args.first()?;
-    let element_name = match first_arg.expr.as_ref() {
-      Expr::Lit(Lit::Str(s)) => s.value.as_str().unwrap_or(""),
-      _ => return None,
+    // The first arg must be a lowercase string literal: a host element.
+    let Some(Expr::Lit(Lit::Str(element))) = call.args.first().map(|arg| arg.expr.as_ref()) else {
+      return false;
     };
-    if !element_name
-      .chars()
-      .next()
-      .map(|c: char| c.is_lowercase())
-      .unwrap_or(false)
+
+    if !element
+      .value
+      .as_str()
+      .and_then(|name| name.chars().next())
+      .is_some_and(char::is_lowercase)
     {
-      return None;
+      return false;
     }
 
-    // The second arg must be an object literal. It is read through a borrow:
-    // the props object holds the element's whole subtree, so a call with no
-    // such prop must cost no copy of it.
-    let second_arg = call.args.get(1)?;
-    let obj_lit = second_arg.expr.as_object()?;
+    let Some(obj_lit) = call.args.get(1).and_then(|arg| arg.expr.as_object()) else {
+      return false;
+    };
 
-    // Find the sx prop and the value it forwards
-    let (sx_prop_idx, sx_value) = find_sx_prop(&obj_lit.props, sx_prop_name)?;
+    let Some((sx_prop_idx, sx_value)) = find_sx_prop(&obj_lit.props, sx_prop_name) else {
+      return false;
+    };
 
-    let stylex_local_name = self.get_stylex_runtime_binding(call.span);
-    let args = sx_value_to_props_args(sx_value);
+    let span = call.span;
 
-    // Replace the sx prop with: ...stylex.props(...args)
-    let mut new_props = obj_lit.props.clone();
-    let call_expr = Expr::Call(build_stylex_props_call(stylex_local_name, args));
-    new_props[sx_prop_idx] = create_spread_prop(call_expr);
+    // Phase two writes. The shapes phase one matched are re-read rather than
+    // remembered, because a borrow cannot outlive the `&mut self` call between
+    // them; the `else` arm is unreachable for that reason, not a fallback.
+    let stylex_local_name = self.get_stylex_runtime_binding(span);
+    let props_call = Expr::Call(build_stylex_props_call(
+      stylex_local_name,
+      sx_value_to_props_args(sx_value),
+    ));
 
-    // Built argument by argument rather than from a copy of the whole call.
-    // Copying the call would copy the props object a second time, only for the
-    // new one to replace it.
-    let mut new_args = Vec::with_capacity(call.args.len());
-
-    new_args.push(first_arg.clone());
-    new_args.push(ExprOrSpread {
-      spread: None,
-      expr: Box::new(Expr::Object(create_object_lit(new_props))),
-    });
-    new_args.extend(call.args.iter().skip(2).cloned());
-
-    Some(Expr::Call(CallExpr {
-      span: call.span,
-      ctxt: call.ctxt,
-      callee: call.callee.clone(),
-      args: new_args,
-      type_args: call.type_args.clone(),
-    }))
+    match expr
+      .as_mut_call()
+      .and_then(|call| call.args.get_mut(1))
+      .and_then(|arg| arg.expr.as_mut_object())
+    {
+      Some(obj_lit) => {
+        obj_lit.props[sx_prop_idx] = create_spread_prop(props_call);
+        true
+      },
+      None => false,
+    }
   }
 
-  /// Transform Solid.js compiled `sx` attribute during the Initializing cycle.
+  /// Transform a Solid.js compiled `sx` attribute, in the `Discover` cycle.
   ///
   /// Solid.js compiles `<div sx={styles.main}>` to:
   /// `_$setAttribute(_el$, "sx", styles.main)`

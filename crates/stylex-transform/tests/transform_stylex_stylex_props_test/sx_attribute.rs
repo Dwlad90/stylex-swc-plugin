@@ -1,4 +1,5 @@
 use crate::utils::prelude::*;
+use crate::utils::transform::stringify_js;
 use stylex_enums::sx_prop_name_param::SxPropNameParam;
 use swc_core::common::FileName;
 
@@ -1032,3 +1033,45 @@ stylex_test!(
     }
   "#
 );
+
+/// A compiled tree where every level carries the prop. The props object of a
+/// call holds the whole subtree below it, so a scan that rebuilt the object
+/// would copy that subtree once per level; this shows the answer stays right
+/// at a depth where that cost is visible.
+///
+/// The cost itself is not asserted. A time budget would measure the machine,
+/// not the code -- what a regression would break is the count below. The depth
+/// is held where a debug test thread can still walk the tree: parsing and
+/// visiting are both recursive, so a much deeper one overflows the stack
+/// before it reaches the transform.
+#[test]
+fn sx_attr_compiled_jsx_transforms_every_level_of_a_deep_tree() {
+  const DEPTH: usize = 100;
+
+  let mut element = String::from(r#""leaf""#);
+  for _ in 0..DEPTH {
+    element = format!(r#"_jsx("div", {{ sx: styles.main, children: {element} }})"#);
+  }
+
+  let source = format!(
+    r#"
+      import stylex from 'stylex';
+      const styles = stylex.create({{ main: {{ color: 'red' }} }});
+      function App() {{ return {element}; }}
+    "#
+  );
+
+  let output = stringify_js(&source, ts_syntax(), |tr| {
+    stylex_transform(tr.comments.clone(), |b| b)
+  });
+
+  assert_eq!(
+    output.matches("className:").count(),
+    DEPTH,
+    "every level must carry a generated class name"
+  );
+  assert!(
+    !output.contains("sx:"),
+    "no level may keep the prop the transform consumed"
+  );
+}

@@ -329,6 +329,34 @@ export function linksMimalloc(file: string): boolean {
   }
 }
 
+/** The bindings of a list that bring their own copy of mimalloc. */
+function mimallocBindings(bindings: Iterable<string>): string[] {
+  return [...bindings].filter(binding => linksMimalloc(binding));
+}
+
+/**
+ * Whether any binding of a list brings mimalloc.
+ *
+ * Stops at the first one that does, because each answer is read off a file and
+ * the question is only whether there is one.
+ */
+function anyLinksMimalloc(bindings: Iterable<string>): boolean {
+  for (const binding of bindings) {
+    if (linksMimalloc(binding)) return true;
+  }
+
+  return false;
+}
+
+/** The bindings a subject brings that the process does not hold already. */
+function arrivingBindings(
+  bindings: readonly string[],
+  loaded: ReadonlySet<string>,
+  platform?: NodeJS.Platform
+): string[] {
+  return bindings.filter(binding => !holdsBinding(loaded, binding, platform));
+}
+
 /**
  * Whether two subjects can be timed in one process.
  *
@@ -352,14 +380,10 @@ export function subjectsCanShareProcess(
   if (!isDualLoadRestricted(platform)) return true;
   if (first.length === 0 || second.length === 0) return false;
 
-  const shared = new Set(first.map(binding => bindingPathKey(binding, platform)));
-  const arriving = second.filter(binding => !shared.has(bindingPathKey(binding, platform)));
+  const arriving = arrivingBindings(second, new Set(first), platform);
   if (arriving.length === 0) return true;
 
-  return (
-    !arriving.some(binding => linksMimalloc(binding)) ||
-    !first.some(binding => linksMimalloc(binding))
-  );
+  return !anyLinksMimalloc(arriving) || !anyLinksMimalloc(first);
 }
 
 export interface BindingLoadRequest {
@@ -391,16 +415,16 @@ export interface BindingLoadRequest {
 export function assertBindingIsVisible(request: BindingLoadRequest): void {
   if (!isDualLoadRestricted(request.platform)) return;
   if (request.bindings.length > 0) return;
-  const held = [...request.loaded].filter(binding => linksMimalloc(binding));
+  const held = mimallocBindings(request.loaded);
   if (held.length === 0) return;
 
   throw new Error(
     `Cannot load subject "${request.label}": the process holds ${held.join(', ')}, ` +
       'which links mimalloc, and no native binding was found for this subject. ' +
       'A second mimalloc binding stops the process with SIGSEGV and reports no ' +
-      'result, and this one cannot be read to say whether it is one. Give the ' +
-      'path of its addon in NAPI_RS_NATIVE_LIBRARY_PATH, or measure each ' +
-      'revision in its own process.'
+      'result, and this one cannot be read to say whether it is one. Measure ' +
+      'each revision in its own process, which `bench:revisions` does on this ' +
+      'platform and `--separate-processes` asks for anywhere.'
   );
 }
 
@@ -421,14 +445,12 @@ export function assertBindingCanLoad(request: BindingLoadRequest): void {
   if (!isDualLoadRestricted(request.platform)) return;
   if (request.loaded.size === 0) return;
 
-  const conflicting = request.bindings.filter(
-    binding => !holdsBinding(request.loaded, binding, request.platform)
-  );
+  const conflicting = arrivingBindings(request.bindings, request.loaded, request.platform);
   if (conflicting.length === 0) return;
 
-  const arriving = conflicting.filter(binding => linksMimalloc(binding));
+  const arriving = mimallocBindings(conflicting);
   if (arriving.length === 0) return;
-  const held = [...request.loaded].filter(binding => linksMimalloc(binding));
+  const held = mimallocBindings(request.loaded);
   if (held.length === 0) return;
 
   const platform = request.platform ?? process.platform;
@@ -437,6 +459,7 @@ export function assertBindingCanLoad(request: BindingLoadRequest): void {
       'native bindings that both link mimalloc, and the process already holds ' +
       `${held.join(', ')}. Loading ${arriving.join(', ')} stops the process ` +
       'with SIGSEGV and reports no result. Run the paired benchmark on Linux, ' +
-      'or measure each revision in its own process and compare the two reports.'
+      'or measure each revision in its own process, which `bench:revisions` ' +
+      'does on this platform and `--separate-processes` asks for anywhere.'
   );
 }

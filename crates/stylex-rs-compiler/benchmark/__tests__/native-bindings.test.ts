@@ -271,11 +271,16 @@ describe('assertBindingIsVisible', () => {
     expect(visible([], [held], 'darwin')).toThrow(/no native binding was found/);
   });
 
-  test('names the subject and what to do', () => {
+  // The remedy must be one the paired benchmark accepts. It refuses to start
+  // under NAPI_RS_NATIVE_LIBRARY_PATH, because that variable names one binding
+  // for both subjects, so advising it here would send a reader to a run that
+  // stops before this guard is reached.
+  test('names the subject and a remedy the paired benchmark accepts', () => {
     const dir = temp.make('bench-allocator-');
     const held = writeAddon(dir, 'held.node', 'mimalloc');
 
-    expect(visible([], [held], 'darwin')).toThrow(/base[\s\S]*NAPI_RS_NATIVE_LIBRARY_PATH/);
+    expect(visible([], [held], 'darwin')).toThrow(/base[\s\S]*--separate-processes/);
+    expect(visible([], [held], 'darwin')).not.toThrow(/NAPI_RS_NATIVE_LIBRARY_PATH/);
   });
 });
 

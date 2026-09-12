@@ -75,6 +75,10 @@ function mentions(sourceCode: string, name: string | undefined): boolean {
  * the caller then falls back to the plain substring scan.
  */
 function readSerializedFrom(text: string): string | undefined {
+  if (!text.trimStart().startsWith('{')) {
+    return undefined;
+  }
+
   try {
     const parsed: unknown = JSON.parse(text);
 
@@ -92,23 +96,38 @@ function readSerializedFrom(text: string): string | undefined {
   return undefined;
 }
 
+/**
+ * Search texts already read, keyed by the specifier they came from.
+ *
+ * Reading a specifier costs a parse when it arrived as JSON text, and the scan
+ * runs once for every module in the project. What the specifier resolves to
+ * does not depend on the module, so each one is read once. The keys come from
+ * the plugin options, so the map holds one entry per configured source.
+ */
+const importSourceTexts = new Map<string, string>();
+
+/** The text to search a module for, given one specifier. */
+function importSourceText(importSource: string): string {
+  const cached = importSourceTexts.get(importSource);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const text = readSerializedFrom(importSource) ?? importSource.trim();
+
+  importSourceTexts.set(importSource, text);
+
+  return text;
+}
+
 /** True when the source text mentions either half of one import source. */
 function mentionsImportSource(sourceCode: string, importSource: ModuleImportSource): boolean {
   if (typeof importSource !== 'string') {
     return mentions(sourceCode, importSource.as) || mentions(sourceCode, importSource.from);
   }
 
-  const trimmed = importSource.trimStart();
-
-  if (trimmed.startsWith('{')) {
-    const from = readSerializedFrom(trimmed);
-
-    if (from !== undefined) {
-      return mentions(sourceCode, from);
-    }
-  }
-
-  return mentions(sourceCode, importSource);
+  return mentions(sourceCode, importSourceText(importSource));
 }
 
 /**

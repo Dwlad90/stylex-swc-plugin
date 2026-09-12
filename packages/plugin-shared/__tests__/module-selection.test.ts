@@ -1,6 +1,6 @@
 // Shared by all five bundler plugins, so it is tested here directly rather
 // than through any one of them.
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
 import { shouldProcessSource } from '../src/module-selection';
 
@@ -135,6 +135,28 @@ describe('shouldProcessSource', () => {
       expect(shouldProcessSource('import x from "{broken";', { importSources: ['{broken'] })).toBe(
         true
       );
+    });
+
+    test('reads the specifier once, not once per module', () => {
+      // The answer depends only on the specifier, and the scan runs on every
+      // module of the project. Parsing per module would multiply the cost by
+      // the module count for no gain.
+      // A specifier no other case uses, so the count does not depend on
+      // whether an earlier case already read this one.
+      const specifier = '{"from":"@stylexjs/stylex","as":"readOnceProbe"}';
+      const parse = vi.spyOn(JSON, 'parse');
+
+      try {
+        for (let module = 0; module < 50; module += 1) {
+          shouldProcessSource(`${IMPORTING_MODULE}\n// module ${module}`, {
+            importSources: [specifier],
+          });
+        }
+
+        expect(parse).toHaveBeenCalledTimes(1);
+      } finally {
+        parse.mockRestore();
+      }
     });
 
     test('falls back to a plain scan when the JSON carries no string source', () => {

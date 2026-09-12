@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { normalize, resolve } from 'path';
 
+import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
 import { shouldTransformFile, TransformedOptions } from '@stylexswc/rs-compiler';
 import { globSync } from 'fast-glob';
 import globParent from 'glob-parent';
@@ -252,7 +253,8 @@ function createBuilder() {
     filesToTransform.forEach(file => {
       const filePath = path.resolve(cwd || '/', file);
       const contents = fs.readFileSync(filePath, 'utf-8');
-      if (!bundler.shouldTransform(contents, rsOptions)) {
+      // Skip a file that mentions neither a StyleX import nor the sx prop.
+      if (!shouldProcessSource(contents, rsOptions ?? {})) {
         return;
       }
 

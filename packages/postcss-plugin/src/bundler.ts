@@ -1,25 +1,12 @@
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
-import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
 import { transform as stylexTransform, normalizeRsOptions } from '@stylexswc/rs-compiler';
 import type { StyleXOptions, TransformedOptions } from '@stylexswc/rs-compiler';
 
-import type { TransformOptions, StyleXPluginOption } from './types';
+import type { TransformOptions } from './types';
 
 // Creates a stateful bundler for processing StyleX rules using Babel.
 export default function createBundler() {
   const styleXRulesMap = new Map();
-
-  // Determines if the source code should be transformed, based on the presence
-  // of a StyleX import or of the sx prop.
-  function shouldTransform(
-    sourceCode: string,
-    rsOptions?: StyleXPluginOption['rsOptions']
-  ): boolean {
-    return shouldProcessSource(sourceCode, {
-      importSources: rsOptions?.importSources,
-      sxPropName: rsOptions?.sxPropName,
-    });
-  }
 
   // Transforms the source code using Babel, extracting StyleX rules and storing them.
   function transform(
@@ -76,7 +63,6 @@ export default function createBundler() {
   }
 
   return {
-    shouldTransform,
     transform,
     remove,
     bundle,

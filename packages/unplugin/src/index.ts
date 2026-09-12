@@ -1314,10 +1314,7 @@ async function transformStyleXCSS(
 }
 
 function hasStyleXCode(normalizedOptions: NormalizedOptions, inputCode: string) {
-  return shouldProcessSource(inputCode, {
-    importSources: normalizedOptions.rsOptions.importSources,
-    sxPropName: normalizedOptions.rsOptions.sxPropName,
-  });
+  return shouldProcessSource(inputCode, normalizedOptions.rsOptions);
 }
 
 /**

@@ -66,5 +66,11 @@ an element silently unstyled. It has two halves, because a module can need the
 compiler for either reason: it names one of the configured import sources, or it
 uses the `sx` prop. A leaf component that only forwards the prop has nothing to
 import, so the prop half must stand on its own. The scan must match every prop
-form the compiler transforms, bare and quoted alike.
+form the compiler transforms, bare and quoted alike -- the shapes named in
+[stylex-transform](../../crates/stylex-transform/CONTEXT.md), **Compiled `sx`
+prop**. An import source given as a `from`/`as` pair is searched for under both
+halves. That is wider than the Rollup plugin and the unplugin used to search,
+which read `from` alone: a project that imports `react-strict-dom` as `css` now
+selects every module that holds the text `css`. The wider answer is deliberate,
+because a false negative is the expensive error.
 _Avoid_: filter, matcher, include, import check

@@ -205,6 +205,16 @@ through the publish job, blocks the release. While the file is
 `pending-calibration` instead, it holds no ceilings, `bench:budget` reports
 `unseeded`, and the leg passes.
 
+The headroom of 1.25 is for the machine, not for the noise. GitHub hands out
+several CPU models, and the seeding runs show one class about 15% slower than
+the other. Taking the largest value of every run already puts each ceiling on
+the slowest class that appeared, so the run-to-run spread is inside
+`observedUpperMs` and the headroom covers a class slower than any seen yet.
+Both `observedUpperMs` and `ceilingMs` are rounded for a reader, so a ceiling
+can stand a fraction of a percent on either side of `observedUpperMs` times
+`headroom`. `parseEntry` permits 1% for that, which still refuses a headroom
+that was not applied.
+
 Ceilings are valid only on the canonical environment
 (`x86_64-unknown-linux-gnu`, Node 24.18.0, `ubuntu24` image family). Drift in
 any of those three is a recalibration failure rather than a comparison. Two

@@ -810,21 +810,45 @@ export const styles = stylex.create({
     const readFileSpy = vi.spyOn(promises, 'readFile');
 
     try {
-      await server.transformRequest('/main.js');
-      await server.transformRequest('/global.css');
-      await settle();
-
       // Count only the stylesheet of this server. A server that another test
       // left open can still read a file with the same name, and that read must
       // not count here.
       const ownGlobalCss = path.join(server.config.root, 'global.css');
       const globalCssReads = () =>
         readFileSpy.mock.calls.filter(call => call[0] === ownGlobalCss).length;
+
+      // A refresh is debounced, and it arms another one when rules arrive
+      // while it runs, so its reads do not all land inside one fixed pause.
+      // Under load the first refresh read the file after the count was taken,
+      // and the read was then charged to the second refresh. Waiting until the
+      // count stops moving measures the behaviour, not the speed of the
+      // machine.
+      const readsQuiet = async (): Promise<void> => {
+        const deadline = Date.now() + 10_000;
+        let previous = -1;
+
+        for (let steady = 0; steady < 2 && Date.now() < deadline;) {
+          await settle();
+
+          const count = globalCssReads();
+
+          steady = count === previous ? steady + 1 : 0;
+          previous = count;
+        }
+      };
+
+      await server.transformRequest('/main.js');
+      await server.transformRequest('/global.css');
+      await readsQuiet();
+
       const before = globalCssReads();
 
       await server.transformRequest('/lazy.js');
-      await settle();
+      await readsQuiet();
 
+      // The count must be of a read that happened. Were it zero, the test
+      // would hold for the wrong reason.
+      expect(before).toBeGreaterThan(0);
       // The second refresh reuses what the first learned.
       expect(globalCssReads()).toBe(before);
     } finally {

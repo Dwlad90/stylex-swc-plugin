@@ -248,8 +248,11 @@ fn an_evaluated_string_or_array_is_read_from_the_value() {
 /// `values` and `entries` are one question asked three ways: the values are two
 /// lone surrogates this compiler cannot write, so answering the keys alone
 /// would make one spelling fold where the other two refuse. An index read on
-/// the same string refuses for the same reason and names the index --
-/// `a_refusal_names_the_index_it_could_not_read`.
+/// the same string parts company here on purpose: it answers the replacement
+/// character, because `charAt` already does and because the reference
+/// implementation's own half becomes that character once it is written to a
+/// file -- `array_index_tests.rs::a_string_reads_an_index_by_code_unit`. What
+/// a list cannot do is answer two of them and call it the string.
 #[test]
 fn a_string_receiver_is_read_by_code_unit() {
   for question in QUESTIONS {

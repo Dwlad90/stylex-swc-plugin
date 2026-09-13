@@ -63,7 +63,10 @@ fn assert_first_arg_is_object(
 ) {
   let first_arg = &call.args[0];
 
-  if !first_arg.expr.is_object() {
+  // A parenthesis is not a different argument. Read bare, `keyframes(({…}))`
+  // stopped the build on an object the same author could have written without
+  // the brackets.
+  if !normalize_expr(&first_arg.expr).is_object() {
     build_code_frame_error_and_panic(
       wrapped_expr,
       &first_arg.expr,
@@ -78,7 +81,10 @@ fn validate_single_object_arg_indent(
   fn_name: &str,
   state: &mut StateManager,
 ) {
-  let init_expr = match var_decl.init.as_deref() {
+  // A parenthesis is not a different initializer, so the call is read through
+  // it -- both here and at `find_top_level_expr` below, which matches the
+  // recorded expression.
+  let init_expr = match var_decl.init.as_deref().map(normalize_expr) {
     Some(init) => init,
     None => stylex_panic!("{}", non_static_value(fn_name)),
   };
@@ -101,9 +107,13 @@ fn is_var_decl_target_call(
   call_name: &str,
   kind: ImportKind,
 ) -> bool {
+  // A parenthesis is not a different initializer, so the call is read through
+  // it. Read bare, `const fade = (stylex.keyframes({…}))` was not recognised as
+  // a keyframes call at all.
   var_decl
     .init
     .as_deref()
+    .map(normalize_expr)
     .and_then(Expr::as_call)
     .is_some_and(|call| is_target_call((call_name, state.get_stylex_api_import(kind)), call, state))
 }
@@ -216,7 +226,10 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
 
   let first_arg = &call.args[0];
 
-  let Expr::Object(obj) = first_arg.expr.as_ref() else {
+  // A parenthesis is not a different argument, here or at the reader that
+  // evaluates it. Read bare, `create(({…}))` stopped the build on an object the
+  // same author could have written without the brackets.
+  let Expr::Object(obj) = normalize_expr(&first_arg.expr) else {
     build_code_frame_error_and_panic(
       &Expr::Call(call.clone()),
       &first_arg.expr,
@@ -304,13 +317,19 @@ pub(crate) fn validate_stylex_create_theme_indent(
     );
   });
 
-  let init_expr = var_decl.init.as_ref().unwrap_or_else(|| {
-    build_code_frame_error_and_panic_at(
-      &call_expr,
-      &unbound_call_value(STYLEX_CREATE_THEME),
-      state,
-    );
-  });
+  // A parenthesis is not a different initializer, so the call is read through
+  // it -- as the declarator lookup that found this declarator reads it.
+  let init_expr = var_decl
+    .init
+    .as_deref()
+    .map(normalize_expr)
+    .unwrap_or_else(|| {
+      build_code_frame_error_and_panic_at(
+        &call_expr,
+        &unbound_call_value(STYLEX_CREATE_THEME),
+        state,
+      );
+    });
 
   let init = init_expr.as_call().unwrap_or_else(|| {
     build_code_frame_error_and_panic(
@@ -563,6 +582,14 @@ pub(crate) fn is_target_call(
   call: &CallExpr,
   state: &StateManager,
 ) -> bool {
+  // Read bare on purpose, for now. `(stylex.create)(…)` and `(stylex).create(…)`
+  // are the same call as the bare spelling and neither is recognised here --
+  // but the dispatch above this reads the callee bare too, so unwrapping only
+  // here does not transform them. What it does instead is class
+  // `(stylex.props)(styles.b)` as a consumer call that is then never
+  // transformed, which drops `b` from the namespace the pruner keeps and leaves
+  // the element unstyled. Ticket 47 of `.scratch/split-transform-crate` holds
+  // the two rows, and the dispatch is what has to move first.
   let is_create_ident = call
     .callee
     .as_expr()

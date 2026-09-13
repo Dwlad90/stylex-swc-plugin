@@ -23,6 +23,7 @@ use swc_core::{
 
 use crate::types::InjectableStylesMap;
 use stylex_ast::ast::convertors::create_number_expr;
+use stylex_ast::ast::convertors::normalize_expr;
 use stylex_ast::ast::factories::{
   create_binding_ident, create_call_expr, create_expr_or_spread, create_key_value_prop,
   create_number_expr_or_spread, create_object_expression, create_string_expr_or_spread,
@@ -470,7 +471,10 @@ impl CacheState {
 /// anything else -- what the call indexes are keyed by, spelled once for the
 /// four places that move an entry between keys.
 fn call_key_of(expr: Option<&Expr>) -> Option<u128> {
-  match expr {
+  // A parenthesis is not a different initializer, so the key is the same one
+  // the bare call has. Read bare, a parenthesized initializer was recorded
+  // under no key at all and the call it holds was never found.
+  match expr.map(normalize_expr) {
     Some(Expr::Call(call)) => Some(stable_hash_unspanned_call(call)),
     _ => None,
   }
@@ -1124,9 +1128,8 @@ impl StateManager {
         .or_insert(position);
     }
 
-    if let Some(Expr::Call(call)) = declarator.init.as_deref() {
-      Rc::make_mut(&mut self.declaration_call_index)
-        .record(stable_hash_unspanned_call(call), position);
+    if let Some(key) = call_key_of(declarator.init.as_deref()) {
+      Rc::make_mut(&mut self.declaration_call_index).record(key, position);
     }
 
     Rc::make_mut(&mut self.declaration_span_index).record(declarator.span, position);
@@ -1290,9 +1293,8 @@ impl StateManager {
   pub(crate) fn push_top_level_expression(&mut self, expression: TopLevelExpression) {
     let position = self.top_level_expressions.len();
 
-    if let Expr::Call(call) = &expression.1 {
-      Rc::make_mut(&mut self.top_level_call_index)
-        .record(stable_hash_unspanned_call(call), position);
+    if let Some(key) = call_key_of(Some(&expression.1)) {
+      Rc::make_mut(&mut self.top_level_call_index).record(key, position);
     }
 
     if let Some(name) = &expression.2 {
@@ -2028,7 +2030,7 @@ impl StateManager {
       self
         .top_level_expressions
         .iter()
-        .any(|tpe| matches!(tpe.1, Expr::Call(ref recorded) if recorded.eq_ignore_span(call))),
+        .any(|tpe| matches!(normalize_expr(&tpe.1), Expr::Call(recorded) if recorded.eq_ignore_span(call))),
       "`top_level_call_index` disagrees with `top_level_expressions`; something \
        changed the list without going through `push_top_level_expression` or \
        `set_top_level_expr`"
@@ -2044,8 +2046,10 @@ impl StateManager {
         .top_level_call_index
         .candidates(|| stable_hash_unspanned_call(call)),
       |position| {
-        matches!(self.top_level_expressions.get(position),
-          Some(TopLevelExpression(_, Expr::Call(recorded), _)) if recorded.eq_ignore_span(call))
+        // A parenthesis is not a different expression, so the recorded call is
+        // read through it.
+        matches!(self.top_level_expressions.get(position).map(|tpe| normalize_expr(&tpe.1)),
+          Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
       },
     )
   }
@@ -2178,11 +2182,15 @@ impl StateManager {
       return None;
     }
 
+    // Through the parentheses, as the declarator lookup below reads one. The
+    // two are asked together -- `validate_stylex_define_marker_indent` reads
+    // both in one branch -- so a paren that blinded only one of them decided
+    // which of two refusals an author read.
     self
       .top_level_expressions
       .iter()
       .find(|TopLevelExpression(_, expr, _)| {
-        matches!(expr, Expr::Call(recorded_call) if recorded_call.span == call.span)
+        matches!(normalize_expr(expr), Expr::Call(recorded_call) if recorded_call.span == call.span)
       })
   }
 
@@ -2204,8 +2212,11 @@ impl StateManager {
     }
 
     self.declarations.iter().position(|decl| {
-      decl.init.as_ref().is_some_and(
-        |init| matches!(**init, Expr::Call(ref recorded_call) if recorded_call.span == call.span),
+      // A parenthesis is not a different initializer. Read bare,
+      // `const fade = (stylex.keyframes({…}))` found no declarator, so the
+      // call was left untransformed and the name reached the runtime.
+      decl.init.as_deref().map(normalize_expr).is_some_and(
+        |init| matches!(init, Expr::Call(recorded_call) if recorded_call.span == call.span),
       )
     })
   }
@@ -2235,7 +2246,7 @@ impl StateManager {
     debug_assert_eq!(
       found.is_some(),
       self.declarations.iter().any(|decl| {
-        matches!(decl.init.as_deref(), Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
+        matches!(decl.init.as_deref().map(normalize_expr), Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
       }),
       "`declaration_call_index` disagrees with `declarations`; something changed \
        the list without going through `push_declaration` or `set_declaration_init`"
@@ -2251,7 +2262,9 @@ impl StateManager {
         .declaration_call_index
         .candidates(|| stable_hash_unspanned_call(call)),
       |position| {
-        matches!(self.declarations.get(position).and_then(|decl| decl.init.as_deref()),
+        // A parenthesis is not a different initializer, so the recorded call is
+        // read through it.
+        matches!(self.declarations.get(position).and_then(|decl| decl.init.as_deref()).map(normalize_expr),
           Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
       },
     )
@@ -2270,7 +2283,7 @@ impl StateManager {
       .candidates(|| stable_hash_unspanned_call(call))
       .iter()
       .find(|name| {
-        matches!(self.style_vars.get(*name).and_then(|decl| decl.init.as_deref()),
+        matches!(self.style_vars.get(*name).and_then(|decl| decl.init.as_deref()).map(normalize_expr),
           Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
       })
       .cloned();
@@ -2278,7 +2291,7 @@ impl StateManager {
     debug_assert_eq!(
       found.is_some(),
       self.style_vars.values().any(|decl| {
-        matches!(decl.init.as_deref(), Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
+        matches!(decl.init.as_deref().map(normalize_expr), Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
       }),
       "`style_var_call_index` disagrees with `style_vars`; something changed the \
        map without going through `insert_style_var` or `set_style_var_init`"

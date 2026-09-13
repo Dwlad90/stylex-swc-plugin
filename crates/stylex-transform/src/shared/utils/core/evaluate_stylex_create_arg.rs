@@ -16,6 +16,7 @@ use swc_core::{
 use crate::shared::utils::validators::validate_dynamic_style_params;
 use stylex_ast::ast::convertors::{
   create_ident_expr, create_null_expr, create_string_expr, expand_shorthand_prop, normalize_expr,
+  normalize_expr_mut,
 };
 use stylex_ast::ast::factories::{
   create_arrow_expression_with_params, create_bin_expr, create_call_expr, create_cond_expr,
@@ -164,7 +165,10 @@ pub fn evaluate_stylex_create_arg(
   traversal_state: &mut StateManager,
   functions: &FunctionMap,
 ) -> Box<EvaluateResult> {
-  match path {
+  // A parenthesis is not a different argument. Unwrapped here rather than at
+  // the call site, because the validator beside this reader unwraps the same
+  // argument and the two have to see one expression.
+  match normalize_expr_mut(path) {
     Expr::Object(style_object) => {
       let mut result_value: IndexMap<Expr, Vec<KeyValueProp>> = IndexMap::new();
       let mut fns: DynamicFns = IndexMap::new();

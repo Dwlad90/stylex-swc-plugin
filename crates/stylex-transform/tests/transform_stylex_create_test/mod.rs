@@ -38,6 +38,7 @@ mod numeric_and_index_like_keys;
 mod object_method_refusals;
 mod object_own_keys;
 mod operator_interaction;
+mod parenthesised_spellings;
 mod program_level_positions;
 mod refusals_a_module_reaches;
 mod refusals_that_fall_through;

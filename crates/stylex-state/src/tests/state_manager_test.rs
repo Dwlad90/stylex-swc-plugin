@@ -6,8 +6,8 @@ mod state_manager {
     ecma::ast::{
       ArrayLit, CallExpr, Callee, Decl, Expr, ExprOrSpread, ExprStmt, Ident, ImportDecl,
       ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase, ImportSpecifier,
-      ImportStarAsSpecifier, Lit, ModuleDecl, ModuleItem, ObjectLit, ObjectPat, Pat, Stmt, Str,
-      VarDecl, VarDeclKind, VarDeclarator,
+      ImportStarAsSpecifier, Lit, ModuleDecl, ModuleItem, ObjectLit, ObjectPat, ParenExpr, Pat,
+      Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
     },
   };
 
@@ -292,6 +292,47 @@ mod state_manager {
     assert_eq!(
       state.find_call_declaration_index_by_span(&call_at(span_at(40, 50))),
       None
+    );
+  }
+
+  /// A parenthesis is not a different initializer, so a call wrapped in one is
+  /// found by the same lookups the bare call is found by.
+  ///
+  /// Both indexes, because they are keyed differently and a paren blinded each:
+  /// the structural one recorded the declarator under no key at all, and the
+  /// span one matched no recorded expression. A producer call written
+  /// `const fade = (stylex.keyframes({…}))` was left untransformed for it, with
+  /// no error.
+  #[test]
+  fn a_parenthesised_initializer_is_found_by_the_call_it_holds() {
+    let mut state = StateManager::default();
+
+    let bare = call_at(span_at(1, 10));
+
+    // Structurally different from `bare`, because the structural lookup below
+    // answers the earliest declarator a call reads as, and two calls that
+    // differ only in their span read alike.
+    let mut wrapped = call_at(span_at(20, 30));
+    wrapped.callee = Callee::Expr(Box::new(ident_expr("defineConsts")));
+
+    state.push_declaration(make_var_declarator("bare", Expr::Call(bare.clone())));
+    state.push_declaration(make_var_declarator(
+      "wrapped",
+      Expr::Paren(ParenExpr {
+        span: span_at(19, 31),
+        expr: Box::new(Expr::Call(wrapped.clone())),
+      }),
+    ));
+
+    assert_eq!(state.find_call_declaration_index_by_span(&wrapped), Some(1));
+    assert_eq!(state.find_call_declaration_index_by_span(&bare), Some(0));
+
+    assert_eq!(
+      state
+        .find_call_declaration(&wrapped)
+        .and_then(|decl| decl.name.as_ident())
+        .map(|ident| ident.sym.to_string()),
+      Some(String::from("wrapped"))
     );
   }
 

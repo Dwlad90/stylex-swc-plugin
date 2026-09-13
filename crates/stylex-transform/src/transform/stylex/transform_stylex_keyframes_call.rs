@@ -19,6 +19,7 @@ use crate::{
     },
   },
 };
+use stylex_ast::ast::convertors::normalize_expr;
 use stylex_constants::constants::{
   api_names::{STYLEX_FIRST_THAT_WORKS, STYLEX_KEYFRAMES},
   messages::{non_static_value, non_style_object},
@@ -44,7 +45,15 @@ where
     if is_keyframes_call {
       validate_stylex_keyframes_indent(var_decl, &mut self.state);
 
-      let call = match var_decl.init.as_ref().and_then(|decl| decl.as_call()) {
+      // A parenthesis is not a different initializer, so the call is read
+      // through it -- as the predicate above and the validator beside it read
+      // it.
+      let call = match var_decl
+        .init
+        .as_deref()
+        .map(normalize_expr)
+        .and_then(Expr::as_call)
+      {
         Some(call) => call,
         None => stylex_panic!("{}", expected_call_expression(STYLEX_KEYFRAMES)),
       };

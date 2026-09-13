@@ -214,6 +214,15 @@ run reached that check as an entry nothing measured, and failed the release a
 second way. The verdict engine names such a fixture under its table and takes
 no ratio for it, because a ratio needs both sides.
 
+A ceiling that the run measured nothing for is an `extra-entry` failure, and
+that failure has two answers. The run may hold no fixture of that name, which
+means the entry is stale and `budget.json` must lose it. Or the run holds the
+fixture and the budget's own subject has no measurement for it, which means the
+fixture is correct and the subject could not compile it. The message says
+which, so a reader does not look for a fixture that is still in the manifest.
+The raw stats record which subjects measured a fixture, not why the others did
+not, so the message names the subject and stops there.
+
 The flag is off by default, and it never lifts the gate on the candidate: a
 fixture _it_ refuses, or compiles to no rules, is a regression and fails the
 leg. A run where no fixture at all is comparable by every subject also fails,

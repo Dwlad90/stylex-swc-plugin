@@ -236,14 +236,19 @@ export function evaluateBudget(rawStatsInput: unknown, budgetInput: unknown): Bu
   //
   // Coverage keeps both of its questions over that set. A ceiling for a fixture
   // the subject did not measure is still reported as an entry nothing measured,
-  // because nothing held it. A fixture the subject did not measure and has no
-  // ceiling for asks nothing: a ceiling can only describe a number, and there
-  // is none.
+  // and the report says whether the run held that fixture at all. A fixture the
+  // subject did not measure and has no ceiling for asks nothing: a ceiling can
+  // only describe a number, and there is none.
   const measured = raw.fixtures.filter(fixture => measuredBy(fixture, subject.label));
 
   const problems: BudgetProblem[] = [
     ...checkEnvironment(raw.environment, budget.canonical),
-    ...(budget.state === 'enforced' ? checkCoverage(measured, budget.entries) : []),
+    ...(budget.state === 'enforced'
+      ? checkCoverage(raw.fixtures, measured, budget.entries, {
+          role: budget.subject,
+          label: subject.label,
+        })
+      : []),
   ];
 
   const ceilings = new Map(budget.entries.map(entry => [entry.name, entry.ceilingMs]));
@@ -400,25 +405,53 @@ function checkEnvironment(
   return problems;
 }
 
+/** The role the ceilings describe, and the subject label it resolved to. */
+interface BudgetSubject {
+  readonly role: 'base' | 'candidate';
+  readonly label: string;
+}
+
+/**
+ * The two coverage questions: a measurement with no ceiling, and a ceiling
+ * with no measurement.
+ *
+ * The second question has two answers, and a reader acts on each one
+ * differently. The run can hold no fixture of that name. Then the entry is
+ * stale and `budget.json` must lose it. Or the run holds the fixture and this
+ * budget's own subject has no measurement for it. Then the fixture is correct
+ * and the subject could not compile it, which is what a published base does
+ * to a fixture for a feature it does not carry.
+ *
+ * The file records which subjects measured a fixture, not why the others did
+ * not, so the message says only what the file shows.
+ */
 function checkCoverage(
-  fixtures: readonly FixtureRawStats[],
-  entries: readonly BudgetEntry[]
+  ran: readonly FixtureRawStats[],
+  measured: readonly FixtureRawStats[],
+  entries: readonly BudgetEntry[],
+  subject: BudgetSubject
 ): BudgetProblem[] {
   const problems: BudgetProblem[] = [];
-  const measured = new Set(fixtures.map(fixture => fixture.name));
+  const ranNames = new Set(ran.map(fixture => fixture.name));
+  const measuredNames = new Set(measured.map(fixture => fixture.name));
   const budgeted = new Set(entries.map(entry => entry.name));
 
-  for (const name of measured) {
+  for (const name of measuredNames) {
     if (!budgeted.has(name)) {
       problems.push(makeProblem('missing-entry', `no committed ceiling for "${name}"`));
     }
   }
   for (const name of budgeted) {
-    if (!measured.has(name)) {
-      problems.push(
-        makeProblem('extra-entry', `budget entry "${name}" was not measured in this run`)
-      );
-    }
+    if (measuredNames.has(name)) continue;
+    problems.push(
+      makeProblem(
+        'extra-entry',
+        ranNames.has(name)
+          ? `budget entry "${name}" ran, but the ${subject.role} ` +
+              `"${subject.label}" has no measurement for it`
+          : `budget entry "${name}" names no benchmark in this run`
+      )
+    );
   }
   return problems;
 }

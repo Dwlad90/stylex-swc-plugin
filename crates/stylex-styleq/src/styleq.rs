@@ -1,7 +1,7 @@
 use std::{
   hash::{Hash, Hasher},
   sync::{
-    Arc, RwLock, RwLockReadGuard, RwLockWriteGuard,
+    Arc, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard,
     atomic::{AtomicBool, Ordering},
   },
 };
@@ -12,15 +12,46 @@ use stylex_constants::constants::common::COMPILED_KEY;
 
 use crate::{StyleMap, StyleqArgument, StyleqInput, StyleqOptions, StyleqResult, StyleqValue};
 
-// JS-parity: styleq/src/styleq.js — `compiledStyleCache` (a Map keyed by
-// either the source array reference or a structural hash). Order is never
-// observed downstream, so an unordered FxHashMap is appropriate. The entry
-// itself is wrapped in `Arc` so cache hits are a refcount bump rather than
-// a deep clone of three owned strings + a `Vec<Arc<str>>`.
+// JS-parity: styleq/src/styleq.js — the cache is a chain, not one map. Every
+// entry carries its own child map, and the walk descends into it, so a style
+// cached after another style is found under that other style and never at the
+// root.
+//
+// The chain is what makes a cached chunk true. A chunk holds only the
+// properties the styles after it had not already defined, so it is cut for one
+// merge and says nothing about any other. One flat map conflates them: a style
+// that contributed nothing behind another was read back as contributing
+// nothing on its own, and a style cached on its own was read back behind
+// another and defined its properties twice.
+//
+// Keys are either the source array reference or a structural hash. Order is
+// never observed downstream, so an unordered FxHashMap is appropriate. The
+// entry itself is wrapped in `Arc` so cache hits are a refcount bump rather
+// than a deep clone of three owned strings + a `Vec<Arc<str>>`.
+//
+// The chain holds one entry per distinct walked suffix where the flat map held
+// one per style, and nothing evicts. The reference keeps `WeakMap`s, so its
+// entries die with the style objects; these do not. It costs nothing here,
+// because the compiler builds a `Styleq` per call site and drops it, but a
+// caller that keeps one across many merges keeps every path it walked.
 struct CacheEntry {
   class_name: Arc<str>,
   defined_properties: Arc<[Arc<str>]>,
   debug_string: Arc<str>,
+  /// The styles cached after this one, which is the node the walk descends
+  /// into.
+  ///
+  /// Built on the first descent rather than with the entry. The compiler
+  /// builds a `Styleq` per call site and throws it away, so every style it
+  /// merges is a miss and no child is ever read; allocating one per entry paid
+  /// for a map nothing looked in.
+  next: OnceLock<Arc<CacheNode>>,
+}
+
+/// One level of the cache chain.
+#[derive(Default)]
+struct CacheNode {
+  entries: RwLock<FxHashMap<CacheKey, Arc<CacheEntry>>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -31,7 +62,7 @@ enum CacheKey {
 
 pub struct Styleq<V: StyleqValue> {
   options: StyleqOptions<V>,
-  cache: RwLock<FxHashMap<CacheKey, Arc<CacheEntry>>>,
+  cache: Arc<CacheNode>,
   /// Latched after the first poisoned-lock recovery so subsequent recoveries
   /// log at `debug!` level instead of flooding `error!` once per call. The
   /// first occurrence is still surfaced as an error (the actionable signal).
@@ -52,6 +83,8 @@ fn _assert_cache_send_sync() {
   fn assert_sync<T: Sync>() {}
   assert_send::<CacheEntry>();
   assert_sync::<CacheEntry>();
+  assert_send::<CacheNode>();
+  assert_sync::<CacheNode>();
   assert_send::<CacheKey>();
   assert_sync::<CacheKey>();
 }
@@ -59,7 +92,7 @@ fn _assert_cache_send_sync() {
 pub fn create_styleq<V: StyleqValue>(options: StyleqOptions<V>) -> Styleq<V> {
   Styleq {
     options,
-    cache: RwLock::new(FxHashMap::default()),
+    cache: Arc::default(),
     poison_warned: AtomicBool::new(false),
   }
 }
@@ -81,7 +114,13 @@ impl<V: StyleqValue> Styleq<V> {
     let mut class_name = String::new();
     let mut inline_style: Option<StyleMap<V>> = None;
     let mut debug_string = String::new();
-    let mut use_cache = !self.options.disable_cache;
+    // The node the next compiled style is looked up in. `None` once the walk
+    // may no longer cache, which an inline style that defines a new property
+    // causes.
+    let mut next_cache = match self.options.disable_cache {
+      true => None,
+      false => Some(Arc::clone(&self.cache)),
+    };
     let mut styles = arguments.iter().collect::<Vec<_>>();
 
     while let Some(possible_style) = styles.pop() {
@@ -115,7 +154,7 @@ impl<V: StyleqValue> Styleq<V> {
           &mut class_name,
           &mut debug_string,
           cache_key,
-          use_cache,
+          &mut next_cache,
         );
       } else if self.options.disable_mix {
         let mut next_inline_style = style.clone();
@@ -132,7 +171,7 @@ impl<V: StyleqValue> Styleq<V> {
           style,
           &mut defined_properties,
           &mut inline_style,
-          &mut use_cache,
+          &mut next_cache,
         );
       }
     }
@@ -151,7 +190,7 @@ impl<V: StyleqValue> Styleq<V> {
     class_name: &mut String,
     debug_string: &mut String,
     cache_key: Option<usize>,
-    use_cache: bool,
+    next_cache: &mut Option<Arc<CacheNode>>,
   ) {
     let mut class_name_chunk = String::new();
     let cache_key = match cache_key {
@@ -159,14 +198,21 @@ impl<V: StyleqValue> Styleq<V> {
       _ => CacheKey::Hash(hash_style(style)),
     };
 
-    if use_cache && let Some(cache_entry) = self.get_cache_entry(&cache_key) {
+    let cached = next_cache
+      .as_ref()
+      .and_then(|node| self.get_cache_entry(node, &cache_key));
+
+    if let Some(cache_entry) = cached {
       class_name_chunk.push_str(&cache_entry.class_name);
       debug_string.clear();
       debug_string.push_str(&cache_entry.debug_string);
       // `Arc<str>` clone is a refcount bump — no per-element heap allocation
       // on the cache-hit fast path (was a `String::clone` per property).
       defined_properties.extend(cache_entry.defined_properties.iter().cloned());
+      // Descend, so the next style is looked up behind this one.
+      *next_cache = Some(Arc::clone(cache_entry.next.get_or_init(Arc::default)));
     } else {
+      let use_cache = next_cache.is_some();
       let mut defined_properties_chunk: Vec<Arc<str>> = Vec::new();
 
       for (prop, value) in style {
@@ -216,15 +262,27 @@ impl<V: StyleqValue> Styleq<V> {
         }
       }
 
-      if use_cache {
-        self.insert_cache_entry(
-          cache_key,
-          CacheEntry {
-            class_name: Arc::from(class_name_chunk.as_str()),
-            defined_properties: Arc::from(defined_properties_chunk.into_boxed_slice()),
-            debug_string: Arc::from(debug_string.as_str()),
-          },
-        );
+      if let Some(node) = next_cache.take() {
+        let child = Arc::<CacheNode>::default();
+        let entry = CacheEntry {
+          class_name: Arc::from(class_name_chunk.as_str()),
+          defined_properties: Arc::from(defined_properties_chunk.into_boxed_slice()),
+          debug_string: Arc::from(debug_string.as_str()),
+          next: OnceLock::new(),
+        };
+
+        // The style after this one is looked up behind it, so this entry's
+        // child is needed now and the `OnceLock` is filled rather than left to
+        // a later descent.
+        match entry.next.set(Arc::clone(&child)) {
+          Ok(()) => {},
+          // A fresh `OnceLock` cannot already hold a value.
+          Err(_) => unreachable!("a new cache entry cannot already hold a child"),
+        }
+
+        self.insert_cache_entry(&node, cache_key, entry);
+
+        *next_cache = Some(child);
       }
     }
 
@@ -245,11 +303,18 @@ impl<V: StyleqValue> Styleq<V> {
     style: &StyleMap<V>,
     defined_properties: &mut FxHashSet<Arc<str>>,
     inline_style: &mut Option<StyleMap<V>>,
-    use_cache: &mut bool,
+    next_cache: &mut Option<Arc<CacheNode>>,
   ) {
     let mut sub_style: Option<StyleMap<V>> = None;
 
     for (prop, value) in style {
+      // An undefined value is not a declaration. The reference skips the whole
+      // body for one, so it writes nothing, defines nothing and does not break
+      // the chain -- and a later style may still declare the property.
+      if value.is_undefined() {
+        continue;
+      }
+
       // O(1) borrow-based lookup; only allocate an `Arc<str>` if the
       // property is genuinely new to the set.
       if !defined_properties.contains(prop.as_str()) {
@@ -260,7 +325,9 @@ impl<V: StyleqValue> Styleq<V> {
         }
 
         defined_properties.insert(Arc::from(prop.as_str()));
-        *use_cache = false;
+        // What follows an inline style depends on that style, which the chain
+        // does not key on, so the rest of this merge is not cached.
+        *next_cache = None;
       }
     }
 
@@ -275,16 +342,22 @@ impl<V: StyleqValue> Styleq<V> {
     }
   }
 
-  fn cache_read(&self) -> RwLockReadGuard<'_, FxHashMap<CacheKey, Arc<CacheEntry>>> {
-    self
-      .cache
+  fn cache_read<'a>(
+    &self,
+    node: &'a CacheNode,
+  ) -> RwLockReadGuard<'a, FxHashMap<CacheKey, Arc<CacheEntry>>> {
+    node
+      .entries
       .read()
       .unwrap_or_else(|poisoned| self.recover_poisoned_read(poisoned))
   }
 
-  fn cache_write(&self) -> RwLockWriteGuard<'_, FxHashMap<CacheKey, Arc<CacheEntry>>> {
-    self
-      .cache
+  fn cache_write<'a>(
+    &self,
+    node: &'a CacheNode,
+  ) -> RwLockWriteGuard<'a, FxHashMap<CacheKey, Arc<CacheEntry>>> {
+    node
+      .entries
       .write()
       .unwrap_or_else(|poisoned| self.recover_poisoned_write(poisoned))
   }
@@ -316,12 +389,14 @@ impl<V: StyleqValue> Styleq<V> {
     poisoned.into_inner()
   }
 
-  fn get_cache_entry(&self, cache_key: &CacheKey) -> Option<Arc<CacheEntry>> {
-    self.cache_read().get(cache_key).map(Arc::clone)
+  fn get_cache_entry(&self, node: &CacheNode, cache_key: &CacheKey) -> Option<Arc<CacheEntry>> {
+    self.cache_read(node).get(cache_key).map(Arc::clone)
   }
 
-  fn insert_cache_entry(&self, cache_key: CacheKey, cache_entry: CacheEntry) {
-    self.cache_write().insert(cache_key, Arc::new(cache_entry));
+  fn insert_cache_entry(&self, node: &CacheNode, cache_key: CacheKey, cache_entry: CacheEntry) {
+    self
+      .cache_write(node)
+      .insert(cache_key, Arc::new(cache_entry));
   }
 }
 
@@ -360,12 +435,12 @@ mod tests {
     let styleq = create_styleq::<crate::StyleValue>(StyleqOptions::default());
 
     let result = catch_unwind(AssertUnwindSafe(|| {
-      let _guard = styleq.cache.write();
+      let _guard = styleq.cache.entries.write();
       panic!("poison cache rwlock");
     }));
 
     assert!(result.is_err());
-    assert!(styleq.cache_read().is_empty());
+    assert!(styleq.cache_read(&styleq.cache).is_empty());
   }
 
   /// After the cache RwLock has been poisoned by a panicking writer, the
@@ -379,14 +454,14 @@ mod tests {
     let styleq = create_styleq::<crate::StyleValue>(StyleqOptions::default());
 
     let result = catch_unwind(AssertUnwindSafe(|| {
-      let _guard = styleq.cache.write();
+      let _guard = styleq.cache.entries.write();
       panic!("poison cache rwlock for write recovery");
     }));
     assert!(result.is_err(), "writer panic should propagate");
 
     // Sanity: the lock is now poisoned for both read and write.
-    assert!(styleq.cache.read().is_err());
-    assert!(styleq.cache.write().is_err());
+    assert!(styleq.cache.entries.read().is_err());
+    assert!(styleq.cache.entries.write().is_err());
 
     // `insert_cache_entry` goes through `cache_write` → must transparently
     // recover from the poisoned lock and complete the insert.
@@ -395,10 +470,11 @@ mod tests {
       class_name: Arc::from(""),
       defined_properties: Arc::from(Vec::<Arc<str>>::new()),
       debug_string: Arc::from(""),
+      next: OnceLock::new(),
     };
-    styleq.insert_cache_entry(key, entry);
+    styleq.insert_cache_entry(&styleq.cache, key, entry);
 
-    let cache = styleq.cache_read();
+    let cache = styleq.cache_read(&styleq.cache);
     assert!(
       cache.contains_key(&key),
       "recovered cache must accept new entries after poisoning"
@@ -422,13 +498,13 @@ mod tests {
     );
 
     let _ = catch_unwind(AssertUnwindSafe(|| {
-      let _guard = styleq.cache.write();
+      let _guard = styleq.cache.entries.write();
       panic!("poison cache rwlock for latch test");
     }));
 
     let messages = logged_at(log::Level::Debug, || {
       // First recovery: latches the flag and emits `error!`.
-      drop(styleq.cache_read());
+      drop(styleq.cache_read(&styleq.cache));
       assert!(
         styleq.poison_warned.load(Ordering::Relaxed),
         "first recovery must latch the poison-warned flag"
@@ -437,7 +513,7 @@ mod tests {
       // Second recovery: same path, no re-latch (still true). This call is
       // what would previously have produced a second `error!` log line; now
       // it's demoted to `debug!` and the flag stays unchanged.
-      drop(styleq.cache_read());
+      drop(styleq.cache_read(&styleq.cache));
       assert!(
         styleq.poison_warned.load(Ordering::Relaxed),
         "subsequent recoveries must keep the flag set without flipping it back"
@@ -462,11 +538,13 @@ mod tests {
     let styleq = create_styleq::<crate::StyleValue>(StyleqOptions::default());
 
     let _ = catch_unwind(AssertUnwindSafe(|| {
-      let _guard = styleq.cache.write();
+      let _guard = styleq.cache.entries.write();
       panic!("poison cache rwlock for the write path");
     }));
 
-    let messages = logged_at(log::Level::Error, || drop(styleq.cache_write()));
+    let messages = logged_at(log::Level::Error, || {
+      drop(styleq.cache_write(&styleq.cache))
+    });
 
     assert_eq!(
       messages,

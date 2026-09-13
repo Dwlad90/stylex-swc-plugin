@@ -9,6 +9,15 @@ pub trait StyleqValue: Clone + Debug + Hash + 'static {
   fn as_class_name(&self) -> Option<&str>;
   fn is_null(&self) -> bool;
   fn is_true_bool(&self) -> bool;
+
+  /// Whether the value stands for a property that was not given.
+  ///
+  /// An inline style skips such a property completely: it writes nothing,
+  /// defines nothing, and leaves the property for a later style to declare.
+  /// A value type with no such state answers `false`, which is the default.
+  fn is_undefined(&self) -> bool {
+    false
+  }
 }
 
 impl<V: StyleqValue> StyleqValue for Rc<V> {
@@ -23,6 +32,10 @@ impl<V: StyleqValue> StyleqValue for Rc<V> {
   fn is_true_bool(&self) -> bool {
     self.as_ref().is_true_bool()
   }
+
+  fn is_undefined(&self) -> bool {
+    self.as_ref().is_undefined()
+  }
 }
 
 impl<V: StyleqValue> StyleqValue for Arc<V> {
@@ -36,6 +49,10 @@ impl<V: StyleqValue> StyleqValue for Arc<V> {
 
   fn is_true_bool(&self) -> bool {
     self.as_ref().is_true_bool()
+  }
+
+  fn is_undefined(&self) -> bool {
+    self.as_ref().is_undefined()
   }
 }
 
@@ -144,5 +161,9 @@ impl StyleqValue for StyleValue {
 
   fn is_true_bool(&self) -> bool {
     matches!(self, StyleValue::Bool(true))
+  }
+
+  fn is_undefined(&self) -> bool {
+    matches!(self, StyleValue::Undefined)
   }
 }

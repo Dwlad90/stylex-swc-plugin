@@ -900,3 +900,221 @@ fn styleq_default_public_types_are_send_and_sync() {
   assert_send_sync::<StyleqInput<StyleValue>>();
   assert_send_sync::<StyleqResult<StyleValue>>();
 }
+
+/// The cache must answer for the merge it is asked about, not for a merge an
+/// earlier call made.
+///
+/// A cached chunk holds only the properties the styles after it did not
+/// already define, so the chunk written for a style is true of the merge it
+/// was cut for and of no other. The reference keeps them apart by giving every
+/// entry its own child cache and descending into it, so a style cached after
+/// another is found under that other style and never at the root.
+mod the_cache_answers_per_merge {
+  use super::*;
+
+  fn first() -> StyleqInput<StyleValue> {
+    compiled(&[
+      ("backgroundColor", string("backgroundColor-1")),
+      ("color", string("color-1")),
+    ])
+  }
+
+  fn second() -> StyleqInput<StyleValue> {
+    compiled(&[
+      ("backgroundColor", string("backgroundColor-2")),
+      ("color", string("color-2")),
+    ])
+  }
+
+  #[test]
+  fn a_style_cached_behind_another_is_not_read_on_its_own() {
+    let styleq = create_styleq(StyleqOptions::default());
+    let pair = [first(), second()];
+
+    // The second style defines both properties, so the first contributes
+    // nothing and is cached as an empty chunk -- behind the second style.
+    assert_eq!(styleq.styleq(&pair).class_name, "backgroundColor-2 color-2");
+
+    // On its own the first style defines both properties itself.
+    assert_eq!(
+      styleq.styleq(std::slice::from_ref(&pair[0])).class_name,
+      "backgroundColor-1 color-1"
+    );
+  }
+
+  #[test]
+  fn a_style_cached_on_its_own_is_not_read_behind_another() {
+    let styleq = create_styleq(StyleqOptions::default());
+    let pair = [first(), second()];
+
+    assert_eq!(
+      styleq.styleq(std::slice::from_ref(&pair[0])).class_name,
+      "backgroundColor-1 color-1"
+    );
+
+    // The full chunk cached above must not reach this merge, where the second
+    // style already defines both properties.
+    assert_eq!(styleq.styleq(&pair).class_name, "backgroundColor-2 color-2");
+  }
+
+  #[test]
+  fn the_cache_answers_the_same_on_every_call() {
+    let styleq = create_styleq(StyleqOptions::default());
+    let pair = [first(), second()];
+
+    for _ in 0..4 {
+      assert_eq!(styleq.styleq(&pair).class_name, "backgroundColor-2 color-2");
+      assert_eq!(
+        styleq.styleq(std::slice::from_ref(&pair[0])).class_name,
+        "backgroundColor-1 color-1"
+      );
+      assert_eq!(
+        styleq.styleq(std::slice::from_ref(&pair[1])).class_name,
+        "backgroundColor-2 color-2"
+      );
+    }
+  }
+
+  /// An inline style that declares a new property closes the chain, because
+  /// what follows it depends on that style and the chain does not key on it.
+  ///
+  /// Without that, the compiled style behind the inline one would be cached
+  /// with a chunk missing whatever the inline style had already declared, and
+  /// a later merge without the inline style would read it and emit too few
+  /// class names.
+  #[test]
+  fn an_inline_style_closes_the_chain_behind_it() {
+    let styleq = create_styleq(StyleqOptions::default());
+    let front = compiled(&[("color", string("color-1"))]);
+    let back = compiled(&[("backgroundColor", string("backgroundColor-2"))]);
+    let between = inline(&[("color", StyleValue::Number(1))]);
+
+    // Popped from the back: `back`, then the inline style, then `front`. The
+    // inline style declares `color`, so `front` contributes nothing here.
+    let result = styleq.styleq(&[front.clone(), between, back.clone()]);
+    assert_eq!(result.class_name, "backgroundColor-2");
+
+    // Without the inline style, `front` declares `color` itself.
+    assert_eq!(
+      styleq.styleq(&[front, back]).class_name,
+      "color-1 backgroundColor-2"
+    );
+  }
+
+  /// The cached answer must be the answer the uncached path gives, in every
+  /// field the caller reads and under the options the compiler passes.
+  #[test]
+  fn a_cached_merge_answers_what_an_uncached_one_does() {
+    let third = compiled(&[("color", string("color-3"))]);
+    let inline_style = inline(&[("opacity", StyleValue::Number(1))]);
+    let merges: [Vec<StyleqInput<StyleValue>>; 8] = [
+      vec![first()],
+      vec![first(), second()],
+      // The same style twice, which the flat map answered with its chunk a
+      // second time and so declared every property twice.
+      vec![first(), first()],
+      vec![first(), third.clone()],
+      vec![third.clone(), first()],
+      vec![first(), second(), third.clone()],
+      vec![first(), inline_style.clone(), third.clone()],
+      vec![inline_style, first(), third],
+    ];
+
+    // `dedupe_class_name_chunks` is the shape the compiler passes, and its
+    // substring check can hide a wrong chunk, so both shapes are compared.
+    for dedupe in [false, true] {
+      let cached = create_styleq(StyleqOptions {
+        dedupe_class_name_chunks: dedupe,
+        ..Default::default()
+      });
+      let uncached = create_styleq(StyleqOptions {
+        dedupe_class_name_chunks: dedupe,
+        disable_cache: true,
+        ..Default::default()
+      });
+
+      // Twice over, because the first pass is what fills the cache and the
+      // second is what reads it.
+      for _ in 0..2 {
+        for merge in &merges {
+          let from_cache = cached.styleq(merge);
+          let from_scratch = uncached.styleq(merge);
+
+          assert_eq!(
+            from_cache.class_name, from_scratch.class_name,
+            "the cached and the uncached merge disagree on the class name"
+          );
+          assert_eq!(
+            from_cache.inline_style, from_scratch.inline_style,
+            "the cached and the uncached merge disagree on the inline style"
+          );
+          assert_eq!(
+            from_cache.data_style_src, from_scratch.data_style_src,
+            "the cached and the uncached merge disagree on the debug string"
+          );
+        }
+      }
+    }
+  }
+}
+
+/// An inline property with no value is not a declaration.
+///
+/// The reference skips it completely: it writes nothing into the inline style,
+/// does not mark the property declared, and leaves a later style free to
+/// declare it.
+mod an_undefined_inline_value_is_invisible {
+  use super::*;
+
+  #[test]
+  fn it_writes_no_inline_style_of_its_own() {
+    let result = styleq(&[inline(&[("backgroundColor", StyleValue::Undefined)])]);
+
+    assert_eq!(result.class_name, "");
+    assert_eq!(result.inline_style, None);
+  }
+
+  #[test]
+  fn a_later_style_may_still_declare_the_property() {
+    // Popped from the back, so the undefined value is read first and must not
+    // take the property from the style behind it.
+    let result = styleq(&[
+      inline(&[("backgroundColor", string("red"))]),
+      inline(&[("backgroundColor", StyleValue::Undefined)]),
+    ]);
+
+    let inline_style = match result.inline_style {
+      Some(inline_style) => inline_style,
+      None => panic!("the declared value must reach the inline style"),
+    };
+
+    assert_eq!(
+      inline_style.get("backgroundColor"),
+      Some(&string("red")),
+      "an undefined value must not stand in for a declared one"
+    );
+  }
+
+  #[test]
+  fn it_leaves_a_compiled_style_untouched() {
+    let result = styleq(&[
+      compiled(&[("color", string("color-1"))]),
+      inline(&[("backgroundColor", StyleValue::Undefined)]),
+    ]);
+
+    assert_eq!(result.class_name, "color-1");
+    assert_eq!(result.inline_style, None);
+  }
+
+  /// A null value is a declaration -- it takes the property and writes nothing
+  /// -- which is what separates it from an undefined one.
+  #[test]
+  fn a_null_value_still_takes_the_property() {
+    let result = styleq(&[
+      inline(&[("backgroundColor", string("red"))]),
+      inline(&[("backgroundColor", StyleValue::Null)]),
+    ]);
+
+    assert_eq!(result.inline_style, None);
+  }
+}

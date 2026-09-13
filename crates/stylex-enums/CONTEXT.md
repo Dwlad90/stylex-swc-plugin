@@ -37,6 +37,16 @@ Which counter a `UidGenerator` reads. Only `Local`, one per instance, and
 so tests running in parallel do not observe each other's numbering.
 _Avoid_: scope, counter scope
 
+**Binary expression type**:
+What folding one binary operator answered, as the kind of value it is — a
+number, a boolean, a measured string, or `Null`. The eight comparison operators
+answer the boolean, which is what the language and the reference implementation
+both write there; nothing reads a number off it, because the coercions apply to
+the expression the value is written down as. The string carries its own UTF-16
+count, so a chain of `+` measures each operand once instead of re-reading
+everything already joined.
+_Avoid_: fold result, operand type, binary value
+
 **Value with default**:
 A configuration value that is either a bare value or a value plus its default
 form — the shape `defineVars` accepts for a variable that varies by media query.

@@ -382,6 +382,11 @@ async function settle(): Promise<void> {
  * inside one fixed pause. Under load a pause expires between two steps of that
  * chain, and the caller then measures the machine instead of the behaviour.
  * Two quiet windows in a row say the chain has ended.
+ *
+ * Two is enough only because a window is longer than a step of the chain:
+ * `settle` waits 200 ms and the re-arm in `src/index.ts` fires at 50 ms, so a
+ * chain still running cannot stay quiet across one window, let alone two. Move
+ * either number towards the other and this needs more windows, or a longer one.
  */
 async function waitUntilSteady(count: () => number, work: string): Promise<void> {
   const deadline = Date.now() + 10_000;

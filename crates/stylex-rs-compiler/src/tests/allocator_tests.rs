@@ -633,6 +633,16 @@ mod bench_allocator {
   /// adds to the measurement, and this reader accepts it the same as one
   /// outside. The rule for that is in `guidelines/PERFORMANCE.md` and is kept
   /// by review.
+  ///
+  /// Nor can it see *how many*. This is one answer for a whole file, so a
+  /// measurement added beside a checked sibling passes on the sibling's check
+  /// -- which is how a bench that timed 801 ps, no work at all, once sat in a
+  /// file that checks its other measurements. What this holds is that a file
+  /// checks something; that each measurement is checked is kept by review. A
+  /// per-measurement reader was tried and dropped: only 16 of 36 named
+  /// benchmarks repeat their id outside the `bench_function` call, so a reader
+  /// keyed on the id would refuse measurements that are checked and accept a
+  /// file that spells a name twice.
   fn asserts_what_it_measures(source: &str) -> bool {
     source.lines().any(|line| {
       let line = line.trim_start();

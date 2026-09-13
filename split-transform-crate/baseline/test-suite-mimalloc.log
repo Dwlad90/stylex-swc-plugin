@@ -1,0 +1,17 @@
+$ turbo run test:crates:workspace:regular test:crates:workspace:doc --filter=// --continue
+• turbo 2.10.12
+
+   • Packages in scope: //
+   • Running test:crates:workspace:regular, test:crates:workspace:doc in 1 packages
+   • Remote caching disabled (TURBO_TOKEN set without TURBO_TEAM), using shared worktree cache
+
+//:test:crates:workspace:doc: cache miss, executing 793ea98106eb733d (only logging errors)
+//:test:crates:workspace:regular: cache miss, executing 80ef7c5bae465271 (only logging errors)
+
+ Tasks:    2 successful, 2 total
+Cached:    0 cached, 2 total
+  Time:    19.024s 
+
+real 20.14
+user 88.56
+sys 58.61

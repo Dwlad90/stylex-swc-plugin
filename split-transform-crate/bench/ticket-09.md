@@ -1,5 +1,13 @@
 # Ticket 09 — bench A/B across the crate move
 
+> **Measured before the allocator change.** Every number in this record was
+> taken when a bench measured the system allocator. Commit `aa2925f06` made
+> every bench link `swc_malloc`, which is the allocator the published addon
+> runs. Numbers here do not compare with numbers taken after that commit.
+> The re-baseline is [`ticket-17.md`](./ticket-17.md); compare against that
+> one. See "The allocator a bench measures" in
+> `guidelines/PERFORMANCE.md`.
+
 The three evaluation benches moved from `stylex-transform/benches` to
 `stylex-evaluator/benches`. Criterion baseline identities are per crate, so
 criterion cannot diff the two legs itself. Both legs were measured on one

@@ -1,0 +1,29 @@
+$ cargo clippy --all-targets --all-features --workspace -- -D warnings
+    Checking stylex_constants v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-constants)
+    Checking stylex_utils v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-utils)
+    Checking stylex_regex v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-regex)
+    Checking postcss_value_parser v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/postcss-value-parser)
+   Compiling stylex_compiler_rs v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-rs-compiler)
+    Checking stylex_test_parser v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-test-parser)
+    Checking stylex_macros v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-macros)
+    Checking stylex_styleq v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-styleq)
+    Checking stylex_ast v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-ast)
+    Checking stylex_enums v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-enums)
+    Checking stylex_path_resolver v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-path-resolver)
+    Checking stylex_css_parser v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-css-parser)
+    Checking stylex_js v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-js)
+    Checking stylex_logs v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-logs)
+    Checking stylex_structures v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-structures)
+    Checking stylex_state_index v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-state-index)
+    Checking stylex_atoms v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-atoms)
+    Checking stylex_diagnostics v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-diagnostics)
+    Checking stylex_types v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-types)
+    Checking stylex_nested_config v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-nested-config)
+    Checking stylex_state v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-state)
+    Checking stylex_css v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-css)
+    Checking stylex_evaluator v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-evaluator)
+    Checking stylex_transform v0.19.0-rc.3 (/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-transform)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 18.41s
+real 19.86
+user 35.12
+sys 18.63

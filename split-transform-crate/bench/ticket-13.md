@@ -1,5 +1,13 @@
 # Ticket 13 — bench A/B
 
+> **Measured before the allocator change.** Every number in this record was
+> taken when a bench measured the system allocator. Commit `aa2925f06` made
+> every bench link `swc_malloc`, which is the allocator the published addon
+> runs. Numbers here do not compare with numbers taken after that commit.
+> The re-baseline is [`ticket-17.md`](./ticket-17.md); compare against that
+> one. See "The allocator a bench measures" in
+> `guidelines/PERFORMANCE.md`.
+
 The evaluator core moved from `stylex-transform` into `stylex-evaluator`, and
 nineteen crates lost a `crate-type = ["cdylib", "rlib"]` that nothing linked.
 

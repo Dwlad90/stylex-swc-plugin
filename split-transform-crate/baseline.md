@@ -1,5 +1,13 @@
 # Pre-split baseline
 
+> **Measured before the allocator change.** Every number in this record was
+> taken when a bench measured the system allocator. Commit `aa2925f06` made
+> every bench link `swc_malloc`, which is the allocator the published addon
+> runs. Numbers here do not compare with numbers taken after that commit.
+> The re-baseline is [`bench/ticket-17.md`](./bench/ticket-17.md); compare
+> against that one. See "The allocator a bench measures" in
+> `guidelines/PERFORMANCE.md`.
+
 Every number below describes commit **`e8887ab8f`** on branch
 `feat_split-transform-crate` (`docs(guidelines): state what a re-export may and
 may not do`). Ticket 01 has already landed at that commit; the crate split

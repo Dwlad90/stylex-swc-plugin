@@ -1,5 +1,13 @@
 # Ticket 16 — the crate-type change, measured
 
+> **Measured before the allocator change.** Every number in this record was
+> taken when a bench measured the system allocator. Commit `aa2925f06` made
+> every bench link `swc_malloc`, which is the allocator the published addon
+> runs. Numbers here do not compare with numbers taken after that commit.
+> The re-baseline is [`ticket-17.md`](./ticket-17.md); compare against that
+> one. See "The allocator a bench measures" in
+> `guidelines/PERFORMANCE.md`.
+
 Three questions, and the answers are not the ones ticket 13 recorded.
 
 1. Dropping the nineteen unlinked `cdylib`s has **no throughput effect this

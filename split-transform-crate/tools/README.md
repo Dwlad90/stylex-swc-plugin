@@ -56,3 +56,48 @@ git grep -l -E 'use (crate|stylex_[a-z_]+)::[^;]*(//|::\*)' -- '*.rs'
 It also merges statements in files that had nothing to do with the move, which
 inflates the diff. Revert any file whose diff contains no reference to the crate
 you are extracting.
+
+## `rebaseline.sh` and `bench_medians.py`
+
+Save one criterion baseline for every bench in the workspace, in one session,
+then reduce the log to one median per benchmark id.
+
+```sh
+./.scratch/split-transform-crate/tools/rebaseline.sh mimalloc \
+  .scratch/split-transform-crate/baseline/benches-mimalloc.log
+python3 .scratch/split-transform-crate/tools/bench_medians.py \
+  .scratch/split-transform-crate/baseline/benches-mimalloc.log \
+  > .scratch/split-transform-crate/baseline/bench-summary-mimalloc.txt
+```
+
+**Why a whole-workspace run has to be one script.** The allocator a bench
+measures is part of its number, so every bench in a baseline must be taken
+under the same one, on the same machine, in the same session. Fourteen benches
+run by hand over an afternoon is not a baseline.
+
+**It names each bench target, and that is not decoration.** A bare
+`cargo bench -p <pkg>` also runs the crate's lib test harness as a bench
+target, and that harness rejects criterion's `--save-baseline` with
+"Unrecognized option". The script asks each `Cargo.toml` which `[[bench]]`
+targets it owns, and passes `--bench` for each.
+
+**Two guards, and both have already caught something.** It refuses a worktree
+with uncommitted changes outside `.scratch`, because a baseline that cannot
+name its commit is unreproducible. It refuses a machine under four of ten
+cores idle: the run this script was written for found twenty orphaned busy
+loops from an earlier session holding the machine at 0% idle for 19 hours.
+`SKIP_IDLE_CHECK=1` overrides the second guard.
+
+**The summariser is checked against a known answer.** Run it over
+`baseline/benches.log`, the pre-split log, and every line below the first
+reproduces `baseline/bench-summary.txt` byte for byte -- all 70 ids, all 70
+medians, the target headings and the column:
+
+```sh
+diff <(tail -n +2 baseline/bench-summary.txt) \
+     <(python3 tools/bench_medians.py baseline/benches.log | tail -n +2)
+```
+
+Only the first line differs, and it has to: the pre-split log carries no header,
+so the summariser cannot know the commit or the baseline name and writes
+`unknown` for both. Run this after changing the summariser.

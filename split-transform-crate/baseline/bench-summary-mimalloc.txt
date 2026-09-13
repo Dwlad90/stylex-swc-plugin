@@ -1,0 +1,299 @@
+Criterion medians at commit a4b520b45, criterion baseline 'mimalloc'.
+
+value_parser_bench
+  Parse/corpus                                                3.4431 µs
+  Parse/short_value                                           28.250 ns
+  Parse/nested_functions                                      207.63 ns
+  Parse/font_shorthand                                        295.42 ns
+  Stringify/corpus                                            897.12 ns
+  RoundTrip/corpus                                            4.2907 µs
+  Unit/words                                                  29.935 ns
+
+css_types_bench
+  Color/parse_color_red                                       1.6043 µs
+  Color/parse_color_#ff0000                                   1.6363 µs
+  Color/parse_color_#fff                                      1.6290 µs
+  Color/parse_color_rgb(255, 0, 0)                            1.9509 µs
+  Color/parse_color_rgba(255, 0, 0, 0.5)                      2.3651 µs
+  Color/parse_color_hsl(0, 100%, 50%)                         2.6051 µs
+  Color/parse_color_hsla(0, 100%, 50%, 0.8)                   3.0020 µs
+  Color/parse_color_transparent                               1.6640 µs
+  Color/parse_color_rebeccapurple                             1.6624 µs
+  Length/parse_length_10px                                    897.75 ns
+  Length/parse_length_1.5em                                   865.07 ns
+  Length/parse_length_100%                                    1.0856 µs
+  Length/parse_length_50vh                                    880.63 ns
+  Length/parse_length_2rem                                    866.44 ns
+  Length/parse_length_0                                       875.70 ns
+  Length/parse_length_3.14159in                               932.22 ns
+  Length/parse_length_25vw                                    891.56 ns
+  Length/parse_length_12pt                                    913.90 ns
+  Angle/parse_angle_45deg                                     809.11 ns
+  Angle/parse_angle_1.57rad                                   803.70 ns
+  Angle/parse_angle_50grad                                    807.73 ns
+  Angle/parse_angle_0.25turn                                  805.35 ns
+  Angle/parse_angle_0deg                                      784.26 ns
+  Angle/parse_angle_360deg                                    811.31 ns
+  Angle/parse_angle_2π rad                                    989.77 ns
+  Calc/parse_calc_calc(100px + 20px)                          472.92 ns
+  Calc/parse_calc_calc(50% - 10px)                            434.67 ns
+  Calc/parse_calc_calc(2 * 3)                                 387.13 ns
+  Calc/parse_calc_calc(100vh / 2)                             436.39 ns
+  Calc/parse_calc_calc(100% + 20px - 10px)                    714.70 ns
+  Calc/parse_calc_calc(pi)                                    187.85 ns
+  Calc/parse_calc_calc(e * 2)                                 417.19 ns
+  BlendMode/parse_blend_mode_normal                           440.54 ns
+  BlendMode/parse_blend_mode_multiply                         450.64 ns
+  BlendMode/parse_blend_mode_screen                           441.34 ns
+  BlendMode/parse_blend_mode_overlay                          469.43 ns
+  BlendMode/parse_blend_mode_darken                           441.63 ns
+  BlendMode/parse_blend_mode_lighten                          471.13 ns
+  BlendMode/parse_blend_mode_color-dodge                      472.82 ns
+  BlendMode/parse_blend_mode_color-burn                       459.03 ns
+  BlendMode/parse_blend_mode_hard-light                       463.32 ns
+  BlendMode/parse_blend_mode_soft-light                       467.77 ns
+  BlendMode/parse_blend_mode_difference                       457.25 ns
+  BlendMode/parse_blend_mode_exclusion                        457.61 ns
+  BlendMode/parse_blend_mode_hue                              432.90 ns
+  BlendMode/parse_blend_mode_saturation                       458.03 ns
+  BlendMode/parse_blend_mode_color                            436.72 ns
+  BlendMode/parse_blend_mode_luminosity                       458.21 ns
+  Flex/parse_flex_1fr                                         533.16 ns
+  Flex/parse_flex_2.5fr                                       536.32 ns
+  Flex/parse_flex_0fr                                         515.78 ns
+  Flex/parse_flex_10fr                                        552.73 ns
+  Flex/parse_flex_0.25fr                                      551.37 ns
+  CustomIdent/parse_custom_ident_my-custom-ident              500.31 ns
+  CustomIdent/parse_custom_ident_button-style                 489.64 ns
+  CustomIdent/parse_custom_ident_nav-item                     463.34 ns
+  CustomIdent/parse_custom_ident_CamelCase                    467.80 ns
+  CustomIdent/parse_custom_ident_snake_case                   471.02 ns
+  CustomIdent/parse_custom_ident_kebab-case-identifier        503.61 ns
+  CustomIdent/parse_custom_ident_veryLongIdentifierNameThatCouldBeUsedInRealWorldScenarios  554.75 ns
+  Position/parse_position_left top                            2.7089 µs
+  Position/parse_position_center center                       2.7019 µs
+  Position/parse_position_right bottom                        2.7134 µs
+  Position/parse_position_left                                3.5193 µs
+  Position/parse_position_center                              3.7663 µs
+  Position/parse_position_right                               3.5500 µs
+  Position/parse_position_top                                 3.8032 µs
+  Position/parse_position_bottom                              3.8128 µs
+  Position/parse_position_50% 25%                             5.5863 µs
+  Position/parse_position_10px 20px                           7.2860 µs
+  ParserComparison/create_parsers                             3.3598 µs
+  ParserComparison/parse_complex_values                       4.3436 µs
+
+properties_bench
+  BorderRadius/individual_border_radius_0_10px                1.9285 µs
+  BorderRadius/shorthand_border_radius_0_10px                 2.7614 µs
+  BorderRadius/individual_border_radius_1_10px_20px           3.4724 µs
+  BorderRadius/shorthand_border_radius_1_10px_20px            4.3738 µs
+  BorderRadius/individual_border_radius_2_10px_20px_30px      3.5512 µs
+  BorderRadius/shorthand_border_radius_2_10px_20px_30px       5.9645 µs
+  BorderRadius/individual_border_radius_3_10px_20px_30px_40px  3.6095 µs
+  BorderRadius/shorthand_border_radius_3_10px_20px_30px_40px  7.5176 µs
+  BorderRadius/individual_border_radius_4_10px___20px         3.8816 µs
+  BorderRadius/shorthand_border_radius_4_10px___20px          5.4491 µs
+  BorderRadius/individual_border_radius_5_10px_15px___20px_25px  3.7682 µs
+  BorderRadius/shorthand_border_radius_5_10px_15px___20px_25px  8.8004 µs
+  BorderRadius/individual_border_radius_6_50%                 1.4377 µs
+  BorderRadius/shorthand_border_radius_6_50%                  2.2093 µs
+  BorderRadius/individual_border_radius_7_1em_2em_3em_4em___0.5em_1.5em_2.5em_3.5em  3.8173 µs
+  BorderRadius/shorthand_border_radius_7_1em_2em_3em_4em___0.5em_1.5em_2.5em_3.5em  14.811 µs
+  BoxShadow/single_box_shadow_0_9                             5.6806 µs
+  BoxShadow/box_shadow_list_0_9                               6.7098 µs
+  BoxShadow/single_box_shadow_1_13                            7.5375 µs
+  BoxShadow/box_shadow_list_1_13                              8.5768 µs
+  BoxShadow/single_box_shadow_2_17                            9.3871 µs
+  BoxShadow/box_shadow_list_2_17                              10.379 µs
+  BoxShadow/single_box_shadow_3_33                            13.972 µs
+  BoxShadow/box_shadow_list_3_33                              14.829 µs
+  BoxShadow/single_box_shadow_4_39                            8.7647 µs
+  BoxShadow/box_shadow_list_4_39                              9.5331 µs
+  BoxShadow/single_box_shadow_5_25                            14.075 µs
+  BoxShadow/box_shadow_list_5_25                              14.972 µs
+  BoxShadow/single_box_shadow_6_54                            14.582 µs
+  BoxShadow/box_shadow_list_6_54                              27.255 µs
+  BoxShadow/single_box_shadow_7_60                            9.1418 µs
+  BoxShadow/box_shadow_list_7_60                              22.270 µs
+  Transform/transform_0_translate                             11.702 µs
+  Transform/transform_1_rotate                                8.1103 µs
+  Transform/transform_2_scale                                 8.1952 µs
+  Transform/transform_3_scale                                 8.8006 µs
+  Transform/transform_4_skew                                  8.9665 µs
+  Transform/transform_5_skew                                  9.8483 µs
+  Transform/transform_6_matrix                                7.5141 µs
+  Transform/transform_7_translateX                            10.370 µs
+  Transform/transform_8_translateY                            10.436 µs
+  Transform/transform_9_translateZ                            10.508 µs
+  Transform/transform_10_translate3d                          12.699 µs
+  Transform/transform_11_rotateX                              8.2586 µs
+  Transform/transform_12_rotateY                              8.3402 µs
+  Transform/transform_13_rotateZ                              8.4786 µs
+  Transform/transform_14_rotate3d                             9.2140 µs
+  Transform/transform_15_scaleX                               8.4918 µs
+  Transform/transform_16_scaleY                               8.5640 µs
+  Transform/transform_17_scaleZ                               8.6159 µs
+  Transform/transform_18_scale3d                              9.3894 µs
+  Transform/transform_19_perspective                          8.2279 µs
+  Transform/transform_20_translate                            14.303 µs
+  Transform/transform_21_matrix3d                             7.9436 µs
+  PropertyCreation/border_radius_individual_create            13.863 ns
+  PropertyCreation/box_shadow_create                          24.840 ns
+  PropertyCreation/transform_create                           801.74 ps
+  PropertyDisplay/border_radius_display                       170.74 ns
+  PropertyDisplay/box_shadow_display                          416.88 ns
+  PropertyDisplay/transform_display                           7.3183 ns
+  ComplexProperties/complex_border_radius_shorthand           14.894 µs
+  ComplexProperties/complex_box_shadow_list                   34.221 µs
+  ComplexProperties/complex_transform_chain                   19.840 µs
+
+token_parser_bench
+  BasicParsers/always_parser                                  103.10 ns
+  BasicParsers/never_parser                                   53.498 ns
+  BasicParsers/optional_parser                                141.25 ns
+  Combinators/map_transformation                              182.78 ns
+  Combinators/flat_map_chaining                               243.68 ns
+  Combinators/where_clause_filtering                          245.48 ns
+  Combinators/or_combination                                  232.52 ns
+  Sequences/simple_sequence                                   310.83 ns
+  Sequences/long_sequence                                     1.1566 µs
+  Sequences/one_of_small                                      302.61 ns
+  Sequences/one_of_large                                      2.5863 µs
+  Repetition/zero_or_more_empty                               62.819 ns
+  Repetition/one_or_more_failure                              93.898 ns
+  TokenList/tokenize_css_0                                    125.20 ns
+  TokenList/consume_tokens_0                                  176.72 ns
+  TokenList/tokenize_css_1                                    192.96 ns
+  TokenList/consume_tokens_1                                  251.23 ns
+  TokenList/tokenize_css_2                                    279.20 ns
+  TokenList/consume_tokens_2                                  376.38 ns
+  TokenList/tokenize_css_3                                    320.98 ns
+  TokenList/consume_tokens_3                                  450.69 ns
+  TokenList/tokenize_css_4                                    237.27 ns
+  TokenList/consume_tokens_4                                  340.97 ns
+  TokenList/tokenize_css_5                                    803.70 ns
+  TokenList/consume_tokens_5                                  1.0218 µs
+  ComplexParsing/nested_transformations                       489.12 ns
+  ComplexParsing/surrounded_by_parsing                        401.27 ns
+  ComplexParsing/parser_composition                           563.67 ns
+
+css_generation_bench
+  InlineStyleToCssString/ltr_only_pairs                       154.61 ns
+  InlineStyleToCssString/rtl_flippable_pairs                  91.606 ns
+  GenerateCssRule/ltr_only                                    457.97 ns
+  GenerateCssRule/rtl_flippable                               469.80 ns
+  GenerateCssRule/hover_pseudo                                529.32 ns
+  GenerateCssRule/media_at_rule                               532.08 ns
+
+normalize_value_bench
+  NormalizeValue/untouched                                    3.2778 µs
+  NormalizeValue/rewritten                                    3.0078 µs
+  NormalizeValue/important                                    703.14 ns
+
+engine_fold_bench
+  EngineFoldColdStart/build-and-answer                        133.24 µs
+  EngineFoldRoundTrip/engine/string                           1.9228 µs
+  EngineFoldRoundTrip/fold/string                             547.85 ns
+  EngineFoldRoundTrip/engine/callback                         9.6437 µs
+  EngineFoldRoundTrip/fold/callback                           4.1561 µs
+  EngineFoldRoundTrip/engine/chain                            5.0148 µs
+  EngineFoldRoundTrip/fold/chain                              1.4414 µs
+  EngineFoldRoundTrip/engine/array-answer                     4.9274 µs
+  EngineFoldRoundTrip/fold/array-answer                       1.8866 µs
+  EngineFoldRoundTrip/fold-distinct                           4.8026 µs
+
+evaluate_bench
+  EvaluatePerfFixtures/colors.stylex.js                       19.097 µs
+  EvaluatePerfFixtures/sizes.stylex.js                        10.691 µs
+  EvaluatePerfFixtures/create-basic.js                        5.8314 µs
+  EvaluatePerfFixtures/create-complex.js                      9.4224 µs
+  EvaluatePerfFixtures/createTheme-basic.js                   16.304 µs
+  EvaluatePerfFixtures/createTheme-complex.js                 1.4864 ms
+  EvaluatePerfFixtures/dynamic-param-shadows-import           1.4004 µs
+  EvaluatePerfFixtures/dynamic-param-shadows-import-edges     3.7437 µs
+
+evaluate_depth_bench
+  EvaluateDepth/arithmetic/30                                 15.406 µs
+  EvaluateDepth/arithmetic/60                                 55.205 µs
+  EvaluateDepth/arithmetic/120                                205.45 µs
+  EvaluateDepth/arithmetic/240                                791.92 µs
+  StructuralKeyDepth/arithmetic/30                            660.71 ns
+  StructuralKeyDepth/arithmetic/60                            1.5809 µs
+  StructuralKeyDepth/arithmetic/120                           3.1284 µs
+  StructuralKeyDepth/arithmetic/240                           6.4465 µs
+  StructuralKeyFallback/object/128                            2.6403 µs
+  StructuralKeyFallback/object/129                            5.9075 µs
+
+performance_bench
+  styleq/small object                                         90.976 ns
+  styleq/small object (cache miss)                            106.72 ns
+  styleq/small object (cache disabled)                        142.08 ns
+  styleq/large object                                         471.03 ns
+  styleq/large object (cache miss)                            607.56 ns
+  styleq/large object (cache disabled)                        1.0952 µs
+  styleq/small merge                                          186.74 ns
+  styleq/small merge (cache miss)                             228.62 ns
+  styleq/small merge (cache disabled)                         200.66 ns
+  styleq/large merge                                          1.5301 µs
+  styleq/large merge (cache disabled)                         2.3023 µs
+  styleq/large merge (transform)                              5.5304 µs
+  styleq/small inline style                                   112.88 ns
+  styleq/large inline style                                   1.6456 µs
+  styleq/merged inline style                                  1.6995 µs
+  styleq/merged inline style (mix disabled)                   1.4012 µs
+
+concatenation_chain_bench
+  ConcatenationChain/links/2                                  728.61 µs
+  ConcatenationChain/links/5                                  985.38 µs
+  ConcatenationChain/links/10                                 1.3246 ms
+  ConcatenationChain/links/20                                 1.9951 ms
+
+module_path_bench
+  ModuleWalk/calls/1x                                         135.09 µs
+  ModuleWalk/no-calls/1x                                      21.107 µs
+  ModuleWalk/imported/1x                                      201.57 µs
+  ModuleWalk/calls/4x                                         548.89 µs
+  ModuleWalk/no-calls/4x                                      78.342 µs
+  ModuleWalk/imported/4x                                      782.04 µs
+  SeenModuleSource/kept/calls/1x                              170.54 µs
+  SeenModuleSource/kept/no-calls/1x                           48.587 µs
+  SeenModuleSource/kept/calls/4x                              683.56 µs
+  SeenModuleSource/kept/no-calls/4x                           188.88 µs
+  StructuralKey/call/shallow                                  57.955 ns
+  StructuralKey/call/member                                   62.194 ns
+  StructuralKey/call/nested                                   119.34 ns
+  StateManager/new                                            179.46 ns
+  FullPipeline/calls/1x                                       257.15 µs
+  FullPipeline/no-calls/1x                                    124.39 µs
+  FullPipeline/imported/1x                                    323.52 µs
+  FullPipeline/calls/4x                                       1.0305 ms
+  FullPipeline/no-calls/4x                                    484.84 µs
+  FullPipeline/imported/4x                                    1.2630 ms
+
+transform_consumers_bench
+  TransformConsumers/components/25                            1.1779 ms
+  TransformConsumers/components/100                           4.9214 ms
+  TransformConsumers/components/400                           20.305 ms
+  TransformConsumers/identicalStyles/25                       1.0646 ms
+  TransformConsumers/identicalStyles/100                      4.2065 ms
+  TransformConsumers/identicalStyles/400                      17.904 ms
+
+transform_debug_bench
+  TransformDebugPath/dev/25                                   1.5485 ms
+  TransformDebugPath/dev-no-names/25                          1.4620 ms
+  TransformDebugPath/prod/25                                  1.0327 ms
+  TransformDebugPath/dev/50                                   2.5136 ms
+  TransformDebugPath/dev-no-names/50                          2.4127 ms
+  TransformDebugPath/prod/50                                  1.7266 ms
+  TransformDebugPath/dev/100                                  5.4049 ms
+  TransformDebugPath/dev-no-names/100                         5.2188 ms
+  TransformDebugPath/prod/100                                 3.7428 ms
+  TransformDebugNamespacesPerCall/dev/8                       211.65 µs
+  TransformDebugNamespacesPerCall/prod/8                      106.82 µs
+  TransformDebugNamespacesPerCall/dev/32                      663.45 µs
+  TransformDebugNamespacesPerCall/prod/32                     474.79 µs
+  TransformDebugNamespacesPerCall/dev/128                     3.6028 ms
+  TransformDebugNamespacesPerCall/prod/128                    3.0204 ms
+
+268 measurements

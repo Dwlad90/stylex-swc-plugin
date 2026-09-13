@@ -71,22 +71,27 @@ pub fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -> Optio
   let mut elems = Vec::with_capacity(items.len());
 
   for entry in items {
-    let expr = match entry.as_vec() {
-      Some(vec) => evaluate_result_vec_to_array_expr(vec)?,
-      None => entry.as_expr().cloned()?,
-    };
-
-    if !matches!(
-      expr,
-      Expr::Array(_) | Expr::Object(_) | Expr::Lit(_) | Expr::Ident(_)
-    ) {
-      return None;
-    }
-
-    elems.push(Some(create_expr_or_spread(expr)));
+    elems.push(Some(create_expr_or_spread(array_element_expr(entry)?)));
   }
 
   Some(create_array_expression(elems))
+}
+
+/// One element of an array, as the expression an array slot may hold.
+///
+/// `None` is an element with no such form: a value with no expression at all,
+/// or an expression that is not one of the four kinds above. One reading for
+/// every depth, because a reader that applied the kinds only below the top
+/// answered the same value two ways -- it wrote a placeholder arrow into a
+/// style value at depth zero and refused the same arrow one level down.
+pub(crate) fn array_element_expr(entry: &EvaluateResultValue) -> Option<Expr> {
+  let expr = evaluate_result_as_expr(entry)?;
+
+  matches!(
+    expr,
+    Expr::Array(_) | Expr::Object(_) | Expr::Lit(_) | Expr::Ident(_)
+  )
+  .then_some(expr)
 }
 
 /// The expression form of an evaluated value, if it has one.

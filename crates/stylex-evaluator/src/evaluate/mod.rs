@@ -19,7 +19,9 @@ pub use nodes::object_expression::spread_own_properties;
 // so this is the only route to its items, and a glob would publish whatever is
 // added there next.
 use rebuild::resolve_env_entry_to_result;
-pub(crate) use rebuild::{binds_a_parameter, evaluate_result_as_expr, fold_placeholder_function};
+pub(crate) use rebuild::{
+  array_element_expr, binds_a_parameter, evaluate_result_as_expr, fold_placeholder_function,
+};
 pub use rebuild::{evaluate_result_vec_to_array_expr, function_fold_to_object};
 
 use indexmap::IndexMap;

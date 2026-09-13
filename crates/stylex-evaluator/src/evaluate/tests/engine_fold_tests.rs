@@ -12,6 +12,7 @@
 //! the evaluator to answer "not confident" without aborting, which is the
 //! property issue 02 established and this hook must not undo.
 
+use stylex_constants::constants::evaluation_errors::PATH_WITHOUT_NODE;
 use stylex_structures::evaluation_depth::MAX_EVALUATION_DEPTH_LIMIT;
 
 use swc_core::common::Spanned;
@@ -562,7 +563,11 @@ fn a_folded_object_carries_keys_no_identifier_could_spell() {
 #[test]
 fn a_shape_the_guard_never_recognised_leaves_the_existing_path_in_charge() {
   assert_folds_to_string("String(1)", "1");
-  assert_folds_to_a_value("Object.keys([, 1])");
+
+  // An array holding a hole is such a shape, and the sentence it refuses with
+  // says so: it is the one the array's own evaluation writes, not a refusal
+  // the guard raised.
+  assert_deopt_reason_contains("Object.keys([, 1])", PATH_WITHOUT_NODE);
 }
 
 // ==================== the boundaries, at their own value ====================

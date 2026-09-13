@@ -297,14 +297,25 @@ fn an_array_a_fold_produced_answers_the_same_three_ways() {
   assert_folds_to_undefined("Object.keys({ a: 1 })[7]");
 }
 
-/// A hole occupies a slot and carries no key, so an index past the hole names
-/// the element the source wrote there -- and the count is the written slots
-/// rather than the keys.
+/// A hole occupies a slot, so `length` counts the slots the source wrote rather
+/// than the elements that carry a value.
+///
+/// Read off the literal, which is the one reading a hole has: an array holding
+/// one folds to no value at all, so there is no list to count.
 #[test]
-fn a_hole_occupies_a_slot_without_carrying_a_key() {
-  assert_folds_to_string("Object.keys([, 'a'])[0]", "1");
+fn a_hole_occupies_a_slot_it_carries_no_value_for() {
   assert_folds_to_number("[, 'a'].length", 2.0);
   assert_folds_to_number("['a', , 'b'].length", 3.0);
+}
+
+/// Every other read off such an array refuses, because only `length` is
+/// answered from the source. The receiver itself is what refuses, so a read on
+/// top of it adds no sentence of its own.
+#[test]
+fn a_read_other_than_length_off_a_holey_array_refuses() {
+  assert_deopts("[, 'a'][0]");
+  assert_deopts("[, 'a'].join('-')");
+  assert_deopts("Object.keys([, 'a'])[0]");
 }
 
 // ==================== an array a fold handed back ====================

@@ -3,10 +3,9 @@
 //!
 //! The three statics fold in the engine now, like every other one, so what this
 //! file is about is the receiver they cannot be asked of there: a folded
-//! function map is not a JavaScript value at all, and an array with a hole in it
-//! is one the fold will not print. Those are the only receivers still answered
-//! below the fold, which is why the own-keys reader survived the deletion of the
-//! two static name tables.
+//! function map is not a JavaScript value at all. That is the only receiver
+//! still answered below the fold, which is why the own-keys reader survived the
+//! deletion of the two static name tables.
 //!
 //! Three places read "what own enumerable properties does this value have", and
 //! the folded namespace map used to be classified differently in each: the
@@ -116,6 +115,25 @@ stylex_test!(
   "#
 );
 
+// The key list of a fold, asked the same question again. Such a list is an
+// array in the second of its two spellings -- the literal a fold wrote -- and
+// its own keys are its indices. A reader that knew only the evaluator's own
+// list answered the empty one here.
+//
+// All three rows are byte-identical to upstream, class name included.
+stylex_test!(
+  the_key_list_of_a_fold_as_the_receiver,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      keys: { fontFamily: `x${Object.keys(Object.keys(stylex))}y` },
+      values: { fontWeight: `x${Object.values(Object.keys(stylex))}y` },
+      counted: { width: Object.keys(Object.entries(stylex)).length },
+    });
+  "#
+);
+
 // ── The receivers that are not objects ──────────────────────────────
 
 // A primitive has an object wrapper carrying no own keys, so all of these fold
@@ -142,12 +160,6 @@ stylex_test!(
 // An object and an array as the receiver, which is the case the classification
 // was already right about -- recorded so a change to the fold arm that broke
 // them fails here.
-//
-// `arrayWithAHole` is the one row here that diverges, and in this compiler's
-// favour: `Object.keys([, 'p'])` is `['1']`, because a hole has no key of its
-// own, and that is what this answers. Upstream aborts the whole module with
-// `Unexpected error:` -- it reads the hole as a node and fails on it, so the
-// divergence is a crash on its side rather than a different list.
 stylex_test!(
   a_plain_object_or_array_receiver,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
@@ -158,10 +170,28 @@ stylex_test!(
       object: { fontWeight: `x${Object.keys({ p: 1, q: 2 })}y` },
       array: { content: `x${Object.keys(['p', 'q'])}y` },
       emptyArray: { fontStyle: `x${Object.keys([])}y` },
-      arrayWithAHole: { fontVariant: `x${Object.keys([, 'p'])}y` },
       nestedObject: { fontStretch: `x${Object.keys({ p: { q: 1 } })}y` },
       numericKeys: { textEmphasis: `x${Object.keys({ 2: 'a', 1: 'b' })}y` },
       nonAsciiKeys: { textDecorationLine: `x${Object.keys({ 'é': 1 })}y` },
+    });
+  "#
+);
+
+// An array holding a hole, in any position, stops the module in both compilers
+// and under the same sentence. The receiver is the value the array folded to,
+// and an array with a hole folds to no value at all -- so the own-keys reader
+// is never reached and the array's own refusal is what the author reads.
+//
+// This used to answer `['1']` here: the reader walked the array literal a
+// second time out of the syntax, past the hole. Recorded as ticket 48 of
+// `.scratch/split-transform-crate`.
+stylex_test_panic!(
+  an_array_receiver_holding_a_hole_is_refused,
+  "Could not resolve the code being evaluated.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      arrayWithAHole: { fontVariant: `x${Object.keys([, 'p'])}y` },
     });
   "#
 );

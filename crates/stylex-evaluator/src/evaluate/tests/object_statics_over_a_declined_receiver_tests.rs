@@ -3,27 +3,35 @@
 //!
 //! The three statics fold in the engine on every ordinary receiver, so a call
 //! that reaches this compiler's own walk is one whose *receiver* the engine
-//! declined. Two of those exist: the [folded function
-//! map](../../../../../CONTEXT.md#folded-function-map), which is not a
-//! JavaScript value at all, and an array with a hole in it, which the fold will
-//! not print.
+//! declined. The [folded function
+//! map](../../../../../CONTEXT.md#folded-function-map) is the one that matters:
+//! it is not a JavaScript value at all, it carries own keys upstream, and
+//! answering the empty list for it spread nothing and compiled a style object
+//! the author never wrote.
 //!
-//! Both are objects with own keys upstream, so answering the empty list would
-//! be CSS the source does not describe -- which is what this walk exists to
-//! stop. The receivers with no `ToObject` at all still have to refuse, and with
-//! the sentence the reference implementation gives.
+//! The receivers with no `ToObject` at all still have to refuse, and with the
+//! sentence the reference implementation gives.
 //!
-//! **Where this walk reads more than the reference implementation does.** An
-//! array literal it reads from the syntax is read past anything it cannot fold
-//! -- a hole, an element that refused, an element that resolved to nothing --
-//! where the reference implementation refuses the whole declaration. Measured
-//! against it, one case at a time, and recorded as ticket 48 of
-//! `.scratch/split-transform-crate`. Each case below that pins such an answer
-//! says so.
+//! **One reading of an array.** The receiver is the value the evaluator
+//! resolved, never the array literal beside it, so an array reaches this walk
+//! having already been read the way every other reader reads it. A hole and an
+//! element that will not fold therefore refuse the declaration here exactly as
+//! they refuse it anywhere else, with the same sentence the reference
+//! implementation gives.
+//!
+//! **The one deliberate parting.** A value with no expression form -- a
+//! callback, an entry of the function fold -- is a receiver this compiler
+//! cannot write down whole, so it refuses. The reference implementation holds
+//! the real function and counts its slot. Refusing is the answer because the
+//! alternative is a list one element short, which is CSS the source does not
+//! describe; and because `keys`, `values` and `entries` are one question asked
+//! three ways and must not answer it three ways.
 
 use super::source_evaluation::*;
 use crate::evaluate_result::EvaluateResult;
-use stylex_constants::constants::evaluation_errors::OBJECT_METHOD;
+use stylex_constants::constants::evaluation_errors::{
+  OBJECT_METHOD, PATH_WITHOUT_NODE, unsupported_expression,
+};
 use stylex_constants::constants::messages::{ILLEGAL_PROP_ARRAY_VALUE, NULLISH_TO_OBJECT};
 
 /// The three spellings of the same question, so every case asks all three and a
@@ -48,28 +56,12 @@ fn folded_after_the_memo(source: &str) -> Box<EvaluateResult> {
   evaluated_after_against(UNRESOLVED_MEMO_WARM, &a_function_fold(), source)
 }
 
-/// The same as [`counted`], over that state.
+/// The same as [`assert_refuses`], over that state.
 #[track_caller]
-fn counted_after_the_memo(question: &str, receiver: &str) -> f64 {
-  number_after_the_memo(&format!("Object.{question}({receiver}).length"))
-}
+fn assert_refuses_after_the_memo(question: &str, receiver: &str, reason: &str) {
+  let source = format!("Object.{question}({receiver})");
 
-/// The number `source` folds to over that state, for a case reading into the
-/// answer rather than counting it.
-#[track_caller]
-fn number_after_the_memo(source: &str) -> f64 {
-  number_of(folded_after_the_memo(source), source)
-}
-
-/// The first key `Object.keys(<receiver>)` answers over that state.
-///
-/// A count alone would pass on a walk that kept the wrong key, because dropping
-/// one element of two leaves one either way.
-#[track_caller]
-fn first_key_after_the_memo(receiver: &str) -> String {
-  let source = format!("Object.keys({receiver})[0]");
-
-  folded_text_of(folded_after_the_memo(&source), &source)
+  assert_refused_with(&folded_after_the_memo(&source), &source, reason);
 }
 
 /// The number `result` folded to.
@@ -131,17 +123,52 @@ fn the_keys_of_a_function_fold_are_its_names() {
   }
 }
 
-/// A hole occupies a slot and carries no key of its own, so it is absent from
-/// the answer -- exactly as `Object.keys([, 1])` omits index zero.
-///
-/// The reference implementation folds no array holding a hole at all, so it
-/// refuses these three. See the module doc.
+/// An array holding a hole does not fold, in any position, so the receiver
+/// refuses and the declaration stops -- which is what the reference
+/// implementation does with the same source, under the same sentence.
 #[test]
-fn a_hole_carries_no_key() {
+fn an_array_holding_a_hole_refuses() {
   for question in QUESTIONS {
-    assert_eq!(counted(question, "[, 'a']"), 1.0);
-    assert_eq!(counted(question, "['a', , 'b']"), 2.0);
-    assert_eq!(counted(question, "[, ,]"), 0.0);
+    for receiver in ["[, 'a']", "['a', , 'b']", "[, ,]", "[[, 'a'], 'b']"] {
+      assert_refuses(question, receiver, PATH_WITHOUT_NODE);
+    }
+  }
+}
+
+/// The key list a fold answered is itself an array, and its own keys are its
+/// indices. It arrives as the literal the fold wrote rather than as the
+/// evaluator's own list, which is the second of an array's two spellings -- a
+/// reader that knew only the first answered the empty list here, while the same
+/// compiler spread the same keys correctly one function away.
+#[test]
+fn the_key_list_of_a_fold_carries_its_own_indices() {
+  for question in QUESTIONS {
+    assert_eq!(counted(question, "Object.keys(sx)"), 1.0);
+    assert_eq!(counted(question, "Object.entries(sx)"), 1.0);
+  }
+
+  let source = "Object.values(Object.keys(sx))[0]";
+
+  assert_eq!(
+    folded_text_of(evaluated_against_a_function_fold(source), source),
+    "create"
+  );
+}
+
+/// An element of such an array is read by the rule every array element is read
+/// by, at the top level as well as under it. Read only below the top, a value
+/// this compiler cannot write down was refused one level down and written into
+/// a style value at the top -- two answers for one value.
+#[test]
+fn an_element_is_read_by_the_same_rule_at_every_depth() {
+  for question in QUESTIONS {
+    for receiver in ["[own.fn]", "[[own.fn]]", "[[[own.fn]]]"] {
+      assert_refuses(
+        question,
+        &format!("sx.missing ?? {receiver}"),
+        ILLEGAL_PROP_ARRAY_VALUE,
+      );
+    }
   }
 }
 
@@ -245,16 +272,33 @@ fn a_written_null_element_keeps_its_key() {
   }
 }
 
-/// A value with no own enumerable properties answers the empty list, and an
-/// array holding an element the walk cannot write down answers it too --
-/// because a receiver it cannot read whole is a receiver with nothing to read.
+/// A value that is not an object has no own enumerable properties, so it
+/// answers the empty list. `Object.keys(1)` is `[]` in the language and in the
+/// reference implementation.
 #[test]
-fn a_receiver_the_walk_cannot_read_answers_the_empty_list() {
+fn a_value_that_is_not_an_object_answers_the_empty_list() {
   for question in QUESTIONS {
     assert_eq!(counted_past_the_fold(question, "1"), 0.0);
-    assert_eq!(counted_past_the_fold(question, "[own]"), 0.0);
-    assert_eq!(counted_past_the_fold(question, "[[own]]"), 0.0);
-    assert_eq!(counted_past_the_fold(question, "[[[own]]]"), 0.0);
+  }
+}
+
+/// An array holding an element the walk cannot write down refuses the whole
+/// receiver, at every depth. Answering the empty list dropped the array, and
+/// answering a list without that element dropped one value out of it -- both
+/// are CSS the source does not describe.
+///
+/// This is the deliberate parting the module doc names: the reference
+/// implementation holds the real function and counts its slot.
+#[test]
+fn an_element_with_no_expression_form_refuses_the_receiver() {
+  for question in QUESTIONS {
+    for receiver in ["[own]", "[[own]]", "[[[own]]]", "[() => 1]", "[[() => 1]]"] {
+      assert_refuses(
+        question,
+        &format!("sx.missing ?? {receiver}"),
+        ILLEGAL_PROP_ARRAY_VALUE,
+      );
+    }
   }
 }
 
@@ -277,11 +321,21 @@ fn a_property_that_is_not_a_value_refuses_the_receiver() {
   }
 }
 
-// ==================== an array literal the fold will not print ====================
+// ==================== an array written where it is read ====================
 
-/// An array written where it is read is taken from the syntax, because a hole
-/// has no value to evaluate. An element with no compile-time form makes the
-/// whole array unreadable, and the refusal says what a style array may hold.
+/// An array literal is evaluated like every other argument, so what the
+/// receiver reader is handed is the value it folded to. A nested array of
+/// readable elements is written down as a nested array, which is the one key
+/// the outer array carries.
+#[test]
+fn a_nested_array_literal_is_one_readable_key() {
+  for question in QUESTIONS {
+    assert_eq!(counted(question, "[['a']]"), 1.0);
+  }
+}
+
+/// An array literal holding an element with no compile-time form refuses, and
+/// the refusal says what a style array may hold.
 #[test]
 fn an_array_literal_with_an_unreadable_element_refuses() {
   for question in QUESTIONS {
@@ -290,19 +344,24 @@ fn an_array_literal_with_an_unreadable_element_refuses() {
   }
 }
 
-/// A nested array of readable elements is written down as a nested array, which
-/// is the one key the outer array carries.
+/// An element the dispatch folds in no position refuses the declaration where
+/// it is written, before the receiver is read at all. A regular expression is
+/// such an element, and the reference implementation refuses the same source
+/// under the same sentence.
 #[test]
-fn a_nested_array_literal_is_one_readable_key() {
+fn an_element_that_refuses_to_fold_refuses_the_declaration() {
+  let regexp = unsupported_expression("RegExpLiteral");
+
   for question in QUESTIONS {
-    assert_eq!(counted(question, "[['a']]"), 1.0);
+    assert_refuses(question, "[/re/]", &regexp);
+    assert_refuses(question, "[/re/, 'a']", &regexp);
   }
 }
 
-/// A callback has no object form of its own, so the receiver reads as one with
-/// no own keys -- the same answer a number gets, and for the same reason. An
-/// arrow is the one such value an author can write down, and the empty list is
-/// what the reference implementation answers for one.
+/// A callback has no object form of its own, so a receiver that *is* one reads
+/// as a value with no own keys -- the same answer a number gets, and the one
+/// the reference implementation gives. An array *holding* one is the separate
+/// question above, because there the slot has to be written down.
 #[test]
 fn a_callback_receiver_answers_the_empty_list() {
   for question in QUESTIONS {
@@ -336,117 +395,45 @@ fn a_three_level_array_is_one_key_holding_its_own_levels() {
 // answers that way, and only a declined call reaches this walk -- so every case
 // below needs both doors open at once.
 
-/// An element that refused to fold carries no key. A regular expression is such
-/// an element: the dispatch folds none in any position, and the array around it
-/// is read from the syntax because the fold will not print it.
+/// A value that resolved to nothing has no expression form, so the array around
+/// it cannot be written down and the receiver refuses -- at every depth.
 ///
-/// The reference implementation refuses the declaration for the regular
-/// expression instead. See the module doc.
+/// Answering a shorter list is the one thing this walk must not do: an element
+/// dropped out of the array around it writes CSS the source does not describe,
+/// and the two depths used to answer differently for the same value. This is
+/// the reading `evaluate_result_vec_to_array_expr` already gives every other
+/// caller.
 #[test]
-fn an_element_that_refused_to_fold_carries_no_key() {
+fn a_value_that_resolved_to_nothing_refuses_the_receiver() {
   for question in QUESTIONS {
-    assert_eq!(counted(question, "[/re/]"), 0.0);
-    assert_eq!(counted(question, "[/re/, 'a']"), 1.0);
+    for receiver in [
+      "[(() => 1) + 1]",
+      "[(() => 1) + 1, 'a']",
+      "[[(() => 1) + 1], 'a']",
+      "[[[(() => 1) + 1]], 'a']",
+      "[[(() => 1) + 1][0], 'a']",
+    ] {
+      assert_refuses_after_the_memo(
+        question,
+        &format!("sx.missing ?? {receiver}"),
+        ILLEGAL_PROP_ARRAY_VALUE,
+      );
+    }
   }
 }
 
-/// A nested array beside a hole keeps a key of its own: the array around it is
-/// read from the syntax, and the nested one from the value it folded to.
+/// A hole beside such a value is what the array refuses for: the array literal
+/// holds a hole, so it folds to nothing at all and never reaches the receiver
+/// reader.
 #[test]
-fn a_nested_array_beside_a_hole_keeps_its_key() {
+fn a_hole_beside_a_value_that_resolved_to_nothing_refuses_for_the_hole() {
   for question in QUESTIONS {
-    assert_eq!(counted(question, "[, ['a']]"), 1.0);
+    for receiver in [
+      "[, (() => 1) + 1]",
+      "[, (() => 1) + 1, 'a']",
+      "[, [(() => 1) + 1][0], 'a']",
+    ] {
+      assert_refuses_after_the_memo(question, receiver, PATH_WITHOUT_NODE);
+    }
   }
-}
-
-/// An element the walk resolved to nothing carries no key, exactly as a hole
-/// does -- both are a slot with no value to name.
-#[test]
-fn an_element_that_resolved_to_nothing_carries_no_key() {
-  for question in QUESTIONS {
-    assert_eq!(counted_after_the_memo(question, "[, (() => 1) + 1]"), 0.0);
-    assert_eq!(
-      counted_after_the_memo(question, "[, (() => 1) + 1, 'a']"),
-      1.0
-    );
-  }
-
-  assert_eq!(first_key_after_the_memo("[, (() => 1) + 1, 'a']"), "2");
-}
-
-/// An index read answers the absent value itself, rather than answering no
-/// value: it hands back the slot it found, and the array it read holds the
-/// absent value where an element folded to nothing. So the element is read as
-/// absent one step later than the case above reads it, and carries no key
-/// either.
-#[test]
-fn an_element_read_out_of_an_array_as_nothing_carries_no_key() {
-  for question in QUESTIONS {
-    assert_eq!(
-      counted_after_the_memo(question, "[, [(() => 1) + 1][0]]"),
-      0.0
-    );
-    assert_eq!(
-      counted_after_the_memo(question, "[, [(() => 1) + 1][0], 'a']"),
-      1.0
-    );
-  }
-
-  assert_eq!(first_key_after_the_memo("[, [(() => 1) + 1][0], 'a']"), "2");
-}
-
-/// The same, read out of the evaluated value rather than out of the syntax.
-#[test]
-fn an_evaluated_element_that_resolved_to_nothing_carries_no_key() {
-  for question in QUESTIONS {
-    assert_eq!(
-      counted_after_the_memo(question, "sx.missing ?? [(() => 1) + 1]"),
-      0.0
-    );
-    assert_eq!(
-      counted_after_the_memo(question, "sx.missing ?? [(() => 1) + 1, 'a']"),
-      1.0
-    );
-  }
-
-  assert_eq!(
-    first_key_after_the_memo("sx.missing ?? [(() => 1) + 1, 'a']"),
-    "1"
-  );
-}
-
-/// A nested array holding one carries no key either, because the array written
-/// for it would be shorter than the source describes.
-#[test]
-fn a_nested_array_holding_nothing_resolved_carries_no_key() {
-  for question in QUESTIONS {
-    assert_eq!(
-      counted_after_the_memo(question, "sx.missing ?? [[(() => 1) + 1], 'a']"),
-      1.0
-    );
-  }
-
-  assert_eq!(
-    first_key_after_the_memo("sx.missing ?? [[(() => 1) + 1], 'a']"),
-    "1"
-  );
-}
-
-/// One level deeper the element does keep its key, and the value that resolved
-/// to nothing is dropped out of the array under it -- so the array written is
-/// shorter than the source describes. Recorded rather than defended: the two
-/// levels answer differently for the same value. See the module doc.
-#[test]
-fn a_value_that_resolved_to_nothing_deeper_down_is_dropped_from_its_array() {
-  for question in QUESTIONS {
-    assert_eq!(
-      counted_after_the_memo(question, "sx.missing ?? [[[(() => 1) + 1]], 'a']"),
-      2.0
-    );
-  }
-
-  assert_eq!(
-    number_after_the_memo("Object.values(sx.missing ?? [[[(() => 1) + 1]], 'a'])[0][0].length"),
-    0.0
-  );
 }

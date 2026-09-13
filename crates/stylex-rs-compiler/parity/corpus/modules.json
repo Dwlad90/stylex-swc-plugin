@@ -1715,8 +1715,8 @@
       "label": "`Object.keys` of an array carrying a hole",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  hole: { fontFamily: `x${Object.keys([, 'p'])}y` },\n});\n",
       "origin": "issue #1266, ticket 40, found while measuring every receiver",
-      "expected": "acceptance-divergent",
-      "note": "Divergent in this compiler's favour. `Object.keys([, 'p'])` is `['1']` -- a hole has no key of its own -- and that is what this answers. Upstream aborts the module with `Unexpected error:`, reading the hole as a node and failing on it."
+      "expected": "both-reject",
+      "note": "Both refuse, under the same sentence: an array holding a hole folds to no value in either compiler, so the own-keys reader is never asked. This compiler used to answer `['1']`, reading the array literal a second time out of the syntax past the hole. Closed by ticket 48."
     },
     {
       "id": "modules-1266-object-values-of-a-single-config",

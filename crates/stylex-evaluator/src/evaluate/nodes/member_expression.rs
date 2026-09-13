@@ -357,9 +357,11 @@ pub(in super::super) fn evaluate(
   };
   match evaluated_value {
     Some(object) => {
-      if !state.confident {
-        return None;
-      }
+      // No confidence check here: a fold answers a value or it answers nothing,
+      // so a receiver that refused arrives as `None` and is read by the arm
+      // below. The one reader that answered a value while not confident was the
+      // own-keys call, which answered the empty list for an argument it had just
+      // refused; it now refuses where the argument is read.
 
       let prop_path = &member.prop;
 

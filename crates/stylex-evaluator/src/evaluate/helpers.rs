@@ -29,46 +29,67 @@ pub(super) fn undefined_expr() -> Expr {
   create_ident_expr("undefined")
 }
 
-/// Normalizes different argument types into an ObjectLit for JavaScript object
-/// methods.
-pub(super) fn normalize_js_object_method_args(
-  cached_arg: Option<EvaluateResultValue>,
-) -> Option<ObjectLit> {
-  cached_arg.and_then(|arg| match arg {
-    EvaluateResultValue::Expr(expr) => expr.as_object().cloned(),
+/// What an evaluated value reads as, for the shapes that carry own keys of
+/// their own: an object, and an array in either of its two spellings.
+///
+/// Anything else contributes no own keys, which is what the language answers
+/// for a primitive.
+///
+/// The object is taken out of the value it arrived in rather than copied out of
+/// it, because the caller owns the value and has no other use for it.
+fn evaluated_object_or_array(value: EvaluateResultValue) -> ObjectMethodReceiver {
+  match value {
+    EvaluateResultValue::Expr(Expr::Object(object)) => ObjectMethodReceiver::Object(object),
+    // An array has two spellings -- the evaluator's own list, and the literal a
+    // fold answers -- and a reader that knew only the first answered `[]` for
+    // `Object.keys(Object.keys(sx))`, where the same compiler spreads those
+    // keys correctly one function away.
+    EvaluateResultValue::Expr(Expr::Array(array)) => written_array_receiver(&array),
+    EvaluateResultValue::Vec(items) => evaluated_array_receiver(&items),
+    _ => ObjectMethodReceiver::NoOwnKeys,
+  }
+}
 
-    EvaluateResultValue::Vec(arr) => {
-      let mut props = Vec::with_capacity(arr.len());
+/// The evaluator's own list, read as the object its indices name.
+///
+/// An element with no array-element form leaves the receiver unreadable, at
+/// every depth: the two alternatives are a list without that element and an
+/// array written shorter than the source describes, and both are CSS the source
+/// does not describe. The element is read through [`array_element_expr`], which
+/// is the one rule `evaluate_result_vec_to_array_expr` gives every other
+/// caller, so the two depths cannot come to answer the same value differently.
+fn evaluated_array_receiver(items: &[EvaluateResultValue]) -> ObjectMethodReceiver {
+  let mut props = Vec::with_capacity(items.len());
 
-      for (index, elem) in arr.iter().enumerate() {
-        let expr = match elem {
-          EvaluateResultValue::Expr(expr) => expr.clone(),
-          // A hole, and a nested array holding one, are skipped rather than
-          // refused: an absent element has no key of its own in the object
-          // form, exactly as `Object.keys([, 1])` omits index zero.
-          EvaluateResultValue::Null => continue,
-          EvaluateResultValue::Vec(vec)
-            if vec
-              .iter()
-              .any(|item| matches!(item, EvaluateResultValue::Null)) =>
-          {
-            continue;
-          },
-          EvaluateResultValue::Vec(vec) => normalize_js_object_method_nested_vector_arg(vec)?,
-          // An element with no expression form leaves the whole receiver
-          // unreadable, which is the same answer the arms below give for a
-          // value that is not an object at all.
-          _ => return None,
-        };
+  for (index, item) in items.iter().enumerate() {
+    let Some(expr) = array_element_expr(item) else {
+      return ObjectMethodReceiver::Unreadable;
+    };
 
-        props.push(create_ident_key_value_prop(&index.to_string(), expr));
-      }
+    props.push(create_ident_key_value_prop(&index.to_string(), expr));
+  }
 
-      Some(create_object_lit(props))
-    },
+  ObjectMethodReceiver::Object(create_object_lit(props))
+}
 
-    _ => None,
-  })
+/// The array literal a fold answers, read as the object its indices name.
+///
+/// Every slot of an [evaluator-written
+/// array](../../CONTEXT.md#evaluator-written-array) holds one present element
+/// and no spread, and each element already passed the kind check on the way in,
+/// so this names what is there rather than re-deciding it.
+fn written_array_receiver(array: &ArrayLit) -> ObjectMethodReceiver {
+  let props = array
+    .elems
+    .iter()
+    .flatten()
+    .enumerate()
+    .map(|(index, element)| {
+      create_ident_key_value_prop(&index.to_string(), (*element.expr).clone())
+    })
+    .collect();
+
+  ObjectMethodReceiver::Object(create_object_lit(props))
 }
 
 /// The key-value properties of an object the evaluator wrote.
@@ -175,8 +196,8 @@ impl ObjectMethodReceiver {
 ///
 /// Not a table of methods the compiler chose to support: the `Object` statics
 /// fold in the engine, and these three are here only because the *receiver* can
-/// be something the engine never sees — this compiler's own function fold, or an
-/// array the fold will not print. What the three share is the walk over that
+/// be something the engine never sees — this compiler's own function fold, or a
+/// value read past it. What the three share is the walk over that
 /// receiver's properties, so they are one enum over one walk rather than three
 /// arms that have to be kept agreeing.
 #[derive(Clone, Copy)]
@@ -217,18 +238,17 @@ impl OwnKeysQuestion {
   }
 }
 
-/// Reads the receiver of `Object.keys`, `Object.values` or `Object.entries`,
-/// from the evaluated argument where there is one and from the array literal
-/// otherwise.
+/// Reads the receiver of `Object.keys`, `Object.values` or `Object.entries`
+/// out of the evaluated argument.
 ///
-/// One function rather than the same `or_else` chain at all three call sites:
-/// they have to agree on what an unreadable element means, and three copies
-/// edited separately is the shape of the bug this split exists to remove.
+/// The evaluated value is the only reading. An array written where it is read
+/// used to be walked a second time out of the syntax, so that a hole had a slot
+/// to be absent from -- and that walk read past a hole, past an element that
+/// refused and past one that resolved to nothing, where every other reader in
+/// the compiler refuses the declaration. One reading answers all three the same
+/// way, which is also the way the reference implementation answers them.
 pub(super) fn normalize_object_method_receiver(
-  cached_arg: Option<EvaluateResultValue>,
-  arg: &Expr,
-  traversal_state: &mut StateManager,
-  functions: Rc<FunctionMap>,
+  cached_arg: EvaluateResultValue,
 ) -> ObjectMethodReceiver {
   // `null` and `undefined` have no `ToObject`, so `Object.keys` of either
   // throws rather than answering the empty list. Named ahead of every arm
@@ -236,7 +256,7 @@ pub(super) fn normalize_object_method_receiver(
   // `null` a literal, neither is an object, and the receiver would have read
   // as "no own keys" and folded to `[]`. That is CSS the source does not
   // describe, written where the reference implementation stops the build.
-  if cached_arg.as_ref().is_some_and(evaluate_result_is_nullish) {
+  if evaluate_result_is_nullish(&cached_arg) {
     return ObjectMethodReceiver::Nullish;
   }
 
@@ -245,24 +265,17 @@ pub(super) fn normalize_object_method_receiver(
   // to "not an object", and `Object.keys(stylex)` answered `[]` -- the one
   // answer that is neither a refusal nor the truth, since the same compiler
   // spreads those keys correctly one function away.
-  if let Some(object) = cached_arg.as_ref().and_then(function_fold_to_object) {
+  if let Some(object) = function_fold_to_object(&cached_arg) {
     return ObjectMethodReceiver::Object(object);
   }
 
   // A string carries its own keys -- its indices -- and is read ahead of the
   // object arm below, which has no answer for one.
-  if let Some(receiver) = string_receiver(cached_arg.as_ref()) {
+  if let Some(receiver) = string_receiver(&cached_arg) {
     return receiver;
   }
 
-  if let Some(object) = normalize_js_object_method_args(cached_arg) {
-    return ObjectMethodReceiver::Object(object);
-  }
-
-  match arg.as_array() {
-    Some(array) => normalize_js_object_method_array_arg(array, traversal_state, functions),
-    None => ObjectMethodReceiver::NoOwnKeys,
-  }
+  evaluated_object_or_array(cached_arg)
 }
 
 /// The own keys of a string receiver -- its indices -- and the character each
@@ -282,8 +295,8 @@ pub(super) fn normalize_object_method_receiver(
 /// one key where the language answers two, and every index after it came out
 /// shifted. Read as code units, the receiver is refused whole. That is the
 /// reading a spread of the same string already takes.
-fn string_receiver(value: Option<&EvaluateResultValue>) -> Option<ObjectMethodReceiver> {
-  let EvaluateResultValue::Expr(Expr::Lit(Lit::Str(strng))) = value? else {
+fn string_receiver(value: &EvaluateResultValue) -> Option<ObjectMethodReceiver> {
+  let EvaluateResultValue::Expr(Expr::Lit(Lit::Str(strng))) = value else {
     return None;
   };
 
@@ -307,88 +320,6 @@ fn string_receiver(value: Option<&EvaluateResultValue>) -> Option<ObjectMethodRe
   }
 
   Some(ObjectMethodReceiver::Object(create_object_lit(props)))
-}
-
-fn normalize_js_object_method_array_arg(
-  arr: &ArrayLit,
-  traversal_state: &mut StateManager,
-  functions: Rc<FunctionMap>,
-) -> ObjectMethodReceiver {
-  let mut props = Vec::with_capacity(arr.elems.len());
-
-  for (index, elem) in arr.elems.iter().enumerate() {
-    // A hole, an element that refused to fold, and one that folded to nothing
-    // are all absent rather than unreadable: an absent element has no key of
-    // its own, exactly as `Object.keys([, 1])` omits index zero. Only the last
-    // arm below is a value the evaluator holds and cannot write down.
-    let Some(elem) = elem else {
-      continue;
-    };
-
-    let result = evaluate_with_functions(&elem.expr, traversal_state, Rc::clone(&functions));
-
-    if !result.confident {
-      continue;
-    }
-
-    let Some(value) = result.value else {
-      continue;
-    };
-
-    let expr = match value {
-      EvaluateResultValue::Expr(expr) => expr,
-      EvaluateResultValue::Vec(items) => match evaluate_result_vec_to_array_expr(&items) {
-        Some(expr) => expr,
-        None => return ObjectMethodReceiver::Unreadable,
-      },
-      // An evaluation does answer the absent value, and an index read is how:
-      // it clones the slot it found out of the array it read, and an array
-      // holds the absent value where an element folded to nothing. Absent
-      // rather than unreadable, as the guards above are.
-      EvaluateResultValue::Null => continue,
-      _ => return ObjectMethodReceiver::Unreadable,
-    };
-
-    props.push(create_ident_key_value_prop(&index.to_string(), expr));
-  }
-
-  ObjectMethodReceiver::Object(create_object_lit(props))
-}
-
-/// Converts a nested vector of `EvaluateResultValue`s to an array expression.
-///
-/// `None` means some element has no expression form, which is a receiver the
-/// caller cannot read rather than a broken invariant — see
-/// [`normalize_js_object_method_args`].
-fn normalize_js_object_method_nested_vector_arg(vec: &[EvaluateResultValue]) -> Option<Expr> {
-  let mut elems = Vec::with_capacity(vec.len());
-
-  // An entry that is absent has no reading here, because the one caller passes
-  // over a nested array holding one before it calls -- see the array arm of
-  // [`normalize_js_object_method_args`]. A level below that is decided in the
-  // inner walk.
-  for entry in vec {
-    let expr = match entry.as_vec() {
-      Some(nested_vec) => {
-        let mut nested_elems = Vec::with_capacity(nested_vec.len());
-
-        for item in nested_vec {
-          if matches!(item, EvaluateResultValue::Null) {
-            continue;
-          }
-
-          nested_elems.push(Some(create_expr_or_spread(item.as_expr()?.clone())));
-        }
-
-        create_array_expression(nested_elems)
-      },
-      None => entry.as_expr()?.clone(),
-    };
-
-    elems.push(Some(create_expr_or_spread(expr)));
-  }
-
-  Some(create_array_expression(elems))
 }
 
 /// Evaluates a call's arguments, refusing a spread among them.

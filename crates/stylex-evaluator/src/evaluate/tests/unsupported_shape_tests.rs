@@ -598,10 +598,9 @@ fn a_receiver_holding_a_function_answers_its_keys_and_refuses_its_values() {
   assert_deopts("Object.entries([1, x => x])");
 }
 
-/// The receivers around it still fold, including the two that are absent for
-/// opposite reasons: a hole has no own key, and a non-object has none either —
-/// `Object.keys(5)` is `[]` in JavaScript and must not be mistaken for the
-/// refusal above.
+/// The receivers around it still fold, including the one that is absent for the
+/// opposite reason: a non-object has no own key, so `Object.keys(5)` is `[]` in
+/// JavaScript and must not be mistaken for the refusal above.
 ///
 /// Each row says what it folded to. A key list of the right length and the
 /// wrong keys is the answer this reading gets wrong, and "it folded" cannot
@@ -610,9 +609,6 @@ fn a_receiver_holding_a_function_answers_its_keys_and_refuses_its_values() {
 fn a_readable_object_method_receiver_still_folds() {
   for (source, expected) in [
     ("Object.keys([1, 2])", &["0", "1"][..]),
-    // A hole occupies a slot the language counts and owns no key, so index
-    // zero is missing from the list rather than answering `undefined`.
-    ("Object.keys([, 1])", &["1"][..]),
     ("Object.keys([[1, 2]])", &["0"][..]),
     // A number has no own key, which is the empty list rather than a refusal.
     ("Object.keys(5)", &[][..]),

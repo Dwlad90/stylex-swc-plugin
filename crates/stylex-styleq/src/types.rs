@@ -14,10 +14,13 @@ pub trait StyleqValue: Clone + Debug + Hash + 'static {
   ///
   /// An inline style skips such a property completely: it writes nothing,
   /// defines nothing, and leaves the property for a later style to declare.
-  /// A value type with no such state answers `false`, which is the default.
-  fn is_undefined(&self) -> bool {
-    false
-  }
+  ///
+  /// Required rather than defaulted to `false`. A default is the right answer
+  /// for a value type that has no such state and the wrong one for a type that
+  /// has it and forgot to say so, and the two read the same from here: the
+  /// property would be written, and held against every style after it. Asking
+  /// every type makes the answer a decision rather than an omission.
+  fn is_undefined(&self) -> bool;
 }
 
 impl<V: StyleqValue> StyleqValue for Rc<V> {

@@ -209,6 +209,19 @@ fn styleq_reads_null_out_of_the_null_alone() {
   assert_eq!(count_answering(StyleqValue::is_null), 1);
 }
 
+/// No variant stands for a property that was not given.
+///
+/// The question exists because an inline style skips such a property whole: it
+/// writes nothing, defines nothing, and leaves the property for a later style.
+/// A compiled style has nothing to answer it with -- a property the author left
+/// out is absent from the map rather than present holding nothing -- so every
+/// variant answers no, and a variant added later that does stand for one has to
+/// come back here.
+#[test]
+fn no_compiled_value_stands_for_a_property_that_was_not_given() {
+  assert_eq!(count_answering(StyleqValue::is_undefined), 0);
+}
+
 /// `false` is not the compiled marker. The marker is written as `true` and only
 /// `true`, so a namespace carrying `$$css: false` is not treated as compiled.
 #[test]

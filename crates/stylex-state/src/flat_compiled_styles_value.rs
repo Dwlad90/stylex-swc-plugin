@@ -84,4 +84,11 @@ impl StyleqValue for FlatCompiledStylesValue {
   fn is_true_bool(&self) -> bool {
     matches!(self, FlatCompiledStylesValue::Bool(true))
   }
+
+  /// No variant stands for a property that was not given. A compiled style
+  /// carries what the author wrote, and a property they left out is absent from
+  /// the map rather than present with nothing in it.
+  fn is_undefined(&self) -> bool {
+    false
+  }
 }

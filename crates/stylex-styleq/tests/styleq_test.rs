@@ -845,6 +845,33 @@ fn keeps_distinct_class_name_chunks_when_chunk_deduping_is_enabled() {
   assert_eq!(result.class_name, "display-block color-red");
 }
 
+/// The chunk deduping the option is named for: a second chunk whose text the
+/// class name already carries is dropped rather than repeated.
+///
+/// Two *different* properties holding one class name, because that is the only
+/// way a repeated chunk reaches the merge. The same style merged twice defines
+/// nothing the second time, so it contributes an empty chunk and never asks
+/// whether the name is already there.
+#[test]
+fn drops_a_repeated_chunk_reached_through_a_second_property() {
+  let styleq_dedupe_chunks = create_styleq(StyleqOptions {
+    dedupe_class_name_chunks: true,
+    ..Default::default()
+  });
+  let a = compiled(&[("display", string("shared"))]);
+  let b = compiled(&[("color", string("shared"))]);
+
+  let result = styleq_dedupe_chunks.styleq(&[a.clone(), b.clone()]);
+
+  assert_eq!(result.class_name, "shared");
+
+  // The same pair with the option off, so the case says what the option buys
+  // rather than only what the merge answers.
+  let result = create_styleq(StyleqOptions::default()).styleq(&[a, b]);
+
+  assert_eq!(result.class_name, "shared shared");
+}
+
 #[test]
 fn styleq_input_trait_methods_cover_all_variants() {
   let style = inline(&[("color", string("red"))]);
@@ -884,6 +911,14 @@ fn style_value_trait_methods_cover_all_value_kinds() {
   assert!(!class_name.is_true_bool());
   assert!(!class_name_rc.is_true_bool());
   assert!(!class_name_arc.is_true_bool());
+  // The wrappers answer what they wrap, for this question too. A wrapper that
+  // answered `false` of its own would write a property the style left out.
+  assert!(!class_name.is_undefined());
+  assert!(!class_name_rc.is_undefined());
+  assert!(!class_name_arc.is_undefined());
+  assert!(StyleValue::Undefined.is_undefined());
+  assert!(Rc::new(StyleValue::Undefined).is_undefined());
+  assert!(Arc::new(StyleValue::Undefined).is_undefined());
 
   assert_eq!(StyleValue::Number(1).as_class_name(), None);
   assert!(StyleValue::Null.is_null());

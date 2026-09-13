@@ -24,8 +24,14 @@ use crate::{StyleMap, StyleqArgument, StyleqInput, StyleqOptions, StyleqResult, 
 // nothing on its own, and a style cached on its own was read back behind
 // another and defined its properties twice.
 //
-// Keys are either the source array reference or a structural hash. Order is
-// never observed downstream, so an unordered FxHashMap is appropriate. The
+// Keys are either the source array reference or a structural hash. A reference
+// key is the address of the style array, which names that array only while the
+// array is alive: nothing here evicts, so a `Styleq` that outlives the styles
+// it cached could read a freed address back as a hit for whatever was put
+// there next. The compiler builds one `Styleq` per call site and drops it
+// before those styles go, and a caller that keeps one longer owes itself a
+// different key. Order is never observed downstream, so an unordered
+// FxHashMap is appropriate. The
 // entry itself is wrapped in `Arc` so cache hits are a refcount bump rather
 // than a deep clone of three owned strings + a `Vec<Arc<str>>`.
 //
@@ -41,10 +47,14 @@ struct CacheEntry {
   /// The styles cached after this one, which is the node the walk descends
   /// into.
   ///
-  /// Built on the first descent rather than with the entry. The compiler
-  /// builds a `Styleq` per call site and throws it away, so every style it
-  /// merges is a miss and no child is ever read; allocating one per entry paid
-  /// for a map nothing looked in.
+  /// The map is built on the first descent, by the same initialiser whether
+  /// the walk reached the entry as a hit or as a miss. One rule rather than
+  /// two: filling it eagerly on the miss path made the hit path's initialiser
+  /// dead and forced an arm for a `set` that cannot fail.
+  ///
+  /// Every walk that stores an entry then descends through it, so this costs
+  /// the same map the eager form did. What it removes is the second way of
+  /// getting one.
   next: OnceLock<Arc<CacheNode>>,
 }
 
@@ -263,26 +273,21 @@ impl<V: StyleqValue> Styleq<V> {
       }
 
       if let Some(node) = next_cache.take() {
-        let child = Arc::<CacheNode>::default();
-        let entry = CacheEntry {
-          class_name: Arc::from(class_name_chunk.as_str()),
-          defined_properties: Arc::from(defined_properties_chunk.into_boxed_slice()),
-          debug_string: Arc::from(debug_string.as_str()),
-          next: OnceLock::new(),
-        };
+        let entry = self.insert_cache_entry(
+          &node,
+          cache_key,
+          CacheEntry {
+            class_name: Arc::from(class_name_chunk.as_str()),
+            defined_properties: Arc::from(defined_properties_chunk.into_boxed_slice()),
+            debug_string: Arc::from(debug_string.as_str()),
+            next: OnceLock::new(),
+          },
+        );
 
-        // The style after this one is looked up behind it, so this entry's
-        // child is needed now and the `OnceLock` is filled rather than left to
-        // a later descent.
-        match entry.next.set(Arc::clone(&child)) {
-          Ok(()) => {},
-          // A fresh `OnceLock` cannot already hold a value.
-          Err(_) => unreachable!("a new cache entry cannot already hold a child"),
-        }
-
-        self.insert_cache_entry(&node, cache_key, entry);
-
-        *next_cache = Some(child);
+        // Descend through the same initialiser the hit path uses, so an entry
+        // has one rule for how its child map comes to exist however the walk
+        // arrived at it.
+        *next_cache = Some(Arc::clone(entry.next.get_or_init(Arc::default)));
       }
     }
 
@@ -393,10 +398,22 @@ impl<V: StyleqValue> Styleq<V> {
     self.cache_read(node).get(cache_key).map(Arc::clone)
   }
 
-  fn insert_cache_entry(&self, node: &CacheNode, cache_key: CacheKey, cache_entry: CacheEntry) {
+  /// Stores the entry and hands back the shared handle the walk descends
+  /// through, so the caller reads the child of the entry it just stored rather
+  /// than of a rival one a concurrent miss may have put in its place.
+  fn insert_cache_entry(
+    &self,
+    node: &CacheNode,
+    cache_key: CacheKey,
+    cache_entry: CacheEntry,
+  ) -> Arc<CacheEntry> {
+    let cache_entry = Arc::new(cache_entry);
+
     self
       .cache_write(node)
-      .insert(cache_key, Arc::new(cache_entry));
+      .insert(cache_key, Arc::clone(&cache_entry));
+
+    cache_entry
   }
 }
 
@@ -428,6 +445,33 @@ mod tests {
   #[test]
   fn cache_types_are_send_and_sync() {
     super::_assert_cache_send_sync();
+  }
+
+  /// One merge, run from inside the crate.
+  ///
+  /// Every case about a merge lives in `tests/styleq_test.rs`, and this does
+  /// not duplicate one -- it is here so the walk is *instantiated* in this
+  /// binary. The cases beside it build a `Styleq` and never call it, so the
+  /// generic methods were emitted here as an uninstantiated shell whose
+  /// counters are all zero, and the coverage gate read that shell as a region
+  /// no test runs.
+  #[test]
+  fn a_merge_runs_from_the_crate_s_own_binary() {
+    let styleq = create_styleq::<crate::StyleValue>(StyleqOptions::default());
+    let mut style = StyleMap::new();
+    style.insert(COMPILED_KEY.to_string(), crate::StyleValue::Bool(true));
+    style.insert("color".to_string(), crate::StyleValue::string("color-red"));
+
+    let mut dynamic = StyleMap::new();
+    dynamic.insert("width".to_string(), crate::StyleValue::string("10px"));
+
+    let result = styleq.styleq(&[
+      StyleqInput::Style(style),
+      StyleqInput::Style(dynamic.clone()),
+    ]);
+
+    assert_eq!(result.class_name, "color-red");
+    assert_eq!(result.inline_style, Some(dynamic));
   }
 
   #[test]

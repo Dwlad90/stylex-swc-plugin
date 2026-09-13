@@ -96,10 +96,36 @@ caught. Set it once around the whole benchmark function, as the benches under
 
 Assert what the bench is measuring, in the bench. A refusal, a deopt, a
 swallowed panic and a cache hit are all fast, and a curve that flattens because
-the work stopped happening is indistinguishable from a win. Every bench in
-`crates/stylex-transform/benches` and `crates/stylex-evaluator/benches` panics
-unless its subject produced the output it exists to time -- a fold that reached
-the expected value, a `dev` transform that resolved one `file:line` per style.
+the work stopped happening is indistinguishable from a win. Every bench in the
+workspace panics unless its subject produced the output it exists to time -- a
+fold that reached the expected value, a `dev` transform that resolved one
+`file:line` per style, a parser that accepted its input.
+
+`every_bench_asserts_what_it_measures`, beside the allocator check in the
+addon's own test module, fails when a bench file carries no check at all. A
+bench that times something no check can read writes `ASSERTIONS: none` with the
+reason, the way a bench that measures the system allocator writes
+`ALLOCATOR: system`. Silence is what both refuse.
+
+**Put the check outside `b.iter`.** A check inside the timed closure adds to
+the measurement and starts a new series. Every input in these benches is fixed,
+so one answer outside speaks for every iteration; only a result that varies per
+iteration needs a check inside. Keep an inside check cheap -- a discriminant or
+a length, never a full equality against a built expected value.
+
+**A check that only names a refusal is fine, as long as it names it.** Three
+benches in `token_parser_bench.rs` time an error path on purpose and their
+names say so. Each states the answer it expects, so a parser that starts
+answering `Ok` cannot pass as a win.
+
+The rule earns its place. Six bench files once held 179 measurements and no
+check between them, and three of those measurements were already timing
+nothing: two built an empty `Transform`, and one was named for right-to-left
+flipping it never did. Adding the checks then found nine more -- a percentage
+handed to a `<length>` parser, `2π rad` handed to an angle parser, and six
+box shadows written without the colour the syntax requires. None was reported
+by a bench. A person reading the numbers found the first three, and the checks
+found the rest.
 
 Both configurations are worth watching, and they are watched separately. `dev`
 implies `debug`, and `debug` turns on the `file:line` annotation on `$$css`,

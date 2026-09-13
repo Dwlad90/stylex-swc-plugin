@@ -12,33 +12,58 @@ Provides benchmarks for token parsing functionality and performance.
 // target names it, so this line is what makes the choice real.
 use swc_malloc as _;
 
-use std::hint::black_box;
+use std::{fmt::Debug, hint::black_box};
 
-use criterion::{Criterion, criterion_group, criterion_main};
-use stylex_css_parser::{token_parser::TokenParser, token_types::TokenList};
+use criterion::{
+  BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::WallTime,
+};
+use stylex_css_parser::{
+  CssParseError,
+  token_parser::{Either, TokenParser},
+  token_types::TokenList,
+};
+
+/// Times one parser, after a check that it still answers what it answered when
+/// the case was written.
+///
+/// The check runs once, outside `b.iter`, so it adds nothing to the
+/// measurement: the parser is built from literals and reads the same input on
+/// every iteration, so one answer speaks for all of them.
+///
+/// `expected` carries the refusals too. Three cases in this file time an error
+/// path on purpose, and their names say so; each one states `Err(())` here, so
+/// a parser that starts answering `Ok` cannot pass as a win.
+fn bench_answer<T: Clone + Debug + PartialEq + 'static>(
+  group: &mut BenchmarkGroup<'_, WallTime>,
+  name: &str,
+  expected: Result<T, ()>,
+  run: fn() -> Result<T, CssParseError>,
+) {
+  assert_eq!(
+    run().map_err(|_| ()),
+    expected,
+    "{name} no longer answers what the case was written to time"
+  );
+
+  group.bench_function(name, |b| b.iter(|| black_box(run())));
+}
 
 fn basic_parser_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("BasicParsers");
 
-  group.bench_function("always_parser", |b| {
-    b.iter(|| {
-      let parser = TokenParser::always(black_box(42));
-      black_box(parser.parse("anything"))
-    })
+  bench_answer(&mut group, "always_parser", Ok(42), || {
+    let parser = TokenParser::always(black_box(42));
+    parser.parse("anything")
   });
 
-  group.bench_function("never_parser", |b| {
-    b.iter(|| {
-      let parser = TokenParser::<i32>::never();
-      black_box(parser.parse("anything"))
-    })
+  bench_answer(&mut group, "never_parser", Err(()), || {
+    let parser = TokenParser::<i32>::never();
+    parser.parse("anything")
   });
 
-  group.bench_function("optional_parser", |b| {
-    b.iter(|| {
-      let parser = TokenParser::always(42).optional();
-      black_box(parser.parse("test"))
-    })
+  bench_answer(&mut group, "optional_parser", Ok(Some(42)), || {
+    let parser = TokenParser::always(42).optional();
+    parser.parse("test")
   });
 
   group.finish();
@@ -47,35 +72,27 @@ fn basic_parser_benchmarks(c: &mut Criterion) {
 fn combinator_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("Combinators");
 
-  group.bench_function("map_transformation", |b| {
-    b.iter(|| {
-      let parser = TokenParser::always(black_box(5)).map(|x| x * 2, Some("double"));
-      black_box(parser.parse("test"))
-    })
+  bench_answer(&mut group, "map_transformation", Ok(10), || {
+    let parser = TokenParser::always(black_box(5)).map(|x| x * 2, Some("double"));
+    parser.parse("test")
   });
 
-  group.bench_function("flat_map_chaining", |b| {
-    b.iter(|| {
-      let parser =
-        TokenParser::always(black_box(5)).flat_map(|x| TokenParser::always(x * 3), Some("triple"));
-      black_box(parser.parse("test"))
-    })
+  bench_answer(&mut group, "flat_map_chaining", Ok(15), || {
+    let parser =
+      TokenParser::always(black_box(5)).flat_map(|x| TokenParser::always(x * 3), Some("triple"));
+    parser.parse("test")
   });
 
-  group.bench_function("where_clause_filtering", |b| {
-    b.iter(|| {
-      let parser = TokenParser::always(black_box(10)).where_fn(|&x| x > 5, Some("greater_than_5"));
-      black_box(parser.parse("test"))
-    })
+  bench_answer(&mut group, "where_clause_filtering", Ok(10), || {
+    let parser = TokenParser::always(black_box(10)).where_fn(|&x| x > 5, Some("greater_than_5"));
+    parser.parse("test")
   });
 
-  group.bench_function("or_combination", |b| {
-    b.iter(|| {
-      let parser1 = TokenParser::always(1);
-      let parser2 = TokenParser::always(2);
-      let combined = parser1.or(parser2);
-      black_box(combined.parse("test"))
-    })
+  bench_answer(&mut group, "or_combination", Ok(Either::Left(1)), || {
+    let parser1 = TokenParser::always(1);
+    let parser2 = TokenParser::always(2);
+    let combined = parser1.or(parser2);
+    combined.parse("test")
   });
 
   group.finish();
@@ -84,67 +101,78 @@ fn combinator_benchmarks(c: &mut Criterion) {
 fn sequence_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("Sequences");
 
-  group.bench_function("simple_sequence", |b| {
-    b.iter(|| {
+  bench_answer(
+    &mut group,
+    "simple_sequence",
+    Ok(vec!["a".to_string(), "b".to_string(), "c".to_string()]),
+    || {
       let parser = TokenParser::<String>::sequence(vec![
         TokenParser::always("a".to_string()),
         TokenParser::always("b".to_string()),
         TokenParser::always("c".to_string()),
       ]);
-      black_box(parser.parse("test"))
-    })
-  });
+      parser.parse("test")
+    },
+  );
 
-  group.bench_function("long_sequence", |b| {
-    b.iter(|| {
+  bench_answer(
+    &mut group,
+    "long_sequence",
+    Ok((0..10).map(|i| format!("item_{}", i)).collect::<Vec<_>>()),
+    || {
       let parsers: Vec<_> = (0..10)
         .map(|i| TokenParser::always(format!("item_{}", i)))
         .collect();
       let parser = TokenParser::<String>::sequence(parsers);
-      black_box(parser.parse("test"))
-    })
+      parser.parse("test")
+    },
+  );
+
+  bench_answer(&mut group, "one_of_small", Ok("first".to_string()), || {
+    let parser = TokenParser::one_of(vec![
+      TokenParser::always("first".to_string()),
+      TokenParser::always("second".to_string()),
+      TokenParser::always("third".to_string()),
+    ]);
+    parser.parse("test")
   });
 
-  group.bench_function("one_of_small", |b| {
-    b.iter(|| {
-      let parser = TokenParser::one_of(vec![
-        TokenParser::always("first".to_string()),
-        TokenParser::always("second".to_string()),
-        TokenParser::always("third".to_string()),
-      ]);
-      black_box(parser.parse("test"))
-    })
-  });
-
-  group.bench_function("one_of_large", |b| {
-    b.iter(|| {
+  bench_answer(
+    &mut group,
+    "one_of_large",
+    Ok("option_0".to_string()),
+    || {
       let parsers: Vec<_> = (0..20)
         .map(|i| TokenParser::always(format!("option_{}", i)))
         .collect();
       let parser = TokenParser::one_of(parsers);
-      black_box(parser.parse("test"))
-    })
-  });
+      parser.parse("test")
+    },
+  );
 
   group.finish();
 }
 
+/// Both cases here run a parser that can never match. That is deliberate, and
+/// the names say so, so each one states the answer it expects rather than
+/// dropping it.
 fn repetition_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("Repetition");
 
-  group.bench_function("zero_or_more_empty", |b| {
-    b.iter(|| {
-      let parser = TokenParser::zero_or_more(TokenParser::<String>::never());
-      black_box(parser.parse(""))
-    })
+  bench_answer(&mut group, "zero_or_more_empty", Ok(vec![]), || {
+    let parser = TokenParser::zero_or_more(TokenParser::<String>::never());
+    parser.parse("")
   });
 
-  group.bench_function("one_or_more_failure", |b| {
-    b.iter(|| {
+  bench_answer(
+    &mut group,
+    "one_or_more_failure",
+    Err::<Vec<String>, ()>(()),
+    || {
       let parser = TokenParser::one_or_more(TokenParser::<String>::never());
-      black_box(parser.parse("test"))
-    })
-  });
+      parser.parse("test")
+    },
+  );
 
   group.finish();
 }
@@ -161,7 +189,16 @@ fn token_list_benchmarks(c: &mut Criterion) {
     "box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.1);",
   ];
 
-  for (i, sample) in css_samples.iter().enumerate() {
+  for (i, sample) in css_samples.into_iter().enumerate() {
+    // A tokenizer that stopped cutting tokens would report a win, so each pair
+    // of cases states the count its sample produces. The count is taken once,
+    // outside `b.iter`.
+    let expected_tokens = consume_all(sample);
+    assert!(
+      expected_tokens > 0,
+      "sample {i} tokenizes to nothing, so both cases would time an empty walk"
+    );
+
     group.bench_with_input(format!("tokenize_css_{}", i), sample, |b, sample| {
       b.iter(|| {
         let token_list = TokenList::new(black_box(sample));
@@ -188,32 +225,57 @@ fn token_list_benchmarks(c: &mut Criterion) {
   group.finish();
 }
 
+/// The walk `consume_tokens_*` times, counted rather than collected. Used by
+/// the check only, never inside a timed closure.
+fn consume_all(sample: &str) -> usize {
+  let mut token_list = TokenList::new(sample);
+  let mut count = 0;
+
+  while !token_list.is_empty() {
+    match token_list.consume_next_token() {
+      Ok(Some(_)) => count += 1,
+      _ => break,
+    }
+  }
+
+  count
+}
+
 fn complex_parsing_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("ComplexParsing");
 
-  group.bench_function("nested_transformations", |b| {
-    b.iter(|| {
+  bench_answer(
+    &mut group,
+    "nested_transformations",
+    Ok("12".to_string()),
+    || {
       let parser = TokenParser::always(black_box(1))
         .map(|x| x * 2, Some("double"))
         .map(|x| x + 10, Some("add_ten"))
         .map(|x| x.to_string(), Some("to_string"))
         .where_fn(|s| s.len() > 1, Some("length_check"));
-      black_box(parser.parse("test"))
-    })
-  });
+      parser.parse("test")
+    },
+  );
 
-  group.bench_function("surrounded_by_parsing", |b| {
-    b.iter(|| {
+  bench_answer(
+    &mut group,
+    "surrounded_by_parsing",
+    Ok("content".to_string()),
+    || {
       let content = TokenParser::always("content".to_string());
       let prefix = TokenParser::always("(".to_string());
       let suffix = TokenParser::always(")".to_string());
       let parser = content.surrounded_by(prefix, Some(suffix));
-      black_box(parser.parse("(content)"))
-    })
-  });
+      parser.parse("(content)")
+    },
+  );
 
-  group.bench_function("parser_composition", |b| {
-    b.iter(|| {
+  bench_answer(
+    &mut group,
+    "parser_composition",
+    Ok(("42:test".to_string(), true)),
+    || {
       // Build a complex parser from simple parts
       let number_parser = TokenParser::always(black_box(42));
       let string_parser = TokenParser::always("test".to_string());
@@ -229,9 +291,9 @@ fn complex_parsing_benchmarks(c: &mut Criterion) {
           None,
         );
 
-      black_box(combined.parse("input"))
-    })
-  });
+      combined.parse("input")
+    },
+  );
 
   group.finish();
 }

@@ -614,6 +614,28 @@ fn a_declaration_after_a_byte_order_mark_is_framed_on_its_own_line() {
   assert_eq!(framed_line(&target, &mut state), Some(1));
 }
 
+/// A declaration preceded by a character outside the Basic Multilingual Plane,
+/// which is the one that separates the three counts a position can be kept in.
+///
+/// An astral character is four bytes of UTF-8, two UTF-16 code units and one
+/// Rust character, so a column counted in bytes and one counted in units land
+/// in three different places. The run above is all in the plane -- `λ` is two
+/// bytes and one unit -- so it separates bytes from characters and nothing
+/// else.
+#[test]
+fn a_declaration_after_an_astral_character_is_framed_on_its_own_line() {
+  let path = write_fixture(
+    "framed_declaration_astral.tsx",
+    "// \u{1F600}\u{1F600}\u{1F600}\nlet c = 'red';\nc = 'blue';\nexport const styles = create({ x: { color: c } });\n",
+  );
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  assert_eq!(framed_line(&target, &mut state), Some(2));
+}
+
 /// A declaration past a long run of multi-byte characters, which is where a byte
 /// offset used as a character offset lands inside a character and panics the
 /// source-map lookup. The frame catches that panic; this asserts it never has to.

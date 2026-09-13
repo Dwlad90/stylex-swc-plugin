@@ -231,31 +231,6 @@ pub(crate) fn assert_folds_to_object_keys(source: &str, expected: &[&str]) {
   }
 }
 
-/// Asserts the refusal names the property that could not be read. The node kind
-/// is the half an author can already see; which property was asked for is the
-/// half that says why the declaration will not fold.
-#[track_caller]
-pub(crate) fn assert_deopt_names_property(source: &str, property: &str) {
-  let result = evaluate_source(source);
-
-  assert!(
-    !result.confident,
-    "expected `{}` to refuse to fold, got {:?}",
-    source, result.value
-  );
-
-  match result.reason {
-    Some(reason) => assert!(
-      reason.contains(property),
-      "expected the refusal of `{}` to name `{}`, got {:?}",
-      source,
-      property,
-      reason
-    ),
-    None => panic!("expected `{}` to record a deopt reason", source),
-  }
-}
-
 /// Asserts a TypeScript-only expression folds to a string.
 ///
 /// The six wrappers a type system writes carry no value of their own: each one

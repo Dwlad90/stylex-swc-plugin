@@ -209,6 +209,58 @@ fn atom_utf16_length_counts_an_unpaired_surrogate() {
   assert_eq!(atom_utf16_length(&around), 3);
 }
 
+/// The character at a UTF-16 index, which is how the language indexes a string.
+///
+/// The index counts code units and not Rust characters, so the character after
+/// an astral one sits at index two rather than one. Past the end there is no
+/// character, which the caller reads as `undefined`.
+#[test]
+fn atom_utf16_char_at_reads_the_code_unit() {
+  let text = Wtf8Atom::from("a\u{1F600}b");
+
+  assert_eq!(atom_utf16_char_at(&text, 0), Some('a'));
+  assert_eq!(atom_utf16_char_at(&text, 3), Some('b'));
+  assert_eq!(atom_utf16_char_at(&text, 4), None);
+  assert_eq!(atom_utf16_char_at(&Wtf8Atom::from(""), 0), None);
+}
+
+/// A unit that is half of an astral character has no `char` of its own, and
+/// answers the replacement character -- which is what the reference
+/// implementation's own output becomes once it is written to a file, and the
+/// substitution the engine fold already makes for every string it carries back.
+///
+/// Both readings answer it: a well-formed text holding an astral character, and
+/// one that already holds a lone surrogate and so has no `str` to read from.
+/// `None` is left to mean one thing, an index past the end.
+#[test]
+fn atom_utf16_char_at_replaces_half_of_a_character() {
+  let paired = Wtf8Atom::from("\u{1F600}a");
+
+  assert_eq!(
+    atom_utf16_char_at(&paired, 0),
+    Some(char::REPLACEMENT_CHARACTER)
+  );
+  assert_eq!(
+    atom_utf16_char_at(&paired, 1),
+    Some(char::REPLACEMENT_CHARACTER)
+  );
+  assert_eq!(atom_utf16_char_at(&paired, 2), Some('a'));
+
+  let lone = Wtf8Atom::from(Wtf8Buf::from_ill_formed_utf16(&[0x0061, 0xD83D, 0x0062]));
+
+  assert!(
+    lone.as_str().is_none(),
+    "expected an atom with no UTF-8 form to test against"
+  );
+  assert_eq!(atom_utf16_char_at(&lone, 0), Some('a'));
+  assert_eq!(
+    atom_utf16_char_at(&lone, 1),
+    Some(char::REPLACEMENT_CHARACTER)
+  );
+  assert_eq!(atom_utf16_char_at(&lone, 2), Some('b'));
+  assert_eq!(atom_utf16_char_at(&lone, 3), None);
+}
+
 /// A paired surrogate is the same two code units whether it arrives as a scalar
 /// or as its halves, so the two readings inside `atom_utf16_length` agree where
 /// they overlap.

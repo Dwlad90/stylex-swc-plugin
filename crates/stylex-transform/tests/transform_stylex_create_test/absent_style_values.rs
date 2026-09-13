@@ -255,6 +255,29 @@ stylex_test!(
   "#
 );
 
+// A condition key written as the whole value of a namespace rather than inside
+// a property. There is no property for the condition to apply to, so nothing is
+// declared and the namespace keeps only what does declare something.
+//
+// Structurally divergent, deliberately: upstream reads the condition key itself
+// as a property name and emits a key hashed from `:hover` carrying `null`.
+// Neither key can carry CSS, and neither can collide with a real declaration
+// made under the same condition, so reproducing a property named after a
+// pseudo-class would bake a defect in rather than fix one. Filed upstream, and
+// the parity row is `modules-null-as-a-whole-condition-value`.
+stylex_test!(
+  a_condition_key_as_the_whole_value_declares_nothing,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      pseudo: { ':hover': null },
+      atRule: { '@media print': null },
+      survivor: { color: 'red' },
+    });
+  "#
+);
+
 // Every branch absent collapses to a single absent value, not to one per
 // branch.
 stylex_test!(

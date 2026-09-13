@@ -5,7 +5,7 @@
 
 use super::*;
 use crate::evaluate::source_evaluation::{
-  assert_folds_to_boolean, assert_folds_to_number, assert_folds_to_string,
+  assert_deopts, assert_folds_to_boolean, assert_folds_to_number, assert_folds_to_string,
 };
 use stylex_ast::ast::convertors::create_ident_expr;
 use stylex_ast::ast::convertors::create_null_expr;
@@ -920,4 +920,36 @@ fn a_comparison_still_decides_a_condition() {
   assert_folds_to_string("1 > 2 ? 'a' : 'b'", "b");
   assert_folds_to_string("(1 > 2) || 'a'", "a");
   assert_folds_to_string("(1 < 2) && 'a'", "a");
+}
+
+/// A comparison with an object on either side refuses, whichever operator it is
+/// and whichever side the object is on.
+///
+/// The language compares two objects by reference, and this evaluator holds a
+/// copy: `o == o` is one reference read twice and true, `({}) == ({})` is two
+/// references and false, and a copy cannot tell the two apart. The reference
+/// implementation holds real values and answers both.
+///
+/// Refusing every one of them is the decision, rather than answering the rows
+/// that need no identity. Two of these could be folded -- a primitive against
+/// an object reduces the object through `ToPrimitive` and compares the result,
+/// and a strict comparison of a primitive against an object is false on the
+/// types alone -- but then `1 == ({})` would fold where `({}) == ({})` beside
+/// it refused, for the same reason a copy cannot answer either. One rule that
+/// never writes a wrong value is worth more than two rows of a comparison
+/// nobody writes on purpose.
+#[test]
+fn a_comparison_with_an_object_on_either_side_refuses() {
+  for source in [
+    "1 == ({})",
+    "1 === ({})",
+    "1 != ({})",
+    "({}) == 1",
+    "({}) == ({})",
+    "[1, 2] == '1,2'",
+    "1 == [1]",
+    "({}) < 1",
+  ] {
+    assert_deopts(source);
+  }
 }

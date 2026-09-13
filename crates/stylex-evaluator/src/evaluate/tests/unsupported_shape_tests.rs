@@ -122,6 +122,30 @@ fn char_code_at_still_reads_utf16_code_units() {
   assert_folds_to_number("\"\\u{1F600}a\".charCodeAt(2)", 97.0);
 }
 
+/// `codePointAt` reads the whole code point where `charCodeAt` reads the unit,
+/// which is the one place the two part company: the first unit of an astral
+/// character answers the character there and the surrogate here.
+///
+/// Beside `charCodeAt` because they are one reading asked two ways, and a
+/// change to how the units are counted has to move both. Every row is measured
+/// against `@stylexjs/babel-plugin@0.19.0`.
+#[test]
+fn code_point_at_reads_the_whole_code_point() {
+  assert_folds_to_number("\"abc\".codePointAt(1)", 98.0);
+  assert_folds_to_number("\"\\u{1F600}a\".codePointAt(0)", 128512.0);
+
+  // The second half of the pair has no character to be the first unit of, so it
+  // answers the surrogate itself -- which is what `charCodeAt` answers for it
+  // too.
+  assert_folds_to_number("\"\\u{1F600}a\".codePointAt(1)", 56832.0);
+  assert_folds_to_number("\"\\u{1F600}a\".charCodeAt(1)", 56832.0);
+
+  // Past the end is `undefined` rather than the `NaN` `charCodeAt` gives, which
+  // is the language's own parting between the two. A style value may not be
+  // `undefined`, so the declaration stops in both compilers.
+  assert_folds_to_undefined("\"abc\".codePointAt(9)");
+}
+
 /// Past the end is `NaN`, and `NaN` reaches the declaration.
 ///
 /// This test used to assert a refusal, and the refusal was the more useful

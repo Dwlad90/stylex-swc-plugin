@@ -258,6 +258,31 @@ pub fn atom_utf16_length(atom: &Wtf8Atom) -> usize {
   }
 }
 
+/// The character at a UTF-16 index of `atom`, as a value this compiler carries.
+///
+/// The language indexes a string by code unit, so this counts the units rather
+/// than the Rust characters: the two agree inside the Basic Multilingual Plane
+/// and part company on an astral character, which is two units and one
+/// character.
+///
+/// `None` is an index past the end, which the caller reads as `undefined`.
+///
+/// A unit that is half of an astral character has no `char` of its own, and
+/// answers the replacement character -- the same substitution the engine fold
+/// makes for every string it carries back, and for the same reason: the
+/// reference implementation's own output becomes that character once it is
+/// written to a file, so the declaration text agrees and only the class name
+/// parts. Reading the same character through `charAt` already answers this way,
+/// and one read written two ways must not answer two things.
+pub fn atom_utf16_char_at(atom: &Wtf8Atom, index: usize) -> Option<char> {
+  let unit = match atom.as_str() {
+    Some(text) => text.encode_utf16().nth(index),
+    None => atom.to_ill_formed_utf16().nth(index),
+  }?;
+
+  Some(char::from_u32(u32::from(unit)).unwrap_or(char::REPLACEMENT_CHARACTER))
+}
+
 pub fn convert_atom_to_string(atom: &Wtf8Atom) -> String {
   match atom.as_str() {
     Some(value) => value.to_string(),

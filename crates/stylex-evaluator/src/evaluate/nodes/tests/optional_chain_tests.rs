@@ -7,12 +7,16 @@
 //! member and the call spelling, because a chain that stopped early on a base
 //! that *is* there would silently drop a declaration the author wrote.
 //!
-//! **This compiler folds a chain the reference implementation refuses.**
-//! `@stylexjs/babel-plugin` 0.19.0 has no `Optional` handling at all and
-//! answers `Unsupported expression: OptionalMemberExpression` for every base,
-//! so `({ color: 'red' })?.color` gives CSS here and stops a build there. A
-//! deliberate parting rather than the specification, recorded as ticket 50 of
-//! `.scratch/split-transform-crate`.
+//! **This compiler folds a chain the reference implementation refuses, and
+//! keeps doing so.** `@stylexjs/babel-plugin` 0.19.0 has no `Optional` handling
+//! at all and answers `Unsupported expression: OptionalMemberExpression` for
+//! every base, so `({ color: 'red' })?.color` gives CSS here and stops a build
+//! there. Measured again for ticket 50 of `.scratch/split-transform-crate` and
+//! decided: this compiler does *more* here rather than something else. The fold
+//! is the language's own answer, nothing it writes is a value the source does
+//! not describe, and an author who writes `?.` gets CSS here and a build error
+//! there. A build that compiles where the other stops is the one direction a
+//! parting is safe in.
 
 use crate::evaluate::source_evaluation::*;
 use stylex_constants::constants::evaluation_errors::unsupported_expression;

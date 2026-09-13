@@ -167,14 +167,34 @@ stylex_test_panic!(
   "#
 );
 
-// A string still refuses an index: its element is a single UTF-16 code unit,
-// which can be an unpaired surrogate no Rust string holds. The two array
-// receivers agreeing does not make a third one agree with them.
-stylex_test_panic!(
-  a_string_index_is_still_refused,
-  "Unsupported index: 0",
+// A string reads an index too, by UTF-16 code unit -- which is what the
+// language counts and what upstream answers. So all three receivers agree.
+stylex_test!(
+  a_string_index_reads_its_code_unit,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({ s: { content: "abc"[0] } });
+    export const styles = stylex.create({
+      s: { content: "abc"[0] },
+      pastTheEnd: { fontFamily: `x${"abc"[9]}y` },
+    });
+  "#
+);
+
+// An index landing on half an astral character answers the replacement
+// character, which is the substitution the engine fold already makes for every
+// string it carries back -- so `s[0]` and `s.charAt(0)` are one read written
+// two ways. Upstream writes the lone surrogate itself, which becomes this same
+// character once the stylesheet is written to a file, so the declaration text
+// agrees and only the class name parts.
+stylex_test!(
+  a_string_index_that_lands_on_half_a_character,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      indexed: { content: "\u{1F600}a"[0] },
+      charAt: { fontFamily: "\u{1F600}a".charAt(0) },
+    });
   "#
 );

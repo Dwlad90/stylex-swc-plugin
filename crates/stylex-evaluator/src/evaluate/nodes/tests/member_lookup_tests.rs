@@ -18,7 +18,7 @@ use crate::evaluate::source_evaluation::*;
 use indexmap::IndexMap;
 use stylex_ast::ast::convertors::create_string_expr;
 use stylex_constants::constants::evaluation_errors::{
-  OBJECT_METHOD, UNEXPECTED_MEMBER_LOOKUP, unreadable_index, unsupported_expression,
+  OBJECT_METHOD, UNEXPECTED_MEMBER_LOOKUP, unsupported_expression,
 };
 use stylex_constants::constants::messages::{PROPERTY_NOT_FOUND, THEME_IMPORT_KEY_AS_OBJECT_KEY};
 use stylex_state::{
@@ -59,18 +59,38 @@ fn a_read_off_an_absent_key_refuses_rather_than_answering_undefined_twice() {
 
 // ==================== a lookup the evaluator cannot read ====================
 
-/// An index into a string is a single UTF-16 code unit, which can be an
-/// unpaired surrogate that no Rust string holds. Refused rather than
-/// approximated, and the refusal names the index that was asked for.
+/// A string is indexed by UTF-16 code unit, which is what the language counts
+/// and what the reference implementation answers.
 ///
-/// The reference implementation answers `'abc'[0]` with `a`, so this refuses a
-/// read it folds. Recorded as ticket 50 of `.scratch/split-transform-crate`,
-/// which decides whether to index the code units and refuse only the read that
-/// lands on half an astral character.
+/// Every index inside the Basic Multilingual Plane has one character to hand
+/// back, so the whole of an ordinary string reads. An index past the end is
+/// `undefined`, as it is for an array.
 #[test]
-fn an_index_into_a_string_is_refused_by_the_index_it_names() {
-  assert_deopt_reason_contains("'abc'[0]", &unreadable_index("0"));
-  assert_deopt_reason_contains("'abc'[2]", &unreadable_index("2"));
+fn a_string_is_indexed_by_code_unit() {
+  assert_folds_to_string("'abc'[0]", "a");
+  assert_folds_to_string("'abc'[2]", "c");
+  assert_folds_to_string("'abc'['1']", "b");
+  assert_folds_to_undefined("'abc'[9]");
+  assert_folds_to_string("'abc'[9] ?? 'none'", "none");
+
+  // An astral character is two code units, so the character after it is at
+  // index two -- which a character count would have called index one.
+  assert_folds_to_string("'\u{1F600}a'[2]", "a");
+}
+
+/// An index that lands on half an astral character answers the replacement
+/// character, which is the substitution the engine fold already makes for every
+/// string it carries back.
+///
+/// So `s[0]` and `s.charAt(0)` are one read written two ways. The reference
+/// implementation writes the lone surrogate itself, which becomes this same
+/// character once the stylesheet is written to a file -- so the declaration
+/// text agrees and only the class name parts.
+#[test]
+fn an_index_that_lands_on_half_a_character_answers_the_replacement_character() {
+  assert_folds_to_string("'\u{1F600}a'[0]", "\u{fffd}");
+  assert_folds_to_string("'\u{1F600}a'[1]", "\u{fffd}");
+  assert_folds_to_string("'\u{1F600}a'.charAt(0)", "\u{fffd}");
 }
 
 /// A computed key that folded to something with no name reads no property.

@@ -20,15 +20,6 @@ fn test_unsupported_expression() {
 }
 
 #[test]
-fn test_unreadable_index() {
-  assert_eq!(
-    unreadable_index("0"),
-    "Unsupported index: 0\nThis index could not be read at compile time.\n\n"
-  );
-  assert!(unreadable_index("12").contains("index: 12"));
-}
-
-#[test]
 fn test_uncoercible_value() {
   assert_eq!(
     uncoercible_value("String"),

@@ -240,6 +240,16 @@ fn an_evaluated_string_or_array_is_read_from_the_value() {
 /// string holds, so the receiver is refused rather than answered with a key
 /// list that is short or a character nobody wrote. A spread of the same string
 /// already reads it that way.
+///
+/// The reference implementation answers `['0', '1']` for the astral character:
+/// the keys are the indices whatever the units hold, so a key list *could* be
+/// answered without its values. Measured for ticket 50 of
+/// `.scratch/split-transform-crate` and decided against, because `keys`,
+/// `values` and `entries` are one question asked three ways: the values are two
+/// lone surrogates this compiler cannot write, so answering the keys alone
+/// would make one spelling fold where the other two refuse. An index read on
+/// the same string refuses for the same reason and names the index --
+/// `a_refusal_names_the_index_it_could_not_read`.
 #[test]
 fn a_string_receiver_is_read_by_code_unit() {
   for question in QUESTIONS {

@@ -186,13 +186,13 @@ fn an_array_carrying_a_hole_refuses_an_index() {
   }
 }
 
-/// A string still refuses an index: its element is a single UTF-16 code unit,
-/// which can be an unpaired surrogate no Rust string holds. The two array
-/// receivers agreeing does not make a third one agree with them.
+/// A string reads an index too, by UTF-16 code unit, so all three receivers
+/// answer an index now. Half of an astral character is the replacement
+/// character, which is the substitution the engine fold already makes.
 #[test]
-fn a_string_still_refuses_an_index() {
-  assert_deopts("\"abc\"[0]");
-  assert_deopts("\"\u{1F600}\"[0]");
+fn a_string_reads_an_index_by_code_unit() {
+  assert_folds_to_string("\"abc\"[0]", "a");
+  assert_folds_to_string("\"\u{1F600}\"[0]", "\u{fffd}");
 }
 
 /// A computed key names the property `String(key)` names, so a key that is not

@@ -84,6 +84,7 @@ const REFUSALS = {
   unprefixedCustomProperty: 'Unprefixed custom properties:',
   nestedTooDeeply: 'Rule contains a value nested more deeply than the compiler supports',
   invalidUtf8: 'String value contains invalid UTF-8 encoding.',
+  keyHasNoName: 'The key has no name at compile time.',
 } as const;
 
 /**
@@ -263,7 +264,14 @@ export const REFUSAL_FAMILIES: readonly RefusalFamily[] = [
     // pin the first such row silently instead of reporting it. Widen this when a
     // row arrives, which is the direction that gets read.
     verdicts: ['both-reject-divergent'],
-    claims: entry => refusedWith(entry, REFUSALS.invalidUtf8),
+    // Two sentences reach it, because a name is decoded in two places. A name
+    // being *read* — an export specifier — refuses where the text is decoded. A
+    // name being used as a property key refuses where the key is named, since a
+    // key is `String(key)` and a lone surrogate has no string. One family
+    // because the reason above is the same for both: there is no
+    // representation, not an ordering that could be swapped.
+    claims: entry =>
+      refusedWith(entry, REFUSALS.invalidUtf8) || refusedWith(entry, REFUSALS.keyHasNoName),
   },
   {
     name: 'nesting past the recursion budget',

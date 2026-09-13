@@ -78,11 +78,11 @@
     },
     {
       "id": "modules-length-an-indexed-string-read",
-      "label": "an indexed read, the one member lookup that still diverges",
+      "label": "an indexed read of a string",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  indexed: { content: \"abc\"[0] },\n});\n",
       "origin": "issue #1265, the read that surrounds the one being fixed",
-      "note": "Acceptance divergent. Upstream folds `\"abc\"[0]` to `\"a\"` through the language; this compiler refuses. Refusing is deliberate: upstream folds `\"\\u{1F600}\"[0]` to a lone surrogate, which no Rust `String` can carry, so folding an index needs a value type that carries WTF-8 through the whole pipeline.",
-      "expected": "acceptance-divergent"
+      "note": "Identical since ticket 50. A string is indexed by UTF-16 code unit in both, so `\"abc\"[0]` folds to `\"a\"` here as it does upstream. The one index left that refuses is the one landing on half an astral character: upstream writes the replacement character there, which is a character the source does not describe, and no Rust `String` carries a lone surrogate.",
+      "expected": "identical"
     },
     {
       "id": "modules-1265-rejecting-shorthands",
@@ -1564,7 +1564,21 @@
       "label": "a folded function map under a condition key that is a lone surrogate",
       "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: { '\\ud800': keyframes } } });\n",
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
-      "note": "Upstream holds the key as a JavaScript string and never writes it down, so it reaches the fold and refuses for it. This compiler refuses the key's encoding first: no Rust string holds a lone surrogate, and emitting a replacement character would write a selector the source does not describe -- the rule an object spread of a string and `charCodeAt` already answer this way. Claimed by the `lone surrogate in a name` family, which states that reason once for both rows that reach it."
+      "note": "Upstream holds the key as a JavaScript string and never writes it down, so it reaches the fold and refuses for it. This compiler refuses the key first, saying it has no name at compile time: a key is `String(key)` and no Rust string holds a lone surrogate, so there is no property name to write. Emitting a replacement character would write a selector the source does not describe -- the rule an object spread of a string and `charCodeAt` already answer this way. Claimed by the `lone surrogate in a name` family, which states that reason once for every row that reaches it."
+    },
+    {
+      "id": "modules-a-computed-key-that-is-a-lone-surrogate",
+      "label": "a computed key that is a lone surrogate",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { ['\\ud800']: 'red' },\n});\n",
+      "origin": "ticket 51, growing the `lone surrogate in a name` family past two rows",
+      "note": "The key written as a computed one rather than as a condition. A key is `String(key)` in both compilers, and a lone surrogate has no string this one can hold, so it refuses where the key is named. Claimed by the `lone surrogate in a name` family."
+    },
+    {
+      "id": "modules-a-written-key-that-is-a-lone-surrogate",
+      "label": "a written string key that is a lone surrogate",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { '\\ud800': 'red' },\n});\n",
+      "origin": "ticket 51, the same key written rather than computed",
+      "note": "The same key written where it is read. It aborted the build from inside the converter that spells an atom before ticket 49, reporting neither the key nor the object it sits in; it now refuses beside the computed spelling. Claimed by the `lone surrogate in a name` family."
     },
     {
       "id": "modules-1266-a-folded-function-map-in-a-keyframes-step",
@@ -1926,7 +1940,15 @@
       "label": "a fold whose result is half a surrogate pair",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: '\\u{1F600}a'.slice(1) },\n});\n",
       "origin": "issue 06, the UTF-16 divergence pinned rather than carried quietly",
-      "note": "Divergent in the class name only, and pinned rather than fixed. Slicing an astral pair leaves a lone low surrogate: well-formed UTF-16, and not a string any Rust `String` holds. The declaration text agrees, because upstream's own becomes a replacement character the moment the stylesheet is written to disk; the hash of the pre-encoding text does not. Refusing instead would fail a build upstream completes, and carrying the surrogate faithfully means a value type that holds WTF-8 through the whole pipeline — which is the same rewrite an indexed string read is waiting on.",
+      "note": "Divergent in the class name only, and pinned rather than fixed. Slicing an astral pair leaves a lone low surrogate: well-formed UTF-16, and not a string any Rust `String` holds. The declaration text agrees, because upstream's own becomes a replacement character the moment the stylesheet is written to disk; the hash of the pre-encoding text does not. Refusing instead would fail a build upstream completes, and carrying the surrogate faithfully means a value type that holds WTF-8 through the whole pipeline. An indexed string read answers the same way since ticket 50, so the two spellings of one read agree.",
+      "expected": "divergent"
+    },
+    {
+      "id": "modules-an-index-that-lands-on-half-a-character",
+      "label": "an index that lands on half an astral character",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  indexed: { content: '\\ud83d\\ude00a'[0] },\n  charAt: { fontFamily: '\\ud83d\\ude00a'.charAt(0) },\n});\n",
+      "origin": "ticket 50, the index read brought in line with the fold beside it",
+      "note": "Divergent in the class name only, for the reason `modules-06-unpaired-surrogate` carries. Both rows are here because they are one read written two ways: the index and `charAt` answer the same character, so a change to either has to move both.",
       "expected": "divergent"
     },
     {

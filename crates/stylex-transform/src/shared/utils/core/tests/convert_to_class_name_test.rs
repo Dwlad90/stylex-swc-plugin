@@ -148,6 +148,36 @@ mod convert_style_to_class_name {
     assert_eq!(try_convert(("color", &PreRuleValue::string("  \t "))), None);
   }
 
+  /// A character that *looks* blank but is not one the trim reads is a value
+  /// like any other, and it reaches the stylesheet as itself.
+  ///
+  /// Two of them, and each is a different reason the trim could have been
+  /// wrong: the ideographic space and the no-break space are both spaces the
+  /// language does not call whitespace. Measured against
+  /// `@stylexjs/babel-plugin@0.19.0`, which declares them the same way.
+  #[test]
+  fn declares_a_value_that_only_looks_blank() {
+    for text in ["\u{3000}", "\u{a0}"] {
+      assert_eq!(
+        try_convert(("color", &PreRuleValue::string(text))),
+        Some(format!("color:{text}")),
+        "value {text:?}"
+      );
+    }
+  }
+
+  /// A control character carries no CSS text, so it leaves the property
+  /// undeclared like any other value that does not.
+  ///
+  /// The reference implementation neither declares it nor refuses it: it fails
+  /// inside its own value parser, reading a property of `undefined`. There is
+  /// no answer of its to agree with, and leaving the property out is what this
+  /// compiler already does for every value with no text.
+  #[test]
+  fn declares_nothing_for_a_control_character() {
+    assert_eq!(try_convert(("color", &PreRuleValue::string("\u{1}"))), None);
+  }
+
   /// The test is on the transformed value, not the authored one: quoting is what
   /// gives a blank `content` its text.
   ///
@@ -168,6 +198,23 @@ mod convert_style_to_class_name {
       try_convert(("hyphenateCharacter", &PreRuleValue::string("   "))),
       Some("hyphenate-character:\"\"".to_string())
     );
+  }
+
+  /// `hyphenateCharacter` takes a *character*, not a property name, so the
+  /// value goes through untouched -- the camel case is the author's text rather
+  /// than a spelling to hyphenate. Its own key is hyphenated all the same.
+  ///
+  /// Both spellings of the key, because the property reaches the CSS layer as
+  /// either one and the bypass is keyed by the name.
+  #[test]
+  fn keeps_a_hyphenate_character_value_as_it_was_written() {
+    for key in ["hyphenateCharacter", "hyphenate-character"] {
+      assert_eq!(
+        try_convert((key, &PreRuleValue::string("fooBar"))),
+        Some("hyphenate-character:\"fooBar\"".to_string()),
+        "key {key:?}"
+      );
+    }
   }
 
   /// A blank entry drops out of a fallback array rather than emitting an empty

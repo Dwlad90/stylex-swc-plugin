@@ -28,6 +28,18 @@ const stylexRuntimeStub = {
   },
 } satisfies Plugin;
 
+/**
+ * Turns Vite's file watcher off, which every dev-server fixture below passes.
+ *
+ * A fixture writes its files and starts a server on the same directory a
+ * moment later. The operating system can report those writes to the fresh
+ * watcher, and the plugin then runs a hot update nobody asked for: under load
+ * that update lands inside the test and transforms the stylesheet a second
+ * time. Without a watcher the only events are the ones a test emits itself,
+ * which is what these tests mean to measure.
+ */
+const NO_FILE_EVENTS = null;
+
 // Each fixture gets its own root so the temp directories cannot collide, and
 // every root is registered for the afterEach cleanup.
 async function writeFixtureRoot(prefix: string, files: Record<string, string>): Promise<string> {
@@ -73,7 +85,7 @@ async function transformFixture(
         transformCss,
       }),
     ],
-    server: { middlewareMode: true, preTransformRequests: false },
+    server: { middlewareMode: true, preTransformRequests: false, watch: NO_FILE_EVENTS },
   });
 
   try {
@@ -158,7 +170,7 @@ async function transformDevIndexHtml(base: string): Promise<string> {
     optimizeDeps: { noDiscovery: true },
     plugins: linkFixturePlugins(true),
     root,
-    server: { middlewareMode: true, preTransformRequests: false },
+    server: { middlewareMode: true, preTransformRequests: false, watch: NO_FILE_EVENTS },
   });
 
   try {
@@ -361,6 +373,45 @@ async function settle(): Promise<void> {
   });
 }
 
+/**
+ * Waits until a count of work the dev server did is above zero and stops
+ * moving.
+ *
+ * A refresh is debounced, and it arms another one when rules arrive while it
+ * runs or when its update could not be sent, so the work does not all land
+ * inside one fixed pause. Under load a pause expires between two steps of that
+ * chain, and the caller then measures the machine instead of the behaviour.
+ * Two quiet windows in a row say the chain has ended.
+ */
+async function waitUntilSteady(count: () => number, work: string): Promise<void> {
+  const deadline = Date.now() + 10_000;
+  let previous = -1;
+
+  for (let steady = 0; steady < 2;) {
+    if (Date.now() >= deadline) {
+      // Returning here would compare whatever counts happened to be current,
+      // so the test could pass on a server that never settles. The two cases
+      // read the same from the count alone, so the message tells them apart.
+      const total = count();
+
+      throw new Error(
+        total === 0
+          ? `The dev server did not start ${work} within 10s.`
+          : `The dev server did not stop ${work} within 10s. Count: ${total}.`
+      );
+    }
+
+    await settle();
+
+    const current = count();
+
+    // Zero is work that has not started, not work that has ended, and two
+    // quiet windows over it would read as settled.
+    steady = current > 0 && current === previous ? steady + 1 : 0;
+    previous = current;
+  }
+}
+
 // The dev server every placeholder refresh test runs against. Request
 // pre-transform is off so each test decides exactly when a module is
 // transformed, which is what the refresh behaviour turns on.
@@ -379,7 +430,7 @@ async function createPlaceholderDevServer(prefix: string) {
       }),
     ],
     root,
-    server: { middlewareMode: true, preTransformRequests: false },
+    server: { middlewareMode: true, preTransformRequests: false, watch: NO_FILE_EVENTS },
   });
 }
 
@@ -426,11 +477,15 @@ async function measureFailedRefreshRetries(): Promise<{
   try {
     await server.transformRequest('/main.js');
     await server.transformRequest('/global.css');
-    await settle();
+    // Each failure arms the next attempt, so the chain is read once it ends.
+    await waitUntilSteady(() => send.mock.calls.length, 'retrying the CSS refresh');
 
     const attempts = send.mock.calls.length;
 
-    // No further transform, so anything counted here is the retry chain alone.
+    // A fixed quiet window, deliberately: this one must find no attempt at
+    // all, and a wait for a count to stop moving cannot end on a count that
+    // never moves. No further transform comes, so anything counted here is a
+    // retry that never gave up.
     await settle();
     await settle();
 
@@ -817,44 +872,18 @@ export const styles = stylex.create({
       const globalCssReads = () =>
         readFileSpy.mock.calls.filter(call => call[0] === ownGlobalCss).length;
 
-      // A refresh is debounced, and it arms another one when rules arrive
-      // while it runs, so its reads do not all land inside one fixed pause.
-      // Under load the first refresh read the file after the count was taken,
-      // and the read was then charged to the second refresh. Waiting until the
-      // count stops moving measures the behaviour, not the speed of the
-      // machine.
-      const readsQuiet = async (): Promise<void> => {
-        const deadline = Date.now() + 10_000;
-        let previous = -1;
-
-        for (let steady = 0; steady < 2;) {
-          if (Date.now() >= deadline) {
-            // Returning here would compare whatever counts happened to be
-            // current, so the test could pass on a server that never settles.
-            throw new Error('The dev server never stopped reading global.css within 10s.');
-          }
-
-          await settle();
-
-          const count = globalCssReads();
-
-          steady = count === previous ? steady + 1 : 0;
-          previous = count;
-        }
-      };
-
       await server.transformRequest('/main.js');
       await server.transformRequest('/global.css');
-      await readsQuiet();
+      await waitUntilSteady(globalCssReads, 'reading global.css');
 
+      // The wait above refuses a count of zero, so this is a read that
+      // happened. Were it zero, the comparison below would hold for the wrong
+      // reason.
       const before = globalCssReads();
 
       await server.transformRequest('/lazy.js');
-      await readsQuiet();
+      await waitUntilSteady(globalCssReads, 'reading global.css');
 
-      // The count must be of a read that happened. Were it zero, the test
-      // would hold for the wrong reason.
-      expect(before).toBeGreaterThan(0);
       // The second refresh reuses what the first learned.
       expect(globalCssReads()).toBe(before);
     } finally {

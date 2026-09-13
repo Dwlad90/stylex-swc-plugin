@@ -346,14 +346,56 @@ fn performance_benchmarks(c: &mut Criterion) {
     19,
   );
 
+  // The three miss cases are checked over the cache their own bench builds,
+  // never over the shared one: that cache is warm by the time it is asked, so a
+  // check run against it speaks for a different subject. A measurement whose
+  // subject nothing checks is what this file exists to stop.
+  check_merge(
+    "small object (cache miss)",
+    create_styleq(StyleqOptions::default()).styleq(&[basic_style_fixture_1()]),
+    2,
+    0,
+  );
+  check_merge(
+    "large object (cache miss)",
+    create_styleq(StyleqOptions::default()).styleq(&[big_style_fixture()]),
+    24,
+    0,
+  );
+  check_merge(
+    "small merge (cache miss)",
+    create_styleq(StyleqOptions::default())
+      .styleq(&[basic_style_fixture_1(), basic_style_fixture_2()]),
+    2,
+    0,
+  );
+
   group.bench_function("small object", |b| {
     b.iter(|| black_box(default_styleq.styleq(black_box(std::slice::from_ref(&basic_style_1)))))
   });
 
+  // A miss is a cache with nothing in it, so each of the three cases below
+  // builds one in its setup. Reusing the shared `default_styleq` timed a hit:
+  // an entry is keyed by the structure of the style, so a fixture built fresh
+  // per batch still finds the entry `check_merge` put there above. A cache
+  // built per batch is also the state the compiler is in, since it builds one
+  // `Styleq` per call site and drops it.
   group.bench_function("small object (cache miss)", |b| {
     b.iter_batched(
-      basic_style_fixture_1,
-      |fixture| black_box(default_styleq.styleq(black_box(&[fixture]))),
+      || {
+        (
+          create_styleq(StyleqOptions::default()),
+          basic_style_fixture_1(),
+        )
+      },
+      |(styleq, fixture)| {
+        black_box(styleq.styleq(black_box(&[fixture])));
+        // Handed back rather than dropped here: Criterion drops what a routine
+        // returns outside the timed window, and what this one holds is the
+        // cache the miss just filled. Dropped inside, the number would be the
+        // merge plus taking its own cache apart.
+        styleq
+      },
       BatchSize::SmallInput,
     )
   });
@@ -372,8 +414,15 @@ fn performance_benchmarks(c: &mut Criterion) {
 
   group.bench_function("large object (cache miss)", |b| {
     b.iter_batched(
-      big_style_fixture,
-      |fixture| black_box(default_styleq.styleq(black_box(&[fixture]))),
+      || (create_styleq(StyleqOptions::default()), big_style_fixture()),
+      |(styleq, fixture)| {
+        black_box(styleq.styleq(black_box(&[fixture])));
+        // Handed back rather than dropped here: Criterion drops what a routine
+        // returns outside the timed window, and what this one holds is the
+        // cache the miss just filled. Dropped inside, the number would be the
+        // merge plus taking its own cache apart.
+        styleq
+      },
       BatchSize::SmallInput,
     )
   });
@@ -392,8 +441,16 @@ fn performance_benchmarks(c: &mut Criterion) {
 
   group.bench_function("small merge (cache miss)", |b| {
     b.iter_batched(
-      || [basic_style_fixture_1(), basic_style_fixture_2()],
-      |fixtures| black_box(default_styleq.styleq(black_box(&fixtures))),
+      || {
+        (
+          create_styleq(StyleqOptions::default()),
+          [basic_style_fixture_1(), basic_style_fixture_2()],
+        )
+      },
+      |(styleq, fixtures)| {
+        black_box(styleq.styleq(black_box(&fixtures)));
+        styleq
+      },
       BatchSize::SmallInput,
     )
   });

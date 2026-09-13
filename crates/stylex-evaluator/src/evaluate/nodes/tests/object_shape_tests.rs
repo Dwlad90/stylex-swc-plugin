@@ -18,7 +18,7 @@ use stylex_constants::constants::evaluation_errors::OBJECT_METHOD;
 use stylex_constants::constants::evaluation_errors::PATH_WITHOUT_NODE;
 use stylex_constants::constants::evaluation_errors::UNDEFINED_CONST;
 use stylex_constants::constants::messages::{
-  ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, SPREAD_PROPERTIES_UNREADABLE,
+  ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, KEY_HAS_NO_NAME, SPREAD_PROPERTIES_UNREADABLE,
 };
 use stylex_state::{
   functions::{FunctionMap, FunctionType},
@@ -136,12 +136,17 @@ fn a_computed_key_is_what_its_expression_folds_to() {
 }
 
 /// A computed key whose expression resolves to nothing refuses for that
-/// expression's own reason, and one that folds to a value with no string form
-/// refuses for the value.
+/// expression's own reason, and one that folds to a value with no string at all
+/// refuses as a key.
+///
+/// An entry of the function fold is such a value: `String` of a function is its
+/// source text, which this evaluator does not keep. It is the one value left
+/// that has no name, now that a boolean, `null` and an object each name the
+/// property the language names.
 #[test]
 fn a_computed_key_that_names_no_string_refuses() {
   assert_object_refuses("{ [unknownName]: 'c' }", UNDEFINED_CONST);
-  assert_object_refuses("{ [own]: 'c' }", ILLEGAL_PROP_VALUE);
+  assert_object_refuses("{ [own]: 'c' }", KEY_HAS_NO_NAME);
 }
 
 /// A value that resolves to nothing refuses, and the sentence names the key it
@@ -347,4 +352,14 @@ fn a_method_and_an_accessor_are_both_refused() {
   ] {
     assert_object_refuses(object, OBJECT_METHOD);
   }
+}
+
+/// A key written as a text with no `str` refuses as a key. No Rust string can
+/// hold a lone surrogate, so there is no property name to write down.
+///
+/// It aborted the build from inside a converter before, which reported neither
+/// the key nor the object it sits in.
+#[test]
+fn a_written_key_with_no_name_refuses_as_a_key() {
+  assert_object_refuses(r"{ '\ud800': 1 }", KEY_HAS_NO_NAME);
 }

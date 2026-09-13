@@ -20,11 +20,20 @@ pub(in super::super) fn evaluate(
     return logical_expression::evaluate(op, bin, state, traversal_state, fns);
   }
 
-  match fold_binary_expr(bin, state, traversal_state, fns) {
-    BinaryExprType::Number(num) => Some(EvaluateResultValue::Expr(create_number_expr(num))),
-    BinaryExprType::String { text, .. } => {
-      Some(EvaluateResultValue::Expr(create_string_expr(&text)))
-    },
+  folded_expr(fold_binary_expr(bin, state, traversal_state, fns)).map(EvaluateResultValue::Expr)
+}
+
+/// The expression a folded binary is written as, or `None` for a fold that
+/// answered nothing at all.
+///
+/// One reading for the two places that ask, so the spelling of a folded value
+/// cannot come to differ between the whole expression and the left side of a
+/// `+` that carries it.
+fn folded_expr(folded: BinaryExprType) -> Option<Expr> {
+  match folded {
+    BinaryExprType::Number(number) => Some(create_number_expr(number)),
+    BinaryExprType::Boolean(value) => Some(create_bool_expr(value)),
+    BinaryExprType::String { text, .. } => Some(create_string_expr(&text)),
     BinaryExprType::Null => None,
   }
 }
@@ -178,11 +187,12 @@ fn evaluate_left_operand(
       state,
       traversal_state,
       |state, traversal_state| match fold_binary_expr(inner, state, traversal_state, fns) {
+        // The measured text is adopted rather than re-read, which is what the
+        // count on it is for. Every other answer is read as the value it is.
         BinaryExprType::String { text, units } => Some(LeftOperand::Measured { text, units }),
-        BinaryExprType::Number(number) => Some(LeftOperand::Value(EvaluateResultValue::Expr(
-          create_number_expr(number),
-        ))),
-        BinaryExprType::Null => None,
+        folded => {
+          folded_expr(folded).map(|expr| LeftOperand::Value(EvaluateResultValue::Expr(expr)))
+        },
       },
     );
 
@@ -215,6 +225,12 @@ enum EqualityReading {
   /// `===`, which compares the type before the value.
   Strict,
   /// `!=` and `!==`, which answer the negation of `===`.
+  ///
+  /// `!=` sits with the strict pair on purpose. The language reads it as the
+  /// negation of `==`, so `1 != '1'` is false there; the reference
+  /// implementation answers true, and so does this. Measured on the three pairs
+  /// the two readings part on -- `1 != '1'`, `null != undefined` and `0 != ''`
+  /// -- and the reference implementation takes the strict answer for all three.
   NotStrict,
 }
 
@@ -451,7 +467,7 @@ pub(crate) fn binary_expr_to_num_or_str(
     if let Some(right_value) = primitive_of(&right)
       && let Some(answer) = reading.answers(&left_value, &right_value)
     {
-      return Result::Ok(BinaryExprType::Number(convert_bool_to_number(answer)));
+      return Result::Ok(BinaryExprType::Boolean(answer));
     }
 
     evaluated_right = Some(right);

@@ -40,6 +40,7 @@
     "@stylexswc/path-resolver": "catalog:internal",
     "@stylexswc/state-index": "catalog:internal",
     "@stylexswc/structures": "catalog:internal",
+    "@stylexswc/stylex-js": "catalog:internal",
     "@stylexswc/stylex-styleq": "catalog:internal",
     "@stylexswc/types": "catalog:internal",
     "@stylexswc/utils": "catalog:internal",

@@ -197,3 +197,20 @@ stylex_test!(
     });
   "#
 );
+
+// A comparison written as a declaration value inside a keyframe. It answers a
+// boolean, which is not a style value, and both compilers leave the frame
+// empty -- upstream writes `@keyframes x1r1tjop-B{from{}}` for this source.
+//
+// This compiler wrote `width:1px` before: a comparison folded to a number, so
+// `1 === 1` reached the CSS layer as `1` and came out as a length.
+stylex_test!(
+  a_comparison_as_a_keyframe_declaration_value,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const fade = stylex.keyframes({
+      from: { width: 1 === 1 },
+      to: { width: '10px' },
+    });
+  "#
+);

@@ -616,10 +616,11 @@ stylex_test_panic!(
 );
 
 // Upstream coerces the group to its hash and declares a property named after it,
-// which is not a property. Refused here rather than reproduced.
+// which is not a property. Refused here rather than reproduced: a group is this
+// compiler's own value and has no name the language would give it.
 stylex_test_panic!(
   a_string_named_specifier_read_as_a_computed_key_is_refused,
-  "A style value can only contain an array, string or number.",
+  "The key has no name at compile time.",
   |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';

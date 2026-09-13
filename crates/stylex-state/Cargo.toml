@@ -30,6 +30,7 @@ stylex_ast = { path = "../stylex-ast" }
 stylex_constants = { path = "../stylex-constants" }
 stylex_diagnostics = { path = "../stylex-diagnostics" }
 stylex_enums = { path = "../stylex-enums" }
+stylex_js = { path = "../stylex-js" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_path_resolver = { path = "../stylex-path-resolver" }
 stylex_state_index = { path = "../stylex-state-index" }

@@ -331,7 +331,7 @@ fn an_array_read_out_of_an_object_answers_every_lookup() {
   assert_folds_to_number("({ a: [1, 2] }).a.length", 2.0);
   assert_folds_to_undefined("({ a: [1, 2] }).a[5]");
   assert_folds_to_undefined("({ a: [1, 2] }).a.foo");
-  assert_deopt_reason_contains("({ a: [1, 2] }).a[{}]", UNEXPECTED_MEMBER_LOOKUP);
+  assert_folds_to_undefined("({ a: [1, 2] }).a[{}]");
 }
 
 /// A private name is a key only the class that declares it can read, so no
@@ -343,31 +343,34 @@ fn a_private_name_names_no_property() {
   assert_deopt_reason_contains("({ a: 1 }).#b", UNEXPECTED_MEMBER_LOOKUP);
 }
 
-/// A key written as a literal with no string form names no property, so the
-/// read refuses rather than picking one. `true` is such a literal: the reader
-/// answers the three literals that spell a value and nothing else.
+/// A key names the property `String(key)` names, whatever the key is written
+/// as, so a key no object carries reads `undefined` rather than refusing.
 ///
-/// The language names the property `String(key)`, so the reference
-/// implementation reads `true` and answers `undefined` -- which lets
-/// `... ?? 'red'` fold there and refuse here. Recorded as ticket 50 of
-/// `.scratch/split-transform-crate`, beside ticket 49, which asks the same
-/// question of a key being written.
+/// One rule for the key an object is read by and the key an object is written
+/// with: `{ [true]: 'red' }` names the property `true`, so `obj[true]` has to
+/// look for that one. The reader answered for a string and a number only
+/// before, so a boolean key was written nowhere and found nowhere.
 #[test]
-fn a_key_written_as_a_literal_with_no_string_form_refuses() {
-  assert_deopt_reason_contains("({ a: { b: 1 } }).a[true]", UNEXPECTED_MEMBER_LOOKUP);
+fn a_key_that_is_not_a_string_or_a_number_names_the_property_it_spells() {
+  assert_folds_to_undefined("({ a: { b: 1 } }).a[true]");
+  assert_folds_to_string("(({ a: { b: 1 } }).a[true]) ?? 'red'", "red");
+  assert_folds_to_number("({ true: 1 })[true]", 1.0);
+  assert_folds_to_number("({ null: 1 })[null]", 1.0);
+  assert_folds_to_number("({ 'false': 1 })[1 > 2]", 1.0);
 }
 
-/// The `env` object is read by a key like any other receiver, so a lookup with
-/// no key at all refuses rather than naming a property nobody wrote.
+/// The `env` object is read by a key like any other receiver, so a key it does
+/// not carry names itself in the refusal rather than being read as no key at
+/// all.
 #[test]
-fn an_env_lookup_with_no_key_refuses() {
+fn an_env_lookup_by_a_key_it_does_not_carry_names_that_key() {
   let fns = map_binding("sx", namespace_holding_the_env_object());
   let source = "sx.env[{}]";
 
   assert_refused_with(
     &evaluated_against(&fns, source),
     source,
-    UNEXPECTED_MEMBER_LOOKUP,
+    "The property '[object Object]' was not found in the stylex.env configuration.",
   );
 }
 
@@ -412,4 +415,34 @@ fn a_computed_key_that_answered_nothing_names_itself() {
     "a key the memo answers nothing for",
     PROPERTY_NOT_FOUND,
   );
+}
+
+/// A key that folds to an expression with no name refuses, whatever the
+/// receiver is. A text holding half of an astral character is such a key: no
+/// Rust string can spell it, so there is no property to look for.
+///
+/// Every receiver kind that reads a key is here, because each used to decide
+/// for itself what a key it could not name meant.
+#[test]
+fn a_key_with_no_name_refuses_on_every_receiver() {
+  let fns = map_binding("sx", namespace_holding_the_env_object());
+  // Written as the escape so the source carries the lone surrogate, which no
+  // Rust string literal can hold directly.
+  let key = r"'\ud800'";
+
+  for source in [
+    format!("sx.env[{key}]"),
+    format!("({{ a: 1 }})[{key}]"),
+    format!("[1, 2][{key}]"),
+    format!("'abc'[{key}]"),
+    format!("(sx.missing ?? [1, 2])[{key}]"),
+    // An array a fold produced, which is the array's other spelling.
+    format!("({{ a: [1, 2] }}).a[{key}]"),
+  ] {
+    assert_refused_with(
+      &evaluated_against(&fns, &source),
+      &source,
+      UNEXPECTED_MEMBER_LOOKUP,
+    );
+  }
 }

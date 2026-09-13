@@ -202,3 +202,17 @@ stylex_test_panic!(
     export const name = stylex.positionTry({ positionAnchor: '--a', top: stylex });
   "#
 );
+
+// A comparison written as a declaration value. It answers a boolean, which is
+// not a style value; upstream leaves the declaration out and keeps the rest of
+// the fallback. Measured: `@position-try --x1rdsnup {position-anchor:--a;}`.
+stylex_test!(
+  a_comparison_as_a_position_try_declaration_value,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const pt = stylex.positionTry({
+      positionAnchor: '--a',
+      width: 1 === 1,
+    });
+  "#
+);

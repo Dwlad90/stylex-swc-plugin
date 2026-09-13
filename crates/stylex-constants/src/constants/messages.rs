@@ -159,9 +159,16 @@ pub static SPREAD_PROPERTIES_UNREADABLE: &str =
 pub static EXPRESSION_IS_NOT_A_STRING: &str =
   "Expected a string value but received a non-string expression.";
 
-/// The refusal for a computed key that folds to no string. Said of the key
-/// rather than of the value, because the key is the half the author changes.
-pub static KEY_IS_NOT_A_STRING: &str = "The key is not a string.";
+/// The refusal for a computed key whose value has no name at compile time.
+/// Said of the key rather than of the value, because the key is the half the
+/// author changes.
+///
+/// Not every key that is not a string: a boolean, `null` and an object each
+/// name the property `String(key)` names, as the language does. What reaches
+/// this is a value with no string at all -- a function, whose `String` is its
+/// source text; a text holding a lone surrogate, which no Rust string spells;
+/// and this compiler's own values, which the language never sees.
+pub static KEY_HAS_NO_NAME: &str = "The key has no name at compile time.";
 
 pub static VALUES_MUST_BE_OBJECT: &str = "The values argument must be a plain object.";
 

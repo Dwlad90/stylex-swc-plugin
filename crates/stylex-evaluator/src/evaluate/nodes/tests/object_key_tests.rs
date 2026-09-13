@@ -11,19 +11,38 @@
 
 use crate::evaluate::evaluate_obj_key;
 use crate::evaluate::source_evaluation::*;
-use stylex_constants::constants::messages::{
-  EXPRESSION_IS_NOT_A_STRING, ILLEGAL_PROP_VALUE, KEY_IS_NOT_A_STRING,
-};
+use stylex_constants::constants::messages::KEY_HAS_NO_NAME;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
 };
 use stylex_structures::stylex_options::StyleXOptions;
+use swc_core::atoms::Wtf8Atom;
+use swc_core::atoms::wtf8::{CodePoint, Wtf8Buf};
 use swc_core::{
   common::{DUMMY_SP, GLOBALS, Globals},
-  ecma::ast::{BigInt, ComputedPropName, Expr, IdentName, KeyValueProp, PropName},
+  ecma::ast::{BigInt, ComputedPropName, Expr, IdentName, KeyValueProp, Lit, PropName, Str},
 };
 
 use stylex_ast::ast::convertors::{convert_atom_to_string, create_number_expr, create_string_expr};
+
+/// A string literal holding one lone surrogate, which no Rust `str` can spell.
+///
+/// The one expression with a form and no text, which is what separates the two
+/// ways a key can have no name.
+fn lone_surrogate_expr() -> Expr {
+  let mut buffer = Wtf8Buf::new();
+
+  match CodePoint::from_u32(0xD83D) {
+    Some(point) => buffer.push(point),
+    None => panic!("the high surrogate is a code point"),
+  }
+
+  Expr::Lit(Lit::Str(Str {
+    span: DUMMY_SP,
+    value: Wtf8Atom::from(buffer),
+    raw: None,
+  }))
+}
 
 /// The key `name` names, or the refusal it answered.
 fn key_of(name: PropName) -> Result<String, Option<String>> {
@@ -137,22 +156,32 @@ fn a_computed_key_that_resolves_to_nothing_carries_its_own_refusal() {
   );
 }
 
-/// A computed key that folded to a value with no expression form is a key this
-/// does not read -- an ordinary refusal rather than a broken invariant.
+/// A key that folded to the evaluator's own list is read through the array it
+/// writes, so it names the property its elements join to -- which is what the
+/// language and the reference implementation both name it.
 #[test]
-fn a_computed_key_with_no_expression_form_refuses() {
+fn a_computed_key_that_folded_to_a_list_names_its_joined_elements() {
   assert_eq!(
     key_of(computed(parse_expr("[1, 2]"))),
-    Err(Some(ILLEGAL_PROP_VALUE.to_string()))
+    Ok(String::from("1,2"))
+  );
+  assert_eq!(
+    key_of(computed(parse_expr("[[1], [2, 3]]"))),
+    Ok(String::from("1,2,3"))
   );
 }
 
-/// A computed key is the string its expression names, so an expression with no
-/// string form names no key and the object refuses. An object literal is such
-/// an expression: it evaluates, and then has no key spelling to give.
+/// The object fold reads a computed key exactly as `evaluate_obj_key` does, so
+/// an object literal written as one names `[object Object]` in both places.
+///
+/// The two used to answer one mistake with two sentences -- `The key is not a
+/// string.` here and `Expected a string value but received a non-string
+/// expression.` inside a folded object.
 #[test]
-fn a_computed_key_with_no_string_form_refuses() {
-  assert_deopt_reason_contains("({ [{}]: 'x' })", EXPRESSION_IS_NOT_A_STRING);
+fn the_object_fold_reads_a_computed_key_the_same_way() {
+  assert_folds_to_object_keys("({ [{}]: 'x' })", &["[object Object]"]);
+  assert_folds_to_object_keys("({ [true]: 'x' })", &["true"]);
+  assert_folds_to_object_keys("({ [1 > 2]: 'x' })", &["false"]);
 }
 
 /// A key written as a big-integer literal names its digits, which is what the
@@ -179,39 +208,93 @@ fn a_big_integer_key_written_in_source_names_the_same_string() {
   assert_folds_to_object_keys("({ color: 'red', 2n: 'blue' })", &["2", "color"]);
 }
 
-/// A computed key that folds to a value this compiler writes no string for
-/// refuses. It says so as a key rather than as a value, because the key is the
-/// half the author changes.
+/// A computed key names the property `String(key)`, which is what the language
+/// names it and what the reference implementation writes.
 ///
-/// Five spellings, and each of them is a boolean, `null` or an object. The
-/// reference implementation names the property `String(key)` instead, so
-/// `{ [true]: 'red' }` declares `true: red` there. Recorded rather than changed
-/// here, because the coercion decides a CSS property name -- ticket 49 of
-/// `.scratch/split-transform-crate` settles which answer each key gets.
+/// It refused every one of these before, as a key with no name. None
+/// of them is a CSS property anybody writes on purpose, but the refusal was
+/// inherited rather than decided: the key was read by the converter that spells
+/// a string, which answers for a string and a number and nothing else.
+///
+/// Each row is measured against `@stylexjs/babel-plugin` 0.19.0.
 #[test]
-fn a_computed_key_that_names_no_string_refuses_as_a_key() {
-  for source in ["true", "false", "null", "({})", "!1"] {
+fn a_computed_key_names_the_string_the_language_names_it() {
+  for (source, expected) in [
+    ("true", "true"),
+    ("false", "false"),
+    ("null", "null"),
+    ("undefined", "undefined"),
+    ("!1", "false"),
+    ("({})", "[object Object]"),
+    ("({ a: 1 })", "[object Object]"),
+    ("[1, 2]", "1,2"),
+    ("[]", ""),
+    ("'color'", "color"),
+    ("2", "2"),
+    ("NaN", "NaN"),
+    ("Infinity", "Infinity"),
+    ("-0", "0"),
+  ] {
     assert_eq!(
       key_of(computed(parse_expr(source))),
-      Err(Some(KEY_IS_NOT_A_STRING.to_string())),
-      "wrong refusal for the computed key `{}`",
+      Ok(String::from(expected)),
+      "wrong key for the computed key `{}`",
       source
     );
   }
 }
 
-/// A comparison read as a key names `0` here and `false` in the language, so
-/// the two compilers write two different property names for one source, with no
-/// error either side.
+/// A comparison names the property its boolean spells, which is the word rather
+/// than the digit.
 ///
-/// Recorded rather than endorsed. A comparison is folded through the numeric
-/// reading of a binary expression before the key is asked for a string, which
-/// is where the `0` comes from. Pinned so the answer changes visibly when the
-/// key coercion is settled by ticket 49 of `.scratch/split-transform-crate`.
+/// It named `0` and `1` before: a comparison folded through the numeric reading
+/// of a binary expression, so the two compilers wrote two different property
+/// names for one source with no error either side.
 #[test]
-fn a_comparison_read_as_a_key_names_the_number_it_folded_through() {
-  assert_eq!(key_of(computed(parse_expr("1 > 2"))), Ok(String::from("0")));
-  assert_eq!(key_of(computed(parse_expr("2 > 1"))), Ok(String::from("1")));
+fn a_comparison_read_as_a_key_names_the_word_it_folds_to() {
+  assert_eq!(
+    key_of(computed(parse_expr("1 > 2"))),
+    Ok(String::from("false"))
+  );
+  assert_eq!(
+    key_of(computed(parse_expr("2 > 1"))),
+    Ok(String::from("true"))
+  );
+}
+
+/// A key with no compile-time string at all still refuses, and still says so as
+/// a key. A function is the one such value: its `String` is its source text,
+/// which this evaluator does not keep.
+#[test]
+fn a_computed_key_with_no_string_at_all_refuses_as_a_key() {
+  // A function, whose `String` is its source text. It has no expression form
+  // here either, so the value is what fails to read.
+  assert_eq!(
+    key_of(computed(parse_expr("(() => 1)"))),
+    Err(Some(KEY_HAS_NO_NAME.to_string()))
+  );
+
+  // A text holding half of an astral character. It *is* an expression, and the
+  // coercion is what has no string for it: no Rust string holds a lone
+  // surrogate.
+  assert_eq!(
+    key_of(computed(lone_surrogate_expr())),
+    Err(Some(KEY_HAS_NO_NAME.to_string()))
+  );
+
+  // The same text written as the key rather than computed into it. It used to
+  // abort the build from inside the converter that spells an atom; it now
+  // refuses beside every other key that has no name, so all three ways a key
+  // can lack one end under one sentence.
+  let lone_surrogate = match lone_surrogate_expr() {
+    Expr::Lit(Lit::Str(text)) => text,
+    other => panic!("expected a string literal, got {:?}", other),
+  };
+
+  assert_eq!(
+    key_of(PropName::Str(lone_surrogate)),
+    Err(Some(KEY_HAS_NO_NAME.to_string()))
+  );
 }
 
 // ==================== a key written twice ====================

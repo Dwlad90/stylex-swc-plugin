@@ -2286,6 +2286,9 @@ importers:
       '@stylexswc/structures':
         specifier: catalog:internal
         version: link:../stylex-structures
+      '@stylexswc/stylex-js':
+        specifier: catalog:internal
+        version: link:../stylex-js
       '@stylexswc/stylex-styleq':
         specifier: catalog:internal
         version: link:../stylex-styleq

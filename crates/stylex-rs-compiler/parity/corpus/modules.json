@@ -858,7 +858,7 @@
       "label": "a shadowed namespace parameter read as a computed key",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (stylex) => ({ [stylex]: '1px' }),\n});\n",
       "origin": "the identifier audit for issue #1266, the same coercion in the key position",
-      "note": "Upstream coerces the fold and emits a rule for a property named `[object object]`; this compiler refuses the value. The key position of the entry above, kept apart because one accepts and one refuses and a single module could only report the refusal. The static position reads the same way -- `create({ a: { [stylex]: '1px' } })` -- so the divergence is the coercion's and not the dynamic body's; recorded as a decided divergence in the issue that owns the fold.",
+      "note": "Upstream coerces the fold and emits a rule for a property named `[object object]`; this compiler refuses the key, saying it has no name at compile time. The fold is this compiler's own value and the language never sees it, so there is no `String` of it to give -- an object an author *wrote* does name `[object Object]` here since ticket 49. The key position of the entry above, kept apart because one accepts and one refuses and a single module could only report the refusal. The static position reads the same way -- `create({ a: { [stylex]: '1px' } })` -- so the divergence is the coercion's and not the dynamic body's.",
       "expected": "acceptance-divergent"
     },
     {
@@ -2512,16 +2512,16 @@
       "label": "a numeric comparison as the whole style value",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { content: (1 === 1) },\n});\n",
       "origin": "ticket 15, the fourteenth instalment: the reading a comparison has always taken here",
-      "expected": "acceptance-divergent",
-      "note": "A comparison folds to a number here and to a boolean there, so this compiler writes `content: \"1px\"` where the reference implementation refuses the declaration -- a style value may be an array, a string or a number, and a boolean is none of them. The reading is this compiler's own and pre-dates ticket 15: `1 === 1` and `1 < 2` answered a number before the equality operators were made to compare two primitives. What that work changed is the set of comparisons that reach the reading, which now holds the pairs neither side has a number for. Recorded rather than defended, as ticket 50 of `.scratch/split-transform-crate`."
+      "expected": "both-reject",
+      "note": "Both refuse, under the same sentence: a comparison answers a boolean, and a style value may be an array, a string or a number. This compiler wrote `content: \"1px\"` before -- a comparison folded to a number, so `1 === 1` reached the CSS layer as `1` and came out as a length. Closed by ticket 49."
     },
     {
       "id": "modules-comparison-as-a-whole-value-strings",
       "label": "a string comparison as the whole style value",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { content: ('a' === 'a') },\n});\n",
       "origin": "ticket 15, the fourteenth instalment: the pair the numeric reading refused before",
-      "expected": "acceptance-divergent",
-      "note": "The same divergence as `modules-comparison-as-a-whole-value-numbers`, which carries the reasoning. This row is the pair the numeric reading refused before the equality operators were made to compare two primitives, so it is what says the divergence widened rather than moved."
+      "expected": "both-reject",
+      "note": "The same answer as `modules-comparison-as-a-whole-value-numbers`, which carries the reasoning. This row is the pair the numeric reading refused before the equality operators were made to compare two primitives, so it is what says the readings are now one at both."
     },
     {
       "id": "modules-relational-two-strings-by-code-unit",

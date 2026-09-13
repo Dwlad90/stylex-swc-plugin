@@ -377,10 +377,13 @@ fn an_object_shape_with_no_compile_time_value_refuses() {
     "({ ...unknownThing })",
     "({ get a() { return 1 } }).a",
     "({ a: 1 })[/re/]",
-    "({ a: 1 })[{}]",
   ] {
     assert_deopts(source);
   }
+
+  // An object key *does* name a property -- `[object Object]` -- which this
+  // object does not carry, so the read is `undefined` rather than a refusal.
+  assert_folds_to_undefined("({ a: 1 })[{}]");
 }
 
 /// A spread of a value with no own enumerable properties contributes nothing
@@ -443,10 +446,14 @@ fn object_member_lookups_that_answer_still_answer() {
   assert_folds_to_number("({ a: 1 })[\"a\"]", 1.0);
 }
 
+/// An index that folds to no value at all refuses. One that folds to a value
+/// names the property that value spells, which for an object is
+/// `[object Object]` -- a property no array carries, so the read is `undefined`
+/// rather than a refusal.
 #[test]
-fn an_array_index_that_is_not_a_number_refuses() {
-  assert_deopts("[1, 2][{}]");
+fn an_array_index_that_is_not_a_number_reads_the_property_it_names() {
   assert_deopts("[1, 2][/re/]");
+  assert_folds_to_undefined("[1, 2][{}]");
 }
 
 // ==================== expression kinds the evaluator has no fold for ====

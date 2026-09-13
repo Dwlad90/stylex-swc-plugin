@@ -207,3 +207,21 @@ stylex_test!(
     });
   "#
 );
+
+// A comparison written as a constant value. It answers a boolean, and a
+// constant is serialized as the value it is -- so this writes `true` where it
+// wrote `1` before, and upstream writes `constVal: "true"` for the same source.
+stylex_test!(
+  a_comparison_as_a_constant_value,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_unstable_module_resolution(ModuleResolution::common_js(Some(
+      "/stylex/packages/".to_string(),
+    )))
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_runtime_injection()
+  }),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const flags = stylex.defineConsts({ on: 1 === 1, off: 1 > 2 });
+  "#
+);

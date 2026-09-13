@@ -195,13 +195,17 @@ fn a_string_still_refuses_an_index() {
   assert_deopts("\"\u{1F600}\"[0]");
 }
 
-/// A computed key with no name the evaluator reads refuses rather than being
-/// treated as slot zero.
+/// A computed key names the property `String(key)` names, so a key that is not
+/// a slot reads `undefined` rather than refusing -- which is what the language
+/// answers and what the reference implementation writes.
+///
+/// An object names `[object Object]` and an empty array names the empty string.
+/// Neither is a slot, and no array carries either as a property.
 #[test]
-fn an_unreadable_computed_key_refuses() {
-  assert_deopts("[\"1px\"][{}]");
-  assert_deopts("[\"1px\"][[]]");
-  assert_deopts("(0 ? [] : [\"1px\"])[{}]");
+fn a_computed_key_that_names_no_slot_reads_undefined() {
+  for source in ["[\"1px\"][{}]", "[\"1px\"][[]]", "(0 ? [] : [\"1px\"])[{}]"] {
+    assert_folds_to_undefined(source);
+  }
 }
 
 /// A parenthesis is not a different receiver, and neither is a nested one.

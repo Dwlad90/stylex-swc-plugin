@@ -43,6 +43,24 @@ enum ArrayLikeLookup {
   Unreadable,
 }
 
+/// The property an evaluated key names, which is `String(key)`.
+///
+/// One reading for every key a member read is written with, and the same one
+/// [`evaluate_obj_key`](crate::evaluate::evaluate_obj_key) writes a key with:
+/// `{ [true]: 'red' }` names the property `true`, so `obj[true]` has to look
+/// for that one. Three readers answered this before -- an array-like lookup, an
+/// object read and the `env` object -- and none of them named a boolean, `null`
+/// or an object, so such a key was written nowhere and found nowhere.
+///
+/// The evaluator's own list is read through the array it writes, which is the
+/// form the language joins its elements into.
+fn property_name(property: &EvaluateResultValue) -> Option<String> {
+  match property.as_string_key() {
+    Some(key) => Some(key),
+    None => evaluate_result_as_expr(property).and_then(|expr| coercions::to_js_string(&expr)),
+  }
+}
+
 /// Reads what a member lookup is asking for, from the evaluated property.
 ///
 /// A key of nothing but digits is an index however it was written, because
@@ -52,7 +70,7 @@ enum ArrayLikeLookup {
 /// with `parse::<f64>()` instead would call all three indices — it accepts
 /// `"NaN"` and `"inf"` — and refuse a fold the reference implementation makes.
 fn classify_lookup(property: &EvaluateResultValue) -> ArrayLikeLookup {
-  match property.as_string_key() {
+  match property_name(property) {
     None => ArrayLikeLookup::Unreadable,
     Some(key) if key == LENGTH => ArrayLikeLookup::Length,
     Some(key) => match index_slot(&key) {
@@ -461,17 +479,13 @@ pub(in super::super) fn evaluate(
               },
             };
 
-            let normalized_ident = normalize_expr(ident);
+            // Read through the same `String(key)` every other key is read
+            // through. A parenthesis is not a different key, so the expression
+            // is unwrapped first.
+            let normalized_key = EvaluateResultValue::Expr(normalize_expr(ident).clone());
 
-            let ident_string_name = match normalized_ident {
-              Expr::Ident(ident) => ident.sym.to_string(),
-              // A regex or a BigInt key has no string form the evaluator
-              // reads, and a key that is still an expression never resolved.
-              Expr::Lit(lit) => match convert_lit_to_string(lit) {
-                Some(key) => key,
-                None => deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP),
-              },
-              _ => deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP),
+            let Some(ident_string_name) = property_name(&normalized_key) else {
+              deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
             };
 
             // An object the evaluator itself wrote: every property is a key
@@ -646,7 +660,7 @@ pub(in super::super) fn evaluate(
           read_theme_member(&mut theme_ref, &key, path, state, traversal_state)
         },
         EvaluateResultValue::EnvObject(env_map) => {
-          let Some(key) = property.as_string_key() else {
+          let Some(key) = property_name(&property) else {
             deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
           };
 

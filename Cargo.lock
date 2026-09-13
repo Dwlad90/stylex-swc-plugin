@@ -3459,6 +3459,7 @@ dependencies = [
  "stylex_constants",
  "stylex_diagnostics",
  "stylex_enums",
+ "stylex_js",
  "stylex_macros",
  "stylex_path_resolver",
  "stylex_state_index",

@@ -392,14 +392,13 @@ fn a_property_an_array_does_not_carry_answers_undefined() {
 /// name.
 #[test]
 fn a_computed_key_with_no_compile_time_value_refuses() {
-  for source in [
-    "\"abc\"[runtimeKey]",
-    "\"abc\"[{}]",
-    "\"abc\"[/re/]",
-    "[1, 2][runtimeKey]",
-  ] {
+  for source in ["\"abc\"[runtimeKey]", "\"abc\"[/re/]", "[1, 2][runtimeKey]"] {
     assert_deopts(source);
   }
+
+  // An object *does* name a property -- `[object Object]` -- which no string
+  // carries, so it reads `undefined` rather than refusing.
+  assert_folds_to_undefined("\"abc\"[{}]");
 }
 
 /// A length is not read off a receiver that never folded. The refusal comes

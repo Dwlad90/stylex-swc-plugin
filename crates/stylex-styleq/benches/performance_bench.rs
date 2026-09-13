@@ -11,7 +11,7 @@ use std::{
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_styleq::{
-  StyleMap, StyleValue, StyleqInput, StyleqOptions, StyleqResult, create_styleq,
+  StyleMap, StyleValue, Styleq, StyleqInput, StyleqOptions, StyleqResult, create_styleq,
 };
 
 fn string(value: &str) -> StyleValue {
@@ -220,6 +220,15 @@ fn styleq_transform() -> stylex_styleq::Styleq<StyleValue> {
   })
 }
 
+/// A merger whose cache holds nothing.
+///
+/// The subject of every case named for a miss, and of the checks over them. One
+/// name rather than seven spellings of the same construction, so a check and
+/// the bench it speaks for cannot come to measure two different things.
+fn cold_styleq() -> Styleq<StyleValue> {
+  create_styleq(StyleqOptions::default())
+}
+
 /// Checks that one merge produced the output its case exists to time.
 ///
 /// `class_names` is how many class names the merge must answer with, and
@@ -352,20 +361,19 @@ fn performance_benchmarks(c: &mut Criterion) {
   // subject nothing checks is what this file exists to stop.
   check_merge(
     "small object (cache miss)",
-    create_styleq(StyleqOptions::default()).styleq(&[basic_style_fixture_1()]),
+    cold_styleq().styleq(&[basic_style_fixture_1()]),
     2,
     0,
   );
   check_merge(
     "large object (cache miss)",
-    create_styleq(StyleqOptions::default()).styleq(&[big_style_fixture()]),
+    cold_styleq().styleq(&[big_style_fixture()]),
     24,
     0,
   );
   check_merge(
     "small merge (cache miss)",
-    create_styleq(StyleqOptions::default())
-      .styleq(&[basic_style_fixture_1(), basic_style_fixture_2()]),
+    cold_styleq().styleq(&[basic_style_fixture_1(), basic_style_fixture_2()]),
     2,
     0,
   );
@@ -382,12 +390,7 @@ fn performance_benchmarks(c: &mut Criterion) {
   // `Styleq` per call site and drops it.
   group.bench_function("small object (cache miss)", |b| {
     b.iter_batched(
-      || {
-        (
-          create_styleq(StyleqOptions::default()),
-          basic_style_fixture_1(),
-        )
-      },
+      || (cold_styleq(), basic_style_fixture_1()),
       |(styleq, fixture)| {
         black_box(styleq.styleq(black_box(&[fixture])));
         // Handed back rather than dropped here: Criterion drops what a routine
@@ -414,7 +417,7 @@ fn performance_benchmarks(c: &mut Criterion) {
 
   group.bench_function("large object (cache miss)", |b| {
     b.iter_batched(
-      || (create_styleq(StyleqOptions::default()), big_style_fixture()),
+      || (cold_styleq(), big_style_fixture()),
       |(styleq, fixture)| {
         black_box(styleq.styleq(black_box(&[fixture])));
         // Handed back rather than dropped here: Criterion drops what a routine
@@ -443,7 +446,7 @@ fn performance_benchmarks(c: &mut Criterion) {
     b.iter_batched(
       || {
         (
-          create_styleq(StyleqOptions::default()),
+          cold_styleq(),
           [basic_style_fixture_1(), basic_style_fixture_2()],
         )
       },

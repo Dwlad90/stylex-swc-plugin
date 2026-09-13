@@ -108,7 +108,7 @@
       "id": "66883a2d",
       "property": "--y",
       "value": "red",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/absent_style_values.rs:352"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/absent_style_values.rs:375"
     },
     {
       "id": "83fa2d39",
@@ -396,7 +396,7 @@
       "id": "0a403503",
       "property": "backgroundImage",
       "value": "url(\"unterminated",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/absent_style_values.rs:441"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/absent_style_values.rs:464"
     },
     {
       "id": "548a8808",
@@ -1929,6 +1929,12 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/non_ascii_hash_parity.rs:27"
     },
     {
+      "id": "ca232003",
+      "property": "content",
+      "value": "\\u{1F600}a",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/array_index_reads.rs:193"
+    },
+    {
       "id": "3c0c2905",
       "property": "content",
       "value": "a",
@@ -1938,7 +1944,7 @@
       "id": "2a864532",
       "property": "content",
       "value": "abc",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/array_index_reads.rs:176"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/array_index_reads.rs:175"
     },
     {
       "id": "f7a8de3a",
@@ -2371,6 +2377,12 @@
       "property": "fontFamily",
       "value": "\\\\😀",
       "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:378"
+    },
+    {
+      "id": "176582f9",
+      "property": "fontFamily",
+      "value": "\\u{1F600}a",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/array_index_reads.rs:193"
     },
     {
       "id": "0308fb71",
@@ -4236,7 +4248,7 @@
       "id": "5d73a34f",
       "property": "width",
       "value": "calc((1px + 2px)",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/absent_style_values.rs:453"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/absent_style_values.rs:476"
     },
     {
       "id": "9f88298b",

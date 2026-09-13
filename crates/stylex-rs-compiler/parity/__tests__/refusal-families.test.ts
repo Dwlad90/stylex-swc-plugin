@@ -226,21 +226,21 @@ describe('what a family leaves as news', () => {
     ).toBeUndefined();
   });
 
-  test('the same undecodable name under a verdict the family does not read', () => {
-    // The reason would survive the reference compiler accepting the name -- the
+  test('the same undecodable name where only this compiler refused', () => {
+    // The reason survives the reference compiler accepting the name -- the
     // absence of a representation does not depend on what the other side did
-    // with it -- but no row reads that verdict, so the family does not claim it.
-    // A family claiming a verdict nothing reaches would pin the first such row
-    // silently, which is the failure the mechanism exists to prevent.
-    expect(
-      nameOf(
-        subject(
-          'acceptance-divergent',
-          refused('String value contains invalid UTF-8 encoding.'),
-          ACCEPTED
-        )
-      )
-    ).toBeUndefined();
+    // with it -- and rows now read that verdict: a lone surrogate written or
+    // computed as a style key is held upstream and written out as a replacement
+    // character, so only this compiler refuses. Both sentences a name is
+    // refused with reach the family, since a name is decoded in two places.
+    for (const refusal of [
+      'String value contains invalid UTF-8 encoding.',
+      'The key has no name at compile time.',
+    ]) {
+      expect(nameOf(subject('acceptance-divergent', refused(refusal), ACCEPTED))).toBe(
+        'lone surrogate in a name'
+      );
+    }
   });
 
   test('the reference compiler refusing an encoding, where this compiler did not', () => {

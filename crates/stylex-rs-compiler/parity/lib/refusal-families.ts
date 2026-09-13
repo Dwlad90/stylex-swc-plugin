@@ -258,12 +258,14 @@ export const REFUSAL_FAMILIES: readonly RefusalFamily[] = [
       'a condition key. That is not an ordering that could be swapped to buy the same sentence; ' +
       'it is the absence of a representation. Substituting a replacement character would be ' +
       'worse than refusing, since it writes a name the source does not describe.',
-    // One verdict, unlike `reference TypeError` above. The reason would survive
-    // the reference compiler accepting a name this one cannot decode — but no row
-    // reads that today, and a family claiming a verdict nothing reaches would
-    // pin the first such row silently instead of reporting it. Widen this when a
-    // row arrives, which is the direction that gets read.
-    verdicts: ['both-reject-divergent'],
+    // Two verdicts, because the rows arrived that the single one was waiting
+    // for. A name reached as a condition key refuses in both compilers, in
+    // different words. The same name written or computed as a style key is one
+    // the reference compiler accepts — it holds the surrogate and writes a
+    // replacement character into the selector — so only this compiler refuses,
+    // and the row reads as acceptance divergent. The reason above covers both:
+    // what is missing is a representation, not an agreement about CSS.
+    verdicts: ['both-reject-divergent', 'acceptance-divergent'],
     // Two sentences reach it, because a name is decoded in two places. A name
     // being *read* — an export specifier — refuses where the text is decoded. A
     // name being used as a property key refuses where the key is named, since a

@@ -246,7 +246,7 @@ describe('what a family leaves as news', () => {
   test('a lone surrogate spelled as an escape rather than as the code unit', () => {
     // A corpus row is JavaScript source, so the half is written `\uD800` far
     // more often than it is carried. Both spellings name the same string.
-    for (const value of ['\\uD800', '\\u{D800}', 'a\\uDC00b']) {
+    for (const value of ['\\uD800', '\\u{D800}', 'a\\uDC00b', 'a\\uD800', '\\uD800\\n']) {
       expect(
         nameOf(
           subject(
@@ -260,6 +260,38 @@ describe('what a family leaves as news', () => {
         )
       ).toBe('lone surrogate in a name');
     }
+  });
+
+  test('a character between two halves keeps them apart', () => {
+    // The halves are adjacent only if nothing sits between them. An escape that
+    // names no code unit still names a character, so `\\uD800\\n\\uDC00` holds
+    // two lone halves and not one pair -- which is what JavaScript itself
+    // answers for the same text. A reader that passed over the escape read the
+    // two halves as adjacent and vouched for a row carrying a surrogate it had
+    // not seen.
+    for (const value of ['\\uD800\\n\\uDC00', '\\uD800a\\uDC00', '\\u{D800}\\t\\u{DC00}']) {
+      expect(
+        nameOf(
+          subject(
+            'acceptance-divergent',
+            refused('The key has no name at compile time.'),
+            ACCEPTED,
+            {
+              value,
+            }
+          )
+        )
+      ).toBe('lone surrogate in a name');
+    }
+
+    // The pair itself, with nothing between, is still a pair.
+    expect(
+      nameOf(
+        subject('acceptance-divergent', refused('The key has no name at compile time.'), ACCEPTED, {
+          value: '\\uD800\\uDC00',
+        })
+      )
+    ).toBeUndefined();
   });
 
   test('a key with no name that carries no surrogate is news', () => {

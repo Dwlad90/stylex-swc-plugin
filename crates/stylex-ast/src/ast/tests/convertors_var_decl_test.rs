@@ -5,7 +5,7 @@ use swc_core::{
 
 use crate::ast::convertors::{
   create_number_expr, create_string_expr, get_expr_from_var_decl, get_key_values_from_object,
-  normalize_expr,
+  init_call, normalize_expr,
 };
 use crate::ast::factories::create_ident;
 
@@ -198,5 +198,56 @@ mod get_key_values_from_object_spread_tests {
       })],
     };
     get_key_values_from_object(&obj);
+  }
+}
+
+mod init_call_tests {
+  use super::*;
+  use crate::ast::factories::{create_call_expr, wrap_in_paren};
+
+  fn call(name: &str) -> Expr {
+    Expr::Call(create_call_expr(Expr::Ident(create_ident(name)), vec![]))
+  }
+
+  /// The reason this helper exists: a parenthesized initializer names the same
+  /// call the bare one does.
+  #[test]
+  fn reads_the_call_through_any_number_of_parentheses() {
+    for depth in 0..4 {
+      let mut init = call("keyframes");
+
+      for _ in 0..depth {
+        init = wrap_in_paren(init);
+      }
+
+      let declarator = make_var_declarator("fade", init);
+
+      assert!(
+        init_call(&declarator).is_some(),
+        "a call behind {} parentheses is still that call",
+        depth
+      );
+    }
+  }
+
+  #[test]
+  fn answers_nothing_for_an_initializer_that_is_not_a_call() {
+    assert!(
+      init_call(&make_var_declarator("width", create_number_expr(1.0))).is_none(),
+      "a number initialises no call"
+    );
+    assert!(
+      init_call(&make_var_declarator(
+        "width",
+        wrap_in_paren(create_number_expr(1.0))
+      ))
+      .is_none(),
+      "and neither does one in parentheses"
+    );
+  }
+
+  #[test]
+  fn answers_nothing_for_a_declarator_with_no_initializer() {
+    assert!(init_call(&make_var_declarator_no_init("fade")).is_none());
   }
 }

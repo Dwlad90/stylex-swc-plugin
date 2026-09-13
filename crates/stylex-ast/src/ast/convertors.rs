@@ -57,6 +57,27 @@ pub fn normalize_expr(mut expr: &Expr) -> &Expr {
   expr
 }
 
+/// The call a declarator is initialised by, read through any parentheses
+/// around it.
+///
+/// One rule rather than one spelling per site. A parenthesis is not a different
+/// initializer, so `const fade = (stylex.keyframes({...}))` names the same call
+/// `const fade = stylex.keyframes({...})` does -- and a reader that missed one
+/// of them left the call untransformed and let the name reach the runtime. The
+/// predicate that recognises such a declarator, the validator that checks it
+/// and the transform that rewrites it each asked this question, so they ask it
+/// in one place and cannot come to answer it differently.
+///
+/// `None` is a declarator with no initializer, or one initialised by anything
+/// that is not a call.
+pub fn init_call(var_declarator: &VarDeclarator) -> Option<&CallExpr> {
+  var_declarator
+    .init
+    .as_deref()
+    .map(normalize_expr)
+    .and_then(Expr::as_call)
+}
+
 /// Mutable counterpart to [`normalize_expr`]: unwraps parenthesized
 /// expressions, returning a mutable reference to the innermost non-paren
 /// expression. Spans are preserved, so callers that depend on position
@@ -278,6 +299,15 @@ pub fn atom_utf16_length(atom: &Wtf8Atom) -> usize {
 /// written to a file, so the declaration text agrees and only the class name
 /// parts. Reading the same character through `charAt` already answers this way,
 /// and one read written two ways must not answer two things.
+///
+/// This is a decided exemption from `guidelines/stack/RUST.md`, which says a
+/// substitution is safe only where the value it puts in cannot become part of a
+/// folded answer. Here it can: the fixture
+/// `a_string_index_that_lands_on_half_a_character.js` shows `content` reaching
+/// the stylesheet with the replacement character in it. It is taken anyway for
+/// the reason above -- the reference implementation writes the same character
+/// to the same place -- and is named here so a reader finds the decision rather
+/// than the departure.
 pub fn atom_utf16_char_at(atom: &Wtf8Atom, index: usize) -> Option<char> {
   let unit = match atom.as_str() {
     Some(text) => text.encode_utf16().nth(index),

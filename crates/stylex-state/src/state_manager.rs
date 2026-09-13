@@ -23,7 +23,7 @@ use swc_core::{
 
 use crate::types::InjectableStylesMap;
 use stylex_ast::ast::convertors::create_number_expr;
-use stylex_ast::ast::convertors::normalize_expr;
+use stylex_ast::ast::convertors::{init_call, normalize_expr};
 use stylex_ast::ast::factories::{
   create_binding_ident, create_call_expr, create_expr_or_spread, create_key_value_prop,
   create_number_expr_or_spread, create_object_expression, create_string_expr_or_spread,
@@ -2037,10 +2037,9 @@ impl StateManager {
 
     debug_assert_eq!(
       found.is_some(),
-      self
-        .top_level_expressions
-        .iter()
-        .any(|tpe| matches!(normalize_expr(&tpe.1), Expr::Call(recorded) if recorded.eq_ignore_span(call))),
+      self.top_level_expressions.iter().any(|tpe| {
+        matches!(normalize_expr(&tpe.1), Expr::Call(recorded) if recorded.eq_ignore_span(call))
+      }),
       "`top_level_call_index` disagrees with `top_level_expressions`; something \
        changed the list without going through `push_top_level_expression` or \
        `set_top_level_expr`"
@@ -2221,14 +2220,10 @@ impl StateManager {
       return None;
     }
 
-    self.declarations.iter().position(|decl| {
-      // A parenthesis is not a different initializer. Read bare,
-      // `const fade = (stylex.keyframes({…}))` found no declarator, so the
-      // call was left untransformed and the name reached the runtime.
-      decl.init.as_deref().map(normalize_expr).is_some_and(
-        |init| matches!(init, Expr::Call(recorded_call) if recorded_call.span == call.span),
-      )
-    })
+    self
+      .declarations
+      .iter()
+      .position(|decl| init_call(decl).is_some_and(|recorded| recorded.span == call.span))
   }
 
   /// The declarator initialised by *this* call node, for callers that only read
@@ -2255,9 +2250,10 @@ impl StateManager {
 
     debug_assert_eq!(
       found.is_some(),
-      self.declarations.iter().any(|decl| {
-        matches!(decl.init.as_deref().map(normalize_expr), Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
-      }),
+      self
+        .declarations
+        .iter()
+        .any(|decl| { init_call(decl).is_some_and(|recorded| recorded.eq_ignore_span(call)) }),
       "`declaration_call_index` disagrees with `declarations`; something changed \
        the list without going through `push_declaration` or `set_declaration_init`"
     );
@@ -2274,8 +2270,11 @@ impl StateManager {
       |position| {
         // A parenthesis is not a different initializer, so the recorded call is
         // read through it.
-        matches!(self.declarations.get(position).and_then(|decl| decl.init.as_deref()).map(normalize_expr),
-          Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
+        self
+          .declarations
+          .get(position)
+          .and_then(init_call)
+          .is_some_and(|recorded| recorded.eq_ignore_span(call))
       },
     )
   }
@@ -2293,16 +2292,20 @@ impl StateManager {
       .candidates(|| stable_hash_unspanned_call(call))
       .iter()
       .find(|name| {
-        matches!(self.style_vars.get(*name).and_then(|decl| decl.init.as_deref()).map(normalize_expr),
-          Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
+        self
+          .style_vars
+          .get(*name)
+          .and_then(init_call)
+          .is_some_and(|recorded| recorded.eq_ignore_span(call))
       })
       .cloned();
 
     debug_assert_eq!(
       found.is_some(),
-      self.style_vars.values().any(|decl| {
-        matches!(decl.init.as_deref().map(normalize_expr), Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
-      }),
+      self
+        .style_vars
+        .values()
+        .any(|decl| { init_call(decl).is_some_and(|recorded| recorded.eq_ignore_span(call)) }),
       "`style_var_call_index` disagrees with `style_vars`; something changed the \
        map without going through `insert_style_var` or `set_style_var_init`"
     );

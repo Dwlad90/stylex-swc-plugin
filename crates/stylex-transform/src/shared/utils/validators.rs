@@ -12,7 +12,7 @@ use swc_core::{
 use crate::shared::utils::ast::helpers::is_variable_named_exported;
 use stylex_ast::ast::convertors::{
   convert_key_value_to_str, convert_lit_to_string, create_string_expr, get_key_values_from_object,
-  normalize_expr,
+  init_call, normalize_expr,
 };
 use stylex_ast::ast::factories::{create_expr_or_spread, create_key_value_prop_ident};
 use stylex_constants::constants::{
@@ -89,16 +89,18 @@ fn validate_single_object_arg_indent(
     None => stylex_panic!("{}", non_static_value(fn_name)),
   };
 
-  let init_call = init_expr.as_call().unwrap_or_else(|| {
+  // Not [`init_call`]: the panics below report at the initializer, so the
+  // expression the call was read out of is needed beside the call itself.
+  let call = init_expr.as_call().unwrap_or_else(|| {
     build_code_frame_error_and_panic_at(init_expr, &non_static_value(fn_name), state);
   });
 
-  if state.find_top_level_expr(init_call).is_none() {
+  if state.find_top_level_expr(call).is_none() {
     build_code_frame_error_and_panic_at(init_expr, &unbound_call_value(fn_name), state);
   }
 
-  validate_arg_count_for_expr(init_expr, init_call, 1, fn_name, state);
-  assert_first_arg_is_object(init_expr, init_call, fn_name, state);
+  validate_arg_count_for_expr(init_expr, call, 1, fn_name, state);
+  assert_first_arg_is_object(init_expr, call, fn_name, state);
 }
 
 fn is_var_decl_target_call(
@@ -107,14 +109,7 @@ fn is_var_decl_target_call(
   call_name: &str,
   kind: ImportKind,
 ) -> bool {
-  // A parenthesis is not a different initializer, so the call is read through
-  // it. Read bare, `const fade = (stylex.keyframes({…}))` was not recognised as
-  // a keyframes call at all.
-  var_decl
-    .init
-    .as_deref()
-    .map(normalize_expr)
-    .and_then(Expr::as_call)
+  init_call(var_decl)
     .is_some_and(|call| is_target_call((call_name, state.get_stylex_api_import(kind)), call, state))
 }
 

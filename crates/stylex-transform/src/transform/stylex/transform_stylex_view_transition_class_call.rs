@@ -23,7 +23,7 @@ use crate::{
     },
   },
 };
-use stylex_ast::ast::convertors::normalize_expr;
+use stylex_ast::ast::convertors::init_call;
 use stylex_constants::constants::{
   api_names::{STYLEX_FIRST_THAT_WORKS, STYLEX_KEYFRAMES, STYLEX_VIEW_TRANSITION_CLASS},
   common::VALID_VIEW_TRANSITION_CLASS_PROPERTIES,
@@ -50,15 +50,7 @@ where
     if is_view_transition_class_call {
       validate_stylex_view_transition_class_indent(var_decl, &mut self.state);
 
-      // A parenthesis is not a different initializer, so the call is read
-      // through it -- as the predicate above and the validator beside it read
-      // it.
-      let call = match var_decl
-        .init
-        .as_deref()
-        .map(normalize_expr)
-        .and_then(Expr::as_call)
-      {
+      let call = match init_call(var_decl) {
         Some(call) => call,
         None => stylex_panic!("{}", expected_call_expression(STYLEX_VIEW_TRANSITION_CLASS)),
       };

@@ -46,6 +46,16 @@ of an integer below 2^32 - 1. Canonical is what makes `0` one and `00`, `01` and
 them in insertion order as ordinary string keys.
 _Avoid_: numeric key, index, integer key
 
+**Code-unit reader**:
+An `atom_utf16_*` function that answers a question about a string literal in the
+units JavaScript counts it in — `atom_utf16_length`, `atom_utf16_char_at`. It
+reads the atom rather than a `String`, because a JavaScript literal can hold an
+unpaired surrogate and no Rust `String` can, and asking one of these must not
+abort a build over a question that needs no valid scalar to answer. A unit that
+is half of an astral character has no character of its own and reads as the
+replacement character, which is the decided parting recorded at the site.
+_Avoid_: utf16 helper, string reader, char reader
+
 **Synthesized node**:
 An AST node this compiler built rather than read, carrying `DUMMY_SP` because no
 source text spells it. Shorthand expansion and injected function mappers both

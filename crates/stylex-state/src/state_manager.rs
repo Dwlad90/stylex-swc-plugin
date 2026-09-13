@@ -1286,6 +1286,19 @@ impl StateManager {
       .and_then(|import| import.specifiers.get(specifier))
   }
 
+  /// The span of the array literal `expr` is, or `None` where it is not one.
+  ///
+  /// The array is read through its parentheses, and one reading serves the
+  /// index and the walk that checks it: `([stylex.create(…)])` and
+  /// `[stylex.create(…)]` record the same span, which is how
+  /// `is_bound_create_expr` already reads the shape.
+  fn array_span_of(expr: &Expr) -> Option<Span> {
+    match normalize_expr(expr) {
+      Expr::Array(array) => Some(array.span),
+      _ => None,
+    }
+  }
+
   /// Appends a top-level expression and records the call it is, if it is one.
   ///
   /// Every caller that grows [`Self::top_level_expressions`] goes through here,
@@ -1301,8 +1314,8 @@ impl StateManager {
       Rc::make_mut(&mut self.top_level_name_index).record(name.clone(), position);
     }
 
-    if let Expr::Array(array) = &expression.1 {
-      self.top_level_array_spans.push(array.span);
+    if let Some(span) = Self::array_span_of(&expression.1) {
+      self.top_level_array_spans.push(span);
     }
 
     self.top_level_expressions.push(expression);
@@ -1321,18 +1334,15 @@ impl StateManager {
     let replaced = std::mem::replace(&mut entry.1, expr);
     // Read while the entry is still borrowed, because the list below is a field
     // of the same state manager.
-    let records_array = match &entry.1 {
-      Expr::Array(array) => Some(array.span),
-      _ => None,
-    };
+    let records_array = Self::array_span_of(&entry.1);
 
     // An entry that stops being an array leaves the list, which is what keeps
     // [`Self::holds_call_in_top_level_array`] the answer the walk gave.
-    if let Expr::Array(array) = &replaced
+    if let Some(span) = Self::array_span_of(&replaced)
       && let Some(position) = self
         .top_level_array_spans
         .iter()
-        .position(|recorded| *recorded == array.span)
+        .position(|recorded| *recorded == span)
     {
       self.top_level_array_spans.remove(position);
     }
@@ -2154,7 +2164,7 @@ impl StateManager {
     debug_assert_eq!(
       found,
       self.top_level_expressions.iter().any(|recorded| {
-        matches!(&recorded.1, Expr::Array(array) if array.span.contains(call.span))
+        Self::array_span_of(&recorded.1).is_some_and(|array| array.contains(call.span))
       }),
       "`top_level_array_spans` disagrees with `top_level_expressions`; something \
        changed the list without going through `push_top_level_expression` or \

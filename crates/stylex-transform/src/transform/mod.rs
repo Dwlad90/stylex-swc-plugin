@@ -9,6 +9,7 @@ use swc_core::{
   },
 };
 
+use stylex_ast::ast::convertors::normalize_expr;
 use stylex_enums::{
   property_validation_mode::PropertyValidationMode, style_resolution::StyleResolution,
   sx_prop_name_param::SxPropNameParam,
@@ -367,7 +368,10 @@ where
 
   pub(crate) fn process_declaration(&mut self, call_expr: &mut CallExpr) -> Option<(Id, String)> {
     if let Callee::Expr(callee) = &mut call_expr.callee {
-      match callee.as_ref() {
+      // A parenthesis is not a different callee, so both levels are read
+      // through it: `(stylex.create)({…})` and `(stylex).create({…})` name the
+      // same function the bare spelling names.
+      match normalize_expr(callee) {
         Expr::Ident(ident)
           if self
             .state
@@ -377,7 +381,7 @@ where
         },
         Expr::Member(member) => {
           if let (Expr::Ident(obj_ident), MemberProp::Ident(prop_ident)) =
-            (member.obj.as_ref(), &member.prop)
+            (normalize_expr(&member.obj), &member.prop)
             && self
               .state
               .is_stylex_import_for_current_cycle(obj_ident.sym.as_ref())

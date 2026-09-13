@@ -6,6 +6,7 @@
 
 use swc_core::ecma::ast::{Decl, Expr, Module, ModuleDecl, ModuleItem, Stmt, VarDeclarator};
 
+use stylex_ast::ast::convertors::normalize_expr;
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
 use stylex_structures::top_level_expression::TopLevelExpression;
 
@@ -77,7 +78,10 @@ fn record_top_level_declarator(
       fill_state_declarations(state, decl);
     },
     None => {
-      if let Expr::Call(call) = decl_init.as_ref()
+      // A parenthesis is not a different initializer, so the call is read
+      // through it. Read bare, `const { a } = (stylex.create({…}))` was not
+      // marked as program level and the transform hoisted its result out.
+      if let Expr::Call(call) = normalize_expr(decl_init)
         && !call.span.is_dummy()
       {
         state.pattern_bound_top_level_calls.insert(call.span);

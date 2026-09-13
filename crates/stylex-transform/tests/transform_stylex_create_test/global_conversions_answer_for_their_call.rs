@@ -206,18 +206,19 @@ fn a_declared_receiver_refuses_rather_than_reading_through_the_shadow() {
 // ──────────────────────────────────────────────
 
 // Parentheses change nothing about which name is written, so the shadow is
-// honoured however many of them wrap it — and it used to fold here. Both
-// compilers refuse; the sentences differ because the dispatch below the fold
-// reads a callee written as a bare name and a parenthesised one reaches its
-// catch-all, where upstream names the declaration. A refusal either way is what
-// the rule is for, and message text is not a parity obligation (`ADR 0008`).
+// honoured however many of them wrap it — and it used to fold here. The
+// dispatch below the fold now reads a parenthesised callee as the bare name it
+// is, so the refusal is upstream's own sentence rather than the catch-all, and
+// is word for word the one the bare spelling reads.
 #[test]
 fn parentheses_do_not_hide_a_shadowed_callee() {
-  assert_refuses(
-    "function String(x) { return 'no'; }",
-    "color: (((String)))(1)",
-    "Unsupported expression: CallExpression",
-  );
+  for spelling in ["color: String(1)", "color: (((String)))(1)"] {
+    assert_refuses(
+      "function String(x) { return 'no'; }",
+      spelling,
+      "Unsupported expression: FunctionDeclaration",
+    );
+  }
 }
 
 // A dynamic style's parameter binds the name for the body under it, and holds no

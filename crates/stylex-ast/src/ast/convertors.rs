@@ -46,6 +46,10 @@ pub fn convert_member_prop_to_string(prop: &MemberProp) -> Option<String> {
 /// Unwraps parenthesized expressions, returning a reference to the innermost
 /// non-paren expression. Spans are preserved. Use [`normalize_expr_mut`] when
 /// the caller needs to mutate the unwrapped node.
+///
+/// Unwrapped in a loop rather than by recursing, because a caller inside the
+/// evaluator's guard asks this before it descends and so has no nesting budget
+/// to spend. A loop needs none.
 pub fn normalize_expr(mut expr: &Expr) -> &Expr {
   while let Expr::Paren(paren) = expr {
     expr = paren.expr.as_ref();

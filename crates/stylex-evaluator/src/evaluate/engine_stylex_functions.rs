@@ -29,6 +29,7 @@ use swc_core::{
   ecma::ast::{Expr, MemberExpr, MemberProp},
 };
 
+use stylex_ast::ast::convertors::normalize_expr;
 use stylex_constants::constants::api_names::STYLEX_FIRST_THAT_WORKS;
 
 use crate::stylex_first_that_works::{
@@ -123,7 +124,10 @@ pub(super) fn engine_callable(
   callee: &Expr,
   traversal_state: &StateManager,
 ) -> Option<EngineCallable> {
-  match callee {
+  // A parenthesis is not a different callee, at either level: `(stylex.types)`
+  // and `(stylex).types` name what `stylex.types` names. Only names are read
+  // here, so nothing is printed back and unwrapping costs no spelling.
+  match normalize_expr(callee) {
     Expr::Ident(ident) => CALLABLE
       .iter()
       .find(|callable| traversal_state.any_stylex_api_import_contains(&[callable.kind], &ident.sym))
@@ -137,7 +141,7 @@ pub(super) fn engine_callable(
       prop: MemberProp::Ident(prop),
       ..
     }) => {
-      let namespace = obj.as_ident()?;
+      let namespace = normalize_expr(obj).as_ident()?;
 
       if !traversal_state.is_regular_stylex_import(&namespace.sym) {
         return None;

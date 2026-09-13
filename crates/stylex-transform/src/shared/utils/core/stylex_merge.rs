@@ -1,5 +1,7 @@
 use rustc_hash::FxHashMap;
-use stylex_ast::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
+use stylex_ast::ast::convertors::{
+  convert_key_value_to_str, convert_lit_to_string, normalize_expr,
+};
 use stylex_macros::{stylex_panic, stylex_unreachable};
 use swc_core::ecma::{
   ast::{
@@ -89,10 +91,14 @@ pub(crate) fn stylex_merge(
     disable_imports: true,
   };
 
+  // A parenthesis is not a different argument, at either level. Read bare,
+  // `stylex.props(([a, b]))` was not flattened into its elements and
+  // `stylex.props((styles.root))` reached no arm of the match below, so both
+  // handed the whole merge back to the runtime.
   let args_path = call
     .args
     .iter()
-    .flat_map(|arg| match arg.expr.as_ref() {
+    .flat_map(|arg| match normalize_expr(&arg.expr) {
       Expr::Array(arr) => arr.elems.clone(),
       _ => vec![Some(arg.clone())],
     })
@@ -103,7 +109,7 @@ pub(crate) fn stylex_merge(
   for arg_path in args_path.iter() {
     current_index += 1;
 
-    let arg = arg_path.expr.as_ref();
+    let arg = normalize_expr(&arg_path.expr);
 
     let resolved = if arg.is_object() || arg.is_ident() || arg.is_member() || arg.is_call() {
       let resolved = parse_nullable_style(arg, state, &evaluate_path_fn_config);

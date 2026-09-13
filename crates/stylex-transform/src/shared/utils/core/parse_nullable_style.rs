@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use stylex_ast::ast::convertors::{
-  convert_key_value_to_str, convert_lit_to_string, is_js_undefined,
+  convert_key_value_to_str, convert_lit_to_string, is_js_undefined, normalize_expr,
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::{Expr, Lit, MemberProp, ObjectLit};
@@ -68,6 +68,11 @@ pub(crate) fn parse_nullable_style(
   state: &mut StateManager,
   evaluate_path_fn_config: &FunctionMap,
 ) -> StyleObject {
+  // A parenthesis is not a different argument, so the style shape is read
+  // through it. Read bare, `stylex.props((styles.root))` reached no arm below
+  // and the whole merge was handed back to the runtime.
+  let path = normalize_expr(path);
+
   // Call expressions (dynamic atom `_temp.color(c)`, dynamic create style
   // `styles.opacity(1)`, etc.) always bail out to runtime so the props merge
   // keeps the conditional class / inline-var semantics intact.
@@ -94,7 +99,7 @@ pub(crate) fn parse_nullable_style(
       let mut obj_name: Option<String> = None;
       let mut prop_name: Option<String> = None;
 
-      if let Some(obj_ident) = member.obj.as_ident()
+      if let Some(obj_ident) = normalize_expr(&member.obj).as_ident()
         && state.is_style_var_ident(obj_ident)
       {
         match &member.prop {
@@ -103,7 +108,7 @@ pub(crate) fn parse_nullable_style(
             prop_name = Some(prop_ident.sym.as_str().to_string());
           },
           MemberProp::Computed(computed) => {
-            if let Some(lit) = computed.expr.as_lit() {
+            if let Some(lit) = normalize_expr(&computed.expr).as_lit() {
               obj_name = Some(obj_ident.sym.as_str().to_string());
               prop_name = convert_lit_to_string(lit);
             }

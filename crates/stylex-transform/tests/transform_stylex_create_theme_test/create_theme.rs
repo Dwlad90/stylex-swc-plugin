@@ -474,3 +474,26 @@ stylex_test!(
       });
   "#
 );
+
+// A parenthesis is not a different argument. Read bare, the theme object in
+// parentheses stopped the build on a shape upstream compiles, and the callee
+// in parentheses was not read as a `createTheme` call at all.
+//
+// Ticket 47 of `.scratch/split-transform-crate` holds the class; the other
+// shapes it covers are in
+// `transform_stylex_create_test/parenthesised_spellings.rs`.
+stylex_test!(
+  a_parenthesised_theme_argument_and_callee,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      __varGroupHash__: "x1xohuxq"
+    };
+
+    export const theme = stylex.createTheme(vars, ({ color: 'green' }));
+    export const other = (stylex.createTheme)(vars, { color: 'blue' });
+    export const third = (stylex).createTheme((vars), { color: 'red' });
+  "#
+);

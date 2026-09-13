@@ -404,3 +404,35 @@ pub(crate) fn base_style_module(decls: &str, body: &str) -> String {
     decls, body
   )
 }
+
+/// The module `input` compiles to, under the default transform.
+///
+/// The same compile step `stylex_test!` makes, reached as a string rather than
+/// as a snapshot -- which is what a case comparing two spellings of one module
+/// needs, since a snapshot can only say what one of them printed.
+pub(crate) fn compiled_module(input: &str) -> String {
+  stringify_js(input, ts_syntax(), |tr| {
+    build_test_transform(tr.comments.clone(), |b| b.with_runtime_injection())
+  })
+}
+
+/// Asserts that two spellings of one module compile to the same thing.
+///
+/// A parenthesis is a node in this compiler's tree and none in the reference
+/// implementation's, so a reader that matches a bare node sees a different
+/// expression from the one the author wrote. This is the shape of the check
+/// that finds such a reader: compile both spellings and compare what each
+/// printed, rather than assert that one of them printed something in
+/// particular. A reader added later that matches bare fails here without anyone
+/// having to remember the rule.
+#[track_caller]
+pub(crate) fn assert_spellings_agree(shape: &str, bare: &str, wrapped: &str) {
+  let from_bare = compiled_module(bare);
+  let from_wrapped = compiled_module(wrapped);
+
+  assert_eq!(
+    from_bare, from_wrapped,
+    "the parenthesised spelling of {shape} compiles to something else.\n\
+     bare:\n{bare}\nwrapped:\n{wrapped}"
+  );
+}

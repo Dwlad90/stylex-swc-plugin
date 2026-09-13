@@ -361,7 +361,9 @@ pub(crate) fn validate_stylex_create_theme_indent(
 
   let second_arg = &init.args[1];
 
-  let is_valid_second_arg = match second_arg.expr.as_ref() {
+  // A parenthesis is not a different argument, so the theme object is read
+  // through it. Read bare, `createTheme(vars, ({…}))` stopped the build.
+  let is_valid_second_arg = match normalize_expr(&second_arg.expr) {
     Expr::Ident(ident) => state.import_binding(ident).is_none(),
     Expr::Object(_) => true,
     _ => false,
@@ -582,30 +584,25 @@ pub(crate) fn is_target_call(
   call: &CallExpr,
   state: &StateManager,
 ) -> bool {
-  // Read bare on purpose, for now. `(stylex.create)(…)` and `(stylex).create(…)`
-  // are the same call as the bare spelling and neither is recognised here --
-  // but the dispatch above this reads the callee bare too, so unwrapping only
-  // here does not transform them. What it does instead is class
-  // `(stylex.props)(styles.b)` as a consumer call that is then never
-  // transformed, which drops `b` from the namespace the pruner keeps and leaves
-  // the element unstyled. Ticket 47 of `.scratch/split-transform-crate` holds
-  // the two rows, and the dispatch is what has to move first.
-  let is_create_ident = call
-    .callee
-    .as_expr()
-    .and_then(|arg| arg.as_ident())
+  // A parenthesis is not a different callee, so both levels are read through
+  // it, as the dispatch in `process_declaration` reads them. `(stylex.create)(…)`
+  // and `(stylex).create(…)` name the same function the bare spelling names.
+  let callee = call.callee.as_expr().map(|expr| normalize_expr(expr));
+
+  let is_create_ident = callee
+    .and_then(|callee| callee.as_ident())
     .is_some_and(|ident| imports_map.is_some_and(|set| set.contains(&ident.sym)));
 
-  let is_create_member = call
-    .callee
-    .as_expr()
-    .and_then(|expr| expr.as_member())
+  let is_create_member = callee
+    .and_then(|callee| callee.as_member())
     .is_some_and(|member| {
-      member.obj.is_ident()
+      let receiver = normalize_expr(&member.obj);
+
+      receiver.is_ident()
         && member.prop.as_ident().is_some_and(|ident| {
           ident.sym == call_name
             && state.is_stylex_namespace_import(
-              match member.obj.as_ident() {
+              match receiver.as_ident() {
                 Some(ident) => ident,
                 None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
               }

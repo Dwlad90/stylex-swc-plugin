@@ -160,6 +160,119 @@ function carriesUnescapedTerminator(value: string): boolean {
 }
 
 /**
+ * A surrogate half spelled as a JavaScript escape: `\uD800` or `\u{D800}`.
+ *
+ * Only the halves, and only the spellings that can name one. A code point above
+ * `U+FFFF` is written as a whole pair, which is never an unpaired half, so the
+ * braced form is read no further than four digits.
+ */
+const ESCAPED_CODE_UNIT = /u(?:\{0*([0-9a-fA-F]{1,4})\}|([0-9a-fA-F]{4}))/y;
+
+/**
+ * The text a row hands both compilers, as the code units a compiler reads.
+ *
+ * A corpus row is JavaScript source, so a surrogate reaches it in either of two
+ * spellings: the code unit itself, or the `\uD800` escape that names it. Both
+ * describe the same string, and a guard that knew only one would vouch for
+ * whichever half of the corpus it happened to read.
+ *
+ * Deliberately the shape rather than a second JavaScript lexer. It does not
+ * have to agree with the parser on every input; it has to be unwilling to
+ * vouch for a refusal it has no evidence for.
+ */
+function readCodeUnits(text: string): string {
+  let units = '';
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+
+    if (character !== '\\') {
+      units += character;
+      continue;
+    }
+
+    // Matched in place with a sticky regex rather than against a slice: a
+    // slice per backslash copies the rest of the subject, which is the square
+    // of its length on text that is mostly escapes.
+    ESCAPED_CODE_UNIT.lastIndex = index + 1;
+
+    const escape = ESCAPED_CODE_UNIT.exec(text);
+
+    if (escape === null) {
+      // Any other escape names one character, and no such character is a
+      // surrogate half. Stepping over it keeps an escaped backslash from
+      // being read as the start of the escape that follows it.
+      index += 1;
+      continue;
+    }
+
+    // One of the two groups holds the digits, since a match is one form or the
+    // other. The fallback is for a pattern edited later, and it fails in the
+    // safe direction: no digits parses to `NaN`, which is no surrogate half, so
+    // the guard declines to vouch rather than claiming a row it cannot read.
+    const digits = escape[1] ?? escape[2] ?? '';
+
+    // A code unit is the subject: `fromCodePoint` refuses the very halves
+    // this reads.
+    // oxlint-disable-next-line unicorn/prefer-code-point
+    units += String.fromCharCode(Number.parseInt(digits, 16));
+    index += escape[0].length;
+  }
+
+  return units;
+}
+
+/** The two things a text must hold before it is worth reading unit by unit. */
+const SURROGATE_OR_ESCAPE = /[\uD800-\uDFFF]|\\u/;
+
+/**
+ * Whether the text a row hands both compilers holds an unpaired surrogate.
+ *
+ * A surrogate code unit is well-formed UTF-16 only as half of a pair, so a half
+ * standing on its own is the thing that has no Rust string to hold it. This is
+ * what the family below claims on, rather than the refusal sentence alone: the
+ * sentence covers every key that has no name, of which a lone surrogate is one
+ * case.
+ */
+function carriesLoneSurrogate(text: string): boolean {
+  const isHighHalf = (unit: number): boolean => unit >= 0xd800 && unit <= 0xdbff;
+  const isLowHalf = (unit: number): boolean => unit >= 0xdc00 && unit <= 0xdfff;
+
+  // Almost every row carries neither a surrogate nor an escape that could name
+  // one, and those rows need no reading at all.
+  if (!SURROGATE_OR_ESCAPE.test(text)) return false;
+
+  const units = readCodeUnits(text);
+
+  for (let index = 0; index < units.length; index += 1) {
+    // A code unit is the subject: `codePointAt` joins a pair back together and
+    // answers nothing about the half this looks for.
+    // oxlint-disable-next-line unicorn/prefer-code-point
+    const unit = units.charCodeAt(index);
+
+    // A low half reached here follows no high half, since a paired one is
+    // stepped over below.
+    if (isLowHalf(unit)) return true;
+
+    if (!isHighHalf(unit)) continue;
+
+    // A high half is paired only when a low half follows it. Past the end
+    // `charCodeAt` answers `NaN`, which is no low half either.
+    // oxlint-disable-next-line unicorn/prefer-code-point
+    if (!isLowHalf(units.charCodeAt(index + 1))) return true;
+
+    index += 1;
+  }
+
+  return false;
+}
+
+/** The text a row hands both compilers, whichever kind of question it asks. */
+function subjectText(entry: ReportEntry): string {
+  return entry.kind === 'module' ? entry.source : entry.value;
+}
+
+/**
  * The complaints this compiler is known to reach on a value the reference
  * compiler crashes on.
  *
@@ -272,8 +385,16 @@ export const REFUSAL_FAMILIES: readonly RefusalFamily[] = [
     // key is `String(key)` and a lone surrogate has no string. One family
     // because the reason above is the same for both: there is no
     // representation, not an ordering that could be swapped.
+    //
+    // The second sentence is not surrogate-specific — a key with no name also
+    // covers a function and this compiler's own values — so it is claimed only
+    // where the row actually carries the half that has no representation.
+    // Claiming on the sentence alone would swallow a future row for, say, a
+    // function used as a computed key, and the count a reader acts on is the
+    // rows no family claims.
     claims: entry =>
-      refusedWith(entry, REFUSALS.invalidUtf8) || refusedWith(entry, REFUSALS.keyHasNoName),
+      refusedWith(entry, REFUSALS.invalidUtf8) ||
+      (refusedWith(entry, REFUSALS.keyHasNoName) && carriesLoneSurrogate(subjectText(entry))),
   },
   {
     name: 'nesting past the recursion budget',

@@ -227,9 +227,9 @@ describe('what a family leaves as news', () => {
   });
 
   test('the same undecodable name where only this compiler refused', () => {
-    // The reason survives the reference compiler accepting the name -- the
+    // The reason survives the reference compiler accepting the name — the
     // absence of a representation does not depend on what the other side did
-    // with it -- and rows now read that verdict: a lone surrogate written or
+    // with it — and rows now read that verdict: a lone surrogate written or
     // computed as a style key is held upstream and written out as a replacement
     // character, so only this compiler refuses. Both sentences a name is
     // refused with reach the family, since a name is decoded in two places.
@@ -237,9 +237,49 @@ describe('what a family leaves as news', () => {
       'String value contains invalid UTF-8 encoding.',
       'The key has no name at compile time.',
     ]) {
-      expect(nameOf(subject('acceptance-divergent', refused(refusal), ACCEPTED))).toBe(
-        'lone surrogate in a name'
-      );
+      expect(
+        nameOf(subject('acceptance-divergent', refused(refusal), ACCEPTED, { value: '\uD800' }))
+      ).toBe('lone surrogate in a name');
+    }
+  });
+
+  test('a lone surrogate spelled as an escape rather than as the code unit', () => {
+    // A corpus row is JavaScript source, so the half is written `\uD800` far
+    // more often than it is carried. Both spellings name the same string.
+    for (const value of ['\\uD800', '\\u{D800}', 'a\\uDC00b']) {
+      expect(
+        nameOf(
+          subject(
+            'acceptance-divergent',
+            refused('The key has no name at compile time.'),
+            ACCEPTED,
+            {
+              value,
+            }
+          )
+        )
+      ).toBe('lone surrogate in a name');
+    }
+  });
+
+  test('a key with no name that carries no surrogate is news', () => {
+    // The sentence covers every key that has no name — a function, this
+    // compiler's own values, and a lone surrogate. Only the last one is this
+    // family, so a function used as a computed key has to print as a row
+    // nobody has read rather than as a divergence produced on purpose.
+    for (const value of ['red', '\\uD800\\uDC00', '\\\\uD800', '\\u{1F600}']) {
+      expect(
+        nameOf(
+          subject(
+            'acceptance-divergent',
+            refused('The key has no name at compile time.'),
+            ACCEPTED,
+            {
+              value,
+            }
+          )
+        )
+      ).toBeUndefined();
     }
   });
 

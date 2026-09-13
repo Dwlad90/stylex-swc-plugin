@@ -1,11 +1,12 @@
 use super::*;
 use std::rc::Rc;
 use stylex_ast::ast::convertors::{create_ident_expr, create_null_expr, create_string_expr};
+use stylex_ast::ast::factories::create_expr_or_spread;
 use stylex_state::{theme_ref::ThemeRef, types::FunctionConfigMap};
 use stylex_structures::fold_ceilings::MAX_FOLDED_CHARACTERS_LIMIT;
 use swc_core::{
   common::DUMMY_SP,
-  ecma::ast::{UnaryExpr, UnaryOp},
+  ecma::ast::{ExprOrSpread, UnaryExpr, UnaryOp},
 };
 
 /// `ToString` over an evaluated value, collected -- the shape these cases assert
@@ -559,4 +560,70 @@ fn the_absent_value_has_no_string_of_its_own() {
     None,
     "the standing-in form is about functions and answers nothing for it either"
   );
+}
+
+/// Every slot of an array literal names the index it sits at, so a slot with no
+/// element to name leaves the receiver unreadable rather than shortening the
+/// list.
+///
+/// Written against the reader rather than against a source, because no fold
+/// writes such an array today: `array_expression` refuses a hole and a spread
+/// before either reaches a value. That is exactly why the reader has to answer
+/// for one. A second reader that trusts the first is the defect this pair of
+/// arms closes -- `[, 'a']` read past its hole names `'a'` key `0`, and
+/// `[...xs]` read past its spread names the whole list key `0`, both of which
+/// are a stylesheet the source does not describe.
+#[test]
+fn a_written_array_slot_with_nothing_to_name_leaves_the_receiver_unreadable() {
+  let hole = ArrayLit {
+    span: DUMMY_SP,
+    elems: vec![None, Some(create_expr_or_spread(create_string_expr("a")))],
+  };
+
+  assert!(
+    matches!(
+      written_array_receiver(&hole),
+      ObjectMethodReceiver::Unreadable
+    ),
+    "a hole carries no value for its index to name"
+  );
+
+  let spread = ArrayLit {
+    span: DUMMY_SP,
+    elems: vec![Some(ExprOrSpread {
+      spread: Some(DUMMY_SP),
+      expr: Box::new(create_ident_expr("xs")),
+    })],
+  };
+
+  assert!(
+    matches!(
+      written_array_receiver(&spread),
+      ObjectMethodReceiver::Unreadable
+    ),
+    "a spread names another list rather than one element of this one"
+  );
+}
+
+/// The same reader, over the slots it can name: each index names the element
+/// that sits at it, in order.
+#[test]
+fn a_written_array_names_each_index_after_the_element_that_sits_at_it() {
+  let array = ArrayLit {
+    span: DUMMY_SP,
+    elems: vec![
+      Some(create_expr_or_spread(create_string_expr("a"))),
+      Some(create_expr_or_spread(create_string_expr("b"))),
+    ],
+  };
+
+  let ObjectMethodReceiver::Object(object) = written_array_receiver(&array) else {
+    panic!("an array whose every slot holds an element reads as an object");
+  };
+
+  let keys: Vec<String> = written_key_values(&object)
+    .filter_map(|prop| prop.key.as_ident().map(|key| key.sym.to_string()))
+    .collect();
+
+  assert_eq!(keys, vec!["0".to_string(), "1".to_string()]);
 }

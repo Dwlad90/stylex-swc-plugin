@@ -76,18 +76,32 @@ fn evaluated_array_receiver(items: &[EvaluateResultValue]) -> ObjectMethodReceiv
 ///
 /// Every slot of an [evaluator-written
 /// array](../../CONTEXT.md#evaluator-written-array) holds one present element
-/// and no spread, and each element already passed the kind check on the way in,
-/// so this names what is there rather than re-deciding it.
+/// and no spread. This reads the slots rather than trusting that, because a
+/// second reader that trusts the first drifts from it: a hole passed over
+/// before the index is counted moves every later key up one, and a spread read
+/// as a single element names a list under its own name. Both write a stylesheet
+/// the source does not describe, which is the answer
+/// [`evaluated_array_receiver`] already refuses to give.
 fn written_array_receiver(array: &ArrayLit) -> ObjectMethodReceiver {
-  let props = array
-    .elems
-    .iter()
-    .flatten()
-    .enumerate()
-    .map(|(index, element)| {
-      create_ident_key_value_prop(&index.to_string(), (*element.expr).clone())
-    })
-    .collect();
+  let mut props = Vec::with_capacity(array.elems.len());
+
+  for (index, element) in array.elems.iter().enumerate() {
+    // A hole carries no value to name.
+    let Some(element) = element else {
+      return ObjectMethodReceiver::Unreadable;
+    };
+
+    // A spread names the elements of another list rather than one element of
+    // this one, so the index it would be given is not the index it holds.
+    if element.spread.is_some() {
+      return ObjectMethodReceiver::Unreadable;
+    }
+
+    props.push(create_ident_key_value_prop(
+      &index.to_string(),
+      (*element.expr).clone(),
+    ));
+  }
 
   ObjectMethodReceiver::Object(create_object_lit(props))
 }

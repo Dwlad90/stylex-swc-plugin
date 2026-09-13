@@ -9,9 +9,12 @@
  *
  * Run it from this package, after `dist/` is built:
  *
- *   pnpm run parity:probe '{"a label": "<module source>"}'
+ *   pnpm run parity:probe '{"a label": "<module source>"}' [host file name]
  *
- * The argument is a JSON object of label to module source.
+ * The first argument is a JSON object of label to module source. The second is
+ * optional and names the file both compilers are told the source came from.
+ * It defaults to `probe.js`; pass a `.stylex.js` name to measure the shapes
+ * that only a variable-defining module can hold, such as `defineVars`.
  */
 
 import path from 'node:path';
@@ -33,8 +36,25 @@ interface Answer {
   refusal?: string;
 }
 
+/**
+ * The file name both compilers are told the source came from.
+ *
+ * A bare name only, because the two compilers resolve variable names from the
+ * path, and a name carrying a directory would move the source out of the
+ * package the options root at and change every generated name with it.
+ */
+const hostFileName = (argument: string | undefined): string => {
+  const name = argument ?? 'probe.js';
+
+  if (name !== path.basename(name)) {
+    throw new TypeError(`the host file name "${name}" is a path; pass a bare file name`);
+  }
+
+  return name;
+};
+
 const packageDir = path.resolve(import.meta.dirname, '..');
-const filename = path.join(packageDir, 'probe.js');
+const filename = path.join(packageDir, hostFileName(process.argv[3]));
 const options = baseStyleXOptions(packageDir);
 
 const { transform } = await loadRustCompiler(packageDir);

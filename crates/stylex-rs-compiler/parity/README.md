@@ -37,6 +37,11 @@ label to module source on the command line, and prints what each compiler
 answers for each one. Use it to measure a divergence before a corpus row or a
 ticket states it.
 
+A second, optional argument names the file both compilers are told the source
+came from, and defaults to `probe.js`. Give it a `.stylex.js` name to measure
+the shapes only a variable-defining module can hold -- `defineVars`,
+`defineConsts` and the `createTheme` calls that read them.
+
 Timings are wall clock on an Apple Silicon laptop with a warm build.
 
 **Why CI and not a hook.** Both comparison harnesses need a built `dist/` and a

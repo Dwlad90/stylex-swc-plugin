@@ -140,9 +140,10 @@ impl<V: StyleqValue> Styleq<V> {
     // The node the next compiled style is looked up in. `None` once the walk
     // may no longer cache, which an inline style that defines a new property
     // causes.
-    let mut next_cache = match self.options.disable_cache {
-      true => None,
-      false => Some(Arc::clone(&self.cache)),
+    let mut next_cache = if self.options.disable_cache {
+      None
+    } else {
+      Some(Arc::clone(&self.cache))
     };
     let mut styles = arguments.iter().collect::<Vec<_>>();
 
@@ -216,14 +217,19 @@ impl<V: StyleqValue> Styleq<V> {
     next_cache: &mut Option<Arc<CacheNode>>,
   ) {
     let mut class_name_chunk = String::new();
-    let cache_key = match cache_key {
+    // Named only where the walk may still cache. A merger with the cache off,
+    // and a merge an inline style has closed, both read no entry and store
+    // none, so a style with no address key would otherwise pay a walk of every
+    // property for a name nothing asks for.
+    let cache_key = next_cache.as_ref().map(|_| match cache_key {
       Some(cache_key) if self.options.transform.is_none() => CacheKey::Identity(cache_key),
       _ => CacheKey::Hash(hash_style(style)),
-    };
+    });
 
     let cached = next_cache
       .as_ref()
-      .and_then(|node| self.get_cache_entry(node, &cache_key));
+      .zip(cache_key.as_ref())
+      .and_then(|(node, cache_key)| self.get_cache_entry(node, cache_key));
 
     if let Some(cache_entry) = cached {
       class_name_chunk.push_str(&cache_entry.class_name);
@@ -260,11 +266,17 @@ impl<V: StyleqValue> Styleq<V> {
         }
 
         if value.as_class_name().is_some() || value.is_null() {
-          // Allocate the `Arc<str>` once and share between the membership
-          // set and the cache chunk (when caching). Avoids a duplicate
-          // `String`+`Arc` allocation for the same property name.
-          let prop_arc: Arc<str> = Arc::from(prop.as_str());
-          if defined_properties.insert(prop_arc.clone()) {
+          // Asked by borrow first, as `process_inline_style` already asks it.
+          // A property a style behind this one already declared is the common
+          // case of a merge, and allocating its name to learn that threw the
+          // allocation away again.
+          if !defined_properties.contains(prop.as_str()) {
+            // One `Arc<str>` for the membership set and the cache chunk both,
+            // rather than a `String` and an `Arc` for the same name.
+            let prop_arc: Arc<str> = Arc::from(prop.as_str());
+
+            defined_properties.insert(Arc::clone(&prop_arc));
+
             if use_cache {
               defined_properties_chunk.push(prop_arc);
             }
@@ -285,7 +297,9 @@ impl<V: StyleqValue> Styleq<V> {
         }
       }
 
-      if let Some(node) = next_cache.take() {
+      if let Some(node) = next_cache.take()
+        && let Some(cache_key) = cache_key
+      {
         let entry = self.insert_cache_entry(
           &node,
           cache_key,
@@ -442,9 +456,12 @@ impl<V: StyleqValue> Styleq<V> {
 /// share; this keys on a hash, which two different styles can, so the hash is
 /// 128 bits wide. See [`CacheKey::Hash`] for what a collision would cost.
 ///
-/// xxh3 rather than the narrow hasher the map itself uses: the cache is
-/// process-local, so nothing here needs to resist an attacker, but it does need
-/// a digest wider than the 64 bits `Hasher` hands back.
+/// xxh3 rather than the narrow hasher the map itself uses, because the narrow
+/// one has no digest wider than 64 bits. The width is not free: measured over
+/// styles of 1 to 40 properties, fed one piece at a time, xxh3 costs about
+/// seven times what the narrow hasher costs. It is paid only by a caller that
+/// both keeps the cache on and has no address key for its styles -- this
+/// compiler has neither -- and a wrong answer costs more than a hash.
 fn hash_style<V: StyleqValue>(style: &StyleMap<V>) -> u128 {
   let mut hasher = WideHasher::default();
 

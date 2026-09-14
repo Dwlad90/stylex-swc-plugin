@@ -112,19 +112,18 @@ pub fn evaluate_obj_key(
       // `1,2: red`. A value with no expression form has no string either, so it
       // refuses under the same sentence the coercion below refuses with: one
       // sentence for one mistake, where the key used to answer two.
-      match computed_result
+      let Some(value) = computed_result
         .value
         .as_ref()
         .and_then(evaluate_result_as_expr)
-      {
-        Some(value) => value,
-        None => {
-          return EvaluateResult::refused(
-            Some(*computed.expr.clone()),
-            Some(KEY_HAS_NO_NAME.to_string()),
-          );
-        },
-      }
+      else {
+        return EvaluateResult::refused(
+          Some(*computed.expr.clone()),
+          Some(KEY_HAS_NO_NAME.to_string()),
+        );
+      };
+
+      value
     },
     // The literal itself rather than the text it spells, so a text with no
     // `str` -- one holding a lone surrogate -- refuses below with every other

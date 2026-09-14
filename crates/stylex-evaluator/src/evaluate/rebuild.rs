@@ -80,7 +80,8 @@ pub fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -> Optio
 /// One element of an array, as the expression an array slot may hold.
 ///
 /// `None` is an element with no such form: a value with no expression at all,
-/// or an expression that is not one of the four kinds above. One reading for
+/// or an expression that is not one of the four kinds the match below names.
+/// One reading for
 /// every depth, because a reader that applied the kinds only below the top
 /// answered the same value two ways -- it wrote a placeholder arrow into a
 /// style value at depth zero and refused the same arrow one level down.

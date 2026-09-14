@@ -360,8 +360,8 @@ where
     }
   }
 
-  pub(crate) fn process_declaration(&mut self, call_expr: &mut CallExpr) -> Option<(Id, String)> {
-    if let Callee::Expr(callee) = &mut call_expr.callee {
+  pub(crate) fn process_declaration(&mut self, call_expr: &CallExpr) -> Option<(Id, String)> {
+    if let Callee::Expr(callee) = &call_expr.callee {
       // A parenthesis is not a different callee, so both levels are read
       // through it: `(stylex.create)({…})` and `(stylex).create({…})` name the
       // same function the bare spelling names.

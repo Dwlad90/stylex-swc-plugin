@@ -471,11 +471,17 @@ impl CacheState {
 /// anything else -- what the call indexes are keyed by, spelled once for the
 /// four places that move an entry between keys.
 fn call_key_of(expr: Option<&Expr>) -> Option<u128> {
-  // A parenthesis is not a different initializer, so the key is the same one
-  // the bare call has. Read bare, a parenthesized initializer was recorded
-  // under no key at all and the call it holds was never found.
-  match expr.map(normalize_expr) {
-    Some(Expr::Call(call)) => Some(stable_hash_unspanned_call(call)),
+  expr.and_then(call_key_of_expr)
+}
+
+/// The key of one expression, for a caller that holds it rather than an option.
+///
+/// A parenthesis is not a different initializer, so the key is the same one the
+/// bare call has. Read bare, a parenthesized initializer was recorded under no
+/// key at all and the call it holds was never found.
+fn call_key_of_expr(expr: &Expr) -> Option<u128> {
+  match normalize_expr(expr) {
+    Expr::Call(call) => Some(stable_hash_unspanned_call(call)),
     _ => None,
   }
 }
@@ -1189,7 +1195,7 @@ impl StateManager {
 
     // Keyed before the move, because reading the initializer back from the list
     // needs an index operator, which panics where a stale position gets here.
-    let recorded = call_key_of(Some(&init));
+    let recorded = call_key_of_expr(&init);
     let replaced = declarator.init.replace(Box::new(init));
 
     Rc::make_mut(&mut self.declaration_call_index).move_entry(
@@ -1306,7 +1312,7 @@ impl StateManager {
   pub(crate) fn push_top_level_expression(&mut self, expression: TopLevelExpression) {
     let position = self.top_level_expressions.len();
 
-    if let Some(key) = call_key_of(Some(&expression.1)) {
+    if let Some(key) = call_key_of_expr(&expression.1) {
       Rc::make_mut(&mut self.top_level_call_index).record(key, position);
     }
 
@@ -1330,7 +1336,7 @@ impl StateManager {
 
     // Keyed before the move, for the reason [`Self::set_declaration_init`] keys
     // its initializer before it.
-    let recorded = call_key_of(Some(&expr));
+    let recorded = call_key_of_expr(&expr);
     let replaced = std::mem::replace(&mut entry.1, expr);
     // Read while the entry is still borrowed, because the list below is a field
     // of the same state manager.
@@ -1354,7 +1360,7 @@ impl StateManager {
     // The name an entry binds does not change with its expression, so only the
     // call index needs repairing here.
     Rc::make_mut(&mut self.top_level_call_index).move_entry(
-      call_key_of(Some(&replaced)),
+      call_key_of_expr(&replaced),
       recorded,
       position,
     );
@@ -1382,7 +1388,7 @@ impl StateManager {
       return;
     };
 
-    let recorded = call_key_of(Some(&init));
+    let recorded = call_key_of_expr(&init);
     let replaced = declarator.init.replace(Box::new(init));
 
     Rc::make_mut(&mut self.style_var_call_index).move_entry(

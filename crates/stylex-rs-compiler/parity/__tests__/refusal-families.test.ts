@@ -294,6 +294,35 @@ describe('what a family leaves as news', () => {
     ).toBeUndefined();
   });
 
+  test('a backslash before a half hides it, and the row prints as news', () => {
+    // The guard steps two positions past an escape that names no code unit, so
+    // a backslash directly before a literal half steps over the half as well
+    // and never judges it. The half is there, and the guard does not say so.
+    //
+    // That is the safe direction of the two: the family declines to vouch, and
+    // the row prints as one nobody has read rather than as a divergence
+    // produced on purpose. It is pinned because the other direction -- claiming
+    // a row on a surrogate the guard has not seen -- is what the family exists
+    // to stop, and a change here has to be read as the trade it is.
+    expect(
+      nameOf(
+        subject('acceptance-divergent', refused('The key has no name at compile time.'), ACCEPTED, {
+          value: '\\\uD800',
+        })
+      )
+    ).toBeUndefined();
+
+    // Without the backslash in front of it, the same half is judged and the
+    // row is the family's.
+    expect(
+      nameOf(
+        subject('acceptance-divergent', refused('The key has no name at compile time.'), ACCEPTED, {
+          value: '\uD800',
+        })
+      )
+    ).toBe('lone surrogate in a name');
+  });
+
   test('a key with no name that carries no surrogate is news', () => {
     // The sentence covers every key that has no name — a function, this
     // compiler's own values, and a lone surrogate. Only the last one is this

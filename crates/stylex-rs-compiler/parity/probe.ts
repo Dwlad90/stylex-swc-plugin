@@ -43,7 +43,7 @@ interface Answer {
  * path, and a name carrying a directory would move the source out of the
  * package the options root at and change every generated name with it.
  */
-const BARE_FILE_NAME = /^[^./\\][^/\\]*\.[cm]?[jt]sx?$/;
+const BARE_FILE_NAME = /^[^./\\\0][^/\\\0]*\.[cm]?[jt]sx?$/;
 
 const hostFileName = (argument: string | undefined): string => {
   const name = argument ?? 'probe.js';
@@ -55,6 +55,11 @@ const hostFileName = (argument: string | undefined): string => {
   // refused for the first of those, no separator of either kind is allowed for
   // the second, and every other character is, so a name outside ASCII still
   // names a file.
+  //
+  // A NUL is refused with the separators. It is not a traversal, because the
+  // name is never opened, but `probe.js\0.js` passed the guard and then stopped
+  // inside Node with its own complaint about the argument rather than with the
+  // sentence below.
   if (!BARE_FILE_NAME.test(name)) {
     throw new TypeError(
       `the host file name "${name}" is not a bare file name; pass one like "probe.js"`

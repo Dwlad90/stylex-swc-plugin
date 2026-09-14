@@ -427,8 +427,24 @@ pub(crate) fn compiled_module(input: &str) -> String {
 /// having to remember the rule.
 #[track_caller]
 pub(crate) fn assert_spellings_agree(shape: &str, bare: &str, wrapped: &str) {
-  let from_bare = compiled_module(bare);
-  let from_wrapped = compiled_module(wrapped);
+  assert_spellings_agree_with(shape, bare, wrapped, compiled_module);
+}
+
+/// [`assert_spellings_agree`], for a shape the default transform cannot host.
+///
+/// `compile` is the harness the shape needs -- a `.stylex.js` file name for a
+/// module that defines variables, or a module resolution for a theme. The
+/// check is the same one: compile both spellings and compare what each
+/// printed.
+#[track_caller]
+pub(crate) fn assert_spellings_agree_with(
+  shape: &str,
+  bare: &str,
+  wrapped: &str,
+  compile: impl Fn(&str) -> String,
+) {
+  let from_bare = compile(bare);
+  let from_wrapped = compile(wrapped);
 
   assert_eq!(
     from_bare, from_wrapped,

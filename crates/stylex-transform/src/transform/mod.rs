@@ -30,7 +30,6 @@ where
   C: Comments,
 {
   pub comments: C,
-  props_declaration: Option<Id>,
   pub state: StateManager,
 }
 
@@ -279,7 +278,6 @@ where
 
     StyleXTransform {
       comments: self.comments,
-      props_declaration: None,
       state,
     }
   }
@@ -348,11 +346,7 @@ where
 
     state.set_plugin_pass(plugin_pass);
 
-    StyleXTransform {
-      comments,
-      props_declaration: None,
-      state,
-    }
+    StyleXTransform { comments, state }
   }
 
   /// Start building a test transform using the builder / `With` pattern.

@@ -11,7 +11,7 @@ use swc_core::{
   ecma::ast::{Expr, KeyValueProp, Lit, MemberProp, ObjectLit, Prop, PropName, PropOrSpread},
 };
 
-use super::convertors::{convert_str_lit_to_atom, convert_tpl_to_string_lit};
+use super::convertors::{convert_str_lit_to_atom, convert_tpl_to_string_lit, normalize_expr};
 
 pub fn namespace_name_from_prop_key(key: &PropName) -> Option<Atom> {
   match key {
@@ -54,7 +54,10 @@ fn try_namespace_name_from_lit(lit: &Lit) -> Option<Atom> {
 }
 
 fn try_namespace_name_from_expr(expr: &Expr) -> Option<Atom> {
-  match expr {
+  // A parenthesis is not a different key, so `{ [('a')]: 1 }` names what
+  // `{ ['a']: 1 }` names. `convert_member_prop_to_string` already reads a
+  // computed key this way, and the two must not disagree.
+  match normalize_expr(expr) {
     Expr::Lit(lit) => try_namespace_name_from_lit(lit),
     // A template with one quasi and no interpolation names the text of that
     // quasi. The shape is read here rather than through the convertor, which
@@ -85,7 +88,9 @@ fn namespace_name_from_lit(lit: &Lit) -> Option<Atom> {
 }
 
 fn namespace_name_from_expr(expr: &Expr) -> Option<Atom> {
-  match expr {
+  // Read through the parentheses, for the reason
+  // [`try_namespace_name_from_expr`] gives.
+  match normalize_expr(expr) {
     Expr::Lit(lit) => namespace_name_from_lit(lit),
     Expr::Tpl(tpl) => convert_tpl_to_string_lit(tpl)
       .as_ref()

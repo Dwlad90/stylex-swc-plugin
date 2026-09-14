@@ -1093,3 +1093,84 @@ fn sx_attr_compiled_jsx_transforms_every_level_of_a_deep_tree() {
     "no level may keep the prop the transform consumed"
   );
 }
+
+// ──────────────────────────────────────────────
+// The guard
+// ──────────────────────────────────────────────
+
+/// Every part of a compiled JSX call the `sx` scan reads, compiled both ways
+/// and compared.
+///
+/// A parenthesis is a node in this compiler's tree and none in the tree the
+/// compiled call was printed from, so a reader that matches a bare node sees a
+/// different expression from the one the author wrote. Every reader in the scan
+/// is such a reader, and when one of them does not recognise the call the `sx`
+/// prop is handed back to the runtime with no error for the author to read.
+///
+/// Each row is `(shape, bare, wrapped)`, and the two sources differ only by the
+/// brackets.
+#[test]
+fn a_compiled_jsx_call_is_read_through_its_parentheses() {
+  fn compiled(source: &str) -> String {
+    stringify_js(source, ts_syntax(), |tr| {
+      stylex_transform(tr.comments.clone(), |b| b)
+    })
+  }
+
+  const HEAD: &str = "import stylex from 'stylex';\n\
+    const styles = stylex.create({ main: { color: 'red' } });\n";
+
+  let jsx = |callee: &str, element: &str, props: &str| {
+    format!("{HEAD}export const el = {callee}({element}, {props});")
+  };
+  let solid = |callee: &str, name: &str| {
+    format!(
+      "{HEAD}export function App() {{ const e = _$createElement(\"div\"); \
+       {callee}(e, {name}, styles.main); return e; }}"
+    )
+  };
+
+  const PROPS: &str = "{ sx: styles.main }";
+
+  let rows: [(&str, String, String); 7] = [
+    (
+      "the classic callee's receiver",
+      jsx("React.createElement", "\"div\"", PROPS),
+      jsx("(React).createElement", "\"div\"", PROPS),
+    ),
+    (
+      "the classic callee",
+      jsx("React.createElement", "\"div\"", PROPS),
+      jsx("(React.createElement)", "\"div\"", PROPS),
+    ),
+    (
+      "the automatic runtime callee",
+      jsx("_jsx", "\"div\"", PROPS),
+      jsx("(_jsx)", "\"div\"", PROPS),
+    ),
+    (
+      "the element name",
+      jsx("_jsx", "\"div\"", PROPS),
+      jsx("_jsx", "(\"div\")", PROPS),
+    ),
+    (
+      "the props object",
+      jsx("_jsx", "\"div\"", PROPS),
+      jsx("_jsx", "\"div\"", "({ sx: styles.main })"),
+    ),
+    (
+      "the sx key itself",
+      jsx("_jsx", "\"div\"", "{ [\"sx\"]: styles.main }"),
+      jsx("_jsx", "\"div\"", "{ [(\"sx\")]: styles.main }"),
+    ),
+    (
+      "the Solid.js attribute setter callee and name",
+      solid("_$setAttribute", "\"sx\""),
+      solid("(_$setAttribute)", "(\"sx\")"),
+    ),
+  ];
+
+  for (shape, bare, wrapped) in &rows {
+    assert_spellings_agree_with(shape, bare, wrapped, compiled);
+  }
+}

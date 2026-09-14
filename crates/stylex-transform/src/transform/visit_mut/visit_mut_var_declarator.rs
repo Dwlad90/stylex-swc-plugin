@@ -8,14 +8,16 @@ use swc_core::{
   common::comments::Comments,
   ecma::{
     ast::{
-      CallExpr, Callee, Expr, KeyValueProp, Lit, ObjectLit, ObjectPatProp, Pat, Prop, PropName,
+      CallExpr, Callee, KeyValueProp, Lit, ObjectLit, ObjectPatProp, Pat, Prop, PropName,
       PropOrSpread, VarDeclarator,
     },
     visit::VisitMutWith,
   },
 };
 
-use stylex_ast::ast::convertors::{convert_str_lit_to_string, expand_shorthand_prop};
+use stylex_ast::ast::convertors::{
+  convert_str_lit_to_string, expand_shorthand_prop, init_call, normalize_expr,
+};
 use stylex_enums::{
   style_vars_to_keep::{NonNullProp, NonNullProps},
   top_level_expression::TopLevelExpressionKind,
@@ -27,10 +29,7 @@ use stylex_structures::{
 use crate::StyleXTransform;
 use stylex_ast::ast::keys::namespace_name_from_prop_key;
 use stylex_atoms::transform::ATOMS_SOURCE;
-use stylex_constants::constants::{
-  api_names::STYLEX_CREATE,
-  messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND},
-};
+use stylex_constants::constants::messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND};
 use stylex_enums::core::TransformationCycle;
 use stylex_state::state_manager::{DeclId, ImportKind};
 use stylex_structures::named_import_source::ImportSources;
@@ -45,20 +44,6 @@ where
         fill_state_declarations(&mut self.state, var_declarator);
         self.discover_commonjs_stylex_require(var_declarator);
         self.discover_commonjs_atoms_require(var_declarator);
-
-        if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut()
-          && let Some((declaration, member)) = self.process_declaration(call)
-        {
-          let declaration_name = declaration.0.as_str();
-
-          if self
-            .state
-            .is_stylex_import_for_kinds(declaration_name, &[ImportKind::Create])
-            && (member.as_str() == STYLEX_CREATE || member == declaration_name)
-          {
-            self.props_declaration = var_declarator.name.as_ident().map(|ident| ident.to_id());
-          }
-        }
 
         var_declarator.visit_mut_children_with(self);
       },
@@ -142,7 +127,7 @@ where
   }
 
   fn discover_commonjs_stylex_require(&mut self, var_declarator: &VarDeclarator) {
-    let Some(call) = var_declarator.init.as_deref().and_then(Expr::as_call) else {
+    let Some(call) = init_call(var_declarator) else {
       return;
     };
 
@@ -203,7 +188,7 @@ where
   /// - `const { color, padding: p } = require('@stylexjs/atoms')` → `color`
   ///   maps to `"color"` and `p` maps to `"padding"`
   fn discover_commonjs_atoms_require(&mut self, var_declarator: &VarDeclarator) {
-    let Some(call) = var_declarator.init.as_deref().and_then(Expr::as_call) else {
+    let Some(call) = init_call(var_declarator) else {
       return;
     };
 
@@ -314,13 +299,21 @@ where
   }
 }
 
-fn get_stylex_require_source(
-  call: &CallExpr,
-  state: &stylex_state::state_manager::StateManager,
-) -> Option<String> {
+/// The module a `require` call names, or nothing where the call is not one.
+///
+/// The callee and the argument are both read through their parentheses. A
+/// parenthesis is not a different call and not a different string, so
+/// `(require)('@stylexjs/stylex')` and `require(('@stylexjs/stylex'))` name the
+/// module the bare spelling names. Read bare, the import is never registered
+/// and the whole module reaches the runtime unstyled, with no error for the
+/// author to read.
+///
+/// One reader for both the StyleX source and the atoms source, so the two
+/// cannot come to answer a spelling differently.
+fn required_module(call: &CallExpr) -> Option<String> {
   let is_require_call = matches!(
     &call.callee,
-    Callee::Expr(callee) if callee.as_ident().is_some_and(|ident| ident.sym == "require")
+    Callee::Expr(callee) if normalize_expr(callee).as_ident().is_some_and(|ident| ident.sym == "require")
   );
 
   if !is_require_call {
@@ -333,37 +326,24 @@ fn get_stylex_require_source(
     return None;
   }
 
-  let source_path = match first_arg.expr.as_lit()? {
-    Lit::Str(strng) => convert_str_lit_to_string(strng),
-    _ => return None,
-  };
+  match normalize_expr(&first_arg.expr).as_lit()? {
+    Lit::Str(strng) => Some(convert_str_lit_to_string(strng)),
+    _ => None,
+  }
+}
+
+fn get_stylex_require_source(
+  call: &CallExpr,
+  state: &stylex_state::state_manager::StateManager,
+) -> Option<String> {
+  let source_path = required_module(call)?;
 
   state.is_import_source(&source_path).then_some(source_path)
 }
 
 /// Whether a call expression is `require('@stylexjs/atoms')`.
 fn is_atoms_require(call: &CallExpr) -> bool {
-  let is_require_call = matches!(
-    &call.callee,
-    Callee::Expr(callee) if callee.as_ident().is_some_and(|ident| ident.sym == "require")
-  );
-
-  if !is_require_call {
-    return false;
-  }
-
-  let Some(first_arg) = call.args.first() else {
-    return false;
-  };
-
-  if first_arg.spread.is_some() {
-    return false;
-  }
-
-  matches!(
-    first_arg.expr.as_lit(),
-    Some(Lit::Str(strng)) if convert_str_lit_to_string(strng) == ATOMS_SOURCE
-  )
+  required_module(call).is_some_and(|source_path| source_path == ATOMS_SOURCE)
 }
 
 fn destructured_require_prop(

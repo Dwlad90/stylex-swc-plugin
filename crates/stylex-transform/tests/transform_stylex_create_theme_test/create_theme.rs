@@ -1,4 +1,5 @@
 use crate::utils::prelude::*;
+use crate::utils::transform::stringify_js;
 use swc_core::common::FileName;
 
 fn stylex_transform(
@@ -497,3 +498,53 @@ stylex_test!(
     export const third = (stylex).createTheme((vars), { color: 'red' });
   "#
 );
+
+// ──────────────────────────────────────────────
+// The guard
+// ──────────────────────────────────────────────
+
+/// Every `createTheme` shape in the parenthesis class, compiled both ways and
+/// compared.
+///
+/// The snapshot above says what one spelling prints, which a reader added later
+/// that matches a bare node cannot fail: it changes only the parenthesised
+/// spelling, and a snapshot of that spelling records the change as correct.
+/// This compares the two spellings of one module instead.
+#[test]
+fn every_create_theme_shape_compiles_alike_in_both_spellings() {
+  fn compiled(source: &str) -> String {
+    stringify_js(source, ts_syntax(), |tr| {
+      stylex_transform(tr.comments.clone(), |b| b)
+    })
+  }
+
+  const HEAD: &str = "import * as stylex from '@stylexjs/stylex';\n\
+    export const vars = { color: \"var(--xt4ziaz)\", __varGroupHash__: \"x1xohuxq\" };\n";
+
+  let rows: [(&str, String, String); 4] = [
+    (
+      "the theme object",
+      format!("{HEAD}export const t = stylex.createTheme(vars, {{ color: 'green' }});"),
+      format!("{HEAD}export const t = stylex.createTheme(vars, ({{ color: 'green' }}));"),
+    ),
+    (
+      "the createTheme callee",
+      format!("{HEAD}export const t = stylex.createTheme(vars, {{ color: 'green' }});"),
+      format!("{HEAD}export const t = (stylex.createTheme)(vars, {{ color: 'green' }});"),
+    ),
+    (
+      "the createTheme callee's receiver",
+      format!("{HEAD}export const t = stylex.createTheme(vars, {{ color: 'green' }});"),
+      format!("{HEAD}export const t = (stylex).createTheme(vars, {{ color: 'green' }});"),
+    ),
+    (
+      "the variable group argument",
+      format!("{HEAD}export const t = stylex.createTheme(vars, {{ color: 'green' }});"),
+      format!("{HEAD}export const t = stylex.createTheme((vars), {{ color: 'green' }});"),
+    ),
+  ];
+
+  for (shape, bare, wrapped) in &rows {
+    assert_spellings_agree_with(shape, bare, wrapped, compiled);
+  }
+}

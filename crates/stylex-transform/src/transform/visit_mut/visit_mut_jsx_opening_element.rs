@@ -10,6 +10,7 @@ use swc_core::{
 };
 
 use crate::StyleXTransform;
+use stylex_ast::ast::convertors::{normalize_expr, normalize_expr_mut};
 use stylex_ast::ast::factories::{
   create_arrow_expression, create_ident, create_ident_call_expr, create_ident_name,
   create_import_namespace_decl, create_jsx_spread_attr, create_member_call_expr,
@@ -134,8 +135,10 @@ where
 
     let span = call.span;
 
-    // The first arg must be a lowercase string literal: a host element.
-    let Some(Expr::Lit(Lit::Str(element))) = call.args.first().map(|arg| arg.expr.as_ref()) else {
+    // The first arg must be a lowercase string literal: a host element. Read
+    // through its parentheses, because they name no other element.
+    let Some(Expr::Lit(Lit::Str(element))) = call.args.first().map(|arg| normalize_expr(&arg.expr))
+    else {
       return false;
     };
 
@@ -153,7 +156,7 @@ where
     let Some(obj_lit) = call
       .args
       .get_mut(1)
-      .and_then(|arg| arg.expr.as_mut_object())
+      .and_then(|arg| normalize_expr_mut(&mut arg.expr).as_mut_object())
     else {
       return false;
     };
@@ -189,9 +192,10 @@ where
 
     let call = expr.as_call()?;
 
-    // Check callee is _$setAttribute
+    // Check callee is _$setAttribute, read through its parentheses for the
+    // reason `is_jsx_runtime_call` gives.
     let is_set_attribute = match &call.callee {
-      Callee::Expr(e) => match e.as_ref() {
+      Callee::Expr(e) => match normalize_expr(e) {
         Expr::Ident(ident) => ident.sym.as_str() == "_$setAttribute",
         _ => false,
       },
@@ -206,8 +210,9 @@ where
       return None;
     }
 
-    // Args[1] must be the string matching sx_prop_name
-    let attr_name = match call.args[1].expr.as_ref() {
+    // Args[1] must be the string matching sx_prop_name, read through its
+    // parentheses.
+    let attr_name = match normalize_expr(&call.args[1].expr) {
       Expr::Lit(Lit::Str(s)) => s.value.as_str().unwrap_or(""),
       _ => return None,
     };
@@ -412,9 +417,15 @@ fn find_sx_prop(props: &[PropOrSpread], sx_prop_name: &str) -> Option<(usize, Ex
 
 /// Check if a `CallExpr` is a JSX/VDOM runtime call that takes `(elementName,
 /// props, ...)`.
+///
+/// The callee and the receiver inside it are read through their parentheses. A
+/// parenthesis is not a different callee, so `(React).createElement(...)` names
+/// the function `React.createElement(...)` names. Read bare, the call is not
+/// recognised, and the `sx` prop reaches the runtime with no error for the
+/// author to read.
 fn is_jsx_runtime_call(call: &CallExpr) -> bool {
   match &call.callee {
-    Callee::Expr(e) => match e.as_ref() {
+    Callee::Expr(e) => match normalize_expr(e) {
       Expr::Ident(ident) => {
         let name = ident.sym.as_str();
 
@@ -424,7 +435,9 @@ fn is_jsx_runtime_call(call: &CallExpr) -> bool {
         RUNTIME_JSX_CALL_NAMES.contains(&name)
       },
       Expr::Member(member) => {
-        if let (Expr::Ident(obj), MemberProp::Ident(prop)) = (member.obj.as_ref(), &member.prop) {
+        if let (Expr::Ident(obj), MemberProp::Ident(prop)) =
+          (normalize_expr(&member.obj), &member.prop)
+        {
           obj.sym.as_str() == "React" && prop.sym.as_str() == "createElement"
         } else {
           false

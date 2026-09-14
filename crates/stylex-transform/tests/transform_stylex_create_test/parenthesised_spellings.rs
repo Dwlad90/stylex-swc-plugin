@@ -236,7 +236,7 @@ stylex_test!(
 fn every_shape_in_the_class_compiles_alike_in_both_spellings() {
   const IMPORT: &str = "import * as stylex from '@stylexjs/stylex';";
 
-  let rows: [(&str, String, String); 14] = [
+  let rows: [(&str, String, String); 23] = [
     (
       "the create argument",
       format!("{IMPORT} export const s = stylex.create({{ a: {{ color: 'red' }} }});"),
@@ -334,6 +334,67 @@ fn every_shape_in_the_class_compiles_alike_in_both_spellings() {
       format!(
         "{IMPORT} export const s = stylex.create({{ a: {{ transform: (stylex.firstThatWorks)('translate(1px)', 'none') }} }});"
       ),
+    ),
+    (
+      "one of this compiler's own functions, at the receiver",
+      format!(
+        "{IMPORT} export const s = stylex.create({{ a: {{ transform: stylex.firstThatWorks('translate(1px)', 'none') }} }});"
+      ),
+      format!(
+        "{IMPORT} export const s = stylex.create({{ a: {{ transform: (stylex).firstThatWorks('translate(1px)', 'none') }} }});"
+      ),
+    ),
+    (
+      "a dynamic style function",
+      format!(
+        "{IMPORT} export const s = stylex.create({{ root: (color) => ({{ backgroundColor: 'red', color }}) }});"
+      ),
+      format!(
+        "{IMPORT} export const s = stylex.create({{ root: ((color) => ({{ backgroundColor: 'red', color }})) }});"
+      ),
+    ),
+    (
+      "a dynamic style call",
+      format!(
+        "{IMPORT} const s = stylex.create({{ root: (color) => ({{ color }}) }}); export const p = stylex.props(s.root('red'));"
+      ),
+      format!(
+        "{IMPORT} const s = stylex.create({{ root: (color) => ({{ color }}) }}); export const p = stylex.props((s.root)('red'));"
+      ),
+    ),
+    (
+      "a CommonJS require of the StyleX module",
+      "const stylex = require('@stylexjs/stylex'); export const s = stylex.create({ a: { color: 'red' } });".to_string(),
+      "const stylex = (require('@stylexjs/stylex')); export const s = stylex.create({ a: { color: 'red' } });".to_string(),
+    ),
+    (
+      "a CommonJS require of the atoms module",
+      format!(
+        "{IMPORT} const css = require('@stylexjs/atoms'); export const p = stylex.props(css.display.flex);"
+      ),
+      format!(
+        "{IMPORT} const css = (require('@stylexjs/atoms')); export const p = stylex.props(css.display.flex);"
+      ),
+    ),
+    (
+      "the require callee",
+      "const stylex = require('@stylexjs/stylex'); export const s = stylex.create({ a: { color: 'red' } });".to_string(),
+      "const stylex = (require)('@stylexjs/stylex'); export const s = stylex.create({ a: { color: 'red' } });".to_string(),
+    ),
+    (
+      "the required module name",
+      "const stylex = require('@stylexjs/stylex'); export const s = stylex.create({ a: { color: 'red' } });".to_string(),
+      "const stylex = require(('@stylexjs/stylex')); export const s = stylex.create({ a: { color: 'red' } });".to_string(),
+    ),
+    (
+      "a destructured require",
+      "const { create } = require('@stylexjs/stylex'); export const s = create({ a: { color: 'red' } });".to_string(),
+      "const { create } = (require)(('@stylexjs/stylex')); export const s = create({ a: { color: 'red' } });".to_string(),
+    ),
+    (
+      "a computed namespace key",
+      format!("{IMPORT} export const s = stylex.create({{ ['a']: {{ color: 'red' }} }});"),
+      format!("{IMPORT} export const s = stylex.create({{ [('a')]: {{ color: 'red' }} }});"),
     ),
   ];
 

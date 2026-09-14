@@ -322,7 +322,7 @@ impl<V: StyleqValue> Styleq<V> {
       if class_name.is_empty() {
         class_name.push_str(&class_name_chunk);
       } else if !self.options.dedupe_class_name_chunks
-        || !class_name.contains(class_name_chunk.as_str())
+        || !carries_chunk(class_name, &class_name_chunk)
       {
         class_name.insert(0, ' ');
         class_name.insert_str(0, &class_name_chunk);
@@ -447,6 +447,25 @@ impl<V: StyleqValue> Styleq<V> {
         .or_insert_with(|| Arc::new(cache_entry)),
     )
   }
+}
+
+/// Whether the class name already carries this chunk, whole.
+///
+/// Matched on the spaces around it rather than anywhere in the text. A StyleX
+/// class name is a hash of no fixed length, so a short name can sit inside a
+/// longer one -- `xabc` inside `xabcdef` -- and a plain text search dropped the
+/// short one as a repeat. The rule it names then reached no element, with
+/// nothing to show for it.
+fn carries_chunk(class_name: &str, chunk: &str) -> bool {
+  class_name.match_indices(chunk).any(|(start, _)| {
+    let end = start + chunk.len();
+
+    // A match is whole when a space or an edge sits on each side of it. Both
+    // are read as bytes, which is safe because a space is one byte and a match
+    // starts and ends on a character.
+    (start == 0 || class_name.as_bytes()[start - 1] == b' ')
+      && (end == class_name.len() || class_name.as_bytes()[end] == b' ')
+  })
 }
 
 /// The structural key of one style.

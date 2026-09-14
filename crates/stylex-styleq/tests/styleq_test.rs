@@ -872,6 +872,60 @@ fn drops_a_repeated_chunk_reached_through_a_second_property() {
   assert_eq!(result.class_name, "shared shared");
 }
 
+/// A chunk that only sits inside a longer name is not a repeat of it.
+///
+/// A StyleX class name is a hash of no fixed length, so a short name can be a
+/// run of characters inside a longer one. Read as plain text, the short name
+/// counted as already there and was dropped, and the rule it names reached no
+/// element -- with no error for the author to read. The match is on the spaces
+/// around the chunk now.
+#[test]
+fn a_chunk_inside_a_longer_name_is_kept() {
+  let styleq_dedupe_chunks = create_styleq(StyleqOptions {
+    dedupe_class_name_chunks: true,
+    ..Default::default()
+  });
+
+  // Two properties, two different class names, and the first is a prefix of
+  // the second. The three positions a name can sit in a longer one are all
+  // here: the front, the back and the middle.
+  for inside in ["xabcdef", "defxabc", "defxabcghi"] {
+    let front = compiled(&[("color", string("xabc"))]);
+    let back = compiled(&[("backgroundColor", string(inside))]);
+
+    assert_eq!(
+      styleq_dedupe_chunks.styleq(&[front, back]).class_name,
+      format!("xabc {inside}"),
+      "`xabc` is not a repeat of `{inside}`"
+    );
+  }
+}
+
+/// A chunk of several names is read the same way.
+///
+/// The whole chunk is what is compared, so a run that matches only because it
+/// crosses from one name into the next is not a repeat either.
+#[test]
+fn a_chunk_that_matches_across_two_names_is_kept() {
+  let styleq_dedupe_chunks = create_styleq(StyleqOptions {
+    dedupe_class_name_chunks: true,
+    ..Default::default()
+  });
+
+  // The accumulated name reads `xa xbc`, and the chunk `a xb` is a run of it
+  // that starts and ends inside a name.
+  let front = compiled(&[("color", string("a")), ("display", string("xb"))]);
+  let back = compiled(&[
+    ("backgroundColor", string("xa")),
+    ("opacity", string("xbc")),
+  ]);
+
+  assert_eq!(
+    styleq_dedupe_chunks.styleq(&[front, back]).class_name,
+    "a xb xa xbc"
+  );
+}
+
 #[test]
 fn styleq_input_trait_methods_cover_all_variants() {
   let style = inline(&[("color", string("red"))]);

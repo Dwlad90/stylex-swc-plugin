@@ -766,6 +766,66 @@ fn custom_argument_covers_skip_nested_inline_and_disable_mix_paths() {
   );
 }
 
+/// The walk answers the same with the cache off, for an argument type the
+/// caller brought rather than the crate's own input.
+///
+/// `disable_cache` is read once per merge, and the reading is compiled once
+/// per argument type. Every merge that had ever read it as `true` came from
+/// the crate's own `StyleqInput`, so the answer a foreign argument gets with
+/// the cache off was never compared with the answer it gets with the cache on.
+/// The two must agree: a cache may only save work, never change a result.
+#[test]
+fn a_custom_argument_answers_the_same_with_the_cache_off() {
+  let arguments = [
+    TestArgument::Skip,
+    TestArgument::Nested(vec![
+      TestArgument::Style {
+        style: compiled_map(&[("display", string("display-block"))]),
+        cache_key: Some(7),
+      },
+      TestArgument::Style {
+        style: inline_map(&[("color", string("red"))]),
+        cache_key: None,
+      },
+    ]),
+    // Carries no style and asks for no skip, so the walk reaches it and drops
+    // it -- the one argument shape that is neither styled nor nested.
+    TestArgument::Empty,
+  ];
+
+  let uncached = create_styleq(StyleqOptions {
+    disable_cache: true,
+    ..Default::default()
+  });
+  let cached = create_styleq(StyleqOptions::default());
+
+  // Twice over, because a cache is filled on the first merge and only read on
+  // the second.
+  for _ in 0..2 {
+    let from_scratch = uncached.styleq(&arguments);
+    let from_cache = cached.styleq(&arguments);
+
+    assert_eq!(from_scratch.class_name, "display-block");
+    assert_eq!(
+      from_scratch.inline_style,
+      Some(StyleMap::from([("color".to_string(), string("red"))]))
+    );
+
+    assert_eq!(
+      from_scratch.class_name, from_cache.class_name,
+      "the cache changed the class name a custom argument merges to"
+    );
+    assert_eq!(
+      from_scratch.inline_style, from_cache.inline_style,
+      "the cache changed the inline style a custom argument merges to"
+    );
+    assert_eq!(
+      from_scratch.data_style_src, from_cache.data_style_src,
+      "the cache changed the debug string a custom argument merges to"
+    );
+  }
+}
+
 #[test]
 fn uses_identity_cache_key_when_argument_provides_stable_identity() {
   let styleq_cached = create_styleq(StyleqOptions::default());

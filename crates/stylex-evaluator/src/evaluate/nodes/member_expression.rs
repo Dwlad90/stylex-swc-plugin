@@ -350,6 +350,14 @@ pub(in super::super) fn evaluate(
       // below. The one reader that answered a value while not confident was the
       // own-keys call, which answered the empty list for an argument it had just
       // refused; it now refuses where the argument is read.
+      //
+      // The rule the removed check enforced is held here instead. It costs
+      // nothing in a release build and stops the debug suite on the first
+      // reader that breaks it again.
+      debug_assert!(
+        state.confident,
+        "a fold answered a value while not confident",
+      );
 
       let prop_path = &member.prop;
 

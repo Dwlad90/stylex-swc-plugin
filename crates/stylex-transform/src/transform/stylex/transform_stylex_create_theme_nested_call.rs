@@ -205,7 +205,7 @@ fn validate_nested_theme_variables_object(value: &EvaluateResultValue) {
   };
 
   let has_var_group_hash = key_values.into_iter().any(|key_value| {
-    stylex_ast::ast::convertors::convert_key_value_to_str(&key_value) == VAR_GROUP_HASH_KEY
+    stylex_ast::ast::convertors::key_value_name(&key_value) == VAR_GROUP_HASH_KEY
       && key_value
         .value
         .as_lit()

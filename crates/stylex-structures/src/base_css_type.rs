@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 use std::ops::Deref;
 use stylex_ast::ast::convertors::{
   convert_key_value_to_str, convert_lit_to_string, expand_shorthand_prop,
-  get_key_values_from_object,
+  get_key_values_from_object, key_value_name,
 };
 use stylex_ast::ast::factories::{
   create_key_value_prop, create_object_expression, create_object_lit, create_string_key_value_prop,
@@ -142,9 +142,9 @@ impl From<ObjectLit> for BaseCSSType {
     let mut values: IndexMap<String, ValueWithDefault> = IndexMap::new();
 
     for key_value in key_values {
-      let key = convert_key_value_to_str(&key_value);
+      let key = key_value_name(&key_value);
 
-      match key.as_str() {
+      match key.as_ref() {
         "syntax" => {
           syntax = key_value
             .value

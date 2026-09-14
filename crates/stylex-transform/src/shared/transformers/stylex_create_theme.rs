@@ -11,7 +11,9 @@ use crate::shared::utils::{
   },
   validators::validate_theme_variables,
 };
-use stylex_ast::ast::convertors::{convert_key_value_to_str, get_key_values_from_object};
+use stylex_ast::ast::convertors::{
+  convert_key_value_to_str, get_key_values_from_object, key_value_name,
+};
 use stylex_constants::constants::{
   common::{COMPILED_KEY, VAR_GROUP_HASH_KEY},
   messages::{
@@ -45,7 +47,11 @@ pub(crate) fn stylex_create_theme(
   };
   let mut variables_key_values = Box::new(get_key_values_from_object(variables_obj));
 
-  variables_key_values.sort_unstable_by_key(convert_key_value_to_str);
+  // Sorted by the name each key is written under, read by borrow. A sort asks
+  // for that name about twice per element per level, and the owned form copied
+  // it every time.
+  variables_key_values
+    .sort_unstable_by(|left, right| key_value_name(left).cmp(&key_value_name(right)));
 
   let var_group_hash: String;
   let mut theme_vars_key_values: Vec<KeyValueProp>;
@@ -60,7 +66,7 @@ pub(crate) fn stylex_create_theme(
 
       var_group_hash = theme_vars_key_values
         .iter()
-        .find(|key_value| convert_key_value_to_str(key_value) == VAR_GROUP_HASH_KEY)
+        .find(|key_value| key_value_name(key_value) == VAR_GROUP_HASH_KEY)
         .map(|key_value| {
           match convert_expr_to_str(&key_value.value, state, &FunctionMap::default()) {
             Some(s) => s,
@@ -87,7 +93,7 @@ pub(crate) fn stylex_create_theme(
     let theme_vars_str_value = match theme_vars {
       EvaluateResultValue::Expr(_) => {
         let theme_vars_item = match find_and_swap_remove(&mut theme_vars_key_values, |key_value| {
-          convert_key_value_to_str(key_value) == key
+          key_value_name(key_value) == key
         }) {
           Some(item) => item,
           None => stylex_panic!(

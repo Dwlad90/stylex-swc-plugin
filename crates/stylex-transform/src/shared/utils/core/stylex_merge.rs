@@ -1,7 +1,5 @@
 use rustc_hash::FxHashMap;
-use stylex_ast::ast::convertors::{
-  convert_key_value_to_str, convert_lit_to_string, normalize_expr,
-};
+use stylex_ast::ast::convertors::{convert_lit_to_string, key_value_name, normalize_expr};
 use stylex_macros::{stylex_panic, stylex_unreachable};
 use swc_core::ecma::{
   ast::{
@@ -302,10 +300,10 @@ fn static_jsx_attr_from_prop(prop: &PropOrSpread) -> Option<JSXAttrOrSpread> {
     .as_lit()
     .and_then(convert_lit_to_string)
     .map(|value| JSXAttrValue::Str(value.into()))?;
-  let attr_name = convert_key_value_to_str(key_value);
+  let attr_name = key_value_name(key_value);
 
   Some(create_jsx_attr_or_spread(create_jsx_attr(
-    attr_name.as_str(),
+    attr_name.as_ref(),
     value,
   )))
 }

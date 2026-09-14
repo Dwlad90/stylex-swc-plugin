@@ -12,7 +12,7 @@ use swc_core::{
 use crate::shared::utils::ast::helpers::is_variable_named_exported;
 use stylex_ast::ast::convertors::{
   convert_key_value_to_str, convert_lit_to_string, create_string_expr, get_key_values_from_object,
-  init_call, normalize_expr,
+  init_call, key_value_name, normalize_expr,
 };
 use stylex_ast::ast::factories::{create_expr_or_spread, create_key_value_prop_ident};
 use stylex_constants::constants::{
@@ -832,8 +832,8 @@ pub(crate) fn assert_valid_properties(
     let key_values = get_key_values_from_object(object);
 
     for key_value in key_values.iter() {
-      let key = convert_key_value_to_str(key_value);
-      if !valid_keys.contains(&key.as_str()) {
+      let key = key_value_name(key_value);
+      if !valid_keys.contains(&key.as_ref()) {
         build_code_frame_error_and_panic_at(expr, error_message, state);
       }
     }
@@ -895,7 +895,7 @@ pub(crate) fn validate_theme_variables(
     .map(get_key_values_from_object)
     .and_then(|key_values| {
       for key_value in key_values.into_iter() {
-        let key = convert_key_value_to_str(&key_value);
+        let key = key_value_name(&key_value);
 
         if key == VAR_GROUP_HASH_KEY {
           let value = &key_value.value;

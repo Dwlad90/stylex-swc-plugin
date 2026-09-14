@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use anyhow::anyhow;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use stylex_utils::{number::to_js_string, string::utf16_length, swc::get_expr_node_kind};
@@ -328,8 +330,23 @@ pub fn convert_wtf8_to_atom(atom: &Wtf8Atom) -> Atom {
 }
 
 pub fn convert_str_lit_to_string(str_lit: &Str) -> String {
+  convert_str_lit_to_str_ref(str_lit).to_string()
+}
+
+/// The text of a string literal, borrowed rather than copied.
+///
+/// A literal already holds its text, so a reader that only compares or sorts
+/// the text does not have to copy it. Refuses the same way the owned form does,
+/// because it is the same reading. Text that is not valid UTF-8 holds a lone
+/// surrogate, which Rust has no `str` for.
+///
+/// [`extract_str_lit_ref`] reads the same field and refuses with a different
+/// sentence. The two are kept apart because each sentence is what its own
+/// callers already print, and joining them would change a message an author
+/// reads.
+pub fn convert_str_lit_to_str_ref(str_lit: &Str) -> &str {
   match str_lit.value.as_str() {
-    Some(value) => value.to_string(),
+    Some(value) => value,
     None => stylex_panic!("{}", INVALID_UTF8),
   }
 }
@@ -376,23 +393,23 @@ pub fn extract_str_lit_ref(lit: &Lit) -> Option<&str> {
   }
 }
 
-/// The authored name of a key, as the text the evaluator compares keys by.
+/// The authored name of a key, borrowed where the key already holds it.
 ///
-/// The name is answered as it is written, with no quotes around it. It used to
-/// be passed through the quote wrapper with the flag off, which borrows the
-/// name and hands it straight back -- so making it owned again copied the whole
-/// key and dropped the first copy. Every reader of an object paid that once per
-/// property it looked at.
-#[inline]
-pub fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
-  let key = &key_value.key;
-
-  match key {
-    PropName::Ident(ident) => ident.sym.to_string(),
-    PropName::Str(strng) => convert_str_lit_to_string(strng),
-    PropName::Num(num) => to_js_string(num.value),
-    PropName::BigInt(big_int) => big_int.value.to_string(),
-    PropName::Computed(computed) => match computed.expr.as_ref() {
+/// Two of the five shapes hold their own name -- an identifier and a string --
+/// so a reader that only compares or sorts keys borrows it. The other three
+/// spell a name the key does not hold: a number as JavaScript spells it, a big
+/// integer as its digits, and a computed key as the literal it folds to.
+///
+/// One rule for what a key is called.
+/// [`convert_key_value_to_str`] is this answer, made owned, so a reader that
+/// needs the text to outlive the key still asks the same question.
+pub fn key_value_name(key_value: &KeyValueProp) -> Cow<'_, str> {
+  match &key_value.key {
+    PropName::Ident(ident) => Cow::Borrowed(ident.sym.as_str()),
+    PropName::Str(strng) => Cow::Borrowed(convert_str_lit_to_str_ref(strng)),
+    PropName::Num(num) => Cow::Owned(to_js_string(num.value)),
+    PropName::BigInt(big_int) => Cow::Owned(big_int.value.to_string()),
+    PropName::Computed(computed) => Cow::Owned(match computed.expr.as_ref() {
       Expr::Lit(lit) => match convert_lit_to_string(lit) {
         Some(s) => s,
         None => stylex_panic!("Computed property key must be a string or number literal."),
@@ -404,8 +421,16 @@ pub fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
         }
       },
       _ => stylex_unimplemented!("Computed key is not a literal"),
-    },
+    }),
   }
+}
+
+/// The authored name of a key, owned.
+///
+/// The name is answered as it is written, with no quotes around it.
+#[inline]
+pub fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
+  key_value_name(key_value).into_owned()
 }
 
 pub fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {

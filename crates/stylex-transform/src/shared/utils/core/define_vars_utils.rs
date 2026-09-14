@@ -5,7 +5,7 @@ use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, Lit, ObjectLit};
 
 use stylex_ast::ast::convertors::{
-  convert_key_value_to_str, convert_lit_to_string, get_key_values_from_object,
+  convert_key_value_to_str, convert_lit_to_string, get_key_values_from_object, key_value_name,
 };
 use stylex_constants::constants::{
   common::SPLIT_TOKEN,
@@ -222,7 +222,7 @@ impl DefaultBearingKeys {
     };
 
     for key_value in get_key_values_from_object(obj).iter() {
-      match convert_key_value_to_str(key_value).as_str() {
+      match key_value_name(key_value).as_ref() {
         "syntax" => found.syntax = true,
         "value" => found.value = true,
         "default" => found.default = true,

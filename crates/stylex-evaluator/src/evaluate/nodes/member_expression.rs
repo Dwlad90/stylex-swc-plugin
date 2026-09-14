@@ -139,7 +139,7 @@ fn fold_entry_value(object: &ObjectLit, key: &str) -> Option<Expr> {
   // what the walk skips is a shape that cannot arrive rather than one this read
   // decides about.
   written_key_values(object)
-    .find(|key_value| convert_key_value_to_str(key_value) == key)
+    .find(|key_value| key_value_name(key_value) == key)
     .map(|key_value| *key_value.value.clone())
 }
 
@@ -472,7 +472,7 @@ pub(in super::super) fn evaluate(
             // key is looked up rather than walked with a refusal beside it,
             // and no property is copied to be read.
             let found = written_key_values(object)
-              .find(|key_value| ident_string_name == convert_key_value_to_str(key_value))
+              .find(|key_value| key_value_name(key_value) == ident_string_name)
               .map(|key_value| key_value.value.clone());
 
             // A key the object does not carry reads as `undefined`, which is a

@@ -210,7 +210,7 @@ pub(crate) fn assert_folds_to_object_keys(source: &str, expected: &[&str]) {
         .iter()
         .map(|prop| match prop {
           PropOrSpread::Prop(prop) => match prop.as_ref() {
-            Prop::KeyValue(key_value) => convert_key_value_to_str(key_value),
+            Prop::KeyValue(key_value) => key_value_name(key_value).into_owned(),
             other => panic!(
               "expected `{}` to fold to key-value props, got {:?}",
               source, other

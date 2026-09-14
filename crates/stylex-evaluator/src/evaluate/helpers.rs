@@ -219,7 +219,7 @@ impl ObjectMethodReceiver {
     // so the invariant below holds of each. A getter is refused by the object
     // walk, which is where that sentence comes from.
     for key_value in written_key_values(&object) {
-      let key = convert_key_value_to_str(key_value);
+      let key = key_value_name(key_value);
 
       list.push(Some(create_expr_or_spread(
         question.read(&key, &key_value.value),

@@ -1,5 +1,26 @@
+use std::fmt::Write as _;
+
 use super::*;
 use stylex_ast::ast::convertors::create_ident_expr;
+
+/// The name an element's index is written under, in one reusable buffer.
+///
+/// Four readers turn a list into the object its indices name, and each wrote
+/// one fresh `String` per element. A list of a thousand elements therefore
+/// allocated a thousand keys where it needs one buffer, so the buffer is held
+/// for the walk and rewritten for each index.
+#[derive(Default)]
+pub(super) struct IndexKey(String);
+
+impl IndexKey {
+  /// The index, as the text a property key is named with.
+  pub(super) fn of(&mut self, index: usize) -> &str {
+    self.0.clear();
+    // Writing a number into a string has no failure to answer for.
+    let _ = write!(self.0, "{index}");
+    &self.0
+  }
+}
 
 /// `undefined`, as a value the evaluator is confident about.
 ///
@@ -44,7 +65,7 @@ fn evaluated_object_or_array(value: EvaluateResultValue) -> ObjectMethodReceiver
     // fold answers -- and a reader that knew only the first answered `[]` for
     // `Object.keys(Object.keys(sx))`, where the same compiler spreads those
     // keys correctly one function away.
-    EvaluateResultValue::Expr(Expr::Array(array)) => written_array_receiver(&array),
+    EvaluateResultValue::Expr(Expr::Array(array)) => written_array_receiver(array),
     EvaluateResultValue::Vec(items) => evaluated_array_receiver(&items),
     _ => ObjectMethodReceiver::NoOwnKeys,
   }
@@ -60,13 +81,14 @@ fn evaluated_object_or_array(value: EvaluateResultValue) -> ObjectMethodReceiver
 /// caller, so the two depths cannot come to answer the same value differently.
 fn evaluated_array_receiver(items: &[EvaluateResultValue]) -> ObjectMethodReceiver {
   let mut props = Vec::with_capacity(items.len());
+  let mut key = IndexKey::default();
 
   for (index, item) in items.iter().enumerate() {
     let Some(expr) = array_element_expr(item) else {
       return ObjectMethodReceiver::Unreadable;
     };
 
-    props.push(create_ident_key_value_prop(&index.to_string(), expr));
+    props.push(create_ident_key_value_prop(key.of(index), expr));
   }
 
   ObjectMethodReceiver::Object(create_object_lit(props))
@@ -82,10 +104,15 @@ fn evaluated_array_receiver(items: &[EvaluateResultValue]) -> ObjectMethodReceiv
 /// as a single element names a list under its own name. Both write a stylesheet
 /// the source does not describe, which is the answer
 /// [`evaluated_array_receiver`] already refuses to give.
-fn written_array_receiver(array: &ArrayLit) -> ObjectMethodReceiver {
+///
+/// The array is taken by value, and each element moves into the property it
+/// names. The caller owns the value and has no other use for it, so copying
+/// every element out of it would copy the whole subtree of each.
+fn written_array_receiver(array: ArrayLit) -> ObjectMethodReceiver {
   let mut props = Vec::with_capacity(array.elems.len());
+  let mut key = IndexKey::default();
 
-  for (index, element) in array.elems.iter().enumerate() {
+  for (index, element) in array.elems.into_iter().enumerate() {
     // A hole carries no value to name.
     let Some(element) = element else {
       return ObjectMethodReceiver::Unreadable;
@@ -97,10 +124,7 @@ fn written_array_receiver(array: &ArrayLit) -> ObjectMethodReceiver {
       return ObjectMethodReceiver::Unreadable;
     }
 
-    props.push(create_ident_key_value_prop(
-      &index.to_string(),
-      (*element.expr).clone(),
-    ));
+    props.push(create_ident_key_value_prop(key.of(index), *element.expr));
   }
 
   ObjectMethodReceiver::Object(create_object_lit(props))
@@ -321,15 +345,20 @@ fn string_receiver(value: &EvaluateResultValue) -> Option<ObjectMethodReceiver> 
   };
 
   let mut props = Vec::with_capacity(text.len());
+  let mut key = IndexKey::default();
+  let mut unit_text = String::new();
 
   for (index, unit) in text.encode_utf16().enumerate() {
     let Some(character) = char::from_u32(u32::from(unit)) else {
       return Some(ObjectMethodReceiver::Unreadable);
     };
 
+    unit_text.clear();
+    unit_text.push(character);
+
     props.push(create_ident_key_value_prop(
-      &index.to_string(),
-      create_string_expr(&character.to_string()),
+      key.of(index),
+      create_string_expr(&unit_text),
     ));
   }
 

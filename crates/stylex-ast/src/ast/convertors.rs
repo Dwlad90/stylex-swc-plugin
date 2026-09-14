@@ -1,10 +1,6 @@
 use anyhow::anyhow;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
-use stylex_utils::{
-  number::to_js_string,
-  string::{utf16_length, wrap_key_in_quotes},
-  swc::get_expr_node_kind,
-};
+use stylex_utils::{number::to_js_string, string::utf16_length, swc::get_expr_node_kind};
 use swc_core::{
   atoms::{Atom, Wtf8Atom},
   ecma::{
@@ -380,12 +376,18 @@ pub fn extract_str_lit_ref(lit: &Lit) -> Option<&str> {
   }
 }
 
+/// The authored name of a key, as the text the evaluator compares keys by.
+///
+/// The name is answered as it is written, with no quotes around it. It used to
+/// be passed through the quote wrapper with the flag off, which borrows the
+/// name and hands it straight back -- so making it owned again copied the whole
+/// key and dropped the first copy. Every reader of an object paid that once per
+/// property it looked at.
 #[inline]
 pub fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
   let key = &key_value.key;
-  let should_wrap_in_quotes = false;
 
-  let key = match key {
+  match key {
     PropName::Ident(ident) => ident.sym.to_string(),
     PropName::Str(strng) => convert_str_lit_to_string(strng),
     PropName::Num(num) => to_js_string(num.value),
@@ -403,9 +405,7 @@ pub fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
       },
       _ => stylex_unimplemented!("Computed key is not a literal"),
     },
-  };
-
-  wrap_key_in_quotes(&key, should_wrap_in_quotes).into_owned()
+  }
 }
 
 pub fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {

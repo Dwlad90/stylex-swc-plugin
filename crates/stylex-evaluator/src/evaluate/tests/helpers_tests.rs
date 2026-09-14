@@ -582,7 +582,7 @@ fn a_written_array_slot_with_nothing_to_name_leaves_the_receiver_unreadable() {
 
   assert!(
     matches!(
-      written_array_receiver(&hole),
+      written_array_receiver(hole),
       ObjectMethodReceiver::Unreadable
     ),
     "a hole carries no value for its index to name"
@@ -598,7 +598,7 @@ fn a_written_array_slot_with_nothing_to_name_leaves_the_receiver_unreadable() {
 
   assert!(
     matches!(
-      written_array_receiver(&spread),
+      written_array_receiver(spread),
       ObjectMethodReceiver::Unreadable
     ),
     "a spread names another list rather than one element of this one"
@@ -617,7 +617,7 @@ fn a_written_array_names_each_index_after_the_element_that_sits_at_it() {
     ],
   };
 
-  let ObjectMethodReceiver::Object(object) = written_array_receiver(&array) else {
+  let ObjectMethodReceiver::Object(object) = written_array_receiver(array) else {
     panic!("an array whose every slot holds an element reads as an object");
   };
 

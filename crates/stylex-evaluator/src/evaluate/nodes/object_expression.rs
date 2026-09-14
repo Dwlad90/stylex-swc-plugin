@@ -31,9 +31,10 @@ fn indexed_props(
   elements: impl ExactSizeIterator<Item = Option<Expr>>,
 ) -> Option<Vec<PropOrSpread>> {
   let mut props = Vec::with_capacity(elements.len());
+  let mut key = IndexKey::default();
 
   for (index, element) in elements.enumerate() {
-    props.push(create_ident_key_value_prop(&index.to_string(), element?));
+    props.push(create_ident_key_value_prop(key.of(index), element?));
   }
 
   Some(props)
@@ -194,15 +195,15 @@ pub(in super::super) fn evaluate(
           Prop::KeyValue(path_key_value) => {
             let key = match &path_key_value.key {
               PropName::Ident(ident) => ident.sym.to_string(),
-              // Read through the coercion rather than through the converter
-              // that spells an atom, which aborts the build on a text with no
-              // `str`. A text holding a lone surrogate is such a key, and it
-              // refuses here with every other key that has no name.
-              PropName::Str(strng) => {
-                match coercions::to_js_string(&Expr::Lit(Lit::Str(strng.clone()))) {
-                  Some(text) => text,
-                  None => deopt_unsupported!(deopt, &refusal_path(), state, KEY_HAS_NO_NAME),
-                }
+              // Read as its own text rather than through the converter that
+              // spells an atom, which aborts the build on a text with no `str`.
+              // A text holding a lone surrogate is such a key, and it refuses
+              // here with every other key that has no name. `String(key)` of a
+              // string is that string, so the coercion has nothing to add and
+              // the key is not copied into a literal to ask it.
+              PropName::Str(strng) => match strng.value.as_str() {
+                Some(text) => text.to_string(),
+                None => deopt_unsupported!(deopt, &refusal_path(), state, KEY_HAS_NO_NAME),
               },
               // Rendered as JavaScript spells a number, not as Rust does:
               // `{ 1e21: x }` names the property `"1e+21"`, where
@@ -252,12 +253,11 @@ pub(in super::super) fn evaluate(
                   .and_then(evaluate_result_as_expr)
                   .and_then(|expr| coercions::to_js_string(&expr));
 
-                match named {
-                  Some(text) => text,
-                  None => {
-                    deopt_unsupported!(deopt, &refusal_path(), state, KEY_HAS_NO_NAME);
-                  },
-                }
+                let Some(text) = named else {
+                  deopt_unsupported!(deopt, &refusal_path(), state, KEY_HAS_NO_NAME);
+                };
+
+                text
               },
               PropName::BigInt(big_int) => big_int.value.to_string(),
             };

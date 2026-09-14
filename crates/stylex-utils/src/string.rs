@@ -93,16 +93,6 @@ pub fn remove_quotes(s: &str) -> Cow<'_, str> {
   }
 }
 
-/// Wraps a key in double quotes when `should_wrap_in_quotes` is true,
-/// otherwise returns the key unchanged.
-pub fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> Cow<'_, str> {
-  if should_wrap_in_quotes {
-    Cow::Owned(format!("\"{}\"", key))
-  } else {
-    Cow::Borrowed(key)
-  }
-}
-
 /// The length of a string as JavaScript reports it: its count of UTF-16 code
 /// units.
 ///

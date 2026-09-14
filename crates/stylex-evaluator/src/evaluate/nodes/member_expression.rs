@@ -4,6 +4,7 @@ use stylex_ast::ast::convertors::{
   atom_utf16_char_at, atom_utf16_length, convert_member_prop_to_string, normalize_expr,
 };
 use stylex_constants::constants::evaluation_errors::escaping_property;
+use stylex_state::evaluate_result_value::string_key_of_expr;
 use swc_core::ecma::ast::MemberExpr;
 
 /// The one property a string or an array answers by counting.
@@ -55,10 +56,9 @@ enum ArrayLikeLookup {
 /// The evaluator's own list is read through the array it writes, which is the
 /// form the language joins its elements into.
 fn property_name(property: &EvaluateResultValue) -> Option<String> {
-  match property.as_string_key() {
-    Some(key) => Some(key),
-    None => evaluate_result_as_expr(property).and_then(|expr| coercions::to_js_string(&expr)),
-  }
+  property
+    .as_string_key()
+    .or_else(|| evaluate_result_as_expr(property).and_then(|expr| coercions::to_js_string(&expr)))
 }
 
 /// Reads what a member lookup is asking for, from the evaluated property.
@@ -458,11 +458,11 @@ pub(in super::super) fn evaluate(
             };
 
             // Read through the same `String(key)` every other key is read
-            // through. A parenthesis is not a different key, so the expression
-            // is unwrapped first.
-            let normalized_key = EvaluateResultValue::Expr(normalize_expr(ident).clone());
-
-            let Some(ident_string_name) = property_name(&normalized_key) else {
+            // through -- off the expression, because a key that folded to an
+            // object or a list would otherwise be copied whole to be named. A
+            // parenthesis is not a different key, so the expression is
+            // unwrapped first.
+            let Some(ident_string_name) = string_key_of_expr(normalize_expr(ident)) else {
               deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
             };
 

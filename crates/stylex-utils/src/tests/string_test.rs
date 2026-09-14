@@ -139,26 +139,6 @@ mod remove_quotes_tests {
 }
 
 #[cfg(test)]
-mod wrap_key_in_quotes_tests {
-  use crate::string::wrap_key_in_quotes;
-
-  #[test]
-  fn wraps_when_flag_is_true() {
-    assert_eq!(wrap_key_in_quotes("color", true), "\"color\"");
-  }
-
-  #[test]
-  fn no_wrap_when_flag_is_false() {
-    assert_eq!(wrap_key_in_quotes("color", false), "color");
-  }
-
-  #[test]
-  fn wraps_empty_string() {
-    assert_eq!(wrap_key_in_quotes("", true), "\"\"");
-  }
-}
-
-#[cfg(test)]
 mod utf16_length_tests {
   use crate::string::utf16_length;
 

@@ -3510,6 +3510,7 @@ dependencies = [
  "serial_test",
  "stylex_constants",
  "swc_malloc",
+ "xxhash-rust",
 ]
 
 [[package]]

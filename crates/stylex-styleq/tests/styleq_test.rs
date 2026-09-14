@@ -1036,6 +1036,140 @@ mod the_cache_answers_per_merge {
     );
   }
 
+  /// A cached chunk carries the debug string of the merge it was cut for.
+  ///
+  /// The hit path clears the string and writes the entry's own in its place,
+  /// which is true only because an entry names the exact walked prefix. Every
+  /// other case here builds its styles with a marker of `true`, so the debug
+  /// string is empty in all of them and the clear-and-replace is measured over
+  /// nothing at all.
+  ///
+  /// Two levels, run twice: the first pass fills the chain and the second reads
+  /// it, and the two must answer the same.
+  #[test]
+  fn a_cached_chain_carries_the_debug_string_of_its_own_merge() {
+    let front = compiled_with_marker(string("front.js:1"), &[("color", string("color-1"))]);
+    let back = compiled_with_marker(
+      string("back.js:2"),
+      &[("backgroundColor", string("backgroundColor-2"))],
+    );
+
+    let styleq = create_styleq(StyleqOptions::default());
+    let pair = [front, back];
+
+    for _ in 0..2 {
+      // Popped from the back, so `back` is read first and `front` is cached
+      // behind it. The string reads front to back.
+      assert_eq!(
+        styleq.styleq(&pair).data_style_src,
+        "front.js:1; back.js:2",
+        "the merge of two marked styles names both, in order"
+      );
+
+      // Each on its own names only itself, which the chunk cached above must
+      // not answer for.
+      assert_eq!(
+        styleq.styleq(std::slice::from_ref(&pair[0])).data_style_src,
+        "front.js:1"
+      );
+      assert_eq!(
+        styleq.styleq(std::slice::from_ref(&pair[1])).data_style_src,
+        "back.js:2"
+      );
+    }
+  }
+
+  /// The chain must descend under an identity key as it does under a hash one.
+  ///
+  /// Every other case here uses an input whose `cache_key` is `None`, so the
+  /// descent was measured only on the structural key. An address key takes a
+  /// different arm of the same walk.
+  #[test]
+  fn the_chain_descends_under_an_identity_key() {
+    let first_style = compiled_map(&[
+      ("backgroundColor", string("backgroundColor-1")),
+      ("color", string("color-1")),
+    ]);
+    let second_style = compiled_map(&[
+      ("backgroundColor", string("backgroundColor-2")),
+      ("color", string("color-2")),
+    ]);
+
+    // Two keys that are distinct and stay so for the life of the merger. The
+    // styles are held by the arguments, so nothing frees the address the key
+    // names.
+    let pair = [
+      TestArgument::Style {
+        style: first_style,
+        cache_key: Some(1),
+      },
+      TestArgument::Style {
+        style: second_style,
+        cache_key: Some(2),
+      },
+    ];
+
+    let styleq = create_styleq(StyleqOptions::default());
+
+    for _ in 0..2 {
+      assert_eq!(styleq.styleq(&pair).class_name, "backgroundColor-2 color-2");
+
+      // The first style contributes nothing behind the second, and everything
+      // on its own. One flat map would answer the merge's chunk here.
+      assert_eq!(
+        styleq.styleq(std::slice::from_ref(&pair[0])).class_name,
+        "backgroundColor-1 color-1"
+      );
+    }
+  }
+
+  /// One merger, shared between threads.
+  ///
+  /// `insert_cache_entry` makes a claim about what happens when two misses
+  /// store under one key, and `CacheNode` is asserted `Send + Sync` for this.
+  /// Every thread must read what a single-threaded merge reads, whichever of
+  /// the racing entries the chain kept.
+  #[test]
+  fn a_merger_shared_between_threads_answers_the_same() {
+    let styleq = Arc::new(create_styleq(StyleqOptions::<StyleValue>::default()));
+    let pair = [first(), second()];
+    let expected = styleq.styleq(&pair).class_name;
+
+    let threads: Vec<_> = (0..8)
+      .map(|_| {
+        let styleq = Arc::clone(&styleq);
+        let pair = pair.clone();
+
+        std::thread::spawn(move || {
+          let mut answers = Vec::with_capacity(64);
+
+          for _ in 0..32 {
+            answers.push(styleq.styleq(&pair).class_name);
+            answers.push(styleq.styleq(std::slice::from_ref(&pair[0])).class_name);
+          }
+
+          answers
+        })
+      })
+      .collect();
+
+    for thread in threads {
+      let answers = match thread.join() {
+        Ok(answers) => answers,
+        Err(_) => panic!("a merging thread must not stop"),
+      };
+
+      for (index, answer) in answers.iter().enumerate() {
+        let expected = match index % 2 {
+          0 => expected.as_str(),
+          _ => "backgroundColor-1 color-1",
+        };
+
+        assert_eq!(answer, expected, "a shared merger must answer the same");
+      }
+    }
+  }
+
   /// The cached answer must be the answer the uncached path gives, in every
   /// field the caller reads and under the options the compiler passes.
   #[test]

@@ -7,8 +7,9 @@ use std::{
 };
 
 use log::{debug, error};
-use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
+use rustc_hash::{FxHashMap, FxHashSet};
 use stylex_constants::constants::common::COMPILED_KEY;
+use xxhash_rust::xxh3::Xxh3Default;
 
 use crate::{StyleMap, StyleqArgument, StyleqInput, StyleqOptions, StyleqResult, StyleqValue};
 
@@ -24,22 +25,26 @@ use crate::{StyleMap, StyleqArgument, StyleqInput, StyleqOptions, StyleqResult, 
 // nothing on its own, and a style cached on its own was read back behind
 // another and defined its properties twice.
 //
-// Keys are either the source array reference or a structural hash. A reference
-// key is the address of the style array, which names that array only while the
-// array is alive: nothing here evicts, so a `Styleq` that outlives the styles
-// it cached could read a freed address back as a hit for whatever was put
-// there next. The compiler builds one `Styleq` per call site and drops it
-// before those styles go, and a caller that keeps one longer owes itself a
-// different key. Order is never observed downstream, so an unordered
-// FxHashMap is appropriate. The
-// entry itself is wrapped in `Arc` so cache hits are a refcount bump rather
-// than a deep clone of three owned strings + a `Vec<Arc<str>>`.
+// Keys are either the source array reference or a structural hash, and each
+// carries a caveat a caller has to answer:
 //
-// The chain holds one entry per distinct walked suffix where the flat map held
-// one per style, and nothing evicts. The reference keeps `WeakMap`s, so its
-// entries die with the style objects; these do not. It costs nothing here,
-// because the compiler builds a `Styleq` per call site and drops it, but a
-// caller that keeps one across many merges keeps every path it walked.
+// - A reference key is the address of the style array, which names that array
+//   only while the array is alive. Nothing here evicts, so a `Styleq` that
+//   outlives the styles it cached can read a freed address back as a hit for
+//   whatever was put there next.
+// - Nothing evicts, and the chain holds one entry per distinct walked suffix
+//   where the flat map held one per style. The reference keeps `WeakMap`s, so
+//   its entries die with the style objects; these do not, so a `Styleq` kept
+//   across many merges keeps every path it walked.
+//
+// Both are about how long one `Styleq` lives, and this compiler answers them by
+// not caching at all: the merger it builds has the cache off, because a merger
+// built per merge cannot hit one. A caller that wants the cache owes itself an
+// answer to both.
+//
+// Order is never observed downstream, so an unordered FxHashMap is appropriate.
+// The entry itself is wrapped in `Arc` so cache hits are a refcount bump rather
+// than a deep clone of three owned strings + a `Vec<Arc<str>>`.
 struct CacheEntry {
   class_name: Arc<str>,
   defined_properties: Arc<[Arc<str>]>,
@@ -67,7 +72,15 @@ struct CacheNode {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum CacheKey {
   Identity(usize),
-  Hash(u64),
+  /// The structural key, 128 bits wide.
+  ///
+  /// Nothing compares the style to the entry a hit came from, so the key is the
+  /// only thing that says the entry is this style's. A 64-bit key made a
+  /// collision answer with another style's class names and defined properties
+  /// -- wrong CSS, and no sign of it. Width is what removes that, and it is
+  /// what `stylex-utils` already gives every other index whose reads act on a
+  /// hit without confirming it.
+  Hash(u128),
 }
 
 pub struct Styleq<V: StyleqValue> {
@@ -399,36 +412,76 @@ impl<V: StyleqValue> Styleq<V> {
   }
 
   /// Stores the entry and hands back the shared handle the walk descends
-  /// through, so the caller reads the child of the entry it just stored rather
-  /// than of a rival one a concurrent miss may have put in its place.
+  /// through.
+  ///
+  /// The first entry stored under a key stays, and a rival a concurrent miss
+  /// built is dropped. Both say the same thing -- the chunk of one style at one
+  /// position of the chain -- so which of the two is kept does not matter, but
+  /// keeping one of them does: overwriting left two divergent subtrees, and
+  /// everything the loser's walk cached below it was orphaned where no later
+  /// walk could reach it.
   fn insert_cache_entry(
     &self,
     node: &CacheNode,
     cache_key: CacheKey,
     cache_entry: CacheEntry,
   ) -> Arc<CacheEntry> {
-    let cache_entry = Arc::new(cache_entry);
-
-    self
-      .cache_write(node)
-      .insert(cache_key, Arc::clone(&cache_entry));
-
-    cache_entry
+    Arc::clone(
+      self
+        .cache_write(node)
+        .entry(cache_key)
+        .or_insert_with(|| Arc::new(cache_entry)),
+    )
   }
 }
 
-// JS-parity: styleq/src/styleq.js#L100 (structural hash branch). Switched
-// from `DefaultHasher` (SipHash-1-3) to `FxHasher` — keys are short and the
-// cache is process-local, so DOS resistance is unnecessary.
-fn hash_style<V: StyleqValue>(style: &StyleMap<V>) -> u64 {
-  let mut hasher = FxHasher::default();
+/// The structural key of one style.
+///
+/// JS-parity: `styleq/src/styleq.js#L100`, the structural hash branch. The
+/// reference keys on the text of the style, which no two different styles
+/// share; this keys on a hash, which two different styles can, so the hash is
+/// 128 bits wide. See [`CacheKey::Hash`] for what a collision would cost.
+///
+/// xxh3 rather than the narrow hasher the map itself uses: the cache is
+/// process-local, so nothing here needs to resist an attacker, but it does need
+/// a digest wider than the 64 bits `Hasher` hands back.
+fn hash_style<V: StyleqValue>(style: &StyleMap<V>) -> u128 {
+  let mut hasher = WideHasher::default();
 
   for (prop, value) in style {
     prop.hash(&mut hasher);
     value.hash(&mut hasher);
   }
 
-  hasher.finish()
+  hasher.finish_wide()
+}
+
+/// An xxh3 hasher that answers 128 bits.
+#[derive(Default)]
+struct WideHasher {
+  state: Xxh3Default,
+}
+
+impl WideHasher {
+  fn finish_wide(&self) -> u128 {
+    self.state.digest128()
+  }
+}
+
+impl Hasher for WideHasher {
+  fn write(&mut self, bytes: &[u8]) {
+    self.state.update(bytes);
+  }
+
+  /// xxh3's 64-bit digest, present only because `Hasher` asks for it.
+  ///
+  /// It is **not** the low half of [`WideHasher::finish_wide`]: the two digests
+  /// are separate constructions over the same stream. Nothing here reads this,
+  /// and a caller that reached for the familiar `finish` would get a narrower
+  /// key without being told -- which is the hazard the width exists to remove.
+  fn finish(&self) -> u64 {
+    self.state.digest()
+  }
 }
 
 #[cfg(test)]

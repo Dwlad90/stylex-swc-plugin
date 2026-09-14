@@ -236,7 +236,7 @@ stylex_test!(
 fn every_shape_in_the_class_compiles_alike_in_both_spellings() {
   const IMPORT: &str = "import * as stylex from '@stylexjs/stylex';";
 
-  let rows: [(&str, String, String); 23] = [
+  let rows: [(&str, String, String); 24] = [
     (
       "the create argument",
       format!("{IMPORT} export const s = stylex.create({{ a: {{ color: 'red' }} }});"),
@@ -390,6 +390,15 @@ fn every_shape_in_the_class_compiles_alike_in_both_spellings() {
       "a destructured require",
       "const { create } = require('@stylexjs/stylex'); export const s = create({ a: { color: 'red' } });".to_string(),
       "const { create } = (require)(('@stylexjs/stylex')); export const s = create({ a: { color: 'red' } });".to_string(),
+    ),
+    (
+      "the create initializer, with a namespace the pruner drops",
+      format!(
+        "{IMPORT} const s = stylex.create({{ used: {{ color: 'red' }}, unused: {{ color: 'blue' }} }}); export function A(c) {{ return c ? s.used : s; }}"
+      ),
+      format!(
+        "{IMPORT} const s = (stylex.create({{ used: {{ color: 'red' }}, unused: {{ color: 'blue' }} }})); export function A(c) {{ return c ? s.used : s; }}"
+      ),
     ),
     (
       "a computed namespace key",

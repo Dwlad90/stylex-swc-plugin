@@ -16,7 +16,7 @@
 #   This script instead parses the JSON export and reports every uncovered
 #   region with line:col coordinates — lines and sub-line regions alike.
 #
-# THREE robustness fixes over a naive `--show-missing-lines` gate:
+# ROBUSTNESS FIXES over a naive `--show-missing-lines` gate:
 #   1. Regions, not just lines — sub-line gaps are reported with line:col.
 #   2. Monomorphization merge — regions are summed across generic instantiations
 #      by source coordinate. A generic fn instantiated by a type that bails out
@@ -30,7 +30,14 @@
 #      while the same gate fails in continuous integration. The version in use is
 #      printed, and an available update is a warning (`--skip-toolchain-check`
 #      turns the network lookup off).
-#   4. Scope filtering — cargo-llvm-cov's target dir is stateful: a `-p <crate>`
+#   4. Gate parity — llvm-cov does not gate on the merge of fix 2. It scores a
+#      function on its best-covered instantiation, so a region still counts
+#      against `--fail-uncovered-regions 0` unless ONE instantiation runs it:
+#      two instantiations that each run half a function leave a gap even though
+#      every line was executed. That arithmetic is reproduced here and the
+#      regions behind it are named, so a failing gate always has a location to
+#      act on rather than a bare count.
+#   5. Scope filtering — cargo-llvm-cov's target dir is stateful: a `-p <crate>`
 #      run can fold in leftover instrumented object files from an earlier
 #      full-workspace run (e.g. dependency crates), producing a noisy,
 #      non-deterministic file list. The report is filtered to the requested
@@ -54,8 +61,9 @@
 #
 # EXIT STATUS
 #   0  every measured source region is exercised by at least one test
-#   1  one or more source regions are unexercised (the `file:line:col` list is
-#      printed above), or llvm-cov found uncovered generic instantiations
+#   1  one or more source regions are unexercised, or a region counts against
+#      the coverage gate because no single instantiation runs it. Both are
+#      printed above as a `file:line:col` list.
 
 set -euo pipefail
 
@@ -99,9 +107,9 @@ USAGE
   scripts/coverage-missing.sh -h | --help
 
 EXIT STATUS
-  0  every measured source region is exercised by at least one test
-  1  one or more source regions are unexercised (the file:line:col list is printed above),
-     or llvm-cov found uncovered generic instantiations
+  0  every measured source region is exercised, and each by a single instantiation
+  1  a source region is unexercised, or no single instantiation runs it (the
+     file:line:col list is printed above)
 EOF
   exit "${1:-0}"
 }
@@ -383,6 +391,81 @@ phantoms = sorted(
 )
 
 
+# ── What the coverage gate counts ────────────────────────────────────────────
+# `--fail-uncovered-regions 0` reads llvm-cov's per-file summary, and that
+# summary is NOT the merge above. llvm-cov collects the records of one source
+# function -- the generic shell plus every monomorphization -- into an
+# instantiation group, and scores the group on its best-covered record. So a
+# region counts against the gate unless a SINGLE instantiation runs it: two
+# instantiations that each run half of a function leave a gap even though every
+# line of the source was executed by one of them.
+#
+# The arithmetic below reproduces that summary exactly, which is what lets this
+# script name the regions behind a failing gate instead of only counting them.
+# A group is keyed by its file and the start of its first region, which is the
+# function's own position in the source.
+group_records = defaultdict(list)
+for function in export.get("functions", []):
+    filenames = function.get("filenames", [])
+    per_file = defaultdict(list)
+    for region in function.get("regions", []):
+        if len(region) < 8 or region[7] != CODE_KIND:
+            continue
+        file_id = region[5]
+        filename = filenames[file_id] if file_id < len(filenames) else ""
+        if filename not in measured:
+            continue
+        per_file[filename].append(region)
+    for filename, regions in per_file.items():
+        start = min((region[0], region[1]) for region in regions)
+        group_records[(filename, start)].append((function.get("name", ""), regions))
+
+# Regions no instantiation runs are already reported on their own, so the gate
+# section names only what the merge cannot explain.
+uncovered_set = set(uncovered)
+
+
+def gate_gaps():
+    """Every function the gate counts a region against, and who comes closest.
+
+    llvm-cov takes the covered count and the region count of a group as the
+    maximum each reaches over the group's records, so the records that run the
+    most regions are the ones the gate is scored on. Each of those is reported
+    with what it still misses: a reader can then see whether one more case
+    closes the whole group, or whether the instantiations have to be collapsed
+    into one."""
+    gaps = []
+
+    for (filename, start), records in sorted(group_records.items()):
+        scored = [
+            (sum(1 for region in regions if region[4] > 0), len(regions), name, regions)
+            for name, regions in records
+        ]
+        best = max(row[0] for row in scored)
+        total = max(row[1] for row in scored)
+
+        if best >= total:
+            continue
+
+        leaders = []
+        for covered, _, name, regions in sorted(scored, key=lambda row: row[2]):
+            if covered != best:
+                continue
+            missed = [
+                region
+                for region in sorted(regions)
+                if region[4] == 0
+                and (filename, region[0], region[1], region[2], region[3]) not in uncovered_set
+            ]
+            if missed:
+                leaders.append((name, missed))
+
+        if leaders:
+            gaps.append((filename, start, best, total, leaders))
+
+    return gaps
+
+
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _SNAKE = re.compile(r"[a-z][a-z0-9_]*")
 _CAMEL = re.compile(r"[A-Z][a-z][A-Za-z0-9]*")
@@ -414,6 +497,41 @@ def readable_symbol(sym):
             i += 1
     return "::".join(comps[:8]) if comps else "<unknown>"
 
+gate = gate_gaps()
+gate_count = sum(total - best for _, _, best, total, _ in gate)
+
+
+def print_gate_gaps():
+    """Name the regions the gate counts, function by function."""
+    print(
+        "\nRegions the coverage gate counts (`--fail-uncovered-regions 0`):\n"
+        "\n"
+        "llvm-cov scores a function on its best-covered instantiation, so a region\n"
+        "counts here unless one instantiation runs it. The lines below were each run\n"
+        "by some instantiation, just never all by the same one. Close a group by\n"
+        "driving a single instantiation through every line of the function.\n"
+    )
+
+    for filename, (line, _col), best, total, leaders in gate:
+        print(f"  {rel(filename)}")
+        print(
+            f"    fn at line {line}: the best instantiation runs {best} of {total} region(s)"
+        )
+        for name, missed in leaders:
+            print(f"      {readable_symbol(name)} misses")
+            for line_start, col_start, line_end, col_end, *_ in missed:
+                if line_start == line_end:
+                    print(f"        line {line_start:<6} cols {col_start}-{col_end}")
+                else:
+                    print(f"        lines {line_start}-{line_end:<6} cols {col_start}-{col_end}")
+        print()
+
+    print(
+        f"{gate_count} region(s) counted against the gate across "
+        f"{len({gap[0] for gap in gate})} file(s)."
+    )
+
+
 # llvm-cov's own (per-instantiation) uncovered-region tally, for the note below.
 raw_notcovered = sum(
     f.get("summary", {}).get("regions", {}).get("notcovered", 0) for f in file_entries
@@ -422,15 +540,13 @@ raw_notcovered = sum(
 if raw_notcovered > len(uncovered):
     suffix = ""
     if not show_phantoms_enabled:
-        suffix = "\n      Re-run with --show-phantoms to print those generic instantiation gaps."
+        suffix = "\n      Re-run with --show-phantoms to print every per-instantiation gap."
     print(
-        f"\nnote: llvm-cov counts {raw_notcovered} uncovered region instance(s), but "
-        f"{len(uncovered)} distinct source region(s) are truly unexercised.\n"
-        "      The gap is generic monomorphization: a generic function instantiated by a "
-        "type that\n"
-        "      bails out early (often a test mock) leaves per-instantiation gaps that "
-        "vanish once\n"
-        f"      instantiations are merged.{suffix}"
+        f"\nnote: llvm-cov counts {raw_notcovered} uncovered region(s), of which "
+        f"{len(uncovered)} are unexercised by every test.\n"
+        "      The rest are generic monomorphization: the gate scores a function on its\n"
+        "      best-covered instantiation, so a region it counts can still have been run\n"
+        f"      by another instantiation. Each one is named below.{suffix}"
     )
 
 
@@ -474,39 +590,36 @@ if raw_notcovered == 0:
     print("\n✓ No uncovered regions — every measured source region is exercised.")
     sys.exit(0)
 
-if not uncovered:
-    if show_phantoms_enabled:
-        print_phantoms()
-    print(
-        f"\n✗ No distinct uncovered source regions, but llvm-cov reports "
-        f"{raw_notcovered} uncovered generic instantiation gap(s)."
-    )
-    sys.exit(1)
+if uncovered:
+    by_file = defaultdict(list)
+    for filename, line_start, col_start, line_end, col_end in uncovered:
+        by_file[filename].append((line_start, col_start, line_end, col_end))
 
-by_file = defaultdict(list)
-for filename, line_start, col_start, line_end, col_end in uncovered:
-    by_file[filename].append((line_start, col_start, line_end, col_end))
+    print("\nUncovered regions (not executed by any test):\n")
+    for filename in sorted(by_file):
+        print(f"  {rel(filename)}")
+        for line_start, col_start, line_end, col_end in sorted(by_file[filename]):
+            if line_start == line_end:
+                print(f"    line {line_start:<6} cols {col_start}-{col_end}")
+            else:
+                print(f"    lines {line_start}-{line_end:<6} cols {col_start}-{col_end}")
+        print()
 
-print("\nUncovered regions (not executed by any test):\n")
-for filename in sorted(by_file):
-    print(f"  {rel(filename)}")
-    for line_start, col_start, line_end, col_end in sorted(by_file[filename]):
-        if line_start == line_end:
-            print(f"    line {line_start:<6} cols {col_start}-{col_end}")
-        else:
-            print(f"    lines {line_start}-{line_end:<6} cols {col_start}-{col_end}")
-    print()
+    # Compact, grep-friendly `file: line, line, ...` list of the region starts.
+    print("Uncovered lines (compact):")
+    for filename in sorted(by_file):
+        start_lines = sorted({line_start for line_start, *_ in by_file[filename]})
+        print(f"  {rel(filename)}: " + ", ".join(str(line) for line in start_lines))
 
-# Compact, grep-friendly `file: line, line, ...` list of the region start lines.
-print("Uncovered lines (compact):")
-for filename in sorted(by_file):
-    start_lines = sorted({line_start for line_start, *_ in by_file[filename]})
-    print(f"  {rel(filename)}: " + ", ".join(str(line) for line in start_lines))
+    region_count = sum(len(v) for v in by_file.values())
+    print(f"\n{region_count} uncovered region(s) across {len(by_file)} file(s).")
 
-region_count = sum(len(v) for v in by_file.values())
-print(f"\n{region_count} uncovered region(s) across {len(by_file)} file(s).")
+if gate:
+    print_gate_gaps()
+
 if show_phantoms_enabled:
     print_phantoms()
+
 sys.exit(1)
 PY
 else

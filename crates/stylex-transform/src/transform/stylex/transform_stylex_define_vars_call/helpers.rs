@@ -38,7 +38,8 @@ use stylex_state::{
 ///
 /// Also validates:
 /// - Arrow functions must have zero parameters.
-/// - Arrow functions must use an expression body, not a block body.
+/// - Arrow function bodies must be expressions, through
+///   [`arrow_body_expr`].
 /// - Referenced same-group keys must exist (panics with
 ///   `unknown_define_vars_reference`).
 ///
@@ -59,7 +60,7 @@ pub(super) fn collect_keys_and_dependencies(
   // First pass over top-level props: collect keys + validate + buffer arrow refs.
   // We need `all_keys` populated before the unknown-ref check, so we do a small
   // two-step over the same prop list. Each step is O(props.len()).
-  let mut arrow_props: Vec<(Atom, &ArrowExpr)> = Vec::with_capacity(obj.props.len());
+  let mut arrow_bodies: Vec<(Atom, &Expr)> = Vec::with_capacity(obj.props.len());
 
   for prop in &obj.props {
     let Some(kv) = prop_as_key_value(prop) else {
@@ -77,19 +78,11 @@ pub(super) fn collect_keys_and_dependencies(
       if arrow.params.iter().any(|p| !matches!(p, Pat::Invalid(_))) {
         stylex_panic!("{}", invalid_define_vars_function_value());
       }
-      // Validate: expression body only (no block statements).
-      if let ArrowFunctionBody::FunctionBody(_) = arrow.body.as_ref() {
-        stylex_panic!("{}", invalid_define_vars_function_value());
-      }
-      arrow_props.push((key, arrow));
+      arrow_bodies.push((key, arrow_body_expr(arrow)));
     }
   }
 
-  for (key, arrow) in arrow_props {
-    let ArrowFunctionBody::Expr(body_expr) = arrow.body.as_ref() else {
-      continue; // Already validated above.
-    };
-
+  for (key, body_expr) in arrow_bodies {
     let mut collector = DependencyVisitor {
       export_name,
       deps: FxHashSet::default(),
@@ -110,6 +103,29 @@ pub(super) fn collect_keys_and_dependencies(
   }
 
   (all_keys, dep_map)
+}
+
+/// The expression an arrow function value's body is.
+///
+/// A block body is a body the evaluator has no reading for, so it refuses the
+/// whole variable group before either reader here sees the object it produced:
+/// every arrow that arrives carries an expression. Both readers used to ask
+/// this question for themselves, and each one wrote its own refusal for an
+/// answer neither can get.
+///
+/// The exclusion covers this step and nothing else, and the step computes
+/// nothing -- it chooses between the body and the refusal. The claim above is
+/// measured by `a_function_value_with_a_block_body_is_refused`, which is the
+/// case that would start failing if the evaluator ever folded one.
+/// `guidelines/stack/RUST.md` describes the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn arrow_body_expr(arrow: &ArrowExpr) -> &Expr {
+  match arrow.body.as_ref() {
+    ArrowFunctionBody::Expr(body) => body,
+    ArrowFunctionBody::FunctionBody(_) => {
+      stylex_panic!("{}", invalid_define_vars_function_value())
+    },
+  }
 }
 
 /// SWC `Visit` implementation that walks any expression sub-tree and records
@@ -249,13 +265,7 @@ pub(super) fn normalize_define_vars_functions(
 
     let new_value_expr: Expr = match kv.value.as_ref() {
       Expr::Arrow(arrow) if arrow.params.is_empty() => {
-        let body_expr = match arrow.body.as_ref() {
-          ArrowFunctionBody::Expr(e) => e.as_ref(),
-          ArrowFunctionBody::FunctionBody(_) => {
-            stylex_panic!("{}", invalid_define_vars_function_value());
-          },
-        };
-        let result = evaluate(body_expr, state, function_map);
+        let result = evaluate(arrow_body_expr(arrow), state, function_map);
         if !result.confident {
           let deopt = refusal_site(result.deopt.as_ref(), first_arg);
           stylex_panic!(

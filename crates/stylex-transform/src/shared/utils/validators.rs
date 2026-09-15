@@ -76,11 +76,10 @@ pub(crate) fn argument_at(call: &CallExpr, index: usize, fn_name: &str) -> Expr 
 
 /// `read`, or the refusal an argument list too short is reported with.
 ///
-/// This is the whole of what is left out of the coverage measurement, and it
-/// computes nothing -- it chooses between answers the caller has already worked
-/// out. Every caller reached the read through a count check on the same call,
-/// so the argument is there. `guidelines/stack/RUST.md` describes the
-/// allowance.
+/// The exclusion covers this step and nothing else, and the step computes
+/// nothing -- it chooses between answers the caller has already worked out.
+/// Every caller reached the read through a count check on the same call, so the
+/// argument is there. `guidelines/stack/RUST.md` describes the allowance.
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn or_refuse_missing_argument<'a>(
   read: Option<&'a ExprOrSpread>,

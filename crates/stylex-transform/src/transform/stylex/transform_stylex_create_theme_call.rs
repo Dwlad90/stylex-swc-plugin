@@ -117,46 +117,46 @@ where
         disable_imports: false,
       });
 
-      let evaluated_arg1 = evaluate(&first_arg, &mut self.state, &function_map);
+      let evaluated_arg1 = evaluate(first_arg, &mut self.state, &function_map);
 
       assert!(
         evaluated_arg1.confident,
         "{}",
         build_code_frame_error(
           &Expr::Call(call.clone()),
-          &refusal_site(evaluated_arg1.deopt.as_ref(), &first_arg),
+          &refusal_site(evaluated_arg1.deopt.as_ref(), first_arg),
           &non_static_value(STYLEX_CREATE_THEME),
           &mut self.state,
         )
       );
 
-      let evaluated_arg2 = evaluate(&second_arg, &mut self.state, &function_map);
+      let evaluated_arg2 = evaluate(second_arg, &mut self.state, &function_map);
 
       assert!(
         evaluated_arg2.confident,
         "{}",
         build_code_frame_error(
           &Expr::Call(call.clone()),
-          &refusal_site(evaluated_arg2.deopt.as_ref(), &second_arg),
+          &refusal_site(evaluated_arg2.deopt.as_ref(), second_arg),
           &non_static_value(STYLEX_CREATE_THEME),
           &mut self.state,
         )
       );
 
       let variables = match evaluated_arg1.value {
-        Some(ref value) => {
+        Some(value) => {
           // The producer reads the same question again and keeps the answer.
           // It is asked here as well so that a first argument that is no
           // variable group is refused before the second one is read, which is
           // the order the reference implementation refuses them in.
-          validate_theme_variables(value, &self.state);
-          value.clone()
+          validate_theme_variables(&value, &self.state);
+          value
         },
         None => stylex_panic!(
           "{}",
           build_code_frame_error(
             &Expr::Call(call.clone()),
-            &refusal_site(evaluated_arg1.deopt.as_ref(), &first_arg),
+            &refusal_site(evaluated_arg1.deopt.as_ref(), first_arg),
             ONLY_OVERRIDE_DEFINE_VARS,
             &mut self.state,
           )
@@ -164,7 +164,7 @@ where
       };
 
       let overrides = match evaluated_arg2.value {
-        Some(ref value) => {
+        Some(value) => {
           assert!(
             value
               .as_expr()
@@ -173,18 +173,18 @@ where
             "{}",
             build_code_frame_error(
               &Expr::Call(call.clone()),
-              &refusal_site(evaluated_arg2.deopt.as_ref(), &second_arg),
+              &refusal_site(evaluated_arg2.deopt.as_ref(), second_arg),
               &non_style_object(STYLEX_CREATE_THEME),
               &mut self.state,
             )
           );
-          value.clone()
+          value
         },
         None => stylex_panic!(
           "{}",
           build_code_frame_error(
             &Expr::Call(call.clone()),
-            &refusal_site(evaluated_arg2.deopt.as_ref(), &second_arg),
+            &refusal_site(evaluated_arg2.deopt.as_ref(), second_arg),
             &non_style_object(STYLEX_CREATE_THEME),
             &mut self.state,
           )

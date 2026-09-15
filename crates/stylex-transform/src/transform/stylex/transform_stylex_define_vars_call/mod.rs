@@ -164,12 +164,12 @@ where
         disable_imports: false,
       });
 
-      let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
+      let evaluated_arg = evaluate(first_arg, &mut self.state, &function_map);
 
       let value = folded_style_object(
         evaluated_arg,
         call,
-        &first_arg,
+        first_arg,
         STYLEX_DEFINE_VARS,
         &mut self.state,
       );
@@ -189,7 +189,7 @@ where
 
       // Normalize: evaluate zero-param arrow function values in the defineVars object.
       let value =
-        normalize_define_vars_functions(value, &mut self.state, &function_map, call, &first_arg);
+        normalize_define_vars_functions(value, &mut self.state, &function_map, call, first_arg);
 
       let (variables_obj, injected_styles_sans_keyframes) =
         stylex_define_vars(&value, &mut self.state);

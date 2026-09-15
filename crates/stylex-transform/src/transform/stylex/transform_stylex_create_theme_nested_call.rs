@@ -61,14 +61,14 @@ where
 
     let second_arg = argument_at(call, 1, STYLEX_UNSTABLE_CREATE_THEME_NESTED);
 
-    let evaluated_arg1 = evaluate(&first_arg, &mut self.state, &FunctionMap::default());
+    let evaluated_arg1 = evaluate(first_arg, &mut self.state, &FunctionMap::default());
 
     if !evaluated_arg1.confident {
       stylex_panic!(
         "{}",
         build_code_frame_error(
           &Expr::Call(call.clone()),
-          &refusal_site(evaluated_arg1.deopt.as_ref(), &first_arg),
+          &refusal_site(evaluated_arg1.deopt.as_ref(), first_arg),
           &non_static_value(STYLEX_UNSTABLE_CREATE_THEME_NESTED),
           &mut self.state,
         )
@@ -84,7 +84,7 @@ where
         "{}",
         build_code_frame_error(
           &Expr::Call(call.clone()),
-          &refusal_site(evaluated_arg1.deopt.as_ref(), &first_arg),
+          &refusal_site(evaluated_arg1.deopt.as_ref(), first_arg),
           ONLY_OVERRIDE_DEFINE_VARS_NESTED,
           &mut self.state,
         )
@@ -92,14 +92,14 @@ where
     };
 
     let function_map = build_eval_config(&mut self.state);
-    let evaluated_arg2 = evaluate(&second_arg, &mut self.state, &function_map);
+    let evaluated_arg2 = evaluate(second_arg, &mut self.state, &function_map);
 
     if !evaluated_arg2.confident {
       stylex_panic!(
         "{}",
         build_code_frame_error(
           &Expr::Call(call.clone()),
-          &refusal_site(evaluated_arg2.deopt.as_ref(), &second_arg),
+          &refusal_site(evaluated_arg2.deopt.as_ref(), second_arg),
           &non_static_value(STYLEX_UNSTABLE_CREATE_THEME_NESTED),
           &mut self.state,
         )
@@ -118,7 +118,7 @@ where
             "{}",
             build_code_frame_error(
               &Expr::Call(call.clone()),
-              &refusal_site(evaluated_arg2.deopt.as_ref(), &second_arg),
+              &refusal_site(evaluated_arg2.deopt.as_ref(), second_arg),
               &non_style_object(STYLEX_UNSTABLE_CREATE_THEME_NESTED),
               &mut self.state,
             )

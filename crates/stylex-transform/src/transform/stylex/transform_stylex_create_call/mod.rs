@@ -205,7 +205,9 @@ where
         || self.state.find_top_level_expr(call).is_some()
         || self.state.holds_call_in_top_level_array(call);
 
-      let mut first_arg = argument_at(call, 0, STYLEX_CREATE);
+      // The only producer that rewrites its argument, so the only one that
+      // needs a copy of it.
+      let mut first_arg = argument_at(call, 0, STYLEX_CREATE).clone();
 
       let mut resolved_namespaces: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
       let function_map = build_runtime_function_map(self);

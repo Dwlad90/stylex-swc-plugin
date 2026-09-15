@@ -44,12 +44,12 @@ where
 
       let function_map = build_env_only_eval_config(&mut self.state);
 
-      let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
+      let evaluated_arg = evaluate(first_arg, &mut self.state, &function_map);
 
       let value = folded_style_object(
         evaluated_arg,
         call,
-        &first_arg,
+        first_arg,
         STYLEX_DEFINE_CONSTS,
         &mut self.state,
       );

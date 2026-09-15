@@ -51,12 +51,12 @@ where
     let first_arg = argument_at(call, 0, STYLEX_UNSTABLE_DEFINE_VARS_NESTED);
 
     let function_map = build_eval_config(&mut self.state);
-    let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
+    let evaluated_arg = evaluate(first_arg, &mut self.state, &function_map);
 
     let value = folded_style_object(
       evaluated_arg,
       call,
-      &first_arg,
+      first_arg,
       STYLEX_UNSTABLE_DEFINE_VARS_NESTED,
       &mut self.state,
     );

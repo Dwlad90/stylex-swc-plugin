@@ -89,12 +89,12 @@ where
         disable_imports: false,
       });
 
-      let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
+      let evaluated_arg = evaluate(first_arg, &mut self.state, &function_map);
 
       let plain_object = folded_style_object(
         evaluated_arg,
         call,
-        &first_arg,
+        first_arg,
         STYLEX_POSITION_TRY,
         &mut self.state,
       );

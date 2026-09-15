@@ -67,12 +67,16 @@ fn validate_arg_count_for_expr(
 ///
 /// Every caller validates the argument count first, so there is an argument at
 /// each index one asks for.
-pub(crate) fn argument_at(call: &CallExpr, index: usize, fn_name: &str) -> Expr {
+///
+/// The expression is lent rather than copied. Eleven of the twelve producers
+/// only read it, and the object an author writes in a `stylex.*` call is the
+/// whole style tree, so a copy per call was the largest one the read made.
+pub(crate) fn argument_at<'a>(call: &'a CallExpr, index: usize, fn_name: &str) -> &'a Expr {
   let arg = or_refuse_missing_argument(call.args.get(index), index, fn_name);
 
   match &arg.spread {
     Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-    None => (*arg.expr).clone(),
+    None => &arg.expr,
   }
 }
 

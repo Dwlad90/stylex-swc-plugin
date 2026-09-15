@@ -309,3 +309,52 @@ stylex_test!(
     stylex.props(css.float['inline-start']);
   "#
 );
+
+// The remaining import forms the atoms source can be taken in. A default import
+// and a namespace import both name the whole package, so the property is read
+// off the member that follows the binding; a named import names one property
+// already, so the member that follows it is the value alone. Each form is a
+// separate arm of the import reader, and only the default one had a case.
+stylex_test!(
+  inline_static_supports_namespace_imports,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import * as css from '@stylexjs/atoms';
+    stylex.props(css.display.flex);
+  "#
+);
+
+stylex_test!(
+  inline_static_supports_named_imports,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import { color } from '@stylexjs/atoms';
+    stylex.props(color.blue);
+  "#
+);
+
+// A renamed named import keeps naming the property it was imported as, not the
+// local name it is read through.
+stylex_test!(
+  inline_static_supports_renamed_named_imports,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import { color as textColor } from '@stylexjs/atoms';
+    stylex.props(textColor.blue);
+  "#
+);
+
+// The same, with the imported name written as a string. A property whose name
+// is not an identifier can only be imported this way.
+stylex_test!(
+  inline_static_supports_named_imports_spelled_as_a_string,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import { "color" as textColor } from '@stylexjs/atoms';
+    stylex.props(textColor.blue);
+  "#
+);

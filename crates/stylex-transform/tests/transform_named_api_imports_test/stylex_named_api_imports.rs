@@ -144,3 +144,30 @@ fn nested_define_vars_folds_keyframes_position_try_and_types_under_their_importe
     compiled_theme_module,
   );
 }
+
+/// A name taken from the StyleX source that is no API of it.
+///
+/// The source is an import path either way -- the module does import StyleX --
+/// and the name binds nothing the compiler answers for, so a call written
+/// against it reaches the runtime as the author wrote it. The API imported
+/// beside it still compiles, which is what says the unknown name was passed
+/// over rather than taking the whole import with it.
+#[test]
+fn a_named_import_that_is_no_api_binds_nothing() {
+  let output = compiled_module(
+    r#"
+      import { create, notAnApi } from '@stylexjs/stylex';
+      export const styles = create({ base: { color: 'red' } });
+      notAnApi({ base: { color: 'red' } });
+    "#,
+  );
+
+  assert!(
+    output.contains("notAnApi({"),
+    "the call on the unknown name is left where it was written:\n{output}"
+  );
+  assert!(
+    output.contains("_inject2("),
+    "the API imported beside it still compiled:\n{output}"
+  );
+}

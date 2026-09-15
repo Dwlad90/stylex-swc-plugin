@@ -109,3 +109,7 @@ where
     self.visit_mut_jsx_attr_or_spreads_impl(jsx_attrs);
   }
 }
+
+#[cfg(test)]
+#[path = "tests/module_entry_test.rs"]
+mod tests;

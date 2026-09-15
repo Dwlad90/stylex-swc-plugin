@@ -204,9 +204,10 @@ where
   /// The props of a compiled style object, swept down to the namespaces the
   /// module still reads.
   ///
-  /// The object was written by the producer a few phases back, so every prop is
-  /// a key-value whose key names a namespace. A prop that is not -- which no
-  /// compiled object holds -- leaves the whole object as it is, because a sweep
+  /// The object was written by `convert_object_to_ast` a few phases back, and
+  /// that step writes every prop as a key-value under a name -- asserted where
+  /// the object is built, by `writes_every_prop_as_a_key_value_under_a_name`.
+  /// A prop that is not leaves the whole object as it is, because a sweep
   /// cannot tell what such an entry carries.
   fn retain_object_props(
     &self,

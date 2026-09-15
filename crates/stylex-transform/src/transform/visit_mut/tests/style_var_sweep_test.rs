@@ -3,17 +3,19 @@
 //! A style variable holds a map of namespaces, and each namespace holds the
 //! declarations compiled out of it. Both objects were written by
 //! `convert_object_to_ast` a few phases earlier, which writes key-value props
-//! under names it chose, so no module can put a spread, a method or a computed
-//! key in front of the sweep. The objects are therefore built here rather than
-//! compiled, which is also what lets one test drive the whole sweep: llvm-cov
-//! scores a function on its best-covered instantiation, and the cases the
-//! compiled suite reaches are in a different one.
-
-use std::rc::Rc;
+//! under names it chose -- asserted where it writes them, by
+//! `writes_every_prop_as_a_key_value_under_a_name`. So no module can put a
+//! spread or a nameless key in front of the sweep, and the objects here are
+//! built rather than compiled: the cases say what the sweep answers at its own
+//! boundary, for the shapes its callers can hand it.
+//!
+//! Building them is also what lets one test drive the whole sweep. llvm-cov
+//! scores a function on its best-covered instantiation, and the compiled suite
+//! reaches these functions in a different one.
 
 use swc_core::{
   atoms::Atom,
-  common::{GLOBALS, Globals, comments::SingleThreadedComments},
+  common::{GLOBALS, Globals},
   ecma::ast::{Expr, ObjectLit, PropOrSpread},
 };
 
@@ -27,7 +29,7 @@ use stylex_state::state_manager::DeclId;
 use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
 use super::super::visit_mut_var_declarator::retain_style_props;
-use crate::StyleXTransform;
+use crate::transform::tests::prelude::{TestComments, test_transform};
 
 /// The object `props` make up.
 fn object_of(props: Vec<PropOrSpread>) -> ObjectLit {
@@ -47,8 +49,8 @@ fn namespace_of(name: &str, null_declarations: &[&str]) -> PropOrSpread {
   create_key_value_prop(name, Expr::Object(object_of(declarations)))
 }
 
-fn transform() -> StyleXTransform<Rc<SingleThreadedComments>> {
-  StyleXTransform::test(Rc::new(SingleThreadedComments::default())).build()
+fn transform() -> crate::StyleXTransform<TestComments> {
+  test_transform(|builder| builder)
 }
 
 fn declaration_id() -> DeclId {
@@ -104,17 +106,13 @@ fn the_sweep_keeps_the_namespaces_and_nulls_still_read() {
       "the namespace nothing reads is gone"
     );
 
-    let declarations = |index: usize| match &swept[index] {
-      PropOrSpread::Prop(prop) => match prop.as_key_value().map(|key_value| &key_value.value) {
-        Some(value) => prop_names(
-          &value
-            .as_object()
-            .expect("a namespace holds an object")
-            .props,
-        ),
-        None => panic!("a namespace is a key-value prop"),
-      },
-      PropOrSpread::Spread(_) => panic!("a namespace is a key-value prop"),
+    let declarations = |index: usize| match swept[index]
+      .as_prop()
+      .and_then(|prop| prop.as_key_value())
+      .and_then(|key_value| key_value.value.as_object())
+    {
+      Some(object) => prop_names(&object.props),
+      None => panic!("a namespace is a key-value prop holding an object"),
     };
 
     assert_eq!(

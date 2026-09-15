@@ -1,8 +1,9 @@
-//! What the transform test files here share: a parse that matches the
-//! compiler's, and the comments every transform is built with.
+//! What the transform's test files share: a parse that matches the compiler's,
+//! and a transform built over it.
 //!
-//! `RUST.md` permits a test prelude, because test code is not part of the
-//! crate graph.
+//! `RUST.md` permits a test prelude, because test code is not part of the crate
+//! graph. The suites that read it are registered from the files they cover, so
+//! they reach it by path rather than by being neighbours.
 
 use std::rc::Rc;
 use std::sync::Arc;
@@ -15,6 +16,12 @@ use swc_core::{
     transforms::base::resolver,
   },
 };
+
+use crate::{StyleXTransform, StyleXTransformBuilder};
+
+/// The comments a test transform carries: none, which is what a module with no
+/// comment in it hands the compiler.
+pub(crate) type TestComments = Rc<SingleThreadedComments>;
 
 /// Parses `code` as TypeScript and runs SWC's resolver over it, the way the
 /// compiler does before the StyleX pass, so identifiers carry the syntax
@@ -50,6 +57,16 @@ pub(crate) fn resolved_module(code: &str) -> Module {
   }
 }
 
-pub(crate) fn comments() -> Rc<SingleThreadedComments> {
+/// A transform built for a test, with `customize` applied to its builder.
+///
+/// One builder for every case here, so a suite says what it changed rather than
+/// repeating what every case sets.
+pub(crate) fn test_transform(
+  customize: impl FnOnce(StyleXTransformBuilder<TestComments>) -> StyleXTransformBuilder<TestComments>,
+) -> StyleXTransform<TestComments> {
+  customize(StyleXTransform::test(comments())).build()
+}
+
+pub(crate) fn comments() -> TestComments {
   Rc::new(SingleThreadedComments::default())
 }

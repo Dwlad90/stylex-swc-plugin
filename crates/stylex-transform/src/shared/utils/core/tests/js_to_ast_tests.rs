@@ -187,3 +187,69 @@ fn keeps_every_namespace_it_is_given() {
 
   assert_eq!(result.keys().cloned().collect::<Vec<_>>(), ["root", "dark"]);
 }
+
+/// Every prop of a written object is a key-value under a name that can be read
+/// back, whatever the name and the value are.
+///
+/// The finalize sweep in `visit_mut_var_declarator` reads these objects and
+/// leaves one alone that holds anything else -- a spread, a method, a key with
+/// no compile-time text. Nothing it can be handed holds one, and this is where
+/// that is true: the invariant is asserted where the object is built, rather
+/// than argued at the reader.
+#[test]
+fn writes_every_prop_as_a_key_value_under_a_name() {
+  let mut styles: StylesObjectMap = IndexMap::new();
+
+  // A namespace whose name has to be quoted, and a declaration whose name has
+  // to be quoted, are the two names that are not plain identifiers.
+  styles.insert(
+    "a-namespace".to_owned(),
+    Rc::new(values_of(&[
+      (
+        "color-kMwMTN",
+        FlatCompiledStylesValue::String("xabc".to_owned()),
+      ),
+      ("margin", FlatCompiledStylesValue::Null),
+    ])),
+  );
+
+  let written = convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(styles));
+
+  // `key_of` refuses a spread and a prop that is not a key-value, and it reads
+  // the name of every key a written object can carry.
+  let namespaces = properties_of(&written);
+
+  assert_eq!(
+    namespaces,
+    [("a-namespace".to_owned(), "object:2".to_owned())]
+  );
+
+  let declarations = match &written {
+    Expr::Object(object) => match object.props.first().map(properties_of_namespace) {
+      Some(declarations) => declarations,
+      None => panic!("the written object holds the namespace it was given"),
+    },
+    other => panic!("the answer is not an object expression: {other:?}"),
+  };
+
+  assert_eq!(
+    declarations,
+    [
+      ("color-kMwMTN".to_owned(), "string:xabc".to_owned()),
+      ("margin".to_owned(), "null".to_owned()),
+    ]
+  );
+}
+
+/// The declarations of one namespace prop, read the same way the namespaces
+/// themselves are.
+fn properties_of_namespace(prop: &PropOrSpread) -> Vec<(String, String)> {
+  match prop
+    .as_prop()
+    .and_then(|prop| prop.as_key_value())
+    .map(|key_value| key_value.value.as_ref())
+  {
+    Some(value) => properties_of(value),
+    None => panic!("a namespace is a key-value prop: {prop:?}"),
+  }
+}

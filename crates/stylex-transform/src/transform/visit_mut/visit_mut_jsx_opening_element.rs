@@ -68,8 +68,8 @@ where
     }
 
     // The first attribute that names the prop, with the value it carries. The
-    // value is taken by copy so that the attribute list is no longer borrowed
-    // when the runtime binding is resolved below, which writes to `self`.
+    // value is borrowed, so an attribute the compiler goes on to leave alone
+    // costs no copy of the subtree under it.
     let sx_attr = jsx_opening_element
       .attrs
       .iter()
@@ -77,7 +77,7 @@ where
       .find_map(|(idx, attr)| match attr {
         JSXAttrOrSpread::JSXAttr(jsx_attr) => match &jsx_attr.name {
           JSXAttrName::Ident(name) if name.sym.as_str() == sx_prop_name.as_str() => {
-            Some((idx, jsx_attr.value.clone()))
+            Some((idx, jsx_attr.value.as_ref()))
           },
           _ => None,
         },
@@ -97,9 +97,8 @@ where
       })),
     )) = sx_attr
     {
+      let args = sx_value_to_props_args((**value_expr).clone());
       let stylex_local_name = self.get_stylex_runtime_binding(element_span);
-
-      let args = sx_value_to_props_args(*value_expr);
       let call = Expr::Call(build_stylex_props_call(stylex_local_name, args));
 
       jsx_opening_element.attrs[idx] = create_jsx_spread_attr(call);
@@ -450,3 +449,7 @@ fn is_jsx_runtime_call(call: &CallExpr) -> bool {
     _ => false,
   }
 }
+
+#[cfg(test)]
+#[path = "tests/sx_runtime_binding_test.rs"]
+mod tests;

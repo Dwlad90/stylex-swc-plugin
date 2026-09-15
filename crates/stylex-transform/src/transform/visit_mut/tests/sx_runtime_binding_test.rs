@@ -16,8 +16,7 @@ use swc_core::{
   },
 };
 
-use crate::StyleXTransform;
-use crate::transform::tests::prelude::{comments, resolved_module};
+use crate::transform::tests::prelude::{resolved_module, test_transform};
 
 /// A module whose `sx` prop sits in one function and whose rebinding of the
 /// imported name sits in another. Reading the positions, the prop is not
@@ -58,9 +57,7 @@ fn namespace_import_names(module: &Module) -> Vec<String> {
 #[test]
 fn a_positioned_call_reuses_an_imported_namespace_another_function_rebinds() {
   GLOBALS.set(&Globals::default(), || {
-    let mut transform = StyleXTransform::test(comments())
-      .with_runtime_injection()
-      .build();
+    let mut transform = test_transform(|builder| builder.with_runtime_injection());
     let mut module = resolved_module(REBOUND_IN_A_SIBLING_FUNCTION);
 
     module.visit_mut_with(&mut transform);
@@ -81,9 +78,7 @@ fn a_positioned_call_reuses_an_imported_namespace_another_function_rebinds() {
 #[test]
 fn a_call_without_a_position_injects_a_uid_import_instead() {
   GLOBALS.set(&Globals::default(), || {
-    let mut transform = StyleXTransform::test(comments())
-      .with_runtime_injection()
-      .build();
+    let mut transform = test_transform(|builder| builder.with_runtime_injection());
     let mut module = resolved_module(REBOUND_IN_A_SIBLING_FUNCTION);
 
     module.visit_mut_with(&mut DropSpan);
@@ -103,9 +98,7 @@ fn a_call_without_a_position_injects_a_uid_import_instead() {
 #[test]
 fn an_sx_call_with_no_configured_import_source_names_the_package() {
   GLOBALS.set(&Globals::default(), || {
-    let mut transform = StyleXTransform::test(comments())
-      .with_runtime_injection()
-      .build();
+    let mut transform = test_transform(|builder| builder.with_runtime_injection());
 
     transform.state.options.import_sources.clear();
 

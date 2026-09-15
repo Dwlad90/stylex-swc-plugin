@@ -11,8 +11,37 @@ use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue, types::FlatCompiledStyles,
 };
 use stylex_structures::pair::Pair;
+use swc_core::ecma::ast::Expr;
 
+use crate::shared::enums::data_structures::fn_result::FnResult;
 use crate::shared::utils::core::parse_nullable_style::{ResolvedArg, StyleObject};
+
+/// Reads a result the way a case wants to name it.
+///
+/// A trait rather than two free functions, so a case reads a result the way it
+/// reads every other value. Here rather than beside the type, because the arm
+/// that answers for the kind a result does not hold is a question only a case
+/// asks.
+pub(crate) trait ResultReader {
+  fn as_class_name(&self) -> Option<&Expr>;
+  fn as_values(&self) -> Option<&FlatCompiledStyles>;
+}
+
+impl ResultReader for FnResult {
+  fn as_class_name(&self) -> Option<&Expr> {
+    match self {
+      FnResult::ClassName(class_name) => Some(class_name),
+      FnResult::Values(_) => None,
+    }
+  }
+
+  fn as_values(&self) -> Option<&FlatCompiledStyles> {
+    match self {
+      FnResult::Values(values) => Some(values),
+      FnResult::ClassName(_) => None,
+    }
+  }
+}
 
 /// A compiled namespace: the marker every compiled style carries, and the
 /// properties given as `(property, class name)`.

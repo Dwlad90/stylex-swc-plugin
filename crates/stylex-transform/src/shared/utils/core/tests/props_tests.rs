@@ -8,23 +8,21 @@ use stylex_state::{
 };
 
 use crate::shared::enums::data_structures::fn_result::FnResult;
-use crate::shared::utils::core::tests::style_args::{inline, inline_pair, style_of, styles};
+use crate::shared::utils::core::tests::style_args::{
+  ResultReader, inline, inline_pair, style_of, styles,
+};
 use crate::shared::utils::core::{
   attrs::attrs,
   parse_nullable_style::{ResolvedArg, StyleObject},
   props::props,
+  stylex::stylex,
 };
 
 /// The values a result holds, keyed the way it named them.
 fn values_of(result: FnResult) -> FlatCompiledStyles {
-  let object = match (result.as_props(), result.as_attrs()) {
-    (Some(object), _) | (_, Some(object)) => object.clone(),
-    _ => panic!("the result names neither properties nor attributes"),
-  };
-
-  match object.as_values() {
+  match result.as_values() {
     Some(values) => values.clone(),
-    None => panic!("the result holds no values"),
+    None => panic!("the result holds no values: {result:?}"),
   }
 }
 
@@ -135,4 +133,16 @@ fn writes_an_empty_style_attribute_for_a_style_that_spells_no_text() {
   let values = values_of(attrs(&[styles(inline_pair("margin", "1px"))]));
 
   assert_eq!(text_of(&values, "style"), "");
+}
+
+/// The three calls answer two kinds, and each names the kind it made: a merge
+/// asked for properties or attributes answers values, and one asked for a class
+/// name answers a string.
+#[test]
+fn each_call_answers_the_kind_it_makes() {
+  let merged = [style_of(&[("color", "xa")])];
+
+  assert!(props(&merged).as_values().is_some());
+  assert!(attrs(&merged).as_values().is_some());
+  assert!(stylex(&merged).as_class_name().is_some());
 }

@@ -12,13 +12,16 @@ use stylex_ast::ast::factories::{
   create_bin_expr, create_computed_member_prop, create_member_expr, create_object_expression,
 };
 
-use super::{js_to_ast::convert_object_to_ast, parse_nullable_style::ResolvedArg};
+use super::{
+  js_to_ast::{NestedStringObject, convert_object_to_ast},
+  parse_nullable_style::ResolvedArg,
+};
 
 fn fn_result_to_expression(fn_result: FnResult) -> Expr {
   match fn_result {
-    FnResult::Stylex(string_object) => string_object,
-    FnResult::Props(string_object) | FnResult::Attrs(string_object) => {
-      convert_object_to_ast(&string_object)
+    FnResult::ClassName(class_name) => class_name,
+    FnResult::Values(values) => {
+      convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(values))
     },
   }
 }

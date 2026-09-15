@@ -1,36 +1,20 @@
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::utils::core::js_to_ast::NestedStringObject;
+use stylex_state::types::FlatCompiledStyles;
 
+/// What one `stylex`-family call is replaced by.
+///
+/// A `stylex(...)` call becomes the class name its styles merge to, which is a
+/// string. A `props(...)` call becomes the properties an element takes and an
+/// `attrs(...)` call becomes the attributes it takes; both are a set of
+/// compiled values, and nothing that reads this tells the two apart -- the
+/// caller that asked for one already knows which it asked for.
+///
+/// The readers a case names a result by are in `utils::core::tests::style_args`
+/// rather than here. They answer for a kind the result does not hold, which no
+/// caller in this crate ever asks for.
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum FnResult {
-  Attrs(NestedStringObject),
-  Props(NestedStringObject),
-  Stylex(Expr),
-}
-
-impl FnResult {
-  #[cfg(test)]
-  pub(crate) fn as_props(&self) -> Option<&NestedStringObject> {
-    match self {
-      FnResult::Props(props) => Some(props),
-      _ => None,
-    }
-  }
-
-  #[cfg(test)]
-  pub(crate) fn as_stylex(&self) -> Option<&Expr> {
-    match self {
-      FnResult::Stylex(expr) => Some(expr),
-      _ => None,
-    }
-  }
-
-  #[cfg(test)]
-  pub(crate) fn as_attrs(&self) -> Option<&NestedStringObject> {
-    match self {
-      FnResult::Attrs(attrs) => Some(attrs),
-      _ => None,
-    }
-  }
+  ClassName(Expr),
+  Values(FlatCompiledStyles),
 }

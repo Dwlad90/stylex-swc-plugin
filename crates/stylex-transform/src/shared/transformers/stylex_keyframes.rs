@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use std::borrow::Cow;
+
 use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
 use stylex_structures::pre_rule_value::PreRuleValue;
@@ -194,7 +196,7 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
         return vec![];
       };
 
-      flat_map_expanded_shorthands((key, value), &state.options)
+      flat_map_expanded_shorthands((Cow::Owned(key), value), &state.options)
         .into_iter()
         .filter_map(|pair| {
           pair.1.as_ref()?;

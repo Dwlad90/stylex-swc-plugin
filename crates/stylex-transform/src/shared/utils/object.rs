@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{borrow::Cow, rc::Rc};
 
 use indexmap::IndexMap;
 
@@ -176,7 +176,7 @@ pub(crate) fn preprocess_object_properties(
       let key = convert_key_value_to_str(pair);
 
       flat_map_expanded_shorthands(
-        (key, PreRuleValue::Expr(*pair.value.clone())),
+        (Cow::Owned(key), PreRuleValue::Expr(*pair.value.clone())),
         &state.options,
       )
       .into_iter()

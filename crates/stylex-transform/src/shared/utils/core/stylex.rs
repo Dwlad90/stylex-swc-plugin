@@ -6,5 +6,5 @@ use super::{parse_nullable_style::ResolvedArg, styleq::styleq};
 /// The class name the merged styles become, as the string a `stylex(...)` call
 /// is replaced by.
 pub(crate) fn stylex(values: &[ResolvedArg]) -> FnResult {
-  FnResult::Stylex(create_string_expr(styleq(values).class_name.as_str()))
+  FnResult::ClassName(create_string_expr(styleq(values).class_name.as_str()))
 }

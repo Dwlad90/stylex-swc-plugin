@@ -168,7 +168,7 @@ pub(crate) fn flatten_raw_style_object_logic(
               Expr::Lit(property_lit @ (Lit::Str(_) | Lit::Num(_) | Lit::Null(_))) => {
                 let pairs = flat_map_expanded_shorthands(
                   (
-                    css_property_key.to_string(),
+                    Cow::Borrowed(css_property_key.as_ref()),
                     match convert_lit_to_raw_value(property_lit) {
                       Some(val) => PreRuleValue::Raw(val),
                       None => PreRuleValue::Null,
@@ -178,9 +178,13 @@ pub(crate) fn flatten_raw_style_object_logic(
                 );
 
                 for OrderPair(property, val) in pairs.iter() {
-                  let property = property.to_string();
-
-                  let values = equivalent_pairs.entry(property).or_default();
+                  // Named once, where the property is new. The values of one
+                  // property arrive one after another, so asking `entry` for it
+                  // made a string of a name the map already held.
+                  let values = match equivalent_pairs.get_mut(property.as_ref()) {
+                    Some(values) => values,
+                    None => equivalent_pairs.entry(property.to_string()).or_default(),
+                  };
 
                   if let Some(val) = val {
                     values.push(val.clone());
@@ -235,7 +239,7 @@ pub(crate) fn flatten_raw_style_object_logic(
 
           let pairs = flat_map_expanded_shorthands(
             (
-              css_property_key.into_owned(),
+              css_property_key,
               match value {
                 Some(val) => PreRuleValue::Raw(val),
                 None => PreRuleValue::Null,

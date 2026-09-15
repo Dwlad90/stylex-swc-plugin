@@ -3,9 +3,7 @@ use std::rc::Rc;
 use indexmap::IndexMap;
 use stylex_css::css::common::inline_style_to_css_string;
 
-use crate::shared::{
-  enums::data_structures::fn_result::FnResult, utils::core::js_to_ast::NestedStringObject,
-};
+use crate::shared::enums::data_structures::fn_result::FnResult;
 use stylex_state::flat_compiled_styles_value::FlatCompiledStylesValue;
 
 use super::{parse_nullable_style::ResolvedArg, props::props_map};
@@ -36,5 +34,5 @@ pub(crate) fn attrs(styles: &[ResolvedArg]) -> FnResult {
     );
   }
 
-  FnResult::Attrs(NestedStringObject::FlatCompiledStylesValues(attrs_map))
+  FnResult::Values(attrs_map)
 }

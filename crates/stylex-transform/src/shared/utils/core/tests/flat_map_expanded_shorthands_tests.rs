@@ -2,6 +2,8 @@
 //! stands for, and for what each validation mode does with a value that cannot
 //! be expanded.
 
+use std::borrow::Cow;
+
 use log::Level;
 use stylex_enums::{
   property_validation_mode::PropertyValidationMode, style_resolution::StyleResolution,
@@ -24,7 +26,7 @@ fn options_with(mode: PropertyValidationMode) -> StyleXStateOptions {
 }
 
 fn expand(key: &str, value: PreRuleValue, mode: PropertyValidationMode) -> Vec<OrderPair> {
-  flat_map_expanded_shorthands((key.to_owned(), value), &options_with(mode))
+  flat_map_expanded_shorthands((Cow::Borrowed(key), value), &options_with(mode))
 }
 
 /// The keys of the answer, in the order the expansion gives them.
@@ -51,7 +53,7 @@ fn a_plain_property_expands_to_itself() {
 #[test]
 fn a_shorthand_expands_to_the_properties_it_reaches() {
   let pairs = flat_map_expanded_shorthands(
-    ("margin".to_owned(), PreRuleValue::string("10px")),
+    (Cow::Borrowed("margin"), PreRuleValue::string("10px")),
     &StyleXStateOptions::default().with_style_resolution(StyleResolution::ApplicationOrder),
   );
 
@@ -68,7 +70,7 @@ fn a_shorthand_expands_to_the_properties_it_reaches() {
 /// shorthand expands to a different set under each.
 #[test]
 fn the_resolution_decides_the_expansion() {
-  let entry = || ("margin".to_owned(), PreRuleValue::string("10px"));
+  let entry = || (Cow::Borrowed("margin"), PreRuleValue::string("10px"));
 
   let application = flat_map_expanded_shorthands(
     entry(),

@@ -1,18 +1,23 @@
+use std::borrow::Cow;
+
 use super::*;
 use stylex_ast::ast::convertors::normalize_expr;
 
 pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicStyle> {
+  // The same options for every style, so they are built once. Building them
+  // inside the loop made two strings, a counted pointer and two collections for
+  // each style, to answer one question that never changes.
+  let options =
+    StyleXStateOptions::default().with_style_resolution(StyleResolution::LegacyExpandShorthands);
+
   let expanded_keys_to_key_paths: Vec<DynamicStyle> = dynamic_styles
     .iter()
     .enumerate()
     .flat_map(|(i, dynamic_style)| {
       let obj_entry = (
-        dynamic_style.key.clone(),
+        Cow::Borrowed(dynamic_style.key.as_str()),
         PreRuleValue::string(create_shorthand_key(i)),
       );
-
-      let options = StyleXStateOptions::default()
-        .with_style_resolution(StyleResolution::LegacyExpandShorthands);
 
       flat_map_expanded_shorthands(obj_entry, &options)
     })

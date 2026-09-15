@@ -6,10 +6,7 @@ use stylex_css::css::common::normalize_css_property_name;
 
 use crate::shared::{
   enums::data_structures::fn_result::FnResult,
-  utils::core::{
-    js_to_ast::NestedStringObject,
-    styleq::{StyleQResult, styleq},
-  },
+  utils::core::styleq::{StyleQResult, styleq},
 };
 use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue, types::FlatCompiledStyles,
@@ -19,16 +16,14 @@ use super::parse_nullable_style::ResolvedArg;
 
 /// The properties a `stylex.props(...)` call is replaced by.
 pub(crate) fn props(styles: &[ResolvedArg]) -> FnResult {
-  FnResult::Props(NestedStringObject::FlatCompiledStylesValues(props_map(
-    styles,
-  )))
+  FnResult::Values(props_map(styles))
 }
 
 /// The properties the merged styles become, before they are named as a result.
 ///
 /// Split out because `attrs` needs the same map and reads it by another set of
-/// names. Going through the result would have it take the map apart again, and
-/// every step of that is a case the map can never be in.
+/// names. Asking `props` for it would have `attrs` take the result apart again,
+/// and every step of that is a case the result can never be in.
 pub(crate) fn props_map(styles: &[ResolvedArg]) -> FlatCompiledStyles {
   let StyleQResult {
     class_name,

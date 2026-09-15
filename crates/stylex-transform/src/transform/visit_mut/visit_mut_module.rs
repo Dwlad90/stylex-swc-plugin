@@ -722,7 +722,18 @@ where
     // became the raw position again.
     self.state.set_input_module_base(ModuleBase::of(module));
 
-    if cfg!(debug_assertions) || !self.state.options.use_real_file_for_source {
+    // A debug build always keeps a copy of the module: the assertions and the
+    // code frames that quote the source only run there. A release build keeps
+    // one only where the compiler cannot read the file back off disk, because
+    // the copy is a deep clone of the whole module.
+    //
+    // Two arms rather than one condition, so that the profile which is
+    // measured -- debug -- holds no branch whose other side it cannot take.
+    #[cfg(debug_assertions)]
+    self.state.set_seen_module_source_code(module, None);
+
+    #[cfg(not(debug_assertions))]
+    if !self.state.options.use_real_file_for_source {
       self.state.set_seen_module_source_code(module, None);
     }
 

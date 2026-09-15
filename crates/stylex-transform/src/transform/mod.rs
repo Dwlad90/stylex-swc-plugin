@@ -4,7 +4,7 @@ use swc_core::{
   common::{Mark, SourceMap, Spanned, comments::Comments, sync::Lrc},
   ecma::{
     ast::{CallExpr, Callee, Expr, Id, MemberProp, Pass, Program, VarDeclarator},
-    transforms::{base::resolver, typescript::strip},
+    transforms::base::resolver,
     visit::VisitMutWith,
   },
 };
@@ -23,6 +23,8 @@ use stylex_structures::{
 };
 
 pub(crate) mod stylex;
+#[cfg(test)]
+mod tests;
 mod visit_mut;
 
 pub struct StyleXTransform<C>
@@ -343,7 +345,7 @@ where
   C: Comments,
 {
   pub fn new(comments: C, plugin_pass: PluginPass, config: &mut StyleXOptionsParams) -> Self {
-    let stylex_imports = fill_stylex_imports(&Some(config));
+    let stylex_imports = fill_stylex_imports_from_params(config);
 
     let mut state = StateManager::new(config.clone().into());
 
@@ -425,19 +427,6 @@ where
   }
 }
 
-fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> IndexSet<ImportSources> {
-  let mut stylex_imports = fill_stylex_imports_default();
-
-  if let Some(stylex_imports_extends) = match config {
-    Some(config) => config.import_sources.clone(),
-    None => None,
-  } {
-    stylex_imports.extend(stylex_imports_extends)
-  }
-
-  stylex_imports
-}
-
 /// Seed the default StyleX import sources in a fixed order: the
 /// `@stylexjs/stylex` package source first, then the bare `stylex` alias.
 /// Returns an insertion-ordered `IndexSet` so callers that `extend` it with
@@ -464,9 +453,4 @@ fn fill_stylex_imports_from_params(config: &StyleXOptionsParams) -> IndexSet<Imp
 #[warn(clippy::extra_unused_type_parameters)]
 fn resolve_factory(unresolved_mark: Mark, top_level_mark: Mark) -> impl Pass {
   resolver(unresolved_mark, top_level_mark, true)
-}
-
-#[warn(clippy::extra_unused_type_parameters)]
-fn _typescript_factory(unresolved_mark: Mark, top_level_mark: Mark) -> impl Pass {
-  strip(unresolved_mark, top_level_mark)
 }

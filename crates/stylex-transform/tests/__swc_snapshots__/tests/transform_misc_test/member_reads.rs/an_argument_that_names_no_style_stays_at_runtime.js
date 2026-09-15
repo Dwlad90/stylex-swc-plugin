@@ -7,4 +7,10 @@ _inject2({
 });
 const styles = {};
 export const text = stylex.props('a string');
+export const guarded = {
+    0: {},
+    1: {
+        className: "x1e2nbdu"
+    }
+}[!!1 << 0];
 export const missing = stylex.props(styles.notAStyle);

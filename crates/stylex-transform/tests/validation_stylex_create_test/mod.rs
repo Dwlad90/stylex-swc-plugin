@@ -1,3 +1,4 @@
+mod argument_shapes;
 mod invalid_properties;
 mod invalid_values;
 mod property_validation_mode_test;

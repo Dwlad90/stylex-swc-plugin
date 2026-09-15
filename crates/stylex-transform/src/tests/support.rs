@@ -19,6 +19,18 @@ use swc_core::{
 /// Panics when the text does not parse. A fixture that does not parse is a
 /// fault in the test, not an answer worth reporting.
 pub(crate) fn module(code: &str) -> Module {
+  module_in(code, Syntax::Es(EsSyntax::default()))
+}
+
+/// The module `code` spells, read as TypeScript.
+///
+/// A second reader because the two syntaxes disagree: `x!` is a non-null
+/// assertion in one and a parse error in the other.
+pub(crate) fn ts_module(code: &str) -> Module {
+  module_in(code, Syntax::Typescript(Default::default()))
+}
+
+fn module_in(code: &str, syntax: Syntax) -> Module {
   let source_map = SourceMap::default();
   let source_file = source_map.new_source_file(
     Arc::new(FileName::Custom("unit_test_fixture.js".to_owned())),
@@ -26,7 +38,7 @@ pub(crate) fn module(code: &str) -> Module {
   );
 
   let lexer = Lexer::new(
-    Syntax::Es(EsSyntax::default()),
+    syntax,
     Default::default(),
     StringInput::from(&*source_file),
     None,
@@ -44,7 +56,16 @@ pub(crate) fn module(code: &str) -> Module {
 /// block. The parentheses are the reader's, not the fixture's, and are taken
 /// off again.
 pub(crate) fn expr(code: &str) -> Expr {
-  let body = module(&format!("({code});")).body;
+  expr_of(module(&format!("({code});")), code)
+}
+
+/// The same, read as TypeScript.
+pub(crate) fn ts_expr(code: &str) -> Expr {
+  expr_of(ts_module(&format!("({code});")), code)
+}
+
+fn expr_of(module: Module, code: &str) -> Expr {
+  let body = module.body;
 
   let statement = match body.into_iter().next() {
     Some(ModuleItem::Stmt(Stmt::Expr(statement))) => *statement.expr,

@@ -118,6 +118,33 @@ stylex_test!(
     const styles = stylex.create({ root: { color: 'red' } });
 
     export const text = stylex.props('a string');
+    export const guarded = stylex.props(1 && styles.root);
     export const missing = stylex.props(styles.notAStyle);
+  "#
+);
+
+// A method is not a namespace: it declares no styles the compiler can read, so
+// the call is refused rather than compiled into styles the author never wrote.
+stylex_test_panic!(
+  a_method_is_not_a_namespace,
+  "Unsupported object method.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ root() { return 1 } });
+  "#
+);
+
+// A dynamic style is an arrow that answers a style object. A body written as a
+// block holds statements the compiler cannot fold.
+stylex_test_panic!(
+  a_dynamic_style_written_as_a_block_is_refused,
+  "Block statement is not allowed in Dynamic Style functions",
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ root: (color) => { return { color } } });
   "#
 );

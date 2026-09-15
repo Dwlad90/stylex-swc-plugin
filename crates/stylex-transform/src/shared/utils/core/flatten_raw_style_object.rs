@@ -77,6 +77,21 @@ pub(crate) fn flatten_raw_style_object(
   flatten_raw_style_object_logic(&processed_style, &mut vec![], state, traversal_state, fns)
 }
 
+/// Whether the key is spelled as a `var()` reference.
+///
+/// The regular expression answers an error only when the matcher gives up on a
+/// backtrack, which a test cannot ask it to do, so that arm is left out of the
+/// coverage measurement as `guidelines/stack/RUST.md` describes. It is read as
+/// "not a reference", which leaves the key under the name the author wrote.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn is_variable_reference_key(key: &str) -> bool {
+  CSS_VALUE_SPLIT_REGEX.is_match(key).unwrap_or_else(|err| {
+    warn!("Error matching CSS_VALUE_SPLIT_REGEX for '{key}': {err}. Skipping pattern match.");
+
+    false
+  })
+}
+
 pub(crate) fn flatten_raw_style_object_logic(
   style: &[KeyValueProp],
   key_path: &mut Vec<String>,
@@ -89,14 +104,9 @@ pub(crate) fn flatten_raw_style_object_logic(
   for property in style.iter() {
     let key = convert_key_value_to_str(property);
 
-    let css_property_key = if CSS_VALUE_SPLIT_REGEX.is_match(&key).unwrap_or_else(|err| {
-      warn!(
-        "Error matching CSS_VALUE_SPLIT_REGEX for '{}': {}. Skipping pattern match.",
-        key, err
-      );
-
-      false
-    }) {
+    // A key spelled as a variable reference names the variable, which is how a
+    // `defineConsts` placeholder reaches the declaration it belongs to.
+    let css_property_key = if is_variable_reference_key(&key) {
       key[4..key.len() - 1].to_string()
     } else {
       key.clone()
@@ -327,19 +337,13 @@ pub(crate) fn flatten_raw_style_object_logic(
                 );
 
                 for (property, pre_rule) in pairs {
-                  if equivalent_pairs.get(&property).is_none() {
-                    let mut inner_map = IndexMap::new();
-                    inner_map.insert(condition.clone(), pre_rule);
-                    equivalent_pairs.insert(property, inner_map);
-                  } else {
-                    let inner_map = match equivalent_pairs.get_mut(&property) {
-                      Some(map) => map,
-                      None => {
-                        stylex_panic!("Property not found in the equivalent style pairs map.")
-                      },
-                    };
-                    inner_map.insert(condition.clone(), pre_rule);
-                  }
+                  // One look-up rather than a look-up, an insert and a second
+                  // look-up. The entry is the map either way, so the refusal
+                  // that stood here answered for nothing.
+                  equivalent_pairs
+                    .entry(property)
+                    .or_default()
+                    .insert(condition.clone(), pre_rule);
                 }
               } else {
                 stylex_panic!("{}", non_static_value("stylex"));
@@ -402,3 +406,7 @@ fn insert_or_update_rule_with_shifting_index(
 
   flattened.insert(property.to_string(), pre_rule);
 }
+
+#[cfg(test)]
+#[path = "tests/flatten_raw_style_object_tests.rs"]
+mod tests;

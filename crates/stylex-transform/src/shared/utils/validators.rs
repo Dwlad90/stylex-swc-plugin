@@ -34,6 +34,7 @@ use stylex_css::utils::condition::is_conditional_key;
 use stylex_diagnostics::code_frame::{
   build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
 };
+use stylex_enums::theme_ref::ThemeRefResult;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   state_manager::{ImportKind, StateManager},
@@ -76,24 +77,42 @@ fn assert_first_arg_is_object(
   }
 }
 
-fn validate_single_object_arg_indent(
-  var_decl: &VarDeclarator,
+/// The call a declarator is initialised by, and the expression it was read out
+/// of.
+///
+/// A parenthesis is not a different initializer, so the call is read through it
+/// -- both here and at `find_top_level_expr` below, which matches the recorded
+/// expression. Not [`init_call`]: the panics below report at the initializer,
+/// so the expression the call was read out of is needed beside the call itself.
+///
+/// Total: every caller reached here through a predicate that asked the same
+/// question of the same declarator, so there is an initializer and it is a
+/// call. The two refusals answer for states no input can put the declarator in,
+/// and are left out of the coverage measurement for that reason, as
+/// `guidelines/stack/RUST.md` describes.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn init_call_of<'a>(
+  var_decl: &'a VarDeclarator,
   fn_name: &str,
   state: &mut StateManager,
-) {
-  // A parenthesis is not a different initializer, so the call is read through
-  // it -- both here and at `find_top_level_expr` below, which matches the
-  // recorded expression.
+) -> (&'a Expr, &'a CallExpr) {
   let init_expr = match var_decl.init.as_deref().map(normalize_expr) {
     Some(init) => init,
     None => stylex_panic!("{}", non_static_value(fn_name)),
   };
 
-  // Not [`init_call`]: the panics below report at the initializer, so the
-  // expression the call was read out of is needed beside the call itself.
-  let call = init_expr.as_call().unwrap_or_else(|| {
-    build_code_frame_error_and_panic_at(init_expr, &non_static_value(fn_name), state);
-  });
+  match init_expr.as_call() {
+    Some(call) => (init_expr, call),
+    None => build_code_frame_error_and_panic_at(init_expr, &non_static_value(fn_name), state),
+  }
+}
+
+fn validate_single_object_arg_indent(
+  var_decl: &VarDeclarator,
+  fn_name: &str,
+  state: &mut StateManager,
+) {
+  let (init_expr, call) = init_call_of(var_decl, fn_name, state);
 
   if state.find_top_level_expr(call).is_none() {
     build_code_frame_error_and_panic_at(init_expr, &unbound_call_value(fn_name), state);
@@ -863,10 +882,7 @@ pub(crate) fn validate_theme_variables(
 
     let key_value = create_key_value_prop_ident(
       VAR_GROUP_HASH_KEY,
-      create_string_expr(match value.as_css_var() {
-        Some(v) => v,
-        None => stylex_panic!("{}", EXPECTED_CSS_VAR),
-      }),
+      create_string_expr(var_group_hash_of(&value)),
     );
 
     return key_value;
@@ -905,3 +921,21 @@ pub(crate) fn validate_theme_variables(
     None => stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS),
   }
 }
+
+/// The variable reference a theme's group hash reads as.
+///
+/// Total: a theme reference answers something other than a variable for two
+/// keys, and the group hash is neither of them. The second arm is kept because
+/// the language names every variant or none, and is left out of the coverage
+/// measurement for that reason, as `guidelines/stack/RUST.md` describes.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn var_group_hash_of(value: &ThemeRefResult) -> &str {
+  match value.as_css_var() {
+    Some(value) => value,
+    None => stylex_panic!("{}", EXPECTED_CSS_VAR),
+  }
+}
+
+#[cfg(test)]
+#[path = "tests/validators_tests.rs"]
+mod tests;

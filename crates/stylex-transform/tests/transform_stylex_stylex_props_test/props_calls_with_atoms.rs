@@ -294,3 +294,18 @@ stylex_test!(
     stylex.props(css.display.flex);
   "#
 );
+
+// An atom whose rule is direction-dependent. Every other atom case here writes
+// one rule, so the registration of a style that carries a second one for
+// right-to-left had no case. The value has to be written as a computed key:
+// read off a member, `inlineStart` is the value, and `inline-start` is what the
+// flipper answers for.
+stylex_test!(
+  inline_static_registers_a_direction_dependent_rule,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import css from '@stylexjs/atoms';
+    stylex.props(css.float['inline-start']);
+  "#
+);

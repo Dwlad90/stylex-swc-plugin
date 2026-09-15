@@ -123,8 +123,25 @@ pub(crate) fn add_source_map_data(
         };
 
         match source_code_frame_and_span {
-          Ok((code_frame, span)) => {
-            if span.eq(&DUMMY_SP) {
+          // The line is asked for once. `try_get_span_line_number` already
+          // answers nothing for a span that names no place -- an empty one, and
+          // one the frame cannot read a position off -- so asking about the
+          // span first said the same thing twice and left the second reason
+          // silent. Either way there is no line to point at, and the
+          // `contains_key` fallback below writes the plain marker.
+          Ok((code_frame, span)) => match code_frame.try_get_span_line_number(span) {
+            Some(original_line_number) => {
+              let filename = state.get_filename().to_string();
+              insert_compiled_entry(
+                &mut inner_map,
+                &filename,
+                original_line_number,
+                state,
+                package_json_seen,
+                functions,
+              );
+            },
+            None => {
               if log::log_enabled!(log::Level::Debug) {
                 debug!(
                   "Could not find span for style node path. File: {}, Style node path: {:?}.{}",
@@ -139,21 +156,7 @@ pub(crate) fn add_source_map_data(
                   *NEXTJS_HYDRATION_WARNING
                 );
               };
-            } else {
-              // Panic-safe lookup: `None` leaves the map untouched and the
-              // `contains_key` fallback below inserts the plain `true` marker.
-              if let Some(original_line_number) = code_frame.try_get_span_line_number(span) {
-                let filename = state.get_filename().to_string();
-                insert_compiled_entry(
-                  &mut inner_map,
-                  &filename,
-                  original_line_number,
-                  state,
-                  package_json_seen,
-                  functions,
-                );
-              }
-            }
+            },
           },
           Err(e) => {
             if log::log_enabled!(log::Level::Debug) {
@@ -263,11 +266,13 @@ fn original_position_from_input_source_map(
     return None;
   }
 
+  // The two reads below bound the position between them, so the file is not
+  // asked twice whether it holds it: a position before the file sits on no line
+  // of it, and one past the end names no text. The key span comes from the
+  // compiler's own parse while this file is the text the host handed over, and
+  // the two can disagree -- a shorter text, or one whose characters lie
+  // differently -- so the position is checked rather than trusted.
   let pos = span.lo();
-  if pos < source_file.start_pos || pos >= source_file.end_pos {
-    return None;
-  }
-
   let line = source_file.lookup_line(pos)?;
   let line_begin = source_file.line_begin_pos(pos);
 
@@ -366,8 +371,26 @@ fn or_refuse_unspellable_path(text: Option<&str>) -> &str {
   }
 }
 
+/// The short name `absolute_path` is written as, measured against the directory
+/// the compiler runs in.
+///
+/// The directory is read from the environment here and passed on, so the naming
+/// below is decided by its arguments alone. Every rule it applies depends on
+/// where the compiler runs, and a test cannot move the process into a directory
+/// of its own without moving every other test with it.
 fn create_short_filename(
   absolute_path: &str,
+  state: &StateManager,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
+) -> String {
+  let cwd = env::current_dir().unwrap_or_default();
+
+  create_short_filename_under(absolute_path, &cwd, state, package_json_seen)
+}
+
+fn create_short_filename_under(
+  absolute_path: &str,
+  cwd: &Path,
   state: &StateManager,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> String {
@@ -377,7 +400,6 @@ fn create_short_filename(
   );
 
   let path = Path::new(absolute_path);
-  let cwd = env::current_dir().unwrap_or_default();
   let cwd_str = or_refuse_unspellable_path(cwd.to_str());
   let cwd_package = StateManager::get_package_name_and_path(cwd_str, package_json_seen);
   let package_details = StateManager::get_package_name_and_path(absolute_path, package_json_seen);
@@ -423,7 +445,7 @@ fn create_short_filename(
 
   // Otherwise, return short path relative to cwd
   let relative_path = path
-    .strip_prefix(&cwd)
+    .strip_prefix(cwd)
     .map_or(absolute_path.to_string(), |p| {
       p.to_string_lossy().into_owned()
     });

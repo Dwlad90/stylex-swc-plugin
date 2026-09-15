@@ -142,8 +142,9 @@ fn returns_none_without_input_source_map() {
   );
 }
 
+/// A position past the end of the file names no text in it.
 #[test]
-fn returns_none_for_spans_outside_the_input_file() {
+fn returns_none_for_spans_past_the_end_of_the_input_file() {
   let (style_node_path, _) = key_value_prop_at(1_000_000, "other");
 
   let mut state = state_with_input(INPUT_CODE);
@@ -157,6 +158,90 @@ fn returns_none_for_spans_outside_the_input_file() {
       .map(|position| (position.filename, position.line_number)),
     None,
     "foreign spans must not resolve through the input file"
+  );
+}
+
+/// A position that belongs to another file sits on no line of this one. Every
+/// file a source map holds starts after the one before it, so a position in an
+/// earlier file is below this file's first line.
+#[test]
+fn returns_none_for_spans_that_belong_to_an_earlier_file() {
+  let source_map = SwcSourceMap::default();
+  let earlier = source_map.new_source_file(
+    Arc::new(FileName::Custom("Earlier.tsx".to_string())),
+    INPUT_CODE.to_string(),
+  );
+  let source_file = source_map.new_source_file(
+    Arc::new(FileName::Custom("input_source_map_fixture.tsx".to_string())),
+    INPUT_CODE.to_string(),
+  );
+
+  let key_span = Span::new(earlier.start_pos, earlier.end_pos);
+  let style_node_path = KeyValueProp {
+    key: PropName::Ident(IdentName::new("other".into(), key_span)),
+    value: Box::new(Expr::Lit(Lit::Str(Str {
+      span: swc_core::common::DUMMY_SP,
+      value: "unused".into(),
+      raw: None,
+    }))),
+  };
+
+  let mut state = StateManager::default();
+
+  state.set_input_source_file(source_file);
+
+  let mut builder = SourceMapBuilder::new(None);
+  builder.add(2, 0, 41, 0, Some("Original.tsx".into()), None, false);
+  state.set_input_source_map(Arc::new(builder.into_sourcemap()));
+
+  assert_eq!(
+    original_position_from_input_source_map(&style_node_path, &state)
+      .map(|position| (position.filename, position.line_number)),
+    None,
+    "a position in another file must not resolve through this one"
+  );
+}
+
+/// The compiler parses one text and the host hands over another, so a key
+/// position can land inside a character rather than at the start of one. There
+/// is no column to count up to, so the reader falls back to the source text.
+#[test]
+fn returns_none_for_a_position_inside_a_character() {
+  let source_map = SwcSourceMap::default();
+  let source_file = source_map.new_source_file(
+    Arc::new(FileName::Custom("input_source_map_fixture.tsx".to_string())),
+    UNICODE_INPUT_CODE.to_string(),
+  );
+
+  let emoji_offset = match UNICODE_INPUT_CODE.find('\u{1F680}') {
+    Some(offset) => offset,
+    None => panic!("fixture must contain the character"),
+  };
+
+  // One byte into a four-byte character.
+  let inside = source_file.start_pos + BytePos(emoji_offset as u32 + 1);
+  let style_node_path = KeyValueProp {
+    key: PropName::Ident(IdentName::new("root".into(), Span::new(inside, inside))),
+    value: Box::new(Expr::Lit(Lit::Str(Str {
+      span: swc_core::common::DUMMY_SP,
+      value: "unused".into(),
+      raw: None,
+    }))),
+  };
+
+  let mut state = StateManager::default();
+
+  state.set_input_source_file(source_file);
+
+  let mut builder = SourceMapBuilder::new(None);
+  builder.add(1, 0, 41, 0, Some("Original.tsx".into()), None, false);
+  state.set_input_source_map(Arc::new(builder.into_sourcemap()));
+
+  assert_eq!(
+    original_position_from_input_source_map(&style_node_path, &state)
+      .map(|position| (position.filename, position.line_number)),
+    None,
+    "a position inside a character names no column"
   );
 }
 
@@ -297,7 +382,8 @@ mod short_filenames {
   };
 
   use super::super::{
-    create_short_filename, get_package_prefix, get_short_path, insert_compiled_entry,
+    create_short_filename, create_short_filename_under, get_package_prefix, get_short_path,
+    insert_compiled_entry,
   };
 
   fn short_filename_of(path: &str, state: &StateManager) -> String {
@@ -450,6 +536,39 @@ mod short_filenames {
       short_filename_of("/elsewhere/src/Card.tsx", &state),
       "src/Card.tsx"
     );
+  }
+
+  /// A compiler running outside every package names a file of its own directory
+  /// by the path inside it, because that is the path the author reads.
+  #[test]
+  fn names_a_file_of_a_working_directory_that_is_in_no_package() {
+    let state = StateManager::default();
+    let cwd = directory_in_no_package("stylex_cwd_without_a_package");
+
+    assert_eq!(
+      create_short_filename_under(
+        &format!("{cwd}/src/components/Card.tsx"),
+        std::path::Path::new(&cwd),
+        &state,
+        &mut FxHashMap::default(),
+      ),
+      "components/Card.tsx"
+    );
+  }
+
+  /// A directory that no `package.json` stands above.
+  ///
+  /// Written under the temporary directory, because every directory inside the
+  /// checkout has this repository's own manifest over it.
+  fn directory_in_no_package(name: &str) -> String {
+    let root = std::env::temp_dir().join(format!("{name}_{}", std::process::id()));
+
+    match std::fs::create_dir_all(root.join("src/components")) {
+      Ok(()) => {},
+      Err(error) => panic!("the fixture directory could not be written: {error}"),
+    }
+
+    root.to_string_lossy().into_owned()
   }
 
   fn annotation_of(state: &mut StateManager, line: usize) -> FlatCompiledStylesValue {
@@ -695,12 +814,14 @@ mod annotations {
   }
 }
 
-/// The annotation a namespace gets when a source map maps the compiler's input
-/// back to the file the author wrote.
-mod through_an_input_source_map {
+/// The annotation a namespace gets when the compiler holds the text the
+/// namespace was written in -- either through a source map that points back at
+/// the file the author wrote, or by locating the namespace in the text itself.
+mod over_the_authored_text {
   use std::sync::Arc;
 
   use indexmap::IndexMap;
+  use log::Level;
   use rustc_hash::FxHashMap;
   use std::rc::Rc;
   use stylex_constants::constants::common::COMPILED_KEY;
@@ -710,12 +831,16 @@ mod through_an_input_source_map {
     state_manager::StateManager,
     types::{FlatCompiledStyles, StylesObjectMap},
   };
-  use swc_core::common::{FileName, SourceMap as SwcSourceMap, input::StringInput};
+  use stylex_structures::plugin_pass::PluginPass;
+  use swc_core::common::{
+    FileName, GLOBALS, Globals, SourceMap as SwcSourceMap, input::StringInput,
+  };
   use swc_core::ecma::ast::{CallExpr, Decl, Expr, ModuleItem, Stmt};
   use swc_core::ecma::parser::{EsSyntax, Parser, Syntax, lexer::Lexer};
   use swc_sourcemap::SourceMapBuilder;
 
   use super::super::add_source_map_data;
+  use crate::tests::capturing_logger::logged_at;
 
   const CODE: &str = "const styles = create({\n  root: { color: 'red' },\n});\n";
 
@@ -744,6 +869,12 @@ mod through_an_input_source_map {
 
     let mut state = StateManager::default();
 
+    // A real name, because the annotation is `file:line` and a file with no
+    // name shortens to nothing.
+    state.set_plugin_pass(PluginPass::new(
+      None,
+      Some(FileName::Real("/project/src/Card.tsx".into())),
+    ));
     state.set_input_source_file(source_file);
 
     for item in module.body {
@@ -774,14 +905,22 @@ mod through_an_input_source_map {
     obj
   }
 
+  /// The marker the namespace of `call` is given.
+  ///
+  /// Inside `GLOBALS`, which every span read this path makes needs: the reader
+  /// parses the authored text into the code frame's own source map, and that
+  /// map is reached through the globals. Without them the read stops and the
+  /// reader reports instead, which is a different case from the one under test.
   fn annotate(state: &mut StateManager, call: &CallExpr) -> FlatCompiledStylesValue {
-    let result = add_source_map_data(
-      namespace(),
-      call,
-      state,
-      &mut FxHashMap::default(),
-      &FunctionMap::default(),
-    );
+    let result = GLOBALS.set(&Globals::default(), || {
+      add_source_map_data(
+        namespace(),
+        call,
+        state,
+        &mut FxHashMap::default(),
+        &FunctionMap::default(),
+      )
+    });
 
     match result
       .get("root")
@@ -812,16 +951,85 @@ mod through_an_input_source_map {
   }
 
   /// A map with nothing at that position points at no file, so the reader falls
-  /// back to locating the namespace in the source text.
+  /// back to locating the namespace in the source text -- and finds it, on the
+  /// line the author wrote it on.
   #[test]
-  fn falls_back_when_the_map_points_at_nothing() {
+  fn falls_back_to_the_source_text_when_the_map_points_at_nothing() {
     let (call, mut state) = call_and_state();
 
     state.set_input_source_map(Arc::new(SourceMapBuilder::new(None).into_sourcemap()));
 
     assert_eq!(
       annotate(&mut state, &call),
-      FlatCompiledStylesValue::Bool(true)
+      FlatCompiledStylesValue::String("src/Card.tsx:2".to_owned())
     );
+  }
+
+  /// With no map at all the source text is the only place left to look, and it
+  /// names the line the same way.
+  #[test]
+  fn names_the_line_the_source_text_spells_it_on() {
+    let (call, mut state) = call_and_state();
+
+    assert_eq!(
+      annotate(&mut state, &call),
+      FlatCompiledStylesValue::String("src/Card.tsx:2".to_owned())
+    );
+  }
+
+  /// A text that spells neither the namespace nor its styles places nothing.
+  /// The reader says so and points at the setting that says more, and the
+  /// namespace keeps the plain marker a build with no annotation writes.
+  #[test]
+  fn reports_a_namespace_the_text_does_not_spell() {
+    let messages = logged_at(Level::Info, || {
+      let (call, mut state) = call_and_state();
+
+      state.set_input_source_file(other_source_file());
+
+      assert_eq!(
+        annotate(&mut state, &call),
+        FlatCompiledStylesValue::Bool(true)
+      );
+    });
+
+    assert!(
+      messages.iter().any(|message| {
+        message.contains("Could not find span for style node path")
+          && message.contains("For more information enable debug logging")
+          && message.contains("hydration")
+      }),
+      "the reader said nothing: {messages:?}"
+    );
+  }
+
+  /// Asked for the detail, it quotes the namespace it could not place rather
+  /// than pointing the reader at the setting they already turned on.
+  #[test]
+  fn names_the_namespace_the_text_does_not_spell_when_asked_for_the_detail() {
+    let messages = logged_at(Level::Debug, || {
+      let (call, mut state) = call_and_state();
+
+      state.set_input_source_file(other_source_file());
+
+      annotate(&mut state, &call);
+    });
+
+    assert!(
+      messages.iter().any(|message| {
+        message.contains("Could not find span for style node path")
+          && message.contains("Style node path")
+          && !message.contains("enable debug logging")
+      }),
+      "the reader named no namespace: {messages:?}"
+    );
+  }
+
+  /// A text holding no `root` namespace and none of its styles.
+  fn other_source_file() -> Arc<swc_core::common::SourceFile> {
+    SwcSourceMap::default().new_source_file(
+      Arc::new(FileName::Custom("Other.tsx".to_owned())),
+      "const unrelated = 1;\n".to_owned(),
+    )
   }
 }

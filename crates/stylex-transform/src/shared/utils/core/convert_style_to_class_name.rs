@@ -180,16 +180,16 @@ fn variable_fallbacks(values: &[String]) -> Vec<String> {
     to_push.extend_from_slice(&var_values);
     to_push.push(String::new());
 
-    for val in values_before_first_var {
-      if let Some(last) = to_push.last_mut() {
-        last.clear();
-        last.push_str(val);
-      }
+    let trailing = to_push.len() - 1;
 
-      result.push(compose_vars(&to_push));
+    for val in values_before_first_var {
+      to_push[trailing].clear();
+      to_push[trailing].push_str(val);
+
+      result.push(compose_vars(&to_push[0], &to_push[1..]));
     }
   } else {
-    result.push(compose_vars(&var_values));
+    result.push(compose_vars(&var_values[0], &var_values[1..]));
   }
 
   for val in values_after_last_var {
@@ -199,26 +199,28 @@ fn variable_fallbacks(values: &[String]) -> Vec<String> {
   result
 }
 
-fn compose_vars(vars: &[String]) -> String {
-  match vars.split_first() {
-    Some((first, rest)) if !rest.is_empty() => {
-      let fallback = compose_vars(rest);
-      let mut result = String::with_capacity(first.len() + fallback.len() + 6);
-      result.push_str("var(");
-      result.push_str(first);
-      result.push(',');
-      result.push_str(&fallback);
-      result.push(')');
-      result
-    },
-    Some((first, _)) if first.starts_with("--") => {
-      let mut result = String::with_capacity(first.len() + 5);
-      result.push_str("var(");
-      result.push_str(first);
-      result.push(')');
-      result
-    },
-    Some((first, _)) => first.to_string(),
-    None => String::new(),
+/// The `var(a, var(b, c))` chain a set of values spells.
+///
+/// The first value is asked for on its own, so a caller cannot spell a chain of
+/// nothing: the callers all slice a set they know holds a value, and the
+/// recursion goes on only while there is a rest to go on with.
+fn compose_vars(first: &str, rest: &[String]) -> String {
+  if let Some((next, tail)) = rest.split_first() {
+    let fallback = compose_vars(next, tail);
+    let mut result = String::with_capacity(first.len() + fallback.len() + 6);
+    result.push_str("var(");
+    result.push_str(first);
+    result.push(',');
+    result.push_str(&fallback);
+    result.push(')');
+    result
+  } else if first.starts_with("--") {
+    let mut result = String::with_capacity(first.len() + 5);
+    result.push_str("var(");
+    result.push_str(first);
+    result.push(')');
+    result
+  } else {
+    first.to_string()
   }
 }

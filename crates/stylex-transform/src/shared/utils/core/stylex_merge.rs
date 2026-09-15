@@ -1,6 +1,6 @@
 use rustc_hash::FxHashMap;
 use stylex_ast::ast::convertors::{convert_lit_to_string, key_value_name, normalize_expr};
-use stylex_macros::{stylex_panic, stylex_unreachable};
+
 use swc_core::ecma::{
   ast::{
     BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, JSXAttrOrSpread, JSXAttrValue, Lit,
@@ -19,9 +19,7 @@ use crate::shared::{
   },
 };
 use stylex_ast::ast::factories::{create_jsx_attr, create_jsx_attr_or_spread};
-use stylex_constants::constants::{
-  api_names::STYLEX_DEFAULT_MARKER, common::COMPILED_KEY, messages::EXPECTED_COMPILED_STYLES,
-};
+use stylex_constants::constants::{api_names::STYLEX_DEFAULT_MARKER, common::COMPILED_KEY};
 use stylex_enums::style_vars_to_keep::NonNullProps;
 use stylex_state::{
   functions::{FunctionConfigType, FunctionMap},
@@ -50,11 +48,7 @@ pub(crate) fn stylex_merge(
   if let Some(set) = state.get_stylex_api_import(ImportKind::DefaultMarker)
     && !set.is_empty()
   {
-    let marker = stylex_default_marker::stylex_default_marker(&state.options);
-    let values = match marker.as_values() {
-      Some(v) => v,
-      None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
-    };
+    let values = stylex_default_marker::stylex_default_marker_values(&state.options);
 
     for name in set {
       identifiers.insert(
@@ -66,11 +60,7 @@ pub(crate) fn stylex_merge(
 
   // Build the marker once, as the loop above does. It made two strings, an
   // index map and two counted pointers for each import before.
-  let marker = stylex_default_marker::stylex_default_marker(&state.options);
-  let marker_values = match marker.as_values() {
-    Some(values) => values,
-    None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
-  };
+  let marker_values = stylex_default_marker::stylex_default_marker_values(&state.options);
 
   for name in state.stylex_imports() {
     // `or_default` gives back the entry it made, so the second look-up that
@@ -135,12 +125,9 @@ pub(crate) fn stylex_merge(
             //  Already processed in the conditional block above; bail_out flag
             // set if needed.
           },
-          StyleObject::Style(_) | StyleObject::Nullable => {
-            resolved_args.push(ResolvedArg::style_object(resolved));
-          },
-          StyleObject::Unreachable => {
-            stylex_unreachable!("StyleObject::Unreachable");
-          },
+          // Never `Unreachable`: that stands for an argument of a kind this arm
+          // has already ruled out.
+          resolved => resolved_args.push(ResolvedArg::style_object(resolved)),
         }
       },
       Expr::Call(_) => {
@@ -284,28 +271,28 @@ pub(crate) fn stylex_merge(
   None
 }
 
+/// The JSX attribute a compiled property spells, where it spells one.
+///
+/// The properties read here are the ones `make_string_expression` built: a
+/// key-value pair under a plain name, never a spread and never computed. What
+/// is left to decide is the value, and only a literal can be written into an
+/// attribute.
 fn static_jsx_attr_from_prop(prop: &PropOrSpread) -> Option<JSXAttrOrSpread> {
-  let PropOrSpread::Prop(prop) = prop else {
-    return None;
-  };
-  let Prop::KeyValue(key_value) = prop.as_ref() else {
-    return None;
-  };
-  if matches!(key_value.key, PropName::Computed(_)) {
-    return None;
-  }
-
-  let value = key_value
-    .value
-    .as_lit()
-    .and_then(convert_lit_to_string)
-    .map(|value| JSXAttrValue::Str(value.into()))?;
-  let attr_name = key_value_name(key_value);
-
-  Some(create_jsx_attr_or_spread(create_jsx_attr(
-    attr_name.as_ref(),
-    value,
-  )))
+  prop
+    .as_prop()
+    .and_then(|prop| prop.as_key_value())
+    .and_then(|key_value| {
+      key_value
+        .value
+        .as_lit()
+        .and_then(convert_lit_to_string)
+        .map(|value| {
+          create_jsx_attr_or_spread(create_jsx_attr(
+            key_value_name(key_value).as_ref(),
+            JSXAttrValue::Str(value.into()),
+          ))
+        })
+    })
 }
 
 /// Hoists inline compiled-style objects (those carrying the `$$css: true`
@@ -351,3 +338,7 @@ fn object_has_css_marker(object: &ObjectLit) -> bool {
       && matches!(key_value.value.as_ref(), Expr::Lit(Lit::Bool(bool_lit)) if bool_lit.value)
   })
 }
+
+#[cfg(test)]
+#[path = "tests/stylex_merge_tests.rs"]
+mod tests;

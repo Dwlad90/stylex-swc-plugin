@@ -1,4 +1,5 @@
 mod convert_to_class_name_test;
+mod define_vars_utils_tests;
 mod flat_map_expanded_shorthands_tests;
 mod js_to_ast_tests;
 mod member_expression_tests;

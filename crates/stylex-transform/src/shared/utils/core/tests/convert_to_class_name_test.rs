@@ -366,4 +366,45 @@ mod convert_style_to_class_name {
 
     assert_eq!(result, "height:var(--z,var(--y,var(--x,var(--w))))")
   }
+
+  /// A fallback chain composes the `var()` entries into one value, so they have
+  /// to stand together. A plain value between two of them cannot be composed
+  /// and is refused rather than written into the middle of the chain.
+  #[test]
+  #[should_panic(expected = "All variables passed to firstThatWorks() must be contiguous.")]
+  fn refuses_a_value_between_two_variables() {
+    convert((
+      "height",
+      &PreRuleValue::Vec(vec!["var(--x)".into(), "100px".into(), "var(--y)".into()]),
+    ));
+  }
+
+  /// A value the compiler could not fold is not a style value, and neither is
+  /// an absent one. A class name cannot be hashed from either.
+  #[test]
+  #[should_panic(expected = "A style value can only contain an array, string or number.")]
+  fn refuses_a_value_that_did_not_fold() {
+    convert((
+      "color",
+      &PreRuleValue::Expr(crate::tests::support::expr("a + b")),
+    ));
+  }
+
+  #[test]
+  #[should_panic(expected = "A style value can only contain an array, string or number.")]
+  fn refuses_an_absent_value() {
+    convert(("color", &PreRuleValue::Null));
+  }
+
+  /// A plain value after the last variable is written beside the chain rather
+  /// than into it.
+  #[test]
+  fn keeps_a_plain_value_after_the_last_variable() {
+    let result = convert((
+      "height",
+      &PreRuleValue::Vec(vec!["var(--x)".into(), "100px".into()]),
+    ));
+
+    assert_eq!(result, "height:var(--x);height:100px")
+  }
 }

@@ -2,7 +2,8 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use stylex_ast::ast::convertors::{
-  convert_key_value_to_str, convert_lit_to_string, is_js_undefined, normalize_expr,
+  convert_key_value_to_str, convert_lit_to_string, convert_str_lit_to_string, is_js_undefined,
+  normalize_expr,
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::{Expr, Lit, MemberProp, ObjectLit};
@@ -241,13 +242,15 @@ fn parse_nullable_key_value(
   lit: &Lit,
 ) {
   match lit {
-    Lit::Str(_) => {
-      let value = match convert_lit_to_string(lit) {
-        Some(s) => s,
-        None => stylex_panic!("Failed to convert literal value to string in style parsing."),
-      };
-
-      compiled_styles.insert(key, Rc::new(FlatCompiledStylesValue::String(value)));
+    // Read as the text it is rather than through the converter that asks what
+    // kind of literal it is: the arm has already answered that.
+    Lit::Str(text) => {
+      compiled_styles.insert(
+        key,
+        Rc::new(FlatCompiledStylesValue::String(convert_str_lit_to_string(
+          text,
+        ))),
+      );
     },
     Lit::Bool(bool_lit) => {
       let value = bool_lit.value;
@@ -261,3 +264,7 @@ fn parse_nullable_key_value(
     },
   }
 }
+
+#[cfg(test)]
+#[path = "tests/parse_nullable_style_tests.rs"]
+mod tests;

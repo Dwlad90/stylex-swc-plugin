@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, rc::Rc};
+use std::rc::Rc;
 
 use indexmap::{IndexMap, IndexSet};
 use stylex_macros::stylex_panic;
@@ -46,19 +46,10 @@ pub(crate) fn stylex_create_set(
 
     let mut class_paths_in_namespace: ClassPathsInNamespace = IndexMap::new();
 
-    let mut seen_properties = IndexSet::<String>::new();
-
+    // The flattener answers a map, so a property written twice is already one
+    // entry, in the place it was first written.
     let mut flattened_namespace =
-      flatten_raw_style_object(namespace, state, traversal_state, functions)
-        .into_iter()
-        .rev()
-        .fold(VecDeque::new(), |mut arr, curr| {
-          if !seen_properties.contains(&curr.0) {
-            seen_properties.insert(curr.0.clone());
-            arr.push_front(curr);
-          }
-          arr
-        });
+      flatten_raw_style_object(namespace, state, traversal_state, functions);
 
     let compiled_namespace_tuples = flattened_namespace
       .iter_mut()

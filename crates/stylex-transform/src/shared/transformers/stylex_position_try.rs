@@ -1,12 +1,10 @@
-use stylex_macros::stylex_panic;
-use swc_core::ecma::ast::Expr;
-
 use crate::shared::transformers::named_rule::fold_to_rule_name;
 use crate::shared::utils::object::{
   obj_map_keys_and_transform_values, preprocess_object_properties,
 };
 use stylex_constants::constants::messages::VALUES_MUST_BE_OBJECT;
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
+use stylex_macros::stylex_panic;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionType},
@@ -30,11 +28,11 @@ pub(crate) fn stylex_position_try(
   // so an empty one was asked for explicitly and is honoured as empty.
   let class_name_prefix = state.options.class_name_prefix.clone();
 
-  let Some(styles) = styles.as_expr().and_then(|expr| expr.as_object()) else {
+  let Some(styles) = styles.as_expr().filter(|expr| expr.is_object()) else {
     stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
-  let entries = preprocess_object_properties(&Expr::Object(styles.clone()), state);
+  let entries = preprocess_object_properties(styles, state);
   let declarations =
     obj_map_keys_and_transform_values(&entries, state, |key| dashify(key).into_owned());
 
@@ -102,10 +100,18 @@ pub(crate) fn get_position_try_fn() -> FunctionConfig {
 fn doubled_css_text(property: &str, resolved: &PairCow) -> Option<String> {
   let value = Pair::new(property, resolved.value.as_ref()).as_css_text()?;
 
-  match Pair::new(property, resolved.key.as_ref()).as_css_text() {
-    Some(repeated_name) => Some(repeated_name + &value),
-    None => Some(value),
-  }
+  // The repeat is written from the key the resolver named, and is not asked
+  // whether it spells text. `generate_ltr` and `generate_rtl` always name the
+  // property they resolved, so the only half that can spell nothing is the
+  // value, which is read above. What goes unchecked here is that invariant.
+  let mut css_text = String::with_capacity(property.len() + resolved.key.len() + 2 + value.len());
+  css_text.push_str(property);
+  css_text.push(':');
+  css_text.push_str(&resolved.key);
+  css_text.push(';');
+  css_text.push_str(&value);
+
+  Some(css_text)
 }
 
 /// The body of one `@position-try` rule, its declarations written in the order

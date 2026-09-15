@@ -143,8 +143,12 @@ where
         )
       );
 
-      let mut variables = match evaluated_arg1.value {
+      let variables = match evaluated_arg1.value {
         Some(ref value) => {
+          // The producer reads the same question again and keeps the answer.
+          // It is asked here as well so that a first argument that is no
+          // variable group is refused before the second one is read, which is
+          // the order the reference implementation refuses them in.
           validate_theme_variables(value, &self.state);
           value.clone()
         },
@@ -188,7 +192,7 @@ where
       };
 
       let (mut overrides_obj, inject_styles) = stylex_create_theme(
-        &mut variables,
+        &variables,
         &overrides,
         &mut self.state,
         &mut IndexMap::default(),

@@ -94,7 +94,7 @@ mod stylex_create_theme {
   fn overrides_set_of_vars_with_css_class() {
     let export_id = "TestTheme.stylex.js//buttonTheme";
 
-    let mut default_vars = default_vars_factory(&[
+    let default_vars = default_vars_factory(&[
       ("__varGroupHash__", export_id),
       ("bgColor", "var(--xgck17p)"),
       ("bgColorDisabled", "var(--xpegid5)"),
@@ -127,7 +127,7 @@ mod stylex_create_theme {
     );
 
     let (class_name_output, css_output) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -162,7 +162,7 @@ mod stylex_create_theme {
   fn overrides_set_of_literal_vars_with_css_class() {
     let export_id = "TestTheme.stylex.js//buttonTheme";
 
-    let mut default_vars = default_vars_factory(&[
+    let default_vars = default_vars_factory(&[
       ("__varGroupHash__", export_id),
       ("--bgColor", "var(--bgColor)"),
       ("--bgColorDisabled", "var(--bgColorDisabled)"),
@@ -195,7 +195,7 @@ mod stylex_create_theme {
     );
 
     let (class_name_output, css_output) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -230,7 +230,7 @@ mod stylex_create_theme {
   fn variables_order_does_not_change_the_hash() {
     let export_id = "TestTheme.stylex.js//buttonTheme";
 
-    let mut default_vars = default_vars_factory(&[
+    let default_vars = default_vars_factory(&[
       ("__varGroupHash__", export_id),
       ("bgColor", "var(--xgck17p)"),
       ("bgColorDisabled", "var(--xpegid5)"),
@@ -287,14 +287,14 @@ mod stylex_create_theme {
     );
 
     let (class_name_output, css_output) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
     );
 
     let (class_name_output_2, css_output_2) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme_2,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -330,7 +330,7 @@ mod stylex_create_theme {
   fn adding_an_at_rule_changes_the_hash() {
     let export_id = "TestTheme.stylex.js//buttonTheme";
 
-    let mut default_vars = default_vars_factory(&[
+    let default_vars = default_vars_factory(&[
       ("__varGroupHash__", export_id),
       ("bgColor", "var(--xgck17p)"),
     ]);
@@ -350,14 +350,14 @@ mod stylex_create_theme {
     );
 
     let (class_name_output, css_output) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
     );
 
     let (class_name_output_2, css_output_2) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme_2,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -393,7 +393,7 @@ mod stylex_create_theme {
   fn generates_styles_for_nested_at_rules() {
     let export_id = "TestTheme.stylex.js//buttonTheme";
 
-    let mut default_vars = default_vars_factory(&[
+    let default_vars = default_vars_factory(&[
       ("__varGroupHash__", export_id),
       ("bgColor", "var(--xgck17p)"),
     ]);
@@ -417,7 +417,7 @@ mod stylex_create_theme {
     );
 
     let (_class_name_output, css_output) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -459,7 +459,7 @@ mod stylex_create_theme {
   fn generates_styles_for_typed_nested_at_rules() {
     let export_id = "TestTheme.stylex.js//buttonTheme";
 
-    let mut default_vars = default_vars_factory(&[
+    let default_vars = default_vars_factory(&[
       ("__varGroupHash__", export_id),
       ("bgColor", "var(--xgck17p)"),
     ]);
@@ -489,7 +489,7 @@ mod stylex_create_theme {
     );
 
     let (_class_name_output, css_output) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -538,7 +538,7 @@ mod stylex_create_theme {
   fn keeps_the_single_at_rule_priority_unrounded() {
     let export_id = "TestTheme.stylex.js//buttonTheme";
 
-    let mut default_vars = default_vars_factory(&[
+    let default_vars = default_vars_factory(&[
       ("__varGroupHash__", export_id),
       ("bgColor", "var(--xgck17p)"),
     ]);
@@ -553,7 +553,7 @@ mod stylex_create_theme {
     );
 
     let (_class_name_output, css_output) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -618,5 +618,87 @@ mod stylex_create_theme {
       var_group_priority(&nested(6)).to_bits(),
       "one at-rule deeper the sum is exact and the two do collide"
     );
+  }
+
+  /// The @-rules a theme writes are hashed and emitted in one order: `default`
+  /// first, and the rest by name. The order has to hold whatever order the
+  /// author wrote them in, because the class name is hashed from it.
+  #[test]
+  fn writes_the_default_rule_first_and_sorts_the_rest_by_name() {
+    use crate::tests::support::expr;
+
+    let theme_vars = EvaluateResultValue::Expr(expr(
+      "{ __varGroupHash__: 'xtokens', colour: 'var(--xcolour)', pad: 'var(--xpad)' }",
+    ));
+
+    let overrides = EvaluateResultValue::Expr(expr(
+      "{
+        colour: { '@media print': 'black', default: 'red' },
+        pad: { default: '1px', '@supports (display: grid)': '2px' }
+      }",
+    ));
+
+    let (_, css_output) = stylex_create_theme(
+      &theme_vars,
+      &overrides,
+      &mut StateManager::default(),
+      &mut IndexMap::default(),
+    );
+
+    assert_eq!(
+      css_output
+        .values()
+        .map(|style| match style.as_ref() {
+          InjectableStyleKind::Regular(style) => style.ltr.clone(),
+          other => panic!("a theme rule is a regular rule: {other:?}"),
+        })
+        .collect::<Vec<String>>(),
+      [
+        ".xy339u9, .xy339u9:root{--xcolour:red;--xpad:1px;}",
+        "@media print{.xy339u9, .xy339u9:root{--xcolour:black;}}",
+        "@supports (display: grid){.xy339u9, .xy339u9:root{--xpad:2px;}}",
+      ]
+    );
+  }
+
+  /// A theme can override the group a variable-defining module exports, rather
+  /// than the object a `defineVars` call in the same module printed. The group
+  /// answers a variable name for any key it is asked for.
+  #[test]
+  fn overrides_the_group_a_variable_defining_module_exports() {
+    use stylex_state::theme_ref::ThemeRef;
+
+    use crate::tests::support::expr;
+
+    let theme_vars =
+      EvaluateResultValue::ThemeRef(ThemeRef::new("tokens.stylex.js", "tokens", "x"));
+
+    let (class_name_output, css_output) = stylex_create_theme(
+      &theme_vars,
+      &EvaluateResultValue::Expr(expr("{ bgColor: 'green' }")),
+      &mut StateManager::default(),
+      &mut IndexMap::default(),
+    );
+
+    let group_name = match &theme_vars {
+      EvaluateResultValue::ThemeRef(theme_ref) => theme_ref.to_string_value(),
+      other => panic!("the theme is a variable group: {other:?}"),
+    };
+
+    let theme_class = match class_name_output
+      .get(group_name.as_str())
+      .and_then(|value| value.as_string())
+    {
+      Some(theme_class) => theme_class.clone(),
+      None => panic!("the theme names no class"),
+    };
+
+    let override_class_name = match theme_class.split(' ').next() {
+      Some(name) => name.to_owned(),
+      None => panic!("the theme class is empty"),
+    };
+
+    assert_eq!(theme_class, format!("{override_class_name} {group_name}"));
+    assert_eq!(css_output.len(), 1);
   }
 }

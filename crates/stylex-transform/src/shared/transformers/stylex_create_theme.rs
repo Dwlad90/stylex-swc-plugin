@@ -1,24 +1,24 @@
 use std::{cmp::Ordering, rc::Rc};
 
 use indexmap::IndexMap;
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_macros::stylex_panic;
 use stylex_structures::base_css_type::get_css_value;
-use swc_core::ecma::ast::KeyValueProp;
 
-use crate::shared::utils::{
-  core::define_vars_utils::{
-    collect_vars_by_at_rules, theme_override_priority, wrap_with_at_rules,
+use crate::shared::{
+  enums::data_structures::theme_vars::ThemeVars,
+  utils::{
+    core::define_vars_utils::{
+      collect_vars_by_at_rules, theme_override_priority, wrap_with_at_rules,
+    },
+    validators::validate_theme_variables,
   },
-  validators::validate_theme_variables,
 };
 use stylex_ast::ast::convertors::{
   convert_key_value_to_str, get_key_values_from_object, key_value_name,
 };
 use stylex_constants::constants::{
-  common::{COMPILED_KEY, VAR_GROUP_HASH_KEY},
-  messages::{
-    AT_RULE_NOT_FOUND, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING, THEME_VARS_MUST_BE_OBJECT,
-  },
+  common::COMPILED_KEY,
+  messages::{EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING, THEME_VARS_MUST_BE_OBJECT},
 };
 use stylex_state::resolution::convertors::convert_expr_to_str;
 use stylex_state::{
@@ -32,12 +32,14 @@ use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_utils::{collection::find_and_swap_remove, hash::create_hash};
 
 pub(crate) fn stylex_create_theme(
-  theme_vars: &mut EvaluateResultValue,
+  theme_vars: &EvaluateResultValue,
   variables: &EvaluateResultValue,
   state: &mut StateManager,
   typed_variables: &mut InjectableStylesMap,
 ) -> (FlatCompiledStyles, InjectableStylesMap) {
-  let theme_name_key_value = validate_theme_variables(theme_vars, state);
+  // The group name and the source of every variable name come out of one read,
+  // which also refuses anything that is no variable group.
+  let (var_group_hash, mut theme_vars) = validate_theme_variables(theme_vars, state);
 
   let mut rules_by_at_rule = IndexMap::new();
 
@@ -45,7 +47,7 @@ pub(crate) fn stylex_create_theme(
     Some(obj) => obj,
     None => stylex_panic!("{}", THEME_VARS_MUST_BE_OBJECT),
   };
-  let mut variables_key_values = Box::new(get_key_values_from_object(variables_obj));
+  let mut variables_key_values = get_key_values_from_object(variables_obj);
 
   // Sorted by the name each key is written under, read by borrow. A sort asks
   // for that name about twice per element per level, and the owned form copied
@@ -53,46 +55,12 @@ pub(crate) fn stylex_create_theme(
   variables_key_values
     .sort_unstable_by(|left, right| key_value_name(left).cmp(&key_value_name(right)));
 
-  let var_group_hash: String;
-  let mut theme_vars_key_values: Vec<KeyValueProp>;
-
-  match theme_vars {
-    EvaluateResultValue::Expr(expr) => {
-      let theme_obj = match expr.as_object() {
-        Some(obj) => obj,
-        None => stylex_panic!("{}", THEME_VARS_MUST_BE_OBJECT),
-      };
-      theme_vars_key_values = get_key_values_from_object(theme_obj);
-
-      var_group_hash = theme_vars_key_values
-        .iter()
-        .find(|key_value| key_value_name(key_value) == VAR_GROUP_HASH_KEY)
-        .map(|key_value| {
-          match convert_expr_to_str(&key_value.value, state, &FunctionMap::default()) {
-            Some(s) => s,
-            None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
-          }
-        })
-        .unwrap_or_default();
-    },
-    EvaluateResultValue::ThemeRef(theme_ref) => {
-      theme_vars_key_values = Vec::new();
-      var_group_hash = match theme_ref.get(VAR_GROUP_HASH_KEY, state).as_css_var() {
-        Some(v) => v.to_owned(),
-        None => stylex_panic!("{}", EXPECTED_CSS_VAR),
-      };
-    },
-    _ => {
-      stylex_unimplemented!("Unsupported theme vars type {:?}", theme_vars)
-    },
-  }
-
   for key_value in variables_key_values.into_iter() {
     let key = convert_key_value_to_str(&key_value);
 
-    let theme_vars_str_value = match theme_vars {
-      EvaluateResultValue::Expr(_) => {
-        let theme_vars_item = match find_and_swap_remove(&mut theme_vars_key_values, |key_value| {
+    let theme_vars_str_value = match &mut theme_vars {
+      ThemeVars::Object(theme_vars_key_values) => {
+        let theme_vars_item = match find_and_swap_remove(theme_vars_key_values, |key_value| {
           key_value_name(key_value) == key
         }) {
           Some(item) => item,
@@ -110,13 +78,10 @@ pub(crate) fn stylex_create_theme(
           None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
         }
       },
-      EvaluateResultValue::ThemeRef(theme_ref) => {
-        match theme_ref.get(key.as_str(), state).as_css_var() {
-          Some(v) => v.to_string(),
-          None => stylex_panic!("{}", EXPECTED_CSS_VAR),
-        }
+      ThemeVars::Group(theme_ref) => match theme_ref.get(key.as_str(), state).as_css_var() {
+        Some(v) => v.to_string(),
+        None => stylex_panic!("{}", EXPECTED_CSS_VAR),
       },
-      _ => stylex_unimplemented!("Unsupported theme vars type"),
     };
 
     let name_hash = theme_vars_str_value[6..theme_vars_str_value.len() - 1].to_string();
@@ -130,30 +95,27 @@ pub(crate) fn stylex_create_theme(
 
   // Sort @-rules to get a consistent unique hash value
   // But also put "default" first
-  let mut sorted_at_rules = rules_by_at_rule.keys().collect::<Vec<&String>>();
-
-  sorted_at_rules.sort_unstable_by(|a, b| {
-    if a.as_str() == "default" {
+  rules_by_at_rule.sort_unstable_by(|left, _, right, _| {
+    if left.as_str() == "default" {
       Ordering::Less
-    } else if b.as_str() == "default" {
+    } else if right.as_str() == "default" {
       Ordering::Greater
     } else {
-      a.cmp(b)
+      left.cmp(right)
     }
   });
 
-  let at_rules_string_for_hash = sorted_at_rules
+  // The declarations of each @-rule, joined once and read by both the hash and
+  // the rule written below it.
+  let declarations_by_at_rule = rules_by_at_rule
     .iter()
-    .map(|at_rule| {
-      let rule_by_at_rule = match rules_by_at_rule.get(*at_rule) {
-        Some(v) => v.join(""),
-        None => stylex_panic!("{}", AT_RULE_NOT_FOUND),
-      };
+    .map(|(at_rule, rules)| (at_rule.as_str(), rules.join("")))
+    .collect::<Vec<(&str, String)>>();
 
-      wrap_with_at_rules(rule_by_at_rule.as_str(), at_rule)
-    })
-    .collect::<Vec<String>>()
-    .join("");
+  let at_rules_string_for_hash = declarations_by_at_rule
+    .iter()
+    .map(|(at_rule, declarations)| wrap_with_at_rules(declarations, at_rule))
+    .collect::<String>();
 
   // Create a class name hash
   let override_class_name = format!(
@@ -165,16 +127,12 @@ pub(crate) fn stylex_create_theme(
   let mut resolved_theme_vars = IndexMap::new();
   let mut styles_to_inject = IndexMap::new();
 
-  for at_rule in sorted_at_rules.into_iter() {
-    let decls = match rules_by_at_rule.get(at_rule) {
-      Some(v) => v.join(""),
-      None => stylex_panic!("{}", AT_RULE_NOT_FOUND),
-    };
-    let rule = format!(".{override_class_name}, .{override_class_name}:root{{{decls}}}");
+  for (at_rule, declarations) in declarations_by_at_rule.iter() {
+    let rule = format!(".{override_class_name}, .{override_class_name}:root{{{declarations}}}");
 
     let priority = theme_override_priority(at_rule);
 
-    let (suffix, ltr) = if at_rule == "default" {
+    let (suffix, ltr) = if *at_rule == "default" {
       (String::new(), rule)
     } else {
       (
@@ -189,30 +147,10 @@ pub(crate) fn stylex_create_theme(
     );
   }
 
-  let theme_name_str_value = match theme_vars {
-    EvaluateResultValue::Expr(_) => {
-      match convert_expr_to_str(
-        theme_name_key_value.value.as_ref(),
-        state,
-        &FunctionMap::default(),
-      ) {
-        Some(s) => s,
-        None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
-      }
-    },
-    EvaluateResultValue::ThemeRef(theme_ref) => {
-      match theme_ref.get(VAR_GROUP_HASH_KEY, state).as_css_var() {
-        Some(v) => v.to_owned(),
-        None => stylex_panic!("{}", EXPECTED_CSS_VAR),
-      }
-    },
-    _ => stylex_unimplemented!("Unsupported theme vars type"),
-  };
-
   let theme_class = format!("{override_class_name} {var_group_hash}");
 
   resolved_theme_vars.insert(
-    theme_name_str_value,
+    var_group_hash,
     Rc::new(FlatCompiledStylesValue::String(theme_class)),
   );
 

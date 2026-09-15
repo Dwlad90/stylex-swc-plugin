@@ -75,7 +75,7 @@ where
       );
     }
 
-    let mut variables = match evaluated_arg1.value {
+    let variables = match evaluated_arg1.value {
       Some(value) => {
         validate_nested_theme_variables(&value, &self.state);
         value
@@ -131,7 +131,7 @@ where
     };
 
     let (mut overrides_obj, injected_styles) = stylex_create_theme_nested(
-      &mut variables,
+      &variables,
       &overrides,
       &mut self.state,
       &mut IndexMap::default(),

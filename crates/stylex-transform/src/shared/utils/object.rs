@@ -71,7 +71,7 @@ pub(crate) fn preprocess_object_properties(
   style: &Expr,
   state: &mut StateManager,
 ) -> IndexMap<String, TRawValue> {
-  let res: Vec<OrderPair> = obj_entries(&style.clone())
+  let res: Vec<OrderPair> = obj_entries(style)
     .iter()
     .flat_map(|pair| {
       let key = convert_key_value_to_str(pair);

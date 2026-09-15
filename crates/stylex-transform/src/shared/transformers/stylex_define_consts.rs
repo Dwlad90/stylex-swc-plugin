@@ -18,7 +18,7 @@ use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableConstStyle,
 };
-use stylex_utils::hash::create_key_hash;
+use stylex_utils::{hash::create_key_hash, identifier::as_identifier};
 use swc_core::ecma::ast::Expr;
 
 fn serialize_define_const_value(value: &Expr) -> String {
@@ -57,16 +57,6 @@ pub(crate) fn stylex_define_consts(
     let key = convert_key_value_to_str(key_value);
     let value = serialize_define_const_value(&key_value.value);
 
-    let var_safe_key =
-      if key.chars().next().unwrap_or('\0') >= '0' && key.chars().next().unwrap_or('\0') <= '9' {
-        format!("_{}", key)
-      } else {
-        key.clone()
-      }
-      .chars()
-      .map(|c| if c.is_alphanumeric() { c } else { '_' })
-      .collect::<String>();
-
     let const_key = if key.starts_with("--") {
       // Preserve user-authored CSS custom property name without the leading `--`
       key.chars().skip(2).collect::<String>()
@@ -74,7 +64,7 @@ pub(crate) fn stylex_define_consts(
       let key_hash = create_key_hash(&export_id, &key);
 
       if debug && enable_debug_class_names {
-        format!("{}-{}{}", var_safe_key, class_name_prefix, key_hash)
+        format!("{}-{}{}", as_identifier(&key), class_name_prefix, key_hash)
       } else {
         format!("{}{}", class_name_prefix, key_hash)
       }

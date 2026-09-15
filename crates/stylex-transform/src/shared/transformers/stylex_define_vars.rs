@@ -16,7 +16,10 @@ use stylex_state::{
   state_manager::StateManager,
   types::{FlatCompiledStyles, InjectableStylesMap},
 };
-use stylex_utils::hash::{create_hash, create_key_hash};
+use stylex_utils::{
+  hash::{create_hash, create_key_hash},
+  identifier::as_identifier,
+};
 
 pub(crate) fn stylex_define_vars(
   variables: &EvaluateResultValue,
@@ -51,23 +54,13 @@ pub(crate) fn stylex_define_vars(
   for key_value in key_values.iter() {
     let key = convert_key_value_to_str(key_value);
 
-    let var_safe_key =
-      if key.chars().next().unwrap_or('\0') >= '0' && key.chars().next().unwrap_or('\0') <= '9' {
-        format!("_{}", key)
-      } else {
-        key.clone()
-      }
-      .chars()
-      .map(|c| if c.is_alphanumeric() { c } else { '_' })
-      .collect::<String>();
-
     // Created hashed variable names with fileName//themeName//key
     let name_hash = if key.starts_with("--") {
       key.get(2..).unwrap_or_default().to_string()
     } else if debug && enable_debug_class_names {
       let key_hash = create_key_hash(&export_id, &key);
 
-      format!("{}-{}{}", var_safe_key, class_name_prefix, key_hash)
+      format!("{}-{}{}", as_identifier(&key), class_name_prefix, key_hash)
     } else {
       let key_hash = create_key_hash(&export_id, &key);
 
@@ -97,7 +90,7 @@ pub(crate) fn stylex_define_vars(
 
   // The `@property` rules the typed variables declare are collected as the
   // variables are read, and the variable rules are appended after them.
-  let mut injectable_types = InjectableStylesMap::new();
+  let mut injectable_types = InjectableStylesMap::with_capacity(key_values.len());
 
   let injectable_styles =
     construct_css_variables_string(&variables_map, &var_group_hash, &mut injectable_types);

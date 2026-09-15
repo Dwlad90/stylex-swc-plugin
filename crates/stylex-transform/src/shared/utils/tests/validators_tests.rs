@@ -8,6 +8,7 @@ use super::{
   assert_valid_view_transition_class, contains_call, is_bound_create_expr,
   validate_conditional_styles, validate_theme_variables,
 };
+use crate::shared::enums::data_structures::theme_vars::ThemeVars;
 use crate::tests::support::{expr, ts_expr};
 
 /// The folded value `code` spells, as the evaluator would hand it over.
@@ -345,16 +346,15 @@ fn refuses_a_group_hash_that_did_not_fold() {
 
 #[test]
 fn reads_the_group_hash_a_theme_target_carries() {
-  let key_value = validate_theme_variables(
-    &folded("{ __varGroupHash__: 'x568ih9' }"),
+  let (group_name, theme_vars) = validate_theme_variables(
+    &folded("{ __varGroupHash__: 'x568ih9', color: 'var(--xcolour)' }"),
     &StateManager::default(),
   );
 
-  assert_eq!(
-    key_value.value.as_lit().and_then(|lit| match lit {
-      swc_core::ecma::ast::Lit::Str(text) => text.value.as_str().map(str::to_owned),
-      _ => None,
-    }),
-    Some("x568ih9".to_owned())
-  );
+  assert_eq!(group_name, "x568ih9");
+
+  match theme_vars {
+    ThemeVars::Object(key_values) => assert_eq!(key_values.len(), 2),
+    ThemeVars::Group(_) => panic!("an object names its own variables"),
+  }
 }

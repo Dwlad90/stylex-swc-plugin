@@ -17,12 +17,12 @@ use stylex_state::{
 };
 
 pub(crate) fn stylex_create_theme_nested(
-  theme_vars: &mut EvaluateResultValue,
+  theme_vars: &EvaluateResultValue,
   nested_overrides: &EvaluateResultValue,
   state: &mut StateManager,
   typed_variables: &mut InjectableStylesMap,
 ) -> (FlatCompiledStyles, InjectableStylesMap) {
-  let mut flat_theme_vars = match theme_vars {
+  let flat_theme_vars = match theme_vars {
     EvaluateResultValue::Expr(expr) => {
       let Some(obj) = expr.as_object() else {
         stylex_panic!("{}", THEME_VARS_MUST_BE_OBJECT)
@@ -44,10 +44,5 @@ pub(crate) fn stylex_create_theme_nested(
   let flat_overrides = flatten_nested_overrides_config(&nested_overrides);
   let flat_overrides = expr_map_to_evaluate_result(flat_overrides);
 
-  stylex_create_theme(
-    &mut flat_theme_vars,
-    &flat_overrides,
-    state,
-    typed_variables,
-  )
+  stylex_create_theme(&flat_theme_vars, &flat_overrides, state, typed_variables)
 }

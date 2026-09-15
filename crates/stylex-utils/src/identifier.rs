@@ -1,4 +1,5 @@
-//! Naming one export of one file.
+//! Naming one export of one file, and writing a name so that the language
+//! accepts it as an identifier.
 
 /// The identifier that names `export_name` of `file_name`, with `key` naming
 /// one member inside that export where there is one.
@@ -28,6 +29,33 @@ pub fn gen_file_based_identifier(file_name: &str, export_name: &str, key: Option
     identifier.push_str(KEY_SEPARATOR);
     identifier.push_str(key);
   }
+
+  identifier
+}
+
+/// `name`, written so that it can stand as an identifier.
+///
+/// A name the author wrote can start with a digit and can carry characters no
+/// identifier takes. A leading digit is pushed behind an underscore, and every
+/// character that is neither a letter nor a digit becomes one.
+///
+/// Built in one allocation, sized to the name and one byte more. A character
+/// the answer replaces is never longer than the one it stands for, so the
+/// answer always fits.
+pub fn as_identifier(name: &str) -> String {
+  let mut identifier = String::with_capacity(name.len() + 1);
+
+  if name.starts_with(|first: char| first.is_ascii_digit()) {
+    identifier.push('_');
+  }
+
+  identifier.extend(name.chars().map(|character| {
+    if character.is_alphanumeric() {
+      character
+    } else {
+      '_'
+    }
+  }));
 
   identifier
 }

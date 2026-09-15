@@ -24,18 +24,26 @@ impl Pair {
   /// asks this, so that a blank value drops before the body is hashed and the
   /// name is the one a body without it produces.
   pub fn as_css_text(&self) -> Option<String> {
-    if is_blank_css_text(&self.key) || is_blank_css_text(&self.value) {
-      return None;
-    }
-
-    let mut css_text = String::with_capacity(self.key.len() + self.value.len() + 2);
-    css_text.push_str(&self.key);
-    css_text.push(':');
-    css_text.push_str(&self.value);
-    css_text.push(';');
-
-    Some(css_text)
+    css_text_of(&self.key, &self.value)
   }
+}
+
+/// The `key:value;` text the two halves spell, or `None` when they spell none.
+///
+/// Both pair kinds ask this, so the rule that a blank half declares nothing is
+/// stated once.
+fn css_text_of(key: &str, value: &str) -> Option<String> {
+  if is_blank_css_text(key) || is_blank_css_text(value) {
+    return None;
+  }
+
+  let mut css_text = String::with_capacity(key.len() + value.len() + 2);
+  css_text.push_str(key);
+  css_text.push(':');
+  css_text.push_str(value);
+  css_text.push(';');
+
+  Some(css_text)
 }
 
 #[derive(Debug, PartialEq, Clone, Hash)]
@@ -45,6 +53,14 @@ pub struct PairCow<'a> {
 }
 
 impl<'a> PairCow<'a> {
+  /// The `key:value;` CSS text this pair spells, or `None` when it spells none.
+  ///
+  /// The same answer [`Pair::as_css_text`] gives, without making the pair own
+  /// its halves first.
+  pub fn as_css_text(&self) -> Option<String> {
+    css_text_of(&self.key, &self.value)
+  }
+
   pub fn borrowed(pair: &'a Pair) -> Self {
     Self {
       key: Cow::Borrowed(pair.key.as_str()),

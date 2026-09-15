@@ -21,12 +21,21 @@ use stylex_state::{
   functions::{FunctionConfig, FunctionMap, FunctionType},
   state_manager::StateManager,
 };
-use stylex_structures::{order_pair::OrderPair, pair::Pair, raw_value::TRawValue};
+use stylex_structures::{
+  order_pair::OrderPair,
+  pair::{Pair, PairCow},
+  raw_value::TRawValue,
+  stylex_state_options::StyleXStateOptions,
+};
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableStyle,
 };
 use stylex_utils::{hash::create_hash, string::dashify};
+
+/// One animation step: the offset it is written under, and the declarations
+/// that step makes.
+type KeyframeSteps = IndexMap<String, Vec<Pair>>;
 
 pub(crate) fn stylex_keyframes(
   frames: &EvaluateResultValue,
@@ -40,36 +49,39 @@ pub(crate) fn stylex_keyframes(
     stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
-  // One entry per animation step, holding the declarations that step makes.
+  let key_values = get_key_values_from_object(frames);
+
+  // One entry per animation step, holding the declarations that step makes. A
+  // step written twice is one step, and the declarations written last stand.
   // Each direction below reads these same pairs, so the shorthand expansion is
   // done once.
-  let expanded_steps = get_key_values_from_object(frames)
-    .iter()
-    .map(|key_value| {
-      let step = convert_key_value_to_str(key_value);
-      let entries = expand_frame_shorthands(&key_value.value, state);
-      let pairs =
-        obj_map_keys_and_transform_values(&entries, state, |key| dashify(key).into_owned());
+  let mut expanded_steps = KeyframeSteps::with_capacity(key_values.len());
 
-      (step, pairs)
-    })
-    .collect::<Vec<(String, Vec<Pair>)>>();
+  for key_value in key_values.iter() {
+    let step = convert_key_value_to_str(key_value);
+    let entries = expand_frame_shorthands(&key_value.value, state);
+
+    expanded_steps.insert(
+      step,
+      obj_map_keys_and_transform_values(&entries, state, |key| dashify(key).into_owned()),
+    );
+  }
 
   let options = state.options.clone();
 
-  let ltr_string = construct_keyframes_obj(&expanded_steps, |pair| {
-    generate_ltr(pair, &options).into_owned()
-  });
+  // The name is hashed from what the default options resolve, so that it holds
+  // whatever options the module is compiled with. Built once here rather than
+  // once per declaration.
+  let stable_options = StyleXStateOptions::default();
 
-  let stable_string = construct_keyframes_obj(&expanded_steps, |pair| {
-    generate_ltr(pair, &Default::default()).into_owned()
-  });
+  let ltr_string = construct_keyframes_obj(&expanded_steps, |pair| generate_ltr(pair, &options));
+
+  let stable_string =
+    construct_keyframes_obj(&expanded_steps, |pair| generate_ltr(pair, &stable_options));
 
   // A declaration with no right-to-left form keeps the one it was written with.
   let rtl_string = construct_keyframes_obj(&expanded_steps, |pair| {
-    generate_rtl(pair, &options)
-      .map(|rtl| rtl.into_owned())
-      .unwrap_or_else(|| pair.clone())
+    generate_rtl(pair, &options).unwrap_or_else(|| PairCow::borrowed(pair))
   });
 
   // NOTE: Use a direction-agnostic hash to keep LTR/RTL classnames stable across
@@ -103,10 +115,10 @@ pub(crate) fn stylex_keyframes(
 /// `resolve` answers the declaration a pair makes in the direction the caller
 /// asks for, and a pair that spells nothing is dropped.
 fn construct_keyframes_obj(
-  steps: &[(String, Vec<Pair>)],
-  resolve: impl Fn(&Pair) -> Pair,
+  steps: &KeyframeSteps,
+  resolve: impl for<'a> Fn(&'a Pair) -> PairCow<'a>,
 ) -> String {
-  let mut result = String::new();
+  let mut result = String::with_capacity(steps.len() * 32);
 
   for (step, pairs) in steps {
     result.push_str(step);
@@ -123,7 +135,7 @@ fn construct_keyframes_obj(
 }
 
 fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<String, TRawValue> {
-  let res: Vec<_> = obj_entries(&frame.clone())
+  let res: Vec<_> = obj_entries(frame)
     .iter()
     .flat_map(|pair| {
       let key = convert_key_value_to_str(pair);

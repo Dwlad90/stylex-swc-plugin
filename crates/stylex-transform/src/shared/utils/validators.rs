@@ -9,12 +9,13 @@ use swc_core::{
   },
 };
 
+use crate::shared::enums::data_structures::theme_vars::ThemeVars;
 use crate::shared::utils::ast::helpers::is_variable_named_exported;
 use stylex_ast::ast::convertors::{
-  convert_key_value_to_str, convert_lit_to_string, create_string_expr, get_key_values_from_object,
-  init_call, key_value_name, normalize_expr,
+  convert_key_value_to_str, convert_lit_to_string, get_key_values_from_object, init_call,
+  key_value_name, normalize_expr,
 };
-use stylex_ast::ast::factories::{create_expr_or_spread, create_key_value_prop_ident};
+use stylex_ast::ast::factories::create_expr_or_spread;
 use stylex_constants::constants::{
   api_names::{
     STYLEX_ATTRS, STYLEX_CREATE, STYLEX_CREATE_THEME, STYLEX_DEFAULT_MARKER, STYLEX_DEFINE_CONSTS,
@@ -985,53 +986,45 @@ pub(crate) fn assert_valid_view_transition_class(
   assert_stylex_arg(obj, state, STYLEX_VIEW_TRANSITION_CLASS);
 }
 
+/// The name of the variable group a theme overrides, and the source the name
+/// of each variable is read from.
+///
+/// Both halves come out of the same read: a group states its own name, and an
+/// object carries it under `__varGroupHash__`. A value that is neither, or an
+/// object that names no group, is refused here, so what is answered has only
+/// the two states [`ThemeVars`] holds.
 pub(crate) fn validate_theme_variables(
   variables: &EvaluateResultValue,
   state: &StateManager,
-) -> KeyValueProp {
+) -> (String, ThemeVars) {
   if let Some(theme_ref) = variables.as_theme_ref() {
-    let mut cloned_theme_ref = theme_ref.clone();
+    let mut theme_ref = theme_ref.clone();
 
-    let value = cloned_theme_ref.get(VAR_GROUP_HASH_KEY, state);
+    let value = theme_ref.get(VAR_GROUP_HASH_KEY, state);
+    let group_name = or_refuse_nameless_group(value.as_css_var()).to_owned();
 
-    let key_value = create_key_value_prop_ident(
-      VAR_GROUP_HASH_KEY,
-      create_string_expr(or_refuse_nameless_group(value.as_css_var())),
-    );
-
-    return key_value;
+    return (group_name, ThemeVars::Group(theme_ref));
   }
 
-  if !variables.as_expr().is_some_and(|expr| expr.is_object()) {
-    {
-      stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS);
-    }
-  }
+  let Some(object) = variables.as_expr().and_then(|expr| expr.as_object()) else {
+    stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS)
+  };
 
-  match variables
-    .as_expr()
-    .and_then(|expr| expr.as_object())
-    .map(get_key_values_from_object)
-    .and_then(|key_values| {
-      for key_value in key_values.into_iter() {
-        let key = key_value_name(&key_value);
+  let key_values = get_key_values_from_object(object);
 
-        if key == VAR_GROUP_HASH_KEY {
-          let value = &key_value.value;
+  let group_name = key_values
+    .iter()
+    .filter(|key_value| key_value_name(key_value) == VAR_GROUP_HASH_KEY)
+    .find_map(|key_value| {
+      key_value
+        .value
+        .as_lit()
+        .and_then(convert_lit_to_string)
+        .filter(|value| !value.is_empty())
+    });
 
-          if let Some(lit) = value.as_lit() {
-            let value = convert_lit_to_string(lit);
-
-            if value.filter(|value| !value.is_empty()).is_some() {
-              return Some(key_value);
-            }
-          }
-        }
-      }
-
-      None
-    }) {
-    Some(key_value) => key_value,
+  match group_name {
+    Some(group_name) => (group_name, ThemeVars::Object(key_values)),
     None => stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS),
   }
 }

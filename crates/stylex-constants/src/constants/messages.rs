@@ -160,9 +160,6 @@ pub static KEY_HAS_NO_NAME: &str = "The key has no name at compile time.";
 
 pub static VALUES_MUST_BE_OBJECT: &str = "The values argument must be a plain object.";
 
-pub static INJECTABLE_STYLE_NOT_SUPPORTED: &str =
-  "InjectableStyle is not supported in this context.";
-
 pub static ONLY_OVERRIDE_DEFINE_VARS: &str =
   "Can only override variables theme created with defineVars().";
 pub static ONLY_OVERRIDE_DEFINE_VARS_NESTED: &str =
@@ -192,9 +189,6 @@ pub static EXPECTED_CSS_VAR: &str = "Expected a CSS custom property (variable) r
 
 pub static KEY_MUST_EVAL_TO_STRING: &str = "Style property key must evaluate to a string.";
 
-pub static AT_RULE_NOT_FOUND: &str =
-  "At-rule not found in the rules map. Ensure the at-rule is declared correctly.";
-
 pub static EXPECTED_COMPILED_STYLES: &str = "Expected compiled style values from the style object.";
 
 pub static VALUE_NOT_EXPRESSION: &str = "Style value must evaluate to a static expression.";
@@ -202,9 +196,6 @@ pub static VALUE_NOT_EXPRESSION: &str = "Style value must evaluate to a static e
 pub static EVAL_RESULT_EXPECTED: &str = "Expected a value from evaluation result.";
 
 pub static VAR_DECL_INIT_REQUIRED: &str = "Variable declaration must have an initializer.";
-
-pub static THEME_VAR_TUPLE: &str =
-  "Theme variable definition must be a [key, value, cssType] tuple.";
 
 pub static OBJECT_KEY_MUST_BE_IDENT: &str = "Object key must be a static identifier.";
 

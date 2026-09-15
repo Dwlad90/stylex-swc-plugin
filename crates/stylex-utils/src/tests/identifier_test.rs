@@ -60,3 +60,38 @@ mod gen_file_based_identifier_tests {
     assert!(result.ends_with("//styles.color"));
   }
 }
+
+mod as_identifier {
+  use crate::identifier::as_identifier;
+
+  #[test]
+  fn keeps_a_name_that_is_already_an_identifier() {
+    assert_eq!(as_identifier("bgColor"), "bgColor");
+    assert_eq!(as_identifier("colour2"), "colour2");
+  }
+
+  /// A name cannot start with a digit, so one is pushed behind an underscore.
+  #[test]
+  fn pushes_a_leading_digit_behind_an_underscore() {
+    assert_eq!(as_identifier("2xl"), "_2xl");
+    assert_eq!(as_identifier("0"), "_0");
+  }
+
+  #[test]
+  fn writes_a_character_no_identifier_takes_as_an_underscore() {
+    assert_eq!(as_identifier("on.dark"), "on_dark");
+    assert_eq!(as_identifier("--brand"), "__brand");
+    assert_eq!(as_identifier("a b"), "a_b");
+  }
+
+  /// A letter outside ASCII is a letter, so it is kept.
+  #[test]
+  fn keeps_a_letter_that_is_not_ascii() {
+    assert_eq!(as_identifier("größe"), "größe");
+  }
+
+  #[test]
+  fn answers_an_empty_name_with_an_empty_identifier() {
+    assert_eq!(as_identifier(""), "");
+  }
+}

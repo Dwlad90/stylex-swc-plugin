@@ -14,10 +14,10 @@ use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName, SourceFile, Span, SyntaxContext},
   ecma::ast::{
-    CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl, ImportDefaultSpecifier,
-    ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread, Lit, MemberExpr, Module,
-    ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Stmt, Str, VarDecl, VarDeclKind,
-    VarDeclarator,
+    BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl,
+    ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread,
+    Lit, MemberExpr, Module, ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Stmt, Str,
+    VarDecl, VarDeclKind, VarDeclarator,
   },
 };
 
@@ -2183,21 +2183,31 @@ impl StateManager {
     self.top_level_expressions.get(position?)
   }
 
-  /// The style variable bound to `name`, if its declarator reads as
-  /// `declarator` does.
+  /// The name and initializer of the style variable `declarator` is, if the
+  /// module records one that reads the same.
   ///
   /// [`Self::style_vars`] is keyed by the name its declarator binds, so the
   /// entry that can equal `declarator` is the one under `declarator`'s own name
   /// -- which is what turns the walk of every style variable in the module into
   /// a probe. `eq_ignore_span` still decides, so a name rebound to something
   /// else answers `None` as the walk did.
-  pub fn matching_style_var(&self, declarator: &VarDeclarator) -> Option<&VarDeclarator> {
+  ///
+  /// The two parts are answered rather than the declarator, because both are
+  /// settled here: a declarator bound to a pattern and one with no initializer
+  /// are refused above. Handing the declarator back made the caller ask the
+  /// same two questions again, where a missing part could only be skipped.
+  pub fn matching_style_var<'declarator>(
+    &self,
+    declarator: &'declarator VarDeclarator,
+  ) -> Option<(&'declarator BindingIdent, &'declarator Expr)> {
     let name = declarator.name.as_ident()?;
+    let init = declarator.init.as_deref()?;
 
     self
       .style_vars
       .get(name.sym.as_str())
-      .filter(|recorded| declarator.eq_ignore_span(recorded))
+      .is_some_and(|recorded| declarator.eq_ignore_span(recorded))
+      .then_some((name, init))
   }
 
   /// Whether the module records `call` at program level, either as a top-level

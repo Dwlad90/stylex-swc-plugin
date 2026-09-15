@@ -12,7 +12,9 @@ mod state_manager {
   };
 
   use crate::state_manager::{InsertionSlot, StateManager, flush_pending_insertions};
-  use crate::tests::prelude::{ident, ident_at, make_var_declarator, string_expr};
+  use crate::tests::prelude::{
+    ident, ident_at, make_var_declarator, make_var_declarator_no_init, string_expr,
+  };
   use stylex_enums::declaration_type::DeclarationType;
   use stylex_enums::top_level_expression::TopLevelExpressionKind;
   use stylex_structures::ceiling::Ceiling;
@@ -987,6 +989,25 @@ mod state_manager {
           "styles",
           string_expr("something else")
         ))
+        .is_none()
+    );
+  }
+
+  /// A declarator that holds no value is no style variable either: the two
+  /// parts the lookup answers with are the name and the initializer, and this
+  /// one has only the name.
+  #[test]
+  fn matching_style_var_refuses_a_declarator_with_no_initializer() {
+    let mut state = StateManager::default();
+
+    state.insert_style_var(
+      "styles".to_string(),
+      make_var_declarator("styles", Expr::Call(call_of("create", "styles"))),
+    );
+
+    assert!(
+      state
+        .matching_style_var(&make_var_declarator_no_init("styles"))
         .is_none()
     );
   }

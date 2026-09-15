@@ -203,8 +203,6 @@ pub static EVAL_RESULT_EXPECTED: &str = "Expected a value from evaluation result
 
 pub static VAR_DECL_INIT_REQUIRED: &str = "Variable declaration must have an initializer.";
 
-pub static KEY_VALUE_EXPECTED: &str = "Expected a key-value property in the object.";
-
 pub static THEME_VAR_TUPLE: &str =
   "Theme variable definition must be a [key, value, cssType] tuple.";
 

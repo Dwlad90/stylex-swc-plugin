@@ -1,15 +1,14 @@
 use std::collections::hash_map::Entry;
 
 use rustc_hash::FxHashMap;
-use stylex_macros::stylex_panic;
 use stylex_state::state_writers::fill_state_declarations;
 use swc_core::{
   atoms::Atom,
   common::comments::Comments,
   ecma::{
     ast::{
-      CallExpr, Callee, KeyValueProp, Lit, ObjectLit, ObjectPatProp, Pat, Prop, PropName,
-      PropOrSpread, VarDeclarator,
+      CallExpr, Callee, Lit, ObjectLit, ObjectPatProp, Pat, Prop, PropName, PropOrSpread,
+      VarDeclarator,
     },
     visit::VisitMutWith,
   },
@@ -29,7 +28,6 @@ use stylex_structures::{
 use crate::StyleXTransform;
 use stylex_ast::ast::keys::namespace_name_from_prop_key;
 use stylex_atoms::transform::ATOMS_SOURCE;
-use stylex_constants::constants::messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND};
 use stylex_enums::core::TransformationCycle;
 use stylex_state::state_manager::{DeclId, ImportKind};
 use stylex_structures::named_import_source::ImportSources;
@@ -84,33 +82,22 @@ where
         // than by a walk of every style variable and every recorded expression
         // in the module, which ran once per declarator the finalize cycle
         // visits.
-        // A style variable is bound to a name -- `matching_style_var` answers
-        // only for a declarator that is -- so the binding is read once here and
-        // both the lookup and the namespace set are asked with it.
-        if let Some((binding, var_name)) = self
-          .state
-          .matching_style_var(var_declarator)
-          .and_then(|var_name| Some((var_name.name.as_ident()?, var_name)))
-        {
-          let Some(init) = var_name.init.as_deref() else {
-            // A style variable is only ever recorded from a declarator its own
-            // initializer identified, so this cannot happen. Skipping keeps an
-            // unreachable shape from becoming an abort -- and from becoming a
-            // region no test can cover.
-            return;
-          };
+        if let Some((binding, init)) = self.state.matching_style_var(var_declarator) {
+          let declared_as_a_statement = matches!(
+            self.state.find_top_level_expr_named(&binding.sym, init),
+            Some(TopLevelExpression(TopLevelExpressionKind::Stmt, _, _))
+          );
 
-          let top_level_expression = self.state.find_top_level_expr_named(&binding.sym, init);
+          // Read before the object below is reached for, which needs the
+          // declarator to itself.
+          let var_id = binding.id.to_id();
 
-          if let Some(TopLevelExpression(kind, _, _)) = top_level_expression
-            && *kind == TopLevelExpressionKind::Stmt
+          if declared_as_a_statement
             && let Some(object) = var_declarator
               .init
               .as_mut()
               .and_then(|var_decl| var_decl.as_mut_object())
           {
-            let var_id = binding.id.to_id();
-
             let namespaces_to_keep = match vars_to_keep.get(&var_id) {
               Some(NonNullProps::Vec(vec)) => vec.clone(),
               _ => Vec::new(),
@@ -214,85 +201,70 @@ where
     }
   }
 
+  /// The props of a compiled style object, swept down to the namespaces the
+  /// module still reads.
+  ///
+  /// The object was written by the producer a few phases back, so every prop is
+  /// a key-value whose key names a namespace. A prop that is not -- which no
+  /// compiled object holds -- leaves the whole object as it is, because a sweep
+  /// cannot tell what such an entry carries.
   fn retain_object_props(
     &self,
     object: &mut ObjectLit,
     namespace_to_keep: &[Atom],
     var_id: &DeclId,
   ) -> Vec<PropOrSpread> {
-    let mut props: Vec<PropOrSpread> = Vec::with_capacity(object.props.len());
+    // The namespace each prop names, read once. A `None` here answers for the
+    // whole object, so the sweep below runs over props it has already read.
+    let mut namespace_names = Vec::with_capacity(object.props.len());
 
     for object_prop in object.props.iter() {
-      let Some(prop) = object_prop.as_prop() else {
-        return object.props.clone();
-      };
-
-      let Some(key_value) = prop.as_key_value() else {
-        return object.props.clone();
-      };
-
-      if namespace_name_from_prop_key(&key_value.key).is_none() {
-        return object.props.clone();
+      match object_prop
+        .as_prop()
+        .and_then(|prop| prop.as_key_value())
+        .and_then(|key_value| namespace_name_from_prop_key(&key_value.key))
+      {
+        Some(namespace_name) => namespace_names.push(namespace_name),
+        None => return object.props.clone(),
       }
     }
 
-    for object_prop in object.props.iter_mut() {
-      assert!(object_prop.is_prop(), "Spread properties are not supported");
+    let mut props: Vec<PropOrSpread> = Vec::with_capacity(object.props.len());
 
-      let prop = match object_prop.as_mut_prop() {
-        Some(p) => p.as_mut(),
-        None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
-      };
+    for (object_prop, namespace_name) in object.props.iter_mut().zip(namespace_names) {
+      if !namespace_to_keep.contains(&namespace_name) {
+        continue;
+      }
 
-      let Some(KeyValueProp { key, .. }) = prop.as_key_value() else {
-        return object.props.clone();
-      };
+      let key_id = NonNullProp::Atom(namespace_name);
 
-      let Some(namespace_name) = namespace_name_from_prop_key(key) else {
-        return object.props.clone();
-      };
+      // What this namespace keeps of its null declarations: every list recorded
+      // against it, unless one entry keeps the namespace whole, in which case
+      // nothing is swept out of it.
+      let mut keeps_every_null = false;
+      let mut nulls_to_keep: Vec<Atom> = Vec::new();
 
-      if namespace_to_keep.contains(&namespace_name) {
-        let key_id = NonNullProp::Atom(namespace_name);
-
-        let all_nulls_to_keep = self
-          .state
-          .style_vars_to_keep
-          .iter()
-          .filter_map(|top_level_expression| {
-            let StyleVarsToKeep(var, namespace_name, prop) = top_level_expression;
-
-            if var == var_id && namespace_name == &key_id {
-              Some(prop.clone())
-            } else {
-              None
-            }
-          })
-          .collect::<Vec<NonNullProps>>();
-
-        if !all_nulls_to_keep.contains(&NonNullProps::True) {
-          let nulls_to_keep = all_nulls_to_keep
-            .into_iter()
-            .filter_map(|item| match item {
-              NonNullProps::Vec(vec) => Some(vec),
-              NonNullProps::True => None,
-            })
-            .flatten()
-            .collect::<Vec<Atom>>();
-
-          if let Some(style_object) = match prop.as_mut_key_value() {
-            Some(kv) => kv,
-            None => stylex_panic!("{}", KEY_VALUE_EXPECTED),
-          }
-          .value
-          .as_mut_object()
-          {
-            retain_style_props(style_object, nulls_to_keep);
-          }
+      for StyleVarsToKeep(var, recorded_name, prop) in self.state.style_vars_to_keep.iter() {
+        if var != var_id || recorded_name != &key_id {
+          continue;
         }
 
-        props.push(object_prop.clone())
+        match prop {
+          NonNullProps::Vec(vec) => nulls_to_keep.extend(vec.iter().cloned()),
+          NonNullProps::True => keeps_every_null = true,
+        }
       }
+
+      if !keeps_every_null
+        && let Some(style_object) = object_prop
+          .as_mut_prop()
+          .and_then(|prop| prop.as_mut_key_value())
+          .and_then(|key_value| key_value.value.as_mut_object())
+      {
+        retain_style_props(style_object, nulls_to_keep);
+      }
+
+      props.push(object_prop.clone())
     }
 
     props
@@ -399,3 +371,7 @@ fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: Vec<Atom>) {
     PropOrSpread::Spread(_) => true,
   });
 }
+
+#[cfg(test)]
+#[path = "tests/style_var_sweep_test.rs"]
+mod tests;

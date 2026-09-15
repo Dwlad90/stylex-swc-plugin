@@ -416,6 +416,17 @@ pub(crate) fn compiled_module(input: &str) -> String {
   })
 }
 
+/// [`compiled_module`], for a module that defines variables.
+///
+/// The file name has to look like a theme file or the call refuses for the name
+/// before the subject is read -- see [`theme_module_transform`], whose options
+/// these are.
+pub(crate) fn compiled_theme_module(input: &str) -> String {
+  stringify_js(input, ts_syntax(), |tr| {
+    theme_module_transform(tr.comments.clone())
+  })
+}
+
 /// Asserts that two spellings of one module compile to the same thing.
 ///
 /// A parenthesis is a node in this compiler's tree and none in the reference

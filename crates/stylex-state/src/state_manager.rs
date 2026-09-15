@@ -1685,6 +1685,15 @@ impl StateManager {
     self.any_stylex_api_import_contains(kinds, &Atom::from(ident_sym))
   }
 
+  /// Whether `ident_sym` names StyleX in the cycle that is running.
+  ///
+  /// The two lists below are what makes a call reach a handler at all, so each
+  /// one must name every API its cycle transforms. A namespace import answers
+  /// for all of them at once, which is why a kind left out of a list goes
+  /// unnoticed: the API keeps working through `stylex.<name>(…)` and stops
+  /// working only through `import { <name> }`. `viewTransitionClass` was
+  /// missing from the producer list for that reason -- the call came out of the
+  /// compiler unchanged, and the CSS it declares was never injected.
   pub fn is_stylex_import_for_current_cycle(&self, ident_sym: &str) -> bool {
     match self.cycle {
       TransformationCycle::TransformProducers => {
@@ -1701,6 +1710,7 @@ impl StateManager {
             CreateTheme,
             CreateThemeNested,
             PositionTry,
+            ViewTransitionClass,
             Keyframes,
             FirstThatWorks,
             Types,

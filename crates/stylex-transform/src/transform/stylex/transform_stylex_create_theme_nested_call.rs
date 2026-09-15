@@ -3,11 +3,10 @@ use stylex_constants::constants::{
   api_names::STYLEX_UNSTABLE_CREATE_THEME_NESTED,
   common::VAR_GROUP_HASH_KEY,
   messages::{
-    EXPECTED_CSS_VAR, ONLY_OVERRIDE_DEFINE_VARS_NESTED, SPREAD_NOT_SUPPORTED, non_static_value,
-    non_style_object,
+    EXPECTED_CSS_VAR, ONLY_OVERRIDE_DEFINE_VARS_NESTED, non_static_value, non_style_object,
   },
 };
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_macros::stylex_panic;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -22,13 +21,13 @@ use crate::{
         dev_class_name::{convert_theme_to_dev_styles, convert_theme_to_test_styles},
         js_to_ast::{NestedStringObject, convert_object_to_ast},
       },
-      validators::validate_define_call,
+      validators::{argument_at, validate_define_call},
     },
   },
   transform::stylex::visitor_utils::{build_eval_config, is_call_to},
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::evaluate::evaluate;
+use stylex_evaluator::{evaluate::evaluate, evaluate_result::refusal_site};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::ImportKind,
 };
@@ -58,18 +57,9 @@ where
       &mut self.state,
     );
 
-    let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-      Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-      None => first_arg.expr.clone(),
-    })?;
+    let first_arg = argument_at(call, 0, STYLEX_UNSTABLE_CREATE_THEME_NESTED);
 
-    let second_arg = call
-      .args
-      .get(1)
-      .map(|second_arg| match &second_arg.spread {
-        Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-        None => second_arg.expr.clone(),
-      })?;
+    let second_arg = argument_at(call, 1, STYLEX_UNSTABLE_CREATE_THEME_NESTED);
 
     let evaluated_arg1 = evaluate(&first_arg, &mut self.state, &FunctionMap::default());
 
@@ -78,9 +68,7 @@ where
         "{}",
         build_code_frame_error(
           &Expr::Call(call.clone()),
-          &evaluated_arg1
-            .deopt
-            .unwrap_or_else(|| *first_arg.to_owned()),
+          &refusal_site(evaluated_arg1.deopt.as_ref(), &first_arg),
           &non_static_value(STYLEX_UNSTABLE_CREATE_THEME_NESTED),
           &mut self.state,
         )
@@ -96,9 +84,7 @@ where
         "{}",
         build_code_frame_error(
           &Expr::Call(call.clone()),
-          &evaluated_arg1
-            .deopt
-            .unwrap_or_else(|| *first_arg.to_owned()),
+          &refusal_site(evaluated_arg1.deopt.as_ref(), &first_arg),
           ONLY_OVERRIDE_DEFINE_VARS_NESTED,
           &mut self.state,
         )
@@ -113,9 +99,7 @@ where
         "{}",
         build_code_frame_error(
           &Expr::Call(call.clone()),
-          &evaluated_arg2
-            .deopt
-            .unwrap_or_else(|| *second_arg.to_owned()),
+          &refusal_site(evaluated_arg2.deopt.as_ref(), &second_arg),
           &non_static_value(STYLEX_UNSTABLE_CREATE_THEME_NESTED),
           &mut self.state,
         )
@@ -134,9 +118,7 @@ where
             "{}",
             build_code_frame_error(
               &Expr::Call(call.clone()),
-              &evaluated_arg2
-                .deopt
-                .unwrap_or_else(|| *second_arg.to_owned()),
+              &refusal_site(evaluated_arg2.deopt.as_ref(), &second_arg),
               &non_style_object(STYLEX_UNSTABLE_CREATE_THEME_NESTED),
               &mut self.state,
             )

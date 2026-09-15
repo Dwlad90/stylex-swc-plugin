@@ -43,7 +43,7 @@ use crate::{
         flat_map_expanded_shorthands::flat_map_expanded_shorthands,
         js_to_ast::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
       },
-      validators::{is_create_call, validate_stylex_create},
+      validators::{argument_at, is_create_call, validate_stylex_create},
     },
   },
   transform::StyleXTransform,
@@ -65,7 +65,7 @@ use stylex_css::utils::{pseudo::is_pseudo_element, when as stylex_when};
 use stylex_diagnostics::code_frame::{build_code_frame_error, build_code_frame_error_and_panic};
 use stylex_enums::style_resolution::StyleResolution;
 use stylex_evaluator::{
-  evaluate::evaluate_result_is_nullish, state::EvaluationState,
+  evaluate::evaluate_result_is_nullish, evaluate_result::refusal_site, state::EvaluationState,
   stylex_first_that_works::stylex_first_that_works,
 };
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;
@@ -205,7 +205,7 @@ where
         || self.state.find_top_level_expr(call).is_some()
         || self.state.holds_call_in_top_level_array(call);
 
-      let mut first_arg = call.args.first()?.expr.clone();
+      let mut first_arg = argument_at(call, 0, STYLEX_CREATE);
 
       let mut resolved_namespaces: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
       let function_map = build_runtime_function_map(self);
@@ -218,7 +218,7 @@ where
         "{}",
         build_code_frame_error(
           &Expr::Call(call.clone()),
-          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
+          &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
           evaluated_arg
             .reason
             .as_deref()

@@ -1,10 +1,10 @@
 use std::rc::Rc;
-use stylex_constants::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_expression};
+use stylex_constants::constants::messages::expected_call_expression;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use stylex_ast::ast::convertors::create_string_expr;
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_macros::stylex_panic;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{Expr, VarDeclarator},
@@ -18,8 +18,8 @@ use crate::{
       stylex_view_transition_class::stylex_view_transition_class,
     },
     utils::validators::{
-      assert_valid_properties, assert_valid_view_transition_class, is_view_transition_class_call,
-      validate_stylex_view_transition_class_indent,
+      argument_at, assert_valid_properties, assert_valid_view_transition_class,
+      is_view_transition_class_call, validate_stylex_view_transition_class_indent,
     },
   },
 };
@@ -30,7 +30,10 @@ use stylex_constants::constants::{
   messages::{VIEW_TRANSITION_CLASS_INVALID_PROPERTY, non_static_value, non_style_object},
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::{evaluate::evaluate, stylex_first_that_works::stylex_first_that_works};
+use stylex_evaluator::{
+  evaluate::evaluate, evaluate_result::refusal_site,
+  stylex_first_that_works::stylex_first_that_works,
+};
 use stylex_state::{
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   state_manager::ImportKind,
@@ -55,10 +58,7 @@ where
         None => stylex_panic!("{}", expected_call_expression(STYLEX_VIEW_TRANSITION_CLASS)),
       };
 
-      let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-        None => first_arg.expr.clone(),
-      })?;
+      let first_arg = argument_at(call, 0, STYLEX_VIEW_TRANSITION_CLASS);
 
       let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
       let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
@@ -119,7 +119,7 @@ where
         "{}",
         build_code_frame_error(
           &Expr::Call(call.clone()),
-          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
+          &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
           &non_static_value(STYLEX_VIEW_TRANSITION_CLASS),
           &mut self.state,
         )
@@ -135,7 +135,7 @@ where
             "{}",
             build_code_frame_error(
               &Expr::Call(call.clone()),
-              &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
+              &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
               &non_style_object(STYLEX_VIEW_TRANSITION_CLASS),
               &mut self.state,
             )
@@ -146,7 +146,7 @@ where
           "{}",
           build_code_frame_error(
             &Expr::Call(call.clone()),
-            &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
+            &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
             &non_static_value(STYLEX_VIEW_TRANSITION_CLASS),
             &mut self.state,
           )

@@ -1,12 +1,9 @@
 use rustc_hash::FxHashMap;
 use stylex_constants::constants::{
   api_names::STYLEX_UNSTABLE_DEFINE_VARS_NESTED,
-  messages::{
-    SPREAD_NOT_SUPPORTED, cannot_generate_hash, export_variable_not_found, non_static_value,
-    non_style_object,
-  },
+  messages::{cannot_generate_hash, export_variable_not_found, non_static_value, non_style_object},
 };
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_macros::stylex_panic;
 use stylex_utils::identifier::gen_file_based_identifier;
 use swc_core::{
   common::comments::Comments,
@@ -19,13 +16,13 @@ use crate::{
     transformers::stylex_define_vars_nested::stylex_define_vars_nested,
     utils::{
       core::stylex_nested_utils::convert_unflattened_object_to_ast,
-      validators::validate_define_call,
+      validators::{argument_at, validate_define_call},
     },
   },
   transform::stylex::visitor_utils::{build_eval_config, is_call_to},
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::evaluate::evaluate;
+use stylex_evaluator::{evaluate::evaluate, evaluate_result::refusal_site};
 use stylex_state::state_manager::ImportKind;
 use stylex_structures::top_level_expression::TopLevelExpression;
 
@@ -52,16 +49,13 @@ where
     );
     let TopLevelExpression(_, _, var_id) = top_level_expr;
 
-    let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-      Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-      None => first_arg.expr.clone(),
-    })?;
+    let first_arg = argument_at(call, 0, STYLEX_UNSTABLE_DEFINE_VARS_NESTED);
 
     let function_map = build_eval_config(&mut self.state);
     let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
     if !evaluated_arg.confident {
-      let deopt = evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned());
+      let deopt = refusal_site(evaluated_arg.deopt.as_ref(), &first_arg);
       stylex_panic!(
         "{}",
         build_code_frame_error(
@@ -81,7 +75,7 @@ where
           .unwrap_or(false);
 
         if !is_object {
-          let deopt = evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned());
+          let deopt = refusal_site(evaluated_arg.deopt.as_ref(), &first_arg);
           stylex_panic!(
             "{}",
             build_code_frame_error(

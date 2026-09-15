@@ -5,12 +5,9 @@ use std::rc::Rc;
 use rustc_hash::FxHashMap;
 use stylex_constants::constants::{
   api_names::{STYLEX_DEFINE_VARS, STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_TYPES},
-  messages::{
-    SPREAD_NOT_SUPPORTED, cannot_generate_hash, export_variable_not_found, non_static_value,
-    non_style_object,
-  },
+  messages::{cannot_generate_hash, export_variable_not_found, non_static_value, non_style_object},
 };
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_macros::stylex_panic;
 use stylex_utils::identifier::gen_file_based_identifier;
 use swc_core::{
   common::comments::Comments,
@@ -26,12 +23,12 @@ use crate::{
     },
     utils::{
       core::js_to_ast::{NestedStringObject, convert_object_to_ast},
-      validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
+      validators::{argument_at, find_and_validate_stylex_define_vars, is_define_vars_call},
     },
   },
   transform::stylex::visitor_utils::{apply_unstable_conditional, insert_stylex_identifier_entry},
 };
-use stylex_evaluator::evaluate::evaluate;
+use stylex_evaluator::{evaluate::evaluate, evaluate_result::refusal_site};
 use stylex_state::{
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   state_manager::ImportKind,
@@ -58,10 +55,7 @@ where
 
       let TopLevelExpression(_, _, var_id) = stylex_create_theme_top_level_expr;
 
-      let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-        None => first_arg.expr.clone(),
-      })?;
+      let first_arg = argument_at(call, 0, STYLEX_DEFINE_VARS);
 
       let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
       let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
@@ -172,10 +166,7 @@ where
       let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
       if !evaluated_arg.confident {
-        let deopt = evaluated_arg
-          .deopt
-          .clone()
-          .unwrap_or_else(|| *first_arg.to_owned());
+        let deopt = refusal_site(evaluated_arg.deopt.as_ref(), &first_arg);
         stylex_panic!(
           "{}",
           build_code_frame_error(
@@ -194,7 +185,7 @@ where
             .map(|expr| expr.is_object())
             .unwrap_or(false);
           if !is_object {
-            let deopt = evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned());
+            let deopt = refusal_site(evaluated_arg.deopt.as_ref(), &first_arg);
             stylex_panic!(
               "{}",
               build_code_frame_error(

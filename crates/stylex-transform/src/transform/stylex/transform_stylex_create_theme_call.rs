@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
-use stylex_constants::constants::messages::{ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED};
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_constants::constants::messages::ONLY_OVERRIDE_DEFINE_VARS;
+use stylex_macros::stylex_panic;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -20,7 +20,8 @@ use crate::{
         js_to_ast::{NestedStringObject, convert_object_to_ast},
       },
       validators::{
-        is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
+        argument_at, is_create_theme_call, validate_stylex_create_theme_indent,
+        validate_theme_variables,
       },
     },
   },
@@ -31,7 +32,7 @@ use stylex_constants::constants::{
   messages::{non_static_value, non_style_object},
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::evaluate::evaluate;
+use stylex_evaluator::{evaluate::evaluate, evaluate_result::refusal_site};
 use stylex_state::{
   functions::{FunctionConfigType, FunctionMap},
   state_manager::ImportKind,
@@ -50,18 +51,9 @@ where
 
       validate_stylex_create_theme_indent(parent_var_decl, call, &mut self.state);
 
-      let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-        None => first_arg.expr.clone(),
-      })?;
+      let first_arg = argument_at(call, 0, STYLEX_CREATE_THEME);
 
-      let second_arg = call
-        .args
-        .get(1)
-        .map(|second_arg| match &second_arg.spread {
-          Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-          None => second_arg.expr.clone(),
-        })?;
+      let second_arg = argument_at(call, 1, STYLEX_CREATE_THEME);
 
       let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
       let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
@@ -132,9 +124,7 @@ where
         "{}",
         build_code_frame_error(
           &Expr::Call(call.clone()),
-          &evaluated_arg1
-            .deopt
-            .unwrap_or_else(|| *first_arg.to_owned()),
+          &refusal_site(evaluated_arg1.deopt.as_ref(), &first_arg),
           &non_static_value(STYLEX_CREATE_THEME),
           &mut self.state,
         )
@@ -147,9 +137,7 @@ where
         "{}",
         build_code_frame_error(
           &Expr::Call(call.clone()),
-          &evaluated_arg2
-            .deopt
-            .unwrap_or_else(|| *second_arg.to_owned()),
+          &refusal_site(evaluated_arg2.deopt.as_ref(), &second_arg),
           &non_static_value(STYLEX_CREATE_THEME),
           &mut self.state,
         )
@@ -164,9 +152,7 @@ where
           "{}",
           build_code_frame_error(
             &Expr::Call(call.clone()),
-            &evaluated_arg1
-              .deopt
-              .unwrap_or_else(|| *first_arg.to_owned()),
+            &refusal_site(evaluated_arg1.deopt.as_ref(), &first_arg),
             ONLY_OVERRIDE_DEFINE_VARS,
             &mut self.state,
           )
@@ -183,9 +169,7 @@ where
             "{}",
             build_code_frame_error(
               &Expr::Call(call.clone()),
-              &evaluated_arg2
-                .deopt
-                .unwrap_or_else(|| *second_arg.to_owned()),
+              &refusal_site(evaluated_arg2.deopt.as_ref(), &second_arg),
               &non_style_object(STYLEX_CREATE_THEME),
               &mut self.state,
             )
@@ -196,9 +180,7 @@ where
           "{}",
           build_code_frame_error(
             &Expr::Call(call.clone()),
-            &evaluated_arg2
-              .deopt
-              .unwrap_or_else(|| *second_arg.to_owned()),
+            &refusal_site(evaluated_arg2.deopt.as_ref(), &second_arg),
             &non_style_object(STYLEX_CREATE_THEME),
             &mut self.state,
           )

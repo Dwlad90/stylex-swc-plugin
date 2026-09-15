@@ -26,7 +26,7 @@ use crate::shared::utils::{
   ast::helpers::prop_contains_arrow, core::define_vars_utils::any_level_needs_a_default,
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::evaluate::evaluate;
+use stylex_evaluator::{evaluate::evaluate, evaluate_result::refusal_site};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
 };
@@ -257,7 +257,7 @@ pub(super) fn normalize_define_vars_functions(
         };
         let result = evaluate(body_expr, state, function_map);
         if !result.confident {
-          let deopt = result.deopt.clone().unwrap_or_else(|| first_arg.clone());
+          let deopt = refusal_site(result.deopt.as_ref(), first_arg);
           stylex_panic!(
             "{}",
             build_code_frame_error(

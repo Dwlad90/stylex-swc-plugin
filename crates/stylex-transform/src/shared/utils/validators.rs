@@ -1,11 +1,11 @@
 use rustc_hash::FxHashSet;
-use stylex_macros::stylex_panic;
+use stylex_macros::{stylex_panic, stylex_unimplemented};
 use stylex_structures::top_level_expression::TopLevelExpression;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{
-    ArrayLit, ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, OptChainBase, Pat, PropOrSpread,
-    VarDeclarator,
+    ArrayLit, ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, OptChainBase, Pat,
+    PropOrSpread, VarDeclarator,
   },
 };
 
@@ -26,8 +26,8 @@ use stylex_constants::constants::{
     DUPLICATE_CONDITIONAL, EXPECTED_CSS_VAR, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
     INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
     NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
-    ONLY_OVERRIDE_DEFINE_VARS, illegal_argument_length, non_export_named_declaration,
-    non_static_value, non_style_object, unbound_call_value,
+    ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED, illegal_argument_length,
+    non_export_named_declaration, non_static_value, non_style_object, unbound_call_value,
   },
 };
 use stylex_css::utils::condition::is_conditional_key;
@@ -52,6 +52,44 @@ fn validate_arg_count_for_expr(
       &illegal_argument_length(fn_name, expected),
       state,
     );
+  }
+}
+
+/// The expression written at argument `index`, with a spread there refused.
+///
+/// A spread gets this far because every shape check above reads the expression
+/// a spread carries, which is the object they ask for: `keyframes(...{…})`
+/// passes all of them. It is refused at the read, because a spread asks the
+/// compiler for the own properties of a value and the compiler keeps no such
+/// list.
+///
+/// Every caller validates the argument count first, so there is an argument at
+/// each index one asks for.
+pub(crate) fn argument_at(call: &CallExpr, index: usize, fn_name: &str) -> Expr {
+  let arg = or_refuse_missing_argument(call.args.get(index), index, fn_name);
+
+  match &arg.spread {
+    Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
+    None => (*arg.expr).clone(),
+  }
+}
+
+/// `read`, or the refusal an argument list too short is reported with.
+///
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. Every caller reached the read through a count check on the same call,
+/// so the argument is there. `guidelines/stack/RUST.md` describes the
+/// allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn or_refuse_missing_argument<'a>(
+  read: Option<&'a ExprOrSpread>,
+  index: usize,
+  fn_name: &str,
+) -> &'a ExprOrSpread {
+  match read {
+    Some(read) => read,
+    None => stylex_panic!("{}", illegal_argument_length(fn_name, index + 1)),
   }
 }
 

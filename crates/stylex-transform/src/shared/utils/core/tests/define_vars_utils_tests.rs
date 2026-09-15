@@ -4,9 +4,13 @@ use indexmap::IndexMap;
 use stylex_enums::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault};
 use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue,
-  types::{ClassPathsInNamespace, FlatCompiledStyles},
+  types::{ClassPathsInNamespace, InjectableStylesMap},
 };
 use stylex_structures::base_css_type::BaseCSSType;
+use stylex_types::{
+  enums::data_structures::injectable_style::InjectableStyleKind,
+  structures::injectable_style::InjectableStyle,
+};
 
 use crate::shared::utils::core::define_vars_utils::collect_vars_by_at_rules;
 use crate::tests::support::expr;
@@ -37,7 +41,7 @@ fn collect(value: &FlatCompiledStylesValue) -> ClassPathsInNamespace {
     value,
     &mut collection,
     &[],
-    &mut FlatCompiledStyles::new(),
+    &mut InjectableStylesMap::new(),
   );
 
   collection
@@ -132,7 +136,7 @@ fn writes_nothing_for_a_value_that_did_not_fold() {
 /// syntax falls back to.
 #[test]
 fn records_the_declared_syntax_of_a_typed_variable() {
-  let mut typed_variables = FlatCompiledStyles::new();
+  let mut typed_variables = InjectableStylesMap::new();
 
   let mut syntax_value: IndexMap<String, ValueWithDefault> = IndexMap::new();
 
@@ -149,14 +153,15 @@ fn records_the_declared_syntax_of_a_typed_variable() {
     &mut typed_variables,
   );
 
-  match typed_variables["xhash"].as_ref() {
-    FlatCompiledStylesValue::CSSType(name, syntax, initial) => {
-      assert_eq!(name, "xhash");
-      assert_eq!(*syntax, CSSSyntax::Color);
-      assert_eq!(initial, "blue");
-    },
-    other => panic!("the variable records no declared syntax: {other:?}"),
-  }
+  assert_eq!(
+    typed_variables["xhash"].as_ref(),
+    &InjectableStyleKind::Regular(InjectableStyle {
+      ltr: "@property --xhash { syntax: \"<color>\"; inherits: true; initial-value: blue }"
+        .to_owned(),
+      rtl: None,
+      priority: Some(0.0),
+    })
+  );
 }
 
 /// A nested syntax value is read down to the value the innermost `default`
@@ -171,7 +176,7 @@ fn reads_the_initial_value_through_a_nested_default() {
 
   outer.insert("default".to_owned(), ValueWithDefault::Map(inner));
 
-  let mut typed_variables = FlatCompiledStyles::new();
+  let mut typed_variables = InjectableStylesMap::new();
 
   collect_vars_by_at_rules(
     &"colour".to_owned(),
@@ -181,10 +186,10 @@ fn reads_the_initial_value_through_a_nested_default() {
     &mut typed_variables,
   );
 
-  match typed_variables["xhash"].as_ref() {
-    FlatCompiledStylesValue::CSSType(_, _, initial) => assert_eq!(initial, "8"),
+  assert!(match typed_variables["xhash"].as_ref() {
+    InjectableStyleKind::Regular(style) => style.ltr.ends_with("initial-value: 8 }"),
     other => panic!("the variable records no declared syntax: {other:?}"),
-  }
+  });
 }
 
 /// A declared syntax with no `default` has no value to fall back to, which

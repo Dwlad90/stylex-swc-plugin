@@ -17,7 +17,7 @@ mod stylex_create_theme_nested {
   use stylex_state::{
     evaluate_result_value::EvaluateResultValue,
     flat_compiled_styles_value::FlatCompiledStylesValue, state_manager::StateManager,
-    types::FlatCompiledStyles,
+    types::InjectableStylesMap,
   };
 
   fn create_test_state_manager() -> StateManager {
@@ -64,7 +64,7 @@ mod stylex_create_theme_nested {
     let mut state = create_test_state_manager();
     let (vars_output, _) = stylex_define_vars_nested(&vars_fixture(), &mut state);
     let mut theme_vars = EvaluateResultValue::Expr(convert_unflattened_object_to_ast(&vars_output));
-    let mut typed_variables: FlatCompiledStyles = IndexMap::default();
+    let mut typed_variables: InjectableStylesMap = IndexMap::default();
 
     let (theme_output, theme_css) = stylex_create_theme_nested(
       &mut theme_vars,
@@ -99,7 +99,7 @@ mod stylex_create_theme_nested {
           create_string_expr("var(--hash)"),
         )]),
       )]));
-    let mut typed_variables: FlatCompiledStyles = IndexMap::default();
+    let mut typed_variables: InjectableStylesMap = IndexMap::default();
 
     let _ = stylex_create_theme_nested(
       &mut theme_vars,
@@ -124,7 +124,7 @@ mod stylex_create_theme_nested {
     let mut state = create_test_state_manager();
     let (vars_output, _) = stylex_define_vars_nested(&vars_fixture(), &mut state);
     let mut theme_vars = EvaluateResultValue::Expr(convert_unflattened_object_to_ast(&vars_output));
-    let mut typed_variables: FlatCompiledStyles = IndexMap::default();
+    let mut typed_variables: InjectableStylesMap = IndexMap::default();
 
     let (theme_output, theme_css) = stylex_create_theme_nested(
       &mut theme_vars,
@@ -167,7 +167,7 @@ mod stylex_create_theme_nested {
     let mut state = create_test_state_manager();
     let (vars_output, _) = stylex_define_vars_nested(&vars_fixture(), &mut state);
     let mut theme_vars = EvaluateResultValue::Expr(convert_unflattened_object_to_ast(&vars_output));
-    let mut typed_variables: FlatCompiledStyles = IndexMap::default();
+    let mut typed_variables: InjectableStylesMap = IndexMap::default();
 
     let (theme_output, theme_css) = stylex_create_theme_nested(
       &mut theme_vars,
@@ -260,8 +260,8 @@ mod stylex_create_theme_nested {
       .collect();
     let mut flat_theme_vars = EvaluateResultValue::Expr(create_object_expression(flat_theme_props));
 
-    let mut nested_typed_variables: FlatCompiledStyles = IndexMap::default();
-    let mut flat_typed_variables: FlatCompiledStyles = IndexMap::default();
+    let mut nested_typed_variables: InjectableStylesMap = IndexMap::default();
+    let mut flat_typed_variables: InjectableStylesMap = IndexMap::default();
 
     let (nested_theme, _) = stylex_create_theme_nested(
       &mut nested_theme_vars,
@@ -291,7 +291,7 @@ mod stylex_create_theme_nested {
       _ => panic!("expected leaf"),
     };
     let mut theme_vars = EvaluateResultValue::Expr(convert_unflattened_object_to_ast(&vars_output));
-    let mut typed_variables: FlatCompiledStyles = IndexMap::default();
+    let mut typed_variables: InjectableStylesMap = IndexMap::default();
 
     let (theme_output, _) = stylex_create_theme_nested(
       &mut theme_vars,

@@ -35,7 +35,7 @@ pub(crate) fn stylex_create_theme(
   theme_vars: &mut EvaluateResultValue,
   variables: &EvaluateResultValue,
   state: &mut StateManager,
-  typed_variables: &mut FlatCompiledStyles,
+  typed_variables: &mut InjectableStylesMap,
 ) -> (FlatCompiledStyles, InjectableStylesMap) {
   let theme_name_key_value = validate_theme_variables(theme_vars, state);
 

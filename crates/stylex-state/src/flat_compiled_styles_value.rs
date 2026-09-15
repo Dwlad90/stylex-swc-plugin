@@ -5,8 +5,6 @@ use stylex_styleq::StyleqValue;
 use stylex_structures::{base_css_type::BaseCSSType, pair::Pair};
 use stylex_types::structures::injectable_style::InjectableStyle;
 
-use stylex_enums::css_syntax::CSSSyntax;
-
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub enum FlatCompiledStylesValue {
   String(String),
@@ -16,7 +14,6 @@ pub enum FlatCompiledStylesValue {
   InjectableStyle(InjectableStyle),
   Bool(bool),
   Tuple(String, Box<Expr>, Option<BaseCSSType>),
-  CSSType(String, CSSSyntax, String),
 }
 
 impl FlatCompiledStylesValue {

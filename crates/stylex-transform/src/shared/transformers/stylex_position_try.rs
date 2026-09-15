@@ -1,27 +1,21 @@
-use std::rc::Rc;
-
-use stylex_ast::ast::convertors::convert_lit_to_string;
 use stylex_macros::stylex_panic;
-use swc_core::ecma::ast::{Expr, PropOrSpread};
+use swc_core::ecma::ast::Expr;
 
 use crate::shared::transformers::named_rule::fold_to_rule_name;
-use crate::shared::{
-  enums::data_structures::obj_map_type::ObjMapType,
-  utils::object::{Pipe, obj_map, obj_map_keys_and_transform_values, preprocess_object_properties},
+use crate::shared::utils::object::{
+  obj_map_keys_and_transform_values, preprocess_object_properties,
 };
-use stylex_ast::ast::factories::{create_object_lit, create_string_key_value_prop};
-use stylex_constants::constants::messages::{
-  THEME_VAR_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
-};
+use stylex_constants::constants::messages::VALUES_MUST_BE_OBJECT;
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
-  flat_compiled_styles_value::FlatCompiledStylesValue,
   functions::{FunctionConfig, FunctionType},
   state_manager::StateManager,
-  types::FlatCompiledStyles,
 };
-use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
+use stylex_structures::{
+  pair::{Pair, PairCow},
+  stylex_state_options::StyleXStateOptions,
+};
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableStyle,
@@ -40,62 +34,25 @@ pub(crate) fn stylex_position_try(
     stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
-  let extended_object = {
-    let pipe_result = Pipe::create(styles.clone())
-      .pipe(|styles| preprocess_object_properties(&Expr::Object(styles), state))
-      .pipe(|entries| {
-        obj_map_keys_and_transform_values(
-          &entries,
-          state,
-          |key| dashify(key).into_owned(),
-          |pair| FlatCompiledStylesValue::String(pair.value),
-        )
-      })
-      .done();
-
-    create_object_lit(
-      pipe_result
-        .into_iter()
-        .map(|(key, value)| {
-          let value = match value.as_string() {
-            Some(s) => s.clone(),
-            None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
-          };
-
-          create_string_key_value_prop(&key, &value)
-        })
-        .collect::<Vec<PropOrSpread>>(),
-    )
-  };
+  let entries = preprocess_object_properties(&Expr::Object(styles.clone()), state);
+  let declarations =
+    obj_map_keys_and_transform_values(&entries, state, |key| dashify(key).into_owned());
 
   let state_options = StyleXStateOptions::default();
 
-  let ltr_styles = obj_map(
-    ObjMapType::Object(extended_object.clone()),
-    state,
-    |style, _| {
-      let pair = tuple_to_pair(style.as_ref());
-
-      let ltr_values = generate_ltr(&pair, &state_options).into_owned();
-
-      Rc::new(FlatCompiledStylesValue::KeyValue(ltr_values))
-    },
-  );
-
-  let rtl_styles = obj_map(ObjMapType::Object(extended_object), state, |style, _| {
-    let pair = tuple_to_pair(style.as_ref());
-
-    // When no RTL transform applies, fall back to the bare value (a string),
-    // which serializes to `key:value;` rather than the doubled
-    // `key:key;key:value;` form produced for the LTR `[key, value]` tuple.
-    match generate_rtl(&pair, &state_options) {
-      Some(rtl_value) => Rc::new(FlatCompiledStylesValue::KeyValue(rtl_value.into_owned())),
-      None => Rc::new(FlatCompiledStylesValue::String(pair.value)),
-    }
+  let ltr_string = construct_position_try_obj(&declarations, |pair| {
+    doubled_css_text(&pair.key, &generate_ltr(pair, &state_options))
   });
 
-  let ltr_string = construct_position_try_obj(&ltr_styles);
-  let rtl_string = construct_position_try_obj(&rtl_styles);
+  // When no RTL transform applies, fall back to the bare value, which
+  // serializes to `key:value;` rather than the doubled `key:key;key:value;`
+  // form produced for a resolved declaration.
+  let rtl_string = construct_position_try_obj(&declarations, |pair| {
+    match generate_rtl(pair, &state_options) {
+      Some(rtl_value) => doubled_css_text(&pair.key, &rtl_value),
+      None => pair.as_css_text(),
+    }
+  });
 
   let position_try_name = format!("--{}{}", class_name_prefix, create_hash(&ltr_string));
 
@@ -132,25 +89,6 @@ pub(crate) fn get_position_try_fn() -> FunctionConfig {
   }
 }
 
-fn tuple_to_pair(style: &FlatCompiledStylesValue) -> Pair {
-  let Some(tuple) = style.as_tuple() else {
-    stylex_panic!("{}", THEME_VAR_TUPLE)
-  };
-
-  let Some(lit) = tuple.1.as_lit() else {
-    stylex_panic!("{}", VALUE_MUST_BE_STRING)
-  };
-
-  let Some(value) = convert_lit_to_string(lit) else {
-    stylex_panic!("{}", VALUE_MUST_BE_STRING)
-  };
-
-  Pair {
-    key: tuple.0.clone(),
-    value,
-  }
-}
-
 /// The CSS text a direction-resolved value contributes to `property`, or `None`
 /// when it contributes none.
 ///
@@ -161,40 +99,31 @@ fn tuple_to_pair(style: &FlatCompiledStylesValue) -> Pair {
 /// value rather than CSS text in its own right, so a real value spelling nothing
 /// takes the repeat with it -- otherwise a stray `top:top;` survives a dropped
 /// `top` and moves the name the body is hashed into.
-fn doubled_css_text(property: &str, resolved: &Pair) -> Option<String> {
-  let value = Pair::new(property, &resolved.value).as_css_text()?;
+fn doubled_css_text(property: &str, resolved: &PairCow) -> Option<String> {
+  let value = Pair::new(property, resolved.value.as_ref()).as_css_text()?;
 
-  match Pair::new(property, &resolved.key).as_css_text() {
+  match Pair::new(property, resolved.key.as_ref()).as_css_text() {
     Some(repeated_name) => Some(repeated_name + &value),
     None => Some(value),
   }
 }
 
-fn construct_position_try_obj(styles: &FlatCompiledStyles) -> String {
-  let mut sorted_keys = styles.keys().collect::<Vec<_>>();
-  sorted_keys.sort_unstable();
+/// The body of one `@position-try` rule, its declarations written in the order
+/// their property names sort in.
+///
+/// `resolve` answers the CSS text a declaration contributes in the direction
+/// the caller asks for, and `None` where it contributes none.
+fn construct_position_try_obj(
+  declarations: &[Pair],
+  resolve: impl Fn(&Pair) -> Option<String>,
+) -> String {
+  let mut sorted = declarations.iter().collect::<Vec<&Pair>>();
+  sorted.sort_unstable_by(|left, right| left.key.cmp(&right.key));
 
-  let mut output = String::with_capacity(sorted_keys.len().saturating_mul(32));
+  let mut output = String::with_capacity(sorted.len().saturating_mul(32));
 
-  for k in sorted_keys {
-    let v = match styles.get(k) {
-      Some(v) => v,
-      None => stylex_panic!("Expected property key to exist in compiled styles."),
-    };
-
-    let css_text = match v.as_ref() {
-      FlatCompiledStylesValue::String(val) => Pair::new(k, val).as_css_text(),
-      FlatCompiledStylesValue::KeyValue(resolved) => doubled_css_text(k, resolved),
-      FlatCompiledStylesValue::KeyValues(resolved) => Some(
-        resolved
-          .iter()
-          .filter_map(|resolved| doubled_css_text(k, resolved))
-          .collect(),
-      ),
-      _ => None,
-    };
-
-    if let Some(css_text) = css_text {
+  for declaration in sorted {
+    if let Some(css_text) = resolve(declaration) {
       output.push_str(&css_text);
     }
   }

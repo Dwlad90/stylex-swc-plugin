@@ -1,25 +1,24 @@
-use std::{fmt::Write, rc::Rc};
+use std::fmt::Write;
 
+use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
 
-use crate::shared::{
-  enums::data_structures::obj_map_type::ObjMapType,
-  utils::object::{
-    Pipe, obj_map, obj_map_keys_and_transform_values, obj_map_keys_key_value,
-    preprocess_object_properties,
-  },
+use crate::shared::utils::object::{
+  obj_map_keys_and_transform_values, preprocess_object_properties,
 };
-use stylex_constants::constants::messages::{VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT};
-use stylex_state::{
-  evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
-  state_manager::StateManager, types::FlatCompiledStyles,
-};
+use stylex_ast::ast::convertors::{convert_key_value_to_str, get_key_values_from_object};
+use stylex_constants::constants::messages::VALUES_MUST_BE_OBJECT;
+use stylex_state::{evaluate_result_value::EvaluateResultValue, state_manager::StateManager};
 use stylex_structures::pair::Pair;
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableStyle,
 };
 use stylex_utils::{hash::create_hash, string::dashify};
+
+/// One animation part: the selector it is written under, and the CSS text of
+/// the declarations below it.
+type ViewTransitionParts = IndexMap<String, String>;
 
 pub(crate) fn stylex_view_transition_class(
   styles: &EvaluateResultValue,
@@ -32,47 +31,37 @@ pub(crate) fn stylex_view_transition_class(
   let Some(styles) = styles.as_expr().and_then(|expr| expr.as_object()) else {
     stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
-  let preprocessed_object = obj_map(ObjMapType::Object(styles.clone()), state, |style, state| {
-    let Some((_, style, _)) = style.as_tuple() else {
-      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
-    };
 
-    let pipe_result = Pipe::create(style.clone())
-      .pipe(|style| preprocess_object_properties(&style, state))
-      .pipe(|entries| {
-        obj_map_keys_and_transform_values(
-          &entries,
-          state,
-          |key| dashify(key).into_owned(),
-          |pair| FlatCompiledStylesValue::String(pair.value),
-        )
-      })
-      .done();
+  let key_values = get_key_values_from_object(styles);
 
-    let pairs = pipe_result
-      .into_iter()
-      .filter_map(|(key, value)| value.as_string().cloned().map(|v| Pair::new(key, v)))
-      .collect::<Vec<Pair>>();
+  let mut parts = ViewTransitionParts::with_capacity(key_values.len());
 
-    Rc::new(FlatCompiledStylesValue::KeyValues(pairs))
-  });
+  for key_value in key_values.iter() {
+    let part = convert_key_value_to_str(key_value);
 
-  let expanded_object = obj_map_keys_key_value(&preprocessed_object, |k| {
-    let dashed_key = dashify(k);
-    format!("::view-transition-{}", dashed_key)
-  });
+    let entries = preprocess_object_properties(&key_value.value, state);
+    let declarations =
+      obj_map_keys_and_transform_values(&entries, state, |key| dashify(key).into_owned());
 
-  let style_strings = obj_map(
-    ObjMapType::Map(expanded_object),
-    state,
-    construct_view_transition_class_style_str,
-  );
+    // An upper bound: the declarations that turn out to spell nothing are
+    // dropped below, so this over-reserves rather than reallocating.
+    let capacity = declarations
+      .iter()
+      .map(|pair| pair.key.len() + pair.value.len() + 2)
+      .sum();
+    let mut css_text = String::with_capacity(capacity);
 
-  let string_to_hash = &concat_view_transition_class_style_str(&style_strings, state);
+    for declaration in declarations.iter().filter_map(Pair::as_css_text) {
+      css_text.push_str(&declaration);
+    }
 
-  let view_transition_class_name = class_name_prefix + create_hash(string_to_hash).as_str();
+    parts.insert(format!("::view-transition-{}", dashify(&part)), css_text);
+  }
 
-  let style = construct_final_view_transition_css_str(style_strings, &view_transition_class_name);
+  let view_transition_class_name =
+    class_name_prefix + create_hash(&string_to_hash(&parts)).as_str();
+
+  let style = construct_final_view_transition_css_str(&parts, &view_transition_class_name);
 
   (
     view_transition_class_name,
@@ -84,52 +73,21 @@ pub(crate) fn stylex_view_transition_class(
   )
 }
 
-fn construct_view_transition_class_style_str(
-  style_strings: Rc<FlatCompiledStylesValue>,
-  _state: &mut StateManager,
-) -> Rc<FlatCompiledStylesValue> {
-  match style_strings.as_ref() {
-    FlatCompiledStylesValue::KeyValue(pair) => Rc::new(FlatCompiledStylesValue::String(
-      pair.as_css_text().unwrap_or_default(),
-    )),
-    FlatCompiledStylesValue::KeyValues(pairs) => {
-      // An upper bound: the pairs that turn out to spell nothing are dropped
-      // below, so this over-reserves rather than reallocating.
-      let capacity = pairs
-        .iter()
-        .map(|pair| pair.key.len() + pair.value.len() + 2)
-        .sum();
-      let mut result_string = String::with_capacity(capacity);
-      for css_text in pairs.iter().filter_map(Pair::as_css_text) {
-        result_string.push_str(&css_text);
-      }
-      Rc::new(FlatCompiledStylesValue::String(result_string))
-    },
-    FlatCompiledStylesValue::String(s) => Rc::new(FlatCompiledStylesValue::String(s.clone())),
-    _ => stylex_panic!("Expected KeyValues"),
-  }
-}
-
-fn construct_final_view_transition_css_str(styles: FlatCompiledStyles, class_name: &str) -> String {
-  let capacity = styles
+fn construct_final_view_transition_css_str(
+  parts: &ViewTransitionParts,
+  class_name: &str,
+) -> String {
+  let capacity = parts
     .iter()
-    .map(|(key, value)| {
-      let style_str = match value.as_ref() {
-        FlatCompiledStylesValue::String(s) => s.as_str(),
-        _ => stylex_panic!("{}", VALUE_MUST_BE_STRING),
-      };
-
-      key.len() + class_name.len() + style_str.len() + 6
-    })
+    .map(|(part, css_text)| part.len() + class_name.len() + css_text.len() + 6)
     .sum();
+
   let mut result = String::with_capacity(capacity);
-  for (key, value) in styles.iter() {
-    let style_str = match value.as_ref() {
-      FlatCompiledStylesValue::String(s) => s,
-      _ => stylex_panic!("{}", VALUE_MUST_BE_STRING),
-    };
-    let _ = write!(result, "{}(*.{}){{{}}}", key, class_name, style_str);
+
+  for (part, css_text) in parts.iter() {
+    let _ = write!(result, "{}(*.{}){{{}}}", part, class_name, css_text);
   }
+
   result
 }
 
@@ -140,20 +98,12 @@ fn construct_final_view_transition_css_str(styles: FlatCompiledStyles, class_nam
 /// empty still has to appear, because the reference implementation hashes it
 /// that way and the name has to agree. What the emitted CSS carries is set by
 /// [`construct_final_view_transition_css_str`], not here.
-fn concat_view_transition_class_style_str(
-  style_strings: &FlatCompiledStyles,
-  state: &mut StateManager,
-) -> String {
-  let mut result = String::with_capacity(style_strings.len() * 16);
+fn string_to_hash(parts: &ViewTransitionParts) -> String {
+  let mut result = String::with_capacity(parts.len() * 16);
 
-  style_strings.into_iter().for_each(|(k, v)| {
-    let style_str_val = construct_view_transition_class_style_str(Rc::clone(v), state);
-    let style_str = match style_str_val.as_ref() {
-      FlatCompiledStylesValue::String(s) => s,
-      _ => stylex_panic!("{}", VALUE_MUST_BE_STRING),
-    };
-    let _ = write!(result, "{}:{};", k, style_str);
-  });
+  for (part, css_text) in parts.iter() {
+    let _ = write!(result, "{}:{};", part, css_text);
+  }
 
   result
 }

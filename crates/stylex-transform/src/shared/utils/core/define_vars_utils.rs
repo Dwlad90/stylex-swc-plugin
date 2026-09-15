@@ -16,13 +16,16 @@ use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue,
   types::{ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap},
 };
-use stylex_types::structures::injectable_style::InjectableStyle;
+use stylex_types::{
+  enums::data_structures::injectable_style::InjectableStyleKind,
+  structures::injectable_style::InjectableStyle,
+};
 use stylex_utils::hash::create_hash;
 
 pub(crate) fn construct_css_variables_string(
   variables: &FlatCompiledStyles,
   theme_name_hash: &String,
-  typed_variables: &mut FlatCompiledStyles,
+  typed_variables: &mut InjectableStylesMap,
 ) -> InjectableStylesMap {
   let mut rules_by_at_rule = IndexMap::new();
 
@@ -61,7 +64,7 @@ pub(crate) fn collect_vars_by_at_rules(
   value: &FlatCompiledStylesValue,
   collection: &mut ClassPathsInNamespace,
   at_rules: &[String],
-  typed_variables: &mut FlatCompiledStyles,
+  typed_variables: &mut InjectableStylesMap,
 ) {
   let Some((hash_name, value, css_type)) = value.as_tuple() else {
     stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
@@ -75,13 +78,19 @@ pub(crate) fn collect_vars_by_at_rules(
 
     let initial_value = get_nitial_value_of_css_type(values);
 
+    // The rule a CSS-typed variable needs is written where the type is read,
+    // rather than kept as a value for a later pass to read a second time.
+    let property = format!(
+      "@property --{} {{ syntax: \"{}\"; inherits: true; initial-value: {} }}",
+      hash_name, css_type.syntax, initial_value
+    );
+
     typed_variables.insert(
-      hash_name.clone(),
-      Rc::new(FlatCompiledStylesValue::CSSType(
-        hash_name.clone(),
-        css_type.syntax,
-        initial_value,
-      )),
+      hash_name.clone().into(),
+      Rc::new(InjectableStyleKind::Regular(InjectableStyle {
+        ltr: property,
+        ..Default::default()
+      })),
     );
   }
 

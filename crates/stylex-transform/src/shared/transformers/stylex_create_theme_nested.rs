@@ -20,7 +20,7 @@ pub(crate) fn stylex_create_theme_nested(
   theme_vars: &mut EvaluateResultValue,
   nested_overrides: &EvaluateResultValue,
   state: &mut StateManager,
-  typed_variables: &mut FlatCompiledStyles,
+  typed_variables: &mut InjectableStylesMap,
 ) -> (FlatCompiledStyles, InjectableStylesMap) {
   let mut flat_theme_vars = match theme_vars {
     EvaluateResultValue::Expr(expr) => {

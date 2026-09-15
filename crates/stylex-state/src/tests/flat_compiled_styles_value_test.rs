@@ -62,11 +62,6 @@ fn every_variant() -> Vec<FlatCompiledStylesValue> {
     FlatCompiledStylesValue::InjectableStyle(injectable()),
     FlatCompiledStylesValue::Bool(true),
     tuple_value(),
-    FlatCompiledStylesValue::CSSType(
-      "--x1abcdef".to_string(),
-      CSSSyntax::Color,
-      "red".to_string(),
-    ),
   ]
 }
 

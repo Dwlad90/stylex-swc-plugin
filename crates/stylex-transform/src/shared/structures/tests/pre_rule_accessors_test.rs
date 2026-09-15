@@ -260,5 +260,31 @@ mod pre_rule_accessors {
       assert_eq!(one, rule_of("color"));
       assert!(matches!(two, PreRules::PreRuleSet(_)));
     }
+
+    /// `new` is the only route to the value, and it holds no rule.
+    #[test]
+    fn holds_no_rule_and_equals_another_empty_set() {
+      let empty = PreRuleSet::new();
+
+      assert_eq!(empty, PreRuleSet::new());
+      assert_ne!(PreRules::PreRuleSet(empty), rule_of("color"));
+    }
+
+    /// A set is flattened into the list that holds it before the length is
+    /// read, so an empty set contributes nothing and a list holding only that
+    /// set collapses to a null rule.
+    #[test]
+    fn contributes_no_rule_to_the_list_that_holds_it() {
+      let flattened = PreRuleSet::create(vec![
+        PreRules::PreRuleSet(PreRuleSet::new()),
+        rule_of("color"),
+      ]);
+
+      assert_eq!(flattened, rule_of("color"));
+      assert_eq!(
+        PreRuleSet::create(vec![PreRules::PreRuleSet(PreRuleSet::new())]),
+        PreRules::NullPreRule(NullPreRule::new())
+      );
+    }
   }
 }

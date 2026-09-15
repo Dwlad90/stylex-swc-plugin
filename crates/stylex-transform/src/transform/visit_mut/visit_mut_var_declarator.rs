@@ -1,6 +1,6 @@
 use std::collections::hash_map::Entry;
 
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use stylex_state::state_writers::fill_state_declarations;
 use swc_core::{
   atoms::Atom,
@@ -98,9 +98,11 @@ where
               .as_mut()
               .and_then(|var_decl| var_decl.as_mut_object())
           {
-            let namespaces_to_keep = match vars_to_keep.get(&var_id) {
-              Some(NonNullProps::Vec(vec)) => vec.clone(),
-              _ => Vec::new(),
+            // A set, because the sweep below asks it once per prop of the
+            // object.
+            let namespaces_to_keep: FxHashSet<Atom> = match vars_to_keep.get(&var_id) {
+              Some(NonNullProps::Vec(vec)) => vec.iter().cloned().collect(),
+              _ => FxHashSet::default(),
             };
 
             if !namespaces_to_keep.is_empty() {
@@ -212,7 +214,7 @@ where
   fn retain_object_props(
     &self,
     object: &mut ObjectLit,
-    namespace_to_keep: &[Atom],
+    namespace_to_keep: &FxHashSet<Atom>,
     var_id: &DeclId,
   ) -> Vec<PropOrSpread> {
     // The namespace each prop names, read once. A `None` here answers for the
@@ -230,6 +232,32 @@ where
       }
     }
 
+    // What each namespace of this declaration keeps of its null declarations,
+    // gathered in one pass. The recorded list holds every entry in the module,
+    // so reading it again for each namespace made the sweep cost the module
+    // twice over. `None` against a namespace means one entry keeps it whole,
+    // and then nothing is swept out of it.
+    let mut nulls_by_namespace: FxHashMap<&NonNullProp, Option<Vec<Atom>>> = FxHashMap::default();
+
+    for StyleVarsToKeep(var, recorded_name, prop) in self.state.style_vars_to_keep.iter() {
+      if var != var_id {
+        continue;
+      }
+
+      let nulls = nulls_by_namespace
+        .entry(recorded_name)
+        .or_insert_with(|| Some(Vec::new()));
+
+      match prop {
+        NonNullProps::Vec(vec) => {
+          if let Some(nulls) = nulls {
+            nulls.extend(vec.iter().cloned());
+          }
+        },
+        NonNullProps::True => *nulls = None,
+      }
+    }
+
     let mut props: Vec<PropOrSpread> = Vec::with_capacity(object.props.len());
 
     for (object_prop, namespace_name) in object.props.iter_mut().zip(namespace_names) {
@@ -239,29 +267,16 @@ where
 
       let key_id = NonNullProp::Atom(namespace_name);
 
-      // What this namespace keeps of its null declarations: every list recorded
-      // against it, unless one entry keeps the namespace whole, in which case
-      // nothing is swept out of it.
-      let mut keeps_every_null = false;
-      let mut nulls_to_keep: Vec<Atom> = Vec::new();
+      let nulls_to_keep = match nulls_by_namespace.get(&key_id) {
+        // One entry keeps this namespace whole, so nothing is swept out of it.
+        Some(None) => None,
+        Some(Some(nulls)) => Some(nulls.clone()),
+        // Nothing was recorded against the namespace, so every null
+        // declaration in it goes.
+        None => Some(Vec::new()),
+      };
 
-      for StyleVarsToKeep(var, recorded_name, prop) in self.state.style_vars_to_keep.iter() {
-        if var != var_id || recorded_name != &key_id {
-          continue;
-        }
-
-        match prop {
-          NonNullProps::Vec(vec) => nulls_to_keep.extend(vec.iter().cloned()),
-          // Nothing later in the scan can change this answer, and the names
-          // gathered so far are not read once it is given.
-          NonNullProps::True => {
-            keeps_every_null = true;
-            break;
-          },
-        }
-      }
-
-      if !keeps_every_null
+      if let Some(nulls_to_keep) = nulls_to_keep
         && let Some(style_object) = object_prop
           .as_mut_prop()
           .and_then(|prop| prop.as_mut_key_value())

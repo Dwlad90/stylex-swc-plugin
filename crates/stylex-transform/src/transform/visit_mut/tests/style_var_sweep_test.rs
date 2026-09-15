@@ -19,6 +19,8 @@ use swc_core::{
   ecma::ast::{Expr, ObjectLit, PropOrSpread},
 };
 
+use rustc_hash::FxHashSet;
+
 use stylex_ast::ast::convertors::create_null_expr;
 use stylex_ast::ast::factories::{
   create_ident, create_key_value_prop, create_object_expression, create_spread_prop,
@@ -51,6 +53,11 @@ fn namespace_of(name: &str, null_declarations: &[&str]) -> PropOrSpread {
 
 fn transform() -> crate::StyleXTransform<TestComments> {
   test_transform(|builder| builder)
+}
+
+/// The namespaces a sweep is told to keep, in the shape it reads them.
+fn namespaces_to_keep(names: &[&str]) -> FxHashSet<Atom> {
+  names.iter().map(|name| Atom::from(*name)).collect()
 }
 
 fn declaration_id() -> DeclId {
@@ -96,7 +103,7 @@ fn the_sweep_keeps_the_namespaces_and_nulls_still_read() {
 
     let swept = transform.retain_object_props(
       &mut object,
-      &[Atom::from("read"), Atom::from("whole")],
+      &namespaces_to_keep(&["read", "whole"]),
       &var_id,
     );
 
@@ -128,6 +135,44 @@ fn the_sweep_keeps_the_namespaces_and_nulls_still_read() {
   });
 }
 
+/// A namespace the module still reads, but that no entry records a name
+/// against, loses every null declaration in it.
+///
+/// The sweep reads the recorded entries through an index, and this is the
+/// answer the index gives for a namespace it holds no entry for. It is not the
+/// same answer as a namespace recorded as kept whole, which loses none.
+#[test]
+fn a_kept_namespace_with_nothing_recorded_loses_every_null() {
+  GLOBALS.set(&Globals::default(), || {
+    let transform = transform();
+    let mut object = object_of(vec![namespace_of("base", &["color", "margin"])]);
+
+    let swept = transform.retain_object_props(
+      &mut object,
+      &namespaces_to_keep(&["base"]),
+      &declaration_id(),
+    );
+
+    assert_eq!(
+      prop_names(&swept),
+      vec!["base".to_string()],
+      "the namespace the module reads is kept"
+    );
+
+    match swept[0]
+      .as_prop()
+      .and_then(|prop| prop.as_key_value())
+      .and_then(|key_value| key_value.value.as_object())
+    {
+      Some(object) => assert!(
+        object.props.is_empty(),
+        "nothing is recorded against the namespace, so every null goes"
+      ),
+      None => panic!("a namespace is a key-value prop holding an object"),
+    }
+  });
+}
+
 /// A prop the sweep cannot name leaves the whole object as it is, rather than
 /// dropping the namespaces beside it that it could name.
 #[test]
@@ -139,8 +184,11 @@ fn a_spread_leaves_the_namespace_map_alone() {
     ]);
     let written = object.props.clone();
 
-    let swept =
-      transform().retain_object_props(&mut object, &[Atom::from("base")], &declaration_id());
+    let swept = transform().retain_object_props(
+      &mut object,
+      &namespaces_to_keep(&["base"]),
+      &declaration_id(),
+    );
 
     assert_eq!(
       swept, written,
@@ -159,8 +207,11 @@ fn a_namespace_that_holds_no_object_is_kept_as_it_is() {
       namespace_of("unread", &["color"]),
     ]);
 
-    let swept =
-      transform().retain_object_props(&mut object, &[Atom::from("base")], &declaration_id());
+    let swept = transform().retain_object_props(
+      &mut object,
+      &namespaces_to_keep(&["base"]),
+      &declaration_id(),
+    );
 
     assert_eq!(swept.len(), 1, "the namespace asked for is the one kept");
   });

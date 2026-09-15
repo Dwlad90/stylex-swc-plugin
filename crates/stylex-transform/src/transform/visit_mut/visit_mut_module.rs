@@ -323,7 +323,7 @@ impl ModuleBindingsCollector {
   /// Record every binding written by an assignment or `for-in`/`for-of`
   /// pattern. Identifier targets rebind (`[a, b] = …`); `Pat::Expr` targets
   /// are member writes (`({ x: obj.x } = …)`) and invalidate the member's
-  /// root object instead.
+  /// root object instead, through whatever wrappers sit around them.
   fn add_pattern_writes(&mut self, pattern: &Pat) {
     match pattern {
       Pat::Ident(binding_ident) => {
@@ -334,7 +334,10 @@ impl ModuleBindingsCollector {
       Pat::Rest(rest_pattern) => self.add_pattern_writes(&rest_pattern.arg),
       Pat::Assign(assign_pattern) => self.add_pattern_writes(&assign_pattern.left),
       Pat::Expr(expression) => {
-        if let Expr::Member(member_expression) = expression.as_ref() {
+        // Read through the wrappers, as every other write shape is: `[(o.x)]`
+        // and `[o!.x]` are the target `[o.x]` is. Anything that is not a member
+        // is a call result or a `this`, which owns no binding to invalidate.
+        if let Some(member_expression) = member_target(expression) {
           self.add_member_root_write(member_expression);
         }
       },

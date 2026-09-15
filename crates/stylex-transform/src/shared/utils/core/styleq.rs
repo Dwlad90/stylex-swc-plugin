@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use stylex_macros::{stylex_panic, stylex_unreachable};
+use stylex_macros::stylex_panic;
 use stylex_styleq::{StyleMap, StyleqArgument};
 
 use crate::shared::utils::core::parse_nullable_style::{ResolvedArg, StyleObject};
@@ -76,9 +76,6 @@ fn style_object_as_style(style_object: &StyleObject) -> Option<&FlatCompiledStyl
     StyleObject::Nullable => None,
     StyleObject::Other => {
       stylex_panic!("Only compiled StyleX style objects are allowed in styleq().")
-    },
-    StyleObject::Unreachable => {
-      stylex_unreachable!("Encountered an unexpected style object variant in styleq processing.")
     },
   }
 }

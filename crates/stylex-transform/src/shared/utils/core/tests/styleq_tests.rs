@@ -136,15 +136,6 @@ fn refuses_a_style_that_was_never_compiled() {
   styleq(&[ResolvedArg::style_object(StyleObject::Other)]);
 }
 
-/// The unreachable case is the one nothing builds. It is kept so the merge says
-/// which of the two faults it met rather than reporting the refusal above for
-/// both.
-#[test]
-#[should_panic(expected = "Encountered an unexpected style object variant in styleq processing.")]
-fn refuses_a_style_object_of_a_kind_nothing_builds() {
-  styleq(&[ResolvedArg::style_object(StyleObject::Unreachable)]);
-}
-
 /// The cache key stands for the style the argument holds, so two arguments over
 /// the same allocation share it and an argument holding none has none.
 #[test]

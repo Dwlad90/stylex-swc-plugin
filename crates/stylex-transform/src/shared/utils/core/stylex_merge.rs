@@ -98,42 +98,35 @@ pub(crate) fn stylex_merge(
 
     let arg = normalize_expr(&arg_path.expr);
 
-    let resolved = if arg.is_object() || arg.is_ident() || arg.is_member() || arg.is_call() {
-      let resolved = parse_nullable_style(arg, state, &evaluate_path_fn_config);
-
-      if let StyleObject::Other = resolved {
-        bail_out_index = Some(current_index);
-        bail_out = true;
-      }
-
-      resolved
-    } else {
-      StyleObject::Unreachable
-    };
-
     match &arg {
-      Expr::Object(_) => {
-        resolved_args.push(ResolvedArg::style_object(resolved));
-      },
-      Expr::Ident(_) => {
-        resolved_args.push(ResolvedArg::style_object(resolved));
-      },
-      Expr::Member(_) => {
-        match resolved {
-          StyleObject::Other => {
-            //  Already processed in the conditional block above; bail_out flag
-            // set if needed.
-          },
-          // Never `Unreachable`: it is written twenty lines above, for an
-          // argument that is none of object, name, member or call, and this arm
-          // is the member one.
-          resolved => resolved_args.push(ResolvedArg::style_object(resolved)),
+      // The four kinds that name a style, each answered once. The kind used to
+      // be asked again after the argument was read, which left a kind the
+      // reader never answers for in between.
+      Expr::Object(_) | Expr::Ident(_) | Expr::Member(_) | Expr::Call(_) => {
+        let resolved = parse_nullable_style(arg, state, &evaluate_path_fn_config);
+        let is_unreadable = resolved == StyleObject::Other;
+
+        // A style the compiler cannot read stays for the runtime to apply, and
+        // the bail-out is what keeps the whole call there.
+        if is_unreadable {
+          bail_out_index = Some(current_index);
+          bail_out = true;
         }
-      },
-      Expr::Call(_) => {
-        // A call argument (dynamic atom `_temp.color(c)`, dynamic create style
-        // `styles.opacity(1)`, etc.) cannot be statically merged. The bail-out
-        // recorded above keeps it in the runtime `stylex.props` call.
+
+        // An object and a name merge as they stand. A member merges too, unless
+        // it is one of those the bail-out has just kept for the runtime --
+        // merging it here would apply it twice. A call never merges: a dynamic
+        // atom (`_temp.color(c)`) or a dynamic create style
+        // (`styles.opacity(1)`) is the runtime's to apply.
+        let merges = match &arg {
+          Expr::Object(_) | Expr::Ident(_) => true,
+          Expr::Member(_) => !is_unreadable,
+          _ => false,
+        };
+
+        if merges {
+          resolved_args.push(ResolvedArg::style_object(resolved));
+        }
       },
       Expr::Cond(CondExpr {
         test,

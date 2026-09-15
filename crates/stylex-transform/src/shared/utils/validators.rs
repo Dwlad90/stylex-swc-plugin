@@ -327,14 +327,17 @@ pub(crate) fn validate_stylex_create_theme_indent(
   call: &CallExpr,
   state: &mut StateManager,
 ) {
-  let call_expr = Expr::Call(call.clone());
-  let (init_expr, init) = theme_init_call_of(var_decl, &call_expr, state);
+  // Cloned only where it is about to be reported, as the two validators below
+  // do: the clone is a deep copy of the whole theme, and a call that compiles
+  // reports nothing.
+  let call_expr = || Expr::Call(call.clone());
+  let (init_expr, init) = theme_init_call_of(var_decl, call, state);
 
   match state.find_top_level_expr(call) {
     Some(_) => {},
     None => build_code_frame_error_and_panic(
       init_expr,
-      &call_expr,
+      &call_expr(),
       &unbound_call_value(STYLEX_CREATE_THEME),
       state,
     ),
@@ -343,7 +346,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   if init.args.len() != 2 {
     build_code_frame_error_and_panic(
       init_expr,
-      &call_expr,
+      &call_expr(),
       &illegal_argument_length(STYLEX_CREATE_THEME, 1),
       state,
     );
@@ -362,7 +365,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   if !is_valid_second_arg {
     build_code_frame_error_and_panic(
       init_expr,
-      &call_expr,
+      &call_expr(),
       NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE,
       state,
     );
@@ -928,7 +931,7 @@ pub(crate) fn validate_theme_variables(
 fn or_refuse_theme<'a>(
   read: Option<(&'a Expr, &'a CallExpr)>,
   init_expr: Option<&Expr>,
-  call_expr: &Expr,
+  call: &CallExpr,
   state: &mut StateManager,
 ) -> (&'a Expr, &'a CallExpr) {
   match read {
@@ -936,12 +939,12 @@ fn or_refuse_theme<'a>(
     None => match init_expr {
       Some(init_expr) => build_code_frame_error_and_panic(
         init_expr,
-        call_expr,
+        &Expr::Call(call.clone()),
         &non_static_value(STYLEX_CREATE_THEME),
         state,
       ),
       None => build_code_frame_error_and_panic_at(
-        call_expr,
+        &Expr::Call(call.clone()),
         &unbound_call_value(STYLEX_CREATE_THEME),
         state,
       ),
@@ -955,7 +958,7 @@ fn or_refuse_theme<'a>(
 /// -- as the declarator lookup that found this declarator reads it.
 fn theme_init_call_of<'a>(
   var_decl: &'a Option<VarDeclarator>,
-  call_expr: &Expr,
+  call: &CallExpr,
   state: &mut StateManager,
 ) -> (&'a Expr, &'a CallExpr) {
   let init_expr = var_decl
@@ -965,7 +968,7 @@ fn theme_init_call_of<'a>(
 
   let read = init_expr.and_then(|init_expr| init_expr.as_call().map(|call| (init_expr, call)));
 
-  or_refuse_theme(read, init_expr, call_expr, state)
+  or_refuse_theme(read, init_expr, call, state)
 }
 
 /// `value`, or the refusal a group hash that names no variable is reported

@@ -14,12 +14,16 @@ use stylex_state::{
   functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles,
 };
 
+/// What one argument of a `stylex.props`-family call was read as.
+///
+/// Exactly the three answers the reader gives: the compiled style it names, the
+/// absence the author wrote, and anything the compiler cannot read, which the
+/// runtime is left to apply.
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum StyleObject {
   Style(FlatCompiledStyles),
   Nullable,
   Other,
-  Unreachable,
 }
 
 #[derive(Debug, PartialEq, Clone)]

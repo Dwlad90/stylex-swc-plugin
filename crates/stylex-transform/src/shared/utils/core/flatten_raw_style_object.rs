@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use indexmap::IndexMap;
 use log::warn;
 use rustc_hash::FxHashSet;
@@ -32,21 +34,24 @@ use stylex_structures::{order_pair::OrderPair, raw_value::TRawValue};
 
 use super::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
 
-fn normalize_key_path(
-  key_path: Vec<String>,
-  key: &str,
-  property: impl Into<String>,
-) -> Vec<String> {
-  let property = property.into();
+/// The key path, with the authored key replaced by the property it expanded to.
+///
+/// A path that does not already name the key gains the property at its end.
+/// The key is compared as text: asking `contains` for it made a string of it
+/// once per property, only to throw it away.
+fn normalize_key_path(key_path: Vec<String>, key: &str, property: Cow<'_, str>) -> Vec<String> {
+  if key_path.iter().any(|step| step == key) {
+    let property = property.into_owned();
 
-  if key_path.contains(&key.to_string()) {
     key_path
       .into_iter()
-      .map(|k| if k == key { property.clone() } else { k })
+      .map(|step| if step == key { property.clone() } else { step })
       .collect()
   } else {
     let mut new_key_path = key_path;
-    new_key_path.push(property);
+
+    new_key_path.push(property.into_owned());
+
     new_key_path
   }
 }
@@ -119,13 +124,16 @@ pub(crate) fn flatten_raw_style_object_logic(
     // A key the split expression matches is read as a `var()` reference and
     // named by what it wraps. No key a `create` call reaches this with matches
     // it, so the key keeps the name the author wrote.
-    let css_property_key = if CSS_VALUE_SPLIT_REGEX
+    //
+    // Borrowed rather than copied. The conditions of one property are each
+    // named after it, and every name was a string of its own.
+    let css_property_key: Cow<'_, str> = if CSS_VALUE_SPLIT_REGEX
       .is_match(&key)
       .unwrap_or_else(report_unmatched_key)
     {
-      key[4..key.len() - 1].to_string()
+      Cow::Owned(key[4..key.len() - 1].to_string())
     } else {
-      key.clone()
+      Cow::Borrowed(key.as_str())
     };
 
     match property.value.as_ref() {
@@ -160,7 +168,7 @@ pub(crate) fn flatten_raw_style_object_logic(
               Expr::Lit(property_lit @ (Lit::Str(_) | Lit::Num(_) | Lit::Null(_))) => {
                 let pairs = flat_map_expanded_shorthands(
                   (
-                    css_property_key.clone(),
+                    css_property_key.to_string(),
                     match convert_lit_to_raw_value(property_lit) {
                       Some(val) => PreRuleValue::Raw(val),
                       None => PreRuleValue::Null,
@@ -206,8 +214,11 @@ pub(crate) fn flatten_raw_style_object_logic(
               PreRuleValue::Vec(values.clone())
             };
 
-            let normalized_key_path =
-              normalize_key_path(key_path.clone(), key.as_str(), property.clone());
+            let normalized_key_path = normalize_key_path(
+              key_path.clone(),
+              key.as_str(),
+              Cow::Borrowed(property.as_str()),
+            );
 
             let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
               property.as_str(),
@@ -224,7 +235,7 @@ pub(crate) fn flatten_raw_style_object_logic(
 
           let pairs = flat_map_expanded_shorthands(
             (
-              css_property_key,
+              css_property_key.into_owned(),
               match value {
                 Some(val) => PreRuleValue::Raw(val),
                 None => PreRuleValue::Null,
@@ -237,8 +248,11 @@ pub(crate) fn flatten_raw_style_object_logic(
             let property = property.to_string();
 
             if let Some(pair_value) = pre_rule {
-              let normalized_key_path =
-                normalize_key_path(key_path.clone(), key.as_str(), property.clone());
+              let normalized_key_path = normalize_key_path(
+                key_path.clone(),
+                key.as_str(),
+                Cow::Borrowed(property.as_str()),
+              );
 
               let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
                 property.as_str(),
@@ -267,12 +281,12 @@ pub(crate) fn flatten_raw_style_object_logic(
           normalize_key_path(key_path.clone(), key.as_str(), css_property_key.clone());
 
         let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
-          css_property_key.as_str(),
+          css_property_key.as_ref(),
           PreRuleValue::string(result),
           Some(normalized_key_path),
         ));
 
-        flattened.insert(css_property_key, pre_rule);
+        flattened.insert(css_property_key.into_owned(), pre_rule);
       },
       Expr::Ident(ident) => match get_var_decl_by_ident(ident, traversal_state, fns) {
         Some(var_decl) => {
@@ -322,16 +336,18 @@ pub(crate) fn flatten_raw_style_object_logic(
           }
           let mut equivalent_pairs: IndexMap<String, IndexMap<String, PreRules>> = IndexMap::new();
 
-          for prop in obj.clone().props.iter_mut() {
+          // One copy of each condition, made where it is expanded. Copying the
+          // whole object first and then the condition out of the copy made two.
+          for prop in &obj.props {
             if let PropOrSpread::Prop(prop) = prop {
-              expand_shorthand_prop(prop);
+              let mut prop = prop.clone();
 
-              if let Prop::KeyValue(key_value) = prop.as_ref() {
-                let mut inner_key_value: KeyValueProp = key_value.clone();
+              expand_shorthand_prop(&mut prop);
 
-                let condition = convert_key_value_to_str(&inner_key_value);
+              if let Prop::KeyValue(inner_key_value) = prop.as_mut() {
+                let condition = convert_key_value_to_str(inner_key_value);
 
-                inner_key_value.key = PropName::Str(quote_str!(css_property_key.clone()));
+                inner_key_value.key = PropName::Str(quote_str!(css_property_key.as_ref()));
 
                 let mut key_path = if !key_path.is_empty() {
                   let mut new_key_path = key_path.clone();
@@ -342,7 +358,7 @@ pub(crate) fn flatten_raw_style_object_logic(
                 };
 
                 let pairs = flatten_raw_style_object_logic(
-                  &[inner_key_value],
+                  std::slice::from_ref(inner_key_value),
                   &mut key_path,
                   state,
                   traversal_state,

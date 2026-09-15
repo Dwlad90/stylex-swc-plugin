@@ -78,8 +78,7 @@ pub(crate) fn make_string_expression(
     .collect::<Vec<PropOrSpread>>();
 
   let obj_expressions = create_object_expression(obj_entries);
-  let conditions_to_key =
-    gen_bitwise_or_of_conditions(&conditions.into_iter().cloned().collect::<Vec<_>>());
+  let conditions_to_key = gen_bitwise_or_of_conditions(&conditions);
 
   Expr::from(create_member_expr(
     obj_expressions,
@@ -92,7 +91,11 @@ pub(crate) fn make_string_expression(
 ///
 /// Called only where there is at least one condition, so the join always has
 /// something to reduce.
-fn gen_bitwise_or_of_conditions(conditions: &[Expr]) -> Box<Expr> {
+///
+/// The conditions are borrowed from the arguments they were read out of. Each
+/// is copied once, into the expression built from it. A set copied to be passed
+/// here copied every condition twice.
+fn gen_bitwise_or_of_conditions(conditions: &[&Expr]) -> Box<Expr> {
   let count = conditions.len();
 
   // `!!condition << shift`: the double negation makes the author's value a
@@ -113,7 +116,7 @@ fn gen_bitwise_or_of_conditions(conditions: &[Expr]) -> Box<Expr> {
     )
   };
 
-  let mut joined = shifted(0, &conditions[0]);
+  let mut joined = shifted(0, conditions[0]);
 
   for (index, condition) in conditions.iter().enumerate().skip(1) {
     joined = create_bin_expr(BinaryOp::BitOr, joined, shifted(index, condition));
@@ -127,3 +130,7 @@ fn gen_condition_permutations(count: usize) -> Vec<Vec<bool>> {
     .map(|i| (0..count).map(|j| i & (1 << j) != 0).collect())
     .collect()
 }
+
+#[cfg(test)]
+#[path = "tests/make_string_expression_tests.rs"]
+mod tests;

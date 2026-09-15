@@ -10,8 +10,11 @@ use swc_core::ecma::ast::{Expr, Lit, MemberProp, ObjectLit};
 
 use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
-  evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
-  functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles,
+  evaluate_result_value::EvaluateResultValue,
+  flat_compiled_styles_value::FlatCompiledStylesValue,
+  functions::FunctionMap,
+  state_manager::StateManager,
+  types::{FlatCompiledStyles, StylesObjectMap},
 };
 
 /// What one argument of a `stylex.props`-family call was read as.
@@ -101,19 +104,25 @@ pub(crate) fn parse_nullable_style(
       }
     },
     Expr::Member(member) => {
+      // The namespaces come back with the name, rather than being looked up
+      // again once the name is admitted: the reader that admits the name reads
+      // the same map, so a second look-up asked a question already answered.
+      let mut namespaces: Option<Rc<StylesObjectMap>> = None;
       let mut obj_name: Option<String> = None;
       let mut prop_name: Option<String> = None;
 
       if let Some(obj_ident) = normalize_expr(&member.obj).as_ident()
-        && state.is_style_var_ident(obj_ident)
+        && let Some(style_var_namespaces) = state.style_var_namespaces(obj_ident)
       {
         match &member.prop {
           MemberProp::Ident(prop_ident) => {
+            namespaces = Some(Rc::clone(style_var_namespaces));
             obj_name = Some(obj_ident.sym.as_str().to_string());
             prop_name = Some(prop_ident.sym.as_str().to_string());
           },
           MemberProp::Computed(computed) => {
             if let Some(lit) = normalize_expr(&computed.expr).as_lit() {
+              namespaces = Some(Rc::clone(style_var_namespaces));
               obj_name = Some(obj_ident.sym.as_str().to_string());
               prop_name = convert_lit_to_string(lit);
             }
@@ -122,7 +131,8 @@ pub(crate) fn parse_nullable_style(
         }
       }
 
-      if let Some(obj_name) = obj_name
+      if let Some(namespaces) = namespaces
+        && let Some(obj_name) = obj_name
         && let Some(prop_name) = prop_name
       {
         // Dynamic style functions (e.g. `styles.opacity` where `opacity` is a
@@ -135,14 +145,8 @@ pub(crate) fn parse_nullable_style(
           return StyleObject::Other;
         }
 
-        let style = state.style_map.get(&obj_name);
-
-        if let Some(style) = style {
-          let style_value = style.get(&prop_name);
-
-          if let Some(style_value) = style_value {
-            return StyleObject::Style((**style_value).clone());
-          }
+        if let Some(style_value) = namespaces.get(&prop_name) {
+          return StyleObject::Style((**style_value).clone());
         }
       }
 

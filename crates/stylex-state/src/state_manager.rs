@@ -1690,13 +1690,26 @@ impl StateManager {
     })
   }
 
+  /// The namespaces `ident` names, where it names a style variable this module
+  /// declared.
+  ///
+  /// The name and the styles behind it are one question. A caller that only
+  /// wants the answer yes or no asks [`Self::is_style_var_ident`]; a caller
+  /// that then reads the namespaces takes them from here, rather than looking
+  /// the same name up in the same map a second time.
+  pub fn style_var_namespaces(&self, ident: &Ident) -> Option<&Rc<StylesObjectMap>> {
+    let namespaces = self.style_map.get(ident.sym.as_ref())?;
+
+    self
+      .style_vars
+      .get(ident.sym.as_ref())
+      .and_then(|decl| decl.name.as_ident())
+      .is_some_and(|bind_ident| bind_ident.id.to_id() == ident.to_id())
+      .then_some(namespaces)
+  }
+
   pub fn is_style_var_ident(&self, ident: &Ident) -> bool {
-    self.style_map.contains_key(ident.sym.as_ref())
-      && self
-        .style_vars
-        .get(ident.sym.as_ref())
-        .and_then(|decl| decl.name.as_ident())
-        .is_some_and(|bind_ident| bind_ident.id.to_id() == ident.to_id())
+    self.style_var_namespaces(ident).is_some()
   }
 
   /// Check if an import of the given kind contains the given symbol.

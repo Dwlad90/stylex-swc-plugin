@@ -1,67 +1,17 @@
-use std::sync::Arc;
-
 use rustc_hash::FxHashSet;
 use swc_core::{
-  common::{DUMMY_SP, FileName, GLOBALS, Globals, Mark, SourceMap, input::StringInput},
+  common::{DUMMY_SP, GLOBALS, Globals},
   ecma::{
     ast::{
       AssignExpr, AssignOp, AssignTarget, AssignTargetPat, Decl, Expr, Id, Invalid, Lit, Module,
-      ModuleItem, Number, Pass, Pat, Program, Stmt,
+      ModuleItem, Number, Pat, Stmt,
     },
-    parser::{EsSyntax, Parser, Syntax, lexer::Lexer},
-    transforms::base::resolver,
     visit::{Visit, VisitWith},
   },
 };
 
 use super::ModuleBindingsCollector;
-
-/// Parses `code` and runs SWC's resolver over it, the same way the compiler
-/// does before the StyleX pass, so `Id`s carry real syntax contexts and
-/// shadowed bindings stay distinguishable.
-fn resolved_module(code: &str) -> Module {
-  resolved_module_in(
-    code,
-    Syntax::Es(EsSyntax {
-      jsx: true,
-      ..Default::default()
-    }),
-  )
-}
-
-/// The same, over TypeScript syntax — for the binding forms only TypeScript
-/// spells, which the ES parser cannot read at all.
-fn resolved_ts_module(code: &str) -> Module {
-  resolved_module_in(code, Syntax::Typescript(Default::default()))
-}
-
-fn resolved_module_in(code: &str, syntax: Syntax) -> Module {
-  let source_map = SourceMap::default();
-  let source_file = source_map.new_source_file(
-    Arc::new(FileName::Custom("module_bindings_fixture.tsx".to_string())),
-    code.to_string(),
-  );
-
-  let lexer = Lexer::new(
-    syntax,
-    Default::default(),
-    StringInput::from(&*source_file),
-    None,
-  );
-
-  let module = match Parser::new_from(lexer).parse_module() {
-    Ok(module) => module,
-    Err(error) => panic!("failed to parse fixture: {:?}", error),
-  };
-
-  let mut program = Program::Module(module);
-  resolver(Mark::new(), Mark::new(), true).process(&mut program);
-
-  match program {
-    Program::Module(module) => module,
-    Program::Script(_) => unreachable!("a parsed module never becomes a script"),
-  }
-}
+use crate::transform::tests::prelude::{resolved_module, resolved_ts_module};
 
 /// Names of the bindings the collector recorded as written under any kind,
 /// ignoring syntax contexts (asserted separately where shadowing is what's
@@ -115,7 +65,7 @@ fn collect(code: &str, read: impl Fn(&ModuleBindingsCollector) -> FxHashSet<Id>)
   collect_parsed_by(resolved_module, code, read)
 }
 
-/// The same over TypeScript syntax, for the forms the ES parser cannot read.
+/// The same with JSX off, which only an angle-bracket cast needs.
 fn collect_ts(
   code: &str,
   read: impl Fn(&ModuleBindingsCollector) -> FxHashSet<Id>,
@@ -469,23 +419,14 @@ fn assert_binds(code: &str, expected: &[&str]) {
   assert_names(bound_names(code), expected, code);
 }
 
-/// The same over TypeScript syntax.
-#[track_caller]
-fn assert_ts_binds(code: &str, expected: &[&str]) {
-  let recorded = names(collect_ts(code, |collector| {
-    collector.declared_bindings.clone()
-  }));
-
-  assert_names(recorded, expected, code);
-}
-
 /// Every binding form JavaScript spells, in the one place a reader would look
 /// for the list. A name missing here is a global the evaluator would fold where
 /// the module had taken the name over.
 ///
 /// TypeScript's own three -- `enum`, `namespace` and `import x = require()` --
-/// are deliberately not among them, and are pinned as absent by
-/// `records_nothing_for_typescript_only_binding_forms` below.
+/// are deliberately not among them. One parse reads both languages, so what
+/// keeps a TypeScript form out of this list is the case below, which pins each
+/// of the three as binding nothing: added here, a form would fail there.
 #[test]
 fn records_every_javascript_binding_form() {
   assert_binds("const a = 1; let b = 2; var c = 3;", &["a", "b", "c"]);
@@ -533,11 +474,11 @@ fn records_nothing_for_a_module_that_declares_nothing() {
 /// nothing there reaches it.
 #[test]
 fn records_nothing_for_typescript_only_binding_forms() {
-  assert_ts_binds("enum NaN { a }", &[]);
-  assert_ts_binds("import NaN = require('m');", &[]);
+  assert_binds("enum NaN { a }", &[]);
+  assert_binds("import NaN = require('m');", &[]);
   // The `namespace` name itself is not recorded; the `const` inside it is, by
   // the same `visit_binding_ident` that records every other declarator.
-  assert_ts_binds("namespace NaN { export const a = 1; }", &["a"]);
+  assert_binds("namespace NaN { export const a = 1; }", &["a"]);
 }
 
 /// The three names the globals step asks about are ordinary bindings to the
@@ -602,10 +543,12 @@ fn collects_bindings_in_both_modes() {
   });
 }
 
-// ==================== the shapes only TypeScript spells ====================
+// ================== the wrappers and casts TypeScript adds ==================
 
-/// Names written in `code`, read over TypeScript syntax — for the wrappers the
-/// ES parser cannot read at all.
+/// Names written in `code`, read with JSX off.
+///
+/// One of the five wrappers is the angle-bracket cast, and `<any>value` opens
+/// an element where JSX is on, so the whole group is read the one way.
 #[track_caller]
 fn assert_ts_written(code: &str, expected: &[&str]) {
   let recorded = names(collect_ts(code, |collector| {
@@ -716,15 +659,20 @@ fn records_the_writes_a_loop_head_pattern_performs() {
 
 /// The two invalid nodes, handed to the collector directly.
 ///
-/// One of them a module reaches -- the parser writes a `Pat::Invalid` for the
-/// optional member in `[o?.x] = []`, which the loop-head case above spells --
-/// and the other is a node no module the pass runs over holds, because an
-/// assignment target the parser could not read is a syntax error. Both are
-/// pinned here as no-ops rather than left unstated: the alternative to a no-op
-/// is recording a write against a binding that was never named.
+/// One of them a module reaches, and the case reads it from a module rather
+/// than claiming it: the parser writes a `Pat::Invalid` for the optional member
+/// in `[o?.x] = []`. The other is a node no module the pass runs over holds,
+/// because an assignment target the parser could not read is a syntax error.
+/// Both are pinned as no-ops rather than left unstated: the alternative to a
+/// no-op is recording a write against a binding that was never named.
 #[test]
 fn records_nothing_for_an_invalid_pattern() {
   GLOBALS.set(&Globals::default(), || {
+    assert!(
+      matches!(first_array_pattern_element("[o?.x] = [];"), Pat::Invalid(_)),
+      "the parser answers an optional member in a pattern with an invalid node"
+    );
+
     let mut collector = ModuleBindingsCollector::writes_only();
 
     collector.add_pattern_writes(&Pat::Invalid(Invalid { span: DUMMY_SP }));
@@ -746,6 +694,30 @@ fn records_nothing_for_an_invalid_pattern() {
       "an invalid node names no binding to write"
     );
   });
+}
+
+/// The first element of the array pattern `code` assigns to.
+///
+/// Reads the node the parser built, so a case about a shape only the parser can
+/// make says what that shape is instead of describing it.
+fn first_array_pattern_element(code: &str) -> Pat {
+  let module = resolved_module(code);
+
+  let assignment = match module.body.last() {
+    Some(ModuleItem::Stmt(Stmt::Expr(statement))) => match statement.expr.as_assign() {
+      Some(assignment) => assignment.clone(),
+      None => panic!("the last statement is an assignment: {code}"),
+    },
+    other => panic!("the module ends in an expression statement: {other:?}"),
+  };
+
+  match &assignment.left {
+    AssignTarget::Pat(AssignTargetPat::Array(pattern)) => match pattern.elems.first() {
+      Some(Some(element)) => element.clone(),
+      _ => panic!("the array pattern holds one element: {code}"),
+    },
+    other => panic!("the assignment target is an array pattern: {other:?}"),
+  }
 }
 
 /// An anonymous class expression binds no name of its own, and a unary operator

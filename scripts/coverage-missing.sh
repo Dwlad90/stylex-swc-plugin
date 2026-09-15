@@ -42,6 +42,23 @@
 #      full-workspace run (e.g. dependency crates), producing a noisy,
 #      non-deterministic file list. The report is filtered to the requested
 #      scope so the output is stable no matter what the target dir holds.
+#   6. Stale mappings — the filter above keeps another crate's *files* out of
+#      the report, and cannot keep another crate's *objects* from answering for
+#      this one. A region's position is recorded in the object it was compiled
+#      into, and a run rebuilds only the objects of the crates in its scope, so
+#      a generic of this crate that was compiled into a crate above carries the
+#      positions it had when that crate was last built. The report reads
+#      plausible and is wrong -- a file at 100% named as 50%, with its misses on
+#      lines that hold doc comments. So every position is checked against the
+#      source it names, and a mapping that disagrees is refused before a table,
+#      a miss list or an HTML report is produced.
+#
+#      Refused rather than cleaned automatically. A clean is a full instrumented
+#      rebuild, and the scope of the run is not enough to know one is needed:
+#      `pnpm test:coverage:workspace` writes the same object directory, so a
+#      repeated `-p <crate>` can read foreign objects without the scope having
+#      changed at all. Reading the source is the whole answer, and it costs one
+#      pass over the files the report covers.
 #
 # REQUIREMENTS
 #   - Rust nightly toolchain          : rustup toolchain install nightly
@@ -64,6 +81,10 @@
 #   1  one or more source regions are unexercised, or a region counts against
 #      the coverage gate because no single instantiation runs it. Both are
 #      printed above as a `file:line:col` list.
+#   2  the arguments could not be read (unknown option, missing crate name)
+#   3  the coverage mapping does not match the source it names, so nothing is
+#      reported. Run `cargo +nightly llvm-cov clean --workspace` and measure
+#      again.
 
 set -euo pipefail
 
@@ -110,6 +131,8 @@ EXIT STATUS
   0  every measured source region is exercised, and each by a single instantiation
   1  a source region is unexercised, or no single instantiation runs it (the
      file:line:col list is printed above)
+  2  the arguments could not be read
+  3  the coverage mapping is stale; clean and measure again
 EOF
   exit "${1:-0}"
 }
@@ -208,8 +231,10 @@ fi
 
 tmp_json="$(mktemp "${TMPDIR:-/tmp}/coverage-missing.XXXXXX")"
 tmp_log="$(mktemp "${TMPDIR:-/tmp}/coverage-missing.XXXXXX")"
-cleanup() { rm -f "$tmp_json" "$tmp_log"; }
-trap cleanup EXIT
+# Inline rather than a named function: the script now ends on an explicit
+# `exit`, and past one of those shellcheck stops reading a `trap` as a call and
+# reports the function as never invoked.
+trap 'rm -f "$tmp_json" "$tmp_log"' EXIT
 
 # Single instrumented run. The JSON export is the source of truth for both the
 # summary table and the precise miss list rendered below. (The `report`
@@ -237,7 +262,7 @@ set -e
 if [ "$status" -ne 0 ] \
   && grep -qiE "could not load coverage|failed to load coverage|no such file" "$tmp_log"; then
   echo "==> Stale coverage artifacts detected; running 'cargo llvm-cov clean' and retrying once..." >&2
-  cargo llvm-cov clean --workspace
+  cargo +nightly llvm-cov clean --workspace
   set +e
   run_coverage
   status=$?
@@ -249,23 +274,16 @@ if [ "$status" -ne 0 ]; then
   exit "$status"
 fi
 
-# Optional HTML report. `--html` cannot share an invocation with `--json`, so it
-# costs a second instrumented run; it is opt-in and rare.
-if [ "$html" -eq 1 ]; then
-  html_flags=(--html)
-  [ "$open" -eq 1 ] && html_flags+=(--open)
-  cargo +nightly llvm-cov nextest "${scope[@]}" \
-    --all-features \
-    --ignore-filename-regex "$IGNORE_REGEX" \
-    "${html_flags[@]}"
-fi
-
 # Render the summary table and the exact uncovered locations, and set the exit
 # status, all from the JSON export.
+report_status=0
+
 if command -v python3 >/dev/null 2>&1; then
+  set +e
   python3 - "$tmp_json" "$REPO_ROOT" "$IGNORE_REGEX" "$scope_mode" "$scope_value" "$show_phantoms" <<'PY'
 import json
 import os
+import pathlib
 import re
 import sys
 from collections import defaultdict
@@ -309,6 +327,119 @@ def rel(path):
         return path
 
 
+# llvm-cov region kinds: 0 = Code (the kind region coverage is based on),
+# 1 = Expansion, 2 = Skipped, 3 = Gap, 4 = Branch, 5/6 = MC/DC. Only "Code"
+# regions are counted, matching `--fail-uncovered-regions`.
+CODE_KIND = 0
+
+
+def measured_region_starts():
+    """Where each measured region begins, as the export records it."""
+    for function in export.get("functions", []):
+        filenames = function.get("filenames", [])
+
+        for region in function.get("regions", []):
+            if len(region) < 8 or region[7] != CODE_KIND:
+                continue
+
+            file_id = region[5]
+            filename = filenames[file_id] if file_id < len(filenames) else ""
+
+            if filename in measured:
+                yield filename, region[0], region[1]
+
+
+def stale_coordinates():
+    """Reported positions that the source they name cannot hold.
+
+    The coverage mapping lives in the object files, not in the profile data, so
+    a run that did not rebuild every object can report a position from an older
+    revision of a file. A `-p <crate>` run is how that happens: the objects of
+    the crates above it are not rebuilt, and a generic from this crate compiled
+    into one of them carries this crate's coordinates with it.
+
+    Nothing in the export says which revision a position came from, so the
+    source is asked instead. A `Code` region starts at a token, so it cannot
+    start on a blank line and it cannot start inside a line comment -- and a
+    string literal's region starts at its opening quote, so a raw string
+    holding `//` is not a reading of this either. One that does start there
+    came from a file that has since been edited.
+
+    Only those two readings, because they are the two that cannot be anything
+    else. A leading `*` is not one of them -- `*count -= 1` is a line of code
+    that begins the way a wrapped doc comment does.
+
+    Every measured region is asked, not only the unexercised ones. A stale
+    mapping reports an unexercised region as covered just as readily, and that
+    is the answer a reader would act on without noticing.
+    """
+    stale = []
+    source = {}
+
+    for filename, line_start, col_start in measured_region_starts():
+        if filename not in source:
+            try:
+                source[filename] = (
+                    pathlib.Path(filename).read_text(errors="replace").splitlines()
+                )
+            except OSError:
+                source[filename] = None
+
+        lines = source[filename]
+
+        if lines is None:
+            continue
+
+        if line_start > len(lines):
+            stale.append((filename, line_start, col_start, "past the end of the file"))
+            continue
+
+        text = lines[line_start - 1]
+
+        # Columns are byte offsets, so the line is measured in bytes too. A line
+        # carrying a multi-byte character is longer in bytes than in characters,
+        # and the character count would call a position near its end stale.
+        if col_start > len(text.encode("utf-8")) + 1:
+            stale.append((filename, line_start, col_start, "past the end of the line"))
+        elif not text.strip() or text.lstrip().startswith("//"):
+            stale.append((filename, line_start, col_start, "a line that carries no code"))
+
+    return stale
+
+
+def refuse_if_stale():
+    """Refuses to answer at all from a mapping the source disagrees with.
+
+    Asked before anything is printed, because a stale mapping still renders a
+    summary table that reads perfectly plausible -- the one that sent a reader
+    chasing a file at 50% that was really at 100%.
+    """
+    stale = stale_coordinates()
+
+    if not stale:
+        return
+
+    print(
+        "\nerror: the coverage mapping is stale -- it names positions this source\n"
+        "       cannot hold, so every count in it is from an older revision of\n"
+        "       these files. Nothing is reported, because a stale mapping still\n"
+        "       renders a table that reads perfectly plausible. Run:\n\n"
+        "         cargo +nightly llvm-cov clean --workspace\n\n"
+        "       and measure again. This happens after a change that moves lines,\n"
+        "       because a `-p <crate>` run rebuilds that crate and not the\n"
+        "       objects of the crates above it.\n",
+        file=sys.stderr,
+    )
+
+    for filename, line, col, why in stale[:5]:
+        print(f"       {rel(filename)}:{line}:{col} is {why}", file=sys.stderr)
+
+    if len(stale) > 5:
+        print(f"       ... and {len(stale) - 5} more", file=sys.stderr)
+
+    sys.exit(3)
+
+
 # ── Summary table (derived from the same export as the miss list) ────────────
 # `export["files"]` is the authoritative measured set: cargo-llvm-cov has
 # already applied its full ignore regex (our pattern PLUS its built-in
@@ -320,6 +451,8 @@ measured = {f["filename"] for f in file_entries}
 rows = sorted((rel(f["filename"]), f["summary"]) for f in file_entries)
 name_width = max([len("File")] + [len(name) for name, _ in rows])
 name_width = min(name_width, 70)
+
+refuse_if_stale()
 
 
 def pct(covered, count):
@@ -345,11 +478,6 @@ total_cells = "  ".join(f"{pct(*agg[kind]):>8.2f}%" for kind in ("regions", "fun
 print(f"{'TOTAL':<{name_width}}  " + total_cells)
 
 # ── Uncovered regions, merged across monomorphizations ───────────────────────
-# llvm-cov region kinds: 0 = Code (the kind region coverage is based on),
-# 1 = Expansion, 2 = Skipped, 3 = Gap, 4 = Branch, 5/6 = MC/DC. Only "Code"
-# regions are counted, matching `--fail-uncovered-regions`.
-CODE_KIND = 0
-
 # Sum execution counts per distinct source region across every instantiation. A
 # region is genuinely unexercised only when that sum is zero.
 #
@@ -622,14 +750,45 @@ if show_phantoms_enabled:
 
 sys.exit(1)
 PY
+  report_status=$?
+  set -e
 else
   echo "warning: python3 not found — falling back to line-only output;" >&2
-  echo "         sub-line region misses will not be listed." >&2
-  cargo +nightly llvm-cov nextest "${scope[@]}" \
+  echo "         sub-line region misses will not be listed, and the mapping is" >&2
+  echo "         not checked against the source it names." >&2
+  # Narrowed to the two answers this branch can give. Reporting cargo's own
+  # status would let one of its other codes read as a status of ours -- 3 says
+  # the mapping is stale, and this branch never looked.
+  if cargo +nightly llvm-cov nextest "${scope[@]}" \
     --all-features \
     --ignore-filename-regex "$IGNORE_REGEX" \
     --show-missing-lines \
     --fail-uncovered-lines 0 \
     --fail-uncovered-regions 0 \
-    --fail-under-functions 0
+    --fail-under-functions 0; then
+    report_status=0
+  else
+    report_status=1
+  fi
 fi
+
+# A stale mapping is reported and nothing else: an HTML report would read as
+# plausible for the same reason the table does, and `--open` hands it to a
+# browser.
+if [ "$report_status" -eq 3 ]; then
+  exit 3
+fi
+
+# Optional HTML report. `--html` cannot share an invocation with `--json`, so
+# it costs a second instrumented run; it is opt-in and rare. Written after the
+# report above, so a mapping the source disagrees with never reaches it.
+if [ "$html" -eq 1 ]; then
+  html_flags=(--html)
+  [ "$open" -eq 1 ] && html_flags+=(--open)
+  cargo +nightly llvm-cov nextest "${scope[@]}" \
+    --all-features \
+    --ignore-filename-regex "$IGNORE_REGEX" \
+    "${html_flags[@]}"
+fi
+
+exit "$report_status"

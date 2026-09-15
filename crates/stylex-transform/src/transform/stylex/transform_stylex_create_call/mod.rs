@@ -375,3 +375,7 @@ where
     result
   }
 }
+
+#[cfg(test)]
+#[path = "tests/resolve_when_marker_tests.rs"]
+mod tests;

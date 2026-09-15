@@ -462,3 +462,117 @@ stylex_test!(
     export const vars = stylex.defineVars({ a: zIndex.ten });
   "#
 );
+
+// A function value written with a block body, which is the case that holds the
+// claim `arrow_body_expr` is excluded from the coverage measurement on: the
+// evaluator has no reading for the statements in a block, so it refuses the
+// whole variable group and no block body ever reaches the two readers that walk
+// the object it produced. The sentence below is the one an author gets, and it
+// is not the function-value sentence -- an evaluator that started folding a
+// block body would change it, and this case is what says so.
+stylex_test_panic!(
+  a_function_value_with_a_block_body_is_refused,
+  "Only static values are allowed inside of a defineVars() call.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      text: 'black',
+      textMuted: () => { return 'grey'; },
+    });
+  "#
+);
+
+// A function nested inside a function value. Only the top-level
+// `key: () => …` shape is read, so an arrow anywhere below it is refused
+// rather than carried into a variable nothing can spell.
+stylex_test_panic!(
+  a_function_nested_in_a_function_value_is_refused,
+  "Function values in defineVars() must be zero-argument and return a static value supported by defineVars().",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      text: 'black',
+      textMuted: () => ({ default: () => 'grey' }),
+    });
+  "#
+);
+
+// The same nesting, written under a value that is not a function itself. The
+// two reach the check from different sides: one reads the evaluated body of an
+// arrow, the other reads a value written plainly.
+stylex_test_panic!(
+  a_function_nested_in_a_plain_value_is_refused,
+  "Function values in defineVars() must be zero-argument and return a static value supported by defineVars().",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      textMuted: { default: () => 'grey' },
+    });
+  "#
+);
+
+// A same-group reference written as a computed key rather than a member name.
+// `colors['text']` and `colors.text` name the same variable, so the dependency
+// walk has to read both -- a reference it does not see is a reference whose
+// cycle and whose typo it cannot find.
+//
+// The refusal is what says the walk read it. A valid computed reference resolves
+// through the evaluator instead, and its output is the same whether the walk saw
+// it or not, so a naming mistake is the only thing that answers for this branch.
+stylex_test_panic!(
+  an_unknown_same_group_reference_written_as_a_computed_key,
+  "Unknown same-group reference \"missing\" found while resolving \"textMuted\" in defineVars().",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      text: 'black',
+      textMuted: () => colors['missing'],
+    });
+  "#
+);
+
+// The valid spelling beside it, which has to compile to exactly what the member
+// spelling compiles to.
+#[test]
+fn a_same_group_reference_reads_the_same_either_way() {
+  assert_spellings_agree_with(
+    "a same-group reference",
+    r#"
+      import * as stylex from '@stylexjs/stylex';
+      export const colors = stylex.defineVars({
+        text: 'black',
+        textMuted: () => colors.text,
+      });
+    "#,
+    r#"
+      import * as stylex from '@stylexjs/stylex';
+      export const colors = stylex.defineVars({
+        text: 'black',
+        textMuted: () => colors['text'],
+      });
+    "#,
+    crate::utils::transform::compiled_theme_module,
+  );
+}
+
+// A cycle through a key that names two others. One dependency is enough to
+// find a cycle, but the walk orders a key's dependencies before it descends,
+// and with one there is nothing to order.
+stylex_test_panic!(
+  a_cycle_through_a_key_that_names_two_others,
+  "Cyclic same-group references in defineVars() are not allowed: a -> b -> d -> a.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      a: () => colors.b,
+      b: () => `${colors.c} ${colors.d}`,
+      c: 'black',
+      d: () => colors.a,
+    });
+  "#
+);

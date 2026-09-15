@@ -47,6 +47,21 @@ stylex_test_panic!(
   "#
 );
 
+// The same sentence, read one step earlier. The case below hands an object and
+// is refused for the group hash it does not carry; this hands something that is
+// not an object at all, so there are no keys to look through. Both are the one
+// mistake an author makes -- overriding something a nested variable group did
+// not produce -- so both say so.
+stylex_test_panic!(
+  throws_first_arg_must_be_an_object,
+  "Can only override variables theme created with unstable_defineVarsNested().",
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const theme = stylex.unstable_createThemeNested(1, {});
+  "#
+);
+
 stylex_test_panic!(
   throws_first_arg_must_have_var_group_hash,
   "Can only override variables theme created with unstable_defineVarsNested().",

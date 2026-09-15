@@ -441,25 +441,28 @@ pub(crate) fn assert_spellings_agree(shape: &str, bare: &str, wrapped: &str) {
   assert_spellings_agree_with(shape, bare, wrapped, compiled_module);
 }
 
-/// [`assert_spellings_agree`], for a shape the default transform cannot host.
+/// [`assert_spellings_agree`], for a shape the default transform cannot host,
+/// or for a pair that is not the parenthesis pair.
 ///
 /// `compile` is the harness the shape needs -- a `.stylex.js` file name for a
 /// module that defines variables, or a module resolution for a theme. The
 /// check is the same one: compile both spellings and compare what each
-/// printed.
+/// printed. The message names neither spelling, because the pair is not always
+/// bare against parenthesised -- a member read against a computed one is the
+/// same question -- so `shape` is what says which pair was asked.
 #[track_caller]
 pub(crate) fn assert_spellings_agree_with(
   shape: &str,
-  bare: &str,
-  wrapped: &str,
+  first: &str,
+  second: &str,
   compile: impl Fn(&str) -> String,
 ) {
-  let from_bare = compile(bare);
-  let from_wrapped = compile(wrapped);
+  let from_first = compile(first);
+  let from_second = compile(second);
 
   assert_eq!(
-    from_bare, from_wrapped,
-    "the parenthesised spelling of {shape} compiles to something else.\n\
-     bare:\n{bare}\nwrapped:\n{wrapped}"
+    from_first, from_second,
+    "the two spellings of {shape} compile to something different.\n\
+     first:\n{first}\nsecond:\n{second}"
   );
 }

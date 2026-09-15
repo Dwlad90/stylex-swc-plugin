@@ -170,3 +170,24 @@ stylex_test!(
     });
   "#
 );
+
+// Test mode replaces each compiled namespace with one debug name, so what the
+// module exports is a name a test can read rather than a hash. The rules are
+// still injected -- only the exported object changes -- and the development
+// mode beside it keeps the class names and adds the debug name beside them.
+stylex_test!(
+  test_mode_replaces_the_compiled_styles_with_debug_names,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(swc_core::common::FileName::Real(
+      "/html/js/components/Foo.react.js".into(),
+    ))
+    .with_test(true)
+  }),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: 'red' },
+      other: { backgroundColor: 'blue' },
+    });
+  "#
+);

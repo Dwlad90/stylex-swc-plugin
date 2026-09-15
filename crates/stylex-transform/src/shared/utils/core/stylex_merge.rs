@@ -274,9 +274,10 @@ pub(crate) fn stylex_merge(
 /// The JSX attribute a compiled property spells, where it spells one.
 ///
 /// The properties read here are the ones `make_string_expression` built: a
-/// key-value pair under a plain name, never a spread and never computed. What
-/// is left to decide is the value, and only a literal can be written into an
-/// attribute.
+/// key-value pair under a plain name, never a spread and never computed --
+/// asserted where the table is built, by
+/// `files_every_answer_as_a_key_value_under_a_name`. What is left to decide is
+/// the value, and only a literal can be written into an attribute.
 fn static_jsx_attr_from_prop(prop: &PropOrSpread) -> Option<JSXAttrOrSpread> {
   prop
     .as_prop()

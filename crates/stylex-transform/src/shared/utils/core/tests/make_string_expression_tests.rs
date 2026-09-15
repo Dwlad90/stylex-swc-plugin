@@ -172,3 +172,42 @@ fn writes_one_answer_for_every_combination() {
   assert_eq!(answers.len(), 16);
   assert_eq!(key, "!!p << 3 | !!q << 2 | !!r << 1 | !!s << 0");
 }
+
+/// Every answer is filed as a key-value prop under a plain name.
+///
+/// `static_jsx_attr_from_prop` in `stylex_merge` reads these props and answers
+/// nothing for a spread or a computed key. No table can hold one, and this is
+/// where that is true: the invariant is asserted where the table is built,
+/// rather than argued at the reader.
+#[test]
+fn files_every_answer_as_a_key_value_under_a_name() {
+  let table = match make_string_expression(
+    &[behind("a", "color", "xa"), behind("b", "margin", "xb")],
+    stylex,
+  ) {
+    Expr::Member(member) => match *member.obj {
+      Expr::Object(object) => object.props,
+      other => panic!("the table is not an object: {other:?}"),
+    },
+    other => panic!("the answer is not a read on a table: {other:?}"),
+  };
+
+  assert!(
+    !table.is_empty(),
+    "a table with no answer in it would say nothing"
+  );
+
+  for prop in &table {
+    match prop {
+      PropOrSpread::Prop(prop) => match prop.as_key_value() {
+        Some(key_value) => assert!(
+          matches!(key_value.key, PropName::Ident(_)),
+          "an answer is filed under a plain name, not {:?}",
+          key_value.key
+        ),
+        None => panic!("an answer is a key-value prop, not {prop:?}"),
+      },
+      PropOrSpread::Spread(_) => panic!("a table holds no spread"),
+    }
+  }
+}

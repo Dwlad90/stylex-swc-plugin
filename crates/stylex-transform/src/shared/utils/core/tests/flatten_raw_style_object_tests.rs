@@ -2,8 +2,10 @@
 //! stands for.
 
 use indexmap::IndexMap;
+use stylex_enums::style_resolution::StyleResolution;
 use stylex_evaluator::state::EvaluationState;
 use stylex_state::{functions::FunctionMap, state_manager::StateManager};
+use stylex_structures::stylex_options::StyleXOptions;
 use swc_core::ecma::ast::{KeyValueProp, ModuleItem, Stmt};
 
 use super::{PreRules, flatten_raw_style_object_logic};
@@ -176,4 +178,61 @@ fn refuses_a_spread_inside_a_condition() {
 #[should_panic(expected = "Only static values are allowed inside of a stylex")]
 fn refuses_a_method_inside_a_condition() {
   flatten("{ color: { default() { return 'red' } } }");
+}
+
+/// A hole in a fallback list carries no value at all -- not even an absent one
+/// -- so the list declares what the same list written without it declares.
+#[test]
+fn skips_a_hole_in_a_fallback_list() {
+  let with_hole = flatten("{ color: ['red', , 'blue'] }");
+  let without = flatten("{ color: ['red', 'blue'] }");
+
+  assert_eq!(keys_of(&with_hole), ["color"]);
+  assert_eq!(
+    format!("{:?}", with_hole["color"]),
+    format!("{:?}", without["color"])
+  );
+}
+
+/// An absent value written on its own declares the property unset.
+#[test]
+fn flattens_an_absent_value_into_an_absence() {
+  let rules = flatten("{ color: null }");
+
+  assert_eq!(keys_of(&rules), ["color"]);
+  assert!(matches!(rules["color"], PreRules::NullPreRule(_)));
+}
+
+/// A shorthand written absent unsets every property it stands for, not only
+/// the one the author spelled.
+#[test]
+fn flattens_an_absent_shorthand_into_an_absence_for_each_property() {
+  let mut state = StateManager::new(
+    StyleXOptions::default().with_style_resolution(StyleResolution::ApplicationOrder),
+  );
+  let rules = flatten_in("{ margin: null }", &mut state);
+
+  assert!(rules.len() > 1, "the shorthand expanded to {rules:?}");
+  assert!(
+    rules
+      .values()
+      .all(|rule| matches!(rule, PreRules::NullPreRule(_))),
+    "the expansion declares a value: {rules:?}"
+  );
+}
+
+/// A member read names no static value the compiler can declare, and it is
+/// none of the shapes a style value is written in.
+#[test]
+#[should_panic(expected = "A style value can only contain an array, string or number.")]
+fn refuses_a_member_read_as_a_value() {
+  flatten("{ color: theme.red }");
+}
+
+/// A condition names no property of its own, so a value written straight under
+/// one declares nothing. The condition holds declarations, and this object
+/// holds none.
+#[test]
+fn declares_nothing_for_a_value_written_under_a_condition() {
+  assert!(flatten("{ ':hover': 'red' }").is_empty());
 }

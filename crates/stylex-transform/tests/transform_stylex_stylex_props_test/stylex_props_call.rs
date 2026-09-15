@@ -495,3 +495,23 @@ stylex_test!(
     stylex.props(styles.red);
   "#
 );
+
+// A namespace the `create` call never declared names no style, so the merge
+// hands the read to the runtime rather than folding it away. The rule the call
+// did declare is still injected, and the object it leaves behind is empty --
+// measured against the reference with `pnpm run parity:probe`, which prints the
+// same module for both compilers.
+stylex_test!(
+  a_namespace_the_call_does_not_declare_is_left_to_the_runtime,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    export const declared = stylex.props(styles.red);
+    export const missing = stylex.props(styles.blue);
+  "#
+);

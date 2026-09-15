@@ -194,6 +194,32 @@ fn reads_no_call_through_the_shapes_that_do_not_bind_one() {
   }
 }
 
+/// A read on some other call is not a read on this one, whichever way that
+/// other call is written.
+///
+/// The expressions here stand beside the call rather than holding it, which is
+/// what the module-level reader hands this predicate: every top-level
+/// expression of the file is offered for one call. The case above asks about a
+/// call each expression holds, so the two cannot share a fixture even where
+/// they spell the same chain.
+#[test]
+fn reads_no_call_through_a_chain_rooted_elsewhere() {
+  let (_, call) = call_of("create({}).root");
+
+  for code in [
+    // An optional call of another expression: a call of its own, and not the
+    // one asked about.
+    "makeStyles?.().root",
+    // A name: the chain ends at something that is no call at all.
+    "styles.root",
+  ] {
+    assert!(
+      !is_bound_create_expr(&ts_expr(code), &call),
+      "{code} was read as a bound call"
+    );
+  }
+}
+
 /// Identity is the place the call was written, not its shape. Two calls that
 /// read the same are two calls, and only the one that is there is found.
 #[test]

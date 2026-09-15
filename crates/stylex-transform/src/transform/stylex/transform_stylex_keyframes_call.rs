@@ -15,20 +15,14 @@ use crate::{
   shared::{
     transformers::stylex_keyframes::stylex_keyframes,
     utils::validators::{
-      argument_at, assert_valid_keyframes, is_keyframes_call, validate_stylex_keyframes_indent,
+      argument_at, assert_valid_keyframes, folded_style_object, is_keyframes_call,
+      validate_stylex_keyframes_indent,
     },
   },
 };
 use stylex_ast::ast::convertors::init_call;
-use stylex_constants::constants::{
-  api_names::{STYLEX_FIRST_THAT_WORKS, STYLEX_KEYFRAMES},
-  messages::{non_static_value, non_style_object},
-};
-use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::{
-  evaluate::evaluate, evaluate_result::refusal_site,
-  stylex_first_that_works::stylex_first_that_works,
-};
+use stylex_constants::constants::api_names::{STYLEX_FIRST_THAT_WORKS, STYLEX_KEYFRAMES};
+use stylex_evaluator::{evaluate::evaluate, stylex_first_that_works::stylex_first_that_works};
 use stylex_state::{
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   state_manager::ImportKind,
@@ -93,44 +87,13 @@ where
 
       let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
-      assert!(
-        evaluated_arg.confident,
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
-          &non_static_value(STYLEX_KEYFRAMES),
-          &mut self.state,
-        )
+      let value = folded_style_object(
+        evaluated_arg,
+        call,
+        &first_arg,
+        STYLEX_KEYFRAMES,
+        &mut self.state,
       );
-
-      let value = match evaluated_arg.value {
-        Some(value) => {
-          assert!(
-            value
-              .as_expr()
-              .map(|expr| expr.is_object())
-              .unwrap_or(false),
-            "{}",
-            build_code_frame_error(
-              &Expr::Call(call.clone()),
-              &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
-              &non_style_object(STYLEX_KEYFRAMES),
-              &mut self.state,
-            )
-          );
-          value
-        },
-        None => stylex_panic!(
-          "{}",
-          build_code_frame_error(
-            &Expr::Call(call.clone()),
-            &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
-            &non_static_value(STYLEX_KEYFRAMES),
-            &mut self.state,
-          )
-        ),
-      };
 
       assert_valid_keyframes(&value, &mut self.state);
 

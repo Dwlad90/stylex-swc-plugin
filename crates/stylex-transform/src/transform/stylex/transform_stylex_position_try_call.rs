@@ -15,8 +15,8 @@ use crate::{
   shared::{
     transformers::stylex_position_try::stylex_position_try,
     utils::validators::{
-      argument_at, assert_valid_position_try, assert_valid_properties, is_position_try_call,
-      validate_stylex_position_try_indent,
+      argument_at, assert_valid_position_try, assert_valid_properties, folded_style_object,
+      is_position_try_call, validate_stylex_position_try_indent,
     },
   },
 };
@@ -24,13 +24,9 @@ use stylex_ast::ast::convertors::init_call;
 use stylex_constants::constants::{
   api_names::{STYLEX_FIRST_THAT_WORKS, STYLEX_POSITION_TRY},
   common::VALID_POSITION_TRY_PROPERTIES,
-  messages::{POSITION_TRY_INVALID_PROPERTY, non_static_value, non_style_object},
+  messages::POSITION_TRY_INVALID_PROPERTY,
 };
-use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::{
-  evaluate::evaluate, evaluate_result::refusal_site,
-  stylex_first_that_works::stylex_first_that_works,
-};
+use stylex_evaluator::{evaluate::evaluate, stylex_first_that_works::stylex_first_that_works};
 use stylex_state::{
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   state_manager::ImportKind,
@@ -95,44 +91,13 @@ where
 
       let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
-      assert!(
-        evaluated_arg.confident,
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
-          &non_static_value(STYLEX_POSITION_TRY),
-          &mut self.state,
-        )
+      let plain_object = folded_style_object(
+        evaluated_arg,
+        call,
+        &first_arg,
+        STYLEX_POSITION_TRY,
+        &mut self.state,
       );
-
-      let plain_object = match evaluated_arg.value {
-        Some(value) => {
-          assert!(
-            value
-              .as_expr()
-              .map(|expr| expr.is_object())
-              .unwrap_or(false),
-            "{}",
-            build_code_frame_error(
-              &Expr::Call(call.clone()),
-              &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
-              &non_style_object(STYLEX_POSITION_TRY),
-              &mut self.state,
-            )
-          );
-          value
-        },
-        None => stylex_panic!(
-          "{}",
-          build_code_frame_error(
-            &Expr::Call(call.clone()),
-            &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
-            &non_static_value(STYLEX_POSITION_TRY),
-            &mut self.state,
-          )
-        ),
-      };
 
       assert_valid_position_try(&plain_object, &mut self.state);
       assert_valid_properties(

@@ -32,8 +32,9 @@ use stylex_constants::constants::{
 };
 use stylex_css::utils::condition::is_conditional_key;
 use stylex_diagnostics::code_frame::{
-  build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
+  build_code_frame_error, build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
 };
+use stylex_evaluator::evaluate_result::{EvaluateResult, refusal_site};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   state_manager::{ImportKind, StateManager},
@@ -72,6 +73,79 @@ pub(crate) fn argument_at(call: &CallExpr, index: usize, fn_name: &str) -> Expr 
     Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
     None => (*arg.expr).clone(),
   }
+}
+
+/// The style object a producer's argument folded to.
+///
+/// Seven producers that take one object read their argument through the same
+/// three answers, and each one wrote all three out: the fold refused, it
+/// answered something that is not an object, or it answered nothing at all.
+/// `fn_name` was the only thing that differed, and both sentences name it.
+///
+/// The third answer is read here as the first, because it is the same mistake:
+/// an argument that folded to nothing and one that refused both leave the
+/// producer with no object, so both read one sentence at one position. Which is
+/// not what the seven copies did -- four reported the empty answer with no code
+/// frame, and the four that asked through `assert!` (a different four) panicked
+/// with the string they formatted rather than through this compiler's error, so
+/// the payload carried no `[StyleX]`, no colour and no stack-trace line. What
+/// reaches stderr and the NAPI boundary is unchanged either way, because both
+/// add the prefix themselves.
+///
+/// How an argument comes to fold to nothing while the fold stayed confident is
+/// not settled: the memo can answer `None` without a refusal having been
+/// recorded. No source is known to reach it, no test does, and it is written
+/// here as the refusal it is rather than left to each producer to guess at.
+///
+/// `#[track_caller]` so the position a refusal reports stays the producer's
+/// call site. Without it all seven would name this file.
+#[track_caller]
+pub(crate) fn folded_style_object(
+  evaluated: Box<EvaluateResult>,
+  call: &CallExpr,
+  argument: &Expr,
+  fn_name: &str,
+  state: &mut StateManager,
+) -> EvaluateResultValue {
+  // Two fields off the box rather than the whole of it: the other three are
+  // never read here, and unboxing the struct would copy them onto the stack on
+  // the path that compiles.
+  let confident = evaluated.confident;
+  let value = evaluated.value;
+  let deopt = evaluated.deopt;
+
+  // `Expr::Call(call.clone())` deep-clones the whole argument, so it is built
+  // only on the paths that are about to panic anyway.
+  //
+  // Reported with `build_code_frame_error` and a panic of its own rather than
+  // with `build_code_frame_error_and_panic`, because the seven copies did: the
+  // second one names the file and the line in the panic as well, and reading
+  // the answer in one place is not a reason to change what an author reads.
+  let Some(value) = value.filter(|_| confident) else {
+    stylex_panic!(
+      "{}",
+      build_code_frame_error(
+        &Expr::Call(call.clone()),
+        &refusal_site(deopt.as_ref(), argument),
+        &non_static_value(fn_name),
+        state,
+      )
+    )
+  };
+
+  if !value.as_expr().is_some_and(Expr::is_object) {
+    stylex_panic!(
+      "{}",
+      build_code_frame_error(
+        &Expr::Call(call.clone()),
+        &refusal_site(deopt.as_ref(), argument),
+        &non_style_object(fn_name),
+        state,
+      )
+    )
+  }
+
+  value
 }
 
 /// `read`, or the refusal an argument list too short is reported with.

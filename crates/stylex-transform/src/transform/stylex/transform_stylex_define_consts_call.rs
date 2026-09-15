@@ -1,7 +1,7 @@
 use rustc_hash::FxHashMap;
 use stylex_constants::constants::{
   api_names::STYLEX_DEFINE_CONSTS,
-  messages::{cannot_generate_hash, export_variable_not_found, non_static_value, non_style_object},
+  messages::{cannot_generate_hash, export_variable_not_found},
 };
 use stylex_macros::stylex_panic;
 use stylex_utils::identifier::gen_file_based_identifier;
@@ -16,13 +16,15 @@ use crate::{
     transformers::stylex_define_consts::stylex_define_consts,
     utils::{
       core::js_to_ast::{NestedStringObject, convert_object_to_ast},
-      validators::{argument_at, find_and_validate_stylex_define_consts, is_define_consts_call},
+      validators::{
+        argument_at, find_and_validate_stylex_define_consts, folded_style_object,
+        is_define_consts_call,
+      },
     },
   },
   transform::stylex::visitor_utils::build_env_only_eval_config,
 };
-use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::{evaluate::evaluate, evaluate_result::refusal_site};
+use stylex_evaluator::evaluate::evaluate;
 use stylex_structures::top_level_expression::TopLevelExpression;
 
 impl<C> StyleXTransform<C>
@@ -44,36 +46,13 @@ where
 
       let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
-      assert!(
-        evaluated_arg.confident,
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
-          &non_static_value(STYLEX_DEFINE_CONSTS),
-          &mut self.state,
-        )
+      let value = folded_style_object(
+        evaluated_arg,
+        call,
+        &first_arg,
+        STYLEX_DEFINE_CONSTS,
+        &mut self.state,
       );
-
-      let value = match evaluated_arg.value {
-        Some(value) => {
-          assert!(
-            value
-              .as_expr()
-              .map(|expr| expr.is_object())
-              .unwrap_or(false),
-            "{}",
-            build_code_frame_error(
-              &Expr::Call(call.clone()),
-              &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
-              &non_style_object(STYLEX_DEFINE_CONSTS),
-              &mut self.state,
-            )
-          );
-          value
-        },
-        None => stylex_panic!("{}", non_static_value(STYLEX_DEFINE_CONSTS)),
-      };
 
       let file_name = match self
         .state

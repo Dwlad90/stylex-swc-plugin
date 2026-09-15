@@ -24,7 +24,7 @@ use stylex_constants::constants::{
   common::VAR_GROUP_HASH_KEY,
   messages::{
     DUPLICATE_CONDITIONAL, EXPECTED_CSS_VAR, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
-    INVALID_PSEUDO_OR_AT_RULE, MEMBER_OBJ_NOT_IDENT, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
+    INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
     NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
     ONLY_OVERRIDE_DEFINE_VARS, illegal_argument_length, non_export_named_declaration,
     non_static_value, non_style_object, unbound_call_value,
@@ -192,11 +192,10 @@ fn is_bound_create_expr(expr: &Expr, call: &CallExpr) -> bool {
   }
 }
 
+/// Refuses a `stylex.create` call the compiler cannot read.
+///
+/// Every caller asks `is_create_call` before it calls this, so the call is one.
 pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) {
-  if !is_create_call(call, state) {
-    return;
-  }
-
   // `Expr::Call(call.clone())` deep-clones the whole style object, so it is
   // built lazily — only on the paths that are about to panic anyway.
   if state.find_call_declaration(call).is_none()
@@ -247,30 +246,27 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
   }
 }
 
+/// Refuses a `stylex.keyframes` call the compiler cannot read.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: &mut StateManager) {
-  if !is_keyframes_call(var_decl, state) {
-    return;
-  }
-
   validate_single_object_arg_indent(var_decl, STYLEX_KEYFRAMES, state);
 }
 
+/// Refuses a `stylex.positionTry` call the compiler cannot read.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn validate_stylex_position_try_indent(
   var_decl: &VarDeclarator,
   state: &mut StateManager,
 ) {
-  if !is_position_try_call(var_decl, state) {
-    return;
-  }
-
   validate_single_object_arg_indent(var_decl, STYLEX_POSITION_TRY, state);
 }
 
+/// Refuses a `stylex.defaultMarker` call that was given an argument.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn validate_stylex_default_marker_indent(call: &CallExpr, state: &mut StateManager) {
-  if !is_default_marker_call(call, state) {
-    return;
-  }
-
   let call_expr = Expr::from(call.clone());
 
   if !call.args.is_empty() {
@@ -282,26 +278,24 @@ pub(crate) fn validate_stylex_default_marker_indent(call: &CallExpr, state: &mut
   }
 }
 
+/// Refuses a `stylex.viewTransitionClass` call the compiler cannot read.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn validate_stylex_view_transition_class_indent(
   var_decl: &VarDeclarator,
   state: &mut StateManager,
 ) {
-  if !is_view_transition_class_call(var_decl, state) {
-    return;
-  }
-
   validate_single_object_arg_indent(var_decl, STYLEX_VIEW_TRANSITION_CLASS, state);
 }
 
+/// Refuses a `stylex.createTheme` call the compiler cannot read.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn validate_stylex_create_theme_indent(
   var_decl: &Option<VarDeclarator>,
   call: &CallExpr,
   state: &mut StateManager,
 ) {
-  if !is_create_theme_call(call, state) {
-    return;
-  }
-
   let call_expr = Expr::Call(call.clone());
 
   let var_decl = var_decl.as_ref().unwrap_or_else(|| {
@@ -374,14 +368,14 @@ pub(crate) fn validate_stylex_create_theme_indent(
   }
 }
 
+/// Refuses a `stylex.defineVars` call the compiler cannot read, and answers the
+/// top-level expression it is bound to.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn find_and_validate_stylex_define_vars(
   call: &CallExpr,
   state: &mut StateManager,
-) -> Option<TopLevelExpression> {
-  if !is_define_vars_call(call, state) {
-    return None;
-  }
-
+) -> TopLevelExpression {
   let call_expr = Expr::from(call.clone());
 
   let stylex_create_theme_top_level_expr = match state.find_top_level_expr(call) {
@@ -421,14 +415,13 @@ pub(crate) fn find_and_validate_stylex_define_vars(
     );
   }
 
-  Some(stylex_create_theme_top_level_expr.clone())
+  stylex_create_theme_top_level_expr.clone()
 }
 
+/// Refuses a `stylex.defineMarker` call the compiler cannot read.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut StateManager) {
-  if !is_define_marker_call(call, state) {
-    return;
-  }
-
   // Cloned only where it is about to be reported, as `validate_stylex_create`
   // does: every path that needs it diverges, so the call that compiles pays
   // nothing.
@@ -484,14 +477,14 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
   }
 }
 
+/// Refuses a `stylex.defineConsts` call the compiler cannot read, and answers
+/// the top-level expression it is bound to.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn find_and_validate_stylex_define_consts(
   call: &CallExpr,
   state: &mut StateManager,
-) -> Option<TopLevelExpression> {
-  if !is_define_consts_call(call, state) {
-    return None;
-  }
-
+) -> TopLevelExpression {
   let call_expr = Expr::from(call.clone());
 
   let define_consts_top_level_expr = match state.find_top_level_expr(call) {
@@ -531,7 +524,7 @@ pub(crate) fn find_and_validate_stylex_define_consts(
     );
   }
 
-  Some(define_consts_top_level_expr.clone())
+  define_consts_top_level_expr.clone()
 }
 
 stylex_call_predicate!(is_create_call, STYLEX_CREATE, ImportKind::Create);
@@ -588,22 +581,18 @@ pub(crate) fn is_target_call(
     .and_then(|callee| callee.as_ident())
     .is_some_and(|ident| imports_map.is_some_and(|set| set.contains(&ident.sym)));
 
+  // The receiver is asked for its name once. Asking whether it has one and then
+  // reading it left a second answer for a receiver that has none, which the
+  // first answer had already ruled out.
   let is_create_member = callee
     .and_then(|callee| callee.as_member())
     .is_some_and(|member| {
-      let receiver = normalize_expr(&member.obj);
-
-      receiver.is_ident()
-        && member.prop.as_ident().is_some_and(|ident| {
-          ident.sym == call_name
-            && state.is_stylex_namespace_import(
-              match receiver.as_ident() {
-                Some(ident) => ident,
-                None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
-              }
-              .sym
-              .as_ref(),
-            )
+      normalize_expr(&member.obj)
+        .as_ident()
+        .is_some_and(|receiver| {
+          member.prop.as_ident().is_some_and(|ident| {
+            ident.sym == call_name && state.is_stylex_namespace_import(receiver.sym.as_ref())
+          })
         })
     });
 

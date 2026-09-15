@@ -35,7 +35,7 @@ use stylex_state::{
 /// module-scoped `const` and returns a reference to it.
 pub(crate) fn stylex_merge(
   call: &mut CallExpr,
-  transform: fn(&[ResolvedArg]) -> Option<FnResult>,
+  transform: fn(&[ResolvedArg]) -> FnResult,
   hoist_expression: fn(Expr, &mut StateManager) -> Expr,
   state: &mut StateManager,
 ) -> Option<Expr> {
@@ -260,7 +260,7 @@ pub(crate) fn stylex_merge(
   } else {
     let string_expression = make_string_expression(&resolved_args, transform);
 
-    if let Some(Expr::Object(string_expression)) = string_expression.as_ref()
+    if let Expr::Object(string_expression) = &string_expression
       && state.has_jsx_spread_call(call)
       && !string_expression.props.is_empty()
     {
@@ -278,7 +278,7 @@ pub(crate) fn stylex_merge(
       }
     }
 
-    return string_expression;
+    return Some(string_expression);
   }
 
   None

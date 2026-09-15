@@ -17,10 +17,11 @@ use stylex_state::{
 
 use super::parse_nullable_style::ResolvedArg;
 
-pub(crate) fn props(styles: &[ResolvedArg]) -> Option<FnResult> {
-  Some(FnResult::Props(
-    NestedStringObject::FlatCompiledStylesValues(props_map(styles)),
-  ))
+/// The properties a `stylex.props(...)` call is replaced by.
+pub(crate) fn props(styles: &[ResolvedArg]) -> FnResult {
+  FnResult::Props(NestedStringObject::FlatCompiledStylesValues(props_map(
+    styles,
+  )))
 }
 
 /// The properties the merged styles become, before they are named as a result.

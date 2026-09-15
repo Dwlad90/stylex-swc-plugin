@@ -173,14 +173,11 @@ pub(crate) fn flatten_raw_style_object_logic(
 
             insert_or_update_rule_with_shifting_index(&mut flattened, &property, pre_rule);
           } else {
-            let pre_rule_value = if let Some(first_value) = values.first() {
-              if values.len() == 1 {
-                PreRuleValue::Raw(first_value.clone())
-              } else {
-                PreRuleValue::Vec(values.clone())
-              }
+            // At least one value, because the empty set is the branch above.
+            let pre_rule_value = if values.len() == 1 {
+              PreRuleValue::Raw(values[0].clone())
             } else {
-              PreRuleValue::Null // Default value when `values` is empty.
+              PreRuleValue::Vec(values.clone())
             };
 
             let normalized_key_path =

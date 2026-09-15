@@ -10,7 +10,8 @@ use stylex_state::flat_compiled_styles_value::FlatCompiledStylesValue;
 
 use super::{parse_nullable_style::ResolvedArg, props::props_map};
 
-pub(crate) fn attrs(styles: &[ResolvedArg]) -> Option<FnResult> {
+/// The HTML attributes a `stylex.attrs(...)` call is replaced by.
+pub(crate) fn attrs(styles: &[ResolvedArg]) -> FnResult {
   let attrs = props_map(styles);
 
   let mut attrs_map: IndexMap<String, Rc<FlatCompiledStylesValue>> = IndexMap::new();
@@ -35,7 +36,5 @@ pub(crate) fn attrs(styles: &[ResolvedArg]) -> Option<FnResult> {
     );
   }
 
-  Some(FnResult::Attrs(
-    NestedStringObject::FlatCompiledStylesValues(attrs_map),
-  ))
+  FnResult::Attrs(NestedStringObject::FlatCompiledStylesValues(attrs_map))
 }

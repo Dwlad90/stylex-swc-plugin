@@ -37,33 +37,28 @@ pub(crate) fn unflatten_object(
       continue;
     }
 
+    // A split always answers at least one part, so the last of them is the leaf
+    // and every part before it names an object to go down into.
     let parts = key.split(SEPARATOR).collect::<Vec<_>>();
+    let leaf_key = parts[parts.len() - 1];
     let mut current = &mut result;
 
-    for part in parts.iter().take(parts.len() - 1) {
+    for part in &parts[..parts.len() - 1] {
       let entry = current
         .entry((*part).to_string())
         .or_insert_with(|| UnflattenedCompiledStylesValue::Object(IndexMap::new()));
 
+      // A leaf already written under this part cannot hold the parts below it,
+      // so it gives way to the object they go in.
       if !matches!(entry, UnflattenedCompiledStylesValue::Object(_)) {
         *entry = UnflattenedCompiledStylesValue::Object(IndexMap::new());
       }
 
-      match entry {
-        UnflattenedCompiledStylesValue::Object(map) => current = map,
-        UnflattenedCompiledStylesValue::Leaf(_) => {
-          stylex_unreachable!("Expected unflattened intermediate object.")
-        },
-      }
+      current = object_under(entry);
     }
 
-    let leaf_key = match parts.last() {
-      Some(key) => (*key).to_string(),
-      None => stylex_unreachable!("Expected at least one key part."),
-    };
-
     current.insert(
-      leaf_key,
+      leaf_key.to_string(),
       UnflattenedCompiledStylesValue::Leaf(value.clone()),
     );
   }
@@ -98,6 +93,25 @@ pub(crate) fn convert_unflattened_object_to_ast(
       .map(|(key, value)| create_key_value_prop(key, unflattened_value_to_ast(value)))
       .collect(),
   )
+}
+
+/// The object `value` holds.
+///
+/// Total for the one caller above, which makes `value` an object on the line
+/// before it asks. The second arm answers for a state no input can put the
+/// value in, and is kept because the language names every variant or none. Left
+/// out of the coverage measurement for that reason, as
+/// `guidelines/stack/RUST.md` describes.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn object_under(
+  value: &mut UnflattenedCompiledStylesValue,
+) -> &mut IndexMap<String, UnflattenedCompiledStylesValue> {
+  match value {
+    UnflattenedCompiledStylesValue::Object(map) => map,
+    UnflattenedCompiledStylesValue::Leaf(_) => {
+      stylex_unreachable!("Expected unflattened intermediate object.")
+    },
+  }
 }
 
 fn unflattened_value_to_ast(value: &UnflattenedCompiledStylesValue) -> Expr {

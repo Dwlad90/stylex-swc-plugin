@@ -54,10 +54,7 @@ where
 
     if is_define_vars {
       let stylex_create_theme_top_level_expr =
-        match find_and_validate_stylex_define_vars(call, &mut self.state) {
-          Some(expr) => expr,
-          None => stylex_panic!("defineVars(): Could not find the top-level variable declaration."),
-        };
+        find_and_validate_stylex_define_vars(call, &mut self.state);
 
       let TopLevelExpression(_, _, var_id) = stylex_create_theme_top_level_expr;
 

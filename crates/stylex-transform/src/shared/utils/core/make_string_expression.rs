@@ -1,5 +1,4 @@
-use stylex_ast::ast::convertors::{create_number_expr, create_string_expr};
-use stylex_macros::stylex_panic;
+use stylex_ast::ast::convertors::create_number_expr;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
@@ -15,19 +14,19 @@ use stylex_ast::ast::factories::{
 
 use super::{js_to_ast::convert_object_to_ast, parse_nullable_style::ResolvedArg};
 
-fn fn_result_to_expression(fn_result: FnResult) -> Option<Expr> {
+fn fn_result_to_expression(fn_result: FnResult) -> Expr {
   match fn_result {
-    FnResult::Stylex(string_object) => Some(string_object),
+    FnResult::Stylex(string_object) => string_object,
     FnResult::Props(string_object) | FnResult::Attrs(string_object) => {
-      Some(convert_object_to_ast(&string_object))
+      convert_object_to_ast(&string_object)
     },
   }
 }
 
 pub(crate) fn make_string_expression(
   values: &[ResolvedArg],
-  props_like_fn: fn(&[ResolvedArg]) -> Option<FnResult>,
-) -> Option<Expr> {
+  props_like_fn: fn(&[ResolvedArg]) -> FnResult,
+) -> Expr {
   let conditions = values
     .iter()
     .filter_map(|value| match value {
@@ -37,21 +36,14 @@ pub(crate) fn make_string_expression(
     .collect::<Vec<_>>();
 
   if conditions.is_empty() {
-    match props_like_fn(values) {
-      Some(value) => {
-        return fn_result_to_expression(value);
-      },
-      _ => {
-        return Some(create_string_expr(""));
-      },
-    }
+    return fn_result_to_expression(props_like_fn(values));
   }
 
   let condition_permutations = gen_condition_permutations(conditions.len());
 
   let obj_entries = condition_permutations
     .iter()
-    .filter_map(|permutation| {
+    .map(|permutation| {
       let mut i = 0;
 
       let args = values
@@ -78,20 +70,10 @@ pub(crate) fn make_string_expression(
         .iter()
         .fold(0, |so_far, &b| (so_far << 1) | if b { 1 } else { 0 });
 
-      if let Some(result) = fn_result_to_expression(match props_like_fn(&args) {
-        Some(r) => r,
-        None => stylex_panic!(
-          "Style transformation returned no result for the given condition permutation."
-        ),
-      }) {
-        let prop = PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-          key: PropName::Ident(quote_ident!(key.to_string())),
-          value: Box::new(result),
-        })));
-        return Some(prop);
-      }
-
-      None
+      PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
+        key: PropName::Ident(quote_ident!(key.to_string())),
+        value: Box::new(fn_result_to_expression(props_like_fn(&args))),
+      })))
     })
     .collect::<Vec<PropOrSpread>>();
 
@@ -99,16 +81,23 @@ pub(crate) fn make_string_expression(
   let conditions_to_key =
     gen_bitwise_or_of_conditions(&conditions.into_iter().cloned().collect::<Vec<_>>());
 
-  Some(Expr::from(create_member_expr(
+  Expr::from(create_member_expr(
     obj_expressions,
     create_computed_member_prop(*conditions_to_key),
-  )))
+  ))
 }
 
+/// The key an author's conditions read at runtime: each condition shifted to
+/// its own bit, the bits joined.
+///
+/// Called only where there is at least one condition, so the join always has
+/// something to reduce.
 fn gen_bitwise_or_of_conditions(conditions: &[Expr]) -> Box<Expr> {
-  let binary_expressions = conditions.iter().enumerate().map(|(i, condition)| {
-    let shift = conditions.len() - i - 1;
+  let count = conditions.len();
 
+  // `!!condition << shift`: the double negation makes the author's value a
+  // boolean, and the shift gives each condition a bit of its own.
+  let shifted = |index: usize, condition: &Expr| {
     create_bin_expr(
       BinaryOp::LShift,
       Expr::from(UnaryExpr {
@@ -120,16 +109,17 @@ fn gen_bitwise_or_of_conditions(conditions: &[Expr]) -> Box<Expr> {
           arg: Box::new(condition.clone()),
         })),
       }),
-      create_number_expr(shift as f64),
+      create_number_expr((count - index - 1) as f64),
     )
-  });
+  };
 
-  Box::new(
-    match binary_expressions.reduce(|acc, expr| create_bin_expr(BinaryOp::BitOr, acc, expr)) {
-      Some(expr) => expr,
-      None => stylex_panic!("Cannot generate condition mask from an empty conditions list."),
-    },
-  )
+  let mut joined = shifted(0, &conditions[0]);
+
+  for (index, condition) in conditions.iter().enumerate().skip(1) {
+    joined = create_bin_expr(BinaryOp::BitOr, joined, shifted(index, condition));
+  }
+
+  Box::new(joined)
 }
 
 fn gen_condition_permutations(count: usize) -> Vec<Vec<bool>> {

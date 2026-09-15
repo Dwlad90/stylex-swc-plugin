@@ -38,7 +38,7 @@ fn stylex_inject() {
   ]]);
 
   // Act
-  let result = stylex(&args).expect("Expected result to be Some");
+  let result = stylex(&args);
 
   // Assert
   let classname_string = result
@@ -72,7 +72,7 @@ fn merge_order() {
   let args = create_style_object_args(&[&first, &second, &third]);
 
   // Act
-  let result = stylex(&args).expect("Expected result to be Some");
+  let result = stylex(&args);
 
   // Assert
   let classname_string = result
@@ -105,7 +105,7 @@ fn with_a_top_level_array_of_simple_overridden_classes() {
   let args = create_style_object_args(&[&first, &second]);
 
   // Act
-  let result = stylex(&args).expect("Expected result to be Some");
+  let result = stylex(&args);
 
   // Assert
   let classname_string = result
@@ -151,7 +151,7 @@ fn with_nested_arrays_and_pseudo_classes_overriding_things() {
   let args = create_style_object_args(&[&first, &second, &third]);
 
   // Act
-  let result = stylex(&args).expect("Expected result to be Some");
+  let result = stylex(&args);
 
   // Assert
   let classname_string = result
@@ -388,8 +388,8 @@ fn with_complicated_set_of_arguments() {
   ]);
 
   // Act
-  let result = stylex(&styles).expect("Expected result to be Some");
-  let repeat = stylex(&styles).expect("Expected result to be Some");
+  let result = stylex(&styles);
+  let repeat = stylex(&styles);
 
   // Assert
   let classname_string = result
@@ -454,7 +454,7 @@ fn data_prop_for_source_map_data() {
 
   let args = create_style_object_args(&[&first, &second, &third]);
 
-  let binding = props(&args).expect("Expected result to be Some");
+  let binding = props(&args);
   let props = binding.as_props().expect("Expected result to be Some");
 
   let mut expected_props = IndexMap::new();
@@ -497,7 +497,7 @@ fn with_just_pseudoclasses() {
     ],
   ]);
 
-  let result = stylex(&args).expect("Expected result to be Some");
+  let result = stylex(&args);
 
   let classname_string = result
     .as_stylex()
@@ -537,7 +537,7 @@ fn props_with_dynamic_styles() {
     ResolvedArg::StyleObject(StyleObject::Style(dynamic_style)),
   ];
 
-  let binding = props(&args).expect("Expected result to be Some");
+  let binding = props(&args);
   let props_values = binding.as_props().expect("Expected props result");
   let values = props_values.as_values().expect("Expected values map");
 
@@ -586,7 +586,7 @@ fn attrs_basic_resolve() {
     ("$$css", FlatCompiledStylesValue::Bool(true)),
   ]]);
 
-  let binding = attrs(&args).expect("Expected result to be Some");
+  let binding = attrs(&args);
   let attrs_result = binding.as_attrs().expect("Expected attrs result");
 
   let mut expected = IndexMap::new();
@@ -650,7 +650,7 @@ fn attrs_with_dynamic_styles() {
     ResolvedArg::StyleObject(StyleObject::Style(dynamic_style)),
   ];
 
-  let binding = attrs(&args).expect("Expected result to be Some");
+  let binding = attrs(&args);
   let attrs_values = binding.as_attrs().expect("Expected attrs result");
   let values = attrs_values.as_values().expect("Expected values map");
 
@@ -698,7 +698,7 @@ fn legacy_merge_exposes_attrs() {
     ("$$css", FlatCompiledStylesValue::Bool(true)),
   ]]);
 
-  let binding = attrs(&args).expect("Expected result to be Some");
+  let binding = attrs(&args);
   let attrs_result = binding.as_attrs().expect("Expected attrs result");
 
   let mut expected = IndexMap::new();

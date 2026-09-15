@@ -37,12 +37,7 @@ where
 
     if is_define_consts {
       let top_level_expr_defined_consts =
-        match find_and_validate_stylex_define_consts(call, &mut self.state) {
-          Some(expr) => expr,
-          None => {
-            stylex_panic!("defineConsts(): Could not find the top-level variable declaration.")
-          },
-        };
+        find_and_validate_stylex_define_consts(call, &mut self.state);
 
       let TopLevelExpression(_, _, var_id) = top_level_expr_defined_consts;
 

@@ -8,6 +8,7 @@ use stylex_state::{
 };
 
 use super::style_args::{inline, inline_pair, style_of, styles};
+use crate::shared::enums::data_structures::fn_result::FnResult;
 use crate::shared::utils::core::{
   attrs::attrs,
   parse_nullable_style::{ResolvedArg, StyleObject},
@@ -15,14 +16,7 @@ use crate::shared::utils::core::{
 };
 
 /// The values a result holds, keyed the way it named them.
-fn values_of(
-  result: Option<crate::shared::enums::data_structures::fn_result::FnResult>,
-) -> FlatCompiledStyles {
-  let result = match result {
-    Some(result) => result,
-    None => panic!("the call answered nothing"),
-  };
-
+fn values_of(result: FnResult) -> FlatCompiledStyles {
   let object = match (result.as_props(), result.as_attrs()) {
     (Some(object), _) | (_, Some(object)) => object.clone(),
     _ => panic!("the result names neither properties nor attributes"),

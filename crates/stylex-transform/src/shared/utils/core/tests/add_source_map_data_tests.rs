@@ -263,3 +263,18 @@ fn falls_back_to_the_state_filename_when_the_token_has_no_source() {
   assert_eq!(position.filename, state.get_filename().to_string());
   assert_eq!(position.line_number, 42);
 }
+
+/// Without the compiler's own input there is nothing to map from, so the caller
+/// falls back to locating the key in the source text.
+#[test]
+fn returns_none_without_an_input_source_file() {
+  let key_offset = match INPUT_CODE.find("other") {
+    Some(offset) => offset,
+    None => panic!("fixture must contain the key"),
+  };
+  let (style_node_path, _) = key_value_prop_at(key_offset, "other");
+
+  assert!(
+    original_position_from_input_source_map(&style_node_path, &StateManager::default()).is_none()
+  );
+}

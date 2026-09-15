@@ -10,6 +10,7 @@ pub(crate) enum FnResult {
 }
 
 impl FnResult {
+  #[cfg(test)]
   pub(crate) fn as_props(&self) -> Option<&NestedStringObject> {
     match self {
       FnResult::Props(props) => Some(props),

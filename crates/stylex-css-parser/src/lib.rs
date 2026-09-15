@@ -60,13 +60,11 @@ pub mod token_parser;
 pub mod token_types;
 
 pub mod css_value;
-pub mod flex_parser;
 
 pub use at_queries::last_media_query_wins_transform;
 pub use token_parser as tokenParser;
 
 pub use css_value::CssValue;
-pub use flex_parser::{FlexCombinators, FlexParser};
 
 /// Main error type for CSS parsing operations
 #[derive(Debug, Clone, thiserror::Error)]

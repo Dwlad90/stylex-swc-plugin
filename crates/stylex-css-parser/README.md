@@ -13,8 +13,8 @@ no internal dependencies beyond `stylex-macros` and `stylex-utils`.
 
 - Full CSS type coverage: colors, lengths, angles, calc expressions, transform
   functions, easing, filters, and more
-- Flexible parser combinator system (`FlexParser`, `FlexCombinators`) with
-  backtracking support for composable, zero-copy parsing
+- Token parser combinators (`TokenParser`) with backtracking support for
+  composable, zero-copy parsing
 - Media query parsing and transformation with "last media query wins" semantics
   via `last_media_query_wins_transform`
 

@@ -17,47 +17,6 @@ use crate::utils::prelude::*;
 
 use crate::utils::transform::{compiled_module, compiled_theme_module};
 
-/// Asserts the two spellings of one module compile to the same body.
-///
-/// The import line is the one line they are meant to differ in, so it is the
-/// one line left out. That makes the check blind to a difference confined to an
-/// import, which is true of no input here: the compiler writes one import of
-/// its own, and it writes `var _inject2 = _inject;` beside it, so a spelling
-/// that injected nothing still reads as different.
-///
-/// A comparison of two spellings would also hold if neither of them compiled,
-/// so the namespace spelling is anchored first: it has to have injected
-/// something for the comparison to say anything at all.
-#[track_caller]
-fn assert_spellings_agree_but_for_the_import(
-  shape: &str,
-  namespace: &str,
-  named: &str,
-  compile: impl Fn(&str) -> String,
-) {
-  let body = |input: &str| {
-    compile(input)
-      .lines()
-      .filter(|line| !line.trim_start().starts_with("import "))
-      .collect::<Vec<_>>()
-      .join("\n")
-  };
-
-  let from_namespace = body(namespace);
-
-  assert!(
-    from_namespace.contains("_inject2("),
-    "{shape} injected nothing under the namespace spelling, so there is nothing to compare:\n\
-     {from_namespace}"
-  );
-  assert_eq!(
-    from_namespace,
-    body(named),
-    "{shape} compiles to something else when it is read by name.\n\
-     namespace:\n{namespace}\nnamed:\n{named}"
-  );
-}
-
 // Each producer that is bound to a declarator: the call has to be recognised
 // under its imported name, or the module comes out holding a call the compiler
 // never read and the CSS it declares is never injected.

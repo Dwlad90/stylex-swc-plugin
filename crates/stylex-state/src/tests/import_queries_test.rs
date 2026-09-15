@@ -166,46 +166,80 @@ fn a_name_bound_by_any_of_the_kinds_asked_about_answers_yes() {
   assert!(!state.any_stylex_api_import_contains(&[], &Atom::from("props")));
 }
 
-/// A namespace import answers for every kind, because every API is reachable
-/// through it.
+/// Each cycle reads exactly the APIs the other one does not, whatever the kind
+/// is.
+///
+/// This is the property that replaced a hand-written list of producing kinds:
+/// `viewTransitionClass` was left off that list and the calls naming it by
+/// import came out of the compiler untouched. Totality is held by the match in
+/// [`ImportKind::is_read_by_the_consuming_cycle`], which does not compile until a kind
+/// added to the enum is classified; this case is what says the two cycles then
+/// read the two sides of it.
+///
+/// The census below is a hand-listed reading of the enum, so it can fall behind
+/// one -- which costs nothing, because the match is what makes the answer
+/// total. It is here to say the partition holds for every kind that exists
+/// today, rather than for two picked as examples.
 #[test]
-fn a_namespace_import_answers_for_every_kind() {
-  let mut state = state();
+fn each_cycle_reads_the_apis_the_other_does_not() {
+  use ImportKind::*;
 
-  state.insert_stylex_import(ImportSources::Regular("stylex".to_string()));
+  let census = [
+    Props,
+    Attrs,
+    Create,
+    FirstThatWorks,
+    Keyframes,
+    DefineVars,
+    DefineVarsNested,
+    DefineMarker,
+    DefineConsts,
+    DefineConstsNested,
+    CreateTheme,
+    CreateThemeNested,
+    Conditional,
+    PositionTry,
+    ViewTransitionClass,
+    DefaultMarker,
+    When,
+    Types,
+    Env,
+  ];
 
-  assert!(state.is_stylex_import_for_kinds("stylex", &[ImportKind::Create]));
-  assert!(state.is_stylex_import_for_kinds("stylex", &[]));
+  for kind in census {
+    let mut state = state();
+
+    state.insert_stylex_api_import(kind, Atom::from("theName"));
+
+    let consumed = kind.is_read_by_the_consuming_cycle();
+
+    state.cycle = TransformationCycle::TransformProducers;
+    assert_eq!(
+      state.is_stylex_import_for_current_cycle("theName"),
+      !consumed,
+      "{kind:?} answered the wrong way in the producing cycle"
+    );
+
+    state.cycle = TransformationCycle::TransformConsumers;
+    assert_eq!(
+      state.is_stylex_import_for_current_cycle("theName"),
+      consumed,
+      "{kind:?} answered the wrong way in the consuming cycle"
+    );
+  }
 }
 
-/// A name bound by a direct import answers only for the kind it names.
+/// Outside the two transforming cycles, a direct import counts for nothing.
+///
+/// The two that transform are answered for every kind by the census above, so
+/// what is left to say is that the cycles which read no direct import read
+/// none -- whichever side of the partition the API is on.
 #[test]
-fn a_direct_import_answers_only_for_its_own_kind() {
-  let mut state = state();
-
-  state.insert_stylex_api_import(ImportKind::Create, Atom::from("create"));
-
-  assert!(state.is_stylex_import_for_kinds("create", &[ImportKind::Create]));
-  assert!(!state.is_stylex_import_for_kinds("create", &[ImportKind::Props]));
-}
-
-/// Which APIs count depends on the cycle. The producing cycle reads the APIs
-/// that make styles, the consuming cycle reads the two that spend them, and
-/// every other cycle reads only a namespace import.
-#[test]
-fn the_cycle_decides_which_apis_count() {
+fn no_direct_import_counts_outside_the_transforming_cycles() {
   let mut state = state();
 
   state.insert_stylex_api_import(ImportKind::Create, Atom::from("create"));
   state.insert_stylex_api_import(ImportKind::Props, Atom::from("props"));
-
-  state.cycle = TransformationCycle::TransformProducers;
-  assert!(state.is_stylex_import_for_current_cycle("create"));
-  assert!(!state.is_stylex_import_for_current_cycle("props"));
-
-  state.cycle = TransformationCycle::TransformConsumers;
-  assert!(state.is_stylex_import_for_current_cycle("props"));
-  assert!(!state.is_stylex_import_for_current_cycle("create"));
 
   for cycle in [TransformationCycle::Discover, TransformationCycle::Finalize] {
     state.cycle = cycle;

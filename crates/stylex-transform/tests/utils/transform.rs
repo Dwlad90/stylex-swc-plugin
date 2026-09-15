@@ -450,13 +450,16 @@ pub(crate) fn assert_spellings_agree(shape: &str, bare: &str, wrapped: &str) {
 /// printed. The message names neither spelling, because the pair is not always
 /// bare against parenthesised -- a member read against a computed one is the
 /// same question -- so `shape` is what says which pair was asked.
+///
+/// Answers what the two agreed on, so a caller with something further to ask of
+/// it does not compile either spelling a second time.
 #[track_caller]
 pub(crate) fn assert_spellings_agree_with(
   shape: &str,
   first: &str,
   second: &str,
   compile: impl Fn(&str) -> String,
-) {
+) -> String {
   let from_first = compile(first);
   let from_second = compile(second);
 
@@ -464,5 +467,46 @@ pub(crate) fn assert_spellings_agree_with(
     from_first, from_second,
     "the two spellings of {shape} compile to something different.\n\
      first:\n{first}\nsecond:\n{second}"
+  );
+
+  from_first
+}
+
+/// [`assert_spellings_agree_with`], for two spellings that differ in their
+/// import line.
+///
+/// A StyleX API reached by name and the same API reached through the namespace
+/// are the same module apart from that line, so it is the one line the
+/// comparison leaves out. That makes the check blind to a difference confined
+/// to an import, which no case needs it to see: the compiler writes one import
+/// of its own and a `var _inject2 = _inject;` beside it, so a spelling that
+/// injected nothing still reads as different.
+///
+/// Two spellings that both stopped compiling would agree as well, so what they
+/// agreed on is anchored: it has to have injected something for the agreement
+/// to say anything at all. This is what a bare comparison cannot answer, and it
+/// is why a snapshot of one spelling is no substitute -- a call the compiler
+/// never reached prints as the author wrote it.
+#[track_caller]
+pub(crate) fn assert_spellings_agree_but_for_the_import(
+  shape: &str,
+  first: &str,
+  second: &str,
+  compile: impl Fn(&str) -> String,
+) {
+  let body = |input: &str| {
+    compile(input)
+      .lines()
+      .filter(|line| !line.trim_start().starts_with("import "))
+      .collect::<Vec<_>>()
+      .join("\n")
+  };
+
+  let agreed = assert_spellings_agree_with(shape, first, second, body);
+
+  assert!(
+    agreed.contains("_inject2("),
+    "{shape} injected nothing under either spelling, so the agreement above \
+     says nothing:\n{agreed}"
   );
 }

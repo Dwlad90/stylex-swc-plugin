@@ -151,6 +151,42 @@ pub enum ImportKind {
 }
 
 impl ImportKind {
+  /// Whether the consuming cycle is the one that transforms a call to this
+  /// API.
+  ///
+  /// Two APIs spend styles and every other one makes them, so the two cycles
+  /// partition the enum. Asked as a match over every variant rather than as a
+  /// list of the producing ones: a list can only be short, and a kind missing
+  /// from it never reaches its handler -- which is how `viewTransitionClass`
+  /// came to be dropped from one. A kind added to the enum does not compile
+  /// until somebody says which cycle reads it.
+  ///
+  /// `Env` answers `false` and so joins the producing side, where the list left
+  /// it out altogether. It names no call, so every handler there refuses it and
+  /// the cycle reads the same modules it did.
+  pub const fn is_read_by_the_consuming_cycle(self) -> bool {
+    match self {
+      Self::Attrs | Self::Props => true,
+      Self::Create
+      | Self::FirstThatWorks
+      | Self::Keyframes
+      | Self::DefineVars
+      | Self::DefineVarsNested
+      | Self::DefineMarker
+      | Self::DefineConsts
+      | Self::DefineConstsNested
+      | Self::CreateTheme
+      | Self::CreateThemeNested
+      | Self::Conditional
+      | Self::PositionTry
+      | Self::ViewTransitionClass
+      | Self::DefaultMarker
+      | Self::When
+      | Self::Types
+      | Self::Env => false,
+    }
+  }
+
   pub fn from_import_name(name: &str) -> Option<ImportKind> {
     match name {
       STYLEX_CREATE => Some(ImportKind::Create),
@@ -210,6 +246,24 @@ impl ImportState {
       .stylex_api_imports
       .get(&kind)
       .is_some_and(|set| set.contains(sym))
+  }
+
+  /// Whether `sym` is bound to a StyleX API that the named cycle transforms.
+  ///
+  /// Walks the imports a module has rather than a list of kinds to ask for, so
+  /// a kind added to [`ImportKind`] is answered for by
+  /// [`ImportKind::is_read_by_the_consuming_cycle`] alone.
+  ///
+  /// One walk of the imports a module names, where the lists this replaced were
+  /// one hash look-up per kind they held -- seventeen for the producing cycle
+  /// and two for the consuming one. So a module naming more than two APIs pays
+  /// a little more on the consuming side than its list did. The walk stops at
+  /// the first name that matches.
+  fn has_stylex_api_import_for_the_consuming_cycle(&self, sym: &Atom, consumed: bool) -> bool {
+    self
+      .stylex_api_imports
+      .iter()
+      .any(|(kind, set)| kind.is_read_by_the_consuming_cycle() == consumed && set.contains(sym))
   }
 
   fn insert_stylex_api_import(&mut self, kind: ImportKind, sym: Atom) {
@@ -1677,54 +1731,34 @@ impl StateManager {
       })
   }
 
-  pub fn is_stylex_import_for_kinds(&self, ident_sym: &str, kinds: &[ImportKind]) -> bool {
+  /// Whether `ident_sym` names StyleX in the cycle that is running.
+  ///
+  /// This is what makes a call reach a handler at all, and it can only
+  /// under-approximate: each handler asks its own predicate right after, so a
+  /// name let through is refused there, while a name held back never arrives.
+  /// A namespace import answers for every API at once, so the shortfall shows
+  /// only through `import { <name> }` -- which is how `viewTransitionClass`
+  /// came to be missing from the producing cycle, the call coming out of the
+  /// compiler unchanged with the CSS it declares never injected.
+  ///
+  /// So neither cycle names a list. Both ask
+  /// [`ImportKind::is_read_by_the_consuming_cycle`], which answers for every kind there
+  /// is, and the two cycles cannot then disagree about one or leave it out.
+  pub fn is_stylex_import_for_current_cycle(&self, ident_sym: &str) -> bool {
+    let consumed = match self.cycle {
+      TransformationCycle::TransformProducers => false,
+      TransformationCycle::TransformConsumers => true,
+      // Every other cycle reads a namespace import and nothing else.
+      _ => return self.is_stylex_namespace_import(ident_sym),
+    };
+
     if self.is_stylex_namespace_import(ident_sym) {
       return true;
     }
 
-    self.any_stylex_api_import_contains(kinds, &Atom::from(ident_sym))
-  }
-
-  /// Whether `ident_sym` names StyleX in the cycle that is running.
-  ///
-  /// The two lists below are what makes a call reach a handler at all, so each
-  /// one must name every API its cycle transforms. A namespace import answers
-  /// for all of them at once, which is why a kind left out of a list goes
-  /// unnoticed: the API keeps working through `stylex.<name>(…)` and stops
-  /// working only through `import { <name> }`. `viewTransitionClass` was
-  /// missing from the producer list for that reason -- the call came out of the
-  /// compiler unchanged, and the CSS it declares was never injected.
-  pub fn is_stylex_import_for_current_cycle(&self, ident_sym: &str) -> bool {
-    match self.cycle {
-      TransformationCycle::TransformProducers => {
-        use ImportKind::*;
-        self.is_stylex_import_for_kinds(
-          ident_sym,
-          &[
-            Create,
-            DefineVars,
-            DefineVarsNested,
-            DefineConsts,
-            DefineConstsNested,
-            DefineMarker,
-            CreateTheme,
-            CreateThemeNested,
-            PositionTry,
-            ViewTransitionClass,
-            Keyframes,
-            FirstThatWorks,
-            Types,
-            DefaultMarker,
-            When,
-            Conditional,
-          ],
-        )
-      },
-      TransformationCycle::TransformConsumers => {
-        self.is_stylex_import_for_kinds(ident_sym, &[ImportKind::Attrs, ImportKind::Props])
-      },
-      _ => self.is_stylex_namespace_import(ident_sym),
-    }
+    self
+      .imports
+      .has_stylex_api_import_for_the_consuming_cycle(&Atom::from(ident_sym), consumed)
   }
 
   /// Applies the `env` configuration to the given identifiers and

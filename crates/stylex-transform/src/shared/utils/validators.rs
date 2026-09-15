@@ -87,10 +87,15 @@ pub(crate) fn argument_at(call: &CallExpr, index: usize, fn_name: &str) -> Expr 
 /// producer with no object, so both read one sentence at one position. Which is
 /// not what the seven copies did -- four reported the empty answer with no code
 /// frame, and the four that asked through `assert!` (a different four) panicked
-/// with the string they formatted rather than through this compiler's error, so
-/// the payload carried no `[StyleX]`, no colour and no stack-trace line. What
-/// reaches stderr and the NAPI boundary is unchanged either way, because both
-/// add the prefix themselves.
+/// with the string they formatted rather than through this compiler's error.
+///
+/// Those four now report the way the other three and every validator do, so
+/// three things reach a reader that did not before: the brand, which neither
+/// boundary shows as new because `stylex_logs` prefixes a payload that lacks
+/// one; the colour, which the NAPI reader strips and stderr prints, so it is
+/// new there whenever the process is a terminal; and the stack trace
+/// `StyleXError` writes when `log` admits `Info`, which is off by default and
+/// reaches both. The sentence itself is unchanged.
 ///
 /// How an argument comes to fold to nothing while the fold stayed confident is
 /// not settled: the memo can answer `None` without a refusal having been

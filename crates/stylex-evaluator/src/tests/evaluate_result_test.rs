@@ -49,3 +49,35 @@ fn a_refusal_differs_from_a_confident_answer_in_nothing_but_confidence() {
 
   assert_ne!(refused, confident);
 }
+
+/// Where a refusal is reported, for the caller that is about to build a code
+/// frame.
+///
+/// [`crate::evaluate::evaluate`] records the position it refused on, so a
+/// reader of its answer only ever meets the first of the two. The `create`
+/// argument reader is the one producer with a refusal that records none, and
+/// most of its refusals record one, so the fallback rests on a single line of
+/// one of them. Asserted here rather than only through those readers, so both
+/// answers have a case whichever crate the readers live in.
+mod refusal_site {
+  use crate::{evaluate_result::refusal_site, tests::scaffolding::parse_expr};
+
+  /// A refusal that recorded a position is reported at that position, not at
+  /// the argument the caller was reading.
+  #[test]
+  fn a_recorded_position_is_the_one_reported() {
+    let deopt = parse_expr("makeStyles()");
+    let argument = parse_expr("{ root: { color: 'red' } }");
+
+    assert_eq!(refusal_site(Some(&deopt), &argument), deopt);
+  }
+
+  /// A refusal that recorded none falls back to the argument, which is the
+  /// nearest expression the author wrote.
+  #[test]
+  fn no_recorded_position_falls_back_to_the_argument() {
+    let argument = parse_expr("{ root: { color: 'red' } }");
+
+    assert_eq!(refusal_site(None, &argument), argument);
+  }
+}

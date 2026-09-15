@@ -85,10 +85,10 @@ where
       });
 
     // Only an expression container names styles to compile. An attribute
-    // written as text, or with no value at all, is left where the author wrote
-    // it -- as a prop of a compiled call whose value cannot be read is. The
-    // first attribute of the name wins either way, so a second one is not
-    // looked at.
+    // written as text, or with no value at all, stays where the author wrote
+    // it. So does a prop of a compiled call whose value the compiler cannot
+    // read. The first attribute with the name wins either way, so a second one
+    // is not read.
     if let Some((
       idx,
       Some(JSXAttrValue::JSXExprContainer(JSXExprContainer {

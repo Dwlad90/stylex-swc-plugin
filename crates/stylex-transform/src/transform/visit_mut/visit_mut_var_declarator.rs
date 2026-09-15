@@ -86,8 +86,8 @@ where
             Some(TopLevelExpression(TopLevelExpressionKind::Stmt, _, _))
           );
 
-          // Read before the object below is reached for, which needs the
-          // declarator to itself.
+          // Read here, because the object below needs the declarator to
+          // itself.
           let var_id = binding.id.to_id();
 
           if declared_as_a_statement
@@ -207,12 +207,12 @@ where
   /// The object was written by `convert_object_to_ast` a few phases back, and
   /// that step writes every prop as a key-value under a name -- asserted where
   /// the object is built, by `writes_every_prop_as_a_key_value_under_a_name`.
-  /// A prop that is not leaves the whole object as it is, because a sweep
-  /// cannot tell what such an entry carries.
+  /// A prop that is not a key-value under a name leaves the whole object as it
+  /// is, because a sweep cannot tell what such an entry carries.
   fn retain_object_props(
     &self,
     object: &mut ObjectLit,
-    namespace_to_keep: &FxHashSet<Atom>,
+    namespaces_to_keep: &FxHashSet<Atom>,
     var_id: &DeclId,
   ) -> Vec<PropOrSpread> {
     // The namespace each prop names, read once. A `None` here answers for the
@@ -267,7 +267,7 @@ where
     let mut props: Vec<PropOrSpread> = Vec::with_capacity(object.props.len());
 
     for (object_prop, namespace_name) in object.props.iter_mut().zip(namespace_names) {
-      if !namespace_to_keep.contains(&namespace_name) {
+      if !namespaces_to_keep.contains(&namespace_name) {
         continue;
       }
 

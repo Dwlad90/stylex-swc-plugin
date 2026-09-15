@@ -112,7 +112,7 @@ fn an_sx_call_with_no_configured_import_source_names_the_package() {
 
     module.visit_mut_with(&mut transform);
 
-    let mut sources: Vec<String> = module
+    let sources: Vec<String> = module
       .body
       .iter()
       .filter_map(|item| match item {
@@ -122,7 +122,6 @@ fn an_sx_call_with_no_configured_import_source_names_the_package() {
         _ => None,
       })
       .collect();
-    sources.dedup();
 
     assert!(
       sources

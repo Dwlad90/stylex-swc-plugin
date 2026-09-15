@@ -30,7 +30,7 @@ use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
 use stylex_state::state_manager::DeclId;
 use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
-use super::super::visit_mut_var_declarator::retain_style_props;
+use super::retain_style_props;
 use crate::transform::tests::prelude::{TestComments, test_transform};
 
 /// The object `props` make up.

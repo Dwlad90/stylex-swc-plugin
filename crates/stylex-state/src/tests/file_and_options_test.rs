@@ -5,7 +5,7 @@
 //! the host has one: a module compiled from a string has no name to read, and
 //! every question below answers empty rather than refusing.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use rustc_hash::FxHashMap;
@@ -683,6 +683,31 @@ fn an_import_from_a_file_outside_every_package_is_refused() {
   let state = state_for(real("/vars.stylex.js"), common_js(None, None));
 
   state.import_path_resolver("./other.stylex.js", &mut FxHashMap::default());
+}
+
+/// The directory the compilation runs in is the one the pass states.
+#[test]
+fn answers_the_working_directory_the_pass_states() {
+  let mut state = StateManager::default();
+
+  state.set_plugin_pass(PluginPass::default().with_cwd("/project/app"));
+
+  assert_eq!(state.cwd().as_deref(), Some(Path::new("/project/app")));
+}
+
+/// A pass that states none leaves the process to answer, which is where the
+/// compiler reads the directory it states.
+#[test]
+fn answers_the_process_directory_where_the_pass_states_none() {
+  let here = match std::env::current_dir() {
+    Ok(here) => here,
+    Err(error) => panic!("the working directory could not be read: {error}"),
+  };
+
+  assert_eq!(
+    StateManager::default().cwd().as_deref(),
+    Some(here.as_path())
+  );
 }
 
 /// What [`matches_file_suffix`] answers, which is what decides whether a file

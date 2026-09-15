@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use log::{debug, info, warn};
 use rustc_hash::FxHashMap;
-use std::{env, path::Path, rc::Rc, sync::LazyLock};
+use std::{path::Path, rc::Rc, sync::LazyLock};
 use stylex_macros::stylex_panic;
 use stylex_path_resolver::package_json::PackageJsonExtended;
 
@@ -15,7 +15,7 @@ use stylex_state_index::key_span_index::CallLookup;
 use stylex_ast::ast::convertors::{create_string_expr, get_key_values_from_object};
 use stylex_constants::constants::{
   common::COMPILED_KEY,
-  messages::{EXPECTED_OBJECT_EXPRESSION, INVALID_UTF8, illegal_argument_length},
+  messages::{EXPECTED_OBJECT_EXPRESSION, illegal_argument_length},
 };
 use stylex_diagnostics::code_frame::{get_key_span_from_source_code, get_span_from_source_code};
 use stylex_evaluator::evaluate::evaluate_obj_key;
@@ -364,42 +364,17 @@ fn get_short_path(relative_path: &str, state: &StateManager) -> String {
   path_segments.join("/")
 }
 
-/// `text`, or the refusal a path that spells none is reported with.
-///
-/// This is the whole of what is left out of the coverage measurement, and it
-/// computes nothing -- it chooses between answers the caller has already worked
-/// out. The path is the working directory, which a build this compiler runs in
-/// can spell. `guidelines/stack/RUST.md` describes the allowance.
-#[cfg_attr(coverage_nightly, coverage(off))]
-fn or_refuse_unspellable_path(text: Option<&str>) -> &str {
-  match text {
-    Some(text) => text,
-    None => stylex_panic!("{}", INVALID_UTF8),
-  }
-}
-
 /// The short name `absolute_path` is written as, measured against the directory
-/// the compiler runs in.
+/// the compilation runs in.
 ///
-/// This is where the environment is read, and the only place. Every rule the
-/// naming applies is about where the compiler runs, so separating the read
-/// from the rules leaves a name that is decided by its arguments: one caller
-/// asks the environment, and one function says what a path is called. A test
-/// states the directory instead, which it cannot do by moving the process --
-/// that would move every other test in the binary with it.
+/// The directory comes from the state, where the compiler puts it. A
+/// compilation with no readable directory shares no path with the file, and
+/// every rule below already answers for a directory the file lies outside. A
+/// directory that no text can spell is still stripped from the front of the
+/// path; only the package it belongs to goes unread, because a package is
+/// looked up by name.
 fn create_short_filename(
   absolute_path: &str,
-  state: &StateManager,
-  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
-) -> String {
-  let cwd = env::current_dir().unwrap_or_default();
-
-  create_short_filename_under(absolute_path, &cwd, state, package_json_seen)
-}
-
-fn create_short_filename_under(
-  absolute_path: &str,
-  cwd: &Path,
   state: &StateManager,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> String {
@@ -409,8 +384,11 @@ fn create_short_filename_under(
   );
 
   let path = Path::new(absolute_path);
-  let cwd_str = or_refuse_unspellable_path(cwd.to_str());
-  let cwd_package = StateManager::get_package_name_and_path(cwd_str, package_json_seen);
+  let cwd = state.cwd();
+  let cwd_package = cwd
+    .as_deref()
+    .and_then(Path::to_str)
+    .and_then(|cwd| StateManager::get_package_name_and_path(cwd, package_json_seen));
   let package_details = StateManager::get_package_name_and_path(absolute_path, package_json_seen);
 
   // If package details exist, use package-relative path
@@ -453,11 +431,13 @@ fn create_short_filename_under(
   }
 
   // Otherwise, return short path relative to cwd
-  let relative_path = path
-    .strip_prefix(cwd)
-    .map_or(absolute_path.to_string(), |p| {
-      p.to_string_lossy().into_owned()
-    });
+  let relative_path = cwd
+    .as_deref()
+    .and_then(|cwd| path.strip_prefix(cwd).ok())
+    .map_or_else(
+      || absolute_path.to_string(),
+      |p| p.to_string_lossy().into_owned(),
+    );
 
   get_short_path(&relative_path, state)
 }

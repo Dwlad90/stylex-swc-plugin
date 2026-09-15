@@ -1,6 +1,6 @@
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cell::OnceCell;
-use std::{option::Option, path::Path, rc::Rc, sync::Arc};
+use std::{borrow::Cow, env, option::Option, path::Path, rc::Rc, sync::Arc};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
 use indexmap::{IndexMap, IndexSet};
@@ -1688,6 +1688,23 @@ impl StateManager {
     self.stylex_imports().iter().any(|import_source| {
       matches!(import_source, ImportSources::Regular(regular) if regular.as_str() == ident_sym)
     })
+  }
+
+  /// The directory the compilation runs in, where there is one.
+  ///
+  /// The compiler states it on the pass, so a reader takes it from here rather
+  /// than from the process: one source of truth for what a path is relative to,
+  /// and no system call for each file named. A pass that states none is
+  /// answered by the process, which is where the compiler itself reads it.
+  ///
+  /// Nothing stands in for a directory that cannot be read. An empty path is
+  /// not a directory every path lies outside -- it is one the naming below
+  /// would measure against, and it would rename files without saying so.
+  pub fn cwd(&self) -> Option<Cow<'_, Path>> {
+    match &self.plugin_pass.cwd {
+      Some(cwd) => Some(Cow::Borrowed(cwd.as_path())),
+      None => env::current_dir().ok().map(Cow::Owned),
+    }
   }
 
   /// The namespaces `ident` names, where it names a style variable this module

@@ -377,13 +377,13 @@ mod short_filenames {
     state_manager::StateManager,
   };
   use stylex_structures::{
+    plugin_pass::PluginPass,
     stylex_env::JSFunction,
     stylex_options::{CheckModuleResolution, StyleXOptions},
   };
 
   use super::super::{
-    create_short_filename, create_short_filename_under, get_package_prefix, get_short_path,
-    insert_compiled_entry,
+    create_short_filename, get_package_prefix, get_short_path, insert_compiled_entry,
   };
 
   fn short_filename_of(path: &str, state: &StateManager) -> String {
@@ -538,20 +538,18 @@ mod short_filenames {
     );
   }
 
-  /// A compiler running outside every package names a file of its own directory
-  /// by the path inside it, because that is the path the author reads.
+  /// A compilation running outside every package names a file of its own
+  /// directory by the path inside it, because that is the path the author
+  /// reads.
   #[test]
   fn names_a_file_of_a_working_directory_that_is_in_no_package() {
-    let state = StateManager::default();
     let cwd = directory_in_no_package("stylex_cwd_without_a_package");
+    let mut state = StateManager::default();
+
+    state.set_plugin_pass(PluginPass::default().with_cwd(cwd.clone()));
 
     assert_eq!(
-      create_short_filename_under(
-        &format!("{cwd}/src/components/Card.tsx"),
-        std::path::Path::new(&cwd),
-        &state,
-        &mut FxHashMap::default(),
-      ),
+      short_filename_of(&format!("{cwd}/src/components/Card.tsx"), &state),
       "components/Card.tsx"
     );
   }
@@ -868,11 +866,12 @@ mod over_the_authored_text {
     let mut state = StateManager::default();
 
     // A real name, because the annotation is `file:line` and a file with no
-    // name shortens to nothing.
-    state.set_plugin_pass(PluginPass::new(
-      None,
-      Some(FileName::Real("/project/src/Card.tsx".into())),
-    ));
+    // name shortens to nothing. The directory is left unstated, so the naming
+    // is measured against the one the suite runs in -- what this module reads
+    // is the line, and a stated directory would move the file name with it.
+    state.set_plugin_pass(
+      PluginPass::default().with_filename(FileName::Real("/project/src/Card.tsx".into())),
+    );
     state.set_input_source_file(source_file);
 
     for item in module.body {

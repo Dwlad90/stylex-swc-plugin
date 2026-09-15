@@ -59,11 +59,45 @@ fn key_value_props_of(object: &ObjectLit) -> Vec<KeyValueProp> {
     .collect()
 }
 
+/// The text a folded key spells.
+///
+/// Total for the two callers: a key that folded answers a string literal, and
+/// the text of a string literal is the string. The refusal answers for a key
+/// that spells no name, which never folds, and is left out of the coverage
+/// measurement for that reason, as `guidelines/stack/RUST.md` describes.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn key_text_of(key: &Expr, traversal_state: &mut StateManager, functions: &FunctionMap) -> String {
+  match convert_expr_to_str(key, traversal_state, functions) {
+    Some(text) => text,
+    None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
+  }
+}
+
+/// The expression a folded key answers.
+///
+/// Total for the two callers: each asks only after the key folded, and a key
+/// that folded answers a string literal. The two refusals answer for states no
+/// confident key can be in, and are left out of the coverage measurement for
+/// that reason, as `guidelines/stack/RUST.md` describes.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn key_expr_of(value: Option<&EvaluateResultValue>) -> &Expr {
+  match value {
+    Some(value) => match value.as_expr() {
+      Some(expr) => expr,
+      None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
+    },
+    None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
+  }
+}
+
 /// The name a namespace key expression spells, or `None` where it spells no
 /// readable one.
 ///
 /// `evaluate_obj_key` answers a string literal for every key it accepts, so a
-/// key of any other shape never reaches the map and needs no reading here.
+/// key of any other shape never reaches the map and needs no reading here. The
+/// second arm answers for that shape, and is left out of the coverage
+/// measurement for the same reason, as `guidelines/stack/RUST.md` describes.
+#[cfg_attr(coverage_nightly, coverage(off))]
 fn namespace_key_of(key: &Expr) -> Option<&str> {
   match key {
     // `as_str` is already fallible -- a literal can hold text no `str` can
@@ -189,14 +223,7 @@ pub fn evaluate_stylex_create_arg(
                   return Box::new(EvaluateResult::refused(key_result.deopt, key_result.reason));
                 }
 
-                let key = match key_result.value.as_ref() {
-                  Some(val) => val,
-                  None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
-                };
-                let key_expr = match key.as_expr() {
-                  Some(expr) => expr,
-                  None => stylex_panic!("Expected an expression from evaluation result."),
-                };
+                let key_expr = key_expr_of(key_result.value.as_ref());
                 let value_path = &mut key_value_prop.value;
 
                 // Read through the parentheses an author may have written
@@ -261,11 +288,7 @@ pub fn evaluate_stylex_create_arg(
                             ),
                           };
 
-                          let key = match convert_expr_to_str(key_expr, traversal_state, functions)
-                          {
-                            Some(k) => k,
-                            None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
-                          };
+                          let key = key_text_of(key_expr, traversal_state, functions);
 
                           fns.insert(key, (params, eval_result.inline_styles.unwrap_or_default()));
 
@@ -444,15 +467,9 @@ fn evaluate_partial_object_recursively(
               return Box::new(EvaluateResult::refused(key_result.deopt, key_result.reason));
             }
 
-            let key = match key_result.value.as_ref().and_then(|v| v.as_expr()) {
-              Some(expr) => expr,
-              None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
-            };
+            let key = key_expr_of(key_result.value.as_ref());
 
-            let mut key_str = match convert_expr_to_str(key, traversal_state, functions) {
-              Some(s) => s,
-              None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
-            };
+            let mut key_str = key_text_of(key, traversal_state, functions);
 
             if key_str.starts_with("var(") && key_str.ends_with(')') {
               let inner = key_str[4..key_str.len() - 1].to_string();

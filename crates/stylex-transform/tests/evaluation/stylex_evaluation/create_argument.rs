@@ -47,3 +47,16 @@ stylex_test_panic!(
     const x = { root: 1 };
   "#
 );
+
+// A dynamic style is an arrow that answers a style object. An arrow that
+// answers anything else is read the way any other expression is read.
+stylex_test_transform!(
+  reads_an_arrow_that_answers_no_object_as_any_other_expression,
+  |_tr| ArgsStyleXTransform::default_with_pass(),
+  r#"
+    const x = { root: (color) => color };
+  "#,
+  r#"
+    ({ root: (color) => color });
+  "#
+);

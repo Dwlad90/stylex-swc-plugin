@@ -378,6 +378,68 @@ mod short_filenames {
     );
   }
 
+  /// A package the file belongs to is named in front of the path inside it, so
+  /// two files of the same name in two packages read apart.
+  #[test]
+  fn names_the_package_a_file_belongs_to() {
+    let root = package_at("stylex_named_package", Some("@acme/ui"));
+    let state = StateManager::default();
+
+    assert_eq!(
+      short_filename_of(&format!("{root}/src/Card.tsx"), &state),
+      "@acme/ui:src/Card.tsx"
+    );
+  }
+
+  /// A package with no name of its own has none to put in front, so the path
+  /// inside it stands alone.
+  #[test]
+  fn names_no_package_for_one_that_has_no_name() {
+    let root = package_at("stylex_unnamed_package", None);
+    let state = StateManager::default();
+
+    assert_eq!(
+      short_filename_of(&format!("{root}/src/Card.tsx"), &state),
+      "src/Card.tsx"
+    );
+  }
+
+  /// A file of the package the compiler is running in needs no package name in
+  /// front of it, because every path it writes is in that package.
+  #[test]
+  fn names_no_package_for_a_file_of_the_package_it_runs_in() {
+    let state = StateManager::default();
+
+    let here = match std::env::current_dir() {
+      Ok(here) => here,
+      Err(error) => panic!("the working directory could not be read: {error}"),
+    };
+
+    assert_eq!(
+      short_filename_of(&format!("{}/src/Card.tsx", here.display()), &state),
+      "src/Card.tsx"
+    );
+  }
+
+  /// A directory holding a `package.json`, named or not.
+  fn package_at(name: &str, package_name: Option<&str>) -> String {
+    let root = std::env::temp_dir().join(format!("{name}_{}", std::process::id()));
+
+    let manifest = match package_name {
+      Some(package_name) => format!("{{ \"name\": \"{package_name}\" }}"),
+      None => "{ \"version\": \"1.0.0\" }".to_owned(),
+    };
+
+    match std::fs::create_dir_all(root.join("src"))
+      .and_then(|()| std::fs::write(root.join("package.json"), manifest))
+    {
+      Ok(()) => {},
+      Err(error) => panic!("the fixture package could not be written: {error}"),
+    }
+
+    root.to_string_lossy().into_owned()
+  }
+
   /// A path outside any package and outside the working directory is shortened
   /// to its last two parts.
   #[test]
@@ -630,5 +692,136 @@ mod annotations {
   #[should_panic(expected = "add_source_map_data() should have 1 argument")]
   fn refuses_a_call_with_no_argument() {
     annotate("create()", &["root"]);
+  }
+}
+
+/// The annotation a namespace gets when a source map maps the compiler's input
+/// back to the file the author wrote.
+mod through_an_input_source_map {
+  use std::sync::Arc;
+
+  use indexmap::IndexMap;
+  use rustc_hash::FxHashMap;
+  use std::rc::Rc;
+  use stylex_constants::constants::common::COMPILED_KEY;
+  use stylex_state::{
+    flat_compiled_styles_value::FlatCompiledStylesValue,
+    functions::FunctionMap,
+    state_manager::StateManager,
+    types::{FlatCompiledStyles, StylesObjectMap},
+  };
+  use swc_core::common::{FileName, SourceMap as SwcSourceMap, input::StringInput};
+  use swc_core::ecma::ast::{CallExpr, Decl, Expr, ModuleItem, Stmt};
+  use swc_core::ecma::parser::{EsSyntax, Parser, Syntax, lexer::Lexer};
+  use swc_sourcemap::SourceMapBuilder;
+
+  use super::super::add_source_map_data;
+
+  const CODE: &str = "const styles = create({\n  root: { color: 'red' },\n});\n";
+
+  /// The call `CODE` binds, and a state that reads `CODE` as its input.
+  ///
+  /// Both come out of one parse, so the key spans the call carries are
+  /// positions in the very source file the state is given.
+  fn call_and_state() -> (CallExpr, StateManager) {
+    let source_map = SwcSourceMap::default();
+    let source_file = source_map.new_source_file(
+      Arc::new(FileName::Custom("Card.tsx".to_owned())),
+      CODE.to_owned(),
+    );
+
+    let lexer = Lexer::new(
+      Syntax::Es(EsSyntax::default()),
+      Default::default(),
+      StringInput::from(&*source_file),
+      None,
+    );
+
+    let module = match Parser::new_from(lexer).parse_module() {
+      Ok(module) => module,
+      Err(error) => panic!("the fixture does not parse: {error:?}"),
+    };
+
+    let mut state = StateManager::default();
+
+    state.set_input_source_file(source_file);
+
+    for item in module.body {
+      if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(declaration))) = item {
+        for declarator in declaration.decls {
+          if let Some(Expr::Call(call)) = declarator.init.as_deref() {
+            return (call.clone(), state);
+          }
+        }
+      }
+    }
+
+    panic!("the fixture binds no call")
+  }
+
+  fn namespace() -> StylesObjectMap {
+    let mut styles: FlatCompiledStyles = IndexMap::new();
+
+    styles.insert(
+      "color".to_owned(),
+      Rc::new(FlatCompiledStylesValue::String("xabc".to_owned())),
+    );
+
+    let mut obj: StylesObjectMap = IndexMap::new();
+
+    obj.insert("root".to_owned(), Rc::new(styles));
+
+    obj
+  }
+
+  fn annotate(state: &mut StateManager, call: &CallExpr) -> FlatCompiledStylesValue {
+    let result = add_source_map_data(
+      namespace(),
+      call,
+      state,
+      &mut FxHashMap::default(),
+      &FunctionMap::default(),
+    );
+
+    match result
+      .get("root")
+      .and_then(|styles| styles.get(COMPILED_KEY))
+    {
+      Some(marker) => (**marker).clone(),
+      None => panic!("the namespace carries no marker"),
+    }
+  }
+
+  /// The map says the namespace was written somewhere else, and the annotation
+  /// says where the author wrote it rather than where the compiler read it.
+  #[test]
+  fn names_the_file_and_line_the_map_points_at() {
+    let (call, mut state) = call_and_state();
+
+    // `root` stands on line index 1 of the input. The map says that line came
+    // from line index 41 of the file the author wrote.
+    let mut builder = SourceMapBuilder::new(None);
+
+    builder.add(1, 2, 41, 0, Some("Original.tsx".into()), None, false);
+    state.set_input_source_map(Arc::new(builder.into_sourcemap()));
+
+    assert_eq!(
+      annotate(&mut state, &call),
+      FlatCompiledStylesValue::String("Original.tsx:42".to_owned())
+    );
+  }
+
+  /// A map with nothing at that position points at no file, so the reader falls
+  /// back to locating the namespace in the source text.
+  #[test]
+  fn falls_back_when_the_map_points_at_nothing() {
+    let (call, mut state) = call_and_state();
+
+    state.set_input_source_map(Arc::new(SourceMapBuilder::new(None).into_sourcemap()));
+
+    assert_eq!(
+      annotate(&mut state, &call),
+      FlatCompiledStylesValue::Bool(true)
+    );
   }
 }

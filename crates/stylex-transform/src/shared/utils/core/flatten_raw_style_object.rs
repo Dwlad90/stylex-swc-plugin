@@ -5,7 +5,7 @@ use stylex_css_parser::at_queries::media_query_transform::last_media_query_wins_
 use stylex_macros::stylex_panic;
 use stylex_structures::pre_rule_value::PreRuleValue;
 use swc_core::ecma::{
-  ast::{Expr, KeyValueProp, Lit, Prop, PropName, PropOrSpread},
+  ast::{Expr, KeyValueProp, Lit, Prop, PropName, PropOrSpread, Tpl},
   utils::quote_str,
 };
 
@@ -77,6 +77,20 @@ pub(crate) fn flatten_raw_style_object(
   flatten_raw_style_object_logic(&processed_style, &mut vec![], state, traversal_state, fns)
 }
 
+/// The template literal a handled one answers.
+///
+/// Total for the one caller: the handler is given a template literal and gives
+/// one back. The refusal answers for a shape it never builds, and is left out
+/// of the coverage measurement for that reason, as `guidelines/stack/RUST.md`
+/// describes.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn tpl_of(expr: &Expr) -> &Tpl {
+  match expr.as_tpl() {
+    Some(tpl) => tpl,
+    None => stylex_panic!("Expected a template literal expression."),
+  }
+}
+
 /// Whether the key is spelled as a `var()` reference.
 ///
 /// The regular expression answers an error only when the matcher gives up on a
@@ -104,8 +118,9 @@ pub(crate) fn flatten_raw_style_object_logic(
   for property in style.iter() {
     let key = convert_key_value_to_str(property);
 
-    // A key spelled as a variable reference names the variable, which is how a
-    // `defineConsts` placeholder reaches the declaration it belongs to.
+    // A key the split expression matches is read as a `var()` reference and
+    // named by what it wraps. No key a `create` call reaches this with matches
+    // it, so the key keeps the name the author wrote.
     let css_property_key = if is_variable_reference_key(&key) {
       key[4..key.len() - 1].to_string()
     } else {
@@ -240,15 +255,7 @@ pub(crate) fn flatten_raw_style_object_logic(
       },
       Expr::Tpl(tpl) => {
         let handled_tpl = handle_tpl_to_expression(tpl, traversal_state, fns);
-        let result = expr_tpl_to_string(
-          match handled_tpl.as_tpl() {
-            Some(tpl) => tpl,
-            None => stylex_panic!("Expected a template literal expression."),
-          },
-          state,
-          traversal_state,
-          fns,
-        );
+        let result = expr_tpl_to_string(tpl_of(&handled_tpl), state, traversal_state, fns);
 
         let normalized_key_path =
           normalize_key_path(key_path.clone(), key.as_str(), css_property_key.clone());

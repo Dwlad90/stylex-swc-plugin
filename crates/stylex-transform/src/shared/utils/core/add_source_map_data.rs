@@ -352,6 +352,20 @@ fn get_short_path(relative_path: &str, state: &StateManager) -> String {
   path_segments.join("/")
 }
 
+/// The text of a path.
+///
+/// Total for the one caller: the path is the working directory, which a build
+/// this compiler runs in can spell. The refusal answers for a directory it
+/// cannot, and is left out of the coverage measurement for that reason, as
+/// `guidelines/stack/RUST.md` describes.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn text_of(path: &Path) -> &str {
+  match path.to_str() {
+    Some(text) => text,
+    None => stylex_panic!("{}", INVALID_UTF8),
+  }
+}
+
 fn create_short_filename(
   absolute_path: &str,
   state: &StateManager,
@@ -364,11 +378,7 @@ fn create_short_filename(
 
   let path = Path::new(absolute_path);
   let cwd = env::current_dir().unwrap_or_default();
-
-  let cwd_str = match cwd.to_str() {
-    Some(s) => s,
-    None => stylex_panic!("{}", INVALID_UTF8),
-  };
+  let cwd_str = text_of(&cwd);
   let cwd_package = StateManager::get_package_name_and_path(cwd_str, package_json_seen);
   let package_details = StateManager::get_package_name_and_path(absolute_path, package_json_seen);
 

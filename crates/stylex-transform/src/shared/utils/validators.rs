@@ -316,37 +316,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   state: &mut StateManager,
 ) {
   let call_expr = Expr::Call(call.clone());
-
-  let var_decl = var_decl.as_ref().unwrap_or_else(|| {
-    build_code_frame_error_and_panic_at(
-      &call_expr,
-      &unbound_call_value(STYLEX_CREATE_THEME),
-      state,
-    );
-  });
-
-  // A parenthesis is not a different initializer, so the call is read through
-  // it -- as the declarator lookup that found this declarator reads it.
-  let init_expr = var_decl
-    .init
-    .as_deref()
-    .map(normalize_expr)
-    .unwrap_or_else(|| {
-      build_code_frame_error_and_panic_at(
-        &call_expr,
-        &unbound_call_value(STYLEX_CREATE_THEME),
-        state,
-      );
-    });
-
-  let init = init_expr.as_call().unwrap_or_else(|| {
-    build_code_frame_error_and_panic(
-      init_expr,
-      &call_expr,
-      &non_static_value(STYLEX_CREATE_THEME),
-      state,
-    );
-  });
+  let (init_expr, init) = theme_init_call_of(var_decl, &call_expr, state);
 
   match state.find_top_level_expr(call) {
     Some(_) => {},
@@ -919,6 +889,52 @@ pub(crate) fn validate_theme_variables(
     }) {
     Some(key_value) => key_value,
     None => stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS),
+  }
+}
+
+/// The call a theme is bound to, and the expression it was read out of.
+///
+/// A parenthesis is not a different initializer, so the call is read through it
+/// -- as the declarator lookup that found this declarator reads it.
+///
+/// Total for the one caller above: the declarator was found by looking the call
+/// up, so there is one and the call is its initializer. The three refusals
+/// answer for states no input can put the declarator in, and are left out of
+/// the coverage measurement for that reason, as `guidelines/stack/RUST.md`
+/// describes. A theme bound to nothing at all is refused before this, by the
+/// lookup answering no declarator.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn theme_init_call_of<'a>(
+  var_decl: &'a Option<VarDeclarator>,
+  call_expr: &Expr,
+  state: &mut StateManager,
+) -> (&'a Expr, &'a CallExpr) {
+  let var_decl = match var_decl.as_ref() {
+    Some(var_decl) => var_decl,
+    None => build_code_frame_error_and_panic_at(
+      call_expr,
+      &unbound_call_value(STYLEX_CREATE_THEME),
+      state,
+    ),
+  };
+
+  let init_expr = match var_decl.init.as_deref().map(normalize_expr) {
+    Some(init_expr) => init_expr,
+    None => build_code_frame_error_and_panic_at(
+      call_expr,
+      &unbound_call_value(STYLEX_CREATE_THEME),
+      state,
+    ),
+  };
+
+  match init_expr.as_call() {
+    Some(init) => (init_expr, init),
+    None => build_code_frame_error_and_panic(
+      init_expr,
+      call_expr,
+      &non_static_value(STYLEX_CREATE_THEME),
+      state,
+    ),
   }
 }
 

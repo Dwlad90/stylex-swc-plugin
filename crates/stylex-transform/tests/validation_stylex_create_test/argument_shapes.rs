@@ -93,3 +93,54 @@ stylex_test_panic!(
     export const theme = stylex.createTheme({ __varGroupHash__: 'x568ih9' }, {}).name;
   "#
 );
+
+// A declaration written as absent declares nothing, and the property survives
+// carrying that absence so a later declaration of it is unset.
+stylex_test!(
+  a_declaration_written_as_absent_is_kept_unset,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: null, margin: { default: '1px', ':hover': '2px' } },
+    });
+  "#
+);
+
+// A value of a kind no declaration can carry is refused rather than written out
+// as something the browser cannot read.
+stylex_test_panic!(
+  a_value_of_a_kind_no_declaration_carries_is_refused,
+  "root > color > Unsupported expression: NewExpression",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ root: { color: new Colour() } });
+  "#
+);
+
+// A theme overrides a variable group. A first argument that is not one names no
+// group to override.
+stylex_test_panic!(
+  a_theme_target_that_is_not_a_group_is_refused,
+  "Can only override variables theme created with defineVars().",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const theme = stylex.createTheme(1, {});
+  "#
+);
+
+// A `create` call that is bound to nothing is refused, and the search for a
+// binding reads past every top-level expression that is not one.
+stylex_test_panic!(
+  a_create_call_bound_to_nothing_is_refused,
+  "create() calls must be bound to a bare variable.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const other = {};
+    other.name;
+    stylex.create({ root: { color: 'red' } });
+  "#
+);

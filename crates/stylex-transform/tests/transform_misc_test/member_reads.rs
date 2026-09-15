@@ -148,3 +148,16 @@ stylex_test_panic!(
     export const styles = stylex.create({ root: (color) => { return { color } } });
   "#
 );
+
+// A method inside a namespace declares no value the compiler can read, so the
+// call is refused rather than compiled into a namespace missing a declaration.
+stylex_test_panic!(
+  a_method_inside_a_namespace_is_refused,
+  "Unsupported object method.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ root: { color() { return 'red' } } });
+  "#
+);

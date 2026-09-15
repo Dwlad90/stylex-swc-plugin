@@ -286,9 +286,14 @@ pub fn get_span_from_source_code(
 fn locate_span_with_panic_boundary(
   locate: impl FnOnce() -> Result<(CodeFrame, Span), Error>,
 ) -> Result<(CodeFrame, Span), Error> {
-  catch_diagnostic_unwind(AssertUnwindSafe(locate)).unwrap_or_else(|_| {
+  catch_diagnostic_unwind(AssertUnwindSafe(locate)).unwrap_or_else(|payload| {
+    let detail = payload
+      .downcast_ref::<String>()
+      .cloned()
+      .or_else(|| payload.downcast_ref::<&str>().map(|s| (*s).to_owned()))
+      .unwrap_or_else(|| "<no message>".to_owned());
     Err(anyhow::anyhow!(
-      "Panicked while locating the source span for a diagnostic"
+      "Panicked while locating the source span for a diagnostic: {detail}"
     ))
   })
 }

@@ -127,7 +127,17 @@ where
 
         value
       },
-      None => stylex_panic!("{}", non_static_value(STYLEX_UNSTABLE_CREATE_THEME_NESTED)),
+      // Reported with the frame the refusals beside it carry. Without one the
+      // author reads the sentence and not the line it is about.
+      None => stylex_panic!(
+        "{}",
+        build_code_frame_error(
+          &Expr::Call(call.clone()),
+          &refusal_site(evaluated_arg2.deopt.as_ref(), second_arg),
+          &non_static_value(STYLEX_UNSTABLE_CREATE_THEME_NESTED),
+          &mut self.state,
+        )
+      ),
     };
 
     let (mut overrides_obj, injected_styles) = stylex_create_theme_nested(

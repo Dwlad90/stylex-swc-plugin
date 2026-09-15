@@ -145,10 +145,10 @@ where
 
       let variables = match evaluated_arg1.value {
         Some(value) => {
-          // The producer reads the same question again and keeps the answer.
-          // It is asked here as well so that a first argument that is no
-          // variable group is refused before the second one is read, which is
-          // the order the reference implementation refuses them in.
+          // Asked here so that a first argument that is no variable group is
+          // refused with this sentence, before the producer runs and reports
+          // the same input in its own words. Both arguments are already read
+          // at this point, so this does not change which one is read first.
           validate_theme_variables(&value, &self.state);
           value
         },

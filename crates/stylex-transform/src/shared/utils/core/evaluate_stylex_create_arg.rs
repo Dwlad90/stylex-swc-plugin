@@ -73,6 +73,39 @@ fn or_refuse_nameless_key(text: Option<String>) -> String {
   }
 }
 
+/// `styles`, or the refusal an uncollected inline-style map is reported with.
+///
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. The only producer is the recursion below, which answers the map it
+/// collected on every confident path, and the caller returns before this on
+/// every other one. `guidelines/stack/RUST.md` describes the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn or_refuse_uncollected_inline_styles(styles: Option<TInlineStyles>) -> TInlineStyles {
+  match styles {
+    Some(styles) => styles,
+    None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
+  }
+}
+
+/// `object`, or the refusal a dynamic style body that folded to no object is
+/// reported with.
+///
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. The only producer is the recursion below, which answers an object
+/// expression on every confident path, and the caller returns before this on
+/// every other one. `guidelines/stack/RUST.md` describes the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn or_refuse_unfolded_body(object: Option<&ObjectLit>) -> &ObjectLit {
+  match object {
+    Some(object) => object,
+    None => {
+      stylex_panic!("Expected an object value in style evaluation, but received a different type.")
+    },
+  }
+}
+
 /// The text a folded key spells.
 fn key_text_of(key: &Expr, traversal_state: &mut StateManager, functions: &FunctionMap) -> String {
   or_refuse_nameless_key(convert_expr_to_str(key, traversal_state, functions))
@@ -282,17 +315,13 @@ pub fn evaluate_stylex_create_arg(
                             });
                           }
 
-                          let value = match eval_result
-                            .value
-                            .as_ref()
-                            .and_then(|value| value.as_expr())
-                            .and_then(|expr| expr.as_object())
-                          {
-                            Some(obj) => obj,
-                            None => stylex_panic!(
-                              "Expected an object value in style evaluation, but received a different type."
-                            ),
-                          };
+                          let value = or_refuse_unfolded_body(
+                            eval_result
+                              .value
+                              .as_ref()
+                              .and_then(|value| value.as_expr())
+                              .and_then(|expr| expr.as_object()),
+                          );
 
                           let key = key_text_of(key_expr, traversal_state, functions);
 
@@ -327,11 +356,14 @@ pub fn evaluate_stylex_create_arg(
                     let mut val = evaluate(value_path, traversal_state, functions);
 
                     if !val.confident {
-                      if let Some(key_name) =
-                        convert_expr_to_str(key_expr, traversal_state, functions)
-                      {
-                        val.reason = prepend_key_to_reason(&key_name, val.reason);
-                      }
+                      let key_name = or_refuse_nameless_key(convert_expr_to_str(
+                        key_expr,
+                        traversal_state,
+                        functions,
+                      ));
+
+                      val.reason = prepend_key_to_reason(&key_name, val.reason);
+
                       return val;
                     }
 
@@ -516,9 +548,7 @@ fn evaluate_partial_object_recursively(
                 );
                 obj.push(new_prop);
 
-                if let Some(result_inline_styles) = result.inline_styles {
-                  inline_styles.extend(result_inline_styles);
-                }
+                inline_styles.extend(or_refuse_uncollected_inline_styles(result.inline_styles));
               },
               _ => {
                 let result = evaluate(value_path, traversal_state, functions);

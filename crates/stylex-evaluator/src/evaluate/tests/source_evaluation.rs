@@ -948,7 +948,20 @@ pub(crate) fn assert_written_form(expr: &Expr, source: &str) {
     Expr::Object(object) => {
       for prop in &object.props {
         match prop.as_prop().map(Box::as_ref) {
-          Some(Prop::KeyValue(key_value)) => assert_written_form(&key_value.value, source),
+          Some(Prop::KeyValue(key_value)) => {
+            // Under a plain name, whatever the key was written as. A reader of
+            // an evaluator-written object names a property by that name and
+            // does not re-check it, so a key of any other shape becomes a
+            // property the reader passes over.
+            assert!(
+              key_value.key.as_ident().is_some(),
+              "`{}` wrote a key that is not a name: {:?}",
+              source,
+              key_value.key
+            );
+
+            assert_written_form(&key_value.value, source);
+          },
           other => panic!(
             "`{}` wrote a property that is not a pair: {:?}",
             source, other

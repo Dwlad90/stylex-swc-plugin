@@ -45,22 +45,21 @@ pub(crate) fn stylex_merge(
   let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
   let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
+  // The marker is the same for every name it is registered under, so it is
+  // built once for both loops below. It made two strings, an index map and two
+  // counted pointers per import before, and the two loops built it twice over.
+  let marker_values = stylex_default_marker::stylex_default_marker_values(&state.options);
+
   if let Some(set) = state.get_stylex_api_import(ImportKind::DefaultMarker)
     && !set.is_empty()
   {
-    let values = stylex_default_marker::stylex_default_marker_values(&state.options);
-
     for name in set {
       identifiers.insert(
         name.clone(),
-        Box::new(FunctionConfigType::IndexMap(values.clone())),
+        Box::new(FunctionConfigType::IndexMap(marker_values.clone())),
       );
     }
   }
-
-  // Build the marker once, as the loop above does. It made two strings, an
-  // index map and two counted pointers for each import before.
-  let marker_values = stylex_default_marker::stylex_default_marker_values(&state.options);
 
   for name in state.stylex_imports() {
     // `or_default` gives back the entry it made, so the second look-up that
@@ -125,8 +124,9 @@ pub(crate) fn stylex_merge(
             //  Already processed in the conditional block above; bail_out flag
             // set if needed.
           },
-          // Never `Unreachable`: that stands for an argument of a kind this arm
-          // has already ruled out.
+          // Never `Unreachable`: it is written twenty lines above, for an
+          // argument that is none of object, name, member or call, and this arm
+          // is the member one.
           resolved => resolved_args.push(ResolvedArg::style_object(resolved)),
         }
       },

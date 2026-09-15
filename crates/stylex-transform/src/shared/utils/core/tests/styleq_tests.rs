@@ -5,7 +5,7 @@ use std::rc::Rc;
 use stylex_state::flat_compiled_styles_value::FlatCompiledStylesValue;
 use stylex_styleq::StyleqArgument;
 
-use super::style_args::{compiled, inline, style_of, styles};
+use crate::shared::utils::core::tests::style_args::{compiled, inline, style_of, styles};
 use crate::shared::utils::core::{
   parse_nullable_style::{ResolvedArg, StyleObject},
   styleq::styleq,

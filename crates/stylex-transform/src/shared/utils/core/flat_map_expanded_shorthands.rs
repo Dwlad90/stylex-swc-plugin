@@ -124,3 +124,7 @@ pub(crate) fn flat_map_expanded_shorthands(
 
   vec_order_pair
 }
+
+#[cfg(test)]
+#[path = "tests/flat_map_expanded_shorthands_tests.rs"]
+mod tests;

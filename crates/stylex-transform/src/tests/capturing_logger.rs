@@ -89,8 +89,8 @@ pub(crate) fn install(prints: impl Log + 'static) {
 /// assertion about a log.
 ///
 /// Both the level and the messages belong to the calling thread, so a body that
-/// does its work on a thread of its own writes nothing here. A case pairing
-/// a thread of its own writes nothing here.
+/// does its work on a thread of its own writes nothing here, and a case that
+/// reads an empty capture back would name the wrong cause for it.
 pub(crate) fn logged_at<T>(level: Level, body: impl FnOnce() -> T) -> Vec<String> {
   /// Closes the level again however the body left.
   struct Closed;

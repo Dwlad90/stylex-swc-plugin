@@ -34,7 +34,6 @@ use stylex_css::utils::condition::is_conditional_key;
 use stylex_diagnostics::code_frame::{
   build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
 };
-use stylex_enums::theme_ref::ThemeRefResult;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   state_manager::{ImportKind, StateManager},
@@ -77,6 +76,31 @@ fn assert_first_arg_is_object(
   }
 }
 
+/// `read`, or the refusal a declarator that holds no call is reported with.
+///
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already
+/// worked out. Every caller reached the read through a predicate that asked the
+/// same question of the same declarator, so there is an initializer and it is a
+/// call. `guidelines/stack/RUST.md` describes the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn or_refuse_initializer<'a>(
+  read: Option<(&'a Expr, &'a CallExpr)>,
+  init_expr: Option<&Expr>,
+  fn_name: &str,
+  state: &mut StateManager,
+) -> (&'a Expr, &'a CallExpr) {
+  match read {
+    Some(read) => read,
+    None => match init_expr {
+      Some(init_expr) => {
+        build_code_frame_error_and_panic_at(init_expr, &non_static_value(fn_name), state)
+      },
+      None => stylex_panic!("{}", non_static_value(fn_name)),
+    },
+  }
+}
+
 /// The call a declarator is initialised by, and the expression it was read out
 /// of.
 ///
@@ -84,27 +108,15 @@ fn assert_first_arg_is_object(
 /// -- both here and at `find_top_level_expr` below, which matches the recorded
 /// expression. Not [`init_call`]: the panics below report at the initializer,
 /// so the expression the call was read out of is needed beside the call itself.
-///
-/// Total: every caller reached here through a predicate that asked the same
-/// question of the same declarator, so there is an initializer and it is a
-/// call. The two refusals answer for states no input can put the declarator in,
-/// and are left out of the coverage measurement for that reason, as
-/// `guidelines/stack/RUST.md` describes.
-#[cfg_attr(coverage_nightly, coverage(off))]
 fn init_call_of<'a>(
   var_decl: &'a VarDeclarator,
   fn_name: &str,
   state: &mut StateManager,
 ) -> (&'a Expr, &'a CallExpr) {
-  let init_expr = match var_decl.init.as_deref().map(normalize_expr) {
-    Some(init) => init,
-    None => stylex_panic!("{}", non_static_value(fn_name)),
-  };
+  let init_expr = var_decl.init.as_deref().map(normalize_expr);
+  let read = init_expr.and_then(|init_expr| init_expr.as_call().map(|call| (init_expr, call)));
 
-  match init_expr.as_call() {
-    Some(call) => (init_expr, call),
-    None => build_code_frame_error_and_panic_at(init_expr, &non_static_value(fn_name), state),
-  }
+  or_refuse_initializer(read, init_expr, fn_name, state)
 }
 
 fn validate_single_object_arg_indent(
@@ -286,11 +298,11 @@ pub(crate) fn validate_stylex_position_try_indent(
 ///
 /// Asked for by a caller that already knows the call is one.
 pub(crate) fn validate_stylex_default_marker_indent(call: &CallExpr, state: &mut StateManager) {
-  let call_expr = Expr::from(call.clone());
-
+  // Cloned only where it is about to be reported: the clone is a deep copy of
+  // the whole call, and a call that compiles reports nothing.
   if !call.args.is_empty() {
     build_code_frame_error_and_panic_at(
-      &call_expr,
+      &Expr::from(call.clone()),
       &illegal_argument_length(STYLEX_DEFAULT_MARKER, 1),
       state,
     );
@@ -365,17 +377,20 @@ pub(crate) fn find_and_validate_stylex_define_vars(
   call: &CallExpr,
   state: &mut StateManager,
 ) -> TopLevelExpression {
-  let call_expr = Expr::from(call.clone());
+  // Cloned only where it is about to be reported, as `validate_stylex_create`
+  // does: the clone is a deep copy of the whole variable group, and a call that
+  // compiles reports nothing.
+  let call_expr = || Expr::from(call.clone());
 
   let stylex_create_theme_top_level_expr = match state.find_top_level_expr(call) {
     Some(stylex_create_theme_top_level_expr) => stylex_create_theme_top_level_expr,
     None => build_code_frame_error_and_panic(
-      &call_expr,
+      &call_expr(),
       &call
         .args
         .get(2)
         .cloned()
-        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
+        .unwrap_or_else(|| create_expr_or_spread(call_expr()))
         .expr,
       &unbound_call_value(STYLEX_DEFINE_VARS),
       state,
@@ -384,12 +399,12 @@ pub(crate) fn find_and_validate_stylex_define_vars(
 
   if call.args.len() != 1 {
     build_code_frame_error_and_panic(
-      &call_expr,
+      &call_expr(),
       &call
         .args
         .get(1)
         .cloned()
-        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
+        .unwrap_or_else(|| create_expr_or_spread(call_expr()))
         .expr,
       &illegal_argument_length(STYLEX_DEFINE_VARS, 1),
       state,
@@ -398,7 +413,7 @@ pub(crate) fn find_and_validate_stylex_define_vars(
 
   if !is_variable_named_exported(stylex_create_theme_top_level_expr, state) {
     build_code_frame_error_and_panic_at(
-      &call_expr,
+      &call_expr(),
       &non_export_named_declaration(STYLEX_DEFINE_VARS),
       state,
     );
@@ -474,17 +489,20 @@ pub(crate) fn find_and_validate_stylex_define_consts(
   call: &CallExpr,
   state: &mut StateManager,
 ) -> TopLevelExpression {
-  let call_expr = Expr::from(call.clone());
+  // Cloned only where it is about to be reported, as `validate_stylex_create`
+  // does: the clone is a deep copy of the whole variable group, and a call that
+  // compiles reports nothing.
+  let call_expr = || Expr::from(call.clone());
 
   let define_consts_top_level_expr = match state.find_top_level_expr(call) {
     Some(define_consts_top_level_expr) => define_consts_top_level_expr,
     None => build_code_frame_error_and_panic(
-      &call_expr,
+      &call_expr(),
       &call
         .args
         .get(2)
         .cloned()
-        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
+        .unwrap_or_else(|| create_expr_or_spread(call_expr()))
         .expr,
       &unbound_call_value(STYLEX_DEFINE_CONSTS),
       state,
@@ -493,12 +511,12 @@ pub(crate) fn find_and_validate_stylex_define_consts(
 
   if call.args.len() != 1 {
     build_code_frame_error_and_panic(
-      &call_expr,
+      &call_expr(),
       &call
         .args
         .get(1)
         .cloned()
-        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
+        .unwrap_or_else(|| create_expr_or_spread(call_expr()))
         .expr,
       &illegal_argument_length(STYLEX_DEFINE_CONSTS, 1),
       state,
@@ -507,7 +525,7 @@ pub(crate) fn find_and_validate_stylex_define_consts(
 
   if !is_variable_named_exported(define_consts_top_level_expr, state) {
     build_code_frame_error_and_panic_at(
-      &call_expr,
+      &call_expr(),
       &non_export_named_declaration(STYLEX_DEFINE_CONSTS),
       state,
     );
@@ -595,18 +613,25 @@ pub(crate) fn validate_define_call(
   require_export: bool,
   state: &mut StateManager,
 ) -> TopLevelExpression {
-  let call_expr = Expr::Call(call.clone());
+  // Cloned only where it is about to be reported: the clone is a deep copy of
+  // the whole call, and a call that compiles reports nothing.
+  let call_expr = || Expr::Call(call.clone());
+
   let top_level_expr = state.find_top_level_expr(call).cloned().unwrap_or_else(|| {
-    build_code_frame_error_and_panic_at(&call_expr, &unbound_call_value(api_name), state)
+    build_code_frame_error_and_panic_at(&call_expr(), &unbound_call_value(api_name), state)
   });
 
   if require_export && !is_variable_named_exported(&top_level_expr, state) {
-    build_code_frame_error_and_panic_at(&call_expr, &non_export_named_declaration(api_name), state);
+    build_code_frame_error_and_panic_at(
+      &call_expr(),
+      &non_export_named_declaration(api_name),
+      state,
+    );
   }
 
   if call.args.len() != arg_count {
     build_code_frame_error_and_panic_at(
-      &call_expr,
+      &call_expr(),
       &illegal_argument_length(api_name, arg_count),
       state,
     );
@@ -852,7 +877,7 @@ pub(crate) fn validate_theme_variables(
 
     let key_value = create_key_value_prop_ident(
       VAR_GROUP_HASH_KEY,
-      create_string_expr(var_group_hash_of(&value)),
+      create_string_expr(or_refuse_nameless_group(value.as_css_var())),
     );
 
     return key_value;
@@ -892,61 +917,68 @@ pub(crate) fn validate_theme_variables(
   }
 }
 
+/// `read`, or the refusal a theme bound to something else is reported with.
+///
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. The declarator the reader below is given was found by looking the call
+/// up, so there is one and the call is its initializer.
+/// `guidelines/stack/RUST.md` describes the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn or_refuse_theme<'a>(
+  read: Option<(&'a Expr, &'a CallExpr)>,
+  init_expr: Option<&Expr>,
+  call_expr: &Expr,
+  state: &mut StateManager,
+) -> (&'a Expr, &'a CallExpr) {
+  match read {
+    Some(read) => read,
+    None => match init_expr {
+      Some(init_expr) => build_code_frame_error_and_panic(
+        init_expr,
+        call_expr,
+        &non_static_value(STYLEX_CREATE_THEME),
+        state,
+      ),
+      None => build_code_frame_error_and_panic_at(
+        call_expr,
+        &unbound_call_value(STYLEX_CREATE_THEME),
+        state,
+      ),
+    },
+  }
+}
+
 /// The call a theme is bound to, and the expression it was read out of.
 ///
 /// A parenthesis is not a different initializer, so the call is read through it
 /// -- as the declarator lookup that found this declarator reads it.
-///
-/// Total for the one caller above: the declarator was found by looking the call
-/// up, so there is one and the call is its initializer. The three refusals
-/// answer for states no input can put the declarator in, and are left out of
-/// the coverage measurement for that reason, as `guidelines/stack/RUST.md`
-/// describes. A theme bound to nothing at all is refused before this, by the
-/// lookup answering no declarator.
-#[cfg_attr(coverage_nightly, coverage(off))]
 fn theme_init_call_of<'a>(
   var_decl: &'a Option<VarDeclarator>,
   call_expr: &Expr,
   state: &mut StateManager,
 ) -> (&'a Expr, &'a CallExpr) {
-  let var_decl = match var_decl.as_ref() {
-    Some(var_decl) => var_decl,
-    None => build_code_frame_error_and_panic_at(
-      call_expr,
-      &unbound_call_value(STYLEX_CREATE_THEME),
-      state,
-    ),
-  };
+  let init_expr = var_decl
+    .as_ref()
+    .and_then(|var_decl| var_decl.init.as_deref())
+    .map(normalize_expr);
 
-  let init_expr = match var_decl.init.as_deref().map(normalize_expr) {
-    Some(init_expr) => init_expr,
-    None => build_code_frame_error_and_panic_at(
-      call_expr,
-      &unbound_call_value(STYLEX_CREATE_THEME),
-      state,
-    ),
-  };
+  let read = init_expr.and_then(|init_expr| init_expr.as_call().map(|call| (init_expr, call)));
 
-  match init_expr.as_call() {
-    Some(init) => (init_expr, init),
-    None => build_code_frame_error_and_panic(
-      init_expr,
-      call_expr,
-      &non_static_value(STYLEX_CREATE_THEME),
-      state,
-    ),
-  }
+  or_refuse_theme(read, init_expr, call_expr, state)
 }
 
-/// The variable reference a theme's group hash reads as.
+/// `value`, or the refusal a group hash that names no variable is reported
+/// with.
 ///
-/// Total: a theme reference answers something other than a variable for two
-/// keys, and the group hash is neither of them. The second arm is kept because
-/// the language names every variant or none, and is left out of the coverage
-/// measurement for that reason, as `guidelines/stack/RUST.md` describes.
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. A theme reference answers something other than a variable for two keys,
+/// and the group hash is neither of them. `guidelines/stack/RUST.md` describes
+/// the allowance.
 #[cfg_attr(coverage_nightly, coverage(off))]
-fn var_group_hash_of(value: &ThemeRefResult) -> &str {
-  match value.as_css_var() {
+fn or_refuse_nameless_group(value: Option<&str>) -> &str {
+  match value {
     Some(value) => value,
     None => stylex_panic!("{}", EXPECTED_CSS_VAR),
   }

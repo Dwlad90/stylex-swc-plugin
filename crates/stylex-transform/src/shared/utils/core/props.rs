@@ -74,3 +74,7 @@ pub(crate) fn props_map(styles: &[ResolvedArg]) -> FlatCompiledStyles {
 
   props_map
 }
+
+#[cfg(test)]
+#[path = "tests/props_tests.rs"]
+mod tests;

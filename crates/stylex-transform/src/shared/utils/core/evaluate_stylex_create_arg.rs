@@ -59,33 +59,36 @@ fn key_value_props_of(object: &ObjectLit) -> Vec<KeyValueProp> {
     .collect()
 }
 
-/// The text a folded key spells.
+/// `text`, or the refusal a key that spells no name is reported with.
 ///
-/// Total for the two callers: a key that folded answers a string literal, and
-/// the text of a string literal is the string. The refusal answers for a key
-/// that spells no name, which never folds, and is left out of the coverage
-/// measurement for that reason, as `guidelines/stack/RUST.md` describes.
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. A key that folded answers a string literal, and the text of a string
+/// literal is the string. `guidelines/stack/RUST.md` describes the allowance.
 #[cfg_attr(coverage_nightly, coverage(off))]
-fn key_text_of(key: &Expr, traversal_state: &mut StateManager, functions: &FunctionMap) -> String {
-  match convert_expr_to_str(key, traversal_state, functions) {
+fn or_refuse_nameless_key(text: Option<String>) -> String {
+  match text {
     Some(text) => text,
     None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
   }
 }
 
-/// The expression a folded key answers.
+/// The text a folded key spells.
+fn key_text_of(key: &Expr, traversal_state: &mut StateManager, functions: &FunctionMap) -> String {
+  or_refuse_nameless_key(convert_expr_to_str(key, traversal_state, functions))
+}
+
+/// `expr`, or the refusal a key that answered no expression is reported with.
 ///
-/// Total for the two callers: each asks only after the key folded, and a key
-/// that folded answers a string literal. The two refusals answer for states no
-/// confident key can be in, and are left out of the coverage measurement for
-/// that reason, as `guidelines/stack/RUST.md` describes.
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. Each caller asks only after the key folded, and a key that folded
+/// answers a string literal. `guidelines/stack/RUST.md` describes the
+/// allowance.
 #[cfg_attr(coverage_nightly, coverage(off))]
-fn key_expr_of(value: Option<&EvaluateResultValue>) -> &Expr {
-  match value {
-    Some(value) => match value.as_expr() {
-      Some(expr) => expr,
-      None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
-    },
+fn or_refuse_unfolded_key(expr: Option<&Expr>) -> &Expr {
+  match expr {
+    Some(expr) => expr,
     None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
   }
 }
@@ -94,17 +97,15 @@ fn key_expr_of(value: Option<&EvaluateResultValue>) -> &Expr {
 /// readable one.
 ///
 /// `evaluate_obj_key` answers a string literal for every key it accepts, so a
-/// key of any other shape never reaches the map and needs no reading here. The
-/// second arm answers for that shape, and is left out of the coverage
-/// measurement for the same reason, as `guidelines/stack/RUST.md` describes.
-#[cfg_attr(coverage_nightly, coverage(off))]
+/// key of any other shape never reaches the map. Asked through the readers each
+/// shape already has, so the shapes it is not are answered where they are read
+/// rather than by an arm here that nothing can enter. The last `as_str` is
+/// fallible for its own reason: a literal can hold text no `str` can spell.
 fn namespace_key_of(key: &Expr) -> Option<&str> {
-  match key {
-    // `as_str` is already fallible -- a literal can hold text no `str` can
-    // spell -- so the arm answers the option rather than wrapping one.
-    Expr::Lit(Lit::Str(name)) => name.value.as_str(),
-    _ => None,
-  }
+  key
+    .as_lit()
+    .and_then(Lit::as_str)
+    .and_then(|name| name.value.as_str())
 }
 
 /// Prepends a key name to an existing error reason to provide context
@@ -223,7 +224,12 @@ pub fn evaluate_stylex_create_arg(
                   return Box::new(EvaluateResult::refused(key_result.deopt, key_result.reason));
                 }
 
-                let key_expr = key_expr_of(key_result.value.as_ref());
+                let key_expr = or_refuse_unfolded_key(
+                  key_result
+                    .value
+                    .as_ref()
+                    .and_then(EvaluateResultValue::as_expr),
+                );
                 let value_path = &mut key_value_prop.value;
 
                 // Read through the parentheses an author may have written
@@ -467,7 +473,12 @@ fn evaluate_partial_object_recursively(
               return Box::new(EvaluateResult::refused(key_result.deopt, key_result.reason));
             }
 
-            let key = key_expr_of(key_result.value.as_ref());
+            let key = or_refuse_unfolded_key(
+              key_result
+                .value
+                .as_ref()
+                .and_then(EvaluateResultValue::as_expr),
+            );
 
             let mut key_str = key_text_of(key, traversal_state, functions);
 

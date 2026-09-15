@@ -7,8 +7,8 @@ use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue, types::FlatCompiledStyles,
 };
 
-use super::style_args::{inline, inline_pair, style_of, styles};
 use crate::shared::enums::data_structures::fn_result::FnResult;
+use crate::shared::utils::core::tests::style_args::{inline, inline_pair, style_of, styles};
 use crate::shared::utils::core::{
   attrs::attrs,
   parse_nullable_style::{ResolvedArg, StyleObject},

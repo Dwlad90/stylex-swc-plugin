@@ -187,3 +187,7 @@ pub(crate) fn preprocess_object_properties(
 
   obj_from_entries(&res)
 }
+
+#[cfg(test)]
+#[path = "tests/object_tests.rs"]
+mod tests;

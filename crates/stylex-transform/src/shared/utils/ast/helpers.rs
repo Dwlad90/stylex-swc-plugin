@@ -94,3 +94,7 @@ impl Visit for ArrowFinder {
     expr.visit_children_with(self);
   }
 }
+
+#[cfg(test)]
+#[path = "tests/helpers_tests.rs"]
+mod tests;

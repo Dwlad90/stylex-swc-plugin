@@ -25,8 +25,8 @@ use stylex_state::{
   theme_ref::ThemeRef,
 };
 
-/// Every object this fold writes carries key-value properties and nothing
-/// else, and so does every value below it.
+/// Every object this fold writes carries key-value properties under plain
+/// names and nothing else, and so does every value below it.
 ///
 /// The readers of an evaluator-written object rely on that and none of them
 /// re-checks it: a reader passes over whatever is not a pair rather than
@@ -47,6 +47,9 @@ fn every_written_object_carries_key_value_properties_only() {
     "{ a: 1, ...{ b: 2 } }",
     "{ ...{ a: [1] } }",
     "{ ['a']: 1 }",
+    // A key that is not a name in the source is one in the answer, which is
+    // what lets a reader name a property without asking how it was written.
+    "{ 'background-color': 1, 0: 2, 1e21: 3 }",
   ] {
     for source in [format!("({object})"), format!("sx.missing ?? ({object})")] {
       let value = match evaluated_against_a_function_fold(&source).value {

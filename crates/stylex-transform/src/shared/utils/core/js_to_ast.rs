@@ -77,3 +77,7 @@ pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
 
   create_object_expression(props)
 }
+
+#[cfg(test)]
+#[path = "tests/js_to_ast_tests.rs"]
+mod tests;

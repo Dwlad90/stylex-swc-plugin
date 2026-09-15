@@ -77,33 +77,31 @@ pub(crate) fn flatten_raw_style_object(
   flatten_raw_style_object_logic(&processed_style, &mut vec![], state, traversal_state, fns)
 }
 
-/// The template literal a handled one answers.
+/// `tpl`, or the refusal a handled template that is not one is reported with.
 ///
-/// Total for the one caller: the handler is given a template literal and gives
-/// one back. The refusal answers for a shape it never builds, and is left out
-/// of the coverage measurement for that reason, as `guidelines/stack/RUST.md`
-/// describes.
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. The handler is given a template literal and gives one back.
+/// `guidelines/stack/RUST.md` describes the allowance.
 #[cfg_attr(coverage_nightly, coverage(off))]
-fn tpl_of(expr: &Expr) -> &Tpl {
-  match expr.as_tpl() {
+fn or_refuse_handled_template(tpl: Option<&Tpl>) -> &Tpl {
+  match tpl {
     Some(tpl) => tpl,
     None => stylex_panic!("Expected a template literal expression."),
   }
 }
 
-/// Whether the key is spelled as a `var()` reference.
+/// Reports a key the split expression gave up on, and reads it as no match.
 ///
-/// The regular expression answers an error only when the matcher gives up on a
-/// backtrack, which a test cannot ask it to do, so that arm is left out of the
-/// coverage measurement as `guidelines/stack/RUST.md` describes. It is read as
-/// "not a reference", which leaves the key under the name the author wrote.
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing: the expression answers an error only when the matcher
+/// gives up on a backtrack, which a test cannot ask it to do.
+/// `guidelines/stack/RUST.md` describes the allowance.
 #[cfg_attr(coverage_nightly, coverage(off))]
-fn is_variable_reference_key(key: &str) -> bool {
-  CSS_VALUE_SPLIT_REGEX.is_match(key).unwrap_or_else(|err| {
-    warn!("Error matching CSS_VALUE_SPLIT_REGEX for '{key}': {err}. Skipping pattern match.");
+fn report_unmatched_key(error: impl std::fmt::Display) -> bool {
+  warn!("Error matching CSS_VALUE_SPLIT_REGEX: {error}. Skipping pattern match.");
 
-    false
-  })
+  false
 }
 
 pub(crate) fn flatten_raw_style_object_logic(
@@ -121,7 +119,10 @@ pub(crate) fn flatten_raw_style_object_logic(
     // A key the split expression matches is read as a `var()` reference and
     // named by what it wraps. No key a `create` call reaches this with matches
     // it, so the key keeps the name the author wrote.
-    let css_property_key = if is_variable_reference_key(&key) {
+    let css_property_key = if CSS_VALUE_SPLIT_REGEX
+      .is_match(&key)
+      .unwrap_or_else(report_unmatched_key)
+    {
       key[4..key.len() - 1].to_string()
     } else {
       key.clone()
@@ -255,7 +256,12 @@ pub(crate) fn flatten_raw_style_object_logic(
       },
       Expr::Tpl(tpl) => {
         let handled_tpl = handle_tpl_to_expression(tpl, traversal_state, fns);
-        let result = expr_tpl_to_string(tpl_of(&handled_tpl), state, traversal_state, fns);
+        let result = expr_tpl_to_string(
+          or_refuse_handled_template(handled_tpl.as_tpl()),
+          state,
+          traversal_state,
+          fns,
+        );
 
         let normalized_key_path =
           normalize_key_path(key_path.clone(), key.as_str(), css_property_key.clone());

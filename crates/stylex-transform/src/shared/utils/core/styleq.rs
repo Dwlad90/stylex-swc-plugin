@@ -82,3 +82,7 @@ fn style_object_as_style(style_object: &StyleObject) -> Option<&FlatCompiledStyl
     },
   }
 }
+
+#[cfg(test)]
+#[path = "tests/styleq_tests.rs"]
+mod tests;

@@ -17,25 +17,20 @@ use crate::shared::utils::core::parse_nullable_style::{ResolvedArg, StyleObject}
 /// A compiled namespace: the marker every compiled style carries, and the
 /// properties given as `(property, class name)`.
 pub(crate) fn compiled(properties: &[(&str, &str)]) -> FlatCompiledStyles {
-  let mut styles: FlatCompiledStyles = IndexMap::new();
+  let mut styles = inline(properties);
 
-  styles.insert(
+  styles.shift_insert(
+    0,
     COMPILED_KEY.to_owned(),
     Rc::new(FlatCompiledStylesValue::Bool(true)),
   );
 
-  for (property, class_name) in properties {
-    styles.insert(
-      (*property).to_owned(),
-      Rc::new(FlatCompiledStylesValue::String((*class_name).to_owned())),
-    );
-  }
-
   styles
 }
 
-/// A style the compiler did not compile: it carries no marker, so the merge
-/// writes it out as an inline style rather than as classes.
+/// A style the compiler did not compile: the same properties, carrying no
+/// marker, so the merge writes it out as an inline style rather than as
+/// classes.
 pub(crate) fn inline(properties: &[(&str, &str)]) -> FlatCompiledStyles {
   let mut styles: FlatCompiledStyles = IndexMap::new();
 

@@ -69,9 +69,11 @@ pub(crate) fn member_expression(
         // The evaluator rebuilds every object it folds, so each property that
         // arrives here is a key-value pair under a plain name: a spread is
         // already merged away, and a key it could not name is a refusal it
-        // reported rather than an object it answered. What is left to decide is
-        // the value: a property declared as absent names nothing the runtime
-        // still needs.
+        // reported rather than an object it answered. That is asserted where
+        // the object is written, by `every_written_object_carries_key_value_-
+        // properties_only` in the evaluator, not argued from here. What is left
+        // to decide is the value: a property declared as absent names nothing
+        // the runtime still needs.
         let namespaces = props.iter().filter_map(|item| {
           item
             .as_prop()
@@ -132,3 +134,7 @@ impl Visit for MemberTransform<'_> {
     );
   }
 }
+
+#[cfg(test)]
+#[path = "tests/member_expression_tests.rs"]
+mod tests;

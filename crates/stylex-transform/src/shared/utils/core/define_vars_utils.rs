@@ -306,3 +306,7 @@ pub(crate) fn var_group_priority(at_rule: &str) -> f64 {
 pub(crate) fn theme_override_priority(at_rule: &str) -> f64 {
   0.4 + priority_for_at_rule(at_rule) / 10.0
 }
+
+#[cfg(test)]
+#[path = "tests/define_vars_utils_tests.rs"]
+mod tests;

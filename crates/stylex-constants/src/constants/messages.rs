@@ -206,9 +206,6 @@ pub static EXPECTED_CSS_VAR: &str = "Expected a CSS custom property (variable) r
 
 pub static KEY_MUST_EVAL_TO_STRING: &str = "Style property key must evaluate to a string.";
 
-pub static MEMBER_OBJ_NOT_IDENT: &str =
-  "The object in a member expression must be a static identifier.";
-
 pub static AT_RULE_NOT_FOUND: &str =
   "At-rule not found in the rules map. Ensure the at-rule is declared correctly.";
 

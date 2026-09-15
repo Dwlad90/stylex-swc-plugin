@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::rc::Rc;
 
 use indexmap::IndexMap;
@@ -107,9 +108,11 @@ pub(crate) fn parse_nullable_style(
       // The namespaces come back with the name, rather than being looked up
       // again once the name is admitted: the reader that admits the name reads
       // the same map, so a second look-up asked a question already answered.
+      // Both names are read against maps that take a string slice, so only the
+      // computed key needs an owned string of its own.
       let mut namespaces: Option<&StylesObjectMap> = None;
-      let mut obj_name: Option<String> = None;
-      let mut prop_name: Option<String> = None;
+      let mut obj_name: Option<&str> = None;
+      let mut prop_name: Option<Cow<'_, str>> = None;
 
       if let Some(obj_ident) = normalize_expr(&member.obj).as_ident()
         && let Some(style_var_namespaces) = state.style_var_namespaces(obj_ident)
@@ -117,14 +120,14 @@ pub(crate) fn parse_nullable_style(
         match &member.prop {
           MemberProp::Ident(prop_ident) => {
             namespaces = Some(style_var_namespaces);
-            obj_name = Some(obj_ident.sym.as_str().to_string());
-            prop_name = Some(prop_ident.sym.as_str().to_string());
+            obj_name = Some(obj_ident.sym.as_str());
+            prop_name = Some(Cow::Borrowed(prop_ident.sym.as_str()));
           },
           MemberProp::Computed(computed) => {
             if let Some(lit) = normalize_expr(&computed.expr).as_lit() {
               namespaces = Some(style_var_namespaces);
-              obj_name = Some(obj_ident.sym.as_str().to_string());
-              prop_name = convert_lit_to_string(lit);
+              obj_name = Some(obj_ident.sym.as_str());
+              prop_name = convert_lit_to_string(lit).map(Cow::Owned);
             }
           },
           MemberProp::PrivateName(_) => {},
@@ -139,13 +142,13 @@ pub(crate) fn parse_nullable_style(
         // dynamic style) must bail out so runtime props handling stays intact.
         if state
           .dynamic_style_namespaces
-          .get(&obj_name)
-          .is_some_and(|namespaces| namespaces.contains(&prop_name))
+          .get(obj_name)
+          .is_some_and(|namespaces| namespaces.contains(prop_name.as_ref()))
         {
           return StyleObject::Other;
         }
 
-        if let Some(style_value) = namespaces.get(&prop_name) {
+        if let Some(style_value) = namespaces.get(prop_name.as_ref()) {
           return StyleObject::Style((**style_value).clone());
         }
       }

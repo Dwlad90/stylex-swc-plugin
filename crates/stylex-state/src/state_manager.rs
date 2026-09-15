@@ -21,7 +21,7 @@ use swc_core::{
   },
 };
 
-use crate::types::InjectableStylesMap;
+use crate::types::{FlatCompiledStyles, InjectableStylesMap};
 use stylex_ast::ast::convertors::create_number_expr;
 use stylex_ast::ast::convertors::{init_call, normalize_expr};
 use stylex_ast::ast::factories::{
@@ -504,9 +504,18 @@ impl CallExpressionState {
 pub(crate) struct CacheState {
   css_property_seen: FxHashMap<String, String>,
   short_filename_cache: FxHashMap<String, String>,
+  default_marker_values: Option<FlatCompiledStyles>,
 }
 
 impl CacheState {
+  fn cached_default_marker_values(&self) -> Option<&FlatCompiledStyles> {
+    self.default_marker_values.as_ref()
+  }
+
+  fn insert_default_marker_values(&mut self, values: FlatCompiledStyles) {
+    self.default_marker_values = Some(values);
+  }
+
   fn cached_short_filename(&self, absolute_path: &str) -> Option<&str> {
     self
       .short_filename_cache
@@ -1493,6 +1502,21 @@ impl StateManager {
   /// with the same path every time -- it was half of a `dev` transform.
   pub fn cached_short_filename(&self, absolute_path: &str) -> Option<&str> {
     self.cache.cached_short_filename(absolute_path)
+  }
+
+  /// The default marker's compiled values, if a previous call in this file
+  /// already asked for them.
+  ///
+  /// The marker reads only the class name prefix, which is fixed for the file,
+  /// so every `stylex.props`-family call in it builds the same two strings, the
+  /// same index map and the same two counted pointers.
+  pub fn cached_default_marker_values(&self) -> Option<&FlatCompiledStyles> {
+    self.cache.cached_default_marker_values()
+  }
+
+  /// Keeps `values` as this file's default marker.
+  pub fn insert_cached_default_marker_values(&mut self, values: FlatCompiledStyles) {
+    self.cache.insert_default_marker_values(values);
   }
 
   pub fn insert_cached_short_filename(&mut self, absolute_path: String, short_filename: String) {

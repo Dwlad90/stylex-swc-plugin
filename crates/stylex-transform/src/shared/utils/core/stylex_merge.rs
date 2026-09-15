@@ -45,10 +45,17 @@ pub(crate) fn stylex_merge(
   let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
   let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
-  // The marker is the same for every name it is registered under, so it is
-  // built once for both loops below. It made two strings, an index map and two
-  // counted pointers per import before, and the two loops built it twice over.
-  let marker_values = stylex_default_marker::stylex_default_marker_values(&state.options);
+  // The marker is the same for every name it is registered under and for every
+  // call in the file, because it reads only the class name prefix. It is built
+  // once and kept on the state, so the calls after the first read it back.
+  let marker_values = match state.cached_default_marker_values() {
+    Some(values) => values.clone(),
+    None => {
+      let values = stylex_default_marker::stylex_default_marker_values(&state.options);
+      state.insert_cached_default_marker_values(values.clone());
+      values
+    },
+  };
 
   if let Some(set) = state.get_stylex_api_import(ImportKind::DefaultMarker)
     && !set.is_empty()

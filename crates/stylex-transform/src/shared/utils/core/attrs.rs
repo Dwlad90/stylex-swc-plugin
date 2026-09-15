@@ -8,12 +8,10 @@ use crate::shared::{
 };
 use stylex_state::flat_compiled_styles_value::FlatCompiledStylesValue;
 
-use super::{parse_nullable_style::ResolvedArg, props::props};
+use super::{parse_nullable_style::ResolvedArg, props::props_map};
 
 pub(crate) fn attrs(styles: &[ResolvedArg]) -> Option<FnResult> {
-  let props = props(styles)?;
-
-  let attrs = props.as_props()?.as_values()?;
+  let attrs = props_map(styles);
 
   let mut attrs_map: IndexMap<String, Rc<FlatCompiledStylesValue>> = IndexMap::new();
 
@@ -25,19 +23,16 @@ pub(crate) fn attrs(styles: &[ResolvedArg]) -> Option<FnResult> {
     attrs_map.insert("data-style-src".to_string(), data_style_src.clone());
   }
 
-  if let Some(style_value) = attrs.get("style") {
-    match style_value.as_ref() {
-      FlatCompiledStylesValue::KeyValues(pairs) => {
-        let css_string = inline_style_to_css_string(pairs);
-        attrs_map.insert(
-          "style".to_string(),
-          Rc::new(FlatCompiledStylesValue::String(css_string)),
-        );
-      },
-      _ => {
-        attrs_map.insert("style".to_string(), style_value.clone());
-      },
-    }
+  // An attribute is text, so the inline style is written out as the CSS a
+  // `style` attribute holds. `props_map` writes that entry as pairs and nothing
+  // else, so there is no other shape to read here.
+  if let Some(FlatCompiledStylesValue::KeyValues(pairs)) = attrs.get("style").map(Rc::as_ref) {
+    attrs_map.insert(
+      "style".to_string(),
+      Rc::new(FlatCompiledStylesValue::String(inline_style_to_css_string(
+        pairs,
+      ))),
+    );
   }
 
   Some(FnResult::Attrs(

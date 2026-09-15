@@ -28,13 +28,6 @@ pub(crate) enum NestedStringObject {
 }
 
 impl NestedStringObject {
-  pub(crate) fn _as_styles(&self) -> Option<&StylesObjectMap> {
-    match self {
-      NestedStringObject::FlatCompiledStyles(obj) => Some(obj),
-      _ => None,
-    }
-  }
-
   pub(crate) fn as_values(&self) -> Option<&FlatCompiledStyles> {
     match self {
       NestedStringObject::FlatCompiledStylesValues(obj) => Some(obj),

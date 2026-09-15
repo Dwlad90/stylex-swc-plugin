@@ -1,9 +1,7 @@
-use stylex_constants::constants::messages::{OBJECT_KEY_MUST_BE_IDENT, SPREAD_NOT_SUPPORTED};
-use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   atoms::Atom,
   ecma::{
-    ast::{Expr, Lit, MemberExpr, ObjectLit, Prop, PropOrSpread},
+    ast::{Expr, Lit, MemberExpr, ObjectLit},
     visit::{Visit, noop_visit_type},
   },
 };
@@ -61,29 +59,26 @@ pub(crate) fn member_expression(
       *non_null_props = NonNullProps::True;
       style_non_null_props = NonNullProps::True;
     } else {
-      if let NonNullProps::True = non_null_props {
-        style_non_null_props = NonNullProps::True;
-      } else {
-        style_non_null_props = non_null_props.clone();
-      }
+      // Not `True` here: the branch above took that case, and nothing since has
+      // written to the counter.
+      style_non_null_props = non_null_props.clone();
 
       if let NonNullProps::Vec(vec) = non_null_props
         && let Some(EvaluateResultValue::Expr(Expr::Object(ObjectLit { props, .. }))) = style_value
       {
-        let namespaces = props.iter().filter_map(|item| match item {
-          PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-          PropOrSpread::Prop(prop) => match prop.as_ref() {
-            Prop::KeyValue(key_value) => match key_value.value.as_ref() {
-              Expr::Lit(Lit::Null(_)) => None,
-              _ => Some(match key_value.key.as_ident().map(|ident| &ident.sym) {
-                Some(sym) => sym,
-                None => stylex_panic!("{}", OBJECT_KEY_MUST_BE_IDENT),
-              }),
-            },
-            _ => stylex_unimplemented!(
-              "This property variant is not supported in member expression evaluation."
-            ),
-          },
+        // The evaluator rebuilds every object it folds, so each property that
+        // arrives here is a key-value pair under a plain name: a spread is
+        // already merged away, and a key it could not name is a refusal it
+        // reported rather than an object it answered. What is left to decide is
+        // the value: a property declared as absent names nothing the runtime
+        // still needs.
+        let namespaces = props.iter().filter_map(|item| {
+          item
+            .as_prop()
+            .and_then(|prop| prop.as_key_value())
+            .filter(|key_value| !matches!(key_value.value.as_ref(), Expr::Lit(Lit::Null(_))))
+            .and_then(|key_value| key_value.key.as_ident())
+            .map(|ident| &ident.sym)
         });
 
         vec.extend(namespaces.cloned());

@@ -18,6 +18,17 @@ use stylex_state::{
 use super::parse_nullable_style::ResolvedArg;
 
 pub(crate) fn props(styles: &[ResolvedArg]) -> Option<FnResult> {
+  Some(FnResult::Props(
+    NestedStringObject::FlatCompiledStylesValues(props_map(styles)),
+  ))
+}
+
+/// The properties the merged styles become, before they are named as a result.
+///
+/// Split out because `attrs` needs the same map and reads it by another set of
+/// names. Going through the result would have it take the map apart again, and
+/// every step of that is a case the map can never be in.
+pub(crate) fn props_map(styles: &[ResolvedArg]) -> FlatCompiledStyles {
   let StyleQResult {
     class_name,
     inline_style,
@@ -60,7 +71,5 @@ pub(crate) fn props(styles: &[ResolvedArg]) -> Option<FnResult> {
     );
   }
 
-  Some(FnResult::Props(
-    NestedStringObject::FlatCompiledStylesValues(props_map),
-  ))
+  props_map
 }

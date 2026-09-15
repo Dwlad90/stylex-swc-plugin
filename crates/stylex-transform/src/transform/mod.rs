@@ -119,6 +119,11 @@ where
     self
   }
 
+  pub fn with_test(mut self, val: bool) -> Self {
+    self.ensure_config().test = Some(val);
+    self
+  }
+
   pub fn with_debug(mut self, val: bool) -> Self {
     self.ensure_config().debug = Some(val);
     self

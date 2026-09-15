@@ -548,3 +548,47 @@ fn every_create_theme_shape_compiles_alike_in_both_spellings() {
     assert_spellings_agree_with(shape, bare, wrapped, compiled);
   }
 }
+
+// Test mode writes the development names and then marks the object compiled. A
+// theme object is marked already, so the two modes answer the same thing --
+// which is what this asserts, rather than recording `adds_dev_data` twice.
+#[test]
+fn test_mode_gives_a_theme_the_development_names() {
+  let compile = |dev: bool, test: bool| {
+    stringify_js(
+      r#"
+        import * as stylex from '@stylexjs/stylex';
+        export const vars = {
+          color: "var(--xwx8imx)",
+          otherColor: "var(--xaaua2w)",
+          radius: "var(--xbbre8)",
+          __varGroupHash__: "xop34xu"
+        };
+
+        export const theme = stylex.createTheme(vars, {
+            color: 'orange'
+          });
+      "#,
+      ts_syntax(),
+      |tr| {
+        stylex_transform(tr.comments.clone(), move |b| {
+          b.with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+            .with_dev(dev)
+            .with_test(test)
+        })
+      },
+    )
+  };
+
+  let under_test = compile(false, true);
+
+  assert!(
+    under_test.contains("Foo__theme"),
+    "test mode left the theme without its development name:\n{under_test}"
+  );
+  assert_eq!(
+    under_test,
+    compile(true, false),
+    "test mode and development mode disagree on a theme"
+  );
+}

@@ -1180,4 +1180,87 @@ mod stylex_create {
     assert_eq!(injected_styles, expected_injected_styles);
     assert_eq!(class_paths_in_namespace, expected_class_paths_in_namespace)
   }
+
+  /// A namespace is named by the key it is written under, which has to spell
+  /// text at compile time.
+  #[test]
+  #[should_panic(expected = "Expected a string value but received a non-string expression.")]
+  fn refuses_a_namespace_name_that_spells_no_text() {
+    let mut object = IndexMap::new();
+
+    object.insert(
+      create_object_expression(vec![]),
+      vec![create_key_value_prop_ident(
+        "color",
+        create_string_expr("red"),
+      )],
+    );
+
+    stylex_create(object);
+  }
+
+  /// A property written with no value declares nothing. The namespace still
+  /// names the property, so a merge below it can still take the property away.
+  #[test]
+  fn names_a_property_that_declares_nothing_and_injects_no_rule() {
+    let mut object = IndexMap::new();
+
+    object.insert(
+      create_string_expr("default"),
+      vec![create_key_value_prop_ident(
+        "color",
+        Expr::Lit(create_null_lit()),
+      )],
+    );
+
+    let (resolved_namespaces, injected_styles, class_paths_in_namespace) = stylex_create(object);
+
+    let namespace = match resolved_namespaces.get("default") {
+      Some(namespace) => namespace,
+      None => panic!("the namespace was not resolved"),
+    };
+
+    assert_eq!(
+      namespace.get("color-kMwMTN").map(|value| value.as_ref()),
+      Some(&FlatCompiledStylesValue::Null)
+    );
+    assert!(injected_styles.is_empty());
+    assert!(
+      class_paths_in_namespace
+        .get("default")
+        .is_some_and(|paths| paths.is_empty())
+    );
+  }
+
+  /// A property written under two conditions is one set of rules. When no
+  /// condition declares anything, the set compiles to no class name at all,
+  /// and the namespace names the property as declaring nothing.
+  #[test]
+  fn names_a_set_of_rules_that_all_declare_nothing() {
+    let mut object = IndexMap::new();
+
+    object.insert(
+      create_string_expr("default"),
+      vec![create_key_value_prop_ident(
+        "color",
+        create_object_expression(vec![
+          create_key_value_prop("default", Expr::Lit(create_null_lit())),
+          create_key_value_prop(":hover", Expr::Lit(create_null_lit())),
+        ]),
+      )],
+    );
+
+    let (resolved_namespaces, injected_styles, _) = stylex_create(object);
+
+    let namespace = match resolved_namespaces.get("default") {
+      Some(namespace) => namespace,
+      None => panic!("the namespace was not resolved"),
+    };
+
+    assert_eq!(
+      namespace.get("color-kMwMTN").map(|value| value.as_ref()),
+      Some(&FlatCompiledStylesValue::Null)
+    );
+    assert!(injected_styles.is_empty());
+  }
 }

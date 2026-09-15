@@ -231,4 +231,118 @@ mod stylex_define_consts {
       "red"
     );
   }
+
+  /// The value a constant is written with reaches the output as text. A
+  /// literal and a template that spells one are read as the text they spell,
+  /// and anything else is written as JSON.
+  mod a_constant_value {
+    use super::*;
+
+    use crate::tests::support::expr;
+
+    fn text_of(code: &str) -> String {
+      let constants = EvaluateResultValue::Expr(expr(code));
+
+      let (js_output, _) = stylex_define_consts(
+        &constants,
+        &mut create_test_state_manager("Test.stylex.js//consts"),
+      );
+
+      match js_output.get("value").and_then(|value| value.as_string()) {
+        Some(text) => text.clone(),
+        None => panic!("the constant {code} holds no text"),
+      }
+    }
+
+    #[test]
+    fn reads_a_template_that_spells_one_piece_of_text() {
+      assert_eq!(
+        text_of("{ value: `(min-width: 768px)` }"),
+        "(min-width: 768px)"
+      );
+    }
+
+    #[test]
+    fn reads_an_empty_template_as_empty_text() {
+      assert_eq!(text_of("{ value: `` }"), "");
+    }
+
+    /// A template holding an expression spells no one piece of text, so the
+    /// value is written as the source the expression was written with.
+    #[test]
+    fn writes_a_template_holding_an_expression_as_its_own_source() {
+      assert_eq!(text_of("{ value: `a${b}c` }"), "`a${b}c`");
+    }
+
+    #[test]
+    fn writes_a_value_that_is_no_literal_as_json() {
+      assert_eq!(text_of("{ value: { nested: 1 } }"), r#"{"nested":1}"#);
+    }
+  }
+
+  /// The name a constant is written under in the stylesheet is hashed from the
+  /// export it belongs to. Under debug class names the hash is prefixed with a
+  /// name the author can read, and a name that cannot be read as an identifier
+  /// is made into one.
+  mod the_name_a_constant_is_written_under {
+    use super::*;
+
+    use crate::tests::support::expr;
+
+    fn const_keys(code: &str, debug: bool) -> Vec<String> {
+      let options = StyleXOptions::default()
+        .with_class_name_prefix("x")
+        .with_debug(debug)
+        .with_enable_debug_class_names(debug);
+
+      let mut state = StateManager::new(options);
+      state.export_id = Some("Test.stylex.js//consts".to_owned());
+
+      let (_, injectable_styles) =
+        stylex_define_consts(&EvaluateResultValue::Expr(expr(code)), &mut state);
+
+      injectable_styles
+        .keys()
+        .map(|key| key.as_str().to_owned())
+        .collect()
+    }
+
+    #[test]
+    fn is_the_hash_alone_when_debug_names_are_off() {
+      assert_eq!(
+        const_keys("{ '2xl': '(min-width: 1536px)' }", false),
+        [get_const_hash("Test.stylex.js//consts", "2xl", "x")]
+      );
+    }
+
+    /// A name that starts with a digit is no identifier, so the readable half
+    /// is written with a leading underscore.
+    #[test]
+    fn carries_a_readable_name_under_debug_names() {
+      let hash = get_const_hash("Test.stylex.js//consts", "2xl", "x");
+
+      assert_eq!(
+        const_keys("{ '2xl': '(min-width: 1536px)' }", true),
+        [format!("_2xl-{hash}")]
+      );
+    }
+
+    /// A character that no identifier can carry is written as an underscore.
+    #[test]
+    fn writes_a_character_no_identifier_can_carry_as_an_underscore() {
+      let hash = get_const_hash("Test.stylex.js//consts", "on.dark", "x");
+
+      assert_eq!(
+        const_keys("{ 'on.dark': 'black' }", true),
+        [format!("on_dark-{hash}")]
+      );
+    }
+
+    /// A name the author wrote as a CSS custom property keeps that name, with
+    /// the two leading dashes taken off.
+    #[test]
+    fn keeps_a_custom_property_name_the_author_wrote() {
+      assert_eq!(const_keys("{ '--brand': 'red' }", true), ["brand"]);
+    }
+  }
 }

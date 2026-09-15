@@ -14,9 +14,7 @@ use swc_core::{
   },
 };
 
-use stylex_ast::ast::convertors::{
-  convert_str_lit_to_string, expand_shorthand_prop, init_call, normalize_expr,
-};
+use stylex_ast::ast::convertors::{convert_str_lit_to_string, init_call, normalize_expr};
 use stylex_enums::{
   style_vars_to_keep::{NonNullProp, NonNullProps},
   top_level_expression::TopLevelExpressionKind,
@@ -237,9 +235,15 @@ where
     // so reading it again for each namespace made the sweep cost the module
     // twice over. `None` against a namespace means one entry keeps it whole,
     // and then nothing is swept out of it.
-    let mut nulls_by_namespace: FxHashMap<&NonNullProp, Option<Vec<Atom>>> = FxHashMap::default();
+    let mut nulls_by_namespace: FxHashMap<&Atom, Option<Vec<Atom>>> = FxHashMap::default();
 
     for StyleVarsToKeep(var, recorded_name, prop) in self.state.style_vars_to_keep.iter() {
+      // A name recorded as `True` says the whole style variable is read, not
+      // one namespace of it, so this sweep has no entry to make for it.
+      let NonNullProp::Atom(recorded_name) = recorded_name else {
+        continue;
+      };
+
       if var != var_id {
         continue;
       }
@@ -249,6 +253,8 @@ where
         .or_insert_with(|| Some(Vec::new()));
 
       match prop {
+        // An entry that keeps the namespace whole stays that way: the names
+        // gathered before it are unread, and a list after it adds nothing.
         NonNullProps::Vec(vec) => {
           if let Some(nulls) = nulls {
             nulls.extend(vec.iter().cloned());
@@ -265,15 +271,13 @@ where
         continue;
       }
 
-      let key_id = NonNullProp::Atom(namespace_name);
-
-      let nulls_to_keep = match nulls_by_namespace.get(&key_id) {
+      let nulls_to_keep: Option<&[Atom]> = match nulls_by_namespace.get(&namespace_name) {
         // One entry keeps this namespace whole, so nothing is swept out of it.
         Some(None) => None,
-        Some(Some(nulls)) => Some(nulls.clone()),
+        Some(Some(nulls)) => Some(nulls),
         // Nothing was recorded against the namespace, so every null
         // declaration in it goes.
-        None => Some(Vec::new()),
+        None => Some(&[]),
       };
 
       if let Some(nulls_to_keep) = nulls_to_keep
@@ -365,29 +369,18 @@ fn local_binding_from_pat(pat: &Pat) -> Option<(swc_core::atoms::Atom, swc_core:
   }
 }
 
-fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: Vec<Atom>) {
+fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: &[Atom]) {
   style_object.props.retain(|prop| match prop {
-    PropOrSpread::Prop(prop) => {
-      let mut prop = prop.clone();
-
-      expand_shorthand_prop(&mut prop);
-
-      if let Prop::KeyValue(key_value) = &*prop
-        && key_value
-          .value
-          .as_lit()
-          .and_then(|lit| match lit {
-            Lit::Null(_) => Some(()),
-            _ => None,
-          })
-          .is_some()
-        && matches!(key_value.key, PropName::Ident(_))
-        && let PropName::Ident(ident) = &key_value.key
-      {
-        return nulls_to_keep.contains(&ident.sym);
-      }
-
-      true
+    // Only a declaration written as a name and a value can hold `null`. A
+    // shorthand carries its own name as its value, so it is read as it stands
+    // rather than expanded first: expanding one can never answer this
+    // question, and the copy it needs was paid for every prop of every style.
+    PropOrSpread::Prop(prop) => match &**prop {
+      Prop::KeyValue(key_value) => match (&key_value.key, key_value.value.as_lit()) {
+        (PropName::Ident(ident), Some(Lit::Null(_))) => nulls_to_keep.contains(&ident.sym),
+        _ => true,
+      },
+      _ => true,
     },
     PropOrSpread::Spread(_) => true,
   });

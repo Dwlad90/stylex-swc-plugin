@@ -16,7 +16,7 @@
 use swc_core::{
   atoms::Atom,
   common::{GLOBALS, Globals},
-  ecma::ast::{Expr, ObjectLit, PropOrSpread},
+  ecma::ast::{Expr, ObjectLit, Prop, PropOrSpread},
 };
 
 use rustc_hash::FxHashSet;
@@ -62,6 +62,23 @@ fn namespaces_to_keep(names: &[&str]) -> FxHashSet<Atom> {
 
 fn declaration_id() -> DeclId {
   create_ident("styles").to_id()
+}
+
+/// The declarations the namespace at `index` of a swept object holds.
+fn namespace_declarations(props: &[PropOrSpread], index: usize) -> Vec<String> {
+  match props[index]
+    .as_prop()
+    .and_then(|prop| prop.as_key_value())
+    .and_then(|key_value| key_value.value.as_object())
+  {
+    Some(object) => prop_names(&object.props),
+    None => panic!("a namespace is a key-value prop holding an object"),
+  }
+}
+
+/// A prop written as a bare name, which carries that name as its value.
+fn shorthand_of(name: &str) -> PropOrSpread {
+  PropOrSpread::Prop(Box::new(Prop::Shorthand(create_ident(name))))
 }
 
 /// The name each prop of `object` is written under.
@@ -113,25 +130,95 @@ fn the_sweep_keeps_the_namespaces_and_nulls_still_read() {
       "the namespace nothing reads is gone"
     );
 
-    let declarations = |index: usize| match swept[index]
-      .as_prop()
-      .and_then(|prop| prop.as_key_value())
-      .and_then(|key_value| key_value.value.as_object())
-    {
-      Some(object) => prop_names(&object.props),
-      None => panic!("a namespace is a key-value prop holding an object"),
-    };
-
     assert_eq!(
-      declarations(0),
+      namespace_declarations(&swept, 0),
       vec!["color".to_string()],
       "the namespace read by name keeps the declaration named with it"
     );
     assert_eq!(
-      declarations(1),
+      namespace_declarations(&swept, 1),
       vec!["color".to_string(), "margin".to_string()],
       "the namespace kept whole keeps every declaration"
     );
+  });
+}
+
+/// Two entries recording names against one namespace keep both lists.
+///
+/// The names are gathered in one pass over the recorded entries, so a
+/// namespace named by more than one reader must end with the union of what
+/// they named, not with the last list alone.
+#[test]
+fn two_entries_against_one_namespace_keep_both_names() {
+  GLOBALS.set(&Globals::default(), || {
+    let mut transform = transform();
+    let var_id = declaration_id();
+
+    for name in ["color", "margin"] {
+      transform.state.style_vars_to_keep.insert(StyleVarsToKeep(
+        var_id.clone(),
+        NonNullProp::Atom(Atom::from("base")),
+        NonNullProps::Vec(vec![Atom::from(name)]),
+      ));
+    }
+
+    let mut object = object_of(vec![namespace_of("base", &["color", "margin", "padding"])]);
+
+    let swept = transform.retain_object_props(&mut object, &namespaces_to_keep(&["base"]), &var_id);
+
+    assert_eq!(
+      namespace_declarations(&swept, 0),
+      vec!["color".to_string(), "margin".to_string()],
+      "both readers' names are kept, and the name neither asked for goes"
+    );
+  });
+}
+
+/// A namespace recorded as kept whole stays whole, whichever order the entries
+/// were recorded in.
+///
+/// One reader can name a declaration while another reads the namespace whole,
+/// and the two are recorded independently. The whole-namespace answer settles
+/// it, so the names beside it must not narrow the sweep.
+#[test]
+fn a_namespace_recorded_whole_stays_whole_in_either_order() {
+  GLOBALS.set(&Globals::default(), || {
+    for names_first in [true, false] {
+      let mut transform = transform();
+      let var_id = declaration_id();
+
+      let named = StyleVarsToKeep(
+        var_id.clone(),
+        NonNullProp::Atom(Atom::from("base")),
+        NonNullProps::Vec(vec![Atom::from("color")]),
+      );
+      let whole = StyleVarsToKeep(
+        var_id.clone(),
+        NonNullProp::Atom(Atom::from("base")),
+        NonNullProps::True,
+      );
+
+      let recorded = if names_first {
+        [named, whole]
+      } else {
+        [whole, named]
+      };
+
+      for entry in recorded {
+        transform.state.style_vars_to_keep.insert(entry);
+      }
+
+      let mut object = object_of(vec![namespace_of("base", &["color", "margin"])]);
+
+      let swept =
+        transform.retain_object_props(&mut object, &namespaces_to_keep(&["base"]), &var_id);
+
+      assert_eq!(
+        namespace_declarations(&swept, 0),
+        vec!["color".to_string(), "margin".to_string()],
+        "the namespace is kept whole whether the names were recorded first or second"
+      );
+    }
   });
 }
 
@@ -159,17 +246,10 @@ fn a_kept_namespace_with_nothing_recorded_loses_every_null() {
       "the namespace the module reads is kept"
     );
 
-    match swept[0]
-      .as_prop()
-      .and_then(|prop| prop.as_key_value())
-      .and_then(|key_value| key_value.value.as_object())
-    {
-      Some(object) => assert!(
-        object.props.is_empty(),
-        "nothing is recorded against the namespace, so every null goes"
-      ),
-      None => panic!("a namespace is a key-value prop holding an object"),
-    }
+    assert!(
+      namespace_declarations(&swept, 0).is_empty(),
+      "nothing is recorded against the namespace, so every null goes"
+    );
   });
 }
 
@@ -220,8 +300,8 @@ fn a_namespace_that_holds_no_object_is_kept_as_it_is() {
 /// Inside one namespace: a declaration of `null` under a name the module no
 /// longer reads goes, one it still reads stays, and everything that is not a
 /// declaration of `null` under a name the sweep reads -- a class name, the
-/// `$$css` marker, a string key, a prop that is no property at all -- stays
-/// with it.
+/// `$$css` marker, a string key, a bare name, a prop that is no property at
+/// all -- stays with it.
 #[test]
 fn the_null_sweep_drops_only_the_nulls_nothing_reads() {
   GLOBALS.set(&Globals::default(), || {
@@ -233,10 +313,13 @@ fn the_null_sweep_drops_only_the_nulls_nothing_reads() {
       // A name that has to be quoted is a string key, which the sweep reads as
       // no declaration of its own -- a minified key is written this way.
       create_key_value_prop("color-kMwMTN", create_null_expr()),
+      // A bare name carries that name as its value, so it is no declaration
+      // of `null` however the sweep reads it.
+      shorthand_of("inherited"),
       create_spread_prop(Expr::Ident(create_ident("other"))),
     ]);
 
-    retain_style_props(&mut style_object, vec![Atom::from("color")]);
+    retain_style_props(&mut style_object, &[Atom::from("color")]);
 
     assert_eq!(
       prop_names(&style_object.props),
@@ -249,8 +332,8 @@ fn the_null_sweep_drops_only_the_nulls_nothing_reads() {
     );
     assert_eq!(
       style_object.props.len(),
-      5,
-      "the string-keyed null and the spread stayed too"
+      6,
+      "the string-keyed null, the bare name and the spread stayed too"
     );
   });
 }

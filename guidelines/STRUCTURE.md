@@ -175,17 +175,29 @@ _declared_ exclusions, not the whole of what goes unmeasured.
 This section says why a crate is off the gate. Each row is permanent, with the
 reason stated, or temporary, with the ticket that removes it named. Do not add a
 row without one of the two. A new crate joins the gate at full coverage when it
-is created. A temporary row must say why the coverage could not travel with the
-code.
+is created. A temporary row must say why the coverage is not there: either it
+could not travel with the code, or the tests are not written yet.
 
 Permanent:
 
 - `stylex_logs` -- logging utilities
 - `stylex_compiler_rs` -- NAPI-RS bindings
 - `stylex_test_parser` -- test fixture parser
-- `stylex_transform` -- SWC transform, tested through snapshot tests
 
-There is no temporary row. `stylex_evaluator` was the last crate with one: it
+Temporary:
+
+- `stylex_transform` -- the tests are not written yet. No test runs the refusal
+  arms, the second half of a two-mode helper, or the branch that no fixture
+  reaches. Removed by `67-remove-the-transform-coverage-exclusion`.
+
+Nothing prevents the transform's coverage: the crate holds its own tests, so
+they count for it. Tickets `63-cover-the-transform-shared-utils` through
+`66-cover-the-transformers-and-structures` write the missing tests, and ticket
+67 then puts the crate on the gate. The measured figures are in ticket
+`62-record-the-transform-coverage-baseline`. They change as each batch lands,
+so they are not copied here.
+
+`stylex_evaluator` held the previous temporary row, for a different reason: it
 came out of the transform, which is itself off the gate, and the new crate
 boundary stopped the transform's coverage from counting for it. Ticket
 `15-cover-the-evaluator-crate` added the tests that closed the gap, and the

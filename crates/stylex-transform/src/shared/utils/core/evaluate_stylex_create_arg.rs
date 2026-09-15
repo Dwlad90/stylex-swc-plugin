@@ -619,10 +619,11 @@ fn evaluate_partial_object_recursively(
               },
             }
           },
-          Prop::Method(_) => {
-            return Box::new(EvaluateResult::refused(None, None));
-          },
-          _ => {},
+          // Every remaining `Prop` variant is refused. A method, a getter and
+          // a setter each contain statements this reader cannot fold. A
+          // shorthand name became a key-value pair above, and an assignment is
+          // a destructuring shape that no object literal holds.
+          _ => return Box::new(EvaluateResult::refused(None, None)),
         }
       },
     }

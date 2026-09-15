@@ -3013,3 +3013,54 @@ stylex_test_panic!(
     export const styles = stylex.create({ base: { content: ('a' === 'a') } });
   "#
 );
+
+// A property of a dynamic style that holds a body rather than a value. A
+// shorthand method, a getter and a setter each run code the compiler cannot
+// fold, so the call is refused -- the same sentence the reference gives, for
+// the same three shapes.
+//
+// The getter and the setter were dropped without a word before: the style came
+// out empty and the declaration the author wrote was nowhere in the output.
+stylex_test_panic!(
+  a_method_in_a_dynamic_style_is_refused,
+  "Only static values are allowed inside of a create() call.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ root: (c) => ({ color() { return c; } }) });
+  "#
+);
+
+stylex_test_panic!(
+  a_getter_in_a_dynamic_style_is_refused,
+  "Only static values are allowed inside of a create() call.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ root: (c) => ({ get color() { return c; } }) });
+  "#
+);
+
+stylex_test_panic!(
+  a_setter_in_a_dynamic_style_is_refused,
+  "Only static values are allowed inside of a create() call.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ root: (c) => ({ set color(v) { c = v; } }) });
+  "#
+);
+
+// The same reader runs over every object below the first one, so a condition
+// holding such a property is refused where it stands.
+stylex_test_panic!(
+  a_getter_below_the_first_object_of_a_dynamic_style_is_refused,
+  "Only static values are allowed inside of a create() call.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({
+      root: (c) => ({ color: { default: 'red', get ':hover'() { return c; } } }),
+    });
+  "#
+);

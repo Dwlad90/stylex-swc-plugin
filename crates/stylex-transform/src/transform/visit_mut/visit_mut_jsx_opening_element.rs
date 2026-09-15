@@ -3,7 +3,8 @@ use swc_core::{
   ecma::{
     ast::{
       Bool, CallExpr, Callee, Expr, ExprOrSpread, JSXAttrName, JSXAttrOrSpread, JSXAttrValue,
-      JSXElementName, JSXExpr, JSXOpeningElement, Lit, MemberExpr, MemberProp, Prop, PropOrSpread,
+      JSXElementName, JSXExpr, JSXExprContainer, JSXOpeningElement, Lit, MemberExpr, MemberProp,
+      Prop, PropOrSpread,
     },
     visit::VisitMutWith,
   },
@@ -66,41 +67,42 @@ where
       return;
     }
 
-    // Find the sx attribute index
-    let sx_attr_idx = jsx_opening_element.attrs.iter().position(|attr| {
-      if let JSXAttrOrSpread::JSXAttr(jsx_attr) = attr
-        && let JSXAttrName::Ident(name) = &jsx_attr.name
-      {
-        return name.sym.as_str() == sx_prop_name.as_str();
-      }
-      false
-    });
+    // The first attribute that names the prop, with the value it carries. The
+    // value is taken by copy so that the attribute list is no longer borrowed
+    // when the runtime binding is resolved below, which writes to `self`.
+    let sx_attr = jsx_opening_element
+      .attrs
+      .iter()
+      .enumerate()
+      .find_map(|(idx, attr)| match attr {
+        JSXAttrOrSpread::JSXAttr(jsx_attr) => match &jsx_attr.name {
+          JSXAttrName::Ident(name) if name.sym.as_str() == sx_prop_name.as_str() => {
+            Some((idx, jsx_attr.value.clone()))
+          },
+          _ => None,
+        },
+        JSXAttrOrSpread::SpreadElement(_) => None,
+      });
 
-    if let Some(idx) = sx_attr_idx {
-      let replacement = if let JSXAttrOrSpread::JSXAttr(jsx_attr) = &jsx_opening_element.attrs[idx]
-      {
-        if let Some(JSXAttrValue::JSXExprContainer(container)) = &jsx_attr.value {
-          if let JSXExpr::Expr(expr) = &container.expr {
-            let value_expr = *expr.clone();
-            let stylex_local_name = self.get_stylex_runtime_binding(element_span);
+    // Only an expression container names styles to compile. An attribute
+    // written as text, or with no value at all, is left where the author wrote
+    // it -- as a prop of a compiled call whose value cannot be read is. The
+    // first attribute of the name wins either way, so a second one is not
+    // looked at.
+    if let Some((
+      idx,
+      Some(JSXAttrValue::JSXExprContainer(JSXExprContainer {
+        expr: JSXExpr::Expr(value_expr),
+        ..
+      })),
+    )) = sx_attr
+    {
+      let stylex_local_name = self.get_stylex_runtime_binding(element_span);
 
-            let args = sx_value_to_props_args(value_expr);
-            let call = Expr::Call(build_stylex_props_call(stylex_local_name, args));
+      let args = sx_value_to_props_args(*value_expr);
+      let call = Expr::Call(build_stylex_props_call(stylex_local_name, args));
 
-            Some(create_jsx_spread_attr(call))
-          } else {
-            None
-          }
-        } else {
-          None
-        }
-      } else {
-        None
-      };
-
-      if let Some(spread) = replacement {
-        jsx_opening_element.attrs[idx] = spread;
-      }
+      jsx_opening_element.attrs[idx] = create_jsx_spread_attr(call);
     }
 
     jsx_opening_element.visit_mut_children_with(self);

@@ -63,10 +63,6 @@ pub fn cannot_generate_hash(fn_name: &str) -> String {
 pub static DUPLICATE_CONDITIONAL: &str =
   "The same pseudo selector or at-rule cannot be used more than once.";
 
-pub static ESCAPED_STYLEX_VALUE: &str = "Escaping a create() value is not allowed.";
-
-pub static ILLEGAL_NESTED_PSEUDO: &str = "Pseudo objects can't be nested more than one level deep.";
-
 pub static ILLEGAL_PROP_VALUE: &str = "A style value can only contain an array, string or number.";
 
 pub static ILLEGAL_PROP_ARRAY_VALUE: &str =
@@ -81,8 +77,6 @@ pub static ILLEGAL_NAMESPACE_VALUE: &str = "A StyleX namespace must be an object
 /// letting the runtime throw -- so the sentence an author sees is the same one
 /// on both sides only if this is the runtime's, not one of ours.
 pub static NULLISH_TO_OBJECT: &str = "Cannot convert undefined or null to object";
-
-pub static INVALID_PSEUDO: &str = "Invalid pseudo selector, not on the whitelist.";
 
 pub static INVALID_PSEUDO_OR_AT_RULE: &str = "Invalid pseudo or at-rule.";
 
@@ -111,8 +105,6 @@ pub static LINT_VALUE_HAS_NO_TOKENS: &str = "Rule contains a value with nothing 
 pub static LINT_IMPORTANT_NOT_LAST: &str =
   "Rule contains an importance annotation the compiler cannot remove from the value";
 
-pub static LOCAL_ONLY: &str = "The return value of create() should not be exported.";
-
 pub static NON_OBJECT_KEYFRAME: &str = "Every frame within a keyframes() call must be an object.";
 
 pub static NON_CONTIGUOUS_VARS: &str =
@@ -121,10 +113,6 @@ pub static NON_CONTIGUOUS_VARS: &str =
 pub static NO_OBJECT_SPREADS: &str = "Object spreads are not allowed in create() calls.";
 
 pub static ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS: &str = "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed.";
-
-pub static ONLY_TOP_LEVEL: &str = "create() is only allowed at the root of a program.";
-
-pub static UNKNOWN_PROP_KEY: &str = "Unknown property key";
 
 pub static UNPREFIXED_CUSTOM_PROPERTIES: &str = "Unprefixed custom properties";
 
@@ -193,8 +181,6 @@ pub static VALUE_MUST_BE_STRING: &str = "Expected a string value but received a 
 pub static VALUE_MUST_BE_LITERAL: &str =
   "Expected a static literal value (string, number, or boolean).";
 
-pub static ENTRY_MUST_BE_TUPLE: &str = "Each entry must be a [key, value] tuple.";
-
 pub static ARGUMENT_NOT_EXPRESSION: &str = "Function argument must be a static expression.";
 
 pub static EXPORT_ID_NOT_SET: &str =
@@ -223,8 +209,6 @@ pub static THEME_VAR_TUPLE: &str =
   "Theme variable definition must be a [key, value, cssType] tuple.";
 
 pub static OBJECT_KEY_MUST_BE_IDENT: &str = "Object key must be a static identifier.";
-
-pub static COMPILED_KEY_MISSING: &str = "Style object does not contain a compiled key. Ensure the styles were created with stylex.create().";
 
 pub static THEME_VARS_MUST_BE_OBJECT: &str = "Theme variables must be defined as a plain object.";
 

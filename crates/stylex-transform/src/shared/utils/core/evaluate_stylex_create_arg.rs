@@ -141,6 +141,25 @@ fn namespace_key_of(key: &Expr) -> Option<&str> {
     .and_then(|name| name.value.as_str())
 }
 
+/// `reason`, named after the key the refused value was written under.
+///
+/// One reader for both places that name a reason, so a key of either kind is
+/// answered the same way in each.
+///
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. The read that produces the name stays at the call site. A key that
+/// spells no name is refused where it is read, before any value under it is,
+/// which `a_namespace_key_that_spells_no_name_is_refused` measures.
+/// `guidelines/stack/RUST.md` describes the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn reason_under_key(key_name: Option<String>, reason: Option<String>) -> Option<String> {
+  match key_name {
+    Some(key_name) => prepend_key_to_reason(&key_name, reason),
+    None => reason,
+  }
+}
+
 /// Prepends a key name to an existing error reason to provide context
 /// about which property path triggered the evaluation failure.
 ///
@@ -293,13 +312,10 @@ pub fn evaluate_stylex_create_arg(
                           );
 
                           if !eval_result.confident {
-                            let reason =
-                              match convert_expr_to_str(key_expr, traversal_state, functions) {
-                                Some(key_name) => {
-                                  prepend_key_to_reason(&key_name, eval_result.reason)
-                                },
-                                None => eval_result.reason,
-                              };
+                            let reason = reason_under_key(
+                              convert_expr_to_str(key_expr, traversal_state, functions),
+                              eval_result.reason,
+                            );
                             // Not `EvaluateResult::refused`, and the difference
                             // is the point: this refusal carries the value the
                             // evaluation did reach, which the constructor
@@ -356,13 +372,10 @@ pub fn evaluate_stylex_create_arg(
                     let mut val = evaluate(value_path, traversal_state, functions);
 
                     if !val.confident {
-                      let key_name = or_refuse_nameless_key(convert_expr_to_str(
-                        key_expr,
-                        traversal_state,
-                        functions,
-                      ));
-
-                      val.reason = prepend_key_to_reason(&key_name, val.reason);
+                      val.reason = reason_under_key(
+                        convert_expr_to_str(key_expr, traversal_state, functions),
+                        val.reason,
+                      );
 
                       return val;
                     }

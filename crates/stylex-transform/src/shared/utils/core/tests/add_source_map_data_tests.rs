@@ -556,19 +556,17 @@ mod short_filenames {
     );
   }
 
-  /// A directory that no `package.json` stands above.
+  /// The path of a directory that no `package.json` stands above.
   ///
-  /// Written under the temporary directory, because every directory inside the
-  /// checkout has this repository's own manifest over it.
+  /// Under the temporary directory, because every directory inside the
+  /// checkout has this repository's own manifest over it. Nothing is written:
+  /// the naming reads the manifests above a path and the path itself, so a
+  /// directory that is not there answers the same as an empty one.
   fn directory_in_no_package(name: &str) -> String {
-    let root = std::env::temp_dir().join(format!("{name}_{}", std::process::id()));
-
-    match std::fs::create_dir_all(root.join("src/components")) {
-      Ok(()) => {},
-      Err(error) => panic!("the fixture directory could not be written: {error}"),
-    }
-
-    root.to_string_lossy().into_owned()
+    std::env::temp_dir()
+      .join(format!("{name}_{}", std::process::id()))
+      .to_string_lossy()
+      .into_owned()
   }
 
   fn annotation_of(state: &mut StateManager, line: usize) -> FlatCompiledStylesValue {

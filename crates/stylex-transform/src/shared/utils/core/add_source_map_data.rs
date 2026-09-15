@@ -266,13 +266,20 @@ fn original_position_from_input_source_map(
     return None;
   }
 
-  // The two reads below bound the position between them, so the file is not
-  // asked twice whether it holds it: a position before the file sits on no line
-  // of it, and one past the end names no text. The key span comes from the
-  // compiler's own parse while this file is the text the host handed over, and
-  // the two can disagree -- a shorter text, or one whose characters lie
-  // differently -- so the position is checked rather than trusted.
+  // The key span comes from the compiler's own parse while this file is the
+  // text the host handed over, and the two can disagree -- a shorter text, or
+  // one whose characters lie differently -- so the position is checked rather
+  // than trusted.
+  //
+  // The end is checked here and the start is not: a position at the very end
+  // of the file names no character, and the text read below still slices for
+  // it, while a position before the file sits on no line of it and the line
+  // read refuses it.
   let pos = span.lo();
+  if pos >= source_file.end_pos {
+    return None;
+  }
+
   let line = source_file.lookup_line(pos)?;
   let line_begin = source_file.line_begin_pos(pos);
 
@@ -374,10 +381,12 @@ fn or_refuse_unspellable_path(text: Option<&str>) -> &str {
 /// The short name `absolute_path` is written as, measured against the directory
 /// the compiler runs in.
 ///
-/// The directory is read from the environment here and passed on, so the naming
-/// below is decided by its arguments alone. Every rule it applies depends on
-/// where the compiler runs, and a test cannot move the process into a directory
-/// of its own without moving every other test with it.
+/// This is where the environment is read, and the only place. Every rule the
+/// naming applies is about where the compiler runs, so separating the read
+/// from the rules leaves a name that is decided by its arguments: one caller
+/// asks the environment, and one function says what a path is called. A test
+/// states the directory instead, which it cannot do by moving the process --
+/// that would move every other test in the binary with it.
 fn create_short_filename(
   absolute_path: &str,
   state: &StateManager,

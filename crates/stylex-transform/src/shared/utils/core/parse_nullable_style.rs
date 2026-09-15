@@ -107,7 +107,7 @@ pub(crate) fn parse_nullable_style(
       // The namespaces come back with the name, rather than being looked up
       // again once the name is admitted: the reader that admits the name reads
       // the same map, so a second look-up asked a question already answered.
-      let mut namespaces: Option<Rc<StylesObjectMap>> = None;
+      let mut namespaces: Option<&StylesObjectMap> = None;
       let mut obj_name: Option<String> = None;
       let mut prop_name: Option<String> = None;
 
@@ -116,13 +116,13 @@ pub(crate) fn parse_nullable_style(
       {
         match &member.prop {
           MemberProp::Ident(prop_ident) => {
-            namespaces = Some(Rc::clone(style_var_namespaces));
+            namespaces = Some(style_var_namespaces);
             obj_name = Some(obj_ident.sym.as_str().to_string());
             prop_name = Some(prop_ident.sym.as_str().to_string());
           },
           MemberProp::Computed(computed) => {
             if let Some(lit) = normalize_expr(&computed.expr).as_lit() {
-              namespaces = Some(Rc::clone(style_var_namespaces));
+              namespaces = Some(style_var_namespaces);
               obj_name = Some(obj_ident.sym.as_str().to_string());
               prop_name = convert_lit_to_string(lit);
             }

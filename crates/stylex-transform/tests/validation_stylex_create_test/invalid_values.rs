@@ -3064,3 +3064,16 @@ stylex_test_panic!(
     });
   "#
 );
+
+// A namespace key that spells text no name can hold. A string literal may hold
+// an unpaired surrogate, which no name can, so the key is refused where it is
+// read -- before anything under it is, whatever the value beside it says.
+stylex_test_panic!(
+  a_namespace_key_that_spells_no_name_is_refused,
+  "The key has no name at compile time.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ '\uD83D': runtimeValue });
+  "#
+);

@@ -3159,6 +3159,12 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/legacy_deprecated.rs:231"
     },
     {
+      "id": "2c60fb28",
+      "property": "margin",
+      "value": "1px",
+      "origin": "crates/stylex-transform/tests/transform_misc_test/member_reads.rs:72"
+    },
+    {
       "id": "6cddd0f4",
       "property": "margin",
       "value": "1px\t2px\n3px  4px",
@@ -3361,6 +3367,12 @@
       "property": "padding",
       "value": "16px",
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/env.rs:701"
+    },
+    {
+      "id": "87641579",
+      "property": "padding",
+      "value": "1px",
+      "origin": "crates/stylex-transform/tests/transform_misc_test/member_reads.rs:72"
     },
     {
       "id": "63e6061b",

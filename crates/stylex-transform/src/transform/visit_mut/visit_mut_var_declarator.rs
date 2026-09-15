@@ -252,7 +252,12 @@ where
 
         match prop {
           NonNullProps::Vec(vec) => nulls_to_keep.extend(vec.iter().cloned()),
-          NonNullProps::True => keeps_every_null = true,
+          // Nothing later in the scan can change this answer, and the names
+          // gathered so far are not read once it is given.
+          NonNullProps::True => {
+            keeps_every_null = true;
+            break;
+          },
         }
       }
 

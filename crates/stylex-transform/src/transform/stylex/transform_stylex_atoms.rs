@@ -30,10 +30,7 @@ use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue,
   types::{FlatCompiledStyles, InjectableStylesMap},
 };
-use stylex_types::{
-  enums::data_structures::injectable_style::InjectableStyleKind,
-  structures::{injectable_style::InjectableStyle, style_key::RuleKey},
-};
+use stylex_types::structures::{injectable_style::InjectableStyle, style_key::RuleKey};
 
 use super::transform_stylex_create_call::{build_runtime_function_map, hoist_expression};
 
@@ -124,23 +121,13 @@ where
     let injected = injected
       .iter()
       .map(|(rule_key, kind)| {
-        let (priority, ltr, rtl) = match kind.as_ref() {
-          InjectableStyleKind::Regular(style) => (
-            style.priority.unwrap_or(0.0),
-            style.ltr.clone(),
-            style.rtl.clone(),
-          ),
-          InjectableStyleKind::Const(style) => (
-            style.priority.unwrap_or(0.0),
-            style.ltr.clone(),
-            style.rtl.clone(),
-          ),
-        };
+        let (ltr, rtl) = kind.directional_rules();
+
         InjectedAtomStyle {
           class_name: rule_key.as_str().to_string(),
-          priority,
-          ltr,
-          rtl,
+          priority: kind.priority(),
+          ltr: ltr.to_string(),
+          rtl: rtl.map(str::to_string),
         }
       })
       .collect();

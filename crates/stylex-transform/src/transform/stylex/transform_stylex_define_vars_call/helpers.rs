@@ -63,6 +63,10 @@ impl<'a> VariableGroup<'a> {
   ///
   /// An arrow function value is validated here, before either step below reads
   /// one, so both can take a function value as taking no argument.
+  ///
+  /// A key the fold could not name is refused here too, on the sentence
+  /// `named_key_value` gives. No source reaches it: the evaluator rebuilds
+  /// every object it folds under named keys.
   pub(super) fn read(object: &'a ObjectLit) -> Self {
     let variables: Vec<NamedVariable<'a>> = object
       .props
@@ -78,6 +82,11 @@ impl<'a> VariableGroup<'a> {
       })
       .collect();
 
+    let group = Self {
+      span: object.span,
+      variables,
+    };
+
     // A function value takes no argument. Every one is read before any body is
     // walked, so a group that holds both faults reports the same one whatever
     // order it was written in.
@@ -86,18 +95,29 @@ impl<'a> VariableGroup<'a> {
     // parser could read and let a placeholder through, and the step after it
     // refused the placeholder on the same sentence. The stricter of the two is
     // what an author read either way.
-    for variable in variables.iter() {
-      if let Expr::Arrow(arrow) = variable.value
-        && !arrow.params.is_empty()
-      {
+    for (_, arrow) in group.function_values() {
+      if !arrow.params.is_empty() {
         stylex_panic!("{}", invalid_define_vars_function_value());
       }
     }
 
-    Self {
-      span: object.span,
-      variables,
-    }
+    group
+  }
+
+  /// The variables whose value is a function, each with the name it is
+  /// declared under.
+  ///
+  /// One place says what a function value is. The rule above and the
+  /// dependency walk below both read it, and a value that is not a function
+  /// declares no dependency and takes no parameter.
+  fn function_values(&self) -> impl Iterator<Item = (&Atom, &'a ArrowExpr)> + '_ {
+    self
+      .variables
+      .iter()
+      .filter_map(|variable| match variable.value {
+        Expr::Arrow(arrow) => Some((&variable.name, arrow)),
+        _ => None,
+      })
   }
 }
 
@@ -110,19 +130,25 @@ pub(super) fn collect_dependencies(
   group: &VariableGroup<'_>,
   export_name: &str,
 ) -> FxHashMap<Atom, FxHashSet<Atom>> {
-  let declared: FxHashSet<&Atom> = group
-    .variables
-    .iter()
-    .map(|variable| &variable.name)
-    .collect();
+  let mut function_values = group.function_values().peekable();
+
+  // Only a function body can read another variable of the group. A group that
+  // holds no function declares no dependency, so the set of declared names
+  // below is never built for one.
+  if function_values.peek().is_none() {
+    return FxHashMap::default();
+  }
+
+  // Sized up front. A group can hold hundreds of variables, and a set that
+  // grows into them hashes each name it already holds again at every step.
+  let mut declared: FxHashSet<&Atom> =
+    FxHashSet::with_capacity_and_hasher(group.variables.len(), Default::default());
+
+  declared.extend(group.variables.iter().map(|variable| &variable.name));
 
   let mut dep_map: FxHashMap<Atom, FxHashSet<Atom>> = FxHashMap::default();
 
-  for variable in group.variables.iter() {
-    let Expr::Arrow(arrow) = variable.value else {
-      continue;
-    };
-
+  for (name, arrow) in function_values {
     let mut collector = DependencyVisitor {
       export_name,
       deps: FxHashSet::default(),
@@ -135,11 +161,11 @@ pub(super) fn collect_dependencies(
 
     for dep in collector.deps.iter() {
       if !declared.contains(dep) {
-        stylex_panic!("{}", unknown_define_vars_reference(&variable.name, dep));
+        stylex_panic!("{}", unknown_define_vars_reference(name, dep));
       }
     }
 
-    dep_map.insert(variable.name.clone(), collector.deps);
+    dep_map.insert(name.clone(), collector.deps);
   }
 
   dep_map
@@ -305,6 +331,10 @@ pub(super) fn normalize_define_vars_functions(
           // author reads. Looking at the values first answered a folded function
           // map, which materializes as `{ fn: … }`, with a sentence about
           // zero-argument functions where they wrote a name.
+          //
+          // The name is always there to report, because the group is named
+          // where it is read. This rule used to read a key with no name too,
+          // and report a sentence that named no variable.
           if any_level_needs_a_default(other) {
             stylex_panic!("{}", missing_default_value(&variable.name));
           }

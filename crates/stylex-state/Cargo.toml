@@ -40,11 +40,17 @@ stylex_types = { path = "../stylex-types" }
 stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
+criterion.workspace = true
 ctor.workspace = true
 path-clean.workspace = true
 pretty_env_logger.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
 swc_core = { workspace = true, features = ["ecma_parser"] }
+swc_malloc.workspace = true
+
+[[bench]]
+harness = false
+name = "injection_walk_bench"
 
 [lints]
 workspace = true

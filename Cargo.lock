@@ -3447,6 +3447,7 @@ name = "stylex_state"
 version = "0.19.0-rc.3"
 dependencies = [
  "anyhow",
+ "criterion",
  "ctor",
  "indexmap",
  "log",
@@ -3468,6 +3469,7 @@ dependencies = [
  "stylex_types",
  "stylex_utils",
  "swc_core",
+ "swc_malloc",
  "swc_sourcemap",
 ]
 

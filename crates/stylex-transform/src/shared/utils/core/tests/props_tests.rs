@@ -48,24 +48,26 @@ fn writes_no_class_name_when_the_merge_wrote_no_class() {
   assert!(values_of(props(&[ResolvedArg::style_object(StyleObject::Nullable)])).is_empty());
 }
 
-/// An inline style becomes the pairs a `style` property holds, and each key is
-/// written the way CSS spells it.
+/// An inline style becomes the pairs a `style` property holds, each under the
+/// name the author wrote. The runtime reads the property as a style object,
+/// and `marginTop` is the name such an object carries.
 #[test]
-fn names_an_inline_style_as_dashed_pairs() {
+fn names_an_inline_style_as_the_pairs_the_author_wrote() {
   let values = values_of(props(&[styles(inline(&[("marginTop", "1px")]))]));
 
   match values["style"].as_ref() {
     FlatCompiledStylesValue::KeyValues(pairs) => {
       assert_eq!(pairs.len(), 1);
-      assert_eq!(pairs[0].key, "margin-top");
+      assert_eq!(pairs[0].key, "marginTop");
       assert_eq!(pairs[0].value, "1px");
     },
     other => panic!("the style is not a set of pairs: {other:?}"),
   }
 }
 
-/// A custom property is already spelled the way CSS spells it, so its name is
-/// left alone.
+/// A custom property carries the name CSS gives it, so the author's spelling
+/// and the CSS spelling are one name. It reaches the `style` property
+/// untouched.
 #[test]
 fn keeps_the_name_of_a_custom_property() {
   let values = values_of(props(&[styles(inline(&[("--myColor", "red")]))]));

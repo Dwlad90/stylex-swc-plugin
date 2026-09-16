@@ -102,3 +102,22 @@ stylex_test!(
     }
   "#
 );
+
+// A spread is written out as attributes only where every property spells one.
+// An inline style is an object, and no attribute holds an object, so the
+// spread of such a merge keeps the object the merge built.
+stylex_test!(
+  jsx_spread_keeps_the_object_an_inline_style_makes,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    function Foo() {
+      return <div {...stylex.props(styles.red, { color: 'blue' })} />;
+    }
+  "#
+);

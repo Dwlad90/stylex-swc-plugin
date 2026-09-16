@@ -2,7 +2,6 @@ use std::rc::Rc;
 use stylex_structures::pair::Pair;
 
 use indexmap::IndexMap;
-use stylex_css::css::common::normalize_css_property_name;
 
 use crate::shared::{
   enums::data_structures::fn_result::FnResult,
@@ -31,7 +30,8 @@ pub(crate) fn props_map(styles: &[ResolvedArg]) -> FlatCompiledStyles {
     data_style_src,
   } = styleq(styles);
 
-  let mut props_map: FlatCompiledStyles = IndexMap::new();
+  // Three names at most: the class, the inline style and the debug source.
+  let mut props_map: FlatCompiledStyles = IndexMap::with_capacity(3);
 
   if !class_name.is_empty() {
     props_map.insert(
@@ -41,16 +41,19 @@ pub(crate) fn props_map(styles: &[ResolvedArg]) -> FlatCompiledStyles {
   }
 
   if let Some(inline_style) = inline_style {
-    let pairs: Vec<Pair> = inline_style
-      .iter()
-      .filter_map(|(k, v)| {
-        if let FlatCompiledStylesValue::String(val) = v.as_ref() {
-          Some(Pair::new(normalize_css_property_name(k), val.clone()))
-        } else {
-          None
-        }
-      })
-      .collect();
+    // Each name is kept as the author spelled it, because the runtime reads
+    // this property as a style object and `marginTop` is the name such an
+    // object carries. The CSS spelling is asked for where CSS text is made.
+    //
+    // The merged map is owned here, so each name moves into the pair it makes.
+    // The value is behind a shared pointer, so it is copied.
+    let mut pairs: Vec<Pair> = Vec::with_capacity(inline_style.len());
+
+    pairs.extend(
+      inline_style
+        .into_iter()
+        .filter_map(|(key, value)| value.as_string().map(|text| Pair::new(key, text.clone()))),
+    );
 
     props_map.insert(
       "style".to_string(),

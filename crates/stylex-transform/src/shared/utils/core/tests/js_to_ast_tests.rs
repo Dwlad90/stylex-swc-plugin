@@ -192,16 +192,8 @@ fn writes_every_prop_as_a_key_value_under_a_name() {
     [("a-namespace".to_owned(), "object:2".to_owned())]
   );
 
-  let declarations = match &written {
-    Expr::Object(object) => match object.props.first().map(properties_of_namespace) {
-      Some(declarations) => declarations,
-      None => panic!("the written object holds the namespace it was given"),
-    },
-    other => panic!("the answer is not an object expression: {other:?}"),
-  };
-
   assert_eq!(
-    declarations,
+    properties_under(&written, "a-namespace"),
     [
       ("color-kMwMTN".to_owned(), "string:xabc".to_owned()),
       ("margin".to_owned(), "null".to_owned()),
@@ -209,15 +201,72 @@ fn writes_every_prop_as_a_key_value_under_a_name() {
   );
 }
 
-/// The declarations of one namespace prop, read the same way the namespaces
-/// themselves are.
-fn properties_of_namespace(prop: &PropOrSpread) -> Vec<(String, String)> {
-  match prop
-    .as_prop()
-    .and_then(|prop| prop.as_key_value())
-    .map(|key_value| key_value.value.as_ref())
-  {
-    Some(value) => properties_of(value),
-    None => panic!("a namespace is a key-value prop: {prop:?}"),
+/// The properties of the object one named key holds, read the same way the
+/// answer itself is. A namespace and an inline style are both such an object.
+fn properties_under(expr: &Expr, key: &str) -> Vec<(String, String)> {
+  let object = match expr {
+    Expr::Object(object) => object,
+    other => panic!("the answer is not an object expression: {other:?}"),
+  };
+
+  match object.props.iter().find(|prop| key_of(prop) == key) {
+    Some(prop) => match prop.as_prop().and_then(|prop| prop.as_key_value()) {
+      Some(key_value) => properties_of(key_value.value.as_ref()),
+      None => panic!("the key {key} is not a key-value prop"),
+    },
+    None => panic!("the answer holds no key {key}"),
   }
+}
+
+/// The inline style a `props` merge built is written as the object a `style`
+/// property holds, one declaration per pair.
+///
+/// The text stays text, because an inline style is what the author wrote. A
+/// compiled value that reads as a number is written as one, but `gridRow: '1'`
+/// is a string in the source and stays a string here.
+#[test]
+fn writes_an_inline_style_as_the_object_a_style_property_holds() {
+  let values = values_of(&[
+    (
+      "className",
+      FlatCompiledStylesValue::String("xabc".to_owned()),
+    ),
+    (
+      "style",
+      FlatCompiledStylesValue::KeyValues(vec![
+        Pair::new("color".to_owned(), "blue".to_owned()),
+        Pair::new("gridRow".to_owned(), "1".to_owned()),
+      ]),
+    ),
+  ]);
+
+  let written = convert_values_to_ast(&values);
+
+  assert_eq!(
+    properties_of(&written),
+    [
+      ("className".to_owned(), "string:xabc".to_owned()),
+      ("style".to_owned(), "object:2".to_owned()),
+    ]
+  );
+
+  assert_eq!(
+    properties_under(&written, "style"),
+    [
+      ("color".to_owned(), "string:blue".to_owned()),
+      ("gridRow".to_owned(), "string:1".to_owned()),
+    ]
+  );
+}
+
+/// An inline style that holds no pair is written as an empty object, because
+/// the merge wrote the property it sits under.
+#[test]
+fn writes_an_inline_style_that_holds_no_pair_as_an_empty_object() {
+  let values = values_of(&[("style", FlatCompiledStylesValue::KeyValues(vec![]))]);
+
+  assert_eq!(
+    properties_of(&convert_values_to_ast(&values)),
+    [("style".to_owned(), "object:0".to_owned())]
+  );
 }

@@ -10,6 +10,7 @@ use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue,
   types::{FlatCompiledStyles, StylesObjectMap},
 };
+use stylex_structures::pair::Pair;
 
 pub(crate) fn remove_objects_with_spreads(obj: &StylesObjectMap) -> StylesObjectMap {
   let mut new_obj = IndexMap::with_capacity(obj.len());
@@ -29,6 +30,9 @@ pub(crate) fn remove_objects_with_spreads(obj: &StylesObjectMap) -> StylesObject
 /// value in one is a string, a null or a boolean, because that is all the
 /// compiler writes. A string that reads as a number is written back as a
 /// number, the way the source spelled it.
+///
+/// The properties a `props` merge answers are one such map too, and they hold
+/// one value more: the inline style, which is an object of its own.
 pub(crate) fn convert_values_to_ast(values: &FlatCompiledStyles) -> Expr {
   let props = values
     .iter()
@@ -41,8 +45,27 @@ pub(crate) fn convert_values_to_ast(values: &FlatCompiledStyles) -> Expr {
       FlatCompiledStylesValue::Bool(value) => {
         create_key_value_prop(key.as_str(), create_bool_expr(*value))
       },
+      FlatCompiledStylesValue::KeyValues(pairs) => {
+        create_key_value_prop(key.as_str(), convert_inline_style_to_ast(pairs))
+      },
       _ => stylex_unreachable!("Encountered an unsupported value type during AST conversion."),
     })
+    .collect::<Vec<PropOrSpread>>();
+
+  create_object_expression(props)
+}
+
+/// The object literal an inline style spells: `{ color: "blue", ... }`.
+///
+/// A `props` merge answers one of these under `style`, holding what the author
+/// wrote beside the compiled styles. Each name keeps the spelling of the
+/// source, because the runtime reads this object and not a stylesheet, and each
+/// value stays text: `gridRow: '1'` is a string where the author wrote it, so
+/// it is a string here.
+fn convert_inline_style_to_ast(pairs: &[Pair]) -> Expr {
+  let props = pairs
+    .iter()
+    .map(|pair| create_string_key_value_prop(pair.key.as_str(), pair.value.as_str()))
     .collect::<Vec<PropOrSpread>>();
 
   create_object_expression(props)

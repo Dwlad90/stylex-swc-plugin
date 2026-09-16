@@ -1,8 +1,8 @@
 //! Tests for the object and member key readers.
 
 use crate::ast::keys::{
-  collect_object_lit_keys, namespace_name_from_member_prop, namespace_name_from_prop_key,
-  prop_as_key_value, try_namespace_name_from_prop_key,
+  collect_object_lit_keys, named_key_value, namespace_name_from_member_prop,
+  namespace_name_from_prop_key, prop_as_key_value, try_namespace_name_from_prop_key,
 };
 use swc_core::{
   atoms::{Atom, Wtf8Atom},
@@ -442,6 +442,65 @@ fn refuses_a_method() {
   })));
 
   assert!(prop_as_key_value(&prop).is_none());
+}
+
+// ---------- named_key_value ----------
+
+/// The name and the property come back together, whichever shape the key is
+/// written in.
+#[test]
+fn reads_the_name_and_the_property_together() {
+  let prop = key_value_prop(
+    PropName::Str(string_lit("--color")),
+    Expr::Lit(Lit::Num(number_lit(1.0))),
+  );
+
+  let (name, key_value) = named_key_value(&prop);
+
+  assert_eq!(name, Atom::new("--color"));
+  assert!(matches!(
+    key_value.value.as_ref(),
+    Expr::Lit(Lit::Num(number)) if number.value == 1.0
+  ));
+}
+
+#[test]
+#[should_panic(expected = "The spread operator (...) is not supported in this context.")]
+fn refuses_a_spread_it_cannot_name() {
+  let prop = PropOrSpread::Spread(SpreadElement {
+    dot3_token: DUMMY_SP,
+    expr: Box::new(Expr::Ident(Ident::new_no_ctxt(Atom::new("rest"), DUMMY_SP))),
+  });
+
+  named_key_value(&prop);
+}
+
+#[test]
+#[should_panic(expected = "A style value can only contain an array, string or number.")]
+fn refuses_a_property_that_carries_no_value() {
+  let prop = PropOrSpread::Prop(Box::new(Prop::Method(MethodProp {
+    key: PropName::Ident(ident_name("root")),
+    function: Box::default(),
+  })));
+
+  named_key_value(&prop);
+}
+
+#[test]
+#[should_panic(expected = "The key has no name at compile time.")]
+fn refuses_a_key_with_no_name() {
+  let prop = key_value_prop(
+    PropName::Computed(ComputedPropName {
+      span: DUMMY_SP,
+      expr: Box::new(Expr::Ident(Ident::new_no_ctxt(
+        Atom::new("runtime"),
+        DUMMY_SP,
+      ))),
+    }),
+    Expr::Lit(Lit::Num(number_lit(1.0))),
+  );
+
+  named_key_value(&prop);
 }
 
 // ---------- collect_object_lit_keys ----------

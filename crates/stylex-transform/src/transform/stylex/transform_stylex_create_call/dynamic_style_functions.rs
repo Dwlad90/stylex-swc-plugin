@@ -30,7 +30,7 @@ struct PropClassNames {
 fn class_names_for_prop(
   class_list: &[String],
   dynamic_styles: &[DynamicStyle],
-  orig_class_paths: &IndexMap<String, String>,
+  orig_class_paths: &IndexMap<&str, String>,
   nullish_var_expressions: &FxHashMap<String, Expr>,
   injected_styles: &InjectableStylesMap,
 ) -> PropClassNames {
@@ -41,7 +41,7 @@ fn class_names_for_prop(
     // Read once. Inside the `find` closure the class name was hashed again for
     // every dynamic style the namespace holds, to answer a question that does
     // not change between them.
-    let class_path = orig_class_paths.get(cls);
+    let class_path = orig_class_paths.get(cls.as_str());
 
     let expr = dynamic_styles
       .iter()
@@ -127,16 +127,22 @@ fn dynamic_styles_of_namespace(
 /// The class paths of one namespace, each joined into the single path the
 /// dynamic styles are keyed by.
 ///
+/// The class name is read from the namespace and not copied out of it. Only
+/// the joined path is new text.
+///
 /// A namespace that compiled to no class name answers the empty map, and so
 /// does a name the compiler holds no entry for at all -- both say the same
 /// thing, which is that no class name of this namespace claims a path.
-/// `stylex_create_set` writes an entry for every namespace it compiles, so
-/// only the first of the two is ever read.
-fn joined_class_paths(namespace: Option<&Rc<ClassPathsInNamespace>>) -> IndexMap<String, String> {
+///
+/// Only the first of the two is ever read: `stylex_create_set` writes the
+/// paths and the namespaces in one pass over the same names, which
+/// `answers_class_paths_for_every_namespace_it_compiles` asserts where they
+/// are written rather than here.
+fn joined_class_paths(namespace: Option<&Rc<ClassPathsInNamespace>>) -> IndexMap<&str, String> {
   namespace
     .into_iter()
     .flat_map(|paths| paths.iter())
-    .map(|(class_name, class_paths)| (class_name.clone(), class_paths.join("_")))
+    .map(|(class_name, class_paths)| (class_name.as_str(), class_paths.join("_")))
     .collect()
 }
 
@@ -152,7 +158,7 @@ fn dynamic_namespace_fn(
   params: &[BindingIdent],
   inline_styles: &TInlineStyles,
   values: CompiledValues<'_>,
-  orig_class_paths: &IndexMap<String, String>,
+  orig_class_paths: &IndexMap<&str, String>,
   injected_styles: &InjectableStylesMap,
 ) -> Expr {
   let dynamic_styles = dynamic_styles_of_namespace(inline_styles, &state.options.style_resolution);

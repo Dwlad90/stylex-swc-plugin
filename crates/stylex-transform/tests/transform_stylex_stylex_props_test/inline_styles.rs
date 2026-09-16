@@ -76,6 +76,13 @@ stylex_test!(
 
 // A later inline style wins over an earlier one, declaration by declaration,
 // the way the merge orders compiled styles.
+//
+// The snapshot also pins the order the declarations come out in: a name only
+// the earlier style declares comes first, and the name both declare keeps the
+// later value. A snapshot cannot say whether an order is right, so this source
+// was put through `pnpm run parity:probe` from `crates/stylex-rs-compiler`
+// first, and the reference prints the same order. Ticket 74 of
+// `.scratch/split-transform-crate` records the reading.
 stylex_test!(
   a_later_inline_style_wins_over_an_earlier_one,
   |tr| stylex_transform(tr.comments.clone(), |b| b),

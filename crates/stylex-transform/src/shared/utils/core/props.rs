@@ -30,8 +30,10 @@ pub(crate) fn props_map(styles: &[ResolvedArg]) -> FlatCompiledStyles {
     data_style_src,
   } = styleq(styles);
 
-  // Three names at most: the class, the inline style and the debug source.
-  let mut props_map: FlatCompiledStyles = IndexMap::with_capacity(3);
+  // Left unsized on purpose. Three names at most are written, and the first
+  // insert already reserves three, so a reservation here saves no growth and
+  // costs an allocation when the merge writes nothing.
+  let mut props_map: FlatCompiledStyles = IndexMap::new();
 
   if !class_name.is_empty() {
     props_map.insert(

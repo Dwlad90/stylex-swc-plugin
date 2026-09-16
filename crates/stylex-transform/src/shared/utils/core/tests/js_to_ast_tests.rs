@@ -261,6 +261,13 @@ fn writes_an_inline_style_as_the_object_a_style_property_holds() {
 
 /// An inline style that holds no pair is written as an empty object, because
 /// the merge wrote the property it sits under.
+///
+/// A source does reach this shape: `stylex.props({ color: true })` keeps the
+/// declaration through the merge, and the step that writes the properties
+/// leaves it out because it is not text. The shape is built here and not
+/// compiled, because that source is the one the compiler must stop leaving
+/// out -- ticket 84 of `.scratch/split-transform-crate` -- so a test compiled
+/// from it would pin the gap rather than the writer.
 #[test]
 fn writes_an_inline_style_that_holds_no_pair_as_an_empty_object() {
   let values = values_of(&[("style", FlatCompiledStylesValue::KeyValues(vec![]))]);

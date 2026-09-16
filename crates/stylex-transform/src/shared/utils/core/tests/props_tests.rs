@@ -33,6 +33,17 @@ fn text_of(values: &FlatCompiledStyles, key: &str) -> String {
   }
 }
 
+/// The declarations the `style` property holds, as name and value.
+fn style_pairs_of(values: &FlatCompiledStyles) -> Vec<(String, String)> {
+  match values.get("style").map(Rc::as_ref) {
+    Some(FlatCompiledStylesValue::KeyValues(pairs)) => pairs
+      .iter()
+      .map(|pair| (pair.key.clone(), pair.value.clone()))
+      .collect(),
+    other => panic!("the style is not a set of pairs: {other:?}"),
+  }
+}
+
 #[test]
 fn names_the_merged_classes_as_one_class_name() {
   let values = values_of(props(&[style_of(&[("color", "xa"), ("margin", "xb")])]));
@@ -51,43 +62,53 @@ fn writes_no_class_name_when_the_merge_wrote_no_class() {
 /// An inline style becomes the pairs a `style` property holds, each under the
 /// name the author wrote. The runtime reads the property as a style object,
 /// and `marginTop` is the name such an object carries.
+///
+/// The test `writes_an_inline_style_out_as_css_text` holds the other half of
+/// the rule: it reads the same name as an attribute and gets `margin-top`.
+/// Each result spells the name the way its own reader expects.
 #[test]
 fn names_an_inline_style_as_the_pairs_the_author_wrote() {
   let values = values_of(props(&[styles(inline(&[("marginTop", "1px")]))]));
 
-  match values["style"].as_ref() {
-    FlatCompiledStylesValue::KeyValues(pairs) => {
-      assert_eq!(pairs.len(), 1);
-      assert_eq!(pairs[0].key, "marginTop");
-      assert_eq!(pairs[0].value, "1px");
-    },
-    other => panic!("the style is not a set of pairs: {other:?}"),
-  }
+  assert_eq!(
+    style_pairs_of(&values),
+    [("marginTop".to_owned(), "1px".to_owned())]
+  );
 }
 
 /// A custom property carries the name CSS gives it, so the author's spelling
-/// and the CSS spelling are one name. It reaches the `style` property
-/// untouched.
+/// and the CSS spelling are one name. It is the one name both results write
+/// the same way, and neither may dash it further -- `--myColor` holds a
+/// capital that the CSS spelling of any other name would dash.
+///
+/// Both results are read here, because this is the only name for which they
+/// must agree, and nothing else pins the attribute half of it.
 #[test]
 fn keeps_the_name_of_a_custom_property() {
-  let values = values_of(props(&[styles(inline(&[("--myColor", "red")]))]));
+  let declaration = [styles(inline(&[("--myColor", "red")]))];
 
-  match values["style"].as_ref() {
-    FlatCompiledStylesValue::KeyValues(pairs) => assert_eq!(pairs[0].key, "--myColor"),
-    other => panic!("the style is not a set of pairs: {other:?}"),
-  }
+  assert_eq!(
+    style_pairs_of(&values_of(props(&declaration))),
+    [("--myColor".to_owned(), "red".to_owned())]
+  );
+  assert_eq!(
+    text_of(&values_of(attrs(&declaration)), "style"),
+    "--myColor:red"
+  );
 }
 
 /// An inline value that spells no CSS text is left out. Only text can be
 /// written into a `style` property.
+///
+/// The value is built here, because the kind it is -- a single key-value pair
+/// -- has no producer at all outside tests. The kind a source really writes
+/// is a boolean, which is left out the same way -- ticket 84 of
+/// `.scratch/split-transform-crate`.
 #[test]
 fn leaves_out_an_inline_value_that_spells_no_text() {
   let values = values_of(props(&[styles(inline_pair("margin", "1px"))]));
 
-  match values["style"].as_ref() {
-    FlatCompiledStylesValue::KeyValues(pairs) => assert!(pairs.is_empty()),
-    other => panic!("the style is not a set of pairs: {other:?}"),
-  }
+  assert!(style_pairs_of(&values).is_empty());
 }
 
 /// The debug source is written only when the merge has one to write.

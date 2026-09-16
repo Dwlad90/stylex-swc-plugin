@@ -162,3 +162,16 @@ shape it saves the most and on the shape it costs anything, is
 what keying and queueing the call costs is
 [ADR 0003](./docs/adr/0003-the-injection-queue-is-deduped-by-a-pair-of-hashes.md).
 _Avoid_: held candidate, nested styles, wrapped call, inner object
+
+**Nested rule**:
+A rule a producer call written inside another producer's argument declares —
+`create({ a: { animationName: keyframes({…}) } })`, or the same `keyframes` in
+a `createTheme` value. The inner call is folded to its name where it stands and
+registers nothing of its own, so its rule is filed on the state and the
+producer that holds it must carry it. `take_nested_rules_before` is the one way to
+read them: it puts them in front of the producer's own rules, so the
+`@keyframes` block stands in front of the rule that names it, and it takes them
+off the state, because they belong to the one call that folded them. A producer
+that forgets them prints a name that no stylesheet defines; a producer that
+leaves them behind makes the next declaration of the module carry them too.
+_Avoid_: dependency rule, other rule, inherited rule

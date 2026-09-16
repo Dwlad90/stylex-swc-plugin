@@ -18,7 +18,7 @@ use swc_core::{
   },
 };
 
-use stylex_ast::ast::factories::create_ident;
+use stylex_ast::ast::factories::{create_ident, wrap_in_paren};
 use stylex_structures::core_stylex_options::CoreStyleXOptions;
 use stylex_structures::named_import_source::{NamedImportSource, RuntimeInjectionState};
 use stylex_structures::stylex_state_options::StyleXStateOptions;
@@ -26,7 +26,10 @@ use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_types::structures::injectable_style::{InjectableConstStyle, InjectableStyle};
 use stylex_utils::hash::stable_hash_unspanned;
 
+use log::Level;
+
 use crate::state_manager::{InsertionSlot, StateManager, flush_pending_insertions};
+use crate::tests::capturing_logger::logged_at;
 use crate::tests::prelude::{make_var_declarator, object_expr, string_expr};
 use crate::types::InjectableStylesMap;
 
@@ -386,6 +389,84 @@ fn a_fallback_shape_is_injected_in_front_of_too() {
   flush_pending_insertions(&mut state, &mut body, true);
 
   assert_eq!(body_shapes(&body), vec!["import", "var", "call", "var"]);
+}
+
+/// The rules the calls inside an argument left come first in the map the
+/// producer registers, and they are taken with them.
+///
+/// The order is what puts the `@keyframes` block in front of the rule that
+/// names it. Taking them is what keeps the next producer of the module from
+/// carrying them too, which wrote the same block twice -- once in front of a
+/// declaration that named nothing of the sort.
+#[test]
+fn the_nested_rules_come_first_and_are_carried_once() {
+  // Nothing here is injected, so the project's injection setting says nothing
+  // about what is asked.
+  let mut state = state_with(None);
+
+  state
+    .other_injected_css_rules
+    .extend(regular_style("xfade-B", "@keyframes xfade-B{}", None));
+
+  let first =
+    state.take_nested_rules_before(regular_style("x1e2nbdu", ".x1e2nbdu{color:red}", None));
+  let second =
+    state.take_nested_rules_before(regular_style("xju2f9n", ".xju2f9n{color:blue}", None));
+
+  assert_eq!(
+    first.keys().map(|key| key.as_str()).collect::<Vec<_>>(),
+    vec!["xfade-B", "x1e2nbdu"]
+  );
+  assert_eq!(
+    second.keys().map(|key| key.as_str()).collect::<Vec<_>>(),
+    vec!["xju2f9n"]
+  );
+}
+
+/// A producer that registers something the placement walk does not read keys
+/// its rules to nothing, and the module is printed without them. Nothing does
+/// that today, so what is asked here is that it says so: a producer written
+/// later would otherwise lose its rules in silence.
+#[test]
+fn styles_registered_against_a_shape_the_walk_cannot_read_say_so() {
+  let mut state = state_with(Some(RuntimeInjectionState::Boolean(true)));
+  let mut body = vec![var_item("styles", Expr::Ident(create_ident("elsewhere")))];
+
+  let messages = logged_at(Level::Warn, || {
+    state.register_styles(
+      &call_expr("create"),
+      &regular_style("x1e2nbdu", ".x1e2nbdu{color:red}", None),
+      &Expr::Ident(create_ident("elsewhere")),
+      None,
+    );
+  });
+
+  assert!(
+    messages
+      .iter()
+      .any(|message| { message.contains("are not injected") && message.contains("Identifier") }),
+    "the warning did not name the shape that cannot be found: {messages:?}"
+  );
+
+  // A parenthesis is not a different expression, so the message names what is
+  // inside it rather than the wrapper.
+  let wrapped = logged_at(Level::Warn, || {
+    state.register_styles(
+      &call_expr("create"),
+      &regular_style("x1t137rt", ".x1t137rt{display:block}", None),
+      &wrap_in_paren(Expr::Ident(create_ident("elsewhere"))),
+      None,
+    );
+  });
+
+  assert!(
+    wrapped.iter().any(|message| message.contains("Identifier")),
+    "the warning named the wrapper rather than what it holds: {wrapped:?}"
+  );
+
+  flush_pending_insertions(&mut state, &mut body, true);
+
+  assert_eq!(body_shapes(&body), vec!["import", "var", "var"]);
 }
 
 /// A hoisted call is the shape production hands over: the call site holds a
@@ -1173,6 +1254,24 @@ mod finding_the_object_a_statement_holds {
 
     assert_eq!(
       placed_shapes(var_item("all", held), &ast),
+      vec!["import", "var", "call", "var"]
+    );
+  }
+
+  /// An object holding an arrow is the other shape the hash gives up on, and a
+  /// compiled dynamic style is exactly that. It is read through here like any
+  /// other wrapper: the walk pays the copy the hash falls back to, and the
+  /// styles inside are still found.
+  #[test]
+  fn an_object_holding_an_arrow_is_still_read_through() {
+    let ast = object_expr();
+    let held = create_object_expression(vec![
+      create_ident_key_value_prop("render", create_arrow_expression(string_expr("class"))),
+      create_ident_key_value_prop("s", ast.clone()),
+    ]);
+
+    assert_eq!(
+      placed_shapes(var_item("all", call_holding(held)), &ast),
       vec!["import", "var", "call", "var"]
     );
   }

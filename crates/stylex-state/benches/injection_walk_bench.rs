@@ -330,6 +330,12 @@ fn is_style_decl(item: &ModuleItem) -> bool {
 /// descending would leave a shorter body and report as a win. With injection
 /// off the opposite is the risk: every queued item is dropped on purpose, and a
 /// leg that placed one would be timing the walk under the name of the skip.
+///
+/// The count cannot catch the other way round -- a walk that read more of the
+/// body than it had to would place the same items and pass. That boundary is
+/// held by a case rather than by a clock:
+/// `a_name_below_the_object_that_matched_is_not_looked_for` in
+/// `src/tests/style_injection_test.rs`.
 fn assert_placement(fixture: &Fixture, label: &str, runtime_injection: bool) {
   let mut state = queued_state(fixture);
   let mut body = fixture.body.clone();

@@ -1,7 +1,7 @@
+use indexmap::IndexMap;
 use std::rc::Rc;
 use stylex_constants::constants::messages::expected_call_expression;
 
-use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use stylex_ast::ast::convertors::create_string_expr;
 use stylex_macros::stylex_panic;
@@ -130,16 +130,14 @@ where
       let (view_transition_class_name, injectable_style) =
         stylex_view_transition_class(&plain_object, &mut self.state);
 
-      let mut injected_styles = IndexMap::new();
+      let mut own_rules = IndexMap::new();
 
-      injected_styles.insert(
+      own_rules.insert(
         view_transition_class_name.clone().into(),
         Rc::new(injectable_style),
       );
 
-      let other_injected_css_rules = self.state.other_injected_css_rules.clone();
-
-      injected_styles.extend(other_injected_css_rules);
+      let injected_styles = self.state.take_nested_rules_before(own_rules);
 
       let result_ast = create_string_expr(view_transition_class_name.as_str());
 

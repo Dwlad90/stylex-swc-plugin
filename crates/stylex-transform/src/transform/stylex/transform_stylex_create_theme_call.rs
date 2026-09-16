@@ -210,9 +210,11 @@ where
 
       let result_ast = convert_values_to_ast(&overrides_obj);
 
+      let injected_styles = self.state.take_nested_rules_before(inject_styles);
+
       self
         .state
-        .register_styles(call, &inject_styles, &result_ast, None);
+        .register_styles(call, &injected_styles, &result_ast, None);
 
       Some(result_ast)
     } else {

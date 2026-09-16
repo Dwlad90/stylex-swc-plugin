@@ -254,9 +254,9 @@ where
           .extend(properties.iter().map(|(k, v)| (k.clone(), v.clone())));
       }
 
-      let mut injected_styles = self.state.other_injected_css_rules.clone();
-
-      injected_styles.extend(injected_styles_sans_keyframes);
+      let mut injected_styles = self
+        .state
+        .take_nested_rules_before(injected_styles_sans_keyframes);
 
       injected_styles.extend(injected_inherit_styles);
 

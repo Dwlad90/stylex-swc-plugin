@@ -305,3 +305,33 @@ stylex_test!(
     export const all = w(w(w(w(w(stylex.create({ a: { color: 'red' } }))))));
   "#
 );
+
+// The same, for a `create` that follows one holding a nested `keyframes`. The
+// block was written in front of both declarations, where upstream writes it
+// once.
+stylex_test!(
+  a_second_create_does_not_repeat_the_block_of_the_first,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const first = stylex.create({
+      a: { animationName: stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } }) },
+    });
+    export const second = stylex.create({ b: { color: 'red' } });
+  "#
+);
+
+// A `keyframes` written as a namespace key is folded once and its block is
+// written once, although the debug data reads the key again after the rules
+// are taken. The second read answers from the fold memo, so it files nothing.
+stylex_test!(
+  a_keyframes_written_as_a_key_injects_its_block_once,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const first = stylex.create({
+      [stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } })]: { color: 'red' },
+    });
+    export const second = stylex.create({ b: { color: 'blue' } });
+  "#
+);

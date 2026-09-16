@@ -592,3 +592,43 @@ fn test_mode_gives_a_theme_the_development_names() {
     "test mode and development mode disagree on a theme"
   );
 }
+
+// A `keyframes` written inside a theme value is folded to its name where it
+// stands, and the `@keyframes` block it leaves belongs to the statement that
+// holds it. The theme carried the name and not the block, so the animation it
+// named was defined by no stylesheet. Compared against measured
+// `@stylexjs/babel-plugin` 0.19.0 output, which writes the block first.
+stylex_test!(
+  a_keyframes_inside_a_theme_value_injects_its_block,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      bg: "var(--x1o1vmpc)",
+      __varGroupHash__: "x77s110"
+    };
+    export const theme = stylex.createTheme(vars, {
+      bg: stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } }),
+    });
+  "#
+);
+
+// The block a nested `keyframes` left belongs to the call that folded it. A
+// second theme in the same module carried it as well, so the module wrote the
+// same block twice -- the second time in front of a declaration that names no
+// animation. Compared against measured `@stylexjs/babel-plugin` 0.19.0 output.
+stylex_test!(
+  a_second_theme_does_not_repeat_the_block_of_the_first,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      bg: "var(--x1o1vmpc)",
+      __varGroupHash__: "x77s110"
+    };
+    export const first = stylex.createTheme(vars, {
+      bg: stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } }),
+    });
+    export const second = stylex.createTheme(vars, { bg: 'red' });
+  "#
+);

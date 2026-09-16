@@ -244,3 +244,23 @@ fn test_mode_gives_a_nested_theme_the_development_names() {
     "test mode and development mode disagree on a nested theme"
   );
 }
+
+// The same order for a nested theme override, which nothing held either.
+stylex_test!(
+  a_keyframes_inside_a_nested_override_injects_its_block_first,
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: {
+        primary: "var(--x1n06l0x)",
+      },
+      __varGroupHash__: "xop34xu",
+    };
+    export const theme = stylex.unstable_createThemeNested(vars, {
+      color: {
+        primary: stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } }),
+      },
+    });
+  "#
+);

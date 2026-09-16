@@ -4,7 +4,7 @@ use std::{borrow::Cow, env, option::Option, path::Path, rc::Rc, sync::Arc};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
 use indexmap::{IndexMap, IndexSet};
-use log::debug;
+use log::{debug, warn};
 use stylex_path_resolver::{
   package_json::{PackageJsonExtended, find_closest_package_json_folder, get_package_json},
   resolvers::{EXTENSIONS, resolve_file_path},
@@ -60,8 +60,9 @@ use stylex_state_index::{
 use stylex_structures::{
   style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
 };
-use stylex_utils::hash::{
-  stable_hash_unspanned, stable_hash_unspanned_call, stable_hash_unspanned_member,
+use stylex_utils::{
+  hash::{stable_hash_unspanned, stable_hash_unspanned_call, stable_hash_unspanned_member},
+  swc::get_expr_node_kind,
 };
 
 use crate::{
@@ -2362,6 +2363,39 @@ impl StateManager {
     found
   }
 
+  /// Puts the rules the calls inside the argument declared in front of `own`,
+  /// and answers the map the producer registers.
+  ///
+  /// A `keyframes` written inside the argument of another producer -- `create({
+  /// a: { animationName: keyframes({ … }) } })`, or the same in a `createTheme`
+  /// value -- is folded to its name where it stands, and the rule it leaves
+  /// behind is filed on the state rather than registered on its own. So the
+  /// producer that holds it must carry it, or the name reaches a stylesheet
+  /// that defines nothing.
+  ///
+  /// The nested rules come first, which is the order the reference writes them
+  /// in: the `@keyframes` block stands in front of the rule that names it. One
+  /// way in for all six producers, because the order is the whole of what there
+  /// is to get wrong -- reading the rules and then adding them the other way
+  /// round is what put a `@keyframes` block behind the rule that named it.
+  ///
+  /// The rules are *taken*. They belong to the call being registered, which
+  /// filed them while its own argument was folded, and a copy left behind is a
+  /// copy the next producer of the module carries as well: one module with two
+  /// themes wrote the same `@keyframes` block twice, once in front of a
+  /// declaration that named nothing of the sort.
+  ///
+  /// The answer is the only copy there is, so a caller that drops it loses the
+  /// rules of its own module. `must_use` is what says so.
+  #[must_use]
+  pub fn take_nested_rules_before(&mut self, own: InjectableStylesMap) -> InjectableStylesMap {
+    let mut rules = std::mem::take(&mut self.other_injected_css_rules);
+
+    rules.extend(own);
+
+    rules
+  }
+
   /// Files the styles of one call and points the call site at `ast`.
   ///
   /// `fallback_ast_hash` names the object a hoisted call site was replaced by.
@@ -2798,6 +2832,12 @@ pub fn flush_pending_insertions(
 /// where the call was written, or the name a compiled `keyframes`, `positionTry`
 /// or `viewTransitionClass` answered with. [`RegisteredObjects`] looks for
 /// those two and nothing else, so anything else here is not a key.
+///
+/// Anything else, with no fallback beside it, is a producer whose rules cannot
+/// be placed, and the module is printed without them. No producer does that
+/// today -- a hoisted `create` is the one that hands over something else, and
+/// it hands the fallback over with it -- so the warning is for the producer
+/// written next, which would otherwise lose its rules in silence.
 fn placement_keys(ast: &Expr, fallback_ast_hash: Option<u128>) -> Vec<u128> {
   let mut keys = Vec::with_capacity(2);
 
@@ -2809,6 +2849,16 @@ fn placement_keys(ast: &Expr, fallback_ast_hash: Option<u128>) -> Vec<u128> {
   }
 
   keys.extend(fallback_ast_hash);
+
+  if keys.is_empty() {
+    // The kind is read off the same expression the guard above read, so the
+    // message names what was registered rather than a parenthesis around it.
+    warn!(
+      "the rules of a call are not injected. It compiled to \"{}\", and the walk \
+       that places an injection reads an object or a name",
+      get_expr_node_kind(normalize_expr(ast))
+    );
+  }
 
   keys
 }
@@ -2849,6 +2899,10 @@ fn placement_keys(ast: &Expr, fallback_ast_hash: Option<u128>) -> Vec<u128> {
 ///   placed. A key that matches nothing keeps the map from emptying, so such a
 ///   module is read to its last statement -- which is why [`placement_keys`]
 ///   queues no key the walk cannot find.
+///
+/// A type annotation is read like anything else, and is not worth skipping: the
+/// compiler strips every type before this pass runs, so on a real module there
+/// is nothing there to step over.
 struct RegisteredObjects<'a> {
   /// The metadata still to place, keyed by the hash of the object it belongs
   /// to. Taking a bucket out leaves the first item that holds the object as

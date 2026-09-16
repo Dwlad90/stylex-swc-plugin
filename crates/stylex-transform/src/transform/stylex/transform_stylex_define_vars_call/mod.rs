@@ -200,8 +200,9 @@ where
       let (variables_obj, injected_styles_sans_keyframes) =
         stylex_define_vars(&value, &mut self.state);
 
-      let mut injected_styles = self.state.other_injected_css_rules.clone();
-      injected_styles.extend(injected_styles_sans_keyframes);
+      let injected_styles = self
+        .state
+        .take_nested_rules_before(injected_styles_sans_keyframes);
 
       let result_ast = convert_values_to_ast(&variables_obj);
 

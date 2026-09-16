@@ -159,12 +159,11 @@ where
 
     let result_ast = convert_values_to_ast(&overrides_obj);
 
-    let mut injected_styles_with_dependencies = self.state.other_injected_css_rules.clone();
-    injected_styles_with_dependencies.extend(injected_styles);
+    let injected_styles = self.state.take_nested_rules_before(injected_styles);
 
     self
       .state
-      .register_styles(call, &injected_styles_with_dependencies, &result_ast, None);
+      .register_styles(call, &injected_styles, &result_ast, None);
 
     Some(result_ast)
   }

@@ -41,10 +41,6 @@ pub(crate) fn stylex_keyframes(
   frames: &EvaluateResultValue,
   state: &mut StateManager,
 ) -> (String, InjectableStyleKind) {
-  // NOTE: an unset `classNamePrefix` arrives here already defaulted to `x`,
-  // so an empty one was asked for explicitly and is honoured as empty.
-  let class_name_prefix = state.options.class_name_prefix.clone();
-
   let Some(frames) = frames.as_expr().and_then(|expr| expr.as_object()) else {
     stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
@@ -67,21 +63,26 @@ pub(crate) fn stylex_keyframes(
     );
   }
 
-  let options = state.options.clone();
+  // Read rather than copied. The steps above are the last work that writes
+  // into the state, so the options can be borrowed for the rest of the call.
+  // NOTE: an unset `classNamePrefix` arrives here already defaulted to `x`,
+  // so an empty one was asked for explicitly and is honoured as empty.
+  let options = &state.options;
+  let class_name_prefix = &options.class_name_prefix;
 
   // The name is hashed from what the default options resolve, so that it holds
   // whatever options the module is compiled with. Built once here rather than
   // once per declaration.
   let stable_options = StyleXStateOptions::default();
 
-  let ltr_string = construct_keyframes_obj(&expanded_steps, |pair| generate_ltr(pair, &options));
+  let ltr_string = construct_keyframes_obj(&expanded_steps, |pair| generate_ltr(pair, options));
 
   let stable_string =
     construct_keyframes_obj(&expanded_steps, |pair| generate_ltr(pair, &stable_options));
 
   // A declaration with no right-to-left form keeps the one it was written with.
   let rtl_string = construct_keyframes_obj(&expanded_steps, |pair| {
-    generate_rtl(pair, &options).unwrap_or_else(|| PairCow::borrowed(pair))
+    generate_rtl(pair, options).unwrap_or_else(|| PairCow::borrowed(pair))
   });
 
   // NOTE: Use a direction-agnostic hash to keep LTR/RTL classnames stable across

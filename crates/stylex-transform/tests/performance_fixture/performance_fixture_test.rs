@@ -1,9 +1,4 @@
-use std::{
-  fs,
-  io::Write,
-  path::{Path, PathBuf},
-  time::Instant,
-};
+use std::{fs, path::Path};
 
 use stylex_structures::stylex_options::ModuleResolution;
 use stylex_transform::StyleXTransform;
@@ -23,85 +18,58 @@ fn tranform(input_path: &Path, input: &str) -> String {
   })
 }
 
-// Helper function to measure transform performance
-fn measure_transform_time(input_path: &Path) -> (String, f64) {
+/// Transforms one fixture and compares the result with the recorded output.
+fn assert_fixture(input_path: &Path) {
   let output_path = input_path
     .parent()
     .unwrap()
     .join(input_path.file_stem().unwrap())
     .with_extension("output.js");
 
-  let start = Instant::now();
+  let input = fs::read_to_string(input_path)
+    .unwrap_or_else(|error| panic!("cannot read {}: {}", input_path.display(), error));
 
-  let input = fs::read_to_string(input_path).unwrap();
   let output = tranform(input_path, &input);
 
-  // Milliseconds as a fraction, not as a truncated integer. `as_millis` floors,
-  // so a transform finishing in under a millisecond measured as exactly zero —
-  // and with both sides floored the ratio asserted below read `0.0 < 46.0` and
-  // passed. The assertion was not unsatisfiable; it was measuring nothing, and
-  // the faster this compiler gets the more of the suite that applied to.
-  let duration = start.elapsed().as_secs_f64() * 1_000.0;
+  // Read the recorded output strictly. A default on a missing file compares the
+  // result with an empty string, which turns a deleted fixture into a pass.
+  let output_fixture = fs::read_to_string(&output_path)
+    .unwrap_or_else(|error| panic!("cannot read {}: {}", output_path.display(), error));
 
-  let output_fixture = fs::read_to_string(output_path).unwrap_or_default();
-
+  // An empty result against an empty recorded file is equal but says nothing,
+  // so hold both sides to a result the transform actually wrote.
+  assert!(
+    !output.is_empty(),
+    "{} transformed to nothing",
+    input_path.display()
+  );
   assert_eq!(output, output_fixture);
-
-  (output, duration)
 }
 
+/// Checks that a simple theme and a complex theme both transform to their
+/// recorded output.
+///
+/// The test used to assert a ratio between two wall-clock timings. A ratio
+/// between two clock figures is set by the machine, not by the compiler: it
+/// goes red on a busy host, and it moves again under coverage instrumentation,
+/// which slows the two sides by different amounts.
+///
+/// Speed keeps a gate elsewhere. The benchmark suite has its own copy of each
+/// of these two workloads, as `Performance - Basic theme transformation` and
+/// `Performance - Complex theme transformation`, and gives each one a ceiling
+/// in milliseconds that the budget check fails on
+/// (`pnpm run --filter=@stylexswc/rs-compiler bench:budget`). Each ceiling is
+/// an absolute figure, seeded from many runs on a pinned runner and given
+/// headroom for the machine. That is what a speed gate needs, and what one
+/// timing taken in a unit test on an unknown host cannot give. The benchmark
+/// runs the production shape, so the dev shape this test uses has no speed
+/// gate. The ratio gave it none either, because it compared dev with dev.
+///
+/// A figure the clock does not set — a node count, a declaration count, an
+/// output length — would be repeatable, but it adds nothing here: the equality
+/// in `assert_fixture` already pins both outputs byte for byte.
 #[test]
-fn stylex_transform_performance_test() {
-  // Paths to the theme files
-  let simple_theme_path = PathBuf::from("tests/performance_fixture/simpleTheme.js");
-  let complex_theme_path = PathBuf::from("tests/performance_fixture/colorThemes.js");
-
-  // Warm up the transformer with a simple transform
-  measure_transform_time(&simple_theme_path);
-  // Warm up the transformer with a complex transform
-  measure_transform_time(&complex_theme_path);
-
-  // Measure performance of simple theme transform
-  let (simple_result, simple_time) = measure_transform_time(&simple_theme_path);
-
-  // Measure performance of complex theme transform
-  let (complex_result, complex_time) = measure_transform_time(&complex_theme_path);
-
-  #[allow(clippy::explicit_write)]
-  writeln!(
-    std::io::stderr(),
-    "Simple theme transform took: {}ms",
-    simple_time
-  )
-  .unwrap();
-
-  let simple_time = simple_time.max(2.0); // Ensure at least 2.0 ms
-
-  #[allow(clippy::explicit_write)]
-  writeln!(
-    std::io::stderr(),
-    "Complex theme transform took: {}ms",
-    complex_time
-  )
-  .unwrap();
-  std::io::stderr().flush().unwrap();
-
-  // Verify the results are non-empty
-  assert!(
-    !simple_result.is_empty(),
-    "Simple theme transformation result should not be empty"
-  );
-  assert!(
-    !complex_result.is_empty(),
-    "Complex theme transformation result should not be empty"
-  );
-
-  // Verify performance expectation (complex should be less than 23x slower than
-  // simple)
-  assert!(
-    complex_time < simple_time * 23.0,
-    "Complex theme transform took too long: {}ms (simple: {}ms)",
-    complex_time,
-    simple_time
-  );
+fn stylex_transform_theme_fixture_test() {
+  assert_fixture(Path::new("tests/performance_fixture/simpleTheme.js"));
+  assert_fixture(Path::new("tests/performance_fixture/colorThemes.js"));
 }

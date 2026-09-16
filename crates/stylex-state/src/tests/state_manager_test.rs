@@ -6,8 +6,9 @@ mod state_manager {
     ecma::ast::{
       ArrayLit, CallExpr, Callee, Decl, Expr, ExprOrSpread, ExprStmt, Ident, ImportDecl,
       ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase, ImportSpecifier,
-      ImportStarAsSpecifier, Lit, ModuleDecl, ModuleItem, ObjectLit, ObjectPat, ParenExpr, Pat,
-      Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
+      ImportStarAsSpecifier, KeyValueProp, Lit, ModuleDecl, ModuleItem, ObjectLit, ObjectPat,
+      ParenExpr, Pat, Prop, PropOrSpread, SpreadElement, Stmt, Str, VarDecl, VarDeclKind,
+      VarDeclarator,
     },
   };
 
@@ -15,6 +16,7 @@ mod state_manager {
   use crate::tests::prelude::{
     ident, ident_at, make_var_declarator, make_var_declarator_no_init, string_expr,
   };
+  use stylex_ast::ast::convertors::convert_string_to_prop_name;
   use stylex_enums::declaration_type::DeclarationType;
   use stylex_enums::top_level_expression::TopLevelExpressionKind;
   use stylex_structures::ceiling::Ceiling;
@@ -246,6 +248,108 @@ mod state_manager {
     flush_pending_insertions(&mut state, &mut body, true);
 
     assert_eq!(item_labels(&body), vec!["before_decl", "var:styles"]);
+  }
+
+  /// An object literal holding `entries`, the shape an author writes to group
+  /// the styles a module declares.
+  fn object_holding(entries: Vec<PropOrSpread>) -> Expr {
+    Expr::Object(ObjectLit {
+      span: DUMMY_SP,
+      props: entries,
+    })
+  }
+
+  fn named_prop(key: &str, value: Expr) -> PropOrSpread {
+    PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key: convert_string_to_prop_name(key),
+      value: Box::new(value),
+    })))
+  }
+
+  fn spread_prop(value: Expr) -> PropOrSpread {
+    PropOrSpread::Spread(SpreadElement {
+      dot3_token: DUMMY_SP,
+      expr: Box::new(value),
+    })
+  }
+
+  fn shorthand_prop(name: &str) -> PropOrSpread {
+    PropOrSpread::Prop(Box::new(Prop::Shorthand(ident(name))))
+  }
+
+  /// An array can hold the styles inside an object the author wrote, so the
+  /// walk looks inside an object a container holds.
+  #[test]
+  fn flush_pending_insertions_looks_inside_an_object_an_array_holds() {
+    let mut state = StateManager::default();
+    let styles_init = empty_object();
+    let before_decl_hash = stable_hash_unspanned(&styles_init);
+    let initializer = array_expr(vec![object_holding(vec![named_prop("s", styles_init)])]);
+    let mut body = vec![var_decl_item("styles", initializer)];
+
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(before_decl_hash),
+      expr_stmt("before_decl"),
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(item_labels(&body), vec!["before_decl", "var:styles"]);
+  }
+
+  /// A spread is read like the value it stands for, and a parenthesis around
+  /// that value is not a different value.
+  ///
+  /// The shorthand beside them carries a name rather than an expression. It
+  /// cannot change the answer, because a name is not a candidate wherever the
+  /// walk meets it -- it is here to show the walk steps over what it cannot
+  /// read instead of stopping.
+  #[test]
+  fn flush_pending_insertions_reads_a_spread_and_steps_over_a_shorthand() {
+    let mut state = StateManager::default();
+    let styles_init = string_expr("x1e2nbdu-B");
+    let before_decl_hash = stable_hash_unspanned(&styles_init);
+    let held = object_holding(vec![
+      shorthand_prop("label"),
+      spread_prop(paren_expr(object_holding(vec![named_prop(
+        "name",
+        styles_init,
+      )]))),
+    ]);
+    let mut body = vec![var_decl_item("styles", array_expr(vec![held]))];
+
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(before_decl_hash),
+      expr_stmt("before_decl"),
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(item_labels(&body), vec!["before_decl", "var:styles"]);
+  }
+
+  /// An initializer that is itself an object is the registered object, so it is
+  /// hashed and left alone. A call is keyed to the object it was replaced by,
+  /// never to a property of it, so nothing is lost and a large top-level object
+  /// keeps the one hash it has always cost.
+  #[test]
+  fn flush_pending_insertions_does_not_look_inside_an_object_initializer() {
+    let mut state = StateManager::default();
+    let styles_init = empty_object();
+    let before_decl_hash = stable_hash_unspanned(&styles_init);
+    let mut body = vec![var_decl_item(
+      "styles",
+      object_holding(vec![named_prop("s", styles_init)]),
+    )];
+
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(before_decl_hash),
+      expr_stmt("before_decl"),
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(item_labels(&body), vec!["var:styles"]);
   }
 
   /// A declarator can carry no initializer at all. It names no declaration the

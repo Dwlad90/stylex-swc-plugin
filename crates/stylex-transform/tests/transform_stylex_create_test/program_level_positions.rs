@@ -134,3 +134,24 @@ stylex_test!(
     export const all = [[[[[[[[stylex.create({ a: { color: 'red' } })]]]]]]]];
   "#
 );
+
+// An array can hold the styles inside an object the author wrote. The rules
+// still belong to the statement, so the walk looks through the object as it
+// looks through the array.
+stylex_test!(
+  an_object_an_array_holds_injects_the_rules_inside_it,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const all = [{ s: stylex.create({ a: { color: 'red' } }) }];
+  "#
+);
+
+stylex_test!(
+  an_object_nested_deeper_in_an_array_injects_its_rules_too,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const all = [{ outer: { inner: stylex.create({ a: { color: 'red' } }) } }];
+  "#
+);

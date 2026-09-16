@@ -14,10 +14,10 @@ use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName, SourceFile, Span, SyntaxContext},
   ecma::ast::{
-    BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl,
+    ArrayLit, BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl,
     ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread,
-    Lit, MemberExpr, Module, ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Stmt, Str,
-    VarDecl, VarDeclKind, VarDeclarator,
+    Lit, MemberExpr, Module, ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Prop,
+    PropOrSpread, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
   },
 };
 
@@ -2934,38 +2934,101 @@ fn push_decl_init_hashes(item: &ModuleItem, hashes: &mut Vec<u128>) {
   }
 }
 
-/// Hashes `expr` when a style object can be registered under it, and looks
-/// through an array for the objects one holds.
+/// Hashes the declarator initializer `expr`, and the candidates a container it
+/// holds puts one level further down.
 ///
 /// A `create` written inside a top-level array -- `export const all =
 /// [stylex.create({ ... })]` -- declares its rules like any other, and the
 /// declaration they belong to is the statement, not the object. The declarator
 /// initializer is then the array, so the object each call was replaced by is
-/// one level down, or deeper where arrays nest.
+/// one level down, or deeper where the author nests containers.
 ///
-/// A parenthesis is not a different initializer, so it is read through at every
-/// level: `([stylex.create({ ... })])` names the same declaration as the
-/// spelling without the parentheses. A hole holds nothing and is stepped over.
-/// A spread is read like the element it stands for, because `[...[styles]]`
-/// holds the styles the same way `[styles]` does.
+/// An initializer that is an object *is* the object a producer registered, so
+/// it is hashed and left alone. That is what keeps a large top-level object at
+/// the one hash it has always cost, whatever it holds.
 ///
-/// Recursion is bounded by how deep the arrays nest, which is far below what
-/// the parser accepts before its own walk runs out of stack.
-///
-/// Hashing a literal element widens what can match a queued call, and two
-/// things keep that safe. A queued call is only ever keyed to an object or to a
-/// name a compiled `keyframes` left, and the hash of a literal carries its
-/// written form: an author writes `raw`, the compiler leaves it empty, so a
-/// literal that was typed cannot answer for one that was built.
+/// A parenthesis is not a different initializer, so it is read through here and
+/// at every level below: `([stylex.create({ ... })])` names the same
+/// declaration as the spelling without the parentheses.
 fn push_init_hashes(expr: &Expr, hashes: &mut Vec<u128>) {
   let expr = normalize_expr(expr);
 
-  if let Expr::Array(array) = expr {
-    for element in array.elems.iter().flatten() {
-      push_init_hashes(&element.expr, hashes);
-    }
-  } else if expr.is_object() || expr.is_lit() {
-    hashes.push(stable_hash_unspanned(expr));
+  match expr {
+    Expr::Array(array) => push_element_hashes(array, hashes),
+    Expr::Object(_) | Expr::Lit(_) => hashes.push(stable_hash_unspanned(expr)),
+    _ => {},
+  }
+}
+
+/// Hashes the candidates the elements of `array` hold.
+///
+/// A hole holds nothing and is stepped over. A spread is read like what it
+/// stands for, because `[...[styles]]` holds the styles the same way
+/// `[styles]` does.
+fn push_element_hashes(array: &ArrayLit, hashes: &mut Vec<u128>) {
+  for element in array.elems.iter().flatten() {
+    push_held_hashes(&element.expr, hashes);
+  }
+}
+
+/// Hashes `expr`, which a container holds, and the candidates below it.
+///
+/// An object here can be either the object a producer registered or a wrapper
+/// the author put around one, and the two cannot be told apart without asking,
+/// so it is hashed and looked inside.
+///
+/// Recursion is bounded by how deep the containers nest, which is far below
+/// what the parser accepts before its own walk runs out of stack.
+///
+/// Cost. Hashing an object walks its whole subtree, so a chain of containers
+/// `d` deep is walked `d` times at the top, `d - 1` times one level down, and
+/// so on: the square of the depth, not the depth. The parser's own recursion
+/// gives out long before that square is worth counting, and the descended
+/// region is the compiler's own output rather than anything an author typed,
+/// so it is the shape of a compiled style object -- three or four levels --
+/// that decides the real number. Every literal in that region is hashed too,
+/// which is what makes the hash list longer than the number of objects.
+///
+/// One case is heavier than the node count says. `stable_hash_unspanned` gives
+/// up on an object of more than 128 properties, or one holding an arrow, and
+/// falls back to a deep clone of the subtree. Where such an object sits inside
+/// another, both clone, so the bytes copied also grow with the depth.
+///
+/// Hashing a literal widens what can match a queued call, and two things keep
+/// that safe. A queued call is only ever keyed to an object or to a name a
+/// compiled `keyframes` left, and the hash of a literal carries its written
+/// form: an author writes `raw`, the compiler leaves it empty, so a literal
+/// that was typed cannot answer for one that was built.
+fn push_held_hashes(expr: &Expr, hashes: &mut Vec<u128>) {
+  let expr = normalize_expr(expr);
+
+  match expr {
+    Expr::Array(array) => push_element_hashes(array, hashes),
+    Expr::Object(object) => {
+      hashes.push(stable_hash_unspanned(expr));
+
+      for value in object.props.iter().filter_map(held_value) {
+        push_held_hashes(value, hashes);
+      }
+    },
+    Expr::Lit(_) => hashes.push(stable_hash_unspanned(expr)),
+    _ => {},
+  }
+}
+
+/// The expression an object property holds, where it holds one.
+///
+/// A named property and a spread both carry a value a producer can have written
+/// its result into. A shorthand carries a name, and an accessor, a method and
+/// an assignment carry a body or a pattern rather than a value, so a registered
+/// object cannot stand where this walk would look for it.
+fn held_value(prop: &PropOrSpread) -> Option<&Expr> {
+  match prop {
+    PropOrSpread::Spread(spread) => Some(&spread.expr),
+    PropOrSpread::Prop(prop) => match prop.as_ref() {
+      Prop::KeyValue(key_value) => Some(&key_value.value),
+      _ => None,
+    },
   }
 }
 

@@ -127,3 +127,13 @@ taken again at every level, so the memo costs grow about quadratically with
 depth — nearly all of what folding a deep expression costs
 ([ADR 0005](../stylex-evaluator/docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md)).
 _Avoid_: cache entry, memo
+
+**Held candidate**:
+An expression a container the author wrote puts between a declarator and the
+object a producer registered — `export const all = [{ s: stylex.create({…}) }]`
+holds one. The walk that decides where a runtime injection call goes reads an
+initializer and every held candidate below it, because the declaration the
+rules belong to is the statement rather than the object. An initializer that is
+an object is not held: it _is_ the registered object, so it is hashed once and
+not looked inside, which is what keeps a large top-level object cheap.
+_Avoid_: nested styles, wrapped call, inner object

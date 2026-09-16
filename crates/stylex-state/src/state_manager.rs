@@ -2873,29 +2873,44 @@ pub fn flush_pending_insertions(
   // the first matching var-decl initializer. Consuming the bucket
   // preserves deterministic first-match-wins behavior for duplicate
   // initializer hashes.
-  for item in iter {
-    for hash in decl_init_hashes(&item) {
-      if let Some(metas) = before_decl.remove(&hash) {
-        result.extend(metas);
+  //
+  // Nothing keyed to a declaration means nothing to match, so the walk skips
+  // the hashing, which is the whole cost of the step. That is every module
+  // compiled with runtime injection off, because the loop above drops every
+  // `BeforeDecl` item, and every module that queued none.
+  if before_decl.is_empty() {
+    result.extend(iter);
+  } else {
+    // One buffer for the whole walk. A module can hold thousands of top-level
+    // declarations, and a fresh vector per item is a malloc per item for a list
+    // that is read and dropped at once.
+    let mut hashes: Vec<u128> = Vec::new();
+
+    for item in iter {
+      hashes.clear();
+      push_decl_init_hashes(&item, &mut hashes);
+
+      for hash in hashes.iter() {
+        if let Some(metas) = before_decl.remove(hash) {
+          result.extend(metas);
+        }
       }
+      result.push(item);
     }
-    result.push(item);
   }
 
   *module_body = result;
 }
 
-/// Stable hashes of every relevant var-decl initializer reachable from
-/// `item`, matching the keys [`StateManager::queue_insertion`] uses
+/// Appends the stable hash of every relevant var-decl initializer reachable
+/// from `item`, matching the keys [`StateManager::queue_insertion`] uses
 /// under [`InsertionSlot::BeforeDecl`].
-fn decl_init_hashes(item: &ModuleItem) -> Vec<u128> {
-  let mut hashes: Vec<u128> = Vec::new();
-
-  let var_decls: Option<Vec<&VarDeclarator>> = match item {
+fn push_decl_init_hashes(item: &ModuleItem, hashes: &mut Vec<u128>) {
+  let var_decls: Option<&[VarDeclarator]> = match item {
     ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(export_decl)) => export_decl
       .decl
       .as_var()
-      .map(|var_decl| var_decl.decls.iter().collect()),
+      .map(|var_decl| var_decl.decls.as_slice()),
     ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(export_default_expr)) => {
       // `export default { ... }` is treated by the legacy code as a
       // synthetic `default = <obj>` declarator whose init is the
@@ -2906,21 +2921,52 @@ fn decl_init_hashes(item: &ModuleItem) -> Vec<u128> {
       }
       None
     },
-    ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => Some(var_decl.decls.iter().collect()),
+    ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => Some(var_decl.decls.as_slice()),
     _ => None,
   };
 
-  if let Some(decls) = var_decls {
-    for decl in decls {
-      if let Some(init) = decl.init.as_ref()
-        && (init.is_object() || init.is_lit())
-      {
-        hashes.push(stable_hash_unspanned(init.as_ref()));
-      }
-    }
+  for init in var_decls
+    .unwrap_or_default()
+    .iter()
+    .filter_map(|decl| decl.init.as_deref())
+  {
+    push_init_hashes(init, hashes);
   }
+}
 
-  hashes
+/// Hashes `expr` when a style object can be registered under it, and looks
+/// through an array for the objects one holds.
+///
+/// A `create` written inside a top-level array -- `export const all =
+/// [stylex.create({ ... })]` -- declares its rules like any other, and the
+/// declaration they belong to is the statement, not the object. The declarator
+/// initializer is then the array, so the object each call was replaced by is
+/// one level down, or deeper where arrays nest.
+///
+/// A parenthesis is not a different initializer, so it is read through at every
+/// level: `([stylex.create({ ... })])` names the same declaration as the
+/// spelling without the parentheses. A hole holds nothing and is stepped over.
+/// A spread is read like the element it stands for, because `[...[styles]]`
+/// holds the styles the same way `[styles]` does.
+///
+/// Recursion is bounded by how deep the arrays nest, which is far below what
+/// the parser accepts before its own walk runs out of stack.
+///
+/// Hashing a literal element widens what can match a queued call, and two
+/// things keep that safe. A queued call is only ever keyed to an object or to a
+/// name a compiled `keyframes` left, and the hash of a literal carries its
+/// written form: an author writes `raw`, the compiler leaves it empty, so a
+/// literal that was typed cannot answer for one that was built.
+fn push_init_hashes(expr: &Expr, hashes: &mut Vec<u128>) {
+  let expr = normalize_expr(expr);
+
+  if let Expr::Array(array) = expr {
+    for element in array.elems.iter().flatten() {
+      push_init_hashes(&element.expr, hashes);
+    }
+  } else if expr.is_object() || expr.is_lit() {
+    hashes.push(stable_hash_unspanned(expr));
+  }
 }
 
 /// Builds an `_inject2({ ltr, priority, [rtl] })` statement for an atom style.

@@ -5,22 +5,10 @@ _inject2({
     ltr: ".x1e2nbdu{color:red}",
     priority: 3000
 });
-export const bare = [
+export const all = [
     {
         a: {
             kMwMTN: "x1e2nbdu",
-            $$css: true
-        }
-    }
-];
-_inject2({
-    ltr: ".x78zum5{display:flex}",
-    priority: 3000
-});
-export const wrapped = [
-    {
-        b: {
-            k1xSpc: "x78zum5",
             $$css: true
         }
     }

@@ -51,7 +51,7 @@ use crate::{
 use stylex_ast::ast::factories::{
   create_array_expression, create_bin_expr, create_cond_expr, create_expr_or_spread,
   create_key_value_prop, create_object_expression, create_prop_from_name,
-  create_string_var_declarator, create_var_declarator, wrap_in_paren_ref,
+  create_string_var_declarator, create_var_declarator,
 };
 use stylex_constants::constants::{
   api_names::{
@@ -297,7 +297,13 @@ where
         compiled_styles = convert_to_test_styles(compiled_styles, &var_name, &self.state);
       }
 
-      if is_program_level && let Some(var_name) = var_name.as_ref() {
+      // Both come from `get_call_var_name`, which reads the name off the
+      // declarator: a name is only ever answered together with the declarator
+      // it was read from, so asking for the pair asks one question.
+      if is_program_level
+        && let Some(var_name) = var_name.as_ref()
+        && let Some(parent_var_decl) = parent_var_decl
+      {
         let styles_to_remember = remove_objects_with_spreads(&compiled_styles);
 
         self
@@ -319,20 +325,9 @@ where
           }
         }
 
-        if let Some(parent_var_decl) = parent_var_decl {
-          self
-            .state
-            .insert_style_var(var_name.clone(), parent_var_decl);
-        } else {
-          let call_expr = Expr::Call(call.clone());
-
-          build_code_frame_error_and_panic(
-            &wrap_in_paren_ref(&call_expr),
-            &call_expr,
-            "Function type",
-            &mut self.state,
-          )
-        }
+        self
+          .state
+          .insert_style_var(var_name.clone(), parent_var_decl);
       }
 
       let styles_ast = convert_namespaces_to_ast(&compiled_styles);

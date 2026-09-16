@@ -156,6 +156,184 @@ mod state_manager {
     );
   }
 
+  /// An array literal holding `elements`, the shape a module writes when it
+  /// binds every style it declares to one name.
+  fn array_expr(elements: Vec<Expr>) -> Expr {
+    Expr::Array(ArrayLit {
+      span: DUMMY_SP,
+      elems: elements
+        .into_iter()
+        .map(|expr| {
+          Some(ExprOrSpread {
+            spread: None,
+            expr: Box::new(expr),
+          })
+        })
+        .collect(),
+    })
+  }
+
+  fn paren_expr(inner: Expr) -> Expr {
+    Expr::Paren(ParenExpr {
+      span: DUMMY_SP,
+      expr: Box::new(inner),
+    })
+  }
+
+  fn empty_object() -> Expr {
+    Expr::Object(ObjectLit {
+      span: DUMMY_SP,
+      props: vec![],
+    })
+  }
+
+  /// The styles a `create` inside a top-level array leaves behind sit one level
+  /// down from the declarator, so the injection call is keyed to the object and
+  /// the initializer is the array. It still belongs before the statement.
+  #[test]
+  fn flush_pending_insertions_looks_through_an_array_initializer() {
+    let mut state = StateManager::default();
+    let styles_init = empty_object();
+    let before_decl_hash = stable_hash_unspanned(&styles_init);
+    let mut body = vec![var_decl_item("styles", array_expr(vec![styles_init]))];
+
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(before_decl_hash),
+      expr_stmt("before_decl"),
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(item_labels(&body), vec!["before_decl", "var:styles"]);
+  }
+
+  /// Arrays nest, and a parenthesis is not a different initializer, so both are
+  /// read through at every level.
+  #[test]
+  fn flush_pending_insertions_looks_through_nested_arrays_and_parentheses() {
+    let mut state = StateManager::default();
+    let styles_init = empty_object();
+    let before_decl_hash = stable_hash_unspanned(&styles_init);
+    let initializer = paren_expr(array_expr(vec![array_expr(vec![paren_expr(styles_init)])]));
+    let mut body = vec![var_decl_item("styles", initializer)];
+
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(before_decl_hash),
+      expr_stmt("before_decl"),
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(item_labels(&body), vec!["before_decl", "var:styles"]);
+  }
+
+  /// An array holds what the author put in it. A value that can hold no styles
+  /// is stepped over, and a string -- the shape a compiled `keyframes` leaves --
+  /// is read like any other initializer.
+  #[test]
+  fn flush_pending_insertions_reads_every_kind_of_array_element() {
+    let mut state = StateManager::default();
+    let name_init = string_expr("x1e2nbdu-B");
+    let before_decl_hash = stable_hash_unspanned(&name_init);
+    let initializer = array_expr(vec![ident_expr("label"), empty_object(), name_init]);
+    let mut body = vec![var_decl_item("styles", initializer)];
+
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(before_decl_hash),
+      expr_stmt("before_decl"),
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(item_labels(&body), vec!["before_decl", "var:styles"]);
+  }
+
+  /// A declarator can carry no initializer at all. It names no declaration the
+  /// injection call can land before, and the walk steps over it.
+  #[test]
+  fn flush_pending_insertions_steps_over_a_declarator_with_no_initializer() {
+    let mut state = StateManager::default();
+    let styles_init = empty_object();
+    let before_decl_hash = stable_hash_unspanned(&styles_init);
+    let mut body = vec![
+      ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
+        span: DUMMY_SP,
+        ctxt: SyntaxContext::empty(),
+        kind: VarDeclKind::Let,
+        declare: false,
+        decls: vec![make_var_declarator_no_init("bare")],
+      })))),
+      var_decl_item("styles", styles_init),
+    ];
+
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(before_decl_hash),
+      expr_stmt("before_decl"),
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(
+      item_labels(&body),
+      vec!["var:bare", "before_decl", "var:styles"]
+    );
+  }
+
+  /// A hole holds nothing, so the walk steps over it and the queued call lands
+  /// before the statement on the strength of the element beside it.
+  #[test]
+  fn flush_pending_insertions_steps_over_an_array_hole() {
+    let mut state = StateManager::default();
+    let styles_init = empty_object();
+    let before_decl_hash = stable_hash_unspanned(&styles_init);
+    let initializer = Expr::Array(ArrayLit {
+      span: DUMMY_SP,
+      elems: vec![
+        None,
+        Some(ExprOrSpread {
+          spread: None,
+          expr: Box::new(styles_init),
+        }),
+      ],
+    });
+    let mut body = vec![var_decl_item("styles", initializer)];
+
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(before_decl_hash),
+      expr_stmt("before_decl"),
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(item_labels(&body), vec!["before_decl", "var:styles"]);
+  }
+
+  /// A spread stands for the elements it holds, so `[...[styles]]` names the
+  /// same declaration `[styles]` does.
+  #[test]
+  fn flush_pending_insertions_reads_a_spread_like_what_it_spreads() {
+    let mut state = StateManager::default();
+    let styles_init = empty_object();
+    let before_decl_hash = stable_hash_unspanned(&styles_init);
+    let initializer = Expr::Array(ArrayLit {
+      span: DUMMY_SP,
+      elems: vec![Some(ExprOrSpread {
+        spread: Some(DUMMY_SP),
+        expr: Box::new(array_expr(vec![styles_init])),
+      })],
+    });
+    let mut body = vec![var_decl_item("styles", initializer)];
+
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(before_decl_hash),
+      expr_stmt("before_decl"),
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(item_labels(&body), vec!["before_decl", "var:styles"]);
+  }
+
   /// A zero-argument call, the shape every `defineMarker()` shares, carrying
   /// only the position that tells two of them apart.
   fn call_at(span: Span) -> CallExpr {

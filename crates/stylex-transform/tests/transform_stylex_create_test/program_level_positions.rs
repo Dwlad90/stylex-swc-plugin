@@ -63,3 +63,74 @@ stylex_test!(
     }
   "#
 );
+
+// The cases below read the array-bound spelling under runtime injection, and
+// the name-bound spelling beside it. The rules an array-bound call declares are
+// injected before the statement that holds it, which is where the name-bound
+// spelling puts them: the declaration a rule belongs to is the statement, not
+// the object inside it. The first case in this file is the same module with
+// runtime injection off, where no call is written at all.
+
+stylex_test!(
+  an_array_bound_create_injects_the_rules_it_declares,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const all = [stylex.create({ a: { color: 'red' } })];
+  "#
+);
+
+stylex_test!(
+  a_name_bound_create_injects_the_same_rules,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const all = stylex.create({ a: { color: 'red' } });
+  "#
+);
+
+stylex_test!(
+  every_create_an_array_holds_injects_its_own_rules,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const all = [
+      stylex.create({ a: { color: 'red' } }),
+      [stylex.create({ b: { color: 'blue' } })],
+    ];
+  "#
+);
+
+stylex_test!(
+  an_array_holding_more_than_styles_keeps_the_injection_before_it,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const label = 'all';
+    export const all = [label, 1, stylex.create({ a: { color: 'red' } })];
+  "#
+);
+
+// A `keyframes` call inside an array is not bound to a name, so neither
+// compiler compiles it. Recorded here because the walk that looks through an
+// array hashes a string initializer too, which is the shape a compiled
+// `keyframes` leaves behind.
+stylex_test!(
+  an_array_bound_keyframes_is_left_where_it_was_written,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const all = [stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } })];
+  "#
+);
+
+// Arrays nested deeper than a module writes by hand, to show the walk reaches
+// the object whatever level it sits at.
+stylex_test!(
+  a_deeply_nested_array_bound_create_still_injects_its_rules,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const all = [[[[[[[[stylex.create({ a: { color: 'red' } })]]]]]]]];
+  "#
+);

@@ -146,8 +146,14 @@ would have been argued the same way.
 - The object legs above 128 calls price the deep-clone hash arm. They are kept
   because that arm is what a real module of that shape takes, and the assertion
   in the benchmark is what stops them being read as the descent.
-- **A gap this record names but does not close.** No large module in the corpus
-  is priced with injection on, so the 21% that turning it on costs is invisible
-  to the release gate -- the walk is only the smallest tenth of it. That is a
-  question about the injection path, not about this walk, and it wants its own
-  measurement before anyone adds a heavy fixture for it.
+- **The injection path is now priced at scale, and this walk still is not.**
+  Measuring the walk turned up a larger gap beside it: no module in the corpus
+  was priced with injection on over an array of `create` calls, so the 21% that
+  turning it on costs was invisible to the release gate, and the walk is only
+  the smallest tenth of that 21%. `Feature - runtime injection at scale` closes
+  that gap -- `lotsOfStyles100.js`, 100 `create` calls in a top-level array,
+  with `runtimeInjection: true`. It prices the whole injection path, which is
+  the right subject for a corpus row and the wrong one for this walk, so it
+  does not change the decision above. Its ceiling needs seeding before the next
+  release; the steps are in `guidelines/PERFORMANCE.md` under "Seeding a new
+  ceiling".

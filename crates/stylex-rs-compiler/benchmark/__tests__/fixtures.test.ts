@@ -33,8 +33,8 @@ describe('loadAllFixtures', () => {
   });
 
   test('loads the complete versioned registry', () => {
-    expect(fixtures).toHaveLength(65);
-    expect(new Set(fixtures.map(fixture => fixture.name)).size).toBe(65);
+    expect(fixtures).toHaveLength(66);
+    expect(new Set(fixtures.map(fixture => fixture.name)).size).toBe(66);
   });
 
   // The runner refuses to time a subject that produces no rules, so a

@@ -4,9 +4,10 @@
  * The release benchmark compares the candidate against the last published
  * version, which is behind by whole features, so `--allow-base-refusals` lets
  * a fixture the published version cannot compile leave the comparison. The
- * absolute p95 budget is about the candidate alone and has a committed ceiling
- * for every fixture in the manifest, so a fixture that left the comparison and
- * the run together reached the budget as an entry nothing measured.
+ * absolute p95 budget is about the candidate alone and wants a committed
+ * ceiling for every fixture the run measured, so a fixture that left the
+ * comparison and the run together reached the budget as an entry nothing
+ * measured.
  *
  * These assertions run the real producer and hand what it wrote to the real
  * consumers, which is the only place the two readings meet.

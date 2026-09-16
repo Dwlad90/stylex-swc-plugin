@@ -458,6 +458,16 @@
       }
     },
     {
+      "name": "Feature - runtime injection at scale",
+      "file": "crates/stylex-transform/benches/fixtures/lotsOfStyles100.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "runtimeInjection": true
+      }
+    },
+    {
       "name": "Feature - readable test class names",
       "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
       "category": "perf",

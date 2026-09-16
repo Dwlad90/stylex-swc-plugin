@@ -338,7 +338,7 @@ describe('runRounds paired roles', () => {
  * fixture *it* refuses is a regression in the code under measurement.
  *
  * What the fixture loses is the comparison, not the run. The absolute p95
- * budget holds a ceiling for every fixture in the manifest and reads the
+ * budget wants a ceiling for every fixture the run measured and reads the
  * candidate alone, so a fixture dropped from the run reached that check as an
  * entry nothing measured and failed the release a second way.
  */

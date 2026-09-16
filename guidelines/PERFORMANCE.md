@@ -209,9 +209,10 @@ numbers.
 
 What the fixture loses is the comparison, not the run. The candidate is still
 timed for it, because the absolute budget describes the candidate alone and
-holds a ceiling for every fixture in the manifest. A fixture dropped from the
+wants a ceiling for every fixture the run measured. A fixture dropped from the
 run reached that check as an entry nothing measured, and failed the release a
-second way. The verdict engine names such a fixture under its table and takes
+second way. The reverse hole is a fixture measured with no ceiling, which is
+[Seeding a new ceiling](#seeding-a-new-ceiling). The verdict engine names such a fixture under its table and takes
 no ratio for it, because a ratio needs both sides.
 
 A ceiling that the run measured nothing for is an `extra-entry` failure, and
@@ -243,16 +244,27 @@ call repeated thousands of times, so it prices throughput and nothing else. A
 new fixture earns its place by exercising a capability none of the others
 reach.
 
+Two entries may name the same option and still both earn their place, when the
+shape they run it over differs. `Feature - runtime injection` binds its `create`
+call to a name, which is the path the insertion walk hashes once and does not
+descend. `Feature - runtime injection at scale` writes 100 `create` calls in a
+top-level array, which is the path it descends -- a different code path, and the
+one that grows with the module. Neither is a size variant of the other, and
+deleting either leaves a path unpriced.
+
 ## Budget
 
-`benchmark/budget.json` is `enforced`. It holds one ceiling for each of the 65
-benchmark fixtures, seeded on 2026-09-10: the largest median-of-round p95 that
-any seeding run gave, times a headroom of 1.25. Sixty-one ceilings come from
-ten runs and four from three runs, because the four fold fixtures had no
-seeding run before the release leg could measure them. A breach fails the leg and,
-through the publish job, blocks the release. While the file is
-`pending-calibration` instead, it holds no ceilings, `bench:budget` reports
-`unseeded`, and the leg passes.
+`benchmark/budget.json` is `enforced`. It holds 65 ceilings, seeded on
+2026-09-10: the largest median-of-round p95 that any seeding run gave, times a
+headroom of 1.25. Sixty-one come from ten runs and four from three runs,
+because the four fold fixtures had no seeding run before the release leg could
+measure them. A breach fails the leg and, through the publish job, blocks the
+release. While the file is `pending-calibration` instead, it holds no ceilings,
+`bench:budget` reports `unseeded`, and the leg passes.
+
+**One of the 66 fixtures has no ceiling yet**: `Feature - runtime injection at
+scale`. Seed it before the next release, or the leg fails with
+`missing-entry` -- see [Seeding a new ceiling](#seeding-a-new-ceiling).
 
 The headroom of 1.25 is for the machine, not for the noise. GitHub hands out
 several CPU models, and the seeding runs show one class about 15% slower than
@@ -283,3 +295,28 @@ runs and `parseEntry` re-derives each `ceilingMs` from `observedUpperMs` times
 reviewed change stating old/new ceilings, repeated measurements, cause and user
 impact, alternatives, and why rollback is not appropriate. Decreases may ratchet
 in proven improvements.
+
+### Seeding a new ceiling
+
+Adding a fixture is two changes, and the second one cannot be made from a
+developer machine. The pull-request leg does not check the budget, so the
+fixture lands green; the release leg does, and raises `missing-entry` for a
+fixture it measured with no committed ceiling. That stops the release.
+
+The ceilings are valid only on the canonical environment, so a number taken
+anywhere else cannot seed one. The route is the one the original seeding took:
+
+1. Dispatch `npm.yml` three times, with `previous-version` set to the last
+   published release as usual. Whether that base can compile the new fixture
+   does not matter: the leg passes `--allow-base-refusals`, the ceiling is
+   taken from the candidate, and a base refusal costs only the comparison.
+   Three runs is the minimum the policy states; more is better.
+2. Read `median-of-round p95` for the new fixture from each run's budget
+   report artifact.
+3. Add one entry by hand: `observedUpperMs` is the largest of those values,
+   `headroom` is 1.25, `ceilingMs` is their product, `runs` is how many, and
+   `evidence` names the run ids.
+
+Never seed from one run plus a percentage, and never from a local number. A
+ceiling that was guessed is worse than no gate: it either never fires or fires
+on the machine rather than on the code.

@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use rustc_hash::FxHashMap;
 use stylex_ast::ast::convertors::{convert_lit_to_string, key_value_name, normalize_expr};
 
@@ -45,17 +47,7 @@ pub(crate) fn stylex_merge(
   let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
   let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
-  // The marker is the same for every name it is registered under and for every
-  // call in the file, because it reads only the class name prefix. It is built
-  // once and kept on the state, so the calls after the first read it back.
-  let marker_values = match state.cached_default_marker_values() {
-    Some(values) => values.clone(),
-    None => {
-      let values = stylex_default_marker::stylex_default_marker_values(&state.options);
-      state.insert_cached_default_marker_values(values.clone());
-      values
-    },
-  };
+  let marker_values = stylex_default_marker::shared_default_marker_values(state);
 
   if let Some(set) = state.get_stylex_api_import(ImportKind::DefaultMarker)
     && !set.is_empty()
@@ -63,17 +55,17 @@ pub(crate) fn stylex_merge(
     for name in set {
       identifiers.insert(
         name.clone(),
-        Box::new(FunctionConfigType::IndexMap(marker_values.clone())),
+        Box::new(FunctionConfigType::IndexMap(Rc::clone(&marker_values))),
       );
     }
   }
 
   for name in state.stylex_imports() {
-    // `or_default` gives back the entry it made, so the second look-up that
-    // stood here, and the refusal that could never run, are both unnecessary.
+    // `or_default` answers the entry itself, new or already there, so the
+    // second look-up that stood here and its refusal are both gone.
     member_expressions.entry(name.clone()).or_default().insert(
       STYLEX_DEFAULT_MARKER.into(),
-      Box::new(FunctionConfigType::IndexMap(marker_values.clone())),
+      Box::new(FunctionConfigType::IndexMap(Rc::clone(&marker_values))),
     );
   }
 

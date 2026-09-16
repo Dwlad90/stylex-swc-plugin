@@ -83,6 +83,7 @@ mod get_var_decl_by_ident_function_map_tests {
 mod get_var_decl_by_ident_fn_map_panic_tests {
   use super::*;
   use crate::functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType};
+  use std::rc::Rc;
 
   /// The three arms below refuse for three different reasons, so each asserts
   /// the message it is refused with: a bare `#[should_panic]` passes on any
@@ -130,7 +131,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
     let mut fns = FunctionMap::default();
     fns.identifiers.insert(
       "imapFn".into(),
-      Box::new(FunctionConfigType::IndexMap(Default::default())),
+      Box::new(FunctionConfigType::IndexMap(Rc::new(Default::default()))),
     );
     let ident = create_ident("imapFn");
     get_var_decl_by_ident(&ident, &mut state, &fns);

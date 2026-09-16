@@ -21,59 +21,40 @@ pub(crate) fn remove_objects_with_spreads(obj: &StylesObjectMap) -> StylesObject
   new_obj
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub(crate) enum NestedStringObject {
-  FlatCompiledStyles(StylesObjectMap),
-  FlatCompiledStylesValues(FlatCompiledStyles),
+/// The object literal one flat map of compiled values spells:
+/// `{ key: value, ... }`.
+///
+/// A compiled namespace is one such map, and so are the variables `defineVars`
+/// answers, the values `defineConsts` answers and a theme's overrides. Every
+/// value in one is a string, a null or a boolean, because that is all the
+/// compiler writes. A string that reads as a number is written back as a
+/// number, the way the source spelled it.
+pub(crate) fn convert_values_to_ast(values: &FlatCompiledStyles) -> Expr {
+  let props = values
+    .iter()
+    .map(|(key, value)| match value.as_ref() {
+      FlatCompiledStylesValue::String(value) => match value.parse::<f64>() {
+        Ok(number) => create_key_value_prop(key.as_str(), create_number_expr(number)),
+        Err(_) => create_string_key_value_prop(key.as_str(), value.as_str()),
+      },
+      FlatCompiledStylesValue::Null => create_key_value_prop(key.as_str(), create_null_expr()),
+      FlatCompiledStylesValue::Bool(value) => {
+        create_key_value_prop(key.as_str(), create_bool_expr(*value))
+      },
+      _ => stylex_unreachable!("Encountered an unsupported value type during AST conversion."),
+    })
+    .collect::<Vec<PropOrSpread>>();
+
+  create_object_expression(props)
 }
 
-impl NestedStringObject {
-  pub(crate) fn as_values(&self) -> Option<&FlatCompiledStyles> {
-    match self {
-      NestedStringObject::FlatCompiledStylesValues(obj) => Some(obj),
-      _ => None,
-    }
-  }
-}
-
-pub(crate) fn convert_object_to_ast(obj: &NestedStringObject) -> Expr {
-  let mut props: Vec<PropOrSpread> = vec![];
-
-  match obj {
-    NestedStringObject::FlatCompiledStyles(obj) => {
-      for (key, value) in obj.iter() {
-        let expr = convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(
-          (**value).clone(),
-        ));
-
-        let prop = create_key_value_prop(key.as_str(), expr);
-
-        props.push(prop);
-      }
-    },
-    NestedStringObject::FlatCompiledStylesValues(obj) => {
-      for (key, value) in obj.iter() {
-        let prop = match value.as_ref() {
-          FlatCompiledStylesValue::String(value) => {
-            if let Ok(num) = value.parse::<f64>() {
-              create_key_value_prop(key.as_str(), create_number_expr(num))
-            } else {
-              create_string_key_value_prop(key.as_str(), value.as_str())
-            }
-          },
-          FlatCompiledStylesValue::Null => create_key_value_prop(key.as_str(), create_null_expr()),
-          FlatCompiledStylesValue::Bool(value) => {
-            create_key_value_prop(key.as_str(), create_bool_expr(*value))
-          },
-          _ => {
-            stylex_unreachable!("Encountered an unsupported value type during AST conversion.")
-          },
-        };
-
-        props.push(prop);
-      }
-    },
-  }
+/// The object literal a whole compiled style object spells: one namespace per
+/// key, each namespace the object [`convert_values_to_ast`] spells.
+pub(crate) fn convert_namespaces_to_ast(namespaces: &StylesObjectMap) -> Expr {
+  let props = namespaces
+    .iter()
+    .map(|(key, values)| create_key_value_prop(key.as_str(), convert_values_to_ast(values)))
+    .collect::<Vec<PropOrSpread>>();
 
   create_object_expression(props)
 }

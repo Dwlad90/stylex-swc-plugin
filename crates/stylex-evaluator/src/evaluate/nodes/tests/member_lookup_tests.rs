@@ -221,7 +221,7 @@ fn a_marker_map_read_as_a_member_names_the_shape_it_is() {
 
   entries.insert(
     "markers".into(),
-    FunctionConfigType::IndexMap(IndexMap::default()),
+    FunctionConfigType::IndexMap(Rc::new(IndexMap::default())),
   );
 
   let fns = map_binding("sx", FunctionConfigType::Map(entries));

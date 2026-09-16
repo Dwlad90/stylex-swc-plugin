@@ -300,7 +300,7 @@ fn a_kind_that_cannot_take_the_written_arguments_refuses() {
 fn an_entry_that_is_not_a_function_refuses_a_call() {
   for entry in [
     FunctionConfigType::Map(FunctionConfigMap::default()),
-    FunctionConfigType::IndexMap(IndexMap::default()),
+    FunctionConfigType::IndexMap(Rc::new(IndexMap::default())),
     FunctionConfigType::EnvObject(Rc::new(IndexMap::<String, EnvEntry>::default())),
   ] {
     assert_refuses_both_ways(entry, "'a'", NON_CONSTANT);

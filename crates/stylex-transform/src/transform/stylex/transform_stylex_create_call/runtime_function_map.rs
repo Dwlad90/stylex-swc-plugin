@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use super::*;
 use crate::transform::stylex::visitor_utils::{
   insert_stylex_identifier_entry, register_env_in_namespace_fold,
@@ -17,6 +19,11 @@ where
 
   let keyframes_fn = get_keyframes_fn();
   let position_try_fn = get_position_try_fn();
+
+  // The marker is read here, before the name lists below are borrowed, and is
+  // then shared into each registration. One file pays for one build, even where
+  // no name registers the marker.
+  let marker_values = stylex_default_marker::shared_default_marker_values(&mut transform.state);
 
   if let Some(set) = transform
     .state
@@ -58,12 +65,7 @@ where
     for name in set {
       identifiers.insert(
         name.clone(),
-        Box::new(FunctionConfigType::IndexMap(
-          stylex_default_marker::stylex_default_marker(&transform.state.options)
-            .as_values()
-            .unwrap_or_else(|| stylex_panic!("{}", EXPECTED_COMPILED_STYLES))
-            .clone(),
-        )),
+        Box::new(FunctionConfigType::IndexMap(Rc::clone(&marker_values))),
       );
     }
   }
@@ -81,12 +83,7 @@ where
   }
 
   for name in transform.state.stylex_imports() {
-    member_expressions.entry(name.clone()).or_default();
-
-    let member_expression = match member_expressions.get_mut(name) {
-      Some(me) => me,
-      None => stylex_panic!("Could not resolve the member expression for the StyleX import."),
-    };
+    let member_expression = member_expressions.entry(name.clone()).or_default();
 
     member_expression.insert(
       STYLEX_FIRST_THAT_WORKS.into(),
@@ -105,12 +102,7 @@ where
 
     member_expression.insert(
       STYLEX_DEFAULT_MARKER.into(),
-      Box::new(FunctionConfigType::IndexMap(
-        stylex_default_marker::stylex_default_marker(&transform.state.options)
-          .as_values()
-          .unwrap_or_else(|| stylex_panic!("{}", EXPECTED_COMPILED_STYLES))
-          .clone(),
-      )),
+      Box::new(FunctionConfigType::IndexMap(Rc::clone(&marker_values))),
     );
 
     insert_stylex_identifier_entry(

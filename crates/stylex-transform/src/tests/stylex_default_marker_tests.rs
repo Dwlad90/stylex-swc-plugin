@@ -1,85 +1,60 @@
-// Tests for default marker object shape and prefix behavior.
-// Source: crates/stylex-transform/src/shared/transformers/
-// stylex_default_marker.rs
+//! The shape of the default marker, and what the class name prefix does to it.
+//!
+//! Source: crates/stylex-transform/src/shared/transformers/
+//! stylex_default_marker.rs
 
 use super::*;
 
-#[test]
-fn test_default_marker_with_prefix() {
-  let options = StyleXStateOptions::default().with_class_name_prefix("x");
+/// Asserts that `options` name the marker `class_name`.
+///
+/// Every case asks the same three questions, so they are asked once here: the
+/// marker holds two entries, it holds the class name against itself, and it
+/// holds the compiled marker. The class name is looked up by name rather than
+/// by position, so the order the two entries go in is not asserted here.
+fn assert_marker_is(options: &StyleXStateOptions, class_name: &str) {
+  let values = default_marker_values(options);
 
-  let result = stylex_default_marker(&options);
+  assert_eq!(
+    values.len(),
+    2,
+    "{class_name}: the marker holds the class name and `$$css`"
+  );
 
-  let map = result
-    .as_values()
-    .expect("Expected FlatCompiledStylesValues");
-
-  assert!(map.contains_key("x-default-marker"));
-  assert!(map.contains_key("$$css"));
-
-  if let Some(FlatCompiledStylesValue::String(s)) = map.get("x-default-marker").map(|v| v.as_ref())
-  {
-    assert_eq!(s, "x-default-marker");
-  } else {
-    panic!("Expected string value for marker class");
+  match values.get(class_name).map(|value| value.as_ref()) {
+    Some(FlatCompiledStylesValue::String(value)) => {
+      assert_eq!(value, class_name, "the class name is its own value");
+    },
+    other => panic!("{class_name} is not the class name: {other:?}"),
   }
 
-  if let Some(FlatCompiledStylesValue::Bool(b)) = map.get("$$css").map(|v| v.as_ref()) {
-    assert!(b);
-  } else {
-    panic!("Expected boolean value for $$css");
-  }
-}
-
-#[test]
-fn test_default_marker_with_custom_prefix() {
-  let options = StyleXStateOptions::default().with_class_name_prefix("custom");
-
-  let result = stylex_default_marker(&options);
-
-  let map = result
-    .as_values()
-    .expect("Expected FlatCompiledStylesValues");
-
-  assert!(map.contains_key("custom-default-marker"));
-
-  if let Some(FlatCompiledStylesValue::String(s)) =
-    map.get("custom-default-marker").map(|v| v.as_ref())
-  {
-    assert_eq!(s, "custom-default-marker");
-  } else {
-    panic!("Expected string value for marker class");
+  match values.get(COMPILED_KEY).map(|value| value.as_ref()) {
+    Some(FlatCompiledStylesValue::Bool(true)) => {},
+    other => panic!("{class_name}: `$$css` is not the compiled marker: {other:?}"),
   }
 }
 
 #[test]
-fn test_default_marker_with_empty_prefix() {
-  let options = StyleXStateOptions::default().with_class_name_prefix("");
-
-  let result = stylex_default_marker(&options);
-
-  let map = result
-    .as_values()
-    .expect("Expected FlatCompiledStylesValues");
-
-  assert!(map.contains_key("-default-marker"));
-
-  if let Some(FlatCompiledStylesValue::String(s)) = map.get("-default-marker").map(|v| v.as_ref()) {
-    assert_eq!(s, "-default-marker");
-  } else {
-    panic!("Expected string value for marker class");
-  }
+fn the_default_prefix_names_the_marker_class() {
+  assert_marker_is(
+    &StyleXStateOptions::default().with_class_name_prefix("x"),
+    "x-default-marker",
+  );
 }
 
 #[test]
-fn test_default_marker_always_has_css_marker() {
-  let options = StyleXStateOptions::default();
-  let result = stylex_default_marker(&options);
+fn a_custom_prefix_names_the_marker_class() {
+  assert_marker_is(
+    &StyleXStateOptions::default().with_class_name_prefix("custom"),
+    "custom-default-marker",
+  );
+}
 
-  let map = result
-    .as_values()
-    .expect("Expected FlatCompiledStylesValues");
-
-  assert!(map.contains_key("$$css"));
-  assert_eq!(map.len(), 2); // marker class + $$css
+/// An empty prefix keeps its separator. It is asked for explicitly, because an
+/// unset `classNamePrefix` arrives here already defaulted to `x`.
+#[test]
+fn an_empty_prefix_keeps_the_separator() {
+  assert_marker_is(
+    &StyleXStateOptions::default().with_class_name_prefix(""),
+    "-default-marker",
+  );
 }

@@ -12,7 +12,7 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::utils::{
-    core::js_to_ast::{NestedStringObject, convert_object_to_ast},
+    core::js_to_ast::convert_values_to_ast,
     validators::{is_define_marker_call, validate_stylex_define_marker_indent},
   },
 };
@@ -77,8 +77,7 @@ where
       COMPILED_KEY.to_string(),
       Rc::new(FlatCompiledStylesValue::Bool(true)),
     );
-    let marker_obj_ast =
-      convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(marker_result));
+    let marker_obj_ast = convert_values_to_ast(&marker_result);
 
     // The recorded declaration still holds the `defineMarker()` call this
     // returns a marker object in place of. A `when` selector in the same file

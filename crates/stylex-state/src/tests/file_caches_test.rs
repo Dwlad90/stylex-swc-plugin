@@ -14,13 +14,13 @@ use crate::tests::prelude::test_state as state;
 use crate::types::FlatCompiledStyles;
 
 /// One compiled style map holding the single entry handed in, which is all any
-/// case here reads back.
-fn compiled_styles(key: &str, value: FlatCompiledStylesValue) -> FlatCompiledStyles {
+/// case here reads back. It is shared, because the memo keeps it shared.
+fn compiled_styles(key: &str, value: FlatCompiledStylesValue) -> Rc<FlatCompiledStyles> {
   let mut values = FlatCompiledStyles::default();
 
   values.insert(key.to_string(), Rc::new(value));
 
-  values
+  Rc::new(values)
 }
 
 /// The short filename a debug annotation carries is worked out once and kept,
@@ -66,9 +66,16 @@ fn the_default_marker_values_are_built_once_and_kept() {
 
   let values = compiled_styles("$$css", FlatCompiledStylesValue::Bool(true));
 
-  state.insert_cached_default_marker_values(values.clone());
+  state.insert_cached_default_marker_values(Rc::clone(&values));
 
-  assert_eq!(state.cached_default_marker_values(), Some(&values));
+  match state.cached_default_marker_values() {
+    Some(read_back) => {
+      // The same object, not an equal one. Every call in the file registers the
+      // marker again, so a memo that copied it would cost what it saves.
+      assert!(Rc::ptr_eq(read_back, &values));
+    },
+    None => panic!("the memo forgot the values it was given"),
+  }
 }
 
 /// A second build overwrites the first. Nothing in a file asks for two markers,
@@ -82,7 +89,10 @@ fn the_default_marker_values_recorded_twice_keep_the_second() {
   let second = compiled_styles("color", FlatCompiledStylesValue::String("xred".to_string()));
 
   state.insert_cached_default_marker_values(first);
-  state.insert_cached_default_marker_values(second.clone());
+  state.insert_cached_default_marker_values(Rc::clone(&second));
 
-  assert_eq!(state.cached_default_marker_values(), Some(&second));
+  match state.cached_default_marker_values() {
+    Some(read_back) => assert!(Rc::ptr_eq(read_back, &second)),
+    None => panic!("the memo forgot the values it was given"),
+  }
 }

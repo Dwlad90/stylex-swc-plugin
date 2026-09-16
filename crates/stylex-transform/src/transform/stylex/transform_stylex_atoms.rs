@@ -14,8 +14,7 @@ use crate::{
     transformers::stylex_create::stylex_create_set,
     utils::core::{
       dev_class_name::inject_sx_dev_class_name,
-      evaluate_stylex_create_arg::evaluate_stylex_create_arg,
-      js_to_ast::{NestedStringObject, convert_object_to_ast},
+      evaluate_stylex_create_arg::evaluate_stylex_create_arg, js_to_ast::convert_values_to_ast,
     },
   },
 };
@@ -102,9 +101,7 @@ where
 
     let namespace: FlatCompiledStyles = compiled.get("__inline__").map(|ns| (**ns).clone())?;
 
-    let compiled_ast = convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(
-      namespace.clone(),
-    ));
+    let compiled_ast = convert_values_to_ast(&namespace);
 
     let compiled_flat = namespace
       .iter()

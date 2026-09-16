@@ -6,9 +6,9 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    transformers::stylex_default_marker::stylex_default_marker,
+    transformers::stylex_default_marker::shared_default_marker_values,
     utils::{
-      core::js_to_ast::convert_object_to_ast,
+      core::js_to_ast::convert_values_to_ast,
       validators::{is_default_marker_call, validate_stylex_default_marker_indent},
     },
   },
@@ -24,11 +24,9 @@ where
     if is_default_marker_call {
       validate_stylex_default_marker_indent(call, &mut self.state);
 
-      let marker_result = stylex_default_marker(&self.state.options);
+      let marker_values = shared_default_marker_values(&mut self.state);
 
-      let marker_ast = convert_object_to_ast(&marker_result);
-
-      Some(marker_ast)
+      Some(convert_values_to_ast(&marker_values))
     } else {
       None
     }

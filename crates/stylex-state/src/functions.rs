@@ -108,7 +108,13 @@ pub struct FunctionConfig {
 pub enum FunctionConfigType {
   Regular(FunctionConfig),
   Map(FunctionConfigMap),
-  IndexMap(FlatCompiledStyles),
+  /// A compiled style object registered under a name, shared rather than
+  /// copied.
+  ///
+  /// The default marker is the only such object today. One file registers it
+  /// again for each name it imports the marker by, and no reader changes it, so
+  /// every registration points at one map.
+  IndexMap(Rc<FlatCompiledStyles>),
   /// An env object from the `env` config option. Contains both values and
   /// functions.
   /// The `env` option's object, shared rather than copied.

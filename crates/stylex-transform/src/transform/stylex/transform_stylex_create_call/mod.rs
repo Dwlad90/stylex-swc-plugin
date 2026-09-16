@@ -41,7 +41,7 @@ use crate::{
         dev_class_name::{convert_to_test_styles, inject_dev_class_names},
         evaluate_stylex_create_arg::evaluate_stylex_create_arg,
         flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-        js_to_ast::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
+        js_to_ast::{convert_namespaces_to_ast, remove_objects_with_spreads},
       },
       validators::{argument_at, is_create_call, validate_stylex_create},
     },
@@ -59,7 +59,7 @@ use stylex_constants::constants::{
     STYLEX_POSITION_TRY, STYLEX_WHEN,
   },
   common::COMPILED_KEY,
-  messages::{EXPECTED_COMPILED_STYLES, non_static_value},
+  messages::non_static_value,
 };
 use stylex_css::utils::{pseudo::is_pseudo_element, when as stylex_when};
 use stylex_diagnostics::code_frame::{build_code_frame_error, build_code_frame_error_and_panic};
@@ -335,8 +335,7 @@ where
         }
       }
 
-      let styles_ast =
-        convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(compiled_styles));
+      let styles_ast = convert_namespaces_to_ast(&compiled_styles);
 
       // The rewrite of the dynamic entries needs the object, not the hoisted
       // identifier, so it runs before the hoist.

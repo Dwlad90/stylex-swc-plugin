@@ -22,7 +22,7 @@ use crate::{
       stylex_position_try::get_position_try_fn, stylex_types::get_types_fn,
     },
     utils::{
-      core::js_to_ast::{NestedStringObject, convert_object_to_ast},
+      core::js_to_ast::convert_values_to_ast,
       validators::{
         argument_at, find_and_validate_stylex_define_vars, folded_style_object, is_define_vars_call,
       },
@@ -197,8 +197,7 @@ where
       let mut injected_styles = self.state.other_injected_css_rules.clone();
       injected_styles.extend(injected_styles_sans_keyframes);
 
-      let result_ast =
-        convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(variables_obj));
+      let result_ast = convert_values_to_ast(&variables_obj);
 
       self
         .state

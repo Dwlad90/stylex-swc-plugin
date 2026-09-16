@@ -504,15 +504,15 @@ impl CallExpressionState {
 pub(crate) struct CacheState {
   css_property_seen: FxHashMap<String, String>,
   short_filename_cache: FxHashMap<String, String>,
-  default_marker_values: Option<FlatCompiledStyles>,
+  default_marker_values: Option<Rc<FlatCompiledStyles>>,
 }
 
 impl CacheState {
-  fn cached_default_marker_values(&self) -> Option<&FlatCompiledStyles> {
+  fn cached_default_marker_values(&self) -> Option<&Rc<FlatCompiledStyles>> {
     self.default_marker_values.as_ref()
   }
 
-  fn insert_default_marker_values(&mut self, values: FlatCompiledStyles) {
+  fn insert_default_marker_values(&mut self, values: Rc<FlatCompiledStyles>) {
     self.default_marker_values = Some(values);
   }
 
@@ -1508,14 +1508,15 @@ impl StateManager {
   /// already asked for them.
   ///
   /// The marker reads only the class name prefix, which is fixed for the file,
-  /// so every `stylex.props`-family call in it builds the same two strings, the
-  /// same index map and the same two counted pointers.
-  pub fn cached_default_marker_values(&self) -> Option<&FlatCompiledStyles> {
+  /// so every call in the file needs the same two strings and the same index
+  /// map. The answer is shared and never changed after it is built, which is
+  /// what makes one copy safe for all of them.
+  pub fn cached_default_marker_values(&self) -> Option<&Rc<FlatCompiledStyles>> {
     self.cache.cached_default_marker_values()
   }
 
   /// Keeps `values` as this file's default marker.
-  pub fn insert_cached_default_marker_values(&mut self, values: FlatCompiledStyles) {
+  pub fn insert_cached_default_marker_values(&mut self, values: Rc<FlatCompiledStyles>) {
     self.cache.insert_default_marker_values(values);
   }
 

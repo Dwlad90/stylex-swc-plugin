@@ -14,7 +14,7 @@ use swc_core::{
 };
 
 use crate::shared::utils::core::js_to_ast::{
-  NestedStringObject, convert_object_to_ast, remove_objects_with_spreads,
+  convert_namespaces_to_ast, convert_values_to_ast, remove_objects_with_spreads,
 };
 
 /// The text of an atom. A lone surrogate spells no text, and no case here
@@ -96,9 +96,7 @@ fn writes_each_kind_of_value_the_way_javascript_spells_it() {
   ]);
 
   assert_eq!(
-    properties_of(&convert_object_to_ast(
-      &NestedStringObject::FlatCompiledStylesValues(values)
-    )),
+    properties_of(&convert_values_to_ast(&values)),
     [
       ("color".to_owned(), "string:xabc".to_owned()),
       ("zIndex".to_owned(), "number:2".to_owned()),
@@ -123,27 +121,15 @@ fn writes_a_namespace_as_an_object_of_its_own() {
   );
 
   assert_eq!(
-    properties_of(&convert_object_to_ast(
-      &NestedStringObject::FlatCompiledStyles(styles)
-    )),
+    properties_of(&convert_namespaces_to_ast(&styles)),
     [("root".to_owned(), "object:1".to_owned())]
   );
 }
 
 #[test]
 fn writes_an_empty_object_for_no_style() {
-  assert!(
-    properties_of(&convert_object_to_ast(
-      &NestedStringObject::FlatCompiledStyles(StylesObjectMap::new())
-    ))
-    .is_empty()
-  );
-  assert!(
-    properties_of(&convert_object_to_ast(
-      &NestedStringObject::FlatCompiledStylesValues(FlatCompiledStyles::new())
-    ))
-    .is_empty()
-  );
+  assert!(properties_of(&convert_namespaces_to_ast(&StylesObjectMap::new())).is_empty());
+  assert!(properties_of(&convert_values_to_ast(&FlatCompiledStyles::new())).is_empty());
 }
 
 /// Only the three kinds above can be written back. Any other value means the
@@ -152,28 +138,10 @@ fn writes_an_empty_object_for_no_style() {
 #[test]
 #[should_panic(expected = "Encountered an unsupported value type during AST conversion.")]
 fn refuses_a_value_it_cannot_write() {
-  convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(values_of(&[
-    (
-      "color",
-      FlatCompiledStylesValue::KeyValue(Pair::new("color".to_owned(), "red".to_owned())),
-    ),
-  ])));
-}
-
-/// The values are there to be read only when the object holds values. Asking a
-/// namespace map for them answers nothing rather than the map itself.
-#[test]
-fn only_a_value_object_hands_its_values_back() {
-  let values = values_of(&[("color", FlatCompiledStylesValue::String("xabc".to_owned()))]);
-
-  assert_eq!(
-    NestedStringObject::FlatCompiledStylesValues(values.clone()).as_values(),
-    Some(&values)
-  );
-  assert_eq!(
-    NestedStringObject::FlatCompiledStyles(StylesObjectMap::new()).as_values(),
-    None
-  );
+  convert_values_to_ast(&values_of(&[(
+    "color",
+    FlatCompiledStylesValue::KeyValue(Pair::new("color".to_owned(), "red".to_owned())),
+  )]));
 }
 
 #[test]
@@ -213,7 +181,7 @@ fn writes_every_prop_as_a_key_value_under_a_name() {
     ])),
   );
 
-  let written = convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(styles));
+  let written = convert_namespaces_to_ast(&styles);
 
   // `key_of` refuses a spread and a prop that is not a key-value, and it reads
   // the name of every key a written object can carry.

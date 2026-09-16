@@ -204,7 +204,7 @@ where
   /// The props of a compiled style object, swept down to the namespaces the
   /// module still reads.
   ///
-  /// The object was written by `convert_object_to_ast` a few phases back, and
+  /// The object was written by `convert_namespaces_to_ast` a few phases back, and
   /// that step writes every prop as a key-value under a name -- asserted where
   /// the object is built, by `writes_every_prop_as_a_key_value_under_a_name`.
   /// A prop that is not a key-value under a name leaves the whole object as it

@@ -2,7 +2,7 @@
 //!
 //! A style variable holds a map of namespaces, and each namespace holds the
 //! declarations compiled out of it. Both objects were written by
-//! `convert_object_to_ast` a few phases earlier, which writes key-value props
+//! `convert_namespaces_to_ast` a few phases earlier, which writes key-value props
 //! under names it chose -- asserted where it writes them, by
 //! `writes_every_prop_as_a_key_value_under_a_name`. So no module can put a
 //! spread or a nameless key in front of the sweep, and the objects here are

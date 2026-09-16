@@ -17,7 +17,7 @@ use crate::{
     utils::{
       core::{
         dev_class_name::{convert_theme_to_dev_styles, convert_theme_to_test_styles},
-        js_to_ast::{NestedStringObject, convert_object_to_ast},
+        js_to_ast::convert_values_to_ast,
       },
       validators::{
         argument_at, is_create_theme_call, validate_stylex_create_theme_indent,
@@ -208,8 +208,7 @@ where
           convert_theme_to_dev_styles(&var_name, &overrides_obj, self.state.get_filename());
       }
 
-      let result_ast =
-        convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(overrides_obj));
+      let result_ast = convert_values_to_ast(&overrides_obj);
 
       self
         .state

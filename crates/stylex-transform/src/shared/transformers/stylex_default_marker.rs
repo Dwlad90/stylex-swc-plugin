@@ -2,29 +2,19 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 
-use crate::shared::utils::core::js_to_ast::NestedStringObject;
 use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_state::{
-  flat_compiled_styles_value::FlatCompiledStylesValue, types::FlatCompiledStyles,
+  flat_compiled_styles_value::FlatCompiledStylesValue, state_manager::StateManager,
+  types::FlatCompiledStyles,
 };
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 
-/// Creates a default marker object that can be used with stylex.props()
-/// to add a marker class for ancestor/sibling state observers.
+/// The default marker's entries: the marker class name as both key and value,
+/// and the `$$css` marker set to true.
 ///
-/// # Arguments
-/// * `options` - Reference to StyleXStateOptions to get the class name prefix
-///
-/// # Returns
-/// A map with the default marker class name as both key and value,
-/// plus a `$$css` marker set to true
-pub(crate) fn stylex_default_marker(options: &StyleXStateOptions) -> NestedStringObject {
-  NestedStringObject::FlatCompiledStylesValues(stylex_default_marker_values(options))
-}
-
-/// The marker's entries, for a caller that reads them rather than writes them
-/// back as an object.
-pub(crate) fn stylex_default_marker_values(options: &StyleXStateOptions) -> FlatCompiledStyles {
+/// A `stylex.props` call carrying this marker adds the class an ancestor or
+/// sibling state observer looks for.
+fn default_marker_values(options: &StyleXStateOptions) -> FlatCompiledStyles {
   // NOTE: the prefix is always applied, including when it is empty — an
   // unset `classNamePrefix` arrives here already defaulted to `x`, so an
   // empty one was asked for explicitly and keeps its separator.
@@ -45,6 +35,24 @@ pub(crate) fn stylex_default_marker_values(options: &StyleXStateOptions) -> Flat
   );
 
   result
+}
+
+/// This file's default marker, built on the first call and shared after it.
+///
+/// A `create` call, every call of the `props` family and `defaultMarker()`
+/// itself all ask for it, and the first two register it again under every name
+/// the file imports it by. See [`StateManager::cached_default_marker_values`]
+/// for why one answer serves them all.
+pub(crate) fn shared_default_marker_values(state: &mut StateManager) -> Rc<FlatCompiledStyles> {
+  if let Some(values) = state.cached_default_marker_values() {
+    return Rc::clone(values);
+  }
+
+  let values = Rc::new(default_marker_values(&state.options));
+
+  state.insert_cached_default_marker_values(Rc::clone(&values));
+
+  values
 }
 
 #[cfg(test)]

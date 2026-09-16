@@ -15,7 +15,7 @@ use crate::{
   shared::{
     transformers::stylex_define_consts::stylex_define_consts,
     utils::{
-      core::js_to_ast::{NestedStringObject, convert_object_to_ast},
+      core::js_to_ast::convert_values_to_ast,
       validators::{
         argument_at, find_and_validate_stylex_define_consts, folded_style_object,
         is_define_consts_call,
@@ -73,9 +73,7 @@ where
 
       let (transformed_js_output, js_output) = stylex_define_consts(&value, &mut self.state);
 
-      let result_ast = convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(
-        transformed_js_output,
-      ));
+      let result_ast = convert_values_to_ast(&transformed_js_output);
 
       self
         .state

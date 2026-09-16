@@ -189,8 +189,6 @@ pub static EXPECTED_CSS_VAR: &str = "Expected a CSS custom property (variable) r
 
 pub static KEY_MUST_EVAL_TO_STRING: &str = "Style property key must evaluate to a string.";
 
-pub static EXPECTED_COMPILED_STYLES: &str = "Expected compiled style values from the style object.";
-
 pub static VALUE_NOT_EXPRESSION: &str = "Style value must evaluate to a static expression.";
 
 pub static EVAL_RESULT_EXPECTED: &str = "Expected a value from evaluation result.";

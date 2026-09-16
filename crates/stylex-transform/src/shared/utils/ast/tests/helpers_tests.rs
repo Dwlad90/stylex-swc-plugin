@@ -3,12 +3,12 @@
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
 use stylex_state::state_manager::StateManager;
 use stylex_structures::top_level_expression::TopLevelExpression;
-use swc_core::ecma::ast::{ModuleDecl, ModuleItem, PropOrSpread};
+use swc_core::ecma::ast::{ModuleDecl, ModuleItem};
 
 use crate::shared::utils::ast::helpers::{
-  expr_contains_arrow, get_property_by_key, is_variable_named_exported, prop_contains_arrow,
+  expr_contains_arrow, get_property_by_key, is_variable_named_exported,
 };
-use crate::tests::support::{expr, module, object};
+use crate::tests::support::{expr, module};
 
 /// A state that has read the export statements `code` spells.
 fn state_exporting(code: &str) -> StateManager {
@@ -168,25 +168,4 @@ fn finds_no_arrow_where_none_is_written() {
   assert!(!expr_contains_arrow(&expr("{ color: 'red' }")));
   assert!(!expr_contains_arrow(&expr("function () { return 1 }")));
   assert!(!expr_contains_arrow(&expr("a + b")));
-}
-
-fn first_property(code: &str) -> PropOrSpread {
-  match object(code).props.into_iter().next() {
-    Some(prop) => prop,
-    None => panic!("the fixture {code} holds no property"),
-  }
-}
-
-#[test]
-fn finds_an_arrow_in_the_value_of_a_property() {
-  assert!(prop_contains_arrow(&first_property("{ color: () => 1 }")));
-  assert!(!prop_contains_arrow(&first_property("{ color: 'red' }")));
-}
-
-/// A property that is not a key-value pair has no value to read, so it holds no
-/// arrow as far as the caller is concerned.
-#[test]
-fn finds_no_arrow_in_a_property_that_holds_no_value() {
-  assert!(!prop_contains_arrow(&first_property("{ ...rest }")));
-  assert!(!prop_contains_arrow(&first_property("{ color }")));
 }

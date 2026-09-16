@@ -576,3 +576,20 @@ stylex_test_panic!(
     });
   "#
 );
+
+// A chain of same-group references, which the cycle walk reaches the end of
+// twice. Walking `a` already walks `b`, so the walk that starts at `b` has
+// nothing left to read -- and a group of this shape is what says the walk
+// passes over a name it has read rather than reading it again.
+stylex_test!(
+  a_chain_of_same_group_references_is_walked_once,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      a: () => colors.b,
+      b: () => colors.c,
+      c: 'black',
+    });
+  "#
+);

@@ -5,7 +5,6 @@ use swc_core::ecma::{
   visit::{Visit, VisitWith},
 };
 
-use stylex_ast::ast::keys::prop_as_key_value;
 use stylex_state::state_manager::StateManager;
 
 pub(crate) fn is_variable_named_exported(
@@ -63,15 +62,6 @@ pub(crate) fn expr_contains_arrow(expr: &Expr) -> bool {
   let mut finder = ArrowFinder { found: false };
   expr.visit_with(&mut finder);
   finder.found
-}
-
-/// Returns `true` if `prop`'s value (or anything nested inside it) is an
-/// `Expr::Arrow`. Companion to [`expr_contains_arrow`].
-pub(crate) fn prop_contains_arrow(prop: &PropOrSpread) -> bool {
-  match prop_as_key_value(prop) {
-    Some(kv) => expr_contains_arrow(&kv.value),
-    None => false,
-  }
 }
 
 /// SWC `Visit` implementation that flags `true` on the first `ArrowExpr` it

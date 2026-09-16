@@ -4,8 +4,8 @@ use stylex_structures::top_level_expression::TopLevelExpression;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{
-    ArrayLit, ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, Pat, PropOrSpread,
-    VarDeclarator,
+    ArrayLit, ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, ObjectLit, Pat,
+    PropOrSpread, VarDeclarator,
   },
 };
 
@@ -110,14 +110,19 @@ pub(crate) fn argument_at<'a>(call: &'a CallExpr, index: usize, fn_name: &str) -
 ///
 /// `#[track_caller]` so the position a refusal reports stays the producer's
 /// call site. Without it all seven would name this file.
+///
+/// [`folded_style_object`] is this answer wrapped back up as the value the rest
+/// of the compiler passes around. One question, two spellings of the answer, so
+/// a caller of either needs no refusal of its own: a caller that walks the
+/// properties asks here and gets the object itself.
 #[track_caller]
-pub(crate) fn folded_style_object(
+pub(crate) fn folded_style_object_lit(
   evaluated: Box<EvaluateResult>,
   call: &CallExpr,
   argument: &Expr,
   fn_name: &str,
   state: &mut StateManager,
-) -> EvaluateResultValue {
+) -> ObjectLit {
   // Two fields off the box rather than the whole of it: the other three are
   // never read here, and unboxing the struct would copy them onto the stack on
   // the path that compiles.
@@ -144,7 +149,7 @@ pub(crate) fn folded_style_object(
     )
   };
 
-  if !value.as_expr().is_some_and(Expr::is_object) {
+  let EvaluateResultValue::Expr(Expr::Object(object)) = value else {
     stylex_panic!(
       "{}",
       build_code_frame_error(
@@ -154,9 +159,27 @@ pub(crate) fn folded_style_object(
         state,
       )
     )
-  }
+  };
 
-  value
+  object
+}
+
+/// The style object a producer's argument folded to, as the value the rest of
+/// the compiler passes around.
+///
+/// [`folded_style_object_lit`] answers the same question and reads the object
+/// itself; this is that answer wrapped back up.
+#[track_caller]
+pub(crate) fn folded_style_object(
+  evaluated: Box<EvaluateResult>,
+  call: &CallExpr,
+  argument: &Expr,
+  fn_name: &str,
+  state: &mut StateManager,
+) -> EvaluateResultValue {
+  EvaluateResultValue::Expr(Expr::Object(folded_style_object_lit(
+    evaluated, call, argument, fn_name, state,
+  )))
 }
 
 /// `read`, or the refusal an argument list too short is reported with.

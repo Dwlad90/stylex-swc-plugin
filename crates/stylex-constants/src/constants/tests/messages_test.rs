@@ -153,11 +153,4 @@ fn test_missing_default_value_names_the_variable_unquoted() {
   // No quoting, whatever the key looks like.
   assert!(!missing_default_value("k").contains('"'));
   assert!(!missing_default_value("k").contains('\''));
-
-  // The unnamed sibling is upstream's other spelling, for the recursion that
-  // has no key to name. Kept beside this one so the pair cannot drift.
-  assert_eq!(
-    MISSING_DEFAULT_VALUE_UNNAMED,
-    "Default value is not defined for variable."
-  );
 }

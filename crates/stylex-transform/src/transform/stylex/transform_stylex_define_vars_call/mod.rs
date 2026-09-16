@@ -24,7 +24,8 @@ use crate::{
     utils::{
       core::js_to_ast::convert_values_to_ast,
       validators::{
-        argument_at, find_and_validate_stylex_define_vars, folded_style_object, is_define_vars_call,
+        argument_at, find_and_validate_stylex_define_vars, folded_style_object_lit,
+        is_define_vars_call,
       },
     },
   },
@@ -32,6 +33,7 @@ use crate::{
 };
 use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
+  evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   state_manager::ImportKind,
   theme_ref::ThemeRef,
@@ -40,7 +42,8 @@ use stylex_state::{
 use stylex_structures::top_level_expression::TopLevelExpression;
 
 use self::helpers::{
-  assert_no_define_vars_cycles, collect_keys_and_dependencies, normalize_define_vars_functions,
+  VariableGroup, assert_no_define_vars_cycles, collect_dependencies,
+  normalize_define_vars_functions,
 };
 
 impl<C> StyleXTransform<C>
@@ -166,7 +169,7 @@ where
 
       let evaluated_arg = evaluate(first_arg, &mut self.state, &function_map);
 
-      let value = folded_style_object(
+      let folded = folded_style_object_lit(
         evaluated_arg,
         call,
         first_arg,
@@ -174,22 +177,25 @@ where
         &mut self.state,
       );
 
-      // Static analysis: validate arrow function values and build the dependency
-      // graph so cycles and unknown references can be caught before normalization.
-      // We run this on the *evaluated* object literal so that all statically
-      // resolvable forms — inline object literals, identifier-bound constants
-      // (`defineVars(tokens)`), object spreads, computed keys — go through the
-      // same cycle/unknown-ref checks. A single fused pass collects the
-      // top-level keys and arrow dependencies, and the Visit-based collector
-      // ensures all expression kinds are covered.
-      if let Some(value_expr) = value.as_expr() {
-        let (_all_keys, dependency_map) = collect_keys_and_dependencies(value_expr, &export_name);
-        assert_no_define_vars_cycles(&dependency_map);
-      }
+      // The variables are read out of the *evaluated* object, so every
+      // statically resolvable form — an inline object literal, an
+      // identifier-bound constant (`defineVars(tokens)`), an object spread, a
+      // computed key — reaches the checks below in the same shape.
+      let group = VariableGroup::read(&folded);
 
-      // Normalize: evaluate zero-param arrow function values in the defineVars object.
-      let value =
-        normalize_define_vars_functions(value, &mut self.state, &function_map, call, first_arg);
+      // Cycles and references to a name the group does not declare are caught
+      // before any function value is folded.
+      assert_no_define_vars_cycles(&collect_dependencies(&group, &export_name));
+
+      // Zero-argument function values are replaced by what their bodies fold
+      // to. A group that holds none is passed on as it was read.
+      let normalized =
+        normalize_define_vars_functions(&group, &mut self.state, &function_map, call, first_arg);
+
+      let value = match normalized {
+        Some(value) => value,
+        None => EvaluateResultValue::Expr(Expr::Object(folded)),
+      };
 
       let (variables_obj, injected_styles_sans_keyframes) =
         stylex_define_vars(&value, &mut self.state);

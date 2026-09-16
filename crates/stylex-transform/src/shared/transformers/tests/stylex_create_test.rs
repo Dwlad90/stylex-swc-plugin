@@ -1263,4 +1263,35 @@ mod stylex_create {
     );
     assert!(injected_styles.is_empty());
   }
+
+  /// Every namespace that is compiled gets a class-paths entry.
+  ///
+  /// The rewrite of the dynamic entries reads the paths of the namespace it
+  /// rewrites. It answers the empty map for a name it holds no entry for, and
+  /// no reader reaches that answer, because the two maps are written in one
+  /// pass over the same names. The parity is read here, so the day the two come
+  /// apart is the day this fails.
+  #[test]
+  fn answers_class_paths_for_every_namespace_it_compiles() {
+    // Two namespaces, and one of them declares nothing.
+    let object = style_object_factory(&[
+      ("declares", &[("color", "blue")]),
+      ("declares_nothing", &[]),
+    ]);
+
+    let (resolved_namespaces, _, class_paths_in_namespace) = stylex_create(object);
+
+    assert_eq!(
+      resolved_namespaces.len(),
+      2,
+      "both namespaces are compiled, so the check below is not empty"
+    );
+
+    for namespace in resolved_namespaces.keys() {
+      assert!(
+        class_paths_in_namespace.contains_key(namespace),
+        "the namespace {namespace} was compiled with no class-paths entry"
+      );
+    }
+  }
 }

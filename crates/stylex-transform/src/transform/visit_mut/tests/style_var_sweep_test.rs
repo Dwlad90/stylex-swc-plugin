@@ -253,6 +253,44 @@ fn a_kept_namespace_with_nothing_recorded_loses_every_null() {
   });
 }
 
+/// An entry recorded against another declaration, and one that names the whole
+/// style variable rather than a namespace of it, are both passed over.
+///
+/// The sweep reads one declaration at a time out of a list that holds every
+/// entry in the module, so the two entries it has no reading for must leave
+/// the namespace it is sweeping untouched.
+#[test]
+fn an_entry_for_another_declaration_or_the_whole_variable_is_passed_over() {
+  GLOBALS.set(&Globals::default(), || {
+    let mut transform = transform();
+    let var_id = declaration_id();
+
+    // The whole style variable is read, which says nothing about which
+    // namespace keeps which declaration.
+    transform.state.style_vars_to_keep.insert(StyleVarsToKeep(
+      var_id.clone(),
+      NonNullProp::True,
+      NonNullProps::Vec(vec![Atom::from("color")]),
+    ));
+
+    // An entry of another declaration, naming the same namespace.
+    transform.state.style_vars_to_keep.insert(StyleVarsToKeep(
+      create_ident("other").to_id(),
+      NonNullProp::Atom(Atom::from("base")),
+      NonNullProps::Vec(vec![Atom::from("color")]),
+    ));
+
+    let mut object = object_of(vec![namespace_of("base", &["color", "margin"])]);
+
+    let swept = transform.retain_object_props(&mut object, &namespaces_to_keep(&["base"]), &var_id);
+
+    assert!(
+      namespace_declarations(&swept, 0).is_empty(),
+      "neither entry records a name against this namespace, so every null goes"
+    );
+  });
+}
+
 /// A prop the sweep cannot name leaves the whole object as it is, rather than
 /// dropping the namespaces beside it that it could name.
 #[test]

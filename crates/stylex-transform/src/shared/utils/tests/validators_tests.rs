@@ -1,54 +1,17 @@
 //! Tests for the refusals the compiler makes before it reads a StyleX call.
 
 use stylex_state::{evaluate_result_value::EvaluateResultValue, state_manager::StateManager};
-use swc_core::ecma::ast::{CallExpr, Expr};
 
 use super::{
   assert_valid_keyframes, assert_valid_position_try, assert_valid_properties,
-  assert_valid_view_transition_class, contains_call, is_bound_create_expr,
-  validate_conditional_styles, validate_theme_variables,
+  assert_valid_view_transition_class, validate_conditional_styles, validate_theme_variables,
 };
 use crate::shared::enums::data_structures::theme_vars::ThemeVars;
-use crate::tests::support::{expr, ts_expr};
+use crate::tests::support::expr;
 
 /// The folded value `code` spells, as the evaluator would hand it over.
 fn folded(code: &str) -> EvaluateResultValue {
   EvaluateResultValue::Expr(expr(code))
-}
-
-/// The call `code` spells, and the expression it was read out of.
-///
-/// Read as TypeScript, because one of the shapes a call is reached through --
-/// a non-null assertion -- is spelled only there.
-fn call_of(code: &str) -> (Expr, CallExpr) {
-  let parsed = ts_expr(code);
-
-  let call = match find_call(&parsed) {
-    Some(call) => call.clone(),
-    None => panic!("the fixture {code} holds no call"),
-  };
-
-  (parsed, call)
-}
-
-fn find_call(expr: &Expr) -> Option<&CallExpr> {
-  match expr {
-    Expr::Call(call) => Some(call),
-    Expr::Member(member) => find_call(&member.obj),
-    Expr::Array(array) => array
-      .elems
-      .iter()
-      .flatten()
-      .find_map(|element| find_call(&element.expr)),
-    Expr::TsNonNull(inner) => find_call(&inner.expr),
-    Expr::Paren(paren) => find_call(&paren.expr),
-    Expr::OptChain(chain) => match chain.base.as_ref() {
-      swc_core::ecma::ast::OptChainBase::Member(member) => find_call(&member.obj),
-      swc_core::ecma::ast::OptChainBase::Call(call) => find_call(&call.callee),
-    },
-    Expr::Seq(seq) => seq.exprs.iter().find_map(|expr| find_call(expr)),
-    _ => None,
-  }
 }
 
 #[test]
@@ -148,104 +111,6 @@ fn checks_no_key_of_a_value_that_names_none() {
     "only top",
     &mut StateManager::default(),
   );
-}
-
-/// A call bound to a variable is bound however the author reached it: through a
-/// namespace, through an optional read, through a non-null assertion, or from
-/// inside an array of styles.
-#[test]
-fn reads_a_call_through_the_shapes_that_reach_it() {
-  for code in [
-    "create({}).root",
-    "create({})?.root",
-    "create({})!.root",
-    "create({}).root.nested",
-    "create({})?.root.nested",
-    "create({})?.root?.nested",
-  ] {
-    let (expression, call) = call_of(code);
-
-    assert!(
-      is_bound_create_expr(&expression, &call),
-      "{code} was not read as a bound call"
-    );
-  }
-
-  let (expression, call) = call_of("[create({})]");
-
-  assert!(is_bound_create_expr(&expression, &call));
-}
-
-/// An optional call is a call of its own, not a read on the one inside it.
-#[test]
-fn reads_no_call_through_the_shapes_that_do_not_bind_one() {
-  for code in [
-    "create({})",
-    "create({})?.()",
-    "(create({}) , 1)",
-    "create({}), styles.root",
-    "create({}), makeStyles?.().root",
-  ] {
-    let (expression, call) = call_of(code);
-
-    assert!(
-      !is_bound_create_expr(&expression, &call),
-      "{code} was read as a bound call"
-    );
-  }
-}
-
-/// A read on some other call is not a read on this one, whichever way that
-/// other call is written.
-///
-/// The expressions here stand beside the call rather than holding it, which is
-/// what the module-level reader hands this predicate: every top-level
-/// expression of the file is offered for one call. The case above asks about a
-/// call each expression holds, so the two cannot share a fixture even where
-/// they spell the same chain.
-#[test]
-fn reads_no_call_through_a_chain_rooted_elsewhere() {
-  let (_, call) = call_of("create({}).root");
-
-  for code in [
-    // An optional call of another expression: a call of its own, and not the
-    // one asked about.
-    "makeStyles?.().root",
-    // A name: the chain ends at something that is no call at all.
-    "styles.root",
-  ] {
-    assert!(
-      !is_bound_create_expr(&ts_expr(code), &call),
-      "{code} was read as a bound call"
-    );
-  }
-}
-
-/// Identity is the place the call was written, not its shape. Two calls that
-/// read the same are two calls, and only the one that is there is found.
-#[test]
-fn tells_two_calls_that_read_the_same_apart() {
-  let pair = expr("[create({}).root, create({}).root]");
-
-  let elements = match &pair {
-    Expr::Array(array) => &array.elems,
-    other => panic!("the fixture is not an array: {other:?}"),
-  };
-
-  let first = match elements.first().and_then(Option::as_ref) {
-    Some(element) => match find_call(&element.expr) {
-      Some(call) => call.clone(),
-      None => panic!("the first element holds no call"),
-    },
-    None => panic!("the fixture holds no first element"),
-  };
-
-  let second = match elements.get(1).and_then(Option::as_ref) {
-    Some(element) => (*element.expr).clone(),
-    None => panic!("the fixture holds no second element"),
-  };
-
-  assert!(!contains_call(&second, &first));
 }
 
 /// The first property of the object `code` spells.

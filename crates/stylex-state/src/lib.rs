@@ -17,6 +17,7 @@
 //! both the visitor and the evaluator above ask. Nothing here knows how a value
 //! is *evaluated*: that is a crate above.
 
+pub mod call_positions;
 pub mod evaluate_result_value;
 pub mod flat_compiled_styles_value;
 pub mod functions;

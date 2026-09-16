@@ -4,8 +4,8 @@ use stylex_structures::top_level_expression::TopLevelExpression;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{
-    ArrayLit, ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, OptChainBase, Pat,
-    PropOrSpread, VarDeclarator,
+    ArrayLit, ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, Pat, PropOrSpread,
+    VarDeclarator,
   },
 };
 
@@ -28,7 +28,8 @@ use stylex_constants::constants::{
     INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
     NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
     ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED, illegal_argument_length,
-    non_export_named_declaration, non_static_value, non_style_object, unbound_call_value,
+    non_export_named_declaration, non_static_value, non_style_object, type_asserted_call_value,
+    unbound_call_value,
   },
 };
 use stylex_css::utils::condition::is_conditional_key;
@@ -281,83 +282,31 @@ macro_rules! stylex_var_decl_call_predicate {
   };
 }
 
-/// Returns `true` when `expr` *is* `call`, or is a member chain rooted at it
-/// (`stylex.create({...}).root`, `stylex.create({...})["root"]`).
-///
-/// Identity is the span, not the structure: two distinct `stylex.create()` call
-/// sites with identical arguments are `eq_ignore_span`-equal, so a structural
-/// comparison would let a genuinely unbound call borrow an unrelated twin's
-/// binding and silently skip validation.
-fn contains_call(expr: &Expr, call: &CallExpr) -> bool {
-  match strip_transparent_wrappers(expr) {
-    Expr::Call(candidate) => candidate.span == call.span,
-    Expr::Member(member) => contains_call(&member.obj, call),
-    Expr::OptChain(opt_chain) => match opt_chain.base.as_ref() {
-      OptChainBase::Member(member) => contains_call(&member.obj, call),
-      OptChainBase::Call(_) => false,
-    },
-    _ => false,
-  }
-}
-
-/// Strips wrappers that neither change the value being accessed nor require
-/// parentheses to be member-accessed: `(stylex.create({...})).root` and
-/// `stylex.create({...})!.root` reach the very same object as
-/// `stylex.create({...}).root`, so binding analysis must see through them.
-///
-/// Type assertions (`as`, `satisfies`, `<T>`, `as const`) are deliberately *not*
-/// stripped. They can only be member-accessed through parentheses, and the
-/// emitter drops that grouping — `(x as any).root` is printed as
-/// `x as any.root`, which re-parses as `x as (any.root)`. Accepting that shape
-/// here would turn a clear "must be bound to a bare variable" diagnostic into
-/// silently invalid output.
-fn strip_transparent_wrappers(expr: &Expr) -> &Expr {
-  match normalize_expr(expr) {
-    Expr::TsNonNull(inner) => strip_transparent_wrappers(&inner.expr),
-    other => other,
-  }
-}
-
-/// Returns `true` when the top-level expression `expr` binds `call`.
-///
-/// Two shapes count as bound beyond a plain variable declarator (which
-/// [`StateManager::find_call_declaration`] handles):
-/// - an array literal holding the call — `[stylex.create({...}), ...]`;
-/// - a direct member access on the call — `stylex.create({...}).root`.
-///
-/// The array case is decided by span containment, **not** by walking `elems`.
-/// A single top-level array holding every style in a module is an idiomatic
-/// StyleX shape (`export const lotsOfStyles = [stylex.create({...}), ...]`), and
-/// this predicate runs once per `stylex.create()` call — scanning the elements
-/// would make validation quadratic in the number of styles in that array.
-/// Containment is O(1) and still rejects a call that merely coexists with an
-/// unrelated array, which a bare `matches!(_, Expr::Array(_))` would accept.
-fn is_bound_create_expr(expr: &Expr, call: &CallExpr) -> bool {
-  match strip_transparent_wrappers(expr) {
-    Expr::Array(array) => array.span.contains(call.span),
-    Expr::Member(member) => contains_call(&member.obj, call),
-    Expr::OptChain(opt_chain) => match opt_chain.base.as_ref() {
-      OptChainBase::Member(member) => contains_call(&member.obj, call),
-      OptChainBase::Call(_) => false,
-    },
-    _ => false,
-  }
-}
-
 /// Refuses a `stylex.create` call the compiler cannot read.
 ///
 /// Every caller asks `is_create_call` before it calls this, so the call is one.
 pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) {
-  // `Expr::Call(call.clone())` deep-clones the whole style object, so it is
-  // built lazily — only on the paths that are about to panic anyway.
-  if state.find_call_declaration(call).is_none()
-    && !state.has_top_level_expr(call, |tpe: &TopLevelExpression| {
-      is_bound_create_expr(&tpe.1, call)
-    })
-  {
+  // Nothing reads what the call answers, so the styles it compiles have nowhere
+  // to go. Every other position holds the result, and the transform either
+  // leaves it where it was written or hoists it to a declaration above.
+  if state.is_bare_call_statement(call) {
+    // `Expr::Call(call.clone())` deep-clones the whole style object, so it is
+    // built lazily — only on the paths that are about to panic anyway.
     build_code_frame_error_and_panic_at(
       &Expr::Call(call.clone()),
       &unbound_call_value(STYLEX_CREATE),
+      state,
+    );
+  }
+
+  // The one position this compiler refuses and the reference implementation
+  // compiles, because the printer cannot write it back. See
+  // `type_asserted_call_value`. The shipped compiler strips every type before
+  // this pass, so no build reaches it.
+  if state.is_type_asserted_call(call) {
+    build_code_frame_error_and_panic_at(
+      &Expr::Call(call.clone()),
+      &type_asserted_call_value(STYLEX_CREATE),
       state,
     );
   }

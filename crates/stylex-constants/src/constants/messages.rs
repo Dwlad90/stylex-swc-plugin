@@ -45,6 +45,20 @@ pub fn unbound_call_value(fn_name: &str) -> String {
   format!("{}() calls must be bound to a bare variable.", fn_name)
 }
 
+/// A message this compiler has and the reference implementation does not.
+///
+/// The reference implementation reads TypeScript with a parser that keeps the
+/// brackets around an assertion. This printer drops them, so
+/// `(create({…}) as Styles).root` would come back as `create() as Styles.root`,
+/// which reads as an assertion to `Styles.root`. A refusal says so; the printed
+/// module cannot.
+pub fn type_asserted_call_value(fn_name: &str) -> String {
+  format!(
+    "{}() cannot be written inside a type assertion. Bind the call to a variable and assert the variable.",
+    fn_name
+  )
+}
+
 pub fn export_variable_not_found(fn_name: &str) -> String {
   format!(
     "{}(): The export variable could not be found. Ensure the call is bound to a named export.",

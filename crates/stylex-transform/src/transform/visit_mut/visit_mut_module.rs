@@ -1,5 +1,5 @@
 use stylex_ast::ast::convertors::convert_atom_to_string;
-use stylex_state::state_writers::fill_top_level_expressions;
+use stylex_state::state_writers::{fill_call_positions, fill_top_level_expressions};
 use swc_core::{
   common::{BytePos, Span, comments::Comments},
   ecma::{
@@ -790,6 +790,7 @@ where
 
     if self.state.has_import_paths() {
       fill_top_level_expressions(module, &mut self.state);
+      fill_call_positions(module, &mut self.state);
     }
   }
 

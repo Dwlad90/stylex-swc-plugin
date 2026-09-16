@@ -1,7 +1,10 @@
 import * as stylex from "@stylexjs/stylex";
-export const root = {
+const _styles = {
     root: {
         k1xSpc: "x78zum5",
         $$css: true
     }
-}?.root;
+};
+export function makeStyles() {
+    return _styles;
+}

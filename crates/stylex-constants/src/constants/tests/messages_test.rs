@@ -71,6 +71,14 @@ fn test_unbound_call_value() {
 }
 
 #[test]
+fn test_type_asserted_call_value() {
+  assert_eq!(
+    type_asserted_call_value("create"),
+    "create() cannot be written inside a type assertion. Bind the call to a variable and assert the variable."
+  );
+}
+
+#[test]
 fn test_export_variable_not_found() {
   assert_eq!(
     export_variable_not_found("defineVars"),

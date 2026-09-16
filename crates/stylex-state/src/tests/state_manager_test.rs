@@ -12,6 +12,9 @@ mod state_manager {
     },
   };
 
+  use std::rc::Rc;
+
+  use crate::call_positions::{CallPositions, Position};
   use crate::state_manager::{InsertionSlot, StateManager, flush_pending_insertions};
   use crate::tests::prelude::{
     ident, ident_at, make_var_declarator, make_var_declarator_no_init, string_expr,
@@ -997,97 +1000,60 @@ mod state_manager {
       Some("lotsOfStyles".into()),
     ));
 
-    // The entry *is* the array, not the call inside it -- which is the whole
-    // reason `has_top_level_expr` takes a predicate for the shapes that hold a
-    // call without being one.
+    // The entry *is* the array, not the call inside it. Where the call stands
+    // is answered by its position, not by the entry it sits in.
     assert!(state.find_top_level_expr(&call).is_none());
-    assert!(state.has_top_level_expr(&call, |tpe| matches!(tpe.1, Expr::Array(_))));
-    assert!(!state.has_top_level_expr(&call, |_| false));
   }
 
-  /// The arrays a module records have to follow the list they come from, in
-  /// both directions -- including the case where the last one is rewritten into
-  /// something else.
+  /// A record holding `span` in every position there is.
+  fn positions_holding(span: Span) -> CallPositions {
+    let mut positions = CallPositions::default();
+
+    for position in [
+      Position::ProgramLevel,
+      Position::BareStatement,
+      Position::TypeAsserted,
+    ] {
+      positions.record(span, position);
+    }
+
+    positions
+  }
+
+  /// A call the walk recorded is answered by its own position, and a call
+  /// beside it is not. Two calls that read the same are two calls.
   #[test]
-  fn the_top_level_arrays_follow_the_list_they_come_from() {
+  fn a_call_position_answers_for_that_call_alone() {
     let mut state = StateManager::default();
 
-    let held = call_of_at("create", "held", span_at(12, 30));
-    let outside = call_of_at("create", "outside", span_at(90, 99));
-    let array = |span| {
-      Expr::Array(ArrayLit {
-        span,
-        elems: vec![Some(ExprOrSpread {
-          spread: None,
-          expr: Box::new(Expr::Call(held.clone())),
-        })],
-      })
-    };
+    let recorded = call_of_at("create", "styles", span_at(12, 30));
+    let beside = call_of_at("create", "styles", span_at(90, 99));
 
-    assert!(!state.holds_call_in_top_level_array(&held));
+    state.call_positions = Rc::new(positions_holding(recorded.span));
 
-    state.push_top_level_expression(TopLevelExpression(
-      TopLevelExpressionKind::Stmt,
-      Expr::Call(held.clone()),
-      Some("styles".into()),
-    ));
+    assert!(state.is_program_level_call(&recorded));
+    assert!(state.is_bare_call_statement(&recorded));
+    assert!(state.is_type_asserted_call(&recorded));
 
-    // A call is not an array, whatever it holds.
-    assert!(!state.holds_call_in_top_level_array(&held));
-
-    state.push_top_level_expression(TopLevelExpression(
-      TopLevelExpressionKind::Stmt,
-      array(span_at(10, 40)),
-      Some("lotsOfStyles".into()),
-    ));
-
-    assert!(state.holds_call_in_top_level_array(&held));
-    // A call the array does not hold answers no, however many arrays the module
-    // writes. That is the whole of what containment decides.
-    assert!(!state.holds_call_in_top_level_array(&outside));
-
-    // A second array over the same call, so the answer has something to come
-    // back to.
-    state.push_top_level_expression(TopLevelExpression(
-      TopLevelExpressionKind::Stmt,
-      array(span_at(50, 80)),
-      Some("moreStyles".into()),
-    ));
-
-    state.set_top_level_expr(1, string_expr("no longer an array"));
-    // The second array does not hold the call, so nothing does.
-    assert!(!state.holds_call_in_top_level_array(&held));
-
-    state.set_top_level_expr(2, array(span_at(10, 40)));
-    assert!(state.holds_call_in_top_level_array(&held));
-
-    state.set_top_level_expr(2, string_expr("nor is this"));
-    assert!(!state.holds_call_in_top_level_array(&held));
-
-    // And a replacement out of range records nothing.
-    state.set_top_level_expr(99, array(span_at(10, 40)));
-    assert!(!state.holds_call_in_top_level_array(&held));
+    assert!(!state.is_program_level_call(&beside));
+    assert!(!state.is_bare_call_statement(&beside));
+    assert!(!state.is_type_asserted_call(&beside));
   }
 
-  /// A synthesized call was written nowhere, so no recorded array can hold it.
-  /// A dummy span reads as position zero, which an array starting at zero would
-  /// otherwise contain.
+  /// A synthesized call was written nowhere. A dummy span reads as position
+  /// zero, which a recorded position starting at zero would otherwise answer
+  /// for.
   #[test]
-  fn a_span_less_call_is_held_by_no_top_level_array() {
+  fn a_span_less_call_stands_in_no_position() {
     let mut state = StateManager::default();
 
     let synthesized = call_of("create", "styles");
 
-    state.push_top_level_expression(TopLevelExpression(
-      TopLevelExpressionKind::Stmt,
-      Expr::Array(ArrayLit {
-        span: span_at(0, 40),
-        elems: vec![],
-      }),
-      Some("lotsOfStyles".into()),
-    ));
+    state.call_positions = Rc::new(positions_holding(synthesized.span));
 
-    assert!(!state.holds_call_in_top_level_array(&synthesized));
+    assert!(!state.is_program_level_call(&synthesized));
+    assert!(!state.is_bare_call_statement(&synthesized));
+    assert!(!state.is_type_asserted_call(&synthesized));
   }
 
   /// A bucket a lookup can stop early in is one nothing has moved. Rewriting an
@@ -1121,21 +1087,6 @@ mod state_manager {
         .map(Atom::as_str),
       Some("first")
     );
-  }
-
-  #[test]
-  fn has_top_level_expr_answers_from_the_index_before_the_predicate() {
-    let mut state = StateManager::default();
-
-    let call = call_of("create", "styles");
-
-    state.push_top_level_expression(TopLevelExpression(
-      TopLevelExpressionKind::Stmt,
-      Expr::Call(call.clone()),
-      Some("styles".into()),
-    ));
-
-    assert!(state.has_top_level_expr(&call, |_| panic!("the predicate must not be reached")));
   }
 
   #[test]

@@ -22,14 +22,6 @@ pub(crate) fn module(code: &str) -> Module {
   module_in(code, Syntax::Es(EsSyntax::default()))
 }
 
-/// The module `code` spells, read as TypeScript.
-///
-/// A second reader because the two syntaxes disagree: `x!` is a non-null
-/// assertion in one and a parse error in the other.
-pub(crate) fn ts_module(code: &str) -> Module {
-  module_in(code, Syntax::Typescript(Default::default()))
-}
-
 fn module_in(code: &str, syntax: Syntax) -> Module {
   let source_map = SourceMap::default();
   let source_file = source_map.new_source_file(
@@ -57,11 +49,6 @@ fn module_in(code: &str, syntax: Syntax) -> Module {
 /// off again.
 pub(crate) fn expr(code: &str) -> Expr {
   expr_of(module(&format!("({code});")), code)
-}
-
-/// The same, read as TypeScript.
-pub(crate) fn ts_expr(code: &str) -> Expr {
-  expr_of(ts_module(&format!("({code});")), code)
 }
 
 fn expr_of(module: Module, code: &str) -> Expr {

@@ -21,6 +21,7 @@ use swc_core::{
   },
 };
 
+use crate::call_positions::{CallPositions, Position};
 use crate::types::{FlatCompiledStyles, InjectableStylesMap};
 use stylex_ast::ast::convertors::create_number_expr;
 use stylex_ast::ast::convertors::{init_call, normalize_expr};
@@ -816,30 +817,11 @@ pub struct StateManager {
   /// the second where the walk this replaces found it.
   /// Shared rather than copied -- see [`Self::declaration_call_index`].
   top_level_name_index: Rc<CandidateIndex<Atom, usize>>,
-  /// Where each entry of [`Self::top_level_expressions`] that is an array
-  /// literal was written.
+  /// Where each call in the module is written, filled by `fill_call_positions`
+  /// and read through the three predicates below.
   ///
-  /// The whole of what [`Self::holds_call_in_top_level_array`] needs. A module
-  /// writes a handful of top-level arrays and can write thousands of calls, so
-  /// asking the arrays is not the walk of every top-level expression that
-  /// question used to cost, once per `stylex.create`.
-  ///
-  /// Spans rather than the expressions, because the question is whether a call
-  /// sits *inside* one, and a span answers that by containment -- the same O(1)
-  /// test `is_bound_create_expr` uses, and for the same reason: a single
-  /// top-level array holding every style in a module is an idiomatic shape, so
-  /// walking its elements would be quadratic in the styles it holds.
-  ///
-  /// A list rather than a count, because [`Self::set_top_level_expr`] can
-  /// replace an array with something else, and because a count cannot say which
-  /// call an array holds.
-  top_level_array_spans: Vec<Span>,
-  /// Spans of the calls that initialise a top-level declarator bound to a
-  /// pattern rather than a name — `export const { foo } = stylex.create(…);`.
-  /// [`Self::top_level_expressions`] is keyed by the exported name and so has
-  /// no entry for them, but they are still program level, and a transform that
-  /// hoists its result out of a nested position must not hoist here.
-  pub pattern_bound_top_level_calls: FxHashSet<Span>,
+  /// Shared rather than copied -- see [`Self::declaration_call_index`].
+  pub(crate) call_positions: Rc<CallPositions>,
   pub(crate) call_expressions: CallExpressionState,
   pub seen: FxHashMap<u128, Rc<SeenValue>>,
   /// How many expression levels the evaluator is currently inside.
@@ -1040,8 +1022,7 @@ impl StateManager {
       top_level_expressions: vec![],
       top_level_call_index: Rc::default(),
       top_level_name_index: Rc::default(),
-      top_level_array_spans: vec![],
-      pattern_bound_top_level_calls: FxHashSet::default(),
+      call_positions: Rc::new(CallPositions::default()),
       call_expressions: CallExpressionState::default(),
       jsx_spread_attr_exprs_map: FxHashMap::default(),
 
@@ -1355,19 +1336,6 @@ impl StateManager {
       .and_then(|import| import.specifiers.get(specifier))
   }
 
-  /// The span of the array literal `expr` is, or `None` where it is not one.
-  ///
-  /// The array is read through its parentheses, and one reading serves the
-  /// index and the walk that checks it: `([stylex.create(…)])` and
-  /// `[stylex.create(…)]` record the same span, which is how
-  /// `is_bound_create_expr` already reads the shape.
-  fn array_span_of(expr: &Expr) -> Option<Span> {
-    match normalize_expr(expr) {
-      Expr::Array(array) => Some(array.span),
-      _ => None,
-    }
-  }
-
   /// Appends a top-level expression and records the call it is, if it is one.
   ///
   /// Every caller that grows [`Self::top_level_expressions`] goes through here,
@@ -1381,10 +1349,6 @@ impl StateManager {
 
     if let Some(name) = &expression.2 {
       Rc::make_mut(&mut self.top_level_name_index).record(name.clone(), position);
-    }
-
-    if let Some(span) = Self::array_span_of(&expression.1) {
-      self.top_level_array_spans.push(span);
     }
 
     self.top_level_expressions.push(expression);
@@ -1401,24 +1365,6 @@ impl StateManager {
     // its initializer before it.
     let recorded = call_key_of_expr(&expr);
     let replaced = std::mem::replace(&mut entry.1, expr);
-    // Read while the entry is still borrowed, because the list below is a field
-    // of the same state manager.
-    let records_array = Self::array_span_of(&entry.1);
-
-    // An entry that stops being an array leaves the list, which is what keeps
-    // [`Self::holds_call_in_top_level_array`] the answer the walk gave.
-    if let Some(span) = Self::array_span_of(&replaced)
-      && let Some(position) = self
-        .top_level_array_spans
-        .iter()
-        .position(|recorded| *recorded == span)
-    {
-      self.top_level_array_spans.remove(position);
-    }
-
-    if let Some(span) = records_array {
-      self.top_level_array_spans.push(span);
-    }
 
     // The name an entry binds does not change with its expression, so only the
     // call index needs repairing here.
@@ -2235,57 +2181,27 @@ impl StateManager {
       .then_some((name, init))
   }
 
-  /// Whether the module records `call` at program level, either as a top-level
-  /// expression of its own or inside one that `binds_call` recognises.
+  /// Whether `call` is written at program level -- inside a statement of the
+  /// module itself, with no function and no second statement around it.
   ///
-  /// The two are asked together because the answer is a yes or a no rather than
-  /// an entry: `binds_call` covers the shapes that *hold* a call without being
-  /// it -- an array literal of styles, a member access on the call -- and no
-  /// key can find those, so they stay a walk. It is a cheap one, and it only
-  /// runs when the indexed lookup has already missed.
-  pub fn has_top_level_expr(
-    &self,
-    call: &CallExpr,
-    binds_call: impl Fn(&TopLevelExpression) -> bool,
-  ) -> bool {
-    self.find_top_level_expr(call).is_some() || self.top_level_expressions.iter().any(binds_call)
+  /// This is what decides whether the compiled styles stay where the call was
+  /// written or are hoisted to a declaration of their own above the statement
+  /// that holds them.
+  pub fn is_program_level_call(&self, call: &CallExpr) -> bool {
+    self.call_positions.holds(call.span, Position::ProgramLevel)
   }
 
-  /// Whether a recorded top-level array literal holds `call`.
-  ///
-  /// The shape a name cannot find: `export const styles = [stylex.create(…)];`
-  /// writes the call at program level, and the recorded entry is the array
-  /// rather than the call, so no key answers for it.
-  ///
-  /// Containment decides, not the mere presence of an array. A call written
-  /// inside a function is not at program level because the module also holds an
-  /// array somewhere else, and `is_bound_create_expr` reads the same shape the
-  /// same way.
-  ///
-  /// A span-less call is held by nothing. Such a call is synthesized rather than
-  /// parsed, so no recorded array can be where it was written, and a dummy span
-  /// would otherwise be read as position zero.
-  pub fn holds_call_in_top_level_array(&self, call: &CallExpr) -> bool {
-    if call.span.is_dummy() {
-      return false;
-    }
+  /// Whether `call` is a whole expression statement -- `stylex.create({…});`
+  /// with nothing reading what it answers.
+  pub fn is_bare_call_statement(&self, call: &CallExpr) -> bool {
+    self
+      .call_positions
+      .holds(call.span, Position::BareStatement)
+  }
 
-    let found = self
-      .top_level_array_spans
-      .iter()
-      .any(|array| array.contains(call.span));
-
-    debug_assert_eq!(
-      found,
-      self.top_level_expressions.iter().any(|recorded| {
-        Self::array_span_of(&recorded.1).is_some_and(|array| array.contains(call.span))
-      }),
-      "`top_level_array_spans` disagrees with `top_level_expressions`; something \
-       changed the list without going through `push_top_level_expression` or \
-       `set_top_level_expr`"
-    );
-
-    found
+  /// Whether a type assertion wraps `call` -- `stylex.create({…}) as Styles`.
+  pub fn is_type_asserted_call(&self, call: &CallExpr) -> bool {
+    self.call_positions.holds(call.span, Position::TypeAsserted)
   }
 
   /// Find the top level expression recorded from *this* call node, matched by

@@ -185,25 +185,11 @@ where
     let result = if is_create_call {
       validate_stylex_create(call, &mut self.state);
 
-      // A call bound to a top-level pattern — `export const { foo } =
-      // stylex.create(…);` — is program level too, and the recorded top-level
-      // expressions, keyed by the name a pattern does not give, cannot say so.
-      //
-      // Asked first: it is a hash lookup on two integers, where
-      // `find_top_level_expr` compares this call against every recorded one
-      // with `eq_ignore_span` — a deep walk of the whole style object.
-      //
-      // A call inside a top-level array is program level too, and the entry
-      // recorded for it is the array. Asked of the arrays alone rather than of
-      // every recorded expression, and answered by containment: a call written
-      // inside a function is not at program level because the module holds an
-      // array elsewhere.
-      let is_program_level = self
-        .state
-        .pattern_bound_top_level_calls
-        .contains(&call.span)
-        || self.state.find_top_level_expr(call).is_some()
-        || self.state.holds_call_in_top_level_array(call);
+      // Where the call was written, read from the positions the discovery pass
+      // recorded. A bare declarator, a pattern, a top-level array and an object
+      // literal are one question here, because the position of the call answers
+      // all of them.
+      let is_program_level = self.state.is_program_level_call(call);
 
       // The only producer that rewrites its argument, so the only one that
       // needs a copy of it.

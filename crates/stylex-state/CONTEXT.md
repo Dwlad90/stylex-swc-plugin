@@ -29,9 +29,28 @@ _Avoid_: context, session, environment, state
 
 **State writer**:
 A `fill_*` function that records what the visitors walked into the state manager
-and answers nothing — `fill_top_level_expressions`, `fill_state_declarations`.
-Nothing a writer records is a decision about what a declaration _means_.
+and answers nothing — `fill_top_level_expressions`, `fill_state_declarations`,
+`fill_call_positions`. Nothing a writer records is a decision about what a
+declaration _means_.
 _Avoid_: collector, populate, scan
+
+**Call position**:
+Where a call is written, which an SWC visitor cannot ask because it carries no
+parent. `fill_call_positions` reads every position from the module once and
+`CallPositions` holds them, keyed by the span of the call. Three positions, each
+with a reader on the state manager:
+
+- **program level** — a statement of the module itself holds the call, with no
+  function, no namespace and no second statement between. It decides whether the
+  compiled styles stay where the call was written or are hoisted to a
+  declaration above the statement that holds them (`is_program_level_call`).
+- **bare statement** — the call is a whole expression statement, so nothing
+  reads what it answers. It is the one position a `create` call is refused in
+  (`is_bare_call_statement`).
+- **type asserted** — a type assertion wraps the call
+  (`is_type_asserted_call`).
+
+_Avoid_: top level, module level, root level
 
 **Declaration lookup**:
 Which declaration binds a name, asked of the indices the state manager fills

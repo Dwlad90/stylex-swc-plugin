@@ -158,6 +158,6 @@ where
   }
 
   fn hoist_expression(&mut self, expr: Expr) -> Expr {
-    hoist_expression(expr, &mut self.state)
+    Expr::Ident(hoist_expression(expr, &mut self.state))
   }
 }

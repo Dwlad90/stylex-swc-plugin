@@ -16,16 +16,13 @@ use stylex_path_resolver::package_json::PackageJsonExtended;
 
 use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
-use stylex_ast::ast::convertors::{
-  convert_atom_to_string, convert_key_value_to_str, convert_lit_to_string, create_null_expr,
-  create_string_expr,
-};
+use stylex_ast::ast::convertors::{convert_lit_to_string, create_null_expr, create_string_expr};
 use stylex_structures::pre_rule_value::PreRuleValue;
 use swc_core::{
   common::{DUMMY_SP, comments::Comments},
   ecma::ast::{
-    BinaryOp, Bool, CallExpr, Decl, Expr, Lit, ModuleItem, Pat, Prop, PropName, PropOrSpread, Stmt,
-    UnaryOp, VarDecl, VarDeclKind,
+    BinaryOp, Bool, CallExpr, Decl, Expr, Ident, Lit, ModuleItem, Pat, PropOrSpread, Stmt, UnaryOp,
+    VarDecl, VarDeclKind,
   },
 };
 
@@ -41,7 +38,7 @@ use crate::{
         dev_class_name::{convert_to_test_styles, inject_dev_class_names},
         evaluate_stylex_create_arg::evaluate_stylex_create_arg,
         flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-        js_to_ast::{convert_namespaces_to_ast, remove_objects_with_spreads},
+        js_to_ast::{compiled_namespaces, remove_objects_with_spreads},
       },
       validators::{argument_at, is_create_call, validate_stylex_create},
     },
@@ -50,8 +47,8 @@ use crate::{
 };
 use stylex_ast::ast::factories::{
   create_array_expression, create_bin_expr, create_cond_expr, create_expr_or_spread,
-  create_key_value_prop, create_object_expression, create_prop_from_name,
-  create_string_var_declarator, create_var_declarator,
+  create_key_value_prop, create_object_expression, create_string_var_declarator,
+  create_var_declarator,
 };
 use stylex_constants::constants::{
   api_names::{
@@ -62,7 +59,7 @@ use stylex_constants::constants::{
   messages::non_static_value,
 };
 use stylex_css::utils::{pseudo::is_pseudo_element, when as stylex_when};
-use stylex_diagnostics::code_frame::{build_code_frame_error, build_code_frame_error_and_panic};
+use stylex_diagnostics::code_frame::build_code_frame_error;
 use stylex_enums::style_resolution::StyleResolution;
 use stylex_evaluator::{
   evaluate::evaluate_result_is_nullish, evaluate_result::refusal_site, state::EvaluationState,
@@ -316,14 +313,12 @@ where
           .insert_style_var(var_name.clone(), parent_var_decl);
       }
 
-      let styles_ast = convert_namespaces_to_ast(&compiled_styles);
-
-      // The rewrite of the dynamic entries needs the object, not the hoisted
-      // identifier, so it runs before the hoist.
+      // The rewrite of the dynamic entries reads the namespaces as the named
+      // list they were written as, and it writes the object literal itself, so
+      // it runs before the hoist.
       let styles_ast = apply_dynamic_style_functions(
-        self,
-        call,
-        styles_ast,
+        &mut self.state,
+        compiled_namespaces(&compiled_styles),
         evaluated_arg.fns,
         &class_paths_per_namespace,
         &injected_styles,

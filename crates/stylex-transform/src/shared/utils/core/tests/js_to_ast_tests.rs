@@ -14,7 +14,7 @@ use swc_core::{
 };
 
 use crate::shared::utils::core::js_to_ast::{
-  convert_namespaces_to_ast, convert_values_to_ast, remove_objects_with_spreads,
+  compiled_namespaces, convert_values_to_ast, namespaces_to_object, remove_objects_with_spreads,
 };
 
 /// The text of an atom. A lone surrogate spells no text, and no case here
@@ -121,14 +121,19 @@ fn writes_a_namespace_as_an_object_of_its_own() {
   );
 
   assert_eq!(
-    properties_of(&convert_namespaces_to_ast(&styles)),
+    properties_of(&namespaces_to_object(compiled_namespaces(&styles))),
     [("root".to_owned(), "object:1".to_owned())]
   );
 }
 
 #[test]
 fn writes_an_empty_object_for_no_style() {
-  assert!(properties_of(&convert_namespaces_to_ast(&StylesObjectMap::new())).is_empty());
+  assert!(
+    properties_of(&namespaces_to_object(compiled_namespaces(
+      &StylesObjectMap::new()
+    )))
+    .is_empty()
+  );
   assert!(properties_of(&convert_values_to_ast(&FlatCompiledStyles::new())).is_empty());
 }
 
@@ -181,7 +186,7 @@ fn writes_every_prop_as_a_key_value_under_a_name() {
     ])),
   );
 
-  let written = convert_namespaces_to_ast(&styles);
+  let written = namespaces_to_object(compiled_namespaces(&styles));
 
   // `key_of` refuses a spread and a prop that is not a key-value, and it reads
   // the name of every key a written object can carry.

@@ -5,8 +5,8 @@ use stylex_ast::ast::convertors::{convert_lit_to_string, key_value_name, normali
 
 use swc_core::ecma::{
   ast::{
-    BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, JSXAttrOrSpread, JSXAttrValue, Lit,
-    ObjectLit, Prop, PropName, PropOrSpread,
+    BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, JSXAttrOrSpread,
+    JSXAttrValue, Lit, ObjectLit, Prop, PropName, PropOrSpread,
   },
   visit::{VisitMut, VisitMutWith, VisitWith},
 };
@@ -36,7 +36,7 @@ use stylex_state::{
 pub(crate) fn stylex_merge(
   call: &mut CallExpr,
   transform: fn(&[ResolvedArg]) -> FnResult,
-  hoist_expression: fn(Expr, &mut StateManager) -> Expr,
+  hoist_expression: fn(Expr, &mut StateManager) -> Ident,
   state: &mut StateManager,
 ) -> Option<Expr> {
   let mut bail_out = false;
@@ -294,7 +294,7 @@ fn static_jsx_attr_from_prop(prop: &PropOrSpread) -> Option<JSXAttrOrSpread> {
 /// reference to it.
 struct CompiledStyleObjectHoister<'a> {
   state: &'a mut StateManager,
-  hoist_expression: fn(Expr, &mut StateManager) -> Expr,
+  hoist_expression: fn(Expr, &mut StateManager) -> Ident,
 }
 
 impl VisitMut for CompiledStyleObjectHoister<'_> {
@@ -304,8 +304,7 @@ impl VisitMut for CompiledStyleObjectHoister<'_> {
     if let Expr::Object(object) = expr
       && object_has_css_marker(object)
     {
-      let hoisted = (self.hoist_expression)(expr.clone(), self.state);
-      *expr = hoisted;
+      *expr = Expr::Ident((self.hoist_expression)(expr.clone(), self.state));
     }
   }
 }

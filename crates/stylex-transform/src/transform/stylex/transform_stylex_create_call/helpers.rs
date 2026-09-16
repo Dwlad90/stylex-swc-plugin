@@ -144,11 +144,16 @@ pub(super) fn extract_expr_from_rule(
 /// The declaration is queued after the imports and the returned identifier
 /// stands for the expression at the call site. `stem` is what the generated
 /// name is built on.
+///
+/// The name is answered as the identifier it is, not as an expression holding
+/// one. A caller that needs the name -- the dynamic-style rewrite declares it
+/// beside the call -- used to read it back out of the expression and guard a
+/// shape the hoist cannot answer.
 fn hoist_to_module_level(
   stem: &'static str,
   ast_expression: Expr,
   state: &mut stylex_state::state_manager::StateManager,
-) -> Expr {
+) -> Ident {
   let hoisted_ident = state.next_hoisted_ident(stem);
 
   let var_decl = VarDecl {
@@ -165,14 +170,14 @@ fn hoist_to_module_level(
     module_item,
   );
 
-  Expr::Ident(hoisted_ident)
+  hoisted_ident
 }
 
 /// Hoist a static fragment of a style value to a `_temp` constant.
 pub(crate) fn hoist_expression(
   ast_expression: Expr,
   state: &mut stylex_state::state_manager::StateManager,
-) -> Expr {
+) -> Ident {
   hoist_to_module_level("temp", ast_expression, state)
 }
 
@@ -204,5 +209,5 @@ pub(crate) fn hoist_styles_object(
   ast_expression: Expr,
   state: &mut stylex_state::state_manager::StateManager,
 ) -> Expr {
-  hoist_to_module_level("styles", ast_expression, state)
+  Expr::Ident(hoist_to_module_level("styles", ast_expression, state))
 }

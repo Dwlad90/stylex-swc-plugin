@@ -198,13 +198,6 @@ fn create_nested_object_prop_works() {
 }
 
 #[test]
-fn create_prop_from_name_works() {
-  let key = PropName::Ident(IdentName::new("x".into(), DUMMY_SP));
-  let prop = create_prop_from_name(key, create_number_expr(1.0));
-  assert!(matches!(prop, PropOrSpread::Prop(_)));
-}
-
-#[test]
 fn create_key_value_prop_ident_works() {
   let kv = create_key_value_prop_ident("foo", create_string_expr("bar"));
   assert!(matches!(kv.key, PropName::Ident(_)));

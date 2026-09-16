@@ -237,19 +237,6 @@ pub fn create_nested_object_prop(key: &str, values: Vec<PropOrSpread>) -> PropOr
   create_key_value_prop(key, Expr::Object(object))
 }
 
-/// Creates a `PropOrSpread` from an already-constructed `PropName` and an
-/// expression value.
-///
-/// Use this when the key is an existing `PropName` (e.g. cloned from another
-/// prop), avoiding the need to re-stringify it.
-#[inline]
-pub fn create_prop_from_name(key: PropName, value: Expr) -> PropOrSpread {
-  PropOrSpread::from(Prop::from(KeyValueProp {
-    key,
-    value: Box::new(value),
-  }))
-}
-
 /// Creates a `KeyValueProp` with an `IdentName` key.
 ///
 /// # Arguments

@@ -13,11 +13,15 @@ use stylex_path_resolver::{
 use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName, SourceFile, Span, SyntaxContext},
-  ecma::ast::{
-    ArrayLit, BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl,
-    ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread,
-    Lit, MemberExpr, Module, ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Prop,
-    PropOrSpread, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
+  ecma::{
+    ast::{
+      ArrowExpr, BindingIdent, CallExpr, Callee, Constructor, Decl, Expr, ExprStmt, Function,
+      GetterProp, Id, Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
+      ImportSpecifier, JSXAttrOrSpread, Lit, MemberExpr, Module, ModuleDecl, ModuleExportName,
+      ModuleItem, NamedExport, Pat, SetterProp, Stmt, Str, TsModuleBlock, VarDecl, VarDeclKind,
+      VarDeclarator,
+    },
+    visit::{Visit, VisitWith},
   },
 };
 
@@ -115,10 +119,10 @@ pub enum InsertionSlot {
   /// import block, before the rest of the body. Mirrors the legacy
   /// `hoisted_module_items` placement.
   AfterImports,
-  /// Per-declarator style metadata (the `_inject2(...)` calls) keyed
-  /// by the stable hash of the originating var-decl initializer.
-  /// Emitted immediately before the matching declarator. Replaces the
-  /// legacy `styles_to_inject` map.
+  /// Per-statement style metadata (the `_inject2(...)` calls) keyed by the
+  /// stable hash of the object the call was replaced by. Emitted immediately
+  /// before the first statement that holds that object, wherever in the
+  /// statement it stands. Replaces the legacy `styles_to_inject` map.
   BeforeDecl(u128),
 }
 
@@ -653,13 +657,18 @@ pub(crate) struct StyleInjectionState {
   /// (storage + dedup); the storage half is now in
   /// `pending_module_items`.
   queued_theme_imports: Vec<ModuleItem>,
-  /// Transient dedup map for per-decl style metadata queued under
-  /// `InsertionSlot::BeforeDecl(ast_hash)`. Same rationale as
-  /// `queued_theme_imports`: keying by `ast_hash` keeps the
-  /// per-bucket `Vec` small (typically 1–2 entries), so
-  /// `Vec::contains` short-circuits early on PartialEq mismatches.
-  /// Replaces the legacy `styles_to_inject` field's dual role.
-  queued_decl_items: IndexMap<u128, Vec<ModuleItem>>,
+  /// Which rules are already queued under which
+  /// `InsertionSlot::BeforeDecl(key)`, so a rule registered twice against one
+  /// statement is injected once. Replaces the legacy `styles_to_inject`
+  /// field's dual role.
+  ///
+  /// A pair of hashes rather than the statements themselves: the injecting
+  /// call is built from the rule and from the injection identifier, which is
+  /// one per module, so the hash of the rule is what tells two of them apart.
+  /// Holding the pair is one probe per rule, where holding the statements was
+  /// a copy of every one of them and a scan over the copies -- 153,437
+  /// statements on the largest module in the benchmark corpus.
+  queued_decl_rules: FxHashSet<(u128, u128)>,
 }
 
 impl StyleInjectionState {
@@ -2374,13 +2383,13 @@ impl StateManager {
     let metadatas = MetaData::convert_from_injected_styles_map(style);
     let inject_var_ident = self.setup_injection_imports();
 
-    // The hash keys the injection slots and does not change per rule, so it is
-    // computed once here and not once per metadata in the loop.
-    let ast_hash = stable_hash_unspanned(ast);
+    // The keys are the same for every rule of one call, so they are read once
+    // here rather than once per metadata in the loop.
+    let keys = placement_keys(ast, fallback_ast_hash);
 
     for metadata in metadatas {
       self.add_style(&metadata);
-      self.add_style_to_inject(&metadata, &inject_var_ident, ast_hash, fallback_ast_hash);
+      self.add_style_to_inject(&metadata, &inject_var_ident, &keys);
     }
 
     // Update all references to this call expression with the new AST
@@ -2513,20 +2522,12 @@ impl StateManager {
     }
   }
 
-  /// Queues the injection call for one rule before each declaration it belongs
-  /// to, once per declaration.
+  /// Queues the injection call for one rule before each statement it belongs
+  /// to, once per statement.
   ///
-  /// `ast_hash` names the declaration the styles land in, and
-  /// `fallback_ast_hash` the object a hoisted call site was replaced by.
-  /// `register_styles` hashes the first once for all the rules of one call, and
-  /// the second reaches it already hashed by its own caller.
-  fn add_style_to_inject(
-    &mut self,
-    metadata: &MetaData,
-    inject_var_ident: &Ident,
-    ast_hash: u128,
-    fallback_ast_hash: Option<u128>,
-  ) {
+  /// `keys` are what [`placement_keys`] read off the call, and every one of
+  /// them names a shape the placement walk can find.
+  fn add_style_to_inject(&mut self, metadata: &MetaData, inject_var_ident: &Ident, keys: &[u128]) {
     let priority = metadata.get_priority();
     let css_ltr = metadata.get_css();
     let css_rtl = metadata.get_css_rtl();
@@ -2556,65 +2557,25 @@ impl StateManager {
 
     let stylex_inject_obj = create_object_expression(stylex_inject_args);
 
+    // Read before the object is moved into the call. It is what tells one
+    // rule's injecting statement from another's, because the rest of the
+    // statement is the same for every rule of the module.
+    let rule_key = stable_hash_unspanned(&stylex_inject_obj);
+
     let stylex_call_expr = create_call_expr(
       Expr::Ident(inject_var_ident.clone()),
       vec![create_expr_or_spread(stylex_inject_obj)],
     );
 
-    let stylex_call = Expr::Call(stylex_call_expr);
-
-    let module = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+    let item = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
       span: DUMMY_SP,
-      expr: Box::new(stylex_call),
+      expr: Box::new(Expr::Call(stylex_call_expr)),
     }));
 
-    let normalized_module = module;
-
-    // Per-decl dedup: keying by `ast_hash` keeps the per-bucket
-    // `Vec` small (typically 1–2 entries), so the span-insensitive
-    // `eq_ignore_span` scan short-circuits cheaply rather than walking
-    // a full `stable_hash` over the AST. Items go in the bucket
-    // (owned) while a clone goes into the pending buffer; the
-    // bucket clone is then reused by the fallback path.
-    let bucket = self
-      .injection
-      .queued_decl_items
-      .entry(ast_hash)
-      .or_default();
-    let needs_primary_queue = !bucket
-      .iter()
-      .any(|item| item.eq_ignore_span(&normalized_module));
-    if needs_primary_queue {
-      bucket.push(normalized_module.clone());
-    }
-
-    if let Some(fallback_ast_hash) = fallback_ast_hash {
-      let fallback_bucket = self
-        .injection
-        .queued_decl_items
-        .entry(fallback_ast_hash)
-        .or_default();
-      let needs_fallback_queue = !fallback_bucket
-        .iter()
-        .any(|item| item.eq_ignore_span(&normalized_module));
-      if needs_fallback_queue {
-        fallback_bucket.push(normalized_module.clone());
+    for key in keys {
+      if self.injection.queued_decl_rules.insert((*key, rule_key)) {
+        self.queue_insertion(InsertionSlot::BeforeDecl(*key), item.clone());
       }
-
-      if needs_primary_queue {
-        self.queue_insertion(
-          InsertionSlot::BeforeDecl(ast_hash),
-          normalized_module.clone(),
-        );
-      }
-      if needs_fallback_queue {
-        self.queue_insertion(
-          InsertionSlot::BeforeDecl(fallback_ast_hash),
-          normalized_module,
-        );
-      }
-    } else if needs_primary_queue {
-      self.queue_insertion(InsertionSlot::BeforeDecl(ast_hash), normalized_module);
     }
   }
 
@@ -2685,9 +2646,9 @@ impl StateManager {
 /// 5. `AfterImports` items follow the import block — matching the legacy
 ///    in-walk splice that placed `hoisted_module_items` after imports during
 ///    the consumer walk.
-/// 6. The remainder of the body follows. For each item, every relevant
-///    initializer is hashed and any matching `BeforeDecl` metadata is spliced
-///    before it.
+/// 6. The remainder of the body follows. Each item is read for the objects a
+///    producer registered, and the `BeforeDecl` metadata of each one found is
+///    spliced before the item. [`RegisteredObjects`] is that walk.
 ///
 /// `runtime_injection` matches the legacy gate on
 /// `options.runtime_injection.is_some()`: when `false`, the runtime
@@ -2794,167 +2755,170 @@ pub fn flush_pending_insertions(
   result.extend(before_imports);
   result.extend(theme_imports);
 
-  // Step 4: walk the rest, splicing BeforeDecl metadata before
-  // the first matching var-decl initializer. Consuming the bucket
-  // preserves deterministic first-match-wins behavior for duplicate
-  // initializer hashes.
+  // Step 4: walk the rest, splicing the `BeforeDecl` metadata of every
+  // registered object an item holds in front of that item. Consuming the
+  // bucket keeps the first item that holds the object as the one that takes
+  // the metadata, which is what decides the place when two items hold the
+  // same shape.
   //
-  // Nothing keyed to a declaration means nothing to match, so the walk skips
-  // the hashing, which is the whole cost of the step. That is every module
+  // Nothing keyed to a statement means nothing to match, so the walk is
+  // skipped: the hashing is the whole cost of the step. That is every module
   // compiled with runtime injection off, because the loop above drops every
-  // `BeforeDecl` item, and every module that queued none.
-  if before_decl.is_empty() {
-    result.extend(iter);
-  } else {
-    // One buffer for the whole walk. A module can hold thousands of top-level
-    // declarations, and a fresh vector per item is a malloc per item for a list
-    // that is read and dropped at once.
-    let mut hashes: Vec<u128> = Vec::new();
+  // `BeforeDecl` item, and every module that queued none. The question is asked
+  // again per item rather than once, so the statements after the last injection
+  // is placed are not walked either.
+  for item in iter {
+    if !before_decl.is_empty() {
+      let mut walk = RegisteredObjects {
+        queued: &mut before_decl,
+        placed: &mut result,
+      };
 
-    for item in iter {
-      hashes.clear();
-      push_decl_init_hashes(&item, &mut hashes);
-
-      for hash in hashes.iter() {
-        if let Some(metas) = before_decl.remove(hash) {
-          result.extend(metas);
-        }
-      }
-      result.push(item);
+      item.visit_with(&mut walk);
     }
+
+    result.push(item);
   }
 
   *module_body = result;
 }
 
-/// Appends the stable hash of every relevant var-decl initializer reachable
-/// from `item`, matching the keys [`StateManager::queue_insertion`] uses
-/// under [`InsertionSlot::BeforeDecl`].
-fn push_decl_init_hashes(item: &ModuleItem, hashes: &mut Vec<u128>) {
-  let var_decls: Option<&[VarDeclarator]> = match item {
-    ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(export_decl)) => export_decl
-      .decl
-      .as_var()
-      .map(|var_decl| var_decl.decls.as_slice()),
-    ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(export_default_expr)) => {
-      // `export default { ... }` is treated by the legacy code as a
-      // synthetic `default = <obj>` declarator whose init is the
-      // object expression — so its style metadata can splice in
-      // front of the export.
-      if export_default_expr.expr.is_object() {
-        hashes.push(stable_hash_unspanned(export_default_expr.expr.as_ref()));
-      }
-      None
-    },
-    ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => Some(var_decl.decls.as_slice()),
-    _ => None,
-  };
+/// The keys the placement walk can find one call's styles by, in the order the
+/// walk should read them.
+///
+/// `ast` is what the call site holds now and `fallback_ast_hash` the object a
+/// hoisted call site was replaced by. A hoisted call site holds a reference to
+/// the declaration the object moved to, and a reference names nothing the walk
+/// reads, so the hash of the object is the only key that finds the statement.
+/// Keying the reference as well left one bucket per hoisted call that nothing
+/// could ever match, which is every ordinary component module: the walk then
+/// had nothing to stop it and read every statement of the module to the end.
+///
+/// An object and a name are what a producer registers -- the object it left
+/// where the call was written, or the name a compiled `keyframes`, `positionTry`
+/// or `viewTransitionClass` answered with. [`RegisteredObjects`] looks for
+/// those two and nothing else, so anything else here is not a key.
+fn placement_keys(ast: &Expr, fallback_ast_hash: Option<u128>) -> Vec<u128> {
+  let mut keys = Vec::with_capacity(2);
 
-  for init in var_decls
-    .unwrap_or_default()
-    .iter()
-    .filter_map(|decl| decl.init.as_deref())
-  {
-    push_init_hashes(init, hashes);
+  if matches!(
+    normalize_expr(ast),
+    Expr::Object(_) | Expr::Lit(Lit::Str(_))
+  ) {
+    keys.push(stable_hash_unspanned(ast));
+  }
+
+  keys.extend(fallback_ast_hash);
+
+  keys
+}
+
+/// The walk that finds the objects a module item holds and places the metadata
+/// queued for each of them in front of the item.
+///
+/// A producer keys its `_inject2(...)` statements to the
+/// [`stable_hash_unspanned`] of the object it left where the call was written,
+/// and the rules belong to the statement rather than to the object: `export
+/// const all = [wrap(stylex.create({ … }))]` declares them through the
+/// statement the same way `export const styles = stylex.create({ … })` does.
+/// So the object can stand anywhere in the item -- in an array, in an object
+/// the author wrote, in the argument of a wrapping call, in a branch of a
+/// conditional, in a class field -- and asking which of those it is would be
+/// one arm per spelling of the same answer. The walk reads every expression
+/// the item holds instead.
+///
+/// Cost. The walk itself is one pass over the item, and what it spends is the
+/// hash of each candidate it meets, because a hash reads the whole subtree
+/// under it. Three things keep that from growing with the module:
+///
+/// - It stops at the object it matched. Nothing a registered object holds is
+///   registered itself: what is below one is the namespaces the producer
+///   built, and a rule a nested call declares is keyed to the object it was
+///   folded into rather than to the name left in it -- `create({ a: {
+///   animationName: keyframes({ … }) } })` injects both rules at the one key.
+///   So a declarator bound to one compiled object costs the one hash it always
+///   cost, however large the object is. A *second* statement holding the same
+///   object is read to the bottom, because the first took the metadata: that
+///   is the price of the rule that the first holder is the one that takes it.
+/// - It does not enter a function body. Nothing a body holds is registered: a
+///   `create` written in one is hoisted to a declaration of its own, and every
+///   other producer refuses a call the module top level does not bind. So a
+///   module of components is walked as a handful of statements rather than as
+///   every line in them.
+/// - [`flush_pending_insertions`] asks it nothing once every queued item is
+///   placed. A key that matches nothing keeps the map from emptying, so such a
+///   module is read to its last statement -- which is why [`placement_keys`]
+///   queues no key the walk cannot find.
+struct RegisteredObjects<'a> {
+  /// The metadata still to place, keyed by the hash of the object it belongs
+  /// to. Taking a bucket out leaves the first item that holds the object as
+  /// the one that takes it.
+  queued: &'a mut FxHashMap<u128, Vec<ModuleItem>>,
+  /// The module body being written, which the metadata is appended to directly
+  /// in front of the item the walk is reading.
+  placed: &'a mut Vec<ModuleItem>,
+}
+
+impl RegisteredObjects<'_> {
+  /// Places the metadata queued for `expr`, and says whether there was any.
+  fn place_metadata_of(&mut self, expr: &Expr) -> bool {
+    match self.queued.remove(&stable_hash_unspanned(expr)) {
+      Some(metadata) => {
+        self.placed.extend(metadata);
+        true
+      },
+      None => false,
+    }
   }
 }
 
-/// Hashes the declarator initializer `expr`, and the candidates a container it
-/// holds puts one level further down.
-///
-/// A `create` written inside a top-level array -- `export const all =
-/// [stylex.create({ ... })]` -- declares its rules like any other, and the
-/// declaration they belong to is the statement, not the object. The declarator
-/// initializer is then the array, so the object each call was replaced by is
-/// one level down, or deeper where the author nests containers.
-///
-/// An initializer that is an object *is* the object a producer registered, so
-/// it is hashed and left alone. That is what keeps a large top-level object at
-/// the one hash it has always cost, whatever it holds.
-///
-/// A parenthesis is not a different initializer, so it is read through here and
-/// at every level below: `([stylex.create({ ... })])` names the same
-/// declaration as the spelling without the parentheses.
-fn push_init_hashes(expr: &Expr, hashes: &mut Vec<u128>) {
-  let expr = normalize_expr(expr);
+impl Visit for RegisteredObjects<'_> {
+  fn visit_expr(&mut self, expr: &Expr) {
+    // Everything queued is placed, so the rest of the item answers nothing.
+    if self.queued.is_empty() {
+      return;
+    }
 
-  match expr {
-    Expr::Array(array) => push_element_hashes(array, hashes),
-    Expr::Object(_) | Expr::Lit(_) => hashes.push(stable_hash_unspanned(expr)),
-    _ => {},
+    match expr {
+      // A name a compiled `keyframes`, `positionTry` or `viewTransitionClass`
+      // left behind. Those three are the only producers that register
+      // something other than an object, and each registers a string, so a
+      // number or a boolean an author wrote is not a candidate and is not
+      // hashed.
+      //
+      // A string an author wrote cannot answer for one of those names, and it
+      // is the hash that says so: it carries the written form as well as the
+      // value, and a built string has no written form. So `const cls =
+      // 'x18re5ia-B'` beside a compiled `keyframes` of that name is two
+      // different keys.
+      Expr::Lit(Lit::Str(_)) => {
+        self.place_metadata_of(expr);
+      },
+      Expr::Object(_) => {
+        if !self.place_metadata_of(expr) {
+          expr.visit_children_with(self);
+        }
+      },
+      _ => expr.visit_children_with(self),
+    }
   }
-}
 
-/// Hashes the candidates the elements of `array` hold.
-///
-/// A hole holds nothing and is stepped over. A spread is read like what it
-/// stands for, because `[...[styles]]` holds the styles the same way
-/// `[styles]` does.
-fn push_element_hashes(array: &ArrayLit, hashes: &mut Vec<u128>) {
-  for element in array.elems.iter().flatten() {
-    push_held_hashes(&element.expr, hashes);
-  }
-}
+  /// A namespace is not entered for the same reason as a body: everything in
+  /// one is below program level, so a `create` written there is hoisted out of
+  /// it and the declaration it moved to is what the walk finds.
+  fn visit_ts_module_block(&mut self, _: &TsModuleBlock) {}
 
-/// Hashes `expr`, which a container holds, and the candidates below it.
-///
-/// An object here can be either the object a producer registered or a wrapper
-/// the author put around one, and the two cannot be told apart without asking,
-/// so it is hashed and looked inside.
-///
-/// Recursion is bounded by how deep the containers nest, which is far below
-/// what the parser accepts before its own walk runs out of stack.
-///
-/// Cost. Hashing an object walks its whole subtree, so a chain of containers
-/// `d` deep is walked `d` times at the top, `d - 1` times one level down, and
-/// so on: the square of the depth, not the depth. The parser's own recursion
-/// gives out long before that square is worth counting, and the descended
-/// region is the compiler's own output rather than anything an author typed,
-/// so it is the shape of a compiled style object -- three or four levels --
-/// that decides the real number. Every literal in that region is hashed too,
-/// which is what makes the hash list longer than the number of objects.
-///
-/// One case is heavier than the node count says. `stable_hash_unspanned` gives
-/// up on an object of more than 128 properties, or one holding an arrow, and
-/// falls back to a deep clone of the subtree. Where such an object sits inside
-/// another, both clone, so the bytes copied also grow with the depth.
-///
-/// Hashing a literal widens what can match a queued call, and two things keep
-/// that safe. A queued call is only ever keyed to an object or to a name a
-/// compiled `keyframes` left, and the hash of a literal carries its written
-/// form: an author writes `raw`, the compiler leaves it empty, so a literal
-/// that was typed cannot answer for one that was built.
-fn push_held_hashes(expr: &Expr, hashes: &mut Vec<u128>) {
-  let expr = normalize_expr(expr);
+  // The bodies the walk does not enter. A `Function` covers a declaration, a
+  // method and an expression; the other four hold a body without being one.
+  fn visit_function(&mut self, _: &Function) {}
 
-  match expr {
-    Expr::Array(array) => push_element_hashes(array, hashes),
-    Expr::Object(object) => {
-      hashes.push(stable_hash_unspanned(expr));
+  fn visit_arrow_expr(&mut self, _: &ArrowExpr) {}
 
-      for value in object.props.iter().filter_map(held_value) {
-        push_held_hashes(value, hashes);
-      }
-    },
-    Expr::Lit(_) => hashes.push(stable_hash_unspanned(expr)),
-    _ => {},
-  }
-}
+  fn visit_constructor(&mut self, _: &Constructor) {}
 
-/// The expression an object property holds, where it holds one.
-///
-/// A named property and a spread both carry a value a producer can have written
-/// its result into. A shorthand carries a name, and an accessor, a method and
-/// an assignment carry a body or a pattern rather than a value, so a registered
-/// object cannot stand where this walk would look for it.
-fn held_value(prop: &PropOrSpread) -> Option<&Expr> {
-  match prop {
-    PropOrSpread::Spread(spread) => Some(&spread.expr),
-    PropOrSpread::Prop(prop) => match prop.as_ref() {
-      Prop::KeyValue(key_value) => Some(&key_value.value),
-      _ => None,
-    },
-  }
+  fn visit_getter_prop(&mut self, _: &GetterProp) {}
+
+  fn visit_setter_prop(&mut self, _: &SetterProp) {}
 }
 
 /// Builds an `_inject2({ ltr, priority, [rtl] })` statement for an atom style.

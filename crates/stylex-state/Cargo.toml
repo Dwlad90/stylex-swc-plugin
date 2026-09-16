@@ -50,6 +50,10 @@ swc_malloc.workspace = true
 
 [[bench]]
 harness = false
+name = "injection_queue_bench"
+
+[[bench]]
+harness = false
 name = "injection_walk_bench"
 
 [lints]

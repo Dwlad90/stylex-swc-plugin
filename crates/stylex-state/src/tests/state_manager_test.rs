@@ -329,12 +329,11 @@ mod state_manager {
     assert_eq!(item_labels(&body), vec!["before_decl", "var:styles"]);
   }
 
-  /// An initializer that is itself an object is the registered object, so it is
-  /// hashed and left alone. A call is keyed to the object it was replaced by,
-  /// never to a property of it, so nothing is lost and a large top-level object
-  /// keeps the one hash it has always cost.
+  /// An initializer that is itself an object is read like any other container:
+  /// an author can group the styles a module declares under one object, and the
+  /// rules still belong to the statement.
   #[test]
-  fn flush_pending_insertions_does_not_look_inside_an_object_initializer() {
+  fn flush_pending_insertions_looks_inside_an_object_initializer() {
     let mut state = StateManager::default();
     let styles_init = empty_object();
     let before_decl_hash = stable_hash_unspanned(&styles_init);
@@ -350,7 +349,33 @@ mod state_manager {
 
     flush_pending_insertions(&mut state, &mut body, true);
 
-    assert_eq!(item_labels(&body), vec!["var:styles"]);
+    assert_eq!(item_labels(&body), vec!["before_decl", "var:styles"]);
+  }
+
+  /// The walk stops at the object it matched. Nothing below a registered object
+  /// is another registered object -- what is below one is the namespaces of the
+  /// styles that matched -- so a large top-level object keeps the one hash it
+  /// has always cost. The inner queue below is a shape no producer writes, and
+  /// it is here to hold that boundary.
+  #[test]
+  fn flush_pending_insertions_stops_at_the_object_it_matched() {
+    let mut state = StateManager::default();
+    let inner = empty_object();
+    let outer = object_holding(vec![named_prop("s", inner.clone())]);
+    let mut body = vec![var_decl_item("styles", outer.clone())];
+
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(stable_hash_unspanned(&outer)),
+      expr_stmt("outer"),
+    );
+    state.queue_insertion(
+      InsertionSlot::BeforeDecl(stable_hash_unspanned(&inner)),
+      expr_stmt("inner"),
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(item_labels(&body), vec!["outer", "var:styles"]);
   }
 
   /// A declarator can carry no initializer at all. It names no declaration the

@@ -1,14 +1,17 @@
 # The injection walk over a large array is measured and kept
 
-**Status:** accepted
+**Status:** accepted, and its two rejected narrowings are superseded --
+see [What changed the trade](#what-changed-the-trade) at the end.
 
 `flush_pending_insertions` places each queued `_inject2(...)` statement in front
 of the declaration that holds the styles it belongs to, and it finds that
-declaration by hashing the candidates every top-level initializer reaches. A
-declarator bound to one compiled object is hashed once. A declarator bound to an
-array is looked inside, because a `create` call written in an array declares its
-rules through the statement rather than through the object, so every element is
-hashed, then every object an element holds, then every literal below that.
+declaration by hashing candidates it reads off the module. As this was written,
+what it read was every top-level initializer: a declarator bound to one compiled
+object was hashed once, and a declarator bound to an array was looked inside,
+because a `create` call written in an array declares its rules through the
+statement rather than through the object -- so every element was hashed, then
+every object an element held, then every literal below that. The section at the
+end says what it reads now.
 
 Nothing measured the second shape. The one entry in
 `crates/stylex-rs-compiler/benchmark/fixtures.v1.json` that turns runtime
@@ -124,7 +127,11 @@ re-derive it, not left in the code as an unpriced special case.
 **Exit the walk early once the bucket map is drained.** Rejected as worth
 nothing on this shape. `lotsOfStyles.js` has three top-level items, and all
 21,733 keys are consumed inside the one export declaration, so the map cannot
-empty before the hashing that empties it.
+empty before the hashing that empties it. (Taken with the widening all the
+same, because the widened walk reads statements this one never reached. It is
+worth nothing on the corpus shape and everything on a module whose styles come
+first and whose other statements are many. `0003` is what made the map able to
+empty at all.)
 
 **Compose the hash from its children's hashes.** Rejected as out of proportion.
 It would collapse the repeated subtree walks, but `stable_hash_unspanned` is
@@ -157,3 +164,95 @@ would have been argued the same way.
   does not change the decision above. Its ceiling needs seeding before the next
   release; the steps are in `guidelines/PERFORMANCE.md` under "Seeding a new
   ceiling".
+
+## What changed the trade
+
+The walk was widened, because the shape it read was the wrong one. A statement
+can hold the registered object behind a wrapping call, a conditional, a member
+access, a class field or an assignment, and the walk read arrays, objects and
+parentheses alone -- so each of those shipped a class name that no stylesheet
+defined. It now reads every expression the item holds and does not enter a
+function body. `RegisteredObjects` in `src/state_manager.rs` is that walk, and
+it replaces the four `push_*_hashes` functions this record names above. Both
+readings are in
+`crates/stylex-transform/tests/transform_stylex_create_test/program_level_positions.rs`,
+each against measured `@stylexjs/babel-plugin` 0.19.0 output.
+
+That widening changed what the two narrowings above are worth, so both are
+taken:
+
+**Stop at the object that matched.** Rejected above as buying 1.7% with a rule
+a new producer could break silently. With the walk reading every expression it
+is no longer 1.7%: it is what keeps a declarator bound to one compiled object
+at the one hash it always cost, because the walk would otherwise descend into
+the largest object in the module. The rule it rests on is that nothing a
+registered object holds is registered itself -- a rule a nested call does not
+break, because the rules a `keyframes` inside a `create` argument declares are
+keyed to the object it was folded into rather than to the name left in it. That
+is pinned in two places rather than reasoned about:
+`a_keyframes_inside_the_create_argument_injects_both_rules` measures it through
+the whole compiler against upstream, and
+`a_name_below_the_object_that_matched_is_not_looked_for` states the boundary on
+the walk itself.
+
+**Hash only string literals.** Taken with it, for the reason recorded above:
+every key a producer registers is an object or a name, never a boolean or a
+number. It is not an unpriced special case now -- it is one arm of the walk,
+and the figures below are with it.
+
+### The measurement after both
+
+Criterion medians on the same machine and the same afternoon as the table
+above, and the old code was re-measured first: it read within 1% of that table
+(123.9 us, 503.6 us, 2.011 ms, 22.29 ms), so the two columns are comparable.
+
+| `create` calls | array, before | array, after | object, before | object, after |
+| -------------- | ------------- | ------------ | -------------- | ------------- |
+| 128            | 123.9 us      | 43.5 us      | 39.3 us        | 39.5 us       |
+| 512            | 503.6 us      | 168.0 us     | 576.1 us       | 581.6 us      |
+| 2048           | 2.011 ms      | 706 us       | 2.396 ms       | 2.481 ms      |
+| 21,733         | 22.29 ms      | 8.31 ms      | --             | --            |
+
+The array shape costs **63% less** at every size, corpus size included, and it
+is still linear in the calls. The object legs are unchanged: they differ by 0.3%
+to 3.5%, which is inside what this machine resolves, and the work on that path
+is the same one hash it was. Injection off is unchanged, as it must be -- that
+leg never reaches the walk.
+
+So the widened walk is cheaper than the narrow one it replaces, and the shape
+that pays the most pays 14 ms less per compile of `lotsOfStyles.js`.
+
+### What the widening costs, where it costs anything
+
+One guarantee narrowed, and it is the one the old cost note rested on. An
+object initializer used to be hashed once and never looked inside, match or no
+match. It is now looked inside when it does **not** match, because an object
+around the styles is a shape an author writes and the rules still belong to the
+statement. So an authored object that is not the styles -- a configuration
+table, a message catalogue -- is hashed once per level rather than once, and a
+hash reads the whole subtree under it. Past 128 properties the hash gives up
+and copies the subtree instead, so at that width the bytes copied grow with the
+depth as well.
+
+`array-with-data/N` is that shape: the array export behind a top-level authored
+object, eight levels deep and 200 names per level, so every level takes the
+copying arm. Same machine, same afternoon, the old code measured first.
+
+| `create` calls | before   | after    |
+| -------------- | -------- | -------- |
+| 128            | 252.4 us | 709.5 us |
+| 512            | 650.7 us | 841.9 us |
+| 2048           | 2.232 ms | 1.381 ms |
+
+Read it as one curve rather than three numbers. The authored object costs the
+new walk about 0.45 ms more than it cost the old one, whatever the styles
+beside it are; the styles cost 63% less. So the module is slower while the data
+outweighs the styles, the two cross somewhere past 512 calls, and a module of
+2,048 calls with the same data in front of it is 38% faster.
+
+The 0.45 ms is kept rather than guarded, for two reasons. There is no cheap way
+to know a queued key cannot be below an object -- the queue holds hashes, and a
+hash answers about a node, not about what a node contains. And the shape has to
+be extreme before it is measurable: 1,800 authored properties, nested eight
+deep, in the same module as the styles, with runtime injection on. What the leg
+buys is that the next change to this walk is read against it.

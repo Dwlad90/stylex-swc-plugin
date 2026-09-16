@@ -1,19 +1,20 @@
 //! What the runtime-injection walk costs over a large top-level array.
 //!
 //! `flush_pending_insertions` places each queued `_inject2(...)` statement in
-//! front of the declaration that holds the styles it belongs to. To find that
-//! declaration it hashes the candidates every top-level initializer reaches,
-//! and the shapes differ by a lot in how many candidates that is:
+//! front of the statement that holds the styles it belongs to. To find that
+//! statement it reads every expression the statement holds and hashes each
+//! object and each name it meets, and the shapes differ by a lot in how many
+//! candidates that is:
 //!
-//! - A declarator bound to one compiled object is hashed once and is not
-//!   looked inside. That is `export const styles = stylex.create({ ... })`.
+//! - A declarator bound to one compiled object is hashed once, and the walk
+//!   stops there. That is `export const styles = stylex.create({ ... })`.
 //!   One hash is not the same as a cheap one: past 128 properties that hash
 //!   takes the deep-clone arm, which the table in the ADR below shows costing
-//!   more than descending the same styles written as an array.
+//!   more than reading the same styles written as an array.
 //! - A declarator bound to an array is looked inside, because a `create` call
 //!   written in an array declares its rules through the statement rather than
-//!   through the object. Every element is hashed, then every object an element
-//!   holds, then every literal below that.
+//!   through the object. Every element is hashed, and an element that is not
+//!   the styles is read further down.
 //!
 //! The second shape is the one this file is about, and before it nothing
 //! measured that shape: the benchmark corpus runs its two large-array fixtures
@@ -75,6 +76,19 @@ const CORPUS_CALLS: usize = 21_733;
 const NAMESPACES: usize = 3;
 const DECLARATIONS: usize = 3;
 
+/// How deep the authored object in the data leg nests, and how many names each
+/// of its levels holds.
+///
+/// The width is over the 128 properties `stable_hash_unspanned` gives up at,
+/// so every level of the object takes the deep-clone arm. That is the arm that
+/// decides this leg: a hash of one level copies the whole subtree under it, so
+/// reading the object level by level copies the bytes of every level again.
+/// The two together are far more than a configuration table an author writes,
+/// which is the point -- the leg is the worst case of reading a statement to
+/// the bottom, not the common one.
+const DATA_DEPTH: usize = 8;
+const DATA_WIDTH: usize = 200;
+
 /// The source of one compiled `create` result: what the transform leaves where
 /// the author wrote `stylex.create({ ... })`.
 fn compiled_object(index: usize) -> String {
@@ -118,6 +132,40 @@ fn object_module_source(calls: usize) -> String {
     .join(",\n");
 
   format!("'use strict';\nimport 'side-effect';\nexport const styles = {{\n{groups}\n}};\n")
+}
+
+/// A module whose styles are an array, behind a top-level object of authored
+/// data the styles have nothing to do with -- a configuration table, a message
+/// catalogue, a theme map.
+///
+/// This is the shape that decides what reading the whole statement costs. The
+/// walk hashes an object it did not match and then reads inside it, and a hash
+/// reads the whole subtree under it, so an authored object `d` levels deep is
+/// hashed `d` times at its own root. The walk before it hashed such an
+/// initializer once and never looked inside, which is what makes this the one
+/// leg where the widening is a cost rather than a saving.
+///
+/// `depth` levels of nesting, each holding one object and two names, so the
+/// node count grows with the depth rather than with the width.
+fn data_module_source(calls: usize, depth: usize, width: usize) -> String {
+  let names = (0..width)
+    .map(|name| format!("n{name}: \"name\""))
+    .collect::<Vec<_>>()
+    .join(", ");
+  let mut data = format!("{{ {names} }}");
+
+  for level in 0..depth {
+    data = format!("{{ k{level}: {data}, {names} }}");
+  }
+
+  let elements = (0..calls)
+    .map(compiled_object)
+    .collect::<Vec<_>>()
+    .join(",\n");
+
+  format!(
+    "'use strict';\nimport 'side-effect';\nconst config = {data};\nexport const styles = [\n{elements}\n];\n"
+  )
 }
 
 fn parse(source: &str) -> Module {
@@ -173,6 +221,27 @@ fn array_fixture(calls: usize) -> Fixture {
       .map(|element| stable_hash_unspanned(&element.expr))
       .collect(),
     _ => panic!("the array source did not parse to an array initializer"),
+  };
+
+  Fixture {
+    body: module.body,
+    keys,
+  }
+}
+
+/// The data fixture: the array fixture's keys, over a body that also holds the
+/// authored object. The keys are read off the array, so the data is what the
+/// walk reads for nothing.
+fn data_fixture(calls: usize, depth: usize, width: usize) -> Fixture {
+  let module = parse(&data_module_source(calls, depth, width));
+  let keys = match exported_init(&module) {
+    Expr::Array(array) => array
+      .elems
+      .iter()
+      .flatten()
+      .map(|element| stable_hash_unspanned(&element.expr))
+      .collect(),
+    _ => panic!("the data source did not parse to an array initializer"),
   };
 
   Fixture {
@@ -350,6 +419,12 @@ fn injection_walk_benchmarks(c: &mut Criterion) {
           &mut group,
           &object_fixture(*calls),
           &format!("object/{calls}"),
+          true,
+        );
+        measure(
+          &mut group,
+          &data_fixture(*calls, DATA_DEPTH, DATA_WIDTH),
+          &format!("array-with-data/{calls}"),
           true,
         );
       }

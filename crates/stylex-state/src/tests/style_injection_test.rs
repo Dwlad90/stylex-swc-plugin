@@ -388,6 +388,69 @@ fn a_fallback_shape_is_injected_in_front_of_too() {
   assert_eq!(body_shapes(&body), vec!["import", "var", "call", "var"]);
 }
 
+/// A hoisted call is the shape production hands over: the call site holds a
+/// reference to the declaration the object moved to, and the object reaches
+/// the state as the fallback hash. The reference names nothing the placement
+/// walk reads, so the object is what finds the statement -- and the reference
+/// is queued under no key of its own, which is what lets the walk stop once
+/// the rules are placed.
+#[test]
+fn a_hoisted_call_is_injected_in_front_of_the_object_it_left() {
+  let mut state = state_with(Some(RuntimeInjectionState::Boolean(true)));
+  let hoisted = object_expr();
+  let reference = Expr::Ident(create_ident("_styles"));
+  let mut body = vec![
+    var_item("_styles", hoisted.clone()),
+    var_item("read", Expr::Ident(create_ident("_styles"))),
+  ];
+
+  state.register_styles(
+    &call_expr("create"),
+    &regular_style("x1e2nbdu", ".x1e2nbdu{color:red}", None),
+    &reference,
+    Some(stable_hash_unspanned(&hoisted)),
+  );
+
+  flush_pending_insertions(&mut state, &mut body, true);
+
+  assert_eq!(
+    body_shapes(&body),
+    vec!["import", "var", "call", "var", "var"]
+  );
+}
+
+/// Two statements can hold the same compiled object, and the first of them
+/// takes the metadata. The second is left alone, which is what stops one rule
+/// being injected twice.
+///
+/// Upstream injects the rule in front of both, because it places the rules of
+/// each call against that call rather than against the shape it left. The
+/// stylesheet is the same either way -- the rule is one rule -- so the
+/// divergence is recorded rather than followed.
+#[test]
+fn the_first_statement_holding_the_styles_takes_the_injection() {
+  let mut state = state_with(Some(RuntimeInjectionState::Boolean(true)));
+  let ast = object_expr();
+  let mut body = vec![
+    var_item("first", ast.clone()),
+    var_item("second", ast.clone()),
+  ];
+
+  state.register_styles(
+    &call_expr("create"),
+    &regular_style("x1e2nbdu", ".x1e2nbdu{color:red}", None),
+    &ast,
+    None,
+  );
+
+  flush_pending_insertions(&mut state, &mut body, true);
+
+  assert_eq!(
+    body_shapes(&body),
+    vec!["import", "var", "call", "var", "var"]
+  );
+}
+
 /// Registering the same style against one shape twice queues the injecting call
 /// once, so a re-registration cannot double the rule at runtime.
 #[test]
@@ -835,4 +898,375 @@ fn a_default_exported_value_that_is_not_an_object_anchors_no_injection() {
   flush_pending_insertions(&mut state, &mut body, true);
 
   assert_eq!(body_shapes(&body), vec!["import", "var", "other"]);
+}
+
+/// Where the walk that places an injecting call looks for the object a producer
+/// registered.
+///
+/// The rules a call declares belong to the statement that holds the call, so
+/// the object the call was replaced by can sit anywhere in that statement: in
+/// an array, in an object the author wrote, in the argument of a wrapping call,
+/// in a branch of a conditional, or in a class field. Each case below writes
+/// the registered object into one of those places and asks that the injecting
+/// call lands in front of the statement.
+mod finding_the_object_a_statement_holds {
+  use swc_core::{
+    common::{
+      DUMMY_SP, FileName, SourceFile, SourceMap, SyntaxContext, input::StringInput, sync::Lrc,
+    },
+    ecma::{
+      ast::{
+        AssignExpr, AssignOp, AssignTarget, Class, ClassDecl, ClassMember, ClassProp, Decl, Expr,
+        ExprStmt, IdentName, ModuleItem, PropName, PropOrSpread, SimpleAssignTarget, Stmt,
+      },
+      parser::{Parser, Syntax, TsSyntax, lexer::Lexer},
+    },
+  };
+
+  use stylex_ast::ast::factories::{
+    create_arrow_expression, create_binding_ident, create_call_expr, create_cond_expr,
+    create_expr_or_spread, create_ident, create_ident_key_value_prop, create_null_lit,
+    create_object_expression,
+  };
+  use stylex_structures::named_import_source::RuntimeInjectionState;
+
+  use super::{
+    body_shapes, call_expr, object_expr, regular_style, state_with, string_expr, var_item,
+  };
+  use crate::state_manager::flush_pending_insertions;
+
+  /// `{ s: <value> }` -- the object an author writes around the styles.
+  fn object_holding(value: Expr) -> Expr {
+    create_object_expression(vec![create_ident_key_value_prop("s", value)])
+  }
+
+  /// `wrap(<value>)` -- a call that reads the styles and answers something
+  /// else.
+  fn call_holding(value: Expr) -> Expr {
+    Expr::Call(create_call_expr(
+      Expr::Ident(create_ident("wrap")),
+      vec![create_expr_or_spread(value)],
+    ))
+  }
+
+  /// `true ? <value> : null` -- one branch of a conditional.
+  fn branch_holding(value: Expr) -> Expr {
+    create_cond_expr(string_expr("on"), value, Expr::Lit(create_null_lit()))
+  }
+
+  /// `class { p = <value>; }` -- a field initialized with the styles, which
+  /// stays where it was written because it is built per instance.
+  fn class_field_item(value: Expr) -> ModuleItem {
+    ModuleItem::Stmt(Stmt::Decl(Decl::Class(ClassDecl {
+      ident: create_ident("C"),
+      declare: false,
+      class: Box::new(Class {
+        span: DUMMY_SP,
+        decorators: vec![],
+        body: vec![ClassMember::ClassProp(ClassProp {
+          span: DUMMY_SP,
+          key: PropName::Ident(IdentName::new("p".into(), DUMMY_SP)),
+          value: Some(Box::new(value)),
+          type_ann: None,
+          is_static: false,
+          decorators: vec![],
+          accessibility: None,
+          is_abstract: false,
+          is_optional: false,
+          is_override: false,
+          readonly: false,
+          declare: false,
+          definite: false,
+        })],
+        super_class: None,
+        is_abstract: false,
+        type_params: None,
+        super_type_params: None,
+        implements: vec![],
+        ctxt: SyntaxContext::empty(),
+      }),
+    })))
+  }
+
+  /// `s = <value>;` -- an assignment rather than a declaration.
+  fn assignment_item(value: Expr) -> ModuleItem {
+    ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+      span: DUMMY_SP,
+      expr: Box::new(Expr::Assign(AssignExpr {
+        span: DUMMY_SP,
+        op: AssignOp::Assign,
+        left: AssignTarget::Simple(SimpleAssignTarget::Ident(create_binding_ident(
+          create_ident("s"),
+        ))),
+        right: Box::new(value),
+      })),
+    }))
+  }
+
+  /// Registers one style against `ast` and flushes over a body of one item.
+  fn placed_shapes(item: ModuleItem, ast: &Expr) -> Vec<&'static str> {
+    let mut state = state_with(Some(RuntimeInjectionState::Boolean(true)));
+    let mut body = vec![item];
+
+    state.register_styles(
+      &call_expr("create"),
+      &regular_style("x1e2nbdu", ".x1e2nbdu{color:red}", None),
+      ast,
+      None,
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    body_shapes(&body)
+  }
+
+  /// The module body `source` parses to.
+  ///
+  /// Read as TypeScript, which is what the compiler is handed. A namespace is
+  /// one of the cases below and it has no JavaScript spelling.
+  fn parse_body(source: &str) -> Vec<ModuleItem> {
+    let source_map: Lrc<SourceMap> = Default::default();
+    let file: Lrc<SourceFile> =
+      source_map.new_source_file(FileName::Anon.into(), source.to_string());
+    let mut parser = Parser::new_from(Lexer::new(
+      Syntax::Typescript(TsSyntax::default()),
+      Default::default(),
+      StringInput::from(&*file),
+      None,
+    ));
+
+    match parser.parse_module() {
+      Ok(module) => module.body,
+      Err(error) => panic!("the case source failed to parse: {error:?}"),
+    }
+  }
+
+  /// A namespace holds module items, so its statements would read as the
+  /// statements of the module itself. Everything in one is below program level,
+  /// which is what hoists a declaration out of it, so a namespace holds nothing
+  /// a producer registered and the walk does not read it.
+  ///
+  /// The object inside the namespace has the shape of the registered one. The
+  /// injection lands in front of the statement after it, which is what says the
+  /// namespace was stepped over rather than read.
+  #[test]
+  fn a_namespace_is_stepped_over_and_takes_no_injection() {
+    let mut state = state_with(Some(RuntimeInjectionState::Boolean(true)));
+    let ast = object_expr();
+    let mut body = parse_body(
+      "namespace Held { export const inside = {}; }
+       const held = {};",
+    );
+
+    state.register_styles(
+      &call_expr("create"),
+      &regular_style("x1e2nbdu", ".x1e2nbdu{color:red}", None),
+      &ast,
+      None,
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(
+      body_shapes(&body),
+      vec!["import", "var", "other", "call", "var"]
+    );
+  }
+
+  /// One statement holding every body the walk steps over, and the registered
+  /// object behind them.
+  ///
+  /// A method, a constructor, an arrow, a getter and a setter each hold code
+  /// that cannot declare the styles of the statement around it, because a call
+  /// written in one is below program level and is hoisted to a declaration of
+  /// its own. The walk reads none of them and still finds the object, and it
+  /// stops reading the statement once the last queued item is placed -- the
+  /// element after the object is never asked about.
+  #[test]
+  fn the_walk_steps_over_every_body_and_stops_when_nothing_is_left() {
+    let mut state = state_with(Some(RuntimeInjectionState::Boolean(true)));
+    let ast = object_expr();
+    let mut body = parse_body(
+      "const held = [
+         class { constructor() {} method() {} },
+         { render: () => null, get read() { return 1; }, set read(value) {} },
+         'label',
+         {},
+         'after',
+       ];",
+    );
+
+    state.register_styles(
+      &call_expr("create"),
+      &regular_style("x1e2nbdu", ".x1e2nbdu{color:red}", None),
+      &ast,
+      None,
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(body_shapes(&body), vec!["import", "var", "call", "var"]);
+  }
+
+  #[test]
+  fn an_object_the_author_wrote_around_the_styles_takes_the_injection_in_front() {
+    let ast = object_expr();
+
+    assert_eq!(
+      placed_shapes(var_item("all", object_holding(ast.clone())), &ast),
+      vec!["import", "var", "call", "var"]
+    );
+  }
+
+  #[test]
+  fn a_wrapping_call_takes_the_injection_in_front() {
+    let ast = object_expr();
+
+    assert_eq!(
+      placed_shapes(var_item("all", call_holding(ast.clone())), &ast),
+      vec!["import", "var", "call", "var"]
+    );
+  }
+
+  #[test]
+  fn a_conditional_branch_takes_the_injection_in_front() {
+    let ast = object_expr();
+
+    assert_eq!(
+      placed_shapes(var_item("all", branch_holding(ast.clone())), &ast),
+      vec!["import", "var", "call", "var"]
+    );
+  }
+
+  #[test]
+  fn a_class_field_takes_the_injection_in_front() {
+    let ast = object_expr();
+
+    assert_eq!(
+      placed_shapes(class_field_item(ast.clone()), &ast),
+      vec!["import", "var", "call", "other"]
+    );
+  }
+
+  #[test]
+  fn an_assignment_takes_the_injection_in_front() {
+    let ast = object_expr();
+
+    assert_eq!(
+      placed_shapes(assignment_item(ast.clone()), &ast),
+      vec!["import", "var", "call", "expr"]
+    );
+  }
+
+  /// A wrapper chain far longer than anything an author writes, to show the
+  /// walk reads to the bottom of a statement rather than to a fixed depth. The
+  /// old walk read arrays, objects and parentheses only, so this shape dropped
+  /// its rules whatever the depth.
+  #[test]
+  fn a_long_chain_of_wrapping_calls_still_takes_the_injection() {
+    let ast = object_expr();
+    let mut held = ast.clone();
+
+    for _ in 0..500 {
+      held = call_holding(held);
+    }
+
+    assert_eq!(
+      placed_shapes(var_item("all", held), &ast),
+      vec!["import", "var", "call", "var"]
+    );
+  }
+
+  /// An object of more than 128 properties is the shape the hash gives up on,
+  /// falling back to a copy of the subtree. It is reached here through a
+  /// wrapper, which is the position that makes the walk read it at all, and it
+  /// is not the registered object -- so the walk pays that copy and then finds
+  /// the styles inside.
+  #[test]
+  fn a_wide_object_the_hash_copies_is_still_read_through() {
+    let ast = object_expr();
+    let mut props: Vec<PropOrSpread> = (0..200)
+      .map(|index| create_ident_key_value_prop(&format!("p{index}"), string_expr("value")))
+      .collect();
+
+    props.push(create_ident_key_value_prop("s", ast.clone()));
+
+    assert_eq!(
+      placed_shapes(
+        var_item("all", call_holding(create_object_expression(props))),
+        &ast
+      ),
+      vec!["import", "var", "call", "var"]
+    );
+  }
+
+  /// A function body holds nothing a producer registered: a call written in one
+  /// is not at program level, so its object is hoisted to a declaration of its
+  /// own and the hoisted declaration is what the walk finds. Not descending
+  /// into a body is what keeps the walk off every component in a module.
+  #[test]
+  fn an_object_a_function_body_holds_anchors_no_injection() {
+    let ast = object_expr();
+
+    assert_eq!(
+      placed_shapes(
+        var_item("render", create_arrow_expression(ast.clone())),
+        &ast
+      ),
+      vec!["import", "var", "var"]
+    );
+  }
+
+  /// The walk stops at the object it matched, so a candidate below a registered
+  /// object is not looked for. Nothing real stands there: the rules a nested
+  /// `keyframes` declares are keyed to the object it was folded into, not to
+  /// the name left in it, which
+  /// `crates/stylex-transform/tests/transform_stylex_create_test/program_level_positions.rs`
+  /// measures through the whole compiler. What the stop buys is the price of a
+  /// large compiled object, which stays at the one hash it has always cost.
+  #[test]
+  fn a_name_below_the_object_that_matched_is_not_looked_for() {
+    let mut state = state_with(Some(RuntimeInjectionState::Boolean(true)));
+    let name = string_expr("xhwkjnl-B");
+    let styles = object_holding(name.clone());
+    let mut body = vec![var_item("styles", styles.clone())];
+
+    state.register_styles(
+      &call_expr("keyframes"),
+      &regular_style("xhwkjnl-B", "@keyframes xhwkjnl-B{}", None),
+      &name,
+      None,
+    );
+    state.register_styles(
+      &call_expr("create"),
+      &regular_style("x1e2nbdu", ".x1e2nbdu{color:red}", None),
+      &styles,
+      None,
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(body_shapes(&body), vec!["import", "var", "call", "var"]);
+  }
+
+  /// A name a compiled `keyframes` left is a candidate where it is not below a
+  /// registered object: `const name = stylex.keyframes({ … })` is a statement
+  /// whose whole initializer is the name.
+  #[test]
+  fn a_name_a_statement_holds_takes_the_injection_in_front() {
+    let mut state = state_with(Some(RuntimeInjectionState::Boolean(true)));
+    let name = string_expr("xhwkjnl-B");
+    let mut body = vec![var_item("fade", call_holding(name.clone()))];
+
+    state.register_styles(
+      &call_expr("keyframes"),
+      &regular_style("xhwkjnl-B", "@keyframes xhwkjnl-B{}", None),
+      &name,
+      None,
+    );
+
+    flush_pending_insertions(&mut state, &mut body, true);
+
+    assert_eq!(body_shapes(&body), vec!["import", "var", "call", "var"]);
+  }
 }

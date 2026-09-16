@@ -147,16 +147,18 @@ depth — nearly all of what folding a deep expression costs
 ([ADR 0005](../stylex-evaluator/docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md)).
 _Avoid_: cache entry, memo
 
-**Held candidate**:
-An expression a container the author wrote puts between a declarator and the
-object a producer registered — `export const all = [{ s: stylex.create({…}) }]`
-holds one. The walk that decides where a runtime injection call goes reads an
-initializer and every held candidate below it, because the declaration the
-rules belong to is the statement rather than the object. An initializer that is
-an object is not held: it _is_ the registered object, so it is hashed once and
-not looked inside. That holds a large top-level object to one hash, which is not
-the same as holding it cheap: past 128 properties that one hash takes the
-deep-clone arm and costs more than descending the same styles written as an
-array. What the descent costs, and why no fixture prices it, is
-[ADR 0002](./docs/adr/0002-the-injection-walk-over-a-large-array-is-measured-and-kept.md).
-_Avoid_: nested styles, wrapped call, inner object
+**Registered object**:
+The object a producer left where the author wrote the call, or the name a
+compiled `keyframes`, `positionTry` or `viewTransitionClass` answered with.
+It is what a runtime injection call is keyed to, and the walk that decides
+where that call goes looks for it anywhere in a statement —
+`export const all = [wrap(stylex.create({…}))]` holds one behind a call, and
+the rules still belong to the statement rather than to the object. The walk
+stops at the object it matched, because nothing a registered object holds is
+registered itself, and it does not read a function body or a namespace, because
+a call written in one is not at program level. What the walk costs, on the
+shape it saves the most and on the shape it costs anything, is
+[ADR 0002](./docs/adr/0002-the-injection-walk-over-a-large-array-is-measured-and-kept.md);
+what keying and queueing the call costs is
+[ADR 0003](./docs/adr/0003-the-injection-queue-is-deduped-by-a-pair-of-hashes.md).
+_Avoid_: held candidate, nested styles, wrapped call, inner object

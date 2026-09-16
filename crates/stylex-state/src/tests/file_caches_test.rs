@@ -1,0 +1,88 @@
+//! The answers the state works out once for a file and reads back.
+//!
+//! Each of these is a memo, not a question about the module: the answer is the
+//! same for every call in one file, and working it out again would mean reading
+//! the package boundaries around the file, or building the same two strings and
+//! the same index map. A memo owes three answers -- nothing before it is
+//! written, the value it was given after, and the second value when it is
+//! written twice -- so each one is asked all three.
+
+use std::rc::Rc;
+
+use crate::flat_compiled_styles_value::FlatCompiledStylesValue;
+use crate::tests::prelude::test_state as state;
+use crate::types::FlatCompiledStyles;
+
+/// One compiled style map holding the single entry handed in, which is all any
+/// case here reads back.
+fn compiled_styles(key: &str, value: FlatCompiledStylesValue) -> FlatCompiledStyles {
+  let mut values = FlatCompiledStyles::default();
+
+  values.insert(key.to_string(), Rc::new(value));
+
+  values
+}
+
+/// The short filename a debug annotation carries is worked out once and kept,
+/// because reading it means reading the package boundaries around the file.
+#[test]
+fn a_short_filename_is_worked_out_once_and_kept() {
+  let mut state = state();
+
+  assert_eq!(state.cached_short_filename("/repo/src/app.js"), None);
+
+  state.insert_cached_short_filename("/repo/src/app.js".to_string(), "app.js".to_string());
+
+  assert_eq!(
+    state.cached_short_filename("/repo/src/app.js"),
+    Some("app.js")
+  );
+  assert_eq!(state.cached_short_filename("/repo/src/other.js"), None);
+}
+
+/// A path recorded twice keeps the second answer, which is what an overwrite
+/// has to do for the memo to stay a memo of the current shortening.
+#[test]
+fn a_short_filename_recorded_twice_keeps_the_second() {
+  let mut state = state();
+
+  state.insert_cached_short_filename("/repo/src/app.js".to_string(), "app.js".to_string());
+  state.insert_cached_short_filename("/repo/src/app.js".to_string(), "src/app.js".to_string());
+
+  assert_eq!(
+    state.cached_short_filename("/repo/src/app.js"),
+    Some("src/app.js")
+  );
+}
+
+/// The default marker's compiled values are the same for every call in one
+/// file, so they are built once and read back. An empty memo answers nothing,
+/// which is what makes the first call build them.
+#[test]
+fn the_default_marker_values_are_built_once_and_kept() {
+  let mut state = state();
+
+  assert_eq!(state.cached_default_marker_values(), None);
+
+  let values = compiled_styles("$$css", FlatCompiledStylesValue::Bool(true));
+
+  state.insert_cached_default_marker_values(values.clone());
+
+  assert_eq!(state.cached_default_marker_values(), Some(&values));
+}
+
+/// A second build overwrites the first. Nothing in a file asks for two markers,
+/// but the memo must answer the values it was last given rather than the values
+/// it was first given.
+#[test]
+fn the_default_marker_values_recorded_twice_keep_the_second() {
+  let mut state = state();
+
+  let first = compiled_styles("$$css", FlatCompiledStylesValue::Bool(true));
+  let second = compiled_styles("color", FlatCompiledStylesValue::String("xred".to_string()));
+
+  state.insert_cached_default_marker_values(first);
+  state.insert_cached_default_marker_values(second.clone());
+
+  assert_eq!(state.cached_default_marker_values(), Some(&second));
+}

@@ -6,6 +6,7 @@ mod call_index_test;
 mod diagnostic_state_test;
 mod evaluate_result_value_test;
 mod file_and_options_test;
+mod file_caches_test;
 mod flat_compiled_styles_value_test;
 mod functions_test;
 mod get_canonical_file_path_test;

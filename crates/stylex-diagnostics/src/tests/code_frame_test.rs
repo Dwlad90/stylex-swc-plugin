@@ -1009,13 +1009,53 @@ export const styles = create({
   assert_eq!(line, Some(5));
 }
 
+/// Runs `locate` behind the panic boundary and answers the detail the refusal
+/// carries, having checked the sentence around it. The sentence is one string
+/// in `code_frame.rs`, so the three cases below state only the part that
+/// differs between them.
+fn detail_of_a_panic(locate: impl FnOnce() -> Result<(CodeFrame, Span), Error>) -> String {
+  const PREFIX: &str = "Panicked while locating the source span for a diagnostic: ";
+
+  match locate_span_with_panic_boundary(locate) {
+    Ok(_) => panic!("the boundary answered a span for a panic"),
+    Err(error) => {
+      let reported = error.to_string();
+
+      match reported.strip_prefix(PREFIX) {
+        Some(detail) => detail.to_owned(),
+        None => panic!("the refusal does not begin with `{PREFIX}`: {reported}"),
+      }
+    },
+  }
+}
+
 /// The panic boundary every span lookup sits behind: a panic inside it is an
-/// ordinary "no code frame", never the end of the compilation.
+/// ordinary "no code frame", never the end of the compilation. The words the
+/// panic carried are kept, because they are the only trace of what went wrong.
 #[test]
 fn a_panic_while_locating_a_span_becomes_an_ordinary_failure() {
-  let located = locate_span_with_panic_boundary(|| panic!("while locating a span"));
+  let detail = detail_of_a_panic(|| panic!("while locating a span"));
 
-  assert!(located.is_err());
+  assert_eq!(detail, "while locating a span");
+}
+
+/// A panic message built at the moment it is raised is carried as a `String`,
+/// not as the static text above, and the boundary reads both.
+#[test]
+fn a_panic_carrying_built_words_keeps_them() {
+  let name = "styles";
+  let detail = detail_of_a_panic(move || panic!("while locating {name}"));
+
+  assert_eq!(detail, "while locating styles");
+}
+
+/// A panic can carry any value, not only text. The boundary says so in place of
+/// the words it has none of, rather than answering a message built from nothing.
+#[test]
+fn a_panic_carrying_no_text_is_reported_without_words() {
+  let detail = detail_of_a_panic(|| std::panic::panic_any(7u32));
+
+  assert_eq!(detail, "<no message>");
 }
 
 /// The hook the boundary installs suppresses only its own panics. Anything else

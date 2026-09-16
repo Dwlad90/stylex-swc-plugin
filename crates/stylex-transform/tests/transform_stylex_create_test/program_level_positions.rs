@@ -155,3 +155,153 @@ stylex_test!(
     export const all = [{ outer: { inner: stylex.create({ a: { color: 'red' } }) } }];
   "#
 );
+
+// An array can hold the call inside something that is not a container: a
+// wrapping call, or a branch of a conditional. The rules still belong to the
+// statement, and the walk that places the injection reads the whole statement
+// rather than the containers alone. Before it did, each of these shipped a
+// class name no stylesheet defined.
+stylex_test!(
+  a_call_an_array_wraps_the_styles_in_injects_their_rules,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const wrap = (value) => value;
+    export const all = [wrap(stylex.create({ a: { color: 'red' } }))];
+  "#
+);
+
+stylex_test!(
+  a_conditional_an_array_holds_injects_the_rules_of_its_branch,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const all = [true ? stylex.create({ a: { color: 'red' } }) : null];
+  "#
+);
+
+// The same shapes without the array around them, because the array was never
+// what decided the answer.
+stylex_test!(
+  a_wrapping_call_injects_the_rules_of_the_styles_it_reads,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const all = Object.freeze(stylex.create({ a: { color: 'red' } }));
+  "#
+);
+
+stylex_test!(
+  an_object_the_author_wrote_injects_the_rules_inside_it,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const all = { s: stylex.create({ a: { color: 'red' } }) };
+  "#
+);
+
+// A class field is built once per instance, so both compilers leave the object
+// where it was written. The rules belong to the statement that declares the
+// class.
+stylex_test!(
+  a_class_field_injects_the_rules_it_declares,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export class Component {
+      styles = stylex.create({ a: { color: 'red' } });
+    }
+  "#
+);
+
+// An assignment is not a declaration, and the rules belong to the statement
+// all the same.
+stylex_test!(
+  an_assignment_injects_the_rules_it_declares,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    let styles;
+    styles = stylex.create({ a: { color: 'red' } });
+    export { styles };
+  "#
+);
+
+// A default export can hold the call inside something else, and reading only
+// the whole expression left the call in the printed module.
+stylex_test!(
+  a_default_export_holding_the_call_deeper_compiles_it,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const wrap = (value) => value;
+    export default wrap(stylex.create({ a: { color: 'red' } }));
+  "#
+);
+
+stylex_test!(
+  a_default_exported_array_of_styles_compiles_and_injects,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export default [stylex.create({ a: { color: 'red' } })];
+  "#
+);
+
+// A `keyframes` call written inside the `create` argument leaves its name in
+// the compiled object. Both rules are injected in front of the statement, and
+// the keyframes rule is keyed to the object the `create` call was replaced by
+// rather than to the name inside it -- which is what lets the walk stop at the
+// object it matched.
+stylex_test!(
+  a_keyframes_inside_the_create_argument_injects_both_rules,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      a: { animationName: stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } }) },
+    });
+  "#
+);
+
+// A class expression holds a field the same way a class declaration does, and
+// the statement that holds it is the declarator.
+stylex_test!(
+  a_class_expression_field_injects_the_rules_it_declares,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const Component = class {
+      styles = stylex.create({ a: { color: 'red' } });
+    };
+  "#
+);
+
+// Two statements can hold the same compiled object. The rules are injected in
+// front of the first of them and once only.
+//
+// Upstream injects them in front of both, because it places the rules of each
+// call against that call rather than against the shape it left. The stylesheet
+// is the same either way -- one rule -- so the divergence is recorded here
+// rather than followed.
+stylex_test!(
+  two_statements_holding_the_same_styles_inject_them_once,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const a = stylex.create({ x: { color: 'red' } });
+    export const b = stylex.create({ x: { color: 'red' } });
+  "#
+);
+
+// A chain of wrapping calls far deeper than an author writes one, to show the
+// walk reads to the bottom of the statement rather than to a fixed depth.
+stylex_test!(
+  a_chain_of_wrapping_calls_injects_the_rules_at_the_bottom,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const w = (value) => value;
+    export const all = w(w(w(w(w(stylex.create({ a: { color: 'red' } }))))));
+  "#
+);

@@ -9,18 +9,23 @@
  *
  * Run it from this package, after `dist/` is built:
  *
- *   pnpm run parity:probe '{"a label": "<module source>"}' [host file name]
+ *   pnpm run parity:probe '{"a label": "<module source>"}' [host file name] [--inject]
  *
  * The first argument is a JSON object of label to module source. The second is
  * optional and names the file both compilers are told the source came from.
  * It defaults to `probe.js`; pass a `.stylex.js` name to measure the shapes
  * that only a variable-defining module can hold, such as `defineVars`.
+ *
+ * `--inject` turns runtime injection on, which is what prints the
+ * `_inject2(...)` statements and so the only way to see *where* a compiler
+ * places the rules a call declares. It can stand anywhere in the arguments.
  */
 
 import path from 'node:path';
 
 import * as babel from '@babel/core';
 
+import type { StyleXOptions } from '../dist/index.js';
 import {
   baseStyleXOptions,
   loadBabelPlugin,
@@ -69,9 +74,15 @@ const hostFileName = (argument: string | undefined): string => {
   return name;
 };
 
+/** The arguments that are not the `--inject` flag, in the order given. */
+const positional = process.argv.slice(2).filter(argument => argument !== '--inject');
+const runtimeInjection = process.argv.includes('--inject');
+
 const packageDir = path.resolve(import.meta.dirname, '..');
-const filename = path.join(packageDir, hostFileName(process.argv[3]));
-const options = baseStyleXOptions(packageDir);
+const filename = path.join(packageDir, hostFileName(positional[1]));
+const options: StyleXOptions = runtimeInjection
+  ? { ...baseStyleXOptions(packageDir), runtimeInjection: true }
+  : baseStyleXOptions(packageDir);
 
 const { transform } = await loadRustCompiler(packageDir);
 const { plugin } = loadBabelPlugin();
@@ -164,7 +175,7 @@ const readSources = (argument: string): Map<string, string> => {
   return sources;
 };
 
-const sources = readSources(process.argv[2] ?? '{}');
+const sources = readSources(positional[0] ?? '{}');
 
 for (const [label, source] of sources) {
   console.log('='.repeat(70));

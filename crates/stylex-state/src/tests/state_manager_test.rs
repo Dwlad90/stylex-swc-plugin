@@ -12,8 +12,6 @@ mod state_manager {
     },
   };
 
-  use std::rc::Rc;
-
   use crate::call_positions::{CallPositions, Position};
   use crate::state_manager::{InsertionSlot, StateManager, flush_pending_insertions};
   use crate::tests::prelude::{
@@ -1029,7 +1027,7 @@ mod state_manager {
     let recorded = call_of_at("create", "styles", span_at(12, 30));
     let beside = call_of_at("create", "styles", span_at(90, 99));
 
-    state.call_positions = Rc::new(positions_holding(recorded.span));
+    state.record_call_positions(positions_holding(recorded.span));
 
     assert!(state.is_program_level_call(&recorded));
     assert!(state.is_bare_call_statement(&recorded));
@@ -1049,7 +1047,7 @@ mod state_manager {
 
     let synthesized = call_of("create", "styles");
 
-    state.call_positions = Rc::new(positions_holding(synthesized.span));
+    state.record_call_positions(positions_holding(synthesized.span));
 
     assert!(!state.is_program_level_call(&synthesized));
     assert!(!state.is_bare_call_statement(&synthesized));

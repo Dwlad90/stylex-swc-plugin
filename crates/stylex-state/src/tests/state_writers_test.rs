@@ -667,6 +667,10 @@ mod fill_call_positions_tests {
       "const s = true ? create({}) : null;",
       "const s = (0, create({}));",
       "create({});",
+      // A class body is not a statement and a field initializer is not a
+      // function, so the field stands where the class stands. The object is
+      // then built once per instance rather than once for the module, which is
+      // what the reference implementation does with it too.
       "class C { p = create({}); }",
       "export class C { p = create({}); }",
     ] {

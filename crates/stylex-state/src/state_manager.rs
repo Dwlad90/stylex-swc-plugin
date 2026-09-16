@@ -821,7 +821,7 @@ pub struct StateManager {
   /// and read through the three predicates below.
   ///
   /// Shared rather than copied -- see [`Self::declaration_call_index`].
-  pub(crate) call_positions: Rc<CallPositions>,
+  call_positions: Rc<CallPositions>,
   pub(crate) call_expressions: CallExpressionState,
   pub seen: FxHashMap<u128, Rc<SeenValue>>,
   /// How many expression levels the evaluator is currently inside.
@@ -2179,6 +2179,15 @@ impl StateManager {
       .get(name.sym.as_str())
       .is_some_and(|recorded| declarator.eq_ignore_span(recorded))
       .then_some((name, init))
+  }
+
+  /// Records where the module writes each of its calls.
+  ///
+  /// The one way in, for the reason [`Self::push_top_level_expression`] is the
+  /// one way into the list beside it: a record the walk hands over whole cannot
+  /// be half replaced.
+  pub(crate) fn record_call_positions(&mut self, positions: CallPositions) {
+    self.call_positions = Rc::new(positions);
   }
 
   /// Whether `call` is written at program level -- inside a statement of the

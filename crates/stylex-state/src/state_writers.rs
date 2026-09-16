@@ -4,8 +4,6 @@
 //! in this module writes to the state manager and returns nothing; nothing here
 //! decides what a declaration means, only that the state has to remember it.
 
-use std::rc::Rc;
-
 use swc_core::ecma::{
   ast::{
     ArrowExpr, CallExpr, Constructor, Decl, Expr, ExprStmt, ForHead, Function, GetterProp, Module,
@@ -106,12 +104,19 @@ pub fn fill_state_declarations(state: &mut StateManager, decl: &VarDeclarator) {
 /// not carry. The walk keeps what a parent would answer instead: how many
 /// statements enclose the call, and whether a function, a namespace or a type
 /// assertion does.
+///
+/// A pass that transforms `stylex.create` must call this. A state without it
+/// reads every call as written nowhere, so it hoists a style object that
+/// belongs where the author wrote it, and it accepts a call that nothing reads.
+/// A pass that only folds expressions needs neither answer, which is why this
+/// walk is apart from [`fill_top_level_expressions`]. That one reads the module
+/// body and this one reads the whole tree, and they have different callers.
 pub fn fill_call_positions(module: &Module, state: &mut StateManager) {
   let mut walk = CallPositionWalk::default();
 
   module.visit_with(&mut walk);
 
-  state.call_positions = Rc::new(walk.positions);
+  state.record_call_positions(walk.positions);
 }
 
 /// The walk behind [`fill_call_positions`].

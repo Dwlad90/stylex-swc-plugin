@@ -119,6 +119,68 @@ invariant stays asserted at the producer, and the two regions the gate counted
 are closed by `an_entry_for_another_declaration_or_the_whole_variable_is_passed_over`:
 the unit binary now drives the whole function, which is what the gate scores.
 
+### The review round after the reshape
+
+Three reviews ran over the work -- standards, spec and one on performance
+alone. What was left after the first pass, and what came of it.
+
+**The class-paths default is asserted where the paths are written.**
+`joined_class_paths` answers the empty map for a namespace it holds no entry
+for, and no reader reaches that answer, because `stylex_create_set` writes the
+paths and the namespaces in one pass over the same names. The claim was in a
+comment; it is now
+`answers_class_paths_for_every_namespace_it_compiles`, which compiles a
+namespace that declares nothing and reads both maps. That is the fourth answer
+`guidelines/stack/RUST.md` ranks -- assert the invariant at the producer, where
+a case costs no region. The reshape the review asked for instead, one map of
+pairs out of `stylex_create_set`, would change what six other steps read to
+close one unread branch.
+
+**One place says what a function value is.** `VariableGroup::function_values`
+answers the variables whose value is a function, and both the rule above it and
+the dependency walk below read it. The walk also asks first whether the group
+holds one at all: only a function body can name another variable, so a group
+with none -- which is most of them -- no longer gathers the set of declared
+names to compare against.
+
+**The sentence a nameless key reads is recorded where it is decided.**
+`VariableGroup::read` says that such a key is refused there, before the
+missing-default rule looks at what the value holds, and that the rule below
+always has a name to report because the group was named where it was read.
+
+**Two findings were not taken.**
+
+- The pair `folded_style_object` and `folded_style_object_lit` was read as one
+  step delegating to another. Six producers pass the value on to a step that
+  takes it, so the one line answers six call sites; writing the wrap out at
+  each of them is the copy the pair removes.
+- The four values `normalize_define_vars_functions` hands to
+  `fold_function_value` were read as a type waiting to be born. They travel one
+  hop, so a type for them would be the next smell on the same list. Sharing the
+  refusal itself is the larger question -- eight readers report a value the fold
+  would not answer, and seven of them already read it in one place -- and that
+  is a change to judge on its own.
+
+**A second round over the three fixes.** The parity case lost an assertion
+that another case already makes, and it now reads the namespace count first,
+so the check over the names cannot pass on an empty list. The note about the
+sentence a nameless key reads stays at the rule that reports it and not at the
+step above as well. The comment about how many groups hold a function value is
+gone: `guidelines/PERFORMANCE.md` puts the noise floor far above one
+allocation, so the step says what it skips and not what that is worth. The set
+of declared names is sized up front, because a group can hold hundreds.
+`joined_class_paths` reads each class name from the namespace rather than
+copying it, so only the joined path is new text.
+
+**On the `defineVars` half taking the first answer, not the second.** The spec
+review read `named_key_value` as a guard relocated rather than removed.
+`guidelines/stack/RUST.md` ranks proving the claim against a source and keeping
+the guard **above** making the shape unrepresentable, and that is what this is:
+a property that is a spread, a method or a key with no name is a shape any
+object literal can hold, three cases build all three, and the sentence each one
+gets is read. Making it unrepresentable would mean the evaluator answering a
+named list for every object it folds, not only for a variable group.
+
 ### Three things an author reads differently
 
 All three are shapes no source reaches, and they are recorded because the code

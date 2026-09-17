@@ -3,6 +3,17 @@ use std::borrow::Cow;
 use super::*;
 use stylex_ast::ast::convertors::normalize_expr;
 
+/// The value a shorthand is expanded with.
+///
+/// An expansion needs a value to work on, and this one says nothing about the
+/// style it stands for. Only which declarations an expansion answers matters
+/// here, so the value is read for nothing but whether it is there.
+///
+/// It is one token holding a digit, which is what keeps it silent: `listStyle`
+/// is the one expansion that sorts its value, and it sorts this one into the
+/// slot a keyword would not take.
+const SHORTHAND_MARKER: &str = "p0";
+
 pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicStyle> {
   // The same options for every style, so they are built once. Building them
   // inside the loop made two strings, a counted pointer and two collections for
@@ -12,17 +23,14 @@ pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec
 
   let expanded_keys_to_key_paths: Vec<DynamicStyle> = dynamic_styles
     .iter()
-    .enumerate()
-    .flat_map(|(index, dynamic_style)| {
+    .flat_map(|dynamic_style| {
       let obj_entry = (
         Cow::Borrowed(dynamic_style.key.as_str()),
-        PreRuleValue::string(create_shorthand_key(index)),
+        PreRuleValue::string(SHORTHAND_MARKER),
       );
 
-      // The style each expanded declaration came from is carried beside it.
-      // The marker above says which style an expansion is of, and this loop
-      // already knows, so the marker is written for the expansion to read and
-      // never read back.
+      // The style each expanded declaration came from is carried beside it,
+      // because this loop knows which style it is expanding.
       flat_map_expanded_shorthands(obj_entry, &options)
         .into_iter()
         .map(move |pair| (dynamic_style, pair))
@@ -37,10 +45,10 @@ pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec
       let key = key.into_owned();
       Some(DynamicStyle {
         key: key.clone(),
-        // A key is a prefix of its path, so a path longer than its key always
-        // continues with a `_`. `dynamic_styles_of_namespace` states the rule
-        // and `a_key_is_a_prefix_of_its_path_that_ends_at_a_property` measures
-        // it.
+        // A key names a property and is a prefix of its path, so a path longer
+        // than its key continues with a `_` and holds the key only at its head.
+        // `dynamic_styles_of_namespace` states both halves of that rule, and
+        // says what an empty key would do to this line.
         path: if that_dyn_style.path == that_dyn_style.key {
           key
         } else {
@@ -65,18 +73,6 @@ pub(super) fn create_property_rule(variable_name: &str, is_pseudo_element: bool)
   rule.push_str(inherits);
   rule.push_str(";}");
   rule
-}
-
-fn create_shorthand_key(index: usize) -> String {
-  let digit_count = if index == 0 {
-    1
-  } else {
-    index.ilog10() as usize + 1
-  };
-  let mut key = String::with_capacity(digit_count + 1);
-  key.push('p');
-  let _ = write!(key, "{index}");
-  key
 }
 
 pub(super) fn is_safe_to_skip_null_check(expr: &Expr) -> bool {

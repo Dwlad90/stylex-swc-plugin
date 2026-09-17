@@ -64,17 +64,19 @@ fn a_key_is_a_prefix_of_its_path_that_ends_at_a_property() {
   }
 }
 
-/// A path made only of selectors has no property to cut at, and the walk that
-/// writes one never produces it: a declaration is written under a property.
+/// A path with no property in it cuts to no key.
+///
+/// `dynamic_styles_of_namespace` does not write such a path -- a declaration is
+/// written under a property -- so this one is built by hand. The case records
+/// what the cut answers for it, because an empty key is the one answer the
+/// shorthand expansion cannot rewrite a path with.
 #[test]
-fn a_path_of_selectors_alone_is_not_written() {
+fn a_path_with_no_property_cuts_to_no_key() {
   let dynamic_styles = dynamic_styles_of_namespace(
     &inline_styles_of(&[&[":hover", "@media (min-width: 1px)"]]),
     &StyleResolution::ApplicationOrder,
   );
 
-  // Read as the rule reads it: with no property, the cut is empty. The case is
-  // here to say that such a path is not one the compiler writes, rather than to
-  // bless the answer.
   assert_eq!(dynamic_styles[0].key, "");
+  assert_eq!(dynamic_styles[0].path, ":hover_@media (min-width: 1px)");
 }

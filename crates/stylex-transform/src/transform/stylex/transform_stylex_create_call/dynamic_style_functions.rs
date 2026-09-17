@@ -94,11 +94,16 @@ fn class_names_for_prop(
 /// `key` is that chain cut after the first step that is neither a pseudo
 /// selector nor an at-rule -- the property the value belongs to.
 ///
-/// So a key is always a prefix of its path, and always ends at a property: a
-/// declaration is written under one, and a property is neither a pseudo
-/// selector nor an at-rule, so the cut is never empty. The shorthand expansion
-/// in `helpers.rs` rewrites a path by that rule, and
-/// `a_key_is_a_prefix_of_its_path_that_ends_at_a_property` measures it.
+/// Two things follow, and the shorthand expansion in `helpers.rs` rewrites a
+/// path by both. A key is a prefix of its path. And a key names a property, so
+/// it is never empty: a declaration is written under a property, and a property
+/// is neither a pseudo selector nor an at-rule.
+/// `a_key_is_a_prefix_of_its_path_that_ends_at_a_property` measures both.
+///
+/// The second one is what the rewrite needs and the first one does not give.
+/// The rewrite replaces the key at the head of the path, and an empty key would
+/// match at every step instead. So a path holding no property must stay
+/// something this walk does not write.
 fn dynamic_styles_of_namespace(
   inline_styles: &TInlineStyles,
   style_resolution: &StyleResolution,

@@ -7,7 +7,6 @@ use helpers::*;
 use log::warn;
 pub(crate) use runtime_function_map::build_runtime_function_map;
 use std::{
-  fmt::Write,
   rc::Rc,
   sync::{Arc, LazyLock},
 };

@@ -35,12 +35,19 @@ export function toPosixPath(filePath: string): string {
  * them.
  *
  * A pattern with no `[hash]` is the user opting out of cache busting, and a
- * rename there would only make a second file under the same name. A function
- * decides per asset and cannot be read, so it is taken to hash; the caller
- * compares the resulting name and stands down when it did not change.
+ * rename there would only make a second file under the same name. Nothing at
+ * all is the host's own default, which hashes.
+ *
+ * A function decides per asset and cannot be read, so it is taken not to hash.
+ * Standing down on the resulting name is no answer: the host reserves a name
+ * per emitted asset, so a function that hands back the name it always does
+ * gives the second one a `2` on the end. That is neither the user's name nor a
+ * digest of anything, and the rename would have invented it.
  */
 export function assetNamesCarryHash(pattern: unknown): boolean {
-  return typeof pattern === 'string' ? pattern.includes('[hash]') : true;
+  if (pattern === undefined) return true;
+
+  return typeof pattern === 'string' && pattern.includes('[hash]');
 }
 
 /**

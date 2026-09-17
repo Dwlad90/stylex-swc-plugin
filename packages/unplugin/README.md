@@ -365,7 +365,10 @@ The plugin replaces the marker with the generated StyleX CSS during the build.
 > - Not covered: Vite's `build.cssCodeSplit: true`, which is the default. Use
 >   `cssCodeSplit: false` to get the renaming.
 > - Skipped when the name template has no hash (`assetFileNames`,
->   `entryNames`), which is you opting out of cache busting.
+>   `entryNames`), which is you opting out of cache busting. An
+>   `assetFileNames` function is skipped too: it cannot be read, and the
+>   bundler would answer a second request for the same name with a `2` on the
+>   end rather than a new hash.
 > - Under esbuild the hash is ours, not esbuild's, whose `[hash]` cannot be
 >   reproduced from the contents.
 > - webpack and Rspack rename the asset themselves. Keep

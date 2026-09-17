@@ -51,8 +51,8 @@ Giving a written target a name that matches its new contents, because the rules
 arrive after the host has named and hashed it. Vite and Rollup re-emit the final
 source and let the host hash it; esbuild renames the file on disk with a hash of
 our own, its own being unreproducible; webpack and Rspack rename the asset
-themselves. Skipped where the name template carries no hash, and where Vite
-splits CSS per chunk.
+themselves. Skipped where the name template carries no hash or cannot be read,
+and where Vite splits CSS per chunk.
 _Avoid_: rehash, cache busting, fingerprint
 
 **Reference asset**:

@@ -14,7 +14,8 @@ describe('@stylexswc/unplugin/rollup', () => {
   async function runStylex(
     options: UnpluginStylexRSOptions,
     extraPlugins: rollup.Plugin[] = [],
-    warnings: rollup.RollupLog[] = []
+    warnings: rollup.RollupLog[] = [],
+    outputOptions: rollup.OutputOptions = {}
   ) {
     // Configure a rollup bundle
     const bundle = await rollup.rollup({
@@ -37,6 +38,7 @@ describe('@stylexswc/unplugin/rollup', () => {
     // You can call this function multiple times on the same bundle object
     const { output } = await bundle.generate({
       file: path.resolve(__dirname, '/__builds__/bundle.js'),
+      ...outputOptions,
     });
 
     let css, js;
@@ -105,10 +107,16 @@ describe('@stylexswc/unplugin/rollup', () => {
     };
   }
 
-  async function runHashedPlaceholder(sources: Record<string, string>) {
-    const { output } = await runStylex({ useCssPlaceholder: placeholder }, [
-      emitHashedStylesheets(sources),
-    ]);
+  async function runHashedPlaceholder(
+    sources: Record<string, string>,
+    outputOptions: rollup.OutputOptions = {}
+  ) {
+    const { output } = await runStylex(
+      { useCssPlaceholder: placeholder },
+      [emitHashedStylesheets(sources)],
+      [],
+      outputOptions
+    );
 
     return output
       .filter(chunkOrAsset => chunkOrAsset.fileName.endsWith('.css'))
@@ -146,6 +154,24 @@ describe('@stylexswc/unplugin/rollup', () => {
     expect((await runHashedPlaceholder(sources)).map(file => file.fileName)).toEqual(
       (await runHashedPlaceholder(sources)).map(file => file.fileName)
     );
+  });
+
+  test.each([
+    ['a pattern that asks for no hash', 'assets/[name][extname]'],
+    // A function is unreadable, and Rollup reserves a name per emitted asset:
+    // handing the source back under a name the function has already given out
+    // earns a `2` on the end, which is neither the user's name nor a digest.
+    ['a function, which cannot be read', () => 'assets/site[extname]'],
+  ])('leaves the name alone for %s', async (_label, assetFileNames) => {
+    const sources = { 'first.css': `body{margin:0}\n${placeholder}\n` };
+    const [stylesheet] = await runHashedPlaceholder(sources, { assetFileNames });
+
+    expect(stylesheet?.fileName).toBe(
+      typeof assetFileNames === 'string' ? 'assets/first.css' : 'assets/site.css'
+    );
+    // The rules still arrive; only the name is left alone.
+    expect(stylesheet?.source).toContain('color');
+    expect(stylesheet?.source).not.toContain(placeholder);
   });
 
   test('warns instead of emitting a stylesheet nothing links', async () => {

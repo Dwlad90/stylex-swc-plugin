@@ -46,11 +46,21 @@ describe('assetNamesCarryHash', () => {
     expect(assetNamesCarryHash(pattern)).toBe(expected);
   });
 
+  test('assumes a hash when nothing is set, which leaves the host default', () => {
+    expect(assetNamesCarryHash(undefined)).toBe(true);
+  });
+
+  // A function cannot be read, and re-emitting under a name it has already
+  // handed out earns a `2` on the end rather than a new digest.
   test.each([
-    ['a function, which cannot be read', () => 'assets/[name]-[hash][extname]'],
-    ['nothing at all, which leaves the host default', undefined],
-  ])('assumes a hash for %s', (_label, pattern) => {
-    expect(assetNamesCarryHash(pattern)).toBe(true);
+    ['one naming every asset the same', () => 'assets/site.css'],
+    ['one that does ask for a hash', () => 'assets/[name]-[hash][extname]'],
+  ])('stands down for a function, %s', (_label, pattern) => {
+    expect(assetNamesCarryHash(pattern)).toBe(false);
+  });
+
+  test.each([[null], [false], [42]])('stands down for %s, which names nothing', setting => {
+    expect(assetNamesCarryHash(setting)).toBe(false);
   });
 });
 

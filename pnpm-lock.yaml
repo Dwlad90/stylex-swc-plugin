@@ -2768,6 +2768,9 @@ importers:
       '@rollup/plugin-node-resolve':
         specifier: catalog:bundlers
         version: 16.0.3(rollup@4.63.1)
+      '@rspack/core':
+        specifier: catalog:bundlers
+        version: 2.2.2(@swc/helpers@0.5.23)
       '@types/node':
         specifier: catalog:types
         version: 26.4.1

@@ -148,6 +148,7 @@
     "@nuxt/schema": "catalog:frameworks",
     "@rollup/plugin-commonjs": "catalog:bundlers",
     "@rollup/plugin-node-resolve": "catalog:bundlers",
+    "@rspack/core": "catalog:bundlers",
     "@types/node": "catalog:types",
     "esbuild": "catalog:bundlers",
     "esno": "catalog:tooling",

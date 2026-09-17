@@ -92,6 +92,62 @@ describe('@stylexswc/unplugin/rollup', () => {
     expect(cssFileNames).toEqual(['styles.css']);
   });
 
+  // Emits stylesheets the way Rollup hashes them: `name` rather than
+  // `fileName`, which is what lets the host pick the output name.
+  function emitHashedStylesheets(sources: Record<string, string>): rollup.Plugin {
+    return {
+      name: 'emit-hashed-stylesheets',
+      buildEnd() {
+        for (const [name, source] of Object.entries(sources)) {
+          this.emitFile({ type: 'asset', name, source });
+        }
+      },
+    };
+  }
+
+  async function runHashedPlaceholder(sources: Record<string, string>) {
+    const { output } = await runStylex({ useCssPlaceholder: placeholder }, [
+      emitHashedStylesheets(sources),
+    ]);
+
+    return output
+      .filter(chunkOrAsset => chunkOrAsset.fileName.endsWith('.css'))
+      .map(chunkOrAsset => ({
+        fileName: chunkOrAsset.fileName,
+        source: String((chunkOrAsset as rollup.OutputAsset).source),
+      }));
+  }
+
+  test('rehashes every stylesheet the injection wrote', async () => {
+    // One stylesheet takes the rules, the other only has its stray marker
+    // removed. Both change their bytes, so both must change their names.
+    const [filled, stripped] = await runHashedPlaceholder({
+      'first.css': `body{margin:0}\n${placeholder}\n`,
+      'second.css': `.second{outline:0}\n${placeholder}\n`,
+    });
+
+    expect(filled?.source).toContain('color');
+    expect(stripped?.source).not.toContain(placeholder);
+
+    // Rollup hashes an asset's contents into its name, so a name that still
+    // matched the pre-injection bytes would be the bug.
+    const unwritten = await runHashedPlaceholder({
+      'first.css': `body{margin:0}\n${placeholder}\n`,
+      'second.css': `.second{outline:0}\n`,
+    });
+
+    expect(filled?.fileName).not.toBe(unwritten[0]?.fileName);
+    expect(stripped?.fileName).not.toBe(unwritten[1]?.fileName);
+  });
+
+  test('gives the same input the same stylesheet name', async () => {
+    const sources = { 'first.css': `body{margin:0}\n${placeholder}\n` };
+
+    expect((await runHashedPlaceholder(sources)).map(file => file.fileName)).toEqual(
+      (await runHashedPlaceholder(sources)).map(file => file.fileName)
+    );
+  });
+
   test('warns instead of emitting a stylesheet nothing links', async () => {
     const warnings: rollup.RollupLog[] = [];
     // No CSS plugin at all, so nothing in the bundle can carry the marker.

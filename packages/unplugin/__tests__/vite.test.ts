@@ -269,18 +269,31 @@ async function readBuiltCss(outDir: string, html: string): Promise<BuiltCssFile[
   );
 }
 
+interface PlaceholderBuildOptions {
+  cssCodeSplit?: boolean;
+  cssMinify?: boolean | 'esbuild' | 'lightningcss';
+  files?: Record<string, string>;
+  manifest?: boolean;
+  onWarn?: (warning: { message: string }) => void;
+  plugins?: PluginOption[];
+  pluginOptions?: UnpluginStylexRSOptions;
+}
+
+interface PlaceholderBuildResult {
+  css: BuiltCssFile[];
+  html: string;
+  outDir: string;
+}
+
 // Builds the placeholder fixture for real: only a full build exercises the
 // ordering between the plugin hooks and the bundler's own CSS asset.
-async function buildPlaceholderFixture(
-  options: {
-    cssCodeSplit?: boolean;
-    cssMinify?: boolean | 'esbuild' | 'lightningcss';
-    files?: Record<string, string>;
-    onWarn?: (warning: { message: string }) => void;
-    plugins?: PluginOption[];
-    pluginOptions?: UnpluginStylexRSOptions;
-  } = {}
-): Promise<BuiltCssFile[]> {
+//
+// `fileName` is deliberately left unset: placeholder mode emits no standalone
+// stylesheet, so the option is inert here and naming it would suggest coverage
+// that does not exist.
+async function runPlaceholderBuild(
+  options: PlaceholderBuildOptions = {}
+): Promise<PlaceholderBuildResult> {
   const root = await writeFixtureRoot('.stylex-vite-placeholder-', {
     ...placeholderFixtureFiles,
     ...options.files,
@@ -290,6 +303,7 @@ async function buildPlaceholderFixture(
     build: {
       cssCodeSplit: options.cssCodeSplit ?? false,
       cssMinify: options.cssMinify,
+      manifest: options.manifest,
       outDir: 'dist',
       write: true,
       rolldownOptions: options.onWarn
@@ -302,7 +316,6 @@ async function buildPlaceholderFixture(
       ...(options.plugins ?? [delayModuleTransform('/lazy.js', 100)]),
       stylexRuntimeStub,
       stylexSwc({
-        fileName: 'stylex.[hash].css',
         useCssPlaceholder: placeholder,
         ...options.pluginOptions,
         rsOptions: {
@@ -318,7 +331,14 @@ async function buildPlaceholderFixture(
   const outDir = path.join(root, 'dist');
   const html = await readFile(path.join(outDir, 'index.html'), 'utf8');
 
-  return readBuiltCss(outDir, html);
+  return { css: await readBuiltCss(outDir, html), html, outDir };
+}
+
+// Most tests only look at the stylesheets.
+async function buildPlaceholderFixture(
+  options: PlaceholderBuildOptions = {}
+): Promise<BuiltCssFile[]> {
+  return (await runPlaceholderBuild(options)).css;
 }
 
 // Counting occurrences is what separates "the rules are present" from "the
@@ -1039,5 +1059,122 @@ export const styles = stylex.create({
     const html = await transformDevIndexHtml('/app/');
 
     expect(html).toContain('href="/app/stylex.css"');
+  });
+
+  // The rules go in after the host has already named and hashed the
+  // stylesheet, so a StyleX-only edit used to change the bytes and keep the
+  // name. One build cannot see that; two can.
+  describe('stylesheet naming', () => {
+    // A second rule set, so the injected CSS differs while every other input
+    // stays byte for byte the same.
+    const otherStyleXSource = `import * as stylex from '@stylexjs/stylex';
+import './global.css';
+
+export const styles = stylex.create({ eager: { color: 'rebeccapurple' } });
+
+void import('./lazy.js');
+`;
+
+    // The dynamic-import delay is the one thing these builds do not need: they
+    // compare names, and a slower build only makes the suite slower.
+    const noDelay = { plugins: [delayModuleTransform('/lazy.js', 0)] };
+
+    test('gives the stylesheet a new name after a StyleX-only edit', async () => {
+      const before = await buildPlaceholderFixture(noDelay);
+      const after = await buildPlaceholderFixture({
+        ...noDelay,
+        files: { 'main.js': otherStyleXSource },
+      });
+
+      const linkedBefore = before.find(file => file.linked);
+      const linkedAfter = after.find(file => file.linked);
+
+      expect(linkedBefore?.source).not.toBe(linkedAfter?.source);
+      expect(linkedBefore?.name).not.toBe(linkedAfter?.name);
+      // Still the host's own shape, not a name of our own invention.
+      expect(linkedAfter?.name).toMatch(/^assets\/[\w-]+-[\w-]{8}\.css$/);
+    });
+
+    // The host hashes with xxh3 over base64url, which JavaScript cannot
+    // reproduce here, so "the name is a hash of these bytes" is held from both
+    // sides instead: different bytes give a different name above, and the same
+    // bytes give the same name here.
+    test('keeps the name when nothing changed', async () => {
+      const first = await buildPlaceholderFixture(noDelay);
+      const second = await buildPlaceholderFixture(noDelay);
+
+      expect(first.map(file => file.name)).toEqual(second.map(file => file.name));
+      expect(first.map(file => file.source)).toEqual(second.map(file => file.source));
+    });
+
+    test('points the document and the manifest at the new name', async () => {
+      const { css, html, outDir } = await runPlaceholderBuild({ ...noDelay, manifest: true });
+      const stylesheet = css.find(file => file.linked);
+      const manifest = JSON.parse(
+        await readFile(path.join(outDir, '.vite', 'manifest.json'), 'utf8')
+      ) as Record<string, { file?: string }>;
+
+      expect(stylesheet).toBeDefined();
+      expect(html).toContain(stylesheet?.name);
+      expect(Object.values(manifest).map(entry => entry.file)).toContain(stylesheet?.name);
+    });
+
+    // A library names its stylesheet `style.css` with no hash, and consumers
+    // import that path by hand. Renaming it would break every one of them.
+    test('leaves a library build alone', async () => {
+      // A library names its stylesheet by hand, with no hash, and consumers
+      // import that path. The two builds differ only in their StyleX rules.
+      async function buildLibrary(source: string): Promise<BuiltCssFile[]> {
+        const root = await writeFixtureRoot('.stylex-vite-lib-', {
+          'global.css': `body { margin: 0; }\n${placeholder}\n`,
+          'main.js': `import './global.css';\n${source}`,
+        });
+
+        await build({
+          build: { lib: { entry: 'main.js', formats: ['es'] }, outDir: 'dist', write: true },
+          configFile: false,
+          logLevel: 'silent',
+          plugins: [
+            stylexRuntimeStub,
+            stylexSwc({
+              useCssPlaceholder: placeholder,
+              rsOptions: { dev: false, unstable_moduleResolution: { type: 'commonJS' } },
+            }),
+          ],
+          root,
+        });
+
+        return readBuiltCss(path.join(root, 'dist'), '');
+      }
+
+      const before = await buildLibrary(buildFixtureSource);
+      const after = await buildLibrary(
+        buildFixtureSource.replace("color: 'red'", "color: 'rebeccapurple'")
+      );
+
+      expect(before).toHaveLength(1);
+      expect(before[0]?.source).not.toBe(after[0]?.source);
+      expect(before[0]?.name).toBe(after[0]?.name);
+      // The rules still arrive; only the name is left alone.
+      expect(before[0]?.source).toContain('color:red');
+    });
+
+    // Pinned as recorded behaviour, not as an accident: a split build folds
+    // stylesheet names into the JS chunk hash and writes them inside the
+    // chunks, so renaming there would cascade into already-hashed JavaScript.
+    test('leaves a code-split build alone', async () => {
+      const before = await buildPlaceholderFixture({ ...noDelay, cssCodeSplit: true });
+      const after = await buildPlaceholderFixture({
+        ...noDelay,
+        cssCodeSplit: true,
+        files: { 'main.js': otherStyleXSource },
+      });
+
+      const linkedBefore = before.find(file => file.linked);
+      const linkedAfter = after.find(file => file.linked);
+
+      expect(linkedBefore?.source).not.toBe(linkedAfter?.source);
+      expect(linkedBefore?.name).toBe(linkedAfter?.name);
+    });
   });
 });

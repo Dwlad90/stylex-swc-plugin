@@ -1337,9 +1337,18 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           const shouldWriteToDisk =
             build.initialOptions.write === undefined || build.initialOptions.write;
 
-          const outDir =
+          // A relative output path counts from the build's working directory,
+          // which is not always the process one.
+          const workingDir = build.initialOptions.absWorkingDir ?? process.cwd();
+          const configuredOutDir =
             build.initialOptions.outdir ||
             (build.initialOptions.outfile ? path.dirname(build.initialOptions.outfile) : null);
+          // Resolved once, because every path below is joined against it. Read
+          // from the process directory instead, a relative one sent the scan
+          // outside the build: the stylesheets were never found, the marker
+          // shipped, and any CSS that directory did hold was rewritten.
+          const outDir =
+            configuredOutDir === null ? null : path.resolve(workingDir, configuredOutDir);
 
           // Handle useCssPlaceholder mode
           if (normalizedOptions.useCssPlaceholder && outDir && shouldWriteToDisk) {
@@ -1347,9 +1356,6 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             // metafile names its outputs the way esbuild was given them, and
             // the rename below has to put them back under the same shape.
             const metafileKeyByPath = new Map<string, string>();
-            // A relative output name is relative to the build's working
-            // directory, which is not always the process one.
-            const workingDir = build.initialOptions.absWorkingDir ?? process.cwd();
 
             if (metafile?.outputs) {
               for (const key of Object.keys(metafile.outputs)) {

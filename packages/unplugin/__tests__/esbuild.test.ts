@@ -52,6 +52,9 @@ async function buildPlaceholderFixture(
     files?: Record<string, string>;
     metafile?: boolean;
     pluginOptions?: UnpluginStylexRSOptions;
+    // Names the entry point and the output directory the way a build script
+    // does, relative to `absWorkingDir` rather than absolute.
+    relativePaths?: boolean;
   } = {}
 ): Promise<{
   cssFiles: BuiltCssFile[];
@@ -75,10 +78,10 @@ async function buildPlaceholderFixture(
     absWorkingDir: root,
     bundle: true,
     entryNames: options.entryNames,
-    entryPoints: [path.join(root, 'main.js')],
+    entryPoints: [options.relativePaths ? 'main.js' : path.join(root, 'main.js')],
     logLevel: 'silent',
     metafile: options.metafile,
-    outdir: path.join(root, 'dist'),
+    outdir: options.relativePaths ? 'dist' : path.join(root, 'dist'),
     plugins: [
       stylexEsbuild({
         useCssPlaceholder: placeholder,
@@ -206,6 +209,33 @@ describe('@stylexswc/unplugin/esbuild', () => {
       // digest is ours: esbuild's `[hash]` cannot be reproduced from contents.
       expect(after.cssFiles[0]?.name).toMatch(/^main-[A-Z0-9]+\.css$/);
     });
+
+    // A relative `outdir` counts from `absWorkingDir`, not from the process
+    // directory. Read from the wrong one, the scan looked outside the build
+    // entirely: no stylesheet was found, the marker shipped, and whatever CSS
+    // that other directory held was rewritten in its place.
+    test.each([[false], [true]])(
+      'injects and renames with metafile %s and a relative output directory',
+      async metafile => {
+        const before = await buildPlaceholderFixture({
+          ...hashedNames,
+          metafile,
+          relativePaths: true,
+        });
+        const after = await buildPlaceholderFixture({
+          ...hashedNames,
+          files: { 'main.js': otherStyleXSource },
+          metafile,
+          relativePaths: true,
+        });
+
+        expect(before.cssFiles).toHaveLength(1);
+        expect(before.cssFiles[0]?.source).toContain('color');
+        expect(before.cssFiles[0]?.source).not.toContain(placeholder);
+        expect(before.cssFiles[0]?.source).not.toContain('@layer __stylex_build_placeholder__');
+        expect(before.cssFiles[0]?.name).not.toBe(after.cssFiles[0]?.name);
+      }
+    );
 
     test('gives the same input the same stylesheet name', async () => {
       const first = await buildPlaceholderFixture(hashedNames);

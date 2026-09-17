@@ -71,9 +71,7 @@ use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType, StylexWhenFn},
   state_manager::{ImportKind, StateManager},
-  types::{
-    FlatCompiledStyles, FunctionMapIdentifiers, FunctionMapMemberExpression, InjectableStylesMap,
-  },
+  types::{FlatCompiledStyles, InjectableStylesMap},
 };
 use stylex_structures::{
   dynamic_style::DynamicStyle, order_pair::OrderPair, stylex_state_options::StyleXStateOptions,

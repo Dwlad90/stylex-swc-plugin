@@ -1,5 +1,4 @@
 use indexmap::IndexMap;
-use rustc_hash::FxHashMap;
 use stylex_constants::constants::messages::ONLY_OVERRIDE_DEFINE_VARS;
 use stylex_macros::stylex_panic;
 use swc_core::{
@@ -25,7 +24,10 @@ use crate::{
       },
     },
   },
-  transform::stylex::visitor_utils::{apply_unstable_conditional, insert_stylex_identifier_entry},
+  transform::stylex::visitor_utils::{
+    apply_unstable_conditional, insert_stylex_identifier_entry, register_stylex_helper,
+    register_stylex_identifier,
+  },
 };
 use stylex_constants::constants::{
   api_names::{STYLEX_CREATE_THEME, STYLEX_KEYFRAMES, STYLEX_TYPES},
@@ -36,7 +38,6 @@ use stylex_evaluator::{evaluate::evaluate, evaluate_result::refusal_site};
 use stylex_state::{
   functions::{FunctionConfigType, FunctionMap},
   state_manager::ImportKind,
-  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 
 impl<C> StyleXTransform<C>
@@ -55,67 +56,45 @@ where
 
       let second_arg = argument_at(call, 1, STYLEX_CREATE_THEME);
 
-      let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
-      let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
+      let mut function_map = FunctionMap::default();
 
-      let keyframes_fn = get_keyframes_fn();
-      let types_fn = get_types_fn();
-      let position_try_fn = get_position_try_fn();
+      let types_fn = FunctionConfigType::Regular(get_types_fn());
 
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::Keyframes) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-          );
-        }
-      }
+      register_stylex_helper(
+        &self.state,
+        &mut function_map,
+        ImportKind::Keyframes,
+        STYLEX_KEYFRAMES,
+        &FunctionConfigType::Regular(get_keyframes_fn()),
+      );
 
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::PositionTry) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
-          );
-        }
-      }
+      // `positionTry` and `types` are read by name alone here, so neither is a
+      // member of the namespace.
+      register_stylex_identifier(
+        &self.state,
+        &mut function_map,
+        ImportKind::PositionTry,
+        &FunctionConfigType::Regular(get_position_try_fn()),
+      );
 
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::Types) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(types_fn.clone())),
-          );
-        }
-      }
+      register_stylex_identifier(&self.state, &mut function_map, ImportKind::Types, &types_fn);
 
+      // `types` is carried in the namespace's own fold, because a theme reads
+      // `stylex.types` off a namespace it also spreads.
       for name in self.state.stylex_imports() {
-        let member_expression = member_expressions.entry(name.clone()).or_default();
-
-        member_expression.insert(
-          STYLEX_KEYFRAMES.into(),
-          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-        );
-
         insert_stylex_identifier_entry(
-          &mut identifiers,
+          &mut function_map.identifiers,
           name,
           STYLEX_TYPES.into(),
-          FunctionConfigType::Regular(types_fn.clone()),
+          types_fn.clone(),
         );
       }
 
-      apply_unstable_conditional(&self.state, &mut identifiers, &mut member_expressions);
+      apply_unstable_conditional(&self.state, &mut function_map);
 
-      self
-        .state
-        .apply_stylex_env(&mut identifiers, &mut member_expressions);
+      self.state.apply_stylex_env(&mut function_map);
 
-      let function_map: Box<FunctionMap> = Box::new(FunctionMap {
-        identifiers,
-        member_expressions,
-        disable_imports: false,
-      });
+      let function_map: Box<FunctionMap> = Box::new(function_map);
 
       let evaluated_arg1 = evaluate(first_arg, &mut self.state, &function_map);
 

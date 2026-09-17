@@ -66,7 +66,7 @@ use stylex_utils::{
 };
 
 use crate::{
-  functions::{FunctionMap, NestedRuleFunctionMaps, NestedRuleHelpers},
+  functions::{FunctionMap, RuleCallFunctionMaps, RuleCallHelpers},
   seen_value::SeenValue,
   types::{InjectImportIdents, SeenModuleSource, StylesObjectMap},
 };
@@ -522,7 +522,7 @@ pub(crate) struct CacheState {
   /// `TransformProducers`. Built earlier, a map would hold fewer names than the
   /// source spells, and a name a map does not hold does not drop one
   /// declaration -- it stops the whole call folding.
-  nested_rule_function_maps: NestedRuleFunctionMaps,
+  rule_call_function_maps: RuleCallFunctionMaps,
 }
 
 impl CacheState {
@@ -1488,23 +1488,27 @@ impl StateManager {
     self.cache.insert_default_marker_values(values);
   }
 
-  /// The function map a nested-rule call already built for `helpers`, where the
-  /// module has handled such a call before. See
-  /// [`CacheState::nested_rule_function_maps`].
-  pub fn cached_nested_rule_function_map(
-    &self,
-    helpers: NestedRuleHelpers,
+  /// The function map a rule call already built for `helpers`, where the module
+  /// has handled such a call before. See
+  /// [`CacheState::rule_call_function_maps`].
+  ///
+  /// `&mut self` although it reads: the slot it reads and the slot the writer
+  /// below fills are named by one match, which is what keeps a new set of
+  /// helpers from compiling until it has a slot.
+  pub fn cached_rule_call_function_map(
+    &mut self,
+    helpers: RuleCallHelpers,
   ) -> Option<&Rc<FunctionMap>> {
-    self.cache.nested_rule_function_maps.get(helpers)
+    self.cache.rule_call_function_maps.slot(helpers).as_ref()
   }
 
   /// Keeps `map` as the answer for every later call that asks for `helpers`.
-  pub fn insert_cached_nested_rule_function_map(
+  pub fn insert_cached_rule_call_function_map(
     &mut self,
-    helpers: NestedRuleHelpers,
+    helpers: RuleCallHelpers,
     map: Rc<FunctionMap>,
   ) {
-    self.cache.nested_rule_function_maps.insert(helpers, map);
+    *self.cache.rule_call_function_maps.slot(helpers) = Some(map);
   }
 
   pub fn insert_cached_short_filename(&mut self, absolute_path: String, short_filename: String) {
@@ -1803,35 +1807,38 @@ impl StateManager {
       .has_stylex_api_import_for_the_consuming_cycle(&Atom::from(ident_sym), consumed)
   }
 
-  /// Applies the `env` configuration to the given identifiers and
-  /// member_expressions maps. This is the Rust equivalent of the JavaScript
-  /// `applyStylexEnv` method.
-  pub fn apply_stylex_env(
-    &self,
-    identifiers: &mut crate::types::FunctionMapIdentifiers,
-    member_expressions: &mut crate::types::FunctionMapMemberExpression,
-  ) {
+  /// Registers the `env` option on `function_map`, under every name the module
+  /// can reach it by.
+  ///
+  /// The whole map rather than its two halves: every caller writes both, and
+  /// the pair travelled through eight signatures before it was named by the
+  /// type it already is.
+  pub fn apply_stylex_env(&self, function_map: &mut FunctionMap) {
     if self.options.env.is_empty() {
       return;
     }
 
     let env = Rc::clone(&self.options.env);
 
-    // For namespace imports (e.g., `import stylex from '@stylexjs/stylex'`),
-    // add `env` to member_expressions so `stylex.env.x` resolves.
+    // A namespace import reads `stylex.env.x`, so `env` is a member of the
+    // namespace.
     for name in self.stylex_imports() {
-      let member_expression = member_expressions.entry(name.clone()).or_default();
+      let member_expression = function_map
+        .member_expressions
+        .entry(name.clone())
+        .or_default();
+
       member_expression.insert(
         STYLEX_ENV.into(),
         Box::new(crate::functions::FunctionConfigType::EnvObject(env.clone())),
       );
     }
 
-    // For direct env imports (e.g., `import { env } from '@stylexjs/stylex'`),
-    // add the env object directly to identifiers.
+    // A named import writes `env` on its own, so the object is an identifier
+    // under every local name that import gave it.
     if let Some(env_imports) = self.get_stylex_api_import(ImportKind::Env) {
       for name in env_imports {
-        identifiers.insert(
+        function_map.identifiers.insert(
           name.clone(),
           Box::new(crate::functions::FunctionConfigType::EnvObject(env.clone())),
         );

@@ -51,6 +51,21 @@ Both lists are complete, and the names live in
 [stylex-constants](../stylex-constants/CONTEXT.md).
 _Avoid_: definition/usage, source/sink
 
+**Rule call**:
+One of `keyframes`, `positionTry` and `viewTransitionClass`. Each declares a
+rule of its own and answers the name of it, so another call can name that rule
+as a value. Not a **Nested rule** (see
+[stylex-state](../stylex-state/CONTEXT.md)), which is what the call written
+_inside_ one of these declares. Apart from the other producers because each
+folds its argument with a small function map of its own rather than with the
+wider one `defineVars` and `createTheme` share. The map registers
+`firstThatWorks` for all three, `keyframes` for `viewTransitionClass` alone --
+because only a transition step may name a keyframes rule -- and the `env`
+option wherever one is configured. It is a function of the module's import
+sets, so it is built once for the file and kept on the state; see
+[stylex-state](../stylex-state/CONTEXT.md), **Rule-call function map**.
+_Avoid_: nested-rule call, named-rule call, rule producer, inner call
+
 **Transformer**:
 One implementation under `shared/transformers/`. Most are one producer API, so
 `stylex_create.rs` holds `stylex.create`. Two are not: `stylex_types.rs` is the

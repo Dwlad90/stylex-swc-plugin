@@ -136,6 +136,16 @@ The third kind is a **deep mutation** — a write more than one member hop out,
 binding whose initializer the chain would actually inline.
 _Avoid_: dirty binding, stale binding, nested mutation, transitive write
 
+**Rule-call function map**:
+The function map a rule call folds its argument with, held on the state for the
+life of the file. One per set of helpers -- see
+[stylex-transform](../stylex-transform/CONTEXT.md), **Rule call**. It is built
+by the first such call of the module, which is sound only because every writer
+of the import sets runs in the `Discover` cycle and the calls run in
+`TransformProducers`. A map built before the sets close holds fewer names than
+the source spells, and a name it does not hold stops the whole call folding.
+_Avoid_: eval config cache, helper table
+
 **Seen value**:
 A memoized evaluation, keyed by the 128-bit
 [structural hash](../stylex-utils/CONTEXT.md) of the expression. `resolved`
@@ -174,4 +184,4 @@ read them: it puts them in front of the producer's own rules, so the
 off the state, because they belong to the one call that folded them. A producer
 that forgets them prints a name that no stylesheet defines; a producer that
 leaves them behind makes the next declaration of the module carry them too.
-_Avoid_: dependency rule, other rule, inherited rule
+_Avoid_: dependency rule, other rule, inherited rule, rule call

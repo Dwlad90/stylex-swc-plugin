@@ -19,7 +19,7 @@ use crate::{
       validate_stylex_view_transition_class_indent,
     },
   },
-  transform::stylex::visitor_utils::nested_rule_eval_config,
+  transform::stylex::visitor_utils::rule_call_eval_config,
 };
 use stylex_ast::ast::convertors::init_call;
 use stylex_constants::constants::{
@@ -27,7 +27,7 @@ use stylex_constants::constants::{
   messages::VIEW_TRANSITION_CLASS_INVALID_PROPERTY,
 };
 use stylex_evaluator::evaluate::evaluate_with_functions;
-use stylex_state::functions::NestedRuleHelpers;
+use stylex_state::functions::RuleCallHelpers;
 
 impl<C> StyleXTransform<C>
 where
@@ -49,10 +49,8 @@ where
 
       let first_arg = argument_at(call, 0, STYLEX_VIEW_TRANSITION_CLASS);
 
-      let function_map = nested_rule_eval_config(
-        &mut self.state,
-        NestedRuleHelpers::FirstThatWorksAndKeyframes,
-      );
+      let function_map =
+        rule_call_eval_config(&mut self.state, RuleCallHelpers::FirstThatWorksAndKeyframes);
 
       let evaluated_arg = evaluate_with_functions(first_arg, &mut self.state, function_map);
 

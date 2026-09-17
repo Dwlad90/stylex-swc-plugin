@@ -10,7 +10,7 @@
 use std::rc::Rc;
 
 use crate::flat_compiled_styles_value::FlatCompiledStylesValue;
-use crate::functions::{FunctionMap, NestedRuleHelpers};
+use crate::functions::{FunctionMap, RuleCallHelpers};
 use crate::tests::prelude::test_state as state;
 use crate::types::FlatCompiledStyles;
 
@@ -98,24 +98,24 @@ fn the_default_marker_values_recorded_twice_keep_the_second() {
   }
 }
 
-/// One function map per set of helpers, built by the first nested-rule call of
+/// One function map per set of helpers, built by the first rule call of
 /// the file and read back by the rest. An empty memo answers nothing, which is
 /// what makes the first call build one.
 #[test]
-fn a_nested_rule_function_map_is_built_once_and_kept() {
+fn a_rule_call_function_map_is_built_once_and_kept() {
   let mut state = state();
 
   assert!(
     state
-      .cached_nested_rule_function_map(NestedRuleHelpers::FirstThatWorks)
+      .cached_rule_call_function_map(RuleCallHelpers::FirstThatWorks)
       .is_none()
   );
 
   let map = Rc::new(FunctionMap::default());
 
-  state.insert_cached_nested_rule_function_map(NestedRuleHelpers::FirstThatWorks, Rc::clone(&map));
+  state.insert_cached_rule_call_function_map(RuleCallHelpers::FirstThatWorks, Rc::clone(&map));
 
-  match state.cached_nested_rule_function_map(NestedRuleHelpers::FirstThatWorks) {
+  match state.cached_rule_call_function_map(RuleCallHelpers::FirstThatWorks) {
     // The same object, not an equal one. The map is read by every later call,
     // and a memo that copied it would cost what it saves.
     Some(read_back) => assert!(Rc::ptr_eq(read_back, &map)),
@@ -130,25 +130,25 @@ fn a_nested_rule_function_map_is_built_once_and_kept() {
 fn the_two_helper_sets_are_kept_apart() {
   let mut state = state();
 
-  state.insert_cached_nested_rule_function_map(
-    NestedRuleHelpers::FirstThatWorks,
+  state.insert_cached_rule_call_function_map(
+    RuleCallHelpers::FirstThatWorks,
     Rc::new(FunctionMap::default()),
   );
 
   assert!(
     state
-      .cached_nested_rule_function_map(NestedRuleHelpers::FirstThatWorksAndKeyframes)
+      .cached_rule_call_function_map(RuleCallHelpers::FirstThatWorksAndKeyframes)
       .is_none()
   );
 
   let with_keyframes = Rc::new(FunctionMap::default());
 
-  state.insert_cached_nested_rule_function_map(
-    NestedRuleHelpers::FirstThatWorksAndKeyframes,
+  state.insert_cached_rule_call_function_map(
+    RuleCallHelpers::FirstThatWorksAndKeyframes,
     Rc::clone(&with_keyframes),
   );
 
-  match state.cached_nested_rule_function_map(NestedRuleHelpers::FirstThatWorksAndKeyframes) {
+  match state.cached_rule_call_function_map(RuleCallHelpers::FirstThatWorksAndKeyframes) {
     Some(read_back) => assert!(Rc::ptr_eq(read_back, &with_keyframes)),
     None => panic!("the memo forgot the map it was given"),
   }
@@ -157,17 +157,16 @@ fn the_two_helper_sets_are_kept_apart() {
 /// A set recorded twice keeps the second map, which is what an overwrite has to
 /// do for the memo to stay a memo of the current registration.
 #[test]
-fn a_nested_rule_function_map_recorded_twice_keeps_the_second() {
+fn a_rule_call_function_map_recorded_twice_keeps_the_second() {
   let mut state = state();
 
   let first = Rc::new(FunctionMap::default());
   let second = Rc::new(FunctionMap::default());
 
-  state.insert_cached_nested_rule_function_map(NestedRuleHelpers::FirstThatWorks, first);
-  state
-    .insert_cached_nested_rule_function_map(NestedRuleHelpers::FirstThatWorks, Rc::clone(&second));
+  state.insert_cached_rule_call_function_map(RuleCallHelpers::FirstThatWorks, first);
+  state.insert_cached_rule_call_function_map(RuleCallHelpers::FirstThatWorks, Rc::clone(&second));
 
-  match state.cached_nested_rule_function_map(NestedRuleHelpers::FirstThatWorks) {
+  match state.cached_rule_call_function_map(RuleCallHelpers::FirstThatWorks) {
     Some(read_back) => assert!(Rc::ptr_eq(read_back, &second)),
     None => panic!("the memo forgot the map it was given"),
   }

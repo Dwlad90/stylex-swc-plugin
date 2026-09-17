@@ -351,8 +351,8 @@ fn the_env_option_reaches_the_function_map_both_ways() {
   use stylex_structures::named_import_source::ImportSources;
   use stylex_structures::stylex_env::EnvEntry;
 
+  use crate::functions::FunctionMap;
   use crate::state_manager::ImportKind;
-  use crate::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
 
   let mut env = IndexMap::new();
 
@@ -379,13 +379,12 @@ fn the_env_option_reaches_the_function_map_both_ways() {
   state.insert_stylex_import(ImportSources::Regular("stylex".to_string()));
   state.insert_stylex_api_import(ImportKind::Env, Atom::from("env"));
 
-  let mut identifiers = FunctionMapIdentifiers::default();
-  let mut member_expressions = FunctionMapMemberExpression::default();
+  let mut function_map = FunctionMap::default();
 
-  state.apply_stylex_env(&mut identifiers, &mut member_expressions);
+  state.apply_stylex_env(&mut function_map);
 
-  assert!(identifiers.contains_key(&Atom::from("env")));
-  assert_eq!(member_expressions.len(), 1);
+  assert!(function_map.identifiers.contains_key(&Atom::from("env")));
+  assert_eq!(function_map.member_expressions.len(), 1);
 }
 
 /// A project that configures no `env` adds nothing, so a module that never
@@ -396,21 +395,20 @@ fn a_project_with_no_env_adds_nothing_to_the_function_map() {
 
   use stylex_structures::named_import_source::ImportSources;
 
+  use crate::functions::FunctionMap;
   use crate::state_manager::ImportKind;
-  use crate::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
 
   let mut state = StateManager::for_test(None, StyleXStateOptions::default());
 
   state.insert_stylex_import(ImportSources::Regular("stylex".to_string()));
   state.insert_stylex_api_import(ImportKind::Env, Atom::from("env"));
 
-  let mut identifiers = FunctionMapIdentifiers::default();
-  let mut member_expressions = FunctionMapMemberExpression::default();
+  let mut function_map = FunctionMap::default();
 
-  state.apply_stylex_env(&mut identifiers, &mut member_expressions);
+  state.apply_stylex_env(&mut function_map);
 
-  assert!(identifiers.is_empty());
-  assert!(member_expressions.is_empty());
+  assert!(function_map.identifiers.is_empty());
+  assert!(function_map.member_expressions.is_empty());
 }
 
 /// The parsed source file and its map are handed in by the host, and holding
@@ -629,7 +627,7 @@ fn a_namespace_import_carries_env_without_a_direct_import() {
   use stylex_structures::named_import_source::ImportSources;
   use stylex_structures::stylex_env::EnvEntry;
 
-  use crate::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
+  use crate::functions::FunctionMap;
 
   let mut env = IndexMap::new();
 
@@ -655,13 +653,12 @@ fn a_namespace_import_carries_env_without_a_direct_import() {
 
   state.insert_stylex_import(ImportSources::Regular("stylex".to_string()));
 
-  let mut identifiers = FunctionMapIdentifiers::default();
-  let mut member_expressions = FunctionMapMemberExpression::default();
+  let mut function_map = FunctionMap::default();
 
-  state.apply_stylex_env(&mut identifiers, &mut member_expressions);
+  state.apply_stylex_env(&mut function_map);
 
-  assert!(identifiers.is_empty());
-  assert_eq!(member_expressions.len(), 1);
+  assert!(function_map.identifiers.is_empty());
+  assert_eq!(function_map.member_expressions.len(), 1);
 }
 
 /// A path with no folder above it names no package, which is where the walk up

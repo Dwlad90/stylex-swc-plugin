@@ -18,12 +18,12 @@ use crate::{
       validate_stylex_keyframes_indent,
     },
   },
-  transform::stylex::visitor_utils::nested_rule_eval_config,
+  transform::stylex::visitor_utils::rule_call_eval_config,
 };
 use stylex_ast::ast::convertors::init_call;
 use stylex_constants::constants::api_names::STYLEX_KEYFRAMES;
 use stylex_evaluator::evaluate::evaluate_with_functions;
-use stylex_state::functions::NestedRuleHelpers;
+use stylex_state::functions::RuleCallHelpers;
 
 impl<C> StyleXTransform<C>
 where
@@ -45,8 +45,7 @@ where
 
       let first_arg = argument_at(call, 0, STYLEX_KEYFRAMES);
 
-      let function_map =
-        nested_rule_eval_config(&mut self.state, NestedRuleHelpers::FirstThatWorks);
+      let function_map = rule_call_eval_config(&mut self.state, RuleCallHelpers::FirstThatWorks);
 
       let evaluated_arg = evaluate_with_functions(first_arg, &mut self.state, function_map);
 

@@ -1,6 +1,5 @@
 use std::rc::Rc;
 
-use rustc_hash::FxHashMap;
 use stylex_ast::ast::convertors::{convert_lit_to_string, key_value_name, normalize_expr};
 
 use swc_core::ecma::{
@@ -26,7 +25,6 @@ use stylex_enums::style_vars_to_keep::NonNullProps;
 use stylex_state::{
   functions::{FunctionConfigType, FunctionMap},
   state_manager::{ImportKind, StateManager},
-  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 
 /// Merges the arguments of a `stylex.props`-family call into one value.
@@ -44,8 +42,10 @@ pub(crate) fn stylex_merge(
   let mut current_index = -1;
   let mut bail_out_index = None;
 
-  let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
-  let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
+  let mut evaluate_path_fn_config = FunctionMap {
+    disable_imports: true,
+    ..FunctionMap::default()
+  };
 
   let marker_values = stylex_default_marker::shared_default_marker_values(state);
 
@@ -53,7 +53,7 @@ pub(crate) fn stylex_merge(
     && !set.is_empty()
   {
     for name in set {
-      identifiers.insert(
+      evaluate_path_fn_config.identifiers.insert(
         name.clone(),
         Box::new(FunctionConfigType::IndexMap(Rc::clone(&marker_values))),
       );
@@ -63,19 +63,17 @@ pub(crate) fn stylex_merge(
   for name in state.stylex_imports() {
     // `or_default` answers the entry itself, new or already there, so the
     // second look-up that stood here and its refusal are both gone.
-    member_expressions.entry(name.clone()).or_default().insert(
-      STYLEX_DEFAULT_MARKER.into(),
-      Box::new(FunctionConfigType::IndexMap(Rc::clone(&marker_values))),
-    );
+    evaluate_path_fn_config
+      .member_expressions
+      .entry(name.clone())
+      .or_default()
+      .insert(
+        STYLEX_DEFAULT_MARKER.into(),
+        Box::new(FunctionConfigType::IndexMap(Rc::clone(&marker_values))),
+      );
   }
 
-  state.apply_stylex_env(&mut identifiers, &mut member_expressions);
-
-  let evaluate_path_fn_config = FunctionMap {
-    identifiers,
-    member_expressions,
-    disable_imports: true,
-  };
+  state.apply_stylex_env(&mut evaluate_path_fn_config);
 
   // A parenthesis is not a different argument, at either level. Read bare,
   // `stylex.props(([a, b]))` was not flattened into its elements and

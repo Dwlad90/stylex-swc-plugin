@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use rustc_hash::FxHashMap;
 use stylex_constants::constants::{
-  api_names::{STYLEX_DEFINE_VARS, STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_TYPES},
+  api_names::STYLEX_DEFINE_VARS,
   messages::{cannot_generate_hash, export_variable_not_found},
 };
 use stylex_macros::stylex_panic;
@@ -17,10 +17,7 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    transformers::{
-      stylex_define_vars::stylex_define_vars, stylex_keyframes::get_keyframes_fn,
-      stylex_position_try::get_position_try_fn, stylex_types::get_types_fn,
-    },
+    transformers::stylex_define_vars::stylex_define_vars,
     utils::{
       core::js_to_ast::convert_values_to_ast,
       validators::{
@@ -29,15 +26,13 @@ use crate::{
       },
     },
   },
-  transform::stylex::visitor_utils::{apply_unstable_conditional, insert_stylex_identifier_entry},
+  transform::stylex::visitor_utils::build_eval_config,
 };
 use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-  state_manager::ImportKind,
   theme_ref::ThemeRef,
-  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 use stylex_structures::top_level_expression::TopLevelExpression;
 
@@ -61,66 +56,9 @@ where
 
       let first_arg = argument_at(call, 0, STYLEX_DEFINE_VARS);
 
-      let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
-      let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
-
-      let keyframes_fn = get_keyframes_fn();
-      let types_fn = get_types_fn();
-      let position_try_fn = get_position_try_fn();
-
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::Keyframes) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-          );
-        }
-      }
-
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::Types) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(types_fn.clone())),
-          );
-        }
-      }
-
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::PositionTry) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
-          );
-        }
-      }
-
-      for name in self.state.stylex_imports() {
-        let member_expression = member_expressions.entry(name.clone()).or_default();
-
-        member_expression.insert(
-          STYLEX_KEYFRAMES.into(),
-          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-        );
-
-        member_expression.insert(
-          STYLEX_POSITION_TRY.into(),
-          Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
-        );
-
-        insert_stylex_identifier_entry(
-          &mut identifiers,
-          name,
-          STYLEX_TYPES.into(),
-          FunctionConfigType::Regular(types_fn.clone()),
-        );
-      }
-
-      apply_unstable_conditional(&self.state, &mut identifiers, &mut member_expressions);
-
-      self
-        .state
-        .apply_stylex_env(&mut identifiers, &mut member_expressions);
+      // The same registrations `createThemeNested` and `defineVarsNested` fold
+      // their argument with, and this call adds the theme reference below.
+      let mut function_map = build_eval_config(&mut self.state);
 
       // Compute file_name, export_name, and export_id BEFORE evaluation so the
       // ThemeRefMapper factory can be built and injected into identifiers, allowing
@@ -153,7 +91,7 @@ where
       let theme_ref_factory: Rc<dyn Fn() -> ThemeRef + 'static> =
         Rc::new(move || shared_theme_ref.clone());
 
-      identifiers.insert(
+      function_map.identifiers.insert(
         export_name.as_str().into(),
         Box::new(FunctionConfigType::Regular(FunctionConfig {
           fn_ptr: FunctionType::ThemeRefMapper(theme_ref_factory),
@@ -161,11 +99,7 @@ where
         })),
       );
 
-      let function_map: Box<FunctionMap> = Box::new(FunctionMap {
-        identifiers,
-        member_expressions,
-        disable_imports: false,
-      });
+      let function_map: Box<FunctionMap> = Box::new(function_map);
 
       let evaluated_arg = evaluate(first_arg, &mut self.state, &function_map);
 

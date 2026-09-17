@@ -184,24 +184,13 @@ Permanent:
 - `stylex_compiler_rs` -- NAPI-RS bindings
 - `stylex_test_parser` -- test fixture parser
 
-Temporary:
+There is no temporary row. Every crate that is not named above is on the gate.
 
-- `stylex_transform` -- the tests are not written yet. No test runs the refusal
-  arms, the second half of a two-mode helper, or the branch that no fixture
-  reaches. Removed by `67-remove-the-transform-coverage-exclusion`.
-
-Nothing prevents the transform's coverage: the crate holds its own tests, so
-they count for it. Tickets `63-cover-the-transform-shared-utils` through
-`66-cover-the-transformers-and-structures` write the missing tests, and ticket
-67 then puts the crate on the gate. The measured figures are in ticket
-`62-record-the-transform-coverage-baseline`. They change as each batch lands,
-so they are not copied here.
-
-`stylex_evaluator` held the previous temporary row, for a different reason: it
-came out of the transform, which is itself off the gate, and the new crate
-boundary stopped the transform's coverage from counting for it. Ticket
-`15-cover-the-evaluator-crate` added the tests that closed the gap, and the
-crate is on the gate at full coverage.
+`stylex_transform` held the last one. It was off the gate because its tests were
+not written, and tickets `63-cover-the-transform-shared-utils` through
+`67-remove-the-transform-coverage-exclusion` wrote them: the crate is on the
+gate at full coverage, and the figures each batch measured are in ticket
+`62-record-the-transform-coverage-baseline`.
 
 Write a temporary row as a `- ` bullet under a `Temporary:` heading, the way the
 permanent rows are written. The reader of these lists is a regular expression

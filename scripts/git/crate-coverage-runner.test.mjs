@@ -36,7 +36,7 @@ const script = path.join(repoRoot, 'scripts/packages/test/coverage.sh');
  * four and names the one that disagrees, so a row edited here alone fails
  * there rather than in the pre-push hook.
  */
-const EXCLUDED = ['stylex-logs', 'stylex-rs-compiler', 'stylex-test-parser', 'stylex-transform'];
+const EXCLUDED = ['stylex-logs', 'stylex-rs-compiler', 'stylex-test-parser'];
 
 /** Runs the real script inside a throwaway crate. */
 function runInCrate(options = {}) {
@@ -137,7 +137,7 @@ void test(
     // 11 took the first of them off the list.
     const { invocations } = runInCrate({
       files: A_MEASURABLE_CRATE,
-      name: 'stylex-transform-index',
+      name: 'stylex-logs-index',
     });
 
     assert.equal(invocations.length, 1);

@@ -102,7 +102,6 @@ EXCLUDED_CRATES=(
   stylex_logs        # permanent
   stylex_compiler_rs # permanent
   stylex_test_parser # permanent
-  stylex_transform   # temporary, removed by 67-remove-the-transform-coverage-exclusion
 )
 WORKSPACE_EXCLUDES=()
 for crate in "${EXCLUDED_CRATES[@]}"; do

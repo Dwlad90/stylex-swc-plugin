@@ -28,11 +28,14 @@ use stylex_utils::hash::create_hash;
 ///
 /// This is the whole of what is left out of the coverage measurement, and it
 /// computes nothing -- it chooses between answers the caller has already worked
-/// out. The check above the call proves the call is a top-level expression, and
-/// `stylex_state::state_writers::record_top_level_declarator` is the one writer
-/// of that list: it records the declarator in both lists or in neither, which
-/// `a_top_level_declarator_is_recorded_in_both_lists` measures.
-/// `guidelines/stack/RUST.md` describes the allowance.
+/// out. The check above the call proves the call is a top-level expression
+/// bound to a named export, and a named top-level entry has one writer:
+/// `stylex_state::state_writers::record_top_level_declarator` records the
+/// declarator in both lists or in neither.
+/// `a_top_level_declarator_is_recorded_in_both_lists` measures that, and
+/// `the_position_names_the_declarator_the_call_initialises` measures that the
+/// position names the right one. `guidelines/stack/RUST.md` describes the
+/// allowance.
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn or_refuse_unbound_marker(index: Option<usize>) -> usize {
   match index {

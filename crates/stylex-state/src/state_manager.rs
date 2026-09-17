@@ -2281,7 +2281,7 @@ impl StateManager {
     }
 
     // Through the parentheses, as the declarator lookup below reads one. The
-    // two are asked together -- `validate_stylex_define_marker_indent` reads
+    // two are asked together -- `find_and_validate_stylex_define_marker` reads
     // both in one branch -- so a paren that blinded only one of them decided
     // which of two refusals an author read.
     self

@@ -16,8 +16,8 @@ use stylex_types::structures::injectable_style::InjectableStyle;
 
 /// The five declarations the inline-style cases serialize, spelled camel case.
 ///
-/// `normalize_css_property_name` has to build a new string for each of these
-/// keys, which is the cost this set prices.
+/// `kebab_case` has to build a new string for each of these keys, which is the
+/// cost this set prices.
 fn converted_key_pairs() -> Vec<PairCow<'static>> {
   declarations(&[
     ("marginInlineStart", "8px"),
@@ -30,9 +30,8 @@ fn converted_key_pairs() -> Vec<PairCow<'static>> {
 
 /// The same five declarations, already spelled in kebab case.
 ///
-/// `normalize_css_property_name` borrows each of these keys and converts
-/// nothing, so the pair of cases separates one variable: whether the key needs
-/// converting.
+/// `kebab_case` borrows each of these keys and converts nothing, so the pair of
+/// cases separates one variable: whether the key needs converting.
 ///
 /// The two cases used to be named for text direction. Nothing here flips:
 /// `inline_style_to_css_string` takes no options, so it cannot. The

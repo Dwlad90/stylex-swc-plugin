@@ -74,7 +74,9 @@ fn every_variant() -> Vec<FlatCompiledStylesValue> {
     string_value("x1e2nbdu"),
     FlatCompiledStylesValue::Number(0.5),
     FlatCompiledStylesValue::Object(object_value()),
+    FlatCompiledStylesValue::List(vec![Rc::new(string_value("blue"))]),
     FlatCompiledStylesValue::Null,
+    FlatCompiledStylesValue::Undefined,
     FlatCompiledStylesValue::InjectableStyle(injectable()),
     FlatCompiledStylesValue::Bool(true),
     tuple_value(),
@@ -162,18 +164,15 @@ fn an_injectable_style_answers_itself_and_nothing_else_does() {
 
 #[test]
 fn a_bool_answers_itself_and_nothing_else_does() {
-  assert_eq!(FlatCompiledStylesValue::Bool(true)._as_bool(), Some(&true));
-  assert_eq!(
-    FlatCompiledStylesValue::Bool(false)._as_bool(),
-    Some(&false)
-  );
-  assert_eq!(count_answering(|value| value._as_bool().is_some()), 1);
+  assert_eq!(FlatCompiledStylesValue::Bool(true).as_bool(), Some(&true));
+  assert_eq!(FlatCompiledStylesValue::Bool(false).as_bool(), Some(&false));
+  assert_eq!(count_answering(|value| value.as_bool().is_some()), 1);
 }
 
 #[test]
 fn a_null_answers_itself_and_nothing_else_does() {
-  assert_eq!(FlatCompiledStylesValue::Null._as_null(), Some(()));
-  assert_eq!(count_answering(|value| value._as_null().is_some()), 1);
+  assert_eq!(FlatCompiledStylesValue::Null.as_null(), Some(()));
+  assert_eq!(count_answering(|value| value.as_null().is_some()), 1);
 }
 
 /// A number is its own variant, and the text spelling of the same number is
@@ -186,26 +185,54 @@ fn a_number_is_not_the_text_that_spells_it() {
   assert_eq!(FlatCompiledStylesValue::Number(2.0).as_class_name(), None);
 }
 
+/// An object holds the declarations it was given, and an object holding
+/// nothing is an object and not an absent one -- a `props` call given `{}`
+/// beside a compiled style reaches that shape.
 #[test]
-fn an_object_answers_its_declarations_and_nothing_else_does() {
-  let value = FlatCompiledStylesValue::Object(object_value());
-
-  assert_eq!(value.as_object(), Some(&object_value()));
-  assert_eq!(count_answering(|value| value.as_object().is_some()), 1);
+fn an_object_holds_the_declarations_it_was_given() {
+  assert_eq!(
+    FlatCompiledStylesValue::Object(object_value()),
+    FlatCompiledStylesValue::Object(object_value())
+  );
+  assert_ne!(
+    FlatCompiledStylesValue::Object(object_value()),
+    FlatCompiledStylesValue::Object(FlatCompiledStyles::new())
+  );
 }
 
-/// An object holding nothing is an object, not an absent one -- a `props` call
-/// given `{}` beside a compiled style reaches this shape.
+/// The two zeroes are one value, so they are one hash. Their bit patterns
+/// differ, which is what the reader folds away before it hashes them.
 #[test]
-fn an_object_holding_nothing_is_still_an_object() {
-  let value = FlatCompiledStylesValue::Object(FlatCompiledStyles::new());
+fn the_two_zeroes_are_one_value_and_one_hash() {
+  assert_eq!(
+    FlatCompiledStylesValue::Number(-0.0),
+    FlatCompiledStylesValue::Number(0.0)
+  );
+  assert_eq!(
+    hash_of(&FlatCompiledStylesValue::Number(-0.0)),
+    hash_of(&FlatCompiledStylesValue::Number(0.0))
+  );
+}
 
-  assert_eq!(value.as_object(), Some(&FlatCompiledStyles::new()));
+/// A list keeps the order it was written in, so two lists holding the same
+/// elements in a different order are two values and two hashes.
+#[test]
+fn a_list_hashes_in_the_order_it_was_written() {
+  let one_way = FlatCompiledStylesValue::List(vec![
+    Rc::new(string_value("red")),
+    Rc::new(string_value("blue")),
+  ]);
+  let the_other = FlatCompiledStylesValue::List(vec![
+    Rc::new(string_value("blue")),
+    Rc::new(string_value("red")),
+  ]);
+
+  assert_ne!(one_way, the_other);
+  assert_ne!(hash_of(&one_way), hash_of(&the_other));
 }
 
 /// Two values that are equal hash alike, which the derived spelling cannot
-/// give a number. The pair of zeroes is the one place equality and the bits
-/// part company, and the reader spells both `0`, as the language does.
+/// give a number.
 #[test]
 fn a_value_hashes_by_what_it_holds() {
   assert_eq!(
@@ -343,17 +370,18 @@ fn styleq_reads_null_out_of_the_null_alone() {
   assert_eq!(count_answering(StyleqValue::is_null), 1);
 }
 
-/// No variant stands for a property that was not given.
+/// One variant stands for a property that was given no value, and it is not
+/// the `null` beside it.
 ///
-/// The question exists because an inline style skips such a property whole: it
-/// writes nothing, defines nothing, and leaves the property for a later style.
-/// A compiled style has nothing to answer it with -- a property the author left
-/// out is absent from the map rather than present holding nothing -- so every
-/// variant answers no, and a variant added later that does stand for one has to
-/// come back here.
+/// The merge reads the two differently: a `null` clears the property and holds
+/// it against every style behind it, while a property with no value is skipped
+/// whole and left for a later style to set.
 #[test]
-fn no_compiled_value_stands_for_a_property_that_was_not_given() {
-  assert_eq!(count_answering(StyleqValue::is_undefined), 0);
+fn one_value_stands_for_a_property_that_was_given_no_value() {
+  assert!(FlatCompiledStylesValue::Undefined.is_undefined());
+  assert!(!FlatCompiledStylesValue::Null.is_undefined());
+  assert!(!FlatCompiledStylesValue::Undefined.is_null());
+  assert_eq!(count_answering(StyleqValue::is_undefined), 1);
 }
 
 /// `false` is not the compiled marker. The marker is written as `true` and only

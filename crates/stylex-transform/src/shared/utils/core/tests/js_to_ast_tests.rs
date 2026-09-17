@@ -362,6 +362,45 @@ fn raw_numbers_under(expr: &Expr, key: &str) -> Vec<String> {
   }
 }
 
+/// A list has no form of its own in a style object, so each element is named
+/// by the place it holds. A `null` element keeps its place; a value with no
+/// value at all has no place to be written into, and the call is refused.
+#[test]
+fn writes_a_list_as_the_places_its_elements_hold() {
+  let values = values_of(&[(
+    "style",
+    FlatCompiledStylesValue::Object(inline_style(&[(
+      "color",
+      FlatCompiledStylesValue::List(vec![
+        Rc::new(FlatCompiledStylesValue::String("red".to_owned())),
+        Rc::new(FlatCompiledStylesValue::Null),
+        Rc::new(FlatCompiledStylesValue::List(vec![Rc::new(
+          FlatCompiledStylesValue::Number(1.0),
+        )])),
+      ]),
+    )])),
+  )]);
+
+  let written = convert_values_to_ast(&values);
+
+  assert_eq!(
+    properties_under(&written, "style"),
+    [("color".to_owned(), "object:3".to_owned())]
+  );
+}
+
+#[test]
+#[should_panic(expected = "A style value that is undefined cannot be written.")]
+fn refuses_a_list_holding_a_value_that_is_undefined() {
+  convert_values_to_ast(&values_of(&[(
+    "style",
+    FlatCompiledStylesValue::Object(inline_style(&[(
+      "color",
+      FlatCompiledStylesValue::List(vec![Rc::new(FlatCompiledStylesValue::Undefined)]),
+    )])),
+  )]));
+}
+
 /// The declarations of one inline style, built the way a case names them.
 fn inline_style(declarations: &[(&str, FlatCompiledStylesValue)]) -> FlatCompiledStyles {
   values_of(declarations)

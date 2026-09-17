@@ -6,7 +6,7 @@ use std::rc::Rc;
 use indexmap::IndexMap;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
-  functions::FunctionMap, state_manager::StateManager,
+  functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles,
 };
 use swc_core::ecma::ast::Lit;
 
@@ -26,6 +26,14 @@ fn read(code: &str) -> StyleObject {
 
 fn styles() -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
   IndexMap::new()
+}
+
+/// The declarations one value holds, where it holds an object.
+fn object_of(value: &FlatCompiledStylesValue) -> Option<&FlatCompiledStyles> {
+  match value {
+    FlatCompiledStylesValue::Object(values) => Some(values),
+    _ => None,
+  }
 }
 
 /// The two ways an author writes "no style here" are the same answer, and the
@@ -225,7 +233,7 @@ fn reads_each_kind_of_value_an_inline_style_holds() {
     &FlatCompiledStylesValue::Bool(true)
   );
 
-  let Some(nested) = inline[":hover"].as_object() else {
+  let Some(nested) = object_of(&inline[":hover"]) else {
     panic!("the pseudo-class does not hold an object: {:?}", inline);
   };
 
@@ -234,6 +242,166 @@ fn reads_each_kind_of_value_an_inline_style_holds() {
     &FlatCompiledStylesValue::String("blue".to_owned())
   );
   assert_eq!(nested["margin"].as_ref(), &FlatCompiledStylesValue::Null);
+}
+
+/// A declaration written with no value is kept as one, so the merge can skip
+/// the property whole rather than clear it.
+#[test]
+fn reads_a_declaration_with_no_value() {
+  let mut inline = styles();
+
+  parse_nullable_object(&mut inline, &expr("{ color: undefined, margin: null }"));
+
+  assert_eq!(
+    inline["color"].as_ref(),
+    &FlatCompiledStylesValue::Undefined
+  );
+  assert_eq!(inline["margin"].as_ref(), &FlatCompiledStylesValue::Null);
+}
+
+/// A list keeps its elements in the order they were written, each read as the
+/// kind it is.
+#[test]
+fn reads_a_list_of_values() {
+  let mut inline = styles();
+
+  parse_nullable_object(
+    &mut inline,
+    &expr("{ color: ['red', 1, true, null, ['a']] }"),
+  );
+
+  let FlatCompiledStylesValue::List(elements) = inline["color"].as_ref() else {
+    panic!("the declaration does not hold a list: {:?}", inline);
+  };
+
+  assert_eq!(elements.len(), 5);
+  assert_eq!(
+    elements[0].as_ref(),
+    &FlatCompiledStylesValue::String("red".to_owned())
+  );
+  assert_eq!(elements[1].as_ref(), &FlatCompiledStylesValue::Number(1.0));
+  assert_eq!(elements[2].as_ref(), &FlatCompiledStylesValue::Bool(true));
+  assert_eq!(elements[3].as_ref(), &FlatCompiledStylesValue::Null);
+  assert!(matches!(
+    elements[4].as_ref(),
+    FlatCompiledStylesValue::List(_)
+  ));
+}
+
+/// A list holding nothing is a list, not an absent declaration.
+#[test]
+fn reads_a_list_holding_nothing() {
+  let mut inline = styles();
+
+  parse_nullable_object(&mut inline, &expr("{ color: [] }"));
+
+  assert_eq!(
+    inline["color"].as_ref(),
+    &FlatCompiledStylesValue::List(vec![])
+  );
+}
+
+/// A slot of a list that holds no value of its own cannot be read, so the
+/// whole call is left to the runtime.
+#[test]
+#[should_panic(expected = "Encountered a list element with no value of its own.")]
+fn refuses_a_list_element_with_no_value_of_its_own() {
+  parse_nullable_object(&mut styles(), &expr("{ color: ['a', , 'c'] }"));
+}
+
+/// The name that sets what an object inherits from declares nothing of its
+/// own, whichever of its three spellings the author used, and a prototype that
+/// is not an object leaves nothing to inherit either.
+#[test]
+fn leaves_out_the_name_that_sets_what_an_object_inherits_from() {
+  for source in [
+    "{ __proto__: 'red', color: 'blue' }",
+    "{ '__proto__': 'red', color: 'blue' }",
+    "{ ['__proto__']: 'red', color: 'blue' }",
+    "{ __proto__: null, color: 'blue' }",
+  ] {
+    let mut inline = styles();
+
+    parse_nullable_object(&mut inline, &expr(source));
+
+    assert_eq!(inline.keys().cloned().collect::<Vec<_>>(), ["color"]);
+  }
+}
+
+/// A prototype that is an object declares its own names too. The merge walks
+/// what a style inherits from, so those names come after the ones the style
+/// wrote and are shadowed by them.
+///
+/// Measured against `@stylexjs/babel-plugin` 0.19.0 with `pnpm run
+/// parity:probe`: `stylex.props({ __proto__: { color: 'red', margin: '9px' },
+/// margin: '1px' })` answers `{ style: { margin: "1px", color: "red" } }`
+/// there.
+#[test]
+fn reads_the_names_a_style_inherits_after_its_own() {
+  let mut inline = styles();
+
+  parse_nullable_object(
+    &mut inline,
+    &expr("{ __proto__: { color: 'red', margin: '9px' }, margin: '1px' }"),
+  );
+
+  assert_eq!(
+    inline.keys().cloned().collect::<Vec<_>>(),
+    ["margin", "color"]
+  );
+  assert_eq!(
+    inline["margin"].as_ref(),
+    &FlatCompiledStylesValue::String("1px".to_owned())
+  );
+}
+
+/// A prototype that was given one of its own is read the same way again, so a
+/// whole chain declares its names in the order the merge walks them.
+#[test]
+fn reads_a_whole_chain_of_prototypes() {
+  let mut inline = styles();
+
+  parse_nullable_object(
+    &mut inline,
+    &expr("{ __proto__: { __proto__: { a: '1' }, b: '2' }, c: '3' }"),
+  );
+
+  assert_eq!(inline.keys().cloned().collect::<Vec<_>>(), ["c", "b", "a"]);
+}
+
+/// A prototype nested inside a declaration is left out whole. Nothing merges
+/// such an object -- the runtime is handed it as it stands -- so nothing walks
+/// what it inherits from.
+#[test]
+fn leaves_out_a_prototype_a_nested_object_was_given() {
+  let mut inline = styles();
+
+  parse_nullable_object(
+    &mut inline,
+    &expr("{ ':hover': { __proto__: { color: 'red' }, margin: '1px' } }"),
+  );
+
+  let Some(nested) = object_of(&inline[":hover"]) else {
+    panic!("the pseudo-class does not hold an object: {:?}", inline);
+  };
+
+  assert_eq!(nested.keys().cloned().collect::<Vec<_>>(), ["margin"]);
+}
+
+/// A later style argument wins over a name an earlier one inherited, because
+/// what a style inherits is still a declaration of that style and nothing
+/// more.
+#[test]
+fn a_later_argument_wins_over_an_inherited_name() {
+  let mut inline = styles();
+
+  parse_nullable_object(&mut inline, &expr("{ __proto__: { color: 'red' } }"));
+  parse_nullable_object(&mut inline, &expr("{ color: 'blue' }"));
+
+  assert_eq!(
+    inline["color"].as_ref(),
+    &FlatCompiledStylesValue::String("blue".to_owned())
+  );
 }
 
 /// An object holds objects as deep as the author wrote them.
@@ -246,9 +414,8 @@ fn reads_an_object_inside_an_object() {
     &expr("{ ':hover': { ':focus': { color: 'red' } } }"),
   );
 
-  let nested = inline[":hover"]
-    .as_object()
-    .and_then(|hover| hover[":focus"].as_object())
+  let nested = object_of(&inline[":hover"])
+    .and_then(|hover| object_of(&hover[":focus"]))
     .cloned();
 
   assert_eq!(
@@ -265,7 +432,7 @@ fn reads_an_object_holding_nothing() {
 
   parse_nullable_object(&mut inline, &expr("{ ':hover': {} }"));
 
-  assert_eq!(inline[":hover"].as_object().map(IndexMap::len), Some(0));
+  assert_eq!(object_of(&inline[":hover"]).map(IndexMap::len), Some(0));
 }
 
 /// A name written twice keeps the place of its first writing and the value of
@@ -302,17 +469,13 @@ fn passes_over_a_property_that_is_not_a_key_value_pair() {
 /// A declaration holds a literal or an object. Anything else was never
 /// evaluated, and reading it as a class name would write the wrong class.
 #[test]
-#[should_panic(
-  expected = "Encountered an unsupported expression type while parsing a nullable style array."
-)]
+#[should_panic(expected = "Encountered a style value the compiler cannot read.")]
 fn refuses_a_value_that_is_neither_a_literal_nor_an_object() {
   parse_nullable_object(&mut styles(), &expr("{ color: name }"));
 }
 
 #[test]
-#[should_panic(
-  expected = "Encountered an unsupported expression type while parsing a nullable style array."
-)]
+#[should_panic(expected = "Encountered a style argument that is not an object.")]
 fn refuses_a_compiled_style_that_is_not_an_object() {
   parse_nullable_object(&mut styles(), &expr("[1, 2]"));
 }
@@ -320,7 +483,7 @@ fn refuses_a_compiled_style_that_is_not_an_object() {
 /// A big integer is not text, a number, a boolean or an absence, so it is none
 /// of the kinds a declaration can hold.
 #[test]
-#[should_panic(expected = "Unhandled literal type in nullable style parsing array")]
+#[should_panic(expected = "Encountered a literal a style value cannot hold.")]
 fn refuses_a_literal_a_declaration_cannot_hold() {
   let lit = match expr("1n") {
     swc_core::ecma::ast::Expr::Lit(lit) => lit,
@@ -350,9 +513,7 @@ fn reads_a_class_name_holding_half_a_surrogate_pair() {
 /// of style arguments. Anything else means the argument was not compiled, and
 /// merging it would write a class the author never asked for.
 #[test]
-#[should_panic(
-  expected = "Encountered an unsupported evaluation result while parsing a nullable style array."
-)]
+#[should_panic(expected = "Encountered an element of a style list the compiler cannot read.")]
 fn refuses_an_array_element_that_is_not_a_style() {
   parse_compiled_styles(
     &mut styles(),
@@ -361,9 +522,7 @@ fn refuses_an_array_element_that_is_not_a_style() {
 }
 
 #[test]
-#[should_panic(
-  expected = "Encountered an unsupported evaluation result while parsing a nullable style."
-)]
+#[should_panic(expected = "Encountered a style argument the compiler cannot read.")]
 fn refuses_a_folded_value_that_is_not_a_style() {
   parse_compiled_styles(&mut styles(), &EvaluateResultValue::Map(IndexMap::new()));
 }

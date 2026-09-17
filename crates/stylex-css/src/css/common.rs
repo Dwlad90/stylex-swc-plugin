@@ -24,7 +24,7 @@ use stylex_structures::{
   stylex_state_options::StyleXStateOptions,
 };
 use stylex_types::structures::injectable_style::InjectableStyle;
-use stylex_utils::string::dashify;
+use stylex_utils::string::kebab_case;
 
 const THUMB_VARIANTS: [&str; 3] = [
   "::-webkit-slider-thumb",
@@ -775,21 +775,15 @@ pub fn get_number_suffix(key: &str) -> &'static str {
   }
 }
 
-/// Converts a camelCase CSS property name to its hyphenated form.
-///
-/// Custom properties (`--*`) are returned as-is. Vendor-prefixed properties
-/// (e.g. `MsTransition`, `WebkitTapHighlightColor`) are converted to their
-/// standard hyphenated forms (`-ms-transition`, `-webkit-tap-highlight-color`).
-pub fn normalize_css_property_name(prop: &str) -> Cow<'_, str> {
-  if prop.starts_with("--") {
-    return Cow::Borrowed(prop);
-  }
-  dashify(prop)
-}
-
 /// Serializes a list of key-value pairs into an inline CSS style string.
 ///
 /// Each pair is formatted as `property:value` and joined with `;`.
+///
+/// Every name takes the spelling a `style` attribute gives it, which is
+/// [`kebab_case`] and not the stylesheet spelling. The runtime writes this
+/// attribute with a rule of its own, and a custom property is the name where
+/// the two part company: `--myColor` stays as it is in a stylesheet and
+/// becomes `--my-color` here.
 ///
 /// Taken by borrowed halves, because a caller that already holds the name and
 /// the text writes them straight in, and one that had to spell a value -- a
@@ -803,8 +797,11 @@ pub fn inline_style_to_css_string(pairs: &[PairCow<'_>]) -> String {
   let mut out = String::with_capacity(capacity);
 
   for pair in pairs {
-    let normalized_key = normalize_css_property_name(&pair.key);
-    push_css_decl(&mut out, normalized_key.as_ref(), pair.value.as_ref());
+    push_css_decl(
+      &mut out,
+      kebab_case(&pair.key).as_ref(),
+      pair.value.as_ref(),
+    );
   }
 
   out

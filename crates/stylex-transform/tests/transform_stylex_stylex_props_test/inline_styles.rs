@@ -288,3 +288,91 @@ stylex_test!(
     });
   "#
 );
+
+// A declaration the author gave no value declares nothing. The merge skips it
+// whole, so it writes no property and does not clear what a style before it
+// declared -- which is what separates it from a null.
+stylex_test!(
+  inline_style_holding_a_declaration_with_no_value,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.props({ color: 'red' }, { color: undefined, margin: undefined });
+  "#
+);
+
+// An author writes a list where one property is given fallbacks. A style
+// object has no list form, so each element is named by the place it holds.
+stylex_test!(
+  inline_style_holding_a_list,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.props({
+      color: ['red', 'blue'],
+      zIndex: [1, null],
+      margin: [],
+      padding: [['a'], { b: 1 }],
+    });
+  "#
+);
+
+// The same lists read as attributes are one run of text with commas between.
+// A list of lists reads as one run, and a slot holding nothing writes nothing
+// between two commas.
+stylex_test!(
+  inline_style_holding_a_list_read_as_attributes,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.attrs({
+      color: ['red', 'blue'],
+      zIndex: [1, null],
+      margin: [],
+      padding: [['a'], { b: 1 }],
+    });
+  "#
+);
+
+// The name that sets what an object inherits from declares no property of its
+// own, so it is left out rather than written into the style the runtime
+// applies.
+stylex_test!(
+  inline_style_holding_the_prototype_name,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.props({ __proto__: 'red', color: 'blue' });
+  "#
+);
+
+// A prototype that is an object declares its own names all the same, because
+// the merge walks what a style inherits from. They come after the names the
+// style wrote, are shadowed by them, and a whole chain reads the same way.
+//
+// The last declaration holds the other half of the rule: nothing merges a
+// nested object, so nothing walks what that one inherits from.
+stylex_test!(
+  inline_style_inheriting_from_another_object,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.props({
+      __proto__: { __proto__: { a: '1' }, color: 'red', margin: '9px' },
+      margin: '1px',
+      ':hover': { __proto__: { b: '2' }, padding: '3px' },
+    });
+  "#
+);
+
+// A custom property keeps the author's spelling where a style object is
+// written and takes the attribute spelling where a style attribute is. The
+// runtime dashes every capital of an attribute name and leaves nothing alone.
+stylex_test!(
+  a_custom_property_read_as_an_attribute,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.attrs({ '--myColor': 'red', ABCDef: '1' });
+  "#
+);

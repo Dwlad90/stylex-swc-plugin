@@ -1,3 +1,58 @@
+/// The spelling a `style` attribute gives a name, against the rule the StyleX
+/// runtime applies. Each case below was put through `pnpm run parity:probe`
+/// from `crates/stylex-rs-compiler` against `@stylexjs/babel-plugin` 0.19.0,
+/// and the reference spells every one of them the same way.
+#[cfg(test)]
+mod kebab_case_tests {
+  use std::borrow::Cow;
+
+  use crate::string::{dashify, kebab_case};
+
+  #[test]
+  fn dashes_every_capital_and_lowercases_the_name() {
+    assert_eq!(kebab_case("marginTop"), "margin-top");
+    assert_eq!(kebab_case("ABC"), "-a-b-c");
+    assert_eq!(kebab_case("A"), "-a");
+  }
+
+  /// A name with nothing to convert is handed back as it stands.
+  #[test]
+  fn borrows_a_name_that_needs_no_conversion() {
+    assert!(matches!(kebab_case("margin"), Cow::Borrowed("margin")));
+    assert!(matches!(
+      kebab_case("already-kebab"),
+      Cow::Borrowed("already-kebab")
+    ));
+    assert!(matches!(kebab_case(""), Cow::Borrowed("")));
+  }
+
+  /// A custom property is converted here. A stylesheet hands one back
+  /// untouched instead, and it does that with a guard of its own around
+  /// `dashify` rather than with a rule inside it, so the contrast cannot be
+  /// drawn against `dashify` here.
+  #[test]
+  fn converts_a_custom_property() {
+    assert_eq!(kebab_case("--myColor"), "--my-color");
+    assert!(matches!(kebab_case("--x"), Cow::Borrowed("--x")));
+  }
+
+  /// Two capitals in a row take a hyphen each here and one between them in a
+  /// stylesheet, which is the other place the two rules differ.
+  #[test]
+  fn dashes_a_run_of_capitals_one_by_one() {
+    assert_eq!(kebab_case("ABCDef"), "-a-b-c-def");
+    assert_eq!(dashify("ABCDef"), "-abcdef");
+  }
+
+  /// A name holding no ASCII capital is still lowercased where it holds
+  /// anything else that has a lowercase form.
+  #[test]
+  fn lowercases_a_name_that_is_not_ascii() {
+    assert_eq!(kebab_case("Ünicode"), "ünicode");
+    assert_eq!(kebab_case("aΣB"), "aς-b");
+  }
+}
+
 #[cfg(test)]
 mod dashify_tests {
   use crate::string::dashify;

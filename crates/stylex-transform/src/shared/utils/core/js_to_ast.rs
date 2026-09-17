@@ -1,8 +1,10 @@
+use std::rc::Rc;
+
 use indexmap::IndexMap;
 use stylex_ast::ast::convertors::{
   create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
 };
-use stylex_macros::stylex_unreachable;
+use stylex_macros::{stylex_unimplemented, stylex_unreachable};
 use stylex_utils::number::to_js_string;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{Expr, Lit, Number, PropOrSpread};
@@ -126,8 +128,32 @@ fn inline_value_to_ast(value: &FlatCompiledStylesValue) -> Expr {
     FlatCompiledStylesValue::Bool(value) => create_bool_expr(*value),
     FlatCompiledStylesValue::Null => create_null_expr(),
     FlatCompiledStylesValue::Object(style) => convert_inline_style_to_ast(style),
+    FlatCompiledStylesValue::List(elements) => convert_list_to_ast(elements),
+    // The merge drops a declaration with no value where it stands as a
+    // declaration of the style itself. One held inside an object or a list is
+    // never read by the merge, and neither shape has a form that can carry it,
+    // so the call is refused rather than written with a slot the runtime
+    // cannot read.
+    FlatCompiledStylesValue::Undefined => {
+      stylex_unimplemented!("A style value that is undefined cannot be written.")
+    },
     _ => stylex_unreachable!("Encountered an unsupported value type during AST conversion."),
   }
+}
+
+/// The object literal a list is written back as: `{ "0": ..., "1": ... }`.
+///
+/// A list has no form of its own where a style object is written, so each
+/// element is named by the place it holds. That is the object the reference
+/// writes, and it is what a reader of the printed module sees.
+fn convert_list_to_ast(elements: &[Rc<FlatCompiledStylesValue>]) -> Expr {
+  let props = elements
+    .iter()
+    .enumerate()
+    .map(|(index, element)| create_key_value_prop(&index.to_string(), inline_value_to_ast(element)))
+    .collect::<Vec<PropOrSpread>>();
+
+  create_object_expression(props)
 }
 
 /// The numeric literal one inline number is written as, spelled the way
@@ -152,7 +178,7 @@ fn create_js_number_expr(value: f64) -> Expr {
 }
 
 /// A whole compiled style object: one namespace per key, each namespace the
-/// properties [`compiled_values`] spells.
+/// properties [`compiled_value_props`] spells.
 pub(crate) fn compiled_namespaces(namespaces: &StylesObjectMap) -> CompiledNamespaces<'_> {
   namespaces
     .iter()

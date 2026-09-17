@@ -50,6 +50,39 @@ pub fn dashify(s: &str) -> Cow<'_, str> {
   Cow::Owned(dashed.to_lowercase())
 }
 
+/// The spelling a `style` attribute gives a property name.
+///
+/// Every ASCII capital takes a hyphen before it and the whole name is then
+/// lowercased, which is the rule the StyleX runtime applies where it writes a
+/// `style` attribute.
+///
+/// It is not [`dashify`], and the difference is deliberate. A stylesheet takes
+/// a hyphen only where a capital opens the name or follows a lowercase letter,
+/// so `ABCDef` is `-abcdef` there and `-a-b-c-def` here. A stylesheet also
+/// hands a custom property back untouched, which is a guard its caller holds
+/// rather than a rule inside `dashify`; an attribute has no such guard, so
+/// `--myColor` becomes `--my-color`. The two rules are kept apart because the
+/// runtime keeps them apart.
+pub fn kebab_case(s: &str) -> Cow<'_, str> {
+  if s.is_ascii() && !s.bytes().any(|byte| byte.is_ascii_uppercase()) {
+    return Cow::Borrowed(s);
+  }
+
+  let mut kebab = String::with_capacity(s.len() + 4);
+
+  for character in s.chars() {
+    if character.is_ascii_uppercase() {
+      kebab.push('-');
+    }
+
+    kebab.push(character);
+  }
+
+  // Lowercased over the built string rather than per character, for the reason
+  // `dashify` states above.
+  Cow::Owned(kebab.to_lowercase())
+}
+
 /// Whether a value spells no CSS text at all — empty, or nothing but
 /// characters the value scanner reads as whitespace.
 ///

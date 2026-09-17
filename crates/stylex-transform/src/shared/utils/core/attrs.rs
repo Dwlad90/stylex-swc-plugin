@@ -76,6 +76,38 @@ fn inline_value_as_text(value: &FlatCompiledStylesValue) -> Cow<'_, str> {
       false => "false",
     }),
     FlatCompiledStylesValue::Object(_) => Cow::Borrowed(OBJECT_AS_TEXT),
+    FlatCompiledStylesValue::List(elements) => Cow::Owned(list_as_text(elements)),
     _ => stylex_unreachable!("Encountered an unsupported value type in an inline style."),
+  }
+}
+
+/// The text a list spells: every element in turn, with a comma between.
+///
+/// A list of lists reads as one run of elements, because each of them spells
+/// its own text the same way and the commas simply join up.
+fn list_as_text(elements: &[Rc<FlatCompiledStylesValue>]) -> String {
+  let mut text = String::new();
+
+  for (index, element) in elements.iter().enumerate() {
+    if index > 0 {
+      text.push(',');
+    }
+
+    text.push_str(&element_as_text(element));
+  }
+
+  text
+}
+
+/// The text one element of a list spells.
+///
+/// An element that holds nothing spells nothing, which is the one rule a list
+/// adds: a declaration set to null names the word, and a slot of a list that
+/// is null or has no value writes an empty run between two commas. Every other
+/// kind spells what it spells anywhere else.
+fn element_as_text(value: &FlatCompiledStylesValue) -> Cow<'_, str> {
+  match value {
+    FlatCompiledStylesValue::Null | FlatCompiledStylesValue::Undefined => Cow::Borrowed(""),
+    value => inline_value_as_text(value),
   }
 }

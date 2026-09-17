@@ -43,49 +43,6 @@ mod get_number_suffix_tests {
 }
 
 #[cfg(test)]
-mod normalize_css_property_name_tests {
-  use std::borrow::Cow;
-
-  use crate::css::common::normalize_css_property_name;
-
-  #[test]
-  fn converts_camel_case() {
-    assert_eq!(normalize_css_property_name("marginTop"), "margin-top");
-  }
-
-  #[test]
-  fn preserves_custom_properties() {
-    assert_eq!(normalize_css_property_name("--my-var"), "--my-var");
-    assert_eq!(normalize_css_property_name("--xAbcDef"), "--xAbcDef");
-    assert!(matches!(
-      normalize_css_property_name("--xAbcDef"),
-      Cow::Borrowed("--xAbcDef")
-    ));
-  }
-
-  #[test]
-  fn converts_webkit_prefix() {
-    assert_eq!(
-      normalize_css_property_name("WebkitTransition"),
-      "-webkit-transition"
-    );
-  }
-
-  #[test]
-  fn preserves_already_lowercase() {
-    assert_eq!(normalize_css_property_name("color"), "color");
-  }
-
-  #[test]
-  fn converts_complex_property() {
-    assert_eq!(
-      normalize_css_property_name("borderBottomLeftRadius"),
-      "border-bottom-left-radius"
-    );
-  }
-}
-
-#[cfg(test)]
 mod inline_style_to_css_string_tests {
   use std::borrow::Cow;
 

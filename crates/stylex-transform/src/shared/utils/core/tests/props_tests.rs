@@ -153,15 +153,19 @@ fn a_later_declaration_of_another_kind_wins() {
   );
 }
 
-/// A custom property carries the name CSS gives it, so the author's spelling
-/// and the CSS spelling are one name. It is the one name both results write
-/// the same way, and neither may dash it further -- `--myColor` holds a
-/// capital that the CSS spelling of any other name would dash.
+/// A custom property keeps the author's spelling in a `style` property and
+/// takes the attribute spelling in a `style` attribute, and those are two
+/// names: the runtime dashes every capital where it writes the attribute, and
+/// it leaves a custom property alone nowhere.
 ///
-/// Both results are read here, because this is the only name for which they
-/// must agree, and nothing else pins the attribute half of it.
+/// Both results are read here, because this is the name that shows the two
+/// spellings are not one, and nothing else pins the attribute half of it.
+///
+/// Measured against `@stylexjs/babel-plugin` 0.19.0 with `pnpm run
+/// parity:probe`: `stylex.attrs({ '--myColor': 'red' })` answers
+/// `{ style: "--my-color:red" }` there.
 #[test]
-fn keeps_the_name_of_a_custom_property() {
+fn spells_a_custom_property_the_way_each_result_spells_it() {
   let declaration = [styles(inline(&[("--myColor", "red")]))];
 
   assert_eq!(
@@ -170,7 +174,83 @@ fn keeps_the_name_of_a_custom_property() {
   );
   assert_eq!(
     text_of(&values_of(attrs(&declaration)), "style"),
-    "--myColor:red"
+    "--my-color:red"
+  );
+}
+
+/// A list is the fallbacks an author gives one property. A `props` call names
+/// each element by the place it holds, because a style object has no list
+/// form, and an `attrs` call joins them with commas, because that is the text
+/// a list spells.
+///
+/// Measured against `@stylexjs/babel-plugin` 0.19.0 with `pnpm run
+/// parity:probe`: `stylex.props({ color: ['red', 'blue'] })` answers
+/// `{ style: { color: { "0": "red", "1": "blue" } } }` there, and the same
+/// source read as attributes answers `{ style: "color:red,blue" }`.
+#[test]
+fn writes_a_list_as_places_and_spells_it_as_a_join() {
+  let list = FlatCompiledStylesValue::List(vec![
+    Rc::new(text("red")),
+    Rc::new(FlatCompiledStylesValue::Number(1.0)),
+    Rc::new(FlatCompiledStylesValue::Null),
+    Rc::new(FlatCompiledStylesValue::Undefined),
+    Rc::new(FlatCompiledStylesValue::List(vec![Rc::new(text("a"))])),
+  ]);
+
+  assert_eq!(
+    style_pairs_of(&values_of(props(&[styles(inline_value(
+      "color",
+      list.clone()
+    ))]))),
+    [("color".to_owned(), list.clone())]
+  );
+
+  assert_eq!(
+    text_of(
+      &values_of(attrs(&[styles(inline_value("color", list))])),
+      "style"
+    ),
+    "color:red,1,,,a"
+  );
+}
+
+/// A list holding nothing spells nothing, so the declaration is written with
+/// no text after the colon.
+#[test]
+fn spells_a_list_holding_nothing_as_no_text() {
+  let values = values_of(attrs(&[styles(inline_value(
+    "color",
+    FlatCompiledStylesValue::List(vec![]),
+  ))]));
+
+  assert_eq!(text_of(&values, "style"), "color:");
+}
+
+/// A declaration the author gave no value declares nothing: the merge skips
+/// it whole, so it writes no `style` property at all and does not clear what
+/// a style before it declared.
+///
+/// Measured against `@stylexjs/babel-plugin` 0.19.0 with `pnpm run
+/// parity:probe`: `stylex.props({ color: undefined })` answers `{}` there, and
+/// `stylex.props({ color: 'red' }, { color: undefined })` answers
+/// `{ style: { color: "red" } }`.
+#[test]
+fn skips_a_declaration_that_was_given_no_value() {
+  let alone = values_of(props(&[styles(inline_value(
+    "color",
+    FlatCompiledStylesValue::Undefined,
+  ))]));
+
+  assert!(alone.is_empty());
+
+  let after_a_value = values_of(props(&[
+    styles(inline(&[("color", "red")])),
+    styles(inline_value("color", FlatCompiledStylesValue::Undefined)),
+  ]));
+
+  assert_eq!(
+    style_pairs_of(&after_a_value),
+    [("color".to_owned(), text("red"))]
   );
 }
 

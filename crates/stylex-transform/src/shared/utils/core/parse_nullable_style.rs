@@ -181,41 +181,53 @@ fn parse_compiled_styles(
 ) -> Option<StyleObject> {
   match result {
     EvaluateResultValue::Vec(arr) => {
-      for item in arr.iter() {
-        match item {
-          EvaluateResultValue::Expr(expr) => parse_nullable_object(compiled_styles, expr),
-          EvaluateResultValue::Vec(arr) => {
-            parse_compiled_styles(compiled_styles, &EvaluateResultValue::Vec(arr.clone()));
-          },
-          EvaluateResultValue::Null => {},
-          _ => {
-            stylex_unimplemented!(
-              "Encountered an unsupported evaluation result while parsing a nullable style array."
-            );
-          },
-        };
-      }
+      read_array(compiled_styles, arr);
+
       if compiled_styles.is_empty() {
         return Some(StyleObject::Other);
       }
-      return Some(StyleObject::Style(compiled_styles.clone()));
+      // Taken rather than copied. The caller drops the map as soon as this
+      // answers, so a copy of every name it holds was made only to be thrown
+      // away on the next line.
+      return Some(StyleObject::Style(std::mem::take(compiled_styles)));
     },
     EvaluateResultValue::Expr(expr) => {
       if expr.is_object() {
         parse_nullable_object(compiled_styles, expr);
-        return Some(StyleObject::Style(compiled_styles.clone()));
+        return Some(StyleObject::Style(std::mem::take(compiled_styles)));
       }
     },
     EvaluateResultValue::ThemeRef(_) => {
       return Some(StyleObject::Other);
     },
     _ => {
-      stylex_unimplemented!(
-        "Encountered an unsupported evaluation result while parsing a nullable style."
-      );
+      stylex_unimplemented!("Encountered a style argument the compiler cannot read.");
     },
   }
   None
+}
+
+/// Reads every style one array of evaluated arguments holds into
+/// `compiled_styles`.
+///
+/// Split from the answer above so the map is taken once, where the reading is
+/// finished. It also reads a nested array where it stands, rather than
+/// rebuilding it as an evaluation result first, which copied every element of
+/// it.
+fn read_array(
+  compiled_styles: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  arr: &[EvaluateResultValue],
+) {
+  for item in arr.iter() {
+    match item {
+      EvaluateResultValue::Expr(expr) => parse_nullable_object(compiled_styles, expr),
+      EvaluateResultValue::Vec(arr) => read_array(compiled_styles, arr),
+      EvaluateResultValue::Null => {},
+      _ => {
+        stylex_unimplemented!("Encountered an element of a style list the compiler cannot read.");
+      },
+    };
+  }
 }
 
 fn parse_nullable_object(
@@ -223,42 +235,101 @@ fn parse_nullable_object(
   expr: &Expr,
 ) {
   match expr {
-    Expr::Object(object) => read_declarations(compiled_styles, object),
+    Expr::Object(object) => {
+      for (key, value) in declarations_of(object) {
+        compiled_styles.insert(key, value);
+      }
+    },
     _ => {
-      stylex_unimplemented!(
-        "Encountered an unsupported expression type while parsing a nullable style array."
-      );
+      stylex_unimplemented!("Encountered a style argument that is not an object.");
     },
   }
 }
 
-/// Reads every declaration one object literal writes into `compiled_styles`.
+/// The one name an object literal writes that declares no property of its own.
+///
+/// Writing it sets what the object inherits from, whichever of the three ways
+/// it was spelled, so the object holds no such name afterwards.
+const PROTOTYPE_KEY: &str = "__proto__";
+
+/// Every declaration one style argument makes: the names it writes itself, and
+/// after them the names it inherits.
+///
+/// The merge walks what an object inherits from, so a prototype declares its
+/// own names too -- after the object's, and shadowed by them. A prototype that
+/// was given one of its own is read the same way again, which is why the walk
+/// is a loop rather than one step.
+///
+/// The names of one object go into a map of their own before they reach the
+/// caller's, because the two levels are combined by different rules: a name
+/// written twice in one object keeps the value of its last writing, and a name
+/// an object both writes and inherits keeps the one it wrote.
+fn declarations_of(object: &ObjectLit) -> IndexMap<String, Rc<FlatCompiledStylesValue>> {
+  let mut declarations: IndexMap<String, Rc<FlatCompiledStylesValue>> =
+    IndexMap::with_capacity(object.props.len());
+  let mut prototype = read_declarations(&mut declarations, object);
+
+  while let Some(object) = prototype {
+    let mut inherited: IndexMap<String, Rc<FlatCompiledStylesValue>> =
+      IndexMap::with_capacity(object.props.len());
+
+    prototype = read_declarations(&mut inherited, object);
+
+    for (key, value) in inherited {
+      declarations.entry(key).or_insert(value);
+    }
+  }
+
+  declarations
+}
+
+/// Reads the names one object literal writes into `compiled_styles`, and
+/// answers the object it was told to inherit from.
 ///
 /// A name written twice keeps the place of its first writing and the value of
-/// its last, which is how the language reads such an object.
-fn read_declarations(
+/// its last, which is how the language reads such an object. Only an object
+/// can be inherited from, so a prototype the author gave anything else sets
+/// nothing and declares nothing.
+fn read_declarations<'a>(
   compiled_styles: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
-  ObjectLit { props, .. }: &ObjectLit,
-) {
+  ObjectLit { props, .. }: &'a ObjectLit,
+) -> Option<&'a ObjectLit> {
+  let mut prototype = None;
+
   for prop in props.iter() {
     if let Some(key_value) = prop.as_prop().and_then(|p| p.as_key_value()) {
       let key = convert_key_value_to_str(key_value);
 
+      if key == PROTOTYPE_KEY {
+        prototype = key_value.value.as_object();
+        continue;
+      }
+
       compiled_styles.insert(key, Rc::new(parse_nullable_value(key_value.value.as_ref())));
     }
   }
+
+  prototype
 }
 
 /// What one declaration of an inline style holds.
 ///
 /// An inline style is the object the author wrote, so a value keeps the kind
-/// they gave it: `opacity: 0.5` is a number, `color: true` is a boolean, and a
-/// pseudo-class such as `:hover` holds an object of declarations of its own.
+/// they gave it: `opacity: 0.5` is a number, `color: true` is a boolean,
+/// `color: undefined` is a declaration with no value, and a pseudo-class such
+/// as `:hover` holds an object of declarations of its own.
 /// Every one of them is read back where the call is written, so a kind that is
 /// dropped here is a declaration the runtime never applies.
 fn parse_nullable_value(expr: &Expr) -> FlatCompiledStylesValue {
   match expr {
     Expr::Lit(lit) => parse_nullable_literal(lit),
+    // A declaration with no value is kept rather than dropped here, because
+    // the merge is what decides it declares nothing: it skips the property
+    // whole and leaves it for a later style to set.
+    Expr::Ident(ident) if is_js_undefined(ident) => FlatCompiledStylesValue::Undefined,
+    // A nested object is written back with the names it holds itself. Nothing
+    // walks what it inherits from, because nothing merges it -- the runtime is
+    // handed the object, and a prototype is not part of what is written.
     Expr::Object(object) => {
       let mut nested: IndexMap<String, Rc<FlatCompiledStylesValue>> =
         IndexMap::with_capacity(object.props.len());
@@ -267,10 +338,21 @@ fn parse_nullable_value(expr: &Expr) -> FlatCompiledStylesValue {
 
       FlatCompiledStylesValue::Object(nested)
     },
+    Expr::Array(array) => FlatCompiledStylesValue::List(
+      array
+        .elems
+        .iter()
+        .map(|element| match element {
+          Some(element) if element.spread.is_none() => Rc::new(parse_nullable_value(&element.expr)),
+          // A hole and a spread are the two slots that hold no value of their
+          // own. Neither survives being read, so the call is left to the
+          // runtime rather than written short of an element.
+          _ => stylex_unimplemented!("Encountered a list element with no value of its own."),
+        })
+        .collect(),
+    ),
     _ => {
-      stylex_unimplemented!(
-        "Encountered an unsupported expression type while parsing a nullable style array."
-      );
+      stylex_unimplemented!("Encountered a style value the compiler cannot read.");
     },
   }
 }
@@ -284,7 +366,7 @@ fn parse_nullable_literal(lit: &Lit) -> FlatCompiledStylesValue {
     Lit::Bool(bool_lit) => FlatCompiledStylesValue::Bool(bool_lit.value),
     Lit::Null(_) => FlatCompiledStylesValue::Null,
     _ => {
-      stylex_panic!("Unhandled literal type in nullable style parsing array");
+      stylex_panic!("Encountered a literal a style value cannot hold.");
     },
   }
 }

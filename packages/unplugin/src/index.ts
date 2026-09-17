@@ -201,8 +201,11 @@ function settleEsbuildMetafile(
 }
 
 /**
- * Gives every stylesheet the injection wrote a name that matches its new
- * contents, and brings the metafile back in step with what is on disk.
+ * Renames the written stylesheets on disk. Brings the metafile back in step
+ * with them.
+ *
+ * Why a rename is needed lives in `utils/stylesheetName`. esbuild has no rename
+ * API, so the new name is built there and the file is moved here.
  *
  * Nothing in the esbuild path emits a document, so there are no references to
  * chase after a rename.
@@ -453,14 +456,11 @@ interface StylesheetRenameSettings {
 }
 
 /**
- * Gives every stylesheet the injection wrote a name that matches its new
- * contents.
+ * Renames the written stylesheets under Vite and Rollup.
  *
- * The rules are spliced in after the host has named and hashed the stylesheet,
- * so a StyleX-only edit changed the bytes and kept the name. A browser or a CDN
- * holding the old file then served CSS without the classes the new JavaScript
- * asks for. Re-emitting the final source makes the host hash it again, which
- * also keeps the name in the host's own shape.
+ * Why a rename is needed lives in `utils/stylesheetName`. Both hosts hash an
+ * asset they are given. This code therefore hands the final source back through
+ * `emitFile`. That also keeps the name in the host's own shape.
  *
  * Only `delete` and in-place mutation of an existing entry reach the bundle.
  * Assignment of a new key is ignored. That is why the new stylesheet arrives

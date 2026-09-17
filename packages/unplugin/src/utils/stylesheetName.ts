@@ -1,3 +1,19 @@
+/**
+ * What a stylesheet must be called once the injection has changed it.
+ *
+ * Placeholder mode puts the StyleX rules into a stylesheet after the host has
+ * named and hashed it. The name then says nothing about what the file holds.
+ * A change to StyleX code alone kept that name. A browser or a CDN with the old
+ * file then served CSS that has none of the new classes.
+ *
+ * The reason is the same for every host, so it lives here and not beside each
+ * one. Hosts differ only in how much of the rename they can do themselves.
+ * Vite and Rollup hash an asset they are given. esbuild has no rename API. Its
+ * hash also cannot be reproduced. This module therefore builds the name for it.
+ * webpack and Rspack rename the asset themselves, if their real-content-hash
+ * step is on.
+ */
+
 import crypto from 'node:crypto';
 import * as path from 'node:path';
 

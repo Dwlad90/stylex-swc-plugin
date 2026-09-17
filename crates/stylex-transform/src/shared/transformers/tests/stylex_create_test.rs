@@ -1264,6 +1264,31 @@ mod stylex_create {
     assert!(injected_styles.is_empty());
   }
 
+  /// A namespace is answered under the name it was given.
+  ///
+  /// The atoms pass reads this: it wraps one property in a namespace of its own
+  /// naming and reads the compiled namespace back out under that name. A name
+  /// that did not survive the compile would leave it with nothing.
+  #[test]
+  fn answers_a_namespace_under_the_name_it_was_given() {
+    // A name no author writes, as the atoms pass uses, beside an ordinary one.
+    let names = ["__inline__", "root"];
+
+    let object = style_object_factory(&[
+      (names[0], &[("display", "flex")]),
+      (names[1], &[("color", "blue")]),
+    ]);
+
+    let (resolved_namespaces, _, _) = stylex_create(object);
+
+    for name in names {
+      assert!(
+        resolved_namespaces.contains_key(name),
+        "the namespace {name} was compiled under another name"
+      );
+    }
+  }
+
   /// Every namespace that is compiled gets a class-paths entry.
   ///
   /// The rewrite of the dynamic entries reads the paths of the namespace it

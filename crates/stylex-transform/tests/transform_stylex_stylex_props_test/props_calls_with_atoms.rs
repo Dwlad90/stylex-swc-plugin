@@ -358,3 +358,22 @@ stylex_test!(
     stylex.props(textColor.blue);
   "#
 );
+
+// A value that reads as empty declares nothing, so the atom compiles to a
+// namespace holding no class and injects no rule. `_` is the leading underscore
+// the value reader strips, which leaves the empty string.
+//
+// Answering nothing is intended rather than merely what happens. A declaration
+// with no value is what `stylex.create({ root: { display: "" } })` answers here
+// too -- the property is compiled to `null` and no rule is injected -- and
+// `@stylexjs/babel-plugin` 0.19.0 has no answer of its own to compare with: the
+// same source stops it with `Cannot read properties of undefined`.
+stylex_test!(
+  inline_static_with_an_empty_value_declares_nothing,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import css from '@stylexjs/atoms';
+    stylex.props(css.display._);
+  "#
+);

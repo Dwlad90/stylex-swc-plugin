@@ -171,3 +171,22 @@ fn a_named_import_that_is_no_api_binds_nothing() {
     "the API imported beside it still compiled:\n{output}"
   );
 }
+
+// A name bound twice — once to an API and once to the namespace — is not
+// JavaScript a bundler accepts, but it is JavaScript the parser reads, so the
+// compiler has to answer something for it.
+//
+// The name is registered for the API first, so it carries that one function
+// rather than the namespace's fold of many. The namespace registration that
+// follows has no fold to write `when` into and leaves the API in place, which
+// is what the fold read of such a name has always meant. The module still
+// compiles: `create` is dispatched from the call, not from the fold.
+stylex_test!(
+  a_name_bound_to_an_api_and_to_the_namespace_keeps_the_api,
+  |tr| build_test_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import { keyframes as stylex } from '@stylexjs/stylex';
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ root: { color: 'red' } });
+  "#
+);

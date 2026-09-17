@@ -169,7 +169,7 @@ describe('injectIntoCssTargets', () => {
     const first = stringTarget('a.css', `head${MARKER}tail`);
     const second = stringTarget('b.css', '.b{outline:0}');
 
-    const outcome = await injectIntoCssTargets(
+    const { outcome, written } = await injectIntoCssTargets(
       [first.target, second.target],
       [MARKER],
       RULES,
@@ -177,6 +177,8 @@ describe('injectIntoCssTargets', () => {
     );
 
     expect(outcome).toBe('injected');
+    // Only the marker-bearing target was written, so only that one is reported.
+    expect(written.map(target => target.name)).toEqual(['a.css']);
     expect(first.state.source).toBe(`head${RULES}tail`);
     expect(second.state.source).toBe('.b{outline:0}');
   });
@@ -185,10 +187,18 @@ describe('injectIntoCssTargets', () => {
     const first = stringTarget('a.css', `a${MARKER}`);
     const second = stringTarget('b.css', `b${MARKER}`);
 
-    await injectIntoCssTargets([first.target, second.target], [MARKER], RULES, identityFinalize);
+    const { written } = await injectIntoCssTargets(
+      [first.target, second.target],
+      [MARKER],
+      RULES,
+      identityFinalize
+    );
 
     expect(first.state.source).toBe(`a${RULES}`);
     expect(second.state.source).toBe('b');
+    // The stripped target changed its bytes too, so a host that rehashes must
+    // hear about both.
+    expect(written.map(target => target.name)).toEqual(['a.css', 'b.css']);
   });
 
   test('removes the marker when there are no rules to inject', async () => {
@@ -196,9 +206,15 @@ describe('injectIntoCssTargets', () => {
 
     // The marker was still dealt with at its position, so there is nothing to
     // report even though the rules were empty.
-    const outcome = await injectIntoCssTargets([only.target], [MARKER], null, identityFinalize);
+    const { outcome, written } = await injectIntoCssTargets(
+      [only.target],
+      [MARKER],
+      null,
+      identityFinalize
+    );
 
     expect(outcome).toBe('injected');
+    expect(written.map(target => target.name)).toEqual(['a.css']);
     expect(only.state.source).toBe('body{margin:0}');
   });
 
@@ -219,7 +235,7 @@ describe('injectIntoCssTargets', () => {
     const other = stringTarget('a.css', '.a{outline:0}');
     const preferred = stringTarget('index.css', '.i{outline:0}');
 
-    const outcome = await injectIntoCssTargets(
+    const { outcome, written } = await injectIntoCssTargets(
       [other.target, preferred.target],
       [MARKER],
       RULES,
@@ -229,6 +245,9 @@ describe('injectIntoCssTargets', () => {
     // Appending is distinct from injecting: the rules landed, but at the end
     // rather than where the marker was.
     expect(outcome).toBe('appended');
+    // The fallback is the only stylesheet that changed, so it is the only one
+    // whose name is now stale.
+    expect(written.map(target => target.name)).toEqual(['index.css']);
     expect(preferred.state.source).toBe(`.i{outline:0}\n${RULES}`);
     expect(other.state.source).toBe('.a{outline:0}');
   });
@@ -246,7 +265,10 @@ describe('injectIntoCssTargets', () => {
     ['no targets and no rules', null, 'nothing-to-inject'],
     ['no marker anywhere and no rules', null, 'nothing-to-inject'],
   ])('reports %s correctly', async (_label, collected, expected) => {
-    expect(await injectIntoCssTargets([], [MARKER], collected, identityFinalize)).toBe(expected);
+    const result = await injectIntoCssTargets([], [MARKER], collected, identityFinalize);
+
+    expect(result.outcome).toBe(expected);
+    expect(result.written).toEqual([]);
   });
 
   test('names the receiving target when finalizing the rules', async () => {
@@ -334,7 +356,7 @@ describe('injectIntoCssTargets', () => {
       stringTarget(`chunk-${index}.css`, `c${index}${MARKER}`)
     );
 
-    const outcome = await injectIntoCssTargets(
+    const { outcome, written } = await injectIntoCssTargets(
       targets.map(entry => entry.target),
       [MARKER],
       rules,
@@ -342,6 +364,7 @@ describe('injectIntoCssTargets', () => {
     );
 
     expect(outcome).toBe('injected');
+    expect(written).toHaveLength(50);
     expect(targets[0]?.state.source).toBe(`c0${rules}`);
     expect(targets.at(-1)?.state.source).toBe(`c49`);
   });

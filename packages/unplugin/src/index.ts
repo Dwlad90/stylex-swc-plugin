@@ -277,8 +277,11 @@ async function injectStyleXCss<TSource>(
       ];
     });
 
-  const outcome = await injectIntoCssTargets(targets, [injectMarker], collectedCSS, (css, name) =>
-    transformStyleXCSS(css, name, normalizedOptions)
+  const { outcome } = await injectIntoCssTargets(
+    targets,
+    [injectMarker],
+    collectedCSS,
+    (css, name) => transformStyleXCSS(css, name, normalizedOptions)
   );
 
   // An asset emitted here could not be linked, and unlike the Vite adapter this
@@ -353,7 +356,7 @@ async function injectPlaceholderIntoBundle(
   // through that hook, as it does under plain Rollup.
   const markers = [BUILD_CSS_PLACEHOLDER, normalizedOptions.useCssPlaceholder];
 
-  const outcome = await injectIntoCssTargets(targets, markers, collectedCSS, finalizeCss);
+  const { outcome } = await injectIntoCssTargets(targets, markers, collectedCSS, finalizeCss);
 
   if (outcome === 'injected' || outcome === 'nothing-to-inject') return;
 
@@ -1115,7 +1118,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               }
             }
 
-            const outcome = await injectIntoCssTargets(
+            const { outcome } = await injectIntoCssTargets(
               targets,
               [BUILD_CSS_PLACEHOLDER, normalizedOptions.useCssPlaceholder],
               collectedCSS,

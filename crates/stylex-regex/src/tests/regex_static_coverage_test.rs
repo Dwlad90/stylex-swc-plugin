@@ -3,16 +3,27 @@
 //! initialization.
 
 use crate::regex::{
-  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CSS_VALUE_SPLIT_REGEX, DESCENDANT_SELECTOR, IS_CSS_VAR,
+  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CSS_VAR_REFERENCE, DESCENDANT_SELECTOR, IS_CSS_VAR,
   LENGTH_UNIT_TESTER_REGEX, PSEUDO_PART_REGEX, SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
   STYLEX_CONSTS_IMPORT_REGEX, URL_REGEX, VAR_EXTRACTION_REGEX,
 };
 
-/// Value-splitting parsers should detect adjacency patterns.
+/// A style key is read as a variable reference only when it holds one, and a
+/// length is read as a length only when it spells one.
 #[test]
-fn css_value_parsers_match_expected_tokens() {
-  assert!(CSS_VALUE_SPLIT_REGEX.is_match(")a").unwrap());
-  assert!(CSS_VALUE_SPLIT_REGEX.is_match("\"\"").unwrap());
+fn var_references_and_lengths_match_expected_tokens() {
+  assert!(CSS_VAR_REFERENCE.is_match("var(--x1a2b3)").unwrap());
+  assert!(
+    CSS_VAR_REFERENCE
+      .is_match("@media (min-width: var(--x1a2b3))")
+      .unwrap()
+  );
+  // A bracket beside a non-space character is no reference, and neither is a
+  // name outside the class the expression spells.
+  assert!(!CSS_VAR_REFERENCE.is_match(":not(.a)::before").unwrap());
+  assert!(!CSS_VAR_REFERENCE.is_match("var(--Colour)").unwrap());
+  assert!(!CSS_VAR_REFERENCE.is_match("var(--my-colour)").unwrap());
+  assert!(!CSS_VAR_REFERENCE.is_match("var(--my_colour)").unwrap());
   assert!(LENGTH_UNIT_TESTER_REGEX.is_match("12px").unwrap());
   assert!(LENGTH_UNIT_TESTER_REGEX.is_match("-5").unwrap());
 }

@@ -4,10 +4,15 @@ use once_cell::sync::Lazy;
 pub static SANITIZE_CLASS_NAME_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"[^.a-zA-Z0-9_-]").expect("Sanitize class name regex is valid"));
 
-// Note: This matches `)` followed by a non-space char, or adjacent quotes.
-// Used by flatten_raw_style_object to detect CSS values that need splitting.
-pub static CSS_VALUE_SPLIT_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r#"(\))(\S)|(\")(\")"#).expect("CSS value split regex is valid"));
+// A `var(--name)` reference anywhere in a style key. A key that holds one is
+// named by what the brackets wrap, so a variable set in a `create` call is
+// filed under the custom property it declares.
+//
+// The name class is narrower than the `IS_CSS_VAR` class below: a name holding
+// a dash, an underscore or a capital is no reference to this expression. The
+// expression is also unanchored, so it finds a reference inside a longer key.
+pub static CSS_VAR_REFERENCE: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"var\(--[a-z0-9]+\)").expect("CSS var reference regex is valid"));
 
 // CSS dimension units including modern viewport and container units
 pub static LENGTH_UNIT_TESTER_REGEX: Lazy<Regex> = Lazy::new(|| {

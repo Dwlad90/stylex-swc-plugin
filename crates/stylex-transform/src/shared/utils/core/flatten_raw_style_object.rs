@@ -26,7 +26,7 @@ use stylex_constants::constants::messages::{
 use stylex_css::utils::condition::is_conditional_key;
 use stylex_evaluator::convertors::{expr_tpl_to_string, transform_bin_expr_to_number};
 use stylex_evaluator::state::EvaluationState;
-use stylex_regex::regex::CSS_VALUE_SPLIT_REGEX;
+use stylex_regex::regex::CSS_VAR_REFERENCE;
 use stylex_state::resolution::convertors::{convert_lit_to_raw_value, handle_tpl_to_expression};
 use stylex_state::resolution::lookup::get_var_decl_by_ident;
 use stylex_state::{functions::FunctionMap, state_manager::StateManager};
@@ -39,18 +39,22 @@ use super::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
 /// A path that does not already name the key gains the property at its end.
 /// The key is compared as text: asking `contains` for it made a string of it
 /// once per property, only to throw it away.
-fn normalize_key_path(key_path: Vec<String>, key: &str, property: Cow<'_, str>) -> Vec<String> {
+fn normalize_key_path(key_path: Vec<String>, key: &str, property: &str) -> Vec<String> {
   if key_path.iter().any(|step| step == key) {
-    let property = property.into_owned();
-
     key_path
       .into_iter()
-      .map(|step| if step == key { property.clone() } else { step })
+      .map(|step| {
+        if step == key {
+          property.to_string()
+        } else {
+          step
+        }
+      })
       .collect()
   } else {
     let mut new_key_path = key_path;
 
-    new_key_path.push(property.into_owned());
+    new_key_path.push(property.to_string());
 
     new_key_path
   }
@@ -96,7 +100,8 @@ fn or_refuse_handled_template(tpl: Option<&Tpl>) -> &Tpl {
   }
 }
 
-/// Reports a key the split expression gave up on, and reads it as no match.
+/// Reports a key the variable-reference expression gave up on, and reads it as
+/// no match.
 ///
 /// This is the whole of what is left out of the coverage measurement, and it
 /// computes nothing: the expression answers an error only when the matcher
@@ -104,9 +109,41 @@ fn or_refuse_handled_template(tpl: Option<&Tpl>) -> &Tpl {
 /// `guidelines/stack/RUST.md` describes the allowance.
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn report_unmatched_key(error: impl std::fmt::Display) -> bool {
-  warn!("Error matching CSS_VALUE_SPLIT_REGEX: {error}. Skipping pattern match.");
+  warn!("Error matching CSS_VAR_REFERENCE: {error}. Skipping pattern match.");
 
   false
+}
+
+/// Names a key by what its brackets wrap: the key without its first four
+/// units and its last one. The cut is a fixed one rather than the span the
+/// expression matched, because the expression is asked of the whole key.
+///
+/// A unit is what JavaScript counts, so the name agrees with the reference
+/// implementation for every key both can spell. Counting bytes instead stopped
+/// the build on a key carrying text outside ASCII, and counting characters
+/// named such a key differently, because JavaScript spells some characters
+/// with two units.
+///
+/// A character the cut falls inside is kept whole. JavaScript gives one half
+/// of it, which is no text this compiler can carry.
+fn var_reference_name(key: &str) -> String {
+  let units = |text: &str| text.chars().map(char::len_utf16).sum::<usize>();
+  let last = units(key).saturating_sub(1);
+
+  let mut name = String::with_capacity(key.len());
+  let mut unit = 0;
+
+  for character in key.chars() {
+    let next = unit + character.len_utf16();
+
+    if next > 4 && unit < last {
+      name.push(character);
+    }
+
+    unit = next;
+  }
+
+  name
 }
 
 pub(crate) fn flatten_raw_style_object_logic(
@@ -121,17 +158,20 @@ pub(crate) fn flatten_raw_style_object_logic(
   for property in style.iter() {
     let key = convert_key_value_to_str(property);
 
-    // A key the split expression matches is read as a `var()` reference and
-    // named by what it wraps. No key a `create` call reaches this with matches
-    // it, so the key keeps the name the author wrote.
+    // A key holding a `var(--name)` reference is named by what the brackets
+    // wrap, which is how a variable set in a `create` call reaches the custom
+    // property it declares. Every other key keeps the name the author wrote.
+    //
+    // The expression is tested against the whole key, so a reference written
+    // inside a longer key is named by the text around it.
     //
     // Borrowed rather than copied. The conditions of one property are each
     // named after it, and every name was a string of its own.
-    let css_property_key: Cow<'_, str> = if CSS_VALUE_SPLIT_REGEX
+    let css_property_key: Cow<'_, str> = if CSS_VAR_REFERENCE
       .is_match(&key)
       .unwrap_or_else(report_unmatched_key)
     {
-      Cow::Owned(key[4..key.len() - 1].to_string())
+      Cow::Owned(var_reference_name(&key))
     } else {
       Cow::Borrowed(key.as_str())
     };
@@ -218,11 +258,11 @@ pub(crate) fn flatten_raw_style_object_logic(
               PreRuleValue::Vec(values.clone())
             };
 
-            let normalized_key_path = normalize_key_path(
-              key_path.clone(),
-              key.as_str(),
-              Cow::Borrowed(property.as_str()),
-            );
+            // The authored key, which is the one a fallback list is named
+            // after. The reference implementation asks the two arms this
+            // question differently, and both spellings are kept.
+            let normalized_key_path =
+              normalize_key_path(key_path.clone(), key.as_str(), property.as_str());
 
             let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
               property.as_str(),
@@ -239,7 +279,7 @@ pub(crate) fn flatten_raw_style_object_logic(
 
           let pairs = flat_map_expanded_shorthands(
             (
-              css_property_key,
+              Cow::Borrowed(css_property_key.as_ref()),
               match value {
                 Some(val) => PreRuleValue::Raw(val),
                 None => PreRuleValue::Null,
@@ -254,8 +294,8 @@ pub(crate) fn flatten_raw_style_object_logic(
             if let Some(pair_value) = pre_rule {
               let normalized_key_path = normalize_key_path(
                 key_path.clone(),
-                key.as_str(),
-                Cow::Borrowed(property.as_str()),
+                css_property_key.as_ref(),
+                property.as_str(),
               );
 
               let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
@@ -281,8 +321,13 @@ pub(crate) fn flatten_raw_style_object_logic(
           fns,
         );
 
-        let normalized_key_path =
-          normalize_key_path(key_path.clone(), key.as_str(), css_property_key.clone());
+        // The key names the property here, so the path gains it where it does
+        // not already hold it.
+        let normalized_key_path = normalize_key_path(
+          key_path.clone(),
+          css_property_key.as_ref(),
+          css_property_key.as_ref(),
+        );
 
         let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
           css_property_key.as_ref(),
@@ -334,7 +379,7 @@ pub(crate) fn flatten_raw_style_object_logic(
       },
       Expr::Call(_) => stylex_panic!("{}", non_static_value("stylex")),
       Expr::Object(obj) => {
-        if !is_conditional_key(&key) {
+        if !is_conditional_key(&css_property_key) {
           if obj.props.is_empty() {
             return flattened;
           }
@@ -358,7 +403,7 @@ pub(crate) fn flatten_raw_style_object_logic(
                   new_key_path.push(condition.clone());
                   new_key_path
                 } else {
-                  vec![key.clone(), condition.clone()]
+                  vec![css_property_key.to_string(), condition.clone()]
                 };
 
                 let pairs = flatten_raw_style_object_logic(
@@ -413,7 +458,7 @@ pub(crate) fn flatten_raw_style_object_logic(
           for (property, pre_rule) in pairs {
             insert_or_update_rule_with_shifting_index(
               &mut flattened,
-              format!("{}_{}", key, property).as_str(),
+              format!("{}_{}", css_property_key, property).as_str(),
               pre_rule,
             );
           }

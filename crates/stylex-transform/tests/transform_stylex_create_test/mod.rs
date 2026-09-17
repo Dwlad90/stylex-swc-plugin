@@ -53,3 +53,4 @@ mod theme_members_in_a_fold;
 mod truthiness_table;
 mod unary_operand_kinds;
 mod undefined_in_a_named_value;
+mod variable_reference_keys;

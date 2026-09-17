@@ -66,6 +66,86 @@ fn reads_a_variable_reference_key_as_the_variable_it_names() {
   assert_eq!(keys_of(&flatten("{ 'var(--x)': 'red' }")), ["--x"]);
 }
 
+/// The conditions written under a variable reference are filed under the
+/// variable as well, so one class name carries the whole set.
+#[test]
+fn reads_a_variable_reference_key_carrying_conditions() {
+  assert_eq!(
+    keys_of(&flatten(
+      "{ 'var(--x1a2b3)': { default: 'red', ':hover': 'blue' } }"
+    )),
+    ["--x1a2b3"]
+  );
+}
+
+/// A name holding a dash is outside the class the expression spells, so the
+/// key is no reference to it. The shorthand expansion one layer down asks a
+/// wider question and names the property there.
+#[test]
+fn names_a_key_outside_the_reference_class_one_layer_down() {
+  assert_eq!(
+    keys_of(&flatten("{ 'var(--my-colour)': 'red' }")),
+    ["--my-colour"]
+  );
+}
+
+/// A bracket beside a non-space character is no variable reference, and a key
+/// holding one keeps every character the author wrote.
+#[test]
+fn keeps_a_key_that_is_no_variable_reference_whole() {
+  assert_eq!(keys_of(&flatten("{ 'a)b': 'red' }")), ["a)b"]);
+}
+
+/// The same, for a key shorter than the slice a reference is named by: reading
+/// it as one cut past its end and stopped the build.
+#[test]
+fn keeps_a_key_shorter_than_a_reference_whole() {
+  assert_eq!(keys_of(&flatten("{ ')a': 'red' }")), [")a"]);
+}
+
+/// A key can carry text outside ASCII, which a slice counted in bytes cuts
+/// through.
+#[test]
+fn keeps_a_key_carrying_text_outside_ascii_whole() {
+  assert_eq!(keys_of(&flatten("{ 'a)bé': 'red' }")), ["a)bé"]);
+  assert_eq!(
+    keys_of(&flatten("{ 'é var(--x1a2b3) é': 'red' }")),
+    ["r(--x1a2b3) "]
+  );
+}
+
+/// A character JavaScript spells with two units counts as two, so the name of
+/// a key carrying one is cut where the reference implementation cuts it.
+#[test]
+fn counts_a_two_unit_character_as_two() {
+  assert_eq!(
+    keys_of(&flatten("{ '\u{1F388}var(--x1a2b3)x': 'red' }")),
+    ["r(--x1a2b3)"]
+  );
+}
+
+/// A pseudo selector holds brackets, and reading one as a reference named the
+/// rule by text cut out of its middle.
+#[test]
+fn keeps_a_pseudo_selector_key_whole() {
+  assert_eq!(
+    keys_of(&flatten("{ ':not(.a)::before': { color: 'red' } }")),
+    [":not(.a)::before_color"]
+  );
+}
+
+/// An at-rule holding a bracket beside a comma is one more key that is no
+/// reference.
+#[test]
+fn keeps_an_at_rule_key_whole() {
+  assert_eq!(
+    keys_of(&flatten(
+      "{ '@media (min-width:1px),(max-width:2px)': { color: 'red' } }"
+    )),
+    ["@media (min-width:1px),(max-width:2px)_color"]
+  );
+}
+
 /// A fallback list becomes one rule holding every value that survives.
 #[test]
 fn flattens_a_fallback_list_into_one_rule() {

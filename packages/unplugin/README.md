@@ -355,22 +355,16 @@ The plugin replaces the marker with the generated StyleX CSS during the build.
 > **Stylesheet names change with the StyleX rules**
 >
 > The rules go in after the bundler has hashed the stylesheet, so the plugin
-> renames it to match. Without that, a StyleX-only edit changed the CSS bytes
-> and kept the name, and a cache served CSS the new JavaScript needs classes
-> from. Upgrading renames every placeholder stylesheet once.
+> renames it to match the new contents. Without this, a cache can serve old CSS
+> to new JavaScript. Upgrading renames every placeholder stylesheet once.
 >
 > - Plugins that read CSS file names from the bundle must run after this one.
->   Documents and Vite manifests are updated in place; anything outside the
->   bundle, such as a service-worker precache list, is not.
-> - Not covered: Vite's `build.cssCodeSplit: true`, which is the default. Use
->   `cssCodeSplit: false` to get the renaming.
-> - Skipped when the name template has no hash (`assetFileNames`,
->   `entryNames`), which is you opting out of cache busting. An
->   `assetFileNames` function is skipped too: it cannot be read, and the
->   bundler would answer a second request for the same name with a `2` on the
->   end rather than a new hash.
-> - Under esbuild the hash is ours, not esbuild's, whose `[hash]` cannot be
->   reproduced from the contents.
+>   Documents and Vite manifests are updated in place; data outside the bundle,
+>   such as a service-worker precache list, is not.
+> - Under Vite, set `build.cssCodeSplit: false`. The renaming does not apply to
+>   the default `true`.
+> - The plugin does not rename when the name template has no hash
+>   (`assetFileNames`, `entryNames`), or when `assetFileNames` is a function.
 > - webpack and Rspack rename the asset themselves. Keep
 >   `optimization.realContentHash` on, which is the production default.
 

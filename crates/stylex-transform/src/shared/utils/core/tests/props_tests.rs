@@ -9,7 +9,7 @@ use stylex_state::{
 
 use crate::shared::enums::data_structures::fn_result::FnResult;
 use crate::shared::utils::core::tests::style_args::{
-  ResultReader, inline, inline_pair, style_of, styles,
+  ResultReader, inline, inline_unwritable, inline_value, style_of, styles,
 };
 use crate::shared::utils::core::{
   attrs::attrs,
@@ -34,14 +34,19 @@ fn text_of(values: &FlatCompiledStyles, key: &str) -> String {
 }
 
 /// The declarations the `style` property holds, as name and value.
-fn style_pairs_of(values: &FlatCompiledStyles) -> Vec<(String, String)> {
+fn style_pairs_of(values: &FlatCompiledStyles) -> Vec<(String, FlatCompiledStylesValue)> {
   match values.get("style").map(Rc::as_ref) {
-    Some(FlatCompiledStylesValue::KeyValues(pairs)) => pairs
+    Some(FlatCompiledStylesValue::Object(declarations)) => declarations
       .iter()
-      .map(|pair| (pair.key.clone(), pair.value.clone()))
+      .map(|(key, value)| (key.clone(), value.as_ref().clone()))
       .collect(),
-    other => panic!("the style is not a set of pairs: {other:?}"),
+    other => panic!("the style is not an object of declarations: {other:?}"),
   }
+}
+
+/// The text a declaration holds, named the way a case spells it.
+fn text(value: &str) -> FlatCompiledStylesValue {
+  FlatCompiledStylesValue::String(value.to_owned())
 }
 
 #[test]
@@ -72,7 +77,79 @@ fn names_an_inline_style_as_the_pairs_the_author_wrote() {
 
   assert_eq!(
     style_pairs_of(&values),
-    [("marginTop".to_owned(), "1px".to_owned())]
+    [("marginTop".to_owned(), text("1px"))]
+  );
+}
+
+/// Each kind of value an inline style holds is carried through the merge as
+/// the kind it is, because the runtime applies the object as it stands.
+///
+/// Measured against `@stylexjs/babel-plugin` 0.19.0 with `pnpm run
+/// parity:probe`: `stylex.props({ opacity: 0.5 })` answers
+/// `{ style: { opacity: 0.5 } }` there, not the text `"0.5"`.
+#[test]
+fn keeps_the_kind_of_each_inline_value() {
+  let opacity = values_of(props(&[styles(inline_value(
+    "opacity",
+    FlatCompiledStylesValue::Number(0.5),
+  ))]));
+
+  assert_eq!(
+    style_pairs_of(&opacity),
+    [("opacity".to_owned(), FlatCompiledStylesValue::Number(0.5))]
+  );
+
+  let color = values_of(props(&[styles(inline_value(
+    "color",
+    FlatCompiledStylesValue::Bool(true),
+  ))]));
+
+  assert_eq!(
+    style_pairs_of(&color),
+    [("color".to_owned(), FlatCompiledStylesValue::Bool(true))]
+  );
+
+  let hover = values_of(props(&[styles(inline_value(
+    ":hover",
+    FlatCompiledStylesValue::Object(inline(&[("color", "blue")])),
+  ))]));
+
+  assert_eq!(
+    style_pairs_of(&hover),
+    [(
+      ":hover".to_owned(),
+      FlatCompiledStylesValue::Object(inline(&[("color", "blue")]))
+    )]
+  );
+}
+
+/// A later declaration of one name wins whatever kind either of them is, and
+/// the name keeps the place of its first writing.
+///
+/// Measured against `@stylexjs/babel-plugin` 0.19.0 with `pnpm run
+/// parity:probe`: `stylex.props({ color: 'red', opacity: 0.5 }, { opacity:
+/// true })` answers `{ style: { color: "red", opacity: true } }` there, which
+/// is the order and the value below.
+#[test]
+fn a_later_declaration_of_another_kind_wins() {
+  let mut earlier = inline(&[("color", "red")]);
+
+  earlier.insert(
+    "opacity".to_owned(),
+    Rc::new(FlatCompiledStylesValue::Number(0.5)),
+  );
+
+  let values = values_of(props(&[
+    styles(earlier),
+    styles(inline_value("opacity", FlatCompiledStylesValue::Bool(true))),
+  ]));
+
+  assert_eq!(
+    style_pairs_of(&values),
+    [
+      ("color".to_owned(), text("red")),
+      ("opacity".to_owned(), FlatCompiledStylesValue::Bool(true)),
+    ]
   );
 }
 
@@ -89,7 +166,7 @@ fn keeps_the_name_of_a_custom_property() {
 
   assert_eq!(
     style_pairs_of(&values_of(props(&declaration))),
-    [("--myColor".to_owned(), "red".to_owned())]
+    [("--myColor".to_owned(), text("red"))]
   );
   assert_eq!(
     text_of(&values_of(attrs(&declaration)), "style"),
@@ -97,18 +174,14 @@ fn keeps_the_name_of_a_custom_property() {
   );
 }
 
-/// An inline value that spells no CSS text is left out. Only text can be
-/// written into a `style` property.
-///
-/// The value is built here, because the kind it is -- a single key-value pair
-/// -- has no producer at all outside tests. The kind a source really writes
-/// is a boolean, which is left out the same way -- ticket 84 of
-/// `.scratch/split-transform-crate`.
+/// A value kind an inline style cannot hold is carried to the properties all
+/// the same, because the merge keeps what it was given. The writers below are
+/// what decide what such a value spells.
 #[test]
-fn leaves_out_an_inline_value_that_spells_no_text() {
-  let values = values_of(props(&[styles(inline_pair("margin", "1px"))]));
+fn carries_a_value_kind_an_inline_style_cannot_hold() {
+  let values = values_of(props(&[styles(inline_unwritable("margin"))]));
 
-  assert!(style_pairs_of(&values).is_empty());
+  assert_eq!(style_pairs_of(&values).len(), 1);
 }
 
 /// The debug source is written only when the merge has one to write.
@@ -149,13 +222,95 @@ fn writes_no_attribute_for_a_merge_that_wrote_nothing() {
   assert!(values_of(attrs(&[])).is_empty());
 }
 
-/// An inline style holding nothing that spells CSS text writes an empty `style`
-/// attribute rather than none, because the property it came from was written.
+/// A value kind an inline style cannot hold means the styles were not
+/// flattened, so the attribute writer refuses rather than writing a style
+/// short of one declaration. The writer of a `style` property gives the same
+/// answer, and `refuses_a_value_it_cannot_write` holds that half.
 #[test]
-fn writes_an_empty_style_attribute_for_a_style_that_spells_no_text() {
-  let values = values_of(attrs(&[styles(inline_pair("margin", "1px"))]));
+#[should_panic(expected = "Encountered an unsupported value type in an inline style.")]
+fn refuses_an_inline_value_that_spells_no_text() {
+  attrs(&[styles(inline_unwritable("margin"))]);
+}
 
-  assert_eq!(text_of(&values, "style"), "");
+/// Every kind an inline style holds spells the text JavaScript spells for it,
+/// because an attribute is text and the runtime writes each value into one.
+///
+/// Measured against `@stylexjs/babel-plugin` 0.19.0 with `pnpm run
+/// parity:probe`: `stylex.attrs({ opacity: 0.5 })` answers
+/// `{ style: "opacity:0.5" }` there, and a nested object answers
+/// `":hover:[object Object]"`.
+#[test]
+fn spells_each_kind_of_inline_value_as_javascript_spells_it() {
+  let mut style = inline(&[("color", "red")]);
+
+  style.insert(
+    "opacity".to_owned(),
+    Rc::new(FlatCompiledStylesValue::Number(0.5)),
+  );
+  style.insert(
+    "zIndex".to_owned(),
+    Rc::new(FlatCompiledStylesValue::Number(1e21)),
+  );
+  style.insert(
+    "flexGrow".to_owned(),
+    Rc::new(FlatCompiledStylesValue::Bool(false)),
+  );
+  style.insert(
+    ":hover".to_owned(),
+    Rc::new(FlatCompiledStylesValue::Object(inline(&[(
+      "color", "blue",
+    )]))),
+  );
+
+  assert_eq!(
+    text_of(&values_of(attrs(&[styles(style)])), "style"),
+    "color:red;opacity:0.5;z-index:1e+21;flex-grow:false;:hover:[object Object]"
+  );
+}
+
+/// An object spells the same text whatever it holds, so a declaration set to
+/// null inside one is never read and never spelled. The merge drops a null
+/// only where it stands as a declaration of the style itself.
+#[test]
+fn spells_an_object_the_same_whatever_it_holds() {
+  let holding_a_null = values_of(attrs(&[styles(inline_value(
+    ":hover",
+    FlatCompiledStylesValue::Object(inline_value("color", FlatCompiledStylesValue::Null)),
+  ))]));
+
+  let holding_nothing = values_of(attrs(&[styles(inline_value(
+    ":hover",
+    FlatCompiledStylesValue::Object(FlatCompiledStyles::new()),
+  ))]));
+
+  assert_eq!(text_of(&holding_a_null, "style"), ":hover:[object Object]");
+  assert_eq!(text_of(&holding_nothing, "style"), ":hover:[object Object]");
+}
+
+/// A number with no digits is spelled by name, the way JavaScript spells it,
+/// rather than as the arithmetic an emitter invents for a value it has no
+/// numeral for.
+#[test]
+fn spells_a_number_that_has_no_digits_by_name() {
+  let mut style = FlatCompiledStyles::new();
+
+  style.insert(
+    "opacity".to_owned(),
+    Rc::new(FlatCompiledStylesValue::Number(f64::INFINITY)),
+  );
+  style.insert(
+    "zIndex".to_owned(),
+    Rc::new(FlatCompiledStylesValue::Number(f64::NEG_INFINITY)),
+  );
+  style.insert(
+    "order".to_owned(),
+    Rc::new(FlatCompiledStylesValue::Number(f64::NAN)),
+  );
+
+  assert_eq!(
+    text_of(&values_of(attrs(&[styles(style)])), "style"),
+    "opacity:Infinity;z-index:-Infinity;order:NaN"
+  );
 }
 
 /// The three calls answer two kinds, and each names the kind it made: a merge

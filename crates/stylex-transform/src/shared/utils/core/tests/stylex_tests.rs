@@ -548,14 +548,16 @@ fn props_with_dynamic_styles() {
     Some("backgroundColor-red"),
   );
 
-  // Inline style should be present as KeyValues
+  // Inline style should be present as the object a style property holds
   let style_value = values.get("style").expect("Expected style key in props");
-  if let FlatCompiledStylesValue::KeyValues(pairs) = style_value.as_ref() {
-    assert_eq!(pairs.len(), 1);
-    assert_eq!(pairs[0].key, "color");
-    assert_eq!(pairs[0].value, "red");
+  if let FlatCompiledStylesValue::Object(declarations) = style_value.as_ref() {
+    assert_eq!(declarations.len(), 1);
+    assert_eq!(
+      declarations.get("color").map(|value| value.as_ref()),
+      Some(&FlatCompiledStylesValue::String("red".to_string()))
+    );
   } else {
-    panic!("Expected style to be KeyValues, got {:?}", style_value);
+    panic!("Expected style to be an object, got {:?}", style_value);
   }
 
   assert_eq!(

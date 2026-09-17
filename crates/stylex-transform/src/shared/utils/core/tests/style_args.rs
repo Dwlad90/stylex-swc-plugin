@@ -10,7 +10,7 @@ use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue, types::FlatCompiledStyles,
 };
-use stylex_structures::pair::Pair;
+use stylex_types::structures::injectable_style::InjectableStyle;
 use swc_core::ecma::ast::Expr;
 
 use crate::shared::enums::data_structures::fn_result::FnResult;
@@ -73,19 +73,33 @@ pub(crate) fn inline(properties: &[(&str, &str)]) -> FlatCompiledStyles {
   styles
 }
 
-/// An inline style holding a value that spells no CSS text.
-pub(crate) fn inline_pair(property: &str, value: &str) -> FlatCompiledStyles {
+/// An inline style holding one declaration of the given kind.
+///
+/// The builder above spells text alone, and an inline style holds every kind
+/// the author can write.
+pub(crate) fn inline_value(property: &str, value: FlatCompiledStylesValue) -> FlatCompiledStyles {
   let mut styles: FlatCompiledStyles = IndexMap::new();
 
-  styles.insert(
-    property.to_owned(),
-    Rc::new(FlatCompiledStylesValue::KeyValue(Pair::new(
-      property.to_owned(),
-      value.to_owned(),
-    ))),
-  );
+  styles.insert(property.to_owned(), Rc::new(value));
 
   styles
+}
+
+/// An inline style holding a value kind no inline style can hold.
+///
+/// An injectable style is written where a rule is collected, never where a
+/// declaration is, so it stands for the kinds the two writers of an inline
+/// style have no spelling for. It is built here because no source produces
+/// one in this place.
+pub(crate) fn inline_unwritable(property: &str) -> FlatCompiledStyles {
+  inline_value(
+    property,
+    FlatCompiledStylesValue::InjectableStyle(InjectableStyle {
+      ltr: ".x1e2nbdu{color:red}".to_owned(),
+      rtl: None,
+      priority: Some(3000.0),
+    }),
+  )
 }
 
 /// One style argument holding the given namespace.

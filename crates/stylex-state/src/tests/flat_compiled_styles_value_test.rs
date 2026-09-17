@@ -8,17 +8,21 @@
 //! `Some` for the wrong variant is what would let a `null` be written as a class
 //! name.
 
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+use std::rc::Rc;
+
 use swc_core::{
   common::DUMMY_SP,
   ecma::ast::{Expr, Lit, Str},
 };
 
 use stylex_enums::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault};
-use stylex_structures::{base_css_type::BaseCSSType, pair::Pair};
+use stylex_structures::base_css_type::BaseCSSType;
 use stylex_styleq::StyleqValue;
 use stylex_types::structures::injectable_style::InjectableStyle;
 
-use crate::flat_compiled_styles_value::FlatCompiledStylesValue;
+use crate::{flat_compiled_styles_value::FlatCompiledStylesValue, types::FlatCompiledStyles};
 
 fn string_value(value: &str) -> FlatCompiledStylesValue {
   FlatCompiledStylesValue::String(value.to_string())
@@ -51,13 +55,25 @@ fn tuple_value() -> FlatCompiledStylesValue {
   )
 }
 
+/// The declarations one inline object holds.
+fn object_value() -> FlatCompiledStyles {
+  let mut values = FlatCompiledStyles::new();
+
+  values.insert(
+    "color".to_owned(),
+    Rc::new(FlatCompiledStylesValue::String("blue".to_owned())),
+  );
+
+  values
+}
+
 /// Every variant, so a case that must name one it does not read has a list to
 /// take it from rather than building one more.
 fn every_variant() -> Vec<FlatCompiledStylesValue> {
   vec![
     string_value("x1e2nbdu"),
-    FlatCompiledStylesValue::KeyValue(Pair::new("color", "red")),
-    FlatCompiledStylesValue::KeyValues(vec![Pair::new("color", "red")]),
+    FlatCompiledStylesValue::Number(0.5),
+    FlatCompiledStylesValue::Object(object_value()),
     FlatCompiledStylesValue::Null,
     FlatCompiledStylesValue::InjectableStyle(injectable()),
     FlatCompiledStylesValue::Bool(true),
@@ -160,33 +176,156 @@ fn a_null_answers_itself_and_nothing_else_does() {
   assert_eq!(count_answering(|value| value._as_null().is_some()), 1);
 }
 
+/// A number is its own variant, and the text spelling of the same number is
+/// not it: `opacity: 0.5` and `opacity: '0.5'` are two declarations. Neither
+/// of them reads back as the text a class name is.
 #[test]
-fn a_key_value_answers_its_pair_and_nothing_else_does() {
-  let pair = Pair::new("color", "red");
-  let value = FlatCompiledStylesValue::KeyValue(pair.clone());
-
-  assert_eq!(value.as_key_value(), Some(&pair));
-  assert_eq!(count_answering(|value| value.as_key_value().is_some()), 1);
+fn a_number_is_not_the_text_that_spells_it() {
+  assert_ne!(FlatCompiledStylesValue::Number(0.5), string_value("0.5"));
+  assert_eq!(FlatCompiledStylesValue::Number(0.5).as_class_name(), None);
+  assert_eq!(FlatCompiledStylesValue::Number(2.0).as_class_name(), None);
 }
 
-/// A list of pairs is its own variant: one pair and a list holding that pair are
-/// two values, and neither accessor reads the other.
 #[test]
-fn key_values_answer_their_list_and_nothing_else_does() {
-  let pairs = vec![Pair::new("color", "red"), Pair::new("color", "blue")];
-  let value = FlatCompiledStylesValue::KeyValues(pairs.clone());
+fn an_object_answers_its_declarations_and_nothing_else_does() {
+  let value = FlatCompiledStylesValue::Object(object_value());
 
-  assert_eq!(value.as_key_values(), Some(&pairs));
-  assert_eq!(count_answering(|value| value.as_key_values().is_some()), 1);
+  assert_eq!(value.as_object(), Some(&object_value()));
+  assert_eq!(count_answering(|value| value.as_object().is_some()), 1);
 }
 
-/// An empty list is a list, not an absent one -- a fallback set that resolved to
-/// nothing reaches here.
+/// An object holding nothing is an object, not an absent one -- a `props` call
+/// given `{}` beside a compiled style reaches this shape.
 #[test]
-fn an_empty_key_value_list_is_still_a_list() {
-  let value = FlatCompiledStylesValue::KeyValues(vec![]);
+fn an_object_holding_nothing_is_still_an_object() {
+  let value = FlatCompiledStylesValue::Object(FlatCompiledStyles::new());
 
-  assert_eq!(value.as_key_values(), Some(&vec![]));
+  assert_eq!(value.as_object(), Some(&FlatCompiledStyles::new()));
+}
+
+/// Two values that are equal hash alike, which the derived spelling cannot
+/// give a number. The pair of zeroes is the one place equality and the bits
+/// part company, and the reader spells both `0`, as the language does.
+#[test]
+fn a_value_hashes_by_what_it_holds() {
+  assert_eq!(
+    hash_of(&FlatCompiledStylesValue::Number(0.5)),
+    hash_of(&FlatCompiledStylesValue::Number(0.5))
+  );
+  assert_ne!(
+    hash_of(&FlatCompiledStylesValue::Number(0.5)),
+    hash_of(&FlatCompiledStylesValue::Number(1.5))
+  );
+  assert_eq!(
+    hash_of(&FlatCompiledStylesValue::Object(object_value())),
+    hash_of(&FlatCompiledStylesValue::Object(object_value()))
+  );
+  assert_ne!(
+    hash_of(&FlatCompiledStylesValue::Object(object_value())),
+    hash_of(&FlatCompiledStylesValue::Object(FlatCompiledStyles::new()))
+  );
+}
+
+/// No two variants hash alike while they hold the same thing, because the
+/// variant itself is hashed first. A string `"true"` and a `true` are two
+/// values a merge must tell apart.
+#[test]
+fn two_variants_holding_the_same_thing_hash_apart() {
+  assert_ne!(
+    hash_of(&string_value("true")),
+    hash_of(&FlatCompiledStylesValue::Bool(true))
+  );
+}
+
+/// An object is one value however its names were written down, so two that
+/// hold the same declarations in either order hash alike. The map itself
+/// compares that way, and a hash that read the names in order would make one
+/// value into two.
+#[test]
+fn an_object_hashes_the_same_in_either_order() {
+  let mut written_one_way = FlatCompiledStyles::new();
+
+  written_one_way.insert(
+    "color".to_owned(),
+    Rc::new(FlatCompiledStylesValue::String("blue".to_owned())),
+  );
+  written_one_way.insert(
+    "opacity".to_owned(),
+    Rc::new(FlatCompiledStylesValue::Number(0.5)),
+  );
+
+  let mut written_the_other = FlatCompiledStyles::new();
+
+  written_the_other.insert(
+    "opacity".to_owned(),
+    Rc::new(FlatCompiledStylesValue::Number(0.5)),
+  );
+  written_the_other.insert(
+    "color".to_owned(),
+    Rc::new(FlatCompiledStylesValue::String("blue".to_owned())),
+  );
+
+  assert_eq!(
+    FlatCompiledStylesValue::Object(written_one_way.clone()),
+    FlatCompiledStylesValue::Object(written_the_other.clone())
+  );
+  assert_eq!(
+    hash_of(&FlatCompiledStylesValue::Object(written_one_way)),
+    hash_of(&FlatCompiledStylesValue::Object(written_the_other))
+  );
+}
+
+/// Two objects of different shapes hash apart, even where the names and the
+/// values they hold read out in the same order. The count of each object is
+/// what separates them, and a merge that keys a cached style on the hash alone
+/// would otherwise answer one style with another style's class names.
+#[test]
+fn two_objects_of_different_shapes_hash_apart() {
+  let mut flat = FlatCompiledStyles::new();
+
+  flat.insert(
+    "x".to_owned(),
+    Rc::new(FlatCompiledStylesValue::Object(FlatCompiledStyles::new())),
+  );
+  flat.insert("y".to_owned(), Rc::new(FlatCompiledStylesValue::Null));
+
+  let mut deep_inner = FlatCompiledStyles::new();
+
+  deep_inner.insert("y".to_owned(), Rc::new(FlatCompiledStylesValue::Null));
+
+  let mut deep = FlatCompiledStyles::new();
+
+  deep.insert(
+    "x".to_owned(),
+    Rc::new(FlatCompiledStylesValue::Object(deep_inner)),
+  );
+
+  assert_ne!(
+    hash_of(&FlatCompiledStylesValue::Object(flat)),
+    hash_of(&FlatCompiledStylesValue::Object(deep))
+  );
+}
+
+/// Every variant has a hash of its own, and no two of them share one. The
+/// merge keys a cached style on this, so a variant left out of the reading
+/// would answer with another style's class names.
+#[test]
+fn every_variant_hashes_apart_from_every_other() {
+  let mut hashes = every_variant().iter().map(hash_of).collect::<Vec<_>>();
+  let count = hashes.len();
+
+  hashes.sort_unstable();
+  hashes.dedup();
+
+  assert_eq!(hashes.len(), count);
+}
+
+fn hash_of(value: &FlatCompiledStylesValue) -> u64 {
+  let mut hasher = DefaultHasher::new();
+
+  value.hash(&mut hasher);
+
+  hasher.finish()
 }
 
 /// The three questions `styleq` asks of a namespace entry. A class name is the

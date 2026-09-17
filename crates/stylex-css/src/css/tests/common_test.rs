@@ -87,34 +87,62 @@ mod normalize_css_property_name_tests {
 
 #[cfg(test)]
 mod inline_style_to_css_string_tests {
+  use std::borrow::Cow;
+
   use crate::css::common::inline_style_to_css_string;
-  use stylex_structures::pair::Pair;
+  use stylex_structures::pair::PairCow;
+
+  /// The declarations a case is given, each half borrowed the way a caller
+  /// holding a name and a value hands them over.
+  fn declarations<'a>(pairs: &[(&'a str, &'a str)]) -> Vec<PairCow<'a>> {
+    pairs
+      .iter()
+      .map(|(key, value)| PairCow {
+        key: Cow::Borrowed(*key),
+        value: Cow::Borrowed(*value),
+      })
+      .collect()
+  }
 
   #[test]
   fn formats_single_pair() {
-    let pairs = vec![Pair::new("color", "red")];
-    assert_eq!(inline_style_to_css_string(&pairs), "color:red");
+    assert_eq!(
+      inline_style_to_css_string(&declarations(&[("color", "red")])),
+      "color:red"
+    );
   }
 
   #[test]
   fn formats_multiple_pairs() {
-    let pairs = vec![Pair::new("color", "red"), Pair::new("marginTop", "10px")];
     assert_eq!(
-      inline_style_to_css_string(&pairs),
+      inline_style_to_css_string(&declarations(&[("color", "red"), ("marginTop", "10px")])),
       "color:red;margin-top:10px"
     );
   }
 
   #[test]
   fn handles_empty_pairs() {
-    let pairs: Vec<Pair> = vec![];
-    assert_eq!(inline_style_to_css_string(&pairs), "");
+    assert_eq!(inline_style_to_css_string(&[]), "");
   }
 
   #[test]
   fn handles_custom_properties() {
-    let pairs = vec![Pair::new("--my-var", "blue")];
-    assert_eq!(inline_style_to_css_string(&pairs), "--my-var:blue");
+    assert_eq!(
+      inline_style_to_css_string(&declarations(&[("--my-var", "blue")])),
+      "--my-var:blue"
+    );
+  }
+
+  /// A value spelled where the call was made is kept as it stands, so a half
+  /// the caller had to build reaches the text without being copied again.
+  #[test]
+  fn formats_an_owned_value() {
+    let pairs = vec![PairCow {
+      key: Cow::Borrowed("opacity"),
+      value: Cow::Owned("0.5".to_owned()),
+    }];
+
+    assert_eq!(inline_style_to_css_string(&pairs), "opacity:0.5");
   }
 }
 

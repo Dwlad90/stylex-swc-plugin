@@ -83,6 +83,18 @@ to _evaluate_ an expression lives above this crate, and that split is what keeps
 the state out of the evaluation cycle.
 _Avoid_: literal value, static value, constant folding, resolved value
 
+**Inline style**:
+The plain object a `props`-family call was given beside the compiled styles,
+which the runtime applies as a `style` property rather than as classes. It is
+held in the same `FlatCompiledStylesValue` map a compiled namespace is, and the
+two read that map by different rules: a namespace value is a class name, a
+`null` for a property it clears, or the compiled marker, while an inline value
+is whatever the author wrote -- text, a number, a boolean, a `null`, or an
+object of declarations of its own such as the body of `:hover`. The kind is
+kept because the two readers of it disagree: `props` writes each value back as
+the kind it is, and `attrs` spells it as text the way JavaScript does.
+_Avoid_: style property, runtime style, dynamic style, style pairs
+
 **Theme reference**:
 What an import of a `defineVars` group resolves to: the group as a whole, named
 by the hash of the declaring file _and_ the export name. It carries no

@@ -223,21 +223,49 @@ fn parse_nullable_object(
   expr: &Expr,
 ) {
   match expr {
-    Expr::Object(ObjectLit { props, .. }) => {
-      for prop in props.iter() {
-        if let Some(key_value) = prop.as_prop().and_then(|p| p.as_key_value()) {
-          let key = convert_key_value_to_str(key_value);
-          match key_value.value.as_ref() {
-            Expr::Lit(lit) => parse_nullable_key_value(compiled_styles, key, lit),
+    Expr::Object(object) => read_declarations(compiled_styles, object),
+    _ => {
+      stylex_unimplemented!(
+        "Encountered an unsupported expression type while parsing a nullable style array."
+      );
+    },
+  }
+}
 
-            _ => {
-              stylex_unimplemented!(
-                "Encountered an unsupported expression type while parsing a nullable style array."
-              );
-            },
-          };
-        }
-      }
+/// Reads every declaration one object literal writes into `compiled_styles`.
+///
+/// A name written twice keeps the place of its first writing and the value of
+/// its last, which is how the language reads such an object.
+fn read_declarations(
+  compiled_styles: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  ObjectLit { props, .. }: &ObjectLit,
+) {
+  for prop in props.iter() {
+    if let Some(key_value) = prop.as_prop().and_then(|p| p.as_key_value()) {
+      let key = convert_key_value_to_str(key_value);
+
+      compiled_styles.insert(key, Rc::new(parse_nullable_value(key_value.value.as_ref())));
+    }
+  }
+}
+
+/// What one declaration of an inline style holds.
+///
+/// An inline style is the object the author wrote, so a value keeps the kind
+/// they gave it: `opacity: 0.5` is a number, `color: true` is a boolean, and a
+/// pseudo-class such as `:hover` holds an object of declarations of its own.
+/// Every one of them is read back where the call is written, so a kind that is
+/// dropped here is a declaration the runtime never applies.
+fn parse_nullable_value(expr: &Expr) -> FlatCompiledStylesValue {
+  match expr {
+    Expr::Lit(lit) => parse_nullable_literal(lit),
+    Expr::Object(object) => {
+      let mut nested: IndexMap<String, Rc<FlatCompiledStylesValue>> =
+        IndexMap::with_capacity(object.props.len());
+
+      read_declarations(&mut nested, object);
+
+      FlatCompiledStylesValue::Object(nested)
     },
     _ => {
       stylex_unimplemented!(
@@ -247,29 +275,14 @@ fn parse_nullable_object(
   }
 }
 
-fn parse_nullable_key_value(
-  compiled_styles: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
-  key: String,
-  lit: &Lit,
-) {
+fn parse_nullable_literal(lit: &Lit) -> FlatCompiledStylesValue {
   match lit {
     // Read as the text it is rather than through the converter that asks what
     // kind of literal it is: the arm has already answered that.
-    Lit::Str(text) => {
-      compiled_styles.insert(
-        key,
-        Rc::new(FlatCompiledStylesValue::String(convert_str_lit_to_string(
-          text,
-        ))),
-      );
-    },
-    Lit::Bool(bool_lit) => {
-      let value = bool_lit.value;
-      compiled_styles.insert(key, Rc::new(FlatCompiledStylesValue::Bool(value)));
-    },
-    Lit::Null(_) => {
-      compiled_styles.insert(key, Rc::new(FlatCompiledStylesValue::Null));
-    },
+    Lit::Str(text) => FlatCompiledStylesValue::String(convert_str_lit_to_string(text)),
+    Lit::Num(number) => FlatCompiledStylesValue::Number(number.value),
+    Lit::Bool(bool_lit) => FlatCompiledStylesValue::Bool(bool_lit.value),
+    Lit::Null(_) => FlatCompiledStylesValue::Null,
     _ => {
       stylex_panic!("Unhandled literal type in nullable style parsing array");
     },

@@ -3,6 +3,7 @@
 // target names it, so this line is what makes the choice real.
 use swc_malloc as _;
 
+use std::borrow::Cow;
 use std::hint::black_box;
 
 use criterion::{
@@ -10,21 +11,21 @@ use criterion::{
 };
 use stylex_css::css::common::{generate_css_rule, inline_style_to_css_string};
 use stylex_enums::style_resolution::StyleResolution;
-use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
+use stylex_structures::{pair::PairCow, stylex_state_options::StyleXStateOptions};
 use stylex_types::structures::injectable_style::InjectableStyle;
 
 /// The five declarations the inline-style cases serialize, spelled camel case.
 ///
 /// `normalize_css_property_name` has to build a new string for each of these
 /// keys, which is the cost this set prices.
-fn converted_key_pairs() -> Vec<Pair> {
-  vec![
-    Pair::new("marginInlineStart", "8px"),
-    Pair::new("paddingInlineEnd", "16px"),
-    Pair::new("backgroundPosition", "start center"),
-    Pair::new("borderRadius", "8px"),
-    Pair::new("boxShadow", "4px 2px 8px rgba(0, 0, 0, 0.2)"),
-  ]
+fn converted_key_pairs() -> Vec<PairCow<'static>> {
+  declarations(&[
+    ("marginInlineStart", "8px"),
+    ("paddingInlineEnd", "16px"),
+    ("backgroundPosition", "start center"),
+    ("borderRadius", "8px"),
+    ("boxShadow", "4px 2px 8px rgba(0, 0, 0, 0.2)"),
+  ])
 }
 
 /// The same five declarations, already spelled in kebab case.
@@ -40,14 +41,26 @@ fn converted_key_pairs() -> Vec<Pair> {
 /// the key spelling, and now the names say so. Flipping is priced by
 /// `GenerateCssRule/rtl_flippable` below, which passes the options that turn it
 /// on.
-fn borrowed_key_pairs() -> Vec<Pair> {
-  vec![
-    Pair::new("margin-inline-start", "8px"),
-    Pair::new("padding-inline-end", "16px"),
-    Pair::new("background-position", "start center"),
-    Pair::new("border-radius", "8px"),
-    Pair::new("box-shadow", "4px 2px 8px rgba(0, 0, 0, 0.2)"),
-  ]
+fn borrowed_key_pairs() -> Vec<PairCow<'static>> {
+  declarations(&[
+    ("margin-inline-start", "8px"),
+    ("padding-inline-end", "16px"),
+    ("background-position", "start center"),
+    ("border-radius", "8px"),
+    ("box-shadow", "4px 2px 8px rgba(0, 0, 0, 0.2)"),
+  ])
+}
+
+/// The declarations a case serializes, each half borrowed the way the caller
+/// that builds them holds them.
+fn declarations(pairs: &[(&'static str, &'static str)]) -> Vec<PairCow<'static>> {
+  pairs
+    .iter()
+    .map(|(key, value)| PairCow {
+      key: Cow::Borrowed(*key),
+      value: Cow::Borrowed(*value),
+    })
+    .collect()
 }
 
 fn rtl_options() -> StyleXStateOptions {

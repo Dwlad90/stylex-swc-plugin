@@ -1,5 +1,4 @@
 use std::rc::Rc;
-use stylex_structures::pair::Pair;
 
 use indexmap::IndexMap;
 
@@ -43,23 +42,16 @@ pub(crate) fn props_map(styles: &[ResolvedArg]) -> FlatCompiledStyles {
   }
 
   if let Some(inline_style) = inline_style {
-    // Each name is kept as the author spelled it, because the runtime reads
-    // this property as a style object and `marginTop` is the name such an
-    // object carries. The CSS spelling is asked for where CSS text is made.
-    //
-    // The merged map is owned here, so each name moves into the pair it makes.
-    // The value is behind a shared pointer, so it is copied.
-    let mut pairs: Vec<Pair> = Vec::with_capacity(inline_style.len());
-
-    pairs.extend(
-      inline_style
-        .into_iter()
-        .filter_map(|(key, value)| value.as_string().map(|text| Pair::new(key, text.clone()))),
-    );
-
+    // The merged declarations are carried on as they are. Each name is kept as
+    // the author spelled it, because the runtime reads this property as a style
+    // object and `marginTop` is the name such an object carries; the CSS
+    // spelling is asked for where CSS text is made. Each value keeps its kind
+    // for the same reason: `opacity: 0.5` is a number where the author wrote
+    // it, and a `style` property holding text there would be a different
+    // declaration.
     props_map.insert(
       "style".to_string(),
-      Rc::new(FlatCompiledStylesValue::KeyValues(pairs)),
+      Rc::new(FlatCompiledStylesValue::Object(inline_style)),
     );
   }
 

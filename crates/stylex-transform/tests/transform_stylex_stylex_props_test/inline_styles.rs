@@ -136,3 +136,155 @@ stylex_test!(
     export default stylex.attrs(styles.red, { backgroundColor: 'blue' });
   "#
 );
+
+// A number is the value kind written without a unit -- `opacity`, `zIndex`,
+// `flexGrow` and `order` are all written this way -- and it stays a number in
+// the `style` property, because the runtime applies the object as it stands.
+//
+// The snapshot also pins how each number is spelled, which is where the two
+// compilers can part company: `1e21` is written `1e+21`, `1.50` loses the
+// trailing zero, `-0` is `0`, and the six custom properties hold the numbers
+// on both sides of the range that is written without an exponent. The source
+// was put through `pnpm run parity:probe` from `crates/stylex-rs-compiler`
+// first, and the reference prints every one of them the same way.
+stylex_test!(
+  inline_style_holding_a_number,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.props({
+      opacity: 0.5,
+      zIndex: 1e21,
+      flexGrow: 1.50,
+      order: -0,
+      '--a': 1e20,
+      '--b': 1e-6,
+      '--c': 1e-7,
+      '--d': 100,
+      '--e': 123456789012345678901234567890,
+      '--f': 0.1,
+    });
+  "#
+);
+
+// A boolean is a declaration like any other. Before, the merge kept it and the
+// step that writes the properties left it out, so the call answered a `style`
+// property holding nothing.
+stylex_test!(
+  inline_style_holding_a_boolean,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.props({ color: true, background: false });
+  "#
+);
+
+// A pseudo-class holds declarations of its own, as deep as the author wrote
+// them.
+stylex_test!(
+  inline_style_holding_an_object,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.props({
+      ':hover': { color: 'blue', ':focus': { color: 'red' } },
+    });
+  "#
+);
+
+// A declaration set to null inside such an object stays there. Only a null the
+// style itself declares is dropped, because that is the one the merge reads as
+// clearing the property.
+stylex_test!(
+  inline_style_holding_an_object_with_a_null,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.props({ ':hover': { color: null }, margin: null });
+  "#
+);
+
+// Every kind at once, beside a compiled style, which is the shape a component
+// really writes.
+stylex_test!(
+  inline_style_of_each_kind_beside_a_compiled_style,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    export default stylex.props(styles.red, {
+      opacity: 0.5,
+      display: 'block',
+      color: true,
+      ':hover': { color: 'blue' },
+    });
+  "#
+);
+
+// A later declaration wins whatever kind either of them is, and the name keeps
+// the place of its first writing.
+stylex_test!(
+  a_later_inline_style_of_another_kind_wins,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.props(
+      { opacity: 0.5, margin: '1px' },
+      { opacity: 'inherit' },
+      { margin: true },
+    );
+  "#
+);
+
+// The same kinds read as attributes are text, because an attribute is text.
+// Each one is spelled the way JavaScript spells it, which for an object is the
+// text every plain object spells.
+stylex_test!(
+  inline_style_of_each_kind_read_as_attributes,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.attrs({
+      marginTop: 10,
+      opacity: 0.5,
+      color: true,
+      background: false,
+      ':hover': { color: 'blue' },
+    });
+  "#
+);
+
+// A number JavaScript writes by name rather than with digits. The emitter has
+// no numeral for these three, so without a spelling of their own it invents
+// the arithmetic that answers them and the printed module stops matching the
+// one the reference prints.
+stylex_test!(
+  inline_style_holding_a_number_written_by_name,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.props({
+      opacity: Infinity,
+      zIndex: -Infinity,
+      order: NaN,
+    });
+  "#
+);
+
+// The same three read as attributes, where they are text already.
+stylex_test!(
+  a_number_written_by_name_read_as_an_attribute,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export default stylex.attrs({
+      opacity: Infinity,
+      zIndex: -Infinity,
+      order: NaN,
+    });
+  "#
+);

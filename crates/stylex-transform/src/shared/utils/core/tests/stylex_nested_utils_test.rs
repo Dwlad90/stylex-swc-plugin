@@ -993,9 +993,10 @@ fn a_leaf_written_after_a_nested_key_gives_way_to_it() {
 fn refuses_a_nested_value_it_cannot_write() {
   convert_unflattened_object_to_ast(&unflatten_object(&flat_styles(vec![(
     "color",
-    FlatCompiledStylesValue::KeyValue(stylex_structures::pair::Pair::new(
-      "color".to_string(),
-      "red".to_string(),
-    )),
+    FlatCompiledStylesValue::Tuple(
+      "--x1abcdef".to_string(),
+      Box::new(create_string_expr("red")),
+      None,
+    ),
   )])));
 }

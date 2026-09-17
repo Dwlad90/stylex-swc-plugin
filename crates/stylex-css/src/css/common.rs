@@ -19,7 +19,10 @@ use stylex_regex::regex::{
   ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, DESCENDANT_SELECTOR, PSEUDO_PART_REGEX,
   SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
 };
-use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
+use stylex_structures::{
+  pair::{Pair, PairCow},
+  stylex_state_options::StyleXStateOptions,
+};
 use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_utils::string::dashify;
 
@@ -787,7 +790,11 @@ pub fn normalize_css_property_name(prop: &str) -> Cow<'_, str> {
 /// Serializes a list of key-value pairs into an inline CSS style string.
 ///
 /// Each pair is formatted as `property:value` and joined with `;`.
-pub fn inline_style_to_css_string(pairs: &[Pair]) -> String {
+///
+/// Taken by borrowed halves, because a caller that already holds the name and
+/// the text writes them straight in, and one that had to spell a value -- a
+/// number, say -- keeps the only owned half it made.
+pub fn inline_style_to_css_string(pairs: &[PairCow<'_>]) -> String {
   let capacity = pairs
     .iter()
     .map(|pair| pair.key.len() + pair.value.len() + 1)
@@ -797,7 +804,7 @@ pub fn inline_style_to_css_string(pairs: &[Pair]) -> String {
 
   for pair in pairs {
     let normalized_key = normalize_css_property_name(&pair.key);
-    push_css_decl(&mut out, normalized_key.as_ref(), pair.value.as_str());
+    push_css_decl(&mut out, normalized_key.as_ref(), pair.value.as_ref());
   }
 
   out

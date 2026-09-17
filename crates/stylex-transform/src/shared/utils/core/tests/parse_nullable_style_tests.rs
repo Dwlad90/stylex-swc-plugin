@@ -11,7 +11,7 @@ use stylex_state::{
 use swc_core::ecma::ast::Lit;
 
 use super::{
-  StyleObject, parse_compiled_styles, parse_nullable_key_value, parse_nullable_object,
+  StyleObject, parse_compiled_styles, parse_nullable_literal, parse_nullable_object,
   parse_nullable_style,
 };
 use crate::tests::support::expr;
@@ -182,7 +182,8 @@ fn says_nothing_about_a_folded_value_that_is_not_an_object() {
   );
 }
 
-/// Only a string, a boolean and an absent value can stand in a compiled style.
+/// A class name, the compiled marker and an absent value are what a compiled
+/// style holds, and each is read as the kind it is.
 #[test]
 fn reads_each_kind_of_value_a_compiled_style_holds() {
   let mut compiled = styles();
@@ -203,6 +204,91 @@ fn reads_each_kind_of_value_a_compiled_style_holds() {
   assert_eq!(compiled["margin"].as_ref(), &FlatCompiledStylesValue::Null);
 }
 
+/// An inline style is the object the author wrote, so a value keeps the kind
+/// they gave it. A number stays a number and is not the text that spells it,
+/// because `opacity: 0.5` and `opacity: '0.5'` are two declarations.
+#[test]
+fn reads_each_kind_of_value_an_inline_style_holds() {
+  let mut inline = styles();
+
+  parse_nullable_object(
+    &mut inline,
+    &expr("{ opacity: 0.5, color: true, ':hover': { color: 'blue', margin: null } }"),
+  );
+
+  assert_eq!(
+    inline["opacity"].as_ref(),
+    &FlatCompiledStylesValue::Number(0.5)
+  );
+  assert_eq!(
+    inline["color"].as_ref(),
+    &FlatCompiledStylesValue::Bool(true)
+  );
+
+  let Some(nested) = inline[":hover"].as_object() else {
+    panic!("the pseudo-class does not hold an object: {:?}", inline);
+  };
+
+  assert_eq!(
+    nested["color"].as_ref(),
+    &FlatCompiledStylesValue::String("blue".to_owned())
+  );
+  assert_eq!(nested["margin"].as_ref(), &FlatCompiledStylesValue::Null);
+}
+
+/// An object holds objects as deep as the author wrote them.
+#[test]
+fn reads_an_object_inside_an_object() {
+  let mut inline = styles();
+
+  parse_nullable_object(
+    &mut inline,
+    &expr("{ ':hover': { ':focus': { color: 'red' } } }"),
+  );
+
+  let nested = inline[":hover"]
+    .as_object()
+    .and_then(|hover| hover[":focus"].as_object())
+    .cloned();
+
+  assert_eq!(
+    nested.map(|values| values["color"].as_ref().clone()),
+    Some(FlatCompiledStylesValue::String("red".to_owned()))
+  );
+}
+
+/// An object holding nothing is read as an object holding nothing, rather than
+/// as a declaration that was never written.
+#[test]
+fn reads_an_object_holding_nothing() {
+  let mut inline = styles();
+
+  parse_nullable_object(&mut inline, &expr("{ ':hover': {} }"));
+
+  assert_eq!(inline[":hover"].as_object().map(IndexMap::len), Some(0));
+}
+
+/// A name written twice keeps the place of its first writing and the value of
+/// its last, the way the language reads such an object.
+#[test]
+fn keeps_a_repeated_name_in_its_first_place() {
+  let mut inline = styles();
+
+  parse_nullable_object(
+    &mut inline,
+    &expr("{ opacity: 0.5, color: 'red', opacity: 1 }"),
+  );
+
+  assert_eq!(
+    inline.keys().cloned().collect::<Vec<_>>(),
+    ["opacity", "color"]
+  );
+  assert_eq!(
+    inline["opacity"].as_ref(),
+    &FlatCompiledStylesValue::Number(1.0)
+  );
+}
+
 /// A property that is not a key-value pair declares nothing to read.
 #[test]
 fn passes_over_a_property_that_is_not_a_key_value_pair() {
@@ -213,13 +299,13 @@ fn passes_over_a_property_that_is_not_a_key_value_pair() {
   assert_eq!(compiled.keys().cloned().collect::<Vec<_>>(), ["color"]);
 }
 
-/// A compiled style holds literals only. Anything else means the value was
-/// never compiled, and reading it as a class name would write the wrong class.
+/// A declaration holds a literal or an object. Anything else was never
+/// evaluated, and reading it as a class name would write the wrong class.
 #[test]
 #[should_panic(
   expected = "Encountered an unsupported expression type while parsing a nullable style array."
 )]
-fn refuses_a_value_that_is_not_a_literal() {
+fn refuses_a_value_that_is_neither_a_literal_nor_an_object() {
   parse_nullable_object(&mut styles(), &expr("{ color: name }"));
 }
 
@@ -231,36 +317,32 @@ fn refuses_a_compiled_style_that_is_not_an_object() {
   parse_nullable_object(&mut styles(), &expr("[1, 2]"));
 }
 
-/// A number is not a class name, an absence or a marker, so it is none of the
-/// three things a compiled style holds.
+/// A big integer is not text, a number, a boolean or an absence, so it is none
+/// of the kinds a declaration can hold.
 #[test]
 #[should_panic(expected = "Unhandled literal type in nullable style parsing array")]
-fn refuses_a_literal_a_compiled_style_cannot_hold() {
-  let lit = match expr("1") {
+fn refuses_a_literal_a_declaration_cannot_hold() {
+  let lit = match expr("1n") {
     swc_core::ecma::ast::Expr::Lit(lit) => lit,
     other => panic!("the fixture is not a literal: {other:?}"),
   };
 
-  parse_nullable_key_value(&mut styles(), "color".to_owned(), &lit);
+  parse_nullable_literal(&lit);
 }
 
 /// A string holding half a surrogate pair crosses and comes back, because the
 /// text is read as it stands rather than through a converter that spells it.
 #[test]
 fn reads_a_class_name_holding_half_a_surrogate_pair() {
-  let mut compiled = styles();
-
   let lit = Lit::Str(swc_core::ecma::ast::Str {
     span: swc_core::common::DUMMY_SP,
     value: "xa".into(),
     raw: None,
   });
 
-  parse_nullable_key_value(&mut compiled, "color".to_owned(), &lit);
-
   assert_eq!(
-    compiled["color"].as_ref(),
-    &FlatCompiledStylesValue::String("xa".to_owned())
+    parse_nullable_literal(&lit),
+    FlatCompiledStylesValue::String("xa".to_owned())
   );
 }
 

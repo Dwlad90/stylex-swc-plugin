@@ -7,7 +7,7 @@ use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue,
   types::{FlatCompiledStyles, StylesObjectMap},
 };
-use stylex_structures::pair::Pair;
+use stylex_types::structures::injectable_style::InjectableStyle;
 use swc_core::{
   atoms::Wtf8Atom,
   ecma::ast::{Expr, Lit, PropName, PropOrSpread},
@@ -137,16 +137,34 @@ fn writes_an_empty_object_for_no_style() {
   assert!(properties_of(&convert_values_to_ast(&FlatCompiledStyles::new())).is_empty());
 }
 
-/// Only the three kinds above can be written back. Any other value means the
-/// styles were not flattened, so the call is refused rather than written as
-/// something the runtime cannot read.
+/// A value kind the writer has no spelling for means the styles were not
+/// flattened, so the call is refused rather than written as something the
+/// runtime cannot read.
 #[test]
 #[should_panic(expected = "Encountered an unsupported value type during AST conversion.")]
 fn refuses_a_value_it_cannot_write() {
+  convert_values_to_ast(&values_of(&[("color", unwritable())]));
+}
+
+/// The same refusal inside an inline style, which the writer reads by rules of
+/// its own.
+#[test]
+#[should_panic(expected = "Encountered an unsupported value type during AST conversion.")]
+fn refuses_an_inline_value_it_cannot_write() {
   convert_values_to_ast(&values_of(&[(
-    "color",
-    FlatCompiledStylesValue::KeyValue(Pair::new("color".to_owned(), "red".to_owned())),
+    "style",
+    FlatCompiledStylesValue::Object(inline_style(&[("color", unwritable())])),
   )]));
+}
+
+/// A value kind neither writer has a spelling for. An injectable style is
+/// collected where a rule is, never where a declaration is.
+fn unwritable() -> FlatCompiledStylesValue {
+  FlatCompiledStylesValue::InjectableStyle(InjectableStyle {
+    ltr: ".x1e2nbdu{color:red}".to_owned(),
+    rtl: None,
+    priority: Some(3000.0),
+  })
 }
 
 #[test]
@@ -238,10 +256,10 @@ fn writes_an_inline_style_as_the_object_a_style_property_holds() {
     ),
     (
       "style",
-      FlatCompiledStylesValue::KeyValues(vec![
-        Pair::new("color".to_owned(), "blue".to_owned()),
-        Pair::new("gridRow".to_owned(), "1".to_owned()),
-      ]),
+      FlatCompiledStylesValue::Object(inline_style(&[
+        ("color", FlatCompiledStylesValue::String("blue".to_owned())),
+        ("gridRow", FlatCompiledStylesValue::String("1".to_owned())),
+      ])),
     ),
   ]);
 
@@ -275,10 +293,112 @@ fn writes_an_inline_style_as_the_object_a_style_property_holds() {
 /// from it would pin the gap rather than the writer.
 #[test]
 fn writes_an_inline_style_that_holds_no_pair_as_an_empty_object() {
-  let values = values_of(&[("style", FlatCompiledStylesValue::KeyValues(vec![]))]);
+  let values = values_of(&[(
+    "style",
+    FlatCompiledStylesValue::Object(FlatCompiledStyles::new()),
+  )]);
 
   assert_eq!(
     properties_of(&convert_values_to_ast(&values)),
     [("style".to_owned(), "object:0".to_owned())]
+  );
+}
+
+/// A number the emitter has no numeral for is written by name, the way
+/// JavaScript writes it, rather than as the arithmetic the emitter invents.
+/// The value stays the number itself, so only the text of the module changes.
+#[test]
+fn writes_a_number_that_has_no_digits_by_name() {
+  let values = values_of(&[(
+    "style",
+    FlatCompiledStylesValue::Object(inline_style(&[
+      ("opacity", FlatCompiledStylesValue::Number(f64::INFINITY)),
+      ("zIndex", FlatCompiledStylesValue::Number(f64::NEG_INFINITY)),
+      ("order", FlatCompiledStylesValue::Number(f64::NAN)),
+      ("flexGrow", FlatCompiledStylesValue::Number(-0.0)),
+    ])),
+  )]);
+
+  assert_eq!(
+    raw_numbers_under(&convert_values_to_ast(&values), "style"),
+    ["Infinity", "-Infinity", "NaN", "0",]
+  );
+}
+
+/// The text each number of one named object is written with. A number carries
+/// its own spelling, and that spelling is what the module prints.
+fn raw_numbers_under(expr: &Expr, key: &str) -> Vec<String> {
+  let object = match expr {
+    Expr::Object(object) => object,
+    other => panic!("the answer is not an object expression: {other:?}"),
+  };
+
+  let style = match object.props.iter().find(|prop| key_of(prop) == key) {
+    Some(prop) => match prop.as_prop().and_then(|prop| prop.as_key_value()) {
+      Some(key_value) => key_value.value.as_ref().clone(),
+      None => panic!("the key {key} is not a key-value prop"),
+    },
+    None => panic!("the answer holds no key {key}"),
+  };
+
+  match style {
+    Expr::Object(object) => object
+      .props
+      .iter()
+      .map(
+        |prop| match prop.as_prop().and_then(|prop| prop.as_key_value()) {
+          Some(key_value) => match key_value.value.as_ref() {
+            Expr::Lit(Lit::Num(number)) => match &number.raw {
+              Some(raw) => raw.to_string(),
+              None => panic!("the number carries no spelling: {number:?}"),
+            },
+            other => panic!("the value is not a number: {other:?}"),
+          },
+          None => panic!("the property is not a key-value pair: {prop:?}"),
+        },
+      )
+      .collect(),
+    other => panic!("the style is not an object expression: {other:?}"),
+  }
+}
+
+/// The declarations of one inline style, built the way a case names them.
+fn inline_style(declarations: &[(&str, FlatCompiledStylesValue)]) -> FlatCompiledStyles {
+  values_of(declarations)
+}
+
+/// Each kind of value an inline style holds is written back as the kind it is,
+/// because the runtime applies the object as it stands. A number stays a
+/// number, and the text that spells the same number stays text.
+#[test]
+fn writes_each_kind_of_inline_value_as_the_kind_it_is() {
+  let values = values_of(&[(
+    "style",
+    FlatCompiledStylesValue::Object(inline_style(&[
+      ("opacity", FlatCompiledStylesValue::Number(0.5)),
+      ("gridRow", FlatCompiledStylesValue::String("1".to_owned())),
+      ("color", FlatCompiledStylesValue::Bool(true)),
+      ("margin", FlatCompiledStylesValue::Null),
+      (
+        ":hover",
+        FlatCompiledStylesValue::Object(inline_style(&[(
+          "color",
+          FlatCompiledStylesValue::String("blue".to_owned()),
+        )])),
+      ),
+    ])),
+  )]);
+
+  let written = convert_values_to_ast(&values);
+
+  assert_eq!(
+    properties_under(&written, "style"),
+    [
+      ("opacity".to_owned(), "number:0.5".to_owned()),
+      ("gridRow".to_owned(), "string:1".to_owned()),
+      ("color".to_owned(), "bool:true".to_owned()),
+      ("margin".to_owned(), "null".to_owned()),
+      (":hover".to_owned(), "object:1".to_owned()),
+    ]
   );
 }

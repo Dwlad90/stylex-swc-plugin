@@ -3,16 +3,15 @@ use stylex_ast::ast::convertors::{
   create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
 };
 use stylex_macros::stylex_unreachable;
-use swc_core::ecma::ast::{Expr, PropOrSpread};
+use stylex_utils::number::to_js_string;
+use swc_core::common::DUMMY_SP;
+use swc_core::ecma::ast::{Expr, Lit, Number, PropOrSpread};
 
-use stylex_ast::ast::factories::{
-  create_key_value_prop, create_object_expression, create_string_key_value_prop,
-};
+use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
 use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue,
   types::{FlatCompiledStyles, StylesObjectMap},
 };
-use stylex_structures::pair::Pair;
 
 /// One property of an object this compiler wrote: the name it is written under,
 /// and what it holds.
@@ -68,7 +67,7 @@ fn compiled_value_props(values: &FlatCompiledStyles) -> impl Iterator<Item = Nam
       },
       FlatCompiledStylesValue::Null => create_null_expr(),
       FlatCompiledStylesValue::Bool(value) => create_bool_expr(*value),
-      FlatCompiledStylesValue::KeyValues(pairs) => convert_inline_style_to_ast(pairs),
+      FlatCompiledStylesValue::Object(style) => convert_inline_style_to_ast(style),
       _ => stylex_unreachable!("Encountered an unsupported value type during AST conversion."),
     };
 
@@ -104,16 +103,52 @@ pub(crate) fn convert_values_to_ast(values: &FlatCompiledStyles) -> Expr {
 ///
 /// A `props` merge answers one of these under `style`, holding what the author
 /// wrote beside the compiled styles. Each name keeps the spelling of the
-/// source, because the runtime reads this object and not a stylesheet, and each
-/// value stays text: `gridRow: '1'` is a string where the author wrote it, so
-/// it is a string here.
-fn convert_inline_style_to_ast(pairs: &[Pair]) -> Expr {
-  let props = pairs
+/// source, because the runtime reads this object and not a stylesheet.
+fn convert_inline_style_to_ast(style: &FlatCompiledStyles) -> Expr {
+  let props = style
     .iter()
-    .map(|pair| create_string_key_value_prop(pair.key.as_str(), pair.value.as_str()))
+    .map(|(key, value)| create_key_value_prop(key, inline_value_to_ast(value)))
     .collect::<Vec<PropOrSpread>>();
 
   create_object_expression(props)
+}
+
+/// The expression one inline declaration is written back as.
+///
+/// The kind the author gave the value is the kind written here, because the
+/// runtime applies this object as it stands: `gridRow: '1'` is text and stays
+/// text, `opacity: 0.5` is a number and stays a number, and a pseudo-class
+/// holds an object of declarations read the same way again.
+fn inline_value_to_ast(value: &FlatCompiledStylesValue) -> Expr {
+  match value {
+    FlatCompiledStylesValue::String(text) => create_string_expr(text.as_str()),
+    FlatCompiledStylesValue::Number(number) => create_js_number_expr(*number),
+    FlatCompiledStylesValue::Bool(value) => create_bool_expr(*value),
+    FlatCompiledStylesValue::Null => create_null_expr(),
+    FlatCompiledStylesValue::Object(style) => convert_inline_style_to_ast(style),
+    _ => stylex_unreachable!("Encountered an unsupported value type during AST conversion."),
+  }
+}
+
+/// The numeric literal one inline number is written as, spelled the way
+/// JavaScript spells it.
+///
+/// Every other number this compiler writes is left to the emitter, which
+/// spells most of them the same way. Three it does not: it writes `-0` where
+/// the language writes `0`, and it has no numeral at all for `NaN` or for an
+/// infinity, so it invents `0 / 0` and `1 / 0`. The text of an inline style is
+/// read by a person as well as by the runtime, so the spelling is given here
+/// rather than invented there.
+///
+/// The text is carried as the literal's own raw form. Nothing reads it back,
+/// and every reader of the node takes the value beside it, so a spelling such
+/// as `-Infinity` that is not a numeral is still the right text.
+fn create_js_number_expr(value: f64) -> Expr {
+  Expr::Lit(Lit::Num(Number {
+    span: DUMMY_SP,
+    value,
+    raw: Some(to_js_string(value).into()),
+  }))
 }
 
 /// A whole compiled style object: one namespace per key, each namespace the

@@ -377,3 +377,21 @@ stylex_test!(
     stylex.props(css.display._);
   "#
 );
+
+// An atom the compiler is not allowed to read stays as the author wrote it, and
+// the runtime resolves it.
+//
+// The atom is compiled through a namespace holding one property, so the fold
+// has to descend two levels to reach the value. A project that sets
+// `maxEvaluationDepth` to one stops it at the first. Nothing is injected and
+// the member expression survives, which is the whole of what the pass promises
+// for a style it cannot read.
+stylex_test!(
+  inline_static_the_fold_cannot_reach_is_left_for_the_runtime,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_max_evaluation_depth(1)),
+  r#"
+    import stylex from 'stylex';
+    import css from '@stylexjs/atoms';
+    stylex.props(css.display.flex);
+  "#
+);

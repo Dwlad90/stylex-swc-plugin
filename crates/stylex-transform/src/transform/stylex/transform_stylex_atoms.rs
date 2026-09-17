@@ -28,7 +28,6 @@ use stylex_atoms::transform::{
 };
 use stylex_evaluator::state::EvaluationState;
 use stylex_macros::stylex_panic;
-use stylex_state::evaluate_result_value::EvaluateResultValue;
 use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue,
   types::{FlatCompiledStyles, InjectableStylesMap},
@@ -43,22 +42,7 @@ use super::transform_stylex_create_call::{build_runtime_function_map, hoist_expr
 /// so the property is wrapped in a namespace of this name and read back out of
 /// the compiled map under it. The name is written once, because the write and
 /// the read have to agree.
-const INLINE_NAMESPACE: &str = "__inline__";
-
-/// The folded form of the object an atom is compiled from.
-///
-/// This is the whole of what is left out of the coverage measurement, and it
-/// computes nothing -- it chooses between answers the caller has already worked
-/// out. The object is written here from two string literals, and
-/// `a_namespace_of_two_string_literals_folds` measures that the fold answers a
-/// namespace map for one. `guidelines/stack/RUST.md` describes the allowance.
-#[cfg_attr(coverage_nightly, coverage(off))]
-fn or_refuse_unfolded_atom(value: Option<EvaluateResultValue>) -> EvaluateResultValue {
-  match value {
-    Some(value) => value,
-    None => stylex_panic!("An inline style could not be read at compile time."),
-  }
-}
+pub(crate) const INLINE_NAMESPACE: &str = "__inline__";
 
 /// The compiled namespace an atom was written into.
 ///
@@ -124,7 +108,17 @@ where
     self.state.in_stylex_create = true;
     let evaluated = evaluate_stylex_create_arg(&mut first_arg, &mut self.state, &function_map);
 
-    let value_result = or_refuse_unfolded_atom(evaluated.value);
+    // The atom is left as the author wrote it, for the runtime, where the fold
+    // answers nothing. The object is two string literals, so the fold reads it
+    // whenever it is allowed to descend that far. `maxEvaluationDepth` is what
+    // says how far, and a project can set it to one.
+    //
+    // The `in_stylex_create` flag is restored here too, so a later pass is not
+    // left in create mode.
+    let Some(value_result) = evaluated.value else {
+      self.state.in_stylex_create = prev_in_stylex_create;
+      return None;
+    };
 
     let (mut compiled, injected, _class_paths) = stylex_create_set(
       &value_result,

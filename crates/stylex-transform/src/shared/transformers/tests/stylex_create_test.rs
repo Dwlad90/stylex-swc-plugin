@@ -7,6 +7,7 @@ mod stylex_create {
   use swc_core::ecma::ast::{Expr, ExprOrSpread, KeyValueProp};
 
   use crate::shared::transformers::stylex_create::stylex_create_set;
+  use crate::transform::stylex::transform_stylex_atoms::INLINE_NAMESPACE;
   use stylex_ast::ast::factories::{
     create_array_expression, create_key_value_prop, create_key_value_prop_ident,
     create_nested_object_prop, create_null_lit, create_object_expression,
@@ -1271,8 +1272,8 @@ mod stylex_create {
   /// that did not survive the compile would leave it with nothing.
   #[test]
   fn answers_a_namespace_under_the_name_it_was_given() {
-    // A name no author writes, as the atoms pass uses, beside an ordinary one.
-    let names = ["__inline__", "root"];
+    // The name the atoms pass writes, beside one an author writes.
+    let names = [INLINE_NAMESPACE, "root"];
 
     let object = style_object_factory(&[
       (names[0], &[("display", "flex")]),

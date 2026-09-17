@@ -235,7 +235,8 @@ pub fn compile_static_style<T: Compile>(compiler: &mut T, member: &MemberExpr) -
 /// `css.color(value)` → `_temp.color(value)`.
 ///
 /// Returns `None` when the call is not a dynamic atom, when its property is no
-/// safe CSS name, or when the compiler answers nothing for the style; the
+/// safe CSS name, when the compiler answers nothing for the style, or when the
+/// compiled style carries no property class to build the function on; the
 /// caller then leaves the original call in place.
 pub fn compile_dynamic_style<T: Compile>(compiler: &mut T, call: &CallExpr) -> Option<Expr> {
   let style = get_dynamic_style_from_path(call, compiler.atom_imports())?;

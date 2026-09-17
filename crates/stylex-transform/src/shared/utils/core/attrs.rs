@@ -3,17 +3,12 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use stylex_css::css::common::inline_style_to_css_string;
-use stylex_macros::stylex_unreachable;
 use stylex_structures::pair::PairCow;
-use stylex_utils::number::to_js_string;
 
 use crate::shared::enums::data_structures::fn_result::FnResult;
 use stylex_state::flat_compiled_styles_value::FlatCompiledStylesValue;
 
 use super::{parse_nullable_style::ResolvedArg, props::props_map};
-
-/// The text a JavaScript object spells when a string is asked of it.
-const OBJECT_AS_TEXT: &str = "[object Object]";
 
 /// The HTML attributes a `stylex.attrs(...)` call is replaced by.
 pub(crate) fn attrs(styles: &[ResolvedArg]) -> FnResult {
@@ -30,14 +25,15 @@ pub(crate) fn attrs(styles: &[ResolvedArg]) -> FnResult {
   }
 
   // An attribute is text, so the inline style is written out as the CSS a
-  // `style` attribute holds. `props_map` writes that entry as an object and
-  // nothing else, so there is no other shape to read here.
+  // `style` attribute holds, with every value spelled the way JavaScript
+  // spells it. `props_map` writes that entry as an object and nothing else, so
+  // there is no other shape to read here.
   if let Some(FlatCompiledStylesValue::Object(style)) = attrs.get("style").map(Rc::as_ref) {
     let declarations = style
       .iter()
       .map(|(key, value)| PairCow {
         key: Cow::Borrowed(key.as_str()),
-        value: inline_value_as_text(value),
+        value: value.to_js_text(),
       })
       .collect::<Vec<PairCow<'_>>>();
 
@@ -50,64 +46,4 @@ pub(crate) fn attrs(styles: &[ResolvedArg]) -> FnResult {
   }
 
   FnResult::Values(attrs_map)
-}
-
-/// The text one inline declaration spells inside a `style` attribute.
-///
-/// An attribute holds text alone, so each value is spelled the way JavaScript
-/// spells it: a number as its own digits, a boolean as `true` or `false`, and
-/// an object as the text every plain object spells, whatever it holds.
-///
-/// A value kind an inline style cannot hold means the styles were not
-/// flattened, and the call is refused rather than written short -- the same
-/// answer the writer of a `style` property gives, so one unreadable value has
-/// one outcome and not two.
-///
-/// A `null` is not among the kinds read here. The merge drops a declaration
-/// set to null before it writes the style, and one held inside an object is
-/// never reached, because an object spells its own text without being read
-/// into.
-fn inline_value_as_text(value: &FlatCompiledStylesValue) -> Cow<'_, str> {
-  match value {
-    FlatCompiledStylesValue::String(text) => Cow::Borrowed(text.as_str()),
-    FlatCompiledStylesValue::Number(number) => Cow::Owned(to_js_string(*number)),
-    FlatCompiledStylesValue::Bool(value) => Cow::Borrowed(match value {
-      true => "true",
-      false => "false",
-    }),
-    FlatCompiledStylesValue::Object(_) => Cow::Borrowed(OBJECT_AS_TEXT),
-    FlatCompiledStylesValue::List(elements) => Cow::Owned(list_as_text(elements)),
-    _ => stylex_unreachable!("Encountered an unsupported value type in an inline style."),
-  }
-}
-
-/// The text a list spells: every element in turn, with a comma between.
-///
-/// A list of lists reads as one run of elements, because each of them spells
-/// its own text the same way and the commas simply join up.
-fn list_as_text(elements: &[Rc<FlatCompiledStylesValue>]) -> String {
-  let mut text = String::new();
-
-  for (index, element) in elements.iter().enumerate() {
-    if index > 0 {
-      text.push(',');
-    }
-
-    text.push_str(&element_as_text(element));
-  }
-
-  text
-}
-
-/// The text one element of a list spells.
-///
-/// An element that holds nothing spells nothing, which is the one rule a list
-/// adds: a declaration set to null names the word, and a slot of a list that
-/// is null or has no value writes an empty run between two commas. Every other
-/// kind spells what it spells anywhere else.
-fn element_as_text(value: &FlatCompiledStylesValue) -> Cow<'_, str> {
-  match value {
-    FlatCompiledStylesValue::Null | FlatCompiledStylesValue::Undefined => Cow::Borrowed(""),
-    value => inline_value_as_text(value),
-  }
 }

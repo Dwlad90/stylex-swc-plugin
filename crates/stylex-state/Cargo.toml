@@ -18,6 +18,7 @@ indexmap.workspace = true
 log.workspace = true
 rustc-hash.workspace = true
 serde.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"] }
 swc_core = { workspace = true, features = [
   "common",
   "ecma_ast",
@@ -44,7 +45,6 @@ criterion.workspace = true
 ctor.workspace = true
 path-clean.workspace = true
 pretty_env_logger.workspace = true
-serde_json = { workspace = true, features = ["preserve_order"] }
 swc_core = { workspace = true, features = ["ecma_parser"] }
 swc_malloc.workspace = true
 

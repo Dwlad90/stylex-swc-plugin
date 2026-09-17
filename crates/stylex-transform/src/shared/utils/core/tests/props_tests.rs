@@ -306,8 +306,11 @@ fn writes_no_attribute_for_a_merge_that_wrote_nothing() {
 /// flattened, so the attribute writer refuses rather than writing a style
 /// short of one declaration. The writer of a `style` property gives the same
 /// answer, and `refuses_a_value_it_cannot_write` holds that half.
+///
+/// Both refusals now come from the value itself, which is where the one
+/// reading of each kind lives.
 #[test]
-#[should_panic(expected = "Encountered an unsupported value type in an inline style.")]
+#[should_panic(expected = "Encountered a value kind that spells no text.")]
 fn refuses_an_inline_value_that_spells_no_text() {
   attrs(&[styles(inline_unwritable("margin"))]);
 }

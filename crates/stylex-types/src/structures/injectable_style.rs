@@ -16,6 +16,7 @@ pub struct InjectableStyleConstBase {
   pub rtl: Option<String>,
   pub ltr: String,
   pub const_key: String,
+  /// The constant, spelled as JSON. See [`InjectableConstStyle::const_value`].
   pub const_value: String,
 }
 
@@ -32,6 +33,16 @@ pub struct InjectableConstStyle {
   pub rtl: Option<String>,
   pub priority: Option<f64>,
   pub const_key: String,
+  /// The constant, spelled as JSON.
+  ///
+  /// A constant keeps the kind the author gave it -- a number, a boolean, a
+  /// `null`, an object, a list -- and two readers ask for it again: the
+  /// metadata a build tool reads, and the rule the runtime is handed. This
+  /// crate sits below the value vocabulary, so the kind travels as a spelling
+  /// rather than as a value, and a writer of this field owes it that spelling.
+  ///
+  /// The four values JSON has no word for are spelled the way JavaScript
+  /// spells them: `NaN`, `Infinity`, `-Infinity` and `undefined`.
   pub const_value: String,
 }
 
@@ -119,7 +130,9 @@ impl Default for InjectableConstStyle {
       rtl: None,
       priority: Some(0.0),
       const_key: String::new(),
-      const_value: String::new(),
+      // `null` and not an empty text, because the field holds JSON and an
+      // empty text spells none.
+      const_value: "null".to_owned(),
     }
   }
 }

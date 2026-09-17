@@ -2,12 +2,10 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use stylex_ast::ast::convertors::{
-  create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
+  create_bool_expr, create_js_number_expr, create_null_expr, create_string_expr,
 };
 use stylex_macros::{stylex_unimplemented, stylex_unreachable};
-use stylex_utils::number::to_js_string;
-use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{Expr, Lit, Number, PropOrSpread};
+use swc_core::ecma::ast::{Expr, PropOrSpread};
 
 use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
 use stylex_state::{
@@ -50,33 +48,20 @@ pub(crate) fn remove_objects_with_spreads(obj: &StylesObjectMap) -> StylesObject
 /// The properties one flat map of compiled values spells.
 ///
 /// A compiled namespace is one such map, and so are the variables `defineVars`
-/// answers, the values `defineConsts` answers and a theme's overrides. Every
-/// value in one is a string, a null or a boolean, because that is all the
-/// compiler writes. A string that reads as a number is written back as a
-/// number, the way the source spelled it.
+/// answers, the values `defineConsts` answers, a theme's overrides and the
+/// properties a `props` merge answers.
 ///
-/// The properties a `props` merge answers are one such map too, and they hold
-/// one value more: the inline style, which is an object of its own.
+/// Every value keeps the kind it was read with, so one writer serves them all:
+/// a class name is text, a constant the author wrote as a number is a number,
+/// and an inline style is an object of its own. The reference implementation
+/// writes each of these back through one function too.
 ///
 /// Answered as an iterator, so a caller that wants the object literal builds
 /// the one list it needs rather than a list of names and a list of properties.
 fn compiled_value_props(values: &FlatCompiledStyles) -> impl Iterator<Item = NamedProp<'_, Expr>> {
-  values.iter().map(|(key, value)| {
-    let value = match value.as_ref() {
-      FlatCompiledStylesValue::String(value) => match value.parse::<f64>() {
-        Ok(number) => create_number_expr(number),
-        Err(_) => create_string_expr(value.as_str()),
-      },
-      FlatCompiledStylesValue::Null => create_null_expr(),
-      FlatCompiledStylesValue::Bool(value) => create_bool_expr(*value),
-      FlatCompiledStylesValue::Object(style) => convert_inline_style_to_ast(style),
-      _ => stylex_unreachable!("Encountered an unsupported value type during AST conversion."),
-    };
-
-    NamedProp {
-      key: key.as_str(),
-      value,
-    }
+  values.iter().map(|(key, value)| NamedProp {
+    key: key.as_str(),
+    value: compiled_value_to_ast(value),
   })
 }
 
@@ -109,19 +94,20 @@ pub(crate) fn convert_values_to_ast(values: &FlatCompiledStyles) -> Expr {
 fn convert_inline_style_to_ast(style: &FlatCompiledStyles) -> Expr {
   let props = style
     .iter()
-    .map(|(key, value)| create_key_value_prop(key, inline_value_to_ast(value)))
+    .map(|(key, value)| create_key_value_prop(key, compiled_value_to_ast(value)))
     .collect::<Vec<PropOrSpread>>();
 
   create_object_expression(props)
 }
 
-/// The expression one inline declaration is written back as.
+/// The expression one compiled value is written back as.
 ///
-/// The kind the author gave the value is the kind written here, because the
-/// runtime applies this object as it stands: `gridRow: '1'` is text and stays
-/// text, `opacity: 0.5` is a number and stays a number, and a pseudo-class
-/// holds an object of declarations read the same way again.
-fn inline_value_to_ast(value: &FlatCompiledStylesValue) -> Expr {
+/// The kind the value was read with is the kind written here, whatever wrote
+/// it: `gridRow: '1'` is text and stays text, a constant the author wrote as
+/// `0.5` is a number and stays a number, and an object or a list holds values
+/// read the same way again. The reference implementation writes every one of
+/// these back through one function too.
+pub(crate) fn compiled_value_to_ast(value: &FlatCompiledStylesValue) -> Expr {
   match value {
     FlatCompiledStylesValue::String(text) => create_string_expr(text.as_str()),
     FlatCompiledStylesValue::Number(number) => create_js_number_expr(*number),
@@ -150,31 +136,12 @@ fn convert_list_to_ast(elements: &[Rc<FlatCompiledStylesValue>]) -> Expr {
   let props = elements
     .iter()
     .enumerate()
-    .map(|(index, element)| create_key_value_prop(&index.to_string(), inline_value_to_ast(element)))
+    .map(|(index, element)| {
+      create_key_value_prop(&index.to_string(), compiled_value_to_ast(element))
+    })
     .collect::<Vec<PropOrSpread>>();
 
   create_object_expression(props)
-}
-
-/// The numeric literal one inline number is written as, spelled the way
-/// JavaScript spells it.
-///
-/// Every other number this compiler writes is left to the emitter, which
-/// spells most of them the same way. Three it does not: it writes `-0` where
-/// the language writes `0`, and it has no numeral at all for `NaN` or for an
-/// infinity, so it invents `0 / 0` and `1 / 0`. The text of an inline style is
-/// read by a person as well as by the runtime, so the spelling is given here
-/// rather than invented there.
-///
-/// The text is carried as the literal's own raw form. Nothing reads it back,
-/// and every reader of the node takes the value beside it, so a spelling such
-/// as `-Infinity` that is not a numeral is still the right text.
-fn create_js_number_expr(value: f64) -> Expr {
-  Expr::Lit(Lit::Num(Number {
-    span: DUMMY_SP,
-    value,
-    raw: Some(to_js_string(value).into()),
-  }))
 }
 
 /// A whole compiled style object: one namespace per key, each namespace the

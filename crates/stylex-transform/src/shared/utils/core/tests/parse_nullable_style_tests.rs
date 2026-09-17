@@ -8,12 +8,8 @@ use stylex_state::{
   evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
   functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles,
 };
-use swc_core::ecma::ast::Lit;
 
-use super::{
-  StyleObject, parse_compiled_styles, parse_nullable_literal, parse_nullable_object,
-  parse_nullable_style,
-};
+use super::{StyleObject, parse_compiled_styles, parse_nullable_object, parse_nullable_style};
 use crate::tests::support::expr;
 
 fn read(code: &str) -> StyleObject {
@@ -478,35 +474,6 @@ fn refuses_a_value_that_is_neither_a_literal_nor_an_object() {
 #[should_panic(expected = "Encountered a style argument that is not an object.")]
 fn refuses_a_compiled_style_that_is_not_an_object() {
   parse_nullable_object(&mut styles(), &expr("[1, 2]"));
-}
-
-/// A big integer is not text, a number, a boolean or an absence, so it is none
-/// of the kinds a declaration can hold.
-#[test]
-#[should_panic(expected = "Encountered a literal a style value cannot hold.")]
-fn refuses_a_literal_a_declaration_cannot_hold() {
-  let lit = match expr("1n") {
-    swc_core::ecma::ast::Expr::Lit(lit) => lit,
-    other => panic!("the fixture is not a literal: {other:?}"),
-  };
-
-  parse_nullable_literal(&lit);
-}
-
-/// A string holding half a surrogate pair crosses and comes back, because the
-/// text is read as it stands rather than through a converter that spells it.
-#[test]
-fn reads_a_class_name_holding_half_a_surrogate_pair() {
-  let lit = Lit::Str(swc_core::ecma::ast::Str {
-    span: swc_core::common::DUMMY_SP,
-    value: "xa".into(),
-    raw: None,
-  });
-
-  assert_eq!(
-    parse_nullable_literal(&lit),
-    FlatCompiledStylesValue::String("xa".to_owned())
-  );
 }
 
 /// Only a style, an array of styles and an absent value can stand in an array

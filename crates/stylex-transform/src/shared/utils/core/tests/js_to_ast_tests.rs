@@ -84,13 +84,18 @@ fn values_of(pairs: &[(&str, FlatCompiledStylesValue)]) -> FlatCompiledStyles {
   values
 }
 
-/// Every kind of value a compiled style holds has a spelling of its own, and a
-/// string that reads as a number is written as one.
+/// Every kind of value has a spelling of its own, and each is written as the
+/// kind it was read with.
+///
+/// Text that reads as a number stays text. The writer used to make a number of
+/// it, which was a guess standing in for a kind that had been thrown away
+/// before it got here; now the kind arrives intact and the guess is gone.
 #[test]
 fn writes_each_kind_of_value_the_way_javascript_spells_it() {
   let values = values_of(&[
     ("color", FlatCompiledStylesValue::String("xabc".to_owned())),
     ("zIndex", FlatCompiledStylesValue::String("2".to_owned())),
+    ("order", FlatCompiledStylesValue::Number(2.0)),
     ("$$css", FlatCompiledStylesValue::Bool(true)),
     ("margin", FlatCompiledStylesValue::Null),
   ]);
@@ -99,7 +104,8 @@ fn writes_each_kind_of_value_the_way_javascript_spells_it() {
     properties_of(&convert_values_to_ast(&values)),
     [
       ("color".to_owned(), "string:xabc".to_owned()),
-      ("zIndex".to_owned(), "number:2".to_owned()),
+      ("zIndex".to_owned(), "string:2".to_owned()),
+      ("order".to_owned(), "number:2".to_owned()),
       ("$$css".to_owned(), "bool:true".to_owned()),
       ("margin".to_owned(), "null".to_owned()),
     ]

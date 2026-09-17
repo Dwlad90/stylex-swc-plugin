@@ -1,11 +1,16 @@
 #[cfg(test)]
 mod stylex_define_consts {
+  use std::rc::Rc;
+
   use stylex_ast::ast::convertors::create_string_expr;
   use swc_core::ecma::ast::PropOrSpread;
 
   use crate::shared::transformers::stylex_define_consts::stylex_define_consts;
   use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
-  use stylex_state::{evaluate_result_value::EvaluateResultValue, state_manager::StateManager};
+  use stylex_state::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, state_manager::StateManager,
+  };
   use stylex_structures::stylex_options::StyleXOptions;
   use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
   use stylex_utils::hash::create_hash;
@@ -66,7 +71,9 @@ mod stylex_define_consts {
 
     match injectable_styles.get(sm_hash.as_str()).unwrap().as_ref() {
       InjectableStyleKind::Const(style) => {
-        assert_eq!(style.const_value, "(min-width: 768px)");
+        // The rule carries the constant as JSON, so text arrives quoted and a
+        // reader of it knows the kind without guessing one.
+        assert_eq!(style.const_value, "\"(min-width: 768px)\"");
         assert_eq!(style.ltr, "");
         assert_eq!(style.rtl, None);
         assert_eq!(style.priority, Some(0.0));
@@ -76,7 +83,7 @@ mod stylex_define_consts {
 
     match injectable_styles.get(md_hash.as_str()).unwrap().as_ref() {
       InjectableStyleKind::Const(style) => {
-        assert_eq!(style.const_value, "(min-width: 1024px)");
+        assert_eq!(style.const_value, "\"(min-width: 1024px)\"");
         assert_eq!(style.ltr, "");
         assert_eq!(style.rtl, None);
         assert_eq!(style.priority, Some(0.0));
@@ -232,15 +239,15 @@ mod stylex_define_consts {
     );
   }
 
-  /// The value a constant is written with reaches the output as text. A
-  /// literal and a template that spells one are read as the text they spell,
-  /// and anything else is written as JSON.
+  /// A constant keeps the kind the author gave it. A literal and a template
+  /// that spells one piece of text are read as that text, an object is read as
+  /// an object, and a value that spells nothing static is refused.
   mod a_constant_value {
     use super::*;
 
     use crate::tests::support::expr;
 
-    fn text_of(code: &str) -> String {
+    fn value_of(code: &str) -> Rc<FlatCompiledStylesValue> {
       let constants = EvaluateResultValue::Expr(expr(code));
 
       let (js_output, _) = stylex_define_consts(
@@ -248,7 +255,14 @@ mod stylex_define_consts {
         &mut create_test_state_manager("Test.stylex.js//consts"),
       );
 
-      match js_output.get("value").and_then(|value| value.as_string()) {
+      match js_output.get("value") {
+        Some(value) => Rc::clone(value),
+        None => panic!("the constant {code} holds nothing"),
+      }
+    }
+
+    fn text_of(code: &str) -> String {
+      match value_of(code).as_string() {
         Some(text) => text.clone(),
         None => panic!("the constant {code} holds no text"),
       }
@@ -267,16 +281,42 @@ mod stylex_define_consts {
       assert_eq!(text_of("{ value: `` }"), "");
     }
 
-    /// A template holding an expression spells no one piece of text, so the
-    /// value is written as the source the expression was written with.
+    /// A template holding an expression spells no one piece of text, so there
+    /// is no static value to keep and the call is refused. The reference
+    /// refuses such a constant too.
     #[test]
-    fn writes_a_template_holding_an_expression_as_its_own_source() {
-      assert_eq!(text_of("{ value: `a${b}c` }"), "`a${b}c`");
+    #[should_panic(expected = "Encountered a style value the compiler cannot read.")]
+    fn refuses_a_template_that_spells_no_one_piece_of_text() {
+      text_of("{ value: `a${b}c` }");
     }
 
+    /// An object stays an object, with the kind of every value in it kept. It
+    /// used to be flattened to the JSON text of itself, which a reader of the
+    /// answer then saw as a string.
     #[test]
-    fn writes_a_value_that_is_no_literal_as_json() {
-      assert_eq!(text_of("{ value: { nested: 1 } }"), r#"{"nested":1}"#);
+    fn keeps_an_object_as_an_object() {
+      let value = value_of("{ value: { nested: 1 } }");
+
+      let FlatCompiledStylesValue::Object(nested) = value.as_ref() else {
+        panic!("the constant does not hold an object: {value:?}");
+      };
+
+      assert_eq!(
+        nested.get("nested").map(Rc::as_ref),
+        Some(&FlatCompiledStylesValue::Number(1.0))
+      );
+    }
+
+    /// The JSON the injected rule carries spells the kind too, so a reader of
+    /// the metadata sees a number as a number.
+    #[test]
+    fn spells_the_json_the_injected_rule_carries() {
+      assert_eq!(value_of("{ value: 800 }").to_json_text(), "800");
+      assert_eq!(value_of("{ value: '800' }").to_json_text(), "\"800\"");
+      assert_eq!(value_of("{ value: true }").to_json_text(), "true");
+      assert_eq!(value_of("{ value: null }").to_json_text(), "null");
+      assert_eq!(value_of("{ value: { a: 1 } }").to_json_text(), "{\"a\":1}");
+      assert_eq!(value_of("{ value: ['x'] }").to_json_text(), "[\"x\"]");
     }
   }
 

@@ -5,9 +5,10 @@ use stylex_macros::{stylex_panic, stylex_unimplemented};
 use stylex_utils::{number::to_js_string, string::utf16_length, swc::get_expr_node_kind};
 use swc_core::{
   atoms::{Atom, Wtf8Atom},
+  common::DUMMY_SP,
   ecma::{
     ast::{
-      BigInt, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, MemberProp, ObjectLit, Prop,
+      BigInt, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, MemberProp, Number, ObjectLit, Prop,
       PropName, PropOrSpread, Str, Tpl, TplElement, VarDeclarator,
     },
     parser::Context,
@@ -200,6 +201,27 @@ pub(crate) fn concat_call_to_template_literal(call_expr: &CallExpr) -> Option<Ex
 
 pub fn create_number_expr(value: f64) -> Expr {
   Expr::from(create_number_lit(value))
+}
+
+/// The numeric literal one number is written as, spelled the way JavaScript
+/// spells it.
+///
+/// [`create_number_expr`] leaves the spelling to the emitter, which writes
+/// most numbers the same way. Three it does not: it writes `-0` where the
+/// language writes `0`, and it has no numeral at all for `NaN` or for an
+/// infinity, so it invents `0 / 0` and `1 / 0`. Where the text is read by a
+/// person as well as by the runtime -- an inline style, an injected constant
+/// -- the spelling is given here rather than invented there.
+///
+/// The text is carried as the literal's own raw form. Nothing reads it back,
+/// and every reader of the node takes the value beside it, so a spelling such
+/// as `-Infinity` that is not a numeral is still the right text.
+pub fn create_js_number_expr(value: f64) -> Expr {
+  Expr::Lit(Lit::Num(Number {
+    span: DUMMY_SP,
+    value,
+    raw: Some(to_js_string(value).into()),
+  }))
 }
 
 pub fn create_big_int_expr(value: BigInt) -> Expr {

@@ -1,6 +1,7 @@
 #![allow(deprecated)]
 
 use napi::{Env, Error, JsObject};
+use stylex_state::flat_compiled_styles_value::FlatCompiledStylesValue;
 use stylex_transform::StyleXTransform;
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleBaseKind;
 use swc_core::common::comments::Comments;
@@ -92,7 +93,21 @@ fn set_metadata_ltr_and_rtl(
   }
 
   if let Some(consts_value) = consts_value {
-    style_value.set_named_property("constVal", consts_value)?;
+    // The constant travels as JSON, so that the kind the author gave it
+    // survives the trip out of the compiler. A reader of this metadata sees a
+    // number as a number and text as text, rather than text it would have to
+    // guess a kind back out of. It is read back through the same reader the
+    // injected rule uses, so the two readers of one carrier agree.
+    let value = FlatCompiledStylesValue::from_json_text(consts_value);
+
+    match value.as_number() {
+      // A number JSON has no word for still crosses as the number it is, which
+      // is what the reference hands a reader of its own metadata.
+      Some(number) => style_value.set_named_property("constVal", env.create_double(number)?)?,
+      None => {
+        style_value.set_named_property("constVal", env.to_js_value(&value.as_json_value())?)?
+      },
+    }
   }
 
   style_value.set_named_property("ltr", ltr)?;

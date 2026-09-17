@@ -36,13 +36,19 @@ swc_malloc.workspace = true
 swc_sourcemap.workspace = true
 
 indexmap.workspace = true
-napi = { version = "3.9.0", features = ["compat-mode"] }
+napi = { version = "3.9.0", features = ["compat-mode", "serde-json"] }
 napi-derive = "3.5.6"
+# The metadata carries a `defineConsts` constant as JSON, so that the kind the
+# author gave it survives the trip out of the compiler. `preserve_order` is
+# what keeps an object constant in the order the author wrote it, and the
+# allocator checks read `package.json` with the same parser.
+serde_json = { workspace = true, features = ["preserve_order"] }
 stylex_ast = { path = "../stylex-ast" }
 stylex_enums = { path = "../stylex-enums" }
 stylex_logs = { path = "../stylex-logs" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_regex = { path = "../stylex-regex" }
+stylex_state = { path = "../stylex-state" }
 stylex_structures = { path = "../stylex-structures" }
 stylex_transform = { path = "../stylex-transform" }
 stylex_types = { path = "../stylex-types" }
@@ -54,12 +60,6 @@ stylex_utils = { path = "../stylex-utils" }
 # but this one links it. The workspace manifest carries the reason.
 [target.'cfg(all(target_os = "linux", target_env = "musl", target_arch = "x86_64"))'.dependencies]
 mimalloc.workspace = true
-
-[dev-dependencies]
-# The allocator checks read `package.json`. A parser rather than a scan, so the
-# checks answer about the manifest rather than about the way it is written.
-serde_json.workspace = true
-
 
 [build-dependencies]
 napi-build = "2.3.1"

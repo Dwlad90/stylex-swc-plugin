@@ -1,16 +1,12 @@
 use std::rc::Rc;
 
-use stylex_ast::ast::convertors::{
-  convert_key_value_to_str, convert_lit_to_string, convert_tpl_to_string_lit,
-  get_key_values_from_object,
-};
+use stylex_ast::ast::convertors::{convert_key_value_to_str, get_key_values_from_object};
 use stylex_macros::stylex_panic;
-use stylex_types::serialization::serialize_value_to_json_string;
 
 use stylex_constants::constants::messages::{EXPORT_ID_NOT_SET, VALUES_MUST_BE_OBJECT};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
-  flat_compiled_styles_value::FlatCompiledStylesValue,
+  folded_value::folded_value,
   state_manager::StateManager,
   types::{FlatCompiledStyles, InjectableStylesMap},
 };
@@ -19,18 +15,6 @@ use stylex_types::{
   structures::injectable_style::InjectableConstStyle,
 };
 use stylex_utils::{hash::create_key_hash, identifier::as_identifier};
-use swc_core::ecma::ast::Expr;
-
-fn serialize_define_const_value(value: &Expr) -> String {
-  match value {
-    Expr::Lit(lit) => convert_lit_to_string(lit)
-      .unwrap_or_else(|| serialize_value_to_json_string(EvaluateResultValue::Expr(value.clone()))),
-    Expr::Tpl(tpl) => convert_tpl_to_string_lit(tpl)
-      .and_then(|lit| convert_lit_to_string(&lit))
-      .unwrap_or_else(|| serialize_value_to_json_string(EvaluateResultValue::Expr(value.clone()))),
-    _ => serialize_value_to_json_string(EvaluateResultValue::Expr(value.clone())),
-  }
-}
 
 pub(crate) fn stylex_define_consts(
   constants: &EvaluateResultValue,
@@ -55,7 +39,10 @@ pub(crate) fn stylex_define_consts(
 
   for key_value in key_values.iter() {
     let key = convert_key_value_to_str(key_value);
-    let value = serialize_define_const_value(&key_value.value);
+    // The constant keeps the kind the author gave it. A reader of the answer
+    // and a reader of the injected rule both see what was written, rather than
+    // text that each of them has to guess a kind back out of.
+    let value = Rc::new(folded_value(&key_value.value));
 
     let const_key = if key.starts_with("--") {
       // Preserve user-authored CSS custom property name without the leading `--`
@@ -77,11 +64,11 @@ pub(crate) fn stylex_define_consts(
         rtl: None,
         priority: Some(0.0),
         const_key,
-        const_value: value.clone(),
+        const_value: value.to_json_text(),
       })),
     );
 
-    js_output.insert(key, Rc::new(FlatCompiledStylesValue::String(value)));
+    js_output.insert(key, value);
   }
 
   (js_output, injectable_types)

@@ -27,9 +27,6 @@ pub static URL_REGEX: Lazy<Regex> = Lazy::new(|| {
     ).expect("URL regex is valid")
 });
 
-pub static JSON_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r#"(\{|,)\s*([a-zA-Z0-9_$*-]+)\s*:"#).expect("JSON regex is valid"));
-
 pub static NPM_NAME_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$")
     .expect("NPM name regex is valid")

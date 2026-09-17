@@ -26,13 +26,14 @@ use swc_core::{
 };
 
 use crate::call_positions::{CallPositions, Position};
+use crate::flat_compiled_styles_value::FlatCompiledStylesValue;
 use crate::types::{FlatCompiledStyles, InjectableStylesMap};
-use stylex_ast::ast::convertors::create_number_expr;
-use stylex_ast::ast::convertors::{init_call, normalize_expr};
+use stylex_ast::ast::convertors::{
+  create_js_number_expr, create_number_expr, create_string_expr, init_call, normalize_expr,
+};
 use stylex_ast::ast::factories::{
   create_binding_ident, create_call_expr, create_expr_or_spread, create_key_value_prop,
-  create_number_expr_or_spread, create_object_expression, create_string_expr_or_spread,
-  create_string_key_value_prop,
+  create_object_expression, create_string_key_value_prop,
 };
 use stylex_ast::ast::imports::local_binding_of;
 use stylex_ast::ast::source_file::{
@@ -2614,13 +2615,25 @@ impl StateManager {
     if let Some(const_key) = const_key
       && let Some(const_value) = const_value
     {
-      let const_value_expr = match const_value.parse::<f64>() {
-        Ok(value) => create_number_expr_or_spread(value),
-        Err(_) => create_string_expr_or_spread(const_value),
-      };
+      // The rule carries the constant as JSON, so the kind is read back before
+      // it is written. A number is written as a number and every other kind as
+      // the text JavaScript spells for it, which is what the reference writes
+      // into this call. A constant that was given no value, and one set to
+      // null, write no key and no value at all.
+      let const_value = FlatCompiledStylesValue::from_json_text(const_value);
 
-      stylex_inject_args.push(create_string_key_value_prop("constKey", const_key));
-      stylex_inject_args.push(create_key_value_prop("constVal", *const_value_expr.expr));
+      if !matches!(
+        const_value,
+        FlatCompiledStylesValue::Null | FlatCompiledStylesValue::Undefined
+      ) {
+        let const_value_expr = match const_value.as_number() {
+          Some(number) => create_js_number_expr(number),
+          None => create_string_expr(&const_value.to_js_text()),
+        };
+
+        stylex_inject_args.push(create_string_key_value_prop("constKey", const_key));
+        stylex_inject_args.push(create_key_value_prop("constVal", const_value_expr));
+      }
     }
 
     if let Some(rtl) = css_rtl {

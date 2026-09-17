@@ -58,7 +58,9 @@ fn regular_style(class_name: &str, css: &str, rtl: Option<&str>) -> InjectableSt
 }
 
 /// One constant, which is what a `defineConsts` call produces: the same rule
-/// with the key and value the constant is written under.
+/// with the key and value the constant is written under. The value is the JSON
+/// the producer writes, so that the kind the author gave it is still readable
+/// here.
 fn const_style(class_name: &str, const_key: &str, const_value: &str) -> InjectableStylesMap {
   let mut styles: InjectableStylesMap = IndexMap::new();
 
@@ -360,7 +362,7 @@ fn a_constant_with_a_text_value_keeps_its_text() {
 
   state.register_styles(
     &call_expr("defineConsts"),
-    &const_style("x1const", "--x1const", "8px"),
+    &const_style("x1const", "--x1const", "\"8px\""),
     &ast,
     None,
   );
@@ -368,6 +370,41 @@ fn a_constant_with_a_text_value_keeps_its_text() {
   flush_pending_insertions(&mut state, &mut body, true);
 
   assert_eq!(body_shapes(&body), vec!["import", "var", "call", "var"]);
+}
+
+/// A constant that holds nothing writes no key and no value into the injected
+/// call, which is what the reference writes for one.
+#[test]
+fn a_constant_that_holds_nothing_writes_no_key_and_no_value() {
+  let mut state = state_with(Some(RuntimeInjectionState::Boolean(true)));
+  let ast = object_expr();
+  let mut body = vec![var_item("consts", ast.clone())];
+
+  state.register_styles(
+    &call_expr("defineConsts"),
+    &const_style("x1const", "--x1const", "null"),
+    &ast,
+    None,
+  );
+
+  flush_pending_insertions(&mut state, &mut body, true);
+
+  assert_eq!(body_shapes(&body), vec!["import", "var", "call", "var"]);
+  assert!(!injected_text(&body).contains("constKey"));
+  assert!(!injected_text(&body).contains("constVal"));
+}
+
+/// The text of every injected call one body holds, so a case can say what the
+/// call carries rather than only that one was placed.
+fn injected_text(body: &[ModuleItem]) -> String {
+  body
+    .iter()
+    .filter_map(|item| match item {
+      ModuleItem::Stmt(Stmt::Expr(statement)) => Some(format!("{:?}", statement.expr)),
+      _ => None,
+    })
+    .collect::<Vec<_>>()
+    .join(" ")
 }
 
 /// A call that produced a fallback shape injects in front of both: the

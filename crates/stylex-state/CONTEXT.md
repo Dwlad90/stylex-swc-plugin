@@ -83,6 +83,25 @@ to _evaluate_ an expression lives above this crate, and that split is what keeps
 the state out of the evaluation cycle.
 _Avoid_: literal value, static value, constant folding, resolved value
 
+**Folded value**:
+What one folded expression turned out to hold, in the kind JavaScript gives
+it: text, a number, a boolean, a `null`, a value that was never given, a list,
+or an object of the same kinds again. `folded_value` reads one, and
+`FlatCompiledStylesValue` is what it answers. It is not a
+[spelled value](#spelled-value), which is read without any fold, and it is not
+an `EvaluateResultValue`, which is what the evaluator hands back rather than
+the kind one value of it is.
+
+The kind is kept rather than flattened to text, because two readers spell the
+same value differently and each needs to know what it has: a `props` call
+writes a number back as a number, and a `defineConsts` call writes one into
+the module, into the metadata a build tool reads, and into the rule the
+runtime is handed. Where a value has to cross a type below this crate, it
+travels as the JSON `to_json_text` spells and `from_json_text` reads back --
+with the four values JSON has no word for spelled the way JavaScript spells
+them.
+_Avoid_: evaluated value, resolved value, static value, literal
+
 **Inline style**:
 The plain object a `props`-family call was given beside the compiled styles,
 which the runtime applies as a `style` property rather than as classes. It is

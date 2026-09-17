@@ -73,6 +73,7 @@
     "@stylexswc/logs": "catalog:internal",
     "@stylexswc/macros": "catalog:internal",
     "@stylexswc/regex": "catalog:internal",
+    "@stylexswc/state": "catalog:internal",
     "@stylexswc/structures": "catalog:internal",
     "@stylexswc/transform": "catalog:internal",
     "@stylexswc/types": "catalog:internal",

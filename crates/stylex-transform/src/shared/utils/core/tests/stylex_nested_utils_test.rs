@@ -985,11 +985,12 @@ fn a_leaf_written_after_a_nested_key_gives_way_to_it() {
   ));
 }
 
-/// Only the three kinds a compiled style holds can be written back. Any other
-/// value means the styles were not flattened, so the call is refused rather
-/// than written as something the runtime cannot read.
+/// A value kind the writer has no spelling for means the styles were not
+/// flattened, so the call is refused rather than written as something the
+/// runtime cannot read. A nested value is written by the same writer every
+/// other compiled value goes through, so it refuses with the same words.
 #[test]
-#[should_panic(expected = "Encountered an unsupported value type during nested AST conversion.")]
+#[should_panic(expected = "Encountered an unsupported value type during AST conversion.")]
 fn refuses_a_nested_value_it_cannot_write() {
   convert_unflattened_object_to_ast(&unflatten_object(&flat_styles(vec![(
     "color",

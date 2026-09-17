@@ -1,7 +1,11 @@
+use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
 use std::mem::discriminant;
 
 use rustc_hash::FxHasher;
+use serde_json::Value;
+use stylex_macros::stylex_unreachable;
+use stylex_utils::number::to_js_string;
 
 use std::rc::Rc;
 
@@ -107,6 +111,67 @@ impl Hash for FlatCompiledStylesValue {
   }
 }
 
+/// The text a JavaScript object spells when a string is asked of it.
+const OBJECT_AS_TEXT: &str = "[object Object]";
+
+/// The word JavaScript writes for a value that was never given.
+const UNDEFINED_AS_TEXT: &str = "undefined";
+
+/// The text a list spells: every element in turn, with a comma between.
+///
+/// Written into one string rather than collected and joined, because the
+/// elements are spelled once and the list they would be collected into is
+/// thrown away on the next line.
+fn list_text(elements: &[Rc<FlatCompiledStylesValue>]) -> String {
+  let mut text = String::new();
+
+  for (index, element) in elements.iter().enumerate() {
+    if index > 0 {
+      text.push(',');
+    }
+
+    text.push_str(&element.as_element_text());
+  }
+
+  text
+}
+
+/// The value one JSON number holds.
+///
+/// Total for every build this workspace makes. `as_f64` answers for every
+/// number `serde_json` parses without the arbitrary-width feature, which
+/// nothing here turns on, and a `Number` whose answer is `None` cannot be
+/// built without it. The second arm is kept because the library names both
+/// answers, and it is left out of the coverage measurement for that reason, as
+/// `guidelines/stack/RUST.md` describes.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn number_from_json(number: &serde_json::Number) -> FlatCompiledStylesValue {
+  match number.as_f64() {
+    Some(number) => FlatCompiledStylesValue::Number(number),
+    None => FlatCompiledStylesValue::String(number.to_string()),
+  }
+}
+
+/// The JSON one number spells.
+///
+/// A whole number spells no fraction, which is how JavaScript writes one, and
+/// the two zeroes spell the same `0`. A number JSON has no word for -- the two
+/// infinities and `NaN` -- spells `null`, which is what `JSON.stringify`
+/// writes for it.
+fn json_number(number: f64) -> Value {
+  let whole = number.fract() == 0.0 && number.abs() <= MAX_WHOLE_NUMBER;
+
+  match whole {
+    true => Value::from(number as i64),
+    false => Value::from(number),
+  }
+}
+
+/// The largest whole number a double holds exactly, which is JavaScript's
+/// `Number.MAX_SAFE_INTEGER`. Past it a whole number is written in the
+/// exponent form, as the language writes it.
+const MAX_WHOLE_NUMBER: f64 = 9_007_199_254_740_991.0;
+
 /// The same number, with a negative zero folded onto the plain one.
 ///
 /// The two are one value to equality and two bit patterns to a hash, so the
@@ -122,6 +187,14 @@ impl FlatCompiledStylesValue {
   pub fn as_tuple(&self) -> Option<(&String, &Expr, &Option<BaseCSSType>)> {
     match self {
       FlatCompiledStylesValue::Tuple(key, value, css_type) => Some((key, value, css_type)),
+      _ => None,
+    }
+  }
+
+  /// Whether this value is the number kind, and the number it holds.
+  pub fn as_number(&self) -> Option<f64> {
+    match self {
+      FlatCompiledStylesValue::Number(number) => Some(*number),
       _ => None,
     }
   }
@@ -157,6 +230,140 @@ impl FlatCompiledStylesValue {
     match self {
       FlatCompiledStylesValue::Null => Some(()),
       _ => None,
+    }
+  }
+}
+
+impl FlatCompiledStylesValue {
+  /// The JSON this value spells.
+  ///
+  /// The rule a `defineConsts` call injects carries the constant itself, and
+  /// that constant crosses into JavaScript twice: once as the metadata a build
+  /// tool reads, and once as the object the runtime is handed. JSON is the
+  /// shape both of those are, so the kind travels as a spelling rather than as
+  /// a value, and neither reader has to guess one back out of plain text.
+  ///
+  /// The four values JSON has no word for are spelled the way JavaScript
+  /// spells them, so that a reader gets the value back rather than the `null`
+  /// that `JSON.stringify` writes. Held inside an object or a list they still
+  /// spell `null`: nothing reads a nested one back, and a bare `Infinity`
+  /// there would leave text no reader could parse.
+  pub fn to_json_text(&self) -> String {
+    match self {
+      FlatCompiledStylesValue::Number(number) if !number.is_finite() => to_js_string(*number),
+      FlatCompiledStylesValue::Undefined => UNDEFINED_AS_TEXT.to_owned(),
+      value => value.as_json_value().to_string(),
+    }
+  }
+
+  /// The value one JSON text spells, which is the inverse of
+  /// [`FlatCompiledStylesValue::to_json_text`].
+  ///
+  /// The pair exists because a `defineConsts` constant has to cross a type
+  /// that cannot hold this one: the rule it is injected with is written a
+  /// layer below, where the value vocabulary is not in scope. JSON carries the
+  /// kind across, and this reads it back so that the readers above ask the
+  /// value itself rather than the spelling.
+  ///
+  /// The four spellings JSON has no word for are read back first, so that a
+  /// value crosses and comes back as itself. Only two readings are lost, and
+  /// neither is observable: a negative zero comes back as a plain one, which
+  /// is the same value and the same spelling in the language, and a value held
+  /// inside an object or a list that JSON could not spell comes back as
+  /// `null`, which is what `JSON.stringify` writes for it.
+  ///
+  /// Text that is neither reads as that text. Nothing writes such a text, and
+  /// answering it keeps a constant the compiler cannot read from stopping a
+  /// build over its spelling.
+  pub fn from_json_text(json_text: &str) -> Self {
+    match json_text {
+      UNDEFINED_AS_TEXT => FlatCompiledStylesValue::Undefined,
+      "NaN" => FlatCompiledStylesValue::Number(f64::NAN),
+      "Infinity" => FlatCompiledStylesValue::Number(f64::INFINITY),
+      "-Infinity" => FlatCompiledStylesValue::Number(f64::NEG_INFINITY),
+      json_text => match serde_json::from_str::<Value>(json_text) {
+        Ok(value) => Self::from_json(&value),
+        Err(_) => FlatCompiledStylesValue::String(json_text.to_owned()),
+      },
+    }
+  }
+
+  fn from_json(value: &Value) -> Self {
+    match value {
+      Value::String(text) => FlatCompiledStylesValue::String(text.clone()),
+      Value::Number(number) => number_from_json(number),
+      Value::Bool(value) => FlatCompiledStylesValue::Bool(*value),
+      Value::Null => FlatCompiledStylesValue::Null,
+      Value::Object(values) => FlatCompiledStylesValue::Object(
+        values
+          .iter()
+          .map(|(key, value)| (key.clone(), Rc::new(Self::from_json(value))))
+          .collect(),
+      ),
+      Value::Array(elements) => FlatCompiledStylesValue::List(
+        elements
+          .iter()
+          .map(|element| Rc::new(Self::from_json(element)))
+          .collect(),
+      ),
+    }
+  }
+
+  /// The text JavaScript spells for this value.
+  ///
+  /// Three readers ask it and each writes text: a `style` attribute, the
+  /// constant an injected rule carries, and a list that joins its elements. An
+  /// object spells the text every plain object spells, whatever it holds, and
+  /// a list spells its elements with a comma between.
+  pub fn to_js_text(&self) -> Cow<'_, str> {
+    match self {
+      FlatCompiledStylesValue::String(text) => Cow::Borrowed(text.as_str()),
+      FlatCompiledStylesValue::Number(number) => Cow::Owned(to_js_string(*number)),
+      FlatCompiledStylesValue::Bool(value) => Cow::Borrowed(match value {
+        true => "true",
+        false => "false",
+      }),
+      FlatCompiledStylesValue::Null => Cow::Borrowed("null"),
+      FlatCompiledStylesValue::Undefined => Cow::Borrowed(UNDEFINED_AS_TEXT),
+      FlatCompiledStylesValue::Object(_) => Cow::Borrowed(OBJECT_AS_TEXT),
+      FlatCompiledStylesValue::List(elements) => Cow::Owned(list_text(elements)),
+      _ => stylex_unreachable!("Encountered a value kind that spells no text."),
+    }
+  }
+
+  /// The text one element of a list spells.
+  ///
+  /// An element that holds nothing spells nothing, which is the one rule a
+  /// list adds: a value of its own names the word `null`, and a slot of a list
+  /// that is null or has no value writes an empty run between two commas.
+  fn as_element_text(&self) -> Cow<'_, str> {
+    match self {
+      FlatCompiledStylesValue::Null | FlatCompiledStylesValue::Undefined => Cow::Borrowed(""),
+      value => value.to_js_text(),
+    }
+  }
+
+  /// The JSON value this spells, for a reader that hands the value on rather
+  /// than its text.
+  pub fn as_json_value(&self) -> Value {
+    match self {
+      FlatCompiledStylesValue::String(text) => Value::String(text.clone()),
+      FlatCompiledStylesValue::Number(number) => json_number(*number),
+      FlatCompiledStylesValue::Bool(value) => Value::Bool(*value),
+      FlatCompiledStylesValue::Null | FlatCompiledStylesValue::Undefined => Value::Null,
+      FlatCompiledStylesValue::Object(values) => Value::Object(
+        values
+          .iter()
+          .map(|(key, value)| (key.clone(), value.as_json_value()))
+          .collect(),
+      ),
+      FlatCompiledStylesValue::List(elements) => Value::Array(
+        elements
+          .iter()
+          .map(|element| element.as_json_value())
+          .collect(),
+      ),
+      _ => stylex_unreachable!("Encountered a value kind that spells no JSON."),
     }
   }
 }

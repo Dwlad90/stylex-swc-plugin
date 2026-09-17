@@ -20,6 +20,7 @@
 pub(crate) mod call_positions;
 pub mod evaluate_result_value;
 pub mod flat_compiled_styles_value;
+pub mod folded_value;
 pub mod functions;
 pub mod resolution;
 pub mod seen_value;

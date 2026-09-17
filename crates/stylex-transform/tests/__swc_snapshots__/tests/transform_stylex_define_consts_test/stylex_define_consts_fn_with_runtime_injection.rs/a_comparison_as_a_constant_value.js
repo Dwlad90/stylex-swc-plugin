@@ -14,6 +14,6 @@ _inject2({
     constVal: "false"
 });
 export const flags = {
-    on: "true",
-    off: "false"
+    on: true,
+    off: false
 };

@@ -4,8 +4,8 @@
 
 use crate::regex::{
   ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CSS_VALUE_SPLIT_REGEX, DESCENDANT_SELECTOR, IS_CSS_VAR,
-  JSON_REGEX, LENGTH_UNIT_TESTER_REGEX, PSEUDO_PART_REGEX, SIBLING_AFTER_SELECTOR,
-  SIBLING_BEFORE_SELECTOR, STYLEX_CONSTS_IMPORT_REGEX, URL_REGEX, VAR_EXTRACTION_REGEX,
+  LENGTH_UNIT_TESTER_REGEX, PSEUDO_PART_REGEX, SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
+  STYLEX_CONSTS_IMPORT_REGEX, URL_REGEX, VAR_EXTRACTION_REGEX,
 };
 
 /// Value-splitting parsers should detect adjacency patterns.
@@ -39,7 +39,6 @@ fn core_cleanup_patterns_match() {
 #[test]
 fn url_and_json_patterns_match() {
   assert!(URL_REGEX.is_match("https://example.com/path?q=1").unwrap());
-  assert!(JSON_REGEX.is_match("{ key: 1 }").unwrap());
 }
 
 /// Relational selector patterns should accept normalized `:where(...)` forms.

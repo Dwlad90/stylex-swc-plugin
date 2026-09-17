@@ -2211,6 +2211,9 @@ importers:
       '@stylexswc/regex':
         specifier: catalog:internal
         version: link:../stylex-regex
+      '@stylexswc/state':
+        specifier: catalog:internal
+        version: link:../stylex-state
       '@stylexswc/structures':
         specifier: catalog:internal
         version: link:../stylex-structures

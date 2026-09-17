@@ -355,6 +355,194 @@ fn hash_of(value: &FlatCompiledStylesValue) -> u64 {
   hasher.finish()
 }
 
+/// The JSON a value spells, one kind at a time.
+///
+/// A `defineConsts` constant crosses a type that cannot hold this one, so the
+/// kind travels as JSON. Every spelling below is what `JSON.stringify` writes
+/// for the same value.
+#[test]
+fn spells_the_json_of_each_kind() {
+  assert_eq!(string_value("8px").to_json_text(), "\"8px\"");
+  assert_eq!(FlatCompiledStylesValue::Number(800.0).to_json_text(), "800");
+  assert_eq!(FlatCompiledStylesValue::Number(1.5).to_json_text(), "1.5");
+  assert_eq!(FlatCompiledStylesValue::Bool(true).to_json_text(), "true");
+  assert_eq!(FlatCompiledStylesValue::Bool(false).to_json_text(), "false");
+  assert_eq!(FlatCompiledStylesValue::Null.to_json_text(), "null");
+  assert_eq!(
+    FlatCompiledStylesValue::Object(object_value()).to_json_text(),
+    "{\"color\":\"blue\"}"
+  );
+  assert_eq!(
+    FlatCompiledStylesValue::List(vec![Rc::new(string_value("x"))]).to_json_text(),
+    "[\"x\"]"
+  );
+}
+
+/// A whole number spells no fraction and the two zeroes spell the same `0`,
+/// which is how JavaScript writes them. A number JSON has no word for is
+/// spelled by name, so that a reader gets the number back rather than the
+/// `null` that `JSON.stringify` writes.
+#[test]
+fn spells_a_number_the_way_javascript_writes_it() {
+  assert_eq!(FlatCompiledStylesValue::Number(-0.0).to_json_text(), "0");
+  assert_eq!(FlatCompiledStylesValue::Number(-5.0).to_json_text(), "-5");
+  assert_eq!(
+    FlatCompiledStylesValue::Number(f64::NAN).to_json_text(),
+    "NaN"
+  );
+  assert_eq!(
+    FlatCompiledStylesValue::Number(f64::INFINITY).to_json_text(),
+    "Infinity"
+  );
+  assert_eq!(
+    FlatCompiledStylesValue::Number(f64::NEG_INFINITY).to_json_text(),
+    "-Infinity"
+  );
+  assert_eq!(
+    FlatCompiledStylesValue::Undefined.to_json_text(),
+    "undefined"
+  );
+  // Past the largest whole number a double holds exactly, the exponent form
+  // is the reading left, as it is in the language.
+  assert_eq!(
+    FlatCompiledStylesValue::Number(1e21).to_json_text(),
+    "1e+21"
+  );
+}
+
+/// The reading is the inverse of the spelling, so a value crosses and comes
+/// back as itself, including the four the spelling names rather than writes as
+/// JSON.
+#[test]
+fn reads_back_every_kind_it_spells() {
+  for value in [
+    string_value("8px"),
+    FlatCompiledStylesValue::Number(800.0),
+    FlatCompiledStylesValue::Number(1.5),
+    FlatCompiledStylesValue::Number(f64::INFINITY),
+    FlatCompiledStylesValue::Number(f64::NEG_INFINITY),
+    FlatCompiledStylesValue::Bool(true),
+    FlatCompiledStylesValue::Null,
+    FlatCompiledStylesValue::Undefined,
+    FlatCompiledStylesValue::Object(object_value()),
+    FlatCompiledStylesValue::List(vec![Rc::new(string_value("x"))]),
+  ] {
+    assert_eq!(
+      FlatCompiledStylesValue::from_json_text(&value.to_json_text()),
+      value
+    );
+  }
+
+  // `NaN` is never equal to itself, so it is read back and asked rather than
+  // compared.
+  assert_eq!(
+    FlatCompiledStylesValue::from_json_text(
+      &FlatCompiledStylesValue::Number(f64::NAN).to_json_text()
+    )
+    .as_number()
+    .map(f64::is_nan),
+    Some(true)
+  );
+}
+
+/// Two readings do not survive, and neither is observable. A negative zero
+/// comes back as a plain one, which is the same value and the same spelling in
+/// the language. A number JSON has no word for, held inside an object, comes
+/// back as `null` -- which is what `JSON.stringify` writes for it, and nothing
+/// reads such a value back as a number.
+#[test]
+fn names_the_two_readings_that_do_not_survive() {
+  assert_eq!(
+    FlatCompiledStylesValue::from_json_text(&FlatCompiledStylesValue::Number(-0.0).to_json_text()),
+    FlatCompiledStylesValue::Number(0.0)
+  );
+
+  let nested = FlatCompiledStylesValue::Object(
+    [(
+      "a".to_owned(),
+      Rc::new(FlatCompiledStylesValue::Number(f64::INFINITY)),
+    )]
+    .into_iter()
+    .collect(),
+  );
+
+  assert_eq!(
+    FlatCompiledStylesValue::from_json_text(&nested.to_json_text()),
+    FlatCompiledStylesValue::Object(
+      [("a".to_owned(), Rc::new(FlatCompiledStylesValue::Null))]
+        .into_iter()
+        .collect()
+    )
+  );
+}
+
+/// Text that is not JSON reads as that text, which keeps a constant the
+/// compiler cannot read from stopping a build over its spelling.
+#[test]
+fn reads_text_that_is_not_json_as_itself() {
+  assert_eq!(
+    FlatCompiledStylesValue::from_json_text("8px"),
+    string_value("8px")
+  );
+}
+
+/// The text JavaScript spells for each kind. Three readers ask it, and each
+/// of them writes text.
+#[test]
+fn spells_the_text_javascript_writes_for_each_kind() {
+  assert_eq!(string_value("8px").to_js_text(), "8px");
+  assert_eq!(FlatCompiledStylesValue::Number(0.5).to_js_text(), "0.5");
+  assert_eq!(FlatCompiledStylesValue::Number(1e21).to_js_text(), "1e+21");
+  assert_eq!(FlatCompiledStylesValue::Bool(true).to_js_text(), "true");
+  assert_eq!(FlatCompiledStylesValue::Bool(false).to_js_text(), "false");
+  assert_eq!(FlatCompiledStylesValue::Null.to_js_text(), "null");
+  assert_eq!(FlatCompiledStylesValue::Undefined.to_js_text(), "undefined");
+  assert_eq!(
+    FlatCompiledStylesValue::Object(object_value()).to_js_text(),
+    "[object Object]"
+  );
+}
+
+/// A list spells its elements with a comma between, and a slot holding
+/// nothing writes an empty run. A list of lists reads as one run, because
+/// each of them spells its own text the same way.
+#[test]
+fn spells_a_list_as_its_elements_with_commas() {
+  let list = FlatCompiledStylesValue::List(vec![
+    Rc::new(FlatCompiledStylesValue::Number(1.0)),
+    Rc::new(FlatCompiledStylesValue::Null),
+    Rc::new(FlatCompiledStylesValue::Undefined),
+    Rc::new(FlatCompiledStylesValue::List(vec![Rc::new(string_value(
+      "a",
+    ))])),
+  ]);
+
+  assert_eq!(list.to_js_text(), "1,,,a");
+  assert_eq!(FlatCompiledStylesValue::List(vec![]).to_js_text(), "");
+}
+
+/// A value kind that is no part of what an author writes spells no text.
+#[test]
+#[should_panic(expected = "Encountered a value kind that spells no text.")]
+fn refuses_to_spell_a_kind_that_has_no_text() {
+  FlatCompiledStylesValue::InjectableStyle(injectable()).to_js_text();
+}
+
+/// The same kind spells no JSON either.
+#[test]
+#[should_panic(expected = "Encountered a value kind that spells no JSON.")]
+fn refuses_to_spell_a_kind_that_has_no_json() {
+  FlatCompiledStylesValue::InjectableStyle(injectable()).to_json_text();
+}
+
+/// A number is its own kind, which is what the injected rule reads to decide
+/// whether to write a number or text.
+#[test]
+fn a_number_answers_itself_and_nothing_else_does() {
+  assert_eq!(FlatCompiledStylesValue::Number(0.5).as_number(), Some(0.5));
+  assert_eq!(count_answering(|value| value.as_number().is_some()), 1);
+}
+
 /// The three questions `styleq` asks of a namespace entry. A class name is the
 /// string, `null` marks a property the namespace clears, and `true` is the
 /// compiled marker -- so only the string variant names a class.

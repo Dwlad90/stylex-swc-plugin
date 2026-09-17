@@ -1,9 +1,6 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use stylex_ast::ast::convertors::{
-  create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
-};
 use stylex_ast::ast::factories::{
   create_key_value_prop, create_object_expression, create_string_key_value_prop,
 };
@@ -11,6 +8,8 @@ use stylex_constants::constants::common::{COMPILED_KEY, VAR_GROUP_HASH_KEY};
 use stylex_macros::stylex_unreachable;
 use stylex_structures::nested::SEPARATOR;
 use swc_core::ecma::ast::Expr;
+
+use crate::shared::utils::core::js_to_ast::compiled_value_to_ast;
 
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
@@ -114,23 +113,14 @@ fn object_under(
   }
 }
 
+/// The expression one unflattened value is written back as.
+///
+/// A leaf is written by the one writer every other compiled value goes
+/// through, so a nested constant and a flat one are spelled the same way.
 fn unflattened_value_to_ast(value: &UnflattenedCompiledStylesValue) -> Expr {
   match value {
     UnflattenedCompiledStylesValue::Object(map) => convert_unflattened_object_to_ast(map),
-    UnflattenedCompiledStylesValue::Leaf(value) => match value.as_ref() {
-      FlatCompiledStylesValue::String(value) => {
-        if let Ok(num) = value.parse::<f64>() {
-          create_number_expr(num)
-        } else {
-          create_string_expr(value)
-        }
-      },
-      FlatCompiledStylesValue::Null => create_null_expr(),
-      FlatCompiledStylesValue::Bool(value) => create_bool_expr(*value),
-      _ => {
-        stylex_unreachable!("Encountered an unsupported value type during nested AST conversion.")
-      },
-    },
+    UnflattenedCompiledStylesValue::Leaf(value) => compiled_value_to_ast(value),
   }
 }
 

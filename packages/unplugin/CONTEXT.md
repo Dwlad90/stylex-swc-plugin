@@ -34,8 +34,33 @@ _Avoid_: sentinel, temporary marker, internal token
 One stylesheet the rules can go into, as `{ name, read, write }`, whichever way
 the host stores it: a bundle asset, a webpack asset, or a file already on disk.
 It covers the three build paths; Vite's dev path replaces the marker in file
-contents with no target, and Farm never replaces it and warns.
+contents with no target, and Farm never replaces it and warns. A target that was
+written is handed back to the host afterwards, because its name outlives the
+write and has to be settled there.
 _Avoid_: sink, destination, output
+
+**Written target**:
+An injection target whose bytes the injection changed -- the one that received
+the rules, and every other one that had a stray marker taken out. Reported as a
+set, because a host that settles only the receiving one leaves a stale name on
+the rest.
+_Avoid_: touched target, dirty target, modified asset
+
+**Stylesheet rename**:
+Giving a written target a name that matches its new contents, because the rules
+arrive after the host has named and hashed it. Vite and Rollup re-emit the final
+source and let the host hash it; esbuild renames the file on disk with a hash of
+our own, its own being unreproducible; webpack and Rspack rename the asset
+themselves. Skipped where the name template carries no hash, and where Vite
+splits CSS per chunk.
+_Avoid_: rehash, cache busting, fingerprint
+
+**Reference asset**:
+A bundle entry that names stylesheets rather than being one: a document, or a
+Vite build manifest. Both are emitted under names the host never hashes, so a
+stylesheet rename is written into them in place. A reference outside the bundle,
+such as a service-worker precache list, is out of reach and documented.
+_Avoid_: consumer, referrer, index
 
 **Injection asset**:
 The CSS asset the extracted styles are appended to, picked by preference:

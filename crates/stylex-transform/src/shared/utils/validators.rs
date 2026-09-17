@@ -27,9 +27,9 @@ use stylex_constants::constants::{
     DUPLICATE_CONDITIONAL, EXPECTED_CSS_VAR, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
     INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
     NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
-    ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED, illegal_argument_length,
-    non_export_named_declaration, non_static_value, non_style_object, type_asserted_call_value,
-    unbound_call_value,
+    ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED, export_variable_not_found,
+    illegal_argument_length, non_export_named_declaration, non_static_value, non_style_object,
+    type_asserted_call_value, unbound_call_value,
   },
 };
 use stylex_css::utils::condition::is_conditional_key;
@@ -197,6 +197,25 @@ fn or_refuse_missing_argument<'a>(
   match read {
     Some(read) => read,
     None => stylex_panic!("{}", illegal_argument_length(fn_name, index + 1)),
+  }
+}
+
+/// The name a producer's result is bound to, or the refusal a result bound to
+/// no name is reported with.
+///
+/// The exclusion covers this step and nothing else, and the step computes
+/// nothing -- it chooses between answers the caller has already worked out. A
+/// top-level expression carries no name only where it is a default export, and
+/// every caller validated that the result is bound to a named export before
+/// asking. `guidelines/stack/RUST.md` describes the allowance.
+///
+/// The name is the interned one the binding carries, and it is passed on as it
+/// is: every reader of it takes text or another interned name.
+#[cfg_attr(coverage_nightly, coverage(off))]
+pub(crate) fn or_refuse_missing_export_name(var_id: Option<Atom>, fn_name: &str) -> Atom {
+  match var_id {
+    Some(name) => name,
+    None => stylex_panic!("{}", export_variable_not_found(fn_name)),
   }
 }
 

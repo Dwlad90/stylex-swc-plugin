@@ -1,8 +1,7 @@
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
 use stylex_constants::constants::{
-  api_names::STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED,
-  messages::{cannot_generate_hash, export_variable_not_found},
+  api_names::STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED, messages::cannot_generate_hash,
 };
 use stylex_macros::stylex_panic;
 use stylex_utils::identifier::gen_file_based_identifier;
@@ -17,7 +16,9 @@ use crate::{
     transformers::stylex_define_consts_nested::stylex_define_consts_nested,
     utils::{
       core::stylex_nested_utils::convert_unflattened_object_to_ast,
-      validators::{argument_at, folded_style_object, validate_define_call},
+      validators::{
+        argument_at, folded_style_object, or_refuse_missing_export_name, validate_define_call,
+      },
     },
   },
   transform::stylex::visitor_utils::{build_env_only_eval_config, is_call_to},
@@ -73,13 +74,7 @@ where
       ),
     };
 
-    let export_name = match var_id.map(|decl| decl.to_string()) {
-      Some(name) => name,
-      None => stylex_panic!(
-        "{}",
-        export_variable_not_found(STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED)
-      ),
-    };
+    let export_name = or_refuse_missing_export_name(var_id, STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED);
 
     self.state.export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));
 

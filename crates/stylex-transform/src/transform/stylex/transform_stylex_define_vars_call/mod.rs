@@ -3,10 +3,7 @@ mod helpers;
 use std::rc::Rc;
 
 use rustc_hash::FxHashMap;
-use stylex_constants::constants::{
-  api_names::STYLEX_DEFINE_VARS,
-  messages::{cannot_generate_hash, export_variable_not_found},
-};
+use stylex_constants::constants::{api_names::STYLEX_DEFINE_VARS, messages::cannot_generate_hash};
 use stylex_macros::stylex_panic;
 use stylex_utils::identifier::gen_file_based_identifier;
 use swc_core::{
@@ -22,7 +19,7 @@ use crate::{
       core::js_to_ast::convert_values_to_ast,
       validators::{
         argument_at, find_and_validate_stylex_define_vars, folded_style_object_lit,
-        is_define_vars_call,
+        is_define_vars_call, or_refuse_missing_export_name,
       },
     },
   },
@@ -71,10 +68,7 @@ where
         None => stylex_panic!("{}", cannot_generate_hash(STYLEX_DEFINE_VARS)),
       };
 
-      let export_name = match var_id.map(|decl| decl.to_string()) {
-        Some(name) => name,
-        None => stylex_panic!("{}", export_variable_not_found(STYLEX_DEFINE_VARS)),
-      };
+      let export_name = or_refuse_missing_export_name(var_id, STYLEX_DEFINE_VARS);
 
       self.state.export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));
 
@@ -92,7 +86,7 @@ where
         Rc::new(move || shared_theme_ref.clone());
 
       function_map.identifiers.insert(
-        export_name.as_str().into(),
+        export_name.clone(),
         Box::new(FunctionConfigType::Regular(FunctionConfig {
           fn_ptr: FunctionType::ThemeRefMapper(theme_ref_factory),
           takes_path: false,

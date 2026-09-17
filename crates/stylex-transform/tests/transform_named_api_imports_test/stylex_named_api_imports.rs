@@ -172,21 +172,29 @@ fn a_named_import_that_is_no_api_binds_nothing() {
   );
 }
 
-// A name bound twice — once to an API and once to the namespace — is not
-// JavaScript a bundler accepts, but it is JavaScript the parser reads, so the
-// compiler has to answer something for it.
+// A name bound twice, once to an API and once to the namespace.
 //
-// The name is registered for the API first, so it carries that one function
-// rather than the namespace's fold of many. The namespace registration that
-// follows has no fold to write `when` into and leaves the API in place, which
-// is what the fold read of such a name has always meant. The module still
-// compiles: `create` is dispatched from the call, not from the fold.
+// This is not a module any bundler builds: the language forbids one name in two
+// declarations, and `@babel/parser` stops on it, so the reference implementation
+// never reads the source and there is nothing to compare with. The SWC parser
+// reads it, so this compiler has to answer something.
+//
+// The name is registered for the API first, and it carries that one function
+// rather than the namespace's fold of many. The registration that follows has
+// no fold to write into and leaves the API where it is.
+//
+// The call inside the style is what shows which registration won. It folds to a
+// keyframes name, so the `@keyframes` rule is injected and `animationName`
+// carries the class that reads it. Had the namespace overwritten the API, the
+// same call would fold to nothing.
 stylex_test!(
   a_name_bound_to_an_api_and_to_the_namespace_keeps_the_api,
   |tr| build_test_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
   r#"
     import { keyframes as stylex } from '@stylexjs/stylex';
     import * as stylex from '@stylexjs/stylex';
-    export const styles = stylex.create({ root: { color: 'red' } });
+    export const styles = stylex.create({
+      root: { animationName: stylex({ from: { opacity: 0 }, to: { opacity: 1 } }) },
+    });
   "#
 );

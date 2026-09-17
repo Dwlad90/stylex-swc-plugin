@@ -3,10 +3,13 @@
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
 use stylex_state::state_manager::StateManager;
 use stylex_structures::top_level_expression::TopLevelExpression;
-use swc_core::ecma::ast::{ModuleDecl, ModuleItem};
+use swc_core::ecma::{
+  ast::{ModuleDecl, ModuleItem},
+  atoms::Atom,
+};
 
 use crate::shared::utils::ast::helpers::{
-  expr_contains_arrow, get_property_by_key, is_variable_named_exported,
+  expr_contains_arrow, get_property_by_key, named_export_name,
 };
 use crate::tests::support::{expr, module};
 
@@ -28,47 +31,49 @@ fn statement_named(name: &str) -> TopLevelExpression {
 }
 
 /// An expression the compiler already read as a named export needs no export
-/// statement to confirm it.
+/// statement to confirm it, and it answers the name it is written with.
 #[test]
-fn a_named_export_is_exported_by_its_own_kind() {
-  let expression = TopLevelExpression(TopLevelExpressionKind::NamedExport, expr("1"), None);
+fn a_named_export_answers_its_own_name() {
+  let expression = TopLevelExpression(
+    TopLevelExpressionKind::NamedExport,
+    expr("1"),
+    Some("styles".into()),
+  );
 
-  assert!(is_variable_named_exported(
-    &expression,
-    &StateManager::default()
-  ));
+  assert_eq!(
+    named_export_name(&expression, &StateManager::default()).map(Atom::as_str),
+    Some("styles")
+  );
 }
 
 /// Anything else is looked up by the name it is bound to. An expression bound
-/// to nothing has no name to look up, so it is not exported.
+/// to nothing has no name to look up, which is the one shape a default export
+/// takes.
 #[test]
-fn an_unnamed_statement_is_not_exported() {
+fn an_unnamed_statement_answers_no_name() {
   let expression = TopLevelExpression(TopLevelExpressionKind::Stmt, expr("1"), None);
 
-  assert!(!is_variable_named_exported(
-    &expression,
-    &StateManager::default()
-  ));
+  assert_eq!(
+    named_export_name(&expression, &StateManager::default()),
+    None
+  );
 }
 
 #[test]
-fn a_statement_is_exported_when_a_statement_exports_its_name() {
+fn a_statement_answers_the_name_a_statement_exports() {
   let state = state_exporting("const styles = 1; export { styles };");
 
-  assert!(is_variable_named_exported(
-    &statement_named("styles"),
-    &state
-  ));
+  assert_eq!(
+    named_export_name(&statement_named("styles"), &state).map(Atom::as_str),
+    Some("styles")
+  );
 }
 
 #[test]
-fn a_statement_no_export_names_is_not_exported() {
+fn a_statement_no_export_names_answers_no_name() {
   let state = state_exporting("const styles = 1; export { other };");
 
-  assert!(!is_variable_named_exported(
-    &statement_named("styles"),
-    &state
-  ));
+  assert_eq!(named_export_name(&statement_named("styles"), &state), None);
 }
 
 /// An export under another name is a different export, and so is one that
@@ -78,14 +83,14 @@ fn a_renamed_or_re_exported_name_is_not_this_export() {
   let renamed = state_exporting("const styles = 1; export { styles as theme };");
   let re_exported = state_exporting("export { styles } from './other';");
 
-  assert!(!is_variable_named_exported(
-    &statement_named("styles"),
-    &renamed
-  ));
-  assert!(!is_variable_named_exported(
-    &statement_named("styles"),
-    &re_exported
-  ));
+  assert_eq!(
+    named_export_name(&statement_named("styles"), &renamed),
+    None
+  );
+  assert_eq!(
+    named_export_name(&statement_named("styles"), &re_exported),
+    None
+  );
 }
 
 /// A star export names nothing, so it decides nothing about this expression.
@@ -93,10 +98,7 @@ fn a_renamed_or_re_exported_name_is_not_this_export() {
 fn a_star_export_names_no_variable() {
   let state = state_exporting("export * as everything from './other';");
 
-  assert!(!is_variable_named_exported(
-    &statement_named("styles"),
-    &state
-  ));
+  assert_eq!(named_export_name(&statement_named("styles"), &state), None);
 }
 
 #[test]

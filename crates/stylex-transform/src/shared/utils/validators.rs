@@ -1,6 +1,5 @@
 use rustc_hash::FxHashSet;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
-use stylex_structures::top_level_expression::TopLevelExpression;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{
@@ -10,7 +9,7 @@ use swc_core::{
 };
 
 use crate::shared::enums::data_structures::theme_vars::ThemeVars;
-use crate::shared::utils::ast::helpers::is_variable_named_exported;
+use crate::shared::utils::ast::helpers::named_export_name;
 use stylex_ast::ast::convertors::{
   convert_key_value_to_str, convert_lit_to_string, get_key_values_from_object, init_call,
   key_value_name, normalize_expr,
@@ -27,9 +26,9 @@ use stylex_constants::constants::{
     DUPLICATE_CONDITIONAL, EXPECTED_CSS_VAR, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
     INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
     NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
-    ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED, export_variable_not_found,
-    illegal_argument_length, non_export_named_declaration, non_static_value, non_style_object,
-    type_asserted_call_value, unbound_call_value,
+    ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED, illegal_argument_length,
+    non_export_named_declaration, non_static_value, non_style_object, type_asserted_call_value,
+    unbound_call_value,
   },
 };
 use stylex_css::utils::condition::is_conditional_key;
@@ -197,25 +196,6 @@ fn or_refuse_missing_argument<'a>(
   match read {
     Some(read) => read,
     None => stylex_panic!("{}", illegal_argument_length(fn_name, index + 1)),
-  }
-}
-
-/// The name a producer's result is bound to, or the refusal a result bound to
-/// no name is reported with.
-///
-/// The exclusion covers this step and nothing else, and the step computes
-/// nothing -- it chooses between answers the caller has already worked out. A
-/// top-level expression carries no name only where it is a default export, and
-/// every caller validated that the result is bound to a named export before
-/// asking. `guidelines/stack/RUST.md` describes the allowance.
-///
-/// The name is the interned one the binding carries, and it is passed on as it
-/// is: every reader of it takes text or another interned name.
-#[cfg_attr(coverage_nightly, coverage(off))]
-pub(crate) fn or_refuse_missing_export_name(var_id: Option<Atom>, fn_name: &str) -> Atom {
-  match var_id {
-    Some(name) => name,
-    None => stylex_panic!("{}", export_variable_not_found(fn_name)),
   }
 }
 
@@ -485,13 +465,13 @@ pub(crate) fn validate_stylex_create_theme_indent(
 }
 
 /// Refuses a `stylex.defineVars` call the compiler cannot read, and answers the
-/// top-level expression it is bound to.
+/// name it is exported under.
 ///
 /// Asked for by a caller that already knows the call is one.
 pub(crate) fn find_and_validate_stylex_define_vars(
   call: &CallExpr,
   state: &mut StateManager,
-) -> TopLevelExpression {
+) -> Atom {
   // Cloned only where it is about to be reported, as `validate_stylex_create`
   // does: the clone is a deep copy of the whole variable group, and a call that
   // compiles reports nothing.
@@ -526,15 +506,9 @@ pub(crate) fn find_and_validate_stylex_define_vars(
     );
   }
 
-  if !is_variable_named_exported(stylex_create_theme_top_level_expr, state) {
-    build_code_frame_error_and_panic_at(
-      &call_expr(),
-      &non_export_named_declaration(STYLEX_DEFINE_VARS),
-      state,
-    );
-  }
+  let export_name = named_export_name(stylex_create_theme_top_level_expr, state).cloned();
 
-  stylex_create_theme_top_level_expr.clone()
+  or_refuse_unexported(export_name, &call_expr, STYLEX_DEFINE_VARS, state)
 }
 
 /// Refuses a `stylex.defineMarker` call the compiler cannot read.
@@ -587,7 +561,7 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
     },
   };
 
-  if !is_variable_named_exported(define_marker_top_level_expr, state) {
+  if named_export_name(define_marker_top_level_expr, state).is_none() {
     build_code_frame_error_and_panic_at(
       &fault_expr(),
       &non_export_named_declaration(STYLEX_DEFINE_MARKER),
@@ -597,13 +571,13 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
 }
 
 /// Refuses a `stylex.defineConsts` call the compiler cannot read, and answers
-/// the top-level expression it is bound to.
+/// the name it is exported under.
 ///
 /// Asked for by a caller that already knows the call is one.
 pub(crate) fn find_and_validate_stylex_define_consts(
   call: &CallExpr,
   state: &mut StateManager,
-) -> TopLevelExpression {
+) -> Atom {
   // Cloned only where it is about to be reported, as `validate_stylex_create`
   // does: the clone is a deep copy of the whole variable group, and a call that
   // compiles reports nothing.
@@ -638,15 +612,9 @@ pub(crate) fn find_and_validate_stylex_define_consts(
     );
   }
 
-  if !is_variable_named_exported(define_consts_top_level_expr, state) {
-    build_code_frame_error_and_panic_at(
-      &call_expr(),
-      &non_export_named_declaration(STYLEX_DEFINE_CONSTS),
-      state,
-    );
-  }
+  let export_name = named_export_name(define_consts_top_level_expr, state).cloned();
 
-  define_consts_top_level_expr.clone()
+  or_refuse_unexported(export_name, &call_expr, STYLEX_DEFINE_CONSTS, state)
 }
 
 stylex_call_predicate!(is_create_call, STYLEX_CREATE, ImportKind::Create);
@@ -725,25 +693,78 @@ pub(crate) fn validate_define_call(
   call: &CallExpr,
   api_name: &str,
   arg_count: usize,
-  require_export: bool,
   state: &mut StateManager,
-) -> TopLevelExpression {
+) {
   // Cloned only where it is about to be reported: the clone is a deep copy of
   // the whole call, and a call that compiles reports nothing.
   let call_expr = || Expr::Call(call.clone());
 
-  let top_level_expr = state.find_top_level_expr(call).cloned().unwrap_or_else(|| {
-    build_code_frame_error_and_panic_at(&call_expr(), &unbound_call_value(api_name), state)
-  });
-
-  if require_export && !is_variable_named_exported(&top_level_expr, state) {
-    build_code_frame_error_and_panic_at(
-      &call_expr(),
-      &non_export_named_declaration(api_name),
-      state,
-    );
+  // Asked whether the call is bound to anything, and nothing more, so the
+  // expression it is bound to stays in the state rather than being copied out.
+  if state.find_top_level_expr(call).is_none() {
+    refuse_unbound_call(api_name, &call_expr, state);
   }
 
+  reject_unless_argument_count(call, api_name, arg_count, &call_expr, state);
+}
+
+/// The same, for a define call whose result must be exported under a name, and
+/// that name.
+///
+/// The name comes from the export check itself. A caller that asked for it
+/// separately had to answer for a name that is not there, which the check has
+/// already ruled out.
+pub(crate) fn validate_exported_define_call(
+  call: &CallExpr,
+  api_name: &str,
+  arg_count: usize,
+  state: &mut StateManager,
+) -> Atom {
+  let call_expr = || Expr::Call(call.clone());
+
+  let export_name = bound_export_name(call, api_name, &call_expr, state);
+  let export_name = or_refuse_unexported(export_name, &call_expr, api_name, state);
+
+  reject_unless_argument_count(call, api_name, arg_count, &call_expr, state);
+
+  export_name
+}
+
+/// The name the result of a call is exported under, with a call bound to
+/// nothing refused first.
+///
+/// The name is read through the expression the state holds and copied out on
+/// its own. Copying the expression to read it copied the whole variable group
+/// the author wrote, for a name that is one interned word.
+fn bound_export_name(
+  call: &CallExpr,
+  api_name: &str,
+  call_expr: &impl Fn() -> Expr,
+  state: &mut StateManager,
+) -> Option<Atom> {
+  match state.find_top_level_expr(call) {
+    Some(top_level_expr) => named_export_name(top_level_expr, state).cloned(),
+    None => refuse_unbound_call(api_name, call_expr, state),
+  }
+}
+
+/// The refusal a call bound to nothing is reported with.
+fn refuse_unbound_call(
+  api_name: &str,
+  call_expr: &impl Fn() -> Expr,
+  state: &mut StateManager,
+) -> ! {
+  build_code_frame_error_and_panic_at(&call_expr(), &unbound_call_value(api_name), state)
+}
+
+/// Refuses a call written with a number of arguments the API does not take.
+fn reject_unless_argument_count(
+  call: &CallExpr,
+  api_name: &str,
+  arg_count: usize,
+  call_expr: &impl Fn() -> Expr,
+  state: &mut StateManager,
+) {
   if call.args.len() != arg_count {
     build_code_frame_error_and_panic_at(
       &call_expr(),
@@ -751,8 +772,27 @@ pub(crate) fn validate_define_call(
       state,
     );
   }
+}
 
-  top_level_expr
+/// `export_name`, or the refusal a result that is exported under no name is
+/// reported with.
+///
+/// The call is lent as the closure that builds it, so the deep copy of it the
+/// report quotes is made only where there is a report to make.
+fn or_refuse_unexported(
+  export_name: Option<Atom>,
+  call_expr: &impl Fn() -> Expr,
+  api_name: &str,
+  state: &mut StateManager,
+) -> Atom {
+  match export_name {
+    Some(export_name) => export_name,
+    None => build_code_frame_error_and_panic_at(
+      &call_expr(),
+      &non_export_named_declaration(api_name),
+      state,
+    ),
+  }
 }
 
 /// Whether a literal is one a style value is allowed to be.

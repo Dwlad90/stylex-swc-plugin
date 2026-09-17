@@ -19,7 +19,7 @@ use crate::{
       core::js_to_ast::convert_values_to_ast,
       validators::{
         argument_at, find_and_validate_stylex_define_vars, folded_style_object_lit,
-        is_define_vars_call, or_refuse_missing_export_name,
+        is_define_vars_call,
       },
     },
   },
@@ -31,7 +31,6 @@ use stylex_state::{
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
   theme_ref::ThemeRef,
 };
-use stylex_structures::top_level_expression::TopLevelExpression;
 
 use self::helpers::{
   VariableGroup, assert_no_define_vars_cycles, collect_dependencies,
@@ -46,10 +45,7 @@ where
     let is_define_vars = is_define_vars_call(call, &self.state);
 
     if is_define_vars {
-      let stylex_create_theme_top_level_expr =
-        find_and_validate_stylex_define_vars(call, &mut self.state);
-
-      let TopLevelExpression(_, _, var_id) = stylex_create_theme_top_level_expr;
+      let export_name = find_and_validate_stylex_define_vars(call, &mut self.state);
 
       let first_arg = argument_at(call, 0, STYLEX_DEFINE_VARS);
 
@@ -67,8 +63,6 @@ where
         Some(name) => name,
         None => stylex_panic!("{}", cannot_generate_hash(STYLEX_DEFINE_VARS)),
       };
-
-      let export_name = or_refuse_missing_export_name(var_id, STYLEX_DEFINE_VARS);
 
       self.state.export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));
 

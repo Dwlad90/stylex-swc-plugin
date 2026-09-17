@@ -57,7 +57,6 @@ where
       call,
       STYLEX_UNSTABLE_CREATE_THEME_NESTED,
       2,
-      false,
       &mut self.state,
     );
 

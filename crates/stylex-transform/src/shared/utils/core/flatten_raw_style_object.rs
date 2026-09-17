@@ -114,9 +114,11 @@ fn report_unmatched_key(error: impl std::fmt::Display) -> bool {
   false
 }
 
-/// Names a key by what its brackets wrap: the key without its first four
-/// units and its last one. The cut is a fixed one rather than the span the
-/// expression matched, because the expression is asked of the whole key.
+/// Names a key by what its brackets wrap: the key without its first four units
+/// and its last one, which is what `var(` and `)` spell. The cut is a fixed one
+/// rather than the span the expression matched, because the expression is asked
+/// of the whole key -- so a key that carries the reference in its middle is
+/// named by the text around it.
 ///
 /// A unit is what JavaScript counts, so the name agrees with the reference
 /// implementation for every key both can spell. Counting bytes instead stopped
@@ -164,6 +166,10 @@ pub(crate) fn flatten_raw_style_object_logic(
     //
     // The expression is tested against the whole key, so a reference written
     // inside a longer key is named by the text around it.
+    //
+    // The shorthand expansion in `flat_map_expanded_shorthands.rs` asks a
+    // second, wider question of the same key, and a key this one passes over is
+    // named there. The two are not one question written twice.
     //
     // Borrowed rather than copied. The conditions of one property are each
     // named after it, and every name was a string of its own.

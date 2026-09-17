@@ -91,6 +91,15 @@ pub(crate) fn flat_map_expanded_shorthands(
     PreRuleValue::Null => None,
   };
 
+  // A key that is one variable reference and nothing else names the custom
+  // property it declares. This is the wider of the two questions the compiler
+  // asks about such a key: it takes any name, where the one in
+  // `flatten_raw_style_object.rs` takes only a narrow class. Both are kept,
+  // because the reference implementation asks both, and a key the narrow one
+  // passes over reaches its property here.
+  //
+  // The slice is safe to count in bytes: both ends are proven ASCII by the two
+  // checks beside it.
   let key = if key.starts_with("var(") && key.ends_with(')') {
     Cow::Owned(key[4..key.len() - 1].to_string())
   } else {

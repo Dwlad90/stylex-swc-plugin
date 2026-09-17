@@ -18,14 +18,13 @@ use crate::{
       core::js_to_ast::convert_values_to_ast,
       validators::{
         argument_at, find_and_validate_stylex_define_consts, folded_style_object,
-        is_define_consts_call, or_refuse_missing_export_name,
+        is_define_consts_call,
       },
     },
   },
   transform::stylex::visitor_utils::build_env_only_eval_config,
 };
 use stylex_evaluator::evaluate::evaluate_with_functions;
-use stylex_structures::top_level_expression::TopLevelExpression;
 
 impl<C> StyleXTransform<C>
 where
@@ -35,10 +34,7 @@ where
     let is_define_consts = is_define_consts_call(call, &self.state);
 
     if is_define_consts {
-      let top_level_expr_defined_consts =
-        find_and_validate_stylex_define_consts(call, &mut self.state);
-
-      let TopLevelExpression(_, _, var_id) = top_level_expr_defined_consts;
+      let export_name = find_and_validate_stylex_define_consts(call, &mut self.state);
 
       let first_arg = argument_at(call, 0, STYLEX_DEFINE_CONSTS);
 
@@ -61,8 +57,6 @@ where
         Some(name) => name,
         None => stylex_panic!("{}", cannot_generate_hash(STYLEX_DEFINE_CONSTS)),
       };
-
-      let export_name = or_refuse_missing_export_name(var_id, STYLEX_DEFINE_CONSTS);
 
       let export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));
 

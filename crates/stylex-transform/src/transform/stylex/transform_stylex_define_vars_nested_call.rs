@@ -16,16 +16,13 @@ use crate::{
     transformers::stylex_define_vars_nested::stylex_define_vars_nested,
     utils::{
       core::stylex_nested_utils::convert_unflattened_object_to_ast,
-      validators::{
-        argument_at, folded_style_object, or_refuse_missing_export_name, validate_define_call,
-      },
+      validators::{argument_at, folded_style_object, validate_exported_define_call},
     },
   },
   transform::stylex::visitor_utils::{build_eval_config, is_call_to},
 };
 use stylex_evaluator::evaluate::evaluate_with_functions;
 use stylex_state::state_manager::ImportKind;
-use stylex_structures::top_level_expression::TopLevelExpression;
 
 impl<C> StyleXTransform<C>
 where
@@ -41,14 +38,8 @@ where
       return None;
     }
 
-    let top_level_expr = validate_define_call(
-      call,
-      STYLEX_UNSTABLE_DEFINE_VARS_NESTED,
-      1,
-      true,
-      &mut self.state,
-    );
-    let TopLevelExpression(_, _, var_id) = top_level_expr;
+    let export_name =
+      validate_exported_define_call(call, STYLEX_UNSTABLE_DEFINE_VARS_NESTED, 1, &mut self.state);
 
     let first_arg = argument_at(call, 0, STYLEX_UNSTABLE_DEFINE_VARS_NESTED);
 
@@ -73,8 +64,6 @@ where
         cannot_generate_hash(STYLEX_UNSTABLE_DEFINE_VARS_NESTED)
       ),
     };
-
-    let export_name = or_refuse_missing_export_name(var_id, STYLEX_UNSTABLE_DEFINE_VARS_NESTED);
 
     self.state.export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));
 

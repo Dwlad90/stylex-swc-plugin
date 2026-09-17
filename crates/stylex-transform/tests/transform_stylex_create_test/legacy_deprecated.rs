@@ -270,3 +270,29 @@ stylex_test!(
     });
   "#
 );
+
+// A dynamic shorthand whose expansion both unsets properties and carries the
+// declaration deeper than the property it names.
+//
+// `marginInline` expands to the two logical sides and unsets `marginLeft` and
+// `marginRight`, so the expansion answers declarations with no value beside the
+// ones that have one. Writing the value as a condition puts a step under the
+// property, so the path each expanded declaration claims is rewritten rather
+// than replaced.
+stylex_test!(
+  legacy_expanded_dynamic_shorthand_under_a_condition,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_style_resolution(StyleResolution::LegacyExpandShorthands)
+  }),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      inline: (space) => ({
+        marginInline: {
+          default: space,
+          ':hover': space,
+        },
+      }),
+    });
+  "#
+);

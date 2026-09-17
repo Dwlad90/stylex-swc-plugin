@@ -13,37 +13,40 @@ pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec
   let expanded_keys_to_key_paths: Vec<DynamicStyle> = dynamic_styles
     .iter()
     .enumerate()
-    .flat_map(|(i, dynamic_style)| {
+    .flat_map(|(index, dynamic_style)| {
       let obj_entry = (
         Cow::Borrowed(dynamic_style.key.as_str()),
-        PreRuleValue::string(create_shorthand_key(i)),
+        PreRuleValue::string(create_shorthand_key(index)),
       );
 
+      // The style each expanded declaration came from is carried beside it.
+      // The marker above says which style an expansion is of, and this loop
+      // already knows, so the marker is written for the expansion to read and
+      // never read back.
       flat_map_expanded_shorthands(obj_entry, &options)
+        .into_iter()
+        .map(move |pair| (dynamic_style, pair))
     })
-    .filter_map(|OrderPair(key, value)| {
-      let value = value?;
-
-      let index = value.as_css_text()[1..].parse::<usize>().ok()?;
-      let that_dyn_style = dynamic_styles.get(index)?;
+    .filter_map(|(that_dyn_style, OrderPair(key, value))| {
+      // An expansion nulls out the properties the shorthand replaces --
+      // `marginInline` unsets `marginLeft` and `marginRight` -- and a
+      // declaration with no value declares nothing for a dynamic style to
+      // claim.
+      value?;
 
       let key = key.into_owned();
       Some(DynamicStyle {
         key: key.clone(),
+        // A key is a prefix of its path, so a path longer than its key always
+        // continues with a `_`. `dynamic_styles_of_namespace` states the rule
+        // and `a_key_is_a_prefix_of_its_path_that_ends_at_a_property` measures
+        // it.
         path: if that_dyn_style.path == that_dyn_style.key {
           key
-        } else if that_dyn_style
-          .path
-          .contains(&(that_dyn_style.key.clone() + "_"))
-        {
+        } else {
           that_dyn_style
             .path
             .replace(&(that_dyn_style.key.clone() + "_"), &(key + "_"))
-        } else {
-          that_dyn_style.path.replace(
-            &("_".to_string() + that_dyn_style.key.as_str()),
-            &("_".to_string() + key.as_str()),
-          )
         },
         ..that_dyn_style.clone()
       })
@@ -124,19 +127,20 @@ pub(super) fn has_explicit_nullish_fallback(expr: &Expr) -> bool {
   }
 }
 
+/// The nullish fallback of the first variable `rule` names that has one.
+///
+/// A search rather than a walk with two guards in it: the capture group the
+/// pattern names is not optional, and a variable the map does not hold is the
+/// next one to look at rather than a case of its own.
 pub(super) fn extract_expr_from_rule(
   rule: &str,
   nullish_var_expressions: &FxHashMap<String, Expr>,
 ) -> Option<Expr> {
-  for cap in VAR_EXTRACTION_REGEX.captures_iter(rule).flatten() {
-    if let Some(var_match) = cap.get(1) {
-      let var_name = var_match.as_str();
-      if let Some(expr) = nullish_var_expressions.get(var_name) {
-        return Some(expr.clone());
-      }
-    }
-  }
-  None
+  VAR_EXTRACTION_REGEX
+    .captures_iter(rule)
+    .flatten()
+    .filter_map(|cap| cap.get(1))
+    .find_map(|var_match| nullish_var_expressions.get(var_match.as_str()).cloned())
 }
 
 /// Hoist an expression to the module level as a `const` declaration.

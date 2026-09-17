@@ -1,4 +1,5 @@
 use rustc_hash::FxHashMap;
+use std::rc::Rc;
 use stylex_constants::constants::{
   api_names::STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED,
   messages::{cannot_generate_hash, export_variable_not_found},
@@ -21,7 +22,7 @@ use crate::{
   },
   transform::stylex::visitor_utils::{build_env_only_eval_config, is_call_to},
 };
-use stylex_evaluator::evaluate::evaluate;
+use stylex_evaluator::evaluate::evaluate_with_functions;
 use stylex_state::state_manager::ImportKind;
 use stylex_structures::top_level_expression::TopLevelExpression;
 
@@ -50,8 +51,8 @@ where
 
     let first_arg = argument_at(call, 0, STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED);
 
-    let function_map = build_env_only_eval_config(&mut self.state);
-    let evaluated_arg = evaluate(first_arg, &mut self.state, &function_map);
+    let function_map = Rc::new(build_env_only_eval_config(&mut self.state));
+    let evaluated_arg = evaluate_with_functions(first_arg, &mut self.state, function_map);
 
     let value = folded_style_object(
       evaluated_arg,

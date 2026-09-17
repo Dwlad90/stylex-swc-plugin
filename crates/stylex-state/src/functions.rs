@@ -185,3 +185,45 @@ pub struct FunctionMap {
   /// import handling.
   pub disable_imports: bool,
 }
+
+/// Which StyleX helpers a nested-rule call folds inside its argument, and the
+/// key the map that registers them is kept under.
+///
+/// `keyframes` and `positionTry` fold `firstThatWorks` alone: a `keyframes`
+/// call written inside either of them must refuse, so its name stays
+/// unregistered there. `viewTransitionClass` folds `keyframes` too, because one
+/// of its steps may name a keyframes rule.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NestedRuleHelpers {
+  FirstThatWorks,
+  FirstThatWorksAndKeyframes,
+}
+
+/// The function maps the nested-rule calls evaluate their argument with, one
+/// per set of helpers.
+///
+/// Two fields rather than a map: there are two sets, and each is named by the
+/// variant that answers it.
+#[derive(Clone, Debug, Default)]
+pub struct NestedRuleFunctionMaps {
+  first_that_works: Option<Rc<FunctionMap>>,
+  with_keyframes: Option<Rc<FunctionMap>>,
+}
+
+impl NestedRuleFunctionMaps {
+  /// The map already built for `helpers`, where one is.
+  pub fn get(&self, helpers: NestedRuleHelpers) -> Option<&Rc<FunctionMap>> {
+    match helpers {
+      NestedRuleHelpers::FirstThatWorks => self.first_that_works.as_ref(),
+      NestedRuleHelpers::FirstThatWorksAndKeyframes => self.with_keyframes.as_ref(),
+    }
+  }
+
+  /// Keeps `map` as the answer for `helpers`.
+  pub fn insert(&mut self, helpers: NestedRuleHelpers, map: Rc<FunctionMap>) {
+    match helpers {
+      NestedRuleHelpers::FirstThatWorks => self.first_that_works = Some(map),
+      NestedRuleHelpers::FirstThatWorksAndKeyframes => self.with_keyframes = Some(map),
+    }
+  }
+}

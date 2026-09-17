@@ -25,7 +25,7 @@ use stylex_structures::{
   order_pair::OrderPair,
   pair::{Pair, PairCow},
   raw_value::TRawValue,
-  stylex_state_options::StyleXStateOptions,
+  stylex_state_options::with_default_options,
 };
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
@@ -70,15 +70,14 @@ pub(crate) fn stylex_keyframes(
   let options = &state.options;
   let class_name_prefix = &options.class_name_prefix;
 
-  // The name is hashed from what the default options resolve, so that it holds
-  // whatever options the module is compiled with. Built once here rather than
-  // once per declaration.
-  let stable_options = StyleXStateOptions::default();
-
   let ltr_string = construct_keyframes_obj(&expanded_steps, |pair| generate_ltr(pair, options));
 
-  let stable_string =
-    construct_keyframes_obj(&expanded_steps, |pair| generate_ltr(pair, &stable_options));
+  // The name is hashed from what the default options resolve, so that it holds
+  // whatever options the module is compiled with. The defaults are shared, so
+  // nothing is built here.
+  let stable_string = with_default_options(|stable_options| {
+    construct_keyframes_obj(&expanded_steps, |pair| generate_ltr(pair, stable_options))
+  });
 
   // A declaration with no right-to-left form keeps the one it was written with.
   let rtl_string = construct_keyframes_obj(&expanded_steps, |pair| {

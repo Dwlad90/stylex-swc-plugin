@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use std::rc::Rc;
 use stylex_constants::constants::{
   api_names::STYLEX_UNSTABLE_CREATE_THEME_NESTED,
   common::VAR_GROUP_HASH_KEY,
@@ -27,7 +28,10 @@ use crate::{
   transform::stylex::visitor_utils::{build_eval_config, is_call_to},
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::{evaluate::evaluate, evaluate_result::refusal_site};
+use stylex_evaluator::{
+  evaluate::{evaluate, evaluate_with_functions},
+  evaluate_result::refusal_site,
+};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::ImportKind,
 };
@@ -91,8 +95,8 @@ where
       ),
     };
 
-    let function_map = build_eval_config(&mut self.state);
-    let evaluated_arg2 = evaluate(second_arg, &mut self.state, &function_map);
+    let function_map = Rc::new(build_eval_config(&mut self.state));
+    let evaluated_arg2 = evaluate_with_functions(second_arg, &mut self.state, function_map);
 
     if !evaluated_arg2.confident {
       stylex_panic!(

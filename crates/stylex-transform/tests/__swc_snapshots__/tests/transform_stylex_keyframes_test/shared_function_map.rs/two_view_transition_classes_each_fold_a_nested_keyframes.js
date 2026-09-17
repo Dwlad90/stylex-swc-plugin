@@ -1,0 +1,21 @@
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
+var _inject2 = _inject;
+import * as stylex from '@stylexjs/stylex';
+_inject2({
+    ltr: "@keyframes x18re5ia-B{from{opacity:0;}to{opacity:1;}}",
+    priority: 0
+});
+_inject2({
+    ltr: "::view-transition-old(*.x2nonld){animation-name:x18re5ia-B;}",
+    priority: 1
+});
+export const first = "x2nonld";
+_inject2({
+    ltr: "@keyframes x1jn504y-B{from{opacity:1;}to{opacity:0;}}",
+    priority: 0
+});
+_inject2({
+    ltr: "::view-transition-new(*.x7t2a2r){animation-name:x1jn504y-B;}",
+    priority: 1
+});
+export const second = "x7t2a2r";

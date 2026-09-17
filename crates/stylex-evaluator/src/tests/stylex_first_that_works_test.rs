@@ -1,13 +1,18 @@
 #[cfg(test)]
 mod stylex_first_that_works {
-  use stylex_ast::ast::convertors::create_string_expr;
+  use std::{cell::Cell, rc::Rc};
+
+  use stylex_ast::ast::convertors::{create_ident_expr, create_string_expr};
   use swc_core::ecma::ast::{Expr, ExprOrSpread};
 
   use crate::stylex_first_that_works::stylex_first_that_works;
   use stylex_ast::ast::factories::{
     create_array_expression, create_object_lit, create_string_expr_or_spread,
   };
-  use stylex_state::{functions::FunctionMap, state_manager::StateManager};
+  use stylex_state::{
+    functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+    state_manager::StateManager,
+  };
 
   #[test]
   fn reverses_simple_array_of_values() {
@@ -108,6 +113,39 @@ mod stylex_first_that_works {
     let result = stylex_first_that_works(args.into_iter().collect(), state, functions);
 
     assert_eq!(result, create_string_expr(expected_value));
+  }
+
+  /// An argument that the plan reads and the fold reads again is read once.
+  ///
+  /// Counted through a mapper, which is the one binding whose reads can be
+  /// observed: every read of the identifier calls it. The first argument is in
+  /// the chain, so both passes want it.
+  #[test]
+  fn an_argument_is_read_to_text_once() {
+    let reads = Rc::new(Cell::new(0_usize));
+    let counted = Rc::clone(&reads);
+
+    let mut functions = FunctionMap::default();
+
+    functions.identifiers.insert(
+      "accent".into(),
+      Box::new(FunctionConfigType::Regular(FunctionConfig {
+        fn_ptr: FunctionType::Mapper(Rc::new(move || {
+          counted.set(counted.get() + 1);
+          create_string_expr("var(--accent)")
+        })),
+        takes_path: false,
+      })),
+    );
+
+    let result = stylex_first_that_works(
+      vec![create_ident_expr("accent"), create_string_expr("blue")],
+      &mut StateManager::default(),
+      &functions,
+    );
+
+    assert_eq!(result, create_string_expr("var(--accent, blue)"));
+    assert_eq!(reads.get(), 1);
   }
 
   /// Every fallback is a piece of CSS text, so an argument with no string at

@@ -157,6 +157,12 @@ pub fn evaluate_obj_key(
   }
 }
 
+/// Folds `path` with a function map the caller owns.
+///
+/// The map is copied, because the evaluation shares it with every callback it
+/// makes and so must own it. A caller that already holds the map behind an `Rc`
+/// -- one built once for the module rather than once per call -- hands it to
+/// [`evaluate_with_functions`] instead and pays no copy.
 pub fn evaluate(
   path: &Expr,
   traversal_state: &mut StateManager,
@@ -165,7 +171,8 @@ pub fn evaluate(
   evaluate_with_functions(path, traversal_state, Rc::new(fns.clone()))
 }
 
-fn evaluate_with_functions(
+/// Folds `path` with a function map that is already shared.
+pub fn evaluate_with_functions(
   path: &Expr,
   traversal_state: &mut StateManager,
   fns: Rc<FunctionMap>,

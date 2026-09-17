@@ -66,6 +66,7 @@ use stylex_utils::{
 };
 
 use crate::{
+  functions::{FunctionMap, NestedRuleFunctionMaps, NestedRuleHelpers},
   seen_value::SeenValue,
   types::{InjectImportIdents, SeenModuleSource, StylesObjectMap},
 };
@@ -511,6 +512,17 @@ pub(crate) struct CacheState {
   css_property_seen: FxHashMap<String, String>,
   short_filename_cache: FxHashMap<String, String>,
   default_marker_values: Option<Rc<FlatCompiledStyles>>,
+  /// The function maps the `keyframes`, `positionTry` and `viewTransitionClass`
+  /// calls evaluate their argument with, built on the first call of the module
+  /// that asks for one.
+  ///
+  /// A map is a function of the module's import sets alone, and those are
+  /// complete before the first of the three calls is handled: every site that
+  /// records an import runs in the `Discover` cycle, and all three calls run in
+  /// `TransformProducers`. Built earlier, a map would hold fewer names than the
+  /// source spells, and a name a map does not hold does not drop one
+  /// declaration -- it stops the whole call folding.
+  nested_rule_function_maps: NestedRuleFunctionMaps,
 }
 
 impl CacheState {
@@ -1474,6 +1486,25 @@ impl StateManager {
   /// Keeps `values` as this file's default marker.
   pub fn insert_cached_default_marker_values(&mut self, values: Rc<FlatCompiledStyles>) {
     self.cache.insert_default_marker_values(values);
+  }
+
+  /// The function map a nested-rule call already built for `helpers`, where the
+  /// module has handled such a call before. See
+  /// [`CacheState::nested_rule_function_maps`].
+  pub fn cached_nested_rule_function_map(
+    &self,
+    helpers: NestedRuleHelpers,
+  ) -> Option<&Rc<FunctionMap>> {
+    self.cache.nested_rule_function_maps.get(helpers)
+  }
+
+  /// Keeps `map` as the answer for every later call that asks for `helpers`.
+  pub fn insert_cached_nested_rule_function_map(
+    &mut self,
+    helpers: NestedRuleHelpers,
+    map: Rc<FunctionMap>,
+  ) {
+    self.cache.nested_rule_function_maps.insert(helpers, map);
   }
 
   pub fn insert_cached_short_filename(&mut self, absolute_path: String, short_filename: String) {

@@ -12,7 +12,7 @@ use stylex_state::{
 };
 use stylex_structures::{
   pair::{Pair, PairCow},
-  stylex_state_options::StyleXStateOptions,
+  stylex_state_options::with_default_options,
 };
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
@@ -36,20 +36,24 @@ pub(crate) fn stylex_position_try(
   let declarations =
     obj_map_keys_and_transform_values(&entries, state, |key| dashify(key).into_owned());
 
-  let state_options = StyleXStateOptions::default();
+  // Both directions read the shared default options, which is what keeps a
+  // position-try name the same however the module is compiled.
+  let (ltr_string, rtl_string) = with_default_options(|state_options| {
+    let ltr_string = construct_position_try_obj(&declarations, |pair| {
+      doubled_css_text(&pair.key, &generate_ltr(pair, state_options))
+    });
 
-  let ltr_string = construct_position_try_obj(&declarations, |pair| {
-    doubled_css_text(&pair.key, &generate_ltr(pair, &state_options))
-  });
+    // When no RTL transform applies, fall back to the bare value, which
+    // serializes to `key:value;` rather than the doubled `key:key;key:value;`
+    // form produced for a resolved declaration.
+    let rtl_string = construct_position_try_obj(&declarations, |pair| {
+      match generate_rtl(pair, state_options) {
+        Some(rtl_value) => doubled_css_text(&pair.key, &rtl_value),
+        None => pair.as_css_text(),
+      }
+    });
 
-  // When no RTL transform applies, fall back to the bare value, which
-  // serializes to `key:value;` rather than the doubled `key:key;key:value;`
-  // form produced for a resolved declaration.
-  let rtl_string = construct_position_try_obj(&declarations, |pair| {
-    match generate_rtl(pair, &state_options) {
-      Some(rtl_value) => doubled_css_text(&pair.key, &rtl_value),
-      None => pair.as_css_text(),
-    }
+    (ltr_string, rtl_string)
   });
 
   let position_try_name = format!("--{}{}", class_name_prefix, create_hash(&ltr_string));

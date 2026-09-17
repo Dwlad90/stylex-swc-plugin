@@ -1,5 +1,4 @@
 use indexmap::IndexMap;
-use stylex_constants::constants::messages::ONLY_OVERRIDE_DEFINE_VARS;
 use stylex_macros::stylex_panic;
 use swc_core::{
   common::comments::Comments,
@@ -98,16 +97,23 @@ where
 
       let evaluated_arg1 = evaluate(first_arg, &mut self.state, &function_map);
 
-      assert!(
-        evaluated_arg1.confident,
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &refusal_site(evaluated_arg1.deopt.as_ref(), first_arg),
-          &non_static_value(STYLEX_CREATE_THEME),
-          &mut self.state,
+      // The fold's two failures are read once. A refusal is the reachable one, and
+      // it reads the sentence and the position it always did. A confident answer
+      // with no value is the other: the evaluator's memo is its only known
+      // producer, and no source through this producer reaches it, so it reads this
+      // sentence rather than one of its own. `folded_style_object_lit` reads the
+      // two the same way for the producers that share it.
+      let Some(variables) = evaluated_arg1.value.filter(|_| evaluated_arg1.confident) else {
+        stylex_panic!(
+          "{}",
+          build_code_frame_error(
+            &Expr::Call(call.clone()),
+            &refusal_site(evaluated_arg1.deopt.as_ref(), first_arg),
+            &non_static_value(STYLEX_CREATE_THEME),
+            &mut self.state,
+          )
         )
-      );
+      };
 
       let evaluated_arg2 = evaluate(second_arg, &mut self.state, &function_map);
 
@@ -122,25 +128,11 @@ where
         )
       );
 
-      let variables = match evaluated_arg1.value {
-        Some(value) => {
-          // Asked here so that a first argument that is no variable group is
-          // refused with this sentence, before the producer runs and reports
-          // the same input in its own words. Both arguments are already read
-          // at this point, so this does not change which one is read first.
-          validate_theme_variables(&value, &self.state);
-          value
-        },
-        None => stylex_panic!(
-          "{}",
-          build_code_frame_error(
-            &Expr::Call(call.clone()),
-            &refusal_site(evaluated_arg1.deopt.as_ref(), first_arg),
-            ONLY_OVERRIDE_DEFINE_VARS,
-            &mut self.state,
-          )
-        ),
-      };
+      // Asked here so that a first argument that is no variable group is
+      // refused with this sentence, before the producer runs and reports the
+      // same input in its own words. Both arguments are already read at this
+      // point, so this does not change which one is read first.
+      validate_theme_variables(&variables, &self.state);
 
       let overrides = match evaluated_arg2.value {
         Some(value) => {

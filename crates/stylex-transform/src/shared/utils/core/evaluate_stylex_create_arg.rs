@@ -365,11 +365,16 @@ pub fn evaluate_stylex_create_arg(
                       return val;
                     }
 
-                    let value_to_insert = match match val.value.as_ref() {
-                      Some(v) => v,
-                      None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
-                    } {
-                      EvaluateResultValue::Expr(Expr::Object(obj_expr)) => {
+                    // What the fold answered is read once. A value with no
+                    // object form is the reachable answer, and it reads the
+                    // sentence below. No value at all is the other: the
+                    // evaluator's memo is its only known producer, and no
+                    // source through a `create` namespace reaches it, so it
+                    // reads that sentence too rather than one of its own. This
+                    // is the reading `materialize_style_value` takes of a
+                    // style value.
+                    let value_to_insert = match val.value.as_ref() {
+                      Some(EvaluateResultValue::Expr(Expr::Object(obj_expr))) => {
                         key_value_props_of(obj_expr)
                       },
                       // A folded function map written where a namespace
@@ -378,7 +383,7 @@ pub fn evaluate_stylex_create_arg(
                       // the reference implementation refuses, having folded the
                       // same reference to a plain object. Everything else with
                       // no object form is a namespace this cannot read.
-                      value => match function_fold_to_object(value) {
+                      value => match value.and_then(function_fold_to_object) {
                         Some(object) => key_value_props_of(&object),
                         None => stylex_panic!("{}", ILLEGAL_NAMESPACE_VALUE),
                       },
@@ -668,3 +673,7 @@ fn evaluate_partial_object_recursively(
     fns: None,
   })
 }
+
+#[cfg(test)]
+#[path = "tests/evaluate_stylex_create_arg_tests.rs"]
+mod evaluate_stylex_create_arg_tests;

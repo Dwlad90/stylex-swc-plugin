@@ -3,9 +3,7 @@ use std::rc::Rc;
 use stylex_constants::constants::{
   api_names::STYLEX_UNSTABLE_CREATE_THEME_NESTED,
   common::VAR_GROUP_HASH_KEY,
-  messages::{
-    EXPECTED_CSS_VAR, ONLY_OVERRIDE_DEFINE_VARS_NESTED, non_static_value, non_style_object,
-  },
+  messages::{ONLY_OVERRIDE_DEFINE_VARS_NESTED, non_static_value},
 };
 use stylex_macros::stylex_panic;
 use swc_core::{
@@ -22,7 +20,9 @@ use crate::{
         dev_class_name::{convert_theme_to_dev_styles, convert_theme_to_test_styles},
         js_to_ast::convert_values_to_ast,
       },
-      validators::{argument_at, validate_define_call},
+      validators::{
+        argument_at, folded_style_object, or_refuse_nameless_group, validate_define_call,
+      },
     },
   },
   transform::stylex::visitor_utils::{build_eval_config, is_call_to},
@@ -66,7 +66,13 @@ where
 
     let evaluated_arg1 = evaluate(first_arg, &mut self.state, &FunctionMap::default());
 
-    if !evaluated_arg1.confident {
+    // The fold's two failures are read once. A refusal is the reachable one, and
+    // it reads the sentence and the position it always did. A confident answer
+    // with no value is the other: the evaluator's memo is its only known
+    // producer, and no source through this producer reaches it, so it reads this
+    // sentence rather than one of its own. `folded_style_object_lit` reads the
+    // two the same way for the producers that share it.
+    let Some(variables) = evaluated_arg1.value.filter(|_| evaluated_arg1.confident) else {
       stylex_panic!(
         "{}",
         build_code_frame_error(
@@ -75,73 +81,25 @@ where
           &non_static_value(STYLEX_UNSTABLE_CREATE_THEME_NESTED),
           &mut self.state,
         )
-      );
-    }
-
-    let variables = match evaluated_arg1.value {
-      Some(value) => {
-        validate_nested_theme_variables(&value, &self.state);
-        value
-      },
-      None => stylex_panic!(
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &refusal_site(evaluated_arg1.deopt.as_ref(), first_arg),
-          ONLY_OVERRIDE_DEFINE_VARS_NESTED,
-          &mut self.state,
-        )
-      ),
+      )
     };
+
+    validate_nested_theme_variables(&variables, &self.state);
 
     let function_map = Rc::new(build_eval_config(&mut self.state));
     let evaluated_arg2 = evaluate_with_functions(second_arg, &mut self.state, function_map);
 
-    if !evaluated_arg2.confident {
-      stylex_panic!(
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &refusal_site(evaluated_arg2.deopt.as_ref(), second_arg),
-          &non_static_value(STYLEX_UNSTABLE_CREATE_THEME_NESTED),
-          &mut self.state,
-        )
-      );
-    }
-
-    let overrides = match evaluated_arg2.value {
-      Some(value) => {
-        let is_object = value
-          .as_expr()
-          .map(|expr| expr.is_object())
-          .unwrap_or(false);
-
-        if !is_object {
-          stylex_panic!(
-            "{}",
-            build_code_frame_error(
-              &Expr::Call(call.clone()),
-              &refusal_site(evaluated_arg2.deopt.as_ref(), second_arg),
-              &non_style_object(STYLEX_UNSTABLE_CREATE_THEME_NESTED),
-              &mut self.state,
-            )
-          );
-        }
-
-        value
-      },
-      // Reported with the frame the refusals beside it carry. Without one the
-      // author reads the sentence and not the line it is about.
-      None => stylex_panic!(
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &refusal_site(evaluated_arg2.deopt.as_ref(), second_arg),
-          &non_static_value(STYLEX_UNSTABLE_CREATE_THEME_NESTED),
-          &mut self.state,
-        )
-      ),
-    };
+    // The three answers the second argument can give -- the fold refused, it
+    // answered nothing, it answered something that is not an object -- read
+    // through the reader the producers of one object share. This handler wrote
+    // all three out, with the same two sentences.
+    let overrides = folded_style_object(
+      evaluated_arg2,
+      call,
+      second_arg,
+      STYLEX_UNSTABLE_CREATE_THEME_NESTED,
+      &mut self.state,
+    );
 
     let (mut overrides_obj, injected_styles) = stylex_create_theme_nested(
       &variables,
@@ -180,9 +138,11 @@ fn validate_nested_theme_variables(
     EvaluateResultValue::ThemeRef(theme_ref) => {
       let mut theme_ref = theme_ref.clone();
       let value = theme_ref.get(VAR_GROUP_HASH_KEY, state);
-      if value.as_css_var().is_none() {
-        stylex_panic!("{}", EXPECTED_CSS_VAR);
-      }
+
+      // Asked for the refusal alone. `createTheme` reads the same key off the
+      // same shape and needs the name; here only the check is wanted, and one
+      // reader answers both so the two report the same sentence.
+      or_refuse_nameless_group(value.as_css_var());
     },
     _ => validate_nested_theme_variables_object(value),
   }

@@ -196,23 +196,25 @@ where
       let evaluated_arg =
         evaluate_stylex_create_arg(&mut first_arg, &mut self.state, &function_map);
 
-      assert!(
-        evaluated_arg.confident,
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
-          evaluated_arg
-            .reason
-            .as_deref()
-            .unwrap_or(&non_static_value(STYLEX_CREATE)),
-          &mut self.state,
+      // The fold's two failures are read once. A refusal is the reachable one, and
+      // it reads the sentence and the position it always did. A confident answer
+      // with no value is the other: the evaluator's memo is its only known
+      // producer, and no source through this producer reaches it, so it reads this
+      // sentence rather than one of its own. `folded_style_object_lit` reads the
+      // two the same way for the producers that share it.
+      let Some(value) = evaluated_arg.value.filter(|_| evaluated_arg.confident) else {
+        stylex_panic!(
+          "{}",
+          build_code_frame_error(
+            &Expr::Call(call.clone()),
+            &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
+            evaluated_arg
+              .reason
+              .as_deref()
+              .unwrap_or(&non_static_value(STYLEX_CREATE)),
+            &mut self.state,
+          )
         )
-      );
-
-      let value = match evaluated_arg.value {
-        Some(v) => v,
-        None => stylex_panic!("{}", non_static_value(STYLEX_CREATE)),
       };
 
       let mut injected_inherit_styles: InjectableStylesMap = IndexMap::default();
@@ -295,15 +297,17 @@ where
         // Remember which namespaces are dynamic style functions so an uncalled
         // member access (`styles.opacity`) bails out to runtime in
         // `parse_nullable_style`.
+        //
+        // The argument reader answers a map of dynamic functions only where it
+        // holds one, so a list that is there is never empty and needs no check
+        // of its own.
         if let Some(fns) = evaluated_arg.fns.as_ref() {
           let dynamic_namespaces: FxHashSet<String> = fns.keys().cloned().collect();
 
-          if !dynamic_namespaces.is_empty() {
-            self
-              .state
-              .dynamic_style_namespaces
-              .insert(var_name.clone(), dynamic_namespaces);
-          }
+          self
+            .state
+            .dynamic_style_namespaces
+            .insert(var_name.clone(), dynamic_namespaces);
         }
 
         self

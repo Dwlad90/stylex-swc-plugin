@@ -67,3 +67,20 @@ stylex_test_panic!(
     });
   "#
 );
+
+stylex_test_panic!(
+  rejects_a_selector_that_is_not_a_string,
+  "stylex.when ancestor: expression is not a string",
+  r#"
+    import { when, create } from '@stylexjs/stylex';
+
+    const styles = create({
+      container: {
+        backgroundColor: {
+          default: 'blue',
+          [when.ancestor(['[data-state="open"]'])]: 'red',
+        },
+      },
+    });
+  "#
+);

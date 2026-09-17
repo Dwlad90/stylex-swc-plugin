@@ -932,3 +932,135 @@ mod fill_call_positions_tests {
     assert!(!state.is_type_asserted_call(absent));
   }
 }
+
+/// The invariant `transform_define_marker_call` reads a declarator index under:
+/// one writer records a named top-level declarator in both lists, so a call
+/// that answers a named entry in one answers a position in the other.
+///
+/// A default export is the one top-level entry that carries no name, and it is
+/// in no declaration list. The marker check refuses it before the index is
+/// read, which is why the invariant is about a named entry.
+mod top_level_declarator_lists_agree_tests {
+  use swc_core::{
+    common::{FileName, SourceFile, SourceMap, sync::Lrc},
+    ecma::{
+      ast::{CallExpr, Module},
+      parser::{EsSyntax, Lexer, Parser, StringInput, Syntax},
+      visit::{Visit, VisitWith},
+    },
+  };
+
+  use stylex_structures::top_level_expression::TopLevelExpression;
+
+  use crate::{state_manager::StateManager, state_writers::fill_top_level_expressions};
+
+  /// Every call the source writes, in source order.
+  #[derive(Default)]
+  struct Calls(Vec<CallExpr>);
+
+  impl Visit for Calls {
+    fn visit_call_expr(&mut self, call: &CallExpr) {
+      self.0.push(call.clone());
+
+      call.visit_children_with(self);
+    }
+  }
+
+  fn parse_module(source: &str) -> Module {
+    let source_map: Lrc<SourceMap> = Default::default();
+    let file: Lrc<SourceFile> =
+      source_map.new_source_file(FileName::Anon.into(), source.to_string());
+
+    let mut parser = Parser::new_from(Lexer::new(
+      Syntax::Es(EsSyntax::default()),
+      Default::default(),
+      StringInput::from(&*file),
+      None,
+    ));
+
+    match parser.parse_module() {
+      Ok(module) => module,
+      Err(error) => panic!("failed to parse the module: {error:?}"),
+    }
+  }
+
+  #[track_caller]
+  fn assert_both_lists_answer(source: &str) {
+    let module = parse_module(source);
+    let mut state = StateManager::default();
+
+    fill_top_level_expressions(&module, &mut state);
+
+    let mut calls = Calls::default();
+    module.visit_with(&mut calls);
+
+    for call in &calls.0 {
+      let is_named_top_level = state
+        .find_top_level_expr_by_span(call)
+        .is_some_and(|TopLevelExpression(_, _, variable_name)| variable_name.is_some());
+
+      assert_eq!(
+        is_named_top_level,
+        state.find_call_declaration_index_by_span(call).is_some(),
+        "the two lists disagree about {source:?}"
+      );
+    }
+  }
+
+  /// The position the two lists agree on is the declarator that call
+  /// initialises, and not merely some declarator.
+  ///
+  /// `transform_define_marker_call` writes the marker object back into the
+  /// declarator at that position, so a position off by one would give one
+  /// marker the object of another.
+  #[test]
+  fn the_position_names_the_declarator_the_call_initialises() {
+    let source = "export const first = defineMarker();\nexport const second = defineMarker();";
+    let module = parse_module(source);
+    let mut state = StateManager::default();
+
+    fill_top_level_expressions(&module, &mut state);
+
+    let mut calls = Calls::default();
+    module.visit_with(&mut calls);
+
+    assert_eq!(calls.0.len(), 2, "the source writes two calls");
+
+    for (call, expected) in calls.0.iter().zip(["first", "second"]) {
+      let position = state
+        .find_call_declaration_index_by_span(call)
+        .expect("the call initialises a declarator");
+
+      let name = state.declarations()[position]
+        .name
+        .as_ident()
+        .map(|ident| ident.sym.to_string());
+
+      assert_eq!(name.as_deref(), Some(expected));
+    }
+  }
+
+  #[test]
+  fn a_top_level_declarator_is_recorded_in_both_lists() {
+    assert_both_lists_answer("export const marker = defineMarker();");
+    assert_both_lists_answer("const marker = defineMarker();");
+    assert_both_lists_answer("export const marker = (defineMarker());");
+    assert_both_lists_answer("export const a = f(), b = g();");
+  }
+
+  /// A declarator that binds no single name contributes to neither list, so the
+  /// two still agree.
+  #[test]
+  fn a_pattern_declarator_is_recorded_in_neither_list() {
+    assert_both_lists_answer("export const { marker } = defineMarker();");
+    assert_both_lists_answer("const [marker] = defineMarker();");
+  }
+
+  /// A call written below the module body is in neither list, and a default
+  /// export is in the top-level list under no name.
+  #[test]
+  fn an_unnamed_call_answers_no_declarator() {
+    assert_both_lists_answer("function f() { const marker = defineMarker(); }");
+    assert_both_lists_answer("export default defineMarker();");
+  }
+}

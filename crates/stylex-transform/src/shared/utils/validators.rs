@@ -511,10 +511,19 @@ pub(crate) fn find_and_validate_stylex_define_vars(
   or_refuse_unexported(export_name, &call_expr, STYLEX_DEFINE_VARS, state)
 }
 
-/// Refuses a `stylex.defineMarker` call the compiler cannot read.
+/// Refuses a `stylex.defineMarker` call the compiler cannot read, and answers
+/// the name it is exported under.
+///
+/// The name is the answer rather than a yes, as the two `define*` validators
+/// beside it do it: the export check proves a name is there, so a caller that
+/// needs one takes it from here instead of reading the declarator again and
+/// guarding a shape this check has already ruled out.
 ///
 /// Asked for by a caller that already knows the call is one.
-pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut StateManager) {
+pub(crate) fn find_and_validate_stylex_define_marker(
+  call: &CallExpr,
+  state: &mut StateManager,
+) -> Atom {
   // Cloned only where it is about to be reported, as `validate_stylex_create`
   // does: every path that needs it diverges, so the call that compiles pays
   // nothing.
@@ -561,12 +570,16 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
     },
   };
 
-  if named_export_name(define_marker_top_level_expr, state).is_none() {
-    build_code_frame_error_and_panic_at(
+  // Read out before the refusal below, which needs the state mutably.
+  let export_name = named_export_name(define_marker_top_level_expr, state).cloned();
+
+  match export_name {
+    Some(export_name) => export_name,
+    None => build_code_frame_error_and_panic_at(
       &fault_expr(),
       &non_export_named_declaration(STYLEX_DEFINE_MARKER),
       state,
-    );
+    ),
   }
 }
 
@@ -1124,7 +1137,7 @@ fn theme_init_call_of<'a>(
 /// and the group hash is neither of them. `guidelines/stack/RUST.md` describes
 /// the allowance.
 #[cfg_attr(coverage_nightly, coverage(off))]
-fn or_refuse_nameless_group(value: Option<&str>) -> &str {
+pub(crate) fn or_refuse_nameless_group(value: Option<&str>) -> &str {
   match value {
     Some(value) => value,
     None => stylex_panic!("{}", EXPECTED_CSS_VAR),

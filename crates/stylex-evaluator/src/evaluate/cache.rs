@@ -186,7 +186,19 @@ fn memoized_fold<T: Memoized>(
       None
     },
     None => {
+      let filings_before = traversal_state.nested_rules_filed();
       let val = fold(state, traversal_state);
+
+      // A fold that filed a nested rule is not remembered. The memo answers a
+      // second identical expression without folding it, so an entry here would
+      // give the next `keyframes({ … })` of the module its name and none of the
+      // rule behind it, and the producer holding that call would carry nothing.
+      // The reference has no memo and folds every rule call, which is what this
+      // keeps. Every ancestor of the call is skipped for the same reason, and
+      // by the same comparison.
+      if traversal_state.nested_rules_filed() != filings_before {
+        return val;
+      }
 
       if state.confident {
         // The memo copy is built inside the closure, so an entry that is

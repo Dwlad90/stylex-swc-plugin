@@ -5,9 +5,9 @@ use std::rc::Rc;
 
 use stylex_enums::style_vars_to_keep::NonNullProps;
 use stylex_state::{functions::FunctionMap, state_manager::StateManager};
-use swc_core::ecma::ast::Expr;
+use swc_core::{atoms::Atom, ecma::ast::Expr};
 
-use crate::shared::utils::core::member_expression::member_expression;
+use crate::shared::utils::core::member_expression::{declared_namespaces, member_expression};
 use crate::tests::support::expr;
 
 /// Reads `code` as one member expression and hands back what the reader
@@ -171,4 +171,140 @@ fn reads_a_key_that_is_not_a_plain_name() {
     namespaces_of("({ root: { 'background-color': 'red' } }).root"),
     named(&["background-color"])
   );
+}
+
+/// The names `declared_namespaces` reads off the object `code` writes.
+///
+/// The reader is given the object directly, because no source reaches the
+/// refusals below: the fold refuses a spread and a property that is no
+/// key-value pair before it writes an object, and every producer that hands
+/// back an object the fold did not rebuild writes key-value pairs only. What is
+/// read here is the reader's own promise, that a property it cannot name stops
+/// the build rather than going missing.
+fn declared_namespaces_of(code: &str) -> Vec<Atom> {
+  let props = match expr(code) {
+    Expr::Object(object) => object.props,
+    other => panic!("the fixture {code} is not an object literal: {other:?}"),
+  };
+
+  // Collected, because the reader is lazy and a refusal happens only where a
+  // property is read.
+  declared_namespaces(&props).collect()
+}
+
+/// A spread brings names this reader cannot list, so it is refused. Passed over
+/// instead, every name behind it would be dropped from the keep list and the
+/// null sweep would delete a namespace the runtime still reads.
+#[test]
+#[should_panic(expected = "The spread operator (...) is not supported in this context.")]
+fn refuses_a_spread_it_cannot_name() {
+  declared_namespaces_of("{ ...rest }");
+}
+
+/// A method, a getter, a setter and a shorthand name carry no name-and-value
+/// pair. One case per spelling, because each is a different node and only a
+/// case proves the arm takes it.
+#[test]
+#[should_panic(expected = "A style value can only contain an array, string or number.")]
+fn refuses_a_method() {
+  declared_namespaces_of("{ method() { return 1 } }");
+}
+
+#[test]
+#[should_panic(expected = "A style value can only contain an array, string or number.")]
+fn refuses_a_getter() {
+  declared_namespaces_of("{ get color() { return 1 } }");
+}
+
+#[test]
+#[should_panic(expected = "A style value can only contain an array, string or number.")]
+fn refuses_a_setter() {
+  declared_namespaces_of("{ set color(value) {} }");
+}
+
+/// A shorthand name holds its value in a binding beside the object, which is no
+/// value this reader can read. The evaluator expands one before it writes the
+/// object, so only a reader given the object directly sees it.
+#[test]
+#[should_panic(expected = "A style value can only contain an array, string or number.")]
+fn refuses_a_shorthand_name() {
+  declared_namespaces_of("{ color }");
+}
+
+/// A computed key naming no static value names no property either.
+#[test]
+#[should_panic(expected = "The key has no name at compile time.")]
+fn refuses_a_key_with_no_name() {
+  declared_namespaces_of("{ [other]: 'red' }");
+}
+
+/// The refusal comes before the names beside it are read, so a property the
+/// reader cannot name stops the whole object rather than shortening it.
+#[test]
+#[should_panic(expected = "The spread operator (...) is not supported in this context.")]
+fn refuses_before_it_names_the_properties_beside_it() {
+  declared_namespaces_of("{ color: 'red', ...rest, margin: '1px' }");
+}
+
+/// Every shape a key is written in names its property, so none of them is
+/// refused and none of them goes missing. Read through `as_ident` alone, the
+/// last three answered nothing and the namespace behind each was dropped. A
+/// quoted key is the one that arrives from a real source, on an object the fold
+/// did not rebuild.
+#[test]
+fn names_a_property_however_its_key_is_written() {
+  assert_eq!(
+    declared_namespaces_of("{ color: 1, 'background-color': 2, 0: 3, ['--x']: 4 }"),
+    names(&["color", "background-color", "0", "--x"])
+  );
+}
+
+/// A number key names the property JavaScript names, not the digits Rust
+/// prints.
+#[test]
+fn names_a_number_key_the_way_javascript_spells_it() {
+  assert_eq!(declared_namespaces_of("{ 1e21: 'red' }"), names(&["1e+21"]));
+}
+
+/// A property declared absent declares nothing, whichever shape its key takes.
+#[test]
+fn leaves_out_every_property_that_declares_nothing() {
+  assert_eq!(
+    declared_namespaces_of("{ color: 'red', margin: null, 'padding': null }"),
+    names(&["color"])
+  );
+}
+
+/// Nothing to read is not something to refuse.
+#[test]
+fn names_nothing_of_an_object_with_no_properties() {
+  assert_eq!(declared_namespaces_of("{}"), names(&[]));
+}
+
+/// A name the reader answers twice is answered twice: the reader reports what
+/// the object declares and does not decide what to do about a repeat.
+#[test]
+fn answers_a_repeated_name_as_often_as_it_is_declared() {
+  assert_eq!(
+    declared_namespaces_of("{ color: 'red', color: 'blue' }"),
+    names(&["color", "color"])
+  );
+}
+
+/// A large object is read whole, one name per property.
+#[test]
+fn names_every_property_of_a_large_object() {
+  let source = (0..1_000)
+    .map(|index| format!("p{index}: {index}"))
+    .collect::<Vec<String>>()
+    .join(", ");
+
+  assert_eq!(
+    declared_namespaces_of(&format!("{{ {source} }}")).len(),
+    1_000
+  );
+}
+
+fn names(values: &[&str]) -> Vec<Atom> {
+  values.iter().map(|value| Atom::from(*value)).collect()
 }

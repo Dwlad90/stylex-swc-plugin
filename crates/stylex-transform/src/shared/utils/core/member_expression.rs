@@ -3,7 +3,7 @@ use std::rc::Rc;
 use swc_core::{
   atoms::Atom,
   ecma::{
-    ast::{Expr, Lit, MemberExpr, ObjectLit},
+    ast::{Expr, Lit, MemberExpr, ObjectLit, PropOrSpread},
     visit::{Visit, noop_visit_type},
   },
 };
@@ -11,7 +11,7 @@ use swc_core::{
 use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
 use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
-use stylex_ast::ast::keys::namespace_name_from_member_prop;
+use stylex_ast::ast::keys::{named_key_value, namespace_name_from_member_prop};
 
 use stylex_evaluator::evaluate::evaluate_with_functions;
 use stylex_state::{
@@ -69,31 +69,7 @@ pub(crate) fn member_expression(
       if let NonNullProps::Vec(vec) = non_null_props
         && let Some(EvaluateResultValue::Expr(Expr::Object(ObjectLit { props, .. }))) = style_value
       {
-        // The evaluator rebuilds every object it folds, so each property that
-        // arrives here is a key-value pair under a plain name: a spread is
-        // already merged away, and a key it could not name is a refusal it
-        // reported rather than an object it answered. That is asserted where the
-        // object is written, by `every_written_object_carries_key_value_-
-        // properties_only` in the evaluator, not argued from here.
-        //
-        // A plain name whatever the author wrote, because the rebuild files
-        // every key through `create_ident_key_value_prop`, which keeps a name
-        // no identifier would take rather than quoting it. So `'--my-color'`,
-        // `0` and `['--x']` all arrive as idents, and the cases beside this
-        // file's own read each of them back.
-        //
-        // What is left to decide is the value: a property declared as absent
-        // names nothing the runtime still needs.
-        let namespaces = props.iter().filter_map(|item| {
-          item
-            .as_prop()
-            .and_then(|prop| prop.as_key_value())
-            .filter(|key_value| !matches!(key_value.value.as_ref(), Expr::Lit(Lit::Null(_))))
-            .and_then(|key_value| key_value.key.as_ident())
-            .map(|ident| &ident.sym)
-        });
-
-        vec.extend(namespaces.cloned());
+        vec.extend(declared_namespaces(&props));
       }
     }
   }
@@ -110,6 +86,37 @@ pub(crate) fn member_expression(
 
     state.style_vars_to_keep.insert(style_var_to_keep);
   }
+}
+
+/// The namespaces an evaluated style object still declares.
+///
+/// A property whose value is `null` declares nothing the runtime needs, so it
+/// gives no name. Every other property gives the name it is declared under,
+/// whichever shape its key was written in -- which is why the key goes through
+/// the reader that names all of them. Read through `as_ident` alone, a quoted
+/// key answered nothing and the namespace behind it went missing. That is no
+/// theoretical shape: the fold rebuilds the keys of the object it writes but
+/// not those of an object it carries through as a value, and `stylex.env`,
+/// `stylex.types` and a folded function map each write a quoted key.
+///
+/// A property the reader cannot name is refused, on the sentence
+/// `named_key_value` gives. Skipped instead, the namespace would never reach
+/// `vars_to_keep`, and `retain_object_props` then deletes a namespace the
+/// runtime still reads. A wrong output is worse than a stopped build.
+///
+/// No source reaches a refusal: the fold refuses a spread and a property that
+/// is no key-value pair before it writes an object, and each producer above
+/// writes key-value pairs only. So the cases for the refusals hand the reader
+/// its object directly.
+fn declared_namespaces(props: &[PropOrSpread]) -> impl Iterator<Item = Atom> + '_ {
+  props.iter().filter_map(|prop| {
+    let (name, key_value) = named_key_value(prop);
+
+    match key_value.value.as_ref() {
+      Expr::Lit(Lit::Null(_)) => None,
+      _ => Some(name),
+    }
+  })
 }
 
 /// Walks the member expressions of a `stylex.props`-family call argument and

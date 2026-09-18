@@ -56,6 +56,10 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
   // nothing. The cache is transparent -- a merge answers the same with it and
   // without it -- so turning it off changes what the merge costs and not what
   // it says.
+  //
+  // A merger that lives for the file does answer lookups from the cache, and
+  // still does not pay for itself. The module comment of `stylex-styleq` holds
+  // both measurements.
   let styleq = stylex_styleq::create_styleq(stylex_styleq::StyleqOptions {
     dedupe_class_name_chunks: true,
     disable_cache: true,

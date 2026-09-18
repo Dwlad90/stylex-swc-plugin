@@ -11,6 +11,10 @@ use stylex_state::flat_compiled_styles_value::FlatCompiledStylesValue;
 use super::{parse_nullable_style::ResolvedArg, props::props_map};
 
 /// The HTML attributes a `stylex.attrs(...)` call is replaced by.
+///
+/// Written in the order the runtime writes them -- `class`, then `style`, then
+/// `data-style-src`. The object literal is printed in this order, so the order
+/// is part of the emitted code and of every comparison made against it.
 pub(crate) fn attrs(styles: &[ResolvedArg]) -> FnResult {
   let attrs = props_map(styles);
 
@@ -18,10 +22,6 @@ pub(crate) fn attrs(styles: &[ResolvedArg]) -> FnResult {
 
   if let Some(class_name) = attrs.get("className") {
     attrs_map.insert("class".to_string(), class_name.clone());
-  }
-
-  if let Some(data_style_src) = attrs.get("data-style-src") {
-    attrs_map.insert("data-style-src".to_string(), data_style_src.clone());
   }
 
   // An attribute is text, so the inline style is written out as the CSS a
@@ -43,6 +43,10 @@ pub(crate) fn attrs(styles: &[ResolvedArg]) -> FnResult {
         &declarations,
       ))),
     );
+  }
+
+  if let Some(data_style_src) = attrs.get("data-style-src") {
+    attrs_map.insert("data-style-src".to_string(), data_style_src.clone());
   }
 
   FnResult::Values(attrs_map)

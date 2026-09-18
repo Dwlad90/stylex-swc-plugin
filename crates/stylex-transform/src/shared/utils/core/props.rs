@@ -41,7 +41,12 @@ pub(crate) fn props_map(styles: &[ResolvedArg]) -> FlatCompiledStyles {
     );
   }
 
-  if let Some(inline_style) = inline_style {
+  // An empty merge writes no `style` at all, which is what the runtime writes:
+  // it asks whether the merged object holds a name before it sets the property.
+  // No merge reaches this reading today -- the merger builds an inline object
+  // only for a property that has a value -- so this states the rule rather than
+  // repairing an output.
+  if let Some(inline_style) = inline_style.filter(|style| !style.is_empty()) {
     // The merged declarations are carried on as they are. Each name is kept as
     // the author spelled it, because the runtime reads this property as a style
     // object and `marginTop` is the name such an object carries; the CSS

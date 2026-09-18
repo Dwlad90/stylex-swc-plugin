@@ -299,6 +299,21 @@ pub struct BindingWrites {
   pub declared: FxHashSet<Id>,
 }
 
+/// Whether the state must keep its own copy of the module the walk is given.
+///
+/// A debug build always keeps one: the assertions and the code frames that
+/// quote the source only run there. A release build keeps one only where the
+/// compiler cannot read the file back off disk, because the copy is a deep
+/// clone of the whole module.
+///
+/// Both answers are parameters rather than reads, so one build can be asked
+/// for the other build's answer. Reading `cfg!(debug_assertions)` inside would
+/// fold the first term to `true` in the profile that is measured and leave the
+/// second one with no test able to reach it.
+pub const fn keeps_module_source_copy(debug_build: bool, reads_source_from_disk: bool) -> bool {
+  debug_build || !reads_source_from_disk
+}
+
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ModuleSourceState {
   seen_module_source_code: Option<Rc<SeenModuleSource>>,
@@ -974,6 +989,20 @@ pub struct StateManager {
   pub(crate) pending_module_items: Vec<PendingInsertion>,
 
   pub other_injected_css_rules: InjectableStylesMap,
+  /// How many times the file has filed a nested rule, counting every filing
+  /// rather than every distinct name.
+  ///
+  /// The evaluator memo answers a second identical expression without folding
+  /// it again. For a rule call that would answer the name and swallow the rule
+  /// the name stands for, so the producer holding the second call would carry
+  /// nothing and the name would reach a stylesheet that defines it nowhere.
+  /// This counter is how the memo sees that a fold filed a rule and declines to
+  /// remember it.
+  ///
+  /// Counted per filing and not per key, because two producers that file the
+  /// same rule each need their own copy of it, and the second filing writes the
+  /// key the first one already wrote.
+  nested_rules_filed: u64,
   pub(crate) top_imports: Vec<ImportDecl>,
   /// Where in [`Self::top_imports`] the specifier binding each imported name
   /// sits, as the import's position and the specifier's within it, so resolving
@@ -1056,6 +1085,7 @@ impl StateManager {
       pending_module_items: vec![],
 
       other_injected_css_rules: IndexMap::new(),
+      nested_rules_filed: 0,
 
       cycle: TransformationCycle::Discover,
     }
@@ -2426,6 +2456,18 @@ impl StateManager {
   ///
   /// The answer is the only copy there is, so a caller that drops it loses the
   /// rules of its own module. `must_use` is what says so.
+  /// Records that one nested rule has been filed. See
+  /// [`Self::nested_rules_filed`].
+  pub fn note_nested_rule_filed(&mut self) {
+    self.nested_rules_filed = self.nested_rules_filed.wrapping_add(1);
+  }
+
+  /// The filing count the memo compares across one fold. See
+  /// [`Self::nested_rules_filed`].
+  pub fn nested_rules_filed(&self) -> u64 {
+    self.nested_rules_filed
+  }
+
   #[must_use]
   pub fn take_nested_rules_before(&mut self, own: InjectableStylesMap) -> InjectableStylesMap {
     let mut rules = std::mem::take(&mut self.other_injected_css_rules);

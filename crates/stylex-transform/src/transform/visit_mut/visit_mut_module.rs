@@ -1,5 +1,8 @@
 use stylex_ast::ast::convertors::convert_atom_to_string;
-use stylex_state::state_writers::{fill_call_positions, fill_top_level_expressions};
+use stylex_state::{
+  state_manager::keeps_module_source_copy,
+  state_writers::{fill_call_positions, fill_top_level_expressions},
+};
 use swc_core::{
   common::{BytePos, Span, comments::Comments},
   ecma::{
@@ -725,18 +728,15 @@ where
     // became the raw position again.
     self.state.set_input_module_base(ModuleBase::of(module));
 
-    // A debug build always keeps a copy of the module: the assertions and the
-    // code frames that quote the source only run there. A release build keeps
-    // one only where the compiler cannot read the file back off disk, because
-    // the copy is a deep clone of the whole module.
-    //
-    // Two arms rather than one condition, so that the profile which is
-    // measured -- debug -- holds no branch whose other side it cannot take.
-    #[cfg(debug_assertions)]
-    self.state.set_seen_module_source_code(module, None);
-
-    #[cfg(not(debug_assertions))]
-    if !self.state.options.use_real_file_for_source {
+    // The copy is a deep clone of the whole module, so a release build makes one
+    // only where the compiler cannot read the file back off disk.
+    // `keeps_module_source_copy` owns that choice and is tested against both
+    // builds and both option values, which two `cfg` arms here could not be:
+    // the release arm never compiles in the profile the gate measures.
+    if keeps_module_source_copy(
+      cfg!(debug_assertions),
+      self.state.options.use_real_file_for_source,
+    ) {
       self.state.set_seen_module_source_code(module, None);
     }
 

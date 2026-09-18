@@ -13,7 +13,9 @@ mod state_manager {
   };
 
   use crate::call_positions::{CallPositions, Position};
-  use crate::state_manager::{InsertionSlot, StateManager, flush_pending_insertions};
+  use crate::state_manager::{
+    InsertionSlot, StateManager, flush_pending_insertions, keeps_module_source_copy,
+  };
   use crate::tests::prelude::{
     ident, ident_at, make_var_declarator, make_var_declarator_no_init, string_expr,
   };
@@ -1984,6 +1986,26 @@ mod state_manager {
         state.css_property_seen().get("marginInlineStart"),
         Some(&"10px".to_string())
       );
+    }
+  }
+
+  mod keeping_the_module_source {
+    use super::keeps_module_source_copy;
+
+    /// All four answers, from whichever build runs this. The walk asks for the
+    /// copy with the build it was compiled for, so a release-only arm would
+    /// otherwise never be read by a test.
+    #[test]
+    fn a_debug_build_keeps_the_copy_whatever_the_option_says() {
+      assert!(keeps_module_source_copy(true, true));
+      assert!(keeps_module_source_copy(true, false));
+    }
+
+    /// A release build keeps the copy only where no file can be read back.
+    #[test]
+    fn a_release_build_keeps_the_copy_only_when_no_file_may_be_read() {
+      assert!(!keeps_module_source_copy(false, true));
+      assert!(keeps_module_source_copy(false, false));
     }
   }
 }

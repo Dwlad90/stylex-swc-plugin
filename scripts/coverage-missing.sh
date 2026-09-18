@@ -368,6 +368,11 @@ def stale_coordinates():
     else. A leading `*` is not one of them -- `*count -= 1` is a line of code
     that begins the way a wrapped doc comment does.
 
+    A third reading needs no source at all: a file the mapping names and this
+    tree cannot open. Every name asked here is one the measured set holds, so it
+    is a workspace file and not a dependency, and a workspace file that is gone
+    says the mapping was made before it went.
+
     Every measured region is asked, not only the unexercised ones. A stale
     mapping reports an unexercised region as covered just as readily, and that
     is the answer a reader would act on without noticing.
@@ -386,7 +391,12 @@ def stale_coordinates():
 
         lines = source[filename]
 
+        # A file the mapping names and this tree cannot open is the strongest
+        # staleness signal there is: the mapping was made from a revision that
+        # still had it. Reading it as clean and moving on is what let a deleted
+        # or renamed file answer for a whole run.
         if lines is None:
+            stale.append((filename, line_start, col_start, "a file this tree cannot read"))
             continue
 
         if line_start > len(lines):

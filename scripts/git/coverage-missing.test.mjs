@@ -21,12 +21,14 @@ import test from 'node:test';
 import {
   createWorkspace,
   hermeticEnvironment,
+  makeTemporaryDirectory,
   missing,
   pathVariable,
   readLog,
   repoRoot,
   stubPath,
   writeStubs,
+  writeText,
 } from './lib/test-harness.mjs';
 
 const script = path.join(repoRoot, 'scripts/coverage-missing.sh');
@@ -45,8 +47,27 @@ const BEHIND =
 /** A coverage export holding no measured file, which is the shortest clean run. */
 const EMPTY_EXPORT = '{"data":[{"files":[],"functions":[]}]}';
 
-/** A measured file, named so neither the ignore regex nor an exclude drops it. */
-const MEASURED_FILE = `${repoRoot}/crates/stylex-demo/src/demo.rs`;
+/**
+ * A measured file, named so neither the ignore regex nor an exclude drops it.
+ *
+ * It is written to disk, because the script refuses a mapping whose positions
+ * the source cannot hold: a file the mapping names and the tree cannot open is
+ * read as a stale mapping, and the run stops before it reports anything. The
+ * file lives outside the repository so no case writes into the tree it runs in.
+ */
+const MEASURED_FILE = path.join(
+  makeTemporaryDirectory('stylex-coverage-missing-source-'),
+  'crates/stylex-demo/src/demo.rs'
+);
+
+/**
+ * Every line carries code and is wider than the widest column `buildExport`
+ * writes, so any line a case names is a position this file can hold.
+ */
+writeText(
+  MEASURED_FILE,
+  `${Array.from({ length: 24 }, (_, index) => `  let value_${index} = compute(${index});`).join('\n')}\n`
+);
 
 /**
  * Builds a coverage export the way llvm-cov writes one.

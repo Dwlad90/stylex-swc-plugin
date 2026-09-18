@@ -4,7 +4,7 @@
 //! the same fact repeated at each of them.
 #![allow(dead_code)]
 
-use std::{rc::Rc, sync::Arc};
+use std::rc::Rc;
 
 use stylex_structures::stylex_options::ModuleResolution;
 use stylex_transform::StyleXTransform;
@@ -21,63 +21,18 @@ use swc_core::{
 };
 
 use swc_core::{
-  common::{
-    FileName, SourceMap,
-    errors::{ColorConfig, Handler},
-  },
+  common::FileName,
   ecma::{
-    ast::{EsVersion, Module},
-    parser::{Parser, StringInput, Syntax, lexer::Lexer},
+    parser::Syntax,
     transforms::{
       base::{fixer, hygiene},
       testing::{HygieneVisualizer, Tester},
     },
     utils::{DropSpan, ExprFactory, quote_ident, quote_str},
-    visit::{FoldWith, VisitMut, VisitMutWith, noop_visit_mut_type},
+    visit::{FoldWith, VisitMut, noop_visit_mut_type},
   },
 };
 use swc_ecma_parser::TsSyntax;
-
-pub(crate) fn _parse_js(source_code: &str) -> Module {
-  if std::env::var("INSTA_UPDATE").is_err() {
-    unsafe { std::env::set_var("INSTA_UPDATE", "no") };
-  }
-
-  let cm: Arc<SourceMap> = Default::default();
-  let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
-
-  let file_name = Arc::new(FileName::Custom("input.js".into()));
-
-  // This is the JavaScript code you want to parse.
-  let fm = cm.new_source_file(file_name, source_code.to_string());
-
-  let lexer = Lexer::new(
-    Syntax::default(),
-    EsVersion::EsNext,
-    StringInput::from(&*fm),
-    None,
-  );
-
-  let mut parser = Parser::new_from(lexer);
-
-  match parser.parse_module() {
-    Ok(mut module) => {
-      module.visit_mut_with(
-        &mut StyleXTransform::test(Rc::new(SingleThreadedComments::default()))
-          .with_runtime_injection()
-          .build(),
-      );
-      module
-    },
-    Err(err) => {
-      handler
-        .struct_err(format!("An error occurred: {:#?}", err).as_str())
-        .emit();
-
-      panic!("{:#?}", err)
-    },
-  }
-}
 
 struct RegeneratorHandler;
 
@@ -487,6 +442,12 @@ pub(crate) fn assert_spellings_agree_with(
 /// to say anything at all. This is what a bare comparison cannot answer, and it
 /// is why a snapshot of one spelling is no substitute -- a call the compiler
 /// never reached prints as the author wrote it.
+///
+/// The anchor is asked of each spelling's whole output, import line and all,
+/// and not of the bodies the comparison read. A regression confined to the
+/// import line is the one thing the comparison is blind to, so leaving the
+/// anchor blind to it as well would let both spellings lose the injector
+/// together and still pass.
 #[track_caller]
 pub(crate) fn assert_spellings_agree_but_for_the_import(
   shape: &str,
@@ -494,8 +455,20 @@ pub(crate) fn assert_spellings_agree_but_for_the_import(
   second: &str,
   compile: impl Fn(&str) -> String,
 ) {
+  let whole = |input: &str| {
+    let output = compile(input);
+
+    assert!(
+      output.contains("stylex-inject"),
+      "{shape} did not import the injector, so what the two spellings agree \
+       on says nothing:\n{output}"
+    );
+
+    output
+  };
+
   let body = |input: &str| {
-    compile(input)
+    whole(input)
       .lines()
       .filter(|line| !line.trim_start().starts_with("import "))
       .collect::<Vec<_>>()

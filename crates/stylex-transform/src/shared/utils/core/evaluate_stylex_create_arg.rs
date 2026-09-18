@@ -17,7 +17,7 @@ use swc_core::{
 
 use crate::shared::utils::validators::validate_dynamic_style_params;
 use stylex_ast::ast::convertors::{
-  create_ident_expr, create_null_expr, create_string_expr, expand_shorthand_prop, normalize_expr,
+  create_ident_expr, create_null_expr, create_string_expr, expanded_shorthand_prop, normalize_expr,
   normalize_expr_mut,
 };
 use stylex_ast::ast::factories::{
@@ -257,11 +257,12 @@ pub fn evaluate_stylex_create_arg(
         match prop {
           PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
           PropOrSpread::Prop(prop) => {
-            let mut prop = prop.clone();
+            // Read where it lies. Nothing below writes to the property, so the
+            // only copy made is the one a shorthand name needs to become the
+            // pair it stands for.
+            let prop = expanded_shorthand_prop(prop);
 
-            expand_shorthand_prop(&mut prop);
-
-            match prop.as_mut() {
+            match prop.as_ref() {
               Prop::KeyValue(key_value_prop) => {
                 let key_result = evaluate_obj_key(key_value_prop, traversal_state, functions);
 
@@ -275,7 +276,7 @@ pub fn evaluate_stylex_create_arg(
                     .as_ref()
                     .and_then(EvaluateResultValue::as_expr),
                 );
-                let value_path = &mut key_value_prop.value;
+                let value_path = &key_value_prop.value;
 
                 // Read through the parentheses an author may have written
                 // around the function. They are a node in this tree and none in
@@ -509,11 +510,10 @@ fn evaluate_partial_object_recursively(
         obj = assign_props(obj, new_props);
       },
       PropOrSpread::Prop(prop) => {
-        let mut prop = prop.clone();
+        // Read where it lies, for the reason the namespace reader above gives.
+        let prop = expanded_shorthand_prop(prop);
 
-        expand_shorthand_prop(&mut prop);
-
-        match prop.as_mut() {
+        match prop.as_ref() {
           Prop::KeyValue(key_value) => {
             let key_result = evaluate_obj_key(key_value, traversal_state, functions);
 

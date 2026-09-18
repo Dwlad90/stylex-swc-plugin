@@ -44,7 +44,7 @@ use crate::convertors::expr_to_num;
 use crate::{evaluate_result::EvaluateResult, state::EvaluationState};
 use stylex_ast::ast::convertors::{
   convert_atom_to_str_ref, convert_atom_to_string, convert_lit_to_string, create_big_int_expr,
-  create_bool_expr, create_number_expr, create_string_expr, expand_shorthand_prop,
+  create_bool_expr, create_number_expr, create_string_expr, expanded_shorthand_prop,
   extract_tpl_cooked_value, is_js_undefined, key_value_name, normalize_expr,
 };
 use stylex_ast::ast::factories::{

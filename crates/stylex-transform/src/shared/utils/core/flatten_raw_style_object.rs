@@ -249,7 +249,7 @@ pub(crate) fn flatten_raw_style_object_logic(
           // Drop falsy values, then deduplicate by JS identity: every repeat is
           // removed, not just adjacent ones, and `0` and `"0"` stay distinct.
           let mut seen = FxHashSet::default();
-          let values = values
+          let mut values = values
             .into_iter()
             .filter(|value| !value.is_falsy())
             .filter(|value| seen.insert(value.identity_key()))
@@ -261,10 +261,12 @@ pub(crate) fn flatten_raw_style_object_logic(
             insert_or_update_rule_with_shifting_index(&mut flattened, &property, pre_rule);
           } else {
             // At least one value, because the empty set is the branch above.
-            let pre_rule_value = if values.len() == 1 {
-              PreRuleValue::Raw(values[0].clone())
-            } else {
-              PreRuleValue::Vec(values.clone())
+            // Taken out of the set rather than copied out of it: the set is
+            // owned by this turn of the loop and is read no further, so a copy
+            // of every value of the declaration went straight to waste.
+            let pre_rule_value = match values.len() {
+              1 => PreRuleValue::Raw(values.swap_remove(0)),
+              _ => PreRuleValue::Vec(values),
             };
 
             // The authored key, which is the one a fallback list is named

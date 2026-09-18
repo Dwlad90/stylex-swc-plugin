@@ -187,9 +187,10 @@ pub(in super::super) fn evaluate(
           return deopt(&refusal_path(), state, OBJECT_METHOD);
         }
 
-        let mut prop = prop.clone();
-
-        expand_shorthand_prop(&mut prop);
+        // Read where it lies. Nothing below writes to the property, and this
+        // runs for every property of every object the evaluator folds, so the
+        // copy it used to make was the whole value subtree of each one.
+        let prop = expanded_shorthand_prop(prop);
 
         match prop.as_ref() {
           Prop::KeyValue(path_key_value) => {

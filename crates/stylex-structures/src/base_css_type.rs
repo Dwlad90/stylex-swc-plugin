@@ -1,7 +1,6 @@
 use indexmap::IndexMap;
-use std::ops::Deref;
 use stylex_ast::ast::convertors::{
-  convert_key_value_to_str, convert_lit_to_string, expand_shorthand_prop,
+  convert_key_value_to_str, convert_lit_to_string, expanded_shorthand_prop,
   get_key_values_from_object, key_value_name,
 };
 use stylex_ast::ast::factories::{
@@ -79,50 +78,45 @@ pub fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>
     return (key_value.value, None);
   };
 
-  for prop in obj.props.clone().into_iter() {
+  // Both walks read the properties where they lie. The outer one copied the
+  // whole property list before walking it, and the inner one copied every
+  // property it looked at -- so a type declaration of n properties cost n
+  // copies of each of its n value subtrees.
+  for prop in obj.props.iter() {
     match prop {
       PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-      PropOrSpread::Prop(mut prop) => {
-        expand_shorthand_prop(&mut prop);
-
-        match prop.deref() {
-          Prop::KeyValue(key_value) => {
-            if let Some(ident) = key_value.key.as_ident()
-              && ident.sym == "syntax"
-            {
-              let value = obj.props.iter().find(|prop| {
-                match prop {
-                  PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-                  PropOrSpread::Prop(prop) => {
-                    let mut prop = prop.clone();
-                    expand_shorthand_prop(&mut prop);
-
-                    match prop.as_ref() {
-                      Prop::KeyValue(key_value) => {
-                        if let Some(ident) = key_value.key.as_ident() {
-                          return ident.sym == "value";
-                        }
-                      },
-                      _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
+      PropOrSpread::Prop(prop) => match expanded_shorthand_prop(prop).as_ref() {
+        Prop::KeyValue(key_value) => {
+          if let Some(ident) = key_value.key.as_ident()
+            && ident.sym == "syntax"
+          {
+            let value = obj.props.iter().find(|prop| {
+              match prop {
+                PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
+                PropOrSpread::Prop(prop) => match expanded_shorthand_prop(prop).as_ref() {
+                  Prop::KeyValue(key_value) => {
+                    if let Some(ident) = key_value.key.as_ident() {
+                      return ident.sym == "value";
                     }
                   },
-                }
-
-                false
-              });
-
-              if let Some(value) = value {
-                let result_key_value = match value.as_prop().and_then(|prop| prop.as_key_value()) {
-                  Some(kv) => kv,
-                  None => stylex_panic!("Expected key-value property"),
-                };
-
-                return (result_key_value.value.clone(), Some(obj.clone().into()));
+                  _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
+                },
               }
+
+              false
+            });
+
+            if let Some(value) = value {
+              let result_key_value = match value.as_prop().and_then(|prop| prop.as_key_value()) {
+                Some(kv) => kv,
+                None => stylex_panic!("Expected key-value property"),
+              };
+
+              return (result_key_value.value.clone(), Some(obj.clone().into()));
             }
-          },
-          _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
-        }
+          }
+        },
+        _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
       },
     }
   }

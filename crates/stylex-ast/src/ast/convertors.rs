@@ -275,12 +275,31 @@ pub fn convert_string_to_prop_name(value: &str) -> PropName {
   }
 }
 
-pub fn expand_shorthand_prop(prop: &mut Box<Prop>) {
-  if let Some(ident) = prop.as_shorthand() {
-    **prop = Prop::from(KeyValueProp {
+/// The key-value pair a property stands for, copied only where the copy is the
+/// point.
+///
+/// A shorthand name is the one spelling that has to be rewritten before it can
+/// be read as a pair, and it holds nothing but the name. Every other property
+/// is already a pair and is read where it lies. A reader that copies first
+/// copies the whole value subtree of the property, which for a namespace of a
+/// `create` call is the entire style object.
+pub fn expanded_shorthand_prop(prop: &Prop) -> Cow<'_, Prop> {
+  match prop.as_shorthand() {
+    Some(ident) => Cow::Owned(Prop::from(KeyValueProp {
       key: convert_string_to_prop_name(ident.sym.as_ref()),
       value: Box::new(Expr::Ident(ident.clone())),
-    });
+    })),
+    None => Cow::Borrowed(prop),
+  }
+}
+
+/// Rewrites a shorthand name in place into the key-value pair it stands for.
+///
+/// For a caller that owns the property and reads it by mutable borrow. One
+/// that only reads it asks [`expanded_shorthand_prop`] and pays no copy.
+pub fn expand_shorthand_prop(prop: &mut Box<Prop>) {
+  if let Cow::Owned(expanded) = expanded_shorthand_prop(prop) {
+    **prop = expanded;
   }
 }
 
@@ -461,13 +480,12 @@ pub fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {
     .iter()
     .map(|prop| match prop {
       PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-      PropOrSpread::Prop(prop) => {
-        let mut prop = prop.clone();
-        expand_shorthand_prop(&mut prop);
-        match prop.as_ref() {
-          Prop::KeyValue(key_value) => key_value.clone(),
-          _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
-        }
+      // One copy, of the pair that is answered. Reading the property where it
+      // lies used to cost a second copy of the same value subtree, of every
+      // property, at every one of this reader's call sites.
+      PropOrSpread::Prop(prop) => match expanded_shorthand_prop(prop).as_ref() {
+        Prop::KeyValue(key_value) => key_value.clone(),
+        _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
       },
     })
     .collect()

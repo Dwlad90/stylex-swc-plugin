@@ -164,36 +164,6 @@ mod dashify_tests {
 }
 
 #[cfg(test)]
-mod remove_quotes_tests {
-  use crate::string::remove_quotes;
-
-  #[test]
-  fn removes_surrounding_double_quotes() {
-    assert_eq!(remove_quotes("\"hello\""), "hello");
-  }
-
-  #[test]
-  fn no_quotes_returns_as_is() {
-    assert_eq!(remove_quotes("hello"), "hello");
-  }
-
-  #[test]
-  fn removes_only_surrounding_quotes() {
-    assert_eq!(remove_quotes("\"he\"llo\""), "he\"llo");
-  }
-
-  #[test]
-  fn handles_empty_string() {
-    assert_eq!(remove_quotes(""), "");
-  }
-
-  #[test]
-  fn handles_only_quotes() {
-    assert_eq!(remove_quotes("\"\""), "");
-  }
-}
-
-#[cfg(test)]
 mod utf16_length_tests {
   use crate::string::utf16_length;
 

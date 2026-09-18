@@ -131,17 +131,6 @@ pub fn is_blank_css_text(s: &str) -> bool {
   s.bytes().all(|byte| byte <= 32)
 }
 
-/// Strips surrounding double-quote characters from a string.
-pub fn remove_quotes(s: &str) -> Cow<'_, str> {
-  let trimmed = s.trim_matches('"');
-
-  if trimmed.len() == s.len() {
-    Cow::Borrowed(s)
-  } else {
-    Cow::Borrowed(trimmed)
-  }
-}
-
 /// The length of a string as JavaScript reports it: its count of UTF-16 code
 /// units.
 ///

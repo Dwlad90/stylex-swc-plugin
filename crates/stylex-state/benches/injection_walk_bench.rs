@@ -367,6 +367,11 @@ fn assert_placement(fixture: &Fixture, label: &str, runtime_injection: bool) {
   }
 }
 
+/// Above this many statements a module body is no longer a "small input": a
+/// batch of copies of one costs more memory than the machine should hold at
+/// the moment the measurement is taken.
+const LARGE_BODY_STATEMENTS: usize = 1_000;
+
 /// Times one flush over `fixture`, after checking it placed what it should.
 fn measure(
   group: &mut BenchmarkGroup<'_, WallTime>,
@@ -380,6 +385,17 @@ fn measure(
   // iteration can reuse what the one before it left. The routine returns both,
   // which keeps tearing down a body of thousands of nodes out of the measured
   // window.
+  // `SmallInput` holds a tenth of the iteration count of set-ups at once,
+  // before the timing starts, and Criterion reserves it for an input under
+  // about one percent of the memory there is. One body of the corpus is
+  // thousands of nodes, so the large legs are built one per iteration instead:
+  // the same measured window, without a batch that swaps the machine exactly
+  // where the reading is taken.
+  let batch = match fixture.body.len() > LARGE_BODY_STATEMENTS {
+    true => BatchSize::PerIteration,
+    false => BatchSize::SmallInput,
+  };
+
   group.bench_function(label, |b| {
     b.iter_batched(
       || (queued_state(fixture), fixture.body.clone()),
@@ -391,7 +407,7 @@ fn measure(
         );
         (state, body)
       },
-      BatchSize::SmallInput,
+      batch,
     )
   });
 }

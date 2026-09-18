@@ -46,10 +46,20 @@ mod kebab_case_tests {
 
   /// A name holding no ASCII capital is still lowercased where it holds
   /// anything else that has a lowercase form.
+  ///
+  /// The sigma cases are the anchor for lowercasing the whole name at once.
+  /// A sigma that ends a word lowercases to `ς` and one that does not to `σ`,
+  /// which only a reader of the whole name can tell apart -- so a lowering
+  /// done character by character in the loop answers `σ` for both and stops
+  /// agreeing with the runtime.
   #[test]
   fn lowercases_a_name_that_is_not_ascii() {
     assert_eq!(kebab_case("Ünicode"), "ünicode");
     assert_eq!(kebab_case("aΣB"), "aς-b");
+    assert_eq!(kebab_case("ΑΣ"), "ας");
+    assert_eq!(kebab_case("aΣ"), "aς");
+    // The same letter inside a word, where the rule answers the other way.
+    assert_eq!(kebab_case("ΣΑ"), "σα");
   }
 }
 

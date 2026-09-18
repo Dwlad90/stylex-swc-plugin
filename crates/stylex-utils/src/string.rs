@@ -86,6 +86,14 @@ pub fn kebab_case(s: &str) -> Cow<'_, str> {
     // A name outside ASCII goes through the Unicode rule as well, for the
     // reason `dashify` states above. The pass above left every character it
     // covers untouched, so the two do not disagree.
+    //
+    // Over the finished name, and not character by character in the loop
+    // above. The rule the runtime applies is one `toLowerCase` over the whole
+    // name, and a whole name is what a final sigma is judged against: `aΣB`
+    // becomes `aς-b` there and `aσ-b` under a per-character lowering. The
+    // second pass is what keeps the two agreeing, and it is paid only by a
+    // name that is not ASCII -- which no property name a style object holds
+    // ever is.
     false => Cow::Owned(kebab.to_lowercase()),
   }
 }

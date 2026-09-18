@@ -78,50 +78,49 @@ pub fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>
     return (key_value.value, None);
   };
 
-  // Both walks read the properties where they lie. The outer one copied the
-  // whole property list before walking it, and the inner one copied every
-  // property it looked at -- so a type declaration of n properties cost n
-  // copies of each of its n value subtrees.
-  for prop in obj.props.iter() {
-    match prop {
-      PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-      PropOrSpread::Prop(prop) => match expanded_shorthand_prop(prop).as_ref() {
-        Prop::KeyValue(key_value) => {
-          if let Some(ident) = key_value.key.as_ident()
-            && ident.sym == "syntax"
-          {
-            let value = obj.props.iter().find(|prop| {
-              match prop {
-                PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-                PropOrSpread::Prop(prop) => match expanded_shorthand_prop(prop).as_ref() {
-                  Prop::KeyValue(key_value) => {
-                    if let Some(ident) = key_value.key.as_ident() {
-                      return ident.sym == "value";
-                    }
-                  },
-                  _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
-                },
-              }
+  // A typed declaration is the one that names a syntax and gives a value.
+  // Short of either name the object is an ordinary value, and it is handed
+  // back whole.
+  let Some(value) = prop_named(obj, "syntax").and_then(|_| prop_named(obj, "value")) else {
+    return (key_value.value, None);
+  };
 
-              false
-            });
+  let result_key_value = match value.as_prop().and_then(|prop| prop.as_key_value()) {
+    Some(key_value) => key_value,
+    None => stylex_panic!("Expected key-value property"),
+  };
 
-            if let Some(value) = value {
-              let result_key_value = match value.as_prop().and_then(|prop| prop.as_key_value()) {
-                Some(kv) => kv,
-                None => stylex_panic!("Expected key-value property"),
-              };
+  (result_key_value.value.clone(), Some(obj.clone().into()))
+}
 
-              return (result_key_value.value.clone(), Some(obj.clone().into()));
-            }
-          }
-        },
-        _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
-      },
-    }
-  }
-
-  (key_value.value, None)
+/// The property of `object` that is written under `name`, read where it lies.
+///
+/// A shorthand name is read as the pair it stands for, so `{ syntax }` and
+/// `{ syntax: syntax }` are one spelling here. The property is answered as the
+/// object holds it, because a caller that takes the value needs the property
+/// and not the reading made of it.
+///
+/// Asked twice for one object, which is why it is one function. Each reader
+/// used to spell the walk out again, and both copied every property they
+/// looked at -- so an object of n properties cost n copies of each of its n
+/// value subtrees.
+///
+/// A name written as a shorthand is matched here and cannot be read by the
+/// caller, which takes the pair from the property as the object holds it. Both
+/// callers of `get_css_value` are given a declaration the evaluator rebuilt,
+/// and a rebuilt object holds no shorthand, so no source reaches that. Written
+/// down because the two readings disagree and only this note says so.
+fn prop_named<'object>(object: &'object ObjectLit, name: &str) -> Option<&'object PropOrSpread> {
+  object.props.iter().find(|prop| match prop {
+    PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
+    PropOrSpread::Prop(prop) => match expanded_shorthand_prop(prop).as_ref() {
+      Prop::KeyValue(key_value) => key_value
+        .key
+        .as_ident()
+        .is_some_and(|ident| ident.sym == *name),
+      _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
+    },
+  })
 }
 
 #[cfg(test)]

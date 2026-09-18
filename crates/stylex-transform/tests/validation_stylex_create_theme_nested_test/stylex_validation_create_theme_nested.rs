@@ -83,6 +83,22 @@ stylex_test_panic!(
   "#
 );
 
+// The second argument refused for what it is rather than for its kind. The case
+// above hands a number, which the shape reader answers; this hands a call, so
+// the fold refuses before a shape is read. The frame that names the call is the
+// half `stylex_test_panic!` cannot see -- `positions-nested-theme-non-static-
+// override` in the parity corpus reads that.
+stylex_test_panic!(
+  invalid_second_argument_non_static,
+  "Only static values are allowed inside of an unstable_createThemeNested() call.",
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const vars = { color: 'var(--color)', __varGroupHash__: 'x568ih9' };
+    const theme = stylex.unstable_createThemeNested(vars, genOverrides());
+  "#
+);
+
 stylex_test_panic!(
   invalid_override_key_with_separator,
   "Key \"color.primary\" must not contain the \".\" character",

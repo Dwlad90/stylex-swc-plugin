@@ -127,6 +127,14 @@
       "origin": "the condition-key guard, INVALID_PSEUDO_OR_AT_RULE",
       "note": "The one CSS refusal in the set that is about a key rather than a value, reached from the style walk rather than from a value pass -- so it is a different way of arriving at a position, and it arrives at the same nothing. Which is the useful half of the answer: the silence is not a property of the value passes but of every CSS refusal either compiler makes.",
       "expected": "neither-position"
+    },
+    {
+      "id": "nested-theme-non-static-override",
+      "label": "a nested theme whose override object is not static",
+      "source": "import * as stylex from '@stylexjs/stylex';\nconst vars = { color: 'var(--color)', __varGroupHash__: 'x568ih9' };\nexport const theme = stylex.unstable_createThemeNested(vars, genOverrides());\n",
+      "origin": "stylex-create-theme-nested, the refusal of a second argument that did not fold",
+      "note": "The first producer refusal in the set -- every other entry is an evaluator deopt -- so it is the only one that says where a *producer* sends the reader. The Rust suite asserts the sentence and nothing else, which a frame that regressed to a bare sentence would still pass; here that regression reads `no-position` and fails. The divergence is deliberate and is the choice every refusal in this compiler makes: the frame covers the expression that did not fold -- `genOverrides()`, at 3:62 -- where upstream frames the whole call at 3:22. `refusal_site` reads the position the evaluator recorded when it cleared `confident`, and upstream's producers hand `buildCodeFrameError` the call node. The finer position is kept, because it names the argument the author has to change, and the sentence is the same on both sides.",
+      "expected": "divergent"
     }
   ]
 }

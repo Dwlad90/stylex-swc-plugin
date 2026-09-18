@@ -39,7 +39,23 @@ pub(crate) fn stylex_create_theme(
 ) -> (FlatCompiledStyles, InjectableStylesMap) {
   // The group name and the source of every variable name come out of one read,
   // which also refuses anything that is no variable group.
-  let (var_group_hash, mut theme_vars) = validate_theme_variables(theme_vars, state);
+  let theme_group = validate_theme_variables(theme_vars, state);
+
+  stylex_create_theme_from_group(theme_group, variables, state, typed_variables)
+}
+
+/// The same production, for a caller that has already read the variable group.
+///
+/// The read is not free: it copies every property of the group twice, and a
+/// caller that asks for it to order its own refusals would otherwise pay for
+/// the whole group a second time here.
+pub(crate) fn stylex_create_theme_from_group(
+  theme_group: (String, ThemeVars),
+  variables: &EvaluateResultValue,
+  state: &mut StateManager,
+  typed_variables: &mut InjectableStylesMap,
+) -> (FlatCompiledStyles, InjectableStylesMap) {
+  let (var_group_hash, mut theme_vars) = theme_group;
 
   let mut rules_by_at_rule = IndexMap::new();
 

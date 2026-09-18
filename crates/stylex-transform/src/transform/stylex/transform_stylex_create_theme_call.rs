@@ -9,7 +9,7 @@ use crate::{
   StyleXTransform,
   shared::{
     transformers::{
-      stylex_create_theme::stylex_create_theme, stylex_keyframes::get_keyframes_fn,
+      stylex_create_theme::stylex_create_theme_from_group, stylex_keyframes::get_keyframes_fn,
       stylex_position_try::get_position_try_fn, stylex_types::get_types_fn,
     },
     utils::{
@@ -132,7 +132,10 @@ where
       // refused with this sentence, before the producer runs and reports the
       // same input in its own words. Both arguments are already read at this
       // point, so this does not change which one is read first.
-      validate_theme_variables(&variables, &self.state);
+      //
+      // The answer is carried on rather than thrown away. Reading it again in
+      // the producer copies every property of the group twice over.
+      let theme_group = validate_theme_variables(&variables, &self.state);
 
       let overrides = match evaluated_arg2.value {
         Some(value) => {
@@ -162,8 +165,8 @@ where
         ),
       };
 
-      let (mut overrides_obj, inject_styles) = stylex_create_theme(
-        &variables,
+      let (mut overrides_obj, inject_styles) = stylex_create_theme_from_group(
+        theme_group,
         &overrides,
         &mut self.state,
         &mut IndexMap::default(),

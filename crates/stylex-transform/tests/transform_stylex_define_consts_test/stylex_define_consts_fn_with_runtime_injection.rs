@@ -225,3 +225,23 @@ stylex_test!(
     export const flags = stylex.defineConsts({ on: 1 === 1, off: 1 > 2 });
   "#
 );
+
+// A constant set to `null` writes no `constKey` and no `constVal` into the
+// call, while every other kind writes both -- including the falsy `0`, which a
+// truthiness test in place of the null check would lose. The reference makes
+// the same choice, and its metadata carrier keeps the pair that this call
+// drops; `index.spec.ts` pins that other half.
+stylex_test!(
+  a_null_constant_value_writes_no_pair,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_unstable_module_resolution(ModuleResolution::common_js(Some(
+      "/stylex/packages/".to_string(),
+    )))
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_runtime_injection()
+  }),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const c = stylex.defineConsts({ a: null, b: 1, c: 'red', d: true, e: 0 });
+  "#
+);

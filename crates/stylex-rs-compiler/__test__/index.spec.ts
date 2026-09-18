@@ -340,6 +340,50 @@ test('transform: at-rule priority reaches metadata unrounded', () => {
   ]);
 });
 
+// A constant set to `null` is carried by two readers that answer differently,
+// and the reference makes the same two choices: its metadata holds the rule
+// object whole, while the `stylex.inject(...)` call it builds drops a
+// `constKey`/`constVal` pair whose value is `null`. Only a spec on this side
+// can read the metadata carrier, so the pair is pinned here and the injected
+// call is pinned beside it.
+const nullConstantFixture = `
+  import * as stylex from '@stylexjs/stylex';
+  export const c = stylex.defineConsts({ a: null, b: 1, c: 'red', d: true, e: 0 });
+`;
+
+const compileConstants = (runtimeInjection: boolean) =>
+  transform(path.join(cwd, 'consts.stylex.js'), nullConstantFixture, {
+    dev: false,
+    runtimeInjection,
+    treeshakeCompensation: true,
+    unstable_moduleResolution: { type: 'commonJS', rootDir: cwd },
+  });
+
+test('transform: a null constant keeps its pair in the metadata', () => {
+  // The kind the author gave each constant survives the trip, so a reader does
+  // not have to guess one back out of text.
+  expect(compileConstants(false).metadata.stylex.map(([, rule]) => rule.constVal)).toStrictEqual([
+    null,
+    1,
+    'red',
+    true,
+    0,
+  ]);
+});
+
+test('transform: a null constant loses its pair in the injected call', () => {
+  const injected = compileConstants(true).code.match(/constVal: [^,\n}]+/g);
+
+  // A boolean crosses as the text JavaScript spells for it, and the falsy `0`
+  // is kept, which a truthiness test in place of the null check would lose.
+  expect(injected).toStrictEqual([
+    'constVal: 1',
+    'constVal: "red"',
+    'constVal: "true"',
+    'constVal: 0',
+  ]);
+});
+
 // ── maxEvaluationDepth across the boundary ─────────────────────────
 
 // What only a spec on this side can prove: the number survives serialization and

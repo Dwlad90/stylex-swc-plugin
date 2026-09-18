@@ -96,8 +96,16 @@ fn set_metadata_ltr_and_rtl(
     // The constant travels as JSON, so that the kind the author gave it
     // survives the trip out of the compiler. A reader of this metadata sees a
     // number as a number and text as text, rather than text it would have to
-    // guess a kind back out of. It is read back through the same reader the
-    // injected rule uses, so the two readers of one carrier agree.
+    // guess a kind back out of.
+    //
+    // This carrier and the injected `stylex.inject(...)` call read the same
+    // JSON, but they do not write the same answer, and that is deliberate. A
+    // constant set to `null` keeps its `constKey`/`constVal` pair here and
+    // loses it in the injected call, because the reference makes the same two
+    // choices: its metadata pushes the rule object whole, and only the call it
+    // builds drops a pair whose value is `null` or `undefined`. A guard added
+    // here would put this carrier out of step with the reference, not into
+    // step with the other one.
     let value = FlatCompiledStylesValue::from_json_text(consts_value);
 
     match value.as_number() {

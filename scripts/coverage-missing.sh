@@ -778,6 +778,13 @@ else
     report_status=0
   else
     report_status=1
+    # Cargo's own code is not carried through, so a run that never measured
+    # anything -- no nightly toolchain, a crate that will not build -- would
+    # otherwise read as a real uncovered region. Which of the two it was is
+    # said here, because the status alone cannot say it.
+    echo "warning: the measured run failed. Read the output above: a build or" >&2
+    echo "         toolchain failure reports the same status as an uncovered" >&2
+    echo "         region, because this branch cannot tell them apart." >&2
   fi
 fi
 
@@ -794,10 +801,17 @@ fi
 if [ "$html" -eq 1 ]; then
   html_flags=(--html)
   [ "$open" -eq 1 ] && html_flags+=(--open)
-  cargo +nightly llvm-cov nextest "${scope[@]}" \
+  # Its own status is not one of ours. `set -e` would let cargo's code -- 101,
+  # commonly -- stand in for the report status below, and the table in the
+  # header names 0, 1, 2 and 3 and nothing else. So a failure here is reported
+  # and the report status is still what the caller reads.
+  if ! cargo +nightly llvm-cov nextest "${scope[@]}" \
     --all-features \
     --ignore-filename-regex "$IGNORE_REGEX" \
-    "${html_flags[@]}"
+    "${html_flags[@]}"; then
+    echo "warning: the HTML report failed to build (see the output above)." >&2
+    echo "         The coverage result above is unaffected." >&2
+  fi
 fi
 
 exit "$report_status"

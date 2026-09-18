@@ -7,10 +7,13 @@
 
 use std::rc::Rc;
 
+use indexmap::IndexMap;
+use stylex_ast::ast::convertors::create_string_expr;
 use stylex_state::{
-  functions::RuleCallHelpers,
+  functions::{FunctionConfigType, RuleCallHelpers},
   state_manager::{ImportKind, StateManager},
 };
+use stylex_structures::stylex_env::EnvEntry;
 use stylex_structures::{
   named_import_source::ImportSources, stylex_state_options::StyleXStateOptions,
 };
@@ -104,4 +107,44 @@ fn a_module_with_no_stylex_import_gets_an_empty_map() {
   assert!(function_map.identifiers.is_empty());
   assert!(function_map.member_expressions.is_empty());
   assert!(!function_map.disable_imports);
+}
+
+/// The `env` object is folded into the map when it is built, so keeping one map
+/// for the file rests on the env being one object for the file. It is:
+/// `CoreStyleXOptions::env` is read-only once the options are built. This says
+/// the second call is still handed a map that carries it, which is what a
+/// stale-map bug would take away.
+///
+/// An env that could vary inside one file would have to key the cache, and this
+/// case is where that would first show.
+#[test]
+fn the_env_survives_into_every_map_the_module_asks_for() {
+  let mut env = IndexMap::new();
+
+  env.insert(
+    "brandPrimary".to_string(),
+    EnvEntry::Expr(create_string_expr("#123456")),
+  );
+
+  let mut state = state_with_stylex_imports();
+
+  state.options.env = Rc::new(env);
+
+  let first = rule_call_eval_config(&mut state, RuleCallHelpers::FirstThatWorks);
+  let second = rule_call_eval_config(&mut state, RuleCallHelpers::FirstThatWorksAndKeyframes);
+
+  for map in [&first, &second] {
+    let namespace = map
+      .member_expressions
+      .get(&ImportSources::Regular("stylex".to_string()))
+      .expect("the namespace carries the members a rule call may read");
+
+    assert!(
+      matches!(
+        namespace.get(&Atom::from("env")).map(Box::as_ref),
+        Some(FunctionConfigType::EnvObject(_))
+      ),
+      "the map carries the env object"
+    );
+  }
 }

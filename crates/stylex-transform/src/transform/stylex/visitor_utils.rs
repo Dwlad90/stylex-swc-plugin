@@ -101,6 +101,26 @@ pub(crate) fn register_env_in_namespace_fold(state: &StateManager, function_map:
 /// One shape written three times before this: each of the three call handlers
 /// built the same map for itself, on every call, even in a module that never
 /// writes one of the helpers.
+///
+/// The reference builds the map again for every call, so keeping one for the
+/// file rests on two conditions. Both hold, and both are named here because
+/// neither is obvious from this function:
+///
+/// - **Every import is recorded before the first call folds.** The map names
+///   the helpers under each local name an import gave them, and `Discover`
+///   records every import of the module before `TransformProducers` folds
+///   anything, so no name arrives after the map is built. The suite
+///   `transform_stylex_keyframes_test::shared_function_map` measures that, with
+///   calls standing between the import and the call that reads it.
+/// - **`env` is one object for the file.** `build_rule_call_eval_config` folds
+///   `apply_stylex_env` into the map, and `CoreStyleXOptions::env` is read-only
+///   once the options are built, so a second call cannot be handed a map built
+///   from a different env. `the_env_survives_into_every_map_the_module_asks_-
+///   for` measures that every map the module asks for still carries it.
+///
+/// A future `env` that can vary inside one file breaks the second condition,
+/// and the answer would be to key the cache on it rather than on `helpers`
+/// alone.
 pub(crate) fn rule_call_eval_config(
   state: &mut StateManager,
   helpers: RuleCallHelpers,

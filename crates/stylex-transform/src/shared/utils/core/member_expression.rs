@@ -11,7 +11,7 @@ use swc_core::{
 use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
 use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
-use stylex_ast::ast::keys::{namespace_name_from_member_prop, try_namespace_name_from_prop_key};
+use stylex_ast::ast::keys::namespace_name_from_member_prop;
 
 use stylex_evaluator::evaluate::evaluate_with_functions;
 use stylex_state::{
@@ -70,25 +70,30 @@ pub(crate) fn member_expression(
         && let Some(EvaluateResultValue::Expr(Expr::Object(ObjectLit { props, .. }))) = style_value
       {
         // The evaluator rebuilds every object it folds, so each property that
-        // arrives here is a key-value pair: a spread is already merged away.
-        // That is asserted where the object is written, by
-        // `every_written_object_carries_key_value_properties_only` in the
-        // evaluator, not argued from here. What is left to decide is the value:
-        // a property declared as absent names nothing the runtime still needs.
+        // arrives here is a key-value pair under a plain name: a spread is
+        // already merged away, and a key it could not name is a refusal it
+        // reported rather than an object it answered. That is asserted where the
+        // object is written, by `every_written_object_carries_key_value_-
+        // properties_only` in the evaluator, not argued from here.
         //
-        // The key is read by name and not by shape. The reference lists the
-        // keys of the folded object, which names a quoted key as readily as a
-        // bare one, so a namespace spelled `'--my-color'` would otherwise be
-        // missing from the keep list and swept away.
+        // A plain name whatever the author wrote, because the rebuild files
+        // every key through `create_ident_key_value_prop`, which keeps a name
+        // no identifier would take rather than quoting it. So `'--my-color'`,
+        // `0` and `['--x']` all arrive as idents, and the cases beside this
+        // file's own read each of them back.
+        //
+        // What is left to decide is the value: a property declared as absent
+        // names nothing the runtime still needs.
         let namespaces = props.iter().filter_map(|item| {
           item
             .as_prop()
             .and_then(|prop| prop.as_key_value())
             .filter(|key_value| !matches!(key_value.value.as_ref(), Expr::Lit(Lit::Null(_))))
-            .and_then(|key_value| try_namespace_name_from_prop_key(&key_value.key))
+            .and_then(|key_value| key_value.key.as_ident())
+            .map(|ident| &ident.sym)
         });
 
-        vec.extend(namespaces);
+        vec.extend(namespaces.cloned());
       }
     }
   }

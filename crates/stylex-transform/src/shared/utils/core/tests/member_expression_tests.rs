@@ -67,6 +67,40 @@ fn leaves_out_a_property_that_declares_nothing() {
   );
 }
 
+/// A key the printer has to quote names its property like any other. Read
+/// through `as_ident` it answered nothing at all, so the namespace behind it
+/// was missing from the keep list and the null sweep dropped a name the runtime
+/// still reads. The reference lists the keys of the folded object, which names
+/// a quoted key as readily as a bare one.
+#[test]
+fn names_a_property_whose_key_has_to_be_quoted() {
+  assert_eq!(
+    namespaces_of("({ root: { '--my-color': 'red', color: 'blue' } }).root"),
+    named(&["--my-color", "color"])
+  );
+}
+
+/// The same rule for the three other shapes a key is written in. A number key
+/// names a string property spelled the way JavaScript spells the number, and a
+/// computed key naming a literal is the key that literal spells.
+#[test]
+fn names_a_property_whose_key_is_not_written_as_a_name() {
+  assert_eq!(
+    namespaces_of("({ root: { 0: 'red', 1e21: 'blue', ['--x']: 'green' } }).root"),
+    named(&["0", "1e+21", "--x"])
+  );
+}
+
+/// A quoted key that declares nothing is still left out, so the reader is
+/// narrowing on the value and not on how the key was written.
+#[test]
+fn leaves_out_a_quoted_key_that_declares_nothing() {
+  assert_eq!(
+    namespaces_of("({ root: { '--my-color': null, color: 'blue' } }).root"),
+    named(&["color"])
+  );
+}
+
 #[test]
 fn names_nothing_of_an_empty_namespace() {
   assert_eq!(namespaces_of("({ root: {} }).root"), named(&[]));

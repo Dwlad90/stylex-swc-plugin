@@ -80,13 +80,13 @@ pub(crate) fn convert_style_to_class_name(
         .filter(|value| !is_blank_css_text(value))
         .collect();
 
-      if values
-        .iter()
-        .any(|value| value.starts_with("var(") && value.ends_with(')'))
-      {
-        variable_fallbacks(&values)
-      } else {
-        values
+      // The position is what the composer needs, and asking for it answers the
+      // same question as asking whether there is one. Handing it over is what
+      // lets the composer read a set it is told holds a `var()` entry, rather
+      // than defaulting each end to a position no call reaches.
+      match values.iter().position(|value| is_css_var(value)) {
+        Some(first_var) => variable_fallbacks(&values, first_var),
+        None => values,
       }
     },
     PreRuleValue::Expr(_) | PreRuleValue::Null => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
@@ -131,32 +131,40 @@ pub(crate) fn convert_style_to_class_name(
   ))
 }
 
-fn variable_fallbacks(values: &[String]) -> Vec<String> {
-  let first_var = values
-    .iter()
-    .position(|val| val.starts_with("var(") && val.ends_with(')'));
+/// Whether a value is one whole `var()` reference.
+fn is_css_var(value: &str) -> bool {
+  value.starts_with("var(") && value.ends_with(')')
+}
 
-  let last_var = values
-    .iter()
-    .rev()
-    .position(|val| val.starts_with("var(") && val.ends_with(')'))
-    .map(|i| values.len() - 1 - i);
+/// The fallback chain a set of values spells, given the position of its first
+/// `var()` entry.
+///
+/// The position comes from the caller, which found it deciding whether there
+/// was a chain to build at all. That makes the entry part of what this reads
+/// rather than something it has to look for and then account for not finding.
+fn variable_fallbacks(values: &[String], first_var: usize) -> Vec<String> {
+  // `values[first_var]` is a `var()` entry, so a search back over the tail that
+  // starts with it always answers -- and 0, the entry itself, is the answer for
+  // a tail holding only that one.
+  let last_var = first_var
+    + values[first_var..]
+      .iter()
+      .rposition(|value| is_css_var(value))
+      .unwrap_or_default();
 
-  let values_before_first_var = &values[0..first_var.unwrap_or(0)];
+  let values_before_first_var = &values[..first_var];
 
-  let mut var_values: Vec<String> = values
-    [first_var.unwrap_or(0)..last_var.unwrap_or(values.len()) + 1]
+  // Non-empty: `first_var <= last_var`, so the range holds at least the entry
+  // the caller found.
+  let mut var_values: Vec<String> = values[first_var..=last_var]
     .iter()
     .rev()
     .cloned()
     .collect::<Vec<String>>();
 
-  let values_after_last_var = &values[last_var.unwrap_or(values.len()) + 1..];
+  let values_after_last_var = &values[last_var + 1..];
 
-  if !var_values
-    .iter()
-    .all(|val| val.starts_with("var(") && val.ends_with(')'))
-  {
+  if !var_values.iter().all(|value| is_css_var(value)) {
     stylex_panic!("{}", NON_CONTIGUOUS_VARS);
   }
 
@@ -189,6 +197,7 @@ fn variable_fallbacks(values: &[String]) -> Vec<String> {
       result.push(compose_vars(&to_push[0], &to_push[1..]));
     }
   } else {
+    // At least one entry, for the reason the slice above states.
     result.push(compose_vars(&var_values[0], &var_values[1..]));
   }
 
@@ -202,8 +211,9 @@ fn variable_fallbacks(values: &[String]) -> Vec<String> {
 /// The `var(a, var(b, c))` chain a set of values spells.
 ///
 /// The first value is asked for on its own, so a caller cannot spell a chain of
-/// nothing: the callers all slice a set they know holds a value, and the
-/// recursion goes on only while there is a rest to go on with.
+/// nothing: [`variable_fallbacks`] slices a set that holds at least the `var()`
+/// entry its caller found, and the recursion goes on only while there is a rest
+/// to go on with.
 fn compose_vars(first: &str, rest: &[String]) -> String {
   if let Some((next, tail)) = rest.split_first() {
     let fallback = compose_vars(next, tail);

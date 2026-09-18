@@ -360,15 +360,16 @@ const compileConstants = (runtimeInjection: boolean) =>
   });
 
 test('transform: a null constant keeps its pair in the metadata', () => {
+  // Read as `unknown` on purpose. `constVal` is declared as the reference
+  // declares it -- `string | number` -- and both runtimes are wider than that
+  // type, which is the thing this case exists to pin.
+  const constants = compileConstants(false).metadata.stylex.map(
+    ([, rule]) => rule.constVal as unknown
+  );
+
   // The kind the author gave each constant survives the trip, so a reader does
   // not have to guess one back out of text.
-  expect(compileConstants(false).metadata.stylex.map(([, rule]) => rule.constVal)).toStrictEqual([
-    null,
-    1,
-    'red',
-    true,
-    0,
-  ]);
+  expect(constants).toStrictEqual([null, 1, 'red', true, 0]);
 });
 
 test('transform: a null constant loses its pair in the injected call', () => {

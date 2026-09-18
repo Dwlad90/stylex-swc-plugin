@@ -103,9 +103,12 @@ fn or_refuse_handled_template(tpl: Option<&Tpl>) -> &Tpl {
 /// Reports a key the variable-reference expression gave up on, and reads it as
 /// no match.
 ///
-/// This is the whole of what is left out of the coverage measurement, and it
-/// computes nothing: the expression answers an error only when the matcher
-/// gives up on a backtrack, which a test cannot ask it to do.
+/// This is the whole of what is left out of the coverage measurement. It does
+/// two things -- it writes the warning and it answers `false` -- and neither is
+/// reachable from a source: the expression answers an error only when the
+/// matcher gives up on a backtrack, which no key can ask it to do. A `false`
+/// answered here is the same `false` the matcher answers for a key that holds
+/// no reference, so nothing downstream tells the two apart.
 /// `guidelines/stack/RUST.md` describes the allowance.
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn report_unmatched_key(error: impl std::fmt::Display) -> bool {

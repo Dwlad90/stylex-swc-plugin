@@ -12,6 +12,14 @@ use stylex_ast::ast::convertors::normalize_expr;
 /// It is one token holding a digit, which is what keeps it silent: `listStyle`
 /// is the one expansion that sorts its value, and it sorts this one into the
 /// slot a keyword would not take.
+///
+/// **One constant where the reference writes `'p' + i`.** The two agree only
+/// because no expansion reads the index: `legacy-expand-shorthands.js` branches
+/// on how many tokens a value holds and never on what a token spells. That is
+/// an assumption about code this repository does not own, so it is written down
+/// here. An expansion that starts reading the index -- one that treats `p1`
+/// differently from `p0` -- makes this constant wrong, and the answer would be
+/// to carry the index again rather than to change the token.
 const SHORTHAND_MARKER: &str = "p0";
 
 pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicStyle> {

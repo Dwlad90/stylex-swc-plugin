@@ -144,6 +144,11 @@ fn list_text(elements: &[Rc<FlatCompiledStylesValue>]) -> String {
 /// built without it. The second arm is kept because the library names both
 /// answers, and it is left out of the coverage measurement for that reason, as
 /// `guidelines/stack/RUST.md` describes.
+///
+/// The attribute covers the first arm as well, because a two-arm choice cannot
+/// be split across the boundary. What that arm answers is asserted anyway, by
+/// the round trips in `flat_compiled_styles_value_test.rs`: a number written as
+/// JSON and read back is the number it was.
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn number_from_json(number: &serde_json::Number) -> FlatCompiledStylesValue {
   match number.as_f64() {

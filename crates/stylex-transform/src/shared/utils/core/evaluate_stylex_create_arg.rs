@@ -131,11 +131,17 @@ fn namespace_key_of(key: &Expr) -> Option<&str> {
 /// One reader for both places that name a reason, so a key of either kind is
 /// answered the same way in each.
 ///
-/// This is the whole of what is left out of the coverage measurement, and it
-/// computes nothing -- it chooses between answers the caller has already worked
-/// out. The read that produces the name stays at the call site. A key that
-/// spells no name is refused where it is read, before any value under it is,
-/// which `a_namespace_key_that_spells_no_name_is_refused` measures.
+/// The choice between the two answers is what is left out of the coverage
+/// measurement, and only that. The naming itself is `prepend_key_to_reason`,
+/// which is its own measured function and is asserted by
+/// `a > flexGrow > unknown error` in `logical_operators.rs`; the read that
+/// produces the name stays at the call site.
+///
+/// The second arm has no source that reaches it: `evaluate_obj_key` answers a
+/// string literal for every key it accepts, and a key that spells no name is
+/// refused where it is read, which `a_namespace_key_that_spells_no_name_is_-
+/// refused` measures. Making the parameter a `String` would remove the arm and
+/// turn that deopt into a stopped build, which is the worse trade.
 /// `guidelines/stack/RUST.md` describes the allowance.
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn reason_under_key(key_name: Option<String>, reason: Option<String>) -> Option<String> {

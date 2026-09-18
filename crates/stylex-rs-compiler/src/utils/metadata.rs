@@ -108,13 +108,24 @@ fn set_metadata_ltr_and_rtl(
     // step with the other one.
     let value = FlatCompiledStylesValue::from_json_text(consts_value);
 
-    match value.as_number() {
+    match &value {
       // A number JSON has no word for still crosses as the number it is, which
       // is what the reference hands a reader of its own metadata.
-      Some(number) => style_value.set_named_property("constVal", env.create_double(number)?)?,
-      None => {
-        style_value.set_named_property("constVal", env.to_js_value(&value.as_json_value())?)?
+      //
+      // The three kinds that are one JavaScript value each cross directly.
+      // Only an object and a list are worth building a `serde_json::Value`
+      // tree for, and now only those two pay for it -- a constant that is text
+      // was parsed, rebuilt as JSON and walked again to set one property.
+      FlatCompiledStylesValue::Number(number) => {
+        style_value.set_named_property("constVal", env.create_double(*number)?)?
       },
+      FlatCompiledStylesValue::String(text) => {
+        style_value.set_named_property("constVal", env.create_string(text)?)?
+      },
+      FlatCompiledStylesValue::Bool(flag) => {
+        style_value.set_named_property("constVal", env.get_boolean(*flag)?)?
+      },
+      _ => style_value.set_named_property("constVal", env.to_js_value(&value.as_json_value())?)?,
     }
   }
 

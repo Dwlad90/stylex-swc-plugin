@@ -90,6 +90,27 @@ mod inline_style_to_css_string_tests {
     );
   }
 
+  /// A custom property takes the same spelling rule as any other name here,
+  /// which is where an attribute and a stylesheet part company: a stylesheet
+  /// hands `--myColor` back untouched.
+  ///
+  /// Both answers were measured against @stylexjs/babel-plugin@0.19.0 through
+  /// `stylex.attrs({ … })`, which is the one call that reaches this text.
+  #[test]
+  fn kebab_cases_a_custom_property_written_in_camel_case() {
+    assert_eq!(
+      inline_style_to_css_string(&declarations(&[("--myColor", "red")])),
+      "--my-color:red"
+    );
+
+    // Every capital takes its own hyphen, so a run of them is not the single
+    // hyphen a stylesheet would write.
+    assert_eq!(
+      inline_style_to_css_string(&declarations(&[("--ABCDef", "x")])),
+      "---a-b-c-def:x"
+    );
+  }
+
   /// A value spelled where the call was made is kept as it stands, so a half
   /// the caller had to build reaches the text without being copied again.
   #[test]

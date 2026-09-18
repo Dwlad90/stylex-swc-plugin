@@ -75,6 +75,12 @@ pub(crate) fn stylex_merge(
 
   state.apply_stylex_env(&mut evaluate_path_fn_config);
 
+  // Shared rather than owned from here on. Each argument of the call asks the
+  // evaluator, and the evaluator owns the map it hands to every callback, so a
+  // map given by reference was copied once per argument and once per member
+  // read inside it.
+  let evaluate_path_fn_config = Rc::new(evaluate_path_fn_config);
+
   // A parenthesis is not a different argument, at either level. Read bare,
   // `stylex.props(([a, b]))` was not flattened into its elements and
   // `stylex.props((styles.root))` reached no arm of the match below, so both

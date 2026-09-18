@@ -1,6 +1,8 @@
 //! Tests for the reader that records which style namespaces a bailed-out
 //! `stylex.props` call still needs at runtime.
 
+use std::rc::Rc;
+
 use stylex_enums::style_vars_to_keep::NonNullProps;
 use stylex_state::{functions::FunctionMap, state_manager::StateManager};
 use swc_core::ecma::ast::Expr;
@@ -36,7 +38,7 @@ fn read(
     &mut bail_out_index,
     &mut non_null_props,
     &mut state,
-    &FunctionMap::default(),
+    &Rc::new(FunctionMap::default()),
   );
 
   non_null_props

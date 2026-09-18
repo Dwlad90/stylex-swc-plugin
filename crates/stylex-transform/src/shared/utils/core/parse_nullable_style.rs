@@ -6,7 +6,7 @@ use stylex_ast::ast::convertors::{convert_lit_to_string, is_js_undefined, normal
 use stylex_macros::stylex_unimplemented;
 use swc_core::ecma::ast::{Expr, Lit, MemberProp, ObjectLit};
 
-use stylex_evaluator::evaluate::evaluate;
+use stylex_evaluator::evaluate::evaluate_with_functions;
 
 use stylex_state::folded_value::read_declarations;
 use stylex_state::{
@@ -95,7 +95,7 @@ impl ResolvedArg {
 pub(crate) fn parse_nullable_style(
   path: &Expr,
   state: &mut StateManager,
-  evaluate_path_fn_config: &FunctionMap,
+  evaluate_path_fn_config: &Rc<FunctionMap>,
 ) -> StyleObject {
   // A parenthesis is not a different argument, so the style shape is read
   // through it. Read bare, `stylex.props((styles.root))` reached no arm below
@@ -179,7 +179,7 @@ pub(crate) fn parse_nullable_style(
   };
 
   if result == StyleObject::Other {
-    let parsed_obj = evaluate(path, state, evaluate_path_fn_config);
+    let parsed_obj = evaluate_with_functions(path, state, Rc::clone(evaluate_path_fn_config));
 
     if parsed_obj.confident
       && let Some(result) = parsed_obj.value.as_ref()

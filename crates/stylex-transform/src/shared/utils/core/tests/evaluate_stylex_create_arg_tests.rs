@@ -7,6 +7,8 @@
 //! when the fold answers nothing is measured beside the pass, by
 //! `inline_static_the_fold_cannot_reach_is_left_for_the_runtime`.
 
+use std::rc::Rc;
+
 use stylex_ast::ast::factories::{
   create_key_value_prop, create_object_expression, create_string_key_value_prop,
 };
@@ -36,7 +38,7 @@ fn a_namespace_of_two_string_literals_folds() {
     let evaluated = evaluate_stylex_create_arg(
       &mut argument,
       &mut StateManager::default(),
-      &FunctionMap::default(),
+      &Rc::new(FunctionMap::default()),
     );
 
     assert!(

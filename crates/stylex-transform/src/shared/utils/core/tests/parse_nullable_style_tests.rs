@@ -23,7 +23,7 @@ fn read(code: &str) -> StyleObject {
   parse_nullable_style(
     &expr(code),
     &mut StateManager::default(),
-    &FunctionMap::default(),
+    &Rc::new(FunctionMap::default()),
   )
 }
 
@@ -547,7 +547,7 @@ fn shares_a_declared_style_with_the_state() {
     },
   );
 
-  match parse_nullable_style(&read, &mut state, &FunctionMap::default()) {
+  match parse_nullable_style(&read, &mut state, &Rc::new(FunctionMap::default())) {
     StyleObject::Style(style) => assert!(
       Rc::ptr_eq(&style, &declared),
       "the argument copied the style the state holds"

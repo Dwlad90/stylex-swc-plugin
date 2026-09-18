@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use indexmap::IndexMap;
 use stylex_ast::ast::objects::{assign_props, order_own_map_keys};
 use stylex_css::css::common::get_number_suffix;
@@ -33,8 +35,8 @@ use stylex_constants::constants::{
 use stylex_css::utils::pseudo::is_pseudo_selector;
 use stylex_diagnostics::code_frame::build_code_frame_error_and_panic_at;
 use stylex_evaluator::evaluate::{
-  evaluate, evaluate_obj_key, evaluate_result_vec_to_array_expr, function_fold_to_object,
-  spread_own_properties,
+  evaluate_obj_key, evaluate_result_vec_to_array_expr, evaluate_with_functions,
+  function_fold_to_object, spread_own_properties,
 };
 use stylex_evaluator::evaluate_result::EvaluateResult;
 use stylex_state::resolution::convertors::convert_expr_to_str;
@@ -241,7 +243,7 @@ fn materialize_style_value(
 pub fn evaluate_stylex_create_arg(
   path: &mut Expr,
   traversal_state: &mut StateManager,
-  functions: &FunctionMap,
+  functions: &Rc<FunctionMap>,
 ) -> Box<EvaluateResult> {
   // A parenthesis is not a different argument. Unwrapped here rather than at
   // the call site, because the validator beside this reader unwraps the same
@@ -346,7 +348,11 @@ pub fn evaluate_stylex_create_arg(
                               .collect(),
                           );
                         } else {
-                          return evaluate(path, traversal_state, functions);
+                          return evaluate_with_functions(
+                            path,
+                            traversal_state,
+                            Rc::clone(functions),
+                          );
                         }
                       },
                       _ => {
@@ -360,7 +366,8 @@ pub fn evaluate_stylex_create_arg(
                     }
                   },
                   _ => {
-                    let mut val = evaluate(value_path, traversal_state, functions);
+                    let mut val =
+                      evaluate_with_functions(value_path, traversal_state, Rc::clone(functions));
 
                     if !val.confident {
                       val.reason = reason_under_key(
@@ -402,7 +409,7 @@ pub fn evaluate_stylex_create_arg(
                 }
               },
               _ => {
-                return evaluate(path, traversal_state, functions);
+                return evaluate_with_functions(path, traversal_state, Rc::clone(functions));
               },
             }
           },
@@ -428,14 +435,14 @@ pub fn evaluate_stylex_create_arg(
         fns: (!fns.is_empty()).then_some(fns),
       })
     },
-    _ => evaluate(path, traversal_state, functions),
+    _ => evaluate_with_functions(path, traversal_state, Rc::clone(functions)),
   }
 }
 
 fn evaluate_partial_object_recursively(
   path: &ObjectLit,
   traversal_state: &mut StateManager,
-  functions: &FunctionMap,
+  functions: &Rc<FunctionMap>,
   key_path: Option<Vec<String>>,
 ) -> Box<EvaluateResult> {
   let key_path = key_path.unwrap_or_default();
@@ -445,7 +452,7 @@ fn evaluate_partial_object_recursively(
   for prop in &path.props {
     match prop {
       PropOrSpread::Spread(spread) => {
-        let result = evaluate(&spread.expr, traversal_state, functions);
+        let result = evaluate_with_functions(&spread.expr, traversal_state, Rc::clone(functions));
         if !result.confident {
           // The reason is dropped here, and this compiler's choice rather than
           // the reference compiler's placement. Worth separating the two,
@@ -562,7 +569,8 @@ fn evaluate_partial_object_recursively(
                 inline_styles.extend(result.inline_styles.into_iter().flatten());
               },
               _ => {
-                let result = evaluate(value_path, traversal_state, functions);
+                let result =
+                  evaluate_with_functions(value_path, traversal_state, Rc::clone(functions));
 
                 if !result.confident {
                   let mut full_key_path = key_path.clone();

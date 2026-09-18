@@ -5,7 +5,7 @@ use crate::transform::stylex::visitor_utils::{
   insert_stylex_identifier_entry, register_env_in_namespace_fold, register_stylex_helper,
 };
 
-pub(crate) fn build_runtime_function_map<C>(transform: &mut StyleXTransform<C>) -> Box<FunctionMap>
+pub(crate) fn build_runtime_function_map<C>(transform: &mut StyleXTransform<C>) -> Rc<FunctionMap>
 where
   C: Comments,
 {
@@ -82,5 +82,9 @@ where
 
   register_env_in_namespace_fold(&transform.state, &mut function_map);
 
-  Box::new(function_map)
+  // Shared rather than owned. The fold below it asks the evaluator once per
+  // style property, and the evaluator has to own the map it hands to every
+  // callback it makes -- so a map given by reference was copied at each of
+  // those calls. One counted pointer is copied instead.
+  Rc::new(function_map)
 }

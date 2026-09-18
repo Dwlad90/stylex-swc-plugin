@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use swc_core::{
   atoms::Atom,
   ecma::{
@@ -11,7 +13,7 @@ use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
 use stylex_ast::ast::keys::{namespace_name_from_member_prop, try_namespace_name_from_prop_key};
 
-use stylex_evaluator::evaluate::evaluate;
+use stylex_evaluator::evaluate::evaluate_with_functions;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::FunctionMap,
@@ -24,7 +26,7 @@ pub(crate) fn member_expression(
   bail_out_index: &mut Option<i32>,
   non_null_props: &mut NonNullProps,
   state: &mut StateManager,
-  fns: &FunctionMap,
+  fns: &Rc<FunctionMap>,
 ) {
   let object = member.obj.as_ref();
   let property = &member.prop;
@@ -50,7 +52,8 @@ pub(crate) fn member_expression(
   if let NonNullProps::True = non_null_props {
     style_non_null_props = NonNullProps::True;
   } else {
-    let evaluate_result = evaluate(&Box::new(Expr::from(member.clone())), state, fns);
+    let evaluate_result =
+      evaluate_with_functions(&Expr::from(member.clone()), state, Rc::clone(fns));
 
     let style_value = evaluate_result.value;
     let confident = evaluate_result.confident;
@@ -116,7 +119,7 @@ pub(crate) struct MemberTransform<'a> {
   pub(crate) bail_out_index: Option<i32>,
   pub(crate) non_null_props: NonNullProps,
   pub(crate) state: &'a mut StateManager,
-  pub(crate) functions: &'a FunctionMap,
+  pub(crate) functions: &'a Rc<FunctionMap>,
 }
 
 impl Visit for MemberTransform<'_> {

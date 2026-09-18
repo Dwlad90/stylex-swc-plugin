@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use rustc_hash::FxHashMap;
 use stylex_ast::ast::convertors::create_number_expr;
 use stylex_ast::ast::factories::{
@@ -16,7 +18,7 @@ use swc_core::{
   },
 };
 pub(crate) struct ArgsStyleXTransform {
-  pub(crate) functions: FunctionMap,
+  pub(crate) functions: Rc<FunctionMap>,
   pub(crate) state: StateManager,
 }
 
@@ -29,11 +31,11 @@ impl ArgsStyleXTransform {
 impl Default for ArgsStyleXTransform {
   fn default() -> Self {
     ArgsStyleXTransform {
-      functions: FunctionMap {
+      functions: Rc::new(FunctionMap {
         identifiers: FxHashMap::default(),
         member_expressions: FxHashMap::default(),
         disable_imports: false,
-      },
+      }),
       state: StateManager::default(),
     }
   }

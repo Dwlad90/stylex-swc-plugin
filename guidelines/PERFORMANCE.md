@@ -255,23 +255,24 @@ deleting either leaves a path unpriced.
 
 ## Budget
 
-`benchmark/budget.json` is `enforced`. It holds 65 ceilings, seeded on
-2026-09-10: the largest median-of-round p95 that any seeding run gave, times a
-headroom of 1.25. Sixty-one come from ten runs and four from three runs,
-because the four fold fixtures had no seeding run before the release leg could
-measure them. A breach fails the leg and, through the publish job, blocks the
-release. While the file is `pending-calibration` instead, it holds no ceilings,
-`bench:budget` reports `unseeded`, and the leg passes.
-
-**One of the 66 fixtures has no ceiling yet**: `Feature - runtime injection at
-scale`. Seed it before the next release, or the leg fails with
-`missing-entry` -- see [Seeding a new ceiling](#seeding-a-new-ceiling).
+`benchmark/budget.json` is `enforced`. It holds a ceiling for each of the 66
+fixtures: the largest median-of-round p95 that any seeding run gave, times a
+headroom of 1.25. Sixty-one come from ten runs on 2026-09-10, four from three
+runs on the same date, because the four fold fixtures had no seeding run before
+the release leg could measure them, and one from three runs on 2026-09-18. A
+breach fails the leg and, through the publish job, blocks the release. While
+the file is `pending-calibration` instead, it holds no ceilings, `bench:budget`
+reports `unseeded`, and the leg passes.
 
 The headroom of 1.25 is for the machine, not for the noise. GitHub hands out
 several CPU models, and the seeding runs show one class about 15% slower than
-the other. Taking the largest value of every run already puts each ceiling on
-the slowest class that appeared, so the run-to-run spread is inside
-`observedUpperMs` and the headroom covers a class slower than any seen yet.
+the other. The gap is not the same for every fixture: the three runs that
+seeded `Feature - runtime injection at scale` read 10.04 ms and 10.10 ms on an
+EPYC 9V74 and 13.78 ms on an EPYC 7763, which is 36%. So read the spread from
+the runs of the fixture you are seeding, never from this figure. Taking the
+largest value of every run already puts each ceiling on the slowest class that
+appeared, so the run-to-run spread is inside `observedUpperMs` and the headroom
+covers a class slower than any seen yet.
 Both `observedUpperMs` and `ceilingMs` are rounded for a reader, so a ceiling
 can stand a fraction of a percent on either side of `observedUpperMs` times
 `headroom`. `parseEntry` permits 1% for that, which still refuses a headroom
@@ -317,6 +318,14 @@ anywhere else cannot seed one. The route is the one the original seeding took:
 3. Add one entry by hand: `observedUpperMs` is the largest of those values,
    `headroom` is 1.25, `ceilingMs` is their product, `runs` is how many, and
    `evidence` names the run ids.
+
+A re-run of a failed dispatch counts as a run. It gets a fresh runner, so it
+measures the fixture again and keeps its own budget report artifact, but it
+keeps the run id of the dispatch it repeats. Two attempts of one run are
+therefore two readings under one id, and `evidence` names the attempt beside
+the id so a reader can find the right artifact. This is how
+`Feature - runtime injection at scale` was seeded: one dispatch and the two
+attempts of a second one.
 
 Never seed from one run plus a percentage, and never from a local number. A
 ceiling that was guessed is worse than no gate: it either never fires or fires

@@ -37,7 +37,13 @@ pub fn gen_file_based_identifier(file_name: &str, export_name: &str, key: Option
 ///
 /// A name the author wrote can start with a digit and can carry characters no
 /// identifier takes. A leading digit is pushed behind an underscore, and every
-/// character that is neither a letter nor a digit becomes one.
+/// character that is neither an ASCII letter nor an ASCII digit becomes one.
+///
+/// ASCII and not Unicode, because this name reaches a class name and a class
+/// name is the compatibility contract between this compiler and the reference:
+/// the reference keeps `[a-zA-Z0-9]` and replaces the rest, so `café` is
+/// `caf_` and not `café`. A Unicode reading kept letters the reference
+/// replaces, and the two compilers named the same constant differently.
 ///
 /// Built in one allocation, sized to the name and one byte more. A character
 /// the answer replaces is never longer than the one it stands for, so the
@@ -50,7 +56,7 @@ pub fn as_identifier(name: &str) -> String {
   }
 
   identifier.extend(name.chars().map(|character| {
-    if character.is_alphanumeric() {
+    if character.is_ascii_alphanumeric() {
       character
     } else {
       '_'

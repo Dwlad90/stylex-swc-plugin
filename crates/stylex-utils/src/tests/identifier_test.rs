@@ -84,10 +84,21 @@ mod as_identifier {
     assert_eq!(as_identifier("a b"), "a_b");
   }
 
-  /// A letter outside ASCII is a letter, so it is kept.
+  /// A letter outside ASCII is replaced like any other character the rule does
+  /// not name, because that is what the reference does and the answer reaches a
+  /// class name.
+  ///
+  /// Measured against @stylexjs/babel-plugin@0.19.0 through
+  /// `stylex.defineConsts({ "café": … })` with debug class names on: it writes
+  /// `caf_-x1q2lwh6`.
   #[test]
-  fn keeps_a_letter_that_is_not_ascii() {
-    assert_eq!(as_identifier("größe"), "größe");
+  fn writes_a_letter_that_is_not_ascii_as_an_underscore() {
+    assert_eq!(as_identifier("größe"), "gr__e");
+    assert_eq!(as_identifier("café"), "caf_");
+
+    // One underscore per character and not per byte, so a name stays the
+    // length the reference gives it.
+    assert_eq!(as_identifier("日本"), "__");
   }
 
   #[test]

@@ -45,16 +45,23 @@ pub fn read_declarations<'a>(
   let mut prototype = None;
 
   for prop in props.iter() {
-    if let Some(key_value) = prop.as_prop().and_then(|p| p.as_key_value()) {
-      let key = convert_key_value_to_str(key_value);
+    // A spread, a method, a getter, a setter and a shorthand name are the
+    // spellings this reader cannot name a value for. Refused rather than
+    // skipped, which is what the list arm below and every sibling reader do:
+    // a skipped declaration is emitted as though the author never wrote it,
+    // and a wrong output is worse than a stopped build.
+    let Some(key_value) = prop.as_prop().and_then(|p| p.as_key_value()) else {
+      stylex_unimplemented!("Encountered a declaration the compiler cannot read.");
+    };
 
-      if key == PROTOTYPE_KEY {
-        prototype = key_value.value.as_object();
-        continue;
-      }
+    let key = convert_key_value_to_str(key_value);
 
-      compiled_styles.insert(key, Rc::new(folded_value(key_value.value.as_ref())));
+    if key == PROTOTYPE_KEY {
+      prototype = key_value.value.as_object();
+      continue;
     }
+
+    compiled_styles.insert(key, Rc::new(folded_value(key_value.value.as_ref())));
   }
 
   prototype

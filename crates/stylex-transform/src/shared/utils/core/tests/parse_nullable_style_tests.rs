@@ -459,14 +459,16 @@ fn keeps_a_repeated_name_in_its_first_place() {
   );
 }
 
-/// A property that is not a key-value pair declares nothing to read.
+/// A property that is not a key-value pair is refused rather than skipped.
+///
+/// A compiled style reaches this reader with every property already a pair, so
+/// the refusal is what says the shape was not compiled -- where skipping it
+/// merged a style short of a declaration and named a class that does not hold
+/// it.
 #[test]
-fn passes_over_a_property_that_is_not_a_key_value_pair() {
-  let mut compiled = styles();
-
-  parse_nullable_object(&mut compiled, &expr("{ ...rest, color: 'xa' }"));
-
-  assert_eq!(compiled.keys().cloned().collect::<Vec<_>>(), ["color"]);
+#[should_panic(expected = "Encountered a declaration the compiler cannot read.")]
+fn refuses_a_property_that_is_not_a_key_value_pair() {
+  parse_nullable_object(&mut styles(), &expr("{ ...rest, color: 'xa' }"));
 }
 
 /// A declaration holds a literal or an object. Anything else was never

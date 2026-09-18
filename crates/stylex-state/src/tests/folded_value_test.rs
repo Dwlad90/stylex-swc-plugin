@@ -192,16 +192,57 @@ fn keeps_a_repeated_name_in_its_first_place() {
   assert_eq!(read["a"].as_ref(), &FlatCompiledStylesValue::Number(3.0));
 }
 
-/// A property that is not a key-value pair declares nothing to read.
-#[test]
-fn passes_over_a_property_that_is_not_a_key_value_pair() {
-  assert_eq!(
-    names_of("{ ...rest, a: 1 }")
-      .keys()
-      .cloned()
-      .collect::<Vec<_>>(),
-    ["a"]
-  );
+/// A property that is not a key-value pair is refused rather than skipped.
+///
+/// Skipping it emits the module as though the author never wrote the
+/// declaration, which is a wrong output where a stopped build was the honest
+/// answer. Every sibling reader refuses these same spellings, and this one now
+/// reads like them.
+///
+/// One case per spelling, because each arrives as a different node and a
+/// reader that names only some of them would let the rest through.
+mod refuses_a_property_it_cannot_name {
+  use super::names_of;
+
+  #[test]
+  #[should_panic(expected = "Encountered a declaration the compiler cannot read.")]
+  fn a_spread() {
+    names_of("{ ...rest, a: 1 }");
+  }
+
+  #[test]
+  #[should_panic(expected = "Encountered a declaration the compiler cannot read.")]
+  fn a_method() {
+    names_of("{ a() { return 1; } }");
+  }
+
+  #[test]
+  #[should_panic(expected = "Encountered a declaration the compiler cannot read.")]
+  fn a_getter() {
+    names_of("{ get a() { return 1; } }");
+  }
+
+  #[test]
+  #[should_panic(expected = "Encountered a declaration the compiler cannot read.")]
+  fn a_setter() {
+    names_of("{ set a(value) {} }");
+  }
+
+  /// A shorthand name reaches here unexpanded only from a caller that did not
+  /// expand it. The producers all do, so this pins the reader and not them.
+  #[test]
+  #[should_panic(expected = "Encountered a declaration the compiler cannot read.")]
+  fn an_unexpanded_shorthand_name() {
+    names_of("{ a }");
+  }
+
+  /// The refusal comes before the names beside it are written, so a declaration
+  /// the reader cannot name stops the whole object rather than shortening it.
+  #[test]
+  #[should_panic(expected = "Encountered a declaration the compiler cannot read.")]
+  fn a_spread_written_after_a_name_it_would_shorten() {
+    names_of("{ a: 1, ...rest }");
+  }
 }
 
 /// The name that sets what an object inherits from writes no name of its own.

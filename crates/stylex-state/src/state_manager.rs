@@ -299,21 +299,6 @@ pub struct BindingWrites {
   pub declared: FxHashSet<Id>,
 }
 
-/// Whether the state must keep its own copy of the module the walk is given.
-///
-/// A debug build always keeps one: the assertions and the code frames that
-/// quote the source only run there. A release build keeps one only where the
-/// compiler cannot read the file back off disk, because the copy is a deep
-/// clone of the whole module.
-///
-/// Both answers are parameters rather than reads, so one build can be asked
-/// for the other build's answer. Reading `cfg!(debug_assertions)` inside would
-/// fold the first term to `true` in the profile that is measured and leave the
-/// second one with no test able to reach it.
-pub const fn keeps_module_source_copy(debug_build: bool, reads_source_from_disk: bool) -> bool {
-  debug_build || !reads_source_from_disk
-}
-
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ModuleSourceState {
   seen_module_source_code: Option<Rc<SeenModuleSource>>,
@@ -1886,6 +1871,25 @@ impl StateManager {
   /// Records that base, once, as the module walk begins.
   pub fn set_input_module_base(&mut self, base: ModuleBase) {
     self.module_source.input_module_base = Some(base);
+  }
+
+  /// Keeps a copy of `module` where this build needs one.
+  ///
+  /// A debug build always keeps one: the assertions and the code frames that
+  /// quote the source only run there. A release build keeps one only where the
+  /// compiler cannot read the file back off disk, because the copy is a deep
+  /// clone of the whole module.
+  ///
+  /// `debug_build` is a parameter rather than a read, so one build can be asked
+  /// for the other build's answer and both sides of the choice have a test.
+  /// Written as two `cfg` arms at the caller, the release arm never compiled in
+  /// the profile the gate measures, so the gate passed because the branch was
+  /// not there; written as a condition at the caller, its other side was a
+  /// region no debug test could take.
+  pub fn keep_module_source_copy(&mut self, module: &Module, debug_build: bool) {
+    if debug_build || !self.options.use_real_file_for_source {
+      self.set_seen_module_source_code(module, None);
+    }
   }
 
   /// Sets the source code module (marks as not yet normalized)

@@ -1,8 +1,4 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
 
 stylex_test!(
   non_standard_end_aka_inset_inline_end,

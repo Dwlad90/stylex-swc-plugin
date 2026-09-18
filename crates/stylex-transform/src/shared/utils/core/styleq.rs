@@ -25,6 +25,12 @@ impl StyleqArgument<Rc<FlatCompiledStylesValue>> for ResolvedArg {
     }
   }
 
+  /// The address of the style, which names it only while the merge holds it.
+  ///
+  /// Safe because the merger is built and dropped inside one merge, below, so
+  /// every style outlives the cache that names it. A merger that lived longer
+  /// would have to refuse this key for a style the reader built, which is
+  /// dropped with the merge, and give it only for a style read from the state.
   fn cache_key(&self) -> Option<usize> {
     self
       .as_style()
@@ -58,8 +64,8 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
   // it says.
   //
   // A merger that lives for the file does answer lookups from the cache, and
-  // still does not pay for itself. The module comment of `stylex-styleq` holds
-  // both measurements.
+  // saves less than one percent for it. The module comment of `stylex-styleq`
+  // holds both measurements.
   let styleq = stylex_styleq::create_styleq(stylex_styleq::StyleqOptions {
     dedupe_class_name_chunks: true,
     disable_cache: true,

@@ -37,33 +37,39 @@ use crate::{StyleMap, StyleqArgument, StyleqInput, StyleqOptions, StyleqResult, 
 //   its entries die with the style objects; these do not, so a `Styleq` kept
 //   across many merges keeps every path it walked.
 //
-// Both are about how long one `Styleq` lives, and this compiler answers them by
-// not caching at all: the merger it builds has the cache off, because a merger
-// built per merge cannot hit one.
+// Both are about how long one `Styleq` lives, and this compiler answers both by
+// not caching at all. The merger it builds has the cache off and is dropped when
+// the merge returns, so it stores no key that can outlive its style and no chain
+// that can collect entries.
 //
-// A merger that lives longer does hit, and still does not pay. Over the
-// transform suite and the fixture corpus, a merger that lives for the file
-// answers 14% of its lookups from the cache and one that lives for the whole
-// process answers 34%, where the merger built per merge answers none. Both keys
-// were then timed against a module built to repeat: 100 components, each
-// reading its styles from nine `stylex.props` sites, where a file-scoped cache
-// answers 88.9% of its lookups.
+// A merger that lives longer does answer lookups from the cache. What it saves
+// is less than one percent, and only with one of the two keys it could use.
+// Over the transform suite and the fixture corpus, a merger that lives
+// for the file answers 24% of its lookups from the cache, and one that lives
+// for the whole process answers 64%. The merger built per merge answers none.
+// Both keys were then timed against a module built to repeat: 100 components,
+// each reading its styles from nine `stylex.props` sites, where a file-scoped
+// cache answers 89% of its lookups.
 //
 // - The hash key made that module 2.5% slower than no cache at all, because the
 //   key walks every property of the style, which is the work a hit saves.
 // - The address key made it 0.7% faster, and made a module that repeats nothing
 //   0.9% slower.
 //
-// Those are criterion legs of one process, so the two legs of a pair compare;
-// they are not the release gate, which is paired `bench:revisions` on a runner.
-// A best case that gains under a percent does not carry the two caveats above.
+// The two legs of each pair ran in one process, so they compare with each
+// other. They are not the release gate, which is a paired `bench:revisions` run
+// on a runner. That module hits nine times in ten where the corpus hits about
+// one in four, so a file of this corpus lands nearer the leg that repeats
+// nothing, which lost. A best case worth less than one percent does not pay for
+// the two caveats above.
 //
 // The address caveat also asks more of a caller than it looks. The compiler
-// knows a style it read from the state lives for the file, and a style it built
-// for one argument dies with the merge, so an address key would have to be
-// given for the first and refused for the second.
+// knows that a style it read from the state lives for the file, and that a
+// style it built for one argument is dropped with the merge. A caller that kept
+// a merger would have to give an address key for the first kind and refuse it
+// for the second.
 //
-// A caller that wants the cache owes itself an answer to both caveats.
+// A caller that wants the cache must answer both caveats.
 //
 // Order is never observed downstream, so an unordered FxHashMap is appropriate.
 // The entry itself is wrapped in `Arc` so cache hits are a refcount bump rather

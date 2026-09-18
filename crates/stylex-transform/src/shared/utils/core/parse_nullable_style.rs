@@ -38,10 +38,15 @@ pub(crate) enum StyleObject {
 }
 
 impl StyleObject {
-  /// Names a style the reader has just built, which nothing else holds.
+  /// Names the style of one argument.
+  ///
+  /// Takes the style the state holds, or a map the reader has just built and
+  /// nothing else holds. One constructor for both, so a reader of
+  /// `StyleObject::Style` does not have to know which of the two a site hands
+  /// over.
   #[inline]
-  pub(crate) fn style(style: FlatCompiledStyles) -> Self {
-    StyleObject::Style(Rc::new(style))
+  pub(crate) fn style(style: impl Into<Rc<FlatCompiledStyles>>) -> Self {
+    StyleObject::Style(style.into())
   }
 }
 
@@ -164,7 +169,7 @@ pub(crate) fn parse_nullable_style(
         }
 
         if let Some(style_value) = namespaces.get(prop_name.as_ref()) {
-          return StyleObject::Style(Rc::clone(style_value));
+          return StyleObject::style(Rc::clone(style_value));
         }
       }
 

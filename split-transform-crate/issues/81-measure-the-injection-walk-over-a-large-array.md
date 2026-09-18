@@ -93,7 +93,7 @@ the right subject for a corpus row and the wrong one for this walk, so it does
 not reopen the decision above.
 
 Its ceiling is **seeded**, on 2026-09-18, by
-`9096ea457 perf(stylexswc/rs-compiler): seed the runtime injection at scale ceiling`.
+`d8e6e5572 perf(stylexswc/rs-compiler): seed the runtime injection at scale ceiling`.
 It landed with no ceiling first, which is the two-step route: the pull-request
 leg does not read the budget, so the fixture lands green, and the release leg
 then raises `missing-entry` for a fixture it measured with no committed

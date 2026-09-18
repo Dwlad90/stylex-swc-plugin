@@ -2436,6 +2436,18 @@ impl StateManager {
     found
   }
 
+  /// Records that one nested rule has been filed. See
+  /// [`Self::nested_rules_filed`].
+  pub fn note_nested_rule_filed(&mut self) {
+    self.nested_rules_filed = self.nested_rules_filed.wrapping_add(1);
+  }
+
+  /// The filing count the memo compares across one fold. See
+  /// [`Self::nested_rules_filed`].
+  pub fn nested_rules_filed(&self) -> u64 {
+    self.nested_rules_filed
+  }
+
   /// Puts the rules the calls inside the argument declared in front of `own`,
   /// and answers the map the producer registers.
   ///
@@ -2460,18 +2472,6 @@ impl StateManager {
   ///
   /// The answer is the only copy there is, so a caller that drops it loses the
   /// rules of its own module. `must_use` is what says so.
-  /// Records that one nested rule has been filed. See
-  /// [`Self::nested_rules_filed`].
-  pub fn note_nested_rule_filed(&mut self) {
-    self.nested_rules_filed = self.nested_rules_filed.wrapping_add(1);
-  }
-
-  /// The filing count the memo compares across one fold. See
-  /// [`Self::nested_rules_filed`].
-  pub fn nested_rules_filed(&self) -> u64 {
-    self.nested_rules_filed
-  }
-
   #[must_use]
   pub fn take_nested_rules_before(&mut self, own: InjectableStylesMap) -> InjectableStylesMap {
     let mut rules = std::mem::take(&mut self.other_injected_css_rules);

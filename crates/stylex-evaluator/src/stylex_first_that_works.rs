@@ -185,11 +185,6 @@ impl<'a> ArgTexts<'a> {
     })
   }
 
-  /// The text of `args[index]`.
-  fn text(&mut self, index: usize) -> &str {
-    self.filled(index)
-  }
-
   /// The text of `args[index]`, moved out rather than copied.
   ///
   /// The fold asks about each argument of a chain once -- [`plan_fallbacks`]
@@ -210,7 +205,7 @@ pub fn stylex_first_that_works(
     let mut texts = ArgTexts::new(&args, state, functions);
 
     let plan = plan_fallbacks(args.len(), |index| {
-      css_variable_name(texts.text(index)).is_some()
+      css_variable_name(texts.filled(index)).is_some()
     });
 
     // The chain's text is read the same way whichever shape holds it. A shape

@@ -70,33 +70,24 @@ pub fn kebab_case(s: &str) -> Cow<'_, str> {
 
   let mut kebab = String::with_capacity(s.len() + 4);
 
-  // An ASCII name is lowercased as it is built, which is one string rather than
-  // the two a `to_lowercase` over the finished one costs. Every property name a
-  // style object holds takes this path, and it is taken once per declaration.
-  if s.is_ascii() {
-    for byte in s.bytes() {
-      if byte.is_ascii_uppercase() {
-        kebab.push('-');
-      }
-
-      kebab.push(byte.to_ascii_lowercase() as char);
-    }
-
-    return Cow::Owned(kebab);
-  }
-
   for character in s.chars() {
     if character.is_ascii_uppercase() {
       kebab.push('-');
     }
 
-    kebab.push(character);
+    // Lowercased as the name is built, which is one string rather than the two
+    // a `to_lowercase` over the finished one costs. Every property name a style
+    // object holds is ASCII, and this runs once per declaration.
+    kebab.push(character.to_ascii_lowercase());
   }
 
-  // Lowercased over the built string rather than per character, for the reason
-  // `dashify` states above. Only a name outside ASCII reaches this, which is
-  // the case that rule is about.
-  Cow::Owned(kebab.to_lowercase())
+  match s.is_ascii() {
+    true => Cow::Owned(kebab),
+    // A name outside ASCII goes through the Unicode rule as well, for the
+    // reason `dashify` states above. The pass above left every character it
+    // covers untouched, so the two do not disagree.
+    false => Cow::Owned(kebab.to_lowercase()),
+  }
 }
 
 /// Whether a value spells no CSS text at all — empty, or nothing but

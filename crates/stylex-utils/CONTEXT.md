@@ -47,7 +47,7 @@ runtime keeps them apart, and a **custom property** is where they differ most: a
 stylesheet hands `--myColor` back untouched, and an attribute writes
 `--my-color`. Both answers are the runtime's, so both are **observable** — the
 attribute text reaches the page.
-_Avoid_: dashify, hyphenate, snake case
+_Avoid_: hyphenate, snake case, dasherize
 
 **JS float read**:
 `parse_js_float`, which reads a leading float out of a string exactly as

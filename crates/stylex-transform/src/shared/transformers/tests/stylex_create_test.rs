@@ -7,6 +7,7 @@ mod stylex_create {
   use swc_core::ecma::ast::{Expr, ExprOrSpread, KeyValueProp};
 
   use crate::shared::transformers::stylex_create::stylex_create_set;
+  use crate::transform::stylex::transform_stylex_atoms::INLINE_NAMESPACE;
   use stylex_ast::ast::factories::{
     create_array_expression, create_key_value_prop, create_key_value_prop_ident,
     create_nested_object_prop, create_null_lit, create_object_expression,
@@ -1179,5 +1180,144 @@ mod stylex_create {
     assert_eq!(resolved_namespaces, expected_resolved_namespaces);
     assert_eq!(injected_styles, expected_injected_styles);
     assert_eq!(class_paths_in_namespace, expected_class_paths_in_namespace)
+  }
+
+  /// A namespace is named by the key it is written under, which has to spell
+  /// text at compile time.
+  #[test]
+  #[should_panic(expected = "Expected a string value but received a non-string expression.")]
+  fn refuses_a_namespace_name_that_spells_no_text() {
+    let mut object = IndexMap::new();
+
+    object.insert(
+      create_object_expression(vec![]),
+      vec![create_key_value_prop_ident(
+        "color",
+        create_string_expr("red"),
+      )],
+    );
+
+    stylex_create(object);
+  }
+
+  /// A property written with no value declares nothing. The namespace still
+  /// names the property, so a merge below it can still take the property away.
+  #[test]
+  fn names_a_property_that_declares_nothing_and_injects_no_rule() {
+    let mut object = IndexMap::new();
+
+    object.insert(
+      create_string_expr("default"),
+      vec![create_key_value_prop_ident(
+        "color",
+        Expr::Lit(create_null_lit()),
+      )],
+    );
+
+    let (resolved_namespaces, injected_styles, class_paths_in_namespace) = stylex_create(object);
+
+    let namespace = match resolved_namespaces.get("default") {
+      Some(namespace) => namespace,
+      None => panic!("the namespace was not resolved"),
+    };
+
+    assert_eq!(
+      namespace.get("color-kMwMTN").map(|value| value.as_ref()),
+      Some(&FlatCompiledStylesValue::Null)
+    );
+    assert!(injected_styles.is_empty());
+    assert!(
+      class_paths_in_namespace
+        .get("default")
+        .is_some_and(|paths| paths.is_empty())
+    );
+  }
+
+  /// A property written under two conditions is one set of rules. When no
+  /// condition declares anything, the set compiles to no class name at all,
+  /// and the namespace names the property as declaring nothing.
+  #[test]
+  fn names_a_set_of_rules_that_all_declare_nothing() {
+    let mut object = IndexMap::new();
+
+    object.insert(
+      create_string_expr("default"),
+      vec![create_key_value_prop_ident(
+        "color",
+        create_object_expression(vec![
+          create_key_value_prop("default", Expr::Lit(create_null_lit())),
+          create_key_value_prop(":hover", Expr::Lit(create_null_lit())),
+        ]),
+      )],
+    );
+
+    let (resolved_namespaces, injected_styles, _) = stylex_create(object);
+
+    let namespace = match resolved_namespaces.get("default") {
+      Some(namespace) => namespace,
+      None => panic!("the namespace was not resolved"),
+    };
+
+    assert_eq!(
+      namespace.get("color-kMwMTN").map(|value| value.as_ref()),
+      Some(&FlatCompiledStylesValue::Null)
+    );
+    assert!(injected_styles.is_empty());
+  }
+
+  /// A namespace is answered under the name it was given.
+  ///
+  /// The atoms pass reads this: it wraps one property in a namespace of its own
+  /// naming and reads the compiled namespace back out under that name. A name
+  /// that did not survive the compile would leave it with nothing.
+  #[test]
+  fn answers_a_namespace_under_the_name_it_was_given() {
+    // The name the atoms pass writes, beside one an author writes.
+    let names = [INLINE_NAMESPACE, "root"];
+
+    let object = style_object_factory(&[
+      (names[0], &[("display", "flex")]),
+      (names[1], &[("color", "blue")]),
+    ]);
+
+    let (resolved_namespaces, _, _) = stylex_create(object);
+
+    for name in names {
+      assert!(
+        resolved_namespaces.contains_key(name),
+        "the namespace {name} was compiled under another name"
+      );
+    }
+  }
+
+  /// Every namespace that is compiled gets a class-paths entry.
+  ///
+  /// The rewrite of the dynamic entries reads the paths of the namespace it
+  /// rewrites. It answers the empty map for a name it holds no entry for, and
+  /// no reader reaches that answer, because the two maps are written in one
+  /// pass over the same names. The parity is read here, so the day the two come
+  /// apart is the day this fails.
+  #[test]
+  fn answers_class_paths_for_every_namespace_it_compiles() {
+    // Two namespaces, and one of them declares nothing.
+    let object = style_object_factory(&[
+      ("declares", &[("color", "blue")]),
+      ("declares_nothing", &[]),
+    ]);
+
+    let (resolved_namespaces, _, class_paths_in_namespace) = stylex_create(object);
+
+    assert_eq!(
+      resolved_namespaces.len(),
+      2,
+      "both namespaces are compiled, so the check below is not empty"
+    );
+
+    for namespace in resolved_namespaces.keys() {
+      assert!(
+        class_paths_in_namespace.contains_key(namespace),
+        "the namespace {namespace} was compiled with no class-paths entry"
+      );
+    }
   }
 }

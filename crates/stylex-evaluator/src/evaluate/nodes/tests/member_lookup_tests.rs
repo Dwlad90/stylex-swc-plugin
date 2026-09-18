@@ -18,7 +18,7 @@ use crate::evaluate::source_evaluation::*;
 use indexmap::IndexMap;
 use stylex_ast::ast::convertors::create_string_expr;
 use stylex_constants::constants::evaluation_errors::{
-  OBJECT_METHOD, UNEXPECTED_MEMBER_LOOKUP, unreadable_index, unsupported_expression,
+  OBJECT_METHOD, UNEXPECTED_MEMBER_LOOKUP, unsupported_expression,
 };
 use stylex_constants::constants::messages::{PROPERTY_NOT_FOUND, THEME_IMPORT_KEY_AS_OBJECT_KEY};
 use stylex_state::{
@@ -59,18 +59,38 @@ fn a_read_off_an_absent_key_refuses_rather_than_answering_undefined_twice() {
 
 // ==================== a lookup the evaluator cannot read ====================
 
-/// An index into a string is a single UTF-16 code unit, which can be an
-/// unpaired surrogate that no Rust string holds. Refused rather than
-/// approximated, and the refusal names the index that was asked for.
+/// A string is indexed by UTF-16 code unit, which is what the language counts
+/// and what the reference implementation answers.
 ///
-/// The reference implementation answers `'abc'[0]` with `a`, so this refuses a
-/// read it folds. Recorded as ticket 50 of `.scratch/split-transform-crate`,
-/// which decides whether to index the code units and refuse only the read that
-/// lands on half an astral character.
+/// Every index inside the Basic Multilingual Plane has one character to hand
+/// back, so the whole of an ordinary string reads. An index past the end is
+/// `undefined`, as it is for an array.
 #[test]
-fn an_index_into_a_string_is_refused_by_the_index_it_names() {
-  assert_deopt_reason_contains("'abc'[0]", &unreadable_index("0"));
-  assert_deopt_reason_contains("'abc'[2]", &unreadable_index("2"));
+fn a_string_is_indexed_by_code_unit() {
+  assert_folds_to_string("'abc'[0]", "a");
+  assert_folds_to_string("'abc'[2]", "c");
+  assert_folds_to_string("'abc'['1']", "b");
+  assert_folds_to_undefined("'abc'[9]");
+  assert_folds_to_string("'abc'[9] ?? 'none'", "none");
+
+  // An astral character is two code units, so the character after it is at
+  // index two -- which a character count would have called index one.
+  assert_folds_to_string("'\u{1F600}a'[2]", "a");
+}
+
+/// An index that lands on half an astral character answers the replacement
+/// character, which is the substitution the engine fold already makes for every
+/// string it carries back.
+///
+/// So `s[0]` and `s.charAt(0)` are one read written two ways. The reference
+/// implementation writes the lone surrogate itself, which becomes this same
+/// character once the stylesheet is written to a file -- so the declaration
+/// text agrees and only the class name parts.
+#[test]
+fn an_index_that_lands_on_half_a_character_answers_the_replacement_character() {
+  assert_folds_to_string("'\u{1F600}a'[0]", "\u{fffd}");
+  assert_folds_to_string("'\u{1F600}a'[1]", "\u{fffd}");
+  assert_folds_to_string("'\u{1F600}a'.charAt(0)", "\u{fffd}");
 }
 
 /// A computed key that folded to something with no name reads no property.
@@ -201,7 +221,7 @@ fn a_marker_map_read_as_a_member_names_the_shape_it_is() {
 
   entries.insert(
     "markers".into(),
-    FunctionConfigType::IndexMap(IndexMap::default()),
+    FunctionConfigType::IndexMap(Rc::new(IndexMap::default())),
   );
 
   let fns = map_binding("sx", FunctionConfigType::Map(entries));
@@ -297,14 +317,25 @@ fn an_array_a_fold_produced_answers_the_same_three_ways() {
   assert_folds_to_undefined("Object.keys({ a: 1 })[7]");
 }
 
-/// A hole occupies a slot and carries no key, so an index past the hole names
-/// the element the source wrote there -- and the count is the written slots
-/// rather than the keys.
+/// A hole occupies a slot, so `length` counts the slots the source wrote rather
+/// than the elements that carry a value.
+///
+/// Read off the literal, which is the one reading a hole has: an array holding
+/// one folds to no value at all, so there is no list to count.
 #[test]
-fn a_hole_occupies_a_slot_without_carrying_a_key() {
-  assert_folds_to_string("Object.keys([, 'a'])[0]", "1");
+fn a_hole_occupies_a_slot_it_carries_no_value_for() {
   assert_folds_to_number("[, 'a'].length", 2.0);
   assert_folds_to_number("['a', , 'b'].length", 3.0);
+}
+
+/// Every other read off such an array refuses, because only `length` is
+/// answered from the source. The receiver itself is what refuses, so a read on
+/// top of it adds no sentence of its own.
+#[test]
+fn a_read_other_than_length_off_a_holey_array_refuses() {
+  assert_deopts("[, 'a'][0]");
+  assert_deopts("[, 'a'].join('-')");
+  assert_deopts("Object.keys([, 'a'])[0]");
 }
 
 // ==================== an array a fold handed back ====================
@@ -320,7 +351,7 @@ fn an_array_read_out_of_an_object_answers_every_lookup() {
   assert_folds_to_number("({ a: [1, 2] }).a.length", 2.0);
   assert_folds_to_undefined("({ a: [1, 2] }).a[5]");
   assert_folds_to_undefined("({ a: [1, 2] }).a.foo");
-  assert_deopt_reason_contains("({ a: [1, 2] }).a[{}]", UNEXPECTED_MEMBER_LOOKUP);
+  assert_folds_to_undefined("({ a: [1, 2] }).a[{}]");
 }
 
 /// A private name is a key only the class that declares it can read, so no
@@ -332,31 +363,34 @@ fn a_private_name_names_no_property() {
   assert_deopt_reason_contains("({ a: 1 }).#b", UNEXPECTED_MEMBER_LOOKUP);
 }
 
-/// A key written as a literal with no string form names no property, so the
-/// read refuses rather than picking one. `true` is such a literal: the reader
-/// answers the three literals that spell a value and nothing else.
+/// A key names the property `String(key)` names, whatever the key is written
+/// as, so a key no object carries reads `undefined` rather than refusing.
 ///
-/// The language names the property `String(key)`, so the reference
-/// implementation reads `true` and answers `undefined` -- which lets
-/// `... ?? 'red'` fold there and refuse here. Recorded as ticket 50 of
-/// `.scratch/split-transform-crate`, beside ticket 49, which asks the same
-/// question of a key being written.
+/// One rule for the key an object is read by and the key an object is written
+/// with: `{ [true]: 'red' }` names the property `true`, so `obj[true]` has to
+/// look for that one. The reader answered for a string and a number only
+/// before, so a boolean key was written nowhere and found nowhere.
 #[test]
-fn a_key_written_as_a_literal_with_no_string_form_refuses() {
-  assert_deopt_reason_contains("({ a: { b: 1 } }).a[true]", UNEXPECTED_MEMBER_LOOKUP);
+fn a_key_that_is_not_a_string_or_a_number_names_the_property_it_spells() {
+  assert_folds_to_undefined("({ a: { b: 1 } }).a[true]");
+  assert_folds_to_string("(({ a: { b: 1 } }).a[true]) ?? 'red'", "red");
+  assert_folds_to_number("({ true: 1 })[true]", 1.0);
+  assert_folds_to_number("({ null: 1 })[null]", 1.0);
+  assert_folds_to_number("({ 'false': 1 })[1 > 2]", 1.0);
 }
 
-/// The `env` object is read by a key like any other receiver, so a lookup with
-/// no key at all refuses rather than naming a property nobody wrote.
+/// The `env` object is read by a key like any other receiver, so a key it does
+/// not carry names itself in the refusal rather than being read as no key at
+/// all.
 #[test]
-fn an_env_lookup_with_no_key_refuses() {
+fn an_env_lookup_by_a_key_it_does_not_carry_names_that_key() {
   let fns = map_binding("sx", namespace_holding_the_env_object());
   let source = "sx.env[{}]";
 
   assert_refused_with(
     &evaluated_against(&fns, source),
     source,
-    UNEXPECTED_MEMBER_LOOKUP,
+    "The property '[object Object]' was not found in the stylex.env configuration.",
   );
 }
 
@@ -401,4 +435,34 @@ fn a_computed_key_that_answered_nothing_names_itself() {
     "a key the memo answers nothing for",
     PROPERTY_NOT_FOUND,
   );
+}
+
+/// A key that folds to an expression with no name refuses, whatever the
+/// receiver is. A text holding half of an astral character is such a key: no
+/// Rust string can spell it, so there is no property to look for.
+///
+/// Every receiver kind that reads a key is here, because each used to decide
+/// for itself what a key it could not name meant.
+#[test]
+fn a_key_with_no_name_refuses_on_every_receiver() {
+  let fns = map_binding("sx", namespace_holding_the_env_object());
+  // Written as the escape so the source carries the lone surrogate, which no
+  // Rust string literal can hold directly.
+  let key = r"'\ud800'";
+
+  for source in [
+    format!("sx.env[{key}]"),
+    format!("({{ a: 1 }})[{key}]"),
+    format!("[1, 2][{key}]"),
+    format!("'abc'[{key}]"),
+    format!("(sx.missing ?? [1, 2])[{key}]"),
+    // An array a fold produced, which is the array's other spelling.
+    format!("({{ a: [1, 2] }}).a[{key}]"),
+  ] {
+    assert_refused_with(
+      &evaluated_against(&fns, &source),
+      &source,
+      UNEXPECTED_MEMBER_LOOKUP,
+    );
+  }
 }

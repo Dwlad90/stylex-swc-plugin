@@ -43,10 +43,7 @@ impl MetaData {
   pub fn new(class_name: impl Into<String>, injectable_style: InjectableStyleKind) -> Self {
     Self {
       class_name: class_name.into(),
-      priority: match &injectable_style {
-        InjectableStyleKind::Regular(style) => style.priority.unwrap_or(0.0),
-        InjectableStyleKind::Const(style) => style.priority.unwrap_or(0.0),
-      },
+      priority: injectable_style.priority(),
       style: InjectableStyleBaseKind::from(injectable_style),
     }
   }

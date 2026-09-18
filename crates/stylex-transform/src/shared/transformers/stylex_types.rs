@@ -81,10 +81,7 @@ impl HasBase for Integer {
   fn new(value: ValueWithDefault) -> Self {
     Integer {
       base: BaseCSSType {
-        value: convert_number_to_string_using(
-          |a| ValueWithDefault::String(a.to_string()),
-          "0".to_string(),
-        )(value),
+        value: convert_number_to_bare_string(value),
         syntax: CSSSyntax::Integer,
       },
     }
@@ -210,36 +207,32 @@ impl HasBase for TransformList {
     }
   }
 }
+/// Rewrites every number the value holds with `transform_number`, and walks a
+/// map to reach the numbers below it.
+///
+/// A string is parsed first, because an author can write a number as a string
+/// and the reference implementation converts it the same way. A string that
+/// does not read as a number is kept as it was written.
 fn convert_number_to_string_using(
   transform_number: fn(f64) -> ValueWithDefault,
-  default_str: String,
-) -> Rc<dyn Fn(ValueWithDefault) -> ValueWithDefault + 'static> {
-  Rc::new(move |value: ValueWithDefault| -> ValueWithDefault {
-    match value {
-      ValueWithDefault::Number(n) => transform_number(n),
-      ValueWithDefault::String(s) => s
-        .parse()
-        .map_or(ValueWithDefault::String(s), transform_number),
-      ValueWithDefault::Map(o) => {
-        let mut result = IndexMap::new();
-        for (key, val) in o {
-          result.insert(
-            key,
-            convert_number_to_string_using(transform_number, default_str.to_owned())(val),
-          );
-        }
-
-        ValueWithDefault::Map(result)
-      },
-    }
-  })
+  value: ValueWithDefault,
+) -> ValueWithDefault {
+  match value {
+    ValueWithDefault::Number(number) => transform_number(number),
+    ValueWithDefault::String(string) => string
+      .parse()
+      .map_or(ValueWithDefault::String(string), transform_number),
+    ValueWithDefault::Map(map) => ValueWithDefault::Map(
+      map
+        .into_iter()
+        .map(|(key, value)| (key, convert_number_to_string_using(transform_number, value)))
+        .collect::<IndexMap<_, _>>(),
+    ),
+  }
 }
 
 fn convert_number_to_bare_string(value: ValueWithDefault) -> ValueWithDefault {
-  convert_number_to_string_using(
-    |value| ValueWithDefault::String(value.to_string()),
-    "0".to_string(),
-  )(value)
+  convert_number_to_string_using(|value| ValueWithDefault::String(value.to_string()), value)
 }
 
 fn convert_number_to_length(value: ValueWithDefault) -> ValueWithDefault {
@@ -251,8 +244,8 @@ fn convert_number_to_length(value: ValueWithDefault) -> ValueWithDefault {
         ValueWithDefault::String(format!("{}px", value))
       }
     },
-    "0px".to_string(),
-  )(value)
+    value,
+  )
 }
 
 fn convert_number_to_percentage(value: ValueWithDefault) -> ValueWithDefault {
@@ -264,8 +257,8 @@ fn convert_number_to_percentage(value: ValueWithDefault) -> ValueWithDefault {
         ValueWithDefault::String(format!("{}%", value * 100.0))
       }
     },
-    "0".to_string(),
-  )(value)
+    value,
+  )
 }
 
 impl From<Angle> for BaseCSSType {

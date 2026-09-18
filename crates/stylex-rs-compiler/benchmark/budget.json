@@ -307,6 +307,15 @@
       "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
     },
     {
+      "name": "Feature - runtime injection at scale",
+      "ceilingMs": 17.2203,
+      "observedUpperMs": 13.7762,
+      "headroom": 1.25,
+      "runs": 3,
+      "reviewedAt": "2026-09-18",
+      "evidence": "GitHub Actions runs 35378604335, 35384266231 attempt 1, 35384266231 attempt 2"
+    },
+    {
       "name": "Feature - source maps inline",
       "ceilingMs": 0.7047,
       "observedUpperMs": 0.5638,

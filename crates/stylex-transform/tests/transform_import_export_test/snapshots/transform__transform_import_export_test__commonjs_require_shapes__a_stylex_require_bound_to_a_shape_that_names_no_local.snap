@@ -1,0 +1,16 @@
+---
+source: crates/stylex-transform/tests/transform_import_export_test/commonjs_require_shapes.rs
+expression: output
+---
+import * as stylex from '@stylexjs/stylex';
+export const [first] = require('@stylexjs/stylex');
+const { ...everything } = require('@stylexjs/stylex');
+const { [dynamicKey]: computed } = require('@stylexjs/stylex');
+const { create: [nested] } = require('@stylexjs/stylex');
+const { keyframes: withDefault = fallback } = require('@stylexjs/stylex');
+export const styles = {
+    base: {
+        kMwMTN: "x1e2nbdu",
+        $$css: true
+    }
+};

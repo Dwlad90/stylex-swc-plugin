@@ -4,7 +4,7 @@
 //! the same fact repeated at each of them.
 #![allow(dead_code)]
 
-use std::{rc::Rc, sync::Arc};
+use std::rc::Rc;
 
 use stylex_structures::stylex_options::ModuleResolution;
 use stylex_transform::StyleXTransform;
@@ -21,63 +21,18 @@ use swc_core::{
 };
 
 use swc_core::{
-  common::{
-    FileName, SourceMap,
-    errors::{ColorConfig, Handler},
-  },
+  common::FileName,
   ecma::{
-    ast::{EsVersion, Module},
-    parser::{Parser, StringInput, Syntax, lexer::Lexer},
+    parser::Syntax,
     transforms::{
       base::{fixer, hygiene},
       testing::{HygieneVisualizer, Tester},
     },
     utils::{DropSpan, ExprFactory, quote_ident, quote_str},
-    visit::{FoldWith, VisitMut, VisitMutWith, noop_visit_mut_type},
+    visit::{FoldWith, VisitMut, noop_visit_mut_type},
   },
 };
 use swc_ecma_parser::TsSyntax;
-
-pub(crate) fn _parse_js(source_code: &str) -> Module {
-  if std::env::var("INSTA_UPDATE").is_err() {
-    unsafe { std::env::set_var("INSTA_UPDATE", "no") };
-  }
-
-  let cm: Arc<SourceMap> = Default::default();
-  let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
-
-  let file_name = Arc::new(FileName::Custom("input.js".into()));
-
-  // This is the JavaScript code you want to parse.
-  let fm = cm.new_source_file(file_name, source_code.to_string());
-
-  let lexer = Lexer::new(
-    Syntax::default(),
-    EsVersion::EsNext,
-    StringInput::from(&*fm),
-    None,
-  );
-
-  let mut parser = Parser::new_from(lexer);
-
-  match parser.parse_module() {
-    Ok(mut module) => {
-      module.visit_mut_with(
-        &mut StyleXTransform::test(Rc::new(SingleThreadedComments::default()))
-          .with_runtime_injection()
-          .build(),
-      );
-      module
-    },
-    Err(err) => {
-      handler
-        .struct_err(format!("An error occurred: {:#?}", err).as_str())
-        .emit();
-
-      panic!("{:#?}", err)
-    },
-  }
-}
 
 struct RegeneratorHandler;
 
@@ -403,4 +358,132 @@ pub(crate) fn base_style_module(decls: &str, body: &str) -> String {
     "#,
     decls, body
   )
+}
+
+/// The module `input` compiles to, under the default transform.
+///
+/// The same compile step `stylex_test!` makes, reached as a string rather than
+/// as a snapshot -- which is what a case comparing two spellings of one module
+/// needs, since a snapshot can only say what one of them printed.
+pub(crate) fn compiled_module(input: &str) -> String {
+  stringify_js(input, ts_syntax(), |tr| {
+    build_test_transform(tr.comments.clone(), |b| b.with_runtime_injection())
+  })
+}
+
+/// [`compiled_module`], for a module that defines variables.
+///
+/// The file name has to look like a theme file or the call refuses for the name
+/// before the subject is read -- see [`theme_module_transform`], whose options
+/// these are.
+pub(crate) fn compiled_theme_module(input: &str) -> String {
+  stringify_js(input, ts_syntax(), |tr| {
+    theme_module_transform(tr.comments.clone())
+  })
+}
+
+/// Asserts that two spellings of one module compile to the same thing.
+///
+/// A parenthesis is a node in this compiler's tree and none in the reference
+/// implementation's, so a reader that matches a bare node sees a different
+/// expression from the one the author wrote. This is the shape of the check
+/// that finds such a reader: compile both spellings and compare what each
+/// printed, rather than assert that one of them printed something in
+/// particular. A reader added later that matches bare fails here without anyone
+/// having to remember the rule.
+#[track_caller]
+pub(crate) fn assert_spellings_agree(shape: &str, bare: &str, wrapped: &str) {
+  assert_spellings_agree_with(shape, bare, wrapped, compiled_module);
+}
+
+/// [`assert_spellings_agree`], for a shape the default transform cannot host,
+/// or for a pair that is not the parenthesis pair.
+///
+/// `compile` is the harness the shape needs -- a `.stylex.js` file name for a
+/// module that defines variables, or a module resolution for a theme. The
+/// check is the same one: compile both spellings and compare what each
+/// printed. The message names neither spelling, because the pair is not always
+/// bare against parenthesised -- a member read against a computed one is the
+/// same question -- so `shape` is what says which pair was asked.
+///
+/// Answers what the two agreed on, so a caller with something further to ask of
+/// it does not compile either spelling a second time.
+#[track_caller]
+pub(crate) fn assert_spellings_agree_with(
+  shape: &str,
+  first: &str,
+  second: &str,
+  compile: impl Fn(&str) -> String,
+) -> String {
+  let from_first = compile(first);
+  let from_second = compile(second);
+
+  assert_eq!(
+    from_first, from_second,
+    "the two spellings of {shape} compile to something different.\n\
+     first:\n{first}\nsecond:\n{second}"
+  );
+
+  from_first
+}
+
+/// [`assert_spellings_agree_with`], for two spellings that differ in their
+/// import line.
+///
+/// A StyleX API reached by name and the same API reached through the namespace
+/// are the same module apart from that line, so it is the one line the
+/// comparison leaves out. That makes the check blind to a difference confined
+/// to an import, which no case needs it to see: the compiler writes one import
+/// of its own and a `var _inject2 = _inject;` beside it, so a spelling that
+/// injected nothing still reads as different.
+///
+/// Two spellings that both stopped compiling would agree as well, so what they
+/// agreed on is anchored: it has to have injected something for the agreement
+/// to say anything at all. This is what a bare comparison cannot answer, and it
+/// is why a snapshot of one spelling is no substitute -- a call the compiler
+/// never reached prints as the author wrote it.
+///
+/// The anchor is asked of each spelling's whole output, import line and all,
+/// and not of the bodies the comparison read. A regression confined to the
+/// import line is the one thing the comparison is blind to, so leaving the
+/// anchor blind to it as well would let both spellings lose the injector
+/// together and still pass.
+///
+/// `compile` must therefore be a harness that turns runtime injection on, which
+/// every caller's is. One that does not would fail here rather than in its own
+/// case, and the sentence it fails with says which of the two it is.
+#[track_caller]
+pub(crate) fn assert_spellings_agree_but_for_the_import(
+  shape: &str,
+  first: &str,
+  second: &str,
+  compile: impl Fn(&str) -> String,
+) {
+  let whole = |input: &str| {
+    let output = compile(input);
+
+    assert!(
+      output.contains("stylex-inject"),
+      "{shape} did not import the injector, so what the two spellings agree \
+       on says nothing:\n{output}"
+    );
+
+    output
+  };
+
+  let body = |input: &str| {
+    whole(input)
+      .lines()
+      .filter(|line| !line.trim_start().starts_with("import "))
+      .collect::<Vec<_>>()
+      .join("\n")
+  };
+
+  let agreed = assert_spellings_agree_with(shape, first, second, body);
+
+  assert!(
+    agreed.contains("_inject2("),
+    "{shape} injected nothing under either spelling, so the agreement above \
+     says nothing:\n{agreed}"
+  );
 }

@@ -122,6 +122,30 @@ fn char_code_at_still_reads_utf16_code_units() {
   assert_folds_to_number("\"\\u{1F600}a\".charCodeAt(2)", 97.0);
 }
 
+/// `codePointAt` reads the whole code point where `charCodeAt` reads the unit,
+/// which is the one place the two part company: the first unit of an astral
+/// character answers the character there and the surrogate here.
+///
+/// Beside `charCodeAt` because they are one reading asked two ways, and a
+/// change to how the units are counted has to move both. Every row is measured
+/// against `@stylexjs/babel-plugin@0.19.0`.
+#[test]
+fn code_point_at_reads_the_whole_code_point() {
+  assert_folds_to_number("\"abc\".codePointAt(1)", 98.0);
+  assert_folds_to_number("\"\\u{1F600}a\".codePointAt(0)", 128512.0);
+
+  // The second half of the pair has no character to be the first unit of, so it
+  // answers the surrogate itself -- which is what `charCodeAt` answers for it
+  // too.
+  assert_folds_to_number("\"\\u{1F600}a\".codePointAt(1)", 56832.0);
+  assert_folds_to_number("\"\\u{1F600}a\".charCodeAt(1)", 56832.0);
+
+  // Past the end is `undefined` rather than the `NaN` `charCodeAt` gives, which
+  // is the language's own parting between the two. A style value may not be
+  // `undefined`, so the declaration stops in both compilers.
+  assert_folds_to_undefined("\"abc\".codePointAt(9)");
+}
+
 /// Past the end is `NaN`, and `NaN` reaches the declaration.
 ///
 /// This test used to assert a refusal, and the refusal was the more useful
@@ -377,10 +401,13 @@ fn an_object_shape_with_no_compile_time_value_refuses() {
     "({ ...unknownThing })",
     "({ get a() { return 1 } }).a",
     "({ a: 1 })[/re/]",
-    "({ a: 1 })[{}]",
   ] {
     assert_deopts(source);
   }
+
+  // An object key *does* name a property -- `[object Object]` -- which this
+  // object does not carry, so the read is `undefined` rather than a refusal.
+  assert_folds_to_undefined("({ a: 1 })[{}]");
 }
 
 /// A spread of a value with no own enumerable properties contributes nothing
@@ -443,10 +470,14 @@ fn object_member_lookups_that_answer_still_answer() {
   assert_folds_to_number("({ a: 1 })[\"a\"]", 1.0);
 }
 
+/// An index that folds to no value at all refuses. One that folds to a value
+/// names the property that value spells, which for an object is
+/// `[object Object]` -- a property no array carries, so the read is `undefined`
+/// rather than a refusal.
 #[test]
-fn an_array_index_that_is_not_a_number_refuses() {
-  assert_deopts("[1, 2][{}]");
+fn an_array_index_that_is_not_a_number_reads_the_property_it_names() {
   assert_deopts("[1, 2][/re/]");
+  assert_folds_to_undefined("[1, 2][{}]");
 }
 
 // ==================== expression kinds the evaluator has no fold for ====
@@ -598,10 +629,9 @@ fn a_receiver_holding_a_function_answers_its_keys_and_refuses_its_values() {
   assert_deopts("Object.entries([1, x => x])");
 }
 
-/// The receivers around it still fold, including the two that are absent for
-/// opposite reasons: a hole has no own key, and a non-object has none either —
-/// `Object.keys(5)` is `[]` in JavaScript and must not be mistaken for the
-/// refusal above.
+/// The receivers around it still fold, including the one that is absent for the
+/// opposite reason: a non-object has no own key, so `Object.keys(5)` is `[]` in
+/// JavaScript and must not be mistaken for the refusal above.
 ///
 /// Each row says what it folded to. A key list of the right length and the
 /// wrong keys is the answer this reading gets wrong, and "it folded" cannot
@@ -610,9 +640,6 @@ fn a_receiver_holding_a_function_answers_its_keys_and_refuses_its_values() {
 fn a_readable_object_method_receiver_still_folds() {
   for (source, expected) in [
     ("Object.keys([1, 2])", &["0", "1"][..]),
-    // A hole occupies a slot the language counts and owns no key, so index
-    // zero is missing from the list rather than answering `undefined`.
-    ("Object.keys([, 1])", &["1"][..]),
     ("Object.keys([[1, 2]])", &["0"][..]),
     // A number has no own key, which is the empty list rather than a refusal.
     ("Object.keys(5)", &[][..]),

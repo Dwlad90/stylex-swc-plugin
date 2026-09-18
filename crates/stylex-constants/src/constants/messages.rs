@@ -45,9 +45,16 @@ pub fn unbound_call_value(fn_name: &str) -> String {
   format!("{}() calls must be bound to a bare variable.", fn_name)
 }
 
-pub fn export_variable_not_found(fn_name: &str) -> String {
+/// A message this compiler has and the reference implementation does not.
+///
+/// The reference implementation reads TypeScript with a parser that keeps the
+/// brackets around an assertion. This printer drops them, so
+/// `(create({…}) as Styles).root` would come back as `create() as Styles.root`,
+/// which reads as an assertion to `Styles.root`. A refusal says so; the printed
+/// module cannot.
+pub fn type_asserted_call_value(fn_name: &str) -> String {
   format!(
-    "{}(): The export variable could not be found. Ensure the call is bound to a named export.",
+    "{}() cannot be written inside a type assertion. Bind the call to a variable and assert the variable.",
     fn_name
   )
 }
@@ -63,10 +70,6 @@ pub fn cannot_generate_hash(fn_name: &str) -> String {
 pub static DUPLICATE_CONDITIONAL: &str =
   "The same pseudo selector or at-rule cannot be used more than once.";
 
-pub static ESCAPED_STYLEX_VALUE: &str = "Escaping a create() value is not allowed.";
-
-pub static ILLEGAL_NESTED_PSEUDO: &str = "Pseudo objects can't be nested more than one level deep.";
-
 pub static ILLEGAL_PROP_VALUE: &str = "A style value can only contain an array, string or number.";
 
 pub static ILLEGAL_PROP_ARRAY_VALUE: &str =
@@ -81,8 +84,6 @@ pub static ILLEGAL_NAMESPACE_VALUE: &str = "A StyleX namespace must be an object
 /// letting the runtime throw -- so the sentence an author sees is the same one
 /// on both sides only if this is the runtime's, not one of ours.
 pub static NULLISH_TO_OBJECT: &str = "Cannot convert undefined or null to object";
-
-pub static INVALID_PSEUDO: &str = "Invalid pseudo selector, not on the whitelist.";
 
 pub static INVALID_PSEUDO_OR_AT_RULE: &str = "Invalid pseudo or at-rule.";
 
@@ -111,8 +112,6 @@ pub static LINT_VALUE_HAS_NO_TOKENS: &str = "Rule contains a value with nothing 
 pub static LINT_IMPORTANT_NOT_LAST: &str =
   "Rule contains an importance annotation the compiler cannot remove from the value";
 
-pub static LOCAL_ONLY: &str = "The return value of create() should not be exported.";
-
 pub static NON_OBJECT_KEYFRAME: &str = "Every frame within a keyframes() call must be an object.";
 
 pub static NON_CONTIGUOUS_VARS: &str =
@@ -121,10 +120,6 @@ pub static NON_CONTIGUOUS_VARS: &str =
 pub static NO_OBJECT_SPREADS: &str = "Object spreads are not allowed in create() calls.";
 
 pub static ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS: &str = "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed.";
-
-pub static ONLY_TOP_LEVEL: &str = "create() is only allowed at the root of a program.";
-
-pub static UNKNOWN_PROP_KEY: &str = "Unknown property key";
 
 pub static UNPREFIXED_CUSTOM_PROPERTIES: &str = "Unprefixed custom properties";
 
@@ -159,14 +154,18 @@ pub static SPREAD_PROPERTIES_UNREADABLE: &str =
 pub static EXPRESSION_IS_NOT_A_STRING: &str =
   "Expected a string value but received a non-string expression.";
 
-/// The refusal for a computed key that folds to no string. Said of the key
-/// rather than of the value, because the key is the half the author changes.
-pub static KEY_IS_NOT_A_STRING: &str = "The key is not a string.";
+/// The refusal for a computed key whose value has no name at compile time.
+/// Said of the key rather than of the value, because the key is the half the
+/// author changes.
+///
+/// Not every key that is not a string: a boolean, `null` and an object each
+/// name the property `String(key)` names, as the language does. What reaches
+/// this is a value with no string at all -- a function, whose `String` is its
+/// source text; a text holding a lone surrogate, which no Rust string spells;
+/// and this compiler's own values, which the language never sees.
+pub static KEY_HAS_NO_NAME: &str = "The key has no name at compile time.";
 
 pub static VALUES_MUST_BE_OBJECT: &str = "The values argument must be a plain object.";
-
-pub static INJECTABLE_STYLE_NOT_SUPPORTED: &str =
-  "InjectableStyle is not supported in this context.";
 
 pub static ONLY_OVERRIDE_DEFINE_VARS: &str =
   "Can only override variables theme created with defineVars().";
@@ -186,8 +185,6 @@ pub static VALUE_MUST_BE_STRING: &str = "Expected a string value but received a 
 pub static VALUE_MUST_BE_LITERAL: &str =
   "Expected a static literal value (string, number, or boolean).";
 
-pub static ENTRY_MUST_BE_TUPLE: &str = "Each entry must be a [key, value] tuple.";
-
 pub static ARGUMENT_NOT_EXPRESSION: &str = "Function argument must be a static expression.";
 
 pub static EXPORT_ID_NOT_SET: &str =
@@ -199,28 +196,13 @@ pub static EXPECTED_CSS_VAR: &str = "Expected a CSS custom property (variable) r
 
 pub static KEY_MUST_EVAL_TO_STRING: &str = "Style property key must evaluate to a string.";
 
-pub static MEMBER_OBJ_NOT_IDENT: &str =
-  "The object in a member expression must be a static identifier.";
-
-pub static AT_RULE_NOT_FOUND: &str =
-  "At-rule not found in the rules map. Ensure the at-rule is declared correctly.";
-
-pub static EXPECTED_COMPILED_STYLES: &str = "Expected compiled style values from the style object.";
-
 pub static VALUE_NOT_EXPRESSION: &str = "Style value must evaluate to a static expression.";
 
 pub static EVAL_RESULT_EXPECTED: &str = "Expected a value from evaluation result.";
 
 pub static VAR_DECL_INIT_REQUIRED: &str = "Variable declaration must have an initializer.";
 
-pub static KEY_VALUE_EXPECTED: &str = "Expected a key-value property in the object.";
-
-pub static THEME_VAR_TUPLE: &str =
-  "Theme variable definition must be a [key, value, cssType] tuple.";
-
 pub static OBJECT_KEY_MUST_BE_IDENT: &str = "Object key must be a static identifier.";
-
-pub static COMPILED_KEY_MISSING: &str = "Style object does not contain a compiled key. Ensure the styles were created with stylex.create().";
 
 pub static THEME_VARS_MUST_BE_OBJECT: &str = "Theme variables must be defined as a plain object.";
 
@@ -232,11 +214,6 @@ pub fn expected_call_expression(fn_name: &str) -> String {
     fn_name
   )
 }
-
-/// The same rule where the variable has no name to read -- a computed key the
-/// evaluator cannot name. The reference implementation's second reader of this
-/// rule words it without a name too.
-pub static MISSING_DEFAULT_VALUE_UNNAMED: &str = "Default value is not defined for variable.";
 
 /// A variable whose value is an object carrying no `default` key.
 ///

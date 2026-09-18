@@ -139,7 +139,7 @@ fn an_index_map_folds_to_a_function() {
 
   styles.insert("color".to_string(), Rc::new(FlatCompiledStylesValue::Null));
 
-  let value = resolved(FunctionConfigType::IndexMap(styles));
+  let value = resolved(FunctionConfigType::IndexMap(Rc::new(styles)));
 
   assert_eq!(
     value,

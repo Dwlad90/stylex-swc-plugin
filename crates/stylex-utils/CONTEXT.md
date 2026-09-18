@@ -36,6 +36,19 @@ not something a browser accepts. Named against
 it is not blank.
 _Avoid_: empty value, blank string, whitespace check
 
+**Attribute name spelling**:
+`kebab_case` — the name a property takes in a `style` attribute, which is not
+the name it takes in a stylesheet. Every ASCII capital takes a hyphen before it
+and the whole name is lowercased, so `marginTop` is `margin-top` in both and
+`ABCDef` is `-abcdef` in a stylesheet and `-a-b-c-def` here.
+
+`dashify` is the stylesheet half. The two are kept apart because the StyleX
+runtime keeps them apart, and a **custom property** is where they differ most: a
+stylesheet hands `--myColor` back untouched, and an attribute writes
+`--my-color`. Both answers are the runtime's, so both are **observable** — the
+attribute text reaches the page.
+_Avoid_: hyphenate, snake case, dasherize
+
 **JS float read**:
 `parse_js_float`, which reads a leading float out of a string exactly as
 JavaScript's `parseFloat` does: the longest leading number wins and what trails

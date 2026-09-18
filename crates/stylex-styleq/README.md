@@ -17,28 +17,41 @@ literal class string instead of leaving a `styleq()` call in the bundle.
 - **JS-parity behavior** — line-for-line port of `styleq/src/styleq.js`,
   including handling of nested arrays, `false`/`null` inputs, the `$$css`
   (`COMPILED_KEY`) marker, and inline-style fallback when a non-compiled object
-  is encountered (`disable_mix`, `dedupe_class_name_chunks` options match the JS
-  API).
+  is encountered. `disable_mix` matches the JS API. `dedupe_class_name_chunks`
+  has no JS counterpart: the reference merger repeats a chunk the merged name
+  already carries, and this option drops it. A chunk counts as already there
+  only where the whole of it sits between two edges of the name, because a
+  class name is a hash of no fixed length and a short one can sit inside a
+  longer one.
 - **Generic over the value type** — the `StyleqValue` trait abstracts away what
   a "style value" is, with a built-in `StyleValue` enum that covers the common
   case (string class names, `null`, booleans, numbers, etc.). Consumers can plug
   in their own AST-aware value type without forking the algorithm.
-- **Thread-safe cache** — class-name chunks are memoised in an `RwLock` over an
-  `FxHashMap` keyed either by stable identity (`Identity(usize)`) or by a
-  structural `FxHasher` digest (`Hash(u64)`). The cache transparently recovers
-  from a poisoned lock so a single panicking writer can never permanently
-  disable caching for the rest of the process.
+- **Thread-safe cache** — class-name chunks are memoised in a chain of nodes,
+  each an `RwLock` over an `FxHashMap`, keyed either by stable identity
+  (`Identity(usize)`) or by a structural xxh3 digest (`Hash(u128)`). Nothing
+  compares a style to the entry a hit came from, so the key is the only thing
+  that says the entry belongs to that style, and it is 128 bits wide for that
+  reason. The cache transparently recovers from a poisoned lock so a single
+  panicking writer can never permanently disable caching for the rest of the
+  process.
 - **Allocation-conscious** — cache entries are stored behind `Arc`, so a hit is
   a refcount bump rather than a deep clone of three owned strings plus a
   property `Vec`. Property-membership lookups use an `FxHashSet<Arc<str>>` for
-  O(1) "have I seen this prop?" checks (vs. the previous O(n) `Vec::contains`),
-  and the `Arc<str>` for each property name is allocated once and shared between
-  the membership set and the cache chunk.
+  O(1) "have I seen this prop?" checks (vs. the previous O(n) `Vec::contains`).
+  The set is asked by borrow first, so a property a style behind this one
+  already declared costs no allocation, and the `Arc<str>` a new property does
+  need is allocated once and shared between the set and the cache chunk. The
+  cache key is built only where the walk may still cache.
 - **`Send + Sync` guarantees** — `CacheEntry` and `CacheKey` are
   compile-time-asserted `Send + Sync` so the cache layer is safe to share across
   threads when SWC is driven by Rayon/Tokio for parallel file processing.
 - **One consumer** — the compile-time `styleq` transformer in `stylex-transform`
-  folds `styleq()` calls into static class strings with this crate.
+  folds `styleq()` calls into static class strings with this crate. It runs with
+  `disable_cache: true`, because it builds a merger inside each merge and drops
+  it: the walk is linear, so it visits each chain node at most once and a lookup
+  can never hit. Measured over the transform suite and the fixture corpus, 1,076
+  lookups produced no hit at all.
 
 ## Public API
 
@@ -56,6 +69,27 @@ literal class string instead of leaving a `styleq()` call in the bundle.
   runtime-style use case so consumers don't have to define their own types for
   tests, benchmarks, or simple transforms.
 - Result: `StyleqResult { class_name, inline_style, data_style_src }`.
+
+### Caveats a caller answers
+
+- **A `Styleq` must not outlive the styles it cached.** Nothing evicts, and
+  `CacheKey::Identity` is the address of a style array, which names that array
+  only while the array is alive. The reference implementation is safe here
+  because a `WeakMap` dies with its keys; this cache does not. A caller that
+  keeps a merger across many merges also keeps every path it walked.
+- **`StyleqValue::is_undefined` has no default.** A default is the right answer
+  for a value type with no such state and the wrong one for a type that has it
+  and forgot to say so, and the two read the same from inside the merge: the
+  property would be written, and held against every style after it. Asking every
+  type makes the answer a decision rather than an omission. This is a **breaking
+  change for any external `StyleqValue` implementation**, which has to add the
+  method.
+
+  The method answers whether the value stands for a property that was not
+  given. An inline style skips such a property completely: it writes nothing,
+  defines nothing, and leaves the property for a later style to declare. What
+  an implementer does: answer `true` for the type's own "not given" state, or
+  `false` if the type has none.
 
 ## Testing & Benchmarks
 

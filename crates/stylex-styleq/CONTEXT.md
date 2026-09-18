@@ -30,7 +30,10 @@ _Avoid_: merge, override pass
 **Class-name chunk**:
 The run of class names one compiled style argument contributes, built fresh per
 argument and prepended to the result. `dedupe_class_name_chunks` decides whether
-a repeated chunk is dropped, by a **substring** test rather than a whole-run
-comparison. It defaults to `false`, but the compile-time caller in
+a repeated chunk is dropped, by a **whole-run** comparison: the chunk counts as
+already there only where the whole of it sits between two edges of the merged
+name. A plain substring test dropped a short class name that happened to sit
+inside a longer one, and with it the rule that name carries. It defaults to
+`false`, but the compile-time caller in
 [stylex-transform](../stylex-transform/CONTEXT.md) sets it `true`.
 _Avoid_: class token, class fragment

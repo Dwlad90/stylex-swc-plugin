@@ -1,6 +1,5 @@
 use std::rc::Rc;
 
-use rustc_hash::FxHashMap;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{CallExpr, Expr},
@@ -14,12 +13,14 @@ use crate::shared::{
   utils::validators::is_target_call,
 };
 use stylex_constants::constants::api_names::{
-  STYLEX_ENV, STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_TYPES, STYLEX_UNSTABLE_CONDITIONAL,
+  STYLEX_ENV, STYLEX_FIRST_THAT_WORKS, STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_TYPES,
+  STYLEX_UNSTABLE_CONDITIONAL,
 };
+use stylex_evaluator::stylex_first_that_works::stylex_first_that_works;
 use stylex_state::{
-  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType, RuleCallHelpers},
   state_manager::{ImportKind, StateManager},
-  types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression},
+  types::{FunctionConfigMap, FunctionMapIdentifiers},
 };
 use stylex_structures::named_import_source::ImportSources;
 
@@ -82,13 +83,10 @@ pub(crate) fn insert_stylex_identifier_entry(
 /// would be reported as a property nobody can find and send an author looking
 /// in their source. It is also what keeps the namespace's key list the same
 /// list on every configuration.
-pub(crate) fn register_env_in_namespace_fold(
-  state: &StateManager,
-  identifiers: &mut FunctionMapIdentifiers,
-) {
+pub(crate) fn register_env_in_namespace_fold(state: &StateManager, function_map: &mut FunctionMap) {
   for name in state.stylex_imports() {
     insert_stylex_identifier_entry(
-      identifiers,
+      &mut function_map.identifiers,
       name,
       STYLEX_ENV.into(),
       FunctionConfigType::EnvObject(Rc::clone(&state.options.env)),
@@ -96,105 +94,193 @@ pub(crate) fn register_env_in_namespace_fold(
   }
 }
 
-pub(crate) fn build_eval_config(state: &mut StateManager) -> FunctionMap {
-  let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
-  let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
-
-  let keyframes_fn = get_keyframes_fn();
-  let types_fn = get_types_fn();
-  let position_try_fn = get_position_try_fn();
-
-  if let Some(set) = state.get_stylex_api_import(ImportKind::Keyframes) {
-    for name in set {
-      identifiers.insert(
-        name.clone(),
-        Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-      );
-    }
+/// The function map a rule call -- `keyframes`, `positionTry` or
+/// `viewTransitionClass` -- evaluates its argument with, built on the first
+/// call of the module that asks for `helpers` and kept for the rest.
+///
+/// One shape written three times before this: each of the three call handlers
+/// built the same map for itself, on every call, even in a module that never
+/// writes one of the helpers.
+///
+/// The reference builds the map again for every call, so keeping one for the
+/// file rests on two conditions. Both hold, and both are named here because
+/// neither is obvious from this function:
+///
+/// - **Every import is recorded before the first call folds.** The map names
+///   the helpers under each local name an import gave them, and `Discover`
+///   records every import of the module before `TransformProducers` folds
+///   anything, so no name arrives after the map is built. The suite
+///   `transform_stylex_keyframes_test::shared_function_map` measures that, with
+///   calls standing between the import and the call that reads it.
+/// - **`env` is one object for the file.** `build_rule_call_eval_config` folds
+///   `apply_stylex_env` into the map, and `CoreStyleXOptions::env` is read-only
+///   once the options are built, so a second call cannot be handed a map built
+///   from a different env. `the_env_survives_into_every_map_the_module_asks_-
+///   for` measures that every map the module asks for still carries it.
+///
+/// A future `env` that can vary inside one file breaks the second condition,
+/// and the answer would be to key the cache on it rather than on `helpers`
+/// alone.
+pub(crate) fn rule_call_eval_config(
+  state: &mut StateManager,
+  helpers: RuleCallHelpers,
+) -> Rc<FunctionMap> {
+  if let Some(function_map) = state.cached_rule_call_function_map(helpers) {
+    return Rc::clone(function_map);
   }
 
-  if let Some(set) = state.get_stylex_api_import(ImportKind::PositionTry) {
-    for name in set {
-      identifiers.insert(
-        name.clone(),
-        Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
-      );
-    }
+  let function_map = Rc::new(build_rule_call_eval_config(state, helpers));
+
+  state.insert_cached_rule_call_function_map(helpers, Rc::clone(&function_map));
+
+  function_map
+}
+
+fn build_rule_call_eval_config(state: &StateManager, helpers: RuleCallHelpers) -> FunctionMap {
+  let mut function_map = FunctionMap::default();
+
+  register_stylex_helper(
+    state,
+    &mut function_map,
+    ImportKind::FirstThatWorks,
+    STYLEX_FIRST_THAT_WORKS,
+    &FunctionConfigType::Regular(FunctionConfig {
+      fn_ptr: FunctionType::ArrayArgs(stylex_first_that_works),
+      takes_path: false,
+    }),
+  );
+
+  if helpers == RuleCallHelpers::FirstThatWorksAndKeyframes {
+    register_stylex_helper(
+      state,
+      &mut function_map,
+      ImportKind::Keyframes,
+      STYLEX_KEYFRAMES,
+      &FunctionConfigType::Regular(get_keyframes_fn()),
+    );
   }
 
-  if let Some(set) = state.get_stylex_api_import(ImportKind::Types) {
-    for name in set {
-      identifiers.insert(
-        name.clone(),
-        Box::new(FunctionConfigType::Regular(types_fn.clone())),
-      );
-    }
-  }
+  state.apply_stylex_env(&mut function_map);
+
+  function_map
+}
+
+/// Registers one API entry under every local name an import gave it, and as
+/// `member_name` on every StyleX namespace the module imports.
+///
+/// Every function map built in this crate registers most of what it holds this
+/// way, and each builder wrote the two loops out again. The entry is a
+/// [`FunctionConfigType`] and not a bare [`FunctionConfig`] because the default
+/// marker is a compiled object rather than a function, and it is registered the
+/// same way.
+///
+/// The namespace name itself stays unregistered, for the reason
+/// [`register_env_in_namespace_fold`] gives.
+pub(crate) fn register_stylex_helper(
+  state: &StateManager,
+  function_map: &mut FunctionMap,
+  kind: ImportKind,
+  member_name: &str,
+  entry: &FunctionConfigType,
+) {
+  register_stylex_identifier(state, function_map, kind, entry);
 
   for name in state.stylex_imports() {
-    let member_expression = member_expressions.entry(name.clone()).or_default();
+    function_map
+      .member_expressions
+      .entry(name.clone())
+      .or_default()
+      .insert(member_name.into(), Box::new(entry.clone()));
+  }
+}
 
-    member_expression.insert(
-      STYLEX_KEYFRAMES.into(),
-      Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-    );
-    member_expression.insert(
-      STYLEX_POSITION_TRY.into(),
-      Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
-    );
+/// Registers one API entry under every local name an import gave it, and
+/// nowhere else.
+///
+/// Apart from [`register_stylex_helper`] because not every entry a named import
+/// carries is also read off the namespace. `createTheme` reads `positionTry` and
+/// `types` by name alone, and registering a member for either would answer a
+/// member read the compiler refuses today.
+pub(crate) fn register_stylex_identifier(
+  state: &StateManager,
+  function_map: &mut FunctionMap,
+  kind: ImportKind,
+  entry: &FunctionConfigType,
+) {
+  if let Some(set) = state.get_stylex_api_import(kind) {
+    for name in set {
+      function_map
+        .identifiers
+        .insert(name.clone(), Box::new(entry.clone()));
+    }
+  }
+}
 
+pub(crate) fn build_eval_config(state: &mut StateManager) -> FunctionMap {
+  let mut function_map = FunctionMap::default();
+
+  let types_fn = get_types_fn();
+
+  register_stylex_helper(
+    state,
+    &mut function_map,
+    ImportKind::Keyframes,
+    STYLEX_KEYFRAMES,
+    &FunctionConfigType::Regular(get_keyframes_fn()),
+  );
+
+  register_stylex_helper(
+    state,
+    &mut function_map,
+    ImportKind::PositionTry,
+    STYLEX_POSITION_TRY,
+    &FunctionConfigType::Regular(get_position_try_fn()),
+  );
+
+  register_stylex_identifier(
+    state,
+    &mut function_map,
+    ImportKind::Types,
+    &FunctionConfigType::Regular(types_fn.clone()),
+  );
+
+  // `types` is the one helper the namespace carries in its own fold rather than
+  // as a member alone, because a `create` call reads `stylex.types` off a
+  // namespace it also spreads.
+  for name in state.stylex_imports() {
     insert_stylex_identifier_entry(
-      &mut identifiers,
+      &mut function_map.identifiers,
       name,
       STYLEX_TYPES.into(),
       FunctionConfigType::Regular(types_fn.clone()),
     );
   }
 
-  apply_unstable_conditional(state, &mut identifiers, &mut member_expressions);
-  state.apply_stylex_env(&mut identifiers, &mut member_expressions);
+  apply_unstable_conditional(state, &mut function_map);
+  state.apply_stylex_env(&mut function_map);
 
-  FunctionMap {
-    identifiers,
-    member_expressions,
-    disable_imports: false,
-  }
+  function_map
 }
 
-pub(crate) fn apply_unstable_conditional(
-  state: &StateManager,
-  identifiers: &mut FunctionMapIdentifiers,
-  member_expressions: &mut FunctionMapMemberExpression,
-) {
-  let conditional_fn = get_conditional_fn();
-
-  if let Some(set) = state.get_stylex_api_import(ImportKind::Conditional) {
-    for name in set {
-      identifiers.insert(
-        name.clone(),
-        Box::new(FunctionConfigType::Regular(conditional_fn.clone())),
-      );
-    }
-  }
-
-  for name in state.stylex_imports() {
-    let member_expression = member_expressions.entry(name.clone()).or_default();
-    member_expression.insert(
-      STYLEX_UNSTABLE_CONDITIONAL.into(),
-      Box::new(FunctionConfigType::Regular(conditional_fn.clone())),
-    );
-  }
+pub(crate) fn apply_unstable_conditional(state: &StateManager, function_map: &mut FunctionMap) {
+  register_stylex_helper(
+    state,
+    function_map,
+    ImportKind::Conditional,
+    STYLEX_UNSTABLE_CONDITIONAL,
+    &FunctionConfigType::Regular(get_conditional_fn()),
+  );
 }
 
 pub(crate) fn build_env_only_eval_config(state: &mut StateManager) -> FunctionMap {
-  let mut identifiers = FxHashMap::default();
-  let mut member_expressions = FxHashMap::default();
-  state.apply_stylex_env(&mut identifiers, &mut member_expressions);
-  FunctionMap {
-    identifiers,
-    member_expressions,
+  let mut function_map = FunctionMap {
     disable_imports: true,
-  }
+    ..FunctionMap::default()
+  };
+
+  state.apply_stylex_env(&mut function_map);
+
+  function_map
 }
 
 fn get_conditional_fn() -> FunctionConfig {
@@ -207,3 +293,7 @@ fn get_conditional_fn() -> FunctionConfig {
 fn conditional_identity(expr: Expr, _: &mut StateManager) -> Expr {
   expr
 }
+
+#[cfg(test)]
+#[path = "tests/rule_call_eval_config_test.rs"]
+mod rule_call_eval_config_test;

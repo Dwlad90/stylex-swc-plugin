@@ -1,6 +1,7 @@
 #![allow(deprecated)]
 
 use napi::{Env, Error, JsObject};
+use stylex_state::flat_compiled_styles_value::FlatCompiledStylesValue;
 use stylex_transform::StyleXTransform;
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleBaseKind;
 use swc_core::common::comments::Comments;
@@ -92,7 +93,40 @@ fn set_metadata_ltr_and_rtl(
   }
 
   if let Some(consts_value) = consts_value {
-    style_value.set_named_property("constVal", consts_value)?;
+    // The constant travels as JSON, so that the kind the author gave it
+    // survives the trip out of the compiler. A reader of this metadata sees a
+    // number as a number and text as text, rather than text it would have to
+    // guess a kind back out of.
+    //
+    // This carrier and the injected `stylex.inject(...)` call read the same
+    // JSON, but they do not write the same answer, and that is deliberate. A
+    // constant set to `null` keeps its `constKey`/`constVal` pair here and
+    // loses it in the injected call, because the reference makes the same two
+    // choices: its metadata pushes the rule object whole, and only the call it
+    // builds drops a pair whose value is `null` or `undefined`. A guard added
+    // here would put this carrier out of step with the reference, not into
+    // step with the other one.
+    let value = FlatCompiledStylesValue::from_json_text(consts_value);
+
+    match &value {
+      // A number JSON has no word for still crosses as the number it is, which
+      // is what the reference hands a reader of its own metadata.
+      //
+      // The three kinds that are one JavaScript value each cross directly.
+      // Only an object and a list are worth building a `serde_json::Value`
+      // tree for, and now only those two pay for it -- a constant that is text
+      // was parsed, rebuilt as JSON and walked again to set one property.
+      FlatCompiledStylesValue::Number(number) => {
+        style_value.set_named_property("constVal", env.create_double(*number)?)?
+      },
+      FlatCompiledStylesValue::String(text) => {
+        style_value.set_named_property("constVal", env.create_string(text)?)?
+      },
+      FlatCompiledStylesValue::Bool(flag) => {
+        style_value.set_named_property("constVal", env.get_boolean(*flag)?)?
+      },
+      _ => style_value.set_named_property("constVal", env.to_js_value(&value.as_json_value())?)?,
+    }
   }
 
   style_value.set_named_property("ltr", ltr)?;

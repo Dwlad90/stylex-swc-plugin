@@ -67,17 +67,46 @@ fn important() -> Vec<(&'static str, &'static str)> {
   ]
 }
 
+/// What the passes must do to every value in a set.
+///
+/// Each set is named for the work it makes the passes do, so the check is the
+/// same sentence as the set's own doc comment.
+#[derive(Clone, Copy, PartialEq)]
+enum Expected {
+  /// The passes hand the value back unchanged.
+  Unchanged,
+  /// The passes rewrite the value.
+  Rewritten,
+}
+
 /// Times one set under the default options, which is what the parity harness
 /// measures against.
 ///
 /// Takes the group rather than opening its own, so the three sets sit under one
 /// name and a run reports them side by side.
+///
+/// The check runs once, outside `b.iter`, so it adds nothing to the
+/// measurement: the set is fixed, so one answer speaks for every iteration.
+/// Without it a normalizer that started returning its input untouched would
+/// read as a win in two of the three sets.
 fn bench_set(
   group: &mut criterion::BenchmarkGroup<'_, criterion::measurement::WallTime>,
   name: &str,
   set: &[(&'static str, &'static str)],
+  expected: Expected,
 ) {
   let options = StyleXStateOptions::default();
+
+  for (key, value) in set {
+    let normalized = normalize_value(value, key, &options);
+    let unchanged = normalized == *value;
+
+    assert_eq!(
+      unchanged,
+      expected == Expected::Unchanged,
+      "{name}: {key}: {value:?} normalizes to {normalized:?}, which is not what the set is named for"
+    );
+  }
 
   group.bench_function(name, |b| {
     b.iter(|| {
@@ -95,9 +124,9 @@ fn bench_set(
 fn normalize_value_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("NormalizeValue");
 
-  bench_set(&mut group, "untouched", &untouched());
-  bench_set(&mut group, "rewritten", &rewritten());
-  bench_set(&mut group, "important", &important());
+  bench_set(&mut group, "untouched", &untouched(), Expected::Unchanged);
+  bench_set(&mut group, "rewritten", &rewritten(), Expected::Rewritten);
+  bench_set(&mut group, "important", &important(), Expected::Rewritten);
 
   group.finish();
 }

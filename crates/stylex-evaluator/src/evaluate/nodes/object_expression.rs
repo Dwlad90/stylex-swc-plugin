@@ -31,9 +31,10 @@ fn indexed_props(
   elements: impl ExactSizeIterator<Item = Option<Expr>>,
 ) -> Option<Vec<PropOrSpread>> {
   let mut props = Vec::with_capacity(elements.len());
+  let mut key = IndexKey::default();
 
   for (index, element) in elements.enumerate() {
-    props.push(create_ident_key_value_prop(&index.to_string(), element?));
+    props.push(create_ident_key_value_prop(key.of(index), element?));
   }
 
   Some(props)
@@ -186,15 +187,25 @@ pub(in super::super) fn evaluate(
           return deopt(&refusal_path(), state, OBJECT_METHOD);
         }
 
-        let mut prop = prop.clone();
-
-        expand_shorthand_prop(&mut prop);
+        // Read where it lies. Nothing below writes to the property, and this
+        // runs for every property of every object the evaluator folds, so the
+        // copy it used to make was the whole value subtree of each one.
+        let prop = expanded_shorthand_prop(prop);
 
         match prop.as_ref() {
           Prop::KeyValue(path_key_value) => {
             let key = match &path_key_value.key {
               PropName::Ident(ident) => ident.sym.to_string(),
-              PropName::Str(strng) => convert_atom_to_string(&strng.value),
+              // Read as its own text rather than through the converter that
+              // spells an atom, which aborts the build on a text with no `str`.
+              // A text holding a lone surrogate is such a key, and it refuses
+              // here with every other key that has no name. `String(key)` of a
+              // string is that string, so the coercion has nothing to add and
+              // the key is not copied into a literal to ask it.
+              PropName::Str(strng) => match strng.value.as_str() {
+                Some(text) => text.to_string(),
+                None => deopt_unsupported!(deopt, &refusal_path(), state, KEY_HAS_NO_NAME),
+              },
               // Rendered as JavaScript spells a number, not as Rust does:
               // `{ 1e21: x }` names the property `"1e+21"`, where
               // `f64::to_string` would name it `"1000000000000000000000"`. The
@@ -232,23 +243,22 @@ pub(in super::super) fn evaluate(
                   return deopt(&deopt_path, state, &deopt_reason);
                 }
 
-                if let Some(expr) = evaluated_result
+                // `String(key)`, read exactly as `evaluate_obj_key` reads it.
+                // The two are the same question asked in two places, and they
+                // used to answer it two ways: this one said the expression was
+                // not a string and the other said the key was not, for one
+                // mistake in one source.
+                let named = evaluated_result
                   .value
                   .as_ref()
-                  .and_then(|value| value.as_expr())
-                {
-                  expr_to_str_or_deopt!(
-                    convert_expr_to_str,
-                    deopt,
-                    expr,
-                    state,
-                    traversal_state,
-                    &state.functions,
-                    EXPRESSION_IS_NOT_A_STRING
-                  )
-                } else {
-                  deopt_unsupported!(deopt, &refusal_path(), state, ILLEGAL_PROP_VALUE);
-                }
+                  .and_then(evaluate_result_as_expr)
+                  .and_then(|expr| coercions::to_js_string(&expr));
+
+                let Some(text) = named else {
+                  deopt_unsupported!(deopt, &refusal_path(), state, KEY_HAS_NO_NAME);
+                };
+
+                text
               },
               PropName::BigInt(big_int) => big_int.value.to_string(),
             };

@@ -766,6 +766,66 @@ fn custom_argument_covers_skip_nested_inline_and_disable_mix_paths() {
   );
 }
 
+/// The walk answers the same with the cache off, for an argument type the
+/// caller brought rather than the crate's own input.
+///
+/// `disable_cache` is read once per merge, and the reading is compiled once
+/// per argument type. Every merge that had ever read it as `true` came from
+/// the crate's own `StyleqInput`, so the answer a foreign argument gets with
+/// the cache off was never compared with the answer it gets with the cache on.
+/// The two must agree: a cache may only save work, never change a result.
+#[test]
+fn a_custom_argument_answers_the_same_with_the_cache_off() {
+  let arguments = [
+    TestArgument::Skip,
+    TestArgument::Nested(vec![
+      TestArgument::Style {
+        style: compiled_map(&[("display", string("display-block"))]),
+        cache_key: Some(7),
+      },
+      TestArgument::Style {
+        style: inline_map(&[("color", string("red"))]),
+        cache_key: None,
+      },
+    ]),
+    // Carries no style and asks for no skip, so the walk reaches it and drops
+    // it -- the one argument shape that is neither styled nor nested.
+    TestArgument::Empty,
+  ];
+
+  let uncached = create_styleq(StyleqOptions {
+    disable_cache: true,
+    ..Default::default()
+  });
+  let cached = create_styleq(StyleqOptions::default());
+
+  // Twice over, because a cache is filled on the first merge and only read on
+  // the second.
+  for _ in 0..2 {
+    let from_scratch = uncached.styleq(&arguments);
+    let from_cache = cached.styleq(&arguments);
+
+    assert_eq!(from_scratch.class_name, "display-block");
+    assert_eq!(
+      from_scratch.inline_style,
+      Some(StyleMap::from([("color".to_string(), string("red"))]))
+    );
+
+    assert_eq!(
+      from_scratch.class_name, from_cache.class_name,
+      "the cache changed the class name a custom argument merges to"
+    );
+    assert_eq!(
+      from_scratch.inline_style, from_cache.inline_style,
+      "the cache changed the inline style a custom argument merges to"
+    );
+    assert_eq!(
+      from_scratch.data_style_src, from_cache.data_style_src,
+      "the cache changed the debug string a custom argument merges to"
+    );
+  }
+}
+
 #[test]
 fn uses_identity_cache_key_when_argument_provides_stable_identity() {
   let styleq_cached = create_styleq(StyleqOptions::default());
@@ -845,6 +905,87 @@ fn keeps_distinct_class_name_chunks_when_chunk_deduping_is_enabled() {
   assert_eq!(result.class_name, "display-block color-red");
 }
 
+/// The chunk deduping the option is named for: a second chunk whose text the
+/// class name already carries is dropped rather than repeated.
+///
+/// Two *different* properties holding one class name, because that is the only
+/// way a repeated chunk reaches the merge. The same style merged twice defines
+/// nothing the second time, so it contributes an empty chunk and never asks
+/// whether the name is already there.
+#[test]
+fn drops_a_repeated_chunk_reached_through_a_second_property() {
+  let styleq_dedupe_chunks = create_styleq(StyleqOptions {
+    dedupe_class_name_chunks: true,
+    ..Default::default()
+  });
+  let a = compiled(&[("display", string("shared"))]);
+  let b = compiled(&[("color", string("shared"))]);
+
+  let result = styleq_dedupe_chunks.styleq(&[a.clone(), b.clone()]);
+
+  assert_eq!(result.class_name, "shared");
+
+  // The same pair with the option off, so the case says what the option buys
+  // rather than only what the merge answers.
+  let result = create_styleq(StyleqOptions::default()).styleq(&[a, b]);
+
+  assert_eq!(result.class_name, "shared shared");
+}
+
+/// A chunk that only sits inside a longer name is not a repeat of it.
+///
+/// A StyleX class name is a hash of no fixed length, so a short name can be a
+/// run of characters inside a longer one. Read as plain text, the short name
+/// counted as already there and was dropped, and the rule it names reached no
+/// element -- with no error for the author to read. The match is on the spaces
+/// around the chunk now.
+#[test]
+fn a_chunk_inside_a_longer_name_is_kept() {
+  let styleq_dedupe_chunks = create_styleq(StyleqOptions {
+    dedupe_class_name_chunks: true,
+    ..Default::default()
+  });
+
+  // Two properties, two different class names, and the first is a prefix of
+  // the second. The three positions a name can sit in a longer one are all
+  // here: the front, the back and the middle.
+  for inside in ["xabcdef", "defxabc", "defxabcghi"] {
+    let front = compiled(&[("color", string("xabc"))]);
+    let back = compiled(&[("backgroundColor", string(inside))]);
+
+    assert_eq!(
+      styleq_dedupe_chunks.styleq(&[front, back]).class_name,
+      format!("xabc {inside}"),
+      "`xabc` is not a repeat of `{inside}`"
+    );
+  }
+}
+
+/// A chunk of several names is read the same way.
+///
+/// The whole chunk is what is compared, so a run that matches only because it
+/// crosses from one name into the next is not a repeat either.
+#[test]
+fn a_chunk_that_matches_across_two_names_is_kept() {
+  let styleq_dedupe_chunks = create_styleq(StyleqOptions {
+    dedupe_class_name_chunks: true,
+    ..Default::default()
+  });
+
+  // The accumulated name reads `xa xbc`, and the chunk `a xb` is a run of it
+  // that starts and ends inside a name.
+  let front = compiled(&[("color", string("a")), ("display", string("xb"))]);
+  let back = compiled(&[
+    ("backgroundColor", string("xa")),
+    ("opacity", string("xbc")),
+  ]);
+
+  assert_eq!(
+    styleq_dedupe_chunks.styleq(&[front, back]).class_name,
+    "a xb xa xbc"
+  );
+}
+
 #[test]
 fn styleq_input_trait_methods_cover_all_variants() {
   let style = inline(&[("color", string("red"))]);
@@ -884,6 +1025,14 @@ fn style_value_trait_methods_cover_all_value_kinds() {
   assert!(!class_name.is_true_bool());
   assert!(!class_name_rc.is_true_bool());
   assert!(!class_name_arc.is_true_bool());
+  // The wrappers answer what they wrap, for this question too. A wrapper that
+  // answered `false` of its own would write a property the style left out.
+  assert!(!class_name.is_undefined());
+  assert!(!class_name_rc.is_undefined());
+  assert!(!class_name_arc.is_undefined());
+  assert!(StyleValue::Undefined.is_undefined());
+  assert!(Rc::new(StyleValue::Undefined).is_undefined());
+  assert!(Arc::new(StyleValue::Undefined).is_undefined());
 
   assert_eq!(StyleValue::Number(1).as_class_name(), None);
   assert!(StyleValue::Null.is_null());
@@ -899,4 +1048,356 @@ fn styleq_default_public_types_are_send_and_sync() {
   assert_send_sync::<StyleqOptions<StyleValue>>();
   assert_send_sync::<StyleqInput<StyleValue>>();
   assert_send_sync::<StyleqResult<StyleValue>>();
+}
+
+/// The cache must answer for the merge it is asked about, not for a merge an
+/// earlier call made.
+///
+/// A cached chunk holds only the properties the styles after it did not
+/// already define, so the chunk written for a style is true of the merge it
+/// was cut for and of no other. The reference keeps them apart by giving every
+/// entry its own child cache and descending into it, so a style cached after
+/// another is found under that other style and never at the root.
+mod the_cache_answers_per_merge {
+  use super::*;
+
+  fn first() -> StyleqInput<StyleValue> {
+    compiled(&[
+      ("backgroundColor", string("backgroundColor-1")),
+      ("color", string("color-1")),
+    ])
+  }
+
+  fn second() -> StyleqInput<StyleValue> {
+    compiled(&[
+      ("backgroundColor", string("backgroundColor-2")),
+      ("color", string("color-2")),
+    ])
+  }
+
+  #[test]
+  fn a_style_cached_behind_another_is_not_read_on_its_own() {
+    let styleq = create_styleq(StyleqOptions::default());
+    let pair = [first(), second()];
+
+    // The second style defines both properties, so the first contributes
+    // nothing and is cached as an empty chunk -- behind the second style.
+    assert_eq!(styleq.styleq(&pair).class_name, "backgroundColor-2 color-2");
+
+    // On its own the first style defines both properties itself.
+    assert_eq!(
+      styleq.styleq(std::slice::from_ref(&pair[0])).class_name,
+      "backgroundColor-1 color-1"
+    );
+  }
+
+  #[test]
+  fn a_style_cached_on_its_own_is_not_read_behind_another() {
+    let styleq = create_styleq(StyleqOptions::default());
+    let pair = [first(), second()];
+
+    assert_eq!(
+      styleq.styleq(std::slice::from_ref(&pair[0])).class_name,
+      "backgroundColor-1 color-1"
+    );
+
+    // The full chunk cached above must not reach this merge, where the second
+    // style already defines both properties.
+    assert_eq!(styleq.styleq(&pair).class_name, "backgroundColor-2 color-2");
+  }
+
+  #[test]
+  fn the_cache_answers_the_same_on_every_call() {
+    let styleq = create_styleq(StyleqOptions::default());
+    let pair = [first(), second()];
+
+    for _ in 0..4 {
+      assert_eq!(styleq.styleq(&pair).class_name, "backgroundColor-2 color-2");
+      assert_eq!(
+        styleq.styleq(std::slice::from_ref(&pair[0])).class_name,
+        "backgroundColor-1 color-1"
+      );
+      assert_eq!(
+        styleq.styleq(std::slice::from_ref(&pair[1])).class_name,
+        "backgroundColor-2 color-2"
+      );
+    }
+  }
+
+  /// An inline style that declares a new property closes the chain, because
+  /// what follows it depends on that style and the chain does not key on it.
+  ///
+  /// Without that, the compiled style behind the inline one would be cached
+  /// with a chunk missing whatever the inline style had already declared, and
+  /// a later merge without the inline style would read it and emit too few
+  /// class names.
+  #[test]
+  fn an_inline_style_closes_the_chain_behind_it() {
+    let styleq = create_styleq(StyleqOptions::default());
+    let front = compiled(&[("color", string("color-1"))]);
+    let back = compiled(&[("backgroundColor", string("backgroundColor-2"))]);
+    let between = inline(&[("color", StyleValue::Number(1))]);
+
+    // Popped from the back: `back`, then the inline style, then `front`. The
+    // inline style declares `color`, so `front` contributes nothing here.
+    let result = styleq.styleq(&[front.clone(), between, back.clone()]);
+    assert_eq!(result.class_name, "backgroundColor-2");
+
+    // Without the inline style, `front` declares `color` itself.
+    assert_eq!(
+      styleq.styleq(&[front, back]).class_name,
+      "color-1 backgroundColor-2"
+    );
+  }
+
+  /// A cached chunk carries the debug string of the merge it was cut for.
+  ///
+  /// The hit path clears the string and writes the entry's own in its place,
+  /// which is true only because an entry names the exact walked prefix. Every
+  /// other case here builds its styles with a marker of `true`, so the debug
+  /// string is empty in all of them and the clear-and-replace is measured over
+  /// nothing at all.
+  ///
+  /// Two levels, run twice: the first pass fills the chain and the second reads
+  /// it, and the two must answer the same.
+  #[test]
+  fn a_cached_chain_carries_the_debug_string_of_its_own_merge() {
+    let front = compiled_with_marker(string("front.js:1"), &[("color", string("color-1"))]);
+    let back = compiled_with_marker(
+      string("back.js:2"),
+      &[("backgroundColor", string("backgroundColor-2"))],
+    );
+
+    let styleq = create_styleq(StyleqOptions::default());
+    let pair = [front, back];
+
+    for _ in 0..2 {
+      // Popped from the back, so `back` is read first and `front` is cached
+      // behind it. The string reads front to back.
+      assert_eq!(
+        styleq.styleq(&pair).data_style_src,
+        "front.js:1; back.js:2",
+        "the merge of two marked styles names both, in order"
+      );
+
+      // Each on its own names only itself, which the chunk cached above must
+      // not answer for.
+      assert_eq!(
+        styleq.styleq(std::slice::from_ref(&pair[0])).data_style_src,
+        "front.js:1"
+      );
+      assert_eq!(
+        styleq.styleq(std::slice::from_ref(&pair[1])).data_style_src,
+        "back.js:2"
+      );
+    }
+  }
+
+  /// The chain must descend under an identity key as it does under a hash one.
+  ///
+  /// Every other case here uses an input whose `cache_key` is `None`, so the
+  /// descent was measured only on the structural key. An address key takes a
+  /// different arm of the same walk.
+  #[test]
+  fn the_chain_descends_under_an_identity_key() {
+    let first_style = compiled_map(&[
+      ("backgroundColor", string("backgroundColor-1")),
+      ("color", string("color-1")),
+    ]);
+    let second_style = compiled_map(&[
+      ("backgroundColor", string("backgroundColor-2")),
+      ("color", string("color-2")),
+    ]);
+
+    // Two keys that are distinct and stay so for the life of the merger. The
+    // styles are held by the arguments, so nothing frees the address the key
+    // names.
+    let pair = [
+      TestArgument::Style {
+        style: first_style,
+        cache_key: Some(1),
+      },
+      TestArgument::Style {
+        style: second_style,
+        cache_key: Some(2),
+      },
+    ];
+
+    let styleq = create_styleq(StyleqOptions::default());
+
+    for _ in 0..2 {
+      assert_eq!(styleq.styleq(&pair).class_name, "backgroundColor-2 color-2");
+
+      // The first style contributes nothing behind the second, and everything
+      // on its own. One flat map would answer the merge's chunk here.
+      assert_eq!(
+        styleq.styleq(std::slice::from_ref(&pair[0])).class_name,
+        "backgroundColor-1 color-1"
+      );
+    }
+  }
+
+  /// One merger, shared between threads.
+  ///
+  /// `insert_cache_entry` makes a claim about what happens when two misses
+  /// store under one key, and `CacheNode` is asserted `Send + Sync` for this.
+  /// Every thread must read what a single-threaded merge reads, whichever of
+  /// the racing entries the chain kept.
+  #[test]
+  fn a_merger_shared_between_threads_answers_the_same() {
+    let styleq = Arc::new(create_styleq(StyleqOptions::<StyleValue>::default()));
+    let pair = [first(), second()];
+    let expected = styleq.styleq(&pair).class_name;
+
+    let threads: Vec<_> = (0..8)
+      .map(|_| {
+        let styleq = Arc::clone(&styleq);
+        let pair = pair.clone();
+
+        std::thread::spawn(move || {
+          let mut answers = Vec::with_capacity(64);
+
+          for _ in 0..32 {
+            answers.push(styleq.styleq(&pair).class_name);
+            answers.push(styleq.styleq(std::slice::from_ref(&pair[0])).class_name);
+          }
+
+          answers
+        })
+      })
+      .collect();
+
+    for thread in threads {
+      let answers = match thread.join() {
+        Ok(answers) => answers,
+        Err(_) => panic!("a merging thread must not stop"),
+      };
+
+      for (index, answer) in answers.iter().enumerate() {
+        let expected = match index % 2 {
+          0 => expected.as_str(),
+          _ => "backgroundColor-1 color-1",
+        };
+
+        assert_eq!(answer, expected, "a shared merger must answer the same");
+      }
+    }
+  }
+
+  /// The cached answer must be the answer the uncached path gives, in every
+  /// field the caller reads and under the options the compiler passes.
+  #[test]
+  fn a_cached_merge_answers_what_an_uncached_one_does() {
+    let third = compiled(&[("color", string("color-3"))]);
+    let inline_style = inline(&[("opacity", StyleValue::Number(1))]);
+    let merges: [Vec<StyleqInput<StyleValue>>; 8] = [
+      vec![first()],
+      vec![first(), second()],
+      // The same style twice, which the flat map answered with its chunk a
+      // second time and so declared every property twice.
+      vec![first(), first()],
+      vec![first(), third.clone()],
+      vec![third.clone(), first()],
+      vec![first(), second(), third.clone()],
+      vec![first(), inline_style.clone(), third.clone()],
+      vec![inline_style, first(), third],
+    ];
+
+    // `dedupe_class_name_chunks` is the shape the compiler passes, and its
+    // substring check can hide a wrong chunk, so both shapes are compared.
+    for dedupe in [false, true] {
+      let cached = create_styleq(StyleqOptions {
+        dedupe_class_name_chunks: dedupe,
+        ..Default::default()
+      });
+      let uncached = create_styleq(StyleqOptions {
+        dedupe_class_name_chunks: dedupe,
+        disable_cache: true,
+        ..Default::default()
+      });
+
+      // Twice over, because the first pass is what fills the cache and the
+      // second is what reads it.
+      for _ in 0..2 {
+        for merge in &merges {
+          let from_cache = cached.styleq(merge);
+          let from_scratch = uncached.styleq(merge);
+
+          assert_eq!(
+            from_cache.class_name, from_scratch.class_name,
+            "the cached and the uncached merge disagree on the class name"
+          );
+          assert_eq!(
+            from_cache.inline_style, from_scratch.inline_style,
+            "the cached and the uncached merge disagree on the inline style"
+          );
+          assert_eq!(
+            from_cache.data_style_src, from_scratch.data_style_src,
+            "the cached and the uncached merge disagree on the debug string"
+          );
+        }
+      }
+    }
+  }
+}
+
+/// An inline property with no value is not a declaration.
+///
+/// The reference skips it completely: it writes nothing into the inline style,
+/// does not mark the property declared, and leaves a later style free to
+/// declare it.
+mod an_undefined_inline_value_is_invisible {
+  use super::*;
+
+  #[test]
+  fn it_writes_no_inline_style_of_its_own() {
+    let result = styleq(&[inline(&[("backgroundColor", StyleValue::Undefined)])]);
+
+    assert_eq!(result.class_name, "");
+    assert_eq!(result.inline_style, None);
+  }
+
+  #[test]
+  fn a_later_style_may_still_declare_the_property() {
+    // Popped from the back, so the undefined value is read first and must not
+    // take the property from the style behind it.
+    let result = styleq(&[
+      inline(&[("backgroundColor", string("red"))]),
+      inline(&[("backgroundColor", StyleValue::Undefined)]),
+    ]);
+
+    let inline_style = match result.inline_style {
+      Some(inline_style) => inline_style,
+      None => panic!("the declared value must reach the inline style"),
+    };
+
+    assert_eq!(
+      inline_style.get("backgroundColor"),
+      Some(&string("red")),
+      "an undefined value must not stand in for a declared one"
+    );
+  }
+
+  #[test]
+  fn it_leaves_a_compiled_style_untouched() {
+    let result = styleq(&[
+      compiled(&[("color", string("color-1"))]),
+      inline(&[("backgroundColor", StyleValue::Undefined)]),
+    ]);
+
+    assert_eq!(result.class_name, "color-1");
+    assert_eq!(result.inline_style, None);
+  }
+
+  /// A null value is a declaration -- it takes the property and writes nothing
+  /// -- which is what separates it from an undefined one.
+  #[test]
+  fn a_null_value_still_takes_the_property() {
+    let result = styleq(&[
+      inline(&[("backgroundColor", string("red"))]),
+      inline(&[("backgroundColor", StyleValue::Null)]),
+    ]);
+
+    assert_eq!(result.inline_style, None);
+  }
 }

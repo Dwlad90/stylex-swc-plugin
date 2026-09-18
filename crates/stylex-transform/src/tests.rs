@@ -5,9 +5,14 @@ use ctor::ctor;
 /// One constructor rather than one per concern: each `#[ctor]` is a second
 /// `unsafe` entry point running before `main`, and everything here is the same
 /// job — putting the process into the state every test in this crate assumes.
+///
+/// The logger prints exactly what the builder below decides, as it always did —
+/// that builder reads no environment, so its own filter is the default `Error`
+/// — and keeps a copy of what a case asked to read back, see
+/// [`capturing_logger`](capturing_logger).
 #[ctor(unsafe)]
 fn prepare_test_binary() {
-  pretty_env_logger::formatted_builder().try_init().ok();
+  capturing_logger::install(pretty_env_logger::formatted_builder().build());
   disable_diagnostic_colours();
 }
 
@@ -25,3 +30,6 @@ fn prepare_test_binary() {
 fn disable_diagnostic_colours() {
   stylex_macros::stylex_error::disable_colour_output();
 }
+
+pub(crate) mod capturing_logger;
+pub(crate) mod support;

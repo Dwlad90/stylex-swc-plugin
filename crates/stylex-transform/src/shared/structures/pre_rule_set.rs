@@ -27,7 +27,7 @@ impl PreRuleSet {
   }
 
   pub(crate) fn create(rules: Vec<PreRules>) -> PreRules {
-    let flat_rules = rules
+    let mut flat_rules = rules
       .into_iter()
       .flat_map(|rule| match rule {
         PreRules::PreRuleSet(rule_set) => rule_set.rules,
@@ -37,10 +37,10 @@ impl PreRuleSet {
 
     match flat_rules.len() {
       0 => PreRules::NullPreRule(NullPreRule::new()),
-      1 => match flat_rules.first() {
-        Some(rule) => rule.to_owned(),
-        None => stylex_panic!("{}", RULE_SET_EMPTY),
-      },
+      // The one rule is moved out rather than copied. The length above is what
+      // makes the index good, so the set is never asked for a rule it has not
+      // got.
+      1 => flat_rules.swap_remove(0),
       _ => PreRules::PreRuleSet(PreRuleSet { rules: flat_rules }),
     }
   }

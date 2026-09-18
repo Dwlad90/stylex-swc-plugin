@@ -167,38 +167,6 @@ fn a_name_recorded_with_no_scopes_blocks_nothing() {
   assert!(!state.is_locally_rebound_at("stylex", span(0, 10)));
 }
 
-/// The short filename a debug annotation carries is worked out once and kept,
-/// because reading it means reading the package boundaries around the file.
-#[test]
-fn a_short_filename_is_worked_out_once_and_kept() {
-  let mut state = state();
-
-  assert_eq!(state.cached_short_filename("/repo/src/app.js"), None);
-
-  state.insert_cached_short_filename("/repo/src/app.js".to_string(), "app.js".to_string());
-
-  assert_eq!(
-    state.cached_short_filename("/repo/src/app.js"),
-    Some("app.js")
-  );
-  assert_eq!(state.cached_short_filename("/repo/src/other.js"), None);
-}
-
-/// A path recorded twice keeps the second answer, which is what an overwrite
-/// has to do for the memo to stay a memo of the current shortening.
-#[test]
-fn a_short_filename_recorded_twice_keeps_the_second() {
-  let mut state = state();
-
-  state.insert_cached_short_filename("/repo/src/app.js".to_string(), "app.js".to_string());
-  state.insert_cached_short_filename("/repo/src/app.js".to_string(), "src/app.js".to_string());
-
-  assert_eq!(
-    state.cached_short_filename("/repo/src/app.js"),
-    Some("src/app.js")
-  );
-}
-
 /// A declarator bound to a pattern declares no single name, so nothing is
 /// indexed for it -- but the declarator is still recorded, because its position
 /// is what marks the call in it as program level.

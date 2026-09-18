@@ -43,7 +43,10 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
   ([CONTEXT.md](./crates/stylex-structures/CONTEXT.md)) -- the data carried
   between phases: options, the per-file pass, and small value types.
 - **stylex-types** ([CONTEXT.md](./crates/stylex-types/CONTEXT.md)) -- the
-  output types that get serialized into JavaScript.
+  rule types a producer files: an injectable style, its kind, and the metadata
+  one rule carries. Reading a value back out of JSON is not here; that lives
+  with the value vocabulary, on `FlatCompiledStylesValue` in **stylex-state**,
+  because only a value type can answer what kind it is.
 - **stylex-ast** ([CONTEXT.md](./crates/stylex-ast/CONTEXT.md)) -- factories
   that build SWC nodes, convertors that read them back, and the readers that
   answer what a key is written as.

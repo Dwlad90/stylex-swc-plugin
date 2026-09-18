@@ -62,21 +62,28 @@ fn a_method_call_reads_the_rules_its_receiver_carries() {
   assert_folds_to_string("String('AB').toLowerCase()", "ab");
 }
 
-/// Parentheses are unwrapped for the two arms that read a name, and not for the
-/// one that reads a member -- so a wrapped method reaches no arm and is handed
-/// back, where the same call unwrapped folds.
+/// Parentheses are unwrapped for all three arms, so a wrapped method folds to
+/// what the same call folds to bare. Measured against
+/// `@stylexjs/babel-plugin@0.19.0`, which folds both spellings alike.
 ///
-/// Recorded as it is rather than as it might be. A call handed back is refused,
-/// never mis-folded, so the asymmetry costs an expression nobody writes and
-/// cannot name a class the reference compiler does not define. Widening it is a
-/// change to what compiles, which is not a thing a test should decide quietly.
+/// The receiver inside keeps its own parentheses, and that is not the same
+/// rule: the fold prints this source back for the engine to parse, and
+/// `{ a: 1 }.valueOf()` opens a block there rather than naming an object. So
+/// the callee is read through its brackets and the receiver is carried with
+/// them.
 #[test]
-fn parentheses_around_a_method_take_it_out_of_the_arm_that_reads_receivers() {
+fn parentheses_around_a_method_reach_the_arm_that_reads_receivers() {
   assert_folds_to_string("'AB'.toLowerCase()", "ab");
 
   for wrapped in ["('AB'.toLowerCase)()", "(('AB'.toLowerCase))()"] {
-    assert_deopts(wrapped);
+    assert_folds_to_string(wrapped, "ab");
   }
+
+  // A receiver that needs its brackets to print, reached through a callee that
+  // has none and through one that has.
+  assert_folds_to_string("({ a: 'b' }).a", "b");
+  assert_folds_to_string("({}).toString()", "[object Object]");
+  assert_folds_to_string("(({}).toString)()", "[object Object]");
 }
 
 /// A chain hides its middle links, so each link is matched for its own shape

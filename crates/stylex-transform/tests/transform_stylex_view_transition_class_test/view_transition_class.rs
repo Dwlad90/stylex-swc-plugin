@@ -192,3 +192,20 @@ stylex_test_panic!(
     export const cls = stylex.viewTransitionClass({ group: { height: stylex } });
   "#
 );
+
+// A `keyframes` written inside a step is folded to its name where it stands,
+// and the `@keyframes` block it leaves is injected in front of the rule that
+// names it. The two used to come out the other way round. Compared against
+// measured `@stylexjs/babel-plugin` 0.19.0 output.
+stylex_test!(
+  a_keyframes_inside_a_step_injects_its_block_first,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vt = stylex.viewTransitionClass({
+      old: {
+        animationName: stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } }),
+      },
+    });
+  "#
+);

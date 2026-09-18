@@ -1,4 +1,5 @@
 use crate::utils::prelude::*;
+use crate::utils::transform::stringify_js;
 use swc_core::common::FileName;
 
 fn stylex_transform(
@@ -270,3 +271,46 @@ stylex_test!(
     });
   "#
 );
+
+// ──────────────────────────────────────────────
+// The guard
+// ──────────────────────────────────────────────
+
+/// Every `defineVars` shape in the parenthesis class, compiled both ways and
+/// compared.
+///
+/// A module that defines variables needs a `.stylex.js` file name, which is why
+/// these shapes sit here and not beside the rest of the class in
+/// `transform_stylex_create_test/parenthesised_spellings.rs`.
+#[test]
+fn every_define_vars_shape_compiles_alike_in_both_spellings() {
+  fn compiled(source: &str) -> String {
+    stringify_js(source, ts_syntax(), |tr| {
+      stylex_transform(tr.comments.clone(), |b| b)
+    })
+  }
+
+  const IMPORT: &str = "import * as stylex from '@stylexjs/stylex';";
+
+  let rows: [(&str, String, String); 3] = [
+    (
+      "the defineVars initializer",
+      format!("{IMPORT} export const vars = stylex.defineVars({{ color: 'red' }});"),
+      format!("{IMPORT} export const vars = (stylex.defineVars({{ color: 'red' }}));"),
+    ),
+    (
+      "the defineVars argument",
+      format!("{IMPORT} export const vars = stylex.defineVars({{ color: 'red' }});"),
+      format!("{IMPORT} export const vars = stylex.defineVars(({{ color: 'red' }}));"),
+    ),
+    (
+      "the defineVars callee",
+      format!("{IMPORT} export const vars = stylex.defineVars({{ color: 'red' }});"),
+      format!("{IMPORT} export const vars = (stylex.defineVars)({{ color: 'red' }});"),
+    ),
+  ];
+
+  for (shape, bare, wrapped) in &rows {
+    assert_spellings_agree_with(shape, bare, wrapped, compiled);
+  }
+}

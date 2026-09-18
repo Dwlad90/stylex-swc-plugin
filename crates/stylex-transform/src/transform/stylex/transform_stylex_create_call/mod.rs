@@ -7,7 +7,6 @@ use helpers::*;
 use log::warn;
 pub(crate) use runtime_function_map::build_runtime_function_map;
 use std::{
-  fmt::Write,
   rc::Rc,
   sync::{Arc, LazyLock},
 };
@@ -16,16 +15,13 @@ use stylex_path_resolver::package_json::PackageJsonExtended;
 
 use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
-use stylex_ast::ast::convertors::{
-  convert_atom_to_string, convert_key_value_to_str, convert_lit_to_string, create_null_expr,
-  create_string_expr,
-};
+use stylex_ast::ast::convertors::{convert_lit_to_string, create_null_expr, create_string_expr};
 use stylex_structures::pre_rule_value::PreRuleValue;
 use swc_core::{
   common::{DUMMY_SP, comments::Comments},
   ecma::ast::{
-    BinaryOp, Bool, CallExpr, Decl, Expr, Lit, ModuleItem, Pat, Prop, PropName, PropOrSpread, Stmt,
-    UnaryOp, VarDecl, VarDeclKind,
+    BinaryOp, Bool, CallExpr, Decl, Expr, Ident, Lit, ModuleItem, Pat, PropOrSpread, Stmt, UnaryOp,
+    VarDecl, VarDeclKind,
   },
 };
 
@@ -41,17 +37,17 @@ use crate::{
         dev_class_name::{convert_to_test_styles, inject_dev_class_names},
         evaluate_stylex_create_arg::evaluate_stylex_create_arg,
         flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-        js_to_ast::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
+        js_to_ast::{compiled_namespaces, remove_objects_with_spreads},
       },
-      validators::{is_create_call, validate_stylex_create},
+      validators::{argument_at, is_create_call, validate_stylex_create},
     },
   },
   transform::StyleXTransform,
 };
 use stylex_ast::ast::factories::{
   create_array_expression, create_bin_expr, create_cond_expr, create_expr_or_spread,
-  create_key_value_prop, create_object_expression, create_prop_from_name,
-  create_string_var_declarator, create_var_declarator, wrap_in_paren_ref,
+  create_key_value_prop, create_object_expression, create_string_var_declarator,
+  create_var_declarator,
 };
 use stylex_constants::constants::{
   api_names::{
@@ -59,13 +55,13 @@ use stylex_constants::constants::{
     STYLEX_POSITION_TRY, STYLEX_WHEN,
   },
   common::COMPILED_KEY,
-  messages::{EXPECTED_COMPILED_STYLES, non_static_value},
+  messages::non_static_value,
 };
 use stylex_css::utils::{pseudo::is_pseudo_element, when as stylex_when};
-use stylex_diagnostics::code_frame::{build_code_frame_error, build_code_frame_error_and_panic};
+use stylex_diagnostics::code_frame::build_code_frame_error;
 use stylex_enums::style_resolution::StyleResolution;
 use stylex_evaluator::{
-  evaluate::evaluate_result_is_nullish, state::EvaluationState,
+  evaluate::evaluate_result_is_nullish, evaluate_result::refusal_site, state::EvaluationState,
   stylex_first_that_works::stylex_first_that_works,
 };
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;
@@ -74,9 +70,7 @@ use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType, StylexWhenFn},
   state_manager::{ImportKind, StateManager},
-  types::{
-    FlatCompiledStyles, FunctionMapIdentifiers, FunctionMapMemberExpression, InjectableStylesMap,
-  },
+  types::{FlatCompiledStyles, InjectableStylesMap},
 };
 use stylex_structures::{
   dynamic_style::DynamicStyle, order_pair::OrderPair, stylex_state_options::StyleXStateOptions,
@@ -185,27 +179,15 @@ where
     let result = if is_create_call {
       validate_stylex_create(call, &mut self.state);
 
-      // A call bound to a top-level pattern — `export const { foo } =
-      // stylex.create(…);` — is program level too, and the recorded top-level
-      // expressions, keyed by the name a pattern does not give, cannot say so.
-      //
-      // Asked first: it is a hash lookup on two integers, where
-      // `find_top_level_expr` compares this call against every recorded one
-      // with `eq_ignore_span` — a deep walk of the whole style object.
-      //
-      // A call inside a top-level array is program level too, and the entry
-      // recorded for it is the array. Asked of the arrays alone rather than of
-      // every recorded expression, and answered by containment: a call written
-      // inside a function is not at program level because the module holds an
-      // array elsewhere.
-      let is_program_level = self
-        .state
-        .pattern_bound_top_level_calls
-        .contains(&call.span)
-        || self.state.find_top_level_expr(call).is_some()
-        || self.state.holds_call_in_top_level_array(call);
+      // Where the call was written, read from the positions the discovery pass
+      // recorded. A bare declarator, a pattern, a top-level array and an object
+      // literal are one question here, because the position of the call answers
+      // all of them.
+      let is_program_level = self.state.is_program_level_call(call);
 
-      let mut first_arg = call.args.first()?.expr.clone();
+      // The only producer that rewrites its argument, so the only one that
+      // needs a copy of it.
+      let mut first_arg = argument_at(call, 0, STYLEX_CREATE).clone();
 
       let mut resolved_namespaces: IndexMap<String, Box<FlatCompiledStyles>> = IndexMap::new();
       let function_map = build_runtime_function_map(self);
@@ -213,23 +195,25 @@ where
       let evaluated_arg =
         evaluate_stylex_create_arg(&mut first_arg, &mut self.state, &function_map);
 
-      assert!(
-        evaluated_arg.confident,
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          evaluated_arg
-            .reason
-            .as_deref()
-            .unwrap_or(&non_static_value(STYLEX_CREATE)),
-          &mut self.state,
+      // The fold's two failures are read once. A refusal is the reachable one, and
+      // it reads the sentence and the position it always did. A confident answer
+      // with no value is the other: the evaluator's memo is its only known
+      // producer, and no source through this producer reaches it, so it reads this
+      // sentence rather than one of its own. `folded_style_object_lit` reads the
+      // two the same way for the producers that share it.
+      let Some(value) = evaluated_arg.value.filter(|_| evaluated_arg.confident) else {
+        stylex_panic!(
+          "{}",
+          build_code_frame_error(
+            &Expr::Call(call.clone()),
+            &refusal_site(evaluated_arg.deopt.as_ref(), &first_arg),
+            evaluated_arg
+              .reason
+              .as_deref()
+              .unwrap_or(&non_static_value(STYLEX_CREATE)),
+            &mut self.state,
+          )
         )
-      );
-
-      let value = match evaluated_arg.value {
-        Some(v) => v,
-        None => stylex_panic!("{}", non_static_value(STYLEX_CREATE)),
       };
 
       let mut injected_inherit_styles: InjectableStylesMap = IndexMap::default();
@@ -269,9 +253,9 @@ where
           .extend(properties.iter().map(|(k, v)| (k.clone(), v.clone())));
       }
 
-      let mut injected_styles = self.state.other_injected_css_rules.clone();
-
-      injected_styles.extend(injected_styles_sans_keyframes);
+      let mut injected_styles = self
+        .state
+        .take_nested_rules_before(injected_styles_sans_keyframes);
 
       injected_styles.extend(injected_inherit_styles);
 
@@ -295,7 +279,13 @@ where
         compiled_styles = convert_to_test_styles(compiled_styles, &var_name, &self.state);
       }
 
-      if is_program_level && let Some(var_name) = var_name.as_ref() {
+      // Both come from `get_call_var_name`, which reads the name off the
+      // declarator: a name is only ever answered together with the declarator
+      // it was read from, so asking for the pair asks one question.
+      if is_program_level
+        && let Some(var_name) = var_name.as_ref()
+        && let Some(parent_var_decl) = parent_var_decl
+      {
         let styles_to_remember = remove_objects_with_spreads(&compiled_styles);
 
         self
@@ -306,42 +296,30 @@ where
         // Remember which namespaces are dynamic style functions so an uncalled
         // member access (`styles.opacity`) bails out to runtime in
         // `parse_nullable_style`.
+        //
+        // The argument reader answers a map of dynamic functions only where it
+        // holds one, so a list that is there is never empty and needs no check
+        // of its own.
         if let Some(fns) = evaluated_arg.fns.as_ref() {
           let dynamic_namespaces: FxHashSet<String> = fns.keys().cloned().collect();
 
-          if !dynamic_namespaces.is_empty() {
-            self
-              .state
-              .dynamic_style_namespaces
-              .insert(var_name.clone(), dynamic_namespaces);
-          }
-        }
-
-        if let Some(parent_var_decl) = parent_var_decl {
           self
             .state
-            .insert_style_var(var_name.clone(), parent_var_decl);
-        } else {
-          let call_expr = Expr::Call(call.clone());
-
-          build_code_frame_error_and_panic(
-            &wrap_in_paren_ref(&call_expr),
-            &call_expr,
-            "Function type",
-            &mut self.state,
-          )
+            .dynamic_style_namespaces
+            .insert(var_name.clone(), dynamic_namespaces);
         }
+
+        self
+          .state
+          .insert_style_var(var_name.clone(), parent_var_decl);
       }
 
-      let styles_ast =
-        convert_object_to_ast(&NestedStringObject::FlatCompiledStyles(compiled_styles));
-
-      // The rewrite of the dynamic entries needs the object, not the hoisted
-      // identifier, so it runs before the hoist.
+      // The rewrite of the dynamic entries reads the namespaces as the named
+      // list they were written as, and it writes the object literal itself, so
+      // it runs before the hoist.
       let styles_ast = apply_dynamic_style_functions(
-        self,
-        call,
-        styles_ast,
+        &mut self.state,
+        compiled_namespaces(&compiled_styles),
         evaluated_arg.fns,
         &class_paths_per_namespace,
         &injected_styles,
@@ -375,3 +353,7 @@ where
     result
   }
 }
+
+#[cfg(test)]
+#[path = "tests/resolve_when_marker_tests.rs"]
+mod tests;

@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use log::{debug, info, warn};
 use rustc_hash::FxHashMap;
-use std::{env, path::Path, rc::Rc, sync::LazyLock};
+use std::{path::Path, rc::Rc, sync::LazyLock};
 use stylex_macros::stylex_panic;
 use stylex_path_resolver::package_json::PackageJsonExtended;
 
@@ -15,7 +15,7 @@ use stylex_state_index::key_span_index::CallLookup;
 use stylex_ast::ast::convertors::{create_string_expr, get_key_values_from_object};
 use stylex_constants::constants::{
   common::COMPILED_KEY,
-  messages::{EXPECTED_OBJECT_EXPRESSION, INVALID_UTF8, illegal_argument_length},
+  messages::{EXPECTED_OBJECT_EXPRESSION, illegal_argument_length},
 };
 use stylex_diagnostics::code_frame::{get_key_span_from_source_code, get_span_from_source_code};
 use stylex_evaluator::evaluate::evaluate_obj_key;
@@ -123,8 +123,25 @@ pub(crate) fn add_source_map_data(
         };
 
         match source_code_frame_and_span {
-          Ok((code_frame, span)) => {
-            if span.eq(&DUMMY_SP) {
+          // The line is asked for once. `try_get_span_line_number` already
+          // answers nothing for a span that names no place -- an empty one, and
+          // one the frame cannot read a position off -- so asking about the
+          // span first said the same thing twice and left the second reason
+          // silent. Either way there is no line to point at, and the
+          // `contains_key` fallback below writes the plain marker.
+          Ok((code_frame, span)) => match code_frame.try_get_span_line_number(span) {
+            Some(original_line_number) => {
+              let filename = state.get_filename().to_string();
+              insert_compiled_entry(
+                &mut inner_map,
+                &filename,
+                original_line_number,
+                state,
+                package_json_seen,
+                functions,
+              );
+            },
+            None => {
               if log::log_enabled!(log::Level::Debug) {
                 debug!(
                   "Could not find span for style node path. File: {}, Style node path: {:?}.{}",
@@ -139,21 +156,7 @@ pub(crate) fn add_source_map_data(
                   *NEXTJS_HYDRATION_WARNING
                 );
               };
-            } else {
-              // Panic-safe lookup: `None` leaves the map untouched and the
-              // `contains_key` fallback below inserts the plain `true` marker.
-              if let Some(original_line_number) = code_frame.try_get_span_line_number(span) {
-                let filename = state.get_filename().to_string();
-                insert_compiled_entry(
-                  &mut inner_map,
-                  &filename,
-                  original_line_number,
-                  state,
-                  package_json_seen,
-                  functions,
-                );
-              }
-            }
+            },
           },
           Err(e) => {
             if log::log_enabled!(log::Level::Debug) {
@@ -263,8 +266,17 @@ fn original_position_from_input_source_map(
     return None;
   }
 
+  // The key span comes from the compiler's own parse while this file is the
+  // text the host handed over, and the two can disagree -- a shorter text, or
+  // one whose characters lie differently -- so the position is checked rather
+  // than trusted.
+  //
+  // The end is checked here and the start is not: a position at the very end
+  // of the file names no character, and the text read below still slices for
+  // it, while a position before the file sits on no line of it and the line
+  // read refuses it.
   let pos = span.lo();
-  if pos < source_file.start_pos || pos >= source_file.end_pos {
+  if pos >= source_file.end_pos {
     return None;
   }
 
@@ -325,6 +337,25 @@ fn get_package_prefix(absolute_path: &str) -> Option<String> {
     .map(String::from)
 }
 
+/// A path written with the separator the debug name uses on every platform.
+///
+/// The name is compared byte for byte -- by a snapshot, by a fixture, by a
+/// parity row -- so it cannot be spelled one way on Windows and another
+/// everywhere else. `to_string_lossy` alone keeps the separator the platform
+/// gave it.
+///
+/// The text is rewritten rather than the parts rejoined, because rejoining
+/// answers a root its own separator a second time -- `/a/b` comes back `//a/b`
+/// -- and because a Windows path already holds both spellings, so the one to
+/// take out is the platform's own. On a platform that separates with `/` this
+/// is a copy that changes nothing, which is what keeps it one rule rather than
+/// two.
+fn to_posix_path(path: &Path) -> String {
+  path
+    .to_string_lossy()
+    .replace(std::path::MAIN_SEPARATOR, "/")
+}
+
 fn get_short_path(relative_path: &str, state: &StateManager) -> String {
   // Check if commonJS module resolution with rootDir is configured
   if let CheckModuleResolution::CommonJs {
@@ -336,7 +367,7 @@ fn get_short_path(relative_path: &str, state: &StateManager) -> String {
     let root_dir_path = Path::new(root_dir);
 
     if let Ok(rel) = relative_path_obj.strip_prefix(root_dir_path) {
-      return rel.to_string_lossy().into_owned();
+      return to_posix_path(rel);
     }
   }
 
@@ -352,6 +383,15 @@ fn get_short_path(relative_path: &str, state: &StateManager) -> String {
   path_segments.join("/")
 }
 
+/// The short name `absolute_path` is written as, measured against the directory
+/// the compilation runs in.
+///
+/// The directory comes from the state, where the compiler puts it. A
+/// compilation with no readable directory shares no path with the file, and
+/// every rule below already answers for a directory the file lies outside. A
+/// directory that no text can spell is still stripped from the front of the
+/// path; only the package it belongs to goes unread, because a package is
+/// looked up by name.
 fn create_short_filename(
   absolute_path: &str,
   state: &StateManager,
@@ -363,13 +403,11 @@ fn create_short_filename(
   );
 
   let path = Path::new(absolute_path);
-  let cwd = env::current_dir().unwrap_or_default();
-
-  let cwd_str = match cwd.to_str() {
-    Some(s) => s,
-    None => stylex_panic!("{}", INVALID_UTF8),
-  };
-  let cwd_package = StateManager::get_package_name_and_path(cwd_str, package_json_seen);
+  let cwd = state.cwd();
+  let cwd_package = cwd
+    .as_deref()
+    .and_then(Path::to_str)
+    .and_then(|cwd| StateManager::get_package_name_and_path(cwd, package_json_seen));
   let package_details = StateManager::get_package_name_and_path(absolute_path, package_json_seen);
 
   // If package details exist, use package-relative path
@@ -377,9 +415,7 @@ fn create_short_filename(
     let package_root = Path::new(&package_root_path);
     let relative_path = path
       .strip_prefix(package_root)
-      .map_or(absolute_path.to_string(), |p| {
-        p.to_string_lossy().into_owned()
-      });
+      .map_or(absolute_path.to_string(), to_posix_path);
 
     // If the file is in the same package as cwd, return just the relative path
     if let Some((cwd_package_name, _)) = cwd_package
@@ -412,11 +448,13 @@ fn create_short_filename(
   }
 
   // Otherwise, return short path relative to cwd
-  let relative_path = path
-    .strip_prefix(&cwd)
-    .map_or(absolute_path.to_string(), |p| {
-      p.to_string_lossy().into_owned()
-    });
+  let relative_path = cwd
+    .as_deref()
+    .and_then(|cwd| path.strip_prefix(cwd).ok())
+    .map_or_else(
+      || absolute_path.to_string(),
+      |p| p.to_string_lossy().into_owned(),
+    );
 
   get_short_path(&relative_path, state)
 }

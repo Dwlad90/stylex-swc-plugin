@@ -1,12 +1,9 @@
 use rustc_hash::FxHashMap;
+use std::rc::Rc;
 use stylex_constants::constants::{
-  api_names::STYLEX_DEFINE_CONSTS,
-  messages::{
-    SPREAD_NOT_SUPPORTED, cannot_generate_hash, export_variable_not_found, non_static_value,
-    non_style_object,
-  },
+  api_names::STYLEX_DEFINE_CONSTS, messages::cannot_generate_hash,
 };
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_macros::stylex_panic;
 use stylex_utils::identifier::gen_file_based_identifier;
 use swc_core::{
   common::comments::Comments,
@@ -18,15 +15,16 @@ use crate::{
   shared::{
     transformers::stylex_define_consts::stylex_define_consts,
     utils::{
-      core::js_to_ast::{NestedStringObject, convert_object_to_ast},
-      validators::{find_and_validate_stylex_define_consts, is_define_consts_call},
+      core::js_to_ast::convert_values_to_ast,
+      validators::{
+        argument_at, find_and_validate_stylex_define_consts, folded_style_object,
+        is_define_consts_call,
+      },
     },
   },
   transform::stylex::visitor_utils::build_env_only_eval_config,
 };
-use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::evaluate::evaluate;
-use stylex_structures::top_level_expression::TopLevelExpression;
+use stylex_evaluator::evaluate::evaluate_with_functions;
 
 impl<C> StyleXTransform<C>
 where
@@ -36,55 +34,21 @@ where
     let is_define_consts = is_define_consts_call(call, &self.state);
 
     if is_define_consts {
-      let top_level_expr_defined_consts =
-        match find_and_validate_stylex_define_consts(call, &mut self.state) {
-          Some(expr) => expr,
-          None => {
-            stylex_panic!("defineConsts(): Could not find the top-level variable declaration.")
-          },
-        };
+      let export_name = find_and_validate_stylex_define_consts(call, &mut self.state);
 
-      let TopLevelExpression(_, _, var_id) = top_level_expr_defined_consts;
+      let first_arg = argument_at(call, 0, STYLEX_DEFINE_CONSTS);
 
-      let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-        None => first_arg.expr.clone(),
-      })?;
+      let function_map = Rc::new(build_env_only_eval_config(&mut self.state));
 
-      let function_map = build_env_only_eval_config(&mut self.state);
+      let evaluated_arg = evaluate_with_functions(first_arg, &mut self.state, function_map);
 
-      let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
-
-      assert!(
-        evaluated_arg.confident,
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          &non_static_value(STYLEX_DEFINE_CONSTS),
-          &mut self.state,
-        )
+      let value = folded_style_object(
+        evaluated_arg,
+        call,
+        first_arg,
+        STYLEX_DEFINE_CONSTS,
+        &mut self.state,
       );
-
-      let value = match evaluated_arg.value {
-        Some(value) => {
-          assert!(
-            value
-              .as_expr()
-              .map(|expr| expr.is_object())
-              .unwrap_or(false),
-            "{}",
-            build_code_frame_error(
-              &Expr::Call(call.clone()),
-              &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-              &non_style_object(STYLEX_DEFINE_CONSTS),
-              &mut self.state,
-            )
-          );
-          value
-        },
-        None => stylex_panic!("{}", non_static_value(STYLEX_DEFINE_CONSTS)),
-      };
 
       let file_name = match self
         .state
@@ -94,20 +58,13 @@ where
         None => stylex_panic!("{}", cannot_generate_hash(STYLEX_DEFINE_CONSTS)),
       };
 
-      let export_name = match var_id {
-        Some(name) => name,
-        None => stylex_panic!("{}", export_variable_not_found(STYLEX_DEFINE_CONSTS)),
-      };
-
       let export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));
 
       self.state.export_id = export_id;
 
       let (transformed_js_output, js_output) = stylex_define_consts(&value, &mut self.state);
 
-      let result_ast = convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(
-        transformed_js_output,
-      ));
+      let result_ast = convert_values_to_ast(&transformed_js_output);
 
       self
         .state

@@ -26,7 +26,8 @@ pub(crate) use stylex_transform::StyleXTransformBuilder;
 
 #[allow(unused_imports)]
 pub(crate) use crate::utils::transform::{
-  TestBuilder, TestComments, build_test_transform, deep_theme_import_transform,
+  TestBuilder, TestComments, assert_spellings_agree, assert_spellings_agree_but_for_the_import,
+  assert_spellings_agree_with, build_test_transform, deep_theme_import_transform,
   theme_import_transform, theme_import_transform_with, theme_module_transform, ts_syntax,
 };
 

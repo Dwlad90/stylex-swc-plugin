@@ -19,13 +19,15 @@ pub use nodes::object_expression::spread_own_properties;
 // so this is the only route to its items, and a glob would publish whatever is
 // added there next.
 use rebuild::resolve_env_entry_to_result;
-pub(crate) use rebuild::{binds_a_parameter, evaluate_result_as_expr, fold_placeholder_function};
+pub(crate) use rebuild::{
+  array_element_expr, binds_a_parameter, evaluate_result_as_expr, fold_placeholder_function,
+};
 pub use rebuild::{evaluate_result_vec_to_array_expr, function_fold_to_object};
 
 use indexmap::IndexMap;
 use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
-use stylex_macros::{deopt_unsupported, expr_to_str_or_deopt};
+use stylex_macros::deopt_unsupported;
 use swc_core::{
   atoms::Atom,
   ecma::{
@@ -41,9 +43,9 @@ use swc_core::{
 use crate::convertors::expr_to_num;
 use crate::{evaluate_result::EvaluateResult, state::EvaluationState};
 use stylex_ast::ast::convertors::{
-  convert_atom_to_str_ref, convert_atom_to_string, convert_key_value_to_str, convert_lit_to_string,
-  create_big_int_expr, create_bool_expr, create_number_expr, create_string_expr,
-  expand_shorthand_prop, extract_tpl_cooked_value, is_js_undefined, normalize_expr,
+  convert_atom_to_str_ref, convert_atom_to_string, convert_lit_to_string, create_big_int_expr,
+  create_bool_expr, create_number_expr, create_string_expr, expanded_shorthand_prop,
+  extract_tpl_cooked_value, is_js_undefined, key_value_name, normalize_expr,
 };
 use stylex_ast::ast::factories::{
   create_array_expression, create_expr_or_spread, create_ident_key_value_prop, create_object_lit,
@@ -59,7 +61,7 @@ use stylex_constants::constants::{
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
-    ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, KEY_IS_NOT_A_STRING, MEMBER_NOT_RESOLVED,
+    ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, KEY_HAS_NO_NAME, MEMBER_NOT_RESOLVED,
     NULLISH_TO_OBJECT, OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND, SPREAD_PROPERTIES_UNREADABLE,
     THEME_IMPORT_KEY_AS_OBJECT_KEY, VALUE_MUST_BE_LITERAL,
   },
@@ -74,7 +76,6 @@ use stylex_js::helpers::{
   get_callee_name, get_method_name, is_id_prop, is_invalid_method, is_mutating_object_method,
   is_mutation_expr, is_valid_callee,
 };
-use stylex_state::resolution::convertors::convert_expr_to_str;
 use stylex_state::resolution::lookup::get_var_decl_parts_by_ident;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
@@ -101,31 +102,49 @@ pub fn evaluate_obj_key(
     PropName::Ident(ident) => create_string_expr(&ident.sym),
     PropName::Computed(computed) => {
       let computed_result = evaluate(&computed.expr, state, functions);
-      if computed_result.confident {
-        match computed_result.value {
-          Some(EvaluateResultValue::Expr(value)) => value,
-          // A key that folded to a value with no expression form — an
-          // evaluator-internal map, a callback — is a key this does not read,
-          // which is an ordinary refusal rather than a broken invariant.
-          _ => {
-            return EvaluateResult::refused(
-              Some(*computed.expr.clone()),
-              Some(ILLEGAL_PROP_VALUE.to_string()),
-            );
-          },
-        }
-      } else {
+
+      if !computed_result.confident {
         return EvaluateResult::refused(computed_result.deopt, computed_result.reason);
       }
+
+      // An array key is read through its array form, because a list names the
+      // property its elements join to -- `{ [[1, 2]]: 'red' }` declares
+      // `1,2: red`. A value with no expression form has no string either, so it
+      // refuses under the same sentence the coercion below refuses with: one
+      // sentence for one mistake, where the key used to answer two.
+      let Some(value) = computed_result
+        .value
+        .as_ref()
+        .and_then(evaluate_result_as_expr)
+      else {
+        return EvaluateResult::refused(
+          Some(*computed.expr.clone()),
+          Some(KEY_HAS_NO_NAME.to_string()),
+        );
+      };
+
+      value
     },
-    PropName::Str(strng) => create_string_expr(&convert_atom_to_string(&strng.value)),
+    // The literal itself rather than the text it spells, so a text with no
+    // `str` -- one holding a lone surrogate -- refuses below with every other
+    // key that has no name, rather than aborting the build inside a converter
+    // that has no reading for it.
+    PropName::Str(strng) => Expr::Lit(Lit::Str(strng.clone())),
     PropName::Num(num) => create_number_expr(num.value),
     PropName::BigInt(big_int) => create_big_int_expr(big_int.clone()),
   };
 
-  let key_expr = match convert_expr_to_str(&key, state, functions) {
-    Some(ref s) => create_string_expr(s),
-    None => return EvaluateResult::refused(Some(key), Some(KEY_IS_NOT_A_STRING.to_string())),
+  // `String(key)` rather than the string the expression spells, because that is
+  // what the language names the property and what the reference implementation
+  // writes: `{ [true]: 'red' }` declares `true: red` in both. The spelling
+  // reader answers for a string and a number and nothing else, so a boolean,
+  // `null` and an object refused here and named a property there.
+  //
+  // A function is the one value with no string at all -- `String(fn)` is its
+  // source text, which this evaluator does not keep -- and it still refuses.
+  let key_expr = match coercions::to_js_string(&key) {
+    Some(ref text) => create_string_expr(text),
+    None => return EvaluateResult::refused(Some(key), Some(KEY_HAS_NO_NAME.to_string())),
   };
 
   EvaluateResult {
@@ -138,6 +157,12 @@ pub fn evaluate_obj_key(
   }
 }
 
+/// Folds `path` with a function map the caller owns.
+///
+/// The map is copied, because the evaluation shares it with every callback it
+/// makes and so must own it. A caller that already holds the map behind an `Rc`
+/// -- one built once for the module rather than once per call -- hands it to
+/// [`evaluate_with_functions`] instead and pays no copy.
 pub fn evaluate(
   path: &Expr,
   traversal_state: &mut StateManager,
@@ -146,7 +171,8 @@ pub fn evaluate(
   evaluate_with_functions(path, traversal_state, Rc::new(fns.clone()))
 }
 
-fn evaluate_with_functions(
+/// Folds `path` with a function map that is already shared.
+pub fn evaluate_with_functions(
   path: &Expr,
   traversal_state: &mut StateManager,
   fns: Rc<FunctionMap>,

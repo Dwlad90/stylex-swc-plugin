@@ -885,6 +885,60 @@ mod expr_to_num_tests {
     let result = expr_to_num(&expr, &mut state, &mut traversal_state, &fns).unwrap();
     assert_eq!(result, 7.0);
   }
+
+  /// A comparison folds to a boolean, and a boolean asked for a number is one
+  /// or nought. `-(1 < 2)` is `-1` in the language, and
+  /// `@stylexjs/babel-plugin@0.19.0` writes `z-index:-1` for it.
+  #[test]
+  fn a_comparison_reads_as_one_or_nought() {
+    for (op, left, right, expected) in [
+      (BinaryOp::Lt, 1.0, 2.0, 1.0),
+      (BinaryOp::GtEq, 3.0, 4.0, 0.0),
+      (BinaryOp::EqEqEq, 5.0, 5.0, 1.0),
+      (BinaryOp::NotEqEq, 5.0, 5.0, 0.0),
+    ] {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let expr = Expr::Bin(BinExpr {
+        span: Default::default(),
+        op,
+        left: Box::new(create_number_expr(left)),
+        right: Box::new(create_number_expr(right)),
+      });
+
+      let result = match expr_to_num(&expr, &mut state, &mut traversal_state, &fns) {
+        Ok(number) => number,
+        Err(error) => panic!("`{left} {op} {right}` must read as a number: {error}"),
+      };
+
+      assert_eq!(
+        result, expected,
+        "`{left} {op} {right}` reads as {expected}"
+      );
+    }
+  }
+
+  /// A concatenation has no number of its own, so it is refused rather than
+  /// folded. The text has one only through `StringToNumber`, which belongs to
+  /// the caller that holds the text.
+  #[test]
+  fn a_concatenation_is_refused() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+    let expr = Expr::Bin(BinExpr {
+      span: Default::default(),
+      op: BinaryOp::Add,
+      left: Box::new(Expr::from("a")),
+      right: Box::new(Expr::from("b")),
+    });
+
+    assert!(
+      expr_to_num(&expr, &mut state, &mut traversal_state, &fns).is_err(),
+      "a concatenation has no number of its own"
+    );
+  }
 }
 
 // ──────────────────────────────────────────────
@@ -940,6 +994,64 @@ mod ident_to_number_extended_tests {
     };
     let result = ident_to_number(&ident, &mut state, &mut traversal_state, &fns);
     assert_eq!(result, 10.0);
+  }
+
+  /// A binding declared as a comparison reads through the same one-or-nought
+  /// rule the expression does. `const flag = 1 < 2; -flag` is `-1` in the
+  /// language, and `@stylexjs/babel-plugin@0.19.0` writes `z-index:-1` for it.
+  #[test]
+  fn resolves_ident_declared_as_a_comparison() {
+    for (op, expected) in [(BinaryOp::Lt, 1.0), (BinaryOp::GtEq, 0.0)] {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let bin_expr = Expr::Bin(BinExpr {
+        span: Default::default(),
+        op,
+        left: Box::new(create_number_expr(1.0)),
+        right: Box::new(create_number_expr(2.0)),
+      });
+      let decl = make_var_declarator("flag", bin_expr);
+      fill_state_declarations(&mut traversal_state, &decl);
+      let ident = Ident {
+        span: Default::default(),
+        sym: "flag".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      };
+
+      assert_eq!(
+        ident_to_number(&ident, &mut state, &mut traversal_state, &fns),
+        expected,
+        "a binding declared as `1 {op} 2` reads as {expected}"
+      );
+    }
+  }
+
+  /// A binding declared as a concatenation has no number, so the build stops
+  /// on it rather than folding a wrong one.
+  #[test]
+  #[should_panic(expected = "Binary expression is not a number")]
+  fn panics_for_an_ident_declared_as_a_concatenation() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+    let bin_expr = Expr::Bin(BinExpr {
+      span: Default::default(),
+      op: BinaryOp::Add,
+      left: Box::new(Expr::from("a")),
+      right: Box::new(Expr::from("b")),
+    });
+    let decl = make_var_declarator("joined", bin_expr);
+    fill_state_declarations(&mut traversal_state, &decl);
+    let ident = Ident {
+      span: Default::default(),
+      sym: "joined".into(),
+      optional: false,
+      ctxt: SyntaxContext::empty(),
+    };
+
+    ident_to_number(&ident, &mut state, &mut traversal_state, &fns);
   }
 
   #[test]

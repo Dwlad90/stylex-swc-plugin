@@ -21,12 +21,14 @@ import test from 'node:test';
 import {
   createWorkspace,
   hermeticEnvironment,
+  makeTemporaryDirectory,
   missing,
   pathVariable,
   readLog,
   repoRoot,
   stubPath,
   writeStubs,
+  writeText,
 } from './lib/test-harness.mjs';
 
 const script = path.join(repoRoot, 'scripts/coverage-missing.sh');
@@ -46,6 +48,69 @@ const BEHIND =
 const EMPTY_EXPORT = '{"data":[{"files":[],"functions":[]}]}';
 
 /**
+ * A measured file, named so neither the ignore regex nor an exclude drops it.
+ *
+ * It is written to disk, because the script refuses a mapping whose positions
+ * the source cannot hold: a file the mapping names and the tree cannot open is
+ * read as a stale mapping, and the run stops before it reports anything. The
+ * file lives outside the repository so no case writes into the tree it runs in.
+ */
+const MEASURED_FILE = path.join(
+  makeTemporaryDirectory('stylex-coverage-missing-source-'),
+  'crates/stylex-demo/src/demo.rs'
+);
+
+/**
+ * Every line carries code and is wider than the widest column `buildExport`
+ * writes, so any line a case names is a position this file can hold.
+ */
+writeText(
+  MEASURED_FILE,
+  `${Array.from({ length: 24 }, (_, index) => `  let value_${index} = compute(${index});`).join('\n')}\n`
+);
+
+/**
+ * Builds a coverage export the way llvm-cov writes one.
+ *
+ * `records` is one entry per compiled instantiation: a mangled name and the
+ * execution count of each of the function's regions, in order. Every record of
+ * one function describes the same source regions, which is what makes them an
+ * instantiation group.
+ *
+ * The file summary is filled the way llvm-cov fills it -- a group is scored on
+ * its best-covered record -- so a test states only the counts and the summary
+ * follows from them.
+ */
+function buildExport({ startLine = 10, records }) {
+  const width = records[0].counts.length;
+  const regionsOf = counts =>
+    counts.map((count, index) => [startLine + index, 3, startLine + index, 20, count, 0, 0, 0]);
+  const covered = Math.max(...records.map(record => record.counts.filter(Boolean).length));
+
+  return JSON.stringify({
+    data: [
+      {
+        files: [
+          {
+            filename: MEASURED_FILE,
+            summary: {
+              regions: { count: width, covered, notcovered: width - covered },
+              functions: { count: 1, covered: 1 },
+              lines: { count: width, covered },
+            },
+          },
+        ],
+        functions: records.map(record => ({
+          name: record.name,
+          filenames: [MEASURED_FILE],
+          regions: regionsOf(record.counts),
+        })),
+      },
+    ],
+  });
+}
+
+/**
  * Runs the real script with stubs for the three commands it starts.
  *
  * `rustcVersion` empty stands for a machine with no nightly installed, so the
@@ -55,6 +120,7 @@ const EMPTY_EXPORT = '{"data":[{"files":[],"functions":[]}]}';
 function runScript({
   rustcVersion = 'rustc 1.100.0-nightly (cea272fa3 2026-09-07)',
   rustupCheck = UP_TO_DATE,
+  coverageExport = EMPTY_EXPORT,
   args = [],
 } = {}) {
   const workspace = createWorkspace('stylex-coverage-missing-');
@@ -68,7 +134,7 @@ function runScript({
     '  if [ "$previous" = "--output-path" ]; then output="$argument"; fi',
     '  previous="$argument"',
     'done',
-    `[ -n "$output" ] && printf '%s' '${EMPTY_EXPORT}' > "$output"`,
+    `[ -n "$output" ] && printf '%s' '${coverageExport}' > "$output"`,
     'exit 0',
   ].join('\n');
 
@@ -132,3 +198,73 @@ void test(
     assert.match(result.stderr, /rustup toolchain install nightly/);
   }
 );
+
+/*
+ * What the coverage gate counts.
+ *
+ * llvm-cov scores a function on its best-covered instantiation, so a region it
+ * counts can still have been run -- by a different instantiation. The merge the
+ * script does over instantiations reads such a region as covered, and the gate
+ * does not, so the script used to fail with a bare count and no location. These
+ * cases hold it to naming every region behind a failing gate.
+ */
+
+/** Two instantiations of one function, each running the half the other misses. */
+const SPLIT_ACROSS_INSTANTIATIONS = buildExport({
+  records: [
+    { name: '_RNvNtCshash_4demo3foo5Alpha', counts: [7, 0] },
+    { name: '_RNvNtCshash_4demo3foo4Beta', counts: [0, 3] },
+  ],
+});
+
+/** One instantiation, with a region no test reaches. */
+const NEVER_RUN = buildExport({
+  records: [{ name: '_RNvNtCshash_4demo3foo5Alpha', counts: [7, 0] }],
+});
+
+/** One instantiation that runs every region of its function. */
+const FULLY_RUN = buildExport({
+  records: [{ name: '_RNvNtCshash_4demo3foo5Alpha', counts: [7, 3] }],
+});
+
+void test(
+  'a region no single instantiation runs is named, not just counted',
+  { skip: NEEDS_BASH },
+  () => {
+    const { result } = runScript({ coverageExport: SPLIT_ACROSS_INSTANTIATIONS });
+
+    assert.match(result.stdout, /Regions the coverage gate counts/);
+    assert.match(result.stdout, /fn at line 10: the best instantiation runs 1 of 2 region\(s\)/);
+    // Both leaders are named, because the reader has to see that closing the
+    // group means one instantiation running what today takes two.
+    assert.match(result.stdout, /demo::foo::Alpha misses\n\s+line 11\b/);
+    assert.match(result.stdout, /demo::foo::Beta misses\n\s+line 10\b/);
+    assert.match(result.stdout, /1 region\(s\) counted against the gate across 1 file\(s\)/);
+    assert.equal(result.status, 1, 'the script must fail wherever the gate fails');
+  }
+);
+
+void test(
+  'a region no instantiation runs is reported once, not twice',
+  { skip: NEEDS_BASH },
+  () => {
+    const { result } = runScript({ coverageExport: NEVER_RUN });
+
+    assert.match(result.stdout, /Uncovered regions \(not executed by any test\)/);
+    assert.match(result.stdout, /line 11\b/);
+    assert.doesNotMatch(
+      result.stdout,
+      /Regions the coverage gate counts/,
+      'a region the first section already named must not be repeated as a gate gap'
+    );
+    assert.equal(result.status, 1);
+  }
+);
+
+void test('one instantiation running every region is clean', { skip: NEEDS_BASH }, () => {
+  const { result } = runScript({ coverageExport: FULLY_RUN });
+
+  assert.match(result.stdout, /No uncovered regions/);
+  assert.doesNotMatch(result.stdout, /Regions the coverage gate counts/);
+  assert.equal(result.status, 0);
+});

@@ -413,3 +413,20 @@ stylex_test!(
     });
   "#
 );
+
+// A `keyframes` written inside a nested variable is folded to its name where it
+// stands, and the `@keyframes` block it leaves is injected in front of the rule
+// that names it. Nothing held that order here before, so it could be reversed
+// and the suite would stay green.
+stylex_test!(
+  a_keyframes_inside_a_nested_var_injects_its_block_first,
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.unstable_defineVarsNested({
+      button: {
+        fade: stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } }),
+      },
+    });
+  "#
+);

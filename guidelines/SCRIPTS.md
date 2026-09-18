@@ -310,3 +310,14 @@ available. Region counting is a property of the compiler and continuous
 integration installs the newest nightly every run, so an old local nightly can
 report full coverage against a gate that fails there. Run `rustup update
 nightly` before you trust a clean report.
+
+The report has two sections, because the gate counts two kinds of gap:
+
+- **Uncovered regions** -- code no test runs. Write a test for it.
+- **Regions the coverage gate counts** -- code every line of which was run, but
+  never all of it by one instantiation of the generic. llvm-cov scores a
+  function on its best-covered instantiation, so a region counts against
+  `--fail-uncovered-regions 0` unless a single instantiation runs it. The
+  section names the instantiations that come closest and what each still
+  misses. Close one by driving a single instantiation through the whole
+  function, or by collapsing the instantiations into one.

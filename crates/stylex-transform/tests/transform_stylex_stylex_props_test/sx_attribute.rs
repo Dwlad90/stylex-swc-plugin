@@ -699,6 +699,141 @@ stylex_test!(
   "#
 );
 
+// An element named through a member or a namespace is not a host element, so
+// the prop is left for whatever the name resolves to at run time -- the same
+// answer a capitalised name gets.
+stylex_test!(
+  sx_attr_not_applied_to_a_member_or_namespaced_element_name,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    function Foo() {
+      return (
+        <>
+          <Ui.Button sx={styles.red}>Hello World</Ui.Button>
+          <svg:rect sx={styles.red} />
+        </>
+      );
+    }
+  "#
+);
+
+// The prop names styles only when it carries an expression. Written as text, or
+// with no value at all, it names none, so the attribute is left where the
+// author wrote it and reaches the DOM as an unknown attribute.
+stylex_test!(
+  sx_attr_with_no_expression_value_is_left_alone,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    function Foo() {
+      return (
+        <>
+          <div sx="red">Hello World</div>
+          <div sx>Hello World</div>
+        </>
+      );
+    }
+  "#
+);
+
+// A compiled call whose element name is not a lowercase host element names a
+// component, and one whose name is empty names nothing at all. Neither is a
+// host element, so neither is touched.
+stylex_test!(
+  sx_attr_compiled_jsx_element_name_that_is_no_host_element,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsxs("div", {
+        children: [
+          _jsx("Div", { sx: styles.main }),
+          _jsx("", { sx: styles.main })
+        ]
+      });
+    }
+  "#
+);
+
+// A compiled call with no props object -- the classic `React.createElement`
+// form writes `null` there -- carries no prop to read.
+stylex_test!(
+  sx_attr_compiled_jsx_without_a_props_object,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsxs("div", {
+        children: [
+          React.createElement("div", null, "Hello World"),
+          _jsx("div")
+        ]
+      });
+    }
+  "#
+);
+
+// The Solid.js form is three arguments: the element, the attribute name as a
+// string, and the value. A call short of that, one whose name is not a string,
+// and one that names another attribute are each left alone.
+stylex_test!(
+  sx_attr_solid_js_set_attribute_shapes_that_name_no_prop,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App(name) {
+      const _el$ = _$createElement("div");
+      _$setAttribute(_el$, "sx");
+      _$setAttribute(_el$, name, styles.main);
+      _$setAttribute(_el$, "class", styles.main);
+      return _el$;
+    }
+  "#
+);
+
+// A callee that is not an expression at all -- a dynamic `import(...)` -- is
+// neither a JSX runtime call nor a Solid.js one.
+stylex_test!(
+  sx_attr_leaves_a_dynamic_import_alone,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    export const load = () => import('./Other');
+    export const el = _jsx("div", { sx: styles.main });
+  "#
+);
+
 // sx attribute runtime binding: ensure a value-level `stylex` namespace import
 // exists before emitting `stylex.props(...)`, reusing an existing runtime import
 // when present and respecting configured import sources.
@@ -1092,4 +1227,85 @@ fn sx_attr_compiled_jsx_transforms_every_level_of_a_deep_tree() {
     !output.contains("sx:"),
     "no level may keep the prop the transform consumed"
   );
+}
+
+// ──────────────────────────────────────────────
+// The guard
+// ──────────────────────────────────────────────
+
+/// Every part of a compiled JSX call the `sx` scan reads, compiled both ways
+/// and compared.
+///
+/// A parenthesis is a node in this compiler's tree and none in the tree the
+/// compiled call was printed from, so a reader that matches a bare node sees a
+/// different expression from the one the author wrote. Every reader in the scan
+/// is such a reader, and when one of them does not recognise the call the `sx`
+/// prop is handed back to the runtime with no error for the author to read.
+///
+/// Each row is `(shape, bare, wrapped)`, and the two sources differ only by the
+/// brackets.
+#[test]
+fn a_compiled_jsx_call_is_read_through_its_parentheses() {
+  fn compiled(source: &str) -> String {
+    stringify_js(source, ts_syntax(), |tr| {
+      stylex_transform(tr.comments.clone(), |b| b)
+    })
+  }
+
+  const HEAD: &str = "import stylex from 'stylex';\n\
+    const styles = stylex.create({ main: { color: 'red' } });\n";
+
+  let jsx = |callee: &str, element: &str, props: &str| {
+    format!("{HEAD}export const el = {callee}({element}, {props});")
+  };
+  let solid = |callee: &str, name: &str| {
+    format!(
+      "{HEAD}export function App() {{ const e = _$createElement(\"div\"); \
+       {callee}(e, {name}, styles.main); return e; }}"
+    )
+  };
+
+  const PROPS: &str = "{ sx: styles.main }";
+
+  let rows: [(&str, String, String); 7] = [
+    (
+      "the classic callee's receiver",
+      jsx("React.createElement", "\"div\"", PROPS),
+      jsx("(React).createElement", "\"div\"", PROPS),
+    ),
+    (
+      "the classic callee",
+      jsx("React.createElement", "\"div\"", PROPS),
+      jsx("(React.createElement)", "\"div\"", PROPS),
+    ),
+    (
+      "the automatic runtime callee",
+      jsx("_jsx", "\"div\"", PROPS),
+      jsx("(_jsx)", "\"div\"", PROPS),
+    ),
+    (
+      "the element name",
+      jsx("_jsx", "\"div\"", PROPS),
+      jsx("_jsx", "(\"div\")", PROPS),
+    ),
+    (
+      "the props object",
+      jsx("_jsx", "\"div\"", PROPS),
+      jsx("_jsx", "\"div\"", "({ sx: styles.main })"),
+    ),
+    (
+      "the sx key itself",
+      jsx("_jsx", "\"div\"", "{ [\"sx\"]: styles.main }"),
+      jsx("_jsx", "\"div\"", "{ [(\"sx\")]: styles.main }"),
+    ),
+    (
+      "the Solid.js attribute setter callee and name",
+      solid("_$setAttribute", "\"sx\""),
+      solid("(_$setAttribute)", "(\"sx\")"),
+    ),
+  ];
+
+  for (shape, bare, wrapped) in &rows {
+    assert_spellings_agree_with(shape, bare, wrapped, compiled);
+  }
 }

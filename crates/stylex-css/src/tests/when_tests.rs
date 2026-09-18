@@ -2,6 +2,7 @@
 // Source: crates/stylex-css/src/utils/when.rs
 
 use super::*;
+use stylex_structures::stylex_state_options::StyleXStateOptions;
 
 #[test]
 fn test_validate_pseudo_selector_valid() {

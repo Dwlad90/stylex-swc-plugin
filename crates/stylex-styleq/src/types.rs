@@ -9,6 +9,18 @@ pub trait StyleqValue: Clone + Debug + Hash + 'static {
   fn as_class_name(&self) -> Option<&str>;
   fn is_null(&self) -> bool;
   fn is_true_bool(&self) -> bool;
+
+  /// Whether the value stands for a property that was not given.
+  ///
+  /// An inline style skips such a property completely: it writes nothing,
+  /// defines nothing, and leaves the property for a later style to declare.
+  ///
+  /// Required rather than defaulted to `false`. A default is the right answer
+  /// for a value type that has no such state and the wrong one for a type that
+  /// has it and forgot to say so, and the two read the same from here: the
+  /// property would be written, and held against every style after it. Asking
+  /// every type makes the answer a decision rather than an omission.
+  fn is_undefined(&self) -> bool;
 }
 
 impl<V: StyleqValue> StyleqValue for Rc<V> {
@@ -23,6 +35,10 @@ impl<V: StyleqValue> StyleqValue for Rc<V> {
   fn is_true_bool(&self) -> bool {
     self.as_ref().is_true_bool()
   }
+
+  fn is_undefined(&self) -> bool {
+    self.as_ref().is_undefined()
+  }
 }
 
 impl<V: StyleqValue> StyleqValue for Arc<V> {
@@ -36,6 +52,10 @@ impl<V: StyleqValue> StyleqValue for Arc<V> {
 
   fn is_true_bool(&self) -> bool {
     self.as_ref().is_true_bool()
+  }
+
+  fn is_undefined(&self) -> bool {
+    self.as_ref().is_undefined()
   }
 }
 
@@ -144,5 +164,9 @@ impl StyleqValue for StyleValue {
 
   fn is_true_bool(&self) -> bool {
     matches!(self, StyleValue::Bool(true))
+  }
+
+  fn is_undefined(&self) -> bool {
+    matches!(self, StyleValue::Undefined)
   }
 }

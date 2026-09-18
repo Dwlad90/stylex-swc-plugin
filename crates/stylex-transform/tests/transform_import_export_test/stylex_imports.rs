@@ -386,3 +386,16 @@ stylex_test!(
     import { constants } from './constants.consts.ts';
   "#
 );
+
+// The scan for side-effect imports reads every item of the module, and a module
+// that imports constants also holds the code that reads them. An item that is
+// not an import names no module to import again for its side effects.
+stylex_test!(
+  inject_stylex_side_effects_beside_other_statements,
+  |tr| inject_side_effects_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { constants } from './constants.consts.ts';
+    export const styles = stylex.create({ base: { color: 'red' } });
+  "#
+);

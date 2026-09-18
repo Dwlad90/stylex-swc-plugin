@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 954 values: the differential harness's whole corpus, plus
+/// 955 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -1866,6 +1866,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "'•'",
     output: "'•'",
     ast: "string \"•\" 0..5 quote=\"'\"",
+  },
+  ParserCase {
+    input: "\\u{1F600}a",
+    output: "\\u{1F600}a",
+    ast: "word \"\\\\u{1F600}a\" 0..10",
   },
   ParserCase {
     input: "abc",
@@ -4904,7 +4909,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 662 words paired with their number/unit split, `None` standing for a
+/// 663 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -5228,6 +5233,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("someVariableName", None),
   ("•", None),
   ("日本語#fff", None),
+  ("\\u{1F600}a", None),
   ("abc", None),
   ("data-value", None),
   ("some-attribute", None),

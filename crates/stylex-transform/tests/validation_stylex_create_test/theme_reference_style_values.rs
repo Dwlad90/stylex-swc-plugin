@@ -358,10 +358,11 @@ stylex_test_panic!(
 
 // A computed key. Upstream coerces the theme reference to its group hash and
 // declares a property named after it -- `.x12l9qay{x1q8i56t:1px}`, which is not
-// a property at all. Refused here rather than reproduced.
+// a property at all. Refused here rather than reproduced: a theme reference is
+// this compiler's own value and has no name the language would give it.
 stylex_test_panic!(
   a_theme_reference_read_as_a_computed_key_is_refused,
-  "A style value can only contain an array, string or number.",
+  "The key has no name at compile time.",
   |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';

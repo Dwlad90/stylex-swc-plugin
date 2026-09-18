@@ -175,21 +175,22 @@ _declared_ exclusions, not the whole of what goes unmeasured.
 This section says why a crate is off the gate. Each row is permanent, with the
 reason stated, or temporary, with the ticket that removes it named. Do not add a
 row without one of the two. A new crate joins the gate at full coverage when it
-is created. A temporary row must say why the coverage could not travel with the
-code.
+is created. A temporary row must say why the coverage is not there: either it
+could not travel with the code, or the tests are not written yet.
 
 Permanent:
 
 - `stylex_logs` -- logging utilities
 - `stylex_compiler_rs` -- NAPI-RS bindings
 - `stylex_test_parser` -- test fixture parser
-- `stylex_transform` -- SWC transform, tested through snapshot tests
 
-There is no temporary row. `stylex_evaluator` was the last crate with one: it
-came out of the transform, which is itself off the gate, and the new crate
-boundary stopped the transform's coverage from counting for it. Ticket
-`15-cover-the-evaluator-crate` added the tests that closed the gap, and the
-crate is on the gate at full coverage.
+There is no temporary row. Every crate that is not named above is on the gate.
+
+`stylex_transform` held the last one. It was off the gate because its tests were
+not written, and tickets `63-cover-the-transform-shared-utils` through
+`67-remove-the-transform-coverage-exclusion` wrote them: the crate is on the
+gate at full coverage, and the figures each batch measured are in ticket
+`62-record-the-transform-coverage-baseline`.
 
 Write a temporary row as a `- ` bullet under a `Temporary:` heading, the way the
 permanent rows are written. The reader of these lists is a regular expression

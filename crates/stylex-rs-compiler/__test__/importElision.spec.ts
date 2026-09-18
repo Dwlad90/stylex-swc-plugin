@@ -83,18 +83,19 @@ describe('a shadowed StyleX import in a JavaScript module', () => {
     );
   });
 
-  test('a lone surrogate refuses at the boundary instead of at the fold', () => {
+  test('a lone surrogate refuses where the key is named, not at the fold', () => {
     // The one shape here that does not read the reference implementation's
-    // sentence, and not because of the elision: an unpaired surrogate is not
-    // valid UTF-8, so the string never reaches StyleX. Upstream, which never
-    // leaves JavaScript, reads it as a condition key and refuses on the fold.
+    // sentence, and not because of the elision: an unpaired surrogate is well
+    // formed UTF-16 and not well formed Unicode, so no Rust string holds it and
+    // there is no property name to write. Upstream, which never leaves
+    // JavaScript, reads it as a condition key and refuses on the fold.
     const source = [
       "import { create, keyframes } from '@stylexjs/stylex';",
       "export const styles = create({ dyn: (keyframes) => ({ '\\uD800': { height: keyframes } }) });",
       '',
     ].join('\n');
 
-    expect(() => compile(source)).toThrow('[StyleX] String value contains invalid UTF-8 encoding.');
+    expect(() => compile(source)).toThrow('[StyleX] dyn > The key has no name at compile time.');
   });
 });
 

@@ -347,6 +347,26 @@ The plugin replaces the marker with the generated StyleX CSS during the build.
 > If a stylesheet survives but something strips the marker out of it, the rules
 > are appended to the end of a stylesheet instead of landing at the marker, and
 > the plugin warns. The styles still ship; only their position is lost.
+>
+> [`fileName`](#filename) does nothing in this mode: no standalone stylesheet is
+> emitted, and your own keeps the name the bundler gives it.
+
+> [!IMPORTANT]
+> **Stylesheet names change with the StyleX rules**
+>
+> The rules go in after the bundler has hashed the stylesheet, so the plugin
+> renames it to match the new contents. Without this, a cache can serve old CSS
+> to new JavaScript. Upgrading renames every placeholder stylesheet once.
+>
+> - Plugins that read CSS file names from the bundle must run after this one.
+>   Documents and Vite manifests are updated in place; data outside the bundle,
+>   such as a service-worker precache list, is not.
+> - Under Vite, set `build.cssCodeSplit: false`. The renaming does not apply to
+>   the default `true`.
+> - The plugin does not rename when the name template has no hash
+>   (`assetFileNames`, `entryNames`), or when `assetFileNames` is a function.
+> - webpack and Rspack rename the asset themselves. Keep
+>   `optimization.realContentHash` on, which is the production default.
 
 > [!IMPORTANT]
 > **What the CSS pipeline does and does not see**

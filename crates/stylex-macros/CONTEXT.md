@@ -36,8 +36,8 @@ first result that is not.
 _Avoid_: try_collect, safe collect
 
 **Refusal macro**:
-`deopt_unsupported!` and `expr_to_str_or_deopt!` — each records a deopt on the
-evaluation state and returns `None` from the calling function. A broken
+`deopt_unsupported!` — it records a deopt on the evaluation state and returns
+`None` from the calling function. A broken
 invariant is `stylex_panic_with_context!` instead, which builds a code frame and
 panics. The two are told apart by their state argument, and why they are
 separate constructs is

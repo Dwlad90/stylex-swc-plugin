@@ -37,8 +37,9 @@ the same way and told apart by their message gives a reviewer nothing to see.
 shape, and rejected on blast radius rather than on merit: the evaluator's arms
 answer `Option<EvaluateResultValue>` throughout, and threading a result type
 through them is a change to every fold in the crate for no change in behaviour.
-The macro hiding a `return` follows `expr_to_str_or_deopt!` beside it, which is
-the existing convention for the same job.
+A macro that hides a `return` was the existing convention for the same job when
+this was decided; `expr_to_str_or_deopt!` beside it did it too, and was deleted
+once its last caller went.
 
 ## Consequences
 

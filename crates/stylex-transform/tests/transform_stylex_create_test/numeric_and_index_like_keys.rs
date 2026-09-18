@@ -158,3 +158,105 @@ stylex_test!(
     });
   "#
 );
+
+// ── A computed key that is not a string or a number ─────────────────
+
+// A computed key names the property `String(key)`, which is what the language
+// names it. Every row refused here before, as a key with no name.
+//
+// None of them is a property anybody writes on purpose. What decided the
+// answer is that the refusal was inherited rather than chosen: the key was read
+// by the converter that spells a string, which answers for a string and a
+// number and nothing else.
+//
+// Every row is measured against `@stylexjs/babel-plugin@0.19.0` and agrees with
+// it, class name included: `x11kd1pe{true:red}`, `x5c1kzx{false:red}`,
+// `x1e7wc9j{null:red}`, `xc954yn{1,2:red}` and `x1xfulhv{:red}`. The last two
+// are not declarations a stylesheet can carry, and upstream writes them too --
+// nothing downstream of the key rejects a name with a comma in it, or an empty
+// one, in either compiler.
+stylex_test!(
+  a_computed_key_names_the_string_the_language_names_it,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      yes: { [true]: 'red' },
+      no: { [false]: 'red' },
+      nothing: { [null]: 'red' },
+      negated: { [!1]: 'red' },
+      list: { [[1, 2]]: 'red' },
+      emptyList: { [[]]: 'red' },
+    });
+  "#
+);
+
+// A comparison names the word its boolean spells rather than the digit its
+// number did. This compiler answered `0` and `1`, so the two compilers wrote
+// two different property names for one source with no error either side.
+stylex_test!(
+  a_comparison_as_a_computed_key_names_its_word,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      lesser: { [1 > 2]: 'red' },
+      greater: { [2 > 1]: 'red' },
+      same: { [1 === 1]: 'red' },
+    });
+  "#
+);
+
+// An object key names `[object Object]`, which is what the language names it
+// and what upstream names it. What the two do with that name then parts:
+// upstream writes `.x1ffvn62[object Object]{[object object]:red}`, a selector
+// with a space and a bracket in it that no stylesheet can carry, and the CSS
+// layer here drops the declaration.
+//
+// Left as it is. Agreement would mean emitting a broken selector on purpose.
+// What the key *names* is the half ticket 49 is about, and it is the text the
+// language gives; upstream's declaration spells it in lower case, which is its
+// CSS layer rather than its key. The next row shows the drop is of that one
+// declaration and not of the namespace around it.
+stylex_test!(
+  an_object_as_a_computed_key_names_its_default_text,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      empty: { [{}]: 'red' },
+    });
+  "#
+);
+
+// The same key with a value the CSS layer keeps, so what the key names is
+// visible rather than inferred from an empty namespace.
+stylex_test!(
+  an_object_key_beside_one_the_css_layer_keeps,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      mixed: { [{}]: 'red', color: 'blue' },
+    });
+  "#
+);
+
+// A comparison written where a number, a string or a condition is asked for.
+// Its boolean reads as `1` or `0` for a number, as its word for a string, and
+// as itself for a condition -- which is what the language does and what
+// upstream writes, class name for class name.
+stylex_test!(
+  a_comparison_read_where_a_value_of_another_kind_is_asked_for,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      added: { width: (1 < 2) + 1 },
+      negated: { height: -(1 < 2) },
+      multiplied: { top: (1 < 2) * 3 },
+      interpolated: { content: `x${1 < 2}y` },
+      asCondition: { color: (1 < 2) ? 'red' : 'blue' },
+    });
+  "#
+);

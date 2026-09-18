@@ -981,6 +981,85 @@ stylex_test!(
   "#
 );
 
+// Every position a module statement can hold a `create` call in. The result
+// stays where the call was written, because nothing between it and the module
+// is a function or a second statement.
+stylex_test!(
+  create_call_an_object_property_holds,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    export const all = { s: stylex.create({ root: { display: "flex" } }) };
+  "#
+);
+
+stylex_test!(
+  create_call_another_call_takes_as_an_argument,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    export const styles = Object.freeze(stylex.create({ root: { display: "flex" } }));
+  "#
+);
+
+stylex_test!(
+  create_call_a_condition_chooses,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    export const styles = ready ? stylex.create({ root: { display: "flex" } }) : null;
+  "#
+);
+
+stylex_test!(
+  create_call_an_assignment_binds,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    let styles;
+    styles = stylex.create({ root: { display: "flex" } });
+    export { styles };
+  "#
+);
+
+stylex_test!(
+  create_call_a_sequence_ends_with,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    export const styles = (0, stylex.create({ root: { display: "flex" } }));
+  "#
+);
+
+// A function is what puts the call below program level, so the compiled object
+// is hoisted to a declaration of its own and the call site reads it.
+stylex_test!(
+  create_call_an_arrow_body_answers,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    export const makeStyles = () => stylex.create({ root: { display: "flex" } });
+  "#
+);
+
+stylex_test!(
+  create_call_a_function_returns,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    export function makeStyles() {
+      return stylex.create({ root: { display: "flex" } });
+    }
+  "#
+);
+
 // A call bound to a top-level pattern is already program level, so its result
 // stays inline rather than being hoisted into a temporary.
 stylex_test!(

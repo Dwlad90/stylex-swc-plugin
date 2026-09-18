@@ -1,13 +1,18 @@
 #[cfg(test)]
 mod stylex_first_that_works {
-  use stylex_ast::ast::convertors::create_string_expr;
+  use std::{cell::Cell, rc::Rc};
+
+  use stylex_ast::ast::convertors::{create_ident_expr, create_string_expr};
   use swc_core::ecma::ast::{Expr, ExprOrSpread};
 
   use crate::stylex_first_that_works::stylex_first_that_works;
   use stylex_ast::ast::factories::{
     create_array_expression, create_object_lit, create_string_expr_or_spread,
   };
-  use stylex_state::{functions::FunctionMap, state_manager::StateManager};
+  use stylex_state::{
+    functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+    state_manager::StateManager,
+  };
 
   #[test]
   fn reverses_simple_array_of_values() {
@@ -110,6 +115,39 @@ mod stylex_first_that_works {
     assert_eq!(result, create_string_expr(expected_value));
   }
 
+  /// An argument that the plan reads and the fold reads again is read once.
+  ///
+  /// Counted through a mapper, which is the one binding whose reads can be
+  /// observed: every read of the identifier calls it. The first argument is in
+  /// the chain, so both passes want it.
+  #[test]
+  fn an_argument_is_read_to_text_once() {
+    let reads = Rc::new(Cell::new(0_usize));
+    let counted = Rc::clone(&reads);
+
+    let mut functions = FunctionMap::default();
+
+    functions.identifiers.insert(
+      "accent".into(),
+      Box::new(FunctionConfigType::Regular(FunctionConfig {
+        fn_ptr: FunctionType::Mapper(Rc::new(move || {
+          counted.set(counted.get() + 1);
+          create_string_expr("var(--accent)")
+        })),
+        takes_path: false,
+      })),
+    );
+
+    let result = stylex_first_that_works(
+      vec![create_ident_expr("accent"), create_string_expr("blue")],
+      &mut StateManager::default(),
+      &functions,
+    );
+
+    assert_eq!(result, create_string_expr("var(--accent, blue)"));
+    assert_eq!(reads.get(), 1);
+  }
+
   /// Every fallback is a piece of CSS text, so an argument with no string at
   /// compile time stops the build rather than being written into the rule as
   /// something else. An object literal is such an argument.
@@ -132,7 +170,7 @@ mod stylex_first_that_works {
 #[cfg(test)]
 mod fallback_plan {
   use crate::stylex_first_that_works::{
-    Fallbacks, css_variable_name, fold_fallback_chain, plan_fallbacks,
+    Fallbacks, css_variable_name, cut_to_css_variable_name, fold_fallback_chain, plan_fallbacks,
   };
 
   /// The plan for `is_var`, as `(chain, rest)`, or `None` where there is no
@@ -293,5 +331,36 @@ mod fallback_plan {
     assert_eq!(css_variable_name("VAR(--x)"), None);
     assert_eq!(css_variable_name(" var(--x)"), None);
     assert_eq!(css_variable_name("var(--é)"), None);
+  }
+
+  /// The cut answers what the question above answers, and leaves the text it
+  /// refuses exactly as it was. Every shape the question reads is asked again
+  /// here, because the cut is the form the fold actually uses.
+  #[test]
+  fn the_cut_leaves_the_name_and_refuses_the_rest() {
+    let cut = |text: &str| {
+      let mut owned = text.to_string();
+      let was_variable = cut_to_css_variable_name(&mut owned);
+
+      (was_variable, owned)
+    };
+
+    assert_eq!(cut("var(--x)"), (true, "--x".to_string()));
+    assert_eq!(cut("var(--token_1)"), (true, "--token_1".to_string()));
+    assert_eq!(cut("var(--a-b_c1)"), (true, "--a-b_c1".to_string()));
+
+    for refused in [
+      "var(--x, red)",
+      "var(x)",
+      "var()",
+      "--x",
+      "",
+      ")",
+      "VAR(--x)",
+      " var(--x)",
+      "var(--é)",
+    ] {
+      assert_eq!(cut(refused), (false, refused.to_string()));
+    }
   }
 }

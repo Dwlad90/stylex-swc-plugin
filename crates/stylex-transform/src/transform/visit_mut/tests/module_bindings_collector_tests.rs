@@ -1,64 +1,17 @@
-use std::sync::Arc;
-
 use rustc_hash::FxHashSet;
 use swc_core::{
-  common::{FileName, GLOBALS, Globals, Mark, SourceMap, input::StringInput},
+  common::{DUMMY_SP, GLOBALS, Globals},
   ecma::{
-    ast::{Decl, Id, Module, ModuleItem, Pass, Program, Stmt},
-    parser::{EsSyntax, Parser, Syntax, lexer::Lexer},
-    transforms::base::resolver,
-    visit::VisitWith,
+    ast::{
+      AssignExpr, AssignOp, AssignTarget, AssignTargetPat, Decl, Expr, Id, Invalid, Lit, Module,
+      ModuleItem, Number, Pat, Stmt,
+    },
+    visit::{Visit, VisitWith},
   },
 };
 
 use super::ModuleBindingsCollector;
-
-/// Parses `code` and runs SWC's resolver over it, the same way the compiler
-/// does before the StyleX pass, so `Id`s carry real syntax contexts and
-/// shadowed bindings stay distinguishable.
-fn resolved_module(code: &str) -> Module {
-  resolved_module_in(
-    code,
-    Syntax::Es(EsSyntax {
-      jsx: true,
-      ..Default::default()
-    }),
-  )
-}
-
-/// The same, over TypeScript syntax — for the binding forms only TypeScript
-/// spells, which the ES parser cannot read at all.
-fn resolved_ts_module(code: &str) -> Module {
-  resolved_module_in(code, Syntax::Typescript(Default::default()))
-}
-
-fn resolved_module_in(code: &str, syntax: Syntax) -> Module {
-  let source_map = SourceMap::default();
-  let source_file = source_map.new_source_file(
-    Arc::new(FileName::Custom("module_bindings_fixture.tsx".to_string())),
-    code.to_string(),
-  );
-
-  let lexer = Lexer::new(
-    syntax,
-    Default::default(),
-    StringInput::from(&*source_file),
-    None,
-  );
-
-  let module = match Parser::new_from(lexer).parse_module() {
-    Ok(module) => module,
-    Err(error) => panic!("failed to parse fixture: {:?}", error),
-  };
-
-  let mut program = Program::Module(module);
-  resolver(Mark::new(), Mark::new(), true).process(&mut program);
-
-  match program {
-    Program::Module(module) => module,
-    Program::Script(_) => unreachable!("a parsed module never becomes a script"),
-  }
-}
+use crate::transform::tests::prelude::{resolved_module, resolved_ts_module};
 
 /// Names of the bindings the collector recorded as written under any kind,
 /// ignoring syntax contexts (asserted separately where shadowing is what's
@@ -112,7 +65,7 @@ fn collect(code: &str, read: impl Fn(&ModuleBindingsCollector) -> FxHashSet<Id>)
   collect_parsed_by(resolved_module, code, read)
 }
 
-/// The same over TypeScript syntax, for the forms the ES parser cannot read.
+/// The same with JSX off, which only an angle-bracket cast needs.
 fn collect_ts(
   code: &str,
   read: impl Fn(&ModuleBindingsCollector) -> FxHashSet<Id>,
@@ -466,23 +419,14 @@ fn assert_binds(code: &str, expected: &[&str]) {
   assert_names(bound_names(code), expected, code);
 }
 
-/// The same over TypeScript syntax.
-#[track_caller]
-fn assert_ts_binds(code: &str, expected: &[&str]) {
-  let recorded = names(collect_ts(code, |collector| {
-    collector.declared_bindings.clone()
-  }));
-
-  assert_names(recorded, expected, code);
-}
-
 /// Every binding form JavaScript spells, in the one place a reader would look
 /// for the list. A name missing here is a global the evaluator would fold where
 /// the module had taken the name over.
 ///
 /// TypeScript's own three -- `enum`, `namespace` and `import x = require()` --
-/// are deliberately not among them, and are pinned as absent by
-/// `records_nothing_for_typescript_only_binding_forms` below.
+/// are deliberately not among them. One parse reads both languages, so what
+/// keeps a TypeScript form out of this list is the case below, which pins each
+/// of the three as binding nothing: added here, a form would fail there.
 #[test]
 fn records_every_javascript_binding_form() {
   assert_binds("const a = 1; let b = 2; var c = 3;", &["a", "b", "c"]);
@@ -526,16 +470,15 @@ fn records_nothing_for_a_module_that_declares_nothing() {
 /// where the module had bound the name.
 ///
 /// The one place the gap is real is this crate's own test transform, which runs
-/// the resolver but not the strip (`transform::mod`'s `_typescript_factory` is
-/// unused). Every input in that suite is JavaScript, so nothing there reaches
-/// it.
+/// the resolver alone and no strip. Every input in that suite is JavaScript, so
+/// nothing there reaches it.
 #[test]
 fn records_nothing_for_typescript_only_binding_forms() {
-  assert_ts_binds("enum NaN { a }", &[]);
-  assert_ts_binds("import NaN = require('m');", &[]);
+  assert_binds("enum NaN { a }", &[]);
+  assert_binds("import NaN = require('m');", &[]);
   // The `namespace` name itself is not recorded; the `const` inside it is, by
   // the same `visit_binding_ident` that records every other declarator.
-  assert_ts_binds("namespace NaN { export const a = 1; }", &["a"]);
+  assert_binds("namespace NaN { export const a = 1; }", &["a"]);
 }
 
 /// The three names the globals step asks about are ordinary bindings to the
@@ -598,4 +541,203 @@ fn collects_bindings_in_both_modes() {
       );
     }
   });
+}
+
+// ================== the wrappers and casts TypeScript adds ==================
+
+/// Names written in `code`, read with JSX off.
+///
+/// One of the five wrappers is the angle-bracket cast, and `<any>value` opens
+/// an element where JSX is on, so the whole group is read the one way.
+#[track_caller]
+fn assert_ts_written(code: &str, expected: &[&str]) {
+  let recorded = names(collect_ts(code, |collector| {
+    collector
+      .binding_reassignments
+      .union(&collector.binding_mutations)
+      .chain(collector.binding_deep_mutations.iter())
+      .cloned()
+      .collect()
+  }));
+
+  assert_names(recorded, expected, code);
+}
+
+/// A TypeScript wrapper is a node in the tree and nothing at run time, so a
+/// write through one writes the binding the bare spelling writes. Each of the
+/// five is spelled here both as the whole target, which the assignment-target
+/// match unwraps, and inside a member chain, which the walk unwraps a hop
+/// further down.
+///
+/// Read bare, the write is never recorded and the evaluator folds a declaration
+/// the module had already overwritten.
+#[test]
+fn looks_through_typescript_wrappers_on_a_write_target() {
+  assert_ts_written("let a = 1; (a as any) = 2;", &["a"]);
+  assert_ts_written("let a = 1; (a satisfies any) = 2;", &["a"]);
+  assert_ts_written("let a = 1; a! = 2;", &["a"]);
+  assert_ts_written("let a = 1; (<any>a) = 2;", &["a"]);
+
+  // Parenthesised, the cast is a `Paren` target the walk unwraps a hop later;
+  // bare, it is the assignment target itself, which is a separate arm.
+  assert_ts_written("let a = 1; a as any = 2;", &["a"]);
+  assert_ts_written("let a = 1; a satisfies any = 2;", &["a"]);
+  assert_ts_written("let a = 1; <any>a = 2;", &["a"]);
+  assert_ts_written("function f<T>(x: T) { return x; } f<number> = 1;", &["f"]);
+
+  assert_ts_written("const o = { n: 1 }; ((o as any).n)++;", &["o"]);
+  assert_ts_written("const o = { n: 1 }; ((o satisfies any).n)++;", &["o"]);
+  assert_ts_written("const o = { n: 1 }; (o!.n as any)++;", &["o"]);
+  assert_ts_written("const o = { n: 1 }; ((<any>o).n)++;", &["o"]);
+  // A generic instantiation is the fifth wrapper: `f<number>` names `f`.
+  assert_ts_written(
+    "function f<T>(x: T) { return x; } (f<number>.x) = 1;",
+    &["f"],
+  );
+}
+
+/// The same five wrappers around the operand of a `delete`, which is read by
+/// the member walk rather than by the assignment-target match. `delete (o.x)`
+/// and `delete (o.x as any)` remove the same property, so both mutate `o`.
+#[test]
+fn looks_through_typescript_wrappers_to_a_deleted_member() {
+  assert_ts_written("const o = { x: 1 }; delete (o.x as any);", &["o"]);
+  assert_ts_written("const o = { x: 1 }; delete (o.x satisfies any);", &["o"]);
+  assert_ts_written("const o = { x: 1 }; delete (o.x!);", &["o"]);
+  assert_ts_written("const o = { x: 1 }; delete (<any>o.x);", &["o"]);
+  assert_ts_written("const o = { x: 1 }; delete (o.x<number>);", &["o"]);
+}
+
+/// A call result owns no binding, so a write that lands on one invalidates
+/// nothing. Both spellings the optional chain gives are here: the chain the
+/// write reaches through, and the chain the `delete` operand is.
+#[test]
+fn records_nothing_for_a_write_into_a_call_result() {
+  assert_written("const a = { b: () => ({ c: 1 }) }; a?.b().c = 1;", &[]);
+  assert_written("const o = { f: () => ({}) }; delete o?.f();", &[]);
+  assert_written("const o = { f: () => ({}) }; o?.f() = 1;", &[]);
+}
+
+/// A private method names no binding of the module, and its name cannot be one
+/// of the mutating methods either, so the call is passed over rather than
+/// deopting the receiver.
+#[test]
+fn records_nothing_for_a_private_method_call() {
+  assert_written("class K { #p() {} m() { this.#p(1); } }", &[]);
+}
+
+/// `super.x = 1` writes a property of the prototype chain, which no binding of
+/// this module names.
+#[test]
+fn records_nothing_for_a_super_property_write() {
+  assert_written("class K extends L { m() { super.x = 1; } }", &[]);
+}
+
+/// A `for-in` / `for-of` head carries a pattern, which is where the destructuring
+/// shapes reach the walk as `Pat` rather than as an assignment target. Every
+/// shape one can hold is here, including the member target, which mutates the
+/// object it is reached through instead of rebinding a name.
+#[test]
+fn records_the_writes_a_loop_head_pattern_performs() {
+  assert_written("let a; for ([a] of []) {}", &["a"]);
+  assert_written("let a; for ({ a } of []) {}", &["a"]);
+  assert_written("let rest; for ([...rest] of []) {}", &["rest"]);
+  assert_written("let a; for ([a = 1] of []) {}", &["a"]);
+  assert_written("const o = {}; for ([o.x] of []) {}", &["o"]);
+  // A wrapped member is the same target as the bare one, here as everywhere.
+  assert_written("const o = {}; [(o.x)] = [];", &["o"]);
+  assert_ts_written("const o = {}; [(o.x as any)] = [];", &["o"]);
+  // A call result owns no binding to invalidate, and a call is not a member
+  // read at all.
+  assert_written("const o = {}; [f().x] = [];", &[]);
+  assert_written("const o = {}; [f()] = [];", &[]);
+  // An optional member inside a pattern is recorded as invalid by the parser,
+  // and an invalid node names nothing. The target cannot be assigned to at run
+  // time either.
+  assert_written("const o = {}; [o?.x] = [];", &[]);
+}
+
+/// The two invalid nodes, handed to the collector directly.
+///
+/// One of them a module reaches, and the case reads it from a module rather
+/// than claiming it: the parser writes a `Pat::Invalid` for the optional member
+/// in `[o?.x] = []`. The other is a node no module the pass runs over holds,
+/// because an assignment target the parser could not read is a syntax error.
+/// Both are pinned as no-ops rather than left unstated: the alternative to a
+/// no-op is recording a write against a binding that was never named.
+#[test]
+fn records_nothing_for_an_invalid_pattern() {
+  GLOBALS.set(&Globals::default(), || {
+    assert!(
+      matches!(first_array_pattern_element("[o?.x] = [];"), Pat::Invalid(_)),
+      "the parser answers an optional member in a pattern with an invalid node"
+    );
+
+    let mut collector = ModuleBindingsCollector::writes_only();
+
+    collector.add_pattern_writes(&Pat::Invalid(Invalid { span: DUMMY_SP }));
+    collector.visit_assign_expr(&AssignExpr {
+      span: DUMMY_SP,
+      op: AssignOp::Assign,
+      left: AssignTarget::Pat(AssignTargetPat::Invalid(Invalid { span: DUMMY_SP })),
+      right: Box::new(Expr::Lit(Lit::Num(Number {
+        span: DUMMY_SP,
+        value: 1.0,
+        raw: None,
+      }))),
+    });
+
+    assert!(
+      collector.binding_reassignments.is_empty()
+        && collector.binding_mutations.is_empty()
+        && collector.binding_deep_mutations.is_empty(),
+      "an invalid node names no binding to write"
+    );
+  });
+}
+
+/// The first element of the array pattern `code` assigns to.
+///
+/// Reads the node the parser built, so a case about a shape only the parser can
+/// make says what that shape is instead of describing it.
+fn first_array_pattern_element(code: &str) -> Pat {
+  let module = resolved_module(code);
+
+  let assignment = match module.body.last() {
+    Some(ModuleItem::Stmt(Stmt::Expr(statement))) => match statement.expr.as_assign() {
+      Some(assignment) => assignment.clone(),
+      None => panic!("the last statement is an assignment: {code}"),
+    },
+    other => panic!("the module ends in an expression statement: {other:?}"),
+  };
+
+  match &assignment.left {
+    AssignTarget::Pat(AssignTargetPat::Array(pattern)) => match pattern.elems.first() {
+      Some(Some(element)) => element.clone(),
+      _ => panic!("the array pattern holds one element: {code}"),
+    },
+    other => panic!("the assignment target is an array pattern: {other:?}"),
+  }
+}
+
+/// An anonymous class expression binds no name of its own, and a unary operator
+/// other than `delete` mutates nothing. Both sit beside the shape they are the
+/// other half of, in one module, because llvm-cov scores a function on its
+/// best-covered instantiation: split over two modules, neither visitor reads as
+/// wholly exercised.
+#[test]
+fn records_nothing_for_an_anonymous_class_or_a_non_deleting_unary() {
+  assert_binds(
+    "const K = class {}; const N = class Named {};",
+    &["K", "N", "Named"],
+  );
+  assert_written("const o = { x: 1 }; void o; delete o.x;", &["o"]);
+}
+
+/// A callee that is not an expression — the `super(…)` of a constructor and a
+/// dynamic `import(…)` — has no receiver a method could mutate.
+#[test]
+fn records_nothing_for_a_call_with_no_callee_expression() {
+  assert_written("class K extends L { constructor() { super(1); } }", &[]);
+  assert_written("const m = import('m');", &[]);
 }

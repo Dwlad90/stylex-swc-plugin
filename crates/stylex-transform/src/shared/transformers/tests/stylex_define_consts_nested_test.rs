@@ -72,7 +72,7 @@ mod stylex_define_consts_nested {
 
     assert_eq!(styles.len(), 2);
     assert!(const_values.contains(&"4"));
-    assert!(const_values.contains(&"8px"));
+    assert!(const_values.contains(&"\"8px\""));
   }
 
   fn deeply_nested_consts_fixture() -> EvaluateResultValue {
@@ -208,6 +208,8 @@ mod stylex_define_consts_nested {
         InjectableStyleKind::Regular(_) => None,
       })
       .collect::<Vec<_>>();
+    // The rule carries the constant as JSON, so a number stays a number all
+    // the way to the reader of the metadata.
     assert!(const_values.contains(&"480"));
     assert!(const_values.contains(&"768"));
   }
@@ -233,8 +235,10 @@ mod stylex_define_consts_nested {
         InjectableStyleKind::Regular(_) => None,
       })
       .collect::<Vec<_>>();
+    // A number stays a number and text arrives quoted, because the rule
+    // carries the constant as JSON.
     assert!(const_values.contains(&"8"));
-    assert!(const_values.contains(&"px"));
+    assert!(const_values.contains(&"\"px\""));
   }
 
   #[test]

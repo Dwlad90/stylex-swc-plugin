@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::borrow::Cow;
 
 use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
@@ -6,126 +6,83 @@ use stylex_structures::pre_rule_value::PreRuleValue;
 use swc_core::ecma::ast::{Expr, Lit};
 
 use crate::shared::transformers::named_rule::fold_to_rule_name;
-use crate::shared::{
-  enums::data_structures::obj_map_type::ObjMapType,
-  utils::{
-    core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-    object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_and_transform_values},
-  },
+use crate::shared::utils::{
+  core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
+  object::{obj_entries, obj_from_entries, obj_map_keys_and_transform_values},
 };
-use stylex_ast::ast::convertors::{convert_key_value_to_str, normalize_expr};
+use stylex_ast::ast::convertors::{
+  convert_key_value_to_str, get_key_values_from_object, normalize_expr,
+};
 use stylex_constants::constants::messages::VALUES_MUST_BE_OBJECT;
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
 use stylex_state::resolution::convertors::convert_expr_to_str;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
-  flat_compiled_styles_value::FlatCompiledStylesValue,
   functions::{FunctionConfig, FunctionMap, FunctionType},
   state_manager::StateManager,
-  types::FlatCompiledStyles,
 };
-use stylex_structures::{order_pair::OrderPair, pair::Pair, raw_value::TRawValue};
+use stylex_structures::{
+  order_pair::OrderPair,
+  pair::{Pair, PairCow},
+  raw_value::TRawValue,
+  stylex_state_options::with_default_options,
+};
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableStyle,
 };
 use stylex_utils::{hash::create_hash, string::dashify};
 
+/// One animation step: the offset it is written under, and the declarations
+/// that step makes.
+type KeyframeSteps = IndexMap<String, Vec<Pair>>;
+
 pub(crate) fn stylex_keyframes(
   frames: &EvaluateResultValue,
   state: &mut StateManager,
 ) -> (String, InjectableStyleKind) {
-  // NOTE: an unset `classNamePrefix` arrives here already defaulted to `x`,
-  // so an empty one was asked for explicitly and is honoured as empty.
-  let class_name_prefix = state.options.class_name_prefix.clone();
-
   let Some(frames) = frames.as_expr().and_then(|expr| expr.as_object()) else {
     stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
-  let expanded_object = obj_map(ObjMapType::Object(frames.clone()), state, |frame, state| {
-    let Some((_, frame, _)) = frame.as_tuple() else {
-      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
-    };
+  let key_values = get_key_values_from_object(frames);
 
-    let pipe_result = Pipe::create(frame)
-      .pipe(|frame| expand_frame_shorthands(frame, state))
-      .pipe(|entries| {
-        obj_map_keys_and_transform_values(
-          &entries,
-          state,
-          |key| dashify(key).into_owned(),
-          FlatCompiledStylesValue::KeyValue,
-        )
-      })
-      .done();
+  // One entry per animation step, holding the declarations that step makes. A
+  // step written twice is one step, and the declarations written last stand.
+  // Each direction below reads these same pairs, so the shorthand expansion is
+  // done once.
+  let mut expanded_steps = KeyframeSteps::with_capacity(key_values.len());
 
-    let pairs = pipe_result
-      .into_iter()
-      .filter_map(|(_, value)| value.as_key_value().cloned())
-      .collect::<Vec<Pair>>();
+  for key_value in key_values.iter() {
+    let step = convert_key_value_to_str(key_value);
+    let entries = expand_frame_shorthands(&key_value.value, state);
 
-    Rc::new(FlatCompiledStylesValue::KeyValues(pairs))
+    expanded_steps.insert(
+      step,
+      obj_map_keys_and_transform_values(&entries, state, |key| dashify(key).into_owned()),
+    );
+  }
+
+  // Read rather than copied. The steps above are the last work that writes
+  // into the state, so the options can be borrowed for the rest of the call.
+  // NOTE: an unset `classNamePrefix` arrives here already defaulted to `x`,
+  // so an empty one was asked for explicitly and is honoured as empty.
+  let options = &state.options;
+  let class_name_prefix = &options.class_name_prefix;
+
+  let ltr_string = construct_keyframes_obj(&expanded_steps, |pair| generate_ltr(pair, options));
+
+  // The name is hashed from what the default options resolve, so that it holds
+  // whatever options the module is compiled with. The defaults are shared, so
+  // nothing is built here.
+  let stable_string = with_default_options(|stable_options| {
+    construct_keyframes_obj(&expanded_steps, |pair| generate_ltr(pair, stable_options))
   });
 
-  let options = state.options.clone();
-
-  let ltr_styles = obj_map(
-    ObjMapType::Map(expanded_object.clone()),
-    state,
-    |frame, _| {
-      let Some(pairs) = frame.as_key_values() else {
-        stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
-      };
-
-      let ltr_values = pairs
-        .iter()
-        .map(|pair| generate_ltr(pair, &options).into_owned())
-        .collect();
-
-      Rc::new(FlatCompiledStylesValue::KeyValues(ltr_values))
-    },
-  );
-
-  let stable_styles = obj_map(
-    ObjMapType::Map(expanded_object.clone()),
-    state,
-    |frame, _| {
-      let Some(pairs) = frame.as_key_values() else {
-        stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
-      };
-
-      let ltr_values = pairs
-        .iter()
-        .map(|pair| generate_ltr(pair, &Default::default()).into_owned())
-        .collect();
-
-      Rc::new(FlatCompiledStylesValue::KeyValues(ltr_values))
-    },
-  );
-
-  let options = state.options.clone();
-
-  let rtl_styles = obj_map(ObjMapType::Map(expanded_object), state, |frame, _| {
-    let Some(pairs) = frame.as_key_values() else {
-      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
-    };
-
-    let rtl_values = pairs
-      .iter()
-      .map(|pair| {
-        generate_rtl(pair, &options)
-          .map(|pair| pair.into_owned())
-          .unwrap_or_else(|| pair.clone())
-      })
-      .collect();
-
-    Rc::new(FlatCompiledStylesValue::KeyValues(rtl_values))
+  // A declaration with no right-to-left form keeps the one it was written with.
+  let rtl_string = construct_keyframes_obj(&expanded_steps, |pair| {
+    generate_rtl(pair, options).unwrap_or_else(|| PairCow::borrowed(pair))
   });
-
-  let ltr_string = construct_keyframes_obj(&ltr_styles);
-  let rtl_string = construct_keyframes_obj(&rtl_styles);
-  let stable_string = construct_keyframes_obj(&stable_styles);
 
   // NOTE: Use a direction-agnostic hash to keep LTR/RTL classnames stable across
   // builds. NOTE: '<>' and '-B' is used to keep existing hashes stable.
@@ -153,27 +110,32 @@ pub(crate) fn stylex_keyframes(
   )
 }
 
-fn construct_keyframes_obj(frames: &FlatCompiledStyles) -> String {
-  frames
-    .into_iter()
-    .map(|(key, value)| {
-      let value = match value.as_ref() {
-        FlatCompiledStylesValue::KeyValues(pairs) => pairs
-          .iter()
-          .filter_map(Pair::as_css_text)
-          .collect::<Vec<String>>()
-          .join(""),
-        _ => stylex_panic!("Value must be a key value pair array"),
-      };
+/// The steps of one keyframes rule, written as `step{declarations}`.
+///
+/// `resolve` answers the declaration a pair makes in the direction the caller
+/// asks for, and a pair that spells nothing is dropped.
+fn construct_keyframes_obj(
+  steps: &KeyframeSteps,
+  resolve: impl for<'a> Fn(&'a Pair) -> PairCow<'a>,
+) -> String {
+  let mut result = String::with_capacity(steps.len() * 32);
 
-      format!("{}{{{}}}", key, value)
-    })
-    .collect::<Vec<String>>()
-    .join("")
+  for (step, pairs) in steps {
+    result.push_str(step);
+    result.push('{');
+
+    for css_text in pairs.iter().filter_map(|pair| resolve(pair).as_css_text()) {
+      result.push_str(&css_text);
+    }
+
+    result.push('}');
+  }
+
+  result
 }
 
 fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<String, TRawValue> {
-  let res: Vec<_> = obj_entries(&frame.clone())
+  let res: Vec<_> = obj_entries(frame)
     .iter()
     .flat_map(|pair| {
       let key = convert_key_value_to_str(pair);
@@ -194,7 +156,7 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
         return vec![];
       };
 
-      flat_map_expanded_shorthands((key, value), &state.options)
+      flat_map_expanded_shorthands((Cow::Owned(key), value), &state.options)
         .into_iter()
         .filter_map(|pair| {
           pair.1.as_ref()?;

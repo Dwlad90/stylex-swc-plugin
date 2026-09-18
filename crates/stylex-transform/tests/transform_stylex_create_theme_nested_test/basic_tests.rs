@@ -162,3 +162,105 @@ stylex_test!(
     });
   "#
 );
+
+// The development class names a theme carries beside its override class, which
+// are written from the declarator's name and the file name.
+fn dev_transform(comments: TestComments) -> impl Pass {
+  build_test_transform(comments, |b| {
+    b.with_runtime_injection()
+      .with_dev(true)
+      .with_filename(FileName::Real(
+        "/stylex/packages/TestTheme.stylex.js".into(),
+      ))
+      .with_unstable_module_resolution(ModuleResolution::common_js(Some(
+        "/stylex/packages/".to_string(),
+      )))
+  })
+}
+
+stylex_test!(
+  adds_dev_class_names_to_a_nested_theme,
+  |tr| dev_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: {
+        primary: "var(--x1n06l0x)",
+      },
+      __varGroupHash__: "xop34xu",
+    };
+    export const theme = stylex.unstable_createThemeNested(vars, {
+      color: { primary: 'green' },
+    });
+  "#
+);
+
+// Test mode writes the development names and then marks the object compiled. A
+// theme object is marked already, so the two modes answer the same thing for a
+// nested theme -- which is what this asserts, rather than recording the same
+// module twice.
+#[test]
+fn test_mode_gives_a_nested_theme_the_development_names() {
+  let compile = |dev: bool, test: bool| {
+    crate::utils::transform::stringify_js(
+      r#"
+        import * as stylex from '@stylexjs/stylex';
+        export const vars = {
+          color: {
+            primary: "var(--x1n06l0x)",
+          },
+          __varGroupHash__: "xop34xu",
+        };
+        export const theme = stylex.unstable_createThemeNested(vars, {
+          color: { primary: 'green' },
+        });
+      "#,
+      ts_syntax(),
+      |tr| {
+        build_test_transform(tr.comments.clone(), |b| {
+          b.with_runtime_injection()
+            .with_dev(dev)
+            .with_test(test)
+            .with_filename(FileName::Real(
+              "/stylex/packages/TestTheme.stylex.js".into(),
+            ))
+            .with_unstable_module_resolution(ModuleResolution::common_js(Some(
+              "/stylex/packages/".to_string(),
+            )))
+        })
+      },
+    )
+  };
+
+  let under_test = compile(false, true);
+
+  assert!(
+    under_test.contains("TestTheme__theme"),
+    "test mode left the theme without its development name:\n{under_test}"
+  );
+  assert_eq!(
+    under_test,
+    compile(true, false),
+    "test mode and development mode disagree on a nested theme"
+  );
+}
+
+// The same order for a nested theme override, which nothing held either.
+stylex_test!(
+  a_keyframes_inside_a_nested_override_injects_its_block_first,
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: {
+        primary: "var(--x1n06l0x)",
+      },
+      __varGroupHash__: "xop34xu",
+    };
+    export const theme = stylex.unstable_createThemeNested(vars, {
+      color: {
+        primary: stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } }),
+      },
+    });
+  "#
+);

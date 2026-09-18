@@ -261,7 +261,10 @@ fn a_compiled_style_map_carries_its_namespace_names() {
   );
 
   let mut map = FunctionConfigMap::default();
-  map.insert("styles".into(), FunctionConfigType::IndexMap(styles));
+  map.insert(
+    "styles".into(),
+    FunctionConfigType::IndexMap(Rc::new(styles)),
+  );
 
   let object = function_fold_to_object(&EvaluateResultValue::FunctionConfigMap(map))
     .expect("a function map holding a compiled style map has an object form");

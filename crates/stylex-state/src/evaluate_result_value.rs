@@ -19,9 +19,9 @@ use crate::{
 };
 use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_diagnostics::code_frame::{create_module, print_module};
+use stylex_js::coercions::to_js_string;
 use stylex_structures::stylex_env::EnvEntry;
 use stylex_types::traits::WhenMarkerValue;
-use stylex_utils::number::to_js_string;
 
 pub enum EvaluateResultValue {
   Null,
@@ -202,18 +202,7 @@ impl EvaluateResultValue {
   #[inline]
   pub fn as_string_key(&self) -> Option<String> {
     match self {
-      Self::Expr(expr) => match expr {
-        Expr::Ident(ident) => Some(ident.sym.to_string()),
-        Expr::Lit(Lit::Str(s)) => s.value.as_str().map(str::to_string),
-        // A property key is `ToPropertyKey`, which is `ToString` -- not Rust's
-        // `Display`. The two part company on `-0` (`"0"` in the language, `"-0"`
-        // here) and on every magnitude that takes exponential form (`"1e-7"`
-        // against `"0.0000001"`), so `list[-0]` read no element and `obj[1e-7]`
-        // found no property.
-        Expr::Lit(Lit::Num(n)) => Some(to_js_string(n.value)),
-        Expr::Lit(Lit::BigInt(bi)) => Some(bi.value.to_string()),
-        _ => None,
-      },
+      Self::Expr(expr) => string_key_of_expr(expr),
       _ => None,
     }
   }
@@ -310,6 +299,32 @@ fn key_value_props(object: &ObjectLit) -> impl Iterator<Item = (&str, &Expr)> {
     },
     PropOrSpread::Spread(_) => None,
   })
+}
+
+/// The property one expression names, which is `String(key)`.
+///
+/// Taken by reference rather than off a value, so a caller that holds only the
+/// expression asks the same question without building a value to hold it --
+/// which copied the whole subtree of a key that folded to an object or a list.
+pub fn string_key_of_expr(expr: &Expr) -> Option<String> {
+  match expr {
+    // A property written as a name is that name. Read through the coercion
+    // below instead, a name would answer for the global it spells -- `NaN`
+    // and `Infinity` have a text and every other name has none -- where what
+    // is asked for here is the property `obj.NaN` reads.
+    Expr::Ident(ident) => Some(ident.sym.to_string()),
+    // `ToPropertyKey`, which is `ToString` -- not Rust's `Display`. The two
+    // part company on `-0` (`"0"` in the language, `"-0"` here) and on every
+    // magnitude that takes exponential form (`"1e-7"` against `"0.0000001"`),
+    // so `list[-0]` read no element and `obj[1e-7]` found no property.
+    //
+    // One coercion rather than a table of the kinds a key may be written as,
+    // because a key is written and read in two places and they have to agree:
+    // `{ [true]: 'red' }` names the property `true`, so `obj[true]` has to
+    // look for that one. A table answered for a string and a number only, so
+    // a boolean key was written nowhere and found nowhere.
+    expr => to_js_string(expr),
+  }
 }
 
 /// Reads a property name as a string, for the key shapes a compiled StyleX

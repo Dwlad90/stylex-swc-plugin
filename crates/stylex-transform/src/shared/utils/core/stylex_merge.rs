@@ -1,10 +1,11 @@
-use rustc_hash::FxHashMap;
-use stylex_ast::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
-use stylex_macros::{stylex_panic, stylex_unreachable};
+use std::rc::Rc;
+
+use stylex_ast::ast::convertors::{convert_lit_to_string, key_value_name, normalize_expr};
+
 use swc_core::ecma::{
   ast::{
-    BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, JSXAttrOrSpread, JSXAttrValue, Lit,
-    ObjectLit, Prop, PropName, PropOrSpread,
+    BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, JSXAttrOrSpread,
+    JSXAttrValue, Lit, ObjectLit, Prop, PropName, PropOrSpread,
   },
   visit::{VisitMut, VisitMutWith, VisitWith},
 };
@@ -19,14 +20,11 @@ use crate::shared::{
   },
 };
 use stylex_ast::ast::factories::{create_jsx_attr, create_jsx_attr_or_spread};
-use stylex_constants::constants::{
-  api_names::STYLEX_DEFAULT_MARKER, common::COMPILED_KEY, messages::EXPECTED_COMPILED_STYLES,
-};
+use stylex_constants::constants::{api_names::STYLEX_DEFAULT_MARKER, common::COMPILED_KEY};
 use stylex_enums::style_vars_to_keep::NonNullProps;
 use stylex_state::{
   functions::{FunctionConfigType, FunctionMap},
   state_manager::{ImportKind, StateManager},
-  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 
 /// Merges the arguments of a `stylex.props`-family call into one value.
@@ -35,8 +33,8 @@ use stylex_state::{
 /// module-scoped `const` and returns a reference to it.
 pub(crate) fn stylex_merge(
   call: &mut CallExpr,
-  transform: fn(&[ResolvedArg]) -> Option<FnResult>,
-  hoist_expression: fn(Expr, &mut StateManager) -> Expr,
+  transform: fn(&[ResolvedArg]) -> FnResult,
+  hoist_expression: fn(Expr, &mut StateManager) -> Ident,
   state: &mut StateManager,
 ) -> Option<Expr> {
   let mut bail_out = false;
@@ -44,55 +42,53 @@ pub(crate) fn stylex_merge(
   let mut current_index = -1;
   let mut bail_out_index = None;
 
-  let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
-  let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
+  let mut evaluate_path_fn_config = FunctionMap {
+    disable_imports: true,
+    ..FunctionMap::default()
+  };
+
+  let marker_values = stylex_default_marker::shared_default_marker_values(state);
 
   if let Some(set) = state.get_stylex_api_import(ImportKind::DefaultMarker)
     && !set.is_empty()
   {
-    let marker = stylex_default_marker::stylex_default_marker(&state.options);
-    let values = match marker.as_values() {
-      Some(v) => v,
-      None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
-    };
-
     for name in set {
-      identifiers.insert(
+      evaluate_path_fn_config.identifiers.insert(
         name.clone(),
-        Box::new(FunctionConfigType::IndexMap(values.clone())),
+        Box::new(FunctionConfigType::IndexMap(Rc::clone(&marker_values))),
       );
     }
   }
 
-  // Build the marker once, as the loop above does. It made two strings, an
-  // index map and two counted pointers for each import before.
-  let marker = stylex_default_marker::stylex_default_marker(&state.options);
-  let marker_values = match marker.as_values() {
-    Some(values) => values,
-    None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
-  };
-
   for name in state.stylex_imports() {
-    // `or_default` gives back the entry it made, so the second look-up that
-    // stood here, and the refusal that could never run, are both unnecessary.
-    member_expressions.entry(name.clone()).or_default().insert(
-      STYLEX_DEFAULT_MARKER.into(),
-      Box::new(FunctionConfigType::IndexMap(marker_values.clone())),
-    );
+    // `or_default` answers the entry itself, new or already there, so the
+    // second look-up that stood here and its refusal are both gone.
+    evaluate_path_fn_config
+      .member_expressions
+      .entry(name.clone())
+      .or_default()
+      .insert(
+        STYLEX_DEFAULT_MARKER.into(),
+        Box::new(FunctionConfigType::IndexMap(Rc::clone(&marker_values))),
+      );
   }
 
-  state.apply_stylex_env(&mut identifiers, &mut member_expressions);
+  state.apply_stylex_env(&mut evaluate_path_fn_config);
 
-  let evaluate_path_fn_config = FunctionMap {
-    identifiers,
-    member_expressions,
-    disable_imports: true,
-  };
+  // Shared rather than owned from here on. Each argument of the call asks the
+  // evaluator, and the evaluator owns the map it hands to every callback, so a
+  // map given by reference was copied once per argument and once per member
+  // read inside it.
+  let evaluate_path_fn_config = Rc::new(evaluate_path_fn_config);
 
+  // A parenthesis is not a different argument, at either level. Read bare,
+  // `stylex.props(([a, b]))` was not flattened into its elements and
+  // `stylex.props((styles.root))` reached no arm of the match below, so both
+  // handed the whole merge back to the runtime.
   let args_path = call
     .args
     .iter()
-    .flat_map(|arg| match arg.expr.as_ref() {
+    .flat_map(|arg| match normalize_expr(&arg.expr) {
       Expr::Array(arr) => arr.elems.clone(),
       _ => vec![Some(arg.clone())],
     })
@@ -103,46 +99,37 @@ pub(crate) fn stylex_merge(
   for arg_path in args_path.iter() {
     current_index += 1;
 
-    let arg = arg_path.expr.as_ref();
-
-    let resolved = if arg.is_object() || arg.is_ident() || arg.is_member() || arg.is_call() {
-      let resolved = parse_nullable_style(arg, state, &evaluate_path_fn_config);
-
-      if let StyleObject::Other = resolved {
-        bail_out_index = Some(current_index);
-        bail_out = true;
-      }
-
-      resolved
-    } else {
-      StyleObject::Unreachable
-    };
+    let arg = normalize_expr(&arg_path.expr);
 
     match &arg {
-      Expr::Object(_) => {
-        resolved_args.push(ResolvedArg::style_object(resolved));
-      },
-      Expr::Ident(_) => {
-        resolved_args.push(ResolvedArg::style_object(resolved));
-      },
-      Expr::Member(_) => {
-        match resolved {
-          StyleObject::Other => {
-            //  Already processed in the conditional block above; bail_out flag
-            // set if needed.
-          },
-          StyleObject::Style(_) | StyleObject::Nullable => {
-            resolved_args.push(ResolvedArg::style_object(resolved));
-          },
-          StyleObject::Unreachable => {
-            stylex_unreachable!("StyleObject::Unreachable");
-          },
+      // The four kinds that name a style, each answered once. The kind used to
+      // be asked again after the argument was read, which left a kind the
+      // reader never answers for in between.
+      Expr::Object(_) | Expr::Ident(_) | Expr::Member(_) | Expr::Call(_) => {
+        let resolved = parse_nullable_style(arg, state, &evaluate_path_fn_config);
+        let is_unreadable = resolved == StyleObject::Other;
+
+        // A style the compiler cannot read stays for the runtime to apply, and
+        // the bail-out is what keeps the whole call there.
+        if is_unreadable {
+          bail_out_index = Some(current_index);
+          bail_out = true;
         }
-      },
-      Expr::Call(_) => {
-        // A call argument (dynamic atom `_temp.color(c)`, dynamic create style
-        // `styles.opacity(1)`, etc.) cannot be statically merged. The bail-out
-        // recorded above keeps it in the runtime `stylex.props` call.
+
+        // An object and a name merge as they stand. A member merges too, unless
+        // it is one of those the bail-out has just kept for the runtime --
+        // merging it here would apply it twice. A call never merges: a dynamic
+        // atom (`_temp.color(c)`) or a dynamic create style
+        // (`styles.opacity(1)`) is the runtime's to apply.
+        let merges = match &arg {
+          Expr::Object(_) | Expr::Ident(_) => true,
+          Expr::Member(_) => !is_unreadable,
+          _ => false,
+        };
+
+        if merges {
+          resolved_args.push(ResolvedArg::style_object(resolved));
+        }
       },
       Expr::Cond(CondExpr {
         test,
@@ -256,7 +243,7 @@ pub(crate) fn stylex_merge(
   } else {
     let string_expression = make_string_expression(&resolved_args, transform);
 
-    if let Some(Expr::Object(string_expression)) = string_expression.as_ref()
+    if let Expr::Object(string_expression) = &string_expression
       && state.has_jsx_spread_call(call)
       && !string_expression.props.is_empty()
     {
@@ -274,34 +261,45 @@ pub(crate) fn stylex_merge(
       }
     }
 
-    return string_expression;
+    return Some(string_expression);
   }
 
   None
 }
 
+/// The JSX attribute a compiled property spells, where it spells one.
+///
+/// The properties read here are the ones the merge answered with when no
+/// argument was conditional. `make_string_expression` builds those through
+/// `create_key_value_prop`, which spells a key as a bare name or as a quoted
+/// string and never as a computed one. So `key_value_name` below has no
+/// computed key to refuse, and the guard that stood here had no input. A quoted
+/// key is usual on this path: `data-style-src` is one, and
+/// `local_static_styles` writes it into an attribute.
+///
+/// This reader never sees the table that the conditional case builds, because
+/// that case answers a member read on the table and the caller matches an
+/// object. `files_every_answer_as_a_key_value_under_a_name` holds the table's
+/// own shape.
+///
+/// What is left to decide is the value, and only a literal can be written into
+/// an attribute.
 fn static_jsx_attr_from_prop(prop: &PropOrSpread) -> Option<JSXAttrOrSpread> {
-  let PropOrSpread::Prop(prop) = prop else {
-    return None;
-  };
-  let Prop::KeyValue(key_value) = prop.as_ref() else {
-    return None;
-  };
-  if matches!(key_value.key, PropName::Computed(_)) {
-    return None;
-  }
-
-  let value = key_value
-    .value
-    .as_lit()
-    .and_then(convert_lit_to_string)
-    .map(|value| JSXAttrValue::Str(value.into()))?;
-  let attr_name = convert_key_value_to_str(key_value);
-
-  Some(create_jsx_attr_or_spread(create_jsx_attr(
-    attr_name.as_str(),
-    value,
-  )))
+  prop
+    .as_prop()
+    .and_then(|prop| prop.as_key_value())
+    .and_then(|key_value| {
+      key_value
+        .value
+        .as_lit()
+        .and_then(convert_lit_to_string)
+        .map(|value| {
+          create_jsx_attr_or_spread(create_jsx_attr(
+            key_value_name(key_value).as_ref(),
+            JSXAttrValue::Str(value.into()),
+          ))
+        })
+    })
 }
 
 /// Hoists inline compiled-style objects (those carrying the `$$css: true`
@@ -310,7 +308,7 @@ fn static_jsx_attr_from_prop(prop: &PropOrSpread) -> Option<JSXAttrOrSpread> {
 /// reference to it.
 struct CompiledStyleObjectHoister<'a> {
   state: &'a mut StateManager,
-  hoist_expression: fn(Expr, &mut StateManager) -> Expr,
+  hoist_expression: fn(Expr, &mut StateManager) -> Ident,
 }
 
 impl VisitMut for CompiledStyleObjectHoister<'_> {
@@ -320,8 +318,7 @@ impl VisitMut for CompiledStyleObjectHoister<'_> {
     if let Expr::Object(object) = expr
       && object_has_css_marker(object)
     {
-      let hoisted = (self.hoist_expression)(expr.clone(), self.state);
-      *expr = hoisted;
+      *expr = Expr::Ident((self.hoist_expression)(expr.clone(), self.state));
     }
   }
 }
@@ -347,3 +344,7 @@ fn object_has_css_marker(object: &ObjectLit) -> bool {
       && matches!(key_value.value.as_ref(), Expr::Lit(Lit::Bool(bool_lit)) if bool_lit.value)
   })
 }
+
+#[cfg(test)]
+#[path = "tests/stylex_merge_tests.rs"]
+mod tests;

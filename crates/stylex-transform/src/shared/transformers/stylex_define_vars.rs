@@ -1,17 +1,14 @@
 use std::rc::Rc;
 
-use indexmap::IndexMap;
-use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
+use stylex_macros::stylex_panic;
 use stylex_structures::base_css_type::get_css_value;
 use swc_core::ecma::ast::{KeyValueProp, PropName};
 
-use crate::shared::{
-  enums::data_structures::obj_map_type::ObjMapType,
-  utils::{core::define_vars_utils::construct_css_variables_string, object::obj_map},
-};
+use crate::shared::utils::core::define_vars_utils::construct_css_variables_string;
+use stylex_ast::ast::convertors::{convert_key_value_to_str, get_key_values_from_object};
 use stylex_constants::constants::{
   common::VAR_GROUP_HASH_KEY,
-  messages::{EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT},
+  messages::{EXPORT_ID_NOT_SET, VALUES_MUST_BE_OBJECT},
 };
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
@@ -19,11 +16,10 @@ use stylex_state::{
   state_manager::StateManager,
   types::{FlatCompiledStyles, InjectableStylesMap},
 };
-use stylex_types::{
-  enums::data_structures::injectable_style::InjectableStyleKind,
-  structures::injectable_style::InjectableStyle,
+use stylex_utils::{
+  hash::{create_hash, create_key_hash},
+  identifier::as_identifier,
 };
-use stylex_utils::hash::{create_hash, create_key_hash};
 
 pub(crate) fn stylex_define_vars(
   variables: &EvaluateResultValue,
@@ -40,116 +36,64 @@ pub(crate) fn stylex_define_vars(
     create_hash(export_id.as_str())
   );
 
-  let mut typed_variables: FlatCompiledStyles = IndexMap::new();
-
   let Some(variables) = variables.as_expr().and_then(|expr| expr.as_object()) else {
     stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
-  let variables_map = obj_map(
-    ObjMapType::Object(variables.clone()),
-    state,
-    |item, state| -> Rc<FlatCompiledStylesValue> {
-      let result = match item.as_ref() {
-        FlatCompiledStylesValue::InjectableStyle(_) => {
-          stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
-        },
-        FlatCompiledStylesValue::Tuple(key, value, _) => {
-          let debug = state.options.debug;
-          let enable_debug_class_names = state.options.enable_debug_class_names;
+  let debug = state.options.debug;
+  let enable_debug_class_names = state.options.enable_debug_class_names;
+  let class_name_prefix = state.options.class_name_prefix.clone();
 
-          let var_safe_key = if key.chars().next().unwrap_or('\0') >= '0'
-            && key.chars().next().unwrap_or('\0') <= '9'
-          {
-            format!("_{}", key)
-          } else {
-            key.to_string()
-          }
-          .chars()
-          .map(|c| if c.is_alphanumeric() { c } else { '_' })
-          .collect::<String>();
+  let key_values = get_key_values_from_object(variables);
 
-          // Created hashed variable names with fileName//themeName//key
-          let name_hash = if key.starts_with("--") {
-            key.get(2..).unwrap_or_default().to_string()
-          } else if debug && enable_debug_class_names {
-            let key_hash = create_key_hash(&export_id, key);
+  // The value each variable takes, under the name the stylesheet writes it
+  // with, and beside it the reference the module reads it through.
+  let mut variables_map = FlatCompiledStyles::with_capacity(key_values.len());
+  let mut theme_variables_objects = FlatCompiledStyles::with_capacity(key_values.len() + 1);
 
-            format!(
-              "{}-{}{}",
-              var_safe_key, state.options.class_name_prefix, key_hash
-            )
-          } else {
-            let key_hash = create_key_hash(&export_id, key);
+  for key_value in key_values.iter() {
+    let key = convert_key_value_to_str(key_value);
 
-            format!("{}{}", state.options.class_name_prefix, key_hash)
-          };
+    // Created hashed variable names with fileName//themeName//key
+    let name_hash = if key.starts_with("--") {
+      key.get(2..).unwrap_or_default().to_string()
+    } else if debug && enable_debug_class_names {
+      let key_hash = create_key_hash(&export_id, &key);
 
-          let (css_value, css_type) = get_css_value(KeyValueProp {
-            key: PropName::Str(key.clone().into()),
-            value: value.clone(),
-          });
+      format!("{}-{}{}", as_identifier(&key), class_name_prefix, key_hash)
+    } else {
+      let key_hash = create_key_hash(&export_id, &key);
 
-          FlatCompiledStylesValue::Tuple(name_hash, css_value, css_type)
-        },
-        _ => stylex_unimplemented!("Unsupported value type in define vars"),
-      };
+      format!("{}{}", class_name_prefix, key_hash)
+    };
 
-      Rc::new(result)
-    },
-  );
+    let (css_value, css_type) = get_css_value(KeyValueProp {
+      key: PropName::Str(key.clone().into()),
+      value: key_value.value.clone(),
+    });
 
-  let mut theme_variables_objects = obj_map(
-    ObjMapType::Map(variables_map.clone()),
-    state,
-    |item, _| match item.as_ref() {
-      FlatCompiledStylesValue::InjectableStyle(_) => {
-        stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
-      },
-      FlatCompiledStylesValue::Tuple(key, _, _) => {
-        Rc::new(FlatCompiledStylesValue::String(format!("var(--{})", key)))
-      },
-      _ => stylex_unreachable!("Unsupported value type"),
-    },
-  );
+    theme_variables_objects.insert(
+      key.clone(),
+      Rc::new(FlatCompiledStylesValue::String(format!(
+        "var(--{})",
+        name_hash
+      ))),
+    );
+
+    variables_map.insert(
+      key,
+      Rc::new(FlatCompiledStylesValue::Tuple(
+        name_hash, css_value, css_type,
+      )),
+    );
+  }
+
+  // The `@property` rules the typed variables declare are collected as the
+  // variables are read, and the variable rules are appended after them.
+  let mut injectable_types = InjectableStylesMap::with_capacity(key_values.len());
 
   let injectable_styles =
-    construct_css_variables_string(&variables_map, &var_group_hash, &mut typed_variables);
-
-  let injectable_types = obj_map(
-    ObjMapType::Map(typed_variables),
-    state,
-    |item, _| -> Rc<FlatCompiledStylesValue> {
-      let result = match item.as_ref() {
-        FlatCompiledStylesValue::CSSType(name_hash, syntax, initial_value) => {
-          let property = format!(
-            "@property --{} {{ syntax: \"{}\"; inherits: true; initial-value: {} }}",
-            name_hash, syntax, initial_value
-          );
-
-          FlatCompiledStylesValue::InjectableStyle(InjectableStyle {
-            ltr: property,
-            ..Default::default()
-          })
-        },
-        _ => stylex_unreachable!("Unsupported value type"),
-      };
-
-      Rc::new(result)
-    },
-  );
-
-  let mut injectable_types: InjectableStylesMap = injectable_types
-    .iter()
-    .filter_map(|(key, value)| {
-      value.as_injectable_style().map(|inj_style| {
-        (
-          key.to_owned().into(),
-          Rc::new(InjectableStyleKind::Regular(inj_style.clone())),
-        )
-      })
-    })
-    .collect();
+    construct_css_variables_string(&variables_map, &var_group_hash, &mut injectable_types);
 
   theme_variables_objects.insert(
     VAR_GROUP_HASH_KEY.to_owned(),

@@ -1,3 +1,5 @@
+use std::mem;
+
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
@@ -37,6 +39,26 @@ pub(crate) fn css_variable_name(text: &str) -> Option<&str> {
       .and_then(|inner| inner.strip_suffix(')')),
     false => None,
   }
+}
+
+/// Cuts `text` down to the variable name it references, and answers whether it
+/// referenced one. So `var(--x)` becomes `--x`, and anything else is left as it
+/// was.
+///
+/// Beside [`css_variable_name`] because both callers already own their text and
+/// the name is a slice of it, so copying the slice out allocates a second
+/// string for every argument of every chain.
+pub(crate) fn cut_to_css_variable_name(text: &mut String) -> bool {
+  if css_variable_name(text).is_none() {
+    return false;
+  }
+
+  // The name sits between the prefix and the closing parenthesis, which is what
+  // admitted the text above.
+  text.truncate(text.len() - 1);
+  text.drain(..CSS_VAR_PREFIX.len());
+
+  true
 }
 
 /// What shape `firstThatWorks` answers with, and which arguments fill it — as
@@ -121,50 +143,119 @@ pub(crate) fn fold_fallback_chain(parts: impl IntoIterator<Item = String>) -> St
     })
 }
 
+/// Each argument's text, read at most once.
+///
+/// The plan asks about an argument, and the fold then reads the same argument
+/// again. For a string literal that second read is one more `String`; for an
+/// identifier it is a second binding lookup. The answer cannot change between
+/// the two asks, so the first one stands.
+struct ArgTexts<'a> {
+  args: &'a [Expr],
+  /// One slot per argument, filled by the first read of that argument.
+  texts: Vec<Option<String>>,
+  state: &'a mut StateManager,
+  functions: &'a FunctionMap,
+}
+
+impl<'a> ArgTexts<'a> {
+  fn new(args: &'a [Expr], state: &'a mut StateManager, functions: &'a FunctionMap) -> Self {
+    ArgTexts {
+      args,
+      texts: vec![None; args.len()],
+      state,
+      functions,
+    }
+  }
+
+  /// The filled slot of `args[index]`.
+  ///
+  /// Reading is the one thing that can fail here, and it fails the same way
+  /// wherever it is asked, so the sentence lives in one place. The slot is
+  /// handed back filled, so no caller below has an empty answer to handle: a
+  /// substitution such as `unwrap_or_default` there would fold an empty
+  /// fallback segment in place of a refusal.
+  fn filled(&mut self, index: usize) -> &mut String {
+    let (args, state, functions) = (self.args, &mut self.state, self.functions);
+
+    self.texts[index].get_or_insert_with(|| {
+      match convert_expr_to_str(&args[index], state, functions) {
+        Some(text) => text,
+        None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
+      }
+    })
+  }
+
+  /// The text of `args[index]`, moved out rather than copied.
+  ///
+  /// The slot is emptied and not left holding the empty text the move makes.
+  /// A slot that holds one would say it was read, which is what [`Self::texts`]
+  /// means by a filled slot, and the next read of that position would answer
+  /// the empty text instead of the argument -- a fallback segment the source
+  /// does not state.
+  ///
+  /// The fold reads each position of a chain once, so nothing does that today.
+  /// The line is what keeps the type's own account of its slots true, rather
+  /// than a guard against a caller.
+  fn take_text(&mut self, index: usize) -> String {
+    let text = mem::take(self.filled(index));
+
+    self.texts[index] = None;
+
+    text
+  }
+}
+
 pub fn stylex_first_that_works(
   args: Vec<Expr>,
   state: &mut StateManager,
   functions: &FunctionMap,
 ) -> Expr {
-  // Reading an argument's text is the one thing that can fail here, and it fails
-  // the same way wherever it is asked, so the sentence lives in one closure
-  // rather than at each of the two sites that needs the text.
-  let mut text = |arg: &Expr| match convert_expr_to_str(arg, state, functions) {
-    Some(text) => text,
-    None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
+  // The texts are read and folded in a scope of their own, so the answer below
+  // is assembled with none of them still held.
+  let (plan, chain_text) = {
+    let mut texts = ArgTexts::new(&args, state, functions);
+
+    let plan = plan_fallbacks(args.len(), |index| {
+      css_variable_name(texts.filled(index)).is_some()
+    });
+
+    // The chain's text is read the same way whichever shape holds it. A shape
+    // with no chain folds nothing, and the empty text it stands for is never
+    // read.
+    let chain_text = match &plan {
+      Fallbacks::Reversed => String::new(),
+      Fallbacks::Chain(chain) | Fallbacks::ChainAndRest(chain, _) => {
+        fold_fallback_chain(chain.iter().map(|&index| {
+          let mut text = texts.take_text(index);
+
+          // A variable contributes its name; anything else contributes itself,
+          // which is where the chain bottoms out.
+          cut_to_css_variable_name(&mut text);
+
+          text
+        }))
+      },
+    };
+
+    (plan, chain_text)
   };
 
-  let plan = plan_fallbacks(args.len(), |index| {
-    css_variable_name(&text(&args[index])).is_some()
-  });
-
-  // The chain's text is read the same way whichever shape holds it.
-  let mut folded = |chain: &[usize]| {
-    fold_fallback_chain(chain.iter().map(|&index| {
-      let arg_text = text(&args[index]);
-
-      // A variable contributes its name; anything else contributes itself,
-      // which is where the chain bottoms out.
-      match css_variable_name(&arg_text) {
-        Some(name) => name.to_string(),
-        None => arg_text,
-      }
-    }))
-  };
-
-  match &plan {
+  match plan {
+    // The arguments reversed, and each of them moved rather than copied. This
+    // shape answers with the whole list, so a copy here is a copy of every
+    // argument.
     Fallbacks::Reversed => {
       let elems = args
-        .iter()
+        .into_iter()
         .rev()
-        .map(|arg| Some(create_expr_or_spread(arg.clone())))
+        .map(|arg| Some(create_expr_or_spread(arg)))
         .collect();
 
       create_array_expression(elems)
     },
-    Fallbacks::Chain(chain) => create_string_expr(&folded(chain)),
-    Fallbacks::ChainAndRest(chain, rest) => {
-      let chain = create_string_expr(&folded(chain));
+    Fallbacks::Chain(_) => create_string_expr(&chain_text),
+    Fallbacks::ChainAndRest(_, rest) => {
+      let chain = create_string_expr(&chain_text);
       let elems = std::iter::once(chain)
         .chain(rest.iter().map(|&index| args[index].clone()))
         .map(|expr| Some(create_expr_or_spread(expr)))

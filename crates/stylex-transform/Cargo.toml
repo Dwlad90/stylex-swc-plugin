@@ -13,12 +13,10 @@ crate-type = ["rlib"]
 doctest = false
 
 [dependencies]
-ctor.workspace = true
 indexmap.workspace = true
 log.workspace = true
 path-clean.workspace = true
 phf = { workspace = true, features = ["macros"] }
-pretty_env_logger.workspace = true
 rustc-hash.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
@@ -55,7 +53,11 @@ swc_sourcemap.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
+# The test binary prepares itself before any case runs, and prints what it logs.
+# Both belong to the suite, as they do in every other crate here.
+ctor.workspace = true
 insta = { workspace = true, features = ["yaml"] }
+pretty_env_logger.workspace = true
 # One test helper reads the language's truthiness table, which the coercion
 # crate owns. Nothing else here needs the crate, and the engine-fold bench that
 # was the other reason left with the evaluator.

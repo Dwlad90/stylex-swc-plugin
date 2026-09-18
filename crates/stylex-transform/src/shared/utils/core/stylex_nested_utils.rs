@@ -1,9 +1,6 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use stylex_ast::ast::convertors::{
-  create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
-};
 use stylex_ast::ast::factories::{
   create_key_value_prop, create_object_expression, create_string_key_value_prop,
 };
@@ -11,6 +8,8 @@ use stylex_constants::constants::common::{COMPILED_KEY, VAR_GROUP_HASH_KEY};
 use stylex_macros::stylex_unreachable;
 use stylex_structures::nested::SEPARATOR;
 use swc_core::ecma::ast::Expr;
+
+use crate::shared::utils::core::js_to_ast::compiled_value_to_ast;
 
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
@@ -37,33 +36,28 @@ pub(crate) fn unflatten_object(
       continue;
     }
 
+    // A split always answers at least one part, so the last of them is the leaf
+    // and every part before it names an object to go down into.
     let parts = key.split(SEPARATOR).collect::<Vec<_>>();
+    let leaf_key = parts[parts.len() - 1];
     let mut current = &mut result;
 
-    for part in parts.iter().take(parts.len() - 1) {
+    for part in &parts[..parts.len() - 1] {
       let entry = current
         .entry((*part).to_string())
         .or_insert_with(|| UnflattenedCompiledStylesValue::Object(IndexMap::new()));
 
+      // A leaf already written under this part cannot hold the parts below it,
+      // so it gives way to the object they go in.
       if !matches!(entry, UnflattenedCompiledStylesValue::Object(_)) {
         *entry = UnflattenedCompiledStylesValue::Object(IndexMap::new());
       }
 
-      match entry {
-        UnflattenedCompiledStylesValue::Object(map) => current = map,
-        UnflattenedCompiledStylesValue::Leaf(_) => {
-          stylex_unreachable!("Expected unflattened intermediate object.")
-        },
-      }
+      current = object_under(entry);
     }
 
-    let leaf_key = match parts.last() {
-      Some(key) => (*key).to_string(),
-      None => stylex_unreachable!("Expected at least one key part."),
-    };
-
     current.insert(
-      leaf_key,
+      leaf_key.to_string(),
       UnflattenedCompiledStylesValue::Leaf(value.clone()),
     );
   }
@@ -100,23 +94,33 @@ pub(crate) fn convert_unflattened_object_to_ast(
   )
 }
 
+/// The object `value` holds.
+///
+/// Total for the one caller above, which makes `value` an object on the line
+/// before it asks. The second arm answers for a state no input can put the
+/// value in, and is kept because the language names every variant or none. Left
+/// out of the coverage measurement for that reason, as
+/// `guidelines/stack/RUST.md` describes.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn object_under(
+  value: &mut UnflattenedCompiledStylesValue,
+) -> &mut IndexMap<String, UnflattenedCompiledStylesValue> {
+  match value {
+    UnflattenedCompiledStylesValue::Object(map) => map,
+    UnflattenedCompiledStylesValue::Leaf(_) => {
+      stylex_unreachable!("Expected unflattened intermediate object.")
+    },
+  }
+}
+
+/// The expression one unflattened value is written back as.
+///
+/// A leaf is written by the one writer every other compiled value goes
+/// through, so a nested constant and a flat one are spelled the same way.
 fn unflattened_value_to_ast(value: &UnflattenedCompiledStylesValue) -> Expr {
   match value {
     UnflattenedCompiledStylesValue::Object(map) => convert_unflattened_object_to_ast(map),
-    UnflattenedCompiledStylesValue::Leaf(value) => match value.as_ref() {
-      FlatCompiledStylesValue::String(value) => {
-        if let Ok(num) = value.parse::<f64>() {
-          create_number_expr(num)
-        } else {
-          create_string_expr(value)
-        }
-      },
-      FlatCompiledStylesValue::Null => create_null_expr(),
-      FlatCompiledStylesValue::Bool(value) => create_bool_expr(*value),
-      _ => {
-        stylex_unreachable!("Encountered an unsupported value type during nested AST conversion.")
-      },
-    },
+    UnflattenedCompiledStylesValue::Leaf(value) => compiled_value_to_ast(value),
   }
 }
 

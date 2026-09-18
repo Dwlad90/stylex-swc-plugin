@@ -21,6 +21,8 @@
 //! `log_enabled!`, which is the one caller that does ask it.
 
 use std::cell::RefCell;
+use std::sync::Once;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use log::{Level, LevelFilter, Log, Metadata, Record};
 
@@ -72,10 +74,35 @@ impl Log for CapturingLogger {
 /// and `max_level` is process-wide, so opening and closing it around one case
 /// would decide what another one sees. The four other crates that read their
 /// messages back hold the same shape.
+///
+/// Through a `Once`, so the two steps cannot come apart. `set_boxed_logger`
+/// answers a second caller `Err`, and a caller that read `Err` and went on
+/// would log against a maximum level the winner had not raised yet -- `log`
+/// builds no message at all below that level, so the case read an empty list
+/// back and reported it against the code under test.
+///
+/// A refused install is reported by every caller rather than by the one that
+/// met it. `log` takes one logger for the whole process, so a foreign one that
+/// won means this logger captures nothing and each case reads an empty list
+/// back -- the symptom above, with nothing left to notice it by. Recorded and
+/// then asserted outside the `Once`, because a panic raised inside it poisons
+/// the `Once` and leaves the next caller reading about that instead.
 pub(crate) fn install(prints: impl Log + 'static) {
-  if log::set_boxed_logger(Box::new(CapturingLogger(Box::new(prints)))).is_ok() {
-    log::set_max_level(LevelFilter::Trace);
-  }
+  static INSTALLED: Once = Once::new();
+  static REFUSED: AtomicBool = AtomicBool::new(false);
+
+  INSTALLED.call_once(|| {
+    if log::set_boxed_logger(Box::new(CapturingLogger(Box::new(prints)))).is_ok() {
+      log::set_max_level(LevelFilter::Trace);
+    } else {
+      REFUSED.store(true, Ordering::Relaxed);
+    }
+  });
+
+  assert!(
+    !REFUSED.load(Ordering::Relaxed),
+    "this test binary could not install the logger its cases read back"
+  );
 }
 
 /// Runs `body` with this thread keeping messages at `level`, and hands back

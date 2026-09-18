@@ -199,7 +199,7 @@ describe('evaluateBudget — coverage', () => {
     expect(report.fixtures[1]?.status).toBe('unbudgeted');
   });
 
-  test('a ceiling for a benchmark that was not measured fails', () => {
+  test('a ceiling for a benchmark the run never held fails', () => {
     const report = evaluateBudget(
       rawStats([fixture('card', [1])]),
       budget([entry('card', 2), entry('removed', 2)])
@@ -207,7 +207,7 @@ describe('evaluateBudget — coverage', () => {
     expect(report.status).toBe('failed');
     expect(report.problems).toContainEqual({
       kind: 'extra-entry',
-      message: 'budget entry "removed" was not measured in this run',
+      message: 'budget entry "removed" names no benchmark in this run',
       severity: 'failure',
     });
   });
@@ -245,8 +245,9 @@ describe('evaluateBudget — coverage', () => {
   // Ceilings that describe the base cannot be checked against a fixture the
   // base did not measure. The entry is reported as one nothing measured, which
   // is the reading that stops the release rather than one that reads a number
-  // off the wrong subject.
-  test('a base budget reports a candidate-only fixture as unmeasured', () => {
+  // off the wrong subject. The message names the base, because a reader who
+  // sees only "not measured" looks for a deleted fixture first.
+  test('a base budget names the subject a candidate-only fixture is missing', () => {
     const report = evaluateBudget(
       rawStats([fixture('card', [1]), candidateOnlyFixture('engine-fold', [1])]),
       { ...budget([entry('card', 4), entry('engine-fold', 4)]), subject: 'base' }
@@ -256,7 +257,32 @@ describe('evaluateBudget — coverage', () => {
     expect(report.fixtures.map(measured => measured.name)).toStrictEqual(['card']);
     expect(report.problems).toContainEqual({
       kind: 'extra-entry',
-      message: 'budget entry "engine-fold" was not measured in this run',
+      message: 'budget entry "engine-fold" ran, but the base "base" has no measurement for it',
+      severity: 'failure',
+    });
+  });
+
+  // The two answers of the same kind must stay apart in one run, or a reader
+  // takes the answer of the first entry for the answer of both.
+  test('a stale entry and an unmeasured one read differently in one run', () => {
+    const report = evaluateBudget(
+      rawStats([fixture('card', [1]), candidateOnlyFixture('engine-fold', [1])]),
+      {
+        ...budget([entry('card', 4), entry('engine-fold', 4), entry('removed', 4)]),
+        subject: 'base',
+      }
+    );
+
+    const extra = report.problems.filter(problem => problem.kind === 'extra-entry');
+    expect(extra).toHaveLength(2);
+    expect(extra).toContainEqual({
+      kind: 'extra-entry',
+      message: 'budget entry "engine-fold" ran, but the base "base" has no measurement for it',
+      severity: 'failure',
+    });
+    expect(extra).toContainEqual({
+      kind: 'extra-entry',
+      message: 'budget entry "removed" names no benchmark in this run',
       severity: 'failure',
     });
   });

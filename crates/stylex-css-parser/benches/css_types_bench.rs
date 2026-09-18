@@ -9,8 +9,41 @@ use swc_malloc as _;
 
 use std::hint::black_box;
 
-use criterion::{Criterion, criterion_group, criterion_main};
-use stylex_css_parser::css_types::*;
+use criterion::{
+  BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::WallTime,
+};
+use stylex_css_parser::{css_types::*, token_parser::TokenParser};
+
+/// Times one parser against one input, after a check that the parser accepts
+/// it.
+///
+/// The check runs once, outside `b.iter`, so it adds nothing to the
+/// measurement: the input is the same on every iteration, so one answer speaks
+/// for all of them. Without it a parser that starts refusing everything reads
+/// as a win, because a refusal is faster than a parse.
+///
+/// `build` is generic rather than a function pointer, so each call site
+/// monomorphizes and the timed closure holds the same direct call it held
+/// before this helper existed. The check found three
+/// inputs in this file that no parser ever accepted.
+fn bench_parse<T: Clone + std::fmt::Debug + 'static>(
+  group: &mut BenchmarkGroup<'_, WallTime>,
+  name: String,
+  input: &'static str,
+  build: impl Fn() -> TokenParser<T>,
+) {
+  assert!(
+    build().parse(input).is_ok(),
+    "{name} times a refusal: {input:?} is no longer accepted"
+  );
+
+  group.bench_function(name, |b| {
+    b.iter(|| {
+      let parser = build();
+      black_box(parser.parse(black_box(input)))
+    })
+  });
+}
 
 fn color_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("Color");
@@ -28,14 +61,13 @@ fn color_benchmarks(c: &mut Criterion) {
     "rebeccapurple",
   ];
 
-  for input in &color_inputs {
-    group.bench_with_input(format!("parse_color_{}", input), input, |b, input| {
-      b.iter(|| {
-        // Benchmark the parser creation and usage
-        let parser = Color::parse();
-        black_box(parser.parse(black_box(input)))
-      })
-    });
+  for input in color_inputs {
+    bench_parse(
+      &mut group,
+      format!("parse_color_{}", input),
+      input,
+      Color::parse,
+    );
   }
 
   group.finish();
@@ -44,10 +76,12 @@ fn color_benchmarks(c: &mut Criterion) {
 fn length_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("Length");
 
+  // `0.5cm` stands where `100%` stood. A percentage is not a `<length>`, so
+  // that case timed a refusal.
   let length_inputs = [
     "10px",
     "1.5em",
-    "100%",
+    "0.5cm",
     "50vh",
     "2rem",
     "0",
@@ -56,13 +90,13 @@ fn length_benchmarks(c: &mut Criterion) {
     "12pt",
   ];
 
-  for input in &length_inputs {
-    group.bench_with_input(format!("parse_length_{}", input), input, |b, input| {
-      b.iter(|| {
-        let parser = Length::parser();
-        black_box(parser.parse(black_box(input)))
-      })
-    });
+  for input in length_inputs {
+    bench_parse(
+      &mut group,
+      format!("parse_length_{}", input),
+      input,
+      Length::parser,
+    );
   }
 
   group.finish();
@@ -71,17 +105,19 @@ fn length_benchmarks(c: &mut Criterion) {
 fn angle_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("Angle");
 
+  // `-90deg` stands where `2π rad` stood. `π` is not a CSS number, so that case
+  // timed a refusal.
   let angle_inputs = [
-    "45deg", "1.57rad", "50grad", "0.25turn", "0deg", "360deg", "2π rad",
+    "45deg", "1.57rad", "50grad", "0.25turn", "0deg", "360deg", "-90deg",
   ];
 
-  for input in &angle_inputs {
-    group.bench_with_input(format!("parse_angle_{}", input), input, |b, input| {
-      b.iter(|| {
-        let parser = Angle::parser();
-        black_box(parser.parse(black_box(input)))
-      })
-    });
+  for input in angle_inputs {
+    bench_parse(
+      &mut group,
+      format!("parse_angle_{}", input),
+      input,
+      Angle::parser,
+    );
   }
 
   group.finish();
@@ -100,13 +136,13 @@ fn calc_benchmarks(c: &mut Criterion) {
     "calc(e * 2)",
   ];
 
-  for input in &calc_inputs {
-    group.bench_with_input(format!("parse_calc_{}", input), input, |b, input| {
-      b.iter(|| {
-        let parser = Calc::parse();
-        black_box(parser.parse(black_box(input)))
-      })
-    });
+  for input in calc_inputs {
+    bench_parse(
+      &mut group,
+      format!("parse_calc_{}", input),
+      input,
+      Calc::parse,
+    );
   }
 
   group.finish();
@@ -134,13 +170,13 @@ fn blend_mode_benchmarks(c: &mut Criterion) {
     "luminosity",
   ];
 
-  for input in &blend_mode_inputs {
-    group.bench_with_input(format!("parse_blend_mode_{}", input), input, |b, input| {
-      b.iter(|| {
-        let parser = BlendMode::parser();
-        black_box(parser.parse(black_box(input)))
-      })
-    });
+  for input in blend_mode_inputs {
+    bench_parse(
+      &mut group,
+      format!("parse_blend_mode_{}", input),
+      input,
+      BlendMode::parser,
+    );
   }
 
   group.finish();
@@ -151,13 +187,13 @@ fn flex_benchmarks(c: &mut Criterion) {
 
   let flex_inputs = ["1fr", "2.5fr", "0fr", "10fr", "0.25fr"];
 
-  for input in &flex_inputs {
-    group.bench_with_input(format!("parse_flex_{}", input), input, |b, input| {
-      b.iter(|| {
-        let parser = Flex::parser();
-        black_box(parser.parse(black_box(input)))
-      })
-    });
+  for input in flex_inputs {
+    bench_parse(
+      &mut group,
+      format!("parse_flex_{}", input),
+      input,
+      Flex::parser,
+    );
   }
 
   group.finish();
@@ -176,16 +212,12 @@ fn custom_ident_benchmarks(c: &mut Criterion) {
     "veryLongIdentifierNameThatCouldBeUsedInRealWorldScenarios",
   ];
 
-  for input in &ident_inputs {
-    group.bench_with_input(
+  for input in ident_inputs {
+    bench_parse(
+      &mut group,
       format!("parse_custom_ident_{}", input),
       input,
-      |b, input| {
-        b.iter(|| {
-          let parser = CustomIdentifier::parser();
-          black_box(parser.parse(black_box(input)))
-        })
-      },
+      CustomIdentifier::parser,
     );
   }
 
@@ -208,13 +240,13 @@ fn position_benchmarks(c: &mut Criterion) {
     "10px 20px",
   ];
 
-  for input in &position_inputs {
-    group.bench_with_input(format!("parse_position_{}", input), input, |b, input| {
-      b.iter(|| {
-        let parser = Position::parser();
-        black_box(parser.parse(black_box(input)))
-      })
-    });
+  for input in position_inputs {
+    bench_parse(
+      &mut group,
+      format!("parse_position_{}", input),
+      input,
+      Position::parser,
+    );
   }
 
   group.finish();
@@ -223,6 +255,17 @@ fn position_benchmarks(c: &mut Criterion) {
 // Comparative benchmarks that test multiple CSS types for parser performance
 fn parser_comparison_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("ParserComparison");
+
+  // A parser this case builds but never runs would still cost what it costs to
+  // build, so the check reads one value through each of the eight.
+  assert!(Color::parse().parse("red").is_ok());
+  assert!(Length::parser().parse("10px").is_ok());
+  assert!(Angle::parser().parse("45deg").is_ok());
+  assert!(Calc::parse().parse("calc(1px + 1px)").is_ok());
+  assert!(BlendMode::parser().parse("normal").is_ok());
+  assert!(Flex::parser().parse("1fr").is_ok());
+  assert!(CustomIdentifier::parser().parse("ident").is_ok());
+  assert!(Position::parser().parse("left top").is_ok());
 
   group.bench_function("create_parsers", |b| {
     b.iter(|| {
@@ -240,6 +283,13 @@ fn parser_comparison_benchmarks(c: &mut Criterion) {
     })
   });
 
+  // `12.75vmin` stands where `calc(100vh - 50px)` stood. `Length` holds a
+  // number and a unit and reads no expression, so that leg timed a refusal;
+  // the calc shape the case wants is the third leg below.
+  assert!(Color::parse().parse("rgba(255, 128, 0, 0.7)").is_ok());
+  assert!(Length::parser().parse("12.75vmin").is_ok());
+  assert!(Calc::parse().parse("calc(50% + 2em * 3)").is_ok());
+
   group.bench_function("parse_complex_values", |b| {
     b.iter(|| {
       // Test parsing a variety of CSS values
@@ -249,7 +299,7 @@ fn parser_comparison_benchmarks(c: &mut Criterion) {
 
       black_box((
         color_parser.parse("rgba(255, 128, 0, 0.7)"),
-        length_parser.parse("calc(100vh - 50px)"),
+        length_parser.parse("12.75vmin"),
         calc_parser.parse("calc(50% + 2em * 3)"),
       ))
     })

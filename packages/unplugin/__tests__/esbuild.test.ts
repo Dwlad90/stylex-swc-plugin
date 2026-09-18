@@ -48,10 +48,20 @@ type BuiltCssFile = { name: string; source: string };
  */
 async function buildPlaceholderFixture(
   options: {
+    entryNames?: string;
     files?: Record<string, string>;
+    metafile?: boolean;
     pluginOptions?: UnpluginStylexRSOptions;
+    // Names the entry point and the output directory the way a build script
+    // does, relative to `absWorkingDir` rather than absolute.
+    relativePaths?: boolean;
   } = {}
-): Promise<{ cssFiles: BuiltCssFile[]; warnings: esbuild.Message[] }> {
+): Promise<{
+  cssFiles: BuiltCssFile[];
+  metafile: esbuild.Metafile | undefined;
+  outDir: string;
+  warnings: esbuild.Message[];
+}> {
   const root = await writeFixtureRoot({
     'node_modules/@stylexjs/stylex/package.json': JSON.stringify({
       name: '@stylexjs/stylex',
@@ -67,9 +77,11 @@ async function buildPlaceholderFixture(
   const result = await esbuild.build({
     absWorkingDir: root,
     bundle: true,
-    entryPoints: [path.join(root, 'main.js')],
+    entryNames: options.entryNames,
+    entryPoints: [options.relativePaths ? 'main.js' : path.join(root, 'main.js')],
     logLevel: 'silent',
-    outdir: path.join(root, 'dist'),
+    metafile: options.metafile,
+    outdir: options.relativePaths ? 'dist' : path.join(root, 'dist'),
     plugins: [
       stylexEsbuild({
         useCssPlaceholder: placeholder,
@@ -98,6 +110,8 @@ async function buildPlaceholderFixture(
 
   return {
     cssFiles: cssFiles.toSorted((a, b) => a.name.localeCompare(b.name)),
+    metafile: result.metafile,
+    outDir,
     warnings: result.warnings,
   };
 }
@@ -170,5 +184,135 @@ describe('@stylexswc/unplugin/esbuild', () => {
     });
 
     expect(warnings).toEqual([]);
+  });
+
+  // The rules are written into the file after esbuild has named and hashed it,
+  // so a StyleX-only edit used to change the bytes and keep the name. The names
+  // are asserted by hand: reading back every `.css` in the directory would miss
+  // a rename entirely.
+  describe('stylesheet naming', () => {
+    const hashedNames = { entryNames: '[dir]/[name]-[hash]' };
+    const otherStyleXSource = stylexSource.replace("color: 'red'", "color: 'rebeccapurple'");
+
+    test('renames the stylesheet after a StyleX-only edit', async () => {
+      const before = await buildPlaceholderFixture(hashedNames);
+      const after = await buildPlaceholderFixture({
+        ...hashedNames,
+        files: { 'main.js': otherStyleXSource },
+      });
+
+      expect(before.cssFiles[0]?.source).not.toBe(after.cssFiles[0]?.source);
+      expect(before.cssFiles[0]?.name).not.toBe(after.cssFiles[0]?.name);
+      // Still one stylesheet: a rename must move the file, not copy it.
+      expect(after.cssFiles).toHaveLength(1);
+      // The hash keeps esbuild's own place and character set, even though the
+      // digest is ours: esbuild's `[hash]` cannot be reproduced from contents.
+      expect(after.cssFiles[0]?.name).toMatch(/^main-[A-Z0-9]+\.css$/);
+    });
+
+    // A relative `outdir` counts from `absWorkingDir`, not from the process
+    // directory. Read from the wrong one, the scan looked outside the build
+    // entirely: no stylesheet was found, the marker shipped, and whatever CSS
+    // that other directory held was rewritten in its place.
+    test.each([[false], [true]])(
+      'injects and renames with metafile %s and a relative output directory',
+      async metafile => {
+        const before = await buildPlaceholderFixture({
+          ...hashedNames,
+          metafile,
+          relativePaths: true,
+        });
+        const after = await buildPlaceholderFixture({
+          ...hashedNames,
+          files: { 'main.js': otherStyleXSource },
+          metafile,
+          relativePaths: true,
+        });
+
+        expect(before.cssFiles).toHaveLength(1);
+        expect(before.cssFiles[0]?.source).toContain('color');
+        expect(before.cssFiles[0]?.source).not.toContain(placeholder);
+        expect(before.cssFiles[0]?.source).not.toContain('@layer __stylex_build_placeholder__');
+        expect(before.cssFiles[0]?.name).not.toBe(after.cssFiles[0]?.name);
+      }
+    );
+
+    test('gives the same input the same stylesheet name', async () => {
+      const first = await buildPlaceholderFixture(hashedNames);
+      const second = await buildPlaceholderFixture(hashedNames);
+
+      expect(first.cssFiles.map(file => file.name)).toEqual(second.cssFiles.map(file => file.name));
+    });
+
+    // esbuild's default template carries no hash, which is the user opting out
+    // of cache busting. Renaming there would only break a hand-written link.
+    test('leaves the name alone when the template asks for no hash', async () => {
+      const { cssFiles } = await buildPlaceholderFixture();
+
+      expect(cssFiles.map(file => file.name)).toEqual(['main.css']);
+    });
+
+    // A stylesheet whose name already holds capitals and dashes is where a
+    // careless reading of the template would take part of the name for the
+    // hash, or give up and leave the name stale.
+    test.each([
+      ['a nested output directory', '[dir]/nested/[name]-[hash]', /^nested\/main-[A-Z0-9]+\.css$/],
+      ['a hash before the name', '[dir]/[hash]-[name]', /^[A-Z0-9]+-main\.css$/],
+    ])('finds the hash in a template with %s', async (_label, entryNames, shape) => {
+      const before = await buildPlaceholderFixture({ entryNames });
+      const after = await buildPlaceholderFixture({
+        entryNames,
+        files: { 'main.js': otherStyleXSource },
+      });
+
+      expect(after.cssFiles[0]?.name.split(path.sep).join('/')).toMatch(shape);
+      expect(before.cssFiles[0]?.name).not.toBe(after.cssFiles[0]?.name);
+      // A sub-directory used to hide the stylesheet from the output scan, so
+      // the marker never came out.
+      expect(after.cssFiles[0]?.source).not.toContain(placeholder);
+    });
+
+    test('keeps the metafile in step with the file on disk', async () => {
+      const { cssFiles, metafile, outDir } = await buildPlaceholderFixture({
+        ...hashedNames,
+        metafile: true,
+      });
+
+      const cssOutputs = Object.entries(metafile?.outputs ?? {}).filter(([name]) =>
+        name.endsWith('.css')
+      );
+
+      expect(cssOutputs).toHaveLength(1);
+
+      const [name, output] = cssOutputs[0] ?? [];
+
+      // The metafile is read before the injection, so both the name and the
+      // size would otherwise describe a file that no longer exists. Its names
+      // are relative to the build's working directory, which the fixture puts
+      // one level above the output directory.
+      expect(path.resolve(path.dirname(outDir), name ?? '')).toBe(
+        path.join(outDir, cssFiles[0]?.name ?? '')
+      );
+      expect(output?.bytes).toBe(Buffer.byteLength(cssFiles[0]?.source ?? '', 'utf8'));
+      // A metafile used to send the injection looking in the wrong directory,
+      // which left the marker in the stylesheet.
+      expect(cssFiles[0]?.source).toContain('color');
+      expect(cssFiles[0]?.source).not.toContain(placeholder);
+    });
+
+    test('points the JavaScript output at the renamed stylesheet', async () => {
+      const { metafile } = await buildPlaceholderFixture({ ...hashedNames, metafile: true });
+      const outputs = Object.entries(metafile?.outputs ?? {});
+      const cssNames = outputs.filter(([name]) => name.endsWith('.css')).map(([name]) => name);
+      // `cssBundle` names the stylesheet a JavaScript output pulls in. A rename
+      // that left it alone would point consumers at a file that is gone.
+      const bundled = outputs
+        .map(([, output]) => output.cssBundle)
+        .filter(name => name !== undefined);
+
+      expect(bundled).not.toHaveLength(0);
+
+      for (const name of bundled) expect(cssNames).toContain(name);
+    });
   });
 });

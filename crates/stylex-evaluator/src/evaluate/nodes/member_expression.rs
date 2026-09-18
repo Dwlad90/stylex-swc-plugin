@@ -1,9 +1,10 @@
 use super::super::engine_fold::escaping_property_named;
 use super::super::*;
 use stylex_ast::ast::convertors::{
-  atom_utf16_length, convert_member_prop_to_string, normalize_expr,
+  atom_utf16_char_at, atom_utf16_length, convert_member_prop_to_string, normalize_expr,
 };
-use stylex_constants::constants::evaluation_errors::{escaping_property, unreadable_index};
+use stylex_constants::constants::evaluation_errors::escaping_property;
+use stylex_state::evaluate_result_value::string_key_of_expr;
 use swc_core::ecma::ast::MemberExpr;
 
 /// The one property a string or an array answers by counting.
@@ -18,10 +19,10 @@ const LENGTH: &str = "length";
 enum ArrayLikeLookup {
   /// `length`, which is counted rather than looked up.
   Length,
-  /// An index, carrying the slot it names. Whether one can be *read* depends on
-  /// the receiver, so the arms decide: both array receivers read one, and a
-  /// string does not -- a string index is a single UTF-16 code unit, which can
-  /// be an unpaired surrogate no Rust string holds.
+  /// An index, carrying the slot it names. Every receiver reads one: both array
+  /// receivers read the element, and a string reads the UTF-16 code unit the
+  /// language reads -- half of an astral character answering the replacement
+  /// character, as the engine fold answers it.
   ///
   /// A key that names no slot is `Missing` and not an out-of-range `Index`, so
   /// this variant means "a slot was asked for" everywhere it is matched. Which
@@ -43,6 +44,23 @@ enum ArrayLikeLookup {
   Unreadable,
 }
 
+/// The property an evaluated key names, which is `String(key)`.
+///
+/// One reading for every key a member read is written with, and the same one
+/// [`evaluate_obj_key`](crate::evaluate::evaluate_obj_key) writes a key with:
+/// `{ [true]: 'red' }` names the property `true`, so `obj[true]` has to look
+/// for that one. Three readers answered this before -- an array-like lookup, an
+/// object read and the `env` object -- and none of them named a boolean, `null`
+/// or an object, so such a key was written nowhere and found nowhere.
+///
+/// The evaluator's own list is read through the array it writes, which is the
+/// form the language joins its elements into.
+fn property_name(property: &EvaluateResultValue) -> Option<String> {
+  property
+    .as_string_key()
+    .or_else(|| evaluate_result_as_expr(property).and_then(|expr| coercions::to_js_string(&expr)))
+}
+
 /// Reads what a member lookup is asking for, from the evaluated property.
 ///
 /// A key of nothing but digits is an index however it was written, because
@@ -52,7 +70,7 @@ enum ArrayLikeLookup {
 /// with `parse::<f64>()` instead would call all three indices — it accepts
 /// `"NaN"` and `"inf"` — and refuse a fold the reference implementation makes.
 fn classify_lookup(property: &EvaluateResultValue) -> ArrayLikeLookup {
-  match property.as_string_key() {
+  match property_name(property) {
     None => ArrayLikeLookup::Unreadable,
     Some(key) if key == LENGTH => ArrayLikeLookup::Length,
     Some(key) => match index_slot(&key) {
@@ -121,7 +139,7 @@ fn fold_entry_value(object: &ObjectLit, key: &str) -> Option<Expr> {
   // what the walk skips is a shape that cannot arrive rather than one this read
   // decides about.
   written_key_values(object)
-    .find(|key_value| convert_key_value_to_str(key_value) == key)
+    .find(|key_value| key_value_name(key_value) == key)
     .map(|key_value| *key_value.value.clone())
 }
 
@@ -174,36 +192,6 @@ fn read_theme_member(
   };
 
   Some(EvaluateResultValue::Expr(create_string_expr(css_var)))
-}
-
-/// Refuses a lookup the receiver cannot answer, naming the index where the
-/// evaluator could read one.
-///
-/// A string is the only receiver that still refuses an index -- both array
-/// receivers read one -- so what this keeps single is the *wording*: `"ab"[0]`
-/// and `"ab".length` name what was asked for rather than describing the member
-/// expression. The unnameable case is the refusal the reference implementation
-/// gives at this point, `errMsgs.UNEXPECTED_MEMBER_LOOKUP`.
-///
-/// Reads what was asked for off the classification rather than re-deriving it
-/// from the property: deciding what a lookup asks for is `classify_lookup`'s
-/// job, and asking twice is how the two could come to disagree.
-fn refuse_lookup(
-  path: &Expr,
-  state: &mut EvaluationState,
-  lookup: &ArrayLikeLookup,
-) -> Option<EvaluateResultValue> {
-  match lookup {
-    ArrayLikeLookup::Index(slot) => deopt(path, state, &unreadable_index(&slot.to_string())),
-    // A lookup with no index to name. `Unreadable` is the one that arrives:
-    // every caller answers `Length` and `Missing` itself before it refuses, so
-    // a wording of their own here could only ever be dead. Named all the same,
-    // rather than left to a catch-all, so a new lookup kind has to be placed by
-    // hand.
-    ArrayLikeLookup::Length | ArrayLikeLookup::Missing | ArrayLikeLookup::Unreadable => {
-      deopt(path, state, UNEXPECTED_MEMBER_LOOKUP)
-    },
-  }
 }
 
 /// The number of slots an array literal writes, or `None` where the literal
@@ -357,9 +345,19 @@ pub(in super::super) fn evaluate(
   };
   match evaluated_value {
     Some(object) => {
-      if !state.confident {
-        return None;
-      }
+      // No confidence check here: a fold answers a value or it answers nothing,
+      // so a receiver that refused arrives as `None` and is read by the arm
+      // below. The one reader that answered a value while not confident was the
+      // own-keys call, which answered the empty list for an argument it had just
+      // refused; it now refuses where the argument is read.
+      //
+      // The rule the removed check enforced is held here instead. It costs
+      // nothing in a release build and stops the debug suite on the first
+      // reader that breaks it again.
+      debug_assert!(
+        state.confident,
+        "a fold answered a value while not confident",
+      );
 
       let prop_path = &member.prop;
 
@@ -459,17 +457,13 @@ pub(in super::super) fn evaluate(
               },
             };
 
-            let normalized_ident = normalize_expr(ident);
-
-            let ident_string_name = match normalized_ident {
-              Expr::Ident(ident) => ident.sym.to_string(),
-              // A regex or a BigInt key has no string form the evaluator
-              // reads, and a key that is still an expression never resolved.
-              Expr::Lit(lit) => match convert_lit_to_string(lit) {
-                Some(key) => key,
-                None => deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP),
-              },
-              _ => deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP),
+            // Read through the same `String(key)` every other key is read
+            // through -- off the expression, because a key that folded to an
+            // object or a list would otherwise be copied whole to be named. A
+            // parenthesis is not a different key, so the expression is
+            // unwrapped first.
+            let Some(ident_string_name) = string_key_of_expr(normalize_expr(ident)) else {
+              deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
             };
 
             // An object the evaluator itself wrote: every property is a key
@@ -478,7 +472,7 @@ pub(in super::super) fn evaluate(
             // key is looked up rather than walked with a refusal beside it,
             // and no property is copied to be read.
             let found = written_key_values(object)
-              .find(|key_value| ident_string_name == convert_key_value_to_str(key_value))
+              .find(|key_value| key_value_name(key_value) == ident_string_name)
               .map(|key_value| key_value.value.clone());
 
             // A key the object does not carry reads as `undefined`, which is a
@@ -500,17 +494,25 @@ pub(in super::super) fn evaluate(
           // nothing errors, and the stylesheet is simply not what the source
           // says.
           //
-          // An index is the one lookup here that refuses rather than answering.
-          // The reference implementation folds `"\u{1F600}"[0]` to a lone
-          // surrogate, which no Rust string can hold, so answering it would be
-          // the same class of quietly-wrong value this arm stopped producing.
+          // An index reads the code unit the language reads, and half of an
+          // astral character answers the replacement character -- the same
+          // substitution the engine fold makes, so `s[0]` and `s.charAt(0)` are
+          // one read written two ways rather than two answers.
           Expr::Lit(Lit::Str(strng)) => match classify_lookup(&property) {
             ArrayLikeLookup::Length => Some(EvaluateResultValue::Expr(create_number_expr(
               atom_utf16_length(&strng.value) as f64,
             ))),
             ArrayLikeLookup::Missing => Some(js_undefined()),
-            lookup @ (ArrayLikeLookup::Index(_) | ArrayLikeLookup::Unreadable) => {
-              refuse_lookup(path, state, &lookup)
+            ArrayLikeLookup::Index(slot) => Some(match atom_utf16_char_at(&strng.value, slot) {
+              Some(character) => {
+                EvaluateResultValue::Expr(create_string_expr(character.encode_utf8(&mut [0; 4])))
+              },
+              // Past the end is `undefined`, which is the answer an array
+              // already gives for a slot it does not hold.
+              None => js_undefined(),
+            }),
+            ArrayLikeLookup::Unreadable => {
+              deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
             },
           },
           // Reading a property off `undefined` throws in the language, and
@@ -629,7 +631,9 @@ pub(in super::super) fn evaluate(
           // the end.
           ArrayLikeLookup::Index(slot) => Some(index_answer(items.get(slot), Clone::clone)),
           ArrayLikeLookup::Missing => Some(js_undefined()),
-          lookup @ ArrayLikeLookup::Unreadable => refuse_lookup(path, state, &lookup),
+          ArrayLikeLookup::Unreadable => {
+            deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
+          },
         },
         EvaluateResultValue::ThemeRef(mut theme_ref) => {
           let key = match &property {
@@ -644,7 +648,7 @@ pub(in super::super) fn evaluate(
           read_theme_member(&mut theme_ref, &key, path, state, traversal_state)
         },
         EvaluateResultValue::EnvObject(env_map) => {
-          let Some(key) = property.as_string_key() else {
+          let Some(key) = property_name(&property) else {
             deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
           };
 

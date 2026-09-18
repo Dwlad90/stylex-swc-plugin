@@ -108,7 +108,13 @@ pub struct FunctionConfig {
 pub enum FunctionConfigType {
   Regular(FunctionConfig),
   Map(FunctionConfigMap),
-  IndexMap(FlatCompiledStyles),
+  /// A compiled style object registered under a name, shared rather than
+  /// copied.
+  ///
+  /// The default marker is the only such object today. One file registers it
+  /// again for each name it imports the marker by, and no reader changes it, so
+  /// every registration points at one map.
+  IndexMap(Rc<FlatCompiledStyles>),
   /// An env object from the `env` config option. Contains both values and
   /// functions.
   /// The `env` option's object, shared rather than copied.
@@ -178,4 +184,38 @@ pub struct FunctionMap {
   /// for built-in or inlined functions). Set to `false` to allow normal
   /// import handling.
   pub disable_imports: bool,
+}
+
+/// Which StyleX helpers a rule call folds inside its argument, and the key the
+/// map that registers them is kept under.
+///
+/// `keyframes` and `positionTry` fold `firstThatWorks` alone: a `keyframes`
+/// call written inside either of them must refuse, so its name stays
+/// unregistered there. `viewTransitionClass` folds `keyframes` too, because one
+/// of its steps may name a keyframes rule.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RuleCallHelpers {
+  FirstThatWorks,
+  FirstThatWorksAndKeyframes,
+}
+
+/// The function maps the rule calls evaluate their argument with, one per set
+/// of helpers.
+#[derive(Clone, Debug, Default)]
+pub struct RuleCallFunctionMaps {
+  first_that_works: Option<Rc<FunctionMap>>,
+  with_keyframes: Option<Rc<FunctionMap>>,
+}
+
+impl RuleCallFunctionMaps {
+  /// The slot `helpers` is kept in.
+  ///
+  /// One match for the read and the write alike, and an exhaustive one, so a
+  /// new set of helpers does not compile until it has a slot to live in.
+  pub fn slot(&mut self, helpers: RuleCallHelpers) -> &mut Option<Rc<FunctionMap>> {
+    match helpers {
+      RuleCallHelpers::FirstThatWorks => &mut self.first_that_works,
+      RuleCallHelpers::FirstThatWorksAndKeyframes => &mut self.with_keyframes,
+    }
+  }
 }

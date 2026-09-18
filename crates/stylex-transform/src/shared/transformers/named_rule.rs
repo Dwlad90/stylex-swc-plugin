@@ -33,5 +33,10 @@ pub(crate) fn fold_to_rule_name(
     .other_injected_css_rules
     .insert(name.into(), Rc::new(rule));
 
+  // Told to the state so the evaluator memo can see that this fold had an
+  // effect it cannot replay, and decline to answer the next identical call from
+  // a remembered name.
+  state.note_nested_rule_filed();
+
   folded
 }

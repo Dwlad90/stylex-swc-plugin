@@ -186,22 +186,26 @@ fn an_array_carrying_a_hole_refuses_an_index() {
   }
 }
 
-/// A string still refuses an index: its element is a single UTF-16 code unit,
-/// which can be an unpaired surrogate no Rust string holds. The two array
-/// receivers agreeing does not make a third one agree with them.
+/// A string reads an index too, by UTF-16 code unit, so all three receivers
+/// answer an index now. Half of an astral character is the replacement
+/// character, which is the substitution the engine fold already makes.
 #[test]
-fn a_string_still_refuses_an_index() {
-  assert_deopts("\"abc\"[0]");
-  assert_deopts("\"\u{1F600}\"[0]");
+fn a_string_reads_an_index_by_code_unit() {
+  assert_folds_to_string("\"abc\"[0]", "a");
+  assert_folds_to_string("\"\u{1F600}\"[0]", "\u{fffd}");
 }
 
-/// A computed key with no name the evaluator reads refuses rather than being
-/// treated as slot zero.
+/// A computed key names the property `String(key)` names, so a key that is not
+/// a slot reads `undefined` rather than refusing -- which is what the language
+/// answers and what the reference implementation writes.
+///
+/// An object names `[object Object]` and an empty array names the empty string.
+/// Neither is a slot, and no array carries either as a property.
 #[test]
-fn an_unreadable_computed_key_refuses() {
-  assert_deopts("[\"1px\"][{}]");
-  assert_deopts("[\"1px\"][[]]");
-  assert_deopts("(0 ? [] : [\"1px\"])[{}]");
+fn a_computed_key_that_names_no_slot_reads_undefined() {
+  for source in ["[\"1px\"][{}]", "[\"1px\"][[]]", "(0 ? [] : [\"1px\"])[{}]"] {
+    assert_folds_to_undefined(source);
+  }
 }
 
 /// A parenthesis is not a different receiver, and neither is a nested one.

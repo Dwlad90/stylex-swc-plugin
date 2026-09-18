@@ -10,7 +10,9 @@ use std::{
 
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use stylex_constants::constants::common::COMPILED_KEY;
-use stylex_styleq::{StyleMap, StyleValue, StyleqInput, StyleqOptions, create_styleq};
+use stylex_styleq::{
+  StyleMap, StyleValue, Styleq, StyleqInput, StyleqOptions, StyleqResult, create_styleq,
+};
 
 fn string(value: &str) -> StyleValue {
   StyleValue::string(value)
@@ -144,6 +146,34 @@ fn complex_nested_style_fixture() -> StyleqInput<StyleValue> {
   ])
 }
 
+/// The nineteen inline declarations the large inline cases merge.
+///
+/// Spelled once: the `large inline style` case times it alone, and
+/// `merged_inline_fixture` lays it over a smaller style.
+fn large_inline_fixture() -> StyleqInput<StyleValue> {
+  inline(&[
+    ("backgroundColor", string("red")),
+    ("borderColor", string("red")),
+    ("borderStyle", string("solid")),
+    ("borderWidth", string("1px")),
+    ("boxSizing", string("border-bx")),
+    ("display", string("flex")),
+    ("listStyle", string("none")),
+    ("marginTop", string("0")),
+    ("marginEnd", string("0")),
+    ("marginBottom", string("0")),
+    ("marginStart", string("0")),
+    ("paddingTop", string("0")),
+    ("paddingEnd", string("0")),
+    ("paddingBottom", string("0")),
+    ("paddingStart", string("0")),
+    ("textAlign", string("start")),
+    ("textDecoration", string("none")),
+    ("whiteSpace", string("pre")),
+    ("zIndex", string("0")),
+  ])
+}
+
 fn merged_inline_fixture() -> [StyleqInput<StyleValue>; 2] {
   [
     inline(&[
@@ -151,27 +181,7 @@ fn merged_inline_fixture() -> [StyleqInput<StyleValue>; 2] {
       ("borderColor", string("blue")),
       ("display", string("block")),
     ]),
-    inline(&[
-      ("backgroundColor", string("red")),
-      ("borderColor", string("red")),
-      ("borderStyle", string("solid")),
-      ("borderWidth", string("1px")),
-      ("boxSizing", string("border-bx")),
-      ("display", string("flex")),
-      ("listStyle", string("none")),
-      ("marginTop", string("0")),
-      ("marginEnd", string("0")),
-      ("marginBottom", string("0")),
-      ("marginStart", string("0")),
-      ("paddingTop", string("0")),
-      ("paddingEnd", string("0")),
-      ("paddingBottom", string("0")),
-      ("paddingStart", string("0")),
-      ("textAlign", string("start")),
-      ("textDecoration", string("none")),
-      ("whiteSpace", string("pre")),
-      ("zIndex", string("0")),
-    ]),
+    large_inline_fixture(),
   ]
 }
 
@@ -210,6 +220,39 @@ fn styleq_transform() -> stylex_styleq::Styleq<StyleValue> {
   })
 }
 
+/// A merger whose cache holds nothing.
+///
+/// The subject of every case named for a miss, and of the checks over them. One
+/// name rather than seven spellings of the same construction, so a check and
+/// the bench it speaks for cannot come to measure two different things.
+fn cold_styleq() -> Styleq<StyleValue> {
+  create_styleq(StyleqOptions::default())
+}
+
+/// Checks that one merge produced the output its case exists to time.
+///
+/// `class_names` is how many class names the merge must answer with, and
+/// `inline_properties` how many properties its inline style must hold. A count
+/// rather than a full comparison, because the cheapest check that a dropped
+/// layer cannot pass is the one to keep.
+fn check_merge(
+  name: &str,
+  result: StyleqResult<StyleValue>,
+  class_names: usize,
+  inline_properties: usize,
+) {
+  assert_eq!(
+    result.class_name.split_whitespace().count(),
+    class_names,
+    "{name} no longer merges to the class names the case was written to time"
+  );
+  assert_eq!(
+    result.inline_style.as_ref().map_or(0, StyleMap::len),
+    inline_properties,
+    "{name} no longer merges to the inline style the case was written to time"
+  );
+}
+
 fn performance_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("styleq");
   let default_styleq = create_styleq(StyleqOptions::default());
@@ -228,14 +271,134 @@ fn performance_benchmarks(c: &mut Criterion) {
   let complex_nested_style = StyleqInput::Nested(vec![complex_nested_style_fixture()]);
   let small_merge = [basic_style_1.clone(), basic_style_2];
 
+  // Every case below is checked once, before it is timed. The checks run
+  // outside `b.iter`, so none of them adds to a measurement: each input is
+  // fixed, so one answer speaks for every iteration.
+  //
+  // A merge that stopped merging is fast, and a curve that flattens because
+  // the work stopped happening reads the same as a win. The counts are what a
+  // dropped layer changes first: `large merge` walks five levels of nesting to
+  // reach its 41 class names, and the transform leg reaches the same 41
+  // because the transform only rewrites `display`, which one style defines
+  // either way.
+  check_merge(
+    "small object",
+    default_styleq.styleq(std::slice::from_ref(&basic_style_1)),
+    2,
+    0,
+  );
+  check_merge(
+    "small object (cache disabled)",
+    styleq_no_cache.styleq(std::slice::from_ref(&basic_style_1)),
+    2,
+    0,
+  );
+  check_merge(
+    "large object",
+    default_styleq.styleq(std::slice::from_ref(&big_style)),
+    24,
+    0,
+  );
+  check_merge(
+    "large object (cache disabled)",
+    styleq_no_cache.styleq(std::slice::from_ref(&big_style)),
+    24,
+    0,
+  );
+  check_merge("small merge", default_styleq.styleq(&small_merge), 2, 0);
+  check_merge(
+    "small merge (cache disabled)",
+    styleq_no_cache.styleq(&small_merge),
+    2,
+    0,
+  );
+  check_merge(
+    "large merge",
+    default_styleq.styleq(std::slice::from_ref(&complex_nested_style)),
+    41,
+    0,
+  );
+  check_merge(
+    "large merge (cache disabled)",
+    styleq_no_cache.styleq(std::slice::from_ref(&complex_nested_style)),
+    41,
+    0,
+  );
+  check_merge(
+    "large merge (transform)",
+    styleq_transform.styleq(std::slice::from_ref(&complex_nested_style)),
+    41,
+    0,
+  );
+  check_merge(
+    "small inline style",
+    default_styleq.styleq(&[inline(&[("backgroundColor", string("red"))])]),
+    0,
+    1,
+  );
+  check_merge(
+    "large inline style",
+    default_styleq.styleq(&[large_inline_fixture()]),
+    0,
+    19,
+  );
+  check_merge(
+    "merged inline style",
+    default_styleq.styleq(&merged_inline_fixture()),
+    0,
+    19,
+  );
+  check_merge(
+    "merged inline style (mix disabled)",
+    styleq_no_mix.styleq(&merged_inline_fixture()),
+    0,
+    19,
+  );
+
+  // The three miss cases are checked over the cache their own bench builds,
+  // never over the shared one: that cache is warm by the time it is asked, so a
+  // check run against it speaks for a different subject. A measurement whose
+  // subject nothing checks is what this file exists to stop.
+  check_merge(
+    "small object (cache miss)",
+    cold_styleq().styleq(&[basic_style_fixture_1()]),
+    2,
+    0,
+  );
+  check_merge(
+    "large object (cache miss)",
+    cold_styleq().styleq(&[big_style_fixture()]),
+    24,
+    0,
+  );
+  check_merge(
+    "small merge (cache miss)",
+    cold_styleq().styleq(&[basic_style_fixture_1(), basic_style_fixture_2()]),
+    2,
+    0,
+  );
+
   group.bench_function("small object", |b| {
     b.iter(|| black_box(default_styleq.styleq(black_box(std::slice::from_ref(&basic_style_1)))))
   });
 
+  // A miss is a cache with nothing in it, so each of the three cases below
+  // builds one in its setup. Reusing the shared `default_styleq` timed a hit:
+  // an entry is keyed by the structure of the style, so a fixture built fresh
+  // per batch still finds the entry `check_merge` put there above. A cache
+  // built per batch is also the state the compiler is in, since it builds one
+  // `Styleq` per call site and drops it.
   group.bench_function("small object (cache miss)", |b| {
     b.iter_batched(
-      basic_style_fixture_1,
-      |fixture| black_box(default_styleq.styleq(black_box(&[fixture]))),
+      || (cold_styleq(), basic_style_fixture_1()),
+      |(styleq, fixture)| {
+        black_box(styleq.styleq(black_box(&[fixture])));
+        // Handed back rather than dropped here: Criterion drops what a routine
+        // returns outside the timed window, and what this one holds is the
+        // cache the miss just filled. Dropped inside, the number would be the
+        // merge plus taking its own cache apart.
+        styleq
+      },
       BatchSize::SmallInput,
     )
   });
@@ -254,8 +417,15 @@ fn performance_benchmarks(c: &mut Criterion) {
 
   group.bench_function("large object (cache miss)", |b| {
     b.iter_batched(
-      big_style_fixture,
-      |fixture| black_box(default_styleq.styleq(black_box(&[fixture]))),
+      || (cold_styleq(), big_style_fixture()),
+      |(styleq, fixture)| {
+        black_box(styleq.styleq(black_box(&[fixture])));
+        // Handed back rather than dropped here: Criterion drops what a routine
+        // returns outside the timed window, and what this one holds is the
+        // cache the miss just filled. Dropped inside, the number would be the
+        // merge plus taking its own cache apart.
+        styleq
+      },
       BatchSize::SmallInput,
     )
   });
@@ -274,8 +444,16 @@ fn performance_benchmarks(c: &mut Criterion) {
 
   group.bench_function("small merge (cache miss)", |b| {
     b.iter_batched(
-      || [basic_style_fixture_1(), basic_style_fixture_2()],
-      |fixtures| black_box(default_styleq.styleq(black_box(&fixtures))),
+      || {
+        (
+          cold_styleq(),
+          [basic_style_fixture_1(), basic_style_fixture_2()],
+        )
+      },
+      |(styleq, fixtures)| {
+        black_box(styleq.styleq(black_box(&fixtures)));
+        styleq
+      },
       BatchSize::SmallInput,
     )
   });
@@ -312,29 +490,7 @@ fn performance_benchmarks(c: &mut Criterion) {
 
   group.bench_function("large inline style", |b| {
     b.iter_batched(
-      || {
-        inline(&[
-          ("backgroundColor", string("red")),
-          ("borderColor", string("red")),
-          ("borderStyle", string("solid")),
-          ("borderWidth", string("1px")),
-          ("boxSizing", string("border-bx")),
-          ("display", string("flex")),
-          ("listStyle", string("none")),
-          ("marginTop", string("0")),
-          ("marginEnd", string("0")),
-          ("marginBottom", string("0")),
-          ("marginStart", string("0")),
-          ("paddingTop", string("0")),
-          ("paddingEnd", string("0")),
-          ("paddingBottom", string("0")),
-          ("paddingStart", string("0")),
-          ("textAlign", string("start")),
-          ("textDecoration", string("none")),
-          ("whiteSpace", string("pre")),
-          ("zIndex", string("0")),
-        ])
-      },
+      large_inline_fixture,
       |fixture| black_box(default_styleq.styleq(black_box(&[fixture]))),
       BatchSize::SmallInput,
     )

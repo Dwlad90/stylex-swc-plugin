@@ -294,3 +294,104 @@ stylex_test!(
     stylex.props(css.display.flex);
   "#
 );
+
+// An atom whose rule is direction-dependent. Every other atom case here writes
+// one rule, so the registration of a style that carries a second one for
+// right-to-left had no case. The value has to be written as a computed key:
+// read off a member, `inlineStart` is the value, and `inline-start` is what the
+// flipper answers for.
+stylex_test!(
+  inline_static_registers_a_direction_dependent_rule,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import css from '@stylexjs/atoms';
+    stylex.props(css.float['inline-start']);
+  "#
+);
+
+// The remaining import forms the atoms source can be taken in. A default import
+// and a namespace import both name the whole package, so the property is read
+// off the member that follows the binding; a named import names one property
+// already, so the member that follows it is the value alone. Each form is a
+// separate arm of the import reader, and only the default one had a case.
+stylex_test!(
+  inline_static_supports_namespace_imports,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import * as css from '@stylexjs/atoms';
+    stylex.props(css.display.flex);
+  "#
+);
+
+stylex_test!(
+  inline_static_supports_named_imports,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import { color } from '@stylexjs/atoms';
+    stylex.props(color.blue);
+  "#
+);
+
+// A renamed named import keeps naming the property it was imported as, not the
+// local name it is read through.
+stylex_test!(
+  inline_static_supports_renamed_named_imports,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import { color as textColor } from '@stylexjs/atoms';
+    stylex.props(textColor.blue);
+  "#
+);
+
+// The same, with the imported name written as a string. A property whose name
+// is not an identifier can only be imported this way.
+stylex_test!(
+  inline_static_supports_named_imports_spelled_as_a_string,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import { "color" as textColor } from '@stylexjs/atoms';
+    stylex.props(textColor.blue);
+  "#
+);
+
+// A value that reads as empty declares nothing, so the atom compiles to a
+// namespace holding no class and injects no rule. `_` is the leading underscore
+// the value reader strips, which leaves the empty string.
+//
+// Answering nothing is intended rather than merely what happens. A declaration
+// with no value is what `stylex.create({ root: { display: "" } })` answers here
+// too -- the property is compiled to `null` and no rule is injected -- and
+// `@stylexjs/babel-plugin` 0.19.0 has no answer of its own to compare with: the
+// same source stops it with `Cannot read properties of undefined`.
+stylex_test!(
+  inline_static_with_an_empty_value_declares_nothing,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import css from '@stylexjs/atoms';
+    stylex.props(css.display._);
+  "#
+);
+
+// An atom the compiler is not allowed to read stays as the author wrote it, and
+// the runtime resolves it.
+//
+// The atom is compiled through a namespace holding one property, so the fold
+// has to descend two levels to reach the value. A project that sets
+// `maxEvaluationDepth` to one stops it at the first. Nothing is injected and
+// the member expression survives, which is the whole of what the pass promises
+// for a style it cannot read.
+stylex_test!(
+  inline_static_the_fold_cannot_reach_is_left_for_the_runtime,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_max_evaluation_depth(1)),
+  r#"
+    import stylex from 'stylex';
+    import css from '@stylexjs/atoms';
+    stylex.props(css.display.flex);
+  "#
+);

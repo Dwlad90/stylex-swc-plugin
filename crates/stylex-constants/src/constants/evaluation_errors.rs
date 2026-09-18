@@ -123,23 +123,6 @@ pub fn not_a_function(callee: &str) -> String {
   )
 }
 
-/// An index was read off a string or an array and could not be folded.
-///
-/// Names the index rather than the node kind the rest of these reasons name. The
-/// kind is the half an author can already see — `"abc"[0]` and `"abc".length`
-/// are both a member access on a StringLiteral — and which index was asked for
-/// is the half that says where to look.
-///
-/// Deliberately says only that this index could not be read, because which
-/// indices can is a property of the receiver rather than of the language: an
-/// array a fold produced is indexed, and a string is not.
-pub fn unreadable_index(index: &str) -> String {
-  format!(
-    "Unsupported index: {}\nThis index could not be read at compile time.\n\n",
-    index
-  )
-}
-
 /// The one answer every spread in a value position earns.
 ///
 /// A spread is refused wherever it appears — an array element, a call argument,

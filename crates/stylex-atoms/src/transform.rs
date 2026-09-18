@@ -91,8 +91,10 @@ pub trait Compile {
   /// `compile.styleXCreateSet` (plus dev class names) applied to
   /// `{ __inline__: { [property]: value } }`.
   ///
-  /// Returns `None` when the style is not statically evaluable, so the caller
-  /// leaves the original expression untouched for runtime instead of panicking.
+  /// `None` says the compiler has nothing to put in place of the style, and the
+  /// caller then leaves the expression the author wrote for the runtime. The
+  /// compiler in this repository never answers it: it writes the object it
+  /// compiles from two string literals, which the fold always reads.
   fn style_x_create_set(&mut self, property: &str, value: &str) -> Option<AtomCompileResult>;
 
   /// Register injected CSS rules so they are emitted at runtime / collected as
@@ -216,8 +218,9 @@ pub fn get_dynamic_style_from_path(
 /// Compile a static atom directly to a compiled style object.
 /// `css.display.flex` → `{ $$css: true, display: "x78zum5" }`.
 ///
-/// Returns `None` when the member is not an atom or the style is not statically
-/// evaluable; the caller then leaves the original expression in place.
+/// Returns `None` when the member is not an atom, or when the compiler answers
+/// nothing for the style; the caller then leaves the original expression in
+/// place.
 pub fn compile_static_style<T: Compile>(compiler: &mut T, member: &MemberExpr) -> Option<Expr> {
   let style = get_static_style_from_path(member, compiler.atom_imports())?;
 
@@ -231,8 +234,10 @@ pub fn compile_static_style<T: Compile>(compiler: &mut T, member: &MemberExpr) -
 /// Compile a dynamic atom to a hoisted function pattern.
 /// `css.color(value)` → `_temp.color(value)`.
 ///
-/// Returns `None` when the call is not a dynamic atom or the style is not
-/// statically evaluable; the caller then leaves the original call in place.
+/// Returns `None` when the call is not a dynamic atom, when its property is no
+/// safe CSS name, when the compiler answers nothing for the style, or when the
+/// compiled style carries no property class to build the function on; the
+/// caller then leaves the original call in place.
 pub fn compile_dynamic_style<T: Compile>(compiler: &mut T, call: &CallExpr) -> Option<Expr> {
   let style = get_dynamic_style_from_path(call, compiler.atom_imports())?;
   let property = style.property;

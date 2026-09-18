@@ -32,6 +32,7 @@
  * instead is that every family still claims something: see `unreachedFamilies`.
  */
 
+import { subjectText } from './subject.js';
 import type { ReportEntry, Verdict } from './types.js';
 
 /** One reason this compiler diverges on purpose, and the rows it accounts for. */
@@ -84,6 +85,7 @@ const REFUSALS = {
   unprefixedCustomProperty: 'Unprefixed custom properties:',
   nestedTooDeeply: 'Rule contains a value nested more deeply than the compiler supports',
   invalidUtf8: 'String value contains invalid UTF-8 encoding.',
+  keyHasNoName: 'The key has no name at compile time.',
 } as const;
 
 /**
@@ -156,6 +158,105 @@ function carriesUnescapedTerminator(value: string): boolean {
   }
 
   return false;
+}
+
+/**
+ * A surrogate half spelled as a JavaScript escape: `\uD800` or `\u{D800}`.
+ *
+ * Only the halves, and only the spellings that can name one. A code point above
+ * `U+FFFF` is written as a whole pair, which is never an unpaired half, so the
+ * braced form is read no further than four digits.
+ *
+ * Sticky, so it matches in place. Matched against a slice instead, each
+ * backslash copies the rest of the subject, which is the square of its length
+ * on text that is mostly escapes.
+ */
+const ESCAPED_CODE_UNIT = /u(?:\{0*([0-9a-fA-F]{1,4})\}|([0-9a-fA-F]{4}))/y;
+
+/** The two things a text must hold before it is worth reading at all. */
+const SURROGATE_OR_ESCAPE = /[\uD800-\uDFFF]|\\u/;
+
+const isHighHalf = (unit: number): boolean => unit >= 0xd800 && unit <= 0xdbff;
+const isLowHalf = (unit: number): boolean => unit >= 0xdc00 && unit <= 0xdfff;
+
+/**
+ * Whether the text a row hands both compilers holds an unpaired surrogate.
+ *
+ * A surrogate code unit is well-formed UTF-16 only as half of a pair, so a half
+ * standing on its own is the thing that has no Rust string to hold it. That is
+ * what the family below claims on, rather than the refusal sentence alone: the
+ * sentence covers every key that has no name, of which a lone surrogate is one
+ * case.
+ *
+ * A corpus row is JavaScript source, so a half reaches it in either of two
+ * spellings -- the code unit itself, or the `\uD800` escape that names it. Both
+ * describe the same string, and a guard that knew only one would vouch for
+ * whichever half of the corpus it happened to read.
+ *
+ * Read in one pass, so no decoded copy of the subject is built and each unit is
+ * judged where it is found. Reading into a copy first is also what let two
+ * halves look adjacent when they are not: an escape naming no code unit was
+ * passed over rather than counted, so `\uD800\n\uDC00` read as one pair where
+ * JavaScript holds two lone halves.
+ *
+ * Deliberately the shape rather than a second JavaScript lexer: it does not
+ * have to agree with the parser on every input; it has to be unwilling to
+ * vouch for a refusal it has no evidence for.
+ */
+function carriesLoneSurrogate(text: string): boolean {
+  if (!SURROGATE_OR_ESCAPE.test(text)) return false;
+
+  // Set while a high half waits for the low half that would pair it.
+  let awaitingLowHalf = false;
+  let unit: number;
+
+  for (let index = 0; index < text.length; index += 1) {
+    if (text[index] === '\\') {
+      ESCAPED_CODE_UNIT.lastIndex = index + 1;
+
+      const escape = ESCAPED_CODE_UNIT.exec(text);
+
+      if (escape === null) {
+        // Any other escape names one character, and no such character is a
+        // surrogate half -- so a high half waiting here is unpaired. Two
+        // characters are stepped over, which keeps an escaped backslash from
+        // opening the escape that follows it.
+        if (awaitingLowHalf) return true;
+
+        index += 1;
+        continue;
+      }
+
+      // One of the two groups holds the digits, since a match is one form or
+      // the other. The fallback is for a pattern edited later, and it fails in
+      // the safe direction: no digits parses to `NaN`, which is no half at all,
+      // so the guard declines to vouch rather than claiming a row it cannot
+      // read.
+      unit = Number.parseInt(escape[1] ?? escape[2] ?? '', 16);
+      index += escape[0].length;
+    } else {
+      // A code unit is the subject: `codePointAt` joins a pair back together
+      // and answers nothing about the half this looks for.
+      // oxlint-disable-next-line unicorn/prefer-code-point
+      unit = text.charCodeAt(index);
+    }
+
+    if (awaitingLowHalf) {
+      // A high half is paired only by a low half directly after it.
+      if (!isLowHalf(unit)) return true;
+
+      awaitingLowHalf = false;
+      continue;
+    }
+
+    // A low half reached with nothing waiting follows no high half.
+    if (isLowHalf(unit)) return true;
+
+    awaitingLowHalf = isHighHalf(unit);
+  }
+
+  // A high half at the end of the text is paired by nothing.
+  return awaitingLowHalf;
 }
 
 /**
@@ -257,13 +358,30 @@ export const REFUSAL_FAMILIES: readonly RefusalFamily[] = [
       'a condition key. That is not an ordering that could be swapped to buy the same sentence; ' +
       'it is the absence of a representation. Substituting a replacement character would be ' +
       'worse than refusing, since it writes a name the source does not describe.',
-    // One verdict, unlike `reference TypeError` above. The reason would survive
-    // the reference compiler accepting a name this one cannot decode — but no row
-    // reads that today, and a family claiming a verdict nothing reaches would
-    // pin the first such row silently instead of reporting it. Widen this when a
-    // row arrives, which is the direction that gets read.
-    verdicts: ['both-reject-divergent'],
-    claims: entry => refusedWith(entry, REFUSALS.invalidUtf8),
+    // Two verdicts, because the rows arrived that the single one was waiting
+    // for. A name reached as a condition key refuses in both compilers, in
+    // different words. The same name written or computed as a style key is one
+    // the reference compiler accepts — it holds the surrogate and writes a
+    // replacement character into the selector — so only this compiler refuses,
+    // and the row reads as acceptance divergent. The reason above covers both:
+    // what is missing is a representation, not an agreement about CSS.
+    verdicts: ['both-reject-divergent', 'acceptance-divergent'],
+    // Two sentences reach it, because a name is decoded in two places. A name
+    // being *read* — an export specifier — refuses where the text is decoded. A
+    // name being used as a property key refuses where the key is named, since a
+    // key is `String(key)` and a lone surrogate has no string. One family
+    // because the reason above is the same for both: there is no
+    // representation, not an ordering that could be swapped.
+    //
+    // The second sentence is not surrogate-specific — a key with no name also
+    // covers a function and this compiler's own values — so it is claimed only
+    // where the row actually carries the half that has no representation.
+    // Claiming on the sentence alone would swallow a future row for, say, a
+    // function used as a computed key, and the count a reader acts on is the
+    // rows no family claims.
+    claims: entry =>
+      refusedWith(entry, REFUSALS.invalidUtf8) ||
+      (refusedWith(entry, REFUSALS.keyHasNoName) && carriesLoneSurrogate(subjectText(entry))),
   },
   {
     name: 'nesting past the recursion budget',

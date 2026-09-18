@@ -49,7 +49,7 @@ fn a_regular_config_holds_no_map() {
 #[test]
 fn a_compiled_namespace_holds_no_map() {
   assert!(
-    FunctionConfigType::IndexMap(IndexMap::new())
+    FunctionConfigType::IndexMap(Rc::new(IndexMap::new()))
       .as_map_mut()
       .is_none()
   );

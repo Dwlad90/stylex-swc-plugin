@@ -210,7 +210,7 @@ pub(crate) fn assert_folds_to_object_keys(source: &str, expected: &[&str]) {
         .iter()
         .map(|prop| match prop {
           PropOrSpread::Prop(prop) => match prop.as_ref() {
-            Prop::KeyValue(key_value) => convert_key_value_to_str(key_value),
+            Prop::KeyValue(key_value) => key_value_name(key_value).into_owned(),
             other => panic!(
               "expected `{}` to fold to key-value props, got {:?}",
               source, other
@@ -228,31 +228,6 @@ pub(crate) fn assert_folds_to_object_keys(source: &str, expected: &[&str]) {
       "expected `{}` to fold to an object, got {:?}",
       source, other
     ),
-  }
-}
-
-/// Asserts the refusal names the property that could not be read. The node kind
-/// is the half an author can already see; which property was asked for is the
-/// half that says why the declaration will not fold.
-#[track_caller]
-pub(crate) fn assert_deopt_names_property(source: &str, property: &str) {
-  let result = evaluate_source(source);
-
-  assert!(
-    !result.confident,
-    "expected `{}` to refuse to fold, got {:?}",
-    source, result.value
-  );
-
-  match result.reason {
-    Some(reason) => assert!(
-      reason.contains(property),
-      "expected the refusal of `{}` to name `{}`, got {:?}",
-      source,
-      property,
-      reason
-    ),
-    None => panic!("expected `{}` to record a deopt reason", source),
   }
 }
 
@@ -973,7 +948,20 @@ pub(crate) fn assert_written_form(expr: &Expr, source: &str) {
     Expr::Object(object) => {
       for prop in &object.props {
         match prop.as_prop().map(Box::as_ref) {
-          Some(Prop::KeyValue(key_value)) => assert_written_form(&key_value.value, source),
+          Some(Prop::KeyValue(key_value)) => {
+            // Under a plain name, whatever the key was written as. A reader of
+            // an evaluator-written object names a property by that name and
+            // does not re-check it, so a key of any other shape becomes a
+            // property the reader passes over.
+            assert!(
+              key_value.key.as_ident().is_some(),
+              "`{}` wrote a key that is not a name: {:?}",
+              source,
+              key_value.key
+            );
+
+            assert_written_form(&key_value.value, source);
+          },
           other => panic!(
             "`{}` wrote a property that is not a pair: {:?}",
             source, other

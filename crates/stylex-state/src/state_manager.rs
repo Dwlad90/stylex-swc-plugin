@@ -1,10 +1,10 @@
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cell::OnceCell;
-use std::{option::Option, path::Path, rc::Rc, sync::Arc};
+use std::{borrow::Cow, env, option::Option, path::Path, rc::Rc, sync::Arc};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
 use indexmap::{IndexMap, IndexSet};
-use log::debug;
+use log::{debug, warn};
 use stylex_path_resolver::{
   package_json::{PackageJsonExtended, find_closest_package_json_folder, get_package_json},
   resolvers::{EXTENSIONS, resolve_file_path},
@@ -13,20 +13,27 @@ use stylex_path_resolver::{
 use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName, SourceFile, Span, SyntaxContext},
-  ecma::ast::{
-    CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl, ImportDefaultSpecifier,
-    ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread, Lit, MemberExpr, Module,
-    ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Stmt, Str, VarDecl, VarDeclKind,
-    VarDeclarator,
+  ecma::{
+    ast::{
+      ArrowExpr, BindingIdent, CallExpr, Callee, Constructor, Decl, Expr, ExprStmt, Function,
+      GetterProp, Id, Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
+      ImportSpecifier, JSXAttrOrSpread, Lit, MemberExpr, Module, ModuleDecl, ModuleExportName,
+      ModuleItem, NamedExport, Pat, SetterProp, Stmt, Str, TsModuleBlock, VarDecl, VarDeclKind,
+      VarDeclarator,
+    },
+    visit::{Visit, VisitWith},
   },
 };
 
-use crate::types::InjectableStylesMap;
-use stylex_ast::ast::convertors::create_number_expr;
+use crate::call_positions::{CallPositions, Position};
+use crate::flat_compiled_styles_value::FlatCompiledStylesValue;
+use crate::types::{FlatCompiledStyles, InjectableStylesMap};
+use stylex_ast::ast::convertors::{
+  create_js_number_expr, create_number_expr, create_string_expr, init_call, normalize_expr,
+};
 use stylex_ast::ast::factories::{
   create_binding_ident, create_call_expr, create_expr_or_spread, create_key_value_prop,
-  create_number_expr_or_spread, create_object_expression, create_string_expr_or_spread,
-  create_string_key_value_prop,
+  create_object_expression, create_string_key_value_prop,
 };
 use stylex_ast::ast::imports::local_binding_of;
 use stylex_ast::ast::source_file::{
@@ -54,11 +61,13 @@ use stylex_state_index::{
 use stylex_structures::{
   style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
 };
-use stylex_utils::hash::{
-  stable_hash_unspanned, stable_hash_unspanned_call, stable_hash_unspanned_member,
+use stylex_utils::{
+  hash::{stable_hash_unspanned, stable_hash_unspanned_call, stable_hash_unspanned_member},
+  swc::get_expr_node_kind,
 };
 
 use crate::{
+  functions::{FunctionMap, RuleCallFunctionMaps, RuleCallHelpers},
   seen_value::SeenValue,
   types::{InjectImportIdents, SeenModuleSource, StylesObjectMap},
 };
@@ -113,10 +122,10 @@ pub enum InsertionSlot {
   /// import block, before the rest of the body. Mirrors the legacy
   /// `hoisted_module_items` placement.
   AfterImports,
-  /// Per-declarator style metadata (the `_inject2(...)` calls) keyed
-  /// by the stable hash of the originating var-decl initializer.
-  /// Emitted immediately before the matching declarator. Replaces the
-  /// legacy `styles_to_inject` map.
+  /// Per-statement style metadata (the `_inject2(...)` calls) keyed by the
+  /// stable hash of the object the call was replaced by. Emitted immediately
+  /// before the first statement that holds that object, wherever in the
+  /// statement it stands. Replaces the legacy `styles_to_inject` map.
   BeforeDecl(u128),
 }
 
@@ -150,6 +159,42 @@ pub enum ImportKind {
 }
 
 impl ImportKind {
+  /// Whether the consuming cycle is the one that transforms a call to this
+  /// API.
+  ///
+  /// Two APIs spend styles and every other one makes them, so the two cycles
+  /// partition the enum. Asked as a match over every variant rather than as a
+  /// list of the producing ones: a list can only be short, and a kind missing
+  /// from it never reaches its handler -- which is how `viewTransitionClass`
+  /// came to be dropped from one. A kind added to the enum does not compile
+  /// until somebody says which cycle reads it.
+  ///
+  /// `Env` answers `false` and so joins the producing side, where the list left
+  /// it out altogether. It names no call, so every handler there refuses it and
+  /// the cycle reads the same modules it did.
+  pub const fn is_read_by_the_consuming_cycle(self) -> bool {
+    match self {
+      Self::Attrs | Self::Props => true,
+      Self::Create
+      | Self::FirstThatWorks
+      | Self::Keyframes
+      | Self::DefineVars
+      | Self::DefineVarsNested
+      | Self::DefineMarker
+      | Self::DefineConsts
+      | Self::DefineConstsNested
+      | Self::CreateTheme
+      | Self::CreateThemeNested
+      | Self::Conditional
+      | Self::PositionTry
+      | Self::ViewTransitionClass
+      | Self::DefaultMarker
+      | Self::When
+      | Self::Types
+      | Self::Env => false,
+    }
+  }
+
   pub fn from_import_name(name: &str) -> Option<ImportKind> {
     match name {
       STYLEX_CREATE => Some(ImportKind::Create),
@@ -209,6 +254,24 @@ impl ImportState {
       .stylex_api_imports
       .get(&kind)
       .is_some_and(|set| set.contains(sym))
+  }
+
+  /// Whether `sym` is bound to a StyleX API that the named cycle transforms.
+  ///
+  /// Walks the imports a module has rather than a list of kinds to ask for, so
+  /// a kind added to [`ImportKind`] is answered for by
+  /// [`ImportKind::is_read_by_the_consuming_cycle`] alone.
+  ///
+  /// One walk of the imports a module names, where the lists this replaced were
+  /// one hash look-up per kind they held -- seventeen for the producing cycle
+  /// and two for the consuming one. So a module naming more than two APIs pays
+  /// a little more on the consuming side than its list did. The walk stops at
+  /// the first name that matches.
+  fn has_stylex_api_import_for_the_consuming_cycle(&self, sym: &Atom, consumed: bool) -> bool {
+    self
+      .stylex_api_imports
+      .iter()
+      .any(|(kind, set)| kind.is_read_by_the_consuming_cycle() == consumed && set.contains(sym))
   }
 
   fn insert_stylex_api_import(&mut self, kind: ImportKind, sym: Atom) {
@@ -449,9 +512,29 @@ impl CallExpressionState {
 pub(crate) struct CacheState {
   css_property_seen: FxHashMap<String, String>,
   short_filename_cache: FxHashMap<String, String>,
+  default_marker_values: Option<Rc<FlatCompiledStyles>>,
+  /// The function maps the `keyframes`, `positionTry` and `viewTransitionClass`
+  /// calls evaluate their argument with, built on the first call of the module
+  /// that asks for one.
+  ///
+  /// A map is a function of the module's import sets alone, and those are
+  /// complete before the first of the three calls is handled: every site that
+  /// records an import runs in the `Discover` cycle, and all three calls run in
+  /// `TransformProducers`. Built earlier, a map would hold fewer names than the
+  /// source spells, and a name a map does not hold does not drop one
+  /// declaration -- it stops the whole call folding.
+  rule_call_function_maps: RuleCallFunctionMaps,
 }
 
 impl CacheState {
+  fn cached_default_marker_values(&self) -> Option<&Rc<FlatCompiledStyles>> {
+    self.default_marker_values.as_ref()
+  }
+
+  fn insert_default_marker_values(&mut self, values: Rc<FlatCompiledStyles>) {
+    self.default_marker_values = Some(values);
+  }
+
   fn cached_short_filename(&self, absolute_path: &str) -> Option<&str> {
     self
       .short_filename_cache
@@ -470,8 +553,17 @@ impl CacheState {
 /// anything else -- what the call indexes are keyed by, spelled once for the
 /// four places that move an entry between keys.
 fn call_key_of(expr: Option<&Expr>) -> Option<u128> {
-  match expr {
-    Some(Expr::Call(call)) => Some(stable_hash_unspanned_call(call)),
+  expr.and_then(call_key_of_expr)
+}
+
+/// The key of one expression, for a caller that holds it rather than an option.
+///
+/// A parenthesis is not a different initializer, so the key is the same one the
+/// bare call has. Read bare, a parenthesized initializer was recorded under no
+/// key at all and the call it holds was never found.
+fn call_key_of_expr(expr: &Expr) -> Option<u128> {
+  match normalize_expr(expr) {
+    Expr::Call(call) => Some(stable_hash_unspanned_call(call)),
     _ => None,
   }
 }
@@ -579,13 +671,18 @@ pub(crate) struct StyleInjectionState {
   /// (storage + dedup); the storage half is now in
   /// `pending_module_items`.
   queued_theme_imports: Vec<ModuleItem>,
-  /// Transient dedup map for per-decl style metadata queued under
-  /// `InsertionSlot::BeforeDecl(ast_hash)`. Same rationale as
-  /// `queued_theme_imports`: keying by `ast_hash` keeps the
-  /// per-bucket `Vec` small (typically 1–2 entries), so
-  /// `Vec::contains` short-circuits early on PartialEq mismatches.
-  /// Replaces the legacy `styles_to_inject` field's dual role.
-  queued_decl_items: IndexMap<u128, Vec<ModuleItem>>,
+  /// Which rules are already queued under which
+  /// `InsertionSlot::BeforeDecl(key)`, so a rule registered twice against one
+  /// statement is injected once. Replaces the legacy `styles_to_inject`
+  /// field's dual role.
+  ///
+  /// A pair of hashes rather than the statements themselves: the injecting
+  /// call is built from the rule and from the injection identifier, which is
+  /// one per module, so the hash of the rule is what tells two of them apart.
+  /// Holding the pair is one probe per rule, where holding the statements was
+  /// a copy of every one of them and a scan over the copies -- 153,437
+  /// statements on the largest module in the benchmark corpus.
+  queued_decl_rules: FxHashSet<(u128, u128)>,
 }
 
 impl StyleInjectionState {
@@ -743,30 +840,11 @@ pub struct StateManager {
   /// the second where the walk this replaces found it.
   /// Shared rather than copied -- see [`Self::declaration_call_index`].
   top_level_name_index: Rc<CandidateIndex<Atom, usize>>,
-  /// Where each entry of [`Self::top_level_expressions`] that is an array
-  /// literal was written.
+  /// Where each call in the module is written, filled by `fill_call_positions`
+  /// and read through the three predicates below.
   ///
-  /// The whole of what [`Self::holds_call_in_top_level_array`] needs. A module
-  /// writes a handful of top-level arrays and can write thousands of calls, so
-  /// asking the arrays is not the walk of every top-level expression that
-  /// question used to cost, once per `stylex.create`.
-  ///
-  /// Spans rather than the expressions, because the question is whether a call
-  /// sits *inside* one, and a span answers that by containment -- the same O(1)
-  /// test `is_bound_create_expr` uses, and for the same reason: a single
-  /// top-level array holding every style in a module is an idiomatic shape, so
-  /// walking its elements would be quadratic in the styles it holds.
-  ///
-  /// A list rather than a count, because [`Self::set_top_level_expr`] can
-  /// replace an array with something else, and because a count cannot say which
-  /// call an array holds.
-  top_level_array_spans: Vec<Span>,
-  /// Spans of the calls that initialise a top-level declarator bound to a
-  /// pattern rather than a name — `export const { foo } = stylex.create(…);`.
-  /// [`Self::top_level_expressions`] is keyed by the exported name and so has
-  /// no entry for them, but they are still program level, and a transform that
-  /// hoists its result out of a nested position must not hoist here.
-  pub pattern_bound_top_level_calls: FxHashSet<Span>,
+  /// Shared rather than copied -- see [`Self::declaration_call_index`].
+  call_positions: Rc<CallPositions>,
   pub(crate) call_expressions: CallExpressionState,
   pub seen: FxHashMap<u128, Rc<SeenValue>>,
   /// How many expression levels the evaluator is currently inside.
@@ -896,6 +974,20 @@ pub struct StateManager {
   pub(crate) pending_module_items: Vec<PendingInsertion>,
 
   pub other_injected_css_rules: InjectableStylesMap,
+  /// How many times the file has filed a nested rule, counting every filing
+  /// rather than every distinct name.
+  ///
+  /// The evaluator memo answers a second identical expression without folding
+  /// it again. For a rule call that would answer the name and swallow the rule
+  /// the name stands for, so the producer holding the second call would carry
+  /// nothing and the name would reach a stylesheet that defines it nowhere.
+  /// This counter is how the memo sees that a fold filed a rule and declines to
+  /// remember it.
+  ///
+  /// Counted per filing and not per key, because two producers that file the
+  /// same rule each need their own copy of it, and the second filing writes the
+  /// key the first one already wrote.
+  nested_rules_filed: u64,
   pub(crate) top_imports: Vec<ImportDecl>,
   /// Where in [`Self::top_imports`] the specifier binding each imported name
   /// sits, as the import's position and the specifier's within it, so resolving
@@ -967,8 +1059,7 @@ impl StateManager {
       top_level_expressions: vec![],
       top_level_call_index: Rc::default(),
       top_level_name_index: Rc::default(),
-      top_level_array_spans: vec![],
-      pattern_bound_top_level_calls: FxHashSet::default(),
+      call_positions: Rc::new(CallPositions::default()),
       call_expressions: CallExpressionState::default(),
       jsx_spread_attr_exprs_map: FxHashMap::default(),
 
@@ -979,6 +1070,7 @@ impl StateManager {
       pending_module_items: vec![],
 
       other_injected_css_rules: IndexMap::new(),
+      nested_rules_filed: 0,
 
       cycle: TransformationCycle::Discover,
     }
@@ -1124,9 +1216,8 @@ impl StateManager {
         .or_insert(position);
     }
 
-    if let Some(Expr::Call(call)) = declarator.init.as_deref() {
-      Rc::make_mut(&mut self.declaration_call_index)
-        .record(stable_hash_unspanned_call(call), position);
+    if let Some(key) = call_key_of(declarator.init.as_deref()) {
+      Rc::make_mut(&mut self.declaration_call_index).record(key, position);
     }
 
     Rc::make_mut(&mut self.declaration_span_index).record(declarator.span, position);
@@ -1186,7 +1277,7 @@ impl StateManager {
 
     // Keyed before the move, because reading the initializer back from the list
     // needs an index operator, which panics where a stale position gets here.
-    let recorded = call_key_of(Some(&init));
+    let recorded = call_key_of_expr(&init);
     let replaced = declarator.init.replace(Box::new(init));
 
     Rc::make_mut(&mut self.declaration_call_index).move_entry(
@@ -1290,17 +1381,12 @@ impl StateManager {
   pub(crate) fn push_top_level_expression(&mut self, expression: TopLevelExpression) {
     let position = self.top_level_expressions.len();
 
-    if let Expr::Call(call) = &expression.1 {
-      Rc::make_mut(&mut self.top_level_call_index)
-        .record(stable_hash_unspanned_call(call), position);
+    if let Some(key) = call_key_of_expr(&expression.1) {
+      Rc::make_mut(&mut self.top_level_call_index).record(key, position);
     }
 
     if let Some(name) = &expression.2 {
       Rc::make_mut(&mut self.top_level_name_index).record(name.clone(), position);
-    }
-
-    if let Expr::Array(array) = &expression.1 {
-      self.top_level_array_spans.push(array.span);
     }
 
     self.top_level_expressions.push(expression);
@@ -1315,34 +1401,13 @@ impl StateManager {
 
     // Keyed before the move, for the reason [`Self::set_declaration_init`] keys
     // its initializer before it.
-    let recorded = call_key_of(Some(&expr));
+    let recorded = call_key_of_expr(&expr);
     let replaced = std::mem::replace(&mut entry.1, expr);
-    // Read while the entry is still borrowed, because the list below is a field
-    // of the same state manager.
-    let records_array = match &entry.1 {
-      Expr::Array(array) => Some(array.span),
-      _ => None,
-    };
-
-    // An entry that stops being an array leaves the list, which is what keeps
-    // [`Self::holds_call_in_top_level_array`] the answer the walk gave.
-    if let Expr::Array(array) = &replaced
-      && let Some(position) = self
-        .top_level_array_spans
-        .iter()
-        .position(|recorded| *recorded == array.span)
-    {
-      self.top_level_array_spans.remove(position);
-    }
-
-    if let Some(span) = records_array {
-      self.top_level_array_spans.push(span);
-    }
 
     // The name an entry binds does not change with its expression, so only the
     // call index needs repairing here.
     Rc::make_mut(&mut self.top_level_call_index).move_entry(
-      call_key_of(Some(&replaced)),
+      call_key_of_expr(&replaced),
       recorded,
       position,
     );
@@ -1370,7 +1435,7 @@ impl StateManager {
       return;
     };
 
-    let recorded = call_key_of(Some(&init));
+    let recorded = call_key_of_expr(&init);
     let replaced = declarator.init.replace(Box::new(init));
 
     Rc::make_mut(&mut self.style_var_call_index).move_entry(
@@ -1421,6 +1486,45 @@ impl StateManager {
   /// with the same path every time -- it was half of a `dev` transform.
   pub fn cached_short_filename(&self, absolute_path: &str) -> Option<&str> {
     self.cache.cached_short_filename(absolute_path)
+  }
+
+  /// The default marker's compiled values, if a previous call in this file
+  /// already asked for them.
+  ///
+  /// The marker reads only the class name prefix, which is fixed for the file,
+  /// so every call in the file needs the same two strings and the same index
+  /// map. The answer is shared and never changed after it is built, which is
+  /// what makes one copy safe for all of them.
+  pub fn cached_default_marker_values(&self) -> Option<&Rc<FlatCompiledStyles>> {
+    self.cache.cached_default_marker_values()
+  }
+
+  /// Keeps `values` as this file's default marker.
+  pub fn insert_cached_default_marker_values(&mut self, values: Rc<FlatCompiledStyles>) {
+    self.cache.insert_default_marker_values(values);
+  }
+
+  /// The function map a rule call already built for `helpers`, where the module
+  /// has handled such a call before. See
+  /// [`CacheState::rule_call_function_maps`].
+  ///
+  /// `&mut self` although it reads: the slot it reads and the slot the writer
+  /// below fills are named by one match, which is what keeps a new set of
+  /// helpers from compiling until it has a slot.
+  pub fn cached_rule_call_function_map(
+    &mut self,
+    helpers: RuleCallHelpers,
+  ) -> Option<&Rc<FunctionMap>> {
+    self.cache.rule_call_function_maps.slot(helpers).as_ref()
+  }
+
+  /// Keeps `map` as the answer for every later call that asks for `helpers`.
+  pub fn insert_cached_rule_call_function_map(
+    &mut self,
+    helpers: RuleCallHelpers,
+    map: Rc<FunctionMap>,
+  ) {
+    *self.cache.rule_call_function_maps.slot(helpers) = Some(map);
   }
 
   pub fn insert_cached_short_filename(&mut self, absolute_path: String, short_filename: String) {
@@ -1618,13 +1722,43 @@ impl StateManager {
     })
   }
 
+  /// The directory the compilation runs in, where there is one.
+  ///
+  /// The compiler states it on the pass, so a reader takes it from here rather
+  /// than from the process: one source of truth for what a path is relative to,
+  /// and no system call for each file named. A pass that states none is
+  /// answered by the process, which is where the compiler itself reads it.
+  ///
+  /// Nothing stands in for a directory that cannot be read. An empty path is
+  /// not a directory every path lies outside -- it is one the naming below
+  /// would measure against, and it would rename files without saying so.
+  pub fn cwd(&self) -> Option<Cow<'_, Path>> {
+    match &self.plugin_pass.cwd {
+      Some(cwd) => Some(Cow::Borrowed(cwd.as_path())),
+      None => env::current_dir().ok().map(Cow::Owned),
+    }
+  }
+
+  /// The namespaces `ident` names, where it names a style variable this module
+  /// declared.
+  ///
+  /// The name and the styles behind it are one question. A caller that only
+  /// wants the answer yes or no asks [`Self::is_style_var_ident`]; a caller
+  /// that then reads the namespaces takes them from here, rather than looking
+  /// the same name up in the same map a second time.
+  pub fn style_var_namespaces(&self, ident: &Ident) -> Option<&Rc<StylesObjectMap>> {
+    let namespaces = self.style_map.get(ident.sym.as_ref())?;
+
+    self
+      .style_vars
+      .get(ident.sym.as_ref())
+      .and_then(|decl| decl.name.as_ident())
+      .is_some_and(|bind_ident| bind_ident.id.to_id() == ident.to_id())
+      .then_some(namespaces)
+  }
+
   pub fn is_style_var_ident(&self, ident: &Ident) -> bool {
-    self.style_map.contains_key(ident.sym.as_ref())
-      && self
-        .style_vars
-        .get(ident.sym.as_ref())
-        .and_then(|decl| decl.name.as_ident())
-        .is_some_and(|bind_ident| bind_ident.id.to_id() == ident.to_id())
+    self.style_var_namespaces(ident).is_some()
   }
 
   /// Check if an import of the given kind contains the given symbol.
@@ -1659,75 +1793,68 @@ impl StateManager {
       })
   }
 
-  pub fn is_stylex_import_for_kinds(&self, ident_sym: &str, kinds: &[ImportKind]) -> bool {
+  /// Whether `ident_sym` names StyleX in the cycle that is running.
+  ///
+  /// This is what makes a call reach a handler at all, and it can only
+  /// under-approximate: each handler asks its own predicate right after, so a
+  /// name let through is refused there, while a name held back never arrives.
+  /// A namespace import answers for every API at once, so the shortfall shows
+  /// only through `import { <name> }` -- which is how `viewTransitionClass`
+  /// came to be missing from the producing cycle, the call coming out of the
+  /// compiler unchanged with the CSS it declares never injected.
+  ///
+  /// So neither cycle names a list. Both ask
+  /// [`ImportKind::is_read_by_the_consuming_cycle`], which answers for every kind there
+  /// is, and the two cycles cannot then disagree about one or leave it out.
+  pub fn is_stylex_import_for_current_cycle(&self, ident_sym: &str) -> bool {
+    let consumed = match self.cycle {
+      TransformationCycle::TransformProducers => false,
+      TransformationCycle::TransformConsumers => true,
+      // Every other cycle reads a namespace import and nothing else.
+      _ => return self.is_stylex_namespace_import(ident_sym),
+    };
+
     if self.is_stylex_namespace_import(ident_sym) {
       return true;
     }
 
-    self.any_stylex_api_import_contains(kinds, &Atom::from(ident_sym))
+    self
+      .imports
+      .has_stylex_api_import_for_the_consuming_cycle(&Atom::from(ident_sym), consumed)
   }
 
-  pub fn is_stylex_import_for_current_cycle(&self, ident_sym: &str) -> bool {
-    match self.cycle {
-      TransformationCycle::TransformProducers => {
-        use ImportKind::*;
-        self.is_stylex_import_for_kinds(
-          ident_sym,
-          &[
-            Create,
-            DefineVars,
-            DefineVarsNested,
-            DefineConsts,
-            DefineConstsNested,
-            DefineMarker,
-            CreateTheme,
-            CreateThemeNested,
-            PositionTry,
-            Keyframes,
-            FirstThatWorks,
-            Types,
-            DefaultMarker,
-            When,
-            Conditional,
-          ],
-        )
-      },
-      TransformationCycle::TransformConsumers => {
-        self.is_stylex_import_for_kinds(ident_sym, &[ImportKind::Attrs, ImportKind::Props])
-      },
-      _ => self.is_stylex_namespace_import(ident_sym),
-    }
-  }
-
-  /// Applies the `env` configuration to the given identifiers and
-  /// member_expressions maps. This is the Rust equivalent of the JavaScript
-  /// `applyStylexEnv` method.
-  pub fn apply_stylex_env(
-    &self,
-    identifiers: &mut crate::types::FunctionMapIdentifiers,
-    member_expressions: &mut crate::types::FunctionMapMemberExpression,
-  ) {
+  /// Registers the `env` option on `function_map`, under every name the module
+  /// can reach it by.
+  ///
+  /// The whole map rather than its two halves: every caller writes both, and
+  /// the pair travelled through eight signatures before it was named by the
+  /// type it already is.
+  pub fn apply_stylex_env(&self, function_map: &mut FunctionMap) {
     if self.options.env.is_empty() {
       return;
     }
 
     let env = Rc::clone(&self.options.env);
 
-    // For namespace imports (e.g., `import stylex from '@stylexjs/stylex'`),
-    // add `env` to member_expressions so `stylex.env.x` resolves.
+    // A namespace import reads `stylex.env.x`, so `env` is a member of the
+    // namespace.
     for name in self.stylex_imports() {
-      let member_expression = member_expressions.entry(name.clone()).or_default();
+      let member_expression = function_map
+        .member_expressions
+        .entry(name.clone())
+        .or_default();
+
       member_expression.insert(
         STYLEX_ENV.into(),
         Box::new(crate::functions::FunctionConfigType::EnvObject(env.clone())),
       );
     }
 
-    // For direct env imports (e.g., `import { env } from '@stylexjs/stylex'`),
-    // add the env object directly to identifiers.
+    // A named import writes `env` on its own, so the object is an identifier
+    // under every local name that import gave it.
     if let Some(env_imports) = self.get_stylex_api_import(ImportKind::Env) {
       for name in env_imports {
-        identifiers.insert(
+        function_map.identifiers.insert(
           name.clone(),
           Box::new(crate::functions::FunctionConfigType::EnvObject(env.clone())),
         );
@@ -1744,6 +1871,25 @@ impl StateManager {
   /// Records that base, once, as the module walk begins.
   pub fn set_input_module_base(&mut self, base: ModuleBase) {
     self.module_source.input_module_base = Some(base);
+  }
+
+  /// Keeps a copy of `module` where this build needs one.
+  ///
+  /// A debug build always keeps one: the assertions and the code frames that
+  /// quote the source only run there. A release build keeps one only where the
+  /// compiler cannot read the file back off disk, because the copy is a deep
+  /// clone of the whole module.
+  ///
+  /// `debug_build` is a parameter rather than a read, so one build can be asked
+  /// for the other build's answer and both sides of the choice have a test.
+  /// Written as two `cfg` arms at the caller, the release arm never compiled in
+  /// the profile the gate measures, so the gate passed because the branch was
+  /// not there; written as a condition at the caller, its other side was a
+  /// region no debug test could take.
+  pub fn keep_module_source_copy(&mut self, module: &Module, debug_build: bool) {
+    if debug_build || !self.options.use_real_file_for_source {
+      self.set_seen_module_source_code(module, None);
+    }
   }
 
   /// Sets the source code module (marks as not yet normalized)
@@ -2025,10 +2171,9 @@ impl StateManager {
 
     debug_assert_eq!(
       found.is_some(),
-      self
-        .top_level_expressions
-        .iter()
-        .any(|tpe| matches!(tpe.1, Expr::Call(ref recorded) if recorded.eq_ignore_span(call))),
+      self.top_level_expressions.iter().any(|tpe| {
+        matches!(normalize_expr(&tpe.1), Expr::Call(recorded) if recorded.eq_ignore_span(call))
+      }),
       "`top_level_call_index` disagrees with `top_level_expressions`; something \
        changed the list without going through `push_top_level_expression` or \
        `set_top_level_expr`"
@@ -2044,8 +2189,10 @@ impl StateManager {
         .top_level_call_index
         .candidates(|| stable_hash_unspanned_call(call)),
       |position| {
-        matches!(self.top_level_expressions.get(position),
-          Some(TopLevelExpression(_, Expr::Call(recorded), _)) if recorded.eq_ignore_span(call))
+        // A parenthesis is not a different expression, so the recorded call is
+        // read through it.
+        matches!(self.top_level_expressions.get(position).map(|tpe| normalize_expr(&tpe.1)),
+          Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
       },
     )
   }
@@ -2090,74 +2237,63 @@ impl StateManager {
     self.top_level_expressions.get(position?)
   }
 
-  /// The style variable bound to `name`, if its declarator reads as
-  /// `declarator` does.
+  /// The name and initializer of the style variable `declarator` is, if the
+  /// module records one that reads the same.
   ///
   /// [`Self::style_vars`] is keyed by the name its declarator binds, so the
   /// entry that can equal `declarator` is the one under `declarator`'s own name
   /// -- which is what turns the walk of every style variable in the module into
   /// a probe. `eq_ignore_span` still decides, so a name rebound to something
   /// else answers `None` as the walk did.
-  pub fn matching_style_var(&self, declarator: &VarDeclarator) -> Option<&VarDeclarator> {
+  ///
+  /// The two parts are answered rather than the declarator, because both are
+  /// settled here: a declarator bound to a pattern and one with no initializer
+  /// are refused above. Handing the declarator back made the caller ask the
+  /// same two questions again, where a missing part could only be skipped.
+  pub fn matching_style_var<'declarator>(
+    &self,
+    declarator: &'declarator VarDeclarator,
+  ) -> Option<(&'declarator BindingIdent, &'declarator Expr)> {
     let name = declarator.name.as_ident()?;
+    let init = declarator.init.as_deref()?;
 
     self
       .style_vars
       .get(name.sym.as_str())
-      .filter(|recorded| declarator.eq_ignore_span(recorded))
+      .is_some_and(|recorded| declarator.eq_ignore_span(recorded))
+      .then_some((name, init))
   }
 
-  /// Whether the module records `call` at program level, either as a top-level
-  /// expression of its own or inside one that `binds_call` recognises.
+  /// Records where the module writes each of its calls.
   ///
-  /// The two are asked together because the answer is a yes or a no rather than
-  /// an entry: `binds_call` covers the shapes that *hold* a call without being
-  /// it -- an array literal of styles, a member access on the call -- and no
-  /// key can find those, so they stay a walk. It is a cheap one, and it only
-  /// runs when the indexed lookup has already missed.
-  pub fn has_top_level_expr(
-    &self,
-    call: &CallExpr,
-    binds_call: impl Fn(&TopLevelExpression) -> bool,
-  ) -> bool {
-    self.find_top_level_expr(call).is_some() || self.top_level_expressions.iter().any(binds_call)
+  /// The one way in, for the reason [`Self::push_top_level_expression`] is the
+  /// one way into the list beside it: a record the walk hands over whole cannot
+  /// be half replaced.
+  pub(crate) fn record_call_positions(&mut self, positions: CallPositions) {
+    self.call_positions = Rc::new(positions);
   }
 
-  /// Whether a recorded top-level array literal holds `call`.
+  /// Whether `call` is written at program level -- inside a statement of the
+  /// module itself, with no function and no second statement around it.
   ///
-  /// The shape a name cannot find: `export const styles = [stylex.create(…)];`
-  /// writes the call at program level, and the recorded entry is the array
-  /// rather than the call, so no key answers for it.
-  ///
-  /// Containment decides, not the mere presence of an array. A call written
-  /// inside a function is not at program level because the module also holds an
-  /// array somewhere else, and `is_bound_create_expr` reads the same shape the
-  /// same way.
-  ///
-  /// A span-less call is held by nothing. Such a call is synthesized rather than
-  /// parsed, so no recorded array can be where it was written, and a dummy span
-  /// would otherwise be read as position zero.
-  pub fn holds_call_in_top_level_array(&self, call: &CallExpr) -> bool {
-    if call.span.is_dummy() {
-      return false;
-    }
+  /// This is what decides whether the compiled styles stay where the call was
+  /// written or are hoisted to a declaration of their own above the statement
+  /// that holds them.
+  pub fn is_program_level_call(&self, call: &CallExpr) -> bool {
+    self.call_positions.holds(call.span, Position::ProgramLevel)
+  }
 
-    let found = self
-      .top_level_array_spans
-      .iter()
-      .any(|array| array.contains(call.span));
+  /// Whether `call` is a whole expression statement -- `stylex.create({…});`
+  /// with nothing reading what it answers.
+  pub fn is_bare_call_statement(&self, call: &CallExpr) -> bool {
+    self
+      .call_positions
+      .holds(call.span, Position::BareStatement)
+  }
 
-    debug_assert_eq!(
-      found,
-      self.top_level_expressions.iter().any(|recorded| {
-        matches!(&recorded.1, Expr::Array(array) if array.span.contains(call.span))
-      }),
-      "`top_level_array_spans` disagrees with `top_level_expressions`; something \
-       changed the list without going through `push_top_level_expression` or \
-       `set_top_level_expr`"
-    );
-
-    found
+  /// Whether a type assertion wraps `call` -- `stylex.create({…}) as Styles`.
+  pub fn is_type_asserted_call(&self, call: &CallExpr) -> bool {
+    self.call_positions.holds(call.span, Position::TypeAsserted)
   }
 
   /// Find the top level expression recorded from *this* call node, matched by
@@ -2178,11 +2314,15 @@ impl StateManager {
       return None;
     }
 
+    // Through the parentheses, as the declarator lookup below reads one. The
+    // two are asked together -- `find_and_validate_stylex_define_marker` reads
+    // both in one branch -- so a paren that blinded only one of them decided
+    // which of two refusals an author read.
     self
       .top_level_expressions
       .iter()
       .find(|TopLevelExpression(_, expr, _)| {
-        matches!(expr, Expr::Call(recorded_call) if recorded_call.span == call.span)
+        matches!(normalize_expr(expr), Expr::Call(recorded_call) if recorded_call.span == call.span)
       })
   }
 
@@ -2203,11 +2343,10 @@ impl StateManager {
       return None;
     }
 
-    self.declarations.iter().position(|decl| {
-      decl.init.as_ref().is_some_and(
-        |init| matches!(**init, Expr::Call(ref recorded_call) if recorded_call.span == call.span),
-      )
-    })
+    self
+      .declarations
+      .iter()
+      .position(|decl| init_call(decl).is_some_and(|recorded| recorded.span == call.span))
   }
 
   /// The declarator initialised by *this* call node, for callers that only read
@@ -2234,9 +2373,10 @@ impl StateManager {
 
     debug_assert_eq!(
       found.is_some(),
-      self.declarations.iter().any(|decl| {
-        matches!(decl.init.as_deref(), Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
-      }),
+      self
+        .declarations
+        .iter()
+        .any(|decl| { init_call(decl).is_some_and(|recorded| recorded.eq_ignore_span(call)) }),
       "`declaration_call_index` disagrees with `declarations`; something changed \
        the list without going through `push_declaration` or `set_declaration_init`"
     );
@@ -2251,8 +2391,13 @@ impl StateManager {
         .declaration_call_index
         .candidates(|| stable_hash_unspanned_call(call)),
       |position| {
-        matches!(self.declarations.get(position).and_then(|decl| decl.init.as_deref()),
-          Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
+        // A parenthesis is not a different initializer, so the recorded call is
+        // read through it.
+        self
+          .declarations
+          .get(position)
+          .and_then(init_call)
+          .is_some_and(|recorded| recorded.eq_ignore_span(call))
       },
     )
   }
@@ -2270,21 +2415,70 @@ impl StateManager {
       .candidates(|| stable_hash_unspanned_call(call))
       .iter()
       .find(|name| {
-        matches!(self.style_vars.get(*name).and_then(|decl| decl.init.as_deref()),
-          Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
+        self
+          .style_vars
+          .get(*name)
+          .and_then(init_call)
+          .is_some_and(|recorded| recorded.eq_ignore_span(call))
       })
       .cloned();
 
     debug_assert_eq!(
       found.is_some(),
-      self.style_vars.values().any(|decl| {
-        matches!(decl.init.as_deref(), Some(Expr::Call(recorded)) if recorded.eq_ignore_span(call))
-      }),
+      self
+        .style_vars
+        .values()
+        .any(|decl| { init_call(decl).is_some_and(|recorded| recorded.eq_ignore_span(call)) }),
       "`style_var_call_index` disagrees with `style_vars`; something changed the \
        map without going through `insert_style_var` or `set_style_var_init`"
     );
 
     found
+  }
+
+  /// Records that one nested rule has been filed. See
+  /// [`Self::nested_rules_filed`].
+  pub fn note_nested_rule_filed(&mut self) {
+    self.nested_rules_filed = self.nested_rules_filed.wrapping_add(1);
+  }
+
+  /// The filing count the memo compares across one fold. See
+  /// [`Self::nested_rules_filed`].
+  pub fn nested_rules_filed(&self) -> u64 {
+    self.nested_rules_filed
+  }
+
+  /// Puts the rules the calls inside the argument declared in front of `own`,
+  /// and answers the map the producer registers.
+  ///
+  /// A `keyframes` written inside the argument of another producer -- `create({
+  /// a: { animationName: keyframes({ … }) } })`, or the same in a `createTheme`
+  /// value -- is folded to its name where it stands, and the rule it leaves
+  /// behind is filed on the state rather than registered on its own. So the
+  /// producer that holds it must carry it, or the name reaches a stylesheet
+  /// that defines nothing.
+  ///
+  /// The nested rules come first, which is the order the reference writes them
+  /// in: the `@keyframes` block stands in front of the rule that names it. One
+  /// way in for all six producers, because the order is the whole of what there
+  /// is to get wrong -- reading the rules and then adding them the other way
+  /// round is what put a `@keyframes` block behind the rule that named it.
+  ///
+  /// The rules are *taken*. They belong to the call being registered, which
+  /// filed them while its own argument was folded, and a copy left behind is a
+  /// copy the next producer of the module carries as well: one module with two
+  /// themes wrote the same `@keyframes` block twice, once in front of a
+  /// declaration that named nothing of the sort.
+  ///
+  /// The answer is the only copy there is, so a caller that drops it loses the
+  /// rules of its own module. `must_use` is what says so.
+  #[must_use]
+  pub fn take_nested_rules_before(&mut self, own: InjectableStylesMap) -> InjectableStylesMap {
+    let mut rules = std::mem::take(&mut self.other_injected_css_rules);
+
+    rules.extend(own);
+
+    rules
   }
 
   /// Files the styles of one call and points the call site at `ast`.
@@ -2308,13 +2502,13 @@ impl StateManager {
     let metadatas = MetaData::convert_from_injected_styles_map(style);
     let inject_var_ident = self.setup_injection_imports();
 
-    // The hash keys the injection slots and does not change per rule, so it is
-    // computed once here and not once per metadata in the loop.
-    let ast_hash = stable_hash_unspanned(ast);
+    // The keys are the same for every rule of one call, so they are read once
+    // here rather than once per metadata in the loop.
+    let keys = placement_keys(ast, fallback_ast_hash);
 
     for metadata in metadatas {
       self.add_style(&metadata);
-      self.add_style_to_inject(&metadata, &inject_var_ident, ast_hash, fallback_ast_hash);
+      self.add_style_to_inject(&metadata, &inject_var_ident, &keys);
     }
 
     // Update all references to this call expression with the new AST
@@ -2447,20 +2641,12 @@ impl StateManager {
     }
   }
 
-  /// Queues the injection call for one rule before each declaration it belongs
-  /// to, once per declaration.
+  /// Queues the injection call for one rule before each statement it belongs
+  /// to, once per statement.
   ///
-  /// `ast_hash` names the declaration the styles land in, and
-  /// `fallback_ast_hash` the object a hoisted call site was replaced by.
-  /// `register_styles` hashes the first once for all the rules of one call, and
-  /// the second reaches it already hashed by its own caller.
-  fn add_style_to_inject(
-    &mut self,
-    metadata: &MetaData,
-    inject_var_ident: &Ident,
-    ast_hash: u128,
-    fallback_ast_hash: Option<u128>,
-  ) {
+  /// `keys` are what [`placement_keys`] read off the call, and every one of
+  /// them names a shape the placement walk can find.
+  fn add_style_to_inject(&mut self, metadata: &MetaData, inject_var_ident: &Ident, keys: &[u128]) {
     let priority = metadata.get_priority();
     let css_ltr = metadata.get_css();
     let css_rtl = metadata.get_css_rtl();
@@ -2475,13 +2661,25 @@ impl StateManager {
     if let Some(const_key) = const_key
       && let Some(const_value) = const_value
     {
-      let const_value_expr = match const_value.parse::<f64>() {
-        Ok(value) => create_number_expr_or_spread(value),
-        Err(_) => create_string_expr_or_spread(const_value),
-      };
+      // The rule carries the constant as JSON, so the kind is read back before
+      // it is written. A number is written as a number and every other kind as
+      // the text JavaScript spells for it, which is what the reference writes
+      // into this call. A constant that was given no value, and one set to
+      // null, write no key and no value at all.
+      let const_value = FlatCompiledStylesValue::from_json_text(const_value);
 
-      stylex_inject_args.push(create_string_key_value_prop("constKey", const_key));
-      stylex_inject_args.push(create_key_value_prop("constVal", *const_value_expr.expr));
+      if !matches!(
+        const_value,
+        FlatCompiledStylesValue::Null | FlatCompiledStylesValue::Undefined
+      ) {
+        let const_value_expr = match const_value.as_number() {
+          Some(number) => create_js_number_expr(number),
+          None => create_string_expr(&const_value.to_js_text()),
+        };
+
+        stylex_inject_args.push(create_string_key_value_prop("constKey", const_key));
+        stylex_inject_args.push(create_key_value_prop("constVal", const_value_expr));
+      }
     }
 
     if let Some(rtl) = css_rtl {
@@ -2490,65 +2688,25 @@ impl StateManager {
 
     let stylex_inject_obj = create_object_expression(stylex_inject_args);
 
+    // Read before the object is moved into the call. It is what tells one
+    // rule's injecting statement from another's, because the rest of the
+    // statement is the same for every rule of the module.
+    let rule_key = stable_hash_unspanned(&stylex_inject_obj);
+
     let stylex_call_expr = create_call_expr(
       Expr::Ident(inject_var_ident.clone()),
       vec![create_expr_or_spread(stylex_inject_obj)],
     );
 
-    let stylex_call = Expr::Call(stylex_call_expr);
-
-    let module = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+    let item = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
       span: DUMMY_SP,
-      expr: Box::new(stylex_call),
+      expr: Box::new(Expr::Call(stylex_call_expr)),
     }));
 
-    let normalized_module = module;
-
-    // Per-decl dedup: keying by `ast_hash` keeps the per-bucket
-    // `Vec` small (typically 1–2 entries), so the span-insensitive
-    // `eq_ignore_span` scan short-circuits cheaply rather than walking
-    // a full `stable_hash` over the AST. Items go in the bucket
-    // (owned) while a clone goes into the pending buffer; the
-    // bucket clone is then reused by the fallback path.
-    let bucket = self
-      .injection
-      .queued_decl_items
-      .entry(ast_hash)
-      .or_default();
-    let needs_primary_queue = !bucket
-      .iter()
-      .any(|item| item.eq_ignore_span(&normalized_module));
-    if needs_primary_queue {
-      bucket.push(normalized_module.clone());
-    }
-
-    if let Some(fallback_ast_hash) = fallback_ast_hash {
-      let fallback_bucket = self
-        .injection
-        .queued_decl_items
-        .entry(fallback_ast_hash)
-        .or_default();
-      let needs_fallback_queue = !fallback_bucket
-        .iter()
-        .any(|item| item.eq_ignore_span(&normalized_module));
-      if needs_fallback_queue {
-        fallback_bucket.push(normalized_module.clone());
+    for key in keys {
+      if self.injection.queued_decl_rules.insert((*key, rule_key)) {
+        self.queue_insertion(InsertionSlot::BeforeDecl(*key), item.clone());
       }
-
-      if needs_primary_queue {
-        self.queue_insertion(
-          InsertionSlot::BeforeDecl(ast_hash),
-          normalized_module.clone(),
-        );
-      }
-      if needs_fallback_queue {
-        self.queue_insertion(
-          InsertionSlot::BeforeDecl(fallback_ast_hash),
-          normalized_module,
-        );
-      }
-    } else if needs_primary_queue {
-      self.queue_insertion(InsertionSlot::BeforeDecl(ast_hash), normalized_module);
     }
   }
 
@@ -2619,9 +2777,9 @@ impl StateManager {
 /// 5. `AfterImports` items follow the import block — matching the legacy
 ///    in-walk splice that placed `hoisted_module_items` after imports during
 ///    the consumer walk.
-/// 6. The remainder of the body follows. For each item, every relevant
-///    initializer is hashed and any matching `BeforeDecl` metadata is spliced
-///    before it.
+/// 6. The remainder of the body follows. Each item is read for the objects a
+///    producer registered, and the `BeforeDecl` metadata of each one found is
+///    spliced before the item. [`RegisteredObjects`] is that walk.
 ///
 /// `runtime_injection` matches the legacy gate on
 /// `options.runtime_injection.is_some()`: when `false`, the runtime
@@ -2728,58 +2886,190 @@ pub fn flush_pending_insertions(
   result.extend(before_imports);
   result.extend(theme_imports);
 
-  // Step 4: walk the rest, splicing BeforeDecl metadata before
-  // the first matching var-decl initializer. Consuming the bucket
-  // preserves deterministic first-match-wins behavior for duplicate
-  // initializer hashes.
+  // Step 4: walk the rest, splicing the `BeforeDecl` metadata of every
+  // registered object an item holds in front of that item. Consuming the
+  // bucket keeps the first item that holds the object as the one that takes
+  // the metadata, which is what decides the place when two items hold the
+  // same shape.
+  //
+  // Nothing keyed to a statement means nothing to match, so the walk is
+  // skipped: the hashing is the whole cost of the step. That is every module
+  // compiled with runtime injection off, because the loop above drops every
+  // `BeforeDecl` item, and every module that queued none. The question is asked
+  // again per item rather than once, so the statements after the last injection
+  // is placed are not walked either.
   for item in iter {
-    for hash in decl_init_hashes(&item) {
-      if let Some(metas) = before_decl.remove(&hash) {
-        result.extend(metas);
-      }
+    if !before_decl.is_empty() {
+      let mut walk = RegisteredObjects {
+        queued: &mut before_decl,
+        placed: &mut result,
+      };
+
+      item.visit_with(&mut walk);
     }
+
     result.push(item);
   }
 
   *module_body = result;
 }
 
-/// Stable hashes of every relevant var-decl initializer reachable from
-/// `item`, matching the keys [`StateManager::queue_insertion`] uses
-/// under [`InsertionSlot::BeforeDecl`].
-fn decl_init_hashes(item: &ModuleItem) -> Vec<u128> {
-  let mut hashes: Vec<u128> = Vec::new();
+/// The keys the placement walk can find one call's styles by, in the order the
+/// walk should read them.
+///
+/// `ast` is what the call site holds now and `fallback_ast_hash` the object a
+/// hoisted call site was replaced by. A hoisted call site holds a reference to
+/// the declaration the object moved to, and a reference names nothing the walk
+/// reads, so the hash of the object is the only key that finds the statement.
+/// Keying the reference as well left one bucket per hoisted call that nothing
+/// could ever match, which is every ordinary component module: the walk then
+/// had nothing to stop it and read every statement of the module to the end.
+///
+/// An object and a name are what a producer registers -- the object it left
+/// where the call was written, or the name a compiled `keyframes`, `positionTry`
+/// or `viewTransitionClass` answered with. [`RegisteredObjects`] looks for
+/// those two and nothing else, so anything else here is not a key.
+///
+/// Anything else, with no fallback beside it, is a producer whose rules cannot
+/// be placed, and the module is printed without them. No producer does that
+/// today -- a hoisted `create` is the one that hands over something else, and
+/// it hands the fallback over with it -- so the warning is for the producer
+/// written next, which would otherwise lose its rules in silence.
+fn placement_keys(ast: &Expr, fallback_ast_hash: Option<u128>) -> Vec<u128> {
+  let mut keys = Vec::with_capacity(2);
 
-  let var_decls: Option<Vec<&VarDeclarator>> = match item {
-    ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(export_decl)) => export_decl
-      .decl
-      .as_var()
-      .map(|var_decl| var_decl.decls.iter().collect()),
-    ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(export_default_expr)) => {
-      // `export default { ... }` is treated by the legacy code as a
-      // synthetic `default = <obj>` declarator whose init is the
-      // object expression — so its style metadata can splice in
-      // front of the export.
-      if export_default_expr.expr.is_object() {
-        hashes.push(stable_hash_unspanned(export_default_expr.expr.as_ref()));
-      }
-      None
-    },
-    ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => Some(var_decl.decls.iter().collect()),
-    _ => None,
-  };
+  if matches!(
+    normalize_expr(ast),
+    Expr::Object(_) | Expr::Lit(Lit::Str(_))
+  ) {
+    keys.push(stable_hash_unspanned(ast));
+  }
 
-  if let Some(decls) = var_decls {
-    for decl in decls {
-      if let Some(init) = decl.init.as_ref()
-        && (init.is_object() || init.is_lit())
-      {
-        hashes.push(stable_hash_unspanned(init.as_ref()));
-      }
+  keys.extend(fallback_ast_hash);
+
+  if keys.is_empty() {
+    // The kind is read off the same expression the guard above read, so the
+    // message names what was registered rather than a parenthesis around it.
+    warn!(
+      "the rules of a call are not injected. It compiled to \"{}\", and the walk \
+       that places an injection reads an object or a name",
+      get_expr_node_kind(normalize_expr(ast))
+    );
+  }
+
+  keys
+}
+
+/// The walk that finds the objects a module item holds and places the metadata
+/// queued for each of them in front of the item.
+///
+/// A producer keys its `_inject2(...)` statements to the
+/// [`stable_hash_unspanned`] of the object it left where the call was written,
+/// and the rules belong to the statement rather than to the object: `export
+/// const all = [wrap(stylex.create({ … }))]` declares them through the
+/// statement the same way `export const styles = stylex.create({ … })` does.
+/// So the object can stand anywhere in the item -- in an array, in an object
+/// the author wrote, in the argument of a wrapping call, in a branch of a
+/// conditional, in a class field -- and asking which of those it is would be
+/// one arm per spelling of the same answer. The walk reads every expression
+/// the item holds instead.
+///
+/// Cost. The walk itself is one pass over the item, and what it spends is the
+/// hash of each candidate it meets, because a hash reads the whole subtree
+/// under it. Three things keep that from growing with the module:
+///
+/// - It stops at the object it matched. Nothing a registered object holds is
+///   registered itself: what is below one is the namespaces the producer
+///   built, and a rule a nested call declares is keyed to the object it was
+///   folded into rather than to the name left in it -- `create({ a: {
+///   animationName: keyframes({ … }) } })` injects both rules at the one key.
+///   So a declarator bound to one compiled object costs the one hash it always
+///   cost, however large the object is. A *second* statement holding the same
+///   object is read to the bottom, because the first took the metadata: that
+///   is the price of the rule that the first holder is the one that takes it.
+/// - It does not enter a function body. Nothing a body holds is registered: a
+///   `create` written in one is hoisted to a declaration of its own, and every
+///   other producer refuses a call the module top level does not bind. So a
+///   module of components is walked as a handful of statements rather than as
+///   every line in them.
+/// - [`flush_pending_insertions`] asks it nothing once every queued item is
+///   placed. A key that matches nothing keeps the map from emptying, so such a
+///   module is read to its last statement -- which is why [`placement_keys`]
+///   queues no key the walk cannot find.
+///
+/// A type annotation is read like anything else, and is not worth skipping: the
+/// compiler strips every type before this pass runs, so on a real module there
+/// is nothing there to step over.
+struct RegisteredObjects<'a> {
+  /// The metadata still to place, keyed by the hash of the object it belongs
+  /// to. Taking a bucket out leaves the first item that holds the object as
+  /// the one that takes it.
+  queued: &'a mut FxHashMap<u128, Vec<ModuleItem>>,
+  /// The module body being written, which the metadata is appended to directly
+  /// in front of the item the walk is reading.
+  placed: &'a mut Vec<ModuleItem>,
+}
+
+impl RegisteredObjects<'_> {
+  /// Places the metadata queued for `expr`, and says whether there was any.
+  fn place_metadata_of(&mut self, expr: &Expr) -> bool {
+    match self.queued.remove(&stable_hash_unspanned(expr)) {
+      Some(metadata) => {
+        self.placed.extend(metadata);
+        true
+      },
+      None => false,
+    }
+  }
+}
+
+impl Visit for RegisteredObjects<'_> {
+  fn visit_expr(&mut self, expr: &Expr) {
+    // Everything queued is placed, so the rest of the item answers nothing.
+    if self.queued.is_empty() {
+      return;
+    }
+
+    match expr {
+      // A name a compiled `keyframes`, `positionTry` or `viewTransitionClass`
+      // left behind. Those three are the only producers that register
+      // something other than an object, and each registers a string, so a
+      // number or a boolean an author wrote is not a candidate and is not
+      // hashed.
+      //
+      // A string an author wrote cannot answer for one of those names, and it
+      // is the hash that says so: it carries the written form as well as the
+      // value, and a built string has no written form. So `const cls =
+      // 'x18re5ia-B'` beside a compiled `keyframes` of that name is two
+      // different keys.
+      Expr::Lit(Lit::Str(_)) => {
+        self.place_metadata_of(expr);
+      },
+      Expr::Object(_) => {
+        if !self.place_metadata_of(expr) {
+          expr.visit_children_with(self);
+        }
+      },
+      _ => expr.visit_children_with(self),
     }
   }
 
-  hashes
+  /// A namespace is not entered for the same reason as a body: everything in
+  /// one is below program level, so a `create` written there is hoisted out of
+  /// it and the declaration it moved to is what the walk finds.
+  fn visit_ts_module_block(&mut self, _: &TsModuleBlock) {}
+
+  // The bodies the walk does not enter. A `Function` covers a declaration, a
+  // method and an expression; the other four hold a body without being one.
+  fn visit_function(&mut self, _: &Function) {}
+
+  fn visit_arrow_expr(&mut self, _: &ArrowExpr) {}
+
+  fn visit_constructor(&mut self, _: &Constructor) {}
+
+  fn visit_getter_prop(&mut self, _: &GetterProp) {}
+
+  fn visit_setter_prop(&mut self, _: &SetterProp) {}
 }
 
 /// Builds an `_inject2({ ltr, priority, [rtl] })` statement for an atom style.

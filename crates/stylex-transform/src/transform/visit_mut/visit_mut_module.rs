@@ -1,5 +1,5 @@
 use stylex_ast::ast::convertors::convert_atom_to_string;
-use stylex_state::state_writers::fill_top_level_expressions;
+use stylex_state::state_writers::{fill_call_positions, fill_top_level_expressions};
 use swc_core::{
   common::{BytePos, Span, comments::Comments},
   ecma::{
@@ -323,7 +323,7 @@ impl ModuleBindingsCollector {
   /// Record every binding written by an assignment or `for-in`/`for-of`
   /// pattern. Identifier targets rebind (`[a, b] = …`); `Pat::Expr` targets
   /// are member writes (`({ x: obj.x } = …)`) and invalidate the member's
-  /// root object instead.
+  /// root object instead, through whatever wrappers sit around them.
   fn add_pattern_writes(&mut self, pattern: &Pat) {
     match pattern {
       Pat::Ident(binding_ident) => {
@@ -334,7 +334,10 @@ impl ModuleBindingsCollector {
       Pat::Rest(rest_pattern) => self.add_pattern_writes(&rest_pattern.arg),
       Pat::Assign(assign_pattern) => self.add_pattern_writes(&assign_pattern.left),
       Pat::Expr(expression) => {
-        if let Expr::Member(member_expression) = expression.as_ref() {
+        // Read through the wrappers, as every other write shape is: `[(o.x)]`
+        // and `[o!.x]` are the target `[o.x]` is. Anything that is not a member
+        // is a call result or a `this`, which owns no binding to invalidate.
+        if let Some(member_expression) = member_target(expression) {
           self.add_member_root_write(member_expression);
         }
       },
@@ -722,9 +725,13 @@ where
     // became the raw position again.
     self.state.set_input_module_base(ModuleBase::of(module));
 
-    if cfg!(debug_assertions) || !self.state.options.use_real_file_for_source {
-      self.state.set_seen_module_source_code(module, None);
-    }
+    // The copy is a deep clone of the whole module, so a release build makes one
+    // only where the compiler cannot read the file back off disk. The state
+    // owns that choice, and the build this pass was compiled for is the only
+    // half of it this walk knows.
+    self
+      .state
+      .keep_module_source_copy(module, cfg!(debug_assertions));
 
     self.discover_module(module);
 
@@ -776,6 +783,7 @@ where
 
     if self.state.has_import_paths() {
       fill_top_level_expressions(module, &mut self.state);
+      fill_call_positions(module, &mut self.state);
     }
   }
 

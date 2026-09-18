@@ -1,7 +1,5 @@
 use indexmap::IndexMap;
-use rustc_hash::FxHashMap;
-use stylex_constants::constants::messages::{ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED};
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_macros::stylex_panic;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
@@ -11,31 +9,34 @@ use crate::{
   StyleXTransform,
   shared::{
     transformers::{
-      stylex_create_theme::stylex_create_theme, stylex_keyframes::get_keyframes_fn,
+      stylex_create_theme::stylex_create_theme_from_group, stylex_keyframes::get_keyframes_fn,
       stylex_position_try::get_position_try_fn, stylex_types::get_types_fn,
     },
     utils::{
       core::{
         dev_class_name::{convert_theme_to_dev_styles, convert_theme_to_test_styles},
-        js_to_ast::{NestedStringObject, convert_object_to_ast},
+        js_to_ast::convert_values_to_ast,
       },
       validators::{
-        is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
+        argument_at, is_create_theme_call, validate_stylex_create_theme_indent,
+        validate_theme_variables,
       },
     },
   },
-  transform::stylex::visitor_utils::{apply_unstable_conditional, insert_stylex_identifier_entry},
+  transform::stylex::visitor_utils::{
+    apply_unstable_conditional, insert_stylex_identifier_entry, register_stylex_helper,
+    register_stylex_identifier,
+  },
 };
 use stylex_constants::constants::{
   api_names::{STYLEX_CREATE_THEME, STYLEX_KEYFRAMES, STYLEX_TYPES},
   messages::{non_static_value, non_style_object},
 };
 use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::evaluate::evaluate;
+use stylex_evaluator::{evaluate::evaluate, evaluate_result::refusal_site};
 use stylex_state::{
   functions::{FunctionConfigType, FunctionMap},
   state_manager::ImportKind,
-  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
 
 impl<C> StyleXTransform<C>
@@ -50,131 +51,94 @@ where
 
       validate_stylex_create_theme_indent(parent_var_decl, call, &mut self.state);
 
-      let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-        None => first_arg.expr.clone(),
-      })?;
+      let first_arg = argument_at(call, 0, STYLEX_CREATE_THEME);
 
-      let second_arg = call
-        .args
-        .get(1)
-        .map(|second_arg| match &second_arg.spread {
-          Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-          None => second_arg.expr.clone(),
-        })?;
+      let second_arg = argument_at(call, 1, STYLEX_CREATE_THEME);
 
-      let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
-      let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
+      let mut function_map = FunctionMap::default();
 
-      let keyframes_fn = get_keyframes_fn();
-      let types_fn = get_types_fn();
-      let position_try_fn = get_position_try_fn();
+      let types_fn = FunctionConfigType::Regular(get_types_fn());
 
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::Keyframes) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-          );
-        }
-      }
-
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::PositionTry) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
-          );
-        }
-      }
-
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::Types) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(types_fn.clone())),
-          );
-        }
-      }
-
-      for name in self.state.stylex_imports() {
-        let member_expression = member_expressions.entry(name.clone()).or_default();
-
-        member_expression.insert(
-          STYLEX_KEYFRAMES.into(),
-          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-        );
-
-        insert_stylex_identifier_entry(
-          &mut identifiers,
-          name,
-          STYLEX_TYPES.into(),
-          FunctionConfigType::Regular(types_fn.clone()),
-        );
-      }
-
-      apply_unstable_conditional(&self.state, &mut identifiers, &mut member_expressions);
-
-      self
-        .state
-        .apply_stylex_env(&mut identifiers, &mut member_expressions);
-
-      let function_map: Box<FunctionMap> = Box::new(FunctionMap {
-        identifiers,
-        member_expressions,
-        disable_imports: false,
-      });
-
-      let evaluated_arg1 = evaluate(&first_arg, &mut self.state, &function_map);
-
-      assert!(
-        evaluated_arg1.confident,
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &evaluated_arg1
-            .deopt
-            .unwrap_or_else(|| *first_arg.to_owned()),
-          &non_static_value(STYLEX_CREATE_THEME),
-          &mut self.state,
-        )
+      register_stylex_helper(
+        &self.state,
+        &mut function_map,
+        ImportKind::Keyframes,
+        STYLEX_KEYFRAMES,
+        &FunctionConfigType::Regular(get_keyframes_fn()),
       );
 
-      let evaluated_arg2 = evaluate(&second_arg, &mut self.state, &function_map);
+      // `positionTry` and `types` are read by name alone here, so neither is a
+      // member of the namespace.
+      register_stylex_identifier(
+        &self.state,
+        &mut function_map,
+        ImportKind::PositionTry,
+        &FunctionConfigType::Regular(get_position_try_fn()),
+      );
+
+      register_stylex_identifier(&self.state, &mut function_map, ImportKind::Types, &types_fn);
+
+      // `types` is carried in the namespace's own fold, because a theme reads
+      // `stylex.types` off a namespace it also spreads.
+      for name in self.state.stylex_imports() {
+        insert_stylex_identifier_entry(
+          &mut function_map.identifiers,
+          name,
+          STYLEX_TYPES.into(),
+          types_fn.clone(),
+        );
+      }
+
+      apply_unstable_conditional(&self.state, &mut function_map);
+
+      self.state.apply_stylex_env(&mut function_map);
+
+      let function_map: Box<FunctionMap> = Box::new(function_map);
+
+      let evaluated_arg1 = evaluate(first_arg, &mut self.state, &function_map);
+
+      // The fold's two failures are read once. A refusal is the reachable one, and
+      // it reads the sentence and the position it always did. A confident answer
+      // with no value is the other: the evaluator's memo is its only known
+      // producer, and no source through this producer reaches it, so it reads this
+      // sentence rather than one of its own. `folded_style_object_lit` reads the
+      // two the same way for the producers that share it.
+      let Some(variables) = evaluated_arg1.value.filter(|_| evaluated_arg1.confident) else {
+        stylex_panic!(
+          "{}",
+          build_code_frame_error(
+            &Expr::Call(call.clone()),
+            &refusal_site(evaluated_arg1.deopt.as_ref(), first_arg),
+            &non_static_value(STYLEX_CREATE_THEME),
+            &mut self.state,
+          )
+        )
+      };
+
+      let evaluated_arg2 = evaluate(second_arg, &mut self.state, &function_map);
 
       assert!(
         evaluated_arg2.confident,
         "{}",
         build_code_frame_error(
           &Expr::Call(call.clone()),
-          &evaluated_arg2
-            .deopt
-            .unwrap_or_else(|| *second_arg.to_owned()),
+          &refusal_site(evaluated_arg2.deopt.as_ref(), second_arg),
           &non_static_value(STYLEX_CREATE_THEME),
           &mut self.state,
         )
       );
 
-      let mut variables = match evaluated_arg1.value {
-        Some(ref value) => {
-          validate_theme_variables(value, &self.state);
-          value.clone()
-        },
-        None => stylex_panic!(
-          "{}",
-          build_code_frame_error(
-            &Expr::Call(call.clone()),
-            &evaluated_arg1
-              .deopt
-              .unwrap_or_else(|| *first_arg.to_owned()),
-            ONLY_OVERRIDE_DEFINE_VARS,
-            &mut self.state,
-          )
-        ),
-      };
+      // Asked here so that a first argument that is no variable group is
+      // refused with this sentence, before the producer runs and reports the
+      // same input in its own words. Both arguments are already read at this
+      // point, so this does not change which one is read first.
+      //
+      // The answer is carried on rather than thrown away. Reading it again in
+      // the producer copies every property of the group a second time.
+      let theme_group = validate_theme_variables(&variables, &self.state);
 
       let overrides = match evaluated_arg2.value {
-        Some(ref value) => {
+        Some(value) => {
           assert!(
             value
               .as_expr()
@@ -183,30 +147,26 @@ where
             "{}",
             build_code_frame_error(
               &Expr::Call(call.clone()),
-              &evaluated_arg2
-                .deopt
-                .unwrap_or_else(|| *second_arg.to_owned()),
+              &refusal_site(evaluated_arg2.deopt.as_ref(), second_arg),
               &non_style_object(STYLEX_CREATE_THEME),
               &mut self.state,
             )
           );
-          value.clone()
+          value
         },
         None => stylex_panic!(
           "{}",
           build_code_frame_error(
             &Expr::Call(call.clone()),
-            &evaluated_arg2
-              .deopt
-              .unwrap_or_else(|| *second_arg.to_owned()),
+            &refusal_site(evaluated_arg2.deopt.as_ref(), second_arg),
             &non_style_object(STYLEX_CREATE_THEME),
             &mut self.state,
           )
         ),
       };
 
-      let (mut overrides_obj, inject_styles) = stylex_create_theme(
-        &mut variables,
+      let (mut overrides_obj, inject_styles) = stylex_create_theme_from_group(
+        theme_group,
         &overrides,
         &mut self.state,
         &mut IndexMap::default(),
@@ -222,12 +182,13 @@ where
           convert_theme_to_dev_styles(&var_name, &overrides_obj, self.state.get_filename());
       }
 
-      let result_ast =
-        convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(overrides_obj));
+      let result_ast = convert_values_to_ast(&overrides_obj);
+
+      let injected_styles = self.state.take_nested_rules_before(inject_styles);
 
       self
         .state
-        .register_styles(call, &inject_styles, &result_ast, None);
+        .register_styles(call, &injected_styles, &result_ast, None);
 
       Some(result_ast)
     } else {

@@ -4,6 +4,9 @@
 //! `stylex.create` fixtures.
 
 use super::*;
+use crate::evaluate::source_evaluation::{
+  assert_deopts, assert_folds_to_boolean, assert_folds_to_number, assert_folds_to_string,
+};
 use stylex_ast::ast::convertors::create_ident_expr;
 use stylex_ast::ast::convertors::create_null_expr;
 use stylex_ast::ast::factories::create_key_value_prop;
@@ -112,6 +115,20 @@ fn expect_number(result: Result<BinaryExprType, anyhow::Error>) -> f64 {
   }
 }
 
+/// The boolean a path folded to, on the same terms as [`expect_number`].
+///
+/// A comparison answers one, which is what the language and the reference
+/// implementation answer. Read as a number, `1 > 2` named a property `0` where
+/// the reference implementation names it `false`.
+#[track_caller]
+fn expect_boolean(result: Result<BinaryExprType, anyhow::Error>) -> bool {
+  match result {
+    Result::Ok(BinaryExprType::Boolean(value)) => value,
+    Result::Ok(other) => panic!("expected a boolean, folded to {:?}", other),
+    Result::Err(error) => panic!("expected a boolean, refused with {}", error),
+  }
+}
+
 /// The string a path folded to, on the same terms as [`expect_number`].
 ///
 /// The count the string carries is checked against a fresh reading of the text
@@ -146,13 +163,23 @@ fn fold_numbers(op: BinaryOp, left: f64, right: f64) -> f64 {
   )))
 }
 
+/// One comparison operator over two numeric operands, through the same path.
+#[track_caller]
+fn compare_numbers(op: BinaryOp, left: f64, right: f64) -> bool {
+  expect_boolean(num_or_str_path(&bin_expr(
+    op,
+    create_number_expr(left),
+    create_number_expr(right),
+  )))
+}
+
 /// One equality operator over two operands, through the number-or-string path.
 ///
 /// Two expressions rather than two numbers, because which reading each operator
 /// takes is decided by what the sides *are* rather than by what they coerce to.
 #[track_caller]
-fn fold_equality(op: BinaryOp, left: Expr, right: Expr) -> f64 {
-  expect_number(num_or_str_path(&bin_expr(op, left, right)))
+fn fold_equality(op: BinaryOp, left: Expr, right: Expr) -> bool {
+  expect_boolean(num_or_str_path(&bin_expr(op, left, right)))
 }
 
 /// `+` over two operands, through the string path.
@@ -279,33 +306,33 @@ mod the_number_path {
 
     // Every comparison against `NaN` is false, and the inequality is the one
     // that is true.
-    assert_eq!(fold_numbers(BinaryOp::EqEqEq, f64::NAN, f64::NAN), 0.0);
-    assert_eq!(fold_numbers(BinaryOp::NotEqEq, f64::NAN, f64::NAN), 1.0);
-    assert_eq!(fold_numbers(BinaryOp::Lt, f64::NAN, 1.0), 0.0);
+    assert!(!compare_numbers(BinaryOp::EqEqEq, f64::NAN, f64::NAN));
+    assert!(compare_numbers(BinaryOp::NotEqEq, f64::NAN, f64::NAN));
+    assert!(!compare_numbers(BinaryOp::Lt, f64::NAN, 1.0));
   }
 
   #[test]
   fn loose_equality_answers_one_when_equal() {
-    assert_eq!(fold_numbers(BinaryOp::EqEq, 5.0, 5.0), 1.0);
-    assert_eq!(fold_numbers(BinaryOp::EqEq, 10.0, 2.0), 0.0);
+    assert!(compare_numbers(BinaryOp::EqEq, 5.0, 5.0));
+    assert!(!compare_numbers(BinaryOp::EqEq, 10.0, 2.0));
   }
 
   #[test]
   fn loose_inequality_answers_one_when_different() {
-    assert_eq!(fold_numbers(BinaryOp::NotEq, 5.0, 3.0), 1.0);
-    assert_eq!(fold_numbers(BinaryOp::NotEq, 5.0, 5.0), 0.0);
+    assert!(compare_numbers(BinaryOp::NotEq, 5.0, 3.0));
+    assert!(!compare_numbers(BinaryOp::NotEq, 5.0, 5.0));
   }
 
   #[test]
   fn strict_equality_answers_one_when_equal() {
-    assert_eq!(fold_numbers(BinaryOp::EqEqEq, 5.0, 5.0), 1.0);
-    assert_eq!(fold_numbers(BinaryOp::EqEqEq, 10.0, 2.0), 0.0);
+    assert!(compare_numbers(BinaryOp::EqEqEq, 5.0, 5.0));
+    assert!(!compare_numbers(BinaryOp::EqEqEq, 10.0, 2.0));
   }
 
   #[test]
   fn strict_inequality_answers_one_when_different() {
-    assert_eq!(fold_numbers(BinaryOp::NotEqEq, 5.0, 3.0), 1.0);
-    assert_eq!(fold_numbers(BinaryOp::NotEqEq, 5.0, 5.0), 0.0);
+    assert!(compare_numbers(BinaryOp::NotEqEq, 5.0, 3.0));
+    assert!(!compare_numbers(BinaryOp::NotEqEq, 5.0, 5.0));
   }
 
   /// Which reading each of the four operators takes, over the pairs where the
@@ -320,19 +347,22 @@ mod the_number_path {
     let one = create_number_expr(1.0);
     let one_as_text = create_string_expr("1");
 
-    assert_eq!(
-      fold_equality(BinaryOp::EqEq, one.clone(), one_as_text.clone()),
-      1.0
-    );
-    assert_eq!(
-      fold_equality(BinaryOp::NotEq, one.clone(), one_as_text.clone()),
-      1.0
-    );
-    assert_eq!(
-      fold_equality(BinaryOp::EqEqEq, one.clone(), one_as_text.clone()),
-      0.0
-    );
-    assert_eq!(fold_equality(BinaryOp::NotEqEq, one, one_as_text), 1.0);
+    assert!(fold_equality(
+      BinaryOp::EqEq,
+      one.clone(),
+      one_as_text.clone()
+    ));
+    assert!(fold_equality(
+      BinaryOp::NotEq,
+      one.clone(),
+      one_as_text.clone()
+    ));
+    assert!(!fold_equality(
+      BinaryOp::EqEqEq,
+      one.clone(),
+      one_as_text.clone()
+    ));
+    assert!(fold_equality(BinaryOp::NotEqEq, one, one_as_text));
   }
 
   /// Two pairs a numeric reading has no answer for: two strings that are not
@@ -340,30 +370,26 @@ mod the_number_path {
   /// the language answers `true` for both under `==`.
   #[test]
   fn two_values_with_no_number_still_compare() {
-    assert_eq!(
-      fold_equality(
-        BinaryOp::EqEq,
-        create_string_expr("red"),
-        create_string_expr("red")
-      ),
-      1.0
-    );
-    assert_eq!(
-      fold_equality(
-        BinaryOp::EqEqEq,
-        create_string_expr("red"),
-        create_string_expr("blue")
-      ),
-      0.0
-    );
-    assert_eq!(
-      fold_equality(BinaryOp::EqEq, create_null_expr(), undefined_expr()),
-      1.0
-    );
-    assert_eq!(
-      fold_equality(BinaryOp::EqEqEq, create_null_expr(), undefined_expr()),
-      0.0
-    );
+    assert!(fold_equality(
+      BinaryOp::EqEq,
+      create_string_expr("red"),
+      create_string_expr("red")
+    ));
+    assert!(!fold_equality(
+      BinaryOp::EqEqEq,
+      create_string_expr("red"),
+      create_string_expr("blue")
+    ));
+    assert!(fold_equality(
+      BinaryOp::EqEq,
+      create_null_expr(),
+      undefined_expr()
+    ));
+    assert!(!fold_equality(
+      BinaryOp::EqEqEq,
+      create_null_expr(),
+      undefined_expr()
+    ));
   }
 
   /// A side with no primitive refuses, and names what it could not read rather
@@ -422,26 +448,26 @@ mod the_number_path {
 
   #[test]
   fn greater_than_answers_one_when_greater() {
-    assert_eq!(fold_numbers(BinaryOp::Gt, 10.0, 2.0), 1.0);
-    assert_eq!(fold_numbers(BinaryOp::Gt, 3.0, 5.0), 0.0);
+    assert!(compare_numbers(BinaryOp::Gt, 10.0, 2.0));
+    assert!(!compare_numbers(BinaryOp::Gt, 3.0, 5.0));
   }
 
   #[test]
   fn greater_or_equal_answers_one_when_equal() {
-    assert_eq!(fold_numbers(BinaryOp::GtEq, 5.0, 5.0), 1.0);
-    assert_eq!(fold_numbers(BinaryOp::GtEq, 3.0, 5.0), 0.0);
+    assert!(compare_numbers(BinaryOp::GtEq, 5.0, 5.0));
+    assert!(!compare_numbers(BinaryOp::GtEq, 3.0, 5.0));
   }
 
   #[test]
   fn less_than_answers_one_when_less() {
-    assert_eq!(fold_numbers(BinaryOp::Lt, 3.0, 5.0), 1.0);
-    assert_eq!(fold_numbers(BinaryOp::Lt, 10.0, 2.0), 0.0);
+    assert!(compare_numbers(BinaryOp::Lt, 3.0, 5.0));
+    assert!(!compare_numbers(BinaryOp::Lt, 10.0, 2.0));
   }
 
   #[test]
   fn less_or_equal_answers_one_when_equal() {
-    assert_eq!(fold_numbers(BinaryOp::LtEq, 5.0, 5.0), 1.0);
-    assert_eq!(fold_numbers(BinaryOp::LtEq, 10.0, 2.0), 0.0);
+    assert!(compare_numbers(BinaryOp::LtEq, 5.0, 5.0));
+    assert!(!compare_numbers(BinaryOp::LtEq, 10.0, 2.0));
   }
 
   /// Two strings compare by code unit, not as two numbers. Read as two numbers,
@@ -449,20 +475,20 @@ mod the_number_path {
   /// arm of a conditional into the stylesheet.
   #[test]
   fn two_strings_compare_by_code_unit() {
-    let cases: [(BinaryOp, &str, &str, f64); 8] = [
-      (BinaryOp::Lt, "10", "9", 1.0),
-      (BinaryOp::Gt, "2", "10", 1.0),
-      (BinaryOp::GtEq, "2", "10", 1.0),
-      (BinaryOp::LtEq, "10", "9", 1.0),
-      (BinaryOp::Lt, "a", "b", 1.0),
-      (BinaryOp::Lt, "", "a", 1.0),
-      (BinaryOp::Lt, "b", "a", 0.0),
-      (BinaryOp::GtEq, "a", "a", 1.0),
+    let cases: [(BinaryOp, &str, &str, bool); 8] = [
+      (BinaryOp::Lt, "10", "9", true),
+      (BinaryOp::Gt, "2", "10", true),
+      (BinaryOp::GtEq, "2", "10", true),
+      (BinaryOp::LtEq, "10", "9", true),
+      (BinaryOp::Lt, "a", "b", true),
+      (BinaryOp::Lt, "", "a", true),
+      (BinaryOp::Lt, "b", "a", false),
+      (BinaryOp::GtEq, "a", "a", true),
     ];
 
     for (op, left, right, expected) in cases {
       assert_eq!(
-        expect_number(num_or_str_path(&bin_expr(
+        expect_boolean(num_or_str_path(&bin_expr(
           op,
           create_string_expr(left),
           create_string_expr(right),
@@ -485,14 +511,14 @@ mod the_number_path {
       create_string_expr("10"),
       create_number_expr(9.0),
     );
-    assert_eq!(expect_number(num_or_str_path(&bin)), 0.0);
+    assert!(!expect_boolean(num_or_str_path(&bin)));
 
     let bin = bin_expr(
       BinaryOp::Gt,
       create_string_expr("10"),
       create_number_expr(9.0),
     );
-    assert_eq!(expect_number(num_or_str_path(&bin)), 1.0);
+    assert!(expect_boolean(num_or_str_path(&bin)));
   }
 
   /// All four relational operators are false against `NaN`, the negated pair
@@ -500,8 +526,8 @@ mod the_number_path {
   #[test]
   fn every_relational_operator_is_false_against_not_a_number() {
     for op in [BinaryOp::Lt, BinaryOp::LtEq, BinaryOp::Gt, BinaryOp::GtEq] {
-      assert_eq!(fold_numbers(op, f64::NAN, 1.0), 0.0, "NaN {:?} 1", op);
-      assert_eq!(fold_numbers(op, 1.0, f64::NAN), 0.0, "1 {:?} NaN", op);
+      assert!(!compare_numbers(op, f64::NAN, 1.0), "NaN {:?} 1", op);
+      assert!(!compare_numbers(op, 1.0, f64::NAN), "1 {:?} NaN", op);
     }
   }
 
@@ -512,14 +538,14 @@ mod the_number_path {
   #[test]
   fn the_nullish_values_compare_as_the_numbers_they_coerce_to() {
     let bin = bin_expr(BinaryOp::Lt, create_null_expr(), create_number_expr(1.0));
-    assert_eq!(expect_number(num_or_str_path(&bin)), 1.0);
+    assert!(expect_boolean(num_or_str_path(&bin)));
 
     let bin = bin_expr(
       BinaryOp::Lt,
       create_ident_expr("undefined"),
       create_number_expr(1.0),
     );
-    assert_eq!(expect_number(num_or_str_path(&bin)), 0.0);
+    assert!(!expect_boolean(num_or_str_path(&bin)));
   }
 
   /// A string this compiler cannot read has no ordering, so the comparison
@@ -830,5 +856,100 @@ fn assert_refuses_with(result: Result<BinaryExprType, anyhow::Error>, expected: 
         sentence
       );
     },
+  }
+}
+
+// ==================== a comparison answers a boolean ====================
+
+/// The eight comparison operators answer `true` or `false`, which is what the
+/// language and the reference implementation answer.
+///
+/// They used to answer `1` and `0`, and the number reached two places an author
+/// can see: a computed key named the property `0` where the reference
+/// implementation names it `false`, and a comparison written as a whole style
+/// value wrote `1px` where the reference implementation stops the build.
+#[test]
+fn a_comparison_answers_a_boolean() {
+  for (source, expected) in [
+    ("1 > 2", false),
+    ("1 < 2", true),
+    ("1 >= 1", true),
+    ("2 <= 1", false),
+    ("1 === 1", true),
+    ("1 !== 2", true),
+    ("1 == '1'", true),
+    // `!=` answers the negation of `===` here and in the reference
+    // implementation, where the language answers the negation of `==` and so
+    // calls this false. The parting is older than this case and deliberate --
+    // see `EqualityReading::NotStrict`.
+    ("1 != '1'", true),
+    ("'10' < '9'", true),
+    ("'a' === 'a'", true),
+    ("'a' === 'b'", false),
+    ("null == undefined", true),
+    ("NaN === NaN", false),
+    ("NaN !== NaN", true),
+  ] {
+    assert_folds_to_boolean(source, expected);
+  }
+}
+
+/// A comparison still reads as a number where a number is what the surrounding
+/// expression asks for, because that is `ToNumber` of the boolean it answers.
+#[test]
+fn a_comparison_reads_as_a_number_where_one_is_asked_for() {
+  assert_folds_to_number("(1 < 2) + 1", 2.0);
+  assert_folds_to_number("(1 > 2) + 1", 1.0);
+  assert_folds_to_number("(1 < 2) * 3", 3.0);
+  assert_folds_to_number("-(1 < 2)", -1.0);
+}
+
+/// It reads as its own text where a string is what is asked for, which is the
+/// word rather than the digit.
+#[test]
+fn a_comparison_reads_as_its_word_where_a_string_is_asked_for() {
+  assert_folds_to_string("`x${1 < 2}y`", "xtruey");
+  assert_folds_to_string("`x${1 > 2}y`", "xfalsey");
+  assert_folds_to_string("'x' + (1 < 2)", "xtrue");
+}
+
+/// A comparison is still a condition, and the branch it picks does not change.
+#[test]
+fn a_comparison_still_decides_a_condition() {
+  assert_folds_to_string("1 < 2 ? 'a' : 'b'", "a");
+  assert_folds_to_string("1 > 2 ? 'a' : 'b'", "b");
+  assert_folds_to_string("(1 > 2) || 'a'", "a");
+  assert_folds_to_string("(1 < 2) && 'a'", "a");
+}
+
+/// A comparison with an object on either side refuses, whichever operator it is
+/// and whichever side the object is on.
+///
+/// The language compares two objects by reference, and this evaluator holds a
+/// copy: `o == o` is one reference read twice and true, `({}) == ({})` is two
+/// references and false, and a copy cannot tell the two apart. The reference
+/// implementation holds real values and answers both.
+///
+/// Refusing every one of them is the decision, rather than answering the rows
+/// that need no identity. Two of these could be folded -- a primitive against
+/// an object reduces the object through `ToPrimitive` and compares the result,
+/// and a strict comparison of a primitive against an object is false on the
+/// types alone -- but then `1 == ({})` would fold where `({}) == ({})` beside
+/// it refused, for the same reason a copy cannot answer either. One rule that
+/// never writes a wrong value is worth more than two rows of a comparison
+/// nobody writes on purpose.
+#[test]
+fn a_comparison_with_an_object_on_either_side_refuses() {
+  for source in [
+    "1 == ({})",
+    "1 === ({})",
+    "1 != ({})",
+    "({}) == 1",
+    "({}) == ({})",
+    "[1, 2] == '1,2'",
+    "1 == [1]",
+    "({}) < 1",
+  ] {
+    assert_deopts(source);
   }
 }

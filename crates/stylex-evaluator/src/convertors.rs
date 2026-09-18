@@ -10,7 +10,6 @@ use stylex_ast::ast::convertors::{
   convert_lit_to_number, convert_lit_to_string, get_expr_from_var_decl,
 };
 use stylex_constants::constants::messages::{ILLEGAL_PROP_VALUE, non_static_value};
-use stylex_enums::misc::BinaryExprType;
 use stylex_js::{coercions, operators::evaluate_bin_expr};
 use stylex_state::resolution::lookup::get_var_decl_by_ident;
 use stylex_state::{functions::FunctionMap, state_manager::StateManager};
@@ -49,9 +48,9 @@ pub fn expr_to_num(
     Expr::Bin(lit) => {
       let mut state = Box::new(EvaluationState::new());
 
-      match binary_expr_to_num_or_str(lit, &mut state, traversal_state, fns)? {
-        BinaryExprType::Number(number) => number,
-        _ => stylex_bail!(
+      match binary_expr_to_num_or_str(lit, &mut state, traversal_state, fns)?.as_number() {
+        Some(number) => number,
+        None => stylex_bail!(
           "Binary expression is not a number: {}",
           get_expr_node_kind(expr_num)
         ),
@@ -111,9 +110,10 @@ pub fn ident_to_number(
         Expr::Bin(bin_expr) => {
           match binary_expr_to_num_or_str(bin_expr, state, traversal_state, fns)
             .unwrap_or_else(|error| stylex_panic!("{}", error))
+            .as_number()
           {
-            BinaryExprType::Number(number) => number,
-            _ => stylex_panic!(
+            Some(number) => number,
+            None => stylex_panic!(
               "Binary expression is not a number: {}",
               get_expr_node_kind(var_decl_expr)
             ),

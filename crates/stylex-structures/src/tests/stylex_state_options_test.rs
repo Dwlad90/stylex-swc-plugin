@@ -100,3 +100,19 @@ fn stylex_state_options_deref_mut_updates_core() {
   std::ops::DerefMut::deref_mut(&mut opts).class_name_prefix = "state-mutated".into();
   assert_eq!(opts.class_name_prefix, "state-mutated");
 }
+
+/// The shared default is the default, and it is one value: a reader that keeps
+/// the address it was handed sees the same address on the next read.
+#[test]
+fn the_shared_default_options_are_one_value() {
+  let first = with_default_options(|options| options as *const StyleXStateOptions);
+  let second = with_default_options(|options| options as *const StyleXStateOptions);
+
+  assert_eq!(first, second);
+
+  with_default_options(|options| {
+    assert_eq!(options.class_name_prefix, "x");
+    assert!(!options.dev);
+    assert!(options.import_sources.is_empty());
+  });
+}

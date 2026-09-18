@@ -1,0 +1,17 @@
+---
+source: crates/stylex-transform/tests/transform_import_export_test/commonjs_require_shapes.rs
+expression: output
+---
+import * as stylex from '@stylexjs/stylex';
+const { notAnApi } = require('@stylexjs/stylex');
+notAnApi({
+    base: {
+        color: 'red'
+    }
+});
+export const styles = {
+    base: {
+        kMwMTN: "x1e2nbdu",
+        $$css: true
+    }
+};

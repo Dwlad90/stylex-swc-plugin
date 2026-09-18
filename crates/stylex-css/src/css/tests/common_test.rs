@@ -43,78 +43,84 @@ mod get_number_suffix_tests {
 }
 
 #[cfg(test)]
-mod normalize_css_property_name_tests {
+mod inline_style_to_css_string_tests {
   use std::borrow::Cow;
 
-  use crate::css::common::normalize_css_property_name;
-
-  #[test]
-  fn converts_camel_case() {
-    assert_eq!(normalize_css_property_name("marginTop"), "margin-top");
-  }
-
-  #[test]
-  fn preserves_custom_properties() {
-    assert_eq!(normalize_css_property_name("--my-var"), "--my-var");
-    assert_eq!(normalize_css_property_name("--xAbcDef"), "--xAbcDef");
-    assert!(matches!(
-      normalize_css_property_name("--xAbcDef"),
-      Cow::Borrowed("--xAbcDef")
-    ));
-  }
-
-  #[test]
-  fn converts_webkit_prefix() {
-    assert_eq!(
-      normalize_css_property_name("WebkitTransition"),
-      "-webkit-transition"
-    );
-  }
-
-  #[test]
-  fn preserves_already_lowercase() {
-    assert_eq!(normalize_css_property_name("color"), "color");
-  }
-
-  #[test]
-  fn converts_complex_property() {
-    assert_eq!(
-      normalize_css_property_name("borderBottomLeftRadius"),
-      "border-bottom-left-radius"
-    );
-  }
-}
-
-#[cfg(test)]
-mod inline_style_to_css_string_tests {
   use crate::css::common::inline_style_to_css_string;
-  use stylex_structures::pair::Pair;
+  use stylex_structures::pair::PairCow;
+
+  /// The declarations a case is given, each half borrowed the way a caller
+  /// holding a name and a value hands them over.
+  fn declarations<'a>(pairs: &[(&'a str, &'a str)]) -> Vec<PairCow<'a>> {
+    pairs
+      .iter()
+      .map(|(key, value)| PairCow {
+        key: Cow::Borrowed(*key),
+        value: Cow::Borrowed(*value),
+      })
+      .collect()
+  }
 
   #[test]
   fn formats_single_pair() {
-    let pairs = vec![Pair::new("color", "red")];
-    assert_eq!(inline_style_to_css_string(&pairs), "color:red");
+    assert_eq!(
+      inline_style_to_css_string(&declarations(&[("color", "red")])),
+      "color:red"
+    );
   }
 
   #[test]
   fn formats_multiple_pairs() {
-    let pairs = vec![Pair::new("color", "red"), Pair::new("marginTop", "10px")];
     assert_eq!(
-      inline_style_to_css_string(&pairs),
+      inline_style_to_css_string(&declarations(&[("color", "red"), ("marginTop", "10px")])),
       "color:red;margin-top:10px"
     );
   }
 
   #[test]
   fn handles_empty_pairs() {
-    let pairs: Vec<Pair> = vec![];
-    assert_eq!(inline_style_to_css_string(&pairs), "");
+    assert_eq!(inline_style_to_css_string(&[]), "");
   }
 
   #[test]
   fn handles_custom_properties() {
-    let pairs = vec![Pair::new("--my-var", "blue")];
-    assert_eq!(inline_style_to_css_string(&pairs), "--my-var:blue");
+    assert_eq!(
+      inline_style_to_css_string(&declarations(&[("--my-var", "blue")])),
+      "--my-var:blue"
+    );
+  }
+
+  /// A custom property takes the same spelling rule as any other name here,
+  /// which is where an attribute and a stylesheet part company: a stylesheet
+  /// hands `--myColor` back untouched.
+  ///
+  /// Both answers were measured against @stylexjs/babel-plugin@0.19.0 through
+  /// `stylex.attrs({ … })`, which is the one call that reaches this text.
+  #[test]
+  fn kebab_cases_a_custom_property_written_in_camel_case() {
+    assert_eq!(
+      inline_style_to_css_string(&declarations(&[("--myColor", "red")])),
+      "--my-color:red"
+    );
+
+    // Every capital takes its own hyphen, so a run of them is not the single
+    // hyphen a stylesheet would write.
+    assert_eq!(
+      inline_style_to_css_string(&declarations(&[("--ABCDef", "x")])),
+      "---a-b-c-def:x"
+    );
+  }
+
+  /// A value spelled where the call was made is kept as it stands, so a half
+  /// the caller had to build reaches the text without being copied again.
+  #[test]
+  fn formats_an_owned_value() {
+    let pairs = vec![PairCow {
+      key: Cow::Borrowed("opacity"),
+      value: Cow::Owned("0.5".to_owned()),
+    }];
+
+    assert_eq!(inline_style_to_css_string(&pairs), "opacity:0.5");
   }
 }
 

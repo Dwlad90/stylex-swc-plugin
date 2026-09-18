@@ -8,4 +8,7 @@ mod stylex_define_consts_test;
 mod stylex_define_vars_nested_test;
 mod stylex_define_vars_test;
 mod stylex_keyframes_test;
+mod stylex_position_try_test;
 mod stylex_types_test_test;
+mod stylex_view_transition_class_test;
+mod transformer_refusals_test;

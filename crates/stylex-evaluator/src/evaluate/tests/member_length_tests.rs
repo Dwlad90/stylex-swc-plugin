@@ -282,22 +282,20 @@ fn a_read_that_escapes_the_value_refuses_rather_than_answering_undefined() {
   }
 }
 
-/// An index into a string refuses, and deliberately. The reference
-/// implementation folds `"\u{1F600}"[0]` to a lone surrogate, which no Rust
-/// string can hold — answering it would be the same class of quietly-wrong value
-/// the `length` fix removed. Past the end refuses too: knowing an index is out of
-/// range is the same work as reading one.
+/// A string is indexed by UTF-16 code unit, which is what the language counts
+/// and what the reference implementation answers. An index past the end is
+/// `undefined`, as it is for an array.
+///
+/// Half of an astral character is the replacement character, which is the
+/// substitution the engine fold already makes for every string it carries back
+/// -- so `s[0]` and `s.charAt(0)` are one read written two ways.
 #[test]
-fn an_index_into_a_string_refuses() {
-  for source in [
-    "\"abc\"[0]",
-    "\"abc\"[2]",
-    "\"abc\"[9]",
-    "\"\\u{1F600}\"[0]",
-    "\"abc\"[\"0\"]",
-  ] {
-    assert_deopts(source);
-  }
+fn an_index_into_a_string_reads_its_code_unit() {
+  assert_folds_to_string("\"abc\"[0]", "a");
+  assert_folds_to_string("\"abc\"[2]", "c");
+  assert_folds_to_string("\"abc\"[\"0\"]", "a");
+  assert_folds_to_undefined("\"abc\"[9]");
+  assert_folds_to_string("\"\\u{1F600}\"[0]", "\u{fffd}");
 }
 
 /// A key that looks numeric but is not an index is an ordinary property name,
@@ -319,18 +317,19 @@ fn a_numeric_looking_key_that_is_not_an_index_answers_undefined() {
   }
 }
 
-/// A refusal names the index, so a build error says which read could not be
-/// folded rather than only which node kind it was.
+/// No index refuses any more. Every one on every receiver reads its slot,
+/// answers `undefined` past the end, or -- for half of an astral character --
+/// answers the replacement character.
 ///
-/// A string is the one receiver left that refuses an index: its element is a
-/// single UTF-16 code unit, which can be an unpaired surrogate no Rust string
-/// holds. Both array receivers read one now, so the sweep that used to run
-/// across three receivers runs across the two that answer `undefined` in
-/// `an_index_past_the_end_answers_undefined` instead.
+/// Kept as a case rather than deleted because the refusal it replaced was the
+/// reason `length` and an index were read by one classification at all, and a
+/// receiver that started refusing again would fail here.
 #[test]
-fn a_refusal_names_the_index_it_could_not_read() {
-  assert_deopt_names_property("\"abc\"[7]", "7");
-  assert_deopt_names_property("\"abc\"[0]", "0");
+fn no_index_refuses_on_any_receiver() {
+  assert_folds_to_string("\"\\u{1F600}a\"[0]", "\u{fffd}");
+  assert_folds_to_string("\"\\u{1F600}a\"[2]", "a");
+  assert_folds_to_undefined("\"abc\"[7]");
+  assert_folds_to_number("[1, 2][1]", 2.0);
 }
 
 /// `length` is a string and array property only. A number, a boolean, a
@@ -392,14 +391,13 @@ fn a_property_an_array_does_not_carry_answers_undefined() {
 /// name.
 #[test]
 fn a_computed_key_with_no_compile_time_value_refuses() {
-  for source in [
-    "\"abc\"[runtimeKey]",
-    "\"abc\"[{}]",
-    "\"abc\"[/re/]",
-    "[1, 2][runtimeKey]",
-  ] {
+  for source in ["\"abc\"[runtimeKey]", "\"abc\"[/re/]", "[1, 2][runtimeKey]"] {
     assert_deopts(source);
   }
+
+  // An object *does* name a property -- `[object Object]` -- which no string
+  // carries, so it reads `undefined` rather than refusing.
+  assert_folds_to_undefined("\"abc\"[{}]");
 }
 
 /// A length is not read off a receiver that never folded. The refusal comes
@@ -495,7 +493,7 @@ fn a_deeply_nested_length_read_neither_overflows_nor_changes_answer() {
   let deep = std::iter::repeat_n("1 > 0 && ", 100).collect::<String>();
 
   assert_folds_to_number_with_ceiling(&format!("{}\"abc\".length", deep), 3.0, 512);
-  assert_deopts_with_ceiling(&format!("{}\"abc\"[0]", deep), 512);
+  assert_folds_to_string_with_ceiling(&format!("{}\"abc\"[0]", deep), "a", 512);
 }
 
 /// A member chain deeper than the receiver is not a length read at any depth. A

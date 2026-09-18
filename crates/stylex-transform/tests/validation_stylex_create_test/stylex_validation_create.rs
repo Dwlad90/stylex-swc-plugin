@@ -88,15 +88,32 @@ stylex_test!(
   "#
 );
 
-// Type assertions can only be member-accessed through parentheses, and the
-// emitter drops that grouping (`(x as any).root` prints as `x as any.root`).
-// The call must stay rejected rather than compile to invalid output.
+// A type assertion is the one position this compiler refuses and the reference
+// implementation compiles. The printer drops the brackets an assertion needs --
+// `(x as any).root` comes back as `x as any.root`, which reads as an assertion
+// to `any.root` -- so a refusal is what says the shape cannot be written. No
+// build reaches it: the shipped compiler strips every type before this pass,
+// which `crates/stylex-rs-compiler/__test__/createCallPositions.spec.ts`
+// measures.
 stylex_test_panic!(
-  invalid_use_not_bound_through_type_assertion,
-  "create() calls must be bound to a bare variable.",
+  invalid_use_inside_a_type_assertion,
+  "create() cannot be written inside a type assertion.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const root = (stylex.create({ root: { display: 'flex' } }) as any).root;
+  "#
+);
+
+// The same assertion without a member read on it. The printed module would be
+// valid here, and the refusal is still the one the shape above needs, so the
+// two are refused together rather than by a rule about what reads the call.
+stylex_test_panic!(
+  invalid_use_of_an_asserted_declarator,
+  "create() cannot be written inside a type assertion.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ root: { display: 'flex' } }) as any;
   "#
 );

@@ -4,11 +4,12 @@ use swc_core::{
   common::{Mark, SourceMap, Spanned, comments::Comments, sync::Lrc},
   ecma::{
     ast::{CallExpr, Callee, Expr, Id, MemberProp, Pass, Program, VarDeclarator},
-    transforms::{base::resolver, typescript::strip},
+    transforms::base::resolver,
     visit::VisitMutWith,
   },
 };
 
+use stylex_ast::ast::convertors::normalize_expr;
 use stylex_enums::{
   property_validation_mode::PropertyValidationMode, style_resolution::StyleResolution,
   sx_prop_name_param::SxPropNameParam,
@@ -22,6 +23,8 @@ use stylex_structures::{
 };
 
 pub(crate) mod stylex;
+#[cfg(test)]
+mod tests;
 mod visit_mut;
 
 pub struct StyleXTransform<C>
@@ -29,7 +32,6 @@ where
   C: Comments,
 {
   pub comments: C,
-  props_declaration: Option<Id>,
   pub state: StateManager,
 }
 
@@ -116,6 +118,11 @@ where
 
   pub fn with_dev(mut self, val: bool) -> Self {
     self.ensure_config().dev = Some(val);
+    self
+  }
+
+  pub fn with_test(mut self, val: bool) -> Self {
+    self.ensure_config().test = Some(val);
     self
   }
 
@@ -278,7 +285,6 @@ where
 
     StyleXTransform {
       comments: self.comments,
-      props_declaration: None,
       state,
     }
   }
@@ -339,7 +345,7 @@ where
   C: Comments,
 {
   pub fn new(comments: C, plugin_pass: PluginPass, config: &mut StyleXOptionsParams) -> Self {
-    let stylex_imports = fill_stylex_imports(&Some(config));
+    let stylex_imports = fill_stylex_imports_from_params(config);
 
     let mut state = StateManager::new(config.clone().into());
 
@@ -347,11 +353,7 @@ where
 
     state.set_plugin_pass(plugin_pass);
 
-    StyleXTransform {
-      comments,
-      props_declaration: None,
-      state,
-    }
+    StyleXTransform { comments, state }
   }
 
   /// Start building a test transform using the builder / `With` pattern.
@@ -365,9 +367,12 @@ where
     }
   }
 
-  pub(crate) fn process_declaration(&mut self, call_expr: &mut CallExpr) -> Option<(Id, String)> {
-    if let Callee::Expr(callee) = &mut call_expr.callee {
-      match callee.as_ref() {
+  pub(crate) fn process_declaration(&mut self, call_expr: &CallExpr) -> Option<(Id, String)> {
+    if let Callee::Expr(callee) = &call_expr.callee {
+      // A parenthesis is not a different callee, so both levels are read
+      // through it: `(stylex.create)({…})` and `(stylex).create({…})` name the
+      // same function the bare spelling names.
+      match normalize_expr(callee) {
         Expr::Ident(ident)
           if self
             .state
@@ -377,7 +382,7 @@ where
         },
         Expr::Member(member) => {
           if let (Expr::Ident(obj_ident), MemberProp::Ident(prop_ident)) =
-            (member.obj.as_ref(), &member.prop)
+            (normalize_expr(&member.obj), &member.prop)
             && self
               .state
               .is_stylex_import_for_current_cycle(obj_ident.sym.as_ref())
@@ -422,19 +427,6 @@ where
   }
 }
 
-fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> IndexSet<ImportSources> {
-  let mut stylex_imports = fill_stylex_imports_default();
-
-  if let Some(stylex_imports_extends) = match config {
-    Some(config) => config.import_sources.clone(),
-    None => None,
-  } {
-    stylex_imports.extend(stylex_imports_extends)
-  }
-
-  stylex_imports
-}
-
 /// Seed the default StyleX import sources in a fixed order: the
 /// `@stylexjs/stylex` package source first, then the bare `stylex` alias.
 /// Returns an insertion-ordered `IndexSet` so callers that `extend` it with
@@ -461,9 +453,4 @@ fn fill_stylex_imports_from_params(config: &StyleXOptionsParams) -> IndexSet<Imp
 #[warn(clippy::extra_unused_type_parameters)]
 fn resolve_factory(unresolved_mark: Mark, top_level_mark: Mark) -> impl Pass {
   resolver(unresolved_mark, top_level_mark, true)
-}
-
-#[warn(clippy::extra_unused_type_parameters)]
-fn _typescript_factory(unresolved_mark: Mark, top_level_mark: Mark) -> impl Pass {
-  strip(unresolved_mark, top_level_mark)
 }

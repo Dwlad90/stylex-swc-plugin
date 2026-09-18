@@ -78,11 +78,11 @@
     },
     {
       "id": "modules-length-an-indexed-string-read",
-      "label": "an indexed read, the one member lookup that still diverges",
+      "label": "an indexed read of a string",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  indexed: { content: \"abc\"[0] },\n});\n",
       "origin": "issue #1265, the read that surrounds the one being fixed",
-      "note": "Acceptance divergent. Upstream folds `\"abc\"[0]` to `\"a\"` through the language; this compiler refuses. Refusing is deliberate: upstream folds `\"\\u{1F600}\"[0]` to a lone surrogate, which no Rust `String` can carry, so folding an index needs a value type that carries WTF-8 through the whole pipeline.",
-      "expected": "acceptance-divergent"
+      "note": "Identical since ticket 50. A string is indexed by UTF-16 code unit in both, so `\"abc\"[0]` folds to `\"a\"` here as it does upstream. The one index left that refuses is the one landing on half an astral character: upstream writes the replacement character there, which is a character the source does not describe, and no Rust `String` carries a lone surrogate.",
+      "expected": "identical"
     },
     {
       "id": "modules-1265-rejecting-shorthands",
@@ -858,7 +858,7 @@
       "label": "a shadowed namespace parameter read as a computed key",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (stylex) => ({ [stylex]: '1px' }),\n});\n",
       "origin": "the identifier audit for issue #1266, the same coercion in the key position",
-      "note": "Upstream coerces the fold and emits a rule for a property named `[object object]`; this compiler refuses the value. The key position of the entry above, kept apart because one accepts and one refuses and a single module could only report the refusal. The static position reads the same way -- `create({ a: { [stylex]: '1px' } })` -- so the divergence is the coercion's and not the dynamic body's; recorded as a decided divergence in the issue that owns the fold.",
+      "note": "Upstream coerces the fold and emits a rule for a property named `[object object]`; this compiler refuses the key, saying it has no name at compile time. The fold is this compiler's own value and the language never sees it, so there is no `String` of it to give -- an object an author *wrote* does name `[object Object]` here since ticket 49. The key position of the entry above, kept apart because one accepts and one refuses and a single module could only report the refusal. The static position reads the same way -- `create({ a: { [stylex]: '1px' } })` -- so the divergence is the coercion's and not the dynamic body's.",
       "expected": "acceptance-divergent"
     },
     {
@@ -1564,7 +1564,21 @@
       "label": "a folded function map under a condition key that is a lone surrogate",
       "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: { '\\ud800': keyframes } } });\n",
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
-      "note": "Upstream holds the key as a JavaScript string and never writes it down, so it reaches the fold and refuses for it. This compiler refuses the key's encoding first: no Rust string holds a lone surrogate, and emitting a replacement character would write a selector the source does not describe -- the rule an object spread of a string and `charCodeAt` already answer this way. Claimed by the `lone surrogate in a name` family, which states that reason once for both rows that reach it."
+      "note": "Upstream holds the key as a JavaScript string and never writes it down, so it reaches the fold and refuses for it. This compiler refuses the key first, saying it has no name at compile time: a key is `String(key)` and no Rust string holds a lone surrogate, so there is no property name to write. Emitting a replacement character would write a selector the source does not describe -- the rule an object spread of a string and `charCodeAt` already answer this way. Claimed by the `lone surrogate in a name` family, which states that reason once for every row that reaches it."
+    },
+    {
+      "id": "modules-a-computed-key-that-is-a-lone-surrogate",
+      "label": "a computed key that is a lone surrogate",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { ['\\ud800']: 'red' },\n});\n",
+      "origin": "ticket 51, growing the `lone surrogate in a name` family past two rows",
+      "note": "The key written as a computed one rather than as a condition. A key is `String(key)` in both compilers, and a lone surrogate has no string this one can hold, so it refuses where the key is named. Claimed by the `lone surrogate in a name` family."
+    },
+    {
+      "id": "modules-a-written-key-that-is-a-lone-surrogate",
+      "label": "a written string key that is a lone surrogate",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { '\\ud800': 'red' },\n});\n",
+      "origin": "ticket 51, the same key written rather than computed",
+      "note": "The same key written where it is read. It aborted the build from inside the converter that spells an atom before ticket 49, reporting neither the key nor the object it sits in; it now refuses beside the computed spelling. Claimed by the `lone surrogate in a name` family."
     },
     {
       "id": "modules-1266-a-folded-function-map-in-a-keyframes-step",
@@ -1715,8 +1729,8 @@
       "label": "`Object.keys` of an array carrying a hole",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  hole: { fontFamily: `x${Object.keys([, 'p'])}y` },\n});\n",
       "origin": "issue #1266, ticket 40, found while measuring every receiver",
-      "expected": "acceptance-divergent",
-      "note": "Divergent in this compiler's favour. `Object.keys([, 'p'])` is `['1']` -- a hole has no key of its own -- and that is what this answers. Upstream aborts the module with `Unexpected error:`, reading the hole as a node and failing on it."
+      "expected": "both-reject",
+      "note": "Both refuse, under the same sentence: an array holding a hole folds to no value in either compiler, so the own-keys reader is never asked. This compiler used to answer `['1']`, reading the array literal a second time out of the syntax past the hole. Closed by ticket 48."
     },
     {
       "id": "modules-1266-object-values-of-a-single-config",
@@ -1926,7 +1940,15 @@
       "label": "a fold whose result is half a surrogate pair",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: '\\u{1F600}a'.slice(1) },\n});\n",
       "origin": "issue 06, the UTF-16 divergence pinned rather than carried quietly",
-      "note": "Divergent in the class name only, and pinned rather than fixed. Slicing an astral pair leaves a lone low surrogate: well-formed UTF-16, and not a string any Rust `String` holds. The declaration text agrees, because upstream's own becomes a replacement character the moment the stylesheet is written to disk; the hash of the pre-encoding text does not. Refusing instead would fail a build upstream completes, and carrying the surrogate faithfully means a value type that holds WTF-8 through the whole pipeline — which is the same rewrite an indexed string read is waiting on.",
+      "note": "Divergent in the class name only, and pinned rather than fixed. Slicing an astral pair leaves a lone low surrogate: well-formed UTF-16, and not a string any Rust `String` holds. The declaration text agrees, because upstream's own becomes a replacement character the moment the stylesheet is written to disk; the hash of the pre-encoding text does not. Refusing instead would fail a build upstream completes, and carrying the surrogate faithfully means a value type that holds WTF-8 through the whole pipeline. An indexed string read answers the same way since ticket 50, so the two spellings of one read agree.",
+      "expected": "divergent"
+    },
+    {
+      "id": "modules-an-index-that-lands-on-half-a-character",
+      "label": "an index that lands on half an astral character",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  indexed: { content: '\\ud83d\\ude00a'[0] },\n  charAt: { fontFamily: '\\ud83d\\ude00a'.charAt(0) },\n});\n",
+      "origin": "ticket 50, the index read brought in line with the fold beside it",
+      "note": "Divergent in the class name only, for the reason `modules-06-unpaired-surrogate` carries. Both rows are here because they are one read written two ways: the index and `charAt` answer the same character, so a change to either has to move both.",
       "expected": "divergent"
     },
     {
@@ -2512,16 +2534,16 @@
       "label": "a numeric comparison as the whole style value",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { content: (1 === 1) },\n});\n",
       "origin": "ticket 15, the fourteenth instalment: the reading a comparison has always taken here",
-      "expected": "acceptance-divergent",
-      "note": "A comparison folds to a number here and to a boolean there, so this compiler writes `content: \"1px\"` where the reference implementation refuses the declaration -- a style value may be an array, a string or a number, and a boolean is none of them. The reading is this compiler's own and pre-dates ticket 15: `1 === 1` and `1 < 2` answered a number before the equality operators were made to compare two primitives. What that work changed is the set of comparisons that reach the reading, which now holds the pairs neither side has a number for. Recorded rather than defended, as ticket 50 of `.scratch/split-transform-crate`."
+      "expected": "both-reject",
+      "note": "Both refuse, under the same sentence: a comparison answers a boolean, and a style value may be an array, a string or a number. This compiler wrote `content: \"1px\"` before -- a comparison folded to a number, so `1 === 1` reached the CSS layer as `1` and came out as a length. Closed by ticket 49."
     },
     {
       "id": "modules-comparison-as-a-whole-value-strings",
       "label": "a string comparison as the whole style value",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { content: ('a' === 'a') },\n});\n",
       "origin": "ticket 15, the fourteenth instalment: the pair the numeric reading refused before",
-      "expected": "acceptance-divergent",
-      "note": "The same divergence as `modules-comparison-as-a-whole-value-numbers`, which carries the reasoning. This row is the pair the numeric reading refused before the equality operators were made to compare two primitives, so it is what says the divergence widened rather than moved."
+      "expected": "both-reject",
+      "note": "The same answer as `modules-comparison-as-a-whole-value-numbers`, which carries the reasoning. This row is the pair the numeric reading refused before the equality operators were made to compare two primitives, so it is what says the readings are now one at both."
     },
     {
       "id": "modules-relational-two-strings-by-code-unit",

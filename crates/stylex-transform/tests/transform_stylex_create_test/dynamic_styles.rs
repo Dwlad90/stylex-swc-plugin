@@ -982,3 +982,77 @@ stylex_test!(
     });
   "#
 );
+
+// Whether a dynamic value can be written without a null check is decided by the
+// shape of the expression, and three shapes the reader answers for had no case.
+//
+// `&&` answers for both sides, so the right side is only read when the left one
+// is safe. A literal on the left is what gets the reader that far. Both answers
+// are written here: one property is safe on both sides, the other only on the
+// left.
+stylex_test!(
+  a_logical_and_reads_both_sides_for_a_null_check,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: (color) => ({
+        color: 'red' && color,
+        backgroundColor: 'blue' && 'green',
+      })
+    });
+  "#
+);
+
+// A comparison is not arithmetic, so it is not safe to skip the null check the
+// way `+` and `-` are. The operator is the whole of the difference between the
+// two properties below, and the answer shows in where the class name lands: the
+// safe one keeps a plain class in the hoisted object, the other one carries a
+// class chosen at run time.
+stylex_test!(
+  a_comparison_needs_the_null_check_that_arithmetic_does_not,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: (width) => ({
+        zIndex: width > 1,
+        opacity: width - 1,
+      })
+    });
+  "#
+);
+
+// `void 0` is a nullish fallback written the third way, beside `null` and
+// `undefined`, and the fallback is what decides that the variable is allowed to
+// carry nothing.
+stylex_test!(
+  a_void_expression_is_a_nullish_fallback,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: (color) => ({
+        color: color ?? void 0,
+      })
+    });
+  "#
+);
+
+// One property names a variable that may carry nothing and the other does not,
+// so the rule of the second is searched for a fallback and none is found. Two
+// properties are what it takes: with one, every rule searched holds the
+// variable the search is for.
+stylex_test!(
+  a_rule_with_no_nullish_variable_of_its_own,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: (color, width) => ({
+        color: color ?? null,
+        width: width,
+      })
+    });
+  "#
+);

@@ -34,18 +34,6 @@ fn record_deopt(expr: &str, state: &mut EvalState, reason: &str) -> Option<Strin
   None
 }
 
-/// Stands in for `convert_expr_to_str`. Anything but `"opaque"` has a string
-/// form. It counts its read so a test can prove the traversal state reached
-/// it rather than the evaluation state.
-fn convert(expr: &str, traversal_state: &mut TraversalState, _fns: &()) -> Option<String> {
-  traversal_state.reads += 1;
-
-  match expr {
-    "opaque" => None,
-    other => Some(other.to_uppercase()),
-  }
-}
-
 // ==================== deopt_unsupported ====================
 
 fn refuse(expr: &str, state: &mut EvalState) -> Option<u8> {
@@ -103,58 +91,6 @@ fn deopt_unsupported_holds_a_value_position() {
 
   assert_eq!(refuse_in_a_match_arm("two", &mut state), None);
   assert_eq!(state.reason.as_deref(), Some("two: unknown shape"));
-}
-
-// ==================== expr_to_str_or_deopt ====================
-
-fn to_string_or_refuse(
-  expr: &str,
-  state: &mut EvalState,
-  traversal_state: &mut TraversalState,
-) -> Option<String> {
-  let converted = expr_to_str_or_deopt!(
-    convert,
-    record_deopt,
-    expr,
-    state,
-    traversal_state,
-    &(),
-    "expression is not a string"
-  );
-
-  Some(converted)
-}
-
-/// A conversion that succeeds gives its string, reads the traversal state and
-/// records nothing on the evaluation state.
-#[test]
-fn expr_to_str_or_deopt_gives_the_converted_string() {
-  let mut state = EvalState::default();
-  let mut traversal_state = TraversalState::default();
-
-  let converted = to_string_or_refuse("red", &mut state, &mut traversal_state);
-
-  assert_eq!(converted.as_deref(), Some("RED"));
-  assert_eq!(traversal_state.reads, 1);
-  assert_eq!(state.calls, 0);
-}
-
-/// A conversion that fails refuses the same way `deopt_unsupported!` does, on
-/// the evaluation state rather than on the one it read.
-#[test]
-fn expr_to_str_or_deopt_refuses_when_the_conversion_fails() {
-  let mut state = EvalState::default();
-  let mut traversal_state = TraversalState::default();
-
-  assert_eq!(
-    to_string_or_refuse("opaque", &mut state, &mut traversal_state),
-    None
-  );
-  assert_eq!(
-    state.reason.as_deref(),
-    Some("opaque: expression is not a string")
-  );
-  assert_eq!(traversal_state.reads, 1);
 }
 
 // ==================== stylex_panic_with_context ====================

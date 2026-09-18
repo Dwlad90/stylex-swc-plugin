@@ -229,25 +229,15 @@ export function evaluateBudget(rawStatsInput: unknown, budgetInput: unknown): Bu
   const budget = parseBudget(budgetInput, 'budget');
   const subject = selectSubject(raw, budget);
 
-  // A paired run can hold a fixture only one of its subjects measured, because
-  // the release leg compares against a published version that is behind by
-  // whole features. The ceilings describe one subject, so the fixtures this
-  // check is about are the ones that subject measured.
-  //
-  // Coverage keeps both of its questions over that set. A ceiling for a fixture
-  // the subject did not measure is still reported as an entry nothing measured,
-  // because nothing held it. A fixture the subject did not measure and has no
-  // ceiling for asks nothing: a ceiling can only describe a number, and there
-  // is none.
-  const measured = raw.fixtures.filter(fixture => measuredBy(fixture, subject.label));
+  const coverage = subjectCoverage(raw.fixtures, budget.subject, subject);
 
   const problems: BudgetProblem[] = [
     ...checkEnvironment(raw.environment, budget.canonical),
-    ...(budget.state === 'enforced' ? checkCoverage(measured, budget.entries) : []),
+    ...(budget.state === 'enforced' ? checkCoverage(coverage, budget.entries) : []),
   ];
 
   const ceilings = new Map(budget.entries.map(entry => [entry.name, entry.ceilingMs]));
-  const fixtures = measured.map(fixture => {
+  const fixtures = Array.from(coverage.measured.values(), fixture => {
     const report = measureFixture(fixture, subject.label, budget.state, ceilings.get(fixture.name));
     if (report.status === 'breach' && report.ceilingMs !== undefined) {
       problems.push(
@@ -400,25 +390,86 @@ function checkEnvironment(
   return problems;
 }
 
-function checkCoverage(
+/**
+ * The run, seen from the subject the ceilings describe.
+ *
+ * A paired run can hold a fixture only one of its subjects measured, because
+ * the release leg compares against a published version that is behind by whole
+ * features. The ceilings describe one subject, so every reader below needs the
+ * same split of the run. It is taken one time, and it carries the subject that
+ * took it, so no reader can pair these fixtures with another subject.
+ */
+interface SubjectCoverage {
+  /** Which paired role the ceilings describe. */
+  readonly role: 'base' | 'candidate';
+  /** The subject that role resolved to in this run. */
+  readonly subject: SubjectDescriptor;
+  /**
+   * What the subject measured, by name and in run order. A map rather than a
+   * list, because the two readers ask different things of it: the report walks
+   * it in order, and coverage asks whether one name is in it.
+   */
+  readonly measured: ReadonlyMap<string, FixtureRawStats>;
+  /**
+   * Names the run held, but the subject has no measurement for.
+   *
+   * Names only, because a ceiling can describe a number and these fixtures
+   * gave this subject none. They answer one question: whether a committed
+   * ceiling points at a fixture the run held.
+   */
+  readonly unmeasured: ReadonlySet<string>;
+}
+
+function subjectCoverage(
   fixtures: readonly FixtureRawStats[],
+  role: 'base' | 'candidate',
+  subject: SubjectDescriptor
+): SubjectCoverage {
+  const measured = new Map<string, FixtureRawStats>();
+  const unmeasured = new Set<string>();
+  for (const fixture of fixtures) {
+    if (measuredBy(fixture, subject.label)) measured.set(fixture.name, fixture);
+    else unmeasured.add(fixture.name);
+  }
+  return { role, subject, measured, unmeasured };
+}
+
+/**
+ * The two coverage questions: a measurement with no ceiling, and a ceiling
+ * with no measurement.
+ *
+ * The second question has two answers, and a reader acts on each one
+ * differently. The run can hold no fixture of that name. Then the entry is
+ * stale and `budget.json` must lose it. Or the run holds the fixture and this
+ * budget's own subject has no measurement for it. Then the fixture is correct
+ * and the subject could not compile it.
+ *
+ * The file records which subjects measured a fixture, not why the others did
+ * not, so the message says only what the file shows.
+ */
+function checkCoverage(
+  coverage: SubjectCoverage,
   entries: readonly BudgetEntry[]
 ): BudgetProblem[] {
   const problems: BudgetProblem[] = [];
-  const measured = new Set(fixtures.map(fixture => fixture.name));
   const budgeted = new Set(entries.map(entry => entry.name));
 
-  for (const name of measured) {
+  for (const name of coverage.measured.keys()) {
     if (!budgeted.has(name)) {
       problems.push(makeProblem('missing-entry', `no committed ceiling for "${name}"`));
     }
   }
   for (const name of budgeted) {
-    if (!measured.has(name)) {
-      problems.push(
-        makeProblem('extra-entry', `budget entry "${name}" was not measured in this run`)
-      );
-    }
+    if (coverage.measured.has(name)) continue;
+    problems.push(
+      makeProblem(
+        'extra-entry',
+        coverage.unmeasured.has(name)
+          ? `budget entry "${name}" ran, but the ${coverage.role} ` +
+              `"${coverage.subject.label}" has no measurement for it`
+          : `budget entry "${name}" names no benchmark in this run`
+      )
+    );
   }
   return problems;
 }

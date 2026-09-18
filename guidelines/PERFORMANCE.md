@@ -96,10 +96,36 @@ caught. Set it once around the whole benchmark function, as the benches under
 
 Assert what the bench is measuring, in the bench. A refusal, a deopt, a
 swallowed panic and a cache hit are all fast, and a curve that flattens because
-the work stopped happening is indistinguishable from a win. Every bench in
-`crates/stylex-transform/benches` and `crates/stylex-evaluator/benches` panics
-unless its subject produced the output it exists to time -- a fold that reached
-the expected value, a `dev` transform that resolved one `file:line` per style.
+the work stopped happening is indistinguishable from a win. Every bench in the
+workspace panics unless its subject produced the output it exists to time -- a
+fold that reached the expected value, a `dev` transform that resolved one
+`file:line` per style, a parser that accepted its input.
+
+`every_bench_asserts_what_it_measures`, beside the allocator check in the
+addon's own test module, fails when a bench file carries no check at all. A
+bench that times something no check can read writes `ASSERTIONS: none` with the
+reason, the way a bench that measures the system allocator writes
+`ALLOCATOR: system`. Silence is what both refuse.
+
+**Put the check outside `b.iter`.** A check inside the timed closure adds to
+the measurement and starts a new series. Every input in these benches is fixed,
+so one answer outside speaks for every iteration; only a result that varies per
+iteration needs a check inside. Keep an inside check cheap -- a discriminant or
+a length, never a full equality against a built expected value.
+
+**A check that only names a refusal is fine, as long as it names it.** Three
+benches in `token_parser_bench.rs` time an error path on purpose and their
+names say so. Each states the answer it expects, so a parser that starts
+answering `Ok` cannot pass as a win.
+
+The rule earns its place. Six bench files once held 179 measurements and no
+check between them, and three of those measurements were already timing
+nothing: two built an empty `Transform`, and one was named for right-to-left
+flipping it never did. Adding the checks then found nine more -- a percentage
+handed to a `<length>` parser, `2π rad` handed to an angle parser, and six
+box shadows written without the colour the syntax requires. None was reported
+by a bench. A person reading the numbers found the first three, and the checks
+found the rest.
 
 Both configurations are worth watching, and they are watched separately. `dev`
 implies `debug`, and `debug` turns on the `file:line` annotation on `$$css`,
@@ -183,10 +209,21 @@ numbers.
 
 What the fixture loses is the comparison, not the run. The candidate is still
 timed for it, because the absolute budget describes the candidate alone and
-holds a ceiling for every fixture in the manifest. A fixture dropped from the
+wants a ceiling for every fixture the run measured. A fixture dropped from the
 run reached that check as an entry nothing measured, and failed the release a
-second way. The verdict engine names such a fixture under its table and takes
-no ratio for it, because a ratio needs both sides.
+second way. The reverse hole is a fixture measured with no ceiling, which is
+[Seeding a new ceiling](#seeding-a-new-ceiling). The verdict engine names such a
+fixture under its table and takes no ratio for it, because a ratio needs both
+sides.
+
+A ceiling that the run measured nothing for is an `extra-entry` failure, and
+that failure has two answers. The run may hold no fixture of that name, which
+means the entry is stale and `budget.json` must lose it. Or the run holds the
+fixture and the budget's own subject has no measurement for it, which means the
+fixture is correct and the subject could not compile it. The message says
+which, so a reader does not look for a fixture that is still in the manifest.
+The raw stats record which subjects measured a fixture, not why the others did
+not, so the message names the subject and stops there.
 
 The flag is off by default, and it never lifts the gate on the candidate: a
 fixture _it_ refuses, or compiles to no rules, is a regression and fails the
@@ -208,22 +245,34 @@ call repeated thousands of times, so it prices throughput and nothing else. A
 new fixture earns its place by exercising a capability none of the others
 reach.
 
+Two entries may name the same option and still both earn their place, when the
+shape they run it over differs. `Feature - runtime injection` binds its `create`
+call to a name, which is the path the insertion walk hashes once and does not
+descend. `Feature - runtime injection at scale` writes 100 `create` calls in a
+top-level array, which is the path it descends -- a different code path, and the
+one that grows with the module. Neither is a size variant of the other, and
+deleting either leaves a path unpriced.
+
 ## Budget
 
-`benchmark/budget.json` is `enforced`. It holds one ceiling for each of the 65
-benchmark fixtures, seeded on 2026-09-10: the largest median-of-round p95 that
-any seeding run gave, times a headroom of 1.25. Sixty-one ceilings come from
-ten runs and four from three runs, because the four fold fixtures had no
-seeding run before the release leg could measure them. A breach fails the leg and,
-through the publish job, blocks the release. While the file is
-`pending-calibration` instead, it holds no ceilings, `bench:budget` reports
-`unseeded`, and the leg passes.
+`benchmark/budget.json` is `enforced`. It holds a ceiling for each of the 66
+fixtures: the largest median-of-round p95 that any seeding run gave, times a
+headroom of 1.25. Sixty-one come from ten runs on 2026-09-10, four from three
+runs on the same date, because the four fold fixtures had no seeding run before
+the release leg could measure them, and one from three runs on 2026-09-18. A
+breach fails the leg and, through the publish job, blocks the release. While
+the file is `pending-calibration` instead, it holds no ceilings, `bench:budget`
+reports `unseeded`, and the leg passes.
 
 The headroom of 1.25 is for the machine, not for the noise. GitHub hands out
 several CPU models, and the seeding runs show one class about 15% slower than
-the other. Taking the largest value of every run already puts each ceiling on
-the slowest class that appeared, so the run-to-run spread is inside
-`observedUpperMs` and the headroom covers a class slower than any seen yet.
+the other. The gap is not the same for every fixture: the three runs that
+seeded `Feature - runtime injection at scale` read 10.04 ms and 10.10 ms on an
+EPYC 9V74 and 13.78 ms on an EPYC 7763, which is 36%. So read the spread from
+the runs of the fixture you are seeding, never from this figure. Taking the
+largest value of every run already puts each ceiling on the slowest class that
+appeared, so the run-to-run spread is inside `observedUpperMs` and the headroom
+covers a class slower than any seen yet.
 Both `observedUpperMs` and `ceilingMs` are rounded for a reader, so a ceiling
 can stand a fraction of a percent on either side of `observedUpperMs` times
 `headroom`. `parseEntry` permits 1% for that, which still refuses a headroom
@@ -248,3 +297,36 @@ runs and `parseEntry` re-derives each `ceilingMs` from `observedUpperMs` times
 reviewed change stating old/new ceilings, repeated measurements, cause and user
 impact, alternatives, and why rollback is not appropriate. Decreases may ratchet
 in proven improvements.
+
+### Seeding a new ceiling
+
+Adding a fixture is two changes, and the second one cannot be made from a
+developer machine. The pull-request leg does not check the budget, so the
+fixture lands green; the release leg does, and raises `missing-entry` for a
+fixture it measured with no committed ceiling. That stops the release.
+
+The ceilings are valid only on the canonical environment, so a number taken
+anywhere else cannot seed one. The route is the one the original seeding took:
+
+1. Dispatch `npm.yml` three times, with `previous-version` set to the last
+   published release as usual. Whether that base can compile the new fixture
+   does not matter: the leg passes `--allow-base-refusals`, the ceiling is
+   taken from the candidate, and a base refusal costs only the comparison.
+   Three runs is the minimum the policy states; more is better.
+2. Read `median-of-round p95` for the new fixture from each run's budget
+   report artifact.
+3. Add one entry by hand: `observedUpperMs` is the largest of those values,
+   `headroom` is 1.25, `ceilingMs` is their product, `runs` is how many, and
+   `evidence` names the run ids.
+
+A re-run of a failed dispatch counts as a run. It gets a fresh runner, so it
+measures the fixture again and keeps its own budget report artifact, but it
+keeps the run id of the dispatch it repeats. Two attempts of one run are
+therefore two readings under one id, and `evidence` names the attempt beside
+the id so a reader can find the right artifact. This is how
+`Feature - runtime injection at scale` was seeded: one dispatch and the two
+attempts of a second one.
+
+Never seed from one run plus a percentage, and never from a local number. A
+ceiling that was guessed is worse than no gate: it either never fires or fires
+on the machine rather than on the code.

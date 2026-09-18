@@ -7,18 +7,61 @@
 //! empty state, the two expression shapes a style value takes, an identifier at
 //! a named scope, and the path of a fixture package.
 
-use std::{env, path::PathBuf};
+use std::{env, path::PathBuf, sync::Arc};
 
 use path_clean::PathClean;
 use swc_core::{
-  common::{DUMMY_SP, SyntaxContext},
-  ecma::ast::{BindingIdent, Expr, Ident, Lit, Pat, Str, VarDeclarator},
+  common::{DUMMY_SP, FileName, SourceMap, SyntaxContext, input::StringInput},
+  ecma::{
+    ast::{BindingIdent, Expr, Ident, Lit, ModuleItem, Pat, Stmt, Str, VarDeclarator},
+    parser::{EsSyntax, Parser, Syntax, lexer::Lexer},
+  },
 };
 
 use stylex_ast::ast::factories::{create_ident, create_object_lit};
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 
 use crate::state_manager::StateManager;
+
+/// The expression `code` spells.
+///
+/// A case that reads a folded value states the shape as source text, because
+/// writing the node by hand takes several lines and says less about the shape
+/// than the text does.
+///
+/// Read inside parentheses, so a leading `{` starts an object rather than a
+/// block. The parentheses are the reader's, not the case's, and are taken off
+/// again. A text that does not parse is a fault in the case, not an answer
+/// worth reporting.
+pub(super) fn expr(code: &str) -> Expr {
+  let source_map = SourceMap::default();
+  let source_file = source_map.new_source_file(
+    Arc::new(FileName::Custom("unit_test_fixture.js".to_owned())),
+    format!("({code});"),
+  );
+
+  let lexer = Lexer::new(
+    Syntax::Es(EsSyntax::default()),
+    Default::default(),
+    StringInput::from(&*source_file),
+    None,
+  );
+
+  let module = match Parser::new_from(lexer).parse_module() {
+    Ok(parsed) => parsed,
+    Err(error) => panic!("the fixture {code} does not parse: {error:?}"),
+  };
+
+  let statement = match module.body.into_iter().next() {
+    Some(ModuleItem::Stmt(Stmt::Expr(statement))) => *statement.expr,
+    other => panic!("the fixture {code} is not one expression: {other:?}"),
+  };
+
+  match statement {
+    Expr::Paren(paren) => *paren.expr,
+    other => other,
+  }
+}
 
 /// One declarator over the initializer handed in. No case cares about the name
 /// pattern beyond it being an identifier, which is also the only shape

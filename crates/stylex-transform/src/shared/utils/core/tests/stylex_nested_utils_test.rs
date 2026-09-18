@@ -939,3 +939,65 @@ fn round_trips_complex_nested_vars_shape() {
     "gray"
   );
 }
+
+/// A key that names a leaf and a key that goes down through it cannot both be
+/// kept. The nested key wins, because the leaf is what the flat spelling of the
+/// same name would have written.
+#[test]
+fn a_nested_key_replaces_the_leaf_of_the_same_name() {
+  let result = unflatten_object(&flat_styles(vec![
+    (
+      "button",
+      FlatCompiledStylesValue::String("var(--x1)".to_string()),
+    ),
+    (
+      "button.primary",
+      FlatCompiledStylesValue::String("var(--x2)".to_string()),
+    ),
+  ]));
+
+  match &result["button"] {
+    UnflattenedCompiledStylesValue::Object(map) => {
+      assert_eq!(map.keys().cloned().collect::<Vec<_>>(), ["primary"]);
+    },
+    other => panic!("the key names no object: {other:?}"),
+  }
+}
+
+/// The order is the other way around too: a leaf written after the object it
+/// would replace is still the one that gives way.
+#[test]
+fn a_leaf_written_after_a_nested_key_gives_way_to_it() {
+  let result = unflatten_object(&flat_styles(vec![
+    (
+      "button.primary",
+      FlatCompiledStylesValue::String("var(--x2)".to_string()),
+    ),
+    (
+      "button",
+      FlatCompiledStylesValue::String("var(--x1)".to_string()),
+    ),
+  ]));
+
+  assert!(matches!(
+    &result["button"],
+    UnflattenedCompiledStylesValue::Leaf(_)
+  ));
+}
+
+/// A value kind the writer has no spelling for means the styles were not
+/// flattened, so the call is refused rather than written as something the
+/// runtime cannot read. A nested value is written by the same writer every
+/// other compiled value goes through, so it refuses with the same words.
+#[test]
+#[should_panic(expected = "Encountered an unsupported value type during AST conversion.")]
+fn refuses_a_nested_value_it_cannot_write() {
+  convert_unflattened_object_to_ast(&unflatten_object(&flat_styles(vec![(
+    "color",
+    FlatCompiledStylesValue::Tuple(
+      "--x1abcdef".to_string(),
+      Box::new(create_string_expr("red")),
+      None,
+    ),
+  )])));
+}

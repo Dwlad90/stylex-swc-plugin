@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::borrow::Cow;
 
 use indexmap::IndexMap;
 
@@ -6,86 +6,12 @@ use stylex_macros::stylex_panic;
 use stylex_structures::pre_rule_value::PreRuleValue;
 use swc_core::ecma::ast::{Expr, KeyValueProp};
 
-use crate::shared::{
-  enums::data_structures::obj_map_type::ObjMapType,
-  utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-};
+use crate::shared::utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
 use stylex_ast::ast::convertors::{convert_key_value_to_str, get_key_values_from_object};
-use stylex_state::{
-  flat_compiled_styles_value::FlatCompiledStylesValue, state_manager::StateManager,
-  types::FlatCompiledStyles,
-};
+use stylex_state::state_manager::StateManager;
 use stylex_structures::{order_pair::OrderPair, pair::Pair, raw_value::TRawValue};
 
 use super::css::common::transform_value_cached;
-
-pub(crate) fn obj_map<F>(
-  prop_values: ObjMapType,
-  state: &mut StateManager,
-  mapper: F,
-) -> FlatCompiledStyles
-where
-  F: Fn(Rc<FlatCompiledStylesValue>, &mut StateManager) -> Rc<FlatCompiledStylesValue>,
-{
-  let mut variables_map = IndexMap::new();
-
-  match prop_values {
-    ObjMapType::Object(obj) => {
-      let key_values = get_key_values_from_object(&obj);
-
-      for key_value in key_values.iter() {
-        let key = convert_key_value_to_str(key_value);
-
-        let value = Rc::new(FlatCompiledStylesValue::Tuple(
-          key.clone(),
-          key_value.value.clone(),
-          None,
-        ));
-
-        let result = mapper(value, state);
-
-        variables_map.insert(key, result);
-      }
-    },
-
-    ObjMapType::Map(map) => {
-      for (key, value) in map {
-        // Created hashed variable names with fileName//themeName//key
-        let result = mapper(value, state);
-
-        variables_map.insert(key, result);
-      }
-    },
-  }
-
-  variables_map
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct Pipe<T> {
-  value: T,
-}
-
-impl<T> Pipe<T> {
-  pub fn new(value: T) -> Self {
-    Self { value }
-  }
-
-  pub fn pipe<U, F>(self, mapper: F) -> Pipe<U>
-  where
-    F: FnOnce(T) -> U,
-  {
-    Pipe::new(mapper(self.value))
-  }
-
-  pub fn done(self) -> T {
-    self.value
-  }
-
-  pub fn create(value: T) -> Self {
-    Self::new(value)
-  }
-}
 
 pub(crate) fn obj_entries(obj: &Expr) -> Vec<KeyValueProp> {
   let object = match obj.as_object() {
@@ -117,66 +43,41 @@ pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, TRawVa
 /// The two steps are fused because their order is observable: the key is
 /// dashified before the value is transformed, so the property name that decides
 /// the unit suffix is the dashed one.
+///
+/// Two keys that map to the same name are one declaration, and the value
+/// written last wins, so the pairs are collected through a map before they are
+/// answered.
 pub(crate) fn obj_map_keys_and_transform_values(
   entries: &IndexMap<String, TRawValue>,
   state: &mut StateManager,
   mapper: impl Fn(&str) -> String,
-  wrap: impl Fn(Pair) -> FlatCompiledStylesValue,
-) -> FlatCompiledStyles {
-  let mut map = IndexMap::with_capacity(entries.len());
+) -> Vec<Pair> {
+  let mut map: IndexMap<String, String> = IndexMap::with_capacity(entries.len());
 
   for (key, value) in entries {
     let mapped_key = mapper(key);
     let value = transform_value_cached(mapped_key.as_str(), value, state);
 
-    map.insert(
-      mapped_key.clone(),
-      Rc::new(wrap(Pair::new(mapped_key, value))),
-    );
+    map.insert(mapped_key, value);
   }
 
   map
-}
-
-pub(crate) fn obj_map_keys_key_value(
-  entries: &FlatCompiledStyles,
-  mapper: fn(&str) -> String,
-) -> FlatCompiledStyles {
-  let mut map = IndexMap::with_capacity(entries.len());
-
-  for (key, value) in entries {
-    let object_key = mapper(key);
-
-    let key_values = match value.as_key_values() {
-      Some(kv) => kv,
-      None => stylex_panic!("Value must be a key-value pairs"),
-    };
-
-    let object_key_values = key_values
-      .iter()
-      .map(|pair| Pair::new(pair.key.clone(), pair.value.clone()))
-      .collect::<Vec<Pair>>();
-
-    map.insert(
-      object_key,
-      Rc::new(FlatCompiledStylesValue::KeyValues(object_key_values)),
-    );
-  }
-
-  map
+    .into_iter()
+    .map(|(key, value)| Pair { key, value })
+    .collect()
 }
 
 pub(crate) fn preprocess_object_properties(
   style: &Expr,
   state: &mut StateManager,
 ) -> IndexMap<String, TRawValue> {
-  let res: Vec<OrderPair> = obj_entries(&style.clone())
+  let res: Vec<OrderPair> = obj_entries(style)
     .iter()
     .flat_map(|pair| {
       let key = convert_key_value_to_str(pair);
 
       flat_map_expanded_shorthands(
-        (key, PreRuleValue::Expr(*pair.value.clone())),
+        (Cow::Owned(key), PreRuleValue::Expr(*pair.value.clone())),
         &state.options,
       )
       .into_iter()
@@ -187,3 +88,7 @@ pub(crate) fn preprocess_object_properties(
 
   obj_from_entries(&res)
 }
+
+#[cfg(test)]
+#[path = "tests/object_tests.rs"]
+mod tests;

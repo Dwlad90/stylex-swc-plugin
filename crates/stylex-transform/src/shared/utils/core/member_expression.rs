@@ -1,9 +1,9 @@
-use stylex_constants::constants::messages::{OBJECT_KEY_MUST_BE_IDENT, SPREAD_NOT_SUPPORTED};
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use std::rc::Rc;
+
 use swc_core::{
   atoms::Atom,
   ecma::{
-    ast::{Expr, Lit, MemberExpr, ObjectLit, Prop, PropOrSpread},
+    ast::{Expr, Lit, MemberExpr, ObjectLit, PropOrSpread},
     visit::{Visit, noop_visit_type},
   },
 };
@@ -11,9 +11,9 @@ use swc_core::{
 use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
 use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
-use stylex_ast::ast::keys::namespace_name_from_member_prop;
+use stylex_ast::ast::keys::{named_key_value, namespace_name_from_member_prop};
 
-use stylex_evaluator::evaluate::evaluate;
+use stylex_evaluator::evaluate::evaluate_with_functions;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::FunctionMap,
@@ -26,7 +26,7 @@ pub(crate) fn member_expression(
   bail_out_index: &mut Option<i32>,
   non_null_props: &mut NonNullProps,
   state: &mut StateManager,
-  fns: &FunctionMap,
+  fns: &Rc<FunctionMap>,
 ) {
   let object = member.obj.as_ref();
   let property = &member.prop;
@@ -52,7 +52,8 @@ pub(crate) fn member_expression(
   if let NonNullProps::True = non_null_props {
     style_non_null_props = NonNullProps::True;
   } else {
-    let evaluate_result = evaluate(&Box::new(Expr::from(member.clone())), state, fns);
+    let evaluate_result =
+      evaluate_with_functions(&Expr::from(member.clone()), state, Rc::clone(fns));
 
     let style_value = evaluate_result.value;
     let confident = evaluate_result.confident;
@@ -61,32 +62,14 @@ pub(crate) fn member_expression(
       *non_null_props = NonNullProps::True;
       style_non_null_props = NonNullProps::True;
     } else {
-      if let NonNullProps::True = non_null_props {
-        style_non_null_props = NonNullProps::True;
-      } else {
-        style_non_null_props = non_null_props.clone();
-      }
+      // Not `True` here: the branch above took that case, and nothing since has
+      // written to the counter.
+      style_non_null_props = non_null_props.clone();
 
       if let NonNullProps::Vec(vec) = non_null_props
         && let Some(EvaluateResultValue::Expr(Expr::Object(ObjectLit { props, .. }))) = style_value
       {
-        let namespaces = props.iter().filter_map(|item| match item {
-          PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-          PropOrSpread::Prop(prop) => match prop.as_ref() {
-            Prop::KeyValue(key_value) => match key_value.value.as_ref() {
-              Expr::Lit(Lit::Null(_)) => None,
-              _ => Some(match key_value.key.as_ident().map(|ident| &ident.sym) {
-                Some(sym) => sym,
-                None => stylex_panic!("{}", OBJECT_KEY_MUST_BE_IDENT),
-              }),
-            },
-            _ => stylex_unimplemented!(
-              "This property variant is not supported in member expression evaluation."
-            ),
-          },
-        });
-
-        vec.extend(namespaces.cloned());
+        vec.extend(declared_namespaces(&props));
       }
     }
   }
@@ -105,6 +88,37 @@ pub(crate) fn member_expression(
   }
 }
 
+/// The namespaces an evaluated style object still declares.
+///
+/// A property whose value is `null` declares nothing the runtime needs, so it
+/// gives no name. Every other property gives the name it is declared under,
+/// whichever shape its key was written in -- which is why the key goes through
+/// the reader that names all of them. Read through `as_ident` alone, a quoted
+/// key answered nothing and the namespace behind it went missing. That is no
+/// theoretical shape: the fold rebuilds the keys of the object it writes but
+/// not those of an object it carries through as a value, and `stylex.env`,
+/// `stylex.types` and a folded function map each write a quoted key.
+///
+/// A property the reader cannot name is refused, on the sentence
+/// `named_key_value` gives. Skipped instead, the namespace would never reach
+/// `vars_to_keep`, and `retain_object_props` then deletes a namespace the
+/// runtime still reads. A wrong output is worse than a stopped build.
+///
+/// No source reaches a refusal: the fold refuses a spread and a property that
+/// is no key-value pair before it writes an object, and each producer above
+/// writes key-value pairs only. So the cases for the refusals hand the reader
+/// its object directly.
+fn declared_namespaces(props: &[PropOrSpread]) -> impl Iterator<Item = Atom> + '_ {
+  props.iter().filter_map(|prop| {
+    let (name, key_value) = named_key_value(prop);
+
+    match key_value.value.as_ref() {
+      Expr::Lit(Lit::Null(_)) => None,
+      _ => Some(name),
+    }
+  })
+}
+
 /// Walks the member expressions of a `stylex.props`-family call argument and
 /// records which style variables and namespaces the runtime still needs.
 ///
@@ -117,7 +131,7 @@ pub(crate) struct MemberTransform<'a> {
   pub(crate) bail_out_index: Option<i32>,
   pub(crate) non_null_props: NonNullProps,
   pub(crate) state: &'a mut StateManager,
-  pub(crate) functions: &'a FunctionMap,
+  pub(crate) functions: &'a Rc<FunctionMap>,
 }
 
 impl Visit for MemberTransform<'_> {
@@ -137,3 +151,7 @@ impl Visit for MemberTransform<'_> {
     );
   }
 }
+
+#[cfg(test)]
+#[path = "tests/member_expression_tests.rs"]
+mod tests;

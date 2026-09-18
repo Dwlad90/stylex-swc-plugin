@@ -1,15 +1,14 @@
+use std::borrow::Cow;
+
 use anyhow::anyhow;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
-use stylex_utils::{
-  number::to_js_string,
-  string::{utf16_length, wrap_key_in_quotes},
-  swc::get_expr_node_kind,
-};
+use stylex_utils::{number::to_js_string, string::utf16_length, swc::get_expr_node_kind};
 use swc_core::{
   atoms::{Atom, Wtf8Atom},
+  common::DUMMY_SP,
   ecma::{
     ast::{
-      BigInt, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, MemberProp, ObjectLit, Prop,
+      BigInt, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, MemberProp, Number, ObjectLit, Prop,
       PropName, PropOrSpread, Str, Tpl, TplElement, VarDeclarator,
     },
     parser::Context,
@@ -46,11 +45,36 @@ pub fn convert_member_prop_to_string(prop: &MemberProp) -> Option<String> {
 /// Unwraps parenthesized expressions, returning a reference to the innermost
 /// non-paren expression. Spans are preserved. Use [`normalize_expr_mut`] when
 /// the caller needs to mutate the unwrapped node.
+///
+/// Unwrapped in a loop rather than by recursing, because a caller inside the
+/// evaluator's guard asks this before it descends and so has no nesting budget
+/// to spend. A loop needs none.
 pub fn normalize_expr(mut expr: &Expr) -> &Expr {
   while let Expr::Paren(paren) = expr {
     expr = paren.expr.as_ref();
   }
   expr
+}
+
+/// The call a declarator is initialised by, read through any parentheses
+/// around it.
+///
+/// One rule rather than one spelling per site. A parenthesis is not a different
+/// initializer, so `const fade = (stylex.keyframes({...}))` names the same call
+/// `const fade = stylex.keyframes({...})` does -- and a reader that missed one
+/// of them left the call untransformed and let the name reach the runtime. The
+/// predicate that recognises such a declarator, the validator that checks it
+/// and the transform that rewrites it each asked this question, so they ask it
+/// in one place and cannot come to answer it differently.
+///
+/// `None` is a declarator with no initializer, or one initialised by anything
+/// that is not a call.
+pub fn init_call(var_declarator: &VarDeclarator) -> Option<&CallExpr> {
+  var_declarator
+    .init
+    .as_deref()
+    .map(normalize_expr)
+    .and_then(Expr::as_call)
 }
 
 /// Mutable counterpart to [`normalize_expr`]: unwraps parenthesized
@@ -179,6 +203,27 @@ pub fn create_number_expr(value: f64) -> Expr {
   Expr::from(create_number_lit(value))
 }
 
+/// The numeric literal one number is written as, spelled the way JavaScript
+/// spells it.
+///
+/// [`create_number_expr`] leaves the spelling to the emitter, which writes
+/// most numbers the same way. Three it does not: it writes `-0` where the
+/// language writes `0`, and it has no numeral at all for `NaN` or for an
+/// infinity, so it invents `0 / 0` and `1 / 0`. Where the text is read by a
+/// person as well as by the runtime -- an inline style, an injected constant
+/// -- the spelling is given here rather than invented there.
+///
+/// The text is carried as the literal's own raw form. Nothing reads it back,
+/// and every reader of the node takes the value beside it, so a spelling such
+/// as `-Infinity` that is not a numeral is still the right text.
+pub fn create_js_number_expr(value: f64) -> Expr {
+  Expr::Lit(Lit::Num(Number {
+    span: DUMMY_SP,
+    value,
+    raw: Some(to_js_string(value).into()),
+  }))
+}
+
 pub fn create_big_int_expr(value: BigInt) -> Expr {
   Expr::from(create_big_int_lit(value))
 }
@@ -230,12 +275,31 @@ pub fn convert_string_to_prop_name(value: &str) -> PropName {
   }
 }
 
-pub fn expand_shorthand_prop(prop: &mut Box<Prop>) {
-  if let Some(ident) = prop.as_shorthand() {
-    **prop = Prop::from(KeyValueProp {
+/// The key-value pair a property stands for, copied only where the copy is the
+/// point.
+///
+/// A shorthand name is the one spelling that has to be rewritten before it can
+/// be read as a pair, and it holds nothing but the name. Every other property
+/// is already a pair and is read where it lies. A reader that copies first
+/// copies the whole value subtree of the property, which for a namespace of a
+/// `create` call is the entire style object.
+pub fn expanded_shorthand_prop(prop: &Prop) -> Cow<'_, Prop> {
+  match prop.as_shorthand() {
+    Some(ident) => Cow::Owned(Prop::from(KeyValueProp {
       key: convert_string_to_prop_name(ident.sym.as_ref()),
       value: Box::new(Expr::Ident(ident.clone())),
-    });
+    })),
+    None => Cow::Borrowed(prop),
+  }
+}
+
+/// Rewrites a shorthand name in place into the key-value pair it stands for.
+///
+/// For a caller that owns the property and reads it by mutable borrow. One
+/// that only reads it asks [`expanded_shorthand_prop`] and pays no copy.
+pub fn expand_shorthand_prop(prop: &mut Box<Prop>) {
+  if let Cow::Owned(expanded) = expanded_shorthand_prop(prop) {
+    **prop = expanded;
   }
 }
 
@@ -258,6 +322,40 @@ pub fn atom_utf16_length(atom: &Wtf8Atom) -> usize {
   }
 }
 
+/// The character at a UTF-16 index of `atom`, as a value this compiler carries.
+///
+/// The language indexes a string by code unit, so this counts the units rather
+/// than the Rust characters: the two agree inside the Basic Multilingual Plane
+/// and part company on an astral character, which is two units and one
+/// character.
+///
+/// `None` is an index past the end, which the caller reads as `undefined`.
+///
+/// A unit that is half of an astral character has no `char` of its own, and
+/// answers the replacement character -- the same substitution the engine fold
+/// makes for every string it carries back, and for the same reason: the
+/// reference implementation's own output becomes that character once it is
+/// written to a file, so the declaration text agrees and only the class name
+/// parts. Reading the same character through `charAt` already answers this way,
+/// and one read written two ways must not answer two things.
+///
+/// This is a decided exemption from `guidelines/stack/RUST.md`, which says a
+/// substitution is safe only where the value it puts in cannot become part of a
+/// folded answer. Here it can: the fixture
+/// `a_string_index_that_lands_on_half_a_character.js` shows `content` reaching
+/// the stylesheet with the replacement character in it. It is taken anyway for
+/// the reason above -- the reference implementation writes the same character
+/// to the same place -- and is named here so a reader finds the decision rather
+/// than the departure.
+pub fn atom_utf16_char_at(atom: &Wtf8Atom, index: usize) -> Option<char> {
+  let unit = match atom.as_str() {
+    Some(text) => text.encode_utf16().nth(index),
+    None => atom.to_ill_formed_utf16().nth(index),
+  }?;
+
+  Some(char::from_u32(u32::from(unit)).unwrap_or(char::REPLACEMENT_CHARACTER))
+}
+
 pub fn convert_atom_to_string(atom: &Wtf8Atom) -> String {
   match atom.as_str() {
     Some(value) => value.to_string(),
@@ -273,8 +371,23 @@ pub fn convert_wtf8_to_atom(atom: &Wtf8Atom) -> Atom {
 }
 
 pub fn convert_str_lit_to_string(str_lit: &Str) -> String {
+  convert_str_lit_to_str_ref(str_lit).to_string()
+}
+
+/// The text of a string literal, borrowed rather than copied.
+///
+/// A literal already holds its text, so a reader that only compares or sorts
+/// the text does not have to copy it. Refuses the same way the owned form does,
+/// because it is the same reading. Text that is not valid UTF-8 holds a lone
+/// surrogate, which Rust has no `str` for.
+///
+/// [`extract_str_lit_ref`] reads the same field and refuses with a different
+/// sentence. The two are kept apart because each sentence is what its own
+/// callers already print, and joining them would change a message an author
+/// reads.
+pub fn convert_str_lit_to_str_ref(str_lit: &Str) -> &str {
   match str_lit.value.as_str() {
-    Some(value) => value.to_string(),
+    Some(value) => value,
     None => stylex_panic!("{}", INVALID_UTF8),
   }
 }
@@ -321,17 +434,23 @@ pub fn extract_str_lit_ref(lit: &Lit) -> Option<&str> {
   }
 }
 
-#[inline]
-pub fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
-  let key = &key_value.key;
-  let should_wrap_in_quotes = false;
-
-  let key = match key {
-    PropName::Ident(ident) => ident.sym.to_string(),
-    PropName::Str(strng) => convert_str_lit_to_string(strng),
-    PropName::Num(num) => to_js_string(num.value),
-    PropName::BigInt(big_int) => big_int.value.to_string(),
-    PropName::Computed(computed) => match computed.expr.as_ref() {
+/// The authored name of a key, borrowed where the key already holds it.
+///
+/// Two of the five shapes hold their own name -- an identifier and a string --
+/// so a reader that only compares or sorts keys borrows it. The other three
+/// spell a name the key does not hold: a number as JavaScript spells it, a big
+/// integer as its digits, and a computed key as the literal it folds to.
+///
+/// One rule for what a key is called.
+/// [`convert_key_value_to_str`] is this answer, made owned, so a reader that
+/// needs the text to outlive the key still asks the same question.
+pub fn key_value_name(key_value: &KeyValueProp) -> Cow<'_, str> {
+  match &key_value.key {
+    PropName::Ident(ident) => Cow::Borrowed(ident.sym.as_str()),
+    PropName::Str(strng) => Cow::Borrowed(convert_str_lit_to_str_ref(strng)),
+    PropName::Num(num) => Cow::Owned(to_js_string(num.value)),
+    PropName::BigInt(big_int) => Cow::Owned(big_int.value.to_string()),
+    PropName::Computed(computed) => Cow::Owned(match computed.expr.as_ref() {
       Expr::Lit(lit) => match convert_lit_to_string(lit) {
         Some(s) => s,
         None => stylex_panic!("Computed property key must be a string or number literal."),
@@ -343,10 +462,16 @@ pub fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
         }
       },
       _ => stylex_unimplemented!("Computed key is not a literal"),
-    },
-  };
+    }),
+  }
+}
 
-  wrap_key_in_quotes(&key, should_wrap_in_quotes).into_owned()
+/// The authored name of a key, owned.
+///
+/// The name is answered as it is written, with no quotes around it.
+#[inline]
+pub fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
+  key_value_name(key_value).into_owned()
 }
 
 pub fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {
@@ -355,13 +480,14 @@ pub fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {
     .iter()
     .map(|prop| match prop {
       PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-      PropOrSpread::Prop(prop) => {
-        let mut prop = prop.clone();
-        expand_shorthand_prop(&mut prop);
-        match prop.as_ref() {
-          Prop::KeyValue(key_value) => key_value.clone(),
-          _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
-        }
+      // The pair that is answered is copied, and nothing else is. Reading the
+      // property where it lies used to cost a copy of the whole value subtree
+      // of every property first, at every one of this reader's call sites.
+      // A shorthand name still costs two small copies, because the pair built
+      // for it is copied again to be answered, and both hold only the name.
+      PropOrSpread::Prop(prop) => match expanded_shorthand_prop(prop).as_ref() {
+        Prop::KeyValue(key_value) => key_value.clone(),
+        _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
       },
     })
     .collect()

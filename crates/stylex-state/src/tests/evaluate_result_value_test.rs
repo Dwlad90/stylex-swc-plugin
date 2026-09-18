@@ -76,17 +76,26 @@ mod string_key {
     );
   }
 
-  /// Anything the language does not spell as a property name reads as no key,
-  /// and the caller decides what that means.
+  /// Every value the language spells names a key, because a property key is
+  /// `String(key)` -- `null` names the property `null`, and an object names its
+  /// default text.
+  ///
+  /// A table of the kinds a key may be written as answered for a string and a
+  /// number only, so a key written as anything else was written nowhere and
+  /// found nowhere.
   #[test]
-  fn a_value_that_is_not_a_key_names_none() {
-    assert_eq!(key_of(Expr::Lit(Lit::Null(Null { span: DUMMY_SP }))), None);
+  fn every_value_the_language_spells_names_a_key() {
+    assert_eq!(
+      key_of(Expr::Lit(Lit::Null(Null { span: DUMMY_SP }))).as_deref(),
+      Some("null")
+    );
     assert_eq!(
       key_of(Expr::Object(ObjectLit {
         span: DUMMY_SP,
         props: vec![],
-      })),
-      None
+      }))
+      .as_deref(),
+      Some("[object Object]")
     );
   }
 

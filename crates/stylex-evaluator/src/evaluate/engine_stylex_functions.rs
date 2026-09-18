@@ -29,10 +29,11 @@ use swc_core::{
   ecma::ast::{Expr, MemberExpr, MemberProp},
 };
 
+use stylex_ast::ast::convertors::normalize_expr;
 use stylex_constants::constants::api_names::STYLEX_FIRST_THAT_WORKS;
 
 use crate::stylex_first_that_works::{
-  Fallbacks, css_variable_name, fold_fallback_chain, plan_fallbacks,
+  Fallbacks, cut_to_css_variable_name, fold_fallback_chain, plan_fallbacks,
 };
 use stylex_state::state_manager::{ImportKind, StateManager};
 
@@ -123,7 +124,10 @@ pub(super) fn engine_callable(
   callee: &Expr,
   traversal_state: &StateManager,
 ) -> Option<EngineCallable> {
-  match callee {
+  // A parenthesis is not a different callee, at either level: `(stylex.types)`
+  // and `(stylex).types` name what `stylex.types` names. Only names are read
+  // here, so nothing is printed back and unwrapping costs no spelling.
+  match normalize_expr(callee) {
     Expr::Ident(ident) => CALLABLE
       .iter()
       .find(|callable| traversal_state.any_stylex_api_import_contains(&[callable.kind], &ident.sym))
@@ -137,7 +141,7 @@ pub(super) fn engine_callable(
       prop: MemberProp::Ident(prop),
       ..
     }) => {
-      let namespace = obj.as_ident()?;
+      let namespace = normalize_expr(obj).as_ident()?;
 
       if !traversal_state.is_regular_stylex_import(&namespace.sym) {
         return None;
@@ -176,9 +180,9 @@ fn first_that_works(_this: &JsValue, args: &[JsValue], engine: &mut Context) -> 
   let names = args
     .iter()
     .map(|value| {
-      let text = value.as_string()?.to_std_string_lossy();
+      let mut text = value.as_string()?.to_std_string_lossy();
 
-      css_variable_name(&text).map(str::to_string)
+      cut_to_css_variable_name(&mut text).then_some(text)
     })
     .collect::<Vec<_>>();
 

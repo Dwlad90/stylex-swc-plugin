@@ -1,138 +1,90 @@
+use std::rc::Rc;
+
 use super::*;
 use crate::transform::stylex::visitor_utils::{
-  insert_stylex_identifier_entry, register_env_in_namespace_fold,
+  insert_stylex_identifier_entry, register_env_in_namespace_fold, register_stylex_helper,
 };
 
-pub(crate) fn build_runtime_function_map<C>(transform: &mut StyleXTransform<C>) -> Box<FunctionMap>
+pub(crate) fn build_runtime_function_map<C>(transform: &mut StyleXTransform<C>) -> Rc<FunctionMap>
 where
   C: Comments,
 {
-  let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
-  let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
+  let mut function_map = FunctionMap::default();
 
-  let first_that_works_fn = FunctionConfig {
-    fn_ptr: FunctionType::ArrayArgs(stylex_first_that_works),
+  // The marker is read here, before the name lists below are borrowed, and is
+  // then shared into each registration. One file pays for one build, even where
+  // no name registers the marker.
+  let marker_values = stylex_default_marker::shared_default_marker_values(&mut transform.state);
+
+  let when_fn = FunctionConfigType::Regular(FunctionConfig {
+    fn_ptr: FunctionType::DefaultMarker(Arc::clone(LazyLock::force(&STYLEX_WHEN_MAP))),
     takes_path: false,
-  };
+  });
 
-  let keyframes_fn = get_keyframes_fn();
-  let position_try_fn = get_position_try_fn();
+  // The four entries a `create` call reads by name and off the namespace alike.
+  let helpers = [
+    (
+      ImportKind::FirstThatWorks,
+      STYLEX_FIRST_THAT_WORKS,
+      FunctionConfigType::Regular(FunctionConfig {
+        fn_ptr: FunctionType::ArrayArgs(stylex_first_that_works),
+        takes_path: false,
+      }),
+    ),
+    (
+      ImportKind::Keyframes,
+      STYLEX_KEYFRAMES,
+      FunctionConfigType::Regular(get_keyframes_fn()),
+    ),
+    (
+      ImportKind::PositionTry,
+      STYLEX_POSITION_TRY,
+      FunctionConfigType::Regular(get_position_try_fn()),
+    ),
+    (
+      ImportKind::DefaultMarker,
+      STYLEX_DEFAULT_MARKER,
+      FunctionConfigType::IndexMap(Rc::clone(&marker_values)),
+    ),
+  ];
 
-  if let Some(set) = transform
-    .state
-    .get_stylex_api_import(ImportKind::FirstThatWorks)
-  {
-    for name in set {
-      identifiers.insert(
-        name.clone(),
-        Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
-      );
-    }
+  for (kind, member_name, entry) in &helpers {
+    register_stylex_helper(
+      &transform.state,
+      &mut function_map,
+      *kind,
+      member_name,
+      entry,
+    );
   }
 
-  if let Some(set) = transform.state.get_stylex_api_import(ImportKind::Keyframes) {
-    for name in set {
-      identifiers.insert(
-        name.clone(),
-        Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-      );
-    }
-  }
-
-  if let Some(set) = transform
-    .state
-    .get_stylex_api_import(ImportKind::PositionTry)
-  {
-    for name in set {
-      identifiers.insert(
-        name.clone(),
-        Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
-      );
-    }
-  }
-
-  if let Some(set) = transform
-    .state
-    .get_stylex_api_import(ImportKind::DefaultMarker)
-  {
-    for name in set {
-      identifiers.insert(
-        name.clone(),
-        Box::new(FunctionConfigType::IndexMap(
-          stylex_default_marker::stylex_default_marker(&transform.state.options)
-            .as_values()
-            .unwrap_or_else(|| stylex_panic!("{}", EXPECTED_COMPILED_STYLES))
-            .clone(),
-        )),
-      );
-    }
-  }
-
+  // `when` is registered by name like the four above, but on the namespace it
+  // belongs in the fold rather than beside it: a `create` call spreads the
+  // namespace and reads `when` back out of what the spread answered.
   if let Some(set) = transform.state.get_stylex_api_import(ImportKind::When) {
     for name in set {
-      identifiers.insert(
-        name.clone(),
-        Box::new(FunctionConfigType::Regular(FunctionConfig {
-          fn_ptr: FunctionType::DefaultMarker(Arc::clone(LazyLock::force(&STYLEX_WHEN_MAP))),
-          takes_path: false,
-        })),
-      );
+      function_map
+        .identifiers
+        .insert(name.clone(), Box::new(when_fn.clone()));
     }
   }
 
   for name in transform.state.stylex_imports() {
-    member_expressions.entry(name.clone()).or_default();
-
-    let member_expression = match member_expressions.get_mut(name) {
-      Some(me) => me,
-      None => stylex_panic!("Could not resolve the member expression for the StyleX import."),
-    };
-
-    member_expression.insert(
-      STYLEX_FIRST_THAT_WORKS.into(),
-      Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
-    );
-
-    member_expression.insert(
-      STYLEX_KEYFRAMES.into(),
-      Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-    );
-
-    member_expression.insert(
-      STYLEX_POSITION_TRY.into(),
-      Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
-    );
-
-    member_expression.insert(
-      STYLEX_DEFAULT_MARKER.into(),
-      Box::new(FunctionConfigType::IndexMap(
-        stylex_default_marker::stylex_default_marker(&transform.state.options)
-          .as_values()
-          .unwrap_or_else(|| stylex_panic!("{}", EXPECTED_COMPILED_STYLES))
-          .clone(),
-      )),
-    );
-
     insert_stylex_identifier_entry(
-      &mut identifiers,
+      &mut function_map.identifiers,
       name,
       STYLEX_WHEN.into(),
-      FunctionConfigType::Regular(FunctionConfig {
-        fn_ptr: FunctionType::DefaultMarker(Arc::clone(LazyLock::force(&STYLEX_WHEN_MAP))),
-        takes_path: false,
-      }),
+      when_fn.clone(),
     );
   }
 
-  transform
-    .state
-    .apply_stylex_env(&mut identifiers, &mut member_expressions);
+  transform.state.apply_stylex_env(&mut function_map);
 
-  register_env_in_namespace_fold(&transform.state, &mut identifiers);
+  register_env_in_namespace_fold(&transform.state, &mut function_map);
 
-  Box::new(FunctionMap {
-    identifiers,
-    member_expressions,
-    disable_imports: false,
-  })
+  // Shared rather than owned. The fold below it asks the evaluator once per
+  // style property, and the evaluator has to own the map it hands to every
+  // callback it makes -- so a map given by reference was copied at each of
+  // those calls. One counted pointer is copied instead.
+  Rc::new(function_map)
 }

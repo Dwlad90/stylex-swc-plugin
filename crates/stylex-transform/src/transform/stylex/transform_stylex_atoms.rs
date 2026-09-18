@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use swc_core::{
@@ -14,8 +16,7 @@ use crate::{
     transformers::stylex_create::stylex_create_set,
     utils::core::{
       dev_class_name::inject_sx_dev_class_name,
-      evaluate_stylex_create_arg::evaluate_stylex_create_arg,
-      js_to_ast::{NestedStringObject, convert_object_to_ast},
+      evaluate_stylex_create_arg::evaluate_stylex_create_arg, js_to_ast::convert_values_to_ast,
     },
   },
 };
@@ -26,16 +27,40 @@ use stylex_atoms::transform::{
   AtomCompileResult, AtomFlatValue, Compile, InjectedAtomStyle, create_utility_styles_visitor,
 };
 use stylex_evaluator::state::EvaluationState;
+use stylex_macros::stylex_panic;
 use stylex_state::{
   flat_compiled_styles_value::FlatCompiledStylesValue,
   types::{FlatCompiledStyles, InjectableStylesMap},
 };
-use stylex_types::{
-  enums::data_structures::injectable_style::InjectableStyleKind,
-  structures::{injectable_style::InjectableStyle, style_key::RuleKey},
-};
+use stylex_types::structures::{injectable_style::InjectableStyle, style_key::RuleKey};
 
 use super::transform_stylex_create_call::{build_runtime_function_map, hoist_expression};
+
+/// The namespace an atom is compiled under.
+///
+/// An atom declares one property, and the create pipeline compiles namespaces,
+/// so the property is wrapped in a namespace of this name and read back out of
+/// the compiled map under it. The name is written once, because the write and
+/// the read have to agree.
+pub(crate) const INLINE_NAMESPACE: &str = "__inline__";
+
+/// The compiled namespace an atom was written into.
+///
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. The name read here is the one the object above was written with, and
+/// the create pipeline answers a namespace under the name it was given, which
+/// `answers_a_namespace_under_the_name_it_was_given` measures.
+/// `guidelines/stack/RUST.md` describes the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn or_refuse_missing_atom_namespace(
+  namespace: Option<&Rc<FlatCompiledStyles>>,
+) -> &FlatCompiledStyles {
+  match namespace {
+    Some(namespace) => namespace,
+    None => stylex_panic!("An inline style compiled to no namespace."),
+  }
+}
 
 impl<C> StyleXTransform<C>
 where
@@ -70,7 +95,8 @@ where
     // Compile `{ __inline__: { [property]: value } }` exactly as `stylex.create`
     // would, reusing the full create pipeline.
     let inner = create_object_expression(vec![create_string_key_value_prop(property, value)]);
-    let mut first_arg = create_object_expression(vec![create_key_value_prop("__inline__", inner)]);
+    let mut first_arg =
+      create_object_expression(vec![create_key_value_prop(INLINE_NAMESPACE, inner)]);
 
     let function_map = build_runtime_function_map(self);
 
@@ -82,10 +108,13 @@ where
     self.state.in_stylex_create = true;
     let evaluated = evaluate_stylex_create_arg(&mut first_arg, &mut self.state, &function_map);
 
-    // Bail out gracefully (leaving the original expression for runtime) instead
-    // of panicking when the inline style is not statically evaluable. Restore the
-    // `in_stylex_create` flag on this early-return path too, so a later pass is
-    // not left in create mode.
+    // The atom is left as the author wrote it, for the runtime, where the fold
+    // answers nothing. The object is two string literals, so the fold reads it
+    // whenever it is allowed to descend that far. `maxEvaluationDepth` is what
+    // says how far, and a project can set it to one.
+    //
+    // The `in_stylex_create` flag is restored here too, so a later pass is not
+    // left in create mode.
     let Some(value_result) = evaluated.value else {
       self.state.in_stylex_create = prev_in_stylex_create;
       return None;
@@ -103,11 +132,10 @@ where
     }
     self.state.in_stylex_create = prev_in_stylex_create;
 
-    let namespace: FlatCompiledStyles = compiled.get("__inline__").map(|ns| (**ns).clone())?;
+    // Borrowed, because both readers below only read it.
+    let namespace = or_refuse_missing_atom_namespace(compiled.get(INLINE_NAMESPACE));
 
-    let compiled_ast = convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(
-      namespace.clone(),
-    ));
+    let compiled_ast = convert_values_to_ast(namespace);
 
     let compiled_flat = namespace
       .iter()
@@ -124,23 +152,13 @@ where
     let injected = injected
       .iter()
       .map(|(rule_key, kind)| {
-        let (priority, ltr, rtl) = match kind.as_ref() {
-          InjectableStyleKind::Regular(style) => (
-            style.priority.unwrap_or(0.0),
-            style.ltr.clone(),
-            style.rtl.clone(),
-          ),
-          InjectableStyleKind::Const(style) => (
-            style.priority.unwrap_or(0.0),
-            style.ltr.clone(),
-            style.rtl.clone(),
-          ),
-        };
+        let (ltr, rtl) = kind.directional_rules();
+
         InjectedAtomStyle {
           class_name: rule_key.as_str().to_string(),
-          priority,
-          ltr,
-          rtl,
+          priority: kind.priority(),
+          ltr: ltr.to_string(),
+          rtl: rtl.map(str::to_string),
         }
       })
       .collect();
@@ -174,6 +192,6 @@ where
   }
 
   fn hoist_expression(&mut self, expr: Expr) -> Expr {
-    hoist_expression(expr, &mut self.state)
+    Expr::Ident(hoist_expression(expr, &mut self.state))
   }
 }

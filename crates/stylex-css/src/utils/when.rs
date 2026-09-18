@@ -1,4 +1,4 @@
-use stylex_structures::stylex_state_options::StyleXStateOptions;
+use stylex_structures::stylex_state_options::with_default_options;
 use stylex_types::traits::WhenMarkerValue;
 
 use crate::utils::pseudo::{is_pseudo_element, is_pseudo_selector};
@@ -40,7 +40,9 @@ fn resolve_marker(options: Option<&dyn WhenMarkerValue>) -> String {
       Some(marker) => marker.to_string(),
       None => get_default_marker_class_name(options),
     },
-    None => get_default_marker_class_name(&StyleXStateOptions::default()),
+    // The closure is what turns the options into the trait object the reader
+    // takes. A bare function name cannot, so it does not read as redundant.
+    None => with_default_options(|options| get_default_marker_class_name(options)),
   }
 }
 

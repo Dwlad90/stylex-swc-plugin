@@ -4,6 +4,7 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
+use stylex_constants::constants::api_names::STYLEX_SX;
 use stylex_constants::constants::common::DEFAULT_INJECT_PATH;
 use stylex_enums::{
   property_validation_mode::PropertyValidationMode, style_resolution::StyleResolution,
@@ -346,7 +347,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       .with_debug(options.debug.or(options.dev).unwrap_or(false))
       .with_aliases(options.aliases)
       .with_sx_prop_name(match options.sx_prop_name {
-        None => Some("sx".to_string()),
+        None => Some(STYLEX_SX.to_string()),
         Some(SxPropNameParam::Disabled) => None,
         // A blank name names no prop. The raw markup path cannot match one --
         // a JSX attribute name is never empty -- so accepting it verbatim

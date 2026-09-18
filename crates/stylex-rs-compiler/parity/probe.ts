@@ -9,15 +9,23 @@
  *
  * Run it from this package, after `dist/` is built:
  *
- *   pnpm run parity:probe '{"a label": "<module source>"}'
+ *   pnpm run parity:probe '{"a label": "<module source>"}' [host file name] [--inject]
  *
- * The argument is a JSON object of label to module source.
+ * The first argument is a JSON object of label to module source. The second is
+ * optional and names the file both compilers are told the source came from.
+ * It defaults to `probe.js`; pass a `.stylex.js` name to measure the shapes
+ * that only a variable-defining module can hold, such as `defineVars`.
+ *
+ * `--inject` turns runtime injection on, which is what prints the
+ * `_inject2(...)` statements and so the only way to see *where* a compiler
+ * places the rules a call declares. It can stand anywhere in the arguments.
  */
 
 import path from 'node:path';
 
 import * as babel from '@babel/core';
 
+import type { StyleXOptions } from '../dist/index.js';
 import {
   baseStyleXOptions,
   loadBabelPlugin,
@@ -33,9 +41,53 @@ interface Answer {
   refusal?: string;
 }
 
+/**
+ * The file name both compilers are told the source came from.
+ *
+ * A bare name only, because the two compilers resolve variable names from the
+ * path, and a name carrying a directory would move the source out of the
+ * package the options root at and change every generated name with it.
+ */
+const BARE_FILE_NAME = /^[^./\\\0][^/\\\0]*\.[cm]?[jt]sx?$/;
+
+const hostFileName = (argument: string | undefined): string => {
+  const name = argument ?? 'probe.js';
+
+  // Matched against the shape a bare name has rather than compared with
+  // `path.basename`. `basename('..')` is `'..'`, so the comparison admitted the
+  // one name that leaves the package the options root at -- and a backslash is
+  // not a separator on POSIX, so a Windows path passed it too. A leading dot is
+  // refused for the first of those, no separator of either kind is allowed for
+  // the second, and every other character is, so a name outside ASCII still
+  // names a file.
+  //
+  // A NUL is refused with the separators. It is not a traversal, because the
+  // name is never opened, but `probe.js\0.js` passed the guard and then stopped
+  // inside Node with its own complaint about the argument rather than with the
+  // sentence below.
+  if (!BARE_FILE_NAME.test(name)) {
+    throw new TypeError(
+      `the host file name "${name}" is not a bare file name; pass one like "probe.js"`
+    );
+  }
+
+  return name;
+};
+
+// Read the arguments once. `process.argv` starts with the node binary and this
+// script, so both reads slice them away: a path that happens to end in
+// `--inject` must not turn injection on.
+const argv = process.argv.slice(2);
+
+/** The arguments that are not the `--inject` flag, in the order given. */
+const positional = argv.filter(argument => argument !== '--inject');
+const runtimeInjection = argv.includes('--inject');
+
 const packageDir = path.resolve(import.meta.dirname, '..');
-const filename = path.join(packageDir, 'probe.js');
-const options = baseStyleXOptions(packageDir);
+const filename = path.join(packageDir, hostFileName(positional[1]));
+const options: StyleXOptions = runtimeInjection
+  ? { ...baseStyleXOptions(packageDir), runtimeInjection: true }
+  : baseStyleXOptions(packageDir);
 
 const { transform } = await loadRustCompiler(packageDir);
 const { plugin } = loadBabelPlugin();
@@ -128,7 +180,7 @@ const readSources = (argument: string): Map<string, string> => {
   return sources;
 };
 
-const sources = readSources(process.argv[2] ?? '{}');
+const sources = readSources(positional[0] ?? '{}');
 
 for (const [label, source] of sources) {
   console.log('='.repeat(70));

@@ -45,54 +45,6 @@ macro_rules! deopt_unsupported {
   }};
 }
 
-/// Convert an expression to a string, or refuse and return from the evaluation.
-///
-/// Gives the string when the conversion succeeds. When it fails, records the
-/// refusal the same way [`deopt_unsupported!`](crate::deopt_unsupported) does
-/// and returns `None`.
-///
-/// # Usage
-/// ```ignore
-/// let str_value = expr_to_str_or_deopt!(
-///   convert_expr_to_str,
-///   deopt,
-///   expr,
-///   state,
-///   traversal_state,
-///   fns,
-///   "Expression is not a string"
-/// );
-/// ```
-///
-/// # Arguments
-/// - `$convert`: The function that converts the expression to a string
-/// - `$deopt`: The function that records the refusal
-/// - `$expr`: The expression to convert
-/// - `$state`: Mutable reference to the evaluation state
-/// - `$traversal_state`: Mutable reference to the state manager
-/// - `$fns`: Reference to the function map
-/// - `$error_msg`: Why the conversion was expected to succeed, as a `&str`
-#[macro_export]
-macro_rules! expr_to_str_or_deopt {
-  (
-    $convert:path,
-    $deopt:path,
-    $expr:expr,
-    $state:expr,
-    $traversal_state:expr,
-    $fns:expr,
-    $error_msg:expr
-  ) => {
-    match $convert($expr, $traversal_state, $fns) {
-      Some(s) => s,
-      None => {
-        $deopt($expr, $state, $error_msg);
-        return None;
-      },
-    }
-  };
-}
-
 /// Panic with a `[StyleX]`-prefixed code frame error.
 ///
 /// Wraps the expression in parentheses and hands both forms to the reporting

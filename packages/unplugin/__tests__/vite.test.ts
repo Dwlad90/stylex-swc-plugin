@@ -28,6 +28,18 @@ const stylexRuntimeStub = {
   },
 } satisfies Plugin;
 
+/**
+ * Turns Vite's file watcher off, which every dev-server fixture below passes.
+ *
+ * A fixture writes its files and starts a server on the same directory a
+ * moment later. The operating system can report those writes to the fresh
+ * watcher, and the plugin then runs a hot update nobody asked for: under load
+ * that update lands inside the test and transforms the stylesheet a second
+ * time. Without a watcher the only events are the ones a test emits itself,
+ * which is what these tests mean to measure.
+ */
+const NO_FILE_EVENTS = null;
+
 // Each fixture gets its own root so the temp directories cannot collide, and
 // every root is registered for the afterEach cleanup.
 async function writeFixtureRoot(prefix: string, files: Record<string, string>): Promise<string> {
@@ -73,7 +85,7 @@ async function transformFixture(
         transformCss,
       }),
     ],
-    server: { middlewareMode: true, preTransformRequests: false },
+    server: { middlewareMode: true, preTransformRequests: false, watch: NO_FILE_EVENTS },
   });
 
   try {
@@ -158,7 +170,7 @@ async function transformDevIndexHtml(base: string): Promise<string> {
     optimizeDeps: { noDiscovery: true },
     plugins: linkFixturePlugins(true),
     root,
-    server: { middlewareMode: true, preTransformRequests: false },
+    server: { middlewareMode: true, preTransformRequests: false, watch: NO_FILE_EVENTS },
   });
 
   try {
@@ -257,18 +269,31 @@ async function readBuiltCss(outDir: string, html: string): Promise<BuiltCssFile[
   );
 }
 
+interface PlaceholderBuildOptions {
+  cssCodeSplit?: boolean;
+  cssMinify?: boolean | 'esbuild' | 'lightningcss';
+  files?: Record<string, string>;
+  manifest?: boolean;
+  onWarn?: (warning: { message: string }) => void;
+  plugins?: PluginOption[];
+  pluginOptions?: UnpluginStylexRSOptions;
+}
+
+interface PlaceholderBuildResult {
+  css: BuiltCssFile[];
+  html: string;
+  outDir: string;
+}
+
 // Builds the placeholder fixture for real: only a full build exercises the
 // ordering between the plugin hooks and the bundler's own CSS asset.
-async function buildPlaceholderFixture(
-  options: {
-    cssCodeSplit?: boolean;
-    cssMinify?: boolean | 'esbuild' | 'lightningcss';
-    files?: Record<string, string>;
-    onWarn?: (warning: { message: string }) => void;
-    plugins?: PluginOption[];
-    pluginOptions?: UnpluginStylexRSOptions;
-  } = {}
-): Promise<BuiltCssFile[]> {
+//
+// `fileName` is deliberately left unset: placeholder mode emits no standalone
+// stylesheet, so the option is inert here and naming it would suggest coverage
+// that does not exist.
+async function runPlaceholderBuild(
+  options: PlaceholderBuildOptions = {}
+): Promise<PlaceholderBuildResult> {
   const root = await writeFixtureRoot('.stylex-vite-placeholder-', {
     ...placeholderFixtureFiles,
     ...options.files,
@@ -278,6 +303,7 @@ async function buildPlaceholderFixture(
     build: {
       cssCodeSplit: options.cssCodeSplit ?? false,
       cssMinify: options.cssMinify,
+      manifest: options.manifest,
       outDir: 'dist',
       write: true,
       rolldownOptions: options.onWarn
@@ -290,7 +316,6 @@ async function buildPlaceholderFixture(
       ...(options.plugins ?? [delayModuleTransform('/lazy.js', 100)]),
       stylexRuntimeStub,
       stylexSwc({
-        fileName: 'stylex.[hash].css',
         useCssPlaceholder: placeholder,
         ...options.pluginOptions,
         rsOptions: {
@@ -306,7 +331,14 @@ async function buildPlaceholderFixture(
   const outDir = path.join(root, 'dist');
   const html = await readFile(path.join(outDir, 'index.html'), 'utf8');
 
-  return readBuiltCss(outDir, html);
+  return { css: await readBuiltCss(outDir, html), html, outDir };
+}
+
+// Most tests only look at the stylesheets.
+async function buildPlaceholderFixture(
+  options: PlaceholderBuildOptions = {}
+): Promise<BuiltCssFile[]> {
+  return (await runPlaceholderBuild(options)).css;
 }
 
 // Counting occurrences is what separates "the rules are present" from "the
@@ -361,6 +393,50 @@ async function settle(): Promise<void> {
   });
 }
 
+/**
+ * Waits until a count of work the dev server did is above zero and stops
+ * moving.
+ *
+ * A refresh is debounced, and it arms another one when rules arrive while it
+ * runs or when its update could not be sent, so the work does not all land
+ * inside one fixed pause. Under load a pause expires between two steps of that
+ * chain, and the caller then measures the machine instead of the behaviour.
+ * Two quiet windows in a row say the chain has ended.
+ *
+ * Two is enough only because a window is longer than a step of the chain:
+ * `settle` waits 200 ms and the re-arm in `src/index.ts` fires at 50 ms, so a
+ * chain still running cannot stay quiet across one window, let alone two. Move
+ * either number towards the other and this needs more windows, or a longer one.
+ */
+async function waitUntilSteady(count: () => number, work: string): Promise<void> {
+  const deadline = Date.now() + 10_000;
+  let previous = -1;
+
+  for (let steady = 0; steady < 2;) {
+    if (Date.now() >= deadline) {
+      // Returning here would compare whatever counts happened to be current,
+      // so the test could pass on a server that never settles. The two cases
+      // read the same from the count alone, so the message tells them apart.
+      const total = count();
+
+      throw new Error(
+        total === 0
+          ? `The dev server did not start ${work} within 10s.`
+          : `The dev server did not stop ${work} within 10s. Count: ${total}.`
+      );
+    }
+
+    await settle();
+
+    const current = count();
+
+    // Zero is work that has not started, not work that has ended, and two
+    // quiet windows over it would read as settled.
+    steady = current > 0 && current === previous ? steady + 1 : 0;
+    previous = current;
+  }
+}
+
 // The dev server every placeholder refresh test runs against. Request
 // pre-transform is off so each test decides exactly when a module is
 // transformed, which is what the refresh behaviour turns on.
@@ -379,7 +455,7 @@ async function createPlaceholderDevServer(prefix: string) {
       }),
     ],
     root,
-    server: { middlewareMode: true, preTransformRequests: false },
+    server: { middlewareMode: true, preTransformRequests: false, watch: NO_FILE_EVENTS },
   });
 }
 
@@ -426,11 +502,15 @@ async function measureFailedRefreshRetries(): Promise<{
   try {
     await server.transformRequest('/main.js');
     await server.transformRequest('/global.css');
-    await settle();
+    // Each failure arms the next attempt, so the chain is read once it ends.
+    await waitUntilSteady(() => send.mock.calls.length, 'retrying the CSS refresh');
 
     const attempts = send.mock.calls.length;
 
-    // No further transform, so anything counted here is the retry chain alone.
+    // A fixed quiet window, deliberately: this one must find no attempt at
+    // all, and a wait for a count to stop moving cannot end on a count that
+    // never moves. No further transform comes, so anything counted here is a
+    // retry that never gave up.
     await settle();
     await settle();
 
@@ -817,44 +897,18 @@ export const styles = stylex.create({
       const globalCssReads = () =>
         readFileSpy.mock.calls.filter(call => call[0] === ownGlobalCss).length;
 
-      // A refresh is debounced, and it arms another one when rules arrive
-      // while it runs, so its reads do not all land inside one fixed pause.
-      // Under load the first refresh read the file after the count was taken,
-      // and the read was then charged to the second refresh. Waiting until the
-      // count stops moving measures the behaviour, not the speed of the
-      // machine.
-      const readsQuiet = async (): Promise<void> => {
-        const deadline = Date.now() + 10_000;
-        let previous = -1;
-
-        for (let steady = 0; steady < 2;) {
-          if (Date.now() >= deadline) {
-            // Returning here would compare whatever counts happened to be
-            // current, so the test could pass on a server that never settles.
-            throw new Error('The dev server never stopped reading global.css within 10s.');
-          }
-
-          await settle();
-
-          const count = globalCssReads();
-
-          steady = count === previous ? steady + 1 : 0;
-          previous = count;
-        }
-      };
-
       await server.transformRequest('/main.js');
       await server.transformRequest('/global.css');
-      await readsQuiet();
+      await waitUntilSteady(globalCssReads, 'reading global.css');
 
+      // The wait above refuses a count of zero, so this is a read that
+      // happened. Were it zero, the comparison below would hold for the wrong
+      // reason.
       const before = globalCssReads();
 
       await server.transformRequest('/lazy.js');
-      await readsQuiet();
+      await waitUntilSteady(globalCssReads, 'reading global.css');
 
-      // The count must be of a read that happened. Were it zero, the test
-      // would hold for the wrong reason.
-      expect(before).toBeGreaterThan(0);
       // The second refresh reuses what the first learned.
       expect(globalCssReads()).toBe(before);
     } finally {
@@ -1005,5 +1059,122 @@ export const styles = stylex.create({
     const html = await transformDevIndexHtml('/app/');
 
     expect(html).toContain('href="/app/stylex.css"');
+  });
+
+  // The rules go in after the host has already named and hashed the
+  // stylesheet, so a StyleX-only edit used to change the bytes and keep the
+  // name. One build cannot see that; two can.
+  describe('stylesheet naming', () => {
+    // A second rule set, so the injected CSS differs while every other input
+    // stays byte for byte the same.
+    const otherStyleXSource = `import * as stylex from '@stylexjs/stylex';
+import './global.css';
+
+export const styles = stylex.create({ eager: { color: 'rebeccapurple' } });
+
+void import('./lazy.js');
+`;
+
+    // The dynamic-import delay is the one thing these builds do not need: they
+    // compare names, and a slower build only makes the suite slower.
+    const noDelay = { plugins: [delayModuleTransform('/lazy.js', 0)] };
+
+    test('gives the stylesheet a new name after a StyleX-only edit', async () => {
+      const before = await buildPlaceholderFixture(noDelay);
+      const after = await buildPlaceholderFixture({
+        ...noDelay,
+        files: { 'main.js': otherStyleXSource },
+      });
+
+      const linkedBefore = before.find(file => file.linked);
+      const linkedAfter = after.find(file => file.linked);
+
+      expect(linkedBefore?.source).not.toBe(linkedAfter?.source);
+      expect(linkedBefore?.name).not.toBe(linkedAfter?.name);
+      // Still the host's own shape, not a name of our own invention.
+      expect(linkedAfter?.name).toMatch(/^assets\/[\w-]+-[\w-]{8}\.css$/);
+    });
+
+    // The host hashes with xxh3 over base64url, which JavaScript cannot
+    // reproduce here, so "the name is a hash of these bytes" is held from both
+    // sides instead: different bytes give a different name above, and the same
+    // bytes give the same name here.
+    test('keeps the name when nothing changed', async () => {
+      const first = await buildPlaceholderFixture(noDelay);
+      const second = await buildPlaceholderFixture(noDelay);
+
+      expect(first.map(file => file.name)).toEqual(second.map(file => file.name));
+      expect(first.map(file => file.source)).toEqual(second.map(file => file.source));
+    });
+
+    test('points the document and the manifest at the new name', async () => {
+      const { css, html, outDir } = await runPlaceholderBuild({ ...noDelay, manifest: true });
+      const stylesheet = css.find(file => file.linked);
+      const manifest = JSON.parse(
+        await readFile(path.join(outDir, '.vite', 'manifest.json'), 'utf8')
+      ) as Record<string, { file?: string }>;
+
+      expect(stylesheet).toBeDefined();
+      expect(html).toContain(stylesheet?.name);
+      expect(Object.values(manifest).map(entry => entry.file)).toContain(stylesheet?.name);
+    });
+
+    // A library names its stylesheet `style.css` with no hash, and consumers
+    // import that path by hand. Renaming it would break every one of them.
+    test('leaves a library build alone', async () => {
+      // A library names its stylesheet by hand, with no hash, and consumers
+      // import that path. The two builds differ only in their StyleX rules.
+      async function buildLibrary(source: string): Promise<BuiltCssFile[]> {
+        const root = await writeFixtureRoot('.stylex-vite-lib-', {
+          'global.css': `body { margin: 0; }\n${placeholder}\n`,
+          'main.js': `import './global.css';\n${source}`,
+        });
+
+        await build({
+          build: { lib: { entry: 'main.js', formats: ['es'] }, outDir: 'dist', write: true },
+          configFile: false,
+          logLevel: 'silent',
+          plugins: [
+            stylexRuntimeStub,
+            stylexSwc({
+              useCssPlaceholder: placeholder,
+              rsOptions: { dev: false, unstable_moduleResolution: { type: 'commonJS' } },
+            }),
+          ],
+          root,
+        });
+
+        return readBuiltCss(path.join(root, 'dist'), '');
+      }
+
+      const before = await buildLibrary(buildFixtureSource);
+      const after = await buildLibrary(
+        buildFixtureSource.replace("color: 'red'", "color: 'rebeccapurple'")
+      );
+
+      expect(before).toHaveLength(1);
+      expect(before[0]?.source).not.toBe(after[0]?.source);
+      expect(before[0]?.name).toBe(after[0]?.name);
+      // The rules still arrive; only the name is left alone.
+      expect(before[0]?.source).toContain('color:red');
+    });
+
+    // Pinned as recorded behaviour, not as an accident: a split build folds
+    // stylesheet names into the JS chunk hash and writes them inside the
+    // chunks, so renaming there would cascade into already-hashed JavaScript.
+    test('leaves a code-split build alone', async () => {
+      const before = await buildPlaceholderFixture({ ...noDelay, cssCodeSplit: true });
+      const after = await buildPlaceholderFixture({
+        ...noDelay,
+        cssCodeSplit: true,
+        files: { 'main.js': otherStyleXSource },
+      });
+
+      const linkedBefore = before.find(file => file.linked);
+      const linkedAfter = after.find(file => file.linked);
+
+      expect(linkedBefore?.source).not.toBe(linkedAfter?.source);
+      expect(linkedBefore?.name).toBe(linkedAfter?.name);
+    });
   });
 });

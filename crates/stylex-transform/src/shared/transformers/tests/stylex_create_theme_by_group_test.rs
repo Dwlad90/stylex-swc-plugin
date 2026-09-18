@@ -86,7 +86,7 @@ mod stylex_create_theme {
   fn overrides_set_of_vars_with_css_class() {
     let export_id = "TestTheme_stylex_js__buttonTheme_hash";
 
-    let mut default_vars = default_vars_factory(&[
+    let default_vars = default_vars_factory(&[
       ("__varGroupHash__", export_id),
       ("bgColor", "var(--xgck17p)"),
       ("bgColorDisabled", "var(--xpegid5)"),
@@ -119,7 +119,7 @@ mod stylex_create_theme {
     );
 
     let (class_name_output, css_output) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -163,7 +163,7 @@ mod stylex_create_theme {
   fn overrides_set_of_literal_vars_with_css_class() {
     let export_id = "TestTheme_stylex_js__buttonTheme_hash";
 
-    let mut default_vars = default_vars_factory(&[
+    let default_vars = default_vars_factory(&[
       ("__varGroupHash__", export_id),
       ("--bgColor", "var(--bgColor)"),
       ("--bgColorDisabled", "var(--bgColorDisabled)"),
@@ -196,7 +196,7 @@ mod stylex_create_theme {
     );
 
     let (class_name_output, css_output) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -240,7 +240,7 @@ mod stylex_create_theme {
   fn variables_order_does_not_change_the_hash() {
     let export_id = "TestTheme_stylex_js__buttonTheme_hash";
 
-    let mut default_vars = default_vars_factory(&[
+    let default_vars = default_vars_factory(&[
       ("__varGroupHash__", export_id),
       ("bgColor", "var(--xgck17p)"),
       ("bgColorDisabled", "var(--xpegid5)"),
@@ -297,14 +297,14 @@ mod stylex_create_theme {
     );
 
     let (class_name_output, css_output) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
     );
 
     let (class_name_output_2, css_output_2) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme_2,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -340,7 +340,7 @@ mod stylex_create_theme {
   fn adding_an_at_rule_changes_the_hash() {
     let export_id = "TestTheme_stylex_js__buttonTheme_hash";
 
-    let mut default_vars = default_vars_factory(&[
+    let default_vars = default_vars_factory(&[
       ("__varGroupHash__", export_id),
       ("bgColor", "var(--xgck17p)"),
     ]);
@@ -360,14 +360,14 @@ mod stylex_create_theme {
     );
 
     let (class_name_output, css_output) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
     );
 
     let (class_name_output_2, css_output_2) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme_2,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -403,7 +403,7 @@ mod stylex_create_theme {
   fn generates_styles_for_nested_at_rules() {
     let export_id = "TestTheme_stylex_js__buttonTheme_hash";
 
-    let mut default_vars = default_vars_factory(&[
+    let default_vars = default_vars_factory(&[
       ("__varGroupHash__", export_id),
       ("bgColor", "var(--xgck17p)"),
     ]);
@@ -427,7 +427,7 @@ mod stylex_create_theme {
     );
 
     let (_class_name_output, css_output) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),
@@ -469,7 +469,7 @@ mod stylex_create_theme {
   fn generates_styles_for_typed_nested_at_rules() {
     let export_id = "TestTheme_stylex_js__buttonTheme_hash";
 
-    let mut default_vars = default_vars_factory(&[
+    let default_vars = default_vars_factory(&[
       ("__varGroupHash__", export_id),
       ("bgColor", "var(--xgck17p)"),
     ]);
@@ -499,7 +499,7 @@ mod stylex_create_theme {
     );
 
     let (_class_name_output, css_output) = stylex_create_theme(
-      &mut default_vars,
+      &default_vars,
       &created_theme,
       &mut StateManager::default(),
       &mut IndexMap::default(),

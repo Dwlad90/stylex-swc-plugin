@@ -13,20 +13,20 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
+  /// The merge a bare `stylex(...)` call compiles to, where the call is one.
+  ///
+  /// One answer for every call this is not. The three the handler wrote out --
+  /// a callee that is no expression, an expression that is no name, and a name
+  /// that is no `stylex` import -- all mean the same thing to the dispatcher
+  /// above, which asks the next handler either way.
   pub(crate) fn transform_stylex_call(&mut self, call: &mut CallExpr) -> Option<Expr> {
-    match &call.callee {
-      Callee::Expr(expr) => match expr.as_ref() {
-        Expr::Ident(ident) => {
-          if self.state.is_regular_stylex_import(&ident.sym)
-            && let Some(value) = stylex_merge(call, stylex, hoist_expression, &mut self.state)
-          {
-            return Some(value);
-          }
-          None
-        },
-        _ => None,
-      },
-      _ => None,
+    if let Callee::Expr(callee) = &call.callee
+      && let Expr::Ident(ident) = callee.as_ref()
+      && self.state.is_regular_stylex_import(&ident.sym)
+    {
+      return stylex_merge(call, stylex, hoist_expression, &mut self.state);
     }
+
+    None
   }
 }

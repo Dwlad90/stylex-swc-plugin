@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use stylex_ast::ast::convertors::{
   convert_key_value_to_str, convert_str_lit_to_string, create_number_expr, create_string_expr,
-  get_key_values_from_object,
+  get_key_values_from_object, key_value_name,
 };
 use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
 use stylex_enums::value_with_default::ValueWithDefault;
@@ -268,7 +268,7 @@ pub fn is_css_type_object(obj: &ObjectLit) -> bool {
   let mut has_value = false;
 
   for key_value in get_key_values_from_object(obj) {
-    let key = convert_key_value_to_str(&key_value);
+    let key = key_value_name(&key_value);
     has_syntax |= key == "syntax";
     has_value |= key == "value";
   }
@@ -280,11 +280,11 @@ pub fn is_conditional_object(obj: &ObjectLit) -> bool {
   let key_values = get_key_values_from_object(obj);
   let has_default = key_values
     .iter()
-    .any(|key_value| convert_key_value_to_str(key_value) == "default");
+    .any(|key_value| key_value_name(key_value) == "default");
 
   has_default
     && key_values.iter().all(|key_value| {
-      let key = convert_key_value_to_str(key_value);
+      let key = key_value_name(key_value);
       key == "default" || key.starts_with('@')
     })
 }

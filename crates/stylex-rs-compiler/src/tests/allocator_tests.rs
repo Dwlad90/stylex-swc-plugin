@@ -469,6 +469,9 @@ mod reading_the_published_targets {
 /// A bench may measure the system allocator, but it must say so. Write
 /// `ALLOCATOR: system` with the reason in the bench, and this reader accepts
 /// it. Silence is what this refuses.
+///
+/// The same module holds the companion rule: every bench must also check that
+/// its subject produced the output it exists to time.
 #[cfg(test)]
 mod bench_allocator {
   use std::{fs, path::PathBuf};
@@ -612,5 +615,104 @@ mod bench_allocator {
     assert!(states_its_allocator(
       "// ALLOCATOR: system -- measured on purpose.\n"
     ));
+  }
+
+  /// Whether a bench checks that its subject produced the output it times.
+  ///
+  /// A comment line is not a check, for the reason the allocator reader gives:
+  /// the comment beside one names the same macro, so a bench that dropped the
+  /// check and kept the comment would answer yes to a plain search. Anywhere
+  /// else on a line counts, because a check reads well as the arm of a `match`
+  /// as well as on its own line.
+  ///
+  /// A bench may time something no check can read. Write `ASSERTIONS: none`
+  /// with the reason in the bench, and this reader accepts it. Silence is what
+  /// this refuses.
+  ///
+  /// What this cannot see is *where* the check sits. A check inside `b.iter`
+  /// adds to the measurement, and this reader accepts it the same as one
+  /// outside. The rule for that is in `guidelines/PERFORMANCE.md` and is kept
+  /// by review.
+  ///
+  /// Nor can it see *how many*. This is one answer for a whole file, so a
+  /// measurement added beside a checked sibling passes on the sibling's check
+  /// -- which is how a bench that timed 801 ps, no work at all, once sat in a
+  /// file that checks its other measurements. What this holds is that a file
+  /// checks something; that each measurement is checked is kept by review. A
+  /// per-measurement reader was tried and dropped: only 16 of 36 named
+  /// benchmarks repeat their id outside the `bench_function` call, so a reader
+  /// keyed on the id would refuse measurements that are checked and accept a
+  /// file that spells a name twice.
+  fn asserts_what_it_measures(source: &str) -> bool {
+    source.lines().any(|line| {
+      let line = line.trim_start();
+
+      if line.contains("ASSERTIONS: none") {
+        return true;
+      }
+
+      !line.starts_with("//")
+        && (line.contains("assert!(")
+          || line.contains("assert_eq!(")
+          || line.contains("assert_ne!("))
+    })
+  }
+
+  #[test]
+  fn every_bench_asserts_what_it_measures() {
+    // A refusal, a deopt, a swallowed panic and a cache hit are all fast, so a
+    // curve that flattens because the work stopped happening reads as a win.
+    // Six files once carried 179 measurements and no check between them, and
+    // three of those measurements were already timing nothing: two built an
+    // empty value, and one was named for right-to-left flipping it never did.
+    // Nothing reported any of the three. A person reading the numbers did.
+    let silent: Vec<String> = benches()
+      .into_iter()
+      .filter(|(_, source)| !asserts_what_it_measures(source))
+      .map(|(name, _)| name)
+      .collect();
+
+    assert_eq!(
+      silent,
+      Vec::<String>::new(),
+      "these benches never check that their subject produced the output they \
+       time; add an assertion outside `b.iter`, or write `ASSERTIONS: none` \
+       with the reason"
+    );
+  }
+
+  #[test]
+  fn a_bench_that_only_names_an_assertion_does_not_make_one() {
+    assert!(!asserts_what_it_measures(
+      "// Every bench should assert!(...) something.\n"
+    ));
+    assert!(!asserts_what_it_measures(
+      "/// Every bench should assert_eq!(...) something.\n"
+    ));
+    assert!(!asserts_what_it_measures("fn main() {}\n"));
+    assert!(asserts_what_it_measures("assert!(parsed.is_ok());\n"));
+    assert!(asserts_what_it_measures(
+      "    assert_eq!(rules.len(), 3);\n"
+    ));
+    assert!(asserts_what_it_measures("  assert_ne!(out, input);\n"));
+    assert!(asserts_what_it_measures(
+      "// ASSERTIONS: none -- the subject returns no value to read.\n"
+    ));
+  }
+
+  #[test]
+  fn a_check_that_does_not_open_its_own_line_is_still_a_check() {
+    // What the first reader got wrong: it wanted the macro at the start of a
+    // line, and read a whole bench that checks its folds as checking nothing.
+    assert!(asserts_what_it_measures(
+      "      Some(expected) => assert_eq!(confident, expected),\n"
+    ));
+  }
+
+  #[test]
+  fn a_name_that_merely_holds_assert_is_not_an_assertion() {
+    // `assert_the_rule` is a function name, not one of the three macros.
+    assert!(!asserts_what_it_measures("assert_the_rule();\n"));
+    assert!(!asserts_what_it_measures("asserted = true;\n"));
   }
 }

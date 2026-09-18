@@ -114,7 +114,24 @@ pub struct StyleXOptions {
 
 #[napi(object)]
 pub struct StyleXMetadata {
-  #[napi(ts_type = "([string, { ltr: string; rtl?: null | string }, number])[]")]
+  /// One rule per entry: its class name, the rule itself, and its priority.
+  ///
+  /// `constKey` and `constVal` are written only by a `defineConsts` rule.
+  /// `constVal` is declared exactly as the reference declares it, so a consumer
+  /// that reads both compilers' rules through one type compiles against either.
+  ///
+  /// **Both runtimes are wider than that type.** A constant carries the kind the
+  /// author gave it rather than text a reader would have to guess one back out
+  /// of, so `null` and a boolean cross as well -- measured through both
+  /// compilers on `defineConsts({ a: null, b: 1, c: 'red', d: true, e: 0 })`,
+  /// which answer identically. The type is the reference's rather than the
+  /// truth because widening it here would refuse a consumer the reference
+  /// accepts, and the reference is what the ecosystem builds against.
+  /// `index.spec.ts` pins what actually crosses.
+  // One line, because the text is copied verbatim into the generated `.d.ts` and
+  // a wrapped one carries its indentation there.
+  #[rustfmt::skip]
+  #[napi(ts_type = "([string, { ltr: string; rtl?: null | string; constKey?: string; constVal?: string | number }, number])[]")]
   pub stylex: Vec<JsObject>,
 }
 

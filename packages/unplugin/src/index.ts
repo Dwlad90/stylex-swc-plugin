@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import { promises } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import * as path from 'node:path';
@@ -6,7 +5,7 @@ import * as path from 'node:path';
 import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
 import { shouldTransformFile, transform as stylexTransform } from '@stylexswc/rs-compiler';
 import type { StyleXMetadata, TransformedOptions } from '@stylexswc/rs-compiler';
-import type { OnEndResult } from 'esbuild';
+import type { Metafile, OnEndResult } from 'esbuild';
 import { createUnplugin } from 'unplugin';
 import type { UnpluginFactory, UnpluginInstance } from 'unplugin';
 import type { Connect } from 'vite';
@@ -26,6 +25,16 @@ import getStyleXRules from './utils/getStyleXRules';
 import hasUnresolvedDefineConstAtRule from './utils/hasUnresolvedDefineConstAtRule';
 import normalizeOptions, { identityTransformCss } from './utils/normalizeOptions';
 import resolveStylesheetHref from './utils/resolveStylesheetHref';
+import {
+  applyStylesheetRenames,
+  assetNamesCarryHash,
+  esbuildNamePattern,
+  renameEsbuildStylesheet,
+  resolveManifestFileName,
+  shortContentHash,
+  toPosixPath,
+} from './utils/stylesheetName';
+import type { StylesheetRename } from './utils/stylesheetName';
 
 type StyleXRules = Record<string, StyleXMetadata['stylex']>;
 
@@ -58,7 +67,7 @@ function shouldTransformStyleXFile(id: string, normalizedOptions: NormalizedOpti
   );
 }
 
-const { writeFile, mkdir, readFile, readdir } = promises;
+const { writeFile, mkdir, readFile, readdir, rename } = promises;
 
 const PLUGIN_NAME = 'unplugin-stylex-rs';
 const DIRECT_REQUEST_RE = /(?:\?|&)direct(?:&|$)/;
@@ -136,12 +145,111 @@ const MISSING_INJECTION_TARGET_WARNING =
   'injected. The stylesheet holding the marker may be missing from the build. ' +
   "Set `onMissingCssPlaceholder` to 'ignore' if that is expected.";
 
-function replaceFileName(original: string, css: string) {
+function replaceFileName(original: string, css: string): string {
   if (!original.includes('[hash]')) {
     return original;
   }
-  const hash = crypto.createHash('sha256').update(css).digest('hex').slice(0, 8);
-  return original.replace(/\[hash\]/g, hash);
+
+  return original.replace(/\[hash\]/g, shortContentHash(css));
+}
+
+/** Everything the esbuild rename needs about the build it runs in. */
+interface EsbuildRenameContext {
+  /** The output directory, which every stylesheet path is relative to. */
+  readonly outDir: string;
+  /** The `entryNames` template esbuild named the stylesheets from. */
+  readonly nameTemplate: string;
+  /** The build's working directory, which relative metafile keys count from. */
+  readonly workingDir: string;
+  readonly metafile: Metafile | undefined;
+  /** Each stylesheet's metafile key, by its absolute path. */
+  readonly metafileKeyByPath: ReadonlyMap<string, string>;
+}
+
+/**
+ * Points every metafile output at the renamed stylesheets and corrects the size
+ * of each one.
+ *
+ * The metafile is read before the injection and was never updated afterwards,
+ * so its `bytes` were short by the whole rule set even where nothing is
+ * renamed. `cssBundle`, which names the stylesheet a JavaScript output pulls
+ * in, is corrected for the same reason.
+ */
+function settleEsbuildMetafile(
+  metafile: Metafile,
+  renames: readonly StylesheetRename[],
+  sizesByKey: ReadonlyMap<string, number>
+): void {
+  const renamedKeys = new Map(renames.map(rename => [rename.from, rename.to]));
+
+  for (const [key, output] of Object.entries(metafile.outputs)) {
+    const size = sizesByKey.get(key);
+
+    if (size !== undefined) output.bytes = size;
+
+    if (output.cssBundle !== undefined) {
+      output.cssBundle = renamedKeys.get(output.cssBundle) ?? output.cssBundle;
+    }
+
+    const renamedKey = renamedKeys.get(key);
+
+    if (renamedKey === undefined) continue;
+
+    metafile.outputs[renamedKey] = output;
+    Reflect.deleteProperty(metafile.outputs, key);
+  }
+}
+
+/**
+ * Renames the written stylesheets on disk. Brings the metafile back in step
+ * with them.
+ *
+ * Why a rename is needed lives in `utils/stylesheetName`. esbuild has no rename
+ * API, so the new name is built there and the file is moved here.
+ *
+ * Nothing in the esbuild path emits a document, so there are no references to
+ * chase after a rename.
+ */
+async function renameEsbuildStylesheets(
+  written: readonly CssInjectionTarget[],
+  finalSources: ReadonlyMap<string, string>,
+  context: EsbuildRenameContext
+): Promise<void> {
+  const pattern = esbuildNamePattern(context.nameTemplate);
+  const { metafile, metafileKeyByPath, outDir, workingDir } = context;
+  // Keyed the way the metafile names its outputs, so the pass below can settle
+  // both the sizes and the renames in one walk.
+  const renames: StylesheetRename[] = [];
+  const sizesByKey = new Map<string, number>();
+
+  for (const target of written) {
+    const cssFile = target.name;
+    const source = finalSources.get(cssFile);
+
+    if (source === undefined) continue;
+
+    const renamed = pattern ? renameEsbuildStylesheet(pattern, outDir, cssFile, source) : null;
+
+    if (renamed !== null && renamed !== cssFile) await rename(cssFile, renamed);
+
+    const outputKey = metafileKeyByPath.get(cssFile);
+
+    if (outputKey === undefined) continue;
+
+    sizesByKey.set(outputKey, Buffer.byteLength(source, 'utf8'));
+
+    if (renamed === null || renamed === cssFile) continue;
+
+    // The metafile names its outputs the way it was given them, so the new key
+    // keeps the shape of the old one.
+    const newKey = path.isAbsolute(outputKey)
+      ? renamed
+      : toPosixPath(path.relative(workingDir, renamed));
+
+    renames.push({ from: outputKey, to: newKey });
+  }
+
+  if (metafile) settleEsbuildMetafile(metafile, renames, sizesByKey);
 }
 
 /**
@@ -277,8 +385,11 @@ async function injectStyleXCss<TSource>(
       ];
     });
 
-  const outcome = await injectIntoCssTargets(targets, [injectMarker], collectedCSS, (css, name) =>
-    transformStyleXCSS(css, name, normalizedOptions)
+  const { outcome } = await injectIntoCssTargets(
+    targets,
+    [injectMarker],
+    collectedCSS,
+    (css, name) => transformStyleXCSS(css, name, normalizedOptions)
   );
 
   // An asset emitted here could not be linked, and unlike the Vite adapter this
@@ -297,6 +408,9 @@ async function injectStyleXCss<TSource>(
 interface BundleAssetLike {
   readonly type: string;
   readonly fileName: string;
+  // What the host was asked to call the asset, before it added a hash. Absent
+  // when the asset was emitted with an explicit `fileName` instead.
+  readonly name?: string;
   // The one member the injection writes back, so it is deliberately mutable.
   source: string | Uint8Array;
 }
@@ -304,14 +418,113 @@ interface BundleAssetLike {
 interface BundleOutputLike {
   readonly type: string;
   readonly fileName: string;
+  readonly name?: string;
   readonly source?: string | Uint8Array;
 }
 
 type OutputBundleLike = Record<string, BundleOutputLike>;
 
+/** A bundle entry the injection can read and write, as opposed to a chunk. */
+function isBundleAsset(output: BundleOutputLike): output is BundleAssetLike {
+  return output.type === 'asset' && output.source != null;
+}
+
+/**
+ * The part of the host's output options the rename reads. Described
+ * structurally for the same reason as the bundle above.
+ */
+interface OutputOptionsLike {
+  readonly assetFileNames?: unknown;
+}
+
 interface PlaceholderBundleContext {
   error(message: string): never;
   warn(message: string): void;
+  emitFile(file: { type: 'asset'; name: string; source: string | Uint8Array }): string;
+  getFileName(referenceId: string): string;
+}
+
+/**
+ * What the rename needs to know about the host beyond the bundle itself. A
+ * `null` in its place turns renaming off.
+ */
+interface StylesheetRenameSettings {
+  readonly outputOptions: OutputOptionsLike;
+  // Where the host writes its build manifests. They hold stylesheet names and
+  // are emitted unhashed, so they can be rewritten in place.
+  readonly manifestFileNames: readonly string[];
+}
+
+/**
+ * Renames the written stylesheets under Vite and Rollup.
+ *
+ * Why a rename is needed lives in `utils/stylesheetName`. Both hosts hash an
+ * asset they are given. This code therefore hands the final source back through
+ * `emitFile`. That also keeps the name in the host's own shape.
+ *
+ * Only `delete` and in-place mutation of an existing entry reach the bundle.
+ * Assignment of a new key is ignored. That is why the new stylesheet arrives
+ * through `emitFile` rather than through the bundle object. The old entry goes
+ * either way, so a host that gave back the same name is left with one file
+ * holding the injected rules rather than two entries fighting over the name.
+ */
+function renameWrittenStylesheets(
+  context: PlaceholderBundleContext,
+  bundle: OutputBundleLike,
+  written: readonly CssInjectionTarget[],
+  outputOptions: OutputOptionsLike
+): StylesheetRename[] {
+  if (!assetNamesCarryHash(outputOptions.assetFileNames)) return [];
+
+  const renames: StylesheetRename[] = [];
+
+  for (const { name: fileName } of written) {
+    const asset = bundle[fileName];
+
+    // An asset emitted with an explicit `fileName` carries no `name`. That is
+    // the host being told what to call the file, and the rename respects it.
+    if (!asset || !isBundleAsset(asset) || !asset.name) continue;
+
+    const reference = context.emitFile({
+      type: 'asset',
+      name: asset.name,
+      source: asset.source,
+    });
+    const newFileName = context.getFileName(reference);
+
+    Reflect.deleteProperty(bundle, fileName);
+
+    if (newFileName !== fileName) renames.push({ from: fileName, to: newFileName });
+  }
+
+  return renames;
+}
+
+/**
+ * Points the documents and the build manifests at the new stylesheet names.
+ *
+ * Both kinds of file are emitted under names the host never hashes. That is the
+ * host's own convention for anything written this late, so changing their
+ * contents cannot invalidate a name in turn.
+ *
+ * A reference the plugin cannot see stays with the old name. A name a user
+ * plugin copied out of the bundle is one such case, and a service worker
+ * precache list is another. Both are documented rather than chased.
+ */
+function rewriteStylesheetReferences(
+  bundle: OutputBundleLike,
+  renames: readonly StylesheetRename[],
+  manifestFileNames: readonly string[]
+): void {
+  for (const [fileName, output] of Object.entries(bundle)) {
+    if (!isBundleAsset(output)) continue;
+    if (!fileName.endsWith('.html') && !manifestFileNames.includes(fileName)) continue;
+
+    const source = output.source.toString();
+    const next = applyStylesheetRenames(source, renames);
+
+    if (next !== source) output.source = next;
+  }
 }
 
 /**
@@ -326,7 +539,8 @@ async function injectPlaceholderIntoBundle(
   normalizedOptions: NormalizedOptions,
   transformedOptions: TransformedOptions,
   canProveMarkerWasBuilt: boolean,
-  finalizeCss: FinalizeCss
+  finalizeCss: FinalizeCss,
+  renameSettings: StylesheetRenameSettings | null
 ): Promise<void> {
   if (!normalizedOptions.useCssPlaceholder) return;
 
@@ -338,7 +552,7 @@ async function injectPlaceholderIntoBundle(
   const targets = Object.values(bundle)
     .filter(
       (output): output is BundleAssetLike =>
-        output.type === 'asset' && output.fileName.endsWith('.css') && output.source != null
+        isBundleAsset(output) && output.fileName.endsWith('.css')
     )
     .map<CssInjectionTarget>(asset => ({
       name: asset.fileName,
@@ -353,7 +567,28 @@ async function injectPlaceholderIntoBundle(
   // through that hook, as it does under plain Rollup.
   const markers = [BUILD_CSS_PLACEHOLDER, normalizedOptions.useCssPlaceholder];
 
-  const outcome = await injectIntoCssTargets(targets, markers, collectedCSS, finalizeCss);
+  const { outcome, written } = await injectIntoCssTargets(
+    targets,
+    markers,
+    collectedCSS,
+    finalizeCss
+  );
+
+  // Every written stylesheet, not only the one that took the rules: a second
+  // one that carried a stray marker had the marker removed, so its bytes moved
+  // too and its name is just as stale.
+  if (renameSettings) {
+    const renames = renameWrittenStylesheets(
+      context,
+      bundle,
+      written,
+      renameSettings.outputOptions
+    );
+
+    if (renames.length > 0) {
+      rewriteStylesheetReferences(bundle, renames, renameSettings.manifestFileNames);
+    }
+  }
 
   if (outcome === 'injected' || outcome === 'nothing-to-inject') return;
 
@@ -409,6 +644,15 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   let viteUserAssetsDir: string | undefined;
   let viteResolvedBase: string | undefined;
   let viteCssMinify: CssMinifier;
+
+  // One stylesheet per chunk instead of one for the build. Its name is folded
+  // into the JS chunk hash and written inside the chunk for preloading, so a
+  // rename there would cascade into already-hashed JavaScript. Left alone, and
+  // said so in the README. Stays false for plain Rollup, which splits no CSS.
+  let viteCssCodeSplit = false;
+  // Where the host writes its build manifests. Empty outside Vite and when no
+  // manifest was asked for.
+  let viteManifestFileNames: readonly string[] = [];
 
   let hasCssToExtract = false;
   let cssFileName: string | null = null;
@@ -535,10 +779,18 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
   // One hook object, registered by both Rollup-style hosts below.
   //
-  // `post` is load-bearing: in the default order the hook runs before Vite's
-  // own CSS plugin emits the combined stylesheet, so a build with
-  // `cssCodeSplit: false` saw no CSS asset to inject into and fell through to a
-  // standalone file that nothing links.
+  // `post` is load-bearing twice over, and this is the most order-dependent
+  // code in the file.
+  //
+  // It has to run after Vite's own CSS plugin emits the combined stylesheet.
+  // In the default order a build with `cssCodeSplit: false` saw no CSS asset
+  // to inject into and fell through to a standalone file that nothing links.
+  //
+  // It also has to run after the documents and the manifests are in the
+  // bundle, because the rename below replaces the old stylesheet name in them
+  // by hand. They are already there at `post`, and the manifest plugin does
+  // not look at the stylesheet again.
+  //
   // The rules are spliced in after the host's CSS plugin has already minified
   // the stylesheet, so they arrive unminified unless they are minified here.
   // `viteCssMinify` stays unset outside Vite, which leaves plain Rollup, with no
@@ -548,7 +800,11 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
   const placeholderGenerateBundle = {
     order: 'post' as const,
-    async handler(this: PlaceholderBundleContext, _options: unknown, bundle: OutputBundleLike) {
+    async handler(
+      this: PlaceholderBundleContext,
+      options: OutputOptionsLike,
+      bundle: OutputBundleLike
+    ) {
       // Bundled serve emits no stylesheet asset to inject into; the marker
       // stylesheet is served outside the bundle there.
       if (bundledDevCss.enabled) return;
@@ -559,7 +815,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         normalizedOptions,
         transformedOptions,
         placeholderSeen && !viteIsSsrBuild,
-        finalizePlaceholderCss
+        finalizePlaceholderCss,
+        viteCssCodeSplit
+          ? null
+          : { manifestFileNames: viteManifestFileNames, outputOptions: options }
       );
     },
   };
@@ -722,6 +981,14 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         // An SSR bundle emits no stylesheet of its own, so a missing injection
         // target there is expected rather than a misconfiguration.
         viteIsSsrBuild = !!config.build.ssr;
+
+        // Both are read here rather than from the user config: the defaults
+        // decide them, and only the resolved config reports those.
+        viteCssCodeSplit = config.build.cssCodeSplit;
+        viteManifestFileNames = [
+          resolveManifestFileName(config.build.manifest, '.vite/manifest.json'),
+          resolveManifestFileName(config.build.ssrManifest, '.vite/ssr-manifest.json'),
+        ].filter((name): name is string => name !== null);
 
         // The injection runs after Vite has minified the stylesheet, so it has
         // to apply the same minifier to the rules it splices in.
@@ -1070,27 +1337,46 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           const shouldWriteToDisk =
             build.initialOptions.write === undefined || build.initialOptions.write;
 
-          const outDir =
+          // A relative output path counts from the build's working directory,
+          // which is not always the process one.
+          const workingDir = build.initialOptions.absWorkingDir ?? process.cwd();
+          const configuredOutDir =
             build.initialOptions.outdir ||
             (build.initialOptions.outfile ? path.dirname(build.initialOptions.outfile) : null);
+          // Resolved once, because every path below is joined against it. Read
+          // from the process directory instead, a relative one sent the scan
+          // outside the build: the stylesheets were never found, the marker
+          // shipped, and any CSS that directory did hold was rewritten.
+          const outDir =
+            configuredOutDir === null ? null : path.resolve(workingDir, configuredOutDir);
 
           // Handle useCssPlaceholder mode
           if (normalizedOptions.useCssPlaceholder && outDir && shouldWriteToDisk) {
-            // Find CSS files in output
-            let cssFiles: string[] = [];
+            // Find CSS files in output, keyed by the absolute path: the
+            // metafile names its outputs the way esbuild was given them, and
+            // the rename below has to put them back under the same shape.
+            const metafileKeyByPath = new Map<string, string>();
 
-            // Try to get CSS files from metafile
             if (metafile?.outputs) {
-              cssFiles = Object.keys(metafile.outputs)
-                .filter(f => f.endsWith('.css'))
-                .map(f => (path.isAbsolute(f) ? f : path.join(process.cwd(), f)));
+              for (const key of Object.keys(metafile.outputs)) {
+                if (!key.endsWith('.css')) continue;
+
+                metafileKeyByPath.set(path.isAbsolute(key) ? key : path.join(workingDir, key), key);
+              }
             }
 
-            // Fallback: scan outDir for CSS files
+            let cssFiles = [...metafileKeyByPath.keys()];
+
+            // Fallback: scan outDir for CSS files. Recursive, because a name
+            // template can put the stylesheet in a sub-directory, where a flat
+            // scan used to find nothing and leave the marker in the output.
             if (cssFiles.length === 0) {
               try {
-                const files = await readdir(outDir);
-                cssFiles = files.filter(f => f.endsWith('.css')).map(f => path.join(outDir, f));
+                const entries = await readdir(outDir, { recursive: true, withFileTypes: true });
+
+                cssFiles = entries
+                  .filter(entry => entry.isFile() && entry.name.endsWith('.css'))
+                  .map(entry => path.join(entry.parentPath, entry.name));
               } catch {
                 // Ignore errors
               }
@@ -1100,6 +1386,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             // entirely rather than being picked as the fallback and overwritten
             // with only the rules.
             const targets: CssInjectionTarget[] = [];
+            // What each stylesheet ends up holding, which is what its new name
+            // has to be a hash of. The read above is the source before the
+            // injection, so it cannot stand in.
+            const finalSources = new Map<string, string>();
 
             for (const cssFile of cssFiles) {
               try {
@@ -1108,19 +1398,34 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
                 targets.push({
                   name: cssFile,
                   read: () => existing,
-                  write: source => writeFile(cssFile, source, 'utf8'),
+                  write: source => {
+                    finalSources.set(cssFile, source);
+
+                    return writeFile(cssFile, source, 'utf8');
+                  },
                 });
               } catch {
                 // Ignore errors
               }
             }
 
-            const outcome = await injectIntoCssTargets(
+            const { outcome, written } = await injectIntoCssTargets(
               targets,
               [BUILD_CSS_PLACEHOLDER, normalizedOptions.useCssPlaceholder],
               collectedCSS,
               (css, name) => transformStyleXCSS(css, name, normalizedOptions)
             );
+
+            await renameEsbuildStylesheets(written, finalSources, {
+              metafile,
+              metafileKeyByPath,
+              // esbuild names a stylesheet that comes out of an entry point the
+              // same way it names the entry point. Its own default carries no
+              // hash, which leaves the name alone.
+              nameTemplate: build.initialOptions.entryNames ?? '[dir]/[name]',
+              outDir,
+              workingDir,
+            });
 
             // A standalone file written here would never be linked, since
             // placeholder mode skips HTML injection.

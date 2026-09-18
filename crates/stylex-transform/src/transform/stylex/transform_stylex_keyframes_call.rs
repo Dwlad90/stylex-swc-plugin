@@ -1,10 +1,9 @@
 use std::rc::Rc;
-use stylex_constants::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_expression};
+use stylex_constants::constants::messages::expected_call_expression;
 
 use indexmap::IndexMap;
-use rustc_hash::FxHashMap;
 use stylex_ast::ast::convertors::create_string_expr;
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_macros::stylex_panic;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{Expr, VarDeclarator},
@@ -15,21 +14,16 @@ use crate::{
   shared::{
     transformers::stylex_keyframes::stylex_keyframes,
     utils::validators::{
-      assert_valid_keyframes, is_keyframes_call, validate_stylex_keyframes_indent,
+      argument_at, assert_valid_keyframes, folded_style_object, is_keyframes_call,
+      validate_stylex_keyframes_indent,
     },
   },
+  transform::stylex::visitor_utils::rule_call_eval_config,
 };
-use stylex_constants::constants::{
-  api_names::{STYLEX_FIRST_THAT_WORKS, STYLEX_KEYFRAMES},
-  messages::{non_static_value, non_style_object},
-};
-use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::{evaluate::evaluate, stylex_first_that_works::stylex_first_that_works};
-use stylex_state::{
-  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-  state_manager::ImportKind,
-  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-};
+use stylex_ast::ast::convertors::init_call;
+use stylex_constants::constants::api_names::STYLEX_KEYFRAMES;
+use stylex_evaluator::evaluate::evaluate_with_functions;
+use stylex_state::functions::RuleCallHelpers;
 
 impl<C> StyleXTransform<C>
 where
@@ -44,92 +38,24 @@ where
     if is_keyframes_call {
       validate_stylex_keyframes_indent(var_decl, &mut self.state);
 
-      let call = match var_decl.init.as_ref().and_then(|decl| decl.as_call()) {
+      let call = match init_call(var_decl) {
         Some(call) => call,
         None => stylex_panic!("{}", expected_call_expression(STYLEX_KEYFRAMES)),
       };
 
-      let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-        None => first_arg.expr.clone(),
-      })?;
+      let first_arg = argument_at(call, 0, STYLEX_KEYFRAMES);
 
-      let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
-      let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
+      let function_map = rule_call_eval_config(&mut self.state, RuleCallHelpers::FirstThatWorks);
 
-      let first_that_works_fn = FunctionConfig {
-        fn_ptr: FunctionType::ArrayArgs(stylex_first_that_works),
-        takes_path: false,
-      };
+      let evaluated_arg = evaluate_with_functions(first_arg, &mut self.state, function_map);
 
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::FirstThatWorks) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
-          );
-        }
-      }
-
-      for name in self.state.stylex_imports() {
-        let member_expression = member_expressions.entry(name.clone()).or_default();
-
-        member_expression.insert(
-          STYLEX_FIRST_THAT_WORKS.into(),
-          Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
-        );
-      }
-
-      self
-        .state
-        .apply_stylex_env(&mut identifiers, &mut member_expressions);
-
-      let function_map: Box<FunctionMap> = Box::new(FunctionMap {
-        identifiers,
-        member_expressions,
-        disable_imports: false,
-      });
-
-      let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
-
-      assert!(
-        evaluated_arg.confident,
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          &non_static_value(STYLEX_KEYFRAMES),
-          &mut self.state,
-        )
+      let value = folded_style_object(
+        evaluated_arg,
+        call,
+        first_arg,
+        STYLEX_KEYFRAMES,
+        &mut self.state,
       );
-
-      let value = match evaluated_arg.value {
-        Some(value) => {
-          assert!(
-            value
-              .as_expr()
-              .map(|expr| expr.is_object())
-              .unwrap_or(false),
-            "{}",
-            build_code_frame_error(
-              &Expr::Call(call.clone()),
-              &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-              &non_style_object(STYLEX_KEYFRAMES),
-              &mut self.state,
-            )
-          );
-          value
-        },
-        None => stylex_panic!(
-          "{}",
-          build_code_frame_error(
-            &Expr::Call(call.clone()),
-            &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-            &non_static_value(STYLEX_KEYFRAMES),
-            &mut self.state,
-          )
-        ),
-      };
 
       assert_valid_keyframes(&value, &mut self.state);
 

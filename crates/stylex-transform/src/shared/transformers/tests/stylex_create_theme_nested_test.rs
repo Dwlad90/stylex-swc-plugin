@@ -17,7 +17,7 @@ mod stylex_create_theme_nested {
   use stylex_state::{
     evaluate_result_value::EvaluateResultValue,
     flat_compiled_styles_value::FlatCompiledStylesValue, state_manager::StateManager,
-    types::FlatCompiledStyles,
+    types::InjectableStylesMap,
   };
 
   fn create_test_state_manager() -> StateManager {
@@ -63,11 +63,11 @@ mod stylex_create_theme_nested {
   fn creates_theme_override_from_nested_vars_and_nested_overrides() {
     let mut state = create_test_state_manager();
     let (vars_output, _) = stylex_define_vars_nested(&vars_fixture(), &mut state);
-    let mut theme_vars = EvaluateResultValue::Expr(convert_unflattened_object_to_ast(&vars_output));
-    let mut typed_variables: FlatCompiledStyles = IndexMap::default();
+    let theme_vars = EvaluateResultValue::Expr(convert_unflattened_object_to_ast(&vars_output));
+    let mut typed_variables: InjectableStylesMap = IndexMap::default();
 
     let (theme_output, theme_css) = stylex_create_theme_nested(
-      &mut theme_vars,
+      &theme_vars,
       &overrides_fixture(),
       &mut state,
       &mut typed_variables,
@@ -91,7 +91,7 @@ mod stylex_create_theme_nested {
   #[should_panic]
   fn throws_when_first_arg_lacks_var_group_hash() {
     let mut state = create_test_state_manager();
-    let mut theme_vars =
+    let theme_vars =
       EvaluateResultValue::Expr(create_object_expression(vec![create_key_value_prop(
         "button",
         create_object_expression(vec![create_key_value_prop(
@@ -99,10 +99,10 @@ mod stylex_create_theme_nested {
           create_string_expr("var(--hash)"),
         )]),
       )]));
-    let mut typed_variables: FlatCompiledStyles = IndexMap::default();
+    let mut typed_variables: InjectableStylesMap = IndexMap::default();
 
     let _ = stylex_create_theme_nested(
-      &mut theme_vars,
+      &theme_vars,
       &overrides_fixture(),
       &mut state,
       &mut typed_variables,
@@ -123,11 +123,11 @@ mod stylex_create_theme_nested {
   fn supports_partial_overrides_only_some_leaves() {
     let mut state = create_test_state_manager();
     let (vars_output, _) = stylex_define_vars_nested(&vars_fixture(), &mut state);
-    let mut theme_vars = EvaluateResultValue::Expr(convert_unflattened_object_to_ast(&vars_output));
-    let mut typed_variables: FlatCompiledStyles = IndexMap::default();
+    let theme_vars = EvaluateResultValue::Expr(convert_unflattened_object_to_ast(&vars_output));
+    let mut typed_variables: InjectableStylesMap = IndexMap::default();
 
     let (theme_output, theme_css) = stylex_create_theme_nested(
-      &mut theme_vars,
+      &theme_vars,
       &partial_overrides_fixture(),
       &mut state,
       &mut typed_variables,
@@ -166,11 +166,11 @@ mod stylex_create_theme_nested {
   fn handles_conditional_overrides_with_media() {
     let mut state = create_test_state_manager();
     let (vars_output, _) = stylex_define_vars_nested(&vars_fixture(), &mut state);
-    let mut theme_vars = EvaluateResultValue::Expr(convert_unflattened_object_to_ast(&vars_output));
-    let mut typed_variables: FlatCompiledStyles = IndexMap::default();
+    let theme_vars = EvaluateResultValue::Expr(convert_unflattened_object_to_ast(&vars_output));
+    let mut typed_variables: InjectableStylesMap = IndexMap::default();
 
     let (theme_output, theme_css) = stylex_create_theme_nested(
-      &mut theme_vars,
+      &theme_vars,
       &conditional_overrides_fixture(),
       &mut state,
       &mut typed_variables,
@@ -247,7 +247,7 @@ mod stylex_create_theme_nested {
 
     assert_eq!(nested_hash, flat_hash);
 
-    let mut nested_theme_vars =
+    let nested_theme_vars =
       EvaluateResultValue::Expr(convert_unflattened_object_to_ast(&nested_vars_output));
     let flat_theme_props: Vec<_> = flat_vars_output
       .iter()
@@ -258,19 +258,19 @@ mod stylex_create_theme_nested {
         _ => None,
       })
       .collect();
-    let mut flat_theme_vars = EvaluateResultValue::Expr(create_object_expression(flat_theme_props));
+    let flat_theme_vars = EvaluateResultValue::Expr(create_object_expression(flat_theme_props));
 
-    let mut nested_typed_variables: FlatCompiledStyles = IndexMap::default();
-    let mut flat_typed_variables: FlatCompiledStyles = IndexMap::default();
+    let mut nested_typed_variables: InjectableStylesMap = IndexMap::default();
+    let mut flat_typed_variables: InjectableStylesMap = IndexMap::default();
 
     let (nested_theme, _) = stylex_create_theme_nested(
-      &mut nested_theme_vars,
+      &nested_theme_vars,
       &simple_nested_overrides_fixture(),
       &mut nested_state,
       &mut nested_typed_variables,
     );
     let (flat_theme, _) = stylex_create_theme(
-      &mut flat_theme_vars,
+      &flat_theme_vars,
       &equivalent_flat_overrides_fixture(),
       &mut flat_state,
       &mut flat_typed_variables,
@@ -290,11 +290,11 @@ mod stylex_create_theme_nested {
       },
       _ => panic!("expected leaf"),
     };
-    let mut theme_vars = EvaluateResultValue::Expr(convert_unflattened_object_to_ast(&vars_output));
-    let mut typed_variables: FlatCompiledStyles = IndexMap::default();
+    let theme_vars = EvaluateResultValue::Expr(convert_unflattened_object_to_ast(&vars_output));
+    let mut typed_variables: InjectableStylesMap = IndexMap::default();
 
     let (theme_output, _) = stylex_create_theme_nested(
-      &mut theme_vars,
+      &theme_vars,
       &overrides_fixture(),
       &mut state,
       &mut typed_variables,
@@ -302,5 +302,28 @@ mod stylex_create_theme_nested {
 
     assert!(theme_output.contains_key(&var_group_hash));
     assert!(theme_output.contains_key("$$css"));
+  }
+
+  /// A nested theme can override the group a variable-defining module exports.
+  /// The group is handed on as it is, because it answers a name for any key,
+  /// and the flat names the overrides carry are the keys it is asked for.
+  #[test]
+  fn overrides_the_group_a_variable_defining_module_exports() {
+    use stylex_state::theme_ref::ThemeRef;
+
+    use crate::tests::support::expr;
+
+    let theme_vars =
+      EvaluateResultValue::ThemeRef(ThemeRef::new("tokens.stylex.js", "tokens", "x"));
+
+    let (class_name_output, css_output) = stylex_create_theme_nested(
+      &theme_vars,
+      &EvaluateResultValue::Expr(expr("{ button: { bgColor: 'green' } }")),
+      &mut StateManager::default(),
+      &mut IndexMap::default(),
+    );
+
+    assert_eq!(css_output.len(), 1);
+    assert_eq!(class_name_output.len(), 2);
   }
 }

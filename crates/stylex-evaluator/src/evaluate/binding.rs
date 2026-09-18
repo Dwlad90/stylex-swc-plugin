@@ -34,8 +34,9 @@ use swc_core::common::Span;
 /// A dummy span on either side answers `false` rather than being compared. A
 /// synthesized node carries no authored position, so it sits at byte zero,
 /// before every authored declarator's end, and would be refused for having no
-/// position rather than for being early. `expand_shorthand_prop` is the producer
-/// that reaches here.
+/// position rather than for being early. `expanded_shorthand_prop` is the
+/// producer that reaches here, which builds the pair a shorthand name stands
+/// for and gives it no position of its own.
 ///
 /// The injected function mappers `get_var_decl_by_ident` also folds are not
 /// expected to, because `nodes::identifier::evaluate` answers for every name in

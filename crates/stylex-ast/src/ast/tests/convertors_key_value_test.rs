@@ -1,11 +1,14 @@
-//! Tests for `convert_key_value_to_str` and `get_key_values_from_object`.
+//! Tests for `key_value_name`, `convert_key_value_to_str` and
+//! `get_key_values_from_object`.
 
 use crate::ast::{
-  convertors::{convert_key_value_to_str, get_key_values_from_object},
+  convertors::{convert_key_value_to_str, get_key_values_from_object, key_value_name},
   factories::{
     create_ident, create_key_value_prop, create_number_lit, create_object_lit, create_string_lit,
   },
 };
+use std::borrow::Cow;
+
 use swc_core::{
   atoms::Atom,
   common::DUMMY_SP,
@@ -209,4 +212,56 @@ fn non_key_value_prop_panics() {
 fn empty_object_returns_empty_vec() {
   let obj = create_object_lit(vec![]);
   assert!(get_key_values_from_object(&obj).is_empty());
+}
+
+// ---------- key_value_name ----------
+
+/// A key that already holds its name is borrowed, not copied.
+///
+/// This is the whole reason the reader answers a `Cow`: an identifier and a
+/// string hold their own text, and a lookup that compares every property of an
+/// object copied each of them to read it. The text itself is pinned by the
+/// cases above, which the owned form and this one both answer through.
+#[test]
+fn a_key_that_holds_its_name_is_borrowed() {
+  let ident = key_value_with_name(PropName::Ident(IdentName {
+    span: DUMMY_SP,
+    sym: Atom::new("foo"),
+  }));
+  let string = key_value_with_name(PropName::Str(Str {
+    span: DUMMY_SP,
+    value: Atom::new("a key").into(),
+    raw: None,
+  }));
+
+  assert!(matches!(key_value_name(&ident), Cow::Borrowed(_)));
+  assert!(matches!(key_value_name(&string), Cow::Borrowed(_)));
+}
+
+/// The three shapes that spell a name the key does not hold own what they
+/// build, so nothing borrows from a value that goes out of scope.
+#[test]
+fn a_key_that_spells_its_name_is_owned() {
+  let shapes = [
+    PropName::Num(Number {
+      span: DUMMY_SP,
+      value: 42.0,
+      raw: None,
+    }),
+    PropName::BigInt(BigInt {
+      span: DUMMY_SP,
+      value: Box::new(BigIntValue::from(100u32)),
+      raw: None,
+    }),
+    PropName::Computed(ComputedPropName {
+      span: DUMMY_SP,
+      expr: Box::new(Expr::Lit(create_string_lit("computed"))),
+    }),
+  ];
+
+  for shape in shapes {
+    let kv = key_value_with_name(shape);
+
+    assert!(matches!(key_value_name(&kv), Cow::Owned(_)));
+  }
 }

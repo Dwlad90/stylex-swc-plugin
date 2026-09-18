@@ -18,10 +18,6 @@ _inject2({
     priority: 3000
 });
 _inject2({
-    ltr: ".x1bey5s{font-variant:x1y}",
-    priority: 2000
-});
-_inject2({
     ltr: ".xora6ji{font-stretch:xpy}",
     priority: 3000
 });
@@ -48,10 +44,6 @@ export const styles = {
     },
     emptyArray: {
         kKX8nH: "x1oreewh",
-        $$css: true
-    },
-    arrayWithAHole: {
-        kjAs5C: "x1bey5s",
         $$css: true
     },
     nestedObject: {

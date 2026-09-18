@@ -3,14 +3,8 @@ mod helpers;
 use std::rc::Rc;
 
 use rustc_hash::FxHashMap;
-use stylex_constants::constants::{
-  api_names::{STYLEX_DEFINE_VARS, STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_TYPES},
-  messages::{
-    SPREAD_NOT_SUPPORTED, cannot_generate_hash, export_variable_not_found, non_static_value,
-    non_style_object,
-  },
-};
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_constants::constants::{api_names::STYLEX_DEFINE_VARS, messages::cannot_generate_hash};
+use stylex_macros::stylex_panic;
 use stylex_utils::identifier::gen_file_based_identifier;
 use swc_core::{
   common::comments::Comments,
@@ -20,30 +14,28 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    transformers::{
-      stylex_define_vars::stylex_define_vars, stylex_keyframes::get_keyframes_fn,
-      stylex_position_try::get_position_try_fn, stylex_types::get_types_fn,
-    },
+    transformers::stylex_define_vars::stylex_define_vars,
     utils::{
-      core::js_to_ast::{NestedStringObject, convert_object_to_ast},
-      validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
+      core::js_to_ast::convert_values_to_ast,
+      validators::{
+        argument_at, find_and_validate_stylex_define_vars, folded_style_object_lit,
+        is_define_vars_call,
+      },
     },
   },
-  transform::stylex::visitor_utils::{apply_unstable_conditional, insert_stylex_identifier_entry},
+  transform::stylex::visitor_utils::build_eval_config,
 };
 use stylex_evaluator::evaluate::evaluate;
 use stylex_state::{
+  evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-  state_manager::ImportKind,
   theme_ref::ThemeRef,
-  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
 };
-use stylex_structures::top_level_expression::TopLevelExpression;
 
 use self::helpers::{
-  assert_no_define_vars_cycles, collect_keys_and_dependencies, normalize_define_vars_functions,
+  VariableGroup, assert_no_define_vars_cycles, collect_dependencies,
+  normalize_define_vars_functions,
 };
-use stylex_diagnostics::code_frame::build_code_frame_error;
 
 impl<C> StyleXTransform<C>
 where
@@ -53,79 +45,13 @@ where
     let is_define_vars = is_define_vars_call(call, &self.state);
 
     if is_define_vars {
-      let stylex_create_theme_top_level_expr =
-        match find_and_validate_stylex_define_vars(call, &mut self.state) {
-          Some(expr) => expr,
-          None => stylex_panic!("defineVars(): Could not find the top-level variable declaration."),
-        };
+      let export_name = find_and_validate_stylex_define_vars(call, &mut self.state);
 
-      let TopLevelExpression(_, _, var_id) = stylex_create_theme_top_level_expr;
+      let first_arg = argument_at(call, 0, STYLEX_DEFINE_VARS);
 
-      let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-        None => first_arg.expr.clone(),
-      })?;
-
-      let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
-      let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
-
-      let keyframes_fn = get_keyframes_fn();
-      let types_fn = get_types_fn();
-      let position_try_fn = get_position_try_fn();
-
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::Keyframes) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-          );
-        }
-      }
-
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::Types) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(types_fn.clone())),
-          );
-        }
-      }
-
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::PositionTry) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
-          );
-        }
-      }
-
-      for name in self.state.stylex_imports() {
-        let member_expression = member_expressions.entry(name.clone()).or_default();
-
-        member_expression.insert(
-          STYLEX_KEYFRAMES.into(),
-          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-        );
-
-        member_expression.insert(
-          STYLEX_POSITION_TRY.into(),
-          Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
-        );
-
-        insert_stylex_identifier_entry(
-          &mut identifiers,
-          name,
-          STYLEX_TYPES.into(),
-          FunctionConfigType::Regular(types_fn.clone()),
-        );
-      }
-
-      apply_unstable_conditional(&self.state, &mut identifiers, &mut member_expressions);
-
-      self
-        .state
-        .apply_stylex_env(&mut identifiers, &mut member_expressions);
+      // The same registrations `createThemeNested` and `defineVarsNested` fold
+      // their argument with, and this call adds the theme reference below.
+      let mut function_map = build_eval_config(&mut self.state);
 
       // Compute file_name, export_name, and export_id BEFORE evaluation so the
       // ThemeRefMapper factory can be built and injected into identifiers, allowing
@@ -136,11 +62,6 @@ where
       {
         Some(name) => name,
         None => stylex_panic!("{}", cannot_generate_hash(STYLEX_DEFINE_VARS)),
-      };
-
-      let export_name = match var_id.map(|decl| decl.to_string()) {
-        Some(name) => name,
-        None => stylex_panic!("{}", export_variable_not_found(STYLEX_DEFINE_VARS)),
       };
 
       self.state.export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));
@@ -158,86 +79,54 @@ where
       let theme_ref_factory: Rc<dyn Fn() -> ThemeRef + 'static> =
         Rc::new(move || shared_theme_ref.clone());
 
-      identifiers.insert(
-        export_name.as_str().into(),
+      function_map.identifiers.insert(
+        export_name.clone(),
         Box::new(FunctionConfigType::Regular(FunctionConfig {
           fn_ptr: FunctionType::ThemeRefMapper(theme_ref_factory),
           takes_path: false,
         })),
       );
 
-      let function_map: Box<FunctionMap> = Box::new(FunctionMap {
-        identifiers,
-        member_expressions,
-        disable_imports: false,
-      });
+      let function_map: Box<FunctionMap> = Box::new(function_map);
 
-      let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
+      let evaluated_arg = evaluate(first_arg, &mut self.state, &function_map);
 
-      if !evaluated_arg.confident {
-        let deopt = evaluated_arg
-          .deopt
-          .clone()
-          .unwrap_or_else(|| *first_arg.to_owned());
-        stylex_panic!(
-          "{}",
-          build_code_frame_error(
-            &Expr::Call(call.clone()),
-            &deopt,
-            &non_static_value(STYLEX_DEFINE_VARS),
-            &mut self.state,
-          )
-        );
-      }
+      let folded = folded_style_object_lit(
+        evaluated_arg,
+        call,
+        first_arg,
+        STYLEX_DEFINE_VARS,
+        &mut self.state,
+      );
 
-      let value = match evaluated_arg.value {
-        Some(value) => {
-          let is_object = value
-            .as_expr()
-            .map(|expr| expr.is_object())
-            .unwrap_or(false);
-          if !is_object {
-            let deopt = evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned());
-            stylex_panic!(
-              "{}",
-              build_code_frame_error(
-                &Expr::Call(call.clone()),
-                &deopt,
-                &non_style_object(STYLEX_DEFINE_VARS),
-                &mut self.state,
-              )
-            );
-          }
-          value
-        },
-        None => stylex_panic!("{}", non_static_value(STYLEX_DEFINE_VARS)),
+      // The variables are read out of the *evaluated* object, so every
+      // statically resolvable form — an inline object literal, an
+      // identifier-bound constant (`defineVars(tokens)`), an object spread, a
+      // computed key — reaches the checks below in the same shape.
+      let group = VariableGroup::read(&folded);
+
+      // Cycles and references to a name the group does not declare are caught
+      // before any function value is folded.
+      assert_no_define_vars_cycles(&collect_dependencies(&group, &export_name));
+
+      // Zero-argument function values are replaced by what their bodies fold
+      // to. A group that holds none is passed on as it was read.
+      let normalized =
+        normalize_define_vars_functions(&group, &mut self.state, &function_map, call, first_arg);
+
+      let value = match normalized {
+        Some(value) => value,
+        None => EvaluateResultValue::Expr(Expr::Object(folded)),
       };
-
-      // Static analysis: validate arrow function values and build the dependency
-      // graph so cycles and unknown references can be caught before normalization.
-      // We run this on the *evaluated* object literal so that all statically
-      // resolvable forms — inline object literals, identifier-bound constants
-      // (`defineVars(tokens)`), object spreads, computed keys — go through the
-      // same cycle/unknown-ref checks. A single fused pass collects the
-      // top-level keys and arrow dependencies, and the Visit-based collector
-      // ensures all expression kinds are covered.
-      if let Some(value_expr) = value.as_expr() {
-        let (_all_keys, dependency_map) = collect_keys_and_dependencies(value_expr, &export_name);
-        assert_no_define_vars_cycles(&dependency_map);
-      }
-
-      // Normalize: evaluate zero-param arrow function values in the defineVars object.
-      let value =
-        normalize_define_vars_functions(value, &mut self.state, &function_map, call, &first_arg);
 
       let (variables_obj, injected_styles_sans_keyframes) =
         stylex_define_vars(&value, &mut self.state);
 
-      let mut injected_styles = self.state.other_injected_css_rules.clone();
-      injected_styles.extend(injected_styles_sans_keyframes);
+      let injected_styles = self
+        .state
+        .take_nested_rules_before(injected_styles_sans_keyframes);
 
-      let result_ast =
-        convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(variables_obj));
+      let result_ast = convert_values_to_ast(&variables_obj);
 
       self
         .state

@@ -1,21 +1,20 @@
 use std::collections::hash_map::Entry;
 
-use rustc_hash::FxHashMap;
-use stylex_macros::stylex_panic;
+use rustc_hash::{FxHashMap, FxHashSet};
 use stylex_state::state_writers::fill_state_declarations;
 use swc_core::{
   atoms::Atom,
   common::comments::Comments,
   ecma::{
     ast::{
-      CallExpr, Callee, Expr, KeyValueProp, Lit, ObjectLit, ObjectPatProp, Pat, Prop, PropName,
-      PropOrSpread, VarDeclarator,
+      CallExpr, Callee, Lit, ObjectLit, ObjectPatProp, Pat, Prop, PropName, PropOrSpread,
+      VarDeclarator,
     },
     visit::VisitMutWith,
   },
 };
 
-use stylex_ast::ast::convertors::{convert_str_lit_to_string, expand_shorthand_prop};
+use stylex_ast::ast::convertors::{convert_str_lit_to_string, init_call, normalize_expr};
 use stylex_enums::{
   style_vars_to_keep::{NonNullProp, NonNullProps},
   top_level_expression::TopLevelExpressionKind,
@@ -27,10 +26,6 @@ use stylex_structures::{
 use crate::StyleXTransform;
 use stylex_ast::ast::keys::namespace_name_from_prop_key;
 use stylex_atoms::transform::ATOMS_SOURCE;
-use stylex_constants::constants::{
-  api_names::STYLEX_CREATE,
-  messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND},
-};
 use stylex_enums::core::TransformationCycle;
 use stylex_state::state_manager::{DeclId, ImportKind};
 use stylex_structures::named_import_source::ImportSources;
@@ -45,20 +40,6 @@ where
         fill_state_declarations(&mut self.state, var_declarator);
         self.discover_commonjs_stylex_require(var_declarator);
         self.discover_commonjs_atoms_require(var_declarator);
-
-        if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut()
-          && let Some((declaration, member)) = self.process_declaration(call)
-        {
-          let declaration_name = declaration.0.as_str();
-
-          if self
-            .state
-            .is_stylex_import_for_kinds(declaration_name, &[ImportKind::Create])
-            && (member.as_str() == STYLEX_CREATE || member == declaration_name)
-          {
-            self.props_declaration = var_declarator.name.as_ident().map(|ident| ident.to_id());
-          }
-        }
 
         var_declarator.visit_mut_children_with(self);
       },
@@ -99,36 +80,27 @@ where
         // than by a walk of every style variable and every recorded expression
         // in the module, which ran once per declarator the finalize cycle
         // visits.
-        // A style variable is bound to a name -- `matching_style_var` answers
-        // only for a declarator that is -- so the binding is read once here and
-        // both the lookup and the namespace set are asked with it.
-        if let Some((binding, var_name)) = self
-          .state
-          .matching_style_var(var_declarator)
-          .and_then(|var_name| Some((var_name.name.as_ident()?, var_name)))
-        {
-          let Some(init) = var_name.init.as_deref() else {
-            // A style variable is only ever recorded from a declarator its own
-            // initializer identified, so this cannot happen. Skipping keeps an
-            // unreachable shape from becoming an abort -- and from becoming a
-            // region no test can cover.
-            return;
-          };
+        if let Some((binding, init)) = self.state.matching_style_var(var_declarator) {
+          let declared_as_a_statement = matches!(
+            self.state.find_top_level_expr_named(&binding.sym, init),
+            Some(TopLevelExpression(TopLevelExpressionKind::Stmt, _, _))
+          );
 
-          let top_level_expression = self.state.find_top_level_expr_named(&binding.sym, init);
+          // Read here, because the object below needs the declarator to
+          // itself.
+          let var_id = binding.id.to_id();
 
-          if let Some(TopLevelExpression(kind, _, _)) = top_level_expression
-            && *kind == TopLevelExpressionKind::Stmt
+          if declared_as_a_statement
             && let Some(object) = var_declarator
               .init
               .as_mut()
               .and_then(|var_decl| var_decl.as_mut_object())
           {
-            let var_id = binding.id.to_id();
-
-            let namespaces_to_keep = match vars_to_keep.get(&var_id) {
-              Some(NonNullProps::Vec(vec)) => vec.clone(),
-              _ => Vec::new(),
+            // A set, because the sweep below asks it once per prop of the
+            // object.
+            let namespaces_to_keep: FxHashSet<Atom> = match vars_to_keep.get(&var_id) {
+              Some(NonNullProps::Vec(vec)) => vec.iter().cloned().collect(),
+              _ => FxHashSet::default(),
             };
 
             if !namespaces_to_keep.is_empty() {
@@ -142,7 +114,7 @@ where
   }
 
   fn discover_commonjs_stylex_require(&mut self, var_declarator: &VarDeclarator) {
-    let Some(call) = var_declarator.init.as_deref().and_then(Expr::as_call) else {
+    let Some(call) = init_call(var_declarator) else {
       return;
     };
 
@@ -203,7 +175,7 @@ where
   /// - `const { color, padding: p } = require('@stylexjs/atoms')` → `color`
   ///   maps to `"color"` and `p` maps to `"padding"`
   fn discover_commonjs_atoms_require(&mut self, var_declarator: &VarDeclarator) {
-    let Some(call) = var_declarator.init.as_deref().and_then(Expr::as_call) else {
+    let Some(call) = init_call(var_declarator) else {
       return;
     };
 
@@ -229,98 +201,116 @@ where
     }
   }
 
+  /// The props of a compiled style object, swept down to the namespaces the
+  /// module still reads.
+  ///
+  /// The object was written by `convert_namespaces_to_ast` a few phases back, and
+  /// that step writes every prop as a key-value under a name -- asserted where
+  /// the object is built, by `writes_every_prop_as_a_key_value_under_a_name`.
+  /// A prop that is not a key-value under a name leaves the whole object as it
+  /// is, because a sweep cannot tell what such an entry carries.
   fn retain_object_props(
     &self,
     object: &mut ObjectLit,
-    namespace_to_keep: &[Atom],
+    namespaces_to_keep: &FxHashSet<Atom>,
     var_id: &DeclId,
   ) -> Vec<PropOrSpread> {
-    let mut props: Vec<PropOrSpread> = Vec::with_capacity(object.props.len());
+    // The namespace each prop names, read once. A `None` here answers for the
+    // whole object, so the sweep below runs over props it has already read.
+    let mut namespace_names = Vec::with_capacity(object.props.len());
 
     for object_prop in object.props.iter() {
-      let Some(prop) = object_prop.as_prop() else {
-        return object.props.clone();
-      };
-
-      let Some(key_value) = prop.as_key_value() else {
-        return object.props.clone();
-      };
-
-      if namespace_name_from_prop_key(&key_value.key).is_none() {
-        return object.props.clone();
+      match object_prop
+        .as_prop()
+        .and_then(|prop| prop.as_key_value())
+        .and_then(|key_value| namespace_name_from_prop_key(&key_value.key))
+      {
+        Some(namespace_name) => namespace_names.push(namespace_name),
+        None => return object.props.clone(),
       }
     }
 
-    for object_prop in object.props.iter_mut() {
-      assert!(object_prop.is_prop(), "Spread properties are not supported");
+    // What each namespace of this declaration keeps of its null declarations,
+    // gathered in one pass. The recorded list holds every entry in the module,
+    // so reading it again for each namespace made the sweep cost the module
+    // twice over. `None` against a namespace means one entry keeps it whole,
+    // and then nothing is swept out of it.
+    let mut nulls_by_namespace: FxHashMap<&Atom, Option<Vec<Atom>>> = FxHashMap::default();
 
-      let prop = match object_prop.as_mut_prop() {
-        Some(p) => p.as_mut(),
-        None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
+    for StyleVarsToKeep(var, recorded_name, prop) in self.state.style_vars_to_keep.iter() {
+      // A name recorded as `True` says the whole style variable is read, not
+      // one namespace of it, so this sweep has no entry to make for it.
+      let NonNullProp::Atom(recorded_name) = recorded_name else {
+        continue;
       };
 
-      let Some(KeyValueProp { key, .. }) = prop.as_key_value() else {
-        return object.props.clone();
-      };
-
-      let Some(namespace_name) = namespace_name_from_prop_key(key) else {
-        return object.props.clone();
-      };
-
-      if namespace_to_keep.contains(&namespace_name) {
-        let key_id = NonNullProp::Atom(namespace_name);
-
-        let all_nulls_to_keep = self
-          .state
-          .style_vars_to_keep
-          .iter()
-          .filter_map(|top_level_expression| {
-            let StyleVarsToKeep(var, namespace_name, prop) = top_level_expression;
-
-            if var == var_id && namespace_name == &key_id {
-              Some(prop.clone())
-            } else {
-              None
-            }
-          })
-          .collect::<Vec<NonNullProps>>();
-
-        if !all_nulls_to_keep.contains(&NonNullProps::True) {
-          let nulls_to_keep = all_nulls_to_keep
-            .into_iter()
-            .filter_map(|item| match item {
-              NonNullProps::Vec(vec) => Some(vec),
-              NonNullProps::True => None,
-            })
-            .flatten()
-            .collect::<Vec<Atom>>();
-
-          if let Some(style_object) = match prop.as_mut_key_value() {
-            Some(kv) => kv,
-            None => stylex_panic!("{}", KEY_VALUE_EXPECTED),
-          }
-          .value
-          .as_mut_object()
-          {
-            retain_style_props(style_object, nulls_to_keep);
-          }
-        }
-
-        props.push(object_prop.clone())
+      if var != var_id {
+        continue;
       }
+
+      let nulls = nulls_by_namespace
+        .entry(recorded_name)
+        .or_insert_with(|| Some(Vec::new()));
+
+      match prop {
+        // An entry that keeps the namespace whole stays that way: the names
+        // gathered before it are unread, and a list after it adds nothing.
+        NonNullProps::Vec(vec) => {
+          if let Some(nulls) = nulls {
+            nulls.extend(vec.iter().cloned());
+          }
+        },
+        NonNullProps::True => *nulls = None,
+      }
+    }
+
+    let mut props: Vec<PropOrSpread> = Vec::with_capacity(object.props.len());
+
+    for (object_prop, namespace_name) in object.props.iter_mut().zip(namespace_names) {
+      if !namespaces_to_keep.contains(&namespace_name) {
+        continue;
+      }
+
+      let nulls_to_keep: Option<&[Atom]> = match nulls_by_namespace.get(&namespace_name) {
+        // One entry keeps this namespace whole, so nothing is swept out of it.
+        Some(None) => None,
+        Some(Some(nulls)) => Some(nulls),
+        // Nothing was recorded against the namespace, so every null
+        // declaration in it goes.
+        None => Some(&[]),
+      };
+
+      if let Some(nulls_to_keep) = nulls_to_keep
+        && let Some(style_object) = object_prop
+          .as_mut_prop()
+          .and_then(|prop| prop.as_mut_key_value())
+          .and_then(|key_value| key_value.value.as_mut_object())
+      {
+        retain_style_props(style_object, nulls_to_keep);
+      }
+
+      props.push(object_prop.clone())
     }
 
     props
   }
 }
 
-fn get_stylex_require_source(
-  call: &CallExpr,
-  state: &stylex_state::state_manager::StateManager,
-) -> Option<String> {
+/// The module a `require` call names, or nothing where the call is not one.
+///
+/// The callee and the argument are both read through their parentheses. A
+/// parenthesis is not a different call and not a different string, so
+/// `(require)('@stylexjs/stylex')` and `require(('@stylexjs/stylex'))` name the
+/// module the bare spelling names. Read bare, the import is never registered
+/// and the whole module reaches the runtime unstyled, with no error for the
+/// author to read.
+///
+/// One reader for both the StyleX source and the atoms source, so the two
+/// cannot come to answer a spelling differently.
+fn required_module(call: &CallExpr) -> Option<String> {
   let is_require_call = matches!(
     &call.callee,
-    Callee::Expr(callee) if callee.as_ident().is_some_and(|ident| ident.sym == "require")
+    Callee::Expr(callee) if normalize_expr(callee).as_ident().is_some_and(|ident| ident.sym == "require")
   );
 
   if !is_require_call {
@@ -333,37 +323,24 @@ fn get_stylex_require_source(
     return None;
   }
 
-  let source_path = match first_arg.expr.as_lit()? {
-    Lit::Str(strng) => convert_str_lit_to_string(strng),
-    _ => return None,
-  };
+  match normalize_expr(&first_arg.expr).as_lit()? {
+    Lit::Str(strng) => Some(convert_str_lit_to_string(strng)),
+    _ => None,
+  }
+}
+
+fn get_stylex_require_source(
+  call: &CallExpr,
+  state: &stylex_state::state_manager::StateManager,
+) -> Option<String> {
+  let source_path = required_module(call)?;
 
   state.is_import_source(&source_path).then_some(source_path)
 }
 
 /// Whether a call expression is `require('@stylexjs/atoms')`.
 fn is_atoms_require(call: &CallExpr) -> bool {
-  let is_require_call = matches!(
-    &call.callee,
-    Callee::Expr(callee) if callee.as_ident().is_some_and(|ident| ident.sym == "require")
-  );
-
-  if !is_require_call {
-    return false;
-  }
-
-  let Some(first_arg) = call.args.first() else {
-    return false;
-  };
-
-  if first_arg.spread.is_some() {
-    return false;
-  }
-
-  matches!(
-    first_arg.expr.as_lit(),
-    Some(Lit::Str(strng)) if convert_str_lit_to_string(strng) == ATOMS_SOURCE
-  )
+  required_module(call).is_some_and(|source_path| source_path == ATOMS_SOURCE)
 }
 
 fn destructured_require_prop(
@@ -392,30 +369,23 @@ fn local_binding_from_pat(pat: &Pat) -> Option<(swc_core::atoms::Atom, swc_core:
   }
 }
 
-fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: Vec<Atom>) {
+fn retain_style_props(style_object: &mut ObjectLit, nulls_to_keep: &[Atom]) {
   style_object.props.retain(|prop| match prop {
-    PropOrSpread::Prop(prop) => {
-      let mut prop = prop.clone();
-
-      expand_shorthand_prop(&mut prop);
-
-      if let Prop::KeyValue(key_value) = &*prop
-        && key_value
-          .value
-          .as_lit()
-          .and_then(|lit| match lit {
-            Lit::Null(_) => Some(()),
-            _ => None,
-          })
-          .is_some()
-        && matches!(key_value.key, PropName::Ident(_))
-        && let PropName::Ident(ident) = &key_value.key
-      {
-        return nulls_to_keep.contains(&ident.sym);
-      }
-
-      true
+    // Only a declaration written as a name and a value can hold `null`. A
+    // shorthand carries its own name as its value, so it is read as it stands
+    // rather than expanded first: expanding one can never answer this
+    // question, and the copy it needs was paid for every prop of every style.
+    PropOrSpread::Prop(prop) => match &**prop {
+      Prop::KeyValue(key_value) => match (&key_value.key, key_value.value.as_lit()) {
+        (PropName::Ident(ident), Some(Lit::Null(_))) => nulls_to_keep.contains(&ident.sym),
+        _ => true,
+      },
+      _ => true,
     },
     PropOrSpread::Spread(_) => true,
   });
 }
+
+#[cfg(test)]
+#[path = "tests/style_var_sweep_test.rs"]
+mod tests;

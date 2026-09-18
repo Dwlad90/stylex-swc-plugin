@@ -1,16 +1,12 @@
 use std::rc::Rc;
 
-use stylex_ast::ast::convertors::{convert_lit_to_string, convert_tpl_to_string_lit};
-use stylex_macros::{stylex_panic, stylex_unimplemented};
-use stylex_types::serialization::serialize_value_to_json_string;
+use stylex_ast::ast::convertors::{convert_key_value_to_str, get_key_values_from_object};
+use stylex_macros::stylex_panic;
 
-use crate::shared::{enums::data_structures::obj_map_type::ObjMapType, utils::object::obj_map};
-use stylex_constants::constants::messages::{
-  EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT,
-};
+use stylex_constants::constants::messages::{EXPORT_ID_NOT_SET, VALUES_MUST_BE_OBJECT};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
-  flat_compiled_styles_value::FlatCompiledStylesValue,
+  folded_value::folded_value,
   state_manager::StateManager,
   types::{FlatCompiledStyles, InjectableStylesMap},
 };
@@ -18,19 +14,7 @@ use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableConstStyle,
 };
-use stylex_utils::hash::create_key_hash;
-use swc_core::ecma::ast::Expr;
-
-fn serialize_define_const_value(value: &Expr) -> String {
-  match value {
-    Expr::Lit(lit) => convert_lit_to_string(lit)
-      .unwrap_or_else(|| serialize_value_to_json_string(EvaluateResultValue::Expr(value.clone()))),
-    Expr::Tpl(tpl) => convert_tpl_to_string_lit(tpl)
-      .and_then(|lit| convert_lit_to_string(&lit))
-      .unwrap_or_else(|| serialize_value_to_json_string(EvaluateResultValue::Expr(value.clone()))),
-    _ => serialize_value_to_json_string(EvaluateResultValue::Expr(value.clone())),
-  }
-}
+use stylex_utils::{hash::create_key_hash, identifier::as_identifier};
 
 pub(crate) fn stylex_define_consts(
   constants: &EvaluateResultValue,
@@ -48,71 +32,44 @@ pub(crate) fn stylex_define_consts(
     None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
   };
 
-  let js_output = obj_map(
-    ObjMapType::Object(constants.clone()),
-    state,
-    |item, _| -> Rc<FlatCompiledStylesValue> {
-      let result = match item.as_ref() {
-        FlatCompiledStylesValue::InjectableStyle(_) => {
-          stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
-        },
-        FlatCompiledStylesValue::Tuple(_key, value, _) => {
-          let serialized_value = serialize_define_const_value(value);
+  let key_values = get_key_values_from_object(constants);
 
-          FlatCompiledStylesValue::String(serialized_value)
-        },
-        _ => stylex_unimplemented!(
-          "FlatCompiledStylesValue variant not supported in stylex_define_consts"
-        ),
-      };
+  let mut js_output = FlatCompiledStyles::with_capacity(key_values.len());
+  let mut injectable_types = InjectableStylesMap::with_capacity(key_values.len());
 
-      Rc::new(result)
-    },
-  );
+  for key_value in key_values.iter() {
+    let key = convert_key_value_to_str(key_value);
+    // The constant keeps the kind the author gave it. A reader of the answer
+    // and a reader of the injected rule both see what was written, rather than
+    // text that each of them has to guess a kind back out of.
+    let value = Rc::new(folded_value(&key_value.value));
 
-  let injectable_types = js_output
-    .iter()
-    .filter_map(|(key, value)| {
-      if let FlatCompiledStylesValue::String(value) = value.as_ref() {
-        let var_safe_key = if key.chars().next().unwrap_or('\0') >= '0'
-          && key.chars().next().unwrap_or('\0') <= '9'
-        {
-          format!("_{}", key)
-        } else {
-          key.to_string()
-        }
-        .chars()
-        .map(|c| if c.is_alphanumeric() { c } else { '_' })
-        .collect::<String>();
+    let const_key = if key.starts_with("--") {
+      // Preserve user-authored CSS custom property name without the leading `--`
+      key.chars().skip(2).collect::<String>()
+    } else {
+      let key_hash = create_key_hash(&export_id, &key);
 
-        let const_key = if key.starts_with("--") {
-          // Preserve user-authored CSS custom property name without the leading `--`
-          key.chars().skip(2).collect::<String>()
-        } else {
-          let key_hash = create_key_hash(&export_id, key);
-
-          if debug && enable_debug_class_names {
-            format!("{}-{}{}", var_safe_key, class_name_prefix, key_hash)
-          } else {
-            format!("{}{}", class_name_prefix, key_hash)
-          }
-        };
-
-        Some((
-          const_key.to_owned().into(),
-          Rc::new(InjectableStyleKind::Const(InjectableConstStyle {
-            ltr: String::default(),
-            rtl: None,
-            priority: Some(0.0),
-            const_key,
-            const_value: value.to_owned(),
-          })),
-        ))
+      if debug && enable_debug_class_names {
+        format!("{}-{}{}", as_identifier(&key), class_name_prefix, key_hash)
       } else {
-        None
+        format!("{}{}", class_name_prefix, key_hash)
       }
-    })
-    .collect();
+    };
+
+    injectable_types.insert(
+      const_key.clone().into(),
+      Rc::new(InjectableStyleKind::Const(InjectableConstStyle {
+        ltr: String::default(),
+        rtl: None,
+        priority: Some(0.0),
+        const_key,
+        const_value: value.to_json_text(),
+      })),
+    );
+
+    js_output.insert(key, value);
+  }
 
   (js_output, injectable_types)
 }

@@ -92,16 +92,36 @@ export type FinalizeCss = (css: string, targetName: string) => Promise<string>;
 export type CssInjectionOutcome = 'injected' | 'appended' | 'nothing-to-inject' | 'no-target';
 
 /**
+ * What the injection did, and which stylesheets it wrote.
+ *
+ * `written` is every target whose bytes changed, not only the one that received
+ * the rules: a second stylesheet that carried a stray marker is written too. A
+ * host that rehashes only the injection target would leave a stale name on the
+ * others, so the whole set is reported.
+ *
+ * The targets themselves are handed back, not their names, because a host maps
+ * a name to its own storage and already holds that map.
+ */
+export interface CssInjectionResult {
+  readonly outcome: CssInjectionOutcome;
+  readonly written: readonly CssInjectionTarget[];
+}
+
+/**
  * Puts the collected rules where the marker is and takes every marker they did
  * not replace back out, falling back to a preferred stylesheet when no marker
  * survived into the output.
+ *
+ * Hashes are deliberately none of its business: what a changed stylesheet does
+ * to its own name belongs to the host, where the difference between a bundle
+ * asset, a webpack asset and a file on disk already lives.
  */
 export async function injectIntoCssTargets(
   targets: CssInjectionTarget[],
   markers: string[],
   collectedCSS: string | null,
   finalizeCss: FinalizeCss
-): Promise<CssInjectionOutcome> {
+): Promise<CssInjectionResult> {
   // Read once per target: the fallback below needs the same contents, and a
   // second read of a file on disk would be wasted work.
   const sources = new Map<CssInjectionTarget, string>();
@@ -111,6 +131,7 @@ export async function injectIntoCssTargets(
   }
 
   let injected = false;
+  const written: CssInjectionTarget[] = [];
 
   for (const target of targets) {
     const source = sources.get(target) ?? '';
@@ -132,21 +153,22 @@ export async function injectIntoCssTargets(
     // Whatever is left over -- a second marker here, or a marker in another
     // stylesheet -- would repeat the rules, so it is only removed.
     await target.write(stripMarkers(next, markers));
+    written.push(target);
   }
 
-  if (injected) return 'injected';
-  if (!collectedCSS) return 'nothing-to-inject';
+  if (injected) return { outcome: 'injected', written };
+  if (!collectedCSS) return { outcome: 'nothing-to-inject', written };
 
   // No marker reached the output, so append to a preferred stylesheet instead.
   const targetName = pickCssAsset(targets.map(target => target.name));
   const fallback = targets.find(target => target.name === targetName);
 
-  if (!fallback) return 'no-target';
+  if (!fallback) return { outcome: 'no-target', written };
 
   const existing = sources.get(fallback) ?? '';
   const finalCSS = await finalizeCss(collectedCSS, fallback.name);
 
   await fallback.write(existing ? existing + '\n' + finalCSS : finalCSS);
 
-  return 'appended';
+  return { outcome: 'appended', written: [fallback] };
 }

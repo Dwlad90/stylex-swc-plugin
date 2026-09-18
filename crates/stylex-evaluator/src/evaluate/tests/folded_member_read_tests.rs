@@ -18,7 +18,7 @@ use super::source_evaluation::*;
 use crate::evaluate::fold_placeholder_function;
 use stylex_ast::ast::convertors::create_ident_expr;
 use stylex_constants::constants::api_names::FUNCTION_CONFIG_FN_KEY;
-use stylex_constants::constants::evaluation_errors::UNEXPECTED_MEMBER_LOOKUP;
+use stylex_constants::constants::evaluation_errors::{UNDEFINED_CONST, UNEXPECTED_MEMBER_LOOKUP};
 use stylex_constants::constants::messages::{EXPECTED_CSS_VAR, MEMBER_NOT_RESOLVED};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
@@ -207,4 +207,81 @@ fn a_group_read_by_a_key_with_no_name_refuses() {
 
   assert_refuses(&fns, &format!("{GROUP}[true]"), UNEXPECTED_MEMBER_LOOKUP);
   assert_refuses(&fns, &format!("{GROUP}[{{}}]"), MEMBER_NOT_RESOLVED);
+}
+
+/// Every member arm, over a receiver that resolved to nothing.
+///
+/// A member read no longer stops on `state.confident` before it reads the
+/// property: a fold answers a value or it answers nothing, so a receiver that
+/// refused arrives as no value and the arm for that reads it. The one reader
+/// that answered a value while not confident was the own-keys call, and it now
+/// filters at the point the argument is read.
+///
+/// What is left to pin is the receiver the memo is the only route to -- one
+/// that resolved to nothing while the walk stayed confident, so the guard that
+/// was removed would never have fired for it either. Each arm below has to
+/// refuse rather than read a property off it: an object read, an index into a
+/// string, an index into a list, and a length.
+#[test]
+fn every_member_arm_refuses_a_receiver_that_resolved_to_nothing() {
+  for source in [
+    "((() => 1) + 1).a",
+    "((() => 1) + 1)['a']",
+    "((() => 1) + 1)[0]",
+    "((() => 1) + 1).length",
+  ] {
+    assert_refused(&evaluated_after(UNRESOLVED_MEMO_WARM, source), source);
+  }
+}
+
+/// The same receiver, named by a computed key that is itself a value.
+///
+/// The key is folded before the receiver is read, so this pins the order as
+/// well as the answer: a key that folds does not turn a receiver with no value
+/// into one.
+#[test]
+fn a_computed_key_does_not_give_a_missing_receiver_a_property() {
+  let source = "((() => 1) + 1)['a' + 'b']";
+
+  assert_refused(&evaluated_after(UNRESOLVED_MEMO_WARM, source), source);
+}
+
+/// Every member arm, read after the walk has already refused.
+///
+/// This is the shape the removed confidence check stood in front of. A call's
+/// arguments are folded one after another and an argument that refuses does not
+/// stop the loop, so the argument *after* it is read while the walk is no
+/// longer confident -- and a member read there now reads its property instead
+/// of answering nothing.
+///
+/// What has to hold is that reading it changes nothing an author sees: the call
+/// still refuses, and it refuses with the first argument's reason rather than
+/// with anything the member read went on to say. The member arms are covered
+/// one by one -- an object read, an index into a string, an index into a list
+/// -- because each reaches the property through its own arm.
+#[test]
+fn a_member_read_after_a_refused_argument_changes_no_answer() {
+  for source in [
+    "[].concat(unknownThing, ({ a: 1 }).a)",
+    "[].concat(unknownThing, 'ab'[0])",
+    "[].concat(unknownThing, [1, 2][1])",
+    "[].concat(unknownThing, [1, 2].length)",
+  ] {
+    let result = evaluate_source(source);
+
+    assert!(
+      !result.confident,
+      "`{source}` folded past an argument it had refused"
+    );
+
+    // The first refusal is the one an author is shown, because `deopt` records
+    // a reason only while the walk is still confident. A member arm that
+    // refused on its own account would have to overwrite it to be visible, and
+    // none does.
+    assert_eq!(
+      result.reason.as_deref(),
+      Some(UNDEFINED_CONST),
+      "`{source}` was refused by something other than its first argument"
+    );
+  }
 }

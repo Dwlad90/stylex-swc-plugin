@@ -1,5 +1,6 @@
 mod dealing_with_imports;
 mod even_when_stylex_calls_come_first;
+mod inline_styles;
 mod keep_stylex_create_when_needed;
 mod naming_conventions;
 mod naming_conventions_with_dynamisms;

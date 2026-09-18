@@ -42,10 +42,16 @@ pub(in super::super) fn evaluate(
   let mut func: Option<Box<FunctionConfig>> = None;
 
   if let Callee::Expr(callee_expr) = &call.callee {
+    // A parenthesis is not a different callee, so both arms below read through
+    // it: `(pick)()` and `(palette.pick)()` name what the bare spellings name.
+    // The receiver inside keeps its own parentheses, because the engine fold
+    // prints the source back and `{ a: 1 }.valueOf()` is not an expression.
+    let callee_expr = normalize_expr(callee_expr);
+
     // A bare name reaching here is one the module bound — an unbound global is a
     // native function and was folded above, whether it could be applied or not.
     // So this is the author's own function and is called as one.
-    if let Expr::Ident(ident) = callee_expr.as_ref() {
+    if let Expr::Ident(ident) = callee_expr {
       let entry = state
         .functions
         .identifiers
@@ -85,7 +91,7 @@ pub(in super::super) fn evaluate(
       }
     }
 
-    if let Expr::Member(member) = callee_expr.as_ref() {
+    if let Expr::Member(member) = callee_expr {
       match member_callee(member, call, path, state, traversal_state, fns)? {
         MemberCallee::Function(config) => func = Some(config),
         MemberCallee::Value(value) => return Some(value),
@@ -335,18 +341,31 @@ fn member_callee(
   fns: &FunctionMap,
 ) -> Option<MemberCallee> {
   let object = &member.obj;
+  // The receiver's *name* is read through its parentheses -- `(stylex).types`
+  // names what `stylex.types` names. Only the name: the evaluation below is
+  // handed the receiver as written, because the memo that answers it is keyed
+  // by the subtree as written and a parenthesis is a node in this tree.
+  let named_object = normalize_expr(object);
   let property = &member.prop;
 
   // A member read this dispatch answers by name, at both levels: the receiver's
   // own name, and the property's.
-  if let Some(obj_ident) = object.as_ident() {
+  if let Some(obj_ident) = named_object.as_ident() {
     if let Some(prop_ident) = property.as_ident() {
       if is_mutating_object_method(property) {
         deopt_unsupported!(deopt, path, state, NON_CONSTANT);
       }
 
-      if is_valid_callee(object) && !is_invalid_method(property) {
-        return global_static_callee(object, property, call, path, state, traversal_state, fns);
+      if is_valid_callee(named_object) && !is_invalid_method(property) {
+        return global_static_callee(
+          named_object,
+          property,
+          call,
+          path,
+          state,
+          traversal_state,
+          fns,
+        );
       }
 
       let obj_name = obj_ident.sym.to_string();
@@ -580,10 +599,9 @@ fn member_callee(
 ///
 /// The statics of these globals fold in the engine, on every receiver and in
 /// every position, so a static reaching here is one the fold declined — and the
-/// only thing it can have declined is the receiver. Two of those exist:
-/// `Object.keys(stylex)` asks for the own keys of this compiler's own function
-/// fold, which is not a JavaScript value at all, and `Object.keys([, 'p'])` asks
-/// them of an array with a hole in it, which the fold will not print.
+/// only thing it can have declined is the receiver. `Object.keys(stylex)` is
+/// the one that exists: it asks for the own keys of this compiler's own
+/// function fold, which is not a JavaScript value at all.
 ///
 /// So the one question left is the own-keys one, in its three spellings. It is
 /// not a surface of names this compiler picked — `Object.getOwnPropertyNames`,
@@ -641,22 +659,19 @@ fn own_keys_callee(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<MemberCallee> {
-  // An array literal is read from the syntax rather than from its evaluated
-  // form, because a hole has no value to evaluate and the receiver reader is
-  // what knows a hole carries no key.
-  let cached_arg = match arg.expr.is_array() {
-    true => None,
-    false => evaluate_cached(&arg.expr, state, traversal_state, fns),
-  };
+  // An argument with no value is not a receiver, in either of the two ways it
+  // can have none. One refused, and its own sentence is the better one: it says
+  // which element the author has to look at, where a list answered here would
+  // bury it. The other resolved to nothing while the walk stayed confident,
+  // which the memo is the route to -- nothing named a refusal there, so the
+  // call answers no value and the position that asked for one decides.
+  //
+  // Either way a list must not be answered. The empty one used to be, and it
+  // wrote a declaration the source does not describe.
+  let value =
+    evaluate_cached(&arg.expr, state, traversal_state, fns).filter(|_| state.confident)?;
 
-  let receiver = normalize_object_method_receiver(
-    cached_arg,
-    &arg.expr,
-    traversal_state,
-    Rc::clone(&state.functions),
-  );
-
-  match receiver.own_keys(question) {
+  match normalize_object_method_receiver(value).own_keys(question) {
     Ok(list) => Some(MemberCallee::Value(EvaluateResultValue::Expr(list))),
     Err(reason) => deopt_unsupported!(deopt, path, state, reason),
   }

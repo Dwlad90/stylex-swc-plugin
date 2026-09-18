@@ -21,6 +21,7 @@ use swc_core::{
   },
 };
 
+use stylex_ast::ast::convertors::normalize_expr;
 use stylex_constants::constants::common::{INVALID_METHODS, VALUE_ONLY_GLOBALS};
 use stylex_constants::constants::evaluation_errors::{
   SPREAD_ELEMENT, amplification_inside_a_callback, escaping_property, global_as_a_value,
@@ -1282,13 +1283,16 @@ impl<'r> Walk<'_, 'r> {
       return self.under(guard).admit_applied_global(global, call);
     }
 
-    if let Some(name) = without_parens(callee).as_ident() {
+    if let Some(name) = normalize_expr(callee).as_ident() {
       return self
         .under(guard)
         .admit_a_named_call(name, callee, call, position);
     }
 
-    let Expr::Member(MemberExpr { obj, prop, .. }) = callee.as_ref() else {
+    // Read through the callee's parentheses, as the two arms above read theirs.
+    // The receiver keeps its own, because the fold prints this source back for
+    // the engine to parse and `{ a: 1 }.valueOf()` is not an expression there.
+    let Expr::Member(MemberExpr { obj, prop, .. }) = normalize_expr(callee) else {
       return Err(Decline::NotACandidate);
     };
 
@@ -1717,21 +1721,6 @@ pub(super) fn admit_an_applied_global(name: &Atom, engine: &mut Context) -> Resu
   }
 }
 
-/// The expression a parenthesised one wraps, however many layers deep.
-///
-/// Unwrapped in a loop rather than by recursing, because every caller asks this
-/// before the guard descends and so has no nesting budget to spend. A loop needs
-/// none.
-pub(super) fn without_parens(expr: &Expr) -> &Expr {
-  let mut expr = expr;
-
-  while let Expr::Paren(paren) = expr {
-    expr = &paren.expr;
-  }
-
-  expr
-}
-
 /// The identifier a global is written as, through parentheses, before any
 /// question of shadowing.
 ///
@@ -1739,7 +1728,7 @@ pub(super) fn without_parens(expr: &Expr) -> &Expr {
 /// written and the reference compiler folds `(String)('a')` and `(Math).max(1, 2)`
 /// exactly as it folds them bare.
 fn written_global(expr: &Expr) -> Option<&Ident> {
-  let expr = without_parens(expr);
+  let expr = normalize_expr(expr);
 
   match expr.as_ident() {
     Some(ident) if is_valid_callee(expr) => Some(ident),

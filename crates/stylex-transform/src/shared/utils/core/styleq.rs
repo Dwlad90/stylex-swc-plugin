@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use stylex_macros::{stylex_panic, stylex_unreachable};
+use stylex_macros::stylex_panic;
 use stylex_styleq::{StyleMap, StyleqArgument};
 
 use crate::shared::utils::core::parse_nullable_style::{ResolvedArg, StyleObject};
@@ -25,6 +25,12 @@ impl StyleqArgument<Rc<FlatCompiledStylesValue>> for ResolvedArg {
     }
   }
 
+  /// The address of the style, which names it only while the merge holds it.
+  ///
+  /// Safe because the merger is built and dropped inside one merge, below, so
+  /// every style outlives the cache that names it. A merger that lived longer
+  /// would have to refuse this key for a style the reader built, which is
+  /// dropped with the merge, and give it only for a style read from the state.
   fn cache_key(&self) -> Option<usize> {
     self
       .as_style()
@@ -48,8 +54,21 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
     };
   }
 
+  // The cache is off, because this merger cannot hit it. It is built here and
+  // dropped when the call returns, so a hit needs the same style twice at the
+  // same position of one merge. Measured over the whole transform suite and the
+  // fixture corpus: 1,076 lookups, none of them a hit. Every one of those paid
+  // for an entry, three shared strings, a chunk and a child map, and collected
+  // nothing. The cache is transparent -- a merge answers the same with it and
+  // without it -- so turning it off changes what the merge costs and not what
+  // it says.
+  //
+  // A merger that lives for the file does answer lookups from the cache, and
+  // saves less than one percent for it. The module comment of `stylex-styleq`
+  // holds both measurements.
   let styleq = stylex_styleq::create_styleq(stylex_styleq::StyleqOptions {
     dedupe_class_name_chunks: true,
+    disable_cache: true,
     ..Default::default()
   });
   let result = styleq.styleq(arguments);
@@ -68,8 +87,9 @@ fn style_object_as_style(style_object: &StyleObject) -> Option<&FlatCompiledStyl
     StyleObject::Other => {
       stylex_panic!("Only compiled StyleX style objects are allowed in styleq().")
     },
-    StyleObject::Unreachable => {
-      stylex_unreachable!("Encountered an unexpected style object variant in styleq processing.")
-    },
   }
 }
+
+#[cfg(test)]
+#[path = "tests/styleq_tests.rs"]
+mod tests;

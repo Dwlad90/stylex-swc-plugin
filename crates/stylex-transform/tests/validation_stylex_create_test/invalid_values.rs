@@ -2545,13 +2545,17 @@ stylex_test_panic!(
 
 // A condition key that is a lone surrogate. Upstream reads `Invalid pseudo or
 // at-rule.` -- it holds the key as a JavaScript string and never has to write
-// it down. This compiler refuses the key's encoding before the fold is reached,
-// which is the same rule `char_code_at` and an object spread of a string
-// already answer: no Rust string can hold a lone surrogate, and emitting a
-// replacement character would write a selector the source does not describe.
+// it down. This compiler refuses the key, which is the same rule `char_code_at`
+// and an object spread of a string already answer: no Rust string can hold a
+// lone surrogate, and emitting a replacement character would write a selector
+// the source does not describe.
+//
+// It is a refusal about the key rather than about the encoding now, and it
+// names the key path it sits under. The converter it used to reach aborted the
+// build from inside itself, which reported neither.
 stylex_test_panic!(
   a_static_fold_under_a_lone_surrogate_key_is_refused_for_the_key,
-  "String value contains invalid UTF-8 encoding.",
+  "The key has no name at compile time.",
   r#"
     import { create, keyframes } from '@stylexjs/stylex';
 
@@ -2764,12 +2768,13 @@ stylex_test!(
 // --------------------------------------------------------------------------
 
 // The fold as a computed key. Upstream coerces the object it folded to and emits
-// a rule for a property named `[object object]`; this compiler refuses the key.
-// Both compilers write nonsense and disagree about which, and agreeing here
-// means reproducing a coercion neither intends.
+// a rule for a property named `[object object]`; this compiler refuses, because
+// the fold is its own value and has no name the language would give it. An
+// object an author *wrote* now names `[object Object]` here as it does there --
+// what is left is the value the language never sees.
 stylex_test_panic!(
   the_namespace_import_read_as_a_static_computed_key_is_refused,
-  "A style value can only contain an array, string or number.",
+  "The key has no name at compile time.",
   r#"
     import * as stylex from '@stylexjs/stylex';
 
@@ -2978,5 +2983,97 @@ stylex_test_panic!(
     import * as stylex from '@stylexjs/stylex';
 
     export const styles = stylex.create({ a: { color: stylex.env.getTheme() } });
+  "#
+);
+
+// A comparison written as the whole style value. It answers a boolean, and a
+// style value may be an array, a string or a number -- so both compilers refuse
+// the declaration, with the same sentence.
+//
+// This compiler wrote `content: "1px"` for the first row before: a comparison
+// folded to a number, so `1 === 1` reached the CSS layer as `1` and came out as
+// a length. The two rows are the parity corpus entries
+// `modules-comparison-as-a-whole-value-numbers` and `-strings`.
+stylex_test_panic!(
+  a_comparison_written_as_a_whole_style_value_is_refused,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ base: { content: (1 === 1) } });
+  "#
+);
+
+stylex_test_panic!(
+  a_string_comparison_written_as_a_whole_style_value_is_refused,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ base: { content: ('a' === 'a') } });
+  "#
+);
+
+// A property of a dynamic style that holds a body rather than a value. A
+// shorthand method, a getter and a setter each run code the compiler cannot
+// fold, so the call is refused -- the same sentence the reference gives, for
+// the same three shapes.
+//
+// The getter and the setter were dropped without a word before: the style came
+// out empty and the declaration the author wrote was nowhere in the output.
+stylex_test_panic!(
+  a_method_in_a_dynamic_style_is_refused,
+  "Only static values are allowed inside of a create() call.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ root: (c) => ({ color() { return c; } }) });
+  "#
+);
+
+stylex_test_panic!(
+  a_getter_in_a_dynamic_style_is_refused,
+  "Only static values are allowed inside of a create() call.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ root: (c) => ({ get color() { return c; } }) });
+  "#
+);
+
+stylex_test_panic!(
+  a_setter_in_a_dynamic_style_is_refused,
+  "Only static values are allowed inside of a create() call.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ root: (c) => ({ set color(v) { c = v; } }) });
+  "#
+);
+
+// The same reader runs over every object below the first one, so a condition
+// holding such a property is refused where it stands.
+stylex_test_panic!(
+  a_getter_below_the_first_object_of_a_dynamic_style_is_refused,
+  "Only static values are allowed inside of a create() call.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({
+      root: (c) => ({ color: { default: 'red', get ':hover'() { return c; } } }),
+    });
+  "#
+);
+
+// A namespace key that spells text no name can hold. A string literal may hold
+// an unpaired surrogate, which no name can, so the key is refused where it is
+// read -- before anything under it is, whatever the value beside it says.
+stylex_test_panic!(
+  a_namespace_key_that_spells_no_name_is_refused,
+  "The key has no name at compile time.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ '\uD83D': runtimeValue });
   "#
 );

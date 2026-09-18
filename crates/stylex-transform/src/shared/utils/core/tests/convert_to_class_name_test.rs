@@ -148,6 +148,36 @@ mod convert_style_to_class_name {
     assert_eq!(try_convert(("color", &PreRuleValue::string("  \t "))), None);
   }
 
+  /// A character that *looks* blank but is not one the trim reads is a value
+  /// like any other, and it reaches the stylesheet as itself.
+  ///
+  /// Two of them, and each is a different reason the trim could have been
+  /// wrong: the ideographic space and the no-break space are both spaces the
+  /// language does not call whitespace. Measured against
+  /// `@stylexjs/babel-plugin@0.19.0`, which declares them the same way.
+  #[test]
+  fn declares_a_value_that_only_looks_blank() {
+    for text in ["\u{3000}", "\u{a0}"] {
+      assert_eq!(
+        try_convert(("color", &PreRuleValue::string(text))),
+        Some(format!("color:{text}")),
+        "value {text:?}"
+      );
+    }
+  }
+
+  /// A control character carries no CSS text, so it leaves the property
+  /// undeclared like any other value that does not.
+  ///
+  /// The reference implementation neither declares it nor refuses it: it fails
+  /// inside its own value parser, reading a property of `undefined`. There is
+  /// no answer of its to agree with, and leaving the property out is what this
+  /// compiler already does for every value with no text.
+  #[test]
+  fn declares_nothing_for_a_control_character() {
+    assert_eq!(try_convert(("color", &PreRuleValue::string("\u{1}"))), None);
+  }
+
   /// The test is on the transformed value, not the authored one: quoting is what
   /// gives a blank `content` its text.
   ///
@@ -168,6 +198,23 @@ mod convert_style_to_class_name {
       try_convert(("hyphenateCharacter", &PreRuleValue::string("   "))),
       Some("hyphenate-character:\"\"".to_string())
     );
+  }
+
+  /// `hyphenateCharacter` takes a *character*, not a property name, so the
+  /// value goes through untouched -- the camel case is the author's text rather
+  /// than a spelling to hyphenate. Its own key is hyphenated all the same.
+  ///
+  /// Both spellings of the key, because the property reaches the CSS layer as
+  /// either one and the bypass is keyed by the name.
+  #[test]
+  fn keeps_a_hyphenate_character_value_as_it_was_written() {
+    for key in ["hyphenateCharacter", "hyphenate-character"] {
+      assert_eq!(
+        try_convert((key, &PreRuleValue::string("fooBar"))),
+        Some("hyphenate-character:\"fooBar\"".to_string()),
+        "key {key:?}"
+      );
+    }
   }
 
   /// A blank entry drops out of a fallback array rather than emitting an empty
@@ -318,5 +365,46 @@ mod convert_style_to_class_name {
     ));
 
     assert_eq!(result, "height:var(--z,var(--y,var(--x,var(--w))))")
+  }
+
+  /// A fallback chain composes the `var()` entries into one value, so they have
+  /// to stand together. A plain value between two of them cannot be composed
+  /// and is refused rather than written into the middle of the chain.
+  #[test]
+  #[should_panic(expected = "All variables passed to firstThatWorks() must be contiguous.")]
+  fn refuses_a_value_between_two_variables() {
+    convert((
+      "height",
+      &PreRuleValue::Vec(vec!["var(--x)".into(), "100px".into(), "var(--y)".into()]),
+    ));
+  }
+
+  /// A value the compiler could not fold is not a style value, and neither is
+  /// an absent one. A class name cannot be hashed from either.
+  #[test]
+  #[should_panic(expected = "A style value can only contain an array, string or number.")]
+  fn refuses_a_value_that_did_not_fold() {
+    convert((
+      "color",
+      &PreRuleValue::Expr(crate::tests::support::expr("a + b")),
+    ));
+  }
+
+  #[test]
+  #[should_panic(expected = "A style value can only contain an array, string or number.")]
+  fn refuses_an_absent_value() {
+    convert(("color", &PreRuleValue::Null));
+  }
+
+  /// A plain value after the last variable is written beside the chain rather
+  /// than into it.
+  #[test]
+  fn keeps_a_plain_value_after_the_last_variable() {
+    let result = convert((
+      "height",
+      &PreRuleValue::Vec(vec!["var(--x)".into(), "100px".into()]),
+    ));
+
+    assert_eq!(result, "height:var(--x);height:100px")
   }
 }

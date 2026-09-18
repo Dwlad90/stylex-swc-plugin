@@ -1196,4 +1196,61 @@ mod stylex_define_vars {
 
     css_type
   }
+
+  /// The name a variable is written under in the stylesheet is hashed from the
+  /// export it belongs to. Under debug class names the hash is prefixed with a
+  /// name the author can read, which has to be an identifier.
+  mod the_name_a_variable_is_written_under {
+    use super::*;
+
+    use crate::tests::support::expr;
+
+    fn var_refs(code: &str, debug: bool) -> Vec<String> {
+      let options = StyleXStateOptions::default()
+        .with_class_name_prefix("x")
+        .with_debug(debug)
+        .with_enable_debug_class_names(debug);
+
+      let mut state = StateManager::for_test(None, options);
+      state.export_id = Some("Test.stylex.js//tokens".to_owned());
+
+      let (var_refs, _) = stylex_define_vars(&EvaluateResultValue::Expr(expr(code)), &mut state);
+
+      var_refs
+        .values()
+        .filter_map(|value| value.as_string().cloned())
+        .collect()
+    }
+
+    /// A name that starts with a digit is no identifier, so the readable half
+    /// is written with a leading underscore.
+    #[test]
+    fn carries_a_readable_name_that_starts_with_a_digit_under_an_underscore() {
+      let names = var_refs("{ '2xl': '10px' }", true);
+
+      assert!(
+        names[0].starts_with("var(--_2xl-x"),
+        "the variable is named {}",
+        names[0]
+      );
+    }
+
+    #[test]
+    fn is_the_hash_alone_when_debug_names_are_off() {
+      let names = var_refs("{ '2xl': '10px' }", false);
+
+      assert!(
+        names[0].starts_with("var(--x") && !names[0].contains("2xl"),
+        "the variable is named {}",
+        names[0]
+      );
+    }
+
+    /// A name the author wrote as a CSS custom property keeps that name, with
+    /// the two leading dashes taken off.
+    #[test]
+    fn keeps_a_custom_property_name_the_author_wrote() {
+      assert_eq!(var_refs("{ '--brand': 'red' }", true)[0], "var(--brand)");
+    }
+  }
 }

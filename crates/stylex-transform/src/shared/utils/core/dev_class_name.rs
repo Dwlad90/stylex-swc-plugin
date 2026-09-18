@@ -25,8 +25,15 @@ pub(crate) fn inject_dev_class_names(
 /// The debug name of a compiled `sx` value.
 ///
 /// Such a value is bound to no variable, and the one namespace it holds is a
-/// name the compiler keys on rather than one the author wrote. So the name
-/// says `sx`, which is what the author reads in the source.
+/// name the compiler keys on rather than one the author wrote. So the name says
+/// `sx`, which is what an author reads in the source of every default build.
+///
+/// Written out rather than read from `STYLEX_SX`, which is the default of the
+/// `sxPropName` option: this is a fixed label and that is a configurable value,
+/// and sharing one spelling would have a change to the option's default move
+/// the label with it. An author who configured another name reads that name and
+/// this label still says `sx` -- recorded as
+/// `modules-1272-a-renamed-sx-prop-keeps-the-sx-debug-name`.
 pub(crate) fn inject_sx_dev_class_name(
   obj: StylesObjectMap,
   state: &StateManager,

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use log::warn;
 use stylex_ast::ast::convertors::convert_lit_to_string;
 use stylex_css::order::structures::{
@@ -15,8 +17,13 @@ use stylex_structures::{
 };
 use swc_core::ecma::ast::{Expr, Lit};
 
+/// The declarations one authored property stands for.
+///
+/// The key is borrowed where the caller has one to lend. A shorthand is read by
+/// name and then expanded into keys of its own, so the name is only copied on
+/// the one path that keeps it: a property that stands for itself.
 pub(crate) fn flat_map_expanded_shorthands(
-  obj_entry: (String, PreRuleValue),
+  obj_entry: (Cow<'_, str>, PreRuleValue),
   options: &StyleXStateOptions,
 ) -> Vec<OrderPair> {
   let (key, raw_value) = obj_entry;
@@ -84,19 +91,28 @@ pub(crate) fn flat_map_expanded_shorthands(
     PreRuleValue::Null => None,
   };
 
+  // A key that is one variable reference and nothing else names the custom
+  // property it declares. This is the wider of the two questions the compiler
+  // asks about such a key: it takes any name, where the one in
+  // `flatten_raw_style_object.rs` takes only a narrow class. Both are kept,
+  // because the reference implementation asks both, and a key the narrow one
+  // passes over reaches its property here.
+  //
+  // The slice is safe to count in bytes: both ends are proven ASCII by the two
+  // checks beside it.
   let key = if key.starts_with("var(") && key.ends_with(')') {
-    key[4..key.len() - 1].to_string()
+    Cow::Owned(key[4..key.len() - 1].to_string())
   } else {
     key
   };
 
   let expansion_fn = match &options.style_resolution {
-    StyleResolution::ApplicationOrder => ApplicationOrder::get_expansion_fn(key.as_str()),
+    StyleResolution::ApplicationOrder => ApplicationOrder::get_expansion_fn(key.as_ref()),
     StyleResolution::LegacyExpandShorthands => {
-      LegacyExpandShorthandsOrder::get_expansion_fn(key.as_str())
+      LegacyExpandShorthandsOrder::get_expansion_fn(key.as_ref())
     },
     StyleResolution::PropertySpecificity => {
-      PropertySpecificityOrder::get_expansion_fn(key.as_str())
+      PropertySpecificityOrder::get_expansion_fn(key.as_ref())
     },
   };
 
@@ -118,9 +134,9 @@ pub(crate) fn flat_map_expanded_shorthands(
     };
   }
 
-  let order_pair = OrderPair(key.into(), value);
-
-  let vec_order_pair: Vec<OrderPair> = vec![order_pair];
-
-  vec_order_pair
+  vec![OrderPair(key.into_owned().into(), value)]
 }
+
+#[cfg(test)]
+#[path = "tests/flat_map_expanded_shorthands_tests.rs"]
+mod tests;

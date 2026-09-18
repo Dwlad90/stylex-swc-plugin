@@ -1,44 +1,68 @@
+use std::borrow::Cow;
+
 use super::*;
 use stylex_ast::ast::convertors::normalize_expr;
 
+/// The value a shorthand is expanded with.
+///
+/// An expansion needs a value to work on, and this one says nothing about the
+/// style it stands for. Only which declarations an expansion answers matters
+/// here, so the value is read for nothing but whether it is there.
+///
+/// It is one token holding a digit, which is what keeps it silent: `listStyle`
+/// is the one expansion that sorts its value, and it sorts this one into the
+/// slot a keyword would not take.
+///
+/// **One constant where the reference writes `'p' + i`.** The two agree only
+/// because no expansion reads the index: `legacy-expand-shorthands.js` branches
+/// on how many tokens a value holds and never on what a token spells. That is
+/// an assumption about code this repository does not own, so it is written down
+/// here. An expansion that starts reading the index -- one that treats `p1`
+/// differently from `p0` -- makes this constant wrong, and the answer would be
+/// to carry the index again rather than to change the token.
+const SHORTHAND_MARKER: &str = "p0";
+
 pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicStyle> {
+  // The same options for every style, so they are built once. Building them
+  // inside the loop made two strings, a counted pointer and two collections for
+  // each style, to answer one question that never changes.
+  let options =
+    StyleXStateOptions::default().with_style_resolution(StyleResolution::LegacyExpandShorthands);
+
   let expanded_keys_to_key_paths: Vec<DynamicStyle> = dynamic_styles
     .iter()
-    .enumerate()
-    .flat_map(|(i, dynamic_style)| {
+    .flat_map(|dynamic_style| {
       let obj_entry = (
-        dynamic_style.key.clone(),
-        PreRuleValue::string(create_shorthand_key(i)),
+        Cow::Borrowed(dynamic_style.key.as_str()),
+        PreRuleValue::string(SHORTHAND_MARKER),
       );
 
-      let options = StyleXStateOptions::default()
-        .with_style_resolution(StyleResolution::LegacyExpandShorthands);
-
+      // The style each expanded declaration came from is carried beside it,
+      // because this loop knows which style it is expanding.
       flat_map_expanded_shorthands(obj_entry, &options)
+        .into_iter()
+        .map(move |pair| (dynamic_style, pair))
     })
-    .filter_map(|OrderPair(key, value)| {
-      let value = value?;
-
-      let index = value.as_css_text()[1..].parse::<usize>().ok()?;
-      let that_dyn_style = dynamic_styles.get(index)?;
+    .filter_map(|(that_dyn_style, OrderPair(key, value))| {
+      // An expansion nulls out the properties the shorthand replaces --
+      // `marginInline` unsets `marginLeft` and `marginRight` -- and a
+      // declaration with no value declares nothing for a dynamic style to
+      // claim.
+      value?;
 
       let key = key.into_owned();
       Some(DynamicStyle {
         key: key.clone(),
+        // A key names a property and is a prefix of its path, so a path longer
+        // than its key continues with a `_` and holds the key only at its head.
+        // `dynamic_styles_of_namespace` states both halves of that rule, and
+        // says what an empty key would do to this line.
         path: if that_dyn_style.path == that_dyn_style.key {
           key
-        } else if that_dyn_style
-          .path
-          .contains(&(that_dyn_style.key.clone() + "_"))
-        {
+        } else {
           that_dyn_style
             .path
             .replace(&(that_dyn_style.key.clone() + "_"), &(key + "_"))
-        } else {
-          that_dyn_style.path.replace(
-            &("_".to_string() + that_dyn_style.key.as_str()),
-            &("_".to_string() + key.as_str()),
-          )
         },
         ..that_dyn_style.clone()
       })
@@ -57,18 +81,6 @@ pub(super) fn create_property_rule(variable_name: &str, is_pseudo_element: bool)
   rule.push_str(inherits);
   rule.push_str(";}");
   rule
-}
-
-fn create_shorthand_key(index: usize) -> String {
-  let digit_count = if index == 0 {
-    1
-  } else {
-    index.ilog10() as usize + 1
-  };
-  let mut key = String::with_capacity(digit_count + 1);
-  key.push('p');
-  let _ = write!(key, "{index}");
-  key
 }
 
 pub(super) fn is_safe_to_skip_null_check(expr: &Expr) -> bool {
@@ -119,19 +131,20 @@ pub(super) fn has_explicit_nullish_fallback(expr: &Expr) -> bool {
   }
 }
 
+/// The nullish fallback of the first variable `rule` names that has one.
+///
+/// A search rather than a walk with two guards in it: the capture group the
+/// pattern names is not optional, and a variable the map does not hold is the
+/// next one to look at rather than a case of its own.
 pub(super) fn extract_expr_from_rule(
   rule: &str,
   nullish_var_expressions: &FxHashMap<String, Expr>,
 ) -> Option<Expr> {
-  for cap in VAR_EXTRACTION_REGEX.captures_iter(rule).flatten() {
-    if let Some(var_match) = cap.get(1) {
-      let var_name = var_match.as_str();
-      if let Some(expr) = nullish_var_expressions.get(var_name) {
-        return Some(expr.clone());
-      }
-    }
-  }
-  None
+  VAR_EXTRACTION_REGEX
+    .captures_iter(rule)
+    .flatten()
+    .filter_map(|cap| cap.get(1))
+    .find_map(|var_match| nullish_var_expressions.get(var_match.as_str()).cloned())
 }
 
 /// Hoist an expression to the module level as a `const` declaration.
@@ -139,11 +152,16 @@ pub(super) fn extract_expr_from_rule(
 /// The declaration is queued after the imports and the returned identifier
 /// stands for the expression at the call site. `stem` is what the generated
 /// name is built on.
+///
+/// The name is answered as the identifier it is, not as an expression holding
+/// one. A caller that needs the name -- the dynamic-style rewrite declares it
+/// beside the call -- used to read it back out of the expression and guard a
+/// shape the hoist cannot answer.
 fn hoist_to_module_level(
   stem: &'static str,
   ast_expression: Expr,
   state: &mut stylex_state::state_manager::StateManager,
-) -> Expr {
+) -> Ident {
   let hoisted_ident = state.next_hoisted_ident(stem);
 
   let var_decl = VarDecl {
@@ -160,14 +178,14 @@ fn hoist_to_module_level(
     module_item,
   );
 
-  Expr::Ident(hoisted_ident)
+  hoisted_ident
 }
 
 /// Hoist a static fragment of a style value to a `_temp` constant.
 pub(crate) fn hoist_expression(
   ast_expression: Expr,
   state: &mut stylex_state::state_manager::StateManager,
-) -> Expr {
+) -> Ident {
   hoist_to_module_level("temp", ast_expression, state)
 }
 
@@ -199,5 +217,5 @@ pub(crate) fn hoist_styles_object(
   ast_expression: Expr,
   state: &mut stylex_state::state_manager::StateManager,
 ) -> Expr {
-  hoist_to_module_level("styles", ast_expression, state)
+  Expr::Ident(hoist_to_module_level("styles", ast_expression, state))
 }

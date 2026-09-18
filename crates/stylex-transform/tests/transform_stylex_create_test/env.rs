@@ -759,3 +759,22 @@ stylex_test!(
     });
   "#
 );
+
+stylex_test_panic!(
+  stylex_env_written_whole_as_a_dynamic_style_value_is_refused,
+  "Style value must evaluate to a static expression.",
+  |tr| {
+    let mut env = IndexMap::new();
+    env.insert(
+      "brandPrimary".to_string(),
+      EnvEntry::Expr(create_string_expr("#123456")),
+    );
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
+  },
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: (c) => ({ color: stylex.env }),
+    });
+  "#
+);

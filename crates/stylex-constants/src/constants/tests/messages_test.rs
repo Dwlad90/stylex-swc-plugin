@@ -71,18 +71,11 @@ fn test_unbound_call_value() {
 }
 
 #[test]
-fn test_export_variable_not_found() {
+fn test_type_asserted_call_value() {
   assert_eq!(
-    export_variable_not_found("defineVars"),
-    "defineVars(): The export variable could not be found. Ensure the call is bound to a named export."
+    type_asserted_call_value("create"),
+    "create() cannot be written inside a type assertion. Bind the call to a variable and assert the variable."
   );
-}
-
-#[test]
-fn test_export_variable_not_found_nested_api() {
-  let result = export_variable_not_found("unstable_defineVarsNested");
-  assert!(result.starts_with("unstable_defineVarsNested():"));
-  assert!(result.contains("export variable could not be found"));
 }
 
 #[test]
@@ -145,11 +138,4 @@ fn test_missing_default_value_names_the_variable_unquoted() {
   // No quoting, whatever the key looks like.
   assert!(!missing_default_value("k").contains('"'));
   assert!(!missing_default_value("k").contains('\''));
-
-  // The unnamed sibling is upstream's other spelling, for the recursion that
-  // has no key to name. Kept beside this one so the pair cannot drift.
-  assert_eq!(
-    MISSING_DEFAULT_VALUE_UNNAMED,
-    "Default value is not defined for variable."
-  );
 }

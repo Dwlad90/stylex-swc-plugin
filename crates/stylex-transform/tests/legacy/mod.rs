@@ -1,4 +1,5 @@
 mod transform_call;
+mod transform_legacy_polyfills_test;
 mod transform_legacy_shorthands;
 mod transform_logical_properties_test;
 mod transform_logical_values_test;

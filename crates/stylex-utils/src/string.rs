@@ -50,6 +50,54 @@ pub fn dashify(s: &str) -> Cow<'_, str> {
   Cow::Owned(dashed.to_lowercase())
 }
 
+/// The spelling a `style` attribute gives a property name.
+///
+/// Every ASCII capital takes a hyphen before it and the whole name is then
+/// lowercased, which is the rule the StyleX runtime applies where it writes a
+/// `style` attribute.
+///
+/// It is not [`dashify`], and the difference is deliberate. A stylesheet takes
+/// a hyphen only where a capital opens the name or follows a lowercase letter,
+/// so `ABCDef` is `-abcdef` there and `-a-b-c-def` here. A stylesheet also
+/// hands a custom property back untouched, which is a guard its caller holds
+/// rather than a rule inside `dashify`; an attribute has no such guard, so
+/// `--myColor` becomes `--my-color`. The two rules are kept apart because the
+/// runtime keeps them apart.
+pub fn kebab_case(s: &str) -> Cow<'_, str> {
+  if s.is_ascii() && !s.bytes().any(|byte| byte.is_ascii_uppercase()) {
+    return Cow::Borrowed(s);
+  }
+
+  let mut kebab = String::with_capacity(s.len() + 4);
+
+  for character in s.chars() {
+    if character.is_ascii_uppercase() {
+      kebab.push('-');
+    }
+
+    // Lowercased as the name is built, which is one string rather than the two
+    // a `to_lowercase` over the finished one costs. Every property name a style
+    // object holds is ASCII, and this runs once per declaration.
+    kebab.push(character.to_ascii_lowercase());
+  }
+
+  match s.is_ascii() {
+    true => Cow::Owned(kebab),
+    // A name outside ASCII goes through the Unicode rule as well, for the
+    // reason `dashify` states above. The pass above left every character it
+    // covers untouched, so the two do not disagree.
+    //
+    // Over the finished name, and not character by character in the loop
+    // above. The rule the runtime applies is one `toLowerCase` over the whole
+    // name, and a whole name is what a final sigma is judged against: `aΣB`
+    // becomes `aς-b` there and `aσ-b` under a per-character lowering. The
+    // second pass is what keeps the two agreeing, and it is paid only by a
+    // name that is not ASCII -- which no property name a style object holds
+    // ever is.
+    false => Cow::Owned(kebab.to_lowercase()),
+  }
+}
+
 /// Whether a value spells no CSS text at all — empty, or nothing but
 /// characters the value scanner reads as whitespace.
 ///
@@ -80,27 +128,6 @@ pub fn dashify(s: &str) -> Cow<'_, str> {
 /// `c0_controls_that_are_not_unicode_whitespace_are_blank`.
 pub fn is_blank_css_text(s: &str) -> bool {
   s.bytes().all(|byte| byte <= 32)
-}
-
-/// Strips surrounding double-quote characters from a string.
-pub fn remove_quotes(s: &str) -> Cow<'_, str> {
-  let trimmed = s.trim_matches('"');
-
-  if trimmed.len() == s.len() {
-    Cow::Borrowed(s)
-  } else {
-    Cow::Borrowed(trimmed)
-  }
-}
-
-/// Wraps a key in double quotes when `should_wrap_in_quotes` is true,
-/// otherwise returns the key unchanged.
-pub fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> Cow<'_, str> {
-  if should_wrap_in_quotes {
-    Cow::Owned(format!("\"{}\"", key))
-  } else {
-    Cow::Borrowed(key)
-  }
 }
 
 /// The length of a string as JavaScript reports it: its count of UTF-16 code

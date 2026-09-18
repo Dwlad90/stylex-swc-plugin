@@ -1,12 +1,9 @@
 use rustc_hash::FxHashMap;
+use std::rc::Rc;
 use stylex_constants::constants::{
-  api_names::STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED,
-  messages::{
-    SPREAD_NOT_SUPPORTED, cannot_generate_hash, export_variable_not_found, non_static_value,
-    non_style_object,
-  },
+  api_names::STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED, messages::cannot_generate_hash,
 };
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_macros::stylex_panic;
 use stylex_utils::identifier::gen_file_based_identifier;
 use swc_core::{
   common::comments::Comments,
@@ -19,15 +16,13 @@ use crate::{
     transformers::stylex_define_consts_nested::stylex_define_consts_nested,
     utils::{
       core::stylex_nested_utils::convert_unflattened_object_to_ast,
-      validators::validate_define_call,
+      validators::{argument_at, folded_style_object, validate_exported_define_call},
     },
   },
   transform::stylex::visitor_utils::{build_env_only_eval_config, is_call_to},
 };
-use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::evaluate::evaluate;
+use stylex_evaluator::evaluate::evaluate_with_functions;
 use stylex_state::state_manager::ImportKind;
-use stylex_structures::top_level_expression::TopLevelExpression;
 
 impl<C> StyleXTransform<C>
 where
@@ -43,58 +38,25 @@ where
       return None;
     }
 
-    let top_level_expr = validate_define_call(
+    let export_name = validate_exported_define_call(
       call,
       STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED,
       1,
-      true,
       &mut self.state,
     );
-    let TopLevelExpression(_, _, var_id) = top_level_expr;
 
-    let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-      Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-      None => first_arg.expr.clone(),
-    })?;
+    let first_arg = argument_at(call, 0, STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED);
 
-    let function_map = build_env_only_eval_config(&mut self.state);
-    let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
+    let function_map = Rc::new(build_env_only_eval_config(&mut self.state));
+    let evaluated_arg = evaluate_with_functions(first_arg, &mut self.state, function_map);
 
-    if !evaluated_arg.confident {
-      stylex_panic!(
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          &non_static_value(STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED),
-          &mut self.state,
-        )
-      );
-    }
-
-    let value = match evaluated_arg.value {
-      Some(value) => {
-        let is_object = value
-          .as_expr()
-          .map(|expr| expr.is_object())
-          .unwrap_or(false);
-
-        if !is_object {
-          stylex_panic!(
-            "{}",
-            build_code_frame_error(
-              &Expr::Call(call.clone()),
-              &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-              &non_style_object(STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED),
-              &mut self.state,
-            )
-          );
-        }
-
-        value
-      },
-      None => stylex_panic!("{}", non_static_value(STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED)),
-    };
+    let value = folded_style_object(
+      evaluated_arg,
+      call,
+      first_arg,
+      STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED,
+      &mut self.state,
+    );
 
     let file_name = match self
       .state
@@ -104,14 +66,6 @@ where
       None => stylex_panic!(
         "{}",
         cannot_generate_hash(STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED)
-      ),
-    };
-
-    let export_name = match var_id.map(|decl| decl.to_string()) {
-      Some(name) => name,
-      None => stylex_panic!(
-        "{}",
-        export_variable_not_found(STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED)
       ),
     };
 

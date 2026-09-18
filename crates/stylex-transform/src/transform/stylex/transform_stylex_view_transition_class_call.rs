@@ -1,10 +1,9 @@
-use std::rc::Rc;
-use stylex_constants::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_expression};
-
 use indexmap::IndexMap;
-use rustc_hash::FxHashMap;
+use std::rc::Rc;
+use stylex_constants::constants::messages::expected_call_expression;
+
 use stylex_ast::ast::convertors::create_string_expr;
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_macros::stylex_panic;
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{Expr, VarDeclarator},
@@ -13,28 +12,22 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    transformers::{
-      stylex_keyframes::get_keyframes_fn,
-      stylex_view_transition_class::stylex_view_transition_class,
-    },
+    transformers::stylex_view_transition_class::stylex_view_transition_class,
     utils::validators::{
-      assert_valid_properties, assert_valid_view_transition_class, is_view_transition_class_call,
+      argument_at, assert_valid_properties, assert_valid_view_transition_class,
+      folded_style_object, is_view_transition_class_call,
       validate_stylex_view_transition_class_indent,
     },
   },
+  transform::stylex::visitor_utils::rule_call_eval_config,
 };
+use stylex_ast::ast::convertors::init_call;
 use stylex_constants::constants::{
-  api_names::{STYLEX_FIRST_THAT_WORKS, STYLEX_KEYFRAMES, STYLEX_VIEW_TRANSITION_CLASS},
-  common::VALID_VIEW_TRANSITION_CLASS_PROPERTIES,
-  messages::{VIEW_TRANSITION_CLASS_INVALID_PROPERTY, non_static_value, non_style_object},
+  api_names::STYLEX_VIEW_TRANSITION_CLASS, common::VALID_VIEW_TRANSITION_CLASS_PROPERTIES,
+  messages::VIEW_TRANSITION_CLASS_INVALID_PROPERTY,
 };
-use stylex_diagnostics::code_frame::build_code_frame_error;
-use stylex_evaluator::{evaluate::evaluate, stylex_first_that_works::stylex_first_that_works};
-use stylex_state::{
-  functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-  state_manager::ImportKind,
-  types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
-};
+use stylex_evaluator::evaluate::evaluate_with_functions;
+use stylex_state::functions::RuleCallHelpers;
 
 impl<C> StyleXTransform<C>
 where
@@ -49,108 +42,25 @@ where
     if is_view_transition_class_call {
       validate_stylex_view_transition_class_indent(var_decl, &mut self.state);
 
-      let call = match var_decl.init.as_ref().and_then(|decl| decl.as_call()) {
+      let call = match init_call(var_decl) {
         Some(call) => call,
         None => stylex_panic!("{}", expected_call_expression(STYLEX_VIEW_TRANSITION_CLASS)),
       };
 
-      let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-        None => first_arg.expr.clone(),
-      })?;
+      let first_arg = argument_at(call, 0, STYLEX_VIEW_TRANSITION_CLASS);
 
-      let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
-      let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
+      let function_map =
+        rule_call_eval_config(&mut self.state, RuleCallHelpers::FirstThatWorksAndKeyframes);
 
-      let first_that_works_fn = FunctionConfig {
-        fn_ptr: FunctionType::ArrayArgs(stylex_first_that_works),
-        takes_path: false,
-      };
+      let evaluated_arg = evaluate_with_functions(first_arg, &mut self.state, function_map);
 
-      let keyframes_fn = get_keyframes_fn();
-
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::FirstThatWorks) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
-          );
-        }
-      }
-
-      if let Some(set) = self.state.get_stylex_api_import(ImportKind::Keyframes) {
-        for name in set {
-          identifiers.insert(
-            name.clone(),
-            Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-          );
-        }
-      }
-
-      for name in self.state.stylex_imports() {
-        let member_expression = member_expressions.entry(name.clone()).or_default();
-
-        member_expression.insert(
-          STYLEX_FIRST_THAT_WORKS.into(),
-          Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
-        );
-
-        member_expression.insert(
-          STYLEX_KEYFRAMES.into(),
-          Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
-        );
-      }
-
-      self
-        .state
-        .apply_stylex_env(&mut identifiers, &mut member_expressions);
-
-      let function_map: Box<FunctionMap> = Box::new(FunctionMap {
-        identifiers,
-        member_expressions,
-        disable_imports: false,
-      });
-
-      let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
-
-      assert!(
-        evaluated_arg.confident,
-        "{}",
-        build_code_frame_error(
-          &Expr::Call(call.clone()),
-          &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          &non_static_value(STYLEX_VIEW_TRANSITION_CLASS),
-          &mut self.state,
-        )
+      let plain_object = folded_style_object(
+        evaluated_arg,
+        call,
+        first_arg,
+        STYLEX_VIEW_TRANSITION_CLASS,
+        &mut self.state,
       );
-
-      let plain_object = match evaluated_arg.value {
-        Some(value) => {
-          assert!(
-            value
-              .as_expr()
-              .map(|expr| expr.is_object())
-              .unwrap_or(false),
-            "{}",
-            build_code_frame_error(
-              &Expr::Call(call.clone()),
-              &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-              &non_style_object(STYLEX_VIEW_TRANSITION_CLASS),
-              &mut self.state,
-            )
-          );
-          value
-        },
-        None => stylex_panic!(
-          "{}",
-          build_code_frame_error(
-            &Expr::Call(call.clone()),
-            &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-            &non_static_value(STYLEX_VIEW_TRANSITION_CLASS),
-            &mut self.state,
-          )
-        ),
-      };
 
       assert_valid_view_transition_class(&plain_object, &mut self.state);
       assert_valid_properties(
@@ -163,16 +73,14 @@ where
       let (view_transition_class_name, injectable_style) =
         stylex_view_transition_class(&plain_object, &mut self.state);
 
-      let mut injected_styles = IndexMap::new();
+      let mut own_rules = IndexMap::new();
 
-      injected_styles.insert(
+      own_rules.insert(
         view_transition_class_name.clone().into(),
         Rc::new(injectable_style),
       );
 
-      let other_injected_css_rules = self.state.other_injected_css_rules.clone();
-
-      injected_styles.extend(other_injected_css_rules);
+      let injected_styles = self.state.take_nested_rules_before(own_rules);
 
       let result_ast = create_string_expr(view_transition_class_name.as_str());
 

@@ -1,20 +1,20 @@
 use rustc_hash::FxHashSet;
-use stylex_macros::stylex_panic;
-use stylex_structures::top_level_expression::TopLevelExpression;
+use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   atoms::Atom,
   ecma::ast::{
-    ArrayLit, ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, OptChainBase, Pat, PropOrSpread,
-    VarDeclarator,
+    ArrayLit, ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, ObjectLit, Pat,
+    PropOrSpread, VarDeclarator,
   },
 };
 
-use crate::shared::utils::ast::helpers::is_variable_named_exported;
+use crate::shared::enums::data_structures::theme_vars::ThemeVars;
+use crate::shared::utils::ast::helpers::named_export_name;
 use stylex_ast::ast::convertors::{
-  convert_key_value_to_str, convert_lit_to_string, create_string_expr, get_key_values_from_object,
-  normalize_expr,
+  convert_key_value_to_str, convert_lit_to_string, get_key_values_from_object, init_call,
+  key_value_name, normalize_expr,
 };
-use stylex_ast::ast::factories::{create_expr_or_spread, create_key_value_prop_ident};
+use stylex_ast::ast::factories::create_expr_or_spread;
 use stylex_constants::constants::{
   api_names::{
     STYLEX_ATTRS, STYLEX_CREATE, STYLEX_CREATE_THEME, STYLEX_DEFAULT_MARKER, STYLEX_DEFINE_CONSTS,
@@ -24,16 +24,18 @@ use stylex_constants::constants::{
   common::VAR_GROUP_HASH_KEY,
   messages::{
     DUPLICATE_CONDITIONAL, EXPECTED_CSS_VAR, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
-    INVALID_PSEUDO_OR_AT_RULE, MEMBER_OBJ_NOT_IDENT, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
+    INVALID_PSEUDO_OR_AT_RULE, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
     NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
-    ONLY_OVERRIDE_DEFINE_VARS, illegal_argument_length, non_export_named_declaration,
-    non_static_value, non_style_object, unbound_call_value,
+    ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED, illegal_argument_length,
+    non_export_named_declaration, non_static_value, non_style_object, type_asserted_call_value,
+    unbound_call_value,
   },
 };
 use stylex_css::utils::condition::is_conditional_key;
 use stylex_diagnostics::code_frame::{
-  build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
+  build_code_frame_error, build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
 };
+use stylex_evaluator::evaluate_result::{EvaluateResult, refusal_site};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   state_manager::{ImportKind, StateManager},
@@ -55,6 +57,148 @@ fn validate_arg_count_for_expr(
   }
 }
 
+/// The expression written at argument `index`, with a spread there refused.
+///
+/// A spread gets this far because every shape check above reads the expression
+/// a spread carries, which is the object they ask for: `keyframes(...{…})`
+/// passes all of them. It is refused at the read, because a spread asks the
+/// compiler for the own properties of a value and the compiler keeps no such
+/// list.
+///
+/// Every caller validates the argument count first, so there is an argument at
+/// each index one asks for.
+///
+/// The expression is lent rather than copied. Eleven of the twelve producers
+/// only read it, and the object an author writes in a `stylex.*` call is the
+/// whole style tree, so a copy per call was the largest one the read made.
+pub(crate) fn argument_at<'a>(call: &'a CallExpr, index: usize, fn_name: &str) -> &'a Expr {
+  let arg = or_refuse_missing_argument(call.args.get(index), index, fn_name);
+
+  match &arg.spread {
+    Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
+    None => &arg.expr,
+  }
+}
+
+/// The style object a producer's argument folded to.
+///
+/// Seven producers that take one object read their argument through the same
+/// three answers, and each one wrote all three out: the fold refused, it
+/// answered something that is not an object, or it answered nothing at all.
+/// `fn_name` was the only thing that differed, and both sentences name it.
+///
+/// The third answer is read here as the first, because it is the same mistake:
+/// an argument that folded to nothing and one that refused both leave the
+/// producer with no object, so both read one sentence at one position. Which is
+/// not what the seven copies did -- four reported the empty answer with no code
+/// frame, and the four that asked through `assert!` (a different four) panicked
+/// with the string they formatted rather than through this compiler's error.
+///
+/// Those four now report the way the other three and every validator do, so
+/// three things reach a reader that did not before: the brand, which neither
+/// boundary shows as new because `stylex_logs` prefixes a payload that lacks
+/// one; the colour, which the NAPI reader strips and stderr prints, so it is
+/// new there whenever the process is a terminal; and the stack trace
+/// `StyleXError` writes when `log` admits `Info`, which is off by default and
+/// reaches both. The sentence itself is unchanged.
+///
+/// How an argument comes to fold to nothing while the fold stayed confident is
+/// not settled: the memo can answer `None` without a refusal having been
+/// recorded. No source is known to reach it, no test does, and it is written
+/// here as the refusal it is rather than left to each producer to guess at.
+///
+/// `#[track_caller]` so the position a refusal reports stays the producer's
+/// call site. Without it all seven would name this file.
+///
+/// [`folded_style_object`] is this answer wrapped back up as the value the rest
+/// of the compiler passes around. One question, two spellings of the answer, so
+/// a caller of either needs no refusal of its own: a caller that walks the
+/// properties asks here and gets the object itself.
+#[track_caller]
+pub(crate) fn folded_style_object_lit(
+  evaluated: Box<EvaluateResult>,
+  call: &CallExpr,
+  argument: &Expr,
+  fn_name: &str,
+  state: &mut StateManager,
+) -> ObjectLit {
+  // Two fields off the box rather than the whole of it: the other three are
+  // never read here, and unboxing the struct would copy them onto the stack on
+  // the path that compiles.
+  let confident = evaluated.confident;
+  let value = evaluated.value;
+  let deopt = evaluated.deopt;
+
+  // `Expr::Call(call.clone())` deep-clones the whole argument, so it is built
+  // only on the paths that are about to panic anyway.
+  //
+  // Reported with `build_code_frame_error` and a panic of its own rather than
+  // with `build_code_frame_error_and_panic`, because the seven copies did: the
+  // second one names the file and the line in the panic as well, and reading
+  // the answer in one place is not a reason to change what an author reads.
+  let Some(value) = value.filter(|_| confident) else {
+    stylex_panic!(
+      "{}",
+      build_code_frame_error(
+        &Expr::Call(call.clone()),
+        &refusal_site(deopt.as_ref(), argument),
+        &non_static_value(fn_name),
+        state,
+      )
+    )
+  };
+
+  let EvaluateResultValue::Expr(Expr::Object(object)) = value else {
+    stylex_panic!(
+      "{}",
+      build_code_frame_error(
+        &Expr::Call(call.clone()),
+        &refusal_site(deopt.as_ref(), argument),
+        &non_style_object(fn_name),
+        state,
+      )
+    )
+  };
+
+  object
+}
+
+/// The style object a producer's argument folded to, as the value the rest of
+/// the compiler passes around.
+///
+/// [`folded_style_object_lit`] answers the same question and reads the object
+/// itself; this is that answer wrapped back up.
+#[track_caller]
+pub(crate) fn folded_style_object(
+  evaluated: Box<EvaluateResult>,
+  call: &CallExpr,
+  argument: &Expr,
+  fn_name: &str,
+  state: &mut StateManager,
+) -> EvaluateResultValue {
+  EvaluateResultValue::Expr(Expr::Object(folded_style_object_lit(
+    evaluated, call, argument, fn_name, state,
+  )))
+}
+
+/// `read`, or the refusal an argument list too short is reported with.
+///
+/// The exclusion covers this step and nothing else, and the step computes
+/// nothing -- it chooses between answers the caller has already worked out.
+/// Every caller reached the read through a count check on the same call, so the
+/// argument is there. `guidelines/stack/RUST.md` describes the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn or_refuse_missing_argument<'a>(
+  read: Option<&'a ExprOrSpread>,
+  index: usize,
+  fn_name: &str,
+) -> &'a ExprOrSpread {
+  match read {
+    Some(read) => read,
+    None => stylex_panic!("{}", illegal_argument_length(fn_name, index + 1)),
+  }
+}
+
 fn assert_first_arg_is_object(
   wrapped_expr: &Expr,
   call: &CallExpr,
@@ -63,7 +207,10 @@ fn assert_first_arg_is_object(
 ) {
   let first_arg = &call.args[0];
 
-  if !first_arg.expr.is_object() {
+  // A parenthesis is not a different argument. Read bare, `keyframes(({…}))`
+  // stopped the build on an object the same author could have written without
+  // the brackets.
+  if !normalize_expr(&first_arg.expr).is_object() {
     build_code_frame_error_and_panic(
       wrapped_expr,
       &first_arg.expr,
@@ -73,26 +220,62 @@ fn assert_first_arg_is_object(
   }
 }
 
+/// `read`, or the refusal a declarator that holds no call is reported with.
+///
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already
+/// worked out. Every caller reached the read through a predicate that asked the
+/// same question of the same declarator, so there is an initializer and it is a
+/// call. `guidelines/stack/RUST.md` describes the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn or_refuse_initializer<'a>(
+  read: Option<(&'a Expr, &'a CallExpr)>,
+  init_expr: Option<&Expr>,
+  fn_name: &str,
+  state: &mut StateManager,
+) -> (&'a Expr, &'a CallExpr) {
+  match read {
+    Some(read) => read,
+    None => match init_expr {
+      Some(init_expr) => {
+        build_code_frame_error_and_panic_at(init_expr, &non_static_value(fn_name), state)
+      },
+      None => stylex_panic!("{}", non_static_value(fn_name)),
+    },
+  }
+}
+
+/// The call a declarator is initialised by, and the expression it was read out
+/// of.
+///
+/// A parenthesis is not a different initializer, so the call is read through it
+/// -- both here and at `find_top_level_expr` below, which matches the recorded
+/// expression. Not [`init_call`]: the panics below report at the initializer,
+/// so the expression the call was read out of is needed beside the call itself.
+fn init_call_of<'a>(
+  var_decl: &'a VarDeclarator,
+  fn_name: &str,
+  state: &mut StateManager,
+) -> (&'a Expr, &'a CallExpr) {
+  let init_expr = var_decl.init.as_deref().map(normalize_expr);
+  let read = init_expr.and_then(|init_expr| init_expr.as_call().map(|call| (init_expr, call)));
+
+  or_refuse_initializer(read, init_expr, fn_name, state)
+}
+
 fn validate_single_object_arg_indent(
   var_decl: &VarDeclarator,
   fn_name: &str,
   state: &mut StateManager,
 ) {
-  let init_expr = match var_decl.init.as_deref() {
-    Some(init) => init,
-    None => stylex_panic!("{}", non_static_value(fn_name)),
-  };
+  let (init_expr, call) = init_call_of(var_decl, fn_name, state);
 
-  let init_call = init_expr.as_call().unwrap_or_else(|| {
-    build_code_frame_error_and_panic_at(init_expr, &non_static_value(fn_name), state);
-  });
-
-  if state.find_top_level_expr(init_call).is_none() {
+  if state.find_top_level_expr(call).is_none() {
     build_code_frame_error_and_panic_at(init_expr, &unbound_call_value(fn_name), state);
   }
 
-  validate_arg_count_for_expr(init_expr, init_call, 1, fn_name, state);
-  assert_first_arg_is_object(init_expr, init_call, fn_name, state);
+  validate_arg_count_for_expr(init_expr, call, 1, fn_name, state);
+  assert_first_arg_is_object(init_expr, call, fn_name, state);
 }
 
 fn is_var_decl_target_call(
@@ -101,10 +284,7 @@ fn is_var_decl_target_call(
   call_name: &str,
   kind: ImportKind,
 ) -> bool {
-  var_decl
-    .init
-    .as_deref()
-    .and_then(Expr::as_call)
+  init_call(var_decl)
     .is_some_and(|call| is_target_call((call_name, state.get_stylex_api_import(kind)), call, state))
 }
 
@@ -124,84 +304,31 @@ macro_rules! stylex_var_decl_call_predicate {
   };
 }
 
-/// Returns `true` when `expr` *is* `call`, or is a member chain rooted at it
-/// (`stylex.create({...}).root`, `stylex.create({...})["root"]`).
+/// Refuses a `stylex.create` call the compiler cannot read.
 ///
-/// Identity is the span, not the structure: two distinct `stylex.create()` call
-/// sites with identical arguments are `eq_ignore_span`-equal, so a structural
-/// comparison would let a genuinely unbound call borrow an unrelated twin's
-/// binding and silently skip validation.
-fn contains_call(expr: &Expr, call: &CallExpr) -> bool {
-  match strip_transparent_wrappers(expr) {
-    Expr::Call(candidate) => candidate.span == call.span,
-    Expr::Member(member) => contains_call(&member.obj, call),
-    Expr::OptChain(opt_chain) => match opt_chain.base.as_ref() {
-      OptChainBase::Member(member) => contains_call(&member.obj, call),
-      OptChainBase::Call(_) => false,
-    },
-    _ => false,
-  }
-}
-
-/// Strips wrappers that neither change the value being accessed nor require
-/// parentheses to be member-accessed: `(stylex.create({...})).root` and
-/// `stylex.create({...})!.root` reach the very same object as
-/// `stylex.create({...}).root`, so binding analysis must see through them.
-///
-/// Type assertions (`as`, `satisfies`, `<T>`, `as const`) are deliberately *not*
-/// stripped. They can only be member-accessed through parentheses, and the
-/// emitter drops that grouping — `(x as any).root` is printed as
-/// `x as any.root`, which re-parses as `x as (any.root)`. Accepting that shape
-/// here would turn a clear "must be bound to a bare variable" diagnostic into
-/// silently invalid output.
-fn strip_transparent_wrappers(expr: &Expr) -> &Expr {
-  match normalize_expr(expr) {
-    Expr::TsNonNull(inner) => strip_transparent_wrappers(&inner.expr),
-    other => other,
-  }
-}
-
-/// Returns `true` when the top-level expression `expr` binds `call`.
-///
-/// Two shapes count as bound beyond a plain variable declarator (which
-/// [`StateManager::find_call_declaration`] handles):
-/// - an array literal holding the call — `[stylex.create({...}), ...]`;
-/// - a direct member access on the call — `stylex.create({...}).root`.
-///
-/// The array case is decided by span containment, **not** by walking `elems`.
-/// A single top-level array holding every style in a module is an idiomatic
-/// StyleX shape (`export const lotsOfStyles = [stylex.create({...}), ...]`), and
-/// this predicate runs once per `stylex.create()` call — scanning the elements
-/// would make validation quadratic in the number of styles in that array.
-/// Containment is O(1) and still rejects a call that merely coexists with an
-/// unrelated array, which a bare `matches!(_, Expr::Array(_))` would accept.
-fn is_bound_create_expr(expr: &Expr, call: &CallExpr) -> bool {
-  match strip_transparent_wrappers(expr) {
-    Expr::Array(array) => array.span.contains(call.span),
-    Expr::Member(member) => contains_call(&member.obj, call),
-    Expr::OptChain(opt_chain) => match opt_chain.base.as_ref() {
-      OptChainBase::Member(member) => contains_call(&member.obj, call),
-      OptChainBase::Call(_) => false,
-    },
-    _ => false,
-  }
-}
-
+/// Every caller asks `is_create_call` before it calls this, so the call is one.
 pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) {
-  if !is_create_call(call, state) {
-    return;
-  }
-
-  // `Expr::Call(call.clone())` deep-clones the whole style object, so it is
-  // built lazily — only on the paths that are about to panic anyway.
-  if state.find_call_declaration(call).is_none()
-    && !state.has_top_level_expr(call, |tpe: &TopLevelExpression| {
-      is_bound_create_expr(&tpe.1, call)
-    })
-  {
+  // Nothing reads what the call answers, so the styles it compiles have nowhere
+  // to go. Every other position holds the result, and the transform either
+  // leaves it where it was written or hoists it to a declaration above.
+  if state.is_bare_call_statement(call) {
+    // `Expr::Call(call.clone())` deep-clones the whole style object, so it is
+    // built lazily — only on the paths that are about to panic anyway.
     build_code_frame_error_and_panic_at(
       &Expr::Call(call.clone()),
       &unbound_call_value(STYLEX_CREATE),
+      state,
+    );
+  }
+
+  // The one position this compiler refuses and the reference implementation
+  // compiles, because the printer cannot write it back. See
+  // `type_asserted_call_value`. The shipped compiler strips every type before
+  // this pass, so no build reaches it.
+  if state.is_type_asserted_call(call) {
+    build_code_frame_error_and_panic_at(
+      &Expr::Call(call.clone()),
+      &type_asserted_call_value(STYLEX_CREATE),
       state,
     );
   }
@@ -216,7 +343,10 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
 
   let first_arg = &call.args[0];
 
-  let Expr::Object(obj) = first_arg.expr.as_ref() else {
+  // A parenthesis is not a different argument, here or at the reader that
+  // evaluates it. Read bare, `create(({…}))` stopped the build on an object the
+  // same author could have written without the brackets.
+  let Expr::Object(obj) = normalize_expr(&first_arg.expr) else {
     build_code_frame_error_and_panic(
       &Expr::Call(call.clone()),
       &first_arg.expr,
@@ -239,93 +369,67 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
   }
 }
 
+/// Refuses a `stylex.keyframes` call the compiler cannot read.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: &mut StateManager) {
-  if !is_keyframes_call(var_decl, state) {
-    return;
-  }
-
   validate_single_object_arg_indent(var_decl, STYLEX_KEYFRAMES, state);
 }
 
+/// Refuses a `stylex.positionTry` call the compiler cannot read.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn validate_stylex_position_try_indent(
   var_decl: &VarDeclarator,
   state: &mut StateManager,
 ) {
-  if !is_position_try_call(var_decl, state) {
-    return;
-  }
-
   validate_single_object_arg_indent(var_decl, STYLEX_POSITION_TRY, state);
 }
 
+/// Refuses a `stylex.defaultMarker` call that was given an argument.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn validate_stylex_default_marker_indent(call: &CallExpr, state: &mut StateManager) {
-  if !is_default_marker_call(call, state) {
-    return;
-  }
-
-  let call_expr = Expr::from(call.clone());
-
+  // Cloned only where it is about to be reported: the clone is a deep copy of
+  // the whole call, and a call that compiles reports nothing.
   if !call.args.is_empty() {
     build_code_frame_error_and_panic_at(
-      &call_expr,
+      &Expr::from(call.clone()),
       &illegal_argument_length(STYLEX_DEFAULT_MARKER, 1),
       state,
     );
   }
 }
 
+/// Refuses a `stylex.viewTransitionClass` call the compiler cannot read.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn validate_stylex_view_transition_class_indent(
   var_decl: &VarDeclarator,
   state: &mut StateManager,
 ) {
-  if !is_view_transition_class_call(var_decl, state) {
-    return;
-  }
-
   validate_single_object_arg_indent(var_decl, STYLEX_VIEW_TRANSITION_CLASS, state);
 }
 
+/// Refuses a `stylex.createTheme` call the compiler cannot read.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn validate_stylex_create_theme_indent(
   var_decl: &Option<VarDeclarator>,
   call: &CallExpr,
   state: &mut StateManager,
 ) {
-  if !is_create_theme_call(call, state) {
-    return;
-  }
-
-  let call_expr = Expr::Call(call.clone());
-
-  let var_decl = var_decl.as_ref().unwrap_or_else(|| {
-    build_code_frame_error_and_panic_at(
-      &call_expr,
-      &unbound_call_value(STYLEX_CREATE_THEME),
-      state,
-    );
-  });
-
-  let init_expr = var_decl.init.as_ref().unwrap_or_else(|| {
-    build_code_frame_error_and_panic_at(
-      &call_expr,
-      &unbound_call_value(STYLEX_CREATE_THEME),
-      state,
-    );
-  });
-
-  let init = init_expr.as_call().unwrap_or_else(|| {
-    build_code_frame_error_and_panic(
-      init_expr,
-      &call_expr,
-      &non_static_value(STYLEX_CREATE_THEME),
-      state,
-    );
-  });
+  // Cloned only where it is about to be reported, as the two validators below
+  // do: the clone is a deep copy of the whole theme, and a call that compiles
+  // reports nothing.
+  let call_expr = || Expr::Call(call.clone());
+  let (init_expr, init) = theme_init_call_of(var_decl, call, state);
 
   match state.find_top_level_expr(call) {
     Some(_) => {},
     None => build_code_frame_error_and_panic(
       init_expr,
-      &call_expr,
+      &call_expr(),
       &unbound_call_value(STYLEX_CREATE_THEME),
       state,
     ),
@@ -334,7 +438,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   if init.args.len() != 2 {
     build_code_frame_error_and_panic(
       init_expr,
-      &call_expr,
+      &call_expr(),
       &illegal_argument_length(STYLEX_CREATE_THEME, 1),
       state,
     );
@@ -342,7 +446,9 @@ pub(crate) fn validate_stylex_create_theme_indent(
 
   let second_arg = &init.args[1];
 
-  let is_valid_second_arg = match second_arg.expr.as_ref() {
+  // A parenthesis is not a different argument, so the theme object is read
+  // through it. Read bare, `createTheme(vars, ({…}))` stopped the build.
+  let is_valid_second_arg = match normalize_expr(&second_arg.expr) {
     Expr::Ident(ident) => state.import_binding(ident).is_none(),
     Expr::Object(_) => true,
     _ => false,
@@ -351,32 +457,35 @@ pub(crate) fn validate_stylex_create_theme_indent(
   if !is_valid_second_arg {
     build_code_frame_error_and_panic(
       init_expr,
-      &call_expr,
+      &call_expr(),
       NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE,
       state,
     );
   }
 }
 
+/// Refuses a `stylex.defineVars` call the compiler cannot read, and answers the
+/// name it is exported under.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn find_and_validate_stylex_define_vars(
   call: &CallExpr,
   state: &mut StateManager,
-) -> Option<TopLevelExpression> {
-  if !is_define_vars_call(call, state) {
-    return None;
-  }
-
-  let call_expr = Expr::from(call.clone());
+) -> Atom {
+  // Cloned only where it is about to be reported, as `validate_stylex_create`
+  // does: the clone is a deep copy of the whole variable group, and a call that
+  // compiles reports nothing.
+  let call_expr = || Expr::from(call.clone());
 
   let stylex_create_theme_top_level_expr = match state.find_top_level_expr(call) {
     Some(stylex_create_theme_top_level_expr) => stylex_create_theme_top_level_expr,
     None => build_code_frame_error_and_panic(
-      &call_expr,
+      &call_expr(),
       &call
         .args
         .get(2)
         .cloned()
-        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
+        .unwrap_or_else(|| create_expr_or_spread(call_expr()))
         .expr,
       &unbound_call_value(STYLEX_DEFINE_VARS),
       state,
@@ -385,34 +494,36 @@ pub(crate) fn find_and_validate_stylex_define_vars(
 
   if call.args.len() != 1 {
     build_code_frame_error_and_panic(
-      &call_expr,
+      &call_expr(),
       &call
         .args
         .get(1)
         .cloned()
-        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
+        .unwrap_or_else(|| create_expr_or_spread(call_expr()))
         .expr,
       &illegal_argument_length(STYLEX_DEFINE_VARS, 1),
       state,
     );
   }
 
-  if !is_variable_named_exported(stylex_create_theme_top_level_expr, state) {
-    build_code_frame_error_and_panic_at(
-      &call_expr,
-      &non_export_named_declaration(STYLEX_DEFINE_VARS),
-      state,
-    );
-  }
+  let export_name = named_export_name(stylex_create_theme_top_level_expr, state).cloned();
 
-  Some(stylex_create_theme_top_level_expr.clone())
+  or_refuse_unexported(export_name, &call_expr, STYLEX_DEFINE_VARS, state)
 }
 
-pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut StateManager) {
-  if !is_define_marker_call(call, state) {
-    return;
-  }
-
+/// Refuses a `stylex.defineMarker` call the compiler cannot read, and answers
+/// the name it is exported under.
+///
+/// The name is the answer rather than a yes, as the two `define*` validators
+/// beside it do it: the export check proves a name is there, so a caller that
+/// needs one takes it from here instead of reading the declarator again and
+/// guarding a shape this check has already ruled out.
+///
+/// Asked for by a caller that already knows the call is one.
+pub(crate) fn find_and_validate_stylex_define_marker(
+  call: &CallExpr,
+  state: &mut StateManager,
+) -> Atom {
   // Cloned only where it is about to be reported, as `validate_stylex_create`
   // does: every path that needs it diverges, so the call that compiles pays
   // nothing.
@@ -459,34 +570,41 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
     },
   };
 
-  if !is_variable_named_exported(define_marker_top_level_expr, state) {
-    build_code_frame_error_and_panic_at(
+  // Read out before the refusal below, which needs the state mutably.
+  let export_name = named_export_name(define_marker_top_level_expr, state).cloned();
+
+  match export_name {
+    Some(export_name) => export_name,
+    None => build_code_frame_error_and_panic_at(
       &fault_expr(),
       &non_export_named_declaration(STYLEX_DEFINE_MARKER),
       state,
-    );
+    ),
   }
 }
 
+/// Refuses a `stylex.defineConsts` call the compiler cannot read, and answers
+/// the name it is exported under.
+///
+/// Asked for by a caller that already knows the call is one.
 pub(crate) fn find_and_validate_stylex_define_consts(
   call: &CallExpr,
   state: &mut StateManager,
-) -> Option<TopLevelExpression> {
-  if !is_define_consts_call(call, state) {
-    return None;
-  }
-
-  let call_expr = Expr::from(call.clone());
+) -> Atom {
+  // Cloned only where it is about to be reported, as `validate_stylex_create`
+  // does: the clone is a deep copy of the whole variable group, and a call that
+  // compiles reports nothing.
+  let call_expr = || Expr::from(call.clone());
 
   let define_consts_top_level_expr = match state.find_top_level_expr(call) {
     Some(define_consts_top_level_expr) => define_consts_top_level_expr,
     None => build_code_frame_error_and_panic(
-      &call_expr,
+      &call_expr(),
       &call
         .args
         .get(2)
         .cloned()
-        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
+        .unwrap_or_else(|| create_expr_or_spread(call_expr()))
         .expr,
       &unbound_call_value(STYLEX_DEFINE_CONSTS),
       state,
@@ -495,27 +613,21 @@ pub(crate) fn find_and_validate_stylex_define_consts(
 
   if call.args.len() != 1 {
     build_code_frame_error_and_panic(
-      &call_expr,
+      &call_expr(),
       &call
         .args
         .get(1)
         .cloned()
-        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
+        .unwrap_or_else(|| create_expr_or_spread(call_expr()))
         .expr,
       &illegal_argument_length(STYLEX_DEFINE_CONSTS, 1),
       state,
     );
   }
 
-  if !is_variable_named_exported(define_consts_top_level_expr, state) {
-    build_code_frame_error_and_panic_at(
-      &call_expr,
-      &non_export_named_declaration(STYLEX_DEFINE_CONSTS),
-      state,
-    );
-  }
+  let export_name = named_export_name(define_consts_top_level_expr, state).cloned();
 
-  Some(define_consts_top_level_expr.clone())
+  or_refuse_unexported(export_name, &call_expr, STYLEX_DEFINE_CONSTS, state)
 }
 
 stylex_call_predicate!(is_create_call, STYLEX_CREATE, ImportKind::Create);
@@ -563,28 +675,27 @@ pub(crate) fn is_target_call(
   call: &CallExpr,
   state: &StateManager,
 ) -> bool {
-  let is_create_ident = call
-    .callee
-    .as_expr()
-    .and_then(|arg| arg.as_ident())
+  // A parenthesis is not a different callee, so both levels are read through
+  // it, as the dispatch in `process_declaration` reads them. `(stylex.create)(…)`
+  // and `(stylex).create(…)` name the same function the bare spelling names.
+  let callee = call.callee.as_expr().map(|expr| normalize_expr(expr));
+
+  let is_create_ident = callee
+    .and_then(|callee| callee.as_ident())
     .is_some_and(|ident| imports_map.is_some_and(|set| set.contains(&ident.sym)));
 
-  let is_create_member = call
-    .callee
-    .as_expr()
-    .and_then(|expr| expr.as_member())
+  // The receiver is asked for its name once. Asking whether it has one and then
+  // reading it left a second answer for a receiver that has none, which the
+  // first answer had already ruled out.
+  let is_create_member = callee
+    .and_then(|callee| callee.as_member())
     .is_some_and(|member| {
-      member.obj.is_ident()
-        && member.prop.as_ident().is_some_and(|ident| {
-          ident.sym == call_name
-            && state.is_stylex_namespace_import(
-              match member.obj.as_ident() {
-                Some(ident) => ident,
-                None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
-              }
-              .sym
-              .as_ref(),
-            )
+      normalize_expr(&member.obj)
+        .as_ident()
+        .is_some_and(|receiver| {
+          member.prop.as_ident().is_some_and(|ident| {
+            ident.sym == call_name && state.is_stylex_namespace_import(receiver.sym.as_ref())
+          })
         })
     });
 
@@ -595,27 +706,106 @@ pub(crate) fn validate_define_call(
   call: &CallExpr,
   api_name: &str,
   arg_count: usize,
-  require_export: bool,
   state: &mut StateManager,
-) -> TopLevelExpression {
-  let call_expr = Expr::Call(call.clone());
-  let top_level_expr = state.find_top_level_expr(call).cloned().unwrap_or_else(|| {
-    build_code_frame_error_and_panic_at(&call_expr, &unbound_call_value(api_name), state)
-  });
+) {
+  // Cloned only where it is about to be reported: the clone is a deep copy of
+  // the whole call, and a call that compiles reports nothing.
+  let call_expr = || Expr::Call(call.clone());
 
-  if require_export && !is_variable_named_exported(&top_level_expr, state) {
-    build_code_frame_error_and_panic_at(&call_expr, &non_export_named_declaration(api_name), state);
+  // Asked whether the call is bound to anything, and nothing more, so the
+  // expression it is bound to stays in the state rather than being copied out.
+  if state.find_top_level_expr(call).is_none() {
+    refuse_unbound_call(api_name, &call_expr, state);
   }
 
+  reject_unless_argument_count(call, api_name, arg_count, &call_expr, state);
+}
+
+/// The same, for a define call whose result must be exported under a name, and
+/// that name.
+///
+/// The name comes from the export check itself. A caller that asked for it
+/// separately had to answer for a name that is not there, which the check has
+/// already ruled out.
+pub(crate) fn validate_exported_define_call(
+  call: &CallExpr,
+  api_name: &str,
+  arg_count: usize,
+  state: &mut StateManager,
+) -> Atom {
+  let call_expr = || Expr::Call(call.clone());
+
+  let export_name = bound_export_name(call, api_name, &call_expr, state);
+  let export_name = or_refuse_unexported(export_name, &call_expr, api_name, state);
+
+  reject_unless_argument_count(call, api_name, arg_count, &call_expr, state);
+
+  export_name
+}
+
+/// The name the result of a call is exported under, with a call bound to
+/// nothing refused first.
+///
+/// The name is read through the expression the state holds and copied out on
+/// its own. Copying the expression to read it copied the whole variable group
+/// the author wrote, for a name that is one interned word.
+fn bound_export_name(
+  call: &CallExpr,
+  api_name: &str,
+  call_expr: &impl Fn() -> Expr,
+  state: &mut StateManager,
+) -> Option<Atom> {
+  match state.find_top_level_expr(call) {
+    Some(top_level_expr) => named_export_name(top_level_expr, state).cloned(),
+    None => refuse_unbound_call(api_name, call_expr, state),
+  }
+}
+
+/// The refusal a call bound to nothing is reported with.
+fn refuse_unbound_call(
+  api_name: &str,
+  call_expr: &impl Fn() -> Expr,
+  state: &mut StateManager,
+) -> ! {
+  build_code_frame_error_and_panic_at(&call_expr(), &unbound_call_value(api_name), state)
+}
+
+/// Refuses a call written with a number of arguments the API does not take.
+fn reject_unless_argument_count(
+  call: &CallExpr,
+  api_name: &str,
+  arg_count: usize,
+  call_expr: &impl Fn() -> Expr,
+  state: &mut StateManager,
+) {
   if call.args.len() != arg_count {
     build_code_frame_error_and_panic_at(
-      &call_expr,
+      &call_expr(),
       &illegal_argument_length(api_name, arg_count),
       state,
     );
   }
+}
 
-  top_level_expr
+/// `export_name`, or the refusal a result that is exported under no name is
+/// reported with.
+///
+/// The call is lent as the closure that builds it, so the deep copy of it the
+/// report quotes is made only where there is a report to make.
+fn or_refuse_unexported(
+  export_name: Option<Atom>,
+  call_expr: &impl Fn() -> Expr,
+  api_name: &str,
+  state: &mut StateManager,
+) -> Atom {
+  match export_name {
+    Some(export_name) => export_name,
+    None => build_code_frame_error_and_panic_at(
+      &call_expr(),
+      &non_export_named_declaration(api_name),
+      state,
+    ),
+  }
 }
 
 /// Whether a literal is one a style value is allowed to be.
@@ -813,8 +1003,8 @@ pub(crate) fn assert_valid_properties(
     let key_values = get_key_values_from_object(object);
 
     for key_value in key_values.iter() {
-      let key = convert_key_value_to_str(key_value);
-      if !valid_keys.contains(&key.as_str()) {
+      let key = key_value_name(key_value);
+      if !valid_keys.contains(&key.as_ref()) {
         build_code_frame_error_and_panic_at(expr, error_message, state);
       }
     }
@@ -844,56 +1034,116 @@ pub(crate) fn assert_valid_view_transition_class(
   assert_stylex_arg(obj, state, STYLEX_VIEW_TRANSITION_CLASS);
 }
 
+/// The name of the variable group a theme overrides, and the source the name
+/// of each variable is read from.
+///
+/// Both halves come out of the same read: a group states its own name, and an
+/// object carries it under `__varGroupHash__`. A value that is neither, or an
+/// object that names no group, is refused here, so what is answered has only
+/// the two states [`ThemeVars`] holds.
 pub(crate) fn validate_theme_variables(
   variables: &EvaluateResultValue,
   state: &StateManager,
-) -> KeyValueProp {
+) -> (String, ThemeVars) {
   if let Some(theme_ref) = variables.as_theme_ref() {
-    let mut cloned_theme_ref = theme_ref.clone();
+    let mut theme_ref = theme_ref.clone();
 
-    let value = cloned_theme_ref.get(VAR_GROUP_HASH_KEY, state);
+    let value = theme_ref.get(VAR_GROUP_HASH_KEY, state);
+    let group_name = or_refuse_nameless_group(value.as_css_var()).to_owned();
 
-    let key_value = create_key_value_prop_ident(
-      VAR_GROUP_HASH_KEY,
-      create_string_expr(match value.as_css_var() {
-        Some(v) => v,
-        None => stylex_panic!("{}", EXPECTED_CSS_VAR),
-      }),
-    );
-
-    return key_value;
+    return (group_name, ThemeVars::Group(theme_ref));
   }
 
-  if !variables.as_expr().is_some_and(|expr| expr.is_object()) {
-    {
-      stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS);
-    }
-  }
+  let Some(object) = variables.as_expr().and_then(|expr| expr.as_object()) else {
+    stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS)
+  };
 
-  match variables
-    .as_expr()
-    .and_then(|expr| expr.as_object())
-    .map(get_key_values_from_object)
-    .and_then(|key_values| {
-      for key_value in key_values.into_iter() {
-        let key = convert_key_value_to_str(&key_value);
+  let key_values = get_key_values_from_object(object);
 
-        if key == VAR_GROUP_HASH_KEY {
-          let value = &key_value.value;
+  let group_name = key_values
+    .iter()
+    .filter(|key_value| key_value_name(key_value) == VAR_GROUP_HASH_KEY)
+    .find_map(|key_value| {
+      key_value
+        .value
+        .as_lit()
+        .and_then(convert_lit_to_string)
+        .filter(|value| !value.is_empty())
+    });
 
-          if let Some(lit) = value.as_lit() {
-            let value = convert_lit_to_string(lit);
-
-            if value.filter(|value| !value.is_empty()).is_some() {
-              return Some(key_value);
-            }
-          }
-        }
-      }
-
-      None
-    }) {
-    Some(key_value) => key_value,
+  match group_name {
+    Some(group_name) => (group_name, ThemeVars::Object(key_values)),
     None => stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS),
   }
 }
+
+/// `read`, or the refusal a theme bound to something else is reported with.
+///
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. The declarator the reader below is given was found by looking the call
+/// up, so there is one and the call is its initializer.
+/// `guidelines/stack/RUST.md` describes the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn or_refuse_theme<'a>(
+  read: Option<(&'a Expr, &'a CallExpr)>,
+  init_expr: Option<&Expr>,
+  call: &CallExpr,
+  state: &mut StateManager,
+) -> (&'a Expr, &'a CallExpr) {
+  match read {
+    Some(read) => read,
+    None => match init_expr {
+      Some(init_expr) => build_code_frame_error_and_panic(
+        init_expr,
+        &Expr::Call(call.clone()),
+        &non_static_value(STYLEX_CREATE_THEME),
+        state,
+      ),
+      None => build_code_frame_error_and_panic_at(
+        &Expr::Call(call.clone()),
+        &unbound_call_value(STYLEX_CREATE_THEME),
+        state,
+      ),
+    },
+  }
+}
+
+/// The call a theme is bound to, and the expression it was read out of.
+///
+/// A parenthesis is not a different initializer, so the call is read through it
+/// -- as the declarator lookup that found this declarator reads it.
+fn theme_init_call_of<'a>(
+  var_decl: &'a Option<VarDeclarator>,
+  call: &CallExpr,
+  state: &mut StateManager,
+) -> (&'a Expr, &'a CallExpr) {
+  let init_expr = var_decl
+    .as_ref()
+    .and_then(|var_decl| var_decl.init.as_deref())
+    .map(normalize_expr);
+
+  let read = init_expr.and_then(|init_expr| init_expr.as_call().map(|call| (init_expr, call)));
+
+  or_refuse_theme(read, init_expr, call, state)
+}
+
+/// `value`, or the refusal a group hash that names no variable is reported
+/// with.
+///
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. A theme reference answers something other than a variable for two keys,
+/// and the group hash is neither of them. `guidelines/stack/RUST.md` describes
+/// the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+pub(crate) fn or_refuse_nameless_group(value: Option<&str>) -> &str {
+  match value {
+    Some(value) => value,
+    None => stylex_panic!("{}", EXPECTED_CSS_VAR),
+  }
+}
+
+#[cfg(test)]
+#[path = "tests/validators_tests.rs"]
+mod tests;

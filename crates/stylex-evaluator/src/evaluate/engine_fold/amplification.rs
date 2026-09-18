@@ -21,7 +21,7 @@ use swc_core::{
   ecma::ast::{ArrayLit, BinExpr, BinaryOp, Expr, ExprOrSpread, Lit, PropName},
 };
 
-use stylex_ast::ast::convertors::{atom_utf16_length, is_js_undefined};
+use stylex_ast::ast::convertors::{atom_utf16_length, is_js_undefined, normalize_expr};
 use stylex_constants::constants::evaluation_errors::{
   amplification_inside_a_callback, amplified_entries_too_large, amplified_length_too_large,
   unbounded_amplified_length,
@@ -31,7 +31,7 @@ use stylex_utils::number::to_js_string;
 
 use super::super::evaluate_result_as_expr;
 use super::super::helpers::written_key_values;
-use super::guard::{Bound, Bounds, Callback, Reader, Walk, without_parens};
+use super::guard::{Bound, Bounds, Callback, Reader, Walk};
 use super::{Decline, Depth, lists};
 use stylex_state::evaluate_result_value::EvaluateResultValue;
 
@@ -369,7 +369,7 @@ impl Walk<'_, '_> {
   /// a bound on their result. A leaf that is anything else stops the reading,
   /// which costs a fold rather than admitting one nothing measured.
   fn numeric_bound(&mut self, expr: &Expr) -> Option<u64> {
-    let read = without_parens(expr);
+    let read = normalize_expr(expr);
 
     // A name the callback binds is the element the receiver was measured for, or
     // that element's index — and one it binds to neither is bounded by nothing,
@@ -417,7 +417,7 @@ impl Walk<'_, '_> {
   /// holds is an element of a receiver the call around the callback measured — so
   /// that element's width is the length, and a name nothing measured has none.
   fn receiver_length(&mut self, receiver: &Expr) -> Option<u64> {
-    let read = without_parens(receiver);
+    let read = normalize_expr(receiver);
 
     // A name the callback binds is answered from the element it was handed, and
     // this is what makes `['a','b'].map(x => x.repeat(3))` fold at all: the
@@ -531,7 +531,7 @@ impl Walk<'_, '_> {
 /// initializer. The resolver, not a check here, is what holds that; this is the
 /// place that depends on it, so it is the place that says so.
 fn module_value_of(expr: &Expr, reader: &mut Reader) -> Option<EvaluateResultValue> {
-  match without_parens(expr) {
+  match normalize_expr(expr) {
     Expr::Call(_) => None,
     _ => reader.resolve(expr),
   }
@@ -596,7 +596,7 @@ fn element_parameter_of(method: &Atom) -> Option<usize> {
 fn hands_over_a_function(args: &[ExprOrSpread]) -> bool {
   args.iter().any(|arg| {
     matches!(
-      without_parens(&arg.expr),
+      normalize_expr(&arg.expr),
       Expr::Arrow(_) | Expr::Fn(_) | Expr::Ident(_)
     )
   })
@@ -694,7 +694,7 @@ fn number_held_by(value: &EvaluateResultValue) -> Option<u64> {
 /// one million eight hundred thousand characters, which a bound of `0 * 2000000`
 /// admits and a bound of `1 * 2000000` refuses.
 fn number_of(expr: &Expr) -> Option<u64> {
-  let Expr::Lit(Lit::Num(number)) = without_parens(expr) else {
+  let Expr::Lit(Lit::Num(number)) = normalize_expr(expr) else {
     return None;
   };
 

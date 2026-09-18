@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use indexmap::IndexMap;
 use stylex_ast::ast::objects::{assign_props, order_own_map_keys};
 use stylex_css::css::common::get_number_suffix;
@@ -15,7 +17,8 @@ use swc_core::{
 
 use crate::shared::utils::validators::validate_dynamic_style_params;
 use stylex_ast::ast::convertors::{
-  create_ident_expr, create_null_expr, create_string_expr, expand_shorthand_prop, normalize_expr,
+  create_ident_expr, create_null_expr, create_string_expr, expanded_shorthand_prop, normalize_expr,
+  normalize_expr_mut,
 };
 use stylex_ast::ast::factories::{
   create_arrow_expression_with_params, create_bin_expr, create_call_expr, create_cond_expr,
@@ -32,8 +35,8 @@ use stylex_constants::constants::{
 use stylex_css::utils::pseudo::is_pseudo_selector;
 use stylex_diagnostics::code_frame::build_code_frame_error_and_panic_at;
 use stylex_evaluator::evaluate::{
-  evaluate, evaluate_obj_key, evaluate_result_vec_to_array_expr, function_fold_to_object,
-  spread_own_properties,
+  evaluate_obj_key, evaluate_result_vec_to_array_expr, evaluate_with_functions,
+  function_fold_to_object, spread_own_properties,
 };
 use stylex_evaluator::evaluate_result::EvaluateResult;
 use stylex_state::resolution::convertors::convert_expr_to_str;
@@ -58,17 +61,95 @@ fn key_value_props_of(object: &ObjectLit) -> Vec<KeyValueProp> {
     .collect()
 }
 
+/// `text`, or the refusal a key that spells no name is reported with.
+///
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. A key that folded answers a string literal, and the text of a string
+/// literal is the string. `guidelines/stack/RUST.md` describes the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn or_refuse_nameless_key(text: Option<String>) -> String {
+  match text {
+    Some(text) => text,
+    None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
+  }
+}
+
+/// `object`, or the refusal a dynamic style body that folded to no object is
+/// reported with.
+///
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. The only producer is the recursion below, which answers an object
+/// expression on every confident path, and the caller returns before this on
+/// every other one. `guidelines/stack/RUST.md` describes the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn or_refuse_unfolded_body(object: Option<&ObjectLit>) -> &ObjectLit {
+  match object {
+    Some(object) => object,
+    None => {
+      stylex_panic!("Expected an object value in style evaluation, but received a different type.")
+    },
+  }
+}
+
+/// The text a folded key spells.
+fn key_text_of(key: &Expr, traversal_state: &mut StateManager, functions: &FunctionMap) -> String {
+  or_refuse_nameless_key(convert_expr_to_str(key, traversal_state, functions))
+}
+
+/// `expr`, or the refusal a key that answered no expression is reported with.
+///
+/// This is the whole of what is left out of the coverage measurement, and it
+/// computes nothing -- it chooses between answers the caller has already worked
+/// out. Each caller asks only after the key folded, and a key that folded
+/// answers a string literal. `guidelines/stack/RUST.md` describes the
+/// allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn or_refuse_unfolded_key(expr: Option<&Expr>) -> &Expr {
+  match expr {
+    Some(expr) => expr,
+    None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
+  }
+}
+
 /// The name a namespace key expression spells, or `None` where it spells no
 /// readable one.
 ///
 /// `evaluate_obj_key` answers a string literal for every key it accepts, so a
-/// key of any other shape never reaches the map and needs no reading here.
+/// key of any other shape never reaches the map. Asked through the readers each
+/// shape already has, so the shapes it is not are answered where they are read
+/// rather than by an arm here that nothing can enter. The last `as_str` is
+/// fallible for its own reason: a literal can hold text no `str` can spell.
 fn namespace_key_of(key: &Expr) -> Option<&str> {
-  match key {
-    // `as_str` is already fallible -- a literal can hold text no `str` can
-    // spell -- so the arm answers the option rather than wrapping one.
-    Expr::Lit(Lit::Str(name)) => name.value.as_str(),
-    _ => None,
+  key
+    .as_lit()
+    .and_then(Lit::as_str)
+    .and_then(|name| name.value.as_str())
+}
+
+/// `reason`, named after the key the refused value was written under.
+///
+/// One reader for both places that name a reason, so a key of either kind is
+/// answered the same way in each.
+///
+/// The choice between the two answers is what is left out of the coverage
+/// measurement, and only that. The naming itself is `prepend_key_to_reason`,
+/// which is its own measured function and is asserted by
+/// `a > flexGrow > unknown error` in `logical_operators.rs`; the read that
+/// produces the name stays at the call site.
+///
+/// The second arm has no source that reaches it: `evaluate_obj_key` answers a
+/// string literal for every key it accepts, and a key that spells no name is
+/// refused where it is read, which `a_namespace_key_that_spells_no_name_is_-
+/// refused` measures. Making the parameter a `String` would remove the arm and
+/// turn that deopt into a stopped build, which is the worse trade.
+/// `guidelines/stack/RUST.md` describes the allowance.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn reason_under_key(key_name: Option<String>, reason: Option<String>) -> Option<String> {
+  match key_name {
+    Some(key_name) => prepend_key_to_reason(&key_name, reason),
+    None => reason,
   }
 }
 
@@ -162,9 +243,12 @@ fn materialize_style_value(
 pub fn evaluate_stylex_create_arg(
   path: &mut Expr,
   traversal_state: &mut StateManager,
-  functions: &FunctionMap,
+  functions: &Rc<FunctionMap>,
 ) -> Box<EvaluateResult> {
-  match path {
+  // A parenthesis is not a different argument. Unwrapped here rather than at
+  // the call site, because the validator beside this reader unwraps the same
+  // argument and the two have to see one expression.
+  match normalize_expr_mut(path) {
     Expr::Object(style_object) => {
       let mut result_value: IndexMap<Expr, Vec<KeyValueProp>> = IndexMap::new();
       let mut fns: DynamicFns = IndexMap::new();
@@ -173,11 +257,12 @@ pub fn evaluate_stylex_create_arg(
         match prop {
           PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
           PropOrSpread::Prop(prop) => {
-            let mut prop = prop.clone();
+            // Read where it lies. Nothing below writes to the property, so the
+            // only copy made is the one a shorthand name needs to become the
+            // pair it stands for.
+            let prop = expanded_shorthand_prop(prop);
 
-            expand_shorthand_prop(&mut prop);
-
-            match prop.as_mut() {
+            match prop.as_ref() {
               Prop::KeyValue(key_value_prop) => {
                 let key_result = evaluate_obj_key(key_value_prop, traversal_state, functions);
 
@@ -185,15 +270,13 @@ pub fn evaluate_stylex_create_arg(
                   return Box::new(EvaluateResult::refused(key_result.deopt, key_result.reason));
                 }
 
-                let key = match key_result.value.as_ref() {
-                  Some(val) => val,
-                  None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
-                };
-                let key_expr = match key.as_expr() {
-                  Some(expr) => expr,
-                  None => stylex_panic!("Expected an expression from evaluation result."),
-                };
-                let value_path = &mut key_value_prop.value;
+                let key_expr = or_refuse_unfolded_key(
+                  key_result
+                    .value
+                    .as_ref()
+                    .and_then(EvaluateResultValue::as_expr),
+                );
+                let value_path = &key_value_prop.value;
 
                 // Read through the parentheses an author may have written
                 // around the function. They are a node in this tree and none in
@@ -223,13 +306,10 @@ pub fn evaluate_stylex_create_arg(
                           );
 
                           if !eval_result.confident {
-                            let reason =
-                              match convert_expr_to_str(key_expr, traversal_state, functions) {
-                                Some(key_name) => {
-                                  prepend_key_to_reason(&key_name, eval_result.reason)
-                                },
-                                None => eval_result.reason,
-                              };
+                            let reason = reason_under_key(
+                              convert_expr_to_str(key_expr, traversal_state, functions),
+                              eval_result.reason,
+                            );
                             // Not `EvaluateResult::refused`, and the difference
                             // is the point: this refusal carries the value the
                             // evaluation did reach, which the constructor
@@ -245,23 +325,15 @@ pub fn evaluate_stylex_create_arg(
                             });
                           }
 
-                          let value = match eval_result
-                            .value
-                            .as_ref()
-                            .and_then(|value| value.as_expr())
-                            .and_then(|expr| expr.as_object())
-                          {
-                            Some(obj) => obj,
-                            None => stylex_panic!(
-                              "Expected an object value in style evaluation, but received a different type."
-                            ),
-                          };
+                          let value = or_refuse_unfolded_body(
+                            eval_result
+                              .value
+                              .as_ref()
+                              .and_then(|value| value.as_expr())
+                              .and_then(|expr| expr.as_object()),
+                          );
 
-                          let key = match convert_expr_to_str(key_expr, traversal_state, functions)
-                          {
-                            Some(k) => k,
-                            None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
-                          };
+                          let key = key_text_of(key_expr, traversal_state, functions);
 
                           fns.insert(key, (params, eval_result.inline_styles.unwrap_or_default()));
 
@@ -277,7 +349,11 @@ pub fn evaluate_stylex_create_arg(
                               .collect(),
                           );
                         } else {
-                          return evaluate(path, traversal_state, functions);
+                          return evaluate_with_functions(
+                            path,
+                            traversal_state,
+                            Rc::clone(functions),
+                          );
                         }
                       },
                       _ => {
@@ -291,22 +367,28 @@ pub fn evaluate_stylex_create_arg(
                     }
                   },
                   _ => {
-                    let mut val = evaluate(value_path, traversal_state, functions);
+                    let mut val =
+                      evaluate_with_functions(value_path, traversal_state, Rc::clone(functions));
 
                     if !val.confident {
-                      if let Some(key_name) =
-                        convert_expr_to_str(key_expr, traversal_state, functions)
-                      {
-                        val.reason = prepend_key_to_reason(&key_name, val.reason);
-                      }
+                      val.reason = reason_under_key(
+                        convert_expr_to_str(key_expr, traversal_state, functions),
+                        val.reason,
+                      );
+
                       return val;
                     }
 
-                    let value_to_insert = match match val.value.as_ref() {
-                      Some(v) => v,
-                      None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
-                    } {
-                      EvaluateResultValue::Expr(Expr::Object(obj_expr)) => {
+                    // What the fold answered is read once. A value with no
+                    // object form is the reachable answer, and it reads the
+                    // sentence below. No value at all is the other: the
+                    // evaluator's memo is its only known producer, and no
+                    // source through a `create` namespace reaches it, so it
+                    // reads that sentence too rather than one of its own. This
+                    // is the reading `materialize_style_value` takes of a
+                    // style value.
+                    let value_to_insert = match val.value.as_ref() {
+                      Some(EvaluateResultValue::Expr(Expr::Object(obj_expr))) => {
                         key_value_props_of(obj_expr)
                       },
                       // A folded function map written where a namespace
@@ -315,7 +397,7 @@ pub fn evaluate_stylex_create_arg(
                       // the reference implementation refuses, having folded the
                       // same reference to a plain object. Everything else with
                       // no object form is a namespace this cannot read.
-                      value => match function_fold_to_object(value) {
+                      value => match value.and_then(function_fold_to_object) {
                         Some(object) => key_value_props_of(&object),
                         None => stylex_panic!("{}", ILLEGAL_NAMESPACE_VALUE),
                       },
@@ -328,7 +410,7 @@ pub fn evaluate_stylex_create_arg(
                 }
               },
               _ => {
-                return evaluate(path, traversal_state, functions);
+                return evaluate_with_functions(path, traversal_state, Rc::clone(functions));
               },
             }
           },
@@ -354,14 +436,14 @@ pub fn evaluate_stylex_create_arg(
         fns: (!fns.is_empty()).then_some(fns),
       })
     },
-    _ => evaluate(path, traversal_state, functions),
+    _ => evaluate_with_functions(path, traversal_state, Rc::clone(functions)),
   }
 }
 
 fn evaluate_partial_object_recursively(
   path: &ObjectLit,
   traversal_state: &mut StateManager,
-  functions: &FunctionMap,
+  functions: &Rc<FunctionMap>,
   key_path: Option<Vec<String>>,
 ) -> Box<EvaluateResult> {
   let key_path = key_path.unwrap_or_default();
@@ -371,7 +453,7 @@ fn evaluate_partial_object_recursively(
   for prop in &path.props {
     match prop {
       PropOrSpread::Spread(spread) => {
-        let result = evaluate(&spread.expr, traversal_state, functions);
+        let result = evaluate_with_functions(&spread.expr, traversal_state, Rc::clone(functions));
         if !result.confident {
           // The reason is dropped here, and this compiler's choice rather than
           // the reference compiler's placement. Worth separating the two,
@@ -428,11 +510,10 @@ fn evaluate_partial_object_recursively(
         obj = assign_props(obj, new_props);
       },
       PropOrSpread::Prop(prop) => {
-        let mut prop = prop.clone();
+        // Read where it lies, for the reason the namespace reader above gives.
+        let prop = expanded_shorthand_prop(prop);
 
-        expand_shorthand_prop(&mut prop);
-
-        match prop.as_mut() {
+        match prop.as_ref() {
           Prop::KeyValue(key_value) => {
             let key_result = evaluate_obj_key(key_value, traversal_state, functions);
 
@@ -440,15 +521,14 @@ fn evaluate_partial_object_recursively(
               return Box::new(EvaluateResult::refused(key_result.deopt, key_result.reason));
             }
 
-            let key = match key_result.value.as_ref().and_then(|v| v.as_expr()) {
-              Some(expr) => expr,
-              None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
-            };
+            let key = or_refuse_unfolded_key(
+              key_result
+                .value
+                .as_ref()
+                .and_then(EvaluateResultValue::as_expr),
+            );
 
-            let mut key_str = match convert_expr_to_str(key, traversal_state, functions) {
-              Some(s) => s,
-              None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
-            };
+            let mut key_str = key_text_of(key, traversal_state, functions);
 
             if key_str.starts_with("var(") && key_str.ends_with(')') {
               let inner = key_str[4..key_str.len() - 1].to_string();
@@ -484,12 +564,13 @@ fn evaluate_partial_object_recursively(
                 );
                 obj.push(new_prop);
 
-                if let Some(result_inline_styles) = result.inline_styles {
-                  inline_styles.extend(result_inline_styles);
-                }
+                // Nothing collected is nothing to add. Flattening the option
+                // says that without an arm of its own.
+                inline_styles.extend(result.inline_styles.into_iter().flatten());
               },
               _ => {
-                let result = evaluate(value_path, traversal_state, functions);
+                let result =
+                  evaluate_with_functions(value_path, traversal_state, Rc::clone(functions));
 
                 if !result.confident {
                   let mut full_key_path = key_path.clone();
@@ -587,10 +668,11 @@ fn evaluate_partial_object_recursively(
               },
             }
           },
-          Prop::Method(_) => {
-            return Box::new(EvaluateResult::refused(None, None));
-          },
-          _ => {},
+          // Every remaining `Prop` variant is refused. A method, a getter and
+          // a setter each contain statements this reader cannot fold. A
+          // shorthand name became a key-value pair above, and an assignment is
+          // a destructuring shape that no object literal holds.
+          _ => return Box::new(EvaluateResult::refused(None, None)),
         }
       },
     }
@@ -605,3 +687,7 @@ fn evaluate_partial_object_recursively(
     fns: None,
   })
 }
+
+#[cfg(test)]
+#[path = "tests/evaluate_stylex_create_arg_tests.rs"]
+mod evaluate_stylex_create_arg_tests;

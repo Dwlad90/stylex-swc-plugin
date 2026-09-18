@@ -53,9 +53,27 @@ fn corpus() -> Vec<&'static str> {
   ]
 }
 
+/// Checks that every corpus value still reads as a value, and writes back the
+/// text it was read from.
+///
+/// Every check in this file runs outside `b.iter`, so none of them adds to a
+/// measurement: the corpus is fixed, so one answer speaks for every iteration.
+/// Without them a scanner that started refusing everything would read as a win,
+/// because a refusal allocates nothing.
+fn check_corpus(values: &[&'static str]) {
+  for value in values {
+    let nodes = parse(value);
+
+    assert!(!nodes.is_empty(), "{value:?} reads as no nodes");
+    assert_eq!(&stringify(&nodes), value, "{value:?} does not write back");
+  }
+}
+
 fn parse_benchmarks(c: &mut Criterion) {
   let values = corpus();
   let mut group = c.benchmark_group("Parse");
+
+  check_corpus(&values);
 
   group.bench_function("corpus", |b| {
     b.iter(|| {
@@ -65,6 +83,8 @@ fn parse_benchmarks(c: &mut Criterion) {
     })
   });
 
+  // The three single-value cases are corpus entries, so `check_corpus` above
+  // already read each of them.
   group.bench_function("short_value", |b| b.iter(|| parse(black_box("1px"))));
   group.bench_function("nested_functions", |b| {
     b.iter(|| parse(black_box("var(--a, var(--b, 1px))")))
@@ -85,6 +105,8 @@ fn stringify_benchmarks(c: &mut Criterion) {
   let trees: Vec<Vec<Node>> = values.iter().map(|value| parse(value)).collect();
   let mut group = c.benchmark_group("Stringify");
 
+  check_corpus(&values);
+
   group.bench_function("corpus", |b| {
     b.iter(|| {
       for tree in &trees {
@@ -102,6 +124,8 @@ fn round_trip_benchmarks(c: &mut Criterion) {
   let values = corpus();
   let mut group = c.benchmark_group("RoundTrip");
 
+  check_corpus(&values);
+
   group.bench_function("corpus", |b| {
     b.iter(|| {
       for value in &values {
@@ -116,6 +140,18 @@ fn round_trip_benchmarks(c: &mut Criterion) {
 fn unit_benchmarks(c: &mut Criterion) {
   let words = ["1px", "0", "-12.5rem", "1e3", "100%", "auto", "1E-3px"];
   let mut group = c.benchmark_group("Unit");
+
+  // `auto` is the one word that is not a dimension, and it is in the set on
+  // purpose: it prices the answer the scanner gives for a keyword. The other
+  // six must read as a number, so a splitter that started answering `None` for
+  // everything cannot pass as a win.
+  for word in words {
+    assert_eq!(
+      unit(word).is_some(),
+      word != "auto",
+      "{word:?} no longer splits the way the case was written to time"
+    );
+  }
 
   group.bench_function("words", |b| {
     b.iter(|| {

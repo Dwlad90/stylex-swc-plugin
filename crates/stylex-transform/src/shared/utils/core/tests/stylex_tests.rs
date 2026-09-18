@@ -4,9 +4,9 @@ use indexmap::IndexMap;
 use stylex_ast::ast::convertors::convert_lit_to_string;
 use stylex_constants::constants::common::COMPILED_KEY;
 
+use crate::shared::utils::core::tests::style_args::ResultReader;
 use crate::shared::utils::core::{
   attrs::attrs,
-  js_to_ast::NestedStringObject,
   parse_nullable_style::{ResolvedArg, StyleObject},
   props::props,
   stylex::stylex,
@@ -23,7 +23,7 @@ fn create_style_object_args(args: &[&[(&str, FlatCompiledStylesValue)]]) -> Vec<
       object.insert(key.to_string(), Rc::new(value.clone()));
     }
 
-    result_args.push(ResolvedArg::StyleObject(StyleObject::Style(object)))
+    result_args.push(ResolvedArg::StyleObject(StyleObject::style(object)))
   }
 
   result_args
@@ -38,11 +38,11 @@ fn stylex_inject() {
   ]]);
 
   // Act
-  let result = stylex(&args).expect("Expected result to be Some");
+  let result = stylex(&args);
 
   // Assert
   let classname_string = result
-    .as_stylex()
+    .as_class_name()
     .and_then(|expr| expr.as_lit())
     .and_then(convert_lit_to_string)
     .expect("Expected classname_string to be Some");
@@ -72,11 +72,11 @@ fn merge_order() {
   let args = create_style_object_args(&[&first, &second, &third]);
 
   // Act
-  let result = stylex(&args).expect("Expected result to be Some");
+  let result = stylex(&args);
 
   // Assert
   let classname_string = result
-    .as_stylex()
+    .as_class_name()
     .and_then(|expr| expr.as_lit())
     .and_then(convert_lit_to_string)
     .expect("Expected classname_string to be Some");
@@ -105,11 +105,11 @@ fn with_a_top_level_array_of_simple_overridden_classes() {
   let args = create_style_object_args(&[&first, &second]);
 
   // Act
-  let result = stylex(&args).expect("Expected result to be Some");
+  let result = stylex(&args);
 
   // Assert
   let classname_string = result
-    .as_stylex()
+    .as_class_name()
     .and_then(|expr| expr.as_lit())
     .and_then(convert_lit_to_string)
     .expect("Expected classname_string to be Some");
@@ -151,11 +151,11 @@ fn with_nested_arrays_and_pseudo_classes_overriding_things() {
   let args = create_style_object_args(&[&first, &second, &third]);
 
   // Act
-  let result = stylex(&args).expect("Expected result to be Some");
+  let result = stylex(&args);
 
   // Assert
   let classname_string = result
-    .as_stylex()
+    .as_class_name()
     .and_then(|expr| expr.as_lit())
     .and_then(convert_lit_to_string)
     .expect("Expected classname_string to be Some");
@@ -388,18 +388,18 @@ fn with_complicated_set_of_arguments() {
   ]);
 
   // Act
-  let result = stylex(&styles).expect("Expected result to be Some");
-  let repeat = stylex(&styles).expect("Expected result to be Some");
+  let result = stylex(&styles);
+  let repeat = stylex(&styles);
 
   // Assert
   let classname_string = result
-    .as_stylex()
+    .as_class_name()
     .and_then(|expr| expr.as_lit())
     .and_then(convert_lit_to_string)
     .expect("Expected classname_string to be Some");
 
   let repeat_classname_string = repeat
-    .as_stylex()
+    .as_class_name()
     .and_then(|expr| expr.as_lit())
     .and_then(convert_lit_to_string)
     .expect("Expected classname_string to be Some");
@@ -454,8 +454,8 @@ fn data_prop_for_source_map_data() {
 
   let args = create_style_object_args(&[&first, &second, &third]);
 
-  let binding = props(&args).expect("Expected result to be Some");
-  let props = binding.as_props().expect("Expected result to be Some");
+  let binding = props(&args);
+  let props = binding.as_values().expect("Expected result to be Some");
 
   let mut expected_props = IndexMap::new();
 
@@ -472,10 +472,7 @@ fn data_prop_for_source_map_data() {
     )),
   );
 
-  assert_eq!(
-    props,
-    &NestedStringObject::FlatCompiledStylesValues(expected_props)
-  );
+  assert_eq!(props, &expected_props);
 }
 
 #[test]
@@ -497,10 +494,10 @@ fn with_just_pseudoclasses() {
     ],
   ]);
 
-  let result = stylex(&args).expect("Expected result to be Some");
+  let result = stylex(&args);
 
   let classname_string = result
-    .as_stylex()
+    .as_class_name()
     .and_then(|expr| expr.as_lit())
     .and_then(convert_lit_to_string)
     .expect("Expected classname_string to be Some");
@@ -533,13 +530,12 @@ fn props_with_dynamic_styles() {
   );
 
   let args = vec![
-    ResolvedArg::StyleObject(StyleObject::Style(compiled)),
-    ResolvedArg::StyleObject(StyleObject::Style(dynamic_style)),
+    ResolvedArg::StyleObject(StyleObject::style(compiled)),
+    ResolvedArg::StyleObject(StyleObject::style(dynamic_style)),
   ];
 
-  let binding = props(&args).expect("Expected result to be Some");
-  let props_values = binding.as_props().expect("Expected props result");
-  let values = props_values.as_values().expect("Expected values map");
+  let binding = props(&args);
+  let values = binding.as_values().expect("Expected props result");
 
   assert_eq!(
     values.get("className").and_then(|v| {
@@ -552,14 +548,16 @@ fn props_with_dynamic_styles() {
     Some("backgroundColor-red"),
   );
 
-  // Inline style should be present as KeyValues
+  // Inline style should be present as the object a style property holds
   let style_value = values.get("style").expect("Expected style key in props");
-  if let FlatCompiledStylesValue::KeyValues(pairs) = style_value.as_ref() {
-    assert_eq!(pairs.len(), 1);
-    assert_eq!(pairs[0].key, "color");
-    assert_eq!(pairs[0].value, "red");
+  if let FlatCompiledStylesValue::Object(declarations) = style_value.as_ref() {
+    assert_eq!(declarations.len(), 1);
+    assert_eq!(
+      declarations.get("color").map(|value| value.as_ref()),
+      Some(&FlatCompiledStylesValue::String("red".to_string()))
+    );
   } else {
-    panic!("Expected style to be KeyValues, got {:?}", style_value);
+    panic!("Expected style to be an object, got {:?}", style_value);
   }
 
   assert_eq!(
@@ -586,8 +584,8 @@ fn attrs_basic_resolve() {
     ("$$css", FlatCompiledStylesValue::Bool(true)),
   ]]);
 
-  let binding = attrs(&args).expect("Expected result to be Some");
-  let attrs_result = binding.as_attrs().expect("Expected attrs result");
+  let binding = attrs(&args);
+  let attrs_result = binding.as_values().expect("Expected attrs result");
 
   let mut expected = IndexMap::new();
   expected.insert(
@@ -595,10 +593,7 @@ fn attrs_basic_resolve() {
     Rc::new(FlatCompiledStylesValue::String("aaa bbb".into())),
   );
 
-  assert_eq!(
-    attrs_result,
-    &NestedStringObject::FlatCompiledStylesValues(expected),
-  );
+  assert_eq!(attrs_result, &expected);
 }
 
 #[test]
@@ -646,13 +641,12 @@ fn attrs_with_dynamic_styles() {
   );
 
   let args = vec![
-    ResolvedArg::StyleObject(StyleObject::Style(compiled)),
-    ResolvedArg::StyleObject(StyleObject::Style(dynamic_style)),
+    ResolvedArg::StyleObject(StyleObject::style(compiled)),
+    ResolvedArg::StyleObject(StyleObject::style(dynamic_style)),
   ];
 
-  let binding = attrs(&args).expect("Expected result to be Some");
-  let attrs_values = binding.as_attrs().expect("Expected attrs result");
-  let values = attrs_values.as_values().expect("Expected values map");
+  let binding = attrs(&args);
+  let values = binding.as_values().expect("Expected attrs result");
 
   assert_eq!(
     values.get("class").and_then(|v| {
@@ -698,8 +692,8 @@ fn legacy_merge_exposes_attrs() {
     ("$$css", FlatCompiledStylesValue::Bool(true)),
   ]]);
 
-  let binding = attrs(&args).expect("Expected result to be Some");
-  let attrs_result = binding.as_attrs().expect("Expected attrs result");
+  let binding = attrs(&args);
+  let attrs_result = binding.as_values().expect("Expected attrs result");
 
   let mut expected = IndexMap::new();
   expected.insert(
@@ -707,8 +701,5 @@ fn legacy_merge_exposes_attrs() {
     Rc::new(FlatCompiledStylesValue::String("color-red".into())),
   );
 
-  assert_eq!(
-    attrs_result,
-    &NestedStringObject::FlatCompiledStylesValues(expected),
-  );
+  assert_eq!(attrs_result, &expected);
 }

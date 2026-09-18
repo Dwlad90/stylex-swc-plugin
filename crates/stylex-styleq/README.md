@@ -50,7 +50,7 @@ literal class string instead of leaving a `styleq()` call in the bundle.
   folds `styleq()` calls into static class strings with this crate. It runs with
   `disable_cache: true`, because it builds a merger inside each merge and drops
   it: the walk is linear, so it visits each chain node at most once and a lookup
-  can never hit. Measured over the transform suite and the fixture corpus, 1,021
+  can never hit. Measured over the transform suite and the fixture corpus, 1,076
   lookups produced no hit at all.
 
 ## Public API
@@ -84,6 +84,12 @@ literal class string instead of leaving a `styleq()` call in the bundle.
   type makes the answer a decision rather than an omission. This is a **breaking
   change for any external `StyleqValue` implementation**, which has to add the
   method.
+
+  The method answers whether the value stands for a property that was not
+  given. An inline style skips such a property completely: it writes nothing,
+  defines nothing, and leaves the property for a later style to declare. What
+  an implementer does: answer `true` for the type's own "not given" state, or
+  `false` if the type has none.
 
 ## Testing & Benchmarks
 

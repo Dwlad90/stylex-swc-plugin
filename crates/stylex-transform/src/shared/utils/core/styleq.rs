@@ -57,7 +57,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
   // The cache is off, because this merger cannot hit it. It is built here and
   // dropped when the call returns, so a hit needs the same style twice at the
   // same position of one merge. Measured over the whole transform suite and the
-  // fixture corpus: 1,021 lookups, none of them a hit. Every one of those paid
+  // fixture corpus: 1,076 lookups, none of them a hit. Every one of those paid
   // for an entry, three shared strings, a chunk and a child map, and collected
   // nothing. The cache is transparent -- a merge answers the same with it and
   // without it -- so turning it off changes what the merge costs and not what

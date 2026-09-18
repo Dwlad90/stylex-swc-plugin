@@ -42,6 +42,18 @@ came from, and defaults to `probe.js`. Give it a `.stylex.js` name to measure
 the shapes only a variable-defining module can hold -- `defineVars`,
 `defineConsts` and the `createTheme` calls that read them.
 
+**It runs nowhere on purpose, and it is not a gate.** It prints two answers and
+says nothing about which is right, so there is nothing for it to fail on. A
+reading it gives is true of the moment it was taken, and it stops guarding
+anything the moment the run ends.
+
+So a claim that rests on it has to land somewhere that does run. The three
+places are a corpus row (`corpus/*.json`, run by `parity` and
+`parity:positions` on every pull request), a Rust case, or a snapshot. A commit
+message saying "measured with `parity:probe`" records how the answer was found;
+it is not a claim that anything re-checks it, and the change that carries such a
+message should carry one of those three as well.
+
 Timings are wall clock on an Apple Silicon laptop with a warm build.
 
 **Why CI and not a hook.** Both comparison harnesses need a built `dist/` and a

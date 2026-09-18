@@ -212,8 +212,9 @@ timed for it, because the absolute budget describes the candidate alone and
 wants a ceiling for every fixture the run measured. A fixture dropped from the
 run reached that check as an entry nothing measured, and failed the release a
 second way. The reverse hole is a fixture measured with no ceiling, which is
-[Seeding a new ceiling](#seeding-a-new-ceiling). The verdict engine names such a fixture under its table and takes
-no ratio for it, because a ratio needs both sides.
+[Seeding a new ceiling](#seeding-a-new-ceiling). The verdict engine names such a
+fixture under its table and takes no ratio for it, because a ratio needs both
+sides.
 
 A ceiling that the run measured nothing for is an `extra-entry` failure, and
 that failure has two answers. The run may hold no fixture of that name, which

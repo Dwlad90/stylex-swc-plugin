@@ -74,9 +74,14 @@ const hostFileName = (argument: string | undefined): string => {
   return name;
 };
 
+// Read the arguments once. `process.argv` starts with the node binary and this
+// script, so both reads slice them away: a path that happens to end in
+// `--inject` must not turn injection on.
+const argv = process.argv.slice(2);
+
 /** The arguments that are not the `--inject` flag, in the order given. */
-const positional = process.argv.slice(2).filter(argument => argument !== '--inject');
-const runtimeInjection = process.argv.includes('--inject');
+const positional = argv.filter(argument => argument !== '--inject');
+const runtimeInjection = argv.includes('--inject');
 
 const packageDir = path.resolve(import.meta.dirname, '..');
 const filename = path.join(packageDir, hostFileName(positional[1]));

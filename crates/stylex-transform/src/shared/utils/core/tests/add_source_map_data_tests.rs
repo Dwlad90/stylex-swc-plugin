@@ -366,6 +366,7 @@ fn returns_none_without_an_input_source_file() {
 
 /// The shortening of a path, and the annotation it is written into.
 mod short_filenames {
+  use std::path::{Path, PathBuf};
   use std::rc::Rc;
 
   use indexmap::IndexMap;
@@ -383,7 +384,7 @@ mod short_filenames {
   };
 
   use super::super::{
-    create_short_filename, get_package_prefix, get_short_path, insert_compiled_entry,
+    create_short_filename, get_package_prefix, get_short_path, insert_compiled_entry, to_posix_path,
   };
 
   fn short_filename_of(path: &str, state: &StateManager) -> String {
@@ -411,6 +412,55 @@ mod short_filenames {
       get_package_prefix("/somewhere/node_modules/acme/Card.tsx"),
       Some("acme".to_owned())
     );
+  }
+
+  /// The debug name is written with one separator on every platform.
+  ///
+  /// `to_string_lossy` over a path hands back whichever separator the platform
+  /// stores, so a name built that way read `pkg\components\Button.js` on
+  /// Windows and `pkg/components/Button.js` everywhere else. The name is
+  /// compared byte for byte -- by a snapshot, by a fixture, by a parity row --
+  /// so one that reads two ways passes on one platform and fails on the other.
+  ///
+  /// Built from its parts rather than from a spelling, because no spelling
+  /// reads the same on both: a backslash separates two names on Windows and
+  /// belongs to a single name on POSIX. Assembling the parts is what puts the
+  /// platform's own separator in, and this is the check that takes it back out.
+  #[test]
+  fn writes_a_name_with_one_separator_on_every_platform() {
+    let nested: PathBuf = ["pkg", "components", "Button.js"].iter().collect();
+
+    assert_eq!(to_posix_path(&nested), "pkg/components/Button.js");
+
+    // One part is still one part, and an empty path spells nothing.
+    assert_eq!(to_posix_path(Path::new("Button.js")), "Button.js");
+    assert_eq!(to_posix_path(Path::new("")), "");
+
+    // A root keeps one separator and not two. A path that names a root does
+    // reach here: a project that declares an empty root directory strips
+    // nothing, because a path with no parts is a prefix of every path, and the
+    // whole absolute path is handed over.
+    let rooted: PathBuf = [
+      std::path::MAIN_SEPARATOR_STR,
+      "pkg",
+      "components",
+      "Button.js",
+    ]
+    .iter()
+    .collect();
+
+    assert_eq!(to_posix_path(&rooted), "/pkg/components/Button.js");
+    assert_eq!(
+      rooted.strip_prefix(Path::new("")).map(to_posix_path),
+      Ok("/pkg/components/Button.js".to_owned())
+    );
+
+    // Nothing but the separator is rewritten. A `.` part, a doubled separator
+    // and a trailing separator are all names the compilation was given, and a
+    // reader comparing this against the file it names reads them back.
+    let unnormalized: PathBuf = ["a", ".", "b"].iter().collect();
+
+    assert_eq!(to_posix_path(&unnormalized), "a/./b");
   }
 
   /// A short path keeps the last two parts of the path it was given, which is

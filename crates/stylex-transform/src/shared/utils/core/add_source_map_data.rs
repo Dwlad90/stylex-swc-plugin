@@ -337,6 +337,25 @@ fn get_package_prefix(absolute_path: &str) -> Option<String> {
     .map(String::from)
 }
 
+/// A path written with the separator the debug name uses on every platform.
+///
+/// The name is compared byte for byte -- by a snapshot, by a fixture, by a
+/// parity row -- so it cannot be spelled one way on Windows and another
+/// everywhere else. `to_string_lossy` alone keeps the separator the platform
+/// gave it.
+///
+/// The text is rewritten rather than the parts rejoined, because rejoining
+/// answers a root its own separator a second time -- `/a/b` comes back `//a/b`
+/// -- and because a Windows path already holds both spellings, so the one to
+/// take out is the platform's own. On a platform that separates with `/` this
+/// is a copy that changes nothing, which is what keeps it one rule rather than
+/// two.
+fn to_posix_path(path: &Path) -> String {
+  path
+    .to_string_lossy()
+    .replace(std::path::MAIN_SEPARATOR, "/")
+}
+
 fn get_short_path(relative_path: &str, state: &StateManager) -> String {
   // Check if commonJS module resolution with rootDir is configured
   if let CheckModuleResolution::CommonJs {
@@ -348,7 +367,7 @@ fn get_short_path(relative_path: &str, state: &StateManager) -> String {
     let root_dir_path = Path::new(root_dir);
 
     if let Ok(rel) = relative_path_obj.strip_prefix(root_dir_path) {
-      return rel.to_string_lossy().into_owned();
+      return to_posix_path(rel);
     }
   }
 
@@ -396,9 +415,7 @@ fn create_short_filename(
     let package_root = Path::new(&package_root_path);
     let relative_path = path
       .strip_prefix(package_root)
-      .map_or(absolute_path.to_string(), |p| {
-        p.to_string_lossy().into_owned()
-      });
+      .map_or(absolute_path.to_string(), to_posix_path);
 
     // If the file is in the same package as cwd, return just the relative path
     if let Some((cwd_package_name, _)) = cwd_package

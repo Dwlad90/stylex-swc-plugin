@@ -24,9 +24,25 @@ use stylex_state::{
 /// runtime is left to apply.
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum StyleObject {
-  Style(FlatCompiledStyles),
+  /// Shared rather than owned, for the style a name stands for. The state
+  /// holds such a style for the whole file, and one `stylex.props` argument
+  /// copied every name and value of it only to drop the copy when the merge
+  /// ended.
+  ///
+  /// A style the reader builds instead of finding -- an object written in the
+  /// call, or a value the evaluator folded -- is put in an `Rc` of its own and
+  /// is shared with nothing. It lives as long as the merge and no longer.
+  Style(Rc<FlatCompiledStyles>),
   Nullable,
   Other,
+}
+
+impl StyleObject {
+  /// Names a style the reader has just built, which nothing else holds.
+  #[inline]
+  pub(crate) fn style(style: FlatCompiledStyles) -> Self {
+    StyleObject::Style(Rc::new(style))
+  }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -43,7 +59,7 @@ impl ResolvedArg {
   ///
   /// # Example
   /// ```ignore
-  /// let arg = ResolvedArg::style_object(StyleObject::Style(...));
+  /// let arg = ResolvedArg::style_object(StyleObject::style(...));
   /// ```
   #[inline]
   pub(crate) fn style_object(style_obj: StyleObject) -> Self {
@@ -148,7 +164,7 @@ pub(crate) fn parse_nullable_style(
         }
 
         if let Some(style_value) = namespaces.get(prop_name.as_ref()) {
-          return StyleObject::Style((**style_value).clone());
+          return StyleObject::Style(Rc::clone(style_value));
         }
       }
 
@@ -188,12 +204,12 @@ fn parse_compiled_styles(
       // Taken rather than copied. The caller drops the map as soon as this
       // answers, so a copy of every name it holds was made only to be thrown
       // away on the next line.
-      return Some(StyleObject::Style(std::mem::take(compiled_styles)));
+      return Some(StyleObject::style(std::mem::take(compiled_styles)));
     },
     EvaluateResultValue::Expr(expr) => {
       if expr.is_object() {
         parse_nullable_object(compiled_styles, expr);
-        return Some(StyleObject::Style(std::mem::take(compiled_styles)));
+        return Some(StyleObject::style(std::mem::take(compiled_styles)));
       }
     },
     EvaluateResultValue::ThemeRef(_) => {

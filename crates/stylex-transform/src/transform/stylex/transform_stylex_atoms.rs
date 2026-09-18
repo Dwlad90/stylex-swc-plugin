@@ -55,9 +55,9 @@ pub(crate) const INLINE_NAMESPACE: &str = "__inline__";
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn or_refuse_missing_atom_namespace(
   namespace: Option<&Rc<FlatCompiledStyles>>,
-) -> FlatCompiledStyles {
+) -> &FlatCompiledStyles {
   match namespace {
-    Some(namespace) => (**namespace).clone(),
+    Some(namespace) => namespace,
     None => stylex_panic!("An inline style compiled to no namespace."),
   }
 }
@@ -132,10 +132,10 @@ where
     }
     self.state.in_stylex_create = prev_in_stylex_create;
 
-    let namespace: FlatCompiledStyles =
-      or_refuse_missing_atom_namespace(compiled.get(INLINE_NAMESPACE));
+    // Borrowed, because both readers below only read it.
+    let namespace = or_refuse_missing_atom_namespace(compiled.get(INLINE_NAMESPACE));
 
-    let compiled_ast = convert_values_to_ast(&namespace);
+    let compiled_ast = convert_values_to_ast(namespace);
 
     let compiled_flat = namespace
       .iter()

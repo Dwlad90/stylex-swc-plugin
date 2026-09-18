@@ -23,7 +23,7 @@ fn create_style_object_args(args: &[&[(&str, FlatCompiledStylesValue)]]) -> Vec<
       object.insert(key.to_string(), Rc::new(value.clone()));
     }
 
-    result_args.push(ResolvedArg::StyleObject(StyleObject::Style(object)))
+    result_args.push(ResolvedArg::StyleObject(StyleObject::style(object)))
   }
 
   result_args
@@ -530,8 +530,8 @@ fn props_with_dynamic_styles() {
   );
 
   let args = vec![
-    ResolvedArg::StyleObject(StyleObject::Style(compiled)),
-    ResolvedArg::StyleObject(StyleObject::Style(dynamic_style)),
+    ResolvedArg::StyleObject(StyleObject::style(compiled)),
+    ResolvedArg::StyleObject(StyleObject::style(dynamic_style)),
   ];
 
   let binding = props(&args);
@@ -641,8 +641,8 @@ fn attrs_with_dynamic_styles() {
   );
 
   let args = vec![
-    ResolvedArg::StyleObject(StyleObject::Style(compiled)),
-    ResolvedArg::StyleObject(StyleObject::Style(dynamic_style)),
+    ResolvedArg::StyleObject(StyleObject::style(compiled)),
+    ResolvedArg::StyleObject(StyleObject::style(dynamic_style)),
   ];
 
   let binding = attrs(&args);

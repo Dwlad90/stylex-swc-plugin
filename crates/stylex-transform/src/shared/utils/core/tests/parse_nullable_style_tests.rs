@@ -5,8 +5,15 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use stylex_state::{
-  evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
-  functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles,
+  evaluate_result_value::EvaluateResultValue,
+  flat_compiled_styles_value::FlatCompiledStylesValue,
+  functions::FunctionMap,
+  state_manager::StateManager,
+  types::{FlatCompiledStyles, StylesObjectMap},
+};
+use swc_core::{
+  common::DUMMY_SP,
+  ecma::ast::{BindingIdent, Expr, Pat, VarDeclarator},
 };
 
 use super::{StyleObject, parse_compiled_styles, parse_nullable_object, parse_nullable_style};
@@ -492,4 +499,59 @@ fn refuses_an_array_element_that_is_not_a_style() {
 #[should_panic(expected = "Encountered a style argument the compiler cannot read.")]
 fn refuses_a_folded_value_that_is_not_a_style() {
   parse_compiled_styles(&mut styles(), &EvaluateResultValue::Map(IndexMap::new()));
+}
+
+/// A style the module declared is shared with the state, not copied.
+///
+/// One `stylex.props` argument used to copy every name and value of the style
+/// it names, and a file reads the same style from as many arguments as it has
+/// elements. The pointers are compared because the values were equal either
+/// way: what changed is that one style is now read by all of them.
+#[test]
+fn shares_a_declared_style_with_the_state() {
+  let read = expr("styles.base");
+
+  let Expr::Member(member) = &read else {
+    panic!("the fixture is not a member expression: {read:?}");
+  };
+
+  let Some(ident) = member.obj.as_ident() else {
+    panic!("the fixture does not name a style variable: {member:?}");
+  };
+
+  let mut style: FlatCompiledStyles = IndexMap::new();
+
+  style.insert(
+    "color".to_owned(),
+    Rc::new(FlatCompiledStylesValue::String("xa".to_owned())),
+  );
+
+  let declared = Rc::new(style);
+  let mut namespaces: StylesObjectMap = IndexMap::new();
+
+  namespaces.insert("base".to_owned(), Rc::clone(&declared));
+
+  let mut state = StateManager::default();
+
+  state
+    .style_map
+    .insert(ident.sym.to_string(), Rc::new(namespaces));
+
+  state.insert_style_var(
+    ident.sym.to_string(),
+    VarDeclarator {
+      span: DUMMY_SP,
+      name: Pat::Ident(BindingIdent::from(ident.clone())),
+      init: None,
+      definite: false,
+    },
+  );
+
+  match parse_nullable_style(&read, &mut state, &FunctionMap::default()) {
+    StyleObject::Style(style) => assert!(
+      Rc::ptr_eq(&style, &declared),
+      "the argument copied the style the state holds"
+    ),
+    other => panic!("the name was not read as a style: {other:?}"),
+  }
 }

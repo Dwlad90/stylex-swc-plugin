@@ -104,10 +104,10 @@ pub(crate) fn inline_unwritable(property: &str) -> FlatCompiledStyles {
 
 /// One style argument holding the given namespace.
 pub(crate) fn style_of(properties: &[(&str, &str)]) -> ResolvedArg {
-  ResolvedArg::style_object(StyleObject::Style(compiled(properties)))
+  ResolvedArg::style_object(StyleObject::style(compiled(properties)))
 }
 
 /// One style argument holding the given namespace as it is.
 pub(crate) fn styles(styles: FlatCompiledStyles) -> ResolvedArg {
-  ResolvedArg::style_object(StyleObject::Style(styles))
+  ResolvedArg::style_object(StyleObject::style(styles))
 }

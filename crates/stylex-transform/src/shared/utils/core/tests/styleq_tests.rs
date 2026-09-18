@@ -69,7 +69,7 @@ fn an_absent_argument_declares_nothing() {
 fn a_conditional_argument_is_read_through_the_branch_it_resolved() {
   let taken = ResolvedArg::conditional(
     expr("flag"),
-    Some(StyleObject::Style(compiled(&[("color", "xa")]))),
+    Some(StyleObject::style(compiled(&[("color", "xa")]))),
     None,
   );
 

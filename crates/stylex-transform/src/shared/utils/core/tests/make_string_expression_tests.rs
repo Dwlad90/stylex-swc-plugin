@@ -19,7 +19,7 @@ use crate::tests::support::expr;
 fn behind(test: &str, property: &str, class_name: &str) -> ResolvedArg {
   ResolvedArg::conditional(
     expr(test),
-    Some(StyleObject::Style(compiled(&[(property, class_name)]))),
+    Some(StyleObject::style(compiled(&[(property, class_name)]))),
     None,
   )
 }
@@ -87,7 +87,7 @@ fn rendered(expr: &Expr) -> String {
 /// than filed in a table the runtime has to read.
 #[test]
 fn writes_one_answer_directly_when_nothing_is_conditional() {
-  let values = [ResolvedArg::style_object(StyleObject::Style(compiled(&[
+  let values = [ResolvedArg::style_object(StyleObject::style(compiled(&[
     ("color", "xa"),
   ])))];
 
@@ -149,7 +149,7 @@ fn files_each_answer_under_the_conditions_that_name_it() {
 #[test]
 fn keeps_an_unconditional_style_in_every_answer() {
   let (answers, _) = table_of(&[
-    ResolvedArg::style_object(StyleObject::Style(compiled(&[("padding", "xc")]))),
+    ResolvedArg::style_object(StyleObject::style(compiled(&[("padding", "xc")]))),
     behind("flag", "color", "xa"),
   ]);
 

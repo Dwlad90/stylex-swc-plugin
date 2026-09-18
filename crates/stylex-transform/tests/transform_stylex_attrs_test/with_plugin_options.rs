@@ -87,8 +87,9 @@ stylex_test!(
 
 // The three attributes are written in the order the runtime writes them --
 // `class`, `style`, `data-style-src`. The order is part of the printed object,
-// so this is the case that holds all three at once: a dynamic style is what
-// writes `style`, and `dev` is what writes `data-style-src`.
+// so this is the case that holds all three at once: an inline style object --
+// one the merge keeps as it stands, because it carries no compiled marker --
+// is what writes `style`, and `dev` is what writes `data-style-src`.
 stylex_test!(
   stylex_call_writes_the_three_attributes_in_runtime_order,
   |tr| stylex_transform(tr.comments.clone(), |b| b),

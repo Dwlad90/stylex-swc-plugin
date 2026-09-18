@@ -448,6 +448,10 @@ pub(crate) fn assert_spellings_agree_with(
 /// import line is the one thing the comparison is blind to, so leaving the
 /// anchor blind to it as well would let both spellings lose the injector
 /// together and still pass.
+///
+/// `compile` must therefore be a harness that turns runtime injection on, which
+/// every caller's is. One that does not would fail here rather than in its own
+/// case, and the sentence it fails with says which of the two it is.
 #[track_caller]
 pub(crate) fn assert_spellings_agree_but_for_the_import(
   shape: &str,

@@ -46,9 +46,9 @@ pub(crate) fn stylex_create_theme(
 
 /// The same production, for a caller that has already read the variable group.
 ///
-/// The read is not free: it copies every property of the group twice, and a
-/// caller that asks for it to order its own refusals would otherwise pay for
-/// the whole group a second time here.
+/// The read is not free: it copies every property of the group, and a caller
+/// that asks for it to order its own refusals would otherwise pay for the whole
+/// group a second time here.
 pub(crate) fn stylex_create_theme_from_group(
   theme_group: (String, ThemeVars),
   variables: &EvaluateResultValue,

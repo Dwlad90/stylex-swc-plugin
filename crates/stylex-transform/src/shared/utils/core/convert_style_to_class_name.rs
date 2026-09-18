@@ -132,6 +132,13 @@ pub(crate) fn convert_style_to_class_name(
 }
 
 /// Whether a value is one whole `var()` reference.
+///
+/// Not the `IS_CSS_VAR` expression, and the difference is deliberate. That one
+/// asks for a custom property name -- `var(--name)`, with the name spelled from
+/// a fixed set of characters -- because the caller it serves asks a different
+/// question. The fallback chain asks only that the value opens with `var(` and
+/// closes the bracket, which is the test the reference makes here, so a
+/// `var(x)` is a link in the chain to both compilers.
 fn is_css_var(value: &str) -> bool {
   value.starts_with("var(") && value.ends_with(')')
 }

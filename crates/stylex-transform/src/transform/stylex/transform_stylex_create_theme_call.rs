@@ -134,7 +134,7 @@ where
       // point, so this does not change which one is read first.
       //
       // The answer is carried on rather than thrown away. Reading it again in
-      // the producer copies every property of the group twice over.
+      // the producer copies every property of the group a second time.
       let theme_group = validate_theme_variables(&variables, &self.state);
 
       let overrides = match evaluated_arg2.value {

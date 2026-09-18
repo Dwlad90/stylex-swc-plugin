@@ -480,9 +480,11 @@ pub fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {
     .iter()
     .map(|prop| match prop {
       PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-      // One copy, of the pair that is answered. Reading the property where it
-      // lies used to cost a second copy of the same value subtree, of every
-      // property, at every one of this reader's call sites.
+      // The pair that is answered is copied, and nothing else is. Reading the
+      // property where it lies used to cost a copy of the whole value subtree
+      // of every property first, at every one of this reader's call sites.
+      // A shorthand name still costs two small copies, because the pair built
+      // for it is copied again to be answered, and both hold only the name.
       PropOrSpread::Prop(prop) => match expanded_shorthand_prop(prop).as_ref() {
         Prop::KeyValue(key_value) => key_value.clone(),
         _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),

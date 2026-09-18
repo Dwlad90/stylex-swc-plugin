@@ -187,10 +187,21 @@ impl<'a> ArgTexts<'a> {
 
   /// The text of `args[index]`, moved out rather than copied.
   ///
-  /// The fold asks about each argument of a chain once -- [`plan_fallbacks`]
-  /// lists every position once -- so nothing reads the slot after this.
+  /// The slot is emptied and not left holding the empty text the move makes.
+  /// A slot that holds one would say it was read, which is what [`Self::texts`]
+  /// means by a filled slot, and the next read of that position would answer
+  /// the empty text instead of the argument -- a fallback segment the source
+  /// does not state.
+  ///
+  /// The fold reads each position of a chain once, so nothing does that today.
+  /// The line is what keeps the type's own account of its slots true, rather
+  /// than a guard against a caller.
   fn take_text(&mut self, index: usize) -> String {
-    mem::take(self.filled(index))
+    let text = mem::take(self.filled(index));
+
+    self.texts[index] = None;
+
+    text
   }
 }
 

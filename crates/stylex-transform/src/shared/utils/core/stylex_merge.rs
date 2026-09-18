@@ -269,11 +269,21 @@ pub(crate) fn stylex_merge(
 
 /// The JSX attribute a compiled property spells, where it spells one.
 ///
-/// The properties read here are the ones `make_string_expression` built: a
-/// key-value pair under a plain name, never a spread and never computed --
-/// asserted where the table is built, by
-/// `files_every_answer_as_a_key_value_under_a_name`. What is left to decide is
-/// the value, and only a literal can be written into an attribute.
+/// The properties read here are the ones the merge answered with when no
+/// argument was conditional. `make_string_expression` builds those through
+/// `create_key_value_prop`, which spells a key as a bare name or as a quoted
+/// string and never as a computed one. So `key_value_name` below has no
+/// computed key to refuse, and the guard that stood here had no input. A quoted
+/// key is usual on this path: `data-style-src` is one, and
+/// `local_static_styles` writes it into an attribute.
+///
+/// This reader never sees the table that the conditional case builds, because
+/// that case answers a member read on the table and the caller matches an
+/// object. `files_every_answer_as_a_key_value_under_a_name` holds the table's
+/// own shape.
+///
+/// What is left to decide is the value, and only a literal can be written into
+/// an attribute.
 fn static_jsx_attr_from_prop(prop: &PropOrSpread) -> Option<JSXAttrOrSpread> {
   prop
     .as_prop()

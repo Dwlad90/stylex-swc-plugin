@@ -1,3 +1,5 @@
+use std::mem;
+
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
@@ -37,6 +39,26 @@ pub(crate) fn css_variable_name(text: &str) -> Option<&str> {
       .and_then(|inner| inner.strip_suffix(')')),
     false => None,
   }
+}
+
+/// Cuts `text` down to the variable name it references, and answers whether it
+/// referenced one. So `var(--x)` becomes `--x`, and anything else is left as it
+/// was.
+///
+/// Beside [`css_variable_name`] because both callers already own their text and
+/// the name is a slice of it, so copying the slice out allocates a second
+/// string for every argument of every chain.
+pub(crate) fn cut_to_css_variable_name(text: &mut String) -> bool {
+  if css_variable_name(text).is_none() {
+    return false;
+  }
+
+  // The name sits between the prefix and the closing parenthesis, which is what
+  // admitted the text above.
+  text.truncate(text.len() - 1);
+  text.drain(..CSS_VAR_PREFIX.len());
+
+  true
 }
 
 /// What shape `firstThatWorks` answers with, and which arguments fill it — as
@@ -145,11 +167,14 @@ impl<'a> ArgTexts<'a> {
     }
   }
 
-  /// The text of `args[index]`.
+  /// The filled slot of `args[index]`.
   ///
   /// Reading is the one thing that can fail here, and it fails the same way
-  /// wherever it is asked, so the sentence lives in one place.
-  fn text(&mut self, index: usize) -> &str {
+  /// wherever it is asked, so the sentence lives in one place. The slot is
+  /// handed back filled, so no caller below has an empty answer to handle: a
+  /// substitution such as `unwrap_or_default` there would fold an empty
+  /// fallback segment in place of a refusal.
+  fn filled(&mut self, index: usize) -> &mut String {
     let (args, state, functions) = (self.args, &mut self.state, self.functions);
 
     self.texts[index].get_or_insert_with(|| {
@@ -160,13 +185,17 @@ impl<'a> ArgTexts<'a> {
     })
   }
 
+  /// The text of `args[index]`.
+  fn text(&mut self, index: usize) -> &str {
+    self.filled(index)
+  }
+
   /// The text of `args[index]`, moved out rather than copied.
   ///
   /// The fold asks about each argument of a chain once -- [`plan_fallbacks`]
   /// lists every position once -- so nothing reads the slot after this.
   fn take_text(&mut self, index: usize) -> String {
-    self.text(index);
-    self.texts[index].take().unwrap_or_default()
+    mem::take(self.filled(index))
   }
 }
 
@@ -191,14 +220,13 @@ pub fn stylex_first_that_works(
       Fallbacks::Reversed => String::new(),
       Fallbacks::Chain(chain) | Fallbacks::ChainAndRest(chain, _) => {
         fold_fallback_chain(chain.iter().map(|&index| {
-          let text = texts.take_text(index);
+          let mut text = texts.take_text(index);
 
           // A variable contributes its name; anything else contributes itself,
           // which is where the chain bottoms out.
-          match css_variable_name(&text) {
-            Some(name) => name.to_string(),
-            None => text,
-          }
+          cut_to_css_variable_name(&mut text);
+
+          text
         }))
       },
     };

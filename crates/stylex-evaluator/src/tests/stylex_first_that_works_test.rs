@@ -170,7 +170,7 @@ mod stylex_first_that_works {
 #[cfg(test)]
 mod fallback_plan {
   use crate::stylex_first_that_works::{
-    Fallbacks, css_variable_name, fold_fallback_chain, plan_fallbacks,
+    Fallbacks, css_variable_name, cut_to_css_variable_name, fold_fallback_chain, plan_fallbacks,
   };
 
   /// The plan for `is_var`, as `(chain, rest)`, or `None` where there is no
@@ -331,5 +331,36 @@ mod fallback_plan {
     assert_eq!(css_variable_name("VAR(--x)"), None);
     assert_eq!(css_variable_name(" var(--x)"), None);
     assert_eq!(css_variable_name("var(--é)"), None);
+  }
+
+  /// The cut answers what the question above answers, and leaves the text it
+  /// refuses exactly as it was. Every shape the question reads is asked again
+  /// here, because the cut is the form the fold actually uses.
+  #[test]
+  fn the_cut_leaves_the_name_and_refuses_the_rest() {
+    let cut = |text: &str| {
+      let mut owned = text.to_string();
+      let was_variable = cut_to_css_variable_name(&mut owned);
+
+      (was_variable, owned)
+    };
+
+    assert_eq!(cut("var(--x)"), (true, "--x".to_string()));
+    assert_eq!(cut("var(--token_1)"), (true, "--token_1".to_string()));
+    assert_eq!(cut("var(--a-b_c1)"), (true, "--a-b_c1".to_string()));
+
+    for refused in [
+      "var(--x, red)",
+      "var(x)",
+      "var()",
+      "--x",
+      "",
+      ")",
+      "VAR(--x)",
+      " var(--x)",
+      "var(--é)",
+    ] {
+      assert_eq!(cut(refused), (false, refused.to_string()));
+    }
   }
 }

@@ -33,7 +33,7 @@ use stylex_ast::ast::convertors::normalize_expr;
 use stylex_constants::constants::api_names::STYLEX_FIRST_THAT_WORKS;
 
 use crate::stylex_first_that_works::{
-  Fallbacks, css_variable_name, fold_fallback_chain, plan_fallbacks,
+  Fallbacks, cut_to_css_variable_name, fold_fallback_chain, plan_fallbacks,
 };
 use stylex_state::state_manager::{ImportKind, StateManager};
 
@@ -180,9 +180,9 @@ fn first_that_works(_this: &JsValue, args: &[JsValue], engine: &mut Context) -> 
   let names = args
     .iter()
     .map(|value| {
-      let text = value.as_string()?.to_std_string_lossy();
+      let mut text = value.as_string()?.to_std_string_lossy();
 
-      css_variable_name(&text).map(str::to_string)
+      cut_to_css_variable_name(&mut text).then_some(text)
     })
     .collect::<Vec<_>>();
 

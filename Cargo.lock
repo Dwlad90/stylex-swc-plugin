@@ -3234,37 +3234,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "stylex_compiler_rs"
-version = "0.19.0-rc.4"
-dependencies = [
- "indexmap",
- "log",
- "mimalloc",
- "napi",
- "napi-build",
- "napi-derive",
- "rustc-hash",
- "serde",
- "serde_json",
- "serde_plain",
- "stylex_ast",
- "stylex_enums",
- "stylex_logs",
- "stylex_macros",
- "stylex_regex",
- "stylex_state",
- "stylex_structures",
- "stylex_transform",
- "stylex_types",
- "stylex_utils",
- "swc_compiler_base",
- "swc_core",
- "swc_ecma_parser",
- "swc_malloc",
- "swc_sourcemap",
-]
-
-[[package]]
 name = "stylex_constants"
 version = "0.19.0-rc.4"
 dependencies = [
@@ -3443,6 +3412,37 @@ version = "0.19.0-rc.4"
 dependencies = [
  "fancy-regex",
  "once_cell",
+]
+
+[[package]]
+name = "stylex_rs_compiler"
+version = "0.19.0-rc.4"
+dependencies = [
+ "indexmap",
+ "log",
+ "mimalloc",
+ "napi",
+ "napi-build",
+ "napi-derive",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "serde_plain",
+ "stylex_ast",
+ "stylex_enums",
+ "stylex_logs",
+ "stylex_macros",
+ "stylex_regex",
+ "stylex_state",
+ "stylex_structures",
+ "stylex_transform",
+ "stylex_types",
+ "stylex_utils",
+ "swc_compiler_base",
+ "swc_core",
+ "swc_ecma_parser",
+ "swc_malloc",
+ "swc_sourcemap",
 ]
 
 [[package]]

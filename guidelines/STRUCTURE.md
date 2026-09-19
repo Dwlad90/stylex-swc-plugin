@@ -158,9 +158,8 @@ root `package.json`, `EXCLUDED_CRATES` in `scripts/coverage-missing.sh`, the
 `case` in `scripts/packages/test/coverage.sh`, `EXCLUDED` in
 `scripts/git/crate-coverage-runner.test.mjs`, which asserts that `case` starts
 no cargo for a name it holds, and the rows below. `case` and `EXCLUDED` spell a
-crate by its directory name and the other three by its Cargo package name, which
-differ by more than the hyphens: `stylex-rs-compiler` is the crate
-`stylex_compiler_rs`.
+crate by its directory name and the other three by its Cargo package name. The
+two differ by the hyphens alone.
 
 `scripts/git/coverage-exclusions.test.mjs` compares the five and names the list
 that disagrees, so a row taken off four of them fails where it was edited. It
@@ -181,7 +180,7 @@ could not travel with the code, or the tests are not written yet.
 Permanent:
 
 - `stylex_logs` -- logging utilities
-- `stylex_compiler_rs` -- NAPI-RS bindings
+- `stylex_rs_compiler` -- NAPI-RS bindings
 - `stylex_test_parser` -- test fixture parser
 
 There is no temporary row. Every crate that is not named above is on the gate.

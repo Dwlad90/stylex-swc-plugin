@@ -35,94 +35,94 @@ export default function ButtonsDemo(props) {
     </div>;
 }
 _inject2({
-    ltr: ".x1582kvi, .x1582kvi:root{--bgColor-xxn4pt7:red;--cornerRadius-xebqz1:4px;--paddingBlock-x9c4myw:4px;--paddingInline-xscmh3t:8px;--textColor-xnblhe2:white;}",
+    ltr: ".x1idg7kz, .x1idg7kz:root{--xxn4pt7:red;--xebqz1:4px;--x9c4myw:4px;--xscmh3t:8px;--xnblhe2:white;}",
     priority: 0.5
 });
 const redTheme = {
     input__redTheme: "input__redTheme",
-    xhq9i64: "x1582kvi xhq9i64",
+    xhq9i64: "x1idg7kz xhq9i64",
     $$css: true
 };
 _inject2({
-    ltr: ".display-x78zum5{display:flex}",
+    ltr: ".x78zum5{display:flex}",
     priority: 3000
 });
 _inject2({
-    ltr: ".flexDirection-xdt5ytf{flex-direction:column}",
+    ltr: ".xdt5ytf{flex-direction:column}",
     priority: 3000
 });
 _inject2({
-    ltr: ".alignItems-x6s0dn4{align-items:center}",
+    ltr: ".x6s0dn4{align-items:center}",
     priority: 3000
 });
 _inject2({
-    ltr: ".justifyContent-xl56j7k{justify-content:center}",
+    ltr: ".xl56j7k{justify-content:center}",
     priority: 3000
 });
 _inject2({
-    ltr: ".gap-xou54vl{gap:16px}",
+    ltr: ".xou54vl{gap:16px}",
     priority: 2000
 });
 _inject2({
-    ltr: ".paddingBottom-xzk7aed{padding-bottom:64px}",
+    ltr: ".xzk7aed{padding-bottom:64px}",
     priority: 4000
 });
 _inject2({
-    ltr: ".borderWidth-xdh2fpr{border-width:2px}",
+    ltr: ".xdh2fpr{border-width:2px}",
     priority: 2000
 });
 _inject2({
-    ltr: ".borderStyle-x1y0btm7{border-style:solid}",
+    ltr: ".x1y0btm7{border-style:solid}",
     priority: 2000
 });
 _inject2({
-    ltr: ".borderColor-x71xlcl{border-color:red}",
+    ltr: ".x71xlcl{border-color:red}",
     priority: 2000
 });
 _inject2({
-    ltr: ".borderColor-x1bg2uv5{border-color:green}",
+    ltr: ".x1bg2uv5{border-color:green}",
     priority: 2000
 });
 const styles = {
     container: {
         "input__styles.container": "input__styles.container",
-        display: "display-x78zum5",
-        flexDirection: "flexDirection-xdt5ytf",
-        alignItems: "alignItems-x6s0dn4",
-        justifyContent: "justifyContent-xl56j7k",
-        gap: "gap-xou54vl",
-        paddingBottom: "paddingBottom-xzk7aed",
+        display: "x78zum5",
+        flexDirection: "xdt5ytf",
+        alignItems: "x6s0dn4",
+        justifyContent: "xl56j7k",
+        gap: "xou54vl",
+        paddingBottom: "xzk7aed",
         $$css: "tests/fixture/buttons-demo/input.stylex.js:49"
     },
     bordered: {
         "input__styles.bordered": "input__styles.bordered",
-        borderWidth: "borderWidth-xdh2fpr",
-        borderStyle: "borderStyle-x1y0btm7",
-        borderColor: "borderColor-x71xlcl",
+        borderWidth: "xdh2fpr",
+        borderStyle: "x1y0btm7",
+        borderColor: "x71xlcl",
         $$css: "tests/fixture/buttons-demo/input.stylex.js:57"
     },
     greenBorder: {
         "input__styles.greenBorder": "input__styles.greenBorder",
-        borderColor: "borderColor-x1bg2uv5",
+        borderColor: "x1bg2uv5",
         $$css: "tests/fixture/buttons-demo/input.stylex.js:62"
     }
 };
 _inject2({
-    ltr: ".xm1pwqw, .xm1pwqw:root{--background-x166rmrk:#000;--text-x1rr8s3j:#fff;}",
+    ltr: ".x13g83z8, .x13g83z8:root{--x166rmrk:#000;--x1rr8s3j:#fff;}",
     priority: 0.5
 });
 const priorityIntent = {
     input__priorityIntent: "input__priorityIntent",
-    xhq9i64: "xm1pwqw xhq9i64",
+    xhq9i64: "x13g83z8 xhq9i64",
     $$css: true
 };
 _inject2({
-    ltr: ".x1h9f7e8, .x1h9f7e8:root{--background-x166rmrk:#000000;--text-x1rr8s3j:#555555;}",
+    ltr: ".x13xmhq7, .x13xmhq7:root{--x166rmrk:#000000;--x1rr8s3j:#555555;}",
     priority: 0.5
 });
 const defaultIntent = {
     input__defaultIntent: "input__defaultIntent",
-    xhq9i64: "x1h9f7e8 xhq9i64",
+    xhq9i64: "x13xmhq7 xhq9i64",
     $$css: true
 };
 const intents = {

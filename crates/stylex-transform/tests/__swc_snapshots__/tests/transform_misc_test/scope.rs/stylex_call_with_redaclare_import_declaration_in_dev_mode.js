@@ -34,7 +34,7 @@ export const ComponentWithCallings = ()=>{
 const s = {
     div: {
         "UnknownFile__s.div": "UnknownFile__s.div",
-        "backgroundColor-kWkggS": "backgroundColor-xvto61e",
+        "backgroundColor-kWkggS": "xvto61e",
         $$css: true
     }
 };

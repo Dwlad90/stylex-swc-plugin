@@ -1041,14 +1041,11 @@ pub(crate) fn assert_valid_view_transition_class(
 /// object carries it under `__varGroupHash__`. A value that is neither, or an
 /// object that names no group, is refused here, so what is answered has only
 /// the two states [`ThemeVars`] holds.
-pub(crate) fn validate_theme_variables(
-  variables: &EvaluateResultValue,
-  state: &StateManager,
-) -> (String, ThemeVars) {
+pub(crate) fn validate_theme_variables(variables: &EvaluateResultValue) -> (String, ThemeVars) {
   if let Some(theme_ref) = variables.as_theme_ref() {
     let mut theme_ref = theme_ref.clone();
 
-    let value = theme_ref.get(VAR_GROUP_HASH_KEY, state);
+    let value = theme_ref.get(VAR_GROUP_HASH_KEY);
     let group_name = or_refuse_nameless_group(value.as_css_var()).to_owned();
 
     return (group_name, ThemeVars::Group(theme_ref));

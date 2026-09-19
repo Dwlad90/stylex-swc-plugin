@@ -4,19 +4,19 @@ import * as stylex from '@stylexjs/stylex';
 _inject2({
     ltr: "",
     priority: 0,
-    constKey: "small-x18c0wup",
+    constKey: "x18c0wup",
     constVal: "@media (max-width: 600px)"
 });
 _inject2({
     ltr: "",
     priority: 0,
-    constKey: "medium-x7ecuci",
+    constKey: "x7ecuci",
     constVal: "@media (min-width: 601px) and (max-width: 1024px)"
 });
 _inject2({
     ltr: "",
     priority: 0,
-    constKey: "large-x1cw9yui",
+    constKey: "x1cw9yui",
     constVal: "@media (max-width: 1025px)"
 });
 export const breakpoints = {
@@ -27,19 +27,19 @@ export const breakpoints = {
 _inject2({
     ltr: "",
     priority: 0,
-    constKey: "accent-x1jwu4jb",
+    constKey: "x1jwu4jb",
     constVal: "hotpink"
 });
 _inject2({
     ltr: "",
     priority: 0,
-    constKey: "background-xsmu8c8",
+    constKey: "xsmu8c8",
     constVal: "white"
 });
 _inject2({
     ltr: "",
     priority: 0,
-    constKey: "foreground-x1kzew4v",
+    constKey: "x1kzew4v",
     constVal: "black"
 });
 export const colors = {

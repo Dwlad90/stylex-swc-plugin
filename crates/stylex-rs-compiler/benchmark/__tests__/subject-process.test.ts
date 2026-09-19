@@ -154,8 +154,8 @@ describe('readWorkerRequest', () => {
   });
 
   test('refuses an option no fixture may name', () => {
-    expect(() => readWorkerRequest(withOptions({ enableDebugClassNames: 'yes' }))).toThrow(
-      /options.enableDebugClassNames must be a boolean/
+    expect(() => readWorkerRequest(withOptions({ enableDebugDataProp: 'yes' }))).toThrow(
+      /options.enableDebugDataProp must be a boolean/
     );
     expect(() => readWorkerRequest(withOptions({ frobnicate: true }))).toThrow(
       /is not a benchmarkable option/
@@ -163,7 +163,7 @@ describe('readWorkerRequest', () => {
   });
 
   test('keeps the overrides a fixture declares and adds none', () => {
-    const declared = fixture({ dev: true, options: { enableDebugClassNames: true } });
+    const declared = fixture({ dev: true, options: { enableDebugDataProp: true } });
     const read = readWorkerRequest(overTheWire({ fixtures: [declared] }));
 
     expect(read.fixtures[0]).toEqual(declared);

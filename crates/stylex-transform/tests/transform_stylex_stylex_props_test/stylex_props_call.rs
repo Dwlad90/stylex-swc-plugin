@@ -411,7 +411,6 @@ stylex_test!(
       .with_treeshake_compensation(true)
       .with_unstable_module_resolution(ModuleResolution::haste(None))
       .with_enable_minified_keys(false)
-      .with_enable_debug_class_names(true)
   }),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -493,6 +492,32 @@ stylex_test!(
       }
     });
     stylex.props(styles.red);
+  "#
+);
+
+// The same read through a named import rather than the namespace. `env` is a
+// binding the module imported by name, so the fold has to reach the option
+// through that binding instead of through a member of `stylex`.
+stylex_test!(
+  stylex_env_named_import_resolves_in_inline_objects,
+  |tr| {
+    let mut env = IndexMap::new();
+
+    env.insert(
+      "primaryColor".to_string(),
+      EnvEntry::Expr(create_string_expr("#00ffaa")),
+    );
+
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
+  },
+  r#"
+    import { props, create, env } from 'stylex';
+    const styles = create({
+      red: {
+        color: env.primaryColor,
+      }
+    });
+    props(styles.red);
   "#
 );
 

@@ -79,9 +79,7 @@ stylex_test!(
 stylex_test!(
   padding_with_longhand_directional_and_logical_property_collisions,
   |tr| stylex_transform(tr.comments.clone(), |b| {
-    b.with_enable_logical_styles_polyfill(true)
-      .with_debug(true)
-      .with_enable_debug_class_names(true)
+    b.with_enable_logical_styles_polyfill(true).with_debug(true)
   }),
   r#"
     import stylex from 'stylex';

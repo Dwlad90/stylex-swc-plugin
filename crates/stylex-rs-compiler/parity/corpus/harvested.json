@@ -156,7 +156,7 @@
       "id": "b0237f1f",
       "property": "backgroundColor",
       "value": "#F7F5F6",
-      "origin": "crates/stylex-transform/tests/transform_misc_test/scope.rs:20"
+      "origin": "crates/stylex-transform/tests/transform_misc_test/scope.rs:19"
     },
     {
       "id": "3e23b203",
@@ -2526,7 +2526,7 @@
       "id": "2d5bd35c",
       "property": "fontSize",
       "value": "1em",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/debug_options.rs:23"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/debug_options.rs:19"
     },
     {
       "id": "d9212c22",
@@ -3018,19 +3018,19 @@
       "id": "9ce253c8",
       "property": "listStyle",
       "value": "\"--\"",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:329"
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:327"
     },
     {
       "id": "70cabd96",
       "property": "listStyle",
       "value": "'=='",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:329"
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:327"
     },
     {
       "id": "46e76ec2",
       "property": "listStyle",
       "value": "inside",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:329"
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:327"
     },
     {
       "id": "4cc63e1d",
@@ -3042,37 +3042,37 @@
       "id": "2c2a7f8c",
       "property": "listStyle",
       "value": "none",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:329"
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:327"
     },
     {
       "id": "dcb15912",
       "property": "listStyle",
       "value": "none georgian",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:384"
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:378"
     },
     {
       "id": "d53b5ebf",
       "property": "listStyle",
       "value": "none inherit",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:415"
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:409"
     },
     {
       "id": "a4c82d60",
       "property": "listStyle",
       "value": "none inside",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:358"
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:354"
     },
     {
       "id": "bba7c4c3",
       "property": "listStyle",
       "value": "none square",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:358"
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:354"
     },
     {
       "id": "8e887875",
       "property": "listStyle",
       "value": "none var(--image)",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:431"
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:425"
     },
     {
       "id": "e6bfba73",
@@ -3090,7 +3090,7 @@
       "id": "2223f595",
       "property": "listStyle",
       "value": "square",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:329"
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:327"
     },
     {
       "id": "23f61fbf",
@@ -3102,13 +3102,13 @@
       "id": "e8089ff2",
       "property": "listStylePosition",
       "value": "outside",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:384"
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:378"
     },
     {
       "id": "e3d58ba5",
       "property": "listStyleType",
       "value": "square",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:384"
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:378"
     },
     {
       "id": "8bf3b609",
@@ -3438,7 +3438,7 @@
       "id": "b168a2dd",
       "property": "paddingBlock",
       "value": "5px 10px",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties_no_polyfill.rs:108"
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties_no_polyfill.rs:106"
     },
     {
       "id": "1cad98e0",

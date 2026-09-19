@@ -43,7 +43,6 @@ use crate::growable_stack::{grown_per_level, nesting_of};
 use crate::state::EvaluationState;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
-  theme_ref::VarNaming,
 };
 
 use super::super::{
@@ -729,7 +728,6 @@ impl<'a, 'r> Walk<'a, 'r> {
       method,
       self.guard.depth,
       var_group,
-      VarNaming::of(self.reader.traversal_state),
       &self.reader.dotted_prefixes,
     )
   }

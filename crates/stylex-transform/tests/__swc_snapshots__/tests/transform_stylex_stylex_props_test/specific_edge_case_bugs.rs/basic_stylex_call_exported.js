@@ -2,76 +2,84 @@ import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import * as stylex from '@stylexjs/stylex';
 _inject2({
-    ltr: ".boxSizing-x9f619{box-sizing:border-box}",
+    ltr: ".x9f619{box-sizing:border-box}",
     priority: 3000
 });
 _inject2({
-    ltr: ".gridArea-x1yc5d2u{grid-area:sidebar}",
+    ltr: ".x1yc5d2u{grid-area:sidebar}",
     priority: 1000
 });
 _inject2({
-    ltr: ".gridArea-x1fdo2jl{grid-area:content}",
+    ltr: ".x1fdo2jl{grid-area:content}",
     priority: 1000
 });
 _inject2({
-    ltr: ".display-xrvj5dj{display:grid}",
+    ltr: ".xrvj5dj{display:grid}",
     priority: 3000
 });
 _inject2({
-    ltr: ".gridTemplateRows-x7k18q3{grid-template-rows:100%}",
+    ltr: ".x7k18q3{grid-template-rows:100%}",
     priority: 3000
 });
 _inject2({
-    ltr: '.gridTemplateAreas-x5gp9wm{grid-template-areas:"content"}',
+    ltr: '.x5gp9wm{grid-template-areas:"content"}',
     priority: 2000
 });
 _inject2({
-    ltr: ".gridTemplateColumns-x1rkzygb{grid-template-columns:auto minmax(0,1fr)}",
+    ltr: ".x1rkzygb{grid-template-columns:auto minmax(0,1fr)}",
     priority: 3000
 });
 _inject2({
-    ltr: '.gridTemplateAreas-x17lh93j{grid-template-areas:"sidebar content"}',
+    ltr: '.x17lh93j{grid-template-areas:"sidebar content"}',
     priority: 2000
 });
 _inject2({
-    ltr: "@media (max-width: 640px){.gridTemplateRows-xmr4b4k.gridTemplateRows-xmr4b4k{grid-template-rows:minmax(0,1fr) auto}}",
+    ltr: "@media (max-width: 640px){.xmr4b4k.xmr4b4k{grid-template-rows:minmax(0,1fr) auto}}",
     priority: 3200
 });
 _inject2({
-    ltr: '@media (max-width: 640px){.gridTemplateAreas-xesbpuc.gridTemplateAreas-xesbpuc{grid-template-areas:"content" "sidebar"}}',
+    ltr: '@media (max-width: 640px){.xesbpuc.xesbpuc{grid-template-areas:"content" "sidebar"}}',
     priority: 2200
 });
 _inject2({
-    ltr: "@media (max-width: 640px){.gridTemplateColumns-x15nfgh4.gridTemplateColumns-x15nfgh4{grid-template-columns:100%}}",
+    ltr: "@media (max-width: 640px){.x15nfgh4.x15nfgh4{grid-template-columns:100%}}",
     priority: 3200
 });
 _inject2({
-    ltr: ".gridTemplateColumns-x1mkdm3x{grid-template-columns:minmax(0,1fr)}",
+    ltr: ".x1mkdm3x{grid-template-columns:minmax(0,1fr)}",
     priority: 3000
 });
 export const complex = {
     0: {
-        className: "UnknownFile__styles.root display-xrvj5dj UnknownFile__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4"
+        className: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4",
+        "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:15"
     },
     4: {
-        className: "UnknownFile__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm UnknownFile__styles.noSidebar gridTemplateColumns-x1mkdm3x"
+        className: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x",
+        "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:25"
     },
     2: {
-        className: "UnknownFile__styles.root display-xrvj5dj UnknownFile__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 UnknownFile__styles.sidebar boxSizing-x9f619 gridArea-x1yc5d2u"
+        className: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 x9f619 x1yc5d2u",
+        "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:15; js/FooBar.react.js:3"
     },
     6: {
-        className: "UnknownFile__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm UnknownFile__styles.noSidebar gridTemplateColumns-x1mkdm3x UnknownFile__styles.sidebar boxSizing-x9f619 gridArea-x1yc5d2u"
+        className: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x x9f619 x1yc5d2u",
+        "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:25; js/FooBar.react.js:3"
     },
     1: {
-        className: "UnknownFile__styles.root display-xrvj5dj UnknownFile__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 UnknownFile__styles.content gridArea-x1fdo2jl"
+        className: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 x1fdo2jl",
+        "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:15; js/FooBar.react.js:7"
     },
     5: {
-        className: "UnknownFile__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm UnknownFile__styles.noSidebar gridTemplateColumns-x1mkdm3x UnknownFile__styles.content gridArea-x1fdo2jl"
+        className: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x x1fdo2jl",
+        "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:25; js/FooBar.react.js:7"
     },
     3: {
-        className: "UnknownFile__styles.root display-xrvj5dj UnknownFile__styles.withSidebar gridTemplateColumns-x1rkzygb gridTemplateRows-x7k18q3 gridTemplateAreas-x17lh93j gridTemplateRows-xmr4b4k gridTemplateAreas-xesbpuc gridTemplateColumns-x15nfgh4 UnknownFile__styles.sidebar boxSizing-x9f619 UnknownFile__styles.content gridArea-x1fdo2jl"
+        className: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 x9f619 x1fdo2jl",
+        "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:15; js/FooBar.react.js:3; js/FooBar.react.js:7"
     },
     7: {
-        className: "UnknownFile__styles.root display-xrvj5dj gridTemplateRows-x7k18q3 gridTemplateAreas-x5gp9wm UnknownFile__styles.noSidebar gridTemplateColumns-x1mkdm3x UnknownFile__styles.sidebar boxSizing-x9f619 UnknownFile__styles.content gridArea-x1fdo2jl"
+        className: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x x9f619 x1fdo2jl",
+        "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:25; js/FooBar.react.js:3; js/FooBar.react.js:7"
     }
 }[!!(sidebar == null && !isSidebar) << 2 | !!isSidebar << 1 | !!isContent << 0];

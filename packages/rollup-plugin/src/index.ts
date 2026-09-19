@@ -44,6 +44,7 @@ export default function stylexPlugin({
     useLayers: useCSSLayers,
     enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
     legacyDisableLayers: rsOptions?.legacyDisableLayers,
+    useLegacyClassnamesSort: rsOptions?.useLegacyClassnamesSort,
   };
 
   return {

@@ -9,7 +9,8 @@ fn stylex_transform(
 
 stylex_test!(
   using_stylex_in_a_for_loop,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone(), |b| b
+    .with_enable_dev_class_names(false)),
   r#"
     import * as stylex from '@stylexjs/stylex';
     function test(colors, obj) {
@@ -36,7 +37,7 @@ stylex_test!(
 stylex_test!(
   trying_to_use_an_unknown_style_in_stylex,
   |tr| stylex_transform(tr.comments.clone(), |b| b
-    .with_enable_debug_class_names(true)),
+    .with_enable_dev_class_names(false)),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({
@@ -51,7 +52,7 @@ stylex_test!(
 stylex_test!(
   trying_to_use_an_unknown_style_in_stylex_props,
   |tr| stylex_transform(tr.comments.clone(), |b| b
-    .with_enable_debug_class_names(true)),
+    .with_enable_dev_class_names(false)),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({

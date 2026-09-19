@@ -140,7 +140,7 @@ where
       //
       // The answer is carried on rather than thrown away. Reading it again in
       // the producer copies every property of the group a second time.
-      let theme_group = validate_theme_variables(&variables, &self.state);
+      let theme_group = validate_theme_variables(&variables);
 
       let overrides = match evaluated_arg2.value {
         Some(value) => {

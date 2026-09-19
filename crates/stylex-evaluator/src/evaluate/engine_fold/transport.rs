@@ -46,10 +46,7 @@ use super::super::engine_stylex_functions::EngineCallable;
 use super::engine::read;
 use super::theme::var_group;
 use super::{Ceilings, Decline, Depth, Totals};
-use stylex_state::{
-  evaluate_result_value::EvaluateResultValue,
-  theme_ref::{ThemeRef, VarNaming},
-};
+use stylex_state::{evaluate_result_value::EvaluateResultValue, theme_ref::ThemeRef};
 /// The one property name that is not a property when it is written as one.
 ///
 /// `{ __proto__: x }` sets the object's prototype, so the object the source
@@ -248,7 +245,6 @@ impl Transport {
     method: &Atom,
     depth: Depth,
     var_group: &JsFunction,
-    naming: VarNaming,
     dotted_prefixes: &FxHashMap<Atom, FxHashSet<Atom>>,
   ) -> Result<Vec<JsValue>, Decline> {
     let mut arguments = Vec::with_capacity(self.values.len());
@@ -262,7 +258,6 @@ impl Transport {
             engine,
             method,
             var_group,
-            naming,
             dotted_prefixes: dotted_prefixes.get(name),
           };
 
@@ -443,7 +438,6 @@ struct Build<'a> {
   engine: &'a mut Context,
   method: &'a Atom,
   var_group: &'a JsFunction,
-  naming: VarNaming,
   /// The dotted paths a group carried under this name has to answer with a
   /// stand-in rather than a variable, read off the source by the guard's walk.
   /// `None` where the walk read no chain through it, which is every name that
@@ -468,13 +462,7 @@ impl Carriage for Build<'_> {
   // A fact the measuring walk recorded, so this half only builds.
   fn theme_reference(&mut self, theme: &ThemeRef) -> Result<JsValue, Decline> {
     read(self.method, || {
-      var_group(
-        self.var_group,
-        theme,
-        self.naming,
-        self.dotted_prefixes,
-        self.engine,
-      )
+      var_group(self.var_group, theme, self.dotted_prefixes, self.engine)
     })
   }
 

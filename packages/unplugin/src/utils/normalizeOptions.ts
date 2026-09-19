@@ -45,5 +45,6 @@ export default function normalizeOptions(options: UnpluginStylexRSOptions): Norm
     onMissingCssPlaceholder: options.onMissingCssPlaceholder ?? 'error',
     enableLTRRTLComments: normalizedRsOptions.enableLTRRTLComments,
     legacyDisableLayers: normalizedRsOptions.legacyDisableLayers,
+    useLegacyClassnamesSort: normalizedRsOptions.useLegacyClassnamesSort,
   };
 }

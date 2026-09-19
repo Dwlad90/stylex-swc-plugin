@@ -3,55 +3,55 @@ var _inject2 = _inject;
 import * as stylex from '@stylexjs/stylex';
 import { useState } from 'react';
 _inject2({
-    ltr: ".backgroundColor-x1t391ir{background-color:blue}",
+    ltr: ".x1t391ir{background-color:blue}",
     priority: 3000
 });
 _inject2({
-    ltr: ".right-x3m8u43{right:0}",
+    ltr: ".x3m8u43{right:0}",
     priority: 4000
 });
 _inject2({
-    ltr: ".left-xu96u03{left:0}",
+    ltr: ".xu96u03{left:0}",
     priority: 4000
 });
 _inject2({
-    ltr: ".right-x131sewu{right:10px}",
+    ltr: ".x131sewu{right:10px}",
     priority: 4000
 });
 _inject2({
-    ltr: ".left-x12lbrt0{left:10px}",
+    ltr: ".x12lbrt0{left:10px}",
     priority: 4000
 });
 const styles = {
     base: {
         "UnknownFile__styles.base": "UnknownFile__styles.base",
-        backgroundColor: "backgroundColor-x1t391ir",
+        backgroundColor: "x1t391ir",
         $$css: true
     },
     active: {
         "UnknownFile__styles.active": "UnknownFile__styles.active",
-        right: "right-x3m8u43",
+        right: "x3m8u43",
         insetInlineStart: null,
         insetInlineEnd: null,
         $$css: true
     },
     inactive: {
         "UnknownFile__styles.inactive": "UnknownFile__styles.inactive",
-        left: "left-xu96u03",
+        left: "xu96u03",
         insetInlineStart: null,
         insetInlineEnd: null,
         $$css: true
     },
     answered: {
         "UnknownFile__styles.answered": "UnknownFile__styles.answered",
-        right: "right-x131sewu",
+        right: "x131sewu",
         insetInlineStart: null,
         insetInlineEnd: null,
         $$css: true
     },
     unanswered: {
         "UnknownFile__styles.unanswered": "UnknownFile__styles.unanswered",
-        left: "left-x12lbrt0",
+        left: "x12lbrt0",
         insetInlineStart: null,
         insetInlineEnd: null,
         $$css: true

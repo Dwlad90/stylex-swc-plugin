@@ -305,12 +305,11 @@ mod stylex_define_vars {
     )
   }
 
-  #[test]
-  fn converts_set_of_vars_with_nested_at_rules_to_css() {
-    let export_id = "TestTheme.stylex.js//buttonTheme";
-    let class_name_prefix = 'x';
-
-    let default_vars = default_vars_factory(&[
+  /// The variable group the two cases below both read: four variables, between
+  /// them every shape a default can take -- a plain value, a nested default, an
+  /// at-rule, and an at-rule inside an at-rule.
+  fn nested_at_rules_vars() -> EvaluateResultValue {
+    default_vars_factory(&[
       (
         "bgColor",
         DefaultVarsFactoryValue::Nested(&[("default", "blue"), ("@media print", "white")]),
@@ -356,7 +355,15 @@ mod stylex_define_vars {
         &[],
         &[],
       ),
-    ]);
+    ])
+  }
+
+  #[test]
+  fn converts_set_of_vars_with_nested_at_rules_to_css() {
+    let export_id = "TestTheme.stylex.js//buttonTheme";
+    let class_name_prefix = 'x';
+
+    let default_vars = nested_at_rules_vars();
 
     let mut state = Box::new(StateManager::for_test(
       Some(export_id),
@@ -450,303 +457,25 @@ mod stylex_define_vars {
     )
   }
 
+  /// A debug build writes the same stylesheet as a production build. A variable
+  /// is named from the export and the key alone, so no option changes it.
+  ///
+  /// Read off both runs rather than off one run and the literals the case above
+  /// pins, so the two cannot drift apart while each still passes.
   #[test]
-  fn converts_set_of_vars_with_nested_at_rules_to_css_and_includes_key_in_variable_name_as_prefix_in_debug_mode()
-   {
+  fn spells_the_same_css_in_debug_and_production_builds() {
     let export_id = "TestTheme.stylex.js//buttonTheme";
-    let class_name_prefix = 'x';
 
-    let default_vars = default_vars_factory(&[
-      (
-        "bgColor",
-        DefaultVarsFactoryValue::Nested(&[("default", "blue"), ("@media print", "white")]),
-        &[(
-          "@media (prefers-color-scheme: dark)",
-          &[
-            ("default", "lightblue"),
-            ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
-          ],
-        )],
-        &[],
-      ),
-      (
-        "bgColorDisabled",
-        DefaultVarsFactoryValue::Nested(&[]),
-        &[
-          (
-            "default",
-            &[
-              ("default", "grey"),
-              ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
-            ],
-          ),
-          (
-            "@media (prefers-color-scheme: dark)",
-            &[
-              ("default", "rgba(0, 0, 0, 0.8)"),
-              ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
-            ],
-          ),
-        ],
-        &[],
-      ),
-      (
-        "cornerRadius",
-        DefaultVarsFactoryValue::Simple("10px"),
-        &[],
-        &[],
-      ),
-      (
-        "fgColor",
-        DefaultVarsFactoryValue::Nested(&[("default", "pink")]),
-        &[],
-        &[],
-      ),
-    ]);
+    let compile = |debug: bool| {
+      let mut state = Box::new(StateManager::for_test(
+        Some(export_id),
+        StyleXStateOptions::default().with_debug(debug),
+      ));
 
-    let mut state = Box::new(StateManager::for_test(
-      Some(export_id),
-      StyleXStateOptions::default()
-        .with_debug(true)
-        .with_enable_debug_class_names(true),
-    ));
+      stylex_define_vars(&nested_at_rules_vars(), &mut state)
+    };
 
-    let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
-
-    assert_eq!(
-      js_output,
-      expected_js_result_factory(&[
-        (
-          "__varGroupHash__",
-          format!("{}{}", class_name_prefix, create_hash(export_id)).as_str()
-        ),
-        (
-          "bgColor",
-          format!(
-            "var(--bgColor-{}{})",
-            class_name_prefix,
-            create_hash(format!("{}.bgColor", export_id).as_str())
-          )
-          .as_str()
-        ),
-        (
-          "bgColorDisabled",
-          format!(
-            "var(--bgColorDisabled-{}{})",
-            class_name_prefix,
-            create_hash(format!("{}.bgColorDisabled", export_id).as_str())
-          )
-          .as_str()
-        ),
-        (
-          "cornerRadius",
-          format!(
-            "var(--cornerRadius-{}{})",
-            class_name_prefix,
-            create_hash(format!("{}.cornerRadius", export_id).as_str())
-          )
-          .as_str()
-        ),
-        (
-          "fgColor",
-          format!(
-            "var(--fgColor-{}{})",
-            class_name_prefix,
-            create_hash(format!("{}.fgColor", export_id).as_str())
-          )
-          .as_str()
-        ),
-      ])
-    );
-
-    assert_eq!(
-      css_output,
-      expected_css_result_factory(&[
-        (
-          "x568ih9",
-          (
-            ":root, .x568ih9{--bgColor-xgck17p:blue;--bgColorDisabled-xpegid5:grey;--cornerRadius-xrqfjmn:10px;--fgColor-x4y59db:pink;}",
-            0.1
-          )
-        ),
-        (
-          "x568ih9-1e6ryz3",
-          (
-            "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor-xgck17p:oklab(0.7 -0.3 -0.4);--bgColorDisabled-xpegid5:oklab(0.7 -0.3 -0.4);}}}",
-            0.3
-          )
-        ),
-        (
-          "x568ih9-1lveb7",
-          (
-            "@media (prefers-color-scheme: dark){:root, .x568ih9{--bgColor-xgck17p:lightblue;--bgColorDisabled-xpegid5:rgba(0, 0, 0, 0.8);}}",
-            0.2
-          )
-        ),
-        (
-          "x568ih9-bdddrq",
-          (
-            "@media print{:root, .x568ih9{--bgColor-xgck17p:white;}}",
-            0.2
-          )
-        ),
-        (
-          "x568ih9-kpd015",
-          (
-            "@supports (color: oklab(0 0 0)){:root, .x568ih9{--bgColorDisabled-xpegid5:oklab(0.7 -0.3 -0.4);}}",
-            0.2
-          )
-        )
-      ])
-    )
-  }
-
-  #[test]
-  fn converts_set_of_vars_with_nested_at_rules_to_css_and_does_not_include_key_prefix_in_debug_mode_with_debug_classnames_off()
-   {
-    let export_id = "TestTheme.stylex.js//buttonTheme";
-    let class_name_prefix = 'x';
-
-    let default_vars = default_vars_factory(&[
-      (
-        "bgColor",
-        DefaultVarsFactoryValue::Nested(&[("default", "blue"), ("@media print", "white")]),
-        &[(
-          "@media (prefers-color-scheme: dark)",
-          &[
-            ("default", "lightblue"),
-            ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
-          ],
-        )],
-        &[],
-      ),
-      (
-        "bgColorDisabled",
-        DefaultVarsFactoryValue::Nested(&[]),
-        &[
-          (
-            "default",
-            &[
-              ("default", "grey"),
-              ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
-            ],
-          ),
-          (
-            "@media (prefers-color-scheme: dark)",
-            &[
-              ("default", "rgba(0, 0, 0, 0.8)"),
-              ("@supports (color: oklab(0 0 0))", "oklab(0.7 -0.3 -0.4)"),
-            ],
-          ),
-        ],
-        &[],
-      ),
-      (
-        "cornerRadius",
-        DefaultVarsFactoryValue::Simple("10px"),
-        &[],
-        &[],
-      ),
-      (
-        "fgColor",
-        DefaultVarsFactoryValue::Nested(&[("default", "pink")]),
-        &[],
-        &[],
-      ),
-    ]);
-
-    let mut state = Box::new(StateManager::for_test(
-      Some(export_id),
-      StyleXStateOptions::default()
-        .with_debug(false)
-        .with_enable_debug_class_names(false),
-    ));
-
-    let (js_output, css_output) = stylex_define_vars(&default_vars, &mut state);
-
-    assert_eq!(
-      js_output,
-      expected_js_result_factory(&[
-        (
-          "__varGroupHash__",
-          format!("{}{}", class_name_prefix, create_hash(export_id)).as_str()
-        ),
-        (
-          "bgColor",
-          format!(
-            "var(--{}{})",
-            class_name_prefix,
-            create_hash(format!("{}.bgColor", export_id).as_str())
-          )
-          .as_str()
-        ),
-        (
-          "bgColorDisabled",
-          format!(
-            "var(--{}{})",
-            class_name_prefix,
-            create_hash(format!("{}.bgColorDisabled", export_id).as_str())
-          )
-          .as_str()
-        ),
-        (
-          "cornerRadius",
-          format!(
-            "var(--{}{})",
-            class_name_prefix,
-            create_hash(format!("{}.cornerRadius", export_id).as_str())
-          )
-          .as_str()
-        ),
-        (
-          "fgColor",
-          format!(
-            "var(--{}{})",
-            class_name_prefix,
-            create_hash(format!("{}.fgColor", export_id).as_str())
-          )
-          .as_str()
-        ),
-      ])
-    );
-
-    assert_eq!(
-      css_output,
-      expected_css_result_factory(&[
-        (
-          "x568ih9",
-          (
-            ":root, .x568ih9{--xgck17p:blue;--xpegid5:grey;--xrqfjmn:10px;--x4y59db:pink;}",
-            0.1
-          )
-        ),
-        (
-          "x568ih9-1e6ryz3",
-          (
-            "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:oklab(0.7 -0.3 -0.4);--xpegid5:oklab(0.7 -0.3 -0.4);}}}",
-            0.3
-          )
-        ),
-        (
-          "x568ih9-1lveb7",
-          (
-            "@media (prefers-color-scheme: dark){:root, .x568ih9{--xgck17p:lightblue;--xpegid5:rgba(0, 0, 0, 0.8);}}",
-            0.2
-          )
-        ),
-        (
-          "x568ih9-bdddrq",
-          ("@media print{:root, .x568ih9{--xgck17p:white;}}", 0.2)
-        ),
-        (
-          "x568ih9-kpd015",
-          (
-            "@supports (color: oklab(0 0 0)){:root, .x568ih9{--xpegid5:oklab(0.7 -0.3 -0.4);}}",
-            0.2
-          )
-        )
-      ])
-    )
+    assert_eq!(compile(true), compile(false));
   }
 
   #[test]
@@ -1198,8 +927,7 @@ mod stylex_define_vars {
   }
 
   /// The name a variable is written under in the stylesheet is hashed from the
-  /// export it belongs to. Under debug class names the hash is prefixed with a
-  /// name the author can read, which has to be an identifier.
+  /// export it belongs to, in a debug build as in a production one.
   mod the_name_a_variable_is_written_under {
     use super::*;
 
@@ -1208,8 +936,7 @@ mod stylex_define_vars {
     fn var_refs(code: &str, debug: bool) -> Vec<String> {
       let options = StyleXStateOptions::default()
         .with_class_name_prefix("x")
-        .with_debug(debug)
-        .with_enable_debug_class_names(debug);
+        .with_debug(debug);
 
       let mut state = StateManager::for_test(None, options);
       state.export_id = Some("Test.stylex.js//tokens".to_owned());
@@ -1222,27 +949,23 @@ mod stylex_define_vars {
         .collect()
     }
 
-    /// A name that starts with a digit is no identifier, so the readable half
-    /// is written with a leading underscore.
     #[test]
-    fn carries_a_readable_name_that_starts_with_a_digit_under_an_underscore() {
-      let names = var_refs("{ '2xl': '10px' }", true);
-
-      assert!(
-        names[0].starts_with("var(--_2xl-x"),
-        "the variable is named {}",
-        names[0]
-      );
-    }
-
-    #[test]
-    fn is_the_hash_alone_when_debug_names_are_off() {
+    fn is_the_hash_alone() {
       let names = var_refs("{ '2xl': '10px' }", false);
 
       assert!(
         names[0].starts_with("var(--x") && !names[0].contains("2xl"),
         "the variable is named {}",
         names[0]
+      );
+    }
+
+    /// A debug build names the variable exactly as a production build does.
+    #[test]
+    fn is_the_same_hash_under_debug() {
+      assert_eq!(
+        var_refs("{ '2xl': '10px' }", true),
+        var_refs("{ '2xl': '10px' }", false)
       );
     }
 

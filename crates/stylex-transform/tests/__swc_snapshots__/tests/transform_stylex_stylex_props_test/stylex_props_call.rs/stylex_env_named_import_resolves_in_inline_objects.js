@@ -1,8 +1,10 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
-import stylex from 'stylex';
+import { props, create, env } from 'stylex';
 _inject2({
-    ltr: ".x1e2nbdu{color:red}",
+    ltr: ".x4iekqp{color:#00ffaa}",
     priority: 3000
 });
-"FooBar__styles.default x1e2nbdu";
+({
+    className: "x4iekqp"
+});

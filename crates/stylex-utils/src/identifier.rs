@@ -39,15 +39,18 @@ pub fn gen_file_based_identifier(file_name: &str, export_name: &str, key: Option
 /// identifier takes. A leading digit is pushed behind an underscore, and every
 /// character that is neither an ASCII letter nor an ASCII digit becomes one.
 ///
-/// ASCII and not Unicode, because this name reaches a class name and a class
-/// name is the compatibility contract between this compiler and the reference:
-/// the reference keeps `[a-zA-Z0-9]` and replaces the rest, so `café` is
-/// `caf_` and not `café`. A Unicode reading kept letters the reference
-/// replaces, and the two compilers named the same constant differently.
+/// ASCII and not Unicode, because a name that reaches CSS is the compatibility
+/// contract between this compiler and the reference: the reference keeps
+/// `[a-zA-Z0-9]` and replaces the rest, so `café` is `caf_` and not `café`. A
+/// Unicode reading keeps letters the reference replaces, and the two compilers
+/// then spell the same name differently.
 ///
 /// Built in one allocation, sized to the name and one byte more. A character
 /// the answer replaces is never longer than the one it stands for, so the
 /// answer always fits.
+// Kept without a caller: the rule it states is the reference's own, and it does
+// not change with the callers that come and go.
+#[allow(dead_code)]
 pub fn as_identifier(name: &str) -> String {
   let mut identifier = String::with_capacity(name.len() + 1);
 

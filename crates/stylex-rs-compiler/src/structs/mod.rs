@@ -38,10 +38,12 @@ pub struct StyleXOptions {
   #[napi(js_name = "enableLTRRTLComments")]
   pub enable_ltr_rtl_comments: Option<bool>,
   pub legacy_disable_layers: Option<bool>,
+  /// Carried for the stylesheet assembly step, which sorts class names the old
+  /// way when it is on. The transform never reads it.
+  pub use_legacy_classnames_sort: Option<bool>,
   pub dev: Option<bool>,
   pub test: Option<bool>,
   pub debug: Option<bool>,
-  pub enable_debug_class_names: Option<bool>,
   pub enable_debug_data_prop: Option<bool>,
   /// Defaults to the value of `dev`.
   pub enable_dev_class_names: Option<bool>,
@@ -215,7 +217,6 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       dev: val.dev,
       test: val.test,
       debug: val.debug.or(val.dev),
-      enable_debug_class_names: val.enable_debug_class_names,
       enable_debug_data_prop: val.enable_debug_data_prop,
       enable_dev_class_names: val.enable_dev_class_names,
       enable_minified_keys: val.enable_minified_keys,

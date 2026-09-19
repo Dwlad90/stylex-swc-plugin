@@ -13,7 +13,6 @@ fn stylex_transform(
           "/stylex/packages/src/vars/default.cssvars.js".into(),
         ))
         .with_debug(true)
-        .with_enable_debug_class_names(true)
         .with_unstable_module_resolution(ModuleResolution {
           root_dir: Some("/stylex/packages/".to_string()),
           theme_file_extension: Some("cssvars".to_string()),

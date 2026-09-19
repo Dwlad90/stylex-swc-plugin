@@ -11,8 +11,7 @@ fn stylex_transform(
         .with_unstable_module_resolution(ModuleResolution::common_js(Some(
           "/stylex/packages/".to_string(),
         )))
-        .with_dev(true)
-        .with_enable_debug_class_names(true),
+        .with_dev(true),
     )
   })
 }

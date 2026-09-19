@@ -633,6 +633,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     useLayers: normalizedOptions.useLayers,
     enableLTRRTLComments: normalizedOptions.enableLTRRTLComments,
     legacyDisableLayers: normalizedOptions.legacyDisableLayers,
+    useLegacyClassnamesSort: normalizedOptions.useLegacyClassnamesSort,
   };
 
   // Mutable state for each compilation - reset in buildStart

@@ -39,7 +39,7 @@ pub(crate) fn stylex_create_theme(
 ) -> (FlatCompiledStyles, InjectableStylesMap) {
   // The group name and the source of every variable name come out of one read,
   // which also refuses anything that is no variable group.
-  let theme_group = validate_theme_variables(theme_vars, state);
+  let theme_group = validate_theme_variables(theme_vars);
 
   stylex_create_theme_from_group(theme_group, variables, state, typed_variables)
 }
@@ -94,7 +94,7 @@ pub(crate) fn stylex_create_theme_from_group(
           None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
         }
       },
-      ThemeVars::Group(theme_ref) => match theme_ref.get(key.as_str(), state).as_css_var() {
+      ThemeVars::Group(theme_ref) => match theme_ref.get(key.as_str()).as_css_var() {
         Some(v) => v.to_string(),
         None => stylex_panic!("{}", EXPECTED_CSS_VAR),
       },

@@ -1,5 +1,7 @@
 import path from 'path';
 
+import stylexBabelPlugin from '@stylexjs/babel-plugin';
+import type { TransformedOptions } from '@stylexswc/rs-compiler';
 import { describe, expect, test } from 'vitest';
 
 import { StyleXPluginCore, VIRTUAL_ENTRYPOINT_CSS_PATTERN } from '../src';
@@ -278,5 +280,121 @@ describe('StyleXPluginCore carrier patterns', () => {
     const core = new StyleXPluginCore();
 
     expect(core.getCarrierPattern()).toBe(VIRTUAL_ENTRYPOINT_CSS_PATTERN);
+  });
+});
+
+// The stylesheet is assembled by `processStylexRules`, which this package calls
+// rather than reimplements. What this package owns is the options it hands that
+// step, so each one is asserted where it is assembled, and each name is proved
+// against the assembler itself.
+describe('StyleXPluginCore.transformedOptions', () => {
+  test('carries every assembly option a project sets', () => {
+    const core = createCore({
+      useCSSLayers: true,
+      rsOptions: {
+        legacyDisableLayers: true,
+        useLegacyClassnamesSort: true,
+        enableLTRRTLComments: true,
+      },
+    });
+
+    expect(core.transformedOptions).toEqual({
+      useLayers: true,
+      legacyDisableLayers: true,
+      useLegacyClassnamesSort: true,
+      enableLTRRTLComments: true,
+    });
+  });
+
+  test('carries the layer names a project asks to wrap its own around', () => {
+    const core = createCore({
+      useCSSLayers: { before: ['reset'], after: ['overrides'], prefix: 'app' },
+    });
+
+    expect(core.transformedOptions.useLayers).toEqual({
+      before: ['reset'],
+      after: ['overrides'],
+      prefix: 'app',
+    });
+  });
+
+  test('asks for no layers and no legacy behaviour by default', () => {
+    const core = createCore();
+
+    expect(core.transformedOptions.useLayers).toBe(false);
+    expect(core.transformedOptions.legacyDisableLayers).toBeUndefined();
+    expect(core.transformedOptions.useLegacyClassnamesSort).toBeUndefined();
+  });
+});
+
+// A name the assembler does not read would leave the option silently dead, and
+// the test above cannot see that. Each one is therefore set against the real
+// assembler and asked to change what it writes.
+describe('the assembly options reach processStylexRules', () => {
+  // `@stylexjs/babel-plugin@0.19.1` reads `useLegacyClassnamesSort` but leaves
+  // it out of the published type of `processStylexRules`. What this package
+  // hands that step is a `TransformedOptions`, so each case builds one and
+  // passes it: the same value production sends, and one the type accepts.
+  function assemble(
+    rules: Parameters<typeof stylexBabelPlugin.processStylexRules>[0],
+    options: TransformedOptions
+  ): string {
+    return stylexBabelPlugin.processStylexRules(rules, options);
+  }
+
+  // One priority for both rules, so the tie-break decides the order. By class
+  // name `xa` comes first; by declaration `color` comes before `display`, which
+  // puts `xb` first. The two sorts therefore disagree on this pair.
+  const rules: Parameters<typeof stylexBabelPlugin.processStylexRules>[0] = [
+    ['xb', { ltr: '.xb{color:red}', rtl: null }, 3000],
+    ['xa', { ltr: '.xa{display:block}', rtl: null }, 3000],
+  ];
+
+  // Two priorities, because the assembler raises specificity per level and a
+  // single level is already the lowest one.
+  const tieredRules: Parameters<typeof stylexBabelPlugin.processStylexRules>[0] = [
+    ['xa', { ltr: '.xa{display:block}', rtl: null }, 1000],
+    ['xb', { ltr: '.xb{color:red}', rtl: null }, 3000],
+  ];
+
+  test('useLayers wraps the rules in a layer', () => {
+    expect(assemble(rules, { useLayers: false })).not.toMatch('@layer');
+    expect(assemble(rules, { useLayers: true })).toMatch('@layer');
+  });
+
+  test('useLayers names the layers a project asks for', () => {
+    const css = assemble(rules, {
+      useLayers: { before: ['reset'], after: ['overrides'], prefix: 'app' },
+    });
+
+    expect(css).toMatch('reset');
+    expect(css).toMatch('overrides');
+    expect(css).toMatch('app');
+  });
+
+  // Without layers the assembler raises each rule's specificity instead. This
+  // option drops that, which is the whole of what it does, so it is read where
+  // layers are off rather than beside `useLayers`.
+  test('legacyDisableLayers drops the specificity the assembler adds without layers', () => {
+    const withSpecificity = assemble(tieredRules, {
+      useLayers: false,
+    });
+    const without = assemble(tieredRules, {
+      useLayers: false,
+      legacyDisableLayers: true,
+    });
+
+    expect(withSpecificity).toMatch(':not(#');
+    expect(without).not.toMatch(':not(#');
+  });
+
+  test('useLegacyClassnamesSort breaks a priority tie by class name', () => {
+    const byDeclaration = assemble(rules, {});
+    const byClassName = assemble(rules, {
+      useLegacyClassnamesSort: true,
+    });
+
+    expect(byDeclaration.indexOf('.xb')).toBeLessThan(byDeclaration.indexOf('.xa'));
+    expect(byClassName.indexOf('.xa')).toBeLessThan(byClassName.indexOf('.xb'));
   });
 });

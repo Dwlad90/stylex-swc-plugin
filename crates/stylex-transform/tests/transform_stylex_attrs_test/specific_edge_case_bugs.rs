@@ -132,10 +132,7 @@ stylex_test!(
 stylex_test!(
   stylex_call_in_debug_mode_with_debug_classnames_disabled,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_dev(true)
-      .with_debug(true)
-      .with_enable_debug_class_names(false)
-      .with_runtime_injection()
+    b.with_dev(true).with_debug(true).with_runtime_injection()
   }),
   r#"
     import * as stylex from '@stylexjs/stylex';

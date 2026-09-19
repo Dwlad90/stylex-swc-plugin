@@ -38,9 +38,9 @@ const _temp7 = {
 };
 const _temp8 = {
     "input__styles.computedFromParam": "input__styles.computedFromParam",
-    zIndex: "zIndex-xr3buco",
-    content: "content-x1p70blb",
-    width: "width-x5lhr3w",
+    zIndex: "xr3buco",
+    content: "x1p70blb",
+    width: "x5lhr3w",
     $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:60"
 };
 const _temp9 = {
@@ -48,99 +48,99 @@ const _temp9 = {
     $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:67"
 };
 _inject2({
-    ltr: ".padding-xt7k32d{padding:var(--md-xq1l1nf)}",
+    ltr: ".x1rqil9o{padding:var(--xq1l1nf)}",
     priority: 1000
 });
 _inject2({
-    ltr: ".padding-x1fozly0{padding:var(--x-padding)}",
+    ltr: ".x1fozly0{padding:var(--x-padding)}",
     priority: 1000
 });
 _inject2({
-    ltr: ".margin-xb9ncqk{margin:var(--x-margin)}",
+    ltr: ".xb9ncqk{margin:var(--x-margin)}",
     priority: 1000
 });
 _inject2({
-    ltr: ".fontFamily-xk2v41j{font-family:var(--x-fontFamily)}",
+    ltr: ".xk2v41j{font-family:var(--x-fontFamily)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".inset-xccw97s{inset:var(--x-inset)}",
+    ltr: ".xccw97s{inset:var(--x-inset)}",
     priority: 1000
 });
 _inject2({
-    ltr: ".marginInline-xvlecxo{margin-inline:var(--x-marginInline)}",
+    ltr: ".xvlecxo{margin-inline:var(--x-marginInline)}",
     priority: 2000
 });
 _inject2({
-    ltr: ".--depth-x5h8hlk{--depth:var(--x---depth)}",
+    ltr: ".x5h8hlk{--depth:var(--x---depth)}",
     priority: 1
 });
 _inject2({
-    ltr: ".--nested-depth-x91d7kb{--nested-depth:var(--x---nested-depth)}",
+    ltr: ".x91d7kb{--nested-depth:var(--x---nested-depth)}",
     priority: 1
 });
 _inject2({
-    ltr: ".userSelect-x9pkiyq{user-select:var(--x-userSelect)}",
+    ltr: ".x9pkiyq{user-select:var(--x-userSelect)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".appearance-xafmcc1{appearance:var(--x-appearance)}",
+    ltr: ".xafmcc1{appearance:var(--x-appearance)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".zIndex-xkrcnwa{z-index:var(--x-gsepj1)}",
+    ltr: ".xkrcnwa{z-index:var(--x-gsepj1)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".zIndex-x141uv47:hover{z-index:var(--x-1ua3n7y)}",
+    ltr: ".x141uv47:hover{z-index:var(--x-1ua3n7y)}",
     priority: 3130
 });
 _inject2({
-    ltr: ".zIndex-x140siia:focus:hover{z-index:var(--x-kat1qs)}",
+    ltr: ".x140siia:focus:hover{z-index:var(--x-kat1qs)}",
     priority: 3280
 });
 _inject2({
-    ltr: "@media (min-width: 600px){.zIndex-xlzq18l.zIndex-xlzq18l:focus:hover{z-index:var(--x-16ne5w5)}}",
+    ltr: "@media (min-width: 600px){.xlzq18l.xlzq18l:focus:hover{z-index:var(--x-16ne5w5)}}",
     priority: 3480
 });
 _inject2({
-    ltr: "@supports (display: grid){@media (min-width: 600px){.zIndex-x103ewrf.zIndex-x103ewrf.zIndex-x103ewrf:focus:hover{z-index:var(--x-iny62n)}}}",
+    ltr: "@supports (display: grid){@media (min-width: 600px){.x103ewrf.x103ewrf.x103ewrf:focus:hover{z-index:var(--x-iny62n)}}}",
     priority: 3510
 });
 _inject2({
-    ltr: "@supports (display: grid){@media (min-width: 600px){.zIndex-x1gxqx9w.zIndex-x1gxqx9w.zIndex-x1gxqx9w:active:focus:hover{z-index:var(--x-1e2zpja)}}}",
+    ltr: "@supports (display: grid){@media (min-width: 600px){.x1gxqx9w.x1gxqx9w.x1gxqx9w:active:focus:hover{z-index:var(--x-1e2zpja)}}}",
     priority: 3680
 });
 _inject2({
-    ltr: "@supports (display: grid){@media (prefers-color-scheme: dark){@media (min-width: 600px){.zIndex-xqw1h1y.zIndex-xqw1h1y.zIndex-xqw1h1y.zIndex-xqw1h1y:active:focus:hover{z-index:var(--x-gg2yv0)}}}}",
+    ltr: "@supports (display: grid){@media (prefers-color-scheme: dark){@media (min-width: 600px){.xqw1h1y.xqw1h1y.xqw1h1y.xqw1h1y:active:focus:hover{z-index:var(--x-gg2yv0)}}}}",
     priority: 3880
 });
 _inject2({
-    ltr: "@supports (display: grid){@media (prefers-color-scheme: dark){@media (min-width: 600px){.zIndex-x15stwyu.zIndex-x15stwyu.zIndex-x15stwyu.zIndex-x15stwyu:active:first-child:focus:hover{z-index:var(--x-hsbtju)}}}}",
+    ltr: "@supports (display: grid){@media (prefers-color-scheme: dark){@media (min-width: 600px){.x15stwyu.x15stwyu.x15stwyu.x15stwyu:active:first-child:focus:hover{z-index:var(--x-hsbtju)}}}}",
     priority: 3932
 });
 _inject2({
-    ltr: ".zIndex-xr3buco{z-index:var(--x-zIndex)}",
+    ltr: ".xr3buco{z-index:var(--x-zIndex)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".content-x1p70blb{content:var(--x-content)}",
+    ltr: ".x1p70blb{content:var(--x-content)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".width-x5lhr3w{width:var(--x-width)}",
+    ltr: ".x5lhr3w{width:var(--x-width)}",
     priority: 4000
 });
 _inject2({
-    ltr: ".order-xuwbzjh{order:var(--x-order)}",
+    ltr: ".xuwbzjh{order:var(--x-order)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".zIndex-x1bsllxr{z-index:var(--_10-x19xkwqv)}",
+    ltr: ".x25bfn{z-index:var(--x19xkwqv)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".gridArea-xq91r1r{grid-area:var(--main-xsx5c67)}",
+    ltr: ".xvstzhk{grid-area:var(--xsx5c67)}",
     priority: 1000
 });
 _inject2({
@@ -230,13 +230,13 @@ _inject2({
 export const styles = {
     unicodeName: {
         "input__styles.unicodeName": "input__styles.unicodeName",
-        padding: "padding-xt7k32d",
+        padding: "x1rqil9o",
         $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:10"
     },
     unicodeParam: (ünïcödé)=>[
             _temp,
             {
-                padding: ünïcödé != null ? "padding-x1fozly0" : ünïcödé,
+                padding: ünïcödé != null ? "x1fozly0" : ünïcödé,
                 $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:11"
             },
             {
@@ -246,7 +246,7 @@ export const styles = {
     escapedParam: (ünïcödé)=>[
             _temp2,
             {
-                margin: ünïcödé != null ? "margin-xb9ncqk" : ünïcödé,
+                margin: ünïcödé != null ? "xb9ncqk" : ünïcödé,
                 $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:15"
             },
             {
@@ -256,7 +256,7 @@ export const styles = {
     helperName: (firstThatWorks)=>[
             _temp3,
             {
-                fontFamily: firstThatWorks != null ? "fontFamily-xk2v41j" : firstThatWorks,
+                fontFamily: firstThatWorks != null ? "xk2v41j" : firstThatWorks,
                 $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:19"
             },
             {
@@ -266,8 +266,8 @@ export const styles = {
     shorthand: (zIndex)=>[
             _temp4,
             {
-                inset: zIndex != null ? "inset-xccw97s" : zIndex,
-                marginInline: zIndex != null ? "marginInline-xvlecxo" : zIndex,
+                inset: zIndex != null ? "xccw97s" : zIndex,
+                marginInline: zIndex != null ? "xvlecxo" : zIndex,
                 $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:23"
             },
             {
@@ -278,8 +278,8 @@ export const styles = {
     customProperty: (zIndex)=>[
             _temp5,
             {
-                "--depth": zIndex != null ? "--depth-x5h8hlk" : zIndex,
-                "--nested-depth": zIndex != null ? "--nested-depth-x91d7kb" : zIndex,
+                "--depth": zIndex != null ? "x5h8hlk" : zIndex,
+                "--nested-depth": zIndex != null ? "x91d7kb" : zIndex,
                 $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:26"
             },
             {
@@ -290,8 +290,8 @@ export const styles = {
     prefixed: (zIndex)=>[
             _temp6,
             {
-                userSelect: zIndex != null ? "userSelect-x9pkiyq" : zIndex,
-                appearance: zIndex != null ? "appearance-xafmcc1" : zIndex,
+                userSelect: zIndex != null ? "x9pkiyq" : zIndex,
+                appearance: zIndex != null ? "xafmcc1" : zIndex,
                 $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:29"
             },
             {
@@ -302,7 +302,7 @@ export const styles = {
     deeplyNested: (zIndex)=>[
             _temp7,
             {
-                zIndex: (zIndex != null ? "zIndex-xkrcnwa " : zIndex) + (zIndex != null ? "zIndex-x141uv47 " : zIndex) + (zIndex != null ? "zIndex-x140siia " : zIndex) + (zIndex != null ? "zIndex-xlzq18l " : zIndex) + (zIndex != null ? "zIndex-x103ewrf " : zIndex) + (zIndex != null ? "zIndex-x1gxqx9w " : zIndex) + (zIndex != null ? "zIndex-xqw1h1y " : zIndex) + (zIndex != null ? "zIndex-x15stwyu" : zIndex),
+                zIndex: (zIndex != null ? "xkrcnwa " : zIndex) + (zIndex != null ? "x141uv47 " : zIndex) + (zIndex != null ? "x140siia " : zIndex) + (zIndex != null ? "xlzq18l " : zIndex) + (zIndex != null ? "x103ewrf " : zIndex) + (zIndex != null ? "x1gxqx9w " : zIndex) + (zIndex != null ? "xqw1h1y " : zIndex) + (zIndex != null ? "x15stwyu" : zIndex),
                 $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:33"
             },
             {
@@ -327,8 +327,8 @@ export const styles = {
     mixedParams: (zIndex, level)=>[
             _temp9,
             {
-                zIndex: zIndex != null ? "zIndex-xr3buco" : zIndex,
-                order: level != null ? "order-xuwbzjh" : level,
+                zIndex: zIndex != null ? "xr3buco" : zIndex,
+                order: level != null ? "xuwbzjh" : level,
                 $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:67"
             },
             {
@@ -338,8 +338,8 @@ export const styles = {
         ],
     "static": {
         "input__styles.static": "input__styles.static",
-        zIndex: "zIndex-x1bsllxr",
-        gridArea: "gridArea-xq91r1r",
+        zIndex: "x25bfn",
+        gridArea: "xvstzhk",
         $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:71"
     }
 };

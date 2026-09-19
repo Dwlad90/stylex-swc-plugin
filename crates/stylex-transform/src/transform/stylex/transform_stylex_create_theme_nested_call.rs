@@ -84,7 +84,7 @@ where
       )
     };
 
-    validate_nested_theme_variables(&variables, &self.state);
+    validate_nested_theme_variables(&variables);
 
     let function_map = Rc::new(build_eval_config(&mut self.state));
     let evaluated_arg2 = evaluate_with_functions(second_arg, &mut self.state, function_map);
@@ -130,14 +130,11 @@ where
   }
 }
 
-fn validate_nested_theme_variables(
-  value: &EvaluateResultValue,
-  state: &stylex_state::state_manager::StateManager,
-) {
+fn validate_nested_theme_variables(value: &EvaluateResultValue) {
   match value {
     EvaluateResultValue::ThemeRef(theme_ref) => {
       let mut theme_ref = theme_ref.clone();
-      let value = theme_ref.get(VAR_GROUP_HASH_KEY, state);
+      let value = theme_ref.get(VAR_GROUP_HASH_KEY);
 
       // Asked for the refusal alone. `createTheme` reads the same key off the
       // same shape and needs the name; here only the check is wanted, and one

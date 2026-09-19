@@ -268,12 +268,7 @@ mod stylex_create {
     stylex_create_set(
       &EvaluateResultValue::Map(style_object),
       &mut EvaluationState::default(),
-      &mut StateManager::for_test(
-        None,
-        StyleXStateOptions::default()
-          .with_debug(true)
-          .with_enable_debug_class_names(true),
-      ),
+      &mut StateManager::for_test(None, StyleXStateOptions::default().with_debug(true)),
       &FunctionMap::default(),
     )
   }
@@ -290,26 +285,20 @@ mod stylex_create {
         &[(
           "default",
           &[
-            ("backgroundColor-kWkggS", "backgroundColor-xrkmrrc"),
-            ("color-kMwMTN", "color-xju2f9n"),
+            ("backgroundColor-kWkggS", "xrkmrrc"),
+            ("color-kMwMTN", "xju2f9n"),
           ],
         )],
         &[(
           "default",
           &[
-            (
-              "backgroundColor-xrkmrrc",
-              (".backgroundColor-xrkmrrc{background-color:red}", 3000.0),
-            ),
-            ("color-xju2f9n", (".color-xju2f9n{color:blue}", 3000.0)),
+            ("xrkmrrc", (".xrkmrrc{background-color:red}", 3000.0)),
+            ("xju2f9n", (".xju2f9n{color:blue}", 3000.0)),
           ],
         )],
         &[(
           "default",
-          &[
-            ("backgroundColor-xrkmrrc", &["backgroundColor"]),
-            ("color-xju2f9n", &["color"]),
-          ],
+          &[("xrkmrrc", &["backgroundColor"]), ("xju2f9n", &["color"])],
         )],
       );
 
@@ -332,31 +321,25 @@ mod stylex_create {
         &[(
           "default",
           &[
-            ("WebkitBoxOrient-kgKLqz", "WebkitBoxOrient-x1ua5tub"),
-            ("WebkitLineClamp-kJFfOR", "WebkitLineClamp-x1h7i4cw"),
+            ("WebkitBoxOrient-kgKLqz", "x1ua5tub"),
+            ("WebkitLineClamp-kJFfOR", "x1h7i4cw"),
           ],
         )],
         &[(
           "default",
           &[
             (
-              "WebkitBoxOrient-x1ua5tub",
-              (
-                ".WebkitBoxOrient-x1ua5tub{-webkit-box-orient:vertical}",
-                3000.0,
-              ),
+              "x1ua5tub",
+              (".x1ua5tub{-webkit-box-orient:vertical}", 3000.0),
             ),
-            (
-              "WebkitLineClamp-x1h7i4cw",
-              (".WebkitLineClamp-x1h7i4cw{-webkit-line-clamp:2}", 3000.0),
-            ),
+            ("x1h7i4cw", (".x1h7i4cw{-webkit-line-clamp:2}", 3000.0)),
           ],
         )],
         &[(
           "default",
           &[
-            ("WebkitBoxOrient-x1ua5tub", &["WebkitBoxOrient"]),
-            ("WebkitLineClamp-x1h7i4cw", &["WebkitLineClamp"]),
+            ("x1ua5tub", &["WebkitBoxOrient"]),
+            ("x1h7i4cw", &["WebkitLineClamp"]),
           ],
         )],
       );
@@ -382,24 +365,15 @@ mod stylex_create {
 
     let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
       exprected_result_factory(
-        &[(
-          "default",
-          &[("transitionProperty-k1ekBW", "transitionProperty-x1cfch2b")],
-        )],
+        &[("default", &[("transitionProperty-k1ekBW", "x1cfch2b")])],
         &[(
           "default",
           &[(
-            "transitionProperty-x1cfch2b",
-            (
-              ".transitionProperty-x1cfch2b{transition-property:margin-top}",
-              3000.0,
-            ),
+            "x1cfch2b",
+            (".x1cfch2b{transition-property:margin-top}", 3000.0),
           )],
         )],
-        &[(
-          "default",
-          &[("transitionProperty-x1cfch2b", &["transitionProperty"])],
-        )],
+        &[("default", &[("x1cfch2b", &["transitionProperty"])])],
       );
 
     assert_eq!(resolved_namespaces, expected_resolved_namespaces);
@@ -421,15 +395,12 @@ mod stylex_create {
 
     let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
       exprected_result_factory(
-        &[("default", &[("willChange-k6sLGO", "willChange-x1a6dnx1")])],
+        &[("default", &[("willChange-k6sLGO", "x1a6dnx1")])],
         &[(
           "default",
-          &[(
-            "willChange-x1a6dnx1",
-            (".willChange-x1a6dnx1{will-change:margin-top}", 3000.0),
-          )],
+          &[("x1a6dnx1", (".x1a6dnx1{will-change:margin-top}", 3000.0))],
         )],
-        &[("default", &[("willChange-x1a6dnx1", &["willChange"])])],
+        &[("default", &[("x1a6dnx1", &["willChange"])])],
       );
 
     assert_eq!(resolved_namespaces, expected_resolved_namespaces);
@@ -445,24 +416,12 @@ mod stylex_create {
 
     let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
       exprected_result_factory(
+        &[("default", &[("transitionProperty-k1ekBW", "x17389it")])],
         &[(
           "default",
-          &[("transitionProperty-k1ekBW", "transitionProperty-x17389it")],
+          &[("x17389it", (".x17389it{transition-property:--foo}", 3000.0))],
         )],
-        &[(
-          "default",
-          &[(
-            "transitionProperty-x17389it",
-            (
-              ".transitionProperty-x17389it{transition-property:--foo}",
-              3000.0,
-            ),
-          )],
-        )],
-        &[(
-          "default",
-          &[("transitionProperty-x17389it", &["transitionProperty"])],
-        )],
+        &[("default", &[("x17389it", &["transitionProperty"])])],
       );
 
     assert_eq!(resolved_namespaces, expected_resolved_namespaces);
@@ -478,15 +437,12 @@ mod stylex_create {
 
     let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
       exprected_result_factory(
-        &[("default", &[("willChange-k6sLGO", "willChange-x1lxaxzv")])],
+        &[("default", &[("willChange-k6sLGO", "x1lxaxzv")])],
         &[(
           "default",
-          &[(
-            "willChange-x1lxaxzv",
-            (".willChange-x1lxaxzv{will-change:--foo}", 3000.0),
-          )],
+          &[("x1lxaxzv", (".x1lxaxzv{will-change:--foo}", 3000.0))],
         )],
-        &[("default", &[("willChange-x1lxaxzv", &["willChange"])])],
+        &[("default", &[("x1lxaxzv", &["willChange"])])],
       );
 
     assert_eq!(resolved_namespaces, expected_resolved_namespaces);
@@ -510,24 +466,15 @@ mod stylex_create {
 
     let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
       exprected_result_factory(
-        &[(
-          "default",
-          &[("transitionProperty-k1ekBW", "transitionProperty-x95ccmk")],
-        )],
+        &[("default", &[("transitionProperty-k1ekBW", "x95ccmk")])],
         &[(
           "default",
           &[(
-            "transitionProperty-x95ccmk",
-            (
-              ".transitionProperty-x95ccmk{transition-property:opacity,margin-top}",
-              3000.0,
-            ),
+            "x95ccmk",
+            (".x95ccmk{transition-property:opacity,margin-top}", 3000.0),
           )],
         )],
-        &[(
-          "default",
-          &[("transitionProperty-x95ccmk", &["transitionProperty"])],
-        )],
+        &[("default", &[("x95ccmk", &["transitionProperty"])])],
       );
 
     assert_eq!(resolved_namespaces, expected_resolved_namespaces);
@@ -555,32 +502,26 @@ mod stylex_create {
         &[(
           "short",
           &[
-            ("padding-kmVPX3", "padding-x1lmef92"),
-            ("paddingTop-kLKAdn", "paddingTop-xexx8yu"),
+            ("padding-kmVPX3", "x1lmef92"),
+            ("paddingTop-kLKAdn", "xexx8yu"),
           ],
         )],
         &[(
           "default",
           &[
             (
-              "padding-x1lmef92",
+              "x1lmef92",
               (
-                ".padding-x1lmef92{padding:calc((100% - 50px) * .5) var(--rightpadding,20px)}",
+                ".x1lmef92{padding:calc((100% - 50px) * .5) var(--rightpadding,20px)}",
                 1000.0,
               ),
             ),
-            (
-              "paddingTop-xexx8yu",
-              (".paddingTop-xexx8yu{padding-top:0}", 4000.0),
-            ),
+            ("xexx8yu", (".xexx8yu{padding-top:0}", 4000.0)),
           ],
         )],
         &[(
           "short",
-          &[
-            ("padding-x1lmef92", &["padding"]),
-            ("paddingTop-xexx8yu", &["paddingTop"]),
-          ],
+          &[("x1lmef92", &["padding"]), ("xexx8yu", &["paddingTop"])],
         )],
       );
 
@@ -597,21 +538,12 @@ mod stylex_create {
 
     let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
       exprected_result_factory(
+        &[("default", &[("--background-color", "xgau0yw")])],
         &[(
           "default",
-          &[("--background-color", "--background-color-xgau0yw")],
+          &[("xgau0yw", (".xgau0yw{--background-color:red}", 1.0))],
         )],
-        &[(
-          "default",
-          &[(
-            "--background-color-xgau0yw",
-            (".--background-color-xgau0yw{--background-color:red}", 1.0),
-          )],
-        )],
-        &[(
-          "default",
-          &[("--background-color-xgau0yw", &["--background-color"])],
-        )],
+        &[("default", &[("xgau0yw", &["--background-color"])])],
       );
 
     assert_eq!(resolved_namespaces, expected_resolved_namespaces);
@@ -628,18 +560,15 @@ mod stylex_create {
 
     let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
       exprected_result_factory(
-        &[("default", &[("--final-color", "--final-color-x13tgbkp")])],
+        &[("default", &[("--final-color", "x13tgbkp")])],
         &[(
           "default",
           &[(
-            "--final-color-x13tgbkp",
-            (
-              ".--final-color-x13tgbkp{--final-color:var(--background-color)}",
-              1.0,
-            ),
+            "x13tgbkp",
+            (".x13tgbkp{--final-color:var(--background-color)}", 1.0),
           )],
         )],
-        &[("default", &[("--final-color-x13tgbkp", &["--final-color"])])],
+        &[("default", &[("x13tgbkp", &["--final-color"])])],
       );
 
     assert_eq!(resolved_namespaces, expected_resolved_namespaces);
@@ -659,31 +588,19 @@ mod stylex_create {
     let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
       exprected_result_factory(
         &[
-          (
-            "default",
-            &[("backgroundColor-kWkggS", "backgroundColor-xrkmrrc")],
-          ),
-          ("default2", &[("color-kMwMTN", "color-xju2f9n")]),
+          ("default", &[("backgroundColor-kWkggS", "xrkmrrc")]),
+          ("default2", &[("color-kMwMTN", "xju2f9n")]),
         ],
         &[
+          ("default", &[("xju2f9n", (".xju2f9n{color:blue}", 3000.0))]),
           (
-            "default",
-            &[("color-xju2f9n", (".color-xju2f9n{color:blue}", 3000.0))],
-          ),
-          (
-            "backgroundColor-xrkmrrc",
-            &[(
-              "backgroundColor-xrkmrrc",
-              (".backgroundColor-xrkmrrc{background-color:red}", 3000.0),
-            )],
+            "xrkmrrc",
+            &[("xrkmrrc", (".xrkmrrc{background-color:red}", 3000.0))],
           ),
         ],
         &[
-          (
-            "default",
-            &[("backgroundColor-xrkmrrc", &["backgroundColor"])],
-          ),
-          ("default2", &[("color-xju2f9n", &["color"])]),
+          ("default", &[("xrkmrrc", &["backgroundColor"])]),
+          ("default2", &[("xju2f9n", &["color"])]),
         ],
       );
 
@@ -700,15 +617,15 @@ mod stylex_create {
 
     let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
       exprected_result_factory(
-        &[("default", &[("content-kah6P1", "content-xd71okc")])],
+        &[("default", &[("content-kah6P1", "xd71okc")])],
         &[(
           "default",
           &[(
-            "content-xd71okc",
-            (".content-xd71okc{content:attr(some-attribute)}", 3000.0),
+            "xd71okc",
+            (".xd71okc{content:attr(some-attribute)}", 3000.0),
           )],
         )],
-        &[("default", &[("content-xd71okc", &["content"])])],
+        &[("default", &[("xd71okc", &["content"])])],
       );
 
     assert_eq!(resolved_namespaces, expected_resolved_namespaces);
@@ -724,12 +641,9 @@ mod stylex_create {
 
     let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
       exprected_result_factory(
-        &[("default", &[("--foo", "--foo-xwzgxvi")])],
-        &[(
-          "default",
-          &[("--foo-xwzgxvi", (".--foo-xwzgxvi{--foo:500}", 1.0))],
-        )],
-        &[("default", &[("--foo-xwzgxvi", &["--foo"])])],
+        &[("default", &[("--foo", "xwzgxvi")])],
+        &[("default", &[("xwzgxvi", (".xwzgxvi{--foo:500}", 1.0))])],
+        &[("default", &[("xwzgxvi", &["--foo"])])],
       );
 
     assert_eq!(resolved_namespaces, expected_resolved_namespaces);
@@ -751,31 +665,25 @@ mod stylex_create {
         &[(
           "default",
           &[
-            (":hover_backgroundColor-kGzVvX", "backgroundColor-x1gykpug"),
-            (":hover_color-kDPRdz", "color-x17z2mba"),
+            (":hover_backgroundColor-kGzVvX", "x1gykpug"),
+            (":hover_color-kDPRdz", "x17z2mba"),
           ],
         )],
         &[(
           "default",
           &[
             (
-              "backgroundColor-x1gykpug",
-              (
-                ".backgroundColor-x1gykpug:hover{background-color:red}",
-                3130.0,
-              ),
+              "x1gykpug",
+              (".x1gykpug:hover{background-color:red}", 3130.0),
             ),
-            (
-              "color-x17z2mba",
-              (".color-x17z2mba:hover{color:blue}", 3130.0),
-            ),
+            ("x17z2mba", (".x17z2mba:hover{color:blue}", 3130.0)),
           ],
         )],
         &[(
           "default",
           &[
-            ("backgroundColor-x1gykpug", &[":hover", "backgroundColor"]),
-            ("color-x17z2mba", &[":hover", "color"]),
+            ("x1gykpug", &[":hover", "backgroundColor"]),
+            ("x17z2mba", &[":hover", "color"]),
           ],
         )],
       );
@@ -805,28 +713,19 @@ mod stylex_create {
 
     let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
       exprected_result_factory(
-        &[(
-          "default",
-          &[("::before_color-kxBb7d", "color-x16oeupf color-xeb2lg0")],
-        )],
+        &[("default", &[("::before_color-kxBb7d", "x16oeupf xeb2lg0")])],
         &[(
           "default",
           &[
-            (
-              "color-x16oeupf",
-              (".color-x16oeupf::before{color:red}", 8000.0),
-            ),
-            (
-              "color-xeb2lg0",
-              (".color-xeb2lg0:hover::before{color:blue}", 8130.0),
-            ),
+            ("x16oeupf", (".x16oeupf::before{color:red}", 8000.0)),
+            ("xeb2lg0", (".xeb2lg0:hover::before{color:blue}", 8130.0)),
           ],
         )],
         &[(
           "default",
           &[
-            ("color-x16oeupf", &["::before", "default", "color"]),
-            ("color-xeb2lg0", &["::before", ":hover", "color"]),
+            ("x16oeupf", &["::before", "default", "color"]),
+            ("xeb2lg0", &["::before", ":hover", "color"]),
           ],
         )],
       );
@@ -859,28 +758,22 @@ mod stylex_create {
         &[(
           "default",
           &[
-            ("::before_:hover_color-kkC3X7", "color-xeb2lg0"),
-            ("::before_color-kxBb7d", "color-x16oeupf"),
+            ("::before_:hover_color-kkC3X7", "xeb2lg0"),
+            ("::before_color-kxBb7d", "x16oeupf"),
           ],
         )],
         &[(
           "default",
           &[
-            (
-              "color-x16oeupf",
-              (".color-x16oeupf::before{color:red}", 8000.0),
-            ),
-            (
-              "color-xeb2lg0",
-              (".color-xeb2lg0:hover::before{color:blue}", 8130.0),
-            ),
+            ("x16oeupf", (".x16oeupf::before{color:red}", 8000.0)),
+            ("xeb2lg0", (".xeb2lg0:hover::before{color:blue}", 8130.0)),
           ],
         )],
         &[(
           "default",
           &[
-            ("color-x16oeupf", &["::before", "color"]),
-            ("color-xeb2lg0", &["::before", ":hover", "color"]),
+            ("x16oeupf", &["::before", "color"]),
+            ("xeb2lg0", &["::before", ":hover", "color"]),
           ],
         )],
       );
@@ -920,44 +813,32 @@ mod stylex_create {
         &[(
           "default",
           &[
-            ("::before_color-kxBb7d", "color-x16oeupf"),
-            (
-              ":hover_::before_color-kFlxxK",
-              "color-xzzpreb color-x1gobd9t color-x1lvqgcc",
-            ),
+            ("::before_color-kxBb7d", "x16oeupf"),
+            (":hover_::before_color-kFlxxK", "xzzpreb x1gobd9t x1lvqgcc"),
           ],
         )],
         &[(
           "default",
           &[
+            ("x16oeupf", (".x16oeupf::before{color:red}", 8000.0)),
             (
-              "color-x16oeupf",
-              (".color-x16oeupf::before{color:red}", 8000.0),
+              "x1gobd9t",
+              (".x1gobd9t:hover:hover::before{color:green}", 8260.0),
             ),
             (
-              "color-x1gobd9t",
-              (".color-x1gobd9t:hover:hover::before{color:green}", 8260.0),
+              "x1lvqgcc",
+              (".x1lvqgcc:hover:active::before{color:yellow}", 8300.0),
             ),
-            (
-              "color-x1lvqgcc",
-              (".color-x1lvqgcc:hover:active::before{color:yellow}", 8300.0),
-            ),
-            (
-              "color-xzzpreb",
-              (".color-xzzpreb:hover::before{color:blue}", 8130.0),
-            ),
+            ("xzzpreb", (".xzzpreb:hover::before{color:blue}", 8130.0)),
           ],
         )],
         &[(
           "default",
           &[
-            ("color-x16oeupf", &["::before", "color"]),
-            ("color-x1gobd9t", &[":hover", "::before", ":hover", "color"]),
-            (
-              "color-x1lvqgcc",
-              &[":hover", "::before", ":active", "color"],
-            ),
-            ("color-xzzpreb", &[":hover", "::before", "default", "color"]),
+            ("x16oeupf", &["::before", "color"]),
+            ("x1gobd9t", &[":hover", "::before", ":hover", "color"]),
+            ("x1lvqgcc", &[":hover", "::before", ":active", "color"]),
+            ("xzzpreb", &[":hover", "::before", "default", "color"]),
           ],
         )],
       );
@@ -1010,12 +891,12 @@ mod stylex_create {
 
     assert_eq!(
       before_hover_class,
-      &Rc::new(FlatCompiledStylesValue::String("color-xeb2lg0".to_string()))
+      &Rc::new(FlatCompiledStylesValue::String("xeb2lg0".to_string()))
     );
 
     assert_eq!(
       hover_before_class,
-      &Rc::new(FlatCompiledStylesValue::String("color-xeb2lg0".to_string()))
+      &Rc::new(FlatCompiledStylesValue::String("xeb2lg0".to_string()))
     );
 
     assert_ne!(before_hover_class, hover_before_class)
@@ -1029,15 +910,15 @@ mod stylex_create {
 
     let (expected_resolved_namespaces, expected_injected_styles, expected_class_paths_in_namespace) =
       exprected_result_factory(
-        &[("default", &[("position-kVAEAm", "position-x1ruww2u")])],
+        &[("default", &[("position-kVAEAm", "x1ruww2u")])],
         &[(
           "default",
           &[(
-            "position-x1ruww2u",
-            (".position-x1ruww2u{position:sticky;position:fixed}", 3000.0),
+            "x1ruww2u",
+            (".x1ruww2u{position:sticky;position:fixed}", 3000.0),
           )],
         )],
-        &[("default", &[("position-x1ruww2u", &["position"])])],
+        &[("default", &[("x1ruww2u", &["position"])])],
       );
 
     assert_eq!(resolved_namespaces, expected_resolved_namespaces);
@@ -1063,34 +944,25 @@ mod stylex_create {
         &[(
           "default",
           &[
-            ("borderStyle-ksu8eU", "borderStyle-xbsl7fq"),
-            ("borderWidth-kMzoRj", "borderWidth-xji7ma4"),
-            ("overflow-kVQacm", "overflow-xb3r6kr"),
+            ("borderStyle-ksu8eU", "xbsl7fq"),
+            ("borderWidth-kMzoRj", "xji7ma4"),
+            ("overflow-kVQacm", "xb3r6kr"),
           ],
         )],
         &[(
           "default",
           &[
-            (
-              "overflow-xb3r6kr",
-              (".overflow-xb3r6kr{overflow:hidden}", 2000.0),
-            ),
-            (
-              "borderStyle-xbsl7fq",
-              (".borderStyle-xbsl7fq{border-style:dashed}", 2000.0),
-            ),
-            (
-              "borderWidth-xji7ma4",
-              (".borderWidth-xji7ma4{border-width:1}", 2000.0),
-            ),
+            ("xb3r6kr", (".xb3r6kr{overflow:hidden}", 2000.0)),
+            ("xbsl7fq", (".xbsl7fq{border-style:dashed}", 2000.0)),
+            ("xji7ma4", (".xji7ma4{border-width:1}", 2000.0)),
           ],
         )],
         &[(
           "default",
           &[
-            ("overflow-xb3r6kr", &["overflow"]),
-            ("borderStyle-xbsl7fq", &["borderStyle"]),
-            ("borderWidth-xji7ma4", &["borderWidth"]),
+            ("xb3r6kr", &["overflow"]),
+            ("xbsl7fq", &["borderStyle"]),
+            ("xji7ma4", &["borderWidth"]),
           ],
         )],
       );
@@ -1129,50 +1001,47 @@ mod stylex_create {
           &[
             (
               "@media (min-width: 1000px)_backgroundColor-ksQ81T",
-              "backgroundColor-xc445zv",
+              "xc445zv",
             ),
             (
               "@media (min-width: 2000px)_backgroundColor-kkpvmn",
-              "backgroundColor-x1ssfqz5",
+              "x1ssfqz5",
             ),
-            ("backgroundColor-kWkggS", "backgroundColor-xrkmrrc"),
+            ("backgroundColor-kWkggS", "xrkmrrc"),
           ],
         )],
         &[(
           "default",
           &[
             (
-              "backgroundColor-x1ssfqz5",
+              "x1ssfqz5",
               (
-                "@media (min-width: 2000px){.backgroundColor-x1ssfqz5.backgroundColor-x1ssfqz5{background-color:purple}}",
+                "@media (min-width: 2000px){.x1ssfqz5.x1ssfqz5{background-color:purple}}",
                 3200.0,
               ),
             ),
             (
-              "backgroundColor-xc445zv",
+              "xc445zv",
               (
-                "@media (min-width: 1000px){.backgroundColor-xc445zv.backgroundColor-xc445zv{background-color:blue}}",
+                "@media (min-width: 1000px){.xc445zv.xc445zv{background-color:blue}}",
                 3200.0,
               ),
             ),
-            (
-              "backgroundColor-xrkmrrc",
-              (".backgroundColor-xrkmrrc{background-color:red}", 3000.0),
-            ),
+            ("xrkmrrc", (".xrkmrrc{background-color:red}", 3000.0)),
           ],
         )],
         &[(
           "default",
           &[
             (
-              "backgroundColor-xc445zv",
+              "xc445zv",
               &["@media (min-width: 1000px)", "backgroundColor"],
             ),
             (
-              "backgroundColor-x1ssfqz5",
+              "x1ssfqz5",
               &["@media (min-width: 2000px)", "backgroundColor"],
             ),
-            ("backgroundColor-xrkmrrc", &["backgroundColor"]),
+            ("xrkmrrc", &["backgroundColor"]),
           ],
         )],
       );

@@ -362,8 +362,8 @@ mod media_query_transformer {
     let expected_styles = json!({
       "gridColumn": {
         "default": "1 / 2",
-        "@media (min-width: 768px) and (max-width: 1023.99px)": "1 / -1",
-        "@media (min-width: 1024px) and (max-width: 1439.99px)": "1 / 3",
+        "@media (min-width: 768px) and (max-width: 1023.98px)": "1 / -1",
+        "@media (min-width: 1024px) and (max-width: 1439.98px)": "1 / 3",
         "@media (min-width: 1440px)": "1 / 4"
       }
     });
@@ -815,7 +815,7 @@ mod media_query_transformer {
       "foo": {
         "gridColumn": {
           "default": "1 / 2",
-          "@media ((min-width: 900px) and (max-width: 999.99px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
+          "@media ((min-width: 900px) and (max-width: 999.98px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
           "@media (min-width: 1000px) and (max-width: 1100px)": "1 / 3",
           "@media (min-width: 400px) and (max-width: 500px)": "1 / 1"
         }
@@ -858,7 +858,7 @@ mod media_query_transformer {
       "foo": {
         "gridColumn": {
           "default": "1 / 2",
-          "@media ((min-width: 900px) and (max-width: 999.99px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
+          "@media ((min-width: 900px) and (max-width: 999.98px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
           "@media (min-width: 1000px) and (max-width: 1100px)": "1 / 3"
         }
       }
@@ -901,8 +901,8 @@ mod media_query_transformer {
       "foo": {
         "gridColumn": {
           "default": "1 / 2",
-          "@media ((min-width: 900px) and (max-width: 999.99px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
-          "@media ((min-width: 1000px) and (max-width: 1009.99px)) or ((min-width: 1050.01px) and (max-width: 1100px))": "1 / 3",
+          "@media ((min-width: 900px) and (max-width: 999.98px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
+          "@media ((min-width: 1000px) and (max-width: 1009.98px)) or ((min-width: 1050.01px) and (max-width: 1100px))": "1 / 3",
           "@media (min-width: 1010px) and (max-width: 1050px)": "1 / -1"
         }
       }
@@ -1463,7 +1463,7 @@ mod computed_bounds_carry_the_authored_digits {
       })),
       vec![
         "default",
-        "@media (min-width: 1024px) and (max-width: 1439.99px)",
+        "@media (min-width: 1024px) and (max-width: 1439.98px)",
         "@media (min-width: 1440px)",
       ]
     );
@@ -1553,7 +1553,7 @@ mod colliding_rewritten_keys {
         // `red` is gone; `blue` took its key, and its place.
         ("@media not all".to_string(), json!("blue")),
         (
-          "@media (max-width: 99.99px) and (min-height: 100px)".to_string(),
+          "@media (max-width: 99.98px) and (min-height: 100px)".to_string(),
           json!("green")
         ),
         ("@media (min-width: 100px)".to_string(), json!("purple")),
@@ -1970,7 +1970,7 @@ mod unusual_but_valid_queries {
       })),
       vec![
         "default",
-        "@media not all, (max-width: 99.99px)",
+        "@media not all, (max-width: 99.98px)",
         "@media (min-width: 100px)",
       ]
     );

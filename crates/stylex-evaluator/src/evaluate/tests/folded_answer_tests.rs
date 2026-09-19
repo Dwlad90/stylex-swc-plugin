@@ -21,7 +21,7 @@ use super::source_evaluation::*;
 use crate::evaluate_result::EvaluateResult;
 use stylex_ast::ast::convertors::convert_atom_to_string;
 use stylex_constants::constants::evaluation_errors::{
-  folded_string_too_large, object_size_too_large, unfoldable_fold_result,
+  folded_string_too_large, object_size_too_large, unfoldable_fold_result, unfoldable_static,
 };
 use stylex_state::{evaluate_result_value::EvaluateResultValue, functions::FunctionMap};
 use swc_core::ecma::ast::{Expr, Lit, Prop, PropOrSpread};
@@ -231,51 +231,37 @@ fn an_object_past_the_entry_ceiling_refuses_by_its_property_count() {
   );
 }
 
-/// Reading a property back runs its getter, so the read can throw where nothing
-/// about the call did -- and the throw is reported in the engine's own words
-/// under the method the author wrote.
+/// A reflective static refuses before the engine is reached.
 ///
-/// `Object.create` never reads the object it builds, so a getter that throws
-/// throws while the answer is carried out and nowhere else.
+/// `Object.create` and the rest of them hand back an object from the prototype
+/// chain, which is a step from a plain object to `Function`. The allowlist does
+/// not hold them, so they read the one sentence every refused static reads.
+///
+/// The read-back throw this case once reached is now asked of the walk out
+/// directly, in `built_answer_tests`: no source builds a getter any more.
+///
+/// Every one of them takes an object first and reads a key second, so one call
+/// shape reaches them all.
 #[test]
-fn a_property_whose_getter_throws_refuses_in_the_engines_words() {
-  let source = "Object.create(null, { a: { get: () => null.x, enumerable: true } })";
-  let result = evaluate_source(source);
+fn a_reflective_static_refuses_before_the_engine() {
+  for method in [
+    "create",
+    "getPrototypeOf",
+    "setPrototypeOf",
+    "getOwnPropertyDescriptor",
+    "getOwnPropertyDescriptors",
+  ] {
+    let source = format!("Object.{}({{ a: 1 }}, 'a')", method);
+    let result = evaluate_source(&source);
 
-  assert_refused(&result, source);
-
-  match result.reason.as_deref() {
-    Some(reason) => {
-      // The method the author wrote, and then what the language threw. The
-      // sentence is read down to the throw itself rather than to the word
-      // `TypeError`, because a refusal naming the wrong throw reads to an author
-      // exactly like the right one. What is left out is only the source position
-      // the engine appends, which names the printed text rather than the file.
-      assert!(
-        reason.starts_with("Cannot fold 'create' at compile time."),
-        "expected the refusal of `{}` to name the method, got {:?}",
-        source,
-        reason
-      );
-
-      assert!(
-        reason.contains("TypeError: cannot convert 'null' or 'undefined' to object"),
-        "expected the refusal of `{}` to carry what was thrown, got {:?}",
-        source,
-        reason
-      );
-    },
-    None => panic!("expected `{}` to record a deopt reason", source),
+    assert_refused(&result, &source);
+    assert_eq!(
+      result.reason.as_deref(),
+      Some(unfoldable_static("Object", method).as_str()),
+      "the refusal for `{}`",
+      source
+    );
   }
-
-  // The same descriptor with a getter that answers folds, so the case above
-  // reads the throw rather than the shape.
-  let answers = "Object.create(null, { a: { get: () => 'red', enumerable: true } })";
-
-  assert_eq!(
-    entries_of(folded_value_of(evaluate_source(answers), answers), answers),
-    [("a".to_string(), "red".to_string())]
-  );
 }
 
 /// A function under a key has no expression this side writes, so the whole

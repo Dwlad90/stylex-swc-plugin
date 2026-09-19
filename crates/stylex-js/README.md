@@ -11,7 +11,8 @@ expression is safe to fold, and what it folds to. It is a separate crate so the
 evaluator can ask these questions without the full transformation pipeline.
 
 - Compile-time guards such as `is_valid_callee`, `is_mutation_expr` and
-  `is_invalid_method`, which keep the evaluator to side-effect-free expressions
+  `is_valid_callee_method`, which keep the evaluator to side-effect-free
+  expressions
 - The coercions `ToString`, `ToNumber`, `ToBoolean` and `ToObject` over an
   already-evaluated expression
 - `evaluate_bin_expr`, which applies a numeric binary operator to two operands
@@ -23,7 +24,7 @@ evaluator can ask these questions without the full transformation pipeline.
 
 | Module      | Purpose                                                                                      |
 | ----------- | -------------------------------------------------------------------------------------------- |
-| `helpers`   | JS runtime guards (`is_valid_callee`, `is_mutation_expr`, `is_invalid_method`, etc.)         |
+| `helpers`   | JS runtime guards (`is_valid_callee`, `is_mutation_expr`, `is_valid_callee_method`, etc.)    |
 | `coercions` | What the language says a value converts to (`ToString`, `ToNumber`, `ToBoolean`, `ToObject`) |
 | `operators` | `evaluate_bin_expr`, the numeric binary operators                                            |
 

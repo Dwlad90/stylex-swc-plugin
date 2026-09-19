@@ -347,6 +347,29 @@ fn own_keys_that_throw_stop_the_object() {
   );
 }
 
+/// A property whose getter throws stops the object, in the words the engine
+/// threw.
+///
+/// Reading a property back runs its getter, so the walk out can throw where
+/// nothing about the call did. No source builds such an object -- the statics
+/// that define a getter are outside the allowlist -- so the walk is handed one
+/// directly, which is what the other two reads that can throw are asked with.
+#[test]
+fn a_property_whose_getter_throws_stops_the_object() {
+  let mut context = Context::default();
+  let object = object_evaluated(
+    &mut context,
+    "Object.create(null, { a: { get() { throw new TypeError('no value'); }, enumerable: true } })",
+  );
+  let method = Atom::from(METHOD);
+
+  assert_refused_saying(
+    Outward::new(&method, ROOM).plain_object_value(&object, &mut context, Depth::full(LEVELS)),
+    "an object whose property will not answer",
+    "no value",
+  );
+}
+
 /// A `length` the language will not answer stops the array, in the words the
 /// engine threw.
 ///

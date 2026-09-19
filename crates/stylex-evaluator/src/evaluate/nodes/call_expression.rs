@@ -1,3 +1,4 @@
+use super::super::engine_fold::refusal_for_a_property_read;
 use super::super::*;
 use super::global_conversion::Conversion;
 use stylex_macros::deopt_unsupported;
@@ -356,7 +357,7 @@ fn member_callee(
         deopt_unsupported!(deopt, path, state, NON_CONSTANT);
       }
 
-      if is_valid_callee(named_object) && !is_invalid_method(property) {
+      if is_valid_callee(named_object) && is_valid_callee_method(&obj_ident.sym, property) {
         return global_static_callee(
           named_object,
           property,
@@ -424,6 +425,18 @@ fn member_callee(
   // here.
   if let Some(reason) = parsed_obj.reason {
     deopt_unsupported!(deopt, path, state, &reason);
+  }
+
+  // A method read off a receiver this dispatch folded, refused for the name
+  // alone. The two lookups above read the compiler's own function map, which is
+  // a hash map and carries no inherited members, so a name this rule holds can
+  // only be a read of the receiver's own prototype chain from here on.
+  //
+  // Asked of both spellings, so `({})["constructor"]()` reads the rule that
+  // refused it rather than a sentence about a property that could not be
+  // determined. The reader answers a quoted key as it answers a name.
+  if let Some(refusal) = refusal_for_a_property_read(property) {
+    deopt_unsupported!(deopt, path, state, &refusal);
   }
 
   if let Some(prop_ident) = property.as_ident() {

@@ -15,6 +15,7 @@
 //! load-bearing half of this file.
 
 use super::source_evaluation::*;
+use stylex_constants::constants::evaluation_errors::BLOCKED_PROPERTY_ACCESS;
 
 // ==================== the fold this file is about ====================
 
@@ -239,7 +240,6 @@ fn a_property_a_string_does_not_carry_answers_undefined() {
     "\"abc\".Length",
     "\"abc\".LENGTH",
     "\"abc\".toUpperCase",
-    "\"abc\".__proto__",
     "\"abc\"[\"foo\"]",
   ] {
     assert_folds_to_undefined(source);
@@ -247,6 +247,11 @@ fn a_property_a_string_does_not_carry_answers_undefined() {
 
   // The answer exists so a fallback folds rather than reaching the runtime.
   assert_folds_to_string("\"abc\".foo ?? \"red\"", "red");
+
+  // `__proto__` is not among them. It is a property a string *does* carry, and
+  // it is the first step onto the prototype chain -- so it is refused by name
+  // rather than answered, wherever the receiver came from.
+  assert_deopt_reason_contains("\"abc\".__proto__", BLOCKED_PROPERTY_ACCESS);
 }
 
 /// A key no compile-time text can hold is not one of these names, so the rule

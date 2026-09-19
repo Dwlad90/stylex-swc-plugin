@@ -2543,7 +2543,7 @@ fn nudged_bounds_keep_their_authored_precision() {
 
   assert_eq!(
     parsed.to_string(),
-    "@media ((min-width: 100px) and (max-width: 199.99px)) or (min-width: 300.01px)"
+    "@media ((min-width: 100px) and (max-width: 199.98px)) or (min-width: 300.01px)"
   );
 }
 

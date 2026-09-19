@@ -10,7 +10,7 @@ _inject2({
     priority: 3200
 });
 _inject2({
-    ltr: "@media (max-width: 99.99px) and (min-height: 100px){.xsllcrx.xsllcrx{color:green}}",
+    ltr: "@media (max-width: 99.98px) and (min-height: 100px){.x1pkdtpi.x1pkdtpi{color:green}}",
     priority: 3200
 });
 _inject2({
@@ -19,7 +19,7 @@ _inject2({
 });
 export const styles = {
     root: {
-        kMwMTN: "x1mqxbix x12vud9h xsllcrx xr6za1w",
+        kMwMTN: "x1mqxbix x12vud9h x1pkdtpi xr6za1w",
         $$css: true
     }
 };

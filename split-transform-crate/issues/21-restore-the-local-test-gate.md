@@ -111,3 +111,11 @@ regressions this ticket fixed.
 **One review finding was declined by the maintainer.** The 24 identical skip
 lines are duplicated, and the reviewer proposed collapsing or removing them.
 The crates keep their `test` scripts.
+
+**Superseded in part by [ticket 37](./37-restore-the-ci-test-commands.md).**
+The aggregate root `test` script broke every CI job that called `pnpm run test`
+with filters, and the repair taken here — calling `turbo` directly from the
+workflow — was reversed. The root script is `turbo run test --continue` again,
+`--profile ci` is back in `test:crates:workspace:regular`, and the documented
+local gate is two commands rather than one. The generated-fixture pretests and
+the Turbo input work this ticket did are unaffected and stay.

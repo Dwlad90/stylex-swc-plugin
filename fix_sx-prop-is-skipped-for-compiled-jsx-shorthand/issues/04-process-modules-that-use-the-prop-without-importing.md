@@ -33,16 +33,22 @@ import is skipped.
 
 **Blocked by:** 01 — the shared predicate this condition is added to.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A module using the prop with no import is handed to the compiler
-- [ ] A module using neither the prop nor an import is still skipped
-- [ ] With the prop disabled, a module using the prop is still skipped
-- [ ] A renamed prop is honoured, and a name containing pattern
+- [x] A module using the prop with no import is handed to the compiler
+- [x] A module using neither the prop nor an import is still skipped
+- [x] With the prop disabled, a module using the prop is still skipped
+- [x] A renamed prop is honoured, and a name containing pattern
       metacharacters is escaped rather than interpreted
-- [ ] The predicate is pinned by a table-driven unit test in the shared package
-- [ ] The behaviour is proven once at a plugin's transform seam, not only on
+- [x] The predicate is pinned by a table-driven unit test in the shared package
+- [x] The behaviour is proven once at a plugin's transform seam, not only on
       the predicate
-- [ ] The other plugin packages get no new tests; they call the same function
-- [ ] Type checking, type-aware linting, linting, formatting and the
+- [x] The other plugin packages get no new tests; they call the same function
+- [x] Type checking, type-aware linting, linting, formatting and the
       JavaScript suites pass
+
+**Note added while implementing:** the pattern also needs the name to start a
+word. Without that, the default name matches through the JSX runtime import
+that almost every already-compiled module carries — `import { jsx } from
+"react/jsx-runtime"` matches on `jsx }` — which would hand nearly the whole
+project to the compiler and lose the saving user story 10 asks for.

@@ -5,6 +5,10 @@ Throwaway scripts written during
 13 are the same kind of mechanical move. Run them from the code worktree root.
 Read the caveats before trusting any of them.
 
+One later script sits here for a different reason: `styleq_scope.py` keeps a
+measurement repeatable that is otherwise gone from the tree. See
+[`styleq_scope.md`](./styleq_scope.md).
+
 ## `rewrite_uses.py`
 
 Expands nested `use` trees to leaf paths, re-groups the leaves by which crate now
@@ -101,3 +105,22 @@ diff <(tail -n +2 baseline/bench-summary.txt) \
 Only the first line differs, and it has to: the pre-split log carries no header,
 so the summariser cannot know the commit or the baseline name and writes
 `unknown` for both. Run this after changing the summariser.
+
+## `styleq_scope.py`
+
+Reads the hit rate a styleq merger would have if it lived for the file, or for
+the whole process, from a probe log.
+[`styleq_scope.md`](./styleq_scope.md) holds the probe and the bench that
+priced the hits, for [ticket 60](../issues/60-give-the-styleq-cache-a-life-longer-than-one-merge.md).
+
+**The probe is not in the tree.** The answer was "leave the cache off", so the
+patch that measures it would be dead code. The note spells both patches out.
+
+**It replays paths, not keys.** The cache is a chain, so an entry is named by
+the whole path from the start of the merge. Counting repeated keys instead
+reports hits the cache could not give.
+
+**It is checked against a known answer**, the saved log at
+`baseline/styleq-scope-probe.log`. It refuses a log that is empty, cut short,
+without keys, or missing its head, because each of those reads as a lower hit
+rate rather than as an error.

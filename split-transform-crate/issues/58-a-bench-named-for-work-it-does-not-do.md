@@ -53,8 +53,47 @@ note it in the re-baseline record when it lands.
 
 **Blocked by:** None.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The right-to-left case flips, or neither case claims to
-- [ ] The two rows separate one variable, and the name says which
-- [ ] The re-baseline record says the rows changed
+- [x] Neither case claims to flip. `InlineStyleToCssString` now holds
+      `converted_keys` and `borrowed_keys`, and flipping is priced where it
+      really happens, by `GenerateCssRule/rtl_flippable`
+- [x] The two rows separate one variable and the names say which: the same five
+      declarations, spelled camel case in one set and kebab case in the other,
+      so the only difference is whether `normalize_css_property_name` has to
+      build a new string
+- [x] The re-baseline record says the rows changed --
+      [`../bench/ticket-57-58-59.md`](../bench/ticket-57-58-59.md)
+
+## Comments
+
+**Option 2, because option 1 has nowhere to go.**
+`inline_style_to_css_string` takes no options and reads no direction, so no
+call of it can flip. The entry point that does take the options is
+`generate_css_rule`, and the bench file already prices it under
+`GenerateCssRule/rtl_flippable`. Adding a second flipping case to the
+inline-style group would have measured the same path twice under two names.
+
+**So the right-to-left case did not move: it was already there, and it does
+flip.** The checks added under
+[ticket 59](./59-six-bench-files-assert-nothing.md) prove it. Each
+`GenerateCssRule` case now states whether the key and the options make a
+right-to-left rule, and only `rtl_flippable` states `true`:
+
+| Case | Key | `rtl` rule |
+| --- | --- | --- |
+| `ltr_only` | `background-color` | none |
+| `rtl_flippable` | `margin-inline-start` | **yes** |
+| `hover_pseudo` | `text-decoration` | none |
+| `media_at_rule` | `transform` | none |
+
+That is the row a reader may quote as the price of right-to-left support.
+
+**The old sets differed in more than one thing.** The left-to-right set was
+five camel case keys, the right-to-left set five kebab case keys, and the two
+sets also held different properties and different values. Matching them leaves
+one difference, which is what makes the pair worth reading. Both sets now
+serialize to the same text, and a check states it.
+
+**Both rows are a new series** under new names, so nothing reads across the
+change.

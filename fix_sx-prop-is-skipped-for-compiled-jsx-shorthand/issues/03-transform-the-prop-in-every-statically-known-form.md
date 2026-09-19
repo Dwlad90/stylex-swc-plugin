@@ -32,16 +32,45 @@ written.
 
 **Blocked by:** 02 — the parity reference it is checked against.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The object shorthand transforms, under the default prop name and a
+- [x] The object shorthand transforms, under the default prop name and a
       renamed one
-- [ ] A computed key with a statically known string transforms
-- [ ] A getter or method property is left unchanged, proven by a test
-- [ ] A spread property is left unchanged, proven by a test
-- [ ] A compiled call naming a component rather than a host element is still
-      left unchanged
-- [ ] For each new case, the harness from ticket 02 confirms the output carries
+- [x] A computed key with a statically known string transforms. A template
+      literal with no expressions is covered too, and a key that is only known
+      at run time is pinned as left alone
+- [x] A getter or method property is left unchanged, proven by a test. A
+      setter is pinned by the same test
+- [x] A spread property is left unchanged, proven by a test
+- [x] A compiled call naming a component rather than a host element is still
+      left unchanged, in the shorthand form as well as the explicit one
+- [x] For each new case, the harness from ticket 02 confirms the output carries
       the same props call, binding and injected import as the reference output
-      for the paired raw markup
-- [ ] The Rust workspace suites pass, and formatting and linting pass
+      for the paired raw markup. The harness gained a `computed key` case; its
+      report is in `sx-parity-after-03.txt`
+- [x] The Rust workspace suites pass, and formatting and linting pass
+
+## Comments
+
+- The two matchers the transform carried, one for the key and one for the
+  value, became one function. A shape that names the prop but carries no value
+  could otherwise be matched by the first and dropped by the second, which is
+  how a getter would have read.
+- The statically known name is read by the crate helper
+  `namespace_name_from_prop_key`, so the computed key needs no new matcher.
+  The helper answers for a numeric and a big-integer key as well, which the
+  old matcher did not. Nothing reaches that: a prop name is configured as a
+  string, and a name made only of digits names no attribute raw markup can
+  write. It is left as the helper has it rather than narrowed around it.
+- Duplicate-prop order is pinned by a test: the first occurrence wins, and the
+  snapshot shows the second one left in place.
+- The props object was copied twice for every compiled call with an object
+  second argument: once before the scan, and once more inside a copy of the
+  whole call. Because that object holds the element children, each copy grew
+  with the depth of the tree. The object is now read through a borrow, so a
+  call with no such prop copies nothing, and the new call is built argument by
+  argument, so a call with one copies the object once.
+- A getter, a method and a setter are each pinned, and the spread test spreads
+  an object that does name the prop: were the spread inspected, that test would
+  transform. A host element carrying a shorthand that names something else is
+  pinned too, so both arms of the shorthand match are reached.

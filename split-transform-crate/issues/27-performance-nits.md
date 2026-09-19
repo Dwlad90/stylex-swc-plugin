@@ -27,11 +27,12 @@ collide.
       suggestion: the stable sort allocated scratch space of its own, so both
       halves were needed
 - [x] The identifier helper allocates once instead of twice
-- [ ] The moved benches link the allocator the addon ships. Left to
-      [ticket 17](./17-link-mimalloc-in-every-bench.md), which owns it: the
-      change closes every bench series in this effort and needs one clean
-      re-baseline, and 17 is in `backlog` deliberately. Spending it here would
-      spend it without that re-baseline
+- [x] The moved benches link the allocator the addon ships. Closed by
+      [ticket 17](./17-link-mimalloc-in-every-bench.md), which owns it, in
+      commit `aa2925f06`: all fourteen benches now name `swc_malloc`. The
+      re-baseline that the change asks for stays open on 17. Every record in
+      `bench/`, this ticket's own included, says which side of the change its
+      numbers are on
 - [x] The bench profile stops discarding the debug information it asks for.
       `strip = "none"`, the answer
       [ticket 19](./19-bench-profile-strips-its-own-debuginfo.md) recorded but

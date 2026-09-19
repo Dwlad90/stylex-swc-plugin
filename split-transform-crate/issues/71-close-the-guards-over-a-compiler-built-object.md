@@ -49,11 +49,21 @@ measurement, and the four questions it already asked once.
 
 **Status:** done
 
-- [~] `scripts/coverage-missing.sh -p stylex_transform` reports no unexercised
+- [x] `scripts/coverage-missing.sh -p stylex_transform` reports no unexercised
   region in the two files this ticket names: both read 100.00% of regions,
   functions and lines, and the report holds no "Regions the coverage gate
-  counts" section at all. 36 regions remain under `src/transform/stylex/`,
-  from 71. They are held by
+  counts" section at all. 36 regions remained under `src/transform/stylex/`,
+  from 71, held by the five tickets below.
+
+  **Closed at the end of the branch.** All five landed, and the workspace gate
+  reads 28,858 regions with none missed -- 6,096 of them in `stylex-transform`.
+  The figures are in
+  [67](./67-remove-the-transform-coverage-exclusion.md). The remaining guards
+  over a compiler-built object are the `coverage(off)` sites, each naming why
+  its step is total; `arrow_body_expr` in
+  `transform_stylex_define_vars_call/helpers.rs` is one of them, and it cites
+  `a_function_value_with_a_block_body_is_refused` as the case that would start
+  failing if the evaluator ever folded one. They are held by
   [63](./63-cover-the-transform-shared-utils.md),
   [64](./64-cover-the-transform-call-handlers.md),
   [69](./69-inject-the-rules-an-array-bound-create-declares.md),

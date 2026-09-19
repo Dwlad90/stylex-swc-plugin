@@ -111,14 +111,29 @@ configured prop name to the compiler even when the module imports nothing.
   metacharacters cannot corrupt the pattern.
 - When the prop name option is `false`, the second condition is skipped
   entirely and module selection is exactly what it is today.
-- The pattern matches the name followed by `=`, `:`, `,` or `}`, with optional
-  whitespace, which covers `sx={…}`, `sx: …`, `{ sx }` and `{ sx, … }`.
+- The pattern matches the name in two shapes. Bare, the name is followed by
+  `=`, `:`, `,` or `}` with optional whitespace, which covers `sx={…}`,
+  `sx: …`, `{ sx }` and `{ sx, … }`. Quoted, the name is wrapped in matching
+  quotes and followed by `:` or `,`, with an optional `]` between, which covers
+  `"sx": …`, `["sx"]: …` and the Solid.js call `_$setAttribute(el, "sx", …)`.
+  The scan must match every form the compiler transforms; a form the compiler
+  handles and the scan misses leaves the element silently unstyled.
+- A bare name must also start a word. Without that guard the default name
+  matches `import { jsx } from "react/jsx-runtime"` on `jsx }`, which selects
+  almost every module a build step has already compiled. A quoted name needs no
+  guard, because the opening quote already ends the identifier before it.
+- The optional `]` is grouped with the space run that follows it, so the
+  pattern never places two space runs side by side. Split as `\s*\]?\s*`, a
+  long run of spaces can be divided between the two in as many ways as it is
+  long, and one large module then takes minutes to scan.
 - This is a text scan, not a parse. A mention inside a string or a comment
   matches. That trade is deliberate: a false positive costs one compile that
   produces unchanged output, a false negative costs a silently unstyled
   element.
-- The import-source half of the predicate is **not** changed. Tightening it
-  would drop modules that are processed today.
+- The import-source half of the predicate keeps its substring scan. Two
+  narrowings were needed to share it: a blank entry no longer matches every
+  module, and a missing `as` no longer makes the loaders search the module for
+  the text `undefined`. Both drop only modules that were selected by accident.
 - The predicate is **extracted into `@stylexswc/plugin-shared`** and exported
   from a new leaf subpath, following that package's existing convention of leaf
   subpath exports so that a consumer does not pull in the plugin core. All five
@@ -198,7 +213,9 @@ rebuild.
 - **Raw JSX attribute gaps.** A namespaced attribute name and a string-literal
   attribute value are both left untouched today and stay that way.
 - **Numeric property keys.** Reachable only if the prop name is configured to a
-  numeric string; no change.
+  numeric string. The shared key reader answers for them, so a name of `0` now
+  matches `{ 0: … }`. Accepted: the name is compared as text, and refusing one
+  kind of key would be the special case.
 - **Spread properties and spread attributes.** Resolving what a spread carries
   is a new capability, not a gap being closed.
 - **The `.as` versus `.from` asymmetry** in the import-source scan: unplugin and

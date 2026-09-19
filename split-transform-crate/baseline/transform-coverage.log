@@ -1,0 +1,1116 @@
+# scripts/coverage-missing.sh -p stylex_transform
+# rustc 1.100.0-nightly (4b6d04e70 2026-09-13), 2865 tests
+# Two runs of this report were byte-identical.
+
+File                                                                      Regions  Functions      Lines
+-------------------------------------------------------------------------------------------------------
+crates/stylex-transform/src/shared/enums/data_structures/fn_result.rs      80.00%    100.00%     80.00%
+crates/stylex-transform/src/shared/structures/null_pre_rule.rs            100.00%    100.00%    100.00%
+crates/stylex-transform/src/shared/structures/pre_rule.rs                 100.00%    100.00%    100.00%
+crates/stylex-transform/src/shared/structures/pre_rule_set.rs              76.47%     66.67%     76.47%
+crates/stylex-transform/src/shared/transformers/named_rule.rs             100.00%    100.00%    100.00%
+crates/stylex-transform/src/shared/transformers/stylex_create.rs           97.62%    100.00%     97.53%
+crates/stylex-transform/src/shared/transformers/stylex_create_theme.rs     88.64%    100.00%     87.39%
+crates/stylex-transform/src/shared/transformers/stylex_create_theme_nested.rs     85.00%    100.00%     88.89%
+crates/stylex-transform/src/shared/transformers/stylex_default_marker.rs    100.00%    100.00%    100.00%
+crates/stylex-transform/src/shared/transformers/stylex_define_consts.rs     83.82%     77.78%     85.48%
+crates/stylex-transform/src/shared/transformers/stylex_define_consts_nested.rs     91.67%    100.00%     94.12%
+crates/stylex-transform/src/shared/transformers/stylex_define_vars.rs      92.13%    100.00%     91.67%
+crates/stylex-transform/src/shared/transformers/stylex_define_vars_nested.rs     87.50%     66.67%     91.67%
+crates/stylex-transform/src/shared/transformers/stylex_keyframes.rs        95.20%    100.00%     95.16%
+crates/stylex-transform/src/shared/transformers/stylex_position_try.rs     88.29%     93.33%     88.57%
+crates/stylex-transform/src/shared/transformers/stylex_types.rs            92.43%     92.16%     92.37%
+crates/stylex-transform/src/shared/transformers/stylex_view_transition_class.rs     92.93%    100.00%     90.91%
+crates/stylex-transform/src/shared/utils/ast/helpers.rs                    84.91%    100.00%     84.62%
+crates/stylex-transform/src/shared/utils/core/add_source_map_data.rs       74.46%     83.33%     77.06%
+crates/stylex-transform/src/shared/utils/core/attrs.rs                     76.92%    100.00%     91.30%
+crates/stylex-transform/src/shared/utils/core/convert_style_to_class_name.rs     97.12%    100.00%     96.85%
+crates/stylex-transform/src/shared/utils/core/define_vars_utils.rs         95.30%     93.75%     95.36%
+crates/stylex-transform/src/shared/utils/core/dev_class_name.rs            72.38%     86.67%     68.22%
+crates/stylex-transform/src/shared/utils/core/evaluate_stylex_create_arg.rs     91.26%    100.00%     93.95%
+crates/stylex-transform/src/shared/utils/core/flat_map_expanded_shorthands.rs     68.00%    100.00%     71.74%
+crates/stylex-transform/src/shared/utils/core/flatten_raw_style_object.rs     75.11%     90.91%     79.82%
+crates/stylex-transform/src/shared/utils/core/js_to_ast.rs                 83.33%     75.00%     80.56%
+crates/stylex-transform/src/shared/utils/core/make_string_expression.rs     94.38%    100.00%     94.32%
+crates/stylex-transform/src/shared/utils/core/member_expression.rs         93.55%    100.00%     94.03%
+crates/stylex-transform/src/shared/utils/core/parse_nullable_style.rs      89.08%    100.00%     90.16%
+crates/stylex-transform/src/shared/utils/core/props.rs                     92.86%    100.00%     93.94%
+crates/stylex-transform/src/shared/utils/core/styleq.rs                    84.85%    100.00%     88.10%
+crates/stylex-transform/src/shared/utils/core/stylex.rs                   100.00%    100.00%    100.00%
+crates/stylex-transform/src/shared/utils/core/stylex_merge.rs              91.76%    100.00%     92.11%
+crates/stylex-transform/src/shared/utils/core/stylex_nested_utils.rs       93.75%    100.00%     94.03%
+crates/stylex-transform/src/shared/utils/css/common.rs                    100.00%    100.00%    100.00%
+crates/stylex-transform/src/shared/utils/live_declarations.rs              99.08%    100.00%     99.07%
+crates/stylex-transform/src/shared/utils/object.rs                         91.11%    100.00%     94.39%
+crates/stylex-transform/src/shared/utils/validators.rs                     87.88%     94.83%     89.82%
+crates/stylex-transform/src/transform/mod.rs                               87.92%     89.13%     88.93%
+crates/stylex-transform/src/transform/stylex/transform_default_marker_call.rs    100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/stylex/transform_define_marker_call.rs     91.43%    100.00%     96.97%
+crates/stylex-transform/src/transform/stylex/transform_stylex_atoms.rs     88.24%    100.00%     88.37%
+crates/stylex-transform/src/transform/stylex/transform_stylex_attrs_call.rs    100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/stylex/transform_stylex_call.rs      92.86%    100.00%     90.91%
+crates/stylex-transform/src/transform/stylex/transform_stylex_calls.rs    100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/stylex/transform_stylex_create_call/dynamic_style_functions.rs     90.40%    100.00%     89.59%
+crates/stylex-transform/src/transform/stylex/transform_stylex_create_call/helpers.rs     91.34%    100.00%     94.40%
+crates/stylex-transform/src/transform/stylex/transform_stylex_create_call/mod.rs     91.30%    100.00%     92.21%
+crates/stylex-transform/src/transform/stylex/transform_stylex_create_call/runtime_function_map.rs     95.89%     33.33%     96.97%
+crates/stylex-transform/src/transform/stylex/transform_stylex_create_theme_call.rs     87.39%     44.44%     89.09%
+crates/stylex-transform/src/transform/stylex/transform_stylex_create_theme_nested_call.rs     81.90%     76.92%     86.73%
+crates/stylex-transform/src/transform/stylex/transform_stylex_define_consts_call.rs     88.00%     80.00%     87.23%
+crates/stylex-transform/src/transform/stylex/transform_stylex_define_consts_nested_call.rs     89.47%     83.33%     89.47%
+crates/stylex-transform/src/transform/stylex/transform_stylex_define_vars_call/helpers.rs     82.76%     81.25%     84.27%
+crates/stylex-transform/src/transform/stylex/transform_stylex_define_vars_call/mod.rs     90.76%     85.71%     90.24%
+crates/stylex-transform/src/transform/stylex/transform_stylex_define_vars_nested_call.rs     90.16%     83.33%     90.16%
+crates/stylex-transform/src/transform/stylex/transform_stylex_keyframes_call.rs     84.62%     50.00%     83.82%
+crates/stylex-transform/src/transform/stylex/transform_stylex_position_try_call.rs     89.86%     50.00%     90.54%
+crates/stylex-transform/src/transform/stylex/transform_stylex_props_call.rs    100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/stylex/transform_stylex_view_transition_class_call.rs     81.48%     50.00%     81.32%
+crates/stylex-transform/src/transform/stylex/visitor_utils.rs              86.32%    100.00%     86.99%
+crates/stylex-transform/src/transform/visit_mut.rs                         94.44%     94.44%     94.74%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_computed_prop_name.rs    100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_decl.rs         100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_export_decl.rs    100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_export_default_expr.rs    100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_expr.rs         100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_import_decl.rs     86.84%    100.00%     85.42%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_jsx_attr_or_spread.rs    100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_jsx_opening_element.rs     93.24%     95.45%     93.72%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_member_prop.rs    100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_module.rs        89.74%    100.00%     91.65%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_module_items.rs     97.87%    100.00%     98.08%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_named_export.rs    100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_prop_name.rs    100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_stmt.rs         100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_stmts.rs        100.00%    100.00%    100.00%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_var_declarator.rs     85.78%    100.00%     87.44%
+crates/stylex-transform/src/transform/visit_mut/visit_mut_var_declarators.rs    100.00%    100.00%    100.00%
+-------------------------------------------------------------------------------------------------------
+TOTAL                                                                      89.03%     92.78%     90.09%
+
+note: llvm-cov counts 753 uncovered region(s), of which 741 are unexercised by every test.
+      The rest are generic monomorphization: the gate scores a function on its
+      best-covered instantiation, so a region it counts can still have been run
+      by another instantiation. Each one is named below.
+      Re-run with --show-phantoms to print every per-instantiation gap.
+
+Uncovered regions (not executed by any test):
+
+  crates/stylex-transform/src/shared/enums/data_structures/fn_result.rs
+    line 16     cols 12-16
+    line 24     cols 12-16
+    line 32     cols 12-16
+
+  crates/stylex-transform/src/shared/structures/pre_rule_set.rs
+    line 25     cols 3-30
+    line 26     cols 5-33
+    line 27     cols 3-4
+    line 42     cols 17-30
+
+  crates/stylex-transform/src/shared/transformers/stylex_create.rs
+    line 43     cols 13-26
+    line 59     cols 11-12
+
+  crates/stylex-transform/src/shared/transformers/stylex_create_theme.rs
+    line 63     cols 17-30
+    line 73     cols 21-34
+    line 82     cols 17-30
+    line 86     cols 7-28
+    line 99     cols 19-32
+    line 110    cols 19-32
+    line 116    cols 19-32
+    line 119    cols 12-33
+    line 137    cols 7-21
+    line 150    cols 17-30
+    line 171    cols 15-28
+    line 200    cols 17-30
+    line 206    cols 17-30
+    line 209    cols 10-31
+
+  crates/stylex-transform/src/shared/transformers/stylex_create_theme_nested.rs
+    line 28     cols 9-22
+    line 36     cols 10-23
+    line 40     cols 5-18
+
+  crates/stylex-transform/src/shared/transformers/stylex_define_consts.rs
+    line 28     cols 23-53
+    line 29     cols 23-44
+    line 29     cols 45-49
+    line 30     cols 26-56
+    line 30     cols 57-97
+    line 31     cols 10-82
+    line 40     cols 5-18
+    line 48     cols 13-26
+    line 57     cols 11-24
+    line 64     cols 14-35
+    line 112    cols 9-13
+
+  crates/stylex-transform/src/shared/transformers/stylex_define_consts_nested.rs
+    line 27     cols 5-18
+
+  crates/stylex-transform/src/shared/transformers/stylex_define_vars.rs
+    line 34     cols 13-26
+    line 46     cols 5-18
+    line 55     cols 11-24
+    line 95     cols 14-35
+    line 107    cols 9-22
+    line 112    cols 12-31
+    line 135    cols 14-33
+
+  crates/stylex-transform/src/shared/transformers/stylex_define_vars_nested.rs
+    line 28     cols 5-18
+    line 38     cols 24-37
+
+  crates/stylex-transform/src/shared/transformers/stylex_keyframes.rs
+    line 43     cols 5-18
+    line 48     cols 7-20
+    line 78     cols 9-22
+    line 95     cols 9-22
+    line 111    cols 7-20
+    line 166    cols 14-27
+
+  crates/stylex-transform/src/shared/transformers/stylex_position_try.rs
+    line 40     cols 5-18
+    line 62     cols 21-34
+    line 92     cols 26-92
+    line 137    cols 5-18
+    line 141    cols 5-18
+    line 145    cols 5-18
+    line 169    cols 13-24
+    line 182    cols 15-28
+    lines 189-190    cols 9-18
+    line 191    cols 34-50
+    line 191    cols 51-52
+    line 191    cols 54-62
+    line 194    cols 12-16
+
+  crates/stylex-transform/src/shared/transformers/stylex_types.rs
+    line 99     cols 3-42
+    lines 100-105    cols 5-6
+    line 106    cols 3-4
+    line 249    cols 9-50
+    line 262    cols 9-50
+    line 302    cols 3-46
+    line 303    cols 5-18
+    line 304    cols 3-4
+    line 379    cols 1-54
+    line 380    cols 36-71
+    line 382    cols 3-23
+    line 383    cols 1-2
+    line 451    cols 32-45
+
+  crates/stylex-transform/src/shared/transformers/stylex_view_transition_class.rs
+    line 33     cols 5-18
+    line 37     cols 7-20
+    lines 92-94     cols 48-7
+    line 109    cols 10-23
+    line 119    cols 14-27
+    line 129    cols 12-25
+    line 153    cols 12-25
+
+  crates/stylex-transform/src/shared/utils/ast/helpers.rs
+    line 20     cols 5-17
+    line 44     cols 33-49
+    line 45     cols 18-22
+    line 50     cols 9-10
+    line 52     cols 7-11
+    line 54     cols 10-14
+    line 73     cols 13-18
+    line 92     cols 7-13
+
+  crates/stylex-transform/src/shared/utils/core/add_source_map_data.rs
+    line 29     cols 70-71
+    lines 30-34     cols 3-70
+    line 35     cols 1-2
+    line 68     cols 11-12
+    line 71     cols 12-25
+    line 74     cols 7-20
+    line 102    cols 11-32
+    lines 102-109    cols 11-12
+    line 103    cols 13-27
+    line 104    cols 13-40
+    line 105    cols 13-42
+    line 106    cols 13-18
+    line 110    cols 11-17
+    line 110    cols 11-49
+    line 110    cols 25-28
+    line 111    cols 11-19
+    line 128    cols 18-35
+    line 128    cols 36-53
+    line 129    cols 17-23
+    line 131    cols 19-39
+    line 132    cols 19-34
+    line 133    cols 19-44
+    line 136    cols 17-22
+    line 138    cols 19-39
+    line 139    cols 19-44
+    line 155    cols 15-16
+    line 159    cols 16-33
+    line 159    cols 34-51
+    line 160    cols 15-21
+    line 162    cols 17-18
+    line 163    cols 17-37
+    line 164    cols 17-32
+    line 167    cols 15-20
+    line 169    cols 17-18
+    line 170    cols 17-37
+    line 177    cols 11-20
+    lines 177-180    cols 11-12
+    line 178    cols 13-36
+    line 187    cols 9-15
+    line 187    cols 9-47
+    line 187    cols 23-26
+    line 218    cols 5-6
+    line 218    cols 5-58
+    line 218    cols 12-16
+    line 271    cols 42-43
+    line 279    cols 40-41
+    line 283    cols 62-63
+    line 319    cols 5-16
+    line 340    cols 5-6
+    line 370    cols 13-26
+    line 389    cols 5-6
+    line 393    cols 8-49
+    line 394    cols 7-59
+    line 394    cols 14-21
+    line 396    cols 7-27
+    line 417    cols 44-45
+    line 418    cols 7-39
+    line 419    cols 5-6
+
+  crates/stylex-transform/src/shared/utils/core/attrs.rs
+    line 14     cols 28-29
+    line 16     cols 31-32
+    line 16     cols 44-45
+    line 38     cols 9-18
+    line 38     cols 9-67
+
+  crates/stylex-transform/src/shared/utils/core/convert_style_to_class_name.rs
+    line 92     cols 51-64
+    line 160    cols 5-18
+    line 187    cols 7-8
+    line 222    cols 13-26
+
+  crates/stylex-transform/src/shared/utils/core/define_vars_utils.rs
+    line 67     cols 5-18
+    line 73     cols 15-28
+    line 89     cols 23-36
+    line 99     cols 17-30
+    line 148    cols 10-12
+    line 257    cols 40-55
+    line 261    cols 24-37
+
+  crates/stylex-transform/src/shared/utils/core/dev_class_name.rs
+    lines 70-74     cols 1-21
+    line 75     cols 16-37
+    line 75     cols 16-84
+    line 76     cols 37-71
+    line 78     cols 24-27
+    line 79     cols 26-40
+    line 79     cols 26-55
+    line 82     cols 25-51
+    line 84     cols 5-14
+    lines 84-87     cols 5-6
+    line 85     cols 7-29
+    line 89     cols 5-14
+    lines 89-92     cols 5-6
+    line 90     cols 7-31
+    line 94     cols 5-11
+    line 94     cols 5-43
+    line 94     cols 19-22
+    line 97     cols 3-9
+    line 98     cols 1-2
+    line 164    cols 13-26
+    lines 174-178    cols 1-24
+    line 180    cols 5-32
+    line 180    cols 5-72
+    line 180    cols 33-46
+    line 182    cols 3-25
+    lines 182-185    cols 3-4
+    line 183    cols 5-29
+    line 187    cols 3-25
+    line 188    cols 1-2
+
+  crates/stylex-transform/src/shared/utils/core/evaluate_stylex_create_arg.rs
+    line 72     cols 10-14
+    line 157    cols 9-44
+    line 157    cols 9-95
+    line 157    cols 45-55
+    line 178    cols 38-59
+    line 194    cols 27-40
+    line 198    cols 27-40
+    line 259    cols 37-50
+    line 267    cols 37-50
+    line 284    cols 27-76
+    line 284    cols 34-42
+    line 284    cols 43-47
+    line 305    cols 23-24
+    line 311    cols 31-44
+    line 335    cols 17-66
+    line 335    cols 24-32
+    line 335    cols 33-37
+    line 361    cols 10-18
+    line 361    cols 10-52
+    line 361    cols 19-23
+    line 449    cols 23-36
+    line 454    cols 23-36
+    line 493    cols 17-18
+    line 595    cols 13-65
+    line 595    cols 20-28
+    line 595    cols 29-52
+    line 597    cols 16-18
+
+  crates/stylex-transform/src/shared/utils/core/flat_map_expanded_shorthands.rs
+    line 27     cols 17-82
+    line 28     cols 13-45
+    line 30     cols 11-24
+    line 33     cols 11-16
+    line 33     cols 23-26
+    line 34     cols 11-24
+    line 37     cols 11-24
+    line 66     cols 17-30
+    line 69     cols 19-86
+    line 70     cols 15-47
+    line 72     cols 13-26
+    line 75     cols 13-18
+    line 75     cols 25-28
+    line 76     cols 13-26
+    line 79     cols 13-26
+    line 111    cols 23-36
+
+  crates/stylex-transform/src/shared/utils/core/flatten_raw_style_object.rs
+    line 92     cols 89-90
+    line 93     cols 7-12
+    line 95     cols 9-12
+    line 95     cols 14-17
+    line 98     cols 7-12
+    line 99     cols 5-6
+    line 100    cols 7-10
+    line 100    cols 7-40
+    line 100    cols 11-12
+    line 156    cols 20-33
+    line 158    cols 11-12
+    line 183    cols 15-33
+    line 235    cols 27-51
+    line 235    cols 27-78
+    line 235    cols 52-55
+    line 236    cols 22-40
+    line 237    cols 17-37
+    line 238    cols 26-29
+    line 239    cols 21-34
+    line 241    cols 11-16
+    line 242    cols 11-26
+    line 243    cols 11-14
+    line 247    cols 11-29
+    line 247    cols 11-87
+    line 247    cols 30-46
+    lines 249-253    cols 24-11
+    line 249    cols 48-66
+    line 250    cols 11-36
+    line 255    cols 9-18
+    line 255    cols 9-53
+    line 259    cols 31-64
+    line 261    cols 37-53
+    line 262    cols 11-32
+    line 262    cols 11-66
+    line 264    cols 33-63
+    lines 264-270    cols 33-12
+    line 265    cols 13-31
+    line 266    cols 13-21
+    line 267    cols 13-18
+    line 272    cols 11-44
+    line 283    cols 11-24
+    line 287    cols 22-50
+    line 287    cols 22-84
+    line 287    cols 51-54
+    line 287    cols 56-61
+    line 289    cols 35-51
+    line 290    cols 9-30
+    line 290    cols 9-69
+    line 290    cols 33-41
+    line 293    cols 11-41
+    line 293    cols 11-100
+    line 293    cols 42-60
+    line 293    cols 62-70
+    line 293    cols 72-77
+    line 295    cols 9-42
+    line 341    cols 25-38
+    line 348    cols 17-30
+    line 351    cols 15-28
+
+  crates/stylex-transform/src/shared/utils/core/js_to_ast.rs
+    line 31     cols 3-62
+    line 32     cols 11-15
+    line 33     cols 54-63
+    line 34     cols 12-16
+    line 36     cols 3-4
+    line 41     cols 12-16
+    line 76     cols 13-32
+
+  crates/stylex-transform/src/shared/utils/core/make_string_expression.rs
+    line 45     cols 9-44
+    line 83     cols 17-30
+    line 92     cols 7-8
+    line 94     cols 7-11
+    line 130    cols 15-28
+
+  crates/stylex-transform/src/shared/utils/core/member_expression.rs
+    line 65     cols 9-50
+    line 74     cols 38-59
+    line 80     cols 25-38
+    line 83     cols 18-39
+
+  crates/stylex-transform/src/shared/utils/core/parse_nullable_style.rs
+    line 88     cols 9-27
+    line 116    cols 41-43
+    line 141    cols 9-10
+    line 176    cols 13-34
+    line 176    cols 13-91
+    line 178    cols 40-42
+    line 180    cols 13-34
+    line 201    cols 7-28
+    line 222    cols 15-36
+    line 227    cols 9-10
+    line 231    cols 7-28
+    line 247    cols 17-30
+    line 260    cols 7-20
+
+  crates/stylex-transform/src/shared/utils/core/props.rs
+    line 43     cols 11-15
+
+  crates/stylex-transform/src/shared/utils/core/styleq.rs
+    line 22     cols 9-44
+    line 24     cols 52-56
+    line 76     cols 30-34
+    line 78     cols 7-20
+    line 81     cols 7-26
+
+  crates/stylex-transform/src/shared/utils/core/stylex_merge.rs
+    line 56     cols 15-28
+    line 72     cols 13-26
+    line 142    cols 13-32
+    line 180    cols 11-47
+    line 181    cols 11-26
+    line 207    cols 7-22
+    line 278    cols 7-8
+    line 289    cols 5-16
+    line 292    cols 5-16
+    line 295    cols 5-16
+    line 302    cols 50-51
+    line 338    cols 7-19
+    line 341    cols 7-19
+    line 346    cols 31-73
+    line 347    cols 12-17
+
+  crates/stylex-transform/src/shared/utils/core/stylex_nested_utils.rs
+    line 49     cols 9-73
+    line 55     cols 11-30
+    line 62     cols 15-34
+    line 117    cols 9-28
+
+  crates/stylex-transform/src/shared/utils/live_declarations.rs
+    line 224    cols 5-9
+
+  crates/stylex-transform/src/shared/utils/object.rs
+    line 93     cols 13-26
+    line 107    cols 17-30
+    line 152    cols 15-28
+
+  crates/stylex-transform/src/shared/utils/validators.rs
+    line 50     cols 5-40
+    lines 50-54     cols 5-6
+    line 51     cols 7-19
+    line 52     cols 8-31
+    line 89     cols 13-26
+    line 94     cols 52-53
+    line 95     cols 5-40
+    line 95     cols 5-86
+    line 95     cols 41-50
+    line 99     cols 5-40
+    line 99     cols 5-88
+    line 99     cols 41-50
+    line 142    cols 29-42
+    line 142    cols 29-61
+    line 143    cols 40-63
+    line 144    cols 39-52
+    line 144    cols 39-71
+    line 145    cols 32-37
+    line 189    cols 32-37
+    line 191    cols 10-15
+    line 197    cols 5-11
+    line 252    cols 5-11
+    line 263    cols 5-11
+    line 271    cols 5-11
+    line 277    cols 5-40
+    lines 277-281    cols 5-6
+    line 278    cols 7-17
+    line 279    cols 8-31
+    line 290    cols 5-11
+    line 302    cols 5-11
+    line 321    cols 24-25
+    line 322    cols 7-42
+    lines 322-326    cols 7-8
+    line 323    cols 9-19
+    line 329    cols 52-53
+    line 330    cols 5-37
+    lines 330-335    cols 5-6
+    line 331    cols 7-16
+    line 332    cols 7-17
+    line 364    cols 10-15
+    line 382    cols 5-16
+    line 429    cols 5-11
+    line 492    cols 5-16
+    line 602    cols 25-38
+    line 795    cols 23-25
+    line 796    cols 10-45
+    line 796    cols 10-86
+    line 796    cols 46-58
+    line 816    cols 9-44
+    line 816    cols 9-94
+    line 816    cols 45-49
+    line 819    cols 10-23
+    line 837    cols 9-44
+    line 837    cols 9-72
+    line 837    cols 45-49
+    line 840    cols 3-4
+    line 846    cols 7-42
+    line 846    cols 7-83
+    line 846    cols 43-47
+    line 850    cols 7-20
+    line 879    cols 17-30
+    line 888    cols 7-20
+    line 908    cols 13-14
+    line 909    cols 11-12
+
+  crates/stylex-transform/src/transform/mod.rs
+    line 98     cols 3-74
+    line 99     cols 5-39
+    line 100    cols 5-9
+    line 101    cols 3-4
+    line 137    cols 3-66
+    line 138    cols 5-60
+    line 139    cols 5-9
+    line 140    cols 3-4
+    line 340    cols 3-93
+    line 341    cols 26-60
+    line 343    cols 21-61
+    line 345    cols 5-72
+    line 347    cols 5-39
+    line 349    cols 5-40
+    line 350    cols 3-4
+    line 388    cols 5-6
+    line 423    cols 1-93
+    line 424    cols 28-57
+    line 426    cols 47-53
+    line 427    cols 21-50
+    line 428    cols 13-17
+    line 430    cols 5-50
+    line 431    cols 3-4
+    line 433    cols 3-17
+    line 434    cols 1-2
+    line 465    cols 1-81
+    line 466    cols 3-8
+    line 466    cols 3-41
+    line 467    cols 1-2
+
+  crates/stylex-transform/src/transform/stylex/transform_define_marker_call.rs
+    line 43     cols 85-86
+    line 51     cols 34-35
+    line 53     cols 18-19
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_atoms.rs
+    line 90     cols 7-58
+    line 91     cols 7-18
+    line 106    cols 92-93
+    line 118    cols 16-35
+    lines 133-137    cols 48-12
+    line 134    cols 13-42
+    line 157    cols 7-13
+    line 165    cols 11-36
+    line 165    cols 11-90
+    line 165    cols 37-54
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_call.rs
+    line 29     cols 12-16
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_create_call/dynamic_style_functions.rs
+    line 108    cols 22-26
+    line 121    cols 19-20
+    line 176    cols 34-38
+    line 224    cols 29-41
+    lines 224-226    cols 29-35
+    line 224    cols 66-74
+    line 227    cols 31-39
+    line 230    cols 38-62
+    line 232    cols 27-59
+    lines 232-237    cols 27-28
+    line 233    cols 29-34
+    line 234    cols 29-34
+    line 240    cols 36-60
+    line 242    cols 25-57
+    lines 242-247    cols 25-26
+    line 243    cols 27-32
+    line 244    cols 27-32
+    line 295    cols 35-48
+    line 322    cols 19-20
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_create_call/helpers.rs
+    line 20     cols 24-25
+    line 22     cols 65-66
+    line 23     cols 53-54
+    line 38     cols 11-30
+    lines 38-41     cols 11-12
+    line 39     cols 13-61
+    line 91     cols 55-98
+    line 93     cols 12-17
+    line 108    cols 64-68
+    line 131    cols 7-8
+    line 132    cols 5-6
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_create_call/mod.rs
+    line 117    cols 7-19
+    line 143    cols 19-32
+    line 208    cols 44-45
+    line 232    cols 17-30
+    line 295    cols 9-24
+    line 295    cols 9-90
+    line 295    cols 27-49
+    line 295    cols 50-65
+    line 317    cols 11-12
+    line 325    cols 27-51
+    line 327    cols 11-43
+    lines 327-332    cols 11-12
+    line 328    cols 13-43
+    line 329    cols 13-23
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_create_call/runtime_function_map.rs
+    line 64     cols 32-45
+    line 88     cols 15-28
+    line 111    cols 30-43
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_create_theme_call.rs
+    line 54     cols 20-41
+    line 56     cols 9-10
+    line 62     cols 22-43
+    line 64     cols 11-12
+    line 137    cols 33-53
+    line 152    cols 33-54
+    line 163    cols 17-30
+    line 169    cols 35-55
+    line 188    cols 37-58
+    line 201    cols 35-56
+    line 218    cols 9-22
+    lines 218-219    cols 9-93
+    line 219    cols 11-39
+    line 219    cols 40-49
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_create_theme_nested_call.rs
+    line 62     cols 18-39
+    line 64     cols 7-8
+    line 70     cols 20-41
+    line 72     cols 9-10
+    line 83     cols 33-53
+    line 95     cols 15-28
+    line 101    cols 33-53
+    line 118    cols 33-54
+    line 148    cols 15-28
+    line 161    cols 7-20
+    lines 161-162    cols 7-91
+    line 162    cols 9-37
+    line 162    cols 38-47
+    line 164    cols 7-20
+    lines 164-165    cols 7-90
+    line 165    cols 9-36
+    line 165    cols 37-46
+    line 191    cols 9-22
+    line 204    cols 5-18
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_define_consts_call.rs
+    line 50     cols 20-41
+    line 52     cols 9-10
+    line 63     cols 51-71
+    line 86     cols 17-30
+    line 94     cols 17-30
+    line 99     cols 17-30
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_define_consts_nested_call.rs
+    line 56     cols 18-39
+    line 58     cols 7-8
+    line 68     cols 51-71
+    line 96     cols 15-28
+    line 104    cols 15-28
+    line 112    cols 15-28
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_define_vars_call/helpers.rs
+    line 56     cols 13-39
+    line 66     cols 7-15
+    line 70     cols 7-15
+    line 82     cols 9-22
+    line 90     cols 7-15
+    line 135    cols 14-81
+    line 136    cols 16-46
+    line 138    cols 13-22
+    line 138    cols 13-44
+    line 139    cols 11-12
+    line 141    cols 39-41
+    line 164    cols 19-25
+    line 169    cols 9-10
+    line 171    cols 5-6
+    line 190    cols 41-51
+    line 190    cols 56-66
+    line 230    cols 13-25
+    line 238    cols 13-25
+    line 246    cols 7-31
+    line 247    cols 7-15
+    line 255    cols 13-26
+    line 260    cols 62-71
+    line 277    cols 16-29
+    line 283    cols 9-22
+    line 300    cols 21-34
+    line 332    cols 5-18
+    line 341    cols 3-48
+    line 342    cols 5-22
+    line 343    cols 3-4
+    line 347    cols 7-13
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_define_vars_call/mod.rs
+    line 65     cols 20-41
+    line 67     cols 9-10
+    line 86     cols 21-24
+    line 87     cols 11-22
+    lines 87-90     cols 11-12
+    line 88     cols 13-25
+    line 138    cols 17-30
+    line 143    cols 17-30
+    line 181    cols 31-51
+    line 213    cols 17-30
+    line 227    cols 7-8
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_define_vars_nested_call.rs
+    line 56     cols 18-39
+    line 58     cols 7-8
+    line 64     cols 58-78
+    line 98     cols 15-28
+    line 106    cols 15-28
+    line 114    cols 15-28
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_keyframes_call.rs
+    line 54     cols 20-41
+    line 56     cols 9-10
+    line 67     cols 21-24
+    line 68     cols 11-22
+    lines 68-71     cols 11-12
+    line 69     cols 13-25
+    line 101    cols 51-71
+    line 117    cols 55-75
+    line 124    cols 17-30
+    line 128    cols 53-73
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_position_try_call.rs
+    line 52     cols 17-30
+    line 56     cols 20-41
+    line 58     cols 9-10
+    line 103    cols 51-71
+    line 119    cols 55-75
+    line 126    cols 17-30
+    line 130    cols 53-73
+
+  crates/stylex-transform/src/transform/stylex/transform_stylex_view_transition_class_call.rs
+    line 55     cols 17-30
+    line 59     cols 20-41
+    line 61     cols 9-10
+    line 74     cols 21-24
+    line 75     cols 11-22
+    lines 75-78     cols 11-12
+    line 76     cols 13-25
+    line 83     cols 21-24
+    line 84     cols 11-22
+    lines 84-87     cols 11-12
+    line 85     cols 13-25
+    line 122    cols 51-71
+    line 138    cols 55-75
+    line 145    cols 17-30
+    line 149    cols 53-73
+
+  crates/stylex-transform/src/transform/stylex/visitor_utils.rs
+    line 57     cols 3-4
+    line 108    cols 17-20
+    line 109    cols 7-18
+    lines 109-112    cols 7-8
+    line 110    cols 9-21
+    line 117    cols 17-20
+    line 118    cols 7-18
+    lines 118-121    cols 7-8
+    line 119    cols 9-21
+    line 126    cols 17-20
+    line 127    cols 7-18
+    lines 127-130    cols 7-8
+    line 128    cols 9-21
+
+  crates/stylex-transform/src/transform/visit_mut.rs
+    line 41     cols 3-54
+    line 42     cols 5-39
+    line 43     cols 3-4
+
+  crates/stylex-transform/src/transform/visit_mut/visit_mut_import_decl.rs
+    lines 33-35     cols 15-30
+    lines 33-36     cols 15-73
+    line 45     cols 32-70
+    line 46     cols 41-67
+    line 47     cols 57-78
+    line 48     cols 55-91
+    line 49     cols 25-43
+    lines 51-53     cols 15-30
+    lines 51-54     cols 15-71
+    line 153    cols 7-8
+
+  crates/stylex-transform/src/transform/visit_mut/visit_mut_jsx_opening_element.rs
+    line 61     cols 12-17
+    line 92     cols 13-17
+    line 95     cols 11-15
+    line 98     cols 9-13
+    line 103    cols 7-8
+    line 151    cols 7-19
+    line 161    cols 7-19
+    line 202    cols 12-17
+    line 210    cols 7-18
+    line 217    cols 12-23
+    line 220    cols 7-18
+    line 282    cols 9-61
+    line 318    cols 28-46
+    line 448    cols 10-15
+
+  crates/stylex-transform/src/transform/visit_mut/visit_mut_module.rs
+    line 304    cols 36-42
+    line 306    cols 38-70
+    line 307    cols 30-59
+    line 308    cols 41-74
+    line 309    cols 45-78
+    line 310    cols 49-86
+    line 332    cols 36-80
+    line 333    cols 38-84
+    line 334    cols 34-76
+    line 335    cols 38-83
+    line 339    cols 9-10
+    line 341    cols 26-28
+    line 382    cols 12-81
+    line 383    cols 11-56
+    line 384    cols 9-10
+    line 387    cols 9-13
+    line 387    cols 9-73
+    line 390    cols 9-13
+    line 390    cols 9-77
+    line 393    cols 9-13
+    line 393    cols 9-76
+    line 396    cols 9-13
+    line 396    cols 9-77
+    line 399    cols 9-13
+    line 399    cols 9-81
+    line 402    cols 76-78
+    line 452    cols 34-71
+    line 453    cols 26-60
+    line 454    cols 37-75
+    line 455    cols 41-79
+    line 456    cols 45-87
+    line 459    cols 32-36
+    line 477    cols 35-39
+    line 606    cols 40-42
+    line 634    cols 5-6
+    line 725    cols 34-78
+    line 727    cols 5-6
+
+  crates/stylex-transform/src/transform/visit_mut/visit_mut_module_items.rs
+    line 68     cols 17-21
+
+  crates/stylex-transform/src/transform/visit_mut/visit_mut_var_declarator.rs
+    line 93     cols 62-63
+    line 100    cols 13-19
+    line 149    cols 24-26
+    line 162    cols 13-21
+    line 167    cols 18-41
+    lines 168-170    cols 17-88
+    line 171    cols 15-16
+    line 176    cols 15-16
+    line 181    cols 12-14
+    line 210    cols 11-12
+    line 213    cols 12-14
+    line 227    cols 9-36
+    line 231    cols 9-36
+    line 235    cols 9-36
+    line 244    cols 17-30
+    line 248    cols 9-36
+    line 252    cols 9-36
+    line 278    cols 37-41
+    line 285    cols 21-34
+    line 323    cols 36-37
+    line 326    cols 5-16
+    line 329    cols 49-50
+    line 331    cols 10-14
+    line 358    cols 71-72
+    line 359    cols 76-77
+    line 363    cols 31-35
+    line 370    cols 28-64
+    line 371    cols 10-14
+    line 399    cols 32-36
+
+Uncovered lines (compact):
+  crates/stylex-transform/src/shared/enums/data_structures/fn_result.rs: 16, 24, 32
+  crates/stylex-transform/src/shared/structures/pre_rule_set.rs: 25, 26, 27, 42
+  crates/stylex-transform/src/shared/transformers/stylex_create.rs: 43, 59
+  crates/stylex-transform/src/shared/transformers/stylex_create_theme.rs: 63, 73, 82, 86, 99, 110, 116, 119, 137, 150, 171, 200, 206, 209
+  crates/stylex-transform/src/shared/transformers/stylex_create_theme_nested.rs: 28, 36, 40
+  crates/stylex-transform/src/shared/transformers/stylex_define_consts.rs: 28, 29, 30, 31, 40, 48, 57, 64, 112
+  crates/stylex-transform/src/shared/transformers/stylex_define_consts_nested.rs: 27
+  crates/stylex-transform/src/shared/transformers/stylex_define_vars.rs: 34, 46, 55, 95, 107, 112, 135
+  crates/stylex-transform/src/shared/transformers/stylex_define_vars_nested.rs: 28, 38
+  crates/stylex-transform/src/shared/transformers/stylex_keyframes.rs: 43, 48, 78, 95, 111, 166
+  crates/stylex-transform/src/shared/transformers/stylex_position_try.rs: 40, 62, 92, 137, 141, 145, 169, 182, 189, 191, 194
+  crates/stylex-transform/src/shared/transformers/stylex_types.rs: 99, 100, 106, 249, 262, 302, 303, 304, 379, 380, 382, 383, 451
+  crates/stylex-transform/src/shared/transformers/stylex_view_transition_class.rs: 33, 37, 92, 109, 119, 129, 153
+  crates/stylex-transform/src/shared/utils/ast/helpers.rs: 20, 44, 45, 50, 52, 54, 73, 92
+  crates/stylex-transform/src/shared/utils/core/add_source_map_data.rs: 29, 30, 35, 68, 71, 74, 102, 103, 104, 105, 106, 110, 111, 128, 129, 131, 132, 133, 136, 138, 139, 155, 159, 160, 162, 163, 164, 167, 169, 170, 177, 178, 187, 218, 271, 279, 283, 319, 340, 370, 389, 393, 394, 396, 417, 418, 419
+  crates/stylex-transform/src/shared/utils/core/attrs.rs: 14, 16, 38
+  crates/stylex-transform/src/shared/utils/core/convert_style_to_class_name.rs: 92, 160, 187, 222
+  crates/stylex-transform/src/shared/utils/core/define_vars_utils.rs: 67, 73, 89, 99, 148, 257, 261
+  crates/stylex-transform/src/shared/utils/core/dev_class_name.rs: 70, 75, 76, 78, 79, 82, 84, 85, 89, 90, 94, 97, 98, 164, 174, 180, 182, 183, 187, 188
+  crates/stylex-transform/src/shared/utils/core/evaluate_stylex_create_arg.rs: 72, 157, 178, 194, 198, 259, 267, 284, 305, 311, 335, 361, 449, 454, 493, 595, 597
+  crates/stylex-transform/src/shared/utils/core/flat_map_expanded_shorthands.rs: 27, 28, 30, 33, 34, 37, 66, 69, 70, 72, 75, 76, 79, 111
+  crates/stylex-transform/src/shared/utils/core/flatten_raw_style_object.rs: 92, 93, 95, 98, 99, 100, 156, 158, 183, 235, 236, 237, 238, 239, 241, 242, 243, 247, 249, 250, 255, 259, 261, 262, 264, 265, 266, 267, 272, 283, 287, 289, 290, 293, 295, 341, 348, 351
+  crates/stylex-transform/src/shared/utils/core/js_to_ast.rs: 31, 32, 33, 34, 36, 41, 76
+  crates/stylex-transform/src/shared/utils/core/make_string_expression.rs: 45, 83, 92, 94, 130
+  crates/stylex-transform/src/shared/utils/core/member_expression.rs: 65, 74, 80, 83
+  crates/stylex-transform/src/shared/utils/core/parse_nullable_style.rs: 88, 116, 141, 176, 178, 180, 201, 222, 227, 231, 247, 260
+  crates/stylex-transform/src/shared/utils/core/props.rs: 43
+  crates/stylex-transform/src/shared/utils/core/styleq.rs: 22, 24, 76, 78, 81
+  crates/stylex-transform/src/shared/utils/core/stylex_merge.rs: 56, 72, 142, 180, 181, 207, 278, 289, 292, 295, 302, 338, 341, 346, 347
+  crates/stylex-transform/src/shared/utils/core/stylex_nested_utils.rs: 49, 55, 62, 117
+  crates/stylex-transform/src/shared/utils/live_declarations.rs: 224
+  crates/stylex-transform/src/shared/utils/object.rs: 93, 107, 152
+  crates/stylex-transform/src/shared/utils/validators.rs: 50, 51, 52, 89, 94, 95, 99, 142, 143, 144, 145, 189, 191, 197, 252, 263, 271, 277, 278, 279, 290, 302, 321, 322, 323, 329, 330, 331, 332, 364, 382, 429, 492, 602, 795, 796, 816, 819, 837, 840, 846, 850, 879, 888, 908, 909
+  crates/stylex-transform/src/transform/mod.rs: 98, 99, 100, 101, 137, 138, 139, 140, 340, 341, 343, 345, 347, 349, 350, 388, 423, 424, 426, 427, 428, 430, 431, 433, 434, 465, 466, 467
+  crates/stylex-transform/src/transform/stylex/transform_define_marker_call.rs: 43, 51, 53
+  crates/stylex-transform/src/transform/stylex/transform_stylex_atoms.rs: 90, 91, 106, 118, 133, 134, 157, 165
+  crates/stylex-transform/src/transform/stylex/transform_stylex_call.rs: 29
+  crates/stylex-transform/src/transform/stylex/transform_stylex_create_call/dynamic_style_functions.rs: 108, 121, 176, 224, 227, 230, 232, 233, 234, 240, 242, 243, 244, 295, 322
+  crates/stylex-transform/src/transform/stylex/transform_stylex_create_call/helpers.rs: 20, 22, 23, 38, 39, 91, 93, 108, 131, 132
+  crates/stylex-transform/src/transform/stylex/transform_stylex_create_call/mod.rs: 117, 143, 208, 232, 295, 317, 325, 327, 328, 329
+  crates/stylex-transform/src/transform/stylex/transform_stylex_create_call/runtime_function_map.rs: 64, 88, 111
+  crates/stylex-transform/src/transform/stylex/transform_stylex_create_theme_call.rs: 54, 56, 62, 64, 137, 152, 163, 169, 188, 201, 218, 219
+  crates/stylex-transform/src/transform/stylex/transform_stylex_create_theme_nested_call.rs: 62, 64, 70, 72, 83, 95, 101, 118, 148, 161, 162, 164, 165, 191, 204
+  crates/stylex-transform/src/transform/stylex/transform_stylex_define_consts_call.rs: 50, 52, 63, 86, 94, 99
+  crates/stylex-transform/src/transform/stylex/transform_stylex_define_consts_nested_call.rs: 56, 58, 68, 96, 104, 112
+  crates/stylex-transform/src/transform/stylex/transform_stylex_define_vars_call/helpers.rs: 56, 66, 70, 82, 90, 135, 136, 138, 139, 141, 164, 169, 171, 190, 230, 238, 246, 247, 255, 260, 277, 283, 300, 332, 341, 342, 343, 347
+  crates/stylex-transform/src/transform/stylex/transform_stylex_define_vars_call/mod.rs: 65, 67, 86, 87, 88, 138, 143, 181, 213, 227
+  crates/stylex-transform/src/transform/stylex/transform_stylex_define_vars_nested_call.rs: 56, 58, 64, 98, 106, 114
+  crates/stylex-transform/src/transform/stylex/transform_stylex_keyframes_call.rs: 54, 56, 67, 68, 69, 101, 117, 124, 128
+  crates/stylex-transform/src/transform/stylex/transform_stylex_position_try_call.rs: 52, 56, 58, 103, 119, 126, 130
+  crates/stylex-transform/src/transform/stylex/transform_stylex_view_transition_class_call.rs: 55, 59, 61, 74, 75, 76, 83, 84, 85, 122, 138, 145, 149
+  crates/stylex-transform/src/transform/stylex/visitor_utils.rs: 57, 108, 109, 110, 117, 118, 119, 126, 127, 128
+  crates/stylex-transform/src/transform/visit_mut.rs: 41, 42, 43
+  crates/stylex-transform/src/transform/visit_mut/visit_mut_import_decl.rs: 33, 45, 46, 47, 48, 49, 51, 153
+  crates/stylex-transform/src/transform/visit_mut/visit_mut_jsx_opening_element.rs: 61, 92, 95, 98, 103, 151, 161, 202, 210, 217, 220, 282, 318, 448
+  crates/stylex-transform/src/transform/visit_mut/visit_mut_module.rs: 304, 306, 307, 308, 309, 310, 332, 333, 334, 335, 339, 341, 382, 383, 384, 387, 390, 393, 396, 399, 402, 452, 453, 454, 455, 456, 459, 477, 606, 634, 725, 727
+  crates/stylex-transform/src/transform/visit_mut/visit_mut_module_items.rs: 68
+  crates/stylex-transform/src/transform/visit_mut/visit_mut_var_declarator.rs: 93, 100, 149, 162, 167, 168, 171, 176, 181, 210, 213, 227, 231, 235, 244, 248, 252, 278, 285, 323, 326, 329, 331, 358, 359, 363, 370, 371, 399
+
+741 uncovered region(s) across 58 file(s).
+
+Regions the coverage gate counts (`--fail-uncovered-regions 0`):
+
+llvm-cov scores a function on its best-covered instantiation, so a region
+counts here unless one instantiation runs it. The lines below were each run
+by some instantiation, just never all by the same one. Close a group by
+driving a single instantiation through every line of the function.
+
+  crates/stylex-transform/src/shared/transformers/stylex_create_theme.rs
+    fn at line 34: the best instantiation runs 91 of 103 region(s)
+      h_16stylex_transform6shared12transformers19stylex_create_theme19stylex_create_theme misses
+        line 46     cols 13-26
+
+  crates/stylex-transform/src/shared/transformers/stylex_types.rs
+    fn at line 217: the best instantiation runs 12 of 13 region(s)
+      h_16stylex_transform6shared12transformers12stylex_types30convert_number_to_string_us misses
+        line 219    cols 38-57
+
+  crates/stylex-transform/src/shared/utils/core/add_source_map_data.rs
+    fn at line 254: the best instantiation runs 32 of 36 region(s)
+      stylex_transform::shared::utils::add_source_map_data::original_position_from_input_source_map misses
+        line 258    cols 53-54
+
+  crates/stylex-transform/src/shared/utils/core/attrs.rs
+    fn at line 13: the best instantiation runs 20 of 26 region(s)
+      stylex_transform::shared::utils::attrs misses
+        line 22     cols 3-4
+
+  crates/stylex-transform/src/shared/utils/core/props.rs
+    fn at line 20: the best instantiation runs 21 of 22 region(s)
+      stylex_transform::shared::utils::props misses
+        line 34     cols 3-4
+
+  crates/stylex-transform/src/shared/utils/object.rs
+    fn at line 22: the best instantiation runs 15 of 20 region(s)
+      stylex_keyframes misses
+        line 52     cols 27-30
+        line 54     cols 22-28
+        line 54     cols 22-42
+        line 56     cols 9-22
+        line 56     cols 9-42
+      stylex_define_vars misses
+        line 52     cols 27-30
+        line 54     cols 22-28
+        line 54     cols 22-42
+        line 56     cols 9-22
+        line 56     cols 9-42
+      stylex_position_try misses
+        line 52     cols 27-30
+        line 54     cols 22-28
+        line 54     cols 22-42
+        line 56     cols 9-22
+        line 56     cols 9-42
+      stylex_position_try misses
+        line 52     cols 27-30
+        line 54     cols 22-28
+        line 54     cols 22-42
+        line 56     cols 9-22
+        line 56     cols 9-42
+      stylex_define_consts misses
+        line 52     cols 27-30
+        line 54     cols 22-28
+        line 54     cols 22-42
+        line 56     cols 9-22
+        line 56     cols 9-42
+      stylex_view_transition_class misses
+        line 52     cols 27-30
+        line 54     cols 22-28
+        line 54     cols 22-42
+        line 56     cols 9-22
+        line 56     cols 9-42
+      stylex_transform::shared::utils::object::obj_map::stylex_keyframes misses
+        line 52     cols 27-30
+        line 54     cols 22-28
+        line 54     cols 22-42
+        line 56     cols 9-22
+        line 56     cols 9-42
+      stylex_transform::shared::utils::object::obj_map::stylex_define_vars misses
+        line 52     cols 27-30
+        line 54     cols 22-28
+        line 54     cols 22-42
+        line 56     cols 9-22
+        line 56     cols 9-42
+      stylex_transform::shared::utils::object::obj_map::stylex_define_consts misses
+        line 52     cols 27-30
+        line 54     cols 22-28
+        line 54     cols 22-42
+        line 56     cols 9-22
+        line 56     cols 9-42
+
+  crates/stylex-transform/src/transform/visit_mut/visit_mut_module.rs
+    fn at line 542: the best instantiation runs 9 of 10 region(s)
+      stylex_transform::transform::visit_mut::visit_mut_module::u::swc_ecma_visit::generated::Visit misses
+        line 551    cols 5-6
+
+  crates/stylex-transform/src/transform/visit_mut/visit_mut_module.rs
+    fn at line 619: the best instantiation runs 6 of 7 region(s)
+      stylex_transform::transform::visit_mut::visit_mut_module::u::swc_ecma_visit::generated::Visit misses
+        line 626    cols 5-6
+
+31 region(s) counted against the gate across 7 file(s).

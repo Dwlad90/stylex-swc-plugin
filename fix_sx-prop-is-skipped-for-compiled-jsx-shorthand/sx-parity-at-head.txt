@@ -1,0 +1,424 @@
+[1msx prop parity harness[0m
+  commit        34114ace6
+  compiler      crates/stylex-rs-compiler/dist/rs-compiler.darwin-arm64.node
+                built 2026-09-12T12:13:18.900Z, newest source 2026-09-11T20:32:25.324Z
+  vite plugin   packages/unplugin/dist/index.cjs
+                built 2026-09-12T12:14:07.050Z, newest source 2026-09-12T11:46:18.774Z
+  reference     /Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/node_modules/.pnpm/@stylexjs+babel-plugin@0.19.0_supports-color@8.1.1/node_modules/@stylexjs/babel-plugin/lib/index.js
+  jsx compiler  esbuild 0.28.2
+
+[1m1. The two reported failures, at HEAD[0m
+=====================================
+[2m--- compiled input ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+function Leaf({ sx }) {
+  return /* @__PURE__ */ jsx("div", { sx, children: "Hello" });
+}
+export {
+  Leaf
+};
+[2m--- compiler output ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+function Leaf({ sx }) {
+    return /* @__PURE__ */ jsx("div", {
+        sx,
+        children: "Hello"
+    });
+}
+export { Leaf };
+  [31mREPRODUCED[0m  a compiled call written with the object shorthand keeps a native prop
+[2m--- module that uses the prop and imports nothing ---[0m
+export function Leaf({ sx }) {
+  return <div sx={sx}>Hello</div>;
+}
+[2m--- the plugin ---[0m
+(skipped — the compiler was never reached)
+[2m--- the compiler, called directly ---[0m
+import * as stylex from "@stylexjs/stylex";
+export function Leaf({ sx }) {
+    return <div {...stylex.props(sx)}>Hello</div>;
+}
+[2m--- the plugin, on the same module with an import added ---[0m
+import * as stylex from '@stylexjs/stylex';
+export function Leaf({ sx }) {
+    return <div {...stylex.props(sx)}>Hello</div>;
+}
+  [31mREPRODUCED[0m  the plugin refuses a module the compiler handles when called directly
+
+[1m2. Raw markup: outputs must be identical[0m
+========================================
+
+[1mforwarded prop[0m [2m— the reported shape: a leaf component that only forwards the prop[0m
+[2m--- ours ---[0m
+import * as stylex from '@stylexjs/stylex';
+export function Leaf({
+  sx
+}) {
+  return <div {...stylex.props(sx)}>Hello</div>;
+}
+[2m--- reference ---[0m
+import * as stylex from '@stylexjs/stylex';
+export function Leaf({
+  sx
+}) {
+  return <div {...stylex.props(sx)}>Hello</div>;
+}
+  [32magree [0m  forwarded prop
+
+[1mstatic style[0m [2m— the prop resolves at compile time, so no runtime call survives[0m
+[2m--- ours ---[0m
+import * as stylex from '@stylexjs/stylex';
+export function App() {
+  return <div className="x1e2nbdu">Hello</div>;
+}
+[2m--- reference ---[0m
+import * as stylex from '@stylexjs/stylex';
+export function App() {
+  return <div className="x1e2nbdu">Hello</div>;
+}
+  [32magree [0m  static style
+
+[1marray value[0m [2m— a list of styles, one of them only known at runtime[0m
+[2m--- ours ---[0m
+import * as stylex from '@stylexjs/stylex';
+const styles = {
+  a: {
+    kMwMTN: "x1e2nbdu",
+    $$css: true
+  },
+  b: {
+    kWkggS: "x1t391ir",
+    $$css: true
+  }
+};
+export function App({
+  extra
+}) {
+  return <div {...stylex.props([styles.a, styles.b, extra])}>Hello</div>;
+}
+[2m--- reference ---[0m
+import * as stylex from '@stylexjs/stylex';
+const styles = {
+  a: {
+    kMwMTN: "x1e2nbdu",
+    $$css: true
+  },
+  b: {
+    kWkggS: "x1t391ir",
+    $$css: true
+  }
+};
+export function App({
+  extra
+}) {
+  return <div {...stylex.props([styles.a, styles.b, extra])}>Hello</div>;
+}
+  [32magree [0m  array value
+
+[1mrenamed prop[0m [2m— both halves of the fix must follow the configured name[0m
+[2m--- ours ---[0m
+import * as stylex from '@stylexjs/stylex';
+export function Leaf({
+  css
+}) {
+  return <div {...stylex.props(css)}>Hello</div>;
+}
+[2m--- reference ---[0m
+import * as stylex from '@stylexjs/stylex';
+export function Leaf({
+  css
+}) {
+  return <div {...stylex.props(css)}>Hello</div>;
+}
+  [32magree [0m  renamed prop
+
+[1mno import[0m [2m— the compiler handles it; the plugins are what drop it[0m
+[2m--- ours ---[0m
+import * as stylex from "@stylexjs/stylex";
+export function Leaf({
+  sx
+}) {
+  return <div {...stylex.props(sx)}>Hello</div>;
+}
+[2m--- reference ---[0m
+import * as stylex from "@stylexjs/stylex";
+export function Leaf({
+  sx
+}) {
+  return <div {...stylex.props(sx)}>Hello</div>;
+}
+  [32magree [0m  no import
+
+[1mprop disabled[0m [2m— with the feature off the prop must be left alone[0m
+[2m--- ours ---[0m
+import * as stylex from '@stylexjs/stylex';
+export function Leaf({
+  sx
+}) {
+  return <div sx={sx}>Hello</div>;
+}
+[2m--- reference ---[0m
+import * as stylex from '@stylexjs/stylex';
+export function Leaf({
+  sx
+}) {
+  return <div sx={sx}>Hello</div>;
+}
+  [32magree [0m  prop disabled
+
+[1mcomponent element[0m [2m— only a host element carries the prop[0m
+[2m--- ours ---[0m
+import * as stylex from '@stylexjs/stylex';
+const styles = {
+  main: {
+    kMwMTN: "x1e2nbdu",
+    $$css: true
+  }
+};
+export function App() {
+  return <MyComponent sx={styles.main}>Hello</MyComponent>;
+}
+[2m--- reference ---[0m
+import * as stylex from '@stylexjs/stylex';
+const styles = {
+  main: {
+    kMwMTN: "x1e2nbdu",
+    $$css: true
+  }
+};
+export function App() {
+  return <MyComponent sx={styles.main}>Hello</MyComponent>;
+}
+  [32magree [0m  component element
+
+[1m3. Compiled calls: paired with the markup they came from[0m
+========================================================
+
+[1mforwarded prop[0m [2m— the reported shape: a leaf component that only forwards the prop[0m
+[2m--- compiled input ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+function Leaf({ sx }) {
+  return /* @__PURE__ */ jsx("div", { sx, children: "Hello" });
+}
+export {
+  Leaf
+};
+[2m--- our output for the compiled input ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+function Leaf({ sx }) {
+    return /* @__PURE__ */ jsx("div", {
+        sx,
+        children: "Hello"
+    });
+}
+export { Leaf };
+[2m--- reference output for the paired markup ---[0m
+import * as stylex from '@stylexjs/stylex';
+export function Leaf({
+  sx
+}) {
+  return <div {...stylex.props(sx)}>Hello</div>;
+}
+[2m  ours      {"imports":["@stylexjs/stylex:stylex"],"propsCalls":[],"classNames":[],"nativeProps":["sx"]}[0m
+[2m  reference {"imports":["@stylexjs/stylex:stylex"],"propsCalls":["stylex.props(sx)"],"classNames":[],"nativeProps":[]}[0m
+  [31mDIFFER[0m  forwarded prop (compiled)
+
+[1mstatic style[0m [2m— the prop resolves at compile time, so no runtime call survives[0m
+[2m--- compiled input ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+const styles = stylex.create({ main: { color: "red" } });
+function App() {
+  return /* @__PURE__ */ jsx("div", { sx: styles.main, children: "Hello" });
+}
+export {
+  App
+};
+[2m--- our output for the compiled input ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+function App() {
+    return /* @__PURE__ */ jsx("div", {
+        ...{
+            className: "x1e2nbdu"
+        },
+        children: "Hello"
+    });
+}
+export { App };
+[2m--- reference output for the paired markup ---[0m
+import * as stylex from '@stylexjs/stylex';
+export function App() {
+  return <div className="x1e2nbdu">Hello</div>;
+}
+[2m  ours      {"imports":["@stylexjs/stylex:stylex"],"propsCalls":[],"classNames":["x1e2nbdu"],"nativeProps":[]}[0m
+[2m  reference {"imports":["@stylexjs/stylex:stylex"],"propsCalls":[],"classNames":["x1e2nbdu"],"nativeProps":[]}[0m
+  [32magree [0m  static style (compiled)
+
+[1marray value[0m [2m— a list of styles, one of them only known at runtime[0m
+[2m--- compiled input ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+const styles = stylex.create({ a: { color: "red" }, b: { backgroundColor: "blue" } });
+function App({ extra }) {
+  return /* @__PURE__ */ jsx("div", { sx: [styles.a, styles.b, extra], children: "Hello" });
+}
+export {
+  App
+};
+[2m--- our output for the compiled input ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+const styles = {
+    a: {
+        kMwMTN: "x1e2nbdu",
+        $$css: true
+    },
+    b: {
+        kWkggS: "x1t391ir",
+        $$css: true
+    }
+};
+function App({ extra }) {
+    return /* @__PURE__ */ jsx("div", {
+        ...stylex.props([
+            styles.a,
+            styles.b,
+            extra
+        ]),
+        children: "Hello"
+    });
+}
+export { App };
+[2m--- reference output for the paired markup ---[0m
+import * as stylex from '@stylexjs/stylex';
+const styles = {
+  a: {
+    kMwMTN: "x1e2nbdu",
+    $$css: true
+  },
+  b: {
+    kWkggS: "x1t391ir",
+    $$css: true
+  }
+};
+export function App({
+  extra
+}) {
+  return <div {...stylex.props([styles.a, styles.b, extra])}>Hello</div>;
+}
+[2m  ours      {"imports":["@stylexjs/stylex:stylex"],"propsCalls":["stylex.props([styles.a, styles.b, extra])"],"classNames":[],"nativeProps":[]}[0m
+[2m  reference {"imports":["@stylexjs/stylex:stylex"],"propsCalls":["stylex.props([styles.a, styles.b, extra])"],"classNames":[],"nativeProps":[]}[0m
+  [32magree [0m  array value (compiled)
+
+[1mrenamed prop[0m [2m— both halves of the fix must follow the configured name[0m
+[2m--- compiled input ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+function Leaf({ css }) {
+  return /* @__PURE__ */ jsx("div", { css, children: "Hello" });
+}
+export {
+  Leaf
+};
+[2m--- our output for the compiled input ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+function Leaf({ css }) {
+    return /* @__PURE__ */ jsx("div", {
+        css,
+        children: "Hello"
+    });
+}
+export { Leaf };
+[2m--- reference output for the paired markup ---[0m
+import * as stylex from '@stylexjs/stylex';
+export function Leaf({
+  css
+}) {
+  return <div {...stylex.props(css)}>Hello</div>;
+}
+[2m  ours      {"imports":["@stylexjs/stylex:stylex"],"propsCalls":[],"classNames":[],"nativeProps":["css"]}[0m
+[2m  reference {"imports":["@stylexjs/stylex:stylex"],"propsCalls":["stylex.props(css)"],"classNames":[],"nativeProps":[]}[0m
+  [31mDIFFER[0m  renamed prop (compiled)
+
+[1mprop disabled[0m [2m— with the feature off the prop must be left alone[0m
+[2m--- compiled input ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+function Leaf({ sx }) {
+  return /* @__PURE__ */ jsx("div", { sx, children: "Hello" });
+}
+export {
+  Leaf
+};
+[2m--- our output for the compiled input ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+function Leaf({ sx }) {
+    return /* @__PURE__ */ jsx("div", {
+        sx,
+        children: "Hello"
+    });
+}
+export { Leaf };
+[2m--- reference output for the paired markup ---[0m
+import * as stylex from '@stylexjs/stylex';
+export function Leaf({
+  sx
+}) {
+  return <div sx={sx}>Hello</div>;
+}
+[2m  ours      {"imports":["@stylexjs/stylex:stylex"],"propsCalls":[],"classNames":[],"nativeProps":["sx"]}[0m
+[2m  reference {"imports":["@stylexjs/stylex:stylex"],"propsCalls":[],"classNames":[],"nativeProps":["sx"]}[0m
+  [32magree [0m  prop disabled (compiled) — control: agrees either way
+
+[1mcomponent element[0m [2m— only a host element carries the prop[0m
+[2m--- compiled input ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+const styles = stylex.create({ main: { color: "red" } });
+function App() {
+  return /* @__PURE__ */ jsx(MyComponent, { sx: styles.main, children: "Hello" });
+}
+export {
+  App
+};
+[2m--- our output for the compiled input ---[0m
+import { jsx } from "react/jsx-runtime";
+import * as stylex from "@stylexjs/stylex";
+const styles = {
+    main: {
+        kMwMTN: "x1e2nbdu",
+        $$css: true
+    }
+};
+function App() {
+    return /* @__PURE__ */ jsx(MyComponent, {
+        sx: styles.main,
+        children: "Hello"
+    });
+}
+export { App };
+[2m--- reference output for the paired markup ---[0m
+import * as stylex from '@stylexjs/stylex';
+const styles = {
+  main: {
+    kMwMTN: "x1e2nbdu",
+    $$css: true
+  }
+};
+export function App() {
+  return <MyComponent sx={styles.main}>Hello</MyComponent>;
+}
+[2m  ours      {"imports":["@stylexjs/stylex:stylex"],"propsCalls":[],"classNames":[],"nativeProps":["sx"]}[0m
+[2m  reference {"imports":["@stylexjs/stylex:stylex"],"propsCalls":[],"classNames":[],"nativeProps":["sx"]}[0m
+  [32magree [0m  component element (compiled) — control: agrees either way
+
+[1mResult[0m
+======
+[31m2 comparison(s) differ[0m

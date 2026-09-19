@@ -1,8 +1,14 @@
 # Ticket 17 — the re-baseline
 
-**This is the reference point.** Every criterion number taken from here on
-compares against this record. Numbers taken before it were measured against the
-system allocator and do not compare with it; see
+**This is the reference point, and part of it is now closed.** Tickets 57, 58
+and 59 changed what 195 of these measurements do, so read
+[`ticket-57-58-59.md`](./ticket-57-58-59.md) first: it names every row whose
+work changed and every id that changed with it. The rest of this record still
+stands.
+
+Every criterion number taken from here on compares against this record.
+Numbers taken before it were measured against the system allocator and do not
+compare with it; see
 [ticket 17](../issues/17-link-mimalloc-in-every-bench.md) for why, and "The
 allocator a bench measures" in `guidelines/PERFORMANCE.md` for the rule.
 

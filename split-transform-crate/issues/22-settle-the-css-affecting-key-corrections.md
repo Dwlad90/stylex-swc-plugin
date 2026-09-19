@@ -35,13 +35,15 @@ Land both deliberately, under one snapshot review.
       and the computed key form
 - [x] The existing numeric-key test's name no longer claims more than it
       asserts — it is now `reads_an_integer_number_key`
-- [~] The pull request description states that property ordering can change
+- [x] The pull request description states that property ordering can change
       for keys like `'+0'`, and that numeric key spelling changes — the text
       is drafted in the Comments below; it is copied into the pull request
-      when the branch is opened. It needs a third paragraph from
-      [ticket 32](./32-namespace-map-keeps-source-order.md), which applies the
-      same ordering to the namespace names and so moves whole rule sets rather
-      than single declarations
+      when the branch is opened. All four paragraphs are drafted: the two here,
+      a third from [ticket 32](./32-namespace-map-keeps-source-order.md), which
+      applies the same ordering to the namespace names and so moves whole rule
+      sets rather than single declarations, and a fourth from
+      [ticket 42](./42-keep-a-repeated-key-in-its-first-place.md), which moves
+      a key that is declared twice
 - [x] The snapshot suite is re-run and every diff is either empty or a
       reviewed ordering or key change — no existing snapshot changed; five new
       ones record the two corrections end to end
@@ -71,6 +73,10 @@ Each case was run through both compilers and compared:
 The last row is the array-index guard at work, and it agrees.
 
 ### Text for the pull request description
+
+Four paragraphs in all. The two below, then one from
+[ticket 32](./32-namespace-map-keeps-source-order.md) and one from
+[ticket 42](./42-keep-a-repeated-key-in-its-first-place.md).
 
 > **Two key readings change, and both can change emitted CSS.**
 >

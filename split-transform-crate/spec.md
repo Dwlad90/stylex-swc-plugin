@@ -98,6 +98,23 @@ unchanged control for the whole exercise.
    > 31,938, the transform is 13,935, and the post-11-and-15 figure is 15,916.
    > Every proportion above survives the re-measure -- -7%, -57% and -54% each
    > still round true -- so only the absolutes moved.
+   >
+   > **Re-measured again after tickets 67 and 77.** The 15,916 figure above was
+   > read while `stylex_transform` was still excluded. It is not, since 67 and
+   > 77, so the whole of that 13,891 came off the excluded surface as well and
+   > the same rule the paragraph above states applies again: one number in a
+   > measured set is re-measured with the rest.
+   >
+   > The excluded surface is now **2,093 lines across three crates** --
+   > `stylex_logs` 136, `stylex_compiler_rs` 1,660, `stylex_test_parser` 297 --
+   > against 34,304 across four at the baseline, which is **-94%**. All three
+   > are permanent rows and none of them is compiler behaviour: logging, the
+   > NAPI bindings and a test-fixture parser. There is no temporary row left,
+   > so the exclusion is no longer a bounded exception that shrinks -- it is
+   > the surface that is not the compiler.
+   >
+   > Counted the same way as every figure above: every `*.rs` under `src/` less
+   > any path matching `(tests?|benches?|examples)/`.
 6. As a contributor, I want a one-line edit to the state manager to rebuild less,
    so that my iteration loop is shorter.
 7. As a contributor, I want the crate DAG to actually forbid an upward
@@ -506,6 +523,24 @@ hand-edit.
 - **Removing the transform's coverage exclusion entirely.** The visitor and
   orchestration layer is where coverage is genuinely hard; the goal is shrinking
   the excluded surface, not eliminating it.
+
+  > **Amended. This is no longer out of scope, and it is done.**
+  > [Ticket 67](./issues/67-remove-the-transform-coverage-exclusion.md) took the
+  > row off the list and
+  > [77](./issues/77-restore-the-workspace-coverage-gate.md) put the crate back
+  > on the workspace gate. Both were filed and landed on this branch, and
+  > neither cited this line, which is the omission this amendment closes.
+  >
+  > What changed the answer is measurement rather than opinion. This line rests
+  > on "coverage is genuinely hard" for the visitor and orchestration layer,
+  > which was written before anything measured it. Tickets 63 to 66 wrote the
+  > cases, and the layer reached full region coverage -- so the premise did not
+  > survive its own experiment. Keeping the exclusion after that would have
+  > meant excluding a surface that is covered, which hides the next regression
+  > in it rather than a difficulty.
+  >
+  > The bounded exception the story asked for still exists. It is the three
+  > permanent rows, and user story 5 records what they now are.
 - **Any behaviour change, bug fix, performance optimisation or idiomatic cleanup.**
   If a defect is noticed during a move, it is recorded and fixed separately.
 
@@ -549,6 +584,29 @@ hand-edit.
   > twin both change. Recorded here rather than reverted, for the same reason
   > the array-index guard is. See
   > [ticket 32](./issues/32-namespace-map-keeps-source-order.md).
+
+  > **Amended.** A fourth behaviour change landed. `remove_duplicates` in
+  > `stylex-ast` read a property list backwards, so a key declared more than
+  > once kept its **last** place. JavaScript keeps the place a key took
+  > **first**, and `assign_props`, beside it in the same file, already said so
+  > in its own documentation. The correction can move a declaration, hence
+  > which of two rules at equal specificity wins, but no snapshot moved: no
+  > fixture declares one key twice. Recorded here rather than reverted, for the
+  > same reason the three changes above are. See
+  > [ticket 42](./issues/42-keep-a-repeated-key-in-its-first-place.md).
+
+  > **Amended.** One instruction inside a ticket was reversed, and the reversal
+  > belongs here rather than only in that ticket's comments.
+  > [Ticket 17](./issues/17-link-mimalloc-in-every-bench.md) says "Decide per
+  > bench, do not blanket-apply", on the ground that a bench measuring parsing
+  > or path resolution "gains nothing but a slower link". All fourteen benches
+  > took the line anyway. The alternative is a comment claiming the system
+  > allocator is right for that bench, and such a claim needs a measurement to
+  > stand on and goes stale silently when the code under the bench changes. A
+  > bench that links the allocator measures what production measures, which is
+  > true whether or not the bench allocates heavily. The cost is a
+  > dev-dependency that `cargo test` also builds. `ALLOCATOR: system` stays in
+  > the reader for a bench whose subject is the system allocator; none exists.
 
   > **Amended.** Two further performance commits landed, and this rule excludes
   > both. Neither changes behaviour.

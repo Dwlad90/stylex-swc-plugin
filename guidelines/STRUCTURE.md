@@ -185,6 +185,21 @@ Permanent:
 
 There is no temporary row. Every crate that is not named above is on the gate.
 
+`stylex_rs_compiler` is permanent for a reason the gate cannot work around, and
+the reason is worth stating because the row reads like a choice. The crate is
+the NAPI boundary. Its entry point is `#[napi] pub fn transform(env: Env, ..)`,
+and most of `src/utils/fn_parser.rs` takes the same `&napi::Env`. That type
+comes from a running JavaScript machine, so no Rust test can make one and no
+`cargo test` can reach the code behind it. Measured with the gate's own command
+and this one exclusion taken off: 630 regions go unread, against a gate that
+permits none.
+
+The code is tested, only not where `llvm-cov` can see it. The Node suite drives
+it through the built addon, which is a different process and a different
+measurement. Taking the row off would therefore need the NAPI surface marked
+with `coverage(off)`, which is an exclusion wearing a different hat, or a Rust
+harness that starts Node, which nothing in this workspace does.
+
 `stylex_transform` held the last one. It was off the gate because its tests were
 not written, and tickets `63-cover-the-transform-shared-utils` through
 `67-remove-the-transform-coverage-exclusion` wrote them: the crate is on the

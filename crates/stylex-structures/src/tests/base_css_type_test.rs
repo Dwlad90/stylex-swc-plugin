@@ -348,39 +348,54 @@ mod get_css_value_tests {
     ComputedPropName, Ident, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, Str,
   };
 
-  /// The pair `name: value`, as an object property.
-  fn pair(name: &str, value: Expr) -> PropOrSpread {
+  /// The property `key: value`, however the key is written.
+  ///
+  /// The four spellings below differ by the key alone, so each one names its
+  /// key and hands the rest to this.
+  fn keyed(key: PropName, value: Expr) -> PropOrSpread {
     PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-      key: PropName::Ident(IdentName {
-        span: DUMMY_SP,
-        sym: name.into(),
-      }),
+      key,
       value: Box::new(value),
     })))
+  }
+
+  /// The key `name`, written bare.
+  fn bare_key(name: &str) -> PropName {
+    PropName::Ident(IdentName {
+      span: DUMMY_SP,
+      sym: name.into(),
+    })
+  }
+
+  /// The key `"name"`, written in quotes.
+  fn quoted_key(name: &str) -> PropName {
+    PropName::Str(Str {
+      span: DUMMY_SP,
+      value: Wtf8Atom::from(name),
+      raw: None,
+    })
+  }
+
+  /// The pair `name: value`, as an object property.
+  fn pair(name: &str, value: Expr) -> PropOrSpread {
+    keyed(bare_key(name), value)
   }
 
   /// The pair `"name": value`, whose key is quoted. JavaScript reads it as the
   /// same name as the bare one.
   fn quoted(name: &str, value: Expr) -> PropOrSpread {
-    PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-      key: PropName::Str(Str {
-        span: DUMMY_SP,
-        value: Wtf8Atom::from(name),
-        raw: None,
-      }),
-      value: Box::new(value),
-    })))
+    keyed(quoted_key(name), value)
   }
 
   /// The pair `["name"]: value`, whose key is computed from a string.
   fn computed(name: &str, value: Expr) -> PropOrSpread {
-    PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-      key: PropName::Computed(ComputedPropName {
+    keyed(
+      PropName::Computed(ComputedPropName {
         span: DUMMY_SP,
         expr: Box::new(create_string_expr(name)),
       }),
-      value: Box::new(value),
-    })))
+      value,
+    )
   }
 
   /// The shorthand `name`, which JavaScript reads as the pair `name: name`.
@@ -400,6 +415,25 @@ mod get_css_value_tests {
         props,
       })),
     }
+  }
+
+  /// Writes a typed declaration with `write`, and holds it to what the bare
+  /// spelling of the same two names answers.
+  ///
+  /// The answer is pinned as well as compared, so a case cannot pass by both
+  /// spellings being broken the same way.
+  fn assert_typed_like_the_bare_spelling(write: fn(&str, Expr) -> PropOrSpread) {
+    let written = outcome_of(declaration_of(vec![
+      write("syntax", create_string_expr("<color>")),
+      write("value", create_string_expr("red")),
+    ]));
+    let bare = outcome_of(declaration_of(vec![
+      pair("syntax", create_string_expr("<color>")),
+      pair("value", create_string_expr("red")),
+    ]));
+
+    assert_eq!(written, bare);
+    assert_eq!(written, Ok("literal typed=true".to_owned()));
   }
 
   // ---------- a shorthand names the pair it stands for ----------
@@ -525,17 +559,7 @@ mod get_css_value_tests {
   /// them was found.
   #[test]
   fn a_quoted_key_answers_what_the_bare_key_answers() {
-    let quoted_keys = outcome_of(declaration_of(vec![
-      quoted("syntax", create_string_expr("<color>")),
-      quoted("value", create_string_expr("red")),
-    ]));
-    let bare_keys = outcome_of(declaration_of(vec![
-      pair("syntax", create_string_expr("<color>")),
-      pair("value", create_string_expr("red")),
-    ]));
-
-    assert_eq!(quoted_keys, bare_keys);
-    assert_eq!(quoted_keys, Ok("literal typed=true".to_owned()));
+    assert_typed_like_the_bare_spelling(quoted);
   }
 
   /// The two spellings mixed in one object, which is what an author who edits
@@ -566,17 +590,7 @@ mod get_css_value_tests {
   /// is the same declaration `{ syntax: x }` is.
   #[test]
   fn a_computed_key_answers_what_the_bare_key_answers() {
-    let computed_keys = outcome_of(declaration_of(vec![
-      computed("syntax", create_string_expr("<color>")),
-      computed("value", create_string_expr("red")),
-    ]));
-    let bare_keys = outcome_of(declaration_of(vec![
-      pair("syntax", create_string_expr("<color>")),
-      pair("value", create_string_expr("red")),
-    ]));
-
-    assert_eq!(computed_keys, bare_keys);
-    assert_eq!(computed_keys, Ok("literal typed=true".to_owned()));
+    assert_typed_like_the_bare_spelling(computed);
   }
 
   /// A key whose text has no UTF-8 form is not the name the reader asked for,
@@ -593,14 +607,14 @@ mod get_css_value_tests {
     );
 
     let declaration = declaration_of(vec![
-      PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-        key: PropName::Str(Str {
+      keyed(
+        PropName::Str(Str {
           span: DUMMY_SP,
           value: unreadable,
           raw: None,
         }),
-        value: Box::new(create_string_expr("<color>")),
-      }))),
+        create_string_expr("<color>"),
+      ),
       pair("value", create_string_expr("red")),
     ]);
 

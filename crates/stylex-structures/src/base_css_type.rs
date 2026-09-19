@@ -91,9 +91,13 @@ pub fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>
 
 /// The value written under `name` in `object`, read where it lies.
 ///
-/// JavaScript writes one property name four ways, and all four are read here:
-/// bare, quoted, computed from static text, and as a shorthand. So `{ syntax }`,
-/// `{ syntax: x }`, `{ "syntax": x }` and `{ ["syntax"]: x }` all name `syntax`.
+/// The key is named through the reader the rest of the workspace names a key
+/// with, so every way of writing one is read. The four that can write `syntax`
+/// or `value` are bare, quoted, computed from static text, and the shorthand:
+/// `{ syntax: x }`, `{ "syntax": x }`, `{ ["syntax"]: x }` and `{ syntax }` all
+/// name `syntax`. A number and a big integer are named too, and neither can
+/// spell either word.
+///
 /// The value is borrowed from the object, except for a shorthand, which holds
 /// only the name and so has no value node to borrow.
 ///

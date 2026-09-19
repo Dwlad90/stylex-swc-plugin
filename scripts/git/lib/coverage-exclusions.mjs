@@ -9,8 +9,8 @@
  * `guidelines/STRUCTURE.md`, which is where a reader is sent to find out why a
  * crate is off the gate. The other two hold crate directory names -- the `case`
  * in `scripts/packages/test/coverage.sh`, which reads the name off `PWD`, and
- * `EXCLUDED` in the suite that asserts that `case`. The two spellings are not
- * the same string: `stylex-rs-compiler` is the crate `stylex_compiler_rs`.
+ * `EXCLUDED` in the suite that asserts that `case`. A directory name and a
+ * package name differ by the hyphens alone, so one is read from the other.
  *
  * The docs count as a list because they drift the same way: this module's own
  * commit edited those rows by hand, and nothing would have said so.
@@ -195,8 +195,12 @@ function readGuidelineRows(contents) {
 
 /**
  * Every crate directory under `crates/`, paired with the Cargo package name it
- * declares. Read rather than derived, because the two spellings differ by more
- * than the hyphens.
+ * declares.
+ *
+ * The name is read from the manifest rather than derived from the directory.
+ * Every crate now spells the two the same way apart from the hyphens, but the
+ * manifest is what cargo obeys, so a crate that diverges again is reported
+ * instead of silently mismatched.
  *
  * @param {string} root
  * @returns {Map<string, string>} directory name -> package name

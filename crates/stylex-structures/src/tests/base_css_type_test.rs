@@ -343,19 +343,59 @@ fn from_object_lit_panics_when_deep_level_value_is_non_lit() {
 
 mod get_css_value_tests {
   use super::*;
+  use swc_core::atoms::{Wtf8Atom, wtf8::Wtf8Buf};
   use swc_core::ecma::ast::{
-    Ident, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread,
+    ComputedPropName, Ident, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, Str,
   };
+
+  /// The property `key: value`, however the key is written.
+  ///
+  /// The four spellings below differ by the key alone, so each one names its
+  /// key and hands the rest to this.
+  fn keyed(key: PropName, value: Expr) -> PropOrSpread {
+    PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key,
+      value: Box::new(value),
+    })))
+  }
+
+  /// The key `name`, written bare.
+  fn bare_key(name: &str) -> PropName {
+    PropName::Ident(IdentName {
+      span: DUMMY_SP,
+      sym: name.into(),
+    })
+  }
+
+  /// The key `"name"`, written in quotes.
+  fn quoted_key(name: &str) -> PropName {
+    PropName::Str(Str {
+      span: DUMMY_SP,
+      value: Wtf8Atom::from(name),
+      raw: None,
+    })
+  }
 
   /// The pair `name: value`, as an object property.
   fn pair(name: &str, value: Expr) -> PropOrSpread {
-    PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-      key: PropName::Ident(IdentName {
+    keyed(bare_key(name), value)
+  }
+
+  /// The pair `"name": value`, whose key is quoted. JavaScript reads it as the
+  /// same name as the bare one.
+  fn quoted(name: &str, value: Expr) -> PropOrSpread {
+    keyed(quoted_key(name), value)
+  }
+
+  /// The pair `["name"]: value`, whose key is computed from a string.
+  fn computed(name: &str, value: Expr) -> PropOrSpread {
+    keyed(
+      PropName::Computed(ComputedPropName {
         span: DUMMY_SP,
-        sym: name.into(),
+        expr: Box::new(create_string_expr(name)),
       }),
-      value: Box::new(value),
-    })))
+      value,
+    )
   }
 
   /// The shorthand `name`, which JavaScript reads as the pair `name: name`.
@@ -375,6 +415,25 @@ mod get_css_value_tests {
         props,
       })),
     }
+  }
+
+  /// Writes a typed declaration with `write`, and holds it to what the bare
+  /// spelling of the same two names answers.
+  ///
+  /// The answer is pinned as well as compared, so a case cannot pass by both
+  /// spellings being broken the same way.
+  fn assert_typed_like_the_bare_spelling(write: fn(&str, Expr) -> PropOrSpread) {
+    let written = outcome_of(declaration_of(vec![
+      write("syntax", create_string_expr("<color>")),
+      write("value", create_string_expr("red")),
+    ]));
+    let bare = outcome_of(declaration_of(vec![
+      pair("syntax", create_string_expr("<color>")),
+      pair("value", create_string_expr("red")),
+    ]));
+
+    assert_eq!(written, bare);
+    assert_eq!(written, Ok("literal typed=true".to_owned()));
   }
 
   // ---------- a shorthand names the pair it stands for ----------
@@ -489,6 +548,80 @@ mod get_css_value_tests {
     ]));
 
     assert_eq!(short, spelled);
+  }
+
+  /// A quoted key names the same property a bare one names, so
+  /// `{ "syntax": '<color>', "value": 'red' }` is the typed declaration that
+  /// `{ syntax: '<color>', value: 'red' }` is.
+  ///
+  /// The reader beside this one, which builds the type itself, already reads a
+  /// quoted key. This one did not, so one object had two names and only one of
+  /// them was found.
+  #[test]
+  fn a_quoted_key_answers_what_the_bare_key_answers() {
+    assert_typed_like_the_bare_spelling(quoted);
+  }
+
+  /// The two spellings mixed in one object, which is what an author who edits
+  /// only one of the two names leaves behind.
+  #[test]
+  fn a_quoted_key_beside_a_bare_one_is_still_a_typed_declaration() {
+    let mixed = outcome_of(declaration_of(vec![
+      quoted("syntax", create_string_expr("<color>")),
+      pair("value", create_string_expr("red")),
+    ]));
+
+    assert_eq!(mixed, Ok("literal typed=true".to_owned()));
+  }
+
+  /// A quoted key under some other name is passed over, exactly as a bare one
+  /// under that name is.
+  #[test]
+  fn a_quoted_key_under_another_name_leaves_the_object_whole() {
+    let declaration = declaration_of(vec![quoted("colour", create_string_expr("red"))]);
+
+    let (expr, css_type) = get_css_value(declaration);
+
+    assert!(css_type.is_none());
+    assert!(expr.is_object());
+  }
+
+  /// A computed key names the property its text spells, so `{ ["syntax"]: x }`
+  /// is the same declaration `{ syntax: x }` is.
+  #[test]
+  fn a_computed_key_answers_what_the_bare_key_answers() {
+    assert_typed_like_the_bare_spelling(computed);
+  }
+
+  /// A key whose text has no UTF-8 form is not the name the reader asked for,
+  /// so it is passed over instead of stopping the build.
+  ///
+  /// An unpaired surrogate is a legal JavaScript string, which is why the
+  /// reader answers this rather than refusing it.
+  #[test]
+  fn a_key_that_is_not_readable_text_is_not_the_name_asked_for() {
+    let unreadable = Wtf8Atom::from(Wtf8Buf::from_ill_formed_utf16(&[0xD83D]));
+    assert!(
+      unreadable.as_str().is_none(),
+      "expected an atom with no UTF-8 form to test against"
+    );
+
+    let declaration = declaration_of(vec![
+      keyed(
+        PropName::Str(Str {
+          span: DUMMY_SP,
+          value: unreadable,
+          raw: None,
+        }),
+        create_string_expr("<color>"),
+      ),
+      pair("value", create_string_expr("red")),
+    ]);
+
+    let (expr, css_type) = get_css_value(declaration);
+
+    assert!(css_type.is_none());
+    assert!(expr.is_object());
   }
 
   /// A shorthand under some other name is not a typed declaration, so the

@@ -1,5 +1,3 @@
-#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
-
 //! The JavaScript evaluator: what an authored expression folds to, or why it
 //! cannot.
 //!

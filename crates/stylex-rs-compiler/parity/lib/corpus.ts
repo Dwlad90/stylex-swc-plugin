@@ -11,7 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { arrayAt, configurationOptionAt, stringAt, verdictAt } from './guards.js';
+import { arrayAt, configurationOptionAt, stringAt, stringMapAt, verdictAt } from './guards.js';
 import { subjectKey } from './subject.js';
 import type {
   ConfigurationOption,
@@ -93,6 +93,8 @@ function corpusEntryFrom(raw: unknown, filePath: string, index: number): CorpusE
   const expectedField = expected === undefined ? {} : { expected };
   const configuration = configurationAt(raw, filePath, id, expected, note);
   const configurationField = configuration === undefined ? {} : { configuration };
+  const env = stringMapAt(raw, 'env', filePath);
+  const envField = env === undefined ? {} : { env };
 
   const source = stringAt(raw, 'source');
   if (source !== undefined) {
@@ -111,6 +113,7 @@ function corpusEntryFrom(raw: unknown, filePath: string, index: number): CorpusE
       ...noteField,
       ...expectedField,
       ...configurationField,
+      ...envField,
     };
   }
 
@@ -131,6 +134,7 @@ function corpusEntryFrom(raw: unknown, filePath: string, index: number): CorpusE
     ...noteField,
     ...expectedField,
     ...configurationField,
+    ...envField,
   };
 }
 

@@ -2592,6 +2592,54 @@
       "label": "an empty string operand",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { width: ('' - 0) + 'px' },\n});\n",
       "origin": "ticket 15, the fifteenth instalment: the empty string is nought, which the float grammar refuses"
+    },
+    {
+      "id": "modules-env-inside-a-keyframes-call",
+      "label": "`stylex.env` read inside a `keyframes` call",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const fadeIn = stylex.keyframes({\n  from: { color: stylex.env.brandPrimary },\n  to: { color: 'blue' },\n});\n",
+      "origin": "ticket 85, read the env inside a rule call",
+      "env": {
+        "brandPrimary": "#123456"
+      },
+      "note": "The environment value folds in a rule call as it does in a `create` call. It used to stop the build here: the namespace name is bound to nothing in every call but `create`, so that a bare `stylex` written where a static value belongs refuses, and the two-level read went looking for the namespace as a value. It is read off the namespace's own entries now, which every one of these calls registers."
+    },
+    {
+      "id": "modules-env-inside-a-position-try-call",
+      "label": "`stylex.env` read inside a `positionTry` call",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const anchor = stylex.positionTry({\n  positionAnchor: '--anchor',\n  top: stylex.env.brandPrimary,\n});\n",
+      "origin": "ticket 85, read the env inside a rule call",
+      "env": {
+        "brandPrimary": "#123456"
+      }
+    },
+    {
+      "id": "modules-env-inside-a-view-transition-class-call",
+      "label": "`stylex.env` read inside a `viewTransitionClass` call",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const transition = stylex.viewTransitionClass({\n  group: { color: stylex.env.brandPrimary },\n});\n",
+      "origin": "ticket 85, read the env inside a rule call",
+      "env": {
+        "brandPrimary": "#123456"
+      }
+    },
+    {
+      "id": "modules-env-in-a-create-call-and-a-keyframes-call",
+      "label": "one module reads the env in a `create` call and in a `keyframes` call",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const fadeIn = stylex.keyframes({\n  from: { color: stylex.env.brandPrimary },\n});\n\nexport const styles = stylex.create({\n  root: { color: stylex.env.brandPrimary },\n});\n",
+      "origin": "ticket 85, read the env inside a rule call",
+      "env": {
+        "brandPrimary": "#123456"
+      },
+      "note": "The module the divergence was reported on: the `create` call compiled and the `keyframes` call beside it stopped the build, with nothing in the sentence to say the first one had worked."
+    },
+    {
+      "id": "modules-env-inside-a-create-theme-call",
+      "label": "`stylex.env` read inside a `createTheme` call",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const vars = {\n  brand: 'var(--xt4ziaz)',\n  __varGroupHash__: 'x1xohuxq',\n};\n\nexport const theme = stylex.createTheme(vars, {\n  brand: stylex.env.brandPrimary,\n});\n",
+      "origin": "ticket 85, read the env inside a rule call",
+      "env": {
+        "brandPrimary": "#123456"
+      },
+      "note": "A theme reads the environment as a `create` call does. The namespace is a value in this call's map already, so what was missing was the `env` entry in the fold the name stands for -- the same entry `types` has, for the same reason."
     }
   ]
 }

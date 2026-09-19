@@ -21,9 +21,26 @@ import type { CorpusEntry } from './types.js';
  * kind prefixes both so the two identity spaces cannot collide.
  */
 export function subjectKey(entry: CorpusEntry): string {
-  return entry.kind === 'module'
-    ? `module${SEPARATOR}${entry.source}`
-    : `declaration${SEPARATOR}${declarationKey(entry.property, entry.value)}`;
+  const subject =
+    entry.kind === 'module'
+      ? `module${SEPARATOR}${entry.source}`
+      : `declaration${SEPARATOR}${declarationKey(entry.property, entry.value)}`;
+
+  // The configuration is part of the identity, because the same source under
+  // two environments is two questions: one row would otherwise drop the other
+  // as a duplicate and the corpus would measure whichever loaded first.
+  //
+  // Read in name order rather than in written order, because an object keeps
+  // the order its keys were written in -- so the same two settings written the
+  // other way round would otherwise be a second subject asking one question.
+  if (entry.env === undefined) return subject;
+
+  const settings = Object.entries(entry.env)
+    .sort(([left], [right]) => (left < right ? -1 : 1))
+    .map(([name, value]) => `${name}=${value}`)
+    .join(',');
+
+  return `${subject}${SEPARATOR}${settings}`;
 }
 
 /** The text `--filter` searches: the authored value, or the module source. */

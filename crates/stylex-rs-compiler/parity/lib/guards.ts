@@ -38,6 +38,35 @@ export function arrayAt(value: unknown, key: string): unknown[] | undefined {
   return Array.isArray(found) ? found : undefined;
 }
 
+/** Whether every value of a record is a string, which narrows the record. */
+function isStringMap(value: Record<string, unknown>): value is Record<string, string> {
+  return Object.values(value).every(entry => typeof entry === 'string');
+}
+
+/**
+ * The map of strings at `key`, or `undefined` when absent.
+ *
+ * Throws on a value that is at `key` but is not such a map, for the reason
+ * `verdictAt` throws: a setting the loader silently dropped would leave the row
+ * measuring a compilation nobody configured, and the row would read as a
+ * divergence rather than as a corpus file that is wrong.
+ */
+export function stringMapAt(
+  value: unknown,
+  key: string,
+  where: string
+): Record<string, string> | undefined {
+  if (!isRecord(value)) return undefined;
+  const found = value[key];
+  if (found === undefined) return undefined;
+
+  if (!isRecord(found) || !isStringMap(found)) {
+    throw new Error(`Corpus entry in ${where} carries \`${key}\` that is not a map of strings.`);
+  }
+
+  return found;
+}
+
 /**
  * The verdict at `key`, or `undefined` when absent.
  *

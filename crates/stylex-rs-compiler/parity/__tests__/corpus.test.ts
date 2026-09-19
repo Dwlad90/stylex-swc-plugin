@@ -243,6 +243,120 @@ describe('the configuration a refusal names', () => {
   });
 });
 
+describe('the environment a row configures', () => {
+  test('the map is carried onto the entry', () => {
+    const [entry] = loadOf(
+      moduleFile([
+        {
+          id: 'm',
+          label: 'l',
+          source: MODULE_SOURCE,
+          origin: 'o',
+          env: { brandPrimary: '#123456' },
+        },
+      ])
+    );
+
+    expect(entry).toStrictEqual({
+      kind: 'module',
+      id: 'm',
+      label: 'l',
+      source: MODULE_SOURCE,
+      origin: 'o',
+      env: { brandPrimary: '#123456' },
+      set: 'modules',
+    });
+  });
+
+  test('a declaration row carries one too', () => {
+    const [entry] = loadOf({
+      'edge.json': {
+        set: 'edge',
+        description: 'edge',
+        entries: [
+          { id: 'd', property: 'color', value: 'red', origin: 'o', env: { brand: 'blue' } },
+        ],
+      },
+    });
+
+    expect(entry).toHaveProperty('env', { brand: 'blue' });
+  });
+
+  test('an entry configuring nothing does not carry the key at all', () => {
+    const [entry] = loadOf(
+      moduleFile([{ id: 'm', label: 'l', source: MODULE_SOURCE, origin: 'o' }])
+    );
+
+    expect(entry).not.toHaveProperty('env');
+  });
+
+  /**
+   * Dropped silently, the row would be compiled with no environment at all and
+   * report a configuration nobody set as a divergence in the source.
+   */
+  test('an environment that is not a map is refused', () => {
+    expect(() =>
+      loadOf(
+        moduleFile([{ id: 'm', label: 'l', source: MODULE_SOURCE, origin: 'o', env: 'brand' }])
+      )
+    ).toThrow(/`env` that is not a map of strings/);
+  });
+
+  test('an environment value that is not a string is refused', () => {
+    expect(() =>
+      loadOf(
+        moduleFile([
+          { id: 'm', label: 'l', source: MODULE_SOURCE, origin: 'o', env: { brand: 12 } },
+        ])
+      )
+    ).toThrow(/`env` that is not a map of strings/);
+  });
+
+  /**
+   * One source under two environments is two questions. Keyed by the source
+   * alone, the second row would load as a duplicate of the first and the corpus
+   * would measure whichever came first.
+   */
+  test('two rows spelling one source under different environments both load', () => {
+    const entries = loadOf(
+      moduleFile([
+        { id: 'm1', label: 'first', source: MODULE_SOURCE, origin: 'o', env: { brand: 'red' } },
+        { id: 'm2', label: 'second', source: MODULE_SOURCE, origin: 'o', env: { brand: 'blue' } },
+      ])
+    );
+
+    expect(entries.map(entry => entry.id)).toStrictEqual(['m1', 'm2']);
+  });
+
+  /**
+   * One environment written two ways is one environment. Read in written order,
+   * the second row would be a subject of its own and would ask the question the
+   * first already asks.
+   */
+  test('the same settings written in another key order are one subject', () => {
+    const entries = loadOf(
+      moduleFile([
+        {
+          id: 'm1',
+          label: 'first',
+          source: MODULE_SOURCE,
+          origin: 'o',
+          env: { brand: 'red', accent: 'blue' },
+        },
+        {
+          id: 'm2',
+          label: 'second',
+          source: MODULE_SOURCE,
+          origin: 'o',
+          env: { accent: 'blue', brand: 'red' },
+        },
+      ])
+    );
+
+    expect(entries.map(entry => entry.id)).toStrictEqual(['m1']);
+  });
+});
+
 describe('deduplication', () => {
   test('a repeated declaration keeps the first entry seen', () => {
     const entries = loadOf({

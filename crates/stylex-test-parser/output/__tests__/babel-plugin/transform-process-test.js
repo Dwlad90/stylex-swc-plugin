@@ -887,6 +887,41 @@ describe('@stylexjs/babel-plugin', ()=>{
         .x123j3cw:not(#\\#):not(#\\#){padding-top:5px}"
       `);
         });
+        test('logical float vars are emitted when the float comes from a constant', ()=>{
+            const rules = [
+                [
+                    'cHash',
+                    {
+                        constKey: 'cHash',
+                        constVal: 'var(--stylex-logical-start)'
+                    },
+                    0
+                ],
+                [
+                    'x1',
+                    {
+                        ltr: '.x1{float:var(--cHash)}',
+                        rtl: null
+                    },
+                    3000
+                ]
+            ];
+            expect(stylexPlugin.processStylexRules(rules, true)).toMatchInlineSnapshot(`
+        ":root, [dir="ltr"] {
+          --stylex-logical-start: left;
+          --stylex-logical-end: right;
+        }
+        [dir="rtl"] {
+          --stylex-logical-start: right;
+          --stylex-logical-end: left;
+        }
+
+        @layer priority1;
+        @layer priority1{
+        .x1{float:var(--stylex-logical-start)}
+        }"
+      `);
+        });
         test('legacy-expand-shorthands duplicates theme selectors for higher precedence', ()=>{
             const { _code, metadata } = transform(`
         import * as stylex from '@stylexjs/stylex';
@@ -1005,6 +1040,612 @@ describe('@stylexjs/babel-plugin', ()=>{
         @media (min-width: 320px){.xtj17id.xtj17id{text-shadow:10px 20px 30px 40px green}}
         @media (max-width: 1000px){.x1t4kl4c.x1t4kl4c.x1t4kl4c:where(:has(.x-default-marker:focus)){background-color:purple}}
         @media (max-width: 1000px){.x975j7z.x975j7z.x975j7z:where(.x-default-marker:active ~ *, :has(~ .x-default-marker:active)){background-color:orange}}"
+      `);
+        });
+        test('sorts min-width with screen and media type', ()=>{
+            const rules = [
+                [
+                    'xLg',
+                    {
+                        ltr: 'var(--xLgHash){.xLg.xLg{color:blue}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xSm',
+                    {
+                        ltr: 'var(--xSmHash){.xSm.xSm{color:red}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xLgHash',
+                    {
+                        constKey: 'xLgHash',
+                        constVal: '@media screen and (min-width: 1280px)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'xSmHash',
+                    {
+                        constKey: 'xSmHash',
+                        constVal: '@media screen and (min-width: 768px)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ]
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media screen and (min-width: 768px){.xSm.xSm{color:red}}
+        @media screen and (min-width: 1280px){.xLg.xLg{color:blue}}"
+      `);
+        });
+        test('does not misorder negated min-width media queries', ()=>{
+            const rules = [
+                [
+                    'xNot',
+                    {
+                        ltr: 'var(--xNotHash){.xNot.xNot{color:red}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xPos',
+                    {
+                        ltr: 'var(--xPosHash){.xPos.xPos{color:blue}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xNotHash',
+                    {
+                        constKey: 'xNotHash',
+                        constVal: '@media (not (min-width: 1000px))',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'xPosHash',
+                    {
+                        constKey: 'xPosHash',
+                        constVal: '@media (min-width: 1000px)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ]
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media (min-width: 1000px){.xPos.xPos{color:blue}}
+        @media (not (min-width: 1000px)){.xNot.xNot{color:red}}"
+      `);
+        });
+        test('does not sort a min-width paired with a negated max-width', ()=>{
+            const mk = (cls, query, decl)=>[
+                    cls,
+                    {
+                        ltr: `${query}{.${cls}.${cls}{${decl}}}`,
+                        rtl: null
+                    },
+                    3000
+                ];
+            const rules = [
+                mk('xNarrow', '@media screen and (min-width: 500px) and (not (max-width: 700px))', 'color:red'),
+                mk('x600', '@media (min-width: 600px)', 'color:blue')
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media (min-width: 600px){.x600.x600{color:blue}}
+        @media screen and (min-width: 500px) and (not (max-width: 700px)){.xNarrow.xNarrow{color:red}}"
+      `);
+        });
+        test('sorts min-width breakpoints nested inside another at-rule', ()=>{
+            const mk = (cls, prelude)=>[
+                    cls,
+                    {
+                        ltr: `${prelude}{.${cls}.${cls}{color:red}}}`,
+                        rtl: null
+                    },
+                    3000
+                ];
+            const rules = [
+                mk('xWide', '@supports (display:grid){@media (min-width: 1500px)'),
+                mk('xNarrow', '@supports (display:grid){@media (min-width: 500px)'),
+                mk('yOther', '@supports (color:oklab(0 0 0)){@media (min-width: 900px)')
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@supports (color:oklab(0 0 0)){@media (min-width: 900px){.yOther.yOther{color:red}}}
+        @supports (display:grid){@media (min-width: 500px){.xNarrow.xNarrow{color:red}}}
+        @supports (display:grid){@media (min-width: 1500px){.xWide.xWide{color:red}}}"
+      `);
+        });
+        test('sorts max-width defineConsts breakpoints using real transform metadata', ()=>{
+            const { metadata } = transform(`
+        import * as stylex from '@stylexjs/stylex';
+        export const styles = stylex.create({
+          a: { color: { [constants.mediaBig]: 'red' } },
+          b: { color: { [constants.mediaSmall]: 'blue' } },
+        });
+      `);
+            const css = stylexPlugin.processStylexRules(metadata, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        ":root, .xbiwvf9{--x19twipt:2px;--xypjos2:4px;--x1ec7iuc:8px;}
+        :root, .xsg933n{--xpqh4lw:blue;--x8nt2k2:10px;--xkxfyv:red;}
+        @media (min-width: 600px){:root, .xsg933n{--x8nt2k2:20px;}}
+        @media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:lightblue;}}
+        @supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xsg933n{--xkxfyv:oklab(0.7 -0.3 -0.4);}}}
+        @media (max-width: 1000px){.xz4zmo0.xz4zmo0{color:red}}
+        @media (max-width: 500px){.x100plp.x100plp{color:blue}}"
+      `);
+        });
+        test('sorts min-width defineConsts breakpoints in ascending px order', ()=>{
+            const rules = [
+                [
+                    'xDesktop',
+                    {
+                        ltr: 'var(--xDesktopHash){.xDesktop.xDesktop{width:200px}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xTablet',
+                    {
+                        ltr: 'var(--xTabletHash){.xTablet.xTablet{width:500px}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xDesktopHash',
+                    {
+                        constKey: 'xDesktopHash',
+                        constVal: '@media (min-width: 1500px)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'xTabletHash',
+                    {
+                        constKey: 'xTabletHash',
+                        constVal: '@media (min-width: 1000px)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ]
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media (min-width: 1000px){.xTablet.xTablet{width:500px}}
+        @media (min-width: 1500px){.xDesktop.xDesktop{width:200px}}"
+      `);
+        });
+        test('sorts min-width breakpoints via template literal partial value', ()=>{
+            const rules = [
+                [
+                    'xLg',
+                    {
+                        ltr: '@media (min-width: var(--xLgHash)){.xLg.xLg{display:block}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xSm',
+                    {
+                        ltr: '@media (min-width: var(--xSmHash)){.xSm.xSm{display:none}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xLgHash',
+                    {
+                        constKey: 'xLgHash',
+                        constVal: '1280px',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'xSmHash',
+                    {
+                        constKey: 'xSmHash',
+                        constVal: '768px',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ]
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media (min-width: 768px){.xSm.xSm{display:none}}
+        @media (min-width: 1280px){.xLg.xLg{display:block}}"
+      `);
+        });
+        test('sorts max-width defineConsts breakpoints in descending px order', ()=>{
+            const rules = [
+                [
+                    'xSmall',
+                    {
+                        ltr: 'var(--xSmallHash){.xSmall.xSmall{color:blue}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xLarge',
+                    {
+                        ltr: 'var(--xLargeHash){.xLarge.xLarge{color:red}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xSmallHash',
+                    {
+                        constKey: 'xSmallHash',
+                        constVal: '@media (max-width: 500px)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'xLargeHash',
+                    {
+                        constKey: 'xLargeHash',
+                        constVal: '@media (max-width: 1000px)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ]
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media (max-width: 1000px){.xLarge.xLarge{color:red}}
+        @media (max-width: 500px){.xSmall.xSmall{color:blue}}"
+      `);
+        });
+        test('sorts CSS Level 4 range syntax (width >= Xpx) as min-width', ()=>{
+            const rules = [
+                [
+                    'xLg',
+                    {
+                        ltr: 'var(--xLgHash){.xLg.xLg{color:red}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xSm',
+                    {
+                        ltr: 'var(--xSmHash){.xSm.xSm{color:violet}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xLgHash',
+                    {
+                        constKey: 'xLgHash',
+                        constVal: '@media (width >= 1280px)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'xSmHash',
+                    {
+                        constKey: 'xSmHash',
+                        constVal: '@media (width >= 768px)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ]
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media (width >= 768px){.xSm.xSm{color:violet}}
+        @media (width >= 1280px){.xLg.xLg{color:red}}"
+      `);
+        });
+        test('range queries (both min and max-width) fall through to existing sort', ()=>{
+            const rules = [
+                [
+                    'xLg',
+                    {
+                        ltr: 'var(--xLgHash){.xLg.xLg{color:blue}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xSm',
+                    {
+                        ltr: 'var(--xSmHash){.xSm.xSm{color:violet}}',
+                        rtl: null
+                    },
+                    6000
+                ],
+                [
+                    'xLgHash',
+                    {
+                        constKey: 'xLgHash',
+                        constVal: '@media (1024px <= width <= 1280px)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ],
+                [
+                    'xSmHash',
+                    {
+                        constKey: 'xSmHash',
+                        constVal: '@media (768px <= width <= 1024px)',
+                        ltr: '',
+                        rtl: null
+                    },
+                    0
+                ]
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media (1024px <= width <= 1280px){.xLg.xLg{color:blue}}
+        @media (768px <= width <= 1024px){.xSm.xSm{color:violet}}"
+      `);
+        });
+        test('sort is a total order across px min- and max-width rules', ()=>{
+            const mk = (cls, query, decl)=>[
+                    cls,
+                    {
+                        ltr: `${query}{.${cls}.${cls}{${decl}}}`,
+                        rtl: null
+                    },
+                    3000
+                ];
+            const a = mk('a', '@media (min-width: 500px)', 'z-index:1');
+            const b = mk('b', '@media (max-width: 300px)', 'margin:0');
+            const c = mk('c', '@media (min-width: 900px)', 'align-items:start');
+            const outputs = [
+                [
+                    a,
+                    b,
+                    c
+                ],
+                [
+                    a,
+                    c,
+                    b
+                ],
+                [
+                    b,
+                    a,
+                    c
+                ],
+                [
+                    b,
+                    c,
+                    a
+                ],
+                [
+                    c,
+                    a,
+                    b
+                ],
+                [
+                    c,
+                    b,
+                    a
+                ]
+            ].map((permutation)=>stylexPlugin.processStylexRules(permutation.map(([key, styleObj, priority])=>[
+                        key,
+                        {
+                            ...styleObj
+                        },
+                        priority
+                    ]), {
+                    useLayers: false,
+                    legacyDisableLayers: true
+                }));
+            expect(new Set(outputs).size).toBe(1);
+            expect(outputs[0]).toMatchInlineSnapshot(`
+        "@media (min-width: 900px){.c.c{align-items:start}}
+        @media (max-width: 300px){.b.b{margin:0}}
+        @media (min-width: 500px){.a.a{z-index:1}}"
+      `);
+        });
+        test('orders the min-width group before the max-width group', ()=>{
+            const mk = (cls, query)=>[
+                    cls,
+                    {
+                        ltr: `${query}{.${cls}.${cls}{color:red}}`,
+                        rtl: null
+                    },
+                    3000
+                ];
+            const rules = [
+                mk('xMaxNarrow', '@media (max-width: 300px)'),
+                mk('xMinWide', '@media (min-width: 900px)'),
+                mk('xMaxWide', '@media (max-width: 800px)'),
+                mk('xMinNarrow', '@media (min-width: 400px)')
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media (min-width: 400px){.xMinNarrow.xMinNarrow{color:red}}
+        @media (min-width: 900px){.xMinWide.xMinWide{color:red}}
+        @media (max-width: 800px){.xMaxWide.xMaxWide{color:red}}
+        @media (max-width: 300px){.xMaxNarrow.xMaxNarrow{color:red}}"
+      `);
+        });
+        test('sorts unitless zero, any-unit zero, and mixed-case px', ()=>{
+            const mk = (cls, query)=>[
+                    cls,
+                    {
+                        ltr: `${query}{.${cls}.${cls}{color:red}}`,
+                        rtl: null
+                    },
+                    3000
+                ];
+            const rules = [
+                mk('xUpper', '@media (min-width: 900PX)'),
+                mk('xZero', '@media (min-width: 0)'),
+                mk('xMixed', '@media (MIN-WIDTH: 700Px)'),
+                mk('xZeroEm', '@media (max-width: 0em)')
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media (min-width: 0){.xZero.xZero{color:red}}
+        @media (MIN-WIDTH: 700Px){.xMixed.xMixed{color:red}}
+        @media (min-width: 900PX){.xUpper.xUpper{color:red}}
+        @media (max-width: 0em){.xZeroEm.xZeroEm{color:red}}"
+      `);
+        });
+        test('does not sort a width whose value is a ratio', ()=>{
+            const mk = (cls, query)=>[
+                    cls,
+                    {
+                        ltr: `${query}{.${cls}.${cls}{color:red}}`,
+                        rtl: null
+                    },
+                    3000
+                ];
+            const rules = [
+                mk('xRatio', '@media (min-width: 16/9)'),
+                mk('xPaired', '@media (min-width: 16/9) and (min-width: 400px)'),
+                mk('xReal', '@media (min-width: 900px)')
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media (min-width: 900px){.xReal.xReal{color:red}}
+        @media (min-width: 16/9) and (min-width: 400px){.xPaired.xPaired{color:red}}
+        @media (min-width: 16/9){.xRatio.xRatio{color:red}}"
+      `);
+        });
+        test('does not sort a unitless non-zero width', ()=>{
+            const mk = (cls, query)=>[
+                    cls,
+                    {
+                        ltr: `${query}{.${cls}.${cls}{color:red}}`,
+                        rtl: null
+                    },
+                    3000
+                ];
+            const rules = [
+                mk('xBare', '@media (min-width: 700)'),
+                mk('xReal', '@media (min-width: 900px)')
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media (min-width: 900px){.xReal.xReal{color:red}}
+        @media (min-width: 700){.xBare.xBare{color:red}}"
+      `);
+        });
+        test('does not sort rem breakpoints', ()=>{
+            const mk = (cls, query)=>[
+                    cls,
+                    {
+                        ltr: `${query}{.${cls}.${cls}{color:red}}`,
+                        rtl: null
+                    },
+                    3000
+                ];
+            const rules = [
+                mk('xWide', '@media (min-width: 100rem)'),
+                mk('xNarrow', '@media (min-width: 48rem)')
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media (min-width: 100rem){.xWide.xWide{color:red}}
+        @media (min-width: 48rem){.xNarrow.xNarrow{color:red}}"
+      `);
+        });
+        test('does not sort a query with two bounds on the same side', ()=>{
+            const mk = (cls, query)=>[
+                    cls,
+                    {
+                        ltr: `${query}{.${cls}.${cls}{color:red}}`,
+                        rtl: null
+                    },
+                    3000
+                ];
+            const rules = [
+                mk('xBoth', '@media (min-width: 500px) and (min-width: 900px)'),
+                mk('xSingle', '@media (min-width: 700px)')
+            ];
+            const css = stylexPlugin.processStylexRules(rules, {
+                useLayers: false,
+                legacyDisableLayers: true
+            });
+            expect(css).toMatchInlineSnapshot(`
+        "@media (min-width: 700px){.xSingle.xSingle{color:red}}
+        @media (min-width: 500px) and (min-width: 900px){.xBoth.xBoth{color:red}}"
       `);
         });
         test('sort is deterministic regardless of input order', ()=>{

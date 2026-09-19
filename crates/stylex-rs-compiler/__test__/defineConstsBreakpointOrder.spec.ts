@@ -1,0 +1,130 @@
+// A breakpoint declared with `defineConsts` is not readable as an `@media`
+// string while a module is compiled: the consuming rule carries only a
+// `var(--hash)` placeholder, and the constant that fills it lives in another
+// module. The stylesheet assembler resolves the placeholder and then orders
+// `min-width` ascending and `max-width` descending, so a wider breakpoint
+// cannot win the cascade over a narrower one.
+//
+// That order is reachable only while this compiler emits the constant as a
+// metadata tuple carrying `constKey` and `constVal`, and wraps the consuming
+// rule in the matching placeholder. The tuples are pinned first, then the
+// stylesheet they assemble into: a placeholder spelled differently would still
+// compile, and the order would fall back to alphabetic with nothing to say so.
+import * as path from 'path';
+
+import stylexBabelPlugin from '@stylexjs/babel-plugin';
+import { describe, expect, test } from 'vitest';
+
+import { transform } from '../dist/index.js';
+import type { StyleXMetadata } from '../dist/index.js';
+
+const BREAKPOINTS_SOURCE = `
+  import * as stylex from '@stylexjs/stylex';
+
+  export const breakpoints = stylex.defineConsts({
+    tablet: '@media (min-width: 1000px)',
+    desktop: '@media (min-width: 1500px)',
+    small: '@media (max-width: 500px)',
+    large: '@media (max-width: 1000px)',
+  });
+`;
+
+// The wider breakpoint is authored first in both groups, so an assembler that
+// kept the authored order -- or sorted by the placeholder hash -- would put it
+// ahead of the narrower one and lose the cascade.
+const COMPONENT_SOURCE = `
+  import * as stylex from '@stylexjs/stylex';
+  import { breakpoints } from 'breakpoints.stylex.js';
+
+  export const styles = stylex.create({
+    a: {
+      width: {
+        default: '100px',
+        [breakpoints.desktop]: '300px',
+        [breakpoints.tablet]: '200px',
+      },
+    },
+    b: {
+      color: {
+        default: 'black',
+        [breakpoints.large]: 'red',
+        [breakpoints.small]: 'blue',
+      },
+    },
+  });
+`;
+
+/**
+ * Both modules through the compiler, with the metadata tuples they emit
+ * concatenated in the order a bundler collects them.
+ *
+ * `haste` resolution names a module by its file name alone, so neither source
+ * has to exist on disk for the import to resolve to the same constants.
+ */
+function collectMetadata(): StyleXMetadata['stylex'] {
+  const rootDir = __dirname;
+  const options = {
+    dev: false,
+    unstable_moduleResolution: { type: 'haste' as const, rootDir },
+  };
+  const compile = (name: string, source: string): StyleXMetadata['stylex'] =>
+    transform(path.join(rootDir, name), source, options).metadata.stylex;
+
+  return [
+    ...compile('breakpoints.stylex.js', BREAKPOINTS_SOURCE),
+    ...compile('component.js', COMPONENT_SOURCE),
+  ];
+}
+
+describe('defineConsts breakpoints', () => {
+  const metadata = collectMetadata();
+
+  test('emits each constant beside the placeholder its consumer carries', () => {
+    expect(metadata).toStrictEqual([
+      [
+        'x1flm7tz',
+        { constKey: 'x1flm7tz', constVal: '@media (min-width: 1000px)', ltr: '', rtl: null },
+        0,
+      ],
+      [
+        'x21rhod',
+        { constKey: 'x21rhod', constVal: '@media (min-width: 1500px)', ltr: '', rtl: null },
+        0,
+      ],
+      [
+        'x16yt4h9',
+        { constKey: 'x16yt4h9', constVal: '@media (max-width: 500px)', ltr: '', rtl: null },
+        0,
+      ],
+      [
+        'xzg5jgv',
+        { constKey: 'xzg5jgv', constVal: '@media (max-width: 1000px)', ltr: '', rtl: null },
+        0,
+      ],
+      ['x1exxlbk', { ltr: '.x1exxlbk{width:100px}', rtl: null }, 4000],
+      ['x193souu', { ltr: 'var(--x21rhod){.x193souu.x193souu{width:300px}}', rtl: null }, 7000],
+      ['xxw7ul5', { ltr: 'var(--x1flm7tz){.xxw7ul5.xxw7ul5{width:200px}}', rtl: null }, 7000],
+      ['x1mqxbix', { ltr: '.x1mqxbix{color:black}', rtl: null }, 3000],
+      ['x1dypaho', { ltr: 'var(--xzg5jgv){.x1dypaho.x1dypaho{color:red}}', rtl: null }, 6000],
+      ['x7bplha', { ltr: 'var(--x16yt4h9){.x7bplha.x7bplha{color:blue}}', rtl: null }, 6000],
+    ]);
+  });
+
+  test('assembles min-width ascending and max-width descending', () => {
+    const css = stylexBabelPlugin.processStylexRules(metadata, {
+      useLayers: false,
+      legacyDisableLayers: true,
+    });
+
+    expect(css).toBe(
+      [
+        '.x1mqxbix{color:black}',
+        '.x1exxlbk{width:100px}',
+        '@media (max-width: 1000px){.x1dypaho.x1dypaho{color:red}}',
+        '@media (max-width: 500px){.x7bplha.x7bplha{color:blue}}',
+        '@media (min-width: 1000px){.xxw7ul5.xxw7ul5{width:200px}}',
+        '@media (min-width: 1500px){.x193souu.x193souu{width:300px}}',
+      ].join('\n')
+    );
+  });
+});

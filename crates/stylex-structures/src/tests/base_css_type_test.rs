@@ -343,7 +343,210 @@ fn from_object_lit_panics_when_deep_level_value_is_non_lit() {
 
 mod get_css_value_tests {
   use super::*;
-  use swc_core::ecma::ast::{IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread};
+  use swc_core::ecma::ast::{
+    Ident, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread,
+  };
+
+  /// The pair `name: value`, as an object property.
+  fn pair(name: &str, value: Expr) -> PropOrSpread {
+    PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: name.into(),
+      }),
+      value: Box::new(value),
+    })))
+  }
+
+  /// The shorthand `name`, which JavaScript reads as the pair `name: name`.
+  fn shorthand(name: &str) -> PropOrSpread {
+    PropOrSpread::Prop(Box::new(Prop::Shorthand(Ident::from(name))))
+  }
+
+  /// A declaration whose value is the object `props` build.
+  fn declaration_of(props: Vec<PropOrSpread>) -> KeyValueProp {
+    KeyValueProp {
+      key: PropName::Ident(IdentName {
+        span: DUMMY_SP,
+        sym: "width".into(),
+      }),
+      value: Box::new(Expr::Object(ObjectLit {
+        span: DUMMY_SP,
+        props,
+      })),
+    }
+  }
+
+  // ---------- a shorthand names the pair it stands for ----------
+  //
+  // Each case below compares two spellings of one object rather than pinning
+  // one answer, because the defect was that the two disagreed and a pinned
+  // answer records whichever spelling was written down.
+  //
+  // Most of the answers compared are refusals, and that is the result, not a
+  // gap in the cases. A shorthand can only ever name an identifier, and
+  // neither `syntax` nor `value` accepts one. What changed is that both
+  // spellings are now refused by the same sentence, where the shorthand used
+  // to be refused earlier and for the wrong reason.
+
+  /// What `get_css_value` answers for one declaration: the kind of value it
+  /// hands back, or the message it stopped with.
+  ///
+  /// Both spellings of a name are put through this and compared, because the
+  /// point of each case below is that they agree.
+  /// The hook is swapped only to keep an expected panic off the test output.
+  /// It is process-global, and the repository runs the suites under
+  /// `cargo nextest`, which gives each case its own process, so the swap
+  /// cannot race another case.
+  fn outcome_of(declaration: KeyValueProp) -> Result<String, String> {
+    let previous = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+
+    let answer = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+      let (expr, css_type) = get_css_value(declaration);
+      format!("{} typed={}", expr_kind(&expr), css_type.is_some())
+    }));
+
+    std::panic::set_hook(previous);
+
+    answer.map_err(|payload| panic_message(payload.as_ref()))
+  }
+
+  /// The kind of an expression, named the way a reader of a failure needs it.
+  fn expr_kind(expr: &Expr) -> String {
+    match expr {
+      Expr::Ident(ident) => format!("ident {}", ident.sym),
+      Expr::Lit(_) => "literal".to_owned(),
+      Expr::Object(_) => "object".to_owned(),
+      other => format!("other {:?}", std::mem::discriminant(other)),
+    }
+  }
+
+  /// The text a caught panic carries, whichever of the two payload types it
+  /// was raised with.
+  fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
+    if let Some(text) = payload.downcast_ref::<String>() {
+      return text.clone();
+    }
+
+    match payload.downcast_ref::<&str>() {
+      Some(text) => (*text).to_owned(),
+      None => "a panic carrying no message".to_owned(),
+    }
+  }
+
+  /// `{ syntax: '<color>', value }` states the value through a shorthand. The
+  /// reader used to match that name and then refuse to take it, with
+  /// "Expected key-value property". It answers what `{ value: value }`
+  /// answers now.
+  #[test]
+  fn a_shorthand_value_answers_what_its_pair_answers() {
+    let short = outcome_of(declaration_of(vec![
+      pair("syntax", create_string_expr("<color>")),
+      shorthand("value"),
+    ]));
+    let spelled = outcome_of(declaration_of(vec![
+      pair("syntax", create_string_expr("<color>")),
+      pair("value", Expr::Ident(Ident::from("value"))),
+    ]));
+
+    assert_eq!(short, spelled);
+    assert_eq!(
+      short,
+      Err("[StyleX] Value must be an object or string, but got: Identifier".to_owned()),
+      "both spellings are refused for naming an identifier, not for being unreadable"
+    );
+  }
+
+  /// A shorthand `syntax` names an identifier rather than a CSS type, so the
+  /// declaration is refused -- by the same sentence its written-out pair is
+  /// refused with.
+  #[test]
+  fn a_shorthand_syntax_answers_what_its_pair_answers() {
+    let short = outcome_of(declaration_of(vec![
+      shorthand("syntax"),
+      pair("value", create_number_expr(10.0)),
+    ]));
+    let spelled = outcome_of(declaration_of(vec![
+      pair("syntax", Expr::Ident(Ident::from("syntax"))),
+      pair("value", create_number_expr(10.0)),
+    ]));
+
+    assert_eq!(short, spelled);
+  }
+
+  /// Both names written short, which is the whole shape as JavaScript allows
+  /// it to be spelled.
+  #[test]
+  fn two_shorthand_names_answer_what_their_pairs_answer() {
+    let short = outcome_of(declaration_of(vec![
+      shorthand("syntax"),
+      shorthand("value"),
+    ]));
+    let spelled = outcome_of(declaration_of(vec![
+      pair("syntax", Expr::Ident(Ident::from("syntax"))),
+      pair("value", Expr::Ident(Ident::from("value"))),
+    ]));
+
+    assert_eq!(short, spelled);
+  }
+
+  /// A shorthand under some other name is not a typed declaration, so the
+  /// object is handed back whole rather than refused.
+  #[test]
+  fn a_shorthand_under_another_name_leaves_the_object_whole() {
+    let declaration = declaration_of(vec![shorthand("colour")]);
+
+    let (expr, css_type) = get_css_value(declaration);
+
+    assert!(css_type.is_none());
+    assert!(expr.is_object());
+  }
+
+  /// A `syntax` with no `value` beside it is not typed, whichever way the one
+  /// name is written.
+  #[test]
+  fn a_shorthand_syntax_with_no_value_leaves_the_object_whole() {
+    let declaration = declaration_of(vec![shorthand("syntax")]);
+
+    let (expr, css_type) = get_css_value(declaration);
+
+    assert!(css_type.is_none());
+    assert!(expr.is_object());
+  }
+
+  /// The name is matched against the whole of a shorthand, not a part of it,
+  /// so a longer name that begins the same way is not the one that is read.
+  #[test]
+  fn a_shorthand_whose_name_only_begins_with_value_is_not_it() {
+    let declaration = declaration_of(vec![
+      pair("syntax", create_string_expr("<color>")),
+      shorthand("valueOf"),
+    ]);
+
+    let (expr, css_type) = get_css_value(declaration);
+
+    assert!(css_type.is_none());
+    assert!(expr.is_object());
+  }
+
+  /// A name written twice, once short and once in full, still answers what
+  /// the two written-out pairs answer.
+  #[test]
+  fn a_repeated_name_answers_what_its_pairs_answer() {
+    let short = outcome_of(declaration_of(vec![
+      pair("syntax", create_string_expr("<color>")),
+      shorthand("value"),
+      pair("value", create_number_expr(10.0)),
+    ]));
+    let spelled = outcome_of(declaration_of(vec![
+      pair("syntax", create_string_expr("<color>")),
+      pair("value", Expr::Ident(Ident::from("value"))),
+      pair("value", create_number_expr(10.0)),
+    ]));
+
+    assert_eq!(short, spelled);
+  }
 
   #[test]
   fn returns_value_directly_when_not_object() {

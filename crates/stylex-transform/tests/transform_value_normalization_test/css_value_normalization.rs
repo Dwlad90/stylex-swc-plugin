@@ -202,6 +202,49 @@ stylex_test!(
   "#
 );
 
+// Quote characters in prose do not make a value CSS. Counting them said they
+// did, so `Bob's and Jim's` was emitted unquoted and the browser dropped the
+// declaration.
+stylex_test!(
+  content_property_values_containing_quotes_are_wrapped_in_quotes,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      apostrophes: {
+        content: "Bob's and Jim's",
+      },
+      embeddedQuote: {
+        content: 'He said "hello"',
+      },
+      quoteKeywords: {
+        content: 'open-quote "hello" close-quote',
+      }
+    });
+  "#
+);
+
+// An escape sequence the author wrote is what they asked the browser to render,
+// so its backslash is left alone rather than doubled.
+stylex_test!(
+  content_property_values_keep_their_css_escape_sequences,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      emDash: {
+        content: '\\2014',
+      },
+      curlyQuotes: {
+        content: '\\201C hello \\201D',
+      },
+      trailingBackslash: {
+        content: '50% off \\',
+      },
+    });
+  "#
+);
+
 stylex_test!(
   legacy_no_space_before_bang_important,
   |tr| stylex_transform(tr.comments.clone(), |b| b),

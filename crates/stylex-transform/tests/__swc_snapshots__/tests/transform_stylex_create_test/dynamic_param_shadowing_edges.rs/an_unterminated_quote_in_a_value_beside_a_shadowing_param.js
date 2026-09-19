@@ -3,7 +3,7 @@ var _inject2 = _inject;
 import * as stylex from '@stylexjs/stylex';
 import { zIndex } from 'zIndex.stylex.js';
 _inject2({
-    ltr: '.xbjs7n6{content:""unterminated"}',
+    ltr: '.x1rcju8w{content:"\\"unterminated"}',
     priority: 3000
 });
 _inject2({
@@ -16,7 +16,7 @@ _inject2({
 });
 export const styles = {
     wrapper: {
-        kah6P1: "xbjs7n6",
+        kah6P1: "x1rcju8w",
         $$css: true
     },
     dyn: (zIndex)=>[

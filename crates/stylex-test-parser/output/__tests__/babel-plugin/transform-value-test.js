@@ -68,6 +68,79 @@ describe('transformValue content property tests', ()=>{
             expect(transformValue('content', input, {})).toBe(expected);
         });
     });
+    test('adds quotes to plain strings containing quote characters', ()=>{
+        const strings = [
+            [
+                "Bob's and Jim's",
+                '"Bob\'s and Jim\'s"'
+            ],
+            [
+                "It's a test, isn't it",
+                '"It\'s a test, isn\'t it"'
+            ],
+            [
+                'He said "hello"',
+                '"He said \\"hello\\""'
+            ],
+            [
+                'say "hi" now',
+                '"say \\"hi\\" now"'
+            ],
+            [
+                '"hello" is what he said',
+                '"\\"hello\\" is what he said"'
+            ]
+        ];
+        strings.forEach(([input, expected])=>{
+            expect(transformValue('content', input, {})).toBe(expected);
+        });
+    });
+    test('preserves CSS escape sequences when adding quotes', ()=>{
+        const strings = [
+            [
+                '\\2014',
+                '"\\2014"'
+            ],
+            [
+                '\\201C hello \\201D',
+                '"\\201C hello \\201D"'
+            ],
+            [
+                'back\\slash',
+                '"back\\slash"'
+            ],
+            [
+                'C:\\\\Users',
+                '"C:\\\\Users"'
+            ],
+            [
+                'He said \\"hello\\"',
+                '"He said \\"hello\\""'
+            ],
+            [
+                '50% off \\',
+                '"50% off \\\\"'
+            ],
+            [
+                'line one\nline two',
+                '"line one\\A line two"'
+            ]
+        ];
+        strings.forEach(([input, expected])=>{
+            expect(transformValue('content', input, {})).toBe(expected);
+        });
+    });
+    test('preserves quote keywords combined with strings', ()=>{
+        const values = [
+            '"a" "b"',
+            'open-quote "hello"',
+            '"prefix" no-close-quote',
+            'open-quote "text" close-quote'
+        ];
+        values.forEach((input)=>{
+            expect(transformValue('content', input, {})).toBe(input);
+        });
+    });
     test('preserve units in zero values CSS variables', ()=>{
         const variables = [
             [

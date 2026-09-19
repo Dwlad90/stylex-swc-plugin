@@ -485,14 +485,14 @@ fn elements_that_could_not_be_printed_safely_still_fold_exactly() {
     (
       r#"const a = ['a"b', 'c'];"#,
       "content: a.join('|'),",
-      "x1aihos",
+      "xsotlll",
     ),
     (
       r"const a = ['a\\b', 'c'];",
       "content: a.join('|'),",
       "x1np0pou",
     ),
-    (r"const a = ['a\nb'];", "content: a.join('|'),", "x38goau"),
+    (r"const a = ['a\nb'];", "content: a.join('|'),", "xav2517"),
     (
       "const a = ['a`b', 'a${x}b'];",
       "content: a.join('|'),",

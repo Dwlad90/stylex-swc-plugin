@@ -310,10 +310,10 @@ fn a_string_a_theme_reference_resolved_to_is_a_usable_receiver() {
 fn a_bound_value_that_could_not_be_printed_safely_still_folds_exactly() {
   let cases: &[(&str, &str, &str)] = &[
     // A quote and a backslash — the two characters that end or escape a literal.
-    (r#"const s = 'a"b';"#, "content: s.trim(),", "x1qt7ki0"),
+    (r#"const s = 'a"b';"#, "content: s.trim(),", "x206bxy"),
     (r"const s = 'a\\b';", "content: s.trim(),", "xyspoqz"),
     // A newline, which no single-quoted literal may contain at all.
-    (r"const s = 'a\nb';", "content: s.trim(),", "x38goau"),
+    (r"const s = 'a\nb';", "content: s.trim(),", "xav2517"),
     // A backtick and a template hole, which would only be syntax inside the
     // template literal the walk also admits.
     ("const s = 'a`b';", "content: s.trim(),", "x2xhglk"),

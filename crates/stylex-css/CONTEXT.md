@@ -30,6 +30,22 @@ never re-spelled, a trailing importance annotation belongs to every part, and an
 empty part is still a part.
 _Avoid_: token, side, segment, value fragment
 
+**Content component**:
+One member of a `content` value that is already CSS — a closed string, a closed
+function, or one of the keywords the property names, `CSS_CONTENT_KEYWORDS`.
+`transform_content_value` passes a value through only when every member is one
+of the three and at least one is a string; anything else is prose and is
+wrapped in one quoted string. Counting quote characters cannot make this
+decision, because prose carries a pair of them often enough.
+
+The scanner is the last of three checks, not the only one. A value holding the
+text of a content function anywhere in it, and a value that is one keyword
+whole, are both admitted before the scanner runs -- which is why
+`content: 'Please visit url(x) today'` is prose that passes through unquoted.
+The reference compiler admits it the same way, so this is its reach and not a
+divergence.
+_Avoid_: content part, content token, component list
+
 **Alias**:
 An authored property name that is not a CSS property but stands for one.
 `Aliases::get` is checked before `Shorthands::get`, so an alias resolves before

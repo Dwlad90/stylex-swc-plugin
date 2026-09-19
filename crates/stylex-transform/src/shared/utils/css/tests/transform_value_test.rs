@@ -107,9 +107,9 @@ mod transform_value_content_property_tests {
       // hash is then taken over.
       ("\u{2022}", "\"\u{2022}\""),
       ("\u{1F389}", "\"\u{1F389}\""),
-      // One quote character is not a pair, so the value is quoted whole rather
-      // than read as an already-quoted string.
-      ("\"unterminated", "\"\"unterminated\""),
+      // An unclosed string is not a CSS string, so the value is quoted whole
+      // and its lone quote character is escaped.
+      ("\"unterminated", "\"\\\"unterminated\""),
     ];
 
     let state_manager = StateManager::new(StyleXOptions::default());
@@ -118,6 +118,72 @@ mod transform_value_content_property_tests {
       let output = transform_value("content", &TRawValue::from(input), &state_manager);
 
       assert_eq!(output, expected, "quoting `content: {}`", input);
+    }
+  }
+
+  #[test]
+  fn adds_quotes_to_plain_strings_containing_quote_characters() {
+    let strings = vec![
+      ("Bob's and Jim's", "\"Bob's and Jim's\""),
+      ("It's a test, isn't it", "\"It's a test, isn't it\""),
+      ("He said \"hello\"", "\"He said \\\"hello\\\"\""),
+      ("say \"hi\" now", "\"say \\\"hi\\\" now\""),
+      (
+        "\"hello\" is what he said",
+        "\"\\\"hello\\\" is what he said\"",
+      ),
+    ];
+
+    let state_manager = StateManager::new(StyleXOptions::default());
+
+    for (input, expected) in strings {
+      let output = transform_value("content", &TRawValue::from(input), &state_manager);
+      assert_eq!(output, expected);
+    }
+  }
+
+  #[test]
+  fn preserves_css_escape_sequences_when_adding_quotes() {
+    let strings = vec![
+      // Inside a CSS string a backslash starts an escape sequence. `\2014` is
+      // the escape for an em dash and `\201C` for a left double quotation
+      // mark, so escaping the backslash would print the digits instead.
+      ("\\2014", "\"\\2014\""),
+      ("\\201C hello \\201D", "\"\\201C hello \\201D\""),
+      ("back\\slash", "\"back\\slash\""),
+      // `\\` is the escape for a literal backslash and stays one escape.
+      ("C:\\\\Users", "\"C:\\\\Users\""),
+      // A double quote the author already escaped is escaped once, not twice.
+      ("He said \\\"hello\\\"", "\"He said \\\"hello\\\"\""),
+      // A trailing backslash would escape the closing quote, so it is doubled
+      // into the escape for a literal backslash.
+      ("50% off \\", "\"50% off \\\\\""),
+      // A CSS string cannot hold a line break, so it is written as `\A`.
+      ("line one\nline two", "\"line one\\A line two\""),
+    ];
+
+    let state_manager = StateManager::new(StyleXOptions::default());
+
+    for (input, expected) in strings {
+      let output = transform_value("content", &TRawValue::from(input), &state_manager);
+      assert_eq!(output, expected, "quoting `content: {}`", input);
+    }
+  }
+
+  #[test]
+  fn preserves_quote_keywords_combined_with_strings() {
+    let values = vec![
+      "\"a\" \"b\"",
+      "open-quote \"hello\"",
+      "\"prefix\" no-close-quote",
+      "open-quote \"text\" close-quote",
+    ];
+
+    let state_manager = StateManager::new(StyleXOptions::default());
+
+    for input in values {
+      let output = transform_value("content", &TRawValue::from(input), &state_manager);
+      assert_eq!(output, input);
     }
   }
 

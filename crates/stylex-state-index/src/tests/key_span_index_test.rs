@@ -819,27 +819,37 @@ const styles = stylex.create({
   /// A release build clamps a position that precedes its own base instead of
   /// wrapping, because a code frame must not stop the build.
   ///
-  /// Only a release build selects this case, and **no command in this
-  /// repository builds the Rust suites in release** -- the workspace test
-  /// tasks and the coverage run are all debug, deliberately, since the fixture
-  /// suite only guards debug. So this is a case a person has to reach for:
-  ///
-  /// ```sh
-  /// cargo test --release -p stylex_state_index --lib
-  /// ```
-  ///
-  /// Kept rather than dropped because the clamp is what a release build ships,
-  /// and the debug assertion below compiles out of it. The two guard the same
-  /// input in the two profiles, and neither can run in the other's.
+  /// The clamp is what a release build ships, because the assertion in
+  /// [`FileOffset::of`] compiles out of that profile. The case reads the
+  /// arithmetic directly, so every profile runs it.
   #[test]
-  #[cfg(not(debug_assertions))]
   fn a_position_before_its_own_base_clamps_to_zero() {
     let module = module_based_at(4_096);
 
     assert_eq!(
-      FileOffset::of(BytePos(0), ModuleBase::of(&module)),
+      FileOffset::clamped(BytePos(0), ModuleBase::of(&module)),
       FileOffset::at(0)
     );
+  }
+
+  /// Splitting the arithmetic out of the assertion must not have changed the
+  /// answer, so the two agree everywhere the assertion holds -- at the base,
+  /// one past it, and at the top of the range.
+  ///
+  /// This is the whole risk the split carries. The case below it is what the
+  /// split makes reachable; this one is what it must leave alone.
+  #[test]
+  fn the_clamp_answers_what_the_asserted_reader_answers() {
+    let module = module_based_at(4_096);
+    let base = ModuleBase::of(&module);
+
+    for position in [4_096, 4_097, 4_126, u32::MAX] {
+      assert_eq!(
+        FileOffset::clamped(BytePos(position), base),
+        FileOffset::of(BytePos(position), base),
+        "the two readers disagree at {position}"
+      );
+    }
   }
 
   /// And a test build is loud about it, because clamping every candidate to

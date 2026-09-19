@@ -71,9 +71,9 @@ impl FileOffset {
   /// the "rank by earliest in the file" failure this type exists to prevent.
   ///
   /// Crate-visible rather than private so the suite beside this module can
-  /// reach both paths -- unconditionally, unlike [`Self::at`], because
-  /// production calls it. The invariant is unchanged either way: a caller still
-  /// has to supply a [`ModuleBase`], which is the whole of what the type asks.
+  /// reach it -- unconditionally, unlike [`Self::at`], because production calls
+  /// it. The invariant is unchanged either way: a caller still has to supply a
+  /// [`ModuleBase`], which is the whole of what the type asks.
   pub(crate) fn of(position: BytePos, base: ModuleBase) -> Self {
     debug_assert!(
       position >= base.0,
@@ -82,6 +82,21 @@ impl FileOffset {
       base.0
     );
 
+    Self::clamped(position, base)
+  }
+
+  /// The arithmetic [`Self::of`] performs once its invariant holds.
+  ///
+  /// Separate from the assertion so that every profile can test the answer a
+  /// release build gives. The assertion compiles out of release, so a debug
+  /// case that called [`Self::of`] with a position below the base would panic
+  /// rather than read the clamp, and the clamp is the shipped behaviour.
+  ///
+  /// Call [`Self::of`], not this. This one skips the invariant, and an offset
+  /// taken with the invariant skipped is the "rank by earliest in the file"
+  /// failure the type exists to prevent. It is crate-visible only because the
+  /// suite sits in a sibling module and cannot reach a private item.
+  pub(crate) fn clamped(position: BytePos, base: ModuleBase) -> Self {
     Self(position.0.saturating_sub(base.0.0))
   }
 

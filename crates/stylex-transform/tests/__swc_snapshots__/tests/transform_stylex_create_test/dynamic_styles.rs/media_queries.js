@@ -6,7 +6,7 @@ _inject2({
     priority: 4000
 });
 _inject2({
-    ltr: "@media (min-width: 1000px) and (max-width: 1999.99px){.x38mdg9.x38mdg9{width:var(--x-wm47pl)}}",
+    ltr: "@media (min-width: 1000px) and (max-width: 1999.98px){.xwr9iet.xwr9iet{width:var(--x-wm47pl)}}",
     priority: 4200
 });
 _inject2({
@@ -28,7 +28,7 @@ _inject2({
 export const styles = {
     root: (a, b, c)=>[
             {
-                kzqmXN: "x11ymkkh " + "x38mdg9 " + (c != null ? "x1bai16n" : c),
+                kzqmXN: "x11ymkkh " + "xwr9iet " + (c != null ? "x1bai16n" : c),
                 $$css: true
             },
             {

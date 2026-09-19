@@ -80,7 +80,8 @@ use swc_core::{
 
 use crate::growable_stack;
 use stylex_constants::constants::evaluation_errors::{
-  expression_too_deep, nesting_too_deep_to_carry, uncallable_printed_fold,
+  BLOCKED_PROPERTY_ACCESS, escaping_property, expression_too_deep, nesting_too_deep_to_carry,
+  uncallable_printed_fold,
 };
 
 use crate::state::EvaluationState;
@@ -212,37 +213,90 @@ fn lists(list: &[&str], name: &str) -> bool {
 /// and `bind` are what turn an unapplied function back into a call, so they are
 /// refused with it.
 ///
-/// Four names and not five: `__proto__` reaches the same prototype and is left
-/// out, because the step *after* it is one of these four. `s.__proto__` alone
-/// holds nothing a stylesheet can use, and `s.__proto__.constructor` is refused
-/// here as `s.constructor` is -- so the chain is cut either way, and the list
-/// stays the set of reads that reach a callable in one step.
+/// Four names: the reads that reach a callable in one step. `__proto__` and
+/// `prototype` reach the same graph one step earlier and are refused by
+/// [`BLOCKED_PROPERTIES`] instead, which is asked second so that
+/// `constructor` keeps the sentence written for it here.
 pub(super) const ESCAPING_PROPERTIES: [&str; 4] = ["constructor", "call", "apply", "bind"];
 
-/// The escaping property a read spells, or `None` where it spells some other
-/// property.
+/// Property names that step onto the prototype chain of the value that was
+/// written.
+///
+/// `({}).__proto__` is `Object.prototype`, whose `constructor` is `Object`,
+/// whose `constructor` is `Function`. Refusing the first step closes the chain
+/// at its root rather than at the callable it ends in, and it makes the
+/// compiler answer these reads the way the reference implementation does.
+///
+/// `constructor` is in this set and in [`ESCAPING_PROPERTIES`]. Escaping is
+/// asked first at every call site, so a read of `constructor` keeps the
+/// sentence it already had and no author sees a message change. In practice
+/// this set is reached by `__proto__` and `prototype` only.
+///
+/// This is about a property *read*. `__proto__` written as an object-literal
+/// key is a different thing -- it sets a prototype rather than reading one --
+/// and it folds here as it folds in the reference implementation.
+pub(super) const BLOCKED_PROPERTIES: [&str; 3] = ["constructor", "__proto__", "prototype"];
+
+/// The property name a read spells, or `None` where the syntax spells no name.
+///
+/// A key written as a string is answered too, because `x['constructor']` spells
+/// the read `x.constructor` spells. A private name is grammatical only inside a
+/// class body, which no value a fold carries has.
+///
+/// A key the syntax does not spell out is not a name this reader can answer,
+/// and it is not therefore a key no rule reads: the dispatch below the fold
+/// asks the rules a second time, on the name the key *resolves* to. This
+/// reader is the syntactic half of the question only.
+pub(super) fn member_prop_name(prop: &MemberProp) -> Option<&str> {
+  match prop {
+    MemberProp::Ident(name) => Some(name.sym.as_str()),
+    MemberProp::Computed(key) => match key.expr.as_ref() {
+      Expr::Lit(Lit::Str(text)) => text.value.as_str(),
+      _ => None,
+    },
+    MemberProp::PrivateName(_) => None,
+  }
+}
+
+/// Whether a property *name* steps onto the prototype chain.
+///
+/// The membership on its own, for the reader that holds a key it has already
+/// resolved and coerced rather than a piece of syntax.
+pub(super) fn is_a_blocked_property(name: &str) -> bool {
+  lists(&BLOCKED_PROPERTIES, name)
+}
+
+/// The words a read of `name` is refused with, or `None` where the name is one
+/// a fold may read.
+///
+/// The two property rules in the order they are asked, in one place. Escaping
+/// is asked first so that `constructor` -- which both sets hold -- keeps the
+/// sentence written for it, and a third rule would be added here rather than at
+/// each of the four sites that ask.
 ///
 /// Shared with the dispatch below the fold, because a read of one of these
 /// names is refused whether or not a call is around it: `s.constructor.name` is
 /// no more foldable than `s.constructor.constructor('…')()`, and an author who
 /// wrote the first would otherwise be told only that a property could not be
 /// determined.
-///
-/// A key written as a string is answered too, because `x['constructor']` spells
-/// the read `x.constructor` spells. A key whose value cannot be read here is
-/// not one of these: what such a read can reach is a function, which is refused
-/// on the way out and cannot be applied on the way in.
-pub(super) fn escaping_property_named(prop: &MemberProp) -> Option<&str> {
-  let name = match prop {
-    MemberProp::Ident(name) => name.sym.as_str(),
-    MemberProp::Computed(key) => match key.expr.as_ref() {
-      Expr::Lit(Lit::Str(text)) => text.value.as_str()?,
-      _ => return None,
-    },
-    MemberProp::PrivateName(_) => return None,
-  };
+pub(super) fn refusal_for_a_property_name(name: &str) -> Option<Refusal> {
+  if lists(&ESCAPING_PROPERTIES, name) {
+    return Some(escaping_property(name).into());
+  }
 
-  lists(&ESCAPING_PROPERTIES, name).then_some(name)
+  if is_a_blocked_property(name) {
+    return Some(BLOCKED_PROPERTY_ACCESS.into());
+  }
+
+  None
+}
+
+/// The same, for a read that is still syntax rather than a resolved name.
+///
+/// One reading of the property, where asking the two rules separately read it
+/// twice.
+pub(super) fn refusal_for_a_property_read(prop: &MemberProp) -> Option<Refusal> {
+  member_prop_name(prop).and_then(refusal_for_a_property_name)
 }
 
 /// The words a [refused fold](../../../../../CONTEXT.md) hands the caller,
@@ -466,10 +520,14 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
             // below reads *own* keys, so a marker on the answer's prototype is
             // never read again and the throw is never met a second time. The
             // answer would fold to an empty object and the declaration would be
-            // dropped with nothing said. A module reaches that — a callback body
-            // is not analysed, so it can hand back
-            // `Object.create(Object.create(null, { __IS_PROXY: { get: () => null.x } }))`
-            // — which is the case `guarded_walk_tests` pins.
+            // dropped with nothing said.
+            //
+            // No source builds such an answer now -- the statics that put a
+            // marker on a prototype are outside the allowlist, in a callback
+            // body as much as written out -- so the throw itself is asked of the
+            // marker reader directly, in `var_group_tests`. The refusal is
+            // carried here because the reader is total over the value it is
+            // given, not because a module can still reach it.
             if walk.carried_a_theme_reference()
               && is_a_var_group(&value, method, &mut engine.context)?
             {
@@ -544,8 +602,8 @@ fn apply(
 mod engine_reads;
 
 #[cfg(test)]
-#[path = "tests/escaping_property_tests.rs"]
-mod escaping_property_tests;
+#[path = "tests/property_read_rules_tests.rs"]
+mod property_read_rules_tests;
 
 // What the printed expression comes to once the carried values are passed to
 // it, asked directly because both refusals are shapes no source prints.
@@ -557,3 +615,8 @@ mod applied_fold_tests;
 #[cfg(test)]
 #[path = "tests/unwritable_pattern_tests.rs"]
 mod unwritable_pattern_tests;
+
+// The prototype-chain rule, asked over the spellings an escape is written with.
+#[cfg(test)]
+#[path = "tests/prototype_chain_escape_tests.rs"]
+mod prototype_chain_escape_tests;

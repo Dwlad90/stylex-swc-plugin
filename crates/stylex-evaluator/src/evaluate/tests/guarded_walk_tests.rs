@@ -16,6 +16,7 @@ use super::source_evaluation::*;
 use std::rc::Rc;
 use stylex_constants::constants::evaluation_errors::{
   expression_too_deep, global_as_a_value, unbounded_amplified_length, unfoldable_function,
+  unfoldable_static,
 };
 use stylex_state::{
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
@@ -363,22 +364,19 @@ fn a_conditional_over_a_value_with_no_truthiness_is_not_claimed() {
   assert_refused(&evaluated_after(UNRESOLVED_MEMO_WARM, source), source);
 }
 
-/// A marker read that throws refuses, rather than folding the answer as though
-/// it were an ordinary object.
+/// A shape that would hide a throwing marker on the answer's prototype is
+/// refused before the engine sees it, rather than folded to an empty object.
 ///
-/// The marker sits on the *prototype* of the answer, so the own-key walk that
-/// writes the object back out never reads it and never meets the throw a second
-/// time. Read as "not a group", the answer folded to an empty object and the
+/// The defect this case exists for: the marker sits on the *prototype* of the
+/// answer, so the own-key walk that writes the object back out never reads it.
+/// Read as "not a group", the answer folded to an empty object and the
 /// declaration was dropped with nothing said.
 ///
-/// A module reaches this. A callback body is not analysed — the engine parses
-/// it — so the body can build the shape even though the walk would refuse it
-/// written out. The getter throws without a `throw` statement, which a body may
-/// not use: a member read on `null` is the shortest spelling of one.
-///
-/// The tail matters. It has to leave the object itself as the answer, because
-/// that is where the marker is read; a tail that answers the array holding it
-/// reads the marker off the array instead.
+/// The shape needs a reflective static to build, and those are now outside the
+/// allowlist -- in a callback body as much as written out, because the walk
+/// reads a body's statements like any other value. So the defect is closed one
+/// step earlier, and the case pins the rule that closes it. The throw itself is
+/// asked of the marker reader directly, in `var_group_tests`.
 #[test]
 fn a_marker_read_that_throws_refuses_rather_than_folding_an_empty_object() {
   let fns = a_module_importing_a_group();
@@ -396,13 +394,11 @@ fn a_marker_read_that_throws_refuses_rather_than_folding_an_empty_object() {
       source, result.value
     );
 
-    let reason = result.reason.unwrap_or_default();
-
-    assert!(
-      reason.contains("TypeError"),
-      "`{}` must refuse in the engine's own words, got {:?}",
-      source,
-      reason
+    assert_eq!(
+      result.reason.as_deref(),
+      Some(unfoldable_static("Object", "create").as_str()),
+      "the refusal for `{}`",
+      source
     );
   }
 }

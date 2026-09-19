@@ -764,7 +764,10 @@ stands, none of them written down anywhere here. Which surfaces belong is not a
 choice either: the namespaces are exactly the compiler's `VALID_CALLEES` —
 read out of the Rust source and asserted, so a sixth callee added there and not
 here fails rather than going unswept — and the prototypes are the ones a value
-crossing the fold's bridge can have. Each is
+crossing the fold's bridge can have. The sweep asks every static those
+namespaces carry, including the ones the compiler's per-namespace allowlists
+hold back: a refused static still produces a row, and an account is what says
+the refusal is not news. Each is
 asked in **both shapes**, which is the question this whole effort turned on: a
 prototype method on a receiver written out and on the same receiver held by a
 name, and a namespace method on arguments written out and on the same arguments
@@ -889,8 +892,11 @@ compiler moved, is on the screen rather than in a re-run.
 
 ## Checking a future upstream release
 
-1. Bump `@stylexjs/babel-plugin` in this package's `devDependencies` and
-   `pnpm install`.
+1. Bump `@stylexjs/babel-plugin` in the `runtime` catalog of
+   `pnpm-workspace.yaml`, then `pnpm install`. This directory declares no
+   dependencies of its own: it resolves the plugin from `stylex-rs-compiler`,
+   whose `devDependencies` entry is `catalog:runtime`. A catalog pin can only
+   be moved in the workspace file.
 2. Rebuild the compiler, then run
    `pnpm parity --json parity/results/<version>.json`.
 3. The printed subject block states both versions, so a report is always

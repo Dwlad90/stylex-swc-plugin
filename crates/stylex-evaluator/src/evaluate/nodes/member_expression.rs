@@ -1,9 +1,8 @@
-use super::super::engine_fold::escaping_property_named;
+use super::super::engine_fold::{refusal_for_a_property_name, refusal_for_a_property_read};
 use super::super::*;
 use stylex_ast::ast::convertors::{
   atom_utf16_char_at, atom_utf16_length, convert_member_prop_to_string, normalize_expr,
 };
-use stylex_constants::constants::evaluation_errors::escaping_property;
 use stylex_state::evaluate_result_value::string_key_of_expr;
 use swc_core::ecma::ast::MemberExpr;
 
@@ -376,8 +375,8 @@ pub(in super::super) fn evaluate(
   // read with no call around it is no safer than one with. Answered before the
   // receiver is evaluated, for the reason the fold's own walk answers it first —
   // the name decides it, and no receiver could make it safe.
-  if let Some(escaping) = escaping_property_named(&member.prop) {
-    return deopt(path, state, &escaping_property(escaping));
+  if let Some(refusal) = refusal_for_a_property_read(&member.prop) {
+    return deopt(path, state, &refusal);
   }
 
   let parent_is_call_expr = traversal_state.is_member_call_callee(member);
@@ -483,6 +482,36 @@ pub(in super::super) fn evaluate(
       let Some(property) = property else {
         deopt_unsupported!(deopt, path, state, PROPERTY_NOT_FOUND);
       };
+
+      // The property rules again, now on the name the key *resolves* to rather
+      // than the name it was written as. The rule at the top of this function
+      // reads syntax, so it answers `x.constructor` and `x['constructor']` and
+      // nothing else; a key built at compile time -- `x['const' + 'ructor']`,
+      // or a key held in a name -- spells the same read and has to be refused
+      // the same way.
+      //
+      // A key boxed with `Object(...)` spells it too and never arrives: an
+      // object is not a value the engine hands back, so that one refuses a step
+      // earlier for a reason of its own.
+      //
+      // Asked of a computed key only. A key written as a name was read by the
+      // syntax rule above and resolves to the text it already is, so asking
+      // again would name a string per dotted read to learn what the first rule
+      // answered. That is the whole of the cost: a dotted read is the common
+      // shape, and it now pays nothing here.
+      //
+      // A key that names no property is left to the readers below, which answer
+      // `undefined` for it as the language does.
+      //
+      // A symbol key cannot arrive here: a symbol is refused on the way out of
+      // the engine, so no fold hands one back to be coerced.
+      if matches!(prop_path, MemberProp::Computed(_))
+        && let Some(refusal) = property_name(&property)
+          .as_deref()
+          .and_then(refusal_for_a_property_name)
+      {
+        return deopt(path, state, &refusal);
+      }
 
       match object {
         EvaluateResultValue::Expr(expr) => match &expr {

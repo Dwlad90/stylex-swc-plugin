@@ -700,6 +700,19 @@ fn dimension_constraint<'a>(
 /// bounds, so they read one constant rather than three copies of it.
 const EPSILON: f64 = 0.01;
 
+/// The nudge a negated `min-width` in pixels takes instead of [`EPSILON`].
+///
+/// One case and one number, and the reference implementation carries the same
+/// pair. `not (min-width: 100px)` becomes `max-width: 99.98px` where every
+/// other negated bound moves by a hundredth. The wider step clears the device
+/// pixel ratios a browser rounds a `width` to, which a hundredth does not: at a
+/// ratio of 1.5 a viewport reports `99.99px`, which `max-width: 99.99px` still
+/// matches and the author asked it not to.
+///
+/// Only width, and only pixels. A `height` is not rounded the same way, and a
+/// relative unit is resolved before it is compared.
+const MAX_WIDTH_EPSILON: f64 = 0.02;
+
 /// The interval a single constraint imposes on its dimension.
 ///
 /// The bounds this returns are not a private comparison aid: `merge_dimension`
@@ -721,14 +734,28 @@ const EPSILON: f64 = 0.01;
 /// `Length` holds an `f64`, so both halves come from the type rather than
 /// from a conversion here. This function is where the reasoning lives, not
 /// where the width is established.
-fn constraint_interval(bound: Bound, length: &Length, negated: bool) -> (f64, f64) {
+fn constraint_interval(
+  bound: Bound,
+  dimension: &str,
+  length: &Length,
+  negated: bool,
+) -> (f64, f64) {
   let value = length.value;
+
+  // A negated `min-width` in pixels steps by the wider nudge. The dimension and
+  // the unit both have to match, so the name is read here rather than left to
+  // the caller.
+  let negated_min_step = if dimension == "width" && length.unit.eq_ignore_ascii_case("px") {
+    MAX_WIDTH_EPSILON
+  } else {
+    EPSILON
+  };
 
   // A negated `min-` bound is a `max-` bound just below it, and vice versa.
   match (bound, negated) {
     (Bound::Min, false) => (value, f64::INFINITY),
     (Bound::Max, false) => (f64::NEG_INFINITY, value),
-    (Bound::Min, true) => (f64::NEG_INFINITY, value - EPSILON),
+    (Bound::Min, true) => (f64::NEG_INFINITY, value - negated_min_step),
     (Bound::Max, true) => (value + EPSILON, f64::INFINITY),
   }
 }
@@ -987,7 +1014,10 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
         continue;
       };
 
-      state.push(constraint_interval(bound, length, negated), &length.unit);
+      state.push(
+        constraint_interval(bound, dim, length, negated),
+        &length.unit,
+      );
 
       mergeable = true;
       break;

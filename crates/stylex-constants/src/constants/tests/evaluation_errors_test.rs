@@ -1,7 +1,7 @@
 //! Tests for evaluation error message functions and static constants.
 
 use crate::constants::{
-  common::{INVALID_METHODS, VALID_CALLEES, VALUE_ONLY_GLOBALS},
+  common::{VALID_CALLEES, VALUE_ONLY_GLOBALS},
   evaluation_errors::*,
 };
 
@@ -76,6 +76,21 @@ fn test_static_constants() {
   assert!(!NON_CONSTANT.is_empty());
   assert!(!UNDEFINED_CONST.is_empty());
   assert!(!OBJECT_METHOD.is_empty());
+  assert!(!BLOCKED_PROPERTY_ACCESS.is_empty());
+}
+
+/// The sentence a read onto the prototype chain hands an author, asserted word
+/// for word because it is a fixed one.
+#[test]
+fn test_blocked_property_access() {
+  assert_eq!(
+    BLOCKED_PROPERTY_ACCESS,
+    concat!(
+      "Access to this property is not allowed during compilation.\n",
+      "Accessing prototype-chain properties such as 'constructor', '__proto__', or 'prototype'\n",
+      "is blocked to prevent arbitrary code execution.\n"
+    )
+  );
 }
 
 // The refusals a fold hands an author when it declines a call. Each names the
@@ -357,9 +372,17 @@ fn test_unfoldable_static() {
     unfoldable_static("Object", "assign"),
     unfoldable_static("Math", "assign")
   );
-  // Every name the compiler refuses by name gets a sentence that names it, so
-  // the set and the message can never drift apart.
-  for method in INVALID_METHODS.iter() {
+  // The sentence names the receiver with the method whatever the method is.
+  // A literal list rather than a set: the statics this sentence answers for are
+  // every name the allowlists do not hold, which is the whole language and no
+  // set to iterate. These five are the ones a module reaches.
+  for method in [
+    "assign",
+    "defineProperty",
+    "freeze",
+    "seal",
+    "preventExtensions",
+  ] {
     assert!(unfoldable_static("Object", method).contains(&format!("'Object.{}'", method)));
   }
   // Opens with the same line as every other refusal a fold hands back, so one

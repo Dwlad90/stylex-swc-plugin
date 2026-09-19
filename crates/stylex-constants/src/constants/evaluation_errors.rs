@@ -214,12 +214,18 @@ pub fn locale_sensitive_method(method: &str) -> String {
 /// A static of one of the globals whose surface the engine owns, named in the
 /// set the compiler refuses by name.
 ///
-/// The set is `INVALID_METHODS`, and every name in it breaks the one property a
-/// fold rests on: `Math.random` answers a different number each time it is
-/// asked, so the class name hashed from it would move between builds, and
-/// `Object.freeze` and the rest answer by changing the value they were handed
-/// rather than by computing one. Folding either writes a declaration the source
-/// does not describe.
+/// The statics a fold may call are listed per global, and a call this sentence
+/// answers for is one the list does not hold. Every static outside the list
+/// breaks a property a fold rests on: `Math.random` answers a different number
+/// each time it is asked, so a class name hashed from it would move between
+/// builds, and `Object.freeze` and the rest answer by changing the value they
+/// were handed rather than by computing one. Folding either writes a
+/// declaration the source does not describe.
+///
+/// The reflective statics -- `getPrototypeOf`, `create` and the rest -- read
+/// the same sentence. They answer the same thing on every build, so "does not
+/// answer from the source alone" is a loose fit for them; one sentence is
+/// carried anyway, because a second would be a second table to keep.
 ///
 /// Names the receiver with the method — `Object.assign` rather than `assign` —
 /// because on a static the receiver is the half that disambiguates: `assign` and
@@ -470,6 +476,29 @@ pub fn engine_did_not_start(message: &str) -> String {
 pub fn engine_threw(method: &str, message: &str) -> String {
   cannot_fold(method, message)
 }
+
+/// A read of a property that steps onto the prototype chain.
+///
+/// `__proto__` and `prototype` reach the language's function graph one step
+/// before `constructor` does, so a read of either is refused wherever it is
+/// written. `constructor` is named in the sentence as an example, although a
+/// read of that name is answered by [`escaping_property`] first -- the two
+/// rules overlap on it by design, and the sentence reads as a list of what is
+/// blocked rather than as a claim about which rule fired.
+///
+/// A `__proto__` written as an object-literal *key* is not this: it sets a
+/// prototype rather than reading one, and it folds.
+///
+/// The only sentence here that is not built by [`cannot_fold`], and the only
+/// one whose line breaks are written in. Both are deliberate: the reference
+/// implementation words this refusal the same way, so the two compilers answer
+/// such a read with one text rather than two, and the parity corpus records
+/// that agreement. Re-wrapping the lines would end it.
+pub static BLOCKED_PROPERTY_ACCESS: &str = concat!(
+  "Access to this property is not allowed during compilation.\n",
+  "Accessing prototype-chain properties such as 'constructor', '__proto__', or 'prototype'\n",
+  "is blocked to prevent arbitrary code execution.\n"
+);
 
 /// A named property read that leads off the value the author wrote.
 ///

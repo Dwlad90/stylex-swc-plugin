@@ -4705,7 +4705,7 @@ mod style_value_parser_at_queries {
       let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
       assert_eq!(
         parsed.to_string(),
-        "@media (min-width: 200.01px) and (max-width: 399.99px)"
+        "@media (min-width: 200.01px) and (max-width: 399.98px)"
       );
     }
 

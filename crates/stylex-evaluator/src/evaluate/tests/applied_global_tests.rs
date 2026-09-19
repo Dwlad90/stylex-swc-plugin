@@ -143,6 +143,21 @@ fn the_conversions_compose() {
   assert_folds_to_string("Array(\"a\", \"b\").join(\"-\")", "a-b");
 }
 
+/// An applied global and a static compose in either order.
+///
+/// One expression, two names — the receiver `Math`, and the callee `Number` of
+/// an argument. The fold guard answers each by its own name, so neither needs a
+/// value the surrounding environment supplies.
+#[test]
+fn an_applied_global_and_a_static_compose_in_either_order() {
+  assert_folds_to_number("Math.max(Number(1), Number(2))", 2.0);
+  // A hexadecimal string is the conversion's own grammar, so `31` shows the
+  // argument folded before the static read it.
+  assert_folds_to_number("Math.max(Number(\"0x1f\"), 2)", 31.0);
+  // The other order: the static's answer as the argument.
+  assert_folds_to_number("Number(Math.max(1, 2))", 2.0);
+}
+
 // ==================== what the guard refuses ====================
 
 /// A global that only contributes methods is not a function, and the refusal

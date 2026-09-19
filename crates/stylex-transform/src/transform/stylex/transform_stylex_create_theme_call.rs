@@ -24,8 +24,8 @@ use crate::{
     },
   },
   transform::stylex::visitor_utils::{
-    apply_unstable_conditional, insert_stylex_identifier_entry, register_stylex_helper,
-    register_stylex_identifier,
+    apply_unstable_conditional, insert_stylex_identifier_entry, register_env_in_namespace_fold,
+    register_stylex_helper, register_stylex_identifier,
   },
 };
 use stylex_constants::constants::{
@@ -92,6 +92,11 @@ where
       apply_unstable_conditional(&self.state, &mut function_map);
 
       self.state.apply_stylex_env(&mut function_map);
+
+      // `env` is carried in the fold for the same reason `types` is: the
+      // namespace is a value in this map, so a fold one key short is an object
+      // that does not say what the namespace has.
+      register_env_in_namespace_fold(&self.state, &mut function_map);
 
       let function_map: Box<FunctionMap> = Box::new(function_map);
 

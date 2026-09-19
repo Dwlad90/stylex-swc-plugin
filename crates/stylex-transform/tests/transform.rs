@@ -19,6 +19,7 @@ mod transform_stylex_define_consts_test;
 mod transform_stylex_define_marker_test;
 mod transform_stylex_define_vars_nested_test;
 mod transform_stylex_define_vars_test;
+mod transform_stylex_env_test;
 mod transform_stylex_keyframes_test;
 mod transform_stylex_position_try_test;
 mod transform_stylex_stylex_props_test;

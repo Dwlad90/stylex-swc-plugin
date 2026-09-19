@@ -1,0 +1,18 @@
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
+var _inject2 = _inject;
+import * as stylex from '@stylexjs/stylex';
+_inject2({
+    ltr: "@keyframes xm0x84f-B{from{color:#123456;}}",
+    priority: 0
+});
+export const fadeIn = "xm0x84f-B";
+_inject2({
+    ltr: ".x1tfn4g9{color:#123456}",
+    priority: 3000
+});
+export const styles = {
+    root: {
+        kMwMTN: "x1tfn4g9",
+        $$css: true
+    }
+};

@@ -278,6 +278,90 @@ fn holey_receiver_elems(obj: &Expr) -> Option<&[Option<ExprOrSpread>]> {
     .then_some(elems.as_slice())
 }
 
+/// The entries the function map holds for a StyleX namespace this name stands
+/// for, or `None` where the name stands for something else.
+///
+/// The namespace name itself is registered as a value only where a `create`
+/// call sets its evaluation up. Every other call leaves it unregistered so that
+/// a bare `stylex` written where a static value belongs refuses instead of
+/// materializing into an object, which is why what the namespace *has* is asked
+/// for here rather than what it *is*.
+///
+/// A name the map binds as a value wins, as it does everywhere else: a dynamic
+/// style's parameter named `stylex` is the parameter, and reading the import
+/// through it would fold a value the language says is the argument's.
+fn namespace_entries<'a>(
+  receiver: &Ident,
+  fns: &'a FunctionMap,
+) -> Option<&'a FxHashMap<Atom, Box<FunctionConfigType>>> {
+  // Walked rather than looked up, because the key is an owned `ImportSources`
+  // and building one to ask the question would allocate on every member read.
+  // A module names one or two StyleX imports, so the walk is shorter than the
+  // allocation it replaces, and a module naming none walks nothing at all --
+  // which is why this is asked before the binding below.
+  //
+  // A regular source alone, as the callee dispatch reads it: every producer of
+  // this set records the local name a module wrote, so a named source is a key
+  // nothing puts there.
+  let entries = fns
+    .member_expressions
+    .iter()
+    .find_map(|(source, entries)| {
+      matches!(source, ImportSources::Regular(name) if name.as_str() == receiver.sym.as_str())
+        .then(|| entries.as_ref())
+    })?;
+
+  if fns.identifiers.contains_key(&receiver.sym) {
+    return None;
+  }
+
+  Some(entries)
+}
+
+/// The environment object a namespace member read names.
+///
+/// `stylex.env.<name>` reads two members, and the second is read off whatever
+/// the first answers. Reading the entry off the namespace's own entries answers
+/// `stylex.env` in every call that registers one, and leaves the bare name
+/// refusing.
+///
+/// Only an environment entry is answered here. Every other entry a namespace
+/// carries stands for a helper, and what a helper read off a namespace folds to
+/// is the arms below's question -- answering it here would change it.
+fn namespace_env_object(
+  member: &MemberExpr,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> Option<EvaluateResultValue> {
+  let receiver = normalize_expr(&member.obj).as_ident()?;
+  let entries = namespace_entries(receiver, fns)?;
+
+  let key = match &member.prop {
+    // Taken as the interned name it already is. This is the spelling nearly
+    // every read uses, and the round trip through `String` would be paid on
+    // every member expression the evaluator folds.
+    MemberProp::Ident(ident) => ident.sym.clone(),
+    // A computed key names what it holds, so `stylex[key]` resolves the entry
+    // `stylex.env` resolves where `key` holds `"env"`. Read only once the
+    // receiver is known to name a namespace, so nothing else pays for it.
+    //
+    // A key that refuses records its refusal on `state` and leaves this read
+    // with nothing. That is the reason it is read here and not earlier: the
+    // walk below is handed a state that already says why, and reports the key
+    // rather than the member expression around it.
+    MemberProp::Computed(ComputedPropName { expr, .. }) => Atom::from(property_name(
+      &evaluate_cached(expr, state, traversal_state, fns)?,
+    )?),
+    MemberProp::PrivateName(_) => return None,
+  };
+
+  match entries.get(&key)?.as_ref() {
+    FunctionConfigType::EnvObject(env_map) => Some(EvaluateResultValue::EnvObject(env_map.clone())),
+    _ => None,
+  }
+}
+
 pub(in super::super) fn evaluate(
   member: &MemberExpr,
   state: &mut EvaluationState,
@@ -301,6 +385,13 @@ pub(in super::super) fn evaluate(
   let evaluated_value = if parent_is_call_expr {
     None
   } else {
+    // Answered by name, ahead of every reading that evaluates the receiver:
+    // the namespace this reads off is deliberately not a value in most calls,
+    // so evaluating it first would refuse the read before it is recognised.
+    if let Some(env_object) = namespace_env_object(member, state, traversal_state, fns) {
+      return Some(env_object);
+    }
+
     // A hole is answered from the source, ahead of a receiver that will refuse
     // for it. A spread still refuses, through the same `written_slot_count` the
     // arms below use -- one written element standing for however many the spread
@@ -321,8 +412,14 @@ pub(in super::super) fn evaluate(
     // paying for a speculative `evaluate_cached` that can never produce a
     // ThemeRef and may early-deopt via `state.confident` for unrelated deep
     // member accesses.
+    //
+    // A StyleX namespace is not a theme reference, and asking for its value is
+    // what makes the chain refuse: the name is deliberately bound to nothing in
+    // every call but `create`, so the read below answers it off the namespace's
+    // entries instead.
     if let Some((base_path, parts)) = get_full_member_path(member)
-      && theme_ref_base(&base_path).is_some()
+      && let Some(base_ident) = theme_ref_base(&base_path)
+      && namespace_entries(base_ident, fns).is_none()
     {
       let base_object = evaluate_cached(&base_path, state, traversal_state, fns);
 

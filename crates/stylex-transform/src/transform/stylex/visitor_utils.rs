@@ -68,14 +68,21 @@ pub(crate) fn insert_stylex_identifier_entry(
 /// reach the helper, which is the dependency the other way round from every
 /// other pair in this crate.
 ///
-/// Apart from `StateManager::apply_stylex_env`, and called only where a `create`
-/// call sets its evaluation up, because this is the one registration that
-/// makes a *bare* namespace reference resolve. The other calls that build a
-/// function map — `keyframes`, `positionTry`, `viewTransitionClass`,
-/// `defineConsts` — deliberately leave the namespace name unregistered so a
-/// bare `stylex` written where a static value belongs refuses rather than
-/// materializing into an object and dropping the declaration silently. Adding
-/// the entry there too flipped four of those refusals into silent drops.
+/// Apart from `StateManager::apply_stylex_env`, and called only where the
+/// namespace name is a value of the map already: `create`, `defineVars` and
+/// `createTheme` each bind the name to a fold, and an `env` the fold does not
+/// hold is an object one key short of what the namespace has.
+///
+/// The calls that leave the name unregistered — `keyframes`, `positionTry`,
+/// `viewTransitionClass`, `defineConsts` — are left alone, so a bare `stylex`
+/// written where a static value belongs refuses rather than materializing into
+/// an object and dropping the declaration silently. Adding the entry there too
+/// flipped four of those refusals into silent drops.
+///
+/// What those calls lose by that is nothing: `stylex.env.<name>` folds in all
+/// of them, because the evaluator reads the two-level member off the
+/// namespace's member entries — which `apply_stylex_env` registers for every
+/// map — rather than off the namespace as a value.
 ///
 /// Registered whether or not the option is set. `env` is a key of the StyleX
 /// namespace however the compiler is configured, so an unset option is
@@ -174,8 +181,8 @@ fn build_rule_call_eval_config(state: &StateManager, helpers: RuleCallHelpers) -
 /// marker is a compiled object rather than a function, and it is registered the
 /// same way.
 ///
-/// The namespace name itself stays unregistered, for the reason
-/// [`register_env_in_namespace_fold`] gives.
+/// The namespace name itself stays unregistered here. Which maps bind it, and
+/// why the rest do not, is what [`register_env_in_namespace_fold`] says.
 pub(crate) fn register_stylex_helper(
   state: &StateManager,
   function_map: &mut FunctionMap,
@@ -258,6 +265,12 @@ pub(crate) fn build_eval_config(state: &mut StateManager) -> FunctionMap {
 
   apply_unstable_conditional(state, &mut function_map);
   state.apply_stylex_env(&mut function_map);
+
+  // The namespace is a value in this map already -- the fold above binds the
+  // name -- so `env` belongs in the fold beside `types`. Without it a bare
+  // `stylex` here stands for an object one key short of what it has, and
+  // `Object.keys(stylex)` says so.
+  register_env_in_namespace_fold(state, &mut function_map);
 
   function_map
 }

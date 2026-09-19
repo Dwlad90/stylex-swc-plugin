@@ -453,9 +453,13 @@ it, which is why the map cannot be keyed by binding.
 
 The map holds the StyleX API surface reachable off one namespace, which is not
 all functions: `when` is a config and `env` is an object of the `env` option's
-entries. `env` is registered into the fold only where a `create` call sets its
-evaluation up, so a bare `stylex` written where a static value belongs refuses
-rather than materializing and dropping the declaration.
+entries. `env` is registered into the fold only where the namespace name is a
+value of the map already -- `create`, `defineVars` and `createTheme`. The calls
+that bind no such name keep it unbound, so a bare `stylex` written where a
+static value belongs refuses rather than materializing and dropping the
+declaration. `stylex.env.<name>` folds in those calls all the same: the
+two-level read is answered off the namespace's member entries rather than off
+the namespace as a value.
 
 The fold carries no expression form, so every position needing one
 **materializes** it as the object it stands for — its keys, each carrying a

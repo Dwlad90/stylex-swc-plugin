@@ -125,6 +125,18 @@ function nestedNodeModulesExcludeFor(includePattern: string): string | null {
  */
 type BuilderConfig = Omit<StyleXPluginOption, 'rsOptions'> & { rsOptions: StyleXOptions };
 
+/**
+ * A file that this build must read. The record holds the key of the file in the
+ * mtime map, the full path, and the mtime that the build saw when it selected
+ * the file. The build keeps these together. Then it can write the mtime to the
+ * map after it reads the file, and not before.
+ */
+interface PendingFile {
+  readonly file: string;
+  readonly filePath: string;
+  readonly mtimeMs: number;
+}
+
 // Creates a builder for transforming files and bundling StyleX CSS.
 function createBuilder() {
   let config: BuilderConfig | null = null;
@@ -239,7 +251,7 @@ function createBuilder() {
     };
 
     const files = getFiles();
-    const filesToTransform = [];
+    const filesToTransform: PendingFile[] = [];
 
     // Remove deleted files since the last build
     for (const file of fileModifiedMap.keys()) {
@@ -261,8 +273,7 @@ function createBuilder() {
         continue;
       }
 
-      fileModifiedMap.set(file, mtimeMs);
-      filesToTransform.push(file);
+      filesToTransform.push({ file, filePath, mtimeMs });
     }
 
     // Copy rather than mutate. `rsOptions` comes from `getConfig()`, so it is
@@ -276,20 +287,24 @@ function createBuilder() {
     delete (compilerOptions as { include?: unknown }).include;
     delete (compilerOptions as { exclude?: unknown }).exclude;
 
-    filesToTransform.forEach(file => {
-      const filePath = path.resolve(cwd || '/', file);
+    filesToTransform.forEach(({ file, filePath, mtimeMs }) => {
       const contents = fs.readFileSync(filePath, 'utf-8');
-      // Skip a file that mentions neither a StyleX import nor the sx prop.
-      if (!shouldProcessSource(contents, rsOptions)) {
-        return;
+      // A file with no StyleX import and no sx prop has no rules to collect.
+      if (shouldProcessSource(contents, rsOptions)) {
+        // The return value is not used. The transform has one effect that
+        // this build needs: it puts the rules on the bundler.
+        bundler.transform(filePath, contents, compilerOptions, {
+          isDev,
+          shouldSkipTransformError,
+        });
       }
 
-      // `forEach` discards return values; the transform is called for its
-      // side effect of registering rules on the bundler.
-      bundler.transform(filePath, contents, compilerOptions, {
-        isDev,
-        shouldSkipTransformError,
-      });
+      // Write the mtime only after the build finishes the file. The build read
+      // the file at this mtime, also when the file has no rules. If the build
+      // writes the mtime when it selects the file, the map records the file as
+      // unchanged before its rules reach the bundler. A transform can then
+      // fail. The next build skips a file whose rules it did not collect.
+      fileModifiedMap.set(file, mtimeMs);
     });
 
     const css = bundler.bundle(transformedOptions);

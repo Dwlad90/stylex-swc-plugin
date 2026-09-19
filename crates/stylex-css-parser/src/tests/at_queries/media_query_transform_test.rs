@@ -155,6 +155,43 @@ mod media_query_transformer {
     );
   }
 
+  /// Test: keeps Chromium from rounding generated max-width boundaries
+  #[test]
+  fn keeps_chromium_from_rounding_generated_max_width_boundaries() {
+    let original_styles = json!({
+      "color": {
+        "default": "blue",
+        "@media (min-width: 400px)": "red",
+        "@media (min-width: 600px)": "green"
+      }
+    });
+
+    let expected_styles = json!({
+      "color": {
+        "default": "blue",
+        "@media (min-width: 400px) and (max-width: 599.98px)": "red",
+        "@media (min-width: 600px)": "green"
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj
+        .into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+
+    assert_eq!(
+      serde_json::to_string(&result_json).unwrap(),
+      serde_json::to_string(&expected_styles).unwrap()
+    );
+  }
+
   /// Test: basic usage: nested query
   #[test]
   fn basic_usage_nested_query() {

@@ -691,10 +691,13 @@ fn dimension_constraint<'a>(
 ///
 /// Two callers, one number.
 ///
-/// A negated bound is the first: `not (min-width: 600px)` is
-/// `max-width: 599.99px`. A strict inequality is the second: a `width` greater
+/// A negated bound is the first: `not (min-height: 600px)` is
+/// `max-height: 599.99px`. A strict inequality is the second: a `width` greater
 /// than `400px` is `min-width: 400.01px`, and `(400px < width <= 700px)` nudges
 /// its lower bound the same way.
+///
+/// A negated `min-width` in pixels is the one bound that does not read this
+/// number. It reads [`MAX_WIDTH_EPSILON`], which is wider.
 ///
 /// Both ask how to spell "not this value" in a syntax that has only inclusive
 /// bounds, so they read one constant rather than three copies of it.

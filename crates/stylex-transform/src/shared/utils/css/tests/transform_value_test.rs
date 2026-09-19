@@ -89,38 +89,6 @@ mod transform_value_content_property_tests {
     }
   }
 
-  /// The corpus values whose only rewrite is this quoting, which reached the
-  /// pass through a whole-transform case alone -- a class name and a rule, from
-  /// which the quoting can only be inferred.
-  ///
-  /// Every expectation is what `@stylexjs/babel-plugin` emits for the same
-  /// declaration, read from a report the parity harness in
-  /// `crates/stylex-rs-compiler/parity` wrote.
-  #[test]
-  fn quotes_the_corpus_content_values() {
-    let cases = vec![
-      ("a", "\"a\""),
-      ("abc", "\"abc\""),
-      ("next", "\"next\""),
-      ("x", "\"x\""),
-      // Non-ASCII text is quoted as it stands, which is what the class-name
-      // hash is then taken over.
-      ("\u{2022}", "\"\u{2022}\""),
-      ("\u{1F389}", "\"\u{1F389}\""),
-      // An unclosed string is not a CSS string, so the value is quoted whole
-      // and its lone quote character is escaped.
-      ("\"unterminated", "\"\\\"unterminated\""),
-    ];
-
-    let state_manager = StateManager::new(StyleXOptions::default());
-
-    for (input, expected) in cases {
-      let output = transform_value("content", &TRawValue::from(input), &state_manager);
-
-      assert_eq!(output, expected, "quoting `content: {}`", input);
-    }
-  }
-
   #[test]
   fn adds_quotes_to_plain_strings_containing_quote_characters() {
     let strings = vec![
@@ -213,6 +181,38 @@ mod transform_value_content_property_tests {
         "Failed for property '{}' with value '{}': expected '{}', got '{}'",
         key, value, expected, output
       );
+    }
+  }
+
+  /// The corpus values whose only rewrite is this quoting, which reached the
+  /// pass through a whole-transform case alone -- a class name and a rule, from
+  /// which the quoting can only be inferred.
+  ///
+  /// Every expectation is what `@stylexjs/babel-plugin` emits for the same
+  /// declaration, read from a report the parity harness in
+  /// `crates/stylex-rs-compiler/parity` wrote.
+  #[test]
+  fn quotes_the_corpus_content_values() {
+    let cases = vec![
+      ("a", "\"a\""),
+      ("abc", "\"abc\""),
+      ("next", "\"next\""),
+      ("x", "\"x\""),
+      // Non-ASCII text is quoted as it stands, which is what the class-name
+      // hash is then taken over.
+      ("\u{2022}", "\"\u{2022}\""),
+      ("\u{1F389}", "\"\u{1F389}\""),
+      // An unclosed string is not a CSS string, so the value is quoted whole
+      // and its lone quote character is escaped.
+      ("\"unterminated", "\"\\\"unterminated\""),
+    ];
+
+    let state_manager = StateManager::new(StyleXOptions::default());
+
+    for (input, expected) in cases {
+      let output = transform_value("content", &TRawValue::from(input), &state_manager);
+
+      assert_eq!(output, expected, "quoting `content: {}`", input);
     }
   }
 }

@@ -17,8 +17,7 @@ mod stylex_define_vars_nested {
   fn create_test_state_manager() -> StateManager {
     let options = StyleXOptions::default()
       .with_class_name_prefix("x")
-      .with_debug(false)
-      .with_enable_debug_class_names(false);
+      .with_debug(false);
     let mut state = StateManager::new(options);
     state.export_id = Some("test/tokens.stylex.js//tokens".to_string());
     state

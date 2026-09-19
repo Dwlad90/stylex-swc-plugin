@@ -85,6 +85,7 @@ export class StyleXPluginCore {
     this.transformedOptions = {
       useLayers: useCSSLayers,
       legacyDisableLayers: rsOptions.legacyDisableLayers,
+      useLegacyClassnamesSort: rsOptions.useLegacyClassnamesSort,
       enableLTRRTLComments: rsOptions.enableLTRRTLComments,
     };
     // include/exclude filtering happens before the loader runs (module rule

@@ -16,8 +16,8 @@ fn stylex_transform_dev_debug(
     customize(
       b.with_filename(FileName::Real("/tmp/Foo.js".into()))
         .with_dev(true)
+        .with_debug(true)
         .with_enable_dev_class_names(true)
-        .with_enable_debug_class_names(true)
         .with_runtime_injection(),
     )
   })
@@ -286,7 +286,7 @@ stylex_test!(
 );
 
 stylex_test!(
-  dev_debug_classnames_for_atoms,
+  dev_classnames_and_debug_data_for_atoms,
   |tr| stylex_transform_dev_debug(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';

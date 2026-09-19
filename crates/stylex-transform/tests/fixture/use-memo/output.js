@@ -31,52 +31,52 @@ export default function Button(param) {
 _s(Button, "XPeb32THZfEWB+gFvzI8fl0TbTY=");
 _c = Button;
 _inject2({
-    ltr: ".backgroundColor-xrkmrrc{background-color:red}",
+    ltr: ".xrkmrrc{background-color:red}",
     priority: 3000
 });
 _inject2({
-    ltr: ".color-x1awj2ng{color:white}",
+    ltr: ".x1awj2ng{color:white}",
     priority: 3000
 });
 _inject2({
-    ltr: ".display-x1lliihq{display:block}",
+    ltr: ".x1lliihq{display:block}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontSize-x1j61zf2{font-size:16px}",
+    ltr: ".x1j61zf2{font-size:16px}",
     priority: 3000
 });
 _inject2({
-    ltr: ".paddingBottom-xsag5q8{padding-bottom:12px}",
+    ltr: ".xsag5q8{padding-bottom:12px}",
     priority: 4000
 });
 _inject2({
-    ltr: ".paddingLeft-x5tiur9{padding-left:20px}",
+    ltr: ".x5tiur9{padding-left:20px}",
     priority: 4000
 });
 _inject2({
-    ltr: ".paddingRight-x1s7jvk7{padding-right:20px}",
+    ltr: ".x1s7jvk7{padding-right:20px}",
     priority: 4000
 });
 _inject2({
-    ltr: ".paddingTop-xz9dl7a{padding-top:12px}",
+    ltr: ".xz9dl7a{padding-top:12px}",
     priority: 4000
 });
 const styles = {
     primary: {
         "input__styles.primary": "input__styles.primary",
-        backgroundColor: "backgroundColor-xrkmrrc",
-        color: "color-x1awj2ng",
+        backgroundColor: "xrkmrrc",
+        color: "x1awj2ng",
         $$css: "tests/fixture/use-memo/input.stylex.js:33"
     },
     root: {
         "input__styles.root": "input__styles.root",
-        display: "display-x1lliihq",
-        fontSize: "fontSize-x1j61zf2",
-        paddingBottom: "paddingBottom-xsag5q8",
-        paddingLeft: "paddingLeft-x5tiur9",
-        paddingRight: "paddingRight-x1s7jvk7",
-        paddingTop: "paddingTop-xz9dl7a",
+        display: "x1lliihq",
+        fontSize: "x1j61zf2",
+        paddingBottom: "xsag5q8",
+        paddingLeft: "x5tiur9",
+        paddingRight: "x1s7jvk7",
+        paddingTop: "xz9dl7a",
         $$css: "tests/fixture/use-memo/input.stylex.js:37"
     }
 };

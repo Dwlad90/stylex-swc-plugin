@@ -137,7 +137,7 @@ moves every trend series in the repo at once.
 
 Every other development or compatibility feature is priced the same way, through
 an `"options"` map on the fixture that asks for it -- the debug data prop and
-debug class names, unminified keys, reading the source off disk, legacy
+dev class names, unminified keys, reading the source off disk, legacy
 shorthand expansion, the logical-property polyfill and RTL comments,
 `px`-to-`rem`, media query ordering, and the two enum-valued options. The keys
 are an allowlist in `benchmark/lib/types.ts`; a manifest naming anything else

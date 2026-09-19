@@ -8,25 +8,25 @@ export const localMarker = {
     $$css: true
 };
 _inject2({
-    ltr: ".color-xkn7p67{color:gray}",
+    ltr: ".xkn7p67{color:gray}",
     priority: 3000
 });
 _inject2({
-    ltr: ".color-xomp1nr.color-xomp1nr:where(.x1bawz77[data-open] *){color:white}",
+    ltr: ".xomp1nr.xomp1nr:where(.x1bawz77[data-open] *){color:white}",
     priority: 3040
 });
 _inject2({
-    ltr: ".color-x1wgracu.color-x1wgracu:where(:has(.x183id7b:focus)){color:blue}",
+    ltr: ".x1wgracu.x1wgracu:where(:has(.x183id7b:focus)){color:blue}",
     priority: 3016.5
 });
 _inject2({
-    ltr: ".color-x1uatm7.color-x1uatm7:where(.x-default-marker:hover ~ *){color:black}",
+    ltr: ".x1uatm7.x1uatm7:where(.x-default-marker:hover ~ *){color:black}",
     priority: 3031.3
 });
 export const styles = {
     label: {
         "input__styles.label": "input__styles.label",
-        color: "color-xkn7p67 color-xomp1nr color-x1wgracu color-x1uatm7",
+        color: "xkn7p67 xomp1nr x1wgracu x1uatm7",
         $$css: "tests/fixture/markers/input.stylex.js:8"
     }
 };

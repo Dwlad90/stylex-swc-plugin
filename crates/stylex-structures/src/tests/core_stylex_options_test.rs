@@ -40,7 +40,6 @@ fn core_stylex_options_direct_setters_cover_all_fields() {
     .with_test(true)
     .with_debug(true)
     .with_property_validation_mode(PropertyValidationMode::Warn)
-    .with_enable_debug_class_names(true)
     .with_enable_debug_data_prop(false)
     .with_enable_dev_class_names(true)
     .with_enable_inlined_conditional_merge(false)
@@ -66,7 +65,6 @@ fn core_stylex_options_direct_setters_cover_all_fields() {
   assert!(opts.test);
   assert!(opts.debug);
   assert_eq!(opts.property_validation_mode, PropertyValidationMode::Warn);
-  assert!(opts.enable_debug_class_names);
   assert!(!opts.enable_debug_data_prop);
   assert!(opts.enable_dev_class_names);
   assert!(!opts.enable_inlined_conditional_merge);
@@ -103,7 +101,6 @@ fn core_stylex_options_optional_setters_skip_none_values() {
     .maybe_property_validation_mode(None)
     .maybe_enable_font_size_px_to_rem(None)
     .maybe_class_name_prefix(None)
-    .maybe_enable_debug_class_names(None)
     .maybe_enable_debug_data_prop(None)
     .maybe_enable_dev_class_names(None)
     .maybe_enable_minified_keys(None)
@@ -128,10 +125,6 @@ fn core_stylex_options_optional_setters_skip_none_values() {
     original.enable_font_size_px_to_rem
   );
   assert_eq!(opts.class_name_prefix, original.class_name_prefix);
-  assert_eq!(
-    opts.enable_debug_class_names,
-    original.enable_debug_class_names
-  );
   assert_eq!(opts.enable_debug_data_prop, original.enable_debug_data_prop);
   assert_eq!(opts.enable_dev_class_names, original.enable_dev_class_names);
   assert_eq!(opts.enable_minified_keys, original.enable_minified_keys);
@@ -176,7 +169,6 @@ fn core_stylex_options_optional_setters_apply_some_values() {
     .maybe_property_validation_mode(Some(PropertyValidationMode::Throw))
     .maybe_enable_font_size_px_to_rem(Some(true))
     .maybe_class_name_prefix(Some("abc".to_string()))
-    .maybe_enable_debug_class_names(Some(true))
     .maybe_enable_debug_data_prop(Some(false))
     .maybe_enable_dev_class_names(Some(true))
     .maybe_enable_minified_keys(Some(false))
@@ -195,7 +187,6 @@ fn core_stylex_options_optional_setters_apply_some_values() {
   assert_eq!(opts.property_validation_mode, PropertyValidationMode::Throw);
   assert!(opts.enable_font_size_px_to_rem);
   assert_eq!(opts.class_name_prefix, "abc");
-  assert!(opts.enable_debug_class_names);
   assert!(!opts.enable_debug_data_prop);
   assert!(opts.enable_dev_class_names);
   assert!(!opts.enable_minified_keys);

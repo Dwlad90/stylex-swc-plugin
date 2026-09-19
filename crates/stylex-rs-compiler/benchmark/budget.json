@@ -73,16 +73,16 @@
       "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
     },
     {
-      "name": "Feature - debug and dev class names",
+      "name": "Feature - debug mode and dev class names",
       "ceilingMs": 1.024,
       "observedUpperMs": 0.8194,
       "headroom": 1.25,
       "runs": 10,
       "reviewedAt": "2026-09-10",
-      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673"
+      "evidence": "GitHub Actions runs 33896665125, 33901836307, 33923898462, 33964522213, 33968037390, 34047021567, 34265091652, 34506217184, 34509719470, 34511924673. These runs measured the fixture while it also set enableDebugClassNames, which no longer exists. The ceiling is therefore a loose upper bound over more work than the fixture now does, and it is safe until a seeding run replaces it."
     },
     {
-      "name": "Feature - debug class names over many namespaces",
+      "name": "Feature - debug mode over many namespaces",
       "ceilingMs": 1.021,
       "observedUpperMs": 0.8172,
       "headroom": 1.25,

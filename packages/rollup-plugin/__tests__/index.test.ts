@@ -66,7 +66,6 @@ describe('@stylexswc/rollup-plugin', () => {
         rsOptions: {
           debug: true,
           runtimeInjection: true,
-          enableDebugClassNames: true,
         },
       });
 

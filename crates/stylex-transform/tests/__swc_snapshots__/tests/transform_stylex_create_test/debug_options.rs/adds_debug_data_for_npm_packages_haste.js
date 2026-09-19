@@ -2,28 +2,28 @@ import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import * as stylex from '@stylexjs/stylex';
 _inject2({
-    ltr: ".fontSize-xrv4cvt{font-size:1em}",
+    ltr: ".xrv4cvt{font-size:1em}",
     priority: 3000
 });
 _inject2({
-    ltr: ".color-x1e2nbdu{color:red}",
+    ltr: ".x1e2nbdu{color:red}",
     priority: 3000
 });
 _inject2({
-    ltr: ".display-x1lliihq{display:block}",
+    ltr: ".x1lliihq{display:block}",
     priority: 3000
 });
 export const styles = {
     "1": {
-        "fontSize-kGuDYH": "fontSize-xrv4cvt",
+        "fontSize-kGuDYH": "xrv4cvt",
         $$css: "npm-package:components/Foo.react.js:9"
     },
     foo: {
-        "color-kMwMTN": "color-x1e2nbdu",
+        "color-kMwMTN": "x1e2nbdu",
         $$css: "npm-package:components/Foo.react.js:3"
     },
     "bar-baz": {
-        "display-k1xSpc": "display-x1lliihq",
+        "display-k1xSpc": "x1lliihq",
         $$css: "npm-package:components/Foo.react.js:6"
     }
 };

@@ -57,11 +57,6 @@ impl StyleXStateOptions {
     self
   }
 
-  pub fn with_enable_debug_class_names(mut self, enabled: bool) -> Self {
-    self.core.enable_debug_class_names = enabled;
-    self
-  }
-
   pub fn with_enable_debug_data_prop(mut self, enabled: bool) -> Self {
     self.core.enable_debug_data_prop = enabled;
     self

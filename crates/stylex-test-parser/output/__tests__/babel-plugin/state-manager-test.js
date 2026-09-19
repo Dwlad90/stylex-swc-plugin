@@ -86,7 +86,6 @@ describe('StateManager config parsing', ()=>{
                 debug: true
             });
             expect(stateManager.options.debug).toBe(true);
-            expect(stateManager.options.enableDebugClassNames).toBe(false);
             expect(stateManager.options.enableDebugDataProp).toBe(true);
             expect(warnings).toEqual([]);
         });
@@ -123,41 +122,6 @@ describe('StateManager config parsing', ()=>{
             expect(stateManager.options.dev).toBe(true);
             expect(stateManager.options.debug).toBe(true);
             expect(stateManager.options.enableDevClassNames).toBe(true);
-            expect(warnings).toEqual([]);
-        });
-    });
-    describe('"enableDebugClassNames" option (boolean)', ()=>{
-        test('logs errors if invalid', ()=>{
-            const stateManager = makeState({
-                enableDebugClassNames: 'false'
-            });
-            expect(stateManager.options.enableDebugClassNames).toBe(true);
-            expect(warnings).toEqual([
-                [
-                    '[@stylexjs/babel-plugin]',
-                    'Expected (options.enableDebugClassNames) to be a boolean, but got `"false"`.'
-                ]
-            ]);
-        });
-        test('default value', ()=>{
-            const stateManager = makeState();
-            expect(stateManager.options.enableDebugClassNames).toBe(false);
-            expect(warnings).toEqual([]);
-        });
-        test('false value', ()=>{
-            const stateManager = makeState({
-                debug: true,
-                enableDebugClassNames: false
-            });
-            expect(stateManager.options.enableDebugClassNames).toBe(false);
-            expect(warnings).toEqual([]);
-        });
-        test('true value', ()=>{
-            const stateManager = makeState({
-                debug: true,
-                enableDebugClassNames: true
-            });
-            expect(stateManager.options.enableDebugClassNames).toBe(true);
             expect(warnings).toEqual([]);
         });
     });

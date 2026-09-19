@@ -5,112 +5,112 @@ import * as sx from '@stylexjs/stylex';
 import { useMediaQuery } from '@hooks/useMediaQuery';
 const MULTIPLIER = 5;
 _inject2({
-    ltr: "@media (all) and (max-width: 1067px){.fontSize-xeuu8e4.fontSize-xeuu8e4{font-size:2rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.xeuu8e4.xeuu8e4{font-size:2rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (all) and (max-width: 1067px){.fontSize-x1jbhjkf.fontSize-x1jbhjkf{font-size:2.25rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.x1jbhjkf.x1jbhjkf{font-size:2.25rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: ".display-xjp7ctv{display:contents}",
+    ltr: ".xjp7ctv{display:contents}",
     priority: 3000
 });
 _inject2({
-    ltr: "@media (all) and (max-width: 1067px){.fontSize-x1f3yvym.fontSize-x1f3yvym{font-size:.75rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.x1f3yvym.x1f3yvym{font-size:.75rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (all) and (max-width: 1067px){.fontSize-x17vjwcc.fontSize-x17vjwcc{font-size:1rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.x17vjwcc.x17vjwcc{font-size:1rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (all) and (max-width: 1067px){.fontSize-x19ppoyo.fontSize-x19ppoyo{font-size:1.25rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.x19ppoyo.x19ppoyo{font-size:1.25rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (all) and (max-width: 1067px){.fontSize-x3gzoht.fontSize-x3gzoht{font-size:1.5rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.x3gzoht.x3gzoht{font-size:1.5rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (all) and (max-width: 1067px){.fontSize-xd310an.fontSize-xd310an{font-size:1.75rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.xd310an.xd310an{font-size:1.75rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (all) and (max-width: 1067px){.fontSize-x14h6vv3.fontSize-x14h6vv3{font-size:2.5rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.x14h6vv3.x14h6vv3{font-size:2.5rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (all) and (max-width: 1067px){.fontSize-x1eh3tls.fontSize-x1eh3tls{font-size:2.75rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.x1eh3tls.x1eh3tls{font-size:2.75rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (all) and (max-width: 1067px){.fontSize-x8rl4l3.fontSize-x8rl4l3{font-size:3rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.x8rl4l3.x8rl4l3{font-size:3rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: ".color-x1e2nbdu{color:red}",
+    ltr: ".x1e2nbdu{color:red}",
     priority: 3000
 });
 const c = {
     "1": {
         "input__c.1": "input__c.1",
-        fontSize: "fontSize-xeuu8e4",
+        fontSize: "xeuu8e4",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:41"
     },
     "2": {
         "input__c.2": "input__c.2",
-        fontSize: "fontSize-x1jbhjkf",
+        fontSize: "x1jbhjkf",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:47"
     },
     wrapper: {
         "input__c.wrapper": "input__c.wrapper",
-        display: "display-xjp7ctv",
+        display: "xjp7ctv",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:8"
     },
     "p-2": {
         "input__c.p-2": "input__c.p-2",
-        fontSize: "fontSize-x1f3yvym",
+        fontSize: "x1f3yvym",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:11"
     },
     "p-1": {
         "input__c.p-1": "input__c.p-1",
-        fontSize: "fontSize-x17vjwcc",
+        fontSize: "x17vjwcc",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:17"
     },
     p: {
         "input__c.p": "input__c.p",
-        fontSize: "fontSize-x19ppoyo",
+        fontSize: "x19ppoyo",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:23"
     },
     "p+1": {
         "input__c.p1": "input__c.p1",
-        fontSize: "fontSize-x3gzoht",
+        fontSize: "x3gzoht",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:29"
     },
     "p+2": {
         "input__c.p2": "input__c.p2",
-        fontSize: "fontSize-xd310an",
+        fontSize: "xd310an",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:35"
     },
     "p+3": {
         "input__c.p3": "input__c.p3",
-        fontSize: "fontSize-x14h6vv3",
+        fontSize: "x14h6vv3",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:53"
     },
     "p+4": {
         "input__c.p4": "input__c.p4",
-        fontSize: "fontSize-x1eh3tls",
+        fontSize: "x1eh3tls",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:59"
     },
     "p+5": {
         "input__c.p5": "input__c.p5",
-        fontSize: "fontSize-x8rl4l3",
+        fontSize: "x8rl4l3",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:65"
     },
     unused: {
         "input__c.unused": "input__c.unused",
-        color: "color-x1e2nbdu",
+        color: "x1e2nbdu",
         $$css: "tests/fixture/namespace-cleaning/input.stylex.js:71"
     }
 };

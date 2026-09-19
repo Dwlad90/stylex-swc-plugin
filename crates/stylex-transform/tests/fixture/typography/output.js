@@ -7,254 +7,254 @@ import { TYPOGRAPHY_VARIANTS } from '../../../components/data-display/typography
 import { colors } from '../../../styles/color/colors.stylex';
 import { fontSizes, fonts, typographyBase } from '../../../styles/typography/typography.stylex';
 _inject2({
-    ltr: ".margin-x1ghz6dp{margin:0}",
+    ltr: ".x1ghz6dp{margin:0}",
     priority: 1000
 });
 _inject2({
-    ltr: ".overflowWrap-xj0a0fe{overflow-wrap:anywhere}",
+    ltr: ".xj0a0fe{overflow-wrap:anywhere}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontFamily-xbwy7e6{font-family:var(--fontPrimary-x5f0q53)}",
+    ltr: ".xxtxygr{font-family:var(--x5f0q53)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".lineHeight-x48q9rv{line-height:var(--headingLineHeight-xp61pzj)}",
+    ltr: ".x1xmc3ak{line-height:var(--xp61pzj)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontSize-x193ocya{font-size:var(--textXxxl-x1hz802z)}",
+    ltr: ".x1q754lq{font-size:var(--x1hz802z)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontSize-xlj8byu{font-size:var(--textXxl-x9zonk2)}",
+    ltr: ".x1ikoez{font-size:var(--x9zonk2)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontSize-xgc4vk5{font-size:var(--textXl-x1jjjagt)}",
+    ltr: ".x1hr3gxt{font-size:var(--x1jjjagt)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontSize-x17gblq1{font-size:var(--textLg-x1l0g4sg)}",
+    ltr: ".x1p5zybj{font-size:var(--x1l0g4sg)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontSize-xm7bc5f{font-size:var(--textMd-x1uw977o)}",
+    ltr: ".x1uv8d7c{font-size:var(--x1uw977o)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontSize-x9bx2mk{font-size:var(--textSm-xxjny3m)}",
+    ltr: ".x1dds9ib{font-size:var(--xxjny3m)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontSize-xr14wxu{font-size:var(--textBase-x1g1kq9w)}",
+    ltr: ".xcyum62{font-size:var(--x1g1kq9w)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".lineHeight-x1sjzer8{line-height:var(--bodyLineHeight-xahfjtl)}",
+    ltr: ".x10zqc4{line-height:var(--xahfjtl)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".whiteSpace-xuxw1ft{white-space:nowrap}",
+    ltr: ".xuxw1ft{white-space:nowrap}",
     priority: 3000
 });
 _inject2({
-    ltr: ".textOverflow-xlyipyv{text-overflow:ellipsis}",
+    ltr: ".xlyipyv{text-overflow:ellipsis}",
     priority: 3000
 });
 _inject2({
-    ltr: ".overflow-xb3r6kr{overflow:hidden}",
+    ltr: ".xb3r6kr{overflow:hidden}",
     priority: 2000
 });
 _inject2({
-    ltr: ".fontWeight-x117nqv4{font-weight:bold}",
+    ltr: ".x117nqv4{font-weight:bold}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontStyle-x1k4tb9n{font-style:italic}",
+    ltr: ".x1k4tb9n{font-style:italic}",
     priority: 3000
 });
 _inject2({
-    ltr: ".textTransform-x1gdvv3m{text-transform:unset}",
+    ltr: ".x1gdvv3m{text-transform:unset}",
     priority: 3000
 });
 _inject2({
-    ltr: ".textTransform-xtvhhri{text-transform:uppercase}",
+    ltr: ".xtvhhri{text-transform:uppercase}",
     priority: 3000
 });
 _inject2({
-    ltr: ".textTransform-x1kyqaxf{text-transform:lowercase}",
+    ltr: ".x1kyqaxf{text-transform:lowercase}",
     priority: 3000
 });
 _inject2({
-    ltr: ".textTransform-xn80e1m{text-transform:capitalize}",
+    ltr: ".xn80e1m{text-transform:capitalize}",
     priority: 3000
 });
 _inject2({
-    ltr: ".textDecoration-x1bvjpef{text-decoration:underline}",
+    ltr: ".x1bvjpef{text-decoration:underline}",
     priority: 2000
 });
 _inject2({
-    ltr: ".color-x2i9qa9{color:var(--success-x1g3za88)}",
+    ltr: ".x1le1rw7{color:var(--x1g3za88)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".color-x1wptp0d{color:var(--error-x1x1dixw)}",
+    ltr: ".x1dtcyqj{color:var(--x1x1dixw)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".color-xt2mot5{color:var(--info-xkl3kbl)}",
+    ltr: ".x1ymlcqv{color:var(--xkl3kbl)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".color-xe5xflh{color:var(--warning-x1mhy80l)}",
+    ltr: ".xasdade{color:var(--x1mhy80l)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".color-xw3ogp8{color:var(--primary-xzstmg8)}",
+    ltr: ".x2d0hfl{color:var(--xzstmg8)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".color-x10gd8tk{color:var(--secondary-x1pnddxr)}",
+    ltr: ".xxq4n0w{color:var(--x1pnddxr)}",
     priority: 3000
 });
 const styles = {
     text: {
         "input__styles.text": "input__styles.text",
-        margin: "margin-x1ghz6dp",
-        overflowWrap: "overflowWrap-xj0a0fe",
-        fontFamily: "fontFamily-xbwy7e6",
+        margin: "x1ghz6dp",
+        overflowWrap: "xj0a0fe",
+        fontFamily: "xxtxygr",
         $$css: "tests/fixture/typography/input.stylex.js:8"
     },
     textXxxl: {
         "input__styles.textXxxl": "input__styles.textXxxl",
-        lineHeight: "lineHeight-x48q9rv",
-        fontSize: "fontSize-x193ocya",
+        lineHeight: "x1xmc3ak",
+        fontSize: "x1q754lq",
         $$css: "tests/fixture/typography/input.stylex.js:13"
     },
     textXxl: {
         "input__styles.textXxl": "input__styles.textXxl",
-        lineHeight: "lineHeight-x48q9rv",
-        fontSize: "fontSize-xlj8byu",
+        lineHeight: "x1xmc3ak",
+        fontSize: "x1ikoez",
         $$css: "tests/fixture/typography/input.stylex.js:17"
     },
     textXl: {
         "input__styles.textXl": "input__styles.textXl",
-        lineHeight: "lineHeight-x48q9rv",
-        fontSize: "fontSize-xgc4vk5",
+        lineHeight: "x1xmc3ak",
+        fontSize: "x1hr3gxt",
         $$css: "tests/fixture/typography/input.stylex.js:21"
     },
     textLg: {
         "input__styles.textLg": "input__styles.textLg",
-        lineHeight: "lineHeight-x48q9rv",
-        fontSize: "fontSize-x17gblq1",
+        lineHeight: "x1xmc3ak",
+        fontSize: "x1p5zybj",
         $$css: "tests/fixture/typography/input.stylex.js:25"
     },
     textMd: {
         "input__styles.textMd": "input__styles.textMd",
-        lineHeight: "lineHeight-x48q9rv",
-        fontSize: "fontSize-xm7bc5f",
+        lineHeight: "x1xmc3ak",
+        fontSize: "x1uv8d7c",
         $$css: "tests/fixture/typography/input.stylex.js:29"
     },
     textSm: {
         "input__styles.textSm": "input__styles.textSm",
-        lineHeight: "lineHeight-x48q9rv",
-        fontSize: "fontSize-x9bx2mk",
+        lineHeight: "x1xmc3ak",
+        fontSize: "x1dds9ib",
         $$css: "tests/fixture/typography/input.stylex.js:33"
     },
     body: {
         "input__styles.body": "input__styles.body",
-        fontSize: "fontSize-xr14wxu",
-        lineHeight: "lineHeight-x1sjzer8",
+        fontSize: "xcyum62",
+        lineHeight: "x10zqc4",
         $$css: "tests/fixture/typography/input.stylex.js:37"
     },
     bodySm: {
         "input__styles.bodySm": "input__styles.bodySm",
-        fontSize: "fontSize-x9bx2mk",
-        lineHeight: "lineHeight-x1sjzer8",
+        fontSize: "x1dds9ib",
+        lineHeight: "x10zqc4",
         $$css: "tests/fixture/typography/input.stylex.js:41"
     },
     bodyMd: {
         "input__styles.bodyMd": "input__styles.bodyMd",
-        fontSize: "fontSize-xm7bc5f",
-        lineHeight: "lineHeight-x1sjzer8",
+        fontSize: "x1uv8d7c",
+        lineHeight: "x10zqc4",
         $$css: "tests/fixture/typography/input.stylex.js:45"
     },
     truncate: {
         "input__styles.truncate": "input__styles.truncate",
-        whiteSpace: "whiteSpace-xuxw1ft",
-        textOverflow: "textOverflow-xlyipyv",
-        overflow: "overflow-xb3r6kr",
+        whiteSpace: "xuxw1ft",
+        textOverflow: "xlyipyv",
+        overflow: "xb3r6kr",
         $$css: "tests/fixture/typography/input.stylex.js:49"
     },
     bold: {
         "input__styles.bold": "input__styles.bold",
-        fontWeight: "fontWeight-x117nqv4",
+        fontWeight: "x117nqv4",
         $$css: "tests/fixture/typography/input.stylex.js:54"
     },
     italic: {
         "input__styles.italic": "input__styles.italic",
-        fontStyle: "fontStyle-x1k4tb9n",
+        fontStyle: "x1k4tb9n",
         $$css: "tests/fixture/typography/input.stylex.js:57"
     },
     textTransform_unset: {
         "input__styles.textTransform_unset": "input__styles.textTransform_unset",
-        textTransform: "textTransform-x1gdvv3m",
+        textTransform: "x1gdvv3m",
         $$css: "tests/fixture/typography/input.stylex.js:60"
     },
     textTransform_uppercase: {
         "input__styles.textTransform_uppercase": "input__styles.textTransform_uppercase",
-        textTransform: "textTransform-xtvhhri",
+        textTransform: "xtvhhri",
         $$css: "tests/fixture/typography/input.stylex.js:63"
     },
     textTransform_lowercase: {
         "input__styles.textTransform_lowercase": "input__styles.textTransform_lowercase",
-        textTransform: "textTransform-x1kyqaxf",
+        textTransform: "x1kyqaxf",
         $$css: "tests/fixture/typography/input.stylex.js:66"
     },
     textTransform_capitalize: {
         "input__styles.textTransform_capitalize": "input__styles.textTransform_capitalize",
-        textTransform: "textTransform-xn80e1m",
+        textTransform: "xn80e1m",
         $$css: "tests/fixture/typography/input.stylex.js:69"
     },
     underline: {
         "input__styles.underline": "input__styles.underline",
-        textDecoration: "textDecoration-x1bvjpef",
+        textDecoration: "x1bvjpef",
         $$css: "tests/fixture/typography/input.stylex.js:72"
     },
     colorSuccess: {
         "input__styles.colorSuccess": "input__styles.colorSuccess",
-        color: "color-x2i9qa9",
+        color: "x1le1rw7",
         $$css: "tests/fixture/typography/input.stylex.js:75"
     },
     colorError: {
         "input__styles.colorError": "input__styles.colorError",
-        color: "color-x1wptp0d",
+        color: "x1dtcyqj",
         $$css: "tests/fixture/typography/input.stylex.js:78"
     },
     colorInfo: {
         "input__styles.colorInfo": "input__styles.colorInfo",
-        color: "color-xt2mot5",
+        color: "x1ymlcqv",
         $$css: "tests/fixture/typography/input.stylex.js:81"
     },
     colorWarning: {
         "input__styles.colorWarning": "input__styles.colorWarning",
-        color: "color-xe5xflh",
+        color: "xasdade",
         $$css: "tests/fixture/typography/input.stylex.js:84"
     },
     colorPrimary: {
         "input__styles.colorPrimary": "input__styles.colorPrimary",
-        color: "color-xw3ogp8",
+        color: "x2d0hfl",
         $$css: "tests/fixture/typography/input.stylex.js:87"
     },
     color_primary: {
         "input__styles.color_primary": "input__styles.color_primary",
-        color: "color-xw3ogp8",
+        color: "x2d0hfl",
         $$css: "tests/fixture/typography/input.stylex.js:90"
     },
     colorSecondary: {
         "input__styles.colorSecondary": "input__styles.colorSecondary",
-        color: "color-x10gd8tk",
+        color: "xxq4n0w",
         $$css: "tests/fixture/typography/input.stylex.js:93"
     }
 };

@@ -1,16 +1,12 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';
-const _temp = {
-    "Foo__styles.opacity": "Foo__styles.opacity",
-    $$css: "npm-package:node_modules/npm-package/dist/components/Foo.react.js:6"
-};
 _inject2({
-    ltr: ".color-x1e2nbdu{color:red}",
+    ltr: ".x1e2nbdu{color:red}",
     priority: 3000
 });
 _inject2({
-    ltr: ".opacity-xb4nw82{opacity:var(--x-opacity)}",
+    ltr: ".xb4nw82{opacity:var(--x-opacity)}",
     priority: 3000
 });
 _inject2({
@@ -19,14 +15,12 @@ _inject2({
 });
 const styles = {
     red: {
-        "Foo__styles.red": "Foo__styles.red",
-        "color-kMwMTN": "color-x1e2nbdu",
+        "color-kMwMTN": "x1e2nbdu",
         $$css: "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
     },
     opacity: (opacity)=>[
-            _temp,
             {
-                "opacity-kSiTet": opacity != null ? "opacity-xb4nw82" : opacity,
+                "opacity-kSiTet": opacity != null ? "xb4nw82" : opacity,
                 $$css: "npm-package:node_modules/npm-package/dist/components/Foo.react.js:6"
             },
             {

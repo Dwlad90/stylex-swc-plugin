@@ -8,52 +8,9 @@ use stylex_utils::identifier::gen_file_based_identifier;
 use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
 use stylex_enums::theme_ref::ThemeRefResult;
 
-use crate::state_manager::StateManager;
-
 /// The key a value answers `true` to when it stands in for a group rather than
 /// holding one, which is how every reader tells the two apart.
 pub const IS_PROXY_KEY: &str = "__IS_PROXY";
-
-/// The two options that decide how a variable a group names is spelled.
-///
-/// Carried as the pair they are: a readable name is the key *and* the hash, and
-/// neither option means anything without the other. Read off the project once
-/// per group rather than per member, which is also what lets the compile-time
-/// engine derive a name without a `StateManager` to reach for.
-#[derive(Clone, Copy)]
-pub struct VarNaming {
-  debug: bool,
-  readable_names: bool,
-}
-
-impl VarNaming {
-  /// How this project spells the variables a group names.
-  pub fn of(state: &StateManager) -> Self {
-    Self {
-      debug: state.options.debug,
-      readable_names: state.options.enable_debug_class_names,
-    }
-  }
-
-  /// The two options as the plain values the engine's traps carry, since nothing
-  /// of this compiler's own can live inside the engine.
-  pub fn as_flags(self) -> (bool, bool) {
-    (self.debug, self.readable_names)
-  }
-
-  /// The same pair read back from the engine's own values.
-  pub fn from_flags(debug: bool, readable_names: bool) -> Self {
-    Self {
-      debug,
-      readable_names,
-    }
-  }
-
-  /// Whether a name is spelled to be read as well as hashed.
-  fn readable(self) -> bool {
-    self.debug && self.readable_names
-  }
-}
 
 /// The CSS a member read off a `defineVars` group answers, derived from the
 /// group's identity rather than looked up in it.
@@ -67,12 +24,7 @@ impl VarNaming {
 /// variable the author named, so it is used as written. The group hash key names
 /// the group as a whole and answers a bare name rather than a `var()`. Every
 /// other key names a variable derived from the group's identity and that key.
-pub fn var_group_member(
-  base_id: &str,
-  class_name_prefix: &str,
-  key: &str,
-  naming: VarNaming,
-) -> String {
+pub fn var_group_member(base_id: &str, class_name_prefix: &str, key: &str) -> String {
   if key.starts_with("--") {
     return format!("var({})", key);
   }
@@ -86,40 +38,12 @@ pub fn var_group_member(
     false => format!("{}.{}", base_id, key),
   };
 
-  let var_name = match naming.readable() && !is_group_hash {
-    true => format!(
-      "{}{}{}",
-      var_safe_key(key),
-      class_name_prefix,
-      create_hash(&str_to_hash)
-    ),
-    false => format!("{}{}", class_name_prefix, create_hash(&str_to_hash)),
-  };
+  let var_name = format!("{}{}", class_name_prefix, create_hash(&str_to_hash));
 
   match is_group_hash {
     true => var_name,
     false => format!("var(--{})", var_name),
   }
-}
-
-/// A key as the readable prefix a debug variable name carries: anything that is
-/// not a letter or a digit becomes an underscore, a leading digit gains one, and
-/// a dash separates it from the hash that follows.
-fn var_safe_key(key: &str) -> String {
-  let mut safe: String = match key.starts_with(|first: char| first.is_ascii_digit()) {
-    true => format!("_{}", key),
-    false => key.to_string(),
-  }
-  .chars()
-  .map(|character| match character.is_ascii_alphanumeric() {
-    true => character,
-    false => '_',
-  })
-  .collect();
-
-  safe.push('-');
-
-  safe
 }
 
 /// A reference to a `defineVars` group. Multiple `ThemeRef` values may
@@ -158,9 +82,9 @@ impl ThemeRef {
   }
 
   /// The value behind the `toString` key, reachable without the `&mut self`
-  /// and `StateManager` that keyed lookups need. Both constructors seed
-  /// `class_name_prefix` from `options.class_name_prefix`, so this is the
-  /// same string `get("toString")` returns.
+  /// that keyed lookups need. Both constructors seed `class_name_prefix` from
+  /// `options.class_name_prefix`, so this is the same string
+  /// `get("toString")` returns.
   pub fn to_string_value(&self) -> String {
     // NOTE: hash the cached base id instead of recomputing the prefix.
     format!("{}{}", self.class_name_prefix, create_hash(&self.base_id))
@@ -176,7 +100,7 @@ impl ThemeRef {
     &self.class_name_prefix
   }
 
-  pub fn get(&mut self, key: &str, state: &StateManager) -> ThemeRefResult {
+  pub fn get(&mut self, key: &str) -> ThemeRefResult {
     if key == IS_PROXY_KEY {
       return ThemeRefResult::Proxy;
     }
@@ -190,15 +114,8 @@ impl ThemeRef {
       return ThemeRefResult::CssVar(Arc::clone(cached));
     }
 
-    let value: Arc<str> = Arc::from(
-      var_group_member(
-        &self.base_id,
-        &self.class_name_prefix,
-        key,
-        VarNaming::of(state),
-      )
-      .as_str(),
-    );
+    let value: Arc<str> =
+      Arc::from(var_group_member(&self.base_id, &self.class_name_prefix, key).as_str());
 
     // A variable an author named themselves is the group's own answer without
     // being derived from it, so there is nothing to keep: caching it would grow

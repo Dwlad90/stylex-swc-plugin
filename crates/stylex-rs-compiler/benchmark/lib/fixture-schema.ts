@@ -33,7 +33,6 @@ export const FIXTURE_CATEGORIES: readonly FixtureCategory[] = ['transform', 'per
 export const BOOLEAN_OPTION_KEYS = [
   'dev',
   'debug',
-  'enableDebugClassNames',
   'enableDebugDataProp',
   'enableDevClassNames',
   'enableMinifiedKeys',

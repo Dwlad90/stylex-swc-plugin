@@ -106,7 +106,6 @@ describe('the option overrides', () => {
       dev: true,
       debug: true,
       enableDebugDataProp: true,
-      enableDebugClassNames: false,
       enableMinifiedKeys: false,
       useRealFileForSource: true,
       runtimeInjection: true,

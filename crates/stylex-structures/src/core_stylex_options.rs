@@ -27,7 +27,6 @@ pub struct CoreStyleXOptions {
   pub test: bool,
   pub debug: bool,
   pub property_validation_mode: PropertyValidationMode,
-  pub enable_debug_class_names: bool,
   pub enable_debug_data_prop: bool,
   pub enable_dev_class_names: bool,
   pub enable_inlined_conditional_merge: bool,
@@ -95,7 +94,6 @@ impl Default for CoreStyleXOptions {
       test: false,
       debug: false,
       property_validation_mode: PropertyValidationMode::Silent,
-      enable_debug_class_names: false,
       enable_debug_data_prop: true,
       enable_dev_class_names: false,
       enable_inlined_conditional_merge: true,
@@ -147,11 +145,6 @@ impl CoreStyleXOptions {
 
   pub fn with_property_validation_mode(mut self, mode: PropertyValidationMode) -> Self {
     self.property_validation_mode = mode;
-    self
-  }
-
-  pub fn with_enable_debug_class_names(mut self, enabled: bool) -> Self {
-    self.enable_debug_class_names = enabled;
     self
   }
 
@@ -314,13 +307,6 @@ impl CoreStyleXOptions {
   pub fn maybe_class_name_prefix(mut self, prefix: Option<String>) -> Self {
     if let Some(v) = prefix {
       self.class_name_prefix = v;
-    }
-    self
-  }
-
-  pub fn maybe_enable_debug_class_names(mut self, enabled: Option<bool>) -> Self {
-    if let Some(v) = enabled {
-      self.enable_debug_class_names = v;
     }
     self
   }

@@ -11,7 +11,6 @@ stylex_test!(
   correct_transform_variables_with_same_name_in_different_scopes,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_dev(true)
-      .with_enable_debug_class_names(true)
       .with_treeshake_compensation(true)
       .with_unstable_module_resolution(ModuleResolution::haste(None))
       .with_runtime_injection_option(RuntimeInjection::Boolean(false))
@@ -80,9 +79,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_redaclare_import_declaration_in_dev_mode,
-  |tr| stylex_transform(tr.comments.clone(), |b| {
-    b.with_dev(true).with_enable_debug_class_names(true)
-  }),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   r#"
     'use client';
 
@@ -162,9 +159,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_redaclare_variable_from_other_scope_in_dev_mode,
-  |tr| stylex_transform(tr.comments.clone(), |b| {
-    b.with_dev(true).with_enable_debug_class_names(true)
-  }),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   r#"
     'use client';
 

@@ -13,7 +13,6 @@ const config = {
         dev: true,
         debug: true,
         treeshakeCompensation: true,
-        enableDebugClassNames: true,
         enableDevClassNames: true,
         enableDebugDataProp: true,
         env: {

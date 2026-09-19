@@ -10,7 +10,7 @@
 //! back to.
 //!
 //! What the language has for a value whose members are answered rather than
-//! stored is a proxy, so that is what crosses. The identity travels as the four
+//! stored is a proxy, so that is what crosses. The identity travels as the two
 //! plain values a member's name is derived from, and one Rust function derives
 //! it — the same one [`ThemeRef::get`](
 //! stylex_state::theme_ref::ThemeRef::get) calls, so the engine and
@@ -40,7 +40,7 @@ use swc_core::atoms::Atom;
 
 use super::Decline;
 use super::engine::read;
-use stylex_state::theme_ref::{IS_PROXY_KEY, ThemeRef, VarNaming, var_group_member};
+use stylex_state::theme_ref::{IS_PROXY_KEY, ThemeRef, var_group_member};
 
 /// What the derivation throws when the traps did not hand it an identity.
 ///
@@ -55,7 +55,7 @@ const READ_WITHOUT_AN_IDENTITY: &str = "A theme group was read without its own i
 /// The traps build that list from named locals and the derivation reads it back
 /// as one slice pattern, so the two orders agree by the order each is written
 /// in. The engine is told this number as the derivation's arity.
-const IDENTITY_ARITY: usize = 5;
+const IDENTITY_ARITY: usize = 3;
 
 /// The traps a `defineVars` group answers reads through.
 ///
@@ -87,8 +87,8 @@ const IDENTITY_ARITY: usize = 5;
 /// constants, so a rename reaches this source rather than passing it by.
 pub(super) fn var_group_traps() -> String {
   format!(
-    r#"(member) => (baseId, prefix, debug, readableNames, paths) => {{
-      const identity = [baseId, prefix, debug, readableNames];
+    r#"(member) => (baseId, prefix, paths) => {{
+      const identity = [baseId, prefix];
       const nested = new Set(paths);
 
       const standIn = (path) => {{
@@ -169,15 +169,14 @@ pub(super) fn compile_traps(source: &str, context: &mut Context) -> Result<JsFun
 
 /// `theme` as the value the printed expression reads members off.
 ///
-/// The identity crosses as the four values a member's name is derived from
+/// The identity crosses as the two values a member's name is derived from
 /// rather than as the reference itself: nothing of this compiler's own can live
-/// inside the engine, and these four are what the derivation needs. `prefixes`
-/// is the fifth thing it needs and the one the values cannot say — see
+/// inside the engine, and these two are what the derivation needs. `prefixes`
+/// is the third thing it needs and the one the values cannot say — see
 /// [`var_group_traps`].
 pub(super) fn var_group(
   builder: &JsFunction,
   theme: &ThemeRef,
-  naming: VarNaming,
   prefixes: Option<&FxHashSet<Atom>>,
   context: &mut Context,
 ) -> JsResult<JsValue> {
@@ -187,15 +186,12 @@ pub(super) fn var_group(
     .map(|prefix| JsValue::from(JsString::from(prefix.as_str())));
 
   let paths = JsArray::from_iter(paths, context);
-  let (debug, readable_names) = naming.as_flags();
 
   builder.call(
     &JsValue::undefined(),
     &[
       JsString::from(theme.base_id()).into(),
       JsString::from(theme.class_name_prefix()).into(),
-      debug.into(),
-      readable_names.into(),
       paths.into(),
     ],
     context,
@@ -264,14 +260,14 @@ pub(super) fn var_group_text(
 /// evaluation whose whole contract is that it may fail, where an assertion would
 /// abort a build a refusal would only decline.
 ///
-/// The list is read as one pattern rather than one index at a time. That is what
-/// says the two flags are there whenever the key is, so neither has a missing
-/// case of its own to answer, and it asks the length once for the whole read.
-/// A longer list is the traps of a later version and is read as this one.
+/// The list is read as one pattern rather than one index at a time, so the whole
+/// read asks the length once and has one missing case to answer rather than one
+/// per value. A longer list is the traps of a later version and is read as this
+/// one.
 fn derive(_: &JsValue, arguments: &[JsValue], _: &mut Context) -> JsResult<JsValue> {
   let broken = || JsError::from_native(JsNativeError::typ().with_message(READ_WITHOUT_AN_IDENTITY));
 
-  let [base_id, class_name_prefix, debug, readable_names, key, ..] = arguments else {
+  let [base_id, class_name_prefix, key, ..] = arguments else {
     return Err(broken());
   };
 
@@ -280,12 +276,7 @@ fn derive(_: &JsValue, arguments: &[JsValue], _: &mut Context) -> JsResult<JsVal
     None => Err(broken()),
   };
 
-  let named = var_group_member(
-    &text(base_id)?,
-    &text(class_name_prefix)?,
-    &text(key)?,
-    VarNaming::from_flags(debug.to_boolean(), readable_names.to_boolean()),
-  );
+  let named = var_group_member(&text(base_id)?, &text(class_name_prefix)?, &text(key)?);
 
   Ok(JsString::from(named).into())
 }

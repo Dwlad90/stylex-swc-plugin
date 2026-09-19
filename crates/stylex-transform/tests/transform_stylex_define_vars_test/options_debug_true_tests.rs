@@ -9,7 +9,6 @@ fn stylex_transform(
     customize(
       b.with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
         .with_debug(true)
-        .with_enable_debug_class_names(true)
         .with_unstable_module_resolution(ModuleResolution::common_js(Some(
           "/stylex/packages/".to_string(),
         ))),
@@ -18,7 +17,7 @@ fn stylex_transform(
 }
 
 stylex_test!(
-  tokens_object_includes_debug_data,
+  tokens_object_uses_hashed_variable_names,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -36,7 +35,7 @@ stylex_test!(
 );
 
 stylex_test!(
-  tokens_object_includes_debug_data_keys_with_special_characters,
+  tokens_with_special_character_keys_use_hashed_variable_names,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';

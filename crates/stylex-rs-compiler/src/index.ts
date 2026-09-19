@@ -58,7 +58,10 @@ export type UseLayersType =
     };
 
 export type TransformedOptions = Partial<
-  Pick<StyleXOptions, 'legacyDisableLayers' | 'enableLTRRTLComments'> & {
+  Pick<
+    StyleXOptions,
+    'legacyDisableLayers' | 'enableLTRRTLComments' | 'useLegacyClassnamesSort'
+  > & {
     useLayers: UseLayersType;
   }
 >;
@@ -85,11 +88,11 @@ const defaultOptions: Partial<StyleXOptions> = {
   enableLegacyValueFlipping: false,
   enableLTRRTLComments: false,
   legacyDisableLayers: false,
+  useLegacyClassnamesSort: false,
   useRealFileForSource: true,
   inlineSourcesContent: true,
   emitSourceMapColumns: true,
   enableMediaQueryOrder: true,
-  enableDebugClassNames: false,
   propertyValidationMode: 'silent',
   styleResolution: 'property-specificity',
   importSources: ['stylex', '@stylexjs/stylex'],

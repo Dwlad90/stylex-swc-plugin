@@ -18,8 +18,7 @@ mod stylex_define_consts {
   fn create_test_state_manager(export_id: &str) -> StateManager {
     let options = StyleXOptions::default()
       .with_class_name_prefix("x")
-      .with_debug(false)
-      .with_enable_debug_class_names(false);
+      .with_debug(false);
 
     let mut state = StateManager::new(options);
     state.export_id = Some(export_id.to_string());
@@ -321,9 +320,7 @@ mod stylex_define_consts {
   }
 
   /// The name a constant is written under in the stylesheet is hashed from the
-  /// export it belongs to. Under debug class names the hash is prefixed with a
-  /// name the author can read, and a name that cannot be read as an identifier
-  /// is made into one.
+  /// export it belongs to, in a debug build as in a production one.
   mod the_name_a_constant_is_written_under {
     use super::*;
 
@@ -332,8 +329,7 @@ mod stylex_define_consts {
     fn const_keys(code: &str, debug: bool) -> Vec<String> {
       let options = StyleXOptions::default()
         .with_class_name_prefix("x")
-        .with_debug(debug)
-        .with_enable_debug_class_names(debug);
+        .with_debug(debug);
 
       let mut state = StateManager::new(options);
       state.export_id = Some("Test.stylex.js//consts".to_owned());
@@ -348,33 +344,19 @@ mod stylex_define_consts {
     }
 
     #[test]
-    fn is_the_hash_alone_when_debug_names_are_off() {
+    fn is_the_hash_alone() {
       assert_eq!(
         const_keys("{ '2xl': '(min-width: 1536px)' }", false),
         [get_const_hash("Test.stylex.js//consts", "2xl", "x")]
       );
     }
 
-    /// A name that starts with a digit is no identifier, so the readable half
-    /// is written with a leading underscore.
+    /// A debug build names the constant exactly as a production build does.
     #[test]
-    fn carries_a_readable_name_under_debug_names() {
-      let hash = get_const_hash("Test.stylex.js//consts", "2xl", "x");
-
+    fn is_the_same_hash_under_debug() {
       assert_eq!(
         const_keys("{ '2xl': '(min-width: 1536px)' }", true),
-        [format!("_2xl-{hash}")]
-      );
-    }
-
-    /// A character that no identifier can carry is written as an underscore.
-    #[test]
-    fn writes_a_character_no_identifier_can_carry_as_an_underscore() {
-      let hash = get_const_hash("Test.stylex.js//consts", "on.dark", "x");
-
-      assert_eq!(
-        const_keys("{ 'on.dark': 'black' }", true),
-        [format!("on_dark-{hash}")]
+        const_keys("{ '2xl': '(min-width: 1536px)' }", false)
       );
     }
 

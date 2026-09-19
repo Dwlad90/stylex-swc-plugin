@@ -667,42 +667,44 @@ fn a_parameter_shadowing_a_group_reads_off_what_it_was_handed() {
 }
 
 // ──────────────────────────────────────────────
-// The naming the project asked for
+// The spelling a debug build gives a folded member
 // ──────────────────────────────────────────────
 
 /// A variable is spelled the same whether the engine derived it or the
-/// evaluator's own lookup did, so a project that asks for readable names gets
-/// them from a folded read as much as from a bare one.
+/// evaluator's own lookup did, and a debug build spells it exactly as a
+/// production build does.
 ///
 /// Asserted through a fold rather than through the derivation alone, because
-/// what the two options travel across is the bridge: the group's stand-in is
-/// built from plain values, and a fold under these options is the only thing
-/// that shows they arrived.
+/// what the group's identity travels across is the bridge: the stand-in is
+/// built from plain values, and a fold is the only thing that shows they
+/// arrived.
+///
+/// Each case asserts its rule against both builds. The two modules are not
+/// compared whole, because a debug build keeps the readable compiled keys and
+/// the source the styles came from — the rule is where a variable is spelled,
+/// and the rule is what has to agree.
 #[test]
-fn a_folded_member_is_spelled_the_way_the_project_asks() {
+fn a_folded_member_is_spelled_the_same_in_debug_and_production_builds() {
   let cases: &[(&str, &str)] = &[
     (
       "boxShadow: [vars.primary, '0 0 1px'].join(' '),",
-      ".boxShadow-xu8oibe{box-shadow:var(--primary-x1ineb92) 0 0 1px}",
+      ".x1mrxl98{box-shadow:var(--x1ineb92) 0 0 1px}",
     ),
     (
       "content: [vars.brand.primary].join(''),",
-      ".content-xxhlut6{content:var(--brand_primary-x1tr9ywo)}",
+      ".x10luyfz{content:var(--x1tr9ywo)}",
     ),
-    // The group's own text is a hash and not a variable, so there is nothing to
-    // make readable and the two options change nothing about it.
-    (
-      "content: [vars].join(''),",
-      ".content-xccb8e5{content:\"xop34xu\"}",
-    ),
+    // The group's own text is a hash and not a variable, so there is nothing a
+    // build could spell two ways.
+    ("content: [vars].join(''),", ".xccb8e5{content:\"xop34xu\"}"),
   ];
 
   for (body, rule) in cases {
-    assert_folds_with(IMPORT, body, rule, " under readable names", |module| {
+    assert_folds(IMPORT, body, rule);
+
+    assert_folds_with(IMPORT, body, rule, " under a debug build", |module| {
       stringify_js(module, ts_syntax(), |tr| {
-        theme_import_transform_with(tr.comments.clone(), |b| {
-          b.with_debug(true).with_enable_debug_class_names(true)
-        })
+        theme_import_transform_with(tr.comments.clone(), |b| b.with_debug(true))
       })
     });
   }

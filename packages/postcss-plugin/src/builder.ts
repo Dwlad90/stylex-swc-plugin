@@ -248,6 +248,7 @@ function createBuilder() {
       useLayers: useCSSLayers,
       enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
       legacyDisableLayers: rsOptions?.legacyDisableLayers,
+      useLegacyClassnamesSort: rsOptions?.useLegacyClassnamesSort,
     };
 
     const files = getFiles();

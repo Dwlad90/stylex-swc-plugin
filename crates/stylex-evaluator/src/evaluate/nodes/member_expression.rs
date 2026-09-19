@@ -182,9 +182,8 @@ fn read_theme_member(
   key: &str,
   path: &Expr,
   state: &mut EvaluationState,
-  traversal_state: &StateManager,
 ) -> Option<EvaluateResultValue> {
-  let value = theme_ref.get(key, traversal_state);
+  let value = theme_ref.get(key);
 
   let Some(css_var) = value.as_css_var() else {
     deopt_unsupported!(deopt, path, state, EXPECTED_CSS_VAR);
@@ -427,13 +426,7 @@ pub(in super::super) fn evaluate(
       }
 
       if let Some(EvaluateResultValue::ThemeRef(mut theme_ref)) = base_object {
-        return read_theme_member(
-          &mut theme_ref,
-          &parts.join("."),
-          path,
-          state,
-          traversal_state,
-        );
+        return read_theme_member(&mut theme_ref, &parts.join("."), path, state);
       }
     }
 
@@ -771,7 +764,7 @@ pub(in super::super) fn evaluate(
             _ => deopt_unsupported!(deopt, path, state, MEMBER_NOT_RESOLVED),
           };
 
-          read_theme_member(&mut theme_ref, &key, path, state, traversal_state)
+          read_theme_member(&mut theme_ref, &key, path, state)
         },
         EvaluateResultValue::EnvObject(env_map) => {
           let Some(key) = property_name(&property) else {

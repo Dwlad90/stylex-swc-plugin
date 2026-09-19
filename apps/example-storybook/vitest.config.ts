@@ -31,7 +31,6 @@ export default defineConfig({
               dev: true,
               debug: true,
               treeshakeCompensation: true,
-              enableDebugClassNames: true,
               enableDevClassNames: true,
               enableDebugDataProp: true,
               env: {
@@ -68,7 +67,6 @@ export default defineConfig({
               dev: true,
               debug: true,
               treeshakeCompensation: true,
-              enableDebugClassNames: true,
               enableDevClassNames: true,
               enableDebugDataProp: true,
               env: {

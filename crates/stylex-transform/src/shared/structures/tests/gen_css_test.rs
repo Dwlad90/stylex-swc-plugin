@@ -20,7 +20,6 @@ mod converting_pre_rule_to_css {
       .with_class_name_prefix("x")
       .with_dev(false)
       .with_debug(false)
-      .with_enable_debug_class_names(true)
       .with_enable_dev_class_names(false)
       .with_enable_debug_data_prop(true)
       .with_enable_font_size_px_to_rem(false)

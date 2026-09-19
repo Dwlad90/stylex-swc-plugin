@@ -11,21 +11,21 @@ interface Props {
 }
 export default function Home(_props: Props) {
     return(// @ts-expect-error - sx is not correctly typed
-    <main className="input__style.main display-x78zum5 flexDirection-xdt5ytf alignItems-x6s0dn4 justifyContent-x1qughib minHeight-xg6iff7 paddingTop-x1llwu7x paddingBottom-xjfnvzm paddingBottom-x191vjuz" data-style-src="tests/fixture/page-tsx/input.stylex.js:73">
-      <div className="input__style.description display-x1jfb8zj justifyContent-xarpa2k alignItems-x1h91t0o fontSize-xmit1kp maxWidth-xmrzitl width-xh8yej3 zIndex-xhtitgo fontFamily-xh1z4oz" data-style-src="tests/fixture/page-tsx/input.stylex.js:119">
-        <p className="input__style.descP display-xjg0vao position-x1n2onr6 position-x15f3dyk justifyContent-xo5s888 alignItems-xu8adaz width-x1v68ji2 margin-x1ghz6dp paddingInline-x1fvqwet paddingTop-x1eq7djj paddingTop-xrmelco paddingBottom-x1hsyo9t paddingBottom-x191vjuz backgroundColor-x1lz9bv1 backgroundImage-x1n7lvf9 borderWidth-xmkeg23 borderWidth-x1m60m6i borderStyle-x1y0btm7 borderColor-x1hydj5d borderBottomColor-xslp3sd borderRadius-x1nklt0o borderRadius-xd22jv inset-x1los6se" data-style-src="tests/fixture/page-tsx/input.stylex.js:136">
+    <main className="input__style.main x78zum5 xdt5ytf x6s0dn4 x1qughib xg6iff7 x5zw9ho x1jlena x1hs85sq" data-style-src="tests/fixture/page-tsx/input.stylex.js:73">
+      <div className="input__style.description x1jfb8zj xarpa2k x1h91t0o x1m46db1 xlql8t6 xh8yej3 xhtitgo xum72dy" data-style-src="tests/fixture/page-tsx/input.stylex.js:119">
+        <p className="input__style.descP xjg0vao x1n2onr6 x15f3dyk xo5s888 xu8adaz x1v68ji2 x1ghz6dp x2jueht xx1ocoh xzfjryi x1xwseyw x1hs85sq xhxofkm x1rgf71s xmkeg23 x1m60m6i x1y0btm7 xbc1r81 x1e6d3oi xvm41bv xd22jv x1los6se" data-style-src="tests/fixture/page-tsx/input.stylex.js:136">
           Get started by editing&nbsp;
-          <code className="input__style.code fontWeight-x1xlr1w8 fontFamily-xh1z4oz" data-style-src="tests/fixture/page-tsx/input.stylex.js:176">app/page.tsx</code>
+          <code className="input__style.code x1xlr1w8 xum72dy" data-style-src="tests/fixture/page-tsx/input.stylex.js:176">app/page.tsx</code>
         </p>
       </div>
-      <div className="input__style.hero flexGrow-x1iyjqo2 display-x78zum5 flexDirection-xdt5ytf alignItems-x6s0dn4 justifyContent-xl56j7k gap-x1irrqrq" data-style-src="tests/fixture/page-tsx/input.stylex.js:85">
-        <h1 className="input__style.h1 fontSize-x1u631ky lineHeight-xo5v014 fontFamily-x1o4itb0 fontWeight-xo1l8bm textAlign-x2b8uid display-x78zum5 gap-x643tzn whiteSpace-xuxw1ft flexDirection-x1q0g3np flexDirection-xwlf911" data-style-src="tests/fixture/page-tsx/input.stylex.js:93">
-          Next.js App Dir<span className="input__style.emoji position-x1n2onr6 fontFamily-x6icuqf top-x13vifvy top-x1dgnge0 animationName-xjjucxr animationDuration-x1c74tu6 animationIterationCount-xa4qsjk animationTimingFunction-x1esw782" data-style-src="tests/fixture/page-tsx/input.stylex.js:107">♥️</span>️StyleX
+      <div className="input__style.hero x1iyjqo2 x78zum5 xdt5ytf x6s0dn4 xl56j7k x1fvhq8d" data-style-src="tests/fixture/page-tsx/input.stylex.js:85">
+        <h1 className="input__style.h1 x1kg2sfr xo5v014 x1alyrvt xo1l8bm x2b8uid x78zum5 xecefrz xuxw1ft x1q0g3np xwlf911" data-style-src="tests/fixture/page-tsx/input.stylex.js:93">
+          Next.js App Dir<span className="input__style.emoji x1n2onr6 x6icuqf x13vifvy xe3njyp x1r68wle x1c74tu6 xa4qsjk x1esw782" data-style-src="tests/fixture/page-tsx/input.stylex.js:107">♥️</span>️StyleX
         </h1>
           <Counter/>
       </div>
 
-      <div className="input__style.grid display-xrvj5dj gridTemplateColumns-xtp8ymz gridTemplateColumns-xx3cr9d gridTemplateColumns-xtffbmy width-xcqkx85 maxWidth-x193iq5w maxWidth-xl858mc textAlign-x15hltav" data-style-src="tests/fixture/page-tsx/input.stylex.js:180">
+      <div className="input__style.grid xrvj5dj xtp8ymz xx3cr9d xtffbmy x1xhi074 x193iq5w xl858mc x15hltav" data-style-src="tests/fixture/page-tsx/input.stylex.js:180">
         <Card body="Learn how to use StyleX to build UIs" href={`${HOMEPAGE}/docs/learn/`} title="Docs"/>
         <Card body="Browse through the StyleX API reference" href={`${HOMEPAGE}/docs/api/`} title="API"/>
         <Card body="Play with StyleX and look at the compile outputs" href={`${HOMEPAGE}/playground/`} title="Playground"/>
@@ -34,274 +34,274 @@ export default function Home(_props: Props) {
     </main>);
 }
 _inject2({
-    ltr: "@keyframes xhab9pt-B{0%{transform:var(--medium-x1m1o2d4);}10%{transform:var(--large-x13z98d3);}20%{transform:var(--medium-x1m1o2d4);}30%{transform:var(--large-x13z98d3);}40%{transform:var(--medium-x1m1o2d4);}90%{transform:var(--small-xrkhmu4);}100%{transform:var(--medium-x1m1o2d4);}}",
+    ltr: "@keyframes xvkw4ej-B{0%{transform:var(--x1m1o2d4);}10%{transform:var(--x13z98d3);}20%{transform:var(--x1m1o2d4);}30%{transform:var(--x13z98d3);}40%{transform:var(--x1m1o2d4);}90%{transform:var(--xrkhmu4);}100%{transform:var(--x1m1o2d4);}}",
     priority: 0
 });
 _inject2({
-    ltr: ".display-x78zum5{display:flex}",
+    ltr: ".x78zum5{display:flex}",
     priority: 3000
 });
 _inject2({
-    ltr: ".flexDirection-xdt5ytf{flex-direction:column}",
+    ltr: ".xdt5ytf{flex-direction:column}",
     priority: 3000
 });
 _inject2({
-    ltr: ".alignItems-x6s0dn4{align-items:center}",
+    ltr: ".x6s0dn4{align-items:center}",
     priority: 3000
 });
 _inject2({
-    ltr: ".justifyContent-x1qughib{justify-content:space-between}",
+    ltr: ".x1qughib{justify-content:space-between}",
     priority: 3000
 });
 _inject2({
-    ltr: ".minHeight-xg6iff7{min-height:100vh}",
+    ltr: ".xg6iff7{min-height:100vh}",
     priority: 4000
 });
 _inject2({
-    ltr: ".paddingTop-x1llwu7x{padding-top:var(--xxl-x1jb9yn9)}",
+    ltr: ".x5zw9ho{padding-top:var(--x1jb9yn9)}",
     priority: 4000
 });
 _inject2({
-    ltr: ".paddingBottom-xjfnvzm{padding-bottom:var(--xxl-x1jb9yn9)}",
+    ltr: ".x1jlena{padding-bottom:var(--x1jb9yn9)}",
     priority: 4000
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.paddingBottom-x191vjuz.paddingBottom-x191vjuz{padding-bottom:var(--md-xz85zqu)}}",
+    ltr: "@media (max-width: 700px){.x1hs85sq.x1hs85sq{padding-bottom:var(--xz85zqu)}}",
     priority: 4200
 });
 _inject2({
-    ltr: ".flexGrow-x1iyjqo2{flex-grow:1}",
+    ltr: ".x1iyjqo2{flex-grow:1}",
     priority: 3000
 });
 _inject2({
-    ltr: ".justifyContent-xl56j7k{justify-content:center}",
+    ltr: ".xl56j7k{justify-content:center}",
     priority: 3000
 });
 _inject2({
-    ltr: ".gap-x1irrqrq{gap:var(--xl-x1btcnwp)}",
+    ltr: ".x1fvhq8d{gap:var(--x1btcnwp)}",
     priority: 2000
 });
 _inject2({
-    ltr: ".fontSize-x1u631ky{font-size:var(--h1-x6bx092)}",
+    ltr: ".x1kg2sfr{font-size:var(--x6bx092)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".lineHeight-xo5v014{line-height:1}",
+    ltr: ".xo5v014{line-height:1}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontFamily-x1o4itb0{font-family:var(--fontSans-x1v0ot8g)}",
+    ltr: ".x1alyrvt{font-family:var(--x1v0ot8g)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontWeight-xo1l8bm{font-weight:400}",
+    ltr: ".xo1l8bm{font-weight:400}",
     priority: 3000
 });
 _inject2({
-    ltr: ".textAlign-x2b8uid{text-align:center}",
+    ltr: ".x2b8uid{text-align:center}",
     priority: 3000
 });
 _inject2({
-    ltr: ".gap-x643tzn{gap:var(--md-xz85zqu)}",
+    ltr: ".xecefrz{gap:var(--xz85zqu)}",
     priority: 2000
 });
 _inject2({
-    ltr: ".whiteSpace-xuxw1ft{white-space:nowrap}",
+    ltr: ".xuxw1ft{white-space:nowrap}",
     priority: 3000
 });
 _inject2({
-    ltr: ".flexDirection-x1q0g3np{flex-direction:row}",
+    ltr: ".x1q0g3np{flex-direction:row}",
     priority: 3000
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.flexDirection-xwlf911.flexDirection-xwlf911{flex-direction:column}}",
+    ltr: "@media (max-width: 700px){.xwlf911.xwlf911{flex-direction:column}}",
     priority: 3200
 });
 _inject2({
-    ltr: ".position-x1n2onr6{position:relative}",
+    ltr: ".x1n2onr6{position:relative}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontFamily-x6icuqf{font-family:sans-serif}",
+    ltr: ".x6icuqf{font-family:sans-serif}",
     priority: 3000
 });
 _inject2({
-    ltr: ".top-x13vifvy{top:0}",
+    ltr: ".x13vifvy{top:0}",
     priority: 4000
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.top-x1dgnge0.top-x1dgnge0{top:var(--xxxs-x1jgrv4s)}}",
+    ltr: "@media (max-width: 700px){.xe3njyp.xe3njyp{top:var(--x1jgrv4s)}}",
     priority: 4200
 });
 _inject2({
-    ltr: ".animationName-xjjucxr{animation-name:xhab9pt-B}",
+    ltr: ".x1r68wle{animation-name:xvkw4ej-B}",
     priority: 3000
 });
 _inject2({
-    ltr: ".animationDuration-x1c74tu6{animation-duration:2s}",
+    ltr: ".x1c74tu6{animation-duration:2s}",
     priority: 3000
 });
 _inject2({
-    ltr: ".animationIterationCount-xa4qsjk{animation-iteration-count:infinite}",
+    ltr: ".xa4qsjk{animation-iteration-count:infinite}",
     priority: 3000
 });
 _inject2({
-    ltr: ".animationTimingFunction-x1esw782{animation-timing-function:linear}",
+    ltr: ".x1esw782{animation-timing-function:linear}",
     priority: 3000
 });
 _inject2({
-    ltr: ".display-x1jfb8zj{display:inherit}",
+    ltr: ".x1jfb8zj{display:inherit}",
     priority: 3000
 });
 _inject2({
-    ltr: ".justifyContent-xarpa2k{justify-content:inherit}",
+    ltr: ".xarpa2k{justify-content:inherit}",
     priority: 3000
 });
 _inject2({
-    ltr: ".alignItems-x1h91t0o{align-items:inherit}",
+    ltr: ".x1h91t0o{align-items:inherit}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontSize-xmit1kp{font-size:var(--sm-x72lcdk)}",
+    ltr: ".x1m46db1{font-size:var(--x72lcdk)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".maxWidth-xmrzitl{max-width:var(--maxWidth-x110of7g)}",
+    ltr: ".xlql8t6{max-width:var(--x110of7g)}",
     priority: 4000
 });
 _inject2({
-    ltr: ".width-xh8yej3{width:100%}",
+    ltr: ".xh8yej3{width:100%}",
     priority: 4000
 });
 _inject2({
-    ltr: ".zIndex-xhtitgo{z-index:2}",
+    ltr: ".xhtitgo{z-index:2}",
     priority: 3000
 });
 _inject2({
-    ltr: ".fontFamily-xh1z4oz{font-family:var(--fontMono-xgc26q9)}",
+    ltr: ".xum72dy{font-family:var(--xgc26q9)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".gap-x1kznko5{gap:var(--xxs-xtt9l4u)}",
+    ltr: ".x168cpw9{gap:var(--xtt9l4u)}",
     priority: 2000
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.padding-xywpsvr.padding-xywpsvr{padding:var(--sm-x1k0pbdz)}}",
+    ltr: "@media (max-width: 700px){.x1bnx9ql.x1bnx9ql{padding:var(--x1k0pbdz)}}",
     priority: 1200
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.display-xjg0vao.display-xjg0vao{display:flex}}",
+    ltr: "@media (max-width: 700px){.xjg0vao.xjg0vao{display:flex}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.position-x15f3dyk.position-x15f3dyk{position:fixed}}",
+    ltr: "@media (max-width: 700px){.x15f3dyk.x15f3dyk{position:fixed}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.justifyContent-xo5s888.justifyContent-xo5s888{justify-content:center}}",
+    ltr: "@media (max-width: 700px){.xo5s888.xo5s888{justify-content:center}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.alignItems-xu8adaz.alignItems-xu8adaz{align-items:center}}",
+    ltr: "@media (max-width: 700px){.xu8adaz.xu8adaz{align-items:center}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.width-x1v68ji2.width-x1v68ji2{width:100%}}",
+    ltr: "@media (max-width: 700px){.x1v68ji2.x1v68ji2{width:100%}}",
     priority: 4200
 });
 _inject2({
-    ltr: ".margin-x1ghz6dp{margin:0}",
+    ltr: ".x1ghz6dp{margin:0}",
     priority: 1000
 });
 _inject2({
-    ltr: ".paddingInline-x1fvqwet{padding-inline:var(--sm-x1k0pbdz)}",
+    ltr: ".x2jueht{padding-inline:var(--x1k0pbdz)}",
     priority: 2000
 });
 _inject2({
-    ltr: ".paddingTop-x1eq7djj{padding-top:var(--sm-x1k0pbdz)}",
+    ltr: ".xx1ocoh{padding-top:var(--x1k0pbdz)}",
     priority: 4000
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.paddingTop-xrmelco.paddingTop-xrmelco{padding-top:var(--lg-xu29097)}}",
+    ltr: "@media (max-width: 700px){.xzfjryi.xzfjryi{padding-top:var(--xu29097)}}",
     priority: 4200
 });
 _inject2({
-    ltr: ".paddingBottom-x1hsyo9t{padding-bottom:var(--sm-x1k0pbdz)}",
+    ltr: ".x1xwseyw{padding-bottom:var(--x1k0pbdz)}",
     priority: 4000
 });
 _inject2({
-    ltr: ".backgroundColor-x1lz9bv1{background-color:var(--calloutRGB50-x11lpu6b)}",
+    ltr: ".xhxofkm{background-color:var(--x11lpu6b)}",
     priority: 3000
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.backgroundImage-x1n7lvf9.backgroundImage-x1n7lvf9{background-image:linear-gradient(to bottom,var(--bgStartRGB-x1txk845),var(--calloutRGB50-x11lpu6b))}}",
+    ltr: "@media (max-width: 700px){.x1rgf71s.x1rgf71s{background-image:linear-gradient(to bottom,var(--x1txk845),var(--x11lpu6b))}}",
     priority: 3200
 });
 _inject2({
-    ltr: ".borderWidth-xmkeg23{border-width:1px}",
+    ltr: ".xmkeg23{border-width:1px}",
     priority: 2000
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.borderWidth-x1m60m6i.borderWidth-x1m60m6i{border-width:0}}",
+    ltr: "@media (max-width: 700px){.x1m60m6i.x1m60m6i{border-width:0}}",
     priority: 2200
 });
 _inject2({
-    ltr: ".borderStyle-x1y0btm7{border-style:solid}",
+    ltr: ".x1y0btm7{border-style:solid}",
     priority: 2000
 });
 _inject2({
-    ltr: ".borderColor-x1hydj5d{border-color:rgba(var(--calloutBorderR-x1tfbujh),var(--calloutBorderG-x1eglwg0),var(--calloutBorderB-xgpbt7a),.3)}",
+    ltr: ".xbc1r81{border-color:rgba(var(--x1tfbujh),var(--x1eglwg0),var(--xgpbt7a),.3)}",
     priority: 2000
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.borderBottomColor-xslp3sd.borderBottomColor-xslp3sd{border-bottom-color:rgba(var(--calloutBorderR-x1tfbujh),var(--calloutBorderG-x1eglwg0),var(--calloutBorderB-xgpbt7a),.25)}}",
+    ltr: "@media (max-width: 700px){.x1e6d3oi.x1e6d3oi{border-bottom-color:rgba(var(--x1tfbujh),var(--x1eglwg0),var(--xgpbt7a),.25)}}",
     priority: 4200
 });
 _inject2({
-    ltr: ".borderRadius-x1nklt0o{border-radius:var(--xs-x1yemeo2)}",
+    ltr: ".xvm41bv{border-radius:var(--x1yemeo2)}",
     priority: 2000
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.borderRadius-xd22jv.borderRadius-xd22jv{border-radius:0}}",
+    ltr: "@media (max-width: 700px){.xd22jv.xd22jv{border-radius:0}}",
     priority: 2200
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.inset-x1los6se.inset-x1los6se{inset:0 0 auto}}",
+    ltr: "@media (max-width: 700px){.x1los6se.x1los6se{inset:0 0 auto}}",
     priority: 1200
 });
 _inject2({
-    ltr: ".fontWeight-x1xlr1w8{font-weight:700}",
+    ltr: ".x1xlr1w8{font-weight:700}",
     priority: 3000
 });
 _inject2({
-    ltr: ".display-xrvj5dj{display:grid}",
+    ltr: ".xrvj5dj{display:grid}",
     priority: 3000
 });
 _inject2({
-    ltr: ".gridTemplateColumns-xtp8ymz{grid-template-columns:repeat(4,minmax(25%,auto))}",
+    ltr: ".xtp8ymz{grid-template-columns:repeat(4,minmax(25%,auto))}",
     priority: 3000
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.gridTemplateColumns-xx3cr9d.gridTemplateColumns-xx3cr9d{grid-template-columns:1fr}}",
+    ltr: "@media (max-width: 700px){.xx3cr9d.xx3cr9d{grid-template-columns:1fr}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media (min-width: 701px) and (max-width: 1120px){.gridTemplateColumns-xtffbmy.gridTemplateColumns-xtffbmy{grid-template-columns:repeat(2,50%)}}",
+    ltr: "@media (min-width: 701px) and (max-width: 1120px){.xtffbmy.xtffbmy{grid-template-columns:repeat(2,50%)}}",
     priority: 3200
 });
 _inject2({
-    ltr: ".width-xcqkx85{width:var(--maxWidth-x110of7g)}",
+    ltr: ".x1xhi074{width:var(--x110of7g)}",
     priority: 4000
 });
 _inject2({
-    ltr: ".maxWidth-x193iq5w{max-width:100%}",
+    ltr: ".x193iq5w{max-width:100%}",
     priority: 4000
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.maxWidth-xl858mc.maxWidth-xl858mc{max-width:320px}}",
+    ltr: "@media (max-width: 700px){.xl858mc.xl858mc{max-width:320px}}",
     priority: 4200
 });
 _inject2({
-    ltr: "@media (max-width: 700px){.textAlign-x15hltav.textAlign-x15hltav{text-align:center}}",
+    ltr: "@media (max-width: 700px){.x15hltav.x15hltav{text-align:center}}",
     priority: 3200
 });

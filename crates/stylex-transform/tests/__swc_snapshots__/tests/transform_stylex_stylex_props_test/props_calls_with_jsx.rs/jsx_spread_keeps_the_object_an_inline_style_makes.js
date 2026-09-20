@@ -7,7 +7,7 @@ _inject2({
 });
 function Foo() {
     return <div {...{
-        className: "x1e2nbdu",
+        className: "Foo__styles.red x1e2nbdu",
         style: {
             color: "blue"
         },

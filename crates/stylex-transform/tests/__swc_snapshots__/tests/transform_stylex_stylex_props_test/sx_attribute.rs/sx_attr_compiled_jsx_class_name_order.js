@@ -11,13 +11,13 @@ function App() {
             _jsx("div", {
                 className: "before",
                 ...{
-                    className: "x1e2nbdu",
+                    className: "Foo__styles.main x1e2nbdu",
                     "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
                 }
             }),
             _jsx("div", {
                 ...{
-                    className: "x1e2nbdu",
+                    className: "Foo__styles.main x1e2nbdu",
                     "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
                 },
                 className: "after"

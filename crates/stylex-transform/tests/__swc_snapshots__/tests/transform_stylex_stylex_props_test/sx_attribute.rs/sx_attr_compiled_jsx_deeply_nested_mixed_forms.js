@@ -19,10 +19,12 @@ _inject2({
 });
 const styles = {
     a: {
+        "Foo__styles.a": "Foo__styles.a",
         "color-kMwMTN": "x1e2nbdu",
         $$css: "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
     },
     b: {
+        "Foo__styles.b": "Foo__styles.b",
         "borderRadius-kaIpWk": "x12oqio5",
         $$css: "npm-package:node_modules/npm-package/dist/components/Foo.react.js:6"
     }
@@ -33,20 +35,20 @@ function App({ sx, rest }) {
         id: "outer",
         children: _jsxs("div", {
             ...{
-                className: "x1e2nbdu",
+                className: "Foo__styles.a x1e2nbdu",
                 "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
             },
             className: "middle",
             children: [
                 _jsx("span", {
                     ...{
-                        className: "x12oqio5 x1t391ir",
+                        className: "Foo__styles.b x12oqio5 Foo__styles.c x1t391ir",
                         "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:6; npm-package:node_modules/npm-package/dist/components/Foo.react.js:9"
                     },
                     children: _jsx("em", {
                         ...rest,
                         ...{
-                            className: "x78zum5",
+                            className: "Foo__styles.d x78zum5",
                             "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:12"
                         },
                         children: _jsx(MyComponent, {

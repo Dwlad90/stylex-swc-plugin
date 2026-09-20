@@ -51,6 +51,7 @@ _inject2({
 });
 export const styles = {
     sidebar: {
+        "UnknownFile__styles.sidebar": "UnknownFile__styles.sidebar",
         "boxSizing-kB7OPa": "x9f619",
         "gridArea-kJuA4N": "x1yc5d2u",
         "gridRow-kbNqZ1": null,
@@ -62,6 +63,7 @@ export const styles = {
         $$css: true
     },
     content: {
+        "UnknownFile__styles.content": "UnknownFile__styles.content",
         "gridArea-kJuA4N": "x1fdo2jl",
         "gridRow-kbNqZ1": null,
         "gridRowStart-k1lYIM": null,
@@ -72,12 +74,14 @@ export const styles = {
         $$css: true
     },
     root: {
+        "UnknownFile__styles.root": "UnknownFile__styles.root",
         "display-k1xSpc": "xrvj5dj",
         "gridTemplateRows-k9llMU": "x7k18q3",
         "gridTemplateAreas-kC13JO": "x5gp9wm",
         $$css: true
     },
     withSidebar: {
+        "UnknownFile__styles.withSidebar": "UnknownFile__styles.withSidebar",
         "gridTemplateColumns-kumcoG": "x1rkzygb",
         "gridTemplateRows-k9llMU": "x7k18q3",
         "gridTemplateAreas-kC13JO": "x17lh93j",
@@ -87,6 +91,7 @@ export const styles = {
         $$css: true
     },
     noSidebar: {
+        "UnknownFile__styles.noSidebar": "UnknownFile__styles.noSidebar",
         "gridTemplateColumns-kumcoG": "x1mkdm3x",
         $$css: true
     }

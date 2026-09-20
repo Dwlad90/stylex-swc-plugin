@@ -14,7 +14,6 @@ fn stylex_transform(
       ))
       .with_debug(true)
       .with_dev(true)
-      .with_enable_dev_class_names(false)
       .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
       .with_runtime_injection()
   })

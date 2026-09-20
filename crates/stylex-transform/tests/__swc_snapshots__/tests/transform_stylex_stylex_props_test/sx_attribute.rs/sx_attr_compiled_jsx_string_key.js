@@ -12,12 +12,12 @@ _inject2({
 function App() {
     return _jsx("div", {
         ...{
-            className: "x1e2nbdu",
+            className: "Foo__styles.main x1e2nbdu",
             "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
         },
         children: _jsx("span", {
             ...{
-                className: "x12oqio5",
+                className: "Foo__styles.card x12oqio5",
                 "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:6"
             }
         })

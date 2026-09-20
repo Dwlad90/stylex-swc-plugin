@@ -4,9 +4,7 @@ use swc_core::common::FileName;
 stylex_test!(
   basic_stylex_call,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_dev(true)
-      .with_enable_dev_class_names(false)
-      .with_runtime_injection()
+    b.with_dev(true).with_runtime_injection()
   }),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -49,7 +47,6 @@ stylex_test!(
   |tr| build_test_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
       .with_dev(true)
-      .with_enable_dev_class_names(false)
       .with_runtime_injection()
   }),
   r#"
@@ -96,7 +93,6 @@ stylex_test!(
     b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
       .with_dev(true)
       .with_debug(true)
-      .with_enable_dev_class_names(false)
       .with_runtime_injection()
   }),
   r#"
@@ -143,7 +139,6 @@ stylex_test!(
     b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
       .with_dev(true)
       .with_debug(true)
-      .with_enable_dev_class_names(false)
       .with_runtime_injection()
   }),
   r#"

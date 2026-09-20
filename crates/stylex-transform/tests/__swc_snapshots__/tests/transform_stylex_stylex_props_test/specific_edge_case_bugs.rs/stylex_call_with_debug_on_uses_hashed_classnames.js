@@ -51,21 +51,25 @@ _inject2({
 });
 export const styles = {
     sidebar: {
+        "FooBar__styles.sidebar": "FooBar__styles.sidebar",
         "boxSizing-kB7OPa": "x9f619",
         "gridArea-kJuA4N": "x1yc5d2u",
         $$css: "js/FooBar.react.js:3"
     },
     content: {
+        "FooBar__styles.content": "FooBar__styles.content",
         "gridArea-kJuA4N": "x1fdo2jl",
         $$css: "js/FooBar.react.js:7"
     },
     root: {
+        "FooBar__styles.root": "FooBar__styles.root",
         "display-k1xSpc": "xrvj5dj",
         "gridTemplateRows-k9llMU": "x7k18q3",
         "gridTemplateAreas-kC13JO": "x5gp9wm",
         $$css: "js/FooBar.react.js:10"
     },
     withSidebar: {
+        "FooBar__styles.withSidebar": "FooBar__styles.withSidebar",
         "gridTemplateColumns-kumcoG": "x1rkzygb",
         "gridTemplateRows-k9llMU": "x7k18q3",
         "gridTemplateAreas-kC13JO": "x17lh93j",
@@ -75,41 +79,42 @@ export const styles = {
         $$css: "js/FooBar.react.js:15"
     },
     noSidebar: {
+        "FooBar__styles.noSidebar": "FooBar__styles.noSidebar",
         "gridTemplateColumns-kumcoG": "x1mkdm3x",
         $$css: "js/FooBar.react.js:25"
     }
 };
 export const complex = {
     0: {
-        className: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4",
+        className: "FooBar__styles.root xrvj5dj FooBar__styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:15"
     },
     4: {
-        className: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x",
+        className: "FooBar__styles.root xrvj5dj x7k18q3 x5gp9wm FooBar__styles.noSidebar x1mkdm3x",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:25"
     },
     2: {
-        className: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 x9f619 x1yc5d2u",
+        className: "FooBar__styles.root xrvj5dj FooBar__styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 FooBar__styles.sidebar x9f619 x1yc5d2u",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:15; js/FooBar.react.js:3"
     },
     6: {
-        className: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x x9f619 x1yc5d2u",
+        className: "FooBar__styles.root xrvj5dj x7k18q3 x5gp9wm FooBar__styles.noSidebar x1mkdm3x FooBar__styles.sidebar x9f619 x1yc5d2u",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:25; js/FooBar.react.js:3"
     },
     1: {
-        className: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 x1fdo2jl",
+        className: "FooBar__styles.root xrvj5dj FooBar__styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 FooBar__styles.content x1fdo2jl",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:15; js/FooBar.react.js:7"
     },
     5: {
-        className: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x x1fdo2jl",
+        className: "FooBar__styles.root xrvj5dj x7k18q3 x5gp9wm FooBar__styles.noSidebar x1mkdm3x FooBar__styles.content x1fdo2jl",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:25; js/FooBar.react.js:7"
     },
     3: {
-        className: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 x9f619 x1fdo2jl",
+        className: "FooBar__styles.root xrvj5dj FooBar__styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 FooBar__styles.sidebar x9f619 FooBar__styles.content x1fdo2jl",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:15; js/FooBar.react.js:3; js/FooBar.react.js:7"
     },
     7: {
-        className: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x x9f619 x1fdo2jl",
+        className: "FooBar__styles.root xrvj5dj x7k18q3 x5gp9wm FooBar__styles.noSidebar x1mkdm3x FooBar__styles.sidebar x9f619 FooBar__styles.content x1fdo2jl",
         "data-style-src": "js/FooBar.react.js:10; js/FooBar.react.js:25; js/FooBar.react.js:3; js/FooBar.react.js:7"
     }
 }[!!(sidebar == null && !isSidebar) << 2 | !!isSidebar << 1 | !!isContent << 0];

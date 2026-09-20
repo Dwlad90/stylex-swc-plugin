@@ -51,6 +51,7 @@ _inject2({
 });
 export const styles = {
     sidebar: {
+        "Foo__styles.sidebar": "Foo__styles.sidebar",
         "boxSizing-kB7OPa": "x9f619",
         "gridArea-kJuA4N": "x1yc5d2u",
         "gridRow-kbNqZ1": null,
@@ -62,6 +63,7 @@ export const styles = {
         $$css: "src/js/components/Foo.react.js:3"
     },
     content: {
+        "Foo__styles.content": "Foo__styles.content",
         "gridArea-kJuA4N": "x1fdo2jl",
         "gridRow-kbNqZ1": null,
         "gridRowStart-k1lYIM": null,
@@ -72,12 +74,14 @@ export const styles = {
         $$css: "src/js/components/Foo.react.js:7"
     },
     root: {
+        "Foo__styles.root": "Foo__styles.root",
         "display-k1xSpc": "xrvj5dj",
         "gridTemplateRows-k9llMU": "x7k18q3",
         "gridTemplateAreas-kC13JO": "x5gp9wm",
         $$css: "src/js/components/Foo.react.js:10"
     },
     withSidebar: {
+        "Foo__styles.withSidebar": "Foo__styles.withSidebar",
         "gridTemplateColumns-kumcoG": "x1rkzygb",
         "gridTemplateRows-k9llMU": "x7k18q3",
         "gridTemplateAreas-kC13JO": "x17lh93j",
@@ -87,11 +91,12 @@ export const styles = {
         $$css: "src/js/components/Foo.react.js:15"
     },
     noSidebar: {
+        "Foo__styles.noSidebar": "Foo__styles.noSidebar",
         "gridTemplateColumns-kumcoG": "x1mkdm3x",
         $$css: "src/js/components/Foo.react.js:25"
     }
 };
 ({
-    0: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4",
-    1: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x"
+    0: "Foo__styles.root xrvj5dj Foo__styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4",
+    1: "Foo__styles.root xrvj5dj x7k18q3 x5gp9wm Foo__styles.noSidebar x1mkdm3x"
 })[!!(sidebar == null) << 0];

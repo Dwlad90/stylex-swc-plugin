@@ -11,6 +11,7 @@ _inject2({
 });
 const styles = {
     card: {
+        "Foo__styles.card": "Foo__styles.card",
         "borderRadius-kaIpWk": "x12oqio5",
         $$css: "npm-package:node_modules/npm-package/dist/components/Foo.react.js:6"
     }
@@ -18,7 +19,7 @@ const styles = {
 function App() {
     return _jsx("div", {
         ...{
-            className: "x1e2nbdu",
+            className: "Foo__styles.main x1e2nbdu",
             "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
         },
         ["sx"]: styles.card,

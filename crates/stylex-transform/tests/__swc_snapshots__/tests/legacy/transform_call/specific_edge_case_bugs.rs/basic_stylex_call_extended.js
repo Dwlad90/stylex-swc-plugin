@@ -50,12 +50,12 @@ _inject2({
     priority: 3000
 });
 export const complex = {
-    0: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4",
-    4: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x",
-    2: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 x9f619 x1yc5d2u",
-    6: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x x9f619 x1yc5d2u",
-    1: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 x1fdo2jl",
-    5: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x x1fdo2jl",
-    3: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 x9f619 x1fdo2jl",
-    7: "xrvj5dj x7k18q3 x5gp9wm x1mkdm3x x9f619 x1fdo2jl"
+    0: "UnknownFile__styles.root xrvj5dj UnknownFile__styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4",
+    4: "UnknownFile__styles.root xrvj5dj x7k18q3 x5gp9wm UnknownFile__styles.noSidebar x1mkdm3x",
+    2: "UnknownFile__styles.root xrvj5dj UnknownFile__styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 UnknownFile__styles.sidebar x9f619 x1yc5d2u",
+    6: "UnknownFile__styles.root xrvj5dj x7k18q3 x5gp9wm UnknownFile__styles.noSidebar x1mkdm3x UnknownFile__styles.sidebar x9f619 x1yc5d2u",
+    1: "UnknownFile__styles.root xrvj5dj UnknownFile__styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 UnknownFile__styles.content x1fdo2jl",
+    5: "UnknownFile__styles.root xrvj5dj x7k18q3 x5gp9wm UnknownFile__styles.noSidebar x1mkdm3x UnknownFile__styles.content x1fdo2jl",
+    3: "UnknownFile__styles.root xrvj5dj UnknownFile__styles.withSidebar x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4 UnknownFile__styles.sidebar x9f619 UnknownFile__styles.content x1fdo2jl",
+    7: "UnknownFile__styles.root xrvj5dj x7k18q3 x5gp9wm UnknownFile__styles.noSidebar x1mkdm3x UnknownFile__styles.sidebar x9f619 UnknownFile__styles.content x1fdo2jl"
 }[!!(sidebar == null && !isSidebar) << 2 | !!isSidebar << 1 | !!isContent << 0];

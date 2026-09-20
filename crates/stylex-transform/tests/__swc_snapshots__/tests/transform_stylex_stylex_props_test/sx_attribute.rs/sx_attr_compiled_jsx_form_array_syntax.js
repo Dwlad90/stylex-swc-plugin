@@ -12,7 +12,7 @@ _inject2({
 function App() {
     return _jsx("div", {
         ...{
-            className: "x12oqio5 x1t391ir",
+            className: "Foo__styles.card x12oqio5 Foo__styles.blueBg x1t391ir",
             "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3; npm-package:node_modules/npm-package/dist/components/Foo.react.js:6"
         },
         children: "Hello World"

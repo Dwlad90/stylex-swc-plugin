@@ -10,5 +10,5 @@ _inject2({
     priority: 3000
 });
 function Foo() {
-    return <div className="x12oqio5 x1t391ir" data-style-src="npm-package:node_modules/npm-package/dist/components/Foo.react.js:3; npm-package:node_modules/npm-package/dist/components/Foo.react.js:6">Hello World</div>;
+    return <div className="Foo__styles.card x12oqio5 Foo__styles.blueBg x1t391ir" data-style-src="npm-package:node_modules/npm-package/dist/components/Foo.react.js:3; npm-package:node_modules/npm-package/dist/components/Foo.react.js:6">Hello World</div>;
 }

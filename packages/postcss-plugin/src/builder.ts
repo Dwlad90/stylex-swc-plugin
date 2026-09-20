@@ -2,13 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { normalize, resolve } from 'path';
 
+import { toTransformedOptions } from '@stylexswc/plugin-shared';
 import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
-import {
-  normalizeRsOptions,
-  shouldTransformFile,
-  StyleXOptions,
-  TransformedOptions,
-} from '@stylexswc/rs-compiler';
+import { normalizeRsOptions, shouldTransformFile, StyleXOptions } from '@stylexswc/rs-compiler';
 import { globSync } from 'fast-glob';
 import globParent from 'glob-parent';
 import isGlob from 'is-glob';
@@ -244,12 +240,7 @@ function createBuilder() {
   function build({ shouldSkipTransformError }: TransformOptions) {
     const { cwd, rsOptions, useCSSLayers, isDev } = getConfig();
 
-    const transformedOptions: TransformedOptions = {
-      useLayers: useCSSLayers,
-      enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
-      legacyDisableLayers: rsOptions?.legacyDisableLayers,
-      useLegacyClassnamesSort: rsOptions?.useLegacyClassnamesSort,
-    };
+    const transformedOptions = toTransformedOptions(useCSSLayers, rsOptions);
 
     const files = getFiles();
     const filesToTransform: PendingFile[] = [];

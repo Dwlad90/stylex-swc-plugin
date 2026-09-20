@@ -45,6 +45,7 @@ export {
   resolveLoaderPath,
   shouldProcessFile,
   stringifyRequest,
+  toTransformedOptions,
 } from './utils';
 
 export type {

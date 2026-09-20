@@ -2,6 +2,7 @@ import { promises } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import * as path from 'node:path';
 
+import { toTransformedOptions } from '@stylexswc/plugin-shared';
 import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
 import { shouldTransformFile, transform as stylexTransform } from '@stylexswc/rs-compiler';
 import type { StyleXMetadata, TransformedOptions } from '@stylexswc/rs-compiler';
@@ -629,12 +630,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     );
   }
 
-  const transformedOptions: TransformedOptions = {
-    useLayers: normalizedOptions.useLayers,
-    enableLTRRTLComments: normalizedOptions.enableLTRRTLComments,
-    legacyDisableLayers: normalizedOptions.legacyDisableLayers,
-    useLegacyClassnamesSort: normalizedOptions.useLegacyClassnamesSort,
-  };
+  const transformedOptions = toTransformedOptions(normalizedOptions.useLayers, normalizedOptions);
 
   // Mutable state for each compilation - reset in buildStart
   const stylexRules: StyleXRules = {};

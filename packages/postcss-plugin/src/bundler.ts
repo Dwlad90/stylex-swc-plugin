@@ -23,26 +23,24 @@ export default function createBundler() {
   ) {
     const { shouldSkipTransformError } = options;
 
-    let transformResult: ReturnType<typeof stylexTransform> = {
-      code: sourceCode,
-      map: undefined,
-      metadata: { stylex: [] },
-    };
+    let transformResult: ReturnType<typeof stylexTransform>;
 
     try {
       const rsOptionsNormalized = normalizeRsOptions(rsOptions);
 
       transformResult = stylexTransform(id, sourceCode, rsOptionsNormalized);
     } catch (error) {
-      if (shouldSkipTransformError) {
-        console.warn(
-          `[@stylexswc/postcss-plugin] Failed to transform "${id}": ${(error as Error).message}`
-        );
-
-        return { ...transformResult, collected: false };
+      if (!shouldSkipTransformError) {
+        throw error;
       }
 
-      throw error;
+      console.warn(
+        `[@stylexswc/postcss-plugin] Failed to transform "${id}": ${(error as Error).message}`
+      );
+
+      // The source is handed back as it was read, and `collected` says its
+      // rules never reached the bundler.
+      return { code: sourceCode, map: undefined, metadata: { stylex: [] }, collected: false };
     }
 
     const { code, map, metadata } = transformResult;

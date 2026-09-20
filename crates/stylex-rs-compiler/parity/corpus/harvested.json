@@ -1008,7 +1008,7 @@
       "id": "307d2702",
       "property": "boxSizing",
       "value": "border-box",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:17"
     },
     {
       "id": "21190363",
@@ -2646,13 +2646,13 @@
       "id": "e13f3cdd",
       "property": "gridArea",
       "value": "content",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:17"
     },
     {
       "id": "7895775c",
       "property": "gridArea",
       "value": "sidebar",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:17"
     },
     {
       "id": "cf2805d0",
@@ -2682,7 +2682,7 @@
       "id": "ac0fe6d4",
       "property": "gridTemplateAreas",
       "value": "\"sidebar content\"",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:17"
     },
     {
       "id": "29c9ce72",
@@ -2718,7 +2718,7 @@
       "id": "87450488",
       "property": "gridTemplateColumns",
       "value": "100%",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:17"
     },
     {
       "id": "98cf7d27",
@@ -2748,7 +2748,7 @@
       "id": "951cdf08",
       "property": "gridTemplateRows",
       "value": "100%",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:17"
     },
     {
       "id": "4d75fe51",

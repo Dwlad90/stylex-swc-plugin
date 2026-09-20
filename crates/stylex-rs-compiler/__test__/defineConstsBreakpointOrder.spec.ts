@@ -128,3 +128,133 @@ describe('defineConsts breakpoints', () => {
     );
   });
 });
+
+/**
+ * The assembled stylesheet for `constants`, each used once by a rule.
+ *
+ * Returns the `@media` preludes in the order they were assembled, which is the
+ * whole of what a breakpoint order can be asserted on: the class names are
+ * hashes of the values, so naming them would pin the hash and not the order.
+ */
+function assembleQueryOrder(constants: Record<string, string>): string[] {
+  const rootDir = __dirname;
+  const names = Object.keys(constants);
+
+  const constantsSource = `
+    import * as stylex from '@stylexjs/stylex';
+
+    export const bp = stylex.defineConsts(${JSON.stringify(constants)});
+  `;
+
+  // One declaration per constant, each a different property, so no two rules
+  // can merge and hide an ordering mistake.
+  const componentSource = `
+    import * as stylex from '@stylexjs/stylex';
+    import { bp } from 'bp.stylex.js';
+
+    export const styles = stylex.create({
+      a: {
+        zIndex: {
+          default: 0,
+          ${names.map((name, i) => `[bp.${name}]: ${i + 1},`).join('\n          ')}
+        },
+      },
+    });
+  `;
+
+  const options = {
+    dev: false,
+    unstable_moduleResolution: { type: 'haste' as const, rootDir },
+  };
+  const compile = (file: string, source: string): StyleXMetadata['stylex'] =>
+    transform(path.join(rootDir, file), source, options).metadata.stylex;
+
+  const css = stylexBabelPlugin.processStylexRules(
+    [...compile('bp.stylex.js', constantsSource), ...compile('component.js', componentSource)],
+    { useLayers: false, legacyDisableLayers: true }
+  );
+
+  return css
+    .split('\n')
+    .map(line => line.slice(0, line.indexOf('{')))
+    .filter(prelude => prelude.startsWith('@media'));
+}
+
+describe('defineConsts breakpoint shapes', () => {
+  test('sorts min-width with screen and media type', () => {
+    expect(
+      assembleQueryOrder({
+        wide: '@media screen and (min-width: 900px)',
+        narrow: '@media screen and (min-width: 400px)',
+      })
+    ).toStrictEqual([
+      '@media screen and (min-width: 400px)',
+      '@media screen and (min-width: 900px)',
+    ]);
+  });
+
+  test('orders the min-width group before the max-width group', () => {
+    expect(
+      assembleQueryOrder({
+        maxNarrow: '@media (max-width: 300px)',
+        minWide: '@media (min-width: 900px)',
+      })
+    ).toStrictEqual(['@media (min-width: 900px)', '@media (max-width: 300px)']);
+  });
+
+  test('sorts unitless zero, any-unit zero, and mixed-case px', () => {
+    expect(
+      assembleQueryOrder({
+        mixedCase: '@media (min-width: 700PX)',
+        zeroUnitless: '@media (min-width: 0)',
+        zeroRem: '@media (min-width: 0rem)',
+      })
+    ).toStrictEqual([
+      '@media (min-width: 0)',
+      '@media (min-width: 0rem)',
+      '@media (min-width: 700PX)',
+    ]);
+  });
+
+  test('does not sort rem breakpoints', () => {
+    // A rem length has no fixed pixel value, so the rules keep the order they
+    // arrived in rather than being compared against one another.
+    expect(
+      assembleQueryOrder({
+        wide: '@media (min-width: 60rem)',
+        narrow: '@media (min-width: 20rem)',
+      })
+    ).toStrictEqual(['@media (min-width: 60rem)', '@media (min-width: 20rem)']);
+  });
+
+  test('sort is a total order across px min- and max-width rules', () => {
+    // Every arrangement of the same three breakpoints must assemble to one
+    // answer, which is what makes the comparison a total order.
+    const shapes = {
+      a: '@media (min-width: 500px)',
+      b: '@media (max-width: 300px)',
+      c: '@media (min-width: 900px)',
+    };
+    const permutations = [
+      ['a', 'b', 'c'],
+      ['a', 'c', 'b'],
+      ['b', 'a', 'c'],
+      ['b', 'c', 'a'],
+      ['c', 'a', 'b'],
+      ['c', 'b', 'a'],
+    ];
+
+    const results = permutations.map(order =>
+      assembleQueryOrder(
+        Object.fromEntries(order.map(name => [name, shapes[name as keyof typeof shapes]]))
+      ).join('\n')
+    );
+
+    expect(new Set(results).size).toBe(1);
+    expect(results[0]).toBe(
+      ['@media (min-width: 500px)', '@media (min-width: 900px)', '@media (max-width: 300px)'].join(
+        '\n'
+      )
+    );
+  });
+});

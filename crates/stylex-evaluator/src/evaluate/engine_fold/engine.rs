@@ -32,7 +32,7 @@ use stylex_constants::constants::evaluation_errors::{engine_did_not_start, engin
 use stylex_utils::hash::stable_hash_unspanned_call;
 
 use super::Decline;
-use super::backstop::{self, BACKSTOP_SOURCE, Backstops, RESERVED_NAMES};
+use super::backstop::{self, BACKSTOP_SOURCE, Backstops};
 use super::theme::{compile_traps, var_group_traps};
 use stylex_diagnostics::code_frame::print_module;
 
@@ -444,12 +444,12 @@ pub(super) fn print_fold(call: &CallExpr, mut params: Vec<Pat>) -> Printed {
 /// else it takes.
 ///
 /// In front, so both are initialised before any parameter default that reads
-/// one is evaluated. An expression that resolved no name has no arrow yet and
-/// is given one here, which is the only thing the two shapes differ by.
+/// one is evaluated, and in the order the arguments are passed in. An
+/// expression that resolved no name has no arrow yet and is given one here,
+/// which is the only thing the two shapes differ by.
 fn with_the_checks_bound(printed: Expr) -> Expr {
-  let checks = RESERVED_NAMES
-    .into_iter()
-    .map(|name| Pat::Ident(create_binding_ident(create_ident(name))));
+  let checks =
+    backstop::reserved_names().map(|name| Pat::Ident(create_binding_ident(create_ident(name))));
 
   match printed {
     Expr::Arrow(mut arrow) => {

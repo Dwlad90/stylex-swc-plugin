@@ -125,7 +125,8 @@ fn an_arrow_that_binds_the_checks_is_called_with_them_first() {
 
   // Each check is asked to do its own job, so the case says which argument is
   // which rather than only that both are functions. The order is the one
-  // `RESERVED_NAMES` prints and `Backstops::arguments` passes.
+  // the `CHECKS` table names, which both the parameter list and the arguments
+  // are built from.
   let source = "(read, call, a) => read({ k: 'r' }, 'k') + ':' + typeof call('x') + ':' + a";
 
   match applied_to(source, &[JsValue::from(7)], true, &mut engine, 6) {

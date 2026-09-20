@@ -46,7 +46,7 @@
 //! the argument.
 
 use boa_engine::{
-  Context, JsError, JsString, JsValue, Source, js_string,
+  Context, JsError, JsString, JsValue, Source,
   object::builtins::{JsArray, JsFunction},
 };
 use rustc_hash::FxHashSet;
@@ -65,7 +65,7 @@ use stylex_constants::constants::evaluation_errors::{
 };
 
 use super::Decline;
-use super::{BLOCKED_PROPERTIES, ESCAPING_PROPERTIES, lists};
+use super::{BLOCKED_PROPERTIES, ESCAPING_PROPERTIES};
 
 /// The name the printed source reads a computed property through.
 pub(super) const READER: &str = "__sxRead";
@@ -73,16 +73,30 @@ pub(super) const READER: &str = "__sxRead";
 /// The name the printed source calls a resolved function through.
 pub(super) const CALLER: &str = "__sxCall";
 
-/// The two names above, in the order the printed arrow binds them.
+/// The two checks, in the order the printed arrow binds them, and the key each
+/// one is read off the built source under.
 ///
-/// One list, because three readers ask about it: the parameter list, the
-/// argument list beside it, and the guard's refusal of a binding that would
-/// shadow either.
-pub(super) const RESERVED_NAMES: [&str; 2] = [READER, CALLER];
+/// One table, because three readers depend on this order and a fourth on the
+/// names: the parameter list the fold prints, the arguments passed beside it,
+/// the reader that takes each check off the built source, and the guard's
+/// refusal of a binding that would shadow either. The keys are spelled once
+/// more in [`BACKSTOP_SOURCE`], which is the source that answers under them;
+/// a source that spelled them differently is refused when the checks are
+/// taken off it rather than folded past.
+///
+/// A third check is one line here and a compile error where the pair is read
+/// apart, which is what the fixed width below buys over a list that would have
+/// taken it in silence.
+const CHECKS: [(&str, &str); 2] = [(READER, "read"), (CALLER, "call")];
+
+/// The names the printed arrow binds, in the order it binds them.
+pub(super) fn reserved_names() -> impl Iterator<Item = &'static str> {
+  CHECKS.into_iter().map(|(name, _)| name)
+}
 
 /// Whether `name` is one the printed source reserves for a check of its own.
 pub(super) fn is_a_reserved_name(name: &str) -> bool {
-  lists(&RESERVED_NAMES, name)
+  reserved_names().any(|reserved| reserved == name)
 }
 
 /// The property names the reader refuses: the guard's two tables and nothing
@@ -169,16 +183,21 @@ pub(super) const BACKSTOP_SOURCE: &str = r#"(names, propertyMessage, functionMes
 /// Kept beside the engine for the reason the theme builder is: what building
 /// them costs is a parse, and the source parsed is the same one every fold on
 /// that engine reads through.
+///
+/// Held in one list rather than one field each, and filled in [`CHECKS`]
+/// order, so the order they are passed in is the order they are printed in by
+/// construction rather than by two lists agreeing.
 pub(super) struct Backstops {
-  read: JsFunction,
-  call: JsFunction,
+  checks: [JsFunction; CHECKS.len()],
 }
 
 impl Backstops {
-  /// The two as the arguments the printed arrow takes them under, in the order
-  /// [`RESERVED_NAMES`] prints them.
-  pub(super) fn arguments(&self) -> [JsValue; RESERVED_NAMES.len()] {
-    [self.read.clone().into(), self.call.clone().into()]
+  /// The checks as the arguments the printed arrow takes them under.
+  ///
+  /// An iterator rather than a list, because the caller builds one list out of
+  /// these and the carried values together.
+  pub(super) fn arguments(&self) -> impl Iterator<Item = JsValue> + '_ {
+    self.checks.iter().cloned().map(JsValue::from)
   }
 }
 
@@ -195,7 +214,8 @@ fn unbuilt(reason: &str) -> Decline {
 /// is called once, and has to answer an object holding both checks. None of the
 /// four can fire for [`BACKSTOP_SOURCE`], which is the one source shipped — so
 /// the source is a parameter and a case hands in one that fails the step it is
-/// about.
+/// about. The keys are read in [`CHECKS`] order, which is the order the
+/// arguments are passed in.
 ///
 /// Answers a refusal rather than asserting, for the reason every other step of
 /// building an engine does: this runs inside an evaluation whose whole contract
@@ -228,9 +248,16 @@ pub(super) fn compile_backstops(source: &str, context: &mut Context) -> Result<B
     )
     .map_err(refused)?;
 
+  // Read apart rather than collected, so the width stays fixed: a third entry
+  // in `CHECKS` stops compiling here, where a list would have taken it and
+  // left the printed parameter without an argument.
+  let [(_, reader), (_, caller)] = CHECKS;
+
   Ok(Backstops {
-    read: one_check(&checks, js_string!("read"), context)?,
-    call: one_check(&checks, js_string!("call"), context)?,
+    checks: [
+      one_check(&checks, JsString::from(reader), context)?,
+      one_check(&checks, JsString::from(caller), context)?,
+    ],
   })
 }
 
@@ -276,7 +303,7 @@ fn one_check(
 ///
 /// Reached only where the fold memo missed, so the walk is a cost per printed
 /// shape rather than per fold.
-pub(super) fn checked(expr: &mut Expr) -> bool {
+pub(crate) fn checked(expr: &mut Expr) -> bool {
   let mut bound = Bound::default();
 
   expr.visit_with(&mut bound);

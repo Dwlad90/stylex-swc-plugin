@@ -11,6 +11,7 @@ mod rebuild;
 
 pub(crate) use cache::{Memoized, evaluate_cached, folded_once};
 pub(crate) use deopt::{deopt, deopt_at_declaration};
+pub use engine_fold::prints_a_check;
 pub use helpers::evaluate_result_is_nullish;
 use helpers::*;
 pub(crate) use nodes::binary_expression::binary_expr_to_num_or_str;

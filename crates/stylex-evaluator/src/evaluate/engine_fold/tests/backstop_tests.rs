@@ -22,6 +22,7 @@ use stylex_constants::constants::evaluation_errors::{
 use super::super::Engine;
 use super::super::engine::print_fold;
 use super::super::engine_reads::{an_engine, applied, fold_key};
+use crate::evaluate::prints_a_check;
 use crate::evaluate::source_evaluation::{
   assert_deopt_reason_contains, assert_refused_in_a_module_binding,
 };
@@ -186,6 +187,36 @@ fn a_fold_that_needs_no_check_is_printed_unchanged() {
       !source.contains("__sx"),
       "`{}` printed a check into `{}`",
       case,
+      source
+    );
+  }
+}
+
+/// The question the fold benchmark asks, over the two shapes it prices and one
+/// it does not.
+///
+/// A check is transparent over every value a fold answers, so a benchmark leg
+/// that stopped printing one would answer the same text and only get quicker.
+/// This is what lets that leg say it still prices what its name says.
+#[test]
+fn a_shape_says_whether_folding_it_prints_a_check() {
+  let cases = [
+    // The two shapes the fold benchmark prices.
+    (r#"[0,1].map(i=>["a","b"][i]).join("-")"#, true),
+    (r#"[x=>x+"px"].map(f=>f(8)).join("")"#, true),
+    // A key written as a number keeps the language's own index operator, and
+    // a call through a free name keeps its own call.
+    (r#"[4,8].map(step=>[step,step*2][1]+"px").join(" ")"#, false),
+    (r#"String([1].map(n=>n))"#, false),
+  ];
+
+  for (source, expected) in cases {
+    let expr = GLOBALS.set(&Globals::new(), || parse_expr(source));
+
+    assert_eq!(
+      prints_a_check(&expr),
+      expected,
+      "`{}` was read the other way round",
       source
     );
   }

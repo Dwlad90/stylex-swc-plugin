@@ -65,6 +65,24 @@ use theme::is_a_var_group;
 
 pub(super) use guard::unshadowed_applied_global;
 
+/// Whether folding `expr` would print one of the fold's own checks into the
+/// source it hands the engine.
+///
+/// The rewrite [`backstop::checked`] runs, asked of the expression on its own
+/// — so it answers for the call a fold prints and not for a declaration that
+/// would cross as a parameter default beside it.
+///
+/// Public and not `#[cfg(test)]`, because the caller is the fold benchmark and
+/// a benchmark is a separate crate: a `cfg` set while compiling this one is not
+/// set while compiling that. A leg that priced a check and stopped printing one
+/// would get quicker and read as a win, which `guidelines/PERFORMANCE.md`
+/// refuses. `doc(hidden)` keeps it out of the documented interface, because
+/// answering a benchmark is not part of what this crate offers.
+#[doc(hidden)]
+pub fn prints_a_check(expr: &Expr) -> bool {
+  backstop::checked(&mut expr.clone())
+}
+
 // Read by the evaluator's own tests, which sit one level up.
 #[cfg(test)]
 pub(super) use engine::{
@@ -602,7 +620,6 @@ fn apply(
       engine
         .backstops
         .arguments()
-        .into_iter()
         .chain(arguments.iter().cloned())
         .collect(),
     ),

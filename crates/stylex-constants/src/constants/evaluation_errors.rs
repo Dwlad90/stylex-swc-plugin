@@ -494,6 +494,14 @@ pub fn engine_threw(method: &str, message: &str) -> String {
 /// implementation words this refusal the same way, so the two compilers answer
 /// such a read with one text rather than two, and the parity corpus records
 /// that agreement. Re-wrapping the lines would end it.
+///
+/// No sentence stands beside this one for a blocked function call. Such a
+/// refusal has to compare a value against the language's own `Function` or
+/// `eval`, and the function map cannot hold either: `FunctionType` is a closed
+/// set of compiler callbacks, so no property read can put a host function into
+/// it. Every route that would end in such a call is refused earlier, by the
+/// property rules and by the callee allowlist, and
+/// `prototype_chain_escape_tests` asserts that for each route it knows.
 pub static BLOCKED_PROPERTY_ACCESS: &str = concat!(
   "Access to this property is not allowed during compilation.\n",
   "Accessing prototype-chain properties such as 'constructor', '__proto__', or 'prototype'\n",

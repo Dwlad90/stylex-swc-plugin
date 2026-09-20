@@ -40,10 +40,10 @@ pub fn get_callee_name(callee: &Expr) -> &str {
 /// One set per global, so a static of one global cannot be called on another:
 /// `Math.keys` is no more a call this fold owns than `Object.max` is.
 ///
-/// The set membership on its own, for a caller that already holds both names.
-/// One reading of the sets rather than two, which is what keeps this rule and
-/// the guard that reads the same sets from coming apart.
-pub fn is_a_valid_callee_method(callee: &str, method: &str) -> bool {
+/// This is the set membership on its own, for a caller that already holds the
+/// two names. It reads the sets one time and not two, which keeps this rule
+/// and the guard that reads the same sets in agreement.
+pub fn is_valid_callee_method_name(callee: &str, method: &str) -> bool {
   match callee {
     "String" => VALID_STRING_METHODS.contains(method),
     "Number" => VALID_NUMBER_METHODS.contains(method),
@@ -61,7 +61,7 @@ pub fn is_a_valid_callee_method(callee: &str, method: &str) -> bool {
 /// not readable from the syntax.
 pub fn is_valid_callee_method(callee: &str, prop: &MemberProp) -> bool {
   match prop {
-    MemberProp::Ident(ident_prop) => is_a_valid_callee_method(callee, &ident_prop.sym),
+    MemberProp::Ident(ident_prop) => is_valid_callee_method_name(callee, &ident_prop.sym),
     _ => false,
   }
 }

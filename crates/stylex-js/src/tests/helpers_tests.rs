@@ -106,7 +106,7 @@ fn method_sets_detect_expected_members() {
 
 /// Every global the fold owns carries an allowlist, and no other name does.
 ///
-/// [`is_a_valid_callee_method`] dispatches on the receiver's name, which is a
+/// [`is_valid_callee_method_name`] dispatches on the receiver's name, which is a
 /// second listing of the globals beside `VALID_CALLEES`. A callee added to that
 /// set and not to the dispatch would answer `false` for every static it
 /// carries, refusing the whole surface in silence. This is what says the two
@@ -117,15 +117,15 @@ fn every_valid_callee_carries_an_allowlist() {
     assert!(
       METHODS_PER_CALLEE
         .iter()
-        .any(|(name, method)| name == callee && is_a_valid_callee_method(callee, method)),
+        .any(|(name, method)| name == callee && is_valid_callee_method_name(callee, method)),
       "`{}` is a valid callee with no static the allowlist admits",
       callee
     );
   }
 
   // And the dispatch answers for those names only.
-  assert!(!is_a_valid_callee_method("Reflect", "get"));
-  assert!(!is_a_valid_callee_method("", "keys"));
+  assert!(!is_valid_callee_method_name("Reflect", "get"));
+  assert!(!is_valid_callee_method_name("", "keys"));
 }
 
 /// One static each global carries, for the test above to ask it about.
@@ -158,13 +158,13 @@ fn reflective_and_impure_statics_are_outside_the_allowlist() {
     "getOwnPropertyDescriptors",
   ]) {
     assert!(
-      !is_a_valid_callee_method("Object", method),
+      !is_valid_callee_method_name("Object", method),
       "`Object.{}` must stay outside the allowlist",
       method
     );
   }
 
-  assert!(!is_a_valid_callee_method("Math", "random"));
+  assert!(!is_valid_callee_method_name("Math", "random"));
 }
 
 #[test]

@@ -116,8 +116,9 @@ _Avoid_: impure method, unsafe method
 **Valid callee method**:
 A static the compiler is willing to call on a [valid callee](#language) — a
 member of that global's own set, `VALID_STRING_METHODS` and its four siblings.
-`is_valid_callee_method` asks it of a member read and `is_a_valid_callee_method`
-of two names already in hand, which is the pairing `is_valid_callee` and
-`is_a_valid_callee_name` already use. An allowlist: a static the sets do not
-hold is refused, whether or not anybody listed a reason for it.
+`is_valid_callee_method` asks it of a member read, and
+`is_valid_callee_method_name` asks it of two names already in hand. The `_name`
+suffix says which one takes a name, because the two differ in nothing else. An
+allowlist: a static the sets do not hold is refused, whether or not anybody
+listed a reason for it.
 _Avoid_: allowed method, safe static, whitelisted method

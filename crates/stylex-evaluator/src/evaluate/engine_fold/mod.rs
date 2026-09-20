@@ -293,8 +293,8 @@ pub(super) fn refusal_for_a_property_name(name: &str) -> Option<Refusal> {
 
 /// The same, for a read that is still syntax rather than a resolved name.
 ///
-/// One reading of the property, where asking the two rules separately read it
-/// twice.
+/// It reads the property one time, where asking the two rules separately reads
+/// it two times.
 pub(super) fn refusal_for_a_property_read(prop: &MemberProp) -> Option<Refusal> {
   member_prop_name(prop).and_then(refusal_for_a_property_name)
 }

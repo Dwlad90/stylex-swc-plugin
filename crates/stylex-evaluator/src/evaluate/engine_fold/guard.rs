@@ -30,7 +30,7 @@ use stylex_constants::constants::evaluation_errors::{
 };
 use stylex_enums::declaration_type::DeclarationType;
 use stylex_js::coercions::is_global_spelled_as_an_identifier;
-use stylex_js::helpers::{is_a_valid_callee_method, is_a_valid_callee_name, is_valid_callee};
+use stylex_js::helpers::{is_a_valid_callee_name, is_valid_callee, is_valid_callee_method_name};
 use stylex_utils::swc::get_stmt_node_kind;
 
 use super::amplification::EntryAmplifier;
@@ -1887,7 +1887,7 @@ fn refuse_a_method_by_its_spelling(
   // Two sentences, because the two halves are refused for different reasons and
   // an author acts on each differently.
   if let Some(global) = global
-    && !is_a_valid_callee_method(global, &method.sym)
+    && !is_valid_callee_method_name(global, &method.sym)
   {
     // A global's `constructor` is the shortest escape there is, so it reads as
     // one rather than as a static that could not be folded. Every other name

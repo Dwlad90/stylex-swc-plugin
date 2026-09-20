@@ -16,7 +16,7 @@ use stylex_state::{
   state_manager::StateManager,
   types::{FlatCompiledStyles, InjectableStylesMap},
 };
-use stylex_utils::hash::{create_hash, create_key_hash};
+use stylex_utils::hash::{create_authored_or_hashed_key, create_hash};
 
 pub(crate) fn stylex_define_vars(
   variables: &EvaluateResultValue,
@@ -49,13 +49,8 @@ pub(crate) fn stylex_define_vars(
   for key_value in key_values.iter() {
     let key = convert_key_value_to_str(key_value);
 
-    // A name the author spelled as a CSS custom property is kept as written,
-    // without the two leading dashes. Every other name is hashed from
-    // `fileName//themeName//key`.
-    let name_hash = match key.strip_prefix("--") {
-      Some(authored) => authored.to_string(),
-      None => format!("{}{}", class_name_prefix, create_key_hash(&export_id, &key)),
-    };
+    // The namespace a variable hashes under is `fileName//themeName`.
+    let name_hash = create_authored_or_hashed_key(&class_name_prefix, &export_id, &key);
 
     let (css_value, css_type) = get_css_value(KeyValueProp {
       key: PropName::Str(key.clone().into()),

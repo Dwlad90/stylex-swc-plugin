@@ -14,7 +14,7 @@ use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableConstStyle,
 };
-use stylex_utils::hash::create_key_hash;
+use stylex_utils::hash::create_authored_or_hashed_key;
 
 pub(crate) fn stylex_define_consts(
   constants: &EvaluateResultValue,
@@ -42,12 +42,7 @@ pub(crate) fn stylex_define_consts(
     // text that each of them has to guess a kind back out of.
     let value = Rc::new(folded_value(&key_value.value));
 
-    // A name the author spelled as a CSS custom property is kept as written,
-    // without the two leading dashes. Every other name is hashed.
-    let const_key = match key.strip_prefix("--") {
-      Some(authored) => authored.to_string(),
-      None => format!("{}{}", class_name_prefix, create_key_hash(&export_id, &key)),
-    };
+    let const_key = create_authored_or_hashed_key(&class_name_prefix, &export_id, &key);
 
     injectable_types.insert(
       const_key.clone().into(),

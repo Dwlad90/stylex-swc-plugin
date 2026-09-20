@@ -495,7 +495,7 @@ pub fn engine_threw(method: &str, message: &str) -> String {
 /// such a read with one text rather than two, and the parity corpus records
 /// that agreement. Re-wrapping the lines would end it.
 ///
-/// No sentence stands beside this one for a blocked function call. Such a
+/// There is no companion sentence for a blocked function call. Such a
 /// refusal has to compare a value against the language's own `Function` or
 /// `eval`, and the function map cannot hold either: `FunctionType` is a closed
 /// set of compiler callbacks, so no property read can put a host function into

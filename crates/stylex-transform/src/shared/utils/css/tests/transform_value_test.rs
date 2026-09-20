@@ -169,7 +169,8 @@ mod transform_value_content_property_tests {
       // The initial value of `hyphenate-character` is therefore quoted, which
       // is what the reference compiler does with it too.
       ("auto", "\"auto\""),
-      // A quote character inside the text is escaped, not counted.
+      // An apostrophe does not end a double-quoted string, so it is copied as
+      // it stands. Only a double quote is escaped.
       ("it's", "\"it's\""),
     ];
 

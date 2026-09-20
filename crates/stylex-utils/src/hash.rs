@@ -97,8 +97,8 @@ pub fn create_key_hash(namespace: &str, key: &str) -> String {
 /// written, without the two leading dashes. Every other name is hashed and
 /// carries `prefix` in front of it.
 ///
-/// `defineConsts` and `defineVars` both name their keys this way, so the rule
-/// is held one time and cannot come apart between them.
+/// `defineConsts` and `defineVars` both name their keys this way. The rule is
+/// held one time, so the two cannot disagree about it.
 #[inline]
 pub fn create_authored_or_hashed_key(prefix: &str, namespace: &str, key: &str) -> String {
   match key.strip_prefix("--") {

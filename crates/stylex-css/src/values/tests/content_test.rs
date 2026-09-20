@@ -111,7 +111,7 @@ fn reads_a_backslash_as_the_start_of_an_escape() {
 // ── large and awkward input ──────────────────────────────────────────
 
 #[test]
-fn reads_a_very_long_component_list_without_help() {
+fn passes_through_a_component_list_of_five_thousand_strings() {
   // Each component is a closed string, so the whole list is CSS however long
   // it gets. The scan must not stop early or run out of stack on it.
   let input = vec!["\"x\""; 5_000].join(" ");
@@ -121,14 +121,15 @@ fn reads_a_very_long_component_list_without_help() {
 
 #[test]
 fn quotes_a_very_long_text_value_once() {
-  // One quote character every few words gives the scan the most work it can
-  // get and still produces one string, not a list.
+  // A quote character every few words is the input that gives the scan the
+  // most to do, and it must still make one string and not a list.
   let text = "He said \"hi\" and left. ".repeat(2_000);
-  let output = transform_content_value(&text);
 
-  // The value is wrapped one time, and every quote inside it is escaped.
-  assert!(output.starts_with('"') && output.ends_with('"'));
-  assert_eq!(output.matches("\\\"").count(), text.matches('"').count());
+  // The whole answer, so that a scan which dropped or changed the text body
+  // cannot pass on the count of the quotes alone.
+  let expected = format!("\"{}\"", text.replace('"', "\\\""));
+
+  assert_eq!(transform_content_value(&text), expected);
 }
 
 #[test]

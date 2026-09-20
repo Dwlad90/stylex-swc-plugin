@@ -146,8 +146,8 @@ function assembleQueryOrder(constants: Record<string, string>): string[] {
     export const bp = stylex.defineConsts(${JSON.stringify(constants)});
   `;
 
-  // One declaration per constant, each a different property, so no two rules
-  // can merge and hide an ordering mistake.
+  // One declaration per constant, each with its own value, so every rule gets
+  // a class name of its own and no two can merge to hide an ordering mistake.
   const componentSource = `
     import * as stylex from '@stylexjs/stylex';
     import { bp } from 'bp.stylex.js';

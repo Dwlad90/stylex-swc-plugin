@@ -2,8 +2,8 @@ import crypto from 'node:crypto';
 
 import type { Rule } from '@stylexjs/babel-plugin';
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
-import { toTransformedOptions } from '@stylexswc/plugin-shared';
 import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
+import { toTransformedOptions } from '@stylexswc/plugin-shared/transformed-options';
 import {
   normalizeRsOptions,
   shouldTransformFile,

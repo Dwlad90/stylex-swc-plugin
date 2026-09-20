@@ -2,8 +2,8 @@ import { promises } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import * as path from 'node:path';
 
-import { toTransformedOptions } from '@stylexswc/plugin-shared';
 import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
+import { toTransformedOptions } from '@stylexswc/plugin-shared/transformed-options';
 import { shouldTransformFile, transform as stylexTransform } from '@stylexswc/rs-compiler';
 import type { StyleXMetadata, TransformedOptions } from '@stylexswc/rs-compiler';
 import type { Metafile, OnEndResult } from 'esbuild';

@@ -13,6 +13,7 @@ import {
 import { mergeStyleXRulesInto, publishStyleXRules } from './nextjs-registry';
 import type { StyleXRulesMap } from './nextjs-registry';
 import { escapeRegExp } from './regexp';
+import { toTransformedOptions } from './transformed-options';
 import type {
   CSSTransformer,
   CacheGroupOptions,
@@ -82,12 +83,7 @@ export class StyleXPluginCore {
     stylexPackages = DEFAULT_STYLEX_PACKAGES,
     carrierCss,
   }: StyleXPluginOption = {}) {
-    this.transformedOptions = {
-      useLayers: useCSSLayers,
-      legacyDisableLayers: rsOptions.legacyDisableLayers,
-      useLegacyClassnamesSort: rsOptions.useLegacyClassnamesSort,
-      enableLTRRTLComments: rsOptions.enableLTRRTLComments,
-    };
+    this.transformedOptions = toTransformedOptions(useCSSLayers, rsOptions);
     // include/exclude filtering happens before the loader runs (module rule
     // condition or loader-injection check); the loader receives them stripped
     // so the transform doesn't re-filter

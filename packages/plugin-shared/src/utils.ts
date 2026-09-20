@@ -2,11 +2,7 @@ import path from 'path';
 
 import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
 import { normalizeRsOptions, shouldTransformFile, transform } from '@stylexswc/rs-compiler';
-import type {
-  StyleXOptions,
-  StyleXTransformResult,
-  TransformedOptions,
-} from '@stylexswc/rs-compiler';
+import type { StyleXOptions, StyleXTransformResult } from '@stylexswc/rs-compiler';
 import type webpack from 'webpack';
 
 import {
@@ -17,26 +13,6 @@ import {
 import { escapeRegExp } from './regexp';
 import { resolveSourceMapOptions } from './source-map-options';
 import type { SourceMap } from './types';
-
-/**
- * The options the stylesheet assembler reads, taken from the compiler options
- * a plugin was given.
- *
- * Every plugin that assembles a stylesheet needs the same four values. One
- * builder keeps a new option from having to be added to each of them, which is
- * how one of them would be left behind.
- */
-export function toTransformedOptions(
-  useLayers: TransformedOptions['useLayers'],
-  rsOptions?: Partial<StyleXOptions>
-): TransformedOptions {
-  return {
-    useLayers,
-    enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
-    legacyDisableLayers: rsOptions?.legacyDisableLayers,
-    useLegacyClassnamesSort: rsOptions?.useLegacyClassnamesSort,
-  };
-}
 
 export function stringifyRequest(loaderContext: webpack.LoaderContext<unknown>, request: string) {
   return JSON.stringify(

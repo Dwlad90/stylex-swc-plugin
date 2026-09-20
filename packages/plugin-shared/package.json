@@ -33,6 +33,11 @@
       "import": "./dist/source-map-options.js",
       "require": "./dist/source-map-options.js"
     },
+    "./transformed-options": {
+      "types": "./dist/transformed-options.d.ts",
+      "import": "./dist/transformed-options.js",
+      "require": "./dist/transformed-options.js"
+    },
     "./stylex-loader": {
       "types": "./dist/stylex-loader.d.ts",
       "import": "./dist/stylex-loader.js",

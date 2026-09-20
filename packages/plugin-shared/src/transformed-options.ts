@@ -1,3 +1,8 @@
+// This module holds the builder and nothing else, and it imports only a type.
+// A plugin can therefore reach it through
+// `@stylexswc/plugin-shared/transformed-options` without loading the plugin
+// core.
+
 import type { TransformedOptions } from '@stylexswc/rs-compiler';
 
 /**
@@ -5,6 +10,8 @@ import type { TransformedOptions } from '@stylexswc/rs-compiler';
  * {@link TransformedOptions}. A caller can hold them on a compiler options
  * object or on its own normalized options, so the source is named by the
  * fields it must carry and not by the type it came from.
+ *
+ * Every member is already optional, because {@link TransformedOptions} is.
  */
 type AssemblerOptionSource = Pick<
   TransformedOptions,
@@ -18,14 +25,10 @@ type AssemblerOptionSource = Pick<
  * Every plugin that assembles a stylesheet needs the same four values. One
  * builder keeps a new option from having to be added to each of them, which is
  * how one of them would be left behind.
- *
- * This module holds nothing but the builder, and imports only a type, so a
- * plugin can reach it through `@stylexswc/plugin-shared/transformed-options`
- * without loading the plugin core.
  */
 export function toTransformedOptions(
   useLayers: TransformedOptions['useLayers'],
-  source?: Partial<AssemblerOptionSource>
+  source?: AssemblerOptionSource
 ): TransformedOptions {
   return {
     useLayers,

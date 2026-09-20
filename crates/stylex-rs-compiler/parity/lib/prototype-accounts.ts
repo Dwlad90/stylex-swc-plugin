@@ -76,11 +76,13 @@ export const ACCOUNTS: readonly Account[] = [
     name: 'a read that escapes onto the function graph',
     complaint:
       "It leads off the value that was written and onto the language's own function graph.",
-    // Both verdicts, because the reference compiler refuses these reads too and
-    // reports them as an expression it does not support. A row still reads
-    // `acceptance-divergent` where the read sits on a receiver that compiler
-    // answers before it reaches the rule.
-    verdicts: ['both-reject-divergent', 'acceptance-divergent'],
+    // One verdict, because the reference compiler refuses these reads too and
+    // reports them as an expression it does not support. It read
+    // `acceptance-divergent` while this compiler still folded such a read;
+    // both compilers refuse now, and the last row arguing the acceptance half
+    // moved with them. Measured: every row of this account reads
+    // `both-reject-divergent`, and the row it is recorded by does too.
+    verdicts: ['both-reject-divergent'],
     recordedBy: 'modules-15-a-read-that-escapes-onto-the-function-graph',
   },
   {

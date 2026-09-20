@@ -155,6 +155,35 @@ mod transform_value_content_property_tests {
     }
   }
 
+  /// `hyphenate-character` takes the same component list as `content`, and the
+  /// property arrives under both its CSS name and its camel-case name.
+  #[test]
+  fn quotes_a_hyphenate_character_value_under_either_key() {
+    let cases = vec![
+      // A plain character is text, so it is quoted.
+      ("\u{2010}", "\"\u{2010}\""),
+      ("-", "\"-\""),
+      // A value that is already a string is left as it stands.
+      ("\"-\"", "\"-\""),
+      // The two properties share one keyword list, and `auto` is not on it.
+      // The initial value of `hyphenate-character` is therefore quoted, which
+      // is what the reference compiler does with it too.
+      ("auto", "\"auto\""),
+      // A quote character inside the text is escaped, not counted.
+      ("it's", "\"it's\""),
+    ];
+
+    let state_manager = StateManager::new(StyleXOptions::default());
+
+    for key in ["hyphenateCharacter", "hyphenate-character"] {
+      for (input, expected) in &cases {
+        let output = transform_value(key, &TRawValue::from(*input), &state_manager);
+
+        assert_eq!(output, *expected, "quoting `{}: {}`", key, input);
+      }
+    }
+  }
+
   #[test]
   fn preserve_units_in_zero_values_css_variables() {
     let variables = vec![

@@ -8,7 +8,13 @@ import type { TransformOptions } from './types';
 export default function createBundler() {
   const styleXRulesMap = new Map();
 
-  // Transforms the source code using Babel, extracting StyleX rules and storing them.
+  // Transforms the source code, extracting StyleX rules and storing them.
+  //
+  // `collected` says whether the rules of this file reached the bundler. A
+  // transform error that `shouldSkipTransformError` swallows leaves them
+  // uncollected, and the caller has to know: a file recorded as built without
+  // its rules is skipped by every later build, so its classes go missing until
+  // the file is edited again.
   function transform(
     id: string,
     sourceCode: string,
@@ -33,7 +39,7 @@ export default function createBundler() {
           `[@stylexswc/postcss-plugin] Failed to transform "${id}": ${(error as Error).message}`
         );
 
-        return transformResult;
+        return { ...transformResult, collected: false };
       }
 
       throw error;
@@ -44,9 +50,13 @@ export default function createBundler() {
     const stylex = metadata.stylex;
     if (stylex != null && stylex.length > 0) {
       styleXRulesMap.set(id, stylex);
+    } else {
+      // A file edited from having rules to having none keeps the old ones
+      // otherwise, and the stylesheet then carries classes no source declares.
+      styleXRulesMap.delete(id);
     }
 
-    return { code, map, metadata };
+    return { code, map, metadata, collected: true };
   }
 
   // Removes the stored StyleX rules for the specified file.

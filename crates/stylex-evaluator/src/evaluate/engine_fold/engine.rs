@@ -25,11 +25,14 @@ use swc_core::{
   },
 };
 
-use stylex_ast::ast::factories::create_arrow_expression_with_params;
+use stylex_ast::ast::factories::{
+  create_arrow_expression_with_params, create_binding_ident, create_ident,
+};
 use stylex_constants::constants::evaluation_errors::{engine_did_not_start, engine_threw};
 use stylex_utils::hash::stable_hash_unspanned_call;
 
 use super::Decline;
+use super::backstop::{self, BACKSTOP_SOURCE, Backstops, RESERVED_NAMES};
 use super::theme::{compile_traps, var_group_traps};
 use stylex_diagnostics::code_frame::print_module;
 
@@ -193,7 +196,7 @@ pub(super) struct Engine {
   /// thread, which is the difference between a watch-mode process and a
   /// one-shot build: without a bound the memo grows with every distinct call
   /// site every save introduces, for as long as the dev server runs.
-  memo: FxHashMap<FoldKey, Script>,
+  memo: FxHashMap<FoldKey, Compiled>,
   /// What a `defineVars` group crosses as, built once per engine — see
   /// [`theme`](super::theme).
   ///
@@ -201,6 +204,29 @@ pub(super) struct Engine {
   /// reason: what it saves is a parse, and the source it parses is the same one
   /// every group in the build reads through.
   pub(super) var_group: JsFunction,
+  /// The reader and the caller every printed fold that needs one is handed —
+  /// see [`backstop`](super::backstop).
+  pub(super) backstops: Backstops,
+}
+
+/// A printed expression and what calling it needs.
+///
+/// The two travel together because the memo answers for both: a hit does not
+/// print, so it cannot see whether the arrow it is about to call binds the
+/// fold's two checks. Saying it here, once, is what lets every hop between the
+/// printer and the call read one name for it rather than a bare `bool`.
+pub(super) struct Printed {
+  pub(super) source: String,
+  /// Whether the arrow takes the fold's two checks as its first parameters.
+  pub(super) binds_the_checks: bool,
+}
+
+/// A parsed script and what calling it needs, which is [`Printed`] once the
+/// source has been through the parser.
+#[derive(Clone)]
+struct Compiled {
+  script: Script,
+  binds_the_checks: bool,
 }
 
 impl Engine {
@@ -213,18 +239,22 @@ impl Engine {
   /// engine that kept function source would fold a spelling no other build
   /// produces, which is worse than declining the fold.
   pub(super) fn new() -> Result<ManuallyDrop<Self>, Decline> {
-    Self::started_on(NO_FUNCTION_SOURCE, &var_group_traps())
+    Self::started_on(NO_FUNCTION_SOURCE, &var_group_traps(), BACKSTOP_SOURCE)
   }
 
-  /// The same engine, built from two written sources rather than from the two
-  /// that are shipped.
+  /// The same engine, built from three written sources rather than from the
+  /// three that are shipped.
   ///
-  /// Both steps refuse, and neither can fail for the sources [`Engine::new`]
-  /// hands in — one is a constant and the other is assembled from two of the
+  /// Every step refuses, and none can fail for the sources [`Engine::new`]
+  /// hands in — two are constants and the third is assembled from two of the
   /// compiler's own constants. So the sources are parameters, and a case hands
   /// in one that fails the step it is about. The refusals stay because a rename
-  /// that breaks either source is declined here rather than folded past.
-  fn started_on(prelude: &str, traps: &str) -> Result<ManuallyDrop<Self>, Decline> {
+  /// that breaks any of them is declined here rather than folded past.
+  fn started_on(
+    prelude: &str,
+    traps: &str,
+    backstops: &str,
+  ) -> Result<ManuallyDrop<Self>, Decline> {
     let mut context = Context::default();
 
     context
@@ -236,11 +266,13 @@ impl Engine {
       .map_err(|error| Decline::rule(engine_did_not_start(&error.to_string())))?;
 
     let var_group = compile_traps(traps, &mut context)?;
+    let backstops = backstop::compile_backstops(backstops, &mut context)?;
 
     Ok(ManuallyDrop::new(Self {
       context,
       memo: FxHashMap::default(),
       var_group,
+      backstops,
     }))
   }
 
@@ -276,17 +308,20 @@ impl Engine {
   pub(super) fn eval(
     &mut self,
     key: FoldKey,
-    print: impl FnOnce() -> String,
+    print: impl FnOnce() -> Printed,
     method: &Atom,
-  ) -> Result<JsValue, Decline> {
+  ) -> Result<(JsValue, bool), Decline> {
     let compiled = match self.memo.get(&key) {
       Some(compiled) => compiled.clone(),
-      None => self.compile(key, &print(), method)?,
+      None => self.compile(key, print(), method)?,
     };
 
-    compiled
+    let value = compiled
+      .script
       .evaluate(&mut self.context)
-      .map_err(|error| threw(method, &error))
+      .map_err(|error| threw(method, &error))?;
+
+    Ok((value, compiled.binds_the_checks))
   }
 
   /// Parses `source` and records it under `key`, emptying the memo first where
@@ -294,9 +329,19 @@ impl Engine {
   ///
   /// Emptied before the insert rather than after, so the map is never larger
   /// than the bound rather than one entry larger than it.
-  fn compile(&mut self, key: FoldKey, source: &str, method: &Atom) -> Result<Script, Decline> {
-    let compiled = Script::parse(Source::from_bytes(source), None, &mut self.context)
+  fn compile(
+    &mut self,
+    key: FoldKey,
+    printed: Printed,
+    method: &Atom,
+  ) -> Result<Compiled, Decline> {
+    let script = Script::parse(Source::from_bytes(&printed.source), None, &mut self.context)
       .map_err(|error| threw(method, &error))?;
+
+    let compiled = Compiled {
+      script,
+      binds_the_checks: printed.binds_the_checks,
+    };
 
     if self.memo.len() >= MAX_COMPILED_SCRIPTS {
       self.memo.clear();
@@ -347,13 +392,29 @@ pub(super) fn read<T>(method: &Atom, read: impl FnOnce() -> JsResult<T>) -> Resu
 ///
 /// Called only where [`Engine::eval`] misses its memo, which is what makes the
 /// clone and the emitter walk below a per-shape cost rather than a per-fold one.
-pub(super) fn print_fold(call: &CallExpr, params: Vec<Pat>) -> String {
-  let folded = Expr::Call(call.clone());
+pub(super) fn print_fold(call: &CallExpr, mut params: Vec<Pat>) -> Printed {
+  let mut folded = Expr::Call(call.clone());
 
-  let printed = match params.is_empty() {
+  // The call and each declaration crossing as a default are rewritten one tree
+  // at a time, because what a tree binds is read from that tree — see
+  // [`backstop::checked`]. The arrow below is not one of them: its parameters
+  // are the names this compiler carried, not names the source bound.
+  let mut binds_the_checks = backstop::checked(&mut folded);
+
+  for param in &mut params {
+    if let Pat::Assign(declared) = param {
+      binds_the_checks |= backstop::checked(&mut declared.right);
+    }
+  }
+
+  let mut printed = match params.is_empty() {
     true => folded,
     false => create_arrow_expression_with_params(params, folded),
   };
+
+  if binds_the_checks {
+    printed = with_the_checks_bound(printed);
+  }
 
   let module = Module {
     span: DUMMY_SP,
@@ -364,14 +425,40 @@ pub(super) fn print_fold(call: &CallExpr, params: Vec<Pat>) -> String {
     shebang: None,
   };
 
-  print_module(
+  let source = print_module(
     module,
     Some(
       Config::default()
         .with_minify(true)
         .with_omit_last_semi(true),
     ),
-  )
+  );
+
+  Printed {
+    source,
+    binds_the_checks,
+  }
+}
+
+/// The printed expression with the fold's two checks bound in front of whatever
+/// else it takes.
+///
+/// In front, so both are initialised before any parameter default that reads
+/// one is evaluated. An expression that resolved no name has no arrow yet and
+/// is given one here, which is the only thing the two shapes differ by.
+fn with_the_checks_bound(printed: Expr) -> Expr {
+  let checks = RESERVED_NAMES
+    .into_iter()
+    .map(|name| Pat::Ident(create_binding_ident(create_ident(name))));
+
+  match printed {
+    Expr::Arrow(mut arrow) => {
+      arrow.params = checks.chain(arrow.params).collect();
+
+      Expr::Arrow(arrow)
+    },
+    body => create_arrow_expression_with_params(checks.collect(), body),
+  }
 }
 
 // The readings a case makes of the thread's engine, and the suite whose subject

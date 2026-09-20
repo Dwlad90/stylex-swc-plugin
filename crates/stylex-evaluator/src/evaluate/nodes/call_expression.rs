@@ -357,7 +357,11 @@ fn member_callee(
         deopt_unsupported!(deopt, path, state, NON_CONSTANT);
       }
 
-      if is_valid_callee(named_object) && is_valid_callee_method(&obj_ident.sym, property) {
+      // The receiver's name is read once. `obj_ident` came out of
+      // `named_object`, so asking the expression and then the name would be
+      // the same question twice.
+      if is_a_valid_callee_name(&obj_ident.sym) && is_valid_callee_method(&obj_ident.sym, property)
+      {
         return global_static_callee(
           named_object,
           property,

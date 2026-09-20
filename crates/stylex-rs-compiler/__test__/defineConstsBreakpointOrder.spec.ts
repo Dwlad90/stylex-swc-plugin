@@ -13,6 +13,7 @@
 import * as path from 'path';
 
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
+import pluginPkg from '@stylexjs/babel-plugin/package.json' with { type: 'json' };
 import { describe, expect, test } from 'vitest';
 
 import { transform } from '../dist/index.js';
@@ -78,6 +79,15 @@ function collectMetadata(): StyleXMetadata['stylex'] {
 
 describe('defineConsts breakpoints', () => {
   const metadata = collectMetadata();
+
+  // The ordering below is the assembler's rather than this compiler's: no
+  // production code here decides it. The catalog range is `^0.19.1`, so a
+  // later release that reorders would fail the expectations under this one
+  // with nothing to say why. Naming the version measured is cheaper than
+  // pinning the catalog entry, which 61 projects share.
+  test('measures the assembler this expectation was taken from', () => {
+    expect(pluginPkg.version).toBe('0.19.1');
+  });
 
   test('emits each constant beside the placeholder its consumer carries', () => {
     expect(metadata).toStrictEqual([

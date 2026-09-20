@@ -22,9 +22,11 @@ type AssemblerOptionSource = Pick<
  * The options the stylesheet assembler reads, taken from the options a plugin
  * was given.
  *
- * Every plugin that assembles a stylesheet needs the same four values. One
- * builder keeps a new option from having to be added to each of them, which is
- * how one of them would be left behind.
+ * Every plugin that assembles a stylesheet needs the same four values, and
+ * they arrive by two routes: `useLayers` is a parameter, because a plugin
+ * works it out from its own configuration, and the other three are read off
+ * {@link AssemblerOptionSource}. One builder keeps a new option from having to
+ * be added to each plugin, which is how one of them would be left behind.
  */
 export function toTransformedOptions(
   useLayers: TransformedOptions['useLayers'],

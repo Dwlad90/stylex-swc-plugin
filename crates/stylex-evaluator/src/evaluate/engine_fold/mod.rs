@@ -51,13 +51,14 @@
 //! share: the refusal, the depth budget and the two allocation ceilings.
 
 mod amplification;
+mod backstop;
 mod engine;
 mod guard;
 mod outward;
 mod theme;
 mod transport;
 
-use engine::{ENGINE, Engine, FoldKey, print_fold, threw};
+use engine::{ENGINE, Engine, FoldKey, Printed, print_fold, threw};
 use guard::{AdmittedKind, Guard, Position, Reader, Repeats, Scope, Walk, admit_an_applied_global};
 use outward::Outward;
 use theme::is_a_var_group;
@@ -505,36 +506,38 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
               method,
             )
           })
-          .and_then(|value| {
-            // An answer that is the theme group itself — `Object(colors)` hands its
-            // argument straight back — is handed back rather than converted: the
-            // group's members live in another file and nothing this side can write
-            // stands for it, where the dispatch below holds the reference and
-            // answers for it. A refusal here would fail a build it can compile.
-            //
-            // Asked only where a group crossed, so an ordinary answer pays nothing
-            // for a question that could not be true of it.
-            //
-            // The read carries its refusal rather than reading a throw as "not
-            // a group". Reading it as "not a group" was wrong: the walk out
-            // below reads *own* keys, so a marker on the answer's prototype is
-            // never read again and the throw is never met a second time. The
-            // answer would fold to an empty object and the declaration would be
-            // dropped with nothing said.
-            //
-            // No source builds such an answer now -- the statics that put a
-            // marker on a prototype are outside the allowlist, in a callback
-            // body as much as written out -- so the throw itself is asked of the
-            // marker reader directly, in `var_group_tests`. The refusal is
-            // carried here because the reader is total over the value it is
-            // given, not because a module can still reach it.
-            if walk.carried_a_theme_reference()
-              && is_a_var_group(&value, method, &mut engine.context)?
-            {
-              return Err(Decline::NotACandidate);
-            }
-
-            outward.value(&value, &mut engine.context, depth)
+          // Whether the answer is the theme group itself.
+          //
+          // Asked only where a group crossed, so an ordinary answer pays
+          // nothing for a question that could not be true of it.
+          //
+          // The read carries its refusal rather than reading a throw as "not
+          // a group". Reading it as "not a group" was wrong: the walk out
+          // below reads *own* keys, so a marker on the answer's prototype is
+          // never read again and the throw is never met a second time. The
+          // answer would fold to an empty object and the declaration would be
+          // dropped with nothing said.
+          //
+          // No source builds such an answer now -- the statics that put a
+          // marker on a prototype are outside the allowlist, in a callback
+          // body as much as written out -- so the throw itself is asked of the
+          // marker reader directly, in `var_group_tests`. The refusal travels
+          // through the chain rather than through a `?`, because a `?` here is
+          // a branch of this function that no source can take.
+          .and_then(|value| match walk.carried_a_theme_reference() {
+            true => {
+              is_a_var_group(&value, method, &mut engine.context).map(|group| (value, group))
+            },
+            false => Ok((value, false)),
+          })
+          .and_then(|(value, is_the_group)| match is_the_group {
+            // A group standing where a value belongs is handed back rather
+            // than converted: the group's members live in another file and
+            // nothing this side can write stands for it, where the dispatch
+            // below holds the reference and answers for it. A refusal here
+            // would fail a build it can compile.
+            true => Err(Decline::NotACandidate),
+            false => outward.value(&value, &mut engine.context, depth),
           });
 
         *slot = Some(engine);
@@ -555,9 +558,10 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
 /// sentence is what the author reads rather than a generic refusal standing in
 /// for it.
 ///
-/// A fold that resolved no name is evaluated directly, which is the whole of why
-/// this branches. Wrapping it in an arrow and invoking that arrow costs a
-/// function object and a VM frame on top of the expression itself: measured, it
+/// A fold that resolved no name and binds neither of the fold's two checks is
+/// evaluated directly, which is the whole of why this branches. Wrapping it in
+/// an arrow and invoking that arrow costs a function object and a VM frame on
+/// top of the expression itself: measured, it
 /// is +44% on the cheapest leg of the benchmark and +24% on the chain, paid by
 /// exactly the folds that gained nothing from the transport, since every
 /// expression that folded before this work resolves no name. The branch is on one
@@ -575,14 +579,14 @@ fn fold(call: &CallExpr, walk: &mut Walk) -> Result<EvaluateResultValue, Decline
 /// that a deopt would only leave to the runtime.
 fn apply(
   key: FoldKey,
-  print: impl FnOnce() -> String,
+  print: impl FnOnce() -> Printed,
   arguments: &[JsValue],
   engine: &mut Engine,
   method: &Atom,
 ) -> Result<JsValue, Decline> {
-  let evaluated = engine.eval(key, print, method)?;
+  let (evaluated, binds_the_checks) = engine.eval(key, print, method)?;
 
-  if arguments.is_empty() {
+  if !binds_the_checks && arguments.is_empty() {
     return Ok(evaluated);
   }
 
@@ -590,8 +594,23 @@ fn apply(
     return Err(Decline::rule(uncallable_printed_fold(method)));
   };
 
+  // The two checks are the first parameters of the arrow that binds them, so
+  // they are the first arguments too. Borrowed where the fold needs neither, so
+  // the common call copies nothing.
+  let passed: Cow<'_, [JsValue]> = match binds_the_checks {
+    true => Cow::Owned(
+      engine
+        .backstops
+        .arguments()
+        .into_iter()
+        .chain(arguments.iter().cloned())
+        .collect(),
+    ),
+    false => Cow::Borrowed(arguments),
+  };
+
   callable
-    .call(&JsValue::undefined(), arguments, &mut engine.context)
+    .call(&JsValue::undefined(), &passed, &mut engine.context)
     .map_err(|error| threw(method, &error))
 }
 

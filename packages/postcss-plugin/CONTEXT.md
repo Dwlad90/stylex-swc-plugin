@@ -32,6 +32,7 @@ _Avoid_: collector, cache, compiler
 `createBuilder`'s record of the modification time of each file that a build
 read. A file whose mtime agrees with the record is not read again. The map also
 removes the rules of a file that was deleted. The build writes the mtime of a
-file to the map only after it reads that file. A build that stops with an error
-does not write an entry, and the next build reads the file again.
+file to the map only after the rules of that file reach the bundler. A build
+that stops with an error writes no entry, and neither does one whose error was
+swallowed in watch mode, so the next build reads the file again.
 _Avoid_: cache, timestamp index

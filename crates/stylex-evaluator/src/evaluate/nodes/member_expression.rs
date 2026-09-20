@@ -1,3 +1,5 @@
+use std::cell::OnceCell;
+
 use super::super::engine_fold::{refusal_for_a_property_name, refusal_for_a_property_read};
 use super::super::*;
 use stylex_ast::ast::convertors::{
@@ -60,7 +62,27 @@ fn property_name(property: &EvaluateResultValue) -> Option<String> {
     .or_else(|| evaluate_result_as_expr(property).and_then(|expr| coercions::to_js_string(&expr)))
 }
 
-/// Reads what a member lookup is asking for, from the evaluated property.
+/// The same name, written at most once per member read.
+///
+/// Four readers below ask for it and most reads need none of them: a dotted
+/// read into the function map answers from an interned atom, a written object
+/// answers from its own keys, and a theme member derives its own. So the name
+/// is held in a cell the first asking fills, and a read nobody asks is a read
+/// that allocates nothing.
+fn spelled_name<'a>(
+  spelled: &'a OnceCell<Option<String>>,
+  property: &EvaluateResultValue,
+) -> Option<&'a str> {
+  spelled.get_or_init(|| property_name(property)).as_deref()
+}
+
+/// Reads what a member lookup is asking for, from the name the evaluated
+/// property spells.
+///
+/// Takes the name rather than the property, because the caller reads it once
+/// for the whole member expression -- the refusal rule above the readers asks
+/// for it too, and naming a key twice per read is one allocation nobody
+/// needed.
 ///
 /// A key of nothing but digits is an index however it was written, because
 /// `list[0]` and `list["0"]` name the same element in the language. Nothing
@@ -68,11 +90,11 @@ fn property_name(property: &EvaluateResultValue) -> Option<String> {
 /// carries, so they answer `undefined` exactly as they do upstream. Testing
 /// with `parse::<f64>()` instead would call all three indices — it accepts
 /// `"NaN"` and `"inf"` — and refuse a fold the reference implementation makes.
-fn classify_lookup(property: &EvaluateResultValue) -> ArrayLikeLookup {
-  match property_name(property) {
+fn classify_lookup(name: Option<&str>) -> ArrayLikeLookup {
+  match name {
     None => ArrayLikeLookup::Unreadable,
     Some(key) if key == LENGTH => ArrayLikeLookup::Length,
-    Some(key) => match index_slot(&key) {
+    Some(key) => match index_slot(key) {
       Some(slot) => ArrayLikeLookup::Index(slot),
       None => ArrayLikeLookup::Missing,
     },
@@ -498,10 +520,15 @@ pub(in super::super) fn evaluate(
       //
       // A symbol key cannot arrive here: a symbol is refused on the way out of
       // the engine, so no fold hands one back to be coerced.
+      // Named at most once, and only where something asks. Three of the arms
+      // below read the key their own cheaper way -- an interned atom, a
+      // written key, a theme member -- so naming it for every read would write
+      // a string those arms throw away.
+      let spelled = OnceCell::new();
+
       if matches!(prop_path, MemberProp::Computed(_))
-        && let Some(refusal) = property_name(&property)
-          .as_deref()
-          .and_then(refusal_for_a_property_name)
+        && let Some(refusal) =
+          spelled_name(&spelled, &property).and_then(refusal_for_a_property_name)
       {
         return deopt(path, state, &refusal);
       }
@@ -515,7 +542,7 @@ pub(in super::super) fn evaluate(
           // wrote is read through `written_slot_count` above, which answers for
           // both.
           Expr::Array(ArrayLit { elems, .. }) => {
-            let slot = match classify_lookup(&property) {
+            let slot = match classify_lookup(spelled_name(&spelled, &property)) {
               // The count of slots the language reports.
               ArrayLikeLookup::Length => {
                 return Some(EvaluateResultValue::Expr(create_number_expr(
@@ -617,7 +644,7 @@ pub(in super::super) fn evaluate(
           // astral character answers the replacement character -- the same
           // substitution the engine fold makes, so `s[0]` and `s.charAt(0)` are
           // one read written two ways rather than two answers.
-          Expr::Lit(Lit::Str(strng)) => match classify_lookup(&property) {
+          Expr::Lit(Lit::Str(strng)) => match classify_lookup(spelled_name(&spelled, &property)) {
             ArrayLikeLookup::Length => Some(EvaluateResultValue::Expr(create_number_expr(
               atom_utf16_length(&strng.value) as f64,
             ))),
@@ -742,7 +769,8 @@ pub(in super::super) fn evaluate(
         // `holey_receiver_length` has already answered its count from the
         // source — including through a binding, where the refusal travels with
         // the value and no short count is answered.
-        EvaluateResultValue::Vec(items) => match classify_lookup(&property) {
+        EvaluateResultValue::Vec(items) => match classify_lookup(spelled_name(&spelled, &property))
+        {
           ArrayLikeLookup::Length => Some(EvaluateResultValue::Expr(create_number_expr(
             written_slot_count_of(&member.obj, &items) as f64,
           ))),
@@ -767,11 +795,11 @@ pub(in super::super) fn evaluate(
           read_theme_member(&mut theme_ref, &key, path, state)
         },
         EvaluateResultValue::EnvObject(env_map) => {
-          let Some(key) = property_name(&property) else {
+          let Some(key) = spelled_name(&spelled, &property) else {
             deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
           };
 
-          let Some(entry) = env_map.get(&key) else {
+          let Some(entry) = env_map.get(key) else {
             deopt_unsupported!(
               deopt,
               path,

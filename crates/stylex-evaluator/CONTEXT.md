@@ -138,14 +138,12 @@ Six rule sets, by name:
 
   The rule reads a name the source spells or the evaluator resolves. One shape
   gives it neither: where the whole expression is a single fold, a computed key
-  crosses into the engine as a value and the read happens there, under no rule
-  of this compiler. `String(({})[key])` with `key` holding `'__proto__'` folds
-  for that reason, and `modules-a-prototype-read-a-fold-consumes` records it.
-  What crosses back is the text of a prototype and nothing else — a
-  `constructor` read off one refuses, because a function has no source text —
-  so the edge costs a wrong value and reaches no further. Closing it needs the
-  read to happen under a rule, which means the printed fold calling a checked
-  reader rather than the language's index operator.
+  crosses into the engine as a value and the read happens there. So the printed
+  fold does not read such a key with the language's index operator. It calls a
+  [checked reader](#checked-reader-and-checked-caller), which coerces the key and refuses the
+  union of the two sets above — the same rule, applied where the name finally
+  exists. `String(({})[key])` with `key` holding `'__proto__'` refuses for that
+  reason, and `modules-a-prototype-read-a-fold-consumes` records it.
 
 - **Static allowlist** (`VALID_STRING_METHODS` and its four siblings) — a static
   on one of the globals the fold owns is offered to the engine only where that
@@ -180,16 +178,23 @@ so own keys are the only keys there are. `constructor`, `valueOf`,
 `hasOwnProperty` and `toString` are names nothing declared, and each refuses as
 one.
 
-**Nothing turns a string into code.** The reference implementation refuses
-`Function` and `eval` as a backstop behind its two lists. No rule here answers
-for that, because no expression reaches such a value: neither name is a global
-this compiler resolves, so both refuse as an undeclared name, and inside a fold
-they are free names the walk cannot resolve — which refuses the callback rather
-than running it. Measured: `eval('1')`, `Function('return 1')()`,
+**Nothing turns a string into code.** Three answers stand behind that, and the
+first two are about routes. Neither `Function` nor `eval` is a global this
+compiler resolves, so both refuse as an undeclared name, and inside a fold they
+are free names the walk cannot resolve. A callable the engine answers with is
+refused on the way out (`outward::exotic_value`), so a fold cannot hand one
+back to be applied. Measured: `eval('1')`, `Function('return 1')()`,
 `new Function('return 1')()`, the same three inside `[1].map(...)`, and
-`globalThis.Function(...)` beside them. A callable the engine answers with is
-refused on the way out as well (`outward::exotic_value`), so a fold cannot hand
-one back to be applied.
+`globalThis.Function(...)` beside them.
+
+The third answers the route nobody has found. A route is a shape somebody
+thought of, and a list of shapes is finite by construction — the escape that
+made this necessary laundered a constructor through a callback parameter, which
+turned a read no rule could name into a call through a bare name. So the
+printed fold calls through a [checked caller](#checked-reader-and-checked-caller) as well, which
+refuses the language's `Function`, anything inheriting directly from it, and
+`eval`, whatever produced them. The reference implementation ships the same
+backstop.
 
 Each applies at every link of a chain, since a chain hides its middle links.
 Inside a **callback** body the bound is a product: the guard counts the
@@ -220,6 +225,23 @@ carry, so the declaration it came from is printed as the parameter's default and
 `undefined` is passed to hold the position. `['b','a'].map(upper)` is handed
 over as `(upper=(p)=>p.toUpperCase())=>['b','a'].map(upper)`.
 _Avoid_: value bridge, injection, substitution, interpolation
+
+**Checked reader**:
+`__sxRead` and `__sxCall`, the two functions the printed fold reads and calls
+through where the guard cannot answer from the syntax. A computed key the guard
+cannot name — `o[k]` — is printed as `__sxRead(o, k)`, which coerces the key and
+refuses the union of `ESCAPING_PROPERTIES` and `BLOCKED_PROPERTIES`; a call
+through a bare name — `f(x)` — is printed as `__sxCall(f, x)`, which refuses the
+language's `Function`, anything inheriting directly from it, and `eval`. A
+method call needs neither: its name is spelled out and the guard reads it.
+
+Both are **parameters of the printed arrow** rather than globals, because a
+global is a name the printed source could point somewhere else, and the guard
+refuses a binding that spells either — so nothing between the arrow and the read
+can stand in front of them. A fold that needs neither is printed exactly as it
+was, which is what keeps the cheapest fold cheap. Recorded in [ADR
+0010](./docs/adr/0010-the-printed-fold-reads-and-calls-through-a-check.md).
+_Avoid_: sandbox, proxy, interceptor, shim
 
 **Carried value**:
 A value the bridge copies inward: a string, a number, a boolean, `null`,

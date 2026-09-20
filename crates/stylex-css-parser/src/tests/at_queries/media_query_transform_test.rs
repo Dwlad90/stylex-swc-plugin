@@ -2057,6 +2057,67 @@ mod unusual_but_valid_queries {
     );
   }
 
+  /// Two `min-width` breakpoints closer together than the negation step leave
+  /// an empty interval, so the narrower declaration collapses to `not all` and
+  /// is dropped with nothing said.
+  ///
+  /// A later key wins, so an earlier `min-width: 100px` is rewritten as itself
+  /// and not the later one. The step for a negated `min-width` in pixels is
+  /// `0.02`, so `not (min-width: 100.01px)` is `max-width: 99.99px` — below the
+  /// `100px` the earlier rule starts at. The band the author wrote, from
+  /// `100px` up to `100.01px`, disappears. Three hundredths apart and the band
+  /// survives.
+  ///
+  /// The reference compiler does the same, so this is the boundary rather than
+  /// a defect — but nothing stated it, and the number that decides it is the
+  /// one a device pixel ratio forced up from `0.01`.
+  #[test]
+  fn breakpoints_closer_than_the_negation_step_collapse() {
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (min-width: 100px)": "blue",
+          "@media (min-width: 100.01px)": "red"
+        }
+      })),
+      vec!["default", "@media not all", "@media (min-width: 100.01px)"]
+    );
+
+    // Three hundredths apart, and the band is no longer empty.
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (min-width: 100px)": "blue",
+          "@media (min-width: 100.03px)": "red"
+        }
+      })),
+      vec![
+        "default",
+        "@media (min-width: 100px) and (max-width: 100.01px)",
+        "@media (min-width: 100.03px)",
+      ]
+    );
+
+    // The wider step is a `width` rule in pixels only, so the same pair on
+    // `height` keeps its band at one hundredth.
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (min-height: 100px)": "blue",
+          "@media (min-height: 100.01px)": "red"
+        }
+      })),
+      vec![
+        "default",
+        "@media (min-height: 100px) and (max-height: 100px)",
+        "@media (min-height: 100.01px)",
+      ]
+    );
+  }
+
   /// A conditional value map holding only `default` has no media key to
   /// rewrite, so the transform hands it back untouched rather than treating the
   /// absence as an empty rewrite.

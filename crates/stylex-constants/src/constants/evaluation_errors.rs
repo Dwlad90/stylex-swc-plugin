@@ -495,18 +495,58 @@ pub fn engine_threw(method: &str, message: &str) -> String {
 /// such a read with one text rather than two, and the parity corpus records
 /// that agreement. Re-wrapping the lines would end it.
 ///
-/// There is no companion sentence for a blocked function call. Such a
-/// refusal has to compare a value against the language's own `Function` or
-/// `eval`, and the function map cannot hold either: `FunctionType` is a closed
-/// set of compiler callbacks, so no property read can put a host function into
-/// it. Every route that would end in such a call is refused earlier, by the
-/// property rules and by the callee allowlist, and
-/// `prototype_chain_escape_tests` asserts that for each route it knows.
+/// The same sentence answers a read the printed source makes, where the key is
+/// a value rather than a name the syntax spells. The fold's checked reader
+/// throws it -- see [`BLOCKED_FUNCTION_CALL`] for the second guard behind it --
+/// so an author reads one text for the rule wherever it fires.
 pub static BLOCKED_PROPERTY_ACCESS: &str = concat!(
   "Access to this property is not allowed during compilation.\n",
   "Accessing prototype-chain properties such as 'constructor', '__proto__', or 'prototype'\n",
   "is blocked to prevent arbitrary code execution.\n"
 );
+
+/// A call of a function that compiles a string into code.
+///
+/// The backstop behind [`BLOCKED_PROPERTY_ACCESS`] and the callee allowlist.
+/// Both of those refuse a *route* to such a function, and each route is one
+/// this compiler already knows about; this refuses the call itself, so a route
+/// nobody has found yet still ends in a refusal rather than in arbitrary code.
+///
+/// Thrown by the fold's checked caller, which compares the callee against the
+/// language's own `Function`, against anything inheriting directly from it --
+/// the async, generator and async-generator constructors -- and against `eval`.
+///
+/// Worded as the reference implementation words it, line breaks included, so
+/// the two compilers answer such a call with one text rather than two.
+pub static BLOCKED_FUNCTION_CALL: &str = concat!(
+  "Calling this function is not allowed during compilation.\n",
+  "Functions that compile strings into code, such as 'Function' and 'eval', are blocked to\n",
+  "prevent arbitrary code execution.\n"
+);
+
+/// A name the printed fold reserves for a check of its own.
+///
+/// The fold prints a reader and a caller into the source it hands the engine,
+/// and both are parameters of the printed arrow rather than globals -- a global
+/// is a name the source could point somewhere else. A parameter is still a
+/// name, so a binding of the same spelling inside the printed source would
+/// shadow it, and the check would run the author's function instead of this
+/// compiler's. Such a binding is refused here rather than folded past.
+///
+/// No author writes these names, so the sentence says what they are for rather
+/// than how to avoid them: the rename is the whole of the fix.
+///
+/// Not built by [`cannot_fold`], although it starts the same way. That shape
+/// names the *call* a rule refused, and this refuses a binding — there is no
+/// method to name, and naming the call around it would point an author at a
+/// line they need not change.
+pub fn reserved_compiler_name(name: &str) -> String {
+  format!(
+    "Cannot fold an expression that binds '{}' at compile time.\n\
+     The compiler reserves that name for a safety check in the source it evaluates.\n\n",
+    name
+  )
+}
 
 /// A named property read that leads off the value the author wrote.
 ///

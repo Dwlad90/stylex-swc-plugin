@@ -232,6 +232,60 @@ fn blocks_reflective_object_methods() {
   }
 }
 
+/// The route the property rules alone do not close on the other side of the
+/// bridge: a key the guard cannot name is read by the engine, so the rule has
+/// to be applied where the key finally is a name.
+///
+/// Every vector here launders the value through a binding the printed source
+/// makes for itself -- a callback parameter or a block-local `const` -- which
+/// turns a read the guard would have refused into an ordinary name. The
+/// laundering is what the four shapes have in common and the reason none of
+/// them is a chain of named reads.
+///
+/// All four are refused at the read, in the words the guard uses for the same
+/// read written out. See [`backstop`](super::super::backstop).
+#[test]
+fn blocks_a_prototype_read_laundered_through_a_binding_the_engine_makes() {
+  let vectors = [
+    // A callback parameter, with the call made from a block-local binding.
+    // This is the shape the escape was written in.
+    concat!(
+      "String([({})['__pro'+'to__']['construc'+'tor']]",
+      ".map((F) => { const h = F; return h(1); })",
+      ".join(''))"
+    ),
+    // The same, with the second binding made by a nested callback instead.
+    concat!(
+      "String([({})['__pro'+'to__']['construc'+'tor']]",
+      ".map((F) => [F].map((g) => g(1))[0])",
+      ".join(''))"
+    ),
+    // A key held in a callback parameter, which is the shortest spelling of
+    // the whole class.
+    "['__pro'+'to__'].map((k) => ({})[k]).join('')",
+    // The same read reached through `Array.from`'s own callback.
+    "Array.from([({})], (o) => o['__pro'+'to__']).join('')",
+  ];
+
+  for vector in vectors {
+    assert_deopt_reason_contains(vector, BLOCKED_PROPERTY_ACCESS);
+  }
+}
+
+/// The same laundering, aimed at `constructor` rather than at the prototype.
+///
+/// `constructor` is in both tables and the reader compares against one set, so
+/// a key that resolves to it inside the engine reads the prototype-chain
+/// sentence rather than the sentence a named read gets. The two rules overlap
+/// on this name by design; what matters is that neither admits it.
+#[test]
+fn blocks_a_constructor_read_laundered_through_a_binding_the_engine_makes() {
+  assert_deopt_reason_contains(
+    "['construc'+'tor'].map((k) => ({})[k]).join('')",
+    BLOCKED_PROPERTY_ACCESS,
+  );
+}
+
 // ==================== what still folds ====================
 
 /// Only the statics that hand back a prototype are refused. The ones that
@@ -322,6 +376,30 @@ fn a_payload_is_never_executed_however_it_is_reached() {
     "new Function(\"globalThis.__stylexPwned__ = 1\")()",
     "eval(\"globalThis.__stylexPwned__ = 1\")",
     "[1].map((x) => x.constructor.constructor(\"globalThis.__stylexPwned__ = 1\")())[0]",
+    // The laundering shapes, written out to their payload: a key built inside
+    // the engine, the callable held in a binding the printed source made, and
+    // the call through that binding's bare name. The last two are refused
+    // before the read, because neither call folds with a callback at all --
+    // they are here because the class is spelled by the laundering and not by
+    // the method that carries it.
+    concat!(
+      "String([({})['__pro'+'to__']['construc'+'tor']['construc'+'tor']]",
+      ".map((F) => { const h = F(\"globalThis.__stylexPwned__ = 1\"); return h(); })",
+      ".join(''))"
+    ),
+    concat!(
+      "String([({})['__pro'+'to__']['construc'+'tor']['construc'+'tor']]",
+      ".map((F) => [F(\"globalThis.__stylexPwned__ = 1\")].map((g) => g())[0])",
+      ".join(''))"
+    ),
+    concat!(
+      "Object.groupBy([({})['__pro'+'to__']['construc'+'tor']['construc'+'tor']], ",
+      "(F) => F(\"globalThis.__stylexPwned__ = 1\")())"
+    ),
+    concat!(
+      "Array.from([({})['__pro'+'to__']['construc'+'tor']['construc'+'tor']], ",
+      "(F) => F(\"globalThis.__stylexPwned__ = 1\")()).join('')"
+    ),
   ];
 
   for vector in vectors {

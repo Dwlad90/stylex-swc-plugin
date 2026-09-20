@@ -1,5 +1,4 @@
-//! Naming one export of one file, and writing a name so that the language
-//! accepts it as an identifier.
+//! Naming one export of one file.
 
 /// The identifier that names `export_name` of `file_name`, with `key` naming
 /// one member inside that export where there is one.
@@ -29,42 +28,6 @@ pub fn gen_file_based_identifier(file_name: &str, export_name: &str, key: Option
     identifier.push_str(KEY_SEPARATOR);
     identifier.push_str(key);
   }
-
-  identifier
-}
-
-/// `name`, written so that it can stand as an identifier.
-///
-/// A name the author wrote can start with a digit and can carry characters no
-/// identifier takes. A leading digit is pushed behind an underscore, and every
-/// character that is neither an ASCII letter nor an ASCII digit becomes one.
-///
-/// ASCII and not Unicode, because a name that reaches CSS is the compatibility
-/// contract between this compiler and the reference: the reference keeps
-/// `[a-zA-Z0-9]` and replaces the rest, so `café` is `caf_` and not `café`. A
-/// Unicode reading keeps letters the reference replaces, and the two compilers
-/// then spell the same name differently.
-///
-/// Built in one allocation, sized to the name and one byte more. A character
-/// the answer replaces is never longer than the one it stands for, so the
-/// answer always fits.
-// Kept without a caller: the rule it states is the reference's own, and it does
-// not change with the callers that come and go.
-#[allow(dead_code)]
-pub fn as_identifier(name: &str) -> String {
-  let mut identifier = String::with_capacity(name.len() + 1);
-
-  if name.starts_with(|first: char| first.is_ascii_digit()) {
-    identifier.push('_');
-  }
-
-  identifier.extend(name.chars().map(|character| {
-    if character.is_ascii_alphanumeric() {
-      character
-    } else {
-      '_'
-    }
-  }));
 
   identifier
 }

@@ -73,8 +73,8 @@ use stylex_enums::{
 use stylex_js::coercions;
 use stylex_js::coercions::{global_identifier_to_value, is_global_spelled_as_an_identifier};
 use stylex_js::helpers::{
-  get_callee_name, get_method_name, is_id_prop, is_mutating_object_method, is_mutation_expr,
-  is_valid_callee, is_valid_callee_method,
+  get_callee_name, get_method_name, is_a_valid_callee_name, is_id_prop, is_mutating_object_method,
+  is_mutation_expr, is_valid_callee_method,
 };
 use stylex_state::resolution::lookup::get_var_decl_parts_by_ident;
 use stylex_state::{

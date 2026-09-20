@@ -245,9 +245,16 @@ function createBuilder() {
     const files = getFiles();
     const filesToTransform: PendingFile[] = [];
 
-    // Remove deleted files since the last build
+    // A set rather than the array, because the loop below asks about every
+    // tracked file on every PostCSS pass and a scan of the array makes that
+    // quadratic in the number of files.
+    const tracked = new Set(files);
+
+    // Remove deleted files since the last build. Both maps are keyed by the
+    // canonical absolute path that `getFiles` answers, so one key reaches
+    // both.
     for (const file of fileModifiedMap.keys()) {
-      if (!files.includes(file)) {
+      if (!tracked.has(file)) {
         fileModifiedMap.delete(file);
         bundler.remove(file);
       }
@@ -280,15 +287,42 @@ function createBuilder() {
     delete (compilerOptions as { exclude?: unknown }).exclude;
 
     filesToTransform.forEach(({ file, filePath, mtimeMs }) => {
-      const contents = fs.readFileSync(filePath, 'utf-8');
+      let contents: string;
+
+      try {
+        contents = fs.readFileSync(filePath, 'utf-8');
+      } catch (error) {
+        // The file was selected and then went away, which a branch switch
+        // during a watch build does. Forget it and let the next build find it
+        // again, rather than stopping the whole stylesheet on one missing file.
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          fileModifiedMap.delete(file);
+          bundler.remove(filePath);
+
+          return;
+        }
+
+        throw error;
+      }
+
       // A file with no StyleX import and no sx prop has no rules to collect.
       if (shouldProcessSource(contents, rsOptions)) {
-        // The return value is not used. The transform has one effect that
-        // this build needs: it puts the rules on the bundler.
-        bundler.transform(filePath, contents, compilerOptions, {
+        const { collected } = bundler.transform(filePath, contents, compilerOptions, {
           isDev,
           shouldSkipTransformError,
         });
+
+        // A transform whose error was swallowed collected nothing. Withhold
+        // the mtime so the next build reads the file again; writing it would
+        // skip the file for as long as it is not edited, and its classes would
+        // stay missing even after the real cause is repaired.
+        if (!collected) {
+          return;
+        }
+      } else {
+        // The file no longer holds StyleX. Drop whatever it declared before,
+        // or the stylesheet keeps rules no source declares.
+        bundler.remove(filePath);
       }
 
       // Write the mtime only after the build finishes the file. The build read

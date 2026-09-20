@@ -78,5 +78,13 @@ answers it.
 
 The prototype surfaces — `String.prototype`, `Array.prototype`,
 `Object.prototype` — carry no list at all. They are reached through a value the
-source wrote, and the property rules refuse the reads that lead off it, so there
-is no door for a list to close.
+source wrote, and the property rules refuse the reads that lead off it.
+
+That was written as "there is no door for a list to close", which was too
+strong. The property rules read a name the syntax spells or the evaluator
+resolves, and a fold that crosses into the engine whole has a third kind of key:
+one that is a name only once the engine has run.
+[0010](./0010-the-printed-fold-reads-and-calls-through-a-check.md) closes that
+one, by making the printed source read through a check rather than through the
+language's index operator. The surfaces still carry no list; what changed is
+where the property rules are applied.

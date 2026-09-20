@@ -456,13 +456,6 @@ beside the generated class names and never replaces them.
 > the same debug name. The name is a label to read and not a selector, so a
 > duplicate is harmless.
 
-> [!NOTE]
-> `enableDebugClassNames` was removed in 0.19.0. It put the property name in
-> front of the hash, as in `color-x1e2nbdu`. Class names now always carry the
-> hash alone. An options object that still sets the key is accepted and the key
-> is ignored, so a build does not fail on it. Delete the key and use
-> `enableDevClassNames` for readable names.
-
 ### `useRealFileForSource`
 
 **Type:** `boolean` **Default:** `true`

@@ -2416,8 +2416,8 @@
       "label": "a prototype read whose key only the engine resolves",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nconst key = '__proto__';\n\nexport const styles = stylex.create({\n  s0: { content: String(({ a: '1' })[key]) },\n});\n",
       "origin": "measured while the prototype-chain rule was built",
-      "expected": "acceptance-divergent",
-      "note": "This compiler folds it and the reference refuses, which is the known edge of the prototype-chain rule. The rule reads a key the source spells or the evaluator resolves. Here neither happens: the whole expression is one fold, so the key crosses into the engine as a value and the read is done there, where no rule of this compiler can see the name. The reference implementation resolves every key itself, so it sees `__proto__` and refuses. What folds is the text `[object Object]`, and nothing more: the routes that lead on from a prototype are all closed on this side. A `constructor` read off it refuses because a function has no source text at compile time, and a call through one is not a candidate at all -- both measured. So the divergence costs a wrong value in one declaration and reaches no further. Closing it needs the read itself to happen under a rule, which means the printed fold calling a checked reader rather than the language's own index operator. That is a change to the printer, not to a list of names, and it is not made here."
+      "expected": "both-reject-divergent",
+      "note": "Both compilers refuse, for reasons written in different places. The reference implementation resolves every key itself, sees `__proto__` and refuses with its own sentence. Here the whole expression is one fold, so the key crosses into the engine as a value -- but the printed source no longer reads it with the language's index operator. It calls a checked reader, which coerces the key and refuses the same table a written name is refused against, so the rule that answers a read the syntax spells answers this one too. The divergence that is left is the wording and the pass, not the answer."
     },
     {
       "id": "modules-an-escape-payload-01",

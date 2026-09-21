@@ -24,7 +24,15 @@ _Avoid_: entry, dependency, package
 
 **Bundler**:
 `createBundler`, the accumulator that holds discovered rules across PostCSS
-passes. Local to this package, and unrelated to webpack or Vite. When the output
-CSS needs rebuilding is `createBuilder`'s mtime map instead, which also drops
-the rules of a file that has gone.
+passes. Local to this package, and unrelated to webpack or Vite. The _mtime
+map_ decides when the output CSS must be built again.
 _Avoid_: collector, cache, compiler
+
+**Mtime map**:
+`createBuilder`'s record of the modification time of each file that a build
+read. A file whose mtime agrees with the record is not read again. The map also
+removes the rules of a file that was deleted. The build writes the mtime of a
+file to the map only after the rules of that file reach the bundler. A build
+that stops with an error writes no entry, and neither does one whose error was
+swallowed in watch mode, so the next build reads the file again.
+_Avoid_: cache, timestamp index

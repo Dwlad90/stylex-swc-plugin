@@ -37,7 +37,6 @@ pub struct StyleXOptionsParams {
   pub dev: Option<bool>,
   pub test: Option<bool>,
   pub debug: Option<bool>,
-  pub enable_debug_class_names: Option<bool>,
   pub enable_debug_data_prop: Option<bool>,
   pub enable_dev_class_names: Option<bool>,
   pub enable_minified_keys: Option<bool>,
@@ -84,7 +83,6 @@ impl Default for StyleXOptionsParams {
       dev: Some(false),
       test: Some(false),
       debug: None,
-      enable_debug_class_names: Some(false),
       enable_debug_data_prop: Some(true),
       // Absent on purpose: the option follows `dev` when it is not set.
       enable_dev_class_names: None,
@@ -269,11 +267,6 @@ impl StyleXOptions {
     self
   }
 
-  pub fn with_enable_debug_class_names(mut self, enabled: bool) -> Self {
-    self.core.enable_debug_class_names = enabled;
-    self
-  }
-
   pub fn with_enable_debug_data_prop(mut self, enabled: bool) -> Self {
     self.core.enable_debug_data_prop = enabled;
     self
@@ -366,7 +359,6 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       .maybe_class_name_prefix(options.class_name_prefix)
       .maybe_dev(options.dev)
       .maybe_test(options.test)
-      .maybe_enable_debug_class_names(options.enable_debug_class_names)
       .maybe_enable_debug_data_prop(options.enable_debug_data_prop)
       .maybe_enable_dev_class_names(options.enable_dev_class_names.or(options.dev))
       .maybe_enable_minified_keys(options.enable_minified_keys)

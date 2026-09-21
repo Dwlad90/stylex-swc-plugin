@@ -76,7 +76,13 @@ export const ACCOUNTS: readonly Account[] = [
     name: 'a read that escapes onto the function graph',
     complaint:
       "It leads off the value that was written and onto the language's own function graph.",
-    verdicts: ['acceptance-divergent'],
+    // One verdict, because the reference compiler refuses these reads too and
+    // reports them as an expression it does not support. It read
+    // `acceptance-divergent` while this compiler still folded such a read;
+    // both compilers refuse now, and the last row arguing the acceptance half
+    // moved with them. Measured: every row of this account reads
+    // `both-reject-divergent`, and the row it is recorded by does too.
+    verdicts: ['both-reject-divergent'],
     recordedBy: 'modules-15-a-read-that-escapes-onto-the-function-graph',
   },
   {
@@ -97,6 +103,10 @@ export const ACCOUNTS: readonly Account[] = [
   {
     name: 'a static that does not answer from the source',
     complaint: 'A fold has to answer from the source alone, and this call does not.',
+    // One sentence for every static the allowlist does not hold, so this
+    // account claims the reflective ones as well as the impure ones. Two
+    // curated rows argue it; the impure one is named here because it is the
+    // older and the broader of the two.
     verdicts: ['both-reject-divergent'],
     recordedBy: 'modules-15-an-impure-static',
   },

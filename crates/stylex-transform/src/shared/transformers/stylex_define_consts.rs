@@ -14,7 +14,7 @@ use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableConstStyle,
 };
-use stylex_utils::{hash::create_key_hash, identifier::as_identifier};
+use stylex_utils::hash::create_authored_or_hashed_key;
 
 pub(crate) fn stylex_define_consts(
   constants: &EvaluateResultValue,
@@ -25,8 +25,6 @@ pub(crate) fn stylex_define_consts(
   };
 
   let class_name_prefix = state.options.class_name_prefix.clone();
-  let debug = state.options.debug;
-  let enable_debug_class_names = state.options.enable_debug_class_names;
   let export_id = match state.export_id.clone() {
     Some(id) => id,
     None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
@@ -44,18 +42,7 @@ pub(crate) fn stylex_define_consts(
     // text that each of them has to guess a kind back out of.
     let value = Rc::new(folded_value(&key_value.value));
 
-    let const_key = if key.starts_with("--") {
-      // Preserve user-authored CSS custom property name without the leading `--`
-      key.chars().skip(2).collect::<String>()
-    } else {
-      let key_hash = create_key_hash(&export_id, &key);
-
-      if debug && enable_debug_class_names {
-        format!("{}-{}{}", as_identifier(&key), class_name_prefix, key_hash)
-      } else {
-        format!("{}{}", class_name_prefix, key_hash)
-      }
-    };
+    let const_key = create_authored_or_hashed_key(&class_name_prefix, &export_id, &key);
 
     injectable_types.insert(
       const_key.clone().into(),

@@ -6,7 +6,7 @@ _inject2({
     priority: 3000
 });
 _inject2({
-    ltr: "@media (min-width: 800px) and (max-width: 1279.99px){.xqdov8i.xqdov8i{font-size:var(--x-1bks2es)}}",
+    ltr: "@media (min-width: 800px) and (max-width: 1279.98px){.x1845opi.x1845opi{font-size:var(--x-1bks2es)}}",
     priority: 3200
 });
 _inject2({
@@ -28,7 +28,7 @@ _inject2({
 export const styles = {
     root: (a, b, c)=>[
             {
-                kGuDYH: ((a ? '16px' : undefined) != null ? "xww4jgc " : a ? '16px' : undefined) + ((b ? '18px' : undefined) != null ? "xqdov8i " : b ? '18px' : undefined) + ((c ? '20px' : undefined) != null ? "x1j86d60" : c ? '20px' : undefined),
+                kGuDYH: ((a ? '16px' : undefined) != null ? "xww4jgc " : a ? '16px' : undefined) + ((b ? '18px' : undefined) != null ? "x1845opi " : b ? '18px' : undefined) + ((c ? '20px' : undefined) != null ? "x1j86d60" : c ? '20px' : undefined),
                 $$css: true
             },
             {

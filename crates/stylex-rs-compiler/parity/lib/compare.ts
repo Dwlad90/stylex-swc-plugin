@@ -4,7 +4,9 @@
  * Both compilers see the same module text and the same option object — option
  * drift would show up as a normalization divergence and send the reader
  * chasing the wrong thing, so the options are constructed once here and shared
- * rather than spelled out per subject.
+ * rather than spelled out per subject. A row may add its own `env`, which is
+ * the one setting its source cannot state; both compilers are handed the one
+ * object that carries it, so the two still differ by nothing.
  */
 
 import path from 'node:path';
@@ -82,20 +84,20 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
   // value under test.
   const filename = path.join(packageDir, 'parity/__fixture__/value.js');
 
-  const runRust = (code: string): CompilerOutcome =>
+  const runRust = (code: string, subjectOptions: StyleXOptions): CompilerOutcome =>
     outcomeOf(filename, (): CompilerRun => {
-      const result = transform(filename, code, stylexOptions);
+      const result = transform(filename, code, subjectOptions);
       return { rules: result.metadata.stylex, emitted: result.code };
     });
 
-  const runBabel = (code: string): CompilerOutcome =>
+  const runBabel = (code: string, subjectOptions: StyleXOptions): CompilerOutcome =>
     outcomeOf(filename, (): CompilerRun => {
       const result = babel.transformSync(code, {
         filename,
         babelrc: false,
         configFile: false,
         parserOpts: { sourceType: 'module', plugins: ['jsx'] },
-        plugins: [[stylexBabelPlugin, stylexOptions]],
+        plugins: [[stylexBabelPlugin, subjectOptions]],
       });
       return { rules: arrayAt(result?.metadata, 'stylex') ?? [], emitted: result?.code ?? '' };
     });
@@ -105,8 +107,12 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
     versions: resolveVersions(packageDir, distEntry, babelPluginEntry),
     compare(entry) {
       const code = moduleFor(entry);
-      const rust = runRust(code);
-      const babelOutcome = runBabel(code);
+      // The shared object itself where the row adds nothing, so a row that
+      // configures nothing is measured under exactly what the report prints.
+      const subjectOptions =
+        entry.env === undefined ? stylexOptions : { ...stylexOptions, env: entry.env };
+      const rust = runRust(code, subjectOptions);
+      const babelOutcome = runBabel(code, subjectOptions);
       return { ...entry, verdict: verdictFor(rust, babelOutcome), rust, babel: babelOutcome };
     },
   };

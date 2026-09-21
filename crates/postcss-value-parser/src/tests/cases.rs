@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 955 values: the differential harness's whole corpus, plus
+/// 961 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -1868,6 +1868,31 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "string \"•\" 0..5 quote=\"'\"",
   },
   ParserCase {
+    input: "50% off \\\\",
+    output: "50% off \\\\",
+    ast: "word \"50%\" 0..3\nspace \" \" 3..4\nword \"off\" 4..7\nspace \" \" 7..8\nword \"\\\\\\\\\" 8..10",
+  },
+  ParserCase {
+    input: "Bob's and Jim's",
+    output: "Bob's and Jim's",
+    ast: "word \"Bob\" 0..3\nstring \"s and Jim\" 3..14 quote=\"'\"\nword \"s\" 14..15",
+  },
+  ParserCase {
+    input: "He said \"hello\"",
+    output: "He said \"hello\"",
+    ast: "word \"He\" 0..2\nspace \" \" 2..3\nword \"said\" 3..7\nspace \" \" 7..8\nstring \"hello\" 8..15 quote=\"\\\"\"",
+  },
+  ParserCase {
+    input: "\\\\2014",
+    output: "\\\\2014",
+    ast: "word \"\\\\\\\\2014\" 0..6",
+  },
+  ParserCase {
+    input: "\\\\201C hello \\\\201D",
+    output: "\\\\201C hello \\\\201D",
+    ast: "word \"\\\\\\\\201C\" 0..6\nspace \" \" 6..7\nword \"hello\" 7..12\nspace \" \" 12..13\nword \"\\\\\\\\201D\" 13..19",
+  },
+  ParserCase {
     input: "\\u{1F600}a",
     output: "\\u{1F600}a",
     ast: "word \"\\\\u{1F600}a\" 0..10",
@@ -1891,6 +1916,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "next",
     output: "next",
     ast: "word \"next\" 0..4",
+  },
+  ParserCase {
+    input: "open-quote \"hello\" close-quote",
+    output: "open-quote \"hello\" close-quote",
+    ast: "word \"open-quote\" 0..10\nspace \" \" 10..11\nstring \"hello\" 11..18 quote=\"\\\"\"\nspace \" \" 18..19\nword \"close-quote\" 19..30",
   },
   ParserCase {
     input: "x",
@@ -4909,7 +4939,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 663 words paired with their number/unit split, `None` standing for a
+/// 672 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -5233,11 +5263,23 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("someVariableName", None),
   ("•", None),
   ("日本語#fff", None),
+  ("off", None),
+  ("\\\\", None),
+  ("Bob", None),
+  ("s", None),
+  ("He", None),
+  ("said", None),
+  ("\\\\2014", None),
+  ("\\\\201C", None),
+  ("hello", None),
+  ("\\\\201D", None),
   ("\\u{1F600}a", None),
   ("abc", None),
   ("data-value", None),
   ("some-attribute", None),
   ("next", None),
+  ("open-quote", None),
+  ("close-quote", None),
   ("🎉", None),
   ("squircle", None),
   ("bevel", None),
@@ -5360,7 +5402,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("1ms", Some(("1", "ms"))),
   ("2s", Some(("2", "s"))),
   ("ms", None),
-  ("s", None),
   ("--myVar", None),
   ("all", None),
   ("height", None),
@@ -5414,7 +5455,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("dvh", None),
   ("dvw", None),
   ("ex", None),
-  ("hello", None),
   ("ic", None),
   ("in", None),
   ("kHz", None),
@@ -5442,7 +5482,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("\\", None),
   ("a b", None),
   ("a\\", None),
-  ("\\\\", None),
   ("a\\)", None),
   ("U+", None),
   ("U+zz", None),

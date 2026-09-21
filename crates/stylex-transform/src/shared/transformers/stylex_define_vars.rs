@@ -16,10 +16,7 @@ use stylex_state::{
   state_manager::StateManager,
   types::{FlatCompiledStyles, InjectableStylesMap},
 };
-use stylex_utils::{
-  hash::{create_hash, create_key_hash},
-  identifier::as_identifier,
-};
+use stylex_utils::hash::{create_authored_or_hashed_key, create_hash};
 
 pub(crate) fn stylex_define_vars(
   variables: &EvaluateResultValue,
@@ -40,8 +37,6 @@ pub(crate) fn stylex_define_vars(
     stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
-  let debug = state.options.debug;
-  let enable_debug_class_names = state.options.enable_debug_class_names;
   let class_name_prefix = state.options.class_name_prefix.clone();
 
   let key_values = get_key_values_from_object(variables);
@@ -54,18 +49,8 @@ pub(crate) fn stylex_define_vars(
   for key_value in key_values.iter() {
     let key = convert_key_value_to_str(key_value);
 
-    // Created hashed variable names with fileName//themeName//key
-    let name_hash = if key.starts_with("--") {
-      key.get(2..).unwrap_or_default().to_string()
-    } else if debug && enable_debug_class_names {
-      let key_hash = create_key_hash(&export_id, &key);
-
-      format!("{}-{}{}", as_identifier(&key), class_name_prefix, key_hash)
-    } else {
-      let key_hash = create_key_hash(&export_id, &key);
-
-      format!("{}{}", class_name_prefix, key_hash)
-    };
+    // The namespace a variable hashes under is `fileName//themeName`.
+    let name_hash = create_authored_or_hashed_key(&class_name_prefix, &export_id, &key);
 
     let (css_value, css_type) = get_css_value(KeyValueProp {
       key: PropName::Str(key.clone().into()),

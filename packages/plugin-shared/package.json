@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/plugin-shared",
   "description": "Shared core for StyleX webpack and Rspack plugins powered by a Rust NAPI-RS/SWC compiler: loaders, plugin core, and CSS extraction logic.",
-  "version": "0.19.0-rc.4",
+  "version": "0.19.0-rc.5",
   "private": false,
   "license": "MIT",
   "sideEffects": [
@@ -42,6 +42,11 @@
       "types": "./dist/stylex-virtual-css-loader.d.ts",
       "import": "./dist/stylex-virtual-css-loader.js",
       "require": "./dist/stylex-virtual-css-loader.js"
+    },
+    "./transformed-options": {
+      "types": "./dist/transformed-options.d.ts",
+      "import": "./dist/transformed-options.js",
+      "require": "./dist/transformed-options.js"
     },
     "./stylex.css": "./dist/stylex.css",
     "./stylex-virtual.css": "./dist/stylex-virtual.css",

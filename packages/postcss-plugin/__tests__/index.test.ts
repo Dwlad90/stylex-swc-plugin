@@ -422,6 +422,279 @@ describe('@stylexswc/postcss-plugin', () => {
       infoSpy.mockRestore();
     }
   });
+
+  // ─── Rebuild bookkeeping tests ───────────────────────────────────────────────
+
+  /**
+   * Makes a build directory for one test. The tests above use a glob on the
+   * shared fixtures directory. A file that this fixture writes stays out of
+   * that glob. The caller gets a writer for the one source file, a build
+   * function, and a cleanup function.
+   */
+  function createRebuildFixture(fileName: string) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'stylex-postcss-rebuild-'));
+    const stylesPath = path.join(dir, fileName);
+
+    // The last mtime that this fixture wrote. Two writes can occur in the
+    // same millisecond, and a `Date` removes the fraction of a millisecond.
+    // Therefore each new mtime must start from the last mtime that this
+    // fixture wrote, and not from the mtime on the disk.
+    let lastMtimeMs = 0;
+
+    // Writes the source file and increases its mtime. The build then sees the
+    // change, also on a file system that keeps a low-resolution time.
+    function writeStyles(contents: string) {
+      fs.writeFileSync(stylesPath, contents, 'utf8');
+      lastMtimeMs = Math.ceil(Math.max(fs.statSync(stylesPath).mtimeMs, lastMtimeMs)) + 1000;
+      fs.utimesSync(stylesPath, new Date(lastMtimeMs), new Date(lastMtimeMs));
+    }
+
+    const processor = postcss([
+      createPlugin()({
+        cwd: dir,
+        include: [fileName],
+      }),
+    ]);
+
+    const input = { from: path.join(dir, 'input.css') };
+
+    // Writes the source file but keeps the mtime that the last write set. The
+    // map thus still agrees with the file. Only a build that reads the file
+    // again can find the new rules.
+    function writeStylesKeepingMtime(contents: string) {
+      fs.writeFileSync(stylesPath, contents, 'utf8');
+      fs.utimesSync(stylesPath, new Date(lastMtimeMs), new Date(lastMtimeMs));
+    }
+
+    return {
+      writeStyles,
+      writeStylesKeepingMtime,
+      removeStyles: () => fs.rmSync(stylesPath, { force: true }),
+      build: () => processor.process('@stylex;', input),
+      cleanup: () => fs.rmSync(dir, { recursive: true, force: true }),
+    };
+  }
+
+  // The lines of a source file with one rule. The rule sets the specified
+  // background color.
+  function stylesSourceLines(backgroundColor: string) {
+    return [
+      "import * as stylex from '@stylexjs/stylex';",
+      '',
+      'export const styles = stylex.create({',
+      '  container: {',
+      `    backgroundColor: '${backgroundColor}',`,
+      '  },',
+      '});',
+    ];
+  }
+
+  // This is a source file that the compiler can parse.
+  function stylesSource(backgroundColor: string) {
+    return `${stylesSourceLines(backgroundColor).join('\n')}\n`;
+  }
+
+  // This is the same file without the two lines that close the object and the
+  // call. The compiler cannot parse it.
+  function unparsableStylesSource() {
+    return `${stylesSourceLines('red').slice(0, -2).join('\n')}\n`;
+  }
+
+  /**
+   * This test records the full rule. Each build that ends after a file changes
+   * must show that change. The test cannot fail today, because `build()` has
+   * no await. Two builds therefore cannot overlap. The test keeps its value as
+   * a guard: if `build()` gets an await later, this test fails when the mtime
+   * goes to the map too early. The test after this one shows the same defect
+   * on the path that the synchronous build does have.
+   */
+  test('concurrent builds do not skip files mid transform', async () => {
+    const fixture = createRebuildFixture('concurrent-styles.js');
+
+    try {
+      fixture.writeStyles(stylesSource('red'));
+      await fixture.build();
+
+      fixture.writeStyles(stylesSource('blue'));
+
+      const [first, second] = await Promise.all([fixture.build(), fixture.build()]);
+
+      expect(first.css).toContain('background-color:blue');
+      expect(second.css).toContain('background-color:blue');
+      expect(first.css).not.toContain('background-color:red');
+      expect(second.css).not.toContain('background-color:red');
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test('a file whose transform fails is transformed again on the next build', async () => {
+    const fixture = createRebuildFixture('failing-styles.js');
+
+    try {
+      fixture.writeStyles(unparsableStylesSource());
+
+      await expect(fixture.build()).rejects.toThrow('Failed to parse file');
+
+      // The file did not change, thus its mtime is the same as the mtime that
+      // the first build saw. The second build must read the file again,
+      // because the first build did not collect its rules.
+      await expect(fixture.build()).rejects.toThrow('Failed to parse file');
+
+      // Repair the file, but keep the mtime. The third build must find the
+      // new rules, and not an empty result.
+      fixture.writeStylesKeepingMtime(stylesSource('red'));
+
+      const repaired = await fixture.build();
+
+      expect(repaired.css).toContain('background-color:red');
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  /**
+   * The same claim on the path that watch mode actually takes. The plugin
+   * latches `shouldSkipTransformError` after the first build that finishes, so
+   * every later build swallows a transform error and logs a warning instead of
+   * throwing. That build collected no rules, so it must write no mtime either
+   * -- otherwise the file is skipped for as long as it is not edited, and its
+   * classes stay missing after the real cause is repaired.
+   */
+  test('a file whose transform error is swallowed is transformed again on the next build', async () => {
+    const fixture = createRebuildFixture('watch-mode-styles.js');
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      // The first build finishes, which is what turns the swallowing on.
+      fixture.writeStyles(stylesSource('blue'));
+      await fixture.build();
+
+      fixture.writeStyles(unparsableStylesSource());
+
+      const warned = await fixture.build();
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to transform'));
+      expect(warned.css).not.toContain('background-color:red');
+
+      // Repair the file and keep the mtime, which is what an unrelated later
+      // build sees: only a build that reads the file again finds the rules.
+      fixture.writeStylesKeepingMtime(stylesSource('red'));
+
+      const repaired = await fixture.build();
+
+      expect(repaired.css).toContain('background-color:red');
+    } finally {
+      warnSpy.mockRestore();
+      fixture.cleanup();
+    }
+  });
+
+  /**
+   * The assembler options reach the stylesheet through the whole plugin path:
+   * `rsOptions` -> `normalizeRsOptions` -> `toTransformedOptions` -> the
+   * bundle. `useLegacyClassnamesSort` is asserted against the assembler
+   * directly elsewhere, which measures the assembler rather than the wiring —
+   * a plugin that dropped the option on the way would still pass that.
+   *
+   * Two rules that tie on priority are ordered by declaration without the
+   * option and by class name with it, and the two names sort the other way
+   * round, so the output says which rule ran.
+   */
+  test('useLegacyClassnamesSort reaches the stylesheet through the plugin', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'stylex-postcss-sort-'));
+
+    // `color` is declared second and hashes to a name that sorts first.
+    fs.writeFileSync(
+      path.join(dir, 'sorted-styles.js'),
+      [
+        "import * as stylex from '@stylexjs/stylex';",
+        '',
+        'export const styles = stylex.create({',
+        "  a: { backgroundColor: 'blue', color: 'red' },",
+        '});',
+        '',
+      ].join('\n')
+    );
+
+    const assemble = async (useLegacyClassnamesSort: boolean) => {
+      const processor = postcss([
+        createPlugin()({
+          cwd: dir,
+          include: ['sorted-styles.js'],
+          rsOptions: { useLegacyClassnamesSort },
+        }),
+      ]);
+
+      const result = await processor.process('@stylex;', { from: path.join(dir, 'input.css') });
+
+      return result.css;
+    };
+
+    try {
+      const byDeclaration = await assemble(false);
+      const byClassName = await assemble(true);
+
+      expect(byDeclaration.indexOf('.x1t391ir')).toBeLessThan(byDeclaration.indexOf('.x1e2nbdu'));
+      expect(byClassName.indexOf('.x1e2nbdu')).toBeLessThan(byClassName.indexOf('.x1t391ir'));
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  /**
+   * A file edited from having rules to having none must lose the rules it
+   * declared before, whether the compiler still reads it or not. Both routes
+   * end in the stylesheet keeping classes no source declares.
+   */
+  test('a file that loses its rules loses them from the stylesheet', async () => {
+    const fixture = createRebuildFixture('emptied-styles.js');
+
+    try {
+      fixture.writeStyles(stylesSource('red'));
+
+      expect((await fixture.build()).css).toContain('background-color:red');
+
+      // Still a StyleX file, and now with nothing in it.
+      fixture.writeStyles(
+        "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({});\n"
+      );
+
+      expect((await fixture.build()).css).not.toContain('background-color:red');
+
+      fixture.writeStyles(stylesSource('red'));
+
+      expect((await fixture.build()).css).toContain('background-color:red');
+
+      // No StyleX import at all, so the compiler is never asked about it.
+      fixture.writeStyles('export const styles = {};\n');
+
+      expect((await fixture.build()).css).not.toContain('background-color:red');
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  /**
+   * A file deleted between two builds must lose its rules as well, which is
+   * the third way a file stops declaring what it declared before. The other
+   * two are beside this one.
+   */
+  test('a file deleted between builds loses its rules', async () => {
+    const fixture = createRebuildFixture('deleted-styles.js');
+
+    try {
+      fixture.writeStyles(stylesSource('red'));
+
+      expect((await fixture.build()).css).toContain('background-color:red');
+
+      fixture.removeStyles();
+
+      expect((await fixture.build()).css).not.toContain('background-color:red');
+    } finally {
+      fixture.cleanup();
+    }
+  });
 });
 
 // ─── Discovery unit tests ────────────────────────────────────────────────────

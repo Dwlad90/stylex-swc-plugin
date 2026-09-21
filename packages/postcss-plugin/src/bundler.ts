@@ -8,7 +8,13 @@ import type { TransformOptions } from './types';
 export default function createBundler() {
   const styleXRulesMap = new Map();
 
-  // Transforms the source code using Babel, extracting StyleX rules and storing them.
+  // Transforms the source code, extracting StyleX rules and storing them.
+  //
+  // `collected` says whether the rules of this file reached the bundler. A
+  // transform error that `shouldSkipTransformError` swallows leaves them
+  // uncollected, and the caller has to know: a file recorded as built without
+  // its rules is skipped by every later build, so its classes go missing until
+  // the file is edited again.
   function transform(
     id: string,
     sourceCode: string,
@@ -17,26 +23,24 @@ export default function createBundler() {
   ) {
     const { shouldSkipTransformError } = options;
 
-    let transformResult: ReturnType<typeof stylexTransform> = {
-      code: sourceCode,
-      map: undefined,
-      metadata: { stylex: [] },
-    };
+    let transformResult: ReturnType<typeof stylexTransform>;
 
     try {
       const rsOptionsNormalized = normalizeRsOptions(rsOptions);
 
       transformResult = stylexTransform(id, sourceCode, rsOptionsNormalized);
     } catch (error) {
-      if (shouldSkipTransformError) {
-        console.warn(
-          `[@stylexswc/postcss-plugin] Failed to transform "${id}": ${(error as Error).message}`
-        );
-
-        return transformResult;
+      if (!shouldSkipTransformError) {
+        throw error;
       }
 
-      throw error;
+      console.warn(
+        `[@stylexswc/postcss-plugin] Failed to transform "${id}": ${(error as Error).message}`
+      );
+
+      // The source is handed back as it was read, and `collected` says its
+      // rules never reached the bundler.
+      return { code: sourceCode, map: undefined, metadata: { stylex: [] }, collected: false };
     }
 
     const { code, map, metadata } = transformResult;
@@ -44,9 +48,13 @@ export default function createBundler() {
     const stylex = metadata.stylex;
     if (stylex != null && stylex.length > 0) {
       styleXRulesMap.set(id, stylex);
+    } else {
+      // A file edited from having rules to having none keeps the old ones
+      // otherwise, and the stylesheet then carries classes no source declares.
+      styleXRulesMap.delete(id);
     }
 
-    return { code, map, metadata };
+    return { code, map, metadata, collected: true };
   }
 
   // Removes the stored StyleX rules for the specified file.

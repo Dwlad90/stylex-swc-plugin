@@ -1,5 +1,3 @@
-#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
-
 //! StyleX atoms — compile-time helpers for authoring atomic styles inline.
 //!
 //! This crate owns the logic that detects and compiles the

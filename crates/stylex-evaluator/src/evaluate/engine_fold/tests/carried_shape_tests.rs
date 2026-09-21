@@ -247,7 +247,6 @@ fn built_and_read(source: &str, read: &str) -> String {
     &method,
     Depth::full(LEVELS),
     &builder,
-    VarNaming::from_flags(false, false),
     &FxHashMap::default(),
   ) {
     Ok(arguments) => arguments,
@@ -364,7 +363,6 @@ fn a_group_that_will_not_build_declines_the_fold() {
     &method,
     Depth::full(LEVELS),
     &builder,
-    VarNaming::from_flags(false, false),
     &FxHashMap::default(),
   );
 

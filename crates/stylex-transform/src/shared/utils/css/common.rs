@@ -1,5 +1,5 @@
-use stylex_constants::constants::common::{CSS_CONTENT_FUNCTIONS, CSS_CONTENT_KEYWORDS};
 use stylex_css::css::common::{get_number_suffix, normalize_css_property_value};
+use stylex_css::values::content::transform_content_value;
 use stylex_state::state_manager::StateManager;
 use stylex_structures::raw_value::TRawValue;
 use stylex_utils::{math::round_f64, number::to_js_string, string::is_blank_css_text};
@@ -20,22 +20,7 @@ pub(crate) fn transform_value(key: &str, raw_value: &TRawValue, state: &StateMan
   };
 
   if key == "content" || key == "hyphenateCharacter" || key == "hyphenate-character" {
-    let val = value.trim();
-
-    let is_css_function = CSS_CONTENT_FUNCTIONS.iter().any(|func| val.contains(func));
-
-    let is_keyword = CSS_CONTENT_KEYWORDS.contains(&val);
-
-    let double_quote_count = val.matches('"').count();
-    let single_quote_count = val.matches('\'').count();
-
-    let has_matching_quotes = double_quote_count >= 2 || single_quote_count >= 2;
-
-    if is_css_function || is_keyword || has_matching_quotes {
-      return val.to_string();
-    }
-
-    return format!("\"{}\"", val);
+    return transform_content_value(value.trim());
   }
 
   // A value with no CSS text in it has nothing to normalize, and normalization

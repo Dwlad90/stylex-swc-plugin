@@ -9,7 +9,6 @@ fn stylex_transform(
     customize(
       b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
         .with_dev(true)
-        .with_enable_debug_class_names(true)
         .with_runtime_injection(),
     )
   })

@@ -1,11 +1,12 @@
 use indexmap::IndexMap;
+use std::borrow::Cow;
 use stylex_ast::ast::convertors::{
-  convert_key_value_to_str, convert_lit_to_string, expanded_shorthand_prop,
-  get_key_values_from_object, key_value_name,
+  convert_key_value_to_str, convert_lit_to_string, get_key_values_from_object, key_value_name,
 };
 use stylex_ast::ast::factories::{
   create_key_value_prop, create_object_expression, create_object_lit, create_string_key_value_prop,
 };
+use stylex_ast::ast::keys::try_namespace_name_from_prop_key;
 use stylex_constants::constants::messages::{SPREAD_NOT_SUPPORTED, VALUE_MUST_BE_STRING};
 use stylex_enums::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
@@ -81,43 +82,69 @@ pub fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>
   // A typed declaration is the one that names a syntax and gives a value.
   // Short of either name the object is an ordinary value, and it is handed
   // back whole.
-  let Some(value) = prop_named(obj, "syntax").and_then(|_| prop_named(obj, "value")) else {
+  let Some(value) = value_named(obj, "syntax").and_then(|_| value_named(obj, "value")) else {
     return (key_value.value, None);
   };
 
-  let result_key_value = match value.as_prop().and_then(|prop| prop.as_key_value()) {
-    Some(key_value) => key_value,
-    None => stylex_panic!("Expected key-value property"),
-  };
-
-  (result_key_value.value.clone(), Some(obj.clone().into()))
+  (Box::new(value.into_owned()), Some(obj.clone().into()))
 }
 
-/// The property of `object` that is written under `name`, read where it lies.
+/// The value written under `name` in `object`, read where it lies.
 ///
-/// A shorthand name is read as the pair it stands for, so `{ syntax }` and
-/// `{ syntax: syntax }` are one spelling here. The property is answered as the
-/// object holds it, because a caller that takes the value needs the property
-/// and not the reading made of it.
+/// The key is named through the reader the rest of the workspace names a key
+/// with, so every way of writing one is read. The four that can write `syntax`
+/// or `value` are bare, quoted, computed from static text, and the shorthand:
+/// `{ syntax: x }`, `{ "syntax": x }`, `{ ["syntax"]: x }` and `{ syntax }` all
+/// name `syntax`. A number and a big integer are named too, and neither can
+/// spell either word.
 ///
-/// Asked twice for one object, which is why it is one function. Each reader
-/// used to spell the walk out again, and both copied every property they
-/// looked at -- so an object of n properties cost n copies of each of its n
-/// value subtrees.
+/// The value is borrowed from the object, except for a shorthand, which holds
+/// only the name and so has no value node to borrow.
 ///
-/// A name written as a shorthand is matched here and cannot be read by the
-/// caller, which takes the pair from the property as the object holds it. Both
-/// callers of `get_css_value` are given a declaration the evaluator rebuilt,
-/// and a rebuilt object holds no shorthand, so no source reaches that. Written
-/// down because the two readings disagree and only this note says so.
-fn prop_named<'object>(object: &'object ObjectLit, name: &str) -> Option<&'object PropOrSpread> {
-  object.props.iter().find(|prop| match prop {
+/// The match and the answer are one step on purpose. They used to be two, and
+/// the two readings disagreed for exactly one spelling: a property was matched
+/// through the pair a shorthand stands for, so `{ value }` matched, and the
+/// value was then taken from the property as the object holds it, where a
+/// shorthand has no pair to take. It matched and then could not be read.
+///
+/// The spellings are read through the same helper the rest of the workspace
+/// names a key with. Before that, only a bare key was read, while the reader
+/// beside this one -- which builds the type from the same object -- read all
+/// of them. The two never disagreed where anyone could see it, because this
+/// one guards the door: a quoted or computed name was not recognised, so the
+/// object was handed back as an ordinary value and the other reader never
+/// ran on a shape it would have accepted.
+///
+/// Asked twice for one object, which is why it is one function rather than a
+/// walk spelled out at each reader.
+///
+/// **A shorthand answers an identifier, and an identifier is not a value the
+/// caller can finish with.** [`BaseCSSType`] needs a string for `syntax` and a
+/// literal or an object for `value`, so `{ syntax: '<color>', value }` is
+/// still refused -- with the sentence the written-out pair is refused with,
+/// which is the point. Reading the value is what stops the two spellings
+/// disagreeing; it is not what makes the declaration compile.
+///
+/// No source reaches any spelling but the bare one. Both callers of
+/// [`get_css_value`] are given a declaration the evaluator rebuilt, and the
+/// rebuild writes every key as a bare name and expands every shorthand. The
+/// other three spellings are therefore held by the suite alone. They are read
+/// so that one object has one meaning here, not because a build depends on
+/// it.
+fn value_named<'object>(object: &'object ObjectLit, name: &str) -> Option<Cow<'object, Expr>> {
+  object.props.iter().find_map(|prop| match prop {
     PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-    PropOrSpread::Prop(prop) => match expanded_shorthand_prop(prop).as_ref() {
-      Prop::KeyValue(key_value) => key_value
-        .key
-        .as_ident()
-        .is_some_and(|ident| ident.sym == *name),
+    PropOrSpread::Prop(prop) => match prop.as_ref() {
+      Prop::Shorthand(ident) => {
+        (ident.sym == *name).then(|| Cow::Owned(Expr::Ident(ident.clone())))
+      },
+      // Every way of writing a key is read, because a bare name, a quoted
+      // name and a computed one name the same property in JavaScript. A key
+      // with no static name, unreadable text included, is not the name this
+      // reader was asked for.
+      Prop::KeyValue(key_value) => try_namespace_name_from_prop_key(&key_value.key)
+        .is_some_and(|key| key == *name)
+        .then(|| Cow::Borrowed(key_value.value.as_ref())),
       _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
     },
   })

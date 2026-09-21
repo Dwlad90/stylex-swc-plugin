@@ -21,6 +21,117 @@ pub static VALUE_ONLY_GLOBALS: phf::Set<&'static str> = phf_set! {
   "Boolean"
 };
 
+/// The static methods a fold may call on the globals in [`VALID_CALLEES`].
+///
+/// An allowlist and not a denylist, because `Object` carries reflective
+/// methods -- `getPrototypeOf`, `getOwnPropertyDescriptor`, `create` -- that
+/// hand back an object from the prototype chain. Any one of them is a step
+/// from a plain object to `Function`, and so to arbitrary code inside the
+/// compiler. A denylist over that surface can never be complete: the method
+/// nobody listed is the next way out. Only methods that answer plain data are
+/// listed.
+///
+/// One set per global rather than one shared set, so that a method of one
+/// global cannot be called on another.
+pub static VALID_STRING_METHODS: phf::Set<&'static str> = phf_set! {
+  "fromCharCode",
+  "fromCodePoint",
+  "raw",
+};
+
+/// The `Number` statics a fold may call. See [`VALID_STRING_METHODS`].
+pub static VALID_NUMBER_METHODS: phf::Set<&'static str> = phf_set! {
+  "isFinite",
+  "isInteger",
+  "isNaN",
+  "isSafeInteger",
+  "parseFloat",
+  "parseInt",
+};
+
+/// The `Math` statics a fold may call. See [`VALID_STRING_METHODS`].
+///
+/// `random` is absent on purpose: a build has to answer the same value every
+/// time it reads the same source.
+///
+/// `f16round` is listed although no test names it. The engine the fold runs
+/// carries it and Node 22 does not, so a case written against it would answer
+/// one way here and another way there. It is listed because the surface is the
+/// language's, not because this compiler exercises it.
+pub static VALID_MATH_METHODS: phf::Set<&'static str> = phf_set! {
+  "abs",
+  "acos",
+  "acosh",
+  "asin",
+  "asinh",
+  "atan",
+  "atan2",
+  "atanh",
+  "cbrt",
+  "ceil",
+  "clz32",
+  "cos",
+  "cosh",
+  "exp",
+  "expm1",
+  "f16round",
+  "floor",
+  "fround",
+  "hypot",
+  "imul",
+  "log",
+  "log10",
+  "log1p",
+  "log2",
+  "max",
+  "min",
+  "pow",
+  "round",
+  "sign",
+  "sin",
+  "sinh",
+  "sqrt",
+  "tan",
+  "tanh",
+  "trunc",
+};
+
+/// The `Object` statics a fold may call. See [`VALID_STRING_METHODS`].
+///
+/// Every one of these answers plain data: own values, own names, or a boolean.
+/// Left out are the mutating statics (`assign`, `defineProperty`, `freeze`,
+/// `seal`, `preventExtensions`) and the reflective ones (`create`,
+/// `getPrototypeOf`, `setPrototypeOf`, `getOwnPropertyDescriptor`,
+/// `getOwnPropertyDescriptors`), which hand back an object from the prototype
+/// chain.
+pub static VALID_OBJECT_METHODS: phf::Set<&'static str> = phf_set! {
+  "entries",
+  "fromEntries",
+  "getOwnPropertyNames",
+  "getOwnPropertySymbols",
+  "groupBy",
+  "hasOwn",
+  "is",
+  "isExtensible",
+  "isFrozen",
+  "isSealed",
+  "keys",
+  "values",
+};
+
+/// The `Array` statics a fold may call. See [`VALID_STRING_METHODS`].
+pub static VALID_ARRAY_METHODS: phf::Set<&'static str> = phf_set! {
+  "from",
+  "isArray",
+  "of",
+};
+
+/// Array methods that change their receiver.
+///
+/// These drive binding disqualification -- a name whose value one of them is
+/// called on stops being a constant -- which is a different rule from the
+/// static allowlists above. Some names appear in both, and that is a
+/// coincidence of the language rather than a duplicate list.
 pub static MUTATING_ARRAY_METHODS: phf::Set<&'static str> = phf_set! {
   "push",
   "pop",
@@ -33,21 +144,15 @@ pub static MUTATING_ARRAY_METHODS: phf::Set<&'static str> = phf_set! {
   "copyWithin",
 };
 
+/// `Object` statics that change the object they are handed.
+///
+/// Read by binding disqualification, like [`MUTATING_ARRAY_METHODS`], and not
+/// by the static allowlists above.
 pub static MUTATING_OBJECT_METHODS: phf::Set<&'static str> = phf_set! {
   "assign",
   "defineProperty",
   "defineProperties",
   "setPrototypeOf",
-};
-
-pub static INVALID_METHODS: phf::Set<&'static str> = phf_set! {
-  "random",
-  "assign",
-  "defineProperties",
-  "defineProperty",
-  "freeze",
-  "seal",
-  "splice",
 };
 
 pub static COMPILED_KEY: &str = "$$css";

@@ -8,11 +8,11 @@ const _temp = {
     $$css: "tests/fixture/dynamic-param-shadows-import/input.stylex.js:6"
 };
 _inject2({
-    ltr: ".zIndex-x1bsllxr{z-index:var(--_10-x19xkwqv)}",
+    ltr: ".x25bfn{z-index:var(--x19xkwqv)}",
     priority: 3000
 });
 _inject2({
-    ltr: ".zIndex-xr3buco{z-index:var(--x-zIndex)}",
+    ltr: ".xr3buco{z-index:var(--x-zIndex)}",
     priority: 3000
 });
 _inject2({
@@ -22,13 +22,13 @@ _inject2({
 export const styles = {
     wrapper: {
         "input__styles.wrapper": "input__styles.wrapper",
-        zIndex: "zIndex-x1bsllxr",
+        zIndex: "x25bfn",
         $$css: "tests/fixture/dynamic-param-shadows-import/input.stylex.js:5"
     },
     zIndex: (zIndex)=>[
             _temp,
             {
-                zIndex: zIndex != null ? "zIndex-xr3buco" : zIndex,
+                zIndex: zIndex != null ? "xr3buco" : zIndex,
                 $$css: "tests/fixture/dynamic-param-shadows-import/input.stylex.js:6"
             },
             {

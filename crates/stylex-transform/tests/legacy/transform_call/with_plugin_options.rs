@@ -13,7 +13,6 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
       .with_dev(true)
-      .with_enable_debug_class_names(true)
       .with_enable_inlined_conditional_merge(false)
       .with_runtime_injection()
   }),
@@ -35,7 +34,6 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
       .with_dev(true)
-      .with_enable_debug_class_names(true)
       .with_runtime_injection()
   }),
   // dev:true and enable_inlined_conditional_merge:true
@@ -60,7 +58,6 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
       .with_dev(true)
-      .with_enable_debug_class_names(true)
       .with_enable_inlined_conditional_merge(false)
       .with_runtime_injection()
   }),
@@ -85,7 +82,6 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
       .with_dev(true)
-      .with_enable_debug_class_names(true)
       .with_runtime_injection()
   }),
   r#"
@@ -108,7 +104,6 @@ stylex_test!(
     b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
       .with_dev(true)
       .with_enable_inlined_conditional_merge(false)
-      .with_enable_debug_class_names(true)
       .with_runtime_injection()
   }),
   r#"

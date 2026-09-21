@@ -42,6 +42,11 @@
 //! enough to reach the memo's bound empties it and pays the print again, where a
 //! real build holds one entry per folded call site.
 //!
+//! **The checks** are what the printed fold puts in front of a read whose key
+//! only the engine resolves, and in front of a call through a name the printed
+//! source binds. The `checked-read` and `checked-call` legs are the only ones
+//! that print one, so they are where a change to either check shows up.
+//!
 //! Every fold through the evaluator runs inside `GLOBALS.set`, because the fold
 //! can reach the code-frame path and that path calls `Mark::new()`. Why that is
 //! not optional is in `guidelines/PERFORMANCE.md` under "Writing a bench". The
@@ -59,7 +64,7 @@ use criterion::{
   BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::WallTime,
 };
 use stylex_ast::ast::convertors::convert_atom_to_string;
-use stylex_evaluator::evaluate::evaluate;
+use stylex_evaluator::evaluate::{evaluate, prints_a_check};
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
 };
@@ -87,42 +92,84 @@ struct Leg {
   /// Written the way the fold prints it — minified, no trailing semicolon — so
   /// the engine leg can be handed the same text the fold would hand it, rather
   /// than a prettier spelling that parses differently.
+  ///
+  /// The two legs that price a check are the exception, and `prints_a_check`
+  /// below is what says so: the fold prints those two with the checks bound in
+  /// front and the read or the call routed through one, so their `engine` leg
+  /// runs the language alone.
   source: &'static str,
   /// The answer, spelled the way the language spells it. One field serves both
   /// sides of the bridge: the engine's own `String(value)` and the evaluator's
   /// folded value render the same, so neither side needs an expectation of its
   /// own that could drift from the other's.
   answer: &'static str,
+  /// Whether the fold prints one of its own checks into this leg.
+  ///
+  /// The answer alone cannot say: a check is transparent over every value a
+  /// leg folds, so a leg that stopped printing one would answer the same text
+  /// and only get quicker. That reads as a win, which is the mistake
+  /// `guidelines/PERFORMANCE.md` asks every bench to close.
+  prints_a_check: bool,
 }
 
 /// The shapes that cost differently: a string method with no arguments, a
 /// callback the engine invokes once per element, a chain that folds at every
-/// link, and an answer that comes back as an array and so runs the outward half
-/// of the bridge.
+/// link, an answer that comes back as an array and so runs the outward half of
+/// the bridge, and the two shapes the fold prints a check into.
 ///
-/// They are the same shapes `perf_fixtures/engine-fold.js` is built from, and
-/// they avoid a mutating method for the same reason it does: the baseline is
-/// only a baseline if the revision before the change can be measured on it too.
+/// The first four are the shapes `perf_fixtures/engine-fold.js` is built from,
+/// and they avoid a mutating method for the same reason it does: the baseline
+/// is only a baseline if the revision before the change can be measured on it
+/// too.
+///
+/// The last two are this bench's own, because no registered fixture holds
+/// either shape and the checks would otherwise be priced nowhere. They are the
+/// one place `source` is not what the fold prints — the printed text binds the
+/// two checks and reads or calls through one — so what the checks cost sits in
+/// the *fold* leg of the pair. The gap is read the way the module doc reads
+/// every gap here, and the checks make it smaller rather than larger.
 const LEGS: &[Leg] = &[
   Leg {
     name: "string",
     source: r#""  read  ".trim()"#,
     answer: "read",
+    prints_a_check: false,
   },
   Leg {
     name: "callback",
     source: r#"[4,8,12,16].map(step=>step+"px").join(" ")"#,
     answer: "4px 8px 12px 16px",
+    prints_a_check: false,
   },
   Leg {
     name: "chain",
     source: r#""  rgba(0,0,0,.2)|rgba(0,0,0,.4)  ".trim().split("|").join(" ")"#,
     answer: "rgba(0,0,0,.2) rgba(0,0,0,.4)",
+    prints_a_check: false,
   },
   Leg {
     name: "array-answer",
     source: r#"["-webkit-sticky"].concat(["sticky"])"#,
     answer: "-webkit-sticky,sticky",
+    prints_a_check: false,
+  },
+  // A key that is a name only once the engine has run, which the printed fold
+  // reads through `__sxRead`. A key written as a number keeps the language's
+  // own index operator and is priced by the legs above.
+  Leg {
+    name: "checked-read",
+    source: r#"[0,1].map(i=>["a","b"][i]).join("-")"#,
+    answer: "a-b",
+    prints_a_check: true,
+  },
+  // A call through a name the printed source binds itself, which the printed
+  // fold calls through `__sxCall`. A call through a free name keeps the
+  // language's own call.
+  Leg {
+    name: "checked-call",
+    source: r#"[x=>x+"px"].map(f=>f(8)).join("")"#,
+    answer: "8px",
+    prints_a_check: true,
   },
 ];
 
@@ -206,6 +253,18 @@ fn state() -> StateManager {
 /// fold rather than one cold fold and many warm ones.
 fn assert_folds_to_its_answer(leg: &Leg, expr: &Expr) {
   let name = leg.name;
+
+  // Asked before the fold, because it is the half the answer cannot say: a
+  // check is transparent over every value a leg folds, so a leg that stopped
+  // printing one would still answer its recorded text.
+  assert_eq!(
+    prints_a_check(expr),
+    leg.prints_a_check,
+    "the `{name}` leg prints a check where it is recorded as printing none, or \
+     the other way round; the pair below would no longer be timing what its \
+     name says"
+  );
+
   let result = evaluate(expr, &mut state(), &FunctionMap::default());
 
   let folded = match (result.confident, result.value.as_ref()) {
@@ -275,11 +334,12 @@ fn cold_engine() -> Context {
 
 /// What the first fold in a process pays and no later one does.
 ///
-/// One leg, not one per shape. Measured per shape the four came back within 8%
-/// of each other — 114 to 126 microseconds — against warm engine costs spanning
-/// 2.3 to 10.7, which says the number is the context construction and not the
-/// JavaScript. Reporting it four times would imply a leg-dependence that is not
-/// there, so the cheapest shape stands for all of them.
+/// One leg, not one per shape. Measured per shape, the four shapes this group
+/// was written on came back within 8% of each other — 114 to 126 microseconds
+/// — against warm engine costs spanning 2.3 to 10.7, which says the number is
+/// the context construction and not the JavaScript. Reporting it once per
+/// shape would imply a leg-dependence that is not there, so the cheapest shape
+/// stands for all of them, the two added since included.
 fn cold_start_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("EngineFoldColdStart");
 
@@ -301,11 +361,14 @@ fn cold_start_benchmarks(c: &mut Criterion) {
 
 /// A warm fold, beside the JavaScript it exists to run.
 ///
-/// `engine` is a warm context handed the source the fold would print; `fold` is
-/// the same expression through the evaluator, which is the warm fold itself.
-/// The gap between them bounds what the fold adds over the language — the guard
-/// walk, the print and the conversion of the answer back, plus the evaluator's
-/// own cost of being entered, which nothing here tells apart from them.
+/// `engine` is a warm context handed the leg's source; `fold` is the same
+/// expression through the evaluator, which is the warm fold itself.
+///
+/// What the gap between them means is written once, in the module doc above,
+/// and is not a bound on what the fold adds: the `engine` leg re-parses on
+/// every iteration where the fold's memo does not, so the two legs no longer
+/// do the same work. Reading it here as well is how the two statements came to
+/// disagree.
 fn round_trip_benchmarks(c: &mut Criterion) {
   let globals = Globals::default();
 

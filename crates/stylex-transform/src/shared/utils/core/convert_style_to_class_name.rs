@@ -30,9 +30,6 @@ pub(crate) fn convert_style_to_class_name(
   const_rules: &mut [String],
   state: &mut StateManager,
 ) -> Option<(RuleKey, ClassName, InjectableStyle)> {
-  let debug = state.options.debug;
-  let enable_debug_class_names = state.options.enable_debug_class_names;
-
   let (key, raw_value) = obj_entry;
 
   let dashed_key = if key.starts_with("--") {
@@ -108,11 +105,7 @@ pub(crate) fn convert_style_to_class_name(
 
   let prefix = &state.options.class_name_prefix;
 
-  let class_name_hashed = if debug && enable_debug_class_names {
-    format!("{}-{}{}", key, prefix, create_hash(&string_to_hash))
-  } else {
-    format!("{}{}", prefix, create_hash(string_to_hash.as_str()))
-  };
+  let class_name_hashed = format!("{}{}", prefix, create_hash(string_to_hash.as_str()));
 
   let css_rules = generate_css_rule(
     class_name_hashed.as_str(),

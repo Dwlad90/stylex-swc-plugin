@@ -80,14 +80,91 @@ fn method_sets_detect_expected_members() {
   let push = member_ident("push");
   let map = member_ident("map");
 
-  assert!(is_invalid_method(&assign));
+  // `assign` mutates what it is handed, so it is outside the allowlist and
+  // inside the mutating set. `push` and `map` are array methods, which no
+  // global carries as a static and no `Object` rule names.
+  assert!(!is_valid_callee_method("Object", &assign));
   assert!(is_mutating_object_method(&assign));
 
-  assert!(!is_invalid_method(&push));
+  assert!(!is_valid_callee_method("Object", &push));
   assert!(!is_mutating_object_method(&push));
 
-  assert!(!is_invalid_method(&map));
+  assert!(!is_valid_callee_method("Object", &map));
   assert!(!is_mutating_object_method(&map));
+
+  // The allowlist admits a static on the global that carries it and on no
+  // other.
+  assert!(is_valid_callee_method("Object", &member_ident("keys")));
+  assert!(is_valid_callee_method("Math", &member_ident("max")));
+  assert!(!is_valid_callee_method("Math", &member_ident("keys")));
+  assert!(!is_valid_callee_method("Object", &member_ident("max")));
+
+  // A name no global is: the allowlist answers for the receiver as well as for
+  // the method.
+  assert!(!is_valid_callee_method("Reflect", &member_ident("get")));
+}
+
+/// Every global the fold owns carries an allowlist, and no other name does.
+///
+/// [`is_valid_callee_method_name`] dispatches on the receiver's name, which is a
+/// second listing of the globals beside `VALID_CALLEES`. A callee added to that
+/// set and not to the dispatch would answer `false` for every static it
+/// carries, refusing the whole surface in silence. This is what says the two
+/// listings agree.
+#[test]
+fn every_valid_callee_carries_an_allowlist() {
+  for callee in VALID_CALLEES.iter() {
+    assert!(
+      METHODS_PER_CALLEE
+        .iter()
+        .any(|(name, method)| name == callee && is_valid_callee_method_name(callee, method)),
+      "`{}` is a valid callee with no static the allowlist admits",
+      callee
+    );
+  }
+
+  // And the dispatch answers for those names only.
+  assert!(!is_valid_callee_method_name("Reflect", "get"));
+  assert!(!is_valid_callee_method_name("", "keys"));
+}
+
+/// One static each global carries, for the test above to ask it about.
+const METHODS_PER_CALLEE: [(&str, &str); 5] = [
+  ("String", "fromCharCode"),
+  ("Number", "parseInt"),
+  ("Math", "max"),
+  ("Object", "keys"),
+  ("Array", "from"),
+];
+
+/// The reflective and impure `Object` statics, which the allowlist holds back.
+///
+/// The mutating set is iterated rather than copied, so a name added to it is
+/// asked about here without anybody remembering to add it. The rest are written
+/// out: the reflective statics and the three remaining impure ones belong to no
+/// named set, so the allowlist is the only thing that refuses them.
+#[test]
+fn reflective_and_impure_statics_are_outside_the_allowlist() {
+  let mutating = MUTATING_OBJECT_METHODS.iter().copied();
+
+  for method in mutating.chain([
+    "freeze",
+    "seal",
+    "preventExtensions",
+    "create",
+    "getPrototypeOf",
+    "setPrototypeOf",
+    "getOwnPropertyDescriptor",
+    "getOwnPropertyDescriptors",
+  ]) {
+    assert!(
+      !is_valid_callee_method_name("Object", method),
+      "`Object.{}` must stay outside the allowlist",
+      method
+    );
+  }
+
+  assert!(!is_valid_callee_method_name("Math", "random"));
 }
 
 #[test]
@@ -101,7 +178,7 @@ fn computed_props_are_not_classified_as_identifier_methods() {
     }))),
   });
 
-  assert!(!is_invalid_method(&computed));
+  assert!(!is_valid_callee_method("Object", &computed));
   assert!(!is_mutating_object_method(&computed));
 }
 

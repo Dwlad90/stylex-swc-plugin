@@ -50,58 +50,27 @@ mod convert_style_to_class_name {
   }
 
   #[test]
-  fn prefixes_classname_with_property_name_when_options_debug_is_true() {
-    let class_name = class_name_of(
-      ("margin", &PreRuleValue::number(10.0)),
-      &mut StateManager::for_test(
-        None,
-        StyleXStateOptions::default()
-          .with_class_name_prefix("x")
-          .with_style_resolution(StyleResolution::PropertySpecificity)
-          .with_dev(false)
-          .with_test(false)
-          .with_debug(true)
-          .with_enable_debug_class_names(true),
-      ),
-    );
-    assert!(class_name.as_str().starts_with("margin-"))
-  }
+  fn generates_the_same_classname_in_debug_and_production_modes() {
+    let base_options = || {
+      StyleXStateOptions::default()
+        .with_class_name_prefix("x")
+        .with_style_resolution(StyleResolution::PropertySpecificity)
+        .with_dev(false)
+        .with_test(false)
+    };
 
-  #[test]
-  fn prefixes_classname_with_prefix_only_when_options_enable_debug_class_names_is_false() {
-    let class_name = class_name_of(
+    let debug_class_name = class_name_of(
       ("margin", &PreRuleValue::number(10.0)),
-      &mut StateManager::for_test(
-        None,
-        StyleXStateOptions::default()
-          .with_class_name_prefix("x")
-          .with_style_resolution(StyleResolution::PropertySpecificity)
-          .with_dev(false)
-          .with_test(false)
-          .with_debug(true)
-          .with_enable_debug_class_names(false),
-      ),
+      &mut StateManager::for_test(None, base_options().with_debug(true)),
     );
-    assert!(class_name.as_str().starts_with("x"));
-    assert!(!class_name.as_str().starts_with("margin-x"));
-  }
+    let production_class_name = class_name_of(
+      ("margin", &PreRuleValue::number(10.0)),
+      &mut StateManager::for_test(None, base_options().with_debug(false)),
+    );
 
-  #[test]
-  fn prefixes_classname_with_prefix_only_when_options_debug_is_false() {
-    let class_name = class_name_of(
-      ("margin", &PreRuleValue::number(10.0)),
-      &mut StateManager::for_test(
-        None,
-        StyleXStateOptions::default()
-          .with_class_name_prefix("x")
-          .with_style_resolution(StyleResolution::PropertySpecificity)
-          .with_dev(false)
-          .with_test(false)
-          .with_debug(false),
-      ),
-    );
-    assert!(!class_name.as_str().starts_with("margin-"));
-    assert!(class_name.as_str().starts_with("x"));
+    assert_eq!(debug_class_name, production_class_name);
+    assert!(debug_class_name.as_str().starts_with("x"));
+    assert!(!debug_class_name.as_str().starts_with("margin-x"));
   }
 
   #[test]

@@ -16,6 +16,7 @@ use std::rc::Rc;
 
 use crate::evaluate::source_evaluation::*;
 use indexmap::IndexMap;
+use rustc_hash::FxHashMap;
 use stylex_ast::ast::convertors::create_string_expr;
 use stylex_constants::constants::evaluation_errors::{
   OBJECT_METHOD, UNEXPECTED_MEMBER_LOOKUP, unsupported_expression,
@@ -27,7 +28,10 @@ use stylex_state::{
   theme_ref::ThemeRef,
   types::FunctionConfigMap,
 };
+use stylex_structures::named_import_source::ImportSources;
 use stylex_structures::stylex_env::{EnvEntry, JSFunction};
+use swc_core::atoms::Atom;
+use swc_core::ecma::ast::Expr;
 
 // ==================== a key the receiver does not carry ====================
 
@@ -213,6 +217,106 @@ fn an_unconfigured_env_object_says_so() {
   );
 }
 
+/// A namespace bound to nothing still answers the `env` object it carries, so
+/// `stylex.env.<name>` folds in the calls that leave the name unbound -- which
+/// is every call but `create`.
+///
+/// The bare name goes on refusing there, which is what the binding was left out
+/// for: an object materialized in a style value drops the declaration without a
+/// word.
+#[test]
+fn a_namespace_bound_to_nothing_still_answers_its_env() {
+  let fns = namespace_member_surface("sx", "env", the_env_object());
+
+  assert_eq!(
+    folded_text_of(
+      evaluated_against(&fns, "sx.env.breakpoint"),
+      "sx.env.breakpoint"
+    ),
+    "40rem"
+  );
+
+  // `sx["env"]` names what `sx.env` names, so the two read one entry.
+  assert_eq!(
+    folded_text_of(
+      evaluated_against(&fns, "sx['env'].breakpoint"),
+      "sx['env'].breakpoint"
+    ),
+    "40rem"
+  );
+
+  assert_refused(&evaluated_against(&fns, "sx"), "sx");
+
+  // A name the namespace has no entry for is read by the walk below this, which
+  // asks the namespace for its value -- and there is none to read.
+  assert_refused(&evaluated_against(&fns, "sx.missing"), "sx.missing");
+}
+
+/// Only the environment is answered off the member surface. Every other entry a
+/// namespace carries stands for a helper, and a read with no call around one
+/// refuses -- as it did before the environment was answered there.
+#[test]
+fn a_helper_read_off_a_namespace_bound_to_nothing_still_refuses() {
+  let fns = namespace_member_surface("sx", "create", a_folded_function());
+
+  assert_refused(&evaluated_against(&fns, "sx.create"), "sx.create");
+}
+
+/// A computed key that names no entry refuses, rather than resolving some other
+/// key. Both halves of "names no entry" are read here: a key with no value at
+/// all, and one whose value has no name.
+#[test]
+fn a_computed_key_that_names_no_entry_refuses() {
+  let fns = namespace_member_surface("sx", "env", the_env_object());
+
+  assert_refused(
+    &evaluated_against(&fns, "sx[unbound].breakpoint"),
+    "sx[unbound].breakpoint",
+  );
+
+  assert_refused(
+    &evaluated_against(&fns, "sx[() => 1].breakpoint"),
+    "sx[() => 1].breakpoint",
+  );
+}
+
+/// A private name is a name of a class and not a property an object carries,
+/// so it names no entry of a namespace either. The read refuses, as every read
+/// of a name the namespace has no entry for does.
+#[test]
+fn a_private_name_names_no_entry_of_a_namespace() {
+  let fns = namespace_member_surface("sx", "env", the_env_object());
+
+  assert_refused(&evaluated_against(&fns, "sx.#x"), "sx.#x");
+}
+
+/// A name bound to a value is that value, whatever a namespace of the same name
+/// carries. A dynamic style's parameter named `stylex` is the parameter, and
+/// reading the import through it would fold a value the language says is the
+/// argument's.
+#[test]
+fn a_name_bound_to_a_value_wins_over_the_namespace_of_the_same_name() {
+  let mut fns = namespace_member_surface("sx", "env", the_env_object());
+
+  fns.identifiers.insert(
+    "sx".into(),
+    Box::new(folded_entry(
+      FunctionType::Mapper(Rc::new(|| create_string_expr("red"))),
+      false,
+    )),
+  );
+
+  // A string carries no `env`, so the read is `undefined` -- the answer the
+  // language gives, and not the environment object beside it.
+  assert!(
+    matches!(
+      folded_value_of(evaluated_against(&fns, "sx.env"), "sx.env"),
+      EvaluateResultValue::Expr(Expr::Ident(ident)) if ident.sym.as_ref() == "undefined"
+    ),
+    "the bound value answers, not the namespace"
+  );
+}
+
 /// The marker map is the one entry with no member surface of its own, so a
 /// read on it names this compiler's shape rather than pretending to a key.
 #[test]
@@ -280,9 +384,8 @@ fn nested_namespace() -> FunctionConfigType {
   FunctionConfigType::Map(outer)
 }
 
-/// A namespace holding the `env` option's object, which is how a module reaches
-/// one: `stylex.env.<name>`.
-fn namespace_holding_the_env_object() -> FunctionConfigType {
+/// The `env` option's object, as the function map carries it.
+fn the_env_object() -> FunctionConfigType {
   let mut env: IndexMap<String, EnvEntry> = IndexMap::default();
 
   env.insert(
@@ -294,11 +397,36 @@ fn namespace_holding_the_env_object() -> FunctionConfigType {
     EnvEntry::Function(JSFunction::new(|_| create_string_expr("1px"))),
   );
 
+  FunctionConfigType::EnvObject(Rc::new(env))
+}
+
+/// A namespace holding the `env` option's object, which is how a `create` call
+/// reaches one: the name is bound to the fold, and the fold holds the entry.
+fn namespace_holding_the_env_object() -> FunctionConfigType {
   let mut entries = FunctionConfigMap::default();
 
-  entries.insert("env".into(), FunctionConfigType::EnvObject(Rc::new(env)));
+  entries.insert("env".into(), the_env_object());
 
   FunctionConfigType::Map(entries)
+}
+
+/// A namespace that is a member surface and nothing else: the map says what the
+/// name *has*, and binds the name itself to nothing.
+///
+/// That is how every call but `create` evaluates its argument, so that a bare
+/// `stylex` written where a static value belongs refuses rather than
+/// materializing into an object.
+fn namespace_member_surface(name: &str, key: &str, entry: FunctionConfigType) -> FunctionMap {
+  let mut fns = FunctionMap::default();
+  let mut entries: FxHashMap<Atom, Box<FunctionConfigType>> = FxHashMap::default();
+
+  entries.insert(Atom::from(key), Box::new(entry));
+
+  fns
+    .member_expressions
+    .insert(ImportSources::Regular(name.to_string()), Box::new(entries));
+
+  fns
 }
 
 // ==================== an array a fold produced ====================

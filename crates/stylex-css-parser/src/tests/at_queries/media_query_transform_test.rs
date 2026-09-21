@@ -155,6 +155,43 @@ mod media_query_transformer {
     );
   }
 
+  /// Test: keeps Chromium from rounding generated max-width boundaries
+  #[test]
+  fn keeps_chromium_from_rounding_generated_max_width_boundaries() {
+    let original_styles = json!({
+      "color": {
+        "default": "blue",
+        "@media (min-width: 400px)": "red",
+        "@media (min-width: 600px)": "green"
+      }
+    });
+
+    let expected_styles = json!({
+      "color": {
+        "default": "blue",
+        "@media (min-width: 400px) and (max-width: 599.98px)": "red",
+        "@media (min-width: 600px)": "green"
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj
+        .into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+
+    assert_eq!(
+      serde_json::to_string(&result_json).unwrap(),
+      serde_json::to_string(&expected_styles).unwrap()
+    );
+  }
+
   /// Test: basic usage: nested query
   #[test]
   fn basic_usage_nested_query() {
@@ -362,8 +399,8 @@ mod media_query_transformer {
     let expected_styles = json!({
       "gridColumn": {
         "default": "1 / 2",
-        "@media (min-width: 768px) and (max-width: 1023.99px)": "1 / -1",
-        "@media (min-width: 1024px) and (max-width: 1439.99px)": "1 / 3",
+        "@media (min-width: 768px) and (max-width: 1023.98px)": "1 / -1",
+        "@media (min-width: 1024px) and (max-width: 1439.98px)": "1 / 3",
         "@media (min-width: 1440px)": "1 / 4"
       }
     });
@@ -815,7 +852,7 @@ mod media_query_transformer {
       "foo": {
         "gridColumn": {
           "default": "1 / 2",
-          "@media ((min-width: 900px) and (max-width: 999.99px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
+          "@media ((min-width: 900px) and (max-width: 999.98px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
           "@media (min-width: 1000px) and (max-width: 1100px)": "1 / 3",
           "@media (min-width: 400px) and (max-width: 500px)": "1 / 1"
         }
@@ -858,7 +895,7 @@ mod media_query_transformer {
       "foo": {
         "gridColumn": {
           "default": "1 / 2",
-          "@media ((min-width: 900px) and (max-width: 999.99px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
+          "@media ((min-width: 900px) and (max-width: 999.98px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
           "@media (min-width: 1000px) and (max-width: 1100px)": "1 / 3"
         }
       }
@@ -901,8 +938,8 @@ mod media_query_transformer {
       "foo": {
         "gridColumn": {
           "default": "1 / 2",
-          "@media ((min-width: 900px) and (max-width: 999.99px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
-          "@media ((min-width: 1000px) and (max-width: 1009.99px)) or ((min-width: 1050.01px) and (max-width: 1100px))": "1 / 3",
+          "@media ((min-width: 900px) and (max-width: 999.98px)) or ((min-width: 1100.01px) and (max-width: 1440px))": "1 / 4",
+          "@media ((min-width: 1000px) and (max-width: 1009.98px)) or ((min-width: 1050.01px) and (max-width: 1100px))": "1 / 3",
           "@media (min-width: 1010px) and (max-width: 1050px)": "1 / -1"
         }
       }
@@ -1463,7 +1500,7 @@ mod computed_bounds_carry_the_authored_digits {
       })),
       vec![
         "default",
-        "@media (min-width: 1024px) and (max-width: 1439.99px)",
+        "@media (min-width: 1024px) and (max-width: 1439.98px)",
         "@media (min-width: 1440px)",
       ]
     );
@@ -1553,7 +1590,7 @@ mod colliding_rewritten_keys {
         // `red` is gone; `blue` took its key, and its place.
         ("@media not all".to_string(), json!("blue")),
         (
-          "@media (max-width: 99.99px) and (min-height: 100px)".to_string(),
+          "@media (max-width: 99.98px) and (min-height: 100px)".to_string(),
           json!("green")
         ),
         ("@media (min-width: 100px)".to_string(), json!("purple")),
@@ -1970,7 +2007,7 @@ mod unusual_but_valid_queries {
       })),
       vec![
         "default",
-        "@media not all, (max-width: 99.99px)",
+        "@media not all, (max-width: 99.98px)",
         "@media (min-width: 100px)",
       ]
     );
@@ -2017,6 +2054,67 @@ mod unusual_but_valid_queries {
         }
       }))[1],
       "@media (min-width: 50.01px)"
+    );
+  }
+
+  /// Two `min-width` breakpoints closer together than the negation step leave
+  /// an empty interval, so the narrower declaration collapses to `not all` and
+  /// is dropped with nothing said.
+  ///
+  /// A later key wins, so an earlier `min-width: 100px` is rewritten as itself
+  /// and not the later one. The step for a negated `min-width` in pixels is
+  /// `0.02`, so `not (min-width: 100.01px)` is `max-width: 99.99px` — below the
+  /// `100px` the earlier rule starts at. The band the author wrote, from
+  /// `100px` up to `100.01px`, disappears. Three hundredths apart and the band
+  /// survives.
+  ///
+  /// The reference compiler does the same, so this is the boundary rather than
+  /// a defect — but nothing stated it, and the number that decides it is the
+  /// one a device pixel ratio forced up from `0.01`.
+  #[test]
+  fn breakpoints_closer_than_the_negation_step_collapse() {
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (min-width: 100px)": "blue",
+          "@media (min-width: 100.01px)": "red"
+        }
+      })),
+      vec!["default", "@media not all", "@media (min-width: 100.01px)"]
+    );
+
+    // Three hundredths apart, and the band is no longer empty.
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (min-width: 100px)": "blue",
+          "@media (min-width: 100.03px)": "red"
+        }
+      })),
+      vec![
+        "default",
+        "@media (min-width: 100px) and (max-width: 100.01px)",
+        "@media (min-width: 100.03px)",
+      ]
+    );
+
+    // The wider step is a `width` rule in pixels only, so the same pair on
+    // `height` keeps its band at one hundredth.
+    assert_eq!(
+      transformed_keys(json!({
+        "color": {
+          "default": "black",
+          "@media (min-height: 100px)": "blue",
+          "@media (min-height: 100.01px)": "red"
+        }
+      })),
+      vec![
+        "default",
+        "@media (min-height: 100px) and (max-height: 100px)",
+        "@media (min-height: 100.01px)",
+      ]
     );
   }
 

@@ -10,7 +10,7 @@ _inject2({
     priority: 4000
 });
 _inject2({
-    ltr: '.xbjs7n6{content:""unterminated"}',
+    ltr: '.x1rcju8w{content:"\\"unterminated"}',
     priority: 3000
 });
 export const styles = {
@@ -23,7 +23,7 @@ export const styles = {
         $$css: true
     },
     unclosedString: {
-        kah6P1: "xbjs7n6",
+        kah6P1: "x1rcju8w",
         $$css: true
     }
 };

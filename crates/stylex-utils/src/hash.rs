@@ -91,6 +91,28 @@ pub fn create_key_hash(namespace: &str, key: &str) -> String {
   create_hash(&value)
 }
 
+/// The name a constant or a variable is written under in the stylesheet.
+///
+/// A name the author spelled as a CSS custom property is kept as it was
+/// written, without the two leading dashes. Every other name is hashed and
+/// carries `prefix` in front of it.
+///
+/// `defineConsts` and `defineVars` both name their keys this way. The rule is
+/// held one time, so the two cannot disagree about it.
+#[inline]
+pub fn create_authored_or_hashed_key(prefix: &str, namespace: &str, key: &str) -> String {
+  match key.strip_prefix("--") {
+    Some(authored) => authored.to_string(),
+    None => {
+      let hash = create_key_hash(namespace, key);
+      let mut name = String::with_capacity(prefix.len() + hash.len());
+      name.push_str(prefix);
+      name.push_str(&hash);
+      name
+    },
+  }
+}
+
 /// Writes `value` in the radix implied by `digits`, least-significant digit
 /// first from the back of `buf`, and collects the populated suffix.
 ///

@@ -54,11 +54,10 @@ fn a_method_call_on_a_receiver_kind_with_no_folds_refuses() {
 }
 
 /// `({}).constructor()` is `Object()`, which answers a plain object — a value
-/// the fold carries. The reference implementation folds it, and this compiler
-/// does not: `constructor` is the first step off the value that was written and
-/// onto the language's function graph, where two reads reach `Function`. The
-/// divergence is deliberate and is argued at `ESCAPING_PROPERTIES`; what it
-/// costs is this one call, whose answer no declaration uses.
+/// the fold could carry. It is refused anyway: `constructor` is the first step
+/// off the value that was written and onto the language's function graph, where
+/// two reads reach `Function`. The rule is argued at `ESCAPING_PROPERTIES`, and
+/// what it costs is this one call, whose answer no declaration uses.
 ///
 /// The value it would have folded to is still reachable, written as itself.
 #[test]

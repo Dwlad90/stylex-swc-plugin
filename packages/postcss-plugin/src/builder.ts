@@ -3,12 +3,8 @@ import path from 'node:path';
 import { normalize, resolve } from 'path';
 
 import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
-import {
-  normalizeRsOptions,
-  shouldTransformFile,
-  StyleXOptions,
-  TransformedOptions,
-} from '@stylexswc/rs-compiler';
+import { toTransformedOptions } from '@stylexswc/plugin-shared/transformed-options';
+import { normalizeRsOptions, shouldTransformFile, StyleXOptions } from '@stylexswc/rs-compiler';
 import { globSync } from 'fast-glob';
 import globParent from 'glob-parent';
 import isGlob from 'is-glob';
@@ -125,6 +121,18 @@ function nestedNodeModulesExcludeFor(includePattern: string): string | null {
  */
 type BuilderConfig = Omit<StyleXPluginOption, 'rsOptions'> & { rsOptions: StyleXOptions };
 
+/**
+ * A file that this build must read. The record holds the key of the file in the
+ * mtime map, the full path, and the mtime that the build saw when it selected
+ * the file. The build keeps these together. Then it can write the mtime to the
+ * map after it reads the file, and not before.
+ */
+interface PendingFile {
+  readonly file: string;
+  readonly filePath: string;
+  readonly mtimeMs: number;
+}
+
 // Creates a builder for transforming files and bundling StyleX CSS.
 function createBuilder() {
   let config: BuilderConfig | null = null;
@@ -232,18 +240,21 @@ function createBuilder() {
   function build({ shouldSkipTransformError }: TransformOptions) {
     const { cwd, rsOptions, useCSSLayers, isDev } = getConfig();
 
-    const transformedOptions: TransformedOptions = {
-      useLayers: useCSSLayers,
-      enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
-      legacyDisableLayers: rsOptions?.legacyDisableLayers,
-    };
+    const transformedOptions = toTransformedOptions(useCSSLayers, rsOptions);
 
     const files = getFiles();
-    const filesToTransform = [];
+    const filesToTransform: PendingFile[] = [];
 
-    // Remove deleted files since the last build
+    // A set rather than the array, because the loop below asks about every
+    // tracked file on every PostCSS pass and a scan of the array makes that
+    // quadratic in the number of files.
+    const tracked = new Set(files);
+
+    // Remove deleted files since the last build. Both maps are keyed by the
+    // canonical absolute path that `getFiles` answers, so one key reaches
+    // both.
     for (const file of fileModifiedMap.keys()) {
-      if (!files.includes(file)) {
+      if (!tracked.has(file)) {
         fileModifiedMap.delete(file);
         bundler.remove(file);
       }
@@ -261,8 +272,7 @@ function createBuilder() {
         continue;
       }
 
-      fileModifiedMap.set(file, mtimeMs);
-      filesToTransform.push(file);
+      filesToTransform.push({ file, filePath, mtimeMs });
     }
 
     // Copy rather than mutate. `rsOptions` comes from `getConfig()`, so it is
@@ -276,20 +286,51 @@ function createBuilder() {
     delete (compilerOptions as { include?: unknown }).include;
     delete (compilerOptions as { exclude?: unknown }).exclude;
 
-    filesToTransform.forEach(file => {
-      const filePath = path.resolve(cwd || '/', file);
-      const contents = fs.readFileSync(filePath, 'utf-8');
-      // Skip a file that mentions neither a StyleX import nor the sx prop.
-      if (!shouldProcessSource(contents, rsOptions)) {
-        return;
+    filesToTransform.forEach(({ file, filePath, mtimeMs }) => {
+      let contents: string;
+
+      try {
+        contents = fs.readFileSync(filePath, 'utf-8');
+      } catch (error) {
+        // The file was selected and then went away, which a branch switch
+        // during a watch build does. Forget it and let the next build find it
+        // again, rather than stopping the whole stylesheet on one missing file.
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          fileModifiedMap.delete(file);
+          bundler.remove(filePath);
+
+          return;
+        }
+
+        throw error;
       }
 
-      // `forEach` discards return values; the transform is called for its
-      // side effect of registering rules on the bundler.
-      bundler.transform(filePath, contents, compilerOptions, {
-        isDev,
-        shouldSkipTransformError,
-      });
+      // A file with no StyleX import and no sx prop has no rules to collect.
+      if (shouldProcessSource(contents, rsOptions)) {
+        const { collected } = bundler.transform(filePath, contents, compilerOptions, {
+          isDev,
+          shouldSkipTransformError,
+        });
+
+        // A transform whose error was swallowed collected nothing. Withhold
+        // the mtime so the next build reads the file again; writing it would
+        // skip the file for as long as it is not edited, and its classes would
+        // stay missing even after the real cause is repaired.
+        if (!collected) {
+          return;
+        }
+      } else {
+        // The file no longer holds StyleX. Drop whatever it declared before,
+        // or the stylesheet keeps rules no source declares.
+        bundler.remove(filePath);
+      }
+
+      // Write the mtime only after the build finishes the file. The build read
+      // the file at this mtime, also when the file has no rules. If the build
+      // writes the mtime when it selects the file, the map records the file as
+      // unchanged before its rules reach the bundler. A transform can then
+      // fail. The next build skips a file whose rules it did not collect.
+      fileModifiedMap.set(file, mtimeMs);
     });
 
     const css = bundler.bundle(transformedOptions);

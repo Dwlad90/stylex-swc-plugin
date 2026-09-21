@@ -24,8 +24,8 @@ use crate::{
     },
   },
   transform::stylex::visitor_utils::{
-    apply_unstable_conditional, insert_stylex_identifier_entry, register_stylex_helper,
-    register_stylex_identifier,
+    apply_unstable_conditional, insert_stylex_identifier_entry, register_env_in_namespace_fold,
+    register_stylex_helper, register_stylex_identifier,
   },
 };
 use stylex_constants::constants::{
@@ -93,6 +93,11 @@ where
 
       self.state.apply_stylex_env(&mut function_map);
 
+      // `env` is carried in the fold for the same reason `types` is: the
+      // namespace is a value in this map, so a fold one key short is an object
+      // that does not say what the namespace has.
+      register_env_in_namespace_fold(&self.state, &mut function_map);
+
       let function_map: Box<FunctionMap> = Box::new(function_map);
 
       let evaluated_arg1 = evaluate(first_arg, &mut self.state, &function_map);
@@ -135,7 +140,7 @@ where
       //
       // The answer is carried on rather than thrown away. Reading it again in
       // the producer copies every property of the group a second time.
-      let theme_group = validate_theme_variables(&variables, &self.state);
+      let theme_group = validate_theme_variables(&variables);
 
       let overrides = match evaluated_arg2.value {
         Some(value) => {

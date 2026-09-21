@@ -21,6 +21,10 @@ export type { RegisterStyleXRules } from './plugin-core';
 export { mergeStyleXRulesInto, publishStyleXRules } from './nextjs-registry';
 export type { StyleXRulesMap } from './nextjs-registry';
 
+// Also available as `@stylexswc/plugin-shared/transformed-options`, for plugins
+// that assemble a stylesheet without pulling in the plugin core.
+export { toTransformedOptions } from './transformed-options';
+
 // Also available as `@stylexswc/plugin-shared/module-selection`, for plugins
 // that want it without pulling in the plugin core.
 export { shouldProcessSource } from './module-selection';

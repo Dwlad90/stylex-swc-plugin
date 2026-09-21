@@ -1,15 +1,19 @@
-//! The `Math` and `Object` statics stop being an arbitrary set of names.
+//! Which `Math` and `Object` statics fold, and which are refused.
 //!
-//! Seven `Math` methods and four `Object` ones used to fold, because seven and
-//! four were the names two tables listed. Both tables are gone: a receiver
-//! naming one of these globals is printed into the engine like any other
-//! expression, so the surface is the language's and the method nobody listed is
-//! no longer the next bug report.
+//! A static folds where the global's own allowlist holds it. An allowlist and
+//! not a denylist, because `Object` carries reflective statics that answer with
+//! an object from the prototype chain, and a denylist over that surface can
+//! never be complete -- the static nobody listed is the next way out. The
+//! allowlist is the reference compiler's, name for name, so the two compilers
+//! fold and refuse the same calls.
 //!
-//! It also ends the one place where *where* a call was written decided whether
-//! it folded. `Math.trunc(1.5)` was refused written alone and folded written
-//! inside a chain, because alone it was the table that answered — and the guard
-//! now walks a static exactly as it walks every other call.
+//! Inside the allowlist the surface is the language's: a receiver naming one of
+//! these globals is printed into the engine like any other expression, so a
+//! listed method needs no entry of its own to fold. That is what ends the one
+//! place where *where* a call was written decided whether it folded.
+//! `Math.trunc(1.5)` was refused written alone and folded written inside a
+//! chain -- and the guard now walks a static exactly as it walks every other
+//! call.
 //!
 //! What is left below the fold is not a surface at all: three statics read own
 //! keys, and the receiver they are asked of can be something the engine never
@@ -135,14 +139,12 @@ fn a_static_folds_wherever_it_is_written() {
 // The `Object` surface
 // ──────────────────────────────────────────────
 
-/// The `Object` statics the reference compiler folds, including the seven that
-/// were never listed here.
+/// Every `Object` static the allowlist holds, folded here to its own class name
+/// and rule text.
 ///
-/// `getOwnPropertySymbols` answers the empty list and `preventExtensions`
-/// answers an object, so what reaches the declaration is that object's string
-/// form — which is what the reference compiler writes too, and what makes them
-/// worth pinning: the value crosses back whole rather than being flattened into
-/// a list on the way.
+/// `getOwnPropertySymbols` answers the empty list, which is worth pinning
+/// because the value crosses back whole rather than being flattened into a list
+/// on the way.
 #[test]
 fn every_object_static_folds() {
   let cases: &[(&str, &str)] = &[
@@ -161,14 +163,6 @@ fn every_object_static_folds() {
     ("Object.isSealed({a: 1})", ".x9g66vw{content:\"false\"}"),
     ("Object.isExtensible({a: 1})", ".x1ez55b5{content:\"true\"}"),
     (
-      "Object.preventExtensions({a: 1})",
-      ".x12ljtz1{content:\"[object Object]\"}",
-    ),
-    (
-      "Object.create({a: 1})",
-      ".x12ljtz1{content:\"[object Object]\"}",
-    ),
-    (
       "Object.hasOwn({a: 1}, \"a\")",
       ".x1ez55b5{content:\"true\"}",
     ),
@@ -180,34 +174,42 @@ fn every_object_static_folds() {
   }
 }
 
-/// The one static whose answer is a prototype, which is an object carrying
-/// functions — and a function is what the fold will not carry back, because a
-/// function's only compile-time form is its own source text.
+/// The statics that answer with an object from the prototype chain, each
+/// refused under the sentence written for them.
 ///
-/// So the prototype itself refuses, where the reference compiler carries it as
-/// far as its own style-value check. The divergence is the outward bridge's, not
-/// the static surface's, and what it costs is one call whose answer no
-/// declaration uses.
+/// `Object.getPrototypeOf({})` is `Object.prototype`, whose `constructor` is
+/// `Object`, whose `constructor` is `Function`. `create`,
+/// `getOwnPropertyDescriptor` and the rest reach the same graph by other
+/// routes, so none of them folds.
 ///
-/// Wrapped in a coercion it folds, and agrees: the prototype never crosses the
-/// bridge at all, because the whole expression is one fold and `[object Object]`
-/// is what comes back — the same text the reference compiler writes.
+/// They read the one sentence every static outside the allowlist reads. It is a
+/// loose fit -- these answer the same thing on every build -- and one sentence
+/// is carried anyway, because a second would be a second table to keep.
 ///
-/// `Object.create` is the near miss beside it and folds, because the object it
-/// answers has the prototype but no own properties of its own to carry.
+/// Refused wrapped in a coercion as well as alone. Wrapping used to change the
+/// answer -- the prototype never crossed the bridge, so `String(...)` folded
+/// where the bare read refused -- and the rule now answers the call rather than
+/// what its answer would have been.
 #[test]
-fn a_static_answering_a_prototype_refuses_on_the_way_back() {
-  assert_refuses(
-    "",
-    "content: Object.getPrototypeOf({a: 1}),",
-    "Cannot carry a folded function back from the engine.",
-  );
+fn a_static_answering_a_prototype_is_refused() {
+  let cases: &[&str] = &[
+    "Object.getPrototypeOf({a: 1})",
+    "Object.setPrototypeOf({}, {})",
+    "Object.getOwnPropertyDescriptor({a: 1}, 'a')",
+    "Object.getOwnPropertyDescriptors({a: 1})",
+    "Object.create({a: 1})",
+  ];
 
-  assert_folds(
-    "",
-    "content: String(Object.getPrototypeOf({a: 1})),",
-    ".x12ljtz1{content:\"[object Object]\"}",
-  );
+  for call in cases {
+    let name = call.split('(').next().unwrap_or_default();
+    let reason = format!(
+      "Cannot fold '{}' at compile time.\nA fold has to answer from the source alone, and this call does not.",
+      name
+    );
+
+    assert_refuses("", &format!("content: {},", call), &reason);
+    assert_refuses("", &format!("content: String({}),", call), &reason);
+  }
 }
 
 /// A static's answer is a value like any other, so it chains — a key list can be
@@ -310,6 +312,10 @@ fn a_static_the_reference_compiler_refuses_is_refused_with_its_own_reason() {
     (
       "content: String(Object.defineProperty({}, 'a', {})),",
       "Object.defineProperty",
+    ),
+    (
+      "content: String(Object.preventExtensions({a: 1})),",
+      "Object.preventExtensions",
     ),
   ];
 

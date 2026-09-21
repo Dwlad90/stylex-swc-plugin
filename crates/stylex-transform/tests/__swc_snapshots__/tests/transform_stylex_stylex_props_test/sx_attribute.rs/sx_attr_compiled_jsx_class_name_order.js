@@ -2,7 +2,7 @@ import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import stylex from 'stylex';
 _inject2({
-    ltr: ".color-x1e2nbdu{color:red}",
+    ltr: ".x1e2nbdu{color:red}",
     priority: 3000
 });
 function App() {
@@ -11,13 +11,13 @@ function App() {
             _jsx("div", {
                 className: "before",
                 ...{
-                    className: "Foo__styles.main color-x1e2nbdu",
+                    className: "Foo__styles.main x1e2nbdu",
                     "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
                 }
             }),
             _jsx("div", {
                 ...{
-                    className: "Foo__styles.main color-x1e2nbdu",
+                    className: "Foo__styles.main x1e2nbdu",
                     "data-style-src": "npm-package:node_modules/npm-package/dist/components/Foo.react.js:3"
                 },
                 className: "after"

@@ -131,11 +131,6 @@ where
     self
   }
 
-  pub fn with_enable_debug_class_names(mut self, val: bool) -> Self {
-    self.ensure_config().enable_debug_class_names = Some(val);
-    self
-  }
-
   pub fn with_enable_dev_class_names(mut self, val: bool) -> Self {
     self.ensure_config().enable_dev_class_names = Some(val);
     self

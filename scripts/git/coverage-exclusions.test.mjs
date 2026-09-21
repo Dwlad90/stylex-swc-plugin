@@ -32,7 +32,7 @@ import { makeTemporaryDirectory, repoRoot, writeJson, writeText } from './lib/te
  */
 const CRATES = [
   ['stylex-logs', 'stylex_logs'],
-  ['stylex-rs-compiler', 'stylex_compiler_rs'],
+  ['stylex-rs-compiler', 'stylex_rs_compiler'],
   ['stylex-state', 'stylex_state'],
   ['stylex-state-index', 'stylex_state_index'],
 ];
@@ -109,15 +109,15 @@ void test('five lists naming one crate agree', () => {
 });
 
 void test('the two spellings of one crate are read as one crate', () => {
-  // `stylex-rs-compiler` is the crate `stylex_compiler_rs`. Comparing the lists
+  // `stylex-rs-compiler` is the crate `stylex_rs_compiler`. Comparing the lists
   // as text would call this a disagreement, which is why the directory names
   // are resolved through each crate's own manifest.
   const root = createTree({
-    workspace: ['stylex_compiler_rs'],
-    missing: ['stylex_compiler_rs'],
+    workspace: ['stylex_rs_compiler'],
+    missing: ['stylex_rs_compiler'],
     runner: ['stylex-rs-compiler'],
     suite: ['stylex-rs-compiler'],
-    guidelines: ['stylex_compiler_rs'],
+    guidelines: ['stylex_rs_compiler'],
   });
 
   assert.deepEqual(findExclusionFaults(root), []);

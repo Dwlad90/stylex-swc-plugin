@@ -1,5 +1,8 @@
 use stylex_constants::constants::{
-  common::{INVALID_METHODS, MUTATING_OBJECT_METHODS, VALID_CALLEES},
+  common::{
+    MUTATING_OBJECT_METHODS, VALID_ARRAY_METHODS, VALID_CALLEES, VALID_MATH_METHODS,
+    VALID_NUMBER_METHODS, VALID_OBJECT_METHODS, VALID_STRING_METHODS,
+  },
   messages::INVALID_UTF8,
 };
 use stylex_macros::stylex_panic;
@@ -32,9 +35,33 @@ pub fn get_callee_name(callee: &Expr) -> &str {
   }
 }
 
-pub fn is_invalid_method(prop: &MemberProp) -> bool {
+/// Whether `method` is a static a fold may call on the global `callee`.
+///
+/// One set per global, so a static of one global cannot be called on another:
+/// `Math.keys` is no more a call this fold owns than `Object.max` is.
+///
+/// This is the set membership on its own, for a caller that already holds the
+/// two names. It reads the sets one time and not two, which keeps this rule
+/// and the guard that reads the same sets in agreement.
+pub fn is_valid_callee_method_name(callee: &str, method: &str) -> bool {
+  match callee {
+    "String" => VALID_STRING_METHODS.contains(method),
+    "Number" => VALID_NUMBER_METHODS.contains(method),
+    "Math" => VALID_MATH_METHODS.contains(method),
+    "Object" => VALID_OBJECT_METHODS.contains(method),
+    "Array" => VALID_ARRAY_METHODS.contains(method),
+    _ => false,
+  }
+}
+
+/// Whether a member read on the global `callee` names a static a fold may call.
+///
+/// A key that is not a plain name answers `false`: a call whose method is
+/// computed is not one this rule can admit, because the name it would check is
+/// not readable from the syntax.
+pub fn is_valid_callee_method(callee: &str, prop: &MemberProp) -> bool {
   match prop {
-    MemberProp::Ident(ident_prop) => INVALID_METHODS.contains(&*ident_prop.sym),
+    MemberProp::Ident(ident_prop) => is_valid_callee_method_name(callee, &ident_prop.sym),
     _ => false,
   }
 }

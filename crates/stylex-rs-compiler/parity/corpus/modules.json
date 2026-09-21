@@ -2392,8 +2392,168 @@
       "label": "a property read that leads onto the language's function graph",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: 'AbC'.constructor('a') },\n  s1: { zIndex: [1, 2].constructor(3).length },\n});\n",
       "origin": "issue 15, found by the generated sweep",
-      "expected": "acceptance-divergent",
-      "note": "Acceptance divergent, deliberately. `constructor` is an own property of every prototype the sweep crosses, and no curated row had named it -- upstream folds both of these, since a string's `constructor` is `String` and an array's is `Array`. What the refusal holds back is the step after: `String`'s own `constructor` is `Function`, which compiles a string into a function, so `\"\".constructor.constructor(\"return Date.now()\").call()` is a chain of two property reads and a call -- shapes every other rule here admits -- whose answer is a different number on every build and whose body can assign to `String.prototype` in an engine every later fold shares. `call`, `apply` and `bind` are refused with it because they turn an unapplied function back into a call. Folding the harmless half means admitting the read that reaches the harmful one, since the guard cannot know which `constructor` a chain will land on before evaluating it."
+      "expected": "both-reject-divergent",
+      "note": "Both reject, in different words. `constructor` is an own property of every prototype the sweep crosses, and no curated row had named it. What the refusal holds back is the step after the read: `String`'s own `constructor` is `Function`, which compiles a string into a function, so `\"\".constructor.constructor(\"return Date.now()\").call()` is a chain of two property reads and a call -- shapes every other rule here admits -- whose answer is a different number on every build and whose body can assign to `String.prototype` in an engine every later fold shares. `call`, `apply` and `bind` are refused with it because they turn an unapplied function back into a call. Folding the harmless half means admitting the read that reaches the harmful one, since the guard cannot know which `constructor` a chain will land on before evaluating it. The reference compiler reaches the same conclusion and reports it as an expression it does not support."
+    },
+    {
+      "id": "modules-a-reflective-static",
+      "label": "a static that answers with an object from the prototype chain",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(Object.getPrototypeOf({ a: '1' })) },\n  s1: { content: String(Object.create({ a: '1' })) },\n  s2: { content: String(Object.getOwnPropertyDescriptor({ a: '1' }, 'a').value) },\n});\n",
+      "origin": "the generated sweep",
+      "expected": "both-reject-divergent",
+      "note": "Both reject, in different words, and neither compiler folds it -- so nothing an author writes is lost. `Object.getPrototypeOf`, `Object.create`, `Object.setPrototypeOf`, `Object.getOwnPropertyDescriptor` and `Object.getOwnPropertyDescriptors` answer with an object from the prototype chain. `Object.getPrototypeOf({})` is `Object.prototype`, whose `constructor` is `Object`, whose `constructor` is `Function` -- which compiles a string into a function -- so a fold of any of them puts a value in the evaluator's hands that every later rule has to guard against. The property rules alone do not close this: a reflective static hands the prototype back as a value, so nothing was read off it. What closes it is an allowlist of the statics a fold may call. They read the same sentence as the impure statics, which is a loose fit -- these answer the same thing on every build -- and one sentence is carried anyway, because a second would be a second table to keep."
+    },
+    {
+      "id": "modules-a-read-onto-the-prototype-chain",
+      "label": "a property read that steps onto the prototype chain",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst key = 'const' + 'ructor';\n\nexport const styles = stylex.create({\n  s0: { content: String(({ a: '1' }).__proto__) },\n  s1: { content: String(({ a: '1' }).prototype) },\n  s2: { content: String(({ a: '1' })[key]) },\n});\n",
+      "origin": "the generated sweep",
+      "expected": "both-reject",
+      "note": "Both reject, and both say the same thing. `__proto__` and `prototype` reach the language's function graph one step before `constructor` does, so a read of either is refused wherever it is written. The third key is built while the module compiles, which is why the name is asked about once more after it resolves rather than only as it was written -- a check on the syntax alone would read `'const' + 'ructor'` as no name at all."
+    },
+    {
+      "id": "modules-a-prototype-read-a-fold-consumes",
+      "label": "a prototype read whose key only the engine resolves",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst key = '__proto__';\n\nexport const styles = stylex.create({\n  s0: { content: String(({ a: '1' })[key]) },\n});\n",
+      "origin": "measured while the prototype-chain rule was built",
+      "expected": "both-reject-divergent",
+      "note": "Both compilers refuse, for reasons written in different places. The reference implementation resolves every key itself, sees `__proto__` and refuses with its own sentence. Here the whole expression is one fold, so the key crosses into the engine as a value -- but the printed source no longer reads it with the language's index operator. It calls a checked reader, which coerces the key and refuses the same table a written name is refused against, so the rule that answers a read the syntax spells answers this one too. The divergence that is left is the wording and the pass, not the answer."
+    },
+    {
+      "id": "modules-an-escape-payload-01",
+      "label": "an escape payload, vector 1 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(({}).constructor.constructor(\"globalThis.__stylexPwned__ = 1\")()) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject",
+      "note": "Both refuse, and both say the same thing. The whole escape written out: two property reads reach `Function`, and the call after them would compile the string into a body and run it. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-02",
+      "label": "an escape payload, vector 2 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(({}).constructor.constructor(\"globalThis.__stylexPwned__ = 1\").call({})) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "The same escape with the answer applied through `call`, which is the spelling that needs no receiver of its own. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-03",
+      "label": "an escape payload, vector 3 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(Object.constructor(\"globalThis.__stylexPwned__ = 1\").call({})) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "A global the fold owns is a shorter receiver for the same walk: `Object.constructor` is `Function` in one read rather than two. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-04",
+      "label": "an escape payload, vector 4 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(constructor.constructor(\"globalThis.__stylexPwned__ = 1\").call({})) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "A bare name. Both compilers read their own function config by own keys, so `constructor` is a name nothing declared rather than a member of `Object.prototype`. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-05",
+      "label": "an escape payload, vector 5 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(valueOf.constructor(\"globalThis.__stylexPwned__ = 1\").call({})) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "The same, through the other name every object inherits. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-06",
+      "label": "an escape payload, vector 6 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(({})[\"constructor\"][\"constructor\"](\"globalThis.__stylexPwned__ = 1\").call({})) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "A key written as a string spells the read a name spells, so it is refused by the same rule. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-07",
+      "label": "an escape payload, vector 7 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(({})[\"const\"+\"ructor\"][\"con\"+\"structor\"](\"globalThis.__stylexPwned__ = 1\").call({})) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "A key joined from two halves, which no check on the syntax can answer. It is refused once the key resolves, which is why a computed key is normalized before it is asked about. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-08",
+      "label": "an escape payload, vector 8 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String([].constructor.constructor(\"globalThis.__stylexPwned__ = 1\").call({})) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "An array reaches `Function` by the same two reads a plain object does. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-09",
+      "label": "an escape payload, vector 9 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(\"a\".constructor.constructor(\"globalThis.__stylexPwned__ = 1\").call({})) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "A primitive has a prototype too, and a string's `constructor` is `String`. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-10",
+      "label": "an escape payload, vector 10 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(((x) => x).constructor(\"globalThis.__stylexPwned__ = 1\").call({})) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "An arrow is already a function, so one read of `constructor` is `Function` itself. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-11",
+      "label": "an escape payload, vector 11 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String([].map.constructor(\"globalThis.__stylexPwned__ = 1\").call({})) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "A method plucked off a prototype is a function, which makes its `constructor` the same one step. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-12",
+      "label": "an escape payload, vector 12 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(Object.getOwnPropertyDescriptor(Object.getPrototypeOf({}), \"constructor\").value.constructor(\"globalThis.__stylexPwned__ = 1\").call({})) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "The route no property rule closes: the reflective statics hand a prototype back as a value, so nothing was read off it. The allowlist stops the first step. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-13",
+      "label": "an escape payload, vector 13 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(Object.fromEntries([[\"a\",1]]).constructor.constructor(\"globalThis.__stylexPwned__ = 1\").call({})) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "A value a fold built is still an ordinary object, so the read off it is refused exactly as a written-out one is. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-14",
+      "label": "an escape payload, vector 14 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(Array.from([1]).constructor.constructor(\"globalThis.__stylexPwned__ = 1\").call({})) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "The same for an array a static built. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-15",
+      "label": "an escape payload, vector 15 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(new Function(\"globalThis.__stylexPwned__ = 1\")()) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject",
+      "note": "Both refuse, and both say the same thing. `Function` reached by its own name rather than through a prototype, which is the shape every other vector is working towards. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-16",
+      "label": "an escape payload, vector 16 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String(eval(\"globalThis.__stylexPwned__ = 1\")) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject",
+      "note": "Both refuse, and both say the same thing. `eval` is the other name that turns a string into code. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
+    },
+    {
+      "id": "modules-an-escape-payload-17",
+      "label": "an escape payload, vector 17 of 17",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s0: { content: String([1].map((x) => x.constructor.constructor(\"globalThis.__stylexPwned__ = 1\")())[0]) },\n});\n",
+      "origin": "the escape vectors",
+      "expected": "both-reject-divergent",
+      "note": "Inside a callback, whose body the walk reads like any other value rather than handing it to the engine unexamined. Both refuse and the words differ: this compiler names the rule that refused the read, and the reference compiler reports the expression it could not support. Neither folds it, so nothing an author writes is lost. The row is here because a refusal is the whole of the guarantee: a vector that folded would have run its payload while the file was being compiled."
     },
     {
       "id": "modules-15-an-impure-static",
@@ -2592,6 +2752,54 @@
       "label": "an empty string operand",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  base: { width: ('' - 0) + 'px' },\n});\n",
       "origin": "ticket 15, the fifteenth instalment: the empty string is nought, which the float grammar refuses"
+    },
+    {
+      "id": "modules-env-inside-a-keyframes-call",
+      "label": "`stylex.env` read inside a `keyframes` call",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const fadeIn = stylex.keyframes({\n  from: { color: stylex.env.brandPrimary },\n  to: { color: 'blue' },\n});\n",
+      "origin": "ticket 85, read the env inside a rule call",
+      "env": {
+        "brandPrimary": "#123456"
+      },
+      "note": "The environment value folds in a rule call as it does in a `create` call. It used to stop the build here: the namespace name is bound to nothing in every call but `create`, so that a bare `stylex` written where a static value belongs refuses, and the two-level read went looking for the namespace as a value. It is read off the namespace's own entries now, which every one of these calls registers."
+    },
+    {
+      "id": "modules-env-inside-a-position-try-call",
+      "label": "`stylex.env` read inside a `positionTry` call",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const anchor = stylex.positionTry({\n  positionAnchor: '--anchor',\n  top: stylex.env.brandPrimary,\n});\n",
+      "origin": "ticket 85, read the env inside a rule call",
+      "env": {
+        "brandPrimary": "#123456"
+      }
+    },
+    {
+      "id": "modules-env-inside-a-view-transition-class-call",
+      "label": "`stylex.env` read inside a `viewTransitionClass` call",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const transition = stylex.viewTransitionClass({\n  group: { color: stylex.env.brandPrimary },\n});\n",
+      "origin": "ticket 85, read the env inside a rule call",
+      "env": {
+        "brandPrimary": "#123456"
+      }
+    },
+    {
+      "id": "modules-env-in-a-create-call-and-a-keyframes-call",
+      "label": "one module reads the env in a `create` call and in a `keyframes` call",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const fadeIn = stylex.keyframes({\n  from: { color: stylex.env.brandPrimary },\n});\n\nexport const styles = stylex.create({\n  root: { color: stylex.env.brandPrimary },\n});\n",
+      "origin": "ticket 85, read the env inside a rule call",
+      "env": {
+        "brandPrimary": "#123456"
+      },
+      "note": "The module the divergence was reported on: the `create` call compiled and the `keyframes` call beside it stopped the build, with nothing in the sentence to say the first one had worked."
+    },
+    {
+      "id": "modules-env-inside-a-create-theme-call",
+      "label": "`stylex.env` read inside a `createTheme` call",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const vars = {\n  brand: 'var(--xt4ziaz)',\n  __varGroupHash__: 'x1xohuxq',\n};\n\nexport const theme = stylex.createTheme(vars, {\n  brand: stylex.env.brandPrimary,\n});\n",
+      "origin": "ticket 85, read the env inside a rule call",
+      "env": {
+        "brandPrimary": "#123456"
+      },
+      "note": "A theme reads the environment as a `create` call does. The namespace is a value in this call's map already, so what was missing was the `env` entry in the fold the name stands for -- the same entry `types` has, for the same reason."
     }
   ]
 }

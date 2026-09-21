@@ -20,7 +20,6 @@ fn stylex_options_builders_update_supported_fields() {
     .with_debug(true)
     .with_dev(true)
     .with_test(true)
-    .with_enable_debug_class_names(true)
     .with_enable_debug_data_prop(false)
     .with_enable_dev_class_names(true)
     .with_enable_font_size_px_to_rem(true)
@@ -34,7 +33,6 @@ fn stylex_options_builders_update_supported_fields() {
   assert!(opts.debug);
   assert!(opts.dev);
   assert!(opts.test);
-  assert!(opts.enable_debug_class_names);
   assert!(!opts.enable_debug_data_prop);
   assert!(opts.enable_dev_class_names);
   assert!(opts.enable_font_size_px_to_rem);

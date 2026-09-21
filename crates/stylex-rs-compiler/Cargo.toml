@@ -2,7 +2,7 @@
 description = "StyleX rust compiler with SWC"
 edition.workspace = true
 license.workspace = true
-name = "stylex_compiler_rs"
+name = "stylex_rs_compiler"
 repository.workspace = true
 rust-version.workspace = true
 version.workspace = true

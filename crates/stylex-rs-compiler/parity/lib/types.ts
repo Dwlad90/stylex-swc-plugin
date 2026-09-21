@@ -57,6 +57,21 @@ interface CorpusEntryBase {
    * requires both.
    */
   configuration?: ConfigurationOption;
+  /**
+   * The `env` option both compilers are handed for this entry alone.
+   *
+   * The one setting a subject cannot state in its own source. `stylex.env.x`
+   * names a value the configuration holds, so a row that reads one asks nothing
+   * at all without it -- with no option set both compilers report a
+   * configuration that is missing, and the row measures the report rather than
+   * the read.
+   *
+   * String values only. Every other JavaScript value the option accepts would
+   * have to be spelled in JSON and read back the same way by both compilers,
+   * and a row that needs one is measuring the option's own shape rather than
+   * what the source does with it.
+   */
+  env?: Record<string, string>;
 }
 
 /** One CSS declaration, as written in a corpus file. */

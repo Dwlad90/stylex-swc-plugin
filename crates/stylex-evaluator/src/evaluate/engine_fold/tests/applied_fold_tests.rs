@@ -14,61 +14,41 @@
 
 use super::*;
 
-use std::mem::ManuallyDrop;
-
-use super::engine_reads::assert_refused_saying;
-use crate::tests::scaffolding::parse_expr;
-use swc_core::common::{GLOBALS, Globals};
+use super::engine_reads::{an_engine, applied, assert_refused_saying, fold_key};
 
 /// The method the fold is running, which names the throw an author reads.
 const METHOD: &str = "map";
 
-/// A key no two cases share, so nothing here reads another case's script.
-fn key_numbered(parameters: u128) -> FoldKey {
-  let call = match GLOBALS.set(&Globals::new(), || parse_expr("[].map(f)")) {
-    Expr::Call(call) => call,
-    other => panic!("`[].map(f)` parsed as {:?}", other),
-  };
-
-  FoldKey::new(&call, parameters)
-}
-
-/// What `source` comes to when `arguments` are passed to it.
+/// The two readings every case here varies: the source and what is passed to
+/// it, under this suite's own method and a key of its own.
 ///
-/// One printing closure for every case, because the print is a type parameter
-/// of the step: a closure per case compiles the same steps again and no one
-/// compilation would then read all of them.
-fn applied(
+/// The printing closure itself is written once, in
+/// [`engine_reads`](super::engine_reads), because it is a type parameter of
+/// the step under test.
+fn applied_to(
   source: &str,
   arguments: &[JsValue],
+  checked: bool,
   engine: &mut Engine,
-  key: FoldKey,
+  numbered: u128,
 ) -> Result<JsValue, Decline> {
-  apply(
-    key,
-    || source.to_string(),
+  applied(
+    source,
     arguments,
+    checked,
     engine,
-    &Atom::from(METHOD),
+    fold_key(numbered),
+    METHOD,
   )
-}
-
-/// An engine built the way a fold builds one.
-fn engine() -> ManuallyDrop<Engine> {
-  match Engine::new() {
-    Ok(engine) => engine,
-    Err(Decline::Rule(reason)) => panic!("the engine would not start: {}", reason),
-    Err(Decline::NotACandidate) => panic!("the engine was handed back"),
-  }
 }
 
 /// With something to pass, the printed arrow is called with it.
 #[test]
 fn the_printed_arrow_is_called_with_what_the_transport_carried() {
-  let mut engine = engine();
+  let mut engine = an_engine();
   let carried = [JsValue::from(2), JsValue::from(3)];
 
-  match applied("(a, b) => a * b", &carried, &mut engine, key_numbered(1)) {
+  match applied_to("(a, b) => a * b", &carried, false, &mut engine, 1) {
     Ok(value) => assert_eq!(value.as_number(), Some(6.0)),
     Err(_) => panic!("`(a, b) => a * b` refused"),
   }
@@ -79,9 +59,9 @@ fn the_printed_arrow_is_called_with_what_the_transport_carried() {
 /// function object and no frame.
 #[test]
 fn a_print_with_nothing_to_pass_is_its_own_answer() {
-  let mut engine = engine();
+  let mut engine = an_engine();
 
-  match applied("'ab'.repeat(2)", &[], &mut engine, key_numbered(2)) {
+  match applied_to("'ab'.repeat(2)", &[], false, &mut engine, 2) {
     Ok(value) => assert_eq!(
       value.as_string().map(|text| text.to_std_string_escaped()),
       Some("abab".to_string())
@@ -94,10 +74,10 @@ fn a_print_with_nothing_to_pass_is_its_own_answer() {
 /// refused under the method rather than asserted on.
 #[test]
 fn a_print_that_is_not_a_function_refuses_under_the_method() {
-  let mut engine = engine();
+  let mut engine = an_engine();
 
   assert_refused_saying(
-    applied("42", &[JsValue::from(1)], &mut engine, key_numbered(3)),
+    applied_to("42", &[JsValue::from(1)], false, &mut engine, 3),
     "42",
     METHOD,
   );
@@ -107,11 +87,11 @@ fn a_print_that_is_not_a_function_refuses_under_the_method() {
 /// an answer about the source rather than a failure of this module.
 #[test]
 fn a_call_that_throws_refuses_in_the_engines_words() {
-  let mut engine = engine();
+  let mut engine = an_engine();
   let source = "(a) => { throw new TypeError('this call will not run'); }";
 
   assert_refused_saying(
-    applied(source, &[JsValue::from(1)], &mut engine, key_numbered(4)),
+    applied_to(source, &[JsValue::from(1)], false, &mut engine, 4),
     source,
     "this call will not run",
   );
@@ -124,11 +104,46 @@ fn a_call_that_throws_refuses_in_the_engines_words() {
 /// the same sentence the evaluation carries for a source that throws.
 #[test]
 fn a_print_the_engine_cannot_read_refuses_before_the_call() {
-  let mut engine = engine();
+  let mut engine = an_engine();
 
   assert_refused_saying(
-    applied("(", &[JsValue::from(1)], &mut engine, key_numbered(5)),
+    applied_to("(", &[JsValue::from(1)], false, &mut engine, 5),
     "(",
     METHOD,
   );
+}
+
+/// An arrow that binds the two checks is called with them in front of what the
+/// transport carried, and is called even where the transport carried nothing.
+///
+/// Two readings in one case because they are the two halves of the same claim:
+/// the order the arguments arrive in, and that the checks alone are enough to
+/// make the printed expression a function that has to be called.
+#[test]
+fn an_arrow_that_binds_the_checks_is_called_with_them_first() {
+  let mut engine = an_engine();
+
+  // Each check is asked to do its own job, so the case says which argument is
+  // which rather than only that both are functions. The order is the one
+  // the `CHECKS` table names, which both the parameter list and the arguments
+  // are built from.
+  let source = "(read, call, a) => read({ k: 'r' }, 'k') + ':' + typeof call('x') + ':' + a";
+
+  match applied_to(source, &[JsValue::from(7)], true, &mut engine, 6) {
+    Ok(value) => assert_eq!(
+      value.as_string().map(|text| text.to_std_string_escaped()),
+      Some("r:string:7".to_string())
+    ),
+    Err(_) => panic!("`{}` refused", source),
+  }
+
+  let alone = "(read, call) => read({ k: 'r' }, 'k') + ':' + typeof call('x')";
+
+  match applied_to(alone, &[], true, &mut engine, 7) {
+    Ok(value) => assert_eq!(
+      value.as_string().map(|text| text.to_std_string_escaped()),
+      Some("r:string".to_string())
+    ),
+    Err(_) => panic!("`{}` refused", alone),
+  }
 }

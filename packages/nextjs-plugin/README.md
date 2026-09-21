@@ -15,7 +15,7 @@ transforms are 5x to 10x faster than with Babel — see
 
 This is a community project and is not affiliated with Meta. It tracks the
 official StyleX releases
-<!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->,
+<!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.1)<!-- stylex-compatibility:end -->,
 
 requires Node.js 20 or newer, and supports Next.js 15+ (App Router and Pages
 Router).

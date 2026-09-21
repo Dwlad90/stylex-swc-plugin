@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import * as path from 'node:path';
 
 import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
+import { toTransformedOptions } from '@stylexswc/plugin-shared/transformed-options';
 import { shouldTransformFile, transform as stylexTransform } from '@stylexswc/rs-compiler';
 import type { StyleXMetadata, TransformedOptions } from '@stylexswc/rs-compiler';
 import type { Metafile, OnEndResult } from 'esbuild';
@@ -629,11 +630,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     );
   }
 
-  const transformedOptions: TransformedOptions = {
-    useLayers: normalizedOptions.useLayers,
-    enableLTRRTLComments: normalizedOptions.enableLTRRTLComments,
-    legacyDisableLayers: normalizedOptions.legacyDisableLayers,
-  };
+  const transformedOptions = toTransformedOptions(normalizedOptions.useLayers, normalizedOptions);
 
   // Mutable state for each compilation - reset in buildStart
   const stylexRules: StyleXRules = {};

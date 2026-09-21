@@ -2538,7 +2538,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "import * as stylex from '@stylexjs/stylex';
             export const styles = {
               root: {
-                kWkggS: "xrkmrrc xw6up8c x1ssfqz5",
+                kWkggS: "xrkmrrc xr725a3 x1ssfqz5",
                 $$css: true
               }
             };"
@@ -2555,9 +2555,9 @@ describe('@stylexjs/babel-plugin', ()=>{
                   3000,
                 ],
                 [
-                  "xw6up8c",
+                  "xr725a3",
                   {
-                    "ltr": "@media (min-width: 1000px) and (max-width: 1999.99px){.xw6up8c.xw6up8c{background-color:blue}}",
+                    "ltr": "@media (min-width: 1000px) and (max-width: 1999.98px){.xr725a3.xr725a3{background-color:blue}}",
                     "rtl": null,
                   },
                   3200,
@@ -4862,7 +4862,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "import * as stylex from '@stylexjs/stylex';
             export const styles = {
               root: (a, b, c) => [{
-                kzqmXN: "x11ymkkh " + "x38mdg9 " + (c != null ? "x1bai16n" : c),
+                kzqmXN: "x11ymkkh " + "xwr9iet " + (c != null ? "x1bai16n" : c),
                 $$css: true
               }, {
                 "--x-1xmrurk": (val => typeof val === "number" ? val + "px" : val != null ? val : undefined)('color-mix(' + color + ', blue)'),
@@ -4883,9 +4883,9 @@ describe('@stylexjs/babel-plugin', ()=>{
                   4000,
                 ],
                 [
-                  "x38mdg9",
+                  "xwr9iet",
                   {
-                    "ltr": "@media (min-width: 1000px) and (max-width: 1999.99px){.x38mdg9.x38mdg9{width:var(--x-wm47pl)}}",
+                    "ltr": "@media (min-width: 1000px) and (max-width: 1999.98px){.xwr9iet.xwr9iet{width:var(--x-wm47pl)}}",
                     "rtl": null,
                   },
                   4200,
@@ -5108,7 +5108,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             "import * as stylex from '@stylexjs/stylex';
             export const styles = {
               root: (a, b, c) => [{
-                kGuDYH: ((a ? '16px' : undefined) != null ? "xww4jgc " : a ? '16px' : undefined) + ((b ? '18px' : undefined) != null ? "xqdov8i " : b ? '18px' : undefined) + ((c ? '20px' : undefined) != null ? "x1j86d60" : c ? '20px' : undefined),
+                kGuDYH: ((a ? '16px' : undefined) != null ? "xww4jgc " : a ? '16px' : undefined) + ((b ? '18px' : undefined) != null ? "x1845opi " : b ? '18px' : undefined) + ((c ? '20px' : undefined) != null ? "x1j86d60" : c ? '20px' : undefined),
                 $$css: true
               }, {
                 "--x-19zvkyr": (val => typeof val === "number" ? val + "px" : val != null ? val : undefined)(a ? '16px' : undefined),
@@ -5130,9 +5130,9 @@ describe('@stylexjs/babel-plugin', ()=>{
                   3000,
                 ],
                 [
-                  "xqdov8i",
+                  "x1845opi",
                   {
-                    "ltr": "@media (min-width: 800px) and (max-width: 1279.99px){.xqdov8i.xqdov8i{font-size:var(--x-1bks2es)}}",
+                    "ltr": "@media (min-width: 800px) and (max-width: 1279.98px){.x1845opi.x1845opi{font-size:var(--x-1bks2es)}}",
                     "rtl": null,
                   },
                   3200,
@@ -5179,7 +5179,6 @@ describe('@stylexjs/babel-plugin', ()=>{
             test('adds debug data', ()=>{
                 const options = {
                     debug: true,
-                    enableDebugClassNames: true,
                     filename: '/html/js/components/Foo.react.js'
                 };
                 const { code, metadata } = transform(`
@@ -5200,15 +5199,15 @@ describe('@stylexjs/babel-plugin', ()=>{
           "import * as stylex from '@stylexjs/stylex';
           export const styles = {
             "1": {
-              "fontSize-kGuDYH": "fontSize-xrv4cvt",
+              "fontSize-kGuDYH": "xrv4cvt",
               $$css: "components/Foo.react.js:10"
             },
             foo: {
-              "color-kMwMTN": "color-x1e2nbdu",
+              "color-kMwMTN": "x1e2nbdu",
               $$css: "components/Foo.react.js:4"
             },
             "bar-baz": {
-              "display-k1xSpc": "display-x1lliihq",
+              "display-k1xSpc": "x1lliihq",
               $$css: "components/Foo.react.js:7"
             }
           };"
@@ -5217,25 +5216,25 @@ describe('@stylexjs/babel-plugin', ()=>{
           {
             "stylex": [
               [
-                "fontSize-xrv4cvt",
+                "xrv4cvt",
                 {
-                  "ltr": ".fontSize-xrv4cvt{font-size:1em}",
+                  "ltr": ".xrv4cvt{font-size:1em}",
                   "rtl": null,
                 },
                 3000,
               ],
               [
-                "color-x1e2nbdu",
+                "x1e2nbdu",
                 {
-                  "ltr": ".color-x1e2nbdu{color:red}",
+                  "ltr": ".x1e2nbdu{color:red}",
                   "rtl": null,
                 },
                 3000,
               ],
               [
-                "display-x1lliihq",
+                "x1lliihq",
                 {
-                  "ltr": ".display-x1lliihq{display:block}",
+                  "ltr": ".x1lliihq{display:block}",
                   "rtl": null,
                 },
                 3000,
@@ -5247,7 +5246,6 @@ describe('@stylexjs/babel-plugin', ()=>{
             test('adds debug data for npm packages', ()=>{
                 const options = {
                     debug: true,
-                    enableDebugClassNames: true,
                     filename: '/js/node_modules/npm-package/dist/components/Foo.react.js'
                 };
                 const { code, metadata } = transform(`
@@ -5268,15 +5266,15 @@ describe('@stylexjs/babel-plugin', ()=>{
           "import * as stylex from '@stylexjs/stylex';
           export const styles = {
             "1": {
-              "fontSize-kGuDYH": "fontSize-xrv4cvt",
+              "fontSize-kGuDYH": "xrv4cvt",
               $$css: "npm-package:components/Foo.react.js:10"
             },
             foo: {
-              "color-kMwMTN": "color-x1e2nbdu",
+              "color-kMwMTN": "x1e2nbdu",
               $$css: "npm-package:components/Foo.react.js:4"
             },
             "bar-baz": {
-              "display-k1xSpc": "display-x1lliihq",
+              "display-k1xSpc": "x1lliihq",
               $$css: "npm-package:components/Foo.react.js:7"
             }
           };"
@@ -5285,25 +5283,25 @@ describe('@stylexjs/babel-plugin', ()=>{
           {
             "stylex": [
               [
-                "fontSize-xrv4cvt",
+                "xrv4cvt",
                 {
-                  "ltr": ".fontSize-xrv4cvt{font-size:1em}",
+                  "ltr": ".xrv4cvt{font-size:1em}",
                   "rtl": null,
                 },
                 3000,
               ],
               [
-                "color-x1e2nbdu",
+                "x1e2nbdu",
                 {
-                  "ltr": ".color-x1e2nbdu{color:red}",
+                  "ltr": ".x1e2nbdu{color:red}",
                   "rtl": null,
                 },
                 3000,
               ],
               [
-                "display-x1lliihq",
+                "x1lliihq",
                 {
-                  "ltr": ".display-x1lliihq{display:block}",
+                  "ltr": ".x1lliihq{display:block}",
                   "rtl": null,
                 },
                 3000,
@@ -5315,7 +5313,6 @@ describe('@stylexjs/babel-plugin', ()=>{
             test('adds debug data (haste)', ()=>{
                 const options = {
                     debug: true,
-                    enableDebugClassNames: true,
                     filename: '/html/js/components/Foo.react.js',
                     unstable_moduleResolution: {
                         type: 'haste'
@@ -5339,15 +5336,15 @@ describe('@stylexjs/babel-plugin', ()=>{
           "import * as stylex from '@stylexjs/stylex';
           export const styles = {
             "1": {
-              "fontSize-kGuDYH": "fontSize-xrv4cvt",
+              "fontSize-kGuDYH": "xrv4cvt",
               $$css: "Foo.react.js:10"
             },
             foo: {
-              "color-kMwMTN": "color-x1e2nbdu",
+              "color-kMwMTN": "x1e2nbdu",
               $$css: "Foo.react.js:4"
             },
             "bar-baz": {
-              "display-k1xSpc": "display-x1lliihq",
+              "display-k1xSpc": "x1lliihq",
               $$css: "Foo.react.js:7"
             }
           };"
@@ -5356,25 +5353,25 @@ describe('@stylexjs/babel-plugin', ()=>{
           {
             "stylex": [
               [
-                "fontSize-xrv4cvt",
+                "xrv4cvt",
                 {
-                  "ltr": ".fontSize-xrv4cvt{font-size:1em}",
+                  "ltr": ".xrv4cvt{font-size:1em}",
                   "rtl": null,
                 },
                 3000,
               ],
               [
-                "color-x1e2nbdu",
+                "x1e2nbdu",
                 {
-                  "ltr": ".color-x1e2nbdu{color:red}",
+                  "ltr": ".x1e2nbdu{color:red}",
                   "rtl": null,
                 },
                 3000,
               ],
               [
-                "display-x1lliihq",
+                "x1lliihq",
                 {
-                  "ltr": ".display-x1lliihq{display:block}",
+                  "ltr": ".x1lliihq{display:block}",
                   "rtl": null,
                 },
                 3000,
@@ -5386,7 +5383,6 @@ describe('@stylexjs/babel-plugin', ()=>{
             test('adds debug data for npm packages (haste)', ()=>{
                 const options = {
                     debug: true,
-                    enableDebugClassNames: true,
                     filename: '/node_modules/npm-package/dist/components/Foo.react.js',
                     unstable_moduleResolution: {
                         type: 'haste'
@@ -5410,15 +5406,15 @@ describe('@stylexjs/babel-plugin', ()=>{
           "import * as stylex from '@stylexjs/stylex';
           export const styles = {
             "1": {
-              "fontSize-kGuDYH": "fontSize-xrv4cvt",
+              "fontSize-kGuDYH": "xrv4cvt",
               $$css: "npm-package:components/Foo.react.js:10"
             },
             foo: {
-              "color-kMwMTN": "color-x1e2nbdu",
+              "color-kMwMTN": "x1e2nbdu",
               $$css: "npm-package:components/Foo.react.js:4"
             },
             "bar-baz": {
-              "display-k1xSpc": "display-x1lliihq",
+              "display-k1xSpc": "x1lliihq",
               $$css: "npm-package:components/Foo.react.js:7"
             }
           };"
@@ -5427,25 +5423,25 @@ describe('@stylexjs/babel-plugin', ()=>{
           {
             "stylex": [
               [
-                "fontSize-xrv4cvt",
+                "xrv4cvt",
                 {
-                  "ltr": ".fontSize-xrv4cvt{font-size:1em}",
+                  "ltr": ".xrv4cvt{font-size:1em}",
                   "rtl": null,
                 },
                 3000,
               ],
               [
-                "color-x1e2nbdu",
+                "x1e2nbdu",
                 {
-                  "ltr": ".color-x1e2nbdu{color:red}",
+                  "ltr": ".x1e2nbdu{color:red}",
                   "rtl": null,
                 },
                 3000,
               ],
               [
-                "display-x1lliihq",
+                "x1lliihq",
                 {
-                  "ltr": ".display-x1lliihq{display:block}",
+                  "ltr": ".x1lliihq{display:block}",
                   "rtl": null,
                 },
                 3000,

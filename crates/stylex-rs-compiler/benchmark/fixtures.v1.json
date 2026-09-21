@@ -324,7 +324,7 @@
       "batchSize": 1
     },
     {
-      "name": "Feature - debug class names over many namespaces",
+      "name": "Feature - debug mode over many namespaces",
       "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
       "category": "perf",
       "weight": "standard",
@@ -425,7 +425,7 @@
       }
     },
     {
-      "name": "Feature - debug and dev class names",
+      "name": "Feature - debug mode and dev class names",
       "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
       "category": "perf",
       "weight": "standard",
@@ -433,7 +433,6 @@
       "options": {
         "dev": true,
         "debug": true,
-        "enableDebugClassNames": true,
         "enableDevClassNames": true
       }
     },

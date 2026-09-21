@@ -3,12 +3,13 @@ import crypto from 'node:crypto';
 import type { Rule } from '@stylexjs/babel-plugin';
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
 import { shouldProcessSource } from '@stylexswc/plugin-shared/module-selection';
+import { toTransformedOptions } from '@stylexswc/plugin-shared/transformed-options';
 import {
   normalizeRsOptions,
   shouldTransformFile,
   transform as stylexTransform,
 } from '@stylexswc/rs-compiler';
-import type { StyleXOptions, TransformedOptions, UseLayersType } from '@stylexswc/rs-compiler';
+import type { StyleXOptions, UseLayersType } from '@stylexswc/rs-compiler';
 import browserslist from 'browserslist';
 import { transform } from 'lightningcss';
 import type { CustomAtRules, TransformOptions } from 'lightningcss';
@@ -40,11 +41,7 @@ export default function stylexPlugin({
 }: PluginOptions = {}): Plugin {
   let stylexRules: Record<string, Rule[]> = {};
 
-  const transformedOptions: TransformedOptions = {
-    useLayers: useCSSLayers,
-    enableLTRRTLComments: rsOptions?.enableLTRRTLComments,
-    legacyDisableLayers: rsOptions?.legacyDisableLayers,
-  };
+  const transformedOptions = toTransformedOptions(useCSSLayers, rsOptions);
 
   return {
     name: 'rollup-plugin-stylex',

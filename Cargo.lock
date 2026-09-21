@@ -2621,7 +2621,7 @@ dependencies = [
 
 [[package]]
 name = "postcss_value_parser"
-version = "0.19.0-rc.4"
+version = "0.19.0-rc.5"
 dependencies = [
  "criterion",
  "swc_malloc",
@@ -3208,7 +3208,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_ast"
-version = "0.19.0-rc.4"
+version = "0.19.0-rc.5"
 dependencies = [
  "anyhow",
  "ctor",
@@ -3223,7 +3223,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_atoms"
-version = "0.19.0-rc.4"
+version = "0.19.0-rc.5"
 dependencies = [
  "ctor",
  "pretty_env_logger",
@@ -3234,8 +3234,189 @@ dependencies = [
 ]
 
 [[package]]
-name = "stylex_compiler_rs"
-version = "0.19.0-rc.4"
+name = "stylex_constants"
+version = "0.19.0-rc.5"
+dependencies = [
+ "ctor",
+ "once_cell",
+ "phf 0.14.0",
+ "pretty_env_logger",
+ "rustc-hash",
+]
+
+[[package]]
+name = "stylex_css"
+version = "0.19.0-rc.5"
+dependencies = [
+ "criterion",
+ "ctor",
+ "icu_collator",
+ "log",
+ "postcss_value_parser",
+ "pretty_env_logger",
+ "stylex_constants",
+ "stylex_css_parser",
+ "stylex_enums",
+ "stylex_macros",
+ "stylex_regex",
+ "stylex_structures",
+ "stylex_types",
+ "stylex_utils",
+ "swc_malloc",
+]
+
+[[package]]
+name = "stylex_css_parser"
+version = "0.19.0-rc.5"
+dependencies = [
+ "criterion",
+ "cssparser",
+ "log",
+ "rustc-hash",
+ "serde_json",
+ "stylex_macros",
+ "stylex_utils",
+ "swc_core",
+ "swc_malloc",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "stylex_diagnostics"
+version = "0.19.0-rc.5"
+dependencies = [
+ "anyhow",
+ "ctor",
+ "log",
+ "rustc-hash",
+ "smallvec",
+ "stylex_ast",
+ "stylex_macros",
+ "stylex_regex",
+ "stylex_state_index",
+ "stylex_utils",
+ "swc_compiler_base",
+ "swc_config",
+ "swc_core",
+ "url",
+]
+
+[[package]]
+name = "stylex_enums"
+version = "0.19.0-rc.5"
+dependencies = [
+ "indexmap",
+ "rustc-hash",
+ "serde",
+ "stylex_macros",
+ "swc_core",
+]
+
+[[package]]
+name = "stylex_evaluator"
+version = "0.19.0-rc.5"
+dependencies = [
+ "anyhow",
+ "boa_engine",
+ "criterion",
+ "ctor",
+ "indexmap",
+ "log",
+ "pretty_env_logger",
+ "rustc-hash",
+ "stacker",
+ "stylex_ast",
+ "stylex_constants",
+ "stylex_diagnostics",
+ "stylex_enums",
+ "stylex_js",
+ "stylex_macros",
+ "stylex_regex",
+ "stylex_state",
+ "stylex_structures",
+ "stylex_utils",
+ "swc_core",
+ "swc_ecma_parser",
+ "swc_malloc",
+]
+
+[[package]]
+name = "stylex_js"
+version = "0.19.0-rc.5"
+dependencies = [
+ "stylex_constants",
+ "stylex_macros",
+ "stylex_utils",
+ "swc_core",
+]
+
+[[package]]
+name = "stylex_logs"
+version = "0.19.0-rc.5"
+dependencies = [
+ "colored",
+ "ctor",
+ "env_logger 0.11.11",
+ "log",
+ "pretty_env_logger",
+ "stylex_macros",
+]
+
+[[package]]
+name = "stylex_macros"
+version = "0.19.0-rc.5"
+dependencies = [
+ "colored",
+ "log",
+ "stylex_constants",
+]
+
+[[package]]
+name = "stylex_nested_config"
+version = "0.19.0-rc.5"
+dependencies = [
+ "ctor",
+ "indexmap",
+ "pretty_env_logger",
+ "stylex_ast",
+ "stylex_enums",
+ "stylex_macros",
+ "stylex_structures",
+ "swc_core",
+]
+
+[[package]]
+name = "stylex_path_resolver"
+version = "0.19.0-rc.5"
+dependencies = [
+ "ctor",
+ "fancy-regex",
+ "indexmap",
+ "log",
+ "once_cell",
+ "oxc_resolver",
+ "package-json",
+ "path-clean",
+ "pathdiff",
+ "pretty_env_logger",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "stylex_macros",
+]
+
+[[package]]
+name = "stylex_regex"
+version = "0.19.0-rc.5"
+dependencies = [
+ "fancy-regex",
+ "once_cell",
+]
+
+[[package]]
+name = "stylex_rs_compiler"
+version = "0.19.0-rc.5"
 dependencies = [
  "indexmap",
  "log",
@@ -3265,189 +3446,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "stylex_constants"
-version = "0.19.0-rc.4"
-dependencies = [
- "ctor",
- "once_cell",
- "phf 0.14.0",
- "pretty_env_logger",
- "rustc-hash",
-]
-
-[[package]]
-name = "stylex_css"
-version = "0.19.0-rc.4"
-dependencies = [
- "criterion",
- "ctor",
- "icu_collator",
- "log",
- "postcss_value_parser",
- "pretty_env_logger",
- "stylex_constants",
- "stylex_css_parser",
- "stylex_enums",
- "stylex_macros",
- "stylex_regex",
- "stylex_structures",
- "stylex_types",
- "stylex_utils",
- "swc_malloc",
-]
-
-[[package]]
-name = "stylex_css_parser"
-version = "0.19.0-rc.4"
-dependencies = [
- "criterion",
- "cssparser",
- "log",
- "rustc-hash",
- "serde_json",
- "stylex_macros",
- "stylex_utils",
- "swc_core",
- "swc_malloc",
- "thiserror 2.0.20",
-]
-
-[[package]]
-name = "stylex_diagnostics"
-version = "0.19.0-rc.4"
-dependencies = [
- "anyhow",
- "ctor",
- "log",
- "rustc-hash",
- "smallvec",
- "stylex_ast",
- "stylex_macros",
- "stylex_regex",
- "stylex_state_index",
- "stylex_utils",
- "swc_compiler_base",
- "swc_config",
- "swc_core",
- "url",
-]
-
-[[package]]
-name = "stylex_enums"
-version = "0.19.0-rc.4"
-dependencies = [
- "indexmap",
- "rustc-hash",
- "serde",
- "stylex_macros",
- "swc_core",
-]
-
-[[package]]
-name = "stylex_evaluator"
-version = "0.19.0-rc.4"
-dependencies = [
- "anyhow",
- "boa_engine",
- "criterion",
- "ctor",
- "indexmap",
- "log",
- "pretty_env_logger",
- "rustc-hash",
- "stacker",
- "stylex_ast",
- "stylex_constants",
- "stylex_diagnostics",
- "stylex_enums",
- "stylex_js",
- "stylex_macros",
- "stylex_regex",
- "stylex_state",
- "stylex_structures",
- "stylex_utils",
- "swc_core",
- "swc_ecma_parser",
- "swc_malloc",
-]
-
-[[package]]
-name = "stylex_js"
-version = "0.19.0-rc.4"
-dependencies = [
- "stylex_constants",
- "stylex_macros",
- "stylex_utils",
- "swc_core",
-]
-
-[[package]]
-name = "stylex_logs"
-version = "0.19.0-rc.4"
-dependencies = [
- "colored",
- "ctor",
- "env_logger 0.11.11",
- "log",
- "pretty_env_logger",
- "stylex_macros",
-]
-
-[[package]]
-name = "stylex_macros"
-version = "0.19.0-rc.4"
-dependencies = [
- "colored",
- "log",
- "stylex_constants",
-]
-
-[[package]]
-name = "stylex_nested_config"
-version = "0.19.0-rc.4"
-dependencies = [
- "ctor",
- "indexmap",
- "pretty_env_logger",
- "stylex_ast",
- "stylex_enums",
- "stylex_macros",
- "stylex_structures",
- "swc_core",
-]
-
-[[package]]
-name = "stylex_path_resolver"
-version = "0.19.0-rc.4"
-dependencies = [
- "ctor",
- "fancy-regex",
- "indexmap",
- "log",
- "once_cell",
- "oxc_resolver",
- "package-json",
- "path-clean",
- "pathdiff",
- "pretty_env_logger",
- "rustc-hash",
- "serde",
- "serde_json",
- "serial_test",
- "stylex_macros",
-]
-
-[[package]]
-name = "stylex_regex"
-version = "0.19.0-rc.4"
-dependencies = [
- "fancy-regex",
- "once_cell",
-]
-
-[[package]]
 name = "stylex_state"
-version = "0.19.0-rc.4"
+version = "0.19.0-rc.5"
 dependencies = [
  "anyhow",
  "criterion",
@@ -3478,7 +3478,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_state_index"
-version = "0.19.0-rc.4"
+version = "0.19.0-rc.5"
 dependencies = [
  "ctor",
  "pretty_env_logger",
@@ -3490,7 +3490,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_structures"
-version = "0.19.0-rc.4"
+version = "0.19.0-rc.5"
 dependencies = [
  "indexmap",
  "once_cell",
@@ -3506,7 +3506,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_styleq"
-version = "0.19.0-rc.4"
+version = "0.19.0-rc.5"
 dependencies = [
  "criterion",
  "indexmap",
@@ -3520,7 +3520,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_test_parser"
-version = "0.19.0-rc.4"
+version = "0.19.0-rc.5"
 dependencies = [
  "clap",
  "color-backtrace",
@@ -3537,7 +3537,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_transform"
-version = "0.19.0-rc.4"
+version = "0.19.0-rc.5"
 dependencies = [
  "criterion",
  "ctor",
@@ -3580,7 +3580,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_types"
-version = "0.19.0-rc.4"
+version = "0.19.0-rc.5"
 dependencies = [
  "ctor",
  "derive_more",
@@ -3596,7 +3596,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_utils"
-version = "0.19.0-rc.4"
+version = "0.19.0-rc.5"
 dependencies = [
  "indexmap",
  "murmur2",

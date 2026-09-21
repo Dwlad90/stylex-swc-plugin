@@ -322,9 +322,7 @@ stylex_test!(
 stylex_test!(
   list_style_basic_shorthand,
   |tr| stylex_transform(tr.comments.clone(), |b| {
-    b.with_debug(true)
-      .with_enable_debug_class_names(true)
-      .with_enable_dev_class_names(false)
+    b.with_debug(true).with_enable_dev_class_names(false)
   }),
   r#"
     import stylex from 'stylex';
@@ -351,9 +349,7 @@ stylex_test!(
 stylex_test!(
   list_style_multi_value_shorthand,
   |tr| stylex_transform(tr.comments.clone(), |b| {
-    b.with_debug(true)
-      .with_enable_debug_class_names(true)
-      .with_enable_dev_class_names(false)
+    b.with_debug(true).with_enable_dev_class_names(false)
   }),
   r#"
     import stylex from 'stylex';
@@ -377,9 +373,7 @@ stylex_test!(
 stylex_test!(
   list_style_with_longhand_collisions,
   |tr| stylex_transform(tr.comments.clone(), |b| {
-    b.with_debug(true)
-      .with_enable_debug_class_names(true)
-      .with_enable_dev_class_names(false)
+    b.with_debug(true).with_enable_dev_class_names(false)
   }),
   r#"
     import stylex from 'stylex';

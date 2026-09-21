@@ -14,11 +14,9 @@ crate_name="${PWD##*/}"
 # no cargo for a name it holds, and with the rows under "Excluded from Coverage"
 # in `guidelines/STRUCTURE.md`. `scripts/git/coverage-exclusions.test.mjs`
 # compares all five and names the one that disagrees. This list holds crate
-# directory names, so a name can differ from the Cargo package name by more
-# than the hyphens:
-# stylex-rs-compiler is the crate stylex_compiler_rs. Why each crate is off the
-# gate, and which rows a ticket removes, is in "Excluded from Coverage" in
-# guidelines/STRUCTURE.md.
+# directory names, which differ from the Cargo package names by the hyphens
+# alone. Why each crate is off the gate, and which rows a ticket removes, is in
+# "Excluded from Coverage" in guidelines/STRUCTURE.md.
 case "$crate_name" in
   stylex-logs|stylex-rs-compiler|stylex-test-parser)
     exit 0

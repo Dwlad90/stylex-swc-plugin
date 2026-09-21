@@ -22,26 +22,28 @@ use swc_core::{
 };
 
 use stylex_ast::ast::convertors::normalize_expr;
-use stylex_constants::constants::common::{INVALID_METHODS, VALUE_ONLY_GLOBALS};
+use stylex_constants::constants::common::VALUE_ONLY_GLOBALS;
 use stylex_constants::constants::evaluation_errors::{
-  SPREAD_ELEMENT, amplification_inside_a_callback, escaping_property, global_as_a_value,
-  locale_sensitive_method, not_a_function, numeric_literal_receiver, uncoercible_value,
+  SPREAD_ELEMENT, amplification_inside_a_callback, global_as_a_value, locale_sensitive_method,
+  not_a_function, numeric_literal_receiver, reserved_compiler_name, uncoercible_value,
   unfoldable_function, unfoldable_statement, unfoldable_static,
 };
 use stylex_enums::declaration_type::DeclarationType;
 use stylex_js::coercions::is_global_spelled_as_an_identifier;
-use stylex_js::helpers::{is_a_valid_callee_name, is_valid_callee};
+use stylex_js::helpers::{is_a_valid_callee_name, is_valid_callee, is_valid_callee_method_name};
 use stylex_utils::swc::get_stmt_node_kind;
 
 use super::amplification::EntryAmplifier;
+use super::backstop::is_a_reserved_name;
 use super::engine::read;
 use super::transport::{Crossing, Transport};
-use super::{Ceilings, Decline, Depth, ESCAPING_PROPERTIES, escaping_property_named, lists};
+use super::{
+  Ceilings, Decline, Depth, lists, refusal_for_a_property_name, refusal_for_a_property_read,
+};
 use crate::growable_stack::{grown_per_level, nesting_of};
 use crate::state::EvaluationState;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue, functions::FunctionMap, state_manager::StateManager,
-  theme_ref::VarNaming,
 };
 
 use super::super::{
@@ -582,7 +584,7 @@ impl<'a> Bindings<'a> {
     let inner = depth.descend()?;
 
     match pat {
-      Pat::Ident(ident) => self.names.push(ident.sym.clone()),
+      Pat::Ident(ident) => self.bind(&ident.sym)?,
       // A hole binds nothing and skips an element, which the engine does itself.
       Pat::Array(array) => {
         for element in array.elems.iter().flatten() {
@@ -595,7 +597,7 @@ impl<'a> Bindings<'a> {
             // `{ a }` and `{ a = 1 }`: the key is the name, and the default is
             // an expression beside it.
             ObjectPatProp::Assign(shorthand) => {
-              self.names.push(shorthand.key.sym.clone());
+              self.bind(&shorthand.key.sym)?;
 
               if let Some(default) = &shorthand.value {
                 self.evaluates.push(default);
@@ -628,6 +630,15 @@ impl<'a> Bindings<'a> {
     Ok(())
   }
 
+  /// Puts one name in scope, or refuses a name the printed source reserves.
+  fn bind(&mut self, name: &Atom) -> Result<(), Decline> {
+    refuse_a_reserved_name(name)?;
+
+    self.names.push(name.clone());
+
+    Ok(())
+  }
+
   /// The guard with these names in scope, once the expressions beside them have
   /// been walked.
   ///
@@ -654,6 +665,21 @@ impl<'a> Bindings<'a> {
     }
 
     Ok(inner)
+  }
+}
+
+/// Refuses a name the printed fold reserves for a check of its own.
+///
+/// The fold prints its two checks as parameters of the arrow it hands the
+/// engine, so any other name of the same spelling would shadow one and the
+/// check would run the author's function instead. Two spellings reach a
+/// parameter of that arrow — a name the walk binds, and a module name it
+/// carries — and both are refused here, so the rule reads as one rule wherever
+/// it fires. See [`backstop`](super::backstop).
+fn refuse_a_reserved_name(name: &Atom) -> Result<(), Decline> {
+  match is_a_reserved_name(name) {
+    true => Err(Decline::rule(reserved_compiler_name(name))),
+    false => Ok(()),
   }
 }
 
@@ -727,7 +753,6 @@ impl<'a, 'r> Walk<'a, 'r> {
       method,
       self.guard.depth,
       var_group,
-      VarNaming::of(self.reader.traversal_state),
       &self.reader.dotted_prefixes,
     )
   }
@@ -787,6 +812,10 @@ impl<'r> Walk<'_, 'r> {
         if self.guard.scope.binds(&ident.sym) {
           return Ok(());
         }
+
+        // A module name of the same spelling would be carried as a parameter of
+        // the printed arrow, where the fold's own two checks already stand.
+        refuse_a_reserved_name(&ident.sym)?;
 
         // `undefined`, `NaN` and `Infinity` are values the grammar has no literal
         // for, so an author writes them as names and they reach the guard as
@@ -918,8 +947,8 @@ impl<'r> Walk<'_, 'r> {
       // alone decides it and the walk now resolves bindings — so a read that no
       // receiver could make safe must not cost a resolution first.
       Expr::Member(member @ MemberExpr { obj, prop, .. }) => {
-        if let Some(escaping) = escaping_property_named(prop) {
-          return Err(Decline::rule(escaping_property(escaping)));
+        if let Some(refusal) = refusal_for_a_property_read(prop) {
+          return Err(Decline::Rule(refusal));
         }
 
         // A computed key is a value in its own right, so it is walked as one. A
@@ -927,11 +956,12 @@ impl<'r> Walk<'_, 'r> {
         // the rule above is what reads it — and a private name is written only
         // inside a class body, which no expression the walk reaches has.
         //
-        // A key whose value the guard cannot read is still admitted, and that is
-        // a boundary rather than a hole: what such a read can reach is a
-        // function, which is refused on the way out and cannot be applied on the
-        // way in — a call whose method name is computed is not a candidate at
-        // all, so there is no step from the function to its result.
+        // A key whose value the guard cannot read is still admitted, because
+        // `['a','b'][i]` and `{a:'X'}[k]` are ordinary and have to keep
+        // folding. The rule is applied where the name finally exists instead:
+        // the printed source reads such a key through a checked reader rather
+        // than through the language's index operator, and calls through a
+        // checked caller — see [`backstop`](super::backstop) and ADR 0010.
         if let MemberProp::Computed(key) = prop {
           self.under(inner).admit_value(&key.expr)?;
         }
@@ -963,9 +993,9 @@ impl<'r> Walk<'_, 'r> {
       // whole. `__proto__` is the one key that is not: written as a plain
       // property it sets the prototype rather than a member, so the receiver the
       // engine sees is not the object the source appears to describe. It is left
-      // in because the reference implementation folds it identically and every
-      // route off the prototype is refused above — not because the walk models
-      // it.
+      // in because the reference implementation folds it identically and because
+      // every *read* off the prototype is refused above — the rule that refuses
+      // the name is about a read, and this is a write.
       Expr::Object(ObjectLit { props, .. }) => {
         for prop in props {
           let prop = match prop {
@@ -1414,8 +1444,13 @@ impl<'r> Walk<'_, 'r> {
     // The walk reaches the receiver's reads first, which is the sentence worth
     // reading, and the resolution it costs is one binding on a call already
     // certain to refuse.
-    if lists(&ESCAPING_PROPERTIES, &method.sym) {
-      return Err(Decline::rule(escaping_property(&method.sym)));
+
+    // A call spelled `x.__proto__()` is not a call any value answers, so the
+    // second of the two rules only decides which sentence the refusal reads --
+    // and the rule's sentence says more than the engine's "not a callable
+    // function" would.
+    if let Some(refusal) = refusal_for_a_property_name(&method.sym) {
+      return Err(Decline::Rule(refusal));
     }
 
     Ok(Admitted::method(&method.sym))
@@ -1871,14 +1906,26 @@ fn refuse_a_method_by_its_spelling(
   method: &IdentName,
   global: Option<&Atom>,
 ) -> Result<(), Decline> {
-  // The statics the reference compiler refuses by name, refused here for the
-  // reason it refuses them: each answers by changing what it was handed, or
-  // answers something new on every build, and either way a fold of it is not a
-  // function of the source. `INVALID_METHODS` is that compiler's own set.
+  // A static is folded only where the global's own allowlist holds it. An
+  // allowlist and not a denylist, because `Object` carries reflective statics
+  // that hand back an object from the prototype chain, and a denylist over that
+  // surface can never be complete -- the static nobody listed is the next way
+  // out. The rest of the surface is refused for the reason it always was: a
+  // fold has to be a function of the source, and a static that mutates what it
+  // was handed, or answers anew on every build, is not.
+  //
+  // Two sentences, because the two halves are refused for different reasons and
+  // an author acts on each differently.
   if let Some(global) = global
-    && INVALID_METHODS.contains(method.sym.as_ref())
+    && !is_valid_callee_method_name(global, &method.sym)
   {
-    return Err(Decline::rule(unfoldable_static(global, &method.sym)));
+    // A global's `constructor` is the shortest escape there is, so it reads as
+    // one rather than as a static that could not be folded. Every other name
+    // outside the allowlist reads the one sentence written for them.
+    let refusal = refusal_for_a_property_name(&method.sym)
+      .unwrap_or_else(|| unfoldable_static(global, &method.sym).into());
+
+    return Err(Decline::Rule(refusal));
   }
 
   // A method whose answer needs locale data the engine does not carry.

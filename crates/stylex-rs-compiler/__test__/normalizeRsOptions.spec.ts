@@ -26,11 +26,11 @@ const defaultResult: StyleXOptions = {
   styleResolution: 'property-specificity',
   enableLTRRTLComments: false,
   legacyDisableLayers: false,
+  useLegacyClassnamesSort: false,
   useRealFileForSource: true,
   inlineSourcesContent: true,
   emitSourceMapColumns: true,
   enableMediaQueryOrder: true,
-  enableDebugClassNames: false,
   propertyValidationMode: 'silent',
   include: [],
   exclude: [],
@@ -416,6 +416,11 @@ test('normalizeRsOptions: legacyDisableLayers default and override', () => {
   expect(normalizeRsOptions({ legacyDisableLayers: true }).legacyDisableLayers).toBe(true);
 });
 
+test('normalizeRsOptions: useLegacyClassnamesSort default and override', () => {
+  expect(normalizeRsOptions({}).useLegacyClassnamesSort).toBe(false);
+  expect(normalizeRsOptions({ useLegacyClassnamesSort: true }).useLegacyClassnamesSort).toBe(true);
+});
+
 test('normalizeRsOptions: useRealFileForSource default and override', () => {
   expect(normalizeRsOptions({}).useRealFileForSource).toBe(true);
   expect(normalizeRsOptions({ useRealFileForSource: false }).useRealFileForSource).toBe(false);
@@ -432,11 +437,6 @@ test('normalizeRsOptions: emitSourceMapColumns default and override', () => {
   expect(normalizeRsOptions({}).emitSourceMapColumns).toBe(true);
   expect(normalizeRsOptions({ emitSourceMapColumns: false }).emitSourceMapColumns).toBe(false);
   expect(normalizeRsOptions({ emitSourceMapColumns: undefined }).emitSourceMapColumns).toBe(true);
-});
-
-test('normalizeRsOptions: enableDebugClassNames default and override', () => {
-  expect(normalizeRsOptions({}).enableDebugClassNames).toBe(false);
-  expect(normalizeRsOptions({ enableDebugClassNames: true }).enableDebugClassNames).toBe(true);
 });
 
 test('normalizeRsOptions: many swcPlugins are passed through', () => {
@@ -488,9 +488,9 @@ test('normalizeRsOptions: all defaults are correct', () => {
   expect(result.enableLegacyValueFlipping).toBe(false);
   expect(result.enableLTRRTLComments).toBe(false);
   expect(result.legacyDisableLayers).toBe(false);
+  expect(result.useLegacyClassnamesSort).toBe(false);
   expect(result.useRealFileForSource).toBe(true);
   expect(result.enableMediaQueryOrder).toBe(true);
-  expect(result.enableDebugClassNames).toBe(false);
   expect(result.propertyValidationMode).toBe('silent');
   expect(result.styleResolution).toBe('property-specificity');
   expect(result.importSources).toStrictEqual(['stylex', '@stylexjs/stylex']);

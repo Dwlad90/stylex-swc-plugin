@@ -116,7 +116,7 @@ fn parse_expr(source: &str) -> Expr {
 
 #[cfg(test)]
 mod create_hash_tests {
-  use crate::hash::{create_hash, create_key_hash};
+  use crate::hash::{create_authored_or_hashed_key, create_hash, create_key_hash};
 
   #[test]
   fn returns_consistent_hash() {
@@ -250,6 +250,36 @@ mod create_hash_tests {
       create_key_hash("Button.stylex", "root"),
       create_hash("Button.stylex.root")
     );
+  }
+
+  #[test]
+  fn an_authored_custom_property_keeps_its_name_without_the_dashes() {
+    assert_eq!(
+      create_authored_or_hashed_key("x", "Theme.stylex", "--brand-color"),
+      "brand-color"
+    );
+    // The prefix and the namespace say nothing about an authored name.
+    assert_eq!(
+      create_authored_or_hashed_key("", "", "--brand-color"),
+      "brand-color"
+    );
+    // Only the two leading dashes are removed, and only once.
+    assert_eq!(create_authored_or_hashed_key("x", "n", "----a"), "--a");
+  }
+
+  #[test]
+  fn every_other_name_is_hashed_behind_the_prefix() {
+    let expected = format!("x{}", create_key_hash("Theme.stylex", "brandColor"));
+
+    assert_eq!(
+      create_authored_or_hashed_key("x", "Theme.stylex", "brandColor"),
+      expected
+    );
+
+    // One dash is not a custom property, so the name is hashed.
+    assert!(create_authored_or_hashed_key("x", "n", "-a").starts_with('x'));
+    // An empty key is a name like any other and is hashed too.
+    assert!(!create_authored_or_hashed_key("x", "n", "").is_empty());
   }
 }
 

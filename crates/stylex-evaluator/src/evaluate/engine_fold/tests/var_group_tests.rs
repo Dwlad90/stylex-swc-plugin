@@ -18,7 +18,7 @@ use boa_engine::{Context, JsObject, JsValue, Source};
 
 use super::super::engine_reads::{answered_by, assert_refused_by_rule, assert_refused_saying};
 
-use stylex_state::theme_ref::{ThemeRef, VarNaming, var_group_member};
+use stylex_state::theme_ref::{ThemeRef, var_group_member};
 use stylex_utils::identifier::gen_file_based_identifier;
 
 /// The identity every group below is built from. One spelling, because the
@@ -42,27 +42,21 @@ fn group_hash() -> String {
   theme_ref().to_string_value()
 }
 
-/// The variable a group answers for one member, under `naming`.
+/// The variable a group answers for one member.
 ///
 /// Derived for the reason [`group_hash`] is: a variable written down in a case
 /// says nothing about which half of the derivation it came from.
-fn variable_of(key: &str, naming: VarNaming) -> String {
+fn variable_of(key: &str) -> String {
   var_group_member(
     &gen_file_based_identifier(THEME_FILE, THEME_EXPORT, None),
     THEME_PREFIX,
     key,
-    naming,
   )
 }
 
-/// The naming a project takes by default, which every case but one reads.
-fn default_naming() -> VarNaming {
-  VarNaming::from_flags(false, false)
-}
-
-/// The group every case below reads, under the identity the transform tests use
-/// and under the naming the case names.
-fn group_named(context: &mut Context, prefixes: &[&str], naming: VarNaming) -> JsValue {
+/// The group every case below reads, under the identity the transform tests
+/// use.
+fn group(context: &mut Context, prefixes: &[&str]) -> JsValue {
   let builder = match compile_traps(&var_group_traps(), context) {
     Ok(builder) => builder,
     Err(_) => panic!("the theme group traps did not compile"),
@@ -72,16 +66,10 @@ fn group_named(context: &mut Context, prefixes: &[&str], naming: VarNaming) -> J
 
   let theme = theme_ref();
 
-  match var_group(&builder, &theme, naming, Some(&prefixes), context) {
+  match var_group(&builder, &theme, Some(&prefixes), context) {
     Ok(value) => value,
     Err(error) => panic!("the group would not build: {}", error),
   }
-}
-
-/// The same group under the naming a project takes by default, which is what
-/// every case that is not about the naming reads.
-fn group(context: &mut Context, prefixes: &[&str]) -> JsValue {
-  group_named(context, prefixes, default_naming())
 }
 
 /// An object whose one key throws when it is read.
@@ -121,15 +109,12 @@ fn asked(source: &str, prefixes: &[&str]) -> String {
 /// group a proxy rather than an object.
 #[test]
 fn a_member_nobody_declared_answers_a_variable() {
-  assert_eq!(
-    asked("(g) => g.primary", &[]),
-    variable_of("primary", default_naming())
-  );
+  assert_eq!(asked("(g) => g.primary", &[]), variable_of("primary"));
 
   let unwritten = asked("(g) => g.anythingAtAll", &[]);
 
   assert!(
-    unwritten.starts_with("var(--x") && unwritten != variable_of("primary", default_naming()),
+    unwritten.starts_with("var(--x") && unwritten != variable_of("primary"),
     "expected a variable of its own for a name nobody declared, got `{}`",
     unwritten
   );
@@ -329,25 +314,6 @@ fn a_derivation_without_an_identity_throws() {
   }
 }
 
-/// The naming reaches the derivation as the flags the identity carries, so a
-/// group built under debug answers the spelling debug names.
-///
-/// One case and not a table: which spelling each pair of options answers is one
-/// function's answer, and `theme_ref_test` in the state crate asserts it there
-/// against the reference implementation. What is this module's own is that the
-/// two booleans cross the bridge and come back to the derivation unchanged, and
-/// the readable spelling is the one answer that shows they both did.
-#[test]
-fn the_naming_crosses_the_bridge_and_reaches_the_derivation() {
-  let mut context = Context::default();
-  let group = group_named(&mut context, &[], VarNaming::from_flags(true, true));
-
-  assert_eq!(
-    answered_by(&mut context, "(g) => g.primary", &[group]),
-    variable_of("primary", VarNaming::from_flags(true, true))
-  );
-}
-
 /// A source that is not JavaScript at all is declined in the engine's own words,
 /// under the sentence its construction refuses with.
 #[test]
@@ -438,15 +404,9 @@ fn a_derivation_whose_identity_is_not_text_throws() {
   let mut context = Context::default();
 
   // The base id, the class name prefix and the key, at the places the traps
-  // write them. The two between them are the flags, and any value reads as one.
-  for index in [0, 1, 4] {
-    let mut identity = [
-      text.clone(),
-      text.clone(),
-      JsValue::from(false),
-      JsValue::from(false),
-      text.clone(),
-    ];
+  // write them.
+  for index in [0, 1, 2] {
+    let mut identity = [text.clone(), text.clone(), text.clone()];
 
     // A number, which no spelling of a name is.
     identity[index] = JsValue::from(1);
@@ -475,8 +435,6 @@ fn a_derivation_reads_the_identity_a_longer_list_begins_with() {
   let identity = [
     JsValue::from(JsString::from(theme.base_id())),
     JsValue::from(JsString::from(theme.class_name_prefix())),
-    JsValue::from(false),
-    JsValue::from(false),
     JsValue::from(JsString::from("primary")),
     JsValue::from(JsString::from("one more")),
   ];
@@ -486,7 +444,7 @@ fn a_derivation_reads_the_identity_a_longer_list_begins_with() {
   match derive(&JsValue::undefined(), &identity, &mut context) {
     Ok(named) => assert_eq!(
       named.as_string().map(|named| named.to_std_string_lossy()),
-      Some(variable_of("primary", default_naming()))
+      Some(variable_of("primary"))
     ),
     Err(error) => panic!("the derivation would not read a longer list: {}", error),
   }

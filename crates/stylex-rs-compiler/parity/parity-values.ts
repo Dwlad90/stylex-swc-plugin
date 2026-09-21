@@ -234,6 +234,12 @@ async function run(): Promise<void> {
       `${VERDICT_LABELS[entry.verdict]}${stanceLabel}  ${chalk.bold(subjectLabel(entry))}  ${chalk.gray(`[${entry.set}] ${entry.origin}`)}`
     );
     if (AGREED.has(entry.verdict)) continue;
+    // The row's own environment, where it has one. It is not in the shared
+    // options the header prints, so a reader chasing the divergence would
+    // otherwise have no way to see what the subject was compiled with.
+    if (entry.env !== undefined) {
+      console.log(chalk.gray(`    env    ${JSON.stringify(entry.env)}`));
+    }
     console.log(`    rust   ${describe(entry, 'rust')}`);
     console.log(`    babel  ${describe(entry, 'babel')}`);
     if (entry.note !== undefined) console.log(chalk.gray(`    note   ${entry.note}`));

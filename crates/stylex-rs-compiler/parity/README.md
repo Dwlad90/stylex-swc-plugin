@@ -355,8 +355,18 @@ report nine refusals nobody wrote them to measure:
 
 Adding a case means editing one of the three hand-written files. Entries take an
 optional `note`, which the report prints next to a mismatch, an optional
-`expected` naming the verdict the entry is known to read, and an optional
-`configuration` naming the option whose value decides a refusal.
+`expected` naming the verdict the entry is known to read, an optional
+`configuration` naming the option whose value decides a refusal, and an optional
+`env` holding the compile-time constants the entry is compiled with.
+
+An `env` is the one setting a subject cannot state in its own source:
+`stylex.env.brandPrimary` names a value the configuration holds, so a row that
+reads one asks nothing at all without it -- with no option set both compilers
+report a configuration that is missing, and the row measures the report rather
+than the read. Both compilers are handed the same object, values are strings
+only, and a row that configures nothing is measured under exactly the options
+the report prints. Two rows may spell one source under two environments: the
+setting is part of a subject's identity, so neither collapses onto the other.
 
 An `expected` verdict is how a divergence someone has already looked at is told
 apart from a new one. While it holds, the report marks the entry `(expected)`
@@ -754,7 +764,10 @@ stands, none of them written down anywhere here. Which surfaces belong is not a
 choice either: the namespaces are exactly the compiler's `VALID_CALLEES` —
 read out of the Rust source and asserted, so a sixth callee added there and not
 here fails rather than going unswept — and the prototypes are the ones a value
-crossing the fold's bridge can have. Each is
+crossing the fold's bridge can have. The sweep asks every static those
+namespaces carry, including the ones the compiler's per-namespace allowlists
+hold back: a refused static still produces a row, and an account is what says
+the refusal is not news. Each is
 asked in **both shapes**, which is the question this whole effort turned on: a
 prototype method on a receiver written out and on the same receiver held by a
 name, and a namespace method on arguments written out and on the same arguments
@@ -879,8 +892,11 @@ compiler moved, is on the screen rather than in a re-run.
 
 ## Checking a future upstream release
 
-1. Bump `@stylexjs/babel-plugin` in this package's `devDependencies` and
-   `pnpm install`.
+1. Bump `@stylexjs/babel-plugin` in the `runtime` catalog of
+   `pnpm-workspace.yaml`, then `pnpm install`. This directory declares no
+   dependencies of its own: it resolves the plugin from `stylex-rs-compiler`,
+   whose `devDependencies` entry is `catalog:runtime`. A catalog pin can only
+   be moved in the workspace file.
 2. Rebuild the compiler, then run
    `pnpm parity --json parity/results/<version>.json`.
 3. The printed subject block states both versions, so a report is always

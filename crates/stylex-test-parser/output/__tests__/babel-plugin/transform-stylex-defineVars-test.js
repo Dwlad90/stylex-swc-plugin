@@ -928,10 +928,9 @@ describe('@stylexjs/babel-plugin', ()=>{
       `);
         });
         describe('options `debug:true`', ()=>{
-            test('tokens object includes debug data', ()=>{
+            test('tokens object uses hashed variable names', ()=>{
                 const options = {
-                    debug: true,
-                    enableDebugClassNames: true
+                    debug: true
                 };
                 const { code, metadata } = transform(`
           import * as stylex from '@stylexjs/stylex';
@@ -949,8 +948,8 @@ describe('@stylexjs/babel-plugin', ()=>{
                 expect(code).toMatchInlineSnapshot(`
           "import * as stylex from '@stylexjs/stylex';
           export const vars = {
-            color: "var(--color-xwx8imx)",
-            otherColor: "var(--otherColor-xaaua2w)",
+            color: "var(--xwx8imx)",
+            otherColor: "var(--xaaua2w)",
             __varGroupHash__: "xop34xu"
           };"
         `);
@@ -960,7 +959,7 @@ describe('@stylexjs/babel-plugin', ()=>{
               [
                 "xop34xu",
                 {
-                  "ltr": ":root, .xop34xu{--color-xwx8imx:blue;--otherColor-xaaua2w:green;}",
+                  "ltr": ":root, .xop34xu{--xwx8imx:blue;--xaaua2w:green;}",
                   "rtl": null,
                 },
                 0.1,
@@ -968,7 +967,7 @@ describe('@stylexjs/babel-plugin', ()=>{
               [
                 "xop34xu-1lveb7",
                 {
-                  "ltr": "@media (prefers-color-scheme: dark){:root, .xop34xu{--color-xwx8imx:lightblue;}}",
+                  "ltr": "@media (prefers-color-scheme: dark){:root, .xop34xu{--xwx8imx:lightblue;}}",
                   "rtl": null,
                 },
                 0.2,
@@ -976,7 +975,7 @@ describe('@stylexjs/babel-plugin', ()=>{
               [
                 "xop34xu-1e6ryz3",
                 {
-                  "ltr": "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xop34xu{--color-xwx8imx:oklab(0.7 -0.3 -0.4);}}}",
+                  "ltr": "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){:root, .xop34xu{--xwx8imx:oklab(0.7 -0.3 -0.4);}}}",
                   "rtl": null,
                 },
                 0.3,
@@ -985,10 +984,9 @@ describe('@stylexjs/babel-plugin', ()=>{
           }
         `);
             });
-            test('tokens object includes debug data (keys with special characters)', ()=>{
+            test('tokens with special-character keys use hashed variable names', ()=>{
                 const options = {
-                    debug: true,
-                    enableDebugClassNames: true
+                    debug: true
                 };
                 const { code, metadata } = transform(`
           import * as stylex from '@stylexjs/stylex';
@@ -1002,10 +1000,10 @@ describe('@stylexjs/babel-plugin', ()=>{
                 expect(code).toMatchInlineSnapshot(`
           "import * as stylex from '@stylexjs/stylex';
           export const vars = {
-            "10": "var(--_10-x187fpdw)",
-            "1.5 pixels": "var(--_1_5_pixels-x15ahj5d)",
-            "corner#radius": "var(--corner_radius-x2ajqv2)",
-            "@@primary": "var(--__primary-x13tvx0f)",
+            "10": "var(--x187fpdw)",
+            "1.5 pixels": "var(--x15ahj5d)",
+            "corner#radius": "var(--x2ajqv2)",
+            "@@primary": "var(--x13tvx0f)",
             __varGroupHash__: "xop34xu"
           };"
         `);
@@ -1015,7 +1013,7 @@ describe('@stylexjs/babel-plugin', ()=>{
               [
                 "xop34xu",
                 {
-                  "ltr": ":root, .xop34xu{--_10-x187fpdw:green;--_1_5_pixels-x15ahj5d:blue;--corner_radius-x2ajqv2:purple;--__primary-x13tvx0f:pink;}",
+                  "ltr": ":root, .xop34xu{--x187fpdw:green;--x15ahj5d:blue;--x2ajqv2:purple;--x13tvx0f:pink;}",
                   "rtl": null,
                 },
                 0.1,
@@ -1028,8 +1026,7 @@ describe('@stylexjs/babel-plugin', ()=>{
         describe('options `dev:true`', ()=>{
             test('tokens object', ()=>{
                 const options = {
-                    dev: true,
-                    enableDebugClassNames: true
+                    dev: true
                 };
                 const { code, metadata } = transform(`
           import * as stylex from '@stylexjs/stylex';
@@ -1042,9 +1039,9 @@ describe('@stylexjs/babel-plugin', ()=>{
                 expect(code).toMatchInlineSnapshot(`
           "import * as stylex from '@stylexjs/stylex';
           export const vars = {
-            color: "var(--color-xwx8imx)",
-            nextColor: "var(--nextColor-xk6xtqk)",
-            otherColor: "var(--otherColor-xaaua2w)",
+            color: "var(--xwx8imx)",
+            nextColor: "var(--xk6xtqk)",
+            otherColor: "var(--xaaua2w)",
             __varGroupHash__: "xop34xu"
           };"
         `);
@@ -1054,7 +1051,7 @@ describe('@stylexjs/babel-plugin', ()=>{
               [
                 "xop34xu",
                 {
-                  "ltr": ":root, .xop34xu{--color-xwx8imx:red;--nextColor-xk6xtqk:green;--otherColor-xaaua2w:blue;}",
+                  "ltr": ":root, .xop34xu{--xwx8imx:red;--xk6xtqk:green;--xaaua2w:blue;}",
                   "rtl": null,
                 },
                 0.1,
@@ -1112,7 +1109,6 @@ describe('@stylexjs/babel-plugin', ()=>{
             test('processes tokens in files with configured extension', ()=>{
                 const options = {
                     debug: true,
-                    enableDebugClassNames: true,
                     filename: '/stylex/packages/src/vars/default.cssvars.js',
                     unstable_moduleResolution: {
                         rootDir: '/stylex/packages/',
@@ -1129,7 +1125,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 expect(code).toMatchInlineSnapshot(`
           "import * as stylex from '@stylexjs/stylex';
           export const vars = {
-            color: "var(--color-x1lzcbr1)",
+            color: "var(--x1lzcbr1)",
             __varGroupHash__: "x1bxutiz"
           };"
         `);
@@ -1139,7 +1135,7 @@ describe('@stylexjs/babel-plugin', ()=>{
               [
                 "x1bxutiz",
                 {
-                  "ltr": ":root, .x1bxutiz{--color-x1lzcbr1:red;}",
+                  "ltr": ":root, .x1bxutiz{--x1lzcbr1:red;}",
                   "rtl": null,
                 },
                 0.1,

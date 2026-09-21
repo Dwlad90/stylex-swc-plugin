@@ -115,10 +115,10 @@ a receiver the bridge cannot carry; `Decline::rule(...)` refuses it. The first
 is answered before any rule that reads a resolved value, so a call the fold was
 never going to claim cannot report a ceiling for a receiver nothing claimed.
 Only three refusals sit in front of it, all pure syntax: a locale-sensitive
-method name, a receiver written as a number, and an `INVALID_METHODS` member on
-an unshadowed global.
+method name, a receiver written as a number, and a static on an unshadowed
+global that the allowlist does not hold.
 
-Five rule sets, by name:
+Six rule sets, by name:
 
 - **Locale-sensitive** (`LOCALE_SENSITIVE_METHODS`) — the engine has no locale
   data and would answer from the root locale, which is a wrong value rather than
@@ -126,6 +126,31 @@ Five rule sets, by name:
 - **Escaping** (`ESCAPING_PROPERTIES`: `constructor`, `call`, `apply`, `bind`) —
   each walks off the value that was written and onto the language's function
   graph, where `Function` compiles a string into a body.
+- **Prototype-chain** (`BLOCKED_PROPERTIES`: `constructor`, `__proto__`,
+  `prototype`) — the same graph reached one step earlier: `({}).__proto__` is
+  `Object.prototype`, whose `constructor` is `Object`, whose `constructor` is
+  `Function`. Asked after **Escaping**, so `constructor` — which both sets hold
+  — keeps the sentence written for it. A computed key is asked once more after
+  it resolves, so a key built at compile time spells no read a check on the
+  syntax would miss. The rule is about a property _read_: `__proto__` written as
+  an object-literal **key** sets a prototype rather than reading one, and it
+  folds.
+
+  The rule reads a name the source spells or the evaluator resolves. One shape
+  gives it neither: where the whole expression is a single fold, a computed key
+  crosses into the engine as a value and the read happens there. So the printed
+  fold does not read such a key with the language's index operator. It calls a
+  [checked reader](#checked-reader-and-checked-caller), which coerces the key and refuses the
+  union of the two sets above — the same rule, applied where the name finally
+  exists. `String(({})[key])` with `key` holding `'__proto__'` refuses for that
+  reason, and `modules-a-prototype-read-a-fold-consumes` records it.
+
+- **Static allowlist** (`VALID_STRING_METHODS` and its four siblings) — a static
+  on one of the globals the fold owns is offered to the engine only where that
+  global's own list holds the name. An allowlist because `Object` carries
+  reflective statics that answer with an object from the prototype chain, and a
+  denylist over that surface can never be complete. Recorded in [ADR
+  0009](./docs/adr/0009-a-static-is-called-only-from-an-allowlist.md).
 - **Length-amplifying** (`LENGTH_AMPLIFYING_METHODS`: `repeat`, `padStart`,
   `padEnd`) — bounded by arithmetic rather than by a shape, because nothing in
   the engine bounds allocation: the guard works out how long a string the call
@@ -138,6 +163,38 @@ Five rule sets, by name:
 - **Nesting** — bounded on both sides against the configured evaluation depth:
   on the way in because the engine's parser recurses, and on the way out because
   the depth of an answer is not what the width bound measures.
+
+Two further guards the reference implementation writes out are held here by
+construction rather than by a check, and both are recorded because a structure
+nobody states is a structure the next change can remove.
+
+**A name is looked up by own keys.** The reference implementation reads its
+function config out of plain objects, which inherit from `Object.prototype`, so
+`memberExpressions['constructor']` answers `Object` and a second read answers
+`Function`. It added an own-key reader for that. The two maps here are
+`FxHashMap` (`FunctionMapIdentifiers` and `FunctionMapMemberExpression` in
+[stylex-state](../stylex-state/CONTEXT.md)), which carry no inherited members,
+so own keys are the only keys there are. `constructor`, `valueOf`,
+`hasOwnProperty` and `toString` are names nothing declared, and each refuses as
+one.
+
+**Nothing turns a string into code.** Three answers stand behind that, and the
+first two are about routes. Neither `Function` nor `eval` is a global this
+compiler resolves, so both refuse as an undeclared name, and inside a fold they
+are free names the walk cannot resolve. A callable the engine answers with is
+refused on the way out (`outward::exotic_value`), so a fold cannot hand one
+back to be applied. Measured: `eval('1')`, `Function('return 1')()`,
+`new Function('return 1')()`, the same three inside `[1].map(...)`, and
+`globalThis.Function(...)` beside them.
+
+The third answers the route nobody has found. A route is a shape somebody
+thought of, and a list of shapes is finite by construction — the escape that
+made this necessary laundered a constructor through a callback parameter, which
+turned a read no rule could name into a call through a bare name. So the
+printed fold calls through a [checked caller](#checked-reader-and-checked-caller) as well, which
+refuses the language's `Function`, anything inheriting directly from it, and
+`eval`, whatever produced them. The reference implementation ships the same
+backstop.
 
 Each applies at every link of a chain, since a chain hides its middle links.
 Inside a **callback** body the bound is a product: the guard counts the
@@ -168,6 +225,23 @@ carry, so the declaration it came from is printed as the parameter's default and
 `undefined` is passed to hold the position. `['b','a'].map(upper)` is handed
 over as `(upper=(p)=>p.toUpperCase())=>['b','a'].map(upper)`.
 _Avoid_: value bridge, injection, substitution, interpolation
+
+**Checked reader**:
+`__sxRead` and `__sxCall`, the two functions the printed fold reads and calls
+through where the guard cannot answer from the syntax. A computed key the guard
+cannot name — `o[k]` — is printed as `__sxRead(o, k)`, which coerces the key and
+refuses the union of `ESCAPING_PROPERTIES` and `BLOCKED_PROPERTIES`; a call
+through a bare name — `f(x)` — is printed as `__sxCall(f, x)`, which refuses the
+language's `Function`, anything inheriting directly from it, and `eval`. A
+method call needs neither: its name is spelled out and the guard reads it.
+
+Both are **parameters of the printed arrow** rather than globals, because a
+global is a name the printed source could point somewhere else, and the guard
+refuses a binding that spells either — so nothing between the arrow and the read
+can stand in front of them. A fold that needs neither is printed exactly as it
+was, which is what keeps the cheapest fold cheap. Recorded in [ADR
+0010](./docs/adr/0010-the-printed-fold-reads-and-calls-through-a-check.md).
+_Avoid_: sandbox, proxy, interceptor, shim
 
 **Carried value**:
 A value the bridge copies inward: a string, a number, a boolean, `null`,
@@ -453,9 +527,13 @@ it, which is why the map cannot be keyed by binding.
 
 The map holds the StyleX API surface reachable off one namespace, which is not
 all functions: `when` is a config and `env` is an object of the `env` option's
-entries. `env` is registered into the fold only where a `create` call sets its
-evaluation up, so a bare `stylex` written where a static value belongs refuses
-rather than materializing and dropping the declaration.
+entries. `env` is registered into the fold only where the namespace name is a
+value of the map already -- `create`, `defineVars` and `createTheme`. The calls
+that bind no such name keep it unbound, so a bare `stylex` written where a
+static value belongs refuses rather than materializing and dropping the
+declaration. `stylex.env.<name>` folds in those calls all the same: the
+two-level read is answered off the namespace's member entries rather than off
+the namespace as a value.
 
 The fold carries no expression form, so every position needing one
 **materializes** it as the object it stands for — its keys, each carrying a

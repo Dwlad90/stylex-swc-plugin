@@ -23,10 +23,10 @@ fn empty_options() -> StyleXOptions {
     enable_legacy_value_flipping: None,
     enable_ltr_rtl_comments: None,
     legacy_disable_layers: None,
+    use_legacy_classnames_sort: None,
     dev: None,
     test: None,
     debug: None,
-    enable_debug_class_names: None,
     enable_debug_data_prop: None,
     enable_dev_class_names: None,
     enable_minified_keys: None,
@@ -169,7 +169,6 @@ fn try_from_maps_all_boolean_options() {
     dev: Some(true),
     test: Some(true),
     debug: Some(false),
-    enable_debug_class_names: Some(true),
     enable_minified_keys: Some(false),
     inject_stylex_side_effects: Some(true),
     use_real_file_for_source: Some(false),
@@ -187,7 +186,6 @@ fn try_from_maps_all_boolean_options() {
   assert_eq!(parsed.dev, Some(true));
   assert_eq!(parsed.test, Some(true));
   assert_eq!(parsed.debug, Some(false));
-  assert_eq!(parsed.enable_debug_class_names, Some(true));
   assert_eq!(parsed.enable_minified_keys, Some(false));
   assert_eq!(parsed.inject_stylex_side_effects, Some(true));
   assert_eq!(parsed.use_real_file_for_source, Some(false));

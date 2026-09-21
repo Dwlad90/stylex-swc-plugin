@@ -11,6 +11,7 @@ mod rebuild;
 
 pub(crate) use cache::{Memoized, evaluate_cached, folded_once};
 pub(crate) use deopt::{deopt, deopt_at_declaration};
+pub use engine_fold::prints_a_check;
 pub use helpers::evaluate_result_is_nullish;
 use helpers::*;
 pub(crate) use nodes::binary_expression::binary_expr_to_num_or_str;
@@ -73,8 +74,8 @@ use stylex_enums::{
 use stylex_js::coercions;
 use stylex_js::coercions::{global_identifier_to_value, is_global_spelled_as_an_identifier};
 use stylex_js::helpers::{
-  get_callee_name, get_method_name, is_id_prop, is_invalid_method, is_mutating_object_method,
-  is_mutation_expr, is_valid_callee,
+  get_callee_name, get_method_name, is_a_valid_callee_name, is_id_prop, is_mutating_object_method,
+  is_mutation_expr, is_valid_callee_method,
 };
 use stylex_state::resolution::lookup::get_var_decl_parts_by_ident;
 use stylex_state::{

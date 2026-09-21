@@ -35,8 +35,7 @@ stylex_test!(
 
 stylex_test!(
   trying_to_use_an_unknown_style_in_stylex,
-  |tr| stylex_transform(tr.comments.clone(), |b| b
-    .with_enable_debug_class_names(true)),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({
@@ -50,8 +49,7 @@ stylex_test!(
 
 stylex_test!(
   trying_to_use_an_unknown_style_in_stylex_props,
-  |tr| stylex_transform(tr.comments.clone(), |b| b
-    .with_enable_debug_class_names(true)),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({

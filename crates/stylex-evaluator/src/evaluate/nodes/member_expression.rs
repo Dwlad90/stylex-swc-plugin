@@ -1,9 +1,10 @@
-use super::super::engine_fold::escaping_property_named;
+use std::cell::OnceCell;
+
+use super::super::engine_fold::{refusal_for_a_property_name, refusal_for_a_property_read};
 use super::super::*;
 use stylex_ast::ast::convertors::{
   atom_utf16_char_at, atom_utf16_length, convert_member_prop_to_string, normalize_expr,
 };
-use stylex_constants::constants::evaluation_errors::escaping_property;
 use stylex_state::evaluate_result_value::string_key_of_expr;
 use swc_core::ecma::ast::MemberExpr;
 
@@ -61,7 +62,27 @@ fn property_name(property: &EvaluateResultValue) -> Option<String> {
     .or_else(|| evaluate_result_as_expr(property).and_then(|expr| coercions::to_js_string(&expr)))
 }
 
-/// Reads what a member lookup is asking for, from the evaluated property.
+/// The same name, written at most once per member read.
+///
+/// Four readers below ask for it and most reads need none of them: a dotted
+/// read into the function map answers from an interned atom, a written object
+/// answers from its own keys, and a theme member derives its own. So the name
+/// is held in a cell the first asking fills, and a read nobody asks is a read
+/// that allocates nothing.
+fn spelled_name<'a>(
+  spelled: &'a OnceCell<Option<String>>,
+  property: &EvaluateResultValue,
+) -> Option<&'a str> {
+  spelled.get_or_init(|| property_name(property)).as_deref()
+}
+
+/// Reads what a member lookup is asking for, from the name the evaluated
+/// property spells.
+///
+/// Takes the name rather than the property, because the caller reads it once
+/// for the whole member expression -- the refusal rule above the readers asks
+/// for it too, and naming a key twice per read is one allocation nobody
+/// needed.
 ///
 /// A key of nothing but digits is an index however it was written, because
 /// `list[0]` and `list["0"]` name the same element in the language. Nothing
@@ -69,11 +90,11 @@ fn property_name(property: &EvaluateResultValue) -> Option<String> {
 /// carries, so they answer `undefined` exactly as they do upstream. Testing
 /// with `parse::<f64>()` instead would call all three indices — it accepts
 /// `"NaN"` and `"inf"` — and refuse a fold the reference implementation makes.
-fn classify_lookup(property: &EvaluateResultValue) -> ArrayLikeLookup {
-  match property_name(property) {
+fn classify_lookup(name: Option<&str>) -> ArrayLikeLookup {
+  match name {
     None => ArrayLikeLookup::Unreadable,
     Some(key) if key == LENGTH => ArrayLikeLookup::Length,
-    Some(key) => match index_slot(&key) {
+    Some(key) => match index_slot(key) {
       Some(slot) => ArrayLikeLookup::Index(slot),
       None => ArrayLikeLookup::Missing,
     },
@@ -183,9 +204,8 @@ fn read_theme_member(
   key: &str,
   path: &Expr,
   state: &mut EvaluationState,
-  traversal_state: &StateManager,
 ) -> Option<EvaluateResultValue> {
-  let value = theme_ref.get(key, traversal_state);
+  let value = theme_ref.get(key);
 
   let Some(css_var) = value.as_css_var() else {
     deopt_unsupported!(deopt, path, state, EXPECTED_CSS_VAR);
@@ -278,6 +298,90 @@ fn holey_receiver_elems(obj: &Expr) -> Option<&[Option<ExprOrSpread>]> {
     .then_some(elems.as_slice())
 }
 
+/// The entries the function map holds for a StyleX namespace this name stands
+/// for, or `None` where the name stands for something else.
+///
+/// The namespace name itself is registered as a value only where a `create`
+/// call sets its evaluation up. Every other call leaves it unregistered so that
+/// a bare `stylex` written where a static value belongs refuses instead of
+/// materializing into an object, which is why what the namespace *has* is asked
+/// for here rather than what it *is*.
+///
+/// A name the map binds as a value wins, as it does everywhere else: a dynamic
+/// style's parameter named `stylex` is the parameter, and reading the import
+/// through it would fold a value the language says is the argument's.
+fn namespace_entries<'a>(
+  receiver: &Ident,
+  fns: &'a FunctionMap,
+) -> Option<&'a FxHashMap<Atom, Box<FunctionConfigType>>> {
+  // Walked rather than looked up, because the key is an owned `ImportSources`
+  // and building one to ask the question would allocate on every member read.
+  // A module names one or two StyleX imports, so the walk is shorter than the
+  // allocation it replaces, and a module naming none walks nothing at all --
+  // which is why this is asked before the binding below.
+  //
+  // A regular source alone, as the callee dispatch reads it: every producer of
+  // this set records the local name a module wrote, so a named source is a key
+  // nothing puts there.
+  let entries = fns
+    .member_expressions
+    .iter()
+    .find_map(|(source, entries)| {
+      matches!(source, ImportSources::Regular(name) if name.as_str() == receiver.sym.as_str())
+        .then(|| entries.as_ref())
+    })?;
+
+  if fns.identifiers.contains_key(&receiver.sym) {
+    return None;
+  }
+
+  Some(entries)
+}
+
+/// The environment object a namespace member read names.
+///
+/// `stylex.env.<name>` reads two members, and the second is read off whatever
+/// the first answers. Reading the entry off the namespace's own entries answers
+/// `stylex.env` in every call that registers one, and leaves the bare name
+/// refusing.
+///
+/// Only an environment entry is answered here. Every other entry a namespace
+/// carries stands for a helper, and what a helper read off a namespace folds to
+/// is the arms below's question -- answering it here would change it.
+fn namespace_env_object(
+  member: &MemberExpr,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> Option<EvaluateResultValue> {
+  let receiver = normalize_expr(&member.obj).as_ident()?;
+  let entries = namespace_entries(receiver, fns)?;
+
+  let key = match &member.prop {
+    // Taken as the interned name it already is. This is the spelling nearly
+    // every read uses, and the round trip through `String` would be paid on
+    // every member expression the evaluator folds.
+    MemberProp::Ident(ident) => ident.sym.clone(),
+    // A computed key names what it holds, so `stylex[key]` resolves the entry
+    // `stylex.env` resolves where `key` holds `"env"`. Read only once the
+    // receiver is known to name a namespace, so nothing else pays for it.
+    //
+    // A key that refuses records its refusal on `state` and leaves this read
+    // with nothing. That is the reason it is read here and not earlier: the
+    // walk below is handed a state that already says why, and reports the key
+    // rather than the member expression around it.
+    MemberProp::Computed(ComputedPropName { expr, .. }) => Atom::from(property_name(
+      &evaluate_cached(expr, state, traversal_state, fns)?,
+    )?),
+    MemberProp::PrivateName(_) => return None,
+  };
+
+  match entries.get(&key)?.as_ref() {
+    FunctionConfigType::EnvObject(env_map) => Some(EvaluateResultValue::EnvObject(env_map.clone())),
+    _ => None,
+  }
+}
+
 pub(in super::super) fn evaluate(
   member: &MemberExpr,
   state: &mut EvaluationState,
@@ -292,8 +396,8 @@ pub(in super::super) fn evaluate(
   // read with no call around it is no safer than one with. Answered before the
   // receiver is evaluated, for the reason the fold's own walk answers it first —
   // the name decides it, and no receiver could make it safe.
-  if let Some(escaping) = escaping_property_named(&member.prop) {
-    return deopt(path, state, &escaping_property(escaping));
+  if let Some(refusal) = refusal_for_a_property_read(&member.prop) {
+    return deopt(path, state, &refusal);
   }
 
   let parent_is_call_expr = traversal_state.is_member_call_callee(member);
@@ -301,6 +405,13 @@ pub(in super::super) fn evaluate(
   let evaluated_value = if parent_is_call_expr {
     None
   } else {
+    // Answered by name, ahead of every reading that evaluates the receiver:
+    // the namespace this reads off is deliberately not a value in most calls,
+    // so evaluating it first would refuse the read before it is recognised.
+    if let Some(env_object) = namespace_env_object(member, state, traversal_state, fns) {
+      return Some(env_object);
+    }
+
     // A hole is answered from the source, ahead of a receiver that will refuse
     // for it. A spread still refuses, through the same `written_slot_count` the
     // arms below use -- one written element standing for however many the spread
@@ -321,8 +432,14 @@ pub(in super::super) fn evaluate(
     // paying for a speculative `evaluate_cached` that can never produce a
     // ThemeRef and may early-deopt via `state.confident` for unrelated deep
     // member accesses.
+    //
+    // A StyleX namespace is not a theme reference, and asking for its value is
+    // what makes the chain refuse: the name is deliberately bound to nothing in
+    // every call but `create`, so the read below answers it off the namespace's
+    // entries instead.
     if let Some((base_path, parts)) = get_full_member_path(member)
-      && theme_ref_base(&base_path).is_some()
+      && let Some(base_ident) = theme_ref_base(&base_path)
+      && namespace_entries(base_ident, fns).is_none()
     {
       let base_object = evaluate_cached(&base_path, state, traversal_state, fns);
 
@@ -331,13 +448,7 @@ pub(in super::super) fn evaluate(
       }
 
       if let Some(EvaluateResultValue::ThemeRef(mut theme_ref)) = base_object {
-        return read_theme_member(
-          &mut theme_ref,
-          &parts.join("."),
-          path,
-          state,
-          traversal_state,
-        );
+        return read_theme_member(&mut theme_ref, &parts.join("."), path, state);
       }
     }
 
@@ -387,6 +498,41 @@ pub(in super::super) fn evaluate(
         deopt_unsupported!(deopt, path, state, PROPERTY_NOT_FOUND);
       };
 
+      // The property rules again, now on the name the key *resolves* to rather
+      // than the name it was written as. The rule at the top of this function
+      // reads syntax, so it answers `x.constructor` and `x['constructor']` and
+      // nothing else; a key built at compile time -- `x['const' + 'ructor']`,
+      // or a key held in a name -- spells the same read and has to be refused
+      // the same way.
+      //
+      // A key boxed with `Object(...)` spells it too and never arrives: an
+      // object is not a value the engine hands back, so that one refuses a step
+      // earlier for a reason of its own.
+      //
+      // Asked of a computed key only. A key written as a name was read by the
+      // syntax rule above and resolves to the text it already is, so asking
+      // again would name a string per dotted read to learn what the first rule
+      // answered. That is the whole of the cost: a dotted read is the common
+      // shape, and it now pays nothing here.
+      //
+      // A key that names no property is left to the readers below, which answer
+      // `undefined` for it as the language does.
+      //
+      // A symbol key cannot arrive here: a symbol is refused on the way out of
+      // the engine, so no fold hands one back to be coerced.
+      // Named at most once, and only where something asks. Three of the arms
+      // below read the key their own cheaper way -- an interned atom, a
+      // written key, a theme member -- so naming it for every read would write
+      // a string those arms throw away.
+      let spelled = OnceCell::new();
+
+      if matches!(prop_path, MemberProp::Computed(_))
+        && let Some(refusal) =
+          spelled_name(&spelled, &property).and_then(refusal_for_a_property_name)
+      {
+        return deopt(path, state, &refusal);
+      }
+
       match object {
         EvaluateResultValue::Expr(expr) => match &expr {
           // An evaluator-written array, which is what a fold hands back and
@@ -396,7 +542,7 @@ pub(in super::super) fn evaluate(
           // wrote is read through `written_slot_count` above, which answers for
           // both.
           Expr::Array(ArrayLit { elems, .. }) => {
-            let slot = match classify_lookup(&property) {
+            let slot = match classify_lookup(spelled_name(&spelled, &property)) {
               // The count of slots the language reports.
               ArrayLikeLookup::Length => {
                 return Some(EvaluateResultValue::Expr(create_number_expr(
@@ -498,7 +644,7 @@ pub(in super::super) fn evaluate(
           // astral character answers the replacement character -- the same
           // substitution the engine fold makes, so `s[0]` and `s.charAt(0)` are
           // one read written two ways rather than two answers.
-          Expr::Lit(Lit::Str(strng)) => match classify_lookup(&property) {
+          Expr::Lit(Lit::Str(strng)) => match classify_lookup(spelled_name(&spelled, &property)) {
             ArrayLikeLookup::Length => Some(EvaluateResultValue::Expr(create_number_expr(
               atom_utf16_length(&strng.value) as f64,
             ))),
@@ -623,7 +769,8 @@ pub(in super::super) fn evaluate(
         // `holey_receiver_length` has already answered its count from the
         // source — including through a binding, where the refusal travels with
         // the value and no short count is answered.
-        EvaluateResultValue::Vec(items) => match classify_lookup(&property) {
+        EvaluateResultValue::Vec(items) => match classify_lookup(spelled_name(&spelled, &property))
+        {
           ArrayLikeLookup::Length => Some(EvaluateResultValue::Expr(create_number_expr(
             written_slot_count_of(&member.obj, &items) as f64,
           ))),
@@ -645,14 +792,14 @@ pub(in super::super) fn evaluate(
             _ => deopt_unsupported!(deopt, path, state, MEMBER_NOT_RESOLVED),
           };
 
-          read_theme_member(&mut theme_ref, &key, path, state, traversal_state)
+          read_theme_member(&mut theme_ref, &key, path, state)
         },
         EvaluateResultValue::EnvObject(env_map) => {
-          let Some(key) = property_name(&property) else {
+          let Some(key) = spelled_name(&spelled, &property) else {
             deopt_unsupported!(deopt, path, state, UNEXPECTED_MEMBER_LOOKUP);
           };
 
-          let Some(entry) = env_map.get(&key) else {
+          let Some(entry) = env_map.get(key) else {
             deopt_unsupported!(
               deopt,
               path,

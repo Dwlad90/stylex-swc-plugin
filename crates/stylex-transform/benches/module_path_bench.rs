@@ -370,10 +370,16 @@ fn transform(
 /// that needed one could not be run from `cargo bench` on two revisions, which
 /// is the whole point of this file.
 ///
-/// `verbatim_module_syntax` is left at its default. That is not a re-test of the
-/// type-stripping change -- it is the setting under which the two revisions build
-/// *identical* configuration, since `strip` is `typescript(Config::default())`,
-/// so a difference this leg reads cannot be that change.
+/// `verbatim_module_syntax` is left at its default, which is off. The compiler
+/// does not hold it there. It turns the setting on for a file named as
+/// JavaScript and leaves it off for every other name. This module is parsed as
+/// `FileName::Anon`, which carries no extension, so the compiler answers off
+/// for it as well: the default is the matching setting here, not a divergence
+/// from it.
+///
+/// Holding the setting still is also what lets two revisions build identical
+/// configuration, so a difference this leg reads cannot be the type-stripping
+/// change.
 fn full_pipeline(fixture: &Fixture, program: Program) -> String {
   let unresolved_mark = Mark::new();
   let top_level_mark = Mark::new();

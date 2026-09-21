@@ -1,5 +1,3 @@
-#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
-
 //! The lookup structures the StyleX state manager composes.
 //!
 //! Both answer a position question -- "which recorded entry holds this?", "where

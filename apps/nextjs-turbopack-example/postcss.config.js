@@ -48,7 +48,6 @@ module.exports = {
         dev: process.env.NODE_ENV === 'development',
         treeshakeCompensation: true,
         styleResolution: 'application-order',
-        enableDebugClassNames: process.env.NODE_ENV === 'development',
         env: {
           tokens: {
             layout: {

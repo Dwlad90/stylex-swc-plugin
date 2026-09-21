@@ -100,7 +100,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # -- see "Excluded from Coverage" in guidelines/STRUCTURE.md.
 EXCLUDED_CRATES=(
   stylex_logs        # permanent
-  stylex_compiler_rs # permanent
+  stylex_rs_compiler # permanent
   stylex_test_parser # permanent
 )
 WORKSPACE_EXCLUDES=()

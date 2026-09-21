@@ -16,7 +16,7 @@ them into a dedicated CSS chunk.
 
 This is a community project and is not affiliated with Meta. It tracks the
 official StyleX releases
-<!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->
+<!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.1)<!-- stylex-compatibility:end -->
 
 and requires Node.js 20 or newer. For Next.js projects, use
 [`@stylexswc/nextjs-plugin`](https://www.npmjs.com/package/@stylexswc/nextjs-plugin)

@@ -183,110 +183,110 @@ catalogs:
       version: 3.5.42
   internal:
     '@stylexswc/ast':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/atoms':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/constants':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/css':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/css-parser':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/design-system':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/diagnostics':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/enums':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/evaluator':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/jest':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/logs':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/macros':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/nested-config':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/nextjs-plugin':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/path-resolver':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/playwright':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/plugin-shared':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/postcss-plugin':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/postcss-value-parser':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/regex':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/rollup-plugin':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/rs-compiler':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/rspack-plugin':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/state':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/state-index':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/structures':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/stylex-js':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/stylex-styleq':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/transform':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/turbopack-plugin':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/types':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/typescript-config':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/unplugin':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/utils':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
     '@stylexswc/webpack-plugin':
-      specifier: 0.19.0-rc.5
-      version: 0.19.0-rc.5
+      specifier: 0.19.0
+      version: 0.19.0
   runtime:
     '@stylexjs/babel-plugin':
       specifier: ^0.19.1

@@ -2,9 +2,7 @@
 
 [![GitHub license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)
 [![npm version](https://img.shields.io/npm/v/@stylexswc/rs-compiler.svg?style=flat)](https://www.npmjs.com/package/@stylexswc/rs-compiler)
-![GitHub tag check runs](https://img.shields.io/github/check-runs/Dwlad90/stylex-swc-plugin/0.18.6?label=Release%20status)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Dwlad90/stylex-swc-plugin/pr-validation.yml?branch=develop&label=Project%20Health)
-<!-- stylex-compatibility:start -->[![StyleX compatibility](https://img.shields.io/badge/StyleX%20compatibility-v0.19.1-blue)](https://stylexjs.com/blog)<!-- stylex-compatibility:end -->
+![GitHub tag check runs](https://img.shields.io/github/check-runs/Dwlad90/stylex-swc-plugin/0.18.6?label=Release%20status)![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Dwlad90/stylex-swc-plugin/pr-validation.yml?branch=develop&label=Project%20Health) <!-- stylex-compatibility:start -->[![StyleX compatibility](https://img.shields.io/badge/StyleX%20compatibility-v0.19.1-blue)](https://stylexjs.com/blog)<!-- stylex-compatibility:end -->
 
 > **Rust/NAPI-RS/SWC compiler for [StyleX](https://stylexjs.com) that replaces
 > the official Babel transform and adds fast integrations for Next.js, Vite,

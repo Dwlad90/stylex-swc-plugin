@@ -145,9 +145,9 @@ smallvec = { version = "1.15.1" }
 # reason: a recursive walk over a nested expression must not be bounded by the
 # thread's stack. Named here so the evaluator can depend on it directly.
 stacker = "0.1.24"
-swc_compiler_base = { version = "64.0.0" }
+swc_compiler_base = { version = "65.0.0" }
 swc_config = { version = "6.0.0" }
-swc_core = { version = "77.1.2" }
+swc_core = { version = "81.0.0" }
 swc_ecma_parser = { version = "45.1.1" }
 url = "2.5.8"
 # The global allocator for the shipped `.node` on the other six published

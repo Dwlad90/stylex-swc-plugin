@@ -303,6 +303,23 @@ fn first_does_not_consume_token() {
   );
 }
 
+/// `cssparser` 0.38 refuses a block nested deeper than 75 levels by default.
+/// `tokenize_all` removes that limit, because upstream StyleX has no limit.
+/// If the limit comes back, the nested parse fails and the guard stops the
+/// build. This test makes sure that the tokenizer reads every level.
+#[test]
+fn a_block_nested_past_the_cssparser_default_limit_is_tokenized() {
+  const DEPTH: usize = 100;
+  let input = format!("{}a{}", "(".repeat(DEPTH), ")".repeat(DEPTH));
+
+  let tokens = TokenList::new(&input).tokens;
+
+  let count = |wanted: &SimpleToken| tokens.iter().filter(|token| *token == wanted).count();
+  assert_eq!(count(&SimpleToken::LeftParen), DEPTH);
+  assert_eq!(count(&SimpleToken::RightParen), DEPTH);
+  assert_eq!(count(&SimpleToken::Ident("a".to_string())), 1);
+}
+
 // ---------------------------------------------------------------------------
 // parse_nested_or_panic(): the error arm.
 //
@@ -315,19 +332,13 @@ fn first_does_not_consume_token() {
 #[test]
 #[should_panic(expected = "Error parsing nested content")]
 fn parse_nested_or_panic_panics_when_nested_parse_errors() {
-  use cssparser::{ParseError, ParseErrorKind, Parser, ParserInput};
+  use cssparser::{ParseError, Parser};
 
-  let mut input = ParserInput::new("(a)");
-  let mut parser = Parser::new(&mut input);
+  let mut parser = Parser::new("(a)");
   // Consume the ParenthesisBlock token so a nested parser may be created.
   let _ = parser.next();
 
-  super::parse_nested_or_panic(&mut parser, |nested_parser| {
-    Err(ParseError {
-      kind: ParseErrorKind::Custom(()),
-      location: nested_parser.current_source_location(),
-    })
-  });
+  super::parse_nested_or_panic(&mut parser, |_| Err(ParseError::custom(())));
 }
 
 /// The guard writes the error before it stops the build, and that message is
@@ -338,7 +349,7 @@ fn parse_nested_or_panic_panics_when_nested_parse_errors() {
 /// after the panic, which a `should_panic` case never reaches.
 #[test]
 fn a_nested_parse_error_is_written_before_it_stops_the_build() {
-  use cssparser::{ParseError, ParseErrorKind, SourceLocation};
+  use cssparser::ParseError;
   use log::Level;
 
   use crate::capturing_logger::logged_at;
@@ -347,10 +358,7 @@ fn a_nested_parse_error_is_written_before_it_stops_the_build() {
 
   let messages = logged_at(Level::Error, || {
     stopped = Some(std::panic::catch_unwind(|| {
-      super::handle_nested_block_result(Err(ParseError {
-        kind: ParseErrorKind::Custom(()),
-        location: SourceLocation { line: 2, column: 7 },
-      }))
+      super::handle_nested_block_result(Err(ParseError::custom(())))
     }));
   });
 

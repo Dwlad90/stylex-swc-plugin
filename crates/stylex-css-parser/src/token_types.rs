@@ -3,7 +3,7 @@ Token types and tokenization utilities for CSS parsing.
 */
 
 use crate::CssResult;
-use cssparser::{Parser, ParserInput, Token as CssToken};
+use cssparser::{Parser, Token as CssToken};
 use log::error;
 use stylex_macros::stylex_panic;
 use stylex_utils::number::to_js_string;
@@ -220,9 +220,9 @@ fn map_css_token(token: &CssToken, text: &str) -> SimpleToken {
 /// All call sites pass a closure that tokenizes the nested content and returns
 /// `Ok(())`, so in normal operation this never panics. The panic is a defensive
 /// guard against a malformed nested block surfacing a `cssparser` error.
-fn parse_nested_or_panic<'i, 't, F>(parser: &mut Parser<'i, 't>, parse: F)
+fn parse_nested_or_panic<'i, F>(parser: &mut Parser<'i>, parse: F)
 where
-  F: for<'tt> FnOnce(&mut Parser<'i, 'tt>) -> Result<(), cssparser::ParseError<'i, ()>>,
+  F: FnOnce(&mut Parser<'i>) -> Result<(), cssparser::ParseError<()>>,
 {
   // The error-handling branch is deliberately kept in a non-generic helper. If
   // it lived here, every monomorphization of this function (one per closure
@@ -236,7 +236,7 @@ where
 /// Panic (with diagnostics) when a nested `cssparser` block failed to parse.
 ///
 /// Non-generic on purpose — see `parse_nested_or_panic`.
-fn handle_nested_block_result(result: Result<(), cssparser::ParseError<'_, ()>>) {
+fn handle_nested_block_result(result: Result<(), cssparser::ParseError<()>>) {
   if let Err(e) = result {
     error!("Error parsing nested content: {:?}", e);
     stylex_panic!("Error parsing nested content: {:?}", e); // Exit on error
@@ -312,8 +312,12 @@ fn tokenize_nested_content(input: &str, parser: &mut Parser, tokens: &mut Vec<Si
 }
 
 fn tokenize_all(input: &str) -> Vec<SimpleToken> {
-  let mut input_buf = ParserInput::new(input);
-  let mut parser = Parser::new(&mut input_buf);
+  let mut parser = Parser::new(input);
+  // Since 0.38, `cssparser` refuses a block nested deeper than 75 levels.
+  // Upstream StyleX has no such limit, and 0.37 had no limit. Thus, remove
+  // the limit (0 means "no limit"). If you keep the limit,
+  // `parse_nested_or_panic` stops the build on input that upstream accepts.
+  parser.set_nested_block_limit(0);
 
   let mut tokens = Vec::new();
   let mut start = next_token_offset(&parser);

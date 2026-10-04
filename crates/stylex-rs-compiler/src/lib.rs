@@ -35,6 +35,11 @@ use swc_malloc as _;
 #[global_allocator]
 static MUSL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
+// Keeps the linux-gnu addon loadable on glibc 2.34. Nothing calls into this
+// module.
+#[cfg(all(target_os = "linux", target_env = "gnu"))]
+mod glibc_compat;
+
 mod enums;
 mod structs;
 mod utils;

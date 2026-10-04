@@ -778,6 +778,35 @@ jobs:
         with:
           cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
 
+  # Every other Rust job runs on aarch64, so the x86_64 block of the glibc shim
+  # (`crates/stylex-rs-compiler/src/glibc_compat.rs`) runs only here. A wrong
+  # jump in that block makes `hypot` give wrong values or crash.
+  glibc-shim-x64:
+    name: Tests glibc shim on x86_64
+    if: >-
+      (github.event_name != 'schedule' || github.ref_name == 'develop') &&
+      (github.event.pull_request.number == null || !github.event.pull_request.draft)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          install-dependencies: 'false'
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2.87.21
+        with:
+          tool: cargo-nextest
+
+      - name: Test the glibc shim
+        run: cargo nextest run --all-features -p stylex_rs_compiler --lib glibc_compat
+
   pr-validation:
     name: PR Validation
     if:
@@ -795,6 +824,7 @@ jobs:
       # fails the gate rather than sitting green beside it, and it carries both
       # generated sweeps for that reason: one job to list rather than two.
       - parity-sweep
+      - glibc-shim-x64
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     steps:
@@ -805,7 +835,7 @@ jobs:
           echo "$NEEDS_JSON" | jq .
 
           jobs="basic-checks checks build-public-packages playwright-image"
-          jobs="$jobs visual-tests benchmark parity-sweep"
+          jobs="$jobs visual-tests benchmark parity-sweep glibc-shim-x64"
 
           for job in $jobs; do
             result=$(echo "$NEEDS_JSON" | jq -r --arg job "$job" '.[$job].result')

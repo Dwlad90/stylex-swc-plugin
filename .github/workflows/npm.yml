@@ -194,6 +194,11 @@ jobs:
         if: ${{ matrix.settings.docker }}
         shell: bash
         run: sudo chown -R "$(id -u):$(id -g)" crates/stylex-rs-compiler/dist
+      # A gnu binding that needs a newer glibc than the floor does not load on
+      # Amazon Linux 2023 (Vercel, AWS CodeBuild). Stop before the upload.
+      - name: Check glibc floor
+        if: ${{ endsWith(matrix.settings.target, '-linux-gnu') }}
+        run: node .github/scripts/check-glibc-floor.mjs crates/stylex-rs-compiler/dist/*.node
       - name: Record candidate artifact checksums
         env:
           ARTIFACT_DIR: crates/stylex-rs-compiler/dist
@@ -369,6 +374,44 @@ jobs:
         uses: ./.github/actions/turbo-save
         with:
           cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
+  # The binding tests run on Debian, whose glibc is newer than the floor, so a
+  # binding that needs a newer glibc passes them. This job loads each gnu
+  # binding where the host glibc is the floor, so a missing block in
+  # `glibc_compat.rs` fails the release and not the hosts of users. Loading
+  # does not depend on the Node version, so it runs once for each target.
+  load-linux-gnu-binding:
+    name: 🧪 Load bindings on Amazon Linux 2023 - ${{ matrix.settings.target }}
+    needs:
+      - build
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - host: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+    runs-on: ${{ matrix.settings.host }}
+    timeout-minutes: 10
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: bindings-${{ matrix.settings.target }}
+          path: dist
+      - name: List artifacts
+        run: ls -R dist
+        shell: bash
+      - name: Load bindings
+        run: |
+          docker run --rm -v "$PWD/dist":/dist:ro -w /dist amazonlinux:2023 sh -c '
+            dnf install -y nodejs22 > /dev/null &&
+            for binding in ./*.node; do
+              [ -e "$binding" ] || { echo "The artifact has no binding to load."; exit 1; }
+              node -e "require(process.argv[1])" "$binding" || exit 1
+              echo "ok  $binding loads"
+            done
+          '
   test-linux-x64-musl-binding:
     name: 🧪 Test bindings on x86_64-unknown-linux-musl - node@${{ matrix.node }}
     needs:
@@ -809,6 +852,7 @@ jobs:
       - test-macOS-windows-binding
       - test-linux-x64-gnu-binding
       - test-linux-arm64-gnu-binding
+      - load-linux-gnu-binding
       - test-linux-x64-musl-binding
     steps:
       - uses: actions/checkout@v7.0.1

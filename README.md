@@ -128,8 +128,8 @@ Solid — live in the [`apps/`](./apps) directory.
   (see the badge above, updated automatically)
 - Validated against the official StyleX test suite
 - Node.js **20 or newer**
-- Prebuilt binaries for macOS (x64, arm64), Linux (glibc and musl, x64, arm64),
-  and Windows (x64, arm64) — no Rust toolchain needed to install
+- Prebuilt binaries for macOS (x64, arm64), Linux (glibc 2.34 or newer, and musl;
+  x64, arm64), and Windows (x64, arm64) — no Rust toolchain needed to install
 
 ## FAQ
 

@@ -72,6 +72,14 @@ measurement. Adding a musl target is a decision, not a copied line: mimalloc
 does not work on ARM64 musl.
 _Avoid_: memory allocator setting, malloc flag, mimalloc feature
 
+**glibc floor**:
+The oldest glibc that a published linux-gnu `.node` loads on: 2.34, the version
+that Amazon Linux 2023 ships. A binary needs the highest glibc version of the
+symbols it links, and a new glibc can add a new version of an old symbol.
+`src/glibc_compat.rs` binds such a symbol to its old version, and
+`.github/scripts/check-glibc-floor.mjs` stops a release whose binary needs more.
+_Avoid_: minimum glibc, glibc requirement
+
 **Env nesting budget**:
 `MAX_ENV_NESTING_DEPTH` — how far `napi_value_to_expr` descends into the
 `stylex.env` object before it reads a value as null. The reader recurses once

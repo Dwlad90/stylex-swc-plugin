@@ -29,19 +29,41 @@ pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
   }
 }
 
-/// `**`, which parts from IEEE `pow` on the three rows the language names.
+/// `**` and `Math.pow`, with the steps of Node. The evaluator calls it for
+/// `**`, and the engine fold calls it for `**` and for `Math.pow`.
 ///
+/// The result differs from IEEE `pow` on the three rows the language names.
 /// `pow` answers `1` for a base of 1 whatever the exponent, `NaN` included, and
 /// for a base of magnitude 1 under an infinite exponent. The language answers
 /// `NaN` for all three. The zero exponent is read first, because both readings
 /// answer `1` for it whatever the base, `NaN` included.
-fn js_exponentiate(base: f64, exponent: f64) -> f64 {
+///
+/// Node computes an exponent of 2 as one multiplication and an exponent of one
+/// half as a square root. Both round correctly, so they give the same bits on
+/// every host. The `pow` of the C library can round them differently in the
+/// last bit. For every other exponent, Node 24 also calls the `pow` of the C
+/// library, so its answer depends on the host.
+pub fn js_exponentiate(base: f64, exponent: f64) -> f64 {
   if exponent == 0.0 {
     return 1.0;
   }
 
   if exponent.is_nan() || (base.abs() == 1.0 && exponent.is_infinite()) {
     return f64::NAN;
+  }
+
+  if exponent == 2.0 {
+    return base * base;
+  }
+
+  if exponent == 0.5 {
+    // The square root of -Infinity is NaN, but `pow` gives Infinity. The `+ 0`
+    // changes -0 to +0, as `pow` does.
+    return if base == f64::NEG_INFINITY {
+      f64::INFINITY
+    } else {
+      (base + 0.0).sqrt()
+    };
   }
 
   base.powf(exponent)

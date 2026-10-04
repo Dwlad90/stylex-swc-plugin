@@ -41,6 +41,27 @@ mod evaluate_bin_expr_tests {
     assert_eq!(evaluate_bin_expr(BinaryOp::Exp, 2.0, 10.0), 1024.0);
   }
 
+  /// A base of -0 or -Infinity under a negative or an even exponent. The sign
+  /// of the result comes from the parity of the exponent. Each value is the
+  /// answer of Node.
+  #[test]
+  fn exponentiation_of_negative_zero_and_negative_infinity_keeps_the_sign_of_node() {
+    let rows = [
+      (f64::NEG_INFINITY, 2.0, f64::INFINITY),
+      (f64::NEG_INFINITY, 3.0, f64::NEG_INFINITY),
+      (-0.0, -1.0, f64::NEG_INFINITY),
+      (-0.0, -2.0, f64::INFINITY),
+    ];
+
+    for (base, exponent, expected) in rows {
+      assert_eq!(
+        evaluate_bin_expr(BinaryOp::Exp, base, exponent).to_bits(),
+        expected.to_bits(),
+        "{base} ** {exponent}"
+      );
+    }
+  }
+
   #[test]
   fn addition_of_large_magnitudes() {
     assert_eq!(evaluate_bin_expr(BinaryOp::Add, 1e15, 1e15), 2e15);
@@ -248,6 +269,52 @@ mod evaluate_bin_expr_tests {
       f64::INFINITY
     );
     assert_eq!(evaluate_bin_expr(BinaryOp::Exp, 0.5, f64::INFINITY), 0.0);
+  }
+
+  /// Node computes `x ** 2` as `x * x`, on every host and in Node 22 and 24.
+  /// The `pow` of the C library can round the last bit differently: on an
+  /// arm64 Mac, it gives 534174.1058373373 for the first row.
+  #[test]
+  fn exponentiation_by_two_is_one_multiplication() {
+    let cases = [
+      (730.8721542358398, 534174.1058373372),
+      (-730.8721542358398, 534174.1058373372),
+      (677916.2883758545, 459570494045.29474),
+      (1e200, f64::INFINITY),
+    ];
+    for (base, expected) in cases {
+      assert_eq!(
+        evaluate_bin_expr(BinaryOp::Exp, base, 2.0).to_bits(),
+        expected.to_bits(),
+        "{base} ** 2"
+      );
+    }
+    assert_eq!(evaluate_bin_expr(BinaryOp::Exp, -0.0, 2.0).to_bits(), 0);
+    assert!(evaluate_bin_expr(BinaryOp::Exp, f64::NAN, 2.0).is_nan());
+  }
+
+  /// Node computes `x ** 0.5` as the square root of `x + 0`, which rounds
+  /// correctly on every host. The `+ 0` gives `+0` for `-0`. A base of
+  /// `-Infinity` gives `Infinity`, as `pow` does, where the square root gives
+  /// `NaN`.
+  #[test]
+  fn exponentiation_by_one_half_is_the_square_root() {
+    let cases = [
+      (0.05471760034561157, 0.23391793506615002),
+      (3.6914396286010742e-301, 6.075721873655075e-151),
+      (5e-324, 2.2227587494850775e-162),
+      (f64::NEG_INFINITY, f64::INFINITY),
+      (-0.0, 0.0),
+    ];
+    for (base, expected) in cases {
+      assert_eq!(
+        evaluate_bin_expr(BinaryOp::Exp, base, 0.5).to_bits(),
+        expected.to_bits(),
+        "{base} ** 0.5"
+      );
+    }
+    assert!(evaluate_bin_expr(BinaryOp::Exp, -4.0, 0.5).is_nan());
+    assert!(evaluate_bin_expr(BinaryOp::Exp, f64::NAN, 0.5).is_nan());
   }
 
   #[test]

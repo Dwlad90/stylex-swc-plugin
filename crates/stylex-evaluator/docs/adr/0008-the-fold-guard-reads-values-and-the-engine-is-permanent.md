@@ -83,6 +83,67 @@ grows. Every one of those is a wrong value rather than a missing one when it
 drifts, and a wrong value is hashed into a class name that no later build
 reproduces. 5.6 MiB buys the language's own answer.
 
+**Some statics are not the engine's own.** The engine's answer is the
+language's answer only where the language fixes the result. For most `Math`
+statics, the language lets each engine choose the method, and Boa and Node
+choose differently:
+
+- For `Math.hypot`, Boa adds two arguments at a time through the `hypot` of
+  the C library. Node scales the arguments and adds the squares with a
+  compensated sum.
+- For `Math.cbrt` and the other transcendental statics, Boa calls the C
+  library. Node calls its own copy of fdlibm.
+- For `Math.pow`, Boa calls the `pow` of the C library for every exponent.
+  Node computes an exponent of 2 as one multiplication and an exponent of one
+  half as a square root.
+- For `**`, Boa multiplies again and again when the exponent is an integer,
+  and calls the `pow` of the C library for the other exponents. It also
+  answers `1` for `1 ** NaN`, where the language answers `NaN`. Measured:
+  `String(1.092492 ** 15)` was `3.7694152359253783` in the engine and
+  `3.7694152359253774` in Node.
+
+The two can differ in the last bit, and that changes a class name. So the
+engine replaces each of these statics with a native function that does the
+steps of Node (`engine_fold/math.rs`). Replace another static only when the
+language lets the method vary and a measured case shows that Boa and Node give
+different values.
+
+`**` is an operator, so there is no static to replace. The engine gets a
+global native, `__sxPow`, that does the steps of `Math.pow` and keeps the BigInt
+answers of the engine. The printed source calls it in place of each `**`. It is
+a global and not a parameter of the printed arrow, as the checks of ADR 0010
+are, because a fold with `**` then needs no arrow and no extra argument. A
+global is safe here because nothing can change what it holds: the property
+cannot be written or deleted, and the guard refuses every name of that
+spelling, so no binding can shadow it. The guard admits no assignment, so no
+`**=` gets to the engine.
+
+**The x64 answer is the answer on every host.** Node itself is not the same
+on every platform. On arm64, its C++ compiler fuses some multiplications and
+additions of fdlibm into one step, and the last bit can change. In a
+measurement on Node 24.16, `Math.asin` changed for approximately one argument
+in 220. So the reference compiler can give a different class name on an arm64
+Mac and on an x64 build server. The ports never fuse, so they give the x64
+answer on every host. A build then gives the same class names wherever it
+runs, and they agree with x64 Node, which hosted CI runners and most build
+servers use.
+
+**The ports match two versions of V8.** They copy the fdlibm of V8 12.4 and
+13.6, which Node 22 and Node 24 use. A comparison of the ports with the C code
+of V8 13.6, compiled without fused steps, found no different bit in 400
+million arguments. A smaller comparison with x64 Node 22 found none. Since
+May 2026, V8 computes most of these statics with the `libm` of LLVM, which
+rounds correctly, and `Math.tanh` with `std::tanh`. A Node major on that V8
+gives different last bits. When the reference compiler moves to it, measure
+again and replace or remove the ports.
+
+**`Math.pow` and `**` have no answer that is the same on every host.** Node
+24 computes every exponent other than 2 and one half with the `pow` of the C
+library, so its own answer depends on the host. Node 22 used fdlibm. The fold computes the
+two exponents as Node does, because a multiplication and a square root round
+correctly on every host. For the other exponents, it keeps the `pow` of the C
+library.
+
 **It was vendored for one release, and is not any more.** Published `boa_engine`
 0.21.1 required `icu_normalizer ~2.0.0` and `boa_parser` required
 `icu_properties ~2.0.0`; neither could coexist with the `~2.3.0` that

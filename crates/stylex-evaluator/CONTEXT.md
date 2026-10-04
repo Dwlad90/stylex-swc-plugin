@@ -79,12 +79,35 @@ resolves to a value the bridge can carry, which is what the
 
 The engine is handed the expression alone and knows nothing of the module, so a
 resolved name crosses beside the source as a [transport](#transport) argument.
-Nothing is ever registered on it: the instance is leaked per thread and shared
-by every file that thread compiles, so a name left behind would be a cross-file
-correctness bug. What comes back is the evaluator's own value type, not a syntax
-node. Why the engine is permanent is [ADR
+Nothing is registered on it after it starts: the instance is leaked per thread
+and shared by every file that thread compiles, so a name left behind would be a
+cross-file correctness bug. The engine changes some built-ins once, when it
+starts, and never again: `Function.prototype.toString` throws, and each
+[replaced static](#replaced-static) takes the steps of Node.
+What comes back is the evaluator's own value type, not a syntax node. Why the
+engine is permanent is [ADR
 0008](./docs/adr/0008-the-fold-guard-reads-values-and-the-engine-is-permanent.md).
 _Avoid_: boa fold, reflection, dynamic dispatch
+
+**Replaced static**:
+A built-in of the engine that `engine_fold/math.rs` replaces with a native
+function, because Boa computes it with a different method from Node and the
+last bit, and so the class name, can change. The set is `Math.hypot`, every
+[fdlibm port](#fdlibm-port) and `Math.pow`. `**` is not a static, so the
+printed source calls the global native `__sxPow` in its place, which does the
+steps of `Math.pow`. These folds give the answer of x64 Node with one
+exception: `Math.pow` and `**` with an exponent other than 2 or one half use
+the `pow` of the C library, as Node 24 does, so that answer depends on the
+host. ADR 0008 says when to replace another static.
+_Avoid_: patched static, override, polyfill
+
+**fdlibm port**:
+A Rust copy of the fdlibm function that V8 uses for one `Math` static
+(`engine_fold/math/fdlibm/`), step for step, so that the fold gives the bits of
+x64 Node on every host. The ports never fuse a multiplication and an addition,
+which arm64 Node does. They match V8 12.4 and 13.6 (Node 22 and Node 24) and
+must be measured again for each new Node major.
+_Avoid_: libm, polyfill, approximation
 
 **Fold memo**:
 The compiled scripts an engine keeps beside itself, one per distinct printed

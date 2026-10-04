@@ -543,7 +543,7 @@ pub static BLOCKED_FUNCTION_CALL: &str = concat!(
 pub fn reserved_compiler_name(name: &str) -> String {
   format!(
     "Cannot fold an expression that binds '{}' at compile time.\n\
-     The compiler reserves that name for a safety check in the source it evaluates.\n\n",
+     The compiler reserves that name for its own use in the source it evaluates.\n\n",
     name
   )
 }

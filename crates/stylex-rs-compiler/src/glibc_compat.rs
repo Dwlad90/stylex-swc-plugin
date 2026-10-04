@@ -4,7 +4,8 @@
 //! later records that version as a requirement. A host with an older glibc then
 //! refuses to load the addon, and Node reports only "Cannot find native
 //! binding". Amazon Linux 2023 (Vercel, AWS CodeBuild) ships glibc 2.34. The
-//! JavaScript engine calls `hypot` for `Math.hypot`.
+//! JavaScript engine links `hypot` for its own `Math.hypot`, which the evaluator
+//! replaces, so the symbol stays in the binary.
 //!
 //! Each block below defines a local `hypot` that jumps to the old version. The
 //! linker binds every call in the addon to this local symbol, so the binary
@@ -23,6 +24,9 @@
 //!
 //! `.github/scripts/check-glibc-floor.mjs` fails the release when a symbol
 //! needs a glibc newer than 2.34. Add a block here when it names a new one.
+//! The tests in this crate find a wrong jump. They do not find a missing block,
+//! because the `hypot` of the C library also passes them. Only the release
+//! check finds a missing block.
 
 // `GLIBC_2.2.5` is the first glibc version on x86_64.
 #[cfg(target_arch = "x86_64")]

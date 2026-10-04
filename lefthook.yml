@@ -241,6 +241,11 @@ pre-push:
     #
     # Whole-graph by necessity, like `rust-fmt`: an export is dead only relative
     # to every importer, so there is nothing to narrow to `{push_files}`.
+    #
+    # knip loads the app configs, and they import packages from `dist/`. If a
+    # `dist/` is missing, knip fails with "Error loading". Run
+    # `pnpm lint:dead-exports` one time: it builds the packages and runs knip.
+    # The hook does not build itself, because a cold build compiles Rust.
     - name: dead-exports
       glob: '*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'
       skip: *on_shared_branches

@@ -115,6 +115,15 @@
       "inputs": ["crates/**", "Cargo.lock", "rust-toolchain.toml"],
       "outputLogs": "errors-only"
     },
+    "//#lint:knip": {
+      "dependsOn": [
+        "@stylexswc/playwright#build",
+        "@stylexswc/plugin-shared#build",
+        "@stylexswc/unplugin#build",
+        "@stylexswc/webpack-plugin#build"
+      ],
+      "outputLogs": "errors-only"
+    },
     "//#lint:node:type-aware": {
       "inputs": ["$TURBO_DEFAULT$", ".oxlintrc.jsonc", "**/tsconfig*.json"],
       "outputLogs": "errors-only"

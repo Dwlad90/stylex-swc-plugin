@@ -26,7 +26,7 @@ the commit source to `message`, which skips the prompt.
     [Scripts](../SCRIPTS.md).
 - `commit-msg` -- `commitlint`.
 - `pre-push` -- conflict markers on the pushed commits, `cargo fmt --check`,
-  Markdown over the pushed files, knip dead exports (`pnpm lint:dead-exports`),
+  Markdown over the pushed files, knip dead exports (`pnpm lint:knip`),
   and `pnpm test:scripts` when the push touches `scripts/`, `.github/scripts/`
   or `.lefthook/`. All but the conflict check are skipped on `develop` and
   `master`, where CI runs the same thing. `clippy` and `rust-audit` are opt-in

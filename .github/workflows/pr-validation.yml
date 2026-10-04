@@ -130,11 +130,6 @@ jobs:
           - id: hooks-validate
             name: Validate git hook config
             command: pnpm run hooks:validate
-          # The pre-push counterpart. Same reasoning as shellcheck above: a
-          # check that lives only in a hook is silent for anyone who bypasses.
-          - id: lint-dead-exports
-            name: Lint dead exports
-            command: pnpm run lint:dead-exports
           # Every CI-side script suite, not just the reporter: `test:scripts`
           # also covers the release artifact parsers and the release shell
           # scripts, which the full `test` run alone would not guard on the
@@ -188,6 +183,15 @@ jobs:
           - id: lint-type-aware
             name: Lint Node.js code (type-aware)
             command: pnpm run lint:type-aware
+          # The pre-push counterpart. Same reasoning as shellcheck: a check
+          # that lives only in a hook is silent for anyone who bypasses.
+          # knip loads the app configs, and they import packages from `dist/`.
+          # A config that does not load fails the run. The `//#lint:knip`
+          # turbo task builds these packages first. This job restores the
+          # `build-public-packages` cache, so the builds are cache hits.
+          - id: lint-dead-exports
+            name: Lint dead exports
+            command: pnpm run lint:dead-exports
           - id: lint-check-rust
             name: Lint Rust code
             command: pnpm run lint:rust

@@ -53,8 +53,15 @@ it into dash on Linux, where its bashisms fail.
   re-baselines the resolved-config golden (refused while a `lefthook-local.yml`
   would pollute it), `pnpm hooks:test` runs the `scripts/git` half of
   `test:scripts`.
-- `pnpm lint:dead-exports` -- knip's export scan; a `basic-checks` leg and a
-  `pre-push` job.
+- `pnpm lint:dead-exports` -- knip's export scan. It runs the cached
+  `//#lint:knip` turbo task. knip loads some app configs, for example the Vite,
+  webpack and Playwright configs. These configs import workspace packages from
+  `dist/`, and knip fails when a config does not load. For this reason, the task
+  depends on the builds of these packages, and on `@stylexswc/rs-compiler`
+  through them. If CI shows `Error loading <config> (Cannot find module
+.../dist/...)`, add the build of that package to the `dependsOn` list in
+  `turbo.json`. CI runs the script as a `checks` leg. The `pre-push` job runs
+  knip directly against the local `dist/`.
 - `pnpm audit:rust` -- `cargo deny` plus `cargo audit`; both optional installs,
   and the script says how to get them.
 

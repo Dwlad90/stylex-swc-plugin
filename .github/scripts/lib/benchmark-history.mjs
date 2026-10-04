@@ -22,8 +22,8 @@ import { fileURLToPath } from 'node:url';
  */
 export const VIEWER_TEMPLATE_SOURCE = Object.freeze({
   action: 'benchmark-action/github-action-benchmark',
-  ref: '52576c92bccf6ac60c8223ec7eb2565637cae9ba',
-  version: 'v1.22.1',
+  ref: '4322e5726e6334590d251fc4f92bec0efafc45dc',
+  version: 'v1.22.2',
 });
 
 export const VIEWER_TEMPLATE = fileURLToPath(

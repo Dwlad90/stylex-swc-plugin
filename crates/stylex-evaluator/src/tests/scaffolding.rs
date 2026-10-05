@@ -11,7 +11,7 @@
 //! them beside its own assertions rather than restating them.
 
 use swc_core::{
-  common::{FileName, SourceFile, SourceMap, sync::Lrc},
+  common::{FileName, SourceFile, SourceMap, Spanned, sync::Lrc},
   ecma::ast::Expr,
 };
 use swc_ecma_parser::{
@@ -116,6 +116,19 @@ fn parse_expr_under(source: &str, syntax: Syntax) -> Expr {
     recovered_errors
   );
 
+  // The parser stops at the first token that cannot continue the expression,
+  // and it reports nothing. It starts in a context where `in` is not an
+  // operator, so it stops before the `in` of `'a' in b`. A case that parses
+  // only a part of its source tests a different source.
+  let parsed_end = (expr.span().hi - file.start_pos).0 as usize;
+
+  assert!(
+    source[parsed_end..].trim().is_empty(),
+    "parsed only `{}` of `{}`",
+    &source[..parsed_end],
+    source
+  );
+
   expr
 }
 
@@ -162,5 +175,13 @@ mod tests {
   #[test]
   fn reads_a_top_level_await_as_an_await_expression() {
     assert!(matches!(parse_expr("await p"), Expr::Await(_)));
+  }
+
+  /// Without parentheses the parser stops before `in`. The helper refuses that
+  /// source, so a case cannot read only its left operand.
+  #[test]
+  #[should_panic(expected = "parsed only `'a'` of `'a' in ({ a: 1 })`")]
+  fn refuses_a_source_that_the_parser_reads_only_in_part() {
+    parse_expr("'a' in ({ a: 1 })");
   }
 }

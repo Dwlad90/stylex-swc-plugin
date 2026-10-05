@@ -953,3 +953,13 @@ fn a_comparison_with_an_object_on_either_side_refuses() {
     assert_deopts(source);
   }
 }
+
+/// `in` asks whether an object has a key, which no number answers, so the fold
+/// refuses. The source is in parentheses, because the case parser does not read
+/// `in` at the top level.
+#[test]
+fn in_over_an_object_refuses() {
+  for source in ["('a' in ({ a: 1 }))", "('b' in ({ a: 1 }))", "(0 in [1])"] {
+    assert_deopts(source);
+  }
+}

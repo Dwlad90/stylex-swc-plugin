@@ -387,6 +387,9 @@ pub fn write_js_number_of<S: StringSink>(
     // its own: it stringifies to `"undefined"`, which is not a numeric
     // literal.
     Expr::Lit(Lit::Null(_)) => Ok(NumberOf::Value(0.0)),
+    // `ToNumber` of a BigInt throws a `TypeError`, and no operator mixes a
+    // BigInt with a number. The string form below would read its digits.
+    Expr::Lit(Lit::BigInt(_)) => Err(StringRefusal::NoStringForm),
     // An object converts through the method pair a number prefers, which is
     // the reverse of the string one: an own `valueOf` answers ahead of an own
     // `toString`, so `Number({ valueOf: () => 2, toString: () => '1' })` is
@@ -803,9 +806,10 @@ fn number_of_a_string(text: &Wtf8Atom) -> f64 {
 /// its own `valueOf` first, then its own `toString`.
 ///
 /// `None` is an object that keeps the `Object.prototype` pair, whose primitive
-/// is [`OBJECT_TO_STRING`] and which the caller's string path already writes,
-/// and an object this crate cannot convert at all. A value that is already a
-/// primitive answers itself.
+/// is [`OBJECT_TO_STRING`] and which the caller's string path already writes.
+/// It is also an object that this crate cannot convert, and an object whose
+/// methods give no primitive, where the language throws a `TypeError`. A value
+/// that is already a primitive answers itself.
 pub fn to_js_default_primitive(expr: &Expr) -> Option<&Expr> {
   match expr {
     Expr::Object(object) => match object_to_primitive(object, ToPrimitiveHint::Number)? {
@@ -872,15 +876,15 @@ fn object_to_primitive(object: &ObjectLit, hint: ToPrimitiveHint) -> Option<Obje
       // The object does not override this one, so `Object.prototype`'s
       // applies: its `toString` answers the default text, while its `valueOf`
       // answers the object itself, which is not a primitive and is passed over.
-      None if name == TO_STRING => break,
-      None => continue,
-      Some(returned) => return Some(ObjectPrimitive::Returned(returned?)),
+      OwnMethod::Absent if name == TO_STRING => return Some(ObjectPrimitive::Default),
+      OwnMethod::Absent | OwnMethod::Skipped => continue,
+      OwnMethod::Answers(returned) => return Some(ObjectPrimitive::Returned(returned)),
+      OwnMethod::Unreadable => return None,
     }
   }
 
-  // Both orders end in `toString`, so the loop leaves off at the default rather
-  // than at a refusal however it is left.
-  Some(ObjectPrimitive::Default)
+  // No method gave a primitive, so the language throws a `TypeError`.
+  None
 }
 
 /// Which primitive a conversion prefers, and so which of the two methods an
@@ -909,27 +913,47 @@ enum ObjectPrimitive<'a> {
   Returned(&'a Expr),
 }
 
-/// The body of an own `name` method the coercion can apply, as
-/// `Some(Some(body))`.
-///
-/// `None` is an object that does not own `name` at all, and `Some(None)` one
-/// that owns it in a form this crate cannot apply -- a method shorthand, a
-/// getter, a parameterised or block-bodied arrow, or a value that is not
-/// callable, which JavaScript answers with a `TypeError` rather than a value.
-/// The two are told apart because only the first falls through to the other
-/// method.
-fn own_conversion_method<'a>(object: &'a ObjectLit, name: &str) -> Option<Option<&'a Expr>> {
-  let prop = object.props.iter().find_map(|prop| match prop {
+/// What an own conversion method of an object literal does, as
+/// `OrdinaryToPrimitive` asks it.
+enum OwnMethod<'a> {
+  /// The object does not own the method, so the `Object.prototype` one applies.
+  Absent,
+  /// The method gives no primitive, so the language asks the other method.
+  /// It is not callable, or it answers an object.
+  Skipped,
+  /// The method answers this expression.
+  Answers(&'a Expr),
+  /// The method is in a form that this crate cannot apply: a method
+  /// shorthand, an accessor, a parameterised or block-bodied arrow, or a
+  /// value whose kind cannot be read off the expression.
+  Unreadable,
+}
+
+/// What the own `name` method of `object` does. See [`OwnMethod`].
+fn own_conversion_method<'a>(object: &'a ObjectLit, name: &str) -> OwnMethod<'a> {
+  // The language keeps the last of two own keys with one name.
+  let Some(prop) = object.props.iter().rev().find_map(|prop| match prop {
     PropOrSpread::Prop(prop) if prop_name(prop) == Some(name) => Some(prop.as_ref()),
     _ => None,
-  })?;
-
-  let Prop::KeyValue(key_value) = prop else {
-    return Some(None);
+  }) else {
+    return OwnMethod::Absent;
   };
 
-  let Expr::Arrow(arrow) = key_value.value.as_ref() else {
-    return Some(None);
+  let Prop::KeyValue(key_value) = prop else {
+    return OwnMethod::Unreadable;
+  };
+
+  let arrow = match key_value.value.unwrap_parens() {
+    Expr::Arrow(arrow) => arrow,
+    // The reference implementation refuses every regular expression literal.
+    Expr::Lit(Lit::Regex(_)) => return OwnMethod::Unreadable,
+    // A literal, an object, an array and a template are never callable, so
+    // the language skips them. A name or a call can hold a function, so its
+    // kind cannot be read here.
+    Expr::Lit(_) | Expr::Object(_) | Expr::Array(_) | Expr::Tpl(_) => {
+      return OwnMethod::Skipped;
+    },
+    _ => return OwnMethod::Unreadable,
   };
 
   // A conversion method is called with no arguments, so a parameter would only
@@ -937,24 +961,28 @@ fn own_conversion_method<'a>(object: &'a ObjectLit, name: &str) -> Option<Option
   // depend on it, which is more than this crate reads. A block body is more
   // than it reads either.
   if !arrow.params.is_empty() {
-    return Some(None);
+    return OwnMethod::Unreadable;
   }
 
   let ArrowFunctionBody::Expr(body) = arrow.body.as_ref() else {
-    return Some(None);
+    return OwnMethod::Unreadable;
   };
 
-  // A method answering an object has not answered a primitive. JavaScript
-  // moves on to the other method, whose `Object.prototype` version answers the
-  // object again and ends in a `TypeError` -- so there is no value to fold.
-  if matches!(
-    body.as_ref(),
-    Expr::Object(_) | Expr::Array(_) | Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_)
-  ) {
-    return Some(None);
-  }
+  // An arrow that answers an object literal must wrap it in parentheses, so
+  // the body is read without them.
+  let body = body.unwrap_parens();
 
-  Some(Some(body.as_ref()))
+  match body {
+    // A method that answers an object has not answered a primitive, so the
+    // language asks the other method.
+    Expr::Object(_) | Expr::Array(_) | Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => {
+      OwnMethod::Skipped
+    },
+    // A regular expression is an object too, but the reference implementation
+    // refuses it.
+    Expr::Lit(Lit::Regex(_)) => OwnMethod::Unreadable,
+    _ => OwnMethod::Answers(body),
+  }
 }
 
 fn readable_key(prop: &PropOrSpread) -> bool {

@@ -78,6 +78,8 @@ that Amazon Linux 2023 ships. A binary needs the highest glibc version of the
 symbols it links, and a new glibc can add a new version of an old symbol.
 `src/glibc_compat.rs` binds such a symbol to its old version, and
 `.github/scripts/check-glibc-floor.mjs` stops a release whose binary needs more.
+The release then tests each linux-gnu binding on Amazon Linux 2023, so the test
+suite also runs against the C library of the floor.
 _Avoid_: minimum glibc, glibc requirement
 
 **Env nesting budget**:

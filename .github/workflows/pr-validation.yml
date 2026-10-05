@@ -789,10 +789,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
+      # No `ref`: the default is the commit of the event, which is the ref that
+      # `CHECKOUT_REF` gives. A pull request ref in an expression reads as an
+      # untrusted checkout to CodeQL, and this job writes the Rust cache.
       - name: Checkout code
         uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ env.CHECKOUT_REF }}
 
       - name: Setup environment
         uses: ./.github/actions/setup
@@ -800,7 +801,7 @@ jobs:
           install-dependencies: 'false'
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2.87.21
+        uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
         with:
           tool: cargo-nextest
 

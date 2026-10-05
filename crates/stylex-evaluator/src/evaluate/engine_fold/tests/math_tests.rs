@@ -687,6 +687,119 @@ fn the_engine_converts_the_base_and_the_exponent_in_order() {
 }
 
 #[test]
+fn the_engine_stops_an_exponentiation_at_the_first_conversion_that_throws() {
+  let mut engine = an_engine();
+  // Each operand records its conversion, so the answer shows which operands
+  // converted before the throw. The thrown value comes out unchanged.
+  let base = "{ valueOf() { order.push('base'); return 2; } }";
+  let exponent = "{ valueOf() { order.push('exponent'); return 3; } }";
+  let throws = "{ valueOf() { order.push('throw'); throw 'thrown'; } }";
+  let rows = [
+    (format!("Symbol(), {exponent}"), "TypeError|"),
+    (format!("{throws}, {exponent}"), "thrown|throw"),
+    (format!("{base}, Symbol()"), "TypeError|base"),
+    (format!("{base}, {throws}"), "thrown|base,throw"),
+    (format!("{throws}, {throws}"), "thrown|throw"),
+    (format!("1n, {throws}"), "thrown|throw"),
+  ];
+
+  for (operands, expected) in rows {
+    let read = format!(
+      "() => {{ const order = []; let caught; \
+       try {{ {EXPONENTIATE}({operands}); caught = 'returned'; }} \
+       catch (e) {{ caught = typeof e === 'string' ? e : e.constructor.name; }} \
+       return caught + '|' + order.join(); }}"
+    );
+
+    assert_eq!(
+      answered_by(&mut engine.context, &read, &[]),
+      expected,
+      "`{EXPONENTIATE}({operands})` did not stop at the first throw"
+    );
+  }
+}
+
+#[test]
+fn the_exponentiation_native_reads_two_operands_and_no_more() {
+  let mut engine = an_engine();
+  // A missing operand is `undefined`, which converts to `NaN`. A third one is
+  // never converted, so its throw does not happen.
+  let rows = [
+    (format!("{EXPONENTIATE}()"), "NaN"),
+    (format!("{EXPONENTIATE}(2)"), "NaN"),
+    (format!("{EXPONENTIATE}(undefined, 0)"), "1"),
+    (
+      format!("{EXPONENTIATE}(2, 3, {{ valueOf() {{ throw 1; }} }})"),
+      "8",
+    ),
+  ];
+
+  for (call, expected) in rows {
+    assert_eq!(
+      answered_by(&mut engine.context, &format!("() => String({call})"), &[]),
+      expected,
+      "`{call}` did not answer as `**` does"
+    );
+  }
+}
+
+#[test]
+fn an_exponentiation_whose_operand_throws_refuses_before_the_engine() {
+  // The guard refuses the object method, so a conversion that throws never
+  // gets to the engine from a fold. Only the engine tests above reach it.
+  for source in [
+    "[{ valueOf() { throw 1; } }].map((x) => x ** 2)",
+    "[{ valueOf() { throw 1; } }].map((x) => 2 ** x)",
+  ] {
+    assert_deopt_reason_contains(source, "Unsupported object method");
+  }
+}
+
+/// The count of `**` in each long chain, far past the default depth ceiling.
+const LONG_CHAIN: usize = 500;
+
+/// A ceiling that admits every chain of [`LONG_CHAIN`] steps.
+const LONG_CHAIN_CEILING: usize = 4 * LONG_CHAIN;
+
+/// `x ** 1 ** ... ** 1 ** 3` in a callback, with `steps` operators. `**`
+/// groups from the right, so the ones above the base make an exponent of one.
+fn right_chain(steps: usize) -> String {
+  format!(
+    "[2].map((x) => String(x ** {}3))[0]",
+    "1 ** ".repeat(steps - 1)
+  )
+}
+
+/// `((x ** 2) ** 0.5) ...` in a callback, with `steps` operators. Node squares
+/// and roots 2 exactly, so the value comes back to 2 after every pair.
+fn left_chain(steps: usize) -> String {
+  format!(
+    "[2].map((x) => String({}x{}))[0]",
+    "(".repeat(steps),
+    ") ** 2) ** 0.5".repeat(steps / 2)
+  )
+}
+
+#[test]
+fn a_long_exponentiation_chain_in_a_callback_folds_in_the_order_of_the_language() {
+  // The engine runs the callback, so each `**` of the chain becomes a call of
+  // the native, nested as deep as the chain.
+  assert_folds_to_string_with_ceiling(&right_chain(LONG_CHAIN), "2", LONG_CHAIN_CEILING);
+  assert_folds_to_string_with_ceiling(&left_chain(LONG_CHAIN), "2", LONG_CHAIN_CEILING);
+}
+
+#[test]
+fn a_long_exponentiation_chain_refuses_at_the_default_depth_ceiling() {
+  for chain in [
+    right_chain(LONG_CHAIN),
+    left_chain(LONG_CHAIN),
+    format!("String(2 ** {}3)", "1 ** ".repeat(LONG_CHAIN)),
+  ] {
+    assert_deopt_reason_contains(&chain, "too deeply nested");
+  }
+}
+
+#[test]
 fn the_exponentiation_native_cannot_be_replaced_or_listed() {
   let mut engine = an_engine();
   let read = format!(

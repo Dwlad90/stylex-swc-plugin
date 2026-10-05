@@ -26,7 +26,8 @@
 //! needs a glibc newer than 2.34. Add a block here when it names a new one.
 //! The tests in this crate find a wrong jump. They do not find a missing block,
 //! because the `hypot` of the C library also passes them. Only the release
-//! check finds a missing block.
+//! finds a missing block. The release check reads the binary. The release tests
+//! then run the binary on Amazon Linux 2023.
 
 // `GLIBC_2.2.5` is the first glibc version on x86_64.
 #[cfg(target_arch = "x86_64")]

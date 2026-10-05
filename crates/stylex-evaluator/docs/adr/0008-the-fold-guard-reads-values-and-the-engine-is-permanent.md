@@ -139,10 +139,20 @@ again and replace or remove the ports.
 
 **`Math.pow` and `**` have no answer that is the same on every host.** Node
 24 computes every exponent other than 2 and one half with the `pow` of the C
-library, so its own answer depends on the host. Node 22 used fdlibm. The fold computes the
-two exponents as Node does, because a multiplication and a square root round
-correctly on every host. For the other exponents, it keeps the `pow` of the C
-library.
+library, so its own answer depends on the host. Node 22 used fdlibm. The fold
+computes the two exponents as Node does, because a multiplication and a square
+root round correctly on every host. For the other exponents, it keeps the `pow`
+of the C library.
+
+**On Node 22, the fold gives the answer of Node 24.** fdlibm and the `pow` of
+the C library give a different last bit for approximately one call in 14:
+`7 ** 30` is `2.253934029069226e+25` on Node 22 and `2.2539340290692256e+25` on
+Node 24. The fold does not change its `pow` to match the Node that loads it,
+because then two builds of one project on two versions of Node would give
+different class names. The addon spec compares `**` and `Math.pow` with Node
+only where the V8 flag `--use-std-math-pow` is on by default: on Node 24 and
+later. It compares the exponents 2 and one half on every Node. The evaluator
+tests check the powers that the language fixes, with written values.
 
 **It was vendored for one release, and is not any more.** Published `boa_engine`
 0.21.1 required `icu_normalizer ~2.0.0` and `boa_parser` required

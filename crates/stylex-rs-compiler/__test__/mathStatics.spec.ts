@@ -6,6 +6,8 @@
 // built addon makes of it: the printed CSS value and the class name hashed
 // from it. Each expected rule is the output of the reference compiler for the
 // same source.
+import { execFileSync } from 'node:child_process';
+
 import { describe, expect, test } from 'vitest';
 
 import { transform } from '../dist/index.js';
@@ -143,10 +145,38 @@ const fdlibmStatics = [
 const nodeGivesTheReference = process.arch === 'x64';
 
 /**
+ * Whether `**` and `Math.pow` of this Node call the `pow` of the C library, as
+ * the fold does for each exponent other than 2 and one half. Node 24 and later
+ * turn on the V8 flag `--use-std-math-pow` by default. Node 22 uses fdlibm and
+ * gives a different last bit for some calls. ADR 0008 of the evaluator says
+ * why the fold keeps the answer of Node 24.
+ *
+ * The test reads the flag and not the version of Node, so that the comparison
+ * follows what each Node does.
+ */
+const nodeCallsHostPow = /\bdefault: --use-std-math-pow\b/.test(
+  execFileSync(process.execPath, ['--v8-options'], { encoding: 'utf8' })
+);
+
+/** An expression and the number that it must compile to. */
+type Case = readonly [expression: string, value: number];
+
+/**
+ * The three spellings of `base ** exponent`. Each one goes to a different fold:
+ * the evaluator, the global native of the engine, and the native `Math.pow` of
+ * the engine.
+ */
+const powSpellings: [name: string, spell: (base: string, exponent: string) => string][] = [
+  ['** in the evaluator', (base, exponent) => `(${base}) ** (${exponent})`],
+  ['** in the engine', (base, exponent) => `String((${base}) ** (${exponent}))`],
+  ['Math.pow', (base, exponent) => `Math.pow(${base}, ${exponent})`],
+];
+
+/**
  * One call of each fdlibm static, and its value. Node gives this value on x64
  * and on arm64 (both were measured), and the C library of the engine does not.
  */
-const fixedCases: [expression: string, value: number][] = [
+const fixedCases: Case[] = [
   ['Math.acos(0.05)', 1.5207754699891267],
   ['Math.acosh(1.1)', 0.4435682543851154],
   ['Math.asin(0.5)', 0.5235987755982989],
@@ -173,13 +203,13 @@ const fixedCases: [expression: string, value: number][] = [
  * Calls whose value x64 Node gives and arm64 Node does not. The compiler gives
  * the x64 value on every host, so these run on every host.
  */
-const x64Cases: [expression: string, value: number][] = [['Math.tan(1e22)', -1.628778225606899]];
+const x64Cases: Case[] = [['Math.tan(1e22)', -1.628778225606899]];
 
 /**
  * Calls that the engine runs from its own code: a static in a callback, a
  * string argument, and a base whose sign changes the result.
  */
-const engineCases: [expression: string, value: number][] = [
+const engineCases: Case[] = [
   ['[0.51].map((x) => Math.sin(x))[0]', 0.48817724688290753],
   ['[1].map((y, i) => Math.atan2(y, i))[0]', Math.PI / 2],
   ["Math.sin('0.51')", 0.48817724688290753],
@@ -191,19 +221,28 @@ const engineCases: [expression: string, value: number][] = [
 ];
 
 /**
- * `**` in the source that the engine runs. The engine computed these with
- * repeated multiplication or with the `pow` of the C library, and each one
- * gave a different number from Node. Each expected value is the answer of
- * Node on the host that runs the test.
+ * `**` in the source that the engine runs, with an exponent of 2 or one half.
+ * The engine computed these with the `pow` of the C library, which can round
+ * them differently from Node. Every Node gives the same answer for these
+ * exponents, so the answer of the Node that runs the test is the reference.
  */
-const exponentiationCases: [expression: string, value: number][] = [
+const exponentiationCases: Case[] = [
+  ['String(952.4673882682695 ** 0.5)', 952.4673882682695 ** 0.5],
+  ['[NaN].map((x) => 1 ** x)[0]', NaN],
+];
+
+/**
+ * `**` with any other exponent. The engine computed the first four with
+ * repeated multiplication or with the `pow` of the C library, and each one
+ * gave a different number from Node. These compare with Node only where
+ * `nodeCallsHostPow` is true, because Node 22 gives a different `7 ** 30`.
+ */
+const hostPowCases: Case[] = [
   ['String(1.092492 ** 15)', 1.092492 ** 15],
   ['String(1.1 ** -9)', 1.1 ** -9],
-  ['String(952.4673882682695 ** 0.5)', 952.4673882682695 ** 0.5],
   ['String(3 ** 40)', 3 ** 40],
-  ['String(7 ** 30)', 7 ** 30],
   ['[15].map((n) => 1.092492 ** n)[0]', 1.092492 ** 15],
-  ['[NaN].map((x) => 1 ** x)[0]', NaN],
+  ...powSpellings.map(([, spell]): Case => [spell('7', '30'), 7 ** 30]),
 ];
 
 /** The CSS rule that the width `expression` compiles to. */
@@ -229,6 +268,16 @@ const widthOf = (expression: string): number =>
 /** `value` with the sign of a zero removed, as a printed width removes it. */
 const unsigned = (value: number): number => (value === 0 ? 0 : value);
 
+/**
+ * The width that each expression of `table` compiles to. A printed width reads
+ * back as the same number, so a comparison with `valuesOf` compares every bit.
+ */
+const widthsOf = (table: readonly Case[]): number[] =>
+  table.map(([expression]) => widthOf(expression));
+
+/** The value of each case of `table`, as a printed width gives it. */
+const valuesOf = (table: readonly Case[]): number[] => table.map(([, value]) => unsigned(value));
+
 describe('Math.hypot', () => {
   test('folds every case to the rule of the reference compiler', () => {
     expect(
@@ -247,9 +296,7 @@ describe('Math.hypot', () => {
 });
 
 test('folds one call of each fdlibm static to the value of Node', () => {
-  expect(fixedCases.map(([expression]) => widthOf(expression))).toEqual(
-    fixedCases.map(([, value]) => value)
-  );
+  expect(widthsOf(fixedCases)).toEqual(valuesOf(fixedCases));
 });
 
 test.each([
@@ -257,8 +304,15 @@ test.each([
   ['the calls that the engine runs to the value of Node', engineCases],
   ['`**` in the engine to the value of Node', exponentiationCases],
 ])('folds %s', (_, table) => {
-  expect(table.map(([expression]) => widthOf(expression))).toEqual(table.map(([, value]) => value));
+  expect(widthsOf(table)).toEqual(valuesOf(table));
 });
+
+test.runIf(nodeCallsHostPow)(
+  'folds `**` that fdlibm rounds differently to the value of Node',
+  () => {
+    expect(widthsOf(hostPowCases)).toEqual(valuesOf(hostPowCases));
+  }
+);
 
 describe.each(fdlibmStatics)('Math.%s', name => {
   test.runIf(nodeGivesTheReference)('folds seeded arguments to the number that Node gives', () => {
@@ -286,21 +340,117 @@ describe('Math.atan2', () => {
 /**
  * The exponents that Node computes without the `pow` of the C library: 2 as
  * one multiplication, and one half as a square root. The answer is the same
- * on every host, so these comparisons run on every host. For any other
- * exponent, Node 24 calls the `pow` of the C library, and its answer depends
- * on the host.
+ * on every host and on every Node, so these comparisons run everywhere.
  */
 const hostIndependentExponents = ['2', '0.5'] as const;
 
 describe.each(hostIndependentExponents)('an exponent of %s', exponent => {
   const values = seededArguments(400).filter(value => value >= 0);
 
-  test.each([
-    ['**', (base: string) => `(${base}) ** ${exponent}`],
-    ['Math.pow', (base: string) => `Math.pow(${base}, ${exponent})`],
-  ])('folds seeded bases with %s to the number that Node gives', (_, call) => {
-    expect(values.map(value => widthOf(call(sourceOf(value))))).toEqual(
-      values.map(value => unsigned(value ** Number(exponent)))
+  test.each(powSpellings)(
+    'folds seeded bases with %s to the number that Node gives',
+    (_, spell) => {
+      expect(values.map(value => widthOf(spell(sourceOf(value), exponent)))).toEqual(
+        values.map(value => unsigned(value ** Number(exponent)))
+      );
+    }
+  );
+});
+
+/**
+ * An exponent for `**`, from `random`: an integer, a short fraction, or a
+ * number with any count of digits, of either sign.
+ */
+const seededExponent = (random: () => number, index: number): number => {
+  if (index % 3 === 0) {
+    return Math.floor(random() * 81) - 40;
+  }
+  if (index % 3 === 1) {
+    return Number(((random() - 0.5) * 8).toFixed(1 + Math.floor(random() * 3)));
+  }
+  return seededNumber(random, random() * 2);
+};
+
+/**
+ * Pairs `(base, exponent)` for `**`, the same on every run. A base is below
+ * 1000 and an exponent below 100, so that most results are finite and test the
+ * rounding. A base is negative only under an integer exponent, because any
+ * other exponent makes it NaN.
+ */
+const seededPowers = (count: number): [base: number, exponent: number][] => {
+  const random = seededRandom(1339);
+
+  return Array.from({ length: count }, (_, index): [base: number, exponent: number] => {
+    const exponent = seededExponent(random, index);
+    const base = seededNumber(random, random() * 3);
+    return [Number.isInteger(exponent) ? base : Math.abs(base), exponent];
+  });
+};
+
+describe.each(powSpellings)('%s', (_, spell) => {
+  test.runIf(nodeCallsHostPow)('folds seeded powers to the number that Node gives', () => {
+    const powers = seededPowers(300);
+
+    expect(
+      powers.map(([base, exponent]) => widthOf(spell(sourceOf(base), sourceOf(exponent))))
+    ).toEqual(powers.map(([base, exponent]) => unsigned(base ** exponent)));
+  });
+});
+
+describe('`**` in a large fold', () => {
+  /** Bases below 100, so that no square and no sum passes the range of a number. */
+  const random = seededRandom(1340);
+  const bases = Array.from({ length: 10_000 }, () => Math.abs(seededNumber(random, 2)));
+
+  /** A fold in the engine that raises each base to `exponent` and adds the powers. */
+  const sumOfPowers = (exponent: string): string =>
+    `[${bases.join(', ')}].map((x, i) => x ** (${exponent})).reduce((a, b) => a + b)`;
+
+  test('folds 10,000 squares and square roots in the engine to the number that Node gives', () => {
+    expect(widthOf(sumOfPowers('i % 2 ? 2 : 0.5'))).toBe(
+      bases.map((x, i) => x ** (i % 2 ? 2 : 0.5)).reduce((a, b) => a + b)
     );
   });
+
+  test.runIf(nodeCallsHostPow)(
+    'folds 10,000 powers with any exponent in the engine to the number that Node gives',
+    () => {
+      expect(widthOf(sumOfPowers('i % 7 - 3.25'))).toBe(
+        bases.map((x, i) => x ** ((i % 7) - 3.25)).reduce((a, b) => a + b)
+      );
+    }
+  );
+});
+
+/**
+ * `base`, raised in turn to 0.5, 2, 0.5 and so on, `levels` times, as one
+ * nested expression. A base of 1.5 and two levels give `((1.5) ** 0.5) ** 2`.
+ */
+const nestedPower = (base: number, levels: number): string =>
+  Array.from({ length: levels }, (_, index) => (index % 2 ? 2 : 0.5)).reduce(
+    (source, exponent) => `(${source}) ** ${exponent}`,
+    String(base)
+  );
+
+/** `count` squares as one sum: `0.5 ** 2 + 1.5 ** 2 + ...`. */
+const sumOfSquares = (count: number): string =>
+  Array.from({ length: count }, (_, index) => `${index + 0.5} ** 2`).join(' + ');
+
+// The evaluator tests check where the fold stops. These check that the addon
+// reports a deep source as an error, and that the process does not end. The
+// sources are past the ceiling of 32 levels, but not so deep that the parser
+// fills the 1 MB stack that Windows gives the main thread.
+describe('a source past the depth ceiling of the fold', () => {
+  test.each([
+    ['200 nested powers', nestedPower(1.5, 200)],
+    ['a sum of 500 powers', sumOfSquares(500)],
+  ])('refuses %s with an error', (_, expression) => {
+    expect(() => ruleOf(expression)).toThrow(/too deeply nested/);
+  });
+});
+
+// The parser of the addon reads the source. The language does not allow a
+// unary operator directly before `**`, so the parse error must reach the caller.
+test.each(['-2 ** 2', '2 ** -1 ** 2'])('refuses the source %s with a parse error', expression => {
+  expect(() => ruleOf(expression)).toThrow(/Failed to parse/);
 });

@@ -42,7 +42,8 @@ pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
 /// half as a square root. Both round correctly, so they give the same bits on
 /// every host. The `pow` of the C library can round them differently in the
 /// last bit. For every other exponent, Node 24 also calls the `pow` of the C
-/// library, so its answer depends on the host.
+/// library, so its answer depends on the host. ADR 0008 of the evaluator says
+/// which answer this function gives on Node 22.
 pub fn js_exponentiate(base: f64, exponent: f64) -> f64 {
   if exponent == 0.0 {
     return 1.0;

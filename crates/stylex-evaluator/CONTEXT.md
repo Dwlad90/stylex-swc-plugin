@@ -98,7 +98,8 @@ printed source calls the global native `__sxPow` in its place, which does the
 steps of `Math.pow`. These folds give the answer of x64 Node with one
 exception: `Math.pow` and `**` with an exponent other than 2 or one half use
 the `pow` of the C library, as Node 24 does, so that answer depends on the
-host. ADR 0008 says when to replace another static.
+host. ADR 0008 says which answer the fold gives on Node 22, and when to
+replace another static.
 _Avoid_: patched static, override, polyfill
 
 **fdlibm port**:

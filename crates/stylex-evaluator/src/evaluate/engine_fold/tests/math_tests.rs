@@ -622,6 +622,132 @@ fn exponentiation_in_a_callback_body_folds_to_the_value_of_the_reference_compile
   );
 }
 
+/// Powers whose value the language fixes, or which are exact, as
+/// `(base, exponent, value)`. Every correct `pow` gives these values, so they
+/// do not depend on the host or on the version of Node.
+const LANGUAGE_FIXED_POWERS: &[(&str, &str, f64)] = &[
+  // A zero exponent gives 1 for every base, and a NaN exponent gives NaN for
+  // every other base. A base of magnitude 1 under an infinite exponent gives
+  // NaN, where the `pow` of the C library gives 1.
+  ("NaN", "0", 1.0),
+  ("NaN", "-0", 1.0),
+  ("NaN", "1", f64::NAN),
+  ("1", "NaN", f64::NAN),
+  ("1", "Infinity", f64::NAN),
+  ("-1", "Infinity", f64::NAN),
+  ("-1", "-Infinity", f64::NAN),
+  // Infinite exponents and bases.
+  ("2", "Infinity", f64::INFINITY),
+  ("0.5", "Infinity", 0.0),
+  ("2", "-Infinity", 0.0),
+  ("0.5", "-Infinity", f64::INFINITY),
+  ("Infinity", "-1", 0.0),
+  ("Infinity", "0.5", f64::INFINITY),
+  ("-Infinity", "3", f64::NEG_INFINITY),
+  ("-Infinity", "2", f64::INFINITY),
+  ("-Infinity", "-3", -0.0),
+  ("-Infinity", "0.5", f64::INFINITY),
+  // A zero base. The sign of the result comes from the parity of the exponent.
+  ("0", "-1", f64::INFINITY),
+  ("-0", "-3", f64::NEG_INFINITY),
+  ("-0", "-2", f64::INFINITY),
+  ("-0", "3", -0.0),
+  ("-0", "0.5", 0.0),
+  // A negative base: NaN for an exponent that is not an integer.
+  ("-8", "1 / 3", f64::NAN),
+  ("-4", "0.5", f64::NAN),
+  ("-2", "3", -8.0),
+  ("-2", "-1", -0.5),
+  ("-1", "9007199254740991", -1.0),
+  ("-1", "1e300", 1.0),
+  // The ends of the range of a number: the largest power of 2, the smallest
+  // subnormal number, and a result past each end.
+  ("2", "53", 9_007_199_254_740_992.0),
+  ("2", "1023", 8.98846567431158e307),
+  ("2", "-1074", 5e-324),
+  ("2", "1024", f64::INFINITY),
+  ("2", "-1075", 0.0),
+  ("-10", "309", f64::NEG_INFINITY),
+  ("2", "1e10", f64::INFINITY),
+  ("0.5", "1e10", 0.0),
+  // Operands that are not numbers are converted to numbers first.
+  ("'2'", "'3'", 8.0),
+  ("true", "2", 1.0),
+  ("null", "0", 1.0),
+  ("undefined", "1", f64::NAN),
+  ("'abc'", "2", f64::NAN),
+];
+
+/// The spellings of `base ** exponent` that reach each fold of a power: the
+/// evaluator, the native `__sxPow` that the engine calls for `**`, and the
+/// native `Math.pow`.
+const POW_SPELLINGS: &[fn(&str, &str) -> String] = &[
+  |base, exponent| format!("({base}) ** ({exponent})"),
+  |base, exponent| format!("[{base}].map((x) => x ** ({exponent}))[0]"),
+  |base, exponent| format!("Math.pow({base}, {exponent})"),
+];
+
+#[test]
+fn every_fold_of_a_power_gives_the_value_that_the_language_fixes() {
+  for spell in POW_SPELLINGS {
+    for &(base, exponent, expected) in LANGUAGE_FIXED_POWERS {
+      let source = spell(base, exponent);
+      let folded = folded_number(&source);
+
+      // The bits compare the sign of a zero too. NaN has more than one bit
+      // pattern, so it is compared by kind.
+      if expected.is_nan() {
+        assert!(folded.is_nan(), "`{source}` folded to {folded}, not NaN");
+      } else {
+        assert_eq!(
+          folded.to_bits(),
+          expected.to_bits(),
+          "`{source}` folded to {folded}"
+        );
+      }
+    }
+  }
+}
+
+#[test]
+fn exponentiation_in_the_evaluator_is_right_associative() {
+  let rows = [
+    ("2 ** 3 ** 2", 512.0),
+    ("(2 ** 3) ** 2", 64.0),
+    ("(-2) ** 3 ** 2", -512.0),
+    ("2 ** 2 ** 2 ** 2", 65_536.0),
+    ("2 ** 2 ** 2 ** 2 ** 2", f64::INFINITY),
+  ];
+
+  for (source, expected) in rows {
+    assert_folds_to_number(source, expected);
+  }
+}
+
+/// A power nested 15 levels deep, below the depth ceiling. The exponents are 2
+/// and one half, so the value is the same on every host. Node gives it too.
+#[test]
+fn a_nested_power_folds_level_by_level() {
+  let source = (0..15).fold(String::from("1.5"), |source, level| {
+    format!("({source}) ** {}", if level % 2 == 0 { "0.5" } else { "2" })
+  });
+
+  assert_folds_to_number(&source, 1.224744871391589);
+}
+
+/// A BigInt has no number, so `**` over one refuses in each fold. The
+/// reference implementation refuses each row too.
+#[test]
+fn exponentiation_of_a_big_integer_refuses() {
+  for source in [
+    "2n ** 3n",
+    "String(2n ** 64n)",
+    "[2n].map((x) => x ** 2n)[0]",
+  ] {
+    assert_deopts(source);
+  }
+}
+
 #[test]
 fn an_exponentiation_assignment_is_not_folded_by_the_engine() {
   // The guard admits no assignment, so `**=` never reaches the engine.

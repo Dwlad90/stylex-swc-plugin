@@ -5,7 +5,8 @@
 
 use super::*;
 use crate::evaluate::source_evaluation::{
-  assert_deopts, assert_folds_to_boolean, assert_folds_to_number, assert_folds_to_string,
+  a_character_ceiling_of, assert_deopts, assert_folds_to_boolean, assert_folds_to_nan,
+  assert_folds_to_number, assert_folds_to_string,
 };
 use stylex_ast::ast::convertors::create_ident_expr;
 use stylex_ast::ast::convertors::create_null_expr;
@@ -791,36 +792,40 @@ fn a_concatenation_over_a_value_with_no_string_is_refused() {
 }
 
 /// The right side of an operator that is not `+` is read after the left has
-/// coerced, and each of the three ways it can fail is answered where it fails.
+/// coerced, and each way it can fail is answered where it fails.
 ///
-/// The left side's three are pinned above. These are the right's, and they are
+/// The left side's ways are pinned above. These are the right's, and they are
 /// a different order of events: `+` asks its right side before either coerces,
 /// so only the other operators reach a right side with the left already read.
 #[test]
 fn a_right_operand_with_no_number_is_refused_where_it_fails() {
   let fns = a_map_holding_a_function();
 
-  for (right, expected) in [
-    // Evaluated, and then no number: neither conversion method is callable, so
-    // the language itself throws where a number was wanted.
-    (
-      Expr::from(create_object_lit(vec![create_key_value_prop(
-        "toString",
-        create_number_expr(1.0),
-      )])),
-      "is not a number",
-    ),
-    // A value the module holds that is not an expression at all, which is what
-    // a name bound to one of this compiler's own functions resolves to.
-    (
-      create_ident_expr(OWN_FUNCTION),
-      "Right argument not expression",
-    ),
-  ] {
-    let bin = bin_expr(BinaryOp::Sub, create_number_expr(1.0), right);
+  // Evaluated, and then no number: neither conversion method is callable, so
+  // the language itself throws where a number was wanted.
+  let unconvertible = Expr::from(create_object_lit(vec![create_key_value_prop(
+    "toString",
+    create_number_expr(1.0),
+  )]));
+  let bin = bin_expr(BinaryOp::Sub, create_number_expr(1.0), unconvertible);
 
-    assert_refuses_with(num_or_str_path_with_fns(&bin, &fns), expected);
-  }
+  assert_refuses_with(num_or_str_path_with_fns(&bin, &fns), "is not a number");
+
+  // A value the module holds that is not an expression at all, which is what a
+  // name bound to one of this compiler's own functions resolves to. A function
+  // has the number `NaN`, as under a unary operator, so the subtraction folds.
+  // A comparison does not read a side as a number, so there it still refuses.
+  let function = || create_ident_expr(OWN_FUNCTION);
+  let bin = bin_expr(BinaryOp::Sub, create_number_expr(1.0), function());
+
+  assert!(expect_number(num_or_str_path_with_fns(&bin, &fns)).is_nan());
+
+  let bin = bin_expr(BinaryOp::Lt, create_number_expr(1.0), function());
+
+  assert_refuses_with(
+    num_or_str_path_with_fns(&bin, &fns),
+    "Right argument not expression",
+  );
 }
 
 /// A right side that answered nothing at all refuses before any coercion, which
@@ -954,6 +959,99 @@ fn a_comparison_with_an_object_on_either_side_refuses() {
   }
 }
 
+/// An array or an object under an operator that reads each side as a number.
+/// `ToNumber` reads it through its primitive, as the unary operators do. The
+/// reference implementation folds each row to the same value.
+#[test]
+fn an_array_or_an_object_is_read_as_a_number_by_each_numeric_operator() {
+  for (source, expected) in [
+    ("[2] ** 3", 8.0),
+    ("2 ** [3]", 8.0),
+    ("[2] * 3", 6.0),
+    ("[] - 1", -1.0),
+    ("[[3]] * 2", 6.0),
+    ("['4'] / 2", 2.0),
+    ("[null] * 5", 0.0),
+    ("[' 0x10 '] % 7", 2.0),
+    ("[2] | 1", 3.0),
+    ("[6] & [3]", 2.0),
+    ("[1] << [4]", 16.0),
+    ("[-8] >> 1", -4.0),
+    ("[-1] >>> 28", 15.0),
+    ("[5] ^ 1", 4.0),
+    ("({ valueOf: () => 2 }) * 3", 6.0),
+    ("({ toString: () => '7' }) - 1", 6.0),
+    // A method that gives no primitive is skipped, and the other one answers.
+    ("({ valueOf: () => ({}), toString: () => '3' }) * 1", 3.0),
+    ("({ valueOf: 'x', toString: () => '4' }) * 2", 8.0),
+  ] {
+    assert_folds_to_number(source, expected);
+  }
+
+  for source in [
+    "[1, 2] * 1",
+    "({}) - 1",
+    "({}) ** 1",
+    "[() => 1] * 2",
+    "(() => 1) - 1",
+    "({ valueOf: 1 }) - 1",
+    "({ valueOf: null }) * 2",
+    "({ valueOf: () => [5] }) - 1",
+  ] {
+    assert_folds_to_nan(source);
+  }
+}
+
+/// The operators that do not read each side as a number keep their own
+/// reading. `+` concatenates an array, because its primitive is a string. A
+/// comparison with an array refuses, as the test above says.
+#[test]
+fn the_other_operators_do_not_read_an_array_or_an_object_as_a_number() {
+  assert_folds_to_string("[2] + 1", "21");
+  assert_folds_to_string("1 + [2, 3]", "12,3");
+  assert_deopts("[2] < 3");
+  assert_deopts("[2] === 2");
+}
+
+/// The number of an array is read off its join, and that join is measured
+/// against the character ceiling as it grows. Past the ceiling the operator
+/// refuses, and the refusal names the conversion, as under a unary operator.
+#[test]
+fn a_numeric_operator_refuses_an_array_whose_text_passes_the_ceiling() {
+  let bin = bin_expr(
+    BinaryOp::Mul,
+    create_array_expression(vec![Some(create_string_expr("1234567890").into())]),
+    create_number_expr(2.0),
+  );
+  let mut state = EvaluationState::new();
+  let mut traversal_state = StateManager::new(a_character_ceiling_of(4));
+
+  assert_refuses_with(
+    binary_expr_to_num_or_str(
+      &bin,
+      &mut state,
+      &mut traversal_state,
+      &FunctionMap::default(),
+    ),
+    &grown_string_too_large(NUMERIC_CONVERSION, 4),
+  );
+}
+
+/// An own conversion method that answers a BigInt gives no number. The
+/// language mixes a BigInt with a number in no operator, and it throws. The
+/// reference implementation refuses each row.
+#[test]
+fn a_numeric_operator_refuses_an_object_that_converts_to_a_big_integer() {
+  for source in [
+    "({ valueOf: () => 2n }) * 3",
+    "({ valueOf: () => 2n }) ** 2",
+    "3 - ({ valueOf: () => 2n })",
+    "({ toString: () => 2n }) - 1",
+  ] {
+    assert_deopts(source);
+  }
+}
+
 /// `in` asks whether an object has a key, which no number answers, so the fold
 /// refuses. The source is in parentheses, because the case parser does not read
 /// `in` at the top level.
@@ -962,4 +1060,31 @@ fn in_over_an_object_refuses() {
   for source in ["('a' in ({ a: 1 }))", "('b' in ({ a: 1 }))", "(0 in [1])"] {
     assert_deopts(source);
   }
+}
+
+/// No conversion method gives a primitive, so the language throws a
+/// `TypeError`, and the fold refuses. The reference implementation refuses
+/// each row too.
+#[test]
+fn a_numeric_operator_refuses_an_object_with_no_primitive() {
+  for source in [
+    "({ valueOf: 1, toString: 1 }) - 1",
+    "({ toString: () => ({}) }) * 2",
+    "({ toString: [] }) - 1",
+  ] {
+    assert_deopts(source);
+  }
+}
+
+/// `+` reads an object through `ToPrimitive` with no hint, which asks `valueOf`
+/// first. A method that gives no primitive is skipped, so the default text
+/// concatenates. Where no method gives a primitive, the fold refuses. The
+/// reference implementation gives the same answer for each row.
+#[test]
+fn an_addition_skips_a_conversion_method_that_gives_no_primitive() {
+  assert_folds_to_string("({ valueOf: () => ({}) }) + ''", "[object Object]");
+  assert_folds_to_string("({ valueOf: {} }) + 1", "[object Object]1");
+  assert_folds_to_string("({ valueOf: 1, toString: () => 'a' }) + ''", "a");
+  assert_deopts("({ toString: () => ({}) }) + ''");
+  assert_deopts("({ toString: [] }) + ''");
 }

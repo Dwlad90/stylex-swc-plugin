@@ -144,12 +144,9 @@ fn type_of(value: &EvaluateResultValue) -> Option<&'static str> {
 
 /// `ToNumber` over an evaluated operand, then the operator's arithmetic.
 ///
-/// Two readings, in this order because each can do what the other cannot.
-/// `expr_to_num` resolves an identifier through its binding and folds a binary
-/// expression, neither of which is a coercion; the number bridge reaches an
-/// object or an array through its primitive string form, which `expr_to_num`
-/// bails on. Requiring only the first refused `-({})`, `+({})`, `~({})` and
-/// `-[1, 2, 3]`, all four of which upstream folds.
+/// [`operand_to_js_number`] reads the operand. Requiring only `expr_to_num`
+/// refused `-({})`, `+({})`, `~({})` and `-[1, 2, 3]`, all four of which
+/// upstream folds.
 fn evaluate_unary_numeric_of(
   unary: &UnaryExpr,
   arg: &EvaluateResultValue,
@@ -158,41 +155,13 @@ fn evaluate_unary_numeric_of(
   fns: &FunctionMap,
   transform: impl FnOnce(f64) -> f64,
 ) -> Option<EvaluateResultValue> {
-  // The first reading's own wording, carried alongside its answer so that an
-  // operand with no numeric reading still names its own shape where the bridge
-  // has nothing to add. Only ever read on the refusal below, so nothing is
-  // spelled out for an operand that folds.
-  let (numeric_reading, first_refusal) = match arg {
-    EvaluateResultValue::Expr(expr) => match expr_to_num(expr, state, traversal_state, fns) {
-      Ok(value) => (Ok(value), None),
-      Err(error) => (
-        evaluate_result_to_js_number(arg, traversal_state),
-        Some(error.to_string()),
-      ),
-    },
-    _ => (evaluate_result_to_js_number(arg, traversal_state), None),
-  };
-
-  let value = match numeric_reading {
+  let value = match operand_to_js_number(arg, state, traversal_state, fns) {
     Ok(value) => value,
-    Err(NumberRefusal::NoNumberForm) => deopt_unsupported!(
+    Err(refusal) => deopt_unsupported!(
       deopt,
       &create_unary_expr(unary),
       state,
-      first_refusal.as_deref().unwrap_or(ILLEGAL_PROP_VALUE)
-    ),
-    // The operand's number is the number of a string, and that string is past
-    // the ceiling. Named as the operator the author wrote rather than as the
-    // join inside it, the way a growing string's refusal names the `+` or the
-    // interpolation it grew in.
-    Err(NumberRefusal::TooLarge) => deopt_unsupported!(
-      deopt,
-      &create_unary_expr(unary),
-      state,
-      &grown_string_too_large(
-        NUMERIC_CONVERSION,
-        traversal_state.character_ceiling() as u64
-      )
+      &refusal.reason(traversal_state.character_ceiling())
     ),
   };
 

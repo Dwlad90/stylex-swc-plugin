@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "agentGuidance": true,
   "globalDependencies": [
     ".oxlintrc.jsonc",
     "Cargo.toml",
@@ -113,6 +114,15 @@
     },
     "//#lint:crates:workspace": {
       "inputs": ["crates/**", "Cargo.lock", "rust-toolchain.toml"],
+      "outputLogs": "errors-only"
+    },
+    "//#lint:knip": {
+      "dependsOn": [
+        "@stylexswc/playwright#build",
+        "@stylexswc/plugin-shared#build",
+        "@stylexswc/unplugin#build",
+        "@stylexswc/webpack-plugin#build"
+      ],
       "outputLogs": "errors-only"
     },
     "//#lint:node:type-aware": {

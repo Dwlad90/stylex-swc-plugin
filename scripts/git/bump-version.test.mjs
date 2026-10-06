@@ -52,9 +52,7 @@ features = ["common"]
 
 const README = `# Title
 
-![Release status](https://img.shields.io/github/check-runs/Dwlad90/stylex-swc-plugin/${CURRENT}?label=Release%20status)
-
-<!-- stylex-compatibility:start -->[![StyleX compatibility](https://img.shields.io/badge/StyleX%20compatibility-v0.19.0-blue)](https://stylexjs.com/blog)<!-- stylex-compatibility:end -->
+![Release status](https://img.shields.io/github/check-runs/Dwlad90/stylex-swc-plugin/${CURRENT}?label=Release%20status) <!-- stylex-compatibility:start -->[![StyleX compatibility](https://img.shields.io/badge/StyleX%20compatibility-v0.19.0-blue)](https://stylexjs.com/blog)<!-- stylex-compatibility:end -->
 
 Clone it from <https://github.com/Dwlad90/stylex-swc-plugin.git>.
 `;

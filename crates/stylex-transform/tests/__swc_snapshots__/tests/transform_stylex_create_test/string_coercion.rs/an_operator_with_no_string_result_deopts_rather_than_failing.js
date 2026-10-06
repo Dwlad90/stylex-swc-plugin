@@ -10,6 +10,10 @@ const _temp2 = {
     $$css: true
 };
 const _temp3 = {
+    kzQI83: "xzftc1n",
+    $$css: true
+};
+const _temp4 = {
     kzQI83: "xw36f2b",
     $$css: true
 };
@@ -40,14 +44,16 @@ export const styles = {
         ],
     c: (props)=>[
             _temp3,
+            {}
+        ],
+    d: (props)=>[
+            _temp4,
             {
-                "--x-flexGrow": [
-                    1,
-                    2
-                ] * 2 != null ? [
-                    1,
-                    2
-                ] * 2 : undefined
+                "--x-flexGrow": {
+                    toString: 1
+                } * 2 != null ? {
+                    toString: 1
+                } * 2 : undefined
             }
         ]
 };

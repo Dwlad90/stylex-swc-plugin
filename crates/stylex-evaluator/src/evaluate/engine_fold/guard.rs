@@ -668,14 +668,16 @@ impl<'a> Bindings<'a> {
   }
 }
 
-/// Refuses a name the printed fold reserves for a check of its own.
+/// Refuses a name the printed fold reserves for a check of its own, or for the
+/// native that computes `**`.
 ///
 /// The fold prints its two checks as parameters of the arrow it hands the
 /// engine, so any other name of the same spelling would shadow one and the
 /// check would run the author's function instead. Two spellings reach a
 /// parameter of that arrow — a name the walk binds, and a module name it
 /// carries — and both are refused here, so the rule reads as one rule wherever
-/// it fires. See [`backstop`](super::backstop).
+/// it fires. See [`backstop`](super::backstop). The native of `**` is a global,
+/// and the same two spellings would shadow it (see [`math`](super::math)).
 fn refuse_a_reserved_name(name: &Atom) -> Result<(), Decline> {
   match is_a_reserved_name(name) {
     true => Err(Decline::rule(reserved_compiler_name(name))),

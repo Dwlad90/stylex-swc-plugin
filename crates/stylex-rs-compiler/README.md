@@ -22,8 +22,8 @@ and its output do not change, but transforms run 5x to 10x faster than Babel —
 see [performance](https://github.com/Dwlad90/stylex-swc-plugin#performance).
 
 This is a community project and is not affiliated with or supported by Meta. It
-requires Node.js 20 or newer; prebuilt binaries ship for macOS, Linux (glibc and
-musl), and Windows on x64 and arm64.
+requires Node.js 20 or newer; prebuilt binaries ship for macOS, Linux (glibc 2.34
+or newer, and musl), and Windows on x64 and arm64.
 
 Most projects should not call this package directly — use the integration for
 your build tool, all of which drive this compiler under the hood:

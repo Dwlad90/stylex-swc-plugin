@@ -4,10 +4,10 @@
 # Strategy: keep a long-running Playwright container with the same image CI uses
 # (mcr.microsoft.com/playwright:v<x.y.z>-noble). Cache node_modules, pnpm store,
 # turbo cache, cargo target dir, and rust toolchain in named docker volumes so
-# nothing has to be rebuilt between invocations. The Linux napi binary lives at
-# crates/stylex-rs-compiler/dist/rs-compiler.linux-x64-gnu.node alongside the
-# darwin one, so the host stays untouched. Auto-rebuild kicks in only when Rust
-# source has changed since the last build.
+# nothing has to be rebuilt between invocations. crates/stylex-rs-compiler/dist
+# is a named volume too, so the Linux napi build stays in the container and the
+# host dist/ stays untouched. Auto-rebuild kicks in only when Rust source has
+# changed since the last build.
 
 set -euo pipefail
 
@@ -37,10 +37,11 @@ VOL_TARGET="$VOLUME_PREFIX-target"
 VOL_CARGO_HOME="$VOLUME_PREFIX-cargo-home"
 VOL_RUSTUP_HOME="$VOLUME_PREFIX-rustup-home"
 VOL_APT="$VOLUME_PREFIX-apt-cache"
+VOL_RS_DIST="$VOLUME_PREFIX-rs-compiler-dist"
 
 PNPM_STORE_MOUNT_PATH="/work/.pnpm-store"
 
-LINUX_BINARY_DIR_REL="crates/stylex-rs-compiler/dist"
+LINUX_BINARY_DIR="/work/crates/stylex-rs-compiler/dist"
 
 if [ -t 1 ]; then
   C_RESET=$'\033[0m'; C_DIM=$'\033[2m'; C_CYAN=$'\033[36m'
@@ -95,12 +96,20 @@ host_cargo_home() {
 # registry/git when available (saves the "downloaded 1907" round-trip); falls
 # back to named volumes otherwise. Platform-specific dirs (target, node_modules,
 # turbo cache, rustup) always use named volumes.
+#
+# The rs-compiler dist/ is a named volume as well. @napi-rs/cli writes its
+# output through a filesystem transaction: it closes each prepared file, then
+# stats it again and compares the mode. Through the Docker Desktop bind mount,
+# that stat can return the old mode for a short time, and napi stops with
+# "replacement changed while it was prepared". This applies to every napi
+# build, also the one turbo starts for test:visual.
 build_mount_args() {
   MOUNT_ARGS=()
   MOUNT_ARGS+=( -v "$ROOT":/work )
   MOUNT_ARGS+=( -v "$VOL_NODE_MODULES":/work/node_modules )
   MOUNT_ARGS+=( -v "$VOL_TURBO":/work/.turbo )
   MOUNT_ARGS+=( -v "$VOL_TARGET":/work/target )
+  MOUNT_ARGS+=( -v "$VOL_RS_DIST":"$LINUX_BINARY_DIR" )
   MOUNT_ARGS+=( -v "$VOL_RUSTUP_HOME":/root/.rustup )
   MOUNT_ARGS+=( -v "$VOL_CARGO_HOME":/root/.cargo )
   MOUNT_ARGS+=( -v "$VOL_APT":/var/cache/apt )
@@ -136,6 +145,12 @@ build_mount_args() {
 
 container_exists()  { docker container inspect "$CONTAINER_NAME" >/dev/null 2>&1; }
 container_running() { [ "$(docker container inspect -f '{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null)" = "true" ]; }
+# Containers created before the rs-compiler dist/ volume do not have it.
+container_has_dist_volume() {
+  docker container inspect \
+    -f '{{range .Mounts}}{{if eq .Destination "'"$LINUX_BINARY_DIR"'"}}yes{{end}}{{end}}' \
+    "$CONTAINER_NAME" 2>/dev/null | grep -q yes
+}
 
 expected_uname_for_platform() {
   case "$PLATFORM" in
@@ -174,6 +189,11 @@ ensure_running() {
     cmd_up
     return
   fi
+  if ! container_has_dist_volume; then
+    warn "container '$CONTAINER_NAME' has no rs-compiler dist volume — recreating with: $0 up"
+    cmd_up
+    return
+  fi
   if ! container_running; then
     log "starting '$CONTAINER_NAME'..."
     docker start "$CONTAINER_NAME" >/dev/null
@@ -206,8 +226,8 @@ napi_suffix_for_arch() {
   esac
 }
 
-# Path to the .node binary the container will produce, based on its uname -m.
-# Falls back to the x64 path if the container isn't running yet.
+# Path in the container to the .node binary it will produce, based on its
+# uname -m. Falls back to the x64 path if the container isn't running yet.
 linux_binary_path() {
   local arch suffix
   if container_running; then
@@ -221,34 +241,46 @@ linux_binary_path() {
   fi
   suffix=$(napi_suffix_for_arch "$arch")
   [ -n "$suffix" ] || { echo ""; return; }
-  echo "$ROOT/$LINUX_BINARY_DIR_REL/rs-compiler.${suffix}.node"
+  echo "$LINUX_BINARY_DIR/rs-compiler.${suffix}.node"
 }
 
-# Returns 0 if the Linux .node is missing OR older than any rust source.
+# Returns 0 if the Linux .node exists in the (running) container.
+linux_binary_exists() {
+  local bin
+  bin=$(linux_binary_path)
+  [ -n "$bin" ] && container_running && docker exec "$CONTAINER_NAME" test -f "$bin"
+}
+
+# Returns 0 if the Linux .node is missing OR older than any rust source. The
+# binary is in a volume, so the comparison runs in the container.
 linux_binary_stale() {
   local bin
   local newer_source
   bin=$(linux_binary_path)
   [ -n "$bin" ] || return 0
-  [ -f "$bin" ] || return 0
+  linux_binary_exists || return 0
 
   # Any *.rs or Cargo.* newer than the binary => stale.
-  newer_source=$(find "$ROOT/crates" \
-        \( -name target -o -name node_modules -o -name dist \) -prune -o \
-        \( -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' -o -name 'build.rs' \) \
-        -newer "$bin" -print -quit 2>/dev/null)
-  if [ -n "$newer_source" ]; then
-    return 0
-  fi
-  if [ "$ROOT/Cargo.lock" -nt "$bin" ] 2>/dev/null; then
-    return 0
-  fi
-  return 1
+  # shellcheck disable=SC2016 # $1 expands inside the container, not on the host
+  newer_source=$(docker exec "$CONTAINER_NAME" bash -c '
+    find /work/crates \
+      \( -name target -o -name node_modules -o -name dist \) -prune -o \
+      \( -name "*.rs" -o -name Cargo.toml -o -name Cargo.lock -o -name build.rs \) \
+      -newer "$1" -print -quit 2>/dev/null
+    [ /work/Cargo.lock -nt "$1" ] && echo /work/Cargo.lock
+    true
+  ' _ "$bin")
+  [ -n "$newer_source" ]
 }
 
 cmd_up() {
   local image
   image=$(container_image)
+
+  if container_exists && ! container_has_dist_volume; then
+    log "removing container '$CONTAINER_NAME' to add the rs-compiler dist volume (volumes preserved)"
+    docker rm -f "$CONTAINER_NAME" >/dev/null
+  fi
 
   if container_exists; then
     log "container '$CONTAINER_NAME' already exists; reusing"
@@ -350,10 +382,10 @@ cmd_rebuild() {
   '
   local bin
   bin=$(linux_binary_path)
-  if [ -z "$bin" ] || [ ! -f "$bin" ]; then
+  if ! linux_binary_exists; then
     die "napi build finished but expected binary is missing: ${bin:-<unknown arch>}"
   fi
-  ok "linux napi ready: ${bin#"$ROOT/"}"
+  ok "linux napi ready: ${bin#/work/}"
 }
 
 # Returns docker exec flags for tty allocation, only when both stdin and stdout
@@ -464,15 +496,9 @@ cmd_nuke() {
   fi
   log "removing named volumes"
   for v in "$VOL_NODE_MODULES" "$VOL_PNPM_STORE" "$VOL_TURBO" "$VOL_TARGET" \
-           "$VOL_CARGO_HOME" "$VOL_RUSTUP_HOME" "$VOL_APT"; do
+           "$VOL_CARGO_HOME" "$VOL_RUSTUP_HOME" "$VOL_APT" "$VOL_RS_DIST"; do
     docker volume rm "$v" >/dev/null 2>&1 || true
   done
-  local bin
-  bin=$(linux_binary_path)
-  if [ -n "$bin" ] && [ -f "$bin" ]; then
-    log "removing ${bin#"$ROOT/"}"
-    rm -f "$bin"
-  fi
   ok "clean. next $0 up starts from zero"
 }
 
@@ -503,10 +529,10 @@ cmd_status() {
   fi
   local bin
   bin=$(linux_binary_path)
-  if [ -n "$bin" ] && [ -f "$bin" ]; then
+  if linux_binary_exists; then
     local size mtime
-    size=$(du -h "$bin" | cut -f1)
-    mtime=$(date -r "$bin" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || stat -f '%Sm' "$bin")
+    size=$(docker exec "$CONTAINER_NAME" du -h "$bin" | cut -f1)
+    mtime=$(docker exec "$CONTAINER_NAME" date -r "$bin" '+%Y-%m-%d %H:%M:%S')
     if linux_binary_stale; then
       printf '%slinux .node%s %s (%s, built %s) %s(STALE vs current rust source)%s\n' \
         "$C_DIM" "$C_RESET" "${bin##*/}" "$size" "$mtime" "$C_YELLOW" "$C_RESET"
@@ -537,7 +563,7 @@ Commands:
   shell               Open an interactive shell in the container.
   status              Show container + linux .node freshness.
   down                Stop the container. Volumes are preserved.
-  nuke                Remove container, volumes, and the linux .node binary.
+  nuke                Remove container and volumes, the linux .node binary too.
 
 Examples:
   $0 up

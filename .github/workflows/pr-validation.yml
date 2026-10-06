@@ -130,11 +130,6 @@ jobs:
           - id: hooks-validate
             name: Validate git hook config
             command: pnpm run hooks:validate
-          # The pre-push counterpart. Same reasoning as shellcheck above: a
-          # check that lives only in a hook is silent for anyone who bypasses.
-          - id: lint-dead-exports
-            name: Lint dead exports
-            command: pnpm run lint:dead-exports
           # Every CI-side script suite, not just the reporter: `test:scripts`
           # also covers the release artifact parsers and the release shell
           # scripts, which the full `test` run alone would not guard on the
@@ -188,6 +183,15 @@ jobs:
           - id: lint-type-aware
             name: Lint Node.js code (type-aware)
             command: pnpm run lint:type-aware
+          # The pre-push counterpart. Same reasoning as shellcheck: a check
+          # that lives only in a hook is silent for anyone who bypasses.
+          # knip loads the app configs, and they import packages from `dist/`.
+          # A config that does not load fails the run. The `//#lint:knip`
+          # turbo task builds these packages first. This job restores the
+          # `build-public-packages` cache, so the builds are cache hits.
+          - id: lint-dead-exports
+            name: Lint dead exports
+            command: pnpm run lint:dead-exports
           - id: lint-check-rust
             name: Lint Rust code
             command: pnpm run lint:rust
@@ -250,19 +254,19 @@ jobs:
 
       - name: Install nightly Rust toolchain
         if: matrix.check.id == 'tests-coverage'
-        uses: actions-rust-lang/setup-rust-toolchain@v1.17.0
+        uses: actions-rust-lang/setup-rust-toolchain@v2.0.0
         with:
           toolchain: nightly
 
       - name: Install cargo-nextest
         if: matrix.check.id == 'tests-rust'
-        uses: taiki-e/install-action@v2.87.4
+        uses: taiki-e/install-action@v2.87.21
         with:
           tool: cargo-nextest
 
       - name: Install cargo-llvm-cov and nightly
         if: matrix.check.id == 'tests-coverage'
-        uses: taiki-e/install-action@v2.87.4
+        uses: taiki-e/install-action@v2.87.21
         with:
           tool: cargo-nextest,cargo-llvm-cov
 
@@ -519,7 +523,7 @@ jobs:
         run: pnpm run bench --filter @stylexswc/rs-compiler
 
       - name: Store benchmark result
-        uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
+        uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2
         with:
           tool: 'customSmallerIsBetter'
           output-file-path: 'crates/stylex-rs-compiler/benchmark/results/output.json'
@@ -774,6 +778,36 @@ jobs:
         with:
           cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
 
+  # Every other Rust job runs on aarch64, so the x86_64 block of the glibc shim
+  # (`crates/stylex-rs-compiler/src/glibc_compat.rs`) runs only here. A wrong
+  # jump in that block makes `hypot` give wrong values or crash.
+  glibc-shim-x64:
+    name: Tests glibc shim on x86_64
+    if: >-
+      (github.event_name != 'schedule' || github.ref_name == 'develop') &&
+      (github.event.pull_request.number == null || !github.event.pull_request.draft)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      # No `ref`: the default is the commit of the event, which is the ref that
+      # `CHECKOUT_REF` gives. A pull request ref in an expression reads as an
+      # untrusted checkout to CodeQL, and this job writes the Rust cache.
+      - name: Checkout code
+        uses: actions/checkout@v7.0.1
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          install-dependencies: 'false'
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
+        with:
+          tool: cargo-nextest
+
+      - name: Test the glibc shim
+        run: cargo nextest run --all-features -p stylex_rs_compiler --lib glibc_compat
+
   pr-validation:
     name: PR Validation
     if:
@@ -791,6 +825,7 @@ jobs:
       # fails the gate rather than sitting green beside it, and it carries both
       # generated sweeps for that reason: one job to list rather than two.
       - parity-sweep
+      - glibc-shim-x64
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
     steps:
@@ -801,7 +836,7 @@ jobs:
           echo "$NEEDS_JSON" | jq .
 
           jobs="basic-checks checks build-public-packages playwright-image"
-          jobs="$jobs visual-tests benchmark parity-sweep"
+          jobs="$jobs visual-tests benchmark parity-sweep glibc-shim-x64"
 
           for job in $jobs; do
             result=$(echo "$NEEDS_JSON" | jq -r --arg job "$job" '.[$job].result')

@@ -8,7 +8,7 @@
 //! not part of the crate graph, so another crate cannot call it.
 
 use swc_core::{
-  common::{FileName, SourceMap, sync::Lrc},
+  common::{FileName, SourceMap, Spanned, sync::Lrc},
   ecma::ast::Expr,
 };
 use swc_ecma_parser::{EsSyntax, Syntax, parse_file_as_expr};
@@ -52,6 +52,19 @@ pub(crate) fn parse_expr(source: &str, syntax: Syntax) -> Expr {
     "parsed `{source}` only after repair: {recovered_errors:?}"
   );
 
+  // The parser stops at the first token that cannot continue the expression,
+  // and it reports nothing. It starts in a context where `in` is not an
+  // operator, so it stops before the `in` of `'a' in b`. A case that parses
+  // only a part of its source tests a different source.
+  let parsed_end = (expr.span().hi - source_file.start_pos).0 as usize;
+
+  assert!(
+    source[parsed_end..].trim().is_empty(),
+    "parsed only `{}` of `{}`",
+    &source[..parsed_end],
+    source
+  );
+
   expr
 }
 
@@ -65,5 +78,22 @@ mod tests {
   #[test]
   fn reads_a_top_level_await_as_an_await_expression() {
     assert!(matches!(parse_expr("await p", es_jsx()), Expr::Await(_)));
+  }
+
+  /// The parser does not read `in` at the top level, and it stops there with
+  /// no error. The helper refuses the part that is left.
+  #[test]
+  #[should_panic(expected = "parsed only `'a'` of `'a' in b`")]
+  fn refuses_a_source_that_the_parser_reads_only_in_part() {
+    parse_expr("'a' in b", es_jsx());
+  }
+
+  /// Trailing space is not a part of the expression.
+  #[test]
+  fn reads_a_source_with_trailing_space_in_full() {
+    assert!(matches!(
+      parse_expr("('a' in b)  \n", es_jsx()),
+      Expr::Paren(_)
+    ));
   }
 }

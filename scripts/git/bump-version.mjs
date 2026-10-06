@@ -63,7 +63,7 @@ const TOML_VERSION = /^(\s*version\s*=\s*")([^"]*)(".*)$/;
 /**
  * The release-status badge in the root README, which points at the git tag of
  * the current release. Anchored on the repository path so that the StyleX
- * compatibility badge on the neighbouring line -- a different version, owned by
+ * compatibility badge on the same line -- a different version, owned by
  * `update-stylex-compatibility.sh` -- is out of reach.
  */
 const README_BADGE_PREFIX = 'stylex-swc-plugin/';

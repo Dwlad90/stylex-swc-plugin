@@ -72,15 +72,17 @@ concurrency:
 #
 #   build                40 min   slowest 18.3 (aarch64-pc-windows-msvc)
 #   test macOS/Windows   15 min   slowest  6.0 (x86_64-apple-darwin)
-#   test linux x64 gnu   10 min   slowest  2.0
-#   test linux arm64 gnu 10 min   slowest  1.6
+#   test linux gnu       15 min   slowest  2.0 for one run (x86_64-unknown-linux-gnu)
 #   test linux x64 musl  10 min   slowest  2.5
 #   benchmark            50 min   slowest 27.6 (x86_64-apple-darwin)
 #   aggregate            10 min   slowest  0.2
 #   publish              15 min   slowest  3.6
 #   cleanup              10 min   disabled by `if: false`
 #
-# The sample is older than one change that costs time. The macOS benchmark
+# The sample is older than two changes that cost time. The linux gnu test
+# legs now run the suite two times, on the runner and on Amazon Linux 2023.
+# The sample has only one run on Debian, so the limit of 15 min holds two runs
+# and the pull of the image at about 3 times. The macOS benchmark
 # legs now time each subject in a child process of its own, which adds about
 # 3.6 min to a leg of 27.6. The limit of 50 min holds that at about 1.6
 # times, and no other job pays for the change.
@@ -194,6 +196,11 @@ jobs:
         if: ${{ matrix.settings.docker }}
         shell: bash
         run: sudo chown -R "$(id -u):$(id -g)" crates/stylex-rs-compiler/dist
+      # A gnu binding that needs a newer glibc than the floor does not load on
+      # Amazon Linux 2023 (Vercel, AWS CodeBuild). Stop before the upload.
+      - name: Check glibc floor
+        if: ${{ endsWith(matrix.settings.target, '-linux-gnu') }}
+        run: node .github/scripts/check-glibc-floor.mjs crates/stylex-rs-compiler/dist/*.node
       - name: Record candidate artifact checksums
         env:
           ARTIFACT_DIR: crates/stylex-rs-compiler/dist
@@ -269,70 +276,42 @@ jobs:
         uses: ./.github/actions/turbo-save
         with:
           cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
-  test-linux-x64-gnu-binding:
-    name: 🧪 Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
+  # Each linux-gnu binding is tested at the two ends of the glibc range. The
+  # runner has a new glibc. Amazon Linux 2023 has the glibc floor (2.34), the
+  # oldest glibc that the binding must load on. The two hosts run different
+  # code in the C library for the same symbol. For example, glibc 2.35 changed
+  # the code of `hypot`. Thus each host can find a result that the other host
+  # does not find.
+  #
+  # The container uses the Node of the runner, which `Setup environment`
+  # installs at the version of the matrix. The official Node binaries need
+  # glibc 2.28, so they run on the floor.
+  #
+  # `--force` stops a Turbo cache hit. The hash of the `test` task does not
+  # include the binding, the host or the glibc, so a hit from the first run or
+  # from an earlier release would skip the tests. `--only` does not run
+  # `build`, so this job restores no Turbo cache.
+  test-linux-gnu-binding:
+    name: 🧪 Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
     needs:
       - build
     strategy:
       fail-fast: false
       matrix:
         settings:
-          - target: x86_64-unknown-linux-gnu
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - host: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
         node:
           - '22.22.1'
           - '24.18.0'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ inputs.release-ref }}
-      - name: Setup environment
-        uses: ./.github/actions/setup
-        with:
-          rust-target: ${{ matrix.settings.target }}
-          node-version: ${{ matrix.node }}
-          install-recursive: 'false'
-          frozen-lockfile: 'false'
-      - name: Cache turbo build setup
-        id: turbo-cache
-        uses: ./.github/actions/turbo
-        with:
-          cache-scope: npm-test-bindings-${{ matrix.settings.target }}-node-${{ matrix.node }}
-          restore-cache-scope: npm-build-${{ matrix.settings.target }}
-      - name: Download artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: bindings-${{ matrix.settings.target }}
-          path: crates/stylex-rs-compiler/dist
-      - name: List artifacts
-        run: ls -R crates/stylex-rs-compiler/dist
-        shell: bash
-      - name: Test bindings
-        run: |
-          docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "
-            corepack enable && corepack prepare pnpm@11.20.0 --activate &&
-            pnpm run test --filter @stylexswc/rs-compiler --only
-          "
-      - name: Save turbo build cache
-        if: always()
-        uses: ./.github/actions/turbo-save
-        with:
-          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
-  test-linux-arm64-gnu-binding:
-    name: 🧪 Test bindings on Linux-arm64-gnu - node@${{ matrix.node }}
-    needs:
-      - build
-    strategy:
-      fail-fast: false
-      matrix:
-        settings:
-          - target: aarch64-unknown-linux-gnu
-        node:
-          - '22.22.1'
-          - '24.18.0'
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 10
+    runs-on: ${{ matrix.settings.host }}
+    timeout-minutes: 15
+    env:
+      TEST_BINDINGS: pnpm run test --filter @stylexswc/rs-compiler --only --force
+      # Keep equal to GLIBC_FLOOR in `.github/scripts/check-glibc-floor.mjs`.
+      GLIBC_FLOOR: '2.34'
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -344,12 +323,6 @@ jobs:
           node-version: ${{ matrix.node }}
           install-recursive: 'false'
           frozen-lockfile: 'false'
-      - name: Cache turbo build setup
-        id: turbo-cache
-        uses: ./.github/actions/turbo
-        with:
-          cache-scope: npm-test-bindings-${{ matrix.settings.target }}-node-${{ matrix.node }}
-          restore-cache-scope: npm-build-${{ matrix.settings.target }}
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
@@ -358,17 +331,26 @@ jobs:
       - name: List artifacts
         run: ls -R crates/stylex-rs-compiler/dist
         shell: bash
-      - name: Test bindings
+      - name: Test bindings on the runner glibc
         run: |
-          docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "
-            corepack enable && corepack prepare pnpm@11.20.0 --activate &&
-            pnpm run test --filter @stylexswc/rs-compiler --only
-          "
-      - name: Save turbo build cache
-        if: always()
-        uses: ./.github/actions/turbo-save
-        with:
-          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
+          getconf GNU_LIBC_VERSION
+          $TEST_BINDINGS
+      # The Node directory is read-only in the container, so `corepack enable`
+      # puts the pnpm shim in `/usr/local/bin`. `corepack install` gets the
+      # pnpm version that `packageManager` in `package.json` sets.
+      - name: Test bindings on the glibc floor (Amazon Linux 2023)
+        run: |
+          node_home="$(dirname "$(dirname "$(command -v node)")")"
+          docker run --rm -v "$node_home":/opt/node:ro -v "$PWD":/build -w /build \
+            -e PATH=/opt/node/bin:/usr/local/bin:/usr/bin:/bin -e GLIBC_FLOOR -e TEST_BINDINGS \
+            amazonlinux:2023 sh -c '
+              libc="$(getconf GNU_LIBC_VERSION)"
+              [ "$libc" = "glibc $GLIBC_FLOOR" ] ||
+                { echo "The image has $libc, not glibc $GLIBC_FLOOR."; exit 1; }
+              corepack enable --install-directory /usr/local/bin &&
+                corepack install &&
+                $TEST_BINDINGS
+            '
   test-linux-x64-musl-binding:
     name: 🧪 Test bindings on x86_64-unknown-linux-musl - node@${{ matrix.node }}
     needs:
@@ -807,8 +789,7 @@ jobs:
       - benchmark
       - benchmark-aggregate
       - test-macOS-windows-binding
-      - test-linux-x64-gnu-binding
-      - test-linux-arm64-gnu-binding
+      - test-linux-gnu-binding
       - test-linux-x64-musl-binding
     steps:
       - uses: actions/checkout@v7.0.1

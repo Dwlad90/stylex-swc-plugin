@@ -33,6 +33,7 @@ use stylex_utils::hash::stable_hash_unspanned_call;
 
 use super::Decline;
 use super::backstop::{self, BACKSTOP_SOURCE, Backstops};
+use super::math;
 use super::theme::{compile_traps, var_group_traps};
 use stylex_diagnostics::code_frame::print_module;
 
@@ -232,7 +233,8 @@ struct Compiled {
 impl Engine {
   /// A context with the one runtime limit its default leaves open, without the
   /// one thing the language provides that this compiler cannot — function source
-  /// text — and with an empty memo.
+  /// text — with the `Math` statics of Node in place of the ones that differ
+  /// (see [`math`](super::math)), and with an empty memo.
   ///
   /// Answers a refusal rather than asserting, because the assignment runs inside
   /// an evaluation whose whole contract is that it may fail — and because an
@@ -245,11 +247,12 @@ impl Engine {
   /// The same engine, built from three written sources rather than from the
   /// three that are shipped.
   ///
-  /// Every step refuses, and none can fail for the sources [`Engine::new`]
-  /// hands in — two are constants and the third is assembled from two of the
-  /// compiler's own constants. So the sources are parameters, and a case hands
-  /// in one that fails the step it is about. The refusals stay because a rename
-  /// that breaks any of them is declined here rather than folded past.
+  /// Every step that reads a source refuses, and none can fail for the sources
+  /// [`Engine::new`] hands in — two are constants and the third is assembled
+  /// from two of the compiler's own constants. So the sources are parameters,
+  /// and a case hands in one that fails the step it is about. The refusals stay
+  /// because a rename that breaks any of them is declined here rather than
+  /// folded past.
   fn started_on(
     prelude: &str,
     traps: &str,
@@ -260,6 +263,10 @@ impl Engine {
     context
       .runtime_limits_mut()
       .set_loop_iteration_limit(MAX_LOOP_ITERATIONS);
+
+    // The only built-ins that are changed in Rust, not by a source. This reads
+    // no source, so it cannot fail and has no refusal.
+    math::install(&mut context);
 
     context
       .eval(Source::from_bytes(prelude))
@@ -399,11 +406,11 @@ pub(super) fn print_fold(call: &CallExpr, mut params: Vec<Pat>) -> Printed {
   // at a time, because what a tree binds is read from that tree — see
   // [`backstop::checked`]. The arrow below is not one of them: its parameters
   // are the names this compiler carried, not names the source bound.
-  let mut binds_the_checks = backstop::checked(&mut folded);
+  let mut binds_the_checks = prepared_for_the_engine(&mut folded);
 
   for param in &mut params {
     if let Pat::Assign(declared) = param {
-      binds_the_checks |= backstop::checked(&mut declared.right);
+      binds_the_checks |= prepared_for_the_engine(&mut declared.right);
     }
   }
 
@@ -438,6 +445,15 @@ pub(super) fn print_fold(call: &CallExpr, mut params: Vec<Pat>) -> Printed {
     source,
     binds_the_checks,
   }
+}
+
+/// One tree of the printed source with each `**` changed into a call of the
+/// native that computes it as Node does (see [`math`](super::math)), and with
+/// the fold's two checks put in. Answers whether the tree needs the checks.
+fn prepared_for_the_engine(tree: &mut Expr) -> bool {
+  math::exponentiation_as_native_calls(tree);
+
+  backstop::checked(tree)
 }
 
 /// The printed expression with the fold's two checks bound in front of whatever

@@ -452,6 +452,59 @@ pub(super) enum NumberRefusal {
   TooLarge,
 }
 
+/// `ToNumber` over an evaluated operand of a numeric operator, unary or binary.
+///
+/// The operand has two readings, and each can do what the other cannot.
+/// `expr_to_num` resolves an identifier through its binding and folds a binary
+/// expression, and neither of these is a coercion. The number bridge reaches an
+/// object or an array through its primitive string form, and `expr_to_num`
+/// refuses both. The unary and the binary operators read their operands here,
+/// so `-[2]` and `[2] * -1` cannot give different answers.
+pub(super) fn operand_to_js_number(
+  value: &EvaluateResultValue,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> Result<f64, OperandNumberRefusal> {
+  // The first reading names the shape of an operand that has no number. The
+  // bridge has nothing to add, so the refusal keeps that wording.
+  let first_refusal = match value {
+    EvaluateResultValue::Expr(expr) => match expr_to_num(expr, state, traversal_state, fns) {
+      Ok(number) => return Ok(number),
+      Err(error) => Some(error.to_string()),
+    },
+    _ => None,
+  };
+
+  evaluate_result_to_js_number(value, traversal_state).map_err(|refusal| match refusal {
+    NumberRefusal::NoNumberForm => OperandNumberRefusal::NoNumberForm(first_refusal),
+    NumberRefusal::TooLarge => OperandNumberRefusal::TooLarge,
+  })
+}
+
+/// Why an operand had no number, as [`operand_to_js_number`] reports it.
+pub(super) enum OperandNumberRefusal {
+  /// Neither reading has a number. It holds the wording of the first reading,
+  /// where that reading gave one.
+  NoNumberForm(Option<String>),
+  /// The text of the number passed the character ceiling.
+  TooLarge,
+}
+
+impl OperandNumberRefusal {
+  /// The reason that a fold records for this refusal. A text past the
+  /// `character_ceiling` is named as the conversion that the author wrote,
+  /// not as the join inside it.
+  pub(super) fn reason(self, character_ceiling: usize) -> String {
+    match self {
+      Self::NoNumberForm(first_refusal) => {
+        first_refusal.unwrap_or(String::from(ILLEGAL_PROP_VALUE))
+      },
+      Self::TooLarge => grown_string_too_large(NUMERIC_CONVERSION, character_ceiling as u64),
+    }
+  }
+}
+
 /// The sink would not take another piece, because the text is past the ceiling.
 struct TooManyCharacters;
 

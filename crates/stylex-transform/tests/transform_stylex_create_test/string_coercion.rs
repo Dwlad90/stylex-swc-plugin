@@ -130,13 +130,14 @@ stylex_test!(
 // An operator with no string result reaches this path only after the number
 // path has already refused, and is refused again rather than coerced -- so a
 // declaration it cannot fold deopts and falls to the runtime instead of failing
-// the build. `[1, 2] * 2` is the row that still does, because an array has no
-// number the literal grammar reads.
+// the build. `({ toString: 1 }) * 2` is the row that still does: the object has
+// no conversion method that can be called, so it has no number.
 //
-// The two rows above it fold, and to what the language answers: a string is
-// read through `StringToNumber`, so `'a' * 'b'` is `NaN`, and `null` is nought,
-// so `null - 1` is `-1`. Both were refusals here before, and both are what the
-// reference compiler writes.
+// The three rows above it fold, and to what the language answers: a string is
+// read through `StringToNumber`, so `'a' * 'b'` is `NaN`, `null` is nought, so
+// `null - 1` is `-1`, and an array is read through its join, so `[1, 2] * 2` is
+// `NaN`. Each was a refusal here before, and each is what the reference
+// compiler writes.
 //
 // Dynamic styles, because that is where the refusal shape is observable: in a
 // static position an unfoldable value is a refused fold either way, so the two
@@ -153,6 +154,7 @@ stylex_test!(
       a: (props) => ({ flexGrow: 'a' * 'b' }),
       b: (props) => ({ flexGrow: null - 1 }),
       c: (props) => ({ flexGrow: [1, 2] * 2 }),
+      d: (props) => ({ flexGrow: ({ toString: 1 }) * 2 }),
     });
   "#
 );

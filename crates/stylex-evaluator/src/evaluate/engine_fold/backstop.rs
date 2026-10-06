@@ -42,6 +42,11 @@
 //! these two names, so nothing between the arrow and the read can stand in
 //! front of it.
 //!
+//! The native that computes `**` is the one global the printed source calls
+//! by name. Nothing can change what it holds: the property cannot be written,
+//! and the guard refuses every name of its spelling. ADR 0008 gives the reason
+//! that it is not a parameter.
+//!
 //! `docs/adr/0010-the-printed-fold-reads-and-calls-through-a-check.md` carries
 //! the argument.
 
@@ -65,6 +70,7 @@ use stylex_constants::constants::evaluation_errors::{
 };
 
 use super::Decline;
+use super::math::EXPONENTIATE;
 use super::{BLOCKED_PROPERTIES, ESCAPING_PROPERTIES};
 
 /// The name the printed source reads a computed property through.
@@ -94,9 +100,10 @@ pub(super) fn reserved_names() -> impl Iterator<Item = &'static str> {
   CHECKS.into_iter().map(|(name, _)| name)
 }
 
-/// Whether `name` is one the printed source reserves for a check of its own.
+/// Whether `name` is one the printed source reserves: a check of its own, or
+/// the global native that computes `**` (see [`math`](super::math)).
 pub(super) fn is_a_reserved_name(name: &str) -> bool {
-  reserved_names().any(|reserved| reserved == name)
+  name == EXPONENTIATE || reserved_names().any(|reserved| reserved == name)
 }
 
 /// The property names the reader refuses: the guard's two tables and nothing

@@ -8,7 +8,7 @@ edition = "2024"
 license = "MIT"
 repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
 rust-version = "1.97.0"
-version = "0.19.0"
+version = "0.19.1-rc.1"
 
 
 # Set the options for dependencies (not crates in the workspace), this mostly impacts cold builds
@@ -69,7 +69,7 @@ boa_engine = { version = "0.22.0", features = ["annex-b"] }
 color-backtrace = { version = "0.7.2" }
 colored = { version = "3.1.1" }
 criterion = { version = "0.8", features = ["html_reports"] }
-cssparser = { version = "0.37.0" }
+cssparser = { version = "0.38.0" }
 ctor = "1.0.7"
 derive_more = { version = "2.1.1", features = ["display"] }
 env_logger = "0.11.10"
@@ -145,9 +145,9 @@ smallvec = { version = "1.15.1" }
 # reason: a recursive walk over a nested expression must not be bounded by the
 # thread's stack. Named here so the evaluator can depend on it directly.
 stacker = "0.1.24"
-swc_compiler_base = { version = "64.0.0" }
+swc_compiler_base = { version = "65.0.0" }
 swc_config = { version = "6.0.0" }
-swc_core = { version = "77.1.2" }
+swc_core = { version = "81.0.0" }
 swc_ecma_parser = { version = "45.1.1" }
 url = "2.5.8"
 # The global allocator for the shipped `.node` on the other six published
@@ -158,7 +158,7 @@ url = "2.5.8"
 # here.
 swc_malloc = { version = "1.2.5" }
 swc_sourcemap = { version = "10.0.2" }
-testing = "25.0.0"
+testing = "27.0.0"
 thiserror = "2.0.18"
 # The structural key's hasher. 128-bit output in one pass, where two salted
 # `DefaultHasher` states cost two -- see `stylex-utils/src/hash.rs`.

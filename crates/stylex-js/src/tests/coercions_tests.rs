@@ -15,8 +15,8 @@ use swc_core::{
   ecma::ast::{
     ArrayLit, ArrowExpr, ArrowFunctionBody, AssignProp, BigInt, BindingIdent, Bool,
     ComputedPropName, ExprOrSpread, Function, FunctionBody, GetterProp, Ident, IdentName,
-    KeyValueProp, MethodProp, Null, Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Regex,
-    SetterProp, SpreadElement, Str, ThisExpr, UnaryExpr,
+    KeyValueProp, MethodProp, Null, Number, ObjectLit, ParenExpr, Pat, Prop, PropName,
+    PropOrSpread, Regex, SetterProp, SpreadElement, Str, ThisExpr, UnaryExpr,
   },
 };
 
@@ -158,8 +158,6 @@ fn booleans_null_and_undefined_use_their_javascript_spellings() {
 fn a_big_integer_renders_its_digits_without_the_suffix() {
   assert_eq!(to_js_string(&big_int_expr(1)).as_deref(), Some("1"));
   assert_eq!(to_js_string(&big_int_expr(-42)).as_deref(), Some("-42"));
-  // And it is a number, unlike every other object-shaped value.
-  assert_eq!(to_js_number(&big_int_expr(10)), Some(10.0));
 }
 
 #[test]
@@ -755,14 +753,11 @@ fn an_expression_that_is_not_a_value_has_no_coercion_at_all() {
 
 #[test]
 fn an_object_whose_own_method_cannot_be_applied_has_no_number_either() {
-  // A number asks for `valueOf` first, so an unapplicable one refuses before
-  // the `Object.prototype` default is ever reached.
-  let not_callable = object_expr(vec![key_value_prop(
-    ident_key("valueOf"),
-    str_expr("notfn"),
-  )]);
+  // A number asks for `valueOf` first, so a form that this crate cannot apply
+  // refuses before the `Object.prototype` default is ever reached.
+  let unapplicable = object_expr(vec![method_prop("valueOf")]);
 
-  assert_eq!(to_js_number(&not_callable), None);
+  assert_eq!(to_js_number(&unapplicable), None);
 }
 
 #[test]
@@ -2164,10 +2159,7 @@ fn the_number_form_reaches_every_ending_through_a_bounded_sink() {
   // A method in a form this crate cannot apply is the value's own ending, not
   // the sink's -- a caller that read them alike would name a ceiling where a
   // `TypeError` was written.
-  let unapplicable = object_expr(vec![key_value_prop(
-    ident_key("valueOf"),
-    str_expr("notfn"),
-  )]);
+  let unapplicable = object_expr(vec![method_prop("valueOf")]);
 
   let mut refused = Bounded::new(1000);
 
@@ -2176,6 +2168,16 @@ fn the_number_form_reaches_every_ending_through_a_bounded_sink() {
     Err(StringRefusal::NoStringForm)
   );
   assert_eq!(refused.text, "");
+
+  // A BigInt has no number. The refusal is the value's own, and the sink gets
+  // no text.
+  let mut big_integer = Bounded::new(1000);
+
+  assert_eq!(
+    write_js_number_of(&big_int_expr(2), &mut big_integer),
+    Err(StringRefusal::NoStringForm)
+  );
+  assert_eq!(big_integer.text, "");
 
   // And a value that is neither a number nor an object reaches its number
   // through the text it renders, which the sink may refuse part-way.
@@ -2197,4 +2199,161 @@ fn the_number_form_reaches_every_ending_through_a_bounded_sink() {
   );
   assert_eq!(wide.text, "abcdef");
   assert!(string_to_js_number(&wide.text).is_nan());
+}
+
+/// `ToNumber` of a BigInt throws a `TypeError`, so a BigInt has no number. This
+/// is true for a BigInt that an own conversion method answers too: the method
+/// is not evaluated, and its body is read as it stands. The string form is not
+/// changed, because `ToString` of a BigInt is its digits.
+#[test]
+fn a_big_integer_has_no_number_where_it_is_read_as_one() {
+  let returning = |method: &str| {
+    object_expr(vec![key_value_prop(
+      ident_key(method),
+      returning_arrow(big_int_expr(2)),
+    )])
+  };
+
+  for expr in [big_int_expr(2), returning("valueOf"), returning("toString")] {
+    assert_eq!(to_js_number(&expr), None, "{expr:?}");
+  }
+
+  assert_eq!(to_js_string(&big_int_expr(2)).as_deref(), Some("2"));
+}
+
+/// `OrdinaryToPrimitive` skips an own method that cannot be called, and one
+/// that answers an object. It then asks the other method. Only an object whose
+/// two methods give no primitive has no conversion, because there the
+/// language throws a `TypeError`. Each value is the answer of Node.
+#[test]
+fn a_conversion_method_that_gives_no_primitive_is_skipped() {
+  let method = |name: &str, value: Expr| key_value_prop(ident_key(name), value);
+
+  // The number asks for `valueOf` first, skips it, and reaches `toString`.
+  for skipped in [
+    num_expr(1.0),
+    null_expr(),
+    str_expr("x"),
+    object_expr(vec![]),
+    array_expr(vec![]),
+    returning_arrow(object_expr(vec![])),
+    // The parentheses that `() => ({})` needs in source.
+    returning_arrow(Expr::Paren(ParenExpr {
+      span: DUMMY_SP,
+      expr: Box::new(object_expr(vec![])),
+    })),
+    returning_arrow(array_expr(vec![Some(num_expr(5.0))])),
+  ] {
+    let with_default = object_expr(vec![method("valueOf", skipped.clone())]);
+    assert!(
+      to_js_number(&with_default).is_some_and(f64::is_nan),
+      "{with_default:?}"
+    );
+
+    let with_own = object_expr(vec![
+      method("valueOf", skipped),
+      method("toString", returning_arrow(str_expr("3"))),
+    ]);
+    assert_eq!(to_js_number(&with_own), Some(3.0), "{with_own:?}");
+  }
+
+  // The string asks for `toString` first, skips it, and reaches `valueOf`.
+  let string_skips = object_expr(vec![
+    method("toString", num_expr(2.0)),
+    method("valueOf", returning_arrow(str_expr("v"))),
+  ]);
+  assert_eq!(to_js_string(&string_skips).as_deref(), Some("v"));
+
+  // Both methods give no primitive, so the language throws.
+  for no_primitive in [
+    object_expr(vec![method("toString", num_expr(1.0))]),
+    object_expr(vec![
+      method("valueOf", num_expr(1.0)),
+      method("toString", num_expr(1.0)),
+    ]),
+    object_expr(vec![method(
+      "toString",
+      returning_arrow(object_expr(vec![])),
+    )]),
+  ] {
+    assert_eq!(to_js_number(&no_primitive), None, "{no_primitive:?}");
+    assert_eq!(to_js_string(&no_primitive), None, "{no_primitive:?}");
+  }
+}
+
+/// A name can hold a function or a value, so a method that a name holds cannot
+/// be read off the expression. A coercion that asks for that method refuses,
+/// and does not guess. A string asks for `toString` first, so an own `valueOf`
+/// does not enter into it.
+#[test]
+fn a_conversion_method_held_by_a_name_has_no_coercion() {
+  let held = |name: &str| object_expr(vec![key_value_prop(ident_key(name), ident_expr("convert"))]);
+
+  assert_eq!(to_js_number(&held("valueOf")), None);
+  assert_eq!(
+    to_js_string(&held("valueOf")).as_deref(),
+    Some(OBJECT_TO_STRING)
+  );
+  assert_eq!(to_js_number(&held("toString")), None);
+  assert_eq!(to_js_string(&held("toString")), None);
+}
+
+/// No method gives a primitive, so the language throws a `TypeError`. The
+/// reduction refuses, which is not the default text that it leaves to the
+/// string path.
+#[test]
+fn to_js_default_primitive_refuses_an_object_with_no_primitive() {
+  let no_primitive = object_expr(vec![key_value_prop(ident_key("toString"), num_expr(1.0))]);
+
+  assert_eq!(to_js_default_primitive(&no_primitive), None);
+  assert_eq!(to_js_string(&no_primitive), None);
+}
+
+/// A regular expression is an object, so a method that answers one gives no
+/// primitive. The reference implementation refuses every regular expression
+/// literal, so a coercion that asks a method that holds one refuses too. A
+/// string asks for `toString` first, so an own `valueOf` does not enter into
+/// it.
+#[test]
+fn a_regular_expression_in_a_conversion_method_has_no_coercion() {
+  for value in [returning_arrow(regex_expr("a", "")), regex_expr("a", "")] {
+    let to_string = object_expr(vec![key_value_prop(ident_key("toString"), value.clone())]);
+    let value_of = object_expr(vec![key_value_prop(ident_key("valueOf"), value)]);
+
+    assert_eq!(to_js_number(&to_string), None);
+    assert_eq!(to_js_string(&to_string), None);
+    assert_eq!(to_js_number(&value_of), None);
+    assert_eq!(to_js_string(&value_of).as_deref(), Some(OBJECT_TO_STRING));
+  }
+}
+
+/// The last of two own keys with one name is the property, as in the language.
+/// A method in parentheses is the same method.
+#[test]
+fn a_conversion_method_is_the_last_own_key_read_through_parentheses() {
+  let paren = |expr: Expr| {
+    Expr::Paren(ParenExpr {
+      span: DUMMY_SP,
+      expr: Box::new(expr),
+    })
+  };
+  let value_of = |value: Expr| key_value_prop(ident_key("valueOf"), value);
+
+  let last_answers = object_expr(vec![
+    value_of(num_expr(1.0)),
+    value_of(returning_arrow(num_expr(2.0))),
+  ]);
+  assert_eq!(to_js_number(&last_answers), Some(2.0));
+
+  let last_skipped = object_expr(vec![
+    value_of(returning_arrow(num_expr(2.0))),
+    value_of(num_expr(1.0)),
+  ]);
+  assert!(to_js_number(&last_skipped).is_some_and(f64::is_nan));
+
+  let wrapped = object_expr(vec![value_of(paren(returning_arrow(num_expr(2.0))))]);
+  assert_eq!(to_js_number(&wrapped), Some(2.0));
+
+  let wrapped_value = object_expr(vec![value_of(paren(num_expr(1.0)))]);
+  assert!(to_js_number(&wrapped_value).is_some_and(f64::is_nan));
 }

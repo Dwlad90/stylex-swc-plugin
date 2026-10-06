@@ -174,7 +174,7 @@ jobs:
           echo "$snapshot_status"
 
           git add -- ':(glob)apps/**/visual-tests/.playwright-snapshots/**'
-          git commit --no-verify -m "chore: update visual test snapshots [skip ci]"
+          git commit --no-verify -m "chore: update visual test snapshots"
           git push origin "HEAD:$BRANCH_NAME"
 
       - name: Save turbo build cache

@@ -353,6 +353,55 @@ fn fold_binary_expr(
   })
 }
 
+/// Whether `op` applies `ToNumber` to each side. Then an array or an object
+/// reads as the number of its primitive, as under a unary operator.
+///
+/// `+` does not: it concatenates as soon as a primitive is a string, and the
+/// string path reads an array in that way. A relational comparison compares two
+/// strings as strings, and an equality compares two objects by reference, so a
+/// comparison with an object refuses (see its tests). `in` asks about a key and
+/// `instanceof` about a prototype. A number would give each of these a wrong
+/// answer.
+fn reads_each_side_as_a_number(op: BinaryOp) -> bool {
+  matches!(
+    op,
+    BinaryOp::Sub
+      | BinaryOp::Mul
+      | BinaryOp::Div
+      | BinaryOp::Mod
+      | BinaryOp::Exp
+      | BinaryOp::LShift
+      | BinaryOp::RShift
+      | BinaryOp::ZeroFillRShift
+      | BinaryOp::BitAnd
+      | BinaryOp::BitOr
+      | BinaryOp::BitXor
+  )
+}
+
+/// The number of one evaluated side of `op`.
+///
+/// An operator that reads each side as a number reads it through
+/// [`operand_to_js_number`], as the unary operators do. Every other operator
+/// keeps the narrow reading, which refuses a side with no expression form, such
+/// as an array, with `not_an_expression`.
+fn side_number(
+  op: BinaryOp,
+  side: &EvaluateResultValue,
+  not_an_expression: &'static str,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> Result<f64, anyhow::Error> {
+  if !reads_each_side_as_a_number(op) {
+    let expr = as_expr_or_err!(side, not_an_expression);
+    return expr_to_num(expr, state, traversal_state, fns);
+  }
+
+  operand_to_js_number(side, state, traversal_state, fns)
+    .map_err(|refusal| anyhow!(refusal.reason(traversal_state.character_ceiling())))
+}
+
 /// Every binary operator but the three logical ones, folded to whichever of a
 /// number and a string its operands decide.
 ///
@@ -445,8 +494,6 @@ pub(crate) fn binary_expr_to_num_or_str(
     )?,
   };
 
-  let left_expr = as_expr_or_err!(left, "Left argument not expression");
-
   // The eight comparison operators compare two values, and only fall to the
   // numeric coercion below when one of them is not a primitive. Asked after the
   // coercion instead, `1 != '1'` answered `false` and `'10' < '9'` answered
@@ -454,7 +501,7 @@ pub(crate) fn binary_expr_to_num_or_str(
   // `true`, and `'a' == 'a'` refused because neither side has a number.
   //
   if let Some(reading) = ComparisonReading::of(op)
-    && let Some(left_value) = coercions::to_js_primitive(left_expr)
+    && let Some(left_value) = primitive_of(&left)
   {
     let right = evaluate_operand(
       &binary_expr.right,
@@ -473,7 +520,14 @@ pub(crate) fn binary_expr_to_num_or_str(
     evaluated_right = Some(right);
   }
 
-  let left_num = expr_to_num(left_expr, state, traversal_state, fns)?;
+  let left_num = side_number(
+    op,
+    &left,
+    "Left argument not expression",
+    state,
+    traversal_state,
+    fns,
+  )?;
 
   let right = match evaluated_right {
     Some(right) => right,
@@ -485,8 +539,14 @@ pub(crate) fn binary_expr_to_num_or_str(
       fns,
     )?,
   };
-  let right_expr = as_expr_or_err!(right, "Right argument not expression");
-  let right_num = expr_to_num(right_expr, state, traversal_state, fns)?;
+  let right_num = side_number(
+    op,
+    &right,
+    "Right argument not expression",
+    state,
+    traversal_state,
+    fns,
+  )?;
 
   let result = match &op {
     // An operator whose result is a number is read in `stylex-js`, beside the

@@ -1764,3 +1764,65 @@ fn queued_imports(state: &mut StateManager) -> usize {
 
   module_body.len()
 }
+
+/// A group resolved with imports enabled is not what the same reference answers
+/// with them disabled, however warm the memo is.
+///
+/// The memo lives for the module and is keyed by the subtree, which an import
+/// mode is no part of. A `create` call folds a marker with imports enabled and
+/// leaves the group behind; the `props` merge then reads the same name with
+/// `disable_imports`, as the reference does, so that an imported marker in a
+/// style list is handed to the runtime rather than merged. Served the group
+/// instead, the merge met a theme reference inside a confident style list and
+/// aborted the build
+/// ([#1341](https://github.com/Dwlad90/stylex-swc-plugin/issues/1341)). The
+/// second read has to fall through the chain exactly as it does cold, which is
+/// `a_disabled_import_step_falls_through_the_rest_of_the_chain` above.
+#[test]
+fn a_group_resolved_with_imports_enabled_is_not_answered_with_them_disabled() {
+  let (resolved, mut state) = ModuleState::default()
+    .imported()
+    .resolves_its_imports()
+    .evaluate_against_the_module("c", LATER_REFERENCE_SPAN);
+
+  assert_group_of(resolved, "c");
+
+  let held_inside_the_module = FunctionMap {
+    disable_imports: true,
+    ..FunctionMap::default()
+  };
+
+  let result = GLOBALS.set(&Globals::new(), || {
+    evaluate(
+      &Expr::Ident(ident_at("c", LATER_REFERENCE_SPAN)),
+      &mut state,
+      &held_inside_the_module,
+    )
+  });
+
+  assert_refused_with(&result, UNDEFINED_CONST);
+}
+
+/// And the other direction: a refusal recorded with imports disabled does not
+/// stand in for the group once a fold may resolve them. The two modes keep
+/// separate entries rather than one of them winning.
+#[test]
+fn a_refusal_recorded_with_imports_disabled_does_not_hide_the_group() {
+  let (refused, mut state) = ModuleState::default()
+    .imported()
+    .resolves_its_imports()
+    .with_imports_disabled()
+    .evaluate_against_the_module("c", LATER_REFERENCE_SPAN);
+
+  assert_refused_with(&refused, UNDEFINED_CONST);
+
+  let result = GLOBALS.set(&Globals::new(), || {
+    evaluate(
+      &Expr::Ident(ident_at("c", LATER_REFERENCE_SPAN)),
+      &mut state,
+      &FunctionMap::default(),
+    )
+  });
+
+  assert_group_of(result, "c");
+}

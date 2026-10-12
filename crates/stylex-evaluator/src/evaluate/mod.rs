@@ -81,7 +81,7 @@ use stylex_state::resolution::lookup::get_var_decl_parts_by_ident;
 use stylex_state::{
   evaluate_result_value::EvaluateResultValue,
   functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-  seen_value::SeenValue,
+  seen_value::{SeenKey, SeenValue},
   state_manager::{StateManager, add_import_expression},
   theme_ref::ThemeRef,
   types::{FunctionMapIdentifiers, FunctionMapMemberExpression},

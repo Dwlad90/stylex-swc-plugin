@@ -2800,6 +2800,14 @@
         "brandPrimary": "#123456"
       },
       "note": "A theme reads the environment as a `create` call does. The namespace is a value in this call's map already, so what was missing was the `env` entry in the fold the name stands for -- the same entry `types` has, for the same reason."
+    },
+    {
+      "id": "modules-1341-marker-in-when-and-in-a-nested-props-list",
+      "label": "an imported marker read by `when.ancestor` and written into a nested `props` list",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { marker } from 'marker.stylex.js';\n\nconst styles = stylex.create({\n  label: {\n    color: {\n      default: 'gray',\n      [stylex.when.ancestor(':hover', marker)]: 'white',\n    },\n  },\n  active: { fontWeight: 'bold' },\n});\n\nexport function Label({ active }) {\n  return <span {...stylex.props([styles.label, active ? [styles.active, marker] : null])} />;\n}\n",
+      "origin": "issue #1341, the reported input",
+      "note": "The marker is folded twice: by `create`, with imports resolving, and by the `props` merge, with the fold held inside the module so that the imported binding is handed to the runtime. A memo keyed by the subtree alone answered the second fold with the first one's theme reference, and a style list holding one aborted the build; the reference compiles it to the folded `styles` and a runtime `props` call, which both compilers have to agree on.",
+      "expected": "identical"
     }
   ]
 }

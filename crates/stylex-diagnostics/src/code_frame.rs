@@ -19,20 +19,13 @@ use swc_core::{
     errors::{Handler, *},
     util::take::Take,
   },
-  ecma::{
-    ast::*,
-    codegen::Config,
-    parser::{Syntax, TsSyntax},
-    transforms::typescript::strip,
-    utils::DropSpan,
-    visit::*,
-  },
+  ecma::{ast::*, codegen::Config, transforms::typescript::strip, utils::DropSpan, visit::*},
 };
 
 use crate::{declaration_span::find_declaration_span, state::DiagnosticState};
 use stylex_regex::regex::URL_REGEX;
 use stylex_state_index::key_span_index::{CallLookup, NamespaceKeyQuery};
-use stylex_utils::hash::stable_hash_wide;
+use stylex_utils::{hash::stable_hash_wide, swc::syntax_for_file};
 
 /// One diagnostic's view of a file: the source map that the frame quotes from,
 /// and the handler that draws the caret.
@@ -834,15 +827,15 @@ fn parse_and_normalize_program(
   filename: &str,
   target_expression: &Expr,
 ) -> Option<Program> {
+  // The syntax the compiler parsed the module with, so a module that parsed
+  // there parses here: a `.ts` module holding a generic arrow is read as
+  // TypeScript without JSX by both, and its refusal keeps its frame.
   let parse_result = parse_js(
     code_frame.source_map.clone(),
     source_file.clone(),
     &code_frame.handler,
     EsVersion::EsNext,
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    syntax_for_file(Path::new(filename)),
     IsModule::Bool(true),
     None,
   );

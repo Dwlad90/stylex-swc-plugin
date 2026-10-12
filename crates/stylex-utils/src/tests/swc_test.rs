@@ -509,3 +509,133 @@ mod stmt_kind {
     }
   }
 }
+
+// ── syntax_for_file ────────────────────────────────────────────────
+//
+// The answer decides whether a module parses at all, so every case parses a
+// source through the syntax the file name earns rather than inspecting the
+// flag: a `.ts` module holding a generic arrow has to parse, and a `.tsx`
+// module holding an element has to keep parsing.
+
+mod file_syntax {
+  use std::path::Path;
+
+  use crate::swc::syntax_for_file;
+  use swc_core::common::{FileName, SourceMap, sync::Lrc};
+  use swc_ecma_parser::{Parser, StringInput, Syntax, lexer::Lexer};
+
+  /// A generic arrow and an angle-bracket type assertion: the two forms a
+  /// TypeScript module without JSX reads as types, and a TSX module as the
+  /// start of an element.
+  const TYPESCRIPT_WITHOUT_JSX: &str =
+    "const px = <T>(value: T) => `${value}px`;\nconst node = <HTMLElement>document.body;\n";
+
+  /// An element, which only a module admitting JSX reads.
+  const JSX: &str = "const element = <div>{value}</div>;\n";
+
+  /// Whether `source` parses as a module under the syntax `file` earns.
+  fn parses(file: &str, source: &str) -> bool {
+    let cm: Lrc<SourceMap> = Default::default();
+    let fm = cm.new_source_file(
+      Lrc::new(FileName::Custom(file.to_string())),
+      source.to_string(),
+    );
+    let mut parser = Parser::new_from(Lexer::new(
+      syntax_for_file(Path::new(file)),
+      Default::default(),
+      StringInput::from(&*fm),
+      None,
+    ));
+
+    parser.parse_module().is_ok() && parser.take_errors().is_empty()
+  }
+
+  fn admits_jsx(file: &str) -> bool {
+    match syntax_for_file(Path::new(file)) {
+      Syntax::Typescript(syntax) => syntax.tsx,
+      Syntax::Es(_) => panic!("{file} is parsed as plain ECMAScript"),
+    }
+  }
+
+  #[test]
+  fn a_typescript_module_without_jsx_reads_angle_brackets_as_types() {
+    for file in [
+      "styles.ts",
+      "styles.mts",
+      "styles.cts",
+      "/abs/path/styles.ts",
+      "types.d.ts",
+    ] {
+      assert!(
+        parses(file, TYPESCRIPT_WITHOUT_JSX),
+        "{file} must read a generic arrow and a type assertion"
+      );
+      assert!(
+        !parses(file, JSX),
+        "{file} must not read an element, as no TypeScript toolchain does"
+      );
+    }
+  }
+
+  #[test]
+  fn a_tsx_module_reads_an_element() {
+    for file in ["App.tsx", "/abs/path/App.tsx"] {
+      assert!(parses(file, JSX), "{file} must read an element");
+      assert!(
+        !parses(file, TYPESCRIPT_WITHOUT_JSX),
+        "{file} reads `<T>` as an element, as every TSX toolchain does"
+      );
+    }
+  }
+
+  #[test]
+  fn a_javascript_module_keeps_admitting_jsx() {
+    for file in ["App.js", "App.jsx", "App.mjs", "App.cjs"] {
+      assert!(parses(file, JSX), "{file} must keep reading an element");
+    }
+  }
+
+  #[test]
+  fn the_extension_is_matched_without_regard_to_case() {
+    for file in ["Styles.TS", "styles.Mts", "STYLES.CTS"] {
+      assert!(!admits_jsx(file), "{file} names TypeScript without JSX");
+    }
+
+    for file in ["App.TSX", "app.JSX", "APP.JS"] {
+      assert!(admits_jsx(file), "{file} admits JSX in another case");
+    }
+  }
+
+  #[test]
+  fn an_unrecognised_extension_keeps_what_every_input_was_parsed_with() {
+    // The answer every input had before the extension was asked, so nothing
+    // that compiled stops compiling: JSX stays admitted.
+    for file in [
+      "page",
+      "page.",
+      "page.vue",
+      "page.svelte",
+      "page.mdx",
+      "page.ts.txt",
+    ] {
+      assert!(
+        admits_jsx(file),
+        "{file} is not a TypeScript-without-JSX extension"
+      );
+    }
+  }
+
+  #[test]
+  fn every_answer_is_typescript() {
+    // The language is the superset and was never chosen per file; only the
+    // JSX flag follows the extension.
+    for file in [
+      "a.ts", "a.tsx", "a.js", "a.jsx", "a.mjs", "a.cjs", "a.mts", "a.cts", "a",
+    ] {
+      assert!(
+        matches!(syntax_for_file(Path::new(file)), Syntax::Typescript(_)),
+        "{file} must be parsed as TypeScript"
+      );
+    }
+  }
+}

@@ -176,6 +176,19 @@ function matchPattern(filePath: string, pattern: string | RegExp): boolean {
   return picomatch.isMatch(filePath, pattern, { dot: true });
 }
 
+/**
+ * Whether an angle bracket in `filename` may open a JSX element: in every
+ * module but a `.ts`, `.mts` or `.cts` one, where it opens a type parameter
+ * list or a type assertion instead. The same answer the native transform gives
+ * (`stylex_utils::swc::syntax_for_file`), so a plugin pre-pass parses exactly
+ * what the native pass then parses.
+ */
+const TYPESCRIPT_WITHOUT_JSX = /\.[mc]?ts$/i;
+
+function admitsJsx(filename: string): boolean {
+  return !TYPESCRIPT_WITHOUT_JSX.test(filename);
+}
+
 // ── transform ───────────────────────────────────────────────────────
 
 /**
@@ -216,7 +229,7 @@ export function transform(
       inlineSourcesContent: options.inlineSourcesContent ?? true,
       inputSourceMap,
       jsc: {
-        parser: { syntax: 'typescript', tsx: true },
+        parser: { syntax: 'typescript', tsx: admitsJsx(filename) },
         target: 'es2022',
         experimental: { plugins: options.swcPlugins },
       },

@@ -111,3 +111,14 @@ than SWC's variant names, and three resolve a disagreement about node boundaries
 base, `super.x` is a `MemberExpression`). `get_stmt_node_kind` is the statement
 half. Not `Expr::get_type`, which answers the _value_ an expression produces.
 _Avoid_: expression type, node type, ast kind
+
+**File syntax**:
+`syntax_for_file`, the parser syntax a module earns from its file name:
+TypeScript throughout, with JSX admitted in every module but a `.ts`, `.mts`
+or `.cts` one, where an angle bracket opens a type parameter list or a type
+assertion instead. The extension is matched without regard to case, and a name
+with no recognised extension keeps JSX. It is **observable**: a `.ts` module
+holding `<T>(value: T) => value` parses or is refused by it. One answer for the
+compiler's parse and the diagnostics code frame's re-parse, so a module that
+parsed once parses again where its refusal is framed.
+_Avoid_: parser options, tsx flag, language detection

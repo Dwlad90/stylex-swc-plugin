@@ -6,8 +6,8 @@
 //! in its order, so that a change upstream maps onto one function here. The
 //! commit the port follows is named in `CONTEXT.md` (the one `@stylexjs/babel-plugin`
 //! 0.19.1 was published from); the output is the same string that version
-//! writes, byte for byte, which the parity harness in `stylex-rs-compiler`
-//! holds against the plugin itself.
+//! writes, byte for byte. The matrix test in `tests/` holds the order against
+//! the plugin's own answers.
 //!
 //! This crate holds the sort order of the sheet: the media-query width key a
 //! rule's at-rule chain earns, the comparator over such keys, and the
@@ -18,6 +18,3 @@
 
 mod collation;
 pub mod width_sort_key;
-
-#[cfg(test)]
-mod tests;

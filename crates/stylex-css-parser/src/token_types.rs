@@ -269,8 +269,19 @@ fn from_offset(input: &str, start: usize) -> &str {
 }
 
 /// Recursively tokenize nested content, handling ParenthesisBlock and other
-/// nested structures
-fn tokenize_nested_content(input: &str, parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
+/// nested structures.
+///
+/// `cssparser` closes a block the input leaves open at its end, so the tokens
+/// of `(min-width: 500px` and of `(min-width: 500px)` read the same. The
+/// reference's tokenizer refuses the first, and so does every parser here once
+/// the block is marked: a nested parser stops before its closing delimiter, so
+/// a block whose parser stops at the end of the input was never closed.
+fn tokenize_nested_content(
+  input: &str,
+  parser: &mut Parser,
+  tokens: &mut Vec<SimpleToken>,
+  unclosed_block: &mut bool,
+) {
   let mut start = next_token_offset(parser);
   while let Ok(inner_token) = parser.next_including_whitespace_and_comments() {
     match &inner_token {
@@ -281,7 +292,7 @@ fn tokenize_nested_content(input: &str, parser: &mut Parser, tokens: &mut Vec<Si
 
         // Parse the nested parenthesis content recursively
         parse_nested_or_panic(parser, |nested_parser| {
-          tokenize_nested_content(input, nested_parser, tokens);
+          tokenize_nested_content(input, nested_parser, tokens, unclosed_block);
           Ok(())
         });
 
@@ -295,7 +306,7 @@ fn tokenize_nested_content(input: &str, parser: &mut Parser, tokens: &mut Vec<Si
 
         // Parse the function content recursively
         parse_nested_or_panic(parser, |nested_parser| {
-          tokenize_nested_content(input, nested_parser, tokens);
+          tokenize_nested_content(input, nested_parser, tokens, unclosed_block);
           Ok(())
         });
 
@@ -309,9 +320,17 @@ fn tokenize_nested_content(input: &str, parser: &mut Parser, tokens: &mut Vec<Si
     }
     start = next_token_offset(parser);
   }
+
+  // The block's own parser stops before the delimiter that closes it; at the
+  // end of the input there is none.
+  if input.as_bytes().get(next_token_offset(parser)).is_none() {
+    *unclosed_block = true;
+  }
 }
 
-fn tokenize_all(input: &str) -> Vec<SimpleToken> {
+/// The tokens of `input`, and whether a block in it reaches the end of the
+/// input before its closing delimiter.
+fn tokenize_all(input: &str) -> (Vec<SimpleToken>, bool) {
   let mut parser = Parser::new(input);
   // Since 0.38, `cssparser` refuses a block nested deeper than 75 levels.
   // Upstream StyleX has no such limit, and 0.37 had no limit. Thus, remove
@@ -320,6 +339,7 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
   parser.set_nested_block_limit(0);
 
   let mut tokens = Vec::new();
+  let mut unclosed_block = false;
   let mut start = next_token_offset(&parser);
   while let Ok(t) = parser.next_including_whitespace_and_comments() {
     match &t {
@@ -331,7 +351,7 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
         // Parse the function content to get individual argument tokens
         parse_nested_or_panic(&mut parser, |nested_parser| {
           // Recursively tokenize everything inside the function parentheses
-          tokenize_nested_content(input, nested_parser, &mut tokens);
+          tokenize_nested_content(input, nested_parser, &mut tokens, &mut unclosed_block);
           Ok(())
         });
 
@@ -347,7 +367,7 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
         parse_nested_or_panic(&mut parser, |nested_parser| {
           // Recursively tokenize everything inside the parentheses, handling nested
           // structures
-          tokenize_nested_content(input, nested_parser, &mut tokens);
+          tokenize_nested_content(input, nested_parser, &mut tokens, &mut unclosed_block);
           Ok(())
         });
 
@@ -361,7 +381,7 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
     }
     start = next_token_offset(&parser);
   }
-  tokens
+  (tokens, unclosed_block)
 }
 
 /// A list of CSS tokens with parsing state
@@ -371,15 +391,22 @@ pub struct TokenList {
   pub current_index: usize,
   /// Parser frames open on the current path. See [`TokenList::with_depth`].
   pub(crate) depth: usize,
+  /// Whether a block of the input reaches the end of the input before its
+  /// closing delimiter. The tokens read as if it were closed, as `cssparser`
+  /// closes it; `parse_to_end` refuses the input, as the reference does.
+  pub(crate) unclosed_block: bool,
 }
 
 impl TokenList {
   /// Create a new TokenList from a CSS string
   pub fn new(input: &str) -> Self {
+    let (tokens, unclosed_block) = tokenize_all(input);
+
     Self {
-      tokens: tokenize_all(input),
+      tokens,
       current_index: 0,
       depth: 0,
+      unclosed_block,
     }
   }
 

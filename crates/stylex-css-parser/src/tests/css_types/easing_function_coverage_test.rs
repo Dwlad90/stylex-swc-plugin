@@ -10,6 +10,7 @@ fn make_token_list(tokens: Vec<SimpleToken>) -> TokenList {
     tokens,
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   }
 }
 
@@ -205,13 +206,12 @@ fn linear_parse_error_unexpected_token_after_number() {
 }
 
 #[test]
-fn linear_parse_accepts_missing_closing_paren() {
-  // The cssparser tokenizer synthesizes a RightParen for unbalanced function
-  // parentheses, so "linear(1,2" is accepted as if the paren were present.
-  // Coverage note: The parser silently accepts input with missing closing parens because
-  // the underlying CSS tokenizer (cssparser) auto-closes open function blocks.
+fn linear_parse_refuses_missing_closing_paren() {
+  // The cssparser tokenizer synthesizes a RightParen for an unclosed function
+  // and marks the list; `parse_to_end` refuses the input, as the reference's
+  // tokenizer refuses it.
   let result = LinearEasingFunction::parse().parse_to_end("linear(1,2");
-  assert!(result.is_ok());
+  assert!(result.is_err());
 }
 
 #[test]
@@ -467,13 +467,12 @@ fn cubic_bezier_parse_error_too_few_args() {
 }
 
 #[test]
-fn cubic_bezier_parse_accepts_missing_closing_paren() {
-  // The cssparser tokenizer synthesizes a RightParen for unbalanced function
-  // parentheses, so the parser accepts input without an explicit closing paren.
-  // Coverage note: The parser silently accepts input with missing closing parens because
-  // the underlying CSS tokenizer (cssparser) auto-closes open function blocks.
+fn cubic_bezier_parse_refuses_missing_closing_paren() {
+  // The cssparser tokenizer synthesizes a RightParen for an unclosed function
+  // and marks the list; `parse_to_end` refuses the input, as the reference's
+  // tokenizer refuses it.
   let result = CubicBezierEasingFunction::parse().parse_to_end("cubic-bezier(0.25, 0.1, 0.25, 1");
-  assert!(result.is_ok());
+  assert!(result.is_err());
 }
 
 #[test]
@@ -868,13 +867,12 @@ fn steps_parse_error_eof_after_comma() {
 }
 
 #[test]
-fn steps_parse_accepts_missing_closing_paren() {
-  // The cssparser tokenizer synthesizes a RightParen for unbalanced function
-  // parentheses, so the parser accepts input without an explicit closing paren.
-  // Coverage note: The parser silently accepts input with missing closing parens because
-  // the underlying CSS tokenizer (cssparser) auto-closes open function blocks.
+fn steps_parse_refuses_missing_closing_paren() {
+  // The cssparser tokenizer synthesizes a RightParen for an unclosed function
+  // and marks the list; `parse_to_end` refuses the input, as the reference's
+  // tokenizer refuses it.
   let result = StepsEasingFunction::parse().parse_to_end("steps(4, start");
-  assert!(result.is_ok());
+  assert!(result.is_err());
 }
 
 #[test]

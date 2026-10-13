@@ -179,6 +179,26 @@ fn zero_is_a_bound_in_any_unit_or_none_and_px_is_case_insensitive() {
   assert_eq!(bound_of("@media (MIN-WIDTH: 500px)"), min(500.0));
 }
 
+/// The reference compares bounds by subtraction, and `-0 - 0` is a tie: a
+/// `-0px` bound and a `0px` bound are equal, so the rule text decides.
+#[test]
+fn a_negative_zero_bound_ties_with_zero() {
+  assert_eq!(
+    order(
+      "@media (max-width: -0px){.a{color:red}}",
+      "@media (max-width: 0px){.b{color:red}}"
+    ),
+    Ordering::Equal
+  );
+  assert_eq!(
+    order(
+      "@media (min-width: -0){.a{color:red}}",
+      "@media (min-width: 0){.b{color:red}}"
+    ),
+    Ordering::Equal
+  );
+}
+
 /// `does not sort a width whose value is a ratio`
 #[test]
 fn a_ratio_is_not_a_width() {
@@ -232,8 +252,9 @@ fn an_or_query_has_no_bound() {
 
 #[test]
 fn a_prelude_the_parser_refuses_has_no_bound() {
-  // An unbalanced parenthesis is refused before the parse, as upstream's
-  // `validateMediaQuery` refuses it; the parser alone would read the bound.
+  // A block the prelude leaves open is refused by `parse_to_end`, as the
+  // reference's tokenizer refuses it; a stray closing parenthesis is a
+  // leftover token.
   assert_eq!(bound_of("@media (min-width: 500px"), None);
   assert_eq!(bound_of("@media (min-width: 500px))"), None);
   assert_eq!(bound_of("@media )(min-width: 500px"), None);
@@ -253,14 +274,18 @@ fn a_non_media_at_rule_has_no_bound() {
 /// `sorts min-width breakpoints nested inside another at-rule`
 #[test]
 fn a_breakpoint_nested_in_another_at_rule_keeps_its_context() {
-  let key = key_of("@supports (display: grid){@media (min-width: 500px){.a{color:red}}}")
-    .expect("a nested breakpoint sorts");
+  let Some(key) = key_of("@supports (display: grid){@media (min-width: 500px){.a{color:red}}}")
+  else {
+    panic!("a nested breakpoint sorts");
+  };
 
   assert_eq!(key.context, "@supports (display: grid){@media");
-  assert_eq!(key.bound, min(500.0).expect("a bound"));
+  assert_eq!(Some(key.bound), min(500.0));
 
-  let inner = key_of("@media (min-width: 500px){@supports (display: grid){.a{color:red}}}")
-    .expect("a breakpoint around another at-rule sorts");
+  let Some(inner) = key_of("@media (min-width: 500px){@supports (display: grid){.a{color:red}}}")
+  else {
+    panic!("a breakpoint around another at-rule sorts");
+  };
 
   assert_eq!(inner.context, "@media{@supports (display: grid)");
 }
@@ -355,6 +380,27 @@ fn a_rule_with_no_key_sorts_after_every_rule_with_one_and_equal_to_its_kind() {
       "@media (min-width: 500px){.b{color:blue}}"
     ),
     Ordering::Equal
+  );
+}
+
+/// The context is text an author writes, so it compares as `localeCompare`
+/// compares it: a `@supports` condition holding an accented letter sorts beside
+/// its base letter, not after every ASCII context.
+#[test]
+fn a_context_outside_ascii_sorts_as_root_collation_sorts_it() {
+  assert_eq!(
+    order(
+      "@supports (content: \"é\"){@media (min-width: 1px){.a{color:red}}}",
+      "@supports (content: \"f\"){@media (min-width: 1px){.b{color:red}}}"
+    ),
+    Ordering::Less
+  );
+  assert_eq!(
+    order(
+      "@supports (content: \"e\"){@media (min-width: 1px){.a{color:red}}}",
+      "@supports (content: \"é\"){@media (min-width: 1px){.b{color:red}}}"
+    ),
+    Ordering::Less
   );
 }
 

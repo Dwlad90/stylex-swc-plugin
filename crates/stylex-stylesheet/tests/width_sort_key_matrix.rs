@@ -1,12 +1,13 @@
 //! The width sort key against the reference implementation over a matrix of
 //! media-query chains.
 //!
-//! `fixtures/width-sort-key-matrix.json` holds 1,284 at-rule chains: every
+//! `fixtures/width-sort-key-matrix.json` holds the at-rule chains: every
 //! spelling of a `@media` prelude the StyleX parser treats differently for the
-//! width key (px, rem, zero, exponents, case, the range syntax both ways,
-//! `and` with keywords and other pairs, comma lists, leading and nested `not`,
-//! `calc()`, two bounds of one axis, malformed queries), each alone and under
-//! a `@supports`, a `@container` and a second `@media`. Beside each chain is
+//! width key (px, rem, zero and negative zero, exponents, case, the range
+//! syntax both ways, `and` with keywords and other pairs, comma lists, leading
+//! and nested `not`, `calc()`, two bounds of one axis, malformed queries), each
+//! alone and under a `@supports`, a `@container` and a second `@media`, and a
+//! set of contexts whose text leaves ASCII. Beside each chain is
 //! the rank `@stylexjs/babel-plugin`'s `processStylexRules` gives it, read
 //! off a sort of two copies of every chain (equal keys interleave their
 //! copies, different keys do not), `null` where the plugin has no key.
@@ -26,8 +27,6 @@ use stylex_stylesheet::width_sort_key::{
 
 #[derive(Deserialize)]
 struct Matrix {
-  #[allow(dead_code)]
-  oracle: String,
   chains: Vec<Row>,
 }
 
@@ -50,9 +49,14 @@ fn oracle_order(a: Option<u32>, b: Option<u32>) -> Ordering {
 fn every_pair_of_the_matrix_orders_as_the_reference_orders_it() {
   let path =
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/width-sort-key-matrix.json");
-  let text = fs::read_to_string(&path)
-    .unwrap_or_else(|error| panic!("cannot read {}: {error}", path.display()));
-  let matrix: Matrix = serde_json::from_str(&text).expect("the fixture is the shape above");
+  let text = match fs::read_to_string(&path) {
+    Ok(text) => text,
+    Err(error) => panic!("cannot read {}: {error}", path.display()),
+  };
+  let matrix: Matrix = match serde_json::from_str(&text) {
+    Ok(matrix) => matrix,
+    Err(error) => panic!("the fixture is not the shape above: {error}"),
+  };
 
   assert!(
     matrix.chains.len() > 1000,

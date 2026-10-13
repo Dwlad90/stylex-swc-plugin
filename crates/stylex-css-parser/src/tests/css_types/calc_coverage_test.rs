@@ -33,6 +33,7 @@ fn parse_calc_value_accepts_nested_calc_function_token() {
     ],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
 
   let result = CalcValue::parse_calc_value(&mut tokens).unwrap();
@@ -48,6 +49,7 @@ fn parse_calc_value_errors_when_nested_calc_close_is_missing() {
     ],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
 
   assert!(CalcValue::parse_calc_value(&mut tokens).is_err());
@@ -62,6 +64,7 @@ fn parse_calc_value_errors_when_nested_calc_expression_is_empty() {
     ],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
 
   assert!(CalcValue::parse_calc_value(&mut tokens).is_err());
@@ -77,6 +80,7 @@ fn parse_calc_value_errors_when_nested_calc_close_is_wrong_token() {
     ],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
 
   assert!(CalcValue::parse_calc_value(&mut tokens).is_err());
@@ -321,6 +325,7 @@ fn try_parse_group_succeeds_with_left_paren_then_number_then_right_paren() {
     ],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   let result = CalcValue::try_parse_parenthesized_group(&mut tokens).unwrap();
   assert!(matches!(*result.expr, CalcValue::Number(n) if (n - 5.0).abs() < 0.001));
@@ -333,6 +338,7 @@ fn try_parse_group_fails_with_empty_tokens() {
     tokens: vec![],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   assert!(CalcValue::try_parse_parenthesized_group(&mut tokens).is_err());
 }
@@ -344,6 +350,7 @@ fn try_parse_group_fails_with_non_paren_first_token() {
     tokens: vec![SimpleToken::Number(10.0)],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   assert!(CalcValue::try_parse_parenthesized_group(&mut tokens).is_err());
   // Rollback: index should be reset to 0
@@ -362,6 +369,7 @@ fn try_parse_group_with_whitespace_after_open_paren() {
     ],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   let result = CalcValue::try_parse_parenthesized_group(&mut tokens).unwrap();
   assert!(matches!(*result.expr, CalcValue::Number(n) if (n - 3.0).abs() < 0.001));
@@ -379,6 +387,7 @@ fn try_parse_group_with_whitespace_before_close_paren() {
     ],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   let result = CalcValue::try_parse_parenthesized_group(&mut tokens).unwrap();
   assert!(matches!(*result.expr, CalcValue::Number(n) if (n - 7.0).abs() < 0.001));
@@ -395,6 +404,7 @@ fn try_parse_group_fails_when_close_paren_missing() {
     ],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   assert!(CalcValue::try_parse_parenthesized_group(&mut tokens).is_err());
 }
@@ -410,6 +420,7 @@ fn try_parse_group_fails_when_wrong_close_token() {
     ],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   assert!(CalcValue::try_parse_parenthesized_group(&mut tokens).is_err());
 }
@@ -423,6 +434,7 @@ fn try_parse_operator_fails_with_empty_tokens() {
     tokens: vec![],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   assert!(CalcValue::try_parse_operator(&mut tokens).is_err());
 }
@@ -433,6 +445,7 @@ fn try_parse_operator_returns_plus() {
     tokens: vec![SimpleToken::Delim('+')],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   let result = CalcValue::try_parse_operator(&mut tokens).unwrap();
   assert_eq!(result, "+");
@@ -444,6 +457,7 @@ fn try_parse_operator_returns_minus() {
     tokens: vec![SimpleToken::Delim('-')],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   let result = CalcValue::try_parse_operator(&mut tokens).unwrap();
   assert_eq!(result, "-");
@@ -455,6 +469,7 @@ fn try_parse_operator_returns_multiply() {
     tokens: vec![SimpleToken::Delim('*')],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   let result = CalcValue::try_parse_operator(&mut tokens).unwrap();
   assert_eq!(result, "*");
@@ -466,6 +481,7 @@ fn try_parse_operator_returns_divide() {
     tokens: vec![SimpleToken::Delim('/')],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   let result = CalcValue::try_parse_operator(&mut tokens).unwrap();
   assert_eq!(result, "/");
@@ -478,6 +494,7 @@ fn try_parse_operator_fails_for_non_operator_token() {
     tokens: vec![SimpleToken::Number(5.0)],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   assert!(CalcValue::try_parse_operator(&mut tokens).is_err());
 }
@@ -784,6 +801,7 @@ fn parse_calc_errors_when_closing_paren_token_is_missing() {
     ],
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   };
   assert!(
     Calc::parse_calc(&mut tokens).is_err(),

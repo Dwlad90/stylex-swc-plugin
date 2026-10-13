@@ -20,9 +20,11 @@ own changes; when the addon links this crate it sits on rung 3 of the ladder in
 **Width bound**:
 The one `min-width` or `max-width` a media query imposes in px, read off the
 parsed and normalized query: a bound in another unit, a `not`, an `or`, a
-word rule or two bounds on different sides leave the query with none. Zero is a
-bound in any unit or none. Two bounds of one side are the merged bound, because
-the parser's normalization merges them before the bounds are read, as the
+word rule or two bounds on different sides leave the query with none, and so
+does a prelude the parser refuses (a block left open, a stray parenthesis).
+Zero is a bound in any unit or none, and `-0` is zero: the reference compares
+bounds by subtraction. Two bounds of one side are the merged bound, because the
+parser's normalization merges them before the bounds are read, as the
 reference's does.
 _Avoid_: breakpoint value, media bound
 
@@ -45,9 +47,12 @@ comparator reads it before the width key.
 _Avoid_: property name, declaration key
 
 **Collation**:
-`localeCompare` as the reference calls it with no locale: V8's default (ICU
-root) collation, two levels over printable ASCII. Primary: each character by
-its base letter, case folded, punctuation before digits before letters, a
-prefix before the string it opens. Tertiary: the first case difference,
-lowercase first. Byte order is not it, and the sheet's order depends on it.
+`localeCompare` as the reference calls it with no locale: root collation, as
+[stylex-css](../stylex-css/CONTEXT.md) answers it for pseudo-class order. A
+table for printable ASCII (two levels: each character by its base letter, case
+folded, punctuation before digits before letters, a prefix before the string it
+opens; then the first case difference, lowercase first) and `icu_collator` at
+the root locale for any text carrying another character, so a `content: '·'`
+weighs where ICU weighs it. Byte order is not it, and the sheet's order depends
+on it.
 _Avoid_: lexicographic order, string compare

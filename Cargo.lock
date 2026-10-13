@@ -3468,6 +3468,7 @@ dependencies = [
 name = "stylex_stylesheet"
 version = "0.19.1"
 dependencies = [
+ "icu_collator",
  "serde",
  "serde_json",
  "stylex_css_parser",

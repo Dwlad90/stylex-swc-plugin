@@ -492,3 +492,207 @@ fn a_rule_with_no_at_rule_sorts_after_its_breakpoints_by_text() {
     "@media (min-width: 500px){.xM.xM{color:green}}\n.xB{color:blue}\n.xA{color:red}"
   );
 }
+
+// ==================== the whole assembly, every branch ====================
+//
+// The reference's own cases (`tests/process_stylex_rules_cases.rs`) reach most
+// of the assembly; these hold the rest from this suite, so the suite alone
+// covers the step. Each expectation is measured on the plugin.
+
+/// `useLayers` as an object: the ordinal layer names under the prefix, the
+/// `before` and `after` layers around them in the statement, a rule of
+/// priority 0 (`@keyframes`) outside every block, and an RTL twin inside one.
+#[test]
+fn layers_name_the_groups_by_ordinal_under_the_prefix_between_the_layers_before_and_after() {
+  let rules = [
+    rule("k", "@keyframes k{0%{a:0}}", None, 0.0),
+    rule("x1", ".x1{margin:0}", None, 1000.0),
+    rule("x2", ".x2{color:red}", None, 3000.0),
+    rule("x3", ".x3{color:blue}", Some(".x3{color:green}"), 3000.0),
+  ];
+  let config = ProcessStylexRulesConfig {
+    use_layers: Some(LayerOptions {
+      before: vec!["reset".to_string()],
+      after: vec!["overrides".to_string()],
+      prefix: "x".to_string(),
+    }),
+    ..ProcessStylexRulesConfig::default()
+  };
+
+  assert_eq!(
+    sheet(&rules, &config),
+    "\n@layer reset, x.priority1, x.priority2, x.priority3, overrides;\n@keyframes k{0%{a:0}}\n@layer x.priority2{\n.x1{margin:0}\n}\n@layer x.priority3{\nhtml:not([dir='rtl']) .x3{color:blue}\nhtml[dir='rtl'] .x3{color:green}\n.x2{color:red}\n}"
+  );
+}
+
+/// `useLayers: true`: no prefix, so the names are the bare ordinals.
+#[test]
+fn layers_without_a_prefix_are_the_bare_ordinals() {
+  let rules = [
+    rule("x1", ".x1{margin:0}", None, 1000.0),
+    rule("x2", ".x2{color:red}", None, 3000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::from(true)),
+    "\n@layer priority1, priority2;\n@layer priority1{\n.x1{margin:0}\n}\n@layer priority2{\n.x2{color:red}\n}"
+  );
+}
+
+/// A `useLayers` outside its declared type (`boolean | object`) is refused at
+/// deserialization rather than read as a flag.
+#[test]
+fn a_use_layers_outside_its_type_is_refused() {
+  let parsed = serde_json::from_str::<ProcessStylexRulesConfig>(r#"{"useLayers": "yes"}"#);
+
+  assert!(
+    parsed.is_err(),
+    "a string is neither a flag nor an options object"
+  );
+}
+
+/// `useLegacyClassnamesSort`: rules of one priority sort by class name, where
+/// the default sorts by the declaration text first.
+#[test]
+fn the_legacy_sort_orders_one_priority_by_class_name() {
+  let rules = [
+    rule("xb", ".xb{color:red}", None, 3000.0),
+    rule("xa", ".xa{margin:0}", None, 3000.0),
+  ];
+  let legacy = ProcessStylexRulesConfig {
+    use_legacy_classnames_sort: true,
+    ..without_layers()
+  };
+
+  assert_eq!(sheet(&rules, &legacy), ".xa{margin:0}\n.xb{color:red}");
+  assert_eq!(
+    sheet(&rules, &without_layers()),
+    ".xb{color:red}\n.xa{margin:0}"
+  );
+}
+
+/// Two rules whose declaration texts tie sort by their whole text.
+#[test]
+fn rules_that_tie_on_the_declaration_sort_by_the_whole_text() {
+  let rules = [
+    rule("xb", ".xb{color:red}", None, 3000.0),
+    rule("xa", ".xa{color:red}", None, 3000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &without_layers()),
+    ".xa{color:red}\n.xb{color:red}"
+  );
+}
+
+/// One class twice in one priority group: one entry, at the position of the
+/// first (after the sort) with the text of the last, as `new Map` keeps them.
+#[test]
+fn a_class_repeated_in_one_group_keeps_the_first_position_and_the_last_text() {
+  let rules = [
+    rule("x1", ".x1{color:red}", None, 3000.0),
+    rule("x2", ".x2{color:blue}", None, 3000.0),
+    rule("x1", ".x1{color:green}", None, 3000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &without_layers()),
+    ".x2{color:blue}\n.x1{color:red}"
+  );
+}
+
+/// `enableLTRRTLComments`: a rule with an RTL twin is written as two
+/// commented blocks rather than under the two ancestor selectors.
+#[test]
+fn ltr_rtl_comments_replace_the_ancestor_selectors() {
+  let rules = [
+    rule(
+      "x1",
+      ".x1{margin-left:0}",
+      Some(".x1{margin-right:0}"),
+      3000.0,
+    ),
+    rule("x2", ".x2{color:red}", None, 3000.0),
+  ];
+  let config = ProcessStylexRulesConfig {
+    enable_ltr_rtl_comments: true,
+    ..without_layers()
+  };
+
+  assert_eq!(
+    sheet(&rules, &config),
+    ".x2{color:red}\n/* @ltr begin */.x1{margin-left:0}/* @ltr end */\n/* @rtl begin */.x1{margin-right:0}/* @rtl end */"
+  );
+}
+
+/// Rules under one at-rule chain read one sort key (the chain is read once
+/// per sheet), and the chains order by their width bound.
+#[test]
+fn rules_under_one_at_rule_chain_share_its_sort_key() {
+  let rules = [
+    rule(
+      "x1",
+      "@media (min-width: 900px){.x1{color:red}}",
+      None,
+      3200.0,
+    ),
+    rule(
+      "x2",
+      "@media (min-width: 500px){.x2{color:red}}",
+      None,
+      3200.0,
+    ),
+    rule(
+      "x3",
+      "@media (min-width: 900px){.x3{color:blue}}",
+      None,
+      3200.0,
+    ),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &without_layers()),
+    "@media (min-width: 500px){.x2{color:red}}\n@media (min-width: 900px){.x3{color:blue}}\n@media (min-width: 900px){.x1{color:red}}"
+  );
+}
+
+/// A theme's `.x, .x:root` selector is doubled so the theme beats the default
+/// values, in the LTR text and in the RTL text, at every match in a text.
+#[test]
+fn a_theme_root_selector_is_doubled_in_both_texts_at_every_match() {
+  let rules = [
+    rule(
+      "xt",
+      ".xt, .xt:root{--a:1}",
+      Some(".xt, .xt:root{--a:2}"),
+      500.0,
+    ),
+    rule(
+      "xu",
+      ".xu, .xu:root{--b:1} .xv, .xv:root{--c:1}",
+      None,
+      500.0,
+    ),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &without_layers()),
+    "html:not([dir='rtl']) .xt.xt, .xt.xt:root{--a:1}\nhtml[dir='rtl'] .xt.xt, .xt.xt:root{--a:2}\n.xu.xu, .xu.xu:root{--b:1} .xv.xv, .xv.xv:root{--c:1}"
+  );
+}
+
+/// A constant holding a variable with no fallback renames the declarations
+/// to that variable's whole name.
+#[test]
+fn a_constant_holding_a_variable_without_a_fallback_renames_to_the_whole_name() {
+  let rules = [
+    constant("xA", text("var(--theme-color)")),
+    rule("x1", ".x1{--xA:blue}", None, 3000.0),
+    rule("x2", ".x2{color:var(--xA)}", None, 3000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &without_layers()),
+    ".x1{--theme-color:blue}\n.x2{color:var(--theme-color)}"
+  );
+}

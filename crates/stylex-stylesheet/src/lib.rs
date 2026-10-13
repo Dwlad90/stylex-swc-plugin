@@ -4,9 +4,10 @@
 //! A port of `processStylexRules` from `@stylexjs/babel-plugin`
 //! (`packages/@stylexjs/babel-plugin/src/index.js`), function by function and
 //! in its order, so that a change upstream maps onto one function here. The
-//! commit the port follows is named in `CONTEXT.md`; the output is the same
-//! string upstream writes, byte for byte, which the parity harness in
-//! `stylex-rs-compiler` holds against the plugin itself.
+//! commit the port follows is named in `CONTEXT.md` (the one `@stylexjs/babel-plugin`
+//! 0.19.1 was published from); the output is the same string that version
+//! writes, byte for byte, which the parity harness in `stylex-rs-compiler`
+//! holds against the plugin itself.
 //!
 //! This crate holds the sort order of the sheet: the media-query width key a
 //! rule's at-rule chain earns, the comparator over such keys, and the

@@ -9,13 +9,57 @@ at facebook/stylex `1fcb9a51cbecad2c82255e0f4b45cc072fa1a95a`, the commit
 project once they are on npm, so the port follows the published version. The
 output is the string that version writes, byte for byte.
 
-Today the crate holds the sort order of the sheet. The assembly itself
-(`process_stylex_rules`) and the NAPI export beside `transform` follow in their
-own changes; when the addon links this crate it sits on rung 3 of the ladder in
+`process::process_stylex_rules` is the assembly; `width_sort_key` holds the order
+it sorts by. The NAPI export beside `transform` follows in its own change; when
+the addon links this crate it sits on rung 3 of the ladder in
 [STRUCTURE.md](../../guidelines/STRUCTURE.md), above
-[stylex-css-parser](../stylex-css-parser/CONTEXT.md).
+[stylex-css-parser](../stylex-css-parser/CONTEXT.md),
+[stylex-constants](../stylex-constants/CONTEXT.md),
+[stylex-regex](../stylex-regex/CONTEXT.md) and
+[stylex-utils](../stylex-utils/CONTEXT.md).
 
 ## Language
+
+**Rule**:
+One emitted rule as the reference's `Rule` tuple: `[className, { ltr, rtl?,
+constKey?, constVal? }, priority]`, the rows of a compile's `metadata.stylex`.
+A rule with both `constKey` and `constVal` is a **constant** (a `defineConsts`
+value) and injects no text; every other rule is a style.
+_Avoid_: injectable style (the producer-side type in stylex-types), entry
+
+**Constant substitution**:
+Before the sort, every constant's value is resolved through the constants it
+refers to (`var(--key)`, a chain that returns to itself is refused by name) and
+written into every style's text, `ltr` then `rtl`, one constant at a time in
+declaration order; a constant whose value is itself a `var(...)` also renames a
+declaration of the constant (`--key:`) to the variable it names. The
+replacements are `String.prototype.replace`/`replaceAll` with a string
+replacement, dollar patterns included, as the reference calls them.
+_Avoid_: inlining, expansion
+
+**Priority group**:
+The sorted rules cut at each change of `floor(priority / 1000)`; one group is
+one `@layer priorityN` when layers are on (a group whose first rule has
+priority 0 stays outside every layer), else one run of rules carrying N - 1
+copies of the **specificity level** `:not(#\#)` unless `legacyDisableLayers`
+asks for neither. Within a group a class name appears once, at its first
+position with its last style, as `new Map(...)` keeps it.
+_Avoid_: layer bucket, tier
+
+**Layer options**:
+`useLayers` as an object: layers to declare `before` and `after` the priority
+layers in the `@layer` header, and a `prefix` for their names
+(`prefix.priorityN`). `true` is the object with nothing set; `false`, `null` and
+an absent key are no layers.
+_Avoid_: layer config
+
+**RTL twin**:
+A style whose `rtl` text differs is written twice, under
+`html:not([dir='rtl'])` and `html[dir='rtl']` (inside the innermost at-rule;
+never into a `@keyframes` block), or between `/* @ltr begin */` and
+`/* @rtl begin */` comments under `enableLTRRTLComments`. An empty `rtl` is as
+absent as a missing one.
+_Avoid_: direction pair, bidi rule
 
 **Width bound**:
 The one `min-width` or `max-width` a media query imposes in px, read off the

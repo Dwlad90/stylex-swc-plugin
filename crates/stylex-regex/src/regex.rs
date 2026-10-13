@@ -14,6 +14,27 @@ pub static SANITIZE_CLASS_NAME_REGEX: Lazy<Regex> =
 pub static CSS_VAR_REFERENCE: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"var\(--[a-z0-9]+\)").expect("CSS var reference regex is valid"));
 
+// A `var(--name)` reference inside a constant's value, with the name captured,
+// as the stylesheet step reads it when it resolves one `defineConsts` value
+// through another. The name class is the one the reference implementation
+// spells (`/var\((--[A-Za-z0-9_-]+)\)/g`): a dash, an underscore or a capital
+// is part of a constant's name here, where `CSS_VAR_REFERENCE` above refuses
+// them.
+pub static CONSTANT_REFERENCE: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"var\((--[A-Za-z0-9_-]+)\)").expect("Constant reference regex is valid")
+});
+
+// The selector list a theme's default values are written under,
+// `.xtrlmmh, .xtrlmmh:root`, which the stylesheet step doubles into
+// `.xtrlmmh.xtrlmmh, .xtrlmmh.xtrlmmh:root` so a theme always outranks the
+// default values of its variables. Both class names are captured, as the
+// reference implementation's expression captures them; the doubling reads the
+// first.
+pub static THEME_ROOT_SELECTOR: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"\.([a-zA-Z0-9]+), \.([a-zA-Z0-9]+):root")
+    .expect("Theme root selector regex is valid")
+});
+
 // CSS dimension units including modern viewport and container units
 pub static LENGTH_UNIT_TESTER_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^-?\d+(?:px|%|em|rem|ex|ch|vh|vw|vmin|vmax|dvh|dvw|lvh|lvw|svh|svw|cqw|cqh|cqi|cqb|cqmin|cqmax)?$")

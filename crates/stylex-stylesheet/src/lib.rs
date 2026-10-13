@@ -9,12 +9,13 @@
 //! writes, byte for byte. The matrix test in `tests/` holds the order against
 //! the plugin's own answers.
 //!
-//! This crate holds the sort order of the sheet: the media-query width key a
-//! rule's at-rule chain earns, the comparator over such keys, and the
-//! declared property name the comparator reads first. The assembly itself,
-//! `process_stylex_rules`, follows in the next change.
+//! `process::process_stylex_rules` is the assembly; `width_sort_key` holds the
+//! order it sorts by: the media-query width key a rule's at-rule chain earns,
+//! the comparator over such keys, and the declared property name the
+//! comparator reads first.
 
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 mod collation;
+pub mod process;
 pub mod width_sort_key;

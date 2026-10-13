@@ -12,9 +12,16 @@ crate-type = ["rlib"]
 doctest = false
 
 [dependencies]
+fancy-regex.workspace = true
 icu_collator.workspace = true
+rustc-hash.workspace = true
+serde = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
 
+stylex_constants = { path = "../stylex-constants" }
 stylex_css_parser = { path = "../stylex-css-parser" }
+stylex_regex = { path = "../stylex-regex" }
+stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
 serde = { workspace = true, features = ["derive"] }

@@ -3466,12 +3466,18 @@ dependencies = [
 
 [[package]]
 name = "stylex_stylesheet"
-version = "0.19.1"
+version = "0.19.2-rc.1"
 dependencies = [
+ "fancy-regex",
  "icu_collator",
+ "rustc-hash",
  "serde",
  "serde_json",
+ "stylex_constants",
  "stylex_css_parser",
+ "stylex_regex",
+ "stylex_utils",
+ "thiserror 2.0.21",
 ]
 
 [[package]]

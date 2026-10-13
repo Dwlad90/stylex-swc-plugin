@@ -3,10 +3,37 @@
 //! initialization.
 
 use crate::regex::{
-  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CSS_VAR_REFERENCE, DESCENDANT_SELECTOR, IS_CSS_VAR,
-  LENGTH_UNIT_TESTER_REGEX, PSEUDO_PART_REGEX, SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
-  STYLEX_CONSTS_IMPORT_REGEX, URL_REGEX, VAR_EXTRACTION_REGEX,
+  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CONSTANT_REFERENCE, CSS_VAR_REFERENCE,
+  DESCENDANT_SELECTOR, IS_CSS_VAR, LENGTH_UNIT_TESTER_REGEX, PSEUDO_PART_REGEX,
+  SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR, STYLEX_CONSTS_IMPORT_REGEX, THEME_ROOT_SELECTOR,
+  URL_REGEX, VAR_EXTRACTION_REGEX,
 };
+
+/// A constant's reference captures the name whatever characters it holds, and
+/// the theme selector list captures both class names.
+#[test]
+fn the_stylesheet_step_patterns_capture_what_they_name() {
+  let reference = CONSTANT_REFERENCE
+    .captures("1px solid var(--xBorder_Color-1)")
+    .unwrap()
+    .unwrap();
+  assert_eq!(&reference[1], "--xBorder_Color-1");
+  assert!(!CONSTANT_REFERENCE.is_match("var(--)").unwrap());
+  assert!(!CONSTANT_REFERENCE.is_match("var( --x )").unwrap());
+
+  let theme = THEME_ROOT_SELECTOR
+    .captures(".xtrlmmh, .xtrlmmh:root{--x:1px;}")
+    .unwrap()
+    .unwrap();
+  assert_eq!(&theme[1], "xtrlmmh");
+  assert_eq!(&theme[2], "xtrlmmh");
+  assert!(
+    !THEME_ROOT_SELECTOR
+      .is_match(":root, .xtrlmmh{--x:1px;}")
+      .unwrap()
+  );
+  assert!(!THEME_ROOT_SELECTOR.is_match(".a,.a:root{}").unwrap());
+}
 
 /// A style key is read as a variable reference only when it holds one, and a
 /// length is read as a length only when it spells one.

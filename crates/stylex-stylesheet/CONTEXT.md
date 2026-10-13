@@ -10,9 +10,9 @@ project once they are on npm, so the port follows the published version. The
 output is the string that version writes, byte for byte.
 
 `process::process_stylex_rules` is the assembly; `width_sort_key` holds the order
-it sorts by. The NAPI export beside `transform` follows in its own change; when
-the addon links this crate it sits on rung 3 of the ladder in
-[STRUCTURE.md](../../guidelines/STRUCTURE.md), above
+it sorts by. [stylex-rs-compiler](../stylex-rs-compiler/CONTEXT.md) exports it
+beside `transform` as `processStylexRules`. The crate sits on rung 3 of the
+ladder in [STRUCTURE.md](../../guidelines/STRUCTURE.md), above
 [stylex-css-parser](../stylex-css-parser/CONTEXT.md),
 [stylex-constants](../stylex-constants/CONTEXT.md),
 [stylex-regex](../stylex-regex/CONTEXT.md) and

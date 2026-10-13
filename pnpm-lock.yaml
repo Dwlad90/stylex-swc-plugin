@@ -260,6 +260,9 @@ catalogs:
     '@stylexswc/structures':
       specifier: 0.19.2-rc.1
       version: 0.19.2-rc.1
+    '@stylexswc/stylesheet':
+      specifier: 0.19.2-rc.1
+      version: 0.19.2-rc.1
     '@stylexswc/stylex-js':
       specifier: 0.19.2-rc.1
       version: 0.19.2-rc.1
@@ -2217,6 +2220,9 @@ importers:
       '@stylexswc/structures':
         specifier: catalog:internal
         version: link:../stylex-structures
+      '@stylexswc/stylesheet':
+        specifier: catalog:internal
+        version: link:../stylex-stylesheet
       '@stylexswc/transform':
         specifier: catalog:internal
         version: link:../stylex-transform

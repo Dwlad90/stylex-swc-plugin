@@ -125,7 +125,19 @@ Transforming the example above with source maps enabled
 ```
 
 The `metadata.stylex` rules are what bundler plugins collect to build the final
-CSS file.
+CSS file, through `processStylexRules`:
+
+```ts
+import { processStylexRules } from '@stylexswc/rs-compiler';
+
+// Every file's `metadata.stylex`, concatenated in compile order.
+const css = processStylexRules(rules, { useLayers: true });
+```
+
+It takes the options `@stylexjs/babel-plugin`'s export takes -- `useLayers`
+(`true`, `false` or `{ before, after, prefix }`), `enableLTRRTLComments`,
+`legacyDisableLayers`, `useLegacyClassnamesSort`, or a bare boolean standing for
+`useLayers` -- and writes the same bytes for the same rules.
 
 The `map` above is abridged; by default it also carries `sourcesContent` and
 column-accurate `mappings` — see [`inlineSourcesContent`](#inlinesourcescontent)

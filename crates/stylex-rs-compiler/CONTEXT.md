@@ -20,6 +20,16 @@ the rule has no mirrored counterpart. A `Const` entry carries `constKey` and
 JavaScript StyleX ecosystem.
 _Avoid_: rule, style entry, injected style
 
+**Stylesheet step**:
+`processStylexRules(rules, config)`, exported beside `transform`: every
+metadata tuple a build emitted, assembled into the one sheet the bundler plugins
+write, through [stylex-stylesheet](../stylex-stylesheet/CONTEXT.md). The rules
+cross as a JSON value so a tuple keeps its shape; `config` is the reference's,
+a boolean standing for `useLayers` or its options object. The same bytes as
+`@stylexjs/babel-plugin`'s export for the same rules, which `parity:sheets`
+holds on every pull request.
+_Avoid_: CSS generation, sheet writer, post-processing
+
 **Native binding**:
 Three build artifacts, not one. `napi build` emits the addon as
 `dist/rs-compiler.<platform>-<arch>.node`, plus a generated loader

@@ -15,6 +15,7 @@ export type {
 
 import type {
   SourceMaps as NativeSourceMaps,
+  StyleXMetadata,
   StyleXOptions as NativeStyleXOptions,
   StyleXTransformResult,
 } from '../dist/transform';
@@ -38,6 +39,45 @@ export const PropertyValidationMode = Object.freeze({
   Warn: 'warn',
   Silent: 'silent',
 } as const);
+
+// ── The stylesheet step ─────────────────────────────────────────────
+
+/** One emitted rule, a row of `StyleXMetadata['stylex']`. */
+export type StyleXRule = StyleXMetadata['stylex'][number];
+
+/** The `useLayers` object form: layers around the priority layers, and a prefix for their names. */
+export interface ProcessStylexRulesLayerOptions {
+  readonly before?: readonly string[];
+  readonly after?: readonly string[];
+  readonly prefix?: string;
+}
+
+/** The options of `processStylexRules`, as `@stylexjs/babel-plugin` spells them. */
+export interface ProcessStylexRulesConfig {
+  readonly useLayers?: boolean | ProcessStylexRulesLayerOptions | null;
+  readonly enableLTRRTLComments?: boolean;
+  readonly legacyDisableLayers?: boolean;
+  readonly useLegacyClassnamesSort?: boolean;
+}
+
+/**
+ * The stylesheet for the rules a build's `transform` calls emitted, as
+ * `@stylexjs/babel-plugin`'s `processStylexRules` writes it, byte for byte:
+ * constants resolved and substituted, the rules sorted and grouped by priority,
+ * each group a `@layer` or carrying the specificity polyfill, RTL twins under
+ * `html[dir='rtl']` and its negation or between `@ltr`/`@rtl` comments.
+ *
+ * `rules` is the concatenation of every file's `metadata.stylex`, in the order
+ * the files were compiled; `config` is the reference's, a boolean standing for
+ * `useLayers` or the options object. A circular constant throws with the
+ * reference's message.
+ */
+export function processStylexRules(
+  rules: readonly StyleXRule[],
+  config?: boolean | ProcessStylexRulesConfig | null
+): string {
+  return nativeBinding.processStylexRules(rules, config);
+}
 
 // ── Extended types ──────────────────────────────────────────────────
 

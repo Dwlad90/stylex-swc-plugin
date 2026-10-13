@@ -27,8 +27,8 @@ number is measured along. Dev dependencies are not counted.
 - **1 -- Macros and style merging**: `stylex-macros`, `stylex-styleq`
 - **2 -- Domain leaves**: `stylex-ast`, `stylex-css-parser`, `stylex-enums`,
   `stylex-js`, `stylex-logs`, `stylex-path-resolver`
-- **3 -- Core data structures and lookup**: `stylex-atoms`,
-  `stylex-state-index`, `stylex-structures`
+- **3 -- Core data structures, lookup and the stylesheet step**: `stylex-atoms`,
+  `stylex-state-index`, `stylex-structures`, `stylex-stylesheet`
 - **4 -- Types, diagnostics and nested config**: `stylex-diagnostics`,
   `stylex-nested-config`, `stylex-types`
 - **5 -- CSS processing and compilation state**: `stylex-css`, `stylex-state`

@@ -6,6 +6,7 @@ fn token_list(tokens: Vec<SimpleToken>) -> TokenList {
     tokens,
     current_index: 0,
     depth: 0,
+    unclosed_block: false,
   }
 }
 

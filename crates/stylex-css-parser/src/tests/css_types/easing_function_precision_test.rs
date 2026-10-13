@@ -205,15 +205,25 @@ mod malformed_and_extreme_input {
     refused!("steps(4, middle)");
   }
 
-  /// An unclosed function is tolerated rather than refused -- the tokenizer
-  /// synthesises the closing paren -- and the full precision rides along.
+  /// An unclosed function is refused, as the reference refuses it (its
+  /// tokenizer never closes a block for the author); the closed spelling keeps
+  /// its full precision.
   #[test]
-  fn an_unclosed_function_is_still_tolerated() {
+  fn an_unclosed_function_is_refused() {
+    assert!(
+      EasingFunction::parse()
+        .parse_to_end("cubic-bezier(0.5000005, 0, 1, 1")
+        .is_err()
+    );
+    assert!(
+      EasingFunction::parse()
+        .parse_to_end("linear(0, 0.5000005")
+        .is_err()
+    );
     assert_eq!(
-      printed!("cubic-bezier(0.5000005, 0, 1, 1"),
+      printed!("cubic-bezier(0.5000005, 0, 1, 1)"),
       "cubic-bezier(0.5000005, 0, 1, 1)"
     );
-    assert_eq!(printed!("linear(0, 0.5000005"), "linear(0, 0.5000005)");
   }
 
   /// An unclosed quote, a stray delimiter, and an escaped function name,

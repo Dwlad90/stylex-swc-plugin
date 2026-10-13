@@ -12,9 +12,9 @@ sheet in the order the browser needs them. A port of `processStylexRules` from
 
 - The media-query width sort key and its total order (mobile first: `min-width`
   ascending, then `max-width` descending, then rules with no single px bound)
-- The default collation the reference sorts with (`localeCompare`), pinned
-  against V8
-- Pinned against the reference over a matrix of 1,284 at-rule chains
+- The default collation the reference sorts with (`localeCompare`): a table for
+  printable ASCII, root collation for the rest
+- Pinned against the reference over a matrix of 1,305 at-rule chains
   (`tests/fixtures/width-sort-key-matrix.json`)
 
 ## License

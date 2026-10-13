@@ -89,30 +89,6 @@ fn collect_width_bounds(rule: &MediaQueryRule) -> Option<Vec<WidthBound>> {
   }
 }
 
-/// Whether every parenthesis in `prelude` closes: the first check of
-/// upstream's `validateMediaQuery`, which the parser does not make on its own.
-/// Without it `@media (min-width: 500px` parses, and sorts as a bound where
-/// upstream refuses it and leaves it unsorted.
-fn has_balanced_parens(prelude: &str) -> bool {
-  let mut depth: i32 = 0;
-
-  for character in prelude.chars() {
-    match character {
-      '(' => depth += 1,
-      ')' => {
-        depth -= 1;
-
-        if depth < 0 {
-          return false;
-        }
-      },
-      _ => {},
-    }
-  }
-
-  depth == 0
-}
-
 /// The single width bound a media query sorts by, or `None` if it has none.
 ///
 /// The prelude is read as `MediaQuery.parser.parseToEnd` reads it upstream:
@@ -122,10 +98,6 @@ fn has_balanced_parens(prelude: &str) -> bool {
 /// (max-width: 1000px))` is `(min-width: 1000.01px)`). The reference sorts
 /// those merged forms, and so does this.
 fn media_query_width_sort_key(prelude: &str) -> Option<WidthBound> {
-  if !has_balanced_parens(prelude) {
-    return None;
-  }
-
   let parsed = MediaQuery::parser().parse_to_end(prelude).ok()?;
   let bounds = collect_width_bounds(&parsed.queries)?;
 
@@ -212,7 +184,8 @@ pub fn declared_property_name(rule: &str) -> &str {
 /// A total ordering over width sort keys, so the sort stays consistent no
 /// matter which pairs get compared: rules with a bound first, then grouped by
 /// at-rule context, then `min-width` ascending ahead of `max-width` descending
-/// -- the conventional mobile-first order.
+/// -- the conventional mobile-first order. The context compares as
+/// `localeCompare` compares it (`collation`).
 pub fn compare_width_sort_keys(a: Option<&WidthSortKey>, b: Option<&WidthSortKey>) -> Ordering {
   let (a, b) = match (a, b) {
     (None, None) => return Ordering::Equal,
@@ -222,7 +195,7 @@ pub fn compare_width_sort_keys(a: Option<&WidthSortKey>, b: Option<&WidthSortKey
   };
 
   if a.context != b.context {
-    return locale_compare(&a.context, &b.context);
+    return crate::collation::compare(&a.context, &b.context);
   }
 
   if a.bound.kind != b.bound.kind {
@@ -232,7 +205,13 @@ pub fn compare_width_sort_keys(a: Option<&WidthSortKey>, b: Option<&WidthSortKey
     };
   }
 
-  let ordering = a.bound.value.total_cmp(&b.bound.value);
+  // `a.bound.value - b.bound.value`: a subtraction, which reads `-0` and `0`
+  // as a tie (`total_cmp` would not), and the tie then goes to the rule text.
+  let ordering = a
+    .bound
+    .value
+    .partial_cmp(&b.bound.value)
+    .unwrap_or(Ordering::Equal);
 
   match a.bound.kind {
     WidthBoundKind::Min => ordering,
@@ -240,12 +219,6 @@ pub fn compare_width_sort_keys(a: Option<&WidthSortKey>, b: Option<&WidthSortKey
   }
 }
 
-/// `String.prototype.localeCompare` as upstream calls it, with no locale
-/// argument: the host's default collation. Over the texts the sheet compares
-/// (class names, at-rule preludes, declarations, all ASCII) V8's root ICU
-/// collation orders by the base letter first, case second, and the
-/// punctuation and digits before the letters, which a plain byte compare does
-/// not. The order is pinned by the parity harness against the plugin itself.
-pub(crate) fn locale_compare(a: &str, b: &str) -> Ordering {
-  crate::collation::compare(a, b)
-}
+#[cfg(test)]
+#[path = "tests/width_sort_key_test.rs"]
+mod width_sort_key_test;

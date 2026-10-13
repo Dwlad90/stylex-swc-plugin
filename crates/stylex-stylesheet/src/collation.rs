@@ -2,51 +2,96 @@
 //!
 //! `processStylexRules` sorts with `localeCompare` and no locale argument, so
 //! the sheet's order is the host's default collation: in Node that is ICU's
-//! root collation, which is not byte order. Over printable ASCII it reads two
-//! levels. The primary level weighs each character by its base letter, case
-//! folded, with the punctuation before the digits and the digits before the
-//! letters, and a shorter string before a longer one it is a prefix of. Where
-//! two strings tie there, the tertiary level breaks the tie at the first
-//! position whose characters differ in case only, lowercase first (`a` before
-//! `A`, so `ab` before `aB` before `Ab`).
+//! root collation, which is not byte order. This module answers it the way
+//! `stylex-css` answers the same question for pseudo-class order
+//! (`utils/pre_rule.rs`, `pseudo_comparator`): a table for printable ASCII,
+//! the path almost every comparison takes, and `icu_collator` at the root
+//! locale for anything else, so a `content: '·'` or an `é` in a declaration
+//! weighs where ICU weighs it.
 //!
-//! That is the whole of what the sheet asks: class names, at-rule preludes,
-//! declarations and rule texts, all printable ASCII. The table below is V8's
-//! answer (ICU 78) for every printable ASCII pair, single characters and
-//! two-character strings, read off `localeCompare` itself, and the parity
-//! harness holds the resulting sheet against the plugin's. A character outside
-//! printable ASCII weighs by its code point above every character in the
-//! table, which keeps the order total; no such character reaches a sort key.
+//! Over printable ASCII root collation reads two levels. The primary level
+//! weighs each character by its base letter, case folded, with the
+//! punctuation before the digits and the digits before the letters, and a
+//! shorter string before a longer one it is a prefix of. Where two strings tie
+//! there, the tertiary level breaks the tie at the first position whose
+//! characters differ in case only, lowercase first (`a` before `A`, so `ab`
+//! before `aB` before `Ab`). The table below is V8's answer (ICU 78) for every
+//! printable ASCII pair, single characters and two-character strings, read
+//! off `localeCompare` itself; `collation_test.rs` asserts the table and the
+//! collator agree on every printable pair, which is what keeps the comparator
+//! one total order across the boundary.
+//!
+//! The boundary is printable ASCII, not `is_ascii()`: root collation gives a
+//! control character no weight, and a table that ranked one would answer the
+//! other way, so a control character goes to the collator with everything
+//! else.
+//!
+//! The locale is root, deliberately, not the host's. Upstream's bare
+//! `localeCompare` follows the build machine's default locale, and a Swedish
+//! or Danish machine sorts `ö` after `z` where every other locale sorts it
+//! beside `o`; a sheet whose order depended on the environment would be worse
+//! than one that diverges from a Swedish machine.
 
 use std::cmp::Ordering;
+use std::sync::LazyLock;
+
+use icu_collator::{CollatorBorrowed, options::CollatorOptions};
 
 /// Printable ASCII in primary weight order, as V8 (ICU 78) collates it with
 /// the default locale, letters case folded: the space, then the punctuation
 /// and symbols in the collation's order, then the digits, then the letters.
-const PRIMARY_ORDER: &[u8] =
+pub(crate) const PRIMARY_ORDER: &[u8] =
   b" _-,;:!?.'\"()[]{}@*/\\&#%`^+<=>|~$0123456789abcdefghijklmnopqrstuvwxyz";
 
-/// The primary weight of one byte: its position in `PRIMARY_ORDER`, case
-/// folded; a byte outside the table sorts above every byte in it.
-fn primary_weight(byte: u8) -> u32 {
-  let folded = byte.to_ascii_lowercase();
+/// `PRIMARY_ORDER` inverted: a byte to its one-based position in it, case
+/// folded, and 0 for a byte the order does not name (none of which reaches the
+/// fast path). Built once at compile time: the comparator runs once per byte
+/// of every comparison of the sort.
+pub(crate) const PRIMARY_RANK: [u8; 128] = build_primary_rank();
 
-  match PRIMARY_ORDER
-    .iter()
-    .position(|&candidate| candidate == folded)
-  {
-    Some(position) => position as u32,
-    None => PRIMARY_ORDER.len() as u32 + u32::from(byte),
+/// Callable at runtime as well as in a `const`, so the test can assert the
+/// table's invariants rather than argue them.
+pub(crate) const fn build_primary_rank() -> [u8; 128] {
+  let mut table = [0u8; 128];
+  let mut index = 0;
+
+  while index < PRIMARY_ORDER.len() {
+    let byte = PRIMARY_ORDER[index];
+    let rank = (index + 1) as u8;
+    table[byte as usize] = rank;
+
+    if byte.is_ascii_lowercase() {
+      table[byte.to_ascii_uppercase() as usize] = rank;
+    }
+
+    index += 1;
   }
+
+  table
 }
 
-/// The order `a.localeCompare(b)` answers in Node for two printable ASCII
-/// strings: the primary level over the whole string, then the case tie-break.
-pub(crate) fn compare(a: &str, b: &str) -> Ordering {
-  let a_bytes = a.as_bytes();
-  let b_bytes = b.as_bytes();
+/// The primary weight of one printable ASCII byte.
+fn primary_weight(byte: u8) -> u8 {
+  PRIMARY_RANK[usize::from(byte & 0x7f)]
+}
 
-  for (left, right) in a_bytes.iter().zip(b_bytes) {
+/// Whether every byte of `text` is printable ASCII (`0x20..=0x7e`), the fast
+/// path's precondition.
+fn is_printable_ascii(text: &str) -> bool {
+  text
+    .bytes()
+    .all(|byte| byte.is_ascii_graphic() || byte == b' ')
+}
+
+/// Root collation, built once. `CollatorBorrowed::new_root` has no failure to
+/// handle: the compiled CLDR data is a build-time dependency of the crate.
+static ROOT_COLLATOR: LazyLock<CollatorBorrowed<'static>> =
+  LazyLock::new(|| CollatorBorrowed::new_root(CollatorOptions::default()));
+
+/// The two printable ASCII strings in root collation order: the primary level
+/// over the whole string, then the case tie-break.
+fn compare_printable_ascii(a: &[u8], b: &[u8]) -> Ordering {
+  for (left, right) in a.iter().zip(b) {
     let primary = primary_weight(*left).cmp(&primary_weight(*right));
 
     if primary != Ordering::Equal {
@@ -54,13 +99,13 @@ pub(crate) fn compare(a: &str, b: &str) -> Ordering {
     }
   }
 
-  let by_length = a_bytes.len().cmp(&b_bytes.len());
+  let by_length = a.len().cmp(&b.len());
 
   if by_length != Ordering::Equal {
     return by_length;
   }
 
-  for (left, right) in a_bytes.iter().zip(b_bytes) {
+  for (left, right) in a.iter().zip(b) {
     if left != right {
       // The two differ in case alone here (their primaries tied): lowercase
       // sorts first.
@@ -74,3 +119,21 @@ pub(crate) fn compare(a: &str, b: &str) -> Ordering {
 
   Ordering::Equal
 }
+
+/// Root collation alone, for the tests that hold the two paths to one answer.
+pub(crate) fn compare_by_collator(a: &str, b: &str) -> Ordering {
+  ROOT_COLLATOR.compare(a, b)
+}
+
+/// The order `a.localeCompare(b)` answers in Node.
+pub(crate) fn compare(a: &str, b: &str) -> Ordering {
+  if is_printable_ascii(a) && is_printable_ascii(b) {
+    compare_printable_ascii(a.as_bytes(), b.as_bytes())
+  } else {
+    compare_by_collator(a, b)
+  }
+}
+
+#[cfg(test)]
+#[path = "tests/collation_test.rs"]
+mod collation_test;

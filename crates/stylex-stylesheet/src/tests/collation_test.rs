@@ -4,7 +4,33 @@
 
 use std::cmp::Ordering;
 
-use crate::collation::compare;
+use crate::collation::{
+  PRIMARY_ORDER, PRIMARY_RANK, build_primary_rank, compare, compare_by_collator,
+};
+
+/// The rank table names every printable byte once, one-based, a letter's two
+/// cases sharing a rank, and nothing else.
+#[test]
+fn the_rank_table_is_the_order_inverted() {
+  let built = build_primary_rank();
+  assert_eq!(built, PRIMARY_RANK);
+
+  for (index, &byte) in PRIMARY_ORDER.iter().enumerate() {
+    let Ok(rank) = u8::try_from(index + 1) else {
+      panic!("the order is shorter than 256 bytes");
+    };
+    assert_eq!(built[usize::from(byte)], rank, "{:?}", byte as char);
+
+    if byte.is_ascii_lowercase() {
+      assert_eq!(built[usize::from(byte.to_ascii_uppercase())], rank);
+    }
+  }
+
+  let ranked = built.iter().filter(|&&rank| rank != 0).count();
+  assert_eq!(ranked, 0x7f - 0x20, "every printable byte and nothing else");
+  assert_eq!(built[0], 0);
+  assert_eq!(built[0x7f], 0);
+}
 
 #[test]
 fn letters_sort_by_base_letter_before_case() {
@@ -62,7 +88,7 @@ fn the_sheets_own_texts_order_as_node_orders_them() {
   // Class names.
   assert_eq!(compare(".x{}", ".X{}"), Ordering::Less);
   assert_eq!(compare("xa1b2c", "xa1b2d"), Ordering::Less);
-  // `-webkit-x` sorts before `_x`? No: `_` comes before `-`.
+  // `_` sorts before `-`, so `_x` sorts before `-webkit-x`.
   assert_eq!(compare("_x", "-webkit-x"), Ordering::Less);
   assert_eq!(compare("width", "Width"), Ordering::Less);
 }
@@ -73,9 +99,61 @@ fn equal_strings_are_equal() {
   assert_eq!(compare(".a{color:red}", ".a{color:red}"), Ordering::Equal);
 }
 
+/// Every expectation here was read off `localeCompare` in Node (V8, ICU 78).
 #[test]
-fn a_byte_outside_printable_ascii_sorts_above_every_byte_in_the_table() {
-  assert_eq!(compare("a", "é"), Ordering::Less);
-  assert_eq!(compare("~", "é"), Ordering::Less);
-  assert_eq!(compare("é", "ß"), compare("é", "ß").reverse().reverse());
+fn a_character_outside_printable_ascii_weighs_where_root_collation_weighs_it() {
+  // An accented letter sits beside its base letter, after the digits.
+  assert_eq!(compare("e", "é"), Ordering::Less);
+  assert_eq!(compare("é", "f"), Ordering::Less);
+  assert_eq!(compare("E", "é"), Ordering::Less);
+  assert_eq!(compare("9", "é"), Ordering::Less);
+  // The middle dot is punctuation: after the full stop, before the apostrophe,
+  // which is what orders `content:'·'` before `content:''`.
+  assert_eq!(compare(".", "\u{b7}"), Ordering::Less);
+  assert_eq!(compare("\u{b7}", "'"), Ordering::Less);
+  assert_eq!(
+    compare("{content:'\u{b7}'}", "{content:''}"),
+    Ordering::Less
+  );
+  // A dash is a dash, an ellipsis sits with the full stop, a euro sign with
+  // the currency symbols, a CJK ideograph after every letter.
+  assert_eq!(compare("-", "\u{2013}"), Ordering::Less);
+  assert_eq!(compare("\u{2013}", ","), Ordering::Less);
+  assert_eq!(compare(".", "\u{2026}"), Ordering::Less);
+  assert_eq!(compare("$", "\u{20ac}"), Ordering::Less);
+  assert_eq!(compare("\u{20ac}", "0"), Ordering::Less);
+  assert_eq!(compare("Z", "\u{4e2d}"), Ordering::Less);
+  // A control character has no weight of its own: it goes to the collator
+  // with everything outside the printable range.
+  assert_eq!(compare("a\u{2}", "a"), Ordering::Equal);
+}
+
+/// The table and the collator are one order over every printable pair, which
+/// is what keeps the comparator total across the boundary between them.
+#[test]
+fn the_table_and_root_collation_agree_on_every_printable_pair() {
+  let printable: Vec<String> = (0x20u8..=0x7e)
+    .map(|byte| (byte as char).to_string())
+    .collect();
+
+  for a in &printable {
+    for b in &printable {
+      assert_eq!(
+        compare(a, b),
+        compare_by_collator(a, b),
+        "{a:?} against {b:?}"
+      );
+
+      for c in ["a", "Z", "0", "-"] {
+        let x = format!("{a}{c}");
+        let y = format!("{c}{b}");
+
+        assert_eq!(
+          compare(&x, &y),
+          compare_by_collator(&x, &y),
+          "{x:?} against {y:?}"
+        );
+      }
+    }
+  }
 }

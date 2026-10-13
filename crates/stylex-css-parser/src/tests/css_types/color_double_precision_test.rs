@@ -373,16 +373,19 @@ mod boundaries_and_refusals {
     }
   }
 
-  /// An unclosed function with every channel present is tolerated, the same
-  /// way `calc(` is: the closing paren is supplied for the author. Pinned as
-  /// the behaviour it actually is, so a change to it is visible.
+  /// An unclosed function with every channel present is refused, as the
+  /// reference refuses it: its tokenizer never closes a block for the author,
+  /// and `parse_to_end` reads the tokenizer's mark. It used to be tolerated
+  /// here, with `cssparser` supplying the paren.
   #[test]
-  fn an_unclosed_function_with_every_channel_is_tolerated() {
-    assert_eq!(printed!("rgba(255, 0, 0, 0.1"), "rgba(255,0,0,0.1)");
-    assert_eq!(
-      printed!("hsla(120deg, 100%, 50%, 0.1"),
-      "hsla(120deg,100%,50%,0.1)"
+  fn an_unclosed_function_with_every_channel_is_refused() {
+    assert!(Color::parse().parse_to_end("rgba(255, 0, 0, 0.1").is_err());
+    assert!(
+      Color::parse()
+        .parse_to_end("hsla(120deg, 100%, 50%, 0.1")
+        .is_err()
     );
+    assert_eq!(printed!("rgba(255, 0, 0, 0.1)"), "rgba(255,0,0,0.1)");
   }
 
   /// Unicode inside a colour function names nothing, whether it is a
@@ -737,23 +740,29 @@ mod modern_space_boundaries_and_refusals {
     }
   }
 
-  /// An unclosed function with every channel present is tolerated, the same
-  /// way the legacy spaces and `calc(` are: the closing paren is supplied for
-  /// the author. Pinned as the behaviour it actually is, so a change to it is
-  /// visible.
+  /// An unclosed function with every channel present is refused, as the
+  /// reference refuses it (its tokenizer never closes a block for the author);
+  /// the closed spelling keeps its full precision.
   #[test]
-  fn an_unclosed_modern_function_with_every_channel_is_tolerated() {
+  fn an_unclosed_modern_function_with_every_channel_is_refused() {
+    assert!(
+      Color::parse()
+        .parse_to_end("oklch(0.1234567890123456 0.1 200deg")
+        .is_err()
+    );
+    assert!(
+      Color::parse()
+        .parse_to_end("oklab(0.1234567890123456 0.1 0.1")
+        .is_err()
+    );
     assert_eq!(
-      printed!("oklch(0.1234567890123456 0.1 200deg"),
+      printed!("oklch(0.1234567890123456 0.1 200deg)"),
       "oklch(0.1234567890123456 0.1 200deg)"
     );
-    assert_eq!(
-      printed!("oklab(0.1234567890123456 0.1 0.1"),
-      "oklab(0.1234567890123456 0.1 0.1)"
-    );
-    assert_eq!(
-      printed!("lch(52.23456789012345 100 270deg"),
-      "lch(52.23456789012345 100 270deg)"
+    assert!(
+      Color::parse()
+        .parse_to_end("lch(52.23456789012345 100 270deg")
+        .is_err()
     );
   }
 
@@ -930,8 +939,9 @@ mod a_channel_is_spelled_the_way_javascript_spells_it {
     // carried through and spelled the way JavaScript spells it.
     assert_eq!(printed!("rgba(255, 0, 0, 1e21)"), "rgba(255,0,0,1e+21)");
 
-    // Truncated at the closing paren rather than before a channel: tolerated,
-    // as ticket 05 pinned, and the exponential spelling rides along.
-    assert_eq!(printed!("oklab(1e21 1e21 1e21"), "oklab(1e+21 1e+21 1e+21)");
+    // Truncated at the closing paren: refused, as the reference refuses it
+    // (its tokenizer never closes a block for the author), where ticket 05 had
+    // pinned the tolerance `cssparser` gave it.
+    assert!(Color::parse().parse_to_end("oklab(1e21 1e21 1e21").is_err());
   }
 }

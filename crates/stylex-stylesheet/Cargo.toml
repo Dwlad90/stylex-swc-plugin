@@ -12,6 +12,8 @@ crate-type = ["rlib"]
 doctest = false
 
 [dependencies]
+icu_collator.workspace = true
+
 stylex_css_parser = { path = "../stylex-css-parser" }
 
 [dev-dependencies]

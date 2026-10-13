@@ -350,14 +350,14 @@ mod a_composite_type_reaches_the_formatter_through_its_parts {
 mod malformed_and_extreme_input {
   use super::*;
 
-  /// An unclosed `calc(` is tolerated rather than refused -- the closing paren
-  /// is synthesised by the tokenizer. Pinned because the formatter sits on the
-  /// same path, and a swap that turned tolerance into a refusal would be a
-  /// behaviour change hiding inside a formatting change.
+  /// An unclosed `calc(` is refused, as the reference refuses it: its
+  /// tokenizer never closes a block for the author. The formatter sits on the
+  /// same path, so the closed spelling is pinned beside the refusal.
   #[test]
-  fn an_unclosed_function_is_still_tolerated() {
-    assert_eq!(printed!(Calc, "calc(1e21px"), "calc(1e+21px)");
-    assert_eq!(printed!(Calc, "calc((1e-7px"), "calc((1e-7px))");
+  fn an_unclosed_function_is_refused() {
+    assert!(Calc::parser().parse_to_end("calc(1e21px").is_err());
+    assert!(Calc::parser().parse_to_end("calc((1e-7px").is_err());
+    assert_eq!(printed!(Calc, "calc(1e21px)"), "calc(1e+21px)");
   }
 
   /// A stray closing paren, a stray operator, and an empty function are all

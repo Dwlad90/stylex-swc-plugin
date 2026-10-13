@@ -213,12 +213,21 @@ mod malformed_and_extreme_input {
   /// tolerance quietly turning into a refusal would be a behaviour change
   /// hiding inside a formatting change.
   #[test]
-  fn an_unclosed_function_is_still_tolerated() {
+  fn an_unclosed_function_is_refused() {
+    assert!(
+      TransformFunction::parse()
+        .parse_to_end("matrix(1.0000005, 2, 3, 4, 5, 6")
+        .is_err()
+    );
+    assert!(
+      TransformFunction::parse()
+        .parse_to_end("scaleX(1e21")
+        .is_err()
+    );
     assert_eq!(
-      printed!("matrix(1.0000005, 2, 3, 4, 5, 6"),
+      printed!("matrix(1.0000005, 2, 3, 4, 5, 6)"),
       "matrix(1.0000005, 2, 3, 4, 5, 6)"
     );
-    assert_eq!(printed!("scaleX(1e21"), "scaleX(1e+21)");
   }
 
   /// An unclosed quote and a stray delimiter, neither of which may panic on

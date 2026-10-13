@@ -304,6 +304,72 @@ fn a_constant_holding_a_variable_renames_the_declarations_of_the_constant() {
   );
 }
 
+/// Every text a style holds is substituted, `ltr` then `rtl`, the rename
+/// included, and the specificity polyfill and the ancestor selector reach the
+/// RTL text as they reach the LTR one. Measured on the plugin.
+#[test]
+fn the_rtl_text_is_substituted_renamed_and_wrapped_like_the_ltr_text() {
+  let rules = [
+    constant("xA", text("var(--theme-inset, 4px)")),
+    rule(
+      "x1",
+      ".x1{--xA:1px;margin-left:var(--xA)}",
+      Some(".x1{--xA:1px;margin-right:var(--xA)}"),
+      1000.0,
+    ),
+    rule("x2", ".x2{color:red}", None, 3000.0),
+  ];
+
+  assert_eq!(
+    sheet(&rules, &ProcessStylexRulesConfig::default()),
+    "html:not([dir='rtl']) .x1{--theme-inset:1px;margin-left:var(--theme-inset, 4px)}\nhtml[dir='rtl'] .x1{--theme-inset:1px;margin-right:var(--theme-inset, 4px)}\n.x2:not(#\\#){color:red}"
+  );
+}
+
+/// A number constant read through another constant substitutes as JavaScript
+/// spells it, and a `$` that ends a value stays a `$`. Measured on the plugin.
+#[test]
+fn a_number_reached_through_a_chain_and_a_trailing_dollar_substitute_verbatim() {
+  let rules = [
+    constant("xN", ConstantValue::Number(4.0)),
+    constant("xA", text("var(--xN)px")),
+    constant("xD", text("1px$")),
+    rule("x1", ".x1{margin:var(--xA) var(--xD)}", None, 3000.0),
+  ];
+
+  assert_eq!(sheet(&rules, &without_layers()), ".x1{margin:4px 1px$}");
+}
+
+/// An RTL twin inside a `@keyframes` block takes no ancestor, and one whose
+/// at-rule has no block gets the ancestor in front of the whole text, as the
+/// reference's `indexOf` of -1 slices it. Measured on the plugin.
+#[test]
+fn an_rtl_twin_of_a_keyframes_block_or_of_a_blockless_at_rule_follows_the_reference() {
+  let keyframes = [rule(
+    "k",
+    "@keyframes k{0%{left:0}}",
+    Some("@keyframes k{0%{right:0}}"),
+    0.0,
+  )];
+
+  assert_eq!(
+    sheet(&keyframes, &without_layers()),
+    "@keyframes k{0%{left:0}}\n@keyframes k{0%{right:0}}"
+  );
+
+  let blockless = [rule(
+    "x1",
+    "@media (x) .x1",
+    Some("@media (x) .x1r"),
+    3000.0,
+  )];
+
+  assert_eq!(
+    sheet(&blockless, &without_layers()),
+    "html:not([dir='rtl']) @media (x) .x1\nhtml[dir='rtl'] @media (x) .x1r"
+  );
+}
+
 // ==================== the helpers ====================
 
 #[test]

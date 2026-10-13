@@ -14,7 +14,6 @@
 use std::borrow::Cow;
 use std::cmp::Ordering;
 
-use fancy_regex::Captures;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Deserializer};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
@@ -349,15 +348,14 @@ pub(crate) fn resolve_constant(
   let mut result = text.clone();
   let mut position = 0;
 
-  while let Ok(Some(captures)) = CONSTANT_REFERENCE.captures_from_pos(&result, position) {
-    // Group 1 is not optional in the expression, so it is set whenever the
-    // whole matches; the empty default is never read.
-    let reference = captures.get(1).map_or("", |name| name.as_str()).to_string();
-    let (matched, end) = captures
-      .get(0)
-      .map_or((String::new(), result.len()), |whole| {
-        (whole.as_str().to_string(), whole.end())
-      });
+  // Both groups are set whenever the expression matches (group 1 is not
+  // optional), so the chain ends only when there is no match left.
+  while let Ok(Some(captures)) = CONSTANT_REFERENCE.captures_from_pos(&result, position)
+    && let (Some(whole), Some(name)) = (captures.get(0), captures.get(1))
+  {
+    let reference = name.as_str().to_string();
+    let matched = whole.as_str().to_string();
+    let end = whole.end();
 
     if visited.contains(&reference) {
       return Err(ProcessStylexRulesError::CircularConstant(reference));
@@ -386,11 +384,13 @@ pub(crate) fn add_ancestor_selector(selector: &str, ancestor_selector: &str) -> 
     return selector.to_string();
   }
 
-  if !selector.starts_with('@') {
-    return format!("{ancestor_selector} {selector}");
-  }
-
-  let last_at_rule = selector.rfind('@').unwrap_or(0);
+  // `rfind` on a text that opens with `@` answers at or after 0; the `None`
+  // arm is folded into the "no at-rule" return above it rather than left as a
+  // branch nothing can reach.
+  let last_at_rule = match (selector.starts_with('@'), selector.rfind('@')) {
+    (true, Some(last_at_rule)) => last_at_rule,
+    _ => return format!("{ancestor_selector} {selector}"),
+  };
   // `indexOf('{', lastAtRule)` is -1 when no brace follows, and the two slices
   // then split at 0: the ancestor goes in front of the whole text.
   let split = selector[last_at_rule..]
@@ -735,14 +735,28 @@ pub fn process_stylex_rules(
 /// `.x, .x:root` -> `.x.x, .x.x:root`, by the first class name, as the
 /// reference's `'.$1.$1, .$1.$1:root'` replacement reads it.
 pub(crate) fn double_theme_root_selector(rule: &str) -> String {
-  THEME_ROOT_SELECTOR
-    .replace_all(rule, |captures: &Captures<'_, str>| {
-      // Group 1 is not optional in the expression; the empty default is never
-      // read.
-      let class_name = captures.get(1).map_or("", |class_name| class_name.as_str());
-      format!(".{class_name}.{class_name}, .{class_name}.{class_name}:root")
-    })
-    .into_owned()
+  let mut out = String::with_capacity(rule.len());
+  let mut copied = 0;
+
+  // Both groups are set whenever the expression matches (neither is
+  // optional), so the chain ends only when there is no match left; a match
+  // the engine cannot finish (`Err`) ends it the same way, as `replace_all`
+  // would stop there.
+  let mut matches = THEME_ROOT_SELECTOR.captures_iter(rule);
+
+  while let Some(Ok(captures)) = matches.next()
+    && let (Some(whole), Some(class_name)) = (captures.get(0), captures.get(1))
+  {
+    let class_name = class_name.as_str();
+    out.push_str(&rule[copied..whole.start()]);
+    out.push_str(&format!(
+      ".{class_name}.{class_name}, .{class_name}.{class_name}:root"
+    ));
+    copied = whole.end();
+  }
+
+  out.push_str(&rule[copied..]);
+  out
 }
 
 #[cfg(test)]

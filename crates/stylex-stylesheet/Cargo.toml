@@ -1,0 +1,22 @@
+[package]
+description = "The StyleX stylesheet step: the rules a compile emits, assembled into one sheet"
+edition.workspace = true
+license.workspace = true
+name = "stylex_stylesheet"
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[lib]
+crate-type = ["rlib"]
+doctest = false
+
+[dependencies]
+stylex_css_parser = { path = "../stylex-css-parser" }
+
+[dev-dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+
+[lints]
+workspace = true

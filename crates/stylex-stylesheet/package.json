@@ -1,0 +1,43 @@
+{
+  "name": "@stylexswc/stylesheet",
+  "description": "The StyleX stylesheet step: the rules a compile emits, assembled into one sheet",
+  "version": "0.19.1",
+  "private": true,
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "del-cli dist",
+    "do:nothing": "exit 0",
+    "format": "run-p format:rs format:toml",
+    "format:check": "run-p format:rs:check format:toml:check",
+    "format:rs": "cargo fmt --all",
+    "format:rs:check": "cargo fmt -- --check",
+    "format:toml": "taplo format",
+    "format:toml:check": "taplo format --check",
+    "prepublishOnly": "pnpm run build",
+    "test": "echo \"Skip: the root test script runs the workspace suite.\"",
+    "test:coverage": "scripty",
+    "test:flamegraph": "scripty",
+    "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
+  },
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "devDependencies": {
+    "@stylexswc/css-parser": "catalog:internal",
+    "@taplo/cli": "catalog:tooling",
+    "npm-run-all2": "catalog:tooling"
+  },
+  "keywords": [
+    "stylex",
+    "swc",
+    "swc-plugin"
+  ]
+}

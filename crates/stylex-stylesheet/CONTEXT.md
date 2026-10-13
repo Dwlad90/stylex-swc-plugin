@@ -1,0 +1,51 @@
+# stylex-stylesheet
+
+The stylesheet step: the rules a compile emits (`metadata.stylex`), assembled
+into one sheet. A port of `processStylexRules` from `@stylexjs/babel-plugin`,
+function by function and in its order, so a change upstream maps onto one
+function here. The reference is `packages/@stylexjs/babel-plugin/src/index.js`
+at facebook/stylex `5a419da81a01e8b28a403107278b3c9ce6206299` (2026-10-09); the
+output is the string upstream writes, byte for byte.
+
+Today the crate holds the sort order of the sheet. The assembly itself
+(`process_stylex_rules`) and the NAPI export beside `transform` follow in their
+own changes; when the addon links this crate it sits on rung 3 of the ladder in
+[STRUCTURE.md](../../guidelines/STRUCTURE.md), above
+[stylex-css-parser](../stylex-css-parser/CONTEXT.md).
+
+## Language
+
+**Width bound**:
+The one `min-width` or `max-width` a media query imposes in px, read off the
+parsed and normalized query: a bound in another unit, a `not`, an `or`, a
+word rule or two bounds on different sides leave the query with none. Zero is a
+bound in any unit or none. Two bounds of one side are the merged bound, because
+the parser's normalization merges them before the bounds are read, as the
+reference's does.
+_Avoid_: breakpoint value, media bound
+
+**Width sort key**:
+A rule's width bound plus the at-rule **context** it sits in: the chain of its
+preludes with the `@media` prelude spelled `@media`, so a breakpoint under
+`@supports` compares only with breakpoints under the same `@supports`. A chain
+with no `@media` prelude, or two, has no key.
+_Avoid_: media key, sort key alone
+
+**Chain**:
+A rule's leading at-rule preludes, outermost first, read up to the first rule
+block: `@supports (x){@media (y){.a{…}}}` is `["@supports (x)", "@media (y)"]`.
+_Avoid_: at-rule stack, nesting
+
+**Declared property**:
+The property name of a rule's innermost declaration, the text between its last
+`{` and the first `:`. Breakpoints are ordered within a property, so the
+comparator reads it before the width key.
+_Avoid_: property name, declaration key
+
+**Collation**:
+`localeCompare` as the reference calls it with no locale: V8's default (ICU
+root) collation, two levels over printable ASCII. Primary: each character by
+its base letter, case folded, punctuation before digits before letters, a
+prefix before the string it opens. Tertiary: the first case difference,
+lowercase first. Byte order is not it, and the sheet's order depends on it.
+_Avoid_: lexicographic order, string compare

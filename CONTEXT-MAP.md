@@ -39,6 +39,10 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
 - **stylex-css-parser**
   ([CONTEXT.md](./crates/stylex-css-parser/CONTEXT.md)) -- parser combinators
   for CSS _values_; never stylesheets or selectors.
+- **stylex-stylesheet**
+  ([CONTEXT.md](./crates/stylex-stylesheet/CONTEXT.md)) -- the stylesheet
+  step: the emitted rules assembled into one sheet, a port of
+  `processStylexRules`; today its sort order.
 - **stylex-structures**
   ([CONTEXT.md](./crates/stylex-structures/CONTEXT.md)) -- the data carried
   between phases: options, the per-file pass, and small value types.

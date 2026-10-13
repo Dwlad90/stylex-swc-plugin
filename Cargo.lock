@@ -3465,6 +3465,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylex_stylesheet"
+version = "0.19.1"
+dependencies = [
+ "serde",
+ "serde_json",
+ "stylex_css_parser",
+]
+
+[[package]]
 name = "stylex_test_parser"
 version = "0.19.2-rc.1"
 dependencies = [

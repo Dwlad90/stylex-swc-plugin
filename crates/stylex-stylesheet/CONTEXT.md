@@ -4,8 +4,10 @@ The stylesheet step: the rules a compile emits (`metadata.stylex`), assembled
 into one sheet. A port of `processStylexRules` from `@stylexjs/babel-plugin`,
 function by function and in its order, so a change upstream maps onto one
 function here. The reference is `packages/@stylexjs/babel-plugin/src/index.js`
-at facebook/stylex `5a419da81a01e8b28a403107278b3c9ce6206299` (2026-10-09); the
-output is the string upstream writes, byte for byte.
+at facebook/stylex `1fcb9a51cbecad2c82255e0f4b45cc072fa1a95a`, the commit
+`@stylexjs/babel-plugin` 0.19.1 was published from: upstream changes enter this
+project once they are on npm, so the port follows the published version. The
+output is the string that version writes, byte for byte.
 
 Today the crate holds the sort order of the sheet. The assembly itself
 (`process_stylex_rules`) and the NAPI export beside `transform` follow in their
